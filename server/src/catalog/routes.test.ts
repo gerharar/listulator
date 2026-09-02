@@ -188,12 +188,22 @@ describe('catalog HTTP API', () => {
     expect(emptyPatch.statusCode).toBe(400)
   })
 
-  it('accepts any media type, since the registry is open', async () => {
-    // Nothing here is a known adapter yet; the schema must not gate on that.
-    for (const mediaType of ['movie', 'podcast', 'book', 'youtube-playlist']) {
+  it('accepts every built-in category, including ones with no search adapter', async () => {
+    // Wrestling and MMA have no usable public API, but a list must still be
+    // creatable in them — manual entry is always available (SPEC.md §5).
+    for (const mediaType of ['movie', 'book', 'wrestling', 'mma']) {
       const response = await createList({ title: `A ${mediaType} list`, mediaType })
       expect(response.statusCode).toBe(201)
       expect(response.json().mediaType).toBe(mediaType)
+    }
+  })
+
+  it('rejects categories that are not in the registry', async () => {
+    // Deliberately replaces 2.1's free-text behaviour: users pick from the
+    // built-in set, which is what stops tv/TV/Television fragmenting buckets.
+    for (const mediaType of ['youtube-playlist', 'TV', 'Movies', 'anything']) {
+      const response = await createList({ title: 'Nope', mediaType })
+      expect(response.statusCode).toBe(400)
     }
   })
 })

@@ -4,17 +4,25 @@ import { currentUserPlugin } from './auth/currentUser.js'
 import { catalogRoutes } from './catalog/routes.js'
 import type { ServerConfig } from './config.js'
 import type { AppDatabase } from './db/client.js'
+import { createMediaTypeRegistry, type MediaTypeRegistry } from './ingestion/mediaTypes.js'
+import { ingestionRoutes } from './ingestion/routes.js'
 
 export interface AppDependencies {
   db: AppDatabase
   config: ServerConfig
+  /** Defaults to the built-in categories; injectable so tests can add one. */
+  mediaTypes?: MediaTypeRegistry
 }
 
 /**
  * Builds the Fastify app without starting it, so tests can inject requests
  * directly (`app.inject(...)`) rather than binding a port.
  */
-export function buildApp({ db, config }: AppDependencies): FastifyInstance {
+export function buildApp({
+  db,
+  config,
+  mediaTypes = createMediaTypeRegistry(),
+}: AppDependencies): FastifyInstance {
   const app = Fastify({ logger: false })
 
   // Infrastructure probe, deliberately outside /api and outside auth.
@@ -27,7 +35,8 @@ export function buildApp({ db, config }: AppDependencies): FastifyInstance {
     async (api) => {
       await api.register(currentUserPlugin, { db, config })
       await api.register(authRoutes)
-      await api.register(catalogRoutes, { db })
+      await api.register(catalogRoutes, { db, mediaTypes })
+      await api.register(ingestionRoutes, { db, mediaTypes })
     },
     { prefix: '/api' },
   )

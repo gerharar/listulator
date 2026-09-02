@@ -2,6 +2,7 @@ import type { FastifyPluginAsync } from 'fastify'
 import { getCurrentUser } from '../auth/currentUser.js'
 import type { AppDatabase } from '../db/client.js'
 import type { ListSource } from '../db/schema.js'
+import type { MediaTypeRegistry } from '../ingestion/mediaTypes.js'
 import {
   createList,
   createListItem,
@@ -17,12 +18,19 @@ import {
 
 const LIST_SOURCES = ['api', 'llm', 'manual'] as const
 
-const listBodyProperties = {
-  title: { type: 'string', minLength: 1, maxLength: 500 },
-  mediaType: { type: 'string', minLength: 1, maxLength: 100 },
-  source: { type: 'string', enum: LIST_SOURCES },
-  externalRef: { type: ['string', 'null'], maxLength: 500 },
-} as const
+/**
+ * Built from the registry at registration time, so adding a category is still
+ * a single registry entry — the validation follows automatically, with no
+ * schema to keep in sync (SPEC.md §5).
+ */
+function listBodyProperties(mediaTypes: MediaTypeRegistry) {
+  return {
+    title: { type: 'string', minLength: 1, maxLength: 500 },
+    mediaType: { type: 'string', enum: mediaTypes.keys() },
+    source: { type: 'string', enum: LIST_SOURCES },
+    externalRef: { type: ['string', 'null'], maxLength: 500 },
+  } as const
+}
 
 const itemBodyProperties = {
   title: { type: 'string', minLength: 1, maxLength: 500 },
@@ -43,9 +51,15 @@ interface ItemParams extends ListParams {
 
 export interface CatalogRoutesOptions {
   db: AppDatabase
+  mediaTypes: MediaTypeRegistry
 }
 
-export const catalogRoutes: FastifyPluginAsync<CatalogRoutesOptions> = async (app, { db }) => {
+export const catalogRoutes: FastifyPluginAsync<CatalogRoutesOptions> = async (
+  app,
+  { db, mediaTypes },
+) => {
+  const listProperties = listBodyProperties(mediaTypes)
+
   app.post<{
     Body: { title: string; mediaType: string; source?: ListSource; externalRef?: string | null }
   }>(
@@ -56,7 +70,7 @@ export const catalogRoutes: FastifyPluginAsync<CatalogRoutesOptions> = async (ap
           type: 'object',
           required: ['title', 'mediaType'],
           additionalProperties: false,
-          properties: listBodyProperties,
+          properties: listProperties,
         },
       },
     },
@@ -95,7 +109,7 @@ export const catalogRoutes: FastifyPluginAsync<CatalogRoutesOptions> = async (ap
           type: 'object',
           minProperties: 1,
           additionalProperties: false,
-          properties: listBodyProperties,
+          properties: listProperties,
         },
       },
     },

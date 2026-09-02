@@ -6,6 +6,7 @@ import { buildApp } from '../app.js'
 import { loadConfig, type ServerConfig } from '../config.js'
 import { createDatabase, runMigrations } from '../db/client.js'
 import type { AppDatabase } from '../db/client.js'
+import type { MediaTypeRegistry } from '../ingestion/mediaTypes.js'
 
 export interface TestApp {
   app: FastifyInstance
@@ -15,11 +16,16 @@ export interface TestApp {
   cleanup: () => Promise<void>
 }
 
+export interface TestAppOptions extends Partial<ServerConfig> {
+  /** Swap in a registry with extra categories, to prove the set is extensible. */
+  mediaTypes?: MediaTypeRegistry
+}
+
 /**
  * Builds an app against a throwaway SQLite file (not `:memory:`, so the real
  * file/migration path is exercised). Each call gets its own temp directory.
  */
-export function createTestApp(overrides: Partial<ServerConfig> = {}): TestApp {
+export function createTestApp({ mediaTypes, ...overrides }: TestAppOptions = {}): TestApp {
   const directory = mkdtempSync(join(tmpdir(), 'duldulator-test-'))
   const databasePath = overrides.databasePath ?? join(directory, 'test.sqlite')
 
@@ -29,7 +35,7 @@ export function createTestApp(overrides: Partial<ServerConfig> = {}): TestApp {
   const { db, close } = createDatabase(databasePath)
   runMigrations(db)
 
-  const app = buildApp({ db, config })
+  const app = buildApp({ db, config, ...(mediaTypes ? { mediaTypes } : {}) })
 
   return {
     app,

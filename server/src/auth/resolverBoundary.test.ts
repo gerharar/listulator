@@ -45,7 +45,18 @@ describe('current-user resolver boundary', () => {
   it('keeps the users table inside the auth and db modules', () => {
     const allowed = ['db/schema.ts', 'db/client.ts', 'auth/currentUser.ts']
 
-    expect(offenders(allowed, (contents) => /\busers\b/.test(contents))).toEqual([])
+    // Matches code that actually reaches for the table — a named import of
+    // `users`, or `schema.users` — rather than the word appearing in prose.
+    // The first version matched any occurrence and fired on a doc comment.
+    const importsUsersTable = /import\s*(?:type\s*)?\{[^}]*\busers\b[^}]*\}\s*from/
+    const accessesViaSchema = /\bschema\.users\b/
+
+    expect(
+      offenders(
+        allowed,
+        (contents) => importsUsersTable.test(contents) || accessesViaSchema.test(contents),
+      ),
+    ).toEqual([])
   })
 
   it('routes every current-user read through getCurrentUser', () => {
