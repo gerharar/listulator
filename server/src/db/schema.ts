@@ -18,7 +18,7 @@ export const users = sqliteTable(
     isDefaultLocalUser: integer('is_default_local_user', { mode: 'boolean' })
       .notNull()
       .default(false),
-    createdAt: integer('created_at', { mode: 'timestamp' })
+    createdAt: integer('created_at', { mode: 'timestamp_ms' })
       .notNull()
       .$defaultFn(() => new Date()),
   },
@@ -58,10 +58,10 @@ export const lists = sqliteTable(
     source: text('source').$type<ListSource>().notNull().default('manual'),
     /** Upstream identifier, e.g. a TMDB collection id. Null for hand-made lists. */
     externalRef: text('external_ref'),
-    createdAt: integer('created_at', { mode: 'timestamp' })
+    createdAt: integer('created_at', { mode: 'timestamp_ms' })
       .notNull()
       .$defaultFn(() => new Date()),
-    updatedAt: integer('updated_at', { mode: 'timestamp' })
+    updatedAt: integer('updated_at', { mode: 'timestamp_ms' })
       .notNull()
       .$defaultFn(() => new Date()),
   },
@@ -92,11 +92,11 @@ export const listItems = sqliteTable(
       .notNull()
       .default(true),
     /** Null until checked off; doubles as the "when" behind list neglect scoring. */
-    consumedAt: integer('consumed_at', { mode: 'timestamp' }),
-    createdAt: integer('created_at', { mode: 'timestamp' })
+    consumedAt: integer('consumed_at', { mode: 'timestamp_ms' }),
+    createdAt: integer('created_at', { mode: 'timestamp_ms' })
       .notNull()
       .$defaultFn(() => new Date()),
-    updatedAt: integer('updated_at', { mode: 'timestamp' })
+    updatedAt: integer('updated_at', { mode: 'timestamp_ms' })
       .notNull()
       .$defaultFn(() => new Date()),
   },

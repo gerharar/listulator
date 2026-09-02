@@ -7,9 +7,9 @@ import {
   createListItem,
   deleteList,
   deleteListItem,
-  findList,
   findListItems,
-  findLists,
+  findListWithStats,
+  findListsWithStats,
   setListItemConsumed,
   updateList,
   updateListItem,
@@ -64,19 +64,21 @@ export const catalogRoutes: FastifyPluginAsync<CatalogRoutesOptions> = async (ap
       const user = getCurrentUser(request)
       const list = createList(db, user.id, request.body)
 
-      return reply.code(201).send(list)
+      // Re-read so every list response carries stats, even a brand new list
+      // whose numbers are all zero.
+      return reply.code(201).send(findListWithStats(db, user.id, list.id))
     },
   )
 
   app.get('/lists', async (request) => {
     const user = getCurrentUser(request)
 
-    return findLists(db, user.id)
+    return findListsWithStats(db, user.id)
   })
 
   app.get<{ Params: ListParams }>('/lists/:listId', async (request, reply) => {
     const user = getCurrentUser(request)
-    const list = findList(db, user.id, request.params.listId)
+    const list = findListWithStats(db, user.id, request.params.listId)
     if (!list) return reply.callNotFound()
 
     return { ...list, items: findListItems(db, user.id, list.id) ?? [] }
@@ -102,7 +104,7 @@ export const catalogRoutes: FastifyPluginAsync<CatalogRoutesOptions> = async (ap
       const updated = updateList(db, user.id, request.params.listId, request.body)
       if (!updated) return reply.callNotFound()
 
-      return updated
+      return findListWithStats(db, user.id, updated.id)
     },
   )
 
