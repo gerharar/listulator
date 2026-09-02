@@ -123,15 +123,27 @@ describe('derived list stats', () => {
   })
 
   it('computes stats per list in one pass over many lists', () => {
-    listWith([60, 60], [0])
-    listWith([10, 20, 30])
+    const halfDone = listWith([60, 60], [0])
+    const untouched = listWith([10, 20, 30])
 
-    const all = findListsWithStats(harness.db, userId)
+    const byId = new Map(findListsWithStats(harness.db, userId).map((list) => [list.id, list.stats]))
 
-    expect(all.map((list) => list.stats)).toMatchObject([
-      { totalItems: 2, consumedItems: 1, completionPercent: 50, timeRemainingMinutes: 60 },
-      { totalItems: 3, consumedItems: 0, completionPercent: 0, timeRemainingMinutes: 60 },
-    ])
+    // Keyed by id rather than position: these two are created in the same
+    // millisecond, so `created_at` ties and the id tiebreaker orders them by
+    // UUID — stable, but not insertion order. Asserting position here made the
+    // test flaky roughly one run in six.
+    expect(byId.get(halfDone.id)).toMatchObject({
+      totalItems: 2,
+      consumedItems: 1,
+      completionPercent: 50,
+      timeRemainingMinutes: 60,
+    })
+    expect(byId.get(untouched.id)).toMatchObject({
+      totalItems: 3,
+      consumedItems: 0,
+      completionPercent: 0,
+      timeRemainingMinutes: 60,
+    })
   })
 
   it('serves stats over HTTP on both the index and a single list', async () => {

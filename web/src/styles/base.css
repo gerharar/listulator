@@ -1,0 +1,387 @@
+@import './tokens.css';
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  border-radius: var(--radius);
+}
+
+* {
+  margin: 0;
+}
+
+html {
+  color-scheme: light dark;
+}
+
+body {
+  font-family: var(--font-sans);
+  /* Tabular figures keep counts, percentages and durations from jittering as
+     they change (docs/design/README.md). */
+  font-variant-numeric: tabular-nums;
+  font-size: 15px;
+  line-height: 1.45;
+  background: var(--surface);
+  color: var(--text);
+  -webkit-font-smoothing: antialiased;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+  font-variant-numeric: inherit;
+  color: inherit;
+}
+
+a {
+  color: inherit;
+}
+
+/* Focus must stay visible in every theme — the accent is defined per theme. */
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.app {
+  max-width: 60rem;
+  margin: 0 auto;
+  padding: var(--space-4);
+}
+
+.app__header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+  padding-bottom: var(--space-3);
+  margin-bottom: var(--space-5);
+  border-bottom: var(--border-width) solid var(--border-strong);
+}
+
+.app__title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-decoration: none;
+}
+
+.app__title span {
+  color: var(--accent);
+}
+
+.muted {
+  color: var(--text-muted);
+}
+
+.faint {
+  color: var(--text-faint);
+}
+
+.small {
+  font-size: 0.82rem;
+}
+
+/* ---- controls ---------------------------------------------------------- */
+
+.button {
+  display: inline-block;
+  padding: var(--space-2) var(--space-3);
+  border: var(--border-width) solid var(--border-strong);
+  background: var(--surface-raised);
+  color: var(--text);
+  cursor: pointer;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.button:hover {
+  background: var(--surface-hover);
+}
+
+.button--primary {
+  background: var(--accent);
+  color: var(--on-accent);
+  border-color: var(--accent);
+  font-weight: 600;
+}
+
+.button--primary:hover {
+  filter: brightness(1.08);
+}
+
+.field {
+  display: block;
+  margin-bottom: var(--space-4);
+}
+
+.field__label {
+  display: block;
+  margin-bottom: var(--space-1);
+  font-size: 0.82rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.field__hint {
+  margin-top: var(--space-1);
+  font-size: 0.82rem;
+  color: var(--text-faint);
+}
+
+.input,
+.select,
+.textarea {
+  width: 100%;
+  padding: var(--space-2) var(--space-3);
+  border: var(--border-width) solid var(--border);
+  background: var(--surface-sunken);
+  color: var(--text);
+}
+
+.textarea {
+  min-height: 9rem;
+  resize: vertical;
+  line-height: 1.6;
+}
+
+/* ---- panels ------------------------------------------------------------ */
+
+.panel {
+  border: var(--border-width) solid var(--border);
+  background: var(--surface-raised);
+  margin-bottom: var(--space-4);
+}
+
+.panel__header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  border-bottom: var(--border-width) solid var(--border);
+  background: var(--surface-sunken);
+}
+
+.panel__title {
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.panel__count {
+  font-size: 0.82rem;
+  color: var(--text-faint);
+}
+
+.panel__empty {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+  padding: var(--space-3);
+  color: var(--text-faint);
+  font-size: 0.88rem;
+}
+
+/* ---- list rows --------------------------------------------------------- */
+
+.rows {
+  list-style: none;
+  padding: 0;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: var(--space-1) var(--space-3);
+  align-items: center;
+  padding: var(--space-2) var(--space-3);
+  border-top: var(--border-width) solid var(--border);
+  text-decoration: none;
+}
+
+.rows > li:first-child .row {
+  border-top: none;
+}
+
+.row:hover {
+  background: var(--surface-hover);
+}
+
+.row__title {
+  font-weight: 500;
+}
+
+.row__meta {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+/* On a phone the meta drops under the title rather than squeezing it. */
+@media (max-width: 34rem) {
+  .row {
+    grid-template-columns: 1fr;
+  }
+
+  .row__meta {
+    justify-content: flex-start;
+  }
+}
+
+/* ---- progress ---------------------------------------------------------- */
+
+/*
+ * Drawn as cells rather than █░ glyphs: block characters are not in Inter and
+ * fall back to whatever font has them, which looks inconsistent across
+ * platforms. Cells give the same blocky read, reliably.
+ */
+.progress {
+  display: flex;
+  gap: 2px;
+}
+
+.progress__cell {
+  width: 7px;
+  height: 12px;
+  background: var(--progress-empty);
+}
+
+.progress__cell--filled {
+  background: var(--progress-filled);
+}
+
+.progress--large .progress__cell {
+  width: 11px;
+  height: 18px;
+}
+
+/* ---- checklist --------------------------------------------------------- */
+
+.item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  width: 100%;
+  padding: var(--space-2) var(--space-3);
+  border: none;
+  border-top: var(--border-width) solid var(--border);
+  background: none;
+  text-align: left;
+  cursor: pointer;
+}
+
+.items > li:first-child .item {
+  border-top: none;
+}
+
+.item:hover {
+  background: var(--surface-hover);
+}
+
+.item__box {
+  flex: none;
+  width: 1.05rem;
+  height: 1.05rem;
+  display: grid;
+  place-items: center;
+  border: var(--border-width) solid var(--border-strong);
+  background: var(--surface-sunken);
+  font-size: 0.8rem;
+  line-height: 1;
+}
+
+.item__box--checked {
+  background: var(--accent);
+  color: var(--on-accent);
+  border-color: var(--accent);
+  font-weight: 700;
+}
+
+.item__title {
+  flex: 1;
+  min-width: 0;
+}
+
+.item--consumed .item__title {
+  color: var(--text-faint);
+  text-decoration: line-through;
+}
+
+.item__duration {
+  flex: none;
+  font-size: 0.82rem;
+  color: var(--text-muted);
+}
+
+/* ---- summary ----------------------------------------------------------- */
+
+.summary {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+  padding: var(--space-3);
+  border-bottom: var(--border-width) solid var(--border);
+}
+
+.summary__figure {
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+.page__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+  margin-bottom: var(--space-4);
+}
+
+.page__title {
+  font-size: 1.4rem;
+  font-weight: 600;
+}
+
+.back {
+  display: inline-block;
+  margin-bottom: var(--space-3);
+  font-size: 0.82rem;
+  color: var(--text-muted);
+}
+
+.notice {
+  padding: var(--space-3);
+  border: var(--border-width) solid var(--border-strong);
+  background: var(--surface-raised);
+  margin-bottom: var(--space-4);
+}
+
+.notice--error {
+  border-color: var(--danger);
+  color: var(--danger);
+}
+
+.also {
+  padding: var(--space-3);
+  border: var(--border-width) dashed var(--border);
+  color: var(--text-faint);
+  font-size: 0.88rem;
+}
+
+.also a {
+  color: var(--text-muted);
+}
