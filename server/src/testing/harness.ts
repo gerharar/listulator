@@ -19,13 +19,19 @@ export interface TestApp {
 export interface TestAppOptions extends Partial<ServerConfig> {
   /** Swap in a registry with extra categories, to prove the set is extensible. */
   mediaTypes?: MediaTypeRegistry
+  /** Point at fixture strategy files instead of the shipped ones. */
+  strategiesDir?: string
 }
 
 /**
  * Builds an app against a throwaway SQLite file (not `:memory:`, so the real
  * file/migration path is exercised). Each call gets its own temp directory.
  */
-export function createTestApp({ mediaTypes, ...overrides }: TestAppOptions = {}): TestApp {
+export function createTestApp({
+  mediaTypes,
+  strategiesDir,
+  ...overrides
+}: TestAppOptions = {}): TestApp {
   const directory = mkdtempSync(join(tmpdir(), 'duldulator-test-'))
   const databasePath = overrides.databasePath ?? join(directory, 'test.sqlite')
 
@@ -35,7 +41,12 @@ export function createTestApp({ mediaTypes, ...overrides }: TestAppOptions = {})
   const { db, close } = createDatabase(databasePath)
   runMigrations(db)
 
-  const app = buildApp({ db, config, ...(mediaTypes ? { mediaTypes } : {}) })
+  const app = buildApp({
+    db,
+    config,
+    ...(mediaTypes ? { mediaTypes } : {}),
+    ...(strategiesDir ? { strategiesDir } : {}),
+  })
 
   return {
     app,

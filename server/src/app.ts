@@ -6,12 +6,15 @@ import type { ServerConfig } from './config.js'
 import type { AppDatabase } from './db/client.js'
 import { createMediaTypeRegistry, type MediaTypeRegistry } from './ingestion/mediaTypes.js'
 import { ingestionRoutes } from './ingestion/routes.js'
+import { suggestionsRoutes } from './suggestions/routes.js'
 
 export interface AppDependencies {
   db: AppDatabase
   config: ServerConfig
   /** Defaults to the built-in categories; injectable so tests can add one. */
   mediaTypes?: MediaTypeRegistry
+  /** Overridable so tests can rank against fixture strategy files. */
+  strategiesDir?: string
 }
 
 /**
@@ -22,6 +25,7 @@ export function buildApp({
   db,
   config,
   mediaTypes = createMediaTypeRegistry(),
+  strategiesDir,
 }: AppDependencies): FastifyInstance {
   const app = Fastify({ logger: false })
 
@@ -37,6 +41,7 @@ export function buildApp({
       await api.register(authRoutes)
       await api.register(catalogRoutes, { db, mediaTypes })
       await api.register(ingestionRoutes, { db, mediaTypes })
+      await api.register(suggestionsRoutes, { db, ...(strategiesDir ? { strategiesDir } : {}) })
     },
     { prefix: '/api' },
   )

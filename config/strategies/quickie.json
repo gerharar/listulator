@@ -1,0 +1,6 @@
+{
+  "name": "quickie",
+  "description": "You have a little time and want to close something out. Ranks purely on how long is left to finish the list, shortest first. Finished and empty lists are never suggested, so this cannot answer with a list that has nothing to do.",
+  "scope": "all_lists",
+  "factors": [{ "type": "time_remaining_minutes", "direction": "favor_lowest", "weight": 1 }]
+}
