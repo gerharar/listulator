@@ -1,4 +1,16 @@
 import { createMusicBrainzAdapter } from './adapters/musicbrainz.js'
+import { createTmdbAdapter } from './adapters/tmdb.js'
+
+/**
+ * Credentials are read per call rather than captured here: this module is
+ * evaluated during import, which is before the entry point loads `.env`.
+ * Adapters report themselves unavailable when their credentials are missing,
+ * so an unkeyed install simply has no search for that category.
+ */
+const tmdb = createTmdbAdapter(() => ({
+  apiKey: process.env['TMDB_API_KEY'],
+  readAccessToken: process.env['TMDB_READ_ACCESS_TOKEN'],
+}))
 
 /**
  * The built-in media categories.
@@ -66,7 +78,7 @@ export interface MediaType {
 }
 
 export const DEFAULT_MEDIA_TYPES: readonly MediaType[] = [
-  { key: 'movie', label: 'Movies', sortOrder: 10, defaultDurationMinutes: 110 },
+  { key: 'movie', label: 'Movies', sortOrder: 10, defaultDurationMinutes: 110, adapter: tmdb },
   { key: 'tv', label: 'TV Shows', sortOrder: 20, defaultDurationMinutes: 45 },
   // Covers both ~22 min series episodes and ~100 min features; 30 splits the
   // difference badly on purpose — it is flagged estimated and easy to correct.

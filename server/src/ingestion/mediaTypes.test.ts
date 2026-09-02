@@ -31,7 +31,9 @@ describe('media type registry', () => {
 
     // Grows as Phase 3a lands adapters. Wrestling and MMA are expected to stay
     // out: neither has a public API worth using, and manual entry covers them.
-    expect(searchable).toEqual(['music'])
+    // movie is present because TMDB is *registered*; whether it is usable
+    // depends on a key being configured, which isAvailable() decides.
+    expect(searchable).toEqual(['movie', 'music'])
     expect(searchable).not.toContain('wrestling')
     expect(searchable).not.toContain('mma')
   })
