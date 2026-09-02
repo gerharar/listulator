@@ -24,9 +24,16 @@ describe('media type registry', () => {
     }
   })
 
-  it('has no search adapters yet — manual entry is the baseline', () => {
-    // Real adapters land in Phase 3a; wrestling and MMA may never get one.
-    expect(DEFAULT_MEDIA_TYPES.filter((mediaType) => mediaType.adapter)).toEqual([])
+  it('gives search only to categories with a usable source', () => {
+    const searchable = DEFAULT_MEDIA_TYPES.filter((mediaType) => mediaType.adapter).map(
+      (mediaType) => mediaType.key,
+    )
+
+    // Grows as Phase 3a lands adapters. Wrestling and MMA are expected to stay
+    // out: neither has a public API worth using, and manual entry covers them.
+    expect(searchable).toEqual(['music'])
+    expect(searchable).not.toContain('wrestling')
+    expect(searchable).not.toContain('mma')
   })
 
   it('orders by sortOrder rather than declaration order', () => {

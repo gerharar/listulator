@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { createTestApp, type TestApp } from '../testing/harness.js'
-import { createMediaTypeRegistry, DEFAULT_MEDIA_TYPES } from './mediaTypes.js'
+import { IngestionError } from './http.js'
+import { createMediaTypeRegistry, DEFAULT_MEDIA_TYPES, type SearchAdapter } from './mediaTypes.js'
 
 describe('GET /api/media-types', () => {
   let harness: TestApp
@@ -27,12 +28,21 @@ describe('GET /api/media-types', () => {
     })
   })
 
-  it('reports search as unavailable while no adapters exist', async () => {
+  it('reports which categories can be searched and which cannot', async () => {
     const response = await harness.app.inject({ method: 'GET', url: '/api/media-types' })
+    const byKey = new Map(
+      response.json().map((mediaType: { key: string; searchAvailable: boolean }) => [
+        mediaType.key,
+        mediaType.searchAvailable,
+      ]),
+    )
 
-    expect(
-      response.json().every((mediaType: { searchAvailable: boolean }) => !mediaType.searchAvailable),
-    ).toBe(true)
+    // MusicBrainz needs no credentials, so music is searchable out of the box.
+    expect(byKey.get('music')).toBe(true)
+    // Wrestling and MMA have no usable public API and may never be searchable;
+    // the rest are waiting on adapters.
+    expect(byKey.get('wrestling')).toBe(false)
+    expect(byKey.get('mma')).toBe(false)
   })
 })
 
@@ -215,5 +225,157 @@ describe('registry extensibility', () => {
     expect(response.statusCode).toBe(400)
 
     await harness.cleanup()
+  })
+})
+
+describe('search and import from a source', () => {
+  let harness: TestApp
+
+  /** A stand-in adapter, so these tests never touch the network. */
+  function fakeAdapter(overrides: Partial<SearchAdapter> = {}): SearchAdapter {
+    return {
+      isAvailable: () => true,
+      search: async () => [{ externalRef: 'ref-1', title: 'Cannibal Corpse', detail: 'Group · US' }],
+      expand: async () => [
+        { title: 'Eaten Back to Life', externalRef: 'rg-1' },
+        { title: 'The Bleeding', externalRef: 'rg-2', timeToConsumeMinutes: 47 },
+      ],
+      ...overrides,
+    }
+  }
+
+  function withAdapter(adapter: SearchAdapter | undefined) {
+    return createTestApp({
+      mediaTypes: createMediaTypeRegistry([
+        { key: 'music', label: 'Music', sortOrder: 10, defaultDurationMinutes: 45, ...(adapter ? { adapter } : {}) },
+        // No adapter at all — wrestling and MMA are really like this.
+        { key: 'wrestling', label: 'Wrestling', sortOrder: 20, defaultDurationMinutes: 150 },
+      ]),
+    })
+  }
+
+  afterEach(async () => {
+    await harness?.cleanup()
+  })
+
+  it('finds sources that could become a whole list', async () => {
+    harness = withAdapter(fakeAdapter())
+
+    const response = await harness.app.inject({
+      method: 'GET',
+      url: '/api/media-types/music/search?q=cannibal',
+    })
+
+    expect(response.statusCode).toBe(200)
+    expect(response.json().sources).toEqual([
+      { externalRef: 'ref-1', title: 'Cannibal Corpse', detail: 'Group · US' },
+    ])
+  })
+
+  it('builds a list from a chosen source, in one step', async () => {
+    harness = withAdapter(fakeAdapter())
+
+    const response = await harness.app.inject({
+      method: 'POST',
+      url: '/api/lists/from-source',
+      payload: { mediaType: 'music', externalRef: 'ref-1', title: 'Cannibal Corpse' },
+    })
+
+    expect(response.statusCode).toBe(201)
+    expect(response.json()).toMatchObject({
+      title: 'Cannibal Corpse',
+      mediaType: 'music',
+      source: 'api',
+      externalRef: 'ref-1',
+      stats: { totalItems: 2 },
+    })
+
+    const items = (
+      await harness.app.inject({ method: 'GET', url: `/api/lists/${response.json().id}` })
+    ).json().items
+
+    // A duration the source knew is kept as fact; the rest fall back to the
+    // category default and are marked estimated.
+    expect(items).toMatchObject([
+      { title: 'Eaten Back to Life', timeToConsumeMinutes: 45, timeToConsumeIsEstimated: true },
+      { title: 'The Bleeding', timeToConsumeMinutes: 47, timeToConsumeIsEstimated: false },
+    ])
+  })
+
+  it('says search is unavailable for a category with no adapter, and points at manual entry', async () => {
+    harness = withAdapter(fakeAdapter())
+
+    const response = await harness.app.inject({
+      method: 'GET',
+      url: '/api/media-types/wrestling/search?q=wrestlemania',
+    })
+
+    expect(response.statusCode).toBe(409)
+    expect(response.json().message).toMatch(/by hand/)
+  })
+
+  it('treats a configured-but-unusable adapter the same way', async () => {
+    // What a missing API key looks like: the adapter exists, it just cannot run.
+    harness = withAdapter(fakeAdapter({ isAvailable: () => false }))
+
+    const response = await harness.app.inject({
+      method: 'GET',
+      url: '/api/media-types/music/search?q=x',
+    })
+
+    expect(response.statusCode).toBe(409)
+  })
+
+  it('reports an upstream failure as upstream, not as a bug here', async () => {
+    harness = withAdapter(
+      fakeAdapter({
+        search: async () => {
+          throw new IngestionError('MusicBrainz is rate-limiting us. Try again in a moment.')
+        },
+      }),
+    )
+
+    const response = await harness.app.inject({
+      method: 'GET',
+      url: '/api/media-types/music/search?q=x',
+    })
+
+    expect(response.statusCode).toBe(502)
+    expect(response.json().message).toMatch(/rate-limiting/)
+  })
+
+  it('does not leave an empty list behind when a source expands to nothing', async () => {
+    harness = withAdapter(fakeAdapter({ expand: async () => [] }))
+
+    const response = await harness.app.inject({
+      method: 'POST',
+      url: '/api/lists/from-source',
+      payload: { mediaType: 'music', externalRef: 'ref-1', title: 'Nothing' },
+    })
+
+    expect(response.statusCode).toBe(422)
+    expect((await harness.app.inject({ method: 'GET', url: '/api/lists' })).json()).toEqual([])
+  })
+
+  it('rejects an empty query rather than searching for nothing', async () => {
+    harness = withAdapter(fakeAdapter())
+
+    const response = await harness.app.inject({
+      method: 'GET',
+      url: '/api/media-types/music/search?q=%20%20',
+    })
+
+    expect(response.statusCode).toBe(400)
+  })
+
+  it('404s for a category that does not exist', async () => {
+    harness = withAdapter(fakeAdapter())
+
+    const response = await harness.app.inject({
+      method: 'GET',
+      url: '/api/media-types/nonsense/search?q=x',
+    })
+
+    expect(response.statusCode).toBe(404)
   })
 })

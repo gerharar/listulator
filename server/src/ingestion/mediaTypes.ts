@@ -1,3 +1,5 @@
+import { createMusicBrainzAdapter } from './adapters/musicbrainz.js'
+
 /**
  * The built-in media categories.
  *
@@ -17,17 +19,36 @@ export interface MediaTypeCandidate {
 }
 
 /**
- * Search/metadata lookup for a category. Not implemented by anything yet —
- * the real adapters (TMDB, IGDB, MusicBrainz, Comic Vine) land in Phase 3a.
+ * Something upstream that can become a whole list: an artist, a filmography,
+ * a franchise, a comic volume.
+ */
+export interface ListSource {
+  /** Upstream id, passed back to `expand`. */
+  externalRef: string
+  /** Suggested list title. */
+  title: string
+  /** Disambiguation, since searches return near-identical names. */
+  detail?: string
+}
+
+/**
+ * Search and metadata lookup for a category.
  *
- * A category may have no adapter at all (wrestling, MMA have no clean public
- * API). Manual entry is always available regardless, so it is the baseline
+ * Two steps on purpose. This app is about *lists*, so the useful search is
+ * "find me something that becomes a list" — you look up Jackie Chan and get
+ * the filmography, rather than searching for one film at a time and repeating
+ * it ninety-nine times. `search` finds the sources; `expand` turns the chosen
+ * one into its items.
+ *
+ * A category may have no adapter at all (wrestling and MMA have no usable
+ * public API). Manual entry always works regardless, so it is the baseline
  * rather than an adapter of its own.
  */
 export interface SearchAdapter {
   /** False when, say, an API key is missing — the UI hides search for it. */
   isAvailable(): boolean
-  search(query: string): Promise<MediaTypeCandidate[]>
+  search(query: string): Promise<ListSource[]>
+  expand(externalRef: string): Promise<MediaTypeCandidate[]>
 }
 
 export interface MediaType {
@@ -58,7 +79,13 @@ export const DEFAULT_MEDIA_TYPES: readonly MediaType[] = [
   { key: 'comic', label: 'Comics', sortOrder: 70, defaultDurationMinutes: 15 },
   // ~80k words at ~250 wpm.
   { key: 'book', label: 'Books', sortOrder: 80, defaultDurationMinutes: 360 },
-  { key: 'music', label: 'Music', sortOrder: 90, defaultDurationMinutes: 45 },
+  {
+    key: 'music',
+    label: 'Music',
+    sortOrder: 90,
+    defaultDurationMinutes: 45,
+    adapter: createMusicBrainzAdapter(),
+  },
 ]
 
 export interface MediaTypeRegistry {
