@@ -113,6 +113,9 @@ export const api = {
 
   quickie: () => request<{ picks: SuggestionPick[] }>('/suggestions/quickie'),
 
+  deleteItem: (listId: string, itemId: string) =>
+    request<void>(`/lists/${listId}/items/${itemId}`, { method: 'DELETE' }),
+
   setConsumed: (listId: string, itemId: string, consumed: boolean) =>
     request<ListItem>(`/lists/${listId}/items/${itemId}/consumed`, {
       method: 'PUT',

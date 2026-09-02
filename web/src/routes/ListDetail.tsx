@@ -7,14 +7,16 @@ import { formatDuration } from '../formatDuration.js'
 function Item({
   item,
   onToggle,
+  onRemove,
 }: {
   item: ListItem
   onToggle: (item: ListItem) => void
+  onRemove: (item: ListItem) => void
 }) {
   const consumed = item.consumedAt !== null
 
   return (
-    <li>
+    <li className="item-row">
       <button
         type="button"
         className={consumed ? 'item item--consumed' : 'item'}
@@ -31,6 +33,20 @@ function Item({
           {item.timeToConsumeIsEstimated ? '~' : ''}
           {formatDuration(item.timeToConsumeMinutes)}
         </span>
+      </button>
+      {/*
+        No confirmation: pruning an import is the job this exists for, and
+        twenty dialogs would make it miserable. Losing one item is cheap and
+        re-addable, unlike deleting a whole list.
+      */}
+      <button
+        type="button"
+        className="item__remove"
+        onClick={() => onRemove(item)}
+        aria-label={`Remove ${item.title}`}
+        title={`Remove ${item.title}`}
+      >
+        ✕
       </button>
     </li>
   )
@@ -81,6 +97,23 @@ export function ListDetail({ mediaTypes }: { mediaTypes: MediaType[] }) {
     } catch {
       setList(previous)
       setError('Could not save that change')
+    }
+  }
+
+  async function removeItem(item: ListItem) {
+    if (!listId || !list) return
+
+    // Optimistic, like the checkbox: pruning a freshly imported list means
+    // many deletes in a row, and a round trip between each would drag.
+    const previous = list
+    setList({ ...list, items: list.items.filter((candidate) => candidate.id !== item.id) })
+
+    try {
+      await api.deleteItem(listId, item.id)
+      await load()
+    } catch {
+      setList(previous)
+      setError(`Could not remove "${item.title}"`)
     }
   }
 
@@ -137,7 +170,12 @@ export function ListDetail({ mediaTypes }: { mediaTypes: MediaType[] }) {
         ) : (
           <ul className="rows items">
             {list.items.map((item) => (
-              <Item key={item.id} item={item} onToggle={(target) => void toggle(target)} />
+              <Item
+                key={item.id}
+                item={item}
+                onToggle={(target) => void toggle(target)}
+                onRemove={(target) => void removeItem(target)}
+              />
             ))}
           </ul>
         )}

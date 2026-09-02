@@ -270,21 +270,60 @@ a {
 
 /* ---- checklist --------------------------------------------------------- */
 
+/* The row owns the divider now that it holds two controls. */
+.item-row {
+  display: flex;
+  align-items: stretch;
+  border-top: var(--border-width) solid var(--border);
+}
+
+.items > li:first-child {
+  border-top: none;
+}
+
 .item {
   display: flex;
   align-items: center;
   gap: var(--space-3);
-  width: 100%;
+  flex: 1;
+  min-width: 0;
   padding: var(--space-2) var(--space-3);
   border: none;
-  border-top: var(--border-width) solid var(--border);
   background: none;
   text-align: left;
   cursor: pointer;
 }
 
-.items > li:first-child .item {
-  border-top: none;
+/*
+ * Kept quiet until the row is hovered or the button is focused: this sits
+ * beside a control you click constantly, so it should not invite a stray
+ * click. It stays reachable by keyboard at all times.
+ */
+.item__remove {
+  flex: none;
+  padding: 0 var(--space-3);
+  border: none;
+  background: none;
+  color: var(--text-faint);
+  cursor: pointer;
+  opacity: 0;
+  font-size: 0.85rem;
+}
+
+.item-row:hover .item__remove,
+.item__remove:focus-visible {
+  opacity: 1;
+}
+
+.item__remove:hover {
+  color: var(--danger);
+}
+
+/* Nothing hovers on a touch screen, so it is always visible there. */
+@media (hover: none) {
+  .item__remove {
+    opacity: 1;
+  }
 }
 
 .item:hover {
