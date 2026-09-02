@@ -55,7 +55,7 @@ describe('media type registry', () => {
     // out: neither has a public API worth using, and manual entry covers them.
     // movie is present because TMDB is *registered*; whether it is usable
     // depends on a key being configured, which isAvailable() decides.
-    expect(searchable).toEqual(['movie', 'music'])
+    expect(searchable).toEqual(['movie', 'book', 'music'])
     expect(searchable).not.toContain('wrestling')
     expect(searchable).not.toContain('mma')
   })

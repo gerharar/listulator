@@ -1,4 +1,5 @@
 import { createMusicBrainzAdapter } from './adapters/musicbrainz.js'
+import { createOpenLibraryAdapter } from './adapters/openLibrary.js'
 import { createTmdbAdapter } from './adapters/tmdb.js'
 
 /**
@@ -92,7 +93,13 @@ export const DEFAULT_MEDIA_TYPES: readonly MediaType[] = [
   { key: 'game', label: 'Games', sortOrder: 60, defaultDurationMinutes: 600 },
   // ~15 min for a standard 30-page issue (SPEC.md §5).
   { key: 'comic', label: 'Comics', sortOrder: 70, defaultDurationMinutes: 15 },
-  { key: 'book', label: 'Books', sortOrder: 80, defaultDurationMinutes: 240 },
+  {
+    key: 'book',
+    label: 'Books',
+    sortOrder: 80,
+    defaultDurationMinutes: 240,
+    adapter: createOpenLibraryAdapter(),
+  },
   {
     key: 'music',
     label: 'Music',
