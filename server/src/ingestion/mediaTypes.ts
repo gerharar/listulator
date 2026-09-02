@@ -1,3 +1,4 @@
+import { createComicVineAdapter } from './adapters/comicVine.js'
 import { createIgdbAdapter } from './adapters/igdb.js'
 import { createMusicBrainzAdapter } from './adapters/musicbrainz.js'
 import { createOpenLibraryAdapter } from './adapters/openLibrary.js'
@@ -17,6 +18,10 @@ const tmdb = createTmdbAdapter(() => ({
 const igdb = createIgdbAdapter(() => ({
   clientId: process.env['IGDB_CLIENT_ID'],
   clientSecret: process.env['IGDB_CLIENT_SECRET'],
+}))
+
+const comicVine = createComicVineAdapter(() => ({
+  apiKey: process.env['COMIC_VINE_API_KEY'],
 }))
 
 /**
@@ -97,8 +102,15 @@ export const DEFAULT_MEDIA_TYPES: readonly MediaType[] = [
   { key: 'mma', label: 'MMA', sortOrder: 50, defaultDurationMinutes: 180 },
   // Time-to-beat for a mainline game, not a completionist run.
   { key: 'game', label: 'Games', sortOrder: 60, defaultDurationMinutes: 600, adapter: igdb },
-  // ~15 min for a standard 30-page issue (SPEC.md §5).
-  { key: 'comic', label: 'Comics', sortOrder: 70, defaultDurationMinutes: 15 },
+  // ~15 min for a standard 30-page issue (SPEC.md §5). Comic Vine's rate
+  // limit rules out fetching a real page count per issue.
+  {
+    key: 'comic',
+    label: 'Comics',
+    sortOrder: 70,
+    defaultDurationMinutes: 15,
+    adapter: comicVine,
+  },
   {
     key: 'book',
     label: 'Books',
