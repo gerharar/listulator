@@ -173,30 +173,36 @@ describe('rank', () => {
     ])
   })
 
-  it('penalises mid-progress harder than a linear ranking would', () => {
-    // distance_from_low_end is the "fresh, not stuck in the middle" shaping.
+  it('puts the stuck middle last, with both ends above it', () => {
+    // distance_from_middle is a U: fresh wins outright, half-finished is the
+    // worst place to be, and a nearly-done list beats the middle without
+    // beating something untouched.
     const lists = [
       list({ id: 'barely-started', total: 10, consumed: 1, minutesLeft: 900 }),
       list({ id: 'half-done', total: 10, consumed: 5, minutesLeft: 500 }),
       list({ id: 'nearly-done', total: 10, consumed: 9, minutesLeft: 100 }),
     ]
 
-    const suggestions = rank({
-      strategy: singleFactor('distance_from_low_end', 'favor_highest'),
-      candidates: lists,
-      nextItems: nextItemsFor(lists),
-      now: NOW,
-    })
-
-    expect(suggestions.map((entry) => entry.list.id)).toEqual([
+    expect(ranked(singleFactor('distance_from_middle', 'favor_highest'), lists)).toEqual([
       'barely-started',
-      'half-done',
       'nearly-done',
+      'half-done',
     ])
+  })
 
-    // Half-done sits well below the midpoint between the two extremes, which is
-    // what "avoid the middle" means in practice.
-    expect(suggestions[1]!.score).toBeLessThan(0.4)
+  it('keeps the fresh end ahead of the nearly-finished end', () => {
+    // The U is deliberately lopsided. A symmetric one would let a 95%-done
+    // list tie with an untouched one, which is "I'm tired, boss"'s answer, not
+    // this button's.
+    const lists = [
+      list({ id: 'untouched', total: 10, consumed: 0, minutesLeft: 1000 }),
+      list({ id: 'almost-there', total: 20, consumed: 19, minutesLeft: 50 }),
+    ]
+
+    expect(ranked(singleFactor('distance_from_middle', 'favor_highest'), lists)).toEqual([
+      'untouched',
+      'almost-there',
+    ])
   })
 
   it('combines factors by weight', () => {

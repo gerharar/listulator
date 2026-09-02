@@ -13,7 +13,7 @@ export const FACTOR_TYPES = [
   'neglect_time',
   'completion_percent',
   'time_remaining_minutes',
-  'distance_from_low_end',
+  'distance_from_middle',
 ] as const
 
 export type FactorType = (typeof FACTOR_TYPES)[number]
@@ -66,6 +66,9 @@ export interface FactorDefinition {
 
 const MINUTE = 60 * 1000
 
+/** See `distance_from_middle`. Below 1 so the fresh end always wins outright. */
+const HIGH_END_RECOVERY = 0.6
+
 export const FACTORS: Record<FactorType, FactorDefinition> = {
   /**
    * How long the list has been sitting untouched.
@@ -96,15 +99,26 @@ export const FACTORS: Record<FactorType, FactorDefinition> = {
   },
 
   /**
-   * "Fresh, and definitely not stuck in the middle."
+   * "Anything but stuck in the middle" — a U over completion, tilted hard
+   * toward the fresh end.
    *
-   * Falls off quadratically from 0% complete, so barely-started lists score far
-   * above half-finished ones — a plain linear ranking would treat 50% as merely
-   * average. It deliberately does not rise again near 100%: nearly-done lists
-   * are what "I'm tired, boss" exists to surface.
+   * Scores highest at 0%, bottoms out around two-thirds through, then recovers
+   * as a list approaches finished. Both ends beat the middle, which is what
+   * "avoid lists stuck in the middle" asks for; the tilt is what keeps a
+   * barely-started list winning outright, so this button stays distinct from
+   * "I'm tired, boss" rather than duplicating it.
+   *
+   * `HIGH_END_RECOVERY` is how much of the fresh end's score a nearly-finished
+   * list claws back. At 1 the curve would be symmetric and near-done would tie
+   * with untouched; at 0 it collapses to the earlier monotonic version where
+   * the middle was merely mediocre and near-done was worst.
    */
-  distance_from_low_end: {
-    compute: (list) => (1 - list.stats.completionPercent / 100) ** 2,
+  distance_from_middle: {
+    compute: (list) => {
+      const progress = list.stats.completionPercent / 100
+
+      return (1 - progress) ** 2 + HIGH_END_RECOVERY * progress ** 2
+    },
     noiseFloor: 0.01,
   },
 }

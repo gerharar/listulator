@@ -1,9 +1,9 @@
 {
   "name": "suggest",
-  "description": "You do not know what you want. Favours long-ignored lists you have barely started, and pushes down anything stuck half-finished. Nearly-complete lists are deliberately not rewarded here — that is what 'I'm tired, boss' is for.",
+  "description": "You do not know what you want. Favours long-ignored lists you have barely started. Anything stuck half-finished is pushed to the bottom; a nearly-complete list still beats the stuck middle, but never outranks something fresh — winning outright is what 'I'm tired, boss' is for.",
   "scope": "all_lists",
   "factors": [
     { "type": "neglect_time", "direction": "favor_highest", "weight": 0.4 },
-    { "type": "distance_from_low_end", "direction": "favor_highest", "weight": 0.6 }
+    { "type": "distance_from_middle", "direction": "favor_highest", "weight": 0.6 }
   ]
 }

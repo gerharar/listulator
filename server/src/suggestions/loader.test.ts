@@ -114,7 +114,7 @@ describe('the shipped strategy files', () => {
     ])
 
     const suggest = loadStrategy('suggest')
-    expect(suggest.factors.map((factor) => factor.type)).toContain('distance_from_low_end')
+    expect(suggest.factors.map((factor) => factor.type)).toContain('distance_from_middle')
     // Nearly-done lists are tired-boss's job; suggest must not chase completion.
     expect(suggest.factors.map((factor) => factor.type)).not.toContain('completion_percent')
 

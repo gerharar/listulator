@@ -89,7 +89,7 @@ describe('suggestion endpoints', () => {
     expect(results[0]?.nextItem?.title).toBe('Fantastic Four #10')
   })
 
-  it('“Suggest” favours barely-started lists and pushes down the half-finished', async () => {
+  it('“Suggest” favours barely-started lists and buries the half-finished', async () => {
     const barelyStarted = seed('Jackie Chan', {
       count: 10,
       minutes: 110,
@@ -112,17 +112,9 @@ describe('suggestion endpoints', () => {
     const results = await picks('/api/suggestions/suggest')
     const order = results.map((pick) => pick.list.id)
 
-    expect(order).toEqual([barelyStarted.id, halfDone.id, nearlyDone.id])
-
-    // Not a U-shape: nearly-done ranks *last*, not second. Rewarding it would
-    // put this button in competition with "I'm tired, boss", which exists
-    // precisely to surface almost-finished lists.
-    //
-    // The "avoid the middle" part is that half-done scores far below the
-    // halfway mark between the two extremes — a linear ranking would have put
-    // it at ~0.5.
-    const byId = new Map(results.map((pick) => [pick.list.id, pick.score]))
-    expect(byId.get(halfDone.id)!).toBeLessThan(0.4)
+    // Both ends beat the middle, and the fresh end wins outright: the stuck
+    // half-finished list is the one thing this button should never offer.
+    expect(order).toEqual([barelyStarted.id, nearlyDone.id, halfDone.id])
   })
 
   it('“Quickie” answers with the list that takes least time to finish', async () => {
