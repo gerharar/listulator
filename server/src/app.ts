@@ -1,6 +1,7 @@
 import Fastify, { type FastifyInstance } from 'fastify'
 import { authRoutes } from './auth/routes.js'
 import { currentUserPlugin } from './auth/currentUser.js'
+import { catalogRoutes } from './catalog/routes.js'
 import type { ServerConfig } from './config.js'
 import type { AppDatabase } from './db/client.js'
 
@@ -26,6 +27,7 @@ export function buildApp({ db, config }: AppDependencies): FastifyInstance {
     async (api) => {
       await api.register(currentUserPlugin, { db, config })
       await api.register(authRoutes)
+      await api.register(catalogRoutes, { db })
     },
     { prefix: '/api' },
   )

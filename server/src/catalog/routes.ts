@@ -1,0 +1,204 @@
+import type { FastifyPluginAsync } from 'fastify'
+import { getCurrentUser } from '../auth/currentUser.js'
+import type { AppDatabase } from '../db/client.js'
+import type { ListSource } from '../db/schema.js'
+import {
+  createList,
+  createListItem,
+  deleteList,
+  deleteListItem,
+  findList,
+  findListItems,
+  findLists,
+  setListItemConsumed,
+  updateList,
+  updateListItem,
+} from './repository.js'
+
+const LIST_SOURCES = ['api', 'llm', 'manual'] as const
+
+const listBodyProperties = {
+  title: { type: 'string', minLength: 1, maxLength: 500 },
+  mediaType: { type: 'string', minLength: 1, maxLength: 100 },
+  source: { type: 'string', enum: LIST_SOURCES },
+  externalRef: { type: ['string', 'null'], maxLength: 500 },
+} as const
+
+const itemBodyProperties = {
+  title: { type: 'string', minLength: 1, maxLength: 500 },
+  // Required on create: the catalog stores a number, and deciding *which*
+  // number when nothing is known is ingestion's job (SPEC.md §5).
+  timeToConsumeMinutes: { type: 'integer', minimum: 0 },
+  timeToConsumeIsEstimated: { type: 'boolean' },
+  orderIndex: { type: 'integer', minimum: 0 },
+} as const
+
+interface ListParams {
+  listId: string
+}
+
+interface ItemParams extends ListParams {
+  itemId: string
+}
+
+export interface CatalogRoutesOptions {
+  db: AppDatabase
+}
+
+export const catalogRoutes: FastifyPluginAsync<CatalogRoutesOptions> = async (app, { db }) => {
+  app.post<{
+    Body: { title: string; mediaType: string; source?: ListSource; externalRef?: string | null }
+  }>(
+    '/lists',
+    {
+      schema: {
+        body: {
+          type: 'object',
+          required: ['title', 'mediaType'],
+          additionalProperties: false,
+          properties: listBodyProperties,
+        },
+      },
+    },
+    async (request, reply) => {
+      const user = getCurrentUser(request)
+      const list = createList(db, user.id, request.body)
+
+      return reply.code(201).send(list)
+    },
+  )
+
+  app.get('/lists', async (request) => {
+    const user = getCurrentUser(request)
+
+    return findLists(db, user.id)
+  })
+
+  app.get<{ Params: ListParams }>('/lists/:listId', async (request, reply) => {
+    const user = getCurrentUser(request)
+    const list = findList(db, user.id, request.params.listId)
+    if (!list) return reply.callNotFound()
+
+    return { ...list, items: findListItems(db, user.id, list.id) ?? [] }
+  })
+
+  app.patch<{
+    Params: ListParams
+    Body: { title?: string; mediaType?: string; source?: ListSource; externalRef?: string | null }
+  }>(
+    '/lists/:listId',
+    {
+      schema: {
+        body: {
+          type: 'object',
+          minProperties: 1,
+          additionalProperties: false,
+          properties: listBodyProperties,
+        },
+      },
+    },
+    async (request, reply) => {
+      const user = getCurrentUser(request)
+      const updated = updateList(db, user.id, request.params.listId, request.body)
+      if (!updated) return reply.callNotFound()
+
+      return updated
+    },
+  )
+
+  app.delete<{ Params: ListParams }>('/lists/:listId', async (request, reply) => {
+    const user = getCurrentUser(request)
+    if (!deleteList(db, user.id, request.params.listId)) return reply.callNotFound()
+
+    return reply.code(204).send()
+  })
+
+  app.post<{
+    Params: ListParams
+    Body: {
+      title: string
+      timeToConsumeMinutes: number
+      timeToConsumeIsEstimated?: boolean
+      orderIndex?: number
+    }
+  }>(
+    '/lists/:listId/items',
+    {
+      schema: {
+        body: {
+          type: 'object',
+          required: ['title', 'timeToConsumeMinutes'],
+          additionalProperties: false,
+          properties: itemBodyProperties,
+        },
+      },
+    },
+    async (request, reply) => {
+      const user = getCurrentUser(request)
+      const item = createListItem(db, user.id, request.params.listId, request.body)
+      if (!item) return reply.callNotFound()
+
+      return reply.code(201).send(item)
+    },
+  )
+
+  app.patch<{
+    Params: ItemParams
+    Body: {
+      title?: string
+      timeToConsumeMinutes?: number
+      timeToConsumeIsEstimated?: boolean
+      orderIndex?: number
+    }
+  }>(
+    '/lists/:listId/items/:itemId',
+    {
+      schema: {
+        body: {
+          type: 'object',
+          minProperties: 1,
+          additionalProperties: false,
+          properties: itemBodyProperties,
+        },
+      },
+    },
+    async (request, reply) => {
+      const user = getCurrentUser(request)
+      const { listId, itemId } = request.params
+      const updated = updateListItem(db, user.id, listId, itemId, request.body)
+      if (!updated) return reply.callNotFound()
+
+      return updated
+    },
+  )
+
+  app.delete<{ Params: ItemParams }>('/lists/:listId/items/:itemId', async (request, reply) => {
+    const user = getCurrentUser(request)
+    const { listId, itemId } = request.params
+    if (!deleteListItem(db, user.id, listId, itemId)) return reply.callNotFound()
+
+    return reply.code(204).send()
+  })
+
+  app.put<{ Params: ItemParams; Body: { consumed: boolean } }>(
+    '/lists/:listId/items/:itemId/consumed',
+    {
+      schema: {
+        body: {
+          type: 'object',
+          required: ['consumed'],
+          additionalProperties: false,
+          properties: { consumed: { type: 'boolean' } },
+        },
+      },
+    },
+    async (request, reply) => {
+      const user = getCurrentUser(request)
+      const { listId, itemId } = request.params
+      const updated = setListItemConsumed(db, user.id, listId, itemId, request.body.consumed)
+      if (!updated) return reply.callNotFound()
+
+      return updated
+    },
+  )
+}
