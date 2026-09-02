@@ -41,6 +41,14 @@ export interface MediaType {
   searchAvailable: boolean
 }
 
+export interface SuggestionPick {
+  list: MediaList
+  /** The specific thing to consume next; null only if a list is somehow empty. */
+  nextItem: ListItem | null
+  score: number
+  factors: Record<string, number>
+}
+
 export interface CurrentUser {
   id: string
   isDefaultLocalUser: boolean
@@ -94,6 +102,16 @@ export const api = {
       method: 'POST',
       body: JSON.stringify({ items }),
     }),
+
+  tiredBoss: (currentListId: string) =>
+    request<{ picks: SuggestionPick[] }>('/suggestions/tired-boss', {
+      method: 'POST',
+      body: JSON.stringify({ currentListId }),
+    }),
+
+  suggest: () => request<{ picks: SuggestionPick[] }>('/suggestions/suggest'),
+
+  quickie: () => request<{ picks: SuggestionPick[] }>('/suggestions/quickie'),
 
   setConsumed: (listId: string, itemId: string, consumed: boolean) =>
     request<ListItem>(`/lists/${listId}/items/${itemId}/consumed`, {

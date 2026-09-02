@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Progress } from '../components/Progress.js'
+import { Suggestions } from '../components/Suggestions.js'
 import { api, type MediaList, type MediaType } from '../lib/api.js'
 import { buildBuckets, findOrphanedLists } from '../lib/buckets.js'
 import { formatDuration } from '../formatDuration.js'
@@ -109,6 +110,10 @@ export function Overview({ mediaTypes }: { mediaTypes: MediaType[] }) {
           New list
         </Link>
       </div>
+
+      {/* Hidden on first run: three buttons that can only answer "you have
+          nothing" are noise when the job is to add a first list. */}
+      {!isFirstRun && <Suggestions lists={lists} />}
 
       {isFirstRun && (
         <p className="notice">
