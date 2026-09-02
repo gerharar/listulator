@@ -39,9 +39,10 @@ describe('GET /api/media-types', () => {
 
     // MusicBrainz needs no credentials, so music is searchable out of the box.
     expect(byKey.get('music')).toBe(true)
-    // Movies depend on a TMDB key, so this reflects the environment rather
-    // than a fixed answer.
+    // Movies and games depend on credentials, so these reflect the
+    // environment rather than a fixed answer.
     expect(typeof byKey.get('movie')).toBe('boolean')
+    expect(typeof byKey.get('game')).toBe('boolean')
     // Wrestling and MMA have no usable public API and may never be searchable;
     // the rest are waiting on adapters.
     expect(byKey.get('wrestling')).toBe(false)

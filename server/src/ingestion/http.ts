@@ -3,6 +3,9 @@ export type FetchLike = (url: string, init?: RequestInit) => Promise<Response>
 
 export class IngestionError extends Error {}
 
+/** Split out so an adapter can refresh an expired token and try again. */
+export class UnauthorizedError extends IngestionError {}
+
 /**
  * Identifies this app to upstream APIs. MusicBrainz in particular *requires*
  * a meaningful User-Agent and will refuse generic ones — respecting each
@@ -16,11 +19,21 @@ export interface GetJsonOptions {
   /** Named in error messages, so a failure says which service broke. */
   source: string
   fetchImpl?: FetchLike
+  /** IGDB takes its queries as a POST body rather than a query string. */
+  method?: 'GET' | 'POST'
+  body?: string
 }
 
 export async function getJson<T>(
   url: string,
-  { headers = {}, timeoutMs = 15_000, source, fetchImpl = fetch }: GetJsonOptions,
+  {
+    headers = {},
+    timeoutMs = 15_000,
+    source,
+    fetchImpl = fetch,
+    method = 'GET',
+    body,
+  }: GetJsonOptions,
 ): Promise<T> {
   const controller = new AbortController()
   const timeout = setTimeout(() => controller.abort(), timeoutMs)
@@ -28,7 +41,9 @@ export async function getJson<T>(
   let response: Response
   try {
     response = await fetchImpl(url, {
+      method,
       headers: { 'user-agent': USER_AGENT, accept: 'application/json', ...headers },
+      ...(body === undefined ? {} : { body }),
       signal: controller.signal,
     })
   } catch (cause) {
@@ -43,6 +58,10 @@ export async function getJson<T>(
 
   if (response.status === 429) {
     throw new IngestionError(`${source} is rate-limiting us. Try again in a moment.`)
+  }
+
+  if (response.status === 401 || response.status === 403) {
+    throw new UnauthorizedError(`${source} rejected our credentials.`)
   }
 
   if (!response.ok) {

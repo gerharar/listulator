@@ -1,3 +1,4 @@
+import { createIgdbAdapter } from './adapters/igdb.js'
 import { createMusicBrainzAdapter } from './adapters/musicbrainz.js'
 import { createOpenLibraryAdapter } from './adapters/openLibrary.js'
 import { createTmdbAdapter } from './adapters/tmdb.js'
@@ -11,6 +12,11 @@ import { createTmdbAdapter } from './adapters/tmdb.js'
 const tmdb = createTmdbAdapter(() => ({
   apiKey: process.env['TMDB_API_KEY'],
   readAccessToken: process.env['TMDB_READ_ACCESS_TOKEN'],
+}))
+
+const igdb = createIgdbAdapter(() => ({
+  clientId: process.env['IGDB_CLIENT_ID'],
+  clientSecret: process.env['IGDB_CLIENT_SECRET'],
 }))
 
 /**
@@ -90,7 +96,7 @@ export const DEFAULT_MEDIA_TYPES: readonly MediaType[] = [
   { key: 'wrestling', label: 'Wrestling', sortOrder: 40, defaultDurationMinutes: 180 },
   { key: 'mma', label: 'MMA', sortOrder: 50, defaultDurationMinutes: 180 },
   // Time-to-beat for a mainline game, not a completionist run.
-  { key: 'game', label: 'Games', sortOrder: 60, defaultDurationMinutes: 600 },
+  { key: 'game', label: 'Games', sortOrder: 60, defaultDurationMinutes: 600, adapter: igdb },
   // ~15 min for a standard 30-page issue (SPEC.md §5).
   { key: 'comic', label: 'Comics', sortOrder: 70, defaultDurationMinutes: 15 },
   {
