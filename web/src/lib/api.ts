@@ -49,6 +49,13 @@ export interface SuggestionPick {
   factors: Record<string, number>
 }
 
+/** Something upstream that can become a whole list — an artist, a filmography. */
+export interface ListSourceResult {
+  externalRef: string
+  title: string
+  detail?: string
+}
+
 export interface CurrentUser {
   id: string
   isDefaultLocalUser: boolean
@@ -112,6 +119,14 @@ export const api = {
   suggest: () => request<{ picks: SuggestionPick[] }>('/suggestions/suggest'),
 
   quickie: () => request<{ picks: SuggestionPick[] }>('/suggestions/quickie'),
+
+  searchSources: (mediaType: string, query: string) =>
+    request<{ sources: ListSourceResult[] }>(
+      `/media-types/${mediaType}/search?q=${encodeURIComponent(query)}`,
+    ),
+
+  createFromSource: (input: { mediaType: string; externalRef: string; title: string }) =>
+    request<MediaList>('/lists/from-source', { method: 'POST', body: JSON.stringify(input) }),
 
   deleteItem: (listId: string, itemId: string) =>
     request<void>(`/lists/${listId}/items/${itemId}`, { method: 'DELETE' }),

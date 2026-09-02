@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
+import { SourceSearch } from '../components/SourceSearch.js'
 import { api, type MediaType } from '../lib/api.js'
 import { formatDuration } from '../formatDuration.js'
 
@@ -63,9 +64,9 @@ export function NewList({ mediaTypes }: { mediaTypes: MediaType[] }) {
 
       {error && <p className="notice notice--error">{error}</p>}
 
-      <form className="panel" onSubmit={(event) => void submit(event)}>
+      <section className="panel">
         <div style={{ padding: 'var(--space-4)' }}>
-          <label className="field">
+          <label className="field" style={{ marginBottom: 0 }}>
             <span className="field__label">Category</span>
             <select
               className="select"
@@ -75,6 +76,7 @@ export function NewList({ mediaTypes }: { mediaTypes: MediaType[] }) {
               {mediaTypes.map((candidate) => (
                 <option key={candidate.key} value={candidate.key}>
                   {candidate.label}
+                  {candidate.searchAvailable ? '' : ' — add by hand'}
                 </option>
               ))}
             </select>
@@ -82,6 +84,20 @@ export function NewList({ mediaTypes }: { mediaTypes: MediaType[] }) {
               Categories are built in — if one is missing, it has to be added to the app itself.
             </span>
           </label>
+        </div>
+      </section>
+
+      {category?.searchAvailable && (
+        <SourceSearch mediaType={category} onBuilt={(listId) => void navigate(`/lists/${listId}`)} />
+      )}
+
+      <form className="panel" onSubmit={(event) => void submit(event)}>
+        <header className="panel__header">
+          <h2 className="panel__title">
+            {category?.searchAvailable ? 'Or add by hand' : 'Add by hand'}
+          </h2>
+        </header>
+        <div style={{ padding: 'var(--space-4)' }}>
 
           <label className="field">
             <span className="field__label">List title</span>
