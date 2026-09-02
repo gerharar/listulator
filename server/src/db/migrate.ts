@@ -1,4 +1,4 @@
-import { loadConfig } from '../config.js'
+import { loadConfig, loadEnvFile } from '../config.js'
 import { createDatabase, runMigrations } from './client.js'
 
 /**
@@ -7,6 +7,8 @@ import { createDatabase, runMigrations } from './client.js'
  * The server also migrates on boot, so this exists for the case where you want
  * to apply schema changes without starting anything.
  */
+loadEnvFile()
+
 const config = loadConfig()
 const { db, close } = createDatabase(config.databasePath)
 

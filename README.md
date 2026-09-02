@@ -50,6 +50,20 @@ npm run lint
 npm run typecheck
 ```
 
+### Configuration
+
+Everything has a working default, so the app runs with no configuration at
+all. To change something, copy `.env.example` to `.env` in the repo root:
+
+```bash
+cp .env.example .env
+```
+
+API keys are only needed for search. Music (MusicBrainz) and books (Open
+Library) need none; without a key for the others, that category simply has no
+search and you add items by hand. `.env` is gitignored, and an exported shell
+variable always wins over the file.
+
 ## License
 
 [AGPL-3.0](LICENSE) — free to self-host and modify. If you run a modified

@@ -1,3 +1,23 @@
+import { existsSync } from 'node:fs'
+import { fileURLToPath } from 'node:url'
+
+/** `<repo>/.env` — beside config/strategies, where a self-hoster looks for settings. */
+const ENV_FILE = fileURLToPath(new URL('../../.env', import.meta.url))
+
+/**
+ * Loads `<repo>/.env` if it exists, using Node's built-in support rather than
+ * a dependency. Real environment variables win: a value already exported in
+ * the shell is a deliberate override, and a stale file should not beat it.
+ *
+ * Absent file is normal — every setting has a working default, and the app
+ * runs with no configuration at all.
+ */
+export function loadEnvFile(file: string = ENV_FILE): void {
+  if (!existsSync(file)) return
+
+  process.loadEnvFile(file)
+}
+
 /**
  * Server configuration, read from the environment once at startup.
  *

@@ -1,6 +1,9 @@
 import { buildApp } from './app.js'
-import { loadConfig } from './config.js'
+import { loadConfig, loadEnvFile } from './config.js'
 import { createDatabase, runMigrations } from './db/client.js'
+
+// Before anything reads process.env.
+loadEnvFile()
 
 const config = loadConfig()
 const { db } = createDatabase(config.databasePath)
