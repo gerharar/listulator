@@ -24,8 +24,9 @@ export default tseslint.config(
     },
   },
   {
-    // Config files at the repo root are allowed default exports (tooling requires it).
-    files: ['*.config.js', '*.config.ts', '**/vite.config.ts', '**/vitest.config.ts'],
+    // Tooling config files must default-export; the named-exports rule is for
+    // application code.
+    files: ['**/*.config.js', '**/*.config.ts'],
     rules: {
       'no-restricted-syntax': 'off',
     },

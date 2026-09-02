@@ -17,7 +17,9 @@
     "test": "npm run test --workspaces --if-present",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "lint": "eslint .",
-    "format": "prettier --write ."
+    "format": "prettier --write .",
+    "db:migrate": "npm run db:migrate -w @duldulator/server",
+    "db:generate": "npm run db:generate -w @duldulator/server"
   },
   "engines": {
     "node": ">=20"
