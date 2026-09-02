@@ -1,0 +1,31 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+build/
+.vite/
+
+# Test artifacts
+coverage/
+
+# Local database (never commit personal consumption data)
+*.sqlite
+*.sqlite-journal
+*.sqlite-wal
+*.sqlite-shm
+data/
+
+# Secrets / local config
+.env
+.env.*
+!.env.example
+
+# Editor / OS
+.DS_Store
+*.log
+npm-debug.log*
+
+# NOTE: /config/strategies/*.json is deliberately NOT ignored — the shipped
+# suggestion strategies are tracked so self-hosters can read and tune them.
+# See SPEC.md §6.
