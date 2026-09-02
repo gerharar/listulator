@@ -30,8 +30,9 @@ The ranking logic for each button lives in a plain JSON file under
 
 ## Status
 
-Early development. See [`SPEC.md`](SPEC.md) for the design and
-[`tasks/plan.md`](tasks/plan.md) for the build plan.
+Early development. See [`SPEC.md`](SPEC.md) for the design,
+[`tasks/plan.md`](tasks/plan.md) for the build plan, and
+[`docs/DECISIONS.md`](docs/DECISIONS.md) for why things are the way they are.
 
 ## Stack
 
