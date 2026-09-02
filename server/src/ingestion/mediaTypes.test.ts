@@ -24,6 +24,28 @@ describe('media type registry', () => {
     }
   })
 
+  it('uses the agreed fallback durations', () => {
+    // Locked deliberately. These are the project owner's numbers, and they
+    // decide what Quickie ranks on before any real duration is known — for
+    // wrestling and MMA, which have no usable API, they are all it will ever
+    // have to go on.
+    expect(
+      Object.fromEntries(
+        DEFAULT_MEDIA_TYPES.map((mediaType) => [mediaType.key, mediaType.defaultDurationMinutes]),
+      ),
+    ).toEqual({
+      movie: 120,
+      tv: 50,
+      animation: 25,
+      wrestling: 180,
+      mma: 180,
+      game: 600,
+      comic: 15,
+      book: 240,
+      music: 45,
+    })
+  })
+
   it('gives search only to categories with a usable source', () => {
     const searchable = DEFAULT_MEDIA_TYPES.filter((mediaType) => mediaType.adapter).map(
       (mediaType) => mediaType.key,

@@ -71,26 +71,28 @@ export interface MediaType {
   /**
    * Fallback duration when nothing better is known, stored with
    * `timeToConsumeIsEstimated = true` and overridable per item (SPEC.md §4).
-   * Every value here is a defensible guess, not a measurement.
+   *
+   * These are the project owner's numbers, not derived from anything — they
+   * exist so Quickie can rank a list the moment it is created, without waiting
+   * on a lookup that may never be possible for that category.
    */
   defaultDurationMinutes: number
   adapter?: SearchAdapter
 }
 
 export const DEFAULT_MEDIA_TYPES: readonly MediaType[] = [
-  { key: 'movie', label: 'Movies', sortOrder: 10, defaultDurationMinutes: 110, adapter: tmdb },
-  { key: 'tv', label: 'TV Shows', sortOrder: 20, defaultDurationMinutes: 45 },
-  // Covers both ~22 min series episodes and ~100 min features; 30 splits the
-  // difference badly on purpose — it is flagged estimated and easy to correct.
-  { key: 'animation', label: 'Animation', sortOrder: 30, defaultDurationMinutes: 30 },
-  { key: 'wrestling', label: 'Wrestling', sortOrder: 40, defaultDurationMinutes: 150 },
+  { key: 'movie', label: 'Movies', sortOrder: 10, defaultDurationMinutes: 120, adapter: tmdb },
+  { key: 'tv', label: 'TV Shows', sortOrder: 20, defaultDurationMinutes: 50 },
+  // Episode-length. The category also holds animated features, which this
+  // badly under-estimates — flagged estimated and easy to correct per item.
+  { key: 'animation', label: 'Animation', sortOrder: 30, defaultDurationMinutes: 25 },
+  { key: 'wrestling', label: 'Wrestling', sortOrder: 40, defaultDurationMinutes: 180 },
   { key: 'mma', label: 'MMA', sortOrder: 50, defaultDurationMinutes: 180 },
   // Time-to-beat for a mainline game, not a completionist run.
-  { key: 'game', label: 'Games', sortOrder: 60, defaultDurationMinutes: 900 },
+  { key: 'game', label: 'Games', sortOrder: 60, defaultDurationMinutes: 600 },
   // ~15 min for a standard 30-page issue (SPEC.md §5).
   { key: 'comic', label: 'Comics', sortOrder: 70, defaultDurationMinutes: 15 },
-  // ~80k words at ~250 wpm.
-  { key: 'book', label: 'Books', sortOrder: 80, defaultDurationMinutes: 360 },
+  { key: 'book', label: 'Books', sortOrder: 80, defaultDurationMinutes: 240 },
   {
     key: 'music',
     label: 'Music',

@@ -23,7 +23,7 @@ describe('GET /api/media-types', () => {
       key: 'movie',
       label: 'Movies',
       sortOrder: 10,
-      defaultDurationMinutes: 110,
+      defaultDurationMinutes: 120,
       searchAvailable: false,
     })
   })
@@ -116,7 +116,7 @@ describe('POST /api/lists/:listId/items/import', () => {
     const response = await importItems(list.id, [{ title: 'Assassin’s Creed' }])
 
     expect(response.json()[0]).toMatchObject({
-      timeToConsumeMinutes: 900,
+      timeToConsumeMinutes: 600,
       timeToConsumeIsEstimated: true,
     })
   })
