@@ -36,6 +36,10 @@ interface CreditEntry {
   genre_ids?: number[]
 }
 
+interface CrewEntry extends CreditEntry {
+  job?: string
+}
+
 interface CollectionDetail {
   parts?: { id: number; title?: string; release_date?: string }[]
 }
@@ -107,35 +111,71 @@ export function createTmdbClient(credentials: TmdbCredentialSource, fetchImpl?: 
   return { request, mapLimited, isConfigured }
 }
 
+export type TmdbClient = ReturnType<typeof createTmdbClient>
+
+/**
+ * Fills in each film's runtime, a few at a time.
+ *
+ * A credits or discover list carries no runtime, so this is one request per
+ * film — worth it because Quickie ranks purely on time remaining, and a whole
+ * filmography sharing one guessed duration would tell it nothing. A failed
+ * lookup costs that film its runtime and nothing else.
+ */
+export async function withRuntimes(
+  client: TmdbClient,
+  films: { id: number; title: string }[],
+): Promise<MediaTypeCandidate[]> {
+  return client.mapLimited(films, RUNTIME_CONCURRENCY, async (film) => {
+    const runtime = await client
+      .request<{ runtime?: number | null }>(`/movie/${film.id}`)
+      .then((detail) => detail.runtime)
+      .catch(() => null)
+
+    return {
+      title: film.title,
+      externalRef: `movie:${film.id}`,
+      ...(runtime ? { timeToConsumeMinutes: runtime } : {}),
+    }
+  })
+}
+
+export interface TmdbFilmOptions {
+  /**
+   * How to treat documentaries in a filmography.
+   *
+   * Excluded by default: a person's credits otherwise fill with documentaries
+   * *about* them. The documentaries category inverts it, since a director's
+   * documentaries are exactly what it wants.
+   */
+  documentaries?: 'exclude' | 'only'
+  /**
+   * Also count films the person directed, not only ones they appeared in.
+   *
+   * Off by default, because an actor's list should be the films they are in.
+   * On for documentaries: Ken Burns directs rather than appears, so reading
+   * only the cast credits found 12 of his 59 documentaries.
+   */
+  includeDirecting?: boolean
+}
+
 export function createTmdbAdapter(
   credentials: TmdbCredentialSource,
+  { documentaries = 'exclude', includeDirecting = false }: TmdbFilmOptions = {},
   fetchImpl?: FetchLike,
 ): SearchAdapter {
-  const { request, mapLimited, isConfigured } = createTmdbClient(credentials, fetchImpl)
+  const client = createTmdbClient(credentials, fetchImpl)
+  const { request, isConfigured } = client
 
-  async function withRuntimes(
-    films: { id: number; title: string }[],
-  ): Promise<MediaTypeCandidate[]> {
-    return mapLimited(films, RUNTIME_CONCURRENCY, async (film) => {
-      // One film failing should not lose the other 162; it just falls back to
-      // the category default like any unknown duration.
-      const runtime = await request<{ runtime?: number | null }>(`/movie/${film.id}`)
-        .then((detail) => detail.runtime)
-        .catch(() => null)
 
-      return {
-        title: film.title,
-        externalRef: `movie:${film.id}`,
-        ...(runtime ? { timeToConsumeMinutes: runtime } : {}),
-      }
-    })
-  }
-
-  /** Released, non-documentary, oldest first — the order you watch a career in. */
+  /** Released, oldest first — the order you watch a career in. */
   function usableCredits(entries: CreditEntry[], today: string) {
     return entries
       .filter((entry) => entry.title && entry.release_date && entry.release_date <= today)
-      .filter((entry) => !(entry.genre_ids ?? []).includes(DOCUMENTARY_GENRE))
+      .filter((entry) => {
+        const isDocumentary = (entry.genre_ids ?? []).includes(DOCUMENTARY_GENRE)
+
+        return documentaries === 'only' ? isDocumentary : !isDocumentary
+      })
       .sort((a, b) => (a.release_date ?? '').localeCompare(b.release_date ?? ''))
       .slice(0, MAX_ITEMS)
       .map((entry) => ({ id: entry.id, title: entry.title! }))
@@ -186,13 +226,25 @@ export function createTmdbAdapter(
       if (kind === 'collection') {
         const collection = await request<CollectionDetail>(`/collection/${id}`)
 
-        return withRuntimes(usableCredits(collection.parts ?? [], today))
+        return withRuntimes(client, usableCredits(collection.parts ?? [], today))
       }
 
       if (kind === 'person') {
-        const credits = await request<{ cast?: CreditEntry[] }>(`/person/${id}/movie_credits`)
+        const credits = await request<{ cast?: CreditEntry[]; crew?: CrewEntry[] }>(
+          `/person/${id}/movie_credits`,
+        )
 
-        return withRuntimes(usableCredits(credits.cast ?? [], today))
+        const directed = includeDirecting
+          ? (credits.crew ?? []).filter((entry) => entry.job === 'Director')
+          : []
+
+        // A person can be credited twice on one film; keep the first.
+        const byFilm = new Map<number, CreditEntry>()
+        for (const entry of [...(credits.cast ?? []), ...directed]) {
+          if (!byFilm.has(entry.id)) byFilm.set(entry.id, entry)
+        }
+
+        return withRuntimes(client, usableCredits([...byFilm.values()], today))
       }
 
       return []

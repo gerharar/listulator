@@ -7,7 +7,9 @@ import {
   WRESTLING_PROMOTIONS,
 } from './adapters/wikipediaEvents.js'
 import { createOpenLibraryAdapter } from './adapters/openLibrary.js'
+import { createCompositeAdapter } from './adapters/composite.js'
 import { createTmdbAdapter } from './adapters/tmdb.js'
+import { createTmdbCompanyAdapter } from './adapters/tmdbCompany.js'
 import { ANIMATION_GENRE, DOCUMENTARY_GENRE, createTmdbTvAdapter } from './adapters/tmdbTv.js'
 
 /**
@@ -16,20 +18,54 @@ import { ANIMATION_GENRE, DOCUMENTARY_GENRE, createTmdbTvAdapter } from './adapt
  * Adapters report themselves unavailable when their credentials are missing,
  * so an unkeyed install simply has no search for that category.
  */
-const tmdb = createTmdbAdapter(() => ({
-  apiKey: process.env['TMDB_API_KEY'],
-  readAccessToken: process.env['TMDB_READ_ACCESS_TOKEN'],
-}))
 
 const tmdbCredentials = () => ({
   apiKey: process.env['TMDB_API_KEY'],
   readAccessToken: process.env['TMDB_READ_ACCESS_TOKEN'],
 })
 
-/** Shows and animated shows come from the same source, filtered differently. */
+/**
+ * Several categories draw on more than one shape of TMDB search, because a
+ * medium is not a search shape. Animation holds both Naruto (a series) and
+ * Studio Ghibli (a studio of films); documentaries hold both series and a
+ * director's body of work. Each category still picks its own sources — there
+ * is no cross-cutting "TMDB" category (docs/DECISIONS.md).
+ */
+const films = createTmdbAdapter(tmdbCredentials)
+const studios = createTmdbCompanyAdapter(tmdbCredentials)
+
+const animatedShows = createTmdbTvAdapter(tmdbCredentials, { genreFilter: ANIMATION_GENRE })
+const animationStudios = createTmdbCompanyAdapter(tmdbCredentials, {
+  genreFilter: ANIMATION_GENRE,
+})
+
+const documentarySeries = createTmdbTvAdapter(tmdbCredentials, { genreFilter: DOCUMENTARY_GENRE })
+const documentaryFilms = createTmdbAdapter(tmdbCredentials, {
+  documentaries: 'only',
+  // Documentarians direct rather than appear; cast credits alone found 12 of
+  // Ken Burns' 59 documentaries.
+  includeDirecting: true,
+})
+
 const tmdbTv = createTmdbTvAdapter(tmdbCredentials)
-const tmdbAnimation = createTmdbTvAdapter(tmdbCredentials, { genreFilter: ANIMATION_GENRE })
-const tmdbDocumentary = createTmdbTvAdapter(tmdbCredentials, { genreFilter: DOCUMENTARY_GENRE })
+
+/** Films by a person or collection, plus films by a studio. */
+const movieSources = createCompositeAdapter([
+  { prefixes: ['person', 'collection'], adapter: films },
+  { prefixes: ['company'], adapter: studios },
+])
+
+/** Animated series, plus the studios that make animated films. */
+const animationSources = createCompositeAdapter([
+  { prefixes: ['show'], adapter: animatedShows },
+  { prefixes: ['company'], adapter: animationStudios },
+])
+
+/** Documentary series, plus a film-maker's documentaries. */
+const documentarySources = createCompositeAdapter([
+  { prefixes: ['show'], adapter: documentarySeries },
+  { prefixes: ['person', 'collection'], adapter: documentaryFilms },
+])
 
 const igdb = createIgdbAdapter(() => ({
   clientId: process.env['IGDB_CLIENT_ID'],
@@ -109,7 +145,13 @@ export interface MediaType {
 }
 
 export const DEFAULT_MEDIA_TYPES: readonly MediaType[] = [
-  { key: 'movie', label: 'Movies', sortOrder: 10, defaultDurationMinutes: 120, adapter: tmdb },
+  {
+    key: 'movie',
+    label: 'Movies',
+    sortOrder: 10,
+    defaultDurationMinutes: 120,
+    adapter: movieSources,
+  },
   { key: 'tv', label: 'TV Shows', sortOrder: 20, defaultDurationMinutes: 50, adapter: tmdbTv },
   // Episode-length. The category also holds animated features, which this
   // badly under-estimates — flagged estimated and easy to correct per item.
@@ -118,7 +160,7 @@ export const DEFAULT_MEDIA_TYPES: readonly MediaType[] = [
     label: 'Animation',
     sortOrder: 30,
     defaultDurationMinutes: 25,
-    adapter: tmdbAnimation,
+    adapter: animationSources,
   },
   // Feature-length is the common case for a documentary; series episodes run
   // shorter and are corrected per item.
@@ -127,7 +169,7 @@ export const DEFAULT_MEDIA_TYPES: readonly MediaType[] = [
     label: 'Documentaries',
     sortOrder: 35,
     defaultDurationMinutes: 90,
-    adapter: tmdbDocumentary,
+    adapter: documentarySources,
   },
   {
     key: 'wrestling',

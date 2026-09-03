@@ -40,7 +40,7 @@ describe('TMDB adapter availability', () => {
 
   it('sends the v3 key as a query parameter', async () => {
     const fetchImpl = router({ '/search/person': {}, '/search/collection': {} })
-    await createTmdbAdapter(credentials, fetchImpl).search('x')
+    await createTmdbAdapter(credentials, {}, fetchImpl).search('x')
 
     const [url] = vi.mocked(fetchImpl).mock.calls[0]!
     expect(url).toContain('api_key=test-key')
@@ -48,7 +48,7 @@ describe('TMDB adapter availability', () => {
 
   it('prefers the v4 token as a bearer header, and keeps the key out of the URL', async () => {
     const fetchImpl = router({ '/search/person': {}, '/search/collection': {} })
-    await createTmdbAdapter({ apiKey: 'k', readAccessToken: 'token' }, fetchImpl).search('x')
+    await createTmdbAdapter({ apiKey: 'k', readAccessToken: 'token' }, {}, fetchImpl).search('x')
 
     const [url, init] = vi.mocked(fetchImpl).mock.calls[0]!
     expect((init?.headers as Record<string, string>)['authorization']).toBe('Bearer token')
@@ -73,7 +73,7 @@ describe('TMDB search', () => {
   }
 
   it('offers both collections and filmographies as things to track', async () => {
-    const adapter = createTmdbAdapter(credentials, router(routes))
+    const adapter = createTmdbAdapter(credentials, {}, router(routes))
 
     expect(await adapter.search('jackie chan')).toEqual([
       { externalRef: 'collection:645', title: 'James Bond Collection', detail: 'Collection' },
@@ -88,7 +88,7 @@ describe('TMDB search', () => {
 
   it('names best-known films, because the same name comes back several times', async () => {
     // Searching "jackie chan" really does return three different people.
-    const adapter = createTmdbAdapter(credentials, router(routes))
+    const adapter = createTmdbAdapter(credentials, {}, router(routes))
     const [, first, second] = await adapter.search('jackie chan')
 
     expect(first?.detail).not.toBe(second?.detail)
@@ -111,7 +111,7 @@ describe('TMDB expansion', () => {
   }
 
   it('expands a filmography chronologically, with real runtimes', async () => {
-    const adapter = createTmdbAdapter(credentials, router(routes))
+    const adapter = createTmdbAdapter(credentials, {}, router(routes))
 
     expect(await adapter.expand('person:18897')).toEqual([
       { title: 'My Lucky Stars', externalRef: 'movie:10044', timeToConsumeMinutes: 96 },
@@ -122,7 +122,7 @@ describe('TMDB expansion', () => {
   it('drops documentaries, unreleased films and undated entries', async () => {
     // A filmography padded with a documentary about the person, and with
     // films that do not exist yet, is not a thing you can finish.
-    const adapter = createTmdbAdapter(credentials, router(routes))
+    const adapter = createTmdbAdapter(credentials, {}, router(routes))
     const titles = (await adapter.expand('person:18897')).map((item) => item.title)
 
     expect(titles).not.toContain('A Documentary About Stunts')
@@ -132,7 +132,7 @@ describe('TMDB expansion', () => {
 
   it('keeps the rest when one film’s details fail', async () => {
     // 404 on one lookup should cost that film its runtime, not lose the list.
-    const adapter = createTmdbAdapter(credentials, router({ ...routes, '/movie/2109': undefined }))
+    const adapter = createTmdbAdapter(credentials, {}, router({ ...routes, '/movie/2109': undefined }))
 
     const items = await adapter.expand('person:18897')
     expect(items).toHaveLength(2)
@@ -142,6 +142,7 @@ describe('TMDB expansion', () => {
   it('expands a collection the same way', async () => {
     const adapter = createTmdbAdapter(
       credentials,
+      {},
       router({
         '/collection/645': {
           parts: [
@@ -161,13 +162,13 @@ describe('TMDB expansion', () => {
   })
 
   it('returns nothing for a ref it does not understand', async () => {
-    const adapter = createTmdbAdapter(credentials, router({}))
+    const adapter = createTmdbAdapter(credentials, {}, router({}))
 
     expect(await adapter.expand('nonsense')).toEqual([])
   })
 
   it('handles a person with no credits', async () => {
-    const adapter = createTmdbAdapter(credentials, router({ '/person/1/movie_credits': {} }))
+    const adapter = createTmdbAdapter(credentials, {}, router({ '/person/1/movie_credits': {} }))
 
     expect(await adapter.expand('person:1')).toEqual([])
   })
@@ -198,7 +199,7 @@ describe('TMDB expansion', () => {
         : new Response(JSON.stringify({ runtime: 100 }))
     })
 
-    const items = await createTmdbAdapter(credentials, fetchImpl).expand('person:1')
+    const items = await createTmdbAdapter(credentials, {}, fetchImpl).expand('person:1')
 
     expect(items).toHaveLength(60)
     expect(peak).toBeLessThanOrEqual(8)
@@ -207,6 +208,7 @@ describe('TMDB expansion', () => {
   it('does not import films released after today', async () => {
     const adapter = createTmdbAdapter(
       credentials,
+      {},
       router({
         '/person/1/movie_credits': {
           cast: [{ id: 1, title: 'Out Today', release_date: TODAY, genre_ids: [28] }],
@@ -245,5 +247,55 @@ describe('credential timing', () => {
 
   it('still accepts credentials passed directly', () => {
     expect(createTmdbAdapter({ apiKey: 'k', readAccessToken: undefined }).isAvailable()).toBe(true)
+  })
+})
+
+describe('directing credits', () => {
+  const CREDITS = {
+    cast: [{ id: 1, title: 'Appeared In', release_date: PAST, genre_ids: [99] }],
+    crew: [
+      { id: 2, title: 'Directed', release_date: PAST, genre_ids: [99], job: 'Director' },
+      { id: 3, title: 'Produced', release_date: PAST, genre_ids: [99], job: 'Producer' },
+      // The same film can be credited twice for one person.
+      { id: 1, title: 'Appeared In', release_date: PAST, genre_ids: [99], job: 'Director' },
+    ],
+  }
+
+  const routes = {
+    '/person/1/movie_credits': CREDITS,
+    '/movie/1': { runtime: 90 },
+    '/movie/2': { runtime: 100 },
+    '/movie/3': { runtime: 110 },
+  }
+
+  it('reads only cast credits by default, so an actor gets the films they are in', async () => {
+    const adapter = createTmdbAdapter(credentials, { documentaries: 'only' }, router(routes))
+
+    expect((await adapter.expand('person:1')).map((item) => item.title)).toEqual(['Appeared In'])
+  })
+
+  it('adds directed films when asked, without other crew roles', async () => {
+    // Documentarians direct rather than appear — reading cast alone found 12
+    // of Ken Burns' 59 documentaries. Producing credits stay out.
+    const adapter = createTmdbAdapter(
+      credentials,
+      { documentaries: 'only', includeDirecting: true },
+      router(routes),
+    )
+    const titles = (await adapter.expand('person:1')).map((item) => item.title)
+
+    expect(titles).toContain('Directed')
+    expect(titles).not.toContain('Produced')
+  })
+
+  it('does not list a film twice when someone is credited twice on it', async () => {
+    const adapter = createTmdbAdapter(
+      credentials,
+      { documentaries: 'only', includeDirecting: true },
+      router(routes),
+    )
+    const titles = (await adapter.expand('person:1')).map((item) => item.title)
+
+    expect(titles.filter((title) => title === 'Appeared In')).toHaveLength(1)
   })
 })
