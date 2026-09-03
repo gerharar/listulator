@@ -11,6 +11,7 @@ import { createTmdbClient, type TmdbCredentialSource } from './tmdb.js'
  */
 
 export const ANIMATION_GENRE = 16
+export const DOCUMENTARY_GENRE = 99
 
 /** A long-running show is genuinely long: The Simpsons is past 750 episodes. */
 const MAX_ITEMS = 2000
@@ -94,10 +95,11 @@ export function createTmdbTvAdapter(
       const seasons = (show.seasons ?? [])
         .map((season) => season.season_number)
         .filter((number): number is number => typeof number === 'number')
-        // Season 0 is specials — extras rather than the run itself, and
-        // including them makes "finish the show" mean something else.
-        .filter((number) => number > 0)
-        .sort((a, b) => a - b)
+        // Specials (season 0) are included, and sorted to the end rather than
+        // ahead of the pilot. People generally do watch them, and an unwanted
+        // one is a click to delete where a missing one has to be typed back in
+        // by hand.
+        .sort((a, b) => (a === 0 ? 1 : b === 0 ? -1 : a - b))
         .slice(0, MAX_SEASONS)
 
       const fetched = await mapLimited(seasons, SEASON_CONCURRENCY, async (season) =>

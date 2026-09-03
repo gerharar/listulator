@@ -8,7 +8,7 @@ import {
 } from './adapters/wikipediaEvents.js'
 import { createOpenLibraryAdapter } from './adapters/openLibrary.js'
 import { createTmdbAdapter } from './adapters/tmdb.js'
-import { ANIMATION_GENRE, createTmdbTvAdapter } from './adapters/tmdbTv.js'
+import { ANIMATION_GENRE, DOCUMENTARY_GENRE, createTmdbTvAdapter } from './adapters/tmdbTv.js'
 
 /**
  * Credentials are read per call rather than captured here: this module is
@@ -29,6 +29,7 @@ const tmdbCredentials = () => ({
 /** Shows and animated shows come from the same source, filtered differently. */
 const tmdbTv = createTmdbTvAdapter(tmdbCredentials)
 const tmdbAnimation = createTmdbTvAdapter(tmdbCredentials, { genreFilter: ANIMATION_GENRE })
+const tmdbDocumentary = createTmdbTvAdapter(tmdbCredentials, { genreFilter: DOCUMENTARY_GENRE })
 
 const igdb = createIgdbAdapter(() => ({
   clientId: process.env['IGDB_CLIENT_ID'],
@@ -118,6 +119,15 @@ export const DEFAULT_MEDIA_TYPES: readonly MediaType[] = [
     sortOrder: 30,
     defaultDurationMinutes: 25,
     adapter: tmdbAnimation,
+  },
+  // Feature-length is the common case for a documentary; series episodes run
+  // shorter and are corrected per item.
+  {
+    key: 'documentary',
+    label: 'Documentaries',
+    sortOrder: 35,
+    defaultDurationMinutes: 90,
+    adapter: tmdbDocumentary,
   },
   {
     key: 'wrestling',

@@ -64,7 +64,11 @@ const routes = {
       { season_number: 2, episode_number: 1, name: 'Seven Thirty-Seven', air_date: '2009-03-08' },
     ],
   },
-  '/tv/1396/season/0': { episodes: [{ season_number: 0, episode_number: 1, name: 'A special' }] },
+  '/tv/1396/season/0': {
+    episodes: [
+      { season_number: 0, episode_number: 1, name: 'A special', runtime: 3, air_date: '2009-02-17' },
+    ],
+  },
 }
 
 describe('TMDB television search', () => {
@@ -101,15 +105,18 @@ describe('TMDB television expansion', () => {
       { title: 'S01E01 Pilot', timeToConsumeMinutes: 59 },
       { title: "S01E02 Cat's in the Bag...", timeToConsumeMinutes: 49 },
       { title: 'S02E01 Seven Thirty-Seven' },
+      { title: 'S00E01 A special', timeToConsumeMinutes: 3 },
     ])
   })
 
-  it('leaves out specials, which are not the run itself', async () => {
-    // Season 0 would make "finish the show" mean something else.
+  it('puts specials at the end, not ahead of the pilot', async () => {
+    // They are included because people watch them and removing one is a click,
+    // while adding a missed one means typing it back in.
     const adapter = createTmdbTvAdapter(credentials, {}, router(routes))
     const titles = (await adapter.expand('show:1396')).map((item) => item.title)
 
-    expect(titles.some((title) => title.startsWith('S00'))).toBe(false)
+    expect(titles[0]).toBe('S01E01 Pilot')
+    expect(titles.at(-1)).toBe('S00E01 A special')
   })
 
   it('leaves out episodes that have not aired', async () => {
