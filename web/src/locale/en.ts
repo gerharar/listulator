@@ -161,6 +161,36 @@ export const en = {
    */
   categories: {} as Record<string, { label?: string; description?: string } | undefined>,
 
+  /**
+   * Errors the server raises, keyed by the code it sends. The server names the
+   * situation (`server/src/apiErrors.ts`); the sentence is written here, so a
+   * message is never worded in two places.
+   *
+   * A code with no entry here falls through to whatever the response carried,
+   * and then to `request.failed` — so the two sides drifting degrades the
+   * wording rather than breaking the page.
+   */
+  errors: {
+    'search.queryRequired': (): string => 'Give me something to search for.',
+    'search.unavailable': (p: { category: string }): string =>
+      `Search is not available for ${p.category}. Add items by hand.`,
+    'list.unknownCategory': (p: { key: string }): string => `Unknown category "${p.key}".`,
+    'list.sourceEmpty': (p: { title: string }): string =>
+      `Found nothing to import for "${p.title}".`,
+    'refresh.handMadeList': (): string =>
+      'This list was made by hand, so there is nothing to check against.',
+    'refresh.searchUnavailable': (p: { category: string }): string =>
+      `Search is not available for ${p.category}.`,
+  },
+
+  /** Failures with no code: the network, or a server that said something new. */
+  request: {
+    /** Told apart from "the server said no" — in development it is the common one. */
+    unreachable: 'Cannot reach the server. Is it running?',
+    failed: (status: number): string => `Request failed (${status})`,
+    unknown: 'Something went wrong.',
+  },
+
   /** `time_to_consume_minutes` for display. Minutes are the storage unit. */
   duration: {
     minutes: (m: number): string => `${m}m`,

@@ -320,7 +320,12 @@ describe('search and import from a source', () => {
     })
 
     expect(response.statusCode).toBe(409)
-    expect(response.json().message).toMatch(/by hand/)
+    // The code and its values, not a sentence — the wording lives in the web
+    // locale, and asserting on it here would put it back in two places.
+    expect(response.json()).toEqual({
+      code: 'search.unavailable',
+      params: { category: 'Wrestling' },
+    })
   })
 
   it('treats a configured-but-unusable adapter the same way', async () => {
@@ -663,7 +668,7 @@ describe('checking a list for updates', () => {
     })
 
     expect(response.statusCode).toBe(409)
-    expect(response.json().message).toMatch(/by hand/)
+    expect(response.json()).toEqual({ code: 'refresh.handMadeList' })
   })
 
   it('404s for a list that does not exist', async () => {

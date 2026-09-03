@@ -1,5 +1,7 @@
+import { readFileSync } from 'node:fs'
+import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
-import { categoryDescription, categoryLabel, copy } from './index.js'
+import { categoryDescription, categoryLabel, copy, errorMessage } from './index.js'
 
 describe('locale', () => {
   it('falls back to the server registry for categories it does not name', () => {
@@ -37,6 +39,39 @@ describe('locale', () => {
     expect(copy.listDetail.heldBack(2)).toContain('entries you deleted are')
     expect(copy.newList.itemCount(1)).toBe('1 item.')
     expect(copy.newList.itemCount(9)).toBe('9 items.')
+  })
+
+  it('has a sentence for every error code the server can send', () => {
+    // Reads the server's union directly rather than restating it, so adding a
+    // code there without wording it here fails on the next run. A test-only
+    // read of the file — nothing links the two workspaces at build time.
+    const source = readFileSync(
+      fileURLToPath(new URL('../../../server/src/apiErrors.ts', import.meta.url)),
+      'utf8',
+    )
+
+    const union = /export type ApiErrorCode =([\s\S]*?)\n\n/.exec(source)?.[1] ?? ''
+    const codes = [...union.matchAll(/'([^']+)'/g)].map((match) => match[1])
+
+    // Guards the regex itself: a rename that breaks the parse would otherwise
+    // make this pass by finding nothing at all.
+    expect(codes.length).toBeGreaterThan(0)
+    expect(Object.keys(copy.errors).sort()).toEqual([...codes].sort())
+  })
+
+  it('renders a server error with its values', () => {
+    expect(errorMessage('search.unavailable', { category: 'Movies' })).toBe(
+      'Search is not available for Movies. Add items by hand.',
+    )
+    expect(errorMessage('refresh.handMadeList')).toBe(
+      'This list was made by hand, so there is nothing to check against.',
+    )
+  })
+
+  it('gives nothing back for a code it does not know, rather than throwing', () => {
+    // An older web against a newer server. The caller then falls through to
+    // whatever the response carried.
+    expect(errorMessage('something.invented')).toBeUndefined()
   })
 
   it('has a name for every theme the app offers', () => {

@@ -1,3 +1,4 @@
+import { copy, errorMessage } from '../locale/index.js'
 /** Types mirror the server's responses; see server/src/catalog and /ingestion. */
 
 export interface ListStats {
@@ -73,6 +74,24 @@ export class ApiError extends Error {
   }
 }
 
+/**
+ * Turns a failed response into something to show.
+ *
+ * Three sources, in order: a code the server raised for the user, whose wording
+ * lives in the locale; a `message`, which is what Fastify's own errors carry
+ * (schema validation, 404s) and what upstream failures report; then the status
+ * on its own.
+ */
+async function messageFor(response: Response): Promise<string> {
+  const body = (await response.json().catch(() => null)) as
+    | { code?: string; params?: Record<string, unknown>; message?: string }
+    | null
+
+  const fromCode = body?.code ? errorMessage(body.code, body.params) : undefined
+
+  return fromCode ?? body?.message ?? copy.request.failed(response.status)
+}
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   let response: Response
 
@@ -84,12 +103,11 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   } catch {
     // Distinguish "server isn't running" from "server said no" — during
     // development the first is by far the more common.
-    throw new ApiError('Cannot reach the server. Is it running?', 0)
+    throw new ApiError(copy.request.unreachable, 0)
   }
 
   if (!response.ok) {
-    const body = (await response.json().catch(() => null)) as { message?: string } | null
-    throw new ApiError(body?.message ?? `Request failed (${response.status})`, response.status)
+    throw new ApiError(await messageFor(response), response.status)
   }
 
   return response.status === 204 ? (undefined as T) : ((await response.json()) as T)

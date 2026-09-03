@@ -26,6 +26,23 @@ export function categoryLabel(mediaType: { key: string; label: string }): string
   return copy.categories[mediaType.key]?.label ?? mediaType.label
 }
 
+/**
+ * The sentence for a server error code.
+ *
+ * The one cast in the file, and deliberately confined here: each entry declares
+ * the parameters it needs, but the code arriving over the wire is only a string,
+ * so the lookup cannot be checked statically. An unrecognised code — an older
+ * web against a newer server — falls back rather than throwing.
+ */
+export function errorMessage(code: string, params?: Record<string, unknown>): string | undefined {
+  const table = copy.errors as unknown as Record<
+    string,
+    ((p: Record<string, unknown>) => string) | undefined
+  >
+
+  return table[code]?.(params ?? {})
+}
+
 /** As `categoryLabel`, for the optional one-line explanation. */
 export function categoryDescription(mediaType: {
   key: string

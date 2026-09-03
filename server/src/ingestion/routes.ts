@@ -10,6 +10,7 @@ import {
   findListItems,
   findListWithStats,
 } from '../catalog/repository.js'
+import { sendApiError } from '../apiErrors.js'
 import { IngestionError } from './http.js'
 import type { AppDatabase } from '../db/client.js'
 import type { MediaTypeRegistry } from './mediaTypes.js'
@@ -53,14 +54,12 @@ export const ingestionRoutes: FastifyPluginAsync<IngestionRoutesOptions> = async
       if (!mediaType) return reply.callNotFound()
 
       const query = request.query.q?.trim()
-      if (!query) return reply.code(400).send({ message: 'Give me something to search for.' })
+      if (!query) return sendApiError(reply, 400, 'search.queryRequired')
 
       if (!mediaType.adapter?.isAvailable()) {
         // Not an error: plenty of categories will never have search, and the
         // manual path always works.
-        return reply
-          .code(409)
-          .send({ message: `Search is not available for ${mediaType.label}. Add items by hand.` })
+        return sendApiError(reply, 409, 'search.unavailable', { category: mediaType.label })
       }
 
       return { sources: await mediaType.adapter.search(query) }
@@ -93,19 +92,17 @@ export const ingestionRoutes: FastifyPluginAsync<IngestionRoutesOptions> = async
       const { mediaType: key, externalRef, title } = request.body
 
       const mediaType = mediaTypes.get(key)
-      if (!mediaType) return reply.code(400).send({ message: `Unknown category "${key}".` })
+      if (!mediaType) return sendApiError(reply, 400, 'list.unknownCategory', { key })
 
       if (!mediaType.adapter?.isAvailable()) {
-        return reply
-          .code(409)
-          .send({ message: `Search is not available for ${mediaType.label}. Add items by hand.` })
+        return sendApiError(reply, 409, 'search.unavailable', { category: mediaType.label })
       }
 
       // Expanded before the list is created, so a failure upstream does not
       // leave an empty list behind.
       const candidates = await mediaType.adapter.expand(externalRef)
       if (candidates.length === 0) {
-        return reply.code(422).send({ message: `Found nothing to import for "${title}".` })
+        return sendApiError(reply, 422, 'list.sourceEmpty', { title })
       }
 
       const list = createList(db, user.id, { title, mediaType: key, source: 'api', externalRef })
@@ -156,16 +153,14 @@ export const ingestionRoutes: FastifyPluginAsync<IngestionRoutesOptions> = async
       if (!list) return reply.callNotFound()
 
       if (!list.externalRef) {
-        return reply
-          .code(409)
-          .send({ message: 'This list was made by hand, so there is nothing to check against.' })
+        return sendApiError(reply, 409, 'refresh.handMadeList')
       }
 
       const mediaType = mediaTypes.get(list.mediaType)
       if (!mediaType?.adapter?.isAvailable()) {
-        return reply
-          .code(409)
-          .send({ message: `Search is not available for ${mediaType?.label ?? list.mediaType}.` })
+        return sendApiError(reply, 409, 'refresh.searchUnavailable', {
+          category: mediaType?.label ?? list.mediaType,
+        })
       }
 
       const upstream = await mediaType.adapter.expand(list.externalRef)
