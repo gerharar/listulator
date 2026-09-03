@@ -11,6 +11,7 @@ import { createOpenLibraryAdapter } from './adapters/openLibrary.js'
 import { createCompositeAdapter } from './adapters/composite.js'
 import { createTmdbAdapter } from './adapters/tmdb.js'
 import { createTmdbCompanyAdapter } from './adapters/tmdbCompany.js'
+import { createTmdbFranchiseAdapter } from './adapters/tmdbFranchise.js'
 import { ANIMATION_GENRE, DOCUMENTARY_GENRE, createTmdbTvAdapter } from './adapters/tmdbTv.js'
 
 /**
@@ -49,6 +50,7 @@ const documentaryFilms = createTmdbAdapter(tmdbCredentials, {
 })
 
 const tmdbTv = createTmdbTvAdapter(tmdbCredentials)
+const franchises = createTmdbFranchiseAdapter(tmdbCredentials)
 
 /** Films by a person or collection, plus films by a studio. */
 const movieSources = createCompositeAdapter([
@@ -131,6 +133,11 @@ export interface SearchAdapter {
 export interface MediaType {
   key: string
   label: string
+  /**
+   * Shown in the UI where the category is chosen. Most categories need none —
+   * "Movies" explains itself — but a shelf whose purpose is not obvious does.
+   */
+  description?: string
   /** Display order in the UI; gaps left so categories can be slotted between. */
   sortOrder: number
   /**
@@ -219,6 +226,21 @@ export const DEFAULT_MEDIA_TYPES: readonly MediaType[] = [
     sortOrder: 95,
     defaultDurationMinutes: 20,
     adapter: createYouTubeAdapter(() => ({ apiKey: process.env['YOUTUBE_API_KEY'] })),
+  },
+  /**
+   * The shelf for franchises that genuinely span media. Its existence is a
+   * navigation answer more than a data one: a Marvel list split across Movies,
+   * TV and Animation leaves nowhere obvious to look.
+   */
+  {
+    key: 'mega',
+    label: 'Mega',
+    description:
+      'Franchises that span several media at once — films, series and animation together, in release order. Marvel and Star Trek belong here; a single show or film series does not.',
+    sortOrder: 100,
+    // Mixed by nature; real runtimes come from the API.
+    defaultDurationMinutes: 120,
+    adapter: franchises,
   },
 ]
 

@@ -182,9 +182,10 @@ export const ingestionRoutes: FastifyPluginAsync<IngestionRoutesOptions> = async
    * so it needs the whole registry, not just the categories in use.
    */
   app.get('/media-types', async () =>
-    mediaTypes.list().map(({ key, label, sortOrder, defaultDurationMinutes, adapter }) => ({
+    mediaTypes.list().map(({ key, label, description, sortOrder, defaultDurationMinutes, adapter }) => ({
       key,
       label,
+      ...(description ? { description } : {}),
       sortOrder,
       defaultDurationMinutes,
       // Whether search is offered for this category. Manual entry always works.

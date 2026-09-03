@@ -80,6 +80,11 @@ export function NewList({ mediaTypes }: { mediaTypes: MediaType[] }) {
                 </option>
               ))}
             </select>
+            {category?.description && (
+              // Some categories are not self-explanatory from a label alone —
+              // "Mega" least of all.
+              <span className="field__hint">{category.description}</span>
+            )}
             <span className="field__hint">
               Categories are built in — if one is missing, it has to be added to the app itself.
             </span>

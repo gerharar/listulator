@@ -36,6 +36,8 @@ export interface MediaListDetail extends MediaList {
 export interface MediaType {
   key: string
   label: string
+  /** What belongs in this category. Not every category needs one. */
+  description?: string
   sortOrder: number
   defaultDurationMinutes: number
   searchAvailable: boolean
