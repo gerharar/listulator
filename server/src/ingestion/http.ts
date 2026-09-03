@@ -65,7 +65,20 @@ export async function getJson<T>(
   }
 
   if (!response.ok) {
-    throw new IngestionError(`${source} returned ${response.status}.`)
+    // Upstream services explain themselves in the body, and a bare status code
+    // sends whoever is debugging to the wrong place entirely.
+    const detail = await response
+      .text()
+      .then((body) => {
+        const parsed = JSON.parse(body) as { error?: { message?: string } }
+
+        return parsed.error?.message ?? body
+      })
+      .catch(() => '')
+
+    throw new IngestionError(
+      `${source} returned ${response.status}${detail ? `: ${detail.slice(0, 200)}` : '.'}`,
+    )
   }
 
   try {
