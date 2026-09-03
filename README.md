@@ -68,6 +68,28 @@ secure origin, and `localhost` is the only exception, so opening
 install it. Put it behind a reverse proxy with a certificate, or use something
 like Tailscale, and installation works.
 
+#### Getting a YouTube key
+
+More involved than the others, so in full:
+
+1. Go to [console.cloud.google.com](https://console.cloud.google.com/) and sign
+   in with any Google account.
+2. Create a project — the dropdown in the top bar, then **New Project**. Name it
+   anything.
+3. Enable the API:
+   [console.cloud.google.com/apis/library/youtube.googleapis.com](https://console.cloud.google.com/apis/library/youtube.googleapis.com)
+   → **Enable**. (Or *APIs & Services → Library*, search "YouTube Data API v3".)
+4. Create the key: *APIs & Services → Credentials* →
+   **+ Create Credentials → API key**. It looks like `AIza…`, 39 characters.
+5. Optional but worth it: **Restrict key** → *API restrictions* → limit it to
+   YouTube Data API v3, so a leaked key cannot be spent on other Google
+   services.
+
+**No billing account is required.** The free quota is 10,000 units a day.
+Searching by channel name costs 100 units per search — about 100 a day — while
+pasting a link or an `@handle` costs roughly 1, so the quota rarely matters in
+practice.
+
 API keys are only needed for search. Music (MusicBrainz) and books (Open
 Library) need none; without a key for the others, that category simply has no
 search and you add items by hand. `.env` is gitignored, and an exported shell

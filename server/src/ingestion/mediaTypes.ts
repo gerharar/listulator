@@ -1,6 +1,7 @@
 import { createComicVineAdapter } from './adapters/comicVine.js'
 import { createIgdbAdapter } from './adapters/igdb.js'
 import { createMusicBrainzAdapter } from './adapters/musicbrainz.js'
+import { createYouTubeAdapter } from './adapters/youtube.js'
 import {
   createWikipediaEventsAdapter,
   MMA_PROMOTIONS,
@@ -209,6 +210,15 @@ export const DEFAULT_MEDIA_TYPES: readonly MediaType[] = [
     sortOrder: 90,
     defaultDurationMinutes: 45,
     adapter: createMusicBrainzAdapter(),
+  },
+  // Lengths vary from three minutes to three hours, so this default is more
+  // placeholder than estimate — real durations come from the API.
+  {
+    key: 'youtube',
+    label: 'YouTube',
+    sortOrder: 95,
+    defaultDurationMinutes: 20,
+    adapter: createYouTubeAdapter(() => ({ apiKey: process.env['YOUTUBE_API_KEY'] })),
   },
 ]
 

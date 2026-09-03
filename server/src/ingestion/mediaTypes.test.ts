@@ -16,6 +16,7 @@ describe('media type registry', () => {
       'comic',
       'book',
       'music',
+      'youtube',
     ])
   })
 
@@ -45,6 +46,7 @@ describe('media type registry', () => {
       comic: 15,
       book: 240,
       music: 45,
+      youtube: 20,
     })
   })
 
@@ -69,6 +71,7 @@ describe('media type registry', () => {
       'comic',
       'book',
       'music',
+      'youtube',
     ])
 
     // Every category now has a source.
