@@ -34,6 +34,8 @@ export interface CreateListItemInput {
   timeToConsumeIsEstimated?: boolean
   /** Defaults to the end of the list. */
   orderIndex?: number
+  /** Upstream id, when the source has one. */
+  externalRef?: string | null
 }
 
 export interface UpdateListItemInput {
@@ -234,6 +236,7 @@ export function createListItem(
       orderIndex: input.orderIndex ?? nextOrderIndex(db, listId),
       timeToConsumeMinutes: input.timeToConsumeMinutes,
       timeToConsumeIsEstimated: input.timeToConsumeIsEstimated ?? true,
+      externalRef: input.externalRef ?? null,
     })
     .returning()
     .get()

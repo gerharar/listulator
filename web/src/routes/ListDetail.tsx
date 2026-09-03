@@ -57,6 +57,10 @@ export function ListDetail({ mediaTypes }: { mediaTypes: MediaType[] }) {
   const navigate = useNavigate()
   const [list, setList] = useState<MediaListDetail | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [updates, setUpdates] = useState<Awaited<
+    ReturnType<typeof api.checkForUpdates>
+  > | null>(null)
+  const [checking, setChecking] = useState(false)
 
   const load = useCallback(async () => {
     if (!listId) return
@@ -117,6 +121,44 @@ export function ListDetail({ mediaTypes }: { mediaTypes: MediaType[] }) {
     }
   }
 
+  /**
+   * Two steps on purpose: check reports what the source has gained, and
+   * nothing is written until the button is pressed again. Adding
+   * automatically would put back every item that was deliberately pruned
+   * after an import.
+   */
+  async function checkForUpdates() {
+    if (!listId) return
+
+    setChecking(true)
+    setError(null)
+    setUpdates(null)
+
+    try {
+      setUpdates(await api.checkForUpdates(listId))
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Could not check for updates')
+    } finally {
+      setChecking(false)
+    }
+  }
+
+  async function addUpdates() {
+    if (!listId || !updates?.newItems.length) return
+
+    setChecking(true)
+
+    try {
+      await api.importItems(listId, updates.newItems)
+      setUpdates(null)
+      await load()
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Could not add them')
+    } finally {
+      setChecking(false)
+    }
+  }
+
   async function remove() {
     if (!listId || !list) return
     if (!confirm(`Delete "${list.title}" and all its items?`)) return
@@ -142,12 +184,60 @@ export function ListDetail({ mediaTypes }: { mediaTypes: MediaType[] }) {
           <h1 className="page__title">{list.title}</h1>
           <p className="small faint">{category?.label ?? list.mediaType}</p>
         </div>
-        <button type="button" className="button" onClick={() => void remove()}>
-          Delete list
-        </button>
+        <div className="page__actions">
+          {/* Only lists built from a source have anything to check against. */}
+          {list.externalRef && (
+            <button
+              type="button"
+              className="button"
+              onClick={() => void checkForUpdates()}
+              disabled={checking}
+            >
+              {checking ? 'Checking…' : 'Check for updates'}
+            </button>
+          )}
+          <button type="button" className="button" onClick={() => void remove()}>
+            Delete list
+          </button>
+        </div>
       </div>
 
       {error && <p className="notice notice--error">{error}</p>}
+
+      {updates && (
+        <div className="notice">
+          {updates.newItems.length === 0 ? (
+            <p className="muted">
+              Up to date — the source has {updates.upstreamCount}, and you have all of them.
+            </p>
+          ) : (
+            <>
+              <p>
+                <strong>
+                  {updates.newItems.length} new{' '}
+                  {updates.newItems.length === 1 ? 'entry' : 'entries'}
+                </strong>{' '}
+                since this list was built:
+              </p>
+              <p className="small muted">
+                {updates.newItems
+                  .slice(0, 12)
+                  .map((item) => item.title)
+                  .join(' · ')}
+                {updates.newItems.length > 12 ? ` … and ${updates.newItems.length - 12} more` : ''}
+              </p>
+              <button
+                type="button"
+                className="button button--primary"
+                onClick={() => void addUpdates()}
+                disabled={checking}
+              >
+                Add {updates.newItems.length} to this list
+              </button>
+            </>
+          )}
+        </div>
+      )}
 
       <section className="panel">
         <div className="summary">

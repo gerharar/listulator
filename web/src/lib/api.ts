@@ -104,7 +104,10 @@ export const api = {
 
   deleteList: (id: string) => request<void>(`/lists/${id}`, { method: 'DELETE' }),
 
-  importItems: (listId: string, items: { title: string }[]) =>
+  importItems: (
+    listId: string,
+    items: { title: string; externalRef?: string; timeToConsumeMinutes?: number }[],
+  ) =>
     request<ListItem[]>(`/lists/${listId}/items/import`, {
       method: 'POST',
       body: JSON.stringify({ items }),
@@ -127,6 +130,14 @@ export const api = {
 
   createFromSource: (input: { mediaType: string; externalRef: string; title: string }) =>
     request<MediaList>('/lists/from-source', { method: 'POST', body: JSON.stringify(input) }),
+
+  /** Dry run: reports what the source has that the list does not. Changes nothing. */
+  checkForUpdates: (listId: string) =>
+    request<{
+      newItems: { title: string; externalRef?: string; timeToConsumeMinutes?: number }[]
+      upstreamCount: number
+      existingCount: number
+    }>(`/lists/${listId}/refresh`, { method: 'POST' }),
 
   deleteItem: (listId: string, itemId: string) =>
     request<void>(`/lists/${listId}/items/${itemId}`, { method: 'DELETE' }),

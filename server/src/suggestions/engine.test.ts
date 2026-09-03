@@ -58,6 +58,7 @@ function nextItemsFor(lists: ListWithStats[]): Map<string, ListItem | undefined>
         timeToConsumeMinutes: 10,
         timeToConsumeIsEstimated: true,
         consumedAt: null,
+        externalRef: null,
         createdAt: NOW,
         updatedAt: NOW,
       },

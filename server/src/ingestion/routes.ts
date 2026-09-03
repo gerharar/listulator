@@ -1,6 +1,12 @@
 import type { FastifyPluginAsync } from 'fastify'
 import { getCurrentUser } from '../auth/currentUser.js'
-import { createList, createListItem, findList, findListWithStats } from '../catalog/repository.js'
+import {
+  createList,
+  createListItem,
+  findList,
+  findListItems,
+  findListWithStats,
+} from '../catalog/repository.js'
 import { IngestionError } from './http.js'
 import type { AppDatabase } from '../db/client.js'
 import type { MediaTypeRegistry } from './mediaTypes.js'
@@ -110,10 +116,64 @@ export const ingestionRoutes: FastifyPluginAsync<IngestionRoutesOptions> = async
             ? candidate.timeToConsumeMinutes!
             : mediaType.defaultDurationMinutes,
           timeToConsumeIsEstimated: !known,
+          ...(candidate.externalRef ? { externalRef: candidate.externalRef } : {}),
         })
       }
 
       return reply.code(201).send(findListWithStats(db, user.id, list.id))
+    },
+  )
+
+  /**
+   * Reports what a list's source has that the list does not.
+   *
+   * Deliberately a dry run: it changes nothing and the caller decides what to
+   * add, using the ordinary import endpoint. Applying automatically would
+   * quietly undo pruning — deleting the entries an import brought in that you
+   * never intended to finish is a supported workflow, and a refresh that put
+   * them all back would make it pointless.
+   */
+  app.post<{ Params: { listId: string } }>(
+    '/lists/:listId/refresh',
+    async (request, reply) => {
+      const user = getCurrentUser(request)
+      const { listId } = request.params
+
+      const list = findList(db, user.id, listId)
+      if (!list) return reply.callNotFound()
+
+      if (!list.externalRef) {
+        return reply
+          .code(409)
+          .send({ message: 'This list was made by hand, so there is nothing to check against.' })
+      }
+
+      const mediaType = mediaTypes.get(list.mediaType)
+      if (!mediaType?.adapter?.isAvailable()) {
+        return reply
+          .code(409)
+          .send({ message: `Search is not available for ${mediaType?.label ?? list.mediaType}.` })
+      }
+
+      const upstream = await mediaType.adapter.expand(list.externalRef)
+      const existing = findListItems(db, user.id, listId) ?? []
+
+      // Matched on the upstream id where there is one, and on title otherwise:
+      // Wikipedia events and Open Library works carry no stable id.
+      const knownRefs = new Set(existing.map((item) => item.externalRef).filter(Boolean))
+      const knownTitles = new Set(existing.map((item) => item.title.trim().toLowerCase()))
+
+      const newItems = upstream.filter(
+        (candidate) =>
+          !(candidate.externalRef && knownRefs.has(candidate.externalRef)) &&
+          !knownTitles.has(candidate.title.trim().toLowerCase()),
+      )
+
+      return {
+        newItems,
+        upstreamCount: upstream.length,
+        existingCount: existing.length,
+      }
     },
   )
 
@@ -187,6 +247,7 @@ export const ingestionRoutes: FastifyPluginAsync<IngestionRoutesOptions> = async
           title: item.title,
           timeToConsumeMinutes: known ? item.timeToConsumeMinutes! : fallbackMinutes,
           timeToConsumeIsEstimated: !known,
+          ...(item.externalRef ? { externalRef: item.externalRef } : {}),
         })
       })
 

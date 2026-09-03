@@ -91,6 +91,13 @@ export const listItems = sqliteTable(
     timeToConsumeIsEstimated: integer('time_to_consume_is_estimated', { mode: 'boolean' })
       .notNull()
       .default(true),
+    /**
+     * Upstream id where the source has one (a TMDB movie, an IGDB game). Null
+     * for hand-typed items, and for sources with no stable id of their own —
+     * Wikipedia events and Open Library works. Used to match an item against
+     * its source when checking a list for updates.
+     */
+    externalRef: text('external_ref'),
     /** Null until checked off; doubles as the "when" behind list neglect scoring. */
     consumedAt: integer('consumed_at', { mode: 'timestamp_ms' }),
     createdAt: integer('created_at', { mode: 'timestamp_ms' })

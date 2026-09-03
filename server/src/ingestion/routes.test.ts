@@ -387,3 +387,176 @@ describe('search and import from a source', () => {
     expect(response.statusCode).toBe(404)
   })
 })
+
+describe('checking a list for updates', () => {
+  let harness: TestApp
+
+  /** Expands to a franchise that grows by one entry when `extra` is set. */
+  function adapterYielding(titles: { title: string; externalRef?: string }[]): SearchAdapter {
+    return {
+      isAvailable: () => true,
+      search: async () => [{ externalRef: 'franchise:1', title: 'A franchise' }],
+      expand: async () => titles,
+    }
+  }
+
+  function appWith(adapter: SearchAdapter | undefined) {
+    return createTestApp({
+      mediaTypes: createMediaTypeRegistry([
+        {
+          key: 'game',
+          label: 'Games',
+          sortOrder: 10,
+          defaultDurationMinutes: 600,
+          ...(adapter ? { adapter } : {}),
+        },
+      ]),
+    })
+  }
+
+  async function buildList(app: TestApp) {
+    const response = await app.app.inject({
+      method: 'POST',
+      url: '/api/lists/from-source',
+      payload: { mediaType: 'game', externalRef: 'franchise:1', title: 'A franchise' },
+    })
+
+    return response.json()
+  }
+
+  afterEach(async () => {
+    await harness?.cleanup()
+  })
+
+  it('reports nothing when the source has not moved', async () => {
+    const items = [
+      { title: 'One', externalRef: 'game:1' },
+      { title: 'Two', externalRef: 'game:2' },
+    ]
+    harness = appWith(adapterYielding(items))
+    const list = await buildList(harness)
+
+    const response = await harness.app.inject({
+      method: 'POST',
+      url: `/api/lists/${list.id}/refresh`,
+    })
+
+    expect(response.statusCode).toBe(200)
+    expect(response.json()).toMatchObject({ newItems: [], upstreamCount: 2, existingCount: 2 })
+  })
+
+  it('reports only what is genuinely new', async () => {
+    let upstream = [{ title: 'One', externalRef: 'game:1' }]
+    const adapter: SearchAdapter = {
+      isAvailable: () => true,
+      search: async () => [],
+      expand: async () => upstream,
+    }
+
+    harness = appWith(adapter)
+    const list = await buildList(harness)
+
+    // The franchise gains a game.
+    upstream = [
+      { title: 'One', externalRef: 'game:1' },
+      { title: 'Two', externalRef: 'game:2' },
+    ]
+
+    const response = await harness.app.inject({
+      method: 'POST',
+      url: `/api/lists/${list.id}/refresh`,
+    })
+
+    expect(response.json().newItems).toEqual([{ title: 'Two', externalRef: 'game:2' }])
+  })
+
+  it('matches on upstream id, so a rename is not mistaken for a new item', async () => {
+    let upstream = [{ title: 'Working Title', externalRef: 'game:1' }]
+    const adapter: SearchAdapter = {
+      isAvailable: () => true,
+      search: async () => [],
+      expand: async () => upstream,
+    }
+
+    harness = appWith(adapter)
+    const list = await buildList(harness)
+
+    upstream = [{ title: 'Final Title', externalRef: 'game:1' }]
+
+    expect(
+      (await harness.app.inject({ method: 'POST', url: `/api/lists/${list.id}/refresh` })).json()
+        .newItems,
+    ).toEqual([])
+  })
+
+  it('falls back to matching on title for sources with no id', async () => {
+    // Wikipedia events and Open Library works carry no stable id.
+    let upstream = [{ title: 'WrestleMania (1985)' }]
+    const adapter: SearchAdapter = {
+      isAvailable: () => true,
+      search: async () => [],
+      expand: async () => upstream,
+    }
+
+    harness = appWith(adapter)
+    const list = await buildList(harness)
+
+    upstream = [{ title: 'wrestlemania (1985)  ' }, { title: 'SummerSlam (1988)' }]
+
+    expect(
+      (await harness.app.inject({ method: 'POST', url: `/api/lists/${list.id}/refresh` })).json()
+        .newItems,
+    ).toEqual([{ title: 'SummerSlam (1988)' }])
+  })
+
+  it('changes nothing by itself', async () => {
+    // Applying automatically would put back everything the user pruned, which
+    // makes pruning pointless. The caller decides what to add.
+    let upstream = [{ title: 'One', externalRef: 'game:1' }]
+    const adapter: SearchAdapter = {
+      isAvailable: () => true,
+      search: async () => [],
+      expand: async () => upstream,
+    }
+
+    harness = appWith(adapter)
+    const list = await buildList(harness)
+
+    upstream = [
+      { title: 'One', externalRef: 'game:1' },
+      { title: 'Two', externalRef: 'game:2' },
+    ]
+
+    await harness.app.inject({ method: 'POST', url: `/api/lists/${list.id}/refresh` })
+
+    const after = await harness.app.inject({ method: 'GET', url: `/api/lists/${list.id}` })
+    expect(after.json().items).toHaveLength(1)
+  })
+
+  it('refuses a list that was made by hand', async () => {
+    harness = appWith(adapterYielding([]))
+    const manual = (
+      await harness.app.inject({
+        method: 'POST',
+        url: '/api/lists',
+        payload: { title: 'By hand', mediaType: 'game' },
+      })
+    ).json()
+
+    const response = await harness.app.inject({
+      method: 'POST',
+      url: `/api/lists/${manual.id}/refresh`,
+    })
+
+    expect(response.statusCode).toBe(409)
+    expect(response.json().message).toMatch(/by hand/)
+  })
+
+  it('404s for a list that does not exist', async () => {
+    harness = appWith(adapterYielding([]))
+
+    expect(
+      (await harness.app.inject({ method: 'POST', url: '/api/lists/nope/refresh' })).statusCode,
+    ).toBe(404)
+  })
+})
