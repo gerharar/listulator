@@ -58,10 +58,8 @@ export interface TmdbCredentials {
  */
 export type TmdbCredentialSource = TmdbCredentials | (() => TmdbCredentials)
 
-export function createTmdbAdapter(
-  credentials: TmdbCredentialSource,
-  fetchImpl?: FetchLike,
-): SearchAdapter {
+/** Auth, requests and throttling, shared by the film and television adapters. */
+export function createTmdbClient(credentials: TmdbCredentialSource, fetchImpl?: FetchLike) {
   const resolve = (): TmdbCredentials =>
     typeof credentials === 'function' ? credentials() : credentials
 
@@ -100,6 +98,21 @@ export function createTmdbAdapter(
     return results
   }
 
+  const isConfigured = (): boolean => {
+    const { apiKey, readAccessToken } = resolve()
+
+    return Boolean(apiKey ?? readAccessToken)
+  }
+
+  return { request, mapLimited, isConfigured }
+}
+
+export function createTmdbAdapter(
+  credentials: TmdbCredentialSource,
+  fetchImpl?: FetchLike,
+): SearchAdapter {
+  const { request, mapLimited, isConfigured } = createTmdbClient(credentials, fetchImpl)
+
   async function withRuntimes(
     films: { id: number; title: string }[],
   ): Promise<MediaTypeCandidate[]> {
@@ -129,11 +142,7 @@ export function createTmdbAdapter(
   }
 
   return {
-    isAvailable: () => {
-      const { apiKey, readAccessToken } = resolve()
-
-      return Boolean(apiKey ?? readAccessToken)
-    },
+    isAvailable: isConfigured,
 
     async search(query) {
       const [people, collections] = await Promise.all([

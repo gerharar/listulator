@@ -8,6 +8,7 @@ import {
 } from './adapters/wikipediaEvents.js'
 import { createOpenLibraryAdapter } from './adapters/openLibrary.js'
 import { createTmdbAdapter } from './adapters/tmdb.js'
+import { ANIMATION_GENRE, createTmdbTvAdapter } from './adapters/tmdbTv.js'
 
 /**
  * Credentials are read per call rather than captured here: this module is
@@ -19,6 +20,15 @@ const tmdb = createTmdbAdapter(() => ({
   apiKey: process.env['TMDB_API_KEY'],
   readAccessToken: process.env['TMDB_READ_ACCESS_TOKEN'],
 }))
+
+const tmdbCredentials = () => ({
+  apiKey: process.env['TMDB_API_KEY'],
+  readAccessToken: process.env['TMDB_READ_ACCESS_TOKEN'],
+})
+
+/** Shows and animated shows come from the same source, filtered differently. */
+const tmdbTv = createTmdbTvAdapter(tmdbCredentials)
+const tmdbAnimation = createTmdbTvAdapter(tmdbCredentials, { genreFilter: ANIMATION_GENRE })
 
 const igdb = createIgdbAdapter(() => ({
   clientId: process.env['IGDB_CLIENT_ID'],
@@ -99,10 +109,16 @@ export interface MediaType {
 
 export const DEFAULT_MEDIA_TYPES: readonly MediaType[] = [
   { key: 'movie', label: 'Movies', sortOrder: 10, defaultDurationMinutes: 120, adapter: tmdb },
-  { key: 'tv', label: 'TV Shows', sortOrder: 20, defaultDurationMinutes: 50 },
+  { key: 'tv', label: 'TV Shows', sortOrder: 20, defaultDurationMinutes: 50, adapter: tmdbTv },
   // Episode-length. The category also holds animated features, which this
   // badly under-estimates — flagged estimated and easy to correct per item.
-  { key: 'animation', label: 'Animation', sortOrder: 30, defaultDurationMinutes: 25 },
+  {
+    key: 'animation',
+    label: 'Animation',
+    sortOrder: 30,
+    defaultDurationMinutes: 25,
+    adapter: tmdbAnimation,
+  },
   {
     key: 'wrestling',
     label: 'Wrestling',

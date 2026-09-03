@@ -49,8 +49,9 @@ describe('GET /api/media-types', () => {
     expect(byKey.get('book')).toBe(true)
     expect(byKey.get('wrestling')).toBe(true)
     expect(byKey.get('mma')).toBe(true)
-    // TV and animation genuinely have no adapter yet.
-    expect(byKey.get('tv')).toBe(false)
+    // TV and animation depend on the same TMDB credentials as movies.
+    expect(typeof byKey.get('tv')).toBe('boolean')
+    expect(typeof byKey.get('animation')).toBe('boolean')
   })
 })
 

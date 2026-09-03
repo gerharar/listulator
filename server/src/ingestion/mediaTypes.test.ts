@@ -56,13 +56,19 @@ describe('media type registry', () => {
     //
     // Wrestling and MMA were expected to stay out — neither has a usable API —
     // but Wikipedia's maintained event tables turned out to cover both.
-    expect(searchable).toEqual(['movie', 'wrestling', 'mma', 'game', 'comic', 'book', 'music'])
+    expect(searchable).toEqual([
+      'movie',
+      'tv',
+      'animation',
+      'wrestling',
+      'mma',
+      'game',
+      'comic',
+      'book',
+      'music',
+    ])
 
-    // TV and animation still have none. TMDB covers them, but its adapter
-    // searches people and film collections, which is the wrong shape for a
-    // series; they stay on manual entry until that is built.
-    expect(searchable).not.toContain('tv')
-    expect(searchable).not.toContain('animation')
+    // Every category now has a source.
   })
 
   it('orders by sortOrder rather than declaration order', () => {
