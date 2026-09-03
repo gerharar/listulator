@@ -109,6 +109,12 @@ export function createTmdbFranchiseAdapter(
 
       const found = (response.results ?? [])
         .filter((keyword) => keyword.name)
+        // TMDB's keyword search is fuzzy: "Marvel" comes back with marcel,
+        // barrel, marret and market. Offered as "Franchise · films and
+        // series" they are indistinguishable from the real thing, and every
+        // one builds an empty list. Requiring the term to actually appear
+        // costs nothing and drops all of them.
+        .filter((keyword) => keyword.name!.toLowerCase().includes(term))
         // Curated entries already cover these, with better names.
         .filter(
           (keyword) => !CURATED_FRANCHISES.some((franchise) => franchise.keywordId === keyword.id),

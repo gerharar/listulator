@@ -221,7 +221,7 @@ export function ListDetail({ mediaTypes }: { mediaTypes: MediaType[] }) {
         <div className="notice">
           {updates.newItems.length === 0 ? (
             <p className="muted">
-              Up to date — the source has {updates.upstreamCount}, and you have all of them.
+              Up to date — nothing new in the source's {updates.upstreamCount}.
               {!includeDismissed && updates.dismissedCount > 0 && (
                 <>
                   {' '}
@@ -235,10 +235,12 @@ export function ListDetail({ mediaTypes }: { mediaTypes: MediaType[] }) {
             <>
               <p>
                 <strong>
-                  {updates.newItems.length} new{' '}
+                  {updates.newItems.length}{' '}
                   {updates.newItems.length === 1 ? 'entry' : 'entries'}
                 </strong>{' '}
-                since this list was built:
+                {/* With the box ticked these are things you deleted, not
+                    things the source has gained. */}
+                {includeDismissed ? 'to put back:' : 'new since this list was built:'}
               </p>
               <p className="small muted">
                 {updates.newItems
