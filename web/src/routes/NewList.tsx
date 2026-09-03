@@ -3,6 +3,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { SourceSearch } from '../components/SourceSearch.js'
 import { api, type MediaType } from '../lib/api.js'
 import { formatDuration } from '../formatDuration.js'
+import { categoryDescription, categoryLabel, copy } from '../locale/index.js'
 
 /** One item per line; blank lines ignored so pasted text needs no tidying. */
 export function parseItemTitles(raw: string): string[] {
@@ -47,7 +48,7 @@ export function NewList({ mediaTypes }: { mediaTypes: MediaType[] }) {
 
       void navigate(`/lists/${list.id}`)
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : 'Could not create the list')
+      setError(cause instanceof Error ? cause.message : copy.newList.createFailed)
       setSaving(false)
     }
   }
@@ -55,11 +56,11 @@ export function NewList({ mediaTypes }: { mediaTypes: MediaType[] }) {
   return (
     <>
       <Link className="back" to="/">
-        ← All lists
+        {copy.listDetail.back}
       </Link>
 
       <div className="page__header">
-        <h1 className="page__title">New list</h1>
+        <h1 className="page__title">{copy.newList.title}</h1>
       </div>
 
       {error && <p className="notice notice--error">{error}</p>}
@@ -67,7 +68,7 @@ export function NewList({ mediaTypes }: { mediaTypes: MediaType[] }) {
       <section className="panel">
         <div style={{ padding: 'var(--space-4)' }}>
           <label className="field" style={{ marginBottom: 0 }}>
-            <span className="field__label">Category</span>
+            <span className="field__label">{copy.newList.categoryLabel}</span>
             <select
               className="select"
               value={mediaType}
@@ -75,20 +76,18 @@ export function NewList({ mediaTypes }: { mediaTypes: MediaType[] }) {
             >
               {mediaTypes.map((candidate) => (
                 <option key={candidate.key} value={candidate.key}>
-                  {candidate.label}
-                  {candidate.searchAvailable ? '' : ' — add by hand'}
+                  {categoryLabel(candidate)}
+                  {candidate.searchAvailable ? '' : copy.newList.noSearchSuffix}
                 </option>
               ))}
             </select>
-            {category?.description && (
+            {category && categoryDescription(category) && (
               // Some categories are not self-explanatory from a label alone —
               // "Mega" least of all. Its own block: hints are inline spans, so
               // two of them run into one sentence.
-              <p className="field__hint">{category.description}</p>
+              <p className="field__hint">{categoryDescription(category)}</p>
             )}
-            <span className="field__hint">
-              Categories are built in — if one is missing, it has to be added to the app itself.
-            </span>
+            <span className="field__hint">{copy.newList.builtInHint}</span>
           </label>
         </div>
       </section>
@@ -100,43 +99,43 @@ export function NewList({ mediaTypes }: { mediaTypes: MediaType[] }) {
       <form className="panel" onSubmit={(event) => void submit(event)}>
         <header className="panel__header">
           <h2 className="panel__title">
-            {category?.searchAvailable ? 'Or add by hand' : 'Add by hand'}
+            {category?.searchAvailable ? copy.newList.orByHandHeading : copy.newList.byHandHeading}
           </h2>
         </header>
         <div style={{ padding: 'var(--space-4)' }}>
 
           <label className="field">
-            <span className="field__label">List title</span>
+            <span className="field__label">{copy.newList.listTitleLabel}</span>
             <input
               className="input"
               value={title}
               onChange={(event) => setTitle(event.target.value)}
-              placeholder="All Jackie Chan movies"
+              placeholder={copy.newList.listTitlePlaceholder}
               required
               autoFocus
             />
           </label>
 
           <label className="field">
-            <span className="field__label">Items — one per line</span>
+            <span className="field__label">{copy.newList.itemsLabel}</span>
             <textarea
               className="textarea"
               value={itemsText}
               onChange={(event) => setItemsText(event.target.value)}
-              placeholder={'Drunken Master\nPolice Story\nProject A'}
+              placeholder={copy.newList.itemsPlaceholder}
             />
             <span className="field__hint">
               {titles.length > 0
-                ? `${titles.length} ${titles.length === 1 ? 'item' : 'items'}.`
-                : 'Optional — you can add items later.'}
+                ? copy.newList.itemCount(titles.length)
+                : copy.newList.itemsOptional}
               {category
-                ? ` Each is assumed to take about ${formatDuration(category.defaultDurationMinutes)}, which you can correct later.`
+                ? copy.newList.assumedDuration(formatDuration(category.defaultDurationMinutes))
                 : ''}
             </span>
           </label>
 
           <button className="button button--primary" type="submit" disabled={saving || !title.trim()}>
-            {saving ? 'Creating…' : 'Create list'}
+            {saving ? copy.newList.creating : copy.newList.create}
           </button>
         </div>
       </form>

@@ -5,6 +5,7 @@ import { Suggestions } from '../components/Suggestions.js'
 import { api, type MediaList, type MediaType } from '../lib/api.js'
 import { buildBuckets, findOrphanedLists } from '../lib/buckets.js'
 import { formatDuration } from '../formatDuration.js'
+import { categoryLabel, copy } from '../locale/index.js'
 
 function ListRow({ list }: { list: MediaList }) {
   const { stats } = list
@@ -16,17 +17,17 @@ function ListRow({ list }: { list: MediaList }) {
         <span className="row__meta">
           <Progress
             percent={stats.completionPercent}
-            label={`${stats.completionPercent}% complete`}
+            label={copy.overview.percentComplete(stats.completionPercent)}
           />
           <span>
             {stats.consumedItems}/{stats.totalItems}
           </span>
           <span className="faint">
             {stats.timeRemainingMinutes > 0
-              ? `${formatDuration(stats.timeRemainingMinutes)} left`
+              ? copy.overview.timeLeft(formatDuration(stats.timeRemainingMinutes))
               : stats.totalItems > 0
-                ? 'done'
-                : 'empty'}
+                ? copy.overview.allDone
+                : copy.overview.noItems}
           </span>
         </span>
       </Link>
@@ -38,10 +39,8 @@ function Bucket({ mediaType, lists }: { mediaType: MediaType; lists: MediaList[]
   return (
     <section className="panel">
       <header className="panel__header">
-        <h2 className="panel__title">{mediaType.label}</h2>
-        <span className="panel__count">
-          {lists.length} {lists.length === 1 ? 'list' : 'lists'}
-        </span>
+        <h2 className="panel__title">{categoryLabel(mediaType)}</h2>
+        <span className="panel__count">{copy.overview.listCount(lists.length)}</span>
       </header>
       <ul className="rows">
         {lists.map((list) => (
@@ -57,12 +56,12 @@ function EmptyBucket({ mediaType }: { mediaType: MediaType }) {
   return (
     <section className="panel">
       <header className="panel__header">
-        <h2 className="panel__title">{mediaType.label}</h2>
+        <h2 className="panel__title">{categoryLabel(mediaType)}</h2>
       </header>
       <p className="panel__empty">
-        <span>Nothing here yet.</span>
+        <span>{copy.overview.emptyCategory}</span>
         <Link className="button" to={`/lists/new?mediaType=${mediaType.key}`}>
-          Add a list
+          {copy.overview.addList}
         </Link>
       </p>
     </section>
@@ -88,7 +87,7 @@ export function Overview({ mediaTypes }: { mediaTypes: MediaType[] }) {
         if (!cancelled) setLists(loaded)
       })
       .catch((cause: unknown) => {
-        if (!cancelled) setError(cause instanceof Error ? cause.message : 'Could not load lists')
+        if (!cancelled) setError(cause instanceof Error ? cause.message : copy.overview.loadFailed)
       })
 
     return () => {
@@ -97,7 +96,7 @@ export function Overview({ mediaTypes }: { mediaTypes: MediaType[] }) {
   }, [])
 
   if (error) return <p className="notice notice--error">{error}</p>
-  if (!lists) return <p className="muted">Loading…</p>
+  if (!lists) return <p className="muted">{copy.app.loading}</p>
 
   const { used, unused, isFirstRun } = buildBuckets(lists, mediaTypes)
   const orphaned = findOrphanedLists(lists, mediaTypes)
@@ -105,9 +104,9 @@ export function Overview({ mediaTypes }: { mediaTypes: MediaType[] }) {
   return (
     <>
       <div className="page__header">
-        <h1 className="page__title">Your lists</h1>
+        <h1 className="page__title">{copy.overview.title}</h1>
         <Link className="button button--primary" to="/lists/new">
-          New list
+          {copy.overview.newList}
         </Link>
       </div>
 
@@ -116,10 +115,7 @@ export function Overview({ mediaTypes }: { mediaTypes: MediaType[] }) {
       {!isFirstRun && <Suggestions lists={lists} />}
 
       {isFirstRun && (
-        <p className="notice">
-          Nothing tracked yet. Pick a category and add your first list — all the Jackie Chan
-          movies, a discography, a game franchise. The point is finishing them.
-        </p>
+        <p className="notice">{copy.overview.firstRun}</p>
       )}
 
       {isFirstRun
@@ -130,22 +126,22 @@ export function Overview({ mediaTypes }: { mediaTypes: MediaType[] }) {
 
       {!isFirstRun && unused.length > 0 && (
         <p className="also">
-          also:{' '}
+          {copy.overview.alsoPrefix}
           {unused.map((mediaType, index) => (
             <span key={mediaType.key}>
               {index > 0 && ' · '}
-              <Link to={`/lists/new?mediaType=${mediaType.key}`}>{mediaType.label}</Link>
+              <Link to={`/lists/new?mediaType=${mediaType.key}`}>{categoryLabel(mediaType)}</Link>
             </span>
           ))}
-          {' — nothing tracked in these yet'}
+          {copy.overview.alsoSuffix}
         </p>
       )}
 
       {orphaned.length > 0 && (
         <section className="panel">
           <header className="panel__header">
-            <h2 className="panel__title">Uncategorised</h2>
-            <span className="panel__count">category no longer exists</span>
+            <h2 className="panel__title">{copy.overview.orphanedTitle}</h2>
+            <span className="panel__count">{copy.overview.orphanedNote}</span>
           </header>
           <ul className="rows">
             {orphaned.map((list) => (

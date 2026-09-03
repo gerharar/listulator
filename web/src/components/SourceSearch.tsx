@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { api, type ListSourceResult, type MediaType } from '../lib/api.js'
+import { categoryLabel, copy } from '../locale/index.js'
 
 /**
  * Finds something that can become a whole list, and builds it.
@@ -32,7 +33,7 @@ export function SourceSearch({
     try {
       setResults((await api.searchSources(mediaType.key, query.trim())).sources)
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : 'Search failed')
+      setError(cause instanceof Error ? cause.message : copy.sourceSearch.searchFailed)
     } finally {
       setSearching(false)
     }
@@ -51,7 +52,7 @@ export function SourceSearch({
 
       onBuilt(list.id)
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : 'Could not build that list')
+      setError(cause instanceof Error ? cause.message : copy.sourceSearch.buildFailed)
       setBuilding(null)
     }
   }
@@ -59,7 +60,7 @@ export function SourceSearch({
   return (
     <section className="panel">
       <header className="panel__header">
-        <h2 className="panel__title">Search {mediaType.label}</h2>
+        <h2 className="panel__title">{copy.sourceSearch.heading(categoryLabel(mediaType))}</h2>
       </header>
 
       <form className="source-search" onSubmit={(event) => void search(event)}>
@@ -67,11 +68,13 @@ export function SourceSearch({
           className="input"
           value={query}
           onChange={(event) => setQuery(event.target.value)}
-          placeholder={PLACEHOLDERS[mediaType.key] ?? 'Search…'}
-          aria-label={`Search ${mediaType.label}`}
+          placeholder={
+            copy.sourceSearch.placeholders[mediaType.key] ?? copy.sourceSearch.defaultPlaceholder
+          }
+          aria-label={copy.sourceSearch.inputLabel(categoryLabel(mediaType))}
         />
         <button className="button" type="submit" disabled={searching || !query.trim()}>
-          {searching ? 'Searching…' : 'Search'}
+          {searching ? copy.sourceSearch.searching : copy.sourceSearch.search}
         </button>
       </form>
 
@@ -80,11 +83,11 @@ export function SourceSearch({
       {building && (
         // TMDB fetches a runtime per film, so a big filmography takes seconds.
         // Silence here reads as a hang.
-        <p className="panel__empty">Building the list — this can take a few seconds…</p>
+        <p className="panel__empty">{copy.sourceSearch.building}</p>
       )}
 
       {!building && results?.length === 0 && (
-        <p className="panel__empty">Nothing found. Try a different spelling, or add by hand below.</p>
+        <p className="panel__empty">{copy.sourceSearch.nothingFound}</p>
       )}
 
       {!building && results && results.length > 0 && (
@@ -101,11 +104,4 @@ export function SourceSearch({
       )}
     </section>
   )
-}
-
-/** Nudges toward searching for a source, which is not the obvious thing to type. */
-const PLACEHOLDERS: Record<string, string> = {
-  movie: 'An actor, director, or a film series…',
-  music: 'A band or artist…',
-  book: 'An author…',
 }

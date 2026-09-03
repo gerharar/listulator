@@ -1,18 +1,12 @@
-export const THEMES = [
-  { key: 'dn', label: 'Dark grey' },
-  { key: 'dark', label: 'Dark' },
-  { key: 'brown', label: 'Brown' },
-  { key: 'orange', label: 'Orange' },
-  { key: 'bone', label: 'Bone white' },
-  { key: 'white', label: 'White' },
-] as const
+/** Names live in the locale; this is the set of themes and their order. */
+export const THEME_KEYS = ['dn', 'dark', 'brown', 'orange', 'bone', 'white'] as const
 
-export type ThemeKey = (typeof THEMES)[number]['key']
+export type ThemeKey = (typeof THEME_KEYS)[number]
 
 const STORAGE_KEY = 'duldulator:theme'
 
 export function isThemeKey(value: unknown): value is ThemeKey {
-  return THEMES.some((theme) => theme.key === value)
+  return THEME_KEYS.some((key) => key === value)
 }
 
 /**

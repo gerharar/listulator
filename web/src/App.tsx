@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
 import { Link, Route, Routes } from 'react-router-dom'
 import { api, type MediaType } from './lib/api.js'
-import { persistTheme, resolveInitialTheme, THEMES, type ThemeKey } from './lib/theme.js'
+import { copy } from './locale/index.js'
+import { persistTheme, resolveInitialTheme, THEME_KEYS, type ThemeKey } from './lib/theme.js'
 import { ListDetail } from './routes/ListDetail.js'
 import { NewList } from './routes/NewList.js'
 import { Overview } from './routes/Overview.js'
@@ -40,7 +41,7 @@ export function App() {
     Promise.all([api.me(), api.mediaTypes()])
       .then(([, types]) => setMediaTypes(types))
       .catch((cause: unknown) =>
-        setError(cause instanceof Error ? cause.message : 'Something went wrong'),
+        setError(cause instanceof Error ? cause.message : copy.app.unknownError),
       )
   }, [])
 
@@ -48,19 +49,20 @@ export function App() {
     <div className="app">
       <header className="app__header">
         <Link className="app__title" to="/">
-          DULDU<span>LATOR</span>
+          {copy.app.brandLead}
+          <span>{copy.app.brandTail}</span>
         </Link>
         <label className="small muted">
-          Theme{' '}
+          {copy.app.themeLabel}{' '}
           <select
             className="select"
             style={{ width: 'auto', display: 'inline-block' }}
             value={theme}
             onChange={(event) => setTheme(event.target.value as ThemeKey)}
           >
-            {THEMES.map((option) => (
-              <option key={option.key} value={option.key}>
-                {option.label}
+            {THEME_KEYS.map((key) => (
+              <option key={key} value={key}>
+                {copy.themes[key]}
               </option>
             ))}
           </select>
@@ -69,7 +71,7 @@ export function App() {
 
       {error && <p className="notice notice--error">{error}</p>}
 
-      {!error && !mediaTypes && <p className="muted">Loading…</p>}
+      {!error && !mediaTypes && <p className="muted">{copy.app.loading}</p>}
 
       {mediaTypes && (
         <Routes>

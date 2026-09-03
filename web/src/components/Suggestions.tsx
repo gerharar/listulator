@@ -3,21 +3,9 @@ import { Link } from 'react-router-dom'
 import { api, type MediaList, type SuggestionPick } from '../lib/api.js'
 import { formatDuration } from '../formatDuration.js'
 import { formatTimeAgo } from '../lib/relativeTime.js'
+import { copy } from '../locale/index.js'
 
 type Strategy = 'tired-boss' | 'suggest' | 'quickie'
-
-const LABELS: Record<Strategy, string> = {
-  'tired-boss': "I'm tired, boss",
-  suggest: 'Suggest',
-  quickie: 'Quickie',
-}
-
-/** What each button is actually promising, shown with its answer. */
-const PROMISES: Record<Strategy, string> = {
-  'tired-boss': 'Something else you could actually finish',
-  suggest: 'Something fresh you have been ignoring',
-  quickie: 'The one you can finish soonest',
-}
 
 interface Result {
   strategy: Strategy
@@ -32,8 +20,8 @@ function why(pick: SuggestionPick): string {
   const { stats } = pick.list
 
   return [
-    `${stats.completionPercent}% done`,
-    `${formatDuration(stats.timeRemainingMinutes)} left`,
+    copy.suggestions.percentDone(stats.completionPercent),
+    copy.suggestions.timeLeft(formatDuration(stats.timeRemainingMinutes)),
     formatTimeAgo(stats.lastConsumedAt),
   ].join(' · ')
 }
@@ -46,7 +34,8 @@ function Pick({ pick }: { pick: SuggestionPick }) {
       </Link>
       {pick.nextItem && (
         <p className="suggestion__next">
-          Next: <strong>{pick.nextItem.title}</strong>{' '}
+          {copy.suggestions.next}
+          <strong>{pick.nextItem.title}</strong>{' '}
           <span className="faint">
             {pick.nextItem.timeToConsumeIsEstimated ? '~' : ''}
             {formatDuration(pick.nextItem.timeToConsumeMinutes)}
@@ -80,7 +69,7 @@ export function Suggestions({ lists }: { lists: MediaList[] }) {
       setResult({ strategy, picks: response.picks })
       setPicking(false)
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : 'Could not get a suggestion')
+      setError(cause instanceof Error ? cause.message : copy.suggestions.failed)
     } finally {
       setBusy(null)
     }
@@ -91,7 +80,7 @@ export function Suggestions({ lists }: { lists: MediaList[] }) {
   return (
     <section className="panel suggestion">
       <header className="panel__header">
-        <h2 className="panel__title">What now?</h2>
+        <h2 className="panel__title">{copy.suggestions.heading}</h2>
       </header>
 
       <div className="suggestion__buttons">
@@ -104,7 +93,7 @@ export function Suggestions({ lists }: { lists: MediaList[] }) {
           }}
           aria-expanded={picking}
         >
-          {LABELS['tired-boss']}
+          {copy.suggestions.buttons['tired-boss']}
         </button>
         <button
           type="button"
@@ -112,7 +101,7 @@ export function Suggestions({ lists }: { lists: MediaList[] }) {
           disabled={busy !== null}
           onClick={() => void run('suggest')}
         >
-          {LABELS.suggest}
+          {copy.suggestions.buttons.suggest}
         </button>
         <button
           type="button"
@@ -120,7 +109,7 @@ export function Suggestions({ lists }: { lists: MediaList[] }) {
           disabled={busy !== null}
           onClick={() => void run('quickie')}
         >
-          {LABELS.quickie}
+          {copy.suggestions.buttons.quickie}
         </button>
       </div>
 
@@ -134,7 +123,7 @@ export function Suggestions({ lists }: { lists: MediaList[] }) {
         >
           {/* Always asked, never inferred: only you know what you are sick of. */}
           <label className="field__label" htmlFor="tired-of">
-            What are you tired of?
+            {copy.suggestions.tiredOfLabel}
           </label>
           <div className="suggestion__picker-row">
             <select
@@ -150,7 +139,7 @@ export function Suggestions({ lists }: { lists: MediaList[] }) {
               ))}
             </select>
             <button className="button button--primary" type="submit" disabled={busy !== null}>
-              Show me something else
+              {copy.suggestions.submit}
             </button>
           </div>
         </form>
@@ -158,18 +147,18 @@ export function Suggestions({ lists }: { lists: MediaList[] }) {
 
       {error && <p className="notice notice--error">{error}</p>}
 
-      {busy && <p className="panel__empty">Thinking…</p>}
+      {busy && <p className="panel__empty">{copy.suggestions.thinking}</p>}
 
       {!busy && result && (
         <div className="suggestion__result">
-          <p className="small faint">{PROMISES[result.strategy]}</p>
+          <p className="small faint">{copy.suggestions.promises[result.strategy]}</p>
 
           {top ? (
             <>
               <Pick pick={top} />
               {alternatives.length > 0 && (
                 <p className="small faint suggestion__alternatives">
-                  or:{' '}
+                  {copy.suggestions.alternativesPrefix}
                   {alternatives.slice(0, 3).map((pick, index) => (
                     <span key={pick.list.id}>
                       {index > 0 && ' · '}
@@ -182,8 +171,8 @@ export function Suggestions({ lists }: { lists: MediaList[] }) {
           ) : (
             <p className="muted">
               {result.strategy === 'tired-boss'
-                ? 'Nothing else to switch to — every other list is finished or empty.'
-                : 'Nothing to suggest. Every list is finished or empty.'}
+                ? copy.suggestions.noneToSwitchTo
+                : copy.suggestions.noneAtAll}
             </p>
           )}
         </div>

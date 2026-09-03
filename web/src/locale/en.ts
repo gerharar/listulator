@@ -1,0 +1,188 @@
+/**
+ * Every word the interface says, in English.
+ *
+ * One file so messaging can be adjusted without hunting through components,
+ * and so a second language is a second file rather than a refactor.
+ *
+ * **Anything that varies is a function, not a string with a placeholder.**
+ * English alone needs "1 entry" against "2 entries", "a month ago" against
+ * "3 months ago"; other languages need more branches, not fewer. Keeping the
+ * rule beside the words is what stops each surface reinventing it, and the
+ * argument types mean a missed parameter fails to compile.
+ *
+ * Category labels live in the server's registry (`media_type` is an open
+ * registry — SPEC.md §5), so `categories` here holds *optional overrides only*.
+ * A new category must never require an entry in this file.
+ */
+
+export const en = {
+  app: {
+    /** Split so the second half can take the accent colour. */
+    brandLead: 'DULDU',
+    brandTail: 'LATOR',
+    themeLabel: 'Theme',
+    loading: 'Loading…',
+    unknownError: 'Something went wrong',
+  },
+
+  themes: {
+    dn: 'Dark grey',
+    dark: 'Dark',
+    brown: 'Brown',
+    orange: 'Orange',
+    bone: 'Bone white',
+    white: 'White',
+  },
+
+  overview: {
+    title: 'Your lists',
+    newList: 'New list',
+    loadFailed: 'Could not load lists',
+    firstRun:
+      'Nothing tracked yet. Pick a category and add your first list — all the Jackie Chan movies, a discography, a game franchise. The point is finishing them.',
+    emptyCategory: 'Nothing here yet.',
+    addList: 'Add a list',
+    listCount: (n: number): string => `${n} ${n === 1 ? 'list' : 'lists'}`,
+    alsoPrefix: 'also: ',
+    alsoSuffix: ' — nothing tracked in these yet',
+    orphanedTitle: 'Uncategorised',
+    orphanedNote: 'category no longer exists',
+    /** Screen-reader text for the progress bar. */
+    percentComplete: (percent: number): string => `${percent}% complete`,
+    timeLeft: (duration: string): string => `${duration} left`,
+    allDone: 'done',
+    noItems: 'empty',
+  },
+
+  suggestions: {
+    heading: 'What now?',
+    buttons: {
+      'tired-boss': "I'm tired, boss",
+      suggest: 'Suggest',
+      quickie: 'Quickie',
+    },
+    /** What each button promises, shown with its answer. */
+    promises: {
+      'tired-boss': 'Something else you could actually finish',
+      suggest: 'Something fresh you have been ignoring',
+      quickie: 'The one you can finish soonest',
+    },
+    tiredOfLabel: 'What are you tired of?',
+    submit: 'Show me something else',
+    thinking: 'Thinking…',
+    failed: 'Could not get a suggestion',
+    next: 'Next: ',
+    alternativesPrefix: 'or: ',
+    noneToSwitchTo: 'Nothing else to switch to — every other list is finished or empty.',
+    noneAtAll: 'Nothing to suggest. Every list is finished or empty.',
+    percentDone: (percent: number): string => `${percent}% done`,
+    timeLeft: (duration: string): string => `${duration} left`,
+  },
+
+  listDetail: {
+    back: '← All lists',
+    loadFailed: 'Could not load this list',
+    saveFailed: 'Could not save that change',
+    removeFailed: (title: string): string => `Could not remove "${title}"`,
+    deleteListConfirm: (title: string): string => `Delete "${title}" and all its items?`,
+    deleteList: 'Delete list',
+    removeItem: (title: string): string => `Remove ${title}`,
+    reAddDeleted: 'Re-add deleted entries',
+    reAddDeletedHint:
+      'Deleting an item stops a rescan offering it back. Tick this to include everything you have deleted.',
+    checkForUpdates: 'Check for updates',
+    checking: 'Checking…',
+    checkFailed: 'Could not check for updates',
+    addFailed: 'Could not add them',
+    upToDate: (upstreamCount: number): string =>
+      `Up to date — nothing new in the source's ${upstreamCount}.`,
+    heldBack: (n: number): string =>
+      ` ${n} ${n === 1 ? 'entry you deleted is' : 'entries you deleted are'} being held back.`,
+    foundCount: (n: number): string => `${n} ${n === 1 ? 'entry' : 'entries'}`,
+    /** With the box ticked these are things you deleted, not things the source gained. */
+    foundToPutBack: 'to put back:',
+    foundNew: 'new since this list was built:',
+    andMore: (n: number): string => ` … and ${n} more`,
+    addToList: (n: number): string => `Add ${n} to this list`,
+    finished: 'Finished',
+    nothingToDo: 'Nothing to do yet',
+    empty: 'This list has no items yet.',
+    percentComplete: (percent: number): string => `${percent}% complete`,
+    timeLeft: (duration: string): string => `${duration} left`,
+  },
+
+  newList: {
+    title: 'New list',
+    createFailed: 'Could not create the list',
+    categoryLabel: 'Category',
+    /** Marks a category you can only fill in by hand. */
+    noSearchSuffix: ' — add by hand',
+    builtInHint: 'Categories are built in — if one is missing, it has to be added to the app itself.',
+    byHandHeading: 'Add by hand',
+    orByHandHeading: 'Or add by hand',
+    listTitleLabel: 'List title',
+    listTitlePlaceholder: 'All Jackie Chan movies',
+    itemsLabel: 'Items — one per line',
+    itemsPlaceholder: 'Drunken Master\nPolice Story\nProject A',
+    itemCount: (n: number): string => `${n} ${n === 1 ? 'item' : 'items'}.`,
+    itemsOptional: 'Optional — you can add items later.',
+    assumedDuration: (duration: string): string =>
+      ` Each is assumed to take about ${duration}, which you can correct later.`,
+    create: 'Create list',
+    creating: 'Creating…',
+  },
+
+  sourceSearch: {
+    heading: (category: string): string => `Search ${category}`,
+    inputLabel: (category: string): string => `Search ${category}`,
+    search: 'Search',
+    searching: 'Searching…',
+    searchFailed: 'Search failed',
+    buildFailed: 'Could not build that list',
+    building: 'Building the list — this can take a few seconds…',
+    nothingFound: 'Nothing found. Try a different spelling, or add by hand below.',
+    defaultPlaceholder: 'Search…',
+    /**
+     * Nudges toward searching for a *source*, which is not the obvious thing to
+     * type. Keyed by media type, and optional — a category with no entry falls
+     * back to `defaultPlaceholder`, so adding a category needs nothing here.
+     */
+    placeholders: {
+      movie: 'An actor, director, or a film series…',
+      music: 'A band or artist…',
+      book: 'An author…',
+    } as Record<string, string | undefined>,
+  },
+
+  /**
+   * Optional per-category overrides. Empty by default: the server's registry
+   * supplies every label and description, and `media_type` is open, so a new
+   * category must work without being named here.
+   */
+  categories: {} as Record<string, { label?: string; description?: string } | undefined>,
+
+  /** `time_to_consume_minutes` for display. Minutes are the storage unit. */
+  duration: {
+    minutes: (m: number): string => `${m}m`,
+    hours: (h: number): string => `${h}h`,
+    hoursMinutes: (h: number, m: number): string => `${h}h ${m}m`,
+  },
+
+  /**
+   * "When did I last touch this", used to explain why a suggestion was picked.
+   * Deliberately vague at the long end — "8 months ago" says everything
+   * "on 3 January" does, and reads faster.
+   */
+  timeAgo: {
+    never: 'never touched',
+    today: 'today',
+    yesterday: 'yesterday',
+    days: (n: number): string => `${n} days ago`,
+    aMonth: 'a month ago',
+    months: (n: number): string => `${n} months ago`,
+    aYear: 'a year ago',
+    years: (n: number): string => `${n} years ago`,
+  },
+} as const
+
+export type Locale = typeof en

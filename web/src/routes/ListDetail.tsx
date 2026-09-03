@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 import { Progress } from '../components/Progress.js'
 import { api, type ListItem, type MediaListDetail, type MediaType } from '../lib/api.js'
 import { formatDuration } from '../formatDuration.js'
+import { categoryLabel, copy } from '../locale/index.js'
 
 function Item({
   item,
@@ -43,8 +44,8 @@ function Item({
         type="button"
         className="item__remove"
         onClick={() => onRemove(item)}
-        aria-label={`Remove ${item.title}`}
-        title={`Remove ${item.title}`}
+        aria-label={copy.listDetail.removeItem(item.title)}
+        title={copy.listDetail.removeItem(item.title)}
       >
         ✕
       </button>
@@ -71,7 +72,7 @@ export function ListDetail({ mediaTypes }: { mediaTypes: MediaType[] }) {
     try {
       setList(await api.list(listId))
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : 'Could not load this list')
+      setError(cause instanceof Error ? cause.message : copy.listDetail.loadFailed)
     }
   }, [listId])
 
@@ -103,7 +104,7 @@ export function ListDetail({ mediaTypes }: { mediaTypes: MediaType[] }) {
       await load()
     } catch {
       setList(previous)
-      setError('Could not save that change')
+      setError(copy.listDetail.saveFailed)
     }
   }
 
@@ -120,7 +121,7 @@ export function ListDetail({ mediaTypes }: { mediaTypes: MediaType[] }) {
       await load()
     } catch {
       setList(previous)
-      setError(`Could not remove "${item.title}"`)
+      setError(copy.listDetail.removeFailed(item.title))
     }
   }
 
@@ -140,7 +141,7 @@ export function ListDetail({ mediaTypes }: { mediaTypes: MediaType[] }) {
     try {
       setUpdates(await api.checkForUpdates(listId, includeDismissed))
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : 'Could not check for updates')
+      setError(cause instanceof Error ? cause.message : copy.listDetail.checkFailed)
     } finally {
       setChecking(false)
     }
@@ -156,7 +157,7 @@ export function ListDetail({ mediaTypes }: { mediaTypes: MediaType[] }) {
       setUpdates(null)
       await load()
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : 'Could not add them')
+      setError(cause instanceof Error ? cause.message : copy.listDetail.addFailed)
     } finally {
       setChecking(false)
     }
@@ -164,14 +165,14 @@ export function ListDetail({ mediaTypes }: { mediaTypes: MediaType[] }) {
 
   async function remove() {
     if (!listId || !list) return
-    if (!confirm(`Delete "${list.title}" and all its items?`)) return
+    if (!confirm(copy.listDetail.deleteListConfirm(list.title))) return
 
     await api.deleteList(listId)
     void navigate('/')
   }
 
   if (error && !list) return <p className="notice notice--error">{error}</p>
-  if (!list) return <p className="muted">Loading…</p>
+  if (!list) return <p className="muted">{copy.app.loading}</p>
 
   const category = mediaTypes.find((mediaType) => mediaType.key === list.mediaType)
   const { stats } = list
@@ -179,25 +180,27 @@ export function ListDetail({ mediaTypes }: { mediaTypes: MediaType[] }) {
   return (
     <>
       <Link className="back" to="/">
-        ← All lists
+        {copy.listDetail.back}
       </Link>
 
       <div className="page__header">
         <div>
           <h1 className="page__title">{list.title}</h1>
-          <p className="small faint">{category?.label ?? list.mediaType}</p>
+          <p className="small faint">
+            {category ? categoryLabel(category) : list.mediaType}
+          </p>
         </div>
         <div className="page__actions">
           {/* Only lists built from a source have anything to check against. */}
           {list.externalRef && (
             <>
-              <label className="checkbox small faint" title="Deleting an item stops a rescan offering it back. Tick this to include everything you have deleted.">
+              <label className="checkbox small faint" title={copy.listDetail.reAddDeletedHint}>
                 <input
                   type="checkbox"
                   checked={includeDismissed}
                   onChange={(event) => setIncludeDismissed(event.target.checked)}
                 />
-                Re-add deleted entries
+                {copy.listDetail.reAddDeleted}
               </label>
               <button
                 type="button"
@@ -205,12 +208,12 @@ export function ListDetail({ mediaTypes }: { mediaTypes: MediaType[] }) {
                 onClick={() => void checkForUpdates()}
                 disabled={checking}
               >
-                {checking ? 'Checking…' : 'Check for updates'}
+                {checking ? copy.listDetail.checking : copy.listDetail.checkForUpdates}
               </button>
             </>
           )}
           <button type="button" className="button" onClick={() => void remove()}>
-            Delete list
+            {copy.listDetail.deleteList}
           </button>
         </div>
       </div>
@@ -221,33 +224,25 @@ export function ListDetail({ mediaTypes }: { mediaTypes: MediaType[] }) {
         <div className="notice">
           {updates.newItems.length === 0 ? (
             <p className="muted">
-              Up to date — nothing new in the source's {updates.upstreamCount}.
-              {!includeDismissed && updates.dismissedCount > 0 && (
-                <>
-                  {' '}
-                  {updates.dismissedCount}{' '}
-                  {updates.dismissedCount === 1 ? 'entry you deleted is' : 'entries you deleted are'}{' '}
-                  being held back.
-                </>
-              )}
+              {copy.listDetail.upToDate(updates.upstreamCount)}
+              {!includeDismissed &&
+                updates.dismissedCount > 0 &&
+                copy.listDetail.heldBack(updates.dismissedCount)}
             </p>
           ) : (
             <>
               <p>
-                <strong>
-                  {updates.newItems.length}{' '}
-                  {updates.newItems.length === 1 ? 'entry' : 'entries'}
-                </strong>{' '}
-                {/* With the box ticked these are things you deleted, not
-                    things the source has gained. */}
-                {includeDismissed ? 'to put back:' : 'new since this list was built:'}
+                <strong>{copy.listDetail.foundCount(updates.newItems.length)}</strong>{' '}
+                {includeDismissed ? copy.listDetail.foundToPutBack : copy.listDetail.foundNew}
               </p>
               <p className="small muted">
                 {updates.newItems
                   .slice(0, 12)
                   .map((item) => item.title)
                   .join(' · ')}
-                {updates.newItems.length > 12 ? ` … and ${updates.newItems.length - 12} more` : ''}
+                {updates.newItems.length > 12
+                  ? copy.listDetail.andMore(updates.newItems.length - 12)
+                  : ''}
               </p>
               <button
                 type="button"
@@ -255,7 +250,7 @@ export function ListDetail({ mediaTypes }: { mediaTypes: MediaType[] }) {
                 onClick={() => void addUpdates()}
                 disabled={checking}
               >
-                Add {updates.newItems.length} to this list
+                {copy.listDetail.addToList(updates.newItems.length)}
               </button>
             </>
           )}
@@ -264,22 +259,26 @@ export function ListDetail({ mediaTypes }: { mediaTypes: MediaType[] }) {
 
       <section className="panel">
         <div className="summary">
-          <Progress percent={stats.completionPercent} large label={`${stats.completionPercent}% complete`} />
+          <Progress
+            percent={stats.completionPercent}
+            large
+            label={copy.listDetail.percentComplete(stats.completionPercent)}
+          />
           <span className="summary__figure">
             {stats.consumedItems}/{stats.totalItems}
           </span>
           <span className="muted">{stats.completionPercent}%</span>
           <span className="muted">
             {stats.timeRemainingMinutes > 0
-              ? `${formatDuration(stats.timeRemainingMinutes)} left`
+              ? copy.listDetail.timeLeft(formatDuration(stats.timeRemainingMinutes))
               : stats.totalItems > 0
-                ? 'Finished'
-                : 'Nothing to do yet'}
+                ? copy.listDetail.finished
+                : copy.listDetail.nothingToDo}
           </span>
         </div>
 
         {list.items.length === 0 ? (
-          <p className="panel__empty">This list has no items yet.</p>
+          <p className="panel__empty">{copy.listDetail.empty}</p>
         ) : (
           <ul className="rows items">
             {list.items.map((item) => (
