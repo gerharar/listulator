@@ -66,6 +66,11 @@ interface ShowDetail {
  * return `[]`. TMDB has effectively stopped populating it. Without the
  * fallback every season fell back to the category default, so a 22-episode
  * season read as two hours and Quickie would have offered it as a quick win.
+ *
+ * One runtime is applied to every season, so a show that changed format
+ * mid-run inherits its latest length throughout — and finales tend to run
+ * long. An estimate, then, but the right order of magnitude, which is all
+ * Quickie needs and far more than the category default gave.
  */
 function episodeMinutes(detail: ShowDetail): number | undefined {
   return detail.episode_run_time?.[0] ?? detail.last_episode_to_air?.runtime ?? undefined

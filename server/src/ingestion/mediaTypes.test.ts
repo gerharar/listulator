@@ -32,6 +32,10 @@ describe('media type registry', () => {
     // decide what Quickie ranks on before any real duration is known — for
     // wrestling and MMA, which have no usable API, they are all it will ever
     // have to go on.
+    //
+    // `mega` is the exception: it postdates that list and the number is a
+    // stand-in. It fires rarely — every entry in a franchise list carries a
+    // real runtime from TMDB — so it has not been worth asking about.
     expect(
       Object.fromEntries(
         DEFAULT_MEDIA_TYPES.map((mediaType) => [mediaType.key, mediaType.defaultDurationMinutes]),
