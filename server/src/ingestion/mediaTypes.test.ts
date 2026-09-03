@@ -51,13 +51,18 @@ describe('media type registry', () => {
       (mediaType) => mediaType.key,
     )
 
-    // Grows as Phase 3a lands adapters. Wrestling and MMA are expected to stay
-    // out: neither has a public API worth using, and manual entry covers them.
-    // movie is present because TMDB is *registered*; whether it is usable
-    // depends on a key being configured, which isAvailable() decides.
-    expect(searchable).toEqual(['movie', 'game', 'comic', 'book', 'music'])
-    expect(searchable).not.toContain('wrestling')
-    expect(searchable).not.toContain('mma')
+    // A category is listed here because an adapter is *registered*; whether it
+    // is usable depends on credentials, which isAvailable() decides.
+    //
+    // Wrestling and MMA were expected to stay out — neither has a usable API —
+    // but Wikipedia's maintained event tables turned out to cover both.
+    expect(searchable).toEqual(['movie', 'wrestling', 'mma', 'game', 'comic', 'book', 'music'])
+
+    // TV and animation still have none. TMDB covers them, but its adapter
+    // searches people and film collections, which is the wrong shape for a
+    // series; they stay on manual entry until that is built.
+    expect(searchable).not.toContain('tv')
+    expect(searchable).not.toContain('animation')
   })
 
   it('orders by sortOrder rather than declaration order', () => {

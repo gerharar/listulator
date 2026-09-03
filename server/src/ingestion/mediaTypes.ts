@@ -1,6 +1,11 @@
 import { createComicVineAdapter } from './adapters/comicVine.js'
 import { createIgdbAdapter } from './adapters/igdb.js'
 import { createMusicBrainzAdapter } from './adapters/musicbrainz.js'
+import {
+  createWikipediaEventsAdapter,
+  MMA_PROMOTIONS,
+  WRESTLING_PROMOTIONS,
+} from './adapters/wikipediaEvents.js'
 import { createOpenLibraryAdapter } from './adapters/openLibrary.js'
 import { createTmdbAdapter } from './adapters/tmdb.js'
 
@@ -98,8 +103,20 @@ export const DEFAULT_MEDIA_TYPES: readonly MediaType[] = [
   // Episode-length. The category also holds animated features, which this
   // badly under-estimates — flagged estimated and easy to correct per item.
   { key: 'animation', label: 'Animation', sortOrder: 30, defaultDurationMinutes: 25 },
-  { key: 'wrestling', label: 'Wrestling', sortOrder: 40, defaultDurationMinutes: 180 },
-  { key: 'mma', label: 'MMA', sortOrder: 50, defaultDurationMinutes: 180 },
+  {
+    key: 'wrestling',
+    label: 'Wrestling',
+    sortOrder: 40,
+    defaultDurationMinutes: 180,
+    adapter: createWikipediaEventsAdapter(WRESTLING_PROMOTIONS),
+  },
+  {
+    key: 'mma',
+    label: 'MMA',
+    sortOrder: 50,
+    defaultDurationMinutes: 180,
+    adapter: createWikipediaEventsAdapter(MMA_PROMOTIONS),
+  },
   // Time-to-beat for a mainline game, not a completionist run.
   { key: 'game', label: 'Games', sortOrder: 60, defaultDurationMinutes: 600, adapter: igdb },
   // ~15 min for a standard 30-page issue (SPEC.md §5). Comic Vine's rate

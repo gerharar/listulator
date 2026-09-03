@@ -43,10 +43,14 @@ describe('GET /api/media-types', () => {
     // environment rather than a fixed answer.
     expect(typeof byKey.get('movie')).toBe('boolean')
     expect(typeof byKey.get('game')).toBe('boolean')
-    // Wrestling and MMA have no usable public API and may never be searchable;
-    // the rest are waiting on adapters.
-    expect(byKey.get('wrestling')).toBe(false)
-    expect(byKey.get('mma')).toBe(false)
+    // Open Library and Wikipedia need no credentials either. Wrestling and MMA
+    // were expected to stay manual-only — neither has a usable API — until
+    // Wikipedia's maintained event tables turned out to cover them.
+    expect(byKey.get('book')).toBe(true)
+    expect(byKey.get('wrestling')).toBe(true)
+    expect(byKey.get('mma')).toBe(true)
+    // TV and animation genuinely have no adapter yet.
+    expect(byKey.get('tv')).toBe(false)
   })
 })
 
