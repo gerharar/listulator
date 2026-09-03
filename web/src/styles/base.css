@@ -514,6 +514,16 @@ a {
   display: flex;
   gap: var(--space-2);
   flex-wrap: wrap;
+  align-items: center;
+}
+
+/* An option that modifies the button beside it, so it sits on the same line. */
+.checkbox {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  cursor: pointer;
+  user-select: none;
 }
 
 .notice .button {

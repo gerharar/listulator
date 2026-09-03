@@ -110,5 +110,48 @@ export const listItems = sqliteTable(
   (table) => [index('list_items_list_idx').on(table.listId)],
 )
 
+/**
+ * Items the user deleted, so a refresh does not keep offering them back.
+ *
+ * Import filtering is deliberately imperfect (SPEC.md §5) on the promise that
+ * anything unwanted can be deleted by hand. That promise only holds if the
+ * deletion sticks: without this table every rescan re-offers the thirty
+ * behind-the-scenes entries you already pruned, and you re-skip them forever.
+ *
+ * Scoped by `list_id` like `list_items`, which carries the `user_id` — see
+ * docs/DECISIONS.md.
+ *
+ * Matched the same way a refresh matches: on `external_ref` where the source
+ * has one, and on the normalised title where it does not (Wikipedia events,
+ * Open Library works). Title matching can over-suppress two genuinely
+ * different entries sharing a name, which is why the rescan can ignore this
+ * table entirely — see `includeDismissed`.
+ */
+export const dismissedItems = sqliteTable(
+  'dismissed_items',
+  {
+    id: text('id')
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    listId: text('list_id')
+      .notNull()
+      .references(() => lists.id, { onDelete: 'cascade' }),
+    /** Null for sources with no stable id; `title_key` is then the only match. */
+    externalRef: text('external_ref'),
+    /** Lower-cased, trimmed title. Always set, so there is always a fallback. */
+    titleKey: text('title_key').notNull(),
+    createdAt: integer('created_at', { mode: 'timestamp_ms' })
+      .notNull()
+      .$defaultFn(() => new Date()),
+  },
+  (table) => [index('dismissed_items_list_idx').on(table.listId)],
+)
+
 export type List = typeof lists.$inferSelect
 export type ListItem = typeof listItems.$inferSelect
+export type DismissedItem = typeof dismissedItems.$inferSelect
+
+/** The one place a title is turned into a match key. */
+export function dismissalTitleKey(title: string): string {
+  return title.trim().toLowerCase()
+}

@@ -534,6 +534,119 @@ describe('checking a list for updates', () => {
     expect(after.json().items).toHaveLength(1)
   })
 
+  it('does not offer back an item the user deleted', async () => {
+    // The promise that makes imperfect import filtering acceptable: prune what
+    // you do not want and it stays pruned. Without this every rescan hands
+    // back the entries you already removed.
+    const upstream = [
+      { title: 'The Show', externalRef: 'movie:1' },
+      { title: 'Behind the Scenes', externalRef: 'movie:2' },
+    ]
+
+    harness = appWith(adapterYielding(upstream))
+    const list = await buildList(harness)
+
+    const items = (
+      await harness.app.inject({ method: 'GET', url: `/api/lists/${list.id}` })
+    ).json().items
+    const unwanted = items.find(
+      (item: { title: string }) => item.title === 'Behind the Scenes',
+    )
+
+    await harness.app.inject({
+      method: 'DELETE',
+      url: `/api/lists/${list.id}/items/${unwanted.id}`,
+    })
+
+    const refreshed = (
+      await harness.app.inject({ method: 'POST', url: `/api/lists/${list.id}/refresh` })
+    ).json()
+
+    expect(refreshed.newItems).toEqual([])
+    expect(refreshed.dismissedCount).toBe(1)
+  })
+
+  it('offers deleted items back when asked to', async () => {
+    // The undo for deleting something by accident, and the way out when a
+    // shared title suppressed more than it should have.
+    const upstream = [{ title: 'Deleted By Mistake', externalRef: 'movie:1' }]
+
+    harness = appWith(adapterYielding(upstream))
+    const list = await buildList(harness)
+
+    const items = (
+      await harness.app.inject({ method: 'GET', url: `/api/lists/${list.id}` })
+    ).json().items
+
+    await harness.app.inject({
+      method: 'DELETE',
+      url: `/api/lists/${list.id}/items/${items[0].id}`,
+    })
+
+    const refreshed = (
+      await harness.app.inject({
+        method: 'POST',
+        url: `/api/lists/${list.id}/refresh`,
+        payload: { includeDismissed: true },
+      })
+    ).json()
+
+    expect(refreshed.newItems).toEqual(upstream)
+  })
+
+  it('forgets a dismissal once the item is added back', async () => {
+    // Otherwise restoring something would work once, and the next ordinary
+    // rescan would hide it again.
+    const upstream = [{ title: 'Restored', externalRef: 'movie:1' }]
+
+    harness = appWith(adapterYielding(upstream))
+    const list = await buildList(harness)
+
+    const items = (
+      await harness.app.inject({ method: 'GET', url: `/api/lists/${list.id}` })
+    ).json().items
+
+    await harness.app.inject({
+      method: 'DELETE',
+      url: `/api/lists/${list.id}/items/${items[0].id}`,
+    })
+    await harness.app.inject({
+      method: 'POST',
+      url: `/api/lists/${list.id}/items/import`,
+      payload: { items: upstream },
+    })
+
+    // Back in the list, and no longer on the dismissed record.
+    const refreshed = (
+      await harness.app.inject({ method: 'POST', url: `/api/lists/${list.id}/refresh` })
+    ).json()
+
+    expect(refreshed.dismissedCount).toBe(0)
+    expect(refreshed.newItems).toEqual([])
+  })
+
+  it('dismisses by title where the source has no id', async () => {
+    const upstream = [{ title: 'UFC 1' }, { title: 'UFC 2' }]
+
+    harness = appWith(adapterYielding(upstream))
+    const list = await buildList(harness)
+
+    const items = (
+      await harness.app.inject({ method: 'GET', url: `/api/lists/${list.id}` })
+    ).json().items
+    const first = items.find((item: { title: string }) => item.title === 'UFC 1')
+
+    await harness.app.inject({
+      method: 'DELETE',
+      url: `/api/lists/${list.id}/items/${first.id}`,
+    })
+
+    expect(
+      (await harness.app.inject({ method: 'POST', url: `/api/lists/${list.id}/refresh` })).json()
+        .newItems,
+    ).toEqual([])
+  })
+
   it('refuses a list that was made by hand', async () => {
     harness = appWith(adapterYielding([]))
     const manual = (

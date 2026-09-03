@@ -134,12 +134,17 @@ export const api = {
     request<MediaList>('/lists/from-source', { method: 'POST', body: JSON.stringify(input) }),
 
   /** Dry run: reports what the source has that the list does not. Changes nothing. */
-  checkForUpdates: (listId: string) =>
+  checkForUpdates: (listId: string, includeDismissed = false) =>
     request<{
       newItems: { title: string; externalRef?: string; timeToConsumeMinutes?: number }[]
       upstreamCount: number
       existingCount: number
-    }>(`/lists/${listId}/refresh`, { method: 'POST' }),
+      /** How many items were deleted by hand and are being held back. */
+      dismissedCount: number
+    }>(`/lists/${listId}/refresh`, {
+      method: 'POST',
+      body: JSON.stringify({ includeDismissed }),
+    }),
 
   deleteItem: (listId: string, itemId: string) =>
     request<void>(`/lists/${listId}/items/${itemId}`, { method: 'DELETE' }),

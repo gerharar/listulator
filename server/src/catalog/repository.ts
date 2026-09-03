@@ -1,6 +1,15 @@
-import { and, asc, count, eq, getTableColumns, max, sql } from 'drizzle-orm'
+import { and, asc, count, eq, getTableColumns, inArray, max, or, sql } from 'drizzle-orm'
 import type { AppDatabase } from '../db/client.js'
-import { listItems, lists, type List, type ListItem, type ListSource } from '../db/schema.js'
+import {
+  dismissalTitleKey,
+  dismissedItems,
+  listItems,
+  lists,
+  type DismissedItem,
+  type List,
+  type ListItem,
+  type ListSource,
+} from '../db/schema.js'
 
 /**
  * Data access for lists and their items.
@@ -274,6 +283,10 @@ export function updateListItem(
     .get()
 }
 
+/**
+ * Deleting an item also records that you did not want it, so a refresh stops
+ * offering it back. Undone by importing it again — see `clearDismissals`.
+ */
 export function deleteListItem(
   db: AppDatabase,
   userId: string,
@@ -288,7 +301,52 @@ export function deleteListItem(
     .returning()
     .all()
 
+  for (const item of deleted) {
+    db.insert(dismissedItems)
+      .values({
+        listId,
+        titleKey: dismissalTitleKey(item.title),
+        ...(item.externalRef ? { externalRef: item.externalRef } : {}),
+      })
+      .run()
+  }
+
   return deleted.length > 0
+}
+
+export function findDismissals(db: AppDatabase, userId: string, listId: string): DismissedItem[] {
+  if (!findList(db, userId, listId)) return []
+
+  return db.select().from(dismissedItems).where(eq(dismissedItems.listId, listId)).all()
+}
+
+/**
+ * Forgets dismissals for things being added back, so an item restored by a
+ * rescan is not silently hidden by the next one.
+ */
+export function clearDismissals(
+  db: AppDatabase,
+  listId: string,
+  items: { title: string; externalRef?: string | undefined }[],
+): void {
+  if (items.length === 0) return
+
+  const titleKeys = items.map((item) => dismissalTitleKey(item.title))
+  const refs = items
+    .map((item) => item.externalRef)
+    .filter((ref): ref is string => Boolean(ref))
+
+  db.delete(dismissedItems)
+    .where(
+      and(
+        eq(dismissedItems.listId, listId),
+        or(
+          inArray(dismissedItems.titleKey, titleKeys),
+          ...(refs.length > 0 ? [inArray(dismissedItems.externalRef, refs)] : []),
+        ),
+      ),
+    )
+    .run()
 }
 
 /**

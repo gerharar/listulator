@@ -61,6 +61,9 @@ export function ListDetail({ mediaTypes }: { mediaTypes: MediaType[] }) {
     ReturnType<typeof api.checkForUpdates>
   > | null>(null)
   const [checking, setChecking] = useState(false)
+  // Off by default: a rescan should respect what you pruned. Ticking it is
+  // the undo for deleting something by accident.
+  const [includeDismissed, setIncludeDismissed] = useState(false)
 
   const load = useCallback(async () => {
     if (!listId) return
@@ -135,7 +138,7 @@ export function ListDetail({ mediaTypes }: { mediaTypes: MediaType[] }) {
     setUpdates(null)
 
     try {
-      setUpdates(await api.checkForUpdates(listId))
+      setUpdates(await api.checkForUpdates(listId, includeDismissed))
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Could not check for updates')
     } finally {
@@ -187,14 +190,24 @@ export function ListDetail({ mediaTypes }: { mediaTypes: MediaType[] }) {
         <div className="page__actions">
           {/* Only lists built from a source have anything to check against. */}
           {list.externalRef && (
-            <button
-              type="button"
-              className="button"
-              onClick={() => void checkForUpdates()}
-              disabled={checking}
-            >
-              {checking ? 'Checking…' : 'Check for updates'}
-            </button>
+            <>
+              <label className="checkbox small faint" title="Deleting an item stops a rescan offering it back. Tick this to include everything you have deleted.">
+                <input
+                  type="checkbox"
+                  checked={includeDismissed}
+                  onChange={(event) => setIncludeDismissed(event.target.checked)}
+                />
+                Re-add deleted entries
+              </label>
+              <button
+                type="button"
+                className="button"
+                onClick={() => void checkForUpdates()}
+                disabled={checking}
+              >
+                {checking ? 'Checking…' : 'Check for updates'}
+              </button>
+            </>
           )}
           <button type="button" className="button" onClick={() => void remove()}>
             Delete list
@@ -209,6 +222,14 @@ export function ListDetail({ mediaTypes }: { mediaTypes: MediaType[] }) {
           {updates.newItems.length === 0 ? (
             <p className="muted">
               Up to date — the source has {updates.upstreamCount}, and you have all of them.
+              {!includeDismissed && updates.dismissedCount > 0 && (
+                <>
+                  {' '}
+                  {updates.dismissedCount}{' '}
+                  {updates.dismissedCount === 1 ? 'entry you deleted is' : 'entries you deleted are'}{' '}
+                  being held back.
+                </>
+              )}
             </p>
           ) : (
             <>

@@ -1,8 +1,11 @@
 import type { FastifyPluginAsync } from 'fastify'
+import { dismissalTitleKey } from '../db/schema.js'
 import { getCurrentUser } from '../auth/currentUser.js'
 import {
+  clearDismissals,
   createList,
   createListItem,
+  findDismissals,
   findList,
   findListItems,
   findListWithStats,
@@ -133,8 +136,18 @@ export const ingestionRoutes: FastifyPluginAsync<IngestionRoutesOptions> = async
    * never intended to finish is a supported workflow, and a refresh that put
    * them all back would make it pointless.
    */
-  app.post<{ Params: { listId: string } }>(
+  app.post<{ Params: { listId: string }; Body?: { includeDismissed?: boolean } }>(
     '/lists/:listId/refresh',
+    {
+      schema: {
+        body: {
+          type: 'object',
+          additionalProperties: false,
+          properties: { includeDismissed: { type: 'boolean' } },
+          nullable: true,
+        },
+      },
+    },
     async (request, reply) => {
       const user = getCurrentUser(request)
       const { listId } = request.params
@@ -161,18 +174,31 @@ export const ingestionRoutes: FastifyPluginAsync<IngestionRoutesOptions> = async
       // Matched on the upstream id where there is one, and on title otherwise:
       // Wikipedia events and Open Library works carry no stable id.
       const knownRefs = new Set(existing.map((item) => item.externalRef).filter(Boolean))
-      const knownTitles = new Set(existing.map((item) => item.title.trim().toLowerCase()))
+      const knownTitles = new Set(existing.map((item) => dismissalTitleKey(item.title)))
 
-      const newItems = upstream.filter(
-        (candidate) =>
-          !(candidate.externalRef && knownRefs.has(candidate.externalRef)) &&
-          !knownTitles.has(candidate.title.trim().toLowerCase()),
-      )
+      // Things deleted by hand, which a refresh must not keep offering back —
+      // otherwise pruning an import never sticks. Ticking the box ignores
+      // them, which is both the undo for an accidental delete and the way out
+      // if a shared title over-suppressed something.
+      const dismissed = request.body?.includeDismissed ? [] : findDismissals(db, user.id, listId)
+      const dismissedRefs = new Set(dismissed.map((item) => item.externalRef).filter(Boolean))
+      const dismissedTitles = new Set(dismissed.map((item) => item.titleKey))
+
+      const newItems = upstream.filter((candidate) => {
+        const titleKey = dismissalTitleKey(candidate.title)
+
+        if (candidate.externalRef && knownRefs.has(candidate.externalRef)) return false
+        if (knownTitles.has(titleKey)) return false
+        if (candidate.externalRef && dismissedRefs.has(candidate.externalRef)) return false
+
+        return !dismissedTitles.has(titleKey)
+      })
 
       return {
         newItems,
         upstreamCount: upstream.length,
         existingCount: existing.length,
+        dismissedCount: findDismissals(db, user.id, listId).length,
       }
     },
   )
@@ -240,6 +266,10 @@ export const ingestionRoutes: FastifyPluginAsync<IngestionRoutesOptions> = async
       // A list's category is validated on write, but a registry entry can be
       // removed while lists still reference it; fall back rather than crash.
       const fallbackMinutes = mediaTypes.get(list.mediaType)?.defaultDurationMinutes ?? 30
+
+      // Adding something back is the user changing their mind, so the record
+      // that they once deleted it has to go with it.
+      clearDismissals(db, listId, request.body.items)
 
       const created = request.body.items.map((item) => {
         const known = item.timeToConsumeMinutes !== undefined
