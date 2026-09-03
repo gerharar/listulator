@@ -59,6 +59,15 @@ all. To change something, copy `.env.example` to `.env` in the repo root:
 cp .env.example .env
 ```
 
+### Installing it on a phone
+
+The built app is a PWA — it installs to a home screen and runs without browser
+chrome. **This requires HTTPS.** Browsers only register a service worker on a
+secure origin, and `localhost` is the only exception, so opening
+`http://192.168.x.x:5173` on a phone will show the app but will not offer to
+install it. Put it behind a reverse proxy with a certificate, or use something
+like Tailscale, and installation works.
+
 API keys are only needed for search. Music (MusicBrainz) and books (Open
 Library) need none; without a key for the others, that category simply has no
 search and you add items by hand. `.env` is gitignored, and an exported shell
