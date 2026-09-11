@@ -21,6 +21,12 @@ import {
  * Functions return `undefined` when the target does not exist *or* belongs to
  * someone else — callers cannot distinguish the two, which is what stops the
  * API confirming the existence of other people's lists.
+ *
+ * Every function is `async`, even though the server's own driver
+ * (`better-sqlite3`) is synchronous. The standalone app (`docs/DECISIONS.md`,
+ * "Standalone-app distribution") reaches SQLite through Drizzle's
+ * `sqlite-proxy` driver, which genuinely returns promises — this file stays
+ * the single implementation shared by both by awaiting every call.
  */
 
 export interface CreateListInput {
@@ -54,8 +60,8 @@ export interface UpdateListItemInput {
   timeToConsumeIsEstimated?: boolean
 }
 
-export function createList(db: AppDatabase, userId: string, input: CreateListInput): List {
-  return db
+export async function createList(db: AppDatabase, userId: string, input: CreateListInput): Promise<List> {
+  return await db
     .insert(lists)
     .values({
       userId,
@@ -130,8 +136,8 @@ function toListWithStats(row: StatsRow): ListWithStats {
   }
 }
 
-export function findListsWithStats(db: AppDatabase, userId: string): ListWithStats[] {
-  const rows = db
+export async function findListsWithStats(db: AppDatabase, userId: string): Promise<ListWithStats[]> {
+  const rows = await db
     .select(statsSelection())
     .from(lists)
     .leftJoin(listItems, eq(listItems.listId, lists.id))
@@ -144,12 +150,12 @@ export function findListsWithStats(db: AppDatabase, userId: string): ListWithSta
   return rows.map((row) => toListWithStats(row as StatsRow))
 }
 
-export function findListWithStats(
+export async function findListWithStats(
   db: AppDatabase,
   userId: string,
   listId: string,
-): ListWithStats | undefined {
-  const row = db
+): Promise<ListWithStats | undefined> {
+  const row = await db
     .select(statsSelection())
     .from(lists)
     .leftJoin(listItems, eq(listItems.listId, lists.id))
@@ -160,8 +166,8 @@ export function findListWithStats(
   return row ? toListWithStats(row as StatsRow) : undefined
 }
 
-export function findLists(db: AppDatabase, userId: string): List[] {
-  return db
+export async function findLists(db: AppDatabase, userId: string): Promise<List[]> {
+  return await db
     .select()
     .from(lists)
     .where(eq(lists.userId, userId))
@@ -169,23 +175,23 @@ export function findLists(db: AppDatabase, userId: string): List[] {
     .all()
 }
 
-export function findList(db: AppDatabase, userId: string, listId: string): List | undefined {
-  return db
+export async function findList(db: AppDatabase, userId: string, listId: string): Promise<List | undefined> {
+  return await db
     .select()
     .from(lists)
     .where(and(eq(lists.id, listId), eq(lists.userId, userId)))
     .get()
 }
 
-export function updateList(
+export async function updateList(
   db: AppDatabase,
   userId: string,
   listId: string,
   patch: UpdateListInput,
-): List | undefined {
-  if (!findList(db, userId, listId)) return undefined
+): Promise<List | undefined> {
+  if (!(await findList(db, userId, listId))) return undefined
 
-  return db
+  return await db
     .update(lists)
     .set({ ...patch, updatedAt: new Date() })
     .where(and(eq(lists.id, listId), eq(lists.userId, userId)))
@@ -194,8 +200,8 @@ export function updateList(
 }
 
 /** Items go with it — the foreign key cascades (client.ts enables them). */
-export function deleteList(db: AppDatabase, userId: string, listId: string): boolean {
-  const deleted = db
+export async function deleteList(db: AppDatabase, userId: string, listId: string): Promise<boolean> {
+  const deleted = await db
     .delete(lists)
     .where(and(eq(lists.id, listId), eq(lists.userId, userId)))
     .returning()
@@ -204,14 +210,14 @@ export function deleteList(db: AppDatabase, userId: string, listId: string): boo
   return deleted.length > 0
 }
 
-export function findListItems(
+export async function findListItems(
   db: AppDatabase,
   userId: string,
   listId: string,
-): ListItem[] | undefined {
-  if (!findList(db, userId, listId)) return undefined
+): Promise<ListItem[] | undefined> {
+  if (!(await findList(db, userId, listId))) return undefined
 
-  return db
+  return await db
     .select()
     .from(listItems)
     .where(eq(listItems.listId, listId))
@@ -219,8 +225,8 @@ export function findListItems(
     .all()
 }
 
-function nextOrderIndex(db: AppDatabase, listId: string): number {
-  const result = db
+async function nextOrderIndex(db: AppDatabase, listId: string): Promise<number> {
+  const result = await db
     .select({ highest: max(listItems.orderIndex) })
     .from(listItems)
     .where(eq(listItems.listId, listId))
@@ -229,20 +235,20 @@ function nextOrderIndex(db: AppDatabase, listId: string): number {
   return (result?.highest ?? -1) + 1
 }
 
-export function createListItem(
+export async function createListItem(
   db: AppDatabase,
   userId: string,
   listId: string,
   input: CreateListItemInput,
-): ListItem | undefined {
-  if (!findList(db, userId, listId)) return undefined
+): Promise<ListItem | undefined> {
+  if (!(await findList(db, userId, listId))) return undefined
 
-  return db
+  return await db
     .insert(listItems)
     .values({
       listId,
       title: input.title,
-      orderIndex: input.orderIndex ?? nextOrderIndex(db, listId),
+      orderIndex: input.orderIndex ?? (await nextOrderIndex(db, listId)),
       timeToConsumeMinutes: input.timeToConsumeMinutes,
       timeToConsumeIsEstimated: input.timeToConsumeIsEstimated ?? true,
       externalRef: input.externalRef ?? null,
@@ -251,31 +257,31 @@ export function createListItem(
     .get()
 }
 
-export function findListItem(
+export async function findListItem(
   db: AppDatabase,
   userId: string,
   listId: string,
   itemId: string,
-): ListItem | undefined {
-  if (!findList(db, userId, listId)) return undefined
+): Promise<ListItem | undefined> {
+  if (!(await findList(db, userId, listId))) return undefined
 
-  return db
+  return await db
     .select()
     .from(listItems)
     .where(and(eq(listItems.id, itemId), eq(listItems.listId, listId)))
     .get()
 }
 
-export function updateListItem(
+export async function updateListItem(
   db: AppDatabase,
   userId: string,
   listId: string,
   itemId: string,
   patch: UpdateListItemInput,
-): ListItem | undefined {
-  if (!findListItem(db, userId, listId, itemId)) return undefined
+): Promise<ListItem | undefined> {
+  if (!(await findListItem(db, userId, listId, itemId))) return undefined
 
-  return db
+  return await db
     .update(listItems)
     .set({ ...patch, updatedAt: new Date() })
     .where(and(eq(listItems.id, itemId), eq(listItems.listId, listId)))
@@ -287,22 +293,23 @@ export function updateListItem(
  * Deleting an item also records that you did not want it, so a refresh stops
  * offering it back. Undone by importing it again — see `clearDismissals`.
  */
-export function deleteListItem(
+export async function deleteListItem(
   db: AppDatabase,
   userId: string,
   listId: string,
   itemId: string,
-): boolean {
-  if (!findList(db, userId, listId)) return false
+): Promise<boolean> {
+  if (!(await findList(db, userId, listId))) return false
 
-  const deleted = db
+  const deleted = await db
     .delete(listItems)
     .where(and(eq(listItems.id, itemId), eq(listItems.listId, listId)))
     .returning()
     .all()
 
   for (const item of deleted) {
-    db.insert(dismissedItems)
+    await db
+      .insert(dismissedItems)
       .values({
         listId,
         titleKey: dismissalTitleKey(item.title),
@@ -314,21 +321,25 @@ export function deleteListItem(
   return deleted.length > 0
 }
 
-export function findDismissals(db: AppDatabase, userId: string, listId: string): DismissedItem[] {
-  if (!findList(db, userId, listId)) return []
+export async function findDismissals(
+  db: AppDatabase,
+  userId: string,
+  listId: string,
+): Promise<DismissedItem[]> {
+  if (!(await findList(db, userId, listId))) return []
 
-  return db.select().from(dismissedItems).where(eq(dismissedItems.listId, listId)).all()
+  return await db.select().from(dismissedItems).where(eq(dismissedItems.listId, listId)).all()
 }
 
 /**
  * Forgets dismissals for things being added back, so an item restored by a
  * rescan is not silently hidden by the next one.
  */
-export function clearDismissals(
+export async function clearDismissals(
   db: AppDatabase,
   listId: string,
   items: { title: string; externalRef?: string | undefined }[],
-): void {
+): Promise<void> {
   if (items.length === 0) return
 
   const titleKeys = items.map((item) => dismissalTitleKey(item.title))
@@ -336,7 +347,8 @@ export function clearDismissals(
     .map((item) => item.externalRef)
     .filter((ref): ref is string => Boolean(ref))
 
-  db.delete(dismissedItems)
+  await db
+    .delete(dismissedItems)
     .where(
       and(
         eq(dismissedItems.listId, listId),
@@ -354,17 +366,17 @@ export function clearDismissals(
  * state it wants, and an explicit set stays correct if the same request is
  * retried or two tabs are open.
  */
-export function setListItemConsumed(
+export async function setListItemConsumed(
   db: AppDatabase,
   userId: string,
   listId: string,
   itemId: string,
   consumed: boolean,
   now: Date = new Date(),
-): ListItem | undefined {
-  if (!findListItem(db, userId, listId, itemId)) return undefined
+): Promise<ListItem | undefined> {
+  if (!(await findListItem(db, userId, listId, itemId))) return undefined
 
-  return db
+  return await db
     .update(listItems)
     .set({ consumedAt: consumed ? now : null, updatedAt: now })
     .where(and(eq(listItems.id, itemId), eq(listItems.listId, listId)))

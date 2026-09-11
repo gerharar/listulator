@@ -40,16 +40,22 @@ export const suggestionsRoutes: FastifyPluginAsync<SuggestionsRoutesOptions> = a
     return reply.send(error)
   })
 
-  function suggest(userId: string, strategyName: string, currentListId?: string) {
+  async function suggest(userId: string, strategyName: string, currentListId?: string) {
     const strategy = strategiesDir ? loadStrategy(strategyName, strategiesDir) : loadStrategy(strategyName)
-    const candidates = findListsWithStats(db, userId)
+    const candidates = await findListsWithStats(db, userId)
 
-    // Only the lists that survive filtering need their items loaded.
+    // Only the lists that survive filtering need their items loaded. Order
+    // doesn't matter for building this map, so these run concurrently.
     const nextItems = new Map<string, ListItem | undefined>(
-      candidates.map((list) => [
-        list.id,
-        findListItems(db, userId, list.id)?.find((item) => item.consumedAt === null),
-      ]),
+      await Promise.all(
+        candidates.map(
+          async (list) =>
+            [
+              list.id,
+              (await findListItems(db, userId, list.id))?.find((item) => item.consumedAt === null),
+            ] as const,
+        ),
+      ),
     )
 
     return rank({
@@ -80,19 +86,19 @@ export const suggestionsRoutes: FastifyPluginAsync<SuggestionsRoutesOptions> = a
     async (request) => {
       const user = getCurrentUser(request)
 
-      return present(suggest(user.id, 'tired-boss', request.body.currentListId))
+      return present(await suggest(user.id, 'tired-boss', request.body.currentListId))
     },
   )
 
   app.get('/suggestions/suggest', async (request) => {
     const user = getCurrentUser(request)
 
-    return present(suggest(user.id, 'suggest'))
+    return present(await suggest(user.id, 'suggest'))
   })
 
   app.get('/suggestions/quickie', async (request) => {
     const user = getCurrentUser(request)
 
-    return present(suggest(user.id, 'quickie'))
+    return present(await suggest(user.id, 'quickie'))
   })
 }

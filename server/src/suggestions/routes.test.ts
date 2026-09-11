@@ -29,7 +29,7 @@ describe('suggestion endpoints', () => {
   }
 
   /** Builds a list of `count` items of `minutes` each, consuming the first `consumed`. */
-  function seed(
+  async function seed(
     title: string,
     { count, minutes, consumed = 0, lastConsumed }: {
       count: number
@@ -38,16 +38,16 @@ describe('suggestion endpoints', () => {
       lastConsumed?: Date
     },
   ) {
-    const list = createList(harness.db, userId, { title, mediaType: 'movie' })
+    const list = await createList(harness.db, userId, { title, mediaType: 'movie' })
 
     for (let index = 0; index < count; index += 1) {
-      const item = createListItem(harness.db, userId, list.id, {
+      const item = (await createListItem(harness.db, userId, list.id, {
         title: `${title} #${index + 1}`,
         timeToConsumeMinutes: minutes,
-      })!
+      }))!
 
       if (index < consumed) {
-        setListItemConsumed(harness.db, userId, list.id, item.id, true, lastConsumed ?? daysAgo(1))
+        await setListItemConsumed(harness.db, userId, list.id, item.id, true, lastConsumed ?? daysAgo(1))
       }
     }
 
@@ -71,16 +71,16 @@ describe('suggestion endpoints', () => {
   }
 
   it('“I’m tired, boss” skips the named list and favours neglected, nearly-done ones', async () => {
-    const tiredOf = seed('Assassin’s Creed', { count: 10, minutes: 900, consumed: 5 })
+    const tiredOf = await seed('Assassin’s Creed', { count: 10, minutes: 900, consumed: 5 })
     // Long ignored and nearly finished — exactly what this button is for.
-    const almostDone = seed('Fantastic Four', {
+    const almostDone = await seed('Fantastic Four', {
       count: 10,
       minutes: 15,
       consumed: 9,
       lastConsumed: daysAgo(200),
     })
     // Ignored just as long, but barely started.
-    seed('Cannibal Corpse', { count: 10, minutes: 45, consumed: 1, lastConsumed: daysAgo(200) })
+    await seed('Cannibal Corpse', { count: 10, minutes: 45, consumed: 1, lastConsumed: daysAgo(200) })
 
     const results = await picks('/api/suggestions/tired-boss', { currentListId: tiredOf.id })
 
@@ -90,19 +90,19 @@ describe('suggestion endpoints', () => {
   })
 
   it('“Suggest” favours barely-started lists and buries the half-finished', async () => {
-    const barelyStarted = seed('Jackie Chan', {
+    const barelyStarted = await seed('Jackie Chan', {
       count: 10,
       minutes: 110,
       consumed: 1,
       lastConsumed: daysAgo(150),
     })
-    const halfDone = seed('WWF PPVs', {
+    const halfDone = await seed('WWF PPVs', {
       count: 10,
       minutes: 150,
       consumed: 5,
       lastConsumed: daysAgo(150),
     })
-    const nearlyDone = seed('Bond films', {
+    const nearlyDone = await seed('Bond films', {
       count: 10,
       minutes: 130,
       consumed: 9,
@@ -118,9 +118,9 @@ describe('suggestion endpoints', () => {
   })
 
   it('“Quickie” answers with the list that takes least time to finish', async () => {
-    seed('Jackie Chan', { count: 10, minutes: 110 })
-    const quick = seed('Cannibal Corpse', { count: 3, minutes: 40 })
-    seed('Assassin’s Creed', { count: 5, minutes: 900 })
+    await seed('Jackie Chan', { count: 10, minutes: 110 })
+    const quick = await seed('Cannibal Corpse', { count: 3, minutes: 40 })
+    await seed('Assassin’s Creed', { count: 5, minutes: 900 })
 
     const results = await picks('/api/suggestions/quickie')
 
@@ -129,8 +129,8 @@ describe('suggestion endpoints', () => {
   })
 
   it('never suggests a finished list, which would otherwise win Quickie outright', async () => {
-    const finished = seed('Finished', { count: 3, minutes: 30, consumed: 3 })
-    const unfinished = seed('Unfinished', { count: 3, minutes: 90 })
+    const finished = await seed('Finished', { count: 3, minutes: 30, consumed: 3 })
+    const unfinished = await seed('Unfinished', { count: 3, minutes: 90 })
 
     const results = await picks('/api/suggestions/quickie')
 
@@ -139,8 +139,8 @@ describe('suggestion endpoints', () => {
   })
 
   it('never suggests an empty list', async () => {
-    createList(harness.db, userId, { title: 'Empty', mediaType: 'movie' })
-    const real = seed('Real', { count: 2, minutes: 30 })
+    await createList(harness.db, userId, { title: 'Empty', mediaType: 'movie' })
+    const real = await seed('Real', { count: 2, minutes: 30 })
 
     const results = await picks('/api/suggestions/suggest')
 
@@ -148,13 +148,13 @@ describe('suggestion endpoints', () => {
   })
 
   it('returns nothing rather than inventing an answer when there is nothing to do', async () => {
-    seed('All done', { count: 2, minutes: 30, consumed: 2 })
+    await seed('All done', { count: 2, minutes: 30, consumed: 2 })
 
     expect(await picks('/api/suggestions/quickie')).toEqual([])
   })
 
   it('requires the list you are tired of, and will not guess it', async () => {
-    seed('Something', { count: 2, minutes: 30 })
+    await seed('Something', { count: 2, minutes: 30 })
 
     const response = await harness.app.inject({
       method: 'POST',
@@ -172,7 +172,7 @@ describe('suggestion endpoints', () => {
     const broken = createTestApp({ strategiesDir: directory })
     await broken.app.ready()
     const brokenUserId = broken.db.select().from(users).get()!.id
-    createList(broken.db, brokenUserId, { title: 'Anything', mediaType: 'movie' })
+    await createList(broken.db, brokenUserId, { title: 'Anything', mediaType: 'movie' })
 
     const response = await broken.app.inject({ method: 'GET', url: '/api/suggestions/quickie' })
 

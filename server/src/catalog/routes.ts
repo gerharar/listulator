@@ -76,26 +76,26 @@ export const catalogRoutes: FastifyPluginAsync<CatalogRoutesOptions> = async (
     },
     async (request, reply) => {
       const user = getCurrentUser(request)
-      const list = createList(db, user.id, request.body)
+      const list = await createList(db, user.id, request.body)
 
       // Re-read so every list response carries stats, even a brand new list
       // whose numbers are all zero.
-      return reply.code(201).send(findListWithStats(db, user.id, list.id))
+      return reply.code(201).send(await findListWithStats(db, user.id, list.id))
     },
   )
 
   app.get('/lists', async (request) => {
     const user = getCurrentUser(request)
 
-    return findListsWithStats(db, user.id)
+    return await findListsWithStats(db, user.id)
   })
 
   app.get<{ Params: ListParams }>('/lists/:listId', async (request, reply) => {
     const user = getCurrentUser(request)
-    const list = findListWithStats(db, user.id, request.params.listId)
+    const list = await findListWithStats(db, user.id, request.params.listId)
     if (!list) return reply.callNotFound()
 
-    return { ...list, items: findListItems(db, user.id, list.id) ?? [] }
+    return { ...list, items: (await findListItems(db, user.id, list.id)) ?? [] }
   })
 
   app.patch<{
@@ -115,16 +115,16 @@ export const catalogRoutes: FastifyPluginAsync<CatalogRoutesOptions> = async (
     },
     async (request, reply) => {
       const user = getCurrentUser(request)
-      const updated = updateList(db, user.id, request.params.listId, request.body)
+      const updated = await updateList(db, user.id, request.params.listId, request.body)
       if (!updated) return reply.callNotFound()
 
-      return findListWithStats(db, user.id, updated.id)
+      return await findListWithStats(db, user.id, updated.id)
     },
   )
 
   app.delete<{ Params: ListParams }>('/lists/:listId', async (request, reply) => {
     const user = getCurrentUser(request)
-    if (!deleteList(db, user.id, request.params.listId)) return reply.callNotFound()
+    if (!(await deleteList(db, user.id, request.params.listId))) return reply.callNotFound()
 
     return reply.code(204).send()
   })
@@ -151,7 +151,7 @@ export const catalogRoutes: FastifyPluginAsync<CatalogRoutesOptions> = async (
     },
     async (request, reply) => {
       const user = getCurrentUser(request)
-      const item = createListItem(db, user.id, request.params.listId, request.body)
+      const item = await createListItem(db, user.id, request.params.listId, request.body)
       if (!item) return reply.callNotFound()
 
       return reply.code(201).send(item)
@@ -181,7 +181,7 @@ export const catalogRoutes: FastifyPluginAsync<CatalogRoutesOptions> = async (
     async (request, reply) => {
       const user = getCurrentUser(request)
       const { listId, itemId } = request.params
-      const updated = updateListItem(db, user.id, listId, itemId, request.body)
+      const updated = await updateListItem(db, user.id, listId, itemId, request.body)
       if (!updated) return reply.callNotFound()
 
       return updated
@@ -191,7 +191,7 @@ export const catalogRoutes: FastifyPluginAsync<CatalogRoutesOptions> = async (
   app.delete<{ Params: ItemParams }>('/lists/:listId/items/:itemId', async (request, reply) => {
     const user = getCurrentUser(request)
     const { listId, itemId } = request.params
-    if (!deleteListItem(db, user.id, listId, itemId)) return reply.callNotFound()
+    if (!(await deleteListItem(db, user.id, listId, itemId))) return reply.callNotFound()
 
     return reply.code(204).send()
   })
@@ -211,7 +211,7 @@ export const catalogRoutes: FastifyPluginAsync<CatalogRoutesOptions> = async (
     async (request, reply) => {
       const user = getCurrentUser(request)
       const { listId, itemId } = request.params
-      const updated = setListItemConsumed(db, user.id, listId, itemId, request.body.consumed)
+      const updated = await setListItemConsumed(db, user.id, listId, itemId, request.body.consumed)
       if (!updated) return reply.callNotFound()
 
       return updated

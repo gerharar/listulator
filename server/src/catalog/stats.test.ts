@@ -24,28 +24,28 @@ describe('derived list stats', () => {
   })
 
   /** Builds a list of `durations`, consuming the ones whose index is listed. */
-  function listWith(durations: number[], consumedIndexes: number[] = [], consumedAt?: Date) {
-    const list = createList(harness.db, userId, { title: 'Test', mediaType: 'movie' })
+  async function listWith(durations: number[], consumedIndexes: number[] = [], consumedAt?: Date) {
+    const list = await createList(harness.db, userId, { title: 'Test', mediaType: 'movie' })
 
-    durations.forEach((minutes, index) => {
-      const item = createListItem(harness.db, userId, list.id, {
+    for (const [index, minutes] of durations.entries()) {
+      const item = (await createListItem(harness.db, userId, list.id, {
         title: `Item ${index}`,
         timeToConsumeMinutes: minutes,
-      })!
+      }))!
 
       if (consumedIndexes.includes(index)) {
-        setListItemConsumed(harness.db, userId, list.id, item.id, true, consumedAt)
+        await setListItemConsumed(harness.db, userId, list.id, item.id, true, consumedAt)
       }
-    })
+    }
 
     return list
   }
 
-  it('computes counts, percentage and remaining time for a partly finished list', () => {
+  it('computes counts, percentage and remaining time for a partly finished list', async () => {
     // 4 items totalling 400 minutes; two consumed (100 + 60), leaving 90 + 150.
-    const list = listWith([100, 90, 60, 150], [0, 2])
+    const list = await listWith([100, 90, 60, 150], [0, 2])
 
-    expect(findListWithStats(harness.db, userId, list.id)?.stats).toMatchObject({
+    expect((await findListWithStats(harness.db, userId, list.id))?.stats).toMatchObject({
       totalItems: 4,
       consumedItems: 2,
       completionPercent: 50,
@@ -53,12 +53,12 @@ describe('derived list stats', () => {
     })
   })
 
-  it('reports an empty list as 0% complete, not 100%', () => {
+  it('reports an empty list as 0% complete, not 100%', async () => {
     // Otherwise an empty list looks "finished" and would win "I'm tired, boss",
     // which ranks on being nearly done.
-    const list = createList(harness.db, userId, { title: 'Empty', mediaType: 'movie' })
+    const list = await createList(harness.db, userId, { title: 'Empty', mediaType: 'movie' })
 
-    expect(findListWithStats(harness.db, userId, list.id)?.stats).toMatchObject({
+    expect((await findListWithStats(harness.db, userId, list.id))?.stats).toMatchObject({
       totalItems: 0,
       consumedItems: 0,
       completionPercent: 0,
@@ -67,66 +67,74 @@ describe('derived list stats', () => {
     })
   })
 
-  it('reports a fully finished list as 100% with nothing remaining', () => {
-    const list = listWith([30, 45], [0, 1])
+  it('reports a fully finished list as 100% with nothing remaining', async () => {
+    const list = await listWith([30, 45], [0, 1])
 
-    expect(findListWithStats(harness.db, userId, list.id)?.stats).toMatchObject({
+    expect((await findListWithStats(harness.db, userId, list.id))?.stats).toMatchObject({
       completionPercent: 100,
       timeRemainingMinutes: 0,
     })
   })
 
-  it('rounds an inexact percentage to one decimal place', () => {
+  it('rounds an inexact percentage to one decimal place', async () => {
     // 1 of 3 is 33.333…
-    const list = listWith([10, 10, 10], [0])
+    const list = await listWith([10, 10, 10], [0])
 
-    expect(findListWithStats(harness.db, userId, list.id)?.stats.completionPercent).toBe(33.3)
+    expect((await findListWithStats(harness.db, userId, list.id))?.stats.completionPercent).toBe(
+      33.3,
+    )
   })
 
-  it('reports the most recent consumption as lastConsumedAt', () => {
-    const list = createList(harness.db, userId, { title: 'PPVs', mediaType: 'tv' })
-    const older = createListItem(harness.db, userId, list.id, {
+  it('reports the most recent consumption as lastConsumedAt', async () => {
+    const list = await createList(harness.db, userId, { title: 'PPVs', mediaType: 'tv' })
+    const older = (await createListItem(harness.db, userId, list.id, {
       title: 'Older',
       timeToConsumeMinutes: 120,
-    })!
-    const newer = createListItem(harness.db, userId, list.id, {
+    }))!
+    const newer = (await createListItem(harness.db, userId, list.id, {
       title: 'Newer',
       timeToConsumeMinutes: 120,
-    })!
+    }))!
 
-    setListItemConsumed(harness.db, userId, list.id, older.id, true, new Date('2026-01-01T00:00:00Z'))
-    setListItemConsumed(harness.db, userId, list.id, newer.id, true, new Date('2026-06-15T00:00:00Z'))
+    await setListItemConsumed(harness.db, userId, list.id, older.id, true, new Date('2026-01-01T00:00:00Z'))
+    await setListItemConsumed(harness.db, userId, list.id, newer.id, true, new Date('2026-06-15T00:00:00Z'))
 
-    expect(findListWithStats(harness.db, userId, list.id)?.stats.lastConsumedAt).toEqual(
+    expect((await findListWithStats(harness.db, userId, list.id))?.stats.lastConsumedAt).toEqual(
       new Date('2026-06-15T00:00:00Z'),
     )
   })
 
-  it('leaves lastConsumedAt null when a list has items but none consumed', () => {
-    const list = listWith([100, 100])
+  it('leaves lastConsumedAt null when a list has items but none consumed', async () => {
+    const list = await listWith([100, 100])
 
-    expect(findListWithStats(harness.db, userId, list.id)?.stats.lastConsumedAt).toBeNull()
+    expect((await findListWithStats(harness.db, userId, list.id))?.stats.lastConsumedAt).toBeNull()
   })
 
-  it('unchecking an item restores its time to the remaining total', () => {
-    const list = createList(harness.db, userId, { title: 'Games', mediaType: 'game' })
-    const item = createListItem(harness.db, userId, list.id, {
+  it('unchecking an item restores its time to the remaining total', async () => {
+    const list = await createList(harness.db, userId, { title: 'Games', mediaType: 'game' })
+    const item = (await createListItem(harness.db, userId, list.id, {
       title: 'AC1',
       timeToConsumeMinutes: 900,
-    })!
+    }))!
 
-    setListItemConsumed(harness.db, userId, list.id, item.id, true)
-    expect(findListWithStats(harness.db, userId, list.id)?.stats.timeRemainingMinutes).toBe(0)
+    await setListItemConsumed(harness.db, userId, list.id, item.id, true)
+    expect((await findListWithStats(harness.db, userId, list.id))?.stats.timeRemainingMinutes).toBe(
+      0,
+    )
 
-    setListItemConsumed(harness.db, userId, list.id, item.id, false)
-    expect(findListWithStats(harness.db, userId, list.id)?.stats.timeRemainingMinutes).toBe(900)
+    await setListItemConsumed(harness.db, userId, list.id, item.id, false)
+    expect((await findListWithStats(harness.db, userId, list.id))?.stats.timeRemainingMinutes).toBe(
+      900,
+    )
   })
 
-  it('computes stats per list in one pass over many lists', () => {
-    const halfDone = listWith([60, 60], [0])
-    const untouched = listWith([10, 20, 30])
+  it('computes stats per list in one pass over many lists', async () => {
+    const halfDone = await listWith([60, 60], [0])
+    const untouched = await listWith([10, 20, 30])
 
-    const byId = new Map(findListsWithStats(harness.db, userId).map((list) => [list.id, list.stats]))
+    const byId = new Map(
+      (await findListsWithStats(harness.db, userId)).map((list) => [list.id, list.stats]),
+    )
 
     // Keyed by id rather than position: these two are created in the same
     // millisecond, so `created_at` ties and the id tiebreaker orders them by
@@ -147,7 +155,7 @@ describe('derived list stats', () => {
   })
 
   it('serves stats over HTTP on both the index and a single list', async () => {
-    const list = listWith([100, 90, 60, 150], [0, 2])
+    const list = await listWith([100, 90, 60, 150], [0, 2])
 
     const index = await harness.app.inject({ method: 'GET', url: '/api/lists' })
     expect(index.json()[0].stats).toMatchObject({

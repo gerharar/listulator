@@ -105,12 +105,15 @@ export const ingestionRoutes: FastifyPluginAsync<IngestionRoutesOptions> = async
         return sendApiError(reply, 422, 'list.sourceEmpty', { title })
       }
 
-      const list = createList(db, user.id, { title, mediaType: key, source: 'api', externalRef })
+      const list = await createList(db, user.id, { title, mediaType: key, source: 'api', externalRef })
 
+      // Sequential, not Promise.all: each create can fall back to
+      // nextOrderIndex's own read of the current max, and concurrent inserts
+      // against that would race under an async driver.
       for (const candidate of candidates) {
         const known = candidate.timeToConsumeMinutes !== undefined
 
-        createListItem(db, user.id, list.id, {
+        await createListItem(db, user.id, list.id, {
           title: candidate.title,
           timeToConsumeMinutes: known
             ? candidate.timeToConsumeMinutes!
@@ -120,7 +123,7 @@ export const ingestionRoutes: FastifyPluginAsync<IngestionRoutesOptions> = async
         })
       }
 
-      return reply.code(201).send(findListWithStats(db, user.id, list.id))
+      return reply.code(201).send(await findListWithStats(db, user.id, list.id))
     },
   )
 
@@ -149,7 +152,7 @@ export const ingestionRoutes: FastifyPluginAsync<IngestionRoutesOptions> = async
       const user = getCurrentUser(request)
       const { listId } = request.params
 
-      const list = findList(db, user.id, listId)
+      const list = await findList(db, user.id, listId)
       if (!list) return reply.callNotFound()
 
       if (!list.externalRef) {
@@ -164,7 +167,7 @@ export const ingestionRoutes: FastifyPluginAsync<IngestionRoutesOptions> = async
       }
 
       const upstream = await mediaType.adapter.expand(list.externalRef)
-      const existing = findListItems(db, user.id, listId) ?? []
+      const existing = (await findListItems(db, user.id, listId)) ?? []
 
       // Matched on the upstream id where there is one, and on title otherwise:
       // Wikipedia events and Open Library works carry no stable id.
@@ -175,7 +178,9 @@ export const ingestionRoutes: FastifyPluginAsync<IngestionRoutesOptions> = async
       // otherwise pruning an import never sticks. Ticking the box ignores
       // them, which is both the undo for an accidental delete and the way out
       // if a shared title over-suppressed something.
-      const dismissed = request.body?.includeDismissed ? [] : findDismissals(db, user.id, listId)
+      const dismissed = request.body?.includeDismissed
+        ? []
+        : await findDismissals(db, user.id, listId)
       const dismissedRefs = new Set(dismissed.map((item) => item.externalRef).filter(Boolean))
       const dismissedTitles = new Set(dismissed.map((item) => item.titleKey))
 
@@ -193,7 +198,7 @@ export const ingestionRoutes: FastifyPluginAsync<IngestionRoutesOptions> = async
         newItems,
         upstreamCount: upstream.length,
         existingCount: existing.length,
-        dismissedCount: findDismissals(db, user.id, listId).length,
+        dismissedCount: (await findDismissals(db, user.id, listId)).length,
       }
     },
   )
@@ -255,7 +260,7 @@ export const ingestionRoutes: FastifyPluginAsync<IngestionRoutesOptions> = async
       const user = getCurrentUser(request)
       const { listId } = request.params
 
-      const list = findList(db, user.id, listId)
+      const list = await findList(db, user.id, listId)
       if (!list) return reply.callNotFound()
 
       // A list's category is validated on write, but a registry entry can be
@@ -264,18 +269,22 @@ export const ingestionRoutes: FastifyPluginAsync<IngestionRoutesOptions> = async
 
       // Adding something back is the user changing their mind, so the record
       // that they once deleted it has to go with it.
-      clearDismissals(db, listId, request.body.items)
+      await clearDismissals(db, listId, request.body.items)
 
-      const created = request.body.items.map((item) => {
+      // Sequential, not Promise.all — see the from-source route above for why.
+      const created = []
+      for (const item of request.body.items) {
         const known = item.timeToConsumeMinutes !== undefined
 
-        return createListItem(db, user.id, listId, {
-          title: item.title,
-          timeToConsumeMinutes: known ? item.timeToConsumeMinutes! : fallbackMinutes,
-          timeToConsumeIsEstimated: !known,
-          ...(item.externalRef ? { externalRef: item.externalRef } : {}),
-        })
-      })
+        created.push(
+          await createListItem(db, user.id, listId, {
+            title: item.title,
+            timeToConsumeMinutes: known ? item.timeToConsumeMinutes! : fallbackMinutes,
+            timeToConsumeIsEstimated: !known,
+            ...(item.externalRef ? { externalRef: item.externalRef } : {}),
+          }),
+        )
+      }
 
       return reply.code(201).send(created)
     },
