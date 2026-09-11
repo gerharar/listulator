@@ -4,9 +4,20 @@ import { fileURLToPath } from 'node:url'
 import Database from 'better-sqlite3'
 import { drizzle, type BetterSQLite3Database } from 'drizzle-orm/better-sqlite3'
 import { migrate } from 'drizzle-orm/better-sqlite3/migrator'
+import type { BaseSQLiteDatabase } from 'drizzle-orm/sqlite-core'
 import * as schema from './schema.js'
 
 export type AppDatabase = BetterSQLite3Database<typeof schema>
+
+/**
+ * What `catalog/repository.ts` actually depends on: a Drizzle SQLite
+ * database over this schema, sync or async. `AppDatabase` (this server's
+ * own connection) and `LocalDatabase` (the standalone app's, via
+ * `web/src/lib/db/localDb.ts`) both satisfy this — that's what lets
+ * `repository.ts` run unmodified against either (docs/DECISIONS.md,
+ * "Standalone-app distribution").
+ */
+export type PortableDatabase = BaseSQLiteDatabase<'sync' | 'async', unknown, typeof schema>
 
 export interface DatabaseHandle {
   db: AppDatabase

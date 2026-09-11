@@ -1,4 +1,5 @@
 import { copy, errorMessage } from '../locale/index.js'
+import { createLocalApi } from './api.local.js'
 /** Types mirror the server's responses; see server/src/catalog and /ingestion. */
 
 export interface ListStats {
@@ -113,7 +114,48 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   return response.status === 204 ? (undefined as T) : ((await response.json()) as T)
 }
 
-export const api = {
+/**
+ * The one contract every component depends on. Two implementations satisfy
+ * it: this file's `fetchApi` (talks to the self-hosted server over HTTP)
+ * and `api.local.ts`'s `createLocalApi` (talks to `catalog/repository.ts`
+ * directly, no server — docs/DECISIONS.md, "Standalone-app distribution").
+ * `index.ts` below picks one per runtime, not per build — see its comment
+ * for why that's a deliberate change from the original task plan.
+ */
+export interface ApiClient {
+  me: () => Promise<CurrentUser>
+  mediaTypes: () => Promise<MediaType[]>
+  lists: () => Promise<MediaList[]>
+  list: (id: string) => Promise<MediaListDetail>
+  createList: (input: { title: string; mediaType: string }) => Promise<MediaList>
+  deleteList: (id: string) => Promise<void>
+  importItems: (
+    listId: string,
+    items: { title: string; externalRef?: string; timeToConsumeMinutes?: number }[],
+  ) => Promise<ListItem[]>
+  tiredBoss: (currentListId: string) => Promise<{ picks: SuggestionPick[] }>
+  suggest: () => Promise<{ picks: SuggestionPick[] }>
+  quickie: () => Promise<{ picks: SuggestionPick[] }>
+  searchSources: (mediaType: string, query: string) => Promise<{ sources: ListSourceResult[] }>
+  createFromSource: (input: {
+    mediaType: string
+    externalRef: string
+    title: string
+  }) => Promise<MediaList>
+  checkForUpdates: (
+    listId: string,
+    includeDismissed?: boolean,
+  ) => Promise<{
+    newItems: { title: string; externalRef?: string; timeToConsumeMinutes?: number }[]
+    upstreamCount: number
+    existingCount: number
+    dismissedCount: number
+  }>
+  deleteItem: (listId: string, itemId: string) => Promise<void>
+  setConsumed: (listId: string, itemId: string, consumed: boolean) => Promise<ListItem>
+}
+
+export const fetchApi: ApiClient = {
   me: () => request<CurrentUser>('/me'),
   mediaTypes: () => request<MediaType[]>('/media-types'),
   lists: () => request<MediaList[]>('/lists'),
@@ -173,3 +215,14 @@ export const api = {
       body: JSON.stringify({ consumed }),
     }),
 }
+
+/**
+ * Runtime selection, not build-time, despite the original task plan's
+ * wording (docs/DECISIONS.md, task 5.6). One `web/dist` build already
+ * serves both the browser/PWA and the Tauri-wrapped app (task 5.2) — a
+ * separate build target for "local" would duplicate that and contradict
+ * it. `'__TAURI_INTERNALS__' in window` is the same check already used
+ * (and proven) in tasks 5.4 and 5.5's verification.
+ */
+export const api: ApiClient =
+  typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window ? createLocalApi() : fetchApi

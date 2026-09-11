@@ -1,7 +1,7 @@
 import { eq } from 'drizzle-orm'
 import type { FastifyPluginAsync, FastifyRequest } from 'fastify'
 import fp from 'fastify-plugin'
-import type { AppDatabase } from '../db/client.js'
+import type { AppDatabase, PortableDatabase } from '../db/client.js'
 import { users, type User } from '../db/schema.js'
 import type { ServerConfig } from '../config.js'
 
@@ -17,12 +17,18 @@ declare module 'fastify' {
  *
  * The unique index on `is_default_local_user` means a double-insert fails
  * loudly rather than producing two "you"s.
+ *
+ * Takes `PortableDatabase`, not `AppDatabase`: the standalone app's current-
+ * user bootstrap (`web/src/lib/db/localUser.ts`) reuses this directly
+ * against its own locally-backed database rather than duplicating it
+ * (docs/DECISIONS.md, task 5.6 — the duplication task 5.5 introduced was
+ * deliberately temporary).
  */
-function ensureDefaultLocalUser(db: AppDatabase): User {
-  const existing = db.select().from(users).where(eq(users.isDefaultLocalUser, true)).get()
+export async function ensureDefaultLocalUser(db: PortableDatabase): Promise<User> {
+  const existing = await db.select().from(users).where(eq(users.isDefaultLocalUser, true)).get()
   if (existing) return existing
 
-  return db.insert(users).values({ isDefaultLocalUser: true }).returning().get()
+  return await db.insert(users).values({ isDefaultLocalUser: true }).returning().get()
 }
 
 export interface CurrentUserPluginOptions {
@@ -51,7 +57,7 @@ const plugin: FastifyPluginAsync<CurrentUserPluginOptions> = async (app, { db, c
   let defaultUser: User | undefined
 
   app.addHook('onReady', async () => {
-    defaultUser = ensureDefaultLocalUser(db)
+    defaultUser = await ensureDefaultLocalUser(db)
   })
 
   app.addHook('onRequest', async (request) => {

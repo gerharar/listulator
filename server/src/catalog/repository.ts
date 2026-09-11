@@ -1,5 +1,5 @@
 import { and, asc, count, eq, getTableColumns, inArray, max, or, sql } from 'drizzle-orm'
-import type { AppDatabase } from '../db/client.js'
+import type { PortableDatabase } from '../db/client.js'
 import {
   dismissalTitleKey,
   dismissedItems,
@@ -60,7 +60,7 @@ export interface UpdateListItemInput {
   timeToConsumeIsEstimated?: boolean
 }
 
-export async function createList(db: AppDatabase, userId: string, input: CreateListInput): Promise<List> {
+export async function createList(db: PortableDatabase, userId: string, input: CreateListInput): Promise<List> {
   return await db
     .insert(lists)
     .values({
@@ -136,7 +136,7 @@ function toListWithStats(row: StatsRow): ListWithStats {
   }
 }
 
-export async function findListsWithStats(db: AppDatabase, userId: string): Promise<ListWithStats[]> {
+export async function findListsWithStats(db: PortableDatabase, userId: string): Promise<ListWithStats[]> {
   const rows = await db
     .select(statsSelection())
     .from(lists)
@@ -151,7 +151,7 @@ export async function findListsWithStats(db: AppDatabase, userId: string): Promi
 }
 
 export async function findListWithStats(
-  db: AppDatabase,
+  db: PortableDatabase,
   userId: string,
   listId: string,
 ): Promise<ListWithStats | undefined> {
@@ -166,7 +166,7 @@ export async function findListWithStats(
   return row ? toListWithStats(row as StatsRow) : undefined
 }
 
-export async function findLists(db: AppDatabase, userId: string): Promise<List[]> {
+export async function findLists(db: PortableDatabase, userId: string): Promise<List[]> {
   return await db
     .select()
     .from(lists)
@@ -175,7 +175,7 @@ export async function findLists(db: AppDatabase, userId: string): Promise<List[]
     .all()
 }
 
-export async function findList(db: AppDatabase, userId: string, listId: string): Promise<List | undefined> {
+export async function findList(db: PortableDatabase, userId: string, listId: string): Promise<List | undefined> {
   return await db
     .select()
     .from(lists)
@@ -184,7 +184,7 @@ export async function findList(db: AppDatabase, userId: string, listId: string):
 }
 
 export async function updateList(
-  db: AppDatabase,
+  db: PortableDatabase,
   userId: string,
   listId: string,
   patch: UpdateListInput,
@@ -200,7 +200,7 @@ export async function updateList(
 }
 
 /** Items go with it — the foreign key cascades (client.ts enables them). */
-export async function deleteList(db: AppDatabase, userId: string, listId: string): Promise<boolean> {
+export async function deleteList(db: PortableDatabase, userId: string, listId: string): Promise<boolean> {
   const deleted = await db
     .delete(lists)
     .where(and(eq(lists.id, listId), eq(lists.userId, userId)))
@@ -211,7 +211,7 @@ export async function deleteList(db: AppDatabase, userId: string, listId: string
 }
 
 export async function findListItems(
-  db: AppDatabase,
+  db: PortableDatabase,
   userId: string,
   listId: string,
 ): Promise<ListItem[] | undefined> {
@@ -225,7 +225,7 @@ export async function findListItems(
     .all()
 }
 
-async function nextOrderIndex(db: AppDatabase, listId: string): Promise<number> {
+async function nextOrderIndex(db: PortableDatabase, listId: string): Promise<number> {
   const result = await db
     .select({ highest: max(listItems.orderIndex) })
     .from(listItems)
@@ -236,7 +236,7 @@ async function nextOrderIndex(db: AppDatabase, listId: string): Promise<number> 
 }
 
 export async function createListItem(
-  db: AppDatabase,
+  db: PortableDatabase,
   userId: string,
   listId: string,
   input: CreateListItemInput,
@@ -258,7 +258,7 @@ export async function createListItem(
 }
 
 export async function findListItem(
-  db: AppDatabase,
+  db: PortableDatabase,
   userId: string,
   listId: string,
   itemId: string,
@@ -273,7 +273,7 @@ export async function findListItem(
 }
 
 export async function updateListItem(
-  db: AppDatabase,
+  db: PortableDatabase,
   userId: string,
   listId: string,
   itemId: string,
@@ -294,7 +294,7 @@ export async function updateListItem(
  * offering it back. Undone by importing it again — see `clearDismissals`.
  */
 export async function deleteListItem(
-  db: AppDatabase,
+  db: PortableDatabase,
   userId: string,
   listId: string,
   itemId: string,
@@ -322,7 +322,7 @@ export async function deleteListItem(
 }
 
 export async function findDismissals(
-  db: AppDatabase,
+  db: PortableDatabase,
   userId: string,
   listId: string,
 ): Promise<DismissedItem[]> {
@@ -336,7 +336,7 @@ export async function findDismissals(
  * rescan is not silently hidden by the next one.
  */
 export async function clearDismissals(
-  db: AppDatabase,
+  db: PortableDatabase,
   listId: string,
   items: { title: string; externalRef?: string | undefined }[],
 ): Promise<void> {
@@ -367,7 +367,7 @@ export async function clearDismissals(
  * retried or two tabs are open.
  */
 export async function setListItemConsumed(
-  db: AppDatabase,
+  db: PortableDatabase,
   userId: string,
   listId: string,
   itemId: string,
