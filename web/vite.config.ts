@@ -70,6 +70,13 @@ export default defineConfig({
     // need to reach the dev server from another device (e.g. phone testing).
     host: '127.0.0.1',
     port: 5173,
+    fs: {
+      // The standalone-app storage layer (docs/DECISIONS.md, "Standalone-app
+      // distribution") imports the server's schema and migration SQL
+      // directly, rather than duplicating them — Vite's dev server otherwise
+      // refuses to serve files outside its own workspace root.
+      allow: ['..'],
+    },
     proxy: {
       // Server runs separately in dev; the SPA talks to it through this proxy
       // so the frontend never needs to know the API's origin.
