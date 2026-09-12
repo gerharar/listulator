@@ -5,7 +5,9 @@ import { createYouTubeAdapter } from './adapters/youtube.js'
 import {
   createWikipediaEventsAdapter,
   MMA_PROMOTIONS,
+  UFC_SUB_SERIES,
   WRESTLING_PROMOTIONS,
+  WWE_SUB_SERIES,
 } from './adapters/wikipediaEvents.js'
 import { createOpenLibraryAdapter } from './adapters/openLibrary.js'
 import { createCompositeAdapter } from './adapters/composite.js'
@@ -155,14 +157,14 @@ export function createDefaultMediaTypes({
       label: 'Wrestling',
       sortOrder: 40,
       defaultDurationMinutes: 180,
-      adapter: createWikipediaEventsAdapter(WRESTLING_PROMOTIONS),
+      adapter: createWikipediaEventsAdapter(WRESTLING_PROMOTIONS, undefined, WWE_SUB_SERIES),
     },
     {
       key: 'mma',
       label: 'MMA',
       sortOrder: 50,
       defaultDurationMinutes: 180,
-      adapter: createWikipediaEventsAdapter(MMA_PROMOTIONS),
+      adapter: createWikipediaEventsAdapter(MMA_PROMOTIONS, undefined, UFC_SUB_SERIES),
     },
     // Time-to-beat for a mainline game, not a completionist run.
     { key: 'game', label: 'Games', sortOrder: 60, defaultDurationMinutes: 600, adapter: igdb },

@@ -1,6 +1,11 @@
 import { describe, expect, it, vi } from 'vitest'
 import type { FetchLike } from '../http.js'
-import { createWikipediaEventsAdapter, type Promotion } from './wikipediaEvents.js'
+import {
+  createWikipediaEventsAdapter,
+  UFC_SUB_SERIES,
+  WWE_SUB_SERIES,
+  type Promotion,
+} from './wikipediaEvents.js'
 
 /** Fixtures are shaped after the real UFC and WWE "List of … events" pages. */
 
@@ -147,5 +152,180 @@ describe('Wikipedia events expansion', () => {
       { title: 'Some Card' },
       { title: 'UFC 2', year: 1994 },
     ])
+  })
+})
+
+describe('sub-series search (task 6.8)', () => {
+  it('surfaces a sub-series as its own search result, alongside the full promotion', async () => {
+    const adapter = createWikipediaEventsAdapter([WWE], respondWith(''), WWE_SUB_SERIES)
+
+    expect(await adapter.search('wrestlemania')).toEqual([
+      { externalRef: 'subseries:wrestlemania', title: 'All WrestleMania PPVs (WWF/WWE)' },
+    ])
+
+    const both = await adapter.search('w')
+    expect(both.map((result) => result.externalRef)).toEqual(
+      expect.arrayContaining(['promotion:wwe', 'subseries:wrestlemania']),
+    )
+  })
+
+  it('filters a WWE promotion down to just its WrestleMania events', async () => {
+    const wikitext = [
+      '==1985==',
+      '{| class="wikitable"',
+      '! Date !! Event',
+      '|-',
+      '|March 31',
+      '|[[WrestleMania I|WrestleMania]]',
+      '|}',
+      '==1988==',
+      '{| class="wikitable"',
+      '! Date !! Event',
+      '|-',
+      '|January 24',
+      '|Royal Rumble',
+      '|}',
+      '==1989==',
+      '{| class="wikitable"',
+      '! Date !! Event',
+      '|-',
+      '|April 2',
+      '|WrestleMania V',
+      '|}',
+    ].join('\n')
+
+    const adapter = createWikipediaEventsAdapter([WWE], respondWith(wikitext), WWE_SUB_SERIES)
+
+    expect(await adapter.expand('subseries:wrestlemania')).toEqual([
+      { title: 'WrestleMania (1985)', year: 1985 },
+      { title: 'WrestleMania V (1989)', year: 1989 },
+    ])
+  })
+
+  it('filters a WWE promotion down to just its Royal Rumble events', async () => {
+    const wikitext = [
+      '==1988==',
+      '{| class="wikitable"',
+      '! Date !! Event',
+      '|-',
+      '|January 24',
+      '|Royal Rumble',
+      '|}',
+      '==1989==',
+      '{| class="wikitable"',
+      '! Date !! Event',
+      '|-',
+      '|April 2',
+      '|WrestleMania V',
+      '|}',
+    ].join('\n')
+
+    const adapter = createWikipediaEventsAdapter([WWE], respondWith(wikitext), WWE_SUB_SERIES)
+
+    expect(await adapter.expand('subseries:royal-rumble')).toEqual([
+      { title: 'Royal Rumble (1988)', year: 1988 },
+    ])
+  })
+
+  it('splits UFC into numbered vs. Fight Night, excluding named specials from both', async () => {
+    // Real title shapes, verified against the live page: numbered, Fight
+    // Night, and outliers that are neither.
+    const wikitext = [
+      '==Past events==',
+      '{| class="wikitable"',
+      '! Event !! Date',
+      '|-',
+      '|[[UFC 1|UFC 1: The Beginning]]',
+      '|{{dts|1993|Nov|12}}',
+      '|-',
+      '|UFC Fight Night: Hooker vs. Parnasse',
+      '|{{dts|2026|Sep|5}}',
+      '|-',
+      '|UFC: The Ultimate Ultimate',
+      '|{{dts|1995|Dec|16}}',
+      '|}',
+    ].join('\n')
+
+    const adapter = createWikipediaEventsAdapter([UFC], respondWith(wikitext), UFC_SUB_SERIES)
+
+    expect(await adapter.expand('subseries:ufc-numbered')).toEqual([
+      { title: 'UFC 1: The Beginning', year: 1993 },
+    ])
+    expect(await adapter.expand('subseries:ufc-fight-night')).toEqual([
+      { title: 'UFC Fight Night: Hooker vs. Parnasse', year: 2026 },
+    ])
+  })
+
+  it('returns nothing for an unknown sub-series key', async () => {
+    const adapter = createWikipediaEventsAdapter([WWE], respondWith(''), WWE_SUB_SERIES)
+
+    expect(await adapter.expand('subseries:no-such-series')).toEqual([])
+  })
+
+  it('exact-match sub-series do not bleed into a same-prefix sibling show', async () => {
+    // "Vengeance" and "Vengeance Day" are two different real WWE shows
+    // sharing a common prefix — exact-match must tell them apart.
+    const wikitext = [
+      '==2001==',
+      '{| class="wikitable"',
+      '! Date !! Event',
+      '|-',
+      '|December 9',
+      '|Vengeance',
+      '|}',
+      '==2023==',
+      '{| class="wikitable"',
+      '! Date !! Event',
+      '|-',
+      '|February 4',
+      '|Vengeance Day',
+      '|}',
+    ].join('\n')
+
+    const adapter = createWikipediaEventsAdapter([WWE], respondWith(wikitext), WWE_SUB_SERIES)
+
+    expect(await adapter.expand('subseries:vengeance')).toEqual([
+      { title: 'Vengeance (2001)', year: 2001 },
+    ])
+    expect(await adapter.expand('subseries:vengeance-day')).toEqual([
+      { title: 'Vengeance Day (2023)', year: 2023 },
+    ])
+  })
+
+  it('the In Your House sub-series covers subtitled editions but not the unrelated TakeOver: In Your House', async () => {
+    const wikitext = [
+      '==1996==',
+      '{| class="wikitable"',
+      '! Date !! Event',
+      '|-',
+      '|February 18',
+      '|In Your House',
+      '|-',
+      '|April 28',
+      '|In Your House: Beware of Dog',
+      '|}',
+      '==2020==',
+      '{| class="wikitable"',
+      '! Date !! Event',
+      '|-',
+      '|June 20',
+      '|TakeOver: In Your House',
+      '|}',
+    ].join('\n')
+
+    const adapter = createWikipediaEventsAdapter([WWE], respondWith(wikitext), WWE_SUB_SERIES)
+
+    expect(await adapter.expand('subseries:in-your-house')).toEqual([
+      { title: 'In Your House (1996)', year: 1996 },
+      { title: 'In Your House: Beware of Dog (1996)', year: 1996 },
+    ])
+  })
+
+  it('returns nothing when a sub-series is known but its promotion is not in this adapter instance', async () => {
+    // ufc-numbered's promotionKey is 'ufc', but only WWE is configured here —
+    // the mma media type's promotions, not wrestling's.
+    const adapter = createWikipediaEventsAdapter([WWE], respondWith(''), UFC_SUB_SERIES)
+
+    expect(await adapter.expand('subseries:ufc-numbered')).toEqual([])
   })
 })
