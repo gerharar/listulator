@@ -185,7 +185,13 @@ export function createWikipediaEventsAdapter(
             if (seen.has(key)) continue
             seen.add(key)
 
-            events.push({ title })
+            // The WWE case: the row itself says "March 31", with the year
+            // only in the section heading — sectionYear wins where it
+            // exists. Pages without year sections (UFC) fall back to
+            // whatever year the row's own text carries.
+            const year = sectionYear ? Number(sectionYear) : rowYear(row.raw)
+
+            events.push({ title, ...(year ? { year } : {}) })
           }
         }
       }

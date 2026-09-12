@@ -24,6 +24,7 @@ interface ImportItem {
   title: string
   timeToConsumeMinutes?: number
   externalRef?: string
+  year?: number
 }
 
 export const ingestionRoutes: FastifyPluginAsync<IngestionRoutesOptions> = async (
@@ -120,6 +121,7 @@ export const ingestionRoutes: FastifyPluginAsync<IngestionRoutesOptions> = async
             : mediaType.defaultDurationMinutes,
           timeToConsumeIsEstimated: !known,
           ...(candidate.externalRef ? { externalRef: candidate.externalRef } : {}),
+          ...(candidate.year ? { year: candidate.year } : {}),
           source: 'import',
         })
       }
@@ -250,6 +252,7 @@ export const ingestionRoutes: FastifyPluginAsync<IngestionRoutesOptions> = async
                   title: { type: 'string', minLength: 1, maxLength: 500 },
                   timeToConsumeMinutes: { type: 'integer', minimum: 0 },
                   externalRef: { type: 'string', maxLength: 500 },
+                  year: { type: 'integer' },
                 },
               },
             },
@@ -290,6 +293,7 @@ export const ingestionRoutes: FastifyPluginAsync<IngestionRoutesOptions> = async
             timeToConsumeMinutes: known ? item.timeToConsumeMinutes! : fallbackMinutes,
             timeToConsumeIsEstimated: !known,
             ...(item.externalRef ? { externalRef: item.externalRef } : {}),
+            ...(item.year ? { year: item.year } : {}),
             source,
           }),
         )

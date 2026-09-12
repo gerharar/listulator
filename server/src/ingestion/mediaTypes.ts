@@ -234,6 +234,8 @@ export interface MediaTypeCandidate {
   externalRef?: string
   /** Only when the source actually knows it; otherwise the category default applies. */
   timeToConsumeMinutes?: number
+  /** Only when the source actually knows it — never guessed from another field. */
+  year?: number
 }
 
 /**

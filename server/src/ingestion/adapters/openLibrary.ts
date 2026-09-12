@@ -104,6 +104,7 @@ export function createOpenLibraryAdapter(fetchImpl?: FetchLike): SearchAdapter {
             // default rather than being dropped — an unmeasured book is still
             // part of the bibliography.
             ...(pages ? { timeToConsumeMinutes: Math.round(pages * MINUTES_PER_PAGE) } : {}),
+            ...(work.first_publish_year ? { year: work.first_publish_year } : {}),
           }
         })
     },

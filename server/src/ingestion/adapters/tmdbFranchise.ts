@@ -188,6 +188,7 @@ export function createTmdbFranchiseAdapter(
               title: film.title,
               externalRef: `movie:${film.id}`,
               ...(runtime ? { timeToConsumeMinutes: runtime } : {}),
+              year: Number(film.date.slice(0, 4)),
             },
           }
         }),
@@ -213,6 +214,7 @@ export function createTmdbFranchiseAdapter(
                   title: `${show.name} — Season ${season.season_number}`,
                   externalRef: `season:${show.id}:${season.season_number}`,
                   ...(minutes ? { timeToConsumeMinutes: minutes } : {}),
+                  year: Number(season.air_date!.slice(0, 4)),
                 },
               }
             })

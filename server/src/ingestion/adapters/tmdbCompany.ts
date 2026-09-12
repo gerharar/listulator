@@ -61,7 +61,7 @@ export function createTmdbCompanyAdapter(
       if (kind !== 'company' || !id || !/^\d+$/.test(id)) return []
 
       const today = new Date().toISOString().slice(0, 10)
-      const films: { id: number; title: string }[] = []
+      const films: { id: number; title: string; year?: number }[] = []
 
       for (let page = 1; page <= MAX_PAGES; page += 1) {
         const response = await client.request<DiscoverResult>('/discover/movie', {
@@ -77,7 +77,7 @@ export function createTmdbCompanyAdapter(
           // Released only, as everywhere else: a studio's announced slate is
           // not something anyone can finish watching.
           if (!film.title || !film.release_date || film.release_date > today) continue
-          films.push({ id: film.id, title: film.title })
+          films.push({ id: film.id, title: film.title, year: Number(film.release_date.slice(0, 4)) })
         }
 
         if (batch.length < PAGE_SIZE || page >= (response.total_pages ?? 1)) break

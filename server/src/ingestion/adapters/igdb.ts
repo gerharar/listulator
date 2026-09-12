@@ -230,6 +230,11 @@ export function createIgdbAdapter(
 
       return usable.map((game): MediaTypeCandidate => {
         const minutes = minutesByGame.get(game.id)
+        // Unix seconds, UTC — a Jan-1 release must not flip to the prior
+        // year just because this process runs in a negative-offset zone.
+        const year = game.first_release_date
+          ? new Date(game.first_release_date * 1000).getUTCFullYear()
+          : undefined
 
         return {
           title: game.name!,
@@ -237,6 +242,7 @@ export function createIgdbAdapter(
           // Not every game has been timed by anyone; those fall back to the
           // category default.
           ...(minutes ? { timeToConsumeMinutes: minutes } : {}),
+          ...(year ? { year } : {}),
         }
       })
     },

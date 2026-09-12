@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
+import { Modal } from '../components/Modal.js'
 import { Progress } from '../components/Progress.js'
 import { api, type ListItem, type MediaListDetail, type MediaType } from '../lib/api.js'
 import { formatDuration } from '../formatDuration.js'
@@ -34,7 +35,10 @@ function Item({
             {copy.listDetail.manualItemBadge}
           </span>
         )}
-        <span className="item__title">{item.title}</span>
+        <span className="item__title">
+          {item.title}
+          {item.year ? ` (${item.year})` : ''}
+        </span>
         <span className="item__duration">
           {/* A leading ~ marks a guessed duration, so a number nobody verified
               never masquerades as fact. */}
@@ -139,6 +143,9 @@ export function ListDetail({ mediaTypes }: { mediaTypes: MediaType[] }) {
   const [editingItemId, setEditingItemId] = useState<string | null>(null)
   const [savingItem, setSavingItem] = useState(false)
 
+  const [confirmingDelete, setConfirmingDelete] = useState(false)
+  const [deletingList, setDeletingList] = useState(false)
+
   const load = useCallback(async () => {
     if (!listId) return
 
@@ -236,12 +243,27 @@ export function ListDetail({ mediaTypes }: { mediaTypes: MediaType[] }) {
     }
   }
 
-  async function remove() {
-    if (!listId || !list) return
-    if (!confirm(copy.listDetail.deleteListConfirm(list.title))) return
+  /**
+   * An in-app confirmation rather than `window.confirm()`: Tauri's WKWebView
+   * does not implement the native JS dialog delegate, so `confirm()` just
+   * returns `false` with nothing shown — deleting a list looked like a
+   * dead button. This works identically in the browser and the standalone
+   * app.
+   */
+  async function confirmRemove() {
+    if (!listId) return
 
-    await api.deleteList(listId)
-    void navigate('/')
+    setDeletingList(true)
+    setError(null)
+
+    try {
+      await api.deleteList(listId)
+      void navigate('/')
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : copy.listDetail.deleteListFailed)
+      setDeletingList(false)
+      setConfirmingDelete(false)
+    }
   }
 
   async function addItem(event: React.FormEvent) {
@@ -332,7 +354,7 @@ export function ListDetail({ mediaTypes }: { mediaTypes: MediaType[] }) {
               </button>
             </>
           )}
-          <button type="button" className="button" onClick={() => void remove()}>
+          <button type="button" className="button" onClick={() => setConfirmingDelete(true)}>
             {copy.listDetail.deleteList}
           </button>
         </div>
@@ -449,6 +471,30 @@ export function ListDetail({ mediaTypes }: { mediaTypes: MediaType[] }) {
           </button>
         </form>
       </section>
+
+      {confirmingDelete && (
+        <Modal onClose={() => !deletingList && setConfirmingDelete(false)}>
+          <p>{copy.listDetail.deleteListConfirm(list.title)}</p>
+          <div className="modal__actions">
+            <button
+              type="button"
+              className="button"
+              onClick={() => setConfirmingDelete(false)}
+              disabled={deletingList}
+            >
+              {copy.listDetail.cancelEdit}
+            </button>
+            <button
+              type="button"
+              className="button button--primary"
+              onClick={() => void confirmRemove()}
+              disabled={deletingList}
+            >
+              {deletingList ? copy.listDetail.deletingList : copy.listDetail.confirmDeleteList}
+            </button>
+          </div>
+        </Modal>
+      )}
     </>
   )
 }

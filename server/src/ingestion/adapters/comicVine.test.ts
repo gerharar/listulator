@@ -109,6 +109,18 @@ describe('Comic Vine adapter', () => {
     }
   })
 
+  it('leaves year unset — cover_date is not a reliable publication year', async () => {
+    // A comic's cover_date is deliberately offset months ahead of when it
+    // actually shipped and routinely crosses a year boundary, so deriving
+    // year from it would be a confidently wrong value, not a missing one.
+    // Revisit if Comic Vine ever exposes a real publication-date field.
+    const adapter = createComicVineAdapter(credentials, respondWith(ISSUES))
+
+    for (const item of await adapter.expand('volume:2045')) {
+      expect(item.year).toBeUndefined()
+    }
+  })
+
   it('treats an error in the body as an error, despite the 200 status', async () => {
     // Comic Vine answers 200 with a failure inside, including for a bad key.
     const adapter = createComicVineAdapter(

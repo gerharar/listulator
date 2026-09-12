@@ -112,6 +112,17 @@ describe('MusicBrainz adapter', () => {
     ])
   })
 
+  it('populates year from first-release-date, including a partial date', async () => {
+    const adapter = createMusicBrainzAdapter(respondWith(RELEASE_GROUPS))
+
+    expect((await adapter.expand('af8e4cc5')).map((item) => [item.title, item.year])).toEqual([
+      ['Eaten Back to Life', 1990],
+      // 'first-release-date': '1994-03' — a partial date still yields a year.
+      ['The Bleeding', 1994],
+      ['Bloodthirst', 1999],
+    ])
+  })
+
   it('leaves durations unset so the category default applies', async () => {
     // Album length would cost one request per album against a one-per-second
     // limit. Every item comes back without a duration and is filled in as an

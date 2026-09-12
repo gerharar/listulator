@@ -114,6 +114,13 @@ export const listItems = sqliteTable(
      * 6.2), the default only matters for that backfill.
      */
     source: text('source').$type<ItemSource>().notNull().default('import'),
+    /**
+     * The year the item was originally released/published, where the source
+     * knows one — null otherwise (nullable by design: not every source has
+     * one, e.g. Comic Vine issues, whose only date field is an unreliable
+     * cover date rather than a real publication year). Never guessed.
+     */
+    year: integer('year'),
     /** Null until checked off; doubles as the "when" behind list neglect scoring. */
     consumedAt: integer('consumed_at', { mode: 'timestamp_ms' }),
     createdAt: integer('created_at', { mode: 'timestamp_ms' })

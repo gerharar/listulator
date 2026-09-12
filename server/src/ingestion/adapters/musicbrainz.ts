@@ -98,16 +98,21 @@ export function createMusicBrainzAdapter(fetchImpl?: FetchLike): SearchAdapter {
           .sort((a, b) =>
             (a['first-release-date'] ?? '9999').localeCompare(b['first-release-date'] ?? '9999'),
           )
-          .map(
-            (group): MediaTypeCandidate => ({
+          .map((group): MediaTypeCandidate => {
+            // Dates can be partial ("1994-03") or missing; only a real
+            // 4-digit year prefix counts, never a guess.
+            const year = Number(group['first-release-date']?.slice(0, 4))
+
+            return {
               title: group.title,
               externalRef: group.id,
               // Album length would need one extra request per album against a
               // one-per-second limit — minutes of waiting for a discography,
               // and abusive to a free service. The category default applies
               // instead, flagged estimated. See docs/DECISIONS.md.
-            }),
-          )
+              ...(Number.isInteger(year) && year > 0 ? { year } : {}),
+            }
+          })
       )
     },
   }

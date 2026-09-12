@@ -31,6 +31,8 @@ export interface ListItem {
   consumedAt: string | null
   /** Typed in by hand, vs. brought in by a search import or a refresh. */
   source: 'manual' | 'import'
+  /** Release/publish year, when the source knows one. Null otherwise. */
+  year: number | null
 }
 
 export interface MediaListDetail extends MediaList {
@@ -133,7 +135,7 @@ export interface ApiClient {
   deleteList: (id: string) => Promise<void>
   importItems: (
     listId: string,
-    items: { title: string; externalRef?: string; timeToConsumeMinutes?: number }[],
+    items: { title: string; externalRef?: string; timeToConsumeMinutes?: number; year?: number }[],
     /** Defaults to 'import' — pass 'manual' for a hand-typed batch (task 6.2). */
     source?: 'manual' | 'import',
   ) => Promise<ListItem[]>
@@ -150,7 +152,12 @@ export interface ApiClient {
     listId: string,
     includeDismissed?: boolean,
   ) => Promise<{
-    newItems: { title: string; externalRef?: string; timeToConsumeMinutes?: number }[]
+    newItems: {
+      title: string
+      externalRef?: string
+      timeToConsumeMinutes?: number
+      year?: number
+    }[]
     upstreamCount: number
     existingCount: number
     dismissedCount: number
@@ -181,7 +188,7 @@ export const fetchApi: ApiClient = {
 
   importItems: (
     listId: string,
-    items: { title: string; externalRef?: string; timeToConsumeMinutes?: number }[],
+    items: { title: string; externalRef?: string; timeToConsumeMinutes?: number; year?: number }[],
     source?: 'manual' | 'import',
   ) =>
     request<ListItem[]>(`/lists/${listId}/items/import`, {
@@ -210,7 +217,12 @@ export const fetchApi: ApiClient = {
   /** Dry run: reports what the source has that the list does not. Changes nothing. */
   checkForUpdates: (listId: string, includeDismissed = false) =>
     request<{
-      newItems: { title: string; externalRef?: string; timeToConsumeMinutes?: number }[]
+      newItems: {
+        title: string
+        externalRef?: string
+        timeToConsumeMinutes?: number
+        year?: number
+      }[]
       upstreamCount: number
       existingCount: number
       /** How many items were deleted by hand and are being held back. */

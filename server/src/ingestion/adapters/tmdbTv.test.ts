@@ -102,10 +102,10 @@ describe('TMDB television expansion', () => {
     const adapter = createTmdbTvAdapter(credentials, {}, router(routes))
 
     expect(await adapter.expand('show:1396')).toEqual([
-      { title: 'S01E01 Pilot', timeToConsumeMinutes: 59 },
-      { title: "S01E02 Cat's in the Bag...", timeToConsumeMinutes: 49 },
-      { title: 'S02E01 Seven Thirty-Seven' },
-      { title: 'S00E01 A special', timeToConsumeMinutes: 3 },
+      { title: 'S01E01 Pilot', timeToConsumeMinutes: 59, year: 2008 },
+      { title: "S01E02 Cat's in the Bag...", timeToConsumeMinutes: 49, year: 2008 },
+      { title: 'S02E01 Seven Thirty-Seven', year: 2009 },
+      { title: 'S00E01 A special', timeToConsumeMinutes: 3, year: 2009 },
     ])
   })
 

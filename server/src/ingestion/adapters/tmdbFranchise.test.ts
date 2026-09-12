@@ -97,10 +97,10 @@ describe('franchise expansion', () => {
     const adapter = createTmdbFranchiseAdapter(credentials, router(routes))
 
     expect(await adapter.expand('franchise:180547')).toEqual([
-      { title: 'Iron Man', externalRef: 'movie:1', timeToConsumeMinutes: 126 },
-      { title: 'The Avengers', externalRef: 'movie:2', timeToConsumeMinutes: 143 },
-      { title: 'Loki — Season 1', externalRef: 'season:10:1', timeToConsumeMinutes: 270 },
-      { title: 'Loki — Season 2', externalRef: 'season:10:2', timeToConsumeMinutes: 270 },
+      { title: 'Iron Man', externalRef: 'movie:1', timeToConsumeMinutes: 126, year: 2008 },
+      { title: 'The Avengers', externalRef: 'movie:2', timeToConsumeMinutes: 143, year: 2012 },
+      { title: 'Loki — Season 1', externalRef: 'season:10:1', timeToConsumeMinutes: 270, year: 2021 },
+      { title: 'Loki — Season 2', externalRef: 'season:10:2', timeToConsumeMinutes: 270, year: 2023 },
     ])
   })
 

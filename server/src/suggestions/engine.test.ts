@@ -60,6 +60,7 @@ function nextItemsFor(lists: ListWithStats[]): Map<string, ListItem | undefined>
         consumedAt: null,
         externalRef: null,
         source: 'import',
+        year: null,
         createdAt: NOW,
         updatedAt: NOW,
       },

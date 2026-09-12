@@ -123,7 +123,7 @@ export type TmdbClient = ReturnType<typeof createTmdbClient>
  */
 export async function withRuntimes(
   client: TmdbClient,
-  films: { id: number; title: string }[],
+  films: { id: number; title: string; year?: number }[],
 ): Promise<MediaTypeCandidate[]> {
   return client.mapLimited(films, RUNTIME_CONCURRENCY, async (film) => {
     const runtime = await client
@@ -135,6 +135,7 @@ export async function withRuntimes(
       title: film.title,
       externalRef: `movie:${film.id}`,
       ...(runtime ? { timeToConsumeMinutes: runtime } : {}),
+      ...(film.year ? { year: film.year } : {}),
     }
   })
 }
@@ -178,7 +179,11 @@ export function createTmdbAdapter(
       })
       .sort((a, b) => (a.release_date ?? '').localeCompare(b.release_date ?? ''))
       .slice(0, MAX_ITEMS)
-      .map((entry) => ({ id: entry.id, title: entry.title! }))
+      .map((entry) => ({
+        id: entry.id,
+        title: entry.title!,
+        year: Number(entry.release_date!.slice(0, 4)),
+      }))
   }
 
   return {

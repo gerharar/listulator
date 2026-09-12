@@ -114,8 +114,8 @@ describe('TMDB expansion', () => {
     const adapter = createTmdbAdapter(credentials, {}, router(routes))
 
     expect(await adapter.expand('person:18897')).toEqual([
-      { title: 'My Lucky Stars', externalRef: 'movie:10044', timeToConsumeMinutes: 96 },
-      { title: 'Rush Hour', externalRef: 'movie:2109', timeToConsumeMinutes: 97 },
+      { title: 'My Lucky Stars', externalRef: 'movie:10044', timeToConsumeMinutes: 96, year: 1985 },
+      { title: 'Rush Hour', externalRef: 'movie:2109', timeToConsumeMinutes: 97, year: 1998 },
     ])
   })
 

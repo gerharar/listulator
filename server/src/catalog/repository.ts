@@ -54,6 +54,8 @@ export interface CreateListItemInput {
   externalRef?: string | null
   /** Defaults to `'import'` — every real caller should pass this explicitly. */
   source?: ItemSource
+  /** Release/publish year, when the source knows one. Null if not. */
+  year?: number | null
 }
 
 export interface UpdateListItemInput {
@@ -256,6 +258,7 @@ export async function createListItem(
       timeToConsumeIsEstimated: input.timeToConsumeIsEstimated ?? true,
       externalRef: input.externalRef ?? null,
       source: input.source ?? 'import',
+      year: input.year ?? null,
     })
     .returning()
     .get()

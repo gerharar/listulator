@@ -76,6 +76,7 @@ function toListItem(item: SchemaListItem): ListItem {
     timeToConsumeIsEstimated: item.timeToConsumeIsEstimated,
     consumedAt: item.consumedAt?.toISOString() ?? null,
     source: item.source,
+    year: item.year,
   }
 }
 
@@ -205,6 +206,7 @@ export function createLocalApi(): ApiClient {
           timeToConsumeMinutes: known ? item.timeToConsumeMinutes! : fallbackMinutes,
           timeToConsumeIsEstimated: !known,
           ...(item.externalRef ? { externalRef: item.externalRef } : {}),
+          ...(item.year ? { year: item.year } : {}),
           source,
         })
         created.push(toListItem(row!))
@@ -293,6 +295,7 @@ export function createLocalApi(): ApiClient {
             : mediaType.defaultDurationMinutes,
           timeToConsumeIsEstimated: !known,
           ...(candidate.externalRef ? { externalRef: candidate.externalRef } : {}),
+          ...(candidate.year ? { year: candidate.year } : {}),
           source: 'import',
         })
       }

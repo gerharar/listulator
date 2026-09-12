@@ -51,10 +51,10 @@ describe('Open Library adapter', () => {
     const adapter = createOpenLibraryAdapter(respondWith(WORKS))
 
     expect(await adapter.expand('author:OL25712A')).toEqual([
-      { title: 'The Carpet People', timeToConsumeMinutes: 250 },
-      { title: 'The Colour of Magic', timeToConsumeMinutes: 288 },
-      { title: 'The Colour of Magic, The Light Fantastic' },
-      { title: 'Mort', timeToConsumeMinutes: 356 },
+      { title: 'The Carpet People', timeToConsumeMinutes: 250, year: 1971 },
+      { title: 'The Colour of Magic', timeToConsumeMinutes: 288, year: 1983 },
+      { title: 'The Colour of Magic, The Light Fantastic', year: 1987 },
+      { title: 'Mort', timeToConsumeMinutes: 356, year: 1987 },
     ])
   })
 
@@ -67,6 +67,16 @@ describe('Open Library adapter', () => {
     const omnibus = items.find((item) => item.title.startsWith('The Colour of Magic, '))
     expect(omnibus).toBeDefined()
     expect(omnibus?.timeToConsumeMinutes).toBeUndefined()
+  })
+
+  it('leaves year unset for a work with no recorded publish year', async () => {
+    const adapter = createOpenLibraryAdapter(
+      respondWith({ docs: [{ title: 'Undated Work', number_of_pages_median: 100 }] }),
+    )
+
+    expect(await adapter.expand('author:OL25712A')).toEqual([
+      { title: 'Undated Work', timeToConsumeMinutes: 120 },
+    ])
   })
 
   it('asks for works in publication order, and only the fields it uses', async () => {

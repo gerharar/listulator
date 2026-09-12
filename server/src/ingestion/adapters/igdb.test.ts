@@ -157,8 +157,8 @@ describe('IGDB expansion', () => {
     const { fetchImpl } = router({ games: GAMES, game_time_to_beats: TIMES })
 
     expect(await createIgdbAdapter(credentials, fetchImpl).expand('franchise:571')).toEqual([
-      { title: "Assassin's Creed", externalRef: 'game:1', timeToConsumeMinutes: 2400 },
-      { title: "Assassin's Creed II", externalRef: 'game:3' },
+      { title: "Assassin's Creed", externalRef: 'game:1', timeToConsumeMinutes: 2400, year: 2007 },
+      { title: "Assassin's Creed II", externalRef: 'game:3', year: 2009 },
     ])
   })
 

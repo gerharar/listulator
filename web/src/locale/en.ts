@@ -86,6 +86,9 @@ export const en = {
     removeFailed: (title: string): string => `Could not remove "${title}"`,
     deleteListConfirm: (title: string): string => `Delete "${title}" and all its items?`,
     deleteList: 'Delete list',
+    confirmDeleteList: 'Yes, delete',
+    deletingList: 'Deleting…',
+    deleteListFailed: 'Could not delete this list',
     removeItem: (title: string): string => `Remove ${title}`,
     reAddDeleted: 'Re-add deleted entries',
     reAddDeletedHint:

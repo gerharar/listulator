@@ -123,6 +123,7 @@ export function createTmdbTvAdapter(
           items.push({
             title: episode.name ? `${label} ${episode.name}` : label,
             ...(episode.runtime ? { timeToConsumeMinutes: episode.runtime } : {}),
+            year: Number(episode.air_date.slice(0, 4)),
           })
         }
       }
