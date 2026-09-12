@@ -196,10 +196,20 @@ export function createWikipediaEventsAdapter(
         }
       }
 
-      // Document order is otherwise chronological on these pages, and is kept
-      // rather than parsed from dates: the WWE page writes "March 31" with the
-      // year only in the section heading, so a date column cannot stand alone.
-      return events
+      // Document order happens to be chronological on these pages today, but
+      // nothing enforces it — a decade-by-decade page like WWE's could be
+      // edited into a different section order without anything above
+      // noticing. A stable sort by year makes the ordering an explicit
+      // guarantee rather than a borrowed assumption about editors. Events
+      // that share a year, or have none at all, keep their document-order
+      // position: a bare year cannot place them any more precisely than that
+      // (the WWE page writes "March 31" with the year only in the section
+      // heading, so a full date is not available to sort by), and
+      // `Array.prototype.sort` is a stable sort, so ties never move.
+      return events.sort((a, b) => {
+        if (a.year === undefined || b.year === undefined) return 0
+        return a.year - b.year
+      })
     },
   }
 }

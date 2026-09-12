@@ -91,4 +91,61 @@ describe('Wikipedia events expansion', () => {
 
     expect(await adapter.expand('promotion:ufc')).toEqual([{ title: 'Some Card' }])
   })
+
+  it('sorts chronologically even when the page lists its year sections out of order', async () => {
+    // Nothing about the parser trusts section order — this reverses WWE's
+    // real 1985/1986 layout to prove the output is sorted, not just replayed.
+    const wikitext = [
+      '==1986==',
+      '{| class="wikitable"',
+      '! Date !! Event',
+      '|-',
+      '|April 7',
+      '|WrestleMania 2',
+      '|}',
+      '==1985==',
+      '{| class="wikitable"',
+      '! Date !! Event',
+      '|-',
+      '|March 31',
+      '|[[WrestleMania I|WrestleMania]]',
+      '|}',
+    ].join('\n')
+
+    const adapter = createWikipediaEventsAdapter([WWE], respondWith(wikitext))
+
+    expect(await adapter.expand('promotion:wwe')).toEqual([
+      { title: 'WrestleMania (1985)', year: 1985 },
+      { title: 'WrestleMania 2 (1986)', year: 1986 },
+    ])
+  })
+
+  it('keeps a dateless event in place rather than letting the sort move it', async () => {
+    // A year alone cannot tell "Some Card" apart from either UFC 1 or UFC 2,
+    // so it must stay exactly where document order put it: after UFC 1,
+    // before UFC 2.
+    const wikitext = [
+      '==Past events==',
+      '{| class="wikitable"',
+      '! Event !! Date',
+      '|-',
+      '|[[UFC 1]]',
+      '|{{dts|1993|Nov|12}}',
+      '|-',
+      '|Some Card',
+      '|',
+      '|-',
+      '|[[UFC 2]]',
+      '|{{dts|1994|Mar|11}}',
+      '|}',
+    ].join('\n')
+
+    const adapter = createWikipediaEventsAdapter([UFC], respondWith(wikitext))
+
+    expect(await adapter.expand('promotion:ufc')).toEqual([
+      { title: 'UFC 1', year: 1993 },
+      { title: 'Some Card' },
+      { title: 'UFC 2', year: 1994 },
+    ])
+  })
 })
