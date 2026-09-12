@@ -109,6 +109,16 @@ export const en = {
     empty: 'This list has no items yet.',
     percentComplete: (percent: number): string => `${percent}% complete`,
     timeLeft: (duration: string): string => `${duration} left`,
+    addItemTitleLabel: 'Title',
+    addItemDurationLabel: 'Minutes (leave blank to guess)',
+    addItem: 'Add item',
+    addingItem: 'Adding…',
+    addItemFailed: 'Could not add that item',
+    editItem: (title: string): string => `Edit ${title}`,
+    saveItem: 'Save',
+    savingItem: 'Saving…',
+    cancelEdit: 'Cancel',
+    updateItemFailed: 'Could not save that item',
   },
 
   newList: {

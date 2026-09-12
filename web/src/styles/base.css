@@ -365,6 +365,68 @@ a {
   color: var(--text-muted);
 }
 
+/* Same quiet-until-hovered treatment as .item__remove, task 6.1. */
+.item__edit {
+  flex: none;
+  padding: 0 var(--space-3);
+  border: none;
+  background: none;
+  color: var(--text-faint);
+  cursor: pointer;
+  opacity: 0;
+  font-size: 0.85rem;
+}
+
+.item-row:hover .item__edit,
+.item__edit:focus-visible {
+  opacity: 1;
+}
+
+.item__edit:hover {
+  color: var(--text);
+}
+
+@media (hover: none) {
+  .item__edit {
+    opacity: 1;
+  }
+}
+
+.item-edit {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex: 1;
+  padding: var(--space-2) var(--space-3);
+}
+
+.item-edit .input {
+  flex: 1;
+  min-width: 0;
+}
+
+.item-edit__duration {
+  flex: none;
+  width: 6rem;
+}
+
+.item-add {
+  display: flex;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border-top: var(--border-width) solid var(--border);
+}
+
+.item-add .input {
+  flex: 1;
+  min-width: 0;
+}
+
+.item-add__duration {
+  flex: none;
+  width: 10rem;
+}
+
 /* ---- summary ----------------------------------------------------------- */
 
 .summary {

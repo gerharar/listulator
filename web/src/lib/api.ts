@@ -153,6 +153,15 @@ export interface ApiClient {
   }>
   deleteItem: (listId: string, itemId: string) => Promise<void>
   setConsumed: (listId: string, itemId: string, consumed: boolean) => Promise<ListItem>
+  addItem: (
+    listId: string,
+    input: { title: string; timeToConsumeMinutes: number; timeToConsumeIsEstimated?: boolean },
+  ) => Promise<ListItem>
+  updateItem: (
+    listId: string,
+    itemId: string,
+    patch: { title?: string; timeToConsumeMinutes?: number; timeToConsumeIsEstimated?: boolean },
+  ) => Promise<ListItem>
 }
 
 export const fetchApi: ApiClient = {
@@ -213,6 +222,21 @@ export const fetchApi: ApiClient = {
     request<ListItem>(`/lists/${listId}/items/${itemId}/consumed`, {
       method: 'PUT',
       body: JSON.stringify({ consumed }),
+    }),
+
+  addItem: (
+    listId: string,
+    input: { title: string; timeToConsumeMinutes: number; timeToConsumeIsEstimated?: boolean },
+  ) => request<ListItem>(`/lists/${listId}/items`, { method: 'POST', body: JSON.stringify(input) }),
+
+  updateItem: (
+    listId: string,
+    itemId: string,
+    patch: { title?: string; timeToConsumeMinutes?: number; timeToConsumeIsEstimated?: boolean },
+  ) =>
+    request<ListItem>(`/lists/${listId}/items/${itemId}`, {
+      method: 'PATCH',
+      body: JSON.stringify(patch),
     }),
 }
 

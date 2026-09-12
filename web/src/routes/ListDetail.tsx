@@ -9,10 +9,12 @@ function Item({
   item,
   onToggle,
   onRemove,
+  onEdit,
 }: {
   item: ListItem
   onToggle: (item: ListItem) => void
   onRemove: (item: ListItem) => void
+  onEdit: (item: ListItem) => void
 }) {
   const consumed = item.consumedAt !== null
 
@@ -35,6 +37,15 @@ function Item({
           {formatDuration(item.timeToConsumeMinutes)}
         </span>
       </button>
+      <button
+        type="button"
+        className="item__edit"
+        onClick={() => onEdit(item)}
+        aria-label={copy.listDetail.editItem(item.title)}
+        title={copy.listDetail.editItem(item.title)}
+      >
+        ✎
+      </button>
       {/*
         No confirmation: pruning an import is the job this exists for, and
         twenty dialogs would make it miserable. Losing one item is cheap and
@@ -53,6 +64,56 @@ function Item({
   )
 }
 
+/** Inline edit: title + duration, replacing the row it edits until saved or cancelled. */
+function EditItemRow({
+  item,
+  onSave,
+  onCancel,
+  saving,
+}: {
+  item: ListItem
+  onSave: (patch: { title: string; timeToConsumeMinutes: number }) => void
+  onCancel: () => void
+  saving: boolean
+}) {
+  const [title, setTitle] = useState(item.title)
+  const [duration, setDuration] = useState(String(item.timeToConsumeMinutes))
+
+  function submit(event: React.FormEvent) {
+    event.preventDefault()
+    const minutes = Number(duration)
+    if (!title.trim() || !Number.isFinite(minutes) || minutes < 0) return
+    onSave({ title: title.trim(), timeToConsumeMinutes: minutes })
+  }
+
+  return (
+    <li className="item-row item-row--editing">
+      <form className="item-edit" onSubmit={submit}>
+        <input
+          className="input"
+          value={title}
+          onChange={(event) => setTitle(event.target.value)}
+          required
+          autoFocus
+        />
+        <input
+          className="input item-edit__duration"
+          type="number"
+          min={0}
+          value={duration}
+          onChange={(event) => setDuration(event.target.value)}
+        />
+        <button type="submit" className="button button--primary" disabled={saving}>
+          {saving ? copy.listDetail.savingItem : copy.listDetail.saveItem}
+        </button>
+        <button type="button" className="button" onClick={onCancel} disabled={saving}>
+          {copy.listDetail.cancelEdit}
+        </button>
+      </form>
+    </li>
+  )
+}
+
 export function ListDetail({ mediaTypes }: { mediaTypes: MediaType[] }) {
   const { listId } = useParams<{ listId: string }>()
   const navigate = useNavigate()
@@ -65,6 +126,13 @@ export function ListDetail({ mediaTypes }: { mediaTypes: MediaType[] }) {
   // Off by default: a rescan should respect what you pruned. Ticking it is
   // the undo for deleting something by accident.
   const [includeDismissed, setIncludeDismissed] = useState(false)
+
+  const [newItemTitle, setNewItemTitle] = useState('')
+  const [newItemDuration, setNewItemDuration] = useState('')
+  const [addingItem, setAddingItem] = useState(false)
+
+  const [editingItemId, setEditingItemId] = useState<string | null>(null)
+  const [savingItem, setSavingItem] = useState(false)
 
   const load = useCallback(async () => {
     if (!listId) return
@@ -169,6 +237,53 @@ export function ListDetail({ mediaTypes }: { mediaTypes: MediaType[] }) {
 
     await api.deleteList(listId)
     void navigate('/')
+  }
+
+  async function addItem(event: React.FormEvent) {
+    event.preventDefault()
+    if (!listId || !newItemTitle.trim()) return
+
+    setAddingItem(true)
+    setError(null)
+
+    // Blank duration means "I don't know" — fall back to the category's own
+    // default and flag it estimated, the same convention search-import and
+    // manual list-creation already use (docs/DECISIONS.md).
+    const typed = newItemDuration.trim() ? Number(newItemDuration) : undefined
+    const known = typed !== undefined && Number.isFinite(typed) && typed >= 0
+
+    try {
+      await api.addItem(listId, {
+        title: newItemTitle.trim(),
+        timeToConsumeMinutes: known ? typed : (category?.defaultDurationMinutes ?? 30),
+        timeToConsumeIsEstimated: !known,
+      })
+      setNewItemTitle('')
+      setNewItemDuration('')
+      await load()
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : copy.listDetail.addItemFailed)
+    } finally {
+      setAddingItem(false)
+    }
+  }
+
+  async function saveItem(item: ListItem, patch: { title: string; timeToConsumeMinutes: number }) {
+    if (!listId) return
+
+    setSavingItem(true)
+    setError(null)
+
+    try {
+      // A number someone just typed in by hand is no longer a guess.
+      await api.updateItem(listId, item.id, { ...patch, timeToConsumeIsEstimated: false })
+      setEditingItemId(null)
+      await load()
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : copy.listDetail.updateItemFailed)
+    } finally {
+      setSavingItem(false)
+    }
   }
 
   if (error && !list) return <p className="notice notice--error">{error}</p>
@@ -281,16 +396,53 @@ export function ListDetail({ mediaTypes }: { mediaTypes: MediaType[] }) {
           <p className="panel__empty">{copy.listDetail.empty}</p>
         ) : (
           <ul className="rows items">
-            {list.items.map((item) => (
-              <Item
-                key={item.id}
-                item={item}
-                onToggle={(target) => void toggle(target)}
-                onRemove={(target) => void removeItem(target)}
-              />
-            ))}
+            {list.items.map((item) =>
+              item.id === editingItemId ? (
+                <EditItemRow
+                  key={item.id}
+                  item={item}
+                  saving={savingItem}
+                  onSave={(patch) => void saveItem(item, patch)}
+                  onCancel={() => setEditingItemId(null)}
+                />
+              ) : (
+                <Item
+                  key={item.id}
+                  item={item}
+                  onToggle={(target) => void toggle(target)}
+                  onRemove={(target) => void removeItem(target)}
+                  onEdit={(target) => setEditingItemId(target.id)}
+                />
+              ),
+            )}
           </ul>
         )}
+
+        <form className="item-add" onSubmit={(event) => void addItem(event)}>
+          <input
+            className="input"
+            value={newItemTitle}
+            onChange={(event) => setNewItemTitle(event.target.value)}
+            placeholder={copy.listDetail.addItemTitleLabel}
+            aria-label={copy.listDetail.addItemTitleLabel}
+          />
+          <input
+            className="input item-add__duration"
+            type="number"
+            min={0}
+            value={newItemDuration}
+            onChange={(event) => setNewItemDuration(event.target.value)}
+            placeholder={copy.listDetail.addItemDurationLabel}
+            aria-label={copy.listDetail.addItemDurationLabel}
+          />
+          <button
+            type="submit"
+            className="button button--primary"
+            disabled={addingItem || !newItemTitle.trim()}
+          >
+            {addingItem ? copy.listDetail.addingItem : copy.listDetail.addItem}
+          </button>
+        </form>
       </section>
     </>
   )

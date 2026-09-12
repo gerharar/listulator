@@ -22,6 +22,7 @@ import {
   findListWithStats,
   findListsWithStats,
   setListItemConsumed,
+  updateListItem,
   type ListWithStats,
 } from '../../../server/src/catalog/repository.js'
 import { dismissalTitleKey, type ListItem as SchemaListItem } from '../../../server/src/db/schema.js'
@@ -218,6 +219,20 @@ export function createLocalApi(): ApiClient {
     setConsumed: async (listId, itemId, consumed) => {
       const [database, userId] = [await getDb(), await getUserId()]
       const updated = await setListItemConsumed(database, userId, listId, itemId, consumed)
+      if (!updated) throw notFound()
+      return toListItem(updated)
+    },
+
+    addItem: async (listId, input) => {
+      const [database, userId] = [await getDb(), await getUserId()]
+      const item = await createListItem(database, userId, listId, input)
+      if (!item) throw notFound()
+      return toListItem(item)
+    },
+
+    updateItem: async (listId, itemId, patch) => {
+      const [database, userId] = [await getDb(), await getUserId()]
+      const updated = await updateListItem(database, userId, listId, itemId, patch)
       if (!updated) throw notFound()
       return toListItem(updated)
     },
