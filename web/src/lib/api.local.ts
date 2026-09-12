@@ -6,9 +6,10 @@
 // Ingestion (searchSources, createFromSource, checkForUpdates) mirrors
 // server/src/ingestion/routes.ts against `getLocalMediaTypes()` — the real
 // registry, credentialed from Tauri's store plugin rather than `.env`
-// (task 5.7). Suggestions (tiredBoss, suggest, quickie — task 5.8) remain
-// real, typed stubs: they throw rather than being silently missing, so a
-// click surfaces a clear message instead of `undefined is not a function`.
+// (task 5.7). Suggestions (tiredBoss, suggest, quickie) mirror
+// server/src/suggestions/routes.ts against `loadLocalStrategy()` — the
+// bundled-asset counterpart to `STRATEGIES_DIR` (task 5.8); `engine.ts`'s
+// `rank` itself is unchanged and unforked.
 import {
   clearDismissals,
   createList as repoCreateList,
@@ -24,6 +25,7 @@ import {
   type ListWithStats,
 } from '../../../server/src/catalog/repository.js'
 import { dismissalTitleKey, type ListItem as SchemaListItem } from '../../../server/src/db/schema.js'
+import { rank, type Suggestion } from '../../../server/src/suggestions/engine.js'
 import { copy } from '../locale/index.js'
 import type {
   ApiClient,
@@ -32,18 +34,16 @@ import type {
   MediaList,
   MediaListDetail,
   MediaType,
+  SuggestionPick,
 } from './api.js'
 import { ApiError } from './api.js'
 import { createLocalDb, type LocalDatabase } from './db/localDb.js'
 import { getLocalCurrentUser } from './db/localUser.js'
 import { getLocalMediaTypes } from './ingestion/localMediaTypes.js'
+import { loadLocalStrategy } from './suggestions/localStrategies.js'
 
 function notFound(): ApiError {
   return new ApiError('Not found.', 404)
-}
-
-function notImplemented(what: string): ApiError {
-  return new ApiError(`${what} isn't available in the standalone app yet.`, 501)
 }
 
 function toMediaList(list: ListWithStats): MediaList {
@@ -75,6 +75,49 @@ function toListItem(item: SchemaListItem): ListItem {
     timeToConsumeIsEstimated: item.timeToConsumeIsEstimated,
     consumedAt: item.consumedAt?.toISOString() ?? null,
   }
+}
+
+function toSuggestionPick(suggestion: Suggestion): SuggestionPick {
+  return {
+    list: toMediaList(suggestion.list),
+    nextItem: suggestion.nextItem ? toListItem(suggestion.nextItem) : null,
+    score: suggestion.score,
+    factors: suggestion.factors,
+  }
+}
+
+/** Mirrors server/src/suggestions/routes.ts's own inline `suggest()`. */
+async function localSuggest(
+  database: LocalDatabase,
+  userId: string,
+  strategyName: string,
+  currentListId?: string,
+): Promise<Suggestion[]> {
+  const strategy = loadLocalStrategy(strategyName)
+  const candidates = await findListsWithStats(database, userId)
+
+  // Only the lists that survive filtering need their items loaded. Order
+  // doesn't matter for building this map, so these run concurrently.
+  const nextItems = new Map<string, SchemaListItem | undefined>(
+    await Promise.all(
+      candidates.map(
+        async (list) =>
+          [
+            list.id,
+            (await findListItems(database, userId, list.id))?.find(
+              (item) => item.consumedAt === null,
+            ),
+          ] as const,
+      ),
+    ),
+  )
+
+  return rank({
+    strategy,
+    candidates,
+    nextItems,
+    ...(currentListId ? { currentListId } : {}),
+  })
 }
 
 export function createLocalApi(): ApiClient {
@@ -288,15 +331,22 @@ export function createLocalApi(): ApiClient {
       }
     },
 
-    // Task 5.8.
-    tiredBoss: async () => {
-      throw notImplemented('Suggestions')
+    tiredBoss: async (currentListId) => {
+      const [database, userId] = [await getDb(), await getUserId()]
+      const suggestions = await localSuggest(database, userId, 'tired-boss', currentListId)
+      return { picks: suggestions.map(toSuggestionPick) }
     },
+
     suggest: async () => {
-      throw notImplemented('Suggestions')
+      const [database, userId] = [await getDb(), await getUserId()]
+      const suggestions = await localSuggest(database, userId, 'suggest')
+      return { picks: suggestions.map(toSuggestionPick) }
     },
+
     quickie: async () => {
-      throw notImplemented('Suggestions')
+      const [database, userId] = [await getDb(), await getUserId()]
+      const suggestions = await localSuggest(database, userId, 'quickie')
+      return { picks: suggestions.map(toSuggestionPick) }
     },
   }
 }
