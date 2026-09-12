@@ -119,6 +119,9 @@ export const en = {
     savingItem: 'Saving…',
     cancelEdit: 'Cancel',
     updateItemFailed: 'Could not save that item',
+    /** Placeholder styling per the user's own suggestion — task 6.2. */
+    manualItemBadge: '[M]',
+    manualItemHint: 'Added by hand, not from a search import',
   },
 
   newList: {

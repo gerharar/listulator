@@ -6,6 +6,7 @@ import {
   listItems,
   lists,
   type DismissedItem,
+  type ItemSource,
   type List,
   type ListItem,
   type ListSource,
@@ -51,6 +52,8 @@ export interface CreateListItemInput {
   orderIndex?: number
   /** Upstream id, when the source has one. */
   externalRef?: string | null
+  /** Defaults to `'import'` — every real caller should pass this explicitly. */
+  source?: ItemSource
 }
 
 export interface UpdateListItemInput {
@@ -252,6 +255,7 @@ export async function createListItem(
       timeToConsumeMinutes: input.timeToConsumeMinutes,
       timeToConsumeIsEstimated: input.timeToConsumeIsEstimated ?? true,
       externalRef: input.externalRef ?? null,
+      source: input.source ?? 'import',
     })
     .returning()
     .get()

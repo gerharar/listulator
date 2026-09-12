@@ -75,6 +75,7 @@ function toListItem(item: SchemaListItem): ListItem {
     timeToConsumeMinutes: item.timeToConsumeMinutes,
     timeToConsumeIsEstimated: item.timeToConsumeIsEstimated,
     consumedAt: item.consumedAt?.toISOString() ?? null,
+    source: item.source,
   }
 }
 
@@ -182,7 +183,7 @@ export function createLocalApi(): ApiClient {
       if (!(await repoDeleteList(database, userId, id))) throw notFound()
     },
 
-    importItems: async (listId, items) => {
+    importItems: async (listId, items, source = 'import') => {
       const [database, userId] = [await getDb(), await getUserId()]
       const list = await findList(database, userId, listId)
       if (!list) throw notFound()
@@ -204,6 +205,7 @@ export function createLocalApi(): ApiClient {
           timeToConsumeMinutes: known ? item.timeToConsumeMinutes! : fallbackMinutes,
           timeToConsumeIsEstimated: !known,
           ...(item.externalRef ? { externalRef: item.externalRef } : {}),
+          source,
         })
         created.push(toListItem(row!))
       }
@@ -225,7 +227,10 @@ export function createLocalApi(): ApiClient {
 
     addItem: async (listId, input) => {
       const [database, userId] = [await getDb(), await getUserId()]
-      const item = await createListItem(database, userId, listId, input)
+      // This method's whole reason to exist is adding one item by hand
+      // (task 6.1/6.2) — bulk/search-imported items always go through
+      // importItems/createFromSource instead.
+      const item = await createListItem(database, userId, listId, { ...input, source: 'manual' })
       if (!item) throw notFound()
       return toListItem(item)
     },
@@ -288,6 +293,7 @@ export function createLocalApi(): ApiClient {
             : mediaType.defaultDurationMinutes,
           timeToConsumeIsEstimated: !known,
           ...(candidate.externalRef ? { externalRef: candidate.externalRef } : {}),
+          source: 'import',
         })
       }
 

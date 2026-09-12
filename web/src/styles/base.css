@@ -354,6 +354,13 @@ a {
   min-width: 0;
 }
 
+/* Placeholder styling per the user's own suggestion — task 6.2. */
+.item__manual-badge {
+  flex: none;
+  font-size: 0.72rem;
+  color: var(--text-faint);
+}
+
 .item--consumed .item__title {
   color: var(--text-faint);
   text-decoration: line-through;

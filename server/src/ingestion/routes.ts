@@ -1,5 +1,5 @@
 import type { FastifyPluginAsync } from 'fastify'
-import { dismissalTitleKey } from '../db/schema.js'
+import { dismissalTitleKey, type ItemSource } from '../db/schema.js'
 import { getCurrentUser } from '../auth/currentUser.js'
 import {
   clearDismissals,
@@ -120,6 +120,7 @@ export const ingestionRoutes: FastifyPluginAsync<IngestionRoutesOptions> = async
             : mediaType.defaultDurationMinutes,
           timeToConsumeIsEstimated: !known,
           ...(candidate.externalRef ? { externalRef: candidate.externalRef } : {}),
+          source: 'import',
         })
       }
 
@@ -228,7 +229,7 @@ export const ingestionRoutes: FastifyPluginAsync<IngestionRoutesOptions> = async
    * estimated, which is how `time_to_consume_minutes` stays NOT NULL without
    * the catalog ever inventing a number (SPEC.md §4, §5).
    */
-  app.post<{ Params: { listId: string }; Body: { items: ImportItem[] } }>(
+  app.post<{ Params: { listId: string }; Body: { items: ImportItem[]; source?: ItemSource } }>(
     '/lists/:listId/items/import',
     {
       schema: {
@@ -252,6 +253,12 @@ export const ingestionRoutes: FastifyPluginAsync<IngestionRoutesOptions> = async
                 },
               },
             },
+            // This one endpoint backs both manual list-creation's item
+            // textarea and a refresh's "add what's new" button (task 6.2) —
+            // the two are indistinguishable per item (Wikipedia/Open Library
+            // imports carry no externalRef either), so the caller states
+            // which this batch is. Defaults to 'import', the more common case.
+            source: { type: 'string', enum: ['manual', 'import'] },
           },
         },
       },
@@ -259,6 +266,7 @@ export const ingestionRoutes: FastifyPluginAsync<IngestionRoutesOptions> = async
     async (request, reply) => {
       const user = getCurrentUser(request)
       const { listId } = request.params
+      const source = request.body.source ?? 'import'
 
       const list = await findList(db, user.id, listId)
       if (!list) return reply.callNotFound()
@@ -282,6 +290,7 @@ export const ingestionRoutes: FastifyPluginAsync<IngestionRoutesOptions> = async
             timeToConsumeMinutes: known ? item.timeToConsumeMinutes! : fallbackMinutes,
             timeToConsumeIsEstimated: !known,
             ...(item.externalRef ? { externalRef: item.externalRef } : {}),
+            source,
           }),
         )
       }

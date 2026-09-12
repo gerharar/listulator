@@ -29,6 +29,11 @@ function Item({
         <span className={consumed ? 'item__box item__box--checked' : 'item__box'} aria-hidden="true">
           {consumed ? '✕' : ''}
         </span>
+        {item.source === 'manual' && (
+          <span className="item__manual-badge" title={copy.listDetail.manualItemHint}>
+            {copy.listDetail.manualItemBadge}
+          </span>
+        )}
         <span className="item__title">{item.title}</span>
         <span className="item__duration">
           {/* A leading ~ marks a guessed duration, so a number nobody verified
@@ -221,7 +226,7 @@ export function ListDetail({ mediaTypes }: { mediaTypes: MediaType[] }) {
     setChecking(true)
 
     try {
-      await api.importItems(listId, updates.newItems)
+      await api.importItems(listId, updates.newItems, 'import')
       setUpdates(null)
       await load()
     } catch (cause) {

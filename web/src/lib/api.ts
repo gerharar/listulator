@@ -29,6 +29,8 @@ export interface ListItem {
   timeToConsumeMinutes: number
   timeToConsumeIsEstimated: boolean
   consumedAt: string | null
+  /** Typed in by hand, vs. brought in by a search import or a refresh. */
+  source: 'manual' | 'import'
 }
 
 export interface MediaListDetail extends MediaList {
@@ -132,6 +134,8 @@ export interface ApiClient {
   importItems: (
     listId: string,
     items: { title: string; externalRef?: string; timeToConsumeMinutes?: number }[],
+    /** Defaults to 'import' — pass 'manual' for a hand-typed batch (task 6.2). */
+    source?: 'manual' | 'import',
   ) => Promise<ListItem[]>
   tiredBoss: (currentListId: string) => Promise<{ picks: SuggestionPick[] }>
   suggest: () => Promise<{ picks: SuggestionPick[] }>
@@ -178,10 +182,11 @@ export const fetchApi: ApiClient = {
   importItems: (
     listId: string,
     items: { title: string; externalRef?: string; timeToConsumeMinutes?: number }[],
+    source?: 'manual' | 'import',
   ) =>
     request<ListItem[]>(`/lists/${listId}/items/import`, {
       method: 'POST',
-      body: JSON.stringify({ items }),
+      body: JSON.stringify({ items, ...(source ? { source } : {}) }),
     }),
 
   tiredBoss: (currentListId: string) =>

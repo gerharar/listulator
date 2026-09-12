@@ -59,6 +59,7 @@ function nextItemsFor(lists: ListWithStats[]): Map<string, ListItem | undefined>
         timeToConsumeIsEstimated: true,
         consumedAt: null,
         externalRef: null,
+        source: 'import',
         createdAt: NOW,
         updatedAt: NOW,
       },

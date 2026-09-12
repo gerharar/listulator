@@ -69,6 +69,9 @@ describe('catalog HTTP API', () => {
       timeToConsumeIsEstimated: true,
       orderIndex: 0,
       consumedAt: null,
+      // This route is the "add one item by hand" primitive (task 6.2) —
+      // always 'manual', regardless of what the caller sends.
+      source: 'manual',
     })
 
     const patched = await harness.app.inject({

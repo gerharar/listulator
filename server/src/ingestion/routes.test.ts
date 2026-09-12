@@ -76,11 +76,11 @@ describe('POST /api/lists/:listId/items/import', () => {
     return response.json()
   }
 
-  async function importItems(listId: string, items: unknown[]) {
+  async function importItems(listId: string, items: unknown[], source?: 'manual' | 'import') {
     return harness.app.inject({
       method: 'POST',
       url: `/api/lists/${listId}/items/import`,
-      payload: { items },
+      payload: { items, ...(source ? { source } : {}) },
     })
   }
 
@@ -125,6 +125,22 @@ describe('POST /api/lists/:listId/items/import', () => {
       timeToConsumeMinutes: 600,
       timeToConsumeIsEstimated: true,
     })
+  })
+
+  it('defaults new items to import-sourced when the caller says nothing', async () => {
+    const list = await createList()
+
+    const response = await importItems(list.id, [{ title: 'Issue #1' }])
+
+    expect(response.json()[0]).toMatchObject({ source: 'import' })
+  })
+
+  it("marks a batch manual when the caller says so — this endpoint also backs manual list-creation's item textarea", async () => {
+    const list = await createList()
+
+    const response = await importItems(list.id, [{ title: 'Issue #1' }], 'manual')
+
+    expect(response.json()[0]).toMatchObject({ source: 'manual' })
   })
 
   it('keeps a supplied duration and marks it as known, not estimated', async () => {
@@ -306,8 +322,18 @@ describe('search and import from a source', () => {
     // A duration the source knew is kept as fact; the rest fall back to the
     // category default and are marked estimated.
     expect(items).toMatchObject([
-      { title: 'Eaten Back to Life', timeToConsumeMinutes: 45, timeToConsumeIsEstimated: true },
-      { title: 'The Bleeding', timeToConsumeMinutes: 47, timeToConsumeIsEstimated: false },
+      {
+        title: 'Eaten Back to Life',
+        timeToConsumeMinutes: 45,
+        timeToConsumeIsEstimated: true,
+        source: 'import',
+      },
+      {
+        title: 'The Bleeding',
+        timeToConsumeMinutes: 47,
+        timeToConsumeIsEstimated: false,
+        source: 'import',
+      },
     ])
   })
 

@@ -151,7 +151,13 @@ export const catalogRoutes: FastifyPluginAsync<CatalogRoutesOptions> = async (
     },
     async (request, reply) => {
       const user = getCurrentUser(request)
-      const item = await createListItem(db, user.id, request.params.listId, request.body)
+      // This route's whole reason to exist is adding one item by hand
+      // (task 6.1/6.2) — bulk/search-imported items always go through
+      // ingestion's own routes instead.
+      const item = await createListItem(db, user.id, request.params.listId, {
+        ...request.body,
+        source: 'manual',
+      })
       if (!item) return reply.callNotFound()
 
       return reply.code(201).send(item)

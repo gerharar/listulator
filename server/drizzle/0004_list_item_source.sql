@@ -1,0 +1,1 @@
+ALTER TABLE `list_items` ADD `source` text DEFAULT 'import' NOT NULL;

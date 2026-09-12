@@ -37,6 +37,15 @@ export type User = typeof users.$inferSelect
 export type ListSource = 'api' | 'llm' | 'manual'
 
 /**
+ * Where one item came from — distinct from `ListSource` above, and tracked
+ * per item rather than inherited from the list, because a search-imported
+ * list can still gain hand-typed items afterward (task 6.1's single-item
+ * add form works on any list, imported or not) — the list's own `source`
+ * cannot tell those two kinds of item apart once that happens.
+ */
+export type ItemSource = 'manual' | 'import'
+
+/**
  * A finite, curated set of things to finish — "all Jackie Chan movies", a
  * discography, a game franchise.
  *
@@ -98,6 +107,13 @@ export const listItems = sqliteTable(
      * its source when checking a list for updates.
      */
     externalRef: text('external_ref'),
+    /**
+     * Defaults to `'import'` so existing rows (migrated before this column
+     * existed) don't retroactively gain a manual-entry marker they never
+     * earned — every real call site sets this explicitly regardless (task
+     * 6.2), the default only matters for that backfill.
+     */
+    source: text('source').$type<ItemSource>().notNull().default('import'),
     /** Null until checked off; doubles as the "when" behind list neglect scoring. */
     consumedAt: integer('consumed_at', { mode: 'timestamp_ms' }),
     createdAt: integer('created_at', { mode: 'timestamp_ms' })

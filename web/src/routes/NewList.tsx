@@ -43,6 +43,7 @@ export function NewList({ mediaTypes }: { mediaTypes: MediaType[] }) {
         await api.importItems(
           list.id,
           titles.map((line) => ({ title: line })),
+          'manual',
         )
       }
 
