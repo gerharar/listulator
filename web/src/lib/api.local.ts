@@ -3,19 +3,19 @@
 // SQLite (web/src/lib/db/localDb.ts), per docs/DECISIONS.md's
 // "Standalone-app distribution" architecture.
 //
-// Scope for this task (5.6): everything catalog/routes.ts backs — me,
-// mediaTypes, lists, list, createList, deleteList, importItems, deleteItem,
-// setConsumed. Ingestion (searchSources, createFromSource,
-// checkForUpdates — task 5.7) and suggestions (tiredBoss, suggest, quickie
-// — task 5.8) are real, typed stubs: they throw rather than being silently
-// missing, so a click surfaces a clear message instead of `undefined is
-// not a function`.
+// Ingestion (searchSources, createFromSource, checkForUpdates) mirrors
+// server/src/ingestion/routes.ts against `getLocalMediaTypes()` — the real
+// registry, credentialed from Tauri's store plugin rather than `.env`
+// (task 5.7). Suggestions (tiredBoss, suggest, quickie — task 5.8) remain
+// real, typed stubs: they throw rather than being silently missing, so a
+// click surfaces a clear message instead of `undefined is not a function`.
 import {
   clearDismissals,
   createList as repoCreateList,
   createListItem,
   deleteList as repoDeleteList,
   deleteListItem,
+  findDismissals,
   findList,
   findListItems,
   findListWithStats,
@@ -23,8 +23,8 @@ import {
   setListItemConsumed,
   type ListWithStats,
 } from '../../../server/src/catalog/repository.js'
-import { DEFAULT_MEDIA_TYPES } from '../../../server/src/ingestion/mediaTypes.js'
-import type { ListItem as SchemaListItem } from '../../../server/src/db/schema.js'
+import { dismissalTitleKey, type ListItem as SchemaListItem } from '../../../server/src/db/schema.js'
+import { copy } from '../locale/index.js'
 import type {
   ApiClient,
   CurrentUser,
@@ -36,18 +36,7 @@ import type {
 import { ApiError } from './api.js'
 import { createLocalDb, type LocalDatabase } from './db/localDb.js'
 import { getLocalCurrentUser } from './db/localUser.js'
-
-/**
- * Metadata only — deliberately not `createMediaTypeRegistry(DEFAULT_MEDIA_TYPES)`.
- * Each entry's `adapter` is built from `process.env`-backed credentials
- * (server/src/ingestion/mediaTypes.ts), which doesn't exist in a webview,
- * and calling any adapter method would throw. Reading `key`/`label`/
- * `sortOrder`/`defaultDurationMinutes` off the array never touches
- * `.adapter`, so this is safe — importing the module doesn't evaluate any
- * credential lookup either, only calling an adapter method would. Task 5.7
- * replaces `searchAvailable: false` below with the real thing.
- */
-const mediaTypesByKey = new Map(DEFAULT_MEDIA_TYPES.map((entry) => [entry.key, entry]))
+import { getLocalMediaTypes } from './ingestion/localMediaTypes.js'
 
 function notFound(): ApiError {
   return new ApiError('Not found.', 404)
@@ -107,8 +96,9 @@ export function createLocalApi(): ApiClient {
       return { id: user.id, isDefaultLocalUser: user.isDefaultLocalUser } satisfies CurrentUser
     },
 
-    mediaTypes: async () =>
-      [...mediaTypesByKey.values()]
+    mediaTypes: async () => {
+      const entries = await getLocalMediaTypes()
+      return [...entries]
         .sort((a, b) => a.sortOrder - b.sortOrder)
         .map(
           (entry): MediaType => ({
@@ -117,9 +107,10 @@ export function createLocalApi(): ApiClient {
             ...(entry.description ? { description: entry.description } : {}),
             sortOrder: entry.sortOrder,
             defaultDurationMinutes: entry.defaultDurationMinutes,
-            searchAvailable: false,
+            searchAvailable: entry.adapter?.isAvailable() ?? false,
           }),
-        ),
+        )
+    },
 
     lists: async () => {
       const [database, userId] = [await getDb(), await getUserId()]
@@ -152,7 +143,8 @@ export function createLocalApi(): ApiClient {
       const list = await findList(database, userId, listId)
       if (!list) throw notFound()
 
-      const fallbackMinutes = mediaTypesByKey.get(list.mediaType)?.defaultDurationMinutes ?? 30
+      const mediaType = (await getLocalMediaTypes()).find((entry) => entry.key === list.mediaType)
+      const fallbackMinutes = mediaType?.defaultDurationMinutes ?? 30
 
       // Changing your mind about a deletion — the record that you once
       // deleted it has to go with it (matches ingestion/routes.ts).
@@ -187,15 +179,113 @@ export function createLocalApi(): ApiClient {
       return toListItem(updated)
     },
 
-    // Task 5.7.
-    searchSources: async () => {
-      throw notImplemented('Search')
+    // Mirrors server/src/ingestion/routes.ts's three handlers, against the
+    // real local registry instead of Fastify + a Drizzle db handle.
+    searchSources: async (mediaTypeKey, query) => {
+      const mediaType = (await getLocalMediaTypes()).find((entry) => entry.key === mediaTypeKey)
+      if (!mediaType) throw notFound()
+
+      const trimmed = query.trim()
+      if (!trimmed) throw new ApiError(copy.errors['search.queryRequired'](), 400)
+
+      if (!mediaType.adapter?.isAvailable()) {
+        throw new ApiError(copy.errors['search.unavailable']({ category: mediaType.label }), 409)
+      }
+
+      return { sources: await mediaType.adapter.search(trimmed) }
     },
-    createFromSource: async () => {
-      throw notImplemented('Building a list from a source')
+
+    createFromSource: async ({ mediaType: key, externalRef, title }) => {
+      const [database, userId] = [await getDb(), await getUserId()]
+
+      const mediaType = (await getLocalMediaTypes()).find((entry) => entry.key === key)
+      if (!mediaType) throw new ApiError(copy.errors['list.unknownCategory']({ key }), 400)
+
+      if (!mediaType.adapter?.isAvailable()) {
+        throw new ApiError(copy.errors['search.unavailable']({ category: mediaType.label }), 409)
+      }
+
+      // Expanded before the list is created, so a failure upstream does not
+      // leave an empty list behind.
+      const candidates = await mediaType.adapter.expand(externalRef)
+      if (candidates.length === 0) {
+        throw new ApiError(copy.errors['list.sourceEmpty']({ title }), 422)
+      }
+
+      const list = await repoCreateList(database, userId, {
+        title,
+        mediaType: key,
+        source: 'api',
+        externalRef,
+      })
+
+      // Sequential, not Promise.all — see docs/DECISIONS.md, task 5.1.
+      for (const candidate of candidates) {
+        const known = candidate.timeToConsumeMinutes !== undefined
+
+        await createListItem(database, userId, list.id, {
+          title: candidate.title,
+          timeToConsumeMinutes: known
+            ? candidate.timeToConsumeMinutes!
+            : mediaType.defaultDurationMinutes,
+          timeToConsumeIsEstimated: !known,
+          ...(candidate.externalRef ? { externalRef: candidate.externalRef } : {}),
+        })
+      }
+
+      const withStats = await findListWithStats(database, userId, list.id)
+      return toMediaList(withStats!)
     },
-    checkForUpdates: async () => {
-      throw notImplemented('Checking for updates')
+
+    checkForUpdates: async (listId, includeDismissed = false) => {
+      const [database, userId] = [await getDb(), await getUserId()]
+      const list = await findList(database, userId, listId)
+      if (!list) throw notFound()
+
+      if (!list.externalRef) {
+        throw new ApiError(copy.errors['refresh.handMadeList'](), 409)
+      }
+
+      const mediaType = (await getLocalMediaTypes()).find((entry) => entry.key === list.mediaType)
+      if (!mediaType?.adapter?.isAvailable()) {
+        throw new ApiError(
+          copy.errors['refresh.searchUnavailable']({ category: mediaType?.label ?? list.mediaType }),
+          409,
+        )
+      }
+
+      const upstream = await mediaType.adapter.expand(list.externalRef)
+      const existing = (await findListItems(database, userId, listId)) ?? []
+
+      // Matched on the upstream id where there is one, and on title otherwise:
+      // Wikipedia events and Open Library works carry no stable id.
+      const knownRefs = new Set(existing.map((item) => item.externalRef).filter(Boolean))
+      const knownTitles = new Set(existing.map((item) => dismissalTitleKey(item.title)))
+
+      // Things deleted by hand, which a refresh must not keep offering back —
+      // otherwise pruning an import never sticks. Ticking the box ignores
+      // them, which is both the undo for an accidental delete and the way
+      // out if a shared title over-suppressed something.
+      const dismissed = includeDismissed ? [] : await findDismissals(database, userId, listId)
+      const dismissedRefs = new Set(dismissed.map((item) => item.externalRef).filter(Boolean))
+      const dismissedTitles = new Set(dismissed.map((item) => item.titleKey))
+
+      const newItems = upstream.filter((candidate) => {
+        const titleKey = dismissalTitleKey(candidate.title)
+
+        if (candidate.externalRef && knownRefs.has(candidate.externalRef)) return false
+        if (knownTitles.has(titleKey)) return false
+        if (candidate.externalRef && dismissedRefs.has(candidate.externalRef)) return false
+
+        return !dismissedTitles.has(titleKey)
+      })
+
+      return {
+        newItems,
+        upstreamCount: upstream.length,
+        existingCount: existing.length,
+        dismissedCount: (await findDismissals(database, userId, listId)).length,
+      }
     },
 
     // Task 5.8.

@@ -35,25 +35,50 @@ export async function getJson<T>(
     body,
   }: GetJsonOptions,
 ): Promise<T> {
-  const controller = new AbortController()
-  const timeout = setTimeout(() => controller.abort(), timeoutMs)
+  async function attempt(withUserAgent: boolean): Promise<Response> {
+    const controller = new AbortController()
+    const timeout = setTimeout(() => controller.abort(), timeoutMs)
+
+    try {
+      return await fetchImpl(url, {
+        method,
+        headers: {
+          ...(withUserAgent ? { 'user-agent': USER_AGENT } : {}),
+          accept: 'application/json',
+          ...headers,
+        },
+        ...(body === undefined ? {} : { body }),
+        signal: controller.signal,
+      })
+    } finally {
+      clearTimeout(timeout)
+    }
+  }
 
   let response: Response
   try {
-    response = await fetchImpl(url, {
-      method,
-      headers: { 'user-agent': USER_AGENT, accept: 'application/json', ...headers },
-      ...(body === undefined ? {} : { body }),
-      signal: controller.signal,
-    })
+    response = await attempt(true)
   } catch (cause) {
-    // A dead network and a slow upstream look the same to the user, and
-    // neither is their fault — say which service, not which exception.
-    throw new IngestionError(
-      `Could not reach ${source}${cause instanceof Error && cause.name === 'AbortError' ? ' (timed out)' : ''}.`,
-    )
-  } finally {
-    clearTimeout(timeout)
+    // A browser's `fetch` refuses to let JS set `User-Agent` at all.
+    // Chromium silently drops the header; WebKit (the standalone app's
+    // macOS webview) throws synchronously instead, which otherwise looks
+    // identical to a dead network (task 5.7's smoke test caught this on
+    // Open Library, tested via a Chrome tab in task 5.3 and never seen
+    // there). Retry once without it — a no-op for Node and the Tauri HTTP
+    // plugin, which already succeeded on the first attempt. Not retried on
+    // a timeout: a slow upstream will be slow again, and doubling the wait
+    // teaches nothing.
+    if (cause instanceof Error && cause.name === 'AbortError') {
+      throw new IngestionError(`Could not reach ${source} (timed out).`)
+    }
+
+    try {
+      response = await attempt(false)
+    } catch (retryCause) {
+      throw new IngestionError(
+        `Could not reach ${source}${retryCause instanceof Error && retryCause.name === 'AbortError' ? ' (timed out)' : ''}.`,
+      )
+    }
   }
 
   if (response.status === 429) {

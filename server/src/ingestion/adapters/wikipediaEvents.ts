@@ -123,7 +123,10 @@ export function createWikipediaEventsAdapter(
       if (!promotion) return []
 
       const response = await getJson<ParseResponse>(
-        `${API}?action=parse&format=json&redirects=1&prop=wikitext&page=${encodeURIComponent(promotion.page)}`,
+        // `origin=*` opts into CORS (task 5.3, docs/DECISIONS.md) — Wikipedia's
+        // API sends no CORS headers at all without it, blocking every browser
+        // origin including a Tauri webview's. Harmless server-side too.
+        `${API}?action=parse&format=json&redirects=1&prop=wikitext&page=${encodeURIComponent(promotion.page)}&origin=*`,
         { source: 'Wikipedia', ...(fetchImpl ? { fetchImpl } : {}) },
       )
 

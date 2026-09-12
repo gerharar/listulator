@@ -13,71 +13,210 @@ import { createTmdbAdapter } from './adapters/tmdb.js'
 import { createTmdbCompanyAdapter } from './adapters/tmdbCompany.js'
 import { createTmdbFranchiseAdapter } from './adapters/tmdbFranchise.js'
 import { ANIMATION_GENRE, DOCUMENTARY_GENRE, createTmdbTvAdapter } from './adapters/tmdbTv.js'
+import type { FetchLike } from './http.js'
+import type { TmdbCredentialSource } from './adapters/tmdb.js'
+import type { IgdbCredentialSource } from './adapters/igdb.js'
+import type { ComicVineCredentialSource } from './adapters/comicVine.js'
+import type { YouTubeCredentialSource } from './adapters/youtube.js'
 
 /**
- * Credentials are read per call rather than captured here: this module is
- * evaluated during import, which is before the entry point loads `.env`.
- * Adapters report themselves unavailable when their credentials are missing,
- * so an unkeyed install simply has no search for that category.
+ * Credential and fetch overrides for the standalone (Tauri) app, which has
+ * no `.env` and — per task 5.3's CORS findings — must route three providers
+ * (IGDB's data endpoints, Comic Vine, MusicBrainz) through the Tauri HTTP
+ * plugin instead of the webview's own `fetch`. The server passes neither and
+ * gets the original `process.env`-backed, direct-fetch behaviour untouched.
  */
-
-const tmdbCredentials = () => ({
-  apiKey: process.env['TMDB_API_KEY'],
-  readAccessToken: process.env['TMDB_READ_ACCESS_TOKEN'],
-})
+export interface MediaTypeOverrides {
+  credentials?: {
+    tmdb?: TmdbCredentialSource
+    igdb?: IgdbCredentialSource
+    comicVine?: ComicVineCredentialSource
+    youtube?: YouTubeCredentialSource
+  }
+  fetchImpl?: {
+    igdb?: FetchLike
+    comicVine?: FetchLike
+    musicbrainz?: FetchLike
+  }
+}
 
 /**
- * Several categories draw on more than one shape of TMDB search, because a
- * medium is not a search shape. Animation holds both Naruto (a series) and
- * Studio Ghibli (a studio of films); documentaries hold both series and a
- * director's body of work. Each category still picks its own sources — there
- * is no cross-cutting "TMDB" category (docs/DECISIONS.md).
+ * Builds the built-in media categories. A factory rather than module-level
+ * consts so the standalone app can supply its own credentials (Tauri's store
+ * plugin, not `process.env`) and route specific providers through the Tauri
+ * HTTP plugin — see `MediaTypeOverrides`.
+ *
+ * Credentials are still read per call rather than captured eagerly: on the
+ * server this module is evaluated during import, before the entry point
+ * loads `.env`. Adapters report themselves unavailable when their
+ * credentials are missing, so an unkeyed install simply has no search for
+ * that category.
  */
-const films = createTmdbAdapter(tmdbCredentials)
-const studios = createTmdbCompanyAdapter(tmdbCredentials)
+export function createDefaultMediaTypes({
+  credentials = {},
+  fetchImpl = {},
+}: MediaTypeOverrides = {}): readonly MediaType[] {
+  const tmdbCredentials =
+    credentials.tmdb ??
+    (() => ({
+      apiKey: process.env['TMDB_API_KEY'],
+      readAccessToken: process.env['TMDB_READ_ACCESS_TOKEN'],
+    }))
 
-const animatedShows = createTmdbTvAdapter(tmdbCredentials, { genreFilter: ANIMATION_GENRE })
-const animationStudios = createTmdbCompanyAdapter(tmdbCredentials, {
-  genreFilter: ANIMATION_GENRE,
-})
+  /**
+   * Several categories draw on more than one shape of TMDB search, because a
+   * medium is not a search shape. Animation holds both Naruto (a series) and
+   * Studio Ghibli (a studio of films); documentaries hold both series and a
+   * director's body of work. Each category still picks its own sources —
+   * there is no cross-cutting "TMDB" category (docs/DECISIONS.md).
+   */
+  const films = createTmdbAdapter(tmdbCredentials)
+  const studios = createTmdbCompanyAdapter(tmdbCredentials)
 
-const documentarySeries = createTmdbTvAdapter(tmdbCredentials, { genreFilter: DOCUMENTARY_GENRE })
-const documentaryFilms = createTmdbAdapter(tmdbCredentials, {
-  documentaries: 'only',
-  // Documentarians direct rather than appear; cast credits alone found 12 of
-  // Ken Burns' 59 documentaries.
-  includeDirecting: true,
-})
+  const animatedShows = createTmdbTvAdapter(tmdbCredentials, { genreFilter: ANIMATION_GENRE })
+  const animationStudios = createTmdbCompanyAdapter(tmdbCredentials, {
+    genreFilter: ANIMATION_GENRE,
+  })
 
-const tmdbTv = createTmdbTvAdapter(tmdbCredentials)
-const franchises = createTmdbFranchiseAdapter(tmdbCredentials)
+  const documentarySeries = createTmdbTvAdapter(tmdbCredentials, {
+    genreFilter: DOCUMENTARY_GENRE,
+  })
+  const documentaryFilms = createTmdbAdapter(tmdbCredentials, {
+    documentaries: 'only',
+    // Documentarians direct rather than appear; cast credits alone found 12 of
+    // Ken Burns' 59 documentaries.
+    includeDirecting: true,
+  })
 
-/** Films by a person or collection, plus films by a studio. */
-const movieSources = createCompositeAdapter([
-  { prefixes: ['person', 'collection'], adapter: films },
-  { prefixes: ['company'], adapter: studios },
-])
+  const tmdbTv = createTmdbTvAdapter(tmdbCredentials)
+  const franchises = createTmdbFranchiseAdapter(tmdbCredentials)
 
-/** Animated series, plus the studios that make animated films. */
-const animationSources = createCompositeAdapter([
-  { prefixes: ['show'], adapter: animatedShows },
-  { prefixes: ['company'], adapter: animationStudios },
-])
+  /** Films by a person or collection, plus films by a studio. */
+  const movieSources = createCompositeAdapter([
+    { prefixes: ['person', 'collection'], adapter: films },
+    { prefixes: ['company'], adapter: studios },
+  ])
 
-/** Documentary series, plus a film-maker's documentaries. */
-const documentarySources = createCompositeAdapter([
-  { prefixes: ['show'], adapter: documentarySeries },
-  { prefixes: ['person', 'collection'], adapter: documentaryFilms },
-])
+  /** Animated series, plus the studios that make animated films. */
+  const animationSources = createCompositeAdapter([
+    { prefixes: ['show'], adapter: animatedShows },
+    { prefixes: ['company'], adapter: animationStudios },
+  ])
 
-const igdb = createIgdbAdapter(() => ({
-  clientId: process.env['IGDB_CLIENT_ID'],
-  clientSecret: process.env['IGDB_CLIENT_SECRET'],
-}))
+  /** Documentary series, plus a film-maker's documentaries. */
+  const documentarySources = createCompositeAdapter([
+    { prefixes: ['show'], adapter: documentarySeries },
+    { prefixes: ['person', 'collection'], adapter: documentaryFilms },
+  ])
 
-const comicVine = createComicVineAdapter(() => ({
-  apiKey: process.env['COMIC_VINE_API_KEY'],
-}))
+  const igdb = createIgdbAdapter(
+    credentials.igdb ??
+      (() => ({
+        clientId: process.env['IGDB_CLIENT_ID'],
+        clientSecret: process.env['IGDB_CLIENT_SECRET'],
+      })),
+    fetchImpl.igdb,
+  )
+
+  const comicVine = createComicVineAdapter(
+    credentials.comicVine ?? (() => ({ apiKey: process.env['COMIC_VINE_API_KEY'] })),
+    fetchImpl.comicVine,
+  )
+
+  return [
+    {
+      key: 'movie',
+      label: 'Movies',
+      sortOrder: 10,
+      defaultDurationMinutes: 120,
+      adapter: movieSources,
+    },
+    { key: 'tv', label: 'TV Shows', sortOrder: 20, defaultDurationMinutes: 50, adapter: tmdbTv },
+    // Episode-length. The category also holds animated features, which this
+    // badly under-estimates — flagged estimated and easy to correct per item.
+    {
+      key: 'animation',
+      label: 'Animation',
+      sortOrder: 30,
+      defaultDurationMinutes: 25,
+      adapter: animationSources,
+    },
+    // Feature-length is the common case for a documentary; series episodes run
+    // shorter and are corrected per item.
+    {
+      key: 'documentary',
+      label: 'Documentaries',
+      sortOrder: 35,
+      defaultDurationMinutes: 90,
+      adapter: documentarySources,
+    },
+    {
+      key: 'wrestling',
+      label: 'Wrestling',
+      sortOrder: 40,
+      defaultDurationMinutes: 180,
+      adapter: createWikipediaEventsAdapter(WRESTLING_PROMOTIONS),
+    },
+    {
+      key: 'mma',
+      label: 'MMA',
+      sortOrder: 50,
+      defaultDurationMinutes: 180,
+      adapter: createWikipediaEventsAdapter(MMA_PROMOTIONS),
+    },
+    // Time-to-beat for a mainline game, not a completionist run.
+    { key: 'game', label: 'Games', sortOrder: 60, defaultDurationMinutes: 600, adapter: igdb },
+    // ~15 min for a standard 30-page issue (SPEC.md §5). Comic Vine's rate
+    // limit rules out fetching a real page count per issue.
+    {
+      key: 'comic',
+      label: 'Comics',
+      sortOrder: 70,
+      defaultDurationMinutes: 15,
+      adapter: comicVine,
+    },
+    {
+      key: 'book',
+      label: 'Books',
+      sortOrder: 80,
+      defaultDurationMinutes: 240,
+      adapter: createOpenLibraryAdapter(),
+    },
+    {
+      key: 'music',
+      label: 'Music',
+      sortOrder: 90,
+      defaultDurationMinutes: 45,
+      adapter: createMusicBrainzAdapter(fetchImpl.musicbrainz),
+    },
+    // Lengths vary from three minutes to three hours, so this default is more
+    // placeholder than estimate — real durations come from the API.
+    {
+      key: 'youtube',
+      label: 'YouTube',
+      sortOrder: 95,
+      defaultDurationMinutes: 20,
+      adapter: createYouTubeAdapter(
+        credentials.youtube ?? (() => ({ apiKey: process.env['YOUTUBE_API_KEY'] })),
+      ),
+    },
+    /**
+     * The shelf for franchises that genuinely span media. Its existence is a
+     * navigation answer more than a data one: a Marvel list split across
+     * Movies, TV and Animation leaves nowhere obvious to look.
+     */
+    {
+      key: 'mega',
+      label: 'Mega',
+      description:
+        'Franchises that span several media at once — films, series and animation together, in release order. Marvel and Star Trek belong here; a single show or film series does not.',
+      sortOrder: 100,
+      // Mixed by nature; real runtimes come from the API.
+      defaultDurationMinutes: 120,
+      adapter: franchises,
+    },
+  ]
+}
 
 /**
  * The built-in media categories.
@@ -152,97 +291,13 @@ export interface MediaType {
   adapter?: SearchAdapter
 }
 
-export const DEFAULT_MEDIA_TYPES: readonly MediaType[] = [
-  {
-    key: 'movie',
-    label: 'Movies',
-    sortOrder: 10,
-    defaultDurationMinutes: 120,
-    adapter: movieSources,
-  },
-  { key: 'tv', label: 'TV Shows', sortOrder: 20, defaultDurationMinutes: 50, adapter: tmdbTv },
-  // Episode-length. The category also holds animated features, which this
-  // badly under-estimates — flagged estimated and easy to correct per item.
-  {
-    key: 'animation',
-    label: 'Animation',
-    sortOrder: 30,
-    defaultDurationMinutes: 25,
-    adapter: animationSources,
-  },
-  // Feature-length is the common case for a documentary; series episodes run
-  // shorter and are corrected per item.
-  {
-    key: 'documentary',
-    label: 'Documentaries',
-    sortOrder: 35,
-    defaultDurationMinutes: 90,
-    adapter: documentarySources,
-  },
-  {
-    key: 'wrestling',
-    label: 'Wrestling',
-    sortOrder: 40,
-    defaultDurationMinutes: 180,
-    adapter: createWikipediaEventsAdapter(WRESTLING_PROMOTIONS),
-  },
-  {
-    key: 'mma',
-    label: 'MMA',
-    sortOrder: 50,
-    defaultDurationMinutes: 180,
-    adapter: createWikipediaEventsAdapter(MMA_PROMOTIONS),
-  },
-  // Time-to-beat for a mainline game, not a completionist run.
-  { key: 'game', label: 'Games', sortOrder: 60, defaultDurationMinutes: 600, adapter: igdb },
-  // ~15 min for a standard 30-page issue (SPEC.md §5). Comic Vine's rate
-  // limit rules out fetching a real page count per issue.
-  {
-    key: 'comic',
-    label: 'Comics',
-    sortOrder: 70,
-    defaultDurationMinutes: 15,
-    adapter: comicVine,
-  },
-  {
-    key: 'book',
-    label: 'Books',
-    sortOrder: 80,
-    defaultDurationMinutes: 240,
-    adapter: createOpenLibraryAdapter(),
-  },
-  {
-    key: 'music',
-    label: 'Music',
-    sortOrder: 90,
-    defaultDurationMinutes: 45,
-    adapter: createMusicBrainzAdapter(),
-  },
-  // Lengths vary from three minutes to three hours, so this default is more
-  // placeholder than estimate — real durations come from the API.
-  {
-    key: 'youtube',
-    label: 'YouTube',
-    sortOrder: 95,
-    defaultDurationMinutes: 20,
-    adapter: createYouTubeAdapter(() => ({ apiKey: process.env['YOUTUBE_API_KEY'] })),
-  },
-  /**
-   * The shelf for franchises that genuinely span media. Its existence is a
-   * navigation answer more than a data one: a Marvel list split across Movies,
-   * TV and Animation leaves nowhere obvious to look.
-   */
-  {
-    key: 'mega',
-    label: 'Mega',
-    description:
-      'Franchises that span several media at once — films, series and animation together, in release order. Marvel and Star Trek belong here; a single show or film series does not.',
-    sortOrder: 100,
-    // Mixed by nature; real runtimes come from the API.
-    defaultDurationMinutes: 120,
-    adapter: franchises,
-  },
-]
+/**
+ * The server's own instance: `process.env`-backed credentials, direct
+ * `fetch` for every provider. The standalone app builds its own via
+ * `createDefaultMediaTypes({ credentials, fetchImpl })` instead (see
+ * `web/src/lib/ingestion/localMediaTypes.ts`).
+ */
+export const DEFAULT_MEDIA_TYPES: readonly MediaType[] = createDefaultMediaTypes()
 
 export interface MediaTypeRegistry {
   list(): MediaType[]

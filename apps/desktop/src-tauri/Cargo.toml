@@ -25,3 +25,8 @@ tauri = { version = "2.11.3", features = [] }
 tauri-plugin-log = "2"
 tauri-plugin-sql = { version = "2", features = ["sqlite"] }
 tauri-plugin-store = "2"
+# unsafe-headers: MusicBrainz's terms require a real User-Agent, and browsers
+# refuse to let JS set that header on `fetch` — the plugin drops forbidden
+# headers unless this feature is on. Revisit if Tauri ever exposes a safer,
+# narrower way to set just this one header (docs/DECISIONS.md, task 5.7).
+tauri-plugin-http = { version = "2", features = ["unsafe-headers"] }
