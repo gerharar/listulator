@@ -60,6 +60,12 @@ export const WRESTLING_PROMOTIONS: readonly Promotion[] = [
     page: 'List of Ring of Honor pay-per-view and livestreaming events',
     detail: 'Ring of Honor',
   },
+  {
+    key: 'wcw',
+    name: 'WCW pay-per-views',
+    page: 'List of WCW pay-per-view events',
+    detail: 'World Championship Wrestling',
+  },
 ]
 
 export const MMA_PROMOTIONS: readonly Promotion[] = [
