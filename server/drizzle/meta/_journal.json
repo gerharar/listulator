@@ -43,6 +43,13 @@
       "when": 1789238343769,
       "tag": "0005_list_item_year",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1789256630734,
+      "tag": "0006_list_item_group",
+      "breakpoints": true
     }
   ]
 }

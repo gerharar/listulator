@@ -33,6 +33,8 @@ export interface ListItem {
   source: 'manual' | 'import'
   /** Release/publish year, when the source knows one. Null otherwise. */
   year: number | null
+  /** Optional grouping label, e.g. "Season 1" — presentation only. Null otherwise. */
+  group: string | null
 }
 
 export interface MediaListDetail extends MediaList {
@@ -135,7 +137,13 @@ export interface ApiClient {
   deleteList: (id: string) => Promise<void>
   importItems: (
     listId: string,
-    items: { title: string; externalRef?: string; timeToConsumeMinutes?: number; year?: number }[],
+    items: {
+      title: string
+      externalRef?: string
+      timeToConsumeMinutes?: number
+      year?: number
+      group?: string
+    }[],
     /** Defaults to 'import' — pass 'manual' for a hand-typed batch (task 6.2). */
     source?: 'manual' | 'import',
   ) => Promise<ListItem[]>
@@ -157,6 +165,7 @@ export interface ApiClient {
       externalRef?: string
       timeToConsumeMinutes?: number
       year?: number
+      group?: string
     }[]
     upstreamCount: number
     existingCount: number
@@ -166,12 +175,22 @@ export interface ApiClient {
   setConsumed: (listId: string, itemId: string, consumed: boolean) => Promise<ListItem>
   addItem: (
     listId: string,
-    input: { title: string; timeToConsumeMinutes: number; timeToConsumeIsEstimated?: boolean },
+    input: {
+      title: string
+      timeToConsumeMinutes: number
+      timeToConsumeIsEstimated?: boolean
+      group?: string | null
+    },
   ) => Promise<ListItem>
   updateItem: (
     listId: string,
     itemId: string,
-    patch: { title?: string; timeToConsumeMinutes?: number; timeToConsumeIsEstimated?: boolean },
+    patch: {
+      title?: string
+      timeToConsumeMinutes?: number
+      timeToConsumeIsEstimated?: boolean
+      group?: string | null
+    },
   ) => Promise<ListItem>
 }
 
@@ -188,7 +207,13 @@ export const fetchApi: ApiClient = {
 
   importItems: (
     listId: string,
-    items: { title: string; externalRef?: string; timeToConsumeMinutes?: number; year?: number }[],
+    items: {
+      title: string
+      externalRef?: string
+      timeToConsumeMinutes?: number
+      year?: number
+      group?: string
+    }[],
     source?: 'manual' | 'import',
   ) =>
     request<ListItem[]>(`/lists/${listId}/items/import`, {
@@ -222,6 +247,7 @@ export const fetchApi: ApiClient = {
         externalRef?: string
         timeToConsumeMinutes?: number
         year?: number
+        group?: string
       }[]
       upstreamCount: number
       existingCount: number
@@ -243,13 +269,23 @@ export const fetchApi: ApiClient = {
 
   addItem: (
     listId: string,
-    input: { title: string; timeToConsumeMinutes: number; timeToConsumeIsEstimated?: boolean },
+    input: {
+      title: string
+      timeToConsumeMinutes: number
+      timeToConsumeIsEstimated?: boolean
+      group?: string | null
+    },
   ) => request<ListItem>(`/lists/${listId}/items`, { method: 'POST', body: JSON.stringify(input) }),
 
   updateItem: (
     listId: string,
     itemId: string,
-    patch: { title?: string; timeToConsumeMinutes?: number; timeToConsumeIsEstimated?: boolean },
+    patch: {
+      title?: string
+      timeToConsumeMinutes?: number
+      timeToConsumeIsEstimated?: boolean
+      group?: string | null
+    },
   ) =>
     request<ListItem>(`/lists/${listId}/items/${itemId}`, {
       method: 'PATCH',

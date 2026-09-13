@@ -77,6 +77,7 @@ function toListItem(item: SchemaListItem): ListItem {
     consumedAt: item.consumedAt?.toISOString() ?? null,
     source: item.source,
     year: item.year,
+    group: item.group,
   }
 }
 
@@ -207,6 +208,7 @@ export function createLocalApi(): ApiClient {
           timeToConsumeIsEstimated: !known,
           ...(item.externalRef ? { externalRef: item.externalRef } : {}),
           ...(item.year ? { year: item.year } : {}),
+          ...(item.group ? { group: item.group } : {}),
           source,
         })
         created.push(toListItem(row!))
@@ -296,6 +298,7 @@ export function createLocalApi(): ApiClient {
           timeToConsumeIsEstimated: !known,
           ...(candidate.externalRef ? { externalRef: candidate.externalRef } : {}),
           ...(candidate.year ? { year: candidate.year } : {}),
+          ...(candidate.group ? { group: candidate.group } : {}),
           source: 'import',
         })
       }

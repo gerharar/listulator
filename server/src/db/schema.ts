@@ -121,6 +121,14 @@ export const listItems = sqliteTable(
      * cover date rather than a real publication year). Never guessed.
      */
     year: integer('year'),
+    /**
+     * Optional grouping label, e.g. "Season 1" for a TV episode — presentation
+     * only, never affects ordering or progress (task 6.6). The same field
+     * Phase 7's custom-list YAML uses for its per-item `group` (SPEC.md's
+     * intent doc, `docs/intent/custom-lists.md`), so a season and a comic
+     * story arc share one shape rather than one per category.
+     */
+    group: text('group'),
     /** Null until checked off; doubles as the "when" behind list neglect scoring. */
     consumedAt: integer('consumed_at', { mode: 'timestamp_ms' }),
     createdAt: integer('created_at', { mode: 'timestamp_ms' })

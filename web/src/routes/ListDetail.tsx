@@ -6,6 +6,76 @@ import { api, type ListItem, type MediaListDetail, type MediaType } from '../lib
 import { formatDuration } from '../formatDuration.js'
 import { categoryLabel, copy } from '../locale/index.js'
 
+export interface ItemGroupRow {
+  kind: 'group'
+  label: string
+  items: ListItem[]
+}
+
+export interface SingleItemRow {
+  kind: 'item'
+  item: ListItem
+}
+
+export type ItemRow = ItemGroupRow | SingleItemRow
+
+/**
+ * Folds consecutive items sharing the same `group` label (task 6.6) into one
+ * row; an ungrouped item, or one whose group differs from its predecessor's,
+ * stays its own row. Presentation only — order and every item's own fields
+ * pass through untouched, so a non-TV list (no item ever has a `group`)
+ * comes back exactly as it went in: one `item` row per item.
+ */
+export function groupItems(items: ListItem[]): ItemRow[] {
+  const rows: ItemRow[] = []
+
+  for (const item of items) {
+    const last = rows[rows.length - 1]
+
+    if (item.group && last?.kind === 'group' && last.label === item.group) {
+      last.items.push(item)
+    } else if (item.group) {
+      rows.push({ kind: 'group', label: item.group, items: [item] })
+    } else {
+      rows.push({ kind: 'item', item })
+    }
+  }
+
+  return rows
+}
+
+function GroupHeader({
+  label,
+  items,
+  collapsed,
+  onToggle,
+}: {
+  label: string
+  items: ListItem[]
+  collapsed: boolean
+  onToggle: () => void
+}) {
+  const consumed = items.filter((item) => item.consumedAt !== null).length
+
+  return (
+    <button
+      type="button"
+      className="group-header"
+      onClick={onToggle}
+      aria-expanded={!collapsed}
+      aria-label={collapsed ? copy.listDetail.expandGroup(label) : copy.listDetail.collapseGroup(label)}
+    >
+      <span className="group-header__caret" aria-hidden="true">
+        {collapsed ? '▸' : '▾'}
+      </span>
+      <span className="group-header__label">{label}</span>
+      <span className="group-header__count">
+        {consumed}/{items.length}
+      </span>
+    </button>
+  )
+}
+
 function Item({
   item,
   onToggle,
@@ -73,7 +143,7 @@ function Item({
   )
 }
 
-/** Inline edit: title + duration, replacing the row it edits until saved or cancelled. */
+/** Inline edit: title + duration + group, replacing the row it edits until saved or cancelled. */
 function EditItemRow({
   item,
   onSave,
@@ -81,18 +151,19 @@ function EditItemRow({
   saving,
 }: {
   item: ListItem
-  onSave: (patch: { title: string; timeToConsumeMinutes: number }) => void
+  onSave: (patch: { title: string; timeToConsumeMinutes: number; group: string | null }) => void
   onCancel: () => void
   saving: boolean
 }) {
   const [title, setTitle] = useState(item.title)
   const [duration, setDuration] = useState(String(item.timeToConsumeMinutes))
+  const [group, setGroup] = useState(item.group ?? '')
 
   function submit(event: React.FormEvent) {
     event.preventDefault()
     const minutes = Number(duration)
     if (!title.trim() || !Number.isFinite(minutes) || minutes < 0) return
-    onSave({ title: title.trim(), timeToConsumeMinutes: minutes })
+    onSave({ title: title.trim(), timeToConsumeMinutes: minutes, group: group.trim() || null })
   }
 
   return (
@@ -111,6 +182,13 @@ function EditItemRow({
           min={0}
           value={duration}
           onChange={(event) => setDuration(event.target.value)}
+        />
+        <input
+          className="input item-edit__group"
+          value={group}
+          onChange={(event) => setGroup(event.target.value)}
+          placeholder={copy.listDetail.groupLabel}
+          aria-label={copy.listDetail.groupLabel}
         />
         <button type="submit" className="button button--primary" disabled={saving}>
           {saving ? copy.listDetail.savingItem : copy.listDetail.saveItem}
@@ -138,6 +216,7 @@ export function ListDetail({ mediaTypes }: { mediaTypes: MediaType[] }) {
 
   const [newItemTitle, setNewItemTitle] = useState('')
   const [newItemDuration, setNewItemDuration] = useState('')
+  const [newItemGroup, setNewItemGroup] = useState('')
   const [addingItem, setAddingItem] = useState(false)
 
   const [editingItemId, setEditingItemId] = useState<string | null>(null)
@@ -145,6 +224,20 @@ export function ListDetail({ mediaTypes }: { mediaTypes: MediaType[] }) {
 
   const [confirmingDelete, setConfirmingDelete] = useState(false)
   const [deletingList, setDeletingList] = useState(false)
+
+  // All expanded by default, not persisted — resets whenever the viewed list
+  // changes so a leftover collapse from a previous list can never carry over.
+  const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set())
+  useEffect(() => setCollapsedGroups(new Set()), [listId])
+
+  function toggleGroup(label: string) {
+    setCollapsedGroups((current) => {
+      const next = new Set(current)
+      if (next.has(label)) next.delete(label)
+      else next.add(label)
+      return next
+    })
+  }
 
   const load = useCallback(async () => {
     if (!listId) return
@@ -284,9 +377,11 @@ export function ListDetail({ mediaTypes }: { mediaTypes: MediaType[] }) {
         title: newItemTitle.trim(),
         timeToConsumeMinutes: known ? typed : (category?.defaultDurationMinutes ?? 30),
         timeToConsumeIsEstimated: !known,
+        group: newItemGroup.trim() || null,
       })
       setNewItemTitle('')
       setNewItemDuration('')
+      setNewItemGroup('')
       await load()
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : copy.listDetail.addItemFailed)
@@ -295,7 +390,10 @@ export function ListDetail({ mediaTypes }: { mediaTypes: MediaType[] }) {
     }
   }
 
-  async function saveItem(item: ListItem, patch: { title: string; timeToConsumeMinutes: number }) {
+  async function saveItem(
+    item: ListItem,
+    patch: { title: string; timeToConsumeMinutes: number; group: string | null },
+  ) {
     if (!listId) return
 
     setSavingItem(true)
@@ -311,6 +409,26 @@ export function ListDetail({ mediaTypes }: { mediaTypes: MediaType[] }) {
     } finally {
       setSavingItem(false)
     }
+  }
+
+  function renderItemRow(item: ListItem) {
+    return item.id === editingItemId ? (
+      <EditItemRow
+        key={item.id}
+        item={item}
+        saving={savingItem}
+        onSave={(patch) => void saveItem(item, patch)}
+        onCancel={() => setEditingItemId(null)}
+      />
+    ) : (
+      <Item
+        key={item.id}
+        item={item}
+        onToggle={(target) => void toggle(target)}
+        onRemove={(target) => void removeItem(target)}
+        onEdit={(target) => setEditingItemId(target.id)}
+      />
+    )
   }
 
   if (error && !list) return <p className="notice notice--error">{error}</p>
@@ -423,23 +541,23 @@ export function ListDetail({ mediaTypes }: { mediaTypes: MediaType[] }) {
           <p className="panel__empty">{copy.listDetail.empty}</p>
         ) : (
           <ul className="rows items">
-            {list.items.map((item) =>
-              item.id === editingItemId ? (
-                <EditItemRow
-                  key={item.id}
-                  item={item}
-                  saving={savingItem}
-                  onSave={(patch) => void saveItem(item, patch)}
-                  onCancel={() => setEditingItemId(null)}
-                />
+            {groupItems(list.items).map((row) =>
+              row.kind === 'item' ? (
+                renderItemRow(row.item)
               ) : (
-                <Item
-                  key={item.id}
-                  item={item}
-                  onToggle={(target) => void toggle(target)}
-                  onRemove={(target) => void removeItem(target)}
-                  onEdit={(target) => setEditingItemId(target.id)}
-                />
+                <li key={row.items[0]!.id} className="item-group">
+                  <GroupHeader
+                    label={row.label}
+                    items={row.items}
+                    collapsed={collapsedGroups.has(row.label)}
+                    onToggle={() => toggleGroup(row.label)}
+                  />
+                  {!collapsedGroups.has(row.label) && (
+                    <ul className="rows items item-group__items">
+                      {row.items.map((item) => renderItemRow(item))}
+                    </ul>
+                  )}
+                </li>
               ),
             )}
           </ul>
@@ -461,6 +579,13 @@ export function ListDetail({ mediaTypes }: { mediaTypes: MediaType[] }) {
             onChange={(event) => setNewItemDuration(event.target.value)}
             placeholder={copy.listDetail.addItemDurationLabel}
             aria-label={copy.listDetail.addItemDurationLabel}
+          />
+          <input
+            className="input item-add__group"
+            value={newItemGroup}
+            onChange={(event) => setNewItemGroup(event.target.value)}
+            placeholder={copy.listDetail.groupLabel}
+            aria-label={copy.listDetail.groupLabel}
           />
           <button
             type="submit"

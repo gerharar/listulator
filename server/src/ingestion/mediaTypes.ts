@@ -238,6 +238,8 @@ export interface MediaTypeCandidate {
   timeToConsumeMinutes?: number
   /** Only when the source actually knows it — never guessed from another field. */
   year?: number
+  /** Optional grouping label, e.g. "Season 1" — presentation only (task 6.6). */
+  group?: string
 }
 
 /**

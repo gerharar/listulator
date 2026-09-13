@@ -39,6 +39,9 @@ const itemBodyProperties = {
   timeToConsumeMinutes: { type: 'integer', minimum: 0 },
   timeToConsumeIsEstimated: { type: 'boolean' },
   orderIndex: { type: 'integer', minimum: 0 },
+  // Lets a hand-typed item join (or leave, via null on a patch) a season
+  // group started by an import — task 6.6's manual-entry follow-up.
+  group: { type: ['string', 'null'], maxLength: 500 },
 } as const
 
 interface ListParams {
@@ -136,6 +139,7 @@ export const catalogRoutes: FastifyPluginAsync<CatalogRoutesOptions> = async (
       timeToConsumeMinutes: number
       timeToConsumeIsEstimated?: boolean
       orderIndex?: number
+      group?: string | null
     }
   }>(
     '/lists/:listId/items',
@@ -171,6 +175,7 @@ export const catalogRoutes: FastifyPluginAsync<CatalogRoutesOptions> = async (
       timeToConsumeMinutes?: number
       timeToConsumeIsEstimated?: boolean
       orderIndex?: number
+      group?: string | null
     }
   }>(
     '/lists/:listId/items/:itemId',

@@ -56,6 +56,8 @@ export interface CreateListItemInput {
   source?: ItemSource
   /** Release/publish year, when the source knows one. Null if not. */
   year?: number | null
+  /** Optional grouping label, e.g. "Season 1". Null if not grouped. */
+  group?: string | null
 }
 
 export interface UpdateListItemInput {
@@ -63,6 +65,8 @@ export interface UpdateListItemInput {
   orderIndex?: number
   timeToConsumeMinutes?: number
   timeToConsumeIsEstimated?: boolean
+  /** Join (a string) or leave (null) a group — omit to leave unchanged. */
+  group?: string | null
 }
 
 export async function createList(db: PortableDatabase, userId: string, input: CreateListInput): Promise<List> {
@@ -259,6 +263,7 @@ export async function createListItem(
       externalRef: input.externalRef ?? null,
       source: input.source ?? 'import',
       year: input.year ?? null,
+      group: input.group ?? null,
     })
     .returning()
     .get()

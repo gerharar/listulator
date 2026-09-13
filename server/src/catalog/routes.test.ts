@@ -94,6 +94,27 @@ describe('catalog HTTP API', () => {
     expect(read.json().items).toEqual([])
   })
 
+  it('lets a hand-typed item join, move between, and leave a group (task 6.6)', async () => {
+    const list = (await createList()).json()
+
+    const created = (await createItem(list.id, { group: 'Season 1' })).json()
+    expect(created.group).toBe('Season 1')
+
+    const moved = await harness.app.inject({
+      method: 'PATCH',
+      url: `/api/lists/${list.id}/items/${created.id}`,
+      payload: { group: 'Season 2' },
+    })
+    expect(moved.json().group).toBe('Season 2')
+
+    const cleared = await harness.app.inject({
+      method: 'PATCH',
+      url: `/api/lists/${list.id}/items/${created.id}`,
+      payload: { group: null },
+    })
+    expect(cleared.json().group).toBeNull()
+  })
+
   it('checks an item off and back on again', async () => {
     const list = (await createList()).json()
     const item = (await createItem(list.id)).json()

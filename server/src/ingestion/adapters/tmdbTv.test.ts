@@ -102,10 +102,30 @@ describe('TMDB television expansion', () => {
     const adapter = createTmdbTvAdapter(credentials, {}, router(routes))
 
     expect(await adapter.expand('show:1396')).toEqual([
-      { title: 'S01E01 Pilot', timeToConsumeMinutes: 59, year: 2008 },
-      { title: "S01E02 Cat's in the Bag...", timeToConsumeMinutes: 49, year: 2008 },
-      { title: 'S02E01 Seven Thirty-Seven', year: 2009 },
-      { title: 'S00E01 A special', timeToConsumeMinutes: 3, year: 2009 },
+      { title: 'S01E01 Pilot', timeToConsumeMinutes: 59, year: 2008, group: 'Season 1' },
+      {
+        title: "S01E02 Cat's in the Bag...",
+        timeToConsumeMinutes: 49,
+        year: 2008,
+        group: 'Season 1',
+      },
+      { title: 'S02E01 Seven Thirty-Seven', year: 2009, group: 'Season 2' },
+      { title: 'S00E01 A special', timeToConsumeMinutes: 3, year: 2009, group: 'Season 0' },
+    ])
+  })
+
+  it('groups every episode under its own season label, task 6.6', async () => {
+    // Each episode carries a `group` so the UI can nest it under a season
+    // header — the field this task adds. Specials (season 0) get one too,
+    // rather than being left ungrouped, so there is no inconsistent
+    // "one season has no header" case.
+    const adapter = createTmdbTvAdapter(credentials, {}, router(routes))
+
+    expect((await adapter.expand('show:1396')).map((item) => item.group)).toEqual([
+      'Season 1',
+      'Season 1',
+      'Season 2',
+      'Season 0',
     ])
   })
 

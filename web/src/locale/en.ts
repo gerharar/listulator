@@ -114,6 +114,8 @@ export const en = {
     timeLeft: (duration: string): string => `${duration} left`,
     addItemTitleLabel: 'Title',
     addItemDurationLabel: 'Minutes (leave blank to guess)',
+    /** Generic on purpose — the underlying field works for a TV season, a comic story arc, etc. */
+    groupLabel: 'Group (optional, e.g. Season 1)',
     addItem: 'Add item',
     addingItem: 'Adding…',
     addItemFailed: 'Could not add that item',
@@ -125,6 +127,8 @@ export const en = {
     /** Placeholder styling per the user's own suggestion — task 6.2. */
     manualItemBadge: '[M]',
     manualItemHint: 'Added by hand, not from a search import',
+    expandGroup: (label: string): string => `Expand ${label}`,
+    collapseGroup: (label: string): string => `Collapse ${label}`,
   },
 
   newList: {

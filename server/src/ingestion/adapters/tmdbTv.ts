@@ -124,6 +124,10 @@ export function createTmdbTvAdapter(
             title: episode.name ? `${label} ${episode.name}` : label,
             ...(episode.runtime ? { timeToConsumeMinutes: episode.runtime } : {}),
             year: Number(episode.air_date.slice(0, 4)),
+            // Specials (season 0) get their own group like any other season —
+            // there is no natural "ungrouped" bucket once any season header
+            // exists, and hiding just season 0's header would be inconsistent.
+            group: `Season ${seasonNumber}`,
           })
         }
       }
