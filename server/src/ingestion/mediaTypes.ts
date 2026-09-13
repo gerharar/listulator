@@ -240,6 +240,14 @@ export interface MediaTypeCandidate {
   year?: number
   /** Optional grouping label, e.g. "Season 1" — presentation only (task 6.6). */
   group?: string
+  /**
+   * Set only when a language filter actually applied while building this
+   * candidate (currently: Open Library books) — the matched language code,
+   * or `'unknown'` when kept via the "include unknown" toggle despite
+   * having no tag. Absent for every other case, including an unfiltered
+   * book list.
+   */
+  language?: string
 }
 
 /**
@@ -268,10 +276,23 @@ export interface ListSource {
  * public API). Manual entry always works regardless, so it is the baseline
  * rather than an adapter of its own.
  */
+/**
+ * Book-category-only search modifiers (the GUI's language picker) — every
+ * other adapter's `search` ignores this second parameter entirely, which is
+ * a valid implementation of the interface below without changing any of
+ * them.
+ */
+export interface SearchOptions {
+  /** ISO 639-2 (bibliographic) code, or `'all'`/absent for no filter. */
+  language?: string
+  /** Also count/keep works with no language tag, widening a strict filter. */
+  includeUnknown?: boolean
+}
+
 export interface SearchAdapter {
   /** False when, say, an API key is missing — the UI hides search for it. */
   isAvailable(): boolean
-  search(query: string): Promise<ListSource[]>
+  search(query: string, options?: SearchOptions): Promise<ListSource[]>
   expand(externalRef: string): Promise<MediaTypeCandidate[]>
 }
 

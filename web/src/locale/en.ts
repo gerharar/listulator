@@ -143,6 +143,8 @@ export const en = {
     /** Placeholder styling per the user's own suggestion — task 6.2. */
     manualItemBadge: '[M]',
     manualItemHint: 'Added by hand, not from a search import',
+    /** Book-language filter's per-item tag (task: shown so a filtered list is self-explanatory). */
+    languageBadgeHint: (language: string): string => `Language: ${language}`,
     expandGroup: (label: string): string => `Expand ${label}`,
     collapseGroup: (label: string): string => `Collapse ${label}`,
     reorderFailed: 'Could not save the new order',
@@ -193,6 +195,10 @@ export const en = {
       music: 'A band or artist…',
       book: 'An author…',
     } as Record<string, string | undefined>,
+    /** Book-category-only language filter. */
+    languageLabel: 'Language',
+    allLanguages: 'All',
+    includeUnknown: 'Also include books with no language listed',
   },
 
   customListImport: {

@@ -35,6 +35,12 @@ export interface ListItem {
   year: number | null
   /** Optional grouping label, e.g. "Season 1" — presentation only. Null otherwise. */
   group: string | null
+  /**
+   * Language tag, set only when a book-search language filter actually
+   * applied while this item was added — the matched code, or `'unknown'`.
+   * Null otherwise (every other category, or an unfiltered book list).
+   */
+  language: string | null
 }
 
 export interface MediaListDetail extends MediaList {
@@ -145,6 +151,7 @@ export interface ApiClient {
       timeToConsumeMinutes?: number
       year?: number
       group?: string
+      language?: string
     }[],
     /** Defaults to 'import' — pass 'manual' for a hand-typed batch (task 6.2). */
     source?: 'manual' | 'import',
@@ -152,11 +159,20 @@ export interface ApiClient {
   tiredBoss: (currentListId: string) => Promise<{ picks: SuggestionPick[] }>
   suggest: () => Promise<{ picks: SuggestionPick[] }>
   quickie: () => Promise<{ picks: SuggestionPick[] }>
-  searchSources: (mediaType: string, query: string) => Promise<{ sources: ListSourceResult[] }>
+  searchSources: (
+    mediaType: string,
+    query: string,
+    /** Book-category-only GUI options — ignored by every other category. */
+    options?: { language?: string; includeUnknown?: boolean },
+  ) => Promise<{ sources: ListSourceResult[] }>
   createFromSource: (input: {
     mediaType: string
     externalRef: string
     title: string
+    /** Book-category-only GUI filter (ISO 639-2 code, or omitted/absent for "All"). */
+    language?: string
+    /** Book-category-only — keep works with no language tag at all. Strict (excluded) by default. */
+    includeUnknown?: boolean
   }) => Promise<MediaList>
   /** Creates a list from a pasted or uploaded custom-list YAML file (task 7.2). */
   createFromFile: (input: { yaml: string }) => Promise<MediaList>
@@ -170,6 +186,7 @@ export interface ApiClient {
       timeToConsumeMinutes?: number
       year?: number
       group?: string
+      language?: string
     }[]
     upstreamCount: number
     existingCount: number
@@ -225,6 +242,7 @@ export const fetchApi: ApiClient = {
       timeToConsumeMinutes?: number
       year?: number
       group?: string
+      language?: string
     }[],
     source?: 'manual' | 'import',
   ) =>
@@ -243,13 +261,27 @@ export const fetchApi: ApiClient = {
 
   quickie: () => request<{ picks: SuggestionPick[] }>('/suggestions/quickie'),
 
-  searchSources: (mediaType: string, query: string) =>
-    request<{ sources: ListSourceResult[] }>(
-      `/media-types/${mediaType}/search?q=${encodeURIComponent(query)}`,
-    ),
+  searchSources: (
+    mediaType: string,
+    query: string,
+    options?: { language?: string; includeUnknown?: boolean },
+  ) => {
+    const params = new URLSearchParams({ q: query })
+    if (options?.language) params.set('language', options.language)
+    if (options?.includeUnknown) params.set('includeUnknown', 'true')
 
-  createFromSource: (input: { mediaType: string; externalRef: string; title: string }) =>
-    request<MediaList>('/lists/from-source', { method: 'POST', body: JSON.stringify(input) }),
+    return request<{ sources: ListSourceResult[] }>(
+      `/media-types/${mediaType}/search?${params.toString()}`,
+    )
+  },
+
+  createFromSource: (input: {
+    mediaType: string
+    externalRef: string
+    title: string
+    language?: string
+    includeUnknown?: boolean
+  }) => request<MediaList>('/lists/from-source', { method: 'POST', body: JSON.stringify(input) }),
 
   createFromFile: (input: { yaml: string }) =>
     request<MediaList>('/lists/from-file', { method: 'POST', body: JSON.stringify(input) }),
@@ -263,6 +295,7 @@ export const fetchApi: ApiClient = {
         timeToConsumeMinutes?: number
         year?: number
         group?: string
+        language?: string
       }[]
       upstreamCount: number
       existingCount: number

@@ -41,6 +41,7 @@ interface ImportItem {
   externalRef?: string
   year?: number
   group?: string
+  language?: string
 }
 
 export const ingestionRoutes: FastifyPluginAsync<IngestionRoutesOptions> = async (
@@ -148,38 +149,55 @@ export const ingestionRoutes: FastifyPluginAsync<IngestionRoutesOptions> = async
    * match alone is enough, so `search.unavailable` only fires when *neither*
    * source found anything.
    */
-  app.get<{ Params: { key: string }; Querystring: { q?: string } }>(
-    '/media-types/:key/search',
-    async (request, reply) => {
-      getCurrentUser(request)
+  app.get<{
+    Params: { key: string }
+    Querystring: { q?: string; language?: string; includeUnknown?: string }
+  }>('/media-types/:key/search', async (request, reply) => {
+    getCurrentUser(request)
 
-      const mediaType = mediaTypes.get(request.params.key)
-      if (!mediaType) return reply.callNotFound()
+    const mediaType = mediaTypes.get(request.params.key)
+    if (!mediaType) return reply.callNotFound()
 
-      const query = request.query.q?.trim()
-      if (!query) return sendApiError(reply, 400, 'search.queryRequired')
+    const query = request.query.q?.trim()
+    if (!query) return sendApiError(reply, 400, 'search.queryRequired')
 
-      const canonicalMatches = await searchCanonicalLists(mediaType.key, query)
+    const canonicalMatches = await searchCanonicalLists(mediaType.key, query)
 
-      if (!mediaType.adapter?.isAvailable()) {
-        if (canonicalMatches.length === 0) {
-          // Not an error: plenty of categories will never have search, and the
-          // manual path always works.
-          return sendApiError(reply, 409, 'search.unavailable', { category: mediaType.label })
-        }
-        return { sources: canonicalMatches }
+    if (!mediaType.adapter?.isAvailable()) {
+      if (canonicalMatches.length === 0) {
+        // Not an error: plenty of categories will never have search, and the
+        // manual path always works.
+        return sendApiError(reply, 409, 'search.unavailable', { category: mediaType.label })
       }
+      return { sources: canonicalMatches }
+    }
 
-      return { sources: [...canonicalMatches, ...(await mediaType.adapter.search(query))] }
-    },
-  )
+    // Book-only GUI options (never sent for any other category) — every
+    // other adapter's search() ignores this second argument entirely.
+    const searchOptions = {
+      ...(request.query.language ? { language: request.query.language } : {}),
+      includeUnknown: request.query.includeUnknown === 'true',
+    }
+
+    return {
+      sources: [...canonicalMatches, ...(await mediaType.adapter.search(query, searchOptions))],
+    }
+  })
 
   /**
    * Creates a list from a searched source, importing everything it expands to.
    * One step rather than preview-then-import: the list is trivially deletable,
    * and its items are editable once it exists.
    */
-  app.post<{ Body: { mediaType: string; externalRef: string; title: string } }>(
+  app.post<{
+    Body: {
+      mediaType: string
+      externalRef: string
+      title: string
+      language?: string
+      includeUnknown?: boolean
+    }
+  }>(
     '/lists/from-source',
     {
       schema: {
@@ -191,13 +209,18 @@ export const ingestionRoutes: FastifyPluginAsync<IngestionRoutesOptions> = async
             mediaType: { type: 'string', minLength: 1 },
             externalRef: { type: 'string', minLength: 1, maxLength: 500 },
             title: { type: 'string', minLength: 1, maxLength: 500 },
+            // Book-only GUI options (never sent for any other category) —
+            // appended to the stored externalRef below so a later refresh
+            // replays the same filter, rather than needing their own column.
+            language: { type: 'string', minLength: 1, maxLength: 20 },
+            includeUnknown: { type: 'boolean' },
           },
         },
       },
     },
     async (request, reply) => {
       const user = getCurrentUser(request)
-      const { mediaType: key, externalRef, title } = request.body
+      const { mediaType: key, externalRef, title, language, includeUnknown } = request.body
 
       const mediaType = mediaTypes.get(key)
       if (!mediaType) return sendApiError(reply, 400, 'list.unknownCategory', { key })
@@ -233,9 +256,20 @@ export const ingestionRoutes: FastifyPluginAsync<IngestionRoutesOptions> = async
         return sendApiError(reply, 409, 'search.unavailable', { category: mediaType.label })
       }
 
+      // The language filter (and its "include unknown" flag) become part
+      // of the *stored* ref, not separate fields — so
+      // /lists/:listId/refresh (which just replays `list.externalRef`
+      // through the same adapter-shaped `expand()`, unchanged) automatically
+      // re-applies the same filter later, with no route or schema changes
+      // needed there.
+      const refForAdapter =
+        language && language !== 'all'
+          ? `${externalRef}:${language}${includeUnknown ? ':unknown' : ''}`
+          : externalRef
+
       // Expanded before the list is created, so a failure upstream does not
       // leave an empty list behind.
-      const candidates = await mediaType.adapter.expand(externalRef)
+      const candidates = await mediaType.adapter.expand(refForAdapter)
       if (candidates.length === 0) {
         return sendApiError(reply, 422, 'list.sourceEmpty', { title })
       }
@@ -244,7 +278,7 @@ export const ingestionRoutes: FastifyPluginAsync<IngestionRoutesOptions> = async
         title,
         mediaType: key,
         source: 'api',
-        externalRef,
+        externalRef: refForAdapter,
       })
 
       // Sequential, not Promise.all: each create can fall back to
@@ -262,6 +296,7 @@ export const ingestionRoutes: FastifyPluginAsync<IngestionRoutesOptions> = async
           ...(candidate.externalRef ? { externalRef: candidate.externalRef } : {}),
           ...(candidate.year ? { year: candidate.year } : {}),
           ...(candidate.group ? { group: candidate.group } : {}),
+          ...(candidate.language ? { language: candidate.language } : {}),
           source: 'import',
         })
       }
@@ -526,6 +561,7 @@ export const ingestionRoutes: FastifyPluginAsync<IngestionRoutesOptions> = async
                   externalRef: { type: 'string', maxLength: 500 },
                   year: { type: 'integer' },
                   group: { type: 'string', maxLength: 500 },
+                  language: { type: 'string', maxLength: 20 },
                 },
               },
             },
@@ -568,6 +604,7 @@ export const ingestionRoutes: FastifyPluginAsync<IngestionRoutesOptions> = async
             ...(item.externalRef ? { externalRef: item.externalRef } : {}),
             ...(item.year ? { year: item.year } : {}),
             ...(item.group ? { group: item.group } : {}),
+            ...(item.language ? { language: item.language } : {}),
             source,
           }),
         )

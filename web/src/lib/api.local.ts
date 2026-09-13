@@ -94,6 +94,7 @@ function toListItem(item: SchemaListItem): ListItem {
     source: item.source,
     year: item.year,
     group: item.group,
+    language: item.language,
   }
 }
 
@@ -259,6 +260,7 @@ export function createLocalApi(): ApiClient {
           ...(item.externalRef ? { externalRef: item.externalRef } : {}),
           ...(item.year ? { year: item.year } : {}),
           ...(item.group ? { group: item.group } : {}),
+          ...(item.language ? { language: item.language } : {}),
           source,
         })
         created.push(toListItem(row!))
@@ -318,7 +320,7 @@ export function createLocalApi(): ApiClient {
     // sends `access-control-allow-origin: *` (verified directly), so the
     // webview's own `fetch` reaches it — no Tauri HTTP-plugin routing needed,
     // unlike IGDB/Comic Vine/MusicBrainz (task 5.7).
-    searchSources: async (mediaTypeKey, query) => {
+    searchSources: async (mediaTypeKey, query, options) => {
       const mediaType = (await getLocalMediaTypes()).find((entry) => entry.key === mediaTypeKey)
       if (!mediaType) throw notFound()
 
@@ -334,10 +336,12 @@ export function createLocalApi(): ApiClient {
         return { sources: canonicalMatches }
       }
 
-      return { sources: [...canonicalMatches, ...(await mediaType.adapter.search(trimmed))] }
+      return {
+        sources: [...canonicalMatches, ...(await mediaType.adapter.search(trimmed, options))],
+      }
     },
 
-    createFromSource: async ({ mediaType: key, externalRef, title }) => {
+    createFromSource: async ({ mediaType: key, externalRef, title, language, includeUnknown }) => {
       const [database, userId] = [await getDb(), await getUserId()]
 
       const mediaType = (await getLocalMediaTypes()).find((entry) => entry.key === key)
@@ -397,9 +401,19 @@ export function createLocalApi(): ApiClient {
         throw new ApiError(copy.errors['search.unavailable']({ category: mediaType.label }), 409)
       }
 
+      // Mirrors server/src/ingestion/routes.ts's /lists/from-source — the
+      // language filter (and its "include unknown" flag) become part of
+      // the stored ref, so checkForUpdates (this file's mirror of
+      // /lists/:listId/refresh) replays the same filter later with no
+      // changes of its own.
+      const refForAdapter =
+        language && language !== 'all'
+          ? `${externalRef}:${language}${includeUnknown ? ':unknown' : ''}`
+          : externalRef
+
       // Expanded before the list is created, so a failure upstream does not
       // leave an empty list behind.
-      const candidates = await mediaType.adapter.expand(externalRef)
+      const candidates = await mediaType.adapter.expand(refForAdapter)
       if (candidates.length === 0) {
         throw new ApiError(copy.errors['list.sourceEmpty']({ title }), 422)
       }
@@ -408,7 +422,7 @@ export function createLocalApi(): ApiClient {
         title,
         mediaType: key,
         source: 'api',
-        externalRef,
+        externalRef: refForAdapter,
       })
 
       // Sequential, not Promise.all — see docs/DECISIONS.md, task 5.1.
@@ -424,6 +438,7 @@ export function createLocalApi(): ApiClient {
           ...(candidate.externalRef ? { externalRef: candidate.externalRef } : {}),
           ...(candidate.year ? { year: candidate.year } : {}),
           ...(candidate.group ? { group: candidate.group } : {}),
+          ...(candidate.language ? { language: candidate.language } : {}),
           source: 'import',
         })
       }

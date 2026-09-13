@@ -62,6 +62,7 @@ function nextItemsFor(lists: ListWithStats[]): Map<string, ListItem | undefined>
         source: 'import',
         year: null,
         group: null,
+        language: null,
         createdAt: NOW,
         updatedAt: NOW,
       },
@@ -94,7 +95,9 @@ describe('isSuggestable', () => {
   })
 
   it('accepts a list with anything left', () => {
-    expect(isSuggestable(list({ id: 'partial', total: 3, consumed: 2, minutesLeft: 20 }))).toBe(true)
+    expect(isSuggestable(list({ id: 'partial', total: 3, consumed: 2, minutesLeft: 20 }))).toBe(
+      true,
+    )
   })
 })
 
@@ -213,8 +216,20 @@ describe('rank', () => {
     // `stale-but-fresh` wins on neglect, `recent-but-done` on completion.
     // Weighting completion at 90% should hand it to the latter.
     const lists = [
-      list({ id: 'stale-but-fresh', total: 10, consumed: 1, minutesLeft: 900, lastConsumed: daysAgo(300) }),
-      list({ id: 'recent-but-done', total: 10, consumed: 9, minutesLeft: 100, lastConsumed: daysAgo(1) }),
+      list({
+        id: 'stale-but-fresh',
+        total: 10,
+        consumed: 1,
+        minutesLeft: 900,
+        lastConsumed: daysAgo(300),
+      }),
+      list({
+        id: 'recent-but-done',
+        total: 10,
+        consumed: 9,
+        minutesLeft: 100,
+        lastConsumed: daysAgo(1),
+      }),
     ]
 
     const completionHeavy: Strategy = {
@@ -291,7 +306,13 @@ describe('rank', () => {
   it('still separates lists once the gap is genuinely meaningful', () => {
     const lists = [
       list({ id: 'yesterday', total: 10, consumed: 1, minutesLeft: 100, lastConsumed: daysAgo(1) }),
-      list({ id: 'last-year', total: 10, consumed: 1, minutesLeft: 100, lastConsumed: daysAgo(365) }),
+      list({
+        id: 'last-year',
+        total: 10,
+        consumed: 1,
+        minutesLeft: 100,
+        lastConsumed: daysAgo(365),
+      }),
     ]
 
     expect(ranked(singleFactor('neglect_time', 'favor_highest'), lists)).toEqual([

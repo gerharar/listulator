@@ -1,5 +1,11 @@
 import { useState } from 'react'
 import { api, type ListSourceResult, type MediaType } from '../lib/api.js'
+import {
+  ALL_LANGUAGES,
+  BOOK_LANGUAGES,
+  persistBookLanguage,
+  resolveInitialBookLanguage,
+} from '../lib/bookLanguage.js'
 import { categoryLabel, copy } from '../locale/index.js'
 
 /**
@@ -22,6 +28,26 @@ export function SourceSearch({
   const [building, setBuilding] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
 
+  // Book-only (never shown for any other category) — filters which language
+  // a bibliography is built in. Remembered across searches, same pattern as
+  // the theme picker (lib/theme.ts).
+  const isBookCategory = mediaType.key === 'book'
+  const [language, setLanguage] = useState(() =>
+    resolveInitialBookLanguage(typeof localStorage === 'undefined' ? undefined : localStorage),
+  )
+  // Strict by default: a work with no language tag at all is excluded when a
+  // specific language is chosen. Real Open Library data showed why —
+  // Lucinda Riley has 76 of 133 works with no language tag whatsoever, so
+  // "always keep unknown-language books" (the original design) let her whole catalogue
+  // through regardless of the language picked. Not remembered across
+  // searches — an occasional escape hatch, not a standing preference.
+  const [includeUnknown, setIncludeUnknown] = useState(false)
+
+  function changeLanguage(next: string) {
+    setLanguage(next)
+    persistBookLanguage(typeof localStorage === 'undefined' ? undefined : localStorage, next)
+  }
+
   async function search(event: React.FormEvent) {
     event.preventDefault()
     if (!query.trim()) return
@@ -31,7 +57,19 @@ export function SourceSearch({
     setResults(null)
 
     try {
-      setResults((await api.searchSources(mediaType.key, query.trim())).sources)
+      // Book-only options — searchSources ignores the third argument
+      // entirely for every other category. The server computes each
+      // result's accurate, language-filtered work count itself, so the
+      // count shown here already matches what building it will produce.
+      setResults(
+        (
+          await api.searchSources(
+            mediaType.key,
+            query.trim(),
+            isBookCategory ? { language, includeUnknown } : undefined,
+          )
+        ).sources,
+      )
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : copy.sourceSearch.searchFailed)
     } finally {
@@ -48,6 +86,7 @@ export function SourceSearch({
         mediaType: mediaType.key,
         externalRef: source.externalRef,
         title: source.title,
+        ...(isBookCategory ? { language, includeUnknown } : {}),
       })
 
       onBuilt(list.id)
@@ -62,6 +101,37 @@ export function SourceSearch({
       <header className="panel__header">
         <h2 className="panel__title">{copy.sourceSearch.heading(categoryLabel(mediaType))}</h2>
       </header>
+
+      {isBookCategory && (
+        <div className="source-search__language">
+          <label>
+            <span className="small faint">{copy.sourceSearch.languageLabel}</span>
+            <select
+              className="input"
+              value={language}
+              onChange={(event) => changeLanguage(event.target.value)}
+            >
+              <option value={ALL_LANGUAGES}>{copy.sourceSearch.allLanguages}</option>
+              {BOOK_LANGUAGES.map((entry) => (
+                <option key={entry.code} value={entry.code}>
+                  {entry.label}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          {language !== ALL_LANGUAGES && (
+            <label className="checkbox small faint">
+              <input
+                type="checkbox"
+                checked={includeUnknown}
+                onChange={(event) => setIncludeUnknown(event.target.checked)}
+              />
+              {copy.sourceSearch.includeUnknown}
+            </label>
+          )}
+        </div>
+      )}
 
       <form className="source-search" onSubmit={(event) => void search(event)}>
         <input

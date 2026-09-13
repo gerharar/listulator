@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { Modal } from '../components/Modal.js'
 import { Progress } from '../components/Progress.js'
 import { api, type ListItem, type MediaListDetail, type MediaType } from '../lib/api.js'
+import { bookLanguageLabel } from '../lib/bookLanguage.js'
 import { formatDuration } from '../formatDuration.js'
 import { categoryLabel, copy } from '../locale/index.js'
 
@@ -210,6 +211,14 @@ function Item({
           {item.title}
           {item.year ? ` (${item.year})` : ''}
         </span>
+        {item.language && (
+          <span
+            className="item__language-badge"
+            title={copy.listDetail.languageBadgeHint(bookLanguageLabel(item.language))}
+          >
+            {bookLanguageLabel(item.language)}
+          </span>
+        )}
         <span className="item__duration">
           {/* A leading ~ marks a guessed duration, so a number nobody verified
               never masquerades as fact. */}

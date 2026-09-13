@@ -11,6 +11,15 @@ function respondWith(body: unknown, status = 200): FetchLike {
   return vi.fn(async () => new Response(JSON.stringify(body), { status }))
 }
 
+/** Routes each request by a substring of its URL, for a search that fans out into several fetches. */
+function routedFetch(routes: Record<string, unknown>): FetchLike {
+  return vi.fn(async (url: string) => {
+    const match = Object.entries(routes).find(([pattern]) => url.includes(pattern))
+    if (!match) throw new Error(`unexpected fetch: ${url}`)
+    return new Response(JSON.stringify(match[1]))
+  })
+}
+
 const AUTHORS = {
   docs: [
     { key: 'OL25712A', name: 'Terry Pratchett', work_count: 236, top_work: 'The Colour of Magic' },
@@ -107,6 +116,98 @@ describe('Open Library adapter', () => {
     ])
   })
 
+  it("shows an author's real, language-filtered count instead of the misleading unfiltered total", async () => {
+    // Real, verified-live case: Lucinda Riley's search result says "133
+    // works" (every language combined), but a strict Russian filter builds
+    // a 1-item list — showing "133" here would be actively wrong.
+    const fetchImpl = routedFetch({
+      'search/authors.json': {
+        docs: [{ key: 'OL1A', name: 'Lucinda Riley', work_count: 133 }],
+      },
+      'author_key=OL1A&q=language%3Arus&limit=0': { numFound: 1, docs: [] },
+    })
+
+    const results = await createOpenLibraryAdapter(fetchImpl).search('riley', { language: 'rus' })
+
+    expect(results).toEqual([
+      { externalRef: 'author:OL1A', title: 'Lucinda Riley — bibliography', detail: '1 works' },
+    ])
+  })
+
+  it('shows a real zero rather than falling back to the unfiltered total', async () => {
+    const fetchImpl = routedFetch({
+      'search/authors.json': { docs: [{ key: 'OL1A', name: 'Some Author', work_count: 40 }] },
+      'author_key=OL1A&q=language%3Akor&limit=0': { numFound: 0, docs: [] },
+    })
+
+    const results = await createOpenLibraryAdapter(fetchImpl).search('some', { language: 'kor' })
+
+    expect(results).toEqual([
+      { externalRef: 'author:OL1A', title: 'Some Author — bibliography', detail: '0 works' },
+    ])
+  })
+
+  it('counts each candidate author independently, in parallel', async () => {
+    const fetchImpl = routedFetch({
+      'search/authors.json': {
+        docs: [
+          { key: 'OL1A', name: 'Author One', work_count: 10 },
+          { key: 'OL2A', name: 'Author Two', work_count: 20 },
+        ],
+      },
+      'author_key=OL1A&q=language%3Afre&limit=0': { numFound: 3, docs: [] },
+      'author_key=OL2A&q=language%3Afre&limit=0': { numFound: 7, docs: [] },
+    })
+
+    const results = await createOpenLibraryAdapter(fetchImpl).search('author', { language: 'fre' })
+
+    expect(results.map((r) => r.detail)).toEqual(['3 works', '7 works'])
+  })
+
+  it('keeps the unfiltered total when the language is "all"', async () => {
+    const fetchImpl = respondWith({
+      docs: [{ key: 'OL1A', name: 'Lucinda Riley', work_count: 133 }],
+    })
+
+    const results = await createOpenLibraryAdapter(fetchImpl).search('riley', { language: 'all' })
+
+    expect(results).toEqual([
+      { externalRef: 'author:OL1A', title: 'Lucinda Riley — bibliography', detail: '133 works' },
+    ])
+  })
+
+  it('adds the untagged count to the language count for "include unknown", confirmed against Open Library\'s own negation query', async () => {
+    // Confirmed live: Open Library's search syntax supports `-language:*`
+    // as a real existence-negation query, not a guess — Lucinda Riley
+    // returns exactly 76 this way, matching the real 76 untagged works
+    // found by inspecting her full bibliography by hand.
+    const fetchImpl = routedFetch({
+      'search/authors.json': {
+        docs: [
+          { key: 'OL1A', name: 'Lucinda Riley', work_count: 133, top_work: 'The Seven Sisters' },
+        ],
+      },
+      'author_key=OL1A&q=language%3Arus&limit=0': { numFound: 1, docs: [] },
+      'author_key=OL1A&q=-language%3A*&limit=0': { numFound: 76, docs: [] },
+    })
+
+    const results = await createOpenLibraryAdapter(fetchImpl).search('riley', {
+      language: 'rus',
+      includeUnknown: true,
+    })
+
+    expect(results).toEqual([
+      {
+        externalRef: 'author:OL1A',
+        title: 'Lucinda Riley — bibliography',
+        detail: '77 works · The Seven Sisters',
+      },
+    ])
+    // Author search, plus one count request per query — still cheap
+    // (`limit=0`, no document bodies), never the full paginated fetch.
+    expect(vi.mocked(fetchImpl).mock.calls).toHaveLength(3)
+  })
+
   it('turns page counts into reading time', async () => {
     const adapter = createOpenLibraryAdapter(respondWith(WORKS))
 
@@ -137,7 +238,7 @@ describe('Open Library adapter', () => {
     ])
   })
 
-  it('dedupes titles case-insensitively, using the winning edition\'s own casing', async () => {
+  it("dedupes titles case-insensitively, using the winning edition's own casing", async () => {
     const adapter = createOpenLibraryAdapter(
       respondWith({
         docs: [
@@ -208,6 +309,106 @@ describe('Open Library adapter', () => {
     const adapter = createOpenLibraryAdapter(respondWith({}, 503))
 
     await expect(adapter.search('x')).rejects.toThrow(/Open Library returned 503/)
+  })
+
+  it('strictly keeps only works actually tagged with the requested language, by default', async () => {
+    // Mirrors a real, verified-live case: Murakami's "Norwegian Wood" shows
+    // up as several separate Open Library work records — some tagged
+    // Japanese only, some with no language tag at all, some English.
+    // Strict-by-default (task: real Lucinda Riley data showed 76/133 works
+    // with no language tag at all — "always keep unknown" swamped the
+    // filter for her).
+    const adapter = createOpenLibraryAdapter(
+      respondWith({
+        docs: [
+          { title: 'Norwegian Wood', language: ['eng'], first_publish_year: 2000 },
+          { title: 'ノルウェイの森', language: ['jpn'], first_publish_year: 1987 },
+          { title: 'Norwegian Wood = Noruei no mori', first_publish_year: 2004 },
+          { title: 'Tokio Blues', language: ['spa'], first_publish_year: 2015 },
+        ],
+      }),
+    )
+
+    const items = await adapter.expand('author:OL1A:eng')
+
+    expect(items).toEqual([{ title: 'Norwegian Wood', year: 2000, language: 'eng' }])
+  })
+
+  it('widens to also keep works with no language tag when the "include unknown" flag is set', async () => {
+    const adapter = createOpenLibraryAdapter(
+      respondWith({
+        docs: [
+          { title: 'Norwegian Wood', language: ['eng'], first_publish_year: 2000 },
+          { title: 'ノルウェイの森', language: ['jpn'], first_publish_year: 1987 },
+          { title: 'Norwegian Wood = Noruei no mori', first_publish_year: 2004 },
+        ],
+      }),
+    )
+
+    const items = await adapter.expand('author:OL1A:eng:unknown')
+
+    expect(items).toEqual([
+      { title: 'Norwegian Wood', year: 2000, language: 'eng' },
+      { title: 'Norwegian Wood = Noruei no mori', year: 2004, language: 'unknown' },
+    ])
+  })
+
+  it('cannot catch a work Open Library itself mistagged — a known, accepted limitation', async () => {
+    // Mirrors a real, verified-live case: one of the same "Norwegian Wood"
+    // records is tagged `language: ['eng']` by Open Library despite its own
+    // title field being the Japanese one. Nothing in this adapter can tell
+    // that apart from a genuinely correct English-tagged, English-titled
+    // record — the filter can only trust the tag it's given. Pinned here so
+    // this is a documented, accepted gap, not a future "regression."
+    const adapter = createOpenLibraryAdapter(
+      respondWith({
+        docs: [{ title: 'ノルウェイの森 [1/2]', language: ['eng'], first_publish_year: 1990 }],
+      }),
+    )
+
+    expect((await adapter.expand('author:OL1A:eng')).map((item) => item.title)).toEqual([
+      'ノルウェイの森 [1/2]',
+    ])
+  })
+
+  it('records no language at all on any candidate when no filter is given, unchanged from before this feature', async () => {
+    const adapter = createOpenLibraryAdapter(
+      respondWith({
+        docs: [
+          { title: 'Norwegian Wood', language: ['eng'] },
+          { title: 'ノルウェイの森', language: ['jpn'] },
+        ],
+      }),
+    )
+
+    const items = await adapter.expand('author:OL1A')
+
+    expect(items.map((item) => item.title)).toEqual(['Norwegian Wood', 'ノルウェイの森'])
+    expect(items.every((item) => item.language === undefined)).toBe(true)
+  })
+
+  it('keeps everything, with no language recorded, when the language is explicitly "all"', async () => {
+    const adapter = createOpenLibraryAdapter(
+      respondWith({
+        docs: [
+          { title: 'Norwegian Wood', language: ['eng'] },
+          { title: 'ノルウェイの森', language: ['jpn'] },
+        ],
+      }),
+    )
+
+    const items = await adapter.expand('author:OL1A:all')
+
+    expect(items.map((item) => item.title)).toEqual(['Norwegian Wood', 'ノルウェイの森'])
+    expect(items.every((item) => item.language === undefined)).toBe(true)
+  })
+
+  it('always asks Open Library for the language field, filtered or not', async () => {
+    const fetchImpl = respondWith(WORKS)
+    await createOpenLibraryAdapter(fetchImpl).expand('author:OL25712A')
+
+    const [url] = vi.mocked(fetchImpl).mock.calls[0]!
+    expect(url).toContain('language')
   })
 
   it('stops after a bounded number of pages', async () => {

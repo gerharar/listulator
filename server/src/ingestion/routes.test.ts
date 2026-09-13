@@ -312,6 +312,30 @@ describe('search and import from a source', () => {
     ])
   })
 
+  it("forwards the book-only language options to the adapter's search, for any category", async () => {
+    // The route doesn't know or care which category actually reads these —
+    // only Open Library's book adapter does, but the GUI is the only thing
+    // that ever sends them, so the route just passes them through.
+    const search = vi.fn(async () => [{ externalRef: 'ref-1', title: 'Cannibal Corpse' }])
+    harness = withAdapter(fakeAdapter({ search }))
+
+    await harness.app.inject({
+      method: 'GET',
+      url: '/api/media-types/music/search?q=cannibal&language=eng&includeUnknown=true',
+    })
+
+    expect(search).toHaveBeenCalledWith('cannibal', { language: 'eng', includeUnknown: true })
+  })
+
+  it('omits the language option and reports includeUnknown false when neither is sent', async () => {
+    const search = vi.fn(async () => [{ externalRef: 'ref-1', title: 'Cannibal Corpse' }])
+    harness = withAdapter(fakeAdapter({ search }))
+
+    await harness.app.inject({ method: 'GET', url: '/api/media-types/music/search?q=cannibal' })
+
+    expect(search).toHaveBeenCalledWith('cannibal', { includeUnknown: false })
+  })
+
   it('builds a list from a chosen source, in one step', async () => {
     harness = withAdapter(fakeAdapter())
 
@@ -350,6 +374,82 @@ describe('search and import from a source', () => {
         source: 'import',
       },
     ])
+  })
+
+  it('folds a language filter into the stored ref, so a later refresh replays it', async () => {
+    // Book-search-language filtering: the client sends `language` alongside
+    // the chosen source, generically for any category (the GUI only ever
+    // sends it for books, but the route doesn't need to know that). Uses a
+    // book-shaped two-segment ref (`author:<key>`, Open Library's real
+    // format) — a one-segment ref wouldn't exercise the same split/rejoin
+    // openLibrary.ts's own `expand()` does.
+    const expand = vi.fn(async () => [{ title: 'Eaten Back to Life', externalRef: 'rg-1' }])
+    harness = withAdapter(fakeAdapter({ expand }))
+
+    const created = (
+      await harness.app.inject({
+        method: 'POST',
+        url: '/api/lists/from-source',
+        payload: {
+          mediaType: 'music',
+          externalRef: 'author:OL1A',
+          title: 'Cannibal Corpse',
+          language: 'eng',
+        },
+      })
+    ).json()
+
+    expect(created.externalRef).toBe('author:OL1A:eng')
+    expect(expand).toHaveBeenCalledWith('author:OL1A:eng')
+
+    await harness.app.inject({ method: 'POST', url: `/api/lists/${created.id}/refresh` })
+
+    // Refresh just replays list.externalRef through the same expand() —
+    // no special-casing needed for this to keep respecting the filter.
+    expect(expand).toHaveBeenLastCalledWith('author:OL1A:eng')
+  })
+
+  it('appends the "include unknown" flag to the stored ref when set', async () => {
+    const expand = vi.fn(async () => [{ title: 'Eaten Back to Life', externalRef: 'rg-1' }])
+    harness = withAdapter(fakeAdapter({ expand }))
+
+    const created = (
+      await harness.app.inject({
+        method: 'POST',
+        url: '/api/lists/from-source',
+        payload: {
+          mediaType: 'music',
+          externalRef: 'author:OL1A',
+          title: 'Cannibal Corpse',
+          language: 'eng',
+          includeUnknown: true,
+        },
+      })
+    ).json()
+
+    expect(created.externalRef).toBe('author:OL1A:eng:unknown')
+    expect(expand).toHaveBeenCalledWith('author:OL1A:eng:unknown')
+  })
+
+  it('leaves the stored ref unsuffixed when the language is "all"', async () => {
+    const expand = vi.fn(async () => [{ title: 'Eaten Back to Life', externalRef: 'rg-1' }])
+    harness = withAdapter(fakeAdapter({ expand }))
+
+    const created = (
+      await harness.app.inject({
+        method: 'POST',
+        url: '/api/lists/from-source',
+        payload: {
+          mediaType: 'music',
+          externalRef: 'author:OL1A',
+          title: 'Cannibal Corpse',
+          language: 'all',
+        },
+      })
+    ).json()
+
+    expect(created.externalRef).toBe('author:OL1A')
+    expect(expand).toHaveBeenCalledWith('author:OL1A')
   })
 
   it('says search is unavailable for a category with no adapter, and points at manual entry', async () => {

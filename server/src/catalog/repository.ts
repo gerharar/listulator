@@ -58,6 +58,8 @@ export interface CreateListItemInput {
   year?: number | null
   /** Optional grouping label, e.g. "Season 1". Null if not grouped. */
   group?: string | null
+  /** Language tag, when a language filter actually applied. Null otherwise. */
+  language?: string | null
 }
 
 export interface UpdateListItemInput {
@@ -69,7 +71,11 @@ export interface UpdateListItemInput {
   group?: string | null
 }
 
-export async function createList(db: PortableDatabase, userId: string, input: CreateListInput): Promise<List> {
+export async function createList(
+  db: PortableDatabase,
+  userId: string,
+  input: CreateListInput,
+): Promise<List> {
   return await db
     .insert(lists)
     .values({
@@ -145,7 +151,10 @@ function toListWithStats(row: StatsRow): ListWithStats {
   }
 }
 
-export async function findListsWithStats(db: PortableDatabase, userId: string): Promise<ListWithStats[]> {
+export async function findListsWithStats(
+  db: PortableDatabase,
+  userId: string,
+): Promise<ListWithStats[]> {
   const rows = await db
     .select(statsSelection())
     .from(lists)
@@ -184,7 +193,11 @@ export async function findLists(db: PortableDatabase, userId: string): Promise<L
     .all()
 }
 
-export async function findList(db: PortableDatabase, userId: string, listId: string): Promise<List | undefined> {
+export async function findList(
+  db: PortableDatabase,
+  userId: string,
+  listId: string,
+): Promise<List | undefined> {
   return await db
     .select()
     .from(lists)
@@ -209,7 +222,11 @@ export async function updateList(
 }
 
 /** Items go with it — the foreign key cascades (client.ts enables them). */
-export async function deleteList(db: PortableDatabase, userId: string, listId: string): Promise<boolean> {
+export async function deleteList(
+  db: PortableDatabase,
+  userId: string,
+  listId: string,
+): Promise<boolean> {
   const deleted = await db
     .delete(lists)
     .where(and(eq(lists.id, listId), eq(lists.userId, userId)))
@@ -316,6 +333,7 @@ export async function createListItem(
       source: input.source ?? 'import',
       year: input.year ?? null,
       group: input.group ?? null,
+      language: input.language ?? null,
     })
     .returning()
     .get()
@@ -407,9 +425,7 @@ export async function clearDismissals(
   if (items.length === 0) return
 
   const titleKeys = items.map((item) => dismissalTitleKey(item.title))
-  const refs = items
-    .map((item) => item.externalRef)
-    .filter((ref): ref is string => Boolean(ref))
+  const refs = items.map((item) => item.externalRef).filter((ref): ref is string => Boolean(ref))
 
   await db
     .delete(dismissedItems)

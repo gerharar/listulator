@@ -141,6 +141,18 @@ export const listItems = sqliteTable(
      * story arc share one shape rather than one per category.
      */
     group: text('group'),
+    /**
+     * Per-item language tag, when a source both tracks one and a filter was
+     * actually applied while building the list — Open Library's `language`
+     * field for a book, or the literal `'unknown'` when a book with no
+     * language metadata was kept anyway (the "include unknown" toggle).
+     * Null for every other category, and for a book list built with no
+     * language filter ("All"). Presentation only — makes an otherwise
+     * invisible filtering decision visible per item, since Open Library's
+     * own tagging is inconsistent enough that a filtered list can still mix
+     * languages (a real, verified-live case, not hypothetical).
+     */
+    language: text('language'),
     /** Null until checked off; doubles as the "when" behind list neglect scoring. */
     consumedAt: integer('consumed_at', { mode: 'timestamp_ms' }),
     createdAt: integer('created_at', { mode: 'timestamp_ms' })
