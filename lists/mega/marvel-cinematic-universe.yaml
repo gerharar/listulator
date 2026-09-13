@@ -1,0 +1,31 @@
+# Example/starter list for the `listulator` custom-lists format (see
+# CONTRIBUTING.md at the repo root). Covers the "Infinity Saga" (Phase
+# 1–3, 2008–2019) only — not the full, ever-growing MCU catalog. Runtimes
+# are commonly-cited theatrical figures and may be off by a minute or two;
+# corrections and extensions are welcome via PR.
+title: Marvel Cinematic Universe — Infinity Saga (Release Order)
+category: mega
+items:
+  - { title: Iron Man, year: 2008, minutes: 126 }
+  - { title: The Incredible Hulk, year: 2008, minutes: 112 }
+  - { title: Iron Man 2, year: 2010, minutes: 124 }
+  - { title: Thor, year: 2011, minutes: 115 }
+  - { title: "Captain America: The First Avenger", year: 2011, minutes: 124 }
+  - { title: The Avengers, year: 2012, minutes: 143 }
+  - { title: Iron Man 3, year: 2013, minutes: 130 }
+  - { title: "Thor: The Dark World", year: 2013, minutes: 112 }
+  - { title: "Captain America: The Winter Soldier", year: 2014, minutes: 136 }
+  - { title: Guardians of the Galaxy, year: 2014, minutes: 121 }
+  - { title: "Avengers: Age of Ultron", year: 2015, minutes: 141 }
+  - { title: Ant-Man, year: 2015, minutes: 117 }
+  - { title: "Captain America: Civil War", year: 2016, minutes: 147 }
+  - { title: Doctor Strange, year: 2016, minutes: 115 }
+  - { title: "Guardians of the Galaxy Vol. 2", year: 2017, minutes: 136 }
+  - { title: "Spider-Man: Homecoming", year: 2017, minutes: 133 }
+  - { title: "Thor: Ragnarok", year: 2017, minutes: 130 }
+  - { title: Black Panther, year: 2018, minutes: 134 }
+  - { title: "Avengers: Infinity War", year: 2018, minutes: 149 }
+  - { title: Ant-Man and the Wasp, year: 2018, minutes: 118 }
+  - { title: Captain Marvel, year: 2019, minutes: 123 }
+  - { title: "Avengers: Endgame", year: 2019, minutes: 181 }
+  - { title: "Spider-Man: Far From Home", year: 2019, minutes: 129 }

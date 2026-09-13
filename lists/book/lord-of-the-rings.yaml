@@ -1,0 +1,11 @@
+# Example/starter list for the `listulator` custom-lists format (see
+# CONTRIBUTING.md at the repo root). `minutes` is deliberately omitted on
+# every item here — a book has no single agreed "time to consume," so this
+# demonstrates the category-default + `is_estimated: true` fallback rather
+# than asserting a specific number.
+title: The Lord of the Rings
+category: book
+items:
+  - { title: The Fellowship of the Ring, year: 1954 }
+  - { title: The Two Towers, year: 1954 }
+  - { title: The Return of the King, year: 1955 }
