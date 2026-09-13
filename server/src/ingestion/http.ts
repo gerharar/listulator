@@ -13,7 +13,7 @@ export class UnauthorizedError extends IngestionError {}
  */
 export const USER_AGENT = 'listulator/0.1.0 (https://github.com/neuroshaoh/listulator)'
 
-export interface GetJsonOptions {
+export interface GetOptions {
   headers?: Record<string, string>
   timeoutMs?: number
   /** Named in error messages, so a failure says which service broke. */
@@ -24,17 +24,20 @@ export interface GetJsonOptions {
   body?: string
 }
 
-export async function getJson<T>(
+export type GetJsonOptions = GetOptions
+
+/**
+ * Fetches with a timeout, the WebKit-User-Agent retry, and upstream
+ * status-code handling shared by `getJson` and `getText` — everything up to
+ * turning a successful response into a caller-shaped value, which is the one
+ * thing that differs between an API that answers JSON and a raw file that
+ * answers plain text (`getText`, task 7.4's canonical-repo fetch).
+ */
+async function fetchWithRetry(
   url: string,
-  {
-    headers = {},
-    timeoutMs = 15_000,
-    source,
-    fetchImpl = fetch,
-    method = 'GET',
-    body,
-  }: GetJsonOptions,
-): Promise<T> {
+  { headers = {}, timeoutMs = 15_000, source, fetchImpl = fetch, method = 'GET', body }: GetOptions,
+  accept: string,
+): Promise<Response> {
   async function attempt(withUserAgent: boolean): Promise<Response> {
     const controller = new AbortController()
     const timeout = setTimeout(() => controller.abort(), timeoutMs)
@@ -44,7 +47,7 @@ export async function getJson<T>(
         method,
         headers: {
           ...(withUserAgent ? { 'user-agent': USER_AGENT } : {}),
-          accept: 'application/json',
+          accept,
           ...headers,
         },
         ...(body === undefined ? {} : { body }),
@@ -91,7 +94,9 @@ export async function getJson<T>(
 
   if (!response.ok) {
     // Upstream services explain themselves in the body, and a bare status code
-    // sends whoever is debugging to the wrong place entirely.
+    // sends whoever is debugging to the wrong place entirely. Not every
+    // upstream answers JSON (a 404 from raw file hosting is plain text) —
+    // that just falls through to the raw body via the inner catch.
     const detail = await response
       .text()
       .then((body) => {
@@ -106,11 +111,23 @@ export async function getJson<T>(
     )
   }
 
+  return response
+}
+
+export async function getJson<T>(url: string, options: GetJsonOptions): Promise<T> {
+  const response = await fetchWithRetry(url, options, 'application/json')
+
   try {
     return (await response.json()) as T
   } catch {
-    throw new IngestionError(`${source} returned something that was not JSON.`)
+    throw new IngestionError(`${options.source} returned something that was not JSON.`)
   }
+}
+
+/** As `getJson`, for a plain-text response — a raw file, not an API. */
+export async function getText(url: string, options: GetOptions): Promise<string> {
+  const response = await fetchWithRetry(url, options, 'text/plain')
+  return await response.text()
 }
 
 /** MusicBrainz asks for no more than one request per second. */

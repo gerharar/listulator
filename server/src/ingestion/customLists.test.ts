@@ -1,9 +1,16 @@
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
-import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
-import { afterEach, beforeEach, describe, expect, it } from 'vitest'
-import { CustomListParseError, parseCustomList, scanListsDropFolder } from './customLists.js'
+import { describe, expect, it, vi } from 'vitest'
+import {
+  canonicalExternalRef,
+  canonicalPathFromExternalRef,
+  CustomListParseError,
+  fetchCanonicalList,
+  fetchCanonicalManifest,
+  isSafeCanonicalPath,
+  parseCustomList,
+} from './customLists.js'
+import { IngestionError, type FetchLike } from './http.js'
 
 const CATEGORIES = new Set(['movie', 'tv', 'book', 'mega'])
 
@@ -187,102 +194,93 @@ items:
   })
 })
 
-describe('scanListsDropFolder', () => {
-  let dropDir: string
-
-  beforeEach(() => {
-    dropDir = mkdtempSync(join(tmpdir(), 'listulator-drop-'))
+describe('isSafeCanonicalPath', () => {
+  it('accepts a plain relative path', () => {
+    expect(isSafeCanonicalPath('lists/mega/marvel-cinematic-universe.yaml')).toBe(true)
   })
 
-  afterEach(() => {
-    rmSync(dropDir, { recursive: true, force: true })
+  it.each([
+    ['empty string', ''],
+    ['leading slash', '/etc/passwd'],
+    ['parent-directory traversal', '../../other-repo/main/secret.yaml'],
+    ['a traversal segment mid-path', 'lists/../../../secret.yaml'],
+    ['a scheme', 'https://evil.example/x.yaml'],
+    ['a backslash', 'lists\\..\\..\\secret.yaml'],
+  ])('rejects %s', (_label, path) => {
+    expect(isSafeCanonicalPath(path)).toBe(false)
+  })
+})
+
+describe('canonicalExternalRef / canonicalPathFromExternalRef', () => {
+  it('round-trips a path', () => {
+    const ref = canonicalExternalRef('lists/book/lord-of-the-rings.yaml')
+    expect(canonicalPathFromExternalRef(ref)).toBe('lists/book/lord-of-the-rings.yaml')
   })
 
-  function drop(fileName: string, contents: string): void {
-    writeFileSync(join(dropDir, fileName), contents)
+  it('returns undefined for a ref that is not a canonical sync', () => {
+    expect(canonicalPathFromExternalRef('some-tmdb-collection-id')).toBeUndefined()
+    expect(canonicalPathFromExternalRef(null)).toBeUndefined()
+  })
+})
+
+describe('fetchCanonicalManifest', () => {
+  function respondWith(body: unknown, status = 200): FetchLike {
+    return vi.fn(async () => new Response(typeof body === 'string' ? body : JSON.stringify(body), { status }))
   }
 
-  it('creates the folder if it does not exist yet, returning no outcomes', () => {
-    rmSync(dropDir, { recursive: true, force: true })
-    expect(scanListsDropFolder(dropDir, CATEGORIES)).toEqual([])
-    expect(existsSync(dropDir)).toBe(true)
+  it('fetches and returns a valid manifest', async () => {
+    const manifest = [
+      { path: 'lists/mega/mcu.yaml', title: 'MCU', category: 'mega' },
+      { path: 'lists/book/lotr.yaml', title: 'LOTR', category: 'book' },
+    ]
+
+    expect(await fetchCanonicalManifest(respondWith(manifest))).toEqual(manifest)
   })
 
-  it('parses a valid file and moves it to admitted/', () => {
-    drop('good.yaml', 'title: X\ncategory: movie\nitems:\n  - { title: A }\n')
-
-    const outcomes = scanListsDropFolder(dropDir, CATEGORIES)
-
-    expect(outcomes).toEqual([
-      { fileName: 'good.yaml', result: { ok: true, list: { title: 'X', category: 'movie', items: [{ title: 'A' }] } } },
-    ])
-    expect(existsSync(join(dropDir, 'good.yaml'))).toBe(false)
-    expect(existsSync(join(dropDir, 'admitted', 'good.yaml'))).toBe(true)
+  it('rejects a manifest that is not an array', async () => {
+    await expect(fetchCanonicalManifest(respondWith({ not: 'an array' }))).rejects.toThrow(IngestionError)
   })
 
-  it('reports an invalid file and moves it to refused_entry/, not silently skipping it', () => {
-    drop('bad.yaml', 'title: X\ncategory: not-real\nitems:\n  - { title: A }\n')
-
-    const outcomes = scanListsDropFolder(dropDir, CATEGORIES)
-
-    expect(outcomes).toHaveLength(1)
-    expect(outcomes[0]!.fileName).toBe('bad.yaml')
-    expect(outcomes[0]!.result.ok).toBe(false)
-    expect((outcomes[0]!.result as { ok: false; error: CustomListParseError }).error).toBeInstanceOf(
-      CustomListParseError,
-    )
-    expect(
-      (outcomes[0]!.result as { ok: false; error: CustomListParseError }).error.code,
-    ).toBe('list.unknownCategory')
-    expect(existsSync(join(dropDir, 'bad.yaml'))).toBe(false)
-    expect(existsSync(join(dropDir, 'refused_entry', 'bad.yaml'))).toBe(true)
+  it('rejects a manifest entry missing a required field', async () => {
+    await expect(
+      fetchCanonicalManifest(respondWith([{ path: 'x.yaml', title: 'X' }])),
+    ).rejects.toThrow(IngestionError)
   })
 
-  it('processes multiple files independently — one bad file does not block the good ones', () => {
-    drop('good1.yaml', 'title: A\ncategory: movie\nitems:\n  - { title: X }\n')
-    drop('bad.yaml', 'title: [unclosed')
-    drop('good2.yaml', 'title: B\ncategory: book\nitems:\n  - { title: Y }\n')
-
-    const outcomes = scanListsDropFolder(dropDir, CATEGORIES)
-
-    const byFile = new Map(outcomes.map((o) => [o.fileName, o.result.ok]))
-    expect(byFile.get('good1.yaml')).toBe(true)
-    expect(byFile.get('good2.yaml')).toBe(true)
-    expect(byFile.get('bad.yaml')).toBe(false)
+  it('rejects a manifest entry with an unsafe path', async () => {
+    await expect(
+      fetchCanonicalManifest(respondWith([{ path: '../../escape.yaml', title: 'X', category: 'movie' }])),
+    ).rejects.toThrow(IngestionError)
   })
 
-  it('does not reprocess a file once admitted — a second scan sees nothing new', () => {
-    drop('good.yaml', 'title: X\ncategory: movie\nitems:\n  - { title: A }\n')
-    scanListsDropFolder(dropDir, CATEGORIES)
+  it('surfaces a 404 as a clean IngestionError — the repo is genuinely private right now', async () => {
+    await expect(fetchCanonicalManifest(respondWith('404: Not Found', 404))).rejects.toThrow(IngestionError)
+  })
+})
 
-    expect(scanListsDropFolder(dropDir, CATEGORIES)).toEqual([])
+describe('fetchCanonicalList', () => {
+  function respondWithText(body: string, status = 200): FetchLike {
+    return vi.fn(async () => new Response(body, { status }))
+  }
+
+  it('fetches and parses a real list file', async () => {
+    const yaml = 'title: MCU\ncategory: mega\nitems:\n  - { title: Iron Man, year: 2008 }\n'
+    const parsed = await fetchCanonicalList('lists/mega/mcu.yaml', new Set(['mega']), respondWithText(yaml))
+
+    expect(parsed).toEqual({ title: 'MCU', category: 'mega', items: [{ title: 'Iron Man', year: 2008 }] })
   })
 
-  it('avoids overwriting a same-named file already in admitted/', () => {
-    mkdirSync(join(dropDir, 'admitted'), { recursive: true })
-    writeFileSync(join(dropDir, 'admitted', 'good.yaml'), 'pre-existing content')
-    drop('good.yaml', 'title: X\ncategory: movie\nitems:\n  - { title: A }\n')
+  it('propagates a parse error through the same CustomListParseError as any other source', async () => {
+    const yaml = 'title: X\ncategory: not-real\nitems: []\n'
 
-    scanListsDropFolder(dropDir, CATEGORIES)
-
-    expect(readFileSync(join(dropDir, 'admitted', 'good.yaml'), 'utf8')).toBe('pre-existing content')
-    expect(existsSync(join(dropDir, 'admitted', 'good-2.yaml'))).toBe(true)
+    await expect(
+      fetchCanonicalList('lists/x.yaml', new Set(['mega']), respondWithText(yaml)),
+    ).rejects.toThrow(CustomListParseError)
   })
 
-  it('ignores non-yaml files and subdirectories entirely', () => {
-    drop('notes.txt', 'not a list')
-    mkdirSync(join(dropDir, 'some-other-dir'))
-
-    expect(scanListsDropFolder(dropDir, CATEGORIES)).toEqual([])
-    expect(existsSync(join(dropDir, 'notes.txt'))).toBe(true)
-  })
-
-  it('scans .yml as well as .yaml', () => {
-    drop('good.yml', 'title: X\ncategory: movie\nitems:\n  - { title: A }\n')
-
-    const outcomes = scanListsDropFolder(dropDir, CATEGORIES)
-
-    expect(outcomes).toHaveLength(1)
-    expect(outcomes[0]!.result.ok).toBe(true)
+  it('surfaces a fetch failure as IngestionError', async () => {
+    await expect(
+      fetchCanonicalList('lists/x.yaml', new Set(['mega']), respondWithText('404: Not Found', 404)),
+    ).rejects.toThrow(IngestionError)
   })
 })

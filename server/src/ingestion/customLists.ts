@@ -1,8 +1,14 @@
-import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync, statSync } from 'node:fs'
-import { extname, join } from 'node:path'
-import { fileURLToPath } from 'node:url'
 import { load as loadYaml } from 'js-yaml'
 import type { ApiErrorCode } from '../apiErrors.js'
+import { getJson, getText, IngestionError, type FetchLike } from './http.js'
+
+// No `node:fs`/`node:path`/`node:url` imports in this file, ever — it is
+// imported directly by web/src/lib/api.local.ts for the standalone app, and
+// Vite's browser bundler breaks the whole app the moment any Node builtin is
+// imported anywhere in a module it has to bundle, even an export nothing on
+// the browser side calls (see docs/DECISIONS.md, task 7.4's regression
+// writeup). Folder-scanning (task 7.3, genuinely fs-dependent, server-only)
+// lives in the sibling `listsDropFolder.ts` instead.
 
 export interface ParsedCustomListItem {
   title: string
@@ -109,74 +115,131 @@ export function parseCustomList(
   return { title: title.trim(), category, items: parsedItems }
 }
 
-const DEFAULT_LISTS_DROP_DIR = fileURLToPath(new URL('../../list_customs', import.meta.url))
+/**
+ * The canonical list repo (task 7.4, `docs/intent/custom-lists.md`).
+ * Hardcoded, on purpose — never configurable. Trusting sync to point
+ * somewhere else would defeat the entire point of "every list came through
+ * the owner's PR review."
+ */
+const CANONICAL_REPO_OWNER = 'neuroshaoh'
+const CANONICAL_REPO_NAME = 'listulator'
+const CANONICAL_REPO_BRANCH = 'main'
 
-/** `<repo>/server/list_customs` by default (task 7.3) — override with `LISTS_DROP_DIR`. */
-export function listsDropDir(env: NodeJS.ProcessEnv = process.env): string {
-  return env['LISTS_DROP_DIR'] ?? DEFAULT_LISTS_DROP_DIR
-}
-
-const ADMITTED_SUBDIR = 'admitted'
-const REFUSED_SUBDIR = 'refused_entry'
-const YAML_EXTENSIONS = new Set(['.yaml', '.yml'])
-
-export interface DroppedListOutcome {
-  fileName: string
-  result: { ok: true; list: ParsedCustomList } | { ok: false; error: CustomListParseError }
-}
-
-/** Moves `fileName` into `<dropDir>/<subdir>`, appending `-2`, `-3`, … on a name collision. */
-function moveInto(dropDir: string, subdir: string, fileName: string): void {
-  const targetDir = join(dropDir, subdir)
-  mkdirSync(targetDir, { recursive: true })
-
-  const ext = extname(fileName)
-  const base = fileName.slice(0, fileName.length - ext.length)
-
-  let destination = join(targetDir, fileName)
-  for (let counter = 2; existsSync(destination); counter++) {
-    destination = join(targetDir, `${base}-${counter}${ext}`)
-  }
-
-  renameSync(join(dropDir, fileName), destination)
+function canonicalRawUrl(path: string): string {
+  return `https://raw.githubusercontent.com/${CANONICAL_REPO_OWNER}/${CANONICAL_REPO_NAME}/${CANONICAL_REPO_BRANCH}/${path}`
 }
 
 /**
- * Scans the configured drop folder (task 7.3, `docs/intent/custom-lists.md`)
- * for `.yaml`/`.yml` files, parsing each with `parseCustomList`. A file that
- * parses successfully moves to `admitted/`; one that doesn't moves to
- * `refused_entry/` — either way it never sits in the main folder to be
- * reprocessed on the next scan, which is what keeps repeated scans from
- * re-importing the same file forever. Only the drop folder's own direct
- * contents are candidates — `admitted/` and `refused_entry/` are output
- * locations, never rescanned as input.
- *
- * Pure filesystem + parsing, no database access, matching `parseCustomList`
- * itself — the caller (the route handler) creates the actual list from each
- * successfully-parsed result.
+ * Rejects anything that isn't a plain, relative path inside the repo —
+ * independent of, and in addition to, checking the path is actually one the
+ * manifest lists. `raw.githubusercontent.com/.../main/` + a path containing
+ * `..` can normalize to a different repo/host entirely, which would defeat
+ * the "hardcoded to the canonical repo, never configurable" trust boundary
+ * even though the manifest-membership check on its own looks sufficient.
  */
-export function scanListsDropFolder(
-  dropDir: string,
-  validCategories: ReadonlySet<string>,
-): DroppedListOutcome[] {
-  mkdirSync(dropDir, { recursive: true })
+export function isSafeCanonicalPath(path: string): boolean {
+  if (path.length === 0 || path.startsWith('/') || path.includes('\\')) return false
+  if (path.includes(':')) return false
+  return path.split('/').every((segment) => segment !== '..' && segment !== '.')
+}
 
-  const fileNames = readdirSync(dropDir)
-    .filter((name) => YAML_EXTENSIONS.has(extname(name).toLowerCase()))
-    .filter((name) => statSync(join(dropDir, name)).isFile())
-    .sort()
+export interface CanonicalListEntry {
+  path: string
+  title: string
+  category: string
+}
 
-  return fileNames.map((fileName): DroppedListOutcome => {
-    const text = readFileSync(join(dropDir, fileName), 'utf8')
+function isCanonicalListEntry(value: unknown): value is CanonicalListEntry {
+  return (
+    isPlainObject(value) &&
+    typeof value['path'] === 'string' &&
+    typeof value['title'] === 'string' &&
+    typeof value['category'] === 'string' &&
+    isSafeCanonicalPath(value['path'])
+  )
+}
 
-    try {
-      const list = parseCustomList(text, validCategories)
-      moveInto(dropDir, ADMITTED_SUBDIR, fileName)
-      return { fileName, result: { ok: true, list } }
-    } catch (error) {
-      if (!(error instanceof CustomListParseError)) throw error
-      moveInto(dropDir, REFUSED_SUBDIR, fileName)
-      return { fileName, result: { ok: false, error } }
-    }
+/** Fetches and validates `lists/index.json` from the canonical repo. */
+export async function fetchCanonicalManifest(fetchImpl?: FetchLike): Promise<CanonicalListEntry[]> {
+  const manifest = await getJson<unknown>(canonicalRawUrl('lists/index.json'), {
+    source: 'the canonical list repository',
+    ...(fetchImpl ? { fetchImpl } : {}),
   })
+
+  if (!Array.isArray(manifest) || !manifest.every(isCanonicalListEntry)) {
+    throw new IngestionError('The canonical list repository returned a malformed manifest.')
+  }
+
+  return manifest
+}
+
+/** `externalRef` prefix marking a list synced from the canonical repo (tasks 7.4/7.5). */
+const CANONICAL_REF_PREFIX = 'canonical:'
+
+export function canonicalExternalRef(path: string): string {
+  return `${CANONICAL_REF_PREFIX}${path}`
+}
+
+/** The reverse of `canonicalExternalRef` — `undefined` for any other kind of ref. */
+export function canonicalPathFromExternalRef(externalRef: string | null): string | undefined {
+  return externalRef?.startsWith(CANONICAL_REF_PREFIX)
+    ? externalRef.slice(CANONICAL_REF_PREFIX.length)
+    : undefined
+}
+
+/**
+ * Fetches and parses one specific file from the canonical repo by its
+ * manifest path. Reuses `parseCustomList` unchanged — same format, same
+ * validation, whether the file arrived by paste, upload, folder-drop, or
+ * sync.
+ */
+export async function fetchCanonicalList(
+  path: string,
+  validCategories: ReadonlySet<string>,
+  fetchImpl?: FetchLike,
+): Promise<ParsedCustomList> {
+  const text = await getText(canonicalRawUrl(path), {
+    source: 'the canonical list repository',
+    ...(fetchImpl ? { fetchImpl } : {}),
+  })
+
+  return parseCustomList(text, validCategories)
+}
+
+/**
+ * The actual confirmed intent behind canonical lists (task 7.4): searching
+ * within a category also matches canonical-repo list titles in that same
+ * category, merged into the existing search results — not a separate browse
+ * UI (that idea was deliberately deferred to its own future task).
+ *
+ * Degrades silently to no matches on a fetch failure — including the repo
+ * being genuinely unreachable right now, since it is private — rather than
+ * breaking search for every other category's real adapter. A canonical
+ * match is additive on top of normal search, never a replacement for it, so
+ * losing it to a transient GitHub problem should not cost anything else.
+ */
+export async function searchCanonicalLists(
+  category: string,
+  query: string,
+  fetchImpl?: FetchLike,
+): Promise<{ externalRef: string; title: string; detail: string }[]> {
+  let manifest: CanonicalListEntry[]
+  try {
+    manifest = await fetchCanonicalManifest(fetchImpl)
+  } catch (error) {
+    if (error instanceof IngestionError) return []
+    throw error
+  }
+
+  const normalizedQuery = query.trim().toLowerCase()
+
+  return manifest
+    .filter(
+      (entry) => entry.category === category && entry.title.toLowerCase().includes(normalizedQuery),
+    )
+    .map((entry) => ({
+      externalRef: canonicalExternalRef(entry.path),
+      title: entry.title,
+      detail: 'Canonical list',
+    }))
 }

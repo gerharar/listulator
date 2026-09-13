@@ -1,7 +1,7 @@
 import { existsSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createTestApp, type TestApp } from '../testing/harness.js'
 import { IngestionError } from './http.js'
 import { createMediaTypeRegistry, DEFAULT_MEDIA_TYPES, type SearchAdapter } from './mediaTypes.js'
@@ -879,5 +879,214 @@ describe('checking a list for updates', () => {
     expect(
       (await harness.app.inject({ method: 'POST', url: '/api/lists/nope/refresh' })).statusCode,
     ).toBe(404)
+  })
+})
+
+describe('canonical lists surfaced through search (task 7.4)', () => {
+  let harness: TestApp
+
+  const MANIFEST_URL = 'https://raw.githubusercontent.com/neuroshaoh/listulator/main/lists/index.json'
+  const MCU_URL = 'https://raw.githubusercontent.com/neuroshaoh/listulator/main/lists/mega/mcu.yaml'
+  const MCU_YAML = 'title: Marvel Cinematic Universe\ncategory: mega\nitems:\n  - { title: Iron Man, year: 2008 }\n'
+
+  const MANIFEST = [
+    { path: 'lists/mega/mcu.yaml', title: 'Marvel Cinematic Universe', category: 'mega' },
+    { path: 'lists/book/lotr.yaml', title: 'The Lord of the Rings', category: 'book' },
+  ]
+
+  function mockGitHub(routes: Record<string, { body: string; status?: number }>) {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (url: string) => {
+        const route = routes[url]
+        if (!route) throw new Error(`unexpected fetch: ${url}`)
+        return new Response(route.body, { status: route.status ?? 200 })
+      }),
+    )
+  }
+
+  /** `book` has a real always-available adapter (Open Library); `wrestling` here has none. */
+  function appWithRegistry() {
+    return createTestApp({
+      mediaTypes: createMediaTypeRegistry([
+        {
+          key: 'mega',
+          label: 'Mega',
+          sortOrder: 10,
+          defaultDurationMinutes: 120,
+          // No adapter at all — proves a canonical match alone is enough.
+        },
+        {
+          key: 'book',
+          label: 'Books',
+          sortOrder: 20,
+          defaultDurationMinutes: 240,
+          adapter: {
+            isAvailable: () => true,
+            search: async () => [{ externalRef: 'ol:OL1A', title: 'A Real Author' }],
+            expand: async () => [{ title: 'A Real Book' }],
+          },
+        },
+      ]),
+    })
+  }
+
+  beforeEach(() => {
+    harness = appWithRegistry()
+  })
+
+  afterEach(async () => {
+    await harness.cleanup()
+    vi.unstubAllGlobals()
+  })
+
+  it('matches a canonical list title within the same category', async () => {
+    mockGitHub({ [MANIFEST_URL]: { body: JSON.stringify(MANIFEST) } })
+
+    const response = await harness.app.inject({ method: 'GET', url: '/api/media-types/mega/search?q=marvel' })
+
+    expect(response.statusCode).toBe(200)
+    expect(response.json().sources).toEqual([
+      { externalRef: 'canonical:lists/mega/mcu.yaml', title: 'Marvel Cinematic Universe', detail: 'Canonical list' },
+    ])
+  })
+
+  it('is case-insensitive and matches a substring, not just an exact title', async () => {
+    mockGitHub({ [MANIFEST_URL]: { body: JSON.stringify(MANIFEST) } })
+
+    const response = await harness.app.inject({ method: 'GET', url: '/api/media-types/mega/search?q=MARVEL' })
+
+    expect(response.json().sources).toHaveLength(1)
+  })
+
+  it('never matches a canonical list from a different category', async () => {
+    mockGitHub({ [MANIFEST_URL]: { body: JSON.stringify(MANIFEST) } })
+
+    // "lord" matches the LOTR manifest entry's title, but that entry is
+    // category "book" — searching "book" (which has a real adapter) must not
+    // pick it up.
+    const response = await harness.app.inject({ method: 'GET', url: '/api/media-types/book/search?q=marvel' })
+
+    expect(response.statusCode).toBe(200)
+    expect(response.json().sources).toEqual([{ externalRef: 'ol:OL1A', title: 'A Real Author' }])
+  })
+
+  it('works for a category with no adapter at all, where search would otherwise be unavailable', async () => {
+    mockGitHub({ [MANIFEST_URL]: { body: JSON.stringify(MANIFEST) } })
+
+    const response = await harness.app.inject({ method: 'GET', url: '/api/media-types/mega/search?q=marvel' })
+
+    expect(response.statusCode).toBe(200)
+  })
+
+  it('still reports search.unavailable when neither the adapter nor a canonical match exists', async () => {
+    mockGitHub({ [MANIFEST_URL]: { body: JSON.stringify(MANIFEST) } })
+
+    const response = await harness.app.inject({ method: 'GET', url: '/api/media-types/mega/search?q=nothing-real' })
+
+    expect(response.statusCode).toBe(409)
+    expect(response.json()).toEqual({ code: 'search.unavailable', params: { category: 'Mega' } })
+  })
+
+  it('merges canonical matches alongside a real, available adapter\'s own results', async () => {
+    mockGitHub({ [MANIFEST_URL]: { body: JSON.stringify(MANIFEST) } })
+
+    const response = await harness.app.inject({ method: 'GET', url: '/api/media-types/book/search?q=lord' })
+
+    expect(response.json().sources).toEqual([
+      { externalRef: 'canonical:lists/book/lotr.yaml', title: 'The Lord of the Rings', detail: 'Canonical list' },
+      { externalRef: 'ol:OL1A', title: 'A Real Author' },
+    ])
+  })
+
+  it('degrades to the adapter\'s own results alone when the canonical repo is unreachable', async () => {
+    mockGitHub({ [MANIFEST_URL]: { body: '404: Not Found', status: 404 } })
+
+    const response = await harness.app.inject({ method: 'GET', url: '/api/media-types/book/search?q=lord' })
+
+    expect(response.statusCode).toBe(200)
+    expect(response.json().sources).toEqual([{ externalRef: 'ol:OL1A', title: 'A Real Author' }])
+  })
+
+  it('builds a list from a chosen canonical search result, recording a canonical: externalRef', async () => {
+    mockGitHub({ [MCU_URL]: { body: MCU_YAML } })
+
+    const response = await harness.app.inject({
+      method: 'POST',
+      url: '/api/lists/from-source',
+      payload: {
+        mediaType: 'mega',
+        externalRef: 'canonical:lists/mega/mcu.yaml',
+        title: 'Marvel Cinematic Universe',
+      },
+    })
+
+    expect(response.statusCode).toBe(201)
+    expect(response.json()).toMatchObject({
+      title: 'Marvel Cinematic Universe',
+      mediaType: 'mega',
+      source: 'canonical',
+      externalRef: 'canonical:lists/mega/mcu.yaml',
+    })
+
+    const items = (
+      await harness.app.inject({ method: 'GET', url: `/api/lists/${response.json().id}` })
+    ).json().items
+    expect(items).toMatchObject([{ title: 'Iron Man', year: 2008, source: 'import' }])
+  })
+
+  it('rejects a path-traversal attempt before any fetch happens', async () => {
+    mockGitHub({}) // any call at all fails the test
+
+    const response = await harness.app.inject({
+      method: 'POST',
+      url: '/api/lists/from-source',
+      payload: {
+        mediaType: 'mega',
+        externalRef: 'canonical:../../other-repo/main/x.yaml',
+        title: 'X',
+      },
+    })
+
+    expect(response.statusCode).toBe(400)
+    expect(response.json()).toEqual({ code: 'list.fileInvalid' })
+  })
+
+  it('reports a parse error in the canonical file with a specific code, building nothing', async () => {
+    mockGitHub({ [MCU_URL]: { body: 'title: X\ncategory: not-real\nitems: []\n' } })
+
+    const response = await harness.app.inject({
+      method: 'POST',
+      url: '/api/lists/from-source',
+      payload: { mediaType: 'mega', externalRef: 'canonical:lists/mega/mcu.yaml', title: 'X' },
+    })
+
+    expect(response.statusCode).toBe(400)
+    expect(response.json()).toEqual({ code: 'list.unknownCategory', params: { key: 'not-real' } })
+    expect((await harness.app.inject({ method: 'GET', url: '/api/lists' })).json()).toEqual([])
+  })
+
+  it('answers a clean "not yet supported" refreshing a canonical-synced list, before task 7.5 exists', async () => {
+    mockGitHub({ [MCU_URL]: { body: MCU_YAML } })
+
+    const created = (
+      await harness.app.inject({
+        method: 'POST',
+        url: '/api/lists/from-source',
+        payload: {
+          mediaType: 'mega',
+          externalRef: 'canonical:lists/mega/mcu.yaml',
+          title: 'Marvel Cinematic Universe',
+        },
+      })
+    ).json()
+
+    const response = await harness.app.inject({
+      method: 'POST',
+      url: `/api/lists/${created.id}/refresh`,
+    })
+
+    expect(response.statusCode).toBe(409)
+    expect(response.json()).toEqual({ code: 'refresh.notYetSupported' })
   })
 })

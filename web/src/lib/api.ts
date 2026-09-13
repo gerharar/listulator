@@ -14,7 +14,7 @@ export interface MediaList {
   id: string
   title: string
   mediaType: string
-  source: 'api' | 'llm' | 'manual' | 'file'
+  source: 'api' | 'llm' | 'manual' | 'file' | 'canonical'
   externalRef: string | null
   createdAt: string
   updatedAt: string

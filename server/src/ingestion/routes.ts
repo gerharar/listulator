@@ -12,16 +12,19 @@ import {
 } from '../catalog/repository.js'
 import { sendApiError } from '../apiErrors.js'
 import {
+  canonicalPathFromExternalRef,
   CustomListParseError,
-  listsDropDir as defaultListsDropDir,
+  fetchCanonicalList,
+  isSafeCanonicalPath,
   parseCustomList,
-  scanListsDropFolder,
+  searchCanonicalLists,
   type ParsedCustomList,
 } from './customLists.js'
 import { IngestionError } from './http.js'
+import { listsDropDir as defaultListsDropDir, scanListsDropFolder } from './listsDropFolder.js'
 import type { AppDatabase } from '../db/client.js'
 import type { MediaTypeRegistry } from './mediaTypes.js'
-import type { User } from '../db/schema.js'
+import type { ListSource, User } from '../db/schema.js'
 
 export interface IngestionRoutesOptions {
   db: AppDatabase
@@ -43,18 +46,24 @@ export const ingestionRoutes: FastifyPluginAsync<IngestionRoutesOptions> = async
   { db, mediaTypes, listsDropDir },
 ) => {
   /**
-   * Shared by `/lists/from-file` and `/lists/scan-folder` — creates a list
-   * and its items from an already-parsed, already-validated custom list.
-   * `parsed.category` is guaranteed to be a real registry key by
-   * `parseCustomList` itself, so the lookup here cannot fail.
+   * Shared by `/lists/from-file`, `/lists/scan-folder`, and
+   * `/lists/from-canonical` — creates a list and its items from an
+   * already-parsed, already-validated custom list. `parsed.category` is
+   * guaranteed to be a real registry key by `parseCustomList` itself, so
+   * the lookup here cannot fail.
    */
-  async function importParsedList(user: User, parsed: ParsedCustomList) {
+  async function importParsedList(
+    user: User,
+    parsed: ParsedCustomList,
+    { source = 'file', externalRef }: { source?: ListSource; externalRef?: string } = {},
+  ) {
     const mediaType = mediaTypes.get(parsed.category)!
 
     const list = await createList(db, user.id, {
       title: parsed.title,
       mediaType: parsed.category,
-      source: 'file',
+      source,
+      ...(externalRef ? { externalRef } : {}),
     })
 
     // Sequential, not Promise.all — see the from-source route above for why.
@@ -88,6 +97,15 @@ export const ingestionRoutes: FastifyPluginAsync<IngestionRoutesOptions> = async
   /**
    * Finds things that could become a whole list — an artist, a filmography —
    * rather than individual items. See SearchAdapter.
+   *
+   * Also matches canonical-repo list titles in this category (task 7.4,
+   * `docs/intent/custom-lists.md`) and merges them in — the actual confirmed
+   * intent behind canonical lists ("when a user searches for something, the
+   * app looks up if the search terms match anything from canonical lists in
+   * a given category"), not a separate browse UI. This is why a category
+   * with no credentialed adapter can still return results: a canonical
+   * match alone is enough, so `search.unavailable` only fires when *neither*
+   * source found anything.
    */
   app.get<{ Params: { key: string }; Querystring: { q?: string } }>(
     '/media-types/:key/search',
@@ -100,13 +118,18 @@ export const ingestionRoutes: FastifyPluginAsync<IngestionRoutesOptions> = async
       const query = request.query.q?.trim()
       if (!query) return sendApiError(reply, 400, 'search.queryRequired')
 
+      const canonicalMatches = await searchCanonicalLists(mediaType.key, query)
+
       if (!mediaType.adapter?.isAvailable()) {
-        // Not an error: plenty of categories will never have search, and the
-        // manual path always works.
-        return sendApiError(reply, 409, 'search.unavailable', { category: mediaType.label })
+        if (canonicalMatches.length === 0) {
+          // Not an error: plenty of categories will never have search, and the
+          // manual path always works.
+          return sendApiError(reply, 409, 'search.unavailable', { category: mediaType.label })
+        }
+        return { sources: canonicalMatches }
       }
 
-      return { sources: await mediaType.adapter.search(query) }
+      return { sources: [...canonicalMatches, ...(await mediaType.adapter.search(query))] }
     },
   )
 
@@ -137,6 +160,33 @@ export const ingestionRoutes: FastifyPluginAsync<IngestionRoutesOptions> = async
 
       const mediaType = mediaTypes.get(key)
       if (!mediaType) return sendApiError(reply, 400, 'list.unknownCategory', { key })
+
+      // A canonical-repo search result (task 7.4) — reuses 7.2's
+      // parser/import path entirely rather than the adapter's own
+      // `expand()`. `parsed.title` is used, not the request body's `title`
+      // (an echoed-back search-result label): the file's own title is the
+      // authoritative one, same rule `/lists/from-file` and
+      // `/lists/scan-folder` already follow.
+      const canonicalPath = canonicalPathFromExternalRef(externalRef)
+      if (canonicalPath) {
+        if (!isSafeCanonicalPath(canonicalPath)) return sendApiError(reply, 400, 'list.fileInvalid')
+
+        let parsed: ParsedCustomList
+        try {
+          parsed = await fetchCanonicalList(
+            canonicalPath,
+            new Set(mediaTypes.list().map((entry) => entry.key)),
+          )
+        } catch (cause) {
+          if (cause instanceof CustomListParseError) {
+            return sendApiError(reply, 400, cause.code, cause.params)
+          }
+          throw cause
+        }
+
+        const list = await importParsedList(user, parsed, { source: 'canonical', externalRef })
+        return reply.code(201).send(await findListWithStats(db, user.id, list.id))
+      }
 
       if (!mediaType.adapter?.isAvailable()) {
         return sendApiError(reply, 409, 'search.unavailable', { category: mediaType.label })
@@ -278,6 +328,18 @@ export const ingestionRoutes: FastifyPluginAsync<IngestionRoutesOptions> = async
 
       if (!list.externalRef) {
         return sendApiError(reply, 409, 'refresh.handMadeList')
+      }
+
+      // Task 7.4 records a trackable `canonical:<path>` externalRef so task
+      // 7.5 can wire real refresh support with zero changes to this route
+      // (an adapter-shaped `expand()`, the pattern task 6.8 already proved
+      // out) — but 7.5 hasn't landed yet, so `mediaType.adapter.expand()`
+      // below would otherwise receive a ref its real adapter (TMDB,
+      // OpenLibrary, whichever) was never built to understand. A clean,
+      // specific "not yet" beats a confusing upstream error or wrong
+      // results in the meantime.
+      if (canonicalPathFromExternalRef(list.externalRef)) {
+        return sendApiError(reply, 409, 'refresh.notYetSupported')
       }
 
       const mediaType = mediaTypes.get(list.mediaType)

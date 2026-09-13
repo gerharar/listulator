@@ -35,12 +35,18 @@ export type User = typeof users.$inferSelect
 
 /**
  * Where a list's contents came from. Free text by design — see `mediaType`.
- * `'file'` is a pasted/uploaded custom-list YAML file (task 7.2,
- * `docs/intent/custom-lists.md`) — kept distinct from `'manual'` (the
- * hand-typed creation form) since it is a bulk, machine-parsed import, and
- * distinct from `'api'` since it has no live upstream to refresh against.
+ * `'file'` is a pasted/uploaded or locally-dropped custom-list YAML file
+ * (tasks 7.2/7.3, `docs/intent/custom-lists.md`) — kept distinct from
+ * `'manual'` (the hand-typed creation form) since it is a bulk,
+ * machine-parsed import, and distinct from `'api'` since it has no live
+ * upstream to refresh against. `'canonical'` (task 7.4) is the same file
+ * format synced from the canonical GitHub repo instead — kept distinct
+ * from both `'file'` (which has nothing to refresh) and `'api'` (a
+ * TMDB/IGDB/Wikipedia-style adapter) so a future feature enumerating every
+ * synced list (task 7.6's update notifications) can select on `source`
+ * alone, rather than `source = 'api' AND externalRef LIKE 'canonical:%'`.
  */
-export type ListSource = 'api' | 'llm' | 'manual' | 'file'
+export type ListSource = 'api' | 'llm' | 'manual' | 'file' | 'canonical'
 
 /**
  * Where one item came from — distinct from `ListSource` above, and tracked

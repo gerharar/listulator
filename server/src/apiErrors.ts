@@ -31,6 +31,7 @@ export type ApiErrorCode =
   | 'list.fileItemMissingTitle'
   | 'refresh.handMadeList'
   | 'refresh.searchUnavailable'
+  | 'refresh.notYetSupported'
 
 export interface ApiErrorBody {
   code: ApiErrorCode

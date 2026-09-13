@@ -28,7 +28,14 @@ import {
   type ListWithStats,
 } from '../../../server/src/catalog/repository.js'
 import { dismissalTitleKey, type ListItem as SchemaListItem } from '../../../server/src/db/schema.js'
-import { CustomListParseError, parseCustomList } from '../../../server/src/ingestion/customLists.js'
+import {
+  canonicalPathFromExternalRef,
+  CustomListParseError,
+  fetchCanonicalList,
+  isSafeCanonicalPath,
+  parseCustomList,
+  searchCanonicalLists,
+} from '../../../server/src/ingestion/customLists.js'
 import { rank, type Suggestion } from '../../../server/src/suggestions/engine.js'
 import { copy, errorMessage } from '../locale/index.js'
 import type {
@@ -264,6 +271,13 @@ export function createLocalApi(): ApiClient {
 
     // Mirrors server/src/ingestion/routes.ts's three handlers, against the
     // real local registry instead of Fastify + a Drizzle db handle.
+    //
+    // Both also merge in canonical-repo matches (task 7.4) — searching within
+    // a category matches canonical list titles in that category too, the
+    // actual confirmed intent (not a separate browse UI). `raw.githubusercontent.com`
+    // sends `access-control-allow-origin: *` (verified directly), so the
+    // webview's own `fetch` reaches it — no Tauri HTTP-plugin routing needed,
+    // unlike IGDB/Comic Vine/MusicBrainz (task 5.7).
     searchSources: async (mediaTypeKey, query) => {
       const mediaType = (await getLocalMediaTypes()).find((entry) => entry.key === mediaTypeKey)
       if (!mediaType) throw notFound()
@@ -271,11 +285,16 @@ export function createLocalApi(): ApiClient {
       const trimmed = query.trim()
       if (!trimmed) throw new ApiError(copy.errors['search.queryRequired'](), 400)
 
+      const canonicalMatches = await searchCanonicalLists(mediaTypeKey, trimmed)
+
       if (!mediaType.adapter?.isAvailable()) {
-        throw new ApiError(copy.errors['search.unavailable']({ category: mediaType.label }), 409)
+        if (canonicalMatches.length === 0) {
+          throw new ApiError(copy.errors['search.unavailable']({ category: mediaType.label }), 409)
+        }
+        return { sources: canonicalMatches }
       }
 
-      return { sources: await mediaType.adapter.search(trimmed) }
+      return { sources: [...canonicalMatches, ...(await mediaType.adapter.search(trimmed))] }
     },
 
     createFromSource: async ({ mediaType: key, externalRef, title }) => {
@@ -283,6 +302,53 @@ export function createLocalApi(): ApiClient {
 
       const mediaType = (await getLocalMediaTypes()).find((entry) => entry.key === key)
       if (!mediaType) throw new ApiError(copy.errors['list.unknownCategory']({ key }), 400)
+
+      // A canonical-repo search result — reuses 7.2's parser/import path
+      // entirely, same as server/src/ingestion/routes.ts's /lists/from-source.
+      const canonicalPath = canonicalPathFromExternalRef(externalRef)
+      if (canonicalPath) {
+        if (!isSafeCanonicalPath(canonicalPath)) {
+          throw new ApiError(errorMessage('list.fileInvalid') ?? 'list.fileInvalid', 400)
+        }
+
+        const mediaTypes = await getLocalMediaTypes()
+
+        let parsed
+        try {
+          parsed = await fetchCanonicalList(canonicalPath, new Set(mediaTypes.map((entry) => entry.key)))
+        } catch (cause) {
+          if (cause instanceof CustomListParseError) {
+            throw new ApiError(errorMessage(cause.code, cause.params) ?? cause.code, 400)
+          }
+          throw cause
+        }
+
+        const parsedMediaType = mediaTypes.find((entry) => entry.key === parsed.category)!
+
+        const list = await repoCreateList(database, userId, {
+          title: parsed.title,
+          mediaType: parsed.category,
+          source: 'canonical',
+          externalRef,
+        })
+
+        // Sequential, not Promise.all — see docs/DECISIONS.md, task 5.1.
+        for (const item of parsed.items) {
+          const known = item.minutes !== undefined
+
+          await createListItem(database, userId, list.id, {
+            title: item.title,
+            timeToConsumeMinutes: known ? item.minutes! : parsedMediaType.defaultDurationMinutes,
+            timeToConsumeIsEstimated: !known,
+            ...(item.year !== undefined ? { year: item.year } : {}),
+            ...(item.group !== undefined ? { group: item.group } : {}),
+            source: 'import',
+          })
+        }
+
+        const withStats = await findListWithStats(database, userId, list.id)
+        return toMediaList(withStats!)
+      }
 
       if (!mediaType.adapter?.isAvailable()) {
         throw new ApiError(copy.errors['search.unavailable']({ category: mediaType.label }), 409)
