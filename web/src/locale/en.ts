@@ -221,8 +221,6 @@ export const en = {
       'This list was made by hand, so there is nothing to check against.',
     'refresh.searchUnavailable': (p: { category: string }): string =>
       `Search is not available for ${p.category}.`,
-    'refresh.notYetSupported': (): string =>
-      'Checking this list for updates is not supported yet.',
   },
 
   /** Failures with no code: the network, or a server that said something new. */

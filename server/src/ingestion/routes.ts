@@ -14,6 +14,7 @@ import { sendApiError } from '../apiErrors.js'
 import {
   canonicalPathFromExternalRef,
   CustomListParseError,
+  expandCanonicalList,
   fetchCanonicalList,
   isSafeCanonicalPath,
   parseCustomList,
@@ -330,26 +331,39 @@ export const ingestionRoutes: FastifyPluginAsync<IngestionRoutesOptions> = async
         return sendApiError(reply, 409, 'refresh.handMadeList')
       }
 
-      // Task 7.4 records a trackable `canonical:<path>` externalRef so task
-      // 7.5 can wire real refresh support with zero changes to this route
-      // (an adapter-shaped `expand()`, the pattern task 6.8 already proved
-      // out) — but 7.5 hasn't landed yet, so `mediaType.adapter.expand()`
-      // below would otherwise receive a ref its real adapter (TMDB,
-      // OpenLibrary, whichever) was never built to understand. A clean,
-      // specific "not yet" beats a confusing upstream error or wrong
-      // results in the meantime.
-      if (canonicalPathFromExternalRef(list.externalRef)) {
-        return sendApiError(reply, 409, 'refresh.notYetSupported')
-      }
+      // A synced canonical list (task 7.4's `canonical:<path>` externalRef)
+      // refetches and reparses the file directly, the same `expand()`-shaped
+      // path task 6.8 proved out for a real adapter — the ordinary
+      // `mediaType.adapter.expand()` below would otherwise receive a ref its
+      // real adapter (TMDB, Open Library, whichever) was never built to
+      // understand.
+      const canonicalPath = canonicalPathFromExternalRef(list.externalRef)
 
-      const mediaType = mediaTypes.get(list.mediaType)
-      if (!mediaType?.adapter?.isAvailable()) {
-        return sendApiError(reply, 409, 'refresh.searchUnavailable', {
-          category: mediaType?.label ?? list.mediaType,
-        })
-      }
+      let upstream
+      if (canonicalPath) {
+        if (!isSafeCanonicalPath(canonicalPath)) return sendApiError(reply, 400, 'list.fileInvalid')
 
-      const upstream = await mediaType.adapter.expand(list.externalRef)
+        try {
+          upstream = await expandCanonicalList(
+            canonicalPath,
+            new Set(mediaTypes.list().map((entry) => entry.key)),
+          )
+        } catch (cause) {
+          if (cause instanceof CustomListParseError) {
+            return sendApiError(reply, 400, cause.code, cause.params)
+          }
+          throw cause
+        }
+      } else {
+        const mediaType = mediaTypes.get(list.mediaType)
+        if (!mediaType?.adapter?.isAvailable()) {
+          return sendApiError(reply, 409, 'refresh.searchUnavailable', {
+            category: mediaType?.label ?? list.mediaType,
+          })
+        }
+
+        upstream = await mediaType.adapter.expand(list.externalRef)
+      }
       const existing = (await findListItems(db, user.id, listId)) ?? []
 
       // Matched on the upstream id where there is one, and on title otherwise:

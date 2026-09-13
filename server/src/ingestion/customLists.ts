@@ -1,6 +1,7 @@
 import { load as loadYaml } from 'js-yaml'
 import type { ApiErrorCode } from '../apiErrors.js'
 import { getJson, getText, IngestionError, type FetchLike } from './http.js'
+import type { MediaTypeCandidate } from './mediaTypes.js'
 
 // No `node:fs`/`node:path`/`node:url` imports in this file, ever — it is
 // imported directly by web/src/lib/api.local.ts for the standalone app, and
@@ -242,4 +243,33 @@ export async function searchCanonicalLists(
       title: entry.title,
       detail: 'Canonical list',
     }))
+}
+
+/**
+ * The `expand()`-shaped refetch for a synced canonical list (task 7.5) —
+ * same `MediaTypeCandidate[]` shape every adapter's `expand()` returns, so
+ * `/lists/:listId/refresh`'s existing new-item matching needs no changes to
+ * handle it. No per-item `externalRef`: a custom-list file carries no stable
+ * upstream id per item (only the file's own path identifies the list as a
+ * whole), so matching falls back to title alone — the same rule already
+ * applied to Wikipedia events and Open Library works.
+ *
+ * Unlike `searchCanonicalLists`, a fetch failure here is not swallowed: this
+ * runs only when the user explicitly asked to check a specific synced list
+ * for updates, the same reasoning `/lists/from-source`'s canonical branch
+ * uses for its own 502 (docs/DECISIONS.md, task 7.4).
+ */
+export async function expandCanonicalList(
+  path: string,
+  validCategories: ReadonlySet<string>,
+  fetchImpl?: FetchLike,
+): Promise<MediaTypeCandidate[]> {
+  const parsed = await fetchCanonicalList(path, validCategories, fetchImpl)
+
+  return parsed.items.map((item) => ({
+    title: item.title,
+    ...(item.year !== undefined ? { year: item.year } : {}),
+    ...(item.minutes !== undefined ? { timeToConsumeMinutes: item.minutes } : {}),
+    ...(item.group !== undefined ? { group: item.group } : {}),
+  }))
 }

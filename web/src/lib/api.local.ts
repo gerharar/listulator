@@ -31,6 +31,7 @@ import { dismissalTitleKey, type ListItem as SchemaListItem } from '../../../ser
 import {
   canonicalPathFromExternalRef,
   CustomListParseError,
+  expandCanonicalList,
   fetchCanonicalList,
   isSafeCanonicalPath,
   parseCustomList,
@@ -441,15 +442,41 @@ export function createLocalApi(): ApiClient {
         throw new ApiError(copy.errors['refresh.handMadeList'](), 409)
       }
 
-      const mediaType = (await getLocalMediaTypes()).find((entry) => entry.key === list.mediaType)
-      if (!mediaType?.adapter?.isAvailable()) {
-        throw new ApiError(
-          copy.errors['refresh.searchUnavailable']({ category: mediaType?.label ?? list.mediaType }),
-          409,
-        )
-      }
+      // Mirrors server/src/ingestion/routes.ts's /lists/:listId/refresh — a
+      // synced canonical list (task 7.4) refetches and reparses the file
+      // directly instead of going through mediaType.adapter.expand(), which
+      // was never built to understand a `canonical:<path>` ref.
+      const canonicalPath = canonicalPathFromExternalRef(list.externalRef)
 
-      const upstream = await mediaType.adapter.expand(list.externalRef)
+      let upstream
+      if (canonicalPath) {
+        if (!isSafeCanonicalPath(canonicalPath)) {
+          throw new ApiError(errorMessage('list.fileInvalid') ?? 'list.fileInvalid', 400)
+        }
+
+        const localMediaTypes = await getLocalMediaTypes()
+        try {
+          upstream = await expandCanonicalList(
+            canonicalPath,
+            new Set(localMediaTypes.map((entry) => entry.key)),
+          )
+        } catch (cause) {
+          if (cause instanceof CustomListParseError) {
+            throw new ApiError(errorMessage(cause.code, cause.params) ?? cause.code, 400)
+          }
+          throw cause
+        }
+      } else {
+        const mediaType = (await getLocalMediaTypes()).find((entry) => entry.key === list.mediaType)
+        if (!mediaType?.adapter?.isAvailable()) {
+          throw new ApiError(
+            copy.errors['refresh.searchUnavailable']({ category: mediaType?.label ?? list.mediaType }),
+            409,
+          )
+        }
+
+        upstream = await mediaType.adapter.expand(list.externalRef)
+      }
       const existing = (await findListItems(database, userId, listId)) ?? []
 
       // Matched on the upstream id where there is one, and on title otherwise:

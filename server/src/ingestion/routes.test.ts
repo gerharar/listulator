@@ -1066,8 +1066,26 @@ describe('canonical lists surfaced through search (task 7.4)', () => {
     expect((await harness.app.inject({ method: 'GET', url: '/api/lists' })).json()).toEqual([])
   })
 
-  it('answers a clean "not yet supported" refreshing a canonical-synced list, before task 7.5 exists', async () => {
-    mockGitHub({ [MCU_URL]: { body: MCU_YAML } })
+})
+
+describe('refresh support for synced canonical lists (task 7.5)', () => {
+  let harness: TestApp
+
+  const MCU_URL = 'https://raw.githubusercontent.com/neuroshaoh/listulator/main/lists/mega/mcu.yaml'
+
+  function mockGitHub(routes: Record<string, { body: string; status?: number }>) {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (url: string) => {
+        const route = routes[url]
+        if (!route) throw new Error(`unexpected fetch: ${url}`)
+        return new Response(route.body, { status: route.status ?? 200 })
+      }),
+    )
+  }
+
+  async function syncMcu(bodyYaml: string) {
+    mockGitHub({ [MCU_URL]: { body: bodyYaml } })
 
     const created = (
       await harness.app.inject({
@@ -1081,12 +1099,98 @@ describe('canonical lists surfaced through search (task 7.4)', () => {
       })
     ).json()
 
+    return created
+  }
+
+  beforeEach(() => {
+    harness = createTestApp({
+      mediaTypes: createMediaTypeRegistry([
+        // No adapter at all — proves refresh works from the canonical
+        // externalRef alone, the same as search did in task 7.4.
+        { key: 'mega', label: 'Mega', sortOrder: 10, defaultDurationMinutes: 120 },
+      ]),
+    })
+  })
+
+  afterEach(async () => {
+    await harness.cleanup()
+    vi.unstubAllGlobals()
+  })
+
+  it('offers a new item that appeared upstream since import', async () => {
+    const created = await syncMcu(
+      'title: Marvel Cinematic Universe\ncategory: mega\nitems:\n  - { title: Iron Man, year: 2008 }\n',
+    )
+
+    mockGitHub({
+      [MCU_URL]: {
+        body:
+          'title: Marvel Cinematic Universe\ncategory: mega\nitems:\n' +
+          '  - { title: Iron Man, year: 2008 }\n' +
+          '  - { title: The Incredible Hulk, year: 2008 }\n',
+      },
+    })
+
     const response = await harness.app.inject({
       method: 'POST',
       url: `/api/lists/${created.id}/refresh`,
     })
 
-    expect(response.statusCode).toBe(409)
-    expect(response.json()).toEqual({ code: 'refresh.notYetSupported' })
+    expect(response.statusCode).toBe(200)
+    expect(response.json()).toMatchObject({
+      newItems: [{ title: 'The Incredible Hulk', year: 2008 }],
+      upstreamCount: 2,
+      existingCount: 1,
+    })
+  })
+
+  it('does not re-offer an item already imported, matched on title', async () => {
+    const created = await syncMcu(
+      'title: Marvel Cinematic Universe\ncategory: mega\nitems:\n  - { title: Iron Man, year: 2008 }\n',
+    )
+
+    mockGitHub({
+      [MCU_URL]: {
+        body: 'title: Marvel Cinematic Universe\ncategory: mega\nitems:\n  - { title: Iron Man, year: 2008 }\n',
+      },
+    })
+
+    const response = await harness.app.inject({
+      method: 'POST',
+      url: `/api/lists/${created.id}/refresh`,
+    })
+
+    expect(response.json().newItems).toEqual([])
+  })
+
+  it('reports a parse error in the re-fetched file with a specific code, changing nothing', async () => {
+    const created = await syncMcu(
+      'title: Marvel Cinematic Universe\ncategory: mega\nitems:\n  - { title: Iron Man, year: 2008 }\n',
+    )
+
+    mockGitHub({ [MCU_URL]: { body: 'title: X\ncategory: not-real\nitems: []\n' } })
+
+    const response = await harness.app.inject({
+      method: 'POST',
+      url: `/api/lists/${created.id}/refresh`,
+    })
+
+    expect(response.statusCode).toBe(400)
+    expect(response.json()).toEqual({ code: 'list.unknownCategory', params: { key: 'not-real' } })
+  })
+
+  it('surfaces a 502 rather than degrading silently when the canonical repo is unreachable', async () => {
+    const created = await syncMcu(
+      'title: Marvel Cinematic Universe\ncategory: mega\nitems:\n  - { title: Iron Man, year: 2008 }\n',
+    )
+
+    mockGitHub({ [MCU_URL]: { body: '404: Not Found', status: 404 } })
+
+    const response = await harness.app.inject({
+      method: 'POST',
+      url: `/api/lists/${created.id}/refresh`,
+    })
+
+    expect(response.statusCode).toBe(502)
   })
 })
