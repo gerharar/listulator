@@ -8,6 +8,7 @@ import {
   findDismissals,
   findList,
   findListItems,
+  findLists,
   findListWithStats,
 } from '../catalog/repository.js'
 import { sendApiError } from '../apiErrors.js'
@@ -25,7 +26,7 @@ import { IngestionError } from './http.js'
 import { listsDropDir as defaultListsDropDir, scanListsDropFolder } from './listsDropFolder.js'
 import type { AppDatabase } from '../db/client.js'
 import type { MediaTypeRegistry } from './mediaTypes.js'
-import type { ListSource, User } from '../db/schema.js'
+import type { List, ListSource, User } from '../db/schema.js'
 
 export interface IngestionRoutesOptions {
   db: AppDatabase
@@ -82,6 +83,45 @@ export const ingestionRoutes: FastifyPluginAsync<IngestionRoutesOptions> = async
     }
 
     return list
+  }
+
+  /**
+   * The "has this changed" half of task 7.6's update notification — same
+   * new-item matching (title-only, dismissals excluded) as
+   * `/lists/:listId/refresh`'s canonical branch, but a boolean rather than
+   * the full diff, since the caller here is checking many lists at once
+   * rather than previewing one.
+   *
+   * Degrades silently on any fetch/parse failure, unlike the refresh
+   * route's explicit-action 502 — this runs automatically (app open, or
+   * "sync now" across every synced list at once), so one transient GitHub
+   * hiccup on one list must not make the whole check look broken, the same
+   * reasoning `searchCanonicalLists` already uses (task 7.4).
+   */
+  async function hasCanonicalUpdate(user: User, list: List): Promise<boolean> {
+    const canonicalPath = canonicalPathFromExternalRef(list.externalRef)
+    if (!canonicalPath || !isSafeCanonicalPath(canonicalPath)) return false
+
+    let upstream
+    try {
+      upstream = await expandCanonicalList(
+        canonicalPath,
+        new Set(mediaTypes.list().map((entry) => entry.key)),
+      )
+    } catch {
+      return false
+    }
+
+    const existing = (await findListItems(db, user.id, list.id)) ?? []
+    const knownTitles = new Set(existing.map((item) => dismissalTitleKey(item.title)))
+
+    const dismissed = await findDismissals(db, user.id, list.id)
+    const dismissedTitles = new Set(dismissed.map((item) => item.titleKey))
+
+    return upstream.some((candidate) => {
+      const titleKey = dismissalTitleKey(candidate.title)
+      return !knownTitles.has(titleKey) && !dismissedTitles.has(titleKey)
+    })
   }
 
   // Upstream being down or rate-limiting is not a bug in this app, and the
@@ -200,7 +240,12 @@ export const ingestionRoutes: FastifyPluginAsync<IngestionRoutesOptions> = async
         return sendApiError(reply, 422, 'list.sourceEmpty', { title })
       }
 
-      const list = await createList(db, user.id, { title, mediaType: key, source: 'api', externalRef })
+      const list = await createList(db, user.id, {
+        title,
+        mediaType: key,
+        source: 'api',
+        externalRef,
+      })
 
       // Sequential, not Promise.all: each create can fall back to
       // nextOrderIndex's own read of the current max, and concurrent inserts
@@ -249,7 +294,10 @@ export const ingestionRoutes: FastifyPluginAsync<IngestionRoutesOptions> = async
 
       let parsed: ParsedCustomList
       try {
-        parsed = parseCustomList(request.body.yaml, new Set(mediaTypes.list().map((entry) => entry.key)))
+        parsed = parseCustomList(
+          request.body.yaml,
+          new Set(mediaTypes.list().map((entry) => entry.key)),
+        )
       } catch (cause) {
         if (cause instanceof CustomListParseError) {
           return sendApiError(reply, 400, cause.code, cause.params)
@@ -401,19 +449,49 @@ export const ingestionRoutes: FastifyPluginAsync<IngestionRoutesOptions> = async
   )
 
   /**
+   * "This list was updated" notification (task 7.6) — on-trigger only (app
+   * open, or an explicit "sync now"), never background polling, per the
+   * confirmed constraint (docs/intent/custom-lists.md). Scoped to
+   * canonical-synced lists only, deliberately not every externalRef-backed
+   * list: checking every list's real API adapter (TMDB, IGDB, MusicBrainz,
+   * Wikipedia, ...) on every app open would reintroduce the exact per-key
+   * rate-limit pressure canonical lists exist to avoid.
+   */
+  app.get('/lists/updates', async (request) => {
+    const user = getCurrentUser(request)
+
+    const synced = (await findLists(db, user.id)).filter((list) =>
+      canonicalPathFromExternalRef(list.externalRef),
+    )
+
+    const updates = []
+    // Sequential, not Promise.all — see the from-source route above for why,
+    // and to avoid firing every synced list's fetch at GitHub at once.
+    for (const list of synced) {
+      if (await hasCanonicalUpdate(user, list)) {
+        updates.push({ listId: list.id, title: list.title })
+      }
+    }
+
+    return { updates }
+  })
+
+  /**
    * The UI renders a bucket per category — including ones with no lists yet —
    * so it needs the whole registry, not just the categories in use.
    */
   app.get('/media-types', async () =>
-    mediaTypes.list().map(({ key, label, description, sortOrder, defaultDurationMinutes, adapter }) => ({
-      key,
-      label,
-      ...(description ? { description } : {}),
-      sortOrder,
-      defaultDurationMinutes,
-      // Whether search is offered for this category. Manual entry always works.
-      searchAvailable: adapter?.isAvailable() ?? false,
-    })),
+    mediaTypes
+      .list()
+      .map(({ key, label, description, sortOrder, defaultDurationMinutes, adapter }) => ({
+        key,
+        label,
+        ...(description ? { description } : {}),
+        sortOrder,
+        defaultDurationMinutes,
+        // Whether search is offered for this category. Manual entry always works.
+        searchAvailable: adapter?.isAvailable() ?? false,
+      })),
   )
 
   /**

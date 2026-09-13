@@ -52,6 +52,18 @@ export const en = {
     timeLeft: (duration: string): string => `${duration} left`,
     allDone: 'done',
     noItems: 'empty',
+    /**
+     * Task 7.6: the "an update is available" notification. Deliberately not
+     * "updated" — the user flagged that as confusing during click-through
+     * ("updated = already changed, so why are you bothering me").
+     */
+    checkUpdates: 'Check for updates',
+    checkingUpdates: 'Checking…',
+    checkUpdatesFailed: 'Could not check for updates',
+    updatedCount: (n: number): string =>
+      n === 1 ? '1 list has an update available: ' : `${n} lists have updates available: `,
+    dismissUpdatesBanner: 'Dismiss',
+    updatedBadge: 'Update available',
   },
 
   suggestions: {
@@ -94,8 +106,12 @@ export const en = {
     reAddDeletedHint:
       'Deleting an item stops a rescan offering it back. Tick this to include everything you have deleted.',
     checkForUpdates: 'Check for updates',
+    /** Replaces checkForUpdates when arriving with an update already known to be available. */
+    updateList: 'Update list',
     checking: 'Checking…',
     checkFailed: 'Could not check for updates',
+    /** Task 7.6: confirms why this list was highlighted from Overview. */
+    updateAvailableNotice: 'An update is available for this list.',
     addFailed: 'Could not add them',
     upToDate: (upstreamCount: number): string =>
       `Up to date — nothing new in the source's ${upstreamCount}.`,
@@ -141,7 +157,8 @@ export const en = {
     categoryLabel: 'Category',
     /** Marks a category you can only fill in by hand. */
     noSearchSuffix: ' — add by hand',
-    builtInHint: 'Categories are built in — if one is missing, it has to be added to the app itself.',
+    builtInHint:
+      'Categories are built in — if one is missing, it has to be added to the app itself.',
     byHandHeading: 'Add by hand',
     orByHandHeading: 'Or add by hand',
     listTitleLabel: 'List title',
@@ -183,7 +200,8 @@ export const en = {
     hint: 'A YAML file with its own title, category, and items — see CONTRIBUTING.md for the format. The category picker above does not apply here.',
     chooseFileLabel: 'Choose a .yaml file…',
     pasteLabel: 'Or paste it here',
-    pastePlaceholder: 'title: All Jackie Chan Movies\ncategory: movie\nitems:\n  - { title: Drunken Master, year: 1978 }',
+    pastePlaceholder:
+      'title: All Jackie Chan Movies\ncategory: movie\nitems:\n  - { title: Drunken Master, year: 1978 }',
     import: 'Import',
     importing: 'Importing…',
     importFailed: 'Could not import that file',

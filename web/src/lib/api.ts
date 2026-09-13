@@ -90,9 +90,11 @@ export class ApiError extends Error {
  * on its own.
  */
 async function messageFor(response: Response): Promise<string> {
-  const body = (await response.json().catch(() => null)) as
-    | { code?: string; params?: Record<string, unknown>; message?: string }
-    | null
+  const body = (await response.json().catch(() => null)) as {
+    code?: string
+    params?: Record<string, unknown>
+    message?: string
+  } | null
 
   const fromCode = body?.code ? errorMessage(body.code, body.params) : undefined
 
@@ -196,6 +198,12 @@ export interface ApiClient {
   ) => Promise<ListItem>
   /** Renumbers the whole list to this exact id order (task 6.7). */
   reorderItems: (listId: string, itemIds: string[]) => Promise<ListItem[]>
+  /**
+   * "This list was updated" check (task 7.6) — canonical-synced lists only,
+   * on-trigger (app open or an explicit "sync now"), never background
+   * polling.
+   */
+  checkSyncedListUpdates: () => Promise<{ updates: { listId: string; title: string }[] }>
 }
 
 export const fetchApi: ApiClient = {
@@ -304,6 +312,9 @@ export const fetchApi: ApiClient = {
       method: 'PUT',
       body: JSON.stringify({ itemIds }),
     }),
+
+  checkSyncedListUpdates: () =>
+    request<{ updates: { listId: string; title: string }[] }>('/lists/updates'),
 }
 
 /**

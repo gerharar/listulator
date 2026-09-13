@@ -19,6 +19,7 @@ import {
   findDismissals,
   findList,
   findListItems,
+  findLists,
   findListWithStats,
   findListsWithStats,
   reorderListItems,
@@ -27,7 +28,11 @@ import {
   updateListItem,
   type ListWithStats,
 } from '../../../server/src/catalog/repository.js'
-import { dismissalTitleKey, type ListItem as SchemaListItem } from '../../../server/src/db/schema.js'
+import {
+  dismissalTitleKey,
+  type List as SchemaList,
+  type ListItem as SchemaListItem,
+} from '../../../server/src/db/schema.js'
 import {
   canonicalPathFromExternalRef,
   CustomListParseError,
@@ -148,6 +153,42 @@ export function createLocalApi(): ApiClient {
     return user.id
   }
 
+  // Mirrors server/src/ingestion/routes.ts's hasCanonicalUpdate (task 7.6) —
+  // same title-only new-item matching, dismissals excluded, silently
+  // degrading on a fetch/parse failure since this runs automatically rather
+  // than against one list an explicit action chose.
+  async function hasCanonicalUpdate(
+    database: LocalDatabase,
+    userId: string,
+    list: SchemaList,
+  ): Promise<boolean> {
+    const canonicalPath = canonicalPathFromExternalRef(list.externalRef)
+    if (!canonicalPath || !isSafeCanonicalPath(canonicalPath)) return false
+
+    const mediaTypes = await getLocalMediaTypes()
+
+    let upstream
+    try {
+      upstream = await expandCanonicalList(
+        canonicalPath,
+        new Set(mediaTypes.map((entry) => entry.key)),
+      )
+    } catch {
+      return false
+    }
+
+    const existing = (await findListItems(database, userId, list.id)) ?? []
+    const knownTitles = new Set(existing.map((item) => dismissalTitleKey(item.title)))
+
+    const dismissed = await findDismissals(database, userId, list.id)
+    const dismissedTitles = new Set(dismissed.map((item) => item.titleKey))
+
+    return upstream.some((candidate) => {
+      const titleKey = dismissalTitleKey(candidate.title)
+      return !knownTitles.has(titleKey) && !dismissedTitles.has(titleKey)
+    })
+  }
+
   return {
     me: async () => {
       const user = await getLocalCurrentUser(await getDb())
@@ -158,16 +199,14 @@ export function createLocalApi(): ApiClient {
       const entries = await getLocalMediaTypes()
       return [...entries]
         .sort((a, b) => a.sortOrder - b.sortOrder)
-        .map(
-          (entry): MediaType => ({
-            key: entry.key,
-            label: entry.label,
-            ...(entry.description ? { description: entry.description } : {}),
-            sortOrder: entry.sortOrder,
-            defaultDurationMinutes: entry.defaultDurationMinutes,
-            searchAvailable: entry.adapter?.isAvailable() ?? false,
-          }),
-        )
+        .map((entry): MediaType => ({
+          key: entry.key,
+          label: entry.label,
+          ...(entry.description ? { description: entry.description } : {}),
+          sortOrder: entry.sortOrder,
+          defaultDurationMinutes: entry.defaultDurationMinutes,
+          searchAvailable: entry.adapter?.isAvailable() ?? false,
+        }))
     },
 
     lists: async () => {
@@ -316,7 +355,10 @@ export function createLocalApi(): ApiClient {
 
         let parsed
         try {
-          parsed = await fetchCanonicalList(canonicalPath, new Set(mediaTypes.map((entry) => entry.key)))
+          parsed = await fetchCanonicalList(
+            canonicalPath,
+            new Set(mediaTypes.map((entry) => entry.key)),
+          )
         } catch (cause) {
           if (cause instanceof CustomListParseError) {
             throw new ApiError(errorMessage(cause.code, cause.params) ?? cause.code, 400)
@@ -470,7 +512,9 @@ export function createLocalApi(): ApiClient {
         const mediaType = (await getLocalMediaTypes()).find((entry) => entry.key === list.mediaType)
         if (!mediaType?.adapter?.isAvailable()) {
           throw new ApiError(
-            copy.errors['refresh.searchUnavailable']({ category: mediaType?.label ?? list.mediaType }),
+            copy.errors['refresh.searchUnavailable']({
+              category: mediaType?.label ?? list.mediaType,
+            }),
             409,
           )
         }
@@ -508,6 +552,28 @@ export function createLocalApi(): ApiClient {
         existingCount: existing.length,
         dismissedCount: (await findDismissals(database, userId, listId)).length,
       }
+    },
+
+    // Mirrors server/src/ingestion/routes.ts's GET /lists/updates (task
+    // 7.6) — scoped to canonical-synced lists only, same reasoning as
+    // there: checking every real adapter's API on every app open would
+    // reintroduce the per-key rate-limit pressure canonical lists exist to
+    // avoid.
+    checkSyncedListUpdates: async () => {
+      const [database, userId] = [await getDb(), await getUserId()]
+
+      const synced = (await findLists(database, userId)).filter((list) =>
+        canonicalPathFromExternalRef(list.externalRef),
+      )
+
+      const updates = []
+      for (const list of synced) {
+        if (await hasCanonicalUpdate(database, userId, list)) {
+          updates.push({ listId: list.id, title: list.title })
+        }
+      }
+
+      return { updates }
     },
 
     tiredBoss: async (currentListId) => {

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { Link, useNavigate, useParams } from 'react-router-dom'
+import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { Modal } from '../components/Modal.js'
 import { Progress } from '../components/Progress.js'
 import { api, type ListItem, type MediaListDetail, type MediaType } from '../lib/api.js'
@@ -52,7 +52,11 @@ export function groupItems(items: ListItem[]): ItemRow[] {
  * covers two `null`s: a non-TV list has no `group` on any item, so every
  * neighbor matches and reordering stays unrestricted, exactly as before.
  */
-export function moveItem(items: ListItem[], itemId: string, direction: 'up' | 'down'): ListItem[] | null {
+export function moveItem(
+  items: ListItem[],
+  itemId: string,
+  direction: 'up' | 'down',
+): ListItem[] | null {
   const index = items.findIndex((item) => item.id === itemId)
   if (index === -1) return null
 
@@ -72,7 +76,11 @@ export function moveItem(items: ListItem[], itemId: string, direction: 'up' | 'd
  * which — since a group is always a contiguous run — guarantees every
  * position the drop could land on on stays inside that same run.
  */
-export function moveItemTo(items: ListItem[], draggedId: string, targetId: string): ListItem[] | null {
+export function moveItemTo(
+  items: ListItem[],
+  draggedId: string,
+  targetId: string,
+): ListItem[] | null {
   if (draggedId === targetId) return null
 
   const dragged = items.find((item) => item.id === draggedId)
@@ -106,7 +114,9 @@ function GroupHeader({
       className="group-header"
       onClick={onToggle}
       aria-expanded={!collapsed}
-      aria-label={collapsed ? copy.listDetail.expandGroup(label) : copy.listDetail.collapseGroup(label)}
+      aria-label={
+        collapsed ? copy.listDetail.expandGroup(label) : copy.listDetail.collapseGroup(label)
+      }
     >
       <span className="group-header__caret" aria-hidden="true">
         {collapsed ? '▸' : '▾'}
@@ -185,7 +195,10 @@ function Item({
         onClick={() => onToggle(item)}
         aria-pressed={consumed}
       >
-        <span className={consumed ? 'item__box item__box--checked' : 'item__box'} aria-hidden="true">
+        <span
+          className={consumed ? 'item__box item__box--checked' : 'item__box'}
+          aria-hidden="true"
+        >
           {consumed ? '✕' : ''}
         </span>
         {item.source === 'manual' && (
@@ -292,11 +305,20 @@ function EditItemRow({
 export function ListDetail({ mediaTypes }: { mediaTypes: MediaType[] }) {
   const { listId } = useParams<{ listId: string }>()
   const navigate = useNavigate()
+  // Carried from Overview's task-7.6 banner/badge link (router `state`, not
+  // a URL param — a static cue only, no auto-triggered network call, so
+  // there's no effect-ordering/StrictMode double-invoke risk to reason
+  // about). Answers the confusion arriving with nothing on the page saying
+  // why this list was highlighted ("did I open the wrong list?").
+  const location = useLocation()
+  const updateAvailable = Boolean(
+    (location.state as { updateAvailable?: boolean } | null)?.updateAvailable,
+  )
   const [list, setList] = useState<MediaListDetail | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const [updates, setUpdates] = useState<Awaited<
-    ReturnType<typeof api.checkForUpdates>
-  > | null>(null)
+  const [updates, setUpdates] = useState<Awaited<ReturnType<typeof api.checkForUpdates>> | null>(
+    null,
+  )
   const [checking, setChecking] = useState(false)
   // Off by default: a rescan should respect what you pruned. Ticking it is
   // the undo for deleting something by accident.
@@ -401,7 +423,9 @@ export function ListDetail({ mediaTypes }: { mediaTypes: MediaType[] }) {
       const target = targetId && startItems.find((entry) => entry.id === targetId)
       // Only within the dragged item's own group — the season boundary
       // this task's design question resolved.
-      setDropTargetId(target && target.id !== item.id && target.group === item.group ? target.id : null)
+      setDropTargetId(
+        target && target.id !== item.id && target.group === item.group ? target.id : null,
+      )
     }
 
     function onUp(upEvent: PointerEvent) {
@@ -448,7 +472,10 @@ export function ListDetail({ mediaTypes }: { mediaTypes: MediaType[] }) {
             ...current,
             items: current.items.map((candidate) =>
               candidate.id === item.id
-                ? { ...candidate, consumedAt: candidate.consumedAt ? null : new Date().toISOString() }
+                ? {
+                    ...candidate,
+                    consumedAt: candidate.consumedAt ? null : new Date().toISOString(),
+                  }
                 : candidate,
             ),
           }
@@ -637,9 +664,7 @@ export function ListDetail({ mediaTypes }: { mediaTypes: MediaType[] }) {
       <div className="page__header">
         <div>
           <h1 className="page__title">{list.title}</h1>
-          <p className="small faint">
-            {category ? categoryLabel(category) : list.mediaType}
-          </p>
+          <p className="small faint">{category ? categoryLabel(category) : list.mediaType}</p>
         </div>
         <div className="page__actions">
           {/* Only lists built from a source have anything to check against. */}
@@ -659,7 +684,11 @@ export function ListDetail({ mediaTypes }: { mediaTypes: MediaType[] }) {
                 onClick={() => void checkForUpdates()}
                 disabled={checking}
               >
-                {checking ? copy.listDetail.checking : copy.listDetail.checkForUpdates}
+                {checking
+                  ? copy.listDetail.checking
+                  : updateAvailable
+                    ? copy.listDetail.updateList
+                    : copy.listDetail.checkForUpdates}
               </button>
             </>
           )}
@@ -668,6 +697,10 @@ export function ListDetail({ mediaTypes }: { mediaTypes: MediaType[] }) {
           </button>
         </div>
       </div>
+
+      {updateAvailable && (
+        <p className="notice notice--info">{copy.listDetail.updateAvailableNotice}</p>
+      )}
 
       {error && <p className="notice notice--error">{error}</p>}
 

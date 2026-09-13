@@ -34,10 +34,12 @@ describe('GET /api/media-types', () => {
   it('reports which categories can be searched and which cannot', async () => {
     const response = await harness.app.inject({ method: 'GET', url: '/api/media-types' })
     const byKey = new Map(
-      response.json().map((mediaType: { key: string; searchAvailable: boolean }) => [
-        mediaType.key,
-        mediaType.searchAvailable,
-      ]),
+      response
+        .json()
+        .map((mediaType: { key: string; searchAvailable: boolean }) => [
+          mediaType.key,
+          mediaType.searchAvailable,
+        ]),
     )
 
     // MusicBrainz needs no credentials, so music is searchable out of the box.
@@ -97,7 +99,9 @@ describe('POST /api/lists/:listId/items/import', () => {
     ])
 
     expect(response.statusCode).toBe(201)
-    expect(response.json().map((item: { orderIndex: number }) => item.orderIndex)).toEqual([0, 1, 2])
+    expect(response.json().map((item: { orderIndex: number }) => item.orderIndex)).toEqual([
+      0, 1, 2,
+    ])
 
     const read = await harness.app.inject({ method: 'GET', url: `/api/lists/${list.id}` })
     expect(read.json().items.map((item: { title: string }) => item.title)).toEqual([
@@ -263,7 +267,9 @@ describe('search and import from a source', () => {
   function fakeAdapter(overrides: Partial<SearchAdapter> = {}): SearchAdapter {
     return {
       isAvailable: () => true,
-      search: async () => [{ externalRef: 'ref-1', title: 'Cannibal Corpse', detail: 'Group · US' }],
+      search: async () => [
+        { externalRef: 'ref-1', title: 'Cannibal Corpse', detail: 'Group · US' },
+      ],
       expand: async () => [
         { title: 'Eaten Back to Life', externalRef: 'rg-1' },
         { title: 'The Bleeding', externalRef: 'rg-2', timeToConsumeMinutes: 47 },
@@ -275,7 +281,13 @@ describe('search and import from a source', () => {
   function withAdapter(adapter: SearchAdapter | undefined) {
     return createTestApp({
       mediaTypes: createMediaTypeRegistry([
-        { key: 'music', label: 'Music', sortOrder: 10, defaultDurationMinutes: 45, ...(adapter ? { adapter } : {}) },
+        {
+          key: 'music',
+          label: 'Music',
+          sortOrder: 10,
+          defaultDurationMinutes: 45,
+          ...(adapter ? { adapter } : {}),
+        },
         // No adapter at all — wrestling and MMA are really like this.
         { key: 'wrestling', label: 'Wrestling', sortOrder: 20, defaultDurationMinutes: 150 },
       ]),
@@ -465,8 +477,20 @@ items:
     // the category default and is marked estimated, same rule as every
     // other ingestion path.
     expect(items).toMatchObject([
-      { title: 'Rocky', year: 1976, timeToConsumeMinutes: 120, timeToConsumeIsEstimated: false, source: 'import' },
-      { title: 'Rocky II', year: 1979, timeToConsumeMinutes: 120, timeToConsumeIsEstimated: true, source: 'import' },
+      {
+        title: 'Rocky',
+        year: 1976,
+        timeToConsumeMinutes: 120,
+        timeToConsumeIsEstimated: false,
+        source: 'import',
+      },
+      {
+        title: 'Rocky II',
+        year: 1979,
+        timeToConsumeMinutes: 120,
+        timeToConsumeIsEstimated: true,
+        source: 'import',
+      },
     ])
   })
 
@@ -482,10 +506,15 @@ items:
   })
 
   it('rejects an unknown category with the same code the search-based path uses', async () => {
-    const response = await fromFile('title: X\ncategory: not-a-category\nitems:\n  - { title: X }\n')
+    const response = await fromFile(
+      'title: X\ncategory: not-a-category\nitems:\n  - { title: X }\n',
+    )
 
     expect(response.statusCode).toBe(400)
-    expect(response.json()).toEqual({ code: 'list.unknownCategory', params: { key: 'not-a-category' } })
+    expect(response.json()).toEqual({
+      code: 'list.unknownCategory',
+      params: { key: 'not-a-category' },
+    })
   })
 
   it('rejects a missing title with a specific code, not a partial list', async () => {
@@ -540,7 +569,10 @@ describe('scanning the local drop folder for custom-list files', () => {
   }
 
   it('imports a valid dropped file exactly as the upload path would', async () => {
-    drop('good.yaml', 'title: Rocky Films\ncategory: movie\nitems:\n  - { title: Rocky, year: 1976 }\n')
+    drop(
+      'good.yaml',
+      'title: Rocky Films\ncategory: movie\nitems:\n  - { title: Rocky, year: 1976 }\n',
+    )
 
     const response = await scan()
 
@@ -562,7 +594,9 @@ describe('scanning the local drop folder for custom-list files', () => {
 
     expect(response.statusCode).toBe(200)
     expect(response.json().created).toEqual([])
-    expect(response.json().failed).toEqual([{ fileName: 'bad.yaml', code: 'list.fileMissingTitle' }])
+    expect(response.json().failed).toEqual([
+      { fileName: 'bad.yaml', code: 'list.fileMissingTitle' },
+    ])
     expect((await harness.app.inject({ method: 'GET', url: '/api/lists' })).json()).toEqual([])
     expect(existsSync(join(dropDir, 'refused_entry', 'bad.yaml'))).toBe(true)
   })
@@ -574,7 +608,9 @@ describe('scanning the local drop folder for custom-list files', () => {
     const response = await scan()
 
     expect(response.statusCode).toBe(201)
-    expect(response.json().created).toEqual([{ fileName: 'good.yaml', id: expect.any(String), title: 'Good' }])
+    expect(response.json().created).toEqual([
+      { fileName: 'good.yaml', id: expect.any(String), title: 'Good' },
+    ])
     expect(response.json().failed).toEqual([{ fileName: 'bad.yaml', code: 'list.fileInvalid' }])
   })
 
@@ -753,12 +789,9 @@ describe('checking a list for updates', () => {
     harness = appWith(adapterYielding(upstream))
     const list = await buildList(harness)
 
-    const items = (
-      await harness.app.inject({ method: 'GET', url: `/api/lists/${list.id}` })
-    ).json().items
-    const unwanted = items.find(
-      (item: { title: string }) => item.title === 'Behind the Scenes',
-    )
+    const items = (await harness.app.inject({ method: 'GET', url: `/api/lists/${list.id}` })).json()
+      .items
+    const unwanted = items.find((item: { title: string }) => item.title === 'Behind the Scenes')
 
     await harness.app.inject({
       method: 'DELETE',
@@ -781,9 +814,8 @@ describe('checking a list for updates', () => {
     harness = appWith(adapterYielding(upstream))
     const list = await buildList(harness)
 
-    const items = (
-      await harness.app.inject({ method: 'GET', url: `/api/lists/${list.id}` })
-    ).json().items
+    const items = (await harness.app.inject({ method: 'GET', url: `/api/lists/${list.id}` })).json()
+      .items
 
     await harness.app.inject({
       method: 'DELETE',
@@ -809,9 +841,8 @@ describe('checking a list for updates', () => {
     harness = appWith(adapterYielding(upstream))
     const list = await buildList(harness)
 
-    const items = (
-      await harness.app.inject({ method: 'GET', url: `/api/lists/${list.id}` })
-    ).json().items
+    const items = (await harness.app.inject({ method: 'GET', url: `/api/lists/${list.id}` })).json()
+      .items
 
     await harness.app.inject({
       method: 'DELETE',
@@ -838,9 +869,8 @@ describe('checking a list for updates', () => {
     harness = appWith(adapterYielding(upstream))
     const list = await buildList(harness)
 
-    const items = (
-      await harness.app.inject({ method: 'GET', url: `/api/lists/${list.id}` })
-    ).json().items
+    const items = (await harness.app.inject({ method: 'GET', url: `/api/lists/${list.id}` })).json()
+      .items
     const first = items.find((item: { title: string }) => item.title === 'UFC 1')
 
     await harness.app.inject({
@@ -885,9 +915,11 @@ describe('checking a list for updates', () => {
 describe('canonical lists surfaced through search (task 7.4)', () => {
   let harness: TestApp
 
-  const MANIFEST_URL = 'https://raw.githubusercontent.com/neuroshaoh/listulator/main/lists/index.json'
+  const MANIFEST_URL =
+    'https://raw.githubusercontent.com/neuroshaoh/listulator/main/lists/index.json'
   const MCU_URL = 'https://raw.githubusercontent.com/neuroshaoh/listulator/main/lists/mega/mcu.yaml'
-  const MCU_YAML = 'title: Marvel Cinematic Universe\ncategory: mega\nitems:\n  - { title: Iron Man, year: 2008 }\n'
+  const MCU_YAML =
+    'title: Marvel Cinematic Universe\ncategory: mega\nitems:\n  - { title: Iron Man, year: 2008 }\n'
 
   const MANIFEST = [
     { path: 'lists/mega/mcu.yaml', title: 'Marvel Cinematic Universe', category: 'mega' },
@@ -943,18 +975,28 @@ describe('canonical lists surfaced through search (task 7.4)', () => {
   it('matches a canonical list title within the same category', async () => {
     mockGitHub({ [MANIFEST_URL]: { body: JSON.stringify(MANIFEST) } })
 
-    const response = await harness.app.inject({ method: 'GET', url: '/api/media-types/mega/search?q=marvel' })
+    const response = await harness.app.inject({
+      method: 'GET',
+      url: '/api/media-types/mega/search?q=marvel',
+    })
 
     expect(response.statusCode).toBe(200)
     expect(response.json().sources).toEqual([
-      { externalRef: 'canonical:lists/mega/mcu.yaml', title: 'Marvel Cinematic Universe', detail: 'Canonical list' },
+      {
+        externalRef: 'canonical:lists/mega/mcu.yaml',
+        title: 'Marvel Cinematic Universe',
+        detail: 'Canonical list',
+      },
     ])
   })
 
   it('is case-insensitive and matches a substring, not just an exact title', async () => {
     mockGitHub({ [MANIFEST_URL]: { body: JSON.stringify(MANIFEST) } })
 
-    const response = await harness.app.inject({ method: 'GET', url: '/api/media-types/mega/search?q=MARVEL' })
+    const response = await harness.app.inject({
+      method: 'GET',
+      url: '/api/media-types/mega/search?q=MARVEL',
+    })
 
     expect(response.json().sources).toHaveLength(1)
   })
@@ -965,7 +1007,10 @@ describe('canonical lists surfaced through search (task 7.4)', () => {
     // "lord" matches the LOTR manifest entry's title, but that entry is
     // category "book" — searching "book" (which has a real adapter) must not
     // pick it up.
-    const response = await harness.app.inject({ method: 'GET', url: '/api/media-types/book/search?q=marvel' })
+    const response = await harness.app.inject({
+      method: 'GET',
+      url: '/api/media-types/book/search?q=marvel',
+    })
 
     expect(response.statusCode).toBe(200)
     expect(response.json().sources).toEqual([{ externalRef: 'ol:OL1A', title: 'A Real Author' }])
@@ -974,7 +1019,10 @@ describe('canonical lists surfaced through search (task 7.4)', () => {
   it('works for a category with no adapter at all, where search would otherwise be unavailable', async () => {
     mockGitHub({ [MANIFEST_URL]: { body: JSON.stringify(MANIFEST) } })
 
-    const response = await harness.app.inject({ method: 'GET', url: '/api/media-types/mega/search?q=marvel' })
+    const response = await harness.app.inject({
+      method: 'GET',
+      url: '/api/media-types/mega/search?q=marvel',
+    })
 
     expect(response.statusCode).toBe(200)
   })
@@ -982,27 +1030,40 @@ describe('canonical lists surfaced through search (task 7.4)', () => {
   it('still reports search.unavailable when neither the adapter nor a canonical match exists', async () => {
     mockGitHub({ [MANIFEST_URL]: { body: JSON.stringify(MANIFEST) } })
 
-    const response = await harness.app.inject({ method: 'GET', url: '/api/media-types/mega/search?q=nothing-real' })
+    const response = await harness.app.inject({
+      method: 'GET',
+      url: '/api/media-types/mega/search?q=nothing-real',
+    })
 
     expect(response.statusCode).toBe(409)
     expect(response.json()).toEqual({ code: 'search.unavailable', params: { category: 'Mega' } })
   })
 
-  it('merges canonical matches alongside a real, available adapter\'s own results', async () => {
+  it("merges canonical matches alongside a real, available adapter's own results", async () => {
     mockGitHub({ [MANIFEST_URL]: { body: JSON.stringify(MANIFEST) } })
 
-    const response = await harness.app.inject({ method: 'GET', url: '/api/media-types/book/search?q=lord' })
+    const response = await harness.app.inject({
+      method: 'GET',
+      url: '/api/media-types/book/search?q=lord',
+    })
 
     expect(response.json().sources).toEqual([
-      { externalRef: 'canonical:lists/book/lotr.yaml', title: 'The Lord of the Rings', detail: 'Canonical list' },
+      {
+        externalRef: 'canonical:lists/book/lotr.yaml',
+        title: 'The Lord of the Rings',
+        detail: 'Canonical list',
+      },
       { externalRef: 'ol:OL1A', title: 'A Real Author' },
     ])
   })
 
-  it('degrades to the adapter\'s own results alone when the canonical repo is unreachable', async () => {
+  it("degrades to the adapter's own results alone when the canonical repo is unreachable", async () => {
     mockGitHub({ [MANIFEST_URL]: { body: '404: Not Found', status: 404 } })
 
-    const response = await harness.app.inject({ method: 'GET', url: '/api/media-types/book/search?q=lord' })
+    const response = await harness.app.inject({
+      method: 'GET',
+      url: '/api/media-types/book/search?q=lord',
+    })
 
     expect(response.statusCode).toBe(200)
     expect(response.json().sources).toEqual([{ externalRef: 'ol:OL1A', title: 'A Real Author' }])
@@ -1065,7 +1126,6 @@ describe('canonical lists surfaced through search (task 7.4)', () => {
     expect(response.json()).toEqual({ code: 'list.unknownCategory', params: { key: 'not-real' } })
     expect((await harness.app.inject({ method: 'GET', url: '/api/lists' })).json()).toEqual([])
   })
-
 })
 
 describe('refresh support for synced canonical lists (task 7.5)', () => {
@@ -1192,5 +1252,151 @@ describe('refresh support for synced canonical lists (task 7.5)', () => {
     })
 
     expect(response.statusCode).toBe(502)
+  })
+})
+
+describe('"this list was updated" check across synced canonical lists (task 7.6)', () => {
+  let harness: TestApp
+
+  const MCU_URL = 'https://raw.githubusercontent.com/neuroshaoh/listulator/main/lists/mega/mcu.yaml'
+
+  function mockGitHub(routes: Record<string, { body: string; status?: number }>) {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (url: string) => {
+        const route = routes[url]
+        if (!route) throw new Error(`unexpected fetch: ${url}`)
+        return new Response(route.body, { status: route.status ?? 200 })
+      }),
+    )
+  }
+
+  async function syncMcu(bodyYaml: string) {
+    mockGitHub({ [MCU_URL]: { body: bodyYaml } })
+
+    return (
+      await harness.app.inject({
+        method: 'POST',
+        url: '/api/lists/from-source',
+        payload: {
+          mediaType: 'mega',
+          externalRef: 'canonical:lists/mega/mcu.yaml',
+          title: 'Marvel Cinematic Universe',
+        },
+      })
+    ).json()
+  }
+
+  beforeEach(() => {
+    harness = createTestApp({
+      mediaTypes: createMediaTypeRegistry([
+        { key: 'mega', label: 'Mega', sortOrder: 10, defaultDurationMinutes: 120 },
+      ]),
+    })
+  })
+
+  afterEach(async () => {
+    await harness.cleanup()
+    vi.unstubAllGlobals()
+  })
+
+  it('reports nothing when no synced list has changed', async () => {
+    await syncMcu(
+      'title: Marvel Cinematic Universe\ncategory: mega\nitems:\n  - { title: Iron Man, year: 2008 }\n',
+    )
+
+    mockGitHub({
+      [MCU_URL]: {
+        body: 'title: Marvel Cinematic Universe\ncategory: mega\nitems:\n  - { title: Iron Man, year: 2008 }\n',
+      },
+    })
+
+    const response = await harness.app.inject({ method: 'GET', url: '/api/lists/updates' })
+
+    expect(response.statusCode).toBe(200)
+    expect(response.json()).toEqual({ updates: [] })
+  })
+
+  it('names a synced list that gained a new upstream item', async () => {
+    const created = await syncMcu(
+      'title: Marvel Cinematic Universe\ncategory: mega\nitems:\n  - { title: Iron Man, year: 2008 }\n',
+    )
+
+    mockGitHub({
+      [MCU_URL]: {
+        body:
+          'title: Marvel Cinematic Universe\ncategory: mega\nitems:\n' +
+          '  - { title: Iron Man, year: 2008 }\n' +
+          '  - { title: The Incredible Hulk, year: 2008 }\n',
+      },
+    })
+
+    const response = await harness.app.inject({ method: 'GET', url: '/api/lists/updates' })
+
+    expect(response.json()).toEqual({
+      updates: [{ listId: created.id, title: 'Marvel Cinematic Universe' }],
+    })
+  })
+
+  it('does not report a change whose only new item was already dismissed by hand', async () => {
+    const created = await syncMcu(
+      'title: Marvel Cinematic Universe\ncategory: mega\nitems:\n' +
+        '  - { title: Iron Man, year: 2008 }\n' +
+        '  - { title: The Incredible Hulk, year: 2008 }\n',
+    )
+
+    const hulk = (await harness.app.inject({ method: 'GET', url: `/api/lists/${created.id}` }))
+      .json()
+      .items.find((item: { title: string }) => item.title === 'The Incredible Hulk')
+
+    await harness.app.inject({
+      method: 'DELETE',
+      url: `/api/lists/${created.id}/items/${hulk.id}`,
+    })
+
+    const response = await harness.app.inject({ method: 'GET', url: '/api/lists/updates' })
+
+    expect(response.json()).toEqual({ updates: [] })
+  })
+
+  it('never reports a non-canonical list, even one with its own external source', async () => {
+    harness = createTestApp({
+      mediaTypes: createMediaTypeRegistry([
+        {
+          key: 'mega',
+          label: 'Mega',
+          sortOrder: 10,
+          defaultDurationMinutes: 120,
+          adapter: {
+            isAvailable: () => true,
+            search: async () => [{ externalRef: 'tmdb:1', title: 'Some Franchise' }],
+            expand: async () => [{ title: 'New Entry', externalRef: 'tmdb:2' }],
+          },
+        },
+      ]),
+    })
+
+    await harness.app.inject({
+      method: 'POST',
+      url: '/api/lists/from-source',
+      payload: { mediaType: 'mega', externalRef: 'tmdb:1', title: 'Some Franchise' },
+    })
+
+    const response = await harness.app.inject({ method: 'GET', url: '/api/lists/updates' })
+
+    expect(response.json()).toEqual({ updates: [] })
+  })
+
+  it('degrades silently, excluding the list, when its canonical file is unreachable', async () => {
+    await syncMcu(
+      'title: Marvel Cinematic Universe\ncategory: mega\nitems:\n  - { title: Iron Man, year: 2008 }\n',
+    )
+
+    mockGitHub({ [MCU_URL]: { body: '404: Not Found', status: 404 } })
+
+    const response = await harness.app.inject({ method: 'GET', url: '/api/lists/updates' })
+
+    expect(response.statusCode).toBe(200)
+    expect(response.json()).toEqual({ updates: [] })
   })
 })
