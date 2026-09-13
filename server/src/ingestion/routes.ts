@@ -11,6 +11,7 @@ import {
   findListWithStats,
 } from '../catalog/repository.js'
 import { sendApiError } from '../apiErrors.js'
+import { CustomListParseError, parseCustomList } from './customLists.js'
 import { IngestionError } from './http.js'
 import type { AppDatabase } from '../db/client.js'
 import type { MediaTypeRegistry } from './mediaTypes.js'
@@ -124,6 +125,64 @@ export const ingestionRoutes: FastifyPluginAsync<IngestionRoutesOptions> = async
           ...(candidate.externalRef ? { externalRef: candidate.externalRef } : {}),
           ...(candidate.year ? { year: candidate.year } : {}),
           ...(candidate.group ? { group: candidate.group } : {}),
+          source: 'import',
+        })
+      }
+
+      return reply.code(201).send(await findListWithStats(db, user.id, list.id))
+    },
+  )
+
+  /**
+   * Creates a list from a pasted or uploaded custom-list YAML file
+   * (`docs/intent/custom-lists.md`, task 7.2). One-time import, like manual
+   * entry — no `externalRef`, so it gets the same "nothing to refresh
+   * against" behaviour as a hand-made list for free; there is no stable
+   * upstream to refetch from (that's what 7.4/7.5's canonical sync is for).
+   */
+  app.post<{ Body: { yaml: string } }>(
+    '/lists/from-file',
+    {
+      schema: {
+        body: {
+          type: 'object',
+          required: ['yaml'],
+          additionalProperties: false,
+          properties: { yaml: { type: 'string', minLength: 1, maxLength: 200_000 } },
+        },
+      },
+    },
+    async (request, reply) => {
+      const user = getCurrentUser(request)
+
+      let parsed
+      try {
+        parsed = parseCustomList(request.body.yaml, new Set(mediaTypes.list().map((entry) => entry.key)))
+      } catch (cause) {
+        if (cause instanceof CustomListParseError) {
+          return sendApiError(reply, 400, cause.code, cause.params)
+        }
+        throw cause
+      }
+
+      const mediaType = mediaTypes.get(parsed.category)!
+
+      const list = await createList(db, user.id, {
+        title: parsed.title,
+        mediaType: parsed.category,
+        source: 'file',
+      })
+
+      // Sequential, not Promise.all — see the from-source route above for why.
+      for (const item of parsed.items) {
+        const known = item.minutes !== undefined
+
+        await createListItem(db, user.id, list.id, {
+          title: item.title,
+          timeToConsumeMinutes: known ? item.minutes! : mediaType.defaultDurationMinutes,
+          timeToConsumeIsEstimated: !known,
+          ...(item.year !== undefined ? { year: item.year } : {}),
+          ...(item.group !== undefined ? { group: item.group } : {}),
           source: 'import',
         })
       }

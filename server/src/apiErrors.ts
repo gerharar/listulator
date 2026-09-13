@@ -26,6 +26,9 @@ export type ApiErrorCode =
   | 'search.unavailable'
   | 'list.unknownCategory'
   | 'list.sourceEmpty'
+  | 'list.fileInvalid'
+  | 'list.fileMissingTitle'
+  | 'list.fileItemMissingTitle'
   | 'refresh.handMadeList'
   | 'refresh.searchUnavailable'
 

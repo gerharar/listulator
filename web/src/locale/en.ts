@@ -178,6 +178,17 @@ export const en = {
     } as Record<string, string | undefined>,
   },
 
+  customListImport: {
+    heading: 'Import a list file',
+    hint: 'A YAML file with its own title, category, and items — see CONTRIBUTING.md for the format. The category picker above does not apply here.',
+    chooseFileLabel: 'Choose a .yaml file…',
+    pasteLabel: 'Or paste it here',
+    pastePlaceholder: 'title: All Jackie Chan Movies\ncategory: movie\nitems:\n  - { title: Drunken Master, year: 1978 }',
+    import: 'Import',
+    importing: 'Importing…',
+    importFailed: 'Could not import that file',
+  },
+
   /**
    * Optional per-category overrides. Empty by default: the server's registry
    * supplies every label and description, and `media_type` is open, so a new
@@ -201,6 +212,11 @@ export const en = {
     'list.unknownCategory': (p: { key: string }): string => `Unknown category "${p.key}".`,
     'list.sourceEmpty': (p: { title: string }): string =>
       `Found nothing to import for "${p.title}".`,
+    'list.fileInvalid': (): string =>
+      "That file isn't a valid list — check it matches the format in CONTRIBUTING.md.",
+    'list.fileMissingTitle': (): string => 'This list needs a title.',
+    'list.fileItemMissingTitle': (p: { index: number }): string =>
+      `Item ${p.index} is missing a title.`,
     'refresh.handMadeList': (): string =>
       'This list was made by hand, so there is nothing to check against.',
     'refresh.searchUnavailable': (p: { category: string }): string =>

@@ -33,8 +33,14 @@ export const users = sqliteTable(
 
 export type User = typeof users.$inferSelect
 
-/** Where a list's contents came from. Free text by design — see `mediaType`. */
-export type ListSource = 'api' | 'llm' | 'manual'
+/**
+ * Where a list's contents came from. Free text by design — see `mediaType`.
+ * `'file'` is a pasted/uploaded custom-list YAML file (task 7.2,
+ * `docs/intent/custom-lists.md`) — kept distinct from `'manual'` (the
+ * hand-typed creation form) since it is a bulk, machine-parsed import, and
+ * distinct from `'api'` since it has no live upstream to refresh against.
+ */
+export type ListSource = 'api' | 'llm' | 'manual' | 'file'
 
 /**
  * Where one item came from — distinct from `ListSource` above, and tracked

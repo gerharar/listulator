@@ -14,7 +14,7 @@ export interface MediaList {
   id: string
   title: string
   mediaType: string
-  source: 'api' | 'llm' | 'manual'
+  source: 'api' | 'llm' | 'manual' | 'file'
   externalRef: string | null
   createdAt: string
   updatedAt: string
@@ -156,6 +156,8 @@ export interface ApiClient {
     externalRef: string
     title: string
   }) => Promise<MediaList>
+  /** Creates a list from a pasted or uploaded custom-list YAML file (task 7.2). */
+  createFromFile: (input: { yaml: string }) => Promise<MediaList>
   checkForUpdates: (
     listId: string,
     includeDismissed?: boolean,
@@ -240,6 +242,9 @@ export const fetchApi: ApiClient = {
 
   createFromSource: (input: { mediaType: string; externalRef: string; title: string }) =>
     request<MediaList>('/lists/from-source', { method: 'POST', body: JSON.stringify(input) }),
+
+  createFromFile: (input: { yaml: string }) =>
+    request<MediaList>('/lists/from-file', { method: 'POST', body: JSON.stringify(input) }),
 
   /** Dry run: reports what the source has that the list does not. Changes nothing. */
   checkForUpdates: (listId: string, includeDismissed = false) =>

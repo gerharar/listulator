@@ -28,8 +28,9 @@ import {
   type ListWithStats,
 } from '../../../server/src/catalog/repository.js'
 import { dismissalTitleKey, type ListItem as SchemaListItem } from '../../../server/src/db/schema.js'
+import { CustomListParseError, parseCustomList } from '../../../server/src/ingestion/customLists.js'
 import { rank, type Suggestion } from '../../../server/src/suggestions/engine.js'
-import { copy } from '../locale/index.js'
+import { copy, errorMessage } from '../locale/index.js'
 import type {
   ApiClient,
   CurrentUser,
@@ -314,6 +315,49 @@ export function createLocalApi(): ApiClient {
           ...(candidate.externalRef ? { externalRef: candidate.externalRef } : {}),
           ...(candidate.year ? { year: candidate.year } : {}),
           ...(candidate.group ? { group: candidate.group } : {}),
+          source: 'import',
+        })
+      }
+
+      const withStats = await findListWithStats(database, userId, list.id)
+      return toMediaList(withStats!)
+    },
+
+    // Mirrors server/src/ingestion/routes.ts's /lists/from-file handler,
+    // against the real local registry instead of Fastify + a Drizzle db
+    // handle — same parser, same validation, same error codes.
+    createFromFile: async ({ yaml }) => {
+      const [database, userId] = [await getDb(), await getUserId()]
+      const mediaTypes = await getLocalMediaTypes()
+
+      let parsed
+      try {
+        parsed = parseCustomList(yaml, new Set(mediaTypes.map((entry) => entry.key)))
+      } catch (cause) {
+        if (cause instanceof CustomListParseError) {
+          throw new ApiError(errorMessage(cause.code, cause.params) ?? cause.code, 400)
+        }
+        throw cause
+      }
+
+      const mediaType = mediaTypes.find((entry) => entry.key === parsed.category)!
+
+      const list = await repoCreateList(database, userId, {
+        title: parsed.title,
+        mediaType: parsed.category,
+        source: 'file',
+      })
+
+      // Sequential, not Promise.all — see docs/DECISIONS.md, task 5.1.
+      for (const item of parsed.items) {
+        const known = item.minutes !== undefined
+
+        await createListItem(database, userId, list.id, {
+          title: item.title,
+          timeToConsumeMinutes: known ? item.minutes! : mediaType.defaultDurationMinutes,
+          timeToConsumeIsEstimated: !known,
+          ...(item.year !== undefined ? { year: item.year } : {}),
+          ...(item.group !== undefined ? { group: item.group } : {}),
           source: 'import',
         })
       }

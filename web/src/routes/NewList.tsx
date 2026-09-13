@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
+import { CustomListImport } from '../components/CustomListImport.js'
 import { SourceSearch } from '../components/SourceSearch.js'
 import { api, type MediaType } from '../lib/api.js'
 import { formatDuration } from '../formatDuration.js'
@@ -140,6 +141,8 @@ export function NewList({ mediaTypes }: { mediaTypes: MediaType[] }) {
           </button>
         </div>
       </form>
+
+      <CustomListImport onImported={(listId) => void navigate(`/lists/${listId}`)} />
     </>
   )
 }

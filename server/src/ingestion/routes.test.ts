@@ -420,6 +420,100 @@ describe('search and import from a source', () => {
   })
 })
 
+describe('creating a list from a custom-list file', () => {
+  let harness: TestApp
+
+  beforeEach(() => {
+    harness = createTestApp()
+  })
+
+  afterEach(async () => {
+    await harness.cleanup()
+  })
+
+  function fromFile(yaml: string) {
+    return harness.app.inject({ method: 'POST', url: '/api/lists/from-file', payload: { yaml } })
+  }
+
+  it('creates a real list with correct items, durations, and years', async () => {
+    const yaml = `
+title: Rocky Films
+category: movie
+items:
+  - { title: Rocky, year: 1976, minutes: 120 }
+  - { title: Rocky II, year: 1979 }
+`
+    const response = await fromFile(yaml)
+
+    expect(response.statusCode).toBe(201)
+    expect(response.json()).toMatchObject({
+      title: 'Rocky Films',
+      mediaType: 'movie',
+      source: 'file',
+      externalRef: null,
+      stats: { totalItems: 2 },
+    })
+
+    const items = (
+      await harness.app.inject({ method: 'GET', url: `/api/lists/${response.json().id}` })
+    ).json().items
+
+    // A duration the file gave is kept as fact; an omitted one falls back to
+    // the category default and is marked estimated, same rule as every
+    // other ingestion path.
+    expect(items).toMatchObject([
+      { title: 'Rocky', year: 1976, timeToConsumeMinutes: 120, timeToConsumeIsEstimated: false, source: 'import' },
+      { title: 'Rocky II', year: 1979, timeToConsumeMinutes: 120, timeToConsumeIsEstimated: true, source: 'import' },
+    ])
+  })
+
+  it('preserves a group label per item', async () => {
+    const yaml = 'title: X\ncategory: tv\nitems:\n  - { title: Pilot, group: Season 1 }\n'
+    const response = await fromFile(yaml)
+
+    const items = (
+      await harness.app.inject({ method: 'GET', url: `/api/lists/${response.json().id}` })
+    ).json().items
+
+    expect(items).toMatchObject([{ title: 'Pilot', group: 'Season 1' }])
+  })
+
+  it('rejects an unknown category with the same code the search-based path uses', async () => {
+    const response = await fromFile('title: X\ncategory: not-a-category\nitems:\n  - { title: X }\n')
+
+    expect(response.statusCode).toBe(400)
+    expect(response.json()).toEqual({ code: 'list.unknownCategory', params: { key: 'not-a-category' } })
+  })
+
+  it('rejects a missing title with a specific code, not a partial list', async () => {
+    const response = await fromFile('category: movie\nitems:\n  - { title: X }\n')
+
+    expect(response.statusCode).toBe(400)
+    expect(response.json()).toEqual({ code: 'list.fileMissingTitle' })
+
+    expect((await harness.app.inject({ method: 'GET', url: '/api/lists' })).json()).toEqual([])
+  })
+
+  it('rejects an item missing a title, naming its position, creating nothing', async () => {
+    const response = await fromFile(
+      'title: X\ncategory: movie\nitems:\n  - { title: First }\n  - { year: 2000 }\n',
+    )
+
+    expect(response.statusCode).toBe(400)
+    expect(response.json()).toEqual({ code: 'list.fileItemMissingTitle', params: { index: 2 } })
+
+    // Not a partial import: the whole file is rejected before any list exists.
+    expect((await harness.app.inject({ method: 'GET', url: '/api/lists' })).json()).toEqual([])
+  })
+
+  it('rejects unparseable YAML', async () => {
+    const response = await fromFile('title: [unclosed')
+
+    expect(response.statusCode).toBe(400)
+    expect(response.json()).toEqual({ code: 'list.fileInvalid' })
+  })
+})
+
 describe('checking a list for updates', () => {
   let harness: TestApp
 
