@@ -11,14 +11,23 @@ import {
   findListWithStats,
 } from '../catalog/repository.js'
 import { sendApiError } from '../apiErrors.js'
-import { CustomListParseError, parseCustomList } from './customLists.js'
+import {
+  CustomListParseError,
+  listsDropDir as defaultListsDropDir,
+  parseCustomList,
+  scanListsDropFolder,
+  type ParsedCustomList,
+} from './customLists.js'
 import { IngestionError } from './http.js'
 import type { AppDatabase } from '../db/client.js'
 import type { MediaTypeRegistry } from './mediaTypes.js'
+import type { User } from '../db/schema.js'
 
 export interface IngestionRoutesOptions {
   db: AppDatabase
   mediaTypes: MediaTypeRegistry
+  /** Overridable so tests can scan a fixture directory instead of the real one. */
+  listsDropDir?: string
 }
 
 interface ImportItem {
@@ -31,8 +40,40 @@ interface ImportItem {
 
 export const ingestionRoutes: FastifyPluginAsync<IngestionRoutesOptions> = async (
   app,
-  { db, mediaTypes },
+  { db, mediaTypes, listsDropDir },
 ) => {
+  /**
+   * Shared by `/lists/from-file` and `/lists/scan-folder` — creates a list
+   * and its items from an already-parsed, already-validated custom list.
+   * `parsed.category` is guaranteed to be a real registry key by
+   * `parseCustomList` itself, so the lookup here cannot fail.
+   */
+  async function importParsedList(user: User, parsed: ParsedCustomList) {
+    const mediaType = mediaTypes.get(parsed.category)!
+
+    const list = await createList(db, user.id, {
+      title: parsed.title,
+      mediaType: parsed.category,
+      source: 'file',
+    })
+
+    // Sequential, not Promise.all — see the from-source route above for why.
+    for (const item of parsed.items) {
+      const known = item.minutes !== undefined
+
+      await createListItem(db, user.id, list.id, {
+        title: item.title,
+        timeToConsumeMinutes: known ? item.minutes! : mediaType.defaultDurationMinutes,
+        timeToConsumeIsEstimated: !known,
+        ...(item.year !== undefined ? { year: item.year } : {}),
+        ...(item.group !== undefined ? { group: item.group } : {}),
+        source: 'import',
+      })
+    }
+
+    return list
+  }
+
   // Upstream being down or rate-limiting is not a bug in this app, and the
   // message says which service and what to do about it.
   app.setErrorHandler((error, request, reply) => {
@@ -155,7 +196,7 @@ export const ingestionRoutes: FastifyPluginAsync<IngestionRoutesOptions> = async
     async (request, reply) => {
       const user = getCurrentUser(request)
 
-      let parsed
+      let parsed: ParsedCustomList
       try {
         parsed = parseCustomList(request.body.yaml, new Set(mediaTypes.list().map((entry) => entry.key)))
       } catch (cause) {
@@ -165,31 +206,47 @@ export const ingestionRoutes: FastifyPluginAsync<IngestionRoutesOptions> = async
         throw cause
       }
 
-      const mediaType = mediaTypes.get(parsed.category)!
-
-      const list = await createList(db, user.id, {
-        title: parsed.title,
-        mediaType: parsed.category,
-        source: 'file',
-      })
-
-      // Sequential, not Promise.all — see the from-source route above for why.
-      for (const item of parsed.items) {
-        const known = item.minutes !== undefined
-
-        await createListItem(db, user.id, list.id, {
-          title: item.title,
-          timeToConsumeMinutes: known ? item.minutes! : mediaType.defaultDurationMinutes,
-          timeToConsumeIsEstimated: !known,
-          ...(item.year !== undefined ? { year: item.year } : {}),
-          ...(item.group !== undefined ? { group: item.group } : {}),
-          source: 'import',
-        })
-      }
-
+      const list = await importParsedList(user, parsed)
       return reply.code(201).send(await findListWithStats(db, user.id, list.id))
     },
   )
+
+  /**
+   * Scans the configured drop folder (`list_customs/` by default, task 7.3)
+   * for `.yaml`/`.yml` files and imports each valid one through the same
+   * path as `/lists/from-file`. Triggered on demand (a "check folder"
+   * action) rather than by background polling — the confirmed constraint
+   * in `docs/intent/custom-lists.md`. A file that fails to parse is reported
+   * here, not silently skipped, and moves to `refused_entry/` alongside the
+   * reason; either way it leaves the drop folder so a repeat scan cannot
+   * reprocess it.
+   */
+  app.post('/lists/scan-folder', async (request, reply) => {
+    const user = getCurrentUser(request)
+
+    const outcomes = scanListsDropFolder(
+      listsDropDir ?? defaultListsDropDir(),
+      new Set(mediaTypes.list().map((entry) => entry.key)),
+    )
+
+    const created = []
+    const failed = []
+
+    for (const outcome of outcomes) {
+      if (outcome.result.ok) {
+        const list = await importParsedList(user, outcome.result.list)
+        created.push({ fileName: outcome.fileName, id: list.id, title: list.title })
+      } else {
+        failed.push({
+          fileName: outcome.fileName,
+          code: outcome.result.error.code,
+          ...(outcome.result.error.params ? { params: outcome.result.error.params } : {}),
+        })
+      }
+    }
+
+    return reply.code(created.length > 0 ? 201 : 200).send({ created, failed })
+  })
 
   /**
    * Reports what a list's source has that the list does not.

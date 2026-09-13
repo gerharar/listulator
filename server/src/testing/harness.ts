@@ -21,6 +21,8 @@ export interface TestAppOptions extends Partial<ServerConfig> {
   mediaTypes?: MediaTypeRegistry
   /** Point at fixture strategy files instead of the shipped ones. */
   strategiesDir?: string
+  /** Point at a fixture drop folder instead of the real one. */
+  listsDropDir?: string
 }
 
 /**
@@ -30,6 +32,7 @@ export interface TestAppOptions extends Partial<ServerConfig> {
 export function createTestApp({
   mediaTypes,
   strategiesDir,
+  listsDropDir,
   ...overrides
 }: TestAppOptions = {}): TestApp {
   const directory = mkdtempSync(join(tmpdir(), 'listulator-test-'))
@@ -46,6 +49,7 @@ export function createTestApp({
     config,
     ...(mediaTypes ? { mediaTypes } : {}),
     ...(strategiesDir ? { strategiesDir } : {}),
+    ...(listsDropDir ? { listsDropDir } : {}),
   })
 
   return {

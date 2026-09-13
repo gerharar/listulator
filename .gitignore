@@ -16,6 +16,10 @@ coverage/
 *.sqlite-shm
 data/
 
+# Local filesystem-drop folder for custom lists (task 7.3) — a self-hoster's
+# own dropped files, admitted/refused, never the repo's own content.
+list_customs/
+
 # Secrets / local config
 .env
 .env.*

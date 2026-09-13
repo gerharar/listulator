@@ -1,3 +1,6 @@
+import { existsSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { createTestApp, type TestApp } from '../testing/harness.js'
 import { IngestionError } from './http.js'
@@ -511,6 +514,85 @@ items:
 
     expect(response.statusCode).toBe(400)
     expect(response.json()).toEqual({ code: 'list.fileInvalid' })
+  })
+})
+
+describe('scanning the local drop folder for custom-list files', () => {
+  let harness: TestApp
+  let dropDir: string
+
+  beforeEach(() => {
+    dropDir = mkdtempSync(join(tmpdir(), 'listulator-drop-route-'))
+    harness = createTestApp({ listsDropDir: dropDir })
+  })
+
+  afterEach(async () => {
+    await harness.cleanup()
+    rmSync(dropDir, { recursive: true, force: true })
+  })
+
+  function drop(fileName: string, contents: string): void {
+    writeFileSync(join(dropDir, fileName), contents)
+  }
+
+  function scan() {
+    return harness.app.inject({ method: 'POST', url: '/api/lists/scan-folder' })
+  }
+
+  it('imports a valid dropped file exactly as the upload path would', async () => {
+    drop('good.yaml', 'title: Rocky Films\ncategory: movie\nitems:\n  - { title: Rocky, year: 1976 }\n')
+
+    const response = await scan()
+
+    expect(response.statusCode).toBe(201)
+    expect(response.json().created).toEqual([
+      { fileName: 'good.yaml', id: expect.any(String), title: 'Rocky Films' },
+    ])
+    expect(response.json().failed).toEqual([])
+
+    const list = (await harness.app.inject({ method: 'GET', url: '/api/lists' })).json()[0]
+    expect(list).toMatchObject({ title: 'Rocky Films', mediaType: 'movie', source: 'file' })
+    expect(existsSync(join(dropDir, 'admitted', 'good.yaml'))).toBe(true)
+  })
+
+  it('reports an invalid dropped file, not silently skipping or half-importing it', async () => {
+    drop('bad.yaml', 'category: movie\nitems:\n  - { title: X }\n')
+
+    const response = await scan()
+
+    expect(response.statusCode).toBe(200)
+    expect(response.json().created).toEqual([])
+    expect(response.json().failed).toEqual([{ fileName: 'bad.yaml', code: 'list.fileMissingTitle' }])
+    expect((await harness.app.inject({ method: 'GET', url: '/api/lists' })).json()).toEqual([])
+    expect(existsSync(join(dropDir, 'refused_entry', 'bad.yaml'))).toBe(true)
+  })
+
+  it('imports the good files and reports the bad one in a single mixed scan', async () => {
+    drop('good.yaml', 'title: Good\ncategory: movie\nitems:\n  - { title: X }\n')
+    drop('bad.yaml', 'title: [unclosed')
+
+    const response = await scan()
+
+    expect(response.statusCode).toBe(201)
+    expect(response.json().created).toEqual([{ fileName: 'good.yaml', id: expect.any(String), title: 'Good' }])
+    expect(response.json().failed).toEqual([{ fileName: 'bad.yaml', code: 'list.fileInvalid' }])
+  })
+
+  it('does nothing on an empty or missing folder', async () => {
+    const response = await scan()
+
+    expect(response.statusCode).toBe(200)
+    expect(response.json()).toEqual({ created: [], failed: [] })
+  })
+
+  it('a repeated scan does not re-import an already-admitted file', async () => {
+    drop('good.yaml', 'title: X\ncategory: movie\nitems:\n  - { title: A }\n')
+    await scan()
+
+    const second = await scan()
+
+    expect(second.json()).toEqual({ created: [], failed: [] })
+    expect((await harness.app.inject({ method: 'GET', url: '/api/lists' })).json()).toHaveLength(1)
   })
 })
 

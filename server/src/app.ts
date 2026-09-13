@@ -15,6 +15,8 @@ export interface AppDependencies {
   mediaTypes?: MediaTypeRegistry
   /** Overridable so tests can rank against fixture strategy files. */
   strategiesDir?: string
+  /** Overridable so tests can scan a fixture directory instead of the real one. */
+  listsDropDir?: string
 }
 
 /**
@@ -26,6 +28,7 @@ export function buildApp({
   config,
   mediaTypes = createMediaTypeRegistry(),
   strategiesDir,
+  listsDropDir,
 }: AppDependencies): FastifyInstance {
   const app = Fastify({ logger: false })
 
@@ -40,7 +43,7 @@ export function buildApp({
       await api.register(currentUserPlugin, { db, config })
       await api.register(authRoutes)
       await api.register(catalogRoutes, { db, mediaTypes })
-      await api.register(ingestionRoutes, { db, mediaTypes })
+      await api.register(ingestionRoutes, { db, mediaTypes, ...(listsDropDir ? { listsDropDir } : {}) })
       await api.register(suggestionsRoutes, { db, ...(strategiesDir ? { strategiesDir } : {}) })
     },
     { prefix: '/api' },
