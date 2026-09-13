@@ -44,7 +44,7 @@ function parseBoolean(value: string | undefined, fallback: boolean): boolean {
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): ServerConfig {
   return {
     singleUserMode: parseBoolean(env['SINGLE_USER_MODE'], true),
-    databasePath: env['DATABASE_PATH'] ?? 'data/duldulator.sqlite',
+    databasePath: env['DATABASE_PATH'] ?? 'data/listulator.sqlite',
     port: Number(env['PORT'] ?? 3001),
     host: env['HOST'] ?? '127.0.0.1',
   }

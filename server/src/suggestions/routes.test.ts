@@ -166,7 +166,7 @@ describe('suggestion endpoints', () => {
   })
 
   it('reports a broken strategy file clearly instead of a bare 500', async () => {
-    const directory = mkdtempSync(join(tmpdir(), 'duldulator-bad-strategies-'))
+    const directory = mkdtempSync(join(tmpdir(), 'listulator-bad-strategies-'))
     writeFileSync(join(directory, 'quickie.json'), '{ "name": "quickie", "factors": [] }')
 
     const broken = createTestApp({ strategiesDir: directory })

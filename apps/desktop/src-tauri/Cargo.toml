@@ -1,8 +1,8 @@
 [package]
-name = "duldulator-desktop"
+name = "listulator-desktop"
 version = "0.1.0"
-description = "Duldulator standalone desktop app"
-authors = ["Duldulator contributors"]
+description = "Listulator standalone desktop app"
+authors = ["Listulator contributors"]
 license = "AGPL-3.0-only"
 repository = ""
 edition = "2021"

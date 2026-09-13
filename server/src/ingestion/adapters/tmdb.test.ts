@@ -230,19 +230,19 @@ describe('credential timing', () => {
    * mocked test passed — only a live run caught it.
    */
   it('sees a key that appears after the adapter was built', () => {
-    delete process.env['DULDULATOR_TMDB_TEST_KEY']
+    delete process.env['LISTULATOR_TMDB_TEST_KEY']
 
     const adapter = createTmdbAdapter(() => ({
-      apiKey: process.env['DULDULATOR_TMDB_TEST_KEY'],
+      apiKey: process.env['LISTULATOR_TMDB_TEST_KEY'],
       readAccessToken: undefined,
     }))
 
     expect(adapter.isAvailable()).toBe(false)
 
-    process.env['DULDULATOR_TMDB_TEST_KEY'] = 'loaded-later'
+    process.env['LISTULATOR_TMDB_TEST_KEY'] = 'loaded-later'
     expect(adapter.isAvailable()).toBe(true)
 
-    delete process.env['DULDULATOR_TMDB_TEST_KEY']
+    delete process.env['LISTULATOR_TMDB_TEST_KEY']
   })
 
   it('still accepts credentials passed directly', () => {

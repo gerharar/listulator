@@ -1,5 +1,5 @@
 {
-  "name": "duldulator",
+  "name": "listulator",
   "version": "0.1.0",
   "private": true,
   "description": "A self-hostable completionist tracker for serialized media — finish the whole list.",
@@ -12,15 +12,15 @@
   ],
   "scripts": {
     "dev": "concurrently -n server,web -c blue,green \"npm:dev:server\" \"npm:dev:web\"",
-    "dev:server": "npm run dev -w @duldulator/server",
-    "dev:web": "npm run dev -w @duldulator/web",
+    "dev:server": "npm run dev -w @listulator/server",
+    "dev:web": "npm run dev -w @listulator/web",
     "build": "npm run build --workspaces --if-present",
     "test": "npm run test --workspaces --if-present",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "lint": "eslint .",
     "format": "prettier --write .",
-    "db:migrate": "npm run db:migrate -w @duldulator/server",
-    "db:generate": "npm run db:generate -w @duldulator/server"
+    "db:migrate": "npm run db:migrate -w @listulator/server",
+    "db:generate": "npm run db:generate -w @listulator/server"
   },
   "engines": {
     "node": ">=20"

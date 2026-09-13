@@ -3,7 +3,7 @@ export const THEME_KEYS = ['dn', 'dark', 'brown', 'orange', 'bone', 'white'] as 
 
 export type ThemeKey = (typeof THEME_KEYS)[number]
 
-const STORAGE_KEY = 'duldulator:theme'
+const STORAGE_KEY = 'listulator:theme'
 
 export function isThemeKey(value: unknown): value is ThemeKey {
   return THEME_KEYS.some((key) => key === value)

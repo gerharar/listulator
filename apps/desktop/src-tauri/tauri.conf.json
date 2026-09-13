@@ -1,18 +1,18 @@
 {
   "$schema": "../../../node_modules/@tauri-apps/cli/config.schema.json",
-  "productName": "Duldulator",
+  "productName": "Listulator",
   "version": "0.1.0",
-  "identifier": "com.duldulator.desktop",
+  "identifier": "com.listulator.desktop",
   "build": {
     "frontendDist": "../../../web/dist",
     "devUrl": "http://localhost:5173",
-    "beforeDevCommand": "npm run dev -w @duldulator/web",
-    "beforeBuildCommand": "npm run build -w @duldulator/web"
+    "beforeDevCommand": "npm run dev -w @listulator/web",
+    "beforeBuildCommand": "npm run build -w @listulator/web"
   },
   "app": {
     "windows": [
       {
-        "title": "Duldulator",
+        "title": "Listulator",
         "width": 800,
         "height": 600,
         "resizable": true,

@@ -32,7 +32,7 @@ export function createTestApp({
   strategiesDir,
   ...overrides
 }: TestAppOptions = {}): TestApp {
-  const directory = mkdtempSync(join(tmpdir(), 'duldulator-test-'))
+  const directory = mkdtempSync(join(tmpdir(), 'listulator-test-'))
   const databasePath = overrides.databasePath ?? join(directory, 'test.sqlite')
 
   // Empty env so a developer's real SINGLE_USER_MODE can't change test results.

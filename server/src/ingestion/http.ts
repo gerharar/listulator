@@ -11,7 +11,7 @@ export class UnauthorizedError extends IngestionError {}
  * a meaningful User-Agent and will refuse generic ones — respecting each
  * source's terms is a stated boundary (SPEC.md §11), not a nicety.
  */
-export const USER_AGENT = 'duldulator/0.1.0 (https://github.com/neuroshaoh/duldulator)'
+export const USER_AGENT = 'listulator/0.1.0 (https://github.com/neuroshaoh/listulator)'
 
 export interface GetJsonOptions {
   headers?: Record<string, string>

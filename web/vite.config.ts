@@ -12,8 +12,8 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['apple-touch-icon.png'],
       manifest: {
-        name: 'Duldulator',
-        short_name: 'Duldulator',
+        name: 'Listulator',
+        short_name: 'Listulator',
         description: 'Finish the whole list.',
         start_url: '/',
         scope: '/',

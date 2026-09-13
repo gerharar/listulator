@@ -64,18 +64,18 @@ describe('IGDB availability', () => {
   it('sees credentials that appear after construction', () => {
     // Same import-order trap that caught TMDB: the registry is built before
     // .env is read.
-    delete process.env['DULDULATOR_IGDB_TEST']
+    delete process.env['LISTULATOR_IGDB_TEST']
 
     const adapter = createIgdbAdapter(() => ({
-      clientId: process.env['DULDULATOR_IGDB_TEST'],
+      clientId: process.env['LISTULATOR_IGDB_TEST'],
       clientSecret: 'secret',
     }))
 
     expect(adapter.isAvailable()).toBe(false)
-    process.env['DULDULATOR_IGDB_TEST'] = 'appeared'
+    process.env['LISTULATOR_IGDB_TEST'] = 'appeared'
     expect(adapter.isAvailable()).toBe(true)
 
-    delete process.env['DULDULATOR_IGDB_TEST']
+    delete process.env['LISTULATOR_IGDB_TEST']
   })
 })
 

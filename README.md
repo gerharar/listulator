@@ -1,4 +1,4 @@
-# Duldulator
+# Listulator
 
 A self-hostable **completionist tracker** for serialized and pseudo-serialized
 media — built around *finishing* curated lists, not logging arbitrary one-off

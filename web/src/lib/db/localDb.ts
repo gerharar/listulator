@@ -74,7 +74,7 @@ let connection: Database | undefined
 
 async function getConnection(): Promise<Database> {
   if (!connection) {
-    connection = await Database.load('sqlite:duldulator.sqlite')
+    connection = await Database.load('sqlite:listulator.sqlite')
     // Off by default in SQLite, same as the server's own connection
     // (db/client.ts) — deleteList's cascade to list_items depends on it.
     await connection.execute('PRAGMA foreign_keys = ON')

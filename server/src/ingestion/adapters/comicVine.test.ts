@@ -45,14 +45,14 @@ describe('Comic Vine adapter', () => {
   })
 
   it('sees a key that appears after construction', () => {
-    delete process.env['DULDULATOR_CV_TEST']
-    const adapter = createComicVineAdapter(() => ({ apiKey: process.env['DULDULATOR_CV_TEST'] }))
+    delete process.env['LISTULATOR_CV_TEST']
+    const adapter = createComicVineAdapter(() => ({ apiKey: process.env['LISTULATOR_CV_TEST'] }))
 
     expect(adapter.isAvailable()).toBe(false)
-    process.env['DULDULATOR_CV_TEST'] = 'later'
+    process.env['LISTULATOR_CV_TEST'] = 'later'
     expect(adapter.isAvailable()).toBe(true)
 
-    delete process.env['DULDULATOR_CV_TEST']
+    delete process.env['LISTULATOR_CV_TEST']
   })
 
   it('finds volumes, told apart by year, length and publisher', async () => {

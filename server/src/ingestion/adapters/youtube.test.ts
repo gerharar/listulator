@@ -90,13 +90,13 @@ describe('YouTube adapter', () => {
   })
 
   it('sees a key that appears after construction', () => {
-    delete process.env['DULDULATOR_YT_TEST']
-    const adapter = createYouTubeAdapter(() => ({ apiKey: process.env['DULDULATOR_YT_TEST'] }))
+    delete process.env['LISTULATOR_YT_TEST']
+    const adapter = createYouTubeAdapter(() => ({ apiKey: process.env['LISTULATOR_YT_TEST'] }))
 
     expect(adapter.isAvailable()).toBe(false)
-    process.env['DULDULATOR_YT_TEST'] = 'later'
+    process.env['LISTULATOR_YT_TEST'] = 'later'
     expect(adapter.isAvailable()).toBe(true)
-    delete process.env['DULDULATOR_YT_TEST']
+    delete process.env['LISTULATOR_YT_TEST']
   })
 
   it('resolves a pasted playlist link without spending a search', async () => {

@@ -9,7 +9,7 @@ describe('strategy loading', () => {
   let directory: string
 
   beforeEach(() => {
-    directory = mkdtempSync(join(tmpdir(), 'duldulator-strategies-'))
+    directory = mkdtempSync(join(tmpdir(), 'listulator-strategies-'))
   })
 
   afterEach(() => {
