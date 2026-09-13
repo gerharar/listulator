@@ -21,6 +21,8 @@ import {
   findListItems,
   findListWithStats,
   findListsWithStats,
+  reorderListItems,
+  ReorderMismatchError,
   setListItemConsumed,
   updateListItem,
   type ListWithStats,
@@ -244,6 +246,19 @@ export function createLocalApi(): ApiClient {
       const updated = await updateListItem(database, userId, listId, itemId, patch)
       if (!updated) throw notFound()
       return toListItem(updated)
+    },
+
+    reorderItems: async (listId, itemIds) => {
+      const [database, userId] = [await getDb(), await getUserId()]
+
+      try {
+        const reordered = await reorderListItems(database, userId, listId, itemIds)
+        if (!reordered) throw notFound()
+        return reordered.map(toListItem)
+      } catch (cause) {
+        if (cause instanceof ReorderMismatchError) throw new ApiError(cause.message, 400)
+        throw cause
+      }
     },
 
     // Mirrors server/src/ingestion/routes.ts's three handlers, against the

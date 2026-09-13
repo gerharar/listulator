@@ -11,6 +11,8 @@ import {
   findListItems,
   findListWithStats,
   findListsWithStats,
+  reorderListItems,
+  ReorderMismatchError,
   setListItemConsumed,
   updateList,
   updateListItem,
@@ -206,6 +208,45 @@ export const catalogRoutes: FastifyPluginAsync<CatalogRoutesOptions> = async (
 
     return reply.code(204).send()
   })
+
+  /**
+   * Renumbers the whole list to the order given (task 6.7) — a bulk "set the
+   * whole order" rather than a move-to-position endpoint, matching
+   * `reorderListItems`'s own reasoning. Which pairs of items are legal to
+   * swap (never crossing a season boundary, task 6.6) is enforced by the UI,
+   * not here.
+   */
+  app.put<{ Params: ListParams; Body: { itemIds: string[] } }>(
+    '/lists/:listId/items/order',
+    {
+      schema: {
+        body: {
+          type: 'object',
+          required: ['itemIds'],
+          additionalProperties: false,
+          properties: {
+            itemIds: { type: 'array', items: { type: 'string' }, minItems: 1, maxItems: 5000 },
+          },
+        },
+      },
+    },
+    async (request, reply) => {
+      const user = getCurrentUser(request)
+      const { listId } = request.params
+
+      try {
+        const reordered = await reorderListItems(db, user.id, listId, request.body.itemIds)
+        if (!reordered) return reply.callNotFound()
+
+        return reordered
+      } catch (cause) {
+        if (cause instanceof ReorderMismatchError) {
+          return reply.code(400).send({ message: cause.message })
+        }
+        throw cause
+      }
+    },
+  )
 
   app.put<{ Params: ItemParams; Body: { consumed: boolean } }>(
     '/lists/:listId/items/:itemId/consumed',

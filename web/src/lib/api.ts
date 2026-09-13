@@ -192,6 +192,8 @@ export interface ApiClient {
       group?: string | null
     },
   ) => Promise<ListItem>
+  /** Renumbers the whole list to this exact id order (task 6.7). */
+  reorderItems: (listId: string, itemIds: string[]) => Promise<ListItem[]>
 }
 
 export const fetchApi: ApiClient = {
@@ -290,6 +292,12 @@ export const fetchApi: ApiClient = {
     request<ListItem>(`/lists/${listId}/items/${itemId}`, {
       method: 'PATCH',
       body: JSON.stringify(patch),
+    }),
+
+  reorderItems: (listId: string, itemIds: string[]) =>
+    request<ListItem[]>(`/lists/${listId}/items/order`, {
+      method: 'PUT',
+      body: JSON.stringify({ itemIds }),
     }),
 }
 

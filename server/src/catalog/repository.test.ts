@@ -11,6 +11,8 @@ import {
   findListItem,
   findListItems,
   findLists,
+  reorderListItems,
+  ReorderMismatchError,
   setListItemConsumed,
   updateList,
   updateListItem,
@@ -92,6 +94,63 @@ describe('catalog repository', () => {
     expect(
       (await findListItems(harness.db, ownerId, list.id))?.map((item) => item.orderIndex),
     ).toEqual([0, 1, 2])
+  })
+
+  it('renumbers items to exactly the order given (task 6.7)', async () => {
+    const list = await createList(harness.db, ownerId, { title: 'Discography', mediaType: 'music' })
+    const first = (await createListItem(harness.db, ownerId, list.id, {
+      title: 'First',
+      timeToConsumeMinutes: 40,
+    }))!
+    const second = (await createListItem(harness.db, ownerId, list.id, {
+      title: 'Second',
+      timeToConsumeMinutes: 35,
+    }))!
+    const third = (await createListItem(harness.db, ownerId, list.id, {
+      title: 'Third',
+      timeToConsumeMinutes: 30,
+    }))!
+
+    const reordered = await reorderListItems(harness.db, ownerId, list.id, [
+      third.id,
+      first.id,
+      second.id,
+    ])
+
+    expect(reordered?.map((item) => item.title)).toEqual(['Third', 'First', 'Second'])
+    expect(reordered?.map((item) => item.orderIndex)).toEqual([0, 1, 2])
+  })
+
+  it('rejects a reorder whose itemIds do not exactly match the list', async () => {
+    const list = await createList(harness.db, ownerId, { title: 'Discography', mediaType: 'music' })
+    const first = (await createListItem(harness.db, ownerId, list.id, {
+      title: 'First',
+      timeToConsumeMinutes: 40,
+    }))!
+    await createListItem(harness.db, ownerId, list.id, { title: 'Second', timeToConsumeMinutes: 35 })
+
+    // Missing an item.
+    await expect(reorderListItems(harness.db, ownerId, list.id, [first.id])).rejects.toThrow(
+      ReorderMismatchError,
+    )
+    // A duplicate.
+    await expect(
+      reorderListItems(harness.db, ownerId, list.id, [first.id, first.id]),
+    ).rejects.toThrow(ReorderMismatchError)
+    // An id from nowhere.
+    await expect(
+      reorderListItems(harness.db, ownerId, list.id, [first.id, 'not-a-real-id']),
+    ).rejects.toThrow(ReorderMismatchError)
+  })
+
+  it("hides another user's items from a reorder", async () => {
+    const theirs = await createList(harness.db, strangerId, { title: 'Theirs', mediaType: 'movie' })
+    const item = (await createListItem(harness.db, strangerId, theirs.id, {
+      title: 'Police Story',
+      timeToConsumeMinutes: 100,
+    }))!
+
+    expect(await reorderListItems(harness.db, ownerId, theirs.id, [item.id])).toBeUndefined()
   })
 
   it('defaults durations to estimated, since a caller-supplied number is usually a guess', async () => {

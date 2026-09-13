@@ -159,6 +159,46 @@ describe('catalog HTTP API', () => {
     ])
   })
 
+  it('reorders items to exactly the order given, and persists it (task 6.7)', async () => {
+    const list = (await createList()).json()
+    const first = (await createItem(list.id, { title: 'First' })).json()
+    const second = (await createItem(list.id, { title: 'Second' })).json()
+    const third = (await createItem(list.id, { title: 'Third' })).json()
+
+    const reordered = await harness.app.inject({
+      method: 'PUT',
+      url: `/api/lists/${list.id}/items/order`,
+      payload: { itemIds: [third.id, first.id, second.id] },
+    })
+    expect(reordered.statusCode).toBe(200)
+    expect(reordered.json().map((item: { title: string }) => item.title)).toEqual([
+      'Third',
+      'First',
+      'Second',
+    ])
+
+    // Persists across a fresh read, not just in the response.
+    const read = await harness.app.inject({ method: 'GET', url: `/api/lists/${list.id}` })
+    expect(read.json().items.map((item: { title: string }) => item.title)).toEqual([
+      'Third',
+      'First',
+      'Second',
+    ])
+  })
+
+  it('rejects a reorder with a mismatched itemIds set', async () => {
+    const list = (await createList()).json()
+    const first = (await createItem(list.id, { title: 'First' })).json()
+    await createItem(list.id, { title: 'Second' })
+
+    const response = await harness.app.inject({
+      method: 'PUT',
+      url: `/api/lists/${list.id}/items/order`,
+      payload: { itemIds: [first.id] },
+    })
+    expect(response.statusCode).toBe(400)
+  })
+
   it('404s for lists and items that do not exist', async () => {
     const list = (await createList()).json()
 

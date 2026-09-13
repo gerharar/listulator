@@ -234,6 +234,58 @@ export async function findListItems(
     .all()
 }
 
+/**
+ * `itemIds` names a mismatched set — missing an item, naming one twice, or
+ * naming one from a different list. Distinct from "not found" (the list
+ * itself is missing/not yours): this can only happen if a caller's own
+ * bookkeeping is wrong, since both UIs always start from this list's own
+ * current items.
+ */
+export class ReorderMismatchError extends Error {}
+
+/**
+ * Renumbers a list's items to exactly the order given (task 6.7) — a bulk
+ * "set the whole order" rather than a single move-to-position, since at this
+ * app's bounded list sizes renumbering everything on every reorder is cheap
+ * and avoids fractional/gap-based indexing this scale doesn't justify.
+ *
+ * Which pairs of items a caller may legally swap (never crossing a season
+ * boundary, task 6.6) is a UI-level rule enforced by `ListDetail.tsx`, not
+ * re-validated here — this just applies whatever full order it's given, the
+ * same trust boundary every other write in this file already has for a
+ * single-user app.
+ */
+export async function reorderListItems(
+  db: PortableDatabase,
+  userId: string,
+  listId: string,
+  itemIds: string[],
+): Promise<ListItem[] | undefined> {
+  const existing = await findListItems(db, userId, listId)
+  if (!existing) return undefined
+
+  const existingIds = new Set(existing.map((item) => item.id))
+  const isExactSet =
+    itemIds.length === existing.length &&
+    new Set(itemIds).size === itemIds.length &&
+    itemIds.every((id) => existingIds.has(id))
+
+  if (!isExactSet) {
+    throw new ReorderMismatchError("itemIds must be exactly this list's current items, each once")
+  }
+
+  // Sequential, not Promise.all — see the from-source route for why.
+  for (const [index, id] of itemIds.entries()) {
+    await db
+      .update(listItems)
+      .set({ orderIndex: index, updatedAt: new Date() })
+      .where(and(eq(listItems.id, id), eq(listItems.listId, listId)))
+      .run()
+  }
+
+  return findListItems(db, userId, listId)
+}
+
 async function nextOrderIndex(db: PortableDatabase, listId: string): Promise<number> {
   const result = await db
     .select({ highest: max(listItems.orderIndex) })

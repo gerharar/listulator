@@ -275,10 +275,82 @@ a {
   display: flex;
   align-items: stretch;
   border-top: var(--border-width) solid var(--border);
+  cursor: grab;
+  /* A pointer-events drag (task 6.7) has no native text-selection
+     suppression the way HTML5 draggable does — this stands in for it. */
+  user-select: none;
+}
+
+/* The row currently being dragged (task 6.7) — dimmed since, unlike native
+   drag-and-drop, there is no browser-drawn ghost image following the
+   pointer; this is the only cue that it's the one moving. */
+.item-row--dragging {
+  opacity: 0.5;
 }
 
 .items > li:first-child {
   border-top: none;
+}
+
+/*
+ * Shown while a drag (task 6.7) hovers a legal drop target — the same
+ * season's group, per the resolved 6.6/6.7 boundary question. A line at the
+ * row's top edge, not a box around it: the drop always lands *before* the
+ * target (moveItemTo takes its exact slot), so the line marks the real
+ * insertion point rather than just naming which row is involved. An inset
+ * shadow, not a border, so it doesn't nudge the row's height by a pixel.
+ */
+.item-row--drop-target {
+  box-shadow: inset 0 2px 0 0 var(--accent);
+}
+
+/* Quiet until hovered, like .item__remove/.item__edit — this sits beside
+   controls you use constantly and should not draw the eye by default. */
+.item__drag-handle {
+  flex: none;
+  display: flex;
+  align-items: center;
+  padding: 0 var(--space-2);
+  color: var(--text-faint);
+  cursor: grab;
+  opacity: 0;
+}
+
+.item-row:hover .item__drag-handle {
+  opacity: 1;
+}
+
+@media (hover: none) {
+  .item__drag-handle {
+    opacity: 1;
+  }
+}
+
+.item__move {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.item__move-button {
+  flex: none;
+  border: none;
+  background: none;
+  color: var(--text-faint);
+  cursor: pointer;
+  font-size: 0.6rem;
+  line-height: 1;
+  padding: 2px var(--space-1);
+}
+
+.item__move-button:hover:not(:disabled) {
+  color: var(--text);
+}
+
+.item__move-button:disabled {
+  opacity: 0.25;
+  cursor: default;
 }
 
 .item {

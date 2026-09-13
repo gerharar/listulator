@@ -129,6 +129,10 @@ export const en = {
     manualItemHint: 'Added by hand, not from a search import',
     expandGroup: (label: string): string => `Expand ${label}`,
     collapseGroup: (label: string): string => `Collapse ${label}`,
+    reorderFailed: 'Could not save the new order',
+    dragHandle: 'Drag to reorder',
+    moveUp: (title: string): string => `Move ${title} up`,
+    moveDown: (title: string): string => `Move ${title} down`,
   },
 
   newList: {

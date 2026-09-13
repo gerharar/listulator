@@ -44,6 +44,49 @@ export function groupItems(items: ListItem[]): ItemRow[] {
   return rows
 }
 
+/**
+ * Moves the item at `itemId` one step up or down within its own group
+ * (task 6.7) — null if the move would cross a season boundary (task 6.6's
+ * resolved shared question) or run off either end of the list. Two items
+ * are "the same group" when their `group` fields are `===`, which also
+ * covers two `null`s: a non-TV list has no `group` on any item, so every
+ * neighbor matches and reordering stays unrestricted, exactly as before.
+ */
+export function moveItem(items: ListItem[], itemId: string, direction: 'up' | 'down'): ListItem[] | null {
+  const index = items.findIndex((item) => item.id === itemId)
+  if (index === -1) return null
+
+  const swapIndex = direction === 'up' ? index - 1 : index + 1
+  if (swapIndex < 0 || swapIndex >= items.length) return null
+  if (items[swapIndex]!.group !== items[index]!.group) return null
+
+  const next = [...items]
+  ;[next[index], next[swapIndex]] = [next[swapIndex]!, next[index]!]
+  return next
+}
+
+/**
+ * Moves `draggedId` to sit where `targetId` currently is (task 6.7) — null
+ * for a no-op drop (same item) or one that would cross a season boundary:
+ * a drop is only legal onto an item sharing the dragged one's `group`,
+ * which — since a group is always a contiguous run — guarantees every
+ * position the drop could land on on stays inside that same run.
+ */
+export function moveItemTo(items: ListItem[], draggedId: string, targetId: string): ListItem[] | null {
+  if (draggedId === targetId) return null
+
+  const dragged = items.find((item) => item.id === draggedId)
+  const target = items.find((item) => item.id === targetId)
+  if (!dragged || !target || dragged.group !== target.group) return null
+
+  const withoutDragged = items.filter((item) => item.id !== draggedId)
+  const targetIndex = withoutDragged.findIndex((item) => item.id === targetId)
+
+  const next = [...withoutDragged]
+  next.splice(targetIndex, 0, dragged)
+  return next
+}
+
 function GroupHeader({
   label,
   items,
@@ -81,16 +124,61 @@ function Item({
   onToggle,
   onRemove,
   onEdit,
+  canMoveUp,
+  canMoveDown,
+  onMove,
+  isDropTarget,
+  isDragging,
+  onPointerDown,
 }: {
   item: ListItem
   onToggle: (item: ListItem) => void
   onRemove: (item: ListItem) => void
   onEdit: (item: ListItem) => void
+  canMoveUp: boolean
+  canMoveDown: boolean
+  onMove: (item: ListItem, direction: 'up' | 'down') => void
+  isDropTarget: boolean
+  isDragging: boolean
+  onPointerDown: (event: React.PointerEvent, item: ListItem) => void
 }) {
   const consumed = item.consumedAt !== null
 
+  const rowClasses = ['item-row']
+  if (isDropTarget) rowClasses.push('item-row--drop-target')
+  if (isDragging) rowClasses.push('item-row--dragging')
+
   return (
-    <li className="item-row">
+    <li
+      className={rowClasses.join(' ')}
+      data-item-id={item.id}
+      onPointerDown={(event) => onPointerDown(event, item)}
+    >
+      <span className="item__drag-handle" aria-hidden="true" title={copy.listDetail.dragHandle}>
+        ⠿
+      </span>
+      <span className="item__move">
+        <button
+          type="button"
+          className="item__move-button"
+          onClick={() => onMove(item, 'up')}
+          disabled={!canMoveUp}
+          aria-label={copy.listDetail.moveUp(item.title)}
+          title={copy.listDetail.moveUp(item.title)}
+        >
+          ▲
+        </button>
+        <button
+          type="button"
+          className="item__move-button"
+          onClick={() => onMove(item, 'down')}
+          disabled={!canMoveDown}
+          aria-label={copy.listDetail.moveDown(item.title)}
+          title={copy.listDetail.moveDown(item.title)}
+        >
+          ▼
+        </button>
+      </span>
       <button
         type="button"
         className={consumed ? 'item item--consumed' : 'item'}
@@ -237,6 +325,101 @@ export function ListDetail({ mediaTypes }: { mediaTypes: MediaType[] }) {
       else next.add(label)
       return next
     })
+  }
+
+  const [draggedItemId, setDraggedItemId] = useState<string | null>(null)
+  const [dropTargetId, setDropTargetId] = useState<string | null>(null)
+
+  async function applyReorder(nextItems: ListItem[]) {
+    if (!listId || !list) return
+
+    // Optimistic, like the checkbox and remove: a drag or a run of arrow
+    // clicks should feel instant, not wait on a round trip each time.
+    const previous = list
+    setList({ ...list, items: nextItems })
+
+    try {
+      await api.reorderItems(
+        listId,
+        nextItems.map((item) => item.id),
+      )
+    } catch (cause) {
+      setList(previous)
+      setError(cause instanceof Error ? cause.message : copy.listDetail.reorderFailed)
+    }
+  }
+
+  function moveItemByButton(item: ListItem, direction: 'up' | 'down') {
+    if (!list) return
+    const next = moveItem(list.items, item.id, direction)
+    if (next) void applyReorder(next)
+  }
+
+  /**
+   * Pointer-events reorder, not native HTML5 drag-and-drop (task 6.7):
+   * the standalone app's Tauri WKWebView does not honor
+   * `dataTransfer.dropEffect`/`effectAllowed` and never fires `drop` at all
+   * — confirmed live (works in a plain browser tab, not in the desktop
+   * app), the same class of gap as `window.confirm()` needing a real
+   * `Modal` instead. Pointer events are a DOM-level API the webview
+   * implements properly, so the same code now runs identically in both.
+   *
+   * Window-level listeners, not per-row handlers: the pointer needs
+   * tracking across every row it passes over, not just the one it started
+   * on. `startItems` is the list as of pointerdown and is used for the
+   * whole gesture — nothing else mutates it mid-drag in this app's flow.
+   * A small movement threshold before the first `setDraggedItemId` is what
+   * keeps an ordinary click on the row (the toggle/edit/remove/move
+   * buttons all live inside it) from ever registering as a drag: no
+   * `preventDefault()` happens until real movement is seen, so a plain
+   * click's own `click` event still fires on whichever button it landed on.
+   */
+  function handleItemPointerDown(event: React.PointerEvent, item: ListItem) {
+    if (event.button !== 0 || !list) return
+
+    const startX = event.clientX
+    const startY = event.clientY
+    const startItems = list.items
+    let dragging = false
+
+    function targetIdAt(x: number, y: number): string | undefined {
+      const row = document.elementFromPoint(x, y)?.closest<HTMLElement>('[data-item-id]')
+      return row?.dataset.itemId
+    }
+
+    function onMove(moveEvent: PointerEvent) {
+      if (!dragging) {
+        const distance = Math.hypot(moveEvent.clientX - startX, moveEvent.clientY - startY)
+        if (distance < 6) return
+        dragging = true
+        setDraggedItemId(item.id)
+      }
+
+      moveEvent.preventDefault()
+
+      const targetId = targetIdAt(moveEvent.clientX, moveEvent.clientY)
+      const target = targetId && startItems.find((entry) => entry.id === targetId)
+      // Only within the dragged item's own group — the season boundary
+      // this task's design question resolved.
+      setDropTargetId(target && target.id !== item.id && target.group === item.group ? target.id : null)
+    }
+
+    function onUp(upEvent: PointerEvent) {
+      window.removeEventListener('pointermove', onMove)
+      window.removeEventListener('pointerup', onUp)
+
+      if (dragging) {
+        const targetId = targetIdAt(upEvent.clientX, upEvent.clientY)
+        const next = targetId ? moveItemTo(startItems, item.id, targetId) : null
+        if (next) void applyReorder(next)
+      }
+
+      setDraggedItemId(null)
+      setDropTargetId(null)
+    }
+
+    window.addEventListener('pointermove', onMove)
+    window.addEventListener('pointerup', onUp)
   }
 
   const load = useCallback(async () => {
@@ -412,6 +595,8 @@ export function ListDetail({ mediaTypes }: { mediaTypes: MediaType[] }) {
   }
 
   function renderItemRow(item: ListItem) {
+    if (!list) return null
+
     return item.id === editingItemId ? (
       <EditItemRow
         key={item.id}
@@ -427,6 +612,12 @@ export function ListDetail({ mediaTypes }: { mediaTypes: MediaType[] }) {
         onToggle={(target) => void toggle(target)}
         onRemove={(target) => void removeItem(target)}
         onEdit={(target) => setEditingItemId(target.id)}
+        canMoveUp={moveItem(list.items, item.id, 'up') !== null}
+        canMoveDown={moveItem(list.items, item.id, 'down') !== null}
+        onMove={moveItemByButton}
+        isDropTarget={dropTargetId === item.id}
+        isDragging={draggedItemId === item.id}
+        onPointerDown={handleItemPointerDown}
       />
     )
   }
