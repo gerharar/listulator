@@ -11,7 +11,9 @@
     "test": "vitest run",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "db:generate": "drizzle-kit generate",
-    "db:migrate": "tsx src/db/migrate.ts"
+    "db:migrate": "tsx src/db/migrate.ts",
+    "lists:generate": "tsx src/tools/generateList.ts",
+    "lists:index": "tsx src/tools/generateListsIndex.ts"
   },
   "dependencies": {
     "better-sqlite3": "13.0.3",

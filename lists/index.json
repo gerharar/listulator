@@ -1,12 +1,12 @@
 [
   {
-    "path": "lists/mega/marvel-cinematic-universe.yaml",
-    "title": "Marvel Cinematic Universe — Infinity Saga (Release Order)",
-    "category": "mega"
-  },
-  {
     "path": "lists/book/lord-of-the-rings.yaml",
     "title": "The Lord of the Rings",
     "category": "book"
+  },
+  {
+    "path": "lists/mega/marvel-cinematic-universe.yaml",
+    "title": "Marvel Cinematic Universe — Infinity Saga (Release Order)",
+    "category": "mega"
   }
 ]
