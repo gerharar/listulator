@@ -8,5 +8,20 @@
     "path": "lists/mega/marvel-cinematic-universe.yaml",
     "title": "Marvel Cinematic Universe — Infinity Saga (Release Order)",
     "category": "mega"
+  },
+  {
+    "path": "lists/mma/ufc-all-events.yaml",
+    "title": "All UFC Events",
+    "category": "mma"
+  },
+  {
+    "path": "lists/mma/ufc-fight-night-events.yaml",
+    "title": "All UFC Fight Night Events",
+    "category": "mma"
+  },
+  {
+    "path": "lists/mma/ufc-numbered-events.yaml",
+    "title": "All Numbered UFC Events",
+    "category": "mma"
   }
 ]

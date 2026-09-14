@@ -1,0 +1,336 @@
+# Generated 2026-09-14 by `generateList.ts` (--category mma --ref subseries:ufc-numbered).
+# Draft only — review titles/years/minutes and prune/reorder before committing.
+title: "All Numbered UFC Events"
+category: mma
+items:
+  - {title: "UFC 1: The Beginning", year: 1993}
+  - {title: "UFC 2: No Way Out", year: 1994}
+  - {title: "UFC 3: The American Dream", year: 1994}
+  - {title: "UFC 4: Revenge of the Warriors", year: 1994}
+  - {title: "UFC 5: The Return of the Beast", year: 1995}
+  - {title: "UFC 6: Clash of the Titans", year: 1995}
+  - {title: "UFC 7: The Brawl in Buffalo", year: 1995}
+  - {title: "UFC 8: David vs. Goliath", year: 1996}
+  - {title: "UFC 9: Motor City Madness", year: 1996}
+  - {title: "UFC 10: The Tournament", year: 1996}
+  - {title: "UFC 11: The Proving Ground", year: 1996}
+  - {title: "UFC 12: Judgement Day", year: 1997}
+  - {title: "UFC 13: The Ultimate Force", year: 1997}
+  - {title: "UFC 14: Showdown", year: 1997}
+  - {title: "UFC 15: Collision Course", year: 1997}
+  - {title: "UFC 16: Battle in the Bayou", year: 1998}
+  - {title: "UFC 17: Redemption", year: 1998}
+  - {title: "UFC 18: The Road to the Heavyweight Title", year: 1999}
+  - {title: "UFC 19: Ultimate Young Guns", year: 1999}
+  - {title: "UFC 20: Battle for the Gold", year: 1999}
+  - {title: "UFC 21: Return of the Champions", year: 1999}
+  - {title: "UFC 22: Only One Can be Champion", year: 1999}
+  - {title: "UFC 23: Ultimate Japan 2", year: 1999}
+  - {title: "UFC 24: First Defense", year: 2000}
+  - {title: "UFC 25: Ultimate Japan 3", year: 2000}
+  - {title: "UFC 26: Ultimate Field of Dreams", year: 2000}
+  - {title: "UFC 27: Ultimate Bad Boyz", year: 2000}
+  - {title: "UFC 28: High Stakes", year: 2000}
+  - {title: "UFC 29: Defense of the Belts", year: 2000}
+  - {title: "UFC 30: Battle on the Boardwalk", year: 2001}
+  - {title: "UFC 31: Locked and Loaded", year: 2001}
+  - {title: "UFC 32: Showdown in the Meadowlands", year: 2001}
+  - {title: "UFC 33: Victory in Vegas", year: 2001}
+  - {title: "UFC 34: High Voltage", year: 2001}
+  - {title: "UFC 35: Throwdown", year: 2002}
+  - {title: "UFC 36: Worlds Collide", year: 2002}
+  - {title: "UFC 37: High Impact", year: 2002}
+  - {title: "UFC 37.5: As Real As It Gets", year: 2002}
+  - {title: "UFC 38: Brawl at the Hall", year: 2002}
+  - {title: "UFC 39: The Warriors Return", year: 2002}
+  - {title: "UFC 40: Vendetta", year: 2002}
+  - {title: "UFC 41: Onslaught", year: 2003}
+  - {title: "UFC 42: Sudden Impact", year: 2003}
+  - {title: "UFC 43: Meltdown", year: 2003}
+  - {title: "UFC 44: Undisputed", year: 2003}
+  - {title: "UFC 45: Revolution", year: 2003}
+  - {title: "UFC 46: Supernatural", year: 2004}
+  - {title: "UFC 47: It's On!", year: 2004}
+  - {title: "UFC 48: Payback", year: 2004}
+  - {title: "UFC 49: Unfinished Business", year: 2004}
+  - {title: "UFC 50: The War of '04", year: 2004}
+  - {title: "UFC 51: Super Saturday", year: 2005}
+  - {title: "UFC 52: Couture vs. Liddell", year: 2005}
+  - {title: "UFC 53: Heavy Hitters", year: 2005}
+  - {title: "UFC 54: Boiling Point", year: 2005}
+  - {title: "UFC 55: Fury", year: 2005}
+  - {title: "UFC 56: Full Force", year: 2005}
+  - {title: "UFC 57: Liddell vs. Couture 3", year: 2006}
+  - {title: "UFC 58: USA vs. Canada", year: 2006}
+  - {title: "UFC 59: Reality Check", year: 2006}
+  - {title: "UFC 60: Hughes vs. Gracie", year: 2006}
+  - {title: "UFC 61: Bitter Rivals", year: 2006}
+  - {title: "UFC 62: Liddell vs. Sobral", year: 2006}
+  - {title: "UFC 63: Hughes vs. Penn", year: 2006}
+  - {title: "UFC 64: Unstoppable", year: 2006}
+  - {title: "UFC 65: Bad Intentions", year: 2006}
+  - {title: "UFC 66: Liddell vs. Ortiz", year: 2006}
+  - {title: "UFC 67: All or Nothing", year: 2007}
+  - {title: "UFC 68: The Uprising", year: 2007}
+  - {title: "UFC 69: Shootout", year: 2007}
+  - {title: "UFC 70: Nations Collide", year: 2007}
+  - {title: "UFC 71: Liddell vs. Jackson", year: 2007}
+  - {title: "UFC 72: Victory", year: 2007}
+  - {title: "UFC 73: Stacked", year: 2007}
+  - {title: "UFC 74: Respect", year: 2007}
+  - {title: "UFC 75: Champion vs. Champion", year: 2007}
+  - {title: "UFC 76: Knockout", year: 2007}
+  - {title: "UFC 77: Hostile Territory", year: 2007}
+  - {title: "UFC 78: Validation", year: 2007}
+  - {title: "UFC 79: Nemesis", year: 2007}
+  - {title: "UFC 80: Rapid Fire", year: 2008}
+  - {title: "UFC 81: Breaking Point", year: 2008}
+  - {title: "UFC 82: Pride of a Champion", year: 2008}
+  - {title: "UFC 83: Serra vs. St-Pierre 2", year: 2008}
+  - {title: "UFC 84: Ill Will", year: 2008}
+  - {title: "UFC 85: Bedlam", year: 2008}
+  - {title: "UFC 86: Jackson vs. Griffin", year: 2008}
+  - {title: "UFC 87: Seek and Destroy", year: 2008}
+  - {title: "UFC 88: Breakthrough", year: 2008}
+  - {title: "UFC 89: Bisping vs. Leben", year: 2008}
+  - {title: "UFC 90: Silva vs. Côté", year: 2008}
+  - {title: "UFC 91: Couture vs. Lesnar", year: 2008}
+  - {title: "UFC 92: The Ultimate 2008", year: 2008}
+  - {title: "UFC 93: Franklin vs. Henderson", year: 2009}
+  - {title: "UFC 94: St-Pierre vs. Penn 2", year: 2009}
+  - {title: "UFC 95: Sanchez vs. Stevenson", year: 2009}
+  - {title: "UFC 96: Jackson vs. Jardine", year: 2009}
+  - {title: "UFC 97: Redemption", year: 2009}
+  - {title: "UFC 98: Evans vs. Machida", year: 2009}
+  - {title: "UFC 99: The Comeback", year: 2009}
+  - {title: "UFC 100", year: 2009}
+  - {title: "UFC 101: Declaration", year: 2009}
+  - {title: "UFC 102: Couture vs. Nogueira", year: 2009}
+  - {title: "UFC 103: Franklin vs. Belfort", year: 2009}
+  - {title: "UFC 104: Machida vs. Shogun", year: 2009}
+  - {title: "UFC 105: Couture vs. Vera", year: 2009}
+  - {title: "UFC 106: Ortiz vs. Griffin 2", year: 2009}
+  - {title: "UFC 107: Penn vs. Sanchez", year: 2009}
+  - {title: "UFC 108: Evans vs. Silva", year: 2010}
+  - {title: "UFC 109: Relentless", year: 2010}
+  - {title: "UFC 110: Nogueira vs. Velasquez", year: 2010}
+  - {title: "UFC 111: St-Pierre vs. Hardy", year: 2010}
+  - {title: "UFC 112: Invincible", year: 2010}
+  - {title: "UFC 113: Machida vs. Shogun 2", year: 2010}
+  - {title: "UFC 114: Rampage vs. Evans", year: 2010}
+  - {title: "UFC 115: Liddell vs. Franklin", year: 2010}
+  - {title: "UFC 116: Lesnar vs. Carwin", year: 2010}
+  - {title: "UFC 117: Silva vs. Sonnen", year: 2010}
+  - {title: "UFC 118: Edgar vs. Penn 2", year: 2010}
+  - {title: "UFC 119: Mir vs. Cro Cop", year: 2010}
+  - {title: "UFC 120: Bisping vs. Akiyama", year: 2010}
+  - {title: "UFC 121: Lesnar vs. Velasquez", year: 2010}
+  - {title: "UFC 122: Marquardt vs. Okami", year: 2010}
+  - {title: "UFC 123: Rampage vs. Machida", year: 2010}
+  - {title: "UFC 124: St-Pierre vs. Koscheck 2", year: 2010}
+  - {title: "UFC 125: Resolution", year: 2011}
+  - {title: "UFC 126: Silva vs. Belfort", year: 2011}
+  - {title: "UFC 127: Penn vs. Fitch", year: 2011}
+  - {title: "UFC 128: Shogun vs. Jones", year: 2011}
+  - {title: "UFC 129: St-Pierre vs. Shields", year: 2011}
+  - {title: "UFC 130: Rampage vs. Hamill", year: 2011}
+  - {title: "UFC 131: dos Santos vs. Carwin", year: 2011}
+  - {title: "UFC 132: Cruz vs. Faber", year: 2011}
+  - {title: "UFC 133: Evans vs. Ortiz", year: 2011}
+  - {title: "UFC 134: Silva vs. Okami", year: 2011}
+  - {title: "UFC 135: Jones vs. Rampage", year: 2011}
+  - {title: "UFC 136: Edgar vs. Maynard III", year: 2011}
+  - {title: "UFC 137: Penn vs. Diaz", year: 2011}
+  - {title: "UFC 138: Leben vs. Muñoz", year: 2011}
+  - {title: "UFC 139: Shogun vs. Henderson", year: 2011}
+  - {title: "UFC 140: Jones vs. Machida", year: 2011}
+  - {title: "UFC 141: Lesnar vs. Overeem", year: 2011}
+  - {title: "UFC 142: Aldo vs. Mendes", year: 2012}
+  - {title: "UFC 143: Diaz vs. Condit", year: 2012}
+  - {title: "UFC 144: Edgar vs. Henderson", year: 2012}
+  - {title: "UFC 145: Jones vs. Evans", year: 2012}
+  - {title: "UFC 146: dos Santos vs. Mir", year: 2012}
+  - {title: "UFC 147: Silva vs. Franklin II", year: 2012}
+  - {title: "UFC 148: Silva vs. Sonnen II", year: 2012}
+  - {title: "UFC 149: Faber vs. Barão", year: 2012}
+  - {title: "UFC 150: Henderson vs. Edgar II", year: 2012}
+  - {title: "UFC 151: Jones vs. Henderson", year: 2012}
+  - {title: "UFC 152: Jones vs. Belfort", year: 2012}
+  - {title: "UFC 153: Silva vs. Bonnar", year: 2012}
+  - {title: "UFC 154: St-Pierre vs. Condit", year: 2012}
+  - {title: "UFC 155: dos Santos vs. Velasquez 2", year: 2012}
+  - {title: "UFC 156: Aldo vs. Edgar", year: 2013}
+  - {title: "UFC 157: Rousey vs. Carmouche", year: 2013}
+  - {title: "UFC 158: St-Pierre vs. Diaz", year: 2013}
+  - {title: "UFC 159: Jones vs. Sonnen", year: 2013}
+  - {title: "UFC 160: Velasquez vs. Bigfoot 2", year: 2013}
+  - {title: "UFC 161: Evans vs. Henderson", year: 2013}
+  - {title: "UFC 162: Silva vs. Weidman", year: 2013}
+  - {title: "UFC 163: Aldo vs. Korean Zombie", year: 2013}
+  - {title: "UFC 164: Henderson vs. Pettis 2", year: 2013}
+  - {title: "UFC 165: Jones vs. Gustafsson", year: 2013}
+  - {title: "UFC 166: Velasquez vs. dos Santos III", year: 2013}
+  - {title: "UFC 167: St-Pierre vs. Hendricks", year: 2013}
+  - {title: "UFC 168: Weidman vs. Silva 2", year: 2013}
+  - {title: "UFC 169: Barão vs. Faber 2", year: 2014}
+  - {title: "UFC 170: Rousey vs. McMann", year: 2014}
+  - {title: "UFC 171: Hendricks vs. Lawler", year: 2014}
+  - {title: "UFC 172: Jones vs. Teixeira", year: 2014}
+  - {title: "UFC 173: Barão vs. Dillashaw", year: 2014}
+  - {title: "UFC 174: Johnson vs. Bagautinov", year: 2014}
+  - {title: "UFC 175: Weidman vs. Machida", year: 2014}
+  - {title: "UFC 176: Aldo vs. Mendes II", year: 2014}
+  - {title: "UFC 177: Dillashaw vs. Soto", year: 2014}
+  - {title: "UFC 178: Johnson vs. Cariaso", year: 2014}
+  - {title: "UFC 179: Aldo vs. Mendes 2", year: 2014}
+  - {title: "UFC 180: Werdum vs. Hunt", year: 2014}
+  - {title: "UFC 181: Hendricks vs. Lawler II", year: 2014}
+  - {title: "UFC 182: Jones vs. Cormier", year: 2015}
+  - {title: "UFC 183: Silva vs. Diaz", year: 2015}
+  - {title: "UFC 184: Rousey vs. Zingano", year: 2015}
+  - {title: "UFC 185: Pettis vs. dos Anjos", year: 2015}
+  - {title: "UFC 186: Johnson vs. Horiguchi", year: 2015}
+  - {title: "UFC 187: Johnson vs. Cormier", year: 2015}
+  - {title: "UFC 188: Velasquez vs. Werdum", year: 2015}
+  - {title: "UFC 189: Mendes vs. McGregor", year: 2015}
+  - {title: "UFC 190: Rousey vs. Correia", year: 2015}
+  - {title: "UFC 191: Johnson vs. Dodson 2", year: 2015}
+  - {title: "UFC 192: Cormier vs. Gustafsson", year: 2015}
+  - {title: "UFC 193: Rousey vs. Holm", year: 2015}
+  - {title: "UFC 194: Aldo vs. McGregor", year: 2015}
+  - {title: "UFC 195: Lawler vs. Condit", year: 2016}
+  - {title: "UFC 196: McGregor vs. Diaz", year: 2016}
+  - {title: "UFC 197: Jones vs. Saint Preux", year: 2016}
+  - {title: "UFC 198: Werdum vs. Miocic", year: 2016}
+  - {title: "UFC 199: Rockhold vs. Bisping 2", year: 2016}
+  - {title: "UFC 200: Tate vs. Nunes", year: 2016}
+  - {title: "UFC 201: Lawler vs. Woodley", year: 2016}
+  - {title: "UFC 202: Diaz vs. McGregor 2", year: 2016}
+  - {title: "UFC 203: Miocic vs. Overeem", year: 2016}
+  - {title: "UFC 204: Bisping vs. Henderson 2", year: 2016}
+  - {title: "UFC 205: Alvarez vs. McGregor", year: 2016}
+  - {title: "UFC 206: Holloway vs. Pettis", year: 2016}
+  - {title: "UFC 207: Nunes vs. Rousey", year: 2016}
+  - {title: "UFC 208: Holm vs. de Randamie", year: 2017}
+  - {title: "UFC 209: Woodley vs. Thompson 2", year: 2017}
+  - {title: "UFC 210: Cormier vs. Johnson 2", year: 2017}
+  - {title: "UFC 211: Miocic vs. dos Santos 2", year: 2017}
+  - {title: "UFC 212: Aldo vs. Holloway", year: 2017}
+  - {title: "UFC 213: Romero vs. Whittaker", year: 2017}
+  - {title: "UFC 214: Cormier vs. Jones 2", year: 2017}
+  - {title: "UFC 215: Nunes vs. Shevchenko 2", year: 2017}
+  - {title: "UFC 216: Ferguson vs. Lee", year: 2017}
+  - {title: "UFC 217: Bisping vs. St-Pierre", year: 2017}
+  - {title: "UFC 218: Holloway vs. Aldo 2", year: 2017}
+  - {title: "UFC 219: Cyborg vs. Holm", year: 2017}
+  - {title: "UFC 220: Miocic vs. Ngannou", year: 2018}
+  - {title: "UFC 221: Romero vs. Rockhold", year: 2018}
+  - {title: "UFC 222: Cyborg vs. Kunitskaya", year: 2018}
+  - {title: "UFC 223: Khabib vs. Iaquinta", year: 2018}
+  - {title: "UFC 224: Nunes vs. Pennington", year: 2018}
+  - {title: "UFC 225: Whittaker vs. Romero 2", year: 2018}
+  - {title: "UFC 226: Miocic vs. Cormier", year: 2018}
+  - {title: "UFC 227: Dillashaw vs. Garbrandt 2", year: 2018}
+  - {title: "UFC 228: Woodley vs. Till", year: 2018}
+  - {title: "UFC 229: Khabib vs. McGregor", year: 2018}
+  - {title: "UFC 230: Cormier vs. Lewis", year: 2018}
+  - {title: "UFC 231: Holloway vs. Ortega", year: 2018}
+  - {title: "UFC 232: Jones vs. Gustafsson 2", year: 2018}
+  - {title: "UFC 233: Cejudo vs. Dillashaw", year: 2019}
+  - {title: "UFC 234: Adesanya vs. Silva", year: 2019}
+  - {title: "UFC 235: Jones vs. Smith", year: 2019}
+  - {title: "UFC 236: Holloway vs. Poirier 2", year: 2019}
+  - {title: "UFC 237: Namajunas vs. Andrade", year: 2019}
+  - {title: "UFC 238: Cejudo vs. Moraes", year: 2019}
+  - {title: "UFC 239: Jones vs. Santos", year: 2019}
+  - {title: "UFC 240: Holloway vs. Edgar", year: 2019}
+  - {title: "UFC 241: Cormier vs. Miocic 2", year: 2019}
+  - {title: "UFC 242: Khabib vs. Poirier", year: 2019}
+  - {title: "UFC 243: Whittaker vs. Adesanya", year: 2019}
+  - {title: "UFC 244: Masvidal vs. Diaz", year: 2019}
+  - {title: "UFC 245: Usman vs. Covington", year: 2019}
+  - {title: "UFC 246: McGregor vs. Cowboy", year: 2020}
+  - {title: "UFC 247: Jones vs. Reyes", year: 2020}
+  - {title: "UFC 248: Adesanya vs. Romero", year: 2020}
+  - {title: "UFC 249: Ferguson vs. Gaethje", year: 2020}
+  - {title: "UFC 250: Nunes vs. Spencer", year: 2020}
+  - {title: "UFC 251: Usman vs. Masvidal", year: 2020}
+  - {title: "UFC 252: Miocic vs. Cormier 3", year: 2020}
+  - {title: "UFC 253: Adesanya vs. Costa", year: 2020}
+  - {title: "UFC 254: Khabib vs. Gaethje", year: 2020}
+  - {title: "UFC 255: Figueiredo vs. Perez", year: 2020}
+  - {title: "UFC 256: Figueiredo vs. Moreno", year: 2020}
+  - {title: "UFC 257: Poirier vs. McGregor 2", year: 2021}
+  - {title: "UFC 258: Usman vs. Burns", year: 2021}
+  - {title: "UFC 259: Błachowicz vs. Adesanya", year: 2021}
+  - {title: "UFC 260: Miocic vs. Ngannou 2", year: 2021}
+  - {title: "UFC 261: Usman vs. Masvidal 2", year: 2021}
+  - {title: "UFC 262: Oliveira vs. Chandler", year: 2021}
+  - {title: "UFC 263: Adesanya vs. Vettori 2", year: 2021}
+  - {title: "UFC 264: Poirier vs. McGregor 3", year: 2021}
+  - {title: "UFC 265: Lewis vs. Gane", year: 2021}
+  - {title: "UFC 266: Volkanovski vs. Ortega", year: 2021}
+  - {title: "UFC 267: Błachowicz vs. Teixeira", year: 2021}
+  - {title: "UFC 268: Usman vs. Covington 2", year: 2021}
+  - {title: "UFC 269: Oliveira vs. Poirier", year: 2021}
+  - {title: "UFC 270: Ngannou vs. Gane", year: 2022}
+  - {title: "UFC 271: Adesanya vs. Whittaker 2", year: 2022}
+  - {title: "UFC 272: Covington vs. Masvidal", year: 2022}
+  - {title: "UFC 273: Volkanovski vs. The Korean Zombie", year: 2022}
+  - {title: "UFC 274: Oliveira vs. Gaethje", year: 2022}
+  - {title: "UFC 275: Teixeira vs. Procházka", year: 2022}
+  - {title: "UFC 276: Adesanya vs. Cannonier", year: 2022}
+  - {title: "UFC 277: Peña vs. Nunes 2", year: 2022}
+  - {title: "UFC 278: Usman vs. Edwards 2", year: 2022}
+  - {title: "UFC 279: Diaz vs. Ferguson", year: 2022}
+  - {title: "UFC 280: Oliveira vs. Makhachev", year: 2022}
+  - {title: "UFC 281: Adesanya vs. Pereira", year: 2022}
+  - {title: "UFC 282: Błachowicz vs. Ankalaev", year: 2022}
+  - {title: "UFC 283: Teixeira vs. Hill", year: 2023}
+  - {title: "UFC 284: Makhachev vs. Volkanovski", year: 2023}
+  - {title: "UFC 285: Jones vs. Gane", year: 2023}
+  - {title: "UFC 286: Edwards vs. Usman 3", year: 2023}
+  - {title: "UFC 287: Pereira vs. Adesanya 2", year: 2023}
+  - {title: "UFC 288: Sterling vs. Cejudo", year: 2023}
+  - {title: "UFC 289: Nunes vs. Aldana", year: 2023}
+  - {title: "UFC 290: Volkanovski vs. Rodríguez", year: 2023}
+  - {title: "UFC 291: Poirier vs. Gaethje 2", year: 2023}
+  - {title: "UFC 292: Sterling vs. O'Malley", year: 2023}
+  - {title: "UFC 293: Adesanya vs. Strickland", year: 2023}
+  - {title: "UFC 294: Makhachev vs. Volkanovski 2", year: 2023}
+  - {title: "UFC 295: Procházka vs. Pereira", year: 2023}
+  - {title: "UFC 296: Edwards vs. Covington", year: 2023}
+  - {title: "UFC 297: Strickland vs. du Plessis", year: 2024}
+  - {title: "UFC 298: Volkanovski vs. Topuria", year: 2024}
+  - {title: "UFC 299: O'Malley vs. Vera 2", year: 2024}
+  - {title: "UFC 300: Pereira vs. Hill", year: 2024}
+  - {title: "UFC 301: Pantoja vs. Erceg", year: 2024}
+  - {title: "UFC 302: Makhachev vs. Poirier", year: 2024}
+  - {title: "UFC 303: Pereira vs. Procházka 2", year: 2024}
+  - {title: "UFC 304: Edwards vs. Muhammad 2", year: 2024}
+  - {title: "UFC 305: du Plessis vs. Adesanya", year: 2024}
+  - {title: "UFC 306: O'Malley vs. Dvalishvili", year: 2024}
+  - {title: "UFC 307: Pereira vs. Rountree Jr.", year: 2024}
+  - {title: "UFC 308: Topuria vs. Holloway", year: 2024}
+  - {title: "UFC 309: Jones vs. Miocic", year: 2024}
+  - {title: "UFC 310: Pantoja vs. Asakura", year: 2024}
+  - {title: "UFC 311: Makhachev vs. Moicano", year: 2025}
+  - {title: "UFC 312: du Plessis vs. Strickland 2", year: 2025}
+  - {title: "UFC 313: Pereira vs. Ankalaev", year: 2025}
+  - {title: "UFC 314: Volkanovski vs. Lopes", year: 2025}
+  - {title: "UFC 315: Muhammad vs. Della Maddalena", year: 2025}
+  - {title: "UFC 316: Dvalishvili vs. O'Malley 2", year: 2025}
+  - {title: "UFC 317: Topuria vs. Oliveira", year: 2025}
+  - {title: "UFC 318: Holloway vs. Poirier 3", year: 2025}
+  - {title: "UFC 319: du Plessis vs. Chimaev", year: 2025}
+  - {title: "UFC 320: Ankalaev vs. Pereira 2", year: 2025}
+  - {title: "UFC 321: Aspinall vs. Gane", year: 2025}
+  - {title: "UFC 322: Della Maddalena vs. Makhachev", year: 2025}
+  - {title: "UFC 323: Dvalishvili vs. Yan 2", year: 2025}
+  - {title: "UFC 324: Gaethje vs. Pimblett", year: 2026}
+  - {title: "UFC 325: Volkanovski vs. Lopes 2", year: 2026}
+  - {title: "UFC 326: Holloway vs. Oliveira 2", year: 2026}
+  - {title: "UFC 327: Procházka vs. Ulberg", year: 2026}
+  - {title: "UFC 328: Chimaev vs. Strickland", year: 2026}
+  - {title: "UFC 329: McGregor vs. Holloway 2", year: 2026}
+  - {title: "UFC 330: Makhachev vs. Machado Garry", year: 2026}
