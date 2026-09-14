@@ -39,3 +39,10 @@ npm-debug.log*
 # history entirely on 2026-09-14, kept locally outside version control.
 /docs/
 /tasks/
+
+# Also internal, also scrubbed from history on 2026-09-14: the spec, the
+# agent instructions file, and the two backlog-tracking files. Kept locally.
+/BACKLOG.md
+/CLAUDE.md
+/RESOLVED.md
+/SPEC.md
