@@ -67,6 +67,16 @@ export function cleanCell(raw: string): string {
       .replace(/<ref[^>]*>[\s\S]*?<\/ref>/gi, '')
       .replace(/<br\s*\/?>/gi, ' ')
       .replace(/<[^>]+>/g, '')
+      // {{sort|key|display}} renders as just `display` — used on UFC's page
+      // so its sortable table orders "UFC 2" before "UFC 10" numerically
+      // instead of lexically. Handled before the generic template strip
+      // below (which would otherwise delete the whole thing, key and
+      // display alike): confirmed live, this silently dropped all 99 of
+      // UFC's early, three-digit-padded numbered events (UFC 1–99) with no
+      // error, since the row's name cell came out empty. `display` is
+      // unwrapped here, before the `[[…]]` handling below, since it still
+      // carries raw wikilink syntax (e.g. `[[UFC 1|UFC 1: The Beginning]]`).
+      .replace(/\{\{sort\|[^|{}]*\|([\s\S]*?)\}\}/gi, '$1')
       // [[Page|Label]] shows the label; [[Page]] shows the page.
       .replace(/\[\[([^\]|]+)\|([^\]]+)\]\]/g, '$2')
       .replace(/\[\[([^\]]+)\]\]/g, '$1')
@@ -91,6 +101,12 @@ export function parseTable(table: string): WikiRow[] {
   const lines = table.split('\n')
   const rows: { cells: string[]; raw: string }[] = []
   let headers: string[] = []
+  // A `|-` finalizes the header block once headers already has content, so
+  // any `!` line seen afterward is a per-row cell rather than more header —
+  // see the note below. `current === null` alone can't tell the two apart:
+  // some pages (WWE's) open with an empty leading `|-` before the real
+  // header line, so `current` is already non-null by the time headers start.
+  let headersComplete = false
   let current: string[] | null = null
   let currentRaw: string[] = []
 
@@ -113,13 +129,28 @@ export function parseTable(table: string): WikiRow[] {
 
     if (trimmed.startsWith('|-')) {
       if (current && current.length > 0) rows.push({ cells: current, raw: currentRaw.join('\n') })
+      if (headers.length > 0) headersComplete = true
       current = []
       currentRaw = []
       continue
     }
 
     if (trimmed.startsWith('!')) {
-      pushCells(trimmed, '!!', headers)
+      // Until headers are complete, a `!` line is real column-header
+      // content. Afterward, a `!` line is a MediaWiki `scope="row"` cell —
+      // a per-row header used for styling (the AEW page's tables,
+      // `class="plainrowheaders"`), not a second header row. Confirmed
+      // live: routing it into `headers` unconditionally left every row one
+      // cell short of the real header count, so every row failed the
+      // header/cell-count alignment check downstream and the whole table
+      // silently produced zero events.
+      if (!headersComplete) {
+        pushCells(trimmed, '!!', headers)
+      } else {
+        current ??= []
+        currentRaw.push(line)
+        pushCells(trimmed, '!!', current)
+      }
       continue
     }
 

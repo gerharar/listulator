@@ -18,8 +18,8 @@
 export const en = {
   app: {
     /** Split so the second half can take the accent colour. */
-    brandLead: 'DULDU',
-    brandTail: 'LATOR',
+    brandLead: 'LIST',
+    brandTail: 'ULATOR',
     themeLabel: 'Theme',
     loading: 'Loading…',
     unknownError: 'Something went wrong',

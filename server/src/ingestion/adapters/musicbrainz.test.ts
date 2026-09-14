@@ -118,10 +118,14 @@ describe('MusicBrainz adapter', () => {
     expect(await adapter.search('cannibal corpse')).toEqual([
       {
         externalRef: 'af8e4cc5-ef54-458d-a194-7b210acf638f',
-        title: 'Cannibal Corpse',
+        title: 'Cannibal Corpse Discography',
         detail: 'Group · US · American death metal',
       },
-      { externalRef: '2ded9132-ec61-4b79-9275-b3e0e534a5d5', title: 'Corpsegrinder', detail: 'Person' },
+      {
+        externalRef: '2ded9132-ec61-4b79-9275-b3e0e534a5d5',
+        title: 'Corpsegrinder Discography',
+        detail: 'Person',
+      },
     ])
   })
 

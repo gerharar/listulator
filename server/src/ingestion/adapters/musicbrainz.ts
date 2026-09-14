@@ -103,7 +103,10 @@ export function createMusicBrainzAdapter(fetchImpl?: FetchLike): SearchAdapter {
       return (response.artists ?? []).map(
         (artist): ListSource => ({
           externalRef: artist.id,
-          title: artist.name,
+          // Every list this adapter builds is a discography (studio albums,
+          // plus whichever release types the discography-type filters opt
+          // into) — never a mixed or partial catalogue, so the name says so.
+          title: `${artist.name} Discography`,
           ...(describe(artist) ? { detail: describe(artist) } : {}),
         }),
       )

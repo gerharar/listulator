@@ -34,6 +34,12 @@ describe('cleanCell', () => {
   it('leaves ordinary text alone', () => {
     expect(cleanCell('UFC Fight Night 294')).toBe('UFC Fight Night 294')
   })
+
+  /** Verbatim from the real UFC page's earliest, three-digit-padded rows. */
+  it('unwraps {{sort|key|display}} to its display text instead of dropping the whole cell', () => {
+    expect(cleanCell('{{sort|UFC 001|[[UFC 1|UFC 1: The Beginning]]}}')).toBe('UFC 1: The Beginning')
+    expect(cleanCell('{{sort|UFC 002|[[UFC 2|UFC 2: No Way Out]]}}')).toBe('UFC 2: No Way Out')
+  })
 })
 
 describe('extractTables', () => {
@@ -126,6 +132,39 @@ describe('parseTable', () => {
 
   it('reads an empty table without falling over', () => {
     expect(parseTable('{| class="wikitable"\n! Event\n|}')).toEqual([])
+  })
+
+  it('reads a plainrowheaders layout, where each row\'s Event cell is a ! not a |', () => {
+    // Verbatim shape from the real AEW page: `class="plainrowheaders"`
+    // marks each row's first cell with `scope="row"` for accessibility —
+    // a per-row header, not a second header row. Routing it into the
+    // table's shared `headers` (as a naive "any ! line is a header" rule
+    // would) left every row one cell short of the real header count, so
+    // every row failed alignment and the whole table silently produced
+    // zero events.
+    const table = [
+      '{| class="sortable wikitable plainrowheaders"',
+      '! scope="col" | Event',
+      '! scope="col" | Date',
+      '! scope="col" | Venue',
+      '|-',
+      '! scope="row" |[[Double or Nothing (2019)|Double or Nothing]]',
+      '|May 25',
+      '|[[MGM Grand Garden Arena]]',
+      '|-',
+      '! scope="row" |[[Fyter Fest (2019)|Fyter Fest]]',
+      '|June 29',
+      '|[[Daily\'s Place]]',
+      '|}',
+    ].join('\n')
+
+    const rows = parseTable(table)
+
+    expect(rows[0]?.headers).toEqual(['Event', 'Date', 'Venue'])
+    expect(rows.map((row) => row.cells)).toEqual([
+      ['Double or Nothing', 'May 25', 'MGM Grand Garden Arena'],
+      ['Fyter Fest', 'June 29', "Daily's Place"],
+    ])
   })
 })
 
