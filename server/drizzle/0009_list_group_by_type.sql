@@ -1,0 +1,1 @@
+ALTER TABLE `lists` ADD `group_by_type` integer DEFAULT false NOT NULL;

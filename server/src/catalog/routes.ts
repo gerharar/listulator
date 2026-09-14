@@ -31,6 +31,10 @@ function listBodyProperties(mediaTypes: MediaTypeRegistry) {
     mediaType: { type: 'string', enum: mediaTypes.keys() },
     source: { type: 'string', enum: LIST_SOURCES },
     externalRef: { type: ['string', 'null'], maxLength: 500 },
+    // Music-only GUI toggle — the route doesn't gate on category, same as
+    // every other per-category field elsewhere in this app; setting it
+    // bulk-writes every item's `group` (see repository.ts's `updateList`).
+    groupByType: { type: 'boolean' },
   } as const
 }
 
@@ -105,7 +109,13 @@ export const catalogRoutes: FastifyPluginAsync<CatalogRoutesOptions> = async (
 
   app.patch<{
     Params: ListParams
-    Body: { title?: string; mediaType?: string; source?: ListSource; externalRef?: string | null }
+    Body: {
+      title?: string
+      mediaType?: string
+      source?: ListSource
+      externalRef?: string | null
+      groupByType?: boolean
+    }
   }>(
     '/lists/:listId',
     {

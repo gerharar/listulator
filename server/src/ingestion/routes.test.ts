@@ -172,6 +172,55 @@ describe('POST /api/lists/:listId/items/import', () => {
     expect(response.json()[0].orderIndex).toBe(1)
   })
 
+  it('assigns a group from release type when the target list has "group by type" on', async () => {
+    const list = await createList('music')
+    await harness.app.inject({
+      method: 'PATCH',
+      url: `/api/lists/${list.id}`,
+      payload: { groupByType: true },
+    })
+
+    const response = await importItems(list.id, [
+      { title: 'Eaten Back to Life', releaseType: 'Album' },
+      { title: 'Live Cannibalism (Sampler)', releaseType: 'EP · Live' },
+      { title: 'A Cappella Cover (no release type)' },
+    ])
+
+    expect(response.json()).toMatchObject([
+      { title: 'Eaten Back to Life', group: 'Album' },
+      { title: 'Live Cannibalism (Sampler)', group: 'Live' },
+      { title: 'A Cappella Cover (no release type)', group: null },
+    ])
+  })
+
+  it('leaves new items ungrouped when "group by type" is off, even with a release type', async () => {
+    const list = await createList('music')
+
+    const response = await importItems(list.id, [{ title: 'Eaten Back to Life', releaseType: 'Album' }])
+
+    expect(response.json()[0]).toMatchObject({ group: null })
+  })
+
+  it('re-derives the group from release type even when an item arrives with an explicit one, once "group by type" is on', async () => {
+    // Music has no manual group field once the toggle is on (task:
+    // group-by-type toggle) — applyGroupByType re-lays out *every* item
+    // unconditionally, so a stray explicit `group` here (which the real
+    // music UI never actually sends) does not create a bucket the toggle
+    // doesn't know about.
+    const list = await createList('music')
+    await harness.app.inject({
+      method: 'PATCH',
+      url: `/api/lists/${list.id}`,
+      payload: { groupByType: true },
+    })
+
+    const response = await importItems(list.id, [
+      { title: 'Special Edition', releaseType: 'Album', group: 'Deluxe Reissues' },
+    ])
+
+    expect(response.json()[0]).toMatchObject({ group: 'Album' })
+  })
+
   it('feeds the derived stats, so imported items count toward completion', async () => {
     const list = await createList('comic')
     await importItems(list.id, [{ title: 'Issue #1' }, { title: 'Issue #2' }])
@@ -376,6 +425,29 @@ describe('search and import from a source', () => {
     ])
   })
 
+  it("carries a candidate's release-type label onto the created item", async () => {
+    const expand = vi.fn(async () => [
+      { title: 'Eaten Back to Life', externalRef: 'rg-1', releaseType: 'Album' },
+      { title: 'Worm Infested', externalRef: 'rg-2', releaseType: 'EP · Live' },
+    ])
+    harness = withAdapter(fakeAdapter({ expand }))
+
+    const response = await harness.app.inject({
+      method: 'POST',
+      url: '/api/lists/from-source',
+      payload: { mediaType: 'music', externalRef: 'ref-1', title: 'Cannibal Corpse' },
+    })
+
+    const items = (
+      await harness.app.inject({ method: 'GET', url: `/api/lists/${response.json().id}` })
+    ).json().items
+
+    expect(items).toMatchObject([
+      { title: 'Eaten Back to Life', releaseType: 'Album' },
+      { title: 'Worm Infested', releaseType: 'EP · Live' },
+    ])
+  })
+
   it('folds a language filter into the stored ref, so a later refresh replays it', async () => {
     // Book-search-language filtering: the client sends `language` alongside
     // the chosen source, generically for any category (the GUI only ever
@@ -450,6 +522,78 @@ describe('search and import from a source', () => {
 
     expect(created.externalRef).toBe('author:OL1A')
     expect(expand).toHaveBeenCalledWith('author:OL1A')
+  })
+
+  it('folds the music discography-type toggles into the stored ref, EPs and singles on by default', async () => {
+    const expand = vi.fn(async () => [{ title: 'Eaten Back to Life', externalRef: 'rg-1' }])
+    harness = withAdapter(fakeAdapter({ expand }))
+
+    const created = (
+      await harness.app.inject({
+        method: 'POST',
+        url: '/api/lists/from-source',
+        payload: {
+          mediaType: 'music',
+          externalRef: 'artist-1',
+          title: 'Cannibal Corpse',
+          includeEp: true,
+          includeSingle: true,
+          includeLive: false,
+          includeCompilation: false,
+        },
+      })
+    ).json()
+
+    expect(created.externalRef).toBe('artist-1:ep,single')
+    expect(expand).toHaveBeenCalledWith('artist-1:ep,single')
+
+    await harness.app.inject({ method: 'POST', url: `/api/lists/${created.id}/refresh` })
+
+    // Same replay guarantee as the language filter: refresh just resends
+    // list.externalRef, so the chosen toggles keep applying automatically.
+    expect(expand).toHaveBeenLastCalledWith('artist-1:ep,single')
+  })
+
+  it('turns off the discography-type defaults when the GUI explicitly says so', async () => {
+    const expand = vi.fn(async () => [{ title: 'Eaten Back to Life', externalRef: 'rg-1' }])
+    harness = withAdapter(fakeAdapter({ expand }))
+
+    const created = (
+      await harness.app.inject({
+        method: 'POST',
+        url: '/api/lists/from-source',
+        payload: {
+          mediaType: 'music',
+          externalRef: 'artist-1',
+          title: 'Cannibal Corpse',
+          includeEp: false,
+          includeSingle: false,
+          includeLive: true,
+          includeCompilation: true,
+        },
+      })
+    ).json()
+
+    expect(created.externalRef).toBe('artist-1:live,compilation')
+    expect(expand).toHaveBeenCalledWith('artist-1:live,compilation')
+  })
+
+  it('leaves the stored ref unsuffixed when no discography-type toggle is sent at all', async () => {
+    // Every other category's from-source calls never send these fields —
+    // this is what keeps them on the pre-feature bare-ref path.
+    const expand = vi.fn(async () => [{ title: 'Eaten Back to Life', externalRef: 'rg-1' }])
+    harness = withAdapter(fakeAdapter({ expand }))
+
+    const created = (
+      await harness.app.inject({
+        method: 'POST',
+        url: '/api/lists/from-source',
+        payload: { mediaType: 'music', externalRef: 'artist-1', title: 'Cannibal Corpse' },
+      })
+    ).json()
+
+    expect(created.externalRef).toBe('artist-1')
+    expect(expand).toHaveBeenCalledWith('artist-1')
   })
 
   it('says search is unavailable for a category with no adapter, and points at manual entry', async () => {

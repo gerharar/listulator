@@ -14,6 +14,26 @@ function respondWith(body: unknown, status = 200): FetchLike {
   )
 }
 
+/**
+ * Real MusicBrainz filters `release-group` by *primary* type server-side
+ * (verified live — see the adapter's `expand` comment) — a plain
+ * `respondWith` fixture ignores the request URL entirely, which would let a
+ * test believe an EP came back from a `type=album`-only request when the
+ * real service would never have sent it. This mock actually honors `type`,
+ * the same way the real endpoint does, so facet tests exercise the real
+ * two-stage filter (server-side by primary type, then client-side).
+ */
+function respondFilteredByType(all: (typeof RELEASE_GROUPS)['release-groups']): FetchLike {
+  return vi.fn(async (url: string) => {
+    const requested = new Set((new URL(url).searchParams.get('type') ?? '').split('|'))
+    const groups = all.filter((group) => requested.has((group['primary-type'] ?? '').toLowerCase()))
+    return new Response(JSON.stringify({ 'release-groups': groups, 'release-group-count': groups.length }), {
+      status: 200,
+      headers: { 'content-type': 'application/json' },
+    })
+  })
+}
+
 const ARTIST_SEARCH = {
   artists: [
     {
@@ -71,6 +91,19 @@ const RELEASE_GROUPS = {
       'first-release-date': '1993-01-01',
       'primary-type': 'Single',
     },
+    {
+      id: 'rg-ep',
+      title: 'Worm Infested',
+      'first-release-date': '2002-11-05',
+      'primary-type': 'EP',
+    },
+    {
+      id: 'rg-live-ep',
+      title: 'Live Cannibalism (Sampler)',
+      'first-release-date': '2000-08-01',
+      'primary-type': 'EP',
+      'secondary-types': ['Live'],
+    },
   ],
 }
 
@@ -123,6 +156,36 @@ describe('MusicBrainz adapter', () => {
     ])
   })
 
+  it('labels every studio album "Album", not just the opted-in extras', async () => {
+    const adapter = createMusicBrainzAdapter(respondWith(RELEASE_GROUPS))
+
+    expect((await adapter.expand('af8e4cc5')).map((item) => item.releaseType)).toEqual([
+      'Album',
+      'Album',
+      'Album',
+    ])
+  })
+
+  it('labels an EP, a single, a live album, and a compilation distinctly', async () => {
+    const adapter = createMusicBrainzAdapter(
+      respondFilteredByType(RELEASE_GROUPS['release-groups']),
+    )
+
+    const byTitle = new Map(
+      (await adapter.expand('af8e4cc5:ep,single,live,compilation')).map((item) => [
+        item.title,
+        item.releaseType,
+      ]),
+    )
+
+    expect(byTitle.get('Eaten Back to Life')).toBe('Album')
+    expect(byTitle.get('Worm Infested')).toBe('EP')
+    expect(byTitle.get('Hammer Smashed Face')).toBe('Single')
+    expect(byTitle.get('Global Evisceration')).toBe('Album · Live')
+    expect(byTitle.get('Dead Human Collection')).toBe('Album · Compilation')
+    expect(byTitle.get('Live Cannibalism (Sampler)')).toBe('EP · Live')
+  })
+
   it('leaves durations unset so the category default applies', async () => {
     // Album length would cost one request per album against a one-per-second
     // limit. Every item comes back without a duration and is filled in as an
@@ -133,6 +196,72 @@ describe('MusicBrainz adapter', () => {
       expect(item.timeToConsumeMinutes).toBeUndefined()
       expect(item.externalRef).toBeTruthy()
     }
+  })
+
+  it('includes EPs when the ref opts in — both a plain EP and a live one, since a live EP is still an EP', async () => {
+    const adapter = createMusicBrainzAdapter(respondFilteredByType(RELEASE_GROUPS['release-groups']))
+
+    expect((await adapter.expand('af8e4cc5:ep')).map((item) => item.title)).toEqual([
+      'Eaten Back to Life',
+      'The Bleeding',
+      'Bloodthirst',
+      'Live Cannibalism (Sampler)',
+      'Worm Infested',
+    ])
+  })
+
+  it('includes singles when the ref opts in', async () => {
+    const adapter = createMusicBrainzAdapter(respondFilteredByType(RELEASE_GROUPS['release-groups']))
+
+    expect((await adapter.expand('af8e4cc5:single')).map((item) => item.title)).toContain(
+      'Hammer Smashed Face',
+    )
+  })
+
+  it('includes live albums when the ref opts in, but not a live EP when EPs were never even requested', async () => {
+    // Real MusicBrainz filters `type` server-side, so a "live"-only ref
+    // (which only asks for `type=album`) never gets the live EP back to
+    // filter client-side in the first place — unlike the two "additive"
+    // cases below, where the EP itself was actually fetched.
+    const adapter = createMusicBrainzAdapter(respondFilteredByType(RELEASE_GROUPS['release-groups']))
+
+    const titles = (await adapter.expand('af8e4cc5:live')).map((item) => item.title)
+    expect(titles).toContain('Global Evisceration')
+    expect(titles).not.toContain('Live Cannibalism (Sampler)')
+  })
+
+  it('is additive across facets: opting into EPs alone already surfaces a live EP', async () => {
+    const adapter = createMusicBrainzAdapter(respondFilteredByType(RELEASE_GROUPS['release-groups']))
+
+    expect((await adapter.expand('af8e4cc5:ep')).map((item) => item.title)).toContain(
+      'Live Cannibalism (Sampler)',
+    )
+  })
+
+  it('includes compilations when the ref opts in', async () => {
+    const adapter = createMusicBrainzAdapter(respondFilteredByType(RELEASE_GROUPS['release-groups']))
+
+    expect((await adapter.expand('af8e4cc5:compilation')).map((item) => item.title)).toContain(
+      'Dead Human Collection',
+    )
+  })
+
+  it('requests only the primary types a facet needs, since MusicBrainz filters `type` server-side', async () => {
+    const fetchImpl = respondWith(RELEASE_GROUPS)
+    await createMusicBrainzAdapter(fetchImpl).expand('af8e4cc5:ep,single,live')
+
+    const [url] = vi.mocked(fetchImpl).mock.calls[0]!
+    expect(url).toContain(`type=${encodeURIComponent('album|ep|single')}`)
+  })
+
+  it('requests only the album type with no facets, unchanged from before this feature', async () => {
+    const fetchImpl = respondWith(RELEASE_GROUPS)
+    await createMusicBrainzAdapter(fetchImpl).expand('af8e4cc5')
+
+    const [url] = vi.mocked(fetchImpl).mock.calls[0]!
+    expect(url).toContain('type=album')
+    expect(url).not.toContain('ep')
+    expect(url).not.toContain('single')
   })
 
   it('handles an artist with no releases', async () => {

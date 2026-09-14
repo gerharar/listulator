@@ -16,6 +16,8 @@ export interface MediaList {
   mediaType: string
   source: 'api' | 'llm' | 'manual' | 'file' | 'canonical'
   externalRef: string | null
+  /** Music-only "group by type" toggle. False for every other category. */
+  groupByType: boolean
   createdAt: string
   updatedAt: string
   stats: ListStats
@@ -41,6 +43,11 @@ export interface ListItem {
    * Null otherwise (every other category, or an unfiltered book list).
    */
   language: string | null
+  /**
+   * Release-type label (music category only) — e.g. `'Album'`, `'EP'`,
+   * `'Album · Live'`. Null for every other category.
+   */
+  releaseType: string | null
 }
 
 export interface MediaListDetail extends MediaList {
@@ -142,6 +149,8 @@ export interface ApiClient {
   lists: () => Promise<MediaList[]>
   list: (id: string) => Promise<MediaListDetail>
   createList: (input: { title: string; mediaType: string }) => Promise<MediaList>
+  /** Currently only `groupByType` (music-only "group by type" toggle) is ever sent. */
+  updateList: (id: string, patch: { groupByType?: boolean }) => Promise<MediaList>
   deleteList: (id: string) => Promise<void>
   importItems: (
     listId: string,
@@ -152,6 +161,7 @@ export interface ApiClient {
       year?: number
       group?: string
       language?: string
+      releaseType?: string
     }[],
     /** Defaults to 'import' — pass 'manual' for a hand-typed batch (task 6.2). */
     source?: 'manual' | 'import',
@@ -173,6 +183,16 @@ export interface ApiClient {
     language?: string
     /** Book-category-only — keep works with no language tag at all. Strict (excluded) by default. */
     includeUnknown?: boolean
+    /**
+     * Music-category-only discography-type toggles — additive with each
+     * other and with the always-included studio albums. EPs and singles on
+     * by default, live and compilations off; the route only builds a
+     * filtered ref when at least one of these four is actually sent.
+     */
+    includeEp?: boolean
+    includeSingle?: boolean
+    includeLive?: boolean
+    includeCompilation?: boolean
   }) => Promise<MediaList>
   /** Creates a list from a pasted or uploaded custom-list YAML file (task 7.2). */
   createFromFile: (input: { yaml: string }) => Promise<MediaList>
@@ -187,6 +207,7 @@ export interface ApiClient {
       year?: number
       group?: string
       language?: string
+      releaseType?: string
     }[]
     upstreamCount: number
     existingCount: number
@@ -232,6 +253,9 @@ export const fetchApi: ApiClient = {
   createList: (input: { title: string; mediaType: string }) =>
     request<MediaList>('/lists', { method: 'POST', body: JSON.stringify(input) }),
 
+  updateList: (id: string, patch: { groupByType?: boolean }) =>
+    request<MediaList>(`/lists/${id}`, { method: 'PATCH', body: JSON.stringify(patch) }),
+
   deleteList: (id: string) => request<void>(`/lists/${id}`, { method: 'DELETE' }),
 
   importItems: (
@@ -243,6 +267,7 @@ export const fetchApi: ApiClient = {
       year?: number
       group?: string
       language?: string
+      releaseType?: string
     }[],
     source?: 'manual' | 'import',
   ) =>
@@ -281,6 +306,10 @@ export const fetchApi: ApiClient = {
     title: string
     language?: string
     includeUnknown?: boolean
+    includeEp?: boolean
+    includeSingle?: boolean
+    includeLive?: boolean
+    includeCompilation?: boolean
   }) => request<MediaList>('/lists/from-source', { method: 'POST', body: JSON.stringify(input) }),
 
   createFromFile: (input: { yaml: string }) =>
@@ -296,6 +325,7 @@ export const fetchApi: ApiClient = {
         year?: number
         group?: string
         language?: string
+        releaseType?: string
       }[]
       upstreamCount: number
       existingCount: number

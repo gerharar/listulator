@@ -34,6 +34,7 @@ function list({
     mediaType: 'movie',
     source: 'manual',
     externalRef: null,
+    groupByType: false,
     createdAt: created,
     updatedAt: created,
     stats: {
@@ -63,6 +64,7 @@ function nextItemsFor(lists: ListWithStats[]): Map<string, ListItem | undefined>
         year: null,
         group: null,
         language: null,
+        releaseType: null,
         createdAt: NOW,
         updatedAt: NOW,
       },

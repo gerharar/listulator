@@ -115,6 +115,25 @@ describe('catalog HTTP API', () => {
     expect(cleared.json().group).toBeNull()
   })
 
+  it('accepts the music-only "group by type" toggle over the generic list-patch route', async () => {
+    const list = (await createList({ mediaType: 'music' })).json()
+    expect(list.groupByType).toBe(false)
+
+    const on = await harness.app.inject({
+      method: 'PATCH',
+      url: `/api/lists/${list.id}`,
+      payload: { groupByType: true },
+    })
+    expect(on.json().groupByType).toBe(true)
+
+    const off = await harness.app.inject({
+      method: 'PATCH',
+      url: `/api/lists/${list.id}`,
+      payload: { groupByType: false },
+    })
+    expect(off.json().groupByType).toBe(false)
+  })
+
   it('checks an item off and back on again', async () => {
     const list = (await createList()).json()
     const item = (await createItem(list.id)).json()

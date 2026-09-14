@@ -2,6 +2,7 @@ import type { FastifyPluginAsync } from 'fastify'
 import { dismissalTitleKey, type ItemSource } from '../db/schema.js'
 import { getCurrentUser } from '../auth/currentUser.js'
 import {
+  applyGroupByType,
   clearDismissals,
   createList,
   createListItem,
@@ -42,6 +43,7 @@ interface ImportItem {
   year?: number
   group?: string
   language?: string
+  releaseType?: string
 }
 
 export const ingestionRoutes: FastifyPluginAsync<IngestionRoutesOptions> = async (
@@ -196,6 +198,10 @@ export const ingestionRoutes: FastifyPluginAsync<IngestionRoutesOptions> = async
       title: string
       language?: string
       includeUnknown?: boolean
+      includeEp?: boolean
+      includeSingle?: boolean
+      includeLive?: boolean
+      includeCompilation?: boolean
     }
   }>(
     '/lists/from-source',
@@ -214,13 +220,30 @@ export const ingestionRoutes: FastifyPluginAsync<IngestionRoutesOptions> = async
             // replays the same filter, rather than needing their own column.
             language: { type: 'string', minLength: 1, maxLength: 20 },
             includeUnknown: { type: 'boolean' },
+            // Music-only GUI options (never sent for any other category) —
+            // same append-to-externalRef technique as the language filter
+            // above. See musicbrainz.ts's `parseRef`/FACETS.
+            includeEp: { type: 'boolean' },
+            includeSingle: { type: 'boolean' },
+            includeLive: { type: 'boolean' },
+            includeCompilation: { type: 'boolean' },
           },
         },
       },
     },
     async (request, reply) => {
       const user = getCurrentUser(request)
-      const { mediaType: key, externalRef, title, language, includeUnknown } = request.body
+      const {
+        mediaType: key,
+        externalRef,
+        title,
+        language,
+        includeUnknown,
+        includeEp,
+        includeSingle,
+        includeLive,
+        includeCompilation,
+      } = request.body
 
       const mediaType = mediaTypes.get(key)
       if (!mediaType) return sendApiError(reply, 400, 'list.unknownCategory', { key })
@@ -261,11 +284,35 @@ export const ingestionRoutes: FastifyPluginAsync<IngestionRoutesOptions> = async
       // /lists/:listId/refresh (which just replays `list.externalRef`
       // through the same adapter-shaped `expand()`, unchanged) automatically
       // re-applies the same filter later, with no route or schema changes
-      // needed there.
+      // needed there. The music discography-type toggles below follow the
+      // exact same technique, and — like the language filter — are gated on
+      // whether the GUI actually sent them, not on `mediaType`: the route
+      // doesn't know or care which category reads these, only MusicBrainz's
+      // adapter does, but plenty of route tests reuse the `music` key as a
+      // generic stand-in category with a fake adapter that doesn't, and
+      // gating on the key would silently rope those into this branch too.
+      const includeEpSent = includeEp !== undefined
+      const includeSingleSent = includeSingle !== undefined
+      const includeLiveSent = includeLive !== undefined
+      const includeCompilationSent = includeCompilation !== undefined
+      const musicFacets =
+        includeEpSent || includeSingleSent || includeLiveSent || includeCompilationSent
+          ? [
+              // EPs and singles on by default, live and compilations off —
+              // confirmed with the user.
+              (includeEp ?? true) && 'ep',
+              (includeSingle ?? true) && 'single',
+              includeLive && 'live',
+              includeCompilation && 'compilation',
+            ].filter((facet): facet is string => facet !== false)
+          : null
+
       const refForAdapter =
         language && language !== 'all'
           ? `${externalRef}:${language}${includeUnknown ? ':unknown' : ''}`
-          : externalRef
+          : musicFacets
+            ? `${externalRef}:${musicFacets.join(',')}`
+            : externalRef
 
       // Expanded before the list is created, so a failure upstream does not
       // leave an empty list behind.
@@ -297,6 +344,7 @@ export const ingestionRoutes: FastifyPluginAsync<IngestionRoutesOptions> = async
           ...(candidate.year ? { year: candidate.year } : {}),
           ...(candidate.group ? { group: candidate.group } : {}),
           ...(candidate.language ? { language: candidate.language } : {}),
+          ...(candidate.releaseType ? { releaseType: candidate.releaseType } : {}),
           source: 'import',
         })
       }
@@ -562,6 +610,7 @@ export const ingestionRoutes: FastifyPluginAsync<IngestionRoutesOptions> = async
                   year: { type: 'integer' },
                   group: { type: 'string', maxLength: 500 },
                   language: { type: 'string', maxLength: 20 },
+                  releaseType: { type: 'string', maxLength: 40 },
                 },
               },
             },
@@ -605,9 +654,25 @@ export const ingestionRoutes: FastifyPluginAsync<IngestionRoutesOptions> = async
             ...(item.year ? { year: item.year } : {}),
             ...(item.group ? { group: item.group } : {}),
             ...(item.language ? { language: item.language } : {}),
+            ...(item.releaseType ? { releaseType: item.releaseType } : {}),
             source,
           }),
         )
+      }
+
+      // A music list with "group by type" on re-lays out *every* item, not
+      // just the new ones, so a refresh finding a new album lands in its
+      // bucket's contiguous run rather than tacked onto the end — see
+      // `applyGroupByType`. `created`'s already-captured rows would
+      // otherwise report their pre-reindex `group`/`orderIndex`, stale the
+      // moment this runs, so re-read them fresh before responding.
+      if (list.groupByType) {
+        await applyGroupByType(db, user.id, listId, true)
+
+        const refreshed = (await findListItems(db, user.id, listId)) ?? []
+        const byId = new Map(refreshed.map((row) => [row.id, row]))
+
+        return reply.code(201).send(created.map((row) => byId.get(row!.id) ?? row))
       }
 
       return reply.code(201).send(created)

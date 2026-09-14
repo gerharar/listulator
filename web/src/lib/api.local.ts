@@ -11,6 +11,7 @@
 // bundled-asset counterpart to `STRATEGIES_DIR` (task 5.8); `engine.ts`'s
 // `rank` itself is unchanged and unforked.
 import {
+  applyGroupByType as repoApplyGroupByType,
   clearDismissals,
   createList as repoCreateList,
   createListItem,
@@ -25,6 +26,7 @@ import {
   reorderListItems,
   ReorderMismatchError,
   setListItemConsumed,
+  updateList as repoUpdateList,
   updateListItem,
   type ListWithStats,
 } from '../../../server/src/catalog/repository.js'
@@ -70,6 +72,7 @@ function toMediaList(list: ListWithStats): MediaList {
     mediaType: list.mediaType,
     source: list.source,
     externalRef: list.externalRef,
+    groupByType: list.groupByType,
     createdAt: list.createdAt.toISOString(),
     updatedAt: list.updatedAt.toISOString(),
     stats: {
@@ -95,6 +98,7 @@ function toListItem(item: SchemaListItem): ListItem {
     year: item.year,
     group: item.group,
     language: item.language,
+    releaseType: item.releaseType,
   }
 }
 
@@ -231,6 +235,13 @@ export function createLocalApi(): ApiClient {
       return toMediaList(withStats!)
     },
 
+    updateList: async (id, patch) => {
+      const [database, userId] = [await getDb(), await getUserId()]
+      if (!(await repoUpdateList(database, userId, id, patch))) throw notFound()
+      const withStats = await findListWithStats(database, userId, id)
+      return toMediaList(withStats!)
+    },
+
     deleteList: async (id) => {
       const [database, userId] = [await getDb(), await getUserId()]
       if (!(await repoDeleteList(database, userId, id))) throw notFound()
@@ -249,7 +260,7 @@ export function createLocalApi(): ApiClient {
       await clearDismissals(database, listId, items)
 
       // Sequential, not Promise.all — see docs/DECISIONS.md, task 5.1.
-      const created: ListItem[] = []
+      const created: SchemaListItem[] = []
       for (const item of items) {
         const known = item.timeToConsumeMinutes !== undefined
 
@@ -261,12 +272,26 @@ export function createLocalApi(): ApiClient {
           ...(item.year ? { year: item.year } : {}),
           ...(item.group ? { group: item.group } : {}),
           ...(item.language ? { language: item.language } : {}),
+          ...(item.releaseType ? { releaseType: item.releaseType } : {}),
           source,
         })
-        created.push(toListItem(row!))
+        created.push(row!)
       }
 
-      return created
+      // Mirrors ingestion/routes.ts's /lists/:listId/items/import — see
+      // `applyGroupByType`'s own doc comment for why every item, not just
+      // the new ones, needs re-laying out, and why `created`'s
+      // already-captured rows must be re-read fresh afterward.
+      if (list.groupByType) {
+        await repoApplyGroupByType(database, userId, listId, true)
+
+        const refreshed = (await findListItems(database, userId, listId)) ?? []
+        const byId = new Map(refreshed.map((row) => [row.id, row]))
+
+        return created.map((row) => toListItem(byId.get(row.id) ?? row))
+      }
+
+      return created.map(toListItem)
     },
 
     deleteItem: async (listId, itemId) => {
@@ -341,7 +366,17 @@ export function createLocalApi(): ApiClient {
       }
     },
 
-    createFromSource: async ({ mediaType: key, externalRef, title, language, includeUnknown }) => {
+    createFromSource: async ({
+      mediaType: key,
+      externalRef,
+      title,
+      language,
+      includeUnknown,
+      includeEp,
+      includeSingle,
+      includeLive,
+      includeCompilation,
+    }) => {
       const [database, userId] = [await getDb(), await getUserId()]
 
       const mediaType = (await getLocalMediaTypes()).find((entry) => entry.key === key)
@@ -405,11 +440,27 @@ export function createLocalApi(): ApiClient {
       // language filter (and its "include unknown" flag) become part of
       // the stored ref, so checkForUpdates (this file's mirror of
       // /lists/:listId/refresh) replays the same filter later with no
-      // changes of its own.
+      // changes of its own. The music discography-type toggles follow the
+      // same technique, gated on whether the GUI actually sent them.
+      const musicFacets =
+        includeEp !== undefined ||
+        includeSingle !== undefined ||
+        includeLive !== undefined ||
+        includeCompilation !== undefined
+          ? [
+              (includeEp ?? true) && 'ep',
+              (includeSingle ?? true) && 'single',
+              includeLive && 'live',
+              includeCompilation && 'compilation',
+            ].filter((facet): facet is string => facet !== false)
+          : null
+
       const refForAdapter =
         language && language !== 'all'
           ? `${externalRef}:${language}${includeUnknown ? ':unknown' : ''}`
-          : externalRef
+          : musicFacets
+            ? `${externalRef}:${musicFacets.join(',')}`
+            : externalRef
 
       // Expanded before the list is created, so a failure upstream does not
       // leave an empty list behind.
@@ -439,6 +490,7 @@ export function createLocalApi(): ApiClient {
           ...(candidate.year ? { year: candidate.year } : {}),
           ...(candidate.group ? { group: candidate.group } : {}),
           ...(candidate.language ? { language: candidate.language } : {}),
+          ...(candidate.releaseType ? { releaseType: candidate.releaseType } : {}),
           source: 'import',
         })
       }

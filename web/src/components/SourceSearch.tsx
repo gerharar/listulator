@@ -43,6 +43,17 @@ export function SourceSearch({
   // searches — an occasional escape hatch, not a standing preference.
   const [includeUnknown, setIncludeUnknown] = useState(false)
 
+  // Music-only (never shown for any other category) — which non-studio-album
+  // release types a built list should also include. EPs and singles on by
+  // default, live and compilations off — confirmed with the user. Not
+  // remembered across searches, same as includeUnknown above: an occasional
+  // choice per list, not a standing preference.
+  const isMusicCategory = mediaType.key === 'music'
+  const [includeEp, setIncludeEp] = useState(true)
+  const [includeSingle, setIncludeSingle] = useState(true)
+  const [includeLive, setIncludeLive] = useState(false)
+  const [includeCompilation, setIncludeCompilation] = useState(false)
+
   function changeLanguage(next: string) {
     setLanguage(next)
     persistBookLanguage(typeof localStorage === 'undefined' ? undefined : localStorage, next)
@@ -87,6 +98,7 @@ export function SourceSearch({
         externalRef: source.externalRef,
         title: source.title,
         ...(isBookCategory ? { language, includeUnknown } : {}),
+        ...(isMusicCategory ? { includeEp, includeSingle, includeLive, includeCompilation } : {}),
       })
 
       onBuilt(list.id)
@@ -130,6 +142,44 @@ export function SourceSearch({
               {copy.sourceSearch.includeUnknown}
             </label>
           )}
+        </div>
+      )}
+
+      {isMusicCategory && (
+        <div className="source-search__discography-types">
+          <span className="small faint">{copy.sourceSearch.discographyTypesLabel}</span>
+          <label className="checkbox small faint">
+            <input
+              type="checkbox"
+              checked={includeEp}
+              onChange={(event) => setIncludeEp(event.target.checked)}
+            />
+            {copy.sourceSearch.includeEp}
+          </label>
+          <label className="checkbox small faint">
+            <input
+              type="checkbox"
+              checked={includeSingle}
+              onChange={(event) => setIncludeSingle(event.target.checked)}
+            />
+            {copy.sourceSearch.includeSingle}
+          </label>
+          <label className="checkbox small faint">
+            <input
+              type="checkbox"
+              checked={includeLive}
+              onChange={(event) => setIncludeLive(event.target.checked)}
+            />
+            {copy.sourceSearch.includeLive}
+          </label>
+          <label className="checkbox small faint">
+            <input
+              type="checkbox"
+              checked={includeCompilation}
+              onChange={(event) => setIncludeCompilation(event.target.checked)}
+            />
+            {copy.sourceSearch.includeCompilation}
+          </label>
         </div>
       )}
 

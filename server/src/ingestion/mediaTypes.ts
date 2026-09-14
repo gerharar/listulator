@@ -248,6 +248,15 @@ export interface MediaTypeCandidate {
    * book list.
    */
   language?: string
+  /**
+   * Presentation label for the release type — currently MusicBrainz only —
+   * e.g. `'Album'`, `'EP'`, `'Single'`, `'Album · Live'`, `'EP ·
+   * Compilation'`. Set for every candidate a music-category `expand()`
+   * returns (studio albums included, not just the opted-in extras), so a
+   * built list can label every item, not only the exceptions. Absent for
+   * every other category.
+   */
+  releaseType?: string
 }
 
 /**

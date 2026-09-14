@@ -57,6 +57,20 @@
       "when": 1789330015870,
       "tag": "0007_list_item_language",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "6",
+      "when": 1789339023368,
+      "tag": "0008_list_item_release_type",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "6",
+      "when": 1789340485963,
+      "tag": "0009_list_group_by_type",
+      "breakpoints": true
     }
   ]
 }

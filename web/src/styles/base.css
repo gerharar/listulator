@@ -442,6 +442,15 @@ a {
   color: var(--text-muted);
 }
 
+/* Music discography-type label — same shape as the language badge above. */
+.item__release-type-badge {
+  flex: none;
+  font-size: 0.72rem;
+  padding: 0 var(--space-1);
+  border: var(--border-width) solid var(--border);
+  color: var(--text-muted);
+}
+
 .item--consumed .item__title {
   color: var(--text-faint);
   text-decoration: line-through;
@@ -579,6 +588,13 @@ a {
   flex-wrap: wrap;
   padding: var(--space-3);
   border-bottom: var(--border-width) solid var(--border);
+}
+
+/* Music-only "group by type" toggle — pushed to the far end of the summary
+   line, away from the progress/count/time-left figures it shares the row
+   with. */
+.summary__group-toggle {
+  margin-left: auto;
 }
 
 .summary__figure {
@@ -752,6 +768,16 @@ a {
 
 .source-search__language select {
   width: auto;
+}
+
+/* Music-category-only discography-type toggles, same slot/shape as the
+   language filter above. */
+.source-search__discography-types {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-3) 0;
 }
 
 /* A search result is a button, not a link: choosing one builds a list. */

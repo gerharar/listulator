@@ -79,6 +79,16 @@ export const lists = sqliteTable(
     source: text('source').$type<ListSource>().notNull().default('manual'),
     /** Upstream identifier, e.g. a TMDB collection id. Null for hand-made lists. */
     externalRef: text('external_ref'),
+    /**
+     * Music-only "group by type" toggle — false for every other category.
+     * When true, every item's `group` is kept in sync with its own
+     * `releaseType` bucket (Album/EP/Single/Live/Compilation) instead of
+     * being hand-typed, reusing task 6.6's existing group-header rendering
+     * and task 6.7's reordering-within-a-group boundary. Superseding, not
+     * additive: turning it on for a music list is what disables that list's
+     * manual "Group" field in the item add/edit forms.
+     */
+    groupByType: integer('group_by_type', { mode: 'boolean' }).notNull().default(false),
     createdAt: integer('created_at', { mode: 'timestamp_ms' })
       .notNull()
       .$defaultFn(() => new Date()),
@@ -153,6 +163,15 @@ export const listItems = sqliteTable(
      * languages (a real, verified-live case, not hypothetical).
      */
     language: text('language'),
+    /**
+     * Per-item release-type label — MusicBrainz-category only, e.g.
+     * `'Album'`, `'EP'`, `'Single'`, `'Album · Live'`, `'EP · Compilation'`.
+     * Null for every other category. Presentation only, same shape as
+     * `language` above: makes the discography-type filter's decision visible
+     * per item, since the toggles are additive and one release can carry
+     * more than one facet (a live EP is both an EP and Live).
+     */
+    releaseType: text('release_type'),
     /** Null until checked off; doubles as the "when" behind list neglect scoring. */
     consumedAt: integer('consumed_at', { mode: 'timestamp_ms' }),
     createdAt: integer('created_at', { mode: 'timestamp_ms' })

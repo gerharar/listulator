@@ -13,6 +13,7 @@ function list(id: string, mediaTypeKey: string): MediaList {
     mediaType: mediaTypeKey,
     source: 'manual',
     externalRef: null,
+    groupByType: false,
     createdAt: '2026-01-01T00:00:00.000Z',
     updatedAt: '2026-01-01T00:00:00.000Z',
     stats: {

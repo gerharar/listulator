@@ -11,6 +11,7 @@ import {
   findListItem,
   findListItems,
   findLists,
+  releaseTypeBucket,
   reorderListItems,
   ReorderMismatchError,
   setListItemConsumed,
@@ -200,5 +201,193 @@ describe('catalog repository', () => {
       .where(eq(listItems.listId, list.id))
       .all()
     expect(orphans).toEqual([])
+  })
+
+  it('turning "group by type" on assigns each item\'s group from its release type', async () => {
+    const list = await createList(harness.db, ownerId, { title: 'Cannibal Corpse', mediaType: 'music' })
+    const album = await createListItem(harness.db, ownerId, list.id, {
+      title: 'Eaten Back to Life',
+      timeToConsumeMinutes: 45,
+      releaseType: 'Album',
+    })
+    const liveEp = await createListItem(harness.db, ownerId, list.id, {
+      title: 'Live Cannibalism (Sampler)',
+      timeToConsumeMinutes: 20,
+      releaseType: 'EP · Live',
+    })
+    // Confirmed with the user: the special facet wins over the base type.
+    const compilation = await createListItem(harness.db, ownerId, list.id, {
+      title: 'Dead Human Collection',
+      timeToConsumeMinutes: 60,
+      releaseType: 'Album · Compilation',
+    })
+
+    await updateList(harness.db, ownerId, list.id, { groupByType: true })
+
+    const items = (await findListItems(harness.db, ownerId, list.id))!
+    expect(items.find((item) => item.id === album!.id)?.group).toBe('Album')
+    expect(items.find((item) => item.id === liveEp!.id)?.group).toBe('Live')
+    expect(items.find((item) => item.id === compilation!.id)?.group).toBe('Compilation')
+  })
+
+  it('turning "group by type" back off clears every group again', async () => {
+    const list = await createList(harness.db, ownerId, { title: 'Cannibal Corpse', mediaType: 'music' })
+    await createListItem(harness.db, ownerId, list.id, {
+      title: 'Eaten Back to Life',
+      timeToConsumeMinutes: 45,
+      releaseType: 'Album',
+    })
+
+    await updateList(harness.db, ownerId, list.id, { groupByType: true })
+    await updateList(harness.db, ownerId, list.id, { groupByType: false })
+
+    const items = (await findListItems(harness.db, ownerId, list.id))!
+    expect(items.every((item) => item.group === null)).toBe(true)
+  })
+
+  it('physically groups same-bucket items together, not just labels them, so reordering-within-a-group (task 6.7) still works', async () => {
+    // Real bug, found live: items stay in chronological order, so
+    // interleaved release types were never physically adjacent — only
+    // labeling `group` (the first version of this fix) left every same-type
+    // item just as scattered as before, and `moveItem`/`moveItemTo`
+    // (ListDetail.tsx) check the *physically* adjacent item.
+    const list = await createList(harness.db, ownerId, { title: 'Cannibal Corpse', mediaType: 'music' })
+    const album1990 = await createListItem(harness.db, ownerId, list.id, {
+      title: 'Eaten Back to Life',
+      timeToConsumeMinutes: 45,
+      releaseType: 'Album',
+      year: 1990,
+    })
+    const ep2000 = await createListItem(harness.db, ownerId, list.id, {
+      title: 'Sacrifice / Confessions',
+      timeToConsumeMinutes: 20,
+      releaseType: 'EP',
+      year: 2000,
+    })
+    const album2002 = await createListItem(harness.db, ownerId, list.id, {
+      title: 'Gore Obsessed',
+      timeToConsumeMinutes: 45,
+      releaseType: 'Album',
+      year: 2002,
+    })
+
+    await updateList(harness.db, ownerId, list.id, { groupByType: true })
+
+    const items = (await findListItems(harness.db, ownerId, list.id))!
+    // The two albums (1990, 2002) must now sit next to each other, in
+    // chronological order, ahead of the single EP — not still interleaved.
+    expect(items.map((item) => item.id)).toEqual([album1990!.id, album2002!.id, ep2000!.id])
+    expect(items.map((item) => item.orderIndex)).toEqual([0, 1, 2])
+  })
+
+  it('sorts sections into the fixed Album > EP > Single > Live > Compilation order, confirmed with the user', async () => {
+    const list = await createList(harness.db, ownerId, { title: 'Cannibal Corpse', mediaType: 'music' })
+    // Deliberately created in a scrambled order, unrelated to the expected
+    // bucket order or to chronology.
+    const compilation = await createListItem(harness.db, ownerId, list.id, {
+      title: 'Dead Human Collection',
+      timeToConsumeMinutes: 60,
+      releaseType: 'Album · Compilation',
+      year: 2013,
+    })
+    const single = await createListItem(harness.db, ownerId, list.id, {
+      title: 'Hammer Smashed Face',
+      timeToConsumeMinutes: 5,
+      releaseType: 'Single',
+      year: 1993,
+    })
+    const live = await createListItem(harness.db, ownerId, list.id, {
+      title: 'Global Evisceration',
+      timeToConsumeMinutes: 60,
+      releaseType: 'Album · Live',
+      year: 2011,
+    })
+    const album = await createListItem(harness.db, ownerId, list.id, {
+      title: 'Eaten Back to Life',
+      timeToConsumeMinutes: 45,
+      releaseType: 'Album',
+      year: 1990,
+    })
+    const ep = await createListItem(harness.db, ownerId, list.id, {
+      title: 'Worm Infested',
+      timeToConsumeMinutes: 20,
+      releaseType: 'EP',
+      year: 2002,
+    })
+
+    await updateList(harness.db, ownerId, list.id, { groupByType: true })
+
+    const items = (await findListItems(harness.db, ownerId, list.id))!
+    expect(items.map((item) => item.id)).toEqual([
+      album!.id,
+      ep!.id,
+      single!.id,
+      live!.id,
+      compilation!.id,
+    ])
+  })
+
+  it('restores chronological order by year when turned back off', async () => {
+    const list = await createList(harness.db, ownerId, { title: 'Cannibal Corpse', mediaType: 'music' })
+    const album2002 = await createListItem(harness.db, ownerId, list.id, {
+      title: 'Gore Obsessed',
+      timeToConsumeMinutes: 45,
+      releaseType: 'Album',
+      year: 2002,
+    })
+    const ep2000 = await createListItem(harness.db, ownerId, list.id, {
+      title: 'Sacrifice / Confessions',
+      timeToConsumeMinutes: 20,
+      releaseType: 'EP',
+      year: 2000,
+    })
+    const album1990 = await createListItem(harness.db, ownerId, list.id, {
+      title: 'Eaten Back to Life',
+      timeToConsumeMinutes: 45,
+      releaseType: 'Album',
+      year: 1990,
+    })
+
+    await updateList(harness.db, ownerId, list.id, { groupByType: true })
+    await updateList(harness.db, ownerId, list.id, { groupByType: false })
+
+    const items = (await findListItems(harness.db, ownerId, list.id))!
+    expect(items.map((item) => item.id)).toEqual([album1990!.id, ep2000!.id, album2002!.id])
+  })
+
+  it('leaves every item\'s group untouched when the patch has nothing to do with grouping', async () => {
+    const list = await createList(harness.db, ownerId, { title: 'Some TV Show', mediaType: 'tv' })
+    const item = await createListItem(harness.db, ownerId, list.id, {
+      title: 'Episode 1',
+      timeToConsumeMinutes: 25,
+      group: 'Season 1',
+    })
+
+    await updateList(harness.db, ownerId, list.id, { title: 'Renamed' })
+
+    expect((await findListItem(harness.db, ownerId, list.id, item!.id))?.group).toBe('Season 1')
+  })
+})
+
+describe('releaseTypeBucket', () => {
+  it('returns null for no release type', () => {
+    expect(releaseTypeBucket(null)).toBeNull()
+    expect(releaseTypeBucket(undefined)).toBeNull()
+  })
+
+  it('returns the base type alone unchanged', () => {
+    expect(releaseTypeBucket('Album')).toBe('Album')
+    expect(releaseTypeBucket('EP')).toBe('EP')
+    expect(releaseTypeBucket('Single')).toBe('Single')
+  })
+
+  it('prefers Compilation and Live over the base type', () => {
+    expect(releaseTypeBucket('Album · Live')).toBe('Live')
+    expect(releaseTypeBucket('EP · Live')).toBe('Live')
+    expect(releaseTypeBucket('Album · Compilation')).toBe('Compilation')
+  })
+
+  it('prefers Compilation over Live when a release is somehow both', () => {
+    expect(releaseTypeBucket('Album · Live · Compilation')).toBe('Compilation')
   })
 })

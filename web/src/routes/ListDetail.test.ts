@@ -19,6 +19,7 @@ function item(overrides: Partial<ListItem> = {}): ListItem {
     year: null,
     group: null,
     language: null,
+    releaseType: null,
     ...overrides,
   }
 }
@@ -53,15 +54,35 @@ describe('groupItems', () => {
     ])
   })
 
-  it('starts a new group row when the same label recurs non-consecutively', () => {
+  it('merges the same label into one row even when it recurs non-consecutively', () => {
+    // Real bug, found live: a music list's "group by type" toggle sets
+    // `group` from each item's release type, but items stay in chronological
+    // order — albums/EPs/singles/live/compilations are naturally interleaved
+    // by release date, never contiguous. Folding only consecutive runs (the
+    // old behavior this test used to assert) turned a real discography into
+    // dozens of one-item "groups" instead of five real sections.
     const first = item({ group: 'Season 1' })
     const between = item({ group: null })
     const second = item({ group: 'Season 1' })
 
     expect(groupItems([first, between, second])).toEqual([
-      { kind: 'group', label: 'Season 1', items: [first] },
+      { kind: 'group', label: 'Season 1', items: [first, second] },
       { kind: 'item', item: between },
-      { kind: 'group', label: 'Season 1', items: [second] },
+    ])
+  })
+
+  it('merges every item sharing a group label, fully interleaved with others', () => {
+    const album1 = item({ group: 'Album' })
+    const ep1 = item({ group: 'EP' })
+    const album2 = item({ group: 'Album' })
+    const single1 = item({ group: 'Single' })
+    const album3 = item({ group: 'Album' })
+    const ep2 = item({ group: 'EP' })
+
+    expect(groupItems([album1, ep1, album2, single1, album3, ep2])).toEqual([
+      { kind: 'group', label: 'Album', items: [album1, album2, album3] },
+      { kind: 'group', label: 'EP', items: [ep1, ep2] },
+      { kind: 'group', label: 'Single', items: [single1] },
     ])
   })
 
