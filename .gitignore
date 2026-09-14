@@ -46,3 +46,7 @@ npm-debug.log*
 /CLAUDE.md
 /RESOLVED.md
 /SPEC.md
+
+# Claude Code tooling config — internal, same as CLAUDE.md above, not for
+# public visitors. Scrubbed from history on 2026-09-14, kept locally.
+/.claude/skills/list-generator/
