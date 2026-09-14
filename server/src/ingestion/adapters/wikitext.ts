@@ -96,6 +96,40 @@ export interface WikiRow {
   raw: string
 }
 
+interface RawCell {
+  value: string
+  /** `rowspan=N` (or `rowspan="N"`) on the cell's own attributes; 1 if absent. */
+  rowspan: number
+}
+
+/**
+ * A cell's leading `attr=value ...|` segment, same boundary the original
+ * single-purpose regex used, but capturing the attributes text too so a
+ * `rowspan` can be read out of it before the whole prefix is discarded.
+ */
+function parseCell(part: string): RawCell {
+  const cell = part.replace(/^[|!]/, '')
+  const attrs = /^([^|[{]*)\|(?!\|)/.exec(cell)
+  if (!attrs) return { value: cleanCell(cell), rowspan: 1 }
+
+  const span = /rowspan\s*=\s*"?(\d+)"?/i.exec(attrs[1]!)
+  return {
+    value: cleanCell(cell.slice(attrs[0].length)),
+    rowspan: span ? Number(span[1]) : 1,
+  }
+}
+
+/**
+ * Tracks a `rowspan`-declaring cell so later rows can inherit its value at
+ * the same column position — MediaWiki's own meaning of `rowspan=N`: the
+ * declaring row plus the next N-1 rows all share one cell.
+ */
+interface ActiveSpan {
+  value: string
+  /** Rows still owed this value, not counting the declaring row itself. */
+  remaining: number
+}
+
 /** Reads one table into header names and cleaned row cells. */
 export function parseTable(table: string): WikiRow[] {
   const lines = table.split('\n')
@@ -107,19 +141,58 @@ export function parseTable(table: string): WikiRow[] {
   // some pages (WWE's) open with an empty leading `|-` before the real
   // header line, so `current` is already non-null by the time headers start.
   let headersComplete = false
-  let current: string[] | null = null
+  let current: RawCell[] | null = null
   let currentRaw: string[] = []
+  // Column index -> the rowspan currently covering it, persisting across
+  // `|-` boundaries until it's been inherited its declared number of times.
+  // Reset per table (never per row) — a fresh `parseTable` call per `{| … |}`
+  // block already gives each table its own instance of this map.
+  const activeSpans = new Map<number, ActiveSpan>()
 
-  const pushCells = (line: string, separator: string, into: string[]) => {
+  const pushCells = (line: string, separator: string, into: RawCell[]) => {
     // A line may hold one cell, or several joined by || (or !! in a header).
-    for (const part of line.split(separator)) {
-      const cell = part.replace(/^[|!]/, '')
-      // Cell attributes are separated from content by a single pipe.
-      const withoutAttributes = /^[^|[{]*\|(?!\|)/.test(cell)
-        ? cell.slice(cell.indexOf('|') + 1)
-        : cell
-      into.push(cleanCell(withoutAttributes))
+    for (const part of line.split(separator)) into.push(parseCell(part))
+  }
+
+  /**
+   * Rebuilds one row's full cell list by column position: a column still
+   * covered by an earlier row's `rowspan` gets that row's value without
+   * consuming one of this row's own cells; every other column consumes the
+   * next actual cell this row has, in order. `headers.length` is fixed
+   * (real column count) by the time any data row reaches this — headers are
+   * always complete before the first data row starts.
+   *
+   * Confirmed live against the real UFC page: 157 of ~789 rows (venues and
+   * locations shared across a run of events via `rowspan`) were previously
+   * dropped by the plain cell-count alignment check downstream — not a rare
+   * edge case, roughly one row in five. Reconstructing by column, rather
+   * than lengthening the raw cell list, is what keeps a spanned Attendance
+   * or Ref value from sliding into the Venue/Location slot it isn't.
+   */
+  function finalizeCurrentRow(): void {
+    if (!current) return
+
+    const width = headers.length > 0 ? headers.length : current.length
+    const cells: string[] = []
+    let cellIndex = 0
+
+    for (let column = 0; column < width; column += 1) {
+      const span = activeSpans.get(column)
+      if (span && span.remaining > 0) {
+        cells.push(span.value)
+        span.remaining -= 1
+        if (span.remaining === 0) activeSpans.delete(column)
+        continue
+      }
+
+      const cell = current[cellIndex]
+      if (!cell) break // Genuinely short row — left to the caller's own alignment check.
+      cells.push(cell.value)
+      if (cell.rowspan > 1) activeSpans.set(column, { value: cell.value, remaining: cell.rowspan - 1 })
+      cellIndex += 1
     }
+
+    if (cells.length > 0) rows.push({ cells, raw: currentRaw.join('\n') })
   }
 
   for (const line of lines) {
@@ -128,7 +201,7 @@ export function parseTable(table: string): WikiRow[] {
     if (trimmed.startsWith('{|') || trimmed.startsWith('|}')) continue
 
     if (trimmed.startsWith('|-')) {
-      if (current && current.length > 0) rows.push({ cells: current, raw: currentRaw.join('\n') })
+      finalizeCurrentRow()
       if (headers.length > 0) headersComplete = true
       current = []
       currentRaw = []
@@ -145,7 +218,7 @@ export function parseTable(table: string): WikiRow[] {
       // header/cell-count alignment check downstream and the whole table
       // silently produced zero events.
       if (!headersComplete) {
-        pushCells(trimmed, '!!', headers)
+        for (const part of trimmed.split('!!')) headers.push(parseCell(part).value)
       } else {
         current ??= []
         currentRaw.push(line)
@@ -161,7 +234,7 @@ export function parseTable(table: string): WikiRow[] {
     }
   }
 
-  if (current && current.length > 0) rows.push({ cells: current, raw: currentRaw.join('\n') })
+  finalizeCurrentRow()
 
   // Some pages put headers in the first body row instead of using `!`.
   if (headers.length === 0 && rows.length > 0) headers = rows.shift()!.cells

@@ -92,6 +92,41 @@ describe('runGenerateList', () => {
       { title: 'Iron Man', year: 2008, minutes: 126 },
       { title: 'Agents of S.H.I.E.L.D. — Season 1', year: 2013 },
     ])
+
+    // Every title is quoted, not just the ones that would otherwise be
+    // ambiguous (a bare title containing ": ", like "UFC 2: No Way Out",
+    // genuinely needs quotes to parse at all) — a human reviewing hundreds
+    // of generated titles at a glance should not see some quoted and some
+    // not depending on punctuation. See the docstring on `yamlString`.
+    expect(text).toContain('title: "MCU (All Canon Releases)"')
+    expect(text).toContain('{title: "Iron Man", year: 2008, minutes: 126}')
+    expect(text).toContain('{title: "Agents of S.H.I.E.L.D. — Season 1", year: 2013}')
+  })
+
+  it('quotes every title consistently even when some need it to parse and others do not', async () => {
+    const outPath = join(dir, 'ufc.yaml')
+
+    await runGenerateList(
+      { category: 'mega', ref: 'franchise:1', title: 'UFC', out: outPath },
+      registryWith(
+        fakeAdapter({
+          expand: async () => [
+            { title: 'UFC 100', externalRef: 'e:1', year: 2009 },
+            { title: 'UFC 2: No Way Out', externalRef: 'e:2', year: 1994 },
+          ],
+        }),
+      ),
+    )
+
+    const text = readFileSync(outPath, 'utf8')
+    const parsed = loadYaml(text) as { items: { title: string; year: number }[] }
+
+    expect(parsed.items).toEqual([
+      { title: 'UFC 100', year: 2009 },
+      { title: 'UFC 2: No Way Out', year: 1994 },
+    ])
+    expect(text).toContain('{title: "UFC 100", year: 2009}')
+    expect(text).toContain('{title: "UFC 2: No Way Out", year: 1994}')
   })
 
   it('refuses to overwrite an existing file without --force', async () => {

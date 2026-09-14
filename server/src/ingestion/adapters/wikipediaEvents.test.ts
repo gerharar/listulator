@@ -256,6 +256,37 @@ describe('sub-series search (task 6.8)', () => {
     ])
   })
 
+  it('Fight Night also catches the early "Ultimate Fight Night" branding, unnumbered included', async () => {
+    // Real title shapes, verified against the live page: the series was
+    // "UFC Ultimate Fight Night" (no number) for its first event, "UFC
+    // Ultimate Fight Night N" for events 2–5, and only "UFC Fight Night N"
+    // from event 6 (Oct 2006) onward. A plain `startsWith('ufc fight
+    // night')` silently missed the first five entirely.
+    const wikitext = [
+      '==Past events==',
+      '{| class="wikitable"',
+      '! Event !! Date',
+      '|-',
+      '|[[2005 in UFC#UFC Ultimate Fight Night|UFC Ultimate Fight Night]]',
+      '|{{dts|2005|Aug|6}}',
+      '|-',
+      '|[[UFC Ultimate Fight Night 2]]',
+      '|{{dts|2005|Oct|3}}',
+      '|-',
+      '|UFC Fight Night 6',
+      '|{{dts|2006|Oct|10}}',
+      '|}',
+    ].join('\n')
+
+    const adapter = createWikipediaEventsAdapter([UFC], respondWith(wikitext), UFC_SUB_SERIES)
+
+    expect(await adapter.expand('subseries:ufc-fight-night')).toEqual([
+      { title: 'UFC Ultimate Fight Night', year: 2005 },
+      { title: 'UFC Ultimate Fight Night 2', year: 2005 },
+      { title: 'UFC Fight Night 6', year: 2006 },
+    ])
+  })
+
   it('returns nothing for an unknown sub-series key', async () => {
     const adapter = createWikipediaEventsAdapter([WWE], respondWith(''), WWE_SUB_SERIES)
 

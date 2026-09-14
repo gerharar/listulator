@@ -1,7 +1,6 @@
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs'
 import { dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { dump as dumpYaml } from 'js-yaml'
 import { loadEnvFile } from '../config.js'
 import {
   createMediaTypeRegistry,
@@ -68,6 +67,31 @@ function candidateToItem(candidate: MediaTypeCandidate): Record<string, unknown>
   return item
 }
 
+/**
+ * Always double-quotes, rather than leaving `js-yaml`'s `dump()` decide per
+ * string whether a title needs quoting (it only quotes when a bare value
+ * would be genuinely ambiguous, e.g. a title containing ": "). That is
+ * correct YAML — CONTRIBUTING.md's own hand-written examples follow the
+ * same "quote only when necessary" rule — but a machine-generated file with
+ * some titles quoted and others not reads as inconsistent/broken to a human
+ * reviewing hundreds of them at a glance, which is exactly what happened
+ * (the owner flagged "UFC 100" and "UFC Fight Night 6" as looking
+ * mis-formatted next to "UFC 2: No Way Out"). `JSON.stringify` produces a
+ * valid YAML double-quoted scalar for any realistic title — the escaping
+ * rules for `"`, `\`, and control characters coincide.
+ */
+function yamlString(value: string): string {
+  return JSON.stringify(value)
+}
+
+function formatItemLine(item: Record<string, unknown>): string {
+  const parts: string[] = [`title: ${yamlString(item['title'] as string)}`]
+  if (item['year'] !== undefined) parts.push(`year: ${String(item['year'])}`)
+  if (item['minutes'] !== undefined) parts.push(`minutes: ${String(item['minutes'])}`)
+  if (item['group'] !== undefined) parts.push(`group: ${yamlString(item['group'] as string)}`)
+  return `  - {${parts.join(', ')}}`
+}
+
 export async function runGenerateList(
   options: GenerateListOptions,
   registry: MediaTypeRegistry,
@@ -96,14 +120,10 @@ export async function runGenerateList(
   if (!options.title) throw new Error('Pass --title for the generated list — required in generate mode.')
 
   const candidates = await mediaType.adapter.expand(options.ref)
-  const doc = {
-    title: options.title,
-    category: options.category,
-    items: candidates.map(candidateToItem),
-  }
+  const itemLines = candidates.map(candidateToItem).map(formatItemLine).join('\n')
 
   const generatedComment = `# Generated ${new Date().toISOString().slice(0, 10)} by \`generateList.ts\` (--category ${options.category} --ref ${options.ref}).\n# Draft only — review titles/years/minutes and prune/reorder before committing.\n`
-  const yamlText = generatedComment + dumpYaml(doc, { flowLevel: 2, lineWidth: 100 })
+  const yamlText = `${generatedComment}title: ${yamlString(options.title)}\ncategory: ${options.category}\nitems:\n${itemLines}\n`
 
   const outPath = options.out ?? `${LISTS_DIR}/${options.category}/${slugify(options.title)}.yaml`
   if (existsSync(outPath) && !options.force) {

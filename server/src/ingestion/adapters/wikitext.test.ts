@@ -166,6 +166,104 @@ describe('parseTable', () => {
       ['Fyter Fest', 'June 29', "Daily's Place"],
     ])
   })
+
+  describe('rowspan', () => {
+    /**
+     * Verbatim shape from the real UFC page: UFC 48/47/46 share one Venue
+     * cell via `rowspan=3` declared on UFC 48's own row, and UFC 1's Location
+     * is inherited via `rowspan=2` from UFC 2's row above it. Confirmed
+     * live: 157 of ~789 rows on that page alone (~1 in 5) were silently
+     * dropped before this — every later column (Attendance, Ref) sliding
+     * into an earlier one's slot would have been worse than dropping, which
+     * is why this reconstructs by column position rather than just
+     * shortening the cell-count mismatch.
+     */
+    it('inherits a rowspan cell into the following rows, at the right column', () => {
+      const table = [
+        '{| class="wikitable"',
+        '! # !! Event !! Date !! Venue !! Attendance',
+        '|-',
+        '|053',
+        '|UFC 48: Payback',
+        '|Jun 19',
+        '|rowspan=3|Mandalay Bay Events Center',
+        '|10,000',
+        '|-',
+        '|052',
+        '|UFC 47: It\'s On!',
+        '|Apr 2',
+        '|11,437',
+        '|-',
+        '|051',
+        '|UFC 46: Supernatural',
+        '|Jan 31',
+        '|10,700',
+        '|}',
+      ].join('\n')
+
+      const rows = parseTable(table)
+
+      expect(rows.map((row) => row.cells)).toEqual([
+        ['053', 'UFC 48: Payback', 'Jun 19', 'Mandalay Bay Events Center', '10,000'],
+        ['052', "UFC 47: It's On!", 'Apr 2', 'Mandalay Bay Events Center', '11,437'],
+        ['051', 'UFC 46: Supernatural', 'Jan 31', 'Mandalay Bay Events Center', '10,700'],
+      ])
+    })
+
+    it('handles rowspan="N" (quoted) and a rowspan combined with another attribute', () => {
+      const table = [
+        '{| class="wikitable"',
+        '! Event !! Location !! Date',
+        '|-',
+        '|UFC 2: No Way Out',
+        '|rowspan="2"|Denver, Colorado',
+        '|Mar 11',
+        '|-',
+        '|UFC 1: The Beginning',
+        '|Nov 12',
+        '|}',
+      ].join('\n')
+
+      expect(parseTable(table).map((row) => row.cells)).toEqual([
+        ['UFC 2: No Way Out', 'Denver, Colorado', 'Mar 11'],
+        ['UFC 1: The Beginning', 'Denver, Colorado', 'Nov 12'],
+      ])
+
+      const withStyle = [
+        '{| class="wikitable"',
+        '! Event !! Venue !! Date',
+        '|-',
+        '|Event A',
+        '|rowspan=2 style="text-align:center"|Shared Arena',
+        '|Jan 1',
+        '|-',
+        '|Event B',
+        '|Jan 8',
+        '|}',
+      ].join('\n')
+
+      expect(parseTable(withStyle).map((row) => row.cells)).toEqual([
+        ['Event A', 'Shared Arena', 'Jan 1'],
+        ['Event B', 'Shared Arena', 'Jan 8'],
+      ])
+    })
+
+    it('a row that still falls short after span reconstruction is left short, not padded', () => {
+      // No rowspan at all here — a genuinely malformed/truncated row. The
+      // alignment check in `fetchPromotionEvents` is the actual backstop;
+      // this just confirms `parseTable` itself doesn't invent a cell.
+      const table = [
+        '{| class="wikitable"',
+        '! Event !! Date !! Venue',
+        '|-',
+        '|Some Event',
+        '|Jan 1',
+        '|}',
+      ].join('\n')
+
+      expect(parseTable(table)[0]?.cells).toEqual(['Some Event', 'Jan 1'])
+    })
+  })
 })
 
 describe('splitSections', () => {

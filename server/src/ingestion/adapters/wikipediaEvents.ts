@@ -457,12 +457,27 @@ export const WWE_SUB_SERIES: readonly SubSeries[] = [
   },
 ]
 
+/**
+ * "UFC Fight Night" itself is a branding that changed over time, confirmed
+ * against the real page: event 1 (Aug 2005) is titled plain "UFC Ultimate
+ * Fight Night" (no number — a piped wikilink whose display text carries no
+ * numeral at all); events 2–5 are "UFC Ultimate Fight Night N"; only from
+ * event 6 onward (Oct 2006) does UFC drop "Ultimate" to the now-familiar
+ * "UFC Fight Night N". A plain `startsWith('ufc fight night')` matches only
+ * the post-2006 era, silently excluding the first five (including the
+ * unnumbered first one) from "All Fight Night events."
+ */
+const fightNightEvent = (title: string) => {
+  const normalized = title.toLowerCase()
+  return normalized.startsWith('ufc fight night') || normalized.startsWith('ufc ultimate fight night')
+}
+
 export const UFC_SUB_SERIES: readonly SubSeries[] = [
   {
     key: 'ufc-fight-night',
     promotionKey: 'ufc',
     title: 'All Fight Night events (UFC)',
-    matches: startsWith('ufc fight night'),
+    matches: fightNightEvent,
   },
   {
     key: 'ufc-numbered',
