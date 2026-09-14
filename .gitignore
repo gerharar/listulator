@@ -33,3 +33,9 @@ npm-debug.log*
 # NOTE: /config/strategies/*.json is deliberately NOT ignored — the shipped
 # suggestion strategies are tracked so self-hosters can read and tune them.
 # See SPEC.md §6.
+
+# Internal working docs — process/history for the owner, not the public repo
+# (docs/DECISIONS.md, docs/HANDOFF.md, task breakdowns). Scrubbed from git
+# history entirely on 2026-09-14, kept locally outside version control.
+/docs/
+/tasks/
