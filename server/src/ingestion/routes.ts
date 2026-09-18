@@ -44,6 +44,7 @@ interface ImportItem {
   group?: string
   language?: string
   releaseType?: string
+  tags?: string[]
 }
 
 export const ingestionRoutes: FastifyPluginAsync<IngestionRoutesOptions> = async (
@@ -81,6 +82,7 @@ export const ingestionRoutes: FastifyPluginAsync<IngestionRoutesOptions> = async
         timeToConsumeIsEstimated: !known,
         ...(item.year !== undefined ? { year: item.year } : {}),
         ...(item.group !== undefined ? { group: item.group } : {}),
+        ...(item.tags !== undefined ? { tags: item.tags } : {}),
         source: 'import',
       })
     }
@@ -345,6 +347,7 @@ export const ingestionRoutes: FastifyPluginAsync<IngestionRoutesOptions> = async
           ...(candidate.group ? { group: candidate.group } : {}),
           ...(candidate.language ? { language: candidate.language } : {}),
           ...(candidate.releaseType ? { releaseType: candidate.releaseType } : {}),
+          ...(candidate.tags ? { tags: candidate.tags } : {}),
           source: 'import',
         })
       }
@@ -611,6 +614,7 @@ export const ingestionRoutes: FastifyPluginAsync<IngestionRoutesOptions> = async
                   group: { type: 'string', maxLength: 500 },
                   language: { type: 'string', maxLength: 20 },
                   releaseType: { type: 'string', maxLength: 40 },
+                  tags: { type: 'array', maxItems: 20, items: { type: 'string', maxLength: 40 } },
                 },
               },
             },
@@ -655,6 +659,7 @@ export const ingestionRoutes: FastifyPluginAsync<IngestionRoutesOptions> = async
             ...(item.group ? { group: item.group } : {}),
             ...(item.language ? { language: item.language } : {}),
             ...(item.releaseType ? { releaseType: item.releaseType } : {}),
+            ...(item.tags ? { tags: item.tags } : {}),
             source,
           }),
         )

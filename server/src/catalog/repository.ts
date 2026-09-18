@@ -152,6 +152,8 @@ export interface CreateListItemInput {
   language?: string | null
   /** Release-type label (music category only), e.g. "Album", "EP · Live". Null otherwise. */
   releaseType?: string | null
+  /** Generic per-item display tags (SPEC.md §4), e.g. ["Album", "Live"]. Null if none. */
+  tags?: string[] | null
 }
 
 export interface UpdateListItemInput {
@@ -434,6 +436,7 @@ export async function createListItem(
       group: input.group ?? null,
       language: input.language ?? null,
       releaseType: input.releaseType ?? null,
+      tags: input.tags ?? null,
     })
     .returning()
     .get()

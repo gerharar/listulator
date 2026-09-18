@@ -193,6 +193,20 @@ describe('POST /api/lists/:listId/items/import', () => {
     ])
   })
 
+  it('carries tags through the import endpoint, defaulting to null when omitted', async () => {
+    const list = await createList('music')
+
+    const response = await importItems(list.id, [
+      { title: 'Global Evisceration', tags: ['Album', 'Live'] },
+      { title: 'Eaten Back to Life' },
+    ])
+
+    expect(response.json()).toMatchObject([
+      { title: 'Global Evisceration', tags: ['Album', 'Live'] },
+      { title: 'Eaten Back to Life', tags: null },
+    ])
+  })
+
   it('leaves new items ungrouped when "group by type" is off, even with a release type', async () => {
     const list = await createList('music')
 
@@ -445,6 +459,29 @@ describe('search and import from a source', () => {
     expect(items).toMatchObject([
       { title: 'Eaten Back to Life', releaseType: 'Album' },
       { title: 'Worm Infested', releaseType: 'EP · Live' },
+    ])
+  })
+
+  it("carries a candidate's tags onto the created item", async () => {
+    const expand = vi.fn(async () => [
+      { title: 'Global Evisceration', externalRef: 'rg-1', tags: ['Album', 'Live'] },
+      { title: 'Eaten Back to Life', externalRef: 'rg-2' },
+    ])
+    harness = withAdapter(fakeAdapter({ expand }))
+
+    const response = await harness.app.inject({
+      method: 'POST',
+      url: '/api/lists/from-source',
+      payload: { mediaType: 'music', externalRef: 'ref-1', title: 'Cannibal Corpse' },
+    })
+
+    const items = (
+      await harness.app.inject({ method: 'GET', url: `/api/lists/${response.json().id}` })
+    ).json().items
+
+    expect(items).toMatchObject([
+      { title: 'Global Evisceration', tags: ['Album', 'Live'] },
+      { title: 'Eaten Back to Life', tags: null },
     ])
   })
 
@@ -747,6 +784,18 @@ items:
     ).json().items
 
     expect(items).toMatchObject([{ title: 'Pilot', group: 'Season 1' }])
+  })
+
+  it('preserves tags per item', async () => {
+    const yaml =
+      'title: X\ncategory: music\nitems:\n  - { title: Global Evisceration, tags: [Album, Live] }\n'
+    const response = await fromFile(yaml)
+
+    const items = (
+      await harness.app.inject({ method: 'GET', url: `/api/lists/${response.json().id}` })
+    ).json().items
+
+    expect(items).toMatchObject([{ title: 'Global Evisceration', tags: ['Album', 'Live'] }])
   })
 
   it('rejects an unknown category with the same code the search-based path uses', async () => {

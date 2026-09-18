@@ -55,6 +55,23 @@ describe('catalog repository', () => {
     })
   })
 
+  it('stores tags on a new item, defaulting to null when omitted', async () => {
+    const list = await createList(harness.db, ownerId, { title: 'Some Band', mediaType: 'music' })
+
+    const tagged = await createListItem(harness.db, ownerId, list.id, {
+      title: 'Global Evisceration',
+      timeToConsumeMinutes: 45,
+      tags: ['Album', 'Live'],
+    })
+    const untagged = await createListItem(harness.db, ownerId, list.id, {
+      title: 'Eaten Back to Life',
+      timeToConsumeMinutes: 45,
+    })
+
+    expect(tagged?.tags).toEqual(['Album', 'Live'])
+    expect(untagged?.tags).toBeNull()
+  })
+
   it("hides another user's list from reads, updates and deletes", async () => {
     const theirs = await createList(harness.db, strangerId, { title: 'Theirs', mediaType: 'movie' })
 
