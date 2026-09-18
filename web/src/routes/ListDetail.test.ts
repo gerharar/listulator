@@ -20,6 +20,7 @@ function item(overrides: Partial<ListItem> = {}): ListItem {
     group: null,
     language: null,
     releaseType: null,
+    tags: null,
     ...overrides,
   }
 }

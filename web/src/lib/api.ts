@@ -48,6 +48,8 @@ export interface ListItem {
    * `'Album · Live'`. Null for every other category.
    */
   releaseType: string | null
+  /** Generic per-item display tags, e.g. ["Album", "Live"]. Null if none. */
+  tags: string[] | null
 }
 
 export interface MediaListDetail extends MediaList {
@@ -162,6 +164,7 @@ export interface ApiClient {
       group?: string
       language?: string
       releaseType?: string
+      tags?: string[]
     }[],
     /** Defaults to 'import' — pass 'manual' for a hand-typed batch (task 6.2). */
     source?: 'manual' | 'import',
@@ -208,6 +211,7 @@ export interface ApiClient {
       group?: string
       language?: string
       releaseType?: string
+      tags?: string[]
     }[]
     upstreamCount: number
     existingCount: number
@@ -268,6 +272,7 @@ export const fetchApi: ApiClient = {
       group?: string
       language?: string
       releaseType?: string
+      tags?: string[]
     }[],
     source?: 'manual' | 'import',
   ) =>
@@ -326,6 +331,7 @@ export const fetchApi: ApiClient = {
         group?: string
         language?: string
         releaseType?: string
+        tags?: string[]
       }[]
       upstreamCount: number
       existingCount: number

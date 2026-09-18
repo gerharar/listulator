@@ -99,6 +99,7 @@ function toListItem(item: SchemaListItem): ListItem {
     group: item.group,
     language: item.language,
     releaseType: item.releaseType,
+    tags: item.tags,
   }
 }
 
@@ -273,6 +274,7 @@ export function createLocalApi(): ApiClient {
           ...(item.group ? { group: item.group } : {}),
           ...(item.language ? { language: item.language } : {}),
           ...(item.releaseType ? { releaseType: item.releaseType } : {}),
+          ...(item.tags ? { tags: item.tags } : {}),
           source,
         })
         created.push(row!)
@@ -424,6 +426,7 @@ export function createLocalApi(): ApiClient {
             timeToConsumeIsEstimated: !known,
             ...(item.year !== undefined ? { year: item.year } : {}),
             ...(item.group !== undefined ? { group: item.group } : {}),
+            ...(item.tags !== undefined ? { tags: item.tags } : {}),
             source: 'import',
           })
         }
@@ -491,6 +494,7 @@ export function createLocalApi(): ApiClient {
           ...(candidate.group ? { group: candidate.group } : {}),
           ...(candidate.language ? { language: candidate.language } : {}),
           ...(candidate.releaseType ? { releaseType: candidate.releaseType } : {}),
+          ...(candidate.tags ? { tags: candidate.tags } : {}),
           source: 'import',
         })
       }
@@ -534,6 +538,7 @@ export function createLocalApi(): ApiClient {
           timeToConsumeIsEstimated: !known,
           ...(item.year !== undefined ? { year: item.year } : {}),
           ...(item.group !== undefined ? { group: item.group } : {}),
+          ...(item.tags !== undefined ? { tags: item.tags } : {}),
           source: 'import',
         })
       }
