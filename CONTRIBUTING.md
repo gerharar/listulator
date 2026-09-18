@@ -38,7 +38,8 @@ Per-item fields:
 | `title`   | Yes       | Rejected with a specific error if missing — never silently dropped. |
 | `year`    | No        | Release/publication year. |
 | `minutes` | No        | Time to consume. Omit it if there's no meaningful single answer (see the book example below) — it falls back to the category's default duration with `is_estimated: true`, the same rule every built-in data source already follows. |
-| `group`   | No        | A free-text label for items that need internal structure, e.g. `group: Season 1`. The same field works for a TV season, a comic story arc, or anything else that needs grouping — there's no category-specific shape. |
+| `group`   | No        | A free-text label for items that need internal structure, e.g. `group: Season 1`. The same field works for a TV season, a comic story arc, or anything else that needs grouping — there's no category-specific shape. Every list always renders in chronological order; `group` only labels contiguous runs within that order and has no other effect. |
+| `tags`    | No        | A list of short free-text strings, rendered as badges, e.g. `tags: [Album, Live]`. One generic field for every category — there's no fixed vocabulary or category-specific field name. Use whatever short labels make sense for what you're contributing: a music release type, a book's language, a franchise entry's medium, a promotion's event format, or anything else worth flagging at a glance. Purely a display attribute — it never affects ordering or `group`. |
 
 Example using `group`:
 
@@ -49,6 +50,17 @@ items:
   - { title: Pilot, group: Season 1 }
   - { title: Episode Two, group: Season 1 }
   - { title: Season Premiere, group: Season 2 }
+```
+
+Example using `tags`:
+
+```yaml
+title: Some Band — Discography
+category: music
+items:
+  - { title: Debut Album, year: 2001, tags: [Album] }
+  - { title: Live in Concert, year: 2004, tags: [Album, Live] }
+  - { title: B-Sides EP, year: 2005, tags: [EP] }
 ```
 
 ## `category` must be one of the fixed keys
@@ -100,10 +112,17 @@ won't be merged.
 
 A flat manifest of every list in `lists/`, `{path, title, category}` per
 entry — the file the sync feature actually fetches, rather than crawling
-GitHub's directory API and hitting its unauthenticated rate limit. **This
-is currently maintained by hand and updated by whoever merges a list PR**;
-there's no generator script yet. If you're contributing a list, add your
-own entry to `lists/index.json` in the same PR.
+GitHub's directory API and hitting its unauthenticated rate limit. **Generated,
+not hand-edited**: run
+
+```
+npx tsx server/src/tools/generateListsIndex.ts
+```
+
+from the repo root after adding or changing a list file, and commit the
+resulting `lists/index.json` in the same PR. It re-parses every file under
+`lists/` and fails loudly, naming the file, if anything doesn't validate —
+so a passing run is also a check that your new file is well-formed.
 
 ## Example files
 
