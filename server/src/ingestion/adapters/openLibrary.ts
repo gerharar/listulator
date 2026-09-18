@@ -108,7 +108,8 @@ const LANGUAGE_LABELS: Record<string, string> = {
   kor: 'Korean',
 }
 
-function languageTagLabel(code: string): string {
+/** Exported for the legacy-`language`-column backfill (tasks/todo.md, Phase 8 task 10). */
+export function languageTagLabel(code: string): string {
   if (code === UNKNOWN) return 'Unknown'
   return LANGUAGE_LABELS[code] ?? code.toUpperCase()
 }
