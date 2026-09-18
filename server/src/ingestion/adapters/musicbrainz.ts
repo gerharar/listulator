@@ -60,18 +60,19 @@ type Facet = (typeof FACETS)[number]
  * means no facets: studio albums only, the original behaviour.
  */
 /**
- * A per-item label for browsing a built list (task: per-item release-type
- * labels) — the primary type plus whichever of the two secondary facets
- * this feature cares about, e.g. `'Album'`, `'EP'`, `'Album · Live'`. Only
+ * Per-item release-type facets for browsing a built list (task: per-item
+ * release-type labels; generalized into `tags`, `docs/DECISIONS.md`) — the
+ * primary type plus whichever of the two secondary facets this feature
+ * cares about, e.g. `['Album']`, `['EP']`, `['Album', 'Live']`. Only
  * `Live`/`Compilation` are surfaced here, matching the two secondary
  * toggles above; any other secondary type MusicBrainz might carry (Remix,
  * Soundtrack, ...) is outside this feature's scope and stays unlabelled.
  */
-function releaseTypeLabel(group: { 'primary-type'?: string; 'secondary-types'?: string[] }): string {
+function releaseTypeTags(group: { 'primary-type'?: string; 'secondary-types'?: string[] }): string[] {
   const extras = (group['secondary-types'] ?? []).filter(
     (type) => type === 'Live' || type === 'Compilation',
   )
-  return [group['primary-type'] ?? 'Album', ...extras].join(' · ')
+  return [group['primary-type'] ?? 'Album', ...extras]
 }
 
 function parseRef(externalRef: string): { artistId: string; facets: Set<Facet> | null } {
@@ -184,6 +185,7 @@ export function createMusicBrainzAdapter(fetchImpl?: FetchLike): SearchAdapter {
             // Dates can be partial ("1994-03") or missing; only a real
             // 4-digit year prefix counts, never a guess.
             const year = Number(group['first-release-date']?.slice(0, 4))
+            const tags = releaseTypeTags(group)
 
             return {
               title: group.title,
@@ -193,7 +195,13 @@ export function createMusicBrainzAdapter(fetchImpl?: FetchLike): SearchAdapter {
               // and abusive to a free service. The category default applies
               // instead, flagged estimated. See docs/DECISIONS.md.
               ...(Number.isInteger(year) && year > 0 ? { year } : {}),
-              releaseType: releaseTypeLabel(group),
+              // Dual-emitted on purpose: `releaseType` (joined string) still
+              // feeds the shipped "group by type" toggle until that toggle
+              // and its DB column are retired (tasks/todo.md, Phase 8,
+              // task 6/10) — removing it here first would silently break
+              // the toggle for every list imported in the meantime.
+              releaseType: tags.join(' · '),
+              tags,
             }
           })
       )

@@ -190,6 +190,36 @@ describe('MusicBrainz adapter', () => {
     expect(byTitle.get('Live Cannibalism (Sampler)')).toBe('EP · Live')
   })
 
+  it('tags every studio album ["Album"], not just the opted-in extras', async () => {
+    const adapter = createMusicBrainzAdapter(respondWith(RELEASE_GROUPS))
+
+    expect((await adapter.expand('af8e4cc5')).map((item) => item.tags)).toEqual([
+      ['Album'],
+      ['Album'],
+      ['Album'],
+    ])
+  })
+
+  it('tags an EP, a single, a live album, and a compilation distinctly', async () => {
+    const adapter = createMusicBrainzAdapter(
+      respondFilteredByType(RELEASE_GROUPS['release-groups']),
+    )
+
+    const byTitle = new Map(
+      (await adapter.expand('af8e4cc5:ep,single,live,compilation')).map((item) => [
+        item.title,
+        item.tags,
+      ]),
+    )
+
+    expect(byTitle.get('Eaten Back to Life')).toEqual(['Album'])
+    expect(byTitle.get('Worm Infested')).toEqual(['EP'])
+    expect(byTitle.get('Hammer Smashed Face')).toEqual(['Single'])
+    expect(byTitle.get('Global Evisceration')).toEqual(['Album', 'Live'])
+    expect(byTitle.get('Dead Human Collection')).toEqual(['Album', 'Compilation'])
+    expect(byTitle.get('Live Cannibalism (Sampler)')).toEqual(['EP', 'Live'])
+  })
+
   it('leaves durations unset so the category default applies', async () => {
     // Album length would cost one request per album against a one-per-second
     // limit. Every item comes back without a duration and is filled in as an
