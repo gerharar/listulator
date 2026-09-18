@@ -82,6 +82,38 @@ interface WorkSearchResponse {
 const UNKNOWN = 'unknown'
 
 /**
+ * Human-readable label for a candidate's `tags` entry — mirrors
+ * `web/src/lib/bookLanguage.ts`'s `BOOK_LANGUAGES`/`bookLanguageLabel()`
+ * exactly (duplicated rather than shared: server and web are separate npm
+ * workspaces with no shared package). Keep the two in sync by hand if
+ * either changes — this is a curated display list, not Open Library's
+ * full code set.
+ */
+const LANGUAGE_LABELS: Record<string, string> = {
+  eng: 'English',
+  spa: 'Spanish',
+  fre: 'French',
+  ger: 'German',
+  ita: 'Italian',
+  por: 'Portuguese',
+  dut: 'Dutch',
+  rus: 'Russian',
+  pol: 'Polish',
+  swe: 'Swedish',
+  nor: 'Norwegian',
+  dan: 'Danish',
+  fin: 'Finnish',
+  jpn: 'Japanese',
+  chi: 'Chinese',
+  kor: 'Korean',
+}
+
+function languageTagLabel(code: string): string {
+  if (code === UNKNOWN) return 'Unknown'
+  return LANGUAGE_LABELS[code] ?? code.toUpperCase()
+}
+
+/**
  * A language filter (GUI option, book category only — never sent for any
  * other category) is strict by default: only a work actually tagged with
  * the wanted language survives. `includeUnknown` widens that to also keep
@@ -235,7 +267,11 @@ export function createOpenLibraryAdapter(fetchImpl?: FetchLike): SearchAdapter {
               // still part of the bibliography.
               ...(pages ? { timeToConsumeMinutes: Math.round(pages * MINUTES_PER_PAGE) } : {}),
               ...(work.first_publish_year ? { year: work.first_publish_year } : {}),
-              ...(languageOutcome ? { language: languageOutcome } : {}),
+              // Dual-emitted on purpose (same reasoning as musicbrainz.ts's
+              // releaseType/tags split, tasks/todo.md Phase 8 task 4):
+              // `language` still feeds the per-item badge until every
+              // consumer has moved onto `tags` (task 6/10).
+              ...(languageOutcome ? { language: languageOutcome, tags: [languageTagLabel(languageOutcome)] } : {}),
             },
           ]
         })

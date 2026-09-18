@@ -331,7 +331,9 @@ describe('Open Library adapter', () => {
 
     const items = await adapter.expand('author:OL1A:eng')
 
-    expect(items).toEqual([{ title: 'Norwegian Wood', year: 2000, language: 'eng' }])
+    expect(items).toEqual([
+      { title: 'Norwegian Wood', year: 2000, language: 'eng', tags: ['English'] },
+    ])
   })
 
   it('widens to also keep works with no language tag when the "include unknown" flag is set', async () => {
@@ -348,9 +350,41 @@ describe('Open Library adapter', () => {
     const items = await adapter.expand('author:OL1A:eng:unknown')
 
     expect(items).toEqual([
-      { title: 'Norwegian Wood', year: 2000, language: 'eng' },
-      { title: 'Norwegian Wood = Noruei no mori', year: 2004, language: 'unknown' },
+      { title: 'Norwegian Wood', year: 2000, language: 'eng', tags: ['English'] },
+      { title: 'Norwegian Wood = Noruei no mori', year: 2004, language: 'unknown', tags: ['Unknown'] },
     ])
+  })
+
+  it('tags a strictly-kept work with its human-readable language label', async () => {
+    const adapter = createOpenLibraryAdapter(
+      respondWith({ docs: [{ title: 'Norwegian Wood', language: ['eng'], first_publish_year: 2000 }] }),
+    )
+
+    const items = await adapter.expand('author:OL1A:eng')
+
+    expect(items).toEqual([{ title: 'Norwegian Wood', year: 2000, language: 'eng', tags: ['English'] }])
+  })
+
+  it('tags a work kept via "include unknown" as ["Unknown"], not the raw sentinel', async () => {
+    const adapter = createOpenLibraryAdapter(
+      respondWith({ docs: [{ title: 'Norwegian Wood = Noruei no mori', first_publish_year: 2004 }] }),
+    )
+
+    const items = await adapter.expand('author:OL1A:eng:unknown')
+
+    expect(items).toEqual([
+      { title: 'Norwegian Wood = Noruei no mori', year: 2004, language: 'unknown', tags: ['Unknown'] },
+    ])
+  })
+
+  it('records no tags at all when no filter is given, same as language', async () => {
+    const adapter = createOpenLibraryAdapter(
+      respondWith({ docs: [{ title: 'Norwegian Wood', language: ['eng'] }] }),
+    )
+
+    const items = await adapter.expand('author:OL1A')
+
+    expect(items.every((item) => item.tags === undefined)).toBe(true)
   })
 
   it('cannot catch a work Open Library itself mistagged — a known, accepted limitation', async () => {
