@@ -68,7 +68,10 @@ type Facet = (typeof FACETS)[number]
  * toggles above; any other secondary type MusicBrainz might carry (Remix,
  * Soundtrack, ...) is outside this feature's scope and stays unlabelled.
  */
-function releaseTypeTags(group: { 'primary-type'?: string; 'secondary-types'?: string[] }): string[] {
+function releaseTypeTags(group: {
+  'primary-type'?: string
+  'secondary-types'?: string[]
+}): string[] {
   const extras = (group['secondary-types'] ?? []).filter(
     (type) => type === 'Live' || type === 'Compilation',
   )
@@ -101,16 +104,14 @@ export function createMusicBrainzAdapter(fetchImpl?: FetchLike): SearchAdapter {
         options,
       )
 
-      return (response.artists ?? []).map(
-        (artist): ListSource => ({
-          externalRef: artist.id,
-          // Every list this adapter builds is a discography (studio albums,
-          // plus whichever release types the discography-type filters opt
-          // into) — never a mixed or partial catalogue, so the name says so.
-          title: `${artist.name} Discography`,
-          ...(describe(artist) ? { detail: describe(artist) } : {}),
-        }),
-      )
+      return (response.artists ?? []).map((artist): ListSource => ({
+        externalRef: artist.id,
+        // Every list this adapter builds is a discography (studio albums,
+        // plus whichever release types the discography-type filters opt
+        // into) — never a mixed or partial catalogue, so the name says so.
+        title: `${artist.name} Discography`,
+        ...(describe(artist) ? { detail: describe(artist) } : {}),
+      }))
     },
 
     async expand(externalRef) {
@@ -126,7 +127,11 @@ export function createMusicBrainzAdapter(fetchImpl?: FetchLike): SearchAdapter {
       // types alongside primary-type Album) — so EPs/singles must be asked
       // for here, not just allowed through the client-side filter below.
       // Multiple types combine with `|` (also verified live).
-      const primaryTypes = ['album', ...(includeEp ? ['ep'] : []), ...(includeSingle ? ['single'] : [])]
+      const primaryTypes = [
+        'album',
+        ...(includeEp ? ['ep'] : []),
+        ...(includeSingle ? ['single'] : []),
+      ]
       const typeParam = encodeURIComponent(primaryTypes.join('|'))
 
       const groups: NonNullable<ReleaseGroupResponse['release-groups']> = []
@@ -195,12 +200,6 @@ export function createMusicBrainzAdapter(fetchImpl?: FetchLike): SearchAdapter {
               // and abusive to a free service. The category default applies
               // instead, flagged estimated. See docs/DECISIONS.md.
               ...(Number.isInteger(year) && year > 0 ? { year } : {}),
-              // Dual-emitted on purpose: `releaseType` (joined string) still
-              // feeds the shipped "group by type" toggle until that toggle
-              // and its DB column are retired (tasks/todo.md, Phase 8,
-              // task 6/10) — removing it here first would silently break
-              // the toggle for every list imported in the meantime.
-              releaseType: tags.join(' · '),
               tags,
             }
           })

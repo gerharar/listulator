@@ -331,9 +331,7 @@ describe('Open Library adapter', () => {
 
     const items = await adapter.expand('author:OL1A:eng')
 
-    expect(items).toEqual([
-      { title: 'Norwegian Wood', year: 2000, language: 'eng', tags: ['English'] },
-    ])
+    expect(items).toEqual([{ title: 'Norwegian Wood', year: 2000, tags: ['English'] }])
   })
 
   it('widens to also keep works with no language tag when the "include unknown" flag is set', async () => {
@@ -350,30 +348,8 @@ describe('Open Library adapter', () => {
     const items = await adapter.expand('author:OL1A:eng:unknown')
 
     expect(items).toEqual([
-      { title: 'Norwegian Wood', year: 2000, language: 'eng', tags: ['English'] },
-      { title: 'Norwegian Wood = Noruei no mori', year: 2004, language: 'unknown', tags: ['Unknown'] },
-    ])
-  })
-
-  it('tags a strictly-kept work with its human-readable language label', async () => {
-    const adapter = createOpenLibraryAdapter(
-      respondWith({ docs: [{ title: 'Norwegian Wood', language: ['eng'], first_publish_year: 2000 }] }),
-    )
-
-    const items = await adapter.expand('author:OL1A:eng')
-
-    expect(items).toEqual([{ title: 'Norwegian Wood', year: 2000, language: 'eng', tags: ['English'] }])
-  })
-
-  it('tags a work kept via "include unknown" as ["Unknown"], not the raw sentinel', async () => {
-    const adapter = createOpenLibraryAdapter(
-      respondWith({ docs: [{ title: 'Norwegian Wood = Noruei no mori', first_publish_year: 2004 }] }),
-    )
-
-    const items = await adapter.expand('author:OL1A:eng:unknown')
-
-    expect(items).toEqual([
-      { title: 'Norwegian Wood = Noruei no mori', year: 2004, language: 'unknown', tags: ['Unknown'] },
+      { title: 'Norwegian Wood', year: 2000, tags: ['English'] },
+      { title: 'Norwegian Wood = Noruei no mori', year: 2004, tags: ['Unknown'] },
     ])
   })
 
@@ -418,7 +394,7 @@ describe('Open Library adapter', () => {
     const items = await adapter.expand('author:OL1A')
 
     expect(items.map((item) => item.title)).toEqual(['Norwegian Wood', 'ノルウェイの森'])
-    expect(items.every((item) => item.language === undefined)).toBe(true)
+    expect(items.every((item) => item.tags === undefined)).toBe(true)
   })
 
   it('keeps everything, with no language recorded, when the language is explicitly "all"', async () => {
@@ -434,7 +410,7 @@ describe('Open Library adapter', () => {
     const items = await adapter.expand('author:OL1A:all')
 
     expect(items.map((item) => item.title)).toEqual(['Norwegian Wood', 'ノルウェイの森'])
-    expect(items.every((item) => item.language === undefined)).toBe(true)
+    expect(items.every((item) => item.tags === undefined)).toBe(true)
   })
 
   it('always asks Open Library for the language field, filtered or not', async () => {

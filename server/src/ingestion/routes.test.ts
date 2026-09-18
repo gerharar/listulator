@@ -190,7 +190,7 @@ describe('POST /api/lists/:listId/items/import', () => {
     const list = await createList('music')
 
     const response = await importItems(list.id, [
-      { title: 'Eaten Back to Life', releaseType: 'Album', group: 'Deluxe Reissues' },
+      { title: 'Eaten Back to Life', group: 'Deluxe Reissues' },
     ])
 
     expect(response.json()[0]).toMatchObject({ group: 'Deluxe Reissues' })
@@ -397,29 +397,6 @@ describe('search and import from a source', () => {
         timeToConsumeIsEstimated: false,
         source: 'import',
       },
-    ])
-  })
-
-  it("carries a candidate's release-type label onto the created item", async () => {
-    const expand = vi.fn(async () => [
-      { title: 'Eaten Back to Life', externalRef: 'rg-1', releaseType: 'Album' },
-      { title: 'Worm Infested', externalRef: 'rg-2', releaseType: 'EP · Live' },
-    ])
-    harness = withAdapter(fakeAdapter({ expand }))
-
-    const response = await harness.app.inject({
-      method: 'POST',
-      url: '/api/lists/from-source',
-      payload: { mediaType: 'music', externalRef: 'ref-1', title: 'Cannibal Corpse' },
-    })
-
-    const items = (
-      await harness.app.inject({ method: 'GET', url: `/api/lists/${response.json().id}` })
-    ).json().items
-
-    expect(items).toMatchObject([
-      { title: 'Eaten Back to Life', releaseType: 'Album' },
-      { title: 'Worm Infested', releaseType: 'EP · Live' },
     ])
   })
 

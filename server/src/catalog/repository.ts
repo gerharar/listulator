@@ -58,10 +58,6 @@ export interface CreateListItemInput {
   year?: number | null
   /** Optional grouping label, e.g. "Season 1". Null if not grouped. */
   group?: string | null
-  /** Language tag, when a language filter actually applied. Null otherwise. */
-  language?: string | null
-  /** Release-type label (music category only), e.g. "Album", "EP · Live". Null otherwise. */
-  releaseType?: string | null
   /** Generic per-item display tags (SPEC.md §4), e.g. ["Album", "Live"]. Null if none. */
   tags?: string[] | null
 }
@@ -337,8 +333,6 @@ export async function createListItem(
       source: input.source ?? 'import',
       year: input.year ?? null,
       group: input.group ?? null,
-      language: input.language ?? null,
-      releaseType: input.releaseType ?? null,
       tags: input.tags ?? null,
     })
     .returning()

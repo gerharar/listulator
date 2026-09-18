@@ -79,16 +79,6 @@ export const lists = sqliteTable(
     source: text('source').$type<ListSource>().notNull().default('manual'),
     /** Upstream identifier, e.g. a TMDB collection id. Null for hand-made lists. */
     externalRef: text('external_ref'),
-    /**
-     * Music-only "group by type" toggle — false for every other category.
-     * When true, every item's `group` is kept in sync with its own
-     * `releaseType` bucket (Album/EP/Single/Live/Compilation) instead of
-     * being hand-typed, reusing task 6.6's existing group-header rendering
-     * and task 6.7's reordering-within-a-group boundary. Superseding, not
-     * additive: turning it on for a music list is what disables that list's
-     * manual "Group" field in the item add/edit forms.
-     */
-    groupByType: integer('group_by_type', { mode: 'boolean' }).notNull().default(false),
     createdAt: integer('created_at', { mode: 'timestamp_ms' })
       .notNull()
       .$defaultFn(() => new Date()),
@@ -152,35 +142,11 @@ export const listItems = sqliteTable(
      */
     group: text('group'),
     /**
-     * Per-item language tag, when a source both tracks one and a filter was
-     * actually applied while building the list — Open Library's `language`
-     * field for a book, or the literal `'unknown'` when a book with no
-     * language metadata was kept anyway (the "include unknown" toggle).
-     * Null for every other category, and for a book list built with no
-     * language filter ("All"). Presentation only — makes an otherwise
-     * invisible filtering decision visible per item, since Open Library's
-     * own tagging is inconsistent enough that a filtered list can still mix
-     * languages (a real, verified-live case, not hypothetical).
-     */
-    language: text('language'),
-    /**
-     * Per-item release-type label — MusicBrainz-category only, e.g.
-     * `'Album'`, `'EP'`, `'Single'`, `'Album · Live'`, `'EP · Compilation'`.
-     * Null for every other category. Presentation only, same shape as
-     * `language` above: makes the discography-type filter's decision visible
-     * per item, since the toggles are additive and one release can carry
-     * more than one facet (a live EP is both an EP and Live).
-     */
-    releaseType: text('release_type'),
-    /**
      * Generic per-item display tags (SPEC.md §4) — a JSON array of short
      * free-text strings, e.g. `["Album", "Live"]`, `["Japanese"]`,
      * `["Film"]`. One field for every category, meaning by convention, not a
-     * dedicated column per category-specific attribute; supersedes
-     * `language`/`releaseType` above, which are retired once every consumer
-     * has moved onto this field (`docs/DECISIONS.md`, "Generic per-item
-     * `tags`..."). Purely a display attribute — never affects ordering,
-     * `group`, or anything else.
+     * dedicated column per category-specific attribute. Purely a display
+     * attribute — never affects ordering, `group`, or anything else.
      */
     tags: text('tags', { mode: 'json' }).$type<string[]>(),
     /** Null until checked off; doubles as the "when" behind list neglect scoring. */

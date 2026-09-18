@@ -241,28 +241,9 @@ export interface MediaTypeCandidate {
   /** Optional grouping label, e.g. "Season 1" — presentation only (task 6.6). */
   group?: string
   /**
-   * Set only when a language filter actually applied while building this
-   * candidate (currently: Open Library books) — the matched language code,
-   * or `'unknown'` when kept via the "include unknown" toggle despite
-   * having no tag. Absent for every other case, including an unfiltered
-   * book list.
-   */
-  language?: string
-  /**
-   * Presentation label for the release type — currently MusicBrainz only —
-   * e.g. `'Album'`, `'EP'`, `'Single'`, `'Album · Live'`, `'EP ·
-   * Compilation'`. Set for every candidate a music-category `expand()`
-   * returns (studio albums included, not just the opted-in extras), so a
-   * built list can label every item, not only the exceptions. Absent for
-   * every other category.
-   */
-  releaseType?: string
-  /**
    * Generic per-item display tags (SPEC.md §4) — a release type, a
    * language, a medium, or whatever else a source or a canonical-list YAML
-   * file provides. One field for every category; supersedes `language`/
-   * `releaseType` above, retired once every source has moved onto this
-   * field (`docs/DECISIONS.md`, "Generic per-item `tags`...").
+   * file provides. One field for every category.
    */
   tags?: string[]
 }

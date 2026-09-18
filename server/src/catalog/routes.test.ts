@@ -119,7 +119,10 @@ describe('catalog HTTP API', () => {
     // Fastify's default schema validator strips unknown properties rather
     // than rejecting them (`removeAdditional`), so this isn't a 400 — the
     // real assertion is that the field is gone from the response and does
-    // nothing, not that the request itself is refused.
+    // nothing, not that the request itself is refused. The column itself is
+    // gone now too (tasks/todo.md, Phase 8, task 10), so "no effect" means
+    // the key is entirely absent, not present-and-false as it was right
+    // after the toggle's removal but before the column drop.
     const list = (await createList({ mediaType: 'music' })).json()
 
     const response = await harness.app.inject({
@@ -129,7 +132,7 @@ describe('catalog HTTP API', () => {
     })
 
     expect(response.statusCode).toBe(200)
-    expect(response.json().groupByType).toBe(false)
+    expect(response.json().groupByType).toBeUndefined()
   })
 
   it('checks an item off and back on again', async () => {

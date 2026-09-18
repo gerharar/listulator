@@ -94,8 +94,6 @@ function toListItem(item: SchemaListItem): ListItem {
     source: item.source,
     year: item.year,
     group: item.group,
-    language: item.language,
-    releaseType: item.releaseType,
     tags: item.tags,
   }
 }
@@ -262,8 +260,6 @@ export function createLocalApi(): ApiClient {
           ...(item.externalRef ? { externalRef: item.externalRef } : {}),
           ...(item.year ? { year: item.year } : {}),
           ...(item.group ? { group: item.group } : {}),
-          ...(item.language ? { language: item.language } : {}),
-          ...(item.releaseType ? { releaseType: item.releaseType } : {}),
           ...(item.tags ? { tags: item.tags } : {}),
           source,
         })
@@ -469,8 +465,6 @@ export function createLocalApi(): ApiClient {
           ...(candidate.externalRef ? { externalRef: candidate.externalRef } : {}),
           ...(candidate.year ? { year: candidate.year } : {}),
           ...(candidate.group ? { group: candidate.group } : {}),
-          ...(candidate.language ? { language: candidate.language } : {}),
-          ...(candidate.releaseType ? { releaseType: candidate.releaseType } : {}),
           ...(candidate.tags ? { tags: candidate.tags } : {}),
           source: 'import',
         })

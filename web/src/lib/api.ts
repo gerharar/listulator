@@ -35,17 +35,6 @@ export interface ListItem {
   year: number | null
   /** Optional grouping label, e.g. "Season 1" — presentation only. Null otherwise. */
   group: string | null
-  /**
-   * Language tag, set only when a book-search language filter actually
-   * applied while this item was added — the matched code, or `'unknown'`.
-   * Null otherwise (every other category, or an unfiltered book list).
-   */
-  language: string | null
-  /**
-   * Release-type label (music category only) — e.g. `'Album'`, `'EP'`,
-   * `'Album · Live'`. Null for every other category.
-   */
-  releaseType: string | null
   /** Generic per-item display tags, e.g. ["Album", "Live"]. Null if none. */
   tags: string[] | null
 }
@@ -158,8 +147,6 @@ export interface ApiClient {
       timeToConsumeMinutes?: number
       year?: number
       group?: string
-      language?: string
-      releaseType?: string
       tags?: string[]
     }[],
     /** Defaults to 'import' — pass 'manual' for a hand-typed batch (task 6.2). */
@@ -205,8 +192,6 @@ export interface ApiClient {
       timeToConsumeMinutes?: number
       year?: number
       group?: string
-      language?: string
-      releaseType?: string
       tags?: string[]
     }[]
     upstreamCount: number
@@ -263,8 +248,6 @@ export const fetchApi: ApiClient = {
       timeToConsumeMinutes?: number
       year?: number
       group?: string
-      language?: string
-      releaseType?: string
       tags?: string[]
     }[],
     source?: 'manual' | 'import',
@@ -322,8 +305,6 @@ export const fetchApi: ApiClient = {
         timeToConsumeMinutes?: number
         year?: number
         group?: string
-        language?: string
-        releaseType?: string
         tags?: string[]
       }[]
       upstreamCount: number

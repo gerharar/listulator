@@ -42,17 +42,6 @@ export function isBookLanguageCode(value: unknown): value is string {
 export const UNKNOWN_LANGUAGE = 'unknown'
 
 /**
- * A friendly label for a book item's stored `language` value — a curated
- * name, "Unknown" for the sentinel, or the raw code uppercased for a
- * language outside the curated list (Open Library's own codes aren't
- * limited to `BOOK_LANGUAGES`, so a real value can still fall through here).
- */
-export function bookLanguageLabel(code: string): string {
-  if (code === UNKNOWN_LANGUAGE) return 'Unknown'
-  return BOOK_LANGUAGES.find((entry) => entry.code === code)?.label ?? code.toUpperCase()
-}
-
-/**
  * Remembered choice wins; otherwise English. Storage can throw in a private
  * window or with site data blocked, so a failure just means "no preference
  * saved" rather than a broken page — same pattern as `theme.ts`.

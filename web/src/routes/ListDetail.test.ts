@@ -18,8 +18,6 @@ function item(overrides: Partial<ListItem> = {}): ListItem {
     source: 'import',
     year: null,
     group: null,
-    language: null,
-    releaseType: null,
     tags: null,
     ...overrides,
   }
@@ -129,7 +127,7 @@ describe('moveItem (task 6.7, up/down buttons)', () => {
 })
 
 describe('moveItemTo (task 6.7, drag-and-drop)', () => {
-  it('moves the dragged item to take the target\'s exact slot, shifting the rest', () => {
+  it("moves the dragged item to take the target's exact slot, shifting the rest", () => {
     const [a, b, c, d] = [item(), item(), item(), item()]
 
     expect(moveItemTo([a, b, c, d], a.id, c.id)).toEqual([b, a, c, d])
@@ -150,7 +148,7 @@ describe('moveItemTo (task 6.7, drag-and-drop)', () => {
     expect(moveItemTo([s1, s2a, s2b], s1.id, s2b.id)).toBeNull()
   })
 
-  it('allows a drop anywhere within the dragged item\'s own season', () => {
+  it("allows a drop anywhere within the dragged item's own season", () => {
     const s1a = item({ group: 'Season 1' })
     const s1b = item({ group: 'Season 1' })
     const s1c = item({ group: 'Season 1' })

@@ -9,8 +9,12 @@ import { createMusicBrainzAdapter } from './musicbrainz.js'
  */
 
 function respondWith(body: unknown, status = 200): FetchLike {
-  return vi.fn(async () =>
-    new Response(JSON.stringify(body), { status, headers: { 'content-type': 'application/json' } }),
+  return vi.fn(
+    async () =>
+      new Response(JSON.stringify(body), {
+        status,
+        headers: { 'content-type': 'application/json' },
+      }),
   )
 }
 
@@ -27,10 +31,13 @@ function respondFilteredByType(all: (typeof RELEASE_GROUPS)['release-groups']): 
   return vi.fn(async (url: string) => {
     const requested = new Set((new URL(url).searchParams.get('type') ?? '').split('|'))
     const groups = all.filter((group) => requested.has((group['primary-type'] ?? '').toLowerCase()))
-    return new Response(JSON.stringify({ 'release-groups': groups, 'release-group-count': groups.length }), {
-      status: 200,
-      headers: { 'content-type': 'application/json' },
-    })
+    return new Response(
+      JSON.stringify({ 'release-groups': groups, 'release-group-count': groups.length }),
+      {
+        status: 200,
+        headers: { 'content-type': 'application/json' },
+      },
+    )
   })
 }
 
@@ -160,36 +167,6 @@ describe('MusicBrainz adapter', () => {
     ])
   })
 
-  it('labels every studio album "Album", not just the opted-in extras', async () => {
-    const adapter = createMusicBrainzAdapter(respondWith(RELEASE_GROUPS))
-
-    expect((await adapter.expand('af8e4cc5')).map((item) => item.releaseType)).toEqual([
-      'Album',
-      'Album',
-      'Album',
-    ])
-  })
-
-  it('labels an EP, a single, a live album, and a compilation distinctly', async () => {
-    const adapter = createMusicBrainzAdapter(
-      respondFilteredByType(RELEASE_GROUPS['release-groups']),
-    )
-
-    const byTitle = new Map(
-      (await adapter.expand('af8e4cc5:ep,single,live,compilation')).map((item) => [
-        item.title,
-        item.releaseType,
-      ]),
-    )
-
-    expect(byTitle.get('Eaten Back to Life')).toBe('Album')
-    expect(byTitle.get('Worm Infested')).toBe('EP')
-    expect(byTitle.get('Hammer Smashed Face')).toBe('Single')
-    expect(byTitle.get('Global Evisceration')).toBe('Album · Live')
-    expect(byTitle.get('Dead Human Collection')).toBe('Album · Compilation')
-    expect(byTitle.get('Live Cannibalism (Sampler)')).toBe('EP · Live')
-  })
-
   it('tags every studio album ["Album"], not just the opted-in extras', async () => {
     const adapter = createMusicBrainzAdapter(respondWith(RELEASE_GROUPS))
 
@@ -233,7 +210,9 @@ describe('MusicBrainz adapter', () => {
   })
 
   it('includes EPs when the ref opts in — both a plain EP and a live one, since a live EP is still an EP', async () => {
-    const adapter = createMusicBrainzAdapter(respondFilteredByType(RELEASE_GROUPS['release-groups']))
+    const adapter = createMusicBrainzAdapter(
+      respondFilteredByType(RELEASE_GROUPS['release-groups']),
+    )
 
     expect((await adapter.expand('af8e4cc5:ep')).map((item) => item.title)).toEqual([
       'Eaten Back to Life',
@@ -245,7 +224,9 @@ describe('MusicBrainz adapter', () => {
   })
 
   it('includes singles when the ref opts in', async () => {
-    const adapter = createMusicBrainzAdapter(respondFilteredByType(RELEASE_GROUPS['release-groups']))
+    const adapter = createMusicBrainzAdapter(
+      respondFilteredByType(RELEASE_GROUPS['release-groups']),
+    )
 
     expect((await adapter.expand('af8e4cc5:single')).map((item) => item.title)).toContain(
       'Hammer Smashed Face',
@@ -257,7 +238,9 @@ describe('MusicBrainz adapter', () => {
     // (which only asks for `type=album`) never gets the live EP back to
     // filter client-side in the first place — unlike the two "additive"
     // cases below, where the EP itself was actually fetched.
-    const adapter = createMusicBrainzAdapter(respondFilteredByType(RELEASE_GROUPS['release-groups']))
+    const adapter = createMusicBrainzAdapter(
+      respondFilteredByType(RELEASE_GROUPS['release-groups']),
+    )
 
     const titles = (await adapter.expand('af8e4cc5:live')).map((item) => item.title)
     expect(titles).toContain('Global Evisceration')
@@ -265,7 +248,9 @@ describe('MusicBrainz adapter', () => {
   })
 
   it('is additive across facets: opting into EPs alone already surfaces a live EP', async () => {
-    const adapter = createMusicBrainzAdapter(respondFilteredByType(RELEASE_GROUPS['release-groups']))
+    const adapter = createMusicBrainzAdapter(
+      respondFilteredByType(RELEASE_GROUPS['release-groups']),
+    )
 
     expect((await adapter.expand('af8e4cc5:ep')).map((item) => item.title)).toContain(
       'Live Cannibalism (Sampler)',
@@ -273,7 +258,9 @@ describe('MusicBrainz adapter', () => {
   })
 
   it('includes compilations when the ref opts in', async () => {
-    const adapter = createMusicBrainzAdapter(respondFilteredByType(RELEASE_GROUPS['release-groups']))
+    const adapter = createMusicBrainzAdapter(
+      respondFilteredByType(RELEASE_GROUPS['release-groups']),
+    )
 
     expect((await adapter.expand('af8e4cc5:compilation')).map((item) => item.title)).toContain(
       'Dead Human Collection',

@@ -108,8 +108,7 @@ const LANGUAGE_LABELS: Record<string, string> = {
   kor: 'Korean',
 }
 
-/** Exported for the legacy-`language`-column backfill (tasks/todo.md, Phase 8 task 10). */
-export function languageTagLabel(code: string): string {
+function languageTagLabel(code: string): string {
   if (code === UNKNOWN) return 'Unknown'
   return LANGUAGE_LABELS[code] ?? code.toUpperCase()
 }
@@ -268,11 +267,7 @@ export function createOpenLibraryAdapter(fetchImpl?: FetchLike): SearchAdapter {
               // still part of the bibliography.
               ...(pages ? { timeToConsumeMinutes: Math.round(pages * MINUTES_PER_PAGE) } : {}),
               ...(work.first_publish_year ? { year: work.first_publish_year } : {}),
-              // Dual-emitted on purpose (same reasoning as musicbrainz.ts's
-              // releaseType/tags split, tasks/todo.md Phase 8 task 4):
-              // `language` still feeds the per-item badge until every
-              // consumer has moved onto `tags` (task 6/10).
-              ...(languageOutcome ? { language: languageOutcome, tags: [languageTagLabel(languageOutcome)] } : {}),
+              ...(languageOutcome ? { tags: [languageTagLabel(languageOutcome)] } : {}),
             },
           ]
         })
