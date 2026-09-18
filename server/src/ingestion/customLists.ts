@@ -16,6 +16,7 @@ export interface ParsedCustomListItem {
   year?: number
   minutes?: number
   group?: string
+  tags?: string[]
 }
 
 export interface ParsedCustomList {
@@ -40,7 +41,7 @@ export class CustomListParseError extends Error {
 }
 
 const TOP_LEVEL_FIELDS = new Set(['title', 'category', 'items'])
-const ITEM_FIELDS = new Set(['title', 'year', 'minutes', 'group'])
+const ITEM_FIELDS = new Set(['title', 'year', 'minutes', 'group', 'tags'])
 
 function fail(code: CustomListErrorCode, params?: Record<string, string | number>): never {
   throw new CustomListParseError(code, params)
@@ -96,7 +97,7 @@ export function parseCustomList(
       if (!ITEM_FIELDS.has(key)) fail('list.fileInvalid')
     }
 
-    const { title: itemTitle, year, minutes, group } = rawItem
+    const { title: itemTitle, year, minutes, group, tags } = rawItem
 
     if (typeof itemTitle !== 'string' || itemTitle.trim().length === 0) {
       fail('list.fileItemMissingTitle', { index: index + 1 })
@@ -104,12 +105,16 @@ export function parseCustomList(
     if (year !== undefined && typeof year !== 'number') fail('list.fileInvalid')
     if (minutes !== undefined && typeof minutes !== 'number') fail('list.fileInvalid')
     if (group !== undefined && typeof group !== 'string') fail('list.fileInvalid')
+    if (tags !== undefined && (!Array.isArray(tags) || !tags.every((tag) => typeof tag === 'string'))) {
+      fail('list.fileInvalid')
+    }
 
     return {
       title: itemTitle,
       ...(year !== undefined ? { year } : {}),
       ...(minutes !== undefined ? { minutes } : {}),
       ...(group !== undefined ? { group } : {}),
+      ...(tags !== undefined ? { tags: tags as string[] } : {}),
     }
   })
 
@@ -271,5 +276,6 @@ export async function expandCanonicalList(
     ...(item.year !== undefined ? { year: item.year } : {}),
     ...(item.minutes !== undefined ? { timeToConsumeMinutes: item.minutes } : {}),
     ...(item.group !== undefined ? { group: item.group } : {}),
+    ...(item.tags !== undefined ? { tags: item.tags } : {}),
   }))
 }

@@ -257,6 +257,14 @@ export interface MediaTypeCandidate {
    * every other category.
    */
   releaseType?: string
+  /**
+   * Generic per-item display tags (SPEC.md §4) — a release type, a
+   * language, a medium, or whatever else a source or a canonical-list YAML
+   * file provides. One field for every category; supersedes `language`/
+   * `releaseType` above, retired once every source has moved onto this
+   * field (`docs/DECISIONS.md`, "Generic per-item `tags`...").
+   */
+  tags?: string[]
 }
 
 /**

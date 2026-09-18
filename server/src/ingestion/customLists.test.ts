@@ -5,6 +5,7 @@ import {
   canonicalExternalRef,
   canonicalPathFromExternalRef,
   CustomListParseError,
+  expandCanonicalList,
   fetchCanonicalList,
   fetchCanonicalManifest,
   isSafeCanonicalPath,
@@ -45,6 +46,18 @@ items:
   - { title: Pilot, group: Season 1 }
 `
     expect(parseCustomList(yaml, CATEGORIES).items).toEqual([{ title: 'Pilot', group: 'Season 1' }])
+  })
+
+  it('preserves an optional tags list per item', () => {
+    const yaml = `
+title: Some Band — Discography
+category: movie
+items:
+  - { title: Global Evisceration, tags: [Album, Live] }
+`
+    expect(parseCustomList(yaml, CATEGORIES).items).toEqual([
+      { title: 'Global Evisceration', tags: ['Album', 'Live'] },
+    ])
   })
 
   it('trims the top-level title', () => {
@@ -130,6 +143,18 @@ items:
     ).toThrow(expect.objectContaining({ code: 'list.fileInvalid' }))
     expect(() =>
       parseCustomList('title: X\ncategory: movie\nitems:\n  - { title: X, group: 5 }\n', CATEGORIES),
+    ).toThrow(expect.objectContaining({ code: 'list.fileInvalid' }))
+  })
+
+  it('rejects a non-array tags, and a tags array containing a non-string', () => {
+    expect(() =>
+      parseCustomList('title: X\ncategory: movie\nitems:\n  - { title: X, tags: Album }\n', CATEGORIES),
+    ).toThrow(expect.objectContaining({ code: 'list.fileInvalid' }))
+    expect(() =>
+      parseCustomList(
+        'title: X\ncategory: movie\nitems:\n  - { title: X, tags: [Album, 5] }\n',
+        CATEGORIES,
+      ),
     ).toThrow(expect.objectContaining({ code: 'list.fileInvalid' }))
   })
 
@@ -282,5 +307,36 @@ describe('fetchCanonicalList', () => {
     await expect(
       fetchCanonicalList('lists/x.yaml', new Set(['mega']), respondWithText('404: Not Found', 404)),
     ).rejects.toThrow(IngestionError)
+  })
+})
+
+describe('expandCanonicalList', () => {
+  function respondWithText(body: string, status = 200): FetchLike {
+    return vi.fn(async () => new Response(body, { status }))
+  }
+
+  it('carries tags through into the candidate shape, same as group', () => {
+    const yaml = `
+title: Some Band — Discography
+category: music
+items:
+  - { title: Global Evisceration, tags: [Album, Live] }
+  - { title: Debut Album, tags: [Album] }
+`
+    return expandCanonicalList('lists/x.yaml', new Set(['music']), respondWithText(yaml)).then(
+      (candidates) => {
+        expect(candidates).toEqual([
+          { title: 'Global Evisceration', tags: ['Album', 'Live'] },
+          { title: 'Debut Album', tags: ['Album'] },
+        ])
+      },
+    )
+  })
+
+  it('omits tags entirely when an item has none', async () => {
+    const yaml = 'title: X\ncategory: mega\nitems:\n  - { title: Iron Man, year: 2008 }\n'
+    const candidates = await expandCanonicalList('lists/x.yaml', new Set(['mega']), respondWithText(yaml))
+
+    expect(candidates).toEqual([{ title: 'Iron Man', year: 2008 }])
   })
 })
