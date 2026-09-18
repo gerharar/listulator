@@ -103,6 +103,31 @@ describe('runGenerateList', () => {
     expect(text).toContain('{title: "Agents of S.H.I.E.L.D. — Season 1", year: 2013}')
   })
 
+  it("carries a candidate's tags into the generated YAML", async () => {
+    const outPath = join(dir, 'discography.yaml')
+
+    await runGenerateList(
+      { category: 'mega', ref: 'franchise:1', title: 'Some Band', out: outPath },
+      registryWith(
+        fakeAdapter({
+          expand: async () => [
+            { title: 'Global Evisceration', tags: ['Album', 'Live'] },
+            { title: 'Eaten Back to Life' },
+          ],
+        }),
+      ),
+    )
+
+    const text = readFileSync(outPath, 'utf8')
+    const parsed = loadYaml(text) as { items: { title: string; tags?: string[] }[] }
+
+    expect(parsed.items).toEqual([
+      { title: 'Global Evisceration', tags: ['Album', 'Live'] },
+      { title: 'Eaten Back to Life' },
+    ])
+    expect(text).toContain('{title: "Global Evisceration", tags: ["Album", "Live"]}')
+  })
+
   it('quotes every title consistently even when some need it to parse and others do not', async () => {
     const outPath = join(dir, 'ufc.yaml')
 

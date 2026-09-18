@@ -64,6 +64,7 @@ function candidateToItem(candidate: MediaTypeCandidate): Record<string, unknown>
   if (candidate.year !== undefined) item['year'] = candidate.year
   if (candidate.timeToConsumeMinutes !== undefined) item['minutes'] = candidate.timeToConsumeMinutes
   if (candidate.group !== undefined) item['group'] = candidate.group
+  if (candidate.tags !== undefined) item['tags'] = candidate.tags
   return item
 }
 
@@ -89,6 +90,10 @@ function formatItemLine(item: Record<string, unknown>): string {
   if (item['year'] !== undefined) parts.push(`year: ${String(item['year'])}`)
   if (item['minutes'] !== undefined) parts.push(`minutes: ${String(item['minutes'])}`)
   if (item['group'] !== undefined) parts.push(`group: ${yamlString(item['group'] as string)}`)
+  if (item['tags'] !== undefined) {
+    const tags = (item['tags'] as string[]).map(yamlString).join(', ')
+    parts.push(`tags: [${tags}]`)
+  }
   return `  - {${parts.join(', ')}}`
 }
 
