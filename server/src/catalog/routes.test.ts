@@ -115,23 +115,21 @@ describe('catalog HTTP API', () => {
     expect(cleared.json().group).toBeNull()
   })
 
-  it('accepts the music-only "group by type" toggle over the generic list-patch route', async () => {
+  it('silently drops the retired "group by type" field — it has no effect anymore', async () => {
+    // Fastify's default schema validator strips unknown properties rather
+    // than rejecting them (`removeAdditional`), so this isn't a 400 — the
+    // real assertion is that the field is gone from the response and does
+    // nothing, not that the request itself is refused.
     const list = (await createList({ mediaType: 'music' })).json()
-    expect(list.groupByType).toBe(false)
 
-    const on = await harness.app.inject({
+    const response = await harness.app.inject({
       method: 'PATCH',
       url: `/api/lists/${list.id}`,
       payload: { groupByType: true },
     })
-    expect(on.json().groupByType).toBe(true)
 
-    const off = await harness.app.inject({
-      method: 'PATCH',
-      url: `/api/lists/${list.id}`,
-      payload: { groupByType: false },
-    })
-    expect(off.json().groupByType).toBe(false)
+    expect(response.statusCode).toBe(200)
+    expect(response.json().groupByType).toBe(false)
   })
 
   it('checks an item off and back on again', async () => {

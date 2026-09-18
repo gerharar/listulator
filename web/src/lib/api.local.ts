@@ -11,7 +11,6 @@
 // bundled-asset counterpart to `STRATEGIES_DIR` (task 5.8); `engine.ts`'s
 // `rank` itself is unchanged and unforked.
 import {
-  applyGroupByType as repoApplyGroupByType,
   clearDismissals,
   createList as repoCreateList,
   createListItem,
@@ -26,7 +25,6 @@ import {
   reorderListItems,
   ReorderMismatchError,
   setListItemConsumed,
-  updateList as repoUpdateList,
   updateListItem,
   type ListWithStats,
 } from '../../../server/src/catalog/repository.js'
@@ -72,7 +70,6 @@ function toMediaList(list: ListWithStats): MediaList {
     mediaType: list.mediaType,
     source: list.source,
     externalRef: list.externalRef,
-    groupByType: list.groupByType,
     createdAt: list.createdAt.toISOString(),
     updatedAt: list.updatedAt.toISOString(),
     stats: {
@@ -236,13 +233,6 @@ export function createLocalApi(): ApiClient {
       return toMediaList(withStats!)
     },
 
-    updateList: async (id, patch) => {
-      const [database, userId] = [await getDb(), await getUserId()]
-      if (!(await repoUpdateList(database, userId, id, patch))) throw notFound()
-      const withStats = await findListWithStats(database, userId, id)
-      return toMediaList(withStats!)
-    },
-
     deleteList: async (id) => {
       const [database, userId] = [await getDb(), await getUserId()]
       if (!(await repoDeleteList(database, userId, id))) throw notFound()
@@ -278,19 +268,6 @@ export function createLocalApi(): ApiClient {
           source,
         })
         created.push(row!)
-      }
-
-      // Mirrors ingestion/routes.ts's /lists/:listId/items/import — see
-      // `applyGroupByType`'s own doc comment for why every item, not just
-      // the new ones, needs re-laying out, and why `created`'s
-      // already-captured rows must be re-read fresh afterward.
-      if (list.groupByType) {
-        await repoApplyGroupByType(database, userId, listId, true)
-
-        const refreshed = (await findListItems(database, userId, listId)) ?? []
-        const byId = new Map(refreshed.map((row) => [row.id, row]))
-
-        return created.map((row) => toListItem(byId.get(row.id) ?? row))
       }
 
       return created.map(toListItem)

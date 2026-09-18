@@ -16,8 +16,6 @@ export interface MediaList {
   mediaType: string
   source: 'api' | 'llm' | 'manual' | 'file' | 'canonical'
   externalRef: string | null
-  /** Music-only "group by type" toggle. False for every other category. */
-  groupByType: boolean
   createdAt: string
   updatedAt: string
   stats: ListStats
@@ -151,8 +149,6 @@ export interface ApiClient {
   lists: () => Promise<MediaList[]>
   list: (id: string) => Promise<MediaListDetail>
   createList: (input: { title: string; mediaType: string }) => Promise<MediaList>
-  /** Currently only `groupByType` (music-only "group by type" toggle) is ever sent. */
-  updateList: (id: string, patch: { groupByType?: boolean }) => Promise<MediaList>
   deleteList: (id: string) => Promise<void>
   importItems: (
     listId: string,
@@ -256,9 +252,6 @@ export const fetchApi: ApiClient = {
 
   createList: (input: { title: string; mediaType: string }) =>
     request<MediaList>('/lists', { method: 'POST', body: JSON.stringify(input) }),
-
-  updateList: (id: string, patch: { groupByType?: boolean }) =>
-    request<MediaList>(`/lists/${id}`, { method: 'PATCH', body: JSON.stringify(patch) }),
 
   deleteList: (id: string) => request<void>(`/lists/${id}`, { method: 'DELETE' }),
 

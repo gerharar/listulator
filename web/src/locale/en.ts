@@ -132,10 +132,6 @@ export const en = {
     addItemDurationLabel: 'Minutes (leave blank to guess)',
     /** Generic on purpose — the underlying field works for a TV season, a comic story arc, etc. */
     groupLabel: 'Group (optional, e.g. Season 1)',
-    /** Music-only "group by type" toggle (task: group-by-type toggle). */
-    groupByTypeLabel: 'Group by type',
-    groupByTypeHint: 'Group items by Album, EP, Single, Live, or Compilation',
-    groupByTypeFailed: 'Could not change grouping',
     addItem: 'Add item',
     addingItem: 'Adding…',
     addItemFailed: 'Could not add that item',
@@ -147,10 +143,8 @@ export const en = {
     /** Placeholder styling per the user's own suggestion — task 6.2. */
     manualItemBadge: '[M]',
     manualItemHint: 'Added by hand, not from a search import',
-    /** Book-language filter's per-item tag (task: shown so a filtered list is self-explanatory). */
-    languageBadgeHint: (language: string): string => `Language: ${language}`,
-    /** Music discography-type label, e.g. "Album", "EP · Live" (task: per-item release-type labels). */
-    releaseTypeBadgeHint: (releaseType: string): string => `Release type: ${releaseType}`,
+    /** Generic per-item display tag (SPEC.md §4) — a release type, a language, a medium, etc. */
+    tagBadgeHint: (tag: string): string => `Tag: ${tag}`,
     expandGroup: (label: string): string => `Expand ${label}`,
     collapseGroup: (label: string): string => `Collapse ${label}`,
     reorderFailed: 'Could not save the new order',

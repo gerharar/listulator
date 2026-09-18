@@ -2,7 +2,6 @@ import type { FastifyPluginAsync } from 'fastify'
 import { dismissalTitleKey, type ItemSource } from '../db/schema.js'
 import { getCurrentUser } from '../auth/currentUser.js'
 import {
-  applyGroupByType,
   clearDismissals,
   createList,
   createListItem,
@@ -663,21 +662,6 @@ export const ingestionRoutes: FastifyPluginAsync<IngestionRoutesOptions> = async
             source,
           }),
         )
-      }
-
-      // A music list with "group by type" on re-lays out *every* item, not
-      // just the new ones, so a refresh finding a new album lands in its
-      // bucket's contiguous run rather than tacked onto the end — see
-      // `applyGroupByType`. `created`'s already-captured rows would
-      // otherwise report their pre-reindex `group`/`orderIndex`, stale the
-      // moment this runs, so re-read them fresh before responding.
-      if (list.groupByType) {
-        await applyGroupByType(db, user.id, listId, true)
-
-        const refreshed = (await findListItems(db, user.id, listId)) ?? []
-        const byId = new Map(refreshed.map((row) => [row.id, row]))
-
-        return reply.code(201).send(created.map((row) => byId.get(row!.id) ?? row))
       }
 
       return reply.code(201).send(created)

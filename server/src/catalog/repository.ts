@@ -42,96 +42,6 @@ export interface UpdateListInput {
   mediaType?: string
   source?: ListSource
   externalRef?: string | null
-  /**
-   * Music-only "group by type" toggle. Setting this re-lays out every
-   * existing item (see `applyGroupByType` below) — `true` sorts them into
-   * Album/EP/Single/Live/Compilation order and sets each item's `group`
-   * from its `releaseType`; `false` restores chronological order and
-   * clears `group` back to null. `undefined` leaves items untouched (every
-   * other patch field).
-   */
-  groupByType?: boolean
-}
-
-/**
- * Which of the five type buckets an item's release-type label groups under
- * (task: "group by type" toggle) — `Compilation` and `Live` win over the
- * base type they're layered on (confirmed with the user: a Live EP groups
- * under "Live", not "EP"), matching `releaseType`'s own `'<type> ·
- * <extra>...'` shape from `musicbrainz.ts`. Null for a candidate with no
- * release-type label at all (every non-music item).
- */
-export function releaseTypeBucket(releaseType: string | null | undefined): string | null {
-  if (!releaseType) return null
-
-  const facets = releaseType.split(' · ')
-  if (facets.includes('Compilation')) return 'Compilation'
-  if (facets.includes('Live')) return 'Live'
-  return facets[0]!
-}
-
-/** Fixed top-to-bottom section order, confirmed with the user. */
-const GROUP_BY_TYPE_ORDER = ['Album', 'EP', 'Single', 'Live', 'Compilation'] as const
-
-function bucketPriority(bucket: string | null): number {
-  const index = GROUP_BY_TYPE_ORDER.indexOf(bucket as (typeof GROUP_BY_TYPE_ORDER)[number])
-  return index === -1 ? GROUP_BY_TYPE_ORDER.length : index
-}
-
-/**
- * Re-lays out a music list's items for the "group by type" toggle —
- * *physically* reorders them, not just a rendering-time overlay. This is
- * what makes `moveItem`/`moveItemTo` (`ListDetail.tsx`, task 6.7's
- * reordering-within-a-group boundary) work correctly here: those check the
- * *physically adjacent* item, which only lines up with the *visually*
- * adjacent one when a group is truly contiguous in storage — true for TV
- * seasons by construction, but not for music, where items stay in
- * chronological order and same-type releases are naturally interleaved by
- * release date. A view-only grouping overlay was tried first and produced
- * exactly that bug, found live: every item rendered as its own one-item
- * group, and the up/down arrows barely worked. See docs/DECISIONS.md.
- *
- * `enabled: true` sorts into `GROUP_BY_TYPE_ORDER`, chronological
- * (`year`, unknown last) within each bucket, and sets `group` from
- * `releaseTypeBucket`. `enabled: false` restores plain chronological order
- * and clears `group`. Either way, ties keep their current relative order
- * (`Array.prototype.sort` is stable) — restoring chronological order after
- * grouping is therefore only accurate to the year, having lost whatever
- * finer-grained (month/day) ordering the original chronological build had.
- * Accepted imprecision, not fixed: `list_items` has no more precise date
- * field than `year` to restore from.
- */
-export async function applyGroupByType(
-  db: PortableDatabase,
-  userId: string,
-  listId: string,
-  enabled: boolean,
-): Promise<void> {
-  const items = (await findListItems(db, userId, listId)) ?? []
-
-  const withGroup = items.map((item) => ({
-    item,
-    group: enabled ? releaseTypeBucket(item.releaseType) : null,
-  }))
-
-  withGroup.sort((a, b) => {
-    if (enabled) {
-      const priorityDiff = bucketPriority(a.group) - bucketPriority(b.group)
-      if (priorityDiff !== 0) return priorityDiff
-    }
-    return (a.item.year ?? Number.MAX_SAFE_INTEGER) - (b.item.year ?? Number.MAX_SAFE_INTEGER)
-  })
-
-  // Sequential, not Promise.all — see ingestion/routes.ts's from-source
-  // route for why (the proxy driver races concurrent writes).
-  for (const [orderIndex, { item, group }] of withGroup.entries()) {
-    if (item.orderIndex === orderIndex && item.group === group) continue
-
-    await db
-      .update(listItems)
-      .set({ orderIndex, group, updatedAt: new Date() })
-      .where(eq(listItems.id, item.id))
-  }
 }
 
 export interface CreateListItemInput {
@@ -307,19 +217,12 @@ export async function updateList(
 ): Promise<List | undefined> {
   if (!(await findList(db, userId, listId))) return undefined
 
-  const updated = await db
+  return await db
     .update(lists)
     .set({ ...patch, updatedAt: new Date() })
     .where(and(eq(lists.id, listId), eq(lists.userId, userId)))
     .returning()
     .get()
-
-  // Bulk side effect of the "group by type" toggle — see `applyGroupByType`.
-  if (patch.groupByType !== undefined) {
-    await applyGroupByType(db, userId, listId, patch.groupByType)
-  }
-
-  return updated
 }
 
 /** Items go with it — the foreign key cascades (client.ts enables them). */

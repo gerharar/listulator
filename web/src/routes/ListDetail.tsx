@@ -3,7 +3,6 @@ import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { Modal } from '../components/Modal.js'
 import { Progress } from '../components/Progress.js'
 import { api, type ListItem, type MediaListDetail, type MediaType } from '../lib/api.js'
-import { bookLanguageLabel } from '../lib/bookLanguage.js'
 import { formatDuration } from '../formatDuration.js'
 import { categoryLabel, copy } from '../locale/index.js'
 
@@ -32,16 +31,14 @@ export type ItemRow = ItemGroupRow | SingleItemRow
  * indistinguishable from a real partition for TV/comics — a season or story
  * arc is already a contiguous run in list order by construction (every
  * import lands episodes/issues in sequence, and `moveItem`/`moveItemTo`
- * below refuse to break a run apart). It stopped being equivalent the moment
- * a group stopped being contiguous: the "group by type" toggle sets `group`
- * from each item's `releaseType`, but items stay in chronological order —
- * albums, EPs, singles, live and compilation releases are naturally
- * interleaved by release date, not clustered together. Folding only
- * consecutive runs against interleaved data meant almost every item became
- * its own one-item "group" (found live: a real discography rendered as
- * dozens of singleton headers instead of five real sections). A genuine
- * partition fixes both cases: identical output where groups are already
- * contiguous, and correct merging where they are not.
+ * below refuse to break a run apart). It stopped being equivalent once a
+ * now-removed "group by type" toggle could set `group` on interleaved,
+ * non-contiguous items (found live: a real discography rendered as dozens
+ * of singleton headers instead of five real sections). A genuine partition
+ * fixes both cases: identical output where groups are already contiguous,
+ * and correct merging where they are not — kept as the general behavior
+ * even with that toggle gone, since nothing guarantees a hand-authored
+ * canonical list's `group` values arrive contiguous either.
  */
 export function groupItems(items: ListItem[]): ItemRow[] {
   const rows: ItemRow[] = []
@@ -76,14 +73,11 @@ export function groupItems(items: ListItem[]): ItemRow[] {
  *
  * This checks the *physically adjacent* item, which only means the same
  * thing as *visually* adjacent (what `groupItems` renders next to it) when
- * a group is contiguous in list order. That was briefly not true for a
- * "group by type" music list — items stayed in chronological order, so
- * same-type releases were naturally interleaved and physically far apart,
- * and up/down barely worked (found live). Fixed at the source rather than
- * here: `applyGroupByType` (`catalog/repository.ts`) physically re-lays out
- * a music list's items into contiguous per-bucket runs when the toggle is
- * on, the same guarantee TV seasons and comic story arcs already have by
- * construction — so this function needed no change at all.
+ * a group is contiguous in list order — true for TV seasons and comic story
+ * arcs by construction. A since-removed "group by type" toggle once broke
+ * that assumption for music (interleaved, non-contiguous groups; found
+ * live), fixed at the time by having the toggle physically re-lay out
+ * storage rather than changing this function.
  */
 export function moveItem(
   items: ListItem[],
@@ -108,10 +102,8 @@ export function moveItem(
  * drop is only legal onto an item sharing the dragged one's `group`. Unlike
  * `moveItem` above, this was never limited to physically-adjacent items —
  * dragging onto any same-group target relocates the dragged item there
- * directly, regardless of how far apart they started — which is exactly why
- * drag-and-drop reordering already worked correctly for a non-contiguous
- * "group by type" music list even before `applyGroupByType` made storage
- * contiguous there too.
+ * directly, regardless of how far apart they started, which is why this one
+ * needed no fix for the non-contiguous-groups bug `moveItem` above hit.
  */
 export function moveItemTo(
   items: ListItem[],
@@ -247,22 +239,11 @@ function Item({
           {item.title}
           {item.year ? ` (${item.year})` : ''}
         </span>
-        {item.language && (
-          <span
-            className="item__language-badge"
-            title={copy.listDetail.languageBadgeHint(bookLanguageLabel(item.language))}
-          >
-            {bookLanguageLabel(item.language)}
+        {item.tags?.map((tag) => (
+          <span key={tag} className="item__tag-badge" title={copy.listDetail.tagBadgeHint(tag)}>
+            {tag}
           </span>
-        )}
-        {item.releaseType && (
-          <span
-            className="item__release-type-badge"
-            title={copy.listDetail.releaseTypeBadgeHint(item.releaseType)}
-          >
-            {item.releaseType}
-          </span>
-        )}
+        ))}
         <span className="item__duration">
           {/* A leading ~ marks a guessed duration, so a number nobody verified
               never masquerades as fact. */}
@@ -303,20 +284,11 @@ function EditItemRow({
   onSave,
   onCancel,
   saving,
-  showGroupField,
 }: {
   item: ListItem
   onSave: (patch: { title: string; timeToConsumeMinutes: number; group?: string | null }) => void
   onCancel: () => void
   saving: boolean
-  /**
-   * False for a music list with "group by type" superseding manual grouping
-   * (task: group-by-type toggle) — the field disappears rather than showing
-   * a value that hand-editing it would immediately fight with, and `group`
-   * is left out of the save patch entirely so the auto-assigned bucket
-   * survives an unrelated title/duration edit.
-   */
-  showGroupField: boolean
 }) {
   const [title, setTitle] = useState(item.title)
   const [duration, setDuration] = useState(String(item.timeToConsumeMinutes))
@@ -326,11 +298,7 @@ function EditItemRow({
     event.preventDefault()
     const minutes = Number(duration)
     if (!title.trim() || !Number.isFinite(minutes) || minutes < 0) return
-    onSave({
-      title: title.trim(),
-      timeToConsumeMinutes: minutes,
-      ...(showGroupField ? { group: group.trim() || null } : {}),
-    })
+    onSave({ title: title.trim(), timeToConsumeMinutes: minutes, group: group.trim() || null })
   }
 
   return (
@@ -350,15 +318,13 @@ function EditItemRow({
           value={duration}
           onChange={(event) => setDuration(event.target.value)}
         />
-        {showGroupField && (
-          <input
-            className="input item-edit__group"
-            value={group}
-            onChange={(event) => setGroup(event.target.value)}
-            placeholder={copy.listDetail.groupLabel}
-            aria-label={copy.listDetail.groupLabel}
-          />
-        )}
+        <input
+          className="input item-edit__group"
+          value={group}
+          onChange={(event) => setGroup(event.target.value)}
+          placeholder={copy.listDetail.groupLabel}
+          aria-label={copy.listDetail.groupLabel}
+        />
         <button type="submit" className="button button--primary" disabled={saving}>
           {saving ? copy.listDetail.savingItem : copy.listDetail.saveItem}
         </button>
@@ -402,8 +368,6 @@ export function ListDetail({ mediaTypes }: { mediaTypes: MediaType[] }) {
 
   const [confirmingDelete, setConfirmingDelete] = useState(false)
   const [deletingList, setDeletingList] = useState(false)
-
-  const [togglingGroupByType, setTogglingGroupByType] = useState(false)
 
   // All expanded by default, not persisted — resets whenever the viewed list
   // changes so a leftover collapse from a previous list can never carry over.
@@ -529,28 +493,6 @@ export function ListDetail({ mediaTypes }: { mediaTypes: MediaType[] }) {
   useEffect(() => {
     void load()
   }, [load])
-
-  /**
-   * Music-only "group by type" toggle. The bulk write to every item's
-   * `group` happens server-side (repository.ts's `updateList`) — this just
-   * flips the list-level flag and reloads to see the result, the same
-   * round-trip shape as every other list-level action on this page.
-   */
-  async function toggleGroupByType() {
-    if (!listId || !list) return
-
-    setTogglingGroupByType(true)
-    setError(null)
-
-    try {
-      await api.updateList(listId, { groupByType: !list.groupByType })
-      await load()
-    } catch (cause) {
-      setError(cause instanceof Error ? cause.message : copy.listDetail.groupByTypeFailed)
-    } finally {
-      setTogglingGroupByType(false)
-    }
-  }
 
   async function toggle(item: ListItem) {
     if (!listId) return
@@ -679,10 +621,7 @@ export function ListDetail({ mediaTypes }: { mediaTypes: MediaType[] }) {
         title: newItemTitle.trim(),
         timeToConsumeMinutes: known ? typed : (category?.defaultDurationMinutes ?? 30),
         timeToConsumeIsEstimated: !known,
-        // Music supersedes manual grouping with the group-by-type toggle
-        // (task: group-by-type toggle) — omitted rather than sent as null,
-        // so it never fights an auto-assigned bucket.
-        ...(list?.mediaType === 'music' ? {} : { group: newItemGroup.trim() || null }),
+        group: newItemGroup.trim() || null,
       })
       setNewItemTitle('')
       setNewItemDuration('')
@@ -726,7 +665,6 @@ export function ListDetail({ mediaTypes }: { mediaTypes: MediaType[] }) {
         saving={savingItem}
         onSave={(patch) => void saveItem(item, patch)}
         onCancel={() => setEditingItemId(null)}
-        showGroupField={list.mediaType !== 'music'}
       />
     ) : (
       <Item
@@ -855,20 +793,6 @@ export function ListDetail({ mediaTypes }: { mediaTypes: MediaType[] }) {
                 ? copy.listDetail.finished
                 : copy.listDetail.nothingToDo}
           </span>
-          {list.mediaType === 'music' && (
-            <label
-              className="checkbox small faint summary__group-toggle"
-              title={copy.listDetail.groupByTypeHint}
-            >
-              <input
-                type="checkbox"
-                checked={list.groupByType}
-                disabled={togglingGroupByType}
-                onChange={() => void toggleGroupByType()}
-              />
-              {copy.listDetail.groupByTypeLabel}
-            </label>
-          )}
         </div>
 
         {list.items.length === 0 ? (

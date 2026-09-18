@@ -172,27 +172,6 @@ describe('POST /api/lists/:listId/items/import', () => {
     expect(response.json()[0].orderIndex).toBe(1)
   })
 
-  it('assigns a group from release type when the target list has "group by type" on', async () => {
-    const list = await createList('music')
-    await harness.app.inject({
-      method: 'PATCH',
-      url: `/api/lists/${list.id}`,
-      payload: { groupByType: true },
-    })
-
-    const response = await importItems(list.id, [
-      { title: 'Eaten Back to Life', releaseType: 'Album' },
-      { title: 'Live Cannibalism (Sampler)', releaseType: 'EP · Live' },
-      { title: 'A Cappella Cover (no release type)' },
-    ])
-
-    expect(response.json()).toMatchObject([
-      { title: 'Eaten Back to Life', group: 'Album' },
-      { title: 'Live Cannibalism (Sampler)', group: 'Live' },
-      { title: 'A Cappella Cover (no release type)', group: null },
-    ])
-  })
-
   it('carries tags through the import endpoint, defaulting to null when omitted', async () => {
     const list = await createList('music')
 
@@ -207,32 +186,14 @@ describe('POST /api/lists/:listId/items/import', () => {
     ])
   })
 
-  it('leaves new items ungrouped when "group by type" is off, even with a release type', async () => {
+  it('leaves new items with whatever group they arrived with — no toggle to re-derive it anymore', async () => {
     const list = await createList('music')
-
-    const response = await importItems(list.id, [{ title: 'Eaten Back to Life', releaseType: 'Album' }])
-
-    expect(response.json()[0]).toMatchObject({ group: null })
-  })
-
-  it('re-derives the group from release type even when an item arrives with an explicit one, once "group by type" is on', async () => {
-    // Music has no manual group field once the toggle is on (task:
-    // group-by-type toggle) — applyGroupByType re-lays out *every* item
-    // unconditionally, so a stray explicit `group` here (which the real
-    // music UI never actually sends) does not create a bucket the toggle
-    // doesn't know about.
-    const list = await createList('music')
-    await harness.app.inject({
-      method: 'PATCH',
-      url: `/api/lists/${list.id}`,
-      payload: { groupByType: true },
-    })
 
     const response = await importItems(list.id, [
-      { title: 'Special Edition', releaseType: 'Album', group: 'Deluxe Reissues' },
+      { title: 'Eaten Back to Life', releaseType: 'Album', group: 'Deluxe Reissues' },
     ])
 
-    expect(response.json()[0]).toMatchObject({ group: 'Album' })
+    expect(response.json()[0]).toMatchObject({ group: 'Deluxe Reissues' })
   })
 
   it('feeds the derived stats, so imported items count toward completion', async () => {

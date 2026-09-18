@@ -433,17 +433,8 @@ a {
   color: var(--text-faint);
 }
 
-/* Book-language filter's per-item tag — makes a filtered list self-explanatory. */
-.item__language-badge {
-  flex: none;
-  font-size: 0.72rem;
-  padding: 0 var(--space-1);
-  border: var(--border-width) solid var(--border);
-  color: var(--text-muted);
-}
-
-/* Music discography-type label — same shape as the language badge above. */
-.item__release-type-badge {
+/* Generic per-item display tag (SPEC.md §4) — a release type, a language, a medium, etc. */
+.item__tag-badge {
   flex: none;
   font-size: 0.72rem;
   padding: 0 var(--space-1);
@@ -588,13 +579,6 @@ a {
   flex-wrap: wrap;
   padding: var(--space-3);
   border-bottom: var(--border-width) solid var(--border);
-}
-
-/* Music-only "group by type" toggle — pushed to the far end of the summary
-   line, away from the progress/count/time-left figures it shares the row
-   with. */
-.summary__group-toggle {
-  margin-left: auto;
 }
 
 .summary__figure {
