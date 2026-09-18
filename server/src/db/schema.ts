@@ -172,6 +172,17 @@ export const listItems = sqliteTable(
      * more than one facet (a live EP is both an EP and Live).
      */
     releaseType: text('release_type'),
+    /**
+     * Generic per-item display tags (SPEC.md §4) — a JSON array of short
+     * free-text strings, e.g. `["Album", "Live"]`, `["Japanese"]`,
+     * `["Film"]`. One field for every category, meaning by convention, not a
+     * dedicated column per category-specific attribute; supersedes
+     * `language`/`releaseType` above, which are retired once every consumer
+     * has moved onto this field (`docs/DECISIONS.md`, "Generic per-item
+     * `tags`..."). Purely a display attribute — never affects ordering,
+     * `group`, or anything else.
+     */
+    tags: text('tags', { mode: 'json' }).$type<string[]>(),
     /** Null until checked off; doubles as the "when" behind list neglect scoring. */
     consumedAt: integer('consumed_at', { mode: 'timestamp_ms' }),
     createdAt: integer('created_at', { mode: 'timestamp_ms' })

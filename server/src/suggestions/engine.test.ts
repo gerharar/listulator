@@ -65,6 +65,7 @@ function nextItemsFor(lists: ListWithStats[]): Map<string, ListItem | undefined>
         group: null,
         language: null,
         releaseType: null,
+        tags: null,
         createdAt: NOW,
         updatedAt: NOW,
       },

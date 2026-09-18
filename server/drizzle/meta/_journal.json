@@ -71,6 +71,13 @@
       "when": 1789340485963,
       "tag": "0009_list_group_by_type",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "6",
+      "when": 1789732468112,
+      "tag": "0010_list_item_tags",
+      "breakpoints": true
     }
   ]
 }
