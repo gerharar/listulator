@@ -10,6 +10,7 @@ import {
   type List,
   type ListItem,
   type ListSource,
+  type ListStatus,
 } from '../db/schema.js'
 
 /**
@@ -32,16 +33,22 @@ import {
 
 export interface CreateListInput {
   title: string
+  /** A longer free-text blurb alongside `title`. Null/omitted if not set. */
+  description?: string | null
   mediaType: string
   source?: ListSource
   externalRef?: string | null
+  /** Production status of the thing the list is about. Null/omitted means unknown. */
+  status?: ListStatus | null
 }
 
 export interface UpdateListInput {
   title?: string
+  description?: string | null
   mediaType?: string
   source?: ListSource
   externalRef?: string | null
+  status?: ListStatus | null
 }
 
 export interface CreateListItemInput {
@@ -81,9 +88,11 @@ export async function createList(
     .values({
       userId,
       title: input.title,
+      description: input.description ?? null,
       mediaType: input.mediaType,
       source: input.source ?? 'manual',
       externalRef: input.externalRef ?? null,
+      status: input.status ?? null,
     })
     .returning()
     .get()

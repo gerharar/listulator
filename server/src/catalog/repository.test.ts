@@ -51,6 +51,29 @@ describe('catalog repository', () => {
       userId: ownerId,
       source: 'manual',
       externalRef: null,
+      description: null,
+      status: null,
+    })
+  })
+
+  it('stores description and status on a new list, and lets updateList patch them', async () => {
+    const list = await createList(harness.db, ownerId, {
+      title: 'Some Show',
+      mediaType: 'tv',
+      description: 'A long-running procedural.',
+      status: 'ongoing',
+    })
+
+    expect(list).toMatchObject({ description: 'A long-running procedural.', status: 'ongoing' })
+
+    const updated = await updateList(harness.db, ownerId, list.id, {
+      description: 'Wrapped up after ten seasons.',
+      status: 'complete',
+    })
+
+    expect(updated).toMatchObject({
+      description: 'Wrapped up after ten seasons.',
+      status: 'complete',
     })
   })
 
