@@ -31,9 +31,11 @@ function list({
     id,
     userId: 'user',
     title: id,
+    description: null,
     mediaType: 'movie',
     source: 'manual',
     externalRef: null,
+    status: null,
     createdAt: created,
     updatedAt: created,
     stats: {

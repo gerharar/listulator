@@ -58,6 +58,18 @@ export type ListSource = 'api' | 'llm' | 'manual' | 'file' | 'canonical'
 export type ItemSource = 'manual' | 'import'
 
 /**
+ * Production status of the *thing a list is about* — a show still airing vs.
+ * a wrapped trilogy — never the user's own consumption progress (that's the
+ * derived `stats.completionPercent`, unrelated on purpose; the field is named
+ * `status`, not `complete`, specifically to avoid that collision). Three-state
+ * in practice: the column is nullable and null means "unknown", not "false".
+ * Settable by hand (YAML/API) or adapter-inferred where a real upstream
+ * signal exists (`tasks/todo.md`, Phase 9) — coverage is expected to stay
+ * partial, same as every other adapter-optional field in this schema.
+ */
+export type ListStatus = 'complete' | 'ongoing'
+
+/**
  * A finite, curated set of things to finish — "all Jackie Chan movies", a
  * discography, a game franchise.
  *
@@ -75,10 +87,14 @@ export const lists = sqliteTable(
       .notNull()
       .references(() => users.id, { onDelete: 'cascade' }),
     title: text('title').notNull(),
+    /** A longer free-text blurb alongside `title`. Null when not set. */
+    description: text('description'),
     mediaType: text('media_type').notNull(),
     source: text('source').$type<ListSource>().notNull().default('manual'),
     /** Upstream identifier, e.g. a TMDB collection id. Null for hand-made lists. */
     externalRef: text('external_ref'),
+    /** See `ListStatus`. Null means unknown, not false. */
+    status: text('status').$type<ListStatus>(),
     createdAt: integer('created_at', { mode: 'timestamp_ms' })
       .notNull()
       .$defaultFn(() => new Date()),
