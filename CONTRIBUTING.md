@@ -31,6 +31,25 @@ items:
     minutes: 126
 ```
 
+Top-level fields:
+
+| Field         | Required? | Notes |
+|---------------|-----------|-------|
+| `title`       | Yes       | Rejected with a specific error if missing — never silently dropped. |
+| `description` | No        | A longer free-text blurb alongside `title` — a sentence or two of context, not a synopsis. |
+| `category`    | Yes       | See "`category` must be one of the fixed keys" below. |
+| `status`      | No        | The production status of the thing the list is about — is it still being released, or finished? — not your own progress through it. Exactly `complete` or `ongoing`; omit it if you don't know. |
+| `items`       | Yes       | A flat array, always in chronological order (see `group` below). |
+
+```yaml
+title: Some Show
+description: A procedural that ran for a decade before wrapping up.
+category: tv
+status: complete
+items:
+  - { title: Pilot }
+```
+
 Per-item fields:
 
 | Field     | Required? | Notes |
