@@ -736,6 +736,19 @@ items:
     expect(items).toMatchObject([{ title: 'Global Evisceration', tags: ['Album', 'Live'] }])
   })
 
+  it('preserves a top-level description and status, both null when omitted', async () => {
+    const withBoth = await fromFile(
+      'title: X\ndescription: A long-running procedural.\nstatus: ongoing\ncategory: tv\nitems: []\n',
+    )
+    expect(withBoth.json()).toMatchObject({
+      description: 'A long-running procedural.',
+      status: 'ongoing',
+    })
+
+    const withNeither = await fromFile('title: Y\ncategory: tv\nitems: []\n')
+    expect(withNeither.json()).toMatchObject({ description: null, status: null })
+  })
+
   it('rejects an unknown category with the same code the search-based path uses', async () => {
     const response = await fromFile(
       'title: X\ncategory: not-a-category\nitems:\n  - { title: X }\n',

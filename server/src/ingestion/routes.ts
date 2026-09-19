@@ -64,9 +64,11 @@ export const ingestionRoutes: FastifyPluginAsync<IngestionRoutesOptions> = async
 
     const list = await createList(db, user.id, {
       title: parsed.title,
+      description: parsed.description ?? null,
       mediaType: parsed.category,
       source,
       ...(externalRef ? { externalRef } : {}),
+      status: parsed.status ?? null,
     })
 
     // Sequential, not Promise.all — see the from-source route above for why.

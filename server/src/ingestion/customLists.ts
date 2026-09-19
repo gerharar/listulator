@@ -21,7 +21,15 @@ export interface ParsedCustomListItem {
 
 export interface ParsedCustomList {
   title: string
+  /** A longer free-text blurb alongside `title`. Undefined if not set. */
+  description?: string
   category: string
+  /**
+   * Production status of the thing the list is about — 'complete' or
+   * 'ongoing', undefined means unknown. Never the user's own consumption
+   * progress (that's derived elsewhere, unrelated on purpose).
+   */
+  status?: 'complete' | 'ongoing'
   items: ParsedCustomListItem[]
 }
 
@@ -40,7 +48,7 @@ export class CustomListParseError extends Error {
   }
 }
 
-const TOP_LEVEL_FIELDS = new Set(['title', 'category', 'items'])
+const TOP_LEVEL_FIELDS = new Set(['title', 'description', 'category', 'status', 'items'])
 const ITEM_FIELDS = new Set(['title', 'year', 'minutes', 'group', 'tags'])
 
 function fail(code: CustomListErrorCode, params?: Record<string, string | number>): never {
@@ -79,13 +87,19 @@ export function parseCustomList(
     if (!TOP_LEVEL_FIELDS.has(key)) fail('list.fileInvalid')
   }
 
-  const { title, category, items } = doc
+  const { title, description, category, status, items } = doc
 
   if (typeof title !== 'string' || title.trim().length === 0) fail('list.fileMissingTitle')
+
+  if (description !== undefined && typeof description !== 'string') fail('list.fileInvalid')
 
   if (category === undefined) fail('list.fileInvalid')
   if (typeof category !== 'string' || !validCategories.has(category)) {
     fail('list.unknownCategory', { key: String(category) })
+  }
+
+  if (status !== undefined && status !== 'complete' && status !== 'ongoing') {
+    fail('list.fileInvalid')
   }
 
   if (!Array.isArray(items)) fail('list.fileInvalid')
@@ -118,7 +132,13 @@ export function parseCustomList(
     }
   })
 
-  return { title: title.trim(), category, items: parsedItems }
+  return {
+    title: title.trim(),
+    ...(description !== undefined ? { description: description.trim() } : {}),
+    category,
+    ...(status !== undefined ? { status } : {}),
+    items: parsedItems,
+  }
 }
 
 /**

@@ -65,6 +65,28 @@ items:
     expect(parseCustomList(yaml, CATEGORIES).title).toBe('Padded')
   })
 
+  it('preserves an optional top-level description, trimmed', () => {
+    const yaml = 'title: X\ndescription: "  A long-running procedural.  "\ncategory: tv\nitems: []\n'
+    expect(parseCustomList(yaml, CATEGORIES).description).toBe('A long-running procedural.')
+  })
+
+  it('omits description when not set', () => {
+    const yaml = 'title: X\ncategory: movie\nitems: []\n'
+    expect(parseCustomList(yaml, CATEGORIES).description).toBeUndefined()
+  })
+
+  it('preserves an optional top-level status', () => {
+    const yaml = 'title: X\ncategory: tv\nstatus: ongoing\nitems: []\n'
+    expect(parseCustomList(yaml, CATEGORIES).status).toBe('ongoing')
+  })
+
+  it('rejects a status that is not exactly complete or ongoing', () => {
+    const yaml = 'title: X\ncategory: tv\nstatus: finished\nitems: []\n'
+    expect(() => parseCustomList(yaml, CATEGORIES)).toThrow(
+      expect.objectContaining({ code: 'list.fileInvalid' }),
+    )
+  })
+
   it('rejects unparseable YAML', () => {
     expect(() => parseCustomList('title: [unclosed', CATEGORIES)).toThrow(CustomListParseError)
     try {
