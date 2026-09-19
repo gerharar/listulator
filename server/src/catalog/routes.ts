@@ -1,7 +1,7 @@
 import type { FastifyPluginAsync } from 'fastify'
 import { getCurrentUser } from '../auth/currentUser.js'
 import type { AppDatabase } from '../db/client.js'
-import type { ListSource } from '../db/schema.js'
+import type { ListSource, ListStatus } from '../db/schema.js'
 import type { MediaTypeRegistry } from '../ingestion/mediaTypes.js'
 import {
   createList,
@@ -19,6 +19,7 @@ import {
 } from './repository.js'
 
 const LIST_SOURCES = ['api', 'llm', 'manual'] as const
+const LIST_STATUSES = ['complete', 'ongoing'] as const
 
 /**
  * Built from the registry at registration time, so adding a category is still
@@ -28,9 +29,14 @@ const LIST_SOURCES = ['api', 'llm', 'manual'] as const
 function listBodyProperties(mediaTypes: MediaTypeRegistry) {
   return {
     title: { type: 'string', minLength: 1, maxLength: 500 },
+    description: { type: ['string', 'null'], maxLength: 2000 },
     mediaType: { type: 'string', enum: mediaTypes.keys() },
     source: { type: 'string', enum: LIST_SOURCES },
     externalRef: { type: ['string', 'null'], maxLength: 500 },
+    // Production status of the thing the list is about, not the user's own
+    // progress (that's the derived `stats.completionPercent`). Omit/null
+    // means unknown — never a third enum value (schema.ts's `ListStatus`).
+    status: { type: ['string', 'null'], enum: [...LIST_STATUSES, null] },
   } as const
 }
 
@@ -66,7 +72,14 @@ export const catalogRoutes: FastifyPluginAsync<CatalogRoutesOptions> = async (
   const listProperties = listBodyProperties(mediaTypes)
 
   app.post<{
-    Body: { title: string; mediaType: string; source?: ListSource; externalRef?: string | null }
+    Body: {
+      title: string
+      description?: string | null
+      mediaType: string
+      source?: ListSource
+      externalRef?: string | null
+      status?: ListStatus | null
+    }
   }>(
     '/lists',
     {
@@ -107,9 +120,11 @@ export const catalogRoutes: FastifyPluginAsync<CatalogRoutesOptions> = async (
     Params: ListParams
     Body: {
       title?: string
+      description?: string | null
       mediaType?: string
       source?: ListSource
       externalRef?: string | null
+      status?: ListStatus | null
     }
   }>(
     '/lists/:listId',

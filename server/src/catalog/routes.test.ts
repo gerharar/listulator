@@ -250,6 +250,9 @@ describe('catalog HTTP API', () => {
     const badSource = await createList({ source: 'telepathy' })
     expect(badSource.statusCode).toBe(400)
 
+    const badStatus = await createList({ status: 'finished' })
+    expect(badStatus.statusCode).toBe(400)
+
     const list = (await createList()).json()
 
     // A duration is required — ingestion decides the number when it is unknown,
@@ -270,6 +273,30 @@ describe('catalog HTTP API', () => {
       payload: {},
     })
     expect(emptyPatch.statusCode).toBe(400)
+  })
+
+  it('accepts and patches description and status, both null unless set', async () => {
+    const created = await createList()
+    expect(created.json()).toMatchObject({ description: null, status: null })
+
+    const withBoth = await createList({
+      description: 'A long-running procedural.',
+      status: 'ongoing',
+    })
+    expect(withBoth.json()).toMatchObject({
+      description: 'A long-running procedural.',
+      status: 'ongoing',
+    })
+
+    const patched = await harness.app.inject({
+      method: 'PATCH',
+      url: `/api/lists/${withBoth.json().id}`,
+      payload: { description: 'Wrapped up after ten seasons.', status: 'complete' },
+    })
+    expect(patched.json()).toMatchObject({
+      description: 'Wrapped up after ten seasons.',
+      status: 'complete',
+    })
   })
 
   it('accepts every built-in category, including ones with no search adapter', async () => {
