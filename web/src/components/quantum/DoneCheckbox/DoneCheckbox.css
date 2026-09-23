@@ -1,0 +1,25 @@
+/* design-system/components/DoneCheckbox, ported from bundle.css verbatim. */
+.q-done {
+  flex: none;
+  width: 36px;
+  height: 46px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  background: transparent;
+  padding: 0;
+  cursor: pointer;
+}
+.q-done > span {
+  width: 19px;
+  height: 19px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--rule);
+  font: 600 13px/1 var(--font-mono);
+  color: var(--accentInk);
+  background: transparent;
+}
+.q-done[aria-checked='true'] > span {
+  background: var(--accent);
+}

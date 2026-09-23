@@ -1,0 +1,37 @@
+/* design-system/components/StatusPicker, ported from bundle.css verbatim. */
+.q-status-picker-field {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+.q-status-picker {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.q-status-picker button {
+  padding: 8px 11px;
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--ink2);
+  font: 600 12.5px/1 var(--font-sans);
+  white-space: nowrap;
+  cursor: pointer;
+  text-align: left;
+}
+.q-status-picker button:hover {
+  filter: brightness(1.12);
+  border-color: var(--rule);
+}
+.q-status-picker button[aria-pressed='true'] {
+  border-color: var(--rule);
+  background: var(--accent);
+  color: var(--accentInk);
+}
+
+/* Not in bundle.css under its own selector — the README states the size
+   (12.5px, matching the `.t-small` type token) and colour only. */
+.q-status-picker-note {
+  margin: 0;
+  color: var(--ink3);
+}

@@ -1,0 +1,42 @@
+/*
+ * Hand-written Quantum base — never generated (unlike tokens.css), and
+ * imported once wherever the first `.q-root` mounts (task 10.9). Holds
+ * rules that are truly global across every component, not one
+ * component's own concern:
+ * - The focus ring (design rules: every interactive element).
+ * - `.q-kicker`, the mono uppercase label used across many components
+ *   (Field, FacetToggle, ToggleChip's help row, and more to come).
+ * - A `border-radius: 0` safety net: radius is 0 everywhere in this
+ *   design, and some browsers apply their own default radius to native
+ *   form controls (iOS Safari especially).
+ *
+ * Scoped to `.q-root` throughout, never bare `:root`/`*` — this app's old
+ * UI keeps rendering alongside Quantum until cutover (10.32), and an
+ * unscoped rule would bleed into it.
+ */
+
+.q-root :focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.q-root button,
+.q-root input,
+.q-root textarea,
+.q-root select {
+  border-radius: 0;
+}
+
+.q-kicker {
+  font: 500 11px/1 var(--font-mono);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink3);
+}
+.q-kicker.section {
+  letter-spacing: 0.14em;
+}
+.q-kicker.strong {
+  color: var(--ink);
+  letter-spacing: 0.14em;
+}

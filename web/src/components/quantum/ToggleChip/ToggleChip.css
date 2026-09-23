@@ -1,0 +1,35 @@
+/* design-system/components/ToggleChip, ported from bundle.css verbatim. */
+.q-chip {
+  padding: 7px 11px;
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--ink2);
+  font: 600 12.5px/1 var(--font-sans);
+  white-space: nowrap;
+  cursor: pointer;
+  text-align: left;
+}
+.q-chip:hover {
+  border-color: var(--rule);
+  color: var(--ink);
+}
+.q-chip[aria-pressed='true'] {
+  border-color: var(--rule);
+  background: var(--accent);
+  color: var(--accentInk);
+}
+.q-chip.help {
+  font-size: 13px;
+}
+.q-chip.choice {
+  padding: 10px 15px;
+  font-size: 13px;
+  color: var(--ink);
+}
+.q-chip.choice[aria-pressed='true'] {
+  color: var(--accentInk);
+}
+.q-chip:disabled {
+  opacity: 0.45;
+  cursor: default;
+}

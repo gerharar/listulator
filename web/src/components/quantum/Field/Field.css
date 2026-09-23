@@ -1,0 +1,80 @@
+/* design-system/components/Field, ported from bundle.css verbatim. */
+.q-field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.q-input {
+  width: 100%;
+  padding: 11px 13px;
+  border: 1px solid var(--line);
+  background: var(--field);
+  color: var(--ink);
+  font: 400 15px/1.2 var(--font-sans);
+}
+.q-input::placeholder {
+  font-style: italic;
+  font-size: 14px;
+  color: var(--ink3);
+}
+.q-input.sm {
+  padding: 9px 11px;
+  font-size: 14px;
+}
+.q-input.key {
+  padding: 9px 36px 9px 11px;
+  font: 500 14px/1.2 var(--font-mono);
+}
+.q-input[readonly] {
+  background: var(--fill);
+  color: var(--ink3);
+  cursor: text;
+}
+.q-input.code {
+  font: 400 13px/1.55 var(--font-mono);
+  resize: none;
+}
+.q-input:not(.code) {
+  resize: vertical;
+}
+
+.q-buffer {
+  position: relative;
+}
+.q-buffer-hint {
+  position: absolute;
+  right: 9px;
+  bottom: 13px;
+  padding: 3px 6px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  font: 500 10.5px/1 var(--font-mono);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink3);
+  pointer-events: none;
+}
+
+.q-key {
+  position: relative;
+  display: flex;
+  flex: 1;
+  min-width: 150px;
+}
+.q-key button {
+  position: absolute;
+  right: 1px;
+  top: 1px;
+  bottom: 1px;
+  width: 32px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--ink3);
+  cursor: pointer;
+}
+.q-key button:hover {
+  color: var(--ink);
+}

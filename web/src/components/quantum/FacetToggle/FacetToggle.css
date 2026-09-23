@@ -1,0 +1,36 @@
+/* design-system/components/FacetToggle, ported from bundle.css verbatim. */
+.q-facet {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.q-facet-seg {
+  display: flex;
+  border: 1px solid var(--line);
+}
+.q-facet button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 11px;
+  border: 0;
+  background: transparent;
+  color: var(--ink2);
+  font: 600 12px/1 var(--font-sans);
+  white-space: nowrap;
+  cursor: pointer;
+}
+.q-facet > button {
+  border: 1px solid var(--line);
+}
+.q-facet-seg button + button {
+  border-left: 1px solid var(--line);
+}
+.q-facet button:hover {
+  filter: brightness(1.12);
+}
+.q-facet button[aria-pressed='true'] {
+  background: var(--accent);
+  color: var(--accentInk);
+}
