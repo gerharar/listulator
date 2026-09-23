@@ -1,0 +1,87 @@
+/* design-system/components/Popover. z-index and shadow values match the design system's fixed ladder (README, "Overlays"). */
+.q-catcher {
+  position: fixed;
+  inset: 0;
+  z-index: 119;
+}
+
+.q-pop {
+  position: relative;
+  z-index: 120;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px;
+  background: var(--card);
+  border: 1px solid var(--rule);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.18);
+}
+.q-pop.w220 {
+  width: 220px;
+}
+.q-pop.w240 {
+  width: 240px;
+}
+.q-pop.w300 {
+  width: 300px;
+}
+.q-pop.w320 {
+  width: 320px;
+}
+.q-pop.w340 {
+  width: 340px;
+}
+.q-pop.w360 {
+  width: 360px;
+}
+
+/* Two stacked triangles — `rule` behind, `card` in front, offset 1px so the back one reads as a 1px rim. */
+.q-pop-tail,
+.q-pop-tail::before {
+  position: absolute;
+  top: var(--tail-y, 8px);
+  width: 0;
+  height: 0;
+  border-top: 9px solid transparent;
+  border-bottom: 9px solid transparent;
+}
+.q-pop-tail {
+  left: -9px;
+  border-right: 9px solid var(--rule);
+}
+.q-pop-tail::before {
+  content: '';
+  left: 1px;
+  border-right: 9px solid var(--card);
+}
+.q-pop-tail.right {
+  left: auto;
+  right: -9px;
+  border-right: 0;
+  border-left: 9px solid var(--rule);
+}
+.q-pop-tail.right::before {
+  left: auto;
+  right: 1px;
+  border-right: 0;
+  border-left: 9px solid var(--card);
+}
+
+.q-pop-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.q-pop-q {
+  font: 600 15px/1.3 var(--font-sans);
+  color: var(--ink);
+}
+.q-pop-note {
+  font: 400 12.5px/1.4 var(--font-sans);
+  color: var(--ink2);
+}
+.q-pop-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}

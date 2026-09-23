@@ -1,0 +1,54 @@
+/*
+ * design-system/components/Sheet — frame only (task 10.7). The wash
+ * pattern itself (`.q-plate.q-wash`'s actual gradient, driven by `--sd`
+ * and the active skin) is task 10.8's job; this only gives it the
+ * positioning a wash needs to sit behind the head's content.
+ */
+.q-sheet {
+  position: relative;
+  z-index: 90;
+  max-width: 640px;
+  background: var(--card);
+  border: 2px solid var(--rule);
+  box-shadow: 0 16px 28px rgba(0, 0, 0, 0.14);
+}
+
+.q-sheet-head {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 18px 22px 14px;
+  border-bottom: 2px solid var(--rule);
+  overflow: hidden;
+}
+.q-sheet-head > div {
+  position: relative;
+  z-index: 1;
+  flex: 1;
+}
+.q-sheet-head .q-icon-btn {
+  position: relative;
+  z-index: 1;
+}
+
+.q-plate.q-wash {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.q-sheet-title {
+  font: 700 22px/1.2 var(--font-sans);
+  color: var(--ink);
+}
+.q-sheet-explain {
+  margin-top: 2px;
+  font: 400 14px/1.4 var(--font-sans);
+  color: var(--ink2);
+}
+
+.q-sheet-body {
+  padding: 18px 22px;
+}
