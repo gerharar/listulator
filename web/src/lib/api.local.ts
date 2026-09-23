@@ -14,6 +14,7 @@ import {
   clearDismissals,
   createList as repoCreateList,
   createListItem,
+  createListSnapshot,
   deleteList as repoDeleteList,
   deleteListItem,
   findDismissals,
@@ -466,6 +467,11 @@ export function createLocalApi(): ApiClient {
         mediaType: key,
         source: 'api',
         externalRef: refForAdapter,
+        // No adapter sets description/status, so both are null at import
+        // time — arrived_* mirrors that, same as the real columns (D4).
+        arrivedTitle: title,
+        arrivedDescription: null,
+        arrivedStatus: null,
       })
 
       // Sequential, not Promise.all — see docs/DECISIONS.md, task 5.1.
@@ -486,6 +492,12 @@ export function createLocalApi(): ApiClient {
           source: 'import',
         })
       }
+
+      // The arrived-state snapshot (D4), written once — built from the
+      // items just created, not re-derived from `candidates`, so it can
+      // never drift from what's actually in list_items.
+      const createdItems = await findListItems(database, userId, list.id)
+      await createListSnapshot(database, list.id, createdItems ?? [])
 
       const withStats = await findListWithStats(database, userId, list.id)
       return toMediaList(withStats!)
@@ -516,6 +528,7 @@ export function createLocalApi(): ApiClient {
         mediaType: parsed.category,
         source: 'file',
         status: parsed.status ?? null,
+        sourceYaml: yaml,
       })
 
       // Sequential, not Promise.all — see docs/DECISIONS.md, task 5.1.

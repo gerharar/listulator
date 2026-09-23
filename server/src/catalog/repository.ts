@@ -4,11 +4,13 @@ import {
   dismissalTitleKey,
   dismissedItems,
   listItems,
+  listSnapshots,
   lists,
   type DismissedItem,
   type ItemSource,
   type List,
   type ListItem,
+  type ListSnapshotItem,
   type ListSource,
   type ListStatus,
 } from '../db/schema.js'
@@ -40,6 +42,14 @@ export interface CreateListInput {
   externalRef?: string | null
   /** Production status of the thing the list is about. Null/omitted means unknown. */
   status?: ListStatus | null
+  /** The original raw uploaded/pasted YAML text — `source: 'file'` lists only (D4). */
+  sourceYaml?: string | null
+  /** `title` as it stood at import time — `source: 'api' | 'llm'` lists only (D4). */
+  arrivedTitle?: string | null
+  /** `description` as it stood at import time — `source: 'api' | 'llm'` lists only (D4). */
+  arrivedDescription?: string | null
+  /** `status` as it stood at import time — `source: 'api' | 'llm'` lists only (D4). */
+  arrivedStatus?: ListStatus | null
 }
 
 export interface UpdateListInput {
@@ -95,6 +105,10 @@ export async function createList(
       source: input.source ?? 'manual',
       externalRef: input.externalRef ?? null,
       status: input.status ?? null,
+      sourceYaml: input.sourceYaml ?? null,
+      arrivedTitle: input.arrivedTitle ?? null,
+      arrivedDescription: input.arrivedDescription ?? null,
+      arrivedStatus: input.arrivedStatus ?? null,
     })
     .returning()
     .get()
@@ -451,6 +465,67 @@ export async function clearDismissals(
       ),
     )
     .run()
+}
+
+export interface CreateListSnapshotItemInput {
+  title: string
+  timeToConsumeMinutes: number
+  timeToConsumeIsEstimated: boolean
+  orderIndex: number
+  externalRef?: string | null
+  year?: number | null
+  group?: string | null
+  tags?: string[] | null
+  notes?: string | null
+}
+
+/**
+ * Writes a list's arrived-state snapshot (D4) — `source: 'api' | 'llm'`
+ * lists only, once, in the same import that creates the list's real
+ * items. Never called again for that list: refresh and sync leave the
+ * snapshot untouched, by design, so it stays "what arrived," not "what's
+ * here now."
+ */
+export async function createListSnapshot(
+  db: PortableDatabase,
+  listId: string,
+  items: CreateListSnapshotItemInput[],
+): Promise<void> {
+  if (items.length === 0) return
+
+  await db
+    .insert(listSnapshots)
+    .values(
+      items.map((item) => ({
+        listId,
+        title: item.title,
+        orderIndex: item.orderIndex,
+        timeToConsumeMinutes: item.timeToConsumeMinutes,
+        timeToConsumeIsEstimated: item.timeToConsumeIsEstimated,
+        externalRef: item.externalRef ?? null,
+        year: item.year ?? null,
+        group: item.group ?? null,
+        tags: item.tags ?? null,
+        notes: item.notes ?? null,
+      })),
+    )
+    .run()
+}
+
+/** The arrived-state snapshot for one list, in its original order. Empty for any list without one. */
+export async function findListSnapshot(
+  db: PortableDatabase,
+  userId: string,
+  listId: string,
+): Promise<ListSnapshotItem[]> {
+  if (!(await findList(db, userId, listId))) return []
+
+  return await db
+    .select()
+    .from(listSnapshots)
+    .where(eq(listSnapshots.listId, listId))
+    .orderBy(asc(listSnapshots.orderIndex), asc(listSnapshots.id))
+    .all()
 }
 
 /**

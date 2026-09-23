@@ -5,11 +5,13 @@ import { createTestApp, type TestApp } from '../testing/harness.js'
 import {
   createList,
   createListItem,
+  createListSnapshot,
   deleteList,
   deleteListItem,
   findList,
   findListItem,
   findListItems,
+  findListSnapshot,
   findLists,
   reorderListItems,
   ReorderMismatchError,
@@ -75,6 +77,91 @@ describe('catalog repository', () => {
       description: 'Wrapped up after ten seasons.',
       status: 'complete',
     })
+  })
+
+  it('stores the arrived-source fields (D4), null when omitted', async () => {
+    const withoutThem = await createList(harness.db, ownerId, { title: 'X', mediaType: 'movie' })
+    expect(withoutThem).toMatchObject({
+      sourceYaml: null,
+      arrivedTitle: null,
+      arrivedDescription: null,
+      arrivedStatus: null,
+    })
+
+    const list = await createList(harness.db, ownerId, {
+      title: 'Some Show',
+      mediaType: 'tv',
+      source: 'file',
+      sourceYaml: 'title: Some Show\ncategory: tv\nitems: []\n',
+      arrivedTitle: 'Some Show',
+      arrivedDescription: 'A long-running procedural.',
+      arrivedStatus: 'ongoing',
+    })
+
+    expect(list).toMatchObject({
+      sourceYaml: 'title: Some Show\ncategory: tv\nitems: []\n',
+      arrivedTitle: 'Some Show',
+      arrivedDescription: 'A long-running procedural.',
+      arrivedStatus: 'ongoing',
+    })
+  })
+
+  it('writes and reads back an item-level snapshot (D4), in order', async () => {
+    const list = await createList(harness.db, ownerId, { title: 'X', mediaType: 'game' })
+
+    await createListSnapshot(harness.db, list.id, [
+      {
+        title: 'Second',
+        timeToConsumeMinutes: 60,
+        timeToConsumeIsEstimated: false,
+        orderIndex: 1,
+        externalRef: 'ref-2',
+        year: 2020,
+        group: 'Disc 2',
+        tags: ['Multi'],
+        notes: 'Extra missions on this platform.',
+      },
+      {
+        title: 'First',
+        timeToConsumeMinutes: 30,
+        timeToConsumeIsEstimated: true,
+        orderIndex: 0,
+      },
+    ])
+
+    const snapshot = await findListSnapshot(harness.db, ownerId, list.id)
+
+    expect(snapshot).toMatchObject([
+      {
+        title: 'First',
+        orderIndex: 0,
+        timeToConsumeMinutes: 30,
+        timeToConsumeIsEstimated: true,
+        externalRef: null,
+        year: null,
+        group: null,
+        tags: null,
+        notes: null,
+      },
+      {
+        title: 'Second',
+        orderIndex: 1,
+        timeToConsumeMinutes: 60,
+        timeToConsumeIsEstimated: false,
+        externalRef: 'ref-2',
+        year: 2020,
+        group: 'Disc 2',
+        tags: ['Multi'],
+        notes: 'Extra missions on this platform.',
+      },
+    ])
+  })
+
+  it('returns an empty snapshot for a list with none, and for another user\'s list', async () => {
+    const list = await createList(harness.db, ownerId, { title: 'X', mediaType: 'movie' })
+
+    expect(await findListSnapshot(harness.db, ownerId, list.id)).toEqual([])
+    expect(await findListSnapshot(harness.db, strangerId, list.id)).toEqual([])
   })
 
   it('stores tags on a new item, defaulting to null when omitted', async () => {

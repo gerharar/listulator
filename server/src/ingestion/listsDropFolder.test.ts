@@ -29,12 +29,16 @@ describe('scanListsDropFolder', () => {
   })
 
   it('parses a valid file and moves it to admitted/', () => {
-    drop('good.yaml', 'title: X\ncategory: movie\nitems:\n  - { title: A }\n')
+    const rawText = 'title: X\ncategory: movie\nitems:\n  - { title: A }\n'
+    drop('good.yaml', rawText)
 
     const outcomes = scanListsDropFolder(dropDir, CATEGORIES)
 
     expect(outcomes).toEqual([
-      { fileName: 'good.yaml', result: { ok: true, list: { title: 'X', category: 'movie', items: [{ title: 'A' }] } } },
+      {
+        fileName: 'good.yaml',
+        result: { ok: true, list: { title: 'X', category: 'movie', items: [{ title: 'A' }] }, rawText },
+      },
     ])
     expect(existsSync(join(dropDir, 'good.yaml'))).toBe(false)
     expect(existsSync(join(dropDir, 'admitted', 'good.yaml'))).toBe(true)

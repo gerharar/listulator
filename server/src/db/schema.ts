@@ -95,6 +95,27 @@ export const lists = sqliteTable(
     externalRef: text('external_ref'),
     /** See `ListStatus`. Null means unknown, not false. */
     status: text('status').$type<ListStatus>(),
+    /**
+     * The original raw uploaded/pasted YAML text, for `source = 'file'`
+     * lists only — everything else re-derives "the source" some other way
+     * (D4): `canonical` re-fetches the live file, `api`/`llm` get an item
+     * snapshot below, `manual` has no source at all. Written once, at
+     * import, never touched again. A column rather than a directory:
+     * both runtimes already have this database, and desktop has no
+     * filesystem-write plugin.
+     */
+    sourceYaml: text('source_yaml'),
+    /**
+     * `title`/`description`/`status` as they stood at import time, for
+     * `source = 'api' | 'llm'` lists only — so "Reset everything" can
+     * restore the list's own fields, not just its items (list_snapshots
+     * below). `canonical`/`file` need no equivalent: re-parsing the
+     * source YAML already gives these back. Written once, at import,
+     * never refreshed.
+     */
+    arrivedTitle: text('arrived_title'),
+    arrivedDescription: text('arrived_description'),
+    arrivedStatus: text('arrived_status').$type<ListStatus>(),
     createdAt: integer('created_at', { mode: 'timestamp_ms' })
       .notNull()
       .$defaultFn(() => new Date()),
@@ -187,6 +208,42 @@ export const listItems = sqliteTable(
 )
 
 /**
+ * One list's items exactly as they stood at import time — the "virgin
+ * state" "Reset everything" restores to, for `source = 'api' | 'llm'`
+ * lists only (D4). Columns mirror `list_items` so it's typed the same way
+ * and diffable in SQL, reusing the same "shadow table matched on
+ * `external_ref`/title" idiom `dismissed_items` already establishes.
+ *
+ * Written **once**, inside the same transaction as the import. Refresh
+ * and sync never write it — it stays frozen even as later syncs pull new
+ * content in live. `canonical` and `file` lists need no equivalent (D4):
+ * `canonical` re-fetches the live file, `file` re-parses `lists.source_yaml`.
+ */
+export const listSnapshots = sqliteTable(
+  'list_snapshots',
+  {
+    id: text('id')
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    listId: text('list_id')
+      .notNull()
+      .references(() => lists.id, { onDelete: 'cascade' }),
+    title: text('title').notNull(),
+    orderIndex: integer('order_index').notNull(),
+    timeToConsumeMinutes: integer('time_to_consume_minutes').notNull(),
+    timeToConsumeIsEstimated: integer('time_to_consume_is_estimated', { mode: 'boolean' })
+      .notNull()
+      .default(true),
+    externalRef: text('external_ref'),
+    year: integer('year'),
+    group: text('group'),
+    tags: text('tags', { mode: 'json' }).$type<string[]>(),
+    notes: text('notes'),
+  },
+  (table) => [index('list_snapshots_list_idx').on(table.listId)],
+)
+
+/**
  * Items the user deleted, so a refresh does not keep offering them back.
  *
  * Import filtering is deliberately imperfect (SPEC.md §5) on the promise that
@@ -225,6 +282,7 @@ export const dismissedItems = sqliteTable(
 
 export type List = typeof lists.$inferSelect
 export type ListItem = typeof listItems.$inferSelect
+export type ListSnapshotItem = typeof listSnapshots.$inferSelect
 export type DismissedItem = typeof dismissedItems.$inferSelect
 
 /** The one place a title is turned into a match key. */

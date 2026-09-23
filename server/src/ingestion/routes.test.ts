@@ -2,6 +2,8 @@ import { existsSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { findList, findListSnapshot } from '../catalog/repository.js'
+import { users } from '../db/schema.js'
 import { createTestApp, type TestApp } from '../testing/harness.js'
 import { IngestionError } from './http.js'
 import { createMediaTypeRegistry, DEFAULT_MEDIA_TYPES, type SearchAdapter } from './mediaTypes.js'
@@ -423,6 +425,73 @@ describe('search and import from a source', () => {
     ])
   })
 
+  it('writes an arrived-state snapshot equal to the imported items, plus arrived_* fields (D4)', async () => {
+    const expand = vi.fn(async () => [
+      { title: 'Global Evisceration', externalRef: 'rg-1', tags: ['Album', 'Live'] },
+      { title: 'Eaten Back to Life', externalRef: 'rg-2' },
+    ])
+    harness = withAdapter(fakeAdapter({ expand }))
+
+    const response = await harness.app.inject({
+      method: 'POST',
+      url: '/api/lists/from-source',
+      payload: { mediaType: 'music', externalRef: 'ref-1', title: 'Cannibal Corpse' },
+    })
+    const listId = response.json().id
+
+    const userId = harness.db.select().from(users).get()!.id
+    const items = (
+      await harness.app.inject({ method: 'GET', url: `/api/lists/${listId}` })
+    ).json().items
+    const snapshot = await findListSnapshot(harness.db, userId, listId)
+
+    expect(snapshot).toMatchObject(
+      items.map((item: { title: string; externalRef: string | null; tags: string[] | null }) => ({
+        title: item.title,
+        externalRef: item.externalRef,
+        tags: item.tags,
+      })),
+    )
+
+    const list = await findList(harness.db, userId, listId)
+    expect(list).toMatchObject({
+      arrivedTitle: 'Cannibal Corpse',
+      arrivedDescription: null,
+      arrivedStatus: null,
+    })
+  })
+
+  it('leaves the snapshot and arrived_* fields untouched by a later refresh', async () => {
+    const expand = vi.fn(async () => [{ title: 'Global Evisceration', externalRef: 'rg-1' }])
+    harness = withAdapter(fakeAdapter({ expand }))
+
+    const created = (
+      await harness.app.inject({
+        method: 'POST',
+        url: '/api/lists/from-source',
+        payload: { mediaType: 'music', externalRef: 'ref-1', title: 'Cannibal Corpse' },
+      })
+    ).json()
+
+    const userId = harness.db.select().from(users).get()!.id
+    const snapshotBefore = await findListSnapshot(harness.db, userId, created.id)
+    const listBefore = await findList(harness.db, userId, created.id)
+
+    // The next refresh finds a second item upstream.
+    expand.mockResolvedValue([
+      { title: 'Global Evisceration', externalRef: 'rg-1' },
+      { title: 'Eaten Back to Life', externalRef: 'rg-2' },
+    ])
+    await harness.app.inject({ method: 'POST', url: `/api/lists/${created.id}/refresh` })
+
+    expect(await findListSnapshot(harness.db, userId, created.id)).toEqual(snapshotBefore)
+    expect(await findList(harness.db, userId, created.id)).toMatchObject({
+      arrivedTitle: listBefore!.arrivedTitle,
+      arrivedDescription: listBefore!.arrivedDescription,
+      arrivedStatus: listBefore!.arrivedStatus,
+    })
+  })
+
   it('folds a language filter into the stored ref, so a later refresh replays it', async () => {
     // Book-search-language filtering: the client sends `language` alongside
     // the chosen source, generically for any category (the GUI only ever
@@ -777,6 +846,16 @@ items:
     expect(withNeither.json()).toMatchObject({ description: null, status: null })
   })
 
+  it('stores the exact input text as source_yaml (D4), for Reset to re-parse later', async () => {
+    const yaml = 'title: X\ndescription: A blurb.\ncategory: tv\nstatus: ongoing\nitems: []\n'
+    const response = await fromFile(yaml)
+
+    const userId = harness.db.select().from(users).get()!.id
+    const list = await findList(harness.db, userId, response.json().id)
+
+    expect(list?.sourceYaml).toBe(yaml)
+  })
+
   it('rejects an unknown category with the same code the search-based path uses', async () => {
     const response = await fromFile(
       'title: X\ncategory: not-a-category\nitems:\n  - { title: X }\n',
@@ -857,6 +936,17 @@ describe('scanning the local drop folder for custom-list files', () => {
     const list = (await harness.app.inject({ method: 'GET', url: '/api/lists' })).json()[0]
     expect(list).toMatchObject({ title: 'Rocky Films', mediaType: 'movie', source: 'file' })
     expect(existsSync(join(dropDir, 'admitted', 'good.yaml'))).toBe(true)
+  })
+
+  it('stores the dropped file\'s exact text as source_yaml (D4), same as the upload path', async () => {
+    const yaml = 'title: Rocky Films\ncategory: movie\nitems:\n  - { title: Rocky, year: 1976 }\n'
+    drop('good.yaml', yaml)
+
+    const response = await scan()
+
+    const userId = harness.db.select().from(users).get()!.id
+    const list = await findList(harness.db, userId, response.json().created[0].id)
+    expect(list?.sourceYaml).toBe(yaml)
   })
 
   it('reports an invalid dropped file, not silently skipping or half-importing it', async () => {

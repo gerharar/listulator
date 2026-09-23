@@ -27,7 +27,9 @@ const YAML_EXTENSIONS = new Set(['.yaml', '.yml'])
 
 export interface DroppedListOutcome {
   fileName: string
-  result: { ok: true; list: ParsedCustomList } | { ok: false; error: CustomListParseError }
+  result:
+    | { ok: true; list: ParsedCustomList; rawText: string }
+    | { ok: false; error: CustomListParseError }
 }
 
 /** Moves `fileName` into `<dropDir>/<subdir>`, appending `-2`, `-3`, … on a name collision. */
@@ -77,7 +79,7 @@ export function scanListsDropFolder(
     try {
       const list = parseCustomList(text, validCategories)
       moveInto(dropDir, ADMITTED_SUBDIR, fileName)
-      return { fileName, result: { ok: true, list } }
+      return { fileName, result: { ok: true, list, rawText: text } }
     } catch (error) {
       if (!(error instanceof CustomListParseError)) throw error
       moveInto(dropDir, REFUSED_SUBDIR, fileName)

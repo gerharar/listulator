@@ -5,6 +5,7 @@ import {
   clearDismissals,
   createList,
   createListItem,
+  createListSnapshot,
   findDismissals,
   findList,
   findListItems,
@@ -60,7 +61,11 @@ export const ingestionRoutes: FastifyPluginAsync<IngestionRoutesOptions> = async
   async function importParsedList(
     user: User,
     parsed: ParsedCustomList,
-    { source = 'file', externalRef }: { source?: ListSource; externalRef?: string } = {},
+    {
+      source = 'file',
+      externalRef,
+      sourceYaml,
+    }: { source?: ListSource; externalRef?: string; sourceYaml?: string } = {},
   ) {
     const mediaType = mediaTypes.get(parsed.category)!
 
@@ -71,6 +76,10 @@ export const ingestionRoutes: FastifyPluginAsync<IngestionRoutesOptions> = async
       source,
       ...(externalRef ? { externalRef } : {}),
       status: parsed.status ?? null,
+      // `canonical`/`file` need no arrived_* or snapshot (D4) — re-parsing
+      // the source YAML already gives these back. Only `sourceYaml` is
+      // ever passed here, and only for `source: 'file'`.
+      ...(sourceYaml !== undefined ? { sourceYaml } : {}),
     })
 
     // Sequential, not Promise.all — see the from-source route above for why.
@@ -330,6 +339,11 @@ export const ingestionRoutes: FastifyPluginAsync<IngestionRoutesOptions> = async
         mediaType: key,
         source: 'api',
         externalRef: refForAdapter,
+        // No adapter sets description/status, so both are null at import
+        // time — arrived_* mirrors that, same as the real columns (D4).
+        arrivedTitle: title,
+        arrivedDescription: null,
+        arrivedStatus: null,
       })
 
       // Sequential, not Promise.all: each create can fall back to
@@ -352,6 +366,12 @@ export const ingestionRoutes: FastifyPluginAsync<IngestionRoutesOptions> = async
           source: 'import',
         })
       }
+
+      // The arrived-state snapshot (D4), written once — built from the
+      // items just created, not re-derived from `candidates`, so it can
+      // never drift from what's actually in `list_items`.
+      const createdItems = await findListItems(db, user.id, list.id)
+      await createListSnapshot(db, list.id, createdItems ?? [])
 
       return reply.code(201).send(await findListWithStats(db, user.id, list.id))
     },
@@ -392,7 +412,7 @@ export const ingestionRoutes: FastifyPluginAsync<IngestionRoutesOptions> = async
         throw cause
       }
 
-      const list = await importParsedList(user, parsed)
+      const list = await importParsedList(user, parsed, { sourceYaml: request.body.yaml })
       return reply.code(201).send(await findListWithStats(db, user.id, list.id))
     },
   )
@@ -420,7 +440,9 @@ export const ingestionRoutes: FastifyPluginAsync<IngestionRoutesOptions> = async
 
     for (const outcome of outcomes) {
       if (outcome.result.ok) {
-        const list = await importParsedList(user, outcome.result.list)
+        const list = await importParsedList(user, outcome.result.list, {
+          sourceYaml: outcome.result.rawText,
+        })
         created.push({ fileName: outcome.fileName, id: list.id, title: list.title })
       } else {
         failed.push({

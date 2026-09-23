@@ -36,6 +36,10 @@ function list({
     source: 'manual',
     externalRef: null,
     status: null,
+    sourceYaml: null,
+    arrivedTitle: null,
+    arrivedDescription: null,
+    arrivedStatus: null,
     createdAt: created,
     updatedAt: created,
     stats: {
