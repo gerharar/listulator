@@ -10,6 +10,7 @@ import {
   fetchCanonicalManifest,
   isSafeCanonicalPath,
   parseCustomList,
+  searchCanonicalLists,
 } from './customLists.js'
 import { IngestionError, type FetchLike } from './http.js'
 
@@ -302,6 +303,76 @@ describe('fetchCanonicalManifest', () => {
 
   it('surfaces a 404 as a clean IngestionError — the repo is genuinely private right now', async () => {
     await expect(fetchCanonicalManifest(respondWith('404: Not Found', 404))).rejects.toThrow(IngestionError)
+  })
+
+  it('accepts an entry with description and status, and carries both through', async () => {
+    const manifest = [
+      {
+        path: 'lists/mega/mcu.yaml',
+        title: 'MCU',
+        category: 'mega',
+        description: 'Every film, in release order.',
+        status: 'complete',
+      },
+    ]
+
+    expect(await fetchCanonicalManifest(respondWith(manifest))).toEqual(manifest)
+  })
+
+  it('still validates an old-shape entry with neither field', async () => {
+    const manifest = [{ path: 'lists/mega/mcu.yaml', title: 'MCU', category: 'mega' }]
+
+    expect(await fetchCanonicalManifest(respondWith(manifest))).toEqual(manifest)
+  })
+
+  it('rejects an entry whose status is not complete or ongoing', async () => {
+    await expect(
+      fetchCanonicalManifest(
+        respondWith([{ path: 'x.yaml', title: 'X', category: 'movie', status: 'finished' }]),
+      ),
+    ).rejects.toThrow(IngestionError)
+  })
+})
+
+describe('searchCanonicalLists', () => {
+  function respondWith(body: unknown, status = 200): FetchLike {
+    return vi.fn(async () => new Response(JSON.stringify(body), { status }))
+  }
+
+  it('carries description and status through onto a matching result', async () => {
+    const manifest = [
+      {
+        path: 'lists/mega/mcu.yaml',
+        title: 'MCU',
+        category: 'mega',
+        description: 'Every film, in release order.',
+        status: 'complete',
+      },
+    ]
+
+    const results = await searchCanonicalLists('mega', 'mcu', respondWith(manifest))
+
+    expect(results).toEqual([
+      {
+        externalRef: 'canonical:lists/mega/mcu.yaml',
+        title: 'MCU',
+        detail: 'Canonical list',
+        description: 'Every film, in release order.',
+        status: 'complete',
+      },
+    ])
+  })
+
+  it('omits description and status entirely when the manifest entry has neither', async () => {
+    const manifest = [{ path: 'lists/mega/mcu.yaml', title: 'MCU', category: 'mega' }]
+
+    const results = await searchCanonicalLists('mega', 'mcu', respondWith(manifest))
+
+    expect(results).toEqual([
+      { externalRef: 'canonical:lists/mega/mcu.yaml', title: 'MCU', detail: 'Canonical list' },
+    ])
+    expect(results[0]).not.toHaveProperty('description')
+    expect(results[0]).not.toHaveProperty('status')
   })
 })
 

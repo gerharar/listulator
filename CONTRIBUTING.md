@@ -130,9 +130,11 @@ won't be merged.
 ## `lists/index.json`
 
 A flat manifest of every list in `lists/`, `{path, title, category}` per
-entry — the file the sync feature actually fetches, rather than crawling
-GitHub's directory API and hitting its unauthenticated rate limit. **Generated,
-not hand-edited**: run
+entry, plus `description` and `status` when the list file itself sets
+them (both optional — an entry without them is still valid) — the file the
+sync feature actually fetches, rather than crawling GitHub's directory API
+and hitting its unauthenticated rate limit. **Generated, not hand-edited**:
+run
 
 ```
 npx tsx server/src/tools/generateListsIndex.ts

@@ -70,6 +70,10 @@ export interface ListSourceResult {
   externalRef: string
   title: string
   detail?: string
+  /** A longer free-text blurb — canonical results only, when the source YAML sets one. */
+  description?: string
+  /** Production status of the thing the list is about — canonical results only, when set. */
+  status?: 'complete' | 'ongoing'
 }
 
 export interface CurrentUser {

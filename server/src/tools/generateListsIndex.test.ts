@@ -35,6 +35,27 @@ describe('generateListsIndex', () => {
     ])
   })
 
+  it('includes description and status when the YAML sets them, omits them when it does not', () => {
+    write(
+      'mega/mcu.yaml',
+      'title: MCU\ndescription: Every film, in release order.\ncategory: mega\nstatus: complete\nitems:\n  - { title: Iron Man }\n',
+    )
+    write('book/lotr.yaml', 'title: LOTR\ncategory: book\nitems:\n  - { title: Fellowship }\n')
+
+    const entries = generateListsIndex(dir, CATEGORIES)
+
+    expect(entries).toEqual([
+      { path: 'lists/book/lotr.yaml', title: 'LOTR', category: 'book' },
+      {
+        path: 'lists/mega/mcu.yaml',
+        title: 'MCU',
+        category: 'mega',
+        description: 'Every film, in release order.',
+        status: 'complete',
+      },
+    ])
+  })
+
   it('ignores non-YAML files', () => {
     write('mega/mcu.yaml', 'title: MCU\ncategory: mega\nitems:\n  - { title: Iron Man }\n')
     write('README.md', '# not a list')

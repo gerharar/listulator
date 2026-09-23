@@ -43,7 +43,13 @@ export function generateListsIndex(listsDir: string, validCategories: ReadonlySe
         const reason = error instanceof Error ? error.message : String(error)
         throw new Error(`lists/${relativePath} failed to parse: ${reason}`, { cause: error })
       }
-      return { path: `lists/${relativePath}`, title: parsed.title, category: parsed.category }
+      return {
+        path: `lists/${relativePath}`,
+        title: parsed.title,
+        category: parsed.category,
+        ...(parsed.description !== undefined ? { description: parsed.description } : {}),
+        ...(parsed.status !== undefined ? { status: parsed.status } : {}),
+      }
     })
 
   return entries
