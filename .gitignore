@@ -50,3 +50,8 @@ npm-debug.log*
 # Claude Code tooling config — internal, same as CLAUDE.md above, not for
 # public visitors. Scrubbed from history on 2026-09-14, kept locally.
 /.claude/skills/list-generator/
+
+# Generated from design-system/tokens.json by web/scripts/generateTokens.ts
+# (Phase 10, task 10.3, D9) — regenerated on every `predev`/`prebuild`, never
+# hand-edited, so it isn't the source of truth and isn't committed.
+/web/src/styles/quantum/tokens.css
