@@ -58,8 +58,20 @@ export interface QuantumTokens {
 
 const ALIAS_PATTERN = /^\{(\w+)\}$/
 
-function colorBlock(scope: string, themeId: string, isDefault: boolean, tokens: ColorToken[]): string {
-  const selector = isDefault ? `${scope}, ${scope}[data-theme="${themeId}"]` : `${scope}[data-theme="${themeId}"]`
+function colorBlock(
+  scope: string,
+  themeId: string,
+  isDefault: boolean,
+  tokens: ColorToken[],
+): string {
+  // The nested form (`${scope} [data-theme="X"]`) is what lets a component set
+  // data-theme on itself to draw a skin other than the active one — SkinSwatch's
+  // hex cell does this (design-system/components/SkinSwatch: "set data-theme on
+  // the swatch element itself, and the tokens resolve to that skin").
+  const nested = `${scope} [data-theme="${themeId}"]`
+  const selector = isDefault
+    ? `${scope}, ${scope}[data-theme="${themeId}"], ${nested}`
+    : `${scope}[data-theme="${themeId}"], ${nested}`
 
   const lines = tokens
     .map((token) => {

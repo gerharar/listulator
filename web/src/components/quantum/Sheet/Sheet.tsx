@@ -1,6 +1,7 @@
 import './Sheet.css'
-import { useEffect, useId, useRef, type CSSProperties, type ReactNode } from 'react'
+import { useEffect, useId, useRef, type ReactNode } from 'react'
 import { IconButton } from '../Button/Button.js'
+import { HeaderPlate } from '../HeaderPlate/HeaderPlate.js'
 import { useOverlayRegistration } from '../overlay/OverlayManagerContext.js'
 
 export interface SheetProps {
@@ -46,16 +47,7 @@ export function Sheet({ open, onClose, title, explain, plateSeed = 0, children }
   return (
     <div className="q-sheet" ref={sheetRef}>
       <div className="q-sheet-head">
-        <span
-          className="q-plate q-wash"
-          data-side="left"
-          style={{ '--sd': plateSeed } as CSSProperties}
-          aria-hidden="true"
-        >
-          <i className="h" />
-          <i className="a1" />
-          <i className="a2" />
-        </span>
+        <HeaderPlate side="left" seed={plateSeed} wash />
         <div>
           <div className="q-sheet-title">{title}</div>
           <div className="q-sheet-explain">{explain}</div>

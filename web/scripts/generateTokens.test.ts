@@ -16,7 +16,10 @@ function fixture(): QuantumTokens {
       ],
     },
     type: {
-      families: { sans: 'Inter, system-ui, sans-serif', mono: '"JetBrains Mono", ui-monospace, monospace' },
+      families: {
+        sans: 'Inter, system-ui, sans-serif',
+        mono: '"JetBrains Mono", ui-monospace, monospace',
+      },
       groups: [
         {
           family: 'sans',
@@ -52,12 +55,12 @@ describe('generateTokenCss', () => {
     expect(css).toBe(
       [
         '/* Generated from design-system/tokens.json by generateTokens.ts. Do not edit by hand. */',
-        '.q-root, .q-root[data-theme="dark-orange"] {',
+        '.q-root, .q-root[data-theme="dark-orange"], .q-root [data-theme="dark-orange"] {',
         '  --bg: #181513;',
         '  --ink: #ede6de;',
         '  --headSub: var(--ink);',
         '}',
-        '.q-root[data-theme="light-bone"] {',
+        '.q-root[data-theme="light-bone"], .q-root [data-theme="light-bone"] {',
         '  --bg: #f5f0e6;',
         '  --ink: #221f19;',
         '  --headSub: var(--ink);',
@@ -81,16 +84,25 @@ describe('generateTokenCss', () => {
   it('only the first skin doubles as the bare-scope default', () => {
     const css = generateTokenCss(fixture(), '.q-root')
 
-    expect(css).toContain('.q-root, .q-root[data-theme="dark-orange"] {')
-    expect(css).not.toContain('.q-root, .q-root[data-theme="light-bone"] {')
+    expect(css).toContain(
+      '.q-root, .q-root[data-theme="dark-orange"], .q-root [data-theme="dark-orange"] {',
+    )
+    expect(css).not.toContain('.q-root, .q-root[data-theme="light-bone"]')
   })
 
   it('uses whatever scope selector it is given, with no other change', () => {
     const css = generateTokenCss(fixture(), 'html')
 
-    expect(css).toContain('html, html[data-theme="dark-orange"] {')
-    expect(css).toContain('html[data-theme="light-bone"] {')
+    expect(css).toContain('html, html[data-theme="dark-orange"], html [data-theme="dark-orange"] {')
+    expect(css).toContain('html[data-theme="light-bone"], html [data-theme="light-bone"] {')
     expect(css).toContain('html {\n  --s-1: 2px;')
+  })
+
+  it('every skin block also matches a nested element carrying its own data-theme — a swatch drawing a skin other than the active one (SkinSwatch)', () => {
+    const css = generateTokenCss(fixture(), '.q-root')
+
+    expect(css).toContain('.q-root [data-theme="dark-orange"]')
+    expect(css).toContain('.q-root [data-theme="light-bone"]')
   })
 
   it('a token with a letter-spacing-less style omits the property entirely', () => {

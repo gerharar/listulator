@@ -1,8 +1,7 @@
 /*
- * design-system/components/Sheet — frame only (task 10.7). The wash
- * pattern itself (`.q-plate.q-wash`'s actual gradient, driven by `--sd`
- * and the active skin) is task 10.8's job; this only gives it the
- * positioning a wash needs to sit behind the head's content.
+ * design-system/components/Sheet — frame only (task 10.7). The wash plate
+ * itself is HeaderPlate (task 10.8, `<HeaderPlate wash />`) — this only
+ * lifts the head's other content above it with z-index.
  */
 .q-sheet {
   position: relative;
@@ -30,13 +29,6 @@
 .q-sheet-head .q-icon-btn {
   position: relative;
   z-index: 1;
-}
-
-.q-plate.q-wash {
-  position: absolute;
-  inset: 0;
-  z-index: 0;
-  pointer-events: none;
 }
 
 .q-sheet-title {

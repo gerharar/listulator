@@ -1,0 +1,212 @@
+/*
+ * design-system/components/HeaderPlate, ported verbatim from bundle.css
+ * (design-system/components/bundle.css lines ~352-399). `--sd` (seed) is
+ * the only per-instance value JS supplies — every angle, period and offset
+ * below is `calc()`'d from it, plus the fixed `--dir`/`--rx`/`--ring` that
+ * `data-side="right"` overrides. Variant selection is the active skin's
+ * `data-theme`, not a class the component picks.
+ *
+ * Opacities here (7%, 22%, 17%, 14%, 18%, 45%…) are ported as-is from the
+ * reference engine, which calls its own numbers "the spec" — several sit
+ * well outside the "3-7%" band this task's own plan text describes.
+ * Verbatim-vs-clamped was a real fork, not a typo to silently pick a side
+ * on; see docs/DECISIONS.md ("HeaderPlate/Atmosphere opacities...").
+ */
+.q-plate {
+  --sd: 0;
+  --dir: 104deg;
+  --rx: 2%;
+  --ring: 4%;
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+  --w1: color-mix(in srgb, var(--accent) 32%, transparent);
+  --w2: color-mix(in srgb, var(--sec) 50%, transparent);
+}
+.q-plate[data-side='right'] {
+  --dir: 256deg;
+  --rx: 98%;
+  --ring: 96%;
+}
+.q-plate > i {
+  position: absolute;
+}
+.q-plate > .h {
+  inset: 0;
+}
+.q-plate.q-wash > .h,
+.q-plate.q-wash > .a1,
+.q-plate.q-wash > .a2 {
+  display: none;
+}
+
+/* 1 · Hatch + arcs — dark-orange (and the default) */
+.q-plate {
+  background: linear-gradient(calc(var(--dir) + var(--sd) * 4deg), var(--w2), var(--w1) 46%, transparent 80%);
+}
+.q-plate > .h {
+  background: repeating-linear-gradient(
+    calc(118deg + var(--sd) * 9deg),
+    transparent 0 calc(22px + var(--sd) * 3px),
+    color-mix(in srgb, var(--ink) 7%, transparent) calc(22px + var(--sd) * 3px) calc(23px + var(--sd) * 3px)
+  );
+}
+.q-plate > .a1 {
+  left: -86px;
+  top: -96px;
+  width: 250px;
+  height: 250px;
+  border-radius: 50%;
+  border: 1px solid color-mix(in srgb, var(--ink) 22%, transparent);
+}
+.q-plate > .a2 {
+  left: -86px;
+  top: -54px;
+  width: 166px;
+  height: 166px;
+  border-radius: 50%;
+  border: 1px dashed color-mix(in srgb, var(--ink) 17%, transparent);
+}
+.q-plate[data-side='right'] > .a1,
+.q-plate[data-side='right'] > .a2 {
+  left: auto;
+  right: -86px;
+}
+
+/* 2 · Scanlines + crosshair — dark-violet */
+[data-theme='dark-violet'] .q-plate {
+  background:
+    repeating-linear-gradient(
+      calc(178deg + mod(var(--sd), 2) * 4deg),
+      color-mix(in srgb, var(--ink) 5%, transparent) 0 2px,
+      transparent 2px calc(9px + var(--sd) * 2px)
+    ),
+    linear-gradient(calc(var(--dir) - 10deg + var(--sd) * 6deg), var(--w2), var(--w1) 52%, transparent 86%);
+}
+[data-theme='dark-violet'] .q-plate.q-wash {
+  background: linear-gradient(calc(var(--dir) - 10deg + var(--sd) * 6deg), var(--w2), var(--w1) 52%, transparent 86%);
+}
+[data-theme='dark-violet'] .q-plate > .h {
+  background: repeating-linear-gradient(
+    calc(101deg + var(--sd) * 13deg),
+    transparent 0 calc(37px + var(--sd) * 4px),
+    color-mix(in srgb, var(--sec) 14%, transparent) calc(37px + var(--sd) * 4px) calc(39px + var(--sd) * 4px)
+  );
+}
+[data-theme='dark-violet'] .q-plate > .a1,
+[data-theme='dark-violet'] .q-plate > .a2 {
+  display: none;
+  border: 0;
+  border-radius: 0;
+  background: color-mix(in srgb, var(--ink) 45%, transparent);
+  top: auto;
+}
+[data-theme='dark-violet'] .q-plate[data-marks] > .a1 {
+  display: block;
+  left: 34px;
+  right: auto;
+  bottom: 20px;
+  width: 15px;
+  height: 1px;
+}
+[data-theme='dark-violet'] .q-plate[data-marks] > .a2 {
+  display: block;
+  left: 41px;
+  right: auto;
+  bottom: 13px;
+  width: 1px;
+  height: 15px;
+}
+[data-theme='dark-violet'] .q-plate[data-marks][data-side='right'] > .a1 {
+  left: auto;
+  right: 34px;
+}
+[data-theme='dark-violet'] .q-plate[data-marks][data-side='right'] > .a2 {
+  left: auto;
+  right: 41px;
+}
+
+/* 3 · Tri-hatch — dark-green */
+[data-theme='dark-green'] .q-plate {
+  background:
+    radial-gradient(420px 220px at var(--rx) 120%, var(--w1), transparent 70%),
+    linear-gradient(calc(var(--dir) + var(--sd) * 7deg), var(--w2), transparent 74%);
+}
+[data-theme='dark-green'] .q-plate > .h {
+  background:
+    repeating-linear-gradient(
+      calc(17deg + var(--sd) * 5deg),
+      transparent 0 calc(23px + var(--sd) * 1px),
+      color-mix(in srgb, var(--ink) 5%, transparent) calc(23px + var(--sd) * 1px) calc(24px + var(--sd) * 1px)
+    ),
+    repeating-linear-gradient(
+      calc(-41deg - var(--sd) * 3deg),
+      transparent 0 calc(37px + var(--sd) * 1px),
+      color-mix(in srgb, var(--ink) 4%, transparent) calc(37px + var(--sd) * 1px) calc(38px + var(--sd) * 1px)
+    ),
+    repeating-linear-gradient(
+      calc(78deg + var(--sd) * 4deg),
+      transparent 0 calc(53px + var(--sd) * 1px),
+      color-mix(in srgb, var(--sec) 10%, transparent) calc(53px + var(--sd) * 1px) calc(54px + var(--sd) * 1px)
+    );
+}
+[data-theme='dark-green'] .q-plate > .a1,
+[data-theme='dark-green'] .q-plate > .a2 {
+  display: none;
+}
+
+/* 4 · Sounding — dark-blue (blue → amber wash; the two stops are literal in the source, not tokens) */
+[data-theme='dark-blue'] .q-plate {
+  background:
+    radial-gradient(360px 300px at var(--ring) 150%, color-mix(in srgb, var(--cyan) 20%, transparent), transparent 74%),
+    linear-gradient(calc(var(--dir) + var(--sd) * 4deg), rgba(74, 140, 197, 0.6), rgba(178, 116, 58, 0.44) 46%, transparent 80%);
+}
+[data-theme='dark-blue'] .q-plate > .h {
+  background: repeating-radial-gradient(
+    circle at var(--ring) 150%,
+    transparent 0 calc(25px + var(--sd) * 3px),
+    color-mix(in srgb, var(--cyan) 18%, transparent) calc(25px + var(--sd) * 3px) calc(26px + var(--sd) * 3px)
+  );
+}
+[data-theme='dark-blue'] .q-plate > .a1 {
+  inset: 0;
+  width: auto;
+  height: auto;
+  border: 0;
+  border-radius: 0;
+  background: repeating-linear-gradient(
+    90deg,
+    transparent 0 calc(7px + var(--sd) * 1px),
+    color-mix(in srgb, var(--ink) 5%, transparent) calc(7px + var(--sd) * 1px) calc(8px + var(--sd) * 1px)
+  );
+}
+[data-theme='dark-blue'] .q-plate > .a2 {
+  display: none;
+}
+
+/* 5 · Band — light-bone: edge to edge, fixed three-stop gradient */
+[data-theme='light-bone'] .q-plate {
+  background: linear-gradient(90deg, #adc8d2, #c3d5ca 52%, #efede2);
+}
+[data-theme='light-bone'] .q-plate > .h {
+  background: repeating-linear-gradient(
+    calc(64deg + var(--sd) * 4deg),
+    transparent 0 calc(25px + var(--sd) * 3px),
+    color-mix(in srgb, var(--ink) 7%, transparent) calc(25px + var(--sd) * 3px) calc(26px + var(--sd) * 3px)
+  );
+}
+[data-theme='light-bone'] .q-plate > .a1,
+[data-theme='light-bone'] .q-plate[data-side] > .a1 {
+  left: auto;
+  right: calc(18px + var(--sd) * 40px);
+  top: -118px;
+  width: 340px;
+  height: 340px;
+  border-radius: 50%;
+  border: 1px solid color-mix(in srgb, var(--ink) 17%, transparent);
+}
+[data-theme='light-bone'] .q-plate > .a2 {
+  display: none;
+}

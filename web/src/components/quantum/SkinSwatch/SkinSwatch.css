@@ -1,0 +1,25 @@
+/*
+ * design-system/components/SkinSwatch, ported verbatim from bundle.css.
+ * `clip-path` can't take a border, so the rim is the outer hex (`ink3`)
+ * showing around a smaller inner one, inset by d/12.
+ */
+.q-hex {
+  --d: 20px;
+  position: relative;
+  flex: none;
+  display: block;
+  width: var(--d);
+  height: var(--d);
+  background: var(--ink3);
+  clip-path: polygon(50% 0, 93.3% 25%, 93.3% 75%, 50% 100%, 6.7% 75%, 6.7% 25%);
+}
+.q-hex::after {
+  content: '';
+  position: absolute;
+  inset: calc(var(--d) / 12);
+  clip-path: inherit;
+  background: linear-gradient(150deg, var(--bg) 50%, var(--accent) 50%);
+}
+.q-hex.sm {
+  --d: 16px;
+}

@@ -1,0 +1,98 @@
+/*
+ * design-system/components/Atmosphere, ported verbatim from bundle.css
+ * (design-system/components/bundle.css lines ~331-350).
+ *
+ * The hatch's three periods (187/263/421px) are coprime on purpose, so the
+ * pattern never resolves into a visible repeat — don't "simplify" them.
+ *
+ * Several opacities here (the ruler's 18%, especially) sit outside the
+ * "3-7%" band this task's own plan text describes; ported as-is from the
+ * reference engine regardless — see docs/DECISIONS.md.
+ */
+.q-atmo {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  overflow: hidden;
+  --wa: 16%;
+  --wd: 20%;
+}
+.q-atmo > i {
+  position: absolute;
+  inset: 0;
+}
+[data-theme='light-bone'] .q-atmo {
+  --wa: 9%;
+  --wd: 10%;
+}
+
+.q-atmo .wash {
+  background:
+    radial-gradient(1200px 640px at 78% -12%, color-mix(in srgb, var(--accent) var(--wa), transparent), transparent 62%),
+    radial-gradient(1000px 620px at -8% 106%, color-mix(in srgb, var(--deep) var(--wd), transparent), transparent 62%),
+    linear-gradient(160deg, var(--washA) 0%, var(--washB) 45%, var(--washC) 100%);
+}
+.q-atmo .fine {
+  background:
+    linear-gradient(color-mix(in srgb, var(--ink) 2.8%, transparent) 1px, transparent 1px),
+    linear-gradient(90deg, color-mix(in srgb, var(--ink) 2.8%, transparent) 1px, transparent 1px);
+  background-size: 16px 16px;
+}
+.q-atmo .coarse {
+  background:
+    linear-gradient(color-mix(in srgb, var(--ink) 5%, transparent) 1px, transparent 1px),
+    linear-gradient(90deg, color-mix(in srgb, var(--ink) 5%, transparent) 1px, transparent 1px);
+  background-size: 112px 112px;
+}
+.q-atmo .hatch {
+  background:
+    repeating-linear-gradient(31deg, transparent 0 187px, color-mix(in srgb, var(--ink) 5.5%, transparent) 187px 188px),
+    repeating-linear-gradient(-19deg, transparent 0 263px, color-mix(in srgb, var(--ink) 4%, transparent) 263px 264px),
+    repeating-linear-gradient(72deg, transparent 0 421px, color-mix(in srgb, var(--cyan) 5%, transparent) 421px 422px);
+}
+.q-atmo .ring1 {
+  inset: auto;
+  right: -18%;
+  top: -30%;
+  width: 1100px;
+  height: 1100px;
+  border-radius: 50%;
+  border: 1px solid color-mix(in srgb, var(--ink) 5.5%, transparent);
+}
+.q-atmo .ring2 {
+  inset: auto;
+  left: -24%;
+  bottom: -38%;
+  width: 1000px;
+  height: 1000px;
+  border-radius: 50%;
+  border: 1px dashed color-mix(in srgb, var(--ink) 4.5%, transparent);
+}
+.q-atmo .ruler {
+  right: auto;
+  width: 22px;
+  background: repeating-linear-gradient(180deg, color-mix(in srgb, var(--ink) 18%, transparent) 0 1px, transparent 1px 40px);
+}
+
+/*
+ * `.plain` is ported for completeness (bundle.css has it) but nothing sets
+ * it — there's no preference and no Settings control for the atmosphere
+ * (task 10.8's plan text). Only the media query below is live.
+ */
+.q-atmo.plain .coarse,
+.q-atmo.plain .hatch,
+.q-atmo.plain .ring1,
+.q-atmo.plain .ring2,
+.q-atmo.plain .ruler {
+  display: none;
+}
+@media (prefers-reduced-transparency: reduce) {
+  .q-atmo .coarse,
+  .q-atmo .hatch,
+  .q-atmo .ring1,
+  .q-atmo .ring2,
+  .q-atmo .ruler {
+    display: none;
+  }
+}
