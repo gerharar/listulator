@@ -128,6 +128,20 @@ won't be merged.
 - Ideally, a real list someone would actually want to track — not a test
   fixture (two are already in `lists/` for that purpose, see below).
 
+## Catching a broken file before you commit it
+
+A pre-commit hook validates every staged `lists/*.yaml` file through the
+real parser and blocks the commit if one doesn't validate. It's local-only
+(`.git/hooks/` isn't tracked by git), so install it once per clone:
+
+```
+ln -sf ../../scripts/pre-commit .git/hooks/pre-commit
+```
+
+`scripts/pre-commit` is the tracked source of truth — the symlink just
+points your local hook at it. No new dependency: it shells out to `tsx`,
+already used by the scripts above.
+
 ## `lists/index.json`
 
 A flat manifest of every list in `lists/`, `{path, title, category}` per

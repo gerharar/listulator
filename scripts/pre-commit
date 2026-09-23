@@ -1,0 +1,25 @@
+#!/bin/sh
+# Validates every staged lists/*.yaml file through the app's real parser
+# before allowing the commit — catches a malformed list before it reaches
+# git history (task 10.2d, CONTRIBUTING.md).
+#
+# `.git/hooks/` isn't tracked, so this file is the source of truth; see
+# CONTRIBUTING.md for the one-time install step. No new dependency: this
+# just shells out to `tsx`, already a project devDependency.
+#
+# Only the working-tree content of a staged file is checked, not the
+# staged blob itself — a simplification that matters only if you stage a
+# list file with `git add -p` and then edit it further before committing,
+# which is not a normal workflow for this repo.
+set -e
+
+repo_root=$(git rev-parse --show-toplevel)
+cd "$repo_root"
+
+staged=$(git diff --cached --name-only --diff-filter=ACM -- lists/ | grep -E '\.ya?ml$' || true)
+
+if [ -z "$staged" ]; then
+  exit 0
+fi
+
+echo "$staged" | xargs npx tsx server/src/tools/validateLists.ts
