@@ -1,0 +1,25 @@
+/*
+ * design-system/components/PlatformChip. `--plat-ch` is the widest label's
+ * character count among the row's chips, set by the caller so every chip in
+ * a column lines up; it defaults to 5 (the widest built-in code, "MULTI").
+ */
+.q-plat,
+.q-plat-gap {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: calc(var(--plat-ch, 5) * 1ch + 16px);
+  height: 20px;
+  font: 600 11px/1 var(--font-mono);
+  text-transform: uppercase;
+}
+.q-plat {
+  border: 1px solid var(--line);
+  background: var(--fill);
+  color: var(--ink2);
+}
+.q-plat-gap {
+  border: 0;
+  visibility: hidden;
+}

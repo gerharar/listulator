@@ -1,0 +1,47 @@
+/*
+ * design-system/components/MeterBar, ported from `barStyle()` in the
+ * reference engine. ONE masked element: a fill gradient cut into segments
+ * by a repeating mask, driven entirely by the `--n`/`--f` custom
+ * properties the component sets inline. Twelve separately-boxed cells
+ * snap to device pixels independently — that's what made the gaps read
+ * as 1px here, 3px there; a single masked element can't drift.
+ */
+.q-meter {
+  --w: 7px;
+  --pitch: calc(var(--w) + 2px);
+  display: block;
+  width: calc(var(--n) * var(--pitch) - 2px);
+  height: 13px;
+  background-image: linear-gradient(
+    90deg,
+    var(--accent) 0 calc(var(--f) * var(--pitch)),
+    var(--barEmpty) calc(var(--f) * var(--pitch))
+  );
+  /* A 0.25px ramp on every edge, so fractional zoom softens all gaps equally. */
+  -webkit-mask-image: repeating-linear-gradient(
+    90deg,
+    #000 0 calc(var(--w) - 0.25px),
+    transparent calc(var(--w) + 0.25px) calc(var(--pitch) - 0.25px),
+    #000 var(--pitch)
+  );
+  mask-image: repeating-linear-gradient(
+    90deg,
+    #000 0 calc(var(--w) - 0.25px),
+    transparent calc(var(--w) + 0.25px) calc(var(--pitch) - 0.25px),
+    #000 var(--pitch)
+  );
+}
+.q-meter.lg {
+  --w: 14px;
+  height: 19px;
+}
+.q-meter.full {
+  background-image: linear-gradient(
+    90deg,
+    var(--goldDeep),
+    var(--gold) 28%,
+    var(--goldLite) 50%,
+    var(--gold) 72%,
+    var(--goldDeep)
+  );
+}

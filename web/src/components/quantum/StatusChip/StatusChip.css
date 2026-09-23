@@ -1,0 +1,39 @@
+/* design-system/components/StatusChip, ported from `statusChip()` in the reference engine. */
+.q-status {
+  display: inline-flex;
+  flex: none;
+  /* Nudges the chip onto a 24px title's x-height centre rather than its cap-height. */
+  margin-top: 4px;
+  padding: 4px 7px;
+  border: 1px solid var(--gold);
+  font: 600 11px/1 var(--font-mono);
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+  color: var(--statusGold);
+}
+.q-status.ongoing {
+  border-color: var(--info);
+  color: var(--info);
+}
+.q-status.short {
+  margin-top: 1px;
+  padding: 2px 5px;
+  font-size: 9.5px;
+  letter-spacing: 0.09em;
+}
+
+.q-status-mark {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 19px;
+  height: 19px;
+  border: 1px solid var(--gold);
+  color: var(--statusGold);
+  cursor: help;
+}
+.q-status-mark.ongoing {
+  border-color: var(--info);
+  color: var(--info);
+}

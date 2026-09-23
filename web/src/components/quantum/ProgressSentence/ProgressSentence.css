@@ -1,0 +1,29 @@
+/* design-system/components/ProgressSentence — sizes are set inline per instance (header/row/group). */
+.q-progress {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.q-count {
+  font-family: var(--font-mono);
+  font-weight: 500;
+  line-height: 1;
+  color: var(--ink2);
+  font-variant-numeric: tabular-nums;
+}
+.q-sep {
+  color: var(--ink3);
+}
+.q-left {
+  font-family: var(--font-mono);
+  font-weight: 500;
+  line-height: 1;
+  color: var(--ink2);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.q-left.all-done {
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}

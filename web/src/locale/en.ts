@@ -285,6 +285,35 @@ export const en = {
     aYear: 'a year ago',
     years: (n: number): string => `${n} years ago`,
   },
+
+  /** Quantum progress and marks primitives (task 10.6). */
+  quantum: {
+    meter: {
+      /** MeterBar's `role="img"` label — never the cap, the real numbers. */
+      label: (done: number, total: number): string => `${done} of ${total} done`,
+      noteCapped: (cap: number, perCell: number): string => `${cap} cells ≈ ${perCell} items each`,
+      noteUncapped: 'One cell = one item',
+    },
+    progress: {
+      count: (done: number, total: number, percent: number): string =>
+        total ? `${done}/${total} (${percent}%)` : `${done}/${total}`,
+      left: (duration: string): string => `${duration} left`,
+      allDone: '✓ All done',
+      doneForNow: '✓ Done for now',
+    },
+    status: {
+      complete: 'Complete',
+      ongoing: 'Ongoing',
+    },
+    marks: {
+      curated: 'Curated list — kept by hand in the community library',
+      byHand: 'Made by hand — no source behind it',
+      manual: 'Added by hand — not restorable from the source',
+      newCount: (n: number): string => `${n} NEW`,
+      newItem: 'NEW',
+      allDone: '✓ All done',
+    },
+  },
 } as const
 
 export type Locale = typeof en

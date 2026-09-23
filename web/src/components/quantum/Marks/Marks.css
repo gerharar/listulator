@@ -1,0 +1,59 @@
+/* design-system/components/Marks — the small fixed-meaning marks beside names and in rows. */
+.q-star {
+  display: inline-flex;
+  flex: none;
+  color: var(--star);
+}
+.q-byhand,
+.q-manual {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  color: var(--ink3);
+}
+
+.q-new {
+  display: inline-flex;
+  flex: none;
+  padding: 3px 7px;
+  border: 1px solid var(--info);
+  color: var(--info);
+  font: 600 11px/1 var(--font-mono);
+  letter-spacing: 0.08em;
+  white-space: nowrap;
+}
+.q-new.item {
+  padding: 3px 6px;
+  border-color: var(--accent);
+  color: var(--accent);
+  font-size: 10px;
+}
+
+.q-tag {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  padding: 0 8px;
+  background: var(--fill);
+  color: var(--ink2);
+  font: 500 11px/1 var(--font-mono);
+  white-space: nowrap;
+}
+.q-tag.kind {
+  width: 58px;
+  border: 1px solid var(--line);
+  color: var(--ink3);
+  font: 600 10px/1 var(--font-mono);
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.q-alldone {
+  display: inline-flex;
+  flex: none;
+  font: 600 11px/1 var(--font-mono);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink2);
+}

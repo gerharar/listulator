@@ -1,0 +1,45 @@
+/* design-system/components/ProgressBar. */
+.q-pbar {
+  padding: 16px;
+  border: 1px solid var(--rule);
+}
+.q-pbar-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  font: 400 14px/1 var(--font-sans);
+  color: var(--ink);
+}
+.q-pbar-pct {
+  font: 500 13px/1 var(--font-mono);
+  color: var(--ink2);
+  font-variant-numeric: tabular-nums;
+}
+.q-pbar-track {
+  height: 11px;
+  border: 1px solid var(--rule);
+  background: var(--bg);
+}
+.q-pbar-track i {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+  transition: width 120ms linear;
+}
+
+/* The one round shape outside the atmosphere. */
+.q-spinner {
+  display: inline-block;
+  width: 15px;
+  height: 15px;
+  border: 2px solid var(--line);
+  border-top-color: var(--ink);
+  border-radius: 50%;
+  animation: q-spinner-spin 0.7s linear infinite;
+}
+@keyframes q-spinner-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
