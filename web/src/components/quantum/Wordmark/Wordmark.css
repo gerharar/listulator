@@ -1,0 +1,23 @@
+/* design-system/components/Wordmark. Don't track it tighter, don't round
+   the block, don't set LIST in the accent colour on the ground — the
+   knockout is the mark. */
+.q-wordmark {
+  display: inline-flex;
+  align-items: center;
+  font: 700 19px/1 var(--font-sans);
+  letter-spacing: 0.14em;
+  color: var(--ink);
+}
+
+.q-wordmark > b {
+  display: block;
+  font-weight: inherit;
+  padding: 5px 4px 5px 6px;
+  background: var(--accent);
+  color: var(--accentInk);
+}
+
+.q-wordmark > span {
+  display: block;
+  padding: 5px 0 5px 5px;
+}
