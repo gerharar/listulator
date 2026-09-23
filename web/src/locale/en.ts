@@ -1,3 +1,6 @@
+import { selectPlural } from './plural.js'
+import type { Widen } from './types.js'
+
 /**
  * Every word the interface says, in English.
  *
@@ -9,6 +12,14 @@
  * "3 months ago"; other languages need more branches, not fewer. Keeping the
  * rule beside the words is what stops each surface reinventing it, and the
  * argument types mean a missed parameter fails to compile.
+ *
+ * Count-varying entries go through `selectPlural` (task 10.8b) so a
+ * language needing more than English's one/other split — Russian's
+ * one/few/many — has somewhere to put the extra forms, not just the ones
+ * named here (`listCount`, `itemCount`, `marks.newCount`, and `duration` in
+ * `ru.ts`). The rest of the file's count-based strings (`foundCount`,
+ * `heldBack`, `updatedCount`) still hand-roll their own `n === 1` — not
+ * every such string needed moving for this task, only these.
  *
  * Category labels live in the server's registry (`media_type` is an open
  * registry — SPEC.md §5), so `categories` here holds *optional overrides only*.
@@ -42,7 +53,8 @@ export const en = {
       'Nothing tracked yet. Pick a category and add your first list — all the Jackie Chan movies, a discography, a game franchise. The point is finishing them.',
     emptyCategory: 'Nothing here yet.',
     addList: 'Add a list',
-    listCount: (n: number): string => `${n} ${n === 1 ? 'list' : 'lists'}`,
+    listCount: (n: number): string =>
+      `${n} ${selectPlural(n, 'en', { one: 'list', other: 'lists' })}`,
     alsoPrefix: 'also: ',
     alsoSuffix: ' — nothing tracked in these yet',
     orphanedTitle: 'Uncategorised',
@@ -167,7 +179,8 @@ export const en = {
     listTitlePlaceholder: 'All Jackie Chan movies',
     itemsLabel: 'Items — one per line',
     itemsPlaceholder: 'Drunken Master\nPolice Story\nProject A',
-    itemCount: (n: number): string => `${n} ${n === 1 ? 'item' : 'items'}.`,
+    itemCount: (n: number): string =>
+      `${n} ${selectPlural(n, 'en', { one: 'item', other: 'items' })}.`,
     itemsOptional: 'Optional — you can add items later.',
     assumedDuration: (duration: string): string =>
       ` Each is assumed to take about ${duration}, which you can correct later.`,
@@ -309,11 +322,17 @@ export const en = {
       curated: 'Curated list — kept by hand in the community library',
       byHand: 'Made by hand — no source behind it',
       manual: 'Added by hand — not restorable from the source',
-      newCount: (n: number): string => `${n} NEW`,
+      /** "NEW" itself is invariant in English (a badge, not a countable noun) — the `other`-only form is still ready for a language that does decline it. */
+      newCount: (n: number): string => `${n} ${selectPlural(n, 'en', { other: 'NEW' })}`,
       newItem: 'NEW',
       allDone: '✓ All done',
     },
   },
 } as const
 
-export type Locale = typeof en
+/**
+ * Widened from `typeof en` (which, under `as const`, types every string
+ * value as its own literal) to a structural shape another language's
+ * *different words* can actually satisfy.
+ */
+export type Locale = Widen<typeof en>

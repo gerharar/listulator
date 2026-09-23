@@ -2,6 +2,17 @@ import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
 import { categoryDescription, categoryLabel, copy, errorMessage } from './index.js'
+import { en } from './en.js'
+import { ru } from './ru.js'
+import { de } from './de.js'
+import { missingKeys } from './mergeLocale.js'
+
+/**
+ * Flips to `true` at task 10.32b, once `ru`/`de` are the full translation
+ * rather than 10.8b's infrastructure-proving subset — the one line this
+ * file's own key-parity check needs to change from reporting to failing.
+ */
+const STRICT_PARITY = false
 
 describe('locale', () => {
   it('falls back to the server registry for categories it does not name', () => {
@@ -11,9 +22,9 @@ describe('locale', () => {
     expect(categoryLabel({ key: 'brand-new-thing', label: 'Brand New Thing' })).toBe(
       'Brand New Thing',
     )
-    expect(
-      categoryDescription({ key: 'brand-new-thing', description: 'From the server' }),
-    ).toBe('From the server')
+    expect(categoryDescription({ key: 'brand-new-thing', description: 'From the server' })).toBe(
+      'From the server',
+    )
   })
 
   it('has no category overrides, so every label comes from the registry', () => {
@@ -79,5 +90,33 @@ describe('locale', () => {
     for (const key of ['dn', 'dark', 'brown', 'orange', 'bone', 'white'] as const) {
       expect(copy.themes[key]).toBeTruthy()
     }
+  })
+})
+
+describe('key parity: ru/de against en (task 10.8b)', () => {
+  it('reports — or, once STRICT_PARITY flips at 10.32b, fails on — every key ru/de have not translated yet', () => {
+    const missingRu = missingKeys(en, ru)
+    const missingDe = missingKeys(en, de)
+
+    if (STRICT_PARITY) {
+      expect(missingRu).toEqual([])
+      expect(missingDe).toEqual([])
+      return
+    }
+
+    console.info(
+      `[locale] ru is missing ${missingRu.length} key(s), falling back to en:`,
+      missingRu,
+    )
+    console.info(
+      `[locale] de is missing ${missingDe.length} key(s), falling back to en:`,
+      missingDe,
+    )
+
+    // Sanity on the sanity check: if a future edit fully translates ru/de
+    // without flipping STRICT_PARITY, this should fail and say so — not
+    // pass silently on an assertion that never engages with the real data.
+    expect(missingRu.length).toBeGreaterThan(0)
+    expect(missingDe.length).toBeGreaterThan(0)
   })
 })

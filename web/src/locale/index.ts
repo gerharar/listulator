@@ -1,16 +1,39 @@
 import { en, type Locale } from './en.js'
+import { ru } from './ru.js'
+import { de } from './de.js'
+import { mergeLocale } from './mergeLocale.js'
+import type { Language } from '../lib/preferences/language.js'
+
+const LOCALES: Record<Language, Locale> = {
+  en,
+  ru: mergeLocale<Locale>(en, ru),
+  de: mergeLocale<Locale>(en, de),
+}
+
+let currentLocale: Locale = LOCALES.en
 
 /**
- * The active locale.
- *
- * One language today, so this is a straight re-export rather than a lookup —
- * but every component reads its words from here, which is what makes adding a
- * second language a matter of picking a different object. When that happens
- * this becomes a selection (navigator language, a user setting) and, if the
- * choice needs to change while the app is open, a context; nothing at the call
- * sites has to move either way.
+ * Switches the locale every `copy.x.y` read resolves against, from here on.
+ * `LanguageProvider` (`LanguageProvider.tsx`) is the only intended caller —
+ * it's what turns this into something that changes *while the app is open*,
+ * for components that opt into re-rendering via `useCopy`/`useLanguage`.
+ * Plain `copy` readers (everything else, today) pick up the new words on
+ * their next render for whatever unrelated reason it happens, same as
+ * before this task — nothing at those call sites has to move.
  */
-export const copy: Locale = en
+export function setActiveLanguage(language: Language): void {
+  currentLocale = LOCALES[language]
+}
+
+/**
+ * The active locale, read fresh on every property access via a `Proxy` —
+ * so it can change (`setActiveLanguage`) without every existing
+ * `copy.x.y` call site needing to become a hook. See `LanguageProvider.tsx`
+ * for the piece that actually re-renders a component when it does.
+ */
+export const copy: Locale = new Proxy(en, {
+  get: (_target, prop, receiver) => Reflect.get(currentLocale, prop, receiver),
+}) as Locale
 
 export { en }
 export type { Locale }
