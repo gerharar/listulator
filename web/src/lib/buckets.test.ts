@@ -10,9 +10,11 @@ function list(id: string, mediaTypeKey: string): MediaList {
   return {
     id,
     title: `List ${id}`,
+    description: null,
     mediaType: mediaTypeKey,
     source: 'manual',
     externalRef: null,
+    status: null,
     createdAt: '2026-01-01T00:00:00.000Z',
     updatedAt: '2026-01-01T00:00:00.000Z',
     stats: {

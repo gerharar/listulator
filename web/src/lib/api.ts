@@ -13,9 +13,13 @@ export interface ListStats {
 export interface MediaList {
   id: string
   title: string
+  /** A longer free-text blurb alongside `title`. Null when not set. */
+  description: string | null
   mediaType: string
   source: 'api' | 'llm' | 'manual' | 'file' | 'canonical'
   externalRef: string | null
+  /** Production status of the thing the list is about. Null means unknown. */
+  status: 'complete' | 'ongoing' | null
   createdAt: string
   updatedAt: string
   stats: ListStats
@@ -137,7 +141,16 @@ export interface ApiClient {
   mediaTypes: () => Promise<MediaType[]>
   lists: () => Promise<MediaList[]>
   list: (id: string) => Promise<MediaListDetail>
-  createList: (input: { title: string; mediaType: string }) => Promise<MediaList>
+  createList: (input: {
+    title: string
+    mediaType: string
+    description?: string | null
+    status?: 'complete' | 'ongoing' | null
+  }) => Promise<MediaList>
+  updateList: (
+    id: string,
+    patch: { title?: string; description?: string | null; status?: 'complete' | 'ongoing' | null },
+  ) => Promise<MediaList>
   deleteList: (id: string) => Promise<void>
   importItems: (
     listId: string,
@@ -235,8 +248,17 @@ export const fetchApi: ApiClient = {
   lists: () => request<MediaList[]>('/lists'),
   list: (id: string) => request<MediaListDetail>(`/lists/${id}`),
 
-  createList: (input: { title: string; mediaType: string }) =>
-    request<MediaList>('/lists', { method: 'POST', body: JSON.stringify(input) }),
+  createList: (input: {
+    title: string
+    mediaType: string
+    description?: string | null
+    status?: 'complete' | 'ongoing' | null
+  }) => request<MediaList>('/lists', { method: 'POST', body: JSON.stringify(input) }),
+
+  updateList: (
+    id: string,
+    patch: { title?: string; description?: string | null; status?: 'complete' | 'ongoing' | null },
+  ) => request<MediaList>(`/lists/${id}`, { method: 'PATCH', body: JSON.stringify(patch) }),
 
   deleteList: (id: string) => request<void>(`/lists/${id}`, { method: 'DELETE' }),
 

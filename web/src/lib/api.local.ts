@@ -25,6 +25,7 @@ import {
   reorderListItems,
   ReorderMismatchError,
   setListItemConsumed,
+  updateList as repoUpdateList,
   updateListItem,
   type ListWithStats,
 } from '../../../server/src/catalog/repository.js'
@@ -67,9 +68,11 @@ function toMediaList(list: ListWithStats): MediaList {
   return {
     id: list.id,
     title: list.title,
+    description: list.description,
     mediaType: list.mediaType,
     source: list.source,
     externalRef: list.externalRef,
+    status: list.status,
     createdAt: list.createdAt.toISOString(),
     updatedAt: list.updatedAt.toISOString(),
     stats: {
@@ -228,6 +231,14 @@ export function createLocalApi(): ApiClient {
       const [database, userId] = [await getDb(), await getUserId()]
       const created = await repoCreateList(database, userId, input)
       const withStats = await findListWithStats(database, userId, created.id)
+      return toMediaList(withStats!)
+    },
+
+    updateList: async (id, patch) => {
+      const [database, userId] = [await getDb(), await getUserId()]
+      const updated = await repoUpdateList(database, userId, id, patch)
+      if (!updated) throw notFound()
+      const withStats = await findListWithStats(database, userId, updated.id)
       return toMediaList(withStats!)
     },
 

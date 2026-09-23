@@ -64,3 +64,73 @@ describe('turning a failed response into something to show', () => {
     expect(new ApiError('x', 400)).toBeInstanceOf(Error)
   })
 })
+
+function stubbedMediaList(overrides: Record<string, unknown> = {}): Record<string, unknown> {
+  return {
+    id: 'list-1',
+    title: 'Star Wars: Main Saga',
+    description: null,
+    mediaType: 'movie',
+    source: 'manual',
+    externalRef: null,
+    status: null,
+    createdAt: '2026-01-01T00:00:00.000Z',
+    updatedAt: '2026-01-01T00:00:00.000Z',
+    stats: {
+      totalItems: 0,
+      consumedItems: 0,
+      completionPercent: 0,
+      timeRemainingMinutes: 0,
+      lastConsumedAt: null,
+    },
+    ...overrides,
+  }
+}
+
+describe('creating and updating a list', () => {
+  it('createList sends description and status when given them', async () => {
+    respondWith(stubbedMediaList({ description: 'The saga', status: 'ongoing' }), 201)
+
+    await api.createList({
+      title: 'Star Wars: Main Saga',
+      mediaType: 'movie',
+      description: 'The saga',
+      status: 'ongoing',
+    })
+
+    const [, init] = vi.mocked(fetch).mock.calls[0]!
+    expect(JSON.parse(init!.body as string)).toMatchObject({
+      description: 'The saga',
+      status: 'ongoing',
+    })
+  })
+
+  it('createList response carries description and status through', async () => {
+    respondWith(stubbedMediaList({ description: 'The saga', status: 'ongoing' }), 201)
+
+    const created = await api.createList({ title: 'Star Wars: Main Saga', mediaType: 'movie' })
+
+    expect(created.description).toBe('The saga')
+    expect(created.status).toBe('ongoing')
+  })
+
+  it('updateList PATCHes only the given fields to /lists/:id', async () => {
+    respondWith(stubbedMediaList({ description: 'The saga', status: 'ongoing' }), 200)
+
+    await api.updateList('list-1', { description: 'The saga', status: 'ongoing' })
+
+    const [url, init] = vi.mocked(fetch).mock.calls[0]!
+    expect(url).toBe('/api/lists/list-1')
+    expect(init!.method).toBe('PATCH')
+    expect(JSON.parse(init!.body as string)).toEqual({ description: 'The saga', status: 'ongoing' })
+  })
+
+  it('updateList response carries description and status through', async () => {
+    respondWith(stubbedMediaList({ description: 'The saga', status: 'ongoing' }), 200)
+
+    const updated = await api.updateList('list-1', { description: 'The saga', status: 'ongoing' })
+
+    expect(updated.description).toBe('The saga')
+    expect(updated.status).toBe('ongoing')
+  })
+})
