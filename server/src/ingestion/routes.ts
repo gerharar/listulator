@@ -42,6 +42,8 @@ interface ImportItem {
   year?: number
   group?: string
   tags?: string[]
+  /** Curator-authored disambiguation prose, capped at 2048 characters. Never adapter-set. */
+  notes?: string
 }
 
 export const ingestionRoutes: FastifyPluginAsync<IngestionRoutesOptions> = async (
@@ -82,6 +84,7 @@ export const ingestionRoutes: FastifyPluginAsync<IngestionRoutesOptions> = async
         ...(item.year !== undefined ? { year: item.year } : {}),
         ...(item.group !== undefined ? { group: item.group } : {}),
         ...(item.tags !== undefined ? { tags: item.tags } : {}),
+        ...(item.notes !== undefined ? { notes: item.notes } : {}),
         source: 'import',
       })
     }
@@ -345,6 +348,7 @@ export const ingestionRoutes: FastifyPluginAsync<IngestionRoutesOptions> = async
           ...(candidate.year ? { year: candidate.year } : {}),
           ...(candidate.group ? { group: candidate.group } : {}),
           ...(candidate.tags ? { tags: candidate.tags } : {}),
+          ...(candidate.notes ? { notes: candidate.notes } : {}),
           source: 'import',
         })
       }
@@ -610,6 +614,7 @@ export const ingestionRoutes: FastifyPluginAsync<IngestionRoutesOptions> = async
                   year: { type: 'integer' },
                   group: { type: 'string', maxLength: 500 },
                   tags: { type: 'array', maxItems: 20, items: { type: 'string', maxLength: 40 } },
+                  notes: { type: 'string', maxLength: 2048 },
                 },
               },
             },
@@ -653,6 +658,7 @@ export const ingestionRoutes: FastifyPluginAsync<IngestionRoutesOptions> = async
             ...(item.year ? { year: item.year } : {}),
             ...(item.group ? { group: item.group } : {}),
             ...(item.tags ? { tags: item.tags } : {}),
+            ...(item.notes ? { notes: item.notes } : {}),
             source,
           }),
         )

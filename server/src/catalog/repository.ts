@@ -67,6 +67,8 @@ export interface CreateListItemInput {
   group?: string | null
   /** Generic per-item display tags (SPEC.md §4), e.g. ["Album", "Live"]. Null if none. */
   tags?: string[] | null
+  /** Curator-authored disambiguation prose, capped at 2048 chars. Null if none. Never adapter-set. */
+  notes?: string | null
 }
 
 export interface UpdateListItemInput {
@@ -343,6 +345,7 @@ export async function createListItem(
       year: input.year ?? null,
       group: input.group ?? null,
       tags: input.tags ?? null,
+      notes: input.notes ?? null,
     })
     .returning()
     .get()

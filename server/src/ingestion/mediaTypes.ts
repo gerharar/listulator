@@ -246,6 +246,12 @@ export interface MediaTypeCandidate {
    * file provides. One field for every category.
    */
   tags?: string[]
+  /**
+   * Curator-authored disambiguation prose, capped at 2048 characters. Only
+   * a canonical/file-imported YAML sets this (Phase 10, task 10.2c) — no
+   * adapter populates it this phase.
+   */
+  notes?: string
 }
 
 /**

@@ -17,6 +17,8 @@ export interface ParsedCustomListItem {
   minutes?: number
   group?: string
   tags?: string[]
+  /** Curator-authored disambiguation prose, capped at `ITEM_NOTES_MAX_LENGTH`. */
+  notes?: string
 }
 
 export interface ParsedCustomList {
@@ -35,7 +37,11 @@ export interface ParsedCustomList {
 
 type CustomListErrorCode = Extract<
   ApiErrorCode,
-  'list.fileInvalid' | 'list.fileMissingTitle' | 'list.unknownCategory' | 'list.fileItemMissingTitle'
+  | 'list.fileInvalid'
+  | 'list.fileMissingTitle'
+  | 'list.unknownCategory'
+  | 'list.fileItemMissingTitle'
+  | 'list.fileItemNotesTooLong'
 >
 
 export class CustomListParseError extends Error {
@@ -49,7 +55,10 @@ export class CustomListParseError extends Error {
 }
 
 const TOP_LEVEL_FIELDS = new Set(['title', 'description', 'category', 'status', 'items'])
-const ITEM_FIELDS = new Set(['title', 'year', 'minutes', 'group', 'tags'])
+const ITEM_FIELDS = new Set(['title', 'year', 'minutes', 'group', 'tags', 'notes'])
+
+/** Curator-authored prose, not a document — refused rather than truncated over this. */
+export const ITEM_NOTES_MAX_LENGTH = 2048
 
 function fail(code: CustomListErrorCode, params?: Record<string, string | number>): never {
   throw new CustomListParseError(code, params)
@@ -111,7 +120,7 @@ export function parseCustomList(
       if (!ITEM_FIELDS.has(key)) fail('list.fileInvalid')
     }
 
-    const { title: itemTitle, year, minutes, group, tags } = rawItem
+    const { title: itemTitle, year, minutes, group, tags, notes } = rawItem
 
     if (typeof itemTitle !== 'string' || itemTitle.trim().length === 0) {
       fail('list.fileItemMissingTitle', { index: index + 1 })
@@ -122,6 +131,12 @@ export function parseCustomList(
     if (tags !== undefined && (!Array.isArray(tags) || !tags.every((tag) => typeof tag === 'string'))) {
       fail('list.fileInvalid')
     }
+    if (notes !== undefined && typeof notes !== 'string') fail('list.fileInvalid')
+
+    const trimmedNotes = typeof notes === 'string' ? notes.trim() : undefined
+    if (trimmedNotes !== undefined && trimmedNotes.length > ITEM_NOTES_MAX_LENGTH) {
+      fail('list.fileItemNotesTooLong', { index: index + 1, max: ITEM_NOTES_MAX_LENGTH })
+    }
 
     return {
       title: itemTitle,
@@ -129,6 +144,7 @@ export function parseCustomList(
       ...(minutes !== undefined ? { minutes } : {}),
       ...(group !== undefined ? { group } : {}),
       ...(tags !== undefined ? { tags: tags as string[] } : {}),
+      ...(trimmedNotes !== undefined ? { notes: trimmedNotes } : {}),
     }
   })
 
@@ -315,5 +331,6 @@ export async function expandCanonicalList(
     ...(item.minutes !== undefined ? { timeToConsumeMinutes: item.minutes } : {}),
     ...(item.group !== undefined ? { group: item.group } : {}),
     ...(item.tags !== undefined ? { tags: item.tags } : {}),
+    ...(item.notes !== undefined ? { notes: item.notes } : {}),
   }))
 }

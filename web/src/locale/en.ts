@@ -247,6 +247,8 @@ export const en = {
     'list.fileMissingTitle': (): string => 'This list needs a title.',
     'list.fileItemMissingTitle': (p: { index: number }): string =>
       `Item ${p.index} is missing a title.`,
+    'list.fileItemNotesTooLong': (p: { index: number; max: number }): string =>
+      `Item ${p.index}'s notes are too long (over ${p.max} characters).`,
     'refresh.handMadeList': (): string =>
       'This list was made by hand, so there is nothing to check against.',
     'refresh.searchUnavailable': (p: { category: string }): string =>

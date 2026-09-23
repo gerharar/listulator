@@ -736,6 +736,34 @@ items:
     expect(items).toMatchObject([{ title: 'Global Evisceration', tags: ['Album', 'Live'] }])
   })
 
+  it('preserves per-item notes, null when omitted', async () => {
+    const yaml =
+      'title: X\ncategory: game\nitems:\n' +
+      '  - { title: A Game (PS3), notes: "Extra missions on this platform." }\n' +
+      '  - { title: A Game (X360) }\n'
+    const response = await fromFile(yaml)
+
+    const items = (
+      await harness.app.inject({ method: 'GET', url: `/api/lists/${response.json().id}` })
+    ).json().items
+
+    expect(items).toMatchObject([
+      { title: 'A Game (PS3)', notes: 'Extra missions on this platform.' },
+      { title: 'A Game (X360)', notes: null },
+    ])
+  })
+
+  it('refuses an item whose notes are over 2048 characters', async () => {
+    const yaml = `title: X\ncategory: movie\nitems:\n  - { title: Y, notes: "${'a'.repeat(2049)}" }\n`
+    const response = await fromFile(yaml)
+
+    expect(response.statusCode).toBe(400)
+    expect(response.json()).toMatchObject({
+      code: 'list.fileItemNotesTooLong',
+      params: { index: 1, max: 2048 },
+    })
+  })
+
   it('preserves a top-level description and status, both null when omitted', async () => {
     const withBoth = await fromFile(
       'title: X\ndescription: A long-running procedural.\nstatus: ongoing\ncategory: tv\nitems: []\n',

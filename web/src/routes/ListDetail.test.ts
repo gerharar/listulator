@@ -19,6 +19,7 @@ function item(overrides: Partial<ListItem> = {}): ListItem {
     year: null,
     group: null,
     tags: null,
+    notes: null,
     ...overrides,
   }
 }

@@ -167,6 +167,15 @@ export const listItems = sqliteTable(
     tags: text('tags', { mode: 'json' }).$type<string[]>(),
     /** Null until checked off; doubles as the "when" behind list neglect scoring. */
     consumedAt: integer('consumed_at', { mode: 'timestamp_ms' }),
+    /**
+     * Curator-authored disambiguation prose, e.g. "the game on this platform
+     * has extra missions, so it's a separate entry" — never a personal
+     * annotation and never adapter marketing copy. Capped at 2048 characters
+     * (enforced in code, not by the column). Set only by parsing a list's
+     * YAML (canonical or file-imported); no adapter populates it this phase
+     * — see docs/DECISIONS.md. Read-only in the app UI.
+     */
+    notes: text('notes'),
     createdAt: integer('created_at', { mode: 'timestamp_ms' })
       .notNull()
       .$defaultFn(() => new Date()),

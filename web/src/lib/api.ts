@@ -41,6 +41,8 @@ export interface ListItem {
   group: string | null
   /** Generic per-item display tags, e.g. ["Album", "Live"]. Null if none. */
   tags: string[] | null
+  /** Curator-authored disambiguation prose, capped at 2048 chars. Read-only in the UI. Null if none. */
+  notes: string | null
 }
 
 export interface MediaListDetail extends MediaList {
@@ -165,6 +167,7 @@ export interface ApiClient {
       year?: number
       group?: string
       tags?: string[]
+      notes?: string
     }[],
     /** Defaults to 'import' — pass 'manual' for a hand-typed batch (task 6.2). */
     source?: 'manual' | 'import',
@@ -210,6 +213,7 @@ export interface ApiClient {
       year?: number
       group?: string
       tags?: string[]
+      notes?: string
     }[]
     upstreamCount: number
     existingCount: number
@@ -275,6 +279,7 @@ export const fetchApi: ApiClient = {
       year?: number
       group?: string
       tags?: string[]
+      notes?: string
     }[],
     source?: 'manual' | 'import',
   ) =>
@@ -332,6 +337,7 @@ export const fetchApi: ApiClient = {
         year?: number
         group?: string
         tags?: string[]
+        notes?: string
       }[]
       upstreamCount: number
       existingCount: number

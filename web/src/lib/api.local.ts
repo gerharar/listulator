@@ -98,6 +98,7 @@ function toListItem(item: SchemaListItem): ListItem {
     year: item.year,
     group: item.group,
     tags: item.tags,
+    notes: item.notes,
   }
 }
 
@@ -272,6 +273,7 @@ export function createLocalApi(): ApiClient {
           ...(item.year ? { year: item.year } : {}),
           ...(item.group ? { group: item.group } : {}),
           ...(item.tags ? { tags: item.tags } : {}),
+          ...(item.notes ? { notes: item.notes } : {}),
           source,
         })
         created.push(row!)
@@ -395,9 +397,11 @@ export function createLocalApi(): ApiClient {
 
         const list = await repoCreateList(database, userId, {
           title: parsed.title,
+          description: parsed.description ?? null,
           mediaType: parsed.category,
           source: 'canonical',
           externalRef,
+          status: parsed.status ?? null,
         })
 
         // Sequential, not Promise.all — see docs/DECISIONS.md, task 5.1.
@@ -411,6 +415,7 @@ export function createLocalApi(): ApiClient {
             ...(item.year !== undefined ? { year: item.year } : {}),
             ...(item.group !== undefined ? { group: item.group } : {}),
             ...(item.tags !== undefined ? { tags: item.tags } : {}),
+            ...(item.notes !== undefined ? { notes: item.notes } : {}),
             source: 'import',
           })
         }
@@ -477,6 +482,7 @@ export function createLocalApi(): ApiClient {
           ...(candidate.year ? { year: candidate.year } : {}),
           ...(candidate.group ? { group: candidate.group } : {}),
           ...(candidate.tags ? { tags: candidate.tags } : {}),
+          ...(candidate.notes ? { notes: candidate.notes } : {}),
           source: 'import',
         })
       }
@@ -506,8 +512,10 @@ export function createLocalApi(): ApiClient {
 
       const list = await repoCreateList(database, userId, {
         title: parsed.title,
+        description: parsed.description ?? null,
         mediaType: parsed.category,
         source: 'file',
+        status: parsed.status ?? null,
       })
 
       // Sequential, not Promise.all — see docs/DECISIONS.md, task 5.1.
@@ -521,6 +529,7 @@ export function createLocalApi(): ApiClient {
           ...(item.year !== undefined ? { year: item.year } : {}),
           ...(item.group !== undefined ? { group: item.group } : {}),
           ...(item.tags !== undefined ? { tags: item.tags } : {}),
+          ...(item.notes !== undefined ? { notes: item.notes } : {}),
           source: 'import',
         })
       }

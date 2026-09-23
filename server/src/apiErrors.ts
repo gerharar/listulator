@@ -29,6 +29,7 @@ export type ApiErrorCode =
   | 'list.fileInvalid'
   | 'list.fileMissingTitle'
   | 'list.fileItemMissingTitle'
+  | 'list.fileItemNotesTooLong'
   | 'refresh.handMadeList'
   | 'refresh.searchUnavailable'
 

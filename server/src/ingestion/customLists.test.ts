@@ -61,6 +61,51 @@ items:
     ])
   })
 
+  it('preserves an optional notes field per item, trimmed', () => {
+    const yaml =
+      'title: X\ncategory: movie\nitems:\n' +
+      '  - { title: A Game (PS3), notes: "  Extra missions on this platform.  " }\n'
+
+    expect(parseCustomList(yaml, CATEGORIES).items).toEqual([
+      { title: 'A Game (PS3)', notes: 'Extra missions on this platform.' },
+    ])
+  })
+
+  it('leaves notes absent when an item has none', () => {
+    const yaml = 'title: X\ncategory: movie\nitems:\n  - { title: X }\n'
+    expect(parseCustomList(yaml, CATEGORIES).items[0]).not.toHaveProperty('notes')
+  })
+
+  it('rejects a non-string notes value', () => {
+    expect(() =>
+      parseCustomList('title: X\ncategory: movie\nitems:\n  - { title: X, notes: 5 }\n', CATEGORIES),
+    ).toThrow(CustomListParseError)
+  })
+
+  it('rejects notes over 2048 characters, naming the item and the cap', () => {
+    const yaml = `title: X\ncategory: movie\nitems:\n  - { title: X, notes: "${'a'.repeat(2049)}" }\n`
+
+    try {
+      parseCustomList(yaml, CATEGORIES)
+      expect.unreachable('should have thrown')
+    } catch (error) {
+      expect(error).toBeInstanceOf(CustomListParseError)
+      expect((error as CustomListParseError).code).toBe('list.fileItemNotesTooLong')
+      expect((error as CustomListParseError).params).toEqual({ index: 1, max: 2048 })
+    }
+  })
+
+  it('accepts notes at exactly 2048 characters', () => {
+    const yaml = `title: X\ncategory: movie\nitems:\n  - { title: X, notes: "${'a'.repeat(2048)}" }\n`
+    expect(parseCustomList(yaml, CATEGORIES).items[0]?.notes).toHaveLength(2048)
+  })
+
+  it('trims notes before checking the cap, so trailing whitespace does not fail it', () => {
+    const padded = `${'a'.repeat(2048)}   `
+    const yaml = `title: X\ncategory: movie\nitems:\n  - { title: X, notes: "${padded}" }\n`
+    expect(parseCustomList(yaml, CATEGORIES).items[0]?.notes).toHaveLength(2048)
+  })
+
   it('trims the top-level title', () => {
     const yaml = 'title: "  Padded  "\ncategory: movie\nitems:\n  - { title: X }\n'
     expect(parseCustomList(yaml, CATEGORIES).title).toBe('Padded')
@@ -431,5 +476,13 @@ items:
     const candidates = await expandCanonicalList('lists/x.yaml', new Set(['mega']), respondWithText(yaml))
 
     expect(candidates).toEqual([{ title: 'Iron Man', year: 2008 }])
+  })
+
+  it('carries notes through into the candidate shape, so a canonical refresh or Reset does not drop them', async () => {
+    const yaml =
+      'title: X\ncategory: game\nitems:\n  - { title: A Game (PS3), notes: Extra missions here. }\n'
+    const candidates = await expandCanonicalList('lists/x.yaml', new Set(['game']), respondWithText(yaml))
+
+    expect(candidates).toEqual([{ title: 'A Game (PS3)', notes: 'Extra missions here.' }])
   })
 })

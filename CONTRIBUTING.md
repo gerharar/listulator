@@ -59,6 +59,7 @@ Per-item fields:
 | `minutes` | No        | Time to consume. Omit it if there's no meaningful single answer (see the book example below) — it falls back to the category's default duration with `is_estimated: true`, the same rule every built-in data source already follows. |
 | `group`   | No        | A free-text label for items that need internal structure, e.g. `group: Season 1`. The same field works for a TV season, a comic story arc, or anything else that needs grouping — there's no category-specific shape. Every list always renders in chronological order; `group` only labels contiguous runs within that order and has no other effect. |
 | `tags`    | No        | A list of short free-text strings, rendered as badges, e.g. `tags: [Album, Live]`. One generic field for every category — there's no fixed vocabulary or category-specific field name. Use whatever short labels make sense for what you're contributing: a music release type, a book's language, a franchise entry's medium, a promotion's event format, or anything else worth flagging at a glance. Purely a display attribute — it never affects ordering or `group`. |
+| `notes`   | No        | Curator prose explaining *why this item is here*, shown read-only in the app — never a synopsis, and never your own commentary. Add one only when a reader would otherwise be confused, e.g. `notes: "Same game as the PS3 entry above, but this platform shipped extra missions."` Capped at 2048 characters; longer values are rejected, not truncated. |
 
 Example using `group`:
 
