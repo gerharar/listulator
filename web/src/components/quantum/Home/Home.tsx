@@ -203,7 +203,7 @@ export function Home({ onMediaTypesLoaded }: HomeProps) {
       )}
 
       <div className="q-help-row">
-        <span className="q-kicker">{copy.quantum.home.needHelp}</span>
+        <span className="q-kicker section">{copy.quantum.home.needHelp}</span>
         {(
           [
             copy.quantum.home.helpButtons.tiredBoss,
@@ -222,7 +222,7 @@ export function Home({ onMediaTypesLoaded }: HomeProps) {
         {used.map((bucket) => (
           <section key={bucket.mediaType.key} className="q-bucket">
             <div className="q-kicker-bar">
-              <span className="q-kicker section">{categoryLabel(bucket.mediaType)}</span>
+              <span className="q-kicker strong">{categoryLabel(bucket.mediaType)}</span>
             </div>
             {bucket.lists.map((list) => (
               <HomeRow
@@ -243,7 +243,7 @@ export function Home({ onMediaTypesLoaded }: HomeProps) {
         {orphaned.length > 0 && (
           <section className="q-bucket">
             <div className="q-kicker-bar">
-              <span className="q-kicker section">{copy.quantum.home.orphanedTitle}</span>
+              <span className="q-kicker strong">{copy.quantum.home.orphanedTitle}</span>
               <span className="q-kicker">{copy.quantum.home.orphanedNote}</span>
             </div>
             {orphaned.map((list) => (

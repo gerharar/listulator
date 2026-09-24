@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test'
+import { useHomeFixture } from './fixtures.js'
 
 /**
  * The real flip/shift decision `Popover.test.tsx` can't make under jsdom
@@ -8,6 +9,7 @@ import { expect, test } from '@playwright/test'
  * purpose-built harness.
  */
 test.beforeEach(async ({ page }) => {
+  await useHomeFixture(page)
   // Narrow enough that the top-right skin button has no room to open
   // 'right-start' (its default placement, `Popover.tsx`) — makes the flip
   // deterministic rather than viewport-size-dependent.

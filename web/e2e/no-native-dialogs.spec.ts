@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test'
+import { useHomeFixture } from './fixtures.js'
 
 /**
  * Task 6.7 replaced `window.confirm()` with an in-app `Modal` specifically
@@ -11,6 +12,7 @@ import { expect, test } from '@playwright/test'
  * constructed call, a dependency calling it, dead code that still runs).
  */
 test('deleting a list never triggers a native dialog, only the in-app Modal', async ({ page }) => {
+  await useHomeFixture(page)
   const dialogs: string[] = []
   page.on('dialog', (dialog) => {
     dialogs.push(dialog.message())

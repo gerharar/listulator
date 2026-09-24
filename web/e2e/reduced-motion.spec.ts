@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test'
+import { useHomeFixture } from './fixtures.js'
 
 /**
  * 10.9c's own carried-forward check (docs/DECISIONS.md, "The drum cascade's
@@ -10,6 +11,7 @@ import { expect, test } from '@playwright/test'
 test('a pushed layer drums in, and re-seats the layer it covers, under normal motion', async ({
   page,
 }) => {
+  await useHomeFixture(page)
   await page.goto('/')
   await expect(page.getByRole('heading', { name: 'My Lists' })).toBeVisible({ timeout: 15_000 })
 
@@ -27,6 +29,7 @@ test('a pushed layer drums in, and re-seats the layer it covers, under normal mo
 })
 
 test('reduced motion cuts both the drum-in and the re-seat transition', async ({ page }) => {
+  await useHomeFixture(page)
   await page.emulateMedia({ reducedMotion: 'reduce' })
   await page.goto('/')
   await expect(page.getByRole('heading', { name: 'My Lists' })).toBeVisible({ timeout: 15_000 })

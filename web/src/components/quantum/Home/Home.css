@@ -72,11 +72,10 @@
   padding: 0 24px 24px;
 }
 
+/* 22px above every bucket, including the first — matches the design
+ * prototype's own Home template exactly (no first-child exception there). */
 .q-bucket {
   margin-top: 22px;
-}
-.q-bucket:first-child {
-  margin-top: 0;
 }
 .q-kicker-bar {
   display: flex;

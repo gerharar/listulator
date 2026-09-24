@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test'
+import { useHomeFixture } from './fixtures.js'
 
 /**
  * Two of 10.8's own acceptance claims that jsdom cannot make (it evaluates
@@ -7,6 +8,7 @@ import { expect, test } from '@playwright/test'
  * carried into 10.9b per the plan.
  */
 test.beforeEach(async ({ page }) => {
+  await useHomeFixture(page)
   await page.goto('/')
   await expect(page.getByRole('heading', { name: 'My Lists' })).toBeVisible({ timeout: 15_000 })
 })
