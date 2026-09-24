@@ -2,6 +2,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { ApiError, api, type ListSourceResult, type MediaType } from '../../../lib/api.js'
+import { LayerStackProvider, useLayerStack } from '../layerStack/LayerStackContext.js'
 import { SearchTab } from './SearchTab.js'
 
 vi.mock('../../../lib/api.js', async (importOriginal) => ({
@@ -37,10 +38,26 @@ const RESULTS: ListSourceResult[] = [
   { externalRef: 'show:2', title: 'Better Call Saul', detail: 'TV · 2015' },
 ]
 
+const HOME = { id: 'home', kind: 'home', tabLabel: 'My Lists', content: '/' }
+
+/** Shows what the layer stack holds, so a test can see a pushed layer. */
+function StackProbe() {
+  const { stack } = useLayerStack()
+
+  return <output data-testid="stack">{JSON.stringify(stack.map((layer) => [layer.kind, layer.content]))}</output>
+}
+
 function renderTab(type: MediaType = mediaType(), onBuilt = vi.fn()) {
-  render(<SearchTab mediaType={type} onBuilt={onBuilt} />)
+  render(
+    <LayerStackProvider home={HOME}>
+      <SearchTab mediaType={type} onBuilt={onBuilt} />
+      <StackProbe />
+    </LayerStackProvider>,
+  )
   return { onBuilt }
 }
+
+const pushedLayers = () => JSON.parse(screen.getByTestId('stack').textContent ?? '[]') as string[][]
 
 async function search(query = 'saul') {
   fireEvent.change(screen.getByLabelText(/^Search /), { target: { value: query } })
@@ -111,6 +128,23 @@ describe('SearchTab', () => {
       title: 'Better Call Saul',
     })
     await waitFor(() => expect(onBuilt).toHaveBeenCalledWith('list-9'))
+  })
+
+  it('Preview pushes a Preview layer carrying the source and its options, and imports nothing', async () => {
+    vi.mocked(api.searchSources).mockResolvedValue({ sources: RESULTS })
+    vi.mocked(api.expansion).mockResolvedValue({ itemCount: 1 })
+    renderTab()
+
+    await search()
+    fireEvent.click(await screen.findByRole('button', { name: /Better Call Saul/ }))
+    fireEvent.click(screen.getByRole('button', { name: 'Preview' }))
+
+    const top = pushedLayers().at(-1)
+    expect(top?.[0]).toBe('preview')
+    expect(top?.[1]).toBe(
+      '/lists/preview?mediaType=tv&externalRef=show%3A2&title=Better+Call+Saul',
+    )
+    expect(api.createFromSource).not.toHaveBeenCalled()
   })
 
   it('locks everything with a spinner while adding, and stops queueing speculative counts', async () => {

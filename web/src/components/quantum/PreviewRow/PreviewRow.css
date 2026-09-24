@@ -1,0 +1,39 @@
+/* design-system/components/PreviewRow — ported from bundle.css. */
+.q-preview-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 40px;
+  padding: 0 18px 0 4px;
+  border-bottom: 1px solid var(--line);
+}
+.q-preview-row.in-group {
+  padding-left: 34px;
+}
+.q-preview-row .title {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font: 400 15px/1.2 var(--font);
+}
+.q-preview-row .tt {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: baseline;
+  gap: 7px;
+}
+.q-preview-row .mins {
+  flex: none;
+  font: 500 12.5px/1 var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  color: var(--ink2);
+}
+.q-year {
+  flex: none;
+  font: 500 12.5px/1 var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  color: var(--ink3);
+}

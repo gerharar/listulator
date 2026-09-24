@@ -163,3 +163,68 @@ const LIST_JSON = {
     lastConsumedAt: null,
   },
 }
+
+test('Preview lists every item without creating anything; Esc returns to the results; Add list sends what the row would', async ({
+  page,
+}) => {
+  const importBodies: unknown[] = []
+  const previewItems = Array.from({ length: 30 }, (_, index) => ({
+    title: `Track ${index + 1}`,
+    timeToConsumeMinutes: 4,
+    year: 1990,
+    group: index < 15 ? 'Album A' : 'Album B',
+  }))
+
+  await page.route('**/api/media-types/music/search**', (route) =>
+    route.fulfill({ json: { sources: SOURCES } }),
+  )
+  await page.route('**/api/media-types/music/expansion**', (route) => {
+    const withItems = new URL(route.request().url()).searchParams.get('items') === 'true'
+    return route.fulfill({
+      json: withItems
+        ? { itemCount: 30, status: 'complete', items: previewItems }
+        : { itemCount: 30 },
+    })
+  })
+  await page.route('**/api/lists/from-source', (route) => {
+    importBodies.push(route.request().postDataJSON())
+    return route.fulfill({ status: 201, json: LIST_JSON })
+  })
+  await page.route('**/api/lists/created-1', (route) =>
+    route.fulfill({ json: { ...LIST_JSON, items: [] } }),
+  )
+
+  await openMusicSearch(page)
+  await search(page)
+  await page.getByRole('button', { name: /Show details for Cannibal Corpse Discography/ }).click()
+  await page.getByRole('button', { name: 'Preview' }).click()
+
+  // Every item, in order, under the group heads; count and runtime up top.
+  await expect(page.getByText('30 items · 2h')).toBeVisible()
+  await expect(page.getByText('Track 1', { exact: true })).toBeVisible()
+  await expect(page.locator('.q-preview-row')).toHaveCount(30)
+  await expect(page.getByRole('button', { name: 'Collapse Album A' })).toBeVisible()
+  expect(importBodies).toHaveLength(0)
+
+  // Esc returns to the results, untouched: the row is still expanded.
+  await page.keyboard.press('Escape')
+  await expect(page.getByText('30 items · 2h')).toBeHidden()
+  await expect(page.getByText('2 results')).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Add list' })).toBeVisible()
+
+  // Add list from Preview sends the same request as the row's.
+  await page.getByRole('button', { name: 'Add list' }).click()
+  await expect(page.getByRole('heading', { name: 'Cannibal Corpse Discography' })).toBeVisible()
+  await page.goto('/')
+  await openMusicSearch(page)
+  await search(page)
+  await page.getByRole('button', { name: /Show details for Cannibal Corpse Discography/ }).click()
+  await page.getByRole('button', { name: 'Preview' }).click()
+  await expect(page.getByText('30 items · 2h')).toBeVisible()
+  // The covered results layer has an Add list of its own; this is the Preview's.
+  await page.locator('.q-preview').getByRole('button', { name: 'Add list' }).click()
+  await expect(page.getByRole('heading', { name: 'Cannibal Corpse Discography' })).toBeVisible()
+
+  expect(importBodies).toHaveLength(2)
+  expect(importBodies[1]).toEqual(importBodies[0])
+})

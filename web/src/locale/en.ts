@@ -295,10 +295,10 @@ export const en = {
       countLoading: 'Counting items…',
       expandRow: (title: string): string => `Show details for ${title}`,
       previewButton: 'Preview',
+      /** The covered layer's tab label while a Preview is open. */
+      previewTab: (title: string): string => `Preview: ${title}`,
       addButton: 'Add list',
       nothingToAdd: 'Nothing to add — this source has no items to import',
-      /** Preview needs the Preview layer, which lands in task 10.15. */
-      previewComingSoon: 'Preview is coming soon',
       /** A source that cannot list its items before import (design: "Preview degrades honestly"). */
       previewUnavailable:
         "This source can't list its items before import. Add the list — deleting a wrong one costs a click.",
@@ -355,6 +355,23 @@ export const en = {
       assumedDuration: (duration: string): string =>
         `Each is assumed to take about ${duration}, which you can correct later.`,
       createFailed: 'Could not create the list',
+    },
+    preview: {
+      title: 'Preview',
+      closeLabel: 'Close',
+      loading: 'Listing the items…',
+      /** Count and total runtime; `≈` when some runtimes are the category's default. */
+      summary: (count: number, duration: string, estimated: boolean): string =>
+        `${count} ${selectPlural(count, 'en', { one: 'item', other: 'items' })} · ${estimated ? '≈ ' : ''}${duration}`,
+      addButton: 'Add list',
+      adding: 'Building the list…',
+      nothingToAdd: 'Nothing to add — this source has no items to import',
+      loadFailedHeadline: "Can't preview this list",
+      retry: 'Retry',
+      footer: (provenance: string): string =>
+        `${provenance}. Add list makes exactly this list.`,
+      expandGroup: (label: string): string => `Expand ${label}`,
+      collapseGroup: (label: string): string => `Collapse ${label}`,
     },
     importFile: {
       chooseFile: 'Choose file…',

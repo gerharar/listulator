@@ -16,6 +16,7 @@ function renderRow(overrides: Partial<SearchResultRowProps> = {}) {
     previewable: true,
     busy: false,
     onAdd: () => {},
+    onPreview: () => {},
     ...overrides,
   }
 
@@ -95,12 +96,21 @@ describe('SearchResultRow', () => {
     expect(document.querySelector('.q-star')).not.toBeNull()
   })
 
-  it('Preview is disabled with an explanation until the Preview layer exists', () => {
-    renderRow({ expanded: true })
+  it('Preview calls back, and does not also toggle the row', () => {
+    const onPreview = vi.fn()
+    const onToggle = vi.fn()
+    renderRow({ expanded: true, onPreview, onToggle })
 
-    const preview = screen.getByRole('button', { name: 'Preview' }) as HTMLButtonElement
-    expect(preview.disabled).toBe(true)
-    expect(preview.title).toBe('Preview is coming soon')
+    fireEvent.click(screen.getByRole('button', { name: 'Preview' }))
+
+    expect(onPreview).toHaveBeenCalledTimes(1)
+    expect(onToggle).not.toHaveBeenCalled()
+  })
+
+  it('Preview locks while an import runs', () => {
+    renderRow({ expanded: true, busy: true })
+
+    expect((screen.getByRole('button', { name: 'Preview' }) as HTMLButtonElement).disabled).toBe(true)
   })
 
   it('a source that cannot enumerate before import says so in one line', () => {

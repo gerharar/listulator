@@ -1,6 +1,6 @@
 import './App.css'
 import { useEffect, useState } from 'react'
-import { Route, Routes, useSearchParams } from 'react-router-dom'
+import { Route, Routes, useNavigate, useSearchParams } from 'react-router-dom'
 import type { MediaType } from './lib/api.js'
 import { copy } from './locale/index.js'
 import { resolveInitialTheme } from './lib/theme.js'
@@ -9,6 +9,8 @@ import { resolveSkin, setSkin as persistSkin, type Skin } from './lib/preference
 import { resolveLanguage, type Language } from './lib/preferences/language.js'
 import { ListDetail } from './routes/ListDetail.js'
 import { CreateList } from './components/quantum/CreateList/CreateList.js'
+import { PreviewLayer } from './components/quantum/PreviewLayer/PreviewLayer.js'
+import { parsePreviewPath } from './lib/preview.js'
 import { Atmosphere } from './components/quantum/Atmosphere/Atmosphere.js'
 import { QRoot } from './components/quantum/QRootContext.js'
 import { AppHeader } from './components/quantum/AppHeader/AppHeader.js'
@@ -112,6 +114,27 @@ function CreateListRoute({ mediaTypes }: { mediaTypes: MediaType[] }) {
   return <CreateList mediaTypes={mediaTypes} mediaTypeKey={searchParams.get('mediaType') ?? ''} />
 }
 
+/**
+ * The Preview layer's route (task 10.15): the source and its options ride on
+ * the layer's own path. Add list navigates like a create layer does, so it
+ * collapses to `[home, list]` through `handleLegacyNavigate`.
+ */
+function PreviewRoute({ mediaTypes }: { mediaTypes: MediaType[] }) {
+  const [searchParams] = useSearchParams()
+  const navigate = useNavigate()
+  const source = parsePreviewPath(searchParams)
+  const mediaType = source && mediaTypes.find((entry) => entry.key === source.mediaType)
+  if (!source || !mediaType) return null
+
+  return (
+    <PreviewLayer
+      source={source}
+      mediaType={mediaType}
+      onBuilt={(listId) => void navigate(`/lists/${listId}`, { replace: true })}
+    />
+  )
+}
+
 interface AppShellBodyProps {
   skin: Skin
   onSkinChange: (skin: Skin) => void
@@ -200,6 +223,7 @@ function AppShellBody({ skin, onSkinChange }: AppShellBodyProps) {
                 <LegacyRouteHost path={layer.content} onNavigate={handleLegacyNavigate}>
                   <Routes>
                     <Route path="/lists/new" element={<CreateListRoute mediaTypes={mediaTypes} />} />
+                    <Route path="/lists/preview" element={<PreviewRoute mediaTypes={mediaTypes} />} />
                     <Route path="/lists/:listId" element={<ListDetail mediaTypes={mediaTypes} />} />
                   </Routes>
                 </LegacyRouteHost>

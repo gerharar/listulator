@@ -8,6 +8,11 @@ import {
   resolveInitialBookLanguage,
 } from '../../../lib/bookLanguage.js'
 import { isDesktop } from '../../../lib/platform.js'
+import {
+  createFromSourceInput,
+  previewPath,
+  type PreviewSource,
+} from '../../../lib/preview.js'
 import { categoryLabel, copy } from '../../../locale/index.js'
 import { Button } from '../Button/Button.js'
 import { ErrorBlock, type ErrorBlockAction } from '../ErrorBlock/ErrorBlock.js'
@@ -16,6 +21,7 @@ import { Field } from '../Field/Field.js'
 import { SearchResultRow } from '../SearchResultRow/SearchResultRow.js'
 import { Spinner } from '../Spinner/Spinner.js'
 import { ToggleChip } from '../ToggleChip/ToggleChip.js'
+import { useLayerStack } from '../layerStack/LayerStackContext.js'
 import { useSourceExpansions } from './useSourceExpansions.js'
 
 export interface SearchTabProps {
@@ -45,6 +51,7 @@ const CANONICAL_PREFIX = 'canonical:'
  */
 export function SearchTab({ mediaType, onBuilt }: SearchTabProps) {
   const text = copy.quantum.search
+  const layerStack = useLayerStack()
   const source = mediaType.sourceName ?? categoryLabel(mediaType)
 
   const [query, setQuery] = useState('')
@@ -200,6 +207,23 @@ export function SearchTab({ mediaType, onBuilt }: SearchTabProps) {
     }
   }
 
+  const sourceFor = (result: ListSourceResult): PreviewSource => ({
+    mediaType: mediaType.key,
+    externalRef: result.externalRef,
+    title: result.title,
+    options,
+  })
+
+  /** Pushes the Preview layer over this one; Esc or the backdrop comes back here untouched. */
+  function preview(result: ListSourceResult) {
+    layerStack.push({
+      id: `preview-${result.externalRef}`,
+      kind: 'preview',
+      tabLabel: text.previewTab(result.title),
+      content: previewPath(sourceFor(result)),
+    })
+  }
+
   async function add(result: ListSourceResult) {
     // The server's limiter is first come, first served: speculative counts
     // still queued would make the import wait behind them.
@@ -208,12 +232,7 @@ export function SearchTab({ mediaType, onBuilt }: SearchTabProps) {
     setNotice(null)
 
     try {
-      const list = await api.createFromSource({
-        mediaType: mediaType.key,
-        externalRef: result.externalRef,
-        title: result.title,
-        ...options,
-      })
+      const list = await api.createFromSource(createFromSourceInput(sourceFor(result)))
       onBuilt(list.id)
     } catch (cause) {
       setBuilding(false)
@@ -363,6 +382,7 @@ export function SearchTab({ mediaType, onBuilt }: SearchTabProps) {
                 previewable={curated || mediaType.previewable}
                 busy={building}
                 onAdd={() => void add(result)}
+                onPreview={() => preview(result)}
               />
             )
           })}

@@ -27,6 +27,8 @@ export interface SearchResultRowProps {
   /** An import is running: everything locks (Q12). */
   busy: boolean
   onAdd: () => void
+  /** Opens the Preview layer (task 10.15). */
+  onPreview: () => void
 }
 
 /**
@@ -48,6 +50,7 @@ export function SearchResultRow({
   previewable,
   busy,
   onAdd,
+  onPreview,
 }: SearchResultRowProps) {
   const text = copy.quantum.search
   // A count of zero is a guaranteed "nothing to import" from the server; say so up front.
@@ -104,8 +107,7 @@ export function SearchResultRow({
           <div className="prov">{provenance}</div>
           {!previewable && <div className="unavailable">{text.previewUnavailable}</div>}
           <div className="actions">
-            {/* Preview needs the Preview layer (task 10.15); until then it is disabled either way. */}
-            <Button size="sm" disabled title={previewable ? text.previewComingSoon : undefined}>
+            <Button size="sm" disabled={!previewable || busy} onClick={onPreview}>
               {text.previewButton}
             </Button>
             <Button
