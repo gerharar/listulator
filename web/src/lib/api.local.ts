@@ -53,6 +53,7 @@ import type {
   ListItem,
   MediaList,
   MediaListDetail,
+  SourceOptions,
   SuggestionPick,
 } from './api.js'
 import { ApiError } from './api.js'
@@ -200,6 +201,43 @@ export function createLocalApi(): ApiClient {
       const titleKey = dismissalTitleKey(candidate.title)
       return !knownTitles.has(titleKey) && !dismissedTitles.has(titleKey)
     })
+  }
+
+  /** What `expansion` and `preview` share: expand a source, in the API's own errors. */
+  async function expandForApi(mediaTypeKey: string, externalRef: string, options: SourceOptions) {
+    const mediaTypes = await getLocalMediaTypes()
+    const mediaType = mediaTypes.find((entry) => entry.key === mediaTypeKey)
+    if (!mediaType) throw notFound()
+
+    try {
+      const { items, status } = await expandSource(
+        mediaType,
+        externalRef,
+        options,
+        new Set(mediaTypes.map((entry) => entry.key)),
+      )
+
+      return { items, status }
+    } catch (cause) {
+      if (cause instanceof SourceUnavailableError) {
+        throw new ApiError(
+          copy.errors['search.unavailable']({ category: mediaType.label }),
+          409,
+          'search.unavailable',
+        )
+      }
+      if (cause instanceof UnsafeSourceError) {
+        throw new ApiError(
+          errorMessage('list.fileInvalid') ?? 'list.fileInvalid',
+          400,
+          'list.fileInvalid',
+        )
+      }
+      if (cause instanceof CustomListParseError) {
+        throw new ApiError(errorMessage(cause.code, cause.params) ?? cause.code, 400, cause.code)
+      }
+      throw cause
+    }
   }
 
   return {
@@ -362,39 +400,15 @@ export function createLocalApi(): ApiClient {
     },
 
     expansion: async (mediaTypeKey, externalRef, options = {}) => {
-      const mediaTypes = await getLocalMediaTypes()
-      const mediaType = mediaTypes.find((entry) => entry.key === mediaTypeKey)
-      if (!mediaType) throw notFound()
+      const { items, status } = await expandForApi(mediaTypeKey, externalRef, options)
 
-      try {
-        const { items, status } = await expandSource(
-          mediaType,
-          externalRef,
-          options,
-          new Set(mediaTypes.map((entry) => entry.key)),
-        )
+      return { itemCount: items.length, ...(status ? { status } : {}) }
+    },
 
-        return { itemCount: items.length, ...(status ? { status } : {}) }
-      } catch (cause) {
-        if (cause instanceof SourceUnavailableError) {
-          throw new ApiError(
-            copy.errors['search.unavailable']({ category: mediaType.label }),
-            409,
-            'search.unavailable',
-          )
-        }
-        if (cause instanceof UnsafeSourceError) {
-          throw new ApiError(
-            errorMessage('list.fileInvalid') ?? 'list.fileInvalid',
-            400,
-            'list.fileInvalid',
-          )
-        }
-        if (cause instanceof CustomListParseError) {
-          throw new ApiError(errorMessage(cause.code, cause.params) ?? cause.code, 400, cause.code)
-        }
-        throw cause
-      }
+    preview: async (mediaTypeKey, externalRef, options = {}) => {
+      const { items, status } = await expandForApi(mediaTypeKey, externalRef, options)
+
+      return { itemCount: items.length, ...(status ? { status } : {}), items }
     },
 
     createFromSource: async ({

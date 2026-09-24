@@ -102,6 +102,21 @@ export interface SourceExpansion {
   status?: 'complete' | 'ongoing'
 }
 
+/** One row of a Preview: what Add list would create, before it does. */
+export interface PreviewItem {
+  title: string
+  externalRef?: string
+  timeToConsumeMinutes?: number
+  year?: number
+  group?: string
+  tags?: string[]
+  notes?: string
+}
+
+export interface SourcePreview extends SourceExpansion {
+  items: PreviewItem[]
+}
+
 export class ApiError extends Error {
   constructor(
     message: string,
@@ -216,6 +231,15 @@ export interface ApiClient {
     externalRef: string,
     options?: SourceOptions,
   ) => Promise<SourceExpansion>
+  /**
+   * The same expansion Add list imports, with its items, and without creating
+   * anything (task 10.15). One route with `items=true`, not a second one.
+   */
+  preview: (
+    mediaType: string,
+    externalRef: string,
+    options?: SourceOptions,
+  ) => Promise<SourcePreview>
   createFromSource: (input: {
     mediaType: string
     externalRef: string
@@ -285,6 +309,29 @@ export interface ApiClient {
   checkSyncedListUpdates: () => Promise<{ updates: { listId: string; title: string }[] }>
 }
 
+function expansionUrl(
+  mediaType: string,
+  externalRef: string,
+  options: SourceOptions,
+  withItems = false,
+): string {
+  const params = new URLSearchParams({ externalRef })
+  if (options.language) params.set('language', options.language)
+  for (const key of [
+    'includeUnknown',
+    'includeEp',
+    'includeSingle',
+    'includeLive',
+    'includeCompilation',
+  ] as const) {
+    const value = options[key]
+    if (value !== undefined) params.set(key, String(value))
+  }
+  if (withItems) params.set('items', 'true')
+
+  return `/media-types/${mediaType}/expansion?${params.toString()}`
+}
+
 export const fetchApi: ApiClient = {
   me: () => request<CurrentUser>('/me'),
   mediaTypes: () => request<MediaType[]>('/media-types'),
@@ -345,22 +392,11 @@ export const fetchApi: ApiClient = {
     return request<SourceSearchResponse>(`/media-types/${mediaType}/search?${params.toString()}`)
   },
 
-  expansion: (mediaType: string, externalRef: string, options: SourceOptions = {}) => {
-    const params = new URLSearchParams({ externalRef })
-    if (options.language) params.set('language', options.language)
-    for (const key of [
-      'includeUnknown',
-      'includeEp',
-      'includeSingle',
-      'includeLive',
-      'includeCompilation',
-    ] as const) {
-      const value = options[key]
-      if (value !== undefined) params.set(key, String(value))
-    }
+  expansion: (mediaType: string, externalRef: string, options: SourceOptions = {}) =>
+    request<SourceExpansion>(expansionUrl(mediaType, externalRef, options)),
 
-    return request<SourceExpansion>(`/media-types/${mediaType}/expansion?${params.toString()}`)
-  },
+  preview: (mediaType: string, externalRef: string, options: SourceOptions = {}) =>
+    request<SourcePreview>(expansionUrl(mediaType, externalRef, options, true)),
 
   createFromSource: (input: {
     mediaType: string

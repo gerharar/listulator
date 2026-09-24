@@ -643,6 +643,22 @@ describe('search and import from a source', () => {
       expect((await harness.app.inject({ method: 'GET', url: '/api/lists' })).json()).toEqual([])
     })
 
+    it('returns the items themselves only when asked (task 10.15, Preview)', async () => {
+      const items = [
+        { title: 'A', year: 2001, timeToConsumeMinutes: 30, group: 'Season 1' },
+        { title: 'B' },
+      ]
+      harness = withAdapter(fakeAdapter({ expand: async () => ({ items, status: 'ongoing' as const }) }))
+
+      // Counts are asked for on every result, so the plain call stays small.
+      expect((await expansion('externalRef=ref-1')).json()).not.toHaveProperty('items')
+
+      const preview = await expansion('externalRef=ref-1&items=true')
+      expect(preview.statusCode).toBe(200)
+      expect(preview.json()).toEqual({ itemCount: 2, status: 'ongoing', items })
+      expect((await harness.app.inject({ method: 'GET', url: '/api/lists' })).json()).toEqual([])
+    })
+
     it('omits status when the adapter reports none', async () => {
       harness = withAdapter(fakeAdapter())
 

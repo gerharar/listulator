@@ -98,6 +98,17 @@ describe('expanding a search result without creating it', () => {
     return fetchMock
   }
 
+  it('asks the expansion route for the items too when previewing', async () => {
+    respondWith({ itemCount: 1, items: [{ title: 'A' }] }, 200)
+
+    const result = await api.preview('music', 'artist-1', { includeEp: true })
+
+    expect(vi.mocked(fetch).mock.calls[0]?.[0]).toBe(
+      '/api/media-types/music/expansion?externalRef=artist-1&includeEp=true&items=true',
+    )
+    expect(result.items).toEqual([{ title: 'A' }])
+  })
+
   it('asks the expansion route for the ref and returns count and status', async () => {
     const fetchMock = stubFetch({ itemCount: 12, status: 'ongoing' })
 

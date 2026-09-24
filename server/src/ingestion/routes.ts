@@ -228,6 +228,8 @@ export const ingestionRoutes: FastifyPluginAsync<IngestionRoutesOptions> = async
       includeSingle?: boolean
       includeLive?: boolean
       includeCompilation?: boolean
+      /** Preview (task 10.15): also return the items, not just the count. */
+      items?: boolean
     }
   }>(
     '/media-types/:key/expansion',
@@ -244,6 +246,7 @@ export const ingestionRoutes: FastifyPluginAsync<IngestionRoutesOptions> = async
             includeSingle: { type: 'boolean' },
             includeLive: { type: 'boolean' },
             includeCompilation: { type: 'boolean' },
+            items: { type: 'boolean' },
           },
         },
       },
@@ -254,7 +257,7 @@ export const ingestionRoutes: FastifyPluginAsync<IngestionRoutesOptions> = async
       const mediaType = mediaTypes.get(request.params.key)
       if (!mediaType) return reply.callNotFound()
 
-      const { externalRef, ...options } = request.query
+      const { externalRef, items: withItems, ...options } = request.query
 
       try {
         const { items, status } = await expandSource(
@@ -264,7 +267,11 @@ export const ingestionRoutes: FastifyPluginAsync<IngestionRoutesOptions> = async
           new Set(mediaTypes.list().map((entry) => entry.key)),
         )
 
-        return { itemCount: items.length, ...(status ? { status } : {}) }
+        return {
+          itemCount: items.length,
+          ...(status ? { status } : {}),
+          ...(withItems ? { items } : {}),
+        }
       } catch (cause) {
         if (cause instanceof SourceUnavailableError) {
           return sendApiError(reply, 409, 'search.unavailable', { category: mediaType.label })
