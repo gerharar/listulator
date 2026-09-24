@@ -1,0 +1,14 @@
+/* design-system `.q-error-strip`, ported from bundle.css. No red: red means destroy. */
+.q-error-strip {
+  min-height: 56px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 0 14px;
+  border: 1px solid var(--line);
+  background: var(--fill);
+  font-size: 14px;
+}
+.q-error-strip > span {
+  flex: 1;
+}

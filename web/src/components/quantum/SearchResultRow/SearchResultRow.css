@@ -1,0 +1,84 @@
+/* design-system SearchResultRow, ported from bundle.css (.q-result / .q-result-more). */
+.q-result {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 11px 4px 11px 6px;
+  border-bottom: 1px solid var(--line);
+  cursor: pointer;
+}
+.q-result:hover {
+  background: var(--hover);
+}
+.q-result .chev {
+  flex: none;
+  display: flex;
+  justify-content: center;
+  width: 12px;
+  color: var(--ink3);
+}
+.q-result[aria-expanded='true'] .chev {
+  color: var(--ink);
+}
+.q-result .main {
+  flex: 1;
+  min-width: 0;
+}
+.q-result .line1 {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+}
+.q-result .title {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font: 500 15px/1.25 var(--font-sans);
+}
+.q-result .meta {
+  display: block;
+  margin-top: 4px;
+  font-size: 13px;
+  color: var(--ink2);
+}
+.q-result .n {
+  flex: none;
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+  min-width: 24px;
+  justify-content: flex-end;
+  font: 500 14px/1 var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+.q-result .n .q-spinner {
+  align-self: center;
+}
+.q-result-more {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  padding: 0 16px 14px 34px;
+  background: var(--hover);
+  border-bottom: 1px solid var(--line);
+}
+.q-result-more .desc {
+  font: 400 13.5px/1.5 var(--font-sans);
+  color: var(--ink2);
+}
+.q-result-more .prov {
+  font: 500 11.5px/1 var(--font-mono);
+  color: var(--ink3);
+}
+.q-result-more .unavailable {
+  font: 400 12.5px/1.4 var(--font-sans);
+  color: var(--ink3);
+}
+.q-result-more .actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 2px;
+}

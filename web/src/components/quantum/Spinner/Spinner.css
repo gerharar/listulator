@@ -1,0 +1,16 @@
+/* design-system `.q-spinner`, ported from bundle.css. */
+.q-spinner {
+  display: block;
+  flex: none;
+  width: 15px;
+  height: 15px;
+  border: 2px solid var(--line);
+  border-top-color: var(--ink);
+  border-radius: 50%;
+  animation: q-spin 0.7s linear infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .q-spinner {
+    animation-duration: 2.4s;
+  }
+}

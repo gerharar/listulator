@@ -316,6 +316,29 @@ export const en = {
       countTitle: 'Lists already on this shelf',
       closeLabel: 'Close',
     },
+    search: {
+      queryLabel: (source: string): string => `Search ${source}`,
+      searchButton: 'Search',
+      resultsCount: (n: number): string =>
+        `${n} ${selectPlural(n, 'en', { one: 'result', other: 'results' })}`,
+      itemsKicker: 'items',
+      countLoading: 'Counting items…',
+      expandRow: (title: string): string => `Show details for ${title}`,
+      previewButton: 'Preview',
+      addButton: 'Add list',
+      /** Preview needs the Preview layer, which lands in task 10.15. */
+      previewComingSoon: 'Preview is coming soon',
+      /** A source that cannot list its items before import (design: "Preview degrades honestly"). */
+      previewUnavailable:
+        "This source can't list its items before import. Add the list — deleting a wrong one costs a click.",
+      curatedTitle: 'Curated list',
+      curatedProvenance: 'Curated · kept by hand in the community library',
+      sourceProvenance: (source: string): string => `From ${source}`,
+      importing: 'Building the list…',
+      searching: 'Searching…',
+      retry: 'Retry',
+      dismiss: 'Dismiss',
+    },
     createList: {
       title: (category: string): string => `New ${category} list`,
       searchTab: (source: string): string => `Search ${source}`,
