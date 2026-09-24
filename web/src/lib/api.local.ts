@@ -62,6 +62,10 @@ import { getLocalCurrentUser } from './db/localUser.js'
 import { toMediaTypeInfo } from '../../../server/src/ingestion/mediaTypes.js'
 import { refForAdapter } from '../../../server/src/ingestion/sourceRef.js'
 import {
+  createExpansionCache,
+  expansionCacheKey,
+} from '../../../server/src/ingestion/expansionCache.js'
+import {
   expandSource,
   SourceUnavailableError,
   UnsafeSourceError,
@@ -156,6 +160,8 @@ async function localSuggest(
 
 export function createLocalApi(): ApiClient {
   let db: LocalDatabase | undefined
+  // The desktop app's process is the cache's lifetime — see expansionCache.ts.
+  const expansions = createExpansionCache()
 
   async function getDb(): Promise<LocalDatabase> {
     db ??= await createLocalDb()
@@ -215,6 +221,7 @@ export function createLocalApi(): ApiClient {
         externalRef,
         options,
         new Set(mediaTypes.map((entry) => entry.key)),
+        expansions,
       )
 
       return { items, status }
@@ -498,7 +505,11 @@ export function createLocalApi(): ApiClient {
 
       // Expanded before the list is created, so a failure upstream does not
       // leave an empty list behind.
-      const { items: candidates, status } = await mediaType.adapter.expand(adapterRef)
+      const cacheKey = expansionCacheKey(key, adapterRef)
+      const adapter = mediaType.adapter
+      const { items: candidates, status } = await expansions.get(cacheKey, () =>
+        adapter.expand(adapterRef),
+      )
       if (candidates.length === 0) {
         throw new ApiError(copy.errors['list.sourceEmpty']({ title }), 422, 'list.sourceEmpty')
       }
@@ -540,6 +551,9 @@ export function createLocalApi(): ApiClient {
       // never drift from what's actually in list_items.
       const createdItems = await findListItems(database, userId, list.id)
       await createListSnapshot(database, list.id, createdItems ?? [])
+
+      // The list exists now; another add of this source should see upstream then.
+      expansions.evict(cacheKey)
 
       const withStats = await findListWithStats(database, userId, list.id)
       return toMediaList(withStats!)

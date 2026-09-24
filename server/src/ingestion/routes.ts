@@ -24,6 +24,7 @@ import {
   searchLibrary,
   type ParsedCustomList,
 } from './customLists.js'
+import { expansionCacheKey, createExpansionCache } from './expansionCache.js'
 import { IngestionError } from './http.js'
 import { listsDropDir as defaultListsDropDir, scanListsDropFolder } from './listsDropFolder.js'
 import type { AppDatabase } from '../db/client.js'
@@ -54,6 +55,9 @@ export const ingestionRoutes: FastifyPluginAsync<IngestionRoutesOptions> = async
   app,
   { db, mediaTypes, listsDropDir },
 ) => {
+  // One per app instance, so tests and servers never share it (task 10.15).
+  const expansions = createExpansionCache()
+
   /**
    * Shared by `/lists/from-file`, `/lists/scan-folder`, and
    * `/lists/from-canonical` — creates a list and its items from an
@@ -265,6 +269,7 @@ export const ingestionRoutes: FastifyPluginAsync<IngestionRoutesOptions> = async
           externalRef,
           options,
           new Set(mediaTypes.list().map((entry) => entry.key)),
+          expansions,
         )
 
         return {
@@ -392,7 +397,11 @@ export const ingestionRoutes: FastifyPluginAsync<IngestionRoutesOptions> = async
 
       // Expanded before the list is created, so a failure upstream does not
       // leave an empty list behind.
-      const { items: candidates, status } = await mediaType.adapter.expand(adapterRef)
+      const cacheKey = expansionCacheKey(key, adapterRef)
+      const adapter = mediaType.adapter
+      const { items: candidates, status } = await expansions.get(cacheKey, () =>
+        adapter.expand(adapterRef),
+      )
       if (candidates.length === 0) {
         return sendApiError(reply, 422, 'list.sourceEmpty', { title })
       }
@@ -437,6 +446,10 @@ export const ingestionRoutes: FastifyPluginAsync<IngestionRoutesOptions> = async
       // never drift from what's actually in `list_items`.
       const createdItems = await findListItems(db, user.id, list.id)
       await createListSnapshot(db, list.id, createdItems ?? [])
+
+      // The list exists now; another add of this source should see upstream
+      // as it is then, not this answer.
+      expansions.evict(cacheKey)
 
       return reply.code(201).send(await findListWithStats(db, user.id, list.id))
     },

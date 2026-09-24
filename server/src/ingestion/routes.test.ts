@@ -676,6 +676,87 @@ describe('search and import from a source', () => {
       expect(expand).toHaveBeenNthCalledWith(2, 'artist-1:ep,live')
     })
 
+    describe('sharing one upstream fetch (task 10.15)', () => {
+      const fromSource = (payload: Record<string, unknown> = {}) =>
+        harness.app.inject({
+          method: 'POST',
+          url: '/api/lists/from-source',
+          payload: { mediaType: 'music', externalRef: 'artist-1', title: 'Artist', ...payload },
+        })
+
+      it('expands a source once for a count and a Preview', async () => {
+        const expand = vi.fn(async () => ({ items: [{ title: 'A' }] }))
+        harness = withAdapter(fakeAdapter({ expand }))
+
+        await expansion('externalRef=artist-1')
+        await expansion('externalRef=artist-1&items=true')
+
+        expect(expand).toHaveBeenCalledTimes(1)
+      })
+
+      it('keeps sources and options apart', async () => {
+        const expand = vi.fn(async () => ({ items: [{ title: 'A' }] }))
+        harness = withAdapter(fakeAdapter({ expand }))
+
+        await expansion('externalRef=artist-1')
+        await expansion('externalRef=artist-2')
+        await expansion('externalRef=artist-1&includeLive=true')
+
+        expect(expand).toHaveBeenCalledTimes(3)
+      })
+
+      it('lets Add list reuse what the count and Preview fetched', async () => {
+        const expand = vi.fn(async () => ({ items: [{ title: 'A' }, { title: 'B' }] }))
+        harness = withAdapter(fakeAdapter({ expand }))
+
+        await expansion('externalRef=artist-1&items=true')
+        const created = await fromSource()
+
+        expect(created.statusCode).toBe(201)
+        expect(expand).toHaveBeenCalledTimes(1)
+        const list = await harness.app.inject({
+          method: 'GET',
+          url: `/api/lists/${created.json().id}`,
+        })
+        expect(list.json().items.map((item: { title: string }) => item.title)).toEqual(['A', 'B'])
+      })
+
+      it('forgets the source once a list has been made from it', async () => {
+        // A second add of the same source should see upstream as it is now.
+        const expand = vi.fn(async () => ({ items: [{ title: 'A' }] }))
+        harness = withAdapter(fakeAdapter({ expand }))
+
+        await fromSource()
+        await fromSource()
+
+        expect(expand).toHaveBeenCalledTimes(2)
+      })
+
+      it('does not remember a failed expansion', async () => {
+        const expand = vi
+          .fn()
+          .mockRejectedValueOnce(new IngestionError('MusicBrainz is busy'))
+          .mockResolvedValueOnce({ items: [{ title: 'A' }] })
+        harness = withAdapter(fakeAdapter({ expand }))
+
+        expect((await expansion('externalRef=artist-1')).statusCode).toBe(502)
+        expect((await expansion('externalRef=artist-1')).statusCode).toBe(200)
+      })
+
+      it('never serves a refresh from it: refresh exists to see upstream now', async () => {
+        const expand = vi.fn(async () => ({ items: [{ title: 'A' }] }))
+        harness = withAdapter(fakeAdapter({ expand }))
+        const created = (await fromSource()).json()
+        expand.mockClear()
+
+        await expansion('externalRef=artist-1')
+        await harness.app.inject({ method: 'POST', url: `/api/lists/${created.id}/refresh` })
+
+        // One for the (uncached-after-eviction) count, one for the refresh itself.
+        expect(expand).toHaveBeenCalledTimes(2)
+      })
+    })
+
     it('says search is unavailable when the category has no usable adapter', async () => {
       harness = withAdapter(fakeAdapter({ isAvailable: () => false }))
 

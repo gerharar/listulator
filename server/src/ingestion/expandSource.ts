@@ -3,6 +3,7 @@ import {
   expandCanonicalList,
   isSafeCanonicalPath,
 } from './customLists.js'
+import { expansionCacheKey, type ExpansionCache } from './expansionCache.js'
 import type { ListExpansion, MediaType } from './mediaTypes.js'
 import { refForAdapter, type SourceOptions } from './sourceRef.js'
 
@@ -29,7 +30,8 @@ export class UnsafeSourceError extends Error {
  * Preview will widen to show the items themselves.
  *
  * Shared by the server route and the standalone app so the two cannot
- * drift. A canonical (community-library) result is fetched and parsed
+ * drift. With a `cache`, an adapter expansion is shared with whatever else
+ * asks for the same source shortly after (Preview, Add list). A canonical (community-library) result is fetched and parsed
  * directly; anything else goes through the category's adapter with the same
  * ref an import would use, so the count shown is the count Add list makes.
  */
@@ -38,6 +40,7 @@ export async function expandSource(
   externalRef: string,
   options: SourceOptions,
   validCategories: ReadonlySet<string>,
+  cache?: ExpansionCache,
 ): Promise<ListExpansion> {
   const canonicalPath = canonicalPathFromExternalRef(externalRef)
 
@@ -48,5 +51,12 @@ export async function expandSource(
 
   if (!mediaType.adapter?.isAvailable()) throw new SourceUnavailableError(mediaType.label)
 
-  return mediaType.adapter.expand(refForAdapter(externalRef, options))
+  const adapter = mediaType.adapter
+  const adapterRef = refForAdapter(externalRef, options)
+
+  // Only adapter expansions are remembered: they are the ones that cost many
+  // upstream requests. A curated list is one small file.
+  return cache
+    ? cache.get(expansionCacheKey(mediaType.key, adapterRef), () => adapter.expand(adapterRef))
+    : adapter.expand(adapterRef)
 }
