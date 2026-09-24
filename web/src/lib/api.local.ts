@@ -58,6 +58,12 @@ import { ApiError } from './api.js'
 import { createLocalDb, type LocalDatabase } from './db/localDb.js'
 import { getLocalCurrentUser } from './db/localUser.js'
 import { toMediaTypeInfo } from '../../../server/src/ingestion/mediaTypes.js'
+import { refForAdapter } from '../../../server/src/ingestion/sourceRef.js'
+import {
+  expandSource,
+  SourceUnavailableError,
+  UnsafeSourceError,
+} from '../../../server/src/ingestion/expandSource.js'
 import { getLocalMediaTypes } from './ingestion/localMediaTypes.js'
 import { loadLocalStrategy } from './suggestions/localStrategies.js'
 
@@ -330,19 +336,55 @@ export function createLocalApi(): ApiClient {
       if (!mediaType) throw notFound()
 
       const trimmed = query.trim()
-      if (!trimmed) throw new ApiError(copy.errors['search.queryRequired'](), 400)
+      if (!trimmed) throw new ApiError(copy.errors['search.queryRequired'](), 400, 'search.queryRequired')
 
       const canonicalMatches = await searchCanonicalLists(mediaTypeKey, trimmed)
 
       if (!mediaType.adapter?.isAvailable()) {
         if (canonicalMatches.length === 0) {
-          throw new ApiError(copy.errors['search.unavailable']({ category: mediaType.label }), 409)
+          throw new ApiError(copy.errors['search.unavailable']({ category: mediaType.label }), 409, 'search.unavailable')
         }
         return { sources: canonicalMatches }
       }
 
       return {
         sources: [...canonicalMatches, ...(await mediaType.adapter.search(trimmed, options))],
+      }
+    },
+
+    expansion: async (mediaTypeKey, externalRef, options = {}) => {
+      const mediaTypes = await getLocalMediaTypes()
+      const mediaType = mediaTypes.find((entry) => entry.key === mediaTypeKey)
+      if (!mediaType) throw notFound()
+
+      try {
+        const { items, status } = await expandSource(
+          mediaType,
+          externalRef,
+          options,
+          new Set(mediaTypes.map((entry) => entry.key)),
+        )
+
+        return { itemCount: items.length, ...(status ? { status } : {}) }
+      } catch (cause) {
+        if (cause instanceof SourceUnavailableError) {
+          throw new ApiError(
+            copy.errors['search.unavailable']({ category: mediaType.label }),
+            409,
+            'search.unavailable',
+          )
+        }
+        if (cause instanceof UnsafeSourceError) {
+          throw new ApiError(
+            errorMessage('list.fileInvalid') ?? 'list.fileInvalid',
+            400,
+            'list.fileInvalid',
+          )
+        }
+        if (cause instanceof CustomListParseError) {
+          throw new ApiError(errorMessage(cause.code, cause.params) ?? cause.code, 400, cause.code)
+        }
+        throw cause
       }
     },
 
@@ -360,14 +402,14 @@ export function createLocalApi(): ApiClient {
       const [database, userId] = [await getDb(), await getUserId()]
 
       const mediaType = (await getLocalMediaTypes()).find((entry) => entry.key === key)
-      if (!mediaType) throw new ApiError(copy.errors['list.unknownCategory']({ key }), 400)
+      if (!mediaType) throw new ApiError(copy.errors['list.unknownCategory']({ key }), 400, 'list.unknownCategory')
 
       // A canonical-repo search result — reuses 7.2's parser/import path
       // entirely, same as server/src/ingestion/routes.ts's /lists/from-source.
       const canonicalPath = canonicalPathFromExternalRef(externalRef)
       if (canonicalPath) {
         if (!isSafeCanonicalPath(canonicalPath)) {
-          throw new ApiError(errorMessage('list.fileInvalid') ?? 'list.fileInvalid', 400)
+          throw new ApiError(errorMessage('list.fileInvalid') ?? 'list.fileInvalid', 400, 'list.fileInvalid')
         }
 
         const mediaTypes = await getLocalMediaTypes()
@@ -380,7 +422,7 @@ export function createLocalApi(): ApiClient {
           )
         } catch (cause) {
           if (cause instanceof CustomListParseError) {
-            throw new ApiError(errorMessage(cause.code, cause.params) ?? cause.code, 400)
+            throw new ApiError(errorMessage(cause.code, cause.params) ?? cause.code, 400, cause.code)
           }
           throw cause
         }
@@ -417,47 +459,32 @@ export function createLocalApi(): ApiClient {
       }
 
       if (!mediaType.adapter?.isAvailable()) {
-        throw new ApiError(copy.errors['search.unavailable']({ category: mediaType.label }), 409)
+        throw new ApiError(copy.errors['search.unavailable']({ category: mediaType.label }), 409, 'search.unavailable')
       }
 
-      // Mirrors server/src/ingestion/routes.ts's /lists/from-source — the
-      // language filter (and its "include unknown" flag) become part of
-      // the stored ref, so checkForUpdates (this file's mirror of
-      // /lists/:listId/refresh) replays the same filter later with no
-      // changes of its own. The music discography-type toggles follow the
-      // same technique, gated on whether the GUI actually sent them.
-      const musicFacets =
-        includeEp !== undefined ||
-        includeSingle !== undefined ||
-        includeLive !== undefined ||
-        includeCompilation !== undefined
-          ? [
-              (includeEp ?? true) && 'ep',
-              (includeSingle ?? true) && 'single',
-              includeLive && 'live',
-              includeCompilation && 'compilation',
-            ].filter((facet): facet is string => facet !== false)
-          : null
-
-      const refForAdapter =
-        language && language !== 'all'
-          ? `${externalRef}:${language}${includeUnknown ? ':unknown' : ''}`
-          : musicFacets
-            ? `${externalRef}:${musicFacets.join(',')}`
-            : externalRef
+      // Mirrors server/src/ingestion/routes.ts's /lists/from-source: the filters
+      // become part of the stored ref (see `refForAdapter`).
+      const adapterRef = refForAdapter(externalRef, {
+        ...(language !== undefined ? { language } : {}),
+        ...(includeUnknown !== undefined ? { includeUnknown } : {}),
+        ...(includeEp !== undefined ? { includeEp } : {}),
+        ...(includeSingle !== undefined ? { includeSingle } : {}),
+        ...(includeLive !== undefined ? { includeLive } : {}),
+        ...(includeCompilation !== undefined ? { includeCompilation } : {}),
+      })
 
       // Expanded before the list is created, so a failure upstream does not
       // leave an empty list behind.
-      const { items: candidates, status } = await mediaType.adapter.expand(refForAdapter)
+      const { items: candidates, status } = await mediaType.adapter.expand(adapterRef)
       if (candidates.length === 0) {
-        throw new ApiError(copy.errors['list.sourceEmpty']({ title }), 422)
+        throw new ApiError(copy.errors['list.sourceEmpty']({ title }), 422, 'list.sourceEmpty')
       }
 
       const list = await repoCreateList(database, userId, {
         title,
         mediaType: key,
         source: 'api',
-        externalRef: refForAdapter,
+        externalRef: adapterRef,
         // Mirrors server/src/ingestion/routes.ts: status only where the
         // adapter has an honest signal (BL-013); arrived_* mirrors it (D4).
         status: status ?? null,
@@ -507,7 +534,7 @@ export function createLocalApi(): ApiClient {
         parsed = parseCustomList(yaml, new Set(mediaTypes.map((entry) => entry.key)))
       } catch (cause) {
         if (cause instanceof CustomListParseError) {
-          throw new ApiError(errorMessage(cause.code, cause.params) ?? cause.code, 400)
+          throw new ApiError(errorMessage(cause.code, cause.params) ?? cause.code, 400, cause.code)
         }
         throw cause
       }
@@ -549,7 +576,7 @@ export function createLocalApi(): ApiClient {
       if (!list) throw notFound()
 
       if (!list.externalRef) {
-        throw new ApiError(copy.errors['refresh.handMadeList'](), 409)
+        throw new ApiError(copy.errors['refresh.handMadeList'](), 409, 'refresh.handMadeList')
       }
 
       // Mirrors server/src/ingestion/routes.ts's /lists/:listId/refresh — a
@@ -561,7 +588,7 @@ export function createLocalApi(): ApiClient {
       let upstream
       if (canonicalPath) {
         if (!isSafeCanonicalPath(canonicalPath)) {
-          throw new ApiError(errorMessage('list.fileInvalid') ?? 'list.fileInvalid', 400)
+          throw new ApiError(errorMessage('list.fileInvalid') ?? 'list.fileInvalid', 400, 'list.fileInvalid')
         }
 
         const localMediaTypes = await getLocalMediaTypes()
@@ -572,7 +599,7 @@ export function createLocalApi(): ApiClient {
           )
         } catch (cause) {
           if (cause instanceof CustomListParseError) {
-            throw new ApiError(errorMessage(cause.code, cause.params) ?? cause.code, 400)
+            throw new ApiError(errorMessage(cause.code, cause.params) ?? cause.code, 400, cause.code)
           }
           throw cause
         }

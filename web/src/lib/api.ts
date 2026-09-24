@@ -1,4 +1,5 @@
 import { copy, errorMessage } from '../locale/index.js'
+import type { SourceOptions } from '../../../server/src/ingestion/sourceRef.js'
 import { createLocalApi } from './api.local.js'
 /** Types mirror the server's responses; see server/src/catalog and /ingestion. */
 
@@ -87,10 +88,20 @@ export interface CurrentUser {
   isDefaultLocalUser: boolean
 }
 
+export type { SourceOptions }
+
+export interface SourceExpansion {
+  itemCount: number
+  /** Only when the source has an honest signal for it. */
+  status?: 'complete' | 'ongoing'
+}
+
 export class ApiError extends Error {
   constructor(
     message: string,
     readonly status: number,
+    /** The server's error code (`search.unavailable`, …), when it raised one for the user — lets the UI pick a shape without matching prose. */
+    readonly code?: string,
   ) {
     super(message)
     this.name = 'ApiError'
@@ -98,14 +109,14 @@ export class ApiError extends Error {
 }
 
 /**
- * Turns a failed response into something to show.
+ * Turns a failed response into an `ApiError` to show.
  *
  * Three sources, in order: a code the server raised for the user, whose wording
  * lives in the locale; a `message`, which is what Fastify's own errors carry
  * (schema validation, 404s) and what upstream failures report; then the status
  * on its own.
  */
-async function messageFor(response: Response): Promise<string> {
+async function errorFor(response: Response): Promise<ApiError> {
   const body = (await response.json().catch(() => null)) as {
     code?: string
     params?: Record<string, unknown>
@@ -114,7 +125,11 @@ async function messageFor(response: Response): Promise<string> {
 
   const fromCode = body?.code ? errorMessage(body.code, body.params) : undefined
 
-  return fromCode ?? body?.message ?? copy.request.failed(response.status)
+  return new ApiError(
+    fromCode ?? body?.message ?? copy.request.failed(response.status),
+    response.status,
+    ...(fromCode && body?.code ? [body.code] : []),
+  )
 }
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
@@ -132,7 +147,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   }
 
   if (!response.ok) {
-    throw new ApiError(await messageFor(response), response.status)
+    throw await errorFor(response)
   }
 
   return response.status === 204 ? (undefined as T) : ((await response.json()) as T)
@@ -185,6 +200,16 @@ export interface ApiClient {
     /** Book-category-only GUI options — ignored by every other category. */
     options?: { language?: string; includeUnknown?: boolean },
   ) => Promise<{ sources: ListSourceResult[] }>
+  /**
+   * Expands one search result without creating anything — its item count and,
+   * where the source has an honest signal, its status. Takes the same filters
+   * an import does, so the count is what Add list would produce.
+   */
+  expansion: (
+    mediaType: string,
+    externalRef: string,
+    options?: SourceOptions,
+  ) => Promise<SourceExpansion>
   createFromSource: (input: {
     mediaType: string
     externalRef: string
@@ -314,6 +339,23 @@ export const fetchApi: ApiClient = {
     return request<{ sources: ListSourceResult[] }>(
       `/media-types/${mediaType}/search?${params.toString()}`,
     )
+  },
+
+  expansion: (mediaType: string, externalRef: string, options: SourceOptions = {}) => {
+    const params = new URLSearchParams({ externalRef })
+    if (options.language) params.set('language', options.language)
+    for (const key of [
+      'includeUnknown',
+      'includeEp',
+      'includeSingle',
+      'includeLive',
+      'includeCompilation',
+    ] as const) {
+      const value = options[key]
+      if (value !== undefined) params.set(key, String(value))
+    }
+
+    return request<SourceExpansion>(`/media-types/${mediaType}/expansion?${params.toString()}`)
   },
 
   createFromSource: (input: {

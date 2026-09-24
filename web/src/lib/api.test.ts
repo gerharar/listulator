@@ -63,6 +63,72 @@ describe('turning a failed response into something to show', () => {
     await expect(api.lists()).rejects.toMatchObject({ status: 400, name: 'ApiError' })
     expect(new ApiError('x', 400)).toBeInstanceOf(Error)
   })
+
+  it("keeps the server's error code, so the UI can pick a shape without matching prose", async () => {
+    respondWith({ code: 'search.unavailable', params: { category: 'Movies' } }, 409)
+
+    await expect(api.lists()).rejects.toMatchObject({ code: 'search.unavailable', status: 409 })
+  })
+
+  it('has no code for an error that carried only a message', async () => {
+    respondWith({ message: 'TMDB is rate-limiting us.' }, 502)
+
+    const error = await api.lists().catch((cause: unknown) => cause)
+
+    expect(error).toBeInstanceOf(ApiError)
+    expect((error as ApiError).code).toBeUndefined()
+  })
+
+  it('marks an unreachable server as status 0, distinct from a server that said no', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => {
+        throw new TypeError('Failed to fetch')
+      }),
+    )
+
+    await expect(api.lists()).rejects.toMatchObject({ status: 0 })
+  })
+})
+
+describe('expanding a search result without creating it', () => {
+  function stubFetch(body: unknown) {
+    const fetchMock = vi.fn(async () => new Response(JSON.stringify(body), { status: 200 }))
+    vi.stubGlobal('fetch', fetchMock)
+    return fetchMock
+  }
+
+  it('asks the expansion route for the ref and returns count and status', async () => {
+    const fetchMock = stubFetch({ itemCount: 12, status: 'ongoing' })
+
+    const result = await api.expansion('tv', 'show:1396')
+
+    expect(result).toEqual({ itemCount: 12, status: 'ongoing' })
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/media-types/tv/expansion?externalRef=show%3A1396',
+      expect.anything(),
+    )
+  })
+
+  it("sends the same filters an import would, so the count is the import's count", async () => {
+    const fetchMock = stubFetch({ itemCount: 3 })
+
+    await api.expansion('book', 'author:OL1A', { language: 'eng', includeUnknown: true })
+    await api.expansion('music', 'artist-1', {
+      includeEp: true,
+      includeSingle: false,
+      includeLive: true,
+      includeCompilation: false,
+    })
+
+    const urls = fetchMock.mock.calls.map((call) => (call as unknown as [string])[0])
+    expect(urls[0]).toBe(
+      '/api/media-types/book/expansion?externalRef=author%3AOL1A&language=eng&includeUnknown=true',
+    )
+    expect(urls[1]).toBe(
+      '/api/media-types/music/expansion?externalRef=artist-1&includeEp=true&includeSingle=false&includeLive=true&includeCompilation=false',
+    )
+  })
 })
 
 function stubbedMediaList(overrides: Record<string, unknown> = {}): Record<string, unknown> {

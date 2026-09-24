@@ -27,6 +27,8 @@ import { IngestionError } from './http.js'
 import { listsDropDir as defaultListsDropDir, scanListsDropFolder } from './listsDropFolder.js'
 import type { AppDatabase } from '../db/client.js'
 import { toMediaTypeInfo, type MediaTypeRegistry } from './mediaTypes.js'
+import { expandSource, SourceUnavailableError, UnsafeSourceError } from './expandSource.js'
+import { refForAdapter } from './sourceRef.js'
 import type { List, ListSource, User } from '../db/schema.js'
 
 export interface IngestionRoutesOptions {
@@ -200,6 +202,74 @@ export const ingestionRoutes: FastifyPluginAsync<IngestionRoutesOptions> = async
   })
 
   /**
+   * Expands one search result *without creating anything*: its item count and,
+   * where the source has an honest signal, its production status (task 10.12,
+   * Q11 — the Search tab fetches this for every result after the rows render).
+   * Takes the same filters an import does and expands with the same ref, so
+   * the number shown is the number "Add list" produces. Named for what it
+   * returns rather than "count", so 10.15's Preview can widen it to the items.
+   */
+  app.get<{
+    Params: { key: string }
+    Querystring: {
+      externalRef: string
+      language?: string
+      includeUnknown?: boolean
+      includeEp?: boolean
+      includeSingle?: boolean
+      includeLive?: boolean
+      includeCompilation?: boolean
+    }
+  }>(
+    '/media-types/:key/expansion',
+    {
+      schema: {
+        querystring: {
+          type: 'object',
+          required: ['externalRef'],
+          properties: {
+            externalRef: { type: 'string', minLength: 1 },
+            language: { type: 'string' },
+            includeUnknown: { type: 'boolean' },
+            includeEp: { type: 'boolean' },
+            includeSingle: { type: 'boolean' },
+            includeLive: { type: 'boolean' },
+            includeCompilation: { type: 'boolean' },
+          },
+        },
+      },
+    },
+    async (request, reply) => {
+      getCurrentUser(request)
+
+      const mediaType = mediaTypes.get(request.params.key)
+      if (!mediaType) return reply.callNotFound()
+
+      const { externalRef, ...options } = request.query
+
+      try {
+        const { items, status } = await expandSource(
+          mediaType,
+          externalRef,
+          options,
+          new Set(mediaTypes.list().map((entry) => entry.key)),
+        )
+
+        return { itemCount: items.length, ...(status ? { status } : {}) }
+      } catch (cause) {
+        if (cause instanceof SourceUnavailableError) {
+          return sendApiError(reply, 409, 'search.unavailable', { category: mediaType.label })
+        }
+        if (cause instanceof UnsafeSourceError) return sendApiError(reply, 400, 'list.fileInvalid')
+        if (cause instanceof CustomListParseError) {
+          return sendApiError(reply, 400, cause.code, cause.params)
+        }
+        throw cause
+      }
+    },
+  )
+
+  /**
    * Creates a list from a searched source, importing everything it expands to.
    * One step rather than preview-then-import: the list is trivially deletable,
    * and its items are editable once it exists.
@@ -292,44 +362,21 @@ export const ingestionRoutes: FastifyPluginAsync<IngestionRoutesOptions> = async
         return sendApiError(reply, 409, 'search.unavailable', { category: mediaType.label })
       }
 
-      // The language filter (and its "include unknown" flag) become part
-      // of the *stored* ref, not separate fields — so
-      // /lists/:listId/refresh (which just replays `list.externalRef`
-      // through the same adapter-shaped `expand()`, unchanged) automatically
-      // re-applies the same filter later, with no route or schema changes
-      // needed there. The music discography-type toggles below follow the
-      // exact same technique, and — like the language filter — are gated on
-      // whether the GUI actually sent them, not on `mediaType`: the route
-      // doesn't know or care which category reads these, only MusicBrainz's
-      // adapter does, but plenty of route tests reuse the `music` key as a
-      // generic stand-in category with a fake adapter that doesn't, and
-      // gating on the key would silently rope those into this branch too.
-      const includeEpSent = includeEp !== undefined
-      const includeSingleSent = includeSingle !== undefined
-      const includeLiveSent = includeLive !== undefined
-      const includeCompilationSent = includeCompilation !== undefined
-      const musicFacets =
-        includeEpSent || includeSingleSent || includeLiveSent || includeCompilationSent
-          ? [
-              // EPs and singles on by default, live and compilations off —
-              // confirmed with the user.
-              (includeEp ?? true) && 'ep',
-              (includeSingle ?? true) && 'single',
-              includeLive && 'live',
-              includeCompilation && 'compilation',
-            ].filter((facet): facet is string => facet !== false)
-          : null
-
-      const refForAdapter =
-        language && language !== 'all'
-          ? `${externalRef}:${language}${includeUnknown ? ':unknown' : ''}`
-          : musicFacets
-            ? `${externalRef}:${musicFacets.join(',')}`
-            : externalRef
+      // The language filter and the music discography toggles become part of
+      // the *stored* ref, so /lists/:listId/refresh replays them later with no
+      // route or schema changes — see `refForAdapter` (sourceRef.ts).
+      const adapterRef = refForAdapter(externalRef, {
+        ...(language !== undefined ? { language } : {}),
+        ...(includeUnknown !== undefined ? { includeUnknown } : {}),
+        ...(includeEp !== undefined ? { includeEp } : {}),
+        ...(includeSingle !== undefined ? { includeSingle } : {}),
+        ...(includeLive !== undefined ? { includeLive } : {}),
+        ...(includeCompilation !== undefined ? { includeCompilation } : {}),
+      })
 
       // Expanded before the list is created, so a failure upstream does not
       // leave an empty list behind.
-      const { items: candidates, status } = await mediaType.adapter.expand(refForAdapter)
+      const { items: candidates, status } = await mediaType.adapter.expand(adapterRef)
       if (candidates.length === 0) {
         return sendApiError(reply, 422, 'list.sourceEmpty', { title })
       }
@@ -338,7 +385,7 @@ export const ingestionRoutes: FastifyPluginAsync<IngestionRoutesOptions> = async
         title,
         mediaType: key,
         source: 'api',
-        externalRef: refForAdapter,
+        externalRef: adapterRef,
         // No adapter sets a description. Status is set only where the
         // adapter has an honest signal for it (BL-013); arrived_* mirrors the
         // real columns, so 10.18's Reset restores exactly what arrived (D4).

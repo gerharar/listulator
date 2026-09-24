@@ -601,6 +601,83 @@ describe('search and import from a source', () => {
     expect(read.json().status).toBe('complete')
   })
 
+  describe('GET /media-types/:key/expansion (per-result count and status, task 10.12)', () => {
+    const expansion = (query: string) =>
+      harness.app.inject({ method: 'GET', url: `/api/media-types/music/expansion?${query}` })
+
+    it("returns the source's item count and status without creating anything", async () => {
+      harness = withAdapter(
+        fakeAdapter({
+          expand: async () => ({
+            items: [{ title: 'A' }, { title: 'B' }, { title: 'C' }],
+            status: 'complete' as const,
+          }),
+        }),
+      )
+
+      const response = await expansion('externalRef=ref-1')
+
+      expect(response.statusCode).toBe(200)
+      expect(response.json()).toEqual({ itemCount: 3, status: 'complete' })
+      expect((await harness.app.inject({ method: 'GET', url: '/api/lists' })).json()).toEqual([])
+    })
+
+    it('omits status when the adapter reports none', async () => {
+      harness = withAdapter(fakeAdapter())
+
+      expect((await expansion('externalRef=ref-1')).json()).toEqual({ itemCount: 2 })
+    })
+
+    it('expands with the same ref an import would, so the count matches what Add list produces', async () => {
+      const expand = vi.fn(async () => ({ items: [{ title: 'A' }] }))
+      harness = withAdapter(fakeAdapter({ expand }))
+
+      await expansion('externalRef=author:OL1A&language=eng&includeUnknown=true')
+      await expansion('externalRef=artist-1&includeEp=true&includeSingle=false&includeLive=true')
+
+      expect(expand).toHaveBeenNthCalledWith(1, 'author:OL1A:eng:unknown')
+      expect(expand).toHaveBeenNthCalledWith(2, 'artist-1:ep,live')
+    })
+
+    it('says search is unavailable when the category has no usable adapter', async () => {
+      harness = withAdapter(fakeAdapter({ isAvailable: () => false }))
+
+      const response = await expansion('externalRef=ref-1')
+
+      expect(response.statusCode).toBe(409)
+      expect(response.json().code).toBe('search.unavailable')
+    })
+
+    it('404s for a category that does not exist', async () => {
+      harness = withAdapter(fakeAdapter())
+
+      const response = await harness.app.inject({
+        method: 'GET',
+        url: '/api/media-types/nope/expansion?externalRef=ref-1',
+      })
+
+      expect(response.statusCode).toBe(404)
+    })
+
+    it('requires an externalRef', async () => {
+      harness = withAdapter(fakeAdapter())
+
+      expect((await expansion('')).statusCode).toBe(400)
+    })
+
+    it('reports an upstream failure as a 502, like every other ingestion route', async () => {
+      harness = withAdapter(
+        fakeAdapter({
+          expand: async () => {
+            throw new IngestionError('MusicBrainz is rate-limiting us. Try again in a moment.')
+          },
+        }),
+      )
+
+      expect((await expansion('externalRef=ref-1')).statusCode).toBe(502)
+    })
+  })
+
   it('folds a language filter into the stored ref, so a later refresh replays it', async () => {
     // Book-search-language filtering: the client sends `language` alongside
     // the chosen source, generically for any category (the GUI only ever
@@ -1646,6 +1723,32 @@ describe('refresh support for synced canonical lists (task 7.5)', () => {
   afterEach(async () => {
     await harness.cleanup()
     vi.unstubAllGlobals()
+  })
+
+  it("counts a canonical result's items and reports the file's own status, without importing it", async () => {
+    mockGitHub({
+      [MCU_URL]: {
+        body: 'title: MCU\ncategory: mega\nstatus: ongoing\nitems:\n  - { title: Iron Man }\n  - { title: Thor }\n',
+      },
+    })
+
+    const response = await harness.app.inject({
+      method: 'GET',
+      url: '/api/media-types/mega/expansion?externalRef=canonical:lists/mega/mcu.yaml',
+    })
+
+    expect(response.statusCode).toBe(200)
+    expect(response.json()).toEqual({ itemCount: 2, status: 'ongoing' })
+    expect((await harness.app.inject({ method: 'GET', url: '/api/lists' })).json()).toEqual([])
+  })
+
+  it('rejects a canonical path that is not a safe repo path', async () => {
+    const response = await harness.app.inject({
+      method: 'GET',
+      url: '/api/media-types/mega/expansion?externalRef=canonical:../../etc/passwd',
+    })
+
+    expect(response.statusCode).toBe(400)
   })
 
   it('offers a new item that appeared upstream since import', async () => {
