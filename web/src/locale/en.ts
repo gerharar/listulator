@@ -180,6 +180,12 @@ export const en = {
       `Item ${p.index} has no title, list cannot be imported.`,
     'list.fileItemNotesTooLong': (p: { index: number; max: number }): string =>
       `Item ${p.index}'s notes are over ${p.max} characters, list cannot be imported.`,
+    'group.nameEmpty': (): string => 'A group needs a name.',
+    'group.nameTaken': (): string => 'This list already has a group called that.',
+    'group.notEmpty': (): string =>
+      'Only an empty group can be deleted — move or remove its items first.',
+    'group.orderMismatch': (): string =>
+      'The groups changed since you loaded this list — reload it and try again.',
     'refresh.handMadeList': (): string =>
       'This list was made by hand, so there is nothing to check against.',
     'refresh.searchUnavailable': (p: { category: string }): string =>

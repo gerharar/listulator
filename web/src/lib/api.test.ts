@@ -211,3 +211,64 @@ describe('creating and updating a list', () => {
     expect(updated.status).toBe('ongoing')
   })
 })
+
+describe('group calls (task 10.16)', () => {
+  function stubFetch(body: unknown = {}, status = 200) {
+    const fetchMock = vi.fn(
+      async () => new Response(status === 204 ? null : JSON.stringify(body), { status }),
+    )
+    vi.stubGlobal('fetch', fetchMock)
+    return fetchMock
+  }
+
+  it('creates a group', async () => {
+    const fetchMock = stubFetch({ id: 'g1', name: 'Season 1' })
+
+    expect(await api.createGroup('L1', 'Season 1')).toEqual({ id: 'g1', name: 'Season 1' })
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/lists/L1/groups',
+      expect.objectContaining({ method: 'POST', body: JSON.stringify({ name: 'Season 1' }) }),
+    )
+  })
+
+  it('renames a group', async () => {
+    const fetchMock = stubFetch({ id: 'g1', name: 'New' })
+
+    await api.renameGroup('L1', 'g1', 'New')
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/lists/L1/groups/g1',
+      expect.objectContaining({ method: 'PATCH', body: JSON.stringify({ name: 'New' }) }),
+    )
+  })
+
+  it('deletes a group', async () => {
+    const fetchMock = stubFetch(null, 204)
+
+    await api.deleteGroup('L1', 'g1')
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/lists/L1/groups/g1',
+      expect.objectContaining({ method: 'DELETE' }),
+    )
+  })
+
+  it('reorders the groups', async () => {
+    const fetchMock = stubFetch([{ id: 'g2' }, { id: 'g1' }])
+
+    await api.reorderGroups('L1', ['g2', 'g1'])
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/lists/L1/groups/order',
+      expect.objectContaining({ method: 'PUT', body: JSON.stringify({ groupIds: ['g2', 'g1'] }) }),
+    )
+  })
+
+  it('words the group refusals from the locale', async () => {
+    stubFetch({ code: 'group.nameTaken' }, 409)
+    await expect(api.createGroup('L1', 'x')).rejects.toThrow('already has a group called that')
+
+    stubFetch({ code: 'group.notEmpty' }, 409)
+    await expect(api.deleteGroup('L1', 'g1')).rejects.toThrow('Only an empty group')
+  })
+})

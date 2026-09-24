@@ -33,6 +33,7 @@ import {
 import {
   dismissalTitleKey,
   type List as SchemaList,
+  type ListGroup as SchemaListGroup,
   type ListItem as SchemaListItem,
 } from '../../../server/src/db/schema.js'
 import {
@@ -50,6 +51,7 @@ import { copy, errorMessage } from '../locale/index.js'
 import type {
   ApiClient,
   CurrentUser,
+  ListGroup,
   ListItem,
   MediaList,
   MediaListDetail,
@@ -61,6 +63,17 @@ import { createLocalDb, type LocalDatabase } from './db/localDb.js'
 import { getLocalCurrentUser } from './db/localUser.js'
 import { toMediaTypeInfo } from '../../../server/src/ingestion/mediaTypes.js'
 import { refForAdapter } from '../../../server/src/ingestion/sourceRef.js'
+import {
+  createListGroup,
+  deleteListGroup,
+  findListGroups,
+  GroupNameError,
+  GroupNotEmptyError,
+  GroupReorderMismatchError,
+  renameListGroup,
+  reorderListGroups,
+  seedGroupOrder,
+} from '../../../server/src/catalog/groups.js'
 import {
   createExpansionCache,
   expansionCacheKey,
@@ -113,6 +126,24 @@ function toListItem(item: SchemaListItem): ListItem {
     tags: item.tags,
     notes: item.notes,
   }
+}
+
+/** The API's own refusals for the group repository's errors (mirrors catalog/routes.ts). */
+function groupError(cause: unknown): unknown {
+  const refuse = (status: number, code: 'group.nameEmpty' | 'group.nameTaken' | 'group.notEmpty' | 'group.orderMismatch') =>
+    new ApiError(errorMessage(code) ?? code, status, code)
+
+  if (cause instanceof GroupNameError) {
+    return cause.reason === 'empty' ? refuse(400, 'group.nameEmpty') : refuse(409, 'group.nameTaken')
+  }
+  if (cause instanceof GroupNotEmptyError) return refuse(409, 'group.notEmpty')
+  if (cause instanceof GroupReorderMismatchError) return refuse(400, 'group.orderMismatch')
+
+  return cause
+}
+
+function toListGroup(group: SchemaListGroup): ListGroup {
+  return { id: group.id, listId: group.listId, name: group.name, orderIndex: group.orderIndex }
 }
 
 function toSuggestionPick(suggestion: Suggestion): SuggestionPick {
@@ -269,7 +300,12 @@ export function createLocalApi(): ApiClient {
       if (!list) throw notFound()
 
       const items = (await findListItems(database, userId, id)) ?? []
-      return { ...toMediaList(list), items: items.map(toListItem) } satisfies MediaListDetail
+      const groups = (await findListGroups(database, userId, id)) ?? []
+      return {
+        ...toMediaList(list),
+        items: items.map(toListItem),
+        groups: groups.map(toListGroup),
+      } satisfies MediaListDetail
     },
 
     createList: async (input) => {
@@ -322,6 +358,7 @@ export function createLocalApi(): ApiClient {
         })
         created.push(row!)
       }
+      await seedGroupOrder(database, listId)
 
       return created.map(toListItem)
     },
@@ -365,6 +402,53 @@ export function createLocalApi(): ApiClient {
       } catch (cause) {
         if (cause instanceof ReorderMismatchError) throw new ApiError(cause.message, 400)
         throw cause
+      }
+    },
+
+    // Groups (D3, task 10.16) — the same repository the server's routes call.
+    createGroup: async (listId, name) => {
+      const [database, userId] = [await getDb(), await getUserId()]
+
+      try {
+        const group = await createListGroup(database, userId, listId, name)
+        if (!group) throw notFound()
+        return toListGroup(group)
+      } catch (cause) {
+        throw groupError(cause)
+      }
+    },
+
+    renameGroup: async (listId, groupId, name) => {
+      const [database, userId] = [await getDb(), await getUserId()]
+
+      try {
+        const group = await renameListGroup(database, userId, listId, groupId, name)
+        if (!group) throw notFound()
+        return toListGroup(group)
+      } catch (cause) {
+        throw groupError(cause)
+      }
+    },
+
+    deleteGroup: async (listId, groupId) => {
+      const [database, userId] = [await getDb(), await getUserId()]
+
+      try {
+        if (!(await deleteListGroup(database, userId, listId, groupId))) throw notFound()
+      } catch (cause) {
+        throw groupError(cause)
+      }
+    },
+
+    reorderGroups: async (listId, groupIds) => {
+      const [database, userId] = [await getDb(), await getUserId()]
+
+      try {
+        const groups = await reorderListGroups(database, userId, listId, groupIds)
+        if (!groups) throw notFound()
+        return groups.map(toListGroup)
+      } catch (cause) {
+        throw groupError(cause)
       }
     },
 
@@ -483,6 +567,7 @@ export function createLocalApi(): ApiClient {
             source: 'import',
           })
         }
+        await seedGroupOrder(database, list.id)
 
         const withStats = await findListWithStats(database, userId, list.id)
         return toMediaList(withStats!)
@@ -551,6 +636,7 @@ export function createLocalApi(): ApiClient {
       // never drift from what's actually in list_items.
       const createdItems = await findListItems(database, userId, list.id)
       await createListSnapshot(database, list.id, createdItems ?? [])
+      await seedGroupOrder(database, list.id)
 
       // The list exists now; another add of this source should see upstream then.
       expansions.evict(cacheKey)
@@ -603,6 +689,7 @@ export function createLocalApi(): ApiClient {
           source: 'import',
         })
       }
+      await seedGroupOrder(database, list.id)
 
       const withStats = await findListWithStats(database, userId, list.id)
       return toMediaList(withStats!)

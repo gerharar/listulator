@@ -46,8 +46,19 @@ export interface ListItem {
   notes: string | null
 }
 
+/** A group of a list, as a row of its own (D3, task 10.16): an empty one can exist. */
+export interface ListGroup {
+  id: string
+  listId: string
+  name: string
+  /** Position among the list's groups, from zero. */
+  orderIndex: number
+}
+
 export interface MediaListDetail extends MediaList {
   items: ListItem[]
+  /** In order, empty groups included. */
+  groups: ListGroup[]
 }
 
 export interface MediaType {
@@ -301,6 +312,14 @@ export interface ApiClient {
   ) => Promise<ListItem>
   /** Renumbers the whole list to this exact id order (task 6.7). */
   reorderItems: (listId: string, itemIds: string[]) => Promise<ListItem[]>
+  /** A new, empty group at the end. */
+  createGroup: (listId: string, name: string) => Promise<ListGroup>
+  /** Renames the group and relabels its items. */
+  renameGroup: (listId: string, groupId: string, name: string) => Promise<ListGroup>
+  /** Empty groups only. */
+  deleteGroup: (listId: string, groupId: string) => Promise<void>
+  /** The block order; each group's items move with it. Must name every group once. */
+  reorderGroups: (listId: string, groupIds: string[]) => Promise<ListGroup[]>
   /**
    * "This list was updated" check (task 7.6) — canonical-synced lists only,
    * on-trigger (app open or an explicit "sync now"), never background
@@ -472,6 +491,24 @@ export const fetchApi: ApiClient = {
     request<ListItem[]>(`/lists/${listId}/items/order`, {
       method: 'PUT',
       body: JSON.stringify({ itemIds }),
+    }),
+
+  createGroup: (listId: string, name: string) =>
+    request<ListGroup>(`/lists/${listId}/groups`, { method: 'POST', body: JSON.stringify({ name }) }),
+
+  renameGroup: (listId: string, groupId: string, name: string) =>
+    request<ListGroup>(`/lists/${listId}/groups/${groupId}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ name }),
+    }),
+
+  deleteGroup: (listId: string, groupId: string) =>
+    request<void>(`/lists/${listId}/groups/${groupId}`, { method: 'DELETE' }),
+
+  reorderGroups: (listId: string, groupIds: string[]) =>
+    request<ListGroup[]>(`/lists/${listId}/groups/order`, {
+      method: 'PUT',
+      body: JSON.stringify({ groupIds }),
     }),
 
   checkSyncedListUpdates: () =>
