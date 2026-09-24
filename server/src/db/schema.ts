@@ -208,6 +208,38 @@ export const listItems = sqliteTable(
 )
 
 /**
+ * A list's groups as rows of their own (D3, task 10.16), so an *empty* group
+ * can exist and groups can be renamed and ordered. Until now a group was only
+ * a text label on its items.
+ *
+ * Items keep their `group` label: this table says which groups exist and in
+ * what order, the items say who is in them. `order_index` orders the groups
+ * of one list, from zero. The name is unique per list.
+ */
+export const listGroups = sqliteTable(
+  'list_groups',
+  {
+    id: text('id')
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    listId: text('list_id')
+      .notNull()
+      .references(() => lists.id, { onDelete: 'cascade' }),
+    name: text('name').notNull(),
+    orderIndex: integer('order_index').notNull(),
+    createdAt: integer('created_at', { mode: 'timestamp_ms' })
+      .notNull()
+      .$defaultFn(() => new Date()),
+    updatedAt: integer('updated_at', { mode: 'timestamp_ms' })
+      .notNull()
+      .$defaultFn(() => new Date()),
+  },
+  (table) => [uniqueIndex('list_groups_list_name').on(table.listId, table.name)],
+)
+
+export type ListGroup = typeof listGroups.$inferSelect
+
+/**
  * One list's items exactly as they stood at import time — the "virgin
  * state" "Reset everything" restores to, for `source = 'api' | 'llm'`
  * lists only (D4). Columns mirror `list_items` so it's typed the same way
