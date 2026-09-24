@@ -237,6 +237,11 @@ export function SearchTab({ mediaType, onBuilt }: SearchTabProps) {
             copy.sourceSearch.placeholders[mediaType.key] ?? copy.sourceSearch.defaultPlaceholder
           }
           disabled={building}
+          // A name to look up, not prose: macOS would otherwise underline it and offer grammar fixes.
+          spellCheck={false}
+          autoCorrect="off"
+          autoCapitalize="off"
+          autoComplete="off"
         />
         <Button type="submit" variant="primary" disabled={building || !query.trim()}>
           {text.searchButton}

@@ -326,4 +326,16 @@ describe('SearchTab', () => {
       expect(screen.queryByRole('button', { name: 'Live albums' })).toBeNull()
     })
   })
+
+  it('turns off spellcheck, autocorrect and autocapitalise on the query: it is a name, not prose', () => {
+    renderTab()
+
+    const input = screen.getByLabelText(/^Search /) as HTMLInputElement
+    // macOS' WKWebView otherwise underlines "Cannibal Corpse" and offers grammar fixes.
+    // (jsdom has no `spellcheck` property, so read the attribute React renders.)
+    expect(input.getAttribute('spellcheck')).toBe('false')
+    expect(input.getAttribute('autocorrect')).toBe('off')
+    expect(input.getAttribute('autocapitalize')).toBe('off')
+    expect(input.getAttribute('autocomplete')).toBe('off')
+  })
 })
