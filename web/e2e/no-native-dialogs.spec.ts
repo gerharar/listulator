@@ -11,7 +11,10 @@ import { useHomeFixture } from './fixtures.js'
  * ever fires, which a real engine can detect and grep can't (a dynamically
  * constructed call, a dependency calling it, dead code that still runs).
  */
-test('deleting a list never triggers a native dialog, only the in-app Modal', async ({ page }) => {
+// The Delete list button lived on the old list screen. The new list screen
+// (task 10.20) has no delete until 10.22's ⋯ menu, so this is parked, not
+// dropped: restore it there (docs/DECISIONS.md, "10.20").
+test.fixme('deleting a list never triggers a native dialog, only the in-app Modal', async ({ page }) => {
   await useHomeFixture(page)
   const dialogs: string[] = []
   page.on('dialog', (dialog) => {

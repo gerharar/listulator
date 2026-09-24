@@ -1,13 +1,13 @@
 import './App.css'
 import { useEffect, useState } from 'react'
-import { Route, Routes, useNavigate, useSearchParams } from 'react-router-dom'
+import { Route, Routes, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import type { MediaType } from './lib/api.js'
 import { copy } from './locale/index.js'
 import { resolveInitialTheme } from './lib/theme.js'
 import { getPreferencesStore } from './lib/preferences/store.js'
 import { resolveSkin, setSkin as persistSkin, type Skin } from './lib/preferences/skin.js'
 import { resolveLanguage, type Language } from './lib/preferences/language.js'
-import { ListDetail } from './routes/ListDetail.js'
+import { ListScreen } from './screens/list/ListScreen.js'
 import { CreateList } from './components/quantum/CreateList/CreateList.js'
 import { PreviewLayer } from './components/quantum/PreviewLayer/PreviewLayer.js'
 import { parsePreviewPath } from './lib/preview.js'
@@ -112,6 +112,13 @@ function CreateListRoute({ mediaTypes }: { mediaTypes: MediaType[] }) {
   const [searchParams] = useSearchParams()
 
   return <CreateList mediaTypes={mediaTypes} mediaTypeKey={searchParams.get('mediaType') ?? ''} />
+}
+
+/** The list layer (task 10.20): the list's id rides on the layer's own path. */
+function ListRoute({ mediaTypes }: { mediaTypes: MediaType[] }) {
+  const { listId } = useParams<{ listId: string }>()
+
+  return listId ? <ListScreen key={listId} listId={listId} mediaTypes={mediaTypes} /> : null
 }
 
 /**
@@ -224,7 +231,7 @@ function AppShellBody({ skin, onSkinChange }: AppShellBodyProps) {
                   <Routes>
                     <Route path="/lists/new" element={<CreateListRoute mediaTypes={mediaTypes} />} />
                     <Route path="/lists/preview" element={<PreviewRoute mediaTypes={mediaTypes} />} />
-                    <Route path="/lists/:listId" element={<ListDetail mediaTypes={mediaTypes} />} />
+                    <Route path="/lists/:listId" element={<ListRoute mediaTypes={mediaTypes} />} />
                   </Routes>
                 </LegacyRouteHost>
               )}

@@ -68,9 +68,9 @@ test('after the first-run creation, Home exists again with the new list pushed o
   await expect(page.getByRole('heading', { name: 'My Lists' })).toBeVisible()
   await expect(page.getByText(title)).toBeVisible()
 
-  // Clean up the real list this test created.
-  await page.getByText(title).click()
-  await page.getByRole('button', { name: 'Delete list' }).click()
-  await page.getByRole('button', { name: 'Yes, delete' }).click()
-  await expect(page.getByRole('heading', { name: title })).toBeHidden()
+  // Clean up the real list this test created. (Through the API: the list
+  // screen has no Delete until 10.22.)
+  const all: { id: string; title: string }[] = await (await page.request.get('/api/lists')).json()
+  const id = all.find((entry) => entry.title === title)?.id
+  if (id) await page.request.delete(`/api/lists/${id}`)
 })

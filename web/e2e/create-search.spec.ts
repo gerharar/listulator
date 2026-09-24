@@ -49,7 +49,7 @@ test('searching lists results, loads a count into each row, and Add list opens t
     return route.fulfill({ status: 201, json: LIST_JSON })
   })
   await page.route('**/api/lists/created-1', (route) =>
-    route.fulfill({ json: { ...LIST_JSON, items: [] } }),
+    route.fulfill({ json: { ...LIST_JSON, items: [], groups: [] } }),
   )
 
   await openMusicSearch(page)
@@ -191,7 +191,7 @@ test('Preview lists every item without creating anything; Esc returns to the res
     return route.fulfill({ status: 201, json: LIST_JSON })
   })
   await page.route('**/api/lists/created-1', (route) =>
-    route.fulfill({ json: { ...LIST_JSON, items: [] } }),
+    route.fulfill({ json: { ...LIST_JSON, items: [], groups: [] } }),
   )
 
   await openMusicSearch(page)
