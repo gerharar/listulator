@@ -14,6 +14,7 @@ import { QRoot } from './components/quantum/QRootContext.js'
 import { AppHeader } from './components/quantum/AppHeader/AppHeader.js'
 import { LayerCard } from './components/quantum/LayerCard/LayerCard.js'
 import { Home } from './components/quantum/Home/Home.js'
+import { CategoryPicker } from './components/quantum/CategoryPicker/CategoryPicker.js'
 import { LiveRegionProvider } from './components/quantum/LiveRegion/LiveRegion.js'
 import { ToastProvider } from './components/quantum/Toast/Toast.js'
 import {
@@ -143,20 +144,17 @@ function AppShellBody({ skin, onSkinChange }: AppShellBodyProps) {
         : { id: 'new-list', kind: 'new-list', tabLabel: copy.newList.title, content: to }
 
     if (opts.replace) {
-      // A first-run boot replaces Home's base layer with `new-list` (Home's
-      // own effect, task 10.10) so there's nowhere to pop back to yet. Once
-      // that first list is actually created, a plain replaceTop here would
-      // swap `new-list` for `list` *in place* at index 0 — Home would never
-      // get created at all, permanently unreachable. Seat Home back under
-      // it instead, landing on the same [home, list] shape a normal
-      // push-then-replace (New List reached the ordinary way) already ends
-      // up with.
-      if (layerStack.stack.length === 1) {
-        layerStack.replaceTop(homeLayer())
-        layerStack.push(descriptor)
-      } else {
-        layerStack.replaceTop(descriptor)
-      }
+      // A replace only ever comes from a create layer that just made its list.
+      // Whatever sits under it — the Category picker, and on first run the
+      // picker as the *base* layer with no Home beneath it at all — is
+      // finished with, so land on `[home, list]` either way: a plain
+      // replaceTop would leave the picker under the new list, or (first run)
+      // swap it in place at index 0 so Home would never get created and be
+      // permanently unreachable (docs/DECISIONS.md).
+      const baseIsHome = layerStack.stack[0]?.kind === 'home'
+      layerStack.popToIndex(0)
+      if (!baseIsHome) layerStack.replaceTop(homeLayer())
+      layerStack.push(descriptor)
     } else {
       layerStack.push(descriptor)
     }
@@ -189,6 +187,8 @@ function AppShellBody({ skin, onSkinChange }: AppShellBodyProps) {
             >
               {layer.kind === 'home' ? (
                 <Home onMediaTypesLoaded={setMediaTypes} />
+              ) : layer.kind === 'category-picker' ? (
+                <CategoryPicker mediaTypes={mediaTypes} first={fullIndex === 0} />
               ) : (
                 <LegacyRouteHost path={layer.content} onNavigate={handleLegacyNavigate}>
                   <Routes>

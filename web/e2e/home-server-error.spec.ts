@@ -22,6 +22,9 @@ test('a fully unreachable server shows Home’s ErrorBlock, not the create flow 
 
   await expect(page.getByRole('button', { name: 'Retry' })).toBeVisible({ timeout: 15_000 })
   await expect(page.getByRole('heading', { name: 'New list' })).toBeHidden()
+  await expect(
+    page.getByRole('heading', { name: 'Nothing tracked yet — pick a shelf and fill it' }),
+  ).toBeHidden()
   await expect(page.getByRole('heading', { name: 'My Lists' })).toBeVisible()
 
   await page.unroute('**/api/**')

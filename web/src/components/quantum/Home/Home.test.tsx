@@ -161,14 +161,28 @@ describe('Home', () => {
     await waitFor(() => expect(screen.getByText('Breaking Bad')).not.toBeNull())
   })
 
-  it('a successful zero-lists fetch replaces the base layer with New list — never the create flow after an error', async () => {
+  it('a successful zero-lists fetch replaces the base layer with the Category picker — never after an error', async () => {
     vi.mocked(api.mediaTypes).mockResolvedValue(MEDIA_TYPES)
     vi.mocked(api.lists).mockResolvedValue([])
     vi.mocked(api.checkSyncedListUpdates).mockResolvedValue({ updates: [] })
 
     renderHome()
 
-    await waitFor(() => expect(screen.getByTestId('stack').textContent).toBe('new-list:new-list'))
+    await waitFor(() =>
+      expect(screen.getByTestId('stack').textContent).toBe('category-picker:category-picker'),
+    )
+  })
+
+  it('New List pushes the Category picker on top of Home', async () => {
+    vi.mocked(api.mediaTypes).mockResolvedValue(MEDIA_TYPES)
+    vi.mocked(api.lists).mockResolvedValue([list()])
+    vi.mocked(api.checkSyncedListUpdates).mockResolvedValue({ updates: [] })
+
+    renderHome()
+    await waitFor(() => expect(screen.getByText('Breaking Bad')).not.toBeNull())
+    act(() => screen.getByRole('button', { name: 'New List' }).click())
+
+    expect(screen.getByTestId('stack').textContent).toBe('home:home,category-picker:category-picker')
   })
 
   it('shows the four disabled help buttons, and no others', async () => {

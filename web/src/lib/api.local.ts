@@ -52,7 +52,6 @@ import type {
   ListItem,
   MediaList,
   MediaListDetail,
-  MediaType,
   SuggestionPick,
 } from './api.js'
 import { ApiError } from './api.js'

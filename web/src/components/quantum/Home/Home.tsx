@@ -16,8 +16,13 @@ import type { LayerDescriptor } from '../layerStack/layerStack.js'
 
 type Phase = 'loading' | 'ready' | 'error'
 
-function newListLayer(): LayerDescriptor<string> {
-  return { id: 'new-list', kind: 'new-list', tabLabel: copy.newList.title, content: '/lists/new' }
+function categoryPickerLayer(): LayerDescriptor<string> {
+  return {
+    id: 'category-picker',
+    kind: 'category-picker',
+    tabLabel: copy.quantum.categoryPicker.title,
+    content: '/',
+  }
 }
 
 function listLayer(list: MediaList): LayerDescriptor<string> {
@@ -78,13 +83,12 @@ export function Home({ onMediaTypesLoaded }: HomeProps) {
         onMediaTypesLoaded(fetchedTypes)
 
         if (fetchedLists.length === 0) {
-          // First run: the create flow *is* the base layer (matches the
-          // design prototype's own boot stack, `[{kind:'cats', first:true}]`
-          // — this app's equivalent until 10.11 builds the Category picker).
+          // First run: the Category picker *is* the base layer (matches the
+          // design prototype's own boot stack, `[{kind:'cats', first:true}]`).
           // No way back, because there is nothing yet to go back to. Also
           // reachable by deleting the last remaining list and returning —
           // accepted, not special-cased (docs/DECISIONS.md).
-          layerStack.replaceTop(newListLayer())
+          layerStack.replaceTop(categoryPickerLayer())
           return
         }
 
@@ -187,7 +191,7 @@ export function Home({ onMediaTypesLoaded }: HomeProps) {
           totals.total,
           totals.left > 0 ? formatDuration(totals.left) : null,
         )}
-        onNew={() => layerStack.push(newListLayer())}
+        onNew={() => layerStack.push(categoryPickerLayer())}
       />
 
       {!bannerDismissed && updates.length > 0 && (

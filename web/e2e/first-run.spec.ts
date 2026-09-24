@@ -1,38 +1,36 @@
 import { expect, test } from '@playwright/test'
 
 /**
- * First run (task 10.10): a successful fetch returning zero lists starts on
- * the create flow, with no way back — matching the design prototype's own
- * boot stack, `[{kind:'cats', first:true}]`. Intercepted at the network
+ * First run (tasks 10.10, 10.11): a successful fetch returning zero lists
+ * starts on the Category picker, with no way back — matching the design
+ * prototype's own boot stack, `[{kind:'cats', first:true}]`. Intercepted at the network
  * layer rather than actually emptying the dev database, which every other
  * spec in this suite shares.
  */
-test('a fresh install with zero lists boots straight into New list, with no way back', async ({
+test('a fresh install with zero lists boots straight into the Category picker, with no way back', async ({
   page,
 }) => {
   await page.route('**/api/lists', (route) => route.fulfill({ json: [] }))
 
   await page.goto('/')
 
-  await expect(page.getByRole('heading', { name: 'New list' })).toBeVisible({ timeout: 15_000 })
+  const headline = page.getByRole('heading', {
+    name: 'Nothing tracked yet — pick a shelf and fill it',
+  })
+  await expect(headline).toBeVisible({ timeout: 15_000 })
   await expect(page.getByRole('heading', { name: 'My Lists' })).toBeHidden()
 
-  // New list is the base layer itself here (index 0), not a layer pushed on
-  // top of Home — its own "All lists" link still renders (it doesn't know
-  // it's the base), but `popToIndex(0)` is a no-op at the base by
-  // `layerStack.ts`'s own construction, so clicking it goes nowhere. No
-  // separate "hide the link" logic was added for this — the existing
-  // no-op is what actually makes this "no way back", matching the design
-  // prototype's `canClose:false`.
-  await page.getByRole('link', { name: 'All lists' }).click()
-  await expect(page.getByRole('heading', { name: 'New list' })).toBeVisible()
+  // The picker is the base layer itself (index 0), not a layer pushed on top
+  // of Home — so there is no close button, matching the design prototype's
+  // `canClose:false`.
+  await expect(page.getByRole('button', { name: 'Close' })).toBeHidden()
 })
 
 /**
  * The reset `App.tsx`'s `handleLegacyNavigate` needs after a first-run
- * creation (docs/DECISIONS.md): a plain `replaceTop` would swap `new-list`
- * for `list` *in place* at the base layer, and Home would never get created
- * at all. Only `GET` is intercepted, so the actual `POST /api/lists` this
+ * creation (docs/DECISIONS.md): a plain `replaceTop` would leave the picker
+ * (the base layer) under the new list, and Home would never get created at
+ * all. Only `GET` is intercepted, so the actual `POST /api/lists` this
  * test triggers is a real write against the dev database — cleaned up at
  * the end, the same discipline `no-native-dialogs.spec.ts` uses.
  */
@@ -45,9 +43,15 @@ test('after the first-run creation, Home exists again with the new list pushed o
   })
 
   await page.goto('/')
-  await expect(page.getByRole('heading', { name: 'New list' })).toBeVisible({ timeout: 15_000 })
+  await expect(
+    page.getByRole('heading', { name: 'Nothing tracked yet — pick a shelf and fill it' }),
+  ).toBeVisible({ timeout: 15_000 })
 
   await page.unroute('**/api/lists')
+
+  // Pick the first shelf; the hosted create form (until 10.12) takes it from there.
+  await page.locator('.q-tile').first().click()
+  await expect(page.getByRole('heading', { name: 'New list' })).toBeVisible()
 
   const title = `e2e first-run ${Date.now()}`
   await page.getByLabel('List title').fill(title)
