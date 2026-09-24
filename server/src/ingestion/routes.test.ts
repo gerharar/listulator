@@ -125,6 +125,37 @@ describe('POST /api/lists/:listId/items/import', () => {
     })
   }
 
+  it('makes groups for the labels it is given, in the order they first appear (Add by hand)', async () => {
+    const list = await createList()
+
+    await importItems(
+      list.id,
+      [
+        { title: 'a', group: 'Early' },
+        { title: 'b', group: 'Late' },
+        { title: 'c', group: 'Early' },
+      ],
+      'manual',
+    )
+
+    const detail = await harness.app.inject({ method: 'GET', url: `/api/lists/${list.id}` })
+    expect(detail.json().groups.map((g: { name: string }) => g.name)).toEqual(['Early', 'Late'])
+    // Adding c to Early kept the group together.
+    expect(detail.json().items.map((item: { title: string }) => item.title)).toEqual(['a', 'c', 'b'])
+  })
+
+  it('seeds the group order from the earliest year, like every other import', async () => {
+    const list = await createList()
+
+    await importItems(list.id, [
+      { title: 'later', year: 2010, group: 'Late' },
+      { title: 'earlier', year: 1999, group: 'Early' },
+    ])
+
+    const detail = await harness.app.inject({ method: 'GET', url: `/api/lists/${list.id}` })
+    expect(detail.json().groups.map((g: { name: string }) => g.name)).toEqual(['Early', 'Late'])
+  })
+
   it('adds items in order, in one request', async () => {
     const list = await createList()
 
@@ -721,7 +752,25 @@ describe('search and import from a source', () => {
         expect(list.json().items.map((item: { title: string }) => item.title)).toEqual(['A', 'B'])
       })
 
-      it('forgets the source once a list has been made from it', async () => {
+      it('seeds the groups from a source, oldest first', async () => {
+      harness = withAdapter(
+        fakeAdapter({
+          expand: async () => ({
+            items: [
+              { title: 'later', year: 2010, group: 'Season 2' },
+              { title: 'earlier', year: 1999, group: 'Season 1' },
+            ],
+          }),
+        }),
+      )
+
+      const created = (await fromSource()).json()
+
+      const detail = await harness.app.inject({ method: 'GET', url: `/api/lists/${created.id}` })
+      expect(detail.json().groups.map((g: { name: string }) => g.name)).toEqual(['Season 1', 'Season 2'])
+    })
+
+    it('forgets the source once a list has been made from it', async () => {
         // A second add of the same source should see upstream as it is now.
         const expand = vi.fn(async () => ({ items: [{ title: 'A' }] }))
         harness = withAdapter(fakeAdapter({ expand }))
@@ -1219,6 +1268,20 @@ items:
     const list = await findList(harness.db, userId, response.json().id)
 
     expect(list?.sourceYaml).toBe(yaml)
+  })
+
+  it('makes a group row for every group in the file, oldest first (D3)', async () => {
+    const response = await fromFile(`
+title: Show
+category: tv
+items:
+  - { title: Late, year: 2010, group: Season 2 }
+  - { title: Early, year: 1999, group: Season 1 }
+  - { title: Loose }
+`)
+
+    const detail = await harness.app.inject({ method: 'GET', url: `/api/lists/${response.json().id}` })
+    expect(detail.json().groups.map((g: { name: string }) => g.name)).toEqual(['Season 1', 'Season 2'])
   })
 
   it('refuses a file with no items, rather than making an empty list', async () => {

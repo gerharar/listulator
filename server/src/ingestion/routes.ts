@@ -24,6 +24,7 @@ import {
   searchLibrary,
   type ParsedCustomList,
 } from './customLists.js'
+import { seedGroupOrder } from '../catalog/groups.js'
 import { expansionCacheKey, createExpansionCache } from './expansionCache.js'
 import { IngestionError } from './http.js'
 import { listsDropDir as defaultListsDropDir, scanListsDropFolder } from './listsDropFolder.js'
@@ -104,6 +105,8 @@ export const ingestionRoutes: FastifyPluginAsync<IngestionRoutesOptions> = async
         source: 'import',
       })
     }
+
+    await seedGroupOrder(db, list.id)
 
     return list
   }
@@ -447,6 +450,8 @@ export const ingestionRoutes: FastifyPluginAsync<IngestionRoutesOptions> = async
       const createdItems = await findListItems(db, user.id, list.id)
       await createListSnapshot(db, list.id, createdItems ?? [])
 
+      await seedGroupOrder(db, list.id)
+
       // The list exists now; another add of this source should see upstream
       // as it is then, not this answer.
       expansions.evict(cacheKey)
@@ -759,6 +764,10 @@ export const ingestionRoutes: FastifyPluginAsync<IngestionRoutesOptions> = async
           }),
         )
       }
+
+      // Hand-typed items rarely carry years, so this mostly keeps the order
+      // they were typed in; it is here so every import path seeds the same way.
+      await seedGroupOrder(db, listId)
 
       return reply.code(201).send(created)
     },

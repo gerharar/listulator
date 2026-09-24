@@ -386,9 +386,14 @@ export async function updateListItem(
 ): Promise<ListItem | undefined> {
   if (!(await findListItem(db, userId, listId, itemId))) return undefined
 
+  // Joining a label the list has no group for yet makes one (D3), spelled the
+  // way the list already spells it.
+  const label = typeof patch.group === 'string' ? patch.group.trim() : undefined
+  const group = label ? { group: (await ensureListGroup(db, listId, label)).name } : {}
+
   return await db
     .update(listItems)
-    .set({ ...patch, updatedAt: new Date() })
+    .set({ ...patch, ...group, updatedAt: new Date() })
     .where(and(eq(listItems.id, itemId), eq(listItems.listId, listId)))
     .returning()
     .get()
