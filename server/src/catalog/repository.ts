@@ -1,5 +1,6 @@
 import { and, asc, count, eq, getTableColumns, inArray, max, or, sql } from 'drizzle-orm'
 import type { PortableDatabase } from '../db/client.js'
+import { ensureListGroup, placeNewItem } from './groups.js'
 import {
   dismissalTitleKey,
   dismissedItems,
@@ -328,16 +329,6 @@ export async function reorderListItems(
   return findListItems(db, userId, listId)
 }
 
-async function nextOrderIndex(db: PortableDatabase, listId: string): Promise<number> {
-  const result = await db
-    .select({ highest: max(listItems.orderIndex) })
-    .from(listItems)
-    .where(eq(listItems.listId, listId))
-    .get()
-
-  return (result?.highest ?? -1) + 1
-}
-
 export async function createListItem(
   db: PortableDatabase,
   userId: string,
@@ -346,18 +337,24 @@ export async function createListItem(
 ): Promise<ListItem | undefined> {
   if (!(await findList(db, userId, listId))) return undefined
 
+  // A label gets a group of its own the first time it is used (D3), spelled
+  // the way the list already spells it.
+  const label = input.group?.trim()
+  const group = label ? (await ensureListGroup(db, listId, label)).name : null
+
   return await db
     .insert(listItems)
     .values({
       listId,
       title: input.title,
-      orderIndex: input.orderIndex ?? (await nextOrderIndex(db, listId)),
+      // At the end of its own group (BL-003), not `max + 1` of the whole list.
+      orderIndex: input.orderIndex ?? (await placeNewItem(db, listId, group)),
       timeToConsumeMinutes: input.timeToConsumeMinutes,
       timeToConsumeIsEstimated: input.timeToConsumeIsEstimated ?? true,
       externalRef: input.externalRef ?? null,
       source: input.source ?? 'import',
       year: input.year ?? null,
-      group: input.group ?? null,
+      group,
       tags: input.tags ?? null,
       notes: input.notes ?? null,
     })
