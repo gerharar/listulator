@@ -49,9 +49,11 @@ test('after the first-run creation, Home exists again with the new list pushed o
 
   await page.unroute('**/api/lists')
 
-  // Pick the first shelf; the hosted create form (until 10.12) takes it from there.
+  // Pick the first shelf; the Create layer takes it from there. Add by hand
+  // works with no API key, unlike the Search tab it opens on.
   await page.locator('.q-tile').first().click()
-  await expect(page.getByRole('heading', { name: 'New list' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: /^New .* list$/ })).toBeVisible()
+  await page.getByRole('tab', { name: 'Add by hand' }).click()
 
   const title = `e2e first-run ${Date.now()}`
   await page.getByLabel('List title').fill(title)

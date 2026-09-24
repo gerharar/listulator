@@ -25,6 +25,7 @@ test('deleting a list never triggers a native dialog, only the in-app Modal', as
   const title = `e2e no-native-dialogs ${Date.now()}`
   await page.getByRole('button', { name: 'New List' }).click()
   await page.locator('.q-tile').first().click()
+  await page.getByRole('tab', { name: 'Add by hand' }).click()
   await page.getByLabel('List title').fill(title)
   await page.getByRole('button', { name: 'Create list' }).click()
 

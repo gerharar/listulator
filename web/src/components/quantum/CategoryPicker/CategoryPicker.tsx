@@ -82,8 +82,8 @@ export function CategoryPicker({ mediaTypes, first }: CategoryPickerProps) {
                     id: 'new-list',
                     kind: 'new-list',
                     tabLabel: copy.newList.title,
-                    // Until 10.12's Create layer lands, the hosted old NewList
-                    // takes the chosen category from its query string.
+                    // The Create layer (task 10.12) reads the chosen category
+                    // from its own path's query string.
                     content: `/lists/new?mediaType=${encodeURIComponent(mediaType.key)}`,
                   })
                 }

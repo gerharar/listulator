@@ -1,10 +1,8 @@
 import { useState } from 'react'
-import { Link, useNavigate, useSearchParams } from 'react-router-dom'
-import { CustomListImport } from '../components/CustomListImport.js'
-import { SourceSearch } from '../components/SourceSearch.js'
+import { useNavigate } from 'react-router-dom'
 import { api, type MediaType } from '../lib/api.js'
 import { formatDuration } from '../formatDuration.js'
-import { categoryDescription, categoryLabel, copy } from '../locale/index.js'
+import { copy } from '../locale/index.js'
 
 /** One item per line; blank lines ignored so pasted text needs no tidying. */
 export function parseItemTitles(raw: string): string[] {
@@ -14,31 +12,29 @@ export function parseItemTitles(raw: string): string[] {
     .filter((line) => line.length > 0)
 }
 
-export function NewList({ mediaTypes }: { mediaTypes: MediaType[] }) {
-  const [searchParams] = useSearchParams()
+/**
+ * The Create layer's "Add by hand" tab (design: Add by hand). The category is
+ * already chosen — the Category picker (task 10.11) did that — so this is
+ * only title and items. Replaced by the real Add-by-hand tab in task 10.13.
+ */
+export function ByHandForm({ mediaType }: { mediaType: MediaType | undefined }) {
   const navigate = useNavigate()
 
-  const requested = searchParams.get('mediaType')
-  const [mediaType, setMediaType] = useState(
-    requested && mediaTypes.some((candidate) => candidate.key === requested)
-      ? requested
-      : (mediaTypes[0]?.key ?? ''),
-  )
   const [title, setTitle] = useState('')
   const [itemsText, setItemsText] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
 
-  const category = mediaTypes.find((candidate) => candidate.key === mediaType)
   const titles = parseItemTitles(itemsText)
 
   async function submit(event: React.FormEvent) {
     event.preventDefault()
+    if (!mediaType) return
     setError(null)
     setSaving(true)
 
     try {
-      const list = await api.createList({ title: title.trim(), mediaType })
+      const list = await api.createList({ title: title.trim(), mediaType: mediaType.key })
 
       if (titles.length > 0) {
         await api.importItems(
@@ -58,101 +54,45 @@ export function NewList({ mediaTypes }: { mediaTypes: MediaType[] }) {
   }
 
   return (
-    <>
-      <Link className="back" to="/">
-        {copy.listDetail.back}
-      </Link>
-
-      <div className="page__header">
-        <h1 className="page__title">{copy.newList.title}</h1>
-      </div>
-
+    <form className="panel" onSubmit={(event) => void submit(event)}>
       {error && <p className="notice notice--error">{error}</p>}
+      <div style={{ padding: 'var(--space-4)' }}>
+        <label className="field">
+          <span className="field__label">{copy.newList.listTitleLabel}</span>
+          <input
+            className="input"
+            value={title}
+            onChange={(event) => setTitle(event.target.value)}
+            placeholder={copy.newList.listTitlePlaceholder}
+            required
+            autoFocus
+          />
+        </label>
 
-      <section className="panel">
-        <div style={{ padding: 'var(--space-4)' }}>
-          <label className="field" style={{ marginBottom: 0 }}>
-            <span className="field__label">{copy.newList.categoryLabel}</span>
-            <select
-              className="select"
-              value={mediaType}
-              onChange={(event) => setMediaType(event.target.value)}
-            >
-              {mediaTypes.map((candidate) => (
-                <option key={candidate.key} value={candidate.key}>
-                  {categoryLabel(candidate)}
-                  {candidate.searchAvailable ? '' : copy.newList.noSearchSuffix}
-                </option>
-              ))}
-            </select>
-            {category && categoryDescription(category) && (
-              // Some categories are not self-explanatory from a label alone —
-              // "Mega" least of all. Its own block: hints are inline spans, so
-              // two of them run into one sentence.
-              <p className="field__hint">{categoryDescription(category)}</p>
-            )}
-            <span className="field__hint">{copy.newList.builtInHint}</span>
-          </label>
-        </div>
-      </section>
+        <label className="field">
+          <span className="field__label">{copy.newList.itemsLabel}</span>
+          <textarea
+            className="textarea"
+            value={itemsText}
+            onChange={(event) => setItemsText(event.target.value)}
+            placeholder={copy.newList.itemsPlaceholder}
+          />
+          <span className="field__hint">
+            {titles.length > 0 ? copy.newList.itemCount(titles.length) : copy.newList.itemsOptional}
+            {mediaType
+              ? copy.newList.assumedDuration(formatDuration(mediaType.defaultDurationMinutes))
+              : ''}
+          </span>
+        </label>
 
-      {category?.searchAvailable && (
-        <SourceSearch
-          mediaType={category}
-          onBuilt={(listId) => void navigate(`/lists/${listId}`, { replace: true })}
-        />
-      )}
-
-      <form className="panel" onSubmit={(event) => void submit(event)}>
-        <header className="panel__header">
-          <h2 className="panel__title">
-            {category?.searchAvailable ? copy.newList.orByHandHeading : copy.newList.byHandHeading}
-          </h2>
-        </header>
-        <div style={{ padding: 'var(--space-4)' }}>
-          <label className="field">
-            <span className="field__label">{copy.newList.listTitleLabel}</span>
-            <input
-              className="input"
-              value={title}
-              onChange={(event) => setTitle(event.target.value)}
-              placeholder={copy.newList.listTitlePlaceholder}
-              required
-              autoFocus
-            />
-          </label>
-
-          <label className="field">
-            <span className="field__label">{copy.newList.itemsLabel}</span>
-            <textarea
-              className="textarea"
-              value={itemsText}
-              onChange={(event) => setItemsText(event.target.value)}
-              placeholder={copy.newList.itemsPlaceholder}
-            />
-            <span className="field__hint">
-              {titles.length > 0
-                ? copy.newList.itemCount(titles.length)
-                : copy.newList.itemsOptional}
-              {category
-                ? copy.newList.assumedDuration(formatDuration(category.defaultDurationMinutes))
-                : ''}
-            </span>
-          </label>
-
-          <button
-            className="button button--primary"
-            type="submit"
-            disabled={saving || !title.trim()}
-          >
-            {saving ? copy.newList.creating : copy.newList.create}
-          </button>
-        </div>
-      </form>
-
-      <CustomListImport
-        onImported={(listId) => void navigate(`/lists/${listId}`, { replace: true })}
-      />
-    </>
+        <button
+          className="button button--primary"
+          type="submit"
+          disabled={saving || !title.trim() || !mediaType}
+        >
+          {saving ? copy.newList.creating : copy.newList.create}
+        </button>
+      </div>
+    </form>
   )
 }

@@ -33,7 +33,7 @@ test('New List opens the picker, driven by the live registry rather than the han
   await expect(page.locator('.q-tile.used .q-count-chip')).toHaveText('1')
 })
 
-test('picking a tile opens the create form with that category chosen, and Close returns to Home', async ({
+test('picking a tile opens the Create layer for that category, Esc returns to the picker, and Close returns to Home', async ({
   page,
 }) => {
   await useHomeFixture(page)
@@ -45,6 +45,12 @@ test('picking a tile opens the create form with that category chosen, and Close 
   await page.getByRole('button', { name: 'New List' }).click()
   await page.locator('.q-tile', { hasText: 'Pro Wrestling' }).click()
 
-  await expect(page.getByRole('heading', { name: 'New list' })).toBeVisible()
-  await expect(page.getByLabel('Category')).toHaveValue('wrestling')
+  await expect(page.getByRole('heading', { name: 'New Pro Wrestling list' })).toBeVisible()
+  // Wrestling's real source is Wikipedia, so the Search tab names it.
+  await expect(page.getByRole('tab', { name: 'Search Wikipedia' })).toBeVisible()
+
+  // Esc pops one layer — back to the picker, not all the way home.
+  await page.keyboard.press('Escape')
+  await expect(page.getByRole('heading', { name: 'Pick A Category' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'New Pro Wrestling list' })).toBeHidden()
 })

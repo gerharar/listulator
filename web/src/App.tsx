@@ -1,6 +1,6 @@
 import './App.css'
 import { useEffect, useState } from 'react'
-import { Route, Routes } from 'react-router-dom'
+import { Route, Routes, useSearchParams } from 'react-router-dom'
 import type { MediaType } from './lib/api.js'
 import { copy } from './locale/index.js'
 import { resolveInitialTheme } from './lib/theme.js'
@@ -8,7 +8,7 @@ import { getPreferencesStore } from './lib/preferences/store.js'
 import { resolveSkin, setSkin as persistSkin, type Skin } from './lib/preferences/skin.js'
 import { resolveLanguage, type Language } from './lib/preferences/language.js'
 import { ListDetail } from './routes/ListDetail.js'
-import { NewList } from './routes/NewList.js'
+import { CreateList } from './components/quantum/CreateList/CreateList.js'
 import { Atmosphere } from './components/quantum/Atmosphere/Atmosphere.js'
 import { QRoot } from './components/quantum/QRootContext.js'
 import { AppHeader } from './components/quantum/AppHeader/AppHeader.js'
@@ -105,6 +105,13 @@ function QuantumShell({ initial }: { initial: BootState }) {
   )
 }
 
+/** Reads the category the picker chose off the layer's own path (`/lists/new?mediaType=…`). */
+function CreateListRoute({ mediaTypes }: { mediaTypes: MediaType[] }) {
+  const [searchParams] = useSearchParams()
+
+  return <CreateList mediaTypes={mediaTypes} mediaTypeKey={searchParams.get('mediaType') ?? ''} />
+}
+
 interface AppShellBodyProps {
   skin: Skin
   onSkinChange: (skin: Skin) => void
@@ -117,11 +124,10 @@ function AppShellBody({ skin, onSkinChange }: AppShellBodyProps) {
   // lives here and Home lifts it up once loaded. Empty until then; neither
   // hosted screen is reachable before Home has rendered at least once.
   const [mediaTypes, setMediaTypes] = useState<MediaType[]>([])
-  // The Esc ladder's second rung: nothing is open, so go all the way home.
-  // That skips any intermediate layer — Esc from the create form opened via
-  // the Category picker lands on Home, not back on the picker (current
-  // behaviour, revisit with 10.12's Create layer).
-  useEscLadder(() => layerStack.popToIndex(0))
+  // The Esc ladder's second rung: nothing is open, so pop one layer — the
+  // design prototype's own handler ends in `this.pop()`. Esc from the Create
+  // layer returns to the Category picker; from a layer over Home, to Home.
+  useEscLadder(() => layerStack.pop())
 
   function handleLegacyNavigate(to: string, opts: { replace: boolean }): void {
     const target = parseLegacyPath(to)
@@ -193,7 +199,7 @@ function AppShellBody({ skin, onSkinChange }: AppShellBodyProps) {
               ) : (
                 <LegacyRouteHost path={layer.content} onNavigate={handleLegacyNavigate}>
                   <Routes>
-                    <Route path="/lists/new" element={<NewList mediaTypes={mediaTypes} />} />
+                    <Route path="/lists/new" element={<CreateListRoute mediaTypes={mediaTypes} />} />
                     <Route path="/lists/:listId" element={<ListDetail mediaTypes={mediaTypes} />} />
                   </Routes>
                 </LegacyRouteHost>

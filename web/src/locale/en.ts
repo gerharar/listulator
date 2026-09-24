@@ -316,6 +316,13 @@ export const en = {
       countTitle: 'Lists already on this shelf',
       closeLabel: 'Close',
     },
+    createList: {
+      title: (category: string): string => `New ${category} list`,
+      searchTab: (source: string): string => `Search ${source}`,
+      handTab: 'Add by hand',
+      importTab: 'Import a file',
+      closeLabel: 'Close',
+    },
     home: {
       title: 'My Lists',
       newList: 'New List',
