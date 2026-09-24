@@ -206,6 +206,26 @@ describe('catalog HTTP API', () => {
     ])
   })
 
+  it('reorders a list longer than 5,000 items — the old cap was an unexplained scaffold value', async () => {
+    const list = (await createList()).json()
+    const imported = await harness.app.inject({
+      method: 'POST',
+      url: `/api/lists/${list.id}/items/import`,
+      payload: { items: Array.from({ length: 6000 }, (_, index) => ({ title: `Item ${index}` })) },
+    })
+    const ids: string[] = imported.json().map((item: { id: string }) => item.id)
+
+    const response = await harness.app.inject({
+      method: 'PUT',
+      url: `/api/lists/${list.id}/items/order`,
+      payload: { itemIds: [...ids].reverse() },
+    })
+
+    expect(response.statusCode).toBe(200)
+    expect(response.json()[0].title).toBe('Item 5999')
+    expect(response.json()[5999].title).toBe('Item 0')
+  }, 60_000)
+
   it('rejects a reorder with a mismatched itemIds set', async () => {
     const list = (await createList()).json()
     const first = (await createItem(list.id, { title: 'First' })).json()

@@ -264,13 +264,17 @@ export const catalogRoutes: FastifyPluginAsync<CatalogRoutesOptions> = async (
   app.put<{ Params: ListParams; Body: { itemIds: string[] } }>(
     '/lists/:listId/items/order',
     {
+      bodyLimit: 8 * 1024 * 1024,
       schema: {
         body: {
           type: 'object',
           required: ['itemIds'],
           additionalProperties: false,
           properties: {
-            itemIds: { type: 'array', items: { type: 'string' }, minItems: 1, maxItems: 5000 },
+            // No real limit on a list's length; this only guards against a
+            // wrong request. The ids are the whole list, so the body size is
+            // what actually bounds it (~40 bytes each).
+            itemIds: { type: 'array', items: { type: 'string' }, minItems: 1, maxItems: 100_000 },
           },
         },
       },
