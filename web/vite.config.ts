@@ -1,8 +1,16 @@
-import { defineConfig } from 'vite'
+import { defaultExclude, defineConfig } from 'vitest/config'
 import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
 
 export default defineConfig({
+  // Excludes `e2e/` on top of vitest's own defaults, not instead of them —
+  // an `include` override here once silently dropped `scripts/`'s own test
+  // file from every run (caught by a file-count regression, task 10.9b).
+  // Vitest's default `include` already matches `*.spec.ts` too, and a
+  // `@playwright/test` import crashes `vitest run`.
+  test: {
+    exclude: [...defaultExclude, 'e2e/**'],
+  },
   plugins: [
     react(),
     VitePWA({

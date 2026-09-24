@@ -8,6 +8,9 @@ build/
 
 # Test artifacts
 coverage/
+/web/test-results/
+/web/playwright-report/
+/web/blob-report/
 
 # Local database (never commit personal consumption data)
 *.sqlite
