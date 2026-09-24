@@ -1,0 +1,21 @@
+/* The Create layer's Add-by-hand tab (task 10.13). */
+.q-hand {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  max-width: 640px;
+}
+
+.q-hand-hint {
+  margin: 6px 0 0;
+  color: var(--ink-3, var(--ink-2));
+}
+
+.q-hand-actions {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.q-hand-count {
+  color: var(--ink-2);
+}

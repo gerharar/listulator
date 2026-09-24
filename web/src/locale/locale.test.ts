@@ -57,8 +57,9 @@ describe('locale', () => {
     expect(copy.listDetail.foundCount(3)).toBe('3 entries')
     expect(copy.listDetail.heldBack(1)).toContain('entry you deleted is')
     expect(copy.listDetail.heldBack(2)).toContain('entries you deleted are')
-    expect(copy.newList.itemCount(1)).toBe('1 item.')
-    expect(copy.newList.itemCount(9)).toBe('9 items.')
+    expect(copy.quantum.addByHand.count(1, 0)).toBe('1 item')
+    expect(copy.quantum.addByHand.count(9, 1)).toBe('9 items in 1 group')
+    expect(copy.quantum.addByHand.count(2, 3)).toBe('2 items in 3 groups')
   })
 
   it('has a sentence for every error code the server can send', () => {

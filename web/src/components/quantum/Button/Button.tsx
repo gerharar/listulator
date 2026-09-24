@@ -36,7 +36,9 @@ export function Button({
     .join(' ')
 
   return (
-    <button className={classes} disabled={disabled || busy} {...rest}>
+    // `type="button"` unless asked otherwise: inside a form, a bare button is a
+    // submit, which made ErrorStrip's Retry send the form a second time.
+    <button type="button" className={classes} disabled={disabled || busy} {...rest}>
       {busy ? busyLabel : children}
     </button>
   )

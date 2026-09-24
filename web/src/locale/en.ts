@@ -109,25 +109,6 @@ export const en = {
 
   newList: {
     title: 'New list',
-    createFailed: 'Could not create the list',
-    categoryLabel: 'Category',
-    /** Marks a category you can only fill in by hand. */
-    noSearchSuffix: ' — add by hand',
-    builtInHint:
-      'Categories are built in — if one is missing, it has to be added to the app itself.',
-    byHandHeading: 'Add by hand',
-    orByHandHeading: 'Or add by hand',
-    listTitleLabel: 'List title',
-    listTitlePlaceholder: 'All Jackie Chan movies',
-    itemsLabel: 'Items — one per line',
-    itemsPlaceholder: 'Drunken Master\nPolice Story\nProject A',
-    itemCount: (n: number): string =>
-      `${n} ${selectPlural(n, 'en', { one: 'item', other: 'items' })}.`,
-    itemsOptional: 'Optional — you can add items later.',
-    assumedDuration: (duration: string): string =>
-      ` Each is assumed to take about ${duration}, which you can correct later.`,
-    create: 'Create list',
-    creating: 'Creating…',
   },
 
   sourceSearch: {
@@ -357,6 +338,29 @@ export const en = {
       nothingToImportHeadline: 'Nothing to import',
       retry: 'Retry',
       dismiss: 'Dismiss',
+    },
+    addByHand: {
+      titleLabel: 'List title',
+      titlePlaceholder: 'All Jackie Chan movies',
+      descriptionLabel: 'Description',
+      descriptionPlaceholder: 'Optional',
+      itemsLabel: 'Items — one per line',
+      itemsPlaceholder: 'Early films:\nDrunken Master\nPolice Story\n\nLate films:\nRush Hour',
+      itemsHint: 'A line ending in a colon, or starting with #, opens a group.',
+      statusLabel: 'Status',
+      create: 'Create list',
+      creating: 'Creating…',
+      /** The live count beside Create; groups are only mentioned when there are some. */
+      count: (items: number, groups: number): string => {
+        const itemText = `${items} ${selectPlural(items, 'en', { one: 'item', other: 'items' })}`
+        if (groups === 0) return itemText
+
+        return `${itemText} in ${groups} ${selectPlural(groups, 'en', { one: 'group', other: 'groups' })}`
+      },
+      noItems: 'No items yet — you can add them later.',
+      assumedDuration: (duration: string): string =>
+        `Each is assumed to take about ${duration}, which you can correct later.`,
+      createFailed: 'Could not create the list',
     },
     createList: {
       title: (category: string): string => `New ${category} list`,

@@ -33,6 +33,7 @@ export function StatusPicker({ value, onChange }: StatusPickerProps) {
         {STATUS_PICKER_OPTIONS.map((option) => (
           <button
             key={option.label}
+            type="button"
             aria-pressed={option.value === value}
             onClick={() => onChange(option.value)}
           >
