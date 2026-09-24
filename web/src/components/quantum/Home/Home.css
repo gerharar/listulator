@@ -1,0 +1,102 @@
+/*
+ * My Lists (task 10.10), ported from the design prototype's `viewHome`
+ * template — not a single bundle.css block like most Quantum components,
+ * since Home is a whole screen layout rather than one reusable primitive.
+ * Rendered as a LayerCard's `children` (not its `head`/body split — see
+ * App.tsx): Home owns its own fixed header/banner/help-row and its own
+ * single scrolling region, matching the prototype's `flex:none` header +
+ * `flex:1;overflow:auto` bucket area exactly.
+ */
+.q-home {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+/*
+ * Deliberately not `.q-layer-head` (LayerCard.css) — the prototype's own
+ * Home header uses different values (20/24/16 padding, flex-end alignment,
+ * a 1px `line` rule instead of 2px `rule`), so reusing that class would be
+ * silently wrong, not just differently named.
+ */
+.q-home-head {
+  position: relative;
+  flex: none;
+  padding: 20px 24px 16px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  border-bottom: 1px solid var(--line);
+}
+.q-home-head > :not(.q-plate) {
+  position: relative;
+}
+
+.q-home-title {
+  font-weight: 700;
+  font-size: 24px;
+  line-height: 1.02;
+  letter-spacing: -0.022em;
+  margin: 0;
+}
+.q-home-summary {
+  margin-top: 8px;
+  font: 500 14px/1.25 var(--font-mono);
+  color: var(--headSub);
+  font-variant-numeric: tabular-nums;
+}
+.q-home-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.q-help-row {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  flex-wrap: wrap;
+  padding: 10px 24px;
+  border-bottom: 1px solid var(--line);
+  background: var(--card);
+}
+.q-help-row .q-kicker {
+  margin-right: 3px;
+}
+
+.q-home-body {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 0 24px 24px;
+}
+
+.q-bucket {
+  margin-top: 22px;
+}
+.q-bucket:first-child {
+  margin-top: 0;
+}
+.q-kicker-bar {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding-bottom: 7px;
+  border-bottom: 2px solid var(--rule);
+}
+
+.q-spin {
+  animation: q-spin 0.7s linear infinite;
+}
+@keyframes q-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .q-spin {
+    animation: none;
+  }
+}

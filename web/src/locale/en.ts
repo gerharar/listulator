@@ -45,64 +45,6 @@ export const en = {
     white: 'White',
   },
 
-  overview: {
-    title: 'Your lists',
-    newList: 'New list',
-    loadFailed: 'Could not load lists',
-    firstRun:
-      'Nothing tracked yet. Pick a category and add your first list — all the Jackie Chan movies, a discography, a game franchise. The point is finishing them.',
-    emptyCategory: 'Nothing here yet.',
-    addList: 'Add a list',
-    listCount: (n: number): string =>
-      `${n} ${selectPlural(n, 'en', { one: 'list', other: 'lists' })}`,
-    alsoPrefix: 'also: ',
-    alsoSuffix: ' — nothing tracked in these yet',
-    orphanedTitle: 'Uncategorised',
-    orphanedNote: 'category no longer exists',
-    /** Screen-reader text for the progress bar. */
-    percentComplete: (percent: number): string => `${percent}% complete`,
-    timeLeft: (duration: string): string => `${duration} left`,
-    allDone: 'done',
-    noItems: 'empty',
-    /**
-     * Task 7.6: the "an update is available" notification. Deliberately not
-     * "updated" — the user flagged that as confusing during click-through
-     * ("updated = already changed, so why are you bothering me").
-     */
-    checkUpdates: 'Check for updates',
-    checkingUpdates: 'Checking…',
-    checkUpdatesFailed: 'Could not check for updates',
-    updatedCount: (n: number): string =>
-      n === 1 ? '1 list has an update available: ' : `${n} lists have updates available: `,
-    dismissUpdatesBanner: 'Dismiss',
-    updatedBadge: 'Update available',
-  },
-
-  suggestions: {
-    heading: 'What now?',
-    buttons: {
-      'tired-boss': "I'm tired, boss",
-      suggest: 'Suggest',
-      quickie: 'Quickie',
-    },
-    /** What each button promises, shown with its answer. */
-    promises: {
-      'tired-boss': 'Something else you could actually finish',
-      suggest: 'Something fresh you have been ignoring',
-      quickie: 'The one you can finish soonest',
-    },
-    tiredOfLabel: 'What are you tired of?',
-    submit: 'Show me something else',
-    thinking: 'Thinking…',
-    failed: 'Could not get a suggestion',
-    next: 'Next: ',
-    alternativesPrefix: 'or: ',
-    noneToSwitchTo: 'Nothing else to switch to — every other list is finished or empty.',
-    noneAtAll: 'Nothing to suggest. Every list is finished or empty.',
-    percentDone: (percent: number): string => `${percent}% done`,
-    timeLeft: (duration: string): string => `${duration} left`,
-  },
-
   listDetail: {
     back: '← All lists',
     loadFailed: 'Could not load this list',
@@ -353,6 +295,43 @@ export const en = {
      */
     layerStack: {
       untitledListTab: 'List',
+    },
+    /** Home / My Lists (task 10.10), replacing the old hosted `Overview`. */
+    home: {
+      title: 'My Lists',
+      newList: 'New List',
+      checkForUpdates: 'Check for updates',
+      checkingUpdates: 'Checking…',
+      loadFailed: 'Could not load your lists',
+      retry: 'Retry',
+      listCount: (n: number): string =>
+        `${n} ${selectPlural(n, 'en', { one: 'list', other: 'lists' })}`,
+      /** The mono summary line under the title — `null` time means an empty account, nothing left to say about time. */
+      summary: (listCount: string, done: number, total: number, timeLeft: string | null): string =>
+        timeLeft
+          ? `${listCount} · ${done} of ${total} done · ${timeLeft} left`
+          : `${listCount} · ${done} of ${total} done`,
+      needHelp: 'Need help?',
+      helpButtons: {
+        tiredBoss: "I'm Tired, Boss",
+        finalizer: 'Finalizer',
+        justOneFix: 'Just One Fix',
+        surpriseMe: 'Surprise Me',
+      },
+      /** Until tasks 10.26–10.29 build each one for real — same convention as AppHeader's Settings button. */
+      helpComingSoon: (label: string): string => `${label} is coming soon`,
+      orphanedTitle: 'Uncategorised',
+      orphanedNote: 'category no longer exists',
+      /**
+       * Task 7.6's "an update is available" notification. Deliberately not
+       * "updated" — the user flagged that as confusing during click-through
+       * ("updated = already changed, so why are you bothering me").
+       */
+      updatedCount: (n: number): string =>
+        n === 1 ? '1 list has an update available: ' : `${n} lists have updates available: `,
+      dismissUpdatesBanner: 'Dismiss',
+      /** The automatic on-open check stays silent on failure (see `Home.tsx`) — this is only for the explicit "Check for updates" button, surfaced as a Toast. */
+      checkUpdatesFailed: 'Could not check for updates',
     },
   },
 } as const

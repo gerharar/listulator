@@ -20,9 +20,11 @@ export const ru: DeepPartial<Locale> = {
     loading: 'Загрузка…',
     unknownError: 'Что-то пошло не так',
   },
-  overview: {
-    listCount: (n: number): string =>
-      `${n} ${selectPlural(n, 'ru', { one: 'список', few: 'списка', many: 'списков', other: 'списка' })}`,
+  quantum: {
+    home: {
+      listCount: (n: number): string =>
+        `${n} ${selectPlural(n, 'ru', { one: 'список', few: 'списка', many: 'списков', other: 'списка' })}`,
+    },
   },
   duration: {
     minutes: (m: number): string =>

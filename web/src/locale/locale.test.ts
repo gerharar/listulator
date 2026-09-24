@@ -42,8 +42,8 @@ describe('locale', () => {
   it('gets the singular and plural branches right', () => {
     // English needs two forms; other languages need more. Keeping them in the
     // locale is what stops each surface inventing its own rule.
-    expect(copy.overview.listCount(1)).toBe('1 list')
-    expect(copy.overview.listCount(2)).toBe('2 lists')
+    expect(copy.quantum.home.listCount(1)).toBe('1 list')
+    expect(copy.quantum.home.listCount(2)).toBe('2 lists')
     expect(copy.listDetail.foundCount(1)).toBe('1 entry')
     expect(copy.listDetail.foundCount(3)).toBe('3 entries')
     expect(copy.listDetail.heldBack(1)).toContain('entry you deleted is')

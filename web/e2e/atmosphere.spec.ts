@@ -8,7 +8,7 @@ import { expect, test } from '@playwright/test'
  */
 test.beforeEach(async ({ page }) => {
   await page.goto('/')
-  await expect(page.getByRole('heading', { name: 'Your lists' })).toBeVisible({ timeout: 15_000 })
+  await expect(page.getByRole('heading', { name: 'My Lists' })).toBeVisible({ timeout: 15_000 })
 })
 
 test('the atmosphere stays fixed when the page scrolls', async ({ page }) => {
@@ -52,7 +52,7 @@ test('reduced transparency drops the atmosphere to its plain treatment', async (
     features: [{ name: 'prefers-reduced-transparency', value: 'reduce' }],
   })
   await page.reload()
-  await expect(page.getByRole('heading', { name: 'Your lists' })).toBeVisible({ timeout: 15_000 })
+  await expect(page.getByRole('heading', { name: 'My Lists' })).toBeVisible({ timeout: 15_000 })
 
   // Confirm the emulation actually survived the reload before trusting
   // anything that follows from it.

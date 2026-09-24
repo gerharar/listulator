@@ -15,9 +15,11 @@ export const de: DeepPartial<Locale> = {
     loading: 'Lädt…',
     unknownError: 'Etwas ist schiefgelaufen',
   },
-  overview: {
-    listCount: (n: number): string =>
-      `${n} ${selectPlural(n, 'de', { one: 'Liste', other: 'Listen' })}`,
+  quantum: {
+    home: {
+      listCount: (n: number): string =>
+        `${n} ${selectPlural(n, 'de', { one: 'Liste', other: 'Listen' })}`,
+    },
   },
   duration: {
     minutes: (m: number): string =>

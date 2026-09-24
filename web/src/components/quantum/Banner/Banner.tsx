@@ -1,0 +1,23 @@
+import './Banner.css'
+import type { ReactNode } from 'react'
+import { Button } from '../Button/Button.js'
+
+export interface BannerProps {
+  /** The one sentence — a bold name inside 400 prose. Composed by the caller: Home links several updated lists, a list links one. */
+  children: ReactNode
+  onDismiss: () => void
+  /** "Dismiss" on Home; a list's own banner uses a different action label entirely (design-system/components/Banner) — not built until that screen needs it. */
+  dismissLabel: string
+}
+
+/** A full-width line under a header, for news about the content — optional, dismissible, never blocking (design-system/components/Banner). */
+export function Banner({ children, onDismiss, dismissLabel }: BannerProps) {
+  return (
+    <div className="q-banner">
+      <span>{children}</span>
+      <Button variant="ghost" size="sm" onClick={onDismiss}>
+        {dismissLabel}
+      </Button>
+    </div>
+  )
+}

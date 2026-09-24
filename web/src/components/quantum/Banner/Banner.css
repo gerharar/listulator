@@ -1,0 +1,17 @@
+/*
+ * design-system/components/Banner, ported from bundle.css
+ * (design-system/components/bundle.css lines ~284-285).
+ */
+.q-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 11px 24px;
+  background: var(--fill);
+  border-bottom: 1px solid var(--line);
+  font-size: 14px;
+}
+.q-banner b {
+  font-weight: 600;
+}

@@ -1,19 +1,19 @@
 import './App.css'
 import { useEffect, useState } from 'react'
 import { Route, Routes } from 'react-router-dom'
-import { api, type MediaType } from './lib/api.js'
+import type { MediaType } from './lib/api.js'
 import { copy } from './locale/index.js'
 import { resolveInitialTheme } from './lib/theme.js'
 import { getPreferencesStore } from './lib/preferences/store.js'
 import { resolveSkin, setSkin as persistSkin, type Skin } from './lib/preferences/skin.js'
 import { resolveLanguage, type Language } from './lib/preferences/language.js'
-import { Overview } from './routes/Overview.js'
 import { ListDetail } from './routes/ListDetail.js'
 import { NewList } from './routes/NewList.js'
 import { Atmosphere } from './components/quantum/Atmosphere/Atmosphere.js'
 import { QRoot } from './components/quantum/QRootContext.js'
 import { AppHeader } from './components/quantum/AppHeader/AppHeader.js'
 import { LayerCard } from './components/quantum/LayerCard/LayerCard.js'
+import { Home } from './components/quantum/Home/Home.js'
 import { LiveRegionProvider } from './components/quantum/LiveRegion/LiveRegion.js'
 import { ToastProvider } from './components/quantum/Toast/Toast.js'
 import {
@@ -31,20 +31,23 @@ import { layerGeometry } from './components/quantum/layerStack/layerGeometry.js'
 import type { LayerDescriptor } from './components/quantum/layerStack/layerStack.js'
 
 function homeLayer(): LayerDescriptor<string> {
-  return { id: 'home', kind: 'home', tabLabel: copy.overview.title, content: '/' }
+  return { id: 'home', kind: 'home', tabLabel: copy.quantum.home.title, content: '/' }
 }
 
 interface BootState {
-  mediaTypes: MediaType[]
   skin: Skin
   language: Language
 }
 
 /**
- * Boots the app: confirms the server is reachable, loads the media-type
- * registry, and resolves the skin/language preferences — all before the
- * first `.q-root` frame, so it never flashes the default skin or English
- * before correcting itself (task 10.9).
+ * Boots the app: resolves the skin/language preferences before the first
+ * `.q-root` frame, so it never flashes the default skin or English before
+ * correcting itself (task 10.9). Deliberately does **not** also confirm the
+ * server's reachable or load the media-type registry any more (task 10.10)
+ * — both are local reads (`getPreferencesStore`) that don't depend on the
+ * server, so this boot can't itself hit the "server's down" case Q13 cares
+ * about. `Home` now owns that fetch, so a stopped server renders Home's own
+ * `ErrorBlock` inside the mounted shell, not a bare pre-shell paragraph.
  */
 export function App() {
   const [boot, setBoot] = useState<BootState | null>(null)
@@ -52,16 +55,16 @@ export function App() {
 
   useEffect(() => {
     // The old six-theme system has no UI any more, but it still styles
-    // every hosted old screen (Overview/ListDetail/NewList) — keep applying
-    // it silently until checkpoint 10E removes the last of those screens.
+    // every hosted old screen (ListDetail/NewList) — keep applying it
+    // silently until checkpoint 10E removes the last of those screens.
     document.documentElement.dataset['theme'] = resolveInitialTheme(
       typeof localStorage === 'undefined' ? undefined : localStorage,
       window.matchMedia('(prefers-color-scheme: dark)').matches,
     )
 
     const store = getPreferencesStore()
-    Promise.all([api.me(), api.mediaTypes(), resolveSkin(store), resolveLanguage(store)])
-      .then(([, mediaTypes, skin, language]) => setBoot({ mediaTypes, skin, language }))
+    Promise.all([resolveSkin(store), resolveLanguage(store)])
+      .then(([skin, language]) => setBoot({ skin, language }))
       .catch((cause: unknown) =>
         setError(cause instanceof Error ? cause.message : copy.app.unknownError),
       )
@@ -91,11 +94,7 @@ function QuantumShell({ initial }: { initial: BootState }) {
           <OverlayManagerProvider>
             <LanguageProvider initialLanguage={initial.language}>
               <LayerStackProvider home={homeLayer()}>
-                <AppShellBody
-                  skin={skin}
-                  onSkinChange={handleSkinChange}
-                  mediaTypes={initial.mediaTypes}
-                />
+                <AppShellBody skin={skin} onSkinChange={handleSkinChange} />
               </LayerStackProvider>
             </LanguageProvider>
           </OverlayManagerProvider>
@@ -108,11 +107,15 @@ function QuantumShell({ initial }: { initial: BootState }) {
 interface AppShellBodyProps {
   skin: Skin
   onSkinChange: (skin: Skin) => void
-  mediaTypes: MediaType[]
 }
 
-function AppShellBody({ skin, onSkinChange, mediaTypes }: AppShellBodyProps) {
+function AppShellBody({ skin, onSkinChange }: AppShellBodyProps) {
   const layerStack = useLayerStack()
+  // `Home` is the only thing that fetches the registry (task 10.10) — the
+  // still-hosted legacy screens (List detail, New list) need it too, so it
+  // lives here and Home lifts it up once loaded. Empty until then; neither
+  // hosted screen is reachable before Home has rendered at least once.
+  const [mediaTypes, setMediaTypes] = useState<MediaType[]>([])
   // The Esc ladder's second rung: nothing is open, so go all the way home —
   // there's no intermediate "pop one" screen to land on yet (that's what a
   // real Quantum List-detail-inside-Category-inside-Home chain gets at 10.11+).
@@ -139,8 +142,24 @@ function AppShellBody({ skin, onSkinChange, mediaTypes }: AppShellBodyProps) {
           }
         : { id: 'new-list', kind: 'new-list', tabLabel: copy.newList.title, content: to }
 
-    if (opts.replace) layerStack.replaceTop(descriptor)
-    else layerStack.push(descriptor)
+    if (opts.replace) {
+      // A first-run boot replaces Home's base layer with `new-list` (Home's
+      // own effect, task 10.10) so there's nowhere to pop back to yet. Once
+      // that first list is actually created, a plain replaceTop here would
+      // swap `new-list` for `list` *in place* at index 0 — Home would never
+      // get created at all, permanently unreachable. Seat Home back under
+      // it instead, landing on the same [home, list] shape a normal
+      // push-then-replace (New List reached the ordinary way) already ends
+      // up with.
+      if (layerStack.stack.length === 1) {
+        layerStack.replaceTop(homeLayer())
+        layerStack.push(descriptor)
+      } else {
+        layerStack.replaceTop(descriptor)
+      }
+    } else {
+      layerStack.push(descriptor)
+    }
   }
 
   return (
@@ -168,13 +187,16 @@ function AppShellBody({ skin, onSkinChange, mediaTypes }: AppShellBodyProps) {
               onTabClick={() => layerStack.popToIndex(fullIndex)}
               onVeilClick={() => layerStack.pop()}
             >
-              <LegacyRouteHost path={layer.content} onNavigate={handleLegacyNavigate}>
-                <Routes>
-                  <Route path="/" element={<Overview mediaTypes={mediaTypes} />} />
-                  <Route path="/lists/new" element={<NewList mediaTypes={mediaTypes} />} />
-                  <Route path="/lists/:listId" element={<ListDetail mediaTypes={mediaTypes} />} />
-                </Routes>
-              </LegacyRouteHost>
+              {layer.kind === 'home' ? (
+                <Home onMediaTypesLoaded={setMediaTypes} />
+              ) : (
+                <LegacyRouteHost path={layer.content} onNavigate={handleLegacyNavigate}>
+                  <Routes>
+                    <Route path="/lists/new" element={<NewList mediaTypes={mediaTypes} />} />
+                    <Route path="/lists/:listId" element={<ListDetail mediaTypes={mediaTypes} />} />
+                  </Routes>
+                </LegacyRouteHost>
+              )}
             </LayerCard>
           )
         })}

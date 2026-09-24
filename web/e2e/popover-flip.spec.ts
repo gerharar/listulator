@@ -13,7 +13,7 @@ test.beforeEach(async ({ page }) => {
   // deterministic rather than viewport-size-dependent.
   await page.setViewportSize({ width: 800, height: 600 })
   await page.goto('/')
-  await expect(page.getByRole('heading', { name: 'Your lists' })).toBeVisible({ timeout: 15_000 })
+  await expect(page.getByRole('heading', { name: 'My Lists' })).toBeVisible({ timeout: 15_000 })
 })
 
 test('flips to the left when the anchor has no room to open right', async ({ page }) => {
@@ -45,7 +45,7 @@ test('Esc closes the popover first, and leaves a pushed layer in place — a sec
   // The "sharpest acceptance check" from task 10.9's own write-up
   // (tasks/plan.md), re-verified here under a real engine now that a real
   // popover exists to click through.
-  await page.getByRole('link', { name: 'New list' }).click()
+  await page.getByRole('button', { name: 'New List' }).click()
   await expect(page.getByRole('heading', { name: 'New list' })).toBeVisible()
 
   await page.getByRole('button', { name: 'Skin' }).click()

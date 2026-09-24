@@ -37,7 +37,7 @@ describe('LanguageProvider', () => {
   it('falls back to English for a key ru has not translated yet — mounting straight into ru', () => {
     function ReadsUntranslatedKey() {
       const copy = useCopy()
-      return <span>{copy.overview.title}</span>
+      return <span>{copy.quantum.home.title}</span>
     }
 
     render(
@@ -46,7 +46,7 @@ describe('LanguageProvider', () => {
       </LanguageProvider>,
     )
 
-    expect(screen.getByText('Your lists')).not.toBeNull()
+    expect(screen.getByText('My Lists')).not.toBeNull()
   })
 
   it('useLanguage throws outside a LanguageProvider — same guard as the other context hooks', () => {

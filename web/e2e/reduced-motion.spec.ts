@@ -11,9 +11,9 @@ test('a pushed layer drums in, and re-seats the layer it covers, under normal mo
   page,
 }) => {
   await page.goto('/')
-  await expect(page.getByRole('heading', { name: 'Your lists' })).toBeVisible({ timeout: 15_000 })
+  await expect(page.getByRole('heading', { name: 'My Lists' })).toBeVisible({ timeout: 15_000 })
 
-  await page.getByRole('link', { name: 'New list' }).click()
+  await page.getByRole('button', { name: 'New List' }).click()
 
   const entering = page.locator('.q-layer.enter')
   await expect(entering).toHaveCount(1)
@@ -29,9 +29,9 @@ test('a pushed layer drums in, and re-seats the layer it covers, under normal mo
 test('reduced motion cuts both the drum-in and the re-seat transition', async ({ page }) => {
   await page.emulateMedia({ reducedMotion: 'reduce' })
   await page.goto('/')
-  await expect(page.getByRole('heading', { name: 'Your lists' })).toBeVisible({ timeout: 15_000 })
+  await expect(page.getByRole('heading', { name: 'My Lists' })).toBeVisible({ timeout: 15_000 })
 
-  await page.getByRole('link', { name: 'New list' }).click()
+  await page.getByRole('button', { name: 'New List' }).click()
 
   const entering = page.locator('.q-layer.enter')
   await expect(entering).toHaveCount(1)

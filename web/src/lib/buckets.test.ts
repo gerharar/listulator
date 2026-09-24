@@ -1,18 +1,22 @@
 import { describe, expect, it } from 'vitest'
 import type { MediaList, MediaType } from './api.js'
-import { buildBuckets, findOrphanedLists } from './buckets.js'
+import { buildBuckets, findOrphanedLists, listMark } from './buckets.js'
 
 function mediaType(key: string, sortOrder: number): MediaType {
   return { key, label: key.toUpperCase(), sortOrder, defaultDurationMinutes: 30, searchAvailable: false }
 }
 
-function list(id: string, mediaTypeKey: string): MediaList {
+function list(
+  id: string,
+  mediaTypeKey: string,
+  source: MediaList['source'] = 'manual',
+): MediaList {
   return {
     id,
     title: `List ${id}`,
     description: null,
     mediaType: mediaTypeKey,
-    source: 'manual',
+    source,
     externalRef: null,
     status: null,
     createdAt: '2026-01-01T00:00:00.000Z',
@@ -81,5 +85,21 @@ describe('findOrphanedLists', () => {
 
   it('finds nothing when every category is known', () => {
     expect(findOrphanedLists([list('a', 'movie')], CATEGORIES)).toEqual([])
+  })
+})
+
+describe('listMark', () => {
+  it('marks a canonical list as curated', () => {
+    expect(listMark(list('a', 'movie', 'canonical'))).toBe('curated')
+  })
+
+  it('marks a manual list as by-hand', () => {
+    expect(listMark(list('a', 'movie', 'manual'))).toBe('byHand')
+  })
+
+  it('marks an api/llm/file-synced list as neither', () => {
+    expect(listMark(list('a', 'movie', 'api'))).toBeNull()
+    expect(listMark(list('a', 'movie', 'llm'))).toBeNull()
+    expect(listMark(list('a', 'movie', 'file'))).toBeNull()
   })
 })

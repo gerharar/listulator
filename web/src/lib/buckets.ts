@@ -51,3 +51,16 @@ export function findOrphanedLists(lists: MediaList[], mediaTypes: MediaType[]): 
 
   return lists.filter((list) => !known.has(list.mediaType))
 }
+
+/**
+ * A HomeRow's leading mark, derived from `source` — display-only, nothing
+ * stored (tasks/plan.md's compatibility table: "Derivable from `lists.source`
+ * (`canonical` / `manual`)"). `api`/`llm`/`file`-synced lists get neither
+ * mark; only the community library (`canonical`) and a fully hand-typed list
+ * (`manual`) are either kept by hand or made by hand.
+ */
+export function listMark(list: MediaList): 'curated' | 'byHand' | null {
+  if (list.source === 'canonical') return 'curated'
+  if (list.source === 'manual') return 'byHand'
+  return null
+}

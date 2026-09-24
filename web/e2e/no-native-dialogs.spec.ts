@@ -18,10 +18,10 @@ test('deleting a list never triggers a native dialog, only the in-app Modal', as
   })
 
   await page.goto('/')
-  await expect(page.getByRole('heading', { name: 'Your lists' })).toBeVisible({ timeout: 15_000 })
+  await expect(page.getByRole('heading', { name: 'My Lists' })).toBeVisible({ timeout: 15_000 })
 
   const title = `e2e no-native-dialogs ${Date.now()}`
-  await page.getByRole('link', { name: 'New list' }).click()
+  await page.getByRole('button', { name: 'New List' }).click()
   await page.getByLabel('List title').fill(title)
   await page.getByRole('button', { name: 'Create list' }).click()
 
@@ -31,7 +31,7 @@ test('deleting a list never triggers a native dialog, only the in-app Modal', as
   await expect(page.getByText(`Delete "${title}" and all its items?`)).toBeVisible()
   await page.getByRole('button', { name: 'Yes, delete' }).click()
 
-  await expect(page.getByRole('heading', { name: 'Your lists' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'My Lists' })).toBeVisible()
   await expect(page.getByRole('heading', { name: title })).toBeHidden()
 
   expect(dialogs).toEqual([])

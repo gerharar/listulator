@@ -1,0 +1,44 @@
+/*
+ * design-system/components/HomeRow, ported from bundle.css
+ * (design-system/components/bundle.css lines ~155-160).
+ */
+.q-home-row {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 13px 4px;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  background: transparent;
+  color: var(--ink);
+  text-align: left;
+  cursor: pointer;
+  font-family: var(--font-sans);
+}
+.q-home-row:hover {
+  background: var(--fill);
+}
+.q-home-row .name {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+.q-home-row .title {
+  flex: 0 1 auto;
+  min-width: 0;
+  font: 500 15px/1.25 var(--font-sans);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.q-home-row .q-count {
+  width: 112px;
+  text-align: right;
+}
+.q-home-row .q-left {
+  width: 114px;
+  text-align: right;
+}
