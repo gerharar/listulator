@@ -362,6 +362,18 @@ export const en = {
         `Each is assumed to take about ${duration}, which you can correct later.`,
       createFailed: 'Could not create the list',
     },
+    list: {
+      loading: 'Loading the list…',
+      loadFailedHeadline: "Can't open this list",
+      retry: 'Retry',
+      empty: 'No items yet.',
+      /** Header actions that arrive with later tasks: shown, disabled, and honest about it. */
+      comingSoon: 'Coming soon',
+      editList: 'Edit list',
+      checkForUpdates: 'Check for updates',
+      order: 'Order',
+      more: 'More',
+    },
     preview: {
       title: 'Preview',
       closeLabel: 'Close',

@@ -1,0 +1,35 @@
+/*
+ * The list spine's rows (task 10.20) — ported from the design system's
+ * bundle.css: ItemRow (.q-item), GroupRow (.q-group), the runtime column and
+ * the year. Class names and values are the design's own.
+ */
+.q-item { position: relative; display: flex; align-items: center; height: 46px; padding: 0 8px 0 4px; border-bottom: 1px solid var(--line); cursor: pointer; }
+.q-item.in-group { padding-left: 30px; }
+.q-item:hover { background: var(--hover); }
+.q-item:focus-visible, .q-group:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.q-item.is-done { background: var(--done); }
+.q-item.is-done .title { color: var(--ink3); text-decoration: line-through; }
+.q-item.dragging, .q-group.dragging { opacity: .4; cursor: grabbing; }
+.q-item.pulse, .q-group.pulse { animation: q-rowPulse 1900ms linear; }
+@media (prefers-reduced-motion: reduce) { .q-item.pulse, .q-group.pulse { animation: none; } }
+@keyframes q-rowPulse { 0%, 21% { background: var(--pulseTint); box-shadow: inset 3px 0 0 var(--accent); } 100% { background: transparent; box-shadow: inset 3px 0 0 transparent; } }
+.q-dropline { position: absolute; left: 0; right: 0; top: -2px; height: 3px; background: var(--accent); z-index: 4; pointer-events: none; }
+.q-dropline.after { top: auto; bottom: -2px; }
+.q-handle { flex: none; width: 24px; height: 46px; display: grid; place-items: center; cursor: grab; color: var(--ink3); font: 500 15px/1 var(--font-mono); letter-spacing: -3px; }
+.q-item .tags { flex: none; display: flex; align-items: center; gap: 6px; margin-right: 12px; }
+.q-item .body { flex: 0 1 auto; min-width: 0; display: flex; align-items: center; gap: 9px; height: 46px; }
+.q-item .tt { flex: 0 1 auto; min-width: 0; display: flex; align-items: baseline; gap: 7px; }
+.q-item .title { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: 400 15px/1.2 var(--font); }
+.q-item .spacer { flex: 1; min-width: 8px; }
+.q-mins { flex: none; margin-left: 14px; width: 7ch; font: 500 12px/1 var(--font-mono); font-variant-numeric: tabular-nums; white-space: nowrap; text-align: right; color: var(--ink2); }
+.q-group { position: sticky; top: 0; z-index: 2; display: flex; align-items: center; gap: 10px; padding: 10px 18px 10px 4px; border-bottom: 1px solid var(--line); background: var(--card); color: var(--ink); cursor: pointer; }
+.q-group.complete { color: var(--ink2); }
+.q-group.complete::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: var(--ink2); }
+.q-group .q-handle { height: 26px; }
+.q-chev { flex: none; width: 20px; text-align: center; font: 500 15px/1 var(--font); color: var(--ink2); transition: transform 140ms ease; }
+.q-group[aria-expanded=false] .q-chev { transform: rotate(-90deg); }
+.q-group .name { flex: 1; min-width: 0; display: flex; align-items: baseline; gap: 7px; }
+.q-group .name b { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: 600 15px/1.15 var(--font); letter-spacing: .01em; }
+.q-group .gcount { flex: none; font: 500 12px/1 var(--font-mono); font-variant-numeric: tabular-nums; color: var(--ink2); }
+.q-group .q-left { font-size: 12px; }
+.q-group .q-left.all-done { font-size: 11px; }
