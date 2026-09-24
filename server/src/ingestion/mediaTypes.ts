@@ -15,6 +15,7 @@ import { createTmdbAdapter } from './adapters/tmdb.js'
 import { createTmdbCompanyAdapter } from './adapters/tmdbCompany.js'
 import { createTmdbFranchiseAdapter } from './adapters/tmdbFranchise.js'
 import { ANIMATION_GENRE, DOCUMENTARY_GENRE, createTmdbTvAdapter } from './adapters/tmdbTv.js'
+import type { ListStatus } from '../db/schema.js'
 import type { FetchLike } from './http.js'
 import type { TmdbCredentialSource } from './adapters/tmdb.js'
 import type { IgdbCredentialSource } from './adapters/igdb.js'
@@ -317,11 +318,22 @@ export interface SearchOptions {
   includeUnknown?: boolean
 }
 
+/**
+ * What `expand()` yields for one source: its items, plus — only when the
+ * upstream genuinely says so — the production status of the thing the list is
+ * about. One call yields both, so a search result's count and status cost one
+ * request (task 10.11b, BL-013). Absent means unknown, never a guess.
+ */
+export interface ListExpansion {
+  items: MediaTypeCandidate[]
+  status?: ListStatus
+}
+
 export interface SearchAdapter {
   /** False when, say, an API key is missing — the UI hides search for it. */
   isAvailable(): boolean
   search(query: string, options?: SearchOptions): Promise<ListSource[]>
-  expand(externalRef: string): Promise<MediaTypeCandidate[]>
+  expand(externalRef: string): Promise<ListExpansion>
 }
 
 export interface MediaType {

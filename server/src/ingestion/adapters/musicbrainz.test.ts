@@ -149,7 +149,7 @@ describe('MusicBrainz adapter', () => {
     // not what someone means by "the discography".
     const adapter = createMusicBrainzAdapter(respondWith(RELEASE_GROUPS))
 
-    expect((await adapter.expand('af8e4cc5')).map((item) => item.title)).toEqual([
+    expect((await adapter.expand('af8e4cc5')).items.map((item) => item.title)).toEqual([
       'Eaten Back to Life',
       'The Bleeding',
       'Bloodthirst',
@@ -159,7 +159,7 @@ describe('MusicBrainz adapter', () => {
   it('populates year from first-release-date, including a partial date', async () => {
     const adapter = createMusicBrainzAdapter(respondWith(RELEASE_GROUPS))
 
-    expect((await adapter.expand('af8e4cc5')).map((item) => [item.title, item.year])).toEqual([
+    expect((await adapter.expand('af8e4cc5')).items.map((item) => [item.title, item.year])).toEqual([
       ['Eaten Back to Life', 1990],
       // 'first-release-date': '1994-03' — a partial date still yields a year.
       ['The Bleeding', 1994],
@@ -170,7 +170,7 @@ describe('MusicBrainz adapter', () => {
   it('tags every studio album ["Album"], not just the opted-in extras', async () => {
     const adapter = createMusicBrainzAdapter(respondWith(RELEASE_GROUPS))
 
-    expect((await adapter.expand('af8e4cc5')).map((item) => item.tags)).toEqual([
+    expect((await adapter.expand('af8e4cc5')).items.map((item) => item.tags)).toEqual([
       ['Album'],
       ['Album'],
       ['Album'],
@@ -183,7 +183,7 @@ describe('MusicBrainz adapter', () => {
     )
 
     const byTitle = new Map(
-      (await adapter.expand('af8e4cc5:ep,single,live,compilation')).map((item) => [
+      (await adapter.expand('af8e4cc5:ep,single,live,compilation')).items.map((item) => [
         item.title,
         item.tags,
       ]),
@@ -203,7 +203,7 @@ describe('MusicBrainz adapter', () => {
     // estimate downstream.
     const adapter = createMusicBrainzAdapter(respondWith(RELEASE_GROUPS))
 
-    for (const item of await adapter.expand('af8e4cc5')) {
+    for (const item of (await adapter.expand('af8e4cc5')).items) {
       expect(item.timeToConsumeMinutes).toBeUndefined()
       expect(item.externalRef).toBeTruthy()
     }
@@ -214,7 +214,7 @@ describe('MusicBrainz adapter', () => {
       respondFilteredByType(RELEASE_GROUPS['release-groups']),
     )
 
-    expect((await adapter.expand('af8e4cc5:ep')).map((item) => item.title)).toEqual([
+    expect((await adapter.expand('af8e4cc5:ep')).items.map((item) => item.title)).toEqual([
       'Eaten Back to Life',
       'The Bleeding',
       'Bloodthirst',
@@ -228,7 +228,7 @@ describe('MusicBrainz adapter', () => {
       respondFilteredByType(RELEASE_GROUPS['release-groups']),
     )
 
-    expect((await adapter.expand('af8e4cc5:single')).map((item) => item.title)).toContain(
+    expect((await adapter.expand('af8e4cc5:single')).items.map((item) => item.title)).toContain(
       'Hammer Smashed Face',
     )
   })
@@ -242,7 +242,7 @@ describe('MusicBrainz adapter', () => {
       respondFilteredByType(RELEASE_GROUPS['release-groups']),
     )
 
-    const titles = (await adapter.expand('af8e4cc5:live')).map((item) => item.title)
+    const titles = (await adapter.expand('af8e4cc5:live')).items.map((item) => item.title)
     expect(titles).toContain('Global Evisceration')
     expect(titles).not.toContain('Live Cannibalism (Sampler)')
   })
@@ -252,7 +252,7 @@ describe('MusicBrainz adapter', () => {
       respondFilteredByType(RELEASE_GROUPS['release-groups']),
     )
 
-    expect((await adapter.expand('af8e4cc5:ep')).map((item) => item.title)).toContain(
+    expect((await adapter.expand('af8e4cc5:ep')).items.map((item) => item.title)).toContain(
       'Live Cannibalism (Sampler)',
     )
   })
@@ -262,7 +262,7 @@ describe('MusicBrainz adapter', () => {
       respondFilteredByType(RELEASE_GROUPS['release-groups']),
     )
 
-    expect((await adapter.expand('af8e4cc5:compilation')).map((item) => item.title)).toContain(
+    expect((await adapter.expand('af8e4cc5:compilation')).items.map((item) => item.title)).toContain(
       'Dead Human Collection',
     )
   })
@@ -288,14 +288,14 @@ describe('MusicBrainz adapter', () => {
   it('handles an artist with no releases', async () => {
     const adapter = createMusicBrainzAdapter(respondWith({ 'release-groups': [] }))
 
-    expect(await adapter.expand('nobody')).toEqual([])
+    expect((await adapter.expand('nobody')).items).toEqual([])
   })
 
   it('survives a response missing the fields entirely', async () => {
     const adapter = createMusicBrainzAdapter(respondWith({}))
 
     expect(await adapter.search('x')).toEqual([])
-    expect(await adapter.expand('x')).toEqual([])
+    expect((await adapter.expand('x')).items).toEqual([])
   })
 
   it('reports rate limiting as something to retry, not a bug', async () => {

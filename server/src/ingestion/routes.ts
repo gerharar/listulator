@@ -134,7 +134,7 @@ export const ingestionRoutes: FastifyPluginAsync<IngestionRoutesOptions> = async
     const dismissed = await findDismissals(db, user.id, list.id)
     const dismissedTitles = new Set(dismissed.map((item) => item.titleKey))
 
-    return upstream.some((candidate) => {
+    return upstream.items.some((candidate) => {
       const titleKey = dismissalTitleKey(candidate.title)
       return !knownTitles.has(titleKey) && !dismissedTitles.has(titleKey)
     })
@@ -329,7 +329,7 @@ export const ingestionRoutes: FastifyPluginAsync<IngestionRoutesOptions> = async
 
       // Expanded before the list is created, so a failure upstream does not
       // leave an empty list behind.
-      const candidates = await mediaType.adapter.expand(refForAdapter)
+      const { items: candidates } = await mediaType.adapter.expand(refForAdapter)
       if (candidates.length === 0) {
         return sendApiError(reply, 422, 'list.sourceEmpty', { title })
       }
@@ -521,6 +521,7 @@ export const ingestionRoutes: FastifyPluginAsync<IngestionRoutesOptions> = async
 
         upstream = await mediaType.adapter.expand(list.externalRef)
       }
+      const upstreamItems = upstream.items
       const existing = (await findListItems(db, user.id, listId)) ?? []
 
       // Matched on the upstream id where there is one, and on title otherwise:
@@ -538,7 +539,7 @@ export const ingestionRoutes: FastifyPluginAsync<IngestionRoutesOptions> = async
       const dismissedRefs = new Set(dismissed.map((item) => item.externalRef).filter(Boolean))
       const dismissedTitles = new Set(dismissed.map((item) => item.titleKey))
 
-      const newItems = upstream.filter((candidate) => {
+      const newItems = upstreamItems.filter((candidate) => {
         const titleKey = dismissalTitleKey(candidate.title)
 
         if (candidate.externalRef && knownRefs.has(candidate.externalRef)) return false
@@ -550,7 +551,7 @@ export const ingestionRoutes: FastifyPluginAsync<IngestionRoutesOptions> = async
 
       return {
         newItems,
-        upstreamCount: upstream.length,
+        upstreamCount: upstreamItems.length,
         existingCount: existing.length,
         dismissedCount: (await findDismissals(db, user.id, listId)).length,
       }

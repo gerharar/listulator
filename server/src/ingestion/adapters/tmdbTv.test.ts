@@ -101,7 +101,7 @@ describe('TMDB television expansion', () => {
   it('expands a show to its episodes, numbered and in order', async () => {
     const adapter = createTmdbTvAdapter(credentials, {}, router(routes))
 
-    expect(await adapter.expand('show:1396')).toEqual([
+    expect((await adapter.expand('show:1396')).items).toEqual([
       { title: 'S01E01 Pilot', timeToConsumeMinutes: 59, year: 2008, group: 'Season 1' },
       {
         title: "S01E02 Cat's in the Bag...",
@@ -121,7 +121,7 @@ describe('TMDB television expansion', () => {
     // "one season has no header" case.
     const adapter = createTmdbTvAdapter(credentials, {}, router(routes))
 
-    expect((await adapter.expand('show:1396')).map((item) => item.group)).toEqual([
+    expect((await adapter.expand('show:1396')).items.map((item) => item.group)).toEqual([
       'Season 1',
       'Season 1',
       'Season 2',
@@ -133,7 +133,7 @@ describe('TMDB television expansion', () => {
     // They are included because people watch them and removing one is a click,
     // while adding a missed one means typing it back in.
     const adapter = createTmdbTvAdapter(credentials, {}, router(routes))
-    const titles = (await adapter.expand('show:1396')).map((item) => item.title)
+    const titles = (await adapter.expand('show:1396')).items.map((item) => item.title)
 
     expect(titles[0]).toBe('S01E01 Pilot')
     expect(titles.at(-1)).toBe('S00E01 A special')
@@ -157,7 +157,7 @@ describe('TMDB television expansion', () => {
     )
 
     // Today counts; the future and the undated do not.
-    expect((await adapter.expand('show:9')).map((item) => item.title)).toEqual([
+    expect((await adapter.expand('show:9')).items.map((item) => item.title)).toEqual([
       'S01E01 Aired',
       'S01E04 Out today',
     ])
@@ -174,7 +174,7 @@ describe('TMDB television expansion', () => {
       }),
     )
 
-    expect(await adapter.expand('show:1396')).toHaveLength(2)
+    expect((await adapter.expand('show:1396')).items).toHaveLength(2)
   })
 
   it('names an episode by number when it has no title', async () => {
@@ -189,14 +189,14 @@ describe('TMDB television expansion', () => {
       }),
     )
 
-    expect((await adapter.expand('show:9'))[0]?.title).toBe('S01E07')
+    expect((await adapter.expand('show:9')).items[0]?.title).toBe('S01E07')
   })
 
   it('refuses refs that are not a numeric show id', async () => {
     const adapter = createTmdbTvAdapter(credentials, {}, router(routes))
 
-    expect(await adapter.expand('show:abc')).toEqual([])
-    expect(await adapter.expand('person:1396')).toEqual([])
+    expect((await adapter.expand('show:abc')).items).toEqual([])
+    expect((await adapter.expand('person:1396')).items).toEqual([])
   })
 
   it('does not request every season at once', async () => {

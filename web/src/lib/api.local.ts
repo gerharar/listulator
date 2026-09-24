@@ -189,7 +189,7 @@ export function createLocalApi(): ApiClient {
     const dismissed = await findDismissals(database, userId, list.id)
     const dismissedTitles = new Set(dismissed.map((item) => item.titleKey))
 
-    return upstream.some((candidate) => {
+    return upstream.items.some((candidate) => {
       const titleKey = dismissalTitleKey(candidate.title)
       return !knownTitles.has(titleKey) && !dismissedTitles.has(titleKey)
     })
@@ -448,7 +448,7 @@ export function createLocalApi(): ApiClient {
 
       // Expanded before the list is created, so a failure upstream does not
       // leave an empty list behind.
-      const candidates = await mediaType.adapter.expand(refForAdapter)
+      const { items: candidates } = await mediaType.adapter.expand(refForAdapter)
       if (candidates.length === 0) {
         throw new ApiError(copy.errors['list.sourceEmpty']({ title }), 422)
       }
@@ -588,6 +588,7 @@ export function createLocalApi(): ApiClient {
 
         upstream = await mediaType.adapter.expand(list.externalRef)
       }
+      const upstreamItems = upstream.items
       const existing = (await findListItems(database, userId, listId)) ?? []
 
       // Matched on the upstream id where there is one, and on title otherwise:
@@ -603,7 +604,7 @@ export function createLocalApi(): ApiClient {
       const dismissedRefs = new Set(dismissed.map((item) => item.externalRef).filter(Boolean))
       const dismissedTitles = new Set(dismissed.map((item) => item.titleKey))
 
-      const newItems = upstream.filter((candidate) => {
+      const newItems = upstreamItems.filter((candidate) => {
         const titleKey = dismissalTitleKey(candidate.title)
 
         if (candidate.externalRef && knownRefs.has(candidate.externalRef)) return false
@@ -615,7 +616,7 @@ export function createLocalApi(): ApiClient {
 
       return {
         newItems,
-        upstreamCount: upstream.length,
+        upstreamCount: upstreamItems.length,
         existingCount: existing.length,
         dismissedCount: (await findDismissals(database, userId, listId)).length,
       }

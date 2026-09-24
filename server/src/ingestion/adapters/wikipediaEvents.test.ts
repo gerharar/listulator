@@ -47,7 +47,7 @@ describe('Wikipedia events expansion', () => {
 
     const adapter = createWikipediaEventsAdapter([UFC], respondWith(wikitext))
 
-    expect(await adapter.expand('promotion:ufc')).toEqual([
+    expect((await adapter.expand('promotion:ufc')).items).toEqual([
       { title: 'UFC 1', year: 1993 },
       { title: 'UFC 2', year: 1994 },
     ])
@@ -75,7 +75,7 @@ describe('Wikipedia events expansion', () => {
 
     const adapter = createWikipediaEventsAdapter([WWE], respondWith(wikitext))
 
-    expect(await adapter.expand('promotion:wwe')).toEqual([
+    expect((await adapter.expand('promotion:wwe')).items).toEqual([
       { title: 'WrestleMania (1985)', year: 1985 },
       { title: 'WrestleMania 2 (1986)', year: 1986 },
     ])
@@ -94,7 +94,7 @@ describe('Wikipedia events expansion', () => {
 
     const adapter = createWikipediaEventsAdapter([UFC], respondWith(wikitext))
 
-    expect(await adapter.expand('promotion:ufc')).toEqual([{ title: 'Some Card' }])
+    expect((await adapter.expand('promotion:ufc')).items).toEqual([{ title: 'Some Card' }])
   })
 
   it('sorts chronologically even when the page lists its year sections out of order', async () => {
@@ -119,7 +119,7 @@ describe('Wikipedia events expansion', () => {
 
     const adapter = createWikipediaEventsAdapter([WWE], respondWith(wikitext))
 
-    expect(await adapter.expand('promotion:wwe')).toEqual([
+    expect((await adapter.expand('promotion:wwe')).items).toEqual([
       { title: 'WrestleMania (1985)', year: 1985 },
       { title: 'WrestleMania 2 (1986)', year: 1986 },
     ])
@@ -147,7 +147,7 @@ describe('Wikipedia events expansion', () => {
 
     const adapter = createWikipediaEventsAdapter([UFC], respondWith(wikitext))
 
-    expect(await adapter.expand('promotion:ufc')).toEqual([
+    expect((await adapter.expand('promotion:ufc')).items).toEqual([
       { title: 'UFC 1', year: 1993 },
       { title: 'Some Card' },
       { title: 'UFC 2', year: 1994 },
@@ -196,7 +196,7 @@ describe('sub-series search (task 6.8)', () => {
 
     const adapter = createWikipediaEventsAdapter([WWE], respondWith(wikitext), WWE_SUB_SERIES)
 
-    expect(await adapter.expand('subseries:wrestlemania')).toEqual([
+    expect((await adapter.expand('subseries:wrestlemania')).items).toEqual([
       { title: 'WrestleMania (1985)', year: 1985 },
       { title: 'WrestleMania V (1989)', year: 1989 },
     ])
@@ -222,7 +222,7 @@ describe('sub-series search (task 6.8)', () => {
 
     const adapter = createWikipediaEventsAdapter([WWE], respondWith(wikitext), WWE_SUB_SERIES)
 
-    expect(await adapter.expand('subseries:royal-rumble')).toEqual([
+    expect((await adapter.expand('subseries:royal-rumble')).items).toEqual([
       { title: 'Royal Rumble (1988)', year: 1988 },
     ])
   })
@@ -248,10 +248,10 @@ describe('sub-series search (task 6.8)', () => {
 
     const adapter = createWikipediaEventsAdapter([UFC], respondWith(wikitext), UFC_SUB_SERIES)
 
-    expect(await adapter.expand('subseries:ufc-numbered')).toEqual([
+    expect((await adapter.expand('subseries:ufc-numbered')).items).toEqual([
       { title: 'UFC 1: The Beginning', year: 1993 },
     ])
-    expect(await adapter.expand('subseries:ufc-fight-night')).toEqual([
+    expect((await adapter.expand('subseries:ufc-fight-night')).items).toEqual([
       { title: 'UFC Fight Night: Hooker vs. Parnasse', year: 2026 },
     ])
   })
@@ -280,7 +280,7 @@ describe('sub-series search (task 6.8)', () => {
 
     const adapter = createWikipediaEventsAdapter([UFC], respondWith(wikitext), UFC_SUB_SERIES)
 
-    expect(await adapter.expand('subseries:ufc-fight-night')).toEqual([
+    expect((await adapter.expand('subseries:ufc-fight-night')).items).toEqual([
       { title: 'UFC Ultimate Fight Night', year: 2005 },
       { title: 'UFC Ultimate Fight Night 2', year: 2005 },
       { title: 'UFC Fight Night 6', year: 2006 },
@@ -290,7 +290,7 @@ describe('sub-series search (task 6.8)', () => {
   it('returns nothing for an unknown sub-series key', async () => {
     const adapter = createWikipediaEventsAdapter([WWE], respondWith(''), WWE_SUB_SERIES)
 
-    expect(await adapter.expand('subseries:no-such-series')).toEqual([])
+    expect((await adapter.expand('subseries:no-such-series')).items).toEqual([])
   })
 
   it('exact-match sub-series do not bleed into a same-prefix sibling show', async () => {
@@ -315,10 +315,10 @@ describe('sub-series search (task 6.8)', () => {
 
     const adapter = createWikipediaEventsAdapter([WWE], respondWith(wikitext), WWE_SUB_SERIES)
 
-    expect(await adapter.expand('subseries:vengeance')).toEqual([
+    expect((await adapter.expand('subseries:vengeance')).items).toEqual([
       { title: 'Vengeance (2001)', year: 2001 },
     ])
-    expect(await adapter.expand('subseries:vengeance-day')).toEqual([
+    expect((await adapter.expand('subseries:vengeance-day')).items).toEqual([
       { title: 'Vengeance Day (2023)', year: 2023 },
     ])
   })
@@ -346,7 +346,7 @@ describe('sub-series search (task 6.8)', () => {
 
     const adapter = createWikipediaEventsAdapter([WWE], respondWith(wikitext), WWE_SUB_SERIES)
 
-    expect(await adapter.expand('subseries:in-your-house')).toEqual([
+    expect((await adapter.expand('subseries:in-your-house')).items).toEqual([
       { title: 'In Your House (1996)', year: 1996 },
       { title: 'In Your House: Beware of Dog (1996)', year: 1996 },
     ])
@@ -357,6 +357,6 @@ describe('sub-series search (task 6.8)', () => {
     // the mma media type's promotions, not wrestling's.
     const adapter = createWikipediaEventsAdapter([WWE], respondWith(''), UFC_SUB_SERIES)
 
-    expect(await adapter.expand('subseries:ufc-numbered')).toEqual([])
+    expect((await adapter.expand('subseries:ufc-numbered')).items).toEqual([])
   })
 })

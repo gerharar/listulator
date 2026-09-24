@@ -1,5 +1,6 @@
 import type { FetchLike } from '../http.js'
 import type { ListSource, MediaTypeCandidate, SearchAdapter } from '../mediaTypes.js'
+import { itemsOnly } from '../expansion.js'
 import { createTmdbClient, type TmdbCredentialSource } from './tmdb.js'
 
 /**
@@ -131,7 +132,8 @@ export function createTmdbFranchiseAdapter(
       return [...curated, ...found]
     },
 
-    async expand(externalRef) {
+    // No upstream signal for whether this is finished, so no `status` (BL-013).
+    expand: itemsOnly(async (externalRef) => {
       const [kind, id] = externalRef.split(':')
       if (kind !== 'franchise' || !id || !/^\d+$/.test(id)) return []
 
@@ -226,6 +228,6 @@ export function createTmdbFranchiseAdapter(
       return [...filmItems, ...showItems.flat()]
         .sort((a, b) => a.date.localeCompare(b.date))
         .map((item) => item.candidate)
-    },
+    }),
   }
 }

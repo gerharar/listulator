@@ -1,5 +1,6 @@
 import { getJson, UnauthorizedError, type FetchLike } from '../http.js'
 import type { ListSource, MediaTypeCandidate, SearchAdapter } from '../mediaTypes.js'
+import { itemsOnly } from '../expansion.js'
 
 /**
  * IGDB: search a franchise or series, expand to its games.
@@ -183,7 +184,8 @@ export function createIgdbAdapter(
       ]
     },
 
-    async expand(externalRef) {
+    // No upstream signal for whether this is finished, so no `status` (BL-013).
+    expand: itemsOnly(async (externalRef) => {
       const [kind, id] = externalRef.split(':')
       if (!id || !/^\d+$/.test(id)) return []
 
@@ -245,6 +247,6 @@ export function createIgdbAdapter(
           ...(year ? { year } : {}),
         }
       })
-    },
+    }),
   }
 }

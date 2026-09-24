@@ -185,7 +185,7 @@ describe('YouTube adapter', () => {
       }),
     )
 
-    expect(await adapter.expand('playlist:PL1')).toEqual([
+    expect((await adapter.expand('playlist:PL1')).items).toEqual([
       { title: 'Chapter 1', externalRef: 'video:v1', timeToConsumeMinutes: 11 },
       { title: 'Chapter 2', externalRef: 'video:v2', timeToConsumeMinutes: 12 },
     ])
@@ -208,7 +208,7 @@ describe('YouTube adapter', () => {
       }),
     )
 
-    const items = await adapter.expand('playlist:PL1')
+    const items = (await adapter.expand('playlist:PL1')).items
 
     expect(items.map((item) => item.title)).toEqual([
       'A real video',
@@ -235,7 +235,7 @@ describe('YouTube adapter', () => {
       }),
     )
 
-    expect((await adapter.expand('channel:UC1')).map((item) => item.title)).toEqual([
+    expect((await adapter.expand('channel:UC1')).items.map((item) => item.title)).toEqual([
       'Oldest',
       'Middle',
       'Newest',
@@ -261,13 +261,13 @@ describe('YouTube adapter', () => {
       return new Response(JSON.stringify({ items: [] }))
     })
 
-    expect(await createYouTubeAdapter(credentials, fetchImpl).expand('playlist:PL1')).toHaveLength(150)
+    expect((await createYouTubeAdapter(credentials, fetchImpl).expand('playlist:PL1')).items).toHaveLength(150)
   })
 
   it('returns nothing for a ref it does not understand', async () => {
     const adapter = createYouTubeAdapter(credentials, router({}))
 
-    expect(await adapter.expand('video:abc')).toEqual([])
-    expect(await adapter.expand('nonsense')).toEqual([])
+    expect((await adapter.expand('video:abc')).items).toEqual([])
+    expect((await adapter.expand('nonsense')).items).toEqual([])
   })
 })

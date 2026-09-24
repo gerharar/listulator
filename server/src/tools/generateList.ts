@@ -124,7 +124,7 @@ export async function runGenerateList(
 
   if (!options.title) throw new Error('Pass --title for the generated list — required in generate mode.')
 
-  const candidates = await mediaType.adapter.expand(options.ref)
+  const { items: candidates } = await mediaType.adapter.expand(options.ref)
   const itemLines = candidates.map(candidateToItem).map(formatItemLine).join('\n')
 
   const generatedComment = `# Generated ${new Date().toISOString().slice(0, 10)} by \`generateList.ts\` (--category ${options.category} --ref ${options.ref}).\n# Draft only — review titles/years/minutes and prune/reorder before committing.\n`

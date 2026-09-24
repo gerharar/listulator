@@ -56,7 +56,7 @@ export function createCompositeAdapter(sources: readonly CompositeSource[]): Sea
       const prefix = externalRef.split(':')[0] ?? ''
       const owner = usable().find((source) => source.prefixes.includes(prefix))
 
-      return owner ? owner.adapter.expand(externalRef) : []
+      return owner ? owner.adapter.expand(externalRef) : { items: [] }
     },
   }
 }

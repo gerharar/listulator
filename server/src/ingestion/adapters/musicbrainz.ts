@@ -1,5 +1,6 @@
 import { delay, getJson, type FetchLike } from '../http.js'
 import type { ListSource, MediaTypeCandidate, SearchAdapter } from '../mediaTypes.js'
+import { itemsOnly } from '../expansion.js'
 
 /**
  * MusicBrainz: search an artist, expand to their discography.
@@ -114,7 +115,8 @@ export function createMusicBrainzAdapter(fetchImpl?: FetchLike): SearchAdapter {
       }))
     },
 
-    async expand(externalRef) {
+    // No upstream signal for whether this is finished, so no `status` (BL-013).
+    expand: itemsOnly(async (externalRef) => {
       const { artistId, facets } = parseRef(externalRef)
       const includeEp = facets?.has('ep') ?? false
       const includeSingle = facets?.has('single') ?? false
@@ -204,6 +206,6 @@ export function createMusicBrainzAdapter(fetchImpl?: FetchLike): SearchAdapter {
             }
           })
       )
-    },
+    }),
   }
 }

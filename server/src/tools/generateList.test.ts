@@ -13,10 +13,10 @@ function fakeAdapter(overrides: Partial<SearchAdapter> = {}): SearchAdapter {
     search: async () => [
       { externalRef: 'franchise:1', title: 'Marvel Cinematic Universe', detail: 'Films and series' },
     ],
-    expand: async () => [
+    expand: async () => ({ items: [
       { title: 'Iron Man', externalRef: 'movie:1', year: 2008, timeToConsumeMinutes: 126 },
       { title: 'Agents of S.H.I.E.L.D. — Season 1', externalRef: 'season:1:1', year: 2013 },
-    ],
+    ] }),
     ...overrides,
   }
 }
@@ -110,10 +110,10 @@ describe('runGenerateList', () => {
       { category: 'mega', ref: 'franchise:1', title: 'Some Band', out: outPath },
       registryWith(
         fakeAdapter({
-          expand: async () => [
+          expand: async () => ({ items: [
             { title: 'Global Evisceration', tags: ['Album', 'Live'] },
             { title: 'Eaten Back to Life' },
-          ],
+          ] }),
         }),
       ),
     )
@@ -135,10 +135,10 @@ describe('runGenerateList', () => {
       { category: 'mega', ref: 'franchise:1', title: 'UFC', out: outPath },
       registryWith(
         fakeAdapter({
-          expand: async () => [
+          expand: async () => ({ items: [
             { title: 'UFC 100', externalRef: 'e:1', year: 2009 },
             { title: 'UFC 2: No Way Out', externalRef: 'e:2', year: 1994 },
-          ],
+          ] }),
         }),
       ),
     )

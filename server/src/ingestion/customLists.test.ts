@@ -462,7 +462,7 @@ items:
   - { title: Debut Album, tags: [Album] }
 `
     return expandCanonicalList('lists/x.yaml', new Set(['music']), respondWithText(yaml)).then(
-      (candidates) => {
+      ({ items: candidates }) => {
         expect(candidates).toEqual([
           { title: 'Global Evisceration', tags: ['Album', 'Live'] },
           { title: 'Debut Album', tags: ['Album'] },
@@ -473,7 +473,7 @@ items:
 
   it('omits tags entirely when an item has none', async () => {
     const yaml = 'title: X\ncategory: mega\nitems:\n  - { title: Iron Man, year: 2008 }\n'
-    const candidates = await expandCanonicalList('lists/x.yaml', new Set(['mega']), respondWithText(yaml))
+    const { items: candidates } = await expandCanonicalList('lists/x.yaml', new Set(['mega']), respondWithText(yaml))
 
     expect(candidates).toEqual([{ title: 'Iron Man', year: 2008 }])
   })
@@ -481,8 +481,22 @@ items:
   it('carries notes through into the candidate shape, so a canonical refresh or Reset does not drop them', async () => {
     const yaml =
       'title: X\ncategory: game\nitems:\n  - { title: A Game (PS3), notes: Extra missions here. }\n'
-    const candidates = await expandCanonicalList('lists/x.yaml', new Set(['game']), respondWithText(yaml))
+    const { items: candidates } = await expandCanonicalList('lists/x.yaml', new Set(['game']), respondWithText(yaml))
 
     expect(candidates).toEqual([{ title: 'A Game (PS3)', notes: 'Extra missions here.' }])
+  })
+
+  it("carries the file's own top-level status, since the curator is the source of truth for it", async () => {
+    const yaml = 'title: X\ncategory: mega\nstatus: ongoing\nitems:\n  - { title: Iron Man }\n'
+    const expansion = await expandCanonicalList('lists/x.yaml', new Set(['mega']), respondWithText(yaml))
+
+    expect(expansion.status).toBe('ongoing')
+  })
+
+  it('reports no status at all when the file sets none', async () => {
+    const yaml = 'title: X\ncategory: mega\nitems:\n  - { title: Iron Man }\n'
+    const expansion = await expandCanonicalList('lists/x.yaml', new Set(['mega']), respondWithText(yaml))
+
+    expect('status' in expansion).toBe(false)
   })
 })

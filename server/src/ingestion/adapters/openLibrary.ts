@@ -1,6 +1,7 @@
 import { dedupeByTitle } from '../dedupe.js'
 import { getJson, type FetchLike } from '../http.js'
 import type { ListSource, MediaTypeCandidate, SearchAdapter } from '../mediaTypes.js'
+import { itemsOnly } from '../expansion.js'
 
 /**
  * Open Library: search an author, expand to their bibliography.
@@ -224,7 +225,8 @@ export function createOpenLibraryAdapter(fetchImpl?: FetchLike): SearchAdapter {
       })
     },
 
-    async expand(externalRef) {
+    // No upstream signal for whether this is finished, so no `status` (BL-013).
+    expand: itemsOnly(async (externalRef) => {
       // A third `:<language>` segment, and a fourth literal `:unknown` flag
       // (task: book-language filtering), are appended by the
       // /lists/from-source route only when the GUI's book-only language
@@ -276,6 +278,6 @@ export function createOpenLibraryAdapter(fetchImpl?: FetchLike): SearchAdapter {
       // search()'s author collapse above: cutting first could count a
       // duplicate against the limit instead of a real, distinct title.
       return dedupeByTitle(candidates).slice(0, MAX_ITEMS)
-    },
+    }),
   }
 }

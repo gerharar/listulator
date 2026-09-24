@@ -10,7 +10,7 @@ function source(
   return {
     isAvailable: () => available,
     search: async () => titles.map((title) => ({ externalRef: `${prefix}:1`, title })),
-    expand: async (ref) => [{ title: `expanded ${ref}` }],
+    expand: async (ref) => ({ items: [{ title: `expanded ${ref}` }] }),
   }
 }
 
@@ -51,7 +51,7 @@ describe('composite sources', () => {
   it('returns nothing for a ref no source claims', async () => {
     const adapter = createCompositeAdapter([{ prefixes: ['show'], adapter: source('show', []) }])
 
-    expect(await adapter.expand('franchise:1')).toEqual([])
+    expect((await adapter.expand('franchise:1')).items).toEqual([])
   })
 
   it('skips sources that are unavailable', async () => {
@@ -80,7 +80,7 @@ describe('composite sources', () => {
       search: async () => {
         throw new Error('upstream is down')
       },
-      expand: async () => [],
+      expand: async () => ({ items: [] }),
     }
 
     const adapter = createCompositeAdapter([
@@ -98,7 +98,7 @@ describe('composite sources', () => {
       search: async () => {
         throw new Error('upstream is down')
       },
-      expand: async () => [],
+      expand: async () => ({ items: [] }),
     }
 
     const adapter = createCompositeAdapter([

@@ -96,7 +96,7 @@ describe('franchise expansion', () => {
     // importing twice could never produce.
     const adapter = createTmdbFranchiseAdapter(credentials, router(routes))
 
-    expect(await adapter.expand('franchise:180547')).toEqual([
+    expect((await adapter.expand('franchise:180547')).items).toEqual([
       { title: 'Iron Man', externalRef: 'movie:1', timeToConsumeMinutes: 126, year: 2008 },
       { title: 'The Avengers', externalRef: 'movie:2', timeToConsumeMinutes: 143, year: 2012 },
       { title: 'Loki — Season 1', externalRef: 'season:10:1', timeToConsumeMinutes: 270, year: 2021 },
@@ -106,7 +106,7 @@ describe('franchise expansion', () => {
 
   it('counts a season as one entry, not an episode and not a whole show', async () => {
     const adapter = createTmdbFranchiseAdapter(credentials, router(routes))
-    const titles = (await adapter.expand('franchise:180547')).map((item) => item.title)
+    const titles = (await adapter.expand('franchise:180547')).items.map((item) => item.title)
 
     expect(titles).toContain('Loki — Season 1')
     expect(titles).toContain('Loki — Season 2')
@@ -116,7 +116,7 @@ describe('franchise expansion', () => {
   it('sizes a season by its episode count times the show’s usual runtime', async () => {
     // One request per show rather than one per season.
     const adapter = createTmdbFranchiseAdapter(credentials, router(routes))
-    const loki = (await adapter.expand('franchise:180547')).find((item) =>
+    const loki = (await adapter.expand('franchise:180547')).items.find((item) =>
       item.title.startsWith('Loki'),
     )
 
@@ -125,7 +125,7 @@ describe('franchise expansion', () => {
 
   it('leaves out specials, unreleased films and unaired seasons', async () => {
     const adapter = createTmdbFranchiseAdapter(credentials, router(routes))
-    const titles = (await adapter.expand('franchise:180547')).map((item) => item.title)
+    const titles = (await adapter.expand('franchise:180547')).items.map((item) => item.title)
 
     expect(titles).not.toContain('Loki — Season 0')
     expect(titles).not.toContain('Loki — Season 3')
@@ -136,7 +136,7 @@ describe('franchise expansion', () => {
     const adapter = createTmdbFranchiseAdapter(credentials, router(routes))
 
     expect(
-      (await adapter.expand('franchise:180547')).map((item) => item.title),
+      (await adapter.expand('franchise:180547')).items.map((item) => item.title),
     ).not.toContain('Marvel Studios: Assembled')
   })
 
@@ -146,7 +146,7 @@ describe('franchise expansion', () => {
       router({ ...routes, '/movie/1': undefined, '/tv/10': undefined }),
     )
 
-    const items = await adapter.expand('franchise:180547')
+    const items = (await adapter.expand('franchise:180547')).items
 
     expect(items.map((item) => item.title)).toEqual(['Iron Man', 'The Avengers'])
     expect(items[0]?.timeToConsumeMinutes).toBeUndefined()
@@ -168,7 +168,7 @@ describe('franchise expansion', () => {
       }),
     )
 
-    const season = (await adapter.expand('franchise:180547')).find((item) =>
+    const season = (await adapter.expand('franchise:180547')).items.find((item) =>
       item.title.includes('Season 1'),
     )
 
@@ -178,8 +178,8 @@ describe('franchise expansion', () => {
   it('refuses refs that are not a numeric keyword', async () => {
     const adapter = createTmdbFranchiseAdapter(credentials, router(routes))
 
-    expect(await adapter.expand('franchise:abc')).toEqual([])
-    expect(await adapter.expand('movie:1')).toEqual([])
+    expect((await adapter.expand('franchise:abc')).items).toEqual([])
+    expect((await adapter.expand('movie:1')).items).toEqual([])
   })
 
   it('counts a film released today', async () => {
@@ -195,6 +195,6 @@ describe('franchise expansion', () => {
       }),
     )
 
-    expect(await adapter.expand('franchise:1')).toHaveLength(1)
+    expect((await adapter.expand('franchise:1')).items).toHaveLength(1)
   })
 })

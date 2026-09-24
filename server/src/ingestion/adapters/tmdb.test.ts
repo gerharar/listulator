@@ -113,7 +113,7 @@ describe('TMDB expansion', () => {
   it('expands a filmography chronologically, with real runtimes', async () => {
     const adapter = createTmdbAdapter(credentials, {}, router(routes))
 
-    expect(await adapter.expand('person:18897')).toEqual([
+    expect((await adapter.expand('person:18897')).items).toEqual([
       { title: 'My Lucky Stars', externalRef: 'movie:10044', timeToConsumeMinutes: 96, year: 1985 },
       { title: 'Rush Hour', externalRef: 'movie:2109', timeToConsumeMinutes: 97, year: 1998 },
     ])
@@ -123,7 +123,7 @@ describe('TMDB expansion', () => {
     // A filmography padded with a documentary about the person, and with
     // films that do not exist yet, is not a thing you can finish.
     const adapter = createTmdbAdapter(credentials, {}, router(routes))
-    const titles = (await adapter.expand('person:18897')).map((item) => item.title)
+    const titles = (await adapter.expand('person:18897')).items.map((item) => item.title)
 
     expect(titles).not.toContain('A Documentary About Stunts')
     expect(titles).not.toContain('Untitled Sequel')
@@ -134,7 +134,7 @@ describe('TMDB expansion', () => {
     // 404 on one lookup should cost that film its runtime, not lose the list.
     const adapter = createTmdbAdapter(credentials, {}, router({ ...routes, '/movie/2109': undefined }))
 
-    const items = await adapter.expand('person:18897')
+    const items = (await adapter.expand('person:18897')).items
     expect(items).toHaveLength(2)
     expect(items.find((item) => item.title === 'Rush Hour')?.timeToConsumeMinutes).toBeUndefined()
   })
@@ -155,7 +155,7 @@ describe('TMDB expansion', () => {
       }),
     )
 
-    expect((await adapter.expand('collection:645')).map((item) => item.title)).toEqual([
+    expect((await adapter.expand('collection:645')).items.map((item) => item.title)).toEqual([
       'My Lucky Stars',
       'Rush Hour',
     ])
@@ -164,13 +164,13 @@ describe('TMDB expansion', () => {
   it('returns nothing for a ref it does not understand', async () => {
     const adapter = createTmdbAdapter(credentials, {}, router({}))
 
-    expect(await adapter.expand('nonsense')).toEqual([])
+    expect((await adapter.expand('nonsense')).items).toEqual([])
   })
 
   it('handles a person with no credits', async () => {
     const adapter = createTmdbAdapter(credentials, {}, router({ '/person/1/movie_credits': {} }))
 
-    expect(await adapter.expand('person:1')).toEqual([])
+    expect((await adapter.expand('person:1')).items).toEqual([])
   })
 
   it('does not fire hundreds of detail requests at once', async () => {
@@ -199,7 +199,7 @@ describe('TMDB expansion', () => {
         : new Response(JSON.stringify({ runtime: 100 }))
     })
 
-    const items = await createTmdbAdapter(credentials, {}, fetchImpl).expand('person:1')
+    const items = (await createTmdbAdapter(credentials, {}, fetchImpl).expand('person:1')).items
 
     expect(items).toHaveLength(60)
     expect(peak).toBeLessThanOrEqual(8)
@@ -218,7 +218,7 @@ describe('TMDB expansion', () => {
     )
 
     // Released *today* still counts — the cutoff is inclusive.
-    expect(await adapter.expand('person:1')).toHaveLength(1)
+    expect((await adapter.expand('person:1')).items).toHaveLength(1)
   })
 })
 
@@ -271,7 +271,7 @@ describe('directing credits', () => {
   it('reads only cast credits by default, so an actor gets the films they are in', async () => {
     const adapter = createTmdbAdapter(credentials, { documentaries: 'only' }, router(routes))
 
-    expect((await adapter.expand('person:1')).map((item) => item.title)).toEqual(['Appeared In'])
+    expect((await adapter.expand('person:1')).items.map((item) => item.title)).toEqual(['Appeared In'])
   })
 
   it('adds directed films when asked, without other crew roles', async () => {
@@ -282,7 +282,7 @@ describe('directing credits', () => {
       { documentaries: 'only', includeDirecting: true },
       router(routes),
     )
-    const titles = (await adapter.expand('person:1')).map((item) => item.title)
+    const titles = (await adapter.expand('person:1')).items.map((item) => item.title)
 
     expect(titles).toContain('Directed')
     expect(titles).not.toContain('Produced')
@@ -294,7 +294,7 @@ describe('directing credits', () => {
       { documentaries: 'only', includeDirecting: true },
       router(routes),
     )
-    const titles = (await adapter.expand('person:1')).map((item) => item.title)
+    const titles = (await adapter.expand('person:1')).items.map((item) => item.title)
 
     expect(titles.filter((title) => title === 'Appeared In')).toHaveLength(1)
   })

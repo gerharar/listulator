@@ -156,7 +156,7 @@ describe('IGDB expansion', () => {
   it('expands a franchise to main games with times to beat', async () => {
     const { fetchImpl } = router({ games: GAMES, game_time_to_beats: TIMES })
 
-    expect(await createIgdbAdapter(credentials, fetchImpl).expand('franchise:571')).toEqual([
+    expect((await createIgdbAdapter(credentials, fetchImpl).expand('franchise:571')).items).toEqual([
       { title: "Assassin's Creed", externalRef: 'game:1', timeToConsumeMinutes: 2400, year: 2007 },
       { title: "Assassin's Creed II", externalRef: 'game:3', year: 2009 },
     ])
@@ -173,7 +173,7 @@ describe('IGDB expansion', () => {
       ],
       game_time_to_beats: [],
     })
-    const titles = (await createIgdbAdapter(credentials, fetchImpl).expand('franchise:571')).map(
+    const titles = (await createIgdbAdapter(credentials, fetchImpl).expand('franchise:571')).items.map(
       (item) => item.title,
     )
 
@@ -201,7 +201,7 @@ describe('IGDB expansion', () => {
       game_time_to_beats: [],
     })
 
-    expect(await createIgdbAdapter(credentials, fetchImpl).expand('franchise:1')).toHaveLength(1)
+    expect((await createIgdbAdapter(credentials, fetchImpl).expand('franchise:1')).items).toHaveLength(1)
   })
 
   it('asks only for main games, leaving out DLC, ports and bundles', async () => {
@@ -228,7 +228,7 @@ describe('IGDB expansion', () => {
   it('skips the time lookup entirely when nothing survived filtering', async () => {
     const { fetchImpl } = router({ games: [], game_time_to_beats: TIMES })
 
-    expect(await createIgdbAdapter(credentials, fetchImpl).expand('franchise:1')).toEqual([])
+    expect((await createIgdbAdapter(credentials, fetchImpl).expand('franchise:1')).items).toEqual([])
     expect(
       vi.mocked(fetchImpl).mock.calls.some(([url]) => url.endsWith('/game_time_to_beats')),
     ).toBe(false)
@@ -239,8 +239,8 @@ describe('IGDB expansion', () => {
     const { fetchImpl } = router({ games: GAMES })
     const adapter = createIgdbAdapter(credentials, fetchImpl)
 
-    expect(await adapter.expand('franchise:1); drop--')).toEqual([])
-    expect(await adapter.expand('franchise:abc')).toEqual([])
-    expect(await adapter.expand('nonsense')).toEqual([])
+    expect((await adapter.expand('franchise:1); drop--')).items).toEqual([])
+    expect((await adapter.expand('franchise:abc')).items).toEqual([])
+    expect((await adapter.expand('nonsense')).items).toEqual([])
   })
 })

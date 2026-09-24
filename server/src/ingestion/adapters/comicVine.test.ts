@@ -73,7 +73,7 @@ describe('Comic Vine adapter', () => {
     // Their sort=issue_number:asc returns #1, #10, #100 — the bug this fixes.
     const adapter = createComicVineAdapter(credentials, respondWith(ISSUES))
 
-    expect((await adapter.expand('volume:2045')).map((item) => item.title)).toEqual([
+    expect((await adapter.expand('volume:2045')).items.map((item) => item.title)).toEqual([
       '#1 The Fantastic Four!',
       '#2',
       '#10 The Return of Doctor Doom!',
@@ -93,7 +93,7 @@ describe('Comic Vine adapter', () => {
       }),
     )
 
-    expect((await adapter.expand('volume:1')).map((item) => item.title)).toEqual([
+    expect((await adapter.expand('volume:1')).items.map((item) => item.title)).toEqual([
       '#1 First',
       '#Annual 1 Annual',
     ])
@@ -104,7 +104,7 @@ describe('Comic Vine adapter', () => {
     // is roughly 200 an hour.
     const adapter = createComicVineAdapter(credentials, respondWith(ISSUES))
 
-    for (const item of await adapter.expand('volume:2045')) {
+    for (const item of (await adapter.expand('volume:2045')).items) {
       expect(item.timeToConsumeMinutes).toBeUndefined()
     }
   })
@@ -116,7 +116,7 @@ describe('Comic Vine adapter', () => {
     // Revisit if Comic Vine ever exposes a real publication-date field.
     const adapter = createComicVineAdapter(credentials, respondWith(ISSUES))
 
-    for (const item of await adapter.expand('volume:2045')) {
+    for (const item of (await adapter.expand('volume:2045')).items) {
       expect(item.year).toBeUndefined()
     }
   })
@@ -134,9 +134,9 @@ describe('Comic Vine adapter', () => {
   it('refuses refs that are not a numeric volume id', async () => {
     const adapter = createComicVineAdapter(credentials, respondWith(ISSUES))
 
-    expect(await adapter.expand('volume:abc')).toEqual([])
-    expect(await adapter.expand('issue:1')).toEqual([])
-    expect(await adapter.expand('nonsense')).toEqual([])
+    expect((await adapter.expand('volume:abc')).items).toEqual([])
+    expect((await adapter.expand('issue:1')).items).toEqual([])
+    expect((await adapter.expand('nonsense')).items).toEqual([])
   })
 
   it('stops paging once a run is exhausted', async () => {
@@ -161,7 +161,7 @@ describe('Comic Vine adapter', () => {
         ),
     )
 
-    const items = await createComicVineAdapter(credentials, fetchImpl).expand('volume:1')
+    const items = (await createComicVineAdapter(credentials, fetchImpl).expand('volume:1')).items
 
     expect(items.length).toBeLessThanOrEqual(500)
     expect(vi.mocked(fetchImpl).mock.calls.length).toBeLessThanOrEqual(5)

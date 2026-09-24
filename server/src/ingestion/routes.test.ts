@@ -330,10 +330,10 @@ describe('search and import from a source', () => {
       search: async () => [
         { externalRef: 'ref-1', title: 'Cannibal Corpse', detail: 'Group · US' },
       ],
-      expand: async () => [
+      expand: async () => ({ items: [
         { title: 'Eaten Back to Life', externalRef: 'rg-1' },
         { title: 'The Bleeding', externalRef: 'rg-2', timeToConsumeMinutes: 47 },
-      ],
+      ] }),
       ...overrides,
     }
   }
@@ -437,10 +437,10 @@ describe('search and import from a source', () => {
   })
 
   it("carries a candidate's tags onto the created item", async () => {
-    const expand = vi.fn(async () => [
+    const expand = vi.fn(async () => ({ items: [
       { title: 'Global Evisceration', externalRef: 'rg-1', tags: ['Album', 'Live'] },
       { title: 'Eaten Back to Life', externalRef: 'rg-2' },
-    ])
+    ] }))
     harness = withAdapter(fakeAdapter({ expand }))
 
     const response = await harness.app.inject({
@@ -460,10 +460,10 @@ describe('search and import from a source', () => {
   })
 
   it('writes an arrived-state snapshot equal to the imported items, plus arrived_* fields (D4)', async () => {
-    const expand = vi.fn(async () => [
+    const expand = vi.fn(async () => ({ items: [
       { title: 'Global Evisceration', externalRef: 'rg-1', tags: ['Album', 'Live'] },
       { title: 'Eaten Back to Life', externalRef: 'rg-2' },
-    ])
+    ] }))
     harness = withAdapter(fakeAdapter({ expand }))
 
     const response = await harness.app.inject({
@@ -496,7 +496,7 @@ describe('search and import from a source', () => {
   })
 
   it('leaves the snapshot and arrived_* fields untouched by a later refresh', async () => {
-    const expand = vi.fn(async () => [{ title: 'Global Evisceration', externalRef: 'rg-1' }])
+    const expand = vi.fn(async () => ({ items: [{ title: 'Global Evisceration', externalRef: 'rg-1' }] }))
     harness = withAdapter(fakeAdapter({ expand }))
 
     const created = (
@@ -512,10 +512,10 @@ describe('search and import from a source', () => {
     const listBefore = await findList(harness.db, userId, created.id)
 
     // The next refresh finds a second item upstream.
-    expand.mockResolvedValue([
+    expand.mockResolvedValue({ items: [
       { title: 'Global Evisceration', externalRef: 'rg-1' },
       { title: 'Eaten Back to Life', externalRef: 'rg-2' },
-    ])
+    ] })
     await harness.app.inject({ method: 'POST', url: `/api/lists/${created.id}/refresh` })
 
     expect(await findListSnapshot(harness.db, userId, created.id)).toEqual(snapshotBefore)
@@ -533,7 +533,7 @@ describe('search and import from a source', () => {
     // book-shaped two-segment ref (`author:<key>`, Open Library's real
     // format) — a one-segment ref wouldn't exercise the same split/rejoin
     // openLibrary.ts's own `expand()` does.
-    const expand = vi.fn(async () => [{ title: 'Eaten Back to Life', externalRef: 'rg-1' }])
+    const expand = vi.fn(async () => ({ items: [{ title: 'Eaten Back to Life', externalRef: 'rg-1' }] }))
     harness = withAdapter(fakeAdapter({ expand }))
 
     const created = (
@@ -560,7 +560,7 @@ describe('search and import from a source', () => {
   })
 
   it('appends the "include unknown" flag to the stored ref when set', async () => {
-    const expand = vi.fn(async () => [{ title: 'Eaten Back to Life', externalRef: 'rg-1' }])
+    const expand = vi.fn(async () => ({ items: [{ title: 'Eaten Back to Life', externalRef: 'rg-1' }] }))
     harness = withAdapter(fakeAdapter({ expand }))
 
     const created = (
@@ -582,7 +582,7 @@ describe('search and import from a source', () => {
   })
 
   it('leaves the stored ref unsuffixed when the language is "all"', async () => {
-    const expand = vi.fn(async () => [{ title: 'Eaten Back to Life', externalRef: 'rg-1' }])
+    const expand = vi.fn(async () => ({ items: [{ title: 'Eaten Back to Life', externalRef: 'rg-1' }] }))
     harness = withAdapter(fakeAdapter({ expand }))
 
     const created = (
@@ -603,7 +603,7 @@ describe('search and import from a source', () => {
   })
 
   it('folds the music discography-type toggles into the stored ref, EPs and singles on by default', async () => {
-    const expand = vi.fn(async () => [{ title: 'Eaten Back to Life', externalRef: 'rg-1' }])
+    const expand = vi.fn(async () => ({ items: [{ title: 'Eaten Back to Life', externalRef: 'rg-1' }] }))
     harness = withAdapter(fakeAdapter({ expand }))
 
     const created = (
@@ -633,7 +633,7 @@ describe('search and import from a source', () => {
   })
 
   it('turns off the discography-type defaults when the GUI explicitly says so', async () => {
-    const expand = vi.fn(async () => [{ title: 'Eaten Back to Life', externalRef: 'rg-1' }])
+    const expand = vi.fn(async () => ({ items: [{ title: 'Eaten Back to Life', externalRef: 'rg-1' }] }))
     harness = withAdapter(fakeAdapter({ expand }))
 
     const created = (
@@ -659,7 +659,7 @@ describe('search and import from a source', () => {
   it('leaves the stored ref unsuffixed when no discography-type toggle is sent at all', async () => {
     // Every other category's from-source calls never send these fields —
     // this is what keeps them on the pre-feature bare-ref path.
-    const expand = vi.fn(async () => [{ title: 'Eaten Back to Life', externalRef: 'rg-1' }])
+    const expand = vi.fn(async () => ({ items: [{ title: 'Eaten Back to Life', externalRef: 'rg-1' }] }))
     harness = withAdapter(fakeAdapter({ expand }))
 
     const created = (
@@ -722,7 +722,7 @@ describe('search and import from a source', () => {
   })
 
   it('does not leave an empty list behind when a source expands to nothing', async () => {
-    harness = withAdapter(fakeAdapter({ expand: async () => [] }))
+    harness = withAdapter(fakeAdapter({ expand: async () => ({ items: [] }) }))
 
     const response = await harness.app.inject({
       method: 'POST',
@@ -1036,7 +1036,7 @@ describe('checking a list for updates', () => {
     return {
       isAvailable: () => true,
       search: async () => [{ externalRef: 'franchise:1', title: 'A franchise' }],
-      expand: async () => titles,
+      expand: async () => ({ items: titles }),
     }
   }
 
@@ -1090,7 +1090,7 @@ describe('checking a list for updates', () => {
     const adapter: SearchAdapter = {
       isAvailable: () => true,
       search: async () => [],
-      expand: async () => upstream,
+      expand: async () => ({ items: upstream }),
     }
 
     harness = appWith(adapter)
@@ -1115,7 +1115,7 @@ describe('checking a list for updates', () => {
     const adapter: SearchAdapter = {
       isAvailable: () => true,
       search: async () => [],
-      expand: async () => upstream,
+      expand: async () => ({ items: upstream }),
     }
 
     harness = appWith(adapter)
@@ -1135,7 +1135,7 @@ describe('checking a list for updates', () => {
     const adapter: SearchAdapter = {
       isAvailable: () => true,
       search: async () => [],
-      expand: async () => upstream,
+      expand: async () => ({ items: upstream }),
     }
 
     harness = appWith(adapter)
@@ -1156,7 +1156,7 @@ describe('checking a list for updates', () => {
     const adapter: SearchAdapter = {
       isAvailable: () => true,
       search: async () => [],
-      expand: async () => upstream,
+      expand: async () => ({ items: upstream }),
     }
 
     harness = appWith(adapter)
@@ -1352,7 +1352,7 @@ describe('canonical lists surfaced through search (task 7.4)', () => {
           adapter: {
             isAvailable: () => true,
             search: async () => [{ externalRef: 'ol:OL1A', title: 'A Real Author' }],
-            expand: async () => [{ title: 'A Real Book' }],
+            expand: async () => ({ items: [{ title: 'A Real Book' }] }),
           },
         },
       ]),
@@ -1766,7 +1766,7 @@ describe('"this list was updated" check across synced canonical lists (task 7.6)
           adapter: {
             isAvailable: () => true,
             search: async () => [{ externalRef: 'tmdb:1', title: 'Some Franchise' }],
-            expand: async () => [{ title: 'New Entry', externalRef: 'tmdb:2' }],
+            expand: async () => ({ items: [{ title: 'New Entry', externalRef: 'tmdb:2' }] }),
           },
         },
       ]),

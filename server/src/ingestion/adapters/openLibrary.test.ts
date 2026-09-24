@@ -211,7 +211,7 @@ describe('Open Library adapter', () => {
   it('turns page counts into reading time', async () => {
     const adapter = createOpenLibraryAdapter(respondWith(WORKS))
 
-    expect(await adapter.expand('author:OL25712A')).toEqual([
+    expect((await adapter.expand('author:OL25712A')).items).toEqual([
       { title: 'The Carpet People', timeToConsumeMinutes: 250, year: 1971 },
       { title: 'The Colour of Magic', timeToConsumeMinutes: 288, year: 1983 },
       { title: 'The Colour of Magic, The Light Fantastic', year: 1987 },
@@ -232,7 +232,7 @@ describe('Open Library adapter', () => {
       }),
     )
 
-    expect(await adapter.expand('author:OL1A')).toEqual([
+    expect((await adapter.expand('author:OL1A')).items).toEqual([
       { title: 'Elantris', timeToConsumeMinutes: Math.round(638 * 1.2), year: 2005 },
       { title: 'Mistborn', timeToConsumeMinutes: Math.round(541 * 1.2), year: 2006 },
     ])
@@ -252,7 +252,7 @@ describe('Open Library adapter', () => {
     // Stays in "the shining"'s first-seen list position, but the earlier
     // (1977) edition's own title casing wins along with the rest of its
     // data — the two never get merged into a composite of both.
-    expect((await adapter.expand('author:OL1A')).map((item) => [item.title, item.year])).toEqual([
+    expect((await adapter.expand('author:OL1A')).items.map((item) => [item.title, item.year])).toEqual([
       ['The Shining', 1977],
       ['Carrie', 1974],
     ])
@@ -262,7 +262,7 @@ describe('Open Library adapter', () => {
     // It falls back to the category default downstream. An unmeasured book is
     // still part of the bibliography.
     const adapter = createOpenLibraryAdapter(respondWith(WORKS))
-    const items = await adapter.expand('author:OL25712A')
+    const items = (await adapter.expand('author:OL25712A')).items
 
     const omnibus = items.find((item) => item.title.startsWith('The Colour of Magic, '))
     expect(omnibus).toBeDefined()
@@ -274,7 +274,7 @@ describe('Open Library adapter', () => {
       respondWith({ docs: [{ title: 'Undated Work', number_of_pages_median: 100 }] }),
     )
 
-    expect(await adapter.expand('author:OL25712A')).toEqual([
+    expect((await adapter.expand('author:OL25712A')).items).toEqual([
       { title: 'Undated Work', timeToConsumeMinutes: 120 },
     ])
   })
@@ -294,15 +294,15 @@ describe('Open Library adapter', () => {
   it('returns nothing for a ref it does not understand', async () => {
     const adapter = createOpenLibraryAdapter(respondWith(WORKS))
 
-    expect(await adapter.expand('series:discworld')).toEqual([])
-    expect(await adapter.expand('nonsense')).toEqual([])
+    expect((await adapter.expand('series:discworld')).items).toEqual([])
+    expect((await adapter.expand('nonsense')).items).toEqual([])
   })
 
   it('survives responses missing their fields', async () => {
     const adapter = createOpenLibraryAdapter(respondWith({}))
 
     expect(await adapter.search('x')).toEqual([])
-    expect(await adapter.expand('author:OL1A')).toEqual([])
+    expect((await adapter.expand('author:OL1A')).items).toEqual([])
   })
 
   it('names the service when it fails', async () => {
@@ -329,7 +329,7 @@ describe('Open Library adapter', () => {
       }),
     )
 
-    const items = await adapter.expand('author:OL1A:eng')
+    const items = (await adapter.expand('author:OL1A:eng')).items
 
     expect(items).toEqual([{ title: 'Norwegian Wood', year: 2000, tags: ['English'] }])
   })
@@ -345,7 +345,7 @@ describe('Open Library adapter', () => {
       }),
     )
 
-    const items = await adapter.expand('author:OL1A:eng:unknown')
+    const items = (await adapter.expand('author:OL1A:eng:unknown')).items
 
     expect(items).toEqual([
       { title: 'Norwegian Wood', year: 2000, tags: ['English'] },
@@ -358,7 +358,7 @@ describe('Open Library adapter', () => {
       respondWith({ docs: [{ title: 'Norwegian Wood', language: ['eng'] }] }),
     )
 
-    const items = await adapter.expand('author:OL1A')
+    const items = (await adapter.expand('author:OL1A')).items
 
     expect(items.every((item) => item.tags === undefined)).toBe(true)
   })
@@ -376,7 +376,7 @@ describe('Open Library adapter', () => {
       }),
     )
 
-    expect((await adapter.expand('author:OL1A:eng')).map((item) => item.title)).toEqual([
+    expect((await adapter.expand('author:OL1A:eng')).items.map((item) => item.title)).toEqual([
       'ノルウェイの森 [1/2]',
     ])
   })
@@ -391,7 +391,7 @@ describe('Open Library adapter', () => {
       }),
     )
 
-    const items = await adapter.expand('author:OL1A')
+    const items = (await adapter.expand('author:OL1A')).items
 
     expect(items.map((item) => item.title)).toEqual(['Norwegian Wood', 'ノルウェイの森'])
     expect(items.every((item) => item.tags === undefined)).toBe(true)
@@ -407,7 +407,7 @@ describe('Open Library adapter', () => {
       }),
     )
 
-    const items = await adapter.expand('author:OL1A:all')
+    const items = (await adapter.expand('author:OL1A:all')).items
 
     expect(items.map((item) => item.title)).toEqual(['Norwegian Wood', 'ノルウェイの森'])
     expect(items.every((item) => item.tags === undefined)).toBe(true)
@@ -440,7 +440,7 @@ describe('Open Library adapter', () => {
       )
     })
 
-    const items = await createOpenLibraryAdapter(fetchImpl).expand('author:OL1A')
+    const items = (await createOpenLibraryAdapter(fetchImpl).expand('author:OL1A')).items
 
     expect(items).toHaveLength(300)
     expect(vi.mocked(fetchImpl).mock.calls.length).toBeLessThanOrEqual(3)

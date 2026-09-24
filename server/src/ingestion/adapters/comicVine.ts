@@ -1,5 +1,6 @@
 import { getJson, type FetchLike } from '../http.js'
 import type { ListSource, MediaTypeCandidate, SearchAdapter } from '../mediaTypes.js'
+import { itemsOnly } from '../expansion.js'
 
 /**
  * Comic Vine: search a volume, expand to its issues.
@@ -124,7 +125,8 @@ export function createComicVineAdapter(
         })
     },
 
-    async expand(externalRef) {
+    // No upstream signal for whether this is finished, so no `status` (BL-013).
+    expand: itemsOnly(async (externalRef) => {
       const [kind, id] = externalRef.split(':')
       if (kind !== 'volume' || !id || !/^\d+$/.test(id)) return []
 
@@ -159,6 +161,6 @@ export function createComicVineAdapter(
             // (15 minutes) applies instead.
           }
         })
-    },
+    }),
   }
 }

@@ -1,7 +1,7 @@
 import { load as loadYaml } from 'js-yaml'
 import type { ApiErrorCode } from '../apiErrors.js'
 import { getJson, getText, IngestionError, type FetchLike } from './http.js'
-import type { MediaTypeCandidate } from './mediaTypes.js'
+import type { ListExpansion } from './mediaTypes.js'
 
 // No `node:fs`/`node:path`/`node:url` imports in this file, ever — it is
 // imported directly by web/src/lib/api.local.ts for the standalone app, and
@@ -306,7 +306,7 @@ export async function searchCanonicalLists(
 
 /**
  * The `expand()`-shaped refetch for a synced canonical list (task 7.5) —
- * same `MediaTypeCandidate[]` shape every adapter's `expand()` returns, so
+ * same `ListExpansion` shape every adapter's `expand()` returns, so
  * `/lists/:listId/refresh`'s existing new-item matching needs no changes to
  * handle it. No per-item `externalRef`: a custom-list file carries no stable
  * upstream id per item (only the file's own path identifies the list as a
@@ -322,10 +322,10 @@ export async function expandCanonicalList(
   path: string,
   validCategories: ReadonlySet<string>,
   fetchImpl?: FetchLike,
-): Promise<MediaTypeCandidate[]> {
+): Promise<ListExpansion> {
   const parsed = await fetchCanonicalList(path, validCategories, fetchImpl)
 
-  return parsed.items.map((item) => ({
+  const items = parsed.items.map((item) => ({
     title: item.title,
     ...(item.year !== undefined ? { year: item.year } : {}),
     ...(item.minutes !== undefined ? { timeToConsumeMinutes: item.minutes } : {}),
@@ -333,4 +333,7 @@ export async function expandCanonicalList(
     ...(item.tags !== undefined ? { tags: item.tags } : {}),
     ...(item.notes !== undefined ? { notes: item.notes } : {}),
   }))
+
+  // The curator's own top-level `status`, when the file sets one.
+  return { items, ...(parsed.status !== undefined ? { status: parsed.status } : {}) }
 }

@@ -1,5 +1,6 @@
 import { getJson, type FetchLike } from '../http.js'
 import type { ListSource, MediaTypeCandidate, SearchAdapter } from '../mediaTypes.js'
+import { itemsOnly } from '../expansion.js'
 
 /**
  * TMDB: search a person or a collection, expand to their films.
@@ -224,7 +225,8 @@ export function createTmdbAdapter(
       return [...asCollections, ...asPeople]
     },
 
-    async expand(externalRef) {
+    // No upstream signal for whether this is finished, so no `status` (BL-013).
+    expand: itemsOnly(async (externalRef) => {
       const [kind, id] = externalRef.split(':')
       const today = new Date().toISOString().slice(0, 10)
 
@@ -253,6 +255,6 @@ export function createTmdbAdapter(
       }
 
       return []
-    },
+    }),
   }
 }

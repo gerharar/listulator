@@ -1,5 +1,6 @@
 import { getJson, type FetchLike } from '../http.js'
 import type { ListSource, MediaTypeCandidate, SearchAdapter } from '../mediaTypes.js'
+import { itemsOnly } from '../expansion.js'
 
 /**
  * YouTube: a playlist, or everything a channel has uploaded.
@@ -223,7 +224,8 @@ export function createYouTubeAdapter(
       })
     },
 
-    async expand(externalRef) {
+    // No upstream signal for whether this is finished, so no `status` (BL-013).
+    expand: itemsOnly(async (externalRef) => {
       const [kind, id] = externalRef.split(':')
       if (!id) return []
 
@@ -303,6 +305,6 @@ export function createYouTubeAdapter(
           ...(minutes ? { timeToConsumeMinutes: minutes } : {}),
         }
       })
-    },
+    }),
   }
 }

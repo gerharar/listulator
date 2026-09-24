@@ -1,5 +1,6 @@
 import { getJson, type FetchLike } from '../http.js'
 import type { ListSource, MediaTypeCandidate, SearchAdapter } from '../mediaTypes.js'
+import { itemsOnly } from '../expansion.js'
 import { columnIndex, extractTables, parseTable, rowYear, splitSections } from './wikitext.js'
 
 /**
@@ -627,7 +628,8 @@ export function createWikipediaEventsAdapter(
       return [...promotionResults, ...subSeriesResults]
     },
 
-    async expand(externalRef) {
+    // No upstream signal for whether this is finished, so no `status` (BL-013).
+    expand: itemsOnly(async (externalRef) => {
       const [kind, key] = externalRef.split(':')
       if (!key) return []
 
@@ -654,6 +656,6 @@ export function createWikipediaEventsAdapter(
       }
 
       return []
-    },
+    }),
   }
 }

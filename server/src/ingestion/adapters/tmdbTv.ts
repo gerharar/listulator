@@ -1,5 +1,6 @@
 import type { FetchLike } from '../http.js'
 import type { ListSource, MediaTypeCandidate, SearchAdapter } from '../mediaTypes.js'
+import { itemsOnly } from '../expansion.js'
 import { createTmdbClient, type TmdbCredentialSource } from './tmdb.js'
 
 /**
@@ -86,7 +87,7 @@ export function createTmdbTvAdapter(
         })
     },
 
-    async expand(externalRef) {
+    expand: itemsOnly(async (externalRef) => {
       const [kind, id] = externalRef.split(':')
       if (kind !== 'show' || !id || !/^\d+$/.test(id)) return []
 
@@ -133,6 +134,6 @@ export function createTmdbTvAdapter(
       }
 
       return items.slice(0, MAX_ITEMS)
-    },
+    }),
   }
 }

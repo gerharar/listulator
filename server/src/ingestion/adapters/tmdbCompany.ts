@@ -1,5 +1,6 @@
 import type { FetchLike } from '../http.js'
 import type { ListSource, MediaTypeCandidate, SearchAdapter } from '../mediaTypes.js'
+import { itemsOnly } from '../expansion.js'
 import { createTmdbClient, withRuntimes, type TmdbCredentialSource } from './tmdb.js'
 
 /**
@@ -56,7 +57,8 @@ export function createTmdbCompanyAdapter(
         )
     },
 
-    async expand(externalRef) {
+    // No upstream signal for whether this is finished, so no `status` (BL-013).
+    expand: itemsOnly(async (externalRef) => {
       const [kind, id] = externalRef.split(':')
       if (kind !== 'company' || !id || !/^\d+$/.test(id)) return []
 
@@ -84,6 +86,6 @@ export function createTmdbCompanyAdapter(
       }
 
       return withRuntimes(client, films) as Promise<MediaTypeCandidate[]>
-    },
+    }),
   }
 }
