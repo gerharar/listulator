@@ -117,9 +117,10 @@ function AppShellBody({ skin, onSkinChange }: AppShellBodyProps) {
   // lives here and Home lifts it up once loaded. Empty until then; neither
   // hosted screen is reachable before Home has rendered at least once.
   const [mediaTypes, setMediaTypes] = useState<MediaType[]>([])
-  // The Esc ladder's second rung: nothing is open, so go all the way home —
-  // there's no intermediate "pop one" screen to land on yet (that's what a
-  // real Quantum List-detail-inside-Category-inside-Home chain gets at 10.11+).
+  // The Esc ladder's second rung: nothing is open, so go all the way home.
+  // That skips any intermediate layer — Esc from the create form opened via
+  // the Category picker lands on Home, not back on the picker (current
+  // behaviour, revisit with 10.12's Create layer).
   useEscLadder(() => layerStack.popToIndex(0))
 
   function handleLegacyNavigate(to: string, opts: { replace: boolean }): void {

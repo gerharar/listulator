@@ -46,9 +46,10 @@ test('Esc closes the popover first, and leaves a pushed layer in place — a sec
 }) => {
   // The "sharpest acceptance check" from task 10.9's own write-up
   // (tasks/plan.md), re-verified here under a real engine now that a real
-  // popover exists to click through.
+  // popover exists to click through. New List pushes the Category picker
+  // (task 10.11) — any pushed layer proves the same thing.
   await page.getByRole('button', { name: 'New List' }).click()
-  await expect(page.getByRole('heading', { name: 'New list' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Pick A Category' })).toBeVisible()
 
   await page.getByRole('button', { name: 'Skin' }).click()
   const popover = page.getByRole('dialog')
@@ -56,11 +57,11 @@ test('Esc closes the popover first, and leaves a pushed layer in place — a sec
 
   await page.keyboard.press('Escape')
   await expect(popover).toBeHidden()
-  await expect(page.getByRole('heading', { name: 'New list' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Pick A Category' })).toBeVisible()
 
   await page.keyboard.press('Escape')
   // The layer fully unmounts on pop (unlike Home, which never leaves the
   // stack) — and with nothing left covering Home, its veil is gone too.
-  await expect(page.getByRole('heading', { name: 'New list' })).toBeHidden()
+  await expect(page.getByRole('heading', { name: 'Pick A Category' })).toBeHidden()
   await expect(page.locator('.q-veil')).toHaveCount(0)
 })
