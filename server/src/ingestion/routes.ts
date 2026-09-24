@@ -670,7 +670,10 @@ export const ingestionRoutes: FastifyPluginAsync<IngestionRoutesOptions> = async
             items: {
               type: 'array',
               minItems: 1,
-              maxItems: 1000,
+              // A sanity bound against an accidental huge paste. Typical titles
+              // fit 10,000 within Fastify's default 1 MB body limit; very long
+              // titles hit that limit first and are refused with a 413.
+              maxItems: 10_000,
               items: {
                 type: 'object',
                 required: ['title'],

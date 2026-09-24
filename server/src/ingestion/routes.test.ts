@@ -261,6 +261,19 @@ describe('POST /api/lists/:listId/items/import', () => {
       (await importItems(list.id, [{ title: 'x', timeToConsumeMinutes: -1 }])).statusCode,
     ).toBe(400)
   })
+
+  it('takes a list longer than 1000 items, up to 10,000', async () => {
+    // The old cap was an unexplained scaffold value; long real lists exist.
+    const list = await createList()
+    const items = (count: number) =>
+      Array.from({ length: count }, (_, index) => ({ title: `Item ${index + 1}` }))
+
+    const long = await importItems(list.id, items(10_000))
+
+    expect(long.statusCode).toBe(201)
+    expect(long.json()).toHaveLength(10_000)
+    expect((await importItems(list.id, items(10_001))).statusCode).toBe(400)
+  }, 30_000)
 })
 
 describe('registry extensibility', () => {
