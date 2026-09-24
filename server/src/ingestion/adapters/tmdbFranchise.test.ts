@@ -45,6 +45,45 @@ const routes = {
       { season_number: 3, episode_count: 6, air_date: '2099-01-01' },
     ],
   },
+  '/tv/10/season/1': {
+    episodes: [
+      {
+        episode_number: 1,
+        season_number: 1,
+        name: 'Glorious Purpose',
+        runtime: 51,
+        air_date: '2021-06-09',
+      },
+      {
+        episode_number: 2,
+        season_number: 1,
+        name: 'The Variant',
+        runtime: 47,
+        air_date: '2021-06-16',
+      },
+      // No runtime of its own: takes the show's usual one, marked estimated.
+      { episode_number: 3, season_number: 1, name: 'Lamentis', air_date: '2021-06-23' },
+    ],
+  },
+  '/tv/10/season/2': {
+    episodes: [
+      {
+        episode_number: 1,
+        season_number: 2,
+        name: 'Ouroboros',
+        runtime: 53,
+        air_date: '2023-10-05',
+      },
+      // Announced but not aired yet.
+      {
+        episode_number: 2,
+        season_number: 2,
+        name: 'Breaking Brad',
+        runtime: 45,
+        air_date: '2099-01-01',
+      },
+    ],
+  },
 }
 
 describe('curated franchises', () => {
@@ -91,45 +130,90 @@ describe('franchise search', () => {
 })
 
 describe('franchise expansion', () => {
-  it('merges films and seasons into release order', async () => {
+  it('merges films and episodes into release order', async () => {
     // The point of the category: one list interleaving both media, which
     // importing twice could never produce.
     const adapter = createTmdbFranchiseAdapter(credentials, router(routes))
 
-    expect((await adapter.expand('franchise:180547')).items).toEqual([
-      { title: 'Iron Man', externalRef: 'movie:1', timeToConsumeMinutes: 126, year: 2008 },
-      { title: 'The Avengers', externalRef: 'movie:2', timeToConsumeMinutes: 143, year: 2012 },
-      { title: 'Loki — Season 1', externalRef: 'season:10:1', timeToConsumeMinutes: 270, year: 2021 },
-      { title: 'Loki — Season 2', externalRef: 'season:10:2', timeToConsumeMinutes: 270, year: 2023 },
+    expect((await adapter.expand('franchise:180547')).items.map((item) => item.title)).toEqual([
+      'Iron Man',
+      'The Avengers',
+      'Loki S01E01 Glorious Purpose',
+      'Loki S01E02 The Variant',
+      'Loki S01E03 Lamentis',
+      'Loki S02E01 Ouroboros',
     ])
   })
 
-  it('counts a season as one entry, not an episode and not a whole show', async () => {
+  it('emits one row per episode, grouped by season (C3)', async () => {
     const adapter = createTmdbFranchiseAdapter(credentials, router(routes))
-    const titles = (await adapter.expand('franchise:180547')).items.map((item) => item.title)
+    const items = (await adapter.expand('franchise:180547')).items
+    const loki = items.filter((item) => item.title.startsWith('Loki'))
 
-    expect(titles).toContain('Loki — Season 1')
-    expect(titles).toContain('Loki — Season 2')
-    expect(titles).not.toContain('Loki')
+    expect(loki.map((item) => item.group)).toEqual([
+      'Loki — Season 1',
+      'Loki — Season 1',
+      'Loki — Season 1',
+      'Loki — Season 2',
+    ])
+    expect(loki[0]).toEqual({
+      title: 'Loki S01E01 Glorious Purpose',
+      externalRef: 'episode:10:1:1',
+      timeToConsumeMinutes: 51,
+      year: 2021,
+      group: 'Loki — Season 1',
+    })
+    // Films carry no group.
+    expect(items[0]).not.toHaveProperty('group')
   })
 
-  it('sizes a season by its episode count times the show’s usual runtime', async () => {
-    // One request per show rather than one per season.
+  it('gives each episode its own runtime, falling back to the show’s usual one', async () => {
     const adapter = createTmdbFranchiseAdapter(credentials, router(routes))
-    const loki = (await adapter.expand('franchise:180547')).items.find((item) =>
+    const loki = (await adapter.expand('franchise:180547')).items.filter((item) =>
       item.title.startsWith('Loki'),
     )
 
-    expect(loki?.timeToConsumeMinutes).toBe(6 * 45)
+    expect(loki.map((item) => item.timeToConsumeMinutes)).toEqual([51, 47, 45, 53])
   })
 
-  it('leaves out specials, unreleased films and unaired seasons', async () => {
+  it('leaves the runtime unset when neither the episode nor the show has one', async () => {
+    // The import then applies the category default and marks it estimated,
+    // so time_to_consume_minutes is never null.
+    const adapter = createTmdbFranchiseAdapter(
+      credentials,
+      router({
+        ...routes,
+        '/tv/10': { ...routes['/tv/10'], episode_run_time: [], last_episode_to_air: undefined },
+      }),
+    )
+    const lamentis = (await adapter.expand('franchise:180547')).items.find((item) =>
+      item.title.includes('Lamentis'),
+    )
+
+    expect(lamentis?.timeToConsumeMinutes).toBeUndefined()
+  })
+
+  it('leaves out specials, unreleased films, unaired seasons and unaired episodes', async () => {
     const adapter = createTmdbFranchiseAdapter(credentials, router(routes))
     const titles = (await adapter.expand('franchise:180547')).items.map((item) => item.title)
 
-    expect(titles).not.toContain('Loki — Season 0')
-    expect(titles).not.toContain('Loki — Season 3')
+    expect(titles.some((title) => title.includes('S00'))).toBe(false)
+    expect(titles.some((title) => title.includes('S03'))).toBe(false)
+    expect(titles).not.toContain('Loki S02E02 Breaking Brad')
     expect(titles).not.toContain('Announced Sequel')
+  })
+
+  it('asks for each aired season once, and never for unaired ones', async () => {
+    const fetchImpl = router(routes)
+    await createTmdbFranchiseAdapter(credentials, fetchImpl).expand('franchise:180547')
+
+    const paths = vi
+      .mocked(fetchImpl)
+      .mock.calls.map(([url]) => new URL(String(url)).pathname.replace('/3', ''))
+      .filter((path) => path.includes('/season/'))
+      .sort()
+
+    expect(paths).toEqual(['/tv/10/season/1', '/tv/10/season/2'])
   })
 
   it('leaves out documentaries about the franchise', async () => {
@@ -152,27 +236,38 @@ describe('franchise expansion', () => {
     expect(items[0]?.timeToConsumeMinutes).toBeUndefined()
   })
 
+  it('costs one season, not the show, when a season’s details fail', async () => {
+    const adapter = createTmdbFranchiseAdapter(
+      credentials,
+      router({ ...routes, '/tv/10/season/1': undefined }),
+    )
+
+    expect((await adapter.expand('franchise:180547')).items.map((item) => item.title)).toContain(
+      'Loki S02E01 Ouroboros',
+    )
+  })
+
   it('falls back to the last aired episode when episode_run_time is empty', async () => {
     // Which is every modern show: Loki, WandaVision and Moon Knight all
-    // return []. Without this a 22-episode season took the category default
-    // and read as two hours.
+    // return []. Without this an episode with no runtime of its own took the
+    // category default.
     const adapter = createTmdbFranchiseAdapter(
       credentials,
       router({
         ...routes,
         '/tv/10': {
           episode_run_time: [],
-          last_episode_to_air: { runtime: 45 },
-          seasons: [{ season_number: 1, episode_count: 22, air_date: '2013-09-24' }],
+          last_episode_to_air: { runtime: 44 },
+          seasons: [{ season_number: 1, episode_count: 3, air_date: '2021-06-09' }],
         },
       }),
     )
 
-    const season = (await adapter.expand('franchise:180547')).items.find((item) =>
-      item.title.includes('Season 1'),
+    const lamentis = (await adapter.expand('franchise:180547')).items.find((item) =>
+      item.title.includes('Lamentis'),
     )
 
-    expect(season?.timeToConsumeMinutes).toBe(22 * 45)
+    expect(lamentis?.timeToConsumeMinutes).toBe(44)
   })
 
   it('refuses refs that are not a numeric keyword', async () => {

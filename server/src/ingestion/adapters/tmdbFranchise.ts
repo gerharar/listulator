@@ -59,6 +59,15 @@ interface ShowDetail {
   seasons?: { season_number?: number; episode_count?: number; air_date?: string; name?: string }[]
 }
 
+interface SeasonDetail {
+  episodes?: {
+    episode_number?: number
+    name?: string
+    runtime?: number | null
+    air_date?: string
+  }[]
+}
+
 /**
  * How long one episode of a show runs.
  *
@@ -68,14 +77,16 @@ interface ShowDetail {
  * fallback every season fell back to the category default, so a 22-episode
  * season read as two hours and Quickie would have offered it as a quick win.
  *
- * One runtime is applied to every season, so a show that changed format
- * mid-run inherits its latest length throughout — and finales tend to run
- * long. An estimate, then, but the right order of magnitude, which is all
- * Quickie needs and far more than the category default gave.
+ * Only the fallback for an episode with no runtime of its own (10.12b): a show
+ * that changed format mid-run inherits its latest length for those, which is an
+ * estimate but the right order of magnitude — far better than the category
+ * default.
  */
 function episodeMinutes(detail: ShowDetail): number | undefined {
   return detail.episode_run_time?.[0] ?? detail.last_episode_to_air?.runtime ?? undefined
 }
+
+const pad = (value: number): string => String(value).padStart(2, '0')
 
 interface DatedItem {
   date: string
@@ -175,10 +186,14 @@ export function createTmdbFranchiseAdapter(
         if (page >= (response.total_pages ?? 1)) break
       }
 
-      // Films need a runtime each; shows need their season list. Both are one
-      // request per title, run a few at a time.
-      const [filmItems, showItems] = await Promise.all([
-        client.mapLimited(films, DETAIL_CONCURRENCY, async (film): Promise<DatedItem> => {
+      // Films need a runtime each; shows need their season list, then one
+      // request per aired season for its episodes (10.12b). Each stage is run
+      // a few at a time, so the whole import never has more than
+      // DETAIL_CONCURRENCY requests in flight.
+      const filmItems = client.mapLimited(
+        films,
+        DETAIL_CONCURRENCY,
+        async (film): Promise<DatedItem> => {
           const runtime = await client
             .request<{ runtime?: number | null }>(`/movie/${film.id}`)
             .then((detail) => detail.runtime)
@@ -193,39 +208,64 @@ export function createTmdbFranchiseAdapter(
               year: Number(film.date.slice(0, 4)),
             },
           }
-        }),
-        client.mapLimited(shows, DETAIL_CONCURRENCY, async (show): Promise<DatedItem[]> => {
-          const detail = await client
-            .request<ShowDetail>(`/tv/${show.id}`)
-            .catch((): ShowDetail => ({}))
+        },
+      )
 
-          // A season's length is its episode count times the show's usual
-          // episode runtime — one request per show, rather than one per season.
-          const perEpisode = episodeMinutes(detail)
+      const episodeItems = (async (): Promise<DatedItem[]> => {
+        const details = await client.mapLimited(shows, DETAIL_CONCURRENCY, async (show) => ({
+          show,
+          detail: await client.request<ShowDetail>(`/tv/${show.id}`).catch((): ShowDetail => ({})),
+        }))
 
-          return (detail.seasons ?? [])
+        const seasons = details.flatMap(({ show, detail }) =>
+          (detail.seasons ?? [])
             .filter((season) => (season.season_number ?? 0) > 0)
             .filter((season) => season.air_date && season.air_date <= today)
-            .map((season): DatedItem => {
-              const minutes =
-                perEpisode && season.episode_count ? perEpisode * season.episode_count : undefined
+            .map((season) => ({
+              show,
+              number: season.season_number!,
+              // The show's usual runtime, for episodes TMDB has no length for.
+              perEpisode: episodeMinutes(detail),
+            })),
+        )
+
+        const fetched = await client.mapLimited(seasons, DETAIL_CONCURRENCY, async (season) => ({
+          ...season,
+          detail: await client
+            .request<SeasonDetail>(`/tv/${season.show.id}/season/${season.number}`)
+            // One bad season costs that season, not the show.
+            .catch((): SeasonDetail => ({})),
+        }))
+
+        return fetched.flatMap(({ show, number, perEpisode, detail }) =>
+          (detail.episodes ?? [])
+            // Unaired episodes cannot be watched, the same rule as unaired
+            // seasons and unreleased films.
+            .filter((episode) => episode.air_date && episode.air_date <= today)
+            .map((episode): DatedItem => {
+              const episodeNumber = episode.episode_number ?? 0
+              const label = `S${pad(number)}E${pad(episodeNumber)}`
+              const minutes = episode.runtime || perEpisode
 
               return {
-                date: season.air_date!,
+                date: episode.air_date!,
                 candidate: {
-                  title: `${show.name} — Season ${season.season_number}`,
-                  externalRef: `season:${show.id}:${season.season_number}`,
+                  title: episode.name
+                    ? `${show.name} ${label} ${episode.name}`
+                    : `${show.name} ${label}`,
+                  externalRef: `episode:${show.id}:${number}:${episodeNumber}`,
                   ...(minutes ? { timeToConsumeMinutes: minutes } : {}),
-                  year: Number(season.air_date!.slice(0, 4)),
+                  year: Number(episode.air_date!.slice(0, 4)),
+                  group: `${show.name} — Season ${number}`,
                 },
               }
-            })
-        }),
-      ])
+            }),
+        )
+      })()
 
       // Release order across both media — the thing a franchise list is for,
       // and the reason this cannot be assembled by importing twice.
-      return [...filmItems, ...showItems.flat()]
+      return [...(await filmItems), ...(await episodeItems)]
         .sort((a, b) => a.date.localeCompare(b.date))
         .map((item) => item.candidate)
     }),
