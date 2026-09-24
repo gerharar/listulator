@@ -26,7 +26,7 @@ import {
 import { IngestionError } from './http.js'
 import { listsDropDir as defaultListsDropDir, scanListsDropFolder } from './listsDropFolder.js'
 import type { AppDatabase } from '../db/client.js'
-import type { MediaTypeRegistry } from './mediaTypes.js'
+import { toMediaTypeInfo, type MediaTypeRegistry } from './mediaTypes.js'
 import type { List, ListSource, User } from '../db/schema.js'
 
 export interface IngestionRoutesOptions {
@@ -589,19 +589,7 @@ export const ingestionRoutes: FastifyPluginAsync<IngestionRoutesOptions> = async
    * The UI renders a bucket per category — including ones with no lists yet —
    * so it needs the whole registry, not just the categories in use.
    */
-  app.get('/media-types', async () =>
-    mediaTypes
-      .list()
-      .map(({ key, label, description, sortOrder, defaultDurationMinutes, adapter }) => ({
-        key,
-        label,
-        ...(description ? { description } : {}),
-        sortOrder,
-        defaultDurationMinutes,
-        // Whether search is offered for this category. Manual entry always works.
-        searchAvailable: adapter?.isAvailable() ?? false,
-      })),
-  )
+  app.get('/media-types', async () => mediaTypes.list().map(toMediaTypeInfo))
 
   /**
    * Bulk-adds items to a list — the single write path for every ingestion

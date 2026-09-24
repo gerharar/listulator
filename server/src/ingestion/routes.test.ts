@@ -30,7 +30,41 @@ describe('GET /api/media-types', () => {
       sortOrder: 10,
       defaultDurationMinutes: 120,
       searchAvailable: false,
+      previewable: false,
+      sourceName: 'TMDB',
     })
+  })
+
+  it('names the real source of every searchable category and omits it for the rest', async () => {
+    const withoutSource = createTestApp({
+      mediaTypes: createMediaTypeRegistry([
+        ...DEFAULT_MEDIA_TYPES,
+        { key: 'podcast', label: 'Podcasts', sortOrder: 110, defaultDurationMinutes: 55 },
+      ]),
+    })
+    const response = await withoutSource.app.inject({ method: 'GET', url: '/api/media-types' })
+    const byKey = new Map(
+      response
+        .json()
+        .map((entry: { key: string; sourceName?: string }) => [entry.key, entry.sourceName]),
+    )
+    await withoutSource.cleanup()
+
+    // The registry wins over the design handoff's table: wrestling and MMA
+    // have a real Wikipedia adapter, so they are not "by hand".
+    expect(byKey.get('wrestling')).toBe('Wikipedia')
+    expect(byKey.get('mma')).toBe('Wikipedia')
+    expect(byKey.get('music')).toBe('MusicBrainz')
+    expect(byKey.get('podcast')).toBeUndefined()
+    expect([...byKey.entries()].filter(([key]) => key !== 'podcast' && !byKey.get(key))).toEqual([])
+  })
+
+  it('marks a category previewable exactly when its search source is available', async () => {
+    const response = await harness.app.inject({ method: 'GET', url: '/api/media-types' })
+    const entries: { searchAvailable: boolean; previewable: boolean }[] = response.json()
+
+    expect(entries.every((entry) => entry.previewable === entry.searchAvailable)).toBe(true)
+    expect(entries.some((entry) => entry.previewable)).toBe(true)
   })
 
   it('reports which categories can be searched and which cannot', async () => {

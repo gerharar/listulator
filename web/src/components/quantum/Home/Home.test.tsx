@@ -22,7 +22,7 @@ afterEach(() => {
 })
 
 const MEDIA_TYPES: MediaType[] = [
-  { key: 'tv', label: 'TV Shows', sortOrder: 1, defaultDurationMinutes: 30, searchAvailable: true },
+  { key: 'tv', label: 'TV Shows', sortOrder: 1, defaultDurationMinutes: 30, searchAvailable: true, previewable: true },
 ]
 
 function list(overrides: Partial<MediaList> = {}): MediaList {

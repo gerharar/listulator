@@ -3,7 +3,7 @@ import type { MediaList, MediaType } from './api.js'
 import { buildBuckets, findOrphanedLists, listMark } from './buckets.js'
 
 function mediaType(key: string, sortOrder: number): MediaType {
-  return { key, label: key.toUpperCase(), sortOrder, defaultDurationMinutes: 30, searchAvailable: false }
+  return { key, label: key.toUpperCase(), sortOrder, defaultDurationMinutes: 30, searchAvailable: false, previewable: false }
 }
 
 function list(

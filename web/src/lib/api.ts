@@ -57,6 +57,10 @@ export interface MediaType {
   sortOrder: number
   defaultDurationMinutes: number
   searchAvailable: boolean
+  /** Whether a preview-before-import can be fetched (same gate as search today). */
+  previewable: boolean
+  /** The search source's display name ("TMDB"); absent for a by-hand category. */
+  sourceName?: string
 }
 
 export interface SuggestionPick {

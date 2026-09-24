@@ -132,8 +132,16 @@ export function createDefaultMediaTypes({
       sortOrder: 10,
       defaultDurationMinutes: 120,
       adapter: movieSources,
+      sourceName: 'TMDB',
     },
-    { key: 'tv', label: 'TV Shows', sortOrder: 20, defaultDurationMinutes: 50, adapter: tmdbTv },
+    {
+      key: 'tv',
+      label: 'TV Shows',
+      sortOrder: 20,
+      defaultDurationMinutes: 50,
+      adapter: tmdbTv,
+      sourceName: 'TMDB',
+    },
     // Episode-length. The category also holds animated features, which this
     // badly under-estimates — flagged estimated and easy to correct per item.
     {
@@ -142,6 +150,7 @@ export function createDefaultMediaTypes({
       sortOrder: 30,
       defaultDurationMinutes: 25,
       adapter: animationSources,
+      sourceName: 'TMDB',
     },
     // Feature-length is the common case for a documentary; series episodes run
     // shorter and are corrected per item.
@@ -151,6 +160,7 @@ export function createDefaultMediaTypes({
       sortOrder: 35,
       defaultDurationMinutes: 90,
       adapter: documentarySources,
+      sourceName: 'TMDB',
     },
     {
       key: 'wrestling',
@@ -158,6 +168,7 @@ export function createDefaultMediaTypes({
       sortOrder: 40,
       defaultDurationMinutes: 180,
       adapter: createWikipediaEventsAdapter(WRESTLING_PROMOTIONS, undefined, WWE_SUB_SERIES),
+      sourceName: 'Wikipedia',
     },
     {
       key: 'mma',
@@ -165,9 +176,17 @@ export function createDefaultMediaTypes({
       sortOrder: 50,
       defaultDurationMinutes: 180,
       adapter: createWikipediaEventsAdapter(MMA_PROMOTIONS, undefined, UFC_SUB_SERIES),
+      sourceName: 'Wikipedia',
     },
     // Time-to-beat for a mainline game, not a completionist run.
-    { key: 'game', label: 'Games', sortOrder: 60, defaultDurationMinutes: 600, adapter: igdb },
+    {
+      key: 'game',
+      label: 'Games',
+      sortOrder: 60,
+      defaultDurationMinutes: 600,
+      adapter: igdb,
+      sourceName: 'IGDB',
+    },
     // ~15 min for a standard 30-page issue (SPEC.md §5). Comic Vine's rate
     // limit rules out fetching a real page count per issue.
     {
@@ -176,6 +195,7 @@ export function createDefaultMediaTypes({
       sortOrder: 70,
       defaultDurationMinutes: 15,
       adapter: comicVine,
+      sourceName: 'Comic Vine',
     },
     {
       key: 'book',
@@ -183,6 +203,7 @@ export function createDefaultMediaTypes({
       sortOrder: 80,
       defaultDurationMinutes: 240,
       adapter: createOpenLibraryAdapter(),
+      sourceName: 'Open Library',
     },
     {
       key: 'music',
@@ -190,6 +211,7 @@ export function createDefaultMediaTypes({
       sortOrder: 90,
       defaultDurationMinutes: 45,
       adapter: createMusicBrainzAdapter(fetchImpl.musicbrainz),
+      sourceName: 'MusicBrainz',
     },
     // Lengths vary from three minutes to three hours, so this default is more
     // placeholder than estimate — real durations come from the API.
@@ -201,6 +223,7 @@ export function createDefaultMediaTypes({
       adapter: createYouTubeAdapter(
         credentials.youtube ?? (() => ({ apiKey: process.env['YOUTUBE_API_KEY'] })),
       ),
+      sourceName: 'YouTube',
     },
     /**
      * The shelf for franchises that genuinely span media. Its existence is a
@@ -216,6 +239,7 @@ export function createDefaultMediaTypes({
       // Mixed by nature; real runtimes come from the API.
       defaultDurationMinutes: 120,
       adapter: franchises,
+      sourceName: 'TMDB',
     },
   ]
 }
@@ -320,6 +344,55 @@ export interface MediaType {
    */
   defaultDurationMinutes: number
   adapter?: SearchAdapter
+  /**
+   * Display name of the adapter's upstream source ("TMDB", "Wikipedia"), shown
+   * as the category tile's footer. Set alongside `adapter`; a category with
+   * no adapter is "by hand" and has none.
+   */
+  sourceName?: string
+}
+
+/** What `GET /media-types` (and the standalone app's `mediaTypes()`) returns per category. */
+export interface MediaTypeInfo {
+  key: string
+  label: string
+  description?: string
+  sortOrder: number
+  defaultDurationMinutes: number
+  /** Whether search is offered for this category. Manual entry always works. */
+  searchAvailable: boolean
+  /** Whether a preview-before-import can be fetched — the same gate as search. */
+  previewable: boolean
+  sourceName?: string
+}
+
+/**
+ * The one place a registry entry becomes its wire shape, shared by the
+ * server route and the standalone app so the two surfaces cannot drift.
+ * The source name reflects the registry, not whether credentials are present:
+ * an unkeyed TMDB category is still "TMDB", just not searchable yet.
+ */
+export function toMediaTypeInfo({
+  key,
+  label,
+  description,
+  sortOrder,
+  defaultDurationMinutes,
+  adapter,
+  sourceName,
+}: MediaType): MediaTypeInfo {
+  const available = adapter?.isAvailable() ?? false
+
+  return {
+    key,
+    label,
+    ...(description ? { description } : {}),
+    sortOrder,
+    defaultDurationMinutes,
+    searchAvailable: available,
+    previewable: available,
+    ...(adapter && sourceName ? { sourceName } : {}),
+  }
 }
 
 /**

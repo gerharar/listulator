@@ -58,6 +58,7 @@ import type {
 import { ApiError } from './api.js'
 import { createLocalDb, type LocalDatabase } from './db/localDb.js'
 import { getLocalCurrentUser } from './db/localUser.js'
+import { toMediaTypeInfo } from '../../../server/src/ingestion/mediaTypes.js'
 import { getLocalMediaTypes } from './ingestion/localMediaTypes.js'
 import { loadLocalStrategy } from './suggestions/localStrategies.js'
 
@@ -203,16 +204,7 @@ export function createLocalApi(): ApiClient {
 
     mediaTypes: async () => {
       const entries = await getLocalMediaTypes()
-      return [...entries]
-        .sort((a, b) => a.sortOrder - b.sortOrder)
-        .map((entry): MediaType => ({
-          key: entry.key,
-          label: entry.label,
-          ...(entry.description ? { description: entry.description } : {}),
-          sortOrder: entry.sortOrder,
-          defaultDurationMinutes: entry.defaultDurationMinutes,
-          searchAvailable: entry.adapter?.isAvailable() ?? false,
-        }))
+      return [...entries].sort((a, b) => a.sortOrder - b.sortOrder).map(toMediaTypeInfo)
     },
 
     lists: async () => {
