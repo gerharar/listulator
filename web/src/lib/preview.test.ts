@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import { groupPreviewRows, parsePreviewPath, previewPath, summarizePreview } from './preview.js'
+import {
+  createFromSourceInput,
+  groupPreviewRows,
+  parsePreviewPath,
+  previewPath,
+  summarizePreview,
+} from './preview.js'
 
 describe('previewPath / parsePreviewPath', () => {
   it('round-trips the source and its options through the layer path', () => {
@@ -41,6 +47,27 @@ describe('previewPath / parsePreviewPath', () => {
 
   it('returns nothing when the source is missing', () => {
     expect(parsePreviewPath(new URLSearchParams('title=x'))).toBeNull()
+  })
+})
+
+describe('createFromSourceInput', () => {
+  it('is the flat request Add list posts: the source, the title and every option', () => {
+    // Written out, not derived from the helper: the row and the Preview both
+    // rely on this shape, so it is pinned here.
+    expect(
+      createFromSourceInput({
+        mediaType: 'music',
+        externalRef: 'artist-1',
+        title: 'Discography',
+        options: { includeEp: true, includeLive: false },
+      }),
+    ).toEqual({
+      mediaType: 'music',
+      externalRef: 'artist-1',
+      title: 'Discography',
+      includeEp: true,
+      includeLive: false,
+    })
   })
 })
 
