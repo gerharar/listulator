@@ -22,6 +22,12 @@ test('flips to the left when the anchor has no room to open right', async ({ pag
 
   const popover = page.getByRole('dialog')
   await expect(popover).toBeVisible()
+  // `@floating-ui/react` positions asynchronously (autoUpdate) — the card
+  // sits at (0, 0) for a frame before that resolves, which would satisfy
+  // the geometry assertions below vacuously. The `.right` tail class only
+  // appears once the resolved placement is actually 'left-*', so waiting
+  // on it first (auto-retrying) guarantees positioning has actually landed.
+  await expect(page.locator('.q-pop-tail.right')).toBeVisible()
 
   const anchorBox = await anchor.boundingBox()
   const popoverBox = await popover.boundingBox()
@@ -31,8 +37,6 @@ test('flips to the left when the anchor has no room to open right', async ({ pag
   expect(popoverBox.x + popoverBox.width).toBeLessThanOrEqual(anchorBox.x + 1)
   // And it stays fully inside the viewport — the point of flip + shift together.
   expect(popoverBox.x).toBeGreaterThanOrEqual(0)
-
-  await expect(page.locator('.q-pop-tail.right')).toBeVisible()
 })
 
 test('Esc closes the popover first, and leaves a pushed layer in place — a second Esc then pops it', async ({

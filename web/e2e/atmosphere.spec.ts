@@ -11,25 +11,30 @@ test.beforeEach(async ({ page }) => {
   await expect(page.getByRole('heading', { name: 'Your lists' })).toBeVisible({ timeout: 15_000 })
 })
 
-test('the atmosphere stays fixed when a layer body scrolls', async ({ page }) => {
+test('the atmosphere stays fixed when the page scrolls', async ({ page }) => {
+  // `.q-atmo` is App.tsx's direct child of QRoot, a sibling of the layer
+  // stage — not nested inside `.q-layer-body`, so scrolling that nested
+  // scroller (an earlier version of this test did) would never move it
+  // either way, a false-positive fixed check. The *document* is what
+  // `position: fixed` is actually relative to here.
   const atmosphere = page.locator('.q-atmo')
   const before = await atmosphere.boundingBox()
   if (!before) throw new Error('expected .q-atmo to have a layout box')
 
-  // Home's own content may not overflow on a fresh dataset — inject filler
-  // so `.q-layer-body` genuinely has something to scroll, without depending
-  // on how many lists happen to exist.
   await page.evaluate(() => {
-    const body = document.querySelector('.q-layer-body')
     const filler = document.createElement('div')
     filler.style.height = '3000px'
     filler.dataset['e2eFiller'] = 'atmosphere-scroll-test'
-    body?.appendChild(filler)
-    body?.scrollTo(0, 1500)
+    document.body.appendChild(filler)
+    window.scrollTo(0, 1500)
   })
+  // Prove the scroll actually happened — an assertion that always passes
+  // regardless of whether the page moved is worth nothing.
+  await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(0)
 
   const after = await atmosphere.boundingBox()
   expect(after).toEqual(before)
+  await expect(atmosphere).toHaveCSS('position', 'fixed')
 })
 
 test('reduced transparency drops the atmosphere to its plain treatment', async ({
@@ -38,12 +43,22 @@ test('reduced transparency drops the atmosphere to its plain treatment', async (
 }) => {
   test.skip(browserName !== 'chromium', 'CDP-only emulation, no cross-engine API for this feature')
 
+  // Control: visible before emulation, so "hidden" below is a real effect
+  // of the media query, not a vacuous check against an already-hidden node.
+  await expect(page.locator('.q-atmo .hatch')).toBeVisible()
+
   const session = await page.context().newCDPSession(page)
   await session.send('Emulation.setEmulatedMedia', {
     features: [{ name: 'prefers-reduced-transparency', value: 'reduce' }],
   })
   await page.reload()
   await expect(page.getByRole('heading', { name: 'Your lists' })).toBeVisible({ timeout: 15_000 })
+
+  // Confirm the emulation actually survived the reload before trusting
+  // anything that follows from it.
+  await expect
+    .poll(() => page.evaluate(() => matchMedia('(prefers-reduced-transparency: reduce)').matches))
+    .toBe(true)
 
   await expect(page.locator('.q-atmo .hatch')).toBeHidden()
   await expect(page.locator('.q-atmo .ring1')).toBeHidden()

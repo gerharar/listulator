@@ -20,7 +20,17 @@ export default defineConfig({
     trace: 'on-first-retry',
     locale: 'en-US',
   },
-  projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
+  projects: [
+    { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
+    /**
+     * Not a substitute for the real Tauri/WKWebView desktop shell, but a
+     * genuine second engine (WebKit) rather than an assumption that
+     * Chromium's result carries over. The CDP-only reduced-transparency
+     * spec skips itself outside Chromium (no cross-engine equivalent API);
+     * everything else here runs for real under both.
+     */
+    { name: 'webkit', use: { ...devices['Desktop Safari'] } },
+  ],
   webServer: {
     command: 'npm run dev',
     cwd: '../',
