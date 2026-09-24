@@ -108,4 +108,18 @@ describe('composite sources', () => {
 
     await expect(adapter.search('x')).rejects.toThrow(/upstream is down/)
   })
+
+  it("passes the owning source's production status through with its items", async () => {
+    const shows: SearchAdapter = {
+      ...source('show', []),
+      expand: async () => ({ items: [{ title: 'Episode 1' }], status: 'complete' }),
+    }
+
+    const adapter = createCompositeAdapter([{ prefixes: ['show'], adapter: shows }])
+
+    expect(await adapter.expand('show:1')).toEqual({
+      items: [{ title: 'Episode 1' }],
+      status: 'complete',
+    })
+  })
 })

@@ -1,6 +1,6 @@
 import type { FetchLike } from '../http.js'
+import type { ListStatus } from '../../db/schema.js'
 import type { ListSource, MediaTypeCandidate, SearchAdapter } from '../mediaTypes.js'
-import { itemsOnly } from '../expansion.js'
 import { createTmdbClient, type TmdbCredentialSource } from './tmdb.js'
 
 /**
@@ -30,7 +30,29 @@ interface ShowResult {
 
 interface ShowDetail {
   name?: string
+  /** TMDB's production status: Ended, Canceled, Returning Series, In Production, Planned or Pilot. */
+  status?: string
   seasons?: { season_number?: number; episode_count?: number }[]
+}
+
+/**
+ * TMDB's own vocabulary, mapped once. A finished run is complete; anything
+ * still airing or still to come is ongoing. A value TMDB adds later is
+ * reported as unknown rather than guessed at.
+ */
+function listStatus(status: string | undefined): ListStatus | undefined {
+  switch (status) {
+    case 'Ended':
+    case 'Canceled':
+      return 'complete'
+    case 'Returning Series':
+    case 'In Production':
+    case 'Planned':
+    case 'Pilot':
+      return 'ongoing'
+    default:
+      return undefined
+  }
 }
 
 interface SeasonDetail {
@@ -87,9 +109,9 @@ export function createTmdbTvAdapter(
         })
     },
 
-    expand: itemsOnly(async (externalRef) => {
+    async expand(externalRef) {
       const [kind, id] = externalRef.split(':')
-      if (kind !== 'show' || !id || !/^\d+$/.test(id)) return []
+      if (kind !== 'show' || !id || !/^\d+$/.test(id)) return { items: [] }
 
       const show = await request<ShowDetail>(`/tv/${id}`)
 
@@ -133,7 +155,9 @@ export function createTmdbTvAdapter(
         }
       }
 
-      return items.slice(0, MAX_ITEMS)
-    }),
+      const status = listStatus(show.status)
+
+      return { items: items.slice(0, MAX_ITEMS), ...(status ? { status } : {}) }
+    },
   }
 }

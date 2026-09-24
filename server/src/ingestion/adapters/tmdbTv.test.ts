@@ -226,3 +226,52 @@ describe('TMDB television expansion', () => {
     expect(peak).toBeLessThanOrEqual(5)
   })
 })
+
+describe('TMDB television production status (BL-013)', () => {
+  function expandWithStatus(status: string | undefined) {
+    const adapter = createTmdbTvAdapter(
+      credentials,
+      {},
+      router({ ...routes, '/tv/1396': { ...SHOW, ...(status === undefined ? {} : { status }) } }),
+    )
+
+    return adapter.expand('show:1396')
+  }
+
+  // TMDB's own TV `status` vocabulary: a finished run is complete, anything
+  // still going or still to come is ongoing.
+  it.each([
+    ['Ended', 'complete'],
+    ['Canceled', 'complete'],
+    ['Returning Series', 'ongoing'],
+    ['In Production', 'ongoing'],
+    ['Planned', 'ongoing'],
+    ['Pilot', 'ongoing'],
+  ] as const)('maps TMDB %s to %s', async (upstream, expected) => {
+    expect((await expandWithStatus(upstream)).status).toBe(expected)
+  })
+
+  it('reports no status for a value it does not recognise, rather than guessing', async () => {
+    const expansion = await expandWithStatus('Something New')
+
+    expect('status' in expansion).toBe(false)
+  })
+
+  it('reports no status when TMDB gives none', async () => {
+    const expansion = await expandWithStatus(undefined)
+
+    expect('status' in expansion).toBe(false)
+  })
+
+  it('still returns the episodes alongside the status', async () => {
+    const expansion = await expandWithStatus('Ended')
+
+    expect(expansion.items).toHaveLength(4)
+  })
+
+  it('returns no status for a malformed ref, where there was no show to ask about', async () => {
+    const adapter = createTmdbTvAdapter(credentials, {}, router(routes))
+
+    expect(await adapter.expand('show:abc')).toEqual({ items: [] })
+  })
+})
