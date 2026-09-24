@@ -526,6 +526,81 @@ describe('search and import from a source', () => {
     })
   })
 
+  it("sets the list's status from the adapter, and mirrors it into arrived_status (BL-013, D4)", async () => {
+    const expand = vi.fn(async () => ({
+      items: [{ title: 'Pilot', externalRef: 'ep-1' }],
+      status: 'ongoing' as const,
+    }))
+    harness = withAdapter(fakeAdapter({ expand }))
+
+    const response = await harness.app.inject({
+      method: 'POST',
+      url: '/api/lists/from-source',
+      payload: { mediaType: 'music', externalRef: 'ref-1', title: 'Some Show' },
+    })
+
+    expect(response.json().status).toBe('ongoing')
+
+    const userId = harness.db.select().from(users).get()!.id
+    // arrived_status is what 10.18's Reset restores; leaving it null while
+    // status is set would break that later without any error.
+    expect(await findList(harness.db, userId, response.json().id)).toMatchObject({
+      status: 'ongoing',
+      arrivedStatus: 'ongoing',
+    })
+  })
+
+  it('leaves status null when the adapter reports none, never inventing one', async () => {
+    harness = withAdapter(fakeAdapter())
+
+    const response = await harness.app.inject({
+      method: 'POST',
+      url: '/api/lists/from-source',
+      payload: { mediaType: 'music', externalRef: 'ref-1', title: 'Cannibal Corpse' },
+    })
+
+    expect(response.json().status).toBeNull()
+  })
+
+  it("never overwrites a status the user set by hand, whatever a later refresh finds upstream", async () => {
+    const expand = vi.fn(async () => ({
+      items: [{ title: 'Pilot', externalRef: 'ep-1' }],
+      status: 'ongoing' as const,
+    }))
+    harness = withAdapter(fakeAdapter({ expand }))
+
+    const created = (
+      await harness.app.inject({
+        method: 'POST',
+        url: '/api/lists/from-source',
+        payload: { mediaType: 'music', externalRef: 'ref-1', title: 'Some Show' },
+      })
+    ).json()
+
+    await harness.app.inject({
+      method: 'PATCH',
+      url: `/api/lists/${created.id}`,
+      payload: { status: 'complete' },
+    })
+
+    // Upstream still says ongoing, and now has a second item.
+    expand.mockResolvedValue({
+      items: [
+        { title: 'Pilot', externalRef: 'ep-1' },
+        { title: 'Episode 2', externalRef: 'ep-2' },
+      ],
+      status: 'ongoing',
+    })
+    const refreshed = await harness.app.inject({
+      method: 'POST',
+      url: `/api/lists/${created.id}/refresh`,
+    })
+
+    expect(refreshed.statusCode).toBe(200)
+    const read = await harness.app.inject({ method: 'GET', url: `/api/lists/${created.id}` })
+    expect(read.json().status).toBe('complete')
+  })
+
   it('folds a language filter into the stored ref, so a later refresh replays it', async () => {
     // Book-search-language filtering: the client sends `language` alongside
     // the chosen source, generically for any category (the GUI only ever

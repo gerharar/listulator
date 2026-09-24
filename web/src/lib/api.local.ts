@@ -448,7 +448,7 @@ export function createLocalApi(): ApiClient {
 
       // Expanded before the list is created, so a failure upstream does not
       // leave an empty list behind.
-      const { items: candidates } = await mediaType.adapter.expand(refForAdapter)
+      const { items: candidates, status } = await mediaType.adapter.expand(refForAdapter)
       if (candidates.length === 0) {
         throw new ApiError(copy.errors['list.sourceEmpty']({ title }), 422)
       }
@@ -458,11 +458,12 @@ export function createLocalApi(): ApiClient {
         mediaType: key,
         source: 'api',
         externalRef: refForAdapter,
-        // No adapter sets description/status, so both are null at import
-        // time — arrived_* mirrors that, same as the real columns (D4).
+        // Mirrors server/src/ingestion/routes.ts: status only where the
+        // adapter has an honest signal (BL-013); arrived_* mirrors it (D4).
+        status: status ?? null,
         arrivedTitle: title,
         arrivedDescription: null,
-        arrivedStatus: null,
+        arrivedStatus: status ?? null,
       })
 
       // Sequential, not Promise.all — see docs/DECISIONS.md, task 5.1.

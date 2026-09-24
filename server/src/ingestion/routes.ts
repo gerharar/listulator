@@ -329,7 +329,7 @@ export const ingestionRoutes: FastifyPluginAsync<IngestionRoutesOptions> = async
 
       // Expanded before the list is created, so a failure upstream does not
       // leave an empty list behind.
-      const { items: candidates } = await mediaType.adapter.expand(refForAdapter)
+      const { items: candidates, status } = await mediaType.adapter.expand(refForAdapter)
       if (candidates.length === 0) {
         return sendApiError(reply, 422, 'list.sourceEmpty', { title })
       }
@@ -339,11 +339,13 @@ export const ingestionRoutes: FastifyPluginAsync<IngestionRoutesOptions> = async
         mediaType: key,
         source: 'api',
         externalRef: refForAdapter,
-        // No adapter sets description/status, so both are null at import
-        // time — arrived_* mirrors that, same as the real columns (D4).
+        // No adapter sets a description. Status is set only where the
+        // adapter has an honest signal for it (BL-013); arrived_* mirrors the
+        // real columns, so 10.18's Reset restores exactly what arrived (D4).
+        status: status ?? null,
         arrivedTitle: title,
         arrivedDescription: null,
-        arrivedStatus: null,
+        arrivedStatus: status ?? null,
       })
 
       // Sequential, not Promise.all: each create can fall back to
