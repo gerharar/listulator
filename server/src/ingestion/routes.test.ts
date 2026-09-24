@@ -1102,19 +1102,20 @@ items:
 
   it('preserves a top-level description and status, both null when omitted', async () => {
     const withBoth = await fromFile(
-      'title: X\ndescription: A long-running procedural.\nstatus: ongoing\ncategory: tv\nitems: []\n',
+      'title: X\ndescription: A long-running procedural.\nstatus: ongoing\ncategory: tv\nitems:\n  - { title: A }\n',
     )
     expect(withBoth.json()).toMatchObject({
       description: 'A long-running procedural.',
       status: 'ongoing',
     })
 
-    const withNeither = await fromFile('title: Y\ncategory: tv\nitems: []\n')
+    const withNeither = await fromFile('title: Y\ncategory: tv\nitems:\n  - { title: A }\n')
     expect(withNeither.json()).toMatchObject({ description: null, status: null })
   })
 
   it('stores the exact input text as source_yaml (D4), for Reset to re-parse later', async () => {
-    const yaml = 'title: X\ndescription: A blurb.\ncategory: tv\nstatus: ongoing\nitems: []\n'
+    const yaml =
+      'title: X\ndescription: A blurb.\ncategory: tv\nstatus: ongoing\nitems:\n  - { title: A }\n'
     const response = await fromFile(yaml)
 
     const userId = harness.db.select().from(users).get()!.id
@@ -1122,6 +1123,21 @@ items:
 
     expect(list?.sourceYaml).toBe(yaml)
   })
+
+  it('refuses a file with no items, rather than making an empty list', async () => {
+    const response = await fromFile('title: X\ncategory: tv\nitems: []\n')
+
+    expect(response.statusCode).toBe(400)
+    expect(response.json()).toEqual({ code: 'list.fileNoItems' })
+  })
+
+  it('has no size ceiling worth the name: a 12,000-item file imports', async () => {
+    // The old 200,000-character cap refused files a real list can reach.
+    const rows = Array.from({ length: 12_000 }, (_, index) => `  - { title: "Item ${index}" }`)
+    const response = await fromFile(`title: Big\ncategory: movie\nitems:\n${rows.join('\n')}\n`)
+
+    expect(response.statusCode).toBe(201)
+  }, 30_000)
 
   it('rejects an unknown category with the same code the search-based path uses', async () => {
     const response = await fromFile(
@@ -1160,7 +1176,7 @@ items:
     const response = await fromFile('title: [unclosed')
 
     expect(response.statusCode).toBe(400)
-    expect(response.json()).toEqual({ code: 'list.fileInvalid' })
+    expect(response.json()).toEqual({ code: 'list.fileSyntax', params: { line: 1 } })
   })
 })
 
@@ -1240,7 +1256,9 @@ describe('scanning the local drop folder for custom-list files', () => {
     expect(response.json().created).toEqual([
       { fileName: 'good.yaml', id: expect.any(String), title: 'Good' },
     ])
-    expect(response.json().failed).toEqual([{ fileName: 'bad.yaml', code: 'list.fileInvalid' }])
+    expect(response.json().failed).toEqual([
+      { fileName: 'bad.yaml', code: 'list.fileSyntax', params: { line: 1 } },
+    ])
   })
 
   it('does nothing on an empty or missing folder', async () => {

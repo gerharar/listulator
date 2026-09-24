@@ -1,0 +1,40 @@
+/* The Create layer's Import-a-file tab (task 10.14). */
+.q-import {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  max-width: 640px;
+}
+
+.q-import-pick {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.q-import-readout {
+  font: 500 12px/1.4 var(--font-mono);
+  color: var(--ink2);
+  overflow-wrap: anywhere;
+}
+
+/* Import sits right-aligned, where Create sits on the Add-by-hand tab. The
+   refusal shares the row and reads as a sentence, not an alarm: no red, since
+   red is the primary action. */
+.q-import-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 14px;
+}
+.q-import-refusal {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 auto 0 0;
+  color: var(--ink2);
+}
+
+.q-import-footer {
+  margin: 0;
+  color: var(--ink3);
+}

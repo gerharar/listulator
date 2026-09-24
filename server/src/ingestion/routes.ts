@@ -20,6 +20,7 @@ import {
   fetchCanonicalList,
   isSafeCanonicalPath,
   parseCustomList,
+  requireItems,
   searchLibrary,
   type ParsedCustomList,
 } from './customLists.js'
@@ -444,12 +445,15 @@ export const ingestionRoutes: FastifyPluginAsync<IngestionRoutesOptions> = async
   app.post<{ Body: { yaml: string } }>(
     '/lists/from-file',
     {
+      // The design says an import has no ceiling ("if it parses, it imports").
+      // 10 MB is far past any real list and only guards against a wrong file.
+      bodyLimit: 10 * 1024 * 1024,
       schema: {
         body: {
           type: 'object',
           required: ['yaml'],
           additionalProperties: false,
-          properties: { yaml: { type: 'string', minLength: 1, maxLength: 200_000 } },
+          properties: { yaml: { type: 'string', minLength: 1, maxLength: 10 * 1024 * 1024 } },
         },
       },
     },
@@ -462,6 +466,7 @@ export const ingestionRoutes: FastifyPluginAsync<IngestionRoutesOptions> = async
           request.body.yaml,
           new Set(mediaTypes.list().map((entry) => entry.key)),
         )
+        requireItems(parsed)
       } catch (cause) {
         if (cause instanceof CustomListParseError) {
           return sendApiError(reply, 400, cause.code, cause.params)

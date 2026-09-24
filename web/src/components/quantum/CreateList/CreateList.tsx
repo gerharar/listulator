@@ -4,10 +4,10 @@ import { useNavigate } from 'react-router-dom'
 import { X } from 'lucide-react'
 import type { MediaType } from '../../../lib/api.js'
 import { categoryDescription, categoryLabel, copy } from '../../../locale/index.js'
-import { CustomListImport } from '../../CustomListImport.js'
 import { AddByHandTab } from '../AddByHandTab/AddByHandTab.js'
 import { IconButton } from '../Button/Button.js'
 import { HeaderPlate } from '../HeaderPlate/HeaderPlate.js'
+import { ImportFileTab } from '../ImportFileTab/ImportFileTab.js'
 import { SearchTab } from '../SearchTab/SearchTab.js'
 import { useLayerStack } from '../layerStack/LayerStackContext.js'
 import { TabStrip, type TabStripTab } from '../TabStrip/TabStrip.js'
@@ -29,9 +29,8 @@ export interface CreateListProps {
  *
  * Only the active tab is mounted, so leaving one clears whatever transient
  * state it held (the design's rule: "the Import buffer never survives a
- * leave"). Still hosted inside a `LegacyRouteHost` until 10.14 replaces the
- * import, which is why `navigate` here resolves
- * through `App.tsx`'s `handleLegacyNavigate`.
+ * leave"). Still hosted inside a `LegacyRouteHost`, which is why `navigate` here
+ * resolves through `App.tsx`'s `handleLegacyNavigate`.
  */
 export function CreateList({ mediaTypes, mediaTypeKey }: CreateListProps) {
   const layerStack = useLayerStack()
@@ -76,7 +75,7 @@ export function CreateList({ mediaTypes, mediaTypeKey }: CreateListProps) {
       <div className="q-create-body">
         {active === 'search' && mediaType && <SearchTab mediaType={mediaType} onBuilt={built} />}
         {active === 'hand' && mediaType && <AddByHandTab mediaType={mediaType} onBuilt={built} />}
-        {active === 'import' && <CustomListImport onImported={built} />}
+        {active === 'import' && <ImportFileTab onBuilt={built} />}
       </div>
     </div>
   )

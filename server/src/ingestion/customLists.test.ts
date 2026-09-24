@@ -134,13 +134,23 @@ items:
     )
   })
 
-  it('rejects unparseable YAML', () => {
-    expect(() => parseCustomList('title: [unclosed', CATEGORIES)).toThrow(CustomListParseError)
+  it('rejects unparseable YAML, saying which line', () => {
+    // The Import tab's sentence is "Syntax error on line N" (design rules).
+    expect(() => parseCustomList('title: X\ncategory: movie\nitems: [unclosed', CATEGORIES)).toThrow(
+      CustomListParseError,
+    )
     try {
-      parseCustomList('title: [unclosed', CATEGORIES)
+      parseCustomList('title: X\ncategory: movie\nitems: [unclosed', CATEGORIES)
     } catch (error) {
-      expect((error as CustomListParseError).code).toBe('list.fileInvalid')
+      expect((error as CustomListParseError).code).toBe('list.fileSyntax')
+      expect((error as CustomListParseError).params?.['line']).toBe(3)
     }
+  })
+
+  it('says "no items" when the items key is missing', () => {
+    expect(() => parseCustomList('title: X\ncategory: movie\n', CATEGORIES)).toThrow(
+      expect.objectContaining({ code: 'list.fileNoItems' }),
+    )
   })
 
   it('rejects a document that is not a mapping', () => {

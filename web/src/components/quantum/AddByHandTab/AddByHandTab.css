@@ -8,7 +8,7 @@
 
 .q-hand-hint {
   margin: 6px 0 0;
-  color: var(--ink-3, var(--ink-2));
+  color: var(--ink3);
 }
 
 .q-hand-actions {
@@ -17,5 +17,5 @@
   gap: 14px;
 }
 .q-hand-count {
-  color: var(--ink-2);
+  color: var(--ink2);
 }

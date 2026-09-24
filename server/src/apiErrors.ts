@@ -28,6 +28,8 @@ export type ApiErrorCode =
   | 'list.unknownCategory'
   | 'list.sourceEmpty'
   | 'list.fileInvalid'
+  | 'list.fileSyntax'
+  | 'list.fileNoItems'
   | 'list.fileMissingTitle'
   | 'list.fileItemMissingTitle'
   | 'list.fileItemNotesTooLong'

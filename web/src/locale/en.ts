@@ -136,18 +136,6 @@ export const en = {
     includeCompilation: 'Compilations',
   },
 
-  customListImport: {
-    heading: 'Import a list file',
-    hint: 'A YAML file with its own title, category, and items — see CONTRIBUTING.md for the format. The category picker above does not apply here.',
-    chooseFileLabel: 'Choose a .yaml file…',
-    pasteLabel: 'Or paste it here',
-    pastePlaceholder:
-      'title: All Jackie Chan Movies\ncategory: movie\nitems:\n  - { title: Drunken Master, year: 1978 }',
-    import: 'Import',
-    importing: 'Importing…',
-    importFailed: 'Could not import that file',
-  },
-
   /**
    * Optional per-category overrides. The server's registry supplies every
    * label and description, and `media_type` is open, so a new category must
@@ -176,16 +164,22 @@ export const en = {
       `Search is not available for ${p.category}. Add items by hand.`,
     'search.unavailableOffline': (p: { category: string }): string =>
       `Search is not available for ${p.category}, and the community library could not be reached. Add items by hand.`,
-    'list.unknownCategory': (p: { key: string }): string => `Unknown category "${p.key}".`,
+    'list.unknownCategory': (p: { key: string }): string =>
+      `Unknown category ‘${p.key}’, list cannot be imported.`,
     'list.sourceEmpty': (p: { title: string }): string =>
       `Found nothing to import for "${p.title}".`,
     'list.fileInvalid': (): string =>
-      "That file isn't a valid list — check it matches the format in CONTRIBUTING.md.",
-    'list.fileMissingTitle': (): string => 'This list needs a title.',
+      "That file isn't in the list format, list cannot be imported.",
+    'list.fileSyntax': (p: { line?: number }): string =>
+      p.line
+        ? `Syntax error on line ${p.line}, list cannot be imported.`
+        : 'Syntax error, list cannot be imported.',
+    'list.fileNoItems': (): string => 'No items found, list cannot be imported.',
+    'list.fileMissingTitle': (): string => 'No title found, list cannot be imported.',
     'list.fileItemMissingTitle': (p: { index: number }): string =>
-      `Item ${p.index} is missing a title.`,
+      `Item ${p.index} has no title, list cannot be imported.`,
     'list.fileItemNotesTooLong': (p: { index: number; max: number }): string =>
-      `Item ${p.index}'s notes are too long (over ${p.max} characters).`,
+      `Item ${p.index}'s notes are over ${p.max} characters, list cannot be imported.`,
     'refresh.handMadeList': (): string =>
       'This list was made by hand, so there is nothing to check against.',
     'refresh.searchUnavailable': (p: { category: string }): string =>
@@ -361,6 +355,23 @@ export const en = {
       assumedDuration: (duration: string): string =>
         `Each is assumed to take about ${duration}, which you can correct later.`,
       createFailed: 'Could not create the list',
+    },
+    importFile: {
+      chooseFile: 'Choose file…',
+      boxLabel: 'YAML',
+      boxPlaceholder:
+        'title: All Jackie Chan Movies\ncategory: movie\nitems:\n  - { title: Drunken Master, year: 1978 }',
+      import: 'Import',
+      importing: 'Importing…',
+      /** Facts about the text as it arrived; never a verdict. */
+      readOutFile: (name: string, size: string, lines: string): string =>
+        `${name} · ${size} · ${lines}`,
+      readOutPasted: (lines: string): string => `Pasted · ${lines}`,
+      lines: (n: number): string =>
+        `${n} ${selectPlural(n, 'en', { one: 'line', other: 'lines' })}`,
+      footer:
+        'Listulator lists travel as YAML files. Export writes one; Import reads it back as a new list.',
+      importFailed: 'Could not import that file, list cannot be imported.',
     },
     createList: {
       title: (category: string): string => `New ${category} list`,

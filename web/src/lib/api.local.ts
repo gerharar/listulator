@@ -42,6 +42,7 @@ import {
   fetchCanonicalList,
   isSafeCanonicalPath,
   parseCustomList,
+  requireItems,
   searchLibrary,
 } from '../../../server/src/ingestion/customLists.js'
 import { rank, type Suggestion } from '../../../server/src/suggestions/engine.js'
@@ -540,6 +541,7 @@ export function createLocalApi(): ApiClient {
       let parsed
       try {
         parsed = parseCustomList(yaml, new Set(mediaTypes.map((entry) => entry.key)))
+        requireItems(parsed)
       } catch (cause) {
         if (cause instanceof CustomListParseError) {
           throw new ApiError(errorMessage(cause.code, cause.params) ?? cause.code, 400, cause.code)

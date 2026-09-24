@@ -45,9 +45,11 @@ export interface ReadOnlyBufferProps {
   onChange: (value: string) => void
   rows?: number
   code?: boolean
+  /** Read-only even after a click — e.g. while the text is being imported. */
+  locked?: boolean
 }
 
-export function ReadOnlyBuffer({ label, value, onChange, rows = 4, code }: ReadOnlyBufferProps) {
+export function ReadOnlyBuffer({ label, value, onChange, rows = 4, code, locked }: ReadOnlyBufferProps) {
   const [editing, setEditing] = useState(false)
 
   return (
@@ -57,7 +59,7 @@ export function ReadOnlyBuffer({ label, value, onChange, rows = 4, code }: ReadO
         <textarea
           className={['q-input', code ? 'code' : ''].filter(Boolean).join(' ')}
           rows={rows}
-          readOnly={!editing}
+          readOnly={locked || !editing}
           value={value}
           onChange={(event) => onChange(event.target.value)}
           onClick={() => setEditing(true)}

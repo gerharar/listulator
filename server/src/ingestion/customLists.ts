@@ -1,4 +1,4 @@
-import { load as loadYaml } from 'js-yaml'
+import { load as loadYaml, YAMLException } from 'js-yaml'
 import type { ApiErrorCode } from '../apiErrors.js'
 import { getJson, getText, IngestionError, type FetchLike } from './http.js'
 import type { ListExpansion } from './mediaTypes.js'
@@ -38,6 +38,8 @@ export interface ParsedCustomList {
 type CustomListErrorCode = Extract<
   ApiErrorCode,
   | 'list.fileInvalid'
+  | 'list.fileSyntax'
+  | 'list.fileNoItems'
   | 'list.fileMissingTitle'
   | 'list.unknownCategory'
   | 'list.fileItemMissingTitle'
@@ -52,6 +54,15 @@ export class CustomListParseError extends Error {
     super(code)
     this.name = 'CustomListParseError'
   }
+}
+
+/**
+ * A file that parses but lists nothing is refused where a person hands it in
+ * (the Import tab: "No items found"). Not part of `parseCustomList` itself,
+ * which the community library also reads.
+ */
+export function requireItems(parsed: ParsedCustomList): void {
+  if (parsed.items.length === 0) fail('list.fileNoItems')
 }
 
 const TOP_LEVEL_FIELDS = new Set(['title', 'description', 'category', 'status', 'items'])
@@ -86,8 +97,15 @@ export function parseCustomList(
   let doc: unknown
   try {
     doc = loadYaml(yamlText)
-  } catch {
-    fail('list.fileInvalid')
+  } catch (cause) {
+    // js-yaml counts lines from zero, and reports an unclosed structure at the
+    // end of the text — clamped, so the line named always exists in the file.
+    const lastLine = yamlText.trimEnd().split('\n').length
+    const line =
+      cause instanceof YAMLException && cause.mark
+        ? Math.min(cause.mark.line + 1, lastLine)
+        : undefined
+    fail('list.fileSyntax', line === undefined ? undefined : { line })
   }
 
   if (!isPlainObject(doc)) fail('list.fileInvalid')
@@ -111,6 +129,7 @@ export function parseCustomList(
     fail('list.fileInvalid')
   }
 
+  if (items === undefined) fail('list.fileNoItems')
   if (!Array.isArray(items)) fail('list.fileInvalid')
 
   const parsedItems = items.map((rawItem, index): ParsedCustomListItem => {
