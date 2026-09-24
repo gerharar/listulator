@@ -37,6 +37,14 @@ describe('LayerCard', () => {
     expect(document.querySelector('.q-veil')).not.toBeNull()
   })
 
+  it('plays the drum-in animation only when entering', () => {
+    const { container, rerender } = render(<LayerCard>content</LayerCard>)
+    expect(container.querySelector('.q-layer')?.className).not.toMatch(/\benter\b/)
+
+    rerender(<LayerCard entering>content</LayerCard>)
+    expect(container.querySelector('.q-layer')?.className).toMatch(/\benter\b/)
+  })
+
   it('the tab jumps to this layer; the veil just dismisses one', () => {
     const onTabClick = vi.fn()
     const onVeilClick = vi.fn()

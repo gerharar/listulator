@@ -1,4 +1,13 @@
-import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from 'react'
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from 'react'
 import {
   popLayer,
   popToIndex,
@@ -7,6 +16,9 @@ import {
   visibleLayers,
   type LayerDescriptor,
 } from './layerStack.js'
+
+/** Matches `q-drumIn`/`q-drumShadow` in `LayerCard.css` — keep the two in sync. */
+export const ENTER_DURATION_MS = 380
 
 /**
  * `content` is specialized to `string` here (a legacy screen's path) —
@@ -17,6 +29,8 @@ import {
 export interface LayerStackContextValue {
   stack: readonly LayerDescriptor<string>[]
   visible: readonly LayerDescriptor<string>[]
+  /** The id of the layer that just pushed or replaced the top, for `LayerCard`'s drum-in — `null` once the animation has had time to finish. */
+  enteringId: string | null
   push: (layer: LayerDescriptor<string>) => void
   pop: () => void
   popToIndex: (index: number) => void
@@ -38,21 +52,45 @@ export interface LayerStackProviderProps {
  */
 export function LayerStackProvider({ home, children }: LayerStackProviderProps) {
   const [stack, setStack] = useState<LayerDescriptor<string>[]>([home])
+  const [enteringId, setEnteringId] = useState<string | null>(null)
+  const timerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
+
+  const markEntering = useCallback((id: string) => {
+    clearTimeout(timerRef.current)
+    setEnteringId(id)
+    timerRef.current = setTimeout(() => setEnteringId(null), ENTER_DURATION_MS)
+  }, [])
 
   const push = useCallback(
-    (layer: LayerDescriptor<string>) => setStack((s) => pushLayer(s, layer)),
-    [],
+    (layer: LayerDescriptor<string>) => {
+      setStack((s) => pushLayer(s, layer))
+      markEntering(layer.id)
+    },
+    [markEntering],
   )
   const pop = useCallback(() => setStack((s) => popLayer(s)), [])
   const popTo = useCallback((index: number) => setStack((s) => popToIndex(s, index)), [])
   const replaceTop = useCallback(
-    (layer: LayerDescriptor<string>) => setStack((s) => replaceTopLayer(s, layer)),
-    [],
+    (layer: LayerDescriptor<string>) => {
+      setStack((s) => replaceTopLayer(s, layer))
+      markEntering(layer.id)
+    },
+    [markEntering],
   )
 
+  useEffect(() => () => clearTimeout(timerRef.current), [])
+
   const value = useMemo<LayerStackContextValue>(
-    () => ({ stack, visible: visibleLayers(stack), push, pop, popToIndex: popTo, replaceTop }),
-    [stack, push, pop, popTo, replaceTop],
+    () => ({
+      stack,
+      visible: visibleLayers(stack),
+      enteringId,
+      push,
+      pop,
+      popToIndex: popTo,
+      replaceTop,
+    }),
+    [stack, enteringId, push, pop, popTo, replaceTop],
   )
 
   return <LayerStackReactContext.Provider value={value}>{children}</LayerStackReactContext.Provider>

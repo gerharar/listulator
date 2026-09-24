@@ -27,6 +27,7 @@ import {
 } from './components/quantum/layerStack/LayerStackContext.js'
 import { LegacyRouteHost } from './components/quantum/layerStack/LegacyRouteHost.js'
 import { parseLegacyPath } from './components/quantum/layerStack/legacyRoute.js'
+import { layerGeometry } from './components/quantum/layerStack/layerGeometry.js'
 import type { LayerDescriptor } from './components/quantum/layerStack/layerStack.js'
 
 function homeLayer(): LayerDescriptor<string> {
@@ -149,17 +150,19 @@ function AppShellBody({ skin, onSkinChange, mediaTypes }: AppShellBodyProps) {
         {layerStack.visible.map((layer, index) => {
           const isTop = index === layerStack.visible.length - 1
           const fullIndex = layerStack.stack.indexOf(layer)
+          // The most-covered visible layer (index 0) sits highest, so its
+          // LayerTab (34px + 1px border) peeks above whatever's in front of
+          // it; the active layer (depth 0) sits lowest and most prominent —
+          // the drum carousel's real peek cascade (task 10.9c), not 10.9's
+          // fixed-37px-step placeholder.
+          const depth = layerStack.visible.length - 1 - index
+          const { top, transform } = layerGeometry(layerStack.visible.length, depth)
 
           return (
             <LayerCard
               key={layer.id}
-              // The most-covered visible layer (index 0) sits highest, so
-              // its LayerTab (34px + 1px border) peeks above whatever's in
-              // front of it; the active layer (the highest index) sits
-              // lowest and most prominent. The exact cascade and its motion
-              // are task 10.9's "motion" half — this is just enough to make
-              // the tab and veil the acceptance criteria name reachable.
-              style={{ top: 15 + index * 37, zIndex: 10 + fullIndex }}
+              style={{ top, transform, zIndex: 10 + fullIndex }}
+              entering={layer.id === layerStack.enteringId}
               covered={!isTop}
               tabLabel={layer.tabLabel}
               onTabClick={() => layerStack.popToIndex(fullIndex)}

@@ -1,15 +1,16 @@
 /*
  * design-system/components/LayerCard, ported verbatim from bundle.css
- * (design-system/components/bundle.css lines ~294-308). `.enter`'s
- * `q-drumIn`/`q-drumShadow` animation exists here but nothing applies the
- * class yet — that's task 10.9's "motion" half.
+ * (design-system/components/bundle.css lines ~294-308).
  */
 .q-layer {
   /*
-   * Positioning (position/inset/z-index) is the stage's job (App.css) —
-   * each visible layer's depth-in-the-stack decides its own offset, which
-   * isn't something a static class can express. This just gives every
-   * layer, wherever it's placed, its own look.
+   * Positioning (top/inset/z-index/transform) is the stage's job
+   * (App.tsx's `layerGeometry`) — each visible layer's depth-in-the-stack
+   * decides its own offset and peek transform, which isn't something a
+   * static class can express. This just gives every layer, wherever it's
+   * placed, its own look, plus the re-seat transition every `top`/
+   * `transform` change (a push, pop, or peek-arrangement shift) animates
+   * through — task 10.9c.
    */
   display: flex;
   flex-direction: column;
@@ -22,6 +23,10 @@
     0 20px 48px rgba(0, 0, 0, 0.22),
     0 3px 10px rgba(0, 0, 0, 0.1);
   color: var(--ink);
+  transform-origin: 50% 0%;
+  transition:
+    top 300ms cubic-bezier(0.22, 0.7, 0.2, 1),
+    transform 300ms cubic-bezier(0.22, 0.7, 0.2, 1);
 }
 .q-layer.wide {
   max-width: 1400px;
@@ -120,6 +125,9 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .q-layer {
+    transition: none;
+  }
   .q-layer.enter,
   .q-layer-tab {
     animation: none;

@@ -18,13 +18,14 @@ export interface LayerCardProps {
   onVeilClick?: () => void
   /** Where this layer sits in the stage — the stack's job (its depth), not this component's. */
   style?: CSSProperties
+  /** Plays the drum-in (`q-drumIn`/`q-drumShadow`) once, right after this layer was pushed or replaced onto the top. */
+  entering?: boolean
 }
 
 /**
  * The surface a layer draws on (design-system/components/LayerCard): a
  * fixed header, exactly one scrolling body, and — once covered — a veil
- * plus a LayerTab back target. Entrance motion (`.enter`'s drum-in) is not
- * wired here yet; that's task 10.9's "motion" half.
+ * plus a LayerTab back target.
  */
 export function LayerCard({
   head,
@@ -35,8 +36,11 @@ export function LayerCard({
   onTabClick,
   onVeilClick,
   style,
+  entering = false,
 }: LayerCardProps) {
-  const className = ['q-layer', covered && 'covered', wide && 'wide'].filter(Boolean).join(' ')
+  const className = ['q-layer', covered && 'covered', wide && 'wide', entering && 'enter']
+    .filter(Boolean)
+    .join(' ')
 
   return (
     <div className={className} style={style}>
