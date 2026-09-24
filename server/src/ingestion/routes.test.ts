@@ -354,8 +354,16 @@ describe('search and import from a source', () => {
     })
   }
 
+  // Searching also asks the community library on GitHub. Without a stub these
+  // tests reached the real network, and only passed because a failure there
+  // used to be swallowed (task 10.12 made an unreachable library visible).
+  beforeEach(() => {
+    vi.stubGlobal('fetch', vi.fn(async () => new Response('[]', { status: 200 })))
+  })
+
   afterEach(async () => {
     await harness?.cleanup()
+    vi.unstubAllGlobals()
   })
 
   it('finds sources that could become a whole list', async () => {
@@ -675,6 +683,66 @@ describe('search and import from a source', () => {
       )
 
       expect((await expansion('externalRef=ref-1')).statusCode).toBe(502)
+    })
+  })
+
+  describe('when the community library cannot be reached', () => {
+    const MANIFEST_URL = 'https://raw.githubusercontent.com/neuroshaoh/listulator/main/lists/index.json'
+
+    function stubLibrary(reachable: boolean, manifest: unknown[] = []) {
+      vi.stubGlobal(
+        'fetch',
+        vi.fn(async (url: string) =>
+          reachable && url === MANIFEST_URL
+            ? new Response(JSON.stringify(manifest), { status: 200 })
+            : new Response('404: Not Found', { status: 404 }),
+        ),
+      )
+    }
+
+    afterEach(() => {
+      vi.unstubAllGlobals()
+    })
+
+    const search = () =>
+      harness.app.inject({ method: 'GET', url: '/api/media-types/music/search?q=cannibal' })
+
+    it("still returns the adapter's results, and says the curated ones could not be searched", async () => {
+      stubLibrary(false)
+      harness = withAdapter(fakeAdapter())
+
+      const response = await search()
+
+      expect(response.statusCode).toBe(200)
+      expect(response.json().sources).toHaveLength(1)
+      expect(response.json().libraryUnreachable).toBe(true)
+    })
+
+    it('says nothing about the library when it was reachable', async () => {
+      stubLibrary(true)
+      harness = withAdapter(fakeAdapter())
+
+      expect(await search().then((response) => response.json())).not.toHaveProperty('libraryUnreachable')
+    })
+
+    it('with no usable adapter either, names both problems rather than blaming the key alone', async () => {
+      stubLibrary(false)
+      harness = withAdapter(fakeAdapter({ isAvailable: () => false }))
+
+      const response = await search()
+
+      expect(response.statusCode).toBe(409)
+      expect(response.json().code).toBe('search.unavailableOffline')
+    })
+
+    it('with no usable adapter but a reachable library that has no match, blames the key alone', async () => {
+      stubLibrary(true)
+      harness = withAdapter(fakeAdapter({ isAvailable: () => false }))
+
+      const response = await search()
+
+      expect(response.statusCode).toBe(409)
+      expect(response.json().code).toBe('search.unavailable')
     })
   })
 

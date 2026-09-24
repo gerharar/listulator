@@ -86,14 +86,20 @@ export function SearchTab({ mediaType, onBuilt }: SearchTabProps) {
   )
   const optionsKey = JSON.stringify(options)
 
-  function noKeyNotice(): Notice {
+  function noKeyNotice(libraryDown = false): Notice {
     const category = categoryLabel(mediaType)
     const desktop = isDesktop()
 
     return {
       kind: 'block',
-      headline: text.noKeyHeadline(source),
-      explanation: desktop ? text.noKeyDesktop(category) : text.noKeyWeb(category),
+      headline: libraryDown ? text.offlineHeadline(category) : text.noKeyHeadline(source),
+      explanation: libraryDown
+        ? desktop
+          ? text.offlineDesktop(category)
+          : text.offlineWeb(category)
+        : desktop
+          ? text.noKeyDesktop(category)
+          : text.noKeyWeb(category),
       // Settings arrives in task 10.31; until then the action is shown but inert.
       ...(desktop
         ? {
@@ -110,6 +116,9 @@ export function SearchTab({ mediaType, onBuilt }: SearchTabProps) {
 
   function noticeFor(cause: unknown, retry: () => void): Notice {
     if (cause instanceof ApiError && cause.code === 'search.unavailable') return noKeyNotice()
+    if (cause instanceof ApiError && cause.code === 'search.unavailableOffline') {
+      return noKeyNotice(true)
+    }
     if (cause instanceof ApiError && cause.code === 'list.sourceEmpty') {
       return {
         kind: 'block',
@@ -156,7 +165,7 @@ export function SearchTab({ mediaType, onBuilt }: SearchTabProps) {
       // Book-only options — searchSources ignores the third argument for every
       // other category. The server computes each result's language-filtered
       // work count itself, so the detail line already matches what Add list makes.
-      const { sources } = await api.searchSources(
+      const { sources, libraryUnreachable } = await api.searchSources(
         mediaType.key,
         trimmed,
         isBook ? { language, includeUnknown } : undefined,
@@ -168,9 +177,17 @@ export function SearchTab({ mediaType, onBuilt }: SearchTabProps) {
         setNotice({
           kind: 'block',
           headline: text.nothingFoundHeadline,
-          explanation: text.nothingFoundBody,
+          explanation: libraryUnreachable
+            ? text.nothingFoundBody + text.nothingFoundLibraryDown
+            : text.nothingFoundBody,
         })
         return
+      }
+
+      // Results came back, but the curated lists could not be searched: keep
+      // the rows, and say what is missing (Retry searches again).
+      if (libraryUnreachable) {
+        setNotice({ kind: 'strip', message: text.libraryUnreachable, retry: () => void runSearch(trimmed) })
       }
 
       shownRefs.current = sources.map((entry) => entry.externalRef)

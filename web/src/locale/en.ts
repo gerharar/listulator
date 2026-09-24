@@ -193,6 +193,8 @@ export const en = {
     'search.queryRequired': (): string => 'Give me something to search for.',
     'search.unavailable': (p: { category: string }): string =>
       `Search is not available for ${p.category}. Add items by hand.`,
+    'search.unavailableOffline': (p: { category: string }): string =>
+      `Search is not available for ${p.category}, and the community library could not be reached. Add items by hand.`,
     'list.unknownCategory': (p: { key: string }): string => `Unknown category "${p.key}".`,
     'list.sourceEmpty': (p: { title: string }): string =>
       `Found nothing to import for "${p.title}".`,
@@ -337,6 +339,17 @@ export const en = {
       /** There is no keys section on the web (C7) — keys are the server's, in its `.env`. */
       noKeyWeb: (category: string): string =>
         `Searching ${category} needs an API key in the server's .env file. Until then you can add items by hand.`,
+      /** No key *and* the curated library unreachable — naming only the key would send the user hunting for half the answer. */
+      offlineHeadline: (category: string): string => `Can't search ${category} right now`,
+      offlineDesktop: (category: string): string =>
+        `Searching ${category} needs an API key (add yours in Settings), and the community library of curated lists could not be reached. Check your connection, or add items by hand.`,
+      offlineWeb: (category: string): string =>
+        `Searching ${category} needs an API key in the server's .env file, and the community library of curated lists could not be reached. Check the connection, or add items by hand.`,
+      /** Results came back, but the curated half of them could not be searched. */
+      libraryUnreachable:
+        "Couldn't reach the community library, so curated lists are missing from these results.",
+      nothingFoundLibraryDown:
+        ' The community library could not be reached, so curated lists were not searched.',
       openSettings: 'Open Settings',
       settingsComingSoon: 'Settings is coming soon',
       nothingFoundHeadline: 'Nothing found',

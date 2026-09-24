@@ -256,42 +256,41 @@ export async function fetchCanonicalList(
   return parseCustomList(text, validCategories)
 }
 
+/** One community-library match, in the shape a search result takes. */
+export interface CanonicalSearchResult {
+  externalRef: string
+  title: string
+  detail: string
+  description?: string
+  status?: 'complete' | 'ongoing'
+}
+
 /**
- * The actual confirmed intent behind canonical lists (task 7.4): searching
- * within a category also matches canonical-repo list titles in that same
- * category, merged into the existing search results — not a separate browse
- * UI (that idea was deliberately deferred to its own future task).
+ * Searches the community library, and says whether it could be reached at all.
  *
- * Degrades silently to no matches on a fetch failure — including the repo
- * being genuinely unreachable right now, since it is private — rather than
- * breaking search for every other category's real adapter. A canonical
- * match is additive on top of normal search, never a replacement for it, so
- * losing it to a transient GitHub problem should not cost anything else.
+ * An unreachable library (offline, a private or missing repo, GitHub down) is
+ * not the same as "no curated list matches", and callers have to tell them
+ * apart: with no API key either, the user is told the library is down rather
+ * than that a key is missing; with one, they are told curated lists were not
+ * searched. Any upstream failure counts as unreachable; anything else is a bug
+ * and still throws.
  */
-export async function searchCanonicalLists(
+export async function searchLibrary(
   category: string,
   query: string,
   fetchImpl?: FetchLike,
-): Promise<
-  {
-    externalRef: string
-    title: string
-    detail: string
-    description?: string
-    status?: 'complete' | 'ongoing'
-  }[]
-> {
+): Promise<{ matches: CanonicalSearchResult[]; reachable: boolean }> {
   let manifest: CanonicalListEntry[]
   try {
     manifest = await fetchCanonicalManifest(fetchImpl)
   } catch (error) {
-    if (error instanceof IngestionError) return []
+    if (error instanceof IngestionError) return { matches: [], reachable: false }
     throw error
   }
 
   const normalizedQuery = query.trim().toLowerCase()
 
-  return manifest
+  const matches = manifest
     .filter(
       (entry) => entry.category === category && entry.title.toLowerCase().includes(normalizedQuery),
     )
@@ -302,6 +301,17 @@ export async function searchCanonicalLists(
       ...(entry.description !== undefined ? { description: entry.description } : {}),
       ...(entry.status !== undefined ? { status: entry.status } : {}),
     }))
+
+  return { matches, reachable: true }
+}
+
+/** As `searchLibrary`, for callers that only want the matches. */
+export async function searchCanonicalLists(
+  category: string,
+  query: string,
+  fetchImpl?: FetchLike,
+): Promise<CanonicalSearchResult[]> {
+  return (await searchLibrary(category, query, fetchImpl)).matches
 }
 
 /**

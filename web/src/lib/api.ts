@@ -90,6 +90,12 @@ export interface CurrentUser {
 
 export type { SourceOptions }
 
+export interface SourceSearchResponse {
+  sources: ListSourceResult[]
+  /** Set only when the community library could not be reached, so curated lists may be missing from `sources`. */
+  libraryUnreachable?: boolean
+}
+
 export interface SourceExpansion {
   itemCount: number
   /** Only when the source has an honest signal for it. */
@@ -199,7 +205,7 @@ export interface ApiClient {
     query: string,
     /** Book-category-only GUI options — ignored by every other category. */
     options?: { language?: string; includeUnknown?: boolean },
-  ) => Promise<{ sources: ListSourceResult[] }>
+  ) => Promise<SourceSearchResponse>
   /**
    * Expands one search result without creating anything — its item count and,
    * where the source has an honest signal, its status. Takes the same filters
@@ -336,9 +342,7 @@ export const fetchApi: ApiClient = {
     if (options?.language) params.set('language', options.language)
     if (options?.includeUnknown) params.set('includeUnknown', 'true')
 
-    return request<{ sources: ListSourceResult[] }>(
-      `/media-types/${mediaType}/search?${params.toString()}`,
-    )
+    return request<SourceSearchResponse>(`/media-types/${mediaType}/search?${params.toString()}`)
   },
 
   expansion: (mediaType: string, externalRef: string, options: SourceOptions = {}) => {

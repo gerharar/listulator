@@ -20,7 +20,7 @@ import {
   fetchCanonicalList,
   isSafeCanonicalPath,
   parseCustomList,
-  searchCanonicalLists,
+  searchLibrary,
   type ParsedCustomList,
 } from './customLists.js'
 import { IngestionError } from './http.js'
@@ -178,13 +178,19 @@ export const ingestionRoutes: FastifyPluginAsync<IngestionRoutesOptions> = async
     const query = request.query.q?.trim()
     if (!query) return sendApiError(reply, 400, 'search.queryRequired')
 
-    const canonicalMatches = await searchCanonicalLists(mediaType.key, query)
+    const { matches: canonicalMatches, reachable } = await searchLibrary(mediaType.key, query)
 
     if (!mediaType.adapter?.isAvailable()) {
       if (canonicalMatches.length === 0) {
         // Not an error: plenty of categories will never have search, and the
-        // manual path always works.
-        return sendApiError(reply, 409, 'search.unavailable', { category: mediaType.label })
+        // manual path always works. If the library could not be reached as
+        // well, say so — a missing key is then only half the story.
+        return sendApiError(
+          reply,
+          409,
+          reachable ? 'search.unavailable' : 'search.unavailableOffline',
+          { category: mediaType.label },
+        )
       }
       return { sources: canonicalMatches }
     }
@@ -198,6 +204,8 @@ export const ingestionRoutes: FastifyPluginAsync<IngestionRoutesOptions> = async
 
     return {
       sources: [...canonicalMatches, ...(await mediaType.adapter.search(query, searchOptions))],
+      // Only when true: curated lists may be missing from these results.
+      ...(reachable ? {} : { libraryUnreachable: true }),
     }
   })
 

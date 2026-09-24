@@ -24,6 +24,7 @@ import type { FastifyReply } from 'fastify'
 export type ApiErrorCode =
   | 'search.queryRequired'
   | 'search.unavailable'
+  | 'search.unavailableOffline'
   | 'list.unknownCategory'
   | 'list.sourceEmpty'
   | 'list.fileInvalid'

@@ -113,6 +113,38 @@ test('a rate-limited search shows a strip in the results slot, and Retry recover
   await expect(page.getByRole('alert')).toBeHidden()
 })
 
+test('when the community library cannot be reached, results still show, with a strip saying so', async ({
+  page,
+}) => {
+  await page.route('**/api/media-types/music/search**', (route) =>
+    route.fulfill({ json: { sources: SOURCES, libraryUnreachable: true } }),
+  )
+  await page.route('**/api/media-types/music/expansion**', (route) =>
+    route.fulfill({ json: { itemCount: 3 } }),
+  )
+
+  await openMusicSearch(page)
+  await search(page)
+
+  await expect(page.getByText('Cannibal Corpse Discography')).toBeVisible()
+  await expect(page.getByRole('alert')).toContainText('community library')
+})
+
+test('with no key and the library down, the block names both problems', async ({ page }) => {
+  await page.route('**/api/media-types/music/search**', (route) =>
+    route.fulfill({
+      status: 409,
+      json: { code: 'search.unavailableOffline', params: { category: 'Music' } },
+    }),
+  )
+
+  await openMusicSearch(page)
+  await search(page)
+
+  await expect(page.getByText("Can't search Music right now")).toBeVisible()
+  await expect(page.getByLabel('Search MusicBrainz')).toBeVisible()
+})
+
 const LIST_JSON = {
   id: 'created-1',
   title: 'Cannibal Corpse Discography',

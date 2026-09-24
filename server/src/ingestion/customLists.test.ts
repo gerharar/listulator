@@ -11,6 +11,7 @@ import {
   isSafeCanonicalPath,
   parseCustomList,
   searchCanonicalLists,
+  searchLibrary,
 } from './customLists.js'
 import { IngestionError, type FetchLike } from './http.js'
 
@@ -498,5 +499,46 @@ items:
     const expansion = await expandCanonicalList('lists/x.yaml', new Set(['mega']), respondWithText(yaml))
 
     expect('status' in expansion).toBe(false)
+  })
+})
+
+describe('searchLibrary', () => {
+  const manifest = [{ path: 'lists/mega/mcu.yaml', title: 'MCU', category: 'mega' }]
+
+  it('returns the matches and says the library was reachable', async () => {
+    const fetchImpl: FetchLike = async () => new Response(JSON.stringify(manifest), { status: 200 })
+
+    expect(await searchLibrary('mega', 'mcu', fetchImpl)).toEqual({
+      matches: [
+        { externalRef: 'canonical:lists/mega/mcu.yaml', title: 'MCU', detail: 'Canonical list' },
+      ],
+      reachable: true,
+    })
+  })
+
+  it('is still reachable when nothing matches — an empty answer is not an outage', async () => {
+    const fetchImpl: FetchLike = async () => new Response(JSON.stringify(manifest), { status: 200 })
+
+    expect(await searchLibrary('mega', 'zzz', fetchImpl)).toEqual({ matches: [], reachable: true })
+  })
+
+  it('reports the library unreachable when it answers 404 (a private or missing repo)', async () => {
+    const fetchImpl: FetchLike = async () => new Response('404: Not Found', { status: 404 })
+
+    expect(await searchLibrary('mega', 'mcu', fetchImpl)).toEqual({ matches: [], reachable: false })
+  })
+
+  it('reports the library unreachable when the network is down', async () => {
+    const fetchImpl: FetchLike = async () => {
+      throw new TypeError('Failed to fetch')
+    }
+
+    expect(await searchLibrary('mega', 'mcu', fetchImpl)).toEqual({ matches: [], reachable: false })
+  })
+
+  it('keeps searchCanonicalLists returning just the matches, for callers that never cared', async () => {
+    const fetchImpl: FetchLike = async () => new Response('nope', { status: 500 })
+
+    expect(await searchCanonicalLists('mega', 'mcu', fetchImpl)).toEqual([])
   })
 })

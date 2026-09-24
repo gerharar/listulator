@@ -205,6 +205,85 @@ describe('SearchTab', () => {
     expect(open.title).toBe('Settings is coming soon')
   })
 
+  describe('when the community library cannot be reached', () => {
+    it('names both problems when there is no key either, on the web pointing at .env', async () => {
+      vi.mocked(api.searchSources).mockRejectedValue(
+        new ApiError('needs a key and library down', 409, 'search.unavailableOffline'),
+      )
+      renderTab(mediaType({ key: 'mega', label: 'Mega', searchAvailable: false }))
+
+      await search('marvel')
+
+      expect(await screen.findByText("Can't search Mega right now")).not.toBeNull()
+      expect(screen.getByText(/community library/)).not.toBeNull()
+      expect(screen.getByText(/\.env file/)).not.toBeNull()
+      // Not the key-only headline: that would send the user hunting for a key that is only half the story.
+      expect(screen.queryByText('Search needs a TMDB key')).toBeNull()
+    })
+
+    it('on desktop also points at Settings, with Open Settings disabled', async () => {
+      ;(window as unknown as Record<string, unknown>)['__TAURI_INTERNALS__'] = {}
+      vi.mocked(api.searchSources).mockRejectedValue(
+        new ApiError('x', 409, 'search.unavailableOffline'),
+      )
+      renderTab(mediaType({ searchAvailable: false }))
+
+      await search()
+
+      expect(await screen.findByText(/add yours in Settings/)).not.toBeNull()
+      expect((screen.getByRole('button', { name: 'Open Settings' }) as HTMLButtonElement).disabled).toBe(true)
+    })
+
+    it('still shows the results it did get, with a strip saying curated lists are missing', async () => {
+      vi.mocked(api.searchSources).mockResolvedValue({ sources: RESULTS, libraryUnreachable: true })
+      vi.mocked(api.expansion).mockResolvedValue({ itemCount: 1 })
+      renderTab()
+
+      await search()
+
+      expect(await screen.findByText('Breaking Bad')).not.toBeNull()
+      expect(screen.getByRole('alert').textContent).toMatch(/community library/)
+    })
+
+    it('Retry on that strip searches again', async () => {
+      vi.mocked(api.searchSources)
+        .mockResolvedValueOnce({ sources: RESULTS, libraryUnreachable: true })
+        .mockResolvedValueOnce({ sources: RESULTS })
+      vi.mocked(api.expansion).mockResolvedValue({ itemCount: 1 })
+      renderTab()
+
+      await search()
+      await screen.findByRole('alert')
+      await act(async () => {
+        fireEvent.click(screen.getByRole('button', { name: 'Retry' }))
+      })
+
+      await waitFor(() => expect(api.searchSources).toHaveBeenCalledTimes(2))
+      expect(screen.queryByRole('alert')).toBeNull()
+    })
+
+    it('an empty search says nothing was found and that curated lists were not searched', async () => {
+      vi.mocked(api.searchSources).mockResolvedValue({ sources: [], libraryUnreachable: true })
+      renderTab()
+
+      await search('zzzz')
+
+      expect(await screen.findByText('Nothing found')).not.toBeNull()
+      expect(screen.getByText(/community library/)).not.toBeNull()
+    })
+
+    it('says nothing about the library when it was reachable', async () => {
+      vi.mocked(api.searchSources).mockResolvedValue({ sources: RESULTS })
+      vi.mocked(api.expansion).mockResolvedValue({ itemCount: 1 })
+      renderTab()
+
+      await search()
+      await screen.findByText('Breaking Bad')
+
+      expect(screen.queryByRole('alert')).toBeNull()
+    })
+  })
+
   it('shows a recoverable failure as a strip, and Retry runs the search again', async () => {
     vi.mocked(api.searchSources)
       .mockRejectedValueOnce(new ApiError('TMDB is rate-limiting us. Try again in a moment.', 502))

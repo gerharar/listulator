@@ -42,7 +42,7 @@ import {
   fetchCanonicalList,
   isSafeCanonicalPath,
   parseCustomList,
-  searchCanonicalLists,
+  searchLibrary,
 } from '../../../server/src/ingestion/customLists.js'
 import { rank, type Suggestion } from '../../../server/src/suggestions/engine.js'
 import { copy, errorMessage } from '../locale/index.js'
@@ -338,17 +338,25 @@ export function createLocalApi(): ApiClient {
       const trimmed = query.trim()
       if (!trimmed) throw new ApiError(copy.errors['search.queryRequired'](), 400, 'search.queryRequired')
 
-      const canonicalMatches = await searchCanonicalLists(mediaTypeKey, trimmed)
+      const { matches: canonicalMatches, reachable } = await searchLibrary(mediaTypeKey, trimmed)
 
       if (!mediaType.adapter?.isAvailable()) {
         if (canonicalMatches.length === 0) {
-          throw new ApiError(copy.errors['search.unavailable']({ category: mediaType.label }), 409, 'search.unavailable')
+          // Mirrors server/src/ingestion/routes.ts: an unreachable library
+          // means a missing key is only half the story.
+          const code = reachable ? 'search.unavailable' : 'search.unavailableOffline'
+          throw new ApiError(
+            copy.errors[code]({ category: mediaType.label }),
+            409,
+            code,
+          )
         }
         return { sources: canonicalMatches }
       }
 
       return {
         sources: [...canonicalMatches, ...(await mediaType.adapter.search(trimmed, options))],
+        ...(reachable ? {} : { libraryUnreachable: true }),
       }
     },
 
