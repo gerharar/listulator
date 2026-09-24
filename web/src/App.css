@@ -1,0 +1,32 @@
+/*
+ * App-shell layout — not a portable design-system component, just how
+ * *this* app arranges AppHeader + the layer stage. bundle.css's own
+ * LayerCard preview positions layers with inline styles per instance
+ * (`position:absolute; z-index: 10+index`, staggered `top`) rather than a
+ * named layout class, so there's nothing to port verbatim here; this is a
+ * new, minimal stage sized to make each visible layer's LayerTab actually
+ * reachable (task 10.9). The exact cascade offsets, and the drum-motion
+ * transitions between them, are task 10.9's "motion" half — this only
+ * places layers far enough apart that a covered one's 34px tab clears the
+ * layer in front of it.
+ */
+.q-shell {
+  position: relative;
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+}
+
+.q-stage {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.q-stage .q-layer {
+  position: absolute;
+  left: 20px;
+  right: 20px;
+  bottom: 20px;
+}

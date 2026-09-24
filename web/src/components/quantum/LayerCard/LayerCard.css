@@ -1,0 +1,127 @@
+/*
+ * design-system/components/LayerCard, ported verbatim from bundle.css
+ * (design-system/components/bundle.css lines ~294-308). `.enter`'s
+ * `q-drumIn`/`q-drumShadow` animation exists here but nothing applies the
+ * class yet — that's task 10.9's "motion" half.
+ */
+.q-layer {
+  /*
+   * Positioning (position/inset/z-index) is the stage's job (App.css) —
+   * each visible layer's depth-in-the-stack decides its own offset, which
+   * isn't something a static class can express. This just gives every
+   * layer, wherever it's placed, its own look.
+   */
+  display: flex;
+  flex-direction: column;
+  max-width: 1080px;
+  margin: 0 auto;
+  background: var(--card);
+  border: 2px solid var(--rule);
+  overflow: hidden;
+  box-shadow:
+    0 20px 48px rgba(0, 0, 0, 0.22),
+    0 3px 10px rgba(0, 0, 0, 0.1);
+  color: var(--ink);
+}
+.q-layer.wide {
+  max-width: 1400px;
+}
+.q-layer.enter {
+  animation:
+    q-drumIn 380ms cubic-bezier(0.22, 0.7, 0.2, 1),
+    q-drumShadow 380ms cubic-bezier(0.22, 0.7, 0.2, 1);
+}
+.q-layer.covered {
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.1);
+}
+
+.q-layer-head {
+  position: relative;
+  flex: none;
+  padding: 18px 24px 14px;
+  border-bottom: 2px solid var(--rule);
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+}
+.q-layer-head > :not(.q-plate) {
+  position: relative;
+}
+
+.q-layer-body {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+
+.q-layer-tab {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  right: 2px;
+  z-index: 6;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 17px;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  background: var(--fill);
+  color: var(--ink2);
+  font: 600 13px/1 var(--font-sans);
+  letter-spacing: 0.02em;
+  text-align: left;
+  cursor: pointer;
+  animation: q-tabIn 260ms ease-out;
+}
+.q-layer-tab:hover {
+  background: var(--hover);
+}
+
+.q-veil {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  cursor: pointer;
+  background: color-mix(in srgb, var(--bg) 94%, transparent);
+}
+
+@keyframes q-drumIn {
+  from {
+    transform: translateY(-27px) scale(0.959);
+  }
+  to {
+    transform: none;
+  }
+}
+@keyframes q-drumShadow {
+  from {
+    box-shadow:
+      0 26px 30px -18px rgba(0, 0, 0, 0.34),
+      0 3px 10px rgba(0, 0, 0, 0.12);
+  }
+  to {
+    box-shadow:
+      0 20px 48px rgba(0, 0, 0, 0.22),
+      0 3px 10px rgba(0, 0, 0, 0.1);
+  }
+}
+@keyframes q-tabIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .q-layer.enter,
+  .q-layer-tab {
+    animation: none;
+  }
+}

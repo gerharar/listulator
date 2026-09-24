@@ -10,6 +10,7 @@ import {
 } from '@floating-ui/react'
 import { useId, useRef, type CSSProperties, type ReactNode } from 'react'
 import { useOverlayRegistration } from '../overlay/OverlayManagerContext.js'
+import { useQRootElement } from '../QRootContext.js'
 
 /** The six widths the design system names: skin menu, platforms/list actions, API key/order, list edit/item info, reset, item edit. */
 export type PopoverWidth = 220 | 240 | 300 | 320 | 340 | 360
@@ -58,6 +59,7 @@ export function Popover({ open, anchorEl, onDismiss, width, children }: PopoverP
   })
 
   useOverlayRegistration('popover', id, open, onDismiss)
+  const qRoot = useQRootElement()
 
   if (!open) return null
 
@@ -65,7 +67,7 @@ export function Popover({ open, anchorEl, onDismiss, width, children }: PopoverP
   const tailY = middlewareData.arrow?.y ?? 0
 
   return (
-    <FloatingPortal>
+    <FloatingPortal root={qRoot}>
       <div className="q-catcher" onClick={onDismiss} />
       <div
         ref={refs.setFloating}

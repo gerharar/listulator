@@ -48,7 +48,9 @@ export function NewList({ mediaTypes }: { mediaTypes: MediaType[] }) {
         )
       }
 
-      void navigate(`/lists/${list.id}`)
+      // Replaces the create layer rather than stacking on top of it — the
+      // create flow succeeded, so there is nothing to go "back" to (task 10.9).
+      void navigate(`/lists/${list.id}`, { replace: true })
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : copy.newList.createFailed)
       setSaving(false)
@@ -95,7 +97,10 @@ export function NewList({ mediaTypes }: { mediaTypes: MediaType[] }) {
       </section>
 
       {category?.searchAvailable && (
-        <SourceSearch mediaType={category} onBuilt={(listId) => void navigate(`/lists/${listId}`)} />
+        <SourceSearch
+          mediaType={category}
+          onBuilt={(listId) => void navigate(`/lists/${listId}`, { replace: true })}
+        />
       )}
 
       <form className="panel" onSubmit={(event) => void submit(event)}>
@@ -105,7 +110,6 @@ export function NewList({ mediaTypes }: { mediaTypes: MediaType[] }) {
           </h2>
         </header>
         <div style={{ padding: 'var(--space-4)' }}>
-
           <label className="field">
             <span className="field__label">{copy.newList.listTitleLabel}</span>
             <input
@@ -136,13 +140,19 @@ export function NewList({ mediaTypes }: { mediaTypes: MediaType[] }) {
             </span>
           </label>
 
-          <button className="button button--primary" type="submit" disabled={saving || !title.trim()}>
+          <button
+            className="button button--primary"
+            type="submit"
+            disabled={saving || !title.trim()}
+          >
             {saving ? copy.newList.creating : copy.newList.create}
           </button>
         </div>
       </form>
 
-      <CustomListImport onImported={(listId) => void navigate(`/lists/${listId}`)} />
+      <CustomListImport
+        onImported={(listId) => void navigate(`/lists/${listId}`, { replace: true })}
+      />
     </>
   )
 }

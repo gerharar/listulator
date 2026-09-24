@@ -327,6 +327,33 @@ export const en = {
       newItem: 'NEW',
       allDone: '✓ All done',
     },
+    /** AppHeader (task 10.9). */
+    appHeader: {
+      settings: 'Settings',
+      /** Until task 10.30 builds the Settings layer. */
+      settingsComingSoon: 'Settings is coming soon',
+    },
+    skin: {
+      button: 'Skin',
+      kicker: 'Skin',
+      changed: (label: string): string => `Switched to the ${label} skin.`,
+      labels: {
+        'dark-orange': 'Dark orange',
+        'dark-green': 'Dark green',
+        'dark-blue': 'Dark blue',
+        'dark-violet': 'Dark violet',
+        'light-bone': 'Light bone',
+      },
+    },
+    /**
+     * The temporary layer stack hosting old screens (task 10.9). A list
+     * layer's tab has no real title to show without fetching one — a
+     * title-aware tab is task 10.20's job, once List detail is a real
+     * Quantum screen instead of a hosted old one.
+     */
+    layerStack: {
+      untitledListTab: 'List',
+    },
   },
 } as const
 
