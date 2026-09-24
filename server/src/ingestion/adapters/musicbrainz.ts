@@ -115,7 +115,13 @@ export function createMusicBrainzAdapter(fetchImpl?: FetchLike): SearchAdapter {
       }))
     },
 
-    // No upstream signal for whether this is finished, so no `status` (BL-013).
+    // No `status`, deliberately (BL-013, task 10.11b). An artist's
+    // `life-span.ended` was checked live and is not an honest "this
+    // discography is complete": Prince gained studio albums in 2018 and 2021
+    // after his death, Queen is flagged ended with no end date and still
+    // tours, and The Beatles' flag sits beside releases dated after 1970.
+    // It would also cost a second request per expansion at MusicBrainz's
+    // 1-request-a-second limit. Revisit only with a different signal.
     expand: itemsOnly(async (externalRef) => {
       const { artistId, facets } = parseRef(externalRef)
       const includeEp = facets?.has('ep') ?? false
