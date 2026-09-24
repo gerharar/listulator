@@ -1,0 +1,52 @@
+/*
+ * The Create layer's Search tab (task 10.12). Errors, empty results and
+ * progress all render in `.q-search-slot`, between the form and the results,
+ * so nothing below it jumps when one appears (design: ErrorStrip).
+ */
+.q-search {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.q-search-form {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+}
+.q-search-form .q-field {
+  flex: 1;
+}
+
+.q-search-facet {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.q-search-facet .q-kicker {
+  margin-right: 4px;
+}
+
+.q-search-slot:empty {
+  display: none;
+}
+.q-search-progress {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 56px;
+  padding: 0 14px;
+  border: 1px solid var(--line);
+  background: var(--fill);
+  font-size: 14px;
+  color: var(--ink2);
+}
+
+.q-search-results-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 2px 8px;
+  border-bottom: 2px solid var(--rule);
+}

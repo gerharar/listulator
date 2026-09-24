@@ -6,9 +6,9 @@ import type { MediaType } from '../../../lib/api.js'
 import { categoryDescription, categoryLabel, copy } from '../../../locale/index.js'
 import { ByHandForm } from '../../../routes/NewList.js'
 import { CustomListImport } from '../../CustomListImport.js'
-import { SourceSearch } from '../../SourceSearch.js'
 import { IconButton } from '../Button/Button.js'
 import { HeaderPlate } from '../HeaderPlate/HeaderPlate.js'
+import { SearchTab } from '../SearchTab/SearchTab.js'
 import { useLayerStack } from '../layerStack/LayerStackContext.js'
 import { TabStrip, type TabStripTab } from '../TabStrip/TabStrip.js'
 
@@ -74,7 +74,7 @@ export function CreateList({ mediaTypes, mediaTypeKey }: CreateListProps) {
       </div>
 
       <div className="q-create-body">
-        {active === 'search' && mediaType && <SourceSearch mediaType={mediaType} onBuilt={built} />}
+        {active === 'search' && mediaType && <SearchTab mediaType={mediaType} onBuilt={built} />}
         {active === 'hand' && <ByHandForm mediaType={mediaType} />}
         {active === 'import' && <CustomListImport onImported={built} />}
       </div>

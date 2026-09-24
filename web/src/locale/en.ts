@@ -131,14 +131,7 @@ export const en = {
   },
 
   sourceSearch: {
-    heading: (category: string): string => `Search ${category}`,
-    inputLabel: (category: string): string => `Search ${category}`,
-    search: 'Search',
-    searching: 'Searching…',
     searchFailed: 'Search failed',
-    buildFailed: 'Could not build that list',
-    building: 'Building the list — this can take a few seconds…',
-    nothingFound: 'Nothing found. Try a different spelling, or add by hand below.',
     defaultPlaceholder: 'Search…',
     /**
      * Nudges toward searching for a *source*, which is not the obvious thing to
@@ -336,6 +329,18 @@ export const en = {
       sourceProvenance: (source: string): string => `From ${source}`,
       importing: 'Building the list…',
       searching: 'Searching…',
+      /** Search needs a key the user has not supplied — hard error (design: ErrorBlock, "no key"). */
+      noKeyHeadline: (source: string): string => `Search needs a ${source} key`,
+      noKeyDesktop: (category: string): string =>
+        `Add your key in Settings to search ${category}. Until then you can add items by hand.`,
+      /** There is no keys section on the web (C7) — keys are the server's, in its `.env`. */
+      noKeyWeb: (category: string): string =>
+        `Searching ${category} needs an API key in the server's .env file. Until then you can add items by hand.`,
+      openSettings: 'Open Settings',
+      settingsComingSoon: 'Settings is coming soon',
+      nothingFoundHeadline: 'Nothing found',
+      nothingFoundBody: 'Try a different spelling, or add by hand.',
+      nothingToImportHeadline: 'Nothing to import',
       retry: 'Retry',
       dismiss: 'Dismiss',
     },

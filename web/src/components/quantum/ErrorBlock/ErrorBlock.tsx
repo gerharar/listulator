@@ -4,6 +4,9 @@ import { Button } from '../Button/Button.js'
 export interface ErrorBlockAction {
   label: string
   onClick: () => void
+  /** For an action whose destination does not exist yet (e.g. Settings, until 10.31). */
+  disabled?: boolean
+  title?: string
 }
 
 export interface ErrorBlockProps {
@@ -23,7 +26,11 @@ export function ErrorBlock({ headline, explanation, action }: ErrorBlockProps) {
     <div className="q-error-block">
       <b>{headline}</b>
       <p>{explanation}</p>
-      {action && <Button onClick={action.onClick}>{action.label}</Button>}
+      {action && (
+        <Button onClick={action.onClick} disabled={action.disabled} title={action.title}>
+          {action.label}
+        </Button>
+      )}
     </div>
   )
 }
