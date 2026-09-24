@@ -3,12 +3,10 @@
  * *this* app arranges AppHeader + the layer stage. bundle.css's own
  * LayerCard preview positions layers with inline styles per instance
  * (`position:absolute; z-index: 10+index`, staggered `top`) rather than a
- * named layout class, so there's nothing to port verbatim here; this is a
- * new, minimal stage sized to make each visible layer's LayerTab actually
- * reachable (task 10.9). The exact cascade offsets, and the drum-motion
- * transitions between them, are task 10.9's "motion" half — this only
- * places layers far enough apart that a covered one's 34px tab clears the
- * layer in front of it.
+ * named layout class, so there's nothing to port verbatim here. `left`/
+ * `right`/`bottom` are fixed (the drum carousel never moves them); `top`
+ * and the peek `transform` are per-layer inline styles from
+ * `layerGeometry.ts`, cascaded and animated as of task 10.9c.
  */
 .q-shell {
   position: relative;
