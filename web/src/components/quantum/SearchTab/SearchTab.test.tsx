@@ -146,34 +146,63 @@ describe('SearchTab', () => {
     expect(screen.getByText('Try a different spelling, or add by hand.')).not.toBeNull()
   })
 
-  it('shows a hard "needs a key" block up front when the category has no usable source, on the web pointing at .env', () => {
-    renderTab(mediaType({ searchAvailable: false }))
+  it('still searches a category whose API key is missing, because the curated library needs none', async () => {
+    vi.mocked(api.searchSources).mockResolvedValue({
+      sources: [
+        {
+          externalRef: 'canonical:lists/mega/mcu.yaml',
+          title: 'Marvel Cinematic Universe — Infinity Saga (Release Order)',
+          detail: 'Canonical list',
+          status: 'complete',
+        },
+      ],
+    })
+    vi.mocked(api.expansion).mockResolvedValue({ itemCount: 23 })
+    vi.mocked(api.createFromSource).mockResolvedValue({ id: 'list-3' } as never)
+    const { onBuilt } = renderTab(mediaType({ key: 'mega', label: 'Mega', searchAvailable: false }))
 
-    expect(screen.getByText('Search needs a TMDB key')).not.toBeNull()
-    expect(screen.getByText(/\.env file/)).not.toBeNull()
-    expect(screen.queryByRole('button', { name: 'Open Settings' })).toBeNull()
-    expect(screen.queryByRole('button', { name: 'Search' })).toBeNull()
+    // The form is there, with no "needs a key" wall in front of it.
+    expect(screen.queryByText(/needs a TMDB key/)).toBeNull()
+    await search('marvel')
+
+    fireEvent.click(await screen.findByRole('button', { name: /Marvel Cinematic Universe/ }))
+    expect(document.querySelector('.q-star')).not.toBeNull()
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Add list' }))
+    })
+
+    expect(api.createFromSource).toHaveBeenCalledWith(
+      expect.objectContaining({ externalRef: 'canonical:lists/mega/mcu.yaml' }),
+    )
+    await waitFor(() => expect(onBuilt).toHaveBeenCalledWith('list-3'))
   })
 
-  it('on desktop points at Settings, with Open Settings disabled until Settings exists', () => {
-    ;(window as unknown as Record<string, unknown>)['__TAURI_INTERNALS__'] = {}
-    renderTab(mediaType({ searchAvailable: false }))
-
-    expect(screen.getByText(/Add your key in Settings/)).not.toBeNull()
-    const open = screen.getByRole('button', { name: 'Open Settings' }) as HTMLButtonElement
-    expect(open.disabled).toBe(true)
-    expect(open.title).toBe('Settings is coming soon')
-  })
-
-  it('treats a search.unavailable answer as the same hard block', async () => {
+  it('says a search needs a key only when the search comes back with no curated match either, on the web pointing at .env', async () => {
     vi.mocked(api.searchSources).mockRejectedValue(
       new ApiError('Search is not available for TV Shows.', 409, 'search.unavailable'),
     )
-    renderTab()
+    renderTab(mediaType({ searchAvailable: false }))
 
     await search()
 
     expect(await screen.findByText('Search needs a TMDB key')).not.toBeNull()
+    expect(screen.getByText(/\.env file/)).not.toBeNull()
+    expect(screen.queryByRole('button', { name: 'Open Settings' })).toBeNull()
+  })
+
+  it('on desktop points at Settings, with Open Settings disabled until Settings exists', async () => {
+    ;(window as unknown as Record<string, unknown>)['__TAURI_INTERNALS__'] = {}
+    vi.mocked(api.searchSources).mockRejectedValue(
+      new ApiError('Search is not available for TV Shows.', 409, 'search.unavailable'),
+    )
+    renderTab(mediaType({ searchAvailable: false }))
+
+    await search()
+
+    expect(await screen.findByText(/Add your key in Settings/)).not.toBeNull()
+    const open = screen.getByRole('button', { name: 'Open Settings' }) as HTMLButtonElement
+    expect(open.disabled).toBe(true)
+    expect(open.title).toBe('Settings is coming soon')
   })
 
   it('shows a recoverable failure as a strip, and Retry runs the search again', async () => {

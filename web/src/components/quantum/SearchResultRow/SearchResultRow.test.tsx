@@ -126,4 +126,12 @@ describe('SearchResultRow', () => {
 
     expect((screen.getByRole('button', { name: 'Add list' }) as HTMLButtonElement).disabled).toBe(true)
   })
+
+  it('disables Add list on a result known to hold nothing, and says why', () => {
+    renderRow({ expanded: true, expansion: { state: 'done', itemCount: 0 } })
+
+    const add = screen.getByRole('button', { name: 'Add list' }) as HTMLButtonElement
+    expect(add.disabled).toBe(true)
+    expect(add.title).toBe('Nothing to add — this source has no items to import')
+  })
 })

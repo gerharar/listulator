@@ -50,6 +50,8 @@ export function SearchResultRow({
   onAdd,
 }: SearchResultRowProps) {
   const text = copy.quantum.search
+  // A count of zero is a guaranteed "nothing to import" from the server; say so up front.
+  const isEmpty = expansion?.state === 'done' && expansion.itemCount === 0
   const shownStatus = status ?? (expansion?.state === 'done' ? expansion.status : undefined)
 
   function onKeyDown(event: KeyboardEvent<HTMLDivElement>) {
@@ -106,7 +108,13 @@ export function SearchResultRow({
             <Button size="sm" disabled title={previewable ? text.previewComingSoon : undefined}>
               {text.previewButton}
             </Button>
-            <Button size="sm" variant="primary" disabled={busy} onClick={onAdd}>
+            <Button
+              size="sm"
+              variant="primary"
+              disabled={busy || isEmpty}
+              title={isEmpty ? text.nothingToAdd : undefined}
+              onClick={onAdd}
+            >
               {text.addButton}
             </Button>
           </div>

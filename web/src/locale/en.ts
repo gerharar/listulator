@@ -319,6 +319,7 @@ export const en = {
       expandRow: (title: string): string => `Show details for ${title}`,
       previewButton: 'Preview',
       addButton: 'Add list',
+      nothingToAdd: 'Nothing to add — this source has no items to import',
       /** Preview needs the Preview layer, which lands in task 10.15. */
       previewComingSoon: 'Preview is coming soon',
       /** A source that cannot list its items before import (design: "Preview degrades honestly"). */

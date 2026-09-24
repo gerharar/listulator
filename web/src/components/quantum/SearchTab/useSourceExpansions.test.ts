@@ -122,4 +122,20 @@ describe('useSourceExpansions', () => {
 
     expect(result.current.states.size).toBe(0)
   })
+
+  it('resumes a cancelled batch fetching only what is not already known', async () => {
+    const control = controlledFetch()
+    const { result } = renderHook(() => useSourceExpansions())
+
+    await act(async () => result.current.begin(['a', 'b'], control.fetchExpansion))
+    await control.resolve('a', { itemCount: 4 })
+    await act(async () => result.current.cancel())
+
+    await act(async () => result.current.resume(control.fetchExpansion))
+
+    // 'a' keeps its number and is not asked for again; 'b' is asked for afresh.
+    expect(result.current.states.get('a')).toMatchObject({ state: 'done', itemCount: 4 })
+    expect(control.started.filter((ref) => ref === 'a')).toHaveLength(1)
+    expect(control.started.filter((ref) => ref === 'b')).toHaveLength(2)
+  })
 })

@@ -27,6 +27,8 @@ export const EXPANSION_CONCURRENCY = 2
  */
 export function useSourceExpansions() {
   const [states, setStates] = useState<ReadonlyMap<string, ExpansionState>>(new Map())
+  const statesRef = useRef(states)
+  statesRef.current = states
   const generation = useRef(0)
 
   const cancel = useCallback(() => {
@@ -35,12 +37,25 @@ export function useSourceExpansions() {
 
   useEffect(() => cancel, [cancel])
 
-  const begin = useCallback(
-    (refs: readonly string[], fetchExpansion: (ref: string) => Promise<SourceExpansion>) => {
+  const run = useCallback(
+    (
+      refs: readonly string[],
+      fetchExpansion: (ref: string) => Promise<SourceExpansion>,
+      keepDone: boolean,
+    ) => {
       generation.current += 1
       const mine = generation.current
 
-      setStates(new Map(refs.map((ref) => [ref, { state: 'loading' } as const])))
+      // A new batch starts every row over; resuming keeps what is already known.
+      const todo = keepDone
+        ? refs.filter((ref) => statesRef.current.get(ref)?.state !== 'done')
+        : [...refs]
+
+      setStates((previous) => {
+        const next = new Map<string, ExpansionState>(keepDone ? previous : [])
+        for (const ref of refs) if (!next.has(ref) || todo.includes(ref)) next.set(ref, { state: 'loading' })
+        return next
+      })
 
       let next = 0
       const settle = (ref: string, value: ExpansionState) => {
@@ -49,8 +64,8 @@ export function useSourceExpansions() {
       }
 
       async function worker() {
-        while (generation.current === mine && next < refs.length) {
-          const ref = refs[next]!
+        while (generation.current === mine && next < todo.length) {
+          const ref = todo[next]!
           next += 1
 
           try {
@@ -62,12 +77,30 @@ export function useSourceExpansions() {
         }
       }
 
-      for (let lane = 0; lane < Math.min(EXPANSION_CONCURRENCY, refs.length); lane += 1) {
+      for (let lane = 0; lane < Math.min(EXPANSION_CONCURRENCY, todo.length); lane += 1) {
         void worker()
       }
     },
     [],
   )
 
-  return { states, begin, cancel }
+  const shown = useRef<readonly string[]>([])
+
+  const begin = useCallback(
+    (refs: readonly string[], fetchExpansion: (ref: string) => Promise<SourceExpansion>) => {
+      shown.current = refs
+      run(refs, fetchExpansion, false)
+    },
+    [run],
+  )
+
+  /** Picks the current batch back up after a `cancel`, fetching only what is not already known. */
+  const resume = useCallback(
+    (fetchExpansion: (ref: string) => Promise<SourceExpansion>) => {
+      run(shown.current, fetchExpansion, true)
+    },
+    [run],
+  )
+
+  return { states, begin, resume, cancel }
 }

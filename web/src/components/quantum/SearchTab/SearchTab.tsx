@@ -52,11 +52,9 @@ export function SearchTab({ mediaType, onBuilt }: SearchTabProps) {
   const [expanded, setExpanded] = useState<ReadonlySet<string>>(new Set())
   const [searching, setSearching] = useState(false)
   const [building, setBuilding] = useState(false)
-  const [notice, setNotice] = useState<Notice | null>(() =>
-    mediaType.searchAvailable ? null : noKeyNotice(),
-  )
+  const [notice, setNotice] = useState<Notice | null>(null)
   const searchId = useRef(0)
-  const { states, begin, cancel } = useSourceExpansions()
+  const { states, begin, resume, cancel } = useSourceExpansions()
 
   // Book-only: which language a bibliography is built in. Remembered across
   // searches, like the old picker. Strict about untagged works by default
@@ -203,8 +201,9 @@ export function SearchTab({ mediaType, onBuilt }: SearchTabProps) {
     } catch (cause) {
       setBuilding(false)
       setNotice(noticeFor(cause, () => void add(result)))
-      // The counts were abandoned for the import; pick them back up.
-      if (shownRefs.current.length > 0) begin(shownRefs.current, fetchExpansion)
+      // The counts were abandoned for the import; pick up the ones not yet
+      // known (not the whole batch again — on MusicBrainz that is ~1s each).
+      resume(fetchExpansion)
     }
   }
 
@@ -219,12 +218,6 @@ export function SearchTab({ mediaType, onBuilt }: SearchTabProps) {
   function changeLanguage(next: string) {
     setLanguage(next)
     persistBookLanguage(typeof localStorage === 'undefined' ? undefined : localStorage, next)
-  }
-
-  // A category whose source is missing its key cannot be searched at all:
-  // say so instead of offering a form that can only fail.
-  if (!mediaType.searchAvailable && notice?.kind === 'block') {
-    return <SearchNotice notice={notice} onDismiss={() => setNotice(null)} />
   }
 
   return (
