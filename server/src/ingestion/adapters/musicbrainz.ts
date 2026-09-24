@@ -1,4 +1,5 @@
-import { delay, getJson, type FetchLike } from '../http.js'
+import { getJson, type FetchLike } from '../http.js'
+import { createRateLimiter, type RateLimiter } from '../rateLimiter.js'
 import type { ListSource, MediaTypeCandidate, SearchAdapter } from '../mediaTypes.js'
 import { itemsOnly } from '../expansion.js'
 
@@ -12,7 +13,8 @@ import { itemsOnly } from '../expansion.js'
 const BASE = 'https://musicbrainz.org/ws/2'
 const PAGE_SIZE = 100
 /** Their guideline is one request per second for anonymous clients. */
-const PAGE_DELAY_MS = 1100
+/** MusicBrainz asks for no more than one request per second; a little headroom on top. */
+const REQUEST_INTERVAL_MS = 1100
 /** Bounded so a pathological artist cannot hold a request open forever. */
 const MAX_PAGES = 5
 
@@ -92,7 +94,15 @@ function parseRef(externalRef: string): { artistId: string; facets: Set<Facet> |
   return { artistId: externalRef.slice(0, sep), facets }
 }
 
-export function createMusicBrainzAdapter(fetchImpl?: FetchLike): SearchAdapter {
+export function createMusicBrainzAdapter(
+  fetchImpl?: FetchLike,
+  /**
+   * One line for every request this adapter makes — search, each page of an
+   * expansion, and the per-result count fetches (task 10.12, Q11). Injectable
+   * so tests can watch it or skip the waiting.
+   */
+  limiter: RateLimiter = createRateLimiter(REQUEST_INTERVAL_MS),
+): SearchAdapter {
   const options = { source: 'MusicBrainz', ...(fetchImpl ? { fetchImpl } : {}) }
 
   return {
@@ -100,9 +110,11 @@ export function createMusicBrainzAdapter(fetchImpl?: FetchLike): SearchAdapter {
     isAvailable: () => true,
 
     async search(query) {
-      const response = await getJson<ArtistSearchResponse>(
-        `${BASE}/artist?query=${encodeURIComponent(query)}&fmt=json&limit=10`,
-        options,
+      const response = await limiter.run(() =>
+        getJson<ArtistSearchResponse>(
+          `${BASE}/artist?query=${encodeURIComponent(query)}&fmt=json&limit=10`,
+          options,
+        ),
       )
 
       return (response.artists ?? []).map((artist): ListSource => ({
@@ -145,12 +157,12 @@ export function createMusicBrainzAdapter(fetchImpl?: FetchLike): SearchAdapter {
       const groups: NonNullable<ReleaseGroupResponse['release-groups']> = []
 
       for (let page = 0; page < MAX_PAGES; page += 1) {
-        if (page > 0) await delay(PAGE_DELAY_MS)
-
-        const response = await getJson<ReleaseGroupResponse>(
-          `${BASE}/release-group?artist=${encodeURIComponent(artistId)}` +
-            `&type=${typeParam}&fmt=json&limit=${PAGE_SIZE}&offset=${page * PAGE_SIZE}`,
-          options,
+        const response = await limiter.run(() =>
+          getJson<ReleaseGroupResponse>(
+            `${BASE}/release-group?artist=${encodeURIComponent(artistId)}` +
+              `&type=${typeParam}&fmt=json&limit=${PAGE_SIZE}&offset=${page * PAGE_SIZE}`,
+            options,
+          ),
         )
 
         const batch = response['release-groups'] ?? []

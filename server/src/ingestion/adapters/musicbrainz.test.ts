@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 import { IngestionError, USER_AGENT, type FetchLike } from '../http.js'
+import { createRateLimiter, type RateLimiter } from '../rateLimiter.js'
 import { createMusicBrainzAdapter } from './musicbrainz.js'
 
 /**
@@ -321,3 +322,57 @@ describe('MusicBrainz adapter', () => {
     await expect(adapter.search('x')).rejects.toThrow(/Could not reach MusicBrainz/)
   })
 })
+
+describe('MusicBrainz rate limiting (task 10.12, Q11)', () => {
+  /** A limiter that records what went through it, without waiting. */
+  function countingLimiter() {
+    const state = { calls: 0 }
+    const limiter: RateLimiter = {
+      run: (fn) => {
+        state.calls += 1
+        return fn()
+      },
+    }
+
+    return { state, limiter }
+  }
+
+  it('sends a search through the shared limiter', async () => {
+    const { state, limiter } = countingLimiter()
+    const adapter = createMusicBrainzAdapter(respondWith(ARTIST_SEARCH), limiter)
+
+    await adapter.search('cannibal corpse')
+
+    expect(state.calls).toBe(1)
+  })
+
+  it('sends every page of an expansion through the limiter, so a count fetch and an import share one line', async () => {
+    const { state, limiter } = countingLimiter()
+    const adapter = createMusicBrainzAdapter(respondWith(RELEASE_GROUPS), limiter)
+
+    await adapter.expand('af8e4cc5')
+
+    expect(state.calls).toBeGreaterThanOrEqual(1)
+  })
+
+  it('does not fire two expansions at once: the second waits for the first', async () => {
+    const started: number[] = []
+    let time = 0
+    const limiter = createRateLimiter(1000, {
+      now: () => time,
+      sleep: async (ms) => {
+        time += ms
+      },
+    })
+    const fetchImpl: FetchLike = async () => {
+      started.push(time)
+      return new Response(JSON.stringify({ 'release-groups': [] }), { status: 200 })
+    }
+    const adapter = createMusicBrainzAdapter(fetchImpl, limiter)
+
+    await Promise.all([adapter.expand('a'), adapter.expand('b'), adapter.expand('c')])
+
+    expect(started).toEqual([0, 1000, 2000])
+  })
+})
+

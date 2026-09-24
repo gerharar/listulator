@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 import type { FetchLike } from '../http.js'
+import { createRateLimiter } from '../rateLimiter.js'
 import { createComicVineAdapter } from './comicVine.js'
 
 /**
@@ -167,3 +168,26 @@ describe('Comic Vine adapter', () => {
     expect(vi.mocked(fetchImpl).mock.calls.length).toBeLessThanOrEqual(5)
   })
 })
+
+describe('Comic Vine rate limiting (task 10.12, Q11)', () => {
+  it('does not fire concurrent requests at once: each waits its turn', async () => {
+    const started: number[] = []
+    let time = 0
+    const limiter = createRateLimiter(1000, {
+      now: () => time,
+      sleep: async (ms) => {
+        time += ms
+      },
+    })
+    const fetchImpl: FetchLike = async () => {
+      started.push(time)
+      return new Response(JSON.stringify({ status_code: 1, results: [] }), { status: 200 })
+    }
+    const adapter = createComicVineAdapter(credentials, fetchImpl, limiter)
+
+    await Promise.all([adapter.search('a'), adapter.search('b'), adapter.expand('volume:1')])
+
+    expect(started).toEqual([0, 1000, 2000])
+  })
+})
+

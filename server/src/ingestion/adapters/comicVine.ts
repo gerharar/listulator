@@ -1,4 +1,5 @@
 import { getJson, type FetchLike } from '../http.js'
+import { createRateLimiter, type RateLimiter } from '../rateLimiter.js'
 import type { ListSource, MediaTypeCandidate, SearchAdapter } from '../mediaTypes.js'
 import { itemsOnly } from '../expansion.js'
 
@@ -16,6 +17,8 @@ import { itemsOnly } from '../expansion.js'
  */
 
 const BASE = 'https://comicvine.gamespot.com/api'
+/** Comic Vine throttles by velocity as well as by the hour, so requests are spaced like MusicBrainz's. */
+const REQUEST_INTERVAL_MS = 1100
 const PAGE_SIZE = 100
 /** Long runs are genuinely long: Fantastic Four (1961) is 416 issues. */
 const MAX_ITEMS = 500
@@ -71,6 +74,8 @@ export type ComicVineCredentialSource = ComicVineCredentials | (() => ComicVineC
 export function createComicVineAdapter(
   credentials: ComicVineCredentialSource,
   fetchImpl?: FetchLike,
+  /** One line for every request this adapter makes, counts included (task 10.12, Q11). */
+  limiter: RateLimiter = createRateLimiter(REQUEST_INTERVAL_MS),
 ): SearchAdapter {
   const resolve = (): ComicVineCredentials =>
     typeof credentials === 'function' ? credentials() : credentials
@@ -79,10 +84,12 @@ export function createComicVineAdapter(
     const { apiKey } = resolve()
     const search = new URLSearchParams({ api_key: apiKey ?? '', format: 'json', ...params })
 
-    const response = await getJson<ComicVineResponse<T>>(`${BASE}${path}?${search.toString()}`, {
-      source: 'Comic Vine',
-      ...(fetchImpl ? { fetchImpl } : {}),
-    })
+    const response = await limiter.run(() =>
+      getJson<ComicVineResponse<T>>(`${BASE}${path}?${search.toString()}`, {
+        source: 'Comic Vine',
+        ...(fetchImpl ? { fetchImpl } : {}),
+      }),
+    )
 
     // Comic Vine answers 200 with an error in the body, including for a bad
     // key — so a failure has to be read from the payload, not the status.
