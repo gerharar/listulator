@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { DEFAULT_MEDIA_TYPES } from '../../../../../server/src/ingestion/mediaTypes.js'
-import { FALLBACK_ART, getCategoryArt } from './categoryArt.js'
+import { FALLBACK_ART, getCategoryArt } from './categoryArtData.js'
 
 describe('getCategoryArt', () => {
   it('has real art for every key the real media-type registry ships today', () => {

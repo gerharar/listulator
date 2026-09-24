@@ -27,10 +27,19 @@ describe('locale', () => {
     )
   })
 
-  it('has no category overrides, so every label comes from the registry', () => {
-    // An override is for wording the app deliberately wants to differ. There
-    // are none today; this is here so adding one is a visible decision.
-    expect(Object.keys(copy.categories)).toEqual([])
+  it("shows the design handoff's wording while the registry's own labels stay untouched", () => {
+    // The registry says "TV Shows" and "Wrestling"; the design says "TV
+    // Series" and "Pro Wrestling". Only the *displayed* label differs — the
+    // registry's `label` and keys are never renamed (task 10.11, C1).
+    expect(categoryLabel({ key: 'tv', label: 'TV Shows' })).toBe('TV Series')
+    expect(categoryLabel({ key: 'wrestling', label: 'Wrestling' })).toBe('Pro Wrestling')
+    expect(categoryLabel({ key: 'movie', label: 'Movies' })).toBe('Movies')
+  })
+
+  it('overrides only where the design deliberately words a category differently', () => {
+    // An override is for wording the app deliberately wants to differ; this
+    // pins the whole set so adding one is a visible decision.
+    expect(Object.keys(copy.categories).sort()).toEqual(['tv', 'wrestling'])
   })
 
   it('prefers an override where one exists', () => {

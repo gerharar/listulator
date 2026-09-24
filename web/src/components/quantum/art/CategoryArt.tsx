@@ -1,4 +1,4 @@
-import { getCategoryArt } from './categoryArt.js'
+import { getCategoryArt } from './categoryArtData.js'
 
 export interface CategoryArtProps {
   /** The category's registry key (`movie`, `tv`, …) — never a display label. */

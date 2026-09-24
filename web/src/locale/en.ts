@@ -175,11 +175,17 @@ export const en = {
   },
 
   /**
-   * Optional per-category overrides. Empty by default: the server's registry
-   * supplies every label and description, and `media_type` is open, so a new
-   * category must work without being named here.
+   * Optional per-category overrides. The server's registry supplies every
+   * label and description, and `media_type` is open, so a new category must
+   * work without being named here. These two exist only because the design
+   * handoff words them differently from the registry ("TV Series", "Pro
+   * Wrestling") — the registry's own `label` is deliberately not renamed
+   * (task 10.11, C1).
    */
-  categories: {} as Record<string, { label?: string; description?: string } | undefined>,
+  categories: {
+    tv: { label: 'TV Series' },
+    wrestling: { label: 'Pro Wrestling' },
+  } as Record<string, { label?: string; description?: string } | undefined>,
 
   /**
    * Errors the server raises, keyed by the code it sends. The server names the
@@ -297,6 +303,19 @@ export const en = {
       untitledListTab: 'List',
     },
     /** Home / My Lists (task 10.10), replacing the old hosted `Overview`. */
+    categoryPicker: {
+      title: 'Pick A Category',
+      subline:
+        'Categories are built in. Counts show how many lists you have in each category.',
+      /** First run only — nothing exists yet, so the picker is the base layer. */
+      firstRunTitle: 'Nothing tracked yet — pick a shelf and fill it',
+      firstRunSubline:
+        'Each category builds lists from its own source. Mega is for cross-medium franchises — one shelf for the films, the games and the comics together.',
+      /** A category whose registry entry has no search source. */
+      byHand: 'by hand',
+      countTitle: 'Lists already on this shelf',
+      closeLabel: 'Close',
+    },
     home: {
       title: 'My Lists',
       newList: 'New List',
