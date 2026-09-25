@@ -10,16 +10,25 @@ export interface BannerProps {
   dismissLabel: string
   /** Ghost on Home ("Dismiss"); a list's own banner offers Mark all seen as a secondary button. */
   actionVariant?: 'ghost' | 'secondary'
+  /** A second, primary-side action beside Dismiss (an update band: Update List). */
+  action?: { label: string; onClick: () => void; busy?: boolean }
 }
 
 /** A full-width line under a header, for news about the content — optional, dismissible, never blocking (design-system/components/Banner). */
-export function Banner({ children, onDismiss, dismissLabel, actionVariant = 'ghost' }: BannerProps) {
+export function Banner({ children, onDismiss, dismissLabel, actionVariant = 'ghost', action }: BannerProps) {
   return (
     <div className="q-banner">
       <span>{children}</span>
-      <Button variant={actionVariant} size="sm" onClick={onDismiss}>
-        {dismissLabel}
-      </Button>
+      <div className="q-banner-actions">
+        {action && (
+          <Button variant="secondary" size="sm" onClick={action.onClick} disabled={action.busy === true}>
+            {action.label}
+          </Button>
+        )}
+        <Button variant={actionVariant} size="sm" onClick={onDismiss}>
+          {dismissLabel}
+        </Button>
+      </div>
     </div>
   )
 }

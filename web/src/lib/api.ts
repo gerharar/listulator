@@ -362,12 +362,6 @@ export interface ApiClient {
   restoreGroup: (listId: string, restore: GroupRestore) => Promise<ListGroup>
   /** The block order; each group's items move with it. Must name every group once. */
   reorderGroups: (listId: string, groupIds: string[]) => Promise<ListGroup[]>
-  /**
-   * "This list was updated" check (task 7.6) — canonical-synced lists only,
-   * on-trigger (app open or an explicit "sync now"), never background
-   * polling.
-   */
-  checkSyncedListUpdates: () => Promise<{ updates: { listId: string; title: string }[] }>
 }
 
 function expansionUrl(
@@ -601,9 +595,6 @@ export const fetchApi: ApiClient = {
       method: 'PUT',
       body: JSON.stringify({ groupIds }),
     }),
-
-  checkSyncedListUpdates: () =>
-    request<{ updates: { listId: string; title: string }[] }>('/lists/updates'),
 }
 
 /**

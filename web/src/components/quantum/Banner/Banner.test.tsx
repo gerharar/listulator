@@ -48,4 +48,31 @@ describe('Banner', () => {
 
     expect(screen.getByRole('button', { name: 'Dismiss' }).classList.contains('ghost')).toBe(true)
   })
+
+  it('can carry a second action beside Dismiss, and each does its own thing', () => {
+    const onDismiss = vi.fn()
+    const onAct = vi.fn()
+    render(
+      <Banner onDismiss={onDismiss} dismissLabel="Dismiss" action={{ label: 'Update List', onClick: onAct }}>
+        <span>2 new items</span>
+      </Banner>,
+    )
+
+    screen.getByRole('button', { name: 'Update List' }).click()
+    expect(onAct).toHaveBeenCalledOnce()
+    expect(onDismiss).not.toHaveBeenCalled()
+
+    screen.getByRole('button', { name: 'Dismiss' }).click()
+    expect(onDismiss).toHaveBeenCalledOnce()
+  })
+
+  it('locks that action while it is busy', () => {
+    render(
+      <Banner onDismiss={vi.fn()} dismissLabel="Dismiss" action={{ label: 'Update List', onClick: vi.fn(), busy: true }}>
+        <span>2 new items</span>
+      </Banner>,
+    )
+
+    expect((screen.getByRole('button', { name: /Update List|Updating/ }) as HTMLButtonElement).disabled).toBe(true)
+  })
 })

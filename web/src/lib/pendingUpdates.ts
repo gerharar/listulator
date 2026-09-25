@@ -72,8 +72,7 @@ export function createPendingUpdates(store: PreferencesStore) {
     },
     async remove(listId: string) {
       if (!(listId in pending)) return
-      const { [listId]: _gone, ...rest } = pending
-      await commit(rest)
+      await commit(Object.fromEntries(Object.entries(pending).filter(([id]) => id !== listId)))
     },
     /** Forgets lists that no longer exist. */
     async prune(existingIds: readonly string[]) {
@@ -116,14 +115,10 @@ export function getPendingUpdates(): PendingUpdates {
 }
 
 /** For a view: the pending map, re-rendering when it changes. */
-export function usePendingMap(): PendingMap {
-  const pending = getPendingUpdates()
-
+export function usePendingMap(pending: PendingUpdates): PendingMap {
   return useSyncExternalStore(pending.subscribe, pending.get)
 }
 
-export function useChecking(): boolean {
-  const pending = getPendingUpdates()
-
+export function useChecking(pending: PendingUpdates): boolean {
   return useSyncExternalStore(pending.subscribe, pending.isChecking)
 }

@@ -7,13 +7,16 @@ import { LiveRegionProvider } from '../LiveRegion/LiveRegion.js'
 import { ToastProvider } from '../Toast/Toast.js'
 import { LayerStackProvider, useLayerStack } from '../layerStack/LayerStackContext.js'
 import { notifyListsChanged } from '../../../lib/listsChanged.js'
+import { createPendingUpdates, type PendingUpdates } from '../../../lib/pendingUpdates.js'
+import type { PreferencesStore } from '../../../lib/preferences/store.js'
 import { Home } from './Home.js'
 
 vi.mock('../../../lib/api.js', () => ({
   api: {
     mediaTypes: vi.fn(),
     lists: vi.fn(),
-    checkSyncedListUpdates: vi.fn(),
+    checkForUpdates: vi.fn(),
+    importItems: vi.fn(),
   },
 }))
 
@@ -59,14 +62,31 @@ function StackContent() {
   return <span data-testid="content">{stack.at(-1)?.content}</span>
 }
 
-function renderHome(onMediaTypesLoaded = vi.fn()) {
+function memoryStore(initial: Record<string, string> = {}): PreferencesStore {
+  const data = new Map(Object.entries(initial))
+  return { get: async (k) => data.get(k), set: async (k, v) => void data.set(k, v) }
+}
+
+const stored = (entries: Record<string, number>) => ({
+  'updates:pending': JSON.stringify(
+    Object.fromEntries(Object.entries(entries).map(([id, count]) => [id, { count, checkedAt: '2026-01-01T00:00:00.000Z' }])),
+  ),
+})
+
+async function pendingWith(entries: Record<string, number> = {}, store = memoryStore(stored(entries))) {
+  const pending = createPendingUpdates(store)
+  await pending.load()
+  return { pending, store }
+}
+
+function renderHome(onMediaTypesLoaded = vi.fn(), pending?: PendingUpdates) {
   return render(
     <LiveRegionProvider>
       <ToastProvider>
         <LayerStackProvider home={{ id: 'home', kind: 'home', tabLabel: 'My Lists', content: '/' }}>
           <StackReader />
           <StackContent />
-          <Home onMediaTypesLoaded={onMediaTypesLoaded} />
+          <Home onMediaTypesLoaded={onMediaTypesLoaded} {...(pending ? { pendingUpdates: pending } : {})} />
         </LayerStackProvider>
       </ToastProvider>
     </LiveRegionProvider>,
@@ -77,7 +97,6 @@ describe('Home', () => {
   it("shows a real list's row with its counts, status mark, and curated star", async () => {
     vi.mocked(api.mediaTypes).mockResolvedValue(MEDIA_TYPES)
     vi.mocked(api.lists).mockResolvedValue([list()])
-    vi.mocked(api.checkSyncedListUpdates).mockResolvedValue({ updates: [] })
 
     renderHome()
 
@@ -91,27 +110,10 @@ describe('Home', () => {
     const onMediaTypesLoaded = vi.fn()
     vi.mocked(api.mediaTypes).mockResolvedValue(MEDIA_TYPES)
     vi.mocked(api.lists).mockResolvedValue([list()])
-    vi.mocked(api.checkSyncedListUpdates).mockResolvedValue({ updates: [] })
 
     renderHome(onMediaTypesLoaded)
 
     await waitFor(() => expect(onMediaTypesLoaded).toHaveBeenCalledWith(MEDIA_TYPES))
-  })
-
-  it("names a real updated list in the banner, and it's on until dismissed", async () => {
-    vi.mocked(api.mediaTypes).mockResolvedValue(MEDIA_TYPES)
-    vi.mocked(api.lists).mockResolvedValue([list()])
-    vi.mocked(api.checkSyncedListUpdates).mockResolvedValue({
-      updates: [{ listId: 'list-1', title: 'Breaking Bad' }],
-    })
-
-    renderHome()
-
-    await waitFor(() => expect(screen.getByText('Breaking Bad', { selector: 'b' })).not.toBeNull())
-    expect(screen.getByText(/1 list has an update available/)).not.toBeNull()
-
-    act(() => screen.getByRole('button', { name: 'Dismiss' }).click())
-    expect(screen.queryByText(/1 list has an update available/)).toBeNull()
   })
 
   it('shows how many of a list’s items are new, on its row', async () => {
@@ -120,7 +122,6 @@ describe('Home', () => {
       list({ stats: { ...list().stats, newItems: 2 } }),
       list({ id: 'list-2', title: 'Other' }),
     ])
-    vi.mocked(api.checkSyncedListUpdates).mockResolvedValue({ updates: [] })
 
     renderHome()
 
@@ -128,43 +129,9 @@ describe('Home', () => {
     expect(screen.getAllByText(/NEW/)).toHaveLength(1)
   })
 
-  it('opens the updated list from the banner, carrying the update on the layer’s own path', async () => {
-    vi.mocked(api.mediaTypes).mockResolvedValue(MEDIA_TYPES)
-    vi.mocked(api.lists).mockResolvedValue([list()])
-    vi.mocked(api.checkSyncedListUpdates).mockResolvedValue({
-      updates: [{ listId: 'list-1', title: 'Breaking Bad' }],
-    })
-
-    renderHome()
-
-    await waitFor(() => expect(screen.getByText('Breaking Bad', { selector: 'b' })).not.toBeNull())
-    const inBanner = document.querySelector('.q-banner') as HTMLElement
-    act(() => within(inBanner).getByRole('button', { name: 'Breaking Bad' }).click())
-
-    expect(screen.getByTestId('stack').textContent).toBe('home:home,list:list-list-1')
-    expect(screen.getByTestId('content').textContent).toBe('/lists/list-1?update=1')
-  })
-
-  it('opens a list from its row with no update on the path', async () => {
-    vi.mocked(api.mediaTypes).mockResolvedValue(MEDIA_TYPES)
-    vi.mocked(api.lists).mockResolvedValue([list()])
-    vi.mocked(api.checkSyncedListUpdates).mockResolvedValue({
-      updates: [{ listId: 'list-1', title: 'Breaking Bad' }],
-    })
-
-    renderHome()
-
-    await waitFor(() => expect(screen.getByText('Breaking Bad', { selector: 'b' })).not.toBeNull())
-    const row = document.querySelector('.q-home-row') as HTMLElement
-    act(() => row.click())
-
-    expect(screen.getByTestId('content').textContent).toBe('/lists/list-1')
-  })
-
   it('refetches quietly when something elsewhere says the lists changed', async () => {
     vi.mocked(api.mediaTypes).mockResolvedValue(MEDIA_TYPES)
     vi.mocked(api.lists).mockResolvedValue([list()])
-    vi.mocked(api.checkSyncedListUpdates).mockResolvedValue({ updates: [] })
     renderHome()
     await waitFor(() => expect(screen.getByText('Breaking Bad')).not.toBeNull())
     vi.mocked(api.lists).mockResolvedValue([list(), list({ id: 'list-2', title: 'Restored One' })])
@@ -178,7 +145,6 @@ describe('Home', () => {
   it('opening a row pushes the real list onto the layer stack, with its real title as the tab label', async () => {
     vi.mocked(api.mediaTypes).mockResolvedValue(MEDIA_TYPES)
     vi.mocked(api.lists).mockResolvedValue([list()])
-    vi.mocked(api.checkSyncedListUpdates).mockResolvedValue({ updates: [] })
 
     renderHome()
 
@@ -194,7 +160,6 @@ describe('Home', () => {
       list({ id: 'list-1', title: 'Breaking Bad', mediaType: 'tv' }),
       list({ id: 'list-2', title: 'Some Podcast', mediaType: 'podcast' }),
     ])
-    vi.mocked(api.checkSyncedListUpdates).mockResolvedValue({ updates: [] })
 
     renderHome()
 
@@ -206,7 +171,6 @@ describe('Home', () => {
   it('shows an ErrorBlock, not the create flow, when the server is unreachable', async () => {
     vi.mocked(api.mediaTypes).mockRejectedValue(new Error('Cannot reach the server. Is it running?'))
     vi.mocked(api.lists).mockRejectedValue(new Error('Cannot reach the server. Is it running?'))
-    vi.mocked(api.checkSyncedListUpdates).mockResolvedValue({ updates: [] })
 
     renderHome()
 
@@ -220,7 +184,6 @@ describe('Home', () => {
   it('retries the fetch when Retry is clicked', async () => {
     vi.mocked(api.mediaTypes).mockRejectedValueOnce(new Error('down')).mockResolvedValue(MEDIA_TYPES)
     vi.mocked(api.lists).mockRejectedValueOnce(new Error('down')).mockResolvedValue([list()])
-    vi.mocked(api.checkSyncedListUpdates).mockResolvedValue({ updates: [] })
 
     renderHome()
 
@@ -233,7 +196,6 @@ describe('Home', () => {
   it('a successful zero-lists fetch replaces the base layer with the Category picker — never after an error', async () => {
     vi.mocked(api.mediaTypes).mockResolvedValue(MEDIA_TYPES)
     vi.mocked(api.lists).mockResolvedValue([])
-    vi.mocked(api.checkSyncedListUpdates).mockResolvedValue({ updates: [] })
 
     renderHome()
 
@@ -245,7 +207,6 @@ describe('Home', () => {
   it('New List pushes the Category picker on top of Home', async () => {
     vi.mocked(api.mediaTypes).mockResolvedValue(MEDIA_TYPES)
     vi.mocked(api.lists).mockResolvedValue([list()])
-    vi.mocked(api.checkSyncedListUpdates).mockResolvedValue({ updates: [] })
 
     renderHome()
     await waitFor(() => expect(screen.getByText('Breaking Bad')).not.toBeNull())
@@ -257,7 +218,6 @@ describe('Home', () => {
   it('shows the four disabled help buttons, and no others', async () => {
     vi.mocked(api.mediaTypes).mockResolvedValue(MEDIA_TYPES)
     vi.mocked(api.lists).mockResolvedValue([list()])
-    vi.mocked(api.checkSyncedListUpdates).mockResolvedValue({ updates: [] })
 
     renderHome()
 
@@ -271,34 +231,11 @@ describe('Home', () => {
     expect(screen.queryByRole('button', { name: 'Quickie' })).toBeNull()
   })
 
-  it('reports a failed manual update check as a toast, not an inline error, and keeps the automatic check silent', async () => {
-    vi.mocked(api.mediaTypes).mockResolvedValue(MEDIA_TYPES)
-    vi.mocked(api.lists).mockResolvedValue([list()])
-    vi.mocked(api.checkSyncedListUpdates)
-      .mockResolvedValueOnce({ updates: [] }) // the automatic, on-open check
-      .mockRejectedValueOnce(new Error('Cannot reach the server. Is it running?'))
-
-    renderHome()
-
-    await waitFor(() => expect(screen.getByText('Breaking Bad')).not.toBeNull())
-    // The silent automatic check already ran and failed nothing — no error anywhere yet.
-    expect(screen.queryByText(/Cannot reach the server/)).toBeNull()
-
-    act(() => screen.getByRole('button', { name: 'Check for updates' }).click())
-
-    await waitFor(() =>
-      expect(screen.getByText('Cannot reach the server. Is it running?')).not.toBeNull(),
-    )
-    // Reported as a toast (role="status" via LiveRegion/Toast), not folded into Home's own body.
-    expect(document.querySelector('.q-error-block')).toBeNull()
-  })
-
   it('refetches when Home becomes the top layer again, not just on first mount', async () => {
     vi.mocked(api.mediaTypes).mockResolvedValue(MEDIA_TYPES)
     vi.mocked(api.lists).mockResolvedValueOnce([list()]).mockResolvedValueOnce([
       list({ id: 'list-2', title: 'The Wire' }),
     ])
-    vi.mocked(api.checkSyncedListUpdates).mockResolvedValue({ updates: [] })
 
     function Harness() {
       const layerStack = useLayerStack()
@@ -338,7 +275,6 @@ describe('Home', () => {
     vi.mocked(api.lists)
       .mockResolvedValueOnce([list()])
       .mockReturnValueOnce(new Promise((resolve) => (resolveSecondFetch = resolve)))
-    vi.mocked(api.checkSyncedListUpdates).mockResolvedValue({ updates: [] })
 
     function Harness() {
       const layerStack = useLayerStack()
@@ -377,5 +313,276 @@ describe('Home', () => {
     await act(async () => resolveSecondFetch([list({ id: 'list-2', title: 'The Wire' })]))
 
     await waitFor(() => expect(screen.getByText('The Wire')).not.toBeNull())
+  })
+})
+
+describe('Home updates (task 10.22c)', () => {
+  const two = (id: string, title: string, over: Partial<MediaList> = {}) =>
+    list({ id, title, externalRef: `ref:${id}`, ...over })
+  const found = (n: number) => ({
+    newItems: Array.from({ length: n }, (_, i) => ({ title: `New ${i}` })),
+    upstreamCount: 10,
+    existingCount: 8,
+    dismissedCount: 0,
+  })
+  const setupLists = (lists: MediaList[]) => {
+    vi.mocked(api.mediaTypes).mockResolvedValue(MEDIA_TYPES)
+    vi.mocked(api.lists).mockResolvedValue(lists)
+  }
+  const bands = () => Array.from(document.querySelectorAll('.q-banner')) as HTMLElement[]
+  const bandFor = (title: string) => bands().find((b) => b.textContent?.includes(title))
+
+  it('checks nothing by itself when it opens', async () => {
+    setupLists([two('a', 'Alpha')])
+    const { pending } = await pendingWith()
+
+    renderHome(vi.fn(), pending)
+
+    await waitFor(() => expect(screen.getByText('Alpha')).not.toBeNull())
+    expect(api.checkForUpdates).not.toHaveBeenCalled()
+    expect(bands()).toHaveLength(0)
+  })
+
+  it('shows what an earlier check found, with the choice to apply or dismiss it', async () => {
+    setupLists([two('a', 'Alpha')])
+    const { pending } = await pendingWith({ a: 2 })
+
+    renderHome(vi.fn(), pending)
+
+    await waitFor(() => expect(bandFor('Alpha')).toBeDefined())
+    const band = within(bandFor('Alpha')!)
+    expect(band.getByText('Alpha', { selector: 'b' })).not.toBeNull()
+    expect(bandFor('Alpha')!.textContent).toMatch(/has 2 new items\./)
+    expect(band.getByRole('button', { name: 'Update List' })).not.toBeNull()
+    expect(band.getByRole('button', { name: 'Dismiss' })).not.toBeNull()
+  })
+
+  it('says "1 new item" for one', async () => {
+    setupLists([two('a', 'Alpha')])
+    const { pending } = await pendingWith({ a: 1 })
+
+    renderHome(vi.fn(), pending)
+
+    await waitFor(() => expect(bandFor('Alpha')!.textContent).toMatch(/has 1 new item\./))
+  })
+
+  it('shows at most three bands, in the order the lists are shown, and the next when one is handled', async () => {
+    setupLists([two('a', 'Alpha'), two('b', 'Bravo'), two('c', 'Charlie'), two('d', 'Delta')])
+    const { pending } = await pendingWith({ a: 1, b: 1, c: 1, d: 1 })
+
+    renderHome(vi.fn(), pending)
+
+    await waitFor(() => expect(bands()).toHaveLength(3))
+    expect(bands().map((b) => b.querySelector('b')!.textContent)).toEqual(['Alpha', 'Bravo', 'Charlie'])
+
+    act(() => within(bandFor('Bravo')!).getByRole('button', { name: 'Dismiss' }).click())
+
+    await waitFor(() => expect(bands().map((b) => b.querySelector('b')!.textContent)).toEqual(['Alpha', 'Charlie', 'Delta']))
+  })
+
+  it('picks the first three by how the lists are shown on screen, shelf by shelf, not by how they were stored', async () => {
+    vi.mocked(api.mediaTypes).mockResolvedValue([
+      { key: 'tv', label: 'TV Shows', sortOrder: 20, defaultDurationMinutes: 30, searchAvailable: true, previewable: true },
+      { key: 'movie', label: 'Movies', sortOrder: 10, defaultDurationMinutes: 90, searchAvailable: true, previewable: true },
+    ])
+    vi.mocked(api.lists).mockResolvedValue([
+      two('a', 'Alpha'),
+      two('b', 'Bravo'),
+      two('c', 'Charlie'),
+      two('m', 'Movie One', { mediaType: 'movie' }),
+    ])
+    const { pending } = await pendingWith({ a: 1, b: 1, c: 1, m: 1 })
+
+    renderHome(vi.fn(), pending)
+
+    await waitFor(() => expect(bands()).toHaveLength(3))
+    expect(bands().map((b) => b.querySelector('b')!.textContent)).toEqual(['Movie One', 'Alpha', 'Bravo'])
+  })
+
+  it('dismissing forgets the update, and it stays gone after a restart', async () => {
+    setupLists([two('a', 'Alpha')])
+    const { pending, store } = await pendingWith({ a: 2 })
+    renderHome(vi.fn(), pending)
+    await waitFor(() => expect(bandFor('Alpha')).toBeDefined())
+
+    act(() => within(bandFor('Alpha')!).getByRole('button', { name: 'Dismiss' }).click())
+    await waitFor(() => expect(bands()).toHaveLength(0))
+
+    cleanup()
+    const restarted = createPendingUpdates(store)
+    await restarted.load()
+    renderHome(vi.fn(), restarted)
+    await waitFor(() => expect(screen.getByText('Alpha')).not.toBeNull())
+    expect(bands()).toHaveLength(0)
+  })
+
+  it('remembers what a check found across a restart', async () => {
+    setupLists([two('a', 'Alpha')])
+    const store = memoryStore()
+    const first = createPendingUpdates(store)
+    await first.load()
+    await first.set('a', 3)
+
+    const restarted = createPendingUpdates(store)
+    await restarted.load()
+    renderHome(vi.fn(), restarted)
+
+    await waitFor(() => expect(bandFor('Alpha')!.textContent).toMatch(/has 3 new items/))
+  })
+
+  it('forgets a pending update for a list that is gone', async () => {
+    setupLists([two('a', 'Alpha')])
+    const { pending } = await pendingWith({ a: 1, gone: 4 })
+
+    renderHome(vi.fn(), pending)
+
+    await waitFor(() => expect(Object.keys(pending.get())).toEqual(['a']))
+  })
+
+  describe('Update List', () => {
+    it('adds what is new as arrivals, right from Home, and says so', async () => {
+      setupLists([two('a', 'Alpha')])
+      const items = found(2).newItems
+      vi.mocked(api.checkForUpdates).mockResolvedValue({ ...found(2), newItems: items })
+      vi.mocked(api.importItems).mockResolvedValue([])
+      const { pending } = await pendingWith({ a: 2 })
+      renderHome(vi.fn(), pending)
+      await waitFor(() => expect(bandFor('Alpha')).toBeDefined())
+      vi.mocked(api.lists).mockClear()
+
+      act(() => within(bandFor('Alpha')!).getByRole('button', { name: 'Update List' }).click())
+
+      await waitFor(() => expect(bands()).toHaveLength(0))
+      expect(api.importItems).toHaveBeenCalledWith('a', items, 'import', true)
+      expect(await screen.findAllByText('Added 2 new items to “Alpha”.')).not.toHaveLength(0)
+      // The row gets its N NEW badge from a fresh read.
+      await waitFor(() => expect(api.lists).toHaveBeenCalled())
+    })
+
+    it('says so, and adds nothing, when the source has nothing new any more', async () => {
+      setupLists([two('a', 'Alpha')])
+      vi.mocked(api.checkForUpdates).mockResolvedValue(found(0))
+      const { pending } = await pendingWith({ a: 2 })
+      renderHome(vi.fn(), pending)
+      await waitFor(() => expect(bandFor('Alpha')).toBeDefined())
+
+      act(() => within(bandFor('Alpha')!).getByRole('button', { name: 'Update List' }).click())
+
+      expect(await screen.findAllByText('No new items upstream.')).not.toHaveLength(0)
+      expect(api.importItems).not.toHaveBeenCalled()
+      expect(bands()).toHaveLength(0)
+    })
+
+    it('keeps the band and says why when the update fails', async () => {
+      setupLists([two('a', 'Alpha')])
+      vi.mocked(api.checkForUpdates).mockRejectedValue(new Error('Source is down'))
+      const { pending } = await pendingWith({ a: 2 })
+      renderHome(vi.fn(), pending)
+      await waitFor(() => expect(bandFor('Alpha')).toBeDefined())
+
+      act(() => within(bandFor('Alpha')!).getByRole('button', { name: 'Update List' }).click())
+
+      expect(await screen.findAllByText('Source is down')).not.toHaveLength(0)
+      expect(bandFor('Alpha')).toBeDefined()
+    })
+
+    it('cannot be pressed twice while it works', async () => {
+      setupLists([two('a', 'Alpha')])
+      let release!: () => void
+      vi.mocked(api.checkForUpdates).mockReturnValue(new Promise((resolve) => (release = () => resolve(found(0)))))
+      const { pending } = await pendingWith({ a: 2 })
+      renderHome(vi.fn(), pending)
+      await waitFor(() => expect(bandFor('Alpha')).toBeDefined())
+
+      act(() => within(bandFor('Alpha')!).getByRole('button', { name: 'Update List' }).click())
+      const again = within(bandFor('Alpha')!).getByRole('button', { name: /Update List|Updating/ }) as HTMLButtonElement
+
+      expect(again.disabled).toBe(true)
+      await act(async () => release())
+    })
+  })
+
+  describe('the Check for updates button', () => {
+    const press = () => act(() => screen.getByRole('button', { name: 'Check for updates' }).click())
+
+    it('checks every list that has a source, and no other', async () => {
+      setupLists([two('a', 'Alpha'), list({ id: 'b', title: 'Bravo', externalRef: null }), two('c', 'Charlie')])
+      vi.mocked(api.checkForUpdates).mockResolvedValue(found(0))
+      const { pending } = await pendingWith()
+      renderHome(vi.fn(), pending)
+      await waitFor(() => expect(screen.getByText('Alpha')).not.toBeNull())
+
+      press()
+
+      await waitFor(() => expect(api.checkForUpdates).toHaveBeenCalledTimes(2))
+      expect(vi.mocked(api.checkForUpdates).mock.calls).toEqual([['a', false], ['c', false]])
+    })
+
+    it('shows each band as its list is answered, while the others are still being looked at', async () => {
+      setupLists([two('a', 'Alpha'), two('b', 'Bravo')])
+      let releaseSecond!: () => void
+      vi.mocked(api.checkForUpdates)
+        .mockResolvedValueOnce(found(2))
+        .mockReturnValueOnce(new Promise((resolve) => (releaseSecond = () => resolve(found(1)))))
+      const { pending } = await pendingWith()
+      renderHome(vi.fn(), pending)
+      await waitFor(() => expect(screen.getByText('Alpha')).not.toBeNull())
+
+      press()
+
+      await waitFor(() => expect(bandFor('Alpha')).toBeDefined())
+      expect(bandFor('Bravo')).toBeUndefined()
+      expect((screen.getByRole('button', { name: 'Check for updates' }) as HTMLButtonElement).disabled).toBe(true)
+      expect(document.querySelector('.q-home-actions .q-spin')).not.toBeNull()
+
+      await act(async () => releaseSecond())
+      await waitFor(() => expect(bandFor('Bravo')).toBeDefined())
+      expect((screen.getByRole('button', { name: 'Check for updates' }) as HTMLButtonElement).disabled).toBe(false)
+    })
+
+    it('answers "No new items upstream." when there is nothing anywhere', async () => {
+      setupLists([two('a', 'Alpha')])
+      vi.mocked(api.checkForUpdates).mockResolvedValue(found(0))
+      const { pending } = await pendingWith()
+      renderHome(vi.fn(), pending)
+      await waitFor(() => expect(screen.getByText('Alpha')).not.toBeNull())
+
+      press()
+
+      expect(await screen.findAllByText('No new items upstream.')).not.toHaveLength(0)
+    })
+
+    it('brings back an update that was dismissed: an explicit check shows everything available', async () => {
+      setupLists([two('a', 'Alpha')])
+      vi.mocked(api.checkForUpdates).mockResolvedValue(found(2))
+      const { pending } = await pendingWith()
+      renderHome(vi.fn(), pending)
+      await waitFor(() => expect(screen.getByText('Alpha')).not.toBeNull())
+      press()
+      await waitFor(() => expect(bandFor('Alpha')).toBeDefined())
+      act(() => within(bandFor('Alpha')!).getByRole('button', { name: 'Dismiss' }).click())
+      await waitFor(() => expect(bands()).toHaveLength(0))
+
+      press()
+
+      await waitFor(() => expect(bandFor('Alpha')).toBeDefined())
+    })
+
+    it('reports the lists it could not reach, once, and still shows what it found', async () => {
+      setupLists([two('a', 'Alpha'), two('b', 'Bravo'), two('c', 'Charlie')])
+      vi.mocked(api.checkForUpdates)
+        .mockResolvedValueOnce(found(1))
+        .mockRejectedValueOnce(new Error('Source is down'))
+        .mockResolvedValueOnce(found(3))
+      const { pending } = await pendingWith()
+      renderHome(vi.fn(), pending)
+      await waitFor(() => expect(screen.getByText('Alpha')).not.toBeNull())
+
+      press()
+
+      expect(await screen.findAllByText('Could not check 1 list: Bravo')).not.toHaveLength(0)
+      expect(bandFor('Alpha')).toBeDefined()
+      expect(bandFor('Charlie')).toBeDefined()
+    })
   })
 })

@@ -9,7 +9,6 @@ import {
   findDismissals,
   findList,
   findListItems,
-  findLists,
   findListWithStats,
 } from '../catalog/repository.js'
 import { sendApiError } from '../apiErrors.js'
@@ -32,7 +31,7 @@ import type { AppDatabase } from '../db/client.js'
 import { toMediaTypeInfo, type MediaTypeRegistry } from './mediaTypes.js'
 import { expandSource, SourceUnavailableError, UnsafeSourceError } from './expandSource.js'
 import { refForAdapter } from './sourceRef.js'
-import type { List, ListSource, User } from '../db/schema.js'
+import type { ListSource, User } from '../db/schema.js'
 
 export interface IngestionRoutesOptions {
   db: AppDatabase
@@ -109,45 +108,6 @@ export const ingestionRoutes: FastifyPluginAsync<IngestionRoutesOptions> = async
     await seedGroupOrder(db, list.id)
 
     return list
-  }
-
-  /**
-   * The "has this changed" half of task 7.6's update notification — same
-   * new-item matching (title-only, dismissals excluded) as
-   * `/lists/:listId/refresh`'s canonical branch, but a boolean rather than
-   * the full diff, since the caller here is checking many lists at once
-   * rather than previewing one.
-   *
-   * Degrades silently on any fetch/parse failure, unlike the refresh
-   * route's explicit-action 502 — this runs automatically (app open, or
-   * "sync now" across every synced list at once), so one transient GitHub
-   * hiccup on one list must not make the whole check look broken, the same
-   * reasoning `searchCanonicalLists` already uses (task 7.4).
-   */
-  async function hasCanonicalUpdate(user: User, list: List): Promise<boolean> {
-    const canonicalPath = canonicalPathFromExternalRef(list.externalRef)
-    if (!canonicalPath || !isSafeCanonicalPath(canonicalPath)) return false
-
-    let upstream
-    try {
-      upstream = await expandCanonicalList(
-        canonicalPath,
-        new Set(mediaTypes.list().map((entry) => entry.key)),
-      )
-    } catch {
-      return false
-    }
-
-    const existing = (await findListItems(db, user.id, list.id)) ?? []
-    const knownTitles = new Set(existing.map((item) => dismissalTitleKey(item.title)))
-
-    const dismissed = await findDismissals(db, user.id, list.id)
-    const dismissedTitles = new Set(dismissed.map((item) => item.titleKey))
-
-    return upstream.items.some((candidate) => {
-      const titleKey = dismissalTitleKey(candidate.title)
-      return !knownTitles.has(titleKey) && !dismissedTitles.has(titleKey)
-    })
   }
 
   // Upstream being down or rate-limiting is not a bug in this app, and the
@@ -644,34 +604,6 @@ export const ingestionRoutes: FastifyPluginAsync<IngestionRoutesOptions> = async
       }
     },
   )
-
-  /**
-   * "This list was updated" notification (task 7.6) — on-trigger only (app
-   * open, or an explicit "sync now"), never background polling, per the
-   * confirmed constraint (docs/intent/custom-lists.md). Scoped to
-   * canonical-synced lists only, deliberately not every externalRef-backed
-   * list: checking every list's real API adapter (TMDB, IGDB, MusicBrainz,
-   * Wikipedia, ...) on every app open would reintroduce the exact per-key
-   * rate-limit pressure canonical lists exist to avoid.
-   */
-  app.get('/lists/updates', async (request) => {
-    const user = getCurrentUser(request)
-
-    const synced = (await findLists(db, user.id)).filter((list) =>
-      canonicalPathFromExternalRef(list.externalRef),
-    )
-
-    const updates = []
-    // Sequential, not Promise.all — see the from-source route above for why,
-    // and to avoid firing every synced list's fetch at GitHub at once.
-    for (const list of synced) {
-      if (await hasCanonicalUpdate(user, list)) {
-        updates.push({ listId: list.id, title: list.title })
-      }
-    }
-
-    return { updates }
-  })
 
   /**
    * The UI renders a bucket per category — including ones with no lists yet —

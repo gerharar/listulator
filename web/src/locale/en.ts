@@ -603,15 +603,19 @@ export const en = {
       helpComingSoon: (label: string): string => `${label} is coming soon`,
       orphanedTitle: 'Uncategorised',
       orphanedNote: 'category no longer exists',
-      /**
-       * Task 7.6's "an update is available" notification. Deliberately not
-       * "updated" — the user flagged that as confusing during click-through
-       * ("updated = already changed, so why are you bothering me").
-       */
-      updatedCount: (n: number): string =>
-        n === 1 ? '1 list has an update available: ' : `${n} lists have updates available: `,
-      dismissUpdatesBanner: 'Dismiss',
-      /** The automatic on-open check stays silent on failure (see `Home.tsx`) — this is only for the explicit "Check for updates" button, surfaced as a Toast. */
+      /** The name is bold in the sentence; this is what follows it. */
+      pendingBand: (n: number): string =>
+        ` has ${n} new ${selectPlural(n, 'en', { one: 'item', other: 'items' })}.`,
+      updateList: 'Update List',
+      dismissUpdate: 'Dismiss',
+      noNewUpstream: 'No new items upstream.',
+      updateApplied: (n: number, title: string): string =>
+        `Added ${n} new ${selectPlural(n, 'en', { one: 'item', other: 'items' })} to “${title}”.`,
+      updateFailed: 'Could not update this list',
+      /** Lists a check could not reach, said once at the end. */
+      checkPartial: (titles: readonly string[]): string =>
+        `Could not check ${titles.length} ${selectPlural(titles.length, 'en', { one: 'list', other: 'lists' })}: ${titles.join(', ')}`,
+      /** The whole check failed before it could look at anything. */
       checkUpdatesFailed: 'Could not check for updates',
     },
   },

@@ -12,8 +12,9 @@ import { Banner } from '../Banner/Banner.js'
 import { ErrorBlock } from '../ErrorBlock/ErrorBlock.js'
 import { useToast } from '../Toast/Toast.js'
 import { useLayerStack } from '../layerStack/LayerStackContext.js'
-import { listPath } from '../../../lib/listPath.js'
 import { subscribeListsChanged } from '../../../lib/listsChanged.js'
+import { getPendingUpdates, useChecking, usePendingMap, type PendingUpdates } from '../../../lib/pendingUpdates.js'
+import { applyUpdate, checkLists } from '../../../lib/updateCheck.js'
 import type { LayerDescriptor } from '../layerStack/layerStack.js'
 
 type Phase = 'loading' | 'ready' | 'error'
@@ -27,16 +28,16 @@ function categoryPickerLayer(): LayerDescriptor<string> {
   }
 }
 
-function listLayer(list: MediaList, options: { update?: boolean } = {}): LayerDescriptor<string> {
-  return {
-    id: `list-${list.id}`,
-    kind: 'list',
-    tabLabel: list.title,
-    content: listPath(list.id, options),
-  }
+function listLayer(list: MediaList): LayerDescriptor<string> {
+  return { id: `list-${list.id}`, kind: 'list', tabLabel: list.title, content: `/lists/${list.id}` }
 }
 
+/** At most this many update bands at once; handling one lets the next take its place. */
+const MAX_UPDATE_BANDS = 3
+
 export interface HomeProps {
+  /** For a test; the app's own store otherwise. */
+  pendingUpdates?: PendingUpdates
   /** Lifts the loaded registry up to `AppShellBody` — the hosted legacy screens (List detail, New list) need it too, and only Home fetches it (task 10.10). */
   onMediaTypesLoaded: (mediaTypes: MediaType[]) => void
 }
@@ -46,7 +47,7 @@ export interface HomeProps {
  * A real Quantum screen, not routed: it talks to `useLayerStack()` directly
  * instead of going through `LegacyRouteHost`'s path-based navigation.
  */
-export function Home({ onMediaTypesLoaded }: HomeProps) {
+export function Home({ onMediaTypesLoaded, pendingUpdates }: HomeProps) {
   const layerStack = useLayerStack()
   const { showToast } = useToast()
   const isTop = layerStack.stack.length === 1
@@ -57,9 +58,12 @@ export function Home({ onMediaTypesLoaded }: HomeProps) {
   const [error, setError] = useState<string | null>(null)
   const [retryToken, setRetryToken] = useState(0)
 
-  const [updates, setUpdates] = useState<{ listId: string; title: string }[]>([])
-  const [checkingUpdates, setCheckingUpdates] = useState(false)
-  const [bannerDismissed, setBannerDismissed] = useState(false)
+  // What explicit checks have found and nobody has applied or dismissed yet
+  // (persisted; owner rulings, 10.22c). Nothing here checks by itself.
+  const [pending] = useState(() => pendingUpdates ?? getPendingUpdates())
+  const pendingMap = usePendingMap(pending)
+  const checkingUpdates = useChecking(pending)
+  const [applying, setApplying] = useState<ReadonlySet<string>>(new Set())
 
   // Refetches every time Home becomes the top layer again (not just on first
   // mount) — Home is never unmounted while covered, so a mount-only effect
@@ -88,6 +92,8 @@ export function Home({ onMediaTypesLoaded }: HomeProps) {
         if (cancelled) return
         hasLoadedRef.current = true
         onMediaTypesLoaded(fetchedTypes)
+        // A list that is gone takes its pending update with it.
+        void pending.prune(fetchedLists.map((entry) => entry.id))
 
         if (fetchedLists.length === 0) {
           // First run: the Category picker *is* the base layer (matches the
@@ -123,30 +129,46 @@ export function Home({ onMediaTypesLoaded }: HomeProps) {
   // Undo of a delete, say): the ordinary top-layer refetch will not fire.
   useEffect(() => subscribeListsChanged(() => setRetryToken((token) => token + 1)), [])
 
-  // The automatic "did anything change upstream" check — once per session
-  // (Home never unmounts, so a mount-only effect already means exactly
-  // that), and silent on failure: it is a nice-to-have degrading quietly,
-  // not core data. The explicit "Check for updates" button below does
-  // report a real failure, via a Toast, because that action was asked for.
-  useEffect(() => {
-    api
-      .checkSyncedListUpdates()
-      .then(({ updates: found }) => setUpdates(found))
-      .catch(() => {})
-  }, [])
-
+  /** Home's explicit check: every list with a source, a band appearing as each is answered. */
   async function checkUpdatesNow() {
-    setCheckingUpdates(true)
-    setBannerDismissed(false)
-
     try {
-      setUpdates((await api.checkSyncedListUpdates()).updates)
+      const summary = await checkLists(lists, { api, pending })
+      if (!summary) return
+
+      if (summary.failed.length > 0) {
+        showToast({ text: copy.quantum.home.checkPartial(summary.failed.map((entry) => entry.title)) })
+      } else if (summary.found === 0) {
+        showToast({ text: copy.quantum.home.noNewUpstream })
+      }
     } catch (cause) {
       showToast({
         text: cause instanceof Error ? cause.message : copy.quantum.home.checkUpdatesFailed,
       })
+    }
+  }
+
+  /** Update List from its band: adds what is new as arrivals, right here, without opening the list. */
+  async function applyFromBand(target: MediaList) {
+    setApplying((current) => new Set(current).add(target.id))
+
+    try {
+      const added = await applyUpdate(target.id, { api, pending })
+      showToast({
+        text:
+          added === 0
+            ? copy.quantum.home.noNewUpstream
+            : copy.quantum.home.updateApplied(added, target.title),
+      })
+      // The row's N NEW badge comes from a fresh read.
+      setRetryToken((token) => token + 1)
+    } catch (cause) {
+      showToast({ text: cause instanceof Error ? cause.message : copy.quantum.home.updateFailed })
     } finally {
-      setCheckingUpdates(false)
+      setApplying((current) => {
+        const next = new Set(current)
+        next.delete(target.id)
+        return next
+      })
     }
   }
 
@@ -187,9 +209,16 @@ export function Home({ onMediaTypesLoaded }: HomeProps) {
     { done: 0, total: 0, left: 0 },
   )
 
-  function openList(list: MediaList, options: { update?: boolean } = {}) {
-    layerStack.push(listLayer(list, options))
+  function openList(list: MediaList) {
+    layerStack.push(listLayer(list))
   }
+
+  // The lists in the order they are shown, so "the first three" is what the reader sees first.
+  const shownOrder = [...used.flatMap((bucket) => bucket.lists), ...orphaned]
+  const bandIds = pending.visible(
+    shownOrder.map((entry) => entry.id),
+    MAX_UPDATE_BANDS,
+  )
 
   return (
     <div className="q-home">
@@ -205,31 +234,26 @@ export function Home({ onMediaTypesLoaded }: HomeProps) {
         onNew={() => layerStack.push(categoryPickerLayer())}
       />
 
-      {!bannerDismissed && updates.length > 0 && (
-        <Banner onDismiss={() => setBannerDismissed(true)} dismissLabel={copy.quantum.home.dismissUpdatesBanner}>
-          {copy.quantum.home.updatedCount(updates.length)}
-          {updates.map((entry, index) => {
-            const target = lists.find((candidate) => candidate.id === entry.listId)
+      {bandIds.map((id) => {
+        const target = shownOrder.find((entry) => entry.id === id)!
+        const count = pendingMap[id]!.count
 
-            return (
-              <span key={entry.listId}>
-                {index > 0 && ', '}
-                {target ? (
-                  <button
-                    type="button"
-                    className="q-banner-link"
-                    onClick={() => openList(target, { update: true })}
-                  >
-                    <b>{entry.title}</b>
-                  </button>
-                ) : (
-                  <b>{entry.title}</b>
-                )}
-              </span>
-            )
-          })}
-        </Banner>
-      )}
+        return (
+          <Banner
+            key={id}
+            dismissLabel={copy.quantum.home.dismissUpdate}
+            onDismiss={() => void pending.remove(id)}
+            action={{
+              label: copy.quantum.home.updateList,
+              onClick: () => void applyFromBand(target),
+              busy: applying.has(id),
+            }}
+          >
+            <b>{target.title}</b>
+            {copy.quantum.home.pendingBand(count)}
+          </Banner>
+        )
+      })}
 
       <div className="q-help-row">
         <span className="q-kicker section">{copy.quantum.home.needHelp}</span>

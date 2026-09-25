@@ -15,21 +15,9 @@
 .q-banner b {
   font-weight: 600;
 }
-/* A list's name in the sentence, when it opens that list. */
-.q-banner-link {
-  padding: 0;
-  border: 0;
-  background: none;
-  color: inherit;
-  font: inherit;
-  cursor: pointer;
-  text-decoration: underline;
-  text-underline-offset: 3px;
-}
-.q-banner-link:hover {
-  color: var(--accent);
-}
-.q-banner-link:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
+.q-banner-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: none;
 }

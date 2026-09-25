@@ -40,7 +40,8 @@ describe('checkLists', () => {
     let running = 0
     let most = 0
     const api = {
-      checkForUpdates: vi.fn(async () => {
+      checkForUpdates: vi.fn(async (...args: [string, boolean?]) => {
+        void args
         running += 1
         most = Math.max(most, running)
         await new Promise((resolve) => setTimeout(resolve, 1))
