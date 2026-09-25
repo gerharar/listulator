@@ -33,6 +33,7 @@ export type ApiErrorCode =
   | 'list.fileMissingTitle'
   | 'list.fileItemMissingTitle'
   | 'list.fileItemNotesTooLong'
+  | 'list.alreadyExists'
   | 'group.nameEmpty'
   | 'group.nameTaken'
   | 'group.notEmpty'

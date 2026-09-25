@@ -28,6 +28,21 @@ import {
   renameListGroup,
   reorderListGroups,
 } from './groups.js'
+import {
+  ListExistsError,
+  restoreItemSet,
+  restoreList,
+  restoreListGroup,
+  restoreListItem,
+} from './restore.js'
+import type { GroupRestore, ItemRestore, ItemSetRestore, ListRestore } from './restorePayloads.js'
+import {
+  dismissalPayloadSchema,
+  groupPayloadSchema,
+  itemPayloadSchema,
+  listPayloadSchema,
+  snapshotPayloadSchema,
+} from './restoreSchemas.js'
 
 const LIST_SOURCES = ['api', 'llm', 'manual'] as const
 const LIST_STATUSES = ['complete', 'ongoing'] as const
@@ -174,9 +189,11 @@ export const catalogRoutes: FastifyPluginAsync<CatalogRoutesOptions> = async (
 
   app.delete<{ Params: ListParams }>('/lists/:listId', async (request, reply) => {
     const user = getCurrentUser(request)
-    if (!(await deleteList(db, user.id, request.params.listId))) return reply.callNotFound()
+    // Acts at once and hands back everything that went, for Undo (D2, 10.19a).
+    const restore = await deleteList(db, user.id, request.params.listId)
+    if (!restore) return reply.callNotFound()
 
-    return reply.code(204).send()
+    return { restore }
   })
 
   app.post<{
@@ -249,9 +266,10 @@ export const catalogRoutes: FastifyPluginAsync<CatalogRoutesOptions> = async (
   app.delete<{ Params: ItemParams }>('/lists/:listId/items/:itemId', async (request, reply) => {
     const user = getCurrentUser(request)
     const { listId, itemId } = request.params
-    if (!(await deleteListItem(db, user.id, listId, itemId))) return reply.callNotFound()
+    const restore = await deleteListItem(db, user.id, listId, itemId)
+    if (!restore) return reply.callNotFound()
 
-    return reply.code(204).send()
+    return { restore }
   })
 
   /**
@@ -380,14 +398,128 @@ export const catalogRoutes: FastifyPluginAsync<CatalogRoutesOptions> = async (
     const { listId, groupId } = request.params
 
     try {
-      if (!(await deleteListGroup(db, user.id, listId, groupId))) return reply.callNotFound()
+      const restore = await deleteListGroup(db, user.id, listId, groupId)
+      if (!restore) return reply.callNotFound()
 
-      return reply.code(204).send()
+      return { restore }
     } catch (cause) {
       if (cause instanceof GroupNotEmptyError) return sendApiError(reply, 409, 'group.notEmpty')
       throw cause
     }
   })
+
+  // Undo (D2, task 10.19a): every delete above returns what it removed, and these
+  // put it back with the original ids, positions and done state.
+  app.post<{ Params: ListParams; Body: ItemRestore }>(
+    '/lists/:listId/items/restore',
+    {
+      schema: {
+        body: {
+          type: 'object',
+          required: ['item'],
+          additionalProperties: false,
+          properties: { item: itemPayloadSchema, dismissalId: { type: ['string', 'null'] } },
+        },
+      },
+    },
+    async (request, reply) => {
+      const user = getCurrentUser(request)
+      const item = await restoreListItem(db, user.id, request.params.listId, {
+        item: request.body.item,
+        dismissalId: request.body.dismissalId ?? null,
+      })
+      if (!item) return reply.callNotFound()
+
+      return item
+    },
+  )
+
+  app.post<{ Params: ListParams; Body: GroupRestore }>(
+    '/lists/:listId/groups/restore',
+    {
+      schema: {
+        body: {
+          type: 'object',
+          required: ['group'],
+          additionalProperties: false,
+          properties: { group: groupPayloadSchema },
+        },
+      },
+    },
+    async (request, reply) => {
+      const user = getCurrentUser(request)
+
+      try {
+        const group = await restoreListGroup(db, user.id, request.params.listId, request.body)
+        if (!group) return reply.callNotFound()
+
+        return group
+      } catch (cause) {
+        if (cause instanceof GroupNameError) return sendGroupNameError(reply, cause)
+        throw cause
+      }
+    },
+  )
+
+  // The payload is the whole list, so it can be large: 10,000 items is ~3 MB.
+  app.post<{ Body: ListRestore }>(
+    '/lists/restore',
+    {
+      bodyLimit: 64 * 1024 * 1024,
+      schema: {
+        body: {
+          type: 'object',
+          required: ['list', 'items', 'groups', 'snapshot', 'dismissals'],
+          additionalProperties: false,
+          properties: {
+            list: listPayloadSchema,
+            items: { type: 'array', items: itemPayloadSchema },
+            groups: { type: 'array', items: groupPayloadSchema },
+            snapshot: { type: 'array', items: snapshotPayloadSchema },
+            dismissals: { type: 'array', items: dismissalPayloadSchema },
+          },
+        },
+      },
+    },
+    async (request, reply) => {
+      const user = getCurrentUser(request)
+
+      try {
+        await restoreList(db, user.id, request.body)
+      } catch (cause) {
+        if (cause instanceof ListExistsError) return sendApiError(reply, 409, 'list.alreadyExists')
+        throw cause
+      }
+
+      return reply.code(201).send(await findListWithStats(db, user.id, request.body.list.id))
+    },
+  )
+
+  // Replaces the whole item set — what undoing a Reset (task 10.18) posts.
+  app.put<{ Params: ListParams; Body: ItemSetRestore }>(
+    '/lists/:listId/items/restore-all',
+    {
+      bodyLimit: 64 * 1024 * 1024,
+      schema: {
+        body: {
+          type: 'object',
+          required: ['items', 'dismissals'],
+          additionalProperties: false,
+          properties: {
+            items: { type: 'array', items: itemPayloadSchema },
+            dismissals: { type: 'array', items: dismissalPayloadSchema },
+          },
+        },
+      },
+    },
+    async (request, reply) => {
+      const user = getCurrentUser(request)
+      const items = await restoreItemSet(db, user.id, request.params.listId, request.body)
+      if (!items) return reply.callNotFound()
+
+      return items
+    },
+  )
 
   app.put<{ Params: ItemParams; Body: { consumed: boolean } }>(
     '/lists/:listId/items/:itemId/consumed',

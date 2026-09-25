@@ -51,7 +51,7 @@ describe('catalog HTTP API', () => {
     expect(patched.json().title).toBe('Jackie Chan (renamed)')
 
     const removed = await harness.app.inject({ method: 'DELETE', url: `/api/lists/${list.id}` })
-    expect(removed.statusCode).toBe(204)
+    expect(removed.statusCode).toBe(200)
 
     const afterDelete = await harness.app.inject({ method: 'GET', url: `/api/lists/${list.id}` })
     expect(afterDelete.statusCode).toBe(404)
@@ -88,7 +88,7 @@ describe('catalog HTTP API', () => {
       method: 'DELETE',
       url: `/api/lists/${list.id}/items/${item.id}`,
     })
-    expect(removed.statusCode).toBe(204)
+    expect(removed.statusCode).toBe(200)
 
     const read = await harness.app.inject({ method: 'GET', url: `/api/lists/${list.id}` })
     expect(read.json().items).toEqual([])

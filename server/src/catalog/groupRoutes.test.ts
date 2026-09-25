@@ -92,7 +92,7 @@ describe('group routes', () => {
     await addItem('a', 'Full')
     const full = (await detail()).groups.find((g: { name: string }) => g.name === 'Full')
 
-    expect((await send('DELETE', `/lists/${listId}/groups/${empty.id}`)).statusCode).toBe(204)
+    expect((await send('DELETE', `/lists/${listId}/groups/${empty.id}`)).statusCode).toBe(200)
 
     const refused = await send('DELETE', `/lists/${listId}/groups/${full.id}`)
     expect(refused.statusCode).toBe(409)
@@ -138,7 +138,7 @@ describe('group routes', () => {
   it('takes the groups away with the list', async () => {
     await addGroup('A')
 
-    expect((await send('DELETE', `/lists/${listId}`)).statusCode).toBe(204)
+    expect((await send('DELETE', `/lists/${listId}`)).statusCode).toBe(200)
     expect((await send('GET', `/lists/${listId}`)).statusCode).toBe(404)
   })
 })
