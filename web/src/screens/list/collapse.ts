@@ -86,3 +86,22 @@ export async function saveFocus(
     // As above.
   }
 }
+
+const RAIL = 'rail'
+
+/** Whether the reader folded the jump rail away for this list (remembered per list, D5). Shown unless said otherwise. */
+export async function loadRailHidden(store: PreferencesStore, listId: string): Promise<boolean> {
+  try {
+    return (await store.get(listPreferenceKey(listId, RAIL))) === 'hidden'
+  } catch {
+    return false
+  }
+}
+
+export async function saveRailHidden(store: PreferencesStore, listId: string, hidden: boolean): Promise<void> {
+  try {
+    await store.set(listPreferenceKey(listId, RAIL), hidden ? 'hidden' : 'shown')
+  } catch {
+    // As above.
+  }
+}

@@ -526,6 +526,12 @@ export const en = {
         saveFailed: 'Could not save your changes to the list',
         undoFailed: 'Could not undo that',
       },
+      /** The jump rail beside the spine: groups only, when there is more than one. */
+      rail: {
+        title: 'Jump to',
+        hide: 'Collapse the jump rail',
+        show: 'Show the jump rail',
+      },
       /** The filter bar under the header: a text field, the category's facets, fold-all and a note. */
       filter: {
         label: 'Filter items',

@@ -27,8 +27,10 @@ import {
   defaultCollapsed,
   loadCollapsed,
   loadFocus,
+  loadRailHidden,
   saveCollapsed,
   saveFocus,
+  saveRailHidden,
 } from './collapse.js'
 import { deriveFacets, type FacetKey } from '../../../../server/src/catalog/facets.js'
 import { AddItemForm, type NewItemInput } from './AddItemForm.js'
@@ -41,6 +43,7 @@ import { invertListPatch, type ListFields, type ListPatch } from './listActions.
 import { ItemEditPopover } from './ItemEditPopover.js'
 import { ItemInfoCard } from './ItemInfoCard.js'
 import { ItemRow } from './ItemRow.js'
+import { JumpRail, JumpRailStub, type RailEntry } from './JumpRail.js'
 import { ListMorePopover, type MoreMode, type PreviewState } from './ListMorePopover.js'
 import { buildSpine, listTotals } from './spine.js'
 import { useRowMoves } from './useRowMoves.js'
@@ -60,7 +63,13 @@ export interface ListScreenProps {
 type Load =
   | { state: 'loading' }
   | { state: 'error'; message: string }
-  | { state: 'ready'; list: MediaListDetail; collapsed: ReadonlySet<string>; focusId: string | undefined }
+  | {
+      state: 'ready'
+      list: MediaListDetail
+      collapsed: ReadonlySet<string>
+      focusId: string | undefined
+      railHidden: boolean
+    }
 
 /**
  * The list layer (design: "List detail", task 10.20): the header — category,
@@ -95,7 +104,8 @@ export function ListScreen({ listId, mediaTypes, pendingUpdates, onLeave, onClos
         ),
       )
       const focusId = await loadFocus(store, listId)
-      if (request.current === mine) setLoad({ state: 'ready', list, collapsed, focusId })
+      const railHidden = await loadRailHidden(store, listId)
+      if (request.current === mine) setLoad({ state: 'ready', list, collapsed, focusId, railHidden })
     } catch (cause) {
       if (request.current === mine) {
         setLoad({
@@ -141,6 +151,7 @@ export function ListScreen({ listId, mediaTypes, pendingUpdates, onLeave, onClos
       list={load.list}
       initialCollapsed={load.collapsed}
       initialFocusId={load.focusId}
+      initialRailHidden={load.railHidden}
       mediaTypes={mediaTypes}
       pending={pendingUpdates ?? getPendingUpdates()}
       onLeave={onLeave}
@@ -157,6 +168,7 @@ interface ListViewProps {
   list: MediaListDetail
   initialCollapsed: ReadonlySet<string>
   initialFocusId: string | undefined
+  initialRailHidden: boolean
   mediaTypes: readonly MediaType[]
   pending: PendingUpdates
   onLeave: (() => void) | undefined
@@ -177,6 +189,7 @@ function ListView({
   list: loaded,
   initialCollapsed,
   initialFocusId,
+  initialRailHidden,
   mediaTypes,
   pending,
   onLeave,
@@ -197,6 +210,9 @@ function ListView({
   const [groups, setGroups] = useState<ListGroup[]>(loaded.groups)
   const [collapsed, setCollapsed] = useState<ReadonlySet<string>>(initialCollapsed)
   const [focusId, setFocusId] = useState<string | undefined>(initialFocusId)
+  const [railHidden, setRailHidden] = useState(initialRailHidden)
+  // A jump asks for a scroll once the group it opened has rendered.
+  const [jumpTo, setJumpTo] = useState<{ id: string; n: number } | null>(null)
   const [popover, setPopover] = useState<OpenPopover | null>(null)
   const [pulseIds, setPulseIds] = useState<ReadonlySet<string>>(new Set())
   // What an explicit check found for this list and nobody has applied or dismissed (persisted).
@@ -322,6 +338,35 @@ function ListView({
 
   /** Collapse all / Expand all: judged on what the reader has open, not on what a filter shows. */
   const anyOpen = groupNames.some((name) => !collapsed.has(name))
+
+  // The rail is the map of the whole list: every group with items, however the filter narrows the spine.
+  const railEntries = useMemo<RailEntry[]>(
+    () =>
+      units.flatMap((unit) =>
+        unit.kind === 'group' && unit.items.length > 0
+          ? [{ id: unit.group.id, name: unit.group.name, done: unit.done, total: unit.total }]
+          : [],
+      ),
+    [units],
+  )
+
+  function setRail(hidden: boolean) {
+    setRailHidden(hidden)
+    void saveRailHidden(getPreferencesStore(), listId, hidden)
+  }
+
+  function jump(entry: RailEntry) {
+    openGroup(entry.name)
+    setJumpTo((current) => ({ id: entry.id, n: (current?.n ?? 0) + 1 }))
+  }
+
+  useEffect(() => {
+    if (!jumpTo) return
+    const body = spine.current
+    const target = body?.querySelector<HTMLElement>(`[data-row-id="${CSS.escape(jumpTo.id)}"]`)
+    if (body && target) body.scrollTop += target.getBoundingClientRect().top - body.getBoundingClientRect().top
+    setJumpTo(null)
+  }, [jumpTo])
 
   function foldAll() {
     const next = anyOpen ? new Set(groupNames) : new Set<string>()
@@ -801,33 +846,39 @@ function ListView({
         </div>
       )}
 
-      <div className="q-list-body" ref={spine} onKeyDown={onKeyDown} onBlur={moves.onBlur}>
-        {units.length === 0 && <p className="q-list-empty">{text.empty}</p>}
-        {filtering && shownUnits.length === 0 && (
-          <p className="q-list-empty">{text.filter.nothing(filter.text)}</p>
+      <div className="q-list-cols">
+        {railEntries.length > 1 && !railHidden && (
+          <JumpRail entries={railEntries} onJump={jump} onHide={() => setRail(true)} />
         )}
-        {shownUnits.map(({ unit, members }) =>
-          unit.kind === 'item' ? (
-            itemRow(unit.item, false)
-          ) : (
-            <div key={unit.group.id} className="q-list-block">
-              <GroupRow
-                block={unit}
-                collapsed={shut.has(unit.group.name)}
-                focusable={tabStop === unit.group.id}
-                onToggle={toggleGroup}
-                onFocus={remember}
-                onHandlePointerDown={(event) => moves.startDrag(event, unit.group.id)}
-                dragging={moves.dragKey === unit.group.id}
-                dropLine={moves.over?.key === unit.group.id ? moves.over.pos : null}
-                pulse={pulseIds.has(unit.group.id)}
-                shownOf={filtering ? { shown: members.length, total: unit.items.length } : undefined}
-              />
-              {!shut.has(unit.group.name) && members.map((entry) => itemRow(entry, true))}
-            </div>
-          ),
-        )}
-        <AddItemForm groups={groupNames} defaultMinutes={defaultMinutes} onAdd={addItem} />
+        {railEntries.length > 1 && railHidden && <JumpRailStub onShow={() => setRail(false)} />}
+        <div className="q-list-body" ref={spine} onKeyDown={onKeyDown} onBlur={moves.onBlur}>
+          {units.length === 0 && <p className="q-list-empty">{text.empty}</p>}
+          {filtering && shownUnits.length === 0 && (
+            <p className="q-list-empty">{text.filter.nothing(filter.text)}</p>
+          )}
+          {shownUnits.map(({ unit, members }) =>
+            unit.kind === 'item' ? (
+              itemRow(unit.item, false)
+            ) : (
+              <div key={unit.group.id} className="q-list-block">
+                <GroupRow
+                  block={unit}
+                  collapsed={shut.has(unit.group.name)}
+                  focusable={tabStop === unit.group.id}
+                  onToggle={toggleGroup}
+                  onFocus={remember}
+                  onHandlePointerDown={(event) => moves.startDrag(event, unit.group.id)}
+                  dragging={moves.dragKey === unit.group.id}
+                  dropLine={moves.over?.key === unit.group.id ? moves.over.pos : null}
+                  pulse={pulseIds.has(unit.group.id)}
+                  shownOf={filtering ? { shown: members.length, total: unit.items.length } : undefined}
+                />
+                {!shut.has(unit.group.name) && members.map((entry) => itemRow(entry, true))}
+              </div>
+            ),
+          )}
+          <AddItemForm groups={groupNames} defaultMinutes={defaultMinutes} onAdd={addItem} />
+        </div>
       </div>
 
       {more && (

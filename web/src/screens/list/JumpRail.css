@@ -1,0 +1,70 @@
+/* The jump rail (design: JumpRail) and the stub it folds to. */
+.q-list-cols {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+}
+.q-list-cols > .q-list-body { min-width: 0; }
+.q-rail {
+  flex: none;
+  width: 200px;
+  overflow: auto;
+  padding: 14px 0;
+  border-right: 1px solid var(--line);
+}
+.q-rail-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 8px 9px 14px;
+}
+.q-rail-head .q-kicker { flex: 1; min-width: 0; margin: 0; }
+.q-rail-toggle {
+  flex: none;
+  width: 28px;
+  height: 26px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--ink2);
+  font: 600 15px/1 var(--font);
+  cursor: pointer;
+}
+.q-rail-toggle:hover { color: var(--ink); border-color: var(--rule); }
+.q-rail-entry {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border: 0;
+  background: transparent;
+  color: var(--ink2);
+  font: 500 13px/1.2 var(--font);
+  text-align: left;
+  cursor: pointer;
+}
+.q-rail-entry:hover { background: var(--fill); }
+.q-rail-entry.complete { color: var(--ink3); }
+.q-rail-entry .tick { flex: none; width: 12px; text-align: center; font-size: 12px; color: var(--ink3); }
+.q-rail-entry .name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.q-rail-entry .count { flex: none; font: 500 11px/1 var(--font-mono); color: var(--ink3); font-variant-numeric: tabular-nums; }
+.q-rail-stub {
+  flex: none;
+  width: 36px;
+  border-right: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 0;
+}
+.q-rail-stub .label {
+  writing-mode: vertical-rl;
+  font: 500 10px/1 var(--font-mono);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ink3);
+}

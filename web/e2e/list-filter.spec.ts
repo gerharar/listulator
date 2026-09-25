@@ -112,3 +112,37 @@ test('the platform chip opens a 240px popover with full names, never toggles the
     await page.request.delete(`/api/lists/${id}`)
   }
 })
+
+test('the jump rail brings a far group to the top, and stays folded across a reload', async ({ page }) => {
+  const title = `e2e list-filter rail ${Date.now()}`
+  const many = (group: string) =>
+    Array.from({ length: 14 }, (_, i) => ({ title: `${group} ep ${i + 1}`, timeToConsumeMinutes: 30, group }))
+  const id = await makeList(page.request, title, 'tv', [...many('Season 1'), ...many('Season 2'), ...many('Season 3')])
+
+  try {
+    await page.goto('/')
+    await page.locator('.q-home-row', { hasText: title }).click()
+    const rail = page.locator('.q-rail')
+    await expect(rail.getByRole('button', { name: /Season 3/ })).toBeVisible()
+    await page.screenshot({ path: 'test-results/jump-rail.png' })
+
+    await rail.getByRole('button', { name: /Season 3/ }).click()
+    const body = page.locator('.q-list-body')
+    await expect
+      .poll(async () => {
+        const group = (await page.locator('.q-group', { hasText: 'Season 3' }).boundingBox())!
+        const top = (await body.boundingBox())!
+        return Math.abs(group.y - top.y)
+      })
+      .toBeLessThan(3)
+
+    await rail.getByRole('button', { name: 'Collapse the jump rail' }).click()
+    await expect(rail).toHaveCount(0)
+    await page.reload()
+    await page.locator('.q-home-row', { hasText: title }).click()
+    await expect(page.locator('.q-rail-stub')).toBeVisible()
+    await expect(page.locator('.q-rail')).toHaveCount(0)
+  } finally {
+    await page.request.delete(`/api/lists/${id}`)
+  }
+})
