@@ -51,6 +51,32 @@ test('spins the dials, lands on a library list with its details, and This One op
   await expect(page.locator('.q-preview-title')).toContainText(entry.title)
 })
 
+test('Add list on the preview sends the request a search result sends: the entry’s canonical ref and its own category', async ({ page }) => {
+  await stubLibrary(page)
+  let sent: Record<string, unknown> | undefined
+  // Only the creation is stubbed (nothing is written); the server's own canonical path has its tests.
+  await page.route('**/api/lists/from-source', (route) => {
+    sent = route.request().postDataJSON() as Record<string, unknown>
+    return route.fulfill({ status: 201, json: { id: 'stub-list', title: 'stub', mediaType: 'book', status: null, stats: {} } })
+  })
+  await page.route('**/api/lists/stub-list', (route) => route.fulfill({ status: 404, json: { error: 'stub' } }))
+  await page.goto('/')
+  await page.getByRole('button', { name: 'Surprise Me' }).click()
+  await sheet(page).getByRole('button', { name: 'Books', exact: true }).click()
+  await sheet(page).getByRole('button', { name: 'Spin', exact: true }).click()
+  await expect(sheet(page).getByRole('button', { name: 'This One' })).toBeVisible({ timeout: 6000 })
+  await sheet(page).getByRole('button', { name: 'This One' }).click()
+  await expect(page.locator('.q-preview-title')).toContainText('The Lord of the Rings')
+
+  await page.getByRole('button', { name: 'Add list', exact: true }).click()
+
+  await expect.poll(() => sent).toEqual({
+    mediaType: 'book',
+    externalRef: 'canonical:lists/book/lotr.yaml',
+    title: 'The Lord of the Rings',
+  })
+})
+
 test('a shelf narrows the draw, and only that shelf ever lands', async ({ page }) => {
   await stubLibrary(page)
   await page.goto('/')
