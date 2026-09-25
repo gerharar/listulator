@@ -37,6 +37,8 @@ export interface ItemRowProps {
    * chip label on the list, so the column lines up.
    */
   platform?: { widthCh: number; onOpen: (item: ListItem, anchor: HTMLElement) => void }
+  /** What the tag column shows for the first tag, when the category names its values (`game` → Game). */
+  tagLabel?: string
 }
 
 /**
@@ -60,10 +62,11 @@ export function ItemRow({
   dragging = false,
   dropLine = null,
   platform,
+  tagLabel,
 }: ItemRowProps) {
   const text = copy.quantum.list.itemActions
   const done = item.consumedAt !== null
-  const kind = item.tags?.[0]
+  const kind = tagLabel ?? item.tags?.[0]
 
   /** A row button acts on its own: it must not also toggle the row it sits in. */
   const act =

@@ -248,8 +248,27 @@ export function createDefaultMediaTypes({
       defaultDurationMinutes: 120,
       adapter: franchises,
       sourceName: 'TMDB',
-      // Every tag is a medium (Film, Series, …); there is no fixed vocabulary to check against.
-      facets: [{ key: 'type', label: 'Medium' }],
+      // A Mega item's medium is one of the other categories, tagged with the key a list file
+      // uses (`tags: [game]`); the label is only for display.
+      facets: [
+        {
+          key: 'type',
+          label: 'Medium',
+          values: [
+            { tag: 'movie', label: 'Movie' },
+            { tag: 'tv', label: 'TV' },
+            { tag: 'animation', label: 'Animation' },
+            { tag: 'documentary', label: 'Documentary' },
+            { tag: 'wrestling', label: 'Wrestling' },
+            { tag: 'mma', label: 'MMA' },
+            { tag: 'game', label: 'Game' },
+            { tag: 'comic', label: 'Comic' },
+            { tag: 'book', label: 'Book' },
+            { tag: 'music', label: 'Music' },
+            { tag: 'youtube', label: 'YouTube' },
+          ],
+        },
+      ],
     },
   ]
 }

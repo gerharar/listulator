@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   UNTAGGED,
   deriveFacets,
+  displayTag,
   matchesFacets,
   type FacetConvention,
   type FacetSelection,
@@ -84,6 +85,33 @@ describe('deriveFacets', () => {
   })
 })
 
+describe('values with a display name apart from the tag', () => {
+  const medium: FacetConvention = [
+    {
+      key: 'type',
+      label: 'Medium',
+      values: [
+        { tag: 'movie', label: 'Movie' },
+        { tag: 'tv', label: 'TV' },
+        { tag: 'game', label: 'Game' },
+      ],
+    },
+  ]
+
+  it('matches the tag as written in the list file and shows the display name', () => {
+    expect(options(medium, [item('game'), item('MOVIE'), item('tv', 'movie')], 'type')).toEqual(['Movie', 'TV', 'Game'])
+  })
+
+  it('selects by the tag, whatever its spelling', () => {
+    expect(matchesFacets(item('Game'), medium, { type: new Set(['game']) })).toBe(true)
+    expect(matchesFacets(item('movie'), medium, { type: new Set(['game']) })).toBe(false)
+  })
+
+  it('ignores a tag that names none of the values', () => {
+    expect(options(medium, [item('game'), item('podcast')], 'type')).toEqual(['Game', 'Untagged'])
+  })
+})
+
 describe('matchesFacets', () => {
   const select = (facet: string, ...keys: string[]): FacetSelection => ({ [facet]: new Set(keys) })
 
@@ -120,5 +148,21 @@ describe('matchesFacets', () => {
     const selection: FacetSelection = { type: new Set(['album']), language: new Set(['english']) }
     expect(matchesFacets(item('Album', 'English'), both, selection)).toBe(true)
     expect(matchesFacets(item('Album', 'French'), both, selection)).toBe(false)
+  })
+})
+
+describe('displayTag (the tag column reads through the same map as the facet)', () => {
+  const medium: FacetConvention = [
+    { key: 'type', label: 'Medium', values: [{ tag: 'game', label: 'Game' }, 'EP'] },
+  ]
+
+  it('shows a value\u2019s display name whatever the tag\u2019s spelling', () => {
+    expect(displayTag('GAME', medium)).toBe('Game')
+    expect(displayTag('ep', medium)).toBe('EP')
+  })
+
+  it('leaves a tag no value names as it is written', () => {
+    expect(displayTag('podcast', medium)).toBe('podcast')
+    expect(displayTag('PS3', undefined)).toBe('PS3')
   })
 })

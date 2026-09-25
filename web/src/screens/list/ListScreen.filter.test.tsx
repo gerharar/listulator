@@ -35,6 +35,15 @@ const TYPES: MediaType[] = [
     previewable: true,
     facets: [{ key: 'platform', label: 'Platform' }],
   },
+  {
+    key: 'mega',
+    label: 'Mega',
+    sortOrder: 3,
+    defaultDurationMinutes: 120,
+    searchAvailable: true,
+    previewable: true,
+    facets: [{ key: 'type', label: 'Medium', values: [{ tag: 'game', label: 'Game' }, { tag: 'movie', label: 'Movie' }] }],
+  },
   { key: 'tv', label: 'TV Shows', sortOrder: 2, defaultDurationMinutes: 30, searchAvailable: true, previewable: true },
 ]
 
@@ -322,5 +331,28 @@ describe('platform chips (Games)', () => {
 
     expect(chip('ac1')).toBeNull()
     expect(row('ac1').querySelector('.q-tag')!.textContent).toBe('PS3')
+  })
+})
+
+describe('Mega mediums', () => {
+  it('shows the display name in the tag column and on the facet, filtering by the tag', async () => {
+    // A Mega list's groups arrive collapsed; these are looked at open.
+    store.set('list:L1:collapsed', JSON.stringify([]))
+    await open('mega', (detail) => {
+      detail.items.find((entry) => entry.id === 'ac1')!.tags = ['game']
+      detail.items.find((entry) => entry.id === 'ac2')!.tags = ['Movie']
+    })
+
+    expect(row('ac1').querySelector('.q-tag')!.textContent).toBe('Game')
+    expect(row('ac2').querySelector('.q-tag')!.textContent).toBe('Movie')
+    expect(Array.from(bar().querySelectorAll('.q-facet button')).map((button) => button.textContent)).toEqual([
+      'All',
+      'Game',
+      'Movie',
+      'Untagged',
+    ])
+
+    fireEvent.click(facet('Game'))
+    expect(rowIds()).toEqual(['gm', 'ac1'])
   })
 })

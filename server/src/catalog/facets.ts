@@ -10,16 +10,22 @@ import { PLATFORM_ORDER } from './platforms.js'
 
 export type FacetKey = 'type' | 'language' | 'platform'
 
+/** A tag as a list file writes it, and the name people see for it (`game` → Game). */
+export interface FacetValue {
+  tag: string
+  label: string
+}
+
 export interface FacetDef {
   key: FacetKey
   /** The mono kicker in the filter bar: Type, Medium, Language, Platform. */
   label: string
   /**
-   * The tags that mean this facet, in the order the buttons appear. Absent
-   * means every tag counts (a language, a platform, a Mega medium) and the
-   * buttons follow first appearance in the list.
+   * The tags that mean this facet, in the order the buttons appear; a plain
+   * string is its own label. Absent means every tag counts (a language, a
+   * platform) and the buttons follow first appearance in the list.
    */
-  values?: readonly string[]
+  values?: readonly (string | FacetValue)[]
   /** Tags that say "no value known" and count as untagged (an Unknown language). */
   noValue?: readonly string[]
 }
@@ -49,9 +55,13 @@ interface Taggable {
 
 const normal = (tag: string) => tag.trim().toLowerCase()
 
+const valueOf = (value: string | FacetValue): FacetValue =>
+  typeof value === 'string' ? { tag: value, label: value } : value
+
 /** The options an item holds for one facet: matching tags, or Untagged when none match. */
 function optionsOf(item: Taggable, def: FacetDef): FacetOption[] {
-  const known = def.values?.map(normal)
+  const values = def.values?.map(valueOf)
+  const known = values?.map((value) => normal(value.tag))
   const empty = def.noValue?.map(normal) ?? []
   const found: FacetOption[] = []
 
@@ -61,7 +71,7 @@ function optionsOf(item: Taggable, def: FacetDef): FacetOption[] {
     const index = known ? known.indexOf(key) : -1
     if (known && index < 0) continue
 
-    const label = known ? def.values![index]! : def.key === 'platform' ? raw.trim().toUpperCase() : raw.trim()
+    const label = values ? values[index]!.label : def.key === 'platform' ? raw.trim().toUpperCase() : raw.trim()
     found.push({ key, label })
   }
 
@@ -91,7 +101,7 @@ function deriveOne(items: readonly Taggable[], def: FacetDef): FacetGroup | null
 
   let ordered = tagged
   if (def.values) {
-    const known = def.values.map(normal)
+    const known = def.values.map((value) => normal(valueOf(value).tag))
     ordered = [...tagged].sort((a, b) => known.indexOf(a.key) - known.indexOf(b.key))
   } else if (def.key === 'platform') {
     ordered = [...tagged].sort((a, b) => platformRank(a.key) - platformRank(b.key))
@@ -123,4 +133,15 @@ export function matchesFacets(
     if (!chosen || chosen.size === 0) return true
     return optionsOf(item, def).some((option) => chosen.has(option.key))
   })
+}
+
+/** What the tag column shows for a tag: a facet value's display name, else the tag as written. */
+export function displayTag(tag: string, convention: FacetConvention | undefined): string {
+  const key = normal(tag)
+  for (const def of convention ?? []) {
+    const match = def.values?.map(valueOf).find((value) => normal(value.tag) === key)
+    if (match) return match.label
+  }
+
+  return tag
 }

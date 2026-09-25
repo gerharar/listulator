@@ -52,7 +52,26 @@ describe('GET /api/media-types', () => {
       { key: 'type', label: 'Type', values: ['Album', 'EP', 'Single', 'Live', 'Compilation'] },
     ])
     expect(byKey.get('animation')).toEqual([{ key: 'type', label: 'Type', values: ['Movie', 'TV'] }])
-    expect(byKey.get('mega')).toEqual([{ key: 'type', label: 'Medium' }])
+    // Mega's mediums are the other categories, by the key a list file writes; the label is for people.
+    expect(byKey.get('mega')).toEqual([
+      {
+        key: 'type',
+        label: 'Medium',
+        values: [
+          { tag: 'movie', label: 'Movie' },
+          { tag: 'tv', label: 'TV' },
+          { tag: 'animation', label: 'Animation' },
+          { tag: 'documentary', label: 'Documentary' },
+          { tag: 'wrestling', label: 'Wrestling' },
+          { tag: 'mma', label: 'MMA' },
+          { tag: 'game', label: 'Game' },
+          { tag: 'comic', label: 'Comic' },
+          { tag: 'book', label: 'Book' },
+          { tag: 'music', label: 'Music' },
+          { tag: 'youtube', label: 'YouTube' },
+        ],
+      },
+    ])
   })
 
   it('gives an entry without a convention no facets, whatever its key', async () => {
