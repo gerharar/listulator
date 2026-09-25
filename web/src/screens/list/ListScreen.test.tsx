@@ -6,6 +6,7 @@ import { LiveRegionProvider } from '../../components/quantum/LiveRegion/LiveRegi
 import { OverlayManagerProvider } from '../../components/quantum/overlay/OverlayManagerContext.js'
 import { ToastProvider } from '../../components/quantum/Toast/Toast.js'
 import { subscribeListsChanged } from '../../lib/listsChanged.js'
+import { createPendingUpdates, type PendingUpdates } from '../../lib/pendingUpdates.js'
 import { ListScreen } from './ListScreen.js'
 
 const store = new Map<string, string>()
@@ -53,7 +54,16 @@ vi.mock('../../lib/api.js', async () => {
   }
 })
 
-beforeEach(() => store.clear())
+let pending: PendingUpdates
+
+beforeEach(async () => {
+  store.clear()
+  pending = createPendingUpdates({
+    get: async (key) => store.get(key),
+    set: async (key, value) => void store.set(key, value),
+  })
+  await pending.load()
+})
 afterEach(() => {
   cleanup()
   vi.resetAllMocks()
@@ -115,12 +125,12 @@ function detail(overrides: Partial<MediaListDetail> = {}): MediaListDetail {
 const onLeave = vi.fn()
 const onClose = vi.fn()
 
-function renderScreen(listId: string, updateAvailable = false) {
+function renderScreen(listId: string) {
   return render(
     <LiveRegionProvider>
       <ToastProvider>
         <OverlayManagerProvider>
-          <ListScreen listId={listId} mediaTypes={TYPES} updateAvailable={updateAvailable} onLeave={onLeave} onClose={onClose} />
+          <ListScreen listId={listId} mediaTypes={TYPES} pendingUpdates={pending} onLeave={onLeave} onClose={onClose} />
         </OverlayManagerProvider>
       </ToastProvider>
     </LiveRegionProvider>,
@@ -134,9 +144,9 @@ async function pickFromMenu(name: string) {
   fireEvent.click(within(document.querySelector('.q-pop') as HTMLElement).getByRole('button', { name }))
 }
 
-async function open(list: MediaListDetail, updateAvailable = false) {
+async function open(list: MediaListDetail) {
   vi.mocked(api.list).mockResolvedValue(list)
-  renderScreen(list.id, updateAvailable)
+  renderScreen(list.id)
   await screen.findByRole('heading', { name: /^Loki/ }).catch(() => undefined)
   await act(async () => {})
 }
@@ -606,13 +616,6 @@ describe('ListScreen updates (task 10.25)', () => {
       items: [item({ id: 'a', title: 'Alpha' }), item({ id: 'b', title: 'Beta' })],
       ...extra,
     })
-  const result = (titles: string[], extra: object = {}) => ({
-    newItems: titles.map((title) => ({ title, externalRef: `ref:${title}` })),
-    upstreamCount: 10,
-    existingCount: 8,
-    dismissedCount: 0,
-    ...extra,
-  })
 
   describe('the NEW marks and Mark all seen', () => {
     const withNew = () =>
@@ -668,135 +671,200 @@ describe('ListScreen updates (task 10.25)', () => {
     })
   })
 
-  describe('Check for updates', () => {
+  describe('Check for updates and the found band', () => {
+    const findings = (n: number, extra: object = {}) => ({
+      newItems: Array.from({ length: n }, (_, i) => ({ title: `Fresh ${i}`, externalRef: `ref:${i}` })),
+      upstreamCount: 10,
+      existingCount: 8,
+      dismissedCount: 0,
+      ...extra,
+    })
+    const foundBand = () =>
+      (Array.from(document.querySelectorAll('.q-banner')) as HTMLElement[]).find((b) => /found/.test(b.textContent ?? ''))
+    const checkButton = () => screen.getByRole('button', { name: 'Check for updates' }) as HTMLButtonElement
+
     it('is offered only on a list that has a source to check', async () => {
       await open(detail({ externalRef: null, items: [item()] }))
 
       expect(screen.queryByRole('button', { name: 'Check for updates' })).toBeNull()
     })
 
-    it('checks only when pressed, then names what the source gained', async () => {
-      vi.mocked(api.checkForUpdates).mockResolvedValue(result(['Delta', 'Echo']))
-      await open(sourced())
-      expect(api.checkForUpdates).not.toHaveBeenCalled()
-
-      fireEvent.click(screen.getByRole('button', { name: 'Check for updates' }))
-
-      expect(await screen.findByText(/Delta · Echo/)).toBeTruthy()
-      expect(api.checkForUpdates).toHaveBeenCalledWith('L1', false)
-      expect(api.importItems).not.toHaveBeenCalled()
-    })
-
-    it('says it is checking while it waits', async () => {
-      let finish!: (value: ReturnType<typeof result>) => void
-      vi.mocked(api.checkForUpdates).mockReturnValue(new Promise((resolve) => (finish = resolve)))
-      await open(sourced())
-
-      fireEvent.click(screen.getByRole('button', { name: 'Check for updates' }))
-
-      const busy = screen.getByRole('button', { name: /Check for updates/ }) as HTMLButtonElement
-      await waitFor(() => expect(busy.disabled).toBe(true))
-      expect(busy.querySelector('.q-spin')).not.toBeNull()
-      await act(async () => finish(result([])))
-      await waitFor(() => expect(busy.disabled).toBe(false))
-      expect(busy.querySelector('.q-spin')).toBeNull()
-    })
-
-    it('adds what was found as arrivals, then shows them as NEW', async () => {
-      vi.mocked(api.checkForUpdates).mockResolvedValue(result(['Delta', 'Echo']))
-      vi.mocked(api.importItems).mockResolvedValue([])
-      await open(sourced())
-      fireEvent.click(screen.getByRole('button', { name: 'Check for updates' }))
-      await screen.findByText(/Delta · Echo/)
-      vi.mocked(api.list).mockResolvedValue(
-        sourced({
-          items: [
-            item({ id: 'a', title: 'Alpha' }),
-            item({ id: 'd', title: 'Delta', isNew: true }),
-            item({ id: 'e', title: 'Echo', isNew: true }),
-          ],
-        }),
-      )
-
-      fireEvent.click(screen.getByRole('button', { name: 'Add 2 to this list' }))
-
-      await waitFor(() => expect(screen.getAllByText('NEW')).toHaveLength(2))
-      expect(api.importItems).toHaveBeenCalledWith(
-        'L1',
-        [
-          { title: 'Delta', externalRef: 'ref:Delta' },
-          { title: 'Echo', externalRef: 'ref:Echo' },
-        ],
-        'import',
-        true,
-      )
-      expect(screen.queryByText(/Delta · Echo/)).toBeNull()
-      await waitFor(() => expect(document.querySelector('.q-live')!.textContent).toBe('Added 2 items'))
-      expect(screen.getByText(/2 new items were added/)).toBeTruthy()
-    })
-
-    it('runs the check again, including deleted entries, when the box is ticked', async () => {
-      vi.mocked(api.checkForUpdates).mockResolvedValue(result([], { dismissedCount: 2 }))
-      await open(sourced())
-      fireEvent.click(screen.getByRole('button', { name: 'Check for updates' }))
-      await screen.findByText(/Up to date/)
-
-      fireEvent.click(screen.getByRole('checkbox', { name: 'Re-add deleted entries' }))
-
-      await waitFor(() => expect(api.checkForUpdates).toHaveBeenLastCalledWith('L1', true))
-    })
-
-    it('answers "No new items upstream." with a toast, not a card, when there is nothing at all to say', async () => {
-      vi.mocked(api.checkForUpdates).mockResolvedValue(result([]))
-      await open(sourced())
-
-      fireEvent.click(screen.getByRole('button', { name: 'Check for updates' }))
-
-      await waitFor(() => expect(document.querySelector('.q-toast')?.textContent).toMatch(/No new items upstream\./))
-      expect(document.querySelector('.q-pop')).toBeNull()
-    })
-
     it('is an icon button: the refresh glyph, named for what it does', async () => {
       await open(sourced())
 
-      const button = screen.getByRole('button', { name: 'Check for updates' })
-      expect(button.querySelector('svg')).not.toBeNull()
-      expect(button.textContent).toBe('')
-      expect(button.querySelector('.q-update-dot')).toBeNull()
+      expect(checkButton().querySelector('svg')).not.toBeNull()
+      expect(checkButton().textContent).toBe('')
     })
 
-    it('shows an error, not a card, when the check fails', async () => {
+    it('shows no band, and checks nothing, until asked', async () => {
+      await open(sourced())
+
+      expect(foundBand()).toBeUndefined()
+      expect(api.checkForUpdates).not.toHaveBeenCalled()
+    })
+
+    it('shows what an earlier check found, with the choice to apply or dismiss it', async () => {
+      await pending.set('L1', 3)
+      await open(sourced())
+
+      expect(foundBand()!.textContent).toMatch(/3 new items found\./)
+      expect(within(foundBand()!).getByRole('button', { name: 'Update List' })).toBeTruthy()
+      expect(within(foundBand()!).getByRole('button', { name: 'Dismiss' })).toBeTruthy()
+    })
+
+    it('says "1 new item found" for one', async () => {
+      await pending.set('L1', 1)
+      await open(sourced())
+
+      expect(foundBand()!.textContent).toMatch(/1 new item found\./)
+    })
+
+    it('shows a band for a finding that arrives while it is open', async () => {
+      await open(sourced())
+
+      await act(async () => pending.set('L1', 2))
+
+      expect(foundBand()!.textContent).toMatch(/2 new items found\./)
+    })
+
+    it('the check icon finds, records, and shows the band; it adds nothing', async () => {
+      vi.mocked(api.checkForUpdates).mockResolvedValue(findings(2))
+      await open(sourced())
+
+      fireEvent.click(checkButton())
+
+      await waitFor(() => expect(foundBand()).toBeDefined())
+      expect(foundBand()!.textContent).toMatch(/2 new items found\./)
+      expect(api.checkForUpdates).toHaveBeenCalledWith('L1', false)
+      expect(api.importItems).not.toHaveBeenCalled()
+      expect(pending.get()['L1']?.count).toBe(2)
+    })
+
+    it('spins, and locks itself, while it looks', async () => {
+      let finish!: (value: ReturnType<typeof findings>) => void
+      vi.mocked(api.checkForUpdates).mockReturnValue(new Promise((resolve) => (finish = resolve)))
+      await open(sourced())
+
+      fireEvent.click(checkButton())
+
+      await waitFor(() => expect(checkButton().disabled).toBe(true))
+      expect(checkButton().querySelector('.q-spin')).not.toBeNull()
+      await act(async () => finish(findings(0)))
+      await waitFor(() => expect(checkButton().disabled).toBe(false))
+      expect(checkButton().querySelector('.q-spin')).toBeNull()
+    })
+
+    it('answers "No new items upstream." with a toast when there is nothing, and clears an old band', async () => {
+      await pending.set('L1', 2)
+      vi.mocked(api.checkForUpdates).mockResolvedValue(findings(0))
+      await open(sourced())
+
+      fireEvent.click(checkButton())
+
+      await waitFor(() => expect(document.querySelector('.q-toast')?.textContent).toMatch(/No new items upstream\./))
+      expect(foundBand()).toBeUndefined()
+    })
+
+    it('shows an error, and no band, when the check fails', async () => {
       vi.mocked(api.checkForUpdates).mockRejectedValue(new Error('Source is down'))
       await open(sourced())
 
-      fireEvent.click(screen.getByRole('button', { name: 'Check for updates' }))
+      fireEvent.click(checkButton())
 
       expect(await screen.findByText('Source is down')).toBeTruthy()
-      expect(screen.queryByText(/Up to date/)).toBeNull()
+      expect(foundBand()).toBeUndefined()
     })
 
-    it('keeps the card and says so when adding fails', async () => {
-      vi.mocked(api.checkForUpdates).mockResolvedValue(result(['Delta']))
-      vi.mocked(api.importItems).mockRejectedValue(new Error('nope'))
-      await open(sourced())
-      fireEvent.click(screen.getByRole('button', { name: 'Check for updates' }))
-      await screen.findByText(/Delta/)
+    describe('Update List', () => {
+      it('adds what is new as arrivals, then shows them as NEW under the usual band', async () => {
+        await pending.set('L1', 2)
+        const fresh = findings(2)
+        vi.mocked(api.checkForUpdates).mockResolvedValue(fresh)
+        vi.mocked(api.importItems).mockResolvedValue([])
+        await open(sourced())
+        vi.mocked(api.list).mockResolvedValue(
+          sourced({
+            items: [
+              item({ id: 'a', title: 'Alpha' }),
+              item({ id: 'd', title: 'Fresh 0', isNew: true }),
+              item({ id: 'e', title: 'Fresh 1', isNew: true }),
+            ],
+          }),
+        )
 
-      fireEvent.click(screen.getByRole('button', { name: 'Add 1 to this list' }))
+        fireEvent.click(within(foundBand()!).getByRole('button', { name: 'Update List' }))
 
-      expect(await screen.findByText('Could not add them')).toBeTruthy()
-      expect(screen.getByRole('button', { name: 'Add 1 to this list' })).toBeTruthy()
+        await waitFor(() => expect(screen.getAllByText('NEW')).toHaveLength(2))
+        expect(api.importItems).toHaveBeenCalledWith('L1', fresh.newItems, 'import', true)
+        expect(foundBand()).toBeUndefined()
+        expect(screen.getByText(/2 new items were added/)).toBeTruthy()
+        expect(pending.get()).toEqual({})
+        expect(document.querySelector('.q-toast')!.textContent).toMatch(/Added 2 new items/)
+      })
+
+      it('adds nothing, and says so, when the source has nothing new any more', async () => {
+        await pending.set('L1', 2)
+        vi.mocked(api.checkForUpdates).mockResolvedValue(findings(0))
+        await open(sourced())
+
+        fireEvent.click(within(foundBand()!).getByRole('button', { name: 'Update List' }))
+
+        await waitFor(() => expect(foundBand()).toBeUndefined())
+        expect(api.importItems).not.toHaveBeenCalled()
+        expect(document.querySelector('.q-toast')!.textContent).toMatch(/No new items upstream\./)
+      })
+
+      it('keeps the band, and says why, when it fails', async () => {
+        await pending.set('L1', 2)
+        vi.mocked(api.checkForUpdates).mockResolvedValue(findings(2))
+        vi.mocked(api.importItems).mockRejectedValue(new Error('nope'))
+        await open(sourced())
+
+        fireEvent.click(within(foundBand()!).getByRole('button', { name: 'Update List' }))
+
+        expect(await screen.findByText('Could not add them')).toBeTruthy()
+        expect(foundBand()).toBeDefined()
+      })
+
+      it('cannot be pressed twice while it works', async () => {
+        await pending.set('L1', 2)
+        let release!: () => void
+        vi.mocked(api.checkForUpdates).mockReturnValue(new Promise((resolve) => (release = () => resolve(findings(0)))))
+        await open(sourced())
+
+        fireEvent.click(within(foundBand()!).getByRole('button', { name: 'Update List' }))
+
+        await waitFor(() =>
+          expect((within(foundBand()!).getByRole('button', { name: 'Update List' }) as HTMLButtonElement).disabled).toBe(true),
+        )
+        await act(async () => release())
+      })
     })
-  })
 
-  describe('arriving from the Home banner', () => {
-    it('marks the check button as having news, without checking by itself', async () => {
-      await open(sourced(), true)
+    describe('Dismiss', () => {
+      it('hides the band and forgets the finding, without asking the source anything', async () => {
+        await pending.set('L1', 2)
+        await open(sourced())
 
-      const button = screen.getByRole('button', { name: /Check for updates/ })
-      expect(button.querySelector('.q-update-dot')).not.toBeNull()
-      expect(button.getAttribute('aria-label')).toMatch(/available/i)
-      expect(api.checkForUpdates).not.toHaveBeenCalled()
+        fireEvent.click(within(foundBand()!).getByRole('button', { name: 'Dismiss' }))
+
+        await waitFor(() => expect(foundBand()).toBeUndefined())
+        expect(pending.get()).toEqual({})
+        expect(api.checkForUpdates).not.toHaveBeenCalled()
+        expect(api.importItems).not.toHaveBeenCalled()
+      })
+
+      it('comes back the next time the check finds it', async () => {
+        await pending.set('L1', 2)
+        vi.mocked(api.checkForUpdates).mockResolvedValue(findings(2))
+        await open(sourced())
+        fireEvent.click(within(foundBand()!).getByRole('button', { name: 'Dismiss' }))
+        await waitFor(() => expect(foundBand()).toBeUndefined())
+
+        fireEvent.click(checkButton())
+
+        await waitFor(() => expect(foundBand()).toBeDefined())
+      })
     })
   })
 })
@@ -1235,7 +1303,7 @@ describe('ListScreen order menu (task 10.22)', () => {
       await waitFor(() => expect(rowTitles()).toEqual(['Alpha', 'Beta']))
     })
 
-    it('an API list then opens the update check by itself', async () => {
+    it('an API list then checks for updates by itself, and shows what it found as a band', async () => {
       vi.mocked(api.resetPreview).mockResolvedValue(preview)
       vi.mocked(api.resetList).mockResolvedValue(result(true))
       vi.mocked(api.checkForUpdates).mockResolvedValue({
@@ -1249,8 +1317,9 @@ describe('ListScreen order menu (task 10.22)', () => {
 
       fireEvent.click(pop().getByRole('button', { name: 'Reset everything' }))
 
-      expect(await screen.findByText(/Fresh/)).toBeTruthy()
+      await waitFor(() => expect(document.body.textContent).toMatch(/1 new item found\./))
       expect(api.checkForUpdates).toHaveBeenCalledWith('L1', false)
+      expect(api.importItems).not.toHaveBeenCalled()
     })
 
     it('runs no update check when the source was just read live', async () => {

@@ -4,6 +4,8 @@ import { EllipsisVertical, RefreshCw, X } from 'lucide-react'
 import { formatDuration } from '../../formatDuration.js'
 import { api, type ListGroup, type ListItem, type MediaListDetail, type MediaType } from '../../lib/api.js'
 import { downloadText } from '../../lib/downloadText.js'
+import { getPendingUpdates, usePendingMap, type PendingUpdates } from '../../lib/pendingUpdates.js'
+import { applyUpdate, checkList } from '../../lib/updateCheck.js'
 import { exportFileName, exportList } from '../../lib/exportList.js'
 import { notifyListsChanged } from '../../lib/listsChanged.js'
 import { getPreferencesStore } from '../../lib/preferences/store.js'
@@ -36,14 +38,13 @@ import { ItemInfoCard } from './ItemInfoCard.js'
 import { ItemRow } from './ItemRow.js'
 import { ListMorePopover, type MoreMode, type PreviewState } from './ListMorePopover.js'
 import { buildSpine, listTotals } from './spine.js'
-import { UpdatesCard } from './UpdatesCard.js'
 
 export interface ListScreenProps {
   listId: string
   /** The live registry, for the category's label. */
   mediaTypes: readonly MediaType[]
-  /** The Home banner sent us here because the source has news: the button says "Update list" (a cue only — nothing is checked until it is pressed). */
-  updateAvailable?: boolean
+  /** For a test; the app's own store otherwise. */
+  pendingUpdates?: PendingUpdates
   /** Called after the list is deleted: the screen has nothing left to show, so the shell takes us Home. */
   onLeave?: () => void
   /** The ✕: closes this layer, back to what is under it. */
@@ -67,7 +68,7 @@ type Load =
  * last focused are remembered per list (D5); a Mega list's groups arrive
  * collapsed (C3).
  */
-export function ListScreen({ listId, mediaTypes, updateAvailable = false, onLeave, onClose }: ListScreenProps) {
+export function ListScreen({ listId, mediaTypes, pendingUpdates, onLeave, onClose }: ListScreenProps) {
   const text = copy.quantum.list
   const [load, setLoad] = useState<Load>({ state: 'loading' })
   const [error, setError] = useState<string | null>(null)
@@ -135,7 +136,7 @@ export function ListScreen({ listId, mediaTypes, updateAvailable = false, onLeav
       initialCollapsed={load.collapsed}
       initialFocusId={load.focusId}
       mediaTypes={mediaTypes}
-      updateAvailable={updateAvailable}
+      pending={pendingUpdates ?? getPendingUpdates()}
       onLeave={onLeave}
       onClose={onClose}
       error={error}
@@ -151,7 +152,7 @@ interface ListViewProps {
   initialCollapsed: ReadonlySet<string>
   initialFocusId: string | undefined
   mediaTypes: readonly MediaType[]
-  updateAvailable: boolean
+  pending: PendingUpdates
   onLeave: (() => void) | undefined
   onClose: (() => void) | undefined
   error: string | null
@@ -164,9 +165,6 @@ const PULSE_MS = 1900
 
 type OpenPopover = { kind: 'info' | 'edit'; itemId: string; anchor: HTMLElement }
 
-type CheckResult = Awaited<ReturnType<typeof api.checkForUpdates>>
-/** The Check for updates popover: open once a check has an answer. */
-type UpdatesPopover = { anchor: HTMLElement; result: CheckResult; includeDismissed: boolean }
 
 function ListView({
   listId,
@@ -174,7 +172,7 @@ function ListView({
   initialCollapsed,
   initialFocusId,
   mediaTypes,
-  updateAvailable,
+  pending,
   onLeave,
   onClose,
   error,
@@ -195,9 +193,10 @@ function ListView({
   const [focusId, setFocusId] = useState<string | undefined>(initialFocusId)
   const [popover, setPopover] = useState<OpenPopover | null>(null)
   const [pulseId, setPulseId] = useState<string | null>(null)
+  // What an explicit check found for this list and nobody has applied or dismissed (persisted).
+  const pendingCount = usePendingMap(pending)[listId]?.count ?? 0
   const [checking, setChecking] = useState(false)
-  const [adding, setAdding] = useState(false)
-  const [updates, setUpdates] = useState<UpdatesPopover | null>(null)
+  const [applying, setApplying] = useState(false)
   // The list's own name, description and status: edited here, so held here.
   const [meta, setMeta] = useState<ListFields>({
     title: loaded.title,
@@ -428,7 +427,6 @@ function ListView({
 
   async function resetEverything() {
     if (!more) return
-    const anchor = more.anchor
     setMore(null)
     setError(null)
 
@@ -442,7 +440,7 @@ function ListView({
       })
       // An API list is checked against its source straight away; the community
       // library's and a file's were just read live.
-      if (result.followUpCheck) void checkForUpdates(anchor, false)
+      if (result.followUpCheck) void checkForUpdates()
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : orderText.resetFailed)
     }
@@ -561,44 +559,38 @@ function ListView({
     }
   }
 
-  /** Asks the source what it has that the list does not; writes nothing. */
-  async function checkForUpdates(anchor: HTMLElement, includeDismissed: boolean) {
+  /**
+   * Asks the source what it has that the list does not and records it; writes
+   * nothing to the list. What it finds appears as a band with Update List and
+   * Dismiss, so nothing is added until the reader says so.
+   */
+  async function checkForUpdates() {
     setChecking(true)
     setError(null)
 
     try {
-      const result = await api.checkForUpdates(listId, includeDismissed)
-      // Nothing at all to say is a toast (prototype: "No new items upstream."); anything else needs the card.
-      if (result.newItems.length === 0 && result.dismissedCount === 0 && !includeDismissed) {
-        setUpdates(null)
-        showToast({ text: updatesText.nothingNew })
-      } else {
-        setUpdates({ anchor, result, includeDismissed })
-      }
+      const count = await checkList(listId, { api, pending })
+      if (count === 0) showToast({ text: updatesText.nothingNew })
     } catch (cause) {
-      setUpdates(null)
       setError(cause instanceof Error ? cause.message : updatesText.checkFailed)
     } finally {
       setChecking(false)
     }
   }
 
-  /** The add half of the two steps: what arrives is flagged NEW until Mark all seen. */
-  async function addUpdates() {
-    if (!updates?.result.newItems.length) return
-    const count = updates.result.newItems.length
-    setAdding(true)
+  /** Update List: what is new arrives flagged NEW, under the usual Mark all seen band. */
+  async function applyFound() {
+    setApplying(true)
     setError(null)
 
     try {
-      await api.importItems(listId, updates.result.newItems, 'import', true)
+      const added = await applyUpdate(listId, { api, pending })
       await refresh()
-      setUpdates(null)
-      announce(updatesText.added(count))
+      showToast({ text: added === 0 ? updatesText.nothingNew : updatesText.appliedToast(added) })
     } catch {
       setError(updatesText.addFailed)
     } finally {
-      setAdding(false)
+      setApplying(false)
     }
   }
 
@@ -671,14 +663,13 @@ function ListView({
               <IconButton
                 size="list"
                 className="q-check-btn"
-                label={updateAvailable ? updatesText.checkLabelWithNews : text.checkForUpdates}
+                label={text.checkForUpdates}
                 disabled={checking}
-                onClick={(event) => void checkForUpdates(event.currentTarget, updates?.includeDismissed ?? false)}
+                onClick={() => void checkForUpdates()}
               >
                 <span className={checking ? 'q-spin' : undefined} style={{ display: 'flex' }}>
                   <RefreshCw width={16} height={16} strokeWidth={1.9} aria-hidden="true" />
                 </span>
-                {updateAvailable && <span className="q-update-dot" aria-hidden="true" />}
               </IconButton>
             )}
             <IconButton size="list" label={text.more} onClick={(event) => setMore({ anchor: event.currentTarget, mode: 'menu' })}>
@@ -690,6 +681,16 @@ function ListView({
           </div>
         </div>
       </div>
+
+      {pendingCount > 0 && (
+        <Banner
+          onDismiss={() => void pending.remove(listId)}
+          dismissLabel={updatesText.dismissFound}
+          action={{ label: updatesText.updateList, onClick: () => void applyFound(), busy: applying }}
+        >
+          {updatesText.foundBand(pendingCount)}
+        </Banner>
+      )}
 
       {newCount > 0 && (
         // The banner's one action is Mark all seen, a secondary button (design-system/components/Banner).
@@ -762,17 +763,6 @@ function ListView({
           onCommit={(patch, via) => void saveListEdit(patch, via)}
           onDiscard={() => setEditingList(null)}
         />
-      )}
-      {updates && (
-        <Popover open anchorEl={updates.anchor} onDismiss={() => setUpdates(null)} width={340}>
-          <UpdatesCard
-            result={updates.result}
-            includeDismissed={updates.includeDismissed}
-            adding={adding}
-            onIncludeDismissedChange={(include) => void checkForUpdates(updates.anchor, include)}
-            onAdd={() => void addUpdates()}
-          />
-        </Popover>
       )}
       {popover?.kind === 'info' && popoverItem && (
         <Popover open anchorEl={popover.anchor} onDismiss={() => setPopover(null)} width={320}>

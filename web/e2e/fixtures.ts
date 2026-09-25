@@ -45,11 +45,4 @@ export async function useHomeFixture(page: Page): Promise<void> {
       ],
     })
   })
-
-  // So the star, the status mark, and a real banner name all render in an
-  // actual browser at least once — none of them ever have otherwise, since
-  // the dev database's own row is a plain manual list with no status.
-  await page.route('**/api/lists/updates', (route) =>
-    route.fulfill({ json: { updates: [{ listId: FIXTURE_LIST_ID, title: FIXTURE_LIST_TITLE }] } }),
-  )
 }

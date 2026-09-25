@@ -1,15 +1,16 @@
 import { expect, test } from '@playwright/test'
 
 /**
- * The update flow end to end (task 10.25): Home banner → the list layer (the
- * cue rides on the layer's own path) → Update list → Add → NEW marks and the
- * banner → Mark all seen. The two upstream questions are answered in the
- * browser (no network to GitHub); the import and Mark all seen are real writes
- * against the dev server, removed in a `finally`.
+ * The update flow end to end (tasks 10.25, 10.22c): nothing checks by itself;
+ * Home's ⟳ looks at every list with a source and raises a band per finding;
+ * the finding survives a reload; Update List applies it from Home; the list
+ * shows NEW rows and Mark all seen; and the list's own check icon raises the
+ * found band, which Dismiss puts away. The source's answers are stubbed in the
+ * browser (no network to a real source); the import and Mark all seen are real
+ * writes against the dev server, removed in a `finally`.
  */
-test('the Home banner opens the list, Add brings NEW items, Mark all seen clears them', async ({ page }) => {
+test('check from Home, apply from Home, review in the list', async ({ page }) => {
   const title = `e2e list-updates ${Date.now()}`
-  // Any list with a source ref will do: the upstream answers are stubbed below.
   const created = await page.request.post('/api/lists', {
     data: { title, mediaType: 'tv', source: 'api', externalRef: 'e2e:fake' },
   })
@@ -20,45 +21,63 @@ test('the Home banner opens the list, Add brings NEW items, Mark all seen clears
   })
 
   try {
-    await page.route('**/api/lists/updates', (route) =>
-      route.fulfill({ json: { updates: [{ listId: list.id, title }] } }),
-    )
+    let answer = [
+      { title: 'Beta', timeToConsumeMinutes: 30 },
+      { title: 'Gamma', timeToConsumeMinutes: 30 },
+    ]
     await page.route(`**/api/lists/${list.id}/refresh`, (route) =>
       route.fulfill({
-        json: {
-          newItems: [
-            { title: 'Beta', timeToConsumeMinutes: 30 },
-            { title: 'Gamma', timeToConsumeMinutes: 30 },
-          ],
-          upstreamCount: 3,
-          existingCount: 1,
-          dismissedCount: 0,
-        },
+        json: { newItems: answer, upstreamCount: 3, existingCount: 1, dismissedCount: 0 },
       }),
+    )
+    // Other lists in the dev database with a source are not this test's business.
+    await page.route(/\/api\/lists\/(?!.*e2e)[^/]+\/refresh$/, (route, request) =>
+      request.url().includes(list.id)
+        ? route.fallback()
+        : route.fulfill({ json: { newItems: [], upstreamCount: 0, existingCount: 0, dismissedCount: 0 } }),
     )
 
     await page.goto('/')
-    await page.locator('.q-banner').getByRole('button', { name: title }).click()
+    const row = page.locator('.q-home-row', { hasText: title })
+    await expect(row).toBeVisible()
+    // Nothing checks on open.
+    await expect(page.locator('.q-banner', { hasText: title })).toBeHidden()
 
-    // Nothing was checked on arrival; the button only says an update is known.
-    await expect(page.getByText('Alpha', { exact: true })).toBeVisible()
-    await page.locator('.q-list-actions').getByRole('button', { name: /Check for updates/ }).click()
-    await page.getByRole('button', { name: 'Add 2 to this list' }).click()
+    await page.locator('.q-home-actions').getByRole('button', { name: 'Check for updates' }).click()
+    const band = page.locator('.q-banner', { hasText: title })
+    await expect(band).toContainText('has 2 new items.')
 
-    await expect(page.getByText('Beta', { exact: true })).toBeVisible()
+    // What it found is still there after a reload.
+    await page.reload()
+    await expect(band).toContainText('has 2 new items.')
+
+    // Apply from Home, without opening the list.
+    await band.getByRole('button', { name: 'Update List' }).click()
+    await expect(band).toBeHidden()
+    await expect(row).toContainText('2 NEW')
+    const saved = await (await page.request.get(`/api/lists/${list.id}`)).json()
+    expect(saved.stats.newItems).toBe(2)
+
+    // In the list: NEW rows and the usual band with Mark all seen.
+    await row.click()
+    const actions = page.locator('.q-list-actions')
     await expect(page.locator('.q-item').filter({ hasText: 'Beta' }).getByText('NEW')).toBeVisible()
     await expect(page.locator('.q-item').filter({ hasText: 'Alpha' }).getByText('NEW')).toBeHidden()
     await expect(page.getByText('2 new items were added')).toBeVisible()
-
-    let saved = await (await page.request.get(`/api/lists/${list.id}`)).json()
-    expect(saved.stats.newItems).toBe(2)
-
     await page.getByRole('button', { name: 'Mark all seen' }).click()
     await expect(page.getByText('NEW', { exact: true })).toHaveCount(0)
-    await expect(page.getByText('2 new items were added')).toBeHidden()
 
-    saved = await (await page.request.get(`/api/lists/${list.id}`)).json()
-    expect(saved.stats.newItems).toBe(0)
+    // The list's own check raises the found band; nothing is added; Dismiss puts it away.
+    answer = [{ title: 'Delta', timeToConsumeMinutes: 30 }]
+    await actions.getByRole('button', { name: 'Check for updates' }).click()
+    await expect(page.getByText('1 new item found.')).toBeVisible()
+    expect((await (await page.request.get(`/api/lists/${list.id}`)).json()).items).toHaveLength(3)
+    await page.locator('.q-list .q-banner', { hasText: '1 new item found.' }).getByRole('button', { name: 'Dismiss' }).click()
+    await expect(page.getByText('1 new item found.')).toBeHidden()
+
+    // ✕ closes the layer.
+    await actions.getByRole('button', { name: 'Close' }).click()
+    await expect(page.getByRole('heading', { name: 'My Lists' })).toBeVisible()
   } finally {
     await page.request.delete(`/api/lists/${list.id}`)
   }

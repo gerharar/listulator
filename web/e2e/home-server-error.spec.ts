@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test'
-import { FIXTURE_LIST_TITLE, useHomeFixture } from './fixtures.js'
+import { FIXTURE_LIST_ID, FIXTURE_LIST_TITLE, useHomeFixture } from './fixtures.js'
 
 /**
  * Q13 (tasks/plan.md): a server that's unreachable or erroring renders
@@ -33,24 +33,31 @@ test('a fully unreachable server shows Home’s ErrorBlock, not the create flow 
   await expect(page.getByText(FIXTURE_LIST_TITLE)).toBeVisible()
 })
 
-test('the fixture list renders its curated star and status mark in a real browser', async ({
+test('the fixture list renders its curated star and status mark, and a remembered update band, in a real browser', async ({
   page,
 }) => {
   // The dev database's own row is a plain manual list with no status — a
   // canonical, complete-status list (this fixture) had never rendered its
-  // star, status mark, or a real update-banner name in an actual browser
-  // before this spec started using it. A plain, uninterrupted load (not
-  // the abort-then-Retry test above) so the automatic once-per-session
-  // update check — silent on failure by design — actually gets to run
-  // and populate the banner.
+  // star or status mark in an actual browser before this spec started using
+  // it. The update band comes from what an earlier explicit check left in the
+  // preferences store (10.22c): nothing here checks by itself, and what was
+  // found must still be there after a fresh load.
+  await page.addInitScript(
+    ([id]) => {
+      localStorage.setItem(
+        'updates:pending',
+        JSON.stringify({ [id!]: { count: 2, checkedAt: '2026-01-01T00:00:00.000Z' } }),
+      )
+    },
+    [FIXTURE_LIST_ID],
+  )
   await useHomeFixture(page)
   await page.goto('/')
 
-  // The banner now names the list as a button too (10.25), so the row is looked up by its own class.
   await expect(page.locator('.q-home-row', { hasText: FIXTURE_LIST_TITLE })).toBeVisible({
     timeout: 15_000,
   })
   await expect(page.locator('.q-star')).toBeVisible()
   await expect(page.locator('.q-status-mark')).toBeVisible()
-  await expect(page.getByText(/1 list has an update available/)).toBeVisible()
+  await expect(page.locator('.q-banner', { hasText: FIXTURE_LIST_TITLE })).toContainText('has 2 new items.')
 })
