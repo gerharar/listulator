@@ -197,7 +197,7 @@ describe('filtering', () => {
     expect(rowIds()).toEqual([])
   })
 
-  it('says so without quoting when only a facet is on', async () => {
+  it('quotes what was typed even while a facet is on', async () => {
     await open()
 
     fireEvent.click(facet('NDS'))
