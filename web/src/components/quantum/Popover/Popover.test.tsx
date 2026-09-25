@@ -4,7 +4,6 @@ import { cleanup, render, screen } from '@testing-library/react'
 import { useLayoutEffect, useReducer, useRef, type RefObject } from 'react'
 import { Popover } from './Popover.js'
 import { OverlayManagerProvider } from '../overlay/OverlayManagerContext.js'
-import { QRoot } from '../QRootContext.js'
 
 /**
  * The real flip/shift decision needs actual browser layout —
@@ -100,7 +99,7 @@ describe('Popover rendering', () => {
 })
 
 describe('Popover portal target', () => {
-  it('portals inside .q-root when one exists — outside it, var(--card) etc. would not resolve and the card would render unstyled', () => {
+  it('portals to document.body — the tokens live on <html> now, so var(--card) resolves there', () => {
     function Harness() {
       const [anchorEl, anchorRef] = useAnchor()
       return (
@@ -113,42 +112,15 @@ describe('Popover portal target', () => {
       )
     }
 
-    render(
-      <QRoot skin="dark-orange">
-        <OverlayManagerProvider>
-          <Harness />
-        </OverlayManagerProvider>
-      </QRoot>,
-    )
-
-    const dialog = screen.getByRole('dialog')
-    const qRoot = document.querySelector('.q-root')
-    expect(qRoot).not.toBeNull()
-    expect(qRoot?.contains(dialog)).toBe(true)
-  })
-
-  it('falls back to document.body when rendered with no QRoot at all (e.g. a standalone test)', () => {
-    function Harness() {
-      const [anchorEl, anchorRef] = useAnchor()
-      return (
-        <>
-          <button ref={anchorRef}>Open</button>
-          <Popover open anchorEl={anchorEl} onDismiss={vi.fn()} width={320}>
-            <span>Body</span>
-          </Popover>
-        </>
-      )
-    }
-
-    render(
+    const { container } = render(
       <OverlayManagerProvider>
         <Harness />
       </OverlayManagerProvider>,
     )
 
-    // No .q-root anywhere, yet the popover still rendered (didn't wait forever for a root that will never come).
-    expect(document.querySelector('.q-root')).toBeNull()
-    expect(screen.getByRole('dialog')).not.toBeNull()
+    const dialog = screen.getByRole('dialog')
+    expect(document.body.contains(dialog)).toBe(true)
+    expect(container.contains(dialog)).toBe(false)
   })
 })
 

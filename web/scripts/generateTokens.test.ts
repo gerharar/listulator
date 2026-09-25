@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { generateTokenCss, type QuantumTokens } from './generateTokens.js'
+import { generateTokenCss, SCOPE, type QuantumTokens } from './generateTokens.js'
 
 function fixture(): QuantumTokens {
   return {
@@ -112,5 +112,14 @@ describe('generateTokenCss', () => {
       '.t-num { font-family: var(--font-mono); font-size: 13px; line-height: 1; font-weight: 500; }',
     )
     expect(css).not.toMatch(/t-num[^}]*letter-spacing/)
+  })
+
+  it('is generated under `html`, so the tokens reach portals and everything else in the document (10.32)', () => {
+    expect(SCOPE).toBe('html')
+
+    const css = generateTokenCss(fixture(), SCOPE)
+
+    expect(css).toContain('html, html[data-theme="dark-orange"], html [data-theme="dark-orange"] {')
+    expect(css).not.toContain('.q-root')
   })
 })

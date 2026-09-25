@@ -3,7 +3,6 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { act, cleanup, render, screen } from '@testing-library/react'
 import type { PreferencesStore } from '../../../lib/preferences/store.js'
 import { MotionProvider, useMotion, useReducedMotion } from './MotionContext.js'
-import { QRoot } from '../QRootContext.js'
 
 afterEach(() => {
   cleanup()
@@ -142,35 +141,5 @@ describe('useReducedMotion', () => {
     )
 
     expect(screen.getByTestId('r').textContent).toBe('false')
-  })
-})
-
-describe('QRoot', () => {
-  it('carries the motion mode and the reduced flag as attributes the stylesheets key off', () => {
-    systemPrefersReduced(false)
-    const { container } = render(
-      <MotionProvider initialMotion="push" initialReducedSetting={true} store={fakeStore()}>
-        <QRoot skin="dark-blue">
-          <span />
-        </QRoot>
-      </MotionProvider>,
-    )
-
-    const root = container.querySelector('.q-root')
-    expect(root?.getAttribute('data-motion')).toBe('push')
-    expect(root?.hasAttribute('data-reduced')).toBe(true)
-  })
-
-  it('omits data-reduced when motion is on', () => {
-    systemPrefersReduced(false)
-    const { container } = render(
-      <MotionProvider initialMotion="drum" initialReducedSetting={undefined} store={fakeStore()}>
-        <QRoot skin="dark-blue">
-          <span />
-        </QRoot>
-      </MotionProvider>,
-    )
-
-    expect(container.querySelector('.q-root')?.hasAttribute('data-reduced')).toBe(false)
   })
 })

@@ -5,8 +5,8 @@ import { PEEK_DEPTH } from './layerStack.js'
  * "Motion": drum carousel). Sheets hang off an invisible horizontal-axis
  * cylinder: each step back rises and recedes, scale standing in for
  * perspective (a real `perspective` here would re-root `Popover`'s
- * fixed-position `FloatingPortal`, the same trap `QRootContext` was built to
- * avoid). Only `PEEK_DEPTH` steps ever peek.
+ * fixed-position `FloatingPortal`, the same trap the old `.q-root` portal
+ * context was built to avoid). Only `PEEK_DEPTH` steps ever peek.
  *
  * The rise amounts are **not** the prototype's own `DY` (`[0, 27, 52]`) —
  * verified live in a real browser (task 10.9c), those clipped ~9px off the

@@ -19,9 +19,6 @@ import '@fontsource/jetbrains-mono/600.css'
 // exist until `tokens:generate` has run (task 10.3, D9).
 import './styles/quantum/tokens.css'
 import './styles/quantum/base.css'
-// The old (pre-Quantum) stylesheet — still what every hosted old screen
-// (Overview/ListDetail/NewList) is styled with until checkpoint 10E.
-import './styles/base.css'
 import { App } from './App.js'
 
 const rootElement = document.getElementById('root')

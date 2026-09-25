@@ -45,23 +45,23 @@ test('a skin picked in Settings re-themes the app, is announced, and survives a 
 
   await page.getByRole('button', { name: 'Light bone' }).click()
 
-  await expect(page.locator('.q-root')).toHaveAttribute('data-theme', 'light-bone')
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'light-bone')
   await expect(page.locator('.q-live')).toHaveText('Switched to the Light bone skin.')
   await expect(page.getByRole('button', { name: 'Light bone' })).toHaveAttribute('aria-pressed', 'true')
 
   await page.reload()
-  await expect(page.locator('.q-root')).toHaveAttribute('data-theme', 'light-bone')
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'light-bone')
 })
 
 test('Fast push swaps the entrance animation, and the choice survives a reload', async ({ page }) => {
   await openHome(page)
   await openSettings(page)
   await page.getByRole('button', { name: 'Fast push — 210ms' }).click()
-  await expect(page.locator('.q-root')).toHaveAttribute('data-motion', 'push')
+  await expect(page.locator('html')).toHaveAttribute('data-motion', 'push')
 
   await page.reload()
   await expect(page.getByRole('heading', { name: 'My Lists' })).toBeVisible({ timeout: 15_000 })
-  await expect(page.locator('.q-root')).toHaveAttribute('data-motion', 'push')
+  await expect(page.locator('html')).toHaveAttribute('data-motion', 'push')
   expect(await enteringAnimation(page)).toContain('q-pushIn')
 })
 
@@ -69,7 +69,7 @@ test('Reduce motion cuts the entrance and the re-seat with the system asking for
   await openHome(page)
   await openSettings(page)
   await page.getByRole('checkbox', { name: /Reduce motion/ }).check()
-  await expect(page.locator('.q-root')).toHaveAttribute('data-reduced', '')
+  await expect(page.locator('html')).toHaveAttribute('data-reduced', '')
 
   await page.reload()
   await expect(page.getByRole('heading', { name: 'My Lists' })).toBeVisible({ timeout: 15_000 })
@@ -86,7 +86,7 @@ test('with the system asking for less, the box starts ticked, and unticking it b
   await expect(box).toBeChecked()
 
   await box.uncheck()
-  await expect(page.locator('.q-root')).not.toHaveAttribute('data-reduced', '')
+  await expect(page.locator('html')).not.toHaveAttribute('data-reduced', '')
 
   await page.reload()
   await expect(page.getByRole('heading', { name: 'My Lists' })).toBeVisible({ timeout: 15_000 })
@@ -114,4 +114,30 @@ test('the browser build has no API keys section — keys live in the server envi
   await expect(page.getByText('Language', { exact: true })).toBeVisible()
   await expect(page.getByText('API keys')).toHaveCount(0)
   await expect(page.getByRole('button', { name: 'Test', exact: true })).toHaveCount(0)
+})
+
+test('a popover portaled outside the app root still gets the skin — the tokens live on <html>', async ({ page }) => {
+  await openHome(page)
+
+  await page.getByRole('button', { name: 'Skin', exact: true }).click()
+  const menu = page.locator('.q-pop')
+  await expect(menu).toBeVisible()
+
+  const background = await menu.evaluate((el) => getComputedStyle(el).backgroundColor)
+  expect(background).not.toBe('rgba(0, 0, 0, 0)')
+  expect(background).not.toBe('transparent')
+})
+
+test('a pre-Phase-10 install opens in one of the four dark skins and keeps it across restarts', async ({ page }) => {
+  // The old app stored `listulator:theme` and no `skin`; that value must not be read.
+  await page.addInitScript(() => {
+    if (!localStorage.getItem('skin')) localStorage.setItem('listulator:theme', 'paper')
+  })
+  await openHome(page)
+
+  const skin = await page.locator('html').getAttribute('data-theme')
+  expect(['dark-orange', 'dark-green', 'dark-blue', 'dark-violet']).toContain(skin)
+
+  await page.reload()
+  await expect(page.locator('html')).toHaveAttribute('data-theme', skin!)
 })

@@ -9,7 +9,7 @@ import { fileURLToPath } from 'node:url'
  * from.
  *
  * The scope selector is a parameter (D9): `.q-root` during the transition,
- * `html` at cutover (task 10.32). Passing a new scope needs no other
+ * `html` since cutover (task 10.32). Passing a new scope needs no other
  * change here — every skin block in `tokens.json` becomes a `[data-theme]`
  * block under it, so a future Wireframe or Modernist block needs no
  * generator change either.
@@ -140,7 +140,8 @@ const TOKENS_JSON_PATH = fileURLToPath(
 )
 const OUTPUT_DIR = fileURLToPath(new URL('../src/styles/quantum', import.meta.url))
 const OUTPUT_PATH = `${OUTPUT_DIR}/tokens.css`
-const SCOPE = '.q-root'
+/** `html` since cutover (task 10.32): the tokens apply to the whole document, portals included. */
+export const SCOPE = 'html'
 
 function main(): void {
   const tokens = JSON.parse(readFileSync(TOKENS_JSON_PATH, 'utf8')) as QuantumTokens

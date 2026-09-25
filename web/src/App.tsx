@@ -17,7 +17,7 @@ import { CreateList } from './components/quantum/CreateList/CreateList.js'
 import { PreviewLayer } from './components/quantum/PreviewLayer/PreviewLayer.js'
 import { parsePreviewPath } from './lib/preview.js'
 import { Atmosphere } from './components/quantum/Atmosphere/Atmosphere.js'
-import { QRoot } from './components/quantum/QRootContext.js'
+import { DocumentTheme } from './components/quantum/DocumentTheme/DocumentTheme.js'
 import { AppHeader } from './components/quantum/AppHeader/AppHeader.js'
 import { LayerCard } from './components/quantum/LayerCard/LayerCard.js'
 import { Home } from './components/quantum/Home/Home.js'
@@ -52,7 +52,7 @@ interface BootState {
 
 /**
  * Boots the app: resolves the skin/language preferences before the first
- * `.q-root` frame, so it never flashes the default skin or English before
+ * frame, so it never flashes the default skin or English before
  * correcting itself (task 10.9). Deliberately does **not** also confirm the
  * server's reachable or load the media-type registry any more (task 10.10)
  * — both are local reads (`getPreferencesStore`) that don't depend on the
@@ -80,7 +80,7 @@ export function App() {
       )
   }, [])
 
-  // Neither state has a `.q-root` yet to theme — plain text is deliberate, not a placeholder to fix later.
+  // Neither state has a skin applied yet — plain text is deliberate, not a placeholder to fix later.
   if (error) return <p>{error}</p>
   if (!boot) return <p>{copy.app.loading}</p>
 
@@ -102,7 +102,7 @@ function QuantumShell({ initial }: { initial: BootState }) {
       initialReducedSetting={initial.reducedSetting}
       store={store}
     >
-      <QRoot skin={skin}>
+      <DocumentTheme skin={skin}>
         <Atmosphere />
         <LiveRegionProvider>
           <ToastProvider>
@@ -115,7 +115,7 @@ function QuantumShell({ initial }: { initial: BootState }) {
             </OverlayManagerProvider>
           </ToastProvider>
         </LiveRegionProvider>
-      </QRoot>
+      </DocumentTheme>
     </MotionProvider>
   )
 }
