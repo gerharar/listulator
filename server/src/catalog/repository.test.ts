@@ -187,7 +187,7 @@ describe('catalog repository', () => {
     expect(await findLists(harness.db, ownerId)).toEqual([])
     expect(await findList(harness.db, ownerId, theirs.id)).toBeUndefined()
     expect(await updateList(harness.db, ownerId, theirs.id, { title: 'Hijacked' })).toBeUndefined()
-    expect(await deleteList(harness.db, ownerId, theirs.id)).toBe(false)
+    expect(await deleteList(harness.db, ownerId, theirs.id)).toBeUndefined()
 
     // Still intact for its actual owner.
     expect((await findList(harness.db, strangerId, theirs.id))?.title).toBe('Theirs')
@@ -205,7 +205,7 @@ describe('catalog repository', () => {
     expect(
       await updateListItem(harness.db, ownerId, theirs.id, item.id, { title: 'Hijacked' }),
     ).toBeUndefined()
-    expect(await deleteListItem(harness.db, ownerId, theirs.id, item.id)).toBe(false)
+    expect(await deleteListItem(harness.db, ownerId, theirs.id, item.id)).toBeUndefined()
     expect(
       await setListItemConsumed(harness.db, ownerId, theirs.id, item.id, true),
     ).toBeUndefined()
@@ -318,7 +318,7 @@ describe('catalog repository', () => {
     await createListItem(harness.db, ownerId, list.id, { title: 'AC1', timeToConsumeMinutes: 900 })
     await createListItem(harness.db, ownerId, list.id, { title: 'AC2', timeToConsumeMinutes: 1200 })
 
-    expect(await deleteList(harness.db, ownerId, list.id)).toBe(true)
+    expect(await deleteList(harness.db, ownerId, list.id)).toMatchObject({ list: { id: list.id } })
 
     // Orphaned rows would quietly inflate future "time remaining" sums.
     const orphans = harness.db

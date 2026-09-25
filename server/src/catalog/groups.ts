@@ -1,6 +1,7 @@
 import { and, asc, eq, gte, isNotNull, max, min, sql } from 'drizzle-orm'
 import type { PortableDatabase } from '../db/client.js'
 import { listGroups, listItems, lists, type ListGroup } from '../db/schema.js'
+import { toGroupPayload, type GroupRestore } from './restorePayloads.js'
 
 /**
  * A list's groups as rows of their own (D3, task 10.16).
@@ -150,17 +151,20 @@ async function renumberGroups(db: PortableDatabase, listId: string): Promise<voi
   }
 }
 
-/** Empty groups only. Returns false when the group (or the list) is not there. */
+/**
+ * Empty groups only. Returns what is needed to restore it, or `undefined` when
+ * the group (or the list) is not there.
+ */
 export async function deleteListGroup(
   db: PortableDatabase,
   userId: string,
   listId: string,
   groupId: string,
-): Promise<boolean> {
-  if (!(await ownsList(db, userId, listId))) return false
+): Promise<GroupRestore | undefined> {
+  if (!(await ownsList(db, userId, listId))) return undefined
 
   const group = (await groupsOf(db, listId)).find((entry) => entry.id === groupId)
-  if (!group) return false
+  if (!group) return undefined
 
   const inside = await db
     .select({ id: listItems.id })
@@ -172,7 +176,7 @@ export async function deleteListGroup(
   await db.delete(listGroups).where(eq(listGroups.id, groupId)).run()
   await renumberGroups(db, listId)
 
-  return true
+  return { group: toGroupPayload(group) }
 }
 
 /**

@@ -1,6 +1,15 @@
 import { and, asc, count, eq, getTableColumns, inArray, max, or, sql } from 'drizzle-orm'
 import type { PortableDatabase } from '../db/client.js'
-import { ensureListGroup, placeNewItem } from './groups.js'
+import { ensureListGroup, findListGroups, placeNewItem } from './groups.js'
+import {
+  toDismissalPayload,
+  toGroupPayload,
+  toItemPayload,
+  toListPayload,
+  toSnapshotPayload,
+  type ItemRestore,
+  type ListRestore,
+} from './restorePayloads.js'
 import {
   dismissalTitleKey,
   dismissedItems,
@@ -248,18 +257,29 @@ export async function updateList(
 }
 
 /** Items go with it — the foreign key cascades (client.ts enables them). */
+/**
+ * Deletes a list and hands back everything that went with it — its items,
+ * groups, snapshot, dismissals and `source_yaml` — so Undo can put it all back.
+ */
 export async function deleteList(
   db: PortableDatabase,
   userId: string,
   listId: string,
-): Promise<boolean> {
-  const deleted = await db
-    .delete(lists)
-    .where(and(eq(lists.id, listId), eq(lists.userId, userId)))
-    .returning()
-    .all()
+): Promise<ListRestore | undefined> {
+  const list = await findList(db, userId, listId)
+  if (!list) return undefined
 
-  return deleted.length > 0
+  const restore: ListRestore = {
+    list: toListPayload(list),
+    items: (await findListItems(db, userId, listId))!.map(toItemPayload),
+    groups: ((await findListGroups(db, userId, listId)) ?? []).map(toGroupPayload),
+    snapshot: (await findListSnapshot(db, userId, listId)).map(toSnapshotPayload),
+    dismissals: (await findDismissals(db, userId, listId)).map(toDismissalPayload),
+  }
+
+  await db.delete(lists).where(and(eq(lists.id, listId), eq(lists.userId, userId))).run()
+
+  return restore
 }
 
 export async function findListItems(
@@ -408,27 +428,29 @@ export async function deleteListItem(
   userId: string,
   listId: string,
   itemId: string,
-): Promise<boolean> {
-  if (!(await findList(db, userId, listId))) return false
+): Promise<ItemRestore | undefined> {
+  if (!(await findList(db, userId, listId))) return undefined
 
   const deleted = await db
     .delete(listItems)
     .where(and(eq(listItems.id, itemId), eq(listItems.listId, listId)))
     .returning()
     .all()
+  const [item] = deleted
+  if (!item) return undefined
 
-  for (const item of deleted) {
-    await db
-      .insert(dismissedItems)
-      .values({
-        listId,
-        titleKey: dismissalTitleKey(item.title),
-        ...(item.externalRef ? { externalRef: item.externalRef } : {}),
-      })
-      .run()
-  }
+  const dismissal = await db
+    .insert(dismissedItems)
+    .values({
+      listId,
+      titleKey: dismissalTitleKey(item.title),
+      ...(item.externalRef ? { externalRef: item.externalRef } : {}),
+    })
+    .returning()
+    .get()
 
-  return deleted.length > 0
+  // Everything needed to put it back — Undo posts this to the restore route.
+  return { item: toItemPayload(item), dismissalId: dismissal.id }
 }
 
 export async function findDismissals(

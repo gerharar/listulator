@@ -199,7 +199,7 @@ describe('list groups', () => {
       const b = (await createListGroup(harness.db, ownerId, listId, 'B'))!
       await createListGroup(harness.db, ownerId, listId, 'C')
 
-      expect(await deleteListGroup(harness.db, ownerId, listId, b.id)).toBe(true)
+      expect(await deleteListGroup(harness.db, ownerId, listId, b.id)).toMatchObject({ group: { name: 'B' } })
 
       const groups = (await findListGroups(harness.db, ownerId, listId))!
       expect(groups.map((g) => [g.name, g.orderIndex])).toEqual([['A', 0], ['C', 1]])
@@ -216,8 +216,8 @@ describe('list groups', () => {
     it('says not found for an unknown group or someone else’s list', async () => {
       const group = (await createListGroup(harness.db, ownerId, listId, 'A'))!
 
-      expect(await deleteListGroup(harness.db, ownerId, listId, 'nope')).toBe(false)
-      expect(await deleteListGroup(harness.db, strangerId, listId, group.id)).toBe(false)
+      expect(await deleteListGroup(harness.db, ownerId, listId, 'nope')).toBeUndefined()
+      expect(await deleteListGroup(harness.db, strangerId, listId, group.id)).toBeUndefined()
     })
   })
 
