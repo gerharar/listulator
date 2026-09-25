@@ -16,6 +16,7 @@ import { createTmdbCompanyAdapter } from './adapters/tmdbCompany.js'
 import { createTmdbFranchiseAdapter } from './adapters/tmdbFranchise.js'
 import { ANIMATION_GENRE, DOCUMENTARY_GENRE, createTmdbTvAdapter } from './adapters/tmdbTv.js'
 import type { ListStatus } from '../db/schema.js'
+import type { FacetConvention } from '../catalog/facets.js'
 import type { FetchLike } from './http.js'
 import type { TmdbCredentialSource } from './adapters/tmdb.js'
 import type { IgdbCredentialSource } from './adapters/igdb.js'
@@ -152,6 +153,8 @@ export function createDefaultMediaTypes({
       defaultDurationMinutes: 25,
       adapter: animationSources,
       sourceName: 'TMDB',
+      // A Ghost in the Shell film and its series share this list; Movie/TV tells them apart.
+      facets: [{ key: 'type', label: 'Type', values: ['Movie', 'TV'] }],
     },
     // Feature-length is the common case for a documentary; series episodes run
     // shorter and are corrected per item.
@@ -187,6 +190,8 @@ export function createDefaultMediaTypes({
       defaultDurationMinutes: 600,
       adapter: igdb,
       sourceName: 'IGDB',
+      // A game can be different content on each platform, so tags carry platform codes.
+      facets: [{ key: 'platform', label: 'Platform' }],
     },
     // ~15 min for a standard 30-page issue (SPEC.md §5). Comic Vine's rate
     // limit rules out fetching a real page count per issue.
@@ -205,6 +210,7 @@ export function createDefaultMediaTypes({
       defaultDurationMinutes: 240,
       adapter: createOpenLibraryAdapter(),
       sourceName: 'Open Library',
+      facets: [{ key: 'language', label: 'Language', noValue: ['Unknown'] }],
     },
     {
       key: 'music',
@@ -213,6 +219,7 @@ export function createDefaultMediaTypes({
       defaultDurationMinutes: 45,
       adapter: createMusicBrainzAdapter(fetchImpl.musicbrainz),
       sourceName: 'MusicBrainz',
+      facets: [{ key: 'type', label: 'Type', values: ['Album', 'EP', 'Single', 'Live', 'Compilation'] }],
     },
     // Lengths vary from three minutes to three hours, so this default is more
     // placeholder than estimate — real durations come from the API.
@@ -241,6 +248,8 @@ export function createDefaultMediaTypes({
       defaultDurationMinutes: 120,
       adapter: franchises,
       sourceName: 'TMDB',
+      // Every tag is a medium (Film, Series, …); there is no fixed vocabulary to check against.
+      facets: [{ key: 'type', label: 'Medium' }],
     },
   ]
 }
@@ -362,6 +371,12 @@ export interface MediaType {
    * no adapter is "by hand" and has none.
    */
   sourceName?: string
+  /**
+   * Which of an item's `tags` mean Type/Medium, Language and Platform for
+   * this category (facets.ts). Absent: the list gets a text filter and no
+   * facets. Derivation is read-time only, so a convention needs no migration.
+   */
+  facets?: FacetConvention
 }
 
 /** What `GET /media-types` (and the standalone app's `mediaTypes()`) returns per category. */
@@ -376,6 +391,8 @@ export interface MediaTypeInfo {
   /** Whether a preview-before-import can be fetched — the same gate as search. */
   previewable: boolean
   sourceName?: string
+  /** The category's facet convention; absent when it has none. */
+  facets?: FacetConvention
 }
 
 /**
@@ -392,6 +409,7 @@ export function toMediaTypeInfo({
   defaultDurationMinutes,
   adapter,
   sourceName,
+  facets,
 }: MediaType): MediaTypeInfo {
   const available = adapter?.isAvailable() ?? false
 
@@ -404,6 +422,7 @@ export function toMediaTypeInfo({
     searchAvailable: available,
     previewable: available,
     ...(adapter && sourceName ? { sourceName } : {}),
+    ...(facets?.length ? { facets } : {}),
   }
 }
 

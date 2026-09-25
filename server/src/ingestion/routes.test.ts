@@ -35,6 +35,38 @@ describe('GET /api/media-types', () => {
     })
   })
 
+  it('declares each category\u2019s facet convention and only where the owner asked for one', async () => {
+    const response = await harness.app.inject({ method: 'GET', url: '/api/media-types' })
+    const byKey = new Map(
+      response
+        .json()
+        .map((entry: { key: string; facets?: unknown }) => [entry.key, entry.facets]),
+    )
+
+    for (const key of ['movie', 'tv', 'documentary', 'wrestling', 'mma', 'comic', 'youtube']) {
+      expect(byKey.get(key), key).toBeUndefined()
+    }
+    expect(byKey.get('game')).toEqual([{ key: 'platform', label: 'Platform' }])
+    expect(byKey.get('book')).toEqual([{ key: 'language', label: 'Language', noValue: ['Unknown'] }])
+    expect(byKey.get('music')).toEqual([
+      { key: 'type', label: 'Type', values: ['Album', 'EP', 'Single', 'Live', 'Compilation'] },
+    ])
+    expect(byKey.get('animation')).toEqual([{ key: 'type', label: 'Type', values: ['Movie', 'TV'] }])
+    expect(byKey.get('mega')).toEqual([{ key: 'type', label: 'Medium' }])
+  })
+
+  it('gives an entry without a convention no facets, whatever its key', async () => {
+    const custom = createTestApp({
+      mediaTypes: createMediaTypeRegistry([
+        { key: 'podcast', label: 'Podcasts', sortOrder: 110, defaultDurationMinutes: 55 },
+      ]),
+    })
+    const response = await custom.app.inject({ method: 'GET', url: '/api/media-types' })
+    await custom.cleanup()
+
+    expect(response.json()[0]).not.toHaveProperty('facets')
+  })
+
   it('names the real source of every searchable category and omits it for the rest', async () => {
     const withoutSource = createTestApp({
       mediaTypes: createMediaTypeRegistry([

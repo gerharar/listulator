@@ -1,0 +1,124 @@
+import { describe, expect, it } from 'vitest'
+import {
+  UNTAGGED,
+  deriveFacets,
+  matchesFacets,
+  type FacetConvention,
+  type FacetSelection,
+} from './facets.js'
+
+const item = (...tags: string[]) => ({ tags: tags.length ? tags : null })
+
+const platform: FacetConvention = [{ key: 'platform', label: 'Platform' }]
+const music: FacetConvention = [
+  { key: 'type', label: 'Type', values: ['Album', 'EP', 'Single', 'Live', 'Compilation'] },
+]
+const books: FacetConvention = [{ key: 'language', label: 'Language', noValue: ['Unknown'] }]
+
+function options(convention: FacetConvention, items: ReturnType<typeof item>[], facet: string) {
+  return deriveFacets(items, convention)
+    .find((entry) => entry.key === facet)
+    ?.options.map((option) => option.label)
+}
+
+describe('deriveFacets', () => {
+  it('gives no facets to a category without a convention', () => {
+    expect(deriveFacets([item('PS3'), item('Album')], undefined)).toEqual([])
+    expect(deriveFacets([item('PS3')], [])).toEqual([])
+  })
+
+  it('shows a facet as soon as one item carries a matching tag', () => {
+    expect(options(platform, [item('PS3')], 'platform')).toEqual(['PS3'])
+  })
+
+  it('hides a facet when no item carries a matching tag', () => {
+    expect(deriveFacets([item(), item()], platform)).toEqual([])
+    expect(deriveFacets([item('Podcast')], music)).toEqual([])
+  })
+
+  it('orders platforms canonically, then unknown codes, then MULTI, then Untagged', () => {
+    const items = [item('multi'), item('ZX81'), item('PC'), item(), item('PS3'), item('X360')]
+    expect(options(platform, items, 'platform')).toEqual([
+      'PS3',
+      'X360',
+      'PC',
+      'ZX81',
+      'MULTI',
+      'Untagged',
+    ])
+  })
+
+  it('lists each platform of a mixed-tag item separately (Assassin’s Creed)', () => {
+    const items = [item('PS3', 'X360', 'PC'), item('NDS'), item('PSP'), item('multi')]
+    expect(options(platform, items, 'platform')).toEqual(['PS3', 'PSP', 'X360', 'NDS', 'PC', 'MULTI'])
+  })
+
+  it('matches platform codes case-insensitively and counts one code once', () => {
+    expect(options(platform, [item('ps3'), item('PS3')], 'platform')).toEqual(['PS3'])
+  })
+
+  it('offers only the languages present, in first-seen order, never a hardcoded list', () => {
+    const items = [item('Russian'), item('English'), item('Russian'), item()]
+    expect(options(books, items, 'language')).toEqual(['Russian', 'English', 'Untagged'])
+  })
+
+  it('folds an Unknown language into Untagged', () => {
+    expect(options(books, [item('English'), item('Unknown')], 'language')).toEqual([
+      'English',
+      'Untagged',
+    ])
+  })
+
+  it('keeps a convention’s own order and spelling for its known values', () => {
+    const items = [item('live', 'Album'), item('EP'), item('Album')]
+    expect(options(music, items, 'type')).toEqual(['Album', 'EP', 'Live'])
+  })
+
+  it('ignores tags that are not among a facet’s known values', () => {
+    expect(options(music, [item('Album', 'Bootleg')], 'type')).toEqual(['Album'])
+  })
+
+  it('offers Untagged only when some item lacks a matching tag', () => {
+    expect(options(music, [item('Album'), item('EP')], 'type')).toEqual(['Album', 'EP'])
+    expect(options(music, [item('Album'), item('Bootleg')], 'type')).toEqual(['Album', 'Untagged'])
+  })
+})
+
+describe('matchesFacets', () => {
+  const select = (facet: string, ...keys: string[]): FacetSelection => ({ [facet]: new Set(keys) })
+
+  it('matches everything when nothing is selected', () => {
+    expect(matchesFacets(item('PS3'), platform, {})).toBe(true)
+    expect(matchesFacets(item(), platform, select('platform'))).toBe(true)
+  })
+
+  it('matches when any selected tag is among the item’s', () => {
+    const ac = item('PS3', 'X360', 'PC')
+    expect(matchesFacets(ac, platform, select('platform', 'ps3'))).toBe(true)
+    expect(matchesFacets(ac, platform, select('platform', 'nds', 'pc'))).toBe(true)
+    expect(matchesFacets(ac, platform, select('platform', 'nds'))).toBe(false)
+  })
+
+  it('does not treat a named-platform item as MULTI, nor a bare multi as any platform', () => {
+    expect(matchesFacets(item('PS3', 'X360'), platform, select('platform', 'multi'))).toBe(false)
+    expect(matchesFacets(item('multi'), platform, select('platform', 'ps3'))).toBe(false)
+    expect(matchesFacets(item('multi'), platform, select('platform', 'multi'))).toBe(true)
+  })
+
+  it('matches an untagged item only when Untagged is selected', () => {
+    expect(matchesFacets(item(), platform, select('platform', 'ps3'))).toBe(false)
+    expect(matchesFacets(item(), platform, select('platform', UNTAGGED))).toBe(true)
+    expect(matchesFacets(item('PS3'), platform, select('platform', UNTAGGED))).toBe(false)
+  })
+
+  it('treats Unknown as untagged when matching a language', () => {
+    expect(matchesFacets(item('Unknown'), books, select('language', UNTAGGED))).toBe(true)
+  })
+
+  it('requires every facet with a selection to match', () => {
+    const both: FacetConvention = [...music, ...books]
+    const selection: FacetSelection = { type: new Set(['album']), language: new Set(['english']) }
+    expect(matchesFacets(item('Album', 'English'), both, selection)).toBe(true)
+    expect(matchesFacets(item('Album', 'French'), both, selection)).toBe(false)
+  })
+})

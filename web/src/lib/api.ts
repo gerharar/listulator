@@ -6,6 +6,7 @@ import type {
   ListRestore,
   OrderRestore,
 } from '../../../server/src/catalog/restorePayloads.js'
+import type { FacetConvention } from '../../../server/src/catalog/facets.js'
 import type { ResetPreview, ResetResult } from '../../../server/src/catalog/reset.js'
 import type { SourceOptions } from '../../../server/src/ingestion/sourceRef.js'
 import { createLocalApi } from './api.local.js'
@@ -85,6 +86,8 @@ export interface MediaType {
   previewable: boolean
   /** The search source's display name ("TMDB"); absent for a by-hand category. */
   sourceName?: string
+  /** Which tags mean Type/Medium, Language, Platform here; absent means no facets. */
+  facets?: FacetConvention
 }
 
 export interface SuggestionPick {
