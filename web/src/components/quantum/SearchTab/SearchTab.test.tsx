@@ -224,7 +224,7 @@ describe('SearchTab', () => {
     expect(screen.queryByRole('button', { name: 'Open Settings' })).toBeNull()
   })
 
-  it('on desktop points at Settings, with Open Settings disabled until Settings exists', async () => {
+  it('on desktop points at Settings, and Open Settings opens the Settings layer', async () => {
     ;(window as unknown as Record<string, unknown>)['__TAURI_INTERNALS__'] = {}
     vi.mocked(api.searchSources).mockRejectedValue(
       new ApiError('Search is not available for TV Shows.', 409, 'search.unavailable'),
@@ -235,8 +235,11 @@ describe('SearchTab', () => {
 
     expect(await screen.findByText(/Add your key in Settings/)).not.toBeNull()
     const open = screen.getByRole('button', { name: 'Open Settings' }) as HTMLButtonElement
-    expect(open.disabled).toBe(true)
-    expect(open.title).toBe('Settings is coming soon')
+    expect(open.disabled).toBe(false)
+
+    act(() => open.click())
+
+    expect(screen.getByTestId('stack').textContent).toBe(JSON.stringify([['home', '/'], ['settings', '']]))
   })
 
   describe('when the community library cannot be reached', () => {
@@ -255,7 +258,7 @@ describe('SearchTab', () => {
       expect(screen.queryByText('Search needs a TMDB key')).toBeNull()
     })
 
-    it('on desktop also points at Settings, with Open Settings disabled', async () => {
+    it('on desktop also points at Settings, with Open Settings live', async () => {
       ;(window as unknown as Record<string, unknown>)['__TAURI_INTERNALS__'] = {}
       vi.mocked(api.searchSources).mockRejectedValue(
         new ApiError('x', 409, 'search.unavailableOffline'),
@@ -265,7 +268,7 @@ describe('SearchTab', () => {
       await search()
 
       expect(await screen.findByText(/add yours in Settings/)).not.toBeNull()
-      expect((screen.getByRole('button', { name: 'Open Settings' }) as HTMLButtonElement).disabled).toBe(true)
+      expect((screen.getByRole('button', { name: 'Open Settings' }) as HTMLButtonElement).disabled).toBe(false)
     })
 
     it('still shows the results it did get, with a strip saying curated lists are missing', async () => {

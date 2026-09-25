@@ -94,7 +94,9 @@ import {
   SourceUnavailableError,
   UnsafeSourceError,
 } from '../../../server/src/ingestion/expandSource.js'
-import { getLocalMediaTypes } from './ingestion/localMediaTypes.js'
+import { getLocalMediaTypes, LOCAL_FETCHERS } from './ingestion/localMediaTypes.js'
+import { testKey, type KeySource, type KeyTestResult } from './config/keyTest.js'
+import type { LocalSettings } from './config/localConfig.js'
 import { loadLocalStrategy } from './suggestions/localStrategies.js'
 
 function notFound(): ApiError {
@@ -219,6 +221,15 @@ async function localSuggest(
     unconsumed,
     ...(currentListId ? { currentListId } : {}),
   })
+}
+
+/**
+ * The Settings "Test" button (task 10.31) — desktop only, so it lives here and
+ * not on `ApiClient`: the server keeps its keys in the environment and has no
+ * such call. Sends the key as typed to its own provider and returns one word.
+ */
+export function testApiKey(source: KeySource, values: LocalSettings): Promise<KeyTestResult> {
+  return testKey(source, values, LOCAL_FETCHERS)
 }
 
 export function createLocalApi(): ApiClient {

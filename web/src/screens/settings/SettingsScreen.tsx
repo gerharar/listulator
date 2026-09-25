@@ -1,5 +1,7 @@
 import './SettingsScreen.css'
 import { X } from 'lucide-react'
+import { isDesktop } from '../../lib/platform.js'
+import { ApiKeysSection } from './ApiKeysSection.js'
 import { useLanguage } from '../../locale/LanguageProvider.js'
 import { copy } from '../../locale/index.js'
 import { getPreferencesStore, type PreferencesStore } from '../../lib/preferences/store.js'
@@ -24,7 +26,7 @@ export interface SettingsScreenProps {
  * The Settings layer (task 10.30; prototype `isSettings`, plate left seed 5).
  * Theme is Quantum only and lit — the prototype's other themes are not part of
  * this app — and there is no atmosphere control (Q4). The API keys section is
- * task 10.31 (desktop only).
+ * desktop only (task 10.31).
  */
 export function SettingsScreen({ skin, onSkinChange, store }: SettingsScreenProps) {
   const layerStack = useLayerStack()
@@ -101,6 +103,9 @@ export function SettingsScreen({ skin, onSkinChange, store }: SettingsScreenProp
               ))}
             </div>
           </section>
+
+          {/* Keys live in the server's environment on the web, so the section is not there at all (C7). */}
+          {isDesktop() && <ApiKeysSection />}
         </div>
       </div>
     </div>

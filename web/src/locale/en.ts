@@ -278,6 +278,71 @@ export const en = {
         ru: 'Русский',
         de: 'Deutsch',
       },
+      /** API keys (task 10.31, desktop only). Sources, blurbs and steps are the prototype's, IGDB's amended for its secret. */
+      keys: {
+        title: 'API keys',
+        placeholder: 'Paste key',
+        clientIdPlaceholder: 'Client ID',
+        clientSecretPlaceholder: 'Client secret',
+        infoLabel: 'What this key is for',
+        how: 'How?',
+        howTitle: 'Where to get this key',
+        howHeading: 'Where to get it',
+        test: 'Test',
+        status: {
+          untested: 'Untested',
+          testing: 'Testing',
+          working: 'Working',
+          rejected: 'Rejected',
+          unreachable: 'Offline',
+          failed: 'Failed',
+        },
+        usedNote: (used: string): string => `Fills lists in ${used}.`,
+        missNote:
+          'Without it those categories can still be built by hand — only the catalogue search goes dark.',
+        sources: {
+          tmdb: {
+            name: 'TMDB',
+            used: 'movies, TV, animation, documentaries',
+            host: 'themoviedb.org',
+            steps: [
+              'Create a free account, then open Settings → API.',
+              'Request a key — personal use is approved on the spot.',
+              'Copy the API Read Access Token and paste it here.',
+            ],
+          },
+          igdb: {
+            name: 'IGDB',
+            used: 'games',
+            host: 'dev.twitch.tv',
+            steps: [
+              'IGDB runs on Twitch auth, so sign in to the Twitch developer console.',
+              'Register an application to get a Client ID and a secret.',
+              'Paste both here and press Test.',
+            ],
+          },
+          comicVine: {
+            name: 'Comic Vine',
+            used: 'comics',
+            host: 'comicvine.gamespot.com/api',
+            steps: [
+              'Create a GameSpot account and sign in.',
+              'Open the API page — your key is printed at the top.',
+              'Copy it and paste it here.',
+            ],
+          },
+          youtube: {
+            name: 'YouTube',
+            used: 'playlists and channels',
+            host: 'console.cloud.google.com',
+            steps: [
+              'Create a project in the Google Cloud console.',
+              'Enable the YouTube Data API v3 for that project.',
+              'Credentials → Create credentials → API key, then paste it here.',
+            ],
+          },
+        },
+      },
     },
     skin: {
       button: 'Skin',
@@ -354,7 +419,6 @@ export const en = {
       nothingFoundLibraryDown:
         ' The community library could not be reached, so curated lists were not searched.',
       openSettings: 'Open Settings',
-      settingsComingSoon: 'Settings is coming soon',
       nothingFoundHeadline: 'Nothing found',
       nothingFoundBody: 'Try a different spelling, or add by hand.',
       nothingToImportHeadline: 'Nothing to import',

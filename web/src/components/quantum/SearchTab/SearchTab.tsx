@@ -107,14 +107,18 @@ export function SearchTab({ mediaType, onBuilt }: SearchTabProps) {
         : desktop
           ? text.noKeyDesktop(category)
           : text.noKeyWeb(category),
-      // Settings arrives in task 10.31; until then the action is shown but inert.
+      // Desktop only: the web build's keys live in the server's environment.
       ...(desktop
         ? {
             action: {
               label: text.openSettings,
-              onClick: () => {},
-              disabled: true,
-              title: text.settingsComingSoon,
+              onClick: () =>
+                layerStack.push({
+                  id: 'settings',
+                  kind: 'settings',
+                  tabLabel: copy.quantum.settings.title,
+                  content: '',
+                }),
             },
           }
         : {}),

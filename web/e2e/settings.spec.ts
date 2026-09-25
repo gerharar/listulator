@@ -106,3 +106,12 @@ test('switching to Русский rewrites Settings at once and is still Russian
   await page.reload()
   await expect(page.getByRole('button', { name: 'Настройки', exact: true })).toBeVisible({ timeout: 15_000 })
 })
+
+test('the browser build has no API keys section — keys live in the server environment', async ({ page }) => {
+  await openHome(page)
+  await openSettings(page)
+
+  await expect(page.getByText('Language', { exact: true })).toBeVisible()
+  await expect(page.getByText('API keys')).toHaveCount(0)
+  await expect(page.getByRole('button', { name: 'Test', exact: true })).toHaveCount(0)
+})

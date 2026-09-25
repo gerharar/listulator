@@ -7,8 +7,14 @@ import { setActiveLanguage } from '../../locale/index.js'
 import { LanguageProvider } from '../../locale/LanguageProvider.js'
 import { LayerStackProvider, useLayerStack } from '../../components/quantum/layerStack/LayerStackContext.js'
 import { LiveRegionProvider } from '../../components/quantum/LiveRegion/LiveRegion.js'
+import { OverlayManagerProvider } from '../../components/quantum/overlay/OverlayManagerContext.js'
 import { MotionProvider } from '../../components/quantum/Motion/MotionContext.js'
 import { SettingsScreen } from './SettingsScreen.js'
+
+vi.mock('../../lib/config/localConfig.js', () => ({
+  getLocalSettings: vi.fn(async () => ({})),
+  updateLocalSettings: vi.fn(async () => {}),
+}))
 
 function fakeStore(): PreferencesStore & { data: Map<string, string> } {
   const data = new Map<string, string>()
@@ -43,14 +49,16 @@ function renderSettings(options: { skin?: 'dark-blue' | 'light-bone'; reducedSet
   const onSkinChange = vi.fn()
   const view = render(
     <LiveRegionProvider>
-      <MotionProvider initialMotion="drum" initialReducedSetting={options.reducedSetting} store={store}>
-        <LanguageProvider>
-          <LayerStackProvider home={{ id: 'home', kind: 'home', tabLabel: 'Home', content: '/' }}>
-            <StackReader />
-            <SettingsScreen skin={options.skin ?? 'dark-blue'} onSkinChange={onSkinChange} store={store} />
-          </LayerStackProvider>
-        </LanguageProvider>
-      </MotionProvider>
+      <OverlayManagerProvider>
+        <MotionProvider initialMotion="drum" initialReducedSetting={options.reducedSetting} store={store}>
+          <LanguageProvider>
+            <LayerStackProvider home={{ id: 'home', kind: 'home', tabLabel: 'Home', content: '/' }}>
+              <StackReader />
+              <SettingsScreen skin={options.skin ?? 'dark-blue'} onSkinChange={onSkinChange} store={store} />
+            </LayerStackProvider>
+          </LanguageProvider>
+        </MotionProvider>
+      </OverlayManagerProvider>
     </LiveRegionProvider>,
   )
   return { ...view, onSkinChange }
@@ -149,6 +157,23 @@ describe('SettingsScreen', () => {
 
     expect(screen.getByRole('heading', { name: 'Einstellungen' })).not.toBeNull()
     expect(store.data.get('language')).toBe('de')
+  })
+
+  it('has no API keys section in the browser build', () => {
+    renderSettings()
+
+    expect(screen.queryByText('API keys')).toBeNull()
+  })
+
+  it('has the API keys section in the desktop app', async () => {
+    Object.assign(window, { __TAURI_INTERNALS__: {} })
+    try {
+      renderSettings()
+
+      expect(await screen.findByText('API keys')).not.toBeNull()
+    } finally {
+      delete (window as unknown as Record<string, unknown>)['__TAURI_INTERNALS__']
+    }
   })
 
   it('Close pops the Settings layer', () => {
