@@ -254,18 +254,21 @@ describe('ListScreen spine', () => {
     expect(screen.getAllByRole('button', { expanded: true })).toHaveLength(2)
   })
 
+  // The jump rail repeats the group names, so the spine's own rows are looked up inside the spine.
+  const spineBody = () => document.querySelector('.q-list-body') as HTMLElement
+
   it('shows every group of a Mega list collapsed on arrival (C3)', async () => {
     await open(detail({ ...grouped(), mediaType: 'mega' }))
 
     expect(screen.queryByText('e1')).toBeNull()
-    expect(screen.getByText('Season 1')).toBeTruthy()
+    expect(within(spineBody()).getByText('Season 1')).toBeTruthy()
     expect(screen.getAllByRole('button', { expanded: false })).toHaveLength(2)
   })
 
   it('remembers what you opened and closed, per list', async () => {
     await open(detail({ ...grouped(), mediaType: 'mega' }))
 
-    fireEvent.click(screen.getByRole('button', { name: /Season 1/ }))
+    fireEvent.click(within(spineBody()).getByRole('button', { name: /Season 1/ }))
     expect(screen.getByText('e1')).toBeTruthy()
     await waitFor(() => expect(JSON.parse(store.get('list:L1:collapsed')!)).toEqual(['Season 2']))
 
