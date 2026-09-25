@@ -26,3 +26,9 @@
 .q-combo-list li.active {
   background: var(--hover);
 }
+
+.q-combo-label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}

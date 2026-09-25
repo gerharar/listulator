@@ -1,4 +1,4 @@
-import { useState, type InputHTMLAttributes, type TextareaHTMLAttributes } from 'react'
+import { useState, type InputHTMLAttributes, type Ref, type TextareaHTMLAttributes } from 'react'
 import { Eye, EyeOff } from 'lucide-react'
 import './Field.css'
 
@@ -6,6 +6,7 @@ import './Field.css'
 export interface FieldProps extends Omit<InputHTMLAttributes<HTMLInputElement>, 'size'> {
   label: string
   size?: 'sm'
+  ref?: Ref<HTMLInputElement>
 }
 
 export function Field({ label, size, className, ...rest }: FieldProps) {

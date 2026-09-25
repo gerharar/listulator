@@ -1,0 +1,21 @@
+/* The add-item form at the foot of the list (task 10.21). */
+.q-add-item {
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 2px solid var(--rule);
+}
+.q-add-item-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+}
+.q-add-item-row > .q-field:first-child {
+  flex: 1;
+  min-width: 0;
+}
+.q-add-item-minutes {
+  width: 80px;
+}
+.q-add-item-row > .q-combo {
+  width: 200px;
+}

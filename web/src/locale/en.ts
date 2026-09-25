@@ -372,6 +372,15 @@ export const en = {
       /** Header actions that arrive with later tasks: shown, disabled, and honest about it. */
       comingSoon: 'Coming soon',
       noGroup: 'No group',
+      addItem: {
+        titleLabel: 'Title',
+        titlePlaceholder: 'Add an item…',
+        minutesLabel: 'Minutes',
+        groupLabel: 'Group',
+        add: 'Add',
+        adding: 'Adding…',
+        failed: 'Could not add that item',
+      },
       createGroup: (name: string): string => `+ Create “${name}”`,
       editList: 'Edit list',
       checkForUpdates: 'Check for updates',

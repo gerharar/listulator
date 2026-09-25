@@ -25,7 +25,13 @@ interface Option {
  * the item. A small in-app list rather than the browser's `<datalist>`, whose
  * look and behaviour differ per engine (and are poor in WKWebView).
  */
-export function GroupCombobox({ label, groups, value, onChange, small = false }: GroupComboboxProps) {
+export function GroupCombobox({
+  label,
+  groups,
+  value,
+  onChange,
+  small = false,
+}: GroupComboboxProps) {
   const text = copy.quantum.list
   const listId = useId()
   const [open, setOpen] = useState(false)
@@ -79,27 +85,29 @@ export function GroupCombobox({ label, groups, value, onChange, small = false }:
   }
 
   return (
-    <label className="q-field q-combo">
-      <span className="q-kicker">{label}</span>
-      <input
-        className={['q-input', small ? 'sm' : ''].filter(Boolean).join(' ')}
-        role="combobox"
-        aria-expanded={open}
-        aria-controls={listId}
-        aria-autocomplete="list"
-        value={value}
-        placeholder={text.noGroup}
-        spellCheck={false}
-        autoComplete="off"
-        onChange={(event) => {
-          onChange(event.target.value)
-          setOpen(true)
-          setActive(-1)
-        }}
-        onFocus={() => setOpen(true)}
-        onBlur={() => setOpen(false)}
-        onKeyDown={onKeyDown}
-      />
+    <div className="q-field q-combo">
+      <label className="q-combo-label">
+        <span className="q-kicker">{label}</span>
+        <input
+          className={['q-input', small ? 'sm' : ''].filter(Boolean).join(' ')}
+          role="combobox"
+          aria-expanded={open}
+          aria-controls={listId}
+          aria-autocomplete="list"
+          value={value}
+          placeholder={text.noGroup}
+          spellCheck={false}
+          autoComplete="off"
+          onChange={(event) => {
+            onChange(event.target.value)
+            setOpen(true)
+            setActive(-1)
+          }}
+          onFocus={() => setOpen(true)}
+          onBlur={() => setOpen(false)}
+          onKeyDown={onKeyDown}
+        />
+      </label>
       {open && (
         <ul className="q-combo-list" role="listbox" id={listId}>
           {options.map((option, index) => (
@@ -117,6 +125,6 @@ export function GroupCombobox({ label, groups, value, onChange, small = false }:
           ))}
         </ul>
       )}
-    </label>
+    </div>
   )
 }
