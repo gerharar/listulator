@@ -1,0 +1,28 @@
+/* The group field with its in-app suggestion list (task 10.21). */
+.q-combo {
+  position: relative;
+}
+.q-combo-list {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  z-index: 130;
+  margin: 2px 0 0;
+  padding: 4px 0;
+  max-height: 220px;
+  overflow-y: auto;
+  list-style: none;
+  background: var(--card);
+  border: 1px solid var(--rule);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.18);
+}
+.q-combo-list li {
+  padding: 8px 12px;
+  font-size: 13.5px;
+  cursor: pointer;
+}
+.q-combo-list li:hover,
+.q-combo-list li.active {
+  background: var(--hover);
+}

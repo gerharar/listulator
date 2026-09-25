@@ -371,6 +371,8 @@ export const en = {
       empty: 'No items yet.',
       /** Header actions that arrive with later tasks: shown, disabled, and honest about it. */
       comingSoon: 'Coming soon',
+      noGroup: 'No group',
+      createGroup: (name: string): string => `+ Create “${name}”`,
       editList: 'Edit list',
       checkForUpdates: 'Check for updates',
       order: 'Order',
