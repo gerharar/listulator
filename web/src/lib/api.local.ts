@@ -873,5 +873,11 @@ export function createLocalApi(): ApiClient {
       const suggestions = await localSuggest(database, userId, 'quickie')
       return { picks: suggestions.map(toSuggestionPick) }
     },
+
+    finalizer: async () => {
+      const [database, userId] = [await getDb(), await getUserId()]
+      const suggestions = await localSuggest(database, userId, 'finalizer')
+      return { picks: suggestions.map(toSuggestionPick) }
+    },
   }
 }

@@ -6,12 +6,14 @@
 // so a strategy is checked identically in both places. `engine.ts`'s `rank`
 // is untouched — this module only replaces how a `Strategy` object is
 // obtained, per docs/DECISIONS.md's "Standalone-app distribution" plan.
+import finalizer from '../../../../config/strategies/finalizer.json'
 import quickie from '../../../../config/strategies/quickie.json'
 import suggest from '../../../../config/strategies/suggest.json'
 import tiredBoss from '../../../../config/strategies/tired-boss.json'
 import { parseStrategy, StrategyError, type Strategy } from '../../../../server/src/suggestions/strategy.js'
 
 const BUNDLED: Record<string, unknown> = {
+  finalizer,
   quickie,
   suggest,
   'tired-boss': tiredBoss,

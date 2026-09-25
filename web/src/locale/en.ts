@@ -378,6 +378,13 @@ export const en = {
       loading: 'Finding something…',
       failed: 'Could not get a suggestion',
       retry: 'Try again',
+      finalizer: {
+        title: 'Finish Him!',
+        explain: 'Tie up loose ends from lists that are closest to being finished',
+        why: (percent: number, left: string): string => `Closest to the finish line: ${percent}% done, only ${left} left.`,
+        whyComplete: 'The list is complete, so finishing it stays finished.',
+        whyOngoing: 'Marked ongoing — nothing finishable is closer.',
+      },
       tired: {
         title: 'And Now For Something Completely Different',
         explain: 'Tired of grinding a list and want something else from a different medium?',

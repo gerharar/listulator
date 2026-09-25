@@ -257,6 +257,7 @@ export interface ApiClient {
   tiredBoss: (currentListId: string) => Promise<{ picks: SuggestionPick[] }>
   suggest: () => Promise<{ picks: SuggestionPick[] }>
   quickie: () => Promise<{ picks: SuggestionPick[] }>
+  finalizer: () => Promise<{ picks: SuggestionPick[] }>
   searchSources: (
     mediaType: string,
     query: string,
@@ -449,6 +450,8 @@ export const fetchApi: ApiClient = {
   suggest: () => request<{ picks: SuggestionPick[] }>('/suggestions/suggest'),
 
   quickie: () => request<{ picks: SuggestionPick[] }>('/suggestions/quickie'),
+
+  finalizer: () => request<{ picks: SuggestionPick[] }>('/suggestions/finalizer'),
 
   searchSources: (
     mediaType: string,

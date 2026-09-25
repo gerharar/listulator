@@ -15,6 +15,7 @@ import { useLayerStack } from '../layerStack/LayerStackContext.js'
 import { loadLastOpened } from '../../../lib/lastOpened.js'
 import { subscribeListsChanged } from '../../../lib/listsChanged.js'
 import { getPreferencesStore } from '../../../lib/preferences/store.js'
+import { FinalizerSheet } from '../HelperSheet/FinalizerSheet.js'
 import { TiredBossSheet } from '../HelperSheet/TiredBossSheet.js'
 import { getPendingUpdates, useChecking, usePendingMap, type PendingUpdates } from '../../../lib/pendingUpdates.js'
 import { applyUpdate, checkLists } from '../../../lib/updateCheck.js'
@@ -64,7 +65,9 @@ export function Home({ onMediaTypesLoaded, pendingUpdates }: HomeProps) {
   const [error, setError] = useState<string | null>(null)
   const [retryToken, setRetryToken] = useState(0)
   // The open helper sheet, if any; it starts on the list opened last.
-  const [helper, setHelper] = useState<{ initialTarget: string | undefined } | null>(null)
+  const [helper, setHelper] = useState<
+    { kind: 'tired'; initialTarget: string | undefined } | { kind: 'finalizer' } | null
+  >(null)
   // The room the sheet has: from just under the help row to the bottom of the card that clips it.
   const homeRef = useRef<HTMLDivElement>(null)
   const anchorRef = useRef<HTMLDivElement>(null)
@@ -159,13 +162,19 @@ export function Home({ onMediaTypesLoaded, pendingUpdates }: HomeProps) {
   // Undo of a delete, say): the ordinary top-layer refetch will not fire.
   useEffect(() => subscribeListsChanged(() => setRetryToken((token) => token + 1)), [])
 
-  /** Opens I'm Tired, Boss on the list opened last, or closes it if it is already open. */
-  async function toggleTired() {
-    if (helper) {
+  /** Opens a helper sheet (I'm Tired, Boss on the list opened last), or closes it if it is the one already open. One at a time. */
+  async function toggleHelper(kind: 'tired' | 'finalizer') {
+    if (helper?.kind === kind) {
       setHelper(null)
       return
     }
-    setHelper({ initialTarget: await loadLastOpened(getPreferencesStore()) })
+    setHelper(kind === 'finalizer' ? { kind } : { kind, initialTarget: await loadLastOpened(getPreferencesStore()) })
+  }
+
+  const openHelperList = (listId: string) => {
+    const target = lists.find((entry) => entry.id === listId)
+    setHelper(null)
+    if (target) layerStack.push(listLayer(target))
   }
 
   /** Home's explicit check: every list with a source, a band appearing as each is answered. */
@@ -300,19 +309,25 @@ export function Home({ onMediaTypesLoaded, pendingUpdates }: HomeProps) {
         <Button
           variant="quiet"
           size="sm"
-          className={helper ? 'on' : undefined}
-          aria-pressed={helper !== null}
+          className={helper?.kind === 'tired' ? 'on' : undefined}
+          aria-pressed={helper?.kind === 'tired'}
           onPointerDown={(event) => event.stopPropagation()}
-          onClick={() => void toggleTired()}
+          onClick={() => void toggleHelper('tired')}
         >
           {copy.quantum.home.helpButtons.tiredBoss}
         </Button>
+        <Button
+          variant="quiet"
+          size="sm"
+          className={helper?.kind === 'finalizer' ? 'on' : undefined}
+          aria-pressed={helper?.kind === 'finalizer'}
+          onPointerDown={(event) => event.stopPropagation()}
+          onClick={() => void toggleHelper('finalizer')}
+        >
+          {copy.quantum.home.helpButtons.finalizer}
+        </Button>
         {(
-          [
-            copy.quantum.home.helpButtons.finalizer,
-            copy.quantum.home.helpButtons.justOneFix,
-            copy.quantum.home.helpButtons.surpriseMe,
-          ] as const
+          [copy.quantum.home.helpButtons.justOneFix, copy.quantum.home.helpButtons.surpriseMe] as const
         ).map((label) => (
           <Button key={label} variant="quiet" size="sm" disabled title={copy.quantum.home.helpComingSoon(label)}>
             {label}
@@ -321,17 +336,17 @@ export function Home({ onMediaTypesLoaded, pendingUpdates }: HomeProps) {
       </div>
       {helper && (
         <div className="q-help-anchor" ref={anchorRef} style={{ '--help-room': room === undefined ? undefined : `${room}px` } as CSSProperties}>
-          <TiredBossSheet
-            open
-            onClose={() => setHelper(null)}
-            lists={lists}
-            initialTarget={helper.initialTarget}
-            onOpenList={(listId) => {
-              const target = lists.find((entry) => entry.id === listId)
-              setHelper(null)
-              if (target) layerStack.push(listLayer(target))
-            }}
-          />
+          {helper.kind === 'tired' ? (
+            <TiredBossSheet
+              open
+              onClose={() => setHelper(null)}
+              lists={lists}
+              initialTarget={helper.initialTarget}
+              onOpenList={openHelperList}
+            />
+          ) : (
+            <FinalizerSheet open onClose={() => setHelper(null)} onOpenList={openHelperList} />
+          )}
         </div>
       )}
 

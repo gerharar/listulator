@@ -43,3 +43,19 @@ export function whyTired(pick: SuggestionPick): string {
     ? `${first} ${text.whyProgress(Math.round(completionPercent), formatDuration(timeRemainingMinutes))}.`
     : first
 }
+
+/**
+ * Finalizer's one-line why: how close the list is, then which band it sits in
+ * when that is what decided it — a complete list stays finished; an ongoing one
+ * on top means nothing finishable is closer.
+ */
+export function whyFinalizer(pick: SuggestionPick): string {
+  const text = copy.quantum.helper.finalizer
+  const { completionPercent, timeRemainingMinutes } = pick.list.stats
+  const base = text.why(Math.round(completionPercent), formatDuration(timeRemainingMinutes))
+
+  if (pick.list.status === 'complete') return `${base} ${text.whyComplete}`
+  if (pick.list.status === 'ongoing') return `${base} ${text.whyOngoing}`
+
+  return base
+}

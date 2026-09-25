@@ -1,15 +1,22 @@
 import { describe, expect, it } from 'vitest'
 import type { SuggestionPick } from '../../../lib/api.js'
-import { pickKey, reroll, whyTired } from './helperPicks.js'
+import { pickKey, reroll, whyFinalizer, whyTired } from './helperPicks.js'
 
 const pick = (
   id: string,
-  over: { item?: string | null; factors?: Record<string, number>; percent?: number; left?: number } = {},
+  over: {
+    item?: string | null
+    factors?: Record<string, number>
+    percent?: number
+    left?: number
+    status?: 'complete' | 'ongoing' | null
+  } = {},
 ): SuggestionPick =>
   ({
     list: {
       id,
       title: id,
+      status: over.status ?? null,
       stats: { completionPercent: over.percent ?? 45.4, timeRemainingMinutes: over.left ?? 120 },
     },
     nextItem: over.item === null ? null : { id: over.item ?? `${id}-next`, title: 'Next' },
@@ -68,6 +75,24 @@ describe('whyTired', () => {
   it('still says something when neither factor stands out', () => {
     expect(whyTired(pick('a', { factors: { neglect_time: 0.2, completion_percent: 0.3 } }))).toBe(
       'Different medium — the best match among what is left.',
+    )
+  })
+})
+
+describe('whyFinalizer', () => {
+  it('says how close it is', () => {
+    expect(whyFinalizer(pick('a', { percent: 94.4, left: 90 }))).toBe('Closest to the finish line: 94% done, only 1h 30m left.')
+  })
+
+  it('adds that a complete list stays finished', () => {
+    expect(whyFinalizer(pick('a', { status: 'complete' }))).toBe(
+      'Closest to the finish line: 45% done, only 2h left. The list is complete, so finishing it stays finished.',
+    )
+  })
+
+  it('says so when even the best is an ongoing list, so nothing finishable is closer', () => {
+    expect(whyFinalizer(pick('a', { status: 'ongoing' }))).toBe(
+      'Closest to the finish line: 45% done, only 2h left. Marked ongoing — nothing finishable is closer.',
     )
   })
 })

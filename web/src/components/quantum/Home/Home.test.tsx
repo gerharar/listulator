@@ -29,6 +29,7 @@ vi.mock('../../../lib/api.js', () => ({
     checkForUpdates: vi.fn(),
     importItems: vi.fn(),
     tiredBoss: vi.fn(),
+    finalizer: vi.fn(),
   },
 }))
 
@@ -229,7 +230,7 @@ describe('Home', () => {
     expect(screen.getByTestId('stack').textContent).toBe('home:home,category-picker:category-picker')
   })
 
-  it('shows the four help buttons, only I’m Tired, Boss live so far, and no others', async () => {
+  it('shows the four help buttons, I’m Tired, Boss and Finalizer live so far, and no others', async () => {
     vi.mocked(api.mediaTypes).mockResolvedValue(MEDIA_TYPES)
     vi.mocked(api.lists).mockResolvedValue([list()])
 
@@ -237,8 +238,10 @@ describe('Home', () => {
 
     await waitFor(() => expect(screen.getByText('Breaking Bad')).not.toBeNull())
 
-    expect(screen.getByRole('button', { name: "I'm Tired, Boss" }).hasAttribute('disabled')).toBe(false)
-    for (const label of ['Finalizer', 'Just One Fix', 'Surprise Me']) {
+    for (const label of ["I'm Tired, Boss", 'Finalizer']) {
+      expect(screen.getByRole('button', { name: label }).hasAttribute('disabled')).toBe(false)
+    }
+    for (const label of ['Just One Fix', 'Surprise Me']) {
       expect(screen.getByRole('button', { name: label }).hasAttribute('disabled')).toBe(true)
     }
     // Suggest and Quickie are retired from the UI (their strategy files stay on disk).
@@ -664,6 +667,69 @@ describe('Home updates (task 10.22c)', () => {
       expect(await screen.findAllByText('Could not check 1 list: Bravo')).not.toHaveLength(0)
       expect(bandFor('Alpha')).toBeDefined()
       expect(bandFor('Charlie')).toBeDefined()
+    })
+  })
+
+  describe('Finalizer', () => {
+    const finalizer = () => screen.getByRole('button', { name: 'Finalizer' })
+    const tired = () => screen.getByRole('button', { name: "I'm Tired, Boss" })
+
+    async function ready() {
+      vi.mocked(api.mediaTypes).mockResolvedValue(MEDIA_TYPES)
+      vi.mocked(api.lists).mockResolvedValue([list(), list({ id: 'list-2', title: 'The Wire' })])
+      vi.mocked(api.finalizer).mockResolvedValue({
+        picks: [
+          {
+            list: list({ id: 'list-2', title: 'The Wire' }),
+            nextItem: { id: 'i', title: 'Pilot', timeToConsumeMinutes: 58 } as never,
+            score: 1,
+            factors: { status_band: 1, completion_percent: 1 },
+          },
+        ],
+      })
+      vi.mocked(api.tiredBoss).mockResolvedValue({ picks: [] })
+      renderHome()
+      await waitFor(() => expect(screen.getByText('Breaking Bad')).not.toBeNull())
+    }
+
+    afterEach(() => preferences.clear())
+
+    it('opens its sheet, lights its button, and a second click closes it', async () => {
+      await ready()
+
+      fireEvent.click(finalizer())
+      expect(await screen.findByText('Finish Him!')).toBeTruthy()
+      expect(await screen.findByText('Pilot')).toBeTruthy()
+      expect(finalizer().getAttribute('aria-pressed')).toBe('true')
+      expect(tired().getAttribute('aria-pressed')).toBe('false')
+
+      fireEvent.click(finalizer())
+      await waitFor(() => expect(screen.queryByText('Finish Him!')).toBeNull())
+    })
+
+    it('replaces the other sheet rather than stacking on it', async () => {
+      preferences.set('lastOpenedList', 'list-1')
+      await ready()
+
+      fireEvent.click(tired())
+      expect(await screen.findByText('And Now For Something Completely Different')).toBeTruthy()
+      fireEvent.click(finalizer())
+
+      expect(await screen.findByText('Finish Him!')).toBeTruthy()
+      expect(screen.queryByText('And Now For Something Completely Different')).toBeNull()
+      expect(tired().getAttribute('aria-pressed')).toBe('false')
+      expect(document.querySelectorAll('.q-sheet')).toHaveLength(1)
+    })
+
+    it('Open The List opens that list’s layer and closes the sheet', async () => {
+      await ready()
+      fireEvent.click(finalizer())
+      await screen.findByText('Pilot')
+
+      fireEvent.click(screen.getByRole('button', { name: 'Open The List' }))
+
+      expect(screen.getByTestId('stack').textContent).toBe('home:home,list:list-list-2')
+      await waitFor(() => expect(screen.queryByText('Finish Him!')).toBeNull())
     })
   })
 })
