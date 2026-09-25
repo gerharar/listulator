@@ -401,7 +401,7 @@ function ListView({
       await api.setConsumed(listId, item.id, nowDone)
     } catch {
       setItems(previous)
-      setError(copy.listDetail.saveFailed)
+      setError(copy.quantum.list.saveFailed)
     }
   }
 

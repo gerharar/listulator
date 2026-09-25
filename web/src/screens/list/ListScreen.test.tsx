@@ -814,7 +814,8 @@ describe('ListScreen updates (task 10.25)', () => {
 
         await waitFor(() => expect(foundBand()).toBeUndefined())
         expect(api.importItems).not.toHaveBeenCalled()
-        expect(document.querySelector('.q-toast')!.textContent).toMatch(/No new items upstream\./)
+        // The toast is raised by the same async step that clears the band, not before it.
+        await waitFor(() => expect(document.querySelector('.q-toast')?.textContent).toMatch(/No new items upstream\./))
       })
 
       it('keeps the band, and says why, when it fails', async () => {

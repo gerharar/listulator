@@ -28,83 +28,8 @@ import type { Widen } from './types.js'
 
 export const en = {
   app: {
-    /** Split so the second half can take the accent colour. */
-    brandLead: 'LIST',
-    brandTail: 'ULATOR',
-    themeLabel: 'Theme',
     loading: 'Loading…',
     unknownError: 'Something went wrong',
-  },
-
-  themes: {
-    dn: 'Dark grey',
-    dark: 'Dark',
-    brown: 'Brown',
-    orange: 'Orange',
-    bone: 'Bone white',
-    white: 'White',
-  },
-
-  listDetail: {
-    back: '← All lists',
-    loadFailed: 'Could not load this list',
-    saveFailed: 'Could not save that change',
-    removeFailed: (title: string): string => `Could not remove "${title}"`,
-    deleteListConfirm: (title: string): string => `Delete "${title}" and all its items?`,
-    deleteList: 'Delete list',
-    confirmDeleteList: 'Yes, delete',
-    deletingList: 'Deleting…',
-    deleteListFailed: 'Could not delete this list',
-    removeItem: (title: string): string => `Remove ${title}`,
-    reAddDeleted: 'Re-add deleted entries',
-    reAddDeletedHint:
-      'Deleting an item stops a rescan offering it back. Tick this to include everything you have deleted.',
-    checkForUpdates: 'Check for updates',
-    /** Replaces checkForUpdates when arriving with an update already known to be available. */
-    updateList: 'Update list',
-    checking: 'Checking…',
-    checkFailed: 'Could not check for updates',
-    /** Task 7.6: confirms why this list was highlighted from Overview. */
-    updateAvailableNotice: 'An update is available for this list.',
-    addFailed: 'Could not add them',
-    upToDate: (upstreamCount: number): string =>
-      `Up to date — nothing new in the source's ${upstreamCount}.`,
-    heldBack: (n: number): string =>
-      ` ${n} ${n === 1 ? 'entry you deleted is' : 'entries you deleted are'} being held back.`,
-    foundCount: (n: number): string => `${n} ${n === 1 ? 'entry' : 'entries'}`,
-    /** With the box ticked these are things you deleted, not things the source gained. */
-    foundToPutBack: 'to put back:',
-    foundNew: 'new since this list was built:',
-    andMore: (n: number): string => ` … and ${n} more`,
-    addToList: (n: number): string => `Add ${n} to this list`,
-    finished: 'Finished',
-    nothingToDo: 'Nothing to do yet',
-    empty: 'This list has no items yet.',
-    percentComplete: (percent: number): string => `${percent}% complete`,
-    timeLeft: (duration: string): string => `${duration} left`,
-    addItemTitleLabel: 'Title',
-    addItemDurationLabel: 'Minutes (leave blank to guess)',
-    /** Generic on purpose — the underlying field works for a TV season, a comic story arc, etc. */
-    groupLabel: 'Group (optional, e.g. Season 1)',
-    addItem: 'Add item',
-    addingItem: 'Adding…',
-    addItemFailed: 'Could not add that item',
-    editItem: (title: string): string => `Edit ${title}`,
-    saveItem: 'Save',
-    savingItem: 'Saving…',
-    cancelEdit: 'Cancel',
-    updateItemFailed: 'Could not save that item',
-    /** Placeholder styling per the user's own suggestion — task 6.2. */
-    manualItemBadge: '[M]',
-    manualItemHint: 'Added by hand, not from a search import',
-    /** Generic per-item display tag (SPEC.md §4) — a release type, a language, a medium, etc. */
-    tagBadgeHint: (tag: string): string => `Tag: ${tag}`,
-    expandGroup: (label: string): string => `Expand ${label}`,
-    collapseGroup: (label: string): string => `Collapse ${label}`,
-    reorderFailed: 'Could not save the new order',
-    dragHandle: 'Drag to reorder',
-    moveUp: (title: string): string => `Move ${title} up`,
-    moveDown: (title: string): string => `Move ${title} down`,
   },
 
   newList: {
@@ -531,6 +456,8 @@ export const en = {
     },
     list: {
       loading: 'Loading the list…',
+      /** A tick, or another edit, the server would not take — shown as the list's error strip. */
+      saveFailed: 'Could not save that change',
       loadFailedHeadline: "Can't open this list",
       retry: 'Retry',
       empty: 'No items yet.',

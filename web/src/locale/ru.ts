@@ -16,7 +16,6 @@ import type { DeepPartial } from './types.js'
  */
 export const ru: DeepPartial<Locale> = {
   app: {
-    themeLabel: 'Тема',
     loading: 'Загрузка…',
     unknownError: 'Что-то пошло не так',
   },

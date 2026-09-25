@@ -53,10 +53,6 @@ describe('locale', () => {
     // locale is what stops each surface inventing its own rule.
     expect(copy.quantum.home.listCount(1)).toBe('1 list')
     expect(copy.quantum.home.listCount(2)).toBe('2 lists')
-    expect(copy.listDetail.foundCount(1)).toBe('1 entry')
-    expect(copy.listDetail.foundCount(3)).toBe('3 entries')
-    expect(copy.listDetail.heldBack(1)).toContain('entry you deleted is')
-    expect(copy.listDetail.heldBack(2)).toContain('entries you deleted are')
     expect(copy.quantum.addByHand.count(1, 0)).toBe('1 item')
     expect(copy.quantum.addByHand.count(9, 1)).toBe('9 items in 1 group')
     expect(copy.quantum.addByHand.count(2, 3)).toBe('2 items in 3 groups')
@@ -93,13 +89,6 @@ describe('locale', () => {
     // An older web against a newer server. The caller then falls through to
     // whatever the response carried.
     expect(errorMessage('something.invented')).toBeUndefined()
-  })
-
-  it('has a name for every theme the app offers', () => {
-    // A theme with no name renders an empty option.
-    for (const key of ['dn', 'dark', 'brown', 'orange', 'bone', 'white'] as const) {
-      expect(copy.themes[key]).toBeTruthy()
-    }
   })
 })
 
