@@ -1,5 +1,5 @@
 import './Home.css'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from 'react'
 import { RefreshCw } from 'lucide-react'
 import { api, type MediaList, type MediaType } from '../../../lib/api.js'
 import { buildBuckets, findOrphanedLists, listMark } from '../../../lib/buckets.js'
@@ -35,6 +35,9 @@ function listLayer(list: MediaList): LayerDescriptor<string> {
   return { id: `list-${list.id}`, kind: 'list', tabLabel: list.title, content: `/lists/${list.id}` }
 }
 
+/** How far the helper sheet hangs below the help row, before it starts. */
+const SHEET_DROP = 18
+
 /** At most this many update bands at once; handling one lets the next take its place. */
 const MAX_UPDATE_BANDS = 3
 
@@ -62,6 +65,28 @@ export function Home({ onMediaTypesLoaded, pendingUpdates }: HomeProps) {
   const [retryToken, setRetryToken] = useState(0)
   // The open helper sheet, if any; it starts on the list opened last.
   const [helper, setHelper] = useState<{ initialTarget: string | undefined } | null>(null)
+  // The room the sheet has: from just under the help row to the bottom of the card that clips it.
+  const homeRef = useRef<HTMLDivElement>(null)
+  const anchorRef = useRef<HTMLDivElement>(null)
+  const [room, setRoom] = useState<number | undefined>(undefined)
+
+  useLayoutEffect(() => {
+    if (!helper) return undefined
+
+    function measure() {
+      const home = homeRef.current
+      const anchor = anchorRef.current
+      if (!home || !anchor) return
+      // A banner appearing above moves the anchor, so this runs after every render as well as on resize.
+      const next = Math.max(120, Math.floor(home.getBoundingClientRect().bottom - anchor.getBoundingClientRect().top - SHEET_DROP))
+      setRoom((current) => (current === next ? current : next))
+    }
+
+    measure()
+    window.addEventListener('resize', measure)
+
+    return () => window.removeEventListener('resize', measure)
+  })
 
   // What explicit checks have found and nobody has applied or dismissed yet
   // (persisted; owner rulings, 10.22c). Nothing here checks by itself.
@@ -235,7 +260,7 @@ export function Home({ onMediaTypesLoaded, pendingUpdates }: HomeProps) {
   )
 
   return (
-    <div className="q-home">
+    <div className="q-home" ref={homeRef}>
       <HomeHeader
         onCheckUpdates={() => void checkUpdatesNow()}
         checking={checkingUpdates}
@@ -295,7 +320,7 @@ export function Home({ onMediaTypesLoaded, pendingUpdates }: HomeProps) {
         ))}
       </div>
       {helper && (
-        <div className="q-help-anchor">
+        <div className="q-help-anchor" ref={anchorRef} style={{ '--help-room': room === undefined ? undefined : `${room}px` } as CSSProperties}>
           <TiredBossSheet
             open
             onClose={() => setHelper(null)}

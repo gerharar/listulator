@@ -58,23 +58,24 @@ test('opens on the list opened last, never offers its medium, and Open The List 
     await expect(sheet(page).locator('.q-tired-target')).toContainText(TITLES.openedTv)
     await expect(tiredButton(page)).toHaveAttribute('aria-pressed', 'true')
     await expect(sheet(page).locator('.q-pick')).toBeVisible()
-    await page.screenshot({ path: 'test-results/tired-boss.png' })
 
-    // No TV list is offered, from this run or a parallel one (the named list and its medium are out);
-    // this run's game and book are (three alternates at most, so other runs' lists cannot crowd them out
-    // only by chance: ask for them through Not That until both have shown).
-    const seen = new Set<string>()
-    for (let i = 0; i < 8; i += 1) {
+    // No TV list is ever offered, from this run or a parallel one (the named list and its medium are
+    // out). Turn picks down until one of this run's own lists is on top, then open it: parallel runs
+    // create and delete their own lists, so opening an arbitrary pick could open one that just went.
+    let mine: string | undefined
+    for (let i = 0; i < 40 && !mine; i += 1) {
       const offered = (await sheet(page).locator('.q-pick-list, .q-alt .alt-list').allTextContents()).join(' | ')
       expect(offered).not.toContain('e2e tired tv')
-      for (const title of [TITLES.game, TITLES.book]) if (offered.includes(title)) seen.add(title)
-      if (seen.size === 2) break
-      await sheet(page).getByRole('button', { name: 'Not That' }).click()
+      const top = await sheet(page).locator('.q-pick-list').textContent()
+      mine = [TITLES.game, TITLES.book].find((title) => top?.includes(title))
+      if (!mine) await sheet(page).getByRole('button', { name: 'Not That' }).click()
     }
-    expect([...seen].sort()).toEqual([TITLES.book, TITLES.game].sort())
+    expect(mine, 'one of this run’s own lists came up').toBeTruthy()
+    await page.screenshot({ path: 'test-results/tired-boss.png' })
 
     await sheet(page).getByRole('button', { name: 'Open The List' }).click()
     await expect(sheet(page)).toHaveCount(0)
+    await expect(page.locator('.q-list-title')).toContainText(mine!)
     await expect(page.locator('.q-item').first()).toBeVisible()
   } finally {
     for (const id of ids) await page.request.delete(`/api/lists/${id}`)
@@ -129,6 +130,38 @@ test('a press outside the sheet closes it', async ({ page }) => {
 
     await page.locator('.q-home-head').click({ position: { x: 5, y: 5 } })
     await expect(sheet(page)).toHaveCount(0)
+  } finally {
+    for (const id of ids) await page.request.delete(`/api/lists/${id}`)
+  }
+})
+
+test('the sheet stays inside the home card, and every alternate can be reached', async ({ page }) => {
+  const ids = [
+    await makeList(page.request, `e2e tired fit tv ${stamp}`, 'tv', 1),
+    await makeList(page.request, `e2e tired fit game ${stamp}`, 'game', 1),
+    await makeList(page.request, `e2e tired fit book ${stamp}`, 'book', 1),
+    await makeList(page.request, `e2e tired fit comic ${stamp}`, 'comic', 1),
+    await makeList(page.request, `e2e tired fit music ${stamp}`, 'music', 1),
+  ]
+
+  try {
+    await openAndCloseList(page, `e2e tired fit tv ${stamp}`)
+    await tiredButton(page).click()
+    await expect(sheet(page).locator('.q-pick')).toBeVisible()
+    await expect(sheet(page).locator('.q-alt')).toHaveCount(3)
+
+    // The card clips whatever sticks out of it: the sheet must end inside it, with its own bottom border.
+    const card = (await page.locator('.q-home').boundingBox())!
+    const box = (await sheet(page).boundingBox())!
+    expect(box.y + box.height).toBeLessThanOrEqual(card.y + card.height + 0.5)
+
+    // The last alternate can be scrolled to and seen inside the card.
+    const last = sheet(page).locator('.q-alt').last()
+    await last.scrollIntoViewIfNeeded()
+    await expect(last).toBeVisible()
+    const lastBox = (await last.boundingBox())!
+    expect(lastBox.y + lastBox.height).toBeLessThanOrEqual(card.y + card.height + 0.5)
+    await page.screenshot({ path: 'test-results/tired-boss-fit.png' })
   } finally {
     for (const id of ids) await page.request.delete(`/api/lists/${id}`)
   }
