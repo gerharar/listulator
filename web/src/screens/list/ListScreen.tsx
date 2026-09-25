@@ -8,6 +8,7 @@ import { getPendingUpdates, usePendingMap, type PendingUpdates } from '../../lib
 import { applyUpdate, checkList } from '../../lib/updateCheck.js'
 import { exportFileName, exportList } from '../../lib/exportList.js'
 import { notifyListsChanged } from '../../lib/listsChanged.js'
+import { saveLastOpened } from '../../lib/lastOpened.js'
 import { getPreferencesStore } from '../../lib/preferences/store.js'
 import { categoryLabel, copy } from '../../locale/index.js'
 import { Banner } from '../../components/quantum/Banner/Banner.js'
@@ -105,6 +106,7 @@ export function ListScreen({ listId, mediaTypes, pendingUpdates, onLeave, onClos
       )
       const focusId = await loadFocus(store, listId)
       const railHidden = await loadRailHidden(store, listId)
+      void saveLastOpened(store, listId)
       if (request.current === mine) setLoad({ state: 'ready', list, collapsed, focusId, railHidden })
     } catch (cause) {
       if (request.current === mine) {

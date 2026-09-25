@@ -366,6 +366,37 @@ export const en = {
         `Each is assumed to take about ${duration}, which you can correct later.`,
       createFailed: 'Could not create the list',
     },
+    /** The helper sheets under Home's "Need help?" row (tasks 10.26–10.29); copy is the prototype's. */
+    helper: {
+      topPick: 'Top pick',
+      alternates: 'Alternates',
+      openList: 'Open The List',
+      notThat: 'Not That',
+      /** Announced when every pick has been turned down and the strongest is offered again. */
+      backToStrongest: 'Back to the strongest pick',
+      nothingUnfinished: 'Nothing left unfinished — add a list.',
+      loading: 'Finding something…',
+      failed: 'Could not get a suggestion',
+      retry: 'Try again',
+      tired: {
+        title: 'And Now For Something Completely Different',
+        explain: 'Tired of grinding a list and want something else from a different medium?',
+        tiredOf: "I'm tired of going through",
+        pickList: 'Pick a list',
+        pickTitle: 'Pick the list you are tired of',
+        pickerKicker: 'OR?',
+        pickerCount: (shown: number, total: number): string => `${shown} of ${total}`,
+        pickerFilter: 'Filter lists…',
+        pickerNone: (query: string): string => `No list matches “${query}”.`,
+        /** Nothing from another medium has anything left to offer. */
+        nothingElse: 'Nothing else to offer: everything unfinished is in the same medium.',
+        /** The one-line why, built from what made the pick (neglect, progress). */
+        whyBase: 'Different medium',
+        whyNeglected: 'and you have not touched it in a while',
+        whyProgress: (percent: number, left: string): string => `${percent}% done, ${left} left`,
+        whyFallback: 'Different medium — the best match among what is left.',
+      },
+    },
     /** The platform chip's popover (design: PlatformChip). */
     platformCard: {
       one: 'Platform',

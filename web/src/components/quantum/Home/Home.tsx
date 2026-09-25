@@ -12,7 +12,10 @@ import { Banner } from '../Banner/Banner.js'
 import { ErrorBlock } from '../ErrorBlock/ErrorBlock.js'
 import { useToast } from '../Toast/Toast.js'
 import { useLayerStack } from '../layerStack/LayerStackContext.js'
+import { loadLastOpened } from '../../../lib/lastOpened.js'
 import { subscribeListsChanged } from '../../../lib/listsChanged.js'
+import { getPreferencesStore } from '../../../lib/preferences/store.js'
+import { TiredBossSheet } from '../HelperSheet/TiredBossSheet.js'
 import { getPendingUpdates, useChecking, usePendingMap, type PendingUpdates } from '../../../lib/pendingUpdates.js'
 import { applyUpdate, checkLists } from '../../../lib/updateCheck.js'
 import type { LayerDescriptor } from '../layerStack/layerStack.js'
@@ -57,6 +60,8 @@ export function Home({ onMediaTypesLoaded, pendingUpdates }: HomeProps) {
   const [mediaTypes, setMediaTypes] = useState<MediaType[]>([])
   const [error, setError] = useState<string | null>(null)
   const [retryToken, setRetryToken] = useState(0)
+  // The open helper sheet, if any; it starts on the list opened last.
+  const [helper, setHelper] = useState<{ initialTarget: string | undefined } | null>(null)
 
   // What explicit checks have found and nobody has applied or dismissed yet
   // (persisted; owner rulings, 10.22c). Nothing here checks by itself.
@@ -128,6 +133,15 @@ export function Home({ onMediaTypesLoaded, pendingUpdates }: HomeProps) {
   // Something elsewhere added or removed a list while Home was covered (the
   // Undo of a delete, say): the ordinary top-layer refetch will not fire.
   useEffect(() => subscribeListsChanged(() => setRetryToken((token) => token + 1)), [])
+
+  /** Opens I'm Tired, Boss on the list opened last, or closes it if it is already open. */
+  async function toggleTired() {
+    if (helper) {
+      setHelper(null)
+      return
+    }
+    setHelper({ initialTarget: await loadLastOpened(getPreferencesStore()) })
+  }
 
   /** Home's explicit check: every list with a source, a band appearing as each is answered. */
   async function checkUpdatesNow() {
@@ -257,9 +271,19 @@ export function Home({ onMediaTypesLoaded, pendingUpdates }: HomeProps) {
 
       <div className="q-help-row">
         <span className="q-kicker section">{copy.quantum.home.needHelp}</span>
+        {/* The lit button says which sheet is open; a press on it must not also count as "outside" and close the sheet first. */}
+        <Button
+          variant="quiet"
+          size="sm"
+          className={helper ? 'on' : undefined}
+          aria-pressed={helper !== null}
+          onPointerDown={(event) => event.stopPropagation()}
+          onClick={() => void toggleTired()}
+        >
+          {copy.quantum.home.helpButtons.tiredBoss}
+        </Button>
         {(
           [
-            copy.quantum.home.helpButtons.tiredBoss,
             copy.quantum.home.helpButtons.finalizer,
             copy.quantum.home.helpButtons.justOneFix,
             copy.quantum.home.helpButtons.surpriseMe,
@@ -270,6 +294,21 @@ export function Home({ onMediaTypesLoaded, pendingUpdates }: HomeProps) {
           </Button>
         ))}
       </div>
+      {helper && (
+        <div className="q-help-anchor">
+          <TiredBossSheet
+            open
+            onClose={() => setHelper(null)}
+            lists={lists}
+            initialTarget={helper.initialTarget}
+            onOpenList={(listId) => {
+              const target = lists.find((entry) => entry.id === listId)
+              setHelper(null)
+              if (target) layerStack.push(listLayer(target))
+            }}
+          />
+        </div>
+      )}
 
       <div className="q-home-body">
         {used.map((bucket) => (

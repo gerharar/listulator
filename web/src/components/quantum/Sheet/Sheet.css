@@ -44,3 +44,15 @@
 .q-sheet-body {
   padding: 18px 22px;
 }
+
+/* A full-width row under the head, before the body (prototype: the tired-of row). */
+.q-sheet-bar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 12px 22px;
+  border-bottom: 1px solid var(--line);
+  background: var(--fill);
+  font: 400 14px/1.3 var(--font-sans);
+}

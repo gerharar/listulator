@@ -1,9 +1,10 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { act, cleanup, render, screen, waitFor, within } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import type { MediaList, MediaType } from '../../../lib/api.js'
 import { api } from '../../../lib/api.js'
 import { LiveRegionProvider } from '../LiveRegion/LiveRegion.js'
+import { OverlayManagerProvider } from '../overlay/OverlayManagerContext.js'
 import { ToastProvider } from '../Toast/Toast.js'
 import { LayerStackProvider, useLayerStack } from '../layerStack/LayerStackContext.js'
 import { notifyListsChanged } from '../../../lib/listsChanged.js'
@@ -11,12 +12,23 @@ import { createPendingUpdates, type PendingUpdates } from '../../../lib/pendingU
 import type { PreferencesStore } from '../../../lib/preferences/store.js'
 import { Home } from './Home.js'
 
+const preferences = new Map<string, string>()
+
+vi.mock('../../../lib/preferences/store.js', () => ({
+  getPreferencesStore: () => ({
+    get: async (key: string) => preferences.get(key),
+    set: async (key: string, value: string) => void preferences.set(key, value),
+  }),
+  listPreferenceKey: (listId: string, key: string) => `list:${listId}:${key}`,
+}))
+
 vi.mock('../../../lib/api.js', () => ({
   api: {
     mediaTypes: vi.fn(),
     lists: vi.fn(),
     checkForUpdates: vi.fn(),
     importItems: vi.fn(),
+    tiredBoss: vi.fn(),
   },
 }))
 
@@ -83,11 +95,13 @@ function renderHome(onMediaTypesLoaded = vi.fn(), pending?: PendingUpdates) {
   return render(
     <LiveRegionProvider>
       <ToastProvider>
-        <LayerStackProvider home={{ id: 'home', kind: 'home', tabLabel: 'My Lists', content: '/' }}>
-          <StackReader />
-          <StackContent />
-          <Home onMediaTypesLoaded={onMediaTypesLoaded} {...(pending ? { pendingUpdates: pending } : {})} />
-        </LayerStackProvider>
+        <OverlayManagerProvider>
+          <LayerStackProvider home={{ id: 'home', kind: 'home', tabLabel: 'My Lists', content: '/' }}>
+            <StackReader />
+            <StackContent />
+            <Home onMediaTypesLoaded={onMediaTypesLoaded} {...(pending ? { pendingUpdates: pending } : {})} />
+          </LayerStackProvider>
+        </OverlayManagerProvider>
       </ToastProvider>
     </LiveRegionProvider>,
   )
@@ -215,7 +229,7 @@ describe('Home', () => {
     expect(screen.getByTestId('stack').textContent).toBe('home:home,category-picker:category-picker')
   })
 
-  it('shows the four disabled help buttons, and no others', async () => {
+  it('shows the four help buttons, only I’m Tired, Boss live so far, and no others', async () => {
     vi.mocked(api.mediaTypes).mockResolvedValue(MEDIA_TYPES)
     vi.mocked(api.lists).mockResolvedValue([list()])
 
@@ -223,12 +237,79 @@ describe('Home', () => {
 
     await waitFor(() => expect(screen.getByText('Breaking Bad')).not.toBeNull())
 
-    for (const label of ["I'm Tired, Boss", 'Finalizer', 'Just One Fix', 'Surprise Me']) {
-      const button = screen.getByRole('button', { name: label })
-      expect(button.hasAttribute('disabled')).toBe(true)
+    expect(screen.getByRole('button', { name: "I'm Tired, Boss" }).hasAttribute('disabled')).toBe(false)
+    for (const label of ['Finalizer', 'Just One Fix', 'Surprise Me']) {
+      expect(screen.getByRole('button', { name: label }).hasAttribute('disabled')).toBe(true)
     }
+    // Suggest and Quickie are retired from the UI (their strategy files stay on disk).
     expect(screen.queryByRole('button', { name: 'Suggest' })).toBeNull()
     expect(screen.queryByRole('button', { name: 'Quickie' })).toBeNull()
+  })
+
+  describe('I’m Tired, Boss', () => {
+    const tired = () => screen.getByRole('button', { name: "I'm Tired, Boss" })
+
+    async function ready() {
+      vi.mocked(api.mediaTypes).mockResolvedValue(MEDIA_TYPES)
+      vi.mocked(api.lists).mockResolvedValue([list(), list({ id: 'list-2', title: 'The Wire' })])
+      vi.mocked(api.tiredBoss).mockResolvedValue({
+        picks: [
+          {
+            list: list({ id: 'list-2', title: 'The Wire' }),
+            nextItem: { id: 'i', title: 'Pilot', timeToConsumeMinutes: 58 } as never,
+            score: 1,
+            factors: { neglect_time: 1, completion_percent: 1 },
+          },
+        ],
+      })
+      renderHome()
+      await waitFor(() => expect(screen.getByText('Breaking Bad')).not.toBeNull())
+    }
+
+    afterEach(() => preferences.clear())
+
+    it('opens the sheet under the row, lights the button, and a second click closes it', async () => {
+      await ready()
+
+      fireEvent.click(tired())
+      expect(await screen.findByText('And Now For Something Completely Different')).toBeTruthy()
+      expect(tired().getAttribute('aria-pressed')).toBe('true')
+
+      fireEvent.click(tired())
+      await waitFor(() => expect(screen.queryByText('And Now For Something Completely Different')).toBeNull())
+      expect(tired().getAttribute('aria-pressed')).toBe('false')
+    })
+
+    it('starts on the list opened last, and asks about it', async () => {
+      preferences.set('lastOpenedList', 'list-1')
+      await ready()
+
+      fireEvent.click(tired())
+
+      await waitFor(() => expect(api.tiredBoss).toHaveBeenCalledWith('list-1'))
+      expect(await screen.findByText('Pilot')).toBeTruthy()
+    })
+
+    it('starts with no list chosen when none has been opened yet', async () => {
+      await ready()
+
+      fireEvent.click(tired())
+
+      expect(await screen.findByRole('button', { name: /Pick a list/ })).toBeTruthy()
+      expect(api.tiredBoss).not.toHaveBeenCalled()
+    })
+
+    it('Open The List opens that list’s layer and closes the sheet', async () => {
+      preferences.set('lastOpenedList', 'list-1')
+      await ready()
+      fireEvent.click(tired())
+      await screen.findByText('Pilot')
+
+      fireEvent.click(screen.getByRole('button', { name: 'Open The List' }))
+
+      expect(screen.getByTestId('stack').textContent).toBe('home:home,list:list-list-2')
+      await waitFor(() => expect(screen.queryByText('And Now For Something Completely Different')).toBeNull())
+    })
   })
 
   it('refetches when Home becomes the top layer again, not just on first mount', async () => {

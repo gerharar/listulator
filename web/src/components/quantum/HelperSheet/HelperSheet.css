@@ -1,0 +1,71 @@
+/* The helper sheets' shared body (tasks 10.26–10.29); the frame is Sheet. */
+.q-helper-note { margin: 0; color: var(--ink2); font-size: 14px; line-height: 1.5; }
+.q-helper-note p { margin: 0 0 10px; }
+.q-helper-progress { display: flex; align-items: center; gap: 10px; color: var(--ink2); font-size: 14px; }
+
+.q-tired-lead { color: var(--ink2); }
+.q-tired-target {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 8px 11px;
+  border: 1px solid var(--line);
+  background: var(--field);
+  color: var(--ink);
+  font: 400 14px/1.2 var(--font-sans);
+  text-align: left;
+  cursor: pointer;
+}
+.q-tired-target:hover { border-color: var(--rule); }
+
+.q-tired-picker { display: flex; flex-direction: column; gap: 8px; }
+.q-tired-picker .head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+.q-tired-picker .head .q-kicker { margin: 0; }
+.q-tired-picker .count { font: 500 11px/1 var(--font-mono); color: var(--ink3); }
+.q-tired-picker .filter {
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  background: var(--field);
+  color: var(--ink);
+  font: 400 13px/1.2 var(--font-sans);
+}
+.q-tired-picker .options { display: flex; flex-direction: column; gap: 6px; max-height: 292px; overflow: auto; }
+.q-tired-picker .option {
+  padding: 9px 11px;
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--ink);
+  font: 600 13px/1.25 var(--font-sans);
+  text-align: left;
+  cursor: pointer;
+}
+.q-tired-picker .option:hover { background: var(--hover); border-color: var(--rule); }
+.q-tired-picker .option.current { border-color: var(--rule); }
+.q-tired-picker .none { margin: 0; font-size: 12.5px; line-height: 1.45; color: var(--ink2); }
+
+.q-pick { border: 1px solid var(--rule); padding: 17px 19px; }
+.q-pick .q-kicker { margin: 0; }
+.q-pick-item { margin-top: 10px; font-weight: 700; font-size: 19px; line-height: 1.25; color: var(--ink); }
+.q-pick-list { margin-top: 7px; font-size: 14px; color: var(--ink2); }
+.q-pick-why { margin-top: 11px; font-size: 13px; line-height: 1.5; color: var(--ink2); }
+.q-pick-actions { margin-top: 15px; display: flex; gap: 8px; }
+
+.q-alts-kicker { margin: 18px 0 0; }
+.q-alt {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 4px;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  background: transparent;
+  color: var(--ink);
+  text-align: left;
+  cursor: pointer;
+}
+.q-alt:hover { background: var(--fill); }
+.q-alt .alt-text { flex: 1; min-width: 0; }
+.q-alt .alt-item { display: block; font-weight: 500; font-size: 14px; line-height: 1.25; }
+.q-alt .alt-list { display: block; margin-top: 4px; font-size: 12.5px; color: var(--ink2); }
+.q-alt .alt-time { flex: none; font: 500 12px/1 var(--font-mono); color: var(--ink2); font-variant-numeric: tabular-nums; }

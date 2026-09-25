@@ -356,3 +356,11 @@ describe('Mega mediums', () => {
     expect(rowIds()).toEqual(['gm', 'ac1'])
   })
 })
+
+describe('the last opened list', () => {
+  it('is remembered when a list opens, for I’m Tired, Boss to start from', async () => {
+    await open()
+
+    await waitFor(() => expect(store.get('lastOpenedList')).toBe('L1'))
+  })
+})

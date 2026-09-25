@@ -77,4 +77,41 @@ describe('Sheet', () => {
 
     expect(onClose).toHaveBeenCalledOnce()
   })
+
+  it('hosts a bar between the head and the body when given one', () => {
+    render(
+      <OverlayManagerProvider>
+        <Sheet open onClose={vi.fn()} title="T" explain="E" bar={<span>the bar</span>}>
+          <span>the body</span>
+        </Sheet>
+      </OverlayManagerProvider>,
+    )
+
+    const bar = screen.getByText('the bar').parentElement!
+    expect(bar.className).toBe('q-sheet-bar')
+    expect(bar.nextElementSibling!.className).toBe('q-sheet-body')
+  })
+
+  it('does not close for a press inside a popover or its click-away layer, which sit outside it in the DOM', () => {
+    const onClose = vi.fn()
+    render(
+      <OverlayManagerProvider>
+        <Sheet open onClose={onClose} title="T" explain="E">
+          <span>body</span>
+        </Sheet>
+        <div className="q-pop">
+          <button>inside a popover</button>
+        </div>
+        <div className="q-catcher" />
+        <button>elsewhere</button>
+      </OverlayManagerProvider>,
+    )
+
+    fireEvent.pointerDown(screen.getByText('inside a popover'))
+    fireEvent.pointerDown(document.querySelector('.q-catcher')!)
+    expect(onClose).not.toHaveBeenCalled()
+
+    fireEvent.pointerDown(screen.getByText('elsewhere'))
+    expect(onClose).toHaveBeenCalledTimes(1)
+  })
 })

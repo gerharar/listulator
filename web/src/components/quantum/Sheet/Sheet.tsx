@@ -12,7 +12,9 @@ export interface SheetProps {
   explain: string
   /** The header wash's per-screen seed — task 10.8 supplies the actual pattern; this just carries the value through as `--sd`. */
   plateSeed?: number
-  /** The real pick/alternates body lands with the Suggestions tasks (10.26+) — this frame just hosts whatever it's given. */
+  /** A full-width row between the head and the body (I'm Tired, Boss's list picker, 10.26). */
+  bar?: ReactNode
+  /** The pick/alternates body of each helper — this frame just hosts whatever it's given. */
   children?: ReactNode
 }
 
@@ -21,7 +23,7 @@ export interface SheetProps {
  * title, explain, close) and the body slot, with no scrim: a click
  * anywhere outside it closes it (design-system/components/Sheet).
  */
-export function Sheet({ open, onClose, title, explain, plateSeed = 0, children }: SheetProps) {
+export function Sheet({ open, onClose, title, explain, plateSeed = 0, bar, children }: SheetProps) {
   const id = useId()
   const sheetRef = useRef<HTMLDivElement>(null)
   const onCloseRef = useRef(onClose)
@@ -33,7 +35,11 @@ export function Sheet({ open, onClose, title, explain, plateSeed = 0, children }
     if (!open) return undefined
 
     function onPointerDown(event: PointerEvent) {
-      if (sheetRef.current && !sheetRef.current.contains(event.target as Node)) {
+      const target = event.target as Element
+      // A popover opened from inside the sheet (a list picker) and its click-away
+      // layer are portalled outside it, but they belong to it.
+      if (target.closest?.('.q-pop, .q-catcher')) return
+      if (sheetRef.current && !sheetRef.current.contains(target)) {
         onCloseRef.current()
       }
     }
@@ -56,6 +62,7 @@ export function Sheet({ open, onClose, title, explain, plateSeed = 0, children }
           ✕
         </IconButton>
       </div>
+      {bar && <div className="q-sheet-bar">{bar}</div>}
       <div className="q-sheet-body">{children}</div>
     </div>
   )
