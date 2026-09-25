@@ -199,4 +199,47 @@ describe('ItemRow', () => {
     expect(body.querySelector('.q-new')).toBeNull()
     expect(body.nextElementSibling?.classList.contains('q-new')).toBe(true)
   })
+
+  it('has a drag handle before the checkbox, named for where the item can go', () => {
+    renderRow()
+    const handle = document.querySelector('.q-item .q-handle') as HTMLElement
+
+    expect(handle.getAttribute('title')).toBe('Drag to move this item on the list')
+    expect(handle.nextElementSibling?.getAttribute('role')).toBe('checkbox')
+
+    cleanup()
+    renderRow({ item: { ...ITEM, group: 'Season 1' } })
+    expect(document.querySelector('.q-item .q-handle')!.getAttribute('title')).toBe('Drag to reorder within Season 1')
+  })
+
+  it('starts a drag from the handle only, and does not toggle the row', () => {
+    const onHandlePointerDown = vi.fn()
+    const { onToggle } = renderRow({ onHandlePointerDown })
+
+    fireEvent.pointerDown(document.querySelector('.q-handle')!)
+    fireEvent.click(document.querySelector('.q-handle')!)
+
+    expect(onHandlePointerDown).toHaveBeenCalledTimes(1)
+    expect(onHandlePointerDown.mock.calls[0]![1]).toEqual(ITEM)
+    expect(onToggle).not.toHaveBeenCalled()
+  })
+
+  it('is a target for a drop under its own id, and shows the drop line above or below', () => {
+    renderRow({ dropLine: 'before' })
+    const row = document.querySelector('.q-item') as HTMLElement
+
+    expect(row.dataset['dragKey']).toBe(ITEM.id)
+    expect(row.querySelector('.q-dropline')).not.toBeNull()
+    expect(row.querySelector('.q-dropline.after')).toBeNull()
+
+    cleanup()
+    renderRow({ dropLine: 'after' })
+    expect(document.querySelector('.q-item .q-dropline.after')).not.toBeNull()
+  })
+
+  it('dims while it is being dragged', () => {
+    renderRow({ dragging: true })
+
+    expect(document.querySelector('.q-item')!.classList.contains('dragging')).toBe(true)
+  })
 })

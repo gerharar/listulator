@@ -38,6 +38,7 @@ import { ItemInfoCard } from './ItemInfoCard.js'
 import { ItemRow } from './ItemRow.js'
 import { ListMorePopover, type MoreMode, type PreviewState } from './ListMorePopover.js'
 import { buildSpine, listTotals } from './spine.js'
+import { useRowMoves } from './useRowMoves.js'
 
 export interface ListScreenProps {
   listId: string
@@ -192,7 +193,7 @@ function ListView({
   const [collapsed, setCollapsed] = useState<ReadonlySet<string>>(initialCollapsed)
   const [focusId, setFocusId] = useState<string | undefined>(initialFocusId)
   const [popover, setPopover] = useState<OpenPopover | null>(null)
-  const [pulseId, setPulseId] = useState<string | null>(null)
+  const [pulseIds, setPulseIds] = useState<ReadonlySet<string>>(new Set())
   // What an explicit check found for this list and nobody has applied or dismissed (persisted).
   const pendingCount = usePendingMap(pending)[listId]?.count ?? 0
   const [checking, setChecking] = useState(false)
@@ -218,6 +219,18 @@ function ListView({
   const newCount = items.filter((entry) => entry.isNew).length
   const units = useMemo(() => buildSpine(items, groups), [items, groups])
   const groupNames = useMemo(() => groups.map((group) => group.name), [groups])
+  const pulseRows = useCallback((ids: readonly string[]) => {
+    clearTimeout(pulseTimer.current)
+    setPulseIds(new Set(ids))
+    pulseTimer.current = setTimeout(() => setPulseIds(new Set()), PULSE_MS)
+  }, [])
+  const pulse = (itemId: string) => pulseRows([itemId])
+  const moves = useRowMoves({ listId, items, groups, setItems, setGroups, setError, pulseRows, spine })
+  // While a block is carried every group shuts, so only boundaries are targets; nothing is remembered.
+  const shut = useMemo<ReadonlySet<string>>(
+    () => (moves.draggingUnit ? new Set(groupNames) : collapsed),
+    [moves.draggingUnit, groupNames, collapsed],
+  )
 
   // The rows that are on screen, in order: what the arrow keys walk.
   const visible = useMemo(() => {
@@ -226,21 +239,15 @@ function ListView({
       if (unit.kind === 'item') ids.push(unit.item.id)
       else {
         ids.push(unit.group.id)
-        if (!collapsed.has(unit.group.name)) ids.push(...unit.items.map((entry) => entry.id))
+        if (!shut.has(unit.group.name)) ids.push(...unit.items.map((entry) => entry.id))
       }
     }
 
     return ids
-  }, [units, collapsed])
+  }, [units, shut])
   const tabStop = focusId && visible.includes(focusId) ? focusId : visible[0]
 
   const minutesWidth = Math.max(4, ...items.map((entry) => formatDuration(entry.timeToConsumeMinutes).length)) + 1
-
-  function pulse(itemId: string) {
-    clearTimeout(pulseTimer.current)
-    setPulseId(itemId)
-    pulseTimer.current = setTimeout(() => setPulseId(null), PULSE_MS)
-  }
 
   /** Takes the server's own order and groups: placement and new groups are its call. */
   async function refresh(): Promise<MediaListDetail> {
@@ -611,6 +618,13 @@ function ListView({
     const current = (event.target as HTMLElement).closest<HTMLElement>('[data-row-id]')
     if (!current) return
 
+    // Shift+↑↓ moves the row itself, groups and items alike; plain ↑↓ walk the rows.
+    if (event.shiftKey) {
+      event.preventDefault()
+      moves.moveByKey(current.dataset['rowId']!, event.key === 'ArrowDown' ? 1 : -1)
+      return
+    }
+
     const index = visible.indexOf(current.dataset['rowId']!)
     const target = visible[index + (event.key === 'ArrowDown' ? 1 : -1)]
     if (target === undefined) return
@@ -626,7 +640,10 @@ function ListView({
       grouped={grouped}
       focusable={tabStop === entry.id}
       minutesWidth={minutesWidth}
-      pulse={pulseId === entry.id}
+      pulse={pulseIds.has(entry.id)}
+      onHandlePointerDown={(event, row) => moves.startDrag(event, row.id)}
+      dragging={moves.dragKey === entry.id}
+      dropLine={moves.over?.key === entry.id ? moves.over.pos : null}
       onToggle={(row) => void toggleItem(row)}
       onFocus={(row) => remember(row.id)}
       onInfo={(row, anchor) => setPopover({ kind: 'info', itemId: row.id, anchor })}
@@ -709,7 +726,7 @@ function ListView({
         </div>
       )}
 
-      <div className="q-list-body" ref={spine} onKeyDown={onKeyDown}>
+      <div className="q-list-body" ref={spine} onKeyDown={onKeyDown} onBlur={moves.onBlur}>
         {units.length === 0 && <p className="q-list-empty">{text.empty}</p>}
         {units.map((unit) =>
           unit.kind === 'item' ? (
@@ -718,12 +735,16 @@ function ListView({
             <div key={unit.group.id} className="q-list-block">
               <GroupRow
                 block={unit}
-                collapsed={collapsed.has(unit.group.name)}
+                collapsed={shut.has(unit.group.name)}
                 focusable={tabStop === unit.group.id}
                 onToggle={toggleGroup}
                 onFocus={remember}
+                onHandlePointerDown={(event) => moves.startDrag(event, unit.group.id)}
+                dragging={moves.dragKey === unit.group.id}
+                dropLine={moves.over?.key === unit.group.id ? moves.over.pos : null}
+                pulse={pulseIds.has(unit.group.id)}
               />
-              {!collapsed.has(unit.group.name) && unit.items.map((entry) => itemRow(entry, true))}
+              {!shut.has(unit.group.name) && unit.items.map((entry) => itemRow(entry, true))}
             </div>
           ),
         )}

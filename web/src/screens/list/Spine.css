@@ -15,7 +15,7 @@
 @keyframes q-rowPulse { 0%, 21% { background: var(--pulseTint); box-shadow: inset 3px 0 0 var(--accent); } 100% { background: transparent; box-shadow: inset 3px 0 0 transparent; } }
 .q-dropline { position: absolute; left: 0; right: 0; top: -2px; height: 3px; background: var(--accent); z-index: 4; pointer-events: none; }
 .q-dropline.after { top: auto; bottom: -2px; }
-.q-handle { flex: none; width: 24px; height: 46px; display: grid; place-items: center; cursor: grab; color: var(--ink3); font: 500 15px/1 var(--font-mono); letter-spacing: -3px; }
+.q-handle { flex: none; width: 24px; height: 46px; display: grid; place-items: center; cursor: grab; touch-action: none; user-select: none; color: var(--ink3); font: 500 15px/1 var(--font-mono); letter-spacing: -3px; }
 .q-item .tags { flex: none; display: flex; align-items: center; gap: 6px; margin-right: 12px; }
 .q-item .body { flex: 0 1 auto; min-width: 0; display: flex; align-items: center; gap: 9px; height: 46px; }
 .q-item .tt { flex: 0 1 auto; min-width: 0; display: flex; align-items: baseline; gap: 7px; }
@@ -48,3 +48,7 @@
 
 /* ✎ sits closer to ⓘ than the shared 9px gap plus both buttons' padding would leave it (owner: match the year-to-ⓘ distance). */
 .q-item .body .q-icon-btn.edit { margin-left: -12px; }
+
+/* While a row is being dragged: no text selection anywhere, and the grabbing cursor (BL-019). */
+body.q-dragging { user-select: none; cursor: grabbing; }
+body.q-dragging * { cursor: grabbing !important; }

@@ -91,4 +91,49 @@ describe('GroupRow', () => {
 
     expect((screen.getByRole('button') as HTMLElement).dataset['rowId']).toBe('g1')
   })
+
+  describe('moving', () => {
+    const withItems: GroupBlock = { ...BLOCK, items: [{ id: 'i1' } as never] }
+
+    it('has a drag handle when it has items, named for what it does, and none when it is empty', () => {
+      renderRow(withItems)
+      const handle = document.querySelector('.q-group .q-handle') as HTMLElement
+      expect(handle.getAttribute('title')).toBe('Drag to move this group on the list')
+
+      cleanup()
+      renderRow(BLOCK)
+      expect(document.querySelector('.q-group .q-handle')).toBeNull()
+    })
+
+    it('starts a drag from the handle only, and does not toggle the group', () => {
+      const onHandlePointerDown = vi.fn()
+      const { onToggle } = renderRow(withItems, { onHandlePointerDown })
+
+      fireEvent.pointerDown(document.querySelector('.q-handle')!)
+      fireEvent.click(document.querySelector('.q-handle')!)
+
+      expect(onHandlePointerDown).toHaveBeenCalledTimes(1)
+      expect(onToggle).not.toHaveBeenCalled()
+    })
+
+    it('is a target for a drop under its own key, and shows the drop line where it would land', () => {
+      renderRow(withItems, { dropLine: 'after' })
+      const row = document.querySelector('.q-group') as HTMLElement
+
+      expect(row.dataset['dragKey']).toBe('g1')
+      expect(row.querySelector('.q-dropline.after')).not.toBeNull()
+
+      cleanup()
+      renderRow(withItems, { dropLine: 'before' })
+      expect(document.querySelector('.q-group .q-dropline')!.classList.contains('after')).toBe(false)
+    })
+
+    it('dims while it is the one being dragged, and washes when it has just moved', () => {
+      renderRow(withItems, { dragging: true, pulse: true })
+
+      const row = document.querySelector('.q-group')!
+      expect(row.classList.contains('dragging')).toBe(true)
+      expect(row.classList.contains('pulse')).toBe(true)
+    })
+  })
 })

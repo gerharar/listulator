@@ -1,5 +1,5 @@
 import './Spine.css'
-import type { KeyboardEvent, MouseEvent } from 'react'
+import type { KeyboardEvent, MouseEvent, PointerEvent } from 'react'
 import { Info, Pencil, Trash2 } from 'lucide-react'
 import { formatDuration } from '../../formatDuration.js'
 import { copy } from '../../locale/index.js'
@@ -24,12 +24,19 @@ export interface ItemRowProps {
   onRemove: (item: ListItem, anchor: HTMLElement) => void
   /** Just added, moved or restored: wash the row so the eye can find where it went. */
   pulse: boolean
+  /** A drag starts here: the handle's own pointer-down (10.23). */
+  onHandlePointerDown?: (event: PointerEvent, item: ListItem) => void
+  /** This is the row being dragged. */
+  dragging?: boolean
+  /** The drop line, when a drag would land just above or just below this row. */
+  dropLine?: 'before' | 'after' | null
 }
 
 /**
  * One 46px band (design-system/components/ItemRow), read-only for now: the
  * done box, the kind tag, the title with its year, and the runtime. Clicking
- * anywhere on the row toggles done. The drag handle comes with task 10.23.
+ * anywhere on the row toggles done. The handle starts a drag (10.23); the
+ * rest of the row stays free to scroll on touch.
  */
 export function ItemRow({
   item,
@@ -42,6 +49,9 @@ export function ItemRow({
   onEdit,
   onRemove,
   pulse,
+  onHandlePointerDown,
+  dragging = false,
+  dropLine = null,
 }: ItemRowProps) {
   const text = copy.quantum.list.itemActions
   const done = item.consumedAt !== null
@@ -65,15 +75,26 @@ export function ItemRow({
 
   return (
     <div
-      className={['q-item', grouped && 'in-group', done && 'is-done', pulse && 'pulse']
+      className={['q-item', grouped && 'in-group', done && 'is-done', pulse && 'pulse', dragging && 'dragging']
         .filter(Boolean)
         .join(' ')}
       data-row-id={item.id}
+      data-drag-key={item.id}
       tabIndex={focusable ? 0 : -1}
       onClick={() => onToggle(item)}
       onKeyDown={onKeyDown}
       onFocus={() => onFocus(item)}
     >
+      {dropLine && <span className={dropLine === 'after' ? 'q-dropline after' : 'q-dropline'} />}
+      <span
+        className="q-handle"
+        aria-hidden="true"
+        title={item.group ? text.dragWithin(item.group) : text.dragOnList}
+        onPointerDown={(event) => onHandlePointerDown?.(event, item)}
+        onClick={(event) => event.stopPropagation()}
+      >
+        ⣿
+      </span>
       {/* The row's own click does the toggling, so the box only has to look right. */}
       <DoneCheckbox checked={done} onChange={() => {}} label={item.title} />
       {(kind || item.source === 'manual') && (

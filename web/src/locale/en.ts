@@ -376,6 +376,10 @@ export const en = {
       noGroup: 'No group',
       itemActions: {
         details: (title: string): string => `Details for ${title}`,
+        /** The drag handle's hover text (10.23), in the prototype's words. */
+        dragOnList: 'Drag to move this item on the list',
+        dragWithin: (group: string): string => `Drag to reorder within ${group}`,
+        dragGroup: 'Drag to move this group on the list',
         edit: (title: string): string => `Edit ${title}`,
         remove: (title: string): string => `Remove ${title}`,
         infoKicker: 'Details',
@@ -443,6 +447,20 @@ export const en = {
         sortFailed: 'Could not sort this list',
         resetFailed: 'Could not reset this list',
         undoFailed: 'Could not undo that',
+      },
+      /** Moving rows (10.23), in the prototype's words. */
+      moves: {
+        movedTo: (title: string, position: number, total: number, group?: string): string =>
+          `${title} moved to ${position} of ${total}${group ? ` in ${group}` : ''}`,
+        atEdge: (side: 'top' | 'bottom', group?: string): string =>
+          `Already at the ${side} of ${group ?? 'the list'}`,
+        movedOnList: 'Moved on the list.',
+        movedInside: (group: string): string => `Moved inside ${group}.`,
+        movedRows: (n: number): string => `Moved ${n} ${selectPlural(n, 'en', { one: 'row', other: 'rows' })}.`,
+        onlyInsideGroup: 'Reordering only works inside one group',
+        undone: 'Move undone',
+        saveFailed: 'Could not save that move',
+        undoFailed: 'Could not undo that move',
       },
       /** The ⋯ menu (10.22). */
       moreMenu: {
