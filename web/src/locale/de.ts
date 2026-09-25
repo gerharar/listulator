@@ -16,6 +16,22 @@ export const de: DeepPartial<Locale> = {
     unknownError: 'Etwas ist schiefgelaufen',
   },
   quantum: {
+    appHeader: {
+      settings: 'Einstellungen',
+    },
+    settings: {
+      title: 'Einstellungen',
+      closeLabel: 'Schließen',
+      theme: 'Design',
+      skin: 'Farbschema',
+      motion: 'Animation',
+      motions: {
+        drum: 'Trommel — 380 ms',
+        push: 'Schnelles Schieben — 210 ms',
+      },
+      reduceMotion: 'Weniger Bewegung — Ebenen wechseln ohne Übergang',
+      language: 'Sprache',
+    },
     home: {
       listCount: (n: number): string =>
         `${n} ${selectPlural(n, 'de', { one: 'Liste', other: 'Listen' })}`,

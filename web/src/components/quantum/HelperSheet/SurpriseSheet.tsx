@@ -3,7 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Star } from 'lucide-react'
 import type { LibraryEntry } from '../../../../../server/src/ingestion/customLists.js'
 import { api, type MediaType } from '../../../lib/api.js'
-import { usePrefersReducedMotion } from '../../../lib/usePrefersReducedMotion.js'
+import { useReducedMotion } from '../Motion/MotionContext.js'
 import { categoryLabel, copy } from '../../../locale/index.js'
 import { Button } from '../Button/Button.js'
 import { useLiveRegion } from '../LiveRegion/LiveRegion.js'
@@ -50,7 +50,7 @@ function OpenSheet({ onClose, mediaTypes, onTake, random = Math.random }: Surpri
   const text = copy.quantum.helper.surprise
   const { announce } = useLiveRegion()
   const { showToast } = useToast()
-  const reducedMotion = usePrefersReducedMotion()
+  const reducedMotion = useReducedMotion()
   const [library, setLibrary] = useState<Library>({ phase: 'loading' })
   const [shelves, setShelves] = useState<ReadonlySet<string>>(new Set())
   const [dials, setDials] = useState<Dials>(IDLE)

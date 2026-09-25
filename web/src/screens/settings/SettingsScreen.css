@@ -1,0 +1,86 @@
+/*
+ * The Settings layer (task 10.30), from the prototype's `isSettings` block.
+ * Chips are ToggleChip's `choice` variant; the skin chips are the prototype's
+ * outlined kind (accent border when current, no fill) with a square swatch.
+ */
+.q-settings {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  height: 100%;
+}
+
+.q-settings-head {
+  position: relative;
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 18px 24px;
+  border-bottom: 2px solid var(--rule);
+}
+.q-settings-head > :not(.q-plate) {
+  position: relative;
+}
+
+.q-settings-title {
+  margin: 0;
+  font-weight: 700;
+  font-size: 22px;
+  line-height: 1.06;
+  letter-spacing: -0.02em;
+}
+
+.q-settings-body {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 22px 24px 26px;
+}
+
+.q-settings-sections {
+  display: grid;
+  gap: 26px;
+  max-width: 760px;
+}
+
+.q-settings-row {
+  margin-top: 10px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.q-settings-check {
+  margin-top: 11px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: var(--ink2);
+}
+
+.q-chip.choice.skin {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 11px 7px 8px;
+  background: transparent;
+  color: var(--ink);
+  border-color: var(--line);
+}
+.q-chip.choice.skin[aria-pressed='true'] {
+  background: transparent;
+  color: var(--ink);
+  border-color: var(--accent);
+}
+
+/* Always draws its own skin's colours: `data-theme` on the element re-scopes the tokens (see SkinSwatch). */
+.q-swatch-sq {
+  width: 18px;
+  height: 18px;
+  flex: none;
+  background: linear-gradient(135deg, var(--bg) 55%, var(--accent) 55%);
+  border: 1px solid var(--line);
+}

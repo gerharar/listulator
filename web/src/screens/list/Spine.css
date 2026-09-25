@@ -11,7 +11,7 @@
 .q-item.is-done .title { color: var(--ink3); text-decoration: line-through; }
 .q-item.dragging, .q-group.dragging { opacity: .4; cursor: grabbing; }
 .q-item.pulse, .q-group.pulse { animation: q-rowPulse 1900ms linear; }
-@media (prefers-reduced-motion: reduce) { .q-item.pulse, .q-group.pulse { animation: none; } }
+[data-reduced] .q-item.pulse, [data-reduced] .q-group.pulse { animation: none; }
 @keyframes q-rowPulse { 0%, 21% { background: var(--pulseTint); box-shadow: inset 3px 0 0 var(--accent); } 100% { background: transparent; box-shadow: inset 3px 0 0 transparent; } }
 .q-dropline { position: absolute; left: 0; right: 0; top: -2px; height: 3px; background: var(--accent); z-index: 4; pointer-events: none; }
 .q-dropline.after { top: auto; bottom: -2px; }

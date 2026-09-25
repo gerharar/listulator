@@ -21,6 +21,22 @@ export const ru: DeepPartial<Locale> = {
     unknownError: 'Что-то пошло не так',
   },
   quantum: {
+    appHeader: {
+      settings: 'Настройки',
+    },
+    settings: {
+      title: 'Настройки',
+      closeLabel: 'Закрыть',
+      theme: 'Тема',
+      skin: 'Оформление',
+      motion: 'Анимация',
+      motions: {
+        drum: 'Барабан — 380 мс',
+        push: 'Быстрый сдвиг — 210 мс',
+      },
+      reduceMotion: 'Меньше анимации — слои сменяются без перехода',
+      language: 'Язык',
+    },
     home: {
       listCount: (n: number): string =>
         `${n} ${selectPlural(n, 'ru', { one: 'список', few: 'списка', many: 'списков', other: 'списка' })}`,

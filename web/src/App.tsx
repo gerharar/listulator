@@ -7,6 +7,13 @@ import { resolveInitialTheme } from './lib/theme.js'
 import { getPreferencesStore } from './lib/preferences/store.js'
 import { resolveSkin, setSkin as persistSkin, type Skin } from './lib/preferences/skin.js'
 import { resolveLanguage, type Language } from './lib/preferences/language.js'
+import {
+  resolveMotion,
+  resolveReducedMotionSetting,
+  type Motion,
+} from './lib/preferences/motion.js'
+import { MotionProvider } from './components/quantum/Motion/MotionContext.js'
+import { SettingsScreen } from './screens/settings/SettingsScreen.js'
 import { ListScreen } from './screens/list/ListScreen.js'
 import { CreateList } from './components/quantum/CreateList/CreateList.js'
 import { PreviewLayer } from './components/quantum/PreviewLayer/PreviewLayer.js'
@@ -40,6 +47,9 @@ function homeLayer(): LayerDescriptor<string> {
 interface BootState {
   skin: Skin
   language: Language
+  motion: Motion
+  /** `undefined` until the user has ticked or unticked the box: the system setting decides then. */
+  reducedSetting: boolean | undefined
 }
 
 /**
@@ -66,8 +76,15 @@ export function App() {
     )
 
     const store = getPreferencesStore()
-    Promise.all([resolveSkin(store), resolveLanguage(store)])
-      .then(([skin, language]) => setBoot({ skin, language }))
+    Promise.all([
+      resolveSkin(store),
+      resolveLanguage(store),
+      resolveMotion(store),
+      resolveReducedMotionSetting(store),
+    ])
+      .then(([skin, language, motion, reducedSetting]) =>
+        setBoot({ skin, language, motion, reducedSetting }),
+      )
       .catch((cause: unknown) =>
         setError(cause instanceof Error ? cause.message : copy.app.unknownError),
       )
@@ -90,20 +107,26 @@ function QuantumShell({ initial }: { initial: BootState }) {
   }
 
   return (
-    <QRoot skin={skin}>
-      <Atmosphere />
-      <LiveRegionProvider>
-        <ToastProvider>
-          <OverlayManagerProvider>
-            <LanguageProvider initialLanguage={initial.language}>
-              <LayerStackProvider home={homeLayer()}>
-                <AppShellBody skin={skin} onSkinChange={handleSkinChange} />
-              </LayerStackProvider>
-            </LanguageProvider>
-          </OverlayManagerProvider>
-        </ToastProvider>
-      </LiveRegionProvider>
-    </QRoot>
+    <MotionProvider
+      initialMotion={initial.motion}
+      initialReducedSetting={initial.reducedSetting}
+      store={store}
+    >
+      <QRoot skin={skin}>
+        <Atmosphere />
+        <LiveRegionProvider>
+          <ToastProvider>
+            <OverlayManagerProvider>
+              <LanguageProvider initialLanguage={initial.language}>
+                <LayerStackProvider home={homeLayer()}>
+                  <AppShellBody skin={skin} onSkinChange={handleSkinChange} />
+                </LayerStackProvider>
+              </LanguageProvider>
+            </OverlayManagerProvider>
+          </ToastProvider>
+        </LiveRegionProvider>
+      </QRoot>
+    </MotionProvider>
   )
 }
 
@@ -170,6 +193,17 @@ function AppShellBody({ skin, onSkinChange }: AppShellBodyProps) {
   // layer returns to the Category picker; from a layer over Home, to Home.
   useEscLadder(() => layerStack.pop())
 
+  // Settings is one layer: pressing the gear while it is already on top does nothing.
+  function openSettings(): void {
+    if (layerStack.stack[layerStack.stack.length - 1]?.kind === 'settings') return
+    layerStack.push({
+      id: 'settings',
+      kind: 'settings',
+      tabLabel: copy.quantum.settings.title,
+      content: '',
+    })
+  }
+
   function handleLegacyNavigate(to: string, opts: { replace: boolean }): void {
     const target = parseLegacyPath(to)
 
@@ -210,7 +244,7 @@ function AppShellBody({ skin, onSkinChange }: AppShellBodyProps) {
 
   return (
     <div className="q-shell">
-      <AppHeader skin={skin} onSkinChange={onSkinChange} />
+      <AppHeader skin={skin} onSkinChange={onSkinChange} onSettings={openSettings} />
       <div className="q-stage">
         {layerStack.visible.map((layer, index) => {
           const isTop = index === layerStack.visible.length - 1
@@ -235,6 +269,8 @@ function AppShellBody({ skin, onSkinChange }: AppShellBodyProps) {
             >
               {layer.kind === 'home' ? (
                 <Home onMediaTypesLoaded={setMediaTypes} />
+              ) : layer.kind === 'settings' ? (
+                <SettingsScreen skin={skin} onSkinChange={onSkinChange} />
               ) : layer.kind === 'category-picker' ? (
                 <CategoryPicker mediaTypes={mediaTypes} first={fullIndex === 0} />
               ) : (

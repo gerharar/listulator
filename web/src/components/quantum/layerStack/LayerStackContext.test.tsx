@@ -1,7 +1,8 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { act, cleanup, render, screen } from '@testing-library/react'
-import { ENTER_DURATION_MS, LayerStackProvider, useLayerStack } from './LayerStackContext.js'
+import { ENTER_DURATION_MS, PUSH_DURATION_MS, LayerStackProvider, useLayerStack } from './LayerStackContext.js'
+import { MotionProvider } from '../Motion/MotionContext.js'
 import type { LayerDescriptor } from './layerStack.js'
 
 afterEach(cleanup)
@@ -99,6 +100,32 @@ describe('LayerStackProvider entering id', () => {
       expect(screen.getByTestId('entering').textContent).toBe('list')
 
       act(() => vi.advanceTimersByTime(ENTER_DURATION_MS - 1))
+      expect(screen.getByTestId('entering').textContent).toBe('list')
+
+      act(() => vi.advanceTimersByTime(1))
+      expect(screen.getByTestId('entering').textContent).toBe('')
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('under the fast push, the entering mark clears after 210ms rather than 380ms', () => {
+    vi.useFakeTimers()
+    try {
+      render(
+        <MotionProvider
+          initialMotion="push"
+          initialReducedSetting={false}
+          store={{ get: async () => undefined, set: async () => {} }}
+        >
+          <LayerStackProvider home={layer('home')}>
+            <Demo />
+          </LayerStackProvider>
+        </MotionProvider>,
+      )
+
+      act(() => screen.getByText('push list').click())
+      act(() => vi.advanceTimersByTime(PUSH_DURATION_MS - 1))
       expect(screen.getByTestId('entering').textContent).toBe('list')
 
       act(() => vi.advanceTimersByTime(1))

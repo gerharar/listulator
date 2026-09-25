@@ -90,7 +90,7 @@
 .q-digit.on { background: var(--accent); color: var(--accentInk); }
 .q-digit.ticking { animation: q-meterTick 90ms linear infinite alternate; }
 @keyframes q-meterTick { from { transform: translateY(-1px); } to { transform: translateY(1px); } }
-@media (prefers-reduced-motion: reduce) { .q-digit.ticking { animation: none; } }
+[data-reduced] .q-digit.ticking { animation: none; }
 .q-reel-result { margin-top: 16px; min-height: 60px; display: flex; flex-direction: column; justify-content: center; }
 .q-reel-name { display: flex; align-items: center; gap: 7px; font-weight: 700; font-size: 19px; line-height: 1.25; letter-spacing: -0.012em; color: var(--ink); }
 .q-curated { flex: none; display: flex; color: var(--star, var(--accent)); }

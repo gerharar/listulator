@@ -89,7 +89,7 @@
 .q-check-btn { position: relative; }
 .q-check-btn .q-spin { animation: q-spin 0.7s linear infinite; }
 @keyframes q-spin { to { transform: rotate(360deg); } }
-@media (prefers-reduced-motion: reduce) { .q-check-btn .q-spin { animation: none; } }
+[data-reduced] .q-check-btn .q-spin { animation: none; }
 
 /* The filter bar (prototype: field, facet rows, fold-all, note; it sits under the header row inside the header block). */
 .q-filterbar {

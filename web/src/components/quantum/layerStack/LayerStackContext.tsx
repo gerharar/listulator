@@ -16,9 +16,12 @@ import {
   visibleLayers,
   type LayerDescriptor,
 } from './layerStack.js'
+import { useMotion } from '../Motion/MotionContext.js'
 
 /** Matches `q-drumIn`/`q-drumShadow` in `LayerCard.css` — keep the two in sync. */
 export const ENTER_DURATION_MS = 380
+/** Matches `q-pushIn` under `[data-motion='push']` in `LayerCard.css`. */
+export const PUSH_DURATION_MS = 210
 
 /**
  * `content` is specialized to `string` here (a legacy screen's path) —
@@ -54,12 +57,17 @@ export function LayerStackProvider({ home, children }: LayerStackProviderProps) 
   const [stack, setStack] = useState<LayerDescriptor<string>[]>([home])
   const [enteringId, setEnteringId] = useState<string | null>(null)
   const timerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
+  const { motion } = useMotion()
+  const enterMs = motion === 'push' ? PUSH_DURATION_MS : ENTER_DURATION_MS
 
-  const markEntering = useCallback((id: string) => {
-    clearTimeout(timerRef.current)
-    setEnteringId(id)
-    timerRef.current = setTimeout(() => setEnteringId(null), ENTER_DURATION_MS)
-  }, [])
+  const markEntering = useCallback(
+    (id: string) => {
+      clearTimeout(timerRef.current)
+      setEnteringId(id)
+      timerRef.current = setTimeout(() => setEnteringId(null), enterMs)
+    },
+    [enterMs],
+  )
 
   const push = useCallback(
     (layer: LayerDescriptor<string>) => {

@@ -116,8 +116,6 @@
     transform: rotate(360deg);
   }
 }
-@media (prefers-reduced-motion: reduce) {
-  .q-spin {
-    animation: none;
-  }
+[data-reduced] .q-spin {
+  animation: none;
 }

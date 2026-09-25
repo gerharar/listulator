@@ -258,8 +258,26 @@ export const en = {
     /** AppHeader (task 10.9). */
     appHeader: {
       settings: 'Settings',
-      /** Until task 10.30 builds the Settings layer. */
-      settingsComingSoon: 'Settings is coming soon',
+    },
+    /** The Settings layer (task 10.30). Copy is the prototype's; language names stay in their own language. */
+    settings: {
+      title: 'Settings',
+      closeLabel: 'Close',
+      theme: 'Theme',
+      themeQuantum: 'Quantum',
+      skin: 'Skin',
+      motion: 'Motion',
+      motions: {
+        drum: 'Drum carousel — 380ms',
+        push: 'Fast push — 210ms',
+      },
+      reduceMotion: 'Reduce motion — layers cut instead of animating',
+      language: 'Language',
+      languages: {
+        en: 'English',
+        ru: 'Русский',
+        de: 'Deutsch',
+      },
     },
     skin: {
       button: 'Skin',

@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, type ReactNode } from 'react'
+import { useMotion } from './Motion/MotionContext.js'
 
 // `undefined` (no provider at all — e.g. a component rendered standalone in
 // a test) means "there is no `.q-root` to wait for, use the normal default
@@ -26,9 +27,16 @@ export interface QRootProps {
  */
 export function QRoot({ skin, children }: QRootProps) {
   const [element, setElement] = useState<HTMLDivElement | null>(null)
+  const { motion, reduced } = useMotion()
 
   return (
-    <div className="q-root" data-theme={skin} ref={setElement}>
+    <div
+      className="q-root"
+      data-theme={skin}
+      data-motion={motion}
+      data-reduced={reduced ? '' : undefined}
+      ref={setElement}
+    >
       <QRootElementContext.Provider value={element}>{children}</QRootElementContext.Provider>
     </div>
   )

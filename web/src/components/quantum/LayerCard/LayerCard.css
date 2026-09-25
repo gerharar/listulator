@@ -133,12 +133,31 @@
   }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .q-layer {
-    transition: none;
+/*
+ * Fast push (Settings → Motion, prototype `pushIn 210ms`): only the entrance
+ * changes; where covered layers sit stays the drum's peek cascade, since the
+ * LayerTab needs that room. Must come before the reduced block, which wins
+ * at equal specificity by being last.
+ */
+@keyframes q-pushIn {
+  from {
+    transform: translateY(24px);
+    opacity: 0;
   }
-  .q-layer.enter,
-  .q-layer-tab {
-    animation: none;
+  to {
+    transform: none;
+    opacity: 1;
   }
+}
+.q-root[data-motion='push'] .q-layer.enter {
+  animation: q-pushIn 210ms cubic-bezier(0.22, 0.7, 0.2, 1);
+}
+
+/* The Settings switch and the system setting both arrive as `data-reduced` on `.q-root` (MotionContext). */
+.q-root[data-reduced] .q-layer {
+  transition: none;
+}
+.q-root[data-reduced] .q-layer.enter,
+.q-root[data-reduced] .q-layer-tab {
+  animation: none;
 }
