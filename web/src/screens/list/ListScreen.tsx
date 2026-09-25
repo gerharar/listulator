@@ -1,6 +1,6 @@
 import './ListScreen.css'
 import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react'
-import { EllipsisVertical, RefreshCw } from 'lucide-react'
+import { EllipsisVertical, RefreshCw, X } from 'lucide-react'
 import { formatDuration } from '../../formatDuration.js'
 import { api, type ListGroup, type ListItem, type MediaListDetail, type MediaType } from '../../lib/api.js'
 import { downloadText } from '../../lib/downloadText.js'
@@ -46,6 +46,8 @@ export interface ListScreenProps {
   updateAvailable?: boolean
   /** Called after the list is deleted: the screen has nothing left to show, so the shell takes us Home. */
   onLeave?: () => void
+  /** The ✕: closes this layer, back to what is under it. */
+  onClose?: () => void
 }
 
 type Load =
@@ -65,7 +67,7 @@ type Load =
  * last focused are remembered per list (D5); a Mega list's groups arrive
  * collapsed (C3).
  */
-export function ListScreen({ listId, mediaTypes, updateAvailable = false, onLeave }: ListScreenProps) {
+export function ListScreen({ listId, mediaTypes, updateAvailable = false, onLeave, onClose }: ListScreenProps) {
   const text = copy.quantum.list
   const [load, setLoad] = useState<Load>({ state: 'loading' })
   const [error, setError] = useState<string | null>(null)
@@ -135,6 +137,7 @@ export function ListScreen({ listId, mediaTypes, updateAvailable = false, onLeav
       mediaTypes={mediaTypes}
       updateAvailable={updateAvailable}
       onLeave={onLeave}
+      onClose={onClose}
       error={error}
       setError={setError}
       reload={() => void fetchList()}
@@ -150,6 +153,7 @@ interface ListViewProps {
   mediaTypes: readonly MediaType[]
   updateAvailable: boolean
   onLeave: (() => void) | undefined
+  onClose: (() => void) | undefined
   error: string | null
   setError: (message: string | null) => void
   reload: () => void
@@ -172,6 +176,7 @@ function ListView({
   mediaTypes,
   updateAvailable,
   onLeave,
+  onClose,
   error,
   setError,
   reload,
@@ -678,6 +683,9 @@ function ListView({
             )}
             <IconButton size="list" label={text.more} onClick={(event) => setMore({ anchor: event.currentTarget, mode: 'menu' })}>
               <EllipsisVertical width={17} height={17} strokeWidth={1.9} aria-hidden="true" />
+            </IconButton>
+            <IconButton size="list" label={text.close} onClick={() => onClose?.()}>
+              <X width={16} height={16} strokeWidth={1.9} aria-hidden="true" />
             </IconButton>
           </div>
         </div>

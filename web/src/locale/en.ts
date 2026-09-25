@@ -502,6 +502,7 @@ export const en = {
       checkForUpdates: 'Check for updates',
       order: 'Order',
       more: 'More',
+      close: 'Close',
       /** Check for updates and the NEW marks (10.25). */
       updates: {
         checking: 'Checking…',

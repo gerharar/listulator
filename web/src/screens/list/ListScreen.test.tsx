@@ -113,13 +113,14 @@ function detail(overrides: Partial<MediaListDetail> = {}): MediaListDetail {
 }
 
 const onLeave = vi.fn()
+const onClose = vi.fn()
 
 function renderScreen(listId: string, updateAvailable = false) {
   return render(
     <LiveRegionProvider>
       <ToastProvider>
         <OverlayManagerProvider>
-          <ListScreen listId={listId} mediaTypes={TYPES} updateAvailable={updateAvailable} onLeave={onLeave} />
+          <ListScreen listId={listId} mediaTypes={TYPES} updateAvailable={updateAvailable} onLeave={onLeave} onClose={onClose} />
         </OverlayManagerProvider>
       </ToastProvider>
     </LiveRegionProvider>,
@@ -155,6 +156,19 @@ describe('ListScreen header', () => {
     expect(screen.getByText('The trickster')).toBeTruthy()
     expect(screen.getByText('1/3 (33%)')).toBeTruthy()
     expect(screen.getByText('2h left')).toBeTruthy()
+  })
+
+  it('has a ✕ at the right end of the header actions that closes the layer (prototype)', async () => {
+    await open(detail({ items: [item()] }))
+
+    const actions = document.querySelector('.q-list-actions') as HTMLElement
+    const names = within(actions).getAllByRole('button').map((b) => b.getAttribute('aria-label'))
+    expect(names.at(-1)).toBe('Close')
+
+    fireEvent.click(within(actions).getByRole('button', { name: 'Close' }))
+
+    expect(onClose).toHaveBeenCalledTimes(1)
+    expect(onLeave).not.toHaveBeenCalled()
   })
 
   it('has no pencil beside the name: editing the list lives in the ⋯ menu (prototype)', async () => {

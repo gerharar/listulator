@@ -120,6 +120,7 @@ function ListRoute({ mediaTypes }: { mediaTypes: MediaType[] }) {
   const { listId } = useParams<{ listId: string }>()
   const [searchParams] = useSearchParams()
   const navigate = useNavigate()
+  const layerStack = useLayerStack()
 
   return listId ? (
     <ListScreen
@@ -129,6 +130,7 @@ function ListRoute({ mediaTypes }: { mediaTypes: MediaType[] }) {
       updateAvailable={wantsUpdate(searchParams)}
       // A deleted list has nothing left to show: "/" always means Home, however deep the stack.
       onLeave={() => void navigate('/')}
+      onClose={() => layerStack.pop()}
     />
   ) : null
 }

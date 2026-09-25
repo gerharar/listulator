@@ -45,3 +45,6 @@
 
 /* NEW follows the title group with a little air (prototype: margin-left 2px). */
 .q-item > .q-new { margin-left: 2px; }
+
+/* ✎ sits closer to ⓘ than the shared 9px gap plus both buttons' padding would leave it (owner: match the year-to-ⓘ distance). */
+.q-item .body .q-icon-btn.edit { margin-left: -6px; }
