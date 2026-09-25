@@ -16,6 +16,7 @@ import { loadLastOpened } from '../../../lib/lastOpened.js'
 import { subscribeListsChanged } from '../../../lib/listsChanged.js'
 import { getPreferencesStore } from '../../../lib/preferences/store.js'
 import { FinalizerSheet } from '../HelperSheet/FinalizerSheet.js'
+import { JustOneFixSheet } from '../HelperSheet/JustOneFixSheet.js'
 import { TiredBossSheet } from '../HelperSheet/TiredBossSheet.js'
 import { getPendingUpdates, useChecking, usePendingMap, type PendingUpdates } from '../../../lib/pendingUpdates.js'
 import { applyUpdate, checkLists } from '../../../lib/updateCheck.js'
@@ -66,7 +67,7 @@ export function Home({ onMediaTypesLoaded, pendingUpdates }: HomeProps) {
   const [retryToken, setRetryToken] = useState(0)
   // The open helper sheet, if any; it starts on the list opened last.
   const [helper, setHelper] = useState<
-    { kind: 'tired'; initialTarget: string | undefined } | { kind: 'finalizer' } | null
+    { kind: 'tired'; initialTarget: string | undefined } | { kind: 'finalizer' | 'justOneFix' } | null
   >(null)
   // The room the sheet has: from just under the help row to the bottom of the card that clips it.
   const homeRef = useRef<HTMLDivElement>(null)
@@ -163,12 +164,12 @@ export function Home({ onMediaTypesLoaded, pendingUpdates }: HomeProps) {
   useEffect(() => subscribeListsChanged(() => setRetryToken((token) => token + 1)), [])
 
   /** Opens a helper sheet (I'm Tired, Boss on the list opened last), or closes it if it is the one already open. One at a time. */
-  async function toggleHelper(kind: 'tired' | 'finalizer') {
+  async function toggleHelper(kind: 'tired' | 'finalizer' | 'justOneFix') {
     if (helper?.kind === kind) {
       setHelper(null)
       return
     }
-    setHelper(kind === 'finalizer' ? { kind } : { kind, initialTarget: await loadLastOpened(getPreferencesStore()) })
+    setHelper(kind === 'tired' ? { kind, initialTarget: await loadLastOpened(getPreferencesStore()) } : { kind })
   }
 
   const openHelperList = (listId: string) => {
@@ -306,33 +307,33 @@ export function Home({ onMediaTypesLoaded, pendingUpdates }: HomeProps) {
       <div className="q-help-row">
         <span className="q-kicker section">{copy.quantum.home.needHelp}</span>
         {/* The lit button says which sheet is open; a press on it must not also count as "outside" and close the sheet first. */}
-        <Button
-          variant="quiet"
-          size="sm"
-          className={helper?.kind === 'tired' ? 'on' : undefined}
-          aria-pressed={helper?.kind === 'tired'}
-          onPointerDown={(event) => event.stopPropagation()}
-          onClick={() => void toggleHelper('tired')}
-        >
-          {copy.quantum.home.helpButtons.tiredBoss}
-        </Button>
-        <Button
-          variant="quiet"
-          size="sm"
-          className={helper?.kind === 'finalizer' ? 'on' : undefined}
-          aria-pressed={helper?.kind === 'finalizer'}
-          onPointerDown={(event) => event.stopPropagation()}
-          onClick={() => void toggleHelper('finalizer')}
-        >
-          {copy.quantum.home.helpButtons.finalizer}
-        </Button>
         {(
-          [copy.quantum.home.helpButtons.justOneFix, copy.quantum.home.helpButtons.surpriseMe] as const
-        ).map((label) => (
-          <Button key={label} variant="quiet" size="sm" disabled title={copy.quantum.home.helpComingSoon(label)}>
+          [
+            ['tired', copy.quantum.home.helpButtons.tiredBoss],
+            ['finalizer', copy.quantum.home.helpButtons.finalizer],
+            ['justOneFix', copy.quantum.home.helpButtons.justOneFix],
+          ] as const
+        ).map(([kind, label]) => (
+          <Button
+            key={kind}
+            variant="quiet"
+            size="sm"
+            className={helper?.kind === kind ? 'on' : undefined}
+            aria-pressed={helper?.kind === kind}
+            onPointerDown={(event) => event.stopPropagation()}
+            onClick={() => void toggleHelper(kind)}
+          >
             {label}
           </Button>
         ))}
+        <Button
+          variant="quiet"
+          size="sm"
+          disabled
+          title={copy.quantum.home.helpComingSoon(copy.quantum.home.helpButtons.surpriseMe)}
+        >
+          {copy.quantum.home.helpButtons.surpriseMe}
+        </Button>
       </div>
       {helper && (
         <div className="q-help-anchor" ref={anchorRef} style={{ '--help-room': room === undefined ? undefined : `${room}px` } as CSSProperties}>
@@ -344,8 +345,10 @@ export function Home({ onMediaTypesLoaded, pendingUpdates }: HomeProps) {
               initialTarget={helper.initialTarget}
               onOpenList={openHelperList}
             />
-          ) : (
+          ) : helper.kind === 'finalizer' ? (
             <FinalizerSheet open onClose={() => setHelper(null)} onOpenList={openHelperList} />
+          ) : (
+            <JustOneFixSheet open onClose={() => setHelper(null)} onOpenList={openHelperList} />
           )}
         </div>
       )}

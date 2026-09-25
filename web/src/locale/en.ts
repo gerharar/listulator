@@ -378,6 +378,11 @@ export const en = {
       loading: 'Finding something…',
       failed: 'Could not get a suggestion',
       retry: 'Try again',
+      justOneFix: {
+        title: 'Just One Fix',
+        explain: 'A quick dopamine hit from the shortest unfinished thing you track',
+        why: (time: string): string => `Shortest unfinished item you have — ${time} and it is done.`,
+      },
       finalizer: {
         title: 'Finish Him!',
         explain: 'Tie up loose ends from lists that are closest to being finished',

@@ -192,26 +192,28 @@ async function localSuggest(
   const strategy = loadLocalStrategy(strategyName)
   const candidates = await findListsWithStats(database, userId)
 
-  // Only the lists that survive filtering need their items loaded. Order
-  // doesn't matter for building this map, so these run concurrently.
-  const nextItems = new Map<string, SchemaListItem | undefined>(
+  // Every list's unconsumed items, in order: the first is the next thing to do, and an
+  // item strategy (Just One Fix) ranks all of them. Mirrors the server's route.
+  const unconsumed = new Map<string, SchemaListItem[]>(
     await Promise.all(
       candidates.map(
         async (list) =>
           [
             list.id,
-            (await findListItems(database, userId, list.id))?.find(
-              (item) => item.consumedAt === null,
-            ),
+            ((await findListItems(database, userId, list.id)) ?? []).filter((item) => item.consumedAt === null),
           ] as const,
       ),
     ),
+  )
+  const nextItems = new Map<string, SchemaListItem | undefined>(
+    [...unconsumed].map(([listId, items]) => [listId, items[0]] as const),
   )
 
   return rank({
     strategy,
     candidates,
     nextItems,
+    unconsumed,
     ...(currentListId ? { currentListId } : {}),
   })
 }
@@ -871,6 +873,12 @@ export function createLocalApi(): ApiClient {
     quickie: async () => {
       const [database, userId] = [await getDb(), await getUserId()]
       const suggestions = await localSuggest(database, userId, 'quickie')
+      return { picks: suggestions.map(toSuggestionPick) }
+    },
+
+    justOneFix: async () => {
+      const [database, userId] = [await getDb(), await getUserId()]
+      const suggestions = await localSuggest(database, userId, 'just-one-fix')
       return { picks: suggestions.map(toSuggestionPick) }
     },
 

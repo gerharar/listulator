@@ -258,6 +258,7 @@ export interface ApiClient {
   suggest: () => Promise<{ picks: SuggestionPick[] }>
   quickie: () => Promise<{ picks: SuggestionPick[] }>
   finalizer: () => Promise<{ picks: SuggestionPick[] }>
+  justOneFix: () => Promise<{ picks: SuggestionPick[] }>
   searchSources: (
     mediaType: string,
     query: string,
@@ -452,6 +453,8 @@ export const fetchApi: ApiClient = {
   quickie: () => request<{ picks: SuggestionPick[] }>('/suggestions/quickie'),
 
   finalizer: () => request<{ picks: SuggestionPick[] }>('/suggestions/finalizer'),
+
+  justOneFix: () => request<{ picks: SuggestionPick[] }>('/suggestions/just-one-fix'),
 
   searchSources: (
     mediaType: string,

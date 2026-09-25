@@ -59,3 +59,8 @@ export function whyFinalizer(pick: SuggestionPick): string {
 
   return base
 }
+
+/** Just One Fix's one-line why: the item is the shortest one left anywhere, and how long it takes. */
+export function whyJustOneFix(pick: SuggestionPick): string {
+  return copy.quantum.helper.justOneFix.why(formatDuration(pick.nextItem?.timeToConsumeMinutes ?? 0))
+}

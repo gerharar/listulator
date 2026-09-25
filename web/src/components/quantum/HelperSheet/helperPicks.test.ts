@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { SuggestionPick } from '../../../lib/api.js'
-import { pickKey, reroll, whyFinalizer, whyTired } from './helperPicks.js'
+import { pickKey, reroll, whyFinalizer, whyJustOneFix, whyTired } from './helperPicks.js'
 
 const pick = (
   id: string,
@@ -10,6 +10,7 @@ const pick = (
     percent?: number
     left?: number
     status?: 'complete' | 'ongoing' | null
+    minutes?: number
   } = {},
 ): SuggestionPick =>
   ({
@@ -19,7 +20,7 @@ const pick = (
       status: over.status ?? null,
       stats: { completionPercent: over.percent ?? 45.4, timeRemainingMinutes: over.left ?? 120 },
     },
-    nextItem: over.item === null ? null : { id: over.item ?? `${id}-next`, title: 'Next' },
+    nextItem: over.item === null ? null : { id: over.item ?? `${id}-next`, title: 'Next', timeToConsumeMinutes: over.minutes ?? 30 },
     score: 1,
     factors: over.factors ?? { neglect_time: 1, completion_percent: 1 },
   }) as SuggestionPick
@@ -94,5 +95,15 @@ describe('whyFinalizer', () => {
     expect(whyFinalizer(pick('a', { status: 'ongoing' }))).toBe(
       'Closest to the finish line: 45% done, only 2h left. Marked ongoing — nothing finishable is closer.',
     )
+  })
+})
+
+describe('whyJustOneFix', () => {
+  it('names the length of the item and promises it is done after', () => {
+    expect(whyJustOneFix(pick('a', { minutes: 7 }))).toBe('Shortest unfinished item you have — 7m and it is done.')
+  })
+
+  it('reads hours and minutes', () => {
+    expect(whyJustOneFix(pick('a', { minutes: 95 }))).toBe('Shortest unfinished item you have — 1h 35m and it is done.')
   })
 })

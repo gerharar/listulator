@@ -30,6 +30,7 @@ vi.mock('../../../lib/api.js', () => ({
     importItems: vi.fn(),
     tiredBoss: vi.fn(),
     finalizer: vi.fn(),
+    justOneFix: vi.fn(),
   },
 }))
 
@@ -230,7 +231,7 @@ describe('Home', () => {
     expect(screen.getByTestId('stack').textContent).toBe('home:home,category-picker:category-picker')
   })
 
-  it('shows the four help buttons, I’m Tired, Boss and Finalizer live so far, and no others', async () => {
+  it('shows the four help buttons, only Surprise Me still disabled, and no others', async () => {
     vi.mocked(api.mediaTypes).mockResolvedValue(MEDIA_TYPES)
     vi.mocked(api.lists).mockResolvedValue([list()])
 
@@ -238,12 +239,10 @@ describe('Home', () => {
 
     await waitFor(() => expect(screen.getByText('Breaking Bad')).not.toBeNull())
 
-    for (const label of ["I'm Tired, Boss", 'Finalizer']) {
+    for (const label of ["I'm Tired, Boss", 'Finalizer', 'Just One Fix']) {
       expect(screen.getByRole('button', { name: label }).hasAttribute('disabled')).toBe(false)
     }
-    for (const label of ['Just One Fix', 'Surprise Me']) {
-      expect(screen.getByRole('button', { name: label }).hasAttribute('disabled')).toBe(true)
-    }
+    expect(screen.getByRole('button', { name: 'Surprise Me' }).hasAttribute('disabled')).toBe(true)
     // Suggest and Quickie are retired from the UI (their strategy files stay on disk).
     expect(screen.queryByRole('button', { name: 'Suggest' })).toBeNull()
     expect(screen.queryByRole('button', { name: 'Quickie' })).toBeNull()
@@ -730,6 +729,50 @@ describe('Home updates (task 10.22c)', () => {
 
       expect(screen.getByTestId('stack').textContent).toBe('home:home,list:list-list-2')
       await waitFor(() => expect(screen.queryByText('Finish Him!')).toBeNull())
+    })
+  })
+
+  describe('Just One Fix', () => {
+    const button = () => screen.getByRole('button', { name: 'Just One Fix' })
+
+    async function ready() {
+      vi.mocked(api.mediaTypes).mockResolvedValue(MEDIA_TYPES)
+      vi.mocked(api.lists).mockResolvedValue([list(), list({ id: 'list-2', title: 'The Wire' })])
+      vi.mocked(api.justOneFix).mockResolvedValue({
+        picks: [
+          {
+            list: list({ id: 'list-2', title: 'The Wire' }),
+            nextItem: { id: 'i', title: 'A short one', timeToConsumeMinutes: 7 } as never,
+            score: 1,
+            factors: { item_minutes: 1 },
+          },
+        ],
+      })
+      renderHome()
+      await waitFor(() => expect(screen.getByText('Breaking Bad')).not.toBeNull())
+    }
+
+    it('opens its sheet with the shortest item, lights its button, and a second click closes it', async () => {
+      await ready()
+
+      fireEvent.click(button())
+      expect(await screen.findByText('A short one')).toBeTruthy()
+      expect(screen.getByText('Shortest unfinished item you have — 7m and it is done.')).toBeTruthy()
+      expect(button().getAttribute('aria-pressed')).toBe('true')
+
+      fireEvent.click(button())
+      await waitFor(() => expect(screen.queryByText('A short one')).toBeNull())
+    })
+
+    it('Open The List opens that list’s layer and closes the sheet', async () => {
+      await ready()
+      fireEvent.click(button())
+      await screen.findByText('A short one')
+
+      fireEvent.click(screen.getByRole('button', { name: 'Open The List' }))
+
+      expect(screen.getByTestId('stack').textContent).toBe('home:home,list:list-list-2')
+      await waitFor(() => expect(screen.queryByText('A short one')).toBeNull())
     })
   })
 })
