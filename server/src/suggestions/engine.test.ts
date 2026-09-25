@@ -17,6 +17,7 @@ interface ListSpec {
   minutesLeft: number
   lastConsumed?: Date | null
   created?: Date
+  mediaType?: string
 }
 
 function list({
@@ -26,13 +27,14 @@ function list({
   minutesLeft,
   lastConsumed = null,
   created = daysAgo(30),
+  mediaType = 'movie',
 }: ListSpec): ListWithStats {
   return {
     id,
     userId: 'user',
     title: id,
     description: null,
-    mediaType: 'movie',
+    mediaType,
     source: 'manual',
     externalRef: null,
     status: null,
@@ -275,6 +277,61 @@ describe('rank', () => {
     }
 
     expect(ranked(strategy, lists, 'tired-of-this')).toEqual(['something-else'])
+  })
+
+  describe('scope other_lists_and_media', () => {
+    const strategy: Strategy = {
+      ...singleFactor('completion_percent', 'favor_highest'),
+      scope: 'other_lists_and_media',
+    }
+
+    it('leaves out the named list and every list of its medium', () => {
+      const lists = [
+        list({ id: 'tired-of-this', mediaType: 'tv', total: 4, consumed: 3, minutesLeft: 50 }),
+        list({ id: 'another-tv-list', mediaType: 'tv', total: 4, consumed: 2, minutesLeft: 60 }),
+        list({ id: 'a-game', mediaType: 'game', total: 4, consumed: 1, minutesLeft: 300 }),
+        list({ id: 'a-book', mediaType: 'book', total: 4, consumed: 0, minutesLeft: 200 }),
+      ]
+
+      expect(ranked(strategy, lists, 'tired-of-this')).toEqual(['a-game', 'a-book'])
+    })
+
+    it('still knows the named list’s medium when that list is finished and so never a candidate itself', () => {
+      const lists = [
+        list({ id: 'finished-tv', mediaType: 'tv', total: 3, consumed: 3, minutesLeft: 0 }),
+        list({ id: 'unfinished-tv', mediaType: 'tv', total: 4, consumed: 1, minutesLeft: 90 }),
+        list({ id: 'a-game', mediaType: 'game', total: 4, consumed: 1, minutesLeft: 300 }),
+      ]
+
+      expect(ranked(strategy, lists, 'finished-tv')).toEqual(['a-game'])
+    })
+
+    it('has nothing to offer when everything is the same medium', () => {
+      const lists = [
+        list({ id: 'a', mediaType: 'tv', total: 4, consumed: 1, minutesLeft: 90 }),
+        list({ id: 'b', mediaType: 'tv', total: 4, consumed: 2, minutesLeft: 60 }),
+      ]
+
+      expect(ranked(strategy, lists, 'a')).toEqual([])
+    })
+
+    it('excludes only the named list when its id matches nothing, since no medium is known', () => {
+      const lists = [
+        list({ id: 'a', mediaType: 'tv', total: 4, consumed: 1, minutesLeft: 90 }),
+        list({ id: 'b', mediaType: 'game', total: 4, consumed: 2, minutesLeft: 60 }),
+      ]
+
+      expect(ranked(strategy, lists, 'no-such-list')).toEqual(['b', 'a'])
+    })
+
+    it('does not touch the plain other_lists scope, which keeps same-medium lists', () => {
+      const lists = [
+        list({ id: 'tired-of-this', mediaType: 'tv', total: 4, consumed: 3, minutesLeft: 50 }),
+        list({ id: 'another-tv-list', mediaType: 'tv', total: 4, consumed: 2, minutesLeft: 60 }),
+      ]
+
+      expect(ranked({ ...strategy, scope: 'other_lists' }, lists, 'tired-of-this')).toEqual(['another-tv-list'])
+    })
   })
 
   it('keeps the current list when the strategy scores all lists', () => {

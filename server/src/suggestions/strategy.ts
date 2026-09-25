@@ -22,7 +22,12 @@ export const DIRECTIONS = ['favor_highest', 'favor_lowest'] as const
 
 export type Direction = (typeof DIRECTIONS)[number]
 
-export const SCOPES = ['all_lists', 'other_lists'] as const
+/**
+ * Which lists a strategy may offer. `other_lists` leaves out the one you named;
+ * `other_lists_and_media` also leaves out every list of that list's `media_type`
+ * ("tired of TV, so nothing else on TV either" — I'm Tired, Boss, 10.26).
+ */
+export const SCOPES = ['all_lists', 'other_lists', 'other_lists_and_media'] as const
 
 export type Scope = (typeof SCOPES)[number]
 

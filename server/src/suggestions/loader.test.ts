@@ -107,7 +107,8 @@ describe('the shipped strategy files', () => {
     // Guards the actual config/strategies/*.json, not fixtures — a typo there
     // breaks the app for everyone, and would otherwise only show up at runtime.
     const tiredBoss = loadStrategy('tired-boss')
-    expect(tiredBoss.scope).toBe('other_lists')
+    // A different list *and* a different medium than the one named (10.26).
+    expect(tiredBoss.scope).toBe('other_lists_and_media')
     expect(tiredBoss.factors.map((factor) => factor.type)).toEqual([
       'neglect_time',
       'completion_percent',

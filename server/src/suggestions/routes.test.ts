@@ -31,14 +31,15 @@ describe('suggestion endpoints', () => {
   /** Builds a list of `count` items of `minutes` each, consuming the first `consumed`. */
   async function seed(
     title: string,
-    { count, minutes, consumed = 0, lastConsumed }: {
+    { count, minutes, consumed = 0, lastConsumed, mediaType = 'movie' }: {
       count: number
       minutes: number
       consumed?: number
       lastConsumed?: Date
+      mediaType?: string
     },
   ) {
-    const list = await createList(harness.db, userId, { title, mediaType: 'movie' })
+    const list = await createList(harness.db, userId, { title, mediaType })
 
     for (let index = 0; index < count; index += 1) {
       const item = (await createListItem(harness.db, userId, list.id, {
@@ -70,21 +71,37 @@ describe('suggestion endpoints', () => {
     }[]
   }
 
-  it('“I’m tired, boss” skips the named list and favours neglected, nearly-done ones', async () => {
-    const tiredOf = await seed('Assassin’s Creed', { count: 10, minutes: 900, consumed: 5 })
+  it('“I’m tired, boss” skips the named list and its medium, and favours neglected, nearly-done ones', async () => {
+    const tiredOf = await seed('Assassin’s Creed', { count: 10, minutes: 900, consumed: 5, mediaType: 'game' })
     // Long ignored and nearly finished — exactly what this button is for.
     const almostDone = await seed('Fantastic Four', {
       count: 10,
       minutes: 15,
       consumed: 9,
       lastConsumed: daysAgo(200),
+      mediaType: 'comic',
     })
     // Ignored just as long, but barely started.
-    await seed('Cannibal Corpse', { count: 10, minutes: 45, consumed: 1, lastConsumed: daysAgo(200) })
+    await seed('Cannibal Corpse', {
+      count: 10,
+      minutes: 45,
+      consumed: 1,
+      lastConsumed: daysAgo(200),
+      mediaType: 'music',
+    })
+    // Same medium as the one named, however neglected and close to done: never offered.
+    const sameMedium = await seed('Mass Effect', {
+      count: 10,
+      minutes: 5,
+      consumed: 9,
+      lastConsumed: daysAgo(400),
+      mediaType: 'game',
+    })
 
     const results = await picks('/api/suggestions/tired-boss', { currentListId: tiredOf.id })
 
     expect(results.map((pick) => pick.list.id)).not.toContain(tiredOf.id)
+    expect(results.map((pick) => pick.list.id)).not.toContain(sameMedium.id)
     expect(results[0]?.list.id).toBe(almostDone.id)
     expect(results[0]?.nextItem?.title).toBe('Fantastic Four #10')
   })

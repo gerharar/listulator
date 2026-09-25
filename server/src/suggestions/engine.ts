@@ -20,7 +20,7 @@ export interface RankOptions {
   candidates: ListWithStats[]
   /** Unconsumed items by list id, in order; the first is the next thing to do. */
   nextItems: Map<string, ListItem | undefined>
-  /** Excluded for `scope: other_lists` — the list the user is tired of. */
+  /** Excluded for the `other_lists*` scopes — the list the user is tired of. */
   currentListId?: string
   now?: Date
 }
@@ -64,9 +64,15 @@ export function rank({
   currentListId,
   now = new Date(),
 }: RankOptions): Suggestion[] {
-  const eligible = candidates
-    .filter(isSuggestable)
-    .filter((list) => strategy.scope !== 'other_lists' || list.id !== currentListId)
+  // Looked up among *all* candidates, before the suggestable filter: a finished list still has a medium.
+  const named = currentListId ? candidates.find((list) => list.id === currentListId) : undefined
+
+  const eligible = candidates.filter(isSuggestable).filter((list) => {
+    if (strategy.scope === 'all_lists') return true
+    if (list.id === currentListId) return false
+
+    return !(strategy.scope === 'other_lists_and_media' && named && list.mediaType === named.mediaType)
+  })
 
   if (eligible.length === 0) return []
 

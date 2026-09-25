@@ -1,7 +1,7 @@
 {
   "name": "tired-boss",
-  "description": "You are sick of one list and want something else. Favours lists you have been ignoring that are close to finished, so switching away still finishes something. Scores every list except the one you named.",
-  "scope": "other_lists",
+  "description": "You are sick of one list and want something else. Favours lists you have been ignoring that are close to finished, so switching away still finishes something. Scores every list except the one you named and any other list of the same medium.",
+  "scope": "other_lists_and_media",
   "factors": [
     { "type": "neglect_time", "direction": "favor_highest", "weight": 0.5 },
     { "type": "completion_percent", "direction": "favor_highest", "weight": 0.5 }
