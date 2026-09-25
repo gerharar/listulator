@@ -30,7 +30,9 @@ export interface RankOptions {
   /**
    * Every unconsumed item by list id, in order. Only an item strategy (Just One
    * Fix) reads it, and it must be given one: the next item alone cannot say which
-   * item is shortest.
+   * item is shortest. The engine drops any consumed item it is handed anyway, so a
+   * caller that forgets to filter (the desktop builds this separately) cannot
+   * offer something already done.
    */
   unconsumed?: Map<string, ListItem[]>
   /** Excluded for the `other_lists*` scopes — the list the user is tired of. */
@@ -107,7 +109,9 @@ function rankItems({ strategy, candidates, unconsumed, currentListId }: RankOpti
   const allowed = inScope(strategy, candidates, currentListId)
   const entries = candidates
     .filter(allowed)
-    .flatMap((list) => (unconsumed.get(list.id) ?? []).map((item) => ({ list, item })))
+    .flatMap((list) =>
+      (unconsumed.get(list.id) ?? []).filter((item) => item.consumedAt === null).map((item) => ({ list, item })),
+    )
 
   if (entries.length === 0) return []
 

@@ -76,10 +76,22 @@ describe('item-level ranking (unit: item)', () => {
     expect(run({ a: [90, 5], b: [20] })[0]!.nextItem!.title).toBe('a #1')
   })
 
-  it('ignores consumed items: only what is left is a candidate', () => {
-    // b's 1-minute item is consumed, so it is not in the unconsumed set.
-    const spec = { a: [45], b: [30] }
-    expect(run(spec)[0]!.list.id).toBe('b')
+  it('ignores consumed items even if a caller hands them over', () => {
+    // The desktop app builds its own input; the engine must not trust it to have filtered.
+    const a = [item('a', 0, 1), item('a', 1, 45)]
+    a[0]!.consumedAt = new Date('2026-05-01T00:00:00Z')
+    const b = [item('b', 0, 30)]
+
+    const result = rank({
+      strategy: justOneFix,
+      candidates: [list('a'), list('b')],
+      nextItems: new Map(),
+      unconsumed: new Map([['a', a], ['b', b]]),
+      now: NOW,
+    })
+
+    expect(result.map((entry) => entry.nextItem!.timeToConsumeMinutes)).toEqual([30, 45])
+    expect(result.some((entry) => entry.nextItem!.timeToConsumeMinutes === 1)).toBe(false)
   })
 
   it('offers each list once, by its own shortest item, best first', () => {
