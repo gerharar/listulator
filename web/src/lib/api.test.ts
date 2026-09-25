@@ -326,6 +326,40 @@ describe('undo calls (task 10.19a)', () => {
     expect(fetchMock).toHaveBeenCalledWith('/api/lists/L1/seen', expect.objectContaining({ method: 'POST' }))
   })
 
+  it('sortList posts to the list and hands back what Undo needs; restoreOrder posts it back', async () => {
+    const restore = { items: [{ id: 'i1', orderIndex: 2 }], groups: [{ id: 'g1', orderIndex: 0 }] }
+    let fetchMock = stubFetch({ restore })
+
+    expect(await api.sortList('L1')).toEqual({ restore })
+    expect(fetchMock).toHaveBeenCalledWith('/api/lists/L1/sort', expect.objectContaining({ method: 'POST' }))
+
+    fetchMock = stubFetch({ restored: true })
+    await api.restoreOrder('L1', restore)
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/lists/L1/order/restore',
+      expect.objectContaining({ method: 'PUT', body: JSON.stringify(restore) }),
+    )
+  })
+
+  it('resetPreview reads what a Reset would do; resetList does it and returns the payload for Undo', async () => {
+    const preview = { removed: 2, restored: 1, doneCleared: 3, followUpCheck: true }
+    let fetchMock = stubFetch(preview)
+
+    expect(await api.resetPreview('L1')).toEqual(preview)
+    expect(fetchMock).toHaveBeenCalledWith('/api/lists/L1/reset-preview', expect.anything())
+
+    const result = { counts: { removed: 2, restored: 1, doneCleared: 3 }, followUpCheck: true, restore: { items: [], dismissals: [] } }
+    fetchMock = stubFetch(result)
+    expect(await api.resetList('L1')).toEqual(result)
+    expect(fetchMock).toHaveBeenCalledWith('/api/lists/L1/reset', expect.objectContaining({ method: 'POST' }))
+  })
+
+  it('says a hand-made list cannot be reset, in words', async () => {
+    stubFetch({ code: 'reset.unavailable' }, 409)
+
+    await expect(api.resetList('L1')).rejects.toThrow(/nothing to reset|no source/i)
+  })
+
   it('a group is restored by posting its payload back', async () => {
     const restore = { group: { id: 'g1', name: 'A', orderIndex: 0 } }
     const fetchMock = stubFetch({ id: 'g1' })

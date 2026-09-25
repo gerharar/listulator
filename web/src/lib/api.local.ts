@@ -47,6 +47,8 @@ import {
   requireItems,
   searchLibrary,
 } from '../../../server/src/ingestion/customLists.js'
+import { previewReset, resetToSource, ResetUnavailableError, sortChronologically } from '../../../server/src/catalog/reset.js'
+import { restoreOrder } from '../../../server/src/catalog/restore.js'
 import { rank, type Suggestion } from '../../../server/src/suggestions/engine.js'
 import { copy, errorMessage } from '../locale/index.js'
 import type {
@@ -136,6 +138,23 @@ function toListItem(item: SchemaListItem): ListItem {
     notes: item.notes,
     isNew: item.isNew,
   }
+}
+
+/** A Reset's refusals as the server words them (mirrors catalog/routes.ts's `resetError`); anything else passes through. */
+function resetError(cause: unknown): unknown {
+  if (cause instanceof ResetUnavailableError) {
+    return new ApiError(errorMessage('reset.unavailable') ?? 'reset.unavailable', 409, 'reset.unavailable')
+  }
+  if (cause instanceof CustomListParseError) {
+    return new ApiError(errorMessage(cause.code, cause.params) ?? cause.code, 400, cause.code)
+  }
+
+  return cause
+}
+
+/** The live registry, as the shared Reset code wants it: valid categories and default runtimes. */
+async function resetDeps() {
+  return { mediaTypes: await getLocalMediaTypes() }
 }
 
 /** The API's own refusals for the group repository's errors (mirrors catalog/routes.ts). */
@@ -418,6 +437,40 @@ export function createLocalApi(): ApiClient {
       const items = await restoreItemSet(database, userId, listId, set)
       if (!items) throw notFound()
       return items.sort((a, b) => a.orderIndex - b.orderIndex).map(toListItem)
+    },
+
+    sortList: async (listId) => {
+      const [database, userId] = [await getDb(), await getUserId()]
+      const restore = await sortChronologically(database, userId, listId)
+      if (!restore) throw notFound()
+      return { restore }
+    },
+
+    restoreOrder: async (listId, restore) => {
+      const [database, userId] = [await getDb(), await getUserId()]
+      if (!(await restoreOrder(database, userId, listId, restore))) throw notFound()
+    },
+
+    resetPreview: async (listId) => {
+      const [database, userId] = [await getDb(), await getUserId()]
+      try {
+        const preview = await previewReset(database, userId, listId, await resetDeps())
+        if (!preview) throw notFound()
+        return preview
+      } catch (cause) {
+        throw resetError(cause)
+      }
+    },
+
+    resetList: async (listId) => {
+      const [database, userId] = [await getDb(), await getUserId()]
+      try {
+        const result = await resetToSource(database, userId, listId, await resetDeps())
+        if (!result) throw notFound()
+        return result
+      } catch (cause) {
+        throw resetError(cause)
+      }
     },
 
     setConsumed: async (listId, itemId, consumed) => {

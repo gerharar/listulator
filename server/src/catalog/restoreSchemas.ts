@@ -101,3 +101,31 @@ export const listPayloadSchema = {
     updatedAt: { type: 'string' },
   },
 } as const
+
+export const listFieldsPayloadSchema = {
+  type: 'object',
+  required: ['title', 'description', 'status'],
+  additionalProperties: false,
+  properties: {
+    title: { type: 'string', minLength: 1, maxLength: 500 },
+    description: { type: ['string', 'null'], maxLength: 2000 },
+    status: { type: ['string', 'null'], enum: ['complete', 'ongoing', null] },
+  },
+} as const
+
+const orderEntrySchema = {
+  type: 'object',
+  required: ['id', 'orderIndex'],
+  additionalProperties: false,
+  properties: { id: { type: 'string', minLength: 1, maxLength: 100 }, orderIndex: { type: 'integer' } },
+} as const
+
+export const orderRestoreSchema = {
+  type: 'object',
+  required: ['items', 'groups'],
+  additionalProperties: false,
+  properties: {
+    items: { type: 'array', items: orderEntrySchema },
+    groups: { type: 'array', items: orderEntrySchema },
+  },
+} as const

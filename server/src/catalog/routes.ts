@@ -35,12 +35,24 @@ import {
   restoreList,
   restoreListGroup,
   restoreListItem,
+  restoreOrder,
 } from './restore.js'
-import type { GroupRestore, ItemRestore, ItemSetRestore, ListRestore } from './restorePayloads.js'
+import { CustomListParseError } from '../ingestion/customLists.js'
+import { IngestionError } from '../ingestion/http.js'
+import { previewReset, resetToSource, ResetUnavailableError, sortChronologically } from './reset.js'
+import type {
+  GroupRestore,
+  ItemRestore,
+  ItemSetRestore,
+  ListRestore,
+  OrderRestore,
+} from './restorePayloads.js'
 import {
   dismissalPayloadSchema,
   groupPayloadSchema,
   itemPayloadSchema,
+  listFieldsPayloadSchema,
+  orderRestoreSchema,
   listPayloadSchema,
   snapshotPayloadSchema,
 } from './restoreSchemas.js'
@@ -518,6 +530,9 @@ export const catalogRoutes: FastifyPluginAsync<CatalogRoutesOptions> = async (
           properties: {
             items: { type: 'array', items: itemPayloadSchema },
             dismissals: { type: 'array', items: dismissalPayloadSchema },
+            // What a Reset also rewrites (10.18); optional, so older payloads still work.
+            groups: { type: 'array', items: groupPayloadSchema },
+            list: listFieldsPayloadSchema,
           },
         },
       },
@@ -530,6 +545,74 @@ export const catalogRoutes: FastifyPluginAsync<CatalogRoutesOptions> = async (
       return items
     },
   )
+
+  // Sort chronologically (10.18): one in-place re-sort; hands back the old order for Undo.
+  app.post<{ Params: ListParams }>('/lists/:listId/sort', async (request, reply) => {
+    const user = getCurrentUser(request)
+    const restore = await sortChronologically(db, user.id, request.params.listId)
+    if (!restore) return reply.callNotFound()
+
+    return { restore }
+  })
+
+  app.put<{ Params: ListParams; Body: OrderRestore }>(
+    '/lists/:listId/order/restore',
+    {
+      bodyLimit: 64 * 1024 * 1024,
+      schema: { body: orderRestoreSchema },
+    },
+    async (request, reply) => {
+      const user = getCurrentUser(request)
+      if (!(await restoreOrder(db, user.id, request.params.listId, request.body))) {
+        return reply.callNotFound()
+      }
+
+      return { restored: true }
+    },
+  )
+
+  /** A Reset's refusals, as the codes the client words (a hand-made list, a file that no longer parses, a source that is down). */
+  function resetError(reply: FastifyReply, cause: unknown): FastifyReply {
+    if (cause instanceof ResetUnavailableError) return sendApiError(reply, 409, 'reset.unavailable')
+    if (cause instanceof CustomListParseError) {
+      return sendApiError(reply, 400, cause.code, cause.params)
+    }
+    if (cause instanceof IngestionError) {
+      return reply.code(502).send({ error: 'Upstream unavailable', message: cause.message })
+    }
+    throw cause
+  }
+
+  // What Reset everything would do, in numbers, without doing it (the confirm sentence).
+  app.get<{ Params: ListParams }>('/lists/:listId/reset-preview', async (request, reply) => {
+    const user = getCurrentUser(request)
+
+    try {
+      const preview = await previewReset(db, user.id, request.params.listId, {
+        mediaTypes: mediaTypes.list(),
+      })
+      if (!preview) return reply.callNotFound()
+
+      return preview
+    } catch (cause) {
+      return resetError(reply, cause)
+    }
+  })
+
+  app.post<{ Params: ListParams }>('/lists/:listId/reset', async (request, reply) => {
+    const user = getCurrentUser(request)
+
+    try {
+      const result = await resetToSource(db, user.id, request.params.listId, {
+        mediaTypes: mediaTypes.list(),
+      })
+      if (!result) return reply.callNotFound()
+
+      return result
+    } catch (cause) {
+      return resetError(reply, cause)
+    }
+  })
 
   app.put<{ Params: ItemParams; Body: { consumed: boolean } }>(
     '/lists/:listId/items/:itemId/consumed',

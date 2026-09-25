@@ -14,6 +14,7 @@ import { ensureListGroup, GroupNameError } from './groups.js'
 import { findList } from './repository.js'
 import {
   toDismissalPayload,
+  toGroupPayload,
   toItemPayload,
   type DismissalPayload,
   type GroupRestore,
@@ -21,9 +22,16 @@ import {
   type ItemRestore,
   type ItemSetRestore,
   type ListRestore,
+  type OrderRestore,
 } from './restorePayloads.js'
 
-export type { GroupRestore, ItemRestore, ItemSetRestore, ListRestore } from './restorePayloads.js'
+export type {
+  GroupRestore,
+  ItemRestore,
+  ItemSetRestore,
+  ListRestore,
+  OrderRestore,
+} from './restorePayloads.js'
 
 /**
  * The other half of Undo (D2, task 10.19a): put back what a destructive call
@@ -228,9 +236,14 @@ export async function captureItemSet(
     .where(eq(dismissedItems.listId, listId))
     .all()
 
+  const groups = await db.select().from(listGroups).where(eq(listGroups.listId, listId)).all()
+  const list = (await findList(db, userId, listId))!
+
   return {
     items: items.map(toItemPayload).sort((a, b) => a.orderIndex - b.orderIndex),
     dismissals: dismissals.map(toDismissalPayload),
+    groups: groups.map(toGroupPayload).sort((a, b) => a.orderIndex - b.orderIndex),
+    list: { title: list.title, description: list.description, status: list.status },
   }
 }
 
@@ -239,7 +252,7 @@ export async function restoreItemSet(
   db: PortableDatabase,
   userId: string,
   listId: string,
-  { items, dismissals }: ItemSetRestore,
+  { items, dismissals, groups, list }: ItemSetRestore,
 ): Promise<ListItem[] | undefined> {
   if (!(await findList(db, userId, listId))) return undefined
 
@@ -255,7 +268,62 @@ export async function restoreItemSet(
       .values(batch.map((row) => dismissalRow(listId, row)))
       .run()
   })
-  await ensureGroupsFor(db, listId, items)
+  if (groups) {
+    // The group rows exactly as they were: ids, order and any empty ones.
+    await db.delete(listGroups).where(eq(listGroups.listId, listId)).run()
+    await insertInBatches(groups, async (batch) => {
+      await db
+        .insert(listGroups)
+        .values(
+          batch.map((group) => ({
+            id: group.id,
+            listId,
+            name: group.name,
+            orderIndex: group.orderIndex,
+            createdAt: new Date(group.createdAt),
+            updatedAt: new Date(group.updatedAt),
+          })),
+        )
+        .run()
+    })
+  } else {
+    await ensureGroupsFor(db, listId, items)
+  }
+
+  if (list) {
+    await db
+      .update(lists)
+      .set({ title: list.title, description: list.description, status: list.status })
+      .where(eq(lists.id, listId))
+      .run()
+  }
 
   return await db.select().from(listItems).where(eq(listItems.listId, listId)).all()
+}
+
+/** Puts every item and group back at the position it held before a sort (Sort chronologically's Undo). */
+export async function restoreOrder(
+  db: PortableDatabase,
+  userId: string,
+  listId: string,
+  { items, groups }: OrderRestore,
+): Promise<boolean> {
+  if (!(await findList(db, userId, listId))) return false
+
+  for (const entry of items) {
+    await db
+      .update(listItems)
+      .set({ orderIndex: entry.orderIndex })
+      .where(and(eq(listItems.id, entry.id), eq(listItems.listId, listId)))
+      .run()
+  }
+  for (const entry of groups) {
+    await db
+      .update(listGroups)
+      .set({ orderIndex: entry.orderIndex })
+      .where(and(eq(listGroups.id, entry.id), eq(listGroups.listId, listId)))
+      .run()
+  }
+
+  return true
 }

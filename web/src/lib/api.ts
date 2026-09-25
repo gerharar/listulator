@@ -4,7 +4,9 @@ import type {
   ItemRestore,
   ItemSetRestore,
   ListRestore,
+  OrderRestore,
 } from '../../../server/src/catalog/restorePayloads.js'
+import type { ResetPreview, ResetResult } from '../../../server/src/catalog/reset.js'
 import type { SourceOptions } from '../../../server/src/ingestion/sourceRef.js'
 import { createLocalApi } from './api.local.js'
 /** Types mirror the server's responses; see server/src/catalog and /ingestion. */
@@ -109,7 +111,16 @@ export interface CurrentUser {
   isDefaultLocalUser: boolean
 }
 
-export type { GroupRestore, ItemRestore, ItemSetRestore, ListRestore, SourceOptions }
+export type {
+  GroupRestore,
+  ItemRestore,
+  ItemSetRestore,
+  ListRestore,
+  OrderRestore,
+  ResetPreview,
+  ResetResult,
+  SourceOptions,
+}
 
 export interface SourceSearchResponse {
   sources: ListSourceResult[]
@@ -311,6 +322,14 @@ export interface ApiClient {
   restoreItem: (listId: string, restore: ItemRestore) => Promise<ListItem>
   /** Replaces the whole item set — what undoing a Reset posts (task 10.18). */
   restoreItems: (listId: string, set: ItemSetRestore) => Promise<ListItem[]>
+  /** Sort chronologically (10.18): one in-place re-sort by year, groups as blocks. Hands back the old order for Undo. */
+  sortList: (listId: string) => Promise<{ restore: OrderRestore }>
+  /** Undo of `sortList`. */
+  restoreOrder: (listId: string, restore: OrderRestore) => Promise<void>
+  /** What Reset everything would do, in numbers, without doing it. Refused (409) for a list with no source. */
+  resetPreview: (listId: string) => Promise<ResetPreview>
+  /** Reset everything: back to the source. Hands back the payload for Undo (`restoreItems`) and whether to run Check for updates next. */
+  resetList: (listId: string) => Promise<ResetResult>
   setConsumed: (listId: string, itemId: string, consumed: boolean) => Promise<ListItem>
   addItem: (
     listId: string,
@@ -506,6 +525,20 @@ export const fetchApi: ApiClient = {
       method: 'PUT',
       body: JSON.stringify(set),
     }),
+
+  sortList: (listId: string) =>
+    request<{ restore: OrderRestore }>(`/lists/${listId}/sort`, { method: 'POST' }),
+
+  restoreOrder: async (listId: string, restore: OrderRestore) => {
+    await request<unknown>(`/lists/${listId}/order/restore`, {
+      method: 'PUT',
+      body: JSON.stringify(restore),
+    })
+  },
+
+  resetPreview: (listId: string) => request<ResetPreview>(`/lists/${listId}/reset-preview`),
+
+  resetList: (listId: string) => request<ResetResult>(`/lists/${listId}/reset`, { method: 'POST' }),
 
   setConsumed: (listId: string, itemId: string, consumed: boolean) =>
     request<ListItem>(`/lists/${listId}/items/${itemId}/consumed`, {

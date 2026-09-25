@@ -188,6 +188,8 @@ export const en = {
       'Only an empty group can be deleted — move or remove its items first.',
     'group.orderMismatch': (): string =>
       'The groups changed since you loaded this list — reload it and try again.',
+    'reset.unavailable': (): string =>
+      'This list has no source to reset to — it was made by hand, or arrived before its source was kept.',
     'refresh.handMadeList': (): string =>
       'This list was made by hand, so there is nothing to check against.',
     'refresh.searchUnavailable': (p: { category: string }): string =>

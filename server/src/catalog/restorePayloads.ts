@@ -100,10 +100,31 @@ export interface ListRestore {
   dismissals: DismissalPayload[]
 }
 
-/** A list's whole item set and dismissals, as they stood — what undoing a Reset puts back. */
+/** The list's own fields that a Reset can change (from the source's name, description and status). */
+export interface ListFieldsPayload {
+  title: string
+  description: string | null
+  status: ListStatus | null
+}
+
+/**
+ * A list's whole item set and dismissals, as they stood — what undoing a Reset
+ * puts back. `groups` and `list` are what a Reset also rewrites (the group rows,
+ * with their order and any empty ones, and the list's own title, description
+ * and status); absent on a payload from before 10.18, which then restores the
+ * items alone.
+ */
 export interface ItemSetRestore {
   items: ItemPayload[]
   dismissals: DismissalPayload[]
+  groups?: GroupPayload[]
+  list?: ListFieldsPayload
+}
+
+/** Where every item and group stood before Sort chronologically — what its Undo puts back. */
+export interface OrderRestore {
+  items: { id: string; orderIndex: number }[]
+  groups: { id: string; orderIndex: number }[]
 }
 
 export const toItemPayload = (item: ListItem): ItemPayload => ({
