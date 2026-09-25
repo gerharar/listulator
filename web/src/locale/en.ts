@@ -517,6 +517,20 @@ export const en = {
         saveFailed: 'Could not save your changes to the list',
         undoFailed: 'Could not undo that',
       },
+      /** The filter bar under the header: a text field, the category's facets, fold-all and a note. */
+      filter: {
+        label: 'Filter items',
+        placeholder: 'Filter items…',
+        total: (n: number): string => `${n} ${selectPlural(n, 'en', { one: 'item', other: 'items' })}`,
+        shown: (shown: number, total: number): string => `${shown} of ${total} shown`,
+        /** A group's count while filtering. */
+        groupShown: (shown: number, total: number): string => `${shown} of ${total}`,
+        nothing: (text: string): string => (text.trim() ? `Nothing matches “${text.trim()}”.` : 'Nothing matches this filter.'),
+        collapseAll: 'Collapse all',
+        expandAll: 'Expand all',
+        collapseAllTip: 'Fold every group',
+        expandAllTip: 'Open every group',
+      },
       checkForUpdates: 'Check for updates',
       order: 'Order',
       more: 'More',

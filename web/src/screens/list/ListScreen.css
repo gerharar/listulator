@@ -90,3 +90,42 @@
 .q-check-btn .q-spin { animation: q-spin 0.7s linear infinite; }
 @keyframes q-spin { to { transform: rotate(360deg); } }
 @media (prefers-reduced-motion: reduce) { .q-check-btn .q-spin { animation: none; } }
+
+/* The filter bar (prototype: field, facet rows, fold-all, note; it sits under the header row inside the header block). */
+.q-filterbar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 0 0 14px;
+}
+.q-filter-input {
+  width: 250px;
+  padding: 9px 12px;
+  border: 1px solid var(--line);
+  background: var(--field);
+  color: var(--ink);
+  font: 400 14px/1.2 var(--font-sans);
+}
+.q-filter-input:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.q-fold {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-left: auto;
+  padding: 8px 11px;
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--ink2);
+  font: 600 12.5px/1 var(--font-sans);
+  white-space: nowrap;
+  cursor: pointer;
+}
+.q-fold:hover { border-color: var(--rule); color: var(--ink); background: var(--hover); }
+.q-filter-note {
+  flex: none;
+  font: 500 12px/1 var(--font-mono);
+  color: var(--ink3);
+}
+.q-filter-note.push { margin-left: auto; }

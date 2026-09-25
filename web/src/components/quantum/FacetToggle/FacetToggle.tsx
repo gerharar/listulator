@@ -3,6 +3,8 @@ import './FacetToggle.css'
 export interface FacetOption {
   key: string
   label: string
+  /** What the button's hint calls it when the label is a code (`PS3` → PlayStation 3). */
+  name?: string
 }
 
 /** `All` is on exactly when no option is — nothing selected means nothing is hidden. */
@@ -45,8 +47,8 @@ export function FacetToggle({ label, options, selected, onChange }: FacetToggleP
               aria-pressed={on}
               title={
                 on
-                  ? `Hide ${option.label}`
-                  : `Also show ${option.label} — any number can be on at once`
+                  ? `Hide ${option.name ?? option.label}`
+                  : `Also show ${option.name ?? option.label} — any number can be on at once`
               }
               onClick={() => onChange(toggleFacetOption(selected, option.key))}
             >

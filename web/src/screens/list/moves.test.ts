@@ -4,6 +4,7 @@ import {
   applyPositions,
   dropItemInGroup,
   dropUnit,
+  stepAmongShown,
   stepItemInGroup,
   stepUnit,
   type MoveOutcome,
@@ -311,5 +312,53 @@ describe('the drag and keyboard paths save the same order', () => {
     const drop = dropUnit(items, groups, 'gH', 'b', 'before') as Extract<MoveOutcome, { kind: 'moved' }>
 
     expect(step.next).toEqual(drop.next)
+  })
+})
+
+describe('stepAmongShown (Shift+↑↓ while a filter hides rows)', () => {
+  const shownExcept = (...hidden: string[]) => (id: string) => !hidden.includes(id)
+
+  it('puts an item just past the next row that is shown, not past a hidden one', () => {
+    const { items, groups } = fixture()
+    // g2 is filtered out: from g1, one step down goes after g3, past the hidden g2.
+    const outcome = stepAmongShown(items, groups, 'g1', 1, shownExcept('g2'))
+    expect(after(outcome, items, groups).ids).toEqual(['a', 'g2', 'g3', 'g1', 'b', 'h1', 'h2', 'c'])
+  })
+
+  it('steps up past hidden rows the same way', () => {
+    const { items, groups } = fixture()
+    const outcome = stepAmongShown(items, groups, 'g3', -1, shownExcept('g2'))
+    expect(after(outcome, items, groups).ids).toEqual(['a', 'g3', 'g1', 'g2', 'b', 'h1', 'h2', 'c'])
+  })
+
+  it('says it is at the edge when nothing shown lies beyond, however much is hidden', () => {
+    const { items, groups } = fixture()
+    expect(stepAmongShown(items, groups, 'g2', 1, shownExcept('g3'))).toEqual({
+      kind: 'edge',
+      side: 'bottom',
+      groupName: 'G',
+    })
+  })
+
+  it('moves a block past the next block that is shown', () => {
+    const { items, groups } = fixture()
+    // Group G and its items are filtered out: a steps past G and lands after b.
+    const outcome = stepAmongShown(items, groups, 'a', 1, shownExcept('gG', 'g1', 'g2', 'g3'))
+    expect(after(outcome, items, groups).ids).toEqual(['g1', 'g2', 'g3', 'b', 'a', 'h1', 'h2', 'c'])
+  })
+
+  it('saves what the same drop next to that neighbour would save', () => {
+    const { items, groups } = fixture()
+    const stepped = stepAmongShown(items, groups, 'a', 1, shownExcept('gG', 'g1', 'g2', 'g3'))
+    const dropped = dropUnit(items, groups, 'a', 'b', 'after')
+    expect(stepped).toEqual(dropped)
+  })
+
+  it('is the ordinary step when nothing is hidden', () => {
+    const { items, groups } = fixture()
+    expect(stepAmongShown(items, groups, 'g1', 1, () => true)).toEqual(
+      stepItemInGroup(items, groups, 'g1', 1),
+    )
+    expect(stepAmongShown(items, groups, 'gG', 1, () => true)).toEqual(stepUnit(items, groups, 'gG', 1))
   })
 })

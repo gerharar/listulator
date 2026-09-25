@@ -4,7 +4,15 @@ import { copy } from '../../locale/index.js'
 import { useLiveRegion } from '../../components/quantum/LiveRegion/LiveRegion.js'
 import { useToast } from '../../components/quantum/Toast/Toast.js'
 import { useRowDrag, type DropTarget } from '../../lib/useRowDrag.js'
-import { applyPositions, dropItemInGroup, dropUnit, stepItemInGroup, stepUnit, type MoveOutcome } from './moves.js'
+import {
+  applyPositions,
+  dropItemInGroup,
+  dropUnit,
+  stepAmongShown,
+  stepItemInGroup,
+  stepUnit,
+  type MoveOutcome,
+} from './moves.js'
 
 interface Deps {
   listId: string
@@ -17,6 +25,12 @@ interface Deps {
   pulseRows: (ids: readonly string[]) => void
   /** The list body, to put focus back on a row after it has moved. */
   spine: RefObject<HTMLElement | null>
+  /**
+   * While a filter hides rows: the ids (items and groups) that are shown. A
+   * keyboard step then goes just past the next shown row. Absent when nothing
+   * is filtered.
+   */
+  shown?: ReadonlySet<string> | undefined
 }
 
 /** A keyboard run ends at a pause this long, when focus leaves the list, or when the screen goes. */
@@ -33,14 +47,14 @@ type Moved = Extract<MoveOutcome, { kind: 'moved' }>
  * keyboard steps gets one toast when it ends, which outlives the screen, and
  * whose Undo restores the positions from before the first step.
  */
-export function useRowMoves({ listId, items, groups, setItems, setGroups, setError, pulseRows, spine }: Deps) {
+export function useRowMoves({ listId, items, groups, setItems, setGroups, setError, pulseRows, spine, shown }: Deps) {
   const text = copy.quantum.list.moves
   const { showToast } = useToast()
   const { announce } = useLiveRegion()
 
   // The latest of everything a gesture or a toast may need long after the render that made it.
-  const latest = useRef({ items, groups })
-  latest.current = { items, groups }
+  const latest = useRef({ items, groups, shown })
+  latest.current = { items, groups, shown }
   const mounted = useRef(true)
   const chain = useRef<Promise<unknown>>(Promise.resolve())
   const pendingFocus = useRef<string | null>(null)
@@ -177,10 +191,12 @@ export function useRowMoves({ listId, items, groups, setItems, setGroups, setErr
 
   const moveByKey = useCallback(
     (rowId: string, dir: -1 | 1) => {
-      const { items: currentItems, groups: currentGroups } = latest.current
-      const outcome = groupIds.has(rowId)
-        ? stepUnit(currentItems, currentGroups, rowId, dir)
-        : stepItemInGroup(currentItems, currentGroups, rowId, dir)
+      const { items: currentItems, groups: currentGroups, shown: visibleIds } = latest.current
+      const outcome = visibleIds
+        ? stepAmongShown(currentItems, currentGroups, rowId, dir, (id) => visibleIds.has(id))
+        : groupIds.has(rowId)
+          ? stepUnit(currentItems, currentGroups, rowId, dir)
+          : stepItemInGroup(currentItems, currentGroups, rowId, dir)
 
       if (outcome.kind === 'edge') {
         announce(text.atEdge(outcome.side, outcome.groupName))

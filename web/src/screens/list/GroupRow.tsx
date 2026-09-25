@@ -18,6 +18,8 @@ export interface GroupRowProps {
   dropLine?: 'before' | 'after' | null
   /** Just moved or restored. */
   pulse?: boolean
+  /** While a filter is on: how many of the group's items match, in place of its progress. */
+  shownOf?: { shown: number; total: number }
 }
 
 /**
@@ -36,6 +38,7 @@ export function GroupRow({
   dragging = false,
   dropLine = null,
   pulse = false,
+  shownOf,
 }: GroupRowProps) {
   const span = yearSpanLabel(block.yearSpan)
 
@@ -79,13 +82,21 @@ export function GroupRow({
         <b>{block.group.name}</b>
         {span && <span className="q-year">{span}</span>}
       </span>
-      <ProgressSentence
-        done={block.done}
-        total={block.total}
-        minutesLeft={block.minutesLeft}
-        status={null}
-        size="group"
-      />
+      {shownOf ? (
+        <div className="q-progress">
+          <span className="q-count" style={{ fontSize: 13 }}>
+            {copy.quantum.list.filter.groupShown(shownOf.shown, shownOf.total)}
+          </span>
+        </div>
+      ) : (
+        <ProgressSentence
+          done={block.done}
+          total={block.total}
+          minutesLeft={block.minutesLeft}
+          status={null}
+          size="group"
+        />
+      )}
     </div>
   )
 }

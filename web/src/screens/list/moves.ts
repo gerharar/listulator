@@ -230,3 +230,36 @@ export function stepItemInGroup(
 
   return dropItemInGroup(items, groups, itemId, neighbour.id, dir < 0 ? 'before' : 'after')
 }
+
+/**
+ * Shift+↑↓ while a filter hides rows. The neighbour is the next row that is
+ * *shown*, and the row goes just past it: what a drop next to that row would
+ * do, so a step never appears to do nothing because of what is hidden.
+ * `isShown` answers for item ids and group ids alike.
+ */
+export function stepAmongShown(
+  items: readonly ListItem[],
+  groups: readonly ListGroup[],
+  key: string,
+  dir: -1 | 1,
+  isShown: (id: string) => boolean,
+): MoveOutcome {
+  const entry = items.find((candidate) => candidate.id === key)
+
+  if (entry?.group) {
+    const peers = peersOf(items, entry.group).filter((peer) => peer.id === key || isShown(peer.id))
+    const neighbour = peers[peers.findIndex((peer) => peer.id === key) + dir]
+    if (!neighbour) return { kind: 'edge', side: dir < 0 ? 'top' : 'bottom', groupName: entry.group }
+
+    return dropItemInGroup(items, groups, key, neighbour.id, dir < 0 ? 'before' : 'after')
+  }
+
+  const blocks = movable(items, groups).blocks.filter((unit) => unitKey(unit) === key || isShown(unitKey(unit)))
+  const from = blocks.findIndex((unit) => unitKey(unit) === key)
+  if (from < 0) return { kind: 'none' }
+
+  const neighbour = blocks[from + dir]
+  if (!neighbour) return { kind: 'edge', side: dir < 0 ? 'top' : 'bottom' }
+
+  return dropUnit(items, groups, key, unitKey(neighbour), dir < 0 ? 'before' : 'after')
+}

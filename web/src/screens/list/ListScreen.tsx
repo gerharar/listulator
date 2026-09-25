@@ -28,8 +28,11 @@ import {
   saveCollapsed,
   saveFocus,
 } from './collapse.js'
+import { deriveFacets, type FacetKey } from '../../../../server/src/catalog/facets.js'
 import { AddItemForm, type NewItemInput } from './AddItemForm.js'
 import { EditListPopover } from './EditListPopover.js'
+import { FilterBar } from './FilterBar.js'
+import { NO_FILTER, isFiltering, shownItemIds, type ListFilter } from './filtering.js'
 import { GroupRow } from './GroupRow.js'
 import { invertPatch, type ItemPatch } from './itemActions.js'
 import { invertListPatch, type ListFields, type ListPatch } from './listActions.js'
@@ -225,26 +228,59 @@ function ListView({
     pulseTimer.current = setTimeout(() => setPulseIds(new Set()), PULSE_MS)
   }, [])
   const pulse = (itemId: string) => pulseRows([itemId])
-  const moves = useRowMoves({ listId, items, groups, setItems, setGroups, setError, pulseRows, spine })
+  // The filter is view state: what was typed and which facet buttons are on, never saved.
+  const [filter, setFilter] = useState<ListFilter>(NO_FILTER)
+  const filtering = isFiltering(filter)
+  const facetGroups = useMemo(() => deriveFacets(items, mediaType?.facets), [items, mediaType])
+  const shownIds = useMemo(() => shownItemIds(items, mediaType?.facets, filter), [items, mediaType, filter])
+  // What stays on the spine: a loose item that matches, and a group with a matching item (its items narrowed).
+  const shownUnits = useMemo(
+    () =>
+      units.flatMap((unit) => {
+        if (!filtering) return [{ unit, members: unit.kind === 'group' ? unit.items : [] }]
+        if (unit.kind === 'item') return shownIds.has(unit.item.id) ? [{ unit, members: [] }] : []
+        const members = unit.items.filter((entry) => shownIds.has(entry.id))
+
+        return members.length > 0 ? [{ unit, members }] : []
+      }),
+    [units, filtering, shownIds],
+  )
+  // Ids a keyboard step may land beside; absent (not empty) when nothing is filtered.
+  const shownKeys = useMemo(
+    () =>
+      filtering
+        ? new Set(shownUnits.flatMap(({ unit, members }) => (unit.kind === 'item' ? [unit.item.id] : [unit.group.id, ...members.map((entry) => entry.id)])))
+        : undefined,
+    [filtering, shownUnits],
+  )
+  const moves = useRowMoves({ listId, items, groups, setItems, setGroups, setError, pulseRows, spine, shown: shownKeys })
+  // Typed text opens a collapsed group that has a match, so the match can be seen; nothing is remembered.
+  const openByText = useMemo(
+    () =>
+      filter.text.trim() === ''
+        ? new Set<string>()
+        : new Set(shownUnits.flatMap(({ unit }) => (unit.kind === 'group' ? [unit.group.name] : []))),
+    [filter.text, shownUnits],
+  )
   // While a block is carried every group shuts, so only boundaries are targets; nothing is remembered.
   const shut = useMemo<ReadonlySet<string>>(
-    () => (moves.draggingUnit ? new Set(groupNames) : collapsed),
-    [moves.draggingUnit, groupNames, collapsed],
+    () => (moves.draggingUnit ? new Set(groupNames) : new Set([...collapsed].filter((name) => !openByText.has(name)))),
+    [moves.draggingUnit, groupNames, collapsed, openByText],
   )
 
   // The rows that are on screen, in order: what the arrow keys walk.
   const visible = useMemo(() => {
     const ids: string[] = []
-    for (const unit of units) {
+    for (const { unit, members } of shownUnits) {
       if (unit.kind === 'item') ids.push(unit.item.id)
       else {
         ids.push(unit.group.id)
-        if (!shut.has(unit.group.name)) ids.push(...unit.items.map((entry) => entry.id))
+        if (!shut.has(unit.group.name)) ids.push(...members.map((entry) => entry.id))
       }
     }
 
     return ids
-  }, [units, shut])
+  }, [shownUnits, shut])
   const tabStop = focusId && visible.includes(focusId) ? focusId : visible[0]
 
   const minutesWidth = Math.max(4, ...items.map((entry) => formatDuration(entry.timeToConsumeMinutes).length)) + 1
@@ -271,6 +307,19 @@ function ListView({
     if (!next.delete(name)) next.add(name)
     setCollapsed(next)
     void saveCollapsed(getPreferencesStore(), listId, next)
+  }
+
+  /** Collapse all / Expand all: judged on what the reader has open, not on what a filter shows. */
+  const anyOpen = groupNames.some((name) => !collapsed.has(name))
+
+  function foldAll() {
+    const next = anyOpen ? new Set(groupNames) : new Set<string>()
+    setCollapsed(next)
+    void saveCollapsed(getPreferencesStore(), listId, next)
+  }
+
+  function selectFacet(facet: FacetKey, selected: ReadonlySet<string>) {
+    setFilter((current) => ({ ...current, facets: { ...current.facets, [facet]: selected } }))
   }
 
   function remember(rowId: string) {
@@ -697,6 +746,15 @@ function ListView({
             </IconButton>
           </div>
         </div>
+        <FilterBar
+          text={filter.text}
+          onText={(value) => setFilter((current) => ({ ...current, text: value }))}
+          facets={facetGroups}
+          selection={filter.facets}
+          onSelect={selectFacet}
+          fold={groupNames.length > 1 ? { collapse: anyOpen, onToggle: foldAll } : null}
+          note={filtering ? text.filter.shown(shownIds.size, items.length) : text.filter.total(items.length)}
+        />
       </div>
 
       {pendingCount > 0 && (
@@ -728,7 +786,10 @@ function ListView({
 
       <div className="q-list-body" ref={spine} onKeyDown={onKeyDown} onBlur={moves.onBlur}>
         {units.length === 0 && <p className="q-list-empty">{text.empty}</p>}
-        {units.map((unit) =>
+        {filtering && shownUnits.length === 0 && (
+          <p className="q-list-empty">{text.filter.nothing(filter.text)}</p>
+        )}
+        {shownUnits.map(({ unit, members }) =>
           unit.kind === 'item' ? (
             itemRow(unit.item, false)
           ) : (
@@ -743,8 +804,9 @@ function ListView({
                 dragging={moves.dragKey === unit.group.id}
                 dropLine={moves.over?.key === unit.group.id ? moves.over.pos : null}
                 pulse={pulseIds.has(unit.group.id)}
+                shownOf={filtering ? { shown: members.length, total: unit.items.length } : undefined}
               />
-              {!shut.has(unit.group.name) && unit.items.map((entry) => itemRow(entry, true))}
+              {!shut.has(unit.group.name) && members.map((entry) => itemRow(entry, true))}
             </div>
           ),
         )}
