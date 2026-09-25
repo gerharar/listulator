@@ -86,3 +86,29 @@ test('a category with no convention gets the text field and no facets', async ({
     await page.request.delete(`/api/lists/${id}`)
   }
 })
+
+test('the platform chip opens a 240px popover with full names, never toggles the row, and Esc closes it', async ({ page }) => {
+  const title = `e2e list-filter chip ${Date.now()}`
+  const id = await makeList(page.request, title, 'game', GAMES)
+
+  try {
+    await openList(page, title)
+    const row = page.locator('.q-item', { hasText: 'Assassin’s Creed II' })
+    await expect(row.locator('.q-plat')).toHaveText('MULTI')
+
+    await row.locator('.q-plat').click()
+    const card = page.locator('.q-platcard')
+    await expect(card).toContainText('Platforms · 3')
+    await expect(card).toContainText('Xbox 360')
+    expect((await page.locator('.q-pop.w240').boundingBox())!.width).toBeCloseTo(240, -1)
+    await page.screenshot({ path: 'test-results/platform-popover.png' })
+    await expect(row).not.toHaveClass(/is-done/)
+
+    await page.keyboard.press('Escape')
+    await expect(card).toHaveCount(0)
+    // Esc closed the popover only: the list layer is still open.
+    await expect(row).toBeVisible()
+  } finally {
+    await page.request.delete(`/api/lists/${id}`)
+  }
+})

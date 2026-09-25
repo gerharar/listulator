@@ -7,6 +7,7 @@ import type { ListItem } from '../../lib/api.js'
 import { IconButton } from '../../components/quantum/Button/Button.js'
 import { DoneCheckbox } from '../../components/quantum/DoneCheckbox/DoneCheckbox.js'
 import { KindTag, ManualMark, NewBadge } from '../../components/quantum/Marks/Marks.js'
+import { PlatformChip } from '../../components/quantum/PlatformChip/PlatformChip.js'
 
 export interface ItemRowProps {
   item: ListItem
@@ -30,6 +31,12 @@ export interface ItemRowProps {
   dragging?: boolean
   /** The drop line, when a drag would land just above or just below this row. */
   dropLine?: 'before' | 'after' | null
+  /**
+   * A category whose tags name platforms shows a platform chip in the tag
+   * column instead of the first tag as a plain label; `widthCh` is the widest
+   * chip label on the list, so the column lines up.
+   */
+  platform?: { widthCh: number; onOpen: (item: ListItem, anchor: HTMLElement) => void }
 }
 
 /**
@@ -52,6 +59,7 @@ export function ItemRow({
   onHandlePointerDown,
   dragging = false,
   dropLine = null,
+  platform,
 }: ItemRowProps) {
   const text = copy.quantum.list.itemActions
   const done = item.consumedAt !== null
@@ -97,9 +105,18 @@ export function ItemRow({
       </span>
       {/* The row's own click does the toggling, so the box only has to look right. */}
       <DoneCheckbox checked={done} onChange={() => {}} label={item.title} />
-      {(kind || item.source === 'manual') && (
+      {(platform || kind || item.source === 'manual') && (
         <span className="tags">
-          {kind && <KindTag label={kind} kind />}
+          {platform ? (
+            <PlatformChip
+              tags={item.tags ?? []}
+              widthCh={platform.widthCh}
+              itemTitle={item.title}
+              onOpen={(anchor) => platform.onOpen(item, anchor)}
+            />
+          ) : (
+            kind && <KindTag label={kind} kind />
+          )}
           {item.source === 'manual' && <ManualMark />}
         </span>
       )}

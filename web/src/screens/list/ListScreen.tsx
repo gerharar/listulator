@@ -18,6 +18,8 @@ import { HeaderPlate } from '../../components/quantum/HeaderPlate/HeaderPlate.js
 import { ProgressSentence } from '../../components/quantum/ProgressSentence/ProgressSentence.js'
 import { useLiveRegion } from '../../components/quantum/LiveRegion/LiveRegion.js'
 import { Popover } from '../../components/quantum/Popover/Popover.js'
+import { PlatformCard } from '../../components/quantum/PlatformChip/PlatformCard.js'
+import { platformChipLabel } from '../../components/quantum/PlatformChip/PlatformChip.js'
 import { Spinner } from '../../components/quantum/Spinner/Spinner.js'
 import { StatusChip } from '../../components/quantum/StatusChip/StatusChip.js'
 import { useToast } from '../../components/quantum/Toast/Toast.js'
@@ -167,7 +169,7 @@ interface ListViewProps {
 /** How long a row stays washed after it was added, moved or restored (design: row pulse). */
 const PULSE_MS = 1900
 
-type OpenPopover = { kind: 'info' | 'edit'; itemId: string; anchor: HTMLElement }
+type OpenPopover = { kind: 'info' | 'edit' | 'platform'; itemId: string; anchor: HTMLElement }
 
 
 function ListView({
@@ -282,6 +284,15 @@ function ListView({
     return ids
   }, [shownUnits, shut])
   const tabStop = focusId && visible.includes(focusId) ? focusId : visible[0]
+
+  // A category whose convention names platforms gets chips; the column is as wide as the widest label.
+  const platformColumn = useMemo(
+    () =>
+      mediaType?.facets?.some((facet) => facet.key === 'platform')
+        ? { widthCh: Math.max(5, ...items.map((entry) => platformChipLabel(entry.tags ?? [])?.length ?? 0)) }
+        : undefined,
+    [mediaType, items],
+  )
 
   const minutesWidth = Math.max(4, ...items.map((entry) => formatDuration(entry.timeToConsumeMinutes).length)) + 1
 
@@ -698,6 +709,12 @@ function ListView({
       onInfo={(row, anchor) => setPopover({ kind: 'info', itemId: row.id, anchor })}
       onEdit={(row, anchor) => setPopover({ kind: 'edit', itemId: row.id, anchor })}
       onRemove={(row) => void removeItem(row)}
+      platform={
+        platformColumn && {
+          widthCh: platformColumn.widthCh,
+          onOpen: (row, anchor) => setPopover({ kind: 'platform', itemId: row.id, anchor }),
+        }
+      }
     />
   )
 
@@ -850,6 +867,11 @@ function ListView({
       {popover?.kind === 'info' && popoverItem && (
         <Popover open anchorEl={popover.anchor} onDismiss={() => setPopover(null)} width={320}>
           <ItemInfoCard item={popoverItem} />
+        </Popover>
+      )}
+      {popover?.kind === 'platform' && popoverItem && (
+        <Popover open anchorEl={popover.anchor} onDismiss={() => setPopover(null)} width={240}>
+          <PlatformCard tags={popoverItem.tags ?? []} />
         </Popover>
       )}
       {popover?.kind === 'edit' && popoverItem && (

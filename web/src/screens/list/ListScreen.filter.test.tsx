@@ -22,7 +22,7 @@ vi.mock('../../lib/preferences/store.js', () => ({
 
 vi.mock('../../lib/api.js', () => ({
   ApiError: class extends Error {},
-  api: { list: vi.fn(), restoreOrder: vi.fn() },
+  api: { list: vi.fn(), restoreOrder: vi.fn(), setConsumed: vi.fn() },
 }))
 
 const TYPES: MediaType[] = [
@@ -280,5 +280,47 @@ describe('moving rows while filtered', () => {
     fireEvent.keyDown(row('gh'), { key: 'ArrowDown' })
 
     expect(document.activeElement).toBe(row('ch'))
+  })
+})
+
+describe('platform chips (Games)', () => {
+  const chip = (id: string) => row(id).querySelector('.q-plat') as HTMLElement | null
+
+  it('shows MULTI for several platforms, the code for one, and an empty slot for none', async () => {
+    await open()
+
+    expect(chip('ac1')!.textContent).toBe('MULTI')
+    expect(chip('ac3')!.textContent).toBe('MULTI')
+    expect(chip('ch')!.textContent).toBe('NDS')
+    expect(chip('p')).toBeNull()
+    expect(row('p').querySelector('.q-plat-gap')).toBeTruthy()
+  })
+
+  it('opens the platform popover with full names, and never toggles the row', async () => {
+    await open()
+
+    fireEvent.click(chip('ac1')!)
+
+    const card = await screen.findByText('Platforms · 3')
+    expect(card).toBeTruthy()
+    expect(screen.getByText('PlayStation 3')).toBeTruthy()
+    expect(row('ac1').classList.contains('is-done')).toBe(false)
+    expect(api.setConsumed).not.toHaveBeenCalled()
+  })
+
+  it('explains a bare multi without naming platforms', async () => {
+    await open()
+
+    fireEvent.click(chip('ac3')!)
+
+    expect(await screen.findByText('Multi-platform')).toBeTruthy()
+    expect(screen.getByText(/doesn't name them/)).toBeTruthy()
+  })
+
+  it('keeps the plain first-tag label in a category without a platform convention', async () => {
+    await open('tv')
+
+    expect(chip('ac1')).toBeNull()
+    expect(row('ac1').querySelector('.q-tag')!.textContent).toBe('PS3')
   })
 })

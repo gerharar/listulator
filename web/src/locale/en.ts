@@ -366,6 +366,15 @@ export const en = {
         `Each is assumed to take about ${duration}, which you can correct later.`,
       createFailed: 'Could not create the list',
     },
+    /** The platform chip's popover (design: PlatformChip). */
+    platformCard: {
+      one: 'Platform',
+      many: (n: number): string => `Platforms · ${n}`,
+      multi: 'Multi-platform',
+      multiNote: "Same game on every platform it shipped on. This list doesn't name them.",
+      /** The chip's accessible name: what it opens. */
+      chipLabel: (title: string): string => `Platforms for ${title}`,
+    },
     list: {
       loading: 'Loading the list…',
       loadFailedHeadline: "Can't open this list",
