@@ -14,12 +14,15 @@ import { useToast } from '../Toast/Toast.js'
 import { useLayerStack } from '../layerStack/LayerStackContext.js'
 import { loadLastOpened } from '../../../lib/lastOpened.js'
 import { subscribeListsChanged } from '../../../lib/listsChanged.js'
+import { previewPath } from '../../../lib/preview.js'
 import { getPreferencesStore } from '../../../lib/preferences/store.js'
 import { FinalizerSheet } from '../HelperSheet/FinalizerSheet.js'
 import { JustOneFixSheet } from '../HelperSheet/JustOneFixSheet.js'
+import { SurpriseSheet } from '../HelperSheet/SurpriseSheet.js'
 import { TiredBossSheet } from '../HelperSheet/TiredBossSheet.js'
 import { getPendingUpdates, useChecking, usePendingMap, type PendingUpdates } from '../../../lib/pendingUpdates.js'
 import { applyUpdate, checkLists } from '../../../lib/updateCheck.js'
+import type { LibraryEntry } from '../../../../../server/src/ingestion/customLists.js'
 import type { LayerDescriptor } from '../layerStack/layerStack.js'
 
 type Phase = 'loading' | 'ready' | 'error'
@@ -67,7 +70,7 @@ export function Home({ onMediaTypesLoaded, pendingUpdates }: HomeProps) {
   const [retryToken, setRetryToken] = useState(0)
   // The open helper sheet, if any; it starts on the list opened last.
   const [helper, setHelper] = useState<
-    { kind: 'tired'; initialTarget: string | undefined } | { kind: 'finalizer' | 'justOneFix' } | null
+    { kind: 'tired'; initialTarget: string | undefined } | { kind: 'finalizer' | 'justOneFix' | 'surprise' } | null
   >(null)
   // The room the sheet has: from just under the help row to the bottom of the card that clips it.
   const homeRef = useRef<HTMLDivElement>(null)
@@ -164,12 +167,23 @@ export function Home({ onMediaTypesLoaded, pendingUpdates }: HomeProps) {
   useEffect(() => subscribeListsChanged(() => setRetryToken((token) => token + 1)), [])
 
   /** Opens a helper sheet (I'm Tired, Boss on the list opened last), or closes it if it is the one already open. One at a time. */
-  async function toggleHelper(kind: 'tired' | 'finalizer' | 'justOneFix') {
+  async function toggleHelper(kind: 'tired' | 'finalizer' | 'justOneFix' | 'surprise') {
     if (helper?.kind === kind) {
       setHelper(null)
       return
     }
     setHelper(kind === 'tired' ? { kind, initialTarget: await loadLastOpened(getPreferencesStore()) } : { kind })
+  }
+
+  /** Surprise Me's This One: the same preview a search result opens, from where you are; nothing is created until Add list. */
+  const previewLibraryEntry = (entry: LibraryEntry) => {
+    setHelper(null)
+    layerStack.push({
+      id: `preview-${entry.externalRef}`,
+      kind: 'preview',
+      tabLabel: copy.quantum.search.previewTab(entry.title),
+      content: previewPath({ mediaType: entry.category, externalRef: entry.externalRef, title: entry.title, options: {} }),
+    })
   }
 
   const openHelperList = (listId: string) => {
@@ -312,6 +326,7 @@ export function Home({ onMediaTypesLoaded, pendingUpdates }: HomeProps) {
             ['tired', copy.quantum.home.helpButtons.tiredBoss],
             ['finalizer', copy.quantum.home.helpButtons.finalizer],
             ['justOneFix', copy.quantum.home.helpButtons.justOneFix],
+            ['surprise', copy.quantum.home.helpButtons.surpriseMe],
           ] as const
         ).map(([kind, label]) => (
           <Button
@@ -326,14 +341,6 @@ export function Home({ onMediaTypesLoaded, pendingUpdates }: HomeProps) {
             {label}
           </Button>
         ))}
-        <Button
-          variant="quiet"
-          size="sm"
-          disabled
-          title={copy.quantum.home.helpComingSoon(copy.quantum.home.helpButtons.surpriseMe)}
-        >
-          {copy.quantum.home.helpButtons.surpriseMe}
-        </Button>
       </div>
       {helper && (
         <div className="q-help-anchor" ref={anchorRef} style={{ '--help-room': room === undefined ? undefined : `${room}px` } as CSSProperties}>
@@ -347,8 +354,10 @@ export function Home({ onMediaTypesLoaded, pendingUpdates }: HomeProps) {
             />
           ) : helper.kind === 'finalizer' ? (
             <FinalizerSheet open onClose={() => setHelper(null)} onOpenList={openHelperList} />
-          ) : (
+          ) : helper.kind === 'justOneFix' ? (
             <JustOneFixSheet open onClose={() => setHelper(null)} onOpenList={openHelperList} />
+          ) : (
+            <SurpriseSheet open onClose={() => setHelper(null)} mediaTypes={mediaTypes} onTake={previewLibraryEntry} />
           )}
         </div>
       )}

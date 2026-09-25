@@ -378,6 +378,35 @@ export const en = {
       loading: 'Finding something…',
       failed: 'Could not get a suggestion',
       retry: 'Try again',
+      surprise: {
+        title: 'Surprise, Motherfucker!',
+        explain: "A random curated list you're not tracking yet. Millions of flies can't be wrong, eh?",
+        any: 'Any',
+        category: 'CATEGORY',
+        spin: 'Spin',
+        spinAgain: 'Spin Again',
+        spinning: 'Spinning…',
+        thisOne: 'This One',
+        idleMeta: 'Spin to win!',
+        note: 'Choose your categories and try your luck!',
+        nothingHere: 'Nothing left here — you track it all',
+        anyTitle: (n: number): string => `${n} ${selectPlural(n, 'en', { one: 'candidate', other: 'candidates' })} across every shelf`,
+        shelfTitle: (n: number): string => `${n} ${selectPlural(n, 'en', { one: 'candidate', other: 'candidates' })} on this shelf`,
+        pool: (n: number, shelves: number): string =>
+          `${n} ${selectPlural(n, 'en', { one: 'candidate', other: 'candidates' })}${
+            shelves === 0 ? ' across every shelf' : shelves === 1 ? ' on this shelf' : ` on ${shelves} shelves`
+          }`,
+        meta: (category: string, count: number | undefined): string =>
+          [category, count === undefined ? null : `${count} ${selectPlural(count, 'en', { one: 'item', other: 'items' })}`, 'curated list']
+            .filter(Boolean)
+            .join(' · '),
+        landed: (title: string): string => `Landed on ${title}`,
+        /** Toast when the chosen shelves hold nothing left to spin. */
+        nothingLeft: (shelves: number): string =>
+          `Nothing left${shelves === 0 ? ' across every shelf' : shelves === 1 ? ' on this shelf' : ` on ${shelves} shelves`} — you already track every canonical list there.`,
+        unreachable: 'Could not reach the community library.',
+        curatedTip: 'Curated list — kept by hand in the community library',
+      },
       justOneFix: {
         title: 'Just One Fix',
         explain: 'A quick dopamine hit from the shortest unfinished thing you track',
@@ -675,8 +704,6 @@ export const en = {
         justOneFix: 'Just One Fix',
         surpriseMe: 'Surprise Me',
       },
-      /** Until tasks 10.26–10.29 build each one for real — same convention as AppHeader's Settings button. */
-      helpComingSoon: (label: string): string => `${label} is coming soon`,
       orphanedTitle: 'Uncategorised',
       orphanedNote: 'category no longer exists',
       /** The name is bold in the sentence; this is what follows it. */

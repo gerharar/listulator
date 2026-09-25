@@ -69,3 +69,32 @@
 .q-alt .alt-item { display: block; font-weight: 500; font-size: 14px; line-height: 1.25; }
 .q-alt .alt-list { display: block; margin-top: 4px; font-size: 12.5px; color: var(--ink2); }
 .q-alt .alt-time { flex: none; font: 500 12px/1 var(--font-mono); color: var(--ink2); font-variant-numeric: tabular-nums; }
+
+/* Surprise Me (10.29): shelf chips, the six dials and the landed list. */
+.q-shelves { margin: 10px 0 0; display: flex; flex-wrap: wrap; gap: 6px; }
+.q-shelves .q-chip.none { opacity: 0.5; }
+.q-reel { margin-top: 20px; border: 2px solid var(--rule); padding: 18px 19px; }
+.q-reel-head { display: flex; align-items: center; gap: 10px; }
+.q-reel-head .q-kicker { margin: 0; }
+.q-dials { display: flex; gap: 3px; }
+.q-digit {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 44px;
+  border: 1px solid var(--rule);
+  background: var(--field);
+  color: var(--ink3);
+  font: 600 22px/1 var(--font-mono);
+}
+.q-digit.on { background: var(--accent); color: var(--accentInk); }
+.q-digit.ticking { animation: q-meterTick 90ms linear infinite alternate; }
+@keyframes q-meterTick { from { transform: translateY(-1px); } to { transform: translateY(1px); } }
+@media (prefers-reduced-motion: reduce) { .q-digit.ticking { animation: none; } }
+.q-reel-result { margin-top: 16px; min-height: 60px; display: flex; flex-direction: column; justify-content: center; }
+.q-reel-name { display: flex; align-items: center; gap: 7px; font-weight: 700; font-size: 19px; line-height: 1.25; letter-spacing: -0.012em; color: var(--ink); }
+.q-curated { flex: none; display: flex; color: var(--star, var(--accent)); }
+.q-reel-meta { margin-top: 7px; font: 500 13px/1 var(--font-mono); color: var(--ink2); }
+.q-reel-desc { margin: 10px 0 0; font-size: 13px; line-height: 1.5; color: var(--ink2); }
+.q-reel .q-pick-actions { margin-top: 16px; }
+.q-reel-note { margin-top: 14px; max-width: 620px; font-size: 12.5px; }

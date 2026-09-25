@@ -31,6 +31,7 @@ vi.mock('../../../lib/api.js', () => ({
     tiredBoss: vi.fn(),
     finalizer: vi.fn(),
     justOneFix: vi.fn(),
+    libraryUntracked: vi.fn(),
   },
 }))
 
@@ -231,7 +232,7 @@ describe('Home', () => {
     expect(screen.getByTestId('stack').textContent).toBe('home:home,category-picker:category-picker')
   })
 
-  it('shows the four help buttons, only Surprise Me still disabled, and no others', async () => {
+  it('shows the four help buttons, all live, and no others', async () => {
     vi.mocked(api.mediaTypes).mockResolvedValue(MEDIA_TYPES)
     vi.mocked(api.lists).mockResolvedValue([list()])
 
@@ -239,10 +240,9 @@ describe('Home', () => {
 
     await waitFor(() => expect(screen.getByText('Breaking Bad')).not.toBeNull())
 
-    for (const label of ["I'm Tired, Boss", 'Finalizer', 'Just One Fix']) {
+    for (const label of ["I'm Tired, Boss", 'Finalizer', 'Just One Fix', 'Surprise Me']) {
       expect(screen.getByRole('button', { name: label }).hasAttribute('disabled')).toBe(false)
     }
-    expect(screen.getByRole('button', { name: 'Surprise Me' }).hasAttribute('disabled')).toBe(true)
     // Suggest and Quickie are retired from the UI (their strategy files stay on disk).
     expect(screen.queryByRole('button', { name: 'Suggest' })).toBeNull()
     expect(screen.queryByRole('button', { name: 'Quickie' })).toBeNull()
@@ -773,6 +773,50 @@ describe('Home updates (task 10.22c)', () => {
 
       expect(screen.getByTestId('stack').textContent).toBe('home:home,list:list-list-2')
       await waitFor(() => expect(screen.queryByText('A short one')).toBeNull())
+    })
+  })
+
+  describe('Surprise Me', () => {
+    const button = () => screen.getByRole('button', { name: 'Surprise Me' })
+
+    async function ready() {
+      // Reduced motion: the spin lands at once.
+      vi.stubGlobal('matchMedia', (query: string) => ({ matches: query.includes('reduce'), addEventListener() {}, removeEventListener() {} }))
+      vi.mocked(api.mediaTypes).mockResolvedValue(MEDIA_TYPES)
+      vi.mocked(api.lists).mockResolvedValue([list()])
+      vi.mocked(api.libraryUntracked).mockResolvedValue({
+        entries: [{ externalRef: 'canonical:lists/tv/wire.yaml', title: 'The Wire', category: 'tv', itemCount: 60 }],
+        reachable: true,
+      })
+      renderHome()
+      await waitFor(() => expect(screen.getByText('Breaking Bad')).not.toBeNull())
+    }
+
+    afterEach(() => vi.unstubAllGlobals())
+
+    it('opens its sheet, lights its button, and a second click closes it', async () => {
+      await ready()
+
+      fireEvent.click(button())
+      expect(await screen.findByText('Surprise, Motherfucker!')).toBeTruthy()
+      expect(button().getAttribute('aria-pressed')).toBe('true')
+
+      fireEvent.click(button())
+      await waitFor(() => expect(screen.queryByText('Surprise, Motherfucker!')).toBeNull())
+    })
+
+    it('This One opens the preview of that list, in the category it belongs to, and closes the sheet', async () => {
+      await ready()
+      fireEvent.click(button())
+      fireEvent.click(await screen.findByRole('button', { name: 'Spin' }))
+      fireEvent.click(await screen.findByRole('button', { name: 'This One' }))
+
+      expect(screen.getByTestId('stack').textContent).toBe('home:home,preview:preview-canonical:lists/tv/wire.yaml')
+      const content = screen.getByTestId('content').textContent!
+      expect(content).toContain('/lists/preview')
+      expect(content).toContain('mediaType=tv')
+      expect(decodeURIComponent(content)).toContain('canonical:lists/tv/wire.yaml')
+      await waitFor(() => expect(screen.queryByText('Surprise, Motherfucker!')).toBeNull())
     })
   })
 })
