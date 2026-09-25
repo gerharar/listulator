@@ -38,6 +38,13 @@ export interface LayerStackContextValue {
   pop: () => void
   popToIndex: (index: number) => void
   replaceTop: (layer: LayerDescriptor<string>) => void
+  /**
+   * A list was just created (or its screen is otherwise the destination):
+   * whatever was open — the picker, Create, Preview — is finished with, so the
+   * stack becomes `[home, list]`. Also right on first run, where the picker was
+   * the base layer and Home never existed (docs/DECISIONS.md).
+   */
+  landOnList: (list: LayerDescriptor<string>) => void
 }
 
 const LayerStackReactContext = createContext<LayerStackContextValue | null>(null)
@@ -86,6 +93,14 @@ export function LayerStackProvider({ home, children }: LayerStackProviderProps) 
     [markEntering],
   )
 
+  const landOnList = useCallback(
+    (list: LayerDescriptor<string>) => {
+      setStack([home, list])
+      markEntering(list.id)
+    },
+    [home, markEntering],
+  )
+
   useEffect(() => () => clearTimeout(timerRef.current), [])
 
   const value = useMemo<LayerStackContextValue>(
@@ -97,8 +112,9 @@ export function LayerStackProvider({ home, children }: LayerStackProviderProps) 
       pop,
       popToIndex: popTo,
       replaceTop,
+      landOnList,
     }),
-    [stack, enteringId, push, pop, popTo, replaceTop],
+    [stack, enteringId, push, pop, popTo, replaceTop, landOnList],
   )
 
   return <LayerStackReactContext.Provider value={value}>{children}</LayerStackReactContext.Provider>

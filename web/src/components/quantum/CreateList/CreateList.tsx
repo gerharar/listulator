@@ -1,6 +1,6 @@
 import './CreateList.css'
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { untitledListLayer } from '../layerStack/listLayer.js'
 import { X } from 'lucide-react'
 import type { MediaType } from '../../../lib/api.js'
 import { categoryDescription, categoryLabel, copy } from '../../../locale/index.js'
@@ -29,12 +29,10 @@ export interface CreateListProps {
  *
  * Only the active tab is mounted, so leaving one clears whatever transient
  * state it held (the design's rule: "the Import buffer never survives a
- * leave"). Still hosted inside a `LegacyRouteHost`, which is why `navigate` here
- * resolves through `App.tsx`'s `handleLegacyNavigate`.
+ * leave"). Building a list lands on it: the stack collapses to Home and the list.
  */
 export function CreateList({ mediaTypes, mediaTypeKey }: CreateListProps) {
   const layerStack = useLayerStack()
-  const navigate = useNavigate()
   const mediaType = mediaTypes.find((entry) => entry.key === mediaTypeKey) ?? mediaTypes[0]
 
   // A category with a search source keeps its Search tab even when the source
@@ -52,7 +50,7 @@ export function CreateList({ mediaTypes, mediaTypeKey }: CreateListProps) {
   const [active, setActive] = useState<TabKey>(hasSearch ? 'search' : 'hand')
 
   const description = mediaType ? categoryDescription(mediaType) : undefined
-  const built = (listId: string) => void navigate(`/lists/${listId}`, { replace: true })
+  const built = (listId: string) => layerStack.landOnList(untitledListLayer(listId))
 
   return (
     <div className="q-create">

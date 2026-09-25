@@ -1,9 +1,7 @@
 import './App.css'
 import { useEffect, useState } from 'react'
-import { Route, Routes, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import type { MediaType } from './lib/api.js'
 import { copy } from './locale/index.js'
-import { resolveInitialTheme } from './lib/theme.js'
 import { getPreferencesStore } from './lib/preferences/store.js'
 import { resolveSkin, setSkin as persistSkin, type Skin } from './lib/preferences/skin.js'
 import { resolveLanguage, type Language } from './lib/preferences/language.js'
@@ -35,8 +33,8 @@ import {
   LayerStackProvider,
   useLayerStack,
 } from './components/quantum/layerStack/LayerStackContext.js'
-import { LegacyRouteHost } from './components/quantum/layerStack/LegacyRouteHost.js'
-import { parseLegacyPath } from './components/quantum/layerStack/legacyRoute.js'
+import { parseLayerPath } from './components/quantum/layerStack/layerPath.js'
+import { untitledListLayer } from './components/quantum/layerStack/listLayer.js'
 import { layerGeometry } from './components/quantum/layerStack/layerGeometry.js'
 import type { LayerDescriptor } from './components/quantum/layerStack/layerStack.js'
 
@@ -67,14 +65,6 @@ export function App() {
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    // The old six-theme system has no UI any more, but it still styles
-    // every hosted old screen (ListDetail/NewList) — keep applying it
-    // silently until checkpoint 10E removes the last of those screens.
-    document.documentElement.dataset['theme'] = resolveInitialTheme(
-      typeof localStorage === 'undefined' ? undefined : localStorage,
-      window.matchMedia('(prefers-color-scheme: dark)').matches,
-    )
-
     const store = getPreferencesStore()
     Promise.all([
       resolveSkin(store),
@@ -130,50 +120,48 @@ function QuantumShell({ initial }: { initial: BootState }) {
   )
 }
 
-/** Reads the category the picker chose off the layer's own path (`/lists/new?mediaType=…`). */
-function CreateListRoute({ mediaTypes }: { mediaTypes: MediaType[] }) {
-  const [searchParams] = useSearchParams()
-
-  return <CreateList mediaTypes={mediaTypes} mediaTypeKey={searchParams.get('mediaType') ?? ''} />
-}
-
-/** The list layer (task 10.20): the list's id rides on the layer's own path. */
-function ListRoute({ mediaTypes }: { mediaTypes: MediaType[] }) {
-  const { listId } = useParams<{ listId: string }>()
-  const navigate = useNavigate()
-  const layerStack = useLayerStack()
-
-  return listId ? (
-    <ListScreen
-      key={listId}
-      listId={listId}
-      mediaTypes={mediaTypes}
-      // A deleted list has nothing left to show: "/" always means Home, however deep the stack.
-      onLeave={() => void navigate('/')}
-      onClose={() => layerStack.pop()}
-    />
-  ) : null
-}
-
 /**
- * The Preview layer's route (task 10.15): the source and its options ride on
- * the layer's own path. Add list navigates like a create layer does, so it
- * collapses to `[home, list]` through `handleLegacyNavigate`.
+ * The layers whose content names what they show (see `layerPath.ts`): a list,
+ * the Create layer for a category, or a Preview of a source. Anything the path
+ * does not name draws nothing.
  */
-function PreviewRoute({ mediaTypes }: { mediaTypes: MediaType[] }) {
-  const [searchParams] = useSearchParams()
-  const navigate = useNavigate()
-  const source = parsePreviewPath(searchParams)
-  const mediaType = source && mediaTypes.find((entry) => entry.key === source.mediaType)
-  if (!source || !mediaType) return null
+function PathLayer({ path, mediaTypes }: { path: string; mediaTypes: MediaType[] }) {
+  const layerStack = useLayerStack()
+  const target = parseLayerPath(path)
 
-  return (
-    <PreviewLayer
-      source={source}
-      mediaType={mediaType}
-      onBuilt={(listId) => void navigate(`/lists/${listId}`, { replace: true })}
-    />
-  )
+  if (target.kind === 'list') {
+    return (
+      <ListScreen
+        key={target.listId}
+        listId={target.listId}
+        mediaTypes={mediaTypes}
+        // A deleted list has nothing left to show: leaving always means Home, however deep the stack.
+        onLeave={() => layerStack.popToIndex(0)}
+        onClose={() => layerStack.pop()}
+      />
+    )
+  }
+
+  if (target.kind === 'new-list') {
+    return <CreateList mediaTypes={mediaTypes} mediaTypeKey={target.mediaType ?? ''} />
+  }
+
+  if (target.kind === 'preview') {
+    // Add list lands on the new list like a Create layer does.
+    const source = parsePreviewPath(target.params)
+    const mediaType = source && mediaTypes.find((entry) => entry.key === source.mediaType)
+    if (!source || !mediaType) return null
+
+    return (
+      <PreviewLayer
+        source={source}
+        mediaType={mediaType}
+        onBuilt={(listId) => layerStack.landOnList(untitledListLayer(listId))}
+      />
+    )
+  }
+
+  return null
 }
 
 interface AppShellBodyProps {
@@ -205,44 +193,6 @@ function AppShellBody({ skin, onSkinChange }: AppShellBodyProps) {
       tabLabel: copy.quantum.settings.title,
       content: '',
     })
-  }
-
-  function handleLegacyNavigate(to: string, opts: { replace: boolean }): void {
-    const target = parseLegacyPath(to)
-
-    if (target.kind === 'home') {
-      // "All lists" always means Home itself, however deep the stack is.
-      layerStack.popToIndex(0)
-      return
-    }
-
-    const descriptor: LayerDescriptor<string> =
-      target.kind === 'list'
-        ? // No list title is available from a path alone without fetching it —
-          // a real, title-aware tab is task 10.20's List detail layer.
-          {
-            id: `list-${target.listId}`,
-            kind: 'list',
-            tabLabel: copy.quantum.layerStack.untitledListTab,
-            content: to,
-          }
-        : { id: 'new-list', kind: 'new-list', tabLabel: copy.newList.title, content: to }
-
-    if (opts.replace) {
-      // A replace only ever comes from a create layer that just made its list.
-      // Whatever sits under it — the Category picker, and on first run the
-      // picker as the *base* layer with no Home beneath it at all — is
-      // finished with, so land on `[home, list]` either way: a plain
-      // replaceTop would leave the picker under the new list, or (first run)
-      // swap it in place at index 0 so Home would never get created and be
-      // permanently unreachable (docs/DECISIONS.md).
-      const baseIsHome = layerStack.stack[0]?.kind === 'home'
-      layerStack.popToIndex(0)
-      if (!baseIsHome) layerStack.replaceTop(homeLayer())
-      layerStack.push(descriptor)
-    } else {
-      layerStack.push(descriptor)
-    }
   }
 
   return (
@@ -277,13 +227,7 @@ function AppShellBody({ skin, onSkinChange }: AppShellBodyProps) {
               ) : layer.kind === 'category-picker' ? (
                 <CategoryPicker mediaTypes={mediaTypes} first={fullIndex === 0} />
               ) : (
-                <LegacyRouteHost path={layer.content} onNavigate={handleLegacyNavigate}>
-                  <Routes>
-                    <Route path="/lists/new" element={<CreateListRoute mediaTypes={mediaTypes} />} />
-                    <Route path="/lists/preview" element={<PreviewRoute mediaTypes={mediaTypes} />} />
-                    <Route path="/lists/:listId" element={<ListRoute mediaTypes={mediaTypes} />} />
-                  </Routes>
-                </LegacyRouteHost>
+                <PathLayer path={layer.content} mediaTypes={mediaTypes} />
               )}
             </LayerCard>
           )

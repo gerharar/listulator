@@ -1,7 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
-import { MemoryRouter } from 'react-router-dom'
 import type { MediaType } from '../../../lib/api.js'
 import { LayerStackProvider } from '../layerStack/LayerStackContext.js'
 import { CreateList } from './CreateList.js'
@@ -51,11 +50,9 @@ function renderCreate(key: string, mediaTypes: MediaType[] = [TV, MEGA, PODCAST]
   const home = { id: 'home', kind: 'home', tabLabel: 'My Lists', content: '/' }
 
   return render(
-    <MemoryRouter>
-      <LayerStackProvider home={home}>
-        <CreateList mediaTypes={mediaTypes} mediaTypeKey={key} />
-      </LayerStackProvider>
-    </MemoryRouter>,
+    <LayerStackProvider home={home}>
+      <CreateList mediaTypes={mediaTypes} mediaTypeKey={key} />
+    </LayerStackProvider>,
   )
 }
 

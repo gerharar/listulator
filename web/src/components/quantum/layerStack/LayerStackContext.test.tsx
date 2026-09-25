@@ -12,7 +12,7 @@ function layer(id: string, kind = 'screen'): LayerDescriptor<string> {
 }
 
 function Demo() {
-  const { stack, visible, enteringId, push, pop, popToIndex, replaceTop } = useLayerStack()
+  const { stack, visible, enteringId, push, pop, popToIndex, replaceTop, landOnList } = useLayerStack()
   return (
     <div>
       <span data-testid="stack">{stack.map((l) => l.id).join(',')}</span>
@@ -22,6 +22,7 @@ function Demo() {
       <button onClick={() => pop()}>pop</button>
       <button onClick={() => popToIndex(0)}>pop to home</button>
       <button onClick={() => replaceTop(layer('list-42'))}>replace top</button>
+      <button onClick={() => landOnList(layer('list-7', 'list'))}>land on list</button>
     </div>
   )
 }
@@ -107,6 +108,21 @@ describe('LayerStackProvider entering id', () => {
     } finally {
       vi.useRealTimers()
     }
+  })
+
+  it('landing on a list collapses whatever was open to home and that list, and it drums in', () => {
+    render(
+      <LayerStackProvider home={layer('home')}>
+        <Demo />
+      </LayerStackProvider>,
+    )
+    act(() => screen.getByText('push list').click())
+    act(() => screen.getByText('push list').click())
+
+    act(() => screen.getByText('land on list').click())
+
+    expect(screen.getByTestId('stack').textContent).toBe('home,list-7')
+    expect(screen.getByTestId('entering').textContent).toBe('list-7')
   })
 
   it('under the fast push, the entering mark clears after 210ms rather than 380ms', () => {
