@@ -372,6 +372,27 @@ export const en = {
       /** Header actions that arrive with later tasks: shown, disabled, and honest about it. */
       comingSoon: 'Coming soon',
       noGroup: 'No group',
+      itemActions: {
+        details: (title: string): string => `Details for ${title}`,
+        edit: (title: string): string => `Edit ${title}`,
+        remove: (title: string): string => `Remove ${title}`,
+        infoKicker: 'Details',
+        estimated: 'The runtime is an estimate — edit the item to set the real one.',
+        editTitle: 'Title',
+        editMinutes: 'Minutes',
+        editGroup: 'Group',
+        discard: 'Discard',
+        save: 'Save',
+        saved: (title: string): string => `Saved changes to ${title}`,
+        undo: 'Undo',
+        removed: (title: string): string => `Removed ${title}`,
+        restored: (title: string): string => `Restored ${title}`,
+        added: (title: string, group: string | null): string =>
+          group ? `Added ${title} to ${group}` : `Added ${title}`,
+        removeFailed: (title: string): string => `Could not remove ${title}`,
+        editFailed: 'Could not save those changes',
+        undoFailed: 'Could not undo that',
+      },
       addItem: {
         titleLabel: 'Title',
         titlePlaceholder: 'Add an item…',

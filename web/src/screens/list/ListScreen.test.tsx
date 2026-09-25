@@ -2,6 +2,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { ApiError, api, type ListItem, type MediaListDetail, type MediaType } from '../../lib/api.js'
+import { LiveRegionProvider } from '../../components/quantum/LiveRegion/LiveRegion.js'
+import { OverlayManagerProvider } from '../../components/quantum/overlay/OverlayManagerContext.js'
+import { ToastProvider } from '../../components/quantum/Toast/Toast.js'
 import { ListScreen } from './ListScreen.js'
 
 const store = new Map<string, string>()
@@ -25,7 +28,17 @@ vi.mock('../../lib/api.js', async () => {
     }
   }
 
-  return { ApiError: MockApiError, api: { list: vi.fn(), setConsumed: vi.fn() } }
+  return {
+    ApiError: MockApiError,
+    api: {
+      list: vi.fn(),
+      setConsumed: vi.fn(),
+      addItem: vi.fn(),
+      updateItem: vi.fn(),
+      deleteItem: vi.fn(),
+      restoreItem: vi.fn(),
+    },
+  }
 })
 
 beforeEach(() => store.clear())
@@ -86,9 +99,21 @@ function detail(overrides: Partial<MediaListDetail> = {}): MediaListDetail {
   } as MediaListDetail
 }
 
+function renderScreen(listId: string) {
+  return render(
+    <LiveRegionProvider>
+      <ToastProvider>
+        <OverlayManagerProvider>
+          <ListScreen listId={listId} mediaTypes={TYPES} />
+        </OverlayManagerProvider>
+      </ToastProvider>
+    </LiveRegionProvider>,
+  )
+}
+
 async function open(list: MediaListDetail) {
   vi.mocked(api.list).mockResolvedValue(list)
-  render(<ListScreen listId={list.id} mediaTypes={TYPES} />)
+  renderScreen(list.id)
   await screen.findByRole('heading', { name: /^Loki/ }).catch(() => undefined)
   await act(async () => {})
 }
@@ -137,7 +162,7 @@ describe('ListScreen loading', () => {
   it('shows a spinner, then the list', async () => {
     let resolve: (value: MediaListDetail) => void = () => {}
     vi.mocked(api.list).mockReturnValue(new Promise((r) => (resolve = r)))
-    render(<ListScreen listId="L1" mediaTypes={TYPES} />)
+    renderScreen("L1")
 
     expect(screen.getByText('Loading the list…')).toBeTruthy()
     await act(async () => resolve(detail({ items: [item({ title: 'Only' })] })))
@@ -148,7 +173,7 @@ describe('ListScreen loading', () => {
   it('says so when the list cannot be loaded, and Retry loads it again', async () => {
     vi.mocked(api.list).mockRejectedValueOnce(new ApiError('Server is down', 0))
     vi.mocked(api.list).mockResolvedValueOnce(detail({ items: [item({ title: 'Back' })] }))
-    render(<ListScreen listId="L1" mediaTypes={TYPES} />)
+    renderScreen("L1")
 
     expect(await screen.findByText('Server is down')).toBeTruthy()
     fireEvent.click(screen.getByRole('button', { name: 'Retry' }))
@@ -321,5 +346,221 @@ describe('ListScreen keyboard', () => {
     await open(list)
 
     expect(rows().find((row) => row.tabIndex === 0)!.dataset['rowId']).toBe('x2')
+  })
+})
+
+describe('ListScreen item actions (task 10.21)', () => {
+  const groups = [
+    { id: 'g1', listId: 'L1', name: 'Season 1', orderIndex: 0 },
+    { id: 'g2', listId: 'L1', name: 'Season 2', orderIndex: 1 },
+  ]
+  const base = () =>
+    detail({
+      items: [
+        item({ id: 'a', title: 'Alpha', group: 'Season 1', orderIndex: 0, notes: 'Curator note' }),
+        item({ id: 'b', title: 'Beta', group: 'Season 1', orderIndex: 1 }),
+        item({ id: 'c', title: 'Gamma', group: 'Season 2', orderIndex: 2 }),
+      ],
+      groups,
+    })
+
+  describe('adding', () => {
+    it('adds to the end of a group, then shows the item, pulsing, from the server’s own order', async () => {
+      const after = detail({
+        ...base(),
+        items: [
+          ...base().items.slice(0, 2),
+          item({ id: 'n', title: 'Newcomer', group: 'Season 1', orderIndex: 2 }),
+          { ...base().items[2]!, orderIndex: 3 },
+        ],
+      })
+      vi.mocked(api.addItem).mockResolvedValue(after.items[2]!)
+      await open(base())
+      vi.mocked(api.list).mockResolvedValue(after)
+
+      fireEvent.change(screen.getByLabelText('Title'), { target: { value: 'Newcomer' } })
+      fireEvent.change(screen.getByLabelText('Group'), { target: { value: 'Season 1' } })
+      fireEvent.click(screen.getByRole('button', { name: 'Add' }))
+
+      expect(await screen.findByText('Newcomer')).toBeTruthy()
+      expect(api.addItem).toHaveBeenCalledWith('L1', {
+        title: 'Newcomer',
+        timeToConsumeMinutes: 30,
+        timeToConsumeIsEstimated: true,
+        group: 'Season 1',
+      })
+      expect(document.querySelector('[data-row-id="n"]')!.className).toContain('pulse')
+      await waitFor(() =>
+        expect(document.querySelector('.q-live')!.textContent).toBe('Added Newcomer to Season 1'),
+      )
+    })
+
+    it('sends the minutes you typed as real, not estimated', async () => {
+      vi.mocked(api.addItem).mockResolvedValue(item())
+      await open(base())
+      vi.mocked(api.list).mockResolvedValue(base())
+
+      fireEvent.change(screen.getByLabelText('Title'), { target: { value: 'X' } })
+      fireEvent.change(screen.getByLabelText('Minutes'), { target: { value: '12' } })
+      fireEvent.click(screen.getByRole('button', { name: 'Add' }))
+
+      await waitFor(() =>
+        expect(api.addItem).toHaveBeenCalledWith('L1', {
+          title: 'X',
+          timeToConsumeMinutes: 12,
+          timeToConsumeIsEstimated: false,
+          group: null,
+        }),
+      )
+    })
+
+    it('offers the list’s groups in the group field, in order', async () => {
+      await open(base())
+
+      fireEvent.focus(screen.getByLabelText('Group'))
+
+      expect(screen.getAllByRole('option').map((o) => o.textContent)).toEqual(['No group', 'Season 1', 'Season 2'])
+    })
+
+    it('opens a collapsed group the new item went into, so it can be seen', async () => {
+      const mega = { ...base(), mediaType: 'mega' }
+      const after = { ...mega, items: [...mega.items, item({ id: 'n', title: 'Newcomer', group: 'Season 1', orderIndex: 3 })] }
+      vi.mocked(api.addItem).mockResolvedValue(after.items[3]!)
+      await open(mega)
+      expect(screen.queryByText('Alpha')).toBeNull()
+      vi.mocked(api.list).mockResolvedValue(after)
+
+      fireEvent.change(screen.getByLabelText('Title'), { target: { value: 'Newcomer' } })
+      fireEvent.change(screen.getByLabelText('Group'), { target: { value: 'Season 1' } })
+      fireEvent.click(screen.getByRole('button', { name: 'Add' }))
+
+      expect(await screen.findByText('Newcomer')).toBeTruthy()
+    })
+  })
+
+  describe('removing', () => {
+    it('removes at once, then offers Undo, which brings the row back with a pulse', async () => {
+      const restore = { item: { id: 'b' }, dismissalId: 'd' }
+      vi.mocked(api.deleteItem).mockResolvedValue(restore as never)
+      vi.mocked(api.restoreItem).mockResolvedValue(base().items[1]!)
+      await open(base())
+
+      fireEvent.click(screen.getByRole('button', { name: 'Remove Beta' }))
+
+      expect(screen.queryByText('Beta')).toBeNull()
+      expect(api.deleteItem).toHaveBeenCalledWith('L1', 'b')
+      // The toast, and the live region that says it aloud.
+      expect((await screen.findAllByText('Removed Beta')).length).toBeGreaterThan(0)
+      expect(document.querySelector('.q-toast')!.textContent).toContain('Removed Beta')
+
+      vi.mocked(api.list).mockResolvedValue(base())
+      fireEvent.click(screen.getByRole('button', { name: 'Undo' }))
+
+      expect(await screen.findByText('Beta')).toBeTruthy()
+      expect(api.restoreItem).toHaveBeenCalledWith('L1', restore)
+      expect(document.querySelector('[data-row-id="b"]')!.className).toContain('pulse')
+      // Said aloud too, for anyone not watching the pulse.
+      await waitFor(() => expect(document.querySelector('.q-live')!.textContent).toBe('Restored Beta'))
+    })
+
+    it('updates the header as the item goes', async () => {
+      vi.mocked(api.deleteItem).mockReturnValue(new Promise(() => {}))
+      await open(base())
+      expect(screen.getByText('0/3 (0%)')).toBeTruthy()
+
+      fireEvent.click(screen.getByRole('button', { name: 'Remove Beta' }))
+
+      expect(screen.getByText('0/2 (0%)')).toBeTruthy()
+    })
+
+    it('puts the row back and says so when the server refuses', async () => {
+      vi.mocked(api.deleteItem).mockRejectedValue(new ApiError('nope', 500))
+      await open(base())
+
+      fireEvent.click(screen.getByRole('button', { name: 'Remove Beta' }))
+
+      expect(await screen.findByText('Could not remove Beta')).toBeTruthy()
+      expect(screen.getByText('Beta')).toBeTruthy()
+    })
+
+    it('does not toggle the row it was pressed in', async () => {
+      vi.mocked(api.deleteItem).mockResolvedValue({} as never)
+      await open(base())
+
+      fireEvent.click(screen.getByRole('button', { name: 'Remove Beta' }))
+
+      expect(api.setConsumed).not.toHaveBeenCalled()
+    })
+  })
+
+  describe('details and editing', () => {
+    it('opens the item’s details, with its notes', async () => {
+      await open(base())
+
+      fireEvent.click(screen.getByRole('button', { name: 'Details for Alpha' }))
+
+      expect(await screen.findByText('Curator note')).toBeTruthy()
+    })
+
+    it('Save applies just the change, and reloads the list', async () => {
+      vi.mocked(api.updateItem).mockResolvedValue(base().items[0]!)
+      await open(base())
+      fireEvent.click(screen.getByRole('button', { name: 'Edit Alpha' }))
+      await screen.findByRole('dialog')
+      vi.mocked(api.list).mockResolvedValue(
+        detail({ ...base(), items: [{ ...base().items[0]!, title: 'Renamed' }, ...base().items.slice(1)] }),
+      )
+
+      fireEvent.change(within(screen.getByRole('dialog')).getByLabelText('Title'), { target: { value: 'Renamed' } })
+      fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Save' }))
+
+      expect(await screen.findByText('Renamed')).toBeTruthy()
+      expect(api.updateItem).toHaveBeenCalledWith('L1', 'a', { title: 'Renamed' })
+      // An explicit save needs no "saved" toast.
+      expect(screen.queryByText('Saved changes to Renamed')).toBeNull()
+    })
+
+    it('clicking away applies the change and offers Undo, which reverts it', async () => {
+      vi.mocked(api.updateItem).mockResolvedValue(base().items[0]!)
+      await open(base())
+      fireEvent.click(screen.getByRole('button', { name: 'Edit Alpha' }))
+      await screen.findByRole('dialog')
+      vi.mocked(api.list).mockResolvedValue(base())
+
+      fireEvent.change(within(screen.getByRole('dialog')).getByLabelText('Title'), { target: { value: 'Renamed' } })
+      fireEvent.click(document.querySelector('.q-catcher')!)
+
+      expect((await screen.findAllByText('Saved changes to Renamed')).length).toBeGreaterThan(0)
+      expect(api.updateItem).toHaveBeenCalledWith('L1', 'a', { title: 'Renamed' })
+
+      fireEvent.click(screen.getByRole('button', { name: 'Undo' }))
+
+      await waitFor(() => expect(api.updateItem).toHaveBeenLastCalledWith('L1', 'a', { title: 'Alpha' }))
+    })
+
+    it('Discard changes nothing', async () => {
+      await open(base())
+      fireEvent.click(screen.getByRole('button', { name: 'Edit Alpha' }))
+      await screen.findByRole('dialog')
+
+      fireEvent.change(within(screen.getByRole('dialog')).getByLabelText('Title'), { target: { value: 'Renamed' } })
+      fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Discard' }))
+
+      expect(api.updateItem).not.toHaveBeenCalled()
+      expect(screen.queryByRole('dialog')).toBeNull()
+    })
+
+    it('says so when a save fails, and leaves the list as it was', async () => {
+      vi.mocked(api.updateItem).mockRejectedValue(new ApiError('nope', 500))
+      await open(base())
+      fireEvent.click(screen.getByRole('button', { name: 'Edit Alpha' }))
+      await screen.findByRole('dialog')
+
+      fireEvent.change(within(screen.getByRole('dialog')).getByLabelText('Title'), { target: { value: 'Renamed' } })
+      fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Save' }))
+
+      expect(await screen.findByText('Could not save those changes')).toBeTruthy()
+      expect(screen.getByText('Alpha')).toBeTruthy()
+    })
   })
 })

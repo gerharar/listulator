@@ -33,3 +33,12 @@
 .q-group .gcount { flex: none; font: 500 12px/1 var(--font-mono); font-variant-numeric: tabular-nums; color: var(--ink2); }
 .q-group .q-left { font-size: 12px; }
 .q-group .q-left.all-done { font-size: 11px; }
+
+/* Row buttons (ItemRow): ⓘ and 🗑 are narrower than the default 46px-wide row button. */
+.q-item .q-icon-btn.row.info {
+  width: 26px;
+}
+.q-item .q-icon-btn.row.remove {
+  width: 30px;
+  margin-left: 6px;
+}

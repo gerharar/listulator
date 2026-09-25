@@ -29,6 +29,10 @@ function renderRow(overrides: Partial<Parameters<typeof ItemRow>[0]> = {}) {
     minutesWidth: 6,
     onToggle: vi.fn(),
     onFocus: vi.fn(),
+    onInfo: vi.fn(),
+    onEdit: vi.fn(),
+    onRemove: vi.fn(),
+    pulse: false,
     ...overrides,
   }
   render(<ItemRow {...props} />)
@@ -128,5 +132,45 @@ describe('ItemRow', () => {
     renderRow()
 
     expect((document.querySelector('.q-item') as HTMLElement).dataset['rowId']).toBe('i1')
+  })
+
+  describe('row buttons (task 10.21)', () => {
+    it('has an info, an edit and a remove button, named for the item', () => {
+      renderRow()
+
+      expect(screen.getByRole('button', { name: 'Details for Glorious Purpose' })).toBeTruthy()
+      expect(screen.getByRole('button', { name: 'Edit Glorious Purpose' })).toBeTruthy()
+      expect(screen.getByRole('button', { name: 'Remove Glorious Purpose' })).toBeTruthy()
+    })
+
+    it('each calls back with the item and its own button, and does not toggle the row', () => {
+      const props = renderRow()
+
+      for (const [name, handler] of [
+        ['Details for Glorious Purpose', props.onInfo],
+        ['Edit Glorious Purpose', props.onEdit],
+        ['Remove Glorious Purpose', props.onRemove],
+      ] as const) {
+        const button = screen.getByRole('button', { name })
+        fireEvent.click(button)
+        expect(handler).toHaveBeenCalledWith(ITEM, button)
+      }
+
+      expect(props.onToggle).not.toHaveBeenCalled()
+    })
+
+    it('a key press on a button is not a key press on the row', () => {
+      const props = renderRow({ focusable: true })
+
+      fireEvent.keyDown(screen.getByRole('button', { name: 'Edit Glorious Purpose' }), { key: 'Enter' })
+
+      expect(props.onToggle).not.toHaveBeenCalled()
+    })
+
+    it('pulses when it was just added, moved or restored', () => {
+      renderRow({ pulse: true })
+
+      expect(document.querySelector('.q-item.pulse')).not.toBeNull()
+    })
   })
 })

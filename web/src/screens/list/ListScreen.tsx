@@ -2,7 +2,7 @@ import './ListScreen.css'
 import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react'
 import { EllipsisVertical, Pencil } from 'lucide-react'
 import { formatDuration } from '../../formatDuration.js'
-import { api, type ListItem, type MediaListDetail, type MediaType } from '../../lib/api.js'
+import { api, type ListGroup, type ListItem, type MediaListDetail, type MediaType } from '../../lib/api.js'
 import { getPreferencesStore } from '../../lib/preferences/store.js'
 import { categoryLabel, copy } from '../../locale/index.js'
 import { Button, IconButton } from '../../components/quantum/Button/Button.js'
@@ -10,8 +10,11 @@ import { ErrorBlock } from '../../components/quantum/ErrorBlock/ErrorBlock.js'
 import { ErrorStrip } from '../../components/quantum/ErrorStrip/ErrorStrip.js'
 import { HeaderPlate } from '../../components/quantum/HeaderPlate/HeaderPlate.js'
 import { ProgressSentence } from '../../components/quantum/ProgressSentence/ProgressSentence.js'
+import { useLiveRegion } from '../../components/quantum/LiveRegion/LiveRegion.js'
+import { Popover } from '../../components/quantum/Popover/Popover.js'
 import { Spinner } from '../../components/quantum/Spinner/Spinner.js'
 import { StatusChip } from '../../components/quantum/StatusChip/StatusChip.js'
+import { useToast } from '../../components/quantum/Toast/Toast.js'
 import {
   defaultCollapsed,
   loadCollapsed,
@@ -19,7 +22,11 @@ import {
   saveCollapsed,
   saveFocus,
 } from './collapse.js'
+import { AddItemForm, type NewItemInput } from './AddItemForm.js'
 import { GroupRow } from './GroupRow.js'
+import { invertPatch, type ItemPatch } from './itemActions.js'
+import { ItemEditPopover } from './ItemEditPopover.js'
+import { ItemInfoCard } from './ItemInfoCard.js'
 import { ItemRow } from './ItemRow.js'
 import { buildSpine, listTotals } from './spine.js'
 
@@ -132,6 +139,11 @@ interface ListViewProps {
   reload: () => void
 }
 
+/** How long a row stays washed after it was added, moved or restored (design: row pulse). */
+const PULSE_MS = 1900
+
+type OpenPopover = { kind: 'info' | 'edit'; itemId: string; anchor: HTMLElement }
+
 function ListView({
   listId,
   list: loaded,
@@ -143,14 +155,25 @@ function ListView({
   reload,
 }: ListViewProps) {
   const text = copy.quantum.list
+  const actions = text.itemActions
+  const { showToast } = useToast()
+  const { announce } = useLiveRegion()
   const [items, setItems] = useState<ListItem[]>(loaded.items)
+  const [groups, setGroups] = useState<ListGroup[]>(loaded.groups)
   const [collapsed, setCollapsed] = useState<ReadonlySet<string>>(initialCollapsed)
   const [focusId, setFocusId] = useState<string | undefined>(initialFocusId)
+  const [popover, setPopover] = useState<OpenPopover | null>(null)
+  const [pulseId, setPulseId] = useState<string | null>(null)
+  const pulseTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
   const spine = useRef<HTMLDivElement>(null)
 
+  useEffect(() => () => clearTimeout(pulseTimer.current), [])
+
   const mediaType = mediaTypes.find((entry) => entry.key === loaded.mediaType)
+  const defaultMinutes = mediaType?.defaultDurationMinutes ?? 30
   const totals = listTotals(items)
-  const units = useMemo(() => buildSpine(items, loaded.groups), [items, loaded.groups])
+  const units = useMemo(() => buildSpine(items, groups), [items, groups])
+  const groupNames = useMemo(() => groups.map((group) => group.name), [groups])
 
   // The rows that are on screen, in order: what the arrow keys walk.
   const visible = useMemo(() => {
@@ -168,6 +191,29 @@ function ListView({
   const tabStop = focusId && visible.includes(focusId) ? focusId : visible[0]
 
   const minutesWidth = Math.max(4, ...items.map((entry) => formatDuration(entry.timeToConsumeMinutes).length)) + 1
+
+  function pulse(itemId: string) {
+    clearTimeout(pulseTimer.current)
+    setPulseId(itemId)
+    pulseTimer.current = setTimeout(() => setPulseId(null), PULSE_MS)
+  }
+
+  /** Takes the server's own order and groups: placement and new groups are its call. */
+  async function refresh(): Promise<MediaListDetail> {
+    const fresh = await api.list(listId)
+    setItems(fresh.items)
+    setGroups(fresh.groups)
+
+    return fresh
+  }
+
+  function openGroup(name: string) {
+    if (!collapsed.has(name)) return
+    const next = new Set(collapsed)
+    next.delete(name)
+    setCollapsed(next)
+    void saveCollapsed(getPreferencesStore(), listId, next)
+  }
 
   function toggleGroup(name: string) {
     const next = new Set(collapsed)
@@ -201,6 +247,90 @@ function ListView({
     }
   }
 
+  async function addItem(input: NewItemInput) {
+    const known = input.minutes !== null
+    const group = input.group === '' ? null : input.group
+    const created = await api.addItem(listId, {
+      title: input.title,
+      timeToConsumeMinutes: input.minutes ?? defaultMinutes,
+      timeToConsumeIsEstimated: !known,
+      group,
+    })
+
+    const fresh = await refresh()
+    // A collapsed group the item went into opens, or the pulse would mark nothing.
+    const placed = fresh.items.find((entry) => entry.id === created.id)
+    if (placed?.group) openGroup(placed.group)
+    pulse(created.id)
+    announce(actions.added(input.title, placed?.group ?? group))
+  }
+
+  async function removeItem(item: ListItem) {
+    const previous = items
+    setError(null)
+    setPopover(null)
+    setItems((current) => current.filter((entry) => entry.id !== item.id))
+
+    try {
+      const restore = await api.deleteItem(listId, item.id)
+      showToast({
+        text: actions.removed(item.title),
+        actionLabel: actions.undo,
+        onAction: () => void undoRemove(restore, item),
+      })
+    } catch {
+      setItems(previous)
+      setError(actions.removeFailed(item.title))
+    }
+  }
+
+  async function undoRemove(restore: Parameters<typeof api.restoreItem>[1], item: ListItem) {
+    try {
+      await api.restoreItem(listId, restore)
+      const fresh = await refresh()
+      const placed = fresh.items.find((entry) => entry.id === item.id)
+      if (placed?.group) openGroup(placed.group)
+      pulse(item.id)
+      announce(actions.restored(item.title))
+    } catch {
+      setError(actions.undoFailed)
+    }
+  }
+
+  async function saveEdit(item: ListItem, patch: ItemPatch, via: 'save' | 'clickaway') {
+    setPopover(null)
+    setError(null)
+
+    try {
+      await api.updateItem(listId, item.id, patch)
+      const fresh = await refresh()
+      const placed = fresh.items.find((entry) => entry.id === item.id)
+      if (placed?.group) openGroup(placed.group)
+
+      // The click-away is the safety net, so it is the one that says what it did.
+      if (via === 'clickaway') {
+        const title = patch.title ?? item.title
+        showToast({
+          text: actions.saved(title),
+          actionLabel: actions.undo,
+          onAction: () => void undoEdit(item, patch),
+        })
+      }
+    } catch {
+      setError(actions.editFailed)
+    }
+  }
+
+  async function undoEdit(item: ListItem, patch: ItemPatch) {
+    try {
+      await api.updateItem(listId, item.id, invertPatch(item, patch))
+      await refresh()
+      pulse(item.id)
+    } catch {
+      setError(actions.undoFailed)
+    }
+  }
+
   function onKeyDown(event: KeyboardEvent<HTMLDivElement>) {
     if (event.key !== 'ArrowDown' && event.key !== 'ArrowUp') return
     const current = (event.target as HTMLElement).closest<HTMLElement>('[data-row-id]')
@@ -213,6 +343,24 @@ function ListView({
     event.preventDefault()
     spine.current?.querySelector<HTMLElement>(`[data-row-id="${CSS.escape(target)}"]`)?.focus()
   }
+
+  const itemRow = (entry: ListItem, grouped: boolean) => (
+    <ItemRow
+      key={entry.id}
+      item={entry}
+      grouped={grouped}
+      focusable={tabStop === entry.id}
+      minutesWidth={minutesWidth}
+      pulse={pulseId === entry.id}
+      onToggle={(row) => void toggleItem(row)}
+      onFocus={(row) => remember(row.id)}
+      onInfo={(row, anchor) => setPopover({ kind: 'info', itemId: row.id, anchor })}
+      onEdit={(row, anchor) => setPopover({ kind: 'edit', itemId: row.id, anchor })}
+      onRemove={(row) => void removeItem(row)}
+    />
+  )
+
+  const popoverItem = popover ? items.find((entry) => entry.id === popover.itemId) : undefined
 
   return (
     <div className="q-list">
@@ -261,15 +409,7 @@ function ListView({
         {units.length === 0 && <p className="q-list-empty">{text.empty}</p>}
         {units.map((unit) =>
           unit.kind === 'item' ? (
-            <ItemRow
-              key={unit.item.id}
-              item={unit.item}
-              grouped={false}
-              focusable={tabStop === unit.item.id}
-              minutesWidth={minutesWidth}
-              onToggle={(entry) => void toggleItem(entry)}
-              onFocus={(entry) => remember(entry.id)}
-            />
+            itemRow(unit.item, false)
           ) : (
             <div key={unit.group.id} className="q-list-block">
               <GroupRow
@@ -279,22 +419,28 @@ function ListView({
                 onToggle={toggleGroup}
                 onFocus={remember}
               />
-              {!collapsed.has(unit.group.name) &&
-                unit.items.map((entry) => (
-                  <ItemRow
-                    key={entry.id}
-                    item={entry}
-                    grouped
-                    focusable={tabStop === entry.id}
-                    minutesWidth={minutesWidth}
-                    onToggle={(row) => void toggleItem(row)}
-                    onFocus={(row) => remember(row.id)}
-                  />
-                ))}
+              {!collapsed.has(unit.group.name) && unit.items.map((entry) => itemRow(entry, true))}
             </div>
           ),
         )}
+        <AddItemForm groups={groupNames} defaultMinutes={defaultMinutes} onAdd={addItem} />
       </div>
+
+      {popover?.kind === 'info' && popoverItem && (
+        <Popover open anchorEl={popover.anchor} onDismiss={() => setPopover(null)} width={320}>
+          <ItemInfoCard item={popoverItem} />
+        </Popover>
+      )}
+      {popover?.kind === 'edit' && popoverItem && (
+        <ItemEditPopover
+          key={popoverItem.id}
+          item={popoverItem}
+          groups={groupNames}
+          anchorEl={popover.anchor}
+          onCommit={(patch, via) => void saveEdit(popoverItem, patch, via)}
+          onDiscard={() => setPopover(null)}
+        />
+      )}
     </div>
   )
 }

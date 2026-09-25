@@ -14,6 +14,7 @@
   overflow-y: auto;
   list-style: none;
   background: var(--card);
+  color: var(--ink);
   border: 1px solid var(--rule);
   box-shadow: 0 12px 30px rgba(0, 0, 0, 0.18);
 }

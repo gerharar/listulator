@@ -1,0 +1,12 @@
+/* The ✎ popover body (task 10.21): kicker-labelled small fields, actions right-aligned, primary last. */
+.q-edit {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.q-edit-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 4px;
+}
