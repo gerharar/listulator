@@ -174,4 +174,13 @@ describe('ItemRow', () => {
       expect(document.querySelector('.q-item.pulse')).not.toBeNull()
     })
   })
+
+  it('marks an item that arrived with a sync as NEW, and no other', () => {
+    renderRow({ item: { ...ITEM, isNew: true } })
+    expect(screen.getByText('NEW')).toBeTruthy()
+
+    cleanup()
+    renderRow()
+    expect(screen.queryByText('NEW')).toBeNull()
+  })
 })

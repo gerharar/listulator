@@ -1,5 +1,5 @@
 import './HomeRow.css'
-import { ByHandMark, CuratedStar } from '../Marks/Marks.js'
+import { ByHandMark, CuratedStar, NewBadge } from '../Marks/Marks.js'
 import { StatusMark } from '../StatusChip/StatusChip.js'
 import { ProgressSentence } from '../ProgressSentence/ProgressSentence.js'
 import type { PickedStatus } from '../StatusPicker/StatusPicker.js'
@@ -13,12 +13,7 @@ export interface HomeRowProps {
   done: number
   total: number
   minutesLeft: number
-  /**
-   * Item count new since the last sync check — `undefined` renders no
-   * badge at all. Left unwired until task 10.17 supplies a real per-list
-   * count; `/lists/updates` (task 7.6) only ever returns which lists
-   * changed, not how many items.
-   */
+  /** Items that arrived with a sync and are not yet marked seen (`stats.newItems`); none, or `undefined`, renders no badge. */
   newCount?: number
   onOpen: () => void
 }
@@ -35,6 +30,7 @@ export function HomeRow({
   done,
   total,
   minutesLeft,
+  newCount,
   onOpen,
 }: HomeRowProps) {
   return (
@@ -44,6 +40,7 @@ export function HomeRow({
         {mark === 'byHand' && <ByHandMark />}
         <span className="title">{title}</span>
         <StatusMark status={status} />
+        {newCount ? <NewBadge count={newCount} /> : null}
       </span>
       <ProgressSentence done={done} total={total} minutesLeft={minutesLeft} status={status} size="row" />
     </button>

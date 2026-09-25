@@ -46,7 +46,8 @@ test('the fixture list renders its curated star and status mark in a real browse
   await useHomeFixture(page)
   await page.goto('/')
 
-  await expect(page.getByRole('button', { name: new RegExp(FIXTURE_LIST_TITLE) })).toBeVisible({
+  // The banner now names the list as a button too (10.25), so the row is looked up by its own class.
+  await expect(page.locator('.q-home-row', { hasText: FIXTURE_LIST_TITLE })).toBeVisible({
     timeout: 15_000,
   })
   await expect(page.locator('.q-star')).toBeVisible()

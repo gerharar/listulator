@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { act, cleanup, render, screen, waitFor } from '@testing-library/react'
+import { act, cleanup, render, screen, waitFor, within } from '@testing-library/react'
 import type { MediaList, MediaType } from '../../../lib/api.js'
 import { api } from '../../../lib/api.js'
 import { LiveRegionProvider } from '../LiveRegion/LiveRegion.js'
@@ -53,12 +53,18 @@ function StackReader() {
   return <span data-testid="stack">{stack.map((layer) => `${layer.kind}:${layer.id}`).join(',')}</span>
 }
 
+function StackContent() {
+  const { stack } = useLayerStack()
+  return <span data-testid="content">{stack.at(-1)?.content}</span>
+}
+
 function renderHome(onMediaTypesLoaded = vi.fn()) {
   return render(
     <LiveRegionProvider>
       <ToastProvider>
         <LayerStackProvider home={{ id: 'home', kind: 'home', tabLabel: 'My Lists', content: '/' }}>
           <StackReader />
+          <StackContent />
           <Home onMediaTypesLoaded={onMediaTypesLoaded} />
         </LayerStackProvider>
       </ToastProvider>
@@ -105,6 +111,53 @@ describe('Home', () => {
 
     act(() => screen.getByRole('button', { name: 'Dismiss' }).click())
     expect(screen.queryByText(/1 list has an update available/)).toBeNull()
+  })
+
+  it('shows how many of a list’s items are new, on its row', async () => {
+    vi.mocked(api.mediaTypes).mockResolvedValue(MEDIA_TYPES)
+    vi.mocked(api.lists).mockResolvedValue([
+      list({ stats: { ...list().stats, newItems: 2 } }),
+      list({ id: 'list-2', title: 'Other' }),
+    ])
+    vi.mocked(api.checkSyncedListUpdates).mockResolvedValue({ updates: [] })
+
+    renderHome()
+
+    await waitFor(() => expect(screen.getByText('2 NEW')).not.toBeNull())
+    expect(screen.getAllByText(/NEW/)).toHaveLength(1)
+  })
+
+  it('opens the updated list from the banner, carrying the update on the layer’s own path', async () => {
+    vi.mocked(api.mediaTypes).mockResolvedValue(MEDIA_TYPES)
+    vi.mocked(api.lists).mockResolvedValue([list()])
+    vi.mocked(api.checkSyncedListUpdates).mockResolvedValue({
+      updates: [{ listId: 'list-1', title: 'Breaking Bad' }],
+    })
+
+    renderHome()
+
+    await waitFor(() => expect(screen.getByText('Breaking Bad', { selector: 'b' })).not.toBeNull())
+    const inBanner = document.querySelector('.q-banner') as HTMLElement
+    act(() => within(inBanner).getByRole('button', { name: 'Breaking Bad' }).click())
+
+    expect(screen.getByTestId('stack').textContent).toBe('home:home,list:list-list-1')
+    expect(screen.getByTestId('content').textContent).toBe('/lists/list-1?update=1')
+  })
+
+  it('opens a list from its row with no update on the path', async () => {
+    vi.mocked(api.mediaTypes).mockResolvedValue(MEDIA_TYPES)
+    vi.mocked(api.lists).mockResolvedValue([list()])
+    vi.mocked(api.checkSyncedListUpdates).mockResolvedValue({
+      updates: [{ listId: 'list-1', title: 'Breaking Bad' }],
+    })
+
+    renderHome()
+
+    await waitFor(() => expect(screen.getByText('Breaking Bad', { selector: 'b' })).not.toBeNull())
+    const row = document.querySelector('.q-home-row') as HTMLElement
+    act(() => row.click())
+
+    expect(screen.getByTestId('content').textContent).toBe('/lists/list-1')
   })
 
   it('opening a row pushes the real list onto the layer stack, with its real title as the tab label', async () => {

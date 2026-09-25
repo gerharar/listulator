@@ -5,6 +5,7 @@ import { formatDuration } from '../../formatDuration.js'
 import { api, type ListGroup, type ListItem, type MediaListDetail, type MediaType } from '../../lib/api.js'
 import { getPreferencesStore } from '../../lib/preferences/store.js'
 import { categoryLabel, copy } from '../../locale/index.js'
+import { Banner } from '../../components/quantum/Banner/Banner.js'
 import { Button, IconButton } from '../../components/quantum/Button/Button.js'
 import { ErrorBlock } from '../../components/quantum/ErrorBlock/ErrorBlock.js'
 import { ErrorStrip } from '../../components/quantum/ErrorStrip/ErrorStrip.js'
@@ -29,11 +30,14 @@ import { ItemEditPopover } from './ItemEditPopover.js'
 import { ItemInfoCard } from './ItemInfoCard.js'
 import { ItemRow } from './ItemRow.js'
 import { buildSpine, listTotals } from './spine.js'
+import { UpdatesCard } from './UpdatesCard.js'
 
 export interface ListScreenProps {
   listId: string
   /** The live registry, for the category's label. */
   mediaTypes: readonly MediaType[]
+  /** The Home banner sent us here because the source has news: the button says "Update list" (a cue only — nothing is checked until it is pressed). */
+  updateAvailable?: boolean
 }
 
 type Load =
@@ -53,7 +57,7 @@ type Load =
  * last focused are remembered per list (D5); a Mega list's groups arrive
  * collapsed (C3).
  */
-export function ListScreen({ listId, mediaTypes }: ListScreenProps) {
+export function ListScreen({ listId, mediaTypes, updateAvailable = false }: ListScreenProps) {
   const text = copy.quantum.list
   const [load, setLoad] = useState<Load>({ state: 'loading' })
   const [error, setError] = useState<string | null>(null)
@@ -121,6 +125,7 @@ export function ListScreen({ listId, mediaTypes }: ListScreenProps) {
       initialCollapsed={load.collapsed}
       initialFocusId={load.focusId}
       mediaTypes={mediaTypes}
+      updateAvailable={updateAvailable}
       error={error}
       setError={setError}
       reload={() => void fetchList()}
@@ -134,6 +139,7 @@ interface ListViewProps {
   initialCollapsed: ReadonlySet<string>
   initialFocusId: string | undefined
   mediaTypes: readonly MediaType[]
+  updateAvailable: boolean
   error: string | null
   setError: (message: string | null) => void
   reload: () => void
@@ -144,18 +150,24 @@ const PULSE_MS = 1900
 
 type OpenPopover = { kind: 'info' | 'edit'; itemId: string; anchor: HTMLElement }
 
+type CheckResult = Awaited<ReturnType<typeof api.checkForUpdates>>
+/** The Check for updates popover: open once a check has an answer. */
+type UpdatesPopover = { anchor: HTMLElement; result: CheckResult; includeDismissed: boolean }
+
 function ListView({
   listId,
   list: loaded,
   initialCollapsed,
   initialFocusId,
   mediaTypes,
+  updateAvailable,
   error,
   setError,
   reload,
 }: ListViewProps) {
   const text = copy.quantum.list
   const actions = text.itemActions
+  const updatesText = text.updates
   const { showToast } = useToast()
   const { announce } = useLiveRegion()
   const [items, setItems] = useState<ListItem[]>(loaded.items)
@@ -164,6 +176,9 @@ function ListView({
   const [focusId, setFocusId] = useState<string | undefined>(initialFocusId)
   const [popover, setPopover] = useState<OpenPopover | null>(null)
   const [pulseId, setPulseId] = useState<string | null>(null)
+  const [checking, setChecking] = useState(false)
+  const [adding, setAdding] = useState(false)
+  const [updates, setUpdates] = useState<UpdatesPopover | null>(null)
   const pulseTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
   const spine = useRef<HTMLDivElement>(null)
 
@@ -172,6 +187,7 @@ function ListView({
   const mediaType = mediaTypes.find((entry) => entry.key === loaded.mediaType)
   const defaultMinutes = mediaType?.defaultDurationMinutes ?? 30
   const totals = listTotals(items)
+  const newCount = items.filter((entry) => entry.isNew).length
   const units = useMemo(() => buildSpine(items, groups), [items, groups])
   const groupNames = useMemo(() => groups.map((group) => group.name), [groups])
 
@@ -331,6 +347,53 @@ function ListView({
     }
   }
 
+  /** Asks the source what it has that the list does not; writes nothing. */
+  async function checkForUpdates(anchor: HTMLElement, includeDismissed: boolean) {
+    setChecking(true)
+    setError(null)
+
+    try {
+      const result = await api.checkForUpdates(listId, includeDismissed)
+      setUpdates({ anchor, result, includeDismissed })
+    } catch (cause) {
+      setUpdates(null)
+      setError(cause instanceof Error ? cause.message : updatesText.checkFailed)
+    } finally {
+      setChecking(false)
+    }
+  }
+
+  /** The add half of the two steps: what arrives is flagged NEW until Mark all seen. */
+  async function addUpdates() {
+    if (!updates?.result.newItems.length) return
+    const count = updates.result.newItems.length
+    setAdding(true)
+    setError(null)
+
+    try {
+      await api.importItems(listId, updates.result.newItems, 'import', true)
+      await refresh()
+      setUpdates(null)
+      announce(updatesText.added(count))
+    } catch {
+      setError(updatesText.addFailed)
+    } finally {
+      setAdding(false)
+    }
+  }
+
+  async function markAllSeen() {
+    setError(null)
+
+    try {
+      await api.markSeen(listId)
+      setItems((current) => current.map((entry) => ({ ...entry, isNew: false })))
+      announce(updatesText.markedSeen)
+    } catch {
+      setError(updatesText.markSeenFailed)
+    }
+  }
+
   function onKeyDown(event: KeyboardEvent<HTMLDivElement>) {
     if (event.key !== 'ArrowDown' && event.key !== 'ArrowUp') return
     const current = (event.target as HTMLElement).closest<HTMLElement>('[data-row-id]')
@@ -386,9 +449,20 @@ function ListView({
             />
           </div>
           <div className="q-list-actions">
-            <Button size="sm" disabled title={text.comingSoon}>
-              {text.checkForUpdates}
-            </Button>
+            {/* Only a list built from a source has anything to check against. */}
+            {loaded.externalRef && (
+              <Button
+                size="sm"
+                disabled={checking}
+                onClick={(event) => void checkForUpdates(event.currentTarget, updates?.includeDismissed ?? false)}
+              >
+                {checking
+                  ? updatesText.checking
+                  : updateAvailable
+                    ? updatesText.updateList
+                    : text.checkForUpdates}
+              </Button>
+            )}
             <Button size="sm" disabled title={text.comingSoon}>
               {text.order}
             </Button>
@@ -398,6 +472,17 @@ function ListView({
           </div>
         </div>
       </div>
+
+      {newCount > 0 && (
+        // The banner's one action is Mark all seen, a secondary button (design-system/components/Banner).
+        <Banner
+          onDismiss={() => void markAllSeen()}
+          dismissLabel={updatesText.markAllSeen}
+          actionVariant="secondary"
+        >
+          {updatesText.newBand(newCount)}
+        </Banner>
+      )}
 
       {error && (
         <div className="q-list-error">
@@ -426,6 +511,17 @@ function ListView({
         <AddItemForm groups={groupNames} defaultMinutes={defaultMinutes} onAdd={addItem} />
       </div>
 
+      {updates && (
+        <Popover open anchorEl={updates.anchor} onDismiss={() => setUpdates(null)} width={340}>
+          <UpdatesCard
+            result={updates.result}
+            includeDismissed={updates.includeDismissed}
+            adding={adding}
+            onIncludeDismissedChange={(include) => void checkForUpdates(updates.anchor, include)}
+            onAdd={() => void addUpdates()}
+          />
+        </Popover>
+      )}
       {popover?.kind === 'info' && popoverItem && (
         <Popover open anchorEl={popover.anchor} onDismiss={() => setPopover(null)} width={320}>
           <ItemInfoCard item={popoverItem} />

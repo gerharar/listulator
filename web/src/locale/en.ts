@@ -407,6 +407,36 @@ export const en = {
       checkForUpdates: 'Check for updates',
       order: 'Order',
       more: 'More',
+      /** Check for updates and the NEW marks (10.25). */
+      updates: {
+        checking: 'Checking…',
+        /** The button's label when the Home banner sent you here with an update already known. */
+        updateList: 'Update list',
+        checkFailed: 'Could not check for updates',
+        addFailed: 'Could not add them',
+        kicker: 'Updates',
+        upToDate: (upstreamCount: number): string =>
+          `Up to date — nothing new in the source's ${upstreamCount}.`,
+        heldBack: (n: number): string =>
+          ` ${n} ${selectPlural(n, 'en', { one: 'entry you deleted is', other: 'entries you deleted are' })} being held back.`,
+        foundCount: (n: number): string =>
+          `${n} ${selectPlural(n, 'en', { one: 'entry', other: 'entries' })}`,
+        /** With the box ticked these are things you deleted, not things the source gained. */
+        foundToPutBack: 'to put back:',
+        foundNew: 'new since this list was built:',
+        andMore: (n: number): string => ` … and ${n} more`,
+        addToList: (n: number): string => `Add ${n} to this list`,
+        adding: 'Adding…',
+        reAddDeleted: 'Re-add deleted entries',
+        /** The list's own banner (design prototype): the sentence, then Mark all seen. */
+        newBand: (n: number): string =>
+          `${n} new ${selectPlural(n, 'en', { one: 'item was', other: 'items were' })} added. Sorted something manually? Check if it's affected`,
+        markAllSeen: 'Mark all seen',
+        markedSeen: 'All marked as seen',
+        markSeenFailed: 'Could not mark them as seen',
+        added: (n: number): string =>
+          `Added ${n} ${selectPlural(n, 'en', { one: 'item', other: 'items' })}`,
+      },
     },
     preview: {
       title: 'Preview',

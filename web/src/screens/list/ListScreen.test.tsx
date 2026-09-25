@@ -37,6 +37,9 @@ vi.mock('../../lib/api.js', async () => {
       updateItem: vi.fn(),
       deleteItem: vi.fn(),
       restoreItem: vi.fn(),
+      checkForUpdates: vi.fn(),
+      importItems: vi.fn(),
+      markSeen: vi.fn(),
     },
   }
 })
@@ -100,21 +103,21 @@ function detail(overrides: Partial<MediaListDetail> = {}): MediaListDetail {
   } as MediaListDetail
 }
 
-function renderScreen(listId: string) {
+function renderScreen(listId: string, updateAvailable = false) {
   return render(
     <LiveRegionProvider>
       <ToastProvider>
         <OverlayManagerProvider>
-          <ListScreen listId={listId} mediaTypes={TYPES} />
+          <ListScreen listId={listId} mediaTypes={TYPES} updateAvailable={updateAvailable} />
         </OverlayManagerProvider>
       </ToastProvider>
     </LiveRegionProvider>,
   )
 }
 
-async function open(list: MediaListDetail) {
+async function open(list: MediaListDetail, updateAvailable = false) {
   vi.mocked(api.list).mockResolvedValue(list)
-  renderScreen(list.id)
+  renderScreen(list.id, updateAvailable)
   await screen.findByRole('heading', { name: /^Loki/ }).catch(() => undefined)
   await act(async () => {})
 }
@@ -151,7 +154,7 @@ describe('ListScreen header', () => {
   it('shows the actions that come later as present but disabled, saying so', async () => {
     await open(detail({ items: [item()] }))
 
-    for (const name of ['Edit list', 'Check for updates', 'Order', 'More']) {
+    for (const name of ['Edit list', 'Order', 'More']) {
       const button = screen.getByRole('button', { name }) as HTMLButtonElement
       expect(button.disabled).toBe(true)
       expect(button.title).toMatch(/coming soon/i)
@@ -562,6 +565,186 @@ describe('ListScreen item actions (task 10.21)', () => {
 
       expect(await screen.findByText('Could not save those changes')).toBeTruthy()
       expect(screen.getByText('Alpha')).toBeTruthy()
+    })
+  })
+})
+
+describe('ListScreen updates (task 10.25)', () => {
+  const sourced = (extra: Partial<MediaListDetail> = {}) =>
+    detail({
+      externalRef: 'tmdb:1',
+      items: [item({ id: 'a', title: 'Alpha' }), item({ id: 'b', title: 'Beta' })],
+      ...extra,
+    })
+  const result = (titles: string[], extra: object = {}) => ({
+    newItems: titles.map((title) => ({ title, externalRef: `ref:${title}` })),
+    upstreamCount: 10,
+    existingCount: 8,
+    dismissedCount: 0,
+    ...extra,
+  })
+
+  describe('the NEW marks and Mark all seen', () => {
+    const withNew = () =>
+      sourced({
+        items: [
+          item({ id: 'a', title: 'Alpha' }),
+          item({ id: 'b', title: 'Beta', isNew: true }),
+          item({ id: 'c', title: 'Gamma', isNew: true }),
+        ],
+      })
+
+    it('shows no banner and no marks when nothing is new', async () => {
+      await open(sourced())
+
+      expect(screen.queryByText(/new items? w/)).toBeNull()
+      expect(screen.queryByText('NEW')).toBeNull()
+      expect(screen.queryByRole('button', { name: 'Mark all seen' })).toBeNull()
+    })
+
+    it('marks the new rows, and says how many are new under the header', async () => {
+      await open(withNew())
+
+      expect(screen.getAllByText('NEW')).toHaveLength(2)
+      expect(screen.getByText(/2 new items were added/)).toBeTruthy()
+    })
+
+    it('says "1 new item was added" for a single one', async () => {
+      await open(sourced({ items: [item({ id: 'a', title: 'Alpha', isNew: true })] }))
+
+      expect(screen.getByText(/1 new item was added/)).toBeTruthy()
+    })
+
+    it('clears the marks and the banner, and says so, when marked seen', async () => {
+      vi.mocked(api.markSeen).mockResolvedValue({ cleared: 2 })
+      await open(withNew())
+
+      fireEvent.click(screen.getByRole('button', { name: 'Mark all seen' }))
+
+      await waitFor(() => expect(screen.queryByText('NEW')).toBeNull())
+      expect(api.markSeen).toHaveBeenCalledWith('L1')
+      expect(screen.queryByRole('button', { name: 'Mark all seen' })).toBeNull()
+      await waitFor(() => expect(document.querySelector('.q-live')!.textContent).toBe('All marked as seen'))
+    })
+
+    it('keeps the marks and says why when the server refuses', async () => {
+      vi.mocked(api.markSeen).mockRejectedValue(new Error('down'))
+      await open(withNew())
+
+      fireEvent.click(screen.getByRole('button', { name: 'Mark all seen' }))
+
+      expect(await screen.findByText('Could not mark them as seen')).toBeTruthy()
+      expect(screen.getAllByText('NEW')).toHaveLength(2)
+    })
+  })
+
+  describe('Check for updates', () => {
+    it('is offered only on a list that has a source to check', async () => {
+      await open(detail({ externalRef: null, items: [item()] }))
+
+      expect(screen.queryByRole('button', { name: 'Check for updates' })).toBeNull()
+    })
+
+    it('checks only when pressed, then names what the source gained', async () => {
+      vi.mocked(api.checkForUpdates).mockResolvedValue(result(['Delta', 'Echo']))
+      await open(sourced())
+      expect(api.checkForUpdates).not.toHaveBeenCalled()
+
+      fireEvent.click(screen.getByRole('button', { name: 'Check for updates' }))
+
+      expect(await screen.findByText(/Delta · Echo/)).toBeTruthy()
+      expect(api.checkForUpdates).toHaveBeenCalledWith('L1', false)
+      expect(api.importItems).not.toHaveBeenCalled()
+    })
+
+    it('says it is checking while it waits', async () => {
+      let finish!: (value: ReturnType<typeof result>) => void
+      vi.mocked(api.checkForUpdates).mockReturnValue(new Promise((resolve) => (finish = resolve)))
+      await open(sourced())
+
+      fireEvent.click(screen.getByRole('button', { name: 'Check for updates' }))
+
+      const busy = await screen.findByRole('button', { name: 'Checking…' })
+      expect((busy as HTMLButtonElement).disabled).toBe(true)
+      await act(async () => finish(result([])))
+      expect(await screen.findByText(/Up to date/)).toBeTruthy()
+    })
+
+    it('adds what was found as arrivals, then shows them as NEW', async () => {
+      vi.mocked(api.checkForUpdates).mockResolvedValue(result(['Delta', 'Echo']))
+      vi.mocked(api.importItems).mockResolvedValue([])
+      await open(sourced())
+      fireEvent.click(screen.getByRole('button', { name: 'Check for updates' }))
+      await screen.findByText(/Delta · Echo/)
+      vi.mocked(api.list).mockResolvedValue(
+        sourced({
+          items: [
+            item({ id: 'a', title: 'Alpha' }),
+            item({ id: 'd', title: 'Delta', isNew: true }),
+            item({ id: 'e', title: 'Echo', isNew: true }),
+          ],
+        }),
+      )
+
+      fireEvent.click(screen.getByRole('button', { name: 'Add 2 to this list' }))
+
+      await waitFor(() => expect(screen.getAllByText('NEW')).toHaveLength(2))
+      expect(api.importItems).toHaveBeenCalledWith(
+        'L1',
+        [
+          { title: 'Delta', externalRef: 'ref:Delta' },
+          { title: 'Echo', externalRef: 'ref:Echo' },
+        ],
+        'import',
+        true,
+      )
+      expect(screen.queryByText(/Delta · Echo/)).toBeNull()
+      await waitFor(() => expect(document.querySelector('.q-live')!.textContent).toBe('Added 2 items'))
+      expect(screen.getByText(/2 new items were added/)).toBeTruthy()
+    })
+
+    it('runs the check again, including deleted entries, when the box is ticked', async () => {
+      vi.mocked(api.checkForUpdates).mockResolvedValue(result([]))
+      await open(sourced())
+      fireEvent.click(screen.getByRole('button', { name: 'Check for updates' }))
+      await screen.findByText(/Up to date/)
+
+      fireEvent.click(screen.getByRole('checkbox', { name: 'Re-add deleted entries' }))
+
+      await waitFor(() => expect(api.checkForUpdates).toHaveBeenLastCalledWith('L1', true))
+    })
+
+    it('shows an error, not a card, when the check fails', async () => {
+      vi.mocked(api.checkForUpdates).mockRejectedValue(new Error('Source is down'))
+      await open(sourced())
+
+      fireEvent.click(screen.getByRole('button', { name: 'Check for updates' }))
+
+      expect(await screen.findByText('Source is down')).toBeTruthy()
+      expect(screen.queryByText(/Up to date/)).toBeNull()
+    })
+
+    it('keeps the card and says so when adding fails', async () => {
+      vi.mocked(api.checkForUpdates).mockResolvedValue(result(['Delta']))
+      vi.mocked(api.importItems).mockRejectedValue(new Error('nope'))
+      await open(sourced())
+      fireEvent.click(screen.getByRole('button', { name: 'Check for updates' }))
+      await screen.findByText(/Delta/)
+
+      fireEvent.click(screen.getByRole('button', { name: 'Add 1 to this list' }))
+
+      expect(await screen.findByText('Could not add them')).toBeTruthy()
+      expect(screen.getByRole('button', { name: 'Add 1 to this list' })).toBeTruthy()
+    })
+  })
+
+  describe('arriving from the Home banner', () => {
+    it('calls the button "Update list", without checking by itself', async () => {
+      await open(sourced(), true)
+
+      expect(screen.getByRole('button', { name: 'Update list' })).toBeTruthy()
+      expect(screen.queryByRole('button', { name: 'Check for updates' })).toBeNull()
+      expect(api.checkForUpdates).not.toHaveBeenCalled()
     })
   })
 })

@@ -10,6 +10,7 @@ import { resolveLanguage, type Language } from './lib/preferences/language.js'
 import { ListScreen } from './screens/list/ListScreen.js'
 import { CreateList } from './components/quantum/CreateList/CreateList.js'
 import { PreviewLayer } from './components/quantum/PreviewLayer/PreviewLayer.js'
+import { wantsUpdate } from './lib/listPath.js'
 import { parsePreviewPath } from './lib/preview.js'
 import { Atmosphere } from './components/quantum/Atmosphere/Atmosphere.js'
 import { QRoot } from './components/quantum/QRootContext.js'
@@ -117,8 +118,16 @@ function CreateListRoute({ mediaTypes }: { mediaTypes: MediaType[] }) {
 /** The list layer (task 10.20): the list's id rides on the layer's own path. */
 function ListRoute({ mediaTypes }: { mediaTypes: MediaType[] }) {
   const { listId } = useParams<{ listId: string }>()
+  const [searchParams] = useSearchParams()
 
-  return listId ? <ListScreen key={listId} listId={listId} mediaTypes={mediaTypes} /> : null
+  return listId ? (
+    <ListScreen
+      key={listId}
+      listId={listId}
+      mediaTypes={mediaTypes}
+      updateAvailable={wantsUpdate(searchParams)}
+    />
+  ) : null
 }
 
 /**

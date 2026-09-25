@@ -27,4 +27,25 @@ describe('Banner', () => {
     screen.getByRole('button', { name: 'Dismiss' }).click()
     expect(onDismiss).toHaveBeenCalledOnce()
   })
+
+  it('can offer its action as a secondary button instead of a ghost one', () => {
+    render(
+      <Banner onDismiss={vi.fn()} dismissLabel="Mark all seen" actionVariant="secondary">
+        <span>2 new items</span>
+      </Banner>,
+    )
+
+    const button = screen.getByRole('button', { name: 'Mark all seen' })
+    expect(button.classList.contains('ghost')).toBe(false)
+  })
+
+  it('offers a ghost button unless told otherwise', () => {
+    render(
+      <Banner onDismiss={vi.fn()} dismissLabel="Dismiss">
+        <span>News</span>
+      </Banner>,
+    )
+
+    expect(screen.getByRole('button', { name: 'Dismiss' }).classList.contains('ghost')).toBe(true)
+  })
 })

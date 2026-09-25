@@ -8,14 +8,16 @@ export interface BannerProps {
   onDismiss: () => void
   /** "Dismiss" on Home; a list's own banner uses a different action label entirely (design-system/components/Banner) — not built until that screen needs it. */
   dismissLabel: string
+  /** Ghost on Home ("Dismiss"); a list's own banner offers Mark all seen as a secondary button. */
+  actionVariant?: 'ghost' | 'secondary'
 }
 
 /** A full-width line under a header, for news about the content — optional, dismissible, never blocking (design-system/components/Banner). */
-export function Banner({ children, onDismiss, dismissLabel }: BannerProps) {
+export function Banner({ children, onDismiss, dismissLabel, actionVariant = 'ghost' }: BannerProps) {
   return (
     <div className="q-banner">
       <span>{children}</span>
-      <Button variant="ghost" size="sm" onClick={onDismiss}>
+      <Button variant={actionVariant} size="sm" onClick={onDismiss}>
         {dismissLabel}
       </Button>
     </div>

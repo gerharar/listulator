@@ -12,6 +12,7 @@ import { Banner } from '../Banner/Banner.js'
 import { ErrorBlock } from '../ErrorBlock/ErrorBlock.js'
 import { useToast } from '../Toast/Toast.js'
 import { useLayerStack } from '../layerStack/LayerStackContext.js'
+import { listPath } from '../../../lib/listPath.js'
 import type { LayerDescriptor } from '../layerStack/layerStack.js'
 
 type Phase = 'loading' | 'ready' | 'error'
@@ -25,8 +26,13 @@ function categoryPickerLayer(): LayerDescriptor<string> {
   }
 }
 
-function listLayer(list: MediaList): LayerDescriptor<string> {
-  return { id: `list-${list.id}`, kind: 'list', tabLabel: list.title, content: `/lists/${list.id}` }
+function listLayer(list: MediaList, options: { update?: boolean } = {}): LayerDescriptor<string> {
+  return {
+    id: `list-${list.id}`,
+    kind: 'list',
+    tabLabel: list.title,
+    content: listPath(list.id, options),
+  }
 }
 
 export interface HomeProps {
@@ -176,8 +182,8 @@ export function Home({ onMediaTypesLoaded }: HomeProps) {
     { done: 0, total: 0, left: 0 },
   )
 
-  function openList(list: MediaList) {
-    layerStack.push(listLayer(list))
+  function openList(list: MediaList, options: { update?: boolean } = {}) {
+    layerStack.push(listLayer(list, options))
   }
 
   return (
@@ -197,12 +203,26 @@ export function Home({ onMediaTypesLoaded }: HomeProps) {
       {!bannerDismissed && updates.length > 0 && (
         <Banner onDismiss={() => setBannerDismissed(true)} dismissLabel={copy.quantum.home.dismissUpdatesBanner}>
           {copy.quantum.home.updatedCount(updates.length)}
-          {updates.map((entry, index) => (
-            <span key={entry.listId}>
-              {index > 0 && ', '}
-              <b>{entry.title}</b>
-            </span>
-          ))}
+          {updates.map((entry, index) => {
+            const target = lists.find((candidate) => candidate.id === entry.listId)
+
+            return (
+              <span key={entry.listId}>
+                {index > 0 && ', '}
+                {target ? (
+                  <button
+                    type="button"
+                    className="q-banner-link"
+                    onClick={() => openList(target, { update: true })}
+                  >
+                    <b>{entry.title}</b>
+                  </button>
+                ) : (
+                  <b>{entry.title}</b>
+                )}
+              </span>
+            )
+          })}
         </Banner>
       )}
 
@@ -238,6 +258,7 @@ export function Home({ onMediaTypesLoaded }: HomeProps) {
                 done={list.stats.consumedItems}
                 total={list.stats.totalItems}
                 minutesLeft={list.stats.timeRemainingMinutes}
+                newCount={list.stats.newItems}
                 onOpen={() => openList(list)}
               />
             ))}
@@ -260,6 +281,7 @@ export function Home({ onMediaTypesLoaded }: HomeProps) {
                 done={list.stats.consumedItems}
                 total={list.stats.totalItems}
                 minutesLeft={list.stats.timeRemainingMinutes}
+                newCount={list.stats.newItems}
                 onOpen={() => openList(list)}
               />
             ))}

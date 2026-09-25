@@ -6,7 +6,7 @@ import { copy } from '../../locale/index.js'
 import type { ListItem } from '../../lib/api.js'
 import { IconButton } from '../../components/quantum/Button/Button.js'
 import { DoneCheckbox } from '../../components/quantum/DoneCheckbox/DoneCheckbox.js'
-import { KindTag, ManualMark } from '../../components/quantum/Marks/Marks.js'
+import { KindTag, ManualMark, NewBadge } from '../../components/quantum/Marks/Marks.js'
 
 export interface ItemRowProps {
   item: ListItem
@@ -29,8 +29,7 @@ export interface ItemRowProps {
 /**
  * One 46px band (design-system/components/ItemRow), read-only for now: the
  * done box, the kind tag, the title with its year, and the runtime. Clicking
- * anywhere on the row toggles done. The drag handle, the ⓘ ✎ 🗑 buttons and
- * the NEW mark come with tasks 10.23, 10.21 and 10.25.
+ * anywhere on the row toggles done. The drag handle comes with task 10.23.
  */
 export function ItemRow({
   item,
@@ -90,6 +89,7 @@ export function ItemRow({
           </span>
           {item.year ? <span className="q-year">({item.year})</span> : null}
         </span>
+        {item.isNew && <NewBadge />}
       </span>
       <IconButton size="row" className="info" label={text.details(item.title)} onClick={act(onInfo)}>
         <Info width={15} height={15} strokeWidth={1.8} aria-hidden="true" />

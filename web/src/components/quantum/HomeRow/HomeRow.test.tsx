@@ -137,4 +137,35 @@ describe('HomeRow', () => {
     )
     expect(document.querySelector('.q-status-mark')).toBeNull()
   })
+
+  describe('the N NEW badge', () => {
+    const row = (newCount?: number) => (
+      <HomeRow
+        title="Star Wars"
+        description={null}
+        mark={null}
+        status={null}
+        done={0}
+        total={10}
+        minutesLeft={600}
+        {...(newCount === undefined ? {} : { newCount })}
+        onOpen={vi.fn()}
+      />
+    )
+
+    it('shows how many items are new', () => {
+      render(row(3))
+
+      expect(screen.getByText('3 NEW')).not.toBeNull()
+    })
+
+    it('shows nothing when none are new, or when the count is not known', () => {
+      render(row(0))
+      expect(screen.queryByText(/NEW/)).toBeNull()
+
+      cleanup()
+      render(row())
+      expect(screen.queryByText(/NEW/)).toBeNull()
+    })
+  })
 })
