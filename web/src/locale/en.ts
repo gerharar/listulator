@@ -407,6 +407,36 @@ export const en = {
       createGroup: (name: string): string => `+ Create “${name}”`,
       editList: 'Edit list',
       /** The ✎ popover beside the name (10.22). */
+      /** The ⋯ menu (10.22). */
+      moreMenu: {
+        kicker: 'List actions',
+        export: 'Export list',
+        delete: 'Delete list',
+        exportKicker: 'Export list',
+        exportNote:
+          'Save this list in YAML format. Your progress is never included. Useful for canonical list submissions.',
+        download: 'Download file',
+        copy: 'Copy to clipboard',
+        deleteKicker: 'Delete list',
+        deleteQuestion: (title: string): string => `Delete “${title}”?`,
+        deleteNote: (items: number, done: number): string =>
+          items === 0
+            ? 'The list is empty. Undo is offered for 8 seconds.'
+            : `${items} ${selectPlural(items, 'en', { one: 'item', other: 'items' })} and ${done} marked done go with it. Undo is offered for 8 seconds.`,
+        keep: 'Keep',
+        confirmDelete: 'Delete list',
+        itemCount: (n: number): string =>
+          `${n} ${selectPlural(n, 'en', { one: 'item', other: 'items' })}`,
+        saved: (fileName: string, items: number): string =>
+          `Saved ${fileName} — ${items} ${selectPlural(items, 'en', { one: 'item', other: 'items' })}.`,
+        copied: 'YAML copied to the clipboard.',
+        copyFailed: 'Could not copy — try Download instead.',
+        exportFailed: 'Could not export this list',
+        deleted: (title: string): string => `Deleted “${title}”.`,
+        restored: (title: string): string => `Restored ${title}`,
+        deleteFailed: 'Could not delete this list',
+        restoreFailed: 'Could not restore that list',
+      },
       editPopover: {
         kicker: 'Edit list',
         title: 'Title',

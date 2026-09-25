@@ -1,5 +1,4 @@
 import { expect, test } from '@playwright/test'
-import { useHomeFixture } from './fixtures.js'
 
 /**
  * Task 6.7 replaced `window.confirm()` with an in-app `Modal` specifically
@@ -11,35 +10,46 @@ import { useHomeFixture } from './fixtures.js'
  * ever fires, which a real engine can detect and grep can't (a dynamically
  * constructed call, a dependency calling it, dead code that still runs).
  */
-// The Delete list button lived on the old list screen. The new list screen
-// (task 10.20) has no delete until 10.22's ⋯ menu, so this is parked, not
-// dropped: restore it there (docs/DECISIONS.md, "10.20").
-test.fixme('deleting a list never triggers a native dialog, only the in-app Modal', async ({ page }) => {
-  await useHomeFixture(page)
-  const dialogs: string[] = []
-  page.on('dialog', (dialog) => {
-    dialogs.push(dialog.message())
-    void dialog.dismiss()
+test('deleting a list never triggers a native dialog, only the in-app popover — and Undo brings it back', async ({
+  page,
+}) => {
+  const title = `e2e no-native-dialogs ${Date.now()}`
+  const created = await page.request.post('/api/lists', { data: { title, mediaType: 'tv' } })
+  expect(created.ok()).toBe(true)
+  const id = (await created.json()).id
+  await page.request.post(`/api/lists/${id}/items/import`, {
+    data: { source: 'manual', items: [{ title: 'Alpha', timeToConsumeMinutes: 30 }] },
   })
 
-  await page.goto('/')
-  await expect(page.getByRole('heading', { name: 'My Lists' })).toBeVisible({ timeout: 15_000 })
+  try {
+    const dialogs: string[] = []
+    page.on('dialog', (dialog) => {
+      dialogs.push(dialog.message())
+      void dialog.dismiss()
+    })
 
-  const title = `e2e no-native-dialogs ${Date.now()}`
-  await page.getByRole('button', { name: 'New List' }).click()
-  await page.locator('.q-tile').first().click()
-  await page.getByRole('tab', { name: 'Add by hand' }).click()
-  await page.getByLabel('List title').fill(title)
-  await page.getByRole('button', { name: 'Create list' }).click()
+    await page.goto('/')
+    await page.locator('.q-home-row', { hasText: title }).click()
+    await expect(page.getByRole('heading', { name: new RegExp(title) })).toBeVisible()
 
-  await expect(page.getByRole('heading', { name: title })).toBeVisible()
+    await page.getByRole('button', { name: 'More' }).click()
+    await page.locator('.q-pop').getByRole('button', { name: 'Delete list' }).click()
+    await expect(page.getByText(`Delete “${title}”?`)).toBeVisible()
+    await expect(page.getByText('1 item and 0 marked done go with it. Undo is offered for 8 seconds.')).toBeVisible()
+    await page.locator('.q-pop').getByRole('button', { name: 'Delete list' }).click()
 
-  await page.getByRole('button', { name: 'Delete list' }).click()
-  await expect(page.getByText(`Delete "${title}" and all its items?`)).toBeVisible()
-  await page.getByRole('button', { name: 'Yes, delete' }).click()
+    await expect(page.getByRole('heading', { name: 'My Lists' })).toBeVisible()
+    await expect(page.locator('.q-home-row', { hasText: title })).toBeHidden()
+    expect((await page.request.get(`/api/lists/${id}`)).status()).toBe(404)
 
-  await expect(page.getByRole('heading', { name: 'My Lists' })).toBeVisible()
-  await expect(page.getByRole('heading', { name: title })).toBeHidden()
+    // Undo works from Home, where the screen it was raised on is gone.
+    await page.locator('.q-toast').getByRole('button', { name: 'Undo' }).click()
+    await expect(page.locator('.q-home-row', { hasText: title })).toBeVisible()
+    const back = await (await page.request.get(`/api/lists/${id}`)).json()
+    expect(back.items.map((i: { title: string }) => i.title)).toEqual(['Alpha'])
 
-  expect(dialogs).toEqual([])
+    expect(dialogs).toEqual([])
+  } finally {
+    await page.request.delete(`/api/lists/${id}`)
+  }
 })

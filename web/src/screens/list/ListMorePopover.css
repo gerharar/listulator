@@ -1,0 +1,14 @@
+/* The ⋯ popover's stacked buttons (task 10.22): one per row, full width, label to the left. */
+.q-pop-menu {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.q-pop-menu .q-btn {
+  justify-content: flex-start;
+  text-align: left;
+}
+/* Delete is named in the danger colour but stays an outlined row: it only opens the question. */
+.q-pop-menu .q-btn.warn {
+  color: var(--danger);
+}

@@ -3,6 +3,9 @@ import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent }
 import { EllipsisVertical, Pencil } from 'lucide-react'
 import { formatDuration } from '../../formatDuration.js'
 import { api, type ListGroup, type ListItem, type MediaListDetail, type MediaType } from '../../lib/api.js'
+import { downloadText } from '../../lib/downloadText.js'
+import { exportFileName, exportList } from '../../lib/exportList.js'
+import { notifyListsChanged } from '../../lib/listsChanged.js'
 import { getPreferencesStore } from '../../lib/preferences/store.js'
 import { categoryLabel, copy } from '../../locale/index.js'
 import { Banner } from '../../components/quantum/Banner/Banner.js'
@@ -31,6 +34,7 @@ import { invertListPatch, type ListFields, type ListPatch } from './listActions.
 import { ItemEditPopover } from './ItemEditPopover.js'
 import { ItemInfoCard } from './ItemInfoCard.js'
 import { ItemRow } from './ItemRow.js'
+import { ListMorePopover, type MoreMode } from './ListMorePopover.js'
 import { buildSpine, listTotals } from './spine.js'
 import { UpdatesCard } from './UpdatesCard.js'
 
@@ -40,6 +44,8 @@ export interface ListScreenProps {
   mediaTypes: readonly MediaType[]
   /** The Home banner sent us here because the source has news: the button says "Update list" (a cue only — nothing is checked until it is pressed). */
   updateAvailable?: boolean
+  /** Called after the list is deleted: the screen has nothing left to show, so the shell takes us Home. */
+  onLeave?: () => void
 }
 
 type Load =
@@ -59,7 +65,7 @@ type Load =
  * last focused are remembered per list (D5); a Mega list's groups arrive
  * collapsed (C3).
  */
-export function ListScreen({ listId, mediaTypes, updateAvailable = false }: ListScreenProps) {
+export function ListScreen({ listId, mediaTypes, updateAvailable = false, onLeave }: ListScreenProps) {
   const text = copy.quantum.list
   const [load, setLoad] = useState<Load>({ state: 'loading' })
   const [error, setError] = useState<string | null>(null)
@@ -128,6 +134,7 @@ export function ListScreen({ listId, mediaTypes, updateAvailable = false }: List
       initialFocusId={load.focusId}
       mediaTypes={mediaTypes}
       updateAvailable={updateAvailable}
+      onLeave={onLeave}
       error={error}
       setError={setError}
       reload={() => void fetchList()}
@@ -142,6 +149,7 @@ interface ListViewProps {
   initialFocusId: string | undefined
   mediaTypes: readonly MediaType[]
   updateAvailable: boolean
+  onLeave: (() => void) | undefined
   error: string | null
   setError: (message: string | null) => void
   reload: () => void
@@ -163,6 +171,7 @@ function ListView({
   initialFocusId,
   mediaTypes,
   updateAvailable,
+  onLeave,
   error,
   setError,
   reload,
@@ -171,6 +180,7 @@ function ListView({
   const actions = text.itemActions
   const updatesText = text.updates
   const editText = text.editPopover
+  const moreText = text.moreMenu
   const { showToast } = useToast()
   const { announce } = useLiveRegion()
   const [items, setItems] = useState<ListItem[]>(loaded.items)
@@ -189,6 +199,7 @@ function ListView({
     status: loaded.status,
   })
   const [editingList, setEditingList] = useState<HTMLElement | null>(null)
+  const [more, setMore] = useState<{ anchor: HTMLElement; mode: MoreMode } | null>(null)
   const pulseTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
   const spine = useRef<HTMLDivElement>(null)
 
@@ -358,6 +369,63 @@ function ListView({
     }
   }
 
+  /** The list as the file format sees it: its current name, status and items. */
+  function asExport(): MediaListDetail {
+    return { ...loaded, ...meta, items, groups }
+  }
+
+  function downloadExport() {
+    const fileName = exportFileName(meta.title)
+
+    try {
+      downloadText(fileName, exportList(asExport()))
+      setMore(null)
+      showToast({ text: moreText.saved(fileName, items.length) })
+    } catch {
+      setError(moreText.exportFailed)
+    }
+  }
+
+  async function copyExport() {
+    try {
+      await navigator.clipboard.writeText(exportList(asExport()))
+      setMore(null)
+      showToast({ text: moreText.copied })
+    } catch {
+      showToast({ text: moreText.copyFailed })
+    }
+  }
+
+  /** Two steps in the popover, then it acts at once: the payload it hands back is what Undo restores. */
+  async function deleteThisList() {
+    const title = meta.title
+    setMore(null)
+    setError(null)
+
+    try {
+      const restore = await api.deleteList(listId)
+      onLeave?.()
+      // The toast outlives this screen: Undo works from Home.
+      showToast({
+        text: moreText.deleted(title),
+        actionLabel: actions.undo,
+        onAction: () => void undoDelete(restore, title),
+      })
+    } catch {
+      setError(moreText.deleteFailed)
+    }
+  }
+
+  async function undoDelete(restore: Parameters<typeof api.restoreList>[0], title: string) {
+    try {
+      await api.restoreList(restore)
+      notifyListsChanged()
+      announce(moreText.restored(title))
+    } catch {
+      showToast({ text: moreText.restoreFailed })
+    }
+  }
+
   async function undoListEdit(before: ListFields, patch: ListPatch) {
     const back = invertListPatch(before, patch)
 
@@ -523,7 +591,7 @@ function ListView({
             <Button size="sm" disabled title={text.comingSoon}>
               {text.order}
             </Button>
-            <IconButton label={text.more} title={text.comingSoon} disabled>
+            <IconButton label={text.more} onClick={(event) => setMore({ anchor: event.currentTarget, mode: 'menu' })}>
               <EllipsisVertical width={17} height={17} strokeWidth={1.9} aria-hidden="true" />
             </IconButton>
           </div>
@@ -568,6 +636,20 @@ function ListView({
         <AddItemForm groups={groupNames} defaultMinutes={defaultMinutes} onAdd={addItem} />
       </div>
 
+      {more && (
+        <ListMorePopover
+          mode={more.mode}
+          anchorEl={more.anchor}
+          title={meta.title}
+          itemCount={items.length}
+          doneCount={totals.done}
+          onMode={(mode) => setMore({ ...more, mode })}
+          onDownload={downloadExport}
+          onCopy={() => void copyExport()}
+          onDelete={() => void deleteThisList()}
+          onDismiss={() => setMore(null)}
+        />
+      )}
       {editingList && (
         <EditListPopover
           list={meta}

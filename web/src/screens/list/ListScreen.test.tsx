@@ -5,6 +5,7 @@ import { ApiError, api, type ListItem, type MediaListDetail, type MediaType } fr
 import { LiveRegionProvider } from '../../components/quantum/LiveRegion/LiveRegion.js'
 import { OverlayManagerProvider } from '../../components/quantum/overlay/OverlayManagerContext.js'
 import { ToastProvider } from '../../components/quantum/Toast/Toast.js'
+import { subscribeListsChanged } from '../../lib/listsChanged.js'
 import { ListScreen } from './ListScreen.js'
 
 const store = new Map<string, string>()
@@ -41,6 +42,8 @@ vi.mock('../../lib/api.js', async () => {
       importItems: vi.fn(),
       markSeen: vi.fn(),
       updateList: vi.fn(),
+      deleteList: vi.fn(),
+      restoreList: vi.fn(),
     },
   }
 })
@@ -104,12 +107,14 @@ function detail(overrides: Partial<MediaListDetail> = {}): MediaListDetail {
   } as MediaListDetail
 }
 
+const onLeave = vi.fn()
+
 function renderScreen(listId: string, updateAvailable = false) {
   return render(
     <LiveRegionProvider>
       <ToastProvider>
         <OverlayManagerProvider>
-          <ListScreen listId={listId} mediaTypes={TYPES} updateAvailable={updateAvailable} />
+          <ListScreen listId={listId} mediaTypes={TYPES} updateAvailable={updateAvailable} onLeave={onLeave} />
         </OverlayManagerProvider>
       </ToastProvider>
     </LiveRegionProvider>,
@@ -155,7 +160,7 @@ describe('ListScreen header', () => {
   it('shows the actions that come later as present but disabled, saying so', async () => {
     await open(detail({ items: [item()] }))
 
-    for (const name of ['Order', 'More']) {
+    for (const name of ['Order']) {
       const button = screen.getByRole('button', { name }) as HTMLButtonElement
       expect(button.disabled).toBe(true)
       expect(button.title).toMatch(/coming soon/i)
@@ -858,5 +863,163 @@ describe('ListScreen edit list (task 10.22)', () => {
 
     expect(await screen.findByText('Could not save your changes to the list')).toBeTruthy()
     expect(screen.queryByRole('heading', { name: /^Loki S2/ })).toBeNull()
+  })
+})
+
+describe('ListScreen more menu (task 10.22)', () => {
+  const two = () =>
+    detail({
+      items: [item({ id: 'a', title: 'Alpha', consumedAt: '2026-01-01' }), item({ id: 'b', title: 'Beta' })],
+      mediaType: 'tv',
+    })
+  const openMenu = async (list = two()) => {
+    await open(list)
+    fireEvent.click(screen.getByRole('button', { name: 'More' }))
+    await waitFor(() => expect(document.querySelector('.q-pop')).not.toBeNull())
+  }
+  const pop = () => within(document.querySelector('.q-pop') as HTMLElement)
+
+  describe('export', () => {
+    const original = { create: URL.createObjectURL, revoke: URL.revokeObjectURL }
+    afterEach(() => {
+      URL.createObjectURL = original.create
+      URL.revokeObjectURL = original.revoke
+    })
+
+    it('downloads the list as a YAML file named for it', async () => {
+      const blobs: Blob[] = []
+      URL.createObjectURL = vi.fn((blob: Blob) => (blobs.push(blob), 'blob:x'))
+      URL.revokeObjectURL = vi.fn()
+      const names: string[] = []
+      vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(function (this: HTMLAnchorElement) {
+        names.push(this.download)
+      })
+      await openMenu()
+
+      fireEvent.click(pop().getByRole('button', { name: 'Export list' }))
+      fireEvent.click(pop().getByRole('button', { name: 'Download file' }))
+
+      expect(names).toEqual(['Loki.yaml'])
+      const text = await blobs[0]!.text()
+      expect(text).toMatch(/^title: Loki$/m)
+      expect(text).toMatch(/^category: tv$/m)
+      expect(text).toMatch(/Alpha/)
+      // Progress is never part of the file.
+      expect(text).not.toMatch(/consumed|2026/)
+      expect(await screen.findAllByText('Saved Loki.yaml — 2 items.')).not.toHaveLength(0)
+    })
+
+    it('exports the list as it is now, including a rename made on this screen', async () => {
+      vi.mocked(api.updateList).mockResolvedValue({} as never)
+      const written: string[] = []
+      Object.assign(navigator, { clipboard: { writeText: vi.fn(async (t: string) => void written.push(t)) } })
+      await open(two())
+      fireEvent.click(screen.getByRole('button', { name: 'Edit list' }))
+      await waitFor(() => expect(document.querySelector('.q-pop')).not.toBeNull())
+      fireEvent.change(pop().getByLabelText('Title'), { target: { value: 'Renamed' } })
+      fireEvent.click(pop().getByRole('button', { name: 'Save' }))
+      await screen.findByRole('heading', { name: /^Renamed/ })
+
+      fireEvent.click(screen.getByRole('button', { name: 'More' }))
+      await waitFor(() => expect(document.querySelector('.q-pop')).not.toBeNull())
+      fireEvent.click(pop().getByRole('button', { name: 'Export list' }))
+      fireEvent.click(pop().getByRole('button', { name: 'Copy to clipboard' }))
+
+      await waitFor(() => expect(written).toHaveLength(1))
+      expect(written[0]).toMatch(/^title: Renamed$/m)
+      expect(await screen.findAllByText('YAML copied to the clipboard.')).not.toHaveLength(0)
+      // Done with it: the popover closes.
+      expect(document.querySelector('.q-pop')).toBeNull()
+    })
+
+    it('says so when the clipboard refuses', async () => {
+      Object.assign(navigator, { clipboard: { writeText: vi.fn(async () => { throw new Error('denied') }) } })
+      await openMenu()
+
+      fireEvent.click(pop().getByRole('button', { name: 'Export list' }))
+      fireEvent.click(pop().getByRole('button', { name: 'Copy to clipboard' }))
+
+      expect(await screen.findAllByText('Could not copy — try Download instead.')).not.toHaveLength(0)
+    })
+  })
+
+  describe('delete', () => {
+    const restore = { list: { id: 'L1', title: 'Loki' }, items: [], groups: [], snapshot: [], dismissals: [] }
+
+    it('asks first, with the cost, and does nothing until told to', async () => {
+      await openMenu()
+
+      fireEvent.click(pop().getByRole('button', { name: 'Delete list' }))
+
+      expect(pop().getByText('Delete “Loki”?')).toBeTruthy()
+      expect(pop().getByText('2 items and 1 marked done go with it. Undo is offered for 8 seconds.')).toBeTruthy()
+      expect(api.deleteList).not.toHaveBeenCalled()
+    })
+
+    it('Keep leaves the list alone', async () => {
+      await openMenu()
+      fireEvent.click(pop().getByRole('button', { name: 'Delete list' }))
+
+      fireEvent.click(pop().getByRole('button', { name: 'Keep' }))
+
+      expect(api.deleteList).not.toHaveBeenCalled()
+      expect(onLeave).not.toHaveBeenCalled()
+      expect(document.querySelector('.q-pop')).toBeNull()
+    })
+
+    it('deletes, leaves the screen, and offers Undo', async () => {
+      vi.mocked(api.deleteList).mockResolvedValue(restore as never)
+      await openMenu()
+      fireEvent.click(pop().getByRole('button', { name: 'Delete list' }))
+
+      fireEvent.click(pop().getByRole('button', { name: 'Delete list' }))
+
+      await waitFor(() => expect(onLeave).toHaveBeenCalledTimes(1))
+      expect(api.deleteList).toHaveBeenCalledWith('L1')
+      const toast = document.querySelector('.q-toast') as HTMLElement
+      expect(toast.textContent).toMatch(/Deleted “Loki”\./)
+      expect(within(toast).getByRole('button', { name: 'Undo' })).toBeTruthy()
+    })
+
+    it('Undo puts the list back with the payload the delete handed over, and tells Home', async () => {
+      vi.mocked(api.deleteList).mockResolvedValue(restore as never)
+      vi.mocked(api.restoreList).mockResolvedValue({} as never)
+      const heard = vi.fn()
+      const off = subscribeListsChanged(heard)
+      await openMenu()
+      fireEvent.click(pop().getByRole('button', { name: 'Delete list' }))
+      fireEvent.click(pop().getByRole('button', { name: 'Delete list' }))
+      await waitFor(() => expect(onLeave).toHaveBeenCalled())
+
+      fireEvent.click(within(document.querySelector('.q-toast') as HTMLElement).getByRole('button', { name: 'Undo' }))
+
+      await waitFor(() => expect(api.restoreList).toHaveBeenCalledWith(restore))
+      await waitFor(() => expect(heard).toHaveBeenCalledTimes(1))
+      off()
+    })
+
+    it('says so, and stays, when the delete fails', async () => {
+      vi.mocked(api.deleteList).mockRejectedValue(new Error('no'))
+      await openMenu()
+      fireEvent.click(pop().getByRole('button', { name: 'Delete list' }))
+
+      fireEvent.click(pop().getByRole('button', { name: 'Delete list' }))
+
+      expect(await screen.findByText('Could not delete this list')).toBeTruthy()
+      expect(onLeave).not.toHaveBeenCalled()
+    })
+
+    it('says so when the Undo cannot restore it', async () => {
+      vi.mocked(api.deleteList).mockResolvedValue(restore as never)
+      vi.mocked(api.restoreList).mockRejectedValue(new Error('exists'))
+      await openMenu()
+      fireEvent.click(pop().getByRole('button', { name: 'Delete list' }))
+      fireEvent.click(pop().getByRole('button', { name: 'Delete list' }))
+      await waitFor(() => expect(onLeave).toHaveBeenCalled())
+
+      fireEvent.click(within(document.querySelector('.q-toast') as HTMLElement).getByRole('button', { name: 'Undo' }))
+
+      await waitFor(() => expect(document.querySelector('.q-toast')!.textContent).toMatch(/Could not restore that list/))
+    })
   })
 })

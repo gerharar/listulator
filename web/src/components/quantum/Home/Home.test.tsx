@@ -6,6 +6,7 @@ import { api } from '../../../lib/api.js'
 import { LiveRegionProvider } from '../LiveRegion/LiveRegion.js'
 import { ToastProvider } from '../Toast/Toast.js'
 import { LayerStackProvider, useLayerStack } from '../layerStack/LayerStackContext.js'
+import { notifyListsChanged } from '../../../lib/listsChanged.js'
 import { Home } from './Home.js'
 
 vi.mock('../../../lib/api.js', () => ({
@@ -158,6 +159,20 @@ describe('Home', () => {
     act(() => row.click())
 
     expect(screen.getByTestId('content').textContent).toBe('/lists/list-1')
+  })
+
+  it('refetches quietly when something elsewhere says the lists changed', async () => {
+    vi.mocked(api.mediaTypes).mockResolvedValue(MEDIA_TYPES)
+    vi.mocked(api.lists).mockResolvedValue([list()])
+    vi.mocked(api.checkSyncedListUpdates).mockResolvedValue({ updates: [] })
+    renderHome()
+    await waitFor(() => expect(screen.getByText('Breaking Bad')).not.toBeNull())
+    vi.mocked(api.lists).mockResolvedValue([list(), list({ id: 'list-2', title: 'Restored One' })])
+
+    act(() => notifyListsChanged())
+
+    await waitFor(() => expect(screen.getByText('Restored One')).not.toBeNull())
+    expect(screen.getByText('Breaking Bad')).not.toBeNull()
   })
 
   it('opening a row pushes the real list onto the layer stack, with its real title as the tab label', async () => {

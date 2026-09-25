@@ -13,6 +13,7 @@ import { ErrorBlock } from '../ErrorBlock/ErrorBlock.js'
 import { useToast } from '../Toast/Toast.js'
 import { useLayerStack } from '../layerStack/LayerStackContext.js'
 import { listPath } from '../../../lib/listPath.js'
+import { subscribeListsChanged } from '../../../lib/listsChanged.js'
 import type { LayerDescriptor } from '../layerStack/layerStack.js'
 
 type Phase = 'loading' | 'ready' | 'error'
@@ -117,6 +118,10 @@ export function Home({ onMediaTypesLoaded }: HomeProps) {
       cancelled = true
     }
   }, [isTop, retryToken])
+
+  // Something elsewhere added or removed a list while Home was covered (the
+  // Undo of a delete, say): the ordinary top-layer refetch will not fire.
+  useEffect(() => subscribeListsChanged(() => setRetryToken((token) => token + 1)), [])
 
   // The automatic "did anything change upstream" check — once per session
   // (Home never unmounts, so a mount-only effect already means exactly

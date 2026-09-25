@@ -119,6 +119,7 @@ function CreateListRoute({ mediaTypes }: { mediaTypes: MediaType[] }) {
 function ListRoute({ mediaTypes }: { mediaTypes: MediaType[] }) {
   const { listId } = useParams<{ listId: string }>()
   const [searchParams] = useSearchParams()
+  const navigate = useNavigate()
 
   return listId ? (
     <ListScreen
@@ -126,6 +127,8 @@ function ListRoute({ mediaTypes }: { mediaTypes: MediaType[] }) {
       listId={listId}
       mediaTypes={mediaTypes}
       updateAvailable={wantsUpdate(searchParams)}
+      // A deleted list has nothing left to show: "/" always means Home, however deep the stack.
+      onLeave={() => void navigate('/')}
     />
   ) : null
 }
