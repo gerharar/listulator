@@ -40,6 +40,7 @@ vi.mock('../../lib/api.js', async () => {
       checkForUpdates: vi.fn(),
       importItems: vi.fn(),
       markSeen: vi.fn(),
+      updateList: vi.fn(),
     },
   }
 })
@@ -154,7 +155,7 @@ describe('ListScreen header', () => {
   it('shows the actions that come later as present but disabled, saying so', async () => {
     await open(detail({ items: [item()] }))
 
-    for (const name of ['Edit list', 'Order', 'More']) {
+    for (const name of ['Order', 'More']) {
       const button = screen.getByRole('button', { name }) as HTMLButtonElement
       expect(button.disabled).toBe(true)
       expect(button.title).toMatch(/coming soon/i)
@@ -746,5 +747,116 @@ describe('ListScreen updates (task 10.25)', () => {
       expect(screen.queryByRole('button', { name: 'Check for updates' })).toBeNull()
       expect(api.checkForUpdates).not.toHaveBeenCalled()
     })
+  })
+})
+
+describe('ListScreen edit list (task 10.22)', () => {
+  const openEditor = async (list = detail({ items: [item()] })) => {
+    await open(list)
+    fireEvent.click(screen.getByRole('button', { name: 'Edit list' }))
+    await waitFor(() => expect(document.querySelector('.q-pop')).not.toBeNull())
+    return within(document.querySelector('.q-pop') as HTMLElement).getByLabelText('Title')
+  }
+  const pop = () => within(document.querySelector('.q-pop') as HTMLElement)
+  const clickAway = () => fireEvent.click(document.querySelector('.q-catcher')!)
+
+  it('opens on the list’s own values', async () => {
+    const title = (await openEditor()) as HTMLInputElement
+
+    expect(title.value).toBe('Loki')
+    expect((pop().getByLabelText(/Description/) as HTMLTextAreaElement).value).toBe('The trickster')
+  })
+
+  it('saves what changed, and the header shows it at once', async () => {
+    vi.mocked(api.updateList).mockResolvedValue({} as never)
+    const title = await openEditor()
+
+    fireEvent.change(title, { target: { value: 'Loki S2' } })
+    fireEvent.click(pop().getByRole('button', { name: 'Complete' }))
+    fireEvent.click(pop().getByRole('button', { name: 'Save' }))
+
+    expect(await screen.findByRole('heading', { name: /^Loki S2/ })).toBeTruthy()
+    expect(api.updateList).toHaveBeenCalledWith('L1', { title: 'Loki S2', status: 'complete' })
+    expect(screen.getByText('Complete')).toBeTruthy()
+    expect(document.querySelector('.q-pop')).toBeNull()
+  })
+
+  it('shows a changed description under the name at once', async () => {
+    vi.mocked(api.updateList).mockResolvedValue({} as never)
+    await openEditor()
+
+    fireEvent.change(pop().getByLabelText(/Description/), { target: { value: 'A brand new blurb' } })
+    fireEvent.click(pop().getByRole('button', { name: 'Save' }))
+
+    expect(await screen.findByText('A brand new blurb')).toBeTruthy()
+    expect(screen.queryByText('The trickster')).toBeNull()
+  })
+
+  it('removes the description line from the header when it is emptied', async () => {
+    vi.mocked(api.updateList).mockResolvedValue({} as never)
+    await openEditor()
+
+    fireEvent.change(pop().getByLabelText(/Description/), { target: { value: '' } })
+    fireEvent.click(pop().getByRole('button', { name: 'Save' }))
+
+    await waitFor(() => expect(screen.queryByText('The trickster')).toBeNull())
+    expect(document.querySelector('.q-list-description')).toBeNull()
+  })
+
+  it('lets the progress sentence follow a changed status', async () => {
+    vi.mocked(api.updateList).mockResolvedValue({} as never)
+    await openEditor(detail({ items: [item({ consumedAt: '2026-01-01' })] }))
+    expect(screen.getByText('✓ Done for now')).toBeTruthy()
+
+    fireEvent.click(pop().getByRole('button', { name: 'Complete' }))
+    fireEvent.click(pop().getByRole('button', { name: 'Save' }))
+
+    expect(await screen.findByText('✓ All done')).toBeTruthy()
+  })
+
+  it('says what an explicit Save did, with no Undo', async () => {
+    vi.mocked(api.updateList).mockResolvedValue({} as never)
+    const title = await openEditor()
+
+    fireEvent.change(title, { target: { value: 'Loki S2' } })
+    fireEvent.click(pop().getByRole('button', { name: 'Save' }))
+
+    expect(await screen.findAllByText('Renamed to “Loki S2”.')).not.toHaveLength(0)
+    expect(document.querySelector('.q-toast')?.textContent).not.toMatch(/Undo/)
+  })
+
+  it('click-away commits too, with an Undo that puts the old values back', async () => {
+    vi.mocked(api.updateList).mockResolvedValue({} as never)
+    const title = await openEditor()
+
+    fireEvent.change(title, { target: { value: 'Loki S2' } })
+    clickAway()
+    await screen.findByRole('heading', { name: /^Loki S2/ })
+    fireEvent.click(within(document.querySelector('.q-toast') as HTMLElement).getByRole('button', { name: 'Undo' }))
+
+    await waitFor(() => expect(api.updateList).toHaveBeenLastCalledWith('L1', { title: 'Loki' }))
+    expect(await screen.findByRole('heading', { name: /^Loki/ })).toBeTruthy()
+    expect(screen.queryByRole('heading', { name: /^Loki S2/ })).toBeNull()
+  })
+
+  it('changes nothing, and writes nothing, when discarded', async () => {
+    const title = await openEditor()
+
+    fireEvent.change(title, { target: { value: 'Typed' } })
+    fireEvent.click(pop().getByRole('button', { name: 'Discard' }))
+
+    expect(api.updateList).not.toHaveBeenCalled()
+    expect(screen.getByRole('heading', { name: /^Loki/ })).toBeTruthy()
+  })
+
+  it('keeps the old header and says so when the server refuses', async () => {
+    vi.mocked(api.updateList).mockRejectedValue(new Error('no'))
+    const title = await openEditor()
+
+    fireEvent.change(title, { target: { value: 'Loki S2' } })
+    fireEvent.click(pop().getByRole('button', { name: 'Save' }))
+
+    expect(await screen.findByText('Could not save your changes to the list')).toBeTruthy()
+    expect(screen.queryByRole('heading', { name: /^Loki S2/ })).toBeNull()
   })
 })

@@ -24,8 +24,10 @@ import {
   saveFocus,
 } from './collapse.js'
 import { AddItemForm, type NewItemInput } from './AddItemForm.js'
+import { EditListPopover } from './EditListPopover.js'
 import { GroupRow } from './GroupRow.js'
 import { invertPatch, type ItemPatch } from './itemActions.js'
+import { invertListPatch, type ListFields, type ListPatch } from './listActions.js'
 import { ItemEditPopover } from './ItemEditPopover.js'
 import { ItemInfoCard } from './ItemInfoCard.js'
 import { ItemRow } from './ItemRow.js'
@@ -168,6 +170,7 @@ function ListView({
   const text = copy.quantum.list
   const actions = text.itemActions
   const updatesText = text.updates
+  const editText = text.editPopover
   const { showToast } = useToast()
   const { announce } = useLiveRegion()
   const [items, setItems] = useState<ListItem[]>(loaded.items)
@@ -179,6 +182,13 @@ function ListView({
   const [checking, setChecking] = useState(false)
   const [adding, setAdding] = useState(false)
   const [updates, setUpdates] = useState<UpdatesPopover | null>(null)
+  // The list's own name, description and status: edited here, so held here.
+  const [meta, setMeta] = useState<ListFields>({
+    title: loaded.title,
+    description: loaded.description,
+    status: loaded.status,
+  })
+  const [editingList, setEditingList] = useState<HTMLElement | null>(null)
   const pulseTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
   const spine = useRef<HTMLDivElement>(null)
 
@@ -313,6 +323,53 @@ function ListView({
     }
   }
 
+  /** Saves the list's own fields; the header changes at once and is put back if the server refuses. */
+  async function saveListEdit(patch: ListPatch, via: 'save' | 'clickaway') {
+    const before = meta
+    setEditingList(null)
+    setError(null)
+    setMeta((current) => ({ ...current, ...patch }))
+
+    try {
+      await api.updateList(listId, patch)
+    } catch {
+      setMeta(before)
+      setError(editText.saveFailed)
+      return
+    }
+
+    const message =
+      patch.title !== undefined
+        ? editText.renamed(patch.title)
+        : patch.description !== undefined
+          ? editText.descriptionUpdated
+          : patch.status
+            ? editText.statusMarked(patch.status)
+            : editText.statusCleared
+    // The click-away is the safety net, so it is the one that offers Undo.
+    if (via === 'clickaway') {
+      showToast({
+        text: message,
+        actionLabel: actions.undo,
+        onAction: () => void undoListEdit(before, patch),
+      })
+    } else {
+      showToast({ text: message })
+    }
+  }
+
+  async function undoListEdit(before: ListFields, patch: ListPatch) {
+    const back = invertListPatch(before, patch)
+
+    try {
+      await api.updateList(listId, back)
+      setMeta((current) => ({ ...current, ...back }))
+      announce(editText.reverted(before.title))
+    } catch {
+      setError(editText.undoFailed)
+    }
+  }
+
   async function saveEdit(item: ListItem, patch: ItemPatch, via: 'save' | 'clickaway') {
     setPopover(null)
     setError(null)
@@ -433,18 +490,18 @@ function ListView({
           <div className="q-list-titles">
             <p className="q-kicker">{mediaType ? categoryLabel(mediaType) : loaded.mediaType}</p>
             <h1 className="q-list-title">
-              {loaded.title}
-              <StatusChip status={loaded.status} />
-              <IconButton label={text.editList} title={text.comingSoon} disabled>
+              {meta.title}
+              <StatusChip status={meta.status} />
+              <IconButton label={text.editList} onClick={(event) => setEditingList(event.currentTarget)}>
                 <Pencil width={15} height={15} strokeWidth={1.9} aria-hidden="true" />
               </IconButton>
             </h1>
-            {loaded.description && <p className="q-list-description">{loaded.description}</p>}
+            {meta.description && <p className="q-list-description">{meta.description}</p>}
             <ProgressSentence
               done={totals.done}
               total={totals.total}
               minutesLeft={totals.minutesLeft}
-              status={loaded.status}
+              status={meta.status}
               size="header"
             />
           </div>
@@ -511,6 +568,14 @@ function ListView({
         <AddItemForm groups={groupNames} defaultMinutes={defaultMinutes} onAdd={addItem} />
       </div>
 
+      {editingList && (
+        <EditListPopover
+          list={meta}
+          anchorEl={editingList}
+          onCommit={(patch, via) => void saveListEdit(patch, via)}
+          onDiscard={() => setEditingList(null)}
+        />
+      )}
       {updates && (
         <Popover open anchorEl={updates.anchor} onDismiss={() => setUpdates(null)} width={340}>
           <UpdatesCard

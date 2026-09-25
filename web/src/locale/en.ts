@@ -406,6 +406,22 @@ export const en = {
       },
       createGroup: (name: string): string => `+ Create “${name}”`,
       editList: 'Edit list',
+      /** The ✎ popover beside the name (10.22). */
+      editPopover: {
+        kicker: 'Edit list',
+        title: 'Title',
+        description: 'Description (optional)',
+        descriptionPlaceholder: 'What this list is — a line or two',
+        status: 'Status (optional)',
+        renamed: (title: string): string => `Renamed to “${title}”.`,
+        descriptionUpdated: 'Description updated.',
+        statusMarked: (status: 'complete' | 'ongoing'): string =>
+          `Marked ${status === 'complete' ? 'complete' : 'ongoing'}.`,
+        statusCleared: 'Status cleared.',
+        reverted: (title: string): string => `Reverted to ${title}`,
+        saveFailed: 'Could not save your changes to the list',
+        undoFailed: 'Could not undo that',
+      },
       checkForUpdates: 'Check for updates',
       order: 'Order',
       more: 'More',
