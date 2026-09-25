@@ -106,6 +106,25 @@ describe('suggestion endpoints', () => {
     expect(results[0]?.nextItem?.title).toBe('Fantastic Four #10')
   })
 
+  it('“Finalizer” offers the list closest to done, a complete one before an ongoing one', async () => {
+    const complete = await createList(harness.db, userId, { title: 'Complete', mediaType: 'movie', status: 'complete' })
+    const ongoing = await createList(harness.db, userId, { title: 'Ongoing', mediaType: 'tv', status: 'ongoing' })
+    for (const [list, done] of [[complete, 3], [ongoing, 9]] as const) {
+      for (let index = 0; index < 10; index += 1) {
+        const item = (await createListItem(harness.db, userId, list.id, {
+          title: `${list.title} #${index + 1}`,
+          timeToConsumeMinutes: 30,
+        }))!
+        if (index < done) await setListItemConsumed(harness.db, userId, list.id, item.id, true, daysAgo(1))
+      }
+    }
+
+    const results = await picks('/api/suggestions/finalizer')
+
+    expect(results.map((pick) => pick.list.id)).toEqual([complete.id, ongoing.id])
+    expect(results[0]?.nextItem?.title).toBe('Complete #4')
+  })
+
   it('“Suggest” favours barely-started lists and buries the half-finished', async () => {
     const barelyStarted = await seed('Jackie Chan', {
       count: 10,

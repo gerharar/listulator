@@ -14,6 +14,7 @@ export const FACTOR_TYPES = [
   'completion_percent',
   'time_remaining_minutes',
   'distance_from_middle',
+  'status_band',
 ] as const
 
 export type FactorType = (typeof FACTOR_TYPES)[number]
@@ -118,6 +119,20 @@ export const FACTORS: Record<FactorType, FactorDefinition> = {
    * with untouched; at 0 it collapses to the earlier monotonic version where
    * the middle was merely mediocre and near-done was worst.
    */
+  /**
+   * Whether the thing the list is about can be finished at all: complete (2),
+   * unknown (1), ongoing (0). An ongoing list keeps growing upstream, so a
+   * nearly-done one is not closer to finished than a wrapped one that is less
+   * far along. Finalizer weights this far above `completion_percent` in config,
+   * so the band decides in practice; this is a weighted sum, not tiered ranking,
+   * and a rare misordering is accepted (10.27).
+   */
+  status_band: {
+    compute: (list) => (list.status === 'complete' ? 2 : list.status === 'ongoing' ? 0 : 1),
+    // Bands are whole numbers: any spread at all is a real difference.
+    noiseFloor: 1,
+  },
+
   distance_from_middle: {
     compute: (list) => {
       const progress = list.stats.completionPercent / 100

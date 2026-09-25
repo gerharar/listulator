@@ -119,6 +119,14 @@ describe('the shipped strategy files', () => {
     // Nearly-done lists are tired-boss's job; suggest must not chase completion.
     expect(suggest.factors.map((factor) => factor.type)).not.toContain('completion_percent')
 
+    const finalizer = loadStrategy('finalizer')
+    expect(finalizer.scope).toBe('all_lists')
+    // The band dominates by weight alone: no tiered ranking exists to configure.
+    const band = finalizer.factors.find((factor) => factor.type === 'status_band')!
+    const progress = finalizer.factors.find((factor) => factor.type === 'completion_percent')!
+    expect(band.direction).toBe('favor_highest')
+    expect(band.weight).toBeGreaterThanOrEqual(progress.weight * 5)
+
     const quickie = loadStrategy('quickie')
     expect(quickie.factors).toEqual([
       { type: 'time_remaining_minutes', direction: 'favor_lowest', weight: 1 },

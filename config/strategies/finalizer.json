@@ -1,0 +1,9 @@
+{
+  "name": "finalizer",
+  "description": "Tie up loose ends: the list closest to being finished. A wrapped-up (complete) list comes before one whose status is unknown, and both before one still ongoing, because an ongoing list keeps growing. Within a band, the further along, the better. The band weight is far above the progress weight, so the band decides; this is a weighted sum, not a tiered ranking.",
+  "scope": "all_lists",
+  "factors": [
+    { "type": "status_band", "direction": "favor_highest", "weight": 10 },
+    { "type": "completion_percent", "direction": "favor_highest", "weight": 1 }
+  ]
+}

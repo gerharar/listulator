@@ -2,7 +2,8 @@ import { describe, expect, it } from 'vitest'
 import type { ListWithStats } from '../catalog/repository.js'
 import type { ListItem } from '../db/schema.js'
 import { isSuggestable, rank } from './engine.js'
-import type { Strategy } from './strategy.js'
+import { parseStrategy, type Strategy } from './strategy.js'
+import finalizerJson from '../../../config/strategies/finalizer.json'
 
 const NOW = new Date('2026-06-01T12:00:00Z')
 
@@ -18,6 +19,7 @@ interface ListSpec {
   lastConsumed?: Date | null
   created?: Date
   mediaType?: string
+  status?: 'complete' | 'ongoing' | null
 }
 
 function list({
@@ -28,6 +30,7 @@ function list({
   lastConsumed = null,
   created = daysAgo(30),
   mediaType = 'movie',
+  status = null,
 }: ListSpec): ListWithStats {
   return {
     id,
@@ -37,7 +40,7 @@ function list({
     mediaType,
     source: 'manual',
     externalRef: null,
-    status: null,
+    status,
     sourceYaml: null,
     arrivedTitle: null,
     arrivedDescription: null,
@@ -331,6 +334,53 @@ describe('rank', () => {
       ]
 
       expect(ranked({ ...strategy, scope: 'other_lists' }, lists, 'tired-of-this')).toEqual(['another-tv-list'])
+    })
+  })
+
+  describe('Finalizer (status_band + completion_percent, band dominant by weight)', () => {
+    // The real shipped file: the weight lives only there.
+    const finalizer = parseStrategy(finalizerJson, 'finalizer.json')
+    const almost = (id: string, status: 'complete' | 'ongoing' | null, consumed: number) =>
+      list({ id, status, total: 100, consumed, minutesLeft: 100 - consumed })
+
+    it('puts an 80%-done complete list above a 94%-done ongoing one', () => {
+      const lists = [almost('ongoing-94', 'ongoing', 94), almost('complete-80', 'complete', 80)]
+
+      expect(ranked(finalizer, lists)).toEqual(['complete-80', 'ongoing-94'])
+    })
+
+    it('puts a complete list above an unknown one, and an unknown above an ongoing one', () => {
+      const lists = [
+        almost('ongoing-99', 'ongoing', 99),
+        almost('unknown-90', null, 90),
+        almost('complete-10', 'complete', 10),
+      ]
+
+      expect(ranked(finalizer, lists)).toEqual(['complete-10', 'unknown-90', 'ongoing-99'])
+    })
+
+    it('ranks by how close to done within a band', () => {
+      const lists = [almost('a', 'complete', 40), almost('b', 'complete', 90), almost('c', 'complete', 65)]
+
+      expect(ranked(finalizer, lists)).toEqual(['b', 'c', 'a'])
+    })
+
+    it('lets progress decide when every list is in the same band', () => {
+      const lists = [almost('a', null, 20), almost('b', null, 70)]
+
+      expect(ranked(finalizer, lists)).toEqual(['b', 'a'])
+    })
+
+    it('reports the band’s contribution among the factors, so the why can say which reason applied', () => {
+      const [top] = rank({
+        strategy: finalizer,
+        candidates: [almost('a', 'complete', 50), almost('b', 'ongoing', 50)],
+        nextItems: new Map(),
+        now: NOW,
+      })
+
+      expect(top!.list.id).toBe('a')
+      expect(top!.factors['status_band']).toBe(1)
     })
   })
 

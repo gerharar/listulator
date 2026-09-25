@@ -96,6 +96,12 @@ export const suggestionsRoutes: FastifyPluginAsync<SuggestionsRoutesOptions> = a
     return present(await suggest(user.id, 'suggest'))
   })
 
+  app.get('/suggestions/finalizer', async (request) => {
+    const user = getCurrentUser(request)
+
+    return present(await suggest(user.id, 'finalizer'))
+  })
+
   app.get('/suggestions/quickie', async (request) => {
     const user = getCurrentUser(request)
 
