@@ -64,6 +64,13 @@ import { getLocalCurrentUser } from './db/localUser.js'
 import { toMediaTypeInfo } from '../../../server/src/ingestion/mediaTypes.js'
 import { refForAdapter } from '../../../server/src/ingestion/sourceRef.js'
 import {
+  ListExistsError,
+  restoreItemSet,
+  restoreList,
+  restoreListGroup,
+  restoreListItem,
+} from '../../../server/src/catalog/restore.js'
+import {
   createListGroup,
   deleteListGroup,
   findListGroups,
@@ -325,7 +332,25 @@ export function createLocalApi(): ApiClient {
 
     deleteList: async (id) => {
       const [database, userId] = [await getDb(), await getUserId()]
-      if (!(await repoDeleteList(database, userId, id))) throw notFound()
+      const restore = await repoDeleteList(database, userId, id)
+      if (!restore) throw notFound()
+      return restore
+    },
+
+    restoreList: async (restore) => {
+      const [database, userId] = [await getDb(), await getUserId()]
+
+      try {
+        await restoreList(database, userId, restore)
+      } catch (cause) {
+        if (cause instanceof ListExistsError) {
+          throw new ApiError(errorMessage('list.alreadyExists') ?? 'list.alreadyExists', 409, 'list.alreadyExists')
+        }
+        throw cause
+      }
+
+      const withStats = await findListWithStats(database, userId, restore.list.id)
+      return toMediaList(withStats!)
     },
 
     importItems: async (listId, items, source = 'import') => {
@@ -365,7 +390,23 @@ export function createLocalApi(): ApiClient {
 
     deleteItem: async (listId, itemId) => {
       const [database, userId] = [await getDb(), await getUserId()]
-      if (!(await deleteListItem(database, userId, listId, itemId))) throw notFound()
+      const restore = await deleteListItem(database, userId, listId, itemId)
+      if (!restore) throw notFound()
+      return restore
+    },
+
+    restoreItem: async (listId, restore) => {
+      const [database, userId] = [await getDb(), await getUserId()]
+      const item = await restoreListItem(database, userId, listId, restore)
+      if (!item) throw notFound()
+      return toListItem(item)
+    },
+
+    restoreItems: async (listId, set) => {
+      const [database, userId] = [await getDb(), await getUserId()]
+      const items = await restoreItemSet(database, userId, listId, set)
+      if (!items) throw notFound()
+      return items.sort((a, b) => a.orderIndex - b.orderIndex).map(toListItem)
     },
 
     setConsumed: async (listId, itemId, consumed) => {
@@ -434,7 +475,21 @@ export function createLocalApi(): ApiClient {
       const [database, userId] = [await getDb(), await getUserId()]
 
       try {
-        if (!(await deleteListGroup(database, userId, listId, groupId))) throw notFound()
+        const restore = await deleteListGroup(database, userId, listId, groupId)
+        if (!restore) throw notFound()
+        return restore
+      } catch (cause) {
+        throw groupError(cause)
+      }
+    },
+
+    restoreGroup: async (listId, restore) => {
+      const [database, userId] = [await getDb(), await getUserId()]
+
+      try {
+        const group = await restoreListGroup(database, userId, listId, restore)
+        if (!group) throw notFound()
+        return toListGroup(group)
       } catch (cause) {
         throw groupError(cause)
       }

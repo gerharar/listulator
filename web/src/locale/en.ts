@@ -180,6 +180,8 @@ export const en = {
       `Item ${p.index} has no title, list cannot be imported.`,
     'list.fileItemNotesTooLong': (p: { index: number; max: number }): string =>
       `Item ${p.index}'s notes are over ${p.max} characters, list cannot be imported.`,
+    'list.alreadyExists': (): string =>
+      'That list already exists again — nothing was restored.',
     'group.nameEmpty': (): string => 'A group needs a name.',
     'group.nameTaken': (): string => 'This list already has a group called that.',
     'group.notEmpty': (): string =>

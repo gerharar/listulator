@@ -1,4 +1,10 @@
 import { copy, errorMessage } from '../locale/index.js'
+import type {
+  GroupRestore,
+  ItemRestore,
+  ItemSetRestore,
+  ListRestore,
+} from '../../../server/src/catalog/restorePayloads.js'
 import type { SourceOptions } from '../../../server/src/ingestion/sourceRef.js'
 import { createLocalApi } from './api.local.js'
 /** Types mirror the server's responses; see server/src/catalog and /ingestion. */
@@ -99,7 +105,7 @@ export interface CurrentUser {
   isDefaultLocalUser: boolean
 }
 
-export type { SourceOptions }
+export type { GroupRestore, ItemRestore, ItemSetRestore, ListRestore, SourceOptions }
 
 export interface SourceSearchResponse {
   sources: ListSourceResult[]
@@ -208,7 +214,10 @@ export interface ApiClient {
     id: string,
     patch: { title?: string; description?: string | null; status?: 'complete' | 'ongoing' | null },
   ) => Promise<MediaList>
-  deleteList: (id: string) => Promise<void>
+  /** Acts at once, and hands back everything that went so Undo can restore it (D2). */
+  deleteList: (id: string) => Promise<ListRestore>
+  /** Undo of `deleteList`: the list comes back with its items, groups, progress and snapshot. */
+  restoreList: (restore: ListRestore) => Promise<MediaList>
   importItems: (
     listId: string,
     items: {
@@ -289,7 +298,11 @@ export interface ApiClient {
     existingCount: number
     dismissedCount: number
   }>
-  deleteItem: (listId: string, itemId: string) => Promise<void>
+  deleteItem: (listId: string, itemId: string) => Promise<ItemRestore>
+  /** Undo of `deleteItem`: same id, same position index, same done state. */
+  restoreItem: (listId: string, restore: ItemRestore) => Promise<ListItem>
+  /** Replaces the whole item set — what undoing a Reset posts (task 10.18). */
+  restoreItems: (listId: string, set: ItemSetRestore) => Promise<ListItem[]>
   setConsumed: (listId: string, itemId: string, consumed: boolean) => Promise<ListItem>
   addItem: (
     listId: string,
@@ -317,7 +330,9 @@ export interface ApiClient {
   /** Renames the group and relabels its items. */
   renameGroup: (listId: string, groupId: string, name: string) => Promise<ListGroup>
   /** Empty groups only. */
-  deleteGroup: (listId: string, groupId: string) => Promise<void>
+  deleteGroup: (listId: string, groupId: string) => Promise<GroupRestore>
+  /** Undo of `deleteGroup`: back at its own position. */
+  restoreGroup: (listId: string, restore: GroupRestore) => Promise<ListGroup>
   /** The block order; each group's items move with it. Must name every group once. */
   reorderGroups: (listId: string, groupIds: string[]) => Promise<ListGroup[]>
   /**
@@ -369,7 +384,11 @@ export const fetchApi: ApiClient = {
     patch: { title?: string; description?: string | null; status?: 'complete' | 'ongoing' | null },
   ) => request<MediaList>(`/lists/${id}`, { method: 'PATCH', body: JSON.stringify(patch) }),
 
-  deleteList: (id: string) => request<void>(`/lists/${id}`, { method: 'DELETE' }),
+  deleteList: async (id: string) =>
+    (await request<{ restore: ListRestore }>(`/lists/${id}`, { method: 'DELETE' })).restore,
+
+  restoreList: (restore: ListRestore) =>
+    request<MediaList>('/lists/restore', { method: 'POST', body: JSON.stringify(restore) }),
 
   importItems: (
     listId: string,
@@ -453,8 +472,24 @@ export const fetchApi: ApiClient = {
       body: JSON.stringify({ includeDismissed }),
     }),
 
-  deleteItem: (listId: string, itemId: string) =>
-    request<void>(`/lists/${listId}/items/${itemId}`, { method: 'DELETE' }),
+  deleteItem: async (listId: string, itemId: string) =>
+    (
+      await request<{ restore: ItemRestore }>(`/lists/${listId}/items/${itemId}`, {
+        method: 'DELETE',
+      })
+    ).restore,
+
+  restoreItem: (listId: string, restore: ItemRestore) =>
+    request<ListItem>(`/lists/${listId}/items/restore`, {
+      method: 'POST',
+      body: JSON.stringify(restore),
+    }),
+
+  restoreItems: (listId: string, set: ItemSetRestore) =>
+    request<ListItem[]>(`/lists/${listId}/items/restore-all`, {
+      method: 'PUT',
+      body: JSON.stringify(set),
+    }),
 
   setConsumed: (listId: string, itemId: string, consumed: boolean) =>
     request<ListItem>(`/lists/${listId}/items/${itemId}/consumed`, {
@@ -502,8 +537,15 @@ export const fetchApi: ApiClient = {
       body: JSON.stringify({ name }),
     }),
 
-  deleteGroup: (listId: string, groupId: string) =>
-    request<void>(`/lists/${listId}/groups/${groupId}`, { method: 'DELETE' }),
+  deleteGroup: async (listId: string, groupId: string) =>
+    (await request<{ restore: GroupRestore }>(`/lists/${listId}/groups/${groupId}`, { method: 'DELETE' }))
+      .restore,
+
+  restoreGroup: (listId: string, restore: GroupRestore) =>
+    request<ListGroup>(`/lists/${listId}/groups/restore`, {
+      method: 'POST',
+      body: JSON.stringify(restore),
+    }),
 
   reorderGroups: (listId: string, groupIds: string[]) =>
     request<ListGroup[]>(`/lists/${listId}/groups/order`, {

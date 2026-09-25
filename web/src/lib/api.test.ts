@@ -242,11 +242,11 @@ describe('group calls (task 10.16)', () => {
     )
   })
 
-  it('deletes a group', async () => {
-    const fetchMock = stubFetch(null, 204)
+  it('deletes a group, and gets back what Undo needs', async () => {
+    const restore = { group: { id: 'g1', name: 'Old', orderIndex: 0 } }
+    const fetchMock = stubFetch({ restore })
 
-    await api.deleteGroup('L1', 'g1')
-
+    expect(await api.deleteGroup('L1', 'g1')).toEqual(restore)
     expect(fetchMock).toHaveBeenCalledWith(
       '/api/lists/L1/groups/g1',
       expect.objectContaining({ method: 'DELETE' }),
@@ -270,5 +270,73 @@ describe('group calls (task 10.16)', () => {
 
     stubFetch({ code: 'group.notEmpty' }, 409)
     await expect(api.deleteGroup('L1', 'g1')).rejects.toThrow('Only an empty group')
+  })
+})
+
+describe('undo calls (task 10.19a)', () => {
+  function stubFetch(body: unknown, status = 200) {
+    const fetchMock = vi.fn(async () => new Response(JSON.stringify(body), { status }))
+    vi.stubGlobal('fetch', fetchMock)
+    return fetchMock
+  }
+
+  it('an item delete hands back the restore payload, and restoreItem posts it back', async () => {
+    const restore = { item: { id: 'i1', title: 'A' }, dismissalId: 'd1' }
+    let fetchMock = stubFetch({ restore })
+
+    expect(await api.deleteItem('L1', 'i1')).toEqual(restore)
+    expect(fetchMock).toHaveBeenCalledWith('/api/lists/L1/items/i1', expect.objectContaining({ method: 'DELETE' }))
+
+    fetchMock = stubFetch({ id: 'i1' })
+    await api.restoreItem('L1', restore as never)
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/lists/L1/items/restore',
+      expect.objectContaining({ method: 'POST', body: JSON.stringify(restore) }),
+    )
+  })
+
+  it('a group is restored by posting its payload back', async () => {
+    const restore = { group: { id: 'g1', name: 'A', orderIndex: 0 } }
+    const fetchMock = stubFetch({ id: 'g1' })
+
+    await api.restoreGroup('L1', restore as never)
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/lists/L1/groups/restore',
+      expect.objectContaining({ method: 'POST', body: JSON.stringify(restore) }),
+    )
+  })
+
+  it('a list delete hands back the payload, and restoreList posts it back', async () => {
+    const restore = { list: { id: 'L1' }, items: [], groups: [], snapshot: [], dismissals: [] }
+    let fetchMock = stubFetch({ restore })
+
+    expect(await api.deleteList('L1')).toEqual(restore)
+    expect(fetchMock).toHaveBeenCalledWith('/api/lists/L1', expect.objectContaining({ method: 'DELETE' }))
+
+    fetchMock = stubFetch({ id: 'L1' }, 201)
+    await api.restoreList(restore as never)
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/lists/restore',
+      expect.objectContaining({ method: 'POST', body: JSON.stringify(restore) }),
+    )
+  })
+
+  it('restoreItems replaces the whole item set', async () => {
+    const set = { items: [], dismissals: [] }
+    const fetchMock = stubFetch([])
+
+    await api.restoreItems('L1', set)
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/lists/L1/items/restore-all',
+      expect.objectContaining({ method: 'PUT', body: JSON.stringify(set) }),
+    )
+  })
+
+  it('says why a list cannot be restored over an existing one', async () => {
+    stubFetch({ code: 'list.alreadyExists' }, 409)
+
+    await expect(api.restoreList({} as never)).rejects.toThrow('already exists')
   })
 })
