@@ -75,10 +75,18 @@ test('one helper sheet replaces another, the lit button follows, and Open The Li
     await expect(sheet(page).locator('.q-pick')).toBeVisible()
     await page.screenshot({ path: 'test-results/finalizer.png' })
 
-    // Open The List opens whichever list is on top; the layer that appears is a list, not an error.
+    // Turn picks down until this run's own list is on top, then open it: parallel runs delete their
+    // lists, so opening an arbitrary pick could open one that just went and show an error instead.
+    for (let i = 0; i < 60; i += 1) {
+      if (((await sheet(page).locator('.q-pick-list').textContent()) ?? '').includes(COMPLETE)) break
+      await button(page, 'Not That').click()
+    }
+    await expect(sheet(page).locator('.q-pick-list')).toContainText(COMPLETE)
+
     await sheet(page).getByRole('button', { name: 'Open The List' }).click()
     await expect(sheet(page)).toHaveCount(0)
-    await expect(page.locator('.q-list-title, .q-list-progress, .q-list-body').first()).toBeVisible()
+    await expect(page.locator('.q-list-title')).toContainText(COMPLETE)
+    await expect(page.locator('.q-item').first()).toBeVisible()
   } finally {
     for (const id of ids) await page.request.delete(`/api/lists/${id}`)
   }
