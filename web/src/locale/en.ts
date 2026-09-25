@@ -407,6 +407,45 @@ export const en = {
       createGroup: (name: string): string => `+ Create “${name}”`,
       editList: 'Edit list',
       /** The ✎ popover beside the name (10.22). */
+      /** The Order popover: Sort, and Reset to the source (10.22). */
+      orderMenu: {
+        kicker: 'Order list',
+        sort: 'Sort chronologically',
+        reset: 'Reset to the source',
+        resetQuestion: 'Reset this list to the source?',
+        /** Where the list goes back to, by where it came from. */
+        resetLead: {
+          canonical: 'Back to the live file in the community library. Anything the file has now is what you get.',
+          file: 'Back to the file you imported.',
+          api: 'Back to how this list arrived.',
+        },
+        computing: 'Working out what would change…',
+        previewFailed: (message: string): string =>
+          `Could not work out what would change (${message}). Resetting will still put the list back to the source.`,
+        /** Each part of the cost, said only when it applies. */
+        removed: (n: number): string =>
+          `${n} ${selectPlural(n, 'en', { one: 'item', other: 'items' })} you added will be removed`,
+        restored: (n: number): string =>
+          `${n} ${selectPlural(n, 'en', { one: 'item', other: 'items' })} you removed will come back`,
+        cleared: (n: number): string =>
+          `${n} done ${selectPlural(n, 'en', { one: 'mark', other: 'marks' })} will be cleared`,
+        joinCost: (parts: readonly string[]): string =>
+          parts.length <= 1
+            ? `${parts[0]}.`
+            : `${parts.slice(0, -1).join(', ')} and ${parts[parts.length - 1]}.`,
+        noCost: 'Nothing you added, removed or marked done is affected.',
+        undoNote: 'Undo is offered for 8 seconds.',
+        resetOrder: 'Reset the order',
+        resetEverything: 'Reset everything',
+        sorted: 'Sorted chronologically.',
+        orderReset: 'Order reset.',
+        resetDone: 'Reset to the source — order, name, description and flag.',
+        undone: 'Reset undone',
+        orderUndone: 'Order restored',
+        sortFailed: 'Could not sort this list',
+        resetFailed: 'Could not reset this list',
+        undoFailed: 'Could not undo that',
+      },
       /** The ⋯ menu (10.22). */
       moreMenu: {
         kicker: 'List actions',

@@ -44,6 +44,11 @@ vi.mock('../../lib/api.js', async () => {
       updateList: vi.fn(),
       deleteList: vi.fn(),
       restoreList: vi.fn(),
+      sortList: vi.fn(),
+      restoreOrder: vi.fn(),
+      resetPreview: vi.fn(),
+      resetList: vi.fn(),
+      restoreItems: vi.fn(),
     },
   }
 })
@@ -155,16 +160,6 @@ describe('ListScreen header', () => {
     await open(detail({ items: [item(), item()] }))
 
     expect(document.querySelector('.q-meter')!.getAttribute('title')).toMatch(/One cell = one item/)
-  })
-
-  it('shows the actions that come later as present but disabled, saying so', async () => {
-    await open(detail({ items: [item()] }))
-
-    for (const name of ['Order']) {
-      const button = screen.getByRole('button', { name }) as HTMLButtonElement
-      expect(button.disabled).toBe(true)
-      expect(button.title).toMatch(/coming soon/i)
-    }
   })
 })
 
@@ -1020,6 +1015,219 @@ describe('ListScreen more menu (task 10.22)', () => {
       fireEvent.click(within(document.querySelector('.q-toast') as HTMLElement).getByRole('button', { name: 'Undo' }))
 
       await waitFor(() => expect(document.querySelector('.q-toast')!.textContent).toMatch(/Could not restore that list/))
+    })
+  })
+})
+
+describe('ListScreen order menu (task 10.22)', () => {
+  const sourced = (over: Partial<MediaListDetail> = {}) =>
+    detail({
+      source: 'api',
+      externalRef: 'tmdb:1',
+      mediaType: 'tv',
+      items: [item({ id: 'a', title: 'Alpha', orderIndex: 0 }), item({ id: 'b', title: 'Beta', orderIndex: 1 })],
+      ...over,
+    })
+  const pop = () => within(document.querySelector('.q-pop') as HTMLElement)
+  const openOrder = async (list = sourced()) => {
+    await open(list)
+    fireEvent.click(screen.getByRole('button', { name: 'Order' }))
+    await waitFor(() => expect(document.querySelector('.q-pop')).not.toBeNull())
+  }
+  const rowTitles = () => Array.from(document.querySelectorAll('.q-item .title')).map((n) => n.textContent)
+  const undoOnToast = () =>
+    fireEvent.click(within(document.querySelector('.q-toast') as HTMLElement).getByRole('button', { name: 'Undo' }))
+
+  describe('Sort chronologically', () => {
+    it('sorts at once, shows the new order, and offers Undo', async () => {
+      vi.mocked(api.sortList).mockResolvedValue({ restore: { items: [], groups: [] } })
+      await openOrder()
+      vi.mocked(api.list).mockResolvedValue(
+        sourced({ items: [item({ id: 'b', title: 'Beta', orderIndex: 0 }), item({ id: 'a', title: 'Alpha', orderIndex: 1 })] }),
+      )
+
+      fireEvent.click(pop().getByRole('button', { name: 'Sort chronologically' }))
+
+      await waitFor(() => expect(rowTitles()).toEqual(['Beta', 'Alpha']))
+      expect(api.sortList).toHaveBeenCalledWith('L1')
+      expect(document.querySelector('.q-pop')).toBeNull()
+      expect(document.querySelector('.q-toast')!.textContent).toMatch(/Sorted chronologically/)
+    })
+
+    it('Undo posts back the payload the sort handed over, and shows the old order', async () => {
+      const restore = { items: [{ id: 'a', orderIndex: 0 }], groups: [] }
+      vi.mocked(api.sortList).mockResolvedValue({ restore })
+      vi.mocked(api.restoreOrder).mockResolvedValue(undefined)
+      await openOrder()
+      vi.mocked(api.list).mockResolvedValue(
+        sourced({ items: [item({ id: 'b', title: 'Beta', orderIndex: 0 }), item({ id: 'a', title: 'Alpha', orderIndex: 1 })] }),
+      )
+      fireEvent.click(pop().getByRole('button', { name: 'Sort chronologically' }))
+      await waitFor(() => expect(rowTitles()).toEqual(['Beta', 'Alpha']))
+      vi.mocked(api.list).mockResolvedValue(sourced())
+
+      undoOnToast()
+
+      await waitFor(() => expect(api.restoreOrder).toHaveBeenCalledWith('L1', restore))
+      await waitFor(() => expect(rowTitles()).toEqual(['Alpha', 'Beta']))
+    })
+
+    it('says so, and changes nothing, when the sort fails', async () => {
+      vi.mocked(api.sortList).mockRejectedValue(new Error('no'))
+      await openOrder()
+
+      fireEvent.click(pop().getByRole('button', { name: 'Sort chronologically' }))
+
+      expect(await screen.findByText('Could not sort this list')).toBeTruthy()
+      expect(rowTitles()).toEqual(['Alpha', 'Beta'])
+    })
+  })
+
+  describe('Reset to the source', () => {
+    const restore = { items: [], dismissals: [], groups: [], list: { title: 'Loki', description: 'The trickster', status: 'ongoing' as const } }
+    const result = (followUpCheck: boolean) => ({
+      counts: { removed: 1, restored: 0, doneCleared: 0 },
+      followUpCheck,
+      restore,
+    })
+    const preview = { removed: 3, restored: 1, doneCleared: 12, followUpCheck: true }
+    const openReset = async (list = sourced()) => {
+      await openOrder(list)
+      fireEvent.click(pop().getByRole('button', { name: 'Reset to the source' }))
+    }
+
+    it('is not offered on a hand-made list', async () => {
+      await openOrder(detail({ source: 'manual', items: [item()] }))
+
+      expect(pop().queryByRole('button', { name: 'Reset to the source' })).toBeNull()
+    })
+
+    it('works out the cost first, and says it in words before any button is pressed', async () => {
+      vi.mocked(api.resetPreview).mockResolvedValue(preview)
+
+      await openReset()
+
+      expect(await pop().findByText(/3 items you added will be removed, 1 item you removed will come back and 12 done marks will be cleared\./)).toBeTruthy()
+      expect(api.resetPreview).toHaveBeenCalledWith('L1')
+      expect(api.resetList).not.toHaveBeenCalled()
+    })
+
+    it('ignores a slow answer for an earlier opening of the question', async () => {
+      let finishFirst!: (value: typeof preview) => void
+      vi.mocked(api.resetPreview)
+        .mockReturnValueOnce(new Promise((resolve) => (finishFirst = resolve)))
+        .mockResolvedValueOnce({ removed: 5, restored: 0, doneCleared: 0, followUpCheck: true })
+      await openReset()
+      fireEvent.click(document.querySelector('.q-catcher')!)
+      fireEvent.click(screen.getByRole('button', { name: 'Order' }))
+      await waitFor(() => expect(document.querySelector('.q-pop')).not.toBeNull())
+      fireEvent.click(pop().getByRole('button', { name: 'Reset to the source' }))
+      await pop().findByText(/5 items you added will be removed/)
+
+      await act(async () => finishFirst({ removed: 99, restored: 0, doneCleared: 0, followUpCheck: true }))
+
+      expect(pop().queryByText(/99 items/)).toBeNull()
+      expect(pop().getByText(/5 items you added will be removed/)).toBeTruthy()
+    })
+
+    it('shows why the numbers are missing, and still allows the reset', async () => {
+      vi.mocked(api.resetPreview).mockRejectedValue(new Error('Source is down'))
+
+      await openReset()
+
+      expect(await pop().findByText(/Could not work out what would change \(Source is down\)/)).toBeTruthy()
+      expect((pop().getByRole('button', { name: 'Reset everything' }) as HTMLButtonElement).disabled).toBe(false)
+    })
+
+    it('Reset everything resets, shows the list as the source has it, and offers Undo', async () => {
+      vi.mocked(api.resetPreview).mockResolvedValue(preview)
+      vi.mocked(api.resetList).mockResolvedValue(result(false))
+      await openReset()
+      await pop().findByText(/12 done marks/)
+      vi.mocked(api.list).mockResolvedValue(
+        sourced({ title: 'Loki (source)', description: 'From the source', status: 'complete', items: [item({ id: 'z', title: 'Zeta' })] }),
+      )
+
+      fireEvent.click(pop().getByRole('button', { name: 'Reset everything' }))
+
+      expect(await screen.findByRole('heading', { name: /^Loki \(source\)/ })).toBeTruthy()
+      expect(screen.getByText('From the source')).toBeTruthy()
+      expect(rowTitles()).toEqual(['Zeta'])
+      expect(api.resetList).toHaveBeenCalledWith('L1')
+      expect(document.querySelector('.q-toast')!.textContent).toMatch(/Reset to the source/)
+    })
+
+    it('Undo restores the whole item set from the payload, and the name it had', async () => {
+      vi.mocked(api.resetPreview).mockResolvedValue(preview)
+      vi.mocked(api.resetList).mockResolvedValue(result(false))
+      vi.mocked(api.restoreItems).mockResolvedValue([])
+      await openReset()
+      await pop().findByText(/12 done marks/)
+      vi.mocked(api.list).mockResolvedValue(sourced({ title: 'Loki (source)', items: [item({ id: 'z', title: 'Zeta' })] }))
+      fireEvent.click(pop().getByRole('button', { name: 'Reset everything' }))
+      await screen.findByRole('heading', { name: /^Loki \(source\)/ })
+      vi.mocked(api.list).mockResolvedValue(sourced())
+
+      undoOnToast()
+
+      await waitFor(() => expect(api.restoreItems).toHaveBeenCalledWith('L1', restore))
+      expect(await screen.findByRole('heading', { name: /^Loki(?! \()/ })).toBeTruthy()
+      await waitFor(() => expect(rowTitles()).toEqual(['Alpha', 'Beta']))
+    })
+
+    it('an API list then opens the update check by itself', async () => {
+      vi.mocked(api.resetPreview).mockResolvedValue(preview)
+      vi.mocked(api.resetList).mockResolvedValue(result(true))
+      vi.mocked(api.checkForUpdates).mockResolvedValue({
+        newItems: [{ title: 'Fresh', externalRef: 'r' }],
+        upstreamCount: 3,
+        existingCount: 2,
+        dismissedCount: 0,
+      })
+      await openReset()
+      await pop().findByText(/12 done marks/)
+
+      fireEvent.click(pop().getByRole('button', { name: 'Reset everything' }))
+
+      expect(await screen.findByText(/Fresh/)).toBeTruthy()
+      expect(api.checkForUpdates).toHaveBeenCalledWith('L1', false)
+    })
+
+    it('runs no update check when the source was just read live', async () => {
+      vi.mocked(api.resetPreview).mockResolvedValue(preview)
+      vi.mocked(api.resetList).mockResolvedValue(result(false))
+      await openReset()
+      await pop().findByText(/12 done marks/)
+
+      fireEvent.click(pop().getByRole('button', { name: 'Reset everything' }))
+      await waitFor(() => expect(api.resetList).toHaveBeenCalled())
+      await act(async () => {})
+
+      expect(api.checkForUpdates).not.toHaveBeenCalled()
+    })
+
+    it('Reset the order is the sort, not the reset', async () => {
+      vi.mocked(api.resetPreview).mockResolvedValue(preview)
+      vi.mocked(api.sortList).mockResolvedValue({ restore: { items: [], groups: [] } })
+      await openReset()
+
+      fireEvent.click(pop().getByRole('button', { name: 'Reset the order' }))
+
+      await waitFor(() => expect(api.sortList).toHaveBeenCalledWith('L1'))
+      expect(api.resetList).not.toHaveBeenCalled()
+      await waitFor(() => expect(document.querySelector('.q-toast')!.textContent).toMatch(/Order reset/))
+    })
+
+    it('says why, and changes nothing, when the reset is refused', async () => {
+      vi.mocked(api.resetPreview).mockResolvedValue(preview)
+      vi.mocked(api.resetList).mockRejectedValue(new Error('This list has no source to reset to'))
+      await openReset()
+      await pop().findByText(/12 done marks/)
+
+      fireEvent.click(pop().getByRole('button', { name: 'Reset everything' }))
+
+      expect(await screen.findByText('This list has no source to reset to')).toBeTruthy()
+      expect(rowTitles()).toEqual(['Alpha', 'Beta'])
     })
   })
 })

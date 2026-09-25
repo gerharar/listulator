@@ -35,6 +35,7 @@ import { ItemEditPopover } from './ItemEditPopover.js'
 import { ItemInfoCard } from './ItemInfoCard.js'
 import { ItemRow } from './ItemRow.js'
 import { ListMorePopover, type MoreMode } from './ListMorePopover.js'
+import { OrderPopover, type OrderMode, type PreviewState } from './OrderPopover.js'
 import { buildSpine, listTotals } from './spine.js'
 import { UpdatesCard } from './UpdatesCard.js'
 
@@ -181,6 +182,7 @@ function ListView({
   const updatesText = text.updates
   const editText = text.editPopover
   const moreText = text.moreMenu
+  const orderText = text.orderMenu
   const { showToast } = useToast()
   const { announce } = useLiveRegion()
   const [items, setItems] = useState<ListItem[]>(loaded.items)
@@ -200,6 +202,9 @@ function ListView({
   })
   const [editingList, setEditingList] = useState<HTMLElement | null>(null)
   const [more, setMore] = useState<{ anchor: HTMLElement; mode: MoreMode } | null>(null)
+  const [order, setOrder] = useState<{ anchor: HTMLElement; mode: OrderMode } | null>(null)
+  const [preview, setPreview] = useState<PreviewState>({ state: 'loading' })
+  const previewRequest = useRef(0)
   const pulseTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
   const spine = useRef<HTMLDivElement>(null)
 
@@ -366,6 +371,87 @@ function ListView({
       })
     } else {
       showToast({ text: message })
+    }
+  }
+
+  /** Takes the fresh list's own name, description and status: a Reset changes them. */
+  function adoptMeta(fresh: MediaListDetail) {
+    setMeta({ title: fresh.title, description: fresh.description, status: fresh.status })
+  }
+
+  /** Sort chronologically: one in-place re-sort, undone by putting the old positions back. */
+  async function sortNow(message: string) {
+    setOrder(null)
+    setError(null)
+
+    try {
+      const { restore } = await api.sortList(listId)
+      await refresh()
+      showToast({ text: message, actionLabel: actions.undo, onAction: () => void undoSort(restore) })
+    } catch {
+      setError(orderText.sortFailed)
+    }
+  }
+
+  async function undoSort(restore: Parameters<typeof api.restoreOrder>[1]) {
+    try {
+      await api.restoreOrder(listId, restore)
+      await refresh()
+      announce(orderText.orderUndone)
+    } catch {
+      setError(orderText.undoFailed)
+    }
+  }
+
+  /** Opens the Reset question and works out its cost while it is on screen. */
+  function openReset() {
+    if (!order) return
+    setOrder({ ...order, mode: 'reset' })
+    setPreview({ state: 'loading' })
+    previewRequest.current += 1
+    const mine = previewRequest.current
+
+    api
+      .resetPreview(listId)
+      .then((data) => {
+        if (previewRequest.current === mine) setPreview({ state: 'ready', data })
+      })
+      .catch((cause: unknown) => {
+        if (previewRequest.current === mine) {
+          setPreview({ state: 'failed', message: cause instanceof Error ? cause.message : orderText.resetFailed })
+        }
+      })
+  }
+
+  async function resetEverything() {
+    if (!order) return
+    const anchor = order.anchor
+    setOrder(null)
+    setError(null)
+
+    try {
+      const result = await api.resetList(listId)
+      adoptMeta(await refresh())
+      showToast({
+        text: orderText.resetDone,
+        actionLabel: actions.undo,
+        onAction: () => void undoReset(result.restore),
+      })
+      // An API list is checked against its source straight away; the community
+      // library's and a file's were just read live.
+      if (result.followUpCheck) void checkForUpdates(anchor, false)
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : orderText.resetFailed)
+    }
+  }
+
+  async function undoReset(restore: Parameters<typeof api.restoreItems>[1]) {
+    try {
+      await api.restoreItems(listId, restore)
+      adoptMeta(await refresh())
+      announce(orderText.undone)
+    } catch {
+      setError(orderText.undoFailed)
     }
   }
 
@@ -588,7 +674,7 @@ function ListView({
                     : text.checkForUpdates}
               </Button>
             )}
-            <Button size="sm" disabled title={text.comingSoon}>
+            <Button size="sm" onClick={(event) => setOrder({ anchor: event.currentTarget, mode: 'menu' })}>
               {text.order}
             </Button>
             <IconButton label={text.more} onClick={(event) => setMore({ anchor: event.currentTarget, mode: 'menu' })}>
@@ -636,6 +722,19 @@ function ListView({
         <AddItemForm groups={groupNames} defaultMinutes={defaultMinutes} onAdd={addItem} />
       </div>
 
+      {order && (
+        <OrderPopover
+          mode={order.mode}
+          anchorEl={order.anchor}
+          source={loaded.source}
+          preview={preview}
+          onSort={() => void sortNow(orderText.sorted)}
+          onOpenReset={openReset}
+          onResetOrder={() => void sortNow(orderText.orderReset)}
+          onResetEverything={() => void resetEverything()}
+          onDismiss={() => setOrder(null)}
+        />
+      )}
       {more && (
         <ListMorePopover
           mode={more.mode}
