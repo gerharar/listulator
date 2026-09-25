@@ -212,6 +212,8 @@ export interface CanonicalListEntry {
   description?: string
   /** Production status of the thing the list is about, mirrored from the file's own `status`. Absent if unset. */
   status?: 'complete' | 'ongoing'
+  /** How many items the list file holds, so a picker can say so without fetching it. Absent in an older index. */
+  itemCount?: number
 }
 
 function isCanonicalListEntry(value: unknown): value is CanonicalListEntry {
@@ -224,7 +226,9 @@ function isCanonicalListEntry(value: unknown): value is CanonicalListEntry {
     // Both optional, so a manifest generated before this field existed still
     // validates — an older index.json simply omits them.
     (value['description'] === undefined || typeof value['description'] === 'string') &&
-    (value['status'] === undefined || value['status'] === 'complete' || value['status'] === 'ongoing')
+    (value['status'] === undefined || value['status'] === 'complete' || value['status'] === 'ongoing') &&
+    (value['itemCount'] === undefined ||
+      (typeof value['itemCount'] === 'number' && Number.isInteger(value['itemCount']) && value['itemCount'] >= 0))
   )
 }
 

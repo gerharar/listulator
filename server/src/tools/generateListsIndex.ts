@@ -47,6 +47,7 @@ export function generateListsIndex(listsDir: string, validCategories: ReadonlySe
         path: `lists/${relativePath}`,
         title: parsed.title,
         category: parsed.category,
+        itemCount: parsed.items.length,
         ...(parsed.description !== undefined ? { description: parsed.description } : {}),
         ...(parsed.status !== undefined ? { status: parsed.status } : {}),
       }

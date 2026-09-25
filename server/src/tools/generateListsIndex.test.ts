@@ -30,8 +30,18 @@ describe('generateListsIndex', () => {
     const entries = generateListsIndex(dir, CATEGORIES)
 
     expect(entries).toEqual([
-      { path: 'lists/book/lotr.yaml', title: 'LOTR', category: 'book' },
-      { path: 'lists/mega/mcu.yaml', title: 'MCU', category: 'mega' },
+      { path: 'lists/book/lotr.yaml', title: 'LOTR', category: 'book', itemCount: 1 },
+      { path: 'lists/mega/mcu.yaml', title: 'MCU', category: 'mega', itemCount: 1 },
+    ])
+  })
+
+  it('records how many items each list has, so the app can show it without fetching the file', () => {
+    write('book/lotr.yaml', 'title: LOTR\ncategory: book\nitems:\n  - { title: A }\n  - { title: B }\n  - { title: C }\n')
+    write('book/empty.yaml', 'title: Empty\ncategory: book\nitems: []\n')
+
+    expect(generateListsIndex(dir, CATEGORIES).map((entry) => [entry.title, entry.itemCount])).toEqual([
+      ['Empty', 0],
+      ['LOTR', 3],
     ])
   })
 
@@ -45,11 +55,12 @@ describe('generateListsIndex', () => {
     const entries = generateListsIndex(dir, CATEGORIES)
 
     expect(entries).toEqual([
-      { path: 'lists/book/lotr.yaml', title: 'LOTR', category: 'book' },
+      { path: 'lists/book/lotr.yaml', title: 'LOTR', category: 'book', itemCount: 1 },
       {
         path: 'lists/mega/mcu.yaml',
         title: 'MCU',
         category: 'mega',
+        itemCount: 1,
         description: 'Every film, in release order.',
         status: 'complete',
       },

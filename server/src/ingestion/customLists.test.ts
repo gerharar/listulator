@@ -381,6 +381,20 @@ describe('fetchCanonicalManifest', () => {
     expect(await fetchCanonicalManifest(respondWith(manifest))).toEqual(manifest)
   })
 
+  it('carries an optional item count through', async () => {
+    const manifest = [{ path: 'lists/mega/mcu.yaml', title: 'MCU', category: 'mega', itemCount: 23 }]
+
+    expect(await fetchCanonicalManifest(respondWith(manifest))).toEqual(manifest)
+  })
+
+  it('rejects an item count that is not a whole number of zero or more', async () => {
+    for (const itemCount of [-1, 2.5, '23', null]) {
+      await expect(
+        fetchCanonicalManifest(respondWith([{ path: 'x.yaml', title: 'X', category: 'movie', itemCount }])),
+      ).rejects.toThrow(IngestionError)
+    }
+  })
+
   it('rejects an entry whose status is not complete or ongoing', async () => {
     await expect(
       fetchCanonicalManifest(
