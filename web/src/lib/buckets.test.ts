@@ -24,6 +24,7 @@ function list(
     stats: {
       totalItems: 0,
       consumedItems: 0,
+      newItems: 0,
       completionPercent: 0,
       timeRemainingMinutes: 0,
       lastConsumedAt: null,

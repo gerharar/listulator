@@ -15,6 +15,7 @@ const ITEM: ListItem = {
   group: 'Season 1',
   tags: null,
   notes: null,
+  isNew: false,
 }
 
 const same = { title: 'Glorious Purpose', minutes: '51', group: 'Season 1' }

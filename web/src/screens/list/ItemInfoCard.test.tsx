@@ -19,6 +19,7 @@ const ITEM: ListItem = {
   group: null,
   tags: null,
   notes: null,
+  isNew: false,
 }
 
 describe('ItemInfoCard', () => {

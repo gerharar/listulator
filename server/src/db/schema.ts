@@ -197,6 +197,12 @@ export const listItems = sqliteTable(
      * — see docs/DECISIONS.md. Read-only in the app UI.
      */
     notes: text('notes'),
+    /**
+     * Arrived with the last refresh and not yet acknowledged (10.17) — the
+     * source of "N NEW" and the NEW marks. Set only by the import a refresh's
+     * "add what's new" makes; cleared by Mark all seen.
+     */
+    isNew: integer('is_new', { mode: 'boolean' }).notNull().default(false),
     createdAt: integer('created_at', { mode: 'timestamp_ms' })
       .notNull()
       .$defaultFn(() => new Date()),

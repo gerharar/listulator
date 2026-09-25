@@ -12,6 +12,8 @@ import { createLocalApi } from './api.local.js'
 export interface ListStats {
   totalItems: number
   consumedItems: number
+  /** Arrived with the last refresh and not yet marked seen (10.17). */
+  newItems: number
   completionPercent: number
   timeRemainingMinutes: number
   lastConsumedAt: string | null
@@ -50,6 +52,8 @@ export interface ListItem {
   tags: string[] | null
   /** Curator-authored disambiguation prose, capped at 2048 chars. Read-only in the UI. Null if none. */
   notes: string | null
+  /** Arrived with the last refresh and not yet marked seen (10.17). */
+  isNew: boolean
 }
 
 /** A group of a list, as a row of its own (D3, task 10.16): an empty one can exist. */
@@ -231,7 +235,11 @@ export interface ApiClient {
     }[],
     /** Defaults to 'import' — pass 'manual' for a hand-typed batch (task 6.2). */
     source?: 'manual' | 'import',
+    /** True for a refresh's "add what's new": the items carry the NEW marker (10.17). */
+    arrived?: boolean,
   ) => Promise<ListItem[]>
+  /** Mark all seen (10.17): clears the list's NEW markers; says how many it cleared. */
+  markSeen: (listId: string) => Promise<{ cleared: number }>
   tiredBoss: (currentListId: string) => Promise<{ picks: SuggestionPick[] }>
   suggest: () => Promise<{ picks: SuggestionPick[] }>
   quickie: () => Promise<{ picks: SuggestionPick[] }>
@@ -402,11 +410,19 @@ export const fetchApi: ApiClient = {
       notes?: string
     }[],
     source?: 'manual' | 'import',
+    arrived?: boolean,
   ) =>
     request<ListItem[]>(`/lists/${listId}/items/import`, {
       method: 'POST',
-      body: JSON.stringify({ items, ...(source ? { source } : {}) }),
+      body: JSON.stringify({
+        items,
+        ...(source ? { source } : {}),
+        ...(arrived ? { arrived } : {}),
+      }),
     }),
+
+  markSeen: (listId: string) =>
+    request<{ cleared: number }>(`/lists/${listId}/seen`, { method: 'POST' }),
 
   tiredBoss: (currentListId: string) =>
     request<{ picks: SuggestionPick[] }>('/suggestions/tired-boss', {

@@ -295,6 +295,37 @@ describe('undo calls (task 10.19a)', () => {
     )
   })
 
+  it('importItems tells the server a batch arrived with a refresh', async () => {
+    const fetchMock = stubFetch([])
+
+    await api.importItems('L1', [{ title: 'A' }], 'import', true)
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/lists/L1/items/import',
+      expect.objectContaining({
+        body: JSON.stringify({ items: [{ title: 'A' }], source: 'import', arrived: true }),
+      }),
+    )
+  })
+
+  it('importItems says nothing about arrival for an ordinary import', async () => {
+    const fetchMock = stubFetch([])
+
+    await api.importItems('L1', [{ title: 'A' }])
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/lists/L1/items/import',
+      expect.objectContaining({ body: JSON.stringify({ items: [{ title: 'A' }] }) }),
+    )
+  })
+
+  it('markSeen posts to the list and returns how many markers it cleared', async () => {
+    const fetchMock = stubFetch({ cleared: 3 })
+
+    expect(await api.markSeen('L1')).toEqual({ cleared: 3 })
+    expect(fetchMock).toHaveBeenCalledWith('/api/lists/L1/seen', expect.objectContaining({ method: 'POST' }))
+  })
+
   it('a group is restored by posting its payload back', async () => {
     const restore = { group: { id: 'g1', name: 'A', orderIndex: 0 } }
     const fetchMock = stubFetch({ id: 'g1' })

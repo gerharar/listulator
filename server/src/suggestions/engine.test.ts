@@ -45,6 +45,7 @@ function list({
     stats: {
       totalItems: total,
       consumedItems: consumed,
+      newItems: 0,
       completionPercent: total === 0 ? 0 : Math.round((consumed / total) * 1000) / 10,
       timeRemainingMinutes: minutesLeft,
       lastConsumedAt: lastConsumed,
@@ -70,6 +71,7 @@ function nextItemsFor(lists: ListWithStats[]): Map<string, ListItem | undefined>
         group: null,
         tags: null,
         notes: null,
+        isNew: false,
         createdAt: NOW,
         updatedAt: NOW,
       },

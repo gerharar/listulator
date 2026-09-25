@@ -19,6 +19,7 @@ const ITEM: ListItem = {
   group: null,
   tags: null,
   notes: null,
+  isNew: false,
 }
 
 function renderRow(overrides: Partial<Parameters<typeof ItemRow>[0]> = {}) {

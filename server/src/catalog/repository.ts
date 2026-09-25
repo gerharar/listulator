@@ -89,6 +89,8 @@ export interface CreateListItemInput {
   tags?: string[] | null
   /** Curator-authored disambiguation prose, capped at 2048 chars. Null if none. Never adapter-set. */
   notes?: string | null
+  /** Arrived with a refresh and not yet seen (10.17). Defaults to false. */
+  isNew?: boolean
 }
 
 export interface UpdateListItemInput {
@@ -131,6 +133,8 @@ export async function createList(
  */
 export interface ListStats {
   totalItems: number
+  /** Items that arrived with the last refresh and have not been marked seen (10.17). */
+  newItems: number
   consumedItems: number
   /** 0–100, one decimal place. An empty list is 0% — see note below. */
   completionPercent: number
@@ -153,6 +157,7 @@ function statsSelection() {
     totalItems: count(listItems.id),
     // count() over a nullable column counts only non-null values.
     consumedItems: count(listItems.consumedAt),
+    newItems: sql<number>`coalesce(sum(${listItems.isNew}), 0)`,
     timeRemainingMinutes: sql<number>`coalesce(sum(case when ${listItems.consumedAt} is null then ${listItems.timeToConsumeMinutes} else 0 end), 0)`,
     // Drizzle applies the column's timestamp mapping here, so this is already
     // a Date — do not convert it again.
@@ -163,18 +168,20 @@ function statsSelection() {
 type StatsRow = List & {
   totalItems: number
   consumedItems: number
+  newItems: number
   timeRemainingMinutes: number
   lastConsumedAt: Date | null
 }
 
 function toListWithStats(row: StatsRow): ListWithStats {
-  const { totalItems, consumedItems, timeRemainingMinutes, lastConsumedAt, ...list } = row
+  const { totalItems, consumedItems, newItems, timeRemainingMinutes, lastConsumedAt, ...list } = row
 
   return {
     ...list,
     stats: {
       totalItems,
       consumedItems,
+      newItems: Number(newItems),
       // An empty list is 0% complete, not 100%. Nothing has been finished, and
       // calling it complete would let empty lists win "I'm tired, boss", which
       // ranks on being nearly done.
@@ -377,9 +384,28 @@ export async function createListItem(
       group,
       tags: input.tags ?? null,
       notes: input.notes ?? null,
+      isNew: input.isNew ?? false,
     })
     .returning()
     .get()
+}
+
+/** Mark all seen (10.17): clears every "new" marker on a list; returns how many. */
+export async function markListSeen(
+  db: PortableDatabase,
+  userId: string,
+  listId: string,
+): Promise<number | undefined> {
+  if (!(await findList(db, userId, listId))) return undefined
+
+  const cleared = await db
+    .update(listItems)
+    .set({ isNew: false })
+    .where(and(eq(listItems.listId, listId), eq(listItems.isNew, true)))
+    .returning({ id: listItems.id })
+    .all()
+
+  return cleared.length
 }
 
 export async function findListItem(

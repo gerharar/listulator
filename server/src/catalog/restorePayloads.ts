@@ -31,6 +31,8 @@ export interface ItemPayload {
   tags: string[] | null
   consumedAt: string | null
   notes: string | null
+  /** Absent on payloads from before 10.17; read as false. */
+  isNew?: boolean
   createdAt: string
   updatedAt: string
 }
@@ -117,6 +119,7 @@ export const toItemPayload = (item: ListItem): ItemPayload => ({
   tags: item.tags,
   consumedAt: item.consumedAt?.toISOString() ?? null,
   notes: item.notes,
+  isNew: item.isNew,
   createdAt: item.createdAt.toISOString(),
   updatedAt: item.updatedAt.toISOString(),
 })

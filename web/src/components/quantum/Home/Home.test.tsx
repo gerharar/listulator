@@ -39,6 +39,7 @@ function list(overrides: Partial<MediaList> = {}): MediaList {
     stats: {
       totalItems: 62,
       consumedItems: 40,
+      newItems: 0,
       completionPercent: 65,
       timeRemainingMinutes: 900,
       lastConsumedAt: null,

@@ -688,7 +688,7 @@ export const ingestionRoutes: FastifyPluginAsync<IngestionRoutesOptions> = async
    * estimated, which is how `time_to_consume_minutes` stays NOT NULL without
    * the catalog ever inventing a number (SPEC.md §4, §5).
    */
-  app.post<{ Params: { listId: string }; Body: { items: ImportItem[]; source?: ItemSource } }>(
+  app.post<{ Params: { listId: string }; Body: { items: ImportItem[]; source?: ItemSource; arrived?: boolean } }>(
     '/lists/:listId/items/import',
     {
       schema: {
@@ -725,6 +725,9 @@ export const ingestionRoutes: FastifyPluginAsync<IngestionRoutesOptions> = async
             // imports carry no externalRef either), so the caller states
             // which this batch is. Defaults to 'import', the more common case.
             source: { type: 'string', enum: ['manual', 'import'] },
+            // Set by a refresh's "add what's new": the batch arrived with a
+            // sync, so its items carry the NEW marker until Mark all seen.
+            arrived: { type: 'boolean' },
           },
         },
       },
@@ -761,6 +764,7 @@ export const ingestionRoutes: FastifyPluginAsync<IngestionRoutesOptions> = async
             ...(item.tags ? { tags: item.tags } : {}),
             ...(item.notes ? { notes: item.notes } : {}),
             source,
+            isNew: request.body.arrived === true,
           }),
         )
       }

@@ -1,0 +1,1 @@
+ALTER TABLE `list_items` ADD `is_new` integer DEFAULT false NOT NULL;

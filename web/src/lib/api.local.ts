@@ -23,6 +23,7 @@ import {
   findLists,
   findListWithStats,
   findListsWithStats,
+  markListSeen,
   reorderListItems,
   ReorderMismatchError,
   setListItemConsumed,
@@ -111,6 +112,7 @@ function toMediaList(list: ListWithStats): MediaList {
     stats: {
       totalItems: list.stats.totalItems,
       consumedItems: list.stats.consumedItems,
+      newItems: list.stats.newItems,
       completionPercent: list.stats.completionPercent,
       timeRemainingMinutes: list.stats.timeRemainingMinutes,
       lastConsumedAt: list.stats.lastConsumedAt?.toISOString() ?? null,
@@ -132,6 +134,7 @@ function toListItem(item: SchemaListItem): ListItem {
     group: item.group,
     tags: item.tags,
     notes: item.notes,
+    isNew: item.isNew,
   }
 }
 
@@ -353,7 +356,7 @@ export function createLocalApi(): ApiClient {
       return toMediaList(withStats!)
     },
 
-    importItems: async (listId, items, source = 'import') => {
+    importItems: async (listId, items, source = 'import', arrived = false) => {
       const [database, userId] = [await getDb(), await getUserId()]
       const list = await findList(database, userId, listId)
       if (!list) throw notFound()
@@ -380,12 +383,20 @@ export function createLocalApi(): ApiClient {
           ...(item.tags ? { tags: item.tags } : {}),
           ...(item.notes ? { notes: item.notes } : {}),
           source,
+          isNew: arrived,
         })
         created.push(row!)
       }
       await seedGroupOrder(database, listId)
 
       return created.map(toListItem)
+    },
+
+    markSeen: async (listId) => {
+      const [database, userId] = [await getDb(), await getUserId()]
+      const cleared = await markListSeen(database, userId, listId)
+      if (cleared === undefined) throw notFound()
+      return { cleared }
     },
 
     deleteItem: async (listId, itemId) => {

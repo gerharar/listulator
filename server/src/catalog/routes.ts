@@ -11,6 +11,7 @@ import {
   deleteListItem,
   findListItems,
   findListWithStats,
+  markListSeen,
   findListsWithStats,
   reorderListItems,
   ReorderMismatchError,
@@ -186,6 +187,15 @@ export const catalogRoutes: FastifyPluginAsync<CatalogRoutesOptions> = async (
       return await findListWithStats(db, user.id, updated.id)
     },
   )
+
+  /** Mark all seen (10.17): clears the list's NEW markers. */
+  app.post<{ Params: ListParams }>('/lists/:listId/seen', async (request, reply) => {
+    const user = getCurrentUser(request)
+    const cleared = await markListSeen(db, user.id, request.params.listId)
+    if (cleared === undefined) return reply.callNotFound()
+
+    return { cleared }
+  })
 
   app.delete<{ Params: ListParams }>('/lists/:listId', async (request, reply) => {
     const user = getCurrentUser(request)

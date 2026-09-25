@@ -21,6 +21,7 @@ const ITEM: ListItem = {
   group: 'Season 1',
   tags: null,
   notes: null,
+  isNew: false,
 }
 
 function renderPopover(overrides: Partial<Parameters<typeof ItemEditPopover>[0]> = {}) {
