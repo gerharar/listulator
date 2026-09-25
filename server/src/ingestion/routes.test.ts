@@ -304,6 +304,27 @@ describe('POST /api/lists/:listId/items/import', () => {
     ])
   })
 
+  it('takes a game released on every platform in the table, and Undo puts all its tags back', async () => {
+    // IGDB lists a long-lived game on 25+ platforms; refusing its tags would refuse the whole import.
+    const tags = Array.from({ length: 28 }, (_, i) => `P${i + 1}`)
+    const list = await createList('game')
+
+    const imported = await importItems(list.id, [{ title: 'Everywhere', tags }])
+    expect(imported.statusCode).toBe(201)
+    expect(imported.json()[0].tags).toEqual(tags)
+
+    const itemId = imported.json()[0].id
+    const deleted = await harness.app.inject({ method: 'DELETE', url: `/api/lists/${list.id}/items/${itemId}` })
+    const restored = await harness.app.inject({
+      method: 'POST',
+      url: `/api/lists/${list.id}/items/restore`,
+      payload: deleted.json().restore,
+    })
+
+    expect(restored.statusCode).toBe(200)
+    expect(restored.json().tags).toEqual(tags)
+  })
+
   it('leaves new items with whatever group they arrived with — no toggle to re-derive it anymore', async () => {
     const list = await createList('music')
 
@@ -1570,6 +1591,41 @@ describe('checking a list for updates', () => {
     })
 
     expect(response.json().newItems).toEqual([{ title: 'Two', externalRef: 'game:2' }])
+  })
+
+  it('tags only the items an update adds: what the list already holds is left as it is', async () => {
+    // The list was imported before the importer wrote tags; production lists are assumed tagged.
+    let upstream: { title: string; externalRef: string; tags?: string[] }[] = [
+      { title: 'One', externalRef: 'game:1' },
+    ]
+    const adapter: SearchAdapter = {
+      isAvailable: () => true,
+      search: async () => [],
+      expand: async () => ({ items: upstream }),
+    }
+
+    harness = appWith(adapter)
+    const list = await buildList(harness)
+
+    upstream = [
+      { title: 'One', externalRef: 'game:1', tags: ['PS3'] },
+      { title: 'Two', externalRef: 'game:2', tags: ['PS3', 'PC'] },
+    ]
+    const { newItems } = (
+      await harness.app.inject({ method: 'POST', url: `/api/lists/${list.id}/refresh` })
+    ).json()
+    expect(newItems).toEqual([{ title: 'Two', externalRef: 'game:2', tags: ['PS3', 'PC'] }])
+
+    await harness.app.inject({
+      method: 'POST',
+      url: `/api/lists/${list.id}/items/import`,
+      payload: { items: newItems, source: 'import', arrived: true },
+    })
+    const items = (await harness.app.inject({ method: 'GET', url: `/api/lists/${list.id}` })).json().items
+    const byTitle = new Map(items.map((entry: { title: string; tags: string[] | null }) => [entry.title, entry.tags]))
+
+    expect(byTitle.get('One')).toBeNull()
+    expect(byTitle.get('Two')).toEqual(['PS3', 'PC'])
   })
 
   it('matches on upstream id, so a rename is not mistaken for a new item', async () => {

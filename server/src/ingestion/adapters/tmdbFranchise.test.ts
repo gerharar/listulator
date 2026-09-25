@@ -162,9 +162,21 @@ describe('franchise expansion', () => {
       timeToConsumeMinutes: 51,
       year: 2021,
       group: 'Loki — Season 1',
+      tags: ['tv'],
     })
     // Films carry no group.
     expect(items[0]).not.toHaveProperty('group')
+  })
+
+  it('tags films movie and episodes tv, so Mega’s Medium facet can tell them apart', async () => {
+    const adapter = createTmdbFranchiseAdapter(credentials, router(routes))
+    const items = (await adapter.expand('franchise:180547')).items
+
+    expect(items.filter((item) => item.externalRef?.startsWith('movie:')).map((item) => item.tags)).toEqual([
+      ['movie'],
+      ['movie'],
+    ])
+    expect(items.filter((item) => item.externalRef?.startsWith('episode:')).every((item) => item.tags?.[0] === 'tv')).toBe(true)
   })
 
   it('gives each episode its own runtime, falling back to the show’s usual one', async () => {

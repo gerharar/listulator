@@ -1,5 +1,10 @@
-import { describe, expect, it } from 'vitest'
-import { createMediaTypeRegistry, DEFAULT_MEDIA_TYPES, type MediaType } from './mediaTypes.js'
+import { afterEach, describe, expect, it, vi } from 'vitest'
+import {
+  createDefaultMediaTypes,
+  createMediaTypeRegistry,
+  DEFAULT_MEDIA_TYPES,
+  type MediaType,
+} from './mediaTypes.js'
 
 describe('media type registry', () => {
   it('ships the agreed phase-1 categories, in display order', () => {
@@ -106,5 +111,46 @@ describe('media type registry', () => {
     registry.list().push({ key: 'sneaky', label: 'Sneaky', sortOrder: 1, defaultDurationMinutes: 1 })
 
     expect(registry.has('sneaky')).toBe(false)
+  })
+})
+
+describe('what the Animation and Movies shelves tag on import', () => {
+  afterEach(() => vi.unstubAllGlobals())
+
+  // A Ghost in the Shell film and its series are one Animation list; the source that
+  // produced each item is what says which it is, and only Animation says it.
+  function stubTmdb() {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (url: string) => {
+        const path = new URL(url).pathname.replace('/3', '')
+        const body: Record<string, unknown> = {
+          '/tv/1': { seasons: [{ season_number: 1 }], status: 'Ended' },
+          '/tv/1/season/1': {
+            episodes: [{ season_number: 1, episode_number: 1, name: 'Pilot', air_date: '2000-01-01' }],
+          },
+          '/discover/movie': { results: [{ id: 5, title: 'Ghost in the Shell', release_date: '1995-11-18' }], total_pages: 1 },
+          '/movie/5': { runtime: 83 },
+        }
+
+        return new Response(JSON.stringify(body[path] ?? {}))
+      }),
+    )
+
+    return createDefaultMediaTypes({ credentials: { tmdb: () => ({ apiKey: 'k', readAccessToken: undefined }) } })
+  }
+
+  it('tags Animation’s series episodes tv and its studio films movie', async () => {
+    const animation = stubTmdb().find((entry) => entry.key === 'animation')!.adapter!
+
+    expect((await animation.expand('show:1')).items.map((item) => item.tags)).toEqual([['tv']])
+    expect((await animation.expand('company:2')).items.map((item) => item.tags)).toEqual([['movie']])
+  })
+
+  it('tags nothing on Movies or TV, which have no Type facet to feed', async () => {
+    const types = stubTmdb()
+
+    expect((await types.find((entry) => entry.key === 'tv')!.adapter!.expand('show:1')).items[0]).not.toHaveProperty('tags')
+    expect((await types.find((entry) => entry.key === 'movie')!.adapter!.expand('company:2')).items[0]).not.toHaveProperty('tags')
   })
 })

@@ -30,6 +30,15 @@ async function openList(page: Page, title: string) {
   await page.goto('/')
   await page.locator('.q-home-row', { hasText: title }).click()
   await expect(page.locator('.q-item', { hasText: 'Alpha' })).toBeVisible()
+  // The layer drums in first: measure rows only once it has stopped moving, or a drag aims at where they were.
+  await page.evaluate(() =>
+    Promise.all(
+      document
+        .getAnimations()
+        .filter((a) => a.effect?.getComputedTiming().iterations !== Infinity)
+        .map((a) => a.finished.catch(() => undefined)),
+    ),
+  )
 }
 
 const rowOf = (page: Page, text: string) => page.locator('.q-item', { hasText: text }).first()

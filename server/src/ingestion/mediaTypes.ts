@@ -103,8 +103,8 @@ export function createDefaultMediaTypes({
 
   /** Animated series, plus the studios that make animated films. */
   const animationSources = createCompositeAdapter([
-    { prefixes: ['show'], adapter: animatedShows },
-    { prefixes: ['company'], adapter: animationStudios },
+    { prefixes: ['show'], tag: 'tv', adapter: animatedShows },
+    { prefixes: ['company'], tag: 'movie', adapter: animationStudios },
   ])
 
   /** Documentary series, plus a film-maker's documentaries. */

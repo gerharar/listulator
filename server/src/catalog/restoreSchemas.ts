@@ -4,6 +4,8 @@
  * are still untrusted input: ownership never comes from them, only from the
  * current user.
  */
+import { MAX_ITEM_TAGS } from './facets.js'
+
 const nullableString = { type: ['string', 'null'] } as const
 
 export const itemPayloadSchema = {
@@ -29,7 +31,7 @@ export const itemPayloadSchema = {
     source: { type: 'string', enum: ['manual', 'import'] },
     year: { type: ['integer', 'null'] },
     group: { type: ['string', 'null'], maxLength: 500 },
-    tags: { type: ['array', 'null'], items: { type: 'string', maxLength: 40 }, maxItems: 20 },
+    tags: { type: ['array', 'null'], items: { type: 'string', maxLength: 40 }, maxItems: MAX_ITEM_TAGS },
     consumedAt: nullableString,
     notes: { type: ['string', 'null'], maxLength: 2048 },
     isNew: { type: 'boolean' },

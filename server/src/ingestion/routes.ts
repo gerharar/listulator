@@ -1,6 +1,7 @@
 import type { FastifyPluginAsync } from 'fastify'
 import { dismissalTitleKey, type ItemSource } from '../db/schema.js'
 import { getCurrentUser } from '../auth/currentUser.js'
+import { MAX_ITEM_TAGS } from '../catalog/facets.js'
 import {
   clearDismissals,
   createList,
@@ -646,7 +647,7 @@ export const ingestionRoutes: FastifyPluginAsync<IngestionRoutesOptions> = async
                   externalRef: { type: 'string', maxLength: 500 },
                   year: { type: 'integer' },
                   group: { type: 'string', maxLength: 500 },
-                  tags: { type: 'array', maxItems: 20, items: { type: 'string', maxLength: 40 } },
+                  tags: { type: 'array', maxItems: MAX_ITEM_TAGS, items: { type: 'string', maxLength: 40 } },
                   notes: { type: 'string', maxLength: 2048 },
                 },
               },

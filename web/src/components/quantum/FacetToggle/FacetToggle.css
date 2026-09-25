@@ -1,13 +1,20 @@
 /* design-system/components/FacetToggle, ported from bundle.css verbatim. */
 .q-facet {
+  max-width: 100%;
   display: inline-flex;
   align-items: center;
   gap: 8px;
   flex-wrap: wrap;
 }
+/* Wraps (the prototype's run assumed a handful): a real Games list has twenty-odd platforms.
+   The outer border is top and left only; every button closes its own right and bottom, so a
+   wrapped run still reads as cells. */
 .q-facet-seg {
   display: flex;
-  border: 1px solid var(--line);
+  flex-wrap: wrap;
+  max-width: 100%;
+  border-top: 1px solid var(--line);
+  border-left: 1px solid var(--line);
 }
 .q-facet button {
   display: flex;
@@ -24,8 +31,9 @@
 .q-facet > button {
   border: 1px solid var(--line);
 }
-.q-facet-seg button + button {
-  border-left: 1px solid var(--line);
+.q-facet-seg button {
+  border-right: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
 }
 .q-facet button:hover {
   filter: brightness(1.12);

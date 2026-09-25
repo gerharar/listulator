@@ -8,6 +8,13 @@ import { PLATFORM_ORDER } from './platforms.js'
  * `suggestions`. Browser-safe: the standalone app imports this too.
  */
 
+/**
+ * How many tags one item may carry. A long-lived game is on more platforms than
+ * the old cap of 20 (the table alone has 28 codes), and refusing its tags would
+ * refuse the whole import; the importers and both schemas read this one number.
+ */
+export const MAX_ITEM_TAGS = 40
+
 export type FacetKey = 'type' | 'language' | 'platform'
 
 /** A tag as a list file writes it, and the name people see for it (`game` → Game). */

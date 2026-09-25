@@ -204,6 +204,8 @@ export function createTmdbFranchiseAdapter(
             candidate: {
               title: film.title,
               externalRef: `movie:${film.id}`,
+              // Mega's Medium facet reads the category key a list file uses.
+              tags: ['movie'],
               ...(runtime ? { timeToConsumeMinutes: runtime } : {}),
               year: Number(film.date.slice(0, 4)),
             },
@@ -257,6 +259,7 @@ export function createTmdbFranchiseAdapter(
                   ...(minutes ? { timeToConsumeMinutes: minutes } : {}),
                   year: Number(episode.air_date!.slice(0, 4)),
                   group: `${show.name} — Season ${number}`,
+                  tags: ['tv'],
                 },
               }
             }),

@@ -1,6 +1,8 @@
 import { getJson, UnauthorizedError, type FetchLike } from '../http.js'
 import type { ListSource, MediaTypeCandidate, SearchAdapter } from '../mediaTypes.js'
 import { itemsOnly } from '../expansion.js'
+import { MAX_ITEM_TAGS } from '../../catalog/facets.js'
+import { PLATFORM_ORDER } from '../../catalog/platforms.js'
 
 /**
  * IGDB: search a franchise or series, expand to its games.
@@ -35,6 +37,7 @@ interface GameResult {
   name?: string
   first_release_date?: number
   game_type?: number
+  platforms?: { id: number; abbreviation?: string }[]
 }
 
 interface TimeToBeatResult {
@@ -64,6 +67,53 @@ export type IgdbCredentialSource = IgdbCredentials | (() => IgdbCredentials)
  */
 function looksLikeAnEdition(name: string): boolean {
   return /[-:]\s.*\bedition\b\s*$/i.test(name)
+}
+
+/**
+ * IGDB's platform abbreviations that differ from the shortcodes in `PLATFORMS`
+ * (spaces removed, lower-cased on both sides). Anything else that matches the
+ * table is used as is, and anything the table lacks stays as its own caps text.
+ */
+const PLATFORM_ALIASES: Record<string, string> = {
+  ps: 'ps1',
+  psx: 'ps1',
+  psvita: 'vita',
+  gameboy: 'gb',
+  ngc: 'gc',
+  gcn: 'gc',
+  ds: 'nds',
+  'seriesx|s': 'xsx',
+  seriesx: 'xsx',
+  nintendoswitch: 'switch',
+  windows: 'pc',
+}
+
+/**
+ * A game's `tags`: its platforms as the shortcodes the chip and the Platform
+ * facet read, in the table's order and then any it doesn't know. Undefined when
+ * IGDB names none — an untagged game is honest, a guessed platform is not.
+ */
+export function platformTags(platforms: readonly { abbreviation?: string }[] | undefined): string[] | undefined {
+  const found = new Map<string, string>()
+
+  for (const platform of platforms ?? []) {
+    const written = platform.abbreviation?.trim()
+    if (!written) continue
+
+    const squashed = written.toLowerCase().replace(/\s+/g, '')
+    const key = PLATFORM_ALIASES[squashed] ?? squashed
+    if (!found.has(key)) found.set(key, PLATFORM_ORDER.includes(key) ? key.toUpperCase() : written.toUpperCase())
+  }
+
+  if (found.size === 0) return undefined
+
+  const rank = (key: string) => {
+    const index = PLATFORM_ORDER.indexOf(key)
+
+    return index < 0 ? PLATFORM_ORDER.length : index
+  }
+
+  return [...found.entries()].sort(([a], [b]) => rank(a) - rank(b)).map(([, code]) => code).slice(0, MAX_ITEM_TAGS)
 }
 
 export function createIgdbAdapter(
@@ -205,7 +255,7 @@ export function createIgdbAdapter(
 
       const games = await query<GameResult>(
         'games',
-        `fields name,first_release_date,game_type;` +
+        `fields name,first_release_date,game_type,platforms.abbreviation;` +
           ` where ${where} & game_type = ${MAIN_GAME} & first_release_date != null` +
           ` & first_release_date <= ${releasedBy};` +
           ` sort first_release_date asc; limit ${MAX_ITEMS};`,
@@ -238,9 +288,12 @@ export function createIgdbAdapter(
           ? new Date(game.first_release_date * 1000).getUTCFullYear()
           : undefined
 
+        const tags = platformTags(game.platforms)
+
         return {
           title: game.name!,
           externalRef: `game:${game.id}`,
+          ...(tags ? { tags } : {}),
           // Not every game has been timed by anyone; those fall back to the
           // category default.
           ...(minutes ? { timeToConsumeMinutes: minutes } : {}),

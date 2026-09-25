@@ -22,7 +22,18 @@ export interface CompositeSource {
    */
   prefixes: string[]
   adapter: SearchAdapter
+  /**
+   * Added to the `tags` of every item this source expands. The source is the
+   * only thing that knows what an item is: Animation holds Ghost in the Shell
+   * the film (from a studio) and the series (from a show), and a facet can only
+   * tell them apart if the item says so. Set per category, never by the
+   * adapter itself, so a plain Movies list does not grow a tag column.
+   */
+  tag?: string
 }
+
+const withTag = (tags: readonly string[] | undefined, tag: string): string[] =>
+  tags?.some((entry) => entry.toLowerCase() === tag.toLowerCase()) ? [...tags] : [...(tags ?? []), tag]
 
 export function createCompositeAdapter(sources: readonly CompositeSource[]): SearchAdapter {
   const usable = () => sources.filter((source) => source.adapter.isAvailable())
@@ -56,7 +67,14 @@ export function createCompositeAdapter(sources: readonly CompositeSource[]): Sea
       const prefix = externalRef.split(':')[0] ?? ''
       const owner = usable().find((source) => source.prefixes.includes(prefix))
 
-      return owner ? owner.adapter.expand(externalRef) : { items: [] }
+      if (!owner) return { items: [] }
+
+      const expansion = await owner.adapter.expand(externalRef)
+      const { tag } = owner
+
+      return tag
+        ? { ...expansion, items: expansion.items.map((item) => ({ ...item, tags: withTag(item.tags, tag) })) }
+        : expansion
     },
   }
 }

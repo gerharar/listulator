@@ -146,3 +146,25 @@ test('the jump rail brings a far group to the top, and stays folded across a rel
     await page.request.delete(`/api/lists/${id}`)
   }
 })
+
+test('a game on two dozen platforms keeps its facet row inside the bar (the buttons wrap)', async ({ page }) => {
+  const title = `e2e list-filter wrap ${Date.now()}`
+  const tags = Array.from({ length: 25 }, (_, i) => `PLAT${i + 1}`)
+  const id = await makeList(page.request, title, 'game', [
+    { title: 'Everywhere', timeToConsumeMinutes: 60, tags },
+    { title: 'Prologue', timeToConsumeMinutes: 60 },
+  ])
+
+  try {
+    await page.goto('/')
+    await page.locator('.q-home-row', { hasText: title }).click()
+    await expect(page.locator('.q-item', { hasText: 'Everywhere' })).toBeVisible()
+
+    await expect(facetBar(page).locator('.q-facet button')).toHaveCount(1 + 25 + 1)
+    const bar = (await facetBar(page).boundingBox())!
+    const run = (await facetBar(page).locator('.q-facet-seg').boundingBox())!
+    expect(run.x + run.width).toBeLessThanOrEqual(bar.x + bar.width + 4)
+  } finally {
+    await page.request.delete(`/api/lists/${id}`)
+  }
+})

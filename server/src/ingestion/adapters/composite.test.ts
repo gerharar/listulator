@@ -48,6 +48,44 @@ describe('composite sources', () => {
     expect(showSpy).not.toHaveBeenCalled()
   })
 
+  describe('tagging what a source brings', () => {
+    const tagged = (tag: string | undefined, items: { title: string; tags?: string[] }[]) =>
+      createCompositeAdapter([
+        {
+          prefixes: ['show'],
+          ...(tag ? { tag } : {}),
+          adapter: {
+            isAvailable: () => true,
+            search: async () => [],
+            expand: async () => ({ items, status: 'ongoing' as const }),
+          },
+        },
+      ])
+
+    it('gives every item of a tagged source that tag, and leaves the status alone', async () => {
+      // A Ghost in the Shell film and its series share an Animation list: the source is what tells them apart.
+      const result = await tagged('tv', [{ title: 'Stand Alone Complex' }]).expand('show:1')
+
+      expect(result.items).toEqual([{ title: 'Stand Alone Complex', tags: ['tv'] }])
+      expect(result.status).toBe('ongoing')
+    })
+
+    it('adds to tags an item already has, without repeating one', async () => {
+      const result = await tagged('tv', [
+        { title: 'A', tags: ['Anime'] },
+        { title: 'B', tags: ['TV'] },
+      ]).expand('show:1')
+
+      expect(result.items.map((item) => item.tags)).toEqual([['Anime', 'tv'], ['TV']])
+    })
+
+    it('changes nothing for a source without a tag', async () => {
+      const result = await tagged(undefined, [{ title: 'A' }]).expand('show:1')
+
+      expect(result.items).toEqual([{ title: 'A' }])
+    })
+  })
+
   it('returns nothing for a ref no source claims', async () => {
     const adapter = createCompositeAdapter([{ prefixes: ['show'], adapter: source('show', []) }])
 

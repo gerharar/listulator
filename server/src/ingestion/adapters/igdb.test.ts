@@ -152,6 +152,74 @@ describe('IGDB search', () => {
   })
 })
 
+describe('IGDB platform tags', () => {
+  const expand = async (platforms: { id: number; abbreviation?: string; name?: string }[] | undefined) => {
+    const { fetchImpl } = router({
+      games: [{ id: 1, name: 'Assassin’s Creed', first_release_date: 1194998400, game_type: 0, platforms }],
+      game_time_to_beats: [],
+    })
+
+    return (await createIgdbAdapter(credentials, fetchImpl).expand('franchise:571')).items[0]!
+  }
+
+  it('asks for each game’s platforms in the same request', async () => {
+    const { fetchImpl } = router({ games: [], game_time_to_beats: [] })
+    await createIgdbAdapter(credentials, fetchImpl).expand('franchise:571')
+
+    const body = vi.mocked(fetchImpl).mock.calls.find(([url]) => url.endsWith('/games'))![1]?.body
+    expect(body).toContain('platforms.abbreviation')
+  })
+
+  it('tags a game with its platform codes, in the platform table’s order', async () => {
+    const game = await expand([
+      { id: 6, abbreviation: 'PC' },
+      { id: 12, abbreviation: 'X360' },
+      { id: 9, abbreviation: 'PS3' },
+    ])
+
+    expect(game.tags).toEqual(['PS3', 'X360', 'PC'])
+  })
+
+  it('maps IGDB’s spellings to the table’s codes', async () => {
+    const game = await expand([
+      { id: 1, abbreviation: 'NGC' },
+      { id: 2, abbreviation: 'Series X|S' },
+      { id: 3, abbreviation: 'WiiU' },
+      { id: 4, abbreviation: 'PS Vita' },
+      { id: 5, abbreviation: 'Game Boy' },
+    ])
+
+    expect(game.tags).toEqual(['VITA', 'XSX', 'GC', 'WIIU', 'GB'])
+  })
+
+  it('keeps a platform the table does not know as its own caps text, after the known ones', async () => {
+    const game = await expand([
+      { id: 80, abbreviation: 'Neo Geo' },
+      { id: 23, abbreviation: 'DC' },
+      { id: 9, abbreviation: 'PS3' },
+    ])
+
+    expect(game.tags).toEqual(['PS3', 'NEO GEO', 'DC'])
+  })
+
+  it('leaves out a platform with no abbreviation, and a repeated one', async () => {
+    const game = await expand([{ id: 99 }, { id: 9, abbreviation: 'PS3' }, { id: 10, abbreviation: 'ps3' }])
+
+    expect(game.tags).toEqual(['PS3'])
+  })
+
+  it('never returns more tags than an item may carry', async () => {
+    const game = await expand(Array.from({ length: 55 }, (_, i) => ({ id: i, abbreviation: `X${i}` })))
+
+    expect(game.tags).toHaveLength(40)
+  })
+
+  it('gives a game IGDB lists on no platform no tags at all', async () => {
+    expect(await expand(undefined)).not.toHaveProperty('tags')
+    expect(await expand([])).not.toHaveProperty('tags')
+  })
+})
+
 describe('IGDB expansion', () => {
   it('expands a franchise to main games with times to beat', async () => {
     const { fetchImpl } = router({ games: GAMES, game_time_to_beats: TIMES })
