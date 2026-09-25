@@ -52,6 +52,11 @@
   gap: 8px;
 }
 
+/* The prototype's language row uses the plain chip with a 6px gap; the others sit 8px apart. */
+.q-settings-row.tight {
+  gap: 6px;
+}
+
 .q-settings-check {
   margin-top: 11px;
   display: flex;

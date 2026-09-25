@@ -93,9 +93,9 @@ export function SettingsScreen({ skin, onSkinChange, store }: SettingsScreenProp
 
           <section>
             <span className="q-kicker">{text.language}</span>
-            <div className="q-settings-row">
+            <div className="q-settings-row tight">
               {LANGUAGES.map((id) => (
-                <ToggleChip key={id} variant="choice" pressed={id === language} onClick={() => pickLanguage(id)}>
+                <ToggleChip key={id} pressed={id === language} onClick={() => pickLanguage(id)}>
                   {text.languages[id]}
                 </ToggleChip>
               ))}

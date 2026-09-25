@@ -100,6 +100,8 @@ test('switching to Русский rewrites Settings at once and is still Russian
   await page.getByRole('button', { name: 'Русский' }).click()
   await expect(page.getByRole('heading', { name: 'Настройки' })).toBeVisible()
   await expect(page.getByRole('heading', { name: 'Settings' })).toHaveCount(0)
+  // The rest of the shell follows too, without Settings having to close first.
+  await expect(page.getByRole('button', { name: 'Настройки', exact: true })).toBeVisible()
 
   await page.reload()
   await expect(page.getByRole('button', { name: 'Настройки', exact: true })).toBeVisible({ timeout: 15_000 })

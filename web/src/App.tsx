@@ -30,7 +30,7 @@ import {
   OverlayManagerProvider,
   useEscLadder,
 } from './components/quantum/overlay/OverlayManagerContext.js'
-import { LanguageProvider } from './locale/LanguageProvider.js'
+import { LanguageProvider, useLanguage } from './locale/LanguageProvider.js'
 import {
   LayerStackProvider,
   useLayerStack,
@@ -182,6 +182,9 @@ interface AppShellBodyProps {
 }
 
 function AppShellBody({ skin, onSkinChange }: AppShellBodyProps) {
+  // Subscribes the whole shell (header, Home) to the language, so a switch in
+  // Settings re-renders them live rather than at the next unrelated render.
+  useLanguage()
   const layerStack = useLayerStack()
   // `Home` is the only thing that fetches the registry (task 10.10) — the
   // still-hosted legacy screens (List detail, New list) need it too, so it
