@@ -11,7 +11,7 @@ afterEach(cleanup)
 const LIST: ListFields = { title: 'Loki', description: 'The trickster', status: 'ongoing' }
 
 function renderPopover(overrides: Partial<Parameters<typeof EditListPopover>[0]> = {}) {
-  const props = { list: LIST, onCommit: vi.fn(), onDiscard: vi.fn(), ...overrides }
+  const props = { list: LIST, itemCount: 7, onCommit: vi.fn(), onDiscard: vi.fn(), ...overrides }
 
   function Harness() {
     const ref = useRef<HTMLButtonElement>(null)
@@ -46,6 +46,12 @@ describe('EditListPopover', () => {
     expect(title().value).toBe('Loki')
     expect(description().value).toBe('The trickster')
     expect(screen.getByRole('button', { name: 'Ongoing' }).getAttribute('aria-pressed')).toBe('true')
+  })
+
+  it('shows how many items the list has on its head row', () => {
+    renderPopover({ itemCount: 1 })
+
+    expect(screen.getByText('1 item')).toBeTruthy()
   })
 
   it('cannot be saved until something changes', () => {

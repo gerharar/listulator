@@ -42,3 +42,6 @@
   width: 30px;
   margin-left: 6px;
 }
+
+/* NEW follows the title group with a little air (prototype: margin-left 2px). */
+.q-item > .q-new { margin-left: 2px; }

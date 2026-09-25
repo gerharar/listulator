@@ -89,14 +89,15 @@ export function ItemRow({
           </span>
           {item.year ? <span className="q-year">({item.year})</span> : null}
         </span>
-        {item.isNew && <NewBadge />}
+        {/* ⓘ and ✎ sit in the title's own group (the prototype's), so they get its 9px gap. */}
+        <IconButton size="row" className="info" label={text.details(item.title)} onClick={act(onInfo)}>
+          <Info width={15} height={15} strokeWidth={1.8} aria-hidden="true" />
+        </IconButton>
+        <IconButton size="row" className="edit" label={text.edit(item.title)} onClick={act(onEdit)}>
+          <Pencil width={15} height={15} strokeWidth={1.8} aria-hidden="true" />
+        </IconButton>
       </span>
-      <IconButton size="row" className="info" label={text.details(item.title)} onClick={act(onInfo)}>
-        <Info width={15} height={15} strokeWidth={1.8} aria-hidden="true" />
-      </IconButton>
-      <IconButton size="row" className="edit" label={text.edit(item.title)} onClick={act(onEdit)}>
-        <Pencil width={15} height={15} strokeWidth={1.8} aria-hidden="true" />
-      </IconButton>
+      {item.isNew && <NewBadge />}
       <span className="spacer" />
       <span className="q-mins" style={{ width: `${minutesWidth}ch` }}>
         {formatDuration(item.timeToConsumeMinutes)}

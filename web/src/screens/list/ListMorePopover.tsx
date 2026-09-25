@@ -2,43 +2,73 @@ import './ListMorePopover.css'
 import { copy } from '../../locale/index.js'
 import { Button } from '../../components/quantum/Button/Button.js'
 import { Popover } from '../../components/quantum/Popover/Popover.js'
+import type { MediaList, ResetPreview } from '../../lib/api.js'
 
-export type MoreMode = 'menu' | 'export' | 'delete'
+export type MoreMode = 'menu' | 'export' | 'reorder' | 'reset' | 'delete'
+
+export type PreviewState =
+  | { state: 'loading' }
+  | { state: 'ready'; data: ResetPreview }
+  | { state: 'failed'; message: string }
 
 export interface ListMorePopoverProps {
   mode: MoreMode
   anchorEl: HTMLElement | null
+  source: MediaList['source']
   title: string
   itemCount: number
   doneCount: number
-  /** Menu: which body to swap in. */
-  onMode: (mode: 'export' | 'delete') => void
+  /** What Reset everything would do, for its confirm sentence. */
+  preview: PreviewState
+  /** Menu: which body to swap in; Edit closes this popover and opens the Edit list one. */
+  onMode: (mode: 'edit' | 'export' | 'reorder' | 'reset' | 'delete') => void
   onDownload: () => void
   onCopy: () => void
+  onSortNow: () => void
+  /** "Reset the order": the same one-off sort as Sort now. */
+  onResetOrder: () => void
+  onResetEverything: () => void
   onDelete: () => void
-  /** Click-away, Esc, or Keep. */
+  /** Click-away, Esc, Keep or Cancel. */
   onDismiss: () => void
 }
 
 /**
- * The ⋯ popover (design: List actions): one object whose body swaps between
- * the menu, Export and Delete while the tail stays on the button that opened
- * it. The menu is the narrow one (240), the modes the list width (320).
- * Delete asks in words and states the cost before the buttons; Undo follows.
+ * The ⋯ popover (design prototype, "List actions"): everything rare about a
+ * list behind one menu — Edit, Export, Reorder, Reset (only where there is a
+ * source to return to) and Delete. One object whose body swaps between the
+ * menu and each mode while the tail stays on the button; the menu is the narrow
+ * one (240), the modes the list width (320). The destructive ones ask in words
+ * and state the cost before the buttons; Undo follows.
  */
 export function ListMorePopover({
   mode,
   anchorEl,
+  source,
   title,
   itemCount,
   doneCount,
+  preview,
   onMode,
   onDownload,
   onCopy,
+  onSortNow,
+  onResetOrder,
+  onResetEverything,
   onDelete,
   onDismiss,
 }: ListMorePopoverProps) {
   const text = copy.quantum.list.moreMenu
+  const order = copy.quantum.list.orderMenu
+
+  const head = (kicker: string) => (
+    <div className="q-pop-head">
+      <span className="q-kicker">{kicker}</span>
+      <span className="q-kicker" style={{ letterSpacing: 0 }}>
+        {text.itemCount(itemCount)}
+      </span>
+    </div>
+  )
 
   return (
     <Popover open anchorEl={anchorEl} onDismiss={onDismiss} width={mode === 'menu' ? 240 : 320}>
@@ -46,7 +76,10 @@ export function ListMorePopover({
         <>
           <span className="q-kicker">{text.kicker}</span>
           <div className="q-pop-menu">
+            <Button onClick={() => onMode('edit')}>{text.edit}</Button>
             <Button onClick={() => onMode('export')}>{text.export}</Button>
+            <Button onClick={() => onMode('reorder')}>{text.reorder}</Button>
+            {source !== 'manual' && <Button onClick={() => onMode('reset')}>{text.reset}</Button>}
             <Button className="warn" onClick={() => onMode('delete')}>
               {text.delete}
             </Button>
@@ -55,12 +88,7 @@ export function ListMorePopover({
       )}
       {mode === 'export' && (
         <>
-          <div className="q-pop-head">
-            <span className="q-kicker">{text.exportKicker}</span>
-            <span className="q-kicker" style={{ letterSpacing: 0 }}>
-              {text.itemCount(itemCount)}
-            </span>
-          </div>
+          {head(text.exportKicker)}
           <span className="q-pop-note">{text.exportNote}</span>
           <div className="q-pop-menu">
             <Button onClick={onDownload}>{text.download}</Button>
@@ -68,14 +96,42 @@ export function ListMorePopover({
           </div>
         </>
       )}
+      {mode === 'reorder' && (
+        <>
+          {head(text.reorderKicker)}
+          <span className="q-pop-q">{text.reorderQuestion}</span>
+          <span className="q-pop-note">{text.reorderHint}</span>
+          <span className="q-pop-note">{text.reorderNote}</span>
+          <div className="q-pop-actions">
+            <Button variant="quiet" onClick={onDismiss}>
+              {text.cancel}
+            </Button>
+            <Button variant="primary" onClick={onSortNow}>
+              {text.sortNow}
+            </Button>
+          </div>
+        </>
+      )}
+      {mode === 'reset' && (
+        <>
+          {head(order.kicker)}
+          <span className="q-pop-q">{order.resetQuestion}</span>
+          <span className="q-pop-note">{leadFor(source)}</span>
+          <span className="q-pop-note">{cost(preview)}</span>
+          <span className="q-pop-note">{order.undoNote}</span>
+          <div className="q-pop-actions">
+            <Button variant="quiet" onClick={onResetOrder}>
+              {order.resetOrder}
+            </Button>
+            <Button variant="primary" disabled={preview.state === 'loading'} onClick={onResetEverything}>
+              {order.resetEverything}
+            </Button>
+          </div>
+        </>
+      )}
       {mode === 'delete' && (
         <>
-          <div className="q-pop-head">
-            <span className="q-kicker">{text.deleteKicker}</span>
-            <span className="q-kicker" style={{ letterSpacing: 0 }}>
-              {text.itemCount(itemCount)}
-            </span>
-          </div>
+          {head(text.deleteKicker)}
           <span className="q-pop-q">{text.deleteQuestion(title)}</span>
           <span className="q-pop-note">{text.deleteNote(itemCount, doneCount)}</span>
           <div className="q-pop-actions">
@@ -90,4 +146,25 @@ export function ListMorePopover({
       )}
     </Popover>
   )
+}
+
+function leadFor(source: MediaList['source']): string {
+  const lead = copy.quantum.list.orderMenu.resetLead
+
+  return source === 'canonical' ? lead.canonical : source === 'file' ? lead.file : lead.api
+}
+
+function cost(preview: PreviewState): string {
+  const text = copy.quantum.list.orderMenu
+  if (preview.state === 'loading') return text.computing
+  if (preview.state === 'failed') return text.previewFailed(preview.message)
+
+  const { removed, restored, doneCleared } = preview.data
+  const parts = [
+    ...(removed > 0 ? [text.removed(removed)] : []),
+    ...(restored > 0 ? [text.restored(restored)] : []),
+    ...(doneCleared > 0 ? [text.cleared(doneCleared)] : []),
+  ]
+
+  return parts.length > 0 ? text.joinCost(parts) : text.noCost
 }

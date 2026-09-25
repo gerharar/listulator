@@ -409,9 +409,7 @@ export const en = {
       /** The ✎ popover beside the name (10.22). */
       /** The Order popover: Sort, and Reset to the source (10.22). */
       orderMenu: {
-        kicker: 'Order list',
-        sort: 'Sort chronologically',
-        reset: 'Reset to the source',
+        kicker: 'Reset list',
         resetQuestion: 'Reset this list to the source?',
         /** Where the list goes back to, by where it came from. */
         resetLead: {
@@ -437,7 +435,7 @@ export const en = {
         undoNote: 'Undo is offered for 8 seconds.',
         resetOrder: 'Reset the order',
         resetEverything: 'Reset everything',
-        sorted: 'Sorted chronologically.',
+        sorted: 'Sorted by date — groups moved as blocks.',
         orderReset: 'Order reset.',
         resetDone: 'Reset to the source — order, name, description and flag.',
         undone: 'Reset undone',
@@ -449,13 +447,23 @@ export const en = {
       /** The ⋯ menu (10.22). */
       moreMenu: {
         kicker: 'List actions',
-        export: 'Export list',
-        delete: 'Delete list',
+        edit: 'Edit List',
+        export: 'Export List',
+        reorder: 'Reorder List',
+        reset: 'Reset List',
+        delete: 'Delete List',
         exportKicker: 'Export list',
         exportNote:
           'Save this list in YAML format. Your progress is never included. Useful for canonical list submissions.',
-        download: 'Download file',
-        copy: 'Copy to clipboard',
+        download: 'Download File',
+        copy: 'Copy To Clipboard',
+        reorderKicker: 'Reorder list',
+        reorderQuestion: 'Sort this list chronologically?',
+        reorderHint:
+          'Groups move as blocks, by their earliest item. Nothing is dissolved, nothing inside a group is shuffled.',
+        reorderNote: 'A one-off action — the list does not stay sorted. Undo is offered for 8 seconds.',
+        cancel: 'Cancel',
+        sortNow: 'Sort now',
         deleteKicker: 'Delete list',
         deleteQuestion: (title: string): string => `Delete “${title}”?`,
         deleteNote: (items: number, done: number): string =>
@@ -469,7 +477,7 @@ export const en = {
         saved: (fileName: string, items: number): string =>
           `Saved ${fileName} — ${items} ${selectPlural(items, 'en', { one: 'item', other: 'items' })}.`,
         copied: 'YAML copied to the clipboard.',
-        copyFailed: 'Could not copy — try Download instead.',
+        copyFailed: 'Could not copy — try Download File instead.',
         exportFailed: 'Could not export this list',
         deleted: (title: string): string => `Deleted “${title}”.`,
         restored: (title: string): string => `Restored ${title}`,
@@ -500,6 +508,9 @@ export const en = {
         /** The button's label when the Home banner sent you here with an update already known. */
         updateList: 'Update list',
         checkFailed: 'Could not check for updates',
+        nothingNew: 'No new items upstream.',
+        /** The check button's name when the Home banner sent us here with news. */
+        checkLabelWithNews: 'Check for updates — an update is available',
         addFailed: 'Could not add them',
         kicker: 'Updates',
         upToDate: (upstreamCount: number): string =>

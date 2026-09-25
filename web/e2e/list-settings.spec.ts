@@ -19,7 +19,8 @@ test('edit the list, then export it', async ({ page, context, browserName }) => 
     await page.locator('.q-home-row', { hasText: title }).click()
     await expect(page.getByText('Alpha', { exact: true })).toBeVisible()
 
-    await page.getByRole('button', { name: 'Edit list' }).click()
+    await page.getByRole('button', { name: 'More' }).click()
+    await page.locator('.q-pop').getByRole('button', { name: 'Edit List' }).click()
     const pop = page.locator('.q-pop')
     await pop.getByLabel('Title').fill(`${title} renamed`)
     await pop.getByLabel(/Description/).fill('A description')
@@ -32,9 +33,9 @@ test('edit the list, then export it', async ({ page, context, browserName }) => 
     expect(saved).toMatchObject({ title: `${title} renamed`, description: 'A description', status: 'ongoing' })
 
     await page.getByRole('button', { name: 'More' }).click()
-    await page.locator('.q-pop').getByRole('button', { name: 'Export list' }).click()
+    await page.locator('.q-pop').getByRole('button', { name: 'Export List' }).click()
     const download = page.waitForEvent('download')
-    await page.locator('.q-pop').getByRole('button', { name: 'Download file' }).click()
+    await page.locator('.q-pop').getByRole('button', { name: 'Download File' }).click()
     const file = await download
     expect(file.suggestedFilename()).toBe(`${title} renamed.yaml`)
     const fs = await import('node:fs/promises')

@@ -1,6 +1,6 @@
 import './ListScreen.css'
 import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react'
-import { EllipsisVertical, Pencil } from 'lucide-react'
+import { EllipsisVertical, RefreshCw } from 'lucide-react'
 import { formatDuration } from '../../formatDuration.js'
 import { api, type ListGroup, type ListItem, type MediaListDetail, type MediaType } from '../../lib/api.js'
 import { downloadText } from '../../lib/downloadText.js'
@@ -9,7 +9,7 @@ import { notifyListsChanged } from '../../lib/listsChanged.js'
 import { getPreferencesStore } from '../../lib/preferences/store.js'
 import { categoryLabel, copy } from '../../locale/index.js'
 import { Banner } from '../../components/quantum/Banner/Banner.js'
-import { Button, IconButton } from '../../components/quantum/Button/Button.js'
+import { IconButton } from '../../components/quantum/Button/Button.js'
 import { ErrorBlock } from '../../components/quantum/ErrorBlock/ErrorBlock.js'
 import { ErrorStrip } from '../../components/quantum/ErrorStrip/ErrorStrip.js'
 import { HeaderPlate } from '../../components/quantum/HeaderPlate/HeaderPlate.js'
@@ -34,8 +34,7 @@ import { invertListPatch, type ListFields, type ListPatch } from './listActions.
 import { ItemEditPopover } from './ItemEditPopover.js'
 import { ItemInfoCard } from './ItemInfoCard.js'
 import { ItemRow } from './ItemRow.js'
-import { ListMorePopover, type MoreMode } from './ListMorePopover.js'
-import { OrderPopover, type OrderMode, type PreviewState } from './OrderPopover.js'
+import { ListMorePopover, type MoreMode, type PreviewState } from './ListMorePopover.js'
 import { buildSpine, listTotals } from './spine.js'
 import { UpdatesCard } from './UpdatesCard.js'
 
@@ -202,7 +201,6 @@ function ListView({
   })
   const [editingList, setEditingList] = useState<HTMLElement | null>(null)
   const [more, setMore] = useState<{ anchor: HTMLElement; mode: MoreMode } | null>(null)
-  const [order, setOrder] = useState<{ anchor: HTMLElement; mode: OrderMode } | null>(null)
   const [preview, setPreview] = useState<PreviewState>({ state: 'loading' })
   const previewRequest = useRef(0)
   const pulseTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
@@ -381,7 +379,7 @@ function ListView({
 
   /** Sort chronologically: one in-place re-sort, undone by putting the old positions back. */
   async function sortNow(message: string) {
-    setOrder(null)
+    setMore(null)
     setError(null)
 
     try {
@@ -405,8 +403,8 @@ function ListView({
 
   /** Opens the Reset question and works out its cost while it is on screen. */
   function openReset() {
-    if (!order) return
-    setOrder({ ...order, mode: 'reset' })
+    if (!more) return
+    setMore({ ...more, mode: 'reset' })
     setPreview({ state: 'loading' })
     previewRequest.current += 1
     const mine = previewRequest.current
@@ -424,9 +422,9 @@ function ListView({
   }
 
   async function resetEverything() {
-    if (!order) return
-    const anchor = order.anchor
-    setOrder(null)
+    if (!more) return
+    const anchor = more.anchor
+    setMore(null)
     setError(null)
 
     try {
@@ -565,7 +563,13 @@ function ListView({
 
     try {
       const result = await api.checkForUpdates(listId, includeDismissed)
-      setUpdates({ anchor, result, includeDismissed })
+      // Nothing at all to say is a toast (prototype: "No new items upstream."); anything else needs the card.
+      if (result.newItems.length === 0 && result.dismissedCount === 0 && !includeDismissed) {
+        setUpdates(null)
+        showToast({ text: updatesText.nothingNew })
+      } else {
+        setUpdates({ anchor, result, includeDismissed })
+      }
     } catch (cause) {
       setUpdates(null)
       setError(cause instanceof Error ? cause.message : updatesText.checkFailed)
@@ -646,9 +650,6 @@ function ListView({
             <h1 className="q-list-title">
               {meta.title}
               <StatusChip status={meta.status} />
-              <IconButton label={text.editList} onClick={(event) => setEditingList(event.currentTarget)}>
-                <Pencil width={15} height={15} strokeWidth={1.9} aria-hidden="true" />
-              </IconButton>
             </h1>
             {meta.description && <p className="q-list-description">{meta.description}</p>}
             <ProgressSentence
@@ -662,22 +663,20 @@ function ListView({
           <div className="q-list-actions">
             {/* Only a list built from a source has anything to check against. */}
             {loaded.externalRef && (
-              <Button
-                size="sm"
+              <IconButton
+                size="list"
+                className="q-check-btn"
+                label={updateAvailable ? updatesText.checkLabelWithNews : text.checkForUpdates}
                 disabled={checking}
                 onClick={(event) => void checkForUpdates(event.currentTarget, updates?.includeDismissed ?? false)}
               >
-                {checking
-                  ? updatesText.checking
-                  : updateAvailable
-                    ? updatesText.updateList
-                    : text.checkForUpdates}
-              </Button>
+                <span className={checking ? 'q-spin' : undefined} style={{ display: 'flex' }}>
+                  <RefreshCw width={16} height={16} strokeWidth={1.9} aria-hidden="true" />
+                </span>
+                {updateAvailable && <span className="q-update-dot" aria-hidden="true" />}
+              </IconButton>
             )}
-            <Button size="sm" onClick={(event) => setOrder({ anchor: event.currentTarget, mode: 'menu' })}>
-              {text.order}
-            </Button>
-            <IconButton label={text.more} onClick={(event) => setMore({ anchor: event.currentTarget, mode: 'menu' })}>
+            <IconButton size="list" label={text.more} onClick={(event) => setMore({ anchor: event.currentTarget, mode: 'menu' })}>
               <EllipsisVertical width={17} height={17} strokeWidth={1.9} aria-hidden="true" />
             </IconButton>
           </div>
@@ -722,29 +721,27 @@ function ListView({
         <AddItemForm groups={groupNames} defaultMinutes={defaultMinutes} onAdd={addItem} />
       </div>
 
-      {order && (
-        <OrderPopover
-          mode={order.mode}
-          anchorEl={order.anchor}
-          source={loaded.source}
-          preview={preview}
-          onSort={() => void sortNow(orderText.sorted)}
-          onOpenReset={openReset}
-          onResetOrder={() => void sortNow(orderText.orderReset)}
-          onResetEverything={() => void resetEverything()}
-          onDismiss={() => setOrder(null)}
-        />
-      )}
       {more && (
         <ListMorePopover
           mode={more.mode}
           anchorEl={more.anchor}
+          source={loaded.source}
           title={meta.title}
           itemCount={items.length}
           doneCount={totals.done}
-          onMode={(mode) => setMore({ ...more, mode })}
+          preview={preview}
+          onMode={(mode) => {
+            if (mode === 'edit') {
+              setEditingList(more.anchor)
+              setMore(null)
+            } else if (mode === 'reset') openReset()
+            else setMore({ ...more, mode })
+          }}
           onDownload={downloadExport}
           onCopy={() => void copyExport()}
+          onSortNow={() => void sortNow(orderText.sorted)}
+          onResetOrder={() => void sortNow(orderText.orderReset)}
+          onResetEverything={() => void resetEverything()}
           onDelete={() => void deleteThisList()}
           onDismiss={() => setMore(null)}
         />
@@ -752,6 +749,7 @@ function ListView({
       {editingList && (
         <EditListPopover
           list={meta}
+          itemCount={items.length}
           anchorEl={editingList}
           onCommit={(patch, via) => void saveListEdit(patch, via)}
           onDiscard={() => setEditingList(null)}

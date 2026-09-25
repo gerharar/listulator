@@ -83,3 +83,11 @@
   margin: 22px 4px;
   color: var(--ink2);
 }
+
+/* The refresh icon (prototype: 36x34, spins while it checks) and the dot that says the Home banner sent us here with news. */
+.q-list-actions { gap: 8px; }
+.q-check-btn { position: relative; }
+.q-check-btn .q-spin { animation: q-spin 0.7s linear infinite; }
+@keyframes q-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .q-check-btn .q-spin { animation: none; } }
+.q-update-dot { position: absolute; top: 5px; right: 5px; width: 8px; height: 8px; border-radius: 50%; background: var(--accent); }

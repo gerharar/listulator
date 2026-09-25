@@ -126,6 +126,13 @@ function renderScreen(listId: string, updateAvailable = false) {
   )
 }
 
+/** Opens the ⋯ menu and picks an item from it (the list's rarer actions all live there). */
+async function pickFromMenu(name: string) {
+  fireEvent.click(screen.getByRole('button', { name: 'More' }))
+  await waitFor(() => expect(document.querySelector('.q-pop')).not.toBeNull())
+  fireEvent.click(within(document.querySelector('.q-pop') as HTMLElement).getByRole('button', { name }))
+}
+
 async function open(list: MediaListDetail, updateAvailable = false) {
   vi.mocked(api.list).mockResolvedValue(list)
   renderScreen(list.id, updateAvailable)
@@ -148,6 +155,14 @@ describe('ListScreen header', () => {
     expect(screen.getByText('The trickster')).toBeTruthy()
     expect(screen.getByText('1/3 (33%)')).toBeTruthy()
     expect(screen.getByText('2h left')).toBeTruthy()
+  })
+
+  it('has no pencil beside the name: editing the list lives in the ⋯ menu (prototype)', async () => {
+    await open(detail({ items: [item()] }))
+
+    expect(screen.queryByRole('button', { name: 'Edit list' })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Order' })).toBeNull()
+    expect(screen.getByRole('button', { name: 'More' })).toBeTruthy()
   })
 
   it('says "Done for now" when every item is done on an ongoing list', async () => {
@@ -665,10 +680,12 @@ describe('ListScreen updates (task 10.25)', () => {
 
       fireEvent.click(screen.getByRole('button', { name: 'Check for updates' }))
 
-      const busy = await screen.findByRole('button', { name: 'Checking…' })
-      expect((busy as HTMLButtonElement).disabled).toBe(true)
+      const busy = screen.getByRole('button', { name: /Check for updates/ }) as HTMLButtonElement
+      await waitFor(() => expect(busy.disabled).toBe(true))
+      expect(busy.querySelector('.q-spin')).not.toBeNull()
       await act(async () => finish(result([])))
-      expect(await screen.findByText(/Up to date/)).toBeTruthy()
+      await waitFor(() => expect(busy.disabled).toBe(false))
+      expect(busy.querySelector('.q-spin')).toBeNull()
     })
 
     it('adds what was found as arrivals, then shows them as NEW', async () => {
@@ -705,7 +722,7 @@ describe('ListScreen updates (task 10.25)', () => {
     })
 
     it('runs the check again, including deleted entries, when the box is ticked', async () => {
-      vi.mocked(api.checkForUpdates).mockResolvedValue(result([]))
+      vi.mocked(api.checkForUpdates).mockResolvedValue(result([], { dismissedCount: 2 }))
       await open(sourced())
       fireEvent.click(screen.getByRole('button', { name: 'Check for updates' }))
       await screen.findByText(/Up to date/)
@@ -713,6 +730,25 @@ describe('ListScreen updates (task 10.25)', () => {
       fireEvent.click(screen.getByRole('checkbox', { name: 'Re-add deleted entries' }))
 
       await waitFor(() => expect(api.checkForUpdates).toHaveBeenLastCalledWith('L1', true))
+    })
+
+    it('answers "No new items upstream." with a toast, not a card, when there is nothing at all to say', async () => {
+      vi.mocked(api.checkForUpdates).mockResolvedValue(result([]))
+      await open(sourced())
+
+      fireEvent.click(screen.getByRole('button', { name: 'Check for updates' }))
+
+      await waitFor(() => expect(document.querySelector('.q-toast')?.textContent).toMatch(/No new items upstream\./))
+      expect(document.querySelector('.q-pop')).toBeNull()
+    })
+
+    it('is an icon button: the refresh glyph, named for what it does', async () => {
+      await open(sourced())
+
+      const button = screen.getByRole('button', { name: 'Check for updates' })
+      expect(button.querySelector('svg')).not.toBeNull()
+      expect(button.textContent).toBe('')
+      expect(button.querySelector('.q-update-dot')).toBeNull()
     })
 
     it('shows an error, not a card, when the check fails', async () => {
@@ -740,11 +776,12 @@ describe('ListScreen updates (task 10.25)', () => {
   })
 
   describe('arriving from the Home banner', () => {
-    it('calls the button "Update list", without checking by itself', async () => {
+    it('marks the check button as having news, without checking by itself', async () => {
       await open(sourced(), true)
 
-      expect(screen.getByRole('button', { name: 'Update list' })).toBeTruthy()
-      expect(screen.queryByRole('button', { name: 'Check for updates' })).toBeNull()
+      const button = screen.getByRole('button', { name: /Check for updates/ })
+      expect(button.querySelector('.q-update-dot')).not.toBeNull()
+      expect(button.getAttribute('aria-label')).toMatch(/available/i)
       expect(api.checkForUpdates).not.toHaveBeenCalled()
     })
   })
@@ -753,7 +790,7 @@ describe('ListScreen updates (task 10.25)', () => {
 describe('ListScreen edit list (task 10.22)', () => {
   const openEditor = async (list = detail({ items: [item()] })) => {
     await open(list)
-    fireEvent.click(screen.getByRole('button', { name: 'Edit list' }))
+    await pickFromMenu('Edit List')
     await waitFor(() => expect(document.querySelector('.q-pop')).not.toBeNull())
     return within(document.querySelector('.q-pop') as HTMLElement).getByLabelText('Title')
   }
@@ -765,6 +802,12 @@ describe('ListScreen edit list (task 10.22)', () => {
 
     expect(title.value).toBe('Loki')
     expect((pop().getByLabelText(/Description/) as HTMLTextAreaElement).value).toBe('The trickster')
+  })
+
+  it('shows how many items the list has, as the other list popovers do', async () => {
+    await openEditor(detail({ items: [item(), item(), item()] }))
+
+    expect(pop().getByText('3 items')).toBeTruthy()
   })
 
   it('saves what changed, and the header shows it at once', async () => {
@@ -891,8 +934,8 @@ describe('ListScreen more menu (task 10.22)', () => {
       })
       await openMenu()
 
-      fireEvent.click(pop().getByRole('button', { name: 'Export list' }))
-      fireEvent.click(pop().getByRole('button', { name: 'Download file' }))
+      fireEvent.click(pop().getByRole('button', { name: 'Export List' }))
+      fireEvent.click(pop().getByRole('button', { name: 'Download File' }))
 
       expect(names).toEqual(['Loki.yaml'])
       const text = await blobs[0]!.text()
@@ -909,16 +952,14 @@ describe('ListScreen more menu (task 10.22)', () => {
       const written: string[] = []
       Object.assign(navigator, { clipboard: { writeText: vi.fn(async (t: string) => void written.push(t)) } })
       await open(two())
-      fireEvent.click(screen.getByRole('button', { name: 'Edit list' }))
+      await pickFromMenu('Edit List')
       await waitFor(() => expect(document.querySelector('.q-pop')).not.toBeNull())
       fireEvent.change(pop().getByLabelText('Title'), { target: { value: 'Renamed' } })
       fireEvent.click(pop().getByRole('button', { name: 'Save' }))
       await screen.findByRole('heading', { name: /^Renamed/ })
 
-      fireEvent.click(screen.getByRole('button', { name: 'More' }))
-      await waitFor(() => expect(document.querySelector('.q-pop')).not.toBeNull())
-      fireEvent.click(pop().getByRole('button', { name: 'Export list' }))
-      fireEvent.click(pop().getByRole('button', { name: 'Copy to clipboard' }))
+      await pickFromMenu('Export List')
+      fireEvent.click(pop().getByRole('button', { name: 'Copy To Clipboard' }))
 
       await waitFor(() => expect(written).toHaveLength(1))
       expect(written[0]).toMatch(/^title: Renamed$/m)
@@ -931,10 +972,10 @@ describe('ListScreen more menu (task 10.22)', () => {
       Object.assign(navigator, { clipboard: { writeText: vi.fn(async () => { throw new Error('denied') }) } })
       await openMenu()
 
-      fireEvent.click(pop().getByRole('button', { name: 'Export list' }))
-      fireEvent.click(pop().getByRole('button', { name: 'Copy to clipboard' }))
+      fireEvent.click(pop().getByRole('button', { name: 'Export List' }))
+      fireEvent.click(pop().getByRole('button', { name: 'Copy To Clipboard' }))
 
-      expect(await screen.findAllByText('Could not copy — try Download instead.')).not.toHaveLength(0)
+      expect(await screen.findAllByText('Could not copy — try Download File instead.')).not.toHaveLength(0)
     })
   })
 
@@ -944,7 +985,7 @@ describe('ListScreen more menu (task 10.22)', () => {
     it('asks first, with the cost, and does nothing until told to', async () => {
       await openMenu()
 
-      fireEvent.click(pop().getByRole('button', { name: 'Delete list' }))
+      fireEvent.click(pop().getByRole('button', { name: 'Delete List' }))
 
       expect(pop().getByText('Delete “Loki”?')).toBeTruthy()
       expect(pop().getByText('2 items and 1 marked done go with it. Undo is offered for 8 seconds.')).toBeTruthy()
@@ -953,7 +994,7 @@ describe('ListScreen more menu (task 10.22)', () => {
 
     it('Keep leaves the list alone', async () => {
       await openMenu()
-      fireEvent.click(pop().getByRole('button', { name: 'Delete list' }))
+      fireEvent.click(pop().getByRole('button', { name: 'Delete List' }))
 
       fireEvent.click(pop().getByRole('button', { name: 'Keep' }))
 
@@ -965,7 +1006,7 @@ describe('ListScreen more menu (task 10.22)', () => {
     it('deletes, leaves the screen, and offers Undo', async () => {
       vi.mocked(api.deleteList).mockResolvedValue(restore as never)
       await openMenu()
-      fireEvent.click(pop().getByRole('button', { name: 'Delete list' }))
+      fireEvent.click(pop().getByRole('button', { name: 'Delete List' }))
 
       fireEvent.click(pop().getByRole('button', { name: 'Delete list' }))
 
@@ -982,7 +1023,7 @@ describe('ListScreen more menu (task 10.22)', () => {
       const heard = vi.fn()
       const off = subscribeListsChanged(heard)
       await openMenu()
-      fireEvent.click(pop().getByRole('button', { name: 'Delete list' }))
+      fireEvent.click(pop().getByRole('button', { name: 'Delete List' }))
       fireEvent.click(pop().getByRole('button', { name: 'Delete list' }))
       await waitFor(() => expect(onLeave).toHaveBeenCalled())
 
@@ -996,7 +1037,7 @@ describe('ListScreen more menu (task 10.22)', () => {
     it('says so, and stays, when the delete fails', async () => {
       vi.mocked(api.deleteList).mockRejectedValue(new Error('no'))
       await openMenu()
-      fireEvent.click(pop().getByRole('button', { name: 'Delete list' }))
+      fireEvent.click(pop().getByRole('button', { name: 'Delete List' }))
 
       fireEvent.click(pop().getByRole('button', { name: 'Delete list' }))
 
@@ -1008,7 +1049,7 @@ describe('ListScreen more menu (task 10.22)', () => {
       vi.mocked(api.deleteList).mockResolvedValue(restore as never)
       vi.mocked(api.restoreList).mockRejectedValue(new Error('exists'))
       await openMenu()
-      fireEvent.click(pop().getByRole('button', { name: 'Delete list' }))
+      fireEvent.click(pop().getByRole('button', { name: 'Delete List' }))
       fireEvent.click(pop().getByRole('button', { name: 'Delete list' }))
       await waitFor(() => expect(onLeave).toHaveBeenCalled())
 
@@ -1031,8 +1072,13 @@ describe('ListScreen order menu (task 10.22)', () => {
   const pop = () => within(document.querySelector('.q-pop') as HTMLElement)
   const openOrder = async (list = sourced()) => {
     await open(list)
-    fireEvent.click(screen.getByRole('button', { name: 'Order' }))
+    fireEvent.click(screen.getByRole('button', { name: 'More' }))
     await waitFor(() => expect(document.querySelector('.q-pop')).not.toBeNull())
+  }
+  /** Reorder List asks first (prototype), then Sort now does it. */
+  const sortNow = () => {
+    fireEvent.click(pop().getByRole('button', { name: 'Reorder List' }))
+    fireEvent.click(pop().getByRole('button', { name: 'Sort now' }))
   }
   const rowTitles = () => Array.from(document.querySelectorAll('.q-item .title')).map((n) => n.textContent)
   const undoOnToast = () =>
@@ -1046,12 +1092,12 @@ describe('ListScreen order menu (task 10.22)', () => {
         sourced({ items: [item({ id: 'b', title: 'Beta', orderIndex: 0 }), item({ id: 'a', title: 'Alpha', orderIndex: 1 })] }),
       )
 
-      fireEvent.click(pop().getByRole('button', { name: 'Sort chronologically' }))
+      sortNow()
 
       await waitFor(() => expect(rowTitles()).toEqual(['Beta', 'Alpha']))
       expect(api.sortList).toHaveBeenCalledWith('L1')
       expect(document.querySelector('.q-pop')).toBeNull()
-      expect(document.querySelector('.q-toast')!.textContent).toMatch(/Sorted chronologically/)
+      expect(document.querySelector('.q-toast')!.textContent).toMatch(/Sorted by date/)
     })
 
     it('Undo posts back the payload the sort handed over, and shows the old order', async () => {
@@ -1062,7 +1108,7 @@ describe('ListScreen order menu (task 10.22)', () => {
       vi.mocked(api.list).mockResolvedValue(
         sourced({ items: [item({ id: 'b', title: 'Beta', orderIndex: 0 }), item({ id: 'a', title: 'Alpha', orderIndex: 1 })] }),
       )
-      fireEvent.click(pop().getByRole('button', { name: 'Sort chronologically' }))
+      sortNow()
       await waitFor(() => expect(rowTitles()).toEqual(['Beta', 'Alpha']))
       vi.mocked(api.list).mockResolvedValue(sourced())
 
@@ -1076,7 +1122,7 @@ describe('ListScreen order menu (task 10.22)', () => {
       vi.mocked(api.sortList).mockRejectedValue(new Error('no'))
       await openOrder()
 
-      fireEvent.click(pop().getByRole('button', { name: 'Sort chronologically' }))
+      sortNow()
 
       expect(await screen.findByText('Could not sort this list')).toBeTruthy()
       expect(rowTitles()).toEqual(['Alpha', 'Beta'])
@@ -1093,13 +1139,13 @@ describe('ListScreen order menu (task 10.22)', () => {
     const preview = { removed: 3, restored: 1, doneCleared: 12, followUpCheck: true }
     const openReset = async (list = sourced()) => {
       await openOrder(list)
-      fireEvent.click(pop().getByRole('button', { name: 'Reset to the source' }))
+      fireEvent.click(pop().getByRole('button', { name: 'Reset List' }))
     }
 
     it('is not offered on a hand-made list', async () => {
       await openOrder(detail({ source: 'manual', items: [item()] }))
 
-      expect(pop().queryByRole('button', { name: 'Reset to the source' })).toBeNull()
+      expect(pop().queryByRole('button', { name: 'Reset List' })).toBeNull()
     })
 
     it('works out the cost first, and says it in words before any button is pressed', async () => {
@@ -1119,9 +1165,9 @@ describe('ListScreen order menu (task 10.22)', () => {
         .mockResolvedValueOnce({ removed: 5, restored: 0, doneCleared: 0, followUpCheck: true })
       await openReset()
       fireEvent.click(document.querySelector('.q-catcher')!)
-      fireEvent.click(screen.getByRole('button', { name: 'Order' }))
+      fireEvent.click(screen.getByRole('button', { name: 'More' }))
       await waitFor(() => expect(document.querySelector('.q-pop')).not.toBeNull())
-      fireEvent.click(pop().getByRole('button', { name: 'Reset to the source' }))
+      fireEvent.click(pop().getByRole('button', { name: 'Reset List' }))
       await pop().findByText(/5 items you added will be removed/)
 
       await act(async () => finishFirst({ removed: 99, restored: 0, doneCleared: 0, followUpCheck: true }))

@@ -24,16 +24,17 @@ test('sort, reset to the source, and undo both', async ({ page }) => {
     await expect(page.getByText('Newer', { exact: true })).toBeVisible()
 
     // Sort chronologically: at once, with Undo.
-    await page.getByRole('button', { name: 'Order', exact: true }).click()
-    await page.locator('.q-pop').getByRole('button', { name: 'Sort chronologically' }).click()
-    await expect(page.locator('.q-toast')).toContainText('Sorted chronologically')
+    await page.getByRole('button', { name: 'More' }).click()
+    await page.locator('.q-pop').getByRole('button', { name: 'Reorder List' }).click()
+    await page.locator('.q-pop').getByRole('button', { name: 'Sort now' }).click()
+    await expect(page.locator('.q-toast')).toContainText('Sorted by date')
     expect(await titles()).toEqual(['Older', 'Newer', 'Mine'])
     await page.locator('.q-toast').getByRole('button', { name: 'Undo' }).click()
     await expect.poll(titles).toEqual(['Newer', 'Older', 'Mine'])
 
     // Reset to the source: the cost first, in words.
-    await page.getByRole('button', { name: 'Order', exact: true }).click()
-    await page.locator('.q-pop').getByRole('button', { name: 'Reset to the source' }).click()
+    await page.getByRole('button', { name: 'More' }).click()
+    await page.locator('.q-pop').getByRole('button', { name: 'Reset List' }).click()
     await expect(page.getByText('1 item you added will be removed and 1 done mark will be cleared.')).toBeVisible()
     await page.locator('.q-pop').getByRole('button', { name: 'Reset everything' }).click()
     await expect(page.getByText('Mine', { exact: true })).toBeHidden()

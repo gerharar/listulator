@@ -33,7 +33,7 @@ test('deleting a list never triggers a native dialog, only the in-app popover �
     await expect(page.getByRole('heading', { name: new RegExp(title) })).toBeVisible()
 
     await page.getByRole('button', { name: 'More' }).click()
-    await page.locator('.q-pop').getByRole('button', { name: 'Delete list' }).click()
+    await page.locator('.q-pop').getByRole('button', { name: 'Delete List' }).click()
     await expect(page.getByText(`Delete “${title}”?`)).toBeVisible()
     await expect(page.getByText('1 item and 0 marked done go with it. Undo is offered for 8 seconds.')).toBeVisible()
     await page.locator('.q-pop').getByRole('button', { name: 'Delete list' }).click()

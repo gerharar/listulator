@@ -183,4 +183,20 @@ describe('ItemRow', () => {
     renderRow()
     expect(screen.queryByText('NEW')).toBeNull()
   })
+
+  it('keeps ⓘ and ✎ inside the title’s own group, so they get its gap and do not touch the text', () => {
+    renderRow({ item: { ...ITEM, isNew: true } })
+
+    const body = document.querySelector('.q-item .body')!
+    expect(body.querySelector('button.info')).not.toBeNull()
+    expect(body.querySelector('button.edit')).not.toBeNull()
+  })
+
+  it('puts the NEW mark after that group, not inside it', () => {
+    renderRow({ item: { ...ITEM, isNew: true } })
+
+    const body = document.querySelector('.q-item .body')!
+    expect(body.querySelector('.q-new')).toBeNull()
+    expect(body.nextElementSibling?.classList.contains('q-new')).toBe(true)
+  })
 })

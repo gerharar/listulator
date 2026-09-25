@@ -42,7 +42,7 @@ test('the Home banner opens the list, Add brings NEW items, Mark all seen clears
 
     // Nothing was checked on arrival; the button only says an update is known.
     await expect(page.getByText('Alpha', { exact: true })).toBeVisible()
-    await page.getByRole('button', { name: 'Update list' }).click()
+    await page.getByRole('button', { name: /Check for updates/ }).click()
     await page.getByRole('button', { name: 'Add 2 to this list' }).click()
 
     await expect(page.getByText('Beta', { exact: true })).toBeVisible()
