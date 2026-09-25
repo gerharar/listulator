@@ -80,6 +80,16 @@ describe('AddItemForm', () => {
     await waitFor(() => expect(onAdd).toHaveBeenCalledWith({ title: 'X', minutes: null, group: 'Season 3' }))
   })
 
+  it('trims the group name it is given', async () => {
+    const { onAdd } = renderForm()
+
+    fireEvent.change(title(), { target: { value: 'X' } })
+    fireEvent.change(group(), { target: { value: '  Season 3  ' } })
+    fireEvent.click(addButton())
+
+    await waitFor(() => expect(onAdd).toHaveBeenCalledWith({ title: 'X', minutes: null, group: 'Season 3' }))
+  })
+
   it('will not add with minutes that are not a whole number', () => {
     renderForm()
     fireEvent.change(title(), { target: { value: 'X' } })
