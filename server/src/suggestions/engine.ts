@@ -1,6 +1,13 @@
 import type { ListWithStats } from '../catalog/repository.js'
 import type { ListItem } from '../db/schema.js'
-import { FACTORS, type FactorType, type Strategy } from './strategy.js'
+import {
+  FACTORS,
+  ITEM_FACTORS,
+  StrategyError,
+  type FactorType,
+  type ItemFactorType,
+  type Strategy,
+} from './strategy.js'
 
 export interface Suggestion {
   list: ListWithStats
@@ -20,6 +27,12 @@ export interface RankOptions {
   candidates: ListWithStats[]
   /** Unconsumed items by list id, in order; the first is the next thing to do. */
   nextItems: Map<string, ListItem | undefined>
+  /**
+   * Every unconsumed item by list id, in order. Only an item strategy (Just One
+   * Fix) reads it, and it must be given one: the next item alone cannot say which
+   * item is shortest.
+   */
+  unconsumed?: Map<string, ListItem[]>
   /** Excluded for the `other_lists*` scopes — the list the user is tired of. */
   currentListId?: string
   now?: Date
@@ -57,7 +70,88 @@ function normalize(values: number[], noiseFloor: number): number[] {
   return values.map((value) => (value - lowest) / spread)
 }
 
-export function rank({
+/**
+ * Ranks what the strategy's unit says: whole lists, or — for `unit: item` —
+ * single unconsumed items, each list offered by its own best one. Either way a
+ * suggestion names a list and the item to start on, so callers show both alike.
+ */
+export function rank(options: RankOptions): Suggestion[] {
+  return options.strategy.unit === 'item' ? rankItems(options) : rankLists(options)
+}
+
+/** Which lists a strategy may offer, by its scope. `named` is looked up among *all* candidates. */
+function inScope(strategy: Strategy, candidates: ListWithStats[], currentListId: string | undefined) {
+  const named = currentListId ? candidates.find((list) => list.id === currentListId) : undefined
+
+  return (list: ListWithStats): boolean => {
+    if (strategy.scope === 'all_lists') return true
+    if (list.id === currentListId) return false
+
+    return !(strategy.scope === 'other_lists_and_media' && named && list.mediaType === named.mediaType)
+  }
+}
+
+/**
+ * Item-level ranking (Just One Fix): every unconsumed item of every in-scope
+ * list is a candidate, scored by the strategy's item factors like lists are
+ * (normalised across all candidates), and each list is then offered once, by
+ * its best item, because the sheet opens lists.
+ */
+function rankItems({ strategy, candidates, unconsumed, currentListId }: RankOptions): Suggestion[] {
+  if (!unconsumed) {
+    throw new StrategyError(
+      `Strategy "${strategy.name}" ranks items, so the engine needs every unconsumed item, not just the next ones.`,
+    )
+  }
+
+  const allowed = inScope(strategy, candidates, currentListId)
+  const entries = candidates
+    .filter(allowed)
+    .flatMap((list) => (unconsumed.get(list.id) ?? []).map((item) => ({ list, item })))
+
+  if (entries.length === 0) return []
+
+  const totalWeight = strategy.factors.reduce((sum, factor) => sum + factor.weight, 0)
+  const contributions = new Map<string, number[]>()
+
+  for (const factor of strategy.factors) {
+    const definition = ITEM_FACTORS[factor.type as ItemFactorType]
+    const scaled = normalize(
+      entries.map(({ item }) => definition.compute(item)),
+      definition.noiseFloor,
+    )
+
+    contributions.set(
+      factor.type,
+      scaled.map((value) => (factor.direction === 'favor_lowest' ? 1 - value : value)),
+    )
+  }
+
+  const scored = entries.map(({ list, item }, index) => {
+    const factors: Record<string, number> = {}
+    let score = 0
+
+    for (const factor of strategy.factors) {
+      const contribution = contributions.get(factor.type)?.[index] ?? 0
+      factors[factor.type] = Number(contribution.toFixed(4))
+      score += contribution * factor.weight
+    }
+
+    return { list, nextItem: item, score: Number((score / totalWeight).toFixed(4)), factors }
+  })
+
+  // Best first; ties by list id, then by position in the list, so a repeat cannot reshuffle.
+  scored.sort(
+    (a, b) =>
+      b.score - a.score || a.list.id.localeCompare(b.list.id) || a.nextItem.orderIndex - b.nextItem.orderIndex,
+  )
+
+  const seen = new Set<string>()
+
+  return scored.filter((entry) => !seen.has(entry.list.id) && seen.add(entry.list.id))
+}
+
+function rankLists({
   strategy,
   candidates,
   nextItems,
@@ -65,14 +159,7 @@ export function rank({
   now = new Date(),
 }: RankOptions): Suggestion[] {
   // Looked up among *all* candidates, before the suggestable filter: a finished list still has a medium.
-  const named = currentListId ? candidates.find((list) => list.id === currentListId) : undefined
-
-  const eligible = candidates.filter(isSuggestable).filter((list) => {
-    if (strategy.scope === 'all_lists') return true
-    if (list.id === currentListId) return false
-
-    return !(strategy.scope === 'other_lists_and_media' && named && list.mediaType === named.mediaType)
-  })
+  const eligible = candidates.filter(isSuggestable).filter(inScope(strategy, candidates, currentListId))
 
   if (eligible.length === 0) return []
 
@@ -80,10 +167,10 @@ export function rank({
 
   // Per factor: raw values for every candidate, normalised together, then
   // flipped if the strategy favours the low end.
-  const contributions = new Map<FactorType, number[]>()
+  const contributions = new Map<string, number[]>()
 
   for (const factor of strategy.factors) {
-    const definition = FACTORS[factor.type]
+    const definition = FACTORS[factor.type as FactorType]
     const raw = eligible.map((list) => definition.compute(list, { now }))
     const scaled = normalize(raw, definition.noiseFloor)
 

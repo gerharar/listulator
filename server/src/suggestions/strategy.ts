@@ -1,4 +1,5 @@
 import type { ListWithStats } from '../catalog/repository.js'
+import type { ListItem } from '../db/schema.js'
 
 /**
  * A strategy is a declarative description of how one button ranks lists.
@@ -19,6 +20,20 @@ export const FACTOR_TYPES = [
 
 export type FactorType = (typeof FACTOR_TYPES)[number]
 
+/**
+ * What a strategy ranks. Most rank whole lists; `item` ranks single unconsumed
+ * items across every list (Just One Fix, 10.28). A strategy names its unit in
+ * its JSON, and its factors must be of that unit: a list factor cannot score an
+ * item and the other way round.
+ */
+export const UNITS = ['list', 'item'] as const
+
+export type Unit = (typeof UNITS)[number]
+
+export const ITEM_FACTOR_TYPES = ['item_minutes'] as const
+
+export type ItemFactorType = (typeof ITEM_FACTOR_TYPES)[number]
+
 export const DIRECTIONS = ['favor_highest', 'favor_lowest'] as const
 
 export type Direction = (typeof DIRECTIONS)[number]
@@ -33,7 +48,7 @@ export const SCOPES = ['all_lists', 'other_lists', 'other_lists_and_media'] as c
 export type Scope = (typeof SCOPES)[number]
 
 export interface StrategyFactor {
-  type: FactorType
+  type: FactorType | ItemFactorType
   direction: Direction
   weight: number
 }
@@ -41,6 +56,8 @@ export interface StrategyFactor {
 export interface Strategy {
   name: string
   description?: string
+  /** What is ranked: whole lists (the default) or single items. */
+  unit: Unit
   scope: Scope
   factors: StrategyFactor[]
 }
@@ -143,6 +160,20 @@ export const FACTORS: Record<FactorType, FactorDefinition> = {
   },
 }
 
+export interface ItemFactorDefinition {
+  compute: (item: ListItem) => number
+  /** As for lists: a spread narrower than this is no signal and every candidate is neutral. */
+  noiseFloor: number
+}
+
+export const ITEM_FACTORS: Record<ItemFactorType, ItemFactorDefinition> = {
+  /** How long the item takes, in minutes. A strategy favours the low end to find the quick fix. */
+  item_minutes: {
+    compute: (item) => item.timeToConsumeMinutes,
+    noiseFloor: 1,
+  },
+}
+
 export class StrategyError extends Error {}
 
 function fail(file: string, problem: string): never {
@@ -160,6 +191,12 @@ export function parseStrategy(raw: unknown, file: string): Strategy {
     fail(file, '"name" must be a non-empty string')
   }
 
+  const unit = candidate['unit'] ?? 'list'
+  if (!UNITS.includes(unit as Unit)) {
+    fail(file, `"unit" must be one of ${UNITS.join(', ')}`)
+  }
+  const known: readonly string[] = unit === 'item' ? ITEM_FACTOR_TYPES : FACTOR_TYPES
+
   const scope = candidate['scope'] ?? 'all_lists'
   if (!SCOPES.includes(scope as Scope)) {
     fail(file, `"scope" must be one of ${SCOPES.join(', ')}`)
@@ -175,11 +212,11 @@ export function parseStrategy(raw: unknown, file: string): Strategy {
 
     const factor = entry as Record<string, unknown>
 
-    if (!FACTOR_TYPES.includes(factor['type'] as FactorType)) {
+    if (!known.includes(factor['type'] as string)) {
       fail(
         file,
-        `${where}.type "${String(factor['type'])}" is not a known factor. ` +
-          `Known factors: ${FACTOR_TYPES.join(', ')}. Adding a new one is a code change.`,
+        `${where}.type "${String(factor['type'])}" is not a known factor for a strategy whose unit is ` +
+          `${String(unit)}. Known factors: ${known.join(', ')}. Adding a new one is a code change.`,
       )
     }
 
@@ -192,7 +229,7 @@ export function parseStrategy(raw: unknown, file: string): Strategy {
       fail(file, `${where}.weight must be a number of zero or more`)
     }
 
-    return { type: factor['type'] as FactorType, direction: factor['direction'] as Direction, weight }
+    return { type: factor['type'] as StrategyFactor['type'], direction: factor['direction'] as Direction, weight }
   })
 
   if (factors.every((factor) => factor.weight === 0)) {
@@ -204,6 +241,7 @@ export function parseStrategy(raw: unknown, file: string): Strategy {
   return {
     name: candidate['name'],
     ...(typeof description === 'string' ? { description } : {}),
+    unit: unit as Unit,
     scope: scope as Scope,
     factors,
   }

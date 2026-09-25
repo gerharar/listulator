@@ -97,7 +97,7 @@ function ranked(strategy: Strategy, lists: ListWithStats[], currentListId?: stri
 const singleFactor = (
   type: Strategy['factors'][number]['type'],
   direction: Strategy['factors'][number]['direction'],
-): Strategy => ({ name: 'test', scope: 'all_lists', factors: [{ type, direction, weight: 1 }] })
+): Strategy => ({ name: 'test', unit: 'list', scope: 'all_lists', factors: [{ type, direction, weight: 1 }] })
 
 describe('isSuggestable', () => {
   it('rejects finished lists, which have nothing left to consume', () => {
@@ -248,6 +248,7 @@ describe('rank', () => {
 
     const completionHeavy: Strategy = {
       name: 'test',
+      unit: 'list',
       scope: 'all_lists',
       factors: [
         { type: 'neglect_time', direction: 'favor_highest', weight: 0.1 },
@@ -483,6 +484,7 @@ describe('rank', () => {
     const [top] = rank({
       strategy: {
         name: 'test',
+        unit: 'list',
         scope: 'all_lists',
         factors: [
           { type: 'neglect_time', direction: 'favor_highest', weight: 0.5 },

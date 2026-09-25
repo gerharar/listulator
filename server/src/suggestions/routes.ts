@@ -44,24 +44,28 @@ export const suggestionsRoutes: FastifyPluginAsync<SuggestionsRoutesOptions> = a
     const strategy = strategiesDir ? loadStrategy(strategyName, strategiesDir) : loadStrategy(strategyName)
     const candidates = await findListsWithStats(db, userId)
 
-    // Only the lists that survive filtering need their items loaded. Order
-    // doesn't matter for building this map, so these run concurrently.
-    const nextItems = new Map<string, ListItem | undefined>(
+    // Every list's unconsumed items, in order: the first is the next thing to do, and an item
+    // strategy (Just One Fix) ranks all of them. Lists are independent, so these run concurrently.
+    const unconsumed = new Map<string, ListItem[]>(
       await Promise.all(
         candidates.map(
           async (list) =>
             [
               list.id,
-              (await findListItems(db, userId, list.id))?.find((item) => item.consumedAt === null),
+              ((await findListItems(db, userId, list.id)) ?? []).filter((item) => item.consumedAt === null),
             ] as const,
         ),
       ),
+    )
+    const nextItems = new Map<string, ListItem | undefined>(
+      [...unconsumed].map(([listId, items]) => [listId, items[0]] as const),
     )
 
     return rank({
       strategy,
       candidates,
       nextItems,
+      unconsumed,
       ...(currentListId ? { currentListId } : {}),
     })
   }
@@ -94,6 +98,12 @@ export const suggestionsRoutes: FastifyPluginAsync<SuggestionsRoutesOptions> = a
     const user = getCurrentUser(request)
 
     return present(await suggest(user.id, 'suggest'))
+  })
+
+  app.get('/suggestions/just-one-fix', async (request) => {
+    const user = getCurrentUser(request)
+
+    return present(await suggest(user.id, 'just-one-fix'))
   })
 
   app.get('/suggestions/finalizer', async (request) => {

@@ -125,6 +125,32 @@ describe('suggestion endpoints', () => {
     expect(results[0]?.nextItem?.title).toBe('Complete #4')
   })
 
+  it('“Just One Fix” offers the shortest unconsumed item anywhere, once per list, ignoring what is done', async () => {
+    async function withItems(title: string, minutes: number[], done = 0) {
+      const list = await createList(harness.db, userId, { title, mediaType: 'movie' })
+      for (const [index, m] of minutes.entries()) {
+        const item = (await createListItem(harness.db, userId, list.id, {
+          title: `${title} #${index + 1}`,
+          timeToConsumeMinutes: m,
+        }))!
+        if (index < done) await setListItemConsumed(harness.db, userId, list.id, item.id, true, daysAgo(1))
+      }
+
+      return list
+    }
+    // The 2-minute item is consumed, so it does not count; the shortest left is 7 in the second list.
+    const first = await withItems('First', [2, 40, 25], 1)
+    const second = await withItems('Second', [90, 7])
+    const done = await withItems('Done', [1], 1)
+
+    const results = await picks('/api/suggestions/just-one-fix')
+
+    expect(results.map((pick) => pick.list.id)).toEqual([second.id, first.id])
+    expect(results[0]?.nextItem?.title).toBe('Second #2')
+    expect(results[1]?.nextItem?.title).toBe('First #3')
+    expect(results.map((pick) => pick.list.id)).not.toContain(done.id)
+  })
+
   it('“Suggest” favours barely-started lists and buries the half-finished', async () => {
     const barelyStarted = await seed('Jackie Chan', {
       count: 10,

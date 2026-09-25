@@ -1,0 +1,7 @@
+{
+  "name": "just-one-fix",
+  "description": "You want one quick dopamine hit. Ranks single unconsumed items across every list by how long they take, shortest first, and offers each list by its own shortest item. Consumed items never count.",
+  "unit": "item",
+  "scope": "all_lists",
+  "factors": [{ "type": "item_minutes", "direction": "favor_lowest", "weight": 1 }]
+}
