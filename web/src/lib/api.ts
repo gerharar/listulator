@@ -7,6 +7,7 @@ import type {
   OrderRestore,
 } from '../../../server/src/catalog/restorePayloads.js'
 import type { FacetConvention } from '../../../server/src/catalog/facets.js'
+import type { LibraryEntry } from '../../../server/src/ingestion/customLists.js'
 import type { ResetPreview, ResetResult } from '../../../server/src/catalog/reset.js'
 import type { SourceOptions } from '../../../server/src/ingestion/sourceRef.js'
 import { createLocalApi } from './api.local.js'
@@ -259,6 +260,8 @@ export interface ApiClient {
   quickie: () => Promise<{ picks: SuggestionPick[] }>
   finalizer: () => Promise<{ picks: SuggestionPick[] }>
   justOneFix: () => Promise<{ picks: SuggestionPick[] }>
+  /** Surprise Me (10.29): the community-library lists you do not track yet; `reachable` is false when the library could not be fetched. */
+  libraryUntracked: () => Promise<{ entries: LibraryEntry[]; reachable: boolean }>
   searchSources: (
     mediaType: string,
     query: string,
@@ -455,6 +458,8 @@ export const fetchApi: ApiClient = {
   finalizer: () => request<{ picks: SuggestionPick[] }>('/suggestions/finalizer'),
 
   justOneFix: () => request<{ picks: SuggestionPick[] }>('/suggestions/just-one-fix'),
+
+  libraryUntracked: () => request<{ entries: LibraryEntry[]; reachable: boolean }>('/library/untracked'),
 
   searchSources: (
     mediaType: string,

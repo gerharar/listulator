@@ -370,3 +370,37 @@ export async function expandCanonicalList(
   // The curator's own top-level `status`, when the file sets one.
   return { items, ...(parsed.status !== undefined ? { status: parsed.status } : {}) }
 }
+
+/** A library list the reader does not track, in the shape the Surprise Me picker reads. */
+export interface LibraryEntry {
+  externalRef: string
+  title: string
+  category: string
+  description?: string
+  status?: 'complete' | 'ongoing'
+  itemCount?: number
+}
+
+/**
+ * The community-library lists a reader could add and does not have yet: a
+ * category the app knows (an entry it cannot add is never offered), and a
+ * `canonical:` ref none of their lists carries. Tracking is by ref, not title,
+ * so renaming a synced list does not bring it back.
+ */
+export function untrackedLibraryEntries(
+  manifest: readonly CanonicalListEntry[],
+  trackedRefs: ReadonlySet<string>,
+  validCategories: ReadonlySet<string>,
+): LibraryEntry[] {
+  return manifest
+    .filter((entry) => validCategories.has(entry.category) && !trackedRefs.has(canonicalExternalRef(entry.path)))
+    .map((entry) => ({
+      externalRef: canonicalExternalRef(entry.path),
+      title: entry.title,
+      category: entry.category,
+      ...(entry.description !== undefined ? { description: entry.description } : {}),
+      ...(entry.status !== undefined ? { status: entry.status } : {}),
+      ...(entry.itemCount !== undefined ? { itemCount: entry.itemCount } : {}),
+    }))
+}
+

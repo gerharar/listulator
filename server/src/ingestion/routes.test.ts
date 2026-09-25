@@ -2,7 +2,7 @@ import { existsSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { findList, findListSnapshot } from '../catalog/repository.js'
+import { createList as createStoredList, findList, findListSnapshot } from '../catalog/repository.js'
 import { users } from '../db/schema.js'
 import { createTestApp, type TestApp } from '../testing/harness.js'
 import { IngestionError } from './http.js'
@@ -2192,6 +2192,94 @@ describe('refresh support for synced canonical lists (task 7.5)', () => {
     })
 
     expect(response.statusCode).toBe(502)
+  })
+})
+
+describe('GET /api/library/untracked (task 10.29)', () => {
+  let harness: TestApp
+
+  const MANIFEST_URL =
+    'https://raw.githubusercontent.com/neuroshaoh/listulator/main/lists/index.json'
+  const MANIFEST = [
+    { path: 'lists/mega/mcu.yaml', title: 'MCU', category: 'mega', description: 'Every film.', status: 'complete', itemCount: 23 },
+    { path: 'lists/book/lotr.yaml', title: 'The Lord of the Rings', category: 'book', itemCount: 3 },
+    { path: 'lists/mma/ufc.yaml', title: 'All UFC Events', category: 'mma', itemCount: 757 },
+  ]
+
+  function mockManifest(body: unknown = MANIFEST, status = 200) {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (url: string) => {
+        if (url !== MANIFEST_URL) throw new Error(`unexpected fetch: ${url}`)
+        return new Response(JSON.stringify(body), { status })
+      }),
+    )
+  }
+
+  beforeEach(() => {
+    harness = createTestApp({
+      // No mma category: a library entry the app cannot add is never offered.
+      mediaTypes: createMediaTypeRegistry([
+        { key: 'mega', label: 'Mega', sortOrder: 10, defaultDurationMinutes: 120 },
+        { key: 'book', label: 'Books', sortOrder: 20, defaultDurationMinutes: 240 },
+      ]),
+    })
+  })
+
+  afterEach(async () => {
+    await harness.cleanup()
+    vi.unstubAllGlobals()
+  })
+
+  const get = () => harness.app.inject({ method: 'GET', url: '/api/library/untracked' })
+
+  it('offers every library list the app can add, with what the picker shows', async () => {
+    mockManifest()
+
+    const body = (await get()).json()
+
+    expect(body.reachable).toBe(true)
+    expect(body.entries).toEqual([
+      {
+        externalRef: 'canonical:lists/mega/mcu.yaml',
+        title: 'MCU',
+        category: 'mega',
+        description: 'Every film.',
+        status: 'complete',
+        itemCount: 23,
+      },
+      { externalRef: 'canonical:lists/book/lotr.yaml', title: 'The Lord of the Rings', category: 'book', itemCount: 3 },
+    ])
+  })
+
+  it('never offers a canonical list the user already tracks, identified by its ref', async () => {
+    mockManifest()
+    await harness.app.ready()
+    const userId = harness.db.select().from(users).get()!.id
+    await createStoredList(harness.db, userId, {
+      title: 'Renamed by the user',
+      mediaType: 'mega',
+      source: 'canonical',
+      externalRef: 'canonical:lists/mega/mcu.yaml',
+    })
+
+    const refs = (await get()).json().entries.map((entry: { externalRef: string }) => entry.externalRef)
+
+    expect(refs).toEqual(['canonical:lists/book/lotr.yaml'])
+  })
+
+  it('says the library could not be reached, rather than that there is nothing', async () => {
+    mockManifest('404: Not Found', 404)
+
+    expect((await get()).json()).toEqual({ entries: [], reachable: false })
+  })
+
+  it('offers an entry from an older index that has no item count', async () => {
+    mockManifest([{ path: 'lists/book/lotr.yaml', title: 'LOTR', category: 'book' }])
+
+    expect((await get()).json().entries).toEqual([
+      { externalRef: 'canonical:lists/book/lotr.yaml', title: 'LOTR', category: 'book' },
+    ])
   })
 })
 

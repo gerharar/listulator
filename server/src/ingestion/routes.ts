@@ -11,6 +11,7 @@ import {
   findList,
   findListItems,
   findListWithStats,
+  findLists,
 } from '../catalog/repository.js'
 import { sendApiError } from '../apiErrors.js'
 import {
@@ -18,10 +19,12 @@ import {
   CustomListParseError,
   expandCanonicalList,
   fetchCanonicalList,
+  fetchCanonicalManifest,
   isSafeCanonicalPath,
   parseCustomList,
   requireItems,
   searchLibrary,
+  untrackedLibraryEntries,
   type ParsedCustomList,
 } from './customLists.js'
 import { seedGroupOrder } from '../catalog/groups.js'
@@ -611,6 +614,32 @@ export const ingestionRoutes: FastifyPluginAsync<IngestionRoutesOptions> = async
    * so it needs the whole registry, not just the categories in use.
    */
   app.get('/media-types', async () => mediaTypes.list().map(toMediaTypeInfo))
+
+  /**
+   * Surprise Me (10.29): the community-library lists you could add and do not
+   * have yet. No suggestion engine: the client picks at random from these. An
+   * unreachable library is reported as such, never as "nothing left".
+   */
+  app.get('/library/untracked', async (request) => {
+    const user = getCurrentUser(request)
+
+    let manifest
+    try {
+      manifest = await fetchCanonicalManifest()
+    } catch (error) {
+      if (error instanceof IngestionError) return { entries: [], reachable: false }
+      throw error
+    }
+
+    const tracked = new Set(
+      (await findLists(db, user.id)).flatMap((list) => (list.externalRef ? [list.externalRef] : [])),
+    )
+
+    return {
+      entries: untrackedLibraryEntries(manifest, tracked, new Set(mediaTypes.keys())),
+      reachable: true,
+    }
+  })
 
   /**
    * Bulk-adds items to a list — the single write path for every ingestion

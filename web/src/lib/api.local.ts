@@ -43,8 +43,11 @@ import {
   isSafeCanonicalPath,
   parseCustomList,
   requireItems,
+  fetchCanonicalManifest,
   searchLibrary,
+  untrackedLibraryEntries,
 } from '../../../server/src/ingestion/customLists.js'
+import { IngestionError } from '../../../server/src/ingestion/http.js'
 import { previewReset, resetToSource, ResetUnavailableError, sortChronologically } from '../../../server/src/catalog/reset.js'
 import { restoreOrder } from '../../../server/src/catalog/restore.js'
 import { rank, type Suggestion } from '../../../server/src/suggestions/engine.js'
@@ -880,6 +883,25 @@ export function createLocalApi(): ApiClient {
       const [database, userId] = [await getDb(), await getUserId()]
       const suggestions = await localSuggest(database, userId, 'just-one-fix')
       return { picks: suggestions.map(toSuggestionPick) }
+    },
+
+    libraryUntracked: async () => {
+      // Mirrors server/src/ingestion/routes.ts's GET /library/untracked.
+      let manifest
+      try {
+        manifest = await fetchCanonicalManifest()
+      } catch (error) {
+        if (error instanceof IngestionError) return { entries: [], reachable: false }
+        throw error
+      }
+
+      const [database, userId] = [await getDb(), await getUserId()]
+      const tracked = new Set(
+        (await findListsWithStats(database, userId)).flatMap((list) => (list.externalRef ? [list.externalRef] : [])),
+      )
+      const known = new Set((await getLocalMediaTypes()).map((entry) => entry.key))
+
+      return { entries: untrackedLibraryEntries(manifest, tracked, known), reachable: true }
     },
 
     finalizer: async () => {
