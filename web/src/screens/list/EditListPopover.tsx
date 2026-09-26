@@ -1,5 +1,5 @@
 import './ItemEditPopover.css'
-import { useState } from 'react'
+import { useState, type KeyboardEvent } from 'react'
 import { copy } from '../../locale/index.js'
 import { Button } from '../../components/quantum/Button/Button.js'
 import { Field, FieldTextArea } from '../../components/quantum/Field/Field.js'
@@ -21,7 +21,7 @@ export interface EditListPopoverProps {
 /**
  * The ✎ popover beside the list's name (design: Edit list, 320px): Title,
  * Description and the three-button status row, with Discard / Save. Like the
- * item editor, clicking away or pressing Esc commits what can be saved — the
+ * item editor, clicking away commits what can be saved (Esc cancels) — the
  * buttons are the contract, the click-away the safety net.
  *
  * Spelling is checked in the description (prose) and not in the title, which
@@ -35,14 +35,22 @@ export function EditListPopover({ list, itemCount, anchorEl, onCommit, onDiscard
 
   const patch = buildListPatch(list, { title, description, status })
 
+  // Enter saves, Esc cancels. Not in a text area (Enter is a new line there) and
+  // not when something inside already took the key (an open group list picks with it).
+  function saveOnEnter(event: KeyboardEvent<HTMLDivElement>) {
+    if (event.key !== 'Enter' || event.defaultPrevented || event.nativeEvent.isComposing) return
+    if (event.target instanceof HTMLTextAreaElement || event.target instanceof HTMLButtonElement) return
+    if (patch) onCommit(patch, 'save')
+  }
+
   function dismiss() {
     if (patch) onCommit(patch, 'clickaway')
     else onDiscard()
   }
 
   return (
-    <Popover open anchorEl={anchorEl} onDismiss={dismiss} width={320}>
-      <div className="q-edit">
+    <Popover open anchorEl={anchorEl} onDismiss={dismiss} onEscape={onDiscard} width={320}>
+      <div className="q-edit" onKeyDown={saveOnEnter}>
         <div className="q-pop-head">
           <span className="q-kicker">{text.kicker}</span>
           <span className="q-kicker" style={{ letterSpacing: 0 }}>

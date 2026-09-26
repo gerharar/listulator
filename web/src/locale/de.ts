@@ -457,6 +457,12 @@ export const de: Locale = {
         dragOnList: 'Ziehen, um diesen Eintrag in der Liste zu verschieben',
         dragWithin: (group: string): string => `Ziehen, um innerhalb von „${group}“ umzusortieren`,
         dragGroup: 'Ziehen, um diese Gruppe in der Liste zu verschieben',
+        deleteGroupLabel: 'leer',
+        deleteGroupAria: 'Diese leere Gruppe löschen',
+        deleteGroupTip: 'Diese leere Gruppe löschen — sie enthält keine Einträge',
+        groupRemoved: (name: string): string => `Gruppe ${name} entfernt`,
+        groupRestored: (name: string): string => `Gruppe ${name} wiederhergestellt`,
+        groupRemoveFailed: (name: string): string => `Gruppe ${name} konnte nicht entfernt werden`,
         edit: (title: string): string => `${title} bearbeiten`,
         remove: (title: string): string => `${title} entfernen`,
         infoKicker: 'Details',
@@ -551,7 +557,7 @@ export const de: Locale = {
         reorderKicker: 'Liste ordnen',
         reorderQuestion: 'Diese Liste chronologisch sortieren?',
         reorderHint:
-          'Gruppen wandern als Blöcke, nach ihrem frühesten Eintrag. Nichts wird aufgelöst, innerhalb einer Gruppe wird nichts durchgemischt.',
+          'Gruppen wandern als Blöcke, nach ihrem frühesten Eintrag; auch innerhalb jeder Gruppe wird sortiert. Nichts wird aufgelöst.',
         reorderNote:
           'Eine einmalige Aktion — die Liste bleibt nicht sortiert. Rückgängig machen ist 8 Sekunden lang möglich.',
         cancel: 'Abbrechen',

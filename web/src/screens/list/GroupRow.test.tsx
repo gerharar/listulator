@@ -136,4 +136,19 @@ describe('GroupRow', () => {
       expect(row.classList.contains('pulse')).toBe(true)
     })
   })
+
+  it('an empty group has a delete button; pressing it deletes and does not fold the group', () => {
+    const props = renderRow({ ...BLOCK, done: 0, total: 0, minutesLeft: 0, yearSpan: null }, { onDelete: vi.fn() })
+
+    fireEvent.click(screen.getByRole('button', { name: 'Delete this empty group' }))
+
+    expect(props.onDelete).toHaveBeenCalledTimes(1)
+    expect(props.onToggle).not.toHaveBeenCalled()
+  })
+
+  it('a group with items has no delete button', () => {
+    renderRow({ ...BLOCK, items: [{ id: 'i1' } as never] }, { onDelete: vi.fn() })
+
+    expect(screen.queryByRole('button', { name: 'Delete this empty group' })).toBeNull()
+  })
 })

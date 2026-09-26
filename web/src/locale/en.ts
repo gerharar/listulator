@@ -507,6 +507,13 @@ export const en = {
         dragOnList: 'Drag to move this item on the list',
         dragWithin: (group: string): string => `Drag to reorder within ${group}`,
         dragGroup: 'Drag to move this group on the list',
+        /** An empty group's own delete button (prototype: "🗑 empty"). */
+        deleteGroupLabel: 'empty',
+        deleteGroupAria: 'Delete this empty group',
+        deleteGroupTip: 'Delete this empty group — it holds no items',
+        groupRemoved: (name: string): string => `Removed group ${name}`,
+        groupRestored: (name: string): string => `Restored group ${name}`,
+        groupRemoveFailed: (name: string): string => `Could not remove group ${name}`,
         edit: (title: string): string => `Edit ${title}`,
         remove: (title: string): string => `Remove ${title}`,
         infoKicker: 'Details',
@@ -605,7 +612,7 @@ export const en = {
         reorderKicker: 'Reorder list',
         reorderQuestion: 'Sort this list chronologically?',
         reorderHint:
-          'Groups move as blocks, by their earliest item. Nothing is dissolved, nothing inside a group is shuffled.',
+          'Groups move as blocks, by their earliest item, and each group is sorted inside too. Nothing is dissolved.',
         reorderNote: 'A one-off action — the list does not stay sorted. Undo is offered for 8 seconds.',
         cancel: 'Cancel',
         sortNow: 'Sort now',

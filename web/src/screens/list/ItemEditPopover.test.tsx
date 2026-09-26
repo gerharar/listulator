@@ -3,7 +3,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { useLayoutEffect, useReducer, useRef } from 'react'
 import type { ListItem } from '../../lib/api.js'
-import { OverlayManagerProvider } from '../../components/quantum/overlay/OverlayManagerContext.js'
+import { OverlayManagerProvider, useEscLadder } from '../../components/quantum/overlay/OverlayManagerContext.js'
 import { ItemEditPopover } from './ItemEditPopover.js'
 
 afterEach(cleanup)
@@ -22,6 +22,11 @@ const ITEM: ListItem = {
   tags: null,
   notes: null,
   isNew: false,
+}
+
+function EscLadder() {
+  useEscLadder(() => undefined)
+  return null
 }
 
 function renderPopover(overrides: Partial<Parameters<typeof ItemEditPopover>[0]> = {}) {
@@ -47,6 +52,7 @@ function renderPopover(overrides: Partial<Parameters<typeof ItemEditPopover>[0]>
   }
   render(
     <OverlayManagerProvider>
+      <EscLadder />
       <Harness />
     </OverlayManagerProvider>,
   )
@@ -111,6 +117,34 @@ describe('ItemEditPopover', () => {
     clickAway()
 
     expect(onCommit).toHaveBeenCalledWith({ title: 'Renamed' }, 'clickaway')
+  })
+
+  it('Enter in a field saves', () => {
+    const { onCommit } = renderPopover()
+
+    fireEvent.change(title(), { target: { value: 'Renamed' } })
+    fireEvent.keyDown(title(), { key: 'Enter' })
+
+    expect(onCommit).toHaveBeenCalledWith({ title: 'Renamed' }, 'save')
+  })
+
+  it('Enter with nothing to save does nothing', () => {
+    const { onCommit, onDiscard } = renderPopover()
+
+    fireEvent.keyDown(title(), { key: 'Enter' })
+
+    expect(onCommit).not.toHaveBeenCalled()
+    expect(onDiscard).not.toHaveBeenCalled()
+  })
+
+  it('Esc cancels: the edits are thrown away, not saved (Enter saves, Esc cancels)', () => {
+    const { onCommit, onDiscard } = renderPopover()
+
+    fireEvent.change(title(), { target: { value: 'Renamed' } })
+    fireEvent.keyDown(title(), { key: 'Escape' })
+
+    expect(onDiscard).toHaveBeenCalledTimes(1)
+    expect(onCommit).not.toHaveBeenCalled()
   })
 
   it('clicking away with nothing changed just closes', () => {

@@ -111,6 +111,76 @@ describe('sort and reset', () => {
 
   const byTitle = (d: Detail, title: string) => d.items.find((i) => i.title === title)!
 
+  describe('Reset the order (back to the order the source has)', () => {
+    const titles = async (id: string) => (await detail(id)).items.map((i) => i.title)
+
+    it('puts the source order back where the year sort would not: blocks by source position, insides too', async () => {
+      const list = await apiList()
+      await send('POST', `/lists/${list.id}/sort`) // by year: Arc A, Loose, Arc B
+      expect(await titles(list.id)).toEqual(['Early One', 'Early Two', 'Loose', 'Late One', 'Late Two'])
+
+      const reset = await send('POST', `/lists/${list.id}/reset-order`)
+
+      expect(reset.statusCode).toBe(200)
+      // The source lists Late One (Arc B) first, then Early One (Arc A), then Loose.
+      expect(await titles(list.id)).toEqual(['Late One', 'Late Two', 'Early One', 'Early Two', 'Loose'])
+      expect((await detail(list.id)).groups.map((g) => g.name)).toEqual(['Arc B', 'Arc A'])
+    })
+
+    it('puts a hand-shuffled group back in the source order', async () => {
+      const list = await apiList()
+      const arrived = await titles(list.id)
+      const armed = [...(await detail(list.id)).items].reverse().map((i) => i.id)
+      await send('PUT', `/lists/${list.id}/items/order`, { itemIds: armed })
+      expect(await titles(list.id)).not.toEqual(arrived)
+
+      await send('POST', `/lists/${list.id}/reset-order`)
+
+      const after = (await detail(list.id)).items
+      expect(after.filter((i) => i.group === 'Arc A').map((i) => i.title)).toEqual(['Early One', 'Early Two'])
+      expect(after.filter((i) => i.group === 'Arc B').map((i) => i.title)).toEqual(['Late One', 'Late Two'])
+    })
+
+    it('touches nothing but the order: ticks, hand-added items and groups stay; the added item goes last', async () => {
+      const list = await apiList()
+      await send('PUT', `/lists/${list.id}/items/${byTitle(list, 'Late One').id}/consumed`, { consumed: true })
+      await send('POST', `/lists/${list.id}/items/import`, { source: 'manual', items: [{ title: 'Mine', year: 1980 }] })
+      await send('POST', `/lists/${list.id}/sort`)
+      const before = await detail(list.id)
+
+      await send('POST', `/lists/${list.id}/reset-order`)
+      const after = await detail(list.id)
+
+      expect(after.items.map((i) => i.id).sort()).toEqual(before.items.map((i) => i.id).sort())
+      expect(after.items.at(-1)!.title).toBe('Mine')
+      expect(after.items.find((i) => i.title === 'Late One')!.consumedAt).not.toBeNull()
+      expect(after.groups.map((g) => g.name).sort()).toEqual(['Arc A', 'Arc B'])
+      expect(after.title).toBe(before.title)
+    })
+
+    it('hands back what it needs for Undo, and Undo puts the exact order back', async () => {
+      const list = await apiList()
+      await send('POST', `/lists/${list.id}/sort`)
+      const before = await detail(list.id)
+
+      const reset = await send('POST', `/lists/${list.id}/reset-order`)
+      expect(await titles(list.id)).not.toEqual(before.items.map((i) => i.title))
+      const undone = await send('PUT', `/lists/${list.id}/order/restore`, reset.json().restore)
+
+      expect(undone.statusCode).toBe(200)
+      expect(exact(await detail(list.id))).toEqual(exact(before))
+    })
+
+    it('is refused for a list with no source, and 404 for one that is not there', async () => {
+      const manual = (await send('POST', '/lists', { title: 'Hand', mediaType: 'mega' })).json()
+
+      const refused = await send('POST', `/lists/${manual.id}/reset-order`)
+      expect(refused.statusCode).toBe(409)
+      expect(refused.json().code).toBe('reset.unavailable')
+      expect((await send('POST', '/lists/nope/reset-order')).statusCode).toBe(404)
+    })
+  })
+
   describe('Sort chronologically', () => {
     it('orders loose items by year, and puts items with no year last, keeping their order', async () => {
       const list = (await send('POST', '/lists', { title: 'Hand', mediaType: 'mega' })).json()
@@ -137,26 +207,62 @@ describe('sort and reset', () => {
       ])
     })
 
-    it('moves groups as blocks by their earliest item, and never shuffles inside a group', async () => {
+    it('sorts inside each group too, keeping a group a block; no-year items last, ties in their order', async () => {
+      const list = (await send('POST', '/lists', { title: 'Hand', mediaType: 'mega' })).json()
+      await send('POST', `/lists/${list.id}/items/import`, {
+        source: 'manual',
+        items: [
+          { title: 'Sequel 2', year: 1983, group: 'Original' },
+          { title: 'Nodate', group: 'Original' },
+          { title: 'Sequel 1', year: 1980, group: 'Original' },
+          { title: 'Film', year: 1977, group: 'Original' },
+          { title: 'Prequel 3', year: 2005, group: 'Prequels' },
+          { title: 'Prequel 1', year: 1999, group: 'Prequels' },
+          { title: 'Prequel 2', year: 2002, group: 'Prequels' },
+        ],
+      })
+
+      await send('POST', `/lists/${list.id}/sort`)
+
+      expect((await detail(list.id)).items.map((i) => i.title)).toEqual([
+        'Film',
+        'Sequel 1',
+        'Sequel 2',
+        'Nodate',
+        'Prequel 1',
+        'Prequel 2',
+        'Prequel 3',
+      ])
+    })
+
+    it('leaves the order inside a group alone when every item has the same year', async () => {
+      const list = (await send('POST', '/lists', { title: 'Hand', mediaType: 'mega' })).json()
+      await send('POST', `/lists/${list.id}/items/import`, {
+        source: 'manual',
+        items: [
+          { title: 'Z', year: 2000, group: 'G' },
+          { title: 'A', year: 2000, group: 'G' },
+        ],
+      })
+
+      await send('POST', `/lists/${list.id}/sort`)
+
+      expect((await detail(list.id)).items.map((i) => i.title)).toEqual(['Z', 'A'])
+    })
+
+    it('moves groups as blocks by their earliest item, and sorts inside them', async () => {
       const list = await apiList()
       // Arc B holds 2010 and 2012, Arc A holds 1999 and 2001, Loose is 2005 on its own.
       // Put it in an order that is wrong on purpose: the reverse of the years.
       await send('PUT', `/lists/${list.id}/items/order`, {
         itemIds: [...list.items].sort((a, b) => b.orderIndex - a.orderIndex).map((i) => i.id),
       })
-      const before = await detail(list.id)
-      const arcBBefore = before.items.filter((i) => i.group === 'Arc B').map((i) => i.title)
-
       await send('POST', `/lists/${list.id}/sort`)
       const after = await detail(list.id)
 
       // Loose (2005) sits between Arc A (1999) and Arc B (2010) as a unit of its own.
       const units = after.items.map((i) => i.group ?? i.title)
       expect(units.join(',').replace(/Arc A,Arc A/, 'A').replace(/Arc B,Arc B/, 'B')).toBe('A,Loose,B')
-      expect(after.items.filter((i) => i.group === 'Arc B').map((i) => i.title)).toEqual(
-        // the same relative order the group had before
-        arcBBefore,
-      )
       expect(after.groups.map((g) => g.name)).toEqual(['Arc A', 'Arc B'])
       expect(after.groups.map((g) => g.orderIndex)).toEqual([0, 1])
     })
@@ -200,7 +306,6 @@ describe('sort and reset', () => {
       await send('PUT', `/lists/${list.id}/items/${byTitle(list, 'Late One').id}/consumed`, { consumed: true })
       await send('POST', `/lists/${list.id}/items/import`, { items: [{ title: 'Fresh' }], arrived: true })
       const before = await detail(list.id)
-
       await send('POST', `/lists/${list.id}/sort`)
       const after = await detail(list.id)
 

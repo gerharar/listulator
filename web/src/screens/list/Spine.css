@@ -15,7 +15,7 @@
 @keyframes q-rowPulse { 0%, 21% { background: var(--pulseTint); box-shadow: inset 3px 0 0 var(--accent); } 100% { background: transparent; box-shadow: inset 3px 0 0 transparent; } }
 .q-dropline { position: absolute; left: 0; right: 0; top: -2px; height: 3px; background: var(--accent); z-index: 4; pointer-events: none; }
 .q-dropline.after { top: auto; bottom: -2px; }
-.q-handle { flex: none; width: 24px; height: 46px; display: grid; place-items: center; cursor: grab; touch-action: none; user-select: none; color: var(--ink3); font: 500 15px/1 var(--font-mono); letter-spacing: -3px; }
+.q-handle { flex: none; width: 24px; height: 46px; display: grid; place-items: center; cursor: grab; touch-action: none; -webkit-user-select: none; user-select: none; color: var(--ink3); font: 500 15px/1 var(--font-mono); letter-spacing: -3px; }
 .q-item .tags { flex: none; display: flex; align-items: center; gap: 6px; margin-right: 12px; }
 .q-item .body { flex: 0 1 auto; min-width: 0; display: flex; align-items: center; gap: 9px; height: 46px; }
 .q-item .tt { flex: 0 1 auto; min-width: 0; display: flex; align-items: baseline; gap: 7px; }
@@ -31,6 +31,8 @@
 .q-group .name { flex: 1; min-width: 0; display: flex; align-items: baseline; gap: 7px; }
 .q-group .name b { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: 600 15px/1.15 var(--font); letter-spacing: .01em; }
 .q-group .gcount { flex: none; font: 500 12px/1 var(--font-mono); font-variant-numeric: tabular-nums; color: var(--ink2); }
+.q-group-delete { flex: none; display: flex; align-items: center; gap: 6px; padding: 4px 8px; border: 1px solid var(--line); background: transparent; color: var(--ink2); font: 600 11px/1 var(--font-mono); letter-spacing: .08em; text-transform: uppercase; white-space: nowrap; cursor: pointer; }
+.q-group-delete:hover { color: var(--ink); border-color: var(--rule); }
 .q-group .q-left { font-size: 12px; }
 .q-group .q-left.all-done { font-size: 11px; }
 
@@ -50,5 +52,5 @@
 .q-item .body .q-icon-btn.edit { margin-left: -12px; }
 
 /* While a row is being dragged: no text selection anywhere, and the grabbing cursor (BL-019). */
-body.q-dragging { user-select: none; cursor: grabbing; }
+body.q-dragging { -webkit-user-select: none; user-select: none; cursor: grabbing; }
 body.q-dragging * { cursor: grabbing !important; }

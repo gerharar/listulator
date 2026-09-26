@@ -48,7 +48,13 @@ import {
   untrackedLibraryEntries,
 } from '../../../server/src/ingestion/customLists.js'
 import { IngestionError } from '../../../server/src/ingestion/http.js'
-import { previewReset, resetToSource, ResetUnavailableError, sortChronologically } from '../../../server/src/catalog/reset.js'
+import {
+  previewReset,
+  resetOrderToSource,
+  resetToSource,
+  ResetUnavailableError,
+  sortChronologically,
+} from '../../../server/src/catalog/reset.js'
 import { restoreOrder } from '../../../server/src/catalog/restore.js'
 import { rank, type Suggestion } from '../../../server/src/suggestions/engine.js'
 import { copy, errorMessage } from '../locale/index.js'
@@ -422,6 +428,17 @@ export function createLocalApi(): ApiClient {
       const restore = await sortChronologically(database, userId, listId)
       if (!restore) throw notFound()
       return { restore }
+    },
+
+    resetOrder: async (listId) => {
+      const [database, userId] = [await getDb(), await getUserId()]
+      try {
+        const restore = await resetOrderToSource(database, userId, listId, await resetDeps())
+        if (!restore) throw notFound()
+        return { restore }
+      } catch (cause) {
+        throw resetError(cause)
+      }
     },
 
     restoreOrder: async (listId, restore) => {

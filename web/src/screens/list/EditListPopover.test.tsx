@@ -2,13 +2,18 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { useLayoutEffect, useReducer, useRef } from 'react'
-import { OverlayManagerProvider } from '../../components/quantum/overlay/OverlayManagerContext.js'
+import { OverlayManagerProvider, useEscLadder } from '../../components/quantum/overlay/OverlayManagerContext.js'
 import { EditListPopover } from './EditListPopover.js'
 import type { ListFields } from './listActions.js'
 
 afterEach(cleanup)
 
 const LIST: ListFields = { title: 'Loki', description: 'The trickster', status: 'ongoing' }
+
+function EscLadder() {
+  useEscLadder(() => undefined)
+  return null
+}
 
 function renderPopover(overrides: Partial<Parameters<typeof EditListPopover>[0]> = {}) {
   const props = { list: LIST, itemCount: 7, onCommit: vi.fn(), onDiscard: vi.fn(), ...overrides }
@@ -27,6 +32,7 @@ function renderPopover(overrides: Partial<Parameters<typeof EditListPopover>[0]>
   }
   render(
     <OverlayManagerProvider>
+      <EscLadder />
       <Harness />
     </OverlayManagerProvider>,
   )
@@ -89,6 +95,34 @@ describe('EditListPopover', () => {
 
     expect(onCommit).toHaveBeenCalledWith({ description: 'Changed' }, 'clickaway')
     expect(onDiscard).not.toHaveBeenCalled()
+  })
+
+  it('Enter in a field saves', () => {
+    const { onCommit } = renderPopover()
+
+    fireEvent.change(title(), { target: { value: 'Loki S2' } })
+    fireEvent.keyDown(title(), { key: 'Enter' })
+
+    expect(onCommit).toHaveBeenCalledWith({ title: 'Loki S2' }, 'save')
+  })
+
+  it('Enter with nothing to save does nothing', () => {
+    const { onCommit, onDiscard } = renderPopover()
+
+    fireEvent.keyDown(title(), { key: 'Enter' })
+
+    expect(onCommit).not.toHaveBeenCalled()
+    expect(onDiscard).not.toHaveBeenCalled()
+  })
+
+  it('Esc cancels: the edits are thrown away, not saved (Enter saves, Esc cancels)', () => {
+    const { onCommit, onDiscard } = renderPopover()
+
+    fireEvent.change(description(), { target: { value: 'Changed' } })
+    fireEvent.keyDown(description(), { key: 'Escape' })
+
+    expect(onDiscard).toHaveBeenCalledTimes(1)
+    expect(onCommit).not.toHaveBeenCalled()
   })
 
   it('clicking away with nothing changed just closes', () => {

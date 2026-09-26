@@ -56,7 +56,10 @@ export function useEscLadder(popLayer: () => void): void {
 
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
-      if (event.key !== 'Escape') return
+      if (event.key !== 'Escape' || event.isComposing || event.defaultPrevented) return
+      // Claiming the key also tells the desktop webview it was handled, so the
+      // OS does not act on it as well (macOS leaves full screen on Esc, BL-018).
+      event.preventDefault()
       handleEscape(manager, () => popLayerRef.current())
     }
     document.addEventListener('keydown', onKeyDown)

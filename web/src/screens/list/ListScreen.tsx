@@ -455,6 +455,36 @@ function ListView({
     }
   }
 
+  /** An empty group only (the server refuses otherwise): gone at once, Undo puts it back where it was. */
+  async function removeGroup(group: ListGroup) {
+    const previous = groups
+    setError(null)
+    setGroups((current) => current.filter((entry) => entry.id !== group.id))
+
+    try {
+      const restore = await api.deleteGroup(listId, group.id)
+      showToast({
+        text: actions.groupRemoved(group.name),
+        actionLabel: actions.undo,
+        onAction: () => void undoRemoveGroup(restore, group),
+      })
+    } catch {
+      setGroups(previous)
+      setError(actions.groupRemoveFailed(group.name))
+    }
+  }
+
+  async function undoRemoveGroup(restore: Parameters<typeof api.restoreGroup>[1], group: ListGroup) {
+    try {
+      await api.restoreGroup(listId, restore)
+      await refresh()
+      pulse(group.id)
+      announce(actions.groupRestored(group.name))
+    } catch {
+      setError(actions.undoFailed)
+    }
+  }
+
   /** Saves the list's own fields; the header changes at once and is put back if the server refuses. */
   async function saveListEdit(patch: ListPatch, via: 'save' | 'clickaway') {
     const before = meta
@@ -506,6 +536,20 @@ function ListView({
       showToast({ text: message, actionLabel: actions.undo, onAction: () => void undoSort(restore) })
     } catch {
       setError(orderText.sortFailed)
+    }
+  }
+
+  /** Reset the order: the source's own order back, in place; the same Undo as the sort. */
+  async function resetOrder() {
+    setMore(null)
+    setError(null)
+
+    try {
+      const { restore } = await api.resetOrder(listId)
+      await refresh()
+      showToast({ text: orderText.orderReset, actionLabel: actions.undo, onAction: () => void undoSort(restore) })
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : orderText.resetFailed)
     }
   }
 
@@ -811,16 +855,16 @@ function ListView({
             </IconButton>
           </div>
         </div>
-        <FilterBar
-          text={filter.text}
-          onText={(value) => setFilter((current) => ({ ...current, text: value }))}
-          facets={facetGroups}
-          selection={filter.facets}
-          onSelect={selectFacet}
-          fold={groupNames.length > 1 ? { collapse: anyOpen, onToggle: foldAll } : null}
-          note={filtering ? text.filter.shown(shownIds.size, items.length) : text.filter.total(items.length)}
-        />
       </div>
+      <FilterBar
+        text={filter.text}
+        onText={(value) => setFilter((current) => ({ ...current, text: value }))}
+        facets={facetGroups}
+        selection={filter.facets}
+        onSelect={selectFacet}
+        fold={groupNames.length > 1 ? { collapse: anyOpen, onToggle: foldAll } : null}
+        note={filtering ? text.filter.shown(shownIds.size, items.length) : text.filter.total(items.length)}
+      />
 
       {pendingCount > 0 && (
         <Banner
@@ -871,6 +915,7 @@ function ListView({
                   onToggle={toggleGroup}
                   onFocus={remember}
                   onHandlePointerDown={(event) => moves.startDrag(event, unit.group.id)}
+                  onDelete={() => void removeGroup(unit.group)}
                   dragging={moves.dragKey === unit.group.id}
                   dropLine={moves.over?.key === unit.group.id ? moves.over.pos : null}
                   pulse={pulseIds.has(unit.group.id)}
@@ -903,7 +948,7 @@ function ListView({
           onDownload={downloadExport}
           onCopy={() => void copyExport()}
           onSortNow={() => void sortNow(orderText.sorted)}
-          onResetOrder={() => void sortNow(orderText.orderReset)}
+          onResetOrder={() => void resetOrder()}
           onResetEverything={() => void resetEverything()}
           onDelete={() => void deleteThisList()}
           onDismiss={() => setMore(null)}

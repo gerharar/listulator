@@ -44,9 +44,9 @@ const NO_YEAR = Number.POSITIVE_INFINITY
 
 /**
  * One in-place re-sort by year (the design rules' "Sort chronologically").
- * Groups move as blocks, positioned by their earliest item, and nothing inside
- * a group is shuffled; a loose item is a unit of its own. Units with no year
- * come last and ties keep the order they had. Group rows follow the same
+ * Groups move as blocks, positioned by their earliest item, and the items
+ * inside a group are sorted the same way; a loose item is a unit of its own.
+ * Units and items with no year come last and ties keep the order they had. Group rows follow the same
  * sequence, empty ones last. Nothing is added, removed or ticked, and no
  * source is read. Returns where everything stood, for Undo.
  */
@@ -54,6 +54,47 @@ export async function sortChronologically(
   db: PortableDatabase,
   userId: string,
   listId: string,
+): Promise<OrderRestore | undefined> {
+  return reorderBy(db, userId, listId, (item) => item.year ?? NO_YEAR)
+}
+
+/**
+ * Reset the order: the same in-place re-order, but by where the source has each
+ * item instead of by year. Items are matched to the source the way a refresh
+ * matches them; one the source does not have (added by hand, or arrived since)
+ * goes after the rest, in the order it had. Nothing is added, removed or ticked
+ * and the list's own fields are left alone. Returns where everything stood, for Undo.
+ */
+export async function resetOrderToSource(
+  db: PortableDatabase,
+  userId: string,
+  listId: string,
+  deps: ResetDeps,
+): Promise<OrderRestore | undefined> {
+  const list = await findList(db, userId, listId)
+  if (!list) return undefined
+
+  const target = await resolveTarget(db, userId, list, deps)
+  const slots = new Map<string, number[]>()
+  for (const [position, item] of target.items.entries()) {
+    const key = identity(item)
+    slots.set(key, [...(slots.get(key) ?? []), position])
+  }
+  // Duplicates of one identity take the source's slots in the order they now stand.
+  const positionOf = new Map<string, number>()
+  for (const item of (await findListItems(db, userId, listId)) ?? []) {
+    const taken = slots.get(identity(item))?.shift()
+    if (taken !== undefined) positionOf.set(item.id, taken)
+  }
+
+  return reorderBy(db, userId, listId, (item) => positionOf.get(item.id) ?? NO_YEAR)
+}
+
+async function reorderBy(
+  db: PortableDatabase,
+  userId: string,
+  listId: string,
+  keyOf: (item: { id: string; year: number | null }) => number,
 ): Promise<OrderRestore | undefined> {
   const items = await findListItems(db, userId, listId)
   const groups = await findListGroups(db, userId, listId)
@@ -73,7 +114,7 @@ export async function sortChronologically(
   const units: Unit[] = []
   const byGroup = new Map<string, Unit>()
   for (const [position, item] of items.entries()) {
-    const year = item.year ?? NO_YEAR
+    const year = keyOf(item)
     if (item.group) {
       const unit = byGroup.get(item.group)
       if (unit) {
@@ -93,7 +134,12 @@ export async function sortChronologically(
 
   let next = 0
   for (const unit of ordered) {
-    for (const member of unit.members) {
+    // Inside a group too (owner, 2026-09-26): by year, no-year last, ties as they were.
+    const members = unit.members
+      .map((member, position) => ({ member, position }))
+      .sort((a, b) => keyOf(a.member) - keyOf(b.member) || a.position - b.position)
+      .map((entry) => entry.member)
+    for (const member of members) {
       if (member.orderIndex !== next) {
         await db.update(listItems).set({ orderIndex: next }).where(eq(listItems.id, member.id)).run()
       }

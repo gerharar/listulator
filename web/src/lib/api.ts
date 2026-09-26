@@ -332,7 +332,9 @@ export interface ApiClient {
   restoreItems: (listId: string, set: ItemSetRestore) => Promise<ListItem[]>
   /** Sort chronologically (10.18): one in-place re-sort by year, groups as blocks. Hands back the old order for Undo. */
   sortList: (listId: string) => Promise<{ restore: OrderRestore }>
-  /** Undo of `sortList`. */
+  /** Reset the order: back to the order the source has, nothing else touched. Hands back the old order for Undo (`restoreOrder`). Refused (409) for a list with no source. */
+  resetOrder: (listId: string) => Promise<{ restore: OrderRestore }>
+  /** Undo of `sortList` and `resetOrder`. */
   restoreOrder: (listId: string, restore: OrderRestore) => Promise<void>
   /** What Reset everything would do, in numbers, without doing it. Refused (409) for a list with no source. */
   resetPreview: (listId: string) => Promise<ResetPreview>
@@ -536,6 +538,9 @@ export const fetchApi: ApiClient = {
 
   sortList: (listId: string) =>
     request<{ restore: OrderRestore }>(`/lists/${listId}/sort`, { method: 'POST' }),
+
+  resetOrder: (listId: string) =>
+    request<{ restore: OrderRestore }>(`/lists/${listId}/reset-order`, { method: 'POST' }),
 
   restoreOrder: async (listId: string, restore: OrderRestore) => {
     await request<unknown>(`/lists/${listId}/order/restore`, {

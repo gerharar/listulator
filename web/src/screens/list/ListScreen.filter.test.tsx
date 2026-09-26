@@ -137,6 +137,13 @@ describe('the bar', () => {
     expect(labels).toEqual(['All', 'PS3', 'PSP', 'X360', 'NDS', 'PC', 'MULTI', 'Untagged'])
   })
 
+  it('sits below the coloured header block, not inside it (prototype: the header ends at its rule)', async () => {
+    await open()
+
+    expect(bar().closest('.q-list-head')).toBeNull()
+    expect(document.querySelector('.q-list-head')!.nextElementSibling).toBe(bar())
+  })
+
   it('shows no facets for a category without a convention, only the text field', async () => {
     await open('tv')
 

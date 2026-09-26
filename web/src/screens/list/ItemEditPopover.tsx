@@ -1,5 +1,5 @@
 import './ItemEditPopover.css'
-import { useState } from 'react'
+import { useState, type KeyboardEvent } from 'react'
 import type { ListItem } from '../../lib/api.js'
 import { copy } from '../../locale/index.js'
 import { Button } from '../../components/quantum/Button/Button.js'
@@ -24,8 +24,8 @@ export interface ItemEditPopoverProps {
 
 /**
  * The ✎ popover (design: item edit, 360px): Title, Minutes, Group, and
- * Discard / Save. Clicking away or pressing Esc commits what can be saved —
- * "the buttons are the contract; the click-away is the safety net". There is
+ * Discard / Save. Clicking away commits what can be saved — "the buttons are the
+ * contract; the click-away is the safety net" — but Esc cancels (owner ruling, 2026-09-26: Enter saves, Esc cancels). There is
  * no field for `notes`: they are curator prose and read-only.
  */
 export function ItemEditPopover({ item, groups, anchorEl, onCommit, onDiscard }: ItemEditPopoverProps) {
@@ -36,14 +36,22 @@ export function ItemEditPopover({ item, groups, anchorEl, onCommit, onDiscard }:
 
   const patch = buildEditPatch(item, { title, minutes, group })
 
+  // Enter saves, Esc cancels. Not in a text area (Enter is a new line there) and
+  // not when something inside already took the key (an open group list picks with it).
+  function saveOnEnter(event: KeyboardEvent<HTMLDivElement>) {
+    if (event.key !== 'Enter' || event.defaultPrevented || event.nativeEvent.isComposing) return
+    if (event.target instanceof HTMLTextAreaElement || event.target instanceof HTMLButtonElement) return
+    if (patch) onCommit(patch, 'save')
+  }
+
   function dismiss() {
     if (patch) onCommit(patch, 'clickaway')
     else onDiscard()
   }
 
   return (
-    <Popover open anchorEl={anchorEl} onDismiss={dismiss} width={360}>
-      <div className="q-edit">
+    <Popover open anchorEl={anchorEl} onDismiss={dismiss} onEscape={onDiscard} width={360}>
+      <div className="q-edit" onKeyDown={saveOnEnter}>
         <Field
           label={text.editTitle}
           value={title}

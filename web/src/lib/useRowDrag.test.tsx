@@ -170,6 +170,67 @@ describe('useRowDrag', () => {
     expect(onEnd).toHaveBeenCalledTimes(1)
   })
 
+  it('Escape during a drag is not also seen by the Esc ladder (it would pop the list too)', () => {
+    pointAt()
+    const seenByLadder = vi.fn()
+    document.addEventListener('keydown', seenByLadder)
+    render(<Harness onDrop={vi.fn()} />)
+    press('a')
+    move(10, 200)
+
+    act(() => void document.body.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })))
+
+    expect(state().drag).toBeNull()
+    expect(seenByLadder).not.toHaveBeenCalled()
+    document.removeEventListener('keydown', seenByLadder)
+  })
+
+  it('once the drag is over, Escape reaches the ladder again', () => {
+    pointAt()
+    const seenByLadder = vi.fn()
+    document.addEventListener('keydown', seenByLadder)
+    render(<Harness onDrop={vi.fn()} />)
+    press('a')
+    move(10, 200)
+    release(10, 200)
+
+    act(() => void document.body.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })))
+
+    expect(seenByLadder).toHaveBeenCalledOnce()
+    document.removeEventListener('keydown', seenByLadder)
+  })
+
+  it('no text selection can start while the handle is held, drag or not (BL-019)', () => {
+    pointAt()
+    render(<Harness onDrop={vi.fn()} />)
+    const selectStart = () => {
+      const event = new Event('selectstart', { bubbles: true, cancelable: true })
+      document.body.dispatchEvent(event)
+      return event.defaultPrevented
+    }
+
+    press('a')
+    expect(selectStart()).toBe(true)
+    move(10, 200)
+    expect(selectStart()).toBe(true)
+    release(10, 200)
+
+    expect(selectStart()).toBe(false)
+  })
+
+  it('drops any selection already on the page when the drag starts (BL-019)', () => {
+    pointAt()
+    render(<Harness onDrop={vi.fn()} />)
+    window.getSelection()!.selectAllChildren(document.body)
+    expect(window.getSelection()!.toString()).not.toBe('')
+
+    press('a')
+    move(10, 200)
+
+    expect(window.getSelection()!.toString()).toBe('')
+    release(10, 200)
+  })
+
   it('a cancelled pointer (the system took it) ends the drag without dropping', () => {
     pointAt()
     const onDrop = vi.fn()

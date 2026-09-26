@@ -39,7 +39,13 @@ import {
 } from './restore.js'
 import { CustomListParseError } from '../ingestion/customLists.js'
 import { IngestionError } from '../ingestion/http.js'
-import { previewReset, resetToSource, ResetUnavailableError, sortChronologically } from './reset.js'
+import {
+  previewReset,
+  resetOrderToSource,
+  resetToSource,
+  ResetUnavailableError,
+  sortChronologically,
+} from './reset.js'
 import type {
   GroupRestore,
   ItemRestore,
@@ -582,6 +588,22 @@ export const catalogRoutes: FastifyPluginAsync<CatalogRoutesOptions> = async (
     }
     throw cause
   }
+
+  // Reset the order: back to the order the source has, nothing else touched; hands back the old order for Undo.
+  app.post<{ Params: ListParams }>('/lists/:listId/reset-order', async (request, reply) => {
+    const user = getCurrentUser(request)
+
+    try {
+      const restore = await resetOrderToSource(db, user.id, request.params.listId, {
+        mediaTypes: mediaTypes.list(),
+      })
+      if (!restore) return reply.callNotFound()
+
+      return { restore }
+    } catch (cause) {
+      return resetError(reply, cause)
+    }
+  })
 
   // What Reset everything would do, in numbers, without doing it (the confirm sentence).
   app.get<{ Params: ListParams }>('/lists/:listId/reset-preview', async (request, reply) => {

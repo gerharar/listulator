@@ -25,7 +25,7 @@ export interface ListMorePopoverProps {
   onDownload: () => void
   onCopy: () => void
   onSortNow: () => void
-  /** "Reset the order": the same one-off sort as Sort now. */
+  /** "Reset the order": the source's own order back, where Sort now sorts by year. */
   onResetOrder: () => void
   onResetEverything: () => void
   onDelete: () => void

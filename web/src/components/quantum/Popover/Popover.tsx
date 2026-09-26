@@ -25,6 +25,8 @@ export interface PopoverProps {
    * net" (design-system/components/Popover).
    */
   onDismiss: () => void
+  /** Esc, when it should mean something other than click-away (an edit popover cancels). */
+  onEscape?: () => void
   width: PopoverWidth
   children: ReactNode
 }
@@ -40,7 +42,7 @@ export interface PopoverProps {
  * concern — this component only re-renders whatever `children` it's given
  * for a stable `open`/`anchorEl`, so the tail never moves between them.
  */
-export function Popover({ open, anchorEl, onDismiss, width, children }: PopoverProps) {
+export function Popover({ open, anchorEl, onDismiss, onEscape, width, children }: PopoverProps) {
   const id = useId()
   const arrowRef = useRef<HTMLSpanElement>(null)
 
@@ -57,7 +59,7 @@ export function Popover({ open, anchorEl, onDismiss, width, children }: PopoverP
     whileElementsMounted: autoUpdate,
   })
 
-  useOverlayRegistration('popover', id, open, onDismiss)
+  useOverlayRegistration('popover', id, open, onEscape ?? onDismiss)
 
   if (!open) return null
 

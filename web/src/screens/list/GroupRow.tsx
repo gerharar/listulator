@@ -1,5 +1,6 @@
 import './Spine.css'
 import type { KeyboardEvent, PointerEvent } from 'react'
+import { Trash2 } from 'lucide-react'
 import { copy } from '../../locale/index.js'
 import { ProgressSentence } from '../../components/quantum/ProgressSentence/ProgressSentence.js'
 import { yearSpanLabel, type GroupBlock } from './spine.js'
@@ -18,6 +19,8 @@ export interface GroupRowProps {
   dropLine?: 'before' | 'after' | null
   /** Just moved or restored. */
   pulse?: boolean
+  /** Deletes the group. Offered only while it holds no items (prototype: "🗑 empty"). */
+  onDelete?: () => void
   /** While a filter is on: how many of the group's items match, in place of its progress. */
   shownOf?: { shown: number; total: number }
 }
@@ -25,8 +28,8 @@ export interface GroupRowProps {
 /**
  * A group's header (design-system/components/GroupRow): a composite item with
  * its own progress, sticky while its items are on screen. Clicking toggles it
- * open or closed. Its handle drags the whole block (10.23); delete (empty
- * groups) comes later.
+ * open or closed. Its handle drags the whole block (10.23); an empty group has a
+ * delete button of its own.
  */
 export function GroupRow({
   block,
@@ -38,6 +41,7 @@ export function GroupRow({
   dragging = false,
   dropLine = null,
   pulse = false,
+  onDelete,
   shownOf,
 }: GroupRowProps) {
   const span = yearSpanLabel(block.yearSpan)
@@ -82,6 +86,22 @@ export function GroupRow({
         <b>{block.group.name}</b>
         {span && <span className="q-year">{span}</span>}
       </span>
+      {block.items.length === 0 && onDelete && (
+        <button
+          type="button"
+          className="q-group-delete"
+          aria-label={copy.quantum.list.itemActions.deleteGroupAria}
+          title={copy.quantum.list.itemActions.deleteGroupTip}
+          onClick={(event) => {
+            event.stopPropagation()
+            onDelete()
+          }}
+          onKeyDown={(event) => event.stopPropagation()}
+        >
+          <Trash2 width={13} height={13} strokeWidth={1.8} aria-hidden="true" />
+          {copy.quantum.list.itemActions.deleteGroupLabel}
+        </button>
+      )}
       {shownOf ? (
         <div className="q-progress">
           <span className="q-count" style={{ fontSize: 13 }}>

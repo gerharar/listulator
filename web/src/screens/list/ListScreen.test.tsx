@@ -46,10 +46,13 @@ vi.mock('../../lib/api.js', async () => {
       deleteList: vi.fn(),
       restoreList: vi.fn(),
       sortList: vi.fn(),
+      resetOrder: vi.fn(),
       restoreOrder: vi.fn(),
       resetPreview: vi.fn(),
       resetList: vi.fn(),
       restoreItems: vi.fn(),
+      deleteGroup: vi.fn(),
+      restoreGroup: vi.fn(),
     },
   }
 })
@@ -482,6 +485,46 @@ describe('ListScreen item actions (task 10.21)', () => {
       fireEvent.click(screen.getByRole('button', { name: 'Add' }))
 
       expect(await screen.findByText('Newcomer')).toBeTruthy()
+    })
+  })
+
+  describe('removing an empty group', () => {
+    const withEmpty = () => ({ ...base(), groups: [...groups, { id: 'g3', listId: 'L1', name: 'Season 3', orderIndex: 2 }] })
+
+    it('deletes at once, offers Undo, and Undo brings it back with a pulse', async () => {
+      const restore = { group: { id: 'g3' } }
+      vi.mocked(api.deleteGroup).mockResolvedValue(restore as never)
+      vi.mocked(api.restoreGroup).mockResolvedValue(withEmpty().groups[2]!)
+      await open(withEmpty())
+
+      fireEvent.click(screen.getByRole('button', { name: 'Delete this empty group' }))
+
+      expect(document.querySelector('[data-row-id="g3"]')).toBeNull()
+      expect(api.deleteGroup).toHaveBeenCalledWith('L1', 'g3')
+      expect((await screen.findAllByText('Removed group Season 3')).length).toBeGreaterThan(0)
+
+      vi.mocked(api.list).mockResolvedValue(withEmpty())
+      fireEvent.click(screen.getByRole('button', { name: 'Undo' }))
+
+      await waitFor(() => expect(document.querySelector('[data-row-id="g3"]')).not.toBeNull())
+      expect(api.restoreGroup).toHaveBeenCalledWith('L1', restore)
+      expect(document.querySelector('[data-row-id="g3"]')!.className).toContain('pulse')
+    })
+
+    it('puts the group back and says so when the server refuses', async () => {
+      vi.mocked(api.deleteGroup).mockRejectedValue(new Error('nope'))
+      await open(withEmpty())
+
+      fireEvent.click(screen.getByRole('button', { name: 'Delete this empty group' }))
+
+      expect(await screen.findByText('Could not remove group Season 3')).toBeTruthy()
+      expect(document.querySelector('[data-row-id="g3"]')).not.toBeNull()
+    })
+
+    it('only an empty group offers it', async () => {
+      await open(withEmpty())
+
+      expect(screen.getAllByRole('button', { name: 'Delete this empty group' })).toHaveLength(1)
     })
   })
 
@@ -1339,16 +1382,40 @@ describe('ListScreen order menu (task 10.22)', () => {
       expect(api.checkForUpdates).not.toHaveBeenCalled()
     })
 
-    it('Reset the order is the sort, not the reset', async () => {
+    it('Reset the order puts the source order back: not the year sort, and not Reset everything', async () => {
       vi.mocked(api.resetPreview).mockResolvedValue(preview)
-      vi.mocked(api.sortList).mockResolvedValue({ restore: { items: [], groups: [] } })
+      vi.mocked(api.resetOrder).mockResolvedValue({ restore: { items: [], groups: [] } })
       await openReset()
 
       fireEvent.click(pop().getByRole('button', { name: 'Reset the order' }))
 
-      await waitFor(() => expect(api.sortList).toHaveBeenCalledWith('L1'))
+      await waitFor(() => expect(api.resetOrder).toHaveBeenCalledWith('L1'))
+      expect(api.sortList).not.toHaveBeenCalled()
       expect(api.resetList).not.toHaveBeenCalled()
       await waitFor(() => expect(document.querySelector('.q-toast')!.textContent).toMatch(/Order reset/))
+    })
+
+    it('Undo of Reset the order puts the old positions back', async () => {
+      const restore = { items: [{ id: 'a', orderIndex: 3 }], groups: [] }
+      vi.mocked(api.resetPreview).mockResolvedValue(preview)
+      vi.mocked(api.resetOrder).mockResolvedValue({ restore })
+      vi.mocked(api.restoreOrder).mockResolvedValue(undefined)
+      await openReset()
+
+      fireEvent.click(pop().getByRole('button', { name: 'Reset the order' }))
+      fireEvent.click(await screen.findByRole('button', { name: 'Undo' }))
+
+      await waitFor(() => expect(api.restoreOrder).toHaveBeenCalledWith('L1', restore))
+    })
+
+    it('says why when the order cannot be reset', async () => {
+      vi.mocked(api.resetPreview).mockResolvedValue(preview)
+      vi.mocked(api.resetOrder).mockRejectedValue(new Error('This list has no source to reset to'))
+      await openReset()
+
+      fireEvent.click(pop().getByRole('button', { name: 'Reset the order' }))
+
+      expect(await screen.findByText('This list has no source to reset to')).toBeTruthy()
     })
 
     it('says why, and changes nothing, when the reset is refused', async () => {

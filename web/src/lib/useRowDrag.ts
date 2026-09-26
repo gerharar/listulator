@@ -103,7 +103,8 @@ export function useRowDrag(options: RowDragOptions) {
       window.removeEventListener('pointermove', onMove)
       window.removeEventListener('pointerup', onUp)
       window.removeEventListener('pointercancel', onCancel)
-      window.removeEventListener('keydown', onKey)
+      window.removeEventListener('keydown', onKey, true)
+      document.removeEventListener('selectstart', noSelect, true)
       cancelAnimationFrame(frame)
       cleanup.current = null
 
@@ -126,6 +127,8 @@ export function useRowDrag(options: RowDragOptions) {
         if (Math.hypot(x - startX, y - startY) < THRESHOLD) return
         dragging = true
         document.body.classList.add('q-dragging')
+        // A selection begun before the drag (or by WebKit at the press) would grow as the list scrolls.
+        window.getSelection()?.removeAllRanges()
         setDragKey(key)
         latest.current.onStart?.(key)
         scroller = (latest.current.scrollContainer ?? scrollParent)(handle)
@@ -139,15 +142,24 @@ export function useRowDrag(options: RowDragOptions) {
 
     const onUp = (upEvent: PointerEvent) => finish(true, upEvent.clientX, upEvent.clientY)
     const onCancel = () => finish(false, x, y)
+    // From the press on, not only once it is a drag: WebKit starts a selection at the
+    // press and ignores unprefixed `user-select`, so autoscroll would extend it (BL-019).
+    const noSelect = (selectEvent: Event) => selectEvent.preventDefault()
     const onKey = (keyEvent: KeyboardEvent) => {
-      if (keyEvent.key === 'Escape') finish(false, x, y)
+      if (keyEvent.key !== 'Escape') return
+      // Ours alone: the Esc ladder listens on `document`, which a window
+      // listener would only reach after it had already popped the layer.
+      keyEvent.preventDefault()
+      keyEvent.stopPropagation()
+      finish(false, x, y)
     }
 
     cleanup.current = () => finish(false, x, y)
     window.addEventListener('pointermove', onMove)
     window.addEventListener('pointerup', onUp)
     window.addEventListener('pointercancel', onCancel)
-    window.addEventListener('keydown', onKey)
+    window.addEventListener('keydown', onKey, true)
+    document.addEventListener('selectstart', noSelect, true)
   }, [])
 
   return { dragKey, over, startDrag }
