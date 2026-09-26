@@ -166,6 +166,11 @@ export const ru: Locale = {
   },
 
   quantum: {
+    crash: {
+      headline: 'Что-то пошло не так',
+      explanation: 'В Listulator произошла непредвиденная ошибка. Ваши списки сохранены; обычно помогает перезагрузка.',
+      reload: 'Перезагрузить',
+    },
     meter: {
       label: (done: number, total: number): string => `${done} из ${total} готово`,
       noteCapped: (cap: number, perCell: number): string => `${cap} ячеек ≈ по ${perCell} элем. в каждой`,
@@ -604,6 +609,7 @@ export const ru: Locale = {
         title: 'Перейти к',
         hide: 'Свернуть панель перехода',
         show: 'Показать панель перехода',
+        resize: 'Изменить ширину панели перехода',
       },
       filter: {
         label: 'Фильтр элементов',

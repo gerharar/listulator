@@ -1,0 +1,8 @@
+/* The crash screen: the ordinary ErrorBlock, alone and centred on the page background. */
+.q-crash {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+}
+.q-crash .q-error-block { max-width: 480px; }

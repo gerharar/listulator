@@ -157,6 +157,11 @@ export const de: Locale = {
   },
 
   quantum: {
+    crash: {
+      headline: 'Etwas ist schiefgelaufen',
+      explanation: 'In Listulator ist ein unerwarteter Fehler aufgetreten. Deine Listen sind gespeichert; Neuladen hilft meistens.',
+      reload: 'Neu laden',
+    },
     meter: {
       label: (done: number, total: number): string => `${done} von ${total} erledigt`,
       noteCapped: (cap: number, perCell: number): string => `${cap} Zellen ≈ je ${perCell} Einträge`,
@@ -599,6 +604,7 @@ export const de: Locale = {
         title: 'Springen zu',
         hide: 'Sprungleiste einklappen',
         show: 'Sprungleiste anzeigen',
+        resize: 'Breite der Sprungleiste ändern',
       },
       filter: {
         label: 'Einträge filtern',

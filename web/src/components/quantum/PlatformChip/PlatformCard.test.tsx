@@ -21,6 +21,18 @@ describe('PlatformCard', () => {
     expect(screen.getByText('PC', { selector: '.code' })).toBeTruthy()
   })
 
+  it('makes the code column as wide as the longest code, so a long one never runs into the name (F10)', () => {
+    render(<PlatformCard tags={['PC', 'XBOX360', 'Windows']} />)
+
+    expect((document.querySelector('.q-platcard') as HTMLElement).style.getPropertyValue('--code-w')).toBe('7ch')
+  })
+
+  it('keeps the design’s 5ch code column for short codes', () => {
+    render(<PlatformCard tags={['PS3', 'pc']} />)
+
+    expect((document.querySelector('.q-platcard') as HTMLElement).style.getPropertyValue('--code-w')).toBe('5ch')
+  })
+
   it('says a bare multi means every platform, unnamed', () => {
     render(<PlatformCard tags={['multi']} />)
     expect(screen.getByText('Multi-platform')).toBeTruthy()

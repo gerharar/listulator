@@ -174,6 +174,12 @@ export const en = {
 
   /** Quantum progress and marks primitives (task 10.6). */
   quantum: {
+    /** The whole-app error screen (AppErrorBoundary): shown instead of a blank window. */
+    crash: {
+      headline: 'Something went wrong',
+      explanation: 'Listulator hit an unexpected error. Your lists are saved; reloading usually brings everything back.',
+      reload: 'Reload',
+    },
     meter: {
       /** MeterBar's `role="img"` label — never the cap, the real numbers. */
       label: (done: number, total: number): string => `${done} of ${total} done`,
@@ -656,6 +662,7 @@ export const en = {
         title: 'Jump to',
         hide: 'Collapse the jump rail',
         show: 'Show the jump rail',
+        resize: 'Resize the jump rail',
       },
       /** The filter bar under the header: a text field, the category's facets, fold-all and a note. */
       filter: {

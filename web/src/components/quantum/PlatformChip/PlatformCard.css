@@ -9,7 +9,7 @@
 }
 .q-platcard-row .code {
   flex: none;
-  width: 5ch;
+  width: var(--code-w, 5ch);
   font: 500 12px/1 var(--font-mono);
   color: var(--ink3);
 }

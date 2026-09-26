@@ -168,4 +168,64 @@ describe('the jump rail', () => {
       'Season 20/3',
     ])
   })
+
+  describe('width (F12)', () => {
+    const grip = () => within(rail()!).getByRole('separator', { name: 'Resize the jump rail' })
+    const width = () => rail()!.style.width
+
+    it('starts at the design’s 200px', async () => {
+      await open()
+
+      expect(width()).toBe('200px')
+    })
+
+    it('widens and narrows by dragging its edge, within 160–480px, and remembers it per list', async () => {
+      await open()
+
+      fireEvent.pointerDown(grip(), { button: 0, clientX: 200 })
+      fireEvent.pointerMove(window, { clientX: 290 })
+      expect(width()).toBe('290px')
+      fireEvent.pointerMove(window, { clientX: 900 })
+      expect(width()).toBe('480px')
+      fireEvent.pointerMove(window, { clientX: 10 })
+      expect(width()).toBe('160px')
+      fireEvent.pointerMove(window, { clientX: 320 })
+      fireEvent.pointerUp(window, { clientX: 320 })
+
+      await waitFor(() => expect(store.get('list:L1:railWidth')).toBe('320'))
+      fireEvent.pointerMove(window, { clientX: 400 })
+      expect(width()).toBe('320px')
+
+      cleanup()
+      await open()
+      expect(width()).toBe('320px')
+    })
+
+    it('can be resized from the keyboard, and a double-click puts it back to 200px', async () => {
+      await open()
+
+      fireEvent.keyDown(grip(), { key: 'ArrowRight' })
+      expect(width()).toBe('216px')
+      expect(grip().getAttribute('aria-valuenow')).toBe('216')
+      fireEvent.keyDown(grip(), { key: 'ArrowLeft' })
+      fireEvent.keyDown(grip(), { key: 'ArrowLeft' })
+      expect(width()).toBe('184px')
+      await waitFor(() => expect(store.get('list:L1:railWidth')).toBe('184'))
+
+      fireEvent.doubleClick(grip())
+      expect(width()).toBe('200px')
+      await waitFor(() => expect(store.get('list:L1:railWidth')).toBe('200'))
+    })
+
+    it('ignores a stored width that is out of range or not a number', async () => {
+      store.set('list:L1:railWidth', '9000')
+      await open()
+      expect(width()).toBe('480px')
+
+      cleanup()
+      store.set('list:L1:railWidth', 'wide')
+      await open()
+      expect(width()).toBe('200px')
+    })
+  })
 })

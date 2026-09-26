@@ -29,9 +29,11 @@ import {
   loadCollapsed,
   loadFocus,
   loadRailHidden,
+  loadRailWidth,
   saveCollapsed,
   saveFocus,
   saveRailHidden,
+  saveRailWidth,
 } from './collapse.js'
 import { deriveFacets, displayTag, type FacetKey } from '../../../../server/src/catalog/facets.js'
 import { AddItemForm, type NewItemInput } from './AddItemForm.js'
@@ -70,6 +72,7 @@ type Load =
       collapsed: ReadonlySet<string>
       focusId: string | undefined
       railHidden: boolean
+      railWidth: number
     }
 
 /**
@@ -106,8 +109,9 @@ export function ListScreen({ listId, mediaTypes, pendingUpdates, onLeave, onClos
       )
       const focusId = await loadFocus(store, listId)
       const railHidden = await loadRailHidden(store, listId)
+      const railWidth = await loadRailWidth(store, listId)
       void saveLastOpened(store, listId)
-      if (request.current === mine) setLoad({ state: 'ready', list, collapsed, focusId, railHidden })
+      if (request.current === mine) setLoad({ state: 'ready', list, collapsed, focusId, railHidden, railWidth })
     } catch (cause) {
       if (request.current === mine) {
         setLoad({
@@ -154,6 +158,7 @@ export function ListScreen({ listId, mediaTypes, pendingUpdates, onLeave, onClos
       initialCollapsed={load.collapsed}
       initialFocusId={load.focusId}
       initialRailHidden={load.railHidden}
+      initialRailWidth={load.railWidth}
       mediaTypes={mediaTypes}
       pending={pendingUpdates ?? getPendingUpdates()}
       onLeave={onLeave}
@@ -171,6 +176,7 @@ interface ListViewProps {
   initialCollapsed: ReadonlySet<string>
   initialFocusId: string | undefined
   initialRailHidden: boolean
+  initialRailWidth: number
   mediaTypes: readonly MediaType[]
   pending: PendingUpdates
   onLeave: (() => void) | undefined
@@ -192,6 +198,7 @@ function ListView({
   initialCollapsed,
   initialFocusId,
   initialRailHidden,
+  initialRailWidth,
   mediaTypes,
   pending,
   onLeave,
@@ -213,6 +220,7 @@ function ListView({
   const [collapsed, setCollapsed] = useState<ReadonlySet<string>>(initialCollapsed)
   const [focusId, setFocusId] = useState<string | undefined>(initialFocusId)
   const [railHidden, setRailHidden] = useState(initialRailHidden)
+  const [railWidth, setRailWidth] = useState(initialRailWidth)
   // A jump asks for a scroll once the group it opened has rendered.
   const [jumpTo, setJumpTo] = useState<{ id: string; n: number } | null>(null)
   const [popover, setPopover] = useState<OpenPopover | null>(null)
@@ -895,7 +903,14 @@ function ListView({
 
       <div className="q-list-cols">
         {railEntries.length > 1 && !railHidden && (
-          <JumpRail entries={railEntries} onJump={jump} onHide={() => setRail(true)} />
+          <JumpRail
+            entries={railEntries}
+            onJump={jump}
+            onHide={() => setRail(true)}
+            width={railWidth}
+            onResize={setRailWidth}
+            onResizeEnd={(width) => void saveRailWidth(getPreferencesStore(), listId, width)}
+          />
         )}
         {railEntries.length > 1 && railHidden && <JumpRailStub onShow={() => setRail(false)} />}
         <div className="q-list-body" ref={spine} onKeyDown={onKeyDown} onBlur={moves.onBlur}>

@@ -20,6 +20,7 @@ import '@fontsource/jetbrains-mono/600.css'
 import './styles/quantum/tokens.css'
 import './styles/quantum/base.css'
 import { App } from './App.js'
+import { AppErrorBoundary } from './components/quantum/AppErrorBoundary/AppErrorBoundary.js'
 
 const rootElement = document.getElementById('root')
 if (!rootElement) throw new Error('#root not found')
@@ -30,6 +31,8 @@ if (!rootElement) throw new Error('#root not found')
 // router left to provide.
 createRoot(rootElement).render(
   <StrictMode>
-    <App />
+    <AppErrorBoundary>
+      <App />
+    </AppErrorBoundary>
   </StrictMode>,
 )

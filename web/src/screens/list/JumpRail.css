@@ -6,11 +6,18 @@
 }
 .q-list-cols > .q-list-body { min-width: 0; }
 .q-rail {
+  position: relative;
   flex: none;
   width: 200px;
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid var(--line);
+}
+.q-rail-scroll {
+  flex: 1;
+  min-height: 0;
   overflow: auto;
   padding: 14px 0;
-  border-right: 1px solid var(--line);
 }
 .q-rail-head {
   display: flex;
@@ -68,3 +75,19 @@
   text-transform: uppercase;
   color: var(--ink3);
 }
+
+/* The rail's right edge (F12): a 7px strip over the border, a line on hover or focus. */
+.q-rail-grip {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: -4px;
+  z-index: 3;
+  width: 7px;
+  cursor: col-resize;
+  touch-action: none;
+}
+.q-rail-grip:hover,
+.q-rail-grip:focus-visible { outline: none; background: linear-gradient(var(--rule), var(--rule)) center / 2px 100% no-repeat; }
+body.q-resizing { -webkit-user-select: none; user-select: none; cursor: col-resize; }
+body.q-resizing * { cursor: col-resize !important; }

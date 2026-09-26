@@ -80,7 +80,7 @@ export function GroupRow({
         </span>
       )}
       <span className="q-chev" aria-hidden="true">
-        ▾
+        ▼
       </span>
       <span className="name">
         <b>{block.group.name}</b>

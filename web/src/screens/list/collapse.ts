@@ -105,3 +105,30 @@ export async function saveRailHidden(store: PreferencesStore, listId: string, hi
     // As above.
   }
 }
+
+const RAIL_WIDTH = 'railWidth'
+export const RAIL_WIDTH_DEFAULT = 200
+export const RAIL_WIDTH_MIN = 160
+export const RAIL_WIDTH_MAX = 480
+
+export function clampRailWidth(width: number): number {
+  return Math.round(Math.min(RAIL_WIDTH_MAX, Math.max(RAIL_WIDTH_MIN, width)))
+}
+
+/** How wide the reader dragged the jump rail on this list (F12). The design's 200px unless said otherwise. */
+export async function loadRailWidth(store: PreferencesStore, listId: string): Promise<number> {
+  try {
+    const stored = Number(await store.get(listPreferenceKey(listId, RAIL_WIDTH)))
+    return Number.isFinite(stored) && stored > 0 ? clampRailWidth(stored) : RAIL_WIDTH_DEFAULT
+  } catch {
+    return RAIL_WIDTH_DEFAULT
+  }
+}
+
+export async function saveRailWidth(store: PreferencesStore, listId: string, width: number): Promise<void> {
+  try {
+    await store.set(listPreferenceKey(listId, RAIL_WIDTH), String(width))
+  } catch {
+    // As above.
+  }
+}

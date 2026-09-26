@@ -1,4 +1,5 @@
 import './PlatformCard.css'
+import type { CSSProperties } from 'react'
 import { copy } from '../../../locale/index.js'
 import { platformFullName } from './PlatformChip.js'
 
@@ -25,8 +26,11 @@ export function PlatformCard({ tags }: PlatformCardProps) {
     )
   }
 
+  // The design's 5ch, grown to the longest code so XBOX360 or WINDOWS never runs into its name.
+  const codeWidth = Math.max(5, ...codes.map((code) => code.length))
+
   return (
-    <div className="q-platcard">
+    <div className="q-platcard" style={{ '--code-w': `${codeWidth}ch` } as CSSProperties}>
       <p className="q-kicker">{codes.length === 1 ? text.one : text.many(codes.length)}</p>
       {codes.map((code) => (
         <div key={code} className="q-platcard-row">

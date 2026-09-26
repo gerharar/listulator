@@ -40,6 +40,12 @@ describe('GroupRow', () => {
     expect(screen.getByText('3h 20m left')).toBeTruthy()
   })
 
+  it('has the prototype’s full-size chevron, not the small one (F11)', () => {
+    renderRow()
+
+    expect(document.querySelector('.q-chev')!.textContent!.trim()).toBe('▼')
+  })
+
   it('says "All done" instead of the time left when every item is done', () => {
     renderRow({ ...BLOCK, done: 6, minutesLeft: 0, allDone: true })
 
