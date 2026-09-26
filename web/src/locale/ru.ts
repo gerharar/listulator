@@ -220,10 +220,6 @@ export const ru: Locale = {
       themeQuantum: 'Quantum',
       skin: 'Оформление',
       motion: 'Анимация',
-      motions: {
-        drum: 'Барабан — 380 мс',
-        push: 'Быстрый сдвиг — 210 мс',
-      },
       reduceMotion: 'Меньше анимации — слои сменяются без перехода',
       language: 'Язык',
       languages: {

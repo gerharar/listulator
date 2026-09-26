@@ -50,7 +50,7 @@ function renderSettings(options: { skin?: 'dark-blue' | 'light-bone'; reducedSet
   const view = render(
     <LiveRegionProvider>
       <OverlayManagerProvider>
-        <MotionProvider initialMotion="drum" initialReducedSetting={options.reducedSetting} store={store}>
+        <MotionProvider initialReducedSetting={options.reducedSetting} store={store}>
           <LanguageProvider>
             <LayerStackProvider home={{ id: 'home', kind: 'home', tabLabel: 'Home', content: '/' }}>
               <StackReader />
@@ -95,16 +95,11 @@ describe('SettingsScreen', () => {
     })
   })
 
-  it('offers the two motions, lit by the current one, and persists a change', async () => {
+  it('offers no choice of motion style, only Reduce motion (Fast push removed, F14)', () => {
     renderSettings()
-    expect(pressed('Drum carousel — 380ms')).toBe('true')
-    expect(pressed('Fast push — 210ms')).toBe('false')
 
-    act(() => screen.getByRole('button', { name: 'Fast push — 210ms' }).click())
-
-    expect(pressed('Fast push — 210ms')).toBe('true')
-    expect(pressed('Drum carousel — 380ms')).toBe('false')
-    expect(store.data.get('motion')).toBe('push')
+    expect(screen.queryByRole('button', { name: /Drum carousel|Fast push/ })).toBeNull()
+    expect(screen.getByRole('checkbox', { name: /Reduce motion/ })).toBeTruthy()
   })
 
   it('the reduce-motion box starts ticked when the system asks for less, and unticking persists a no', () => {
@@ -186,7 +181,7 @@ describe('SettingsScreen', () => {
     }
     render(
       <LiveRegionProvider>
-        <MotionProvider initialMotion="drum" initialReducedSetting={undefined} store={store}>
+        <MotionProvider initialReducedSetting={undefined} store={store}>
           <LanguageProvider>
             <LayerStackProvider home={{ id: 'home', kind: 'home', tabLabel: 'Home', content: '/' }}>
               <PushSettings />

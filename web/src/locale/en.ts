@@ -235,10 +235,6 @@ export const en = {
       themeQuantum: 'Quantum',
       skin: 'Skin',
       motion: 'Motion',
-      motions: {
-        drum: 'Drum carousel — 380ms',
-        push: 'Fast push — 210ms',
-      },
       reduceMotion: 'Reduce motion — layers cut instead of animating',
       language: 'Language',
       languages: {

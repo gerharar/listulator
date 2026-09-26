@@ -5,11 +5,7 @@ import { copy } from './locale/index.js'
 import { getPreferencesStore } from './lib/preferences/store.js'
 import { resolveSkin, setSkin as persistSkin, type Skin } from './lib/preferences/skin.js'
 import { resolveLanguage, type Language } from './lib/preferences/language.js'
-import {
-  resolveMotion,
-  resolveReducedMotionSetting,
-  type Motion,
-} from './lib/preferences/motion.js'
+import { resolveReducedMotionSetting } from './lib/preferences/motion.js'
 import { MotionProvider } from './components/quantum/Motion/MotionContext.js'
 import { SettingsScreen } from './screens/settings/SettingsScreen.js'
 import { ListScreen } from './screens/list/ListScreen.js'
@@ -45,7 +41,6 @@ function homeLayer(): LayerDescriptor<string> {
 interface BootState {
   skin: Skin
   language: Language
-  motion: Motion
   /** `undefined` until the user has ticked or unticked the box: the system setting decides then. */
   reducedSetting: boolean | undefined
 }
@@ -69,11 +64,10 @@ export function App() {
     Promise.all([
       resolveSkin(store),
       resolveLanguage(store),
-      resolveMotion(store),
       resolveReducedMotionSetting(store),
     ])
-      .then(([skin, language, motion, reducedSetting]) =>
-        setBoot({ skin, language, motion, reducedSetting }),
+      .then(([skin, language, reducedSetting]) =>
+        setBoot({ skin, language, reducedSetting }),
       )
       .catch((cause: unknown) =>
         setError(cause instanceof Error ? cause.message : copy.app.unknownError),
@@ -98,7 +92,6 @@ function QuantumShell({ initial }: { initial: BootState }) {
 
   return (
     <MotionProvider
-      initialMotion={initial.motion}
       initialReducedSetting={initial.reducedSetting}
       store={store}
     >

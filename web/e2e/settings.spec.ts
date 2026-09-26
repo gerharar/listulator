@@ -53,18 +53,6 @@ test('a skin picked in Settings re-themes the app, is announced, and survives a 
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'light-bone')
 })
 
-test('Fast push swaps the entrance animation, and the choice survives a reload', async ({ page }) => {
-  await openHome(page)
-  await openSettings(page)
-  await page.getByRole('button', { name: 'Fast push — 210ms' }).click()
-  await expect(page.locator('html')).toHaveAttribute('data-motion', 'push')
-
-  await page.reload()
-  await expect(page.getByRole('heading', { name: 'My Lists' })).toBeVisible({ timeout: 15_000 })
-  await expect(page.locator('html')).toHaveAttribute('data-motion', 'push')
-  expect(await enteringAnimation(page)).toContain('q-pushIn')
-})
-
 test('Reduce motion cuts the entrance and the re-seat with the system asking for nothing, and survives a reload', async ({ page }) => {
   await openHome(page)
   await openSettings(page)

@@ -32,11 +32,10 @@ function systemPrefersReduced(reduced: boolean): void {
 }
 
 function Probe() {
-  const { motion, reduced, setMotion, setReducedMotion } = useMotion()
+  const { reduced, setReducedMotion } = useMotion()
   return (
     <div>
-      <output data-testid="state">{`${motion}|${reduced}`}</output>
-      <button onClick={() => setMotion('push')}>push</button>
+      <output data-testid="state">{String(reduced)}</output>
       <button onClick={() => setReducedMotion(true)}>reduce</button>
       <button onClick={() => setReducedMotion(false)}>allow</button>
     </div>
@@ -49,50 +48,48 @@ describe('MotionProvider', () => {
   it('follows the system setting until the user has chosen', () => {
     systemPrefersReduced(true)
     render(
-      <MotionProvider initialMotion="drum" initialReducedSetting={undefined} store={fakeStore()}>
+      <MotionProvider initialReducedSetting={undefined} store={fakeStore()}>
         <Probe />
       </MotionProvider>,
     )
 
-    expect(state()).toBe('drum|true')
+    expect(state()).toBe('true')
   })
 
   it('an explicit no keeps motion on even when the system asks for less', () => {
     systemPrefersReduced(true)
     render(
-      <MotionProvider initialMotion="drum" initialReducedSetting={false} store={fakeStore()}>
+      <MotionProvider initialReducedSetting={false} store={fakeStore()}>
         <Probe />
       </MotionProvider>,
     )
 
-    expect(state()).toBe('drum|false')
+    expect(state()).toBe('false')
   })
 
   it('an explicit yes reduces motion when the system does not ask', () => {
     systemPrefersReduced(false)
     render(
-      <MotionProvider initialMotion="push" initialReducedSetting={true} store={fakeStore()}>
+      <MotionProvider initialReducedSetting={true} store={fakeStore()}>
         <Probe />
       </MotionProvider>,
     )
 
-    expect(state()).toBe('push|true')
+    expect(state()).toBe('true')
   })
 
   it('applies a change at once and persists it', () => {
     systemPrefersReduced(false)
     const store = fakeStore()
     render(
-      <MotionProvider initialMotion="drum" initialReducedSetting={undefined} store={store}>
+      <MotionProvider initialReducedSetting={undefined} store={store}>
         <Probe />
       </MotionProvider>,
     )
 
-    act(() => screen.getByText('push').click())
     act(() => screen.getByText('reduce').click())
 
-    expect(state()).toBe('push|true')
-    expect(store.data.get('motion')).toBe('push')
+    expect(state()).toBe('true')
     expect(store.data.get('reducedMotion')).toBe('true')
   })
 
@@ -100,23 +97,23 @@ describe('MotionProvider', () => {
     systemPrefersReduced(true)
     const store = fakeStore()
     render(
-      <MotionProvider initialMotion="drum" initialReducedSetting={undefined} store={store}>
+      <MotionProvider initialReducedSetting={undefined} store={store}>
         <Probe />
       </MotionProvider>,
     )
 
     act(() => screen.getByText('allow').click())
 
-    expect(state()).toBe('drum|false')
+    expect(state()).toBe('false')
     expect(store.data.get('reducedMotion')).toBe('false')
   })
 })
 
 describe('useMotion without a provider', () => {
-  it('is the drum carousel with motion on — a component rendered alone in a test', () => {
+  it('has motion on — a component rendered alone in a test', () => {
     render(<Probe />)
 
-    expect(state()).toBe('drum|false')
+    expect(state()).toBe('false')
   })
 })
 
@@ -135,7 +132,7 @@ describe('useReducedMotion', () => {
   it('reads the effective setting inside a provider', () => {
     systemPrefersReduced(true)
     render(
-      <MotionProvider initialMotion="drum" initialReducedSetting={false} store={fakeStore()}>
+      <MotionProvider initialReducedSetting={false} store={fakeStore()}>
         <Reduced />
       </MotionProvider>,
     )

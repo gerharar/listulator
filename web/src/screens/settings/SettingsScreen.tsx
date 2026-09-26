@@ -6,7 +6,6 @@ import { useLanguage } from '../../locale/LanguageProvider.js'
 import { copy } from '../../locale/index.js'
 import { getPreferencesStore, type PreferencesStore } from '../../lib/preferences/store.js'
 import { LANGUAGES, setLanguage as persistLanguage, type Language } from '../../lib/preferences/language.js'
-import { MOTIONS } from '../../lib/preferences/motion.js'
 import { SKINS, type Skin } from '../../lib/preferences/skin.js'
 import { IconButton } from '../../components/quantum/Button/Button.js'
 import { HeaderPlate } from '../../components/quantum/HeaderPlate/HeaderPlate.js'
@@ -18,7 +17,7 @@ import { ToggleChip } from '../../components/quantum/ToggleChip/ToggleChip.js'
 export interface SettingsScreenProps {
   skin: Skin
   onSkinChange: (skin: Skin) => void
-  /** Where the language is remembered; the skin and motion are persisted by their owners. */
+  /** Where the language is remembered; the skin and reduced motion are persisted by their owners. */
   store?: PreferencesStore
 }
 
@@ -32,7 +31,7 @@ export function SettingsScreen({ skin, onSkinChange, store }: SettingsScreenProp
   const layerStack = useLayerStack()
   const { announce } = useLiveRegion()
   const { language, setLanguage } = useLanguage()
-  const { motion, reduced, setMotion, setReducedMotion } = useMotion()
+  const { reduced, setReducedMotion } = useMotion()
   const text = copy.quantum.settings
 
   function pickSkin(next: Skin): void {
@@ -80,13 +79,6 @@ export function SettingsScreen({ skin, onSkinChange, store }: SettingsScreenProp
 
           <section>
             <span className="q-kicker">{text.motion}</span>
-            <div className="q-settings-row">
-              {MOTIONS.map((id) => (
-                <ToggleChip key={id} variant="choice" pressed={id === motion} onClick={() => setMotion(id)}>
-                  {text.motions[id]}
-                </ToggleChip>
-              ))}
-            </div>
             <label className="q-settings-check">
               <input type="checkbox" checked={reduced} onChange={(event) => setReducedMotion(event.target.checked)} />
               {text.reduceMotion}
