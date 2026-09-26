@@ -31,7 +31,7 @@ function categoryPickerLayer(): LayerDescriptor<string> {
   return {
     id: 'category-picker',
     kind: 'category-picker',
-    tabLabel: copy.quantum.categoryPicker.title,
+    tabLabel: () => copy.quantum.categoryPicker.title,
     content: '/',
   }
 }
@@ -181,7 +181,7 @@ export function Home({ onMediaTypesLoaded, pendingUpdates }: HomeProps) {
     layerStack.push({
       id: `preview-${entry.externalRef}`,
       kind: 'preview',
-      tabLabel: copy.quantum.search.previewTab(entry.title),
+      tabLabel: () => copy.quantum.search.previewTab(entry.title),
       content: previewPath({ mediaType: entry.category, externalRef: entry.externalRef, title: entry.title, options: {} }),
     })
   }

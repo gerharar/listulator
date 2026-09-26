@@ -116,7 +116,7 @@ export function SearchTab({ mediaType, onBuilt }: SearchTabProps) {
                 layerStack.push({
                   id: 'settings',
                   kind: 'settings',
-                  tabLabel: copy.quantum.settings.title,
+                  tabLabel: () => copy.quantum.settings.title,
                   content: '',
                 }),
             },
@@ -223,7 +223,7 @@ export function SearchTab({ mediaType, onBuilt }: SearchTabProps) {
     layerStack.push({
       id: `preview-${result.externalRef}`,
       kind: 'preview',
-      tabLabel: text.previewTab(result.title),
+      tabLabel: () => text.previewTab(result.title),
       content: previewPath(sourceFor(result)),
     })
   }

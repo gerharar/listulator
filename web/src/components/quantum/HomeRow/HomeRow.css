@@ -39,6 +39,8 @@
   text-align: right;
 }
 .q-home-row .q-left {
-  width: 114px;
+  /* 114px is the design's column; a longer translation ("noch 1 Std. 30 Min.") grows it rather than being clipped. */
+  min-width: 114px;
+  flex: none;
   text-align: right;
 }

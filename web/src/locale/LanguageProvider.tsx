@@ -1,4 +1,4 @@
-import { createContext, useContext, useMemo, useState, type ReactNode } from 'react'
+import { createContext, useContext, useLayoutEffect, useMemo, useState, type ReactNode } from 'react'
 import { copy, setActiveLanguage } from './index.js'
 import type { Locale } from './en.js'
 import type { Language } from '../lib/preferences/language.js'
@@ -34,6 +34,11 @@ export function LanguageProvider({ initialLanguage = 'en', children }: LanguageP
   const [language, setLanguage] = useState<Language>(initialLanguage)
 
   setActiveLanguage(language)
+
+  // The document's own language, so a screen reader pronounces the words in it.
+  useLayoutEffect(() => {
+    document.documentElement.lang = language
+  }, [language])
 
   const value = useMemo<LanguageContextValue>(() => ({ language, setLanguage }), [language])
 

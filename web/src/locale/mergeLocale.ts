@@ -52,3 +52,53 @@ export function missingKeys(base: object, partial: object | undefined, path = ''
 
   return missing
 }
+
+/**
+ * The dotted paths present in `partial` but not in `base` — a translation
+ * that invented a key, or kept one `en` has since renamed. `open` names the
+ * sections that are *meant* to grow per language (a map keyed by an open
+ * registry, so `ru` may name categories `en` does not); their children are not
+ * counted, only the section itself must exist.
+ */
+export function extraKeys(
+  base: object,
+  partial: object,
+  open: readonly string[] = [],
+  path = '',
+): string[] {
+  const extra: string[] = []
+
+  for (const key of Object.keys(partial)) {
+    const fullPath = path ? `${path}.${key}` : key
+    if (open.includes(fullPath)) continue
+    const baseValue = (base as Record<string, unknown>)[key]
+    const partialValue = (partial as Record<string, unknown>)[key]
+
+    if (baseValue === undefined) extra.push(fullPath)
+    else if (isPlainObject(baseValue) && isPlainObject(partialValue)) {
+      extra.push(...extraKeys(baseValue, partialValue, open, fullPath))
+    }
+  }
+
+  return extra
+}
+
+/** Paths where a list has a different length than `base` (the API-key steps are three lines in every language). */
+export function arrayLengthMismatches(base: object, partial: object, path = ''): string[] {
+  const mismatched: string[] = []
+
+  for (const key of Object.keys(base)) {
+    const fullPath = path ? `${path}.${key}` : key
+    const baseValue = (base as Record<string, unknown>)[key]
+    const partialValue = (partial as Record<string, unknown>)[key]
+
+    if (Array.isArray(baseValue)) {
+      if (!Array.isArray(partialValue) || partialValue.length !== baseValue.length) mismatched.push(fullPath)
+    } else if (isPlainObject(baseValue) && isPlainObject(partialValue)) {
+      mismatched.push(...arrayLengthMismatches(baseValue, partialValue, fullPath))
+    }
+  }
+
+  return mismatched
+}
+

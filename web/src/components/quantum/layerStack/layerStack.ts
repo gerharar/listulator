@@ -11,9 +11,17 @@ export interface LayerDescriptor<T = unknown> {
   /** Stable per-instance identity — two layers can share a `kind` (two 'list' layers for different lists). */
   id: string
   kind: string
-  /** What a LayerTab shows for this layer once something covers it. */
-  tabLabel: string
+  /**
+   * What a LayerTab shows for this layer once something covers it. A function
+   * for wording that comes from the locale, so it is read when shown and
+   * follows a language switch instead of freezing at the moment of the push.
+   */
+  tabLabel: string | (() => string)
   content: T
+}
+
+export function resolveTabLabel(label: string | (() => string)): string {
+  return typeof label === 'function' ? label() : label
 }
 
 export const MAX_DEPTH = 3

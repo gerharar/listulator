@@ -81,7 +81,7 @@ export function CategoryPicker({ mediaTypes, first }: CategoryPickerProps) {
                   layerStack.push({
                     id: 'new-list',
                     kind: 'new-list',
-                    tabLabel: copy.newList.title,
+                    tabLabel: () => copy.newList.title,
                     // The Create layer (task 10.12) reads the chosen category
                     // from its own path's query string.
                     content: `/lists/new?mediaType=${encodeURIComponent(mediaType.key)}`,

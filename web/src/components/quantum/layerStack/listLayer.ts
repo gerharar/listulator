@@ -9,7 +9,7 @@ export function untitledListLayer(listId: string): LayerDescriptor<string> {
   return {
     id: `list-${listId}`,
     kind: 'list',
-    tabLabel: copy.quantum.layerStack.untitledListTab,
+    tabLabel: () => copy.quantum.layerStack.untitledListTab,
     content: `/lists/${listId}`,
   }
 }

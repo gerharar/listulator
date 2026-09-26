@@ -36,10 +36,10 @@ import {
 import { parseLayerPath } from './components/quantum/layerStack/layerPath.js'
 import { untitledListLayer } from './components/quantum/layerStack/listLayer.js'
 import { layerGeometry } from './components/quantum/layerStack/layerGeometry.js'
-import type { LayerDescriptor } from './components/quantum/layerStack/layerStack.js'
+import { resolveTabLabel, type LayerDescriptor } from './components/quantum/layerStack/layerStack.js'
 
 function homeLayer(): LayerDescriptor<string> {
-  return { id: 'home', kind: 'home', tabLabel: copy.quantum.home.title, content: '/' }
+  return { id: 'home', kind: 'home', tabLabel: () => copy.quantum.home.title, content: '/' }
 }
 
 interface BootState {
@@ -190,7 +190,7 @@ function AppShellBody({ skin, onSkinChange }: AppShellBodyProps) {
     layerStack.push({
       id: 'settings',
       kind: 'settings',
-      tabLabel: copy.quantum.settings.title,
+      tabLabel: () => copy.quantum.settings.title,
       content: '',
     })
   }
@@ -216,7 +216,7 @@ function AppShellBody({ skin, onSkinChange }: AppShellBodyProps) {
               style={{ top, transform, zIndex: 10 + fullIndex }}
               entering={layer.id === layerStack.enteringId}
               covered={!isTop}
-              tabLabel={layer.tabLabel}
+              tabLabel={resolveTabLabel(layer.tabLabel)}
               onTabClick={() => layerStack.popToIndex(fullIndex)}
               onVeilClick={() => layerStack.pop()}
             >

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
+  resolveTabLabel,
   MAX_DEPTH,
   MAX_DEPTH_WITH_PREVIEW,
   popLayer,
@@ -105,5 +106,20 @@ describe('visibleLayers', () => {
   it('shows only the top 3 (active + two peeking) once a 4th (preview) layer is pushed', () => {
     const stack = [layer('home'), layer('cat'), layer('list'), layer('preview-1', 'preview')]
     expect(visibleLayers(stack).map((l) => l.id)).toEqual(['cat', 'list', 'preview-1'])
+  })
+})
+
+describe('resolveTabLabel', () => {
+  it('returns a plain label as it is', () => {
+    expect(resolveTabLabel('My Lists')).toBe('My Lists')
+  })
+
+  it('asks a lazy label at the moment it is shown, so it can follow a language change', () => {
+    let word = 'Settings'
+    const label = () => word
+
+    expect(resolveTabLabel(label)).toBe('Settings')
+    word = 'Настройки'
+    expect(resolveTabLabel(label)).toBe('Настройки')
   })
 })

@@ -17,6 +17,21 @@ function Demo() {
 }
 
 describe('LanguageProvider', () => {
+  it('sets <html lang> to the language, and follows a switch — screen readers and hyphenation need it', () => {
+    render(
+      <LanguageProvider initialLanguage="de">
+        <Demo />
+      </LanguageProvider>,
+    )
+    expect(document.documentElement.lang).toBe('de')
+
+    act(() => {
+      screen.getByRole('button').click()
+    })
+
+    expect(document.documentElement.lang).toBe('ru')
+  })
+
   it('re-renders a copy-reading component when the language changes — no reload', () => {
     render(
       <LanguageProvider>
@@ -34,19 +49,20 @@ describe('LanguageProvider', () => {
     expect(screen.getByText('Загрузка…')).not.toBeNull()
   })
 
-  it('falls back to English for a key ru has not translated yet — mounting straight into ru', () => {
-    function ReadsUntranslatedKey() {
+  it('mounting straight into ru reads Russian on the very first render — no flash of English', () => {
+    function ReadsHomeTitle() {
       const copy = useCopy()
       return <span>{copy.quantum.home.title}</span>
     }
 
     render(
       <LanguageProvider initialLanguage="ru">
-        <ReadsUntranslatedKey />
+        <ReadsHomeTitle />
       </LanguageProvider>,
     )
 
-    expect(screen.getByText('My Lists')).not.toBeNull()
+    expect(screen.getByText('Мои списки')).not.toBeNull()
+    expect(screen.queryByText('My Lists')).toBeNull()
   })
 
   it('useLanguage throws outside a LanguageProvider — same guard as the other context hooks', () => {
