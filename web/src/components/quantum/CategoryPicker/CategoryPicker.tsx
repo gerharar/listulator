@@ -2,7 +2,7 @@ import './CategoryPicker.css'
 import { useEffect, useState } from 'react'
 import { X } from 'lucide-react'
 import { api, type MediaType } from '../../../lib/api.js'
-import { categoryLabel, copy } from '../../../locale/index.js'
+import { categoryLabel, copy, sourceLabel } from '../../../locale/index.js'
 import { CategoryArt } from '../art/CategoryArt.js'
 import { IconButton } from '../Button/Button.js'
 import { HeaderPlate } from '../HeaderPlate/HeaderPlate.js'
@@ -97,7 +97,7 @@ export function CategoryPicker({ mediaTypes, first }: CategoryPickerProps) {
                     </span>
                   )}
                 </span>
-                <span className="q-tile-src">{mediaType.sourceName ?? text.byHand}</span>
+                <span className="q-tile-src">{sourceLabel(mediaType) ?? text.byHand}</span>
               </button>
             )
           })}

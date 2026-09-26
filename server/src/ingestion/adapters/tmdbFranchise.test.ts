@@ -127,6 +127,54 @@ describe('franchise search', () => {
 
     expect(await adapter.search('marvel')).toHaveLength(1)
   })
+
+  /** Keyword search, plus how many films and series carry each keyword (by `with_keywords`). */
+  function keywordFetch(keywords: { id: number; name: string }[], tagged: Record<number, [number, number]>): FetchLike {
+    return vi.fn(async (url: string) => {
+      const parsed = new URL(url)
+      const path = parsed.pathname.replace('/3', '')
+      if (path === '/search/keyword') return new Response(JSON.stringify({ results: keywords }))
+      const id = Number(parsed.searchParams.get('with_keywords'))
+      const [films, series] = tagged[id] ?? [0, 0]
+      const total = path === '/discover/movie' ? films : path === '/discover/tv' ? series : 0
+      return new Response(JSON.stringify({ total_results: total, total_pages: 1, results: [] }))
+    })
+  }
+
+  it('finds a keyword whose name lacks a leading article the query has: "The Witcher" finds "witcher" (F9)', async () => {
+    const adapter = createTmdbFranchiseAdapter(credentials, keywordFetch([{ id: 7, name: 'witcher' }], { 7: [2, 1] }))
+
+    expect((await adapter.search('The Witcher')).map((source) => source.externalRef)).toEqual(['franchise:7'])
+  })
+
+  it('still drops TMDB’s fuzzy near-misses', async () => {
+    const adapter = createTmdbFranchiseAdapter(
+      credentials,
+      keywordFetch([{ id: 8, name: 'marcel' }, { id: 9, name: 'the witch' }], { 8: [5, 5], 9: [5, 5] }),
+    )
+
+    expect(await adapter.search('The Witcher')).toEqual([])
+    expect(await adapter.search('marvel')).toHaveLength(CURATED_FRANCHISES.filter((f) => /marvel/i.test(f.title)).length)
+  })
+
+  it('leaves out a keyword no film or series carries: it could only build an empty list (F9)', async () => {
+    const adapter = createTmdbFranchiseAdapter(
+      credentials,
+      keywordFetch(
+        [
+          { id: 1, name: 'witcher' },
+          { id: 2, name: 'witcher saga' },
+          { id: 3, name: 'witcher series' },
+        ],
+        { 1: [0, 0], 2: [3, 0], 3: [0, 2] },
+      ),
+    )
+
+    expect((await adapter.search('witcher')).map((source) => source.externalRef)).toEqual([
+      'franchise:2',
+      'franchise:3',
+    ])
+  })
 })
 
 describe('franchise expansion', () => {

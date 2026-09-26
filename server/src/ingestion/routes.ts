@@ -23,7 +23,6 @@ import {
   isSafeCanonicalPath,
   parseCustomList,
   requireItems,
-  searchLibrary,
   untrackedLibraryEntries,
   type ParsedCustomList,
 } from './customLists.js'
@@ -35,6 +34,7 @@ import type { AppDatabase } from '../db/client.js'
 import { toMediaTypeInfo, type MediaTypeRegistry } from './mediaTypes.js'
 import { expandSource, SourceUnavailableError, UnsafeSourceError } from './expandSource.js'
 import { refForAdapter } from './sourceRef.js'
+import { searchSources, SearchUnavailableError } from './search.js'
 import type { ListSource, User } from '../db/schema.js'
 
 export interface IngestionRoutesOptions {
@@ -150,23 +150,6 @@ export const ingestionRoutes: FastifyPluginAsync<IngestionRoutesOptions> = async
     const query = request.query.q?.trim()
     if (!query) return sendApiError(reply, 400, 'search.queryRequired')
 
-    const { matches: canonicalMatches, reachable } = await searchLibrary(mediaType.key, query)
-
-    if (!mediaType.adapter?.isAvailable()) {
-      if (canonicalMatches.length === 0) {
-        // Not an error: plenty of categories will never have search, and the
-        // manual path always works. If the library could not be reached as
-        // well, say so — a missing key is then only half the story.
-        return sendApiError(
-          reply,
-          409,
-          reachable ? 'search.unavailable' : 'search.unavailableOffline',
-          { category: mediaType.label },
-        )
-      }
-      return { sources: canonicalMatches }
-    }
-
     // Book-only GUI options (never sent for any other category) — every
     // other adapter's search() ignores this second argument entirely.
     const searchOptions = {
@@ -174,10 +157,13 @@ export const ingestionRoutes: FastifyPluginAsync<IngestionRoutesOptions> = async
       includeUnknown: request.query.includeUnknown === 'true',
     }
 
-    return {
-      sources: [...canonicalMatches, ...(await mediaType.adapter.search(query, searchOptions))],
-      // Only when true: curated lists may be missing from these results.
-      ...(reachable ? {} : { libraryUnreachable: true }),
+    try {
+      return await searchSources(mediaType, query, searchOptions)
+    } catch (cause) {
+      if (cause instanceof SearchUnavailableError) {
+        return sendApiError(reply, 409, cause.code, { category: mediaType.label })
+      }
+      throw cause
     }
   })
 

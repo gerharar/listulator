@@ -44,7 +44,24 @@ pub fn run() {
     .plugin(tauri_plugin_http::init())
     .setup(|app| {
       #[cfg(desktop)]
-      PENDING_FULLSCREEN.store(left_in_fullscreen(app.handle()), Ordering::SeqCst);
+      if left_in_fullscreen(app.handle()) {
+        use tauri::Manager;
+
+        PENDING_FULLSCREEN.store(true, Ordering::SeqCst);
+        // Don't wait for a click: an app started from a background process (a
+        // terminal, `tauri dev`) is not brought to the front by macOS, so the first
+        // focus may never come. Shortly after the window is up, bring it forward
+        // and enter full screen; the focus hook below stays as the fallback.
+        if let Some(window) = app.get_webview_window("main") {
+          std::thread::spawn(move || {
+            std::thread::sleep(std::time::Duration::from_millis(300));
+            if PENDING_FULLSCREEN.swap(false, Ordering::SeqCst) {
+              let _ = window.set_focus();
+              let _ = window.set_fullscreen(true);
+            }
+          });
+        }
+      }
       if cfg!(debug_assertions) {
         app.handle().plugin(
           tauri_plugin_log::Builder::default()

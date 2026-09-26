@@ -3,7 +3,7 @@ import { useState } from 'react'
 import { untitledListLayer } from '../layerStack/listLayer.js'
 import { X } from 'lucide-react'
 import type { MediaType } from '../../../lib/api.js'
-import { categoryDescription, categoryLabel, copy } from '../../../locale/index.js'
+import { categoryDescription, categoryLabel, copy, sourceLabel } from '../../../locale/index.js'
 import { AddByHandTab } from '../AddByHandTab/AddByHandTab.js'
 import { IconButton } from '../Button/Button.js'
 import { HeaderPlate } from '../HeaderPlate/HeaderPlate.js'
@@ -37,13 +37,12 @@ export function CreateList({ mediaTypes, mediaTypeKey }: CreateListProps) {
 
   // A category with a search source keeps its Search tab even when the source
   // is unavailable (no key), so the tab can say so instead of vanishing.
-  const hasSearch = Boolean(mediaType?.sourceName)
+  const source = mediaType ? sourceLabel(mediaType) : undefined
+  const hasSearch = Boolean(source)
   const text = copy.quantum.createList
 
   const tabs: TabStripTab[] = [
-    ...(hasSearch && mediaType?.sourceName
-      ? [{ key: 'search', label: text.searchTab(mediaType.sourceName) }]
-      : []),
+    ...(source ? [{ key: 'search', label: text.searchTab(source) }] : []),
     { key: 'hand', label: text.handTab },
     { key: 'import', label: text.importTab },
   ]

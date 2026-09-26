@@ -50,6 +50,15 @@ export function categoryLabel(mediaType: { key: string; label: string }): string
 }
 
 /**
+ * The name of where a category searches: its source ("TMDB"), or the community
+ * library for a category that searches curated lists only (Mega, F9). Absent
+ * for a category with no search at all.
+ */
+export function sourceLabel(mediaType: { sourceName?: string; searchScope?: 'library' }): string | undefined {
+  return mediaType.searchScope === 'library' ? copy.quantum.search.librarySource : mediaType.sourceName
+}
+
+/**
  * The sentence for a server error code.
  *
  * The one cast in the file, and deliberately confined here: each entry declares

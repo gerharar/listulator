@@ -334,6 +334,8 @@ export const ru: Locale = {
       curatedTitle: 'Подборка',
       curatedProvenance: 'Подборка · ведётся вручную в библиотеке сообщества',
       sourceProvenance: (source: string): string => `Из источника: ${source}`,
+      /** Where a curated-only category (Mega) searches: the tile footer and the Search tab. */
+      librarySource: 'Библиотека сообщества',
       importing: 'Собираем список…',
       searching: 'Ищем…',
       noKeyHeadline: (source: string): string => `Для поиска нужен ключ ${source}`,

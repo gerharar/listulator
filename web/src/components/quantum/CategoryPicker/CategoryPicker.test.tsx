@@ -110,6 +110,16 @@ describe('CategoryPicker', () => {
     expect(art?.querySelectorAll('path')).toHaveLength(0)
   })
 
+  it('a library-only category’s footer names the community library (F9)', async () => {
+    vi.mocked(api.lists).mockResolvedValue([])
+    const mega = mediaType({ key: 'mega', label: 'Mega', sortOrder: 100, sourceName: undefined, searchScope: 'library' })
+
+    renderPicker([...REGISTRY, mega])
+
+    const tile = tiles().find((entry) => within(entry).queryByText('Mega'))!
+    expect(tile.querySelector('.q-tile-src')?.textContent).toBe('Community library')
+  })
+
   it("footers come from the live registry: a source's own name, and 'by hand' only with no search source", () => {
     vi.mocked(api.lists).mockResolvedValue([])
     const byHand = mediaType({ key: 'podcast', label: 'Podcasts', sortOrder: 110, sourceName: undefined, searchAvailable: false, previewable: false })

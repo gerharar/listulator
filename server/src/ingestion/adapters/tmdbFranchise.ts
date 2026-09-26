@@ -34,7 +34,11 @@ export const CURATED_FRANCHISES: readonly { keywordId: number; title: string; de
     detail: 'Films and series, in release order',
   },
   { keywordId: 327763, title: 'Star Trek', detail: 'Films and series, in release order' },
-  { keywordId: 229266, title: 'DC Extended Universe', detail: 'Films and series, in release order' },
+  {
+    keywordId: 229266,
+    title: 'DC Extended Universe',
+    detail: 'Films and series, in release order',
+  },
 ]
 
 interface KeywordResult {
@@ -99,21 +103,34 @@ export function createTmdbFranchiseAdapter(
 ): SearchAdapter {
   const client = createTmdbClient(credentials, fetchImpl)
 
+  async function carriesAnything(keywordId: number): Promise<boolean> {
+    try {
+      const counts = await Promise.all(
+        ['/discover/movie', '/discover/tv'].map((path) =>
+          client.request<{ total_results?: number }>(path, { with_keywords: String(keywordId) }),
+        ),
+      )
+      return counts.some((count) => (count.total_results ?? 0) > 0)
+    } catch {
+      return true
+    }
+  }
+
   return {
     isAvailable: client.isConfigured,
 
     async search(query) {
       const term = query.trim().toLowerCase()
+      // TMDB names keywords without the article: "The Witcher" is keyword "witcher" (F9).
+      const bare = term.replace(/^(the|a|an)\s+/, '')
 
       const curated = CURATED_FRANCHISES.filter((franchise) =>
         franchise.title.toLowerCase().includes(term),
-      ).map(
-        (franchise): ListSource => ({
-          externalRef: `franchise:${franchise.keywordId}`,
-          title: franchise.title,
-          detail: franchise.detail,
-        }),
-      )
+      ).map((franchise): ListSource => ({
+        externalRef: `franchise:${franchise.keywordId}`,
+        title: franchise.title,
+        detail: franchise.detail,
+      }))
 
       const response = await client.request<{ results?: KeywordResult[] }>('/search/keyword', {
         query,
@@ -126,21 +143,28 @@ export function createTmdbFranchiseAdapter(
         // series" they are indistinguishable from the real thing, and every
         // one builds an empty list. Requiring the term to actually appear
         // costs nothing and drops all of them.
-        .filter((keyword) => keyword.name!.toLowerCase().includes(term))
+        .filter((keyword) => keyword.name!.toLowerCase().includes(bare))
         // Curated entries already cover these, with better names.
         .filter(
           (keyword) => !CURATED_FRANCHISES.some((franchise) => franchise.keywordId === keyword.id),
         )
         .slice(0, 6)
-        .map(
-          (keyword): ListSource => ({
+
+      // A keyword nothing carries builds an empty list that cannot be added
+      // ("witcher" on TMDB, F9): one count per medium drops it. A count that
+      // fails keeps the keyword, since offering too much beats hiding a real one.
+      const carried = await Promise.all(found.map((keyword) => carriesAnything(keyword.id)))
+
+      return [
+        ...curated,
+        ...found
+          .filter((_, index) => carried[index])
+          .map((keyword): ListSource => ({
             externalRef: `franchise:${keyword.id}`,
             title: keyword.name!,
             detail: 'Franchise · films and series',
-          }),
-        )
-
-      return [...curated, ...found]
+          })),
+      ]
     },
 
     // No upstream signal for whether this is finished, so no `status` (BL-013).

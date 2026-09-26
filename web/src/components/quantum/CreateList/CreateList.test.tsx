@@ -90,6 +90,14 @@ describe('CreateList', () => {
     expect(screen.getByLabelText('List title')).not.toBeNull()
   })
 
+  it('a library-only category (Mega) searches the community library, named so on the tab (F9)', () => {
+    const library = mediaType({ key: 'mega', label: 'Mega', sourceName: undefined, searchScope: 'library' })
+
+    renderCreate('mega', [library])
+
+    expect(tabs()[0]).toBe('Search Community library')
+  })
+
   it('keeps the Search tab for a category whose search needs a key, so it can say so', () => {
     const keyed = mediaType({ key: 'tv', label: 'TV Shows', searchAvailable: false })
 

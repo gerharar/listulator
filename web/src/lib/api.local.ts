@@ -44,7 +44,6 @@ import {
   parseCustomList,
   requireItems,
   fetchCanonicalManifest,
-  searchLibrary,
   untrackedLibraryEntries,
 } from '../../../server/src/ingestion/customLists.js'
 import { IngestionError } from '../../../server/src/ingestion/http.js'
@@ -72,6 +71,7 @@ import { ApiError } from './api.js'
 import { createLocalDb, type LocalDatabase } from './db/localDb.js'
 import { getLocalCurrentUser } from './db/localUser.js'
 import { toMediaTypeInfo } from '../../../server/src/ingestion/mediaTypes.js'
+import { searchSources, SearchUnavailableError } from '../../../server/src/ingestion/search.js'
 import { refForAdapter } from '../../../server/src/ingestion/sourceRef.js'
 import {
   ListExistsError,
@@ -582,25 +582,14 @@ export function createLocalApi(): ApiClient {
       const trimmed = query.trim()
       if (!trimmed) throw new ApiError(copy.errors['search.queryRequired'](), 400, 'search.queryRequired')
 
-      const { matches: canonicalMatches, reachable } = await searchLibrary(mediaTypeKey, trimmed)
-
-      if (!mediaType.adapter?.isAvailable()) {
-        if (canonicalMatches.length === 0) {
-          // Mirrors server/src/ingestion/routes.ts: an unreachable library
-          // means a missing key is only half the story.
-          const code = reachable ? 'search.unavailable' : 'search.unavailableOffline'
-          throw new ApiError(
-            copy.errors[code]({ category: mediaType.label }),
-            409,
-            code,
-          )
+      try {
+        return await searchSources(mediaType, trimmed, options ?? {})
+      } catch (cause) {
+        // Mirrors server/src/ingestion/routes.ts through the same shared function.
+        if (cause instanceof SearchUnavailableError) {
+          throw new ApiError(copy.errors[cause.code]({ category: mediaType.label }), 409, cause.code)
         }
-        return { sources: canonicalMatches }
-      }
-
-      return {
-        sources: [...canonicalMatches, ...(await mediaType.adapter.search(trimmed, options))],
-        ...(reachable ? {} : { libraryUnreachable: true }),
+        throw cause
       }
     },
 

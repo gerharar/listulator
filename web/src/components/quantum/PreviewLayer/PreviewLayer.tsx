@@ -9,7 +9,7 @@ import {
   summarizePreview,
   type PreviewSource,
 } from '../../../lib/preview.js'
-import { copy } from '../../../locale/index.js'
+import { copy, sourceLabel } from '../../../locale/index.js'
 import { Button, IconButton } from '../Button/Button.js'
 import { ErrorBlock } from '../ErrorBlock/ErrorBlock.js'
 import { HeaderPlate } from '../HeaderPlate/HeaderPlate.js'
@@ -103,7 +103,7 @@ export function PreviewLayer({ source, mediaType, onBuilt }: PreviewLayerProps) 
   const curated = source.externalRef.startsWith(CANONICAL_PREFIX)
   const provenance = curated
     ? copy.quantum.search.curatedProvenance
-    : copy.quantum.search.sourceProvenance(mediaType.sourceName ?? mediaType.label)
+    : copy.quantum.search.sourceProvenance(sourceLabel(mediaType) ?? mediaType.label)
   const canAdd = load.state === 'done' && load.preview.items.length > 0
 
   return (

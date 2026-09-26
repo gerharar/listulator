@@ -326,6 +326,8 @@ export const de: Locale = {
       curatedTitle: 'Kuratierte Liste',
       curatedProvenance: 'Kuratiert · von Hand in der Community-Bibliothek gepflegt',
       sourceProvenance: (source: string): string => `Aus ${source}`,
+      /** Where a curated-only category (Mega) searches: the tile footer and the Search tab. */
+      librarySource: 'Community-Bibliothek',
       importing: 'Liste wird aufgebaut…',
       searching: 'Suche läuft…',
       noKeyHeadline: (source: string): string => `Die Suche braucht einen ${source}-Schlüssel`,

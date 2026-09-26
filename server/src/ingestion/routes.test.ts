@@ -94,11 +94,9 @@ describe('GET /api/media-types', () => {
       ]),
     })
     const response = await withoutSource.app.inject({ method: 'GET', url: '/api/media-types' })
-    const byKey = new Map(
-      response
-        .json()
-        .map((entry: { key: string; sourceName?: string }) => [entry.key, entry.sourceName]),
-    )
+    const entries: { key: string; sourceName?: string; searchScope?: string }[] = response.json()
+    const byKey = new Map(entries.map((entry) => [entry.key, entry.sourceName]))
+    const scope = new Map(entries.map((entry) => [entry.key, entry.searchScope]))
     await withoutSource.cleanup()
 
     // The registry wins over the design handoff's table: wrestling and MMA
@@ -107,7 +105,12 @@ describe('GET /api/media-types', () => {
     expect(byKey.get('mma')).toBe('Wikipedia')
     expect(byKey.get('music')).toBe('MusicBrainz')
     expect(byKey.get('podcast')).toBeUndefined()
-    expect([...byKey.entries()].filter(([key]) => key !== 'podcast' && !byKey.get(key))).toEqual([])
+    // Mega searches curated lists only (F9): no upstream name, the client names the library.
+    expect(byKey.get('mega')).toBeUndefined()
+    expect(scope.get('mega')).toBe('library')
+    expect(
+      [...byKey.entries()].filter(([key]) => key !== 'podcast' && !byKey.get(key) && !scope.get(key)),
+    ).toEqual([])
   })
 
   it('marks a category previewable exactly when its search source is available', async () => {

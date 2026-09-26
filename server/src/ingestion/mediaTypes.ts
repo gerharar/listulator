@@ -248,6 +248,8 @@ export function createDefaultMediaTypes({
       defaultDurationMinutes: 120,
       adapter: franchises,
       sourceName: 'TMDB',
+      // Users search curated lists only; TMDB keywords feed the list generator (F9).
+      searchScope: 'library',
       // A Mega item's medium is one of the other categories, tagged with the key a list file
       // uses (`tags: [game]`); the label is only for display.
       facets: [
@@ -396,6 +398,14 @@ export interface MediaType {
    * facets. Derivation is read-time only, so a convention needs no migration.
    */
   facets?: FacetConvention
+  /**
+   * `'library'`: the app's own search offers only curated community-library
+   * lists for this category, never the adapter's results. The adapter stays
+   * for the list generator (`tools/generateList.ts`) and for lists already
+   * built from it. Mega (owner ruling 2026-09-26, F9): TMDB keywords cannot
+   * build a whole franchise, so users get curated lists only.
+   */
+  searchScope?: 'library'
 }
 
 /** What `GET /media-types` (and the standalone app's `mediaTypes()`) returns per category. */
@@ -412,6 +422,8 @@ export interface MediaTypeInfo {
   sourceName?: string
   /** The category's facet convention; absent when it has none. */
   facets?: FacetConvention
+  /** Present when search offers only community-library lists; the client names that source itself. */
+  searchScope?: 'library'
 }
 
 /**
@@ -429,8 +441,10 @@ export function toMediaTypeInfo({
   adapter,
   sourceName,
   facets,
+  searchScope,
 }: MediaType): MediaTypeInfo {
-  const available = adapter?.isAvailable() ?? false
+  // The library needs no key, so a library-only category can always search and preview.
+  const available = searchScope === 'library' || (adapter?.isAvailable() ?? false)
 
   return {
     key,
@@ -440,8 +454,9 @@ export function toMediaTypeInfo({
     defaultDurationMinutes,
     searchAvailable: available,
     previewable: available,
-    ...(adapter && sourceName ? { sourceName } : {}),
+    ...(adapter && sourceName && !searchScope ? { sourceName } : {}),
     ...(facets?.length ? { facets } : {}),
+    ...(searchScope ? { searchScope } : {}),
   }
 }
 

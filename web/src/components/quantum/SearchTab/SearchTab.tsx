@@ -13,7 +13,7 @@ import {
   previewPath,
   type PreviewSource,
 } from '../../../lib/preview.js'
-import { categoryLabel, copy } from '../../../locale/index.js'
+import { categoryLabel, copy, sourceLabel } from '../../../locale/index.js'
 import { Button } from '../Button/Button.js'
 import { ErrorBlock, type ErrorBlockAction } from '../ErrorBlock/ErrorBlock.js'
 import { ErrorStrip } from '../ErrorStrip/ErrorStrip.js'
@@ -52,7 +52,7 @@ const CANONICAL_PREFIX = 'canonical:'
 export function SearchTab({ mediaType, onBuilt }: SearchTabProps) {
   const text = copy.quantum.search
   const layerStack = useLayerStack()
-  const source = mediaType.sourceName ?? categoryLabel(mediaType)
+  const source = sourceLabel(mediaType) ?? categoryLabel(mediaType)
 
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<ListSourceResult[] | null>(null)

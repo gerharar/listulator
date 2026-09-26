@@ -362,6 +362,8 @@ export const en = {
       curatedTitle: 'Curated list',
       curatedProvenance: 'Curated · kept by hand in the community library',
       sourceProvenance: (source: string): string => `From ${source}`,
+      /** Where a curated-only category (Mega) searches: the tile footer and the Search tab. */
+      librarySource: 'Community library',
       importing: 'Building the list…',
       searching: 'Searching…',
       /** Search needs a key the user has not supplied — hard error (design: ErrorBlock, "no key"). */

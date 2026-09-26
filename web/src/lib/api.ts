@@ -87,6 +87,8 @@ export interface MediaType {
   previewable: boolean
   /** The search source's display name ("TMDB"); absent for a by-hand category. */
   sourceName?: string
+  /** Search offers only community-library lists (Mega); the name is `sourceLabel`'s. */
+  searchScope?: 'library'
   /** Which tags mean Type/Medium, Language, Platform here; absent means no facets. */
   facets?: FacetConvention
 }
