@@ -271,7 +271,7 @@ describe('ListScreen spine', () => {
   it('remembers what you opened and closed, per list', async () => {
     await open(detail({ ...grouped(), mediaType: 'mega' }))
 
-    fireEvent.click(within(spineBody()).getByRole('button', { name: /Season 1/ }))
+    fireEvent.click(within(spineBody()).getByRole('button', { name: /^Season 1/ }))
     expect(screen.getByText('e1')).toBeTruthy()
     await waitFor(() => expect(JSON.parse(store.get('list:L1:collapsed')!)).toEqual(['Season 2']))
 
@@ -525,6 +525,56 @@ describe('ListScreen item actions (task 10.21)', () => {
       await open(withEmpty())
 
       expect(screen.getAllByRole('button', { name: 'Delete this empty group' })).toHaveLength(1)
+    })
+  })
+
+  describe('removing a group that has items (owner, 2026-09-27)', () => {
+    it('asks first, stating what goes with it; Keep changes nothing', async () => {
+      await open(base())
+
+      fireEvent.click(screen.getByRole('button', { name: 'Delete group Season 1' }))
+
+      const pop = await waitFor(() => document.querySelector('.q-pop') as HTMLElement)
+      expect(pop.textContent).toContain('Delete group “Season 1”?')
+      expect(pop.textContent).toContain('Its 2 items will be deleted as well.')
+      fireEvent.click(within(pop).getByRole('button', { name: 'Keep' }))
+
+      expect(api.deleteGroup).not.toHaveBeenCalled()
+      expect(screen.getByText('Alpha')).toBeTruthy()
+    })
+
+    it('deletes the group and its items on confirm, and Undo brings them all back', async () => {
+      const restore = { group: { id: 'g1' }, items: [{ id: 'a' }, { id: 'b' }], dismissalIds: ['d1', 'd2'] }
+      vi.mocked(api.deleteGroup).mockResolvedValue(restore as never)
+      vi.mocked(api.restoreGroup).mockResolvedValue(base().groups[0]!)
+      await open(base())
+
+      fireEvent.click(screen.getByRole('button', { name: 'Delete group Season 1' }))
+      const pop = await waitFor(() => document.querySelector('.q-pop') as HTMLElement)
+      fireEvent.click(within(pop).getByRole('button', { name: 'Delete group' }))
+
+      await waitFor(() => expect(api.deleteGroup).toHaveBeenCalledWith('L1', 'g1', { withItems: true }))
+      expect(screen.queryByText('Alpha')).toBeNull()
+      expect(screen.queryByText('Beta')).toBeNull()
+      expect(screen.getByText('Gamma')).toBeTruthy()
+      expect((await screen.findAllByText('Removed group Season 1 and 2 items')).length).toBeGreaterThan(0)
+
+      vi.mocked(api.list).mockResolvedValue(base())
+      fireEvent.click(screen.getByRole('button', { name: 'Undo' }))
+
+      expect(await screen.findByText('Alpha')).toBeTruthy()
+      expect(api.restoreGroup).toHaveBeenCalledWith('L1', restore)
+    })
+
+    it('mentions the done marks that go too', async () => {
+      const list = base()
+      list.items[0]!.consumedAt = '2026-01-01T00:00:00Z'
+      await open(list)
+
+      fireEvent.click(screen.getByRole('button', { name: 'Delete group Season 1' }))
+
+      const pop = await waitFor(() => document.querySelector('.q-pop') as HTMLElement)
+      expect(pop.textContent).toContain('Its 2 items, 1 marked done, will be deleted as well.')
     })
   })
 

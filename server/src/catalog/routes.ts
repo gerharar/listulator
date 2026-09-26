@@ -421,12 +421,15 @@ export const catalogRoutes: FastifyPluginAsync<CatalogRoutesOptions> = async (
     },
   )
 
-  app.delete<{ Params: GroupParams }>('/lists/:listId/groups/:groupId', async (request, reply) => {
+  // `?withItems=true` deletes a group that still has items, and them with it (after the UI's confirmation).
+  app.delete<{ Params: GroupParams; Querystring: { withItems?: string } }>('/lists/:listId/groups/:groupId', async (request, reply) => {
     const user = getCurrentUser(request)
     const { listId, groupId } = request.params
 
     try {
-      const restore = await deleteListGroup(db, user.id, listId, groupId)
+      const restore = await deleteListGroup(db, user.id, listId, groupId, {
+        withItems: request.query.withItems === 'true',
+      })
       if (!restore) return reply.callNotFound()
 
       return { restore }
@@ -465,12 +468,19 @@ export const catalogRoutes: FastifyPluginAsync<CatalogRoutesOptions> = async (
   app.post<{ Params: ListParams; Body: GroupRestore }>(
     '/lists/:listId/groups/restore',
     {
+      // A group deleted with its items carries them all back.
+      bodyLimit: 64 * 1024 * 1024,
       schema: {
         body: {
           type: 'object',
           required: ['group'],
           additionalProperties: false,
-          properties: { group: groupPayloadSchema },
+          properties: {
+            group: groupPayloadSchema,
+            // A group deleted with its items brings them back too.
+            items: { type: 'array', items: itemPayloadSchema },
+            dismissalIds: { type: 'array', items: { type: 'string' } },
+          },
         },
       },
     },

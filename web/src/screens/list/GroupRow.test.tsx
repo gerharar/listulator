@@ -157,4 +157,15 @@ describe('GroupRow', () => {
 
     expect(screen.queryByRole('button', { name: 'Delete this empty group' })).toBeNull()
   })
+
+  it('a group with items has a delete button that asks first: it hands over its own element and does not fold the group', () => {
+    const onDeleteWithItems = vi.fn()
+    const props = renderRow({ ...BLOCK, items: [{ id: 'i1' } as never] }, { onDeleteWithItems })
+
+    fireEvent.click(screen.getByRole('button', { name: 'Delete group Season 1' }))
+
+    expect(onDeleteWithItems).toHaveBeenCalledWith(expect.any(HTMLElement))
+    expect(props.onToggle).not.toHaveBeenCalled()
+  })
 })
+

@@ -33,6 +33,8 @@
 .q-group .gcount { flex: none; font: 500 12px/1 var(--font-mono); font-variant-numeric: tabular-nums; color: var(--ink2); }
 .q-group-delete { flex: none; display: flex; align-items: center; gap: 6px; padding: 4px 8px; border: 1px solid var(--line); background: transparent; color: var(--ink2); font: 600 11px/1 var(--font-mono); letter-spacing: .08em; text-transform: uppercase; white-space: nowrap; cursor: pointer; }
 .q-group-delete:hover { color: var(--ink); border-color: var(--rule); }
+/* A group with items: its trash sits in the items' trash column (the group row pads 18px right, an item 8px). */
+.q-group .q-group-remove { flex: none; height: 26px; margin-right: -10px; } /* the handle's height: a row-size button is 46px and would fatten the row */
 .q-group .q-left { font-size: 12px; }
 .q-group .q-left.all-done { font-size: 11px; }
 

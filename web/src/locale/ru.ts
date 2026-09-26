@@ -470,6 +470,13 @@ export const ru: Locale = {
         groupRemoved: (name: string): string => `Группа удалена: ${name}`,
         groupRestored: (name: string): string => `Группа восстановлена: ${name}`,
         groupRemoveFailed: (name: string): string => `Не удалось удалить группу: ${name}`,
+        deleteGroupWithItems: (name: string): string => `Удалить группу ${name}`,
+        groupDeleteKicker: 'Удалить группу',
+        groupDeleteQuestion: (name: string): string => `Удалить группу «${name}»?`,
+        groupDeleteNote: (n: number, done: number): string =>
+          `Вместе с ней будут удалены: ${items(n)}${done > 0 ? `, из них готово — ${done}` : ''}. Отменить можно в течение 8 секунд.`,
+        groupDeleteConfirm: 'Удалить группу',
+        groupRemovedWithItems: (name: string, n: number): string => `Группа ${name} удалена вместе с элементами: ${n}`,
         edit: (title: string): string => `Изменить: ${title}`,
         remove: (title: string): string => `Удалить: ${title}`,
         infoKicker: 'Подробности',

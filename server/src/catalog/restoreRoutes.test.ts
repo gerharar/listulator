@@ -102,6 +102,34 @@ describe('undo routes', () => {
       expect((await detail(list.id)).groups.map((g: { name: string }) => g.name)).toEqual(['A', 'B', 'C'])
     })
 
+    it('deleted with its items, comes back with them: positions, ticks and ids, and no dismissals left', async () => {
+      const list = await makeList()
+      await send('POST', `/lists/${list.id}/items`, { title: 'loose', timeToConsumeMinutes: 10 })
+      const a = (await send('POST', `/lists/${list.id}/items`, { title: 'a', timeToConsumeMinutes: 10, group: 'G' })).json()
+      await send('POST', `/lists/${list.id}/items`, { title: 'b', timeToConsumeMinutes: 10, group: 'G' })
+      await send('PUT', `/lists/${list.id}/items/${a.id}/consumed`, { consumed: true })
+      const before = await detail(list.id)
+      const group = before.groups[0]
+
+      const deleted = await send('DELETE', `/lists/${list.id}/groups/${group.id}?withItems=true`)
+      expect(deleted.json().restore.items).toHaveLength(2)
+      const restored = await send('POST', `/lists/${list.id}/groups/restore`, deleted.json().restore)
+
+      expect(restored.statusCode).toBe(200)
+      const after = await detail(list.id)
+      const shape = (d: typeof before) =>
+        d.items.map((i: { id: string; title: string; group: string | null; orderIndex: number; consumedAt: string | null }) => [
+          i.id,
+          i.title,
+          i.group,
+          i.orderIndex,
+          i.consumedAt,
+        ])
+      expect(shape(after)).toEqual(shape(before))
+      expect(after.groups.map((g: { id: string }) => g.id)).toEqual([group.id])
+      expect(await harness.db.query.dismissedItems.findMany()).toEqual([])
+    })
+
     it('will not come back under a name that is taken, saying so with a code', async () => {
       const list = await makeList()
       const group = (await send('POST', `/lists/${list.id}/groups`, { name: 'Taken' })).json()

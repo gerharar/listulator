@@ -518,6 +518,15 @@ export const en = {
         groupRemoved: (name: string): string => `Removed group ${name}`,
         groupRestored: (name: string): string => `Restored group ${name}`,
         groupRemoveFailed: (name: string): string => `Could not remove group ${name}`,
+        /** Deleting a group that has items: a trash button and a confirmation stating the cost (owner, 2026-09-27). */
+        deleteGroupWithItems: (name: string): string => `Delete group ${name}`,
+        groupDeleteKicker: 'Delete group',
+        groupDeleteQuestion: (name: string): string => `Delete group “${name}”?`,
+        groupDeleteNote: (n: number, done: number): string =>
+          `Its ${n} ${selectPlural(n, 'en', { one: 'item', other: 'items' })}${done > 0 ? `, ${done} marked done,` : ''} will be deleted as well. Undo is offered for 8 seconds.`,
+        groupDeleteConfirm: 'Delete group',
+        groupRemovedWithItems: (name: string, n: number): string =>
+          `Removed group ${name} and ${n} ${selectPlural(n, 'en', { one: 'item', other: 'items' })}`,
         edit: (title: string): string => `Edit ${title}`,
         remove: (title: string): string => `Remove ${title}`,
         infoKicker: 'Details',

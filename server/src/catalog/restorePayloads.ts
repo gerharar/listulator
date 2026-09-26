@@ -89,6 +89,10 @@ export interface ItemRestore {
 
 export interface GroupRestore {
   group: GroupPayload
+  /** Present when the group was deleted with its items: they come back too. */
+  items?: ItemPayload[]
+  /** The "not wanted" records that delete made for those items, removed again on restore. */
+  dismissalIds?: string[]
 }
 
 /** A deleted list with everything that went with it. */

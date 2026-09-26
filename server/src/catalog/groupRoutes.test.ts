@@ -100,6 +100,31 @@ describe('group routes', () => {
     expect((await send('DELETE', `/lists/${listId}/groups/nope`)).statusCode).toBe(404)
   })
 
+  it('deletes a group with its items when asked to, leaving the other groups and items alone', async () => {
+    await addItem('a', 'Full')
+    await addItem('b', 'Full')
+    await addItem('c', 'Other')
+    await addItem('loose')
+    const full = (await detail()).groups.find((g: { name: string }) => g.name === 'Full')
+
+    const deleted = await send('DELETE', `/lists/${listId}/groups/${full.id}?withItems=true`)
+
+    expect(deleted.statusCode).toBe(200)
+    const after = await detail()
+    expect(after.groups.map((g: { name: string }) => g.name)).toEqual(['Other'])
+    expect(after.items.map((i: { title: string }) => i.title).sort()).toEqual(['c', 'loose'])
+  })
+
+  it('records the deleted items as unwanted, so a refresh does not offer them back', async () => {
+    await addItem('a', 'Full')
+    const full = (await detail()).groups[0]
+
+    await send('DELETE', `/lists/${listId}/groups/${full.id}?withItems=true`)
+
+    const dismissals = await harness.db.query.dismissedItems.findMany()
+    expect(dismissals.map((d: { titleKey: string }) => d.titleKey)).toEqual(['a'])
+  })
+
   it('reorders the groups, moving their items with them', async () => {
     await addItem('a1', 'A')
     await addItem('b1', 'B')

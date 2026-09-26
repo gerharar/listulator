@@ -134,10 +134,26 @@ export async function restoreListGroup(
   db: PortableDatabase,
   userId: string,
   listId: string,
-  { group }: GroupRestore,
+  { group, items = [], dismissalIds = [] }: GroupRestore,
 ): Promise<ListGroup | undefined> {
   if (!(await findList(db, userId, listId))) return undefined
 
+  const restored = await restoreGroupRow(db, listId, group)
+
+  // A group deleted with its items: they come back as they were (ids, positions, ticks).
+  const present = new Set(
+    (await db.select({ id: listItems.id }).from(listItems).where(eq(listItems.listId, listId)).all()).map((row) => row.id),
+  )
+  const missing = items.filter((item) => !present.has(item.id))
+  if (missing.length > 0) await db.insert(listItems).values(missing.map((item) => itemRow(listId, item))).run()
+  for (const id of dismissalIds) {
+    await db.delete(dismissedItems).where(and(eq(dismissedItems.id, id), eq(dismissedItems.listId, listId))).run()
+  }
+
+  return restored
+}
+
+async function restoreGroupRow(db: PortableDatabase, listId: string, group: GroupRestore['group']): Promise<ListGroup> {
   const groups = await db.select().from(listGroups).where(eq(listGroups.listId, listId)).all()
   const existing = groups.find((entry) => entry.id === group.id)
   if (existing) return existing

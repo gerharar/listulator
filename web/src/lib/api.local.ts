@@ -530,11 +530,11 @@ export function createLocalApi(): ApiClient {
       }
     },
 
-    deleteGroup: async (listId, groupId) => {
+    deleteGroup: async (listId, groupId, options = {}) => {
       const [database, userId] = [await getDb(), await getUserId()]
 
       try {
-        const restore = await deleteListGroup(database, userId, listId, groupId)
+        const restore = await deleteListGroup(database, userId, listId, groupId, options)
         if (!restore) throw notFound()
         return restore
       } catch (cause) {

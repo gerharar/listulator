@@ -466,6 +466,13 @@ export const de: Locale = {
         groupRemoved: (name: string): string => `Gruppe ${name} entfernt`,
         groupRestored: (name: string): string => `Gruppe ${name} wiederhergestellt`,
         groupRemoveFailed: (name: string): string => `Gruppe ${name} konnte nicht entfernt werden`,
+        deleteGroupWithItems: (name: string): string => `Gruppe ${name} löschen`,
+        groupDeleteKicker: 'Gruppe löschen',
+        groupDeleteQuestion: (name: string): string => `Gruppe „${name}“ löschen?`,
+        groupDeleteNote: (n: number, done: number): string =>
+          `${entries(n)}${done > 0 ? `, davon ${done} als erledigt markiert,` : ''} ${n === 1 ? 'wird' : 'werden'} mit gelöscht. Rückgängig machen ist 8 Sekunden lang möglich.`,
+        groupDeleteConfirm: 'Gruppe löschen',
+        groupRemovedWithItems: (name: string, n: number): string => `Gruppe ${name} und ${entries(n)} entfernt`,
         edit: (title: string): string => `${title} bearbeiten`,
         remove: (title: string): string => `${title} entfernen`,
         infoKicker: 'Details',

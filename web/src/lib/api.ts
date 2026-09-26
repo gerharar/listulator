@@ -368,8 +368,8 @@ export interface ApiClient {
   createGroup: (listId: string, name: string) => Promise<ListGroup>
   /** Renames the group and relabels its items. */
   renameGroup: (listId: string, groupId: string, name: string) => Promise<ListGroup>
-  /** Empty groups only. */
-  deleteGroup: (listId: string, groupId: string) => Promise<GroupRestore>
+  /** An empty group; one with items only with `withItems`, which deletes them too (Undo brings all back). */
+  deleteGroup: (listId: string, groupId: string, options?: { withItems?: boolean }) => Promise<GroupRestore>
   /** Undo of `deleteGroup`: back at its own position. */
   restoreGroup: (listId: string, restore: GroupRestore) => Promise<ListGroup>
   /** The block order; each group's items move with it. Must name every group once. */
@@ -601,9 +601,13 @@ export const fetchApi: ApiClient = {
       body: JSON.stringify({ name }),
     }),
 
-  deleteGroup: async (listId: string, groupId: string) =>
-    (await request<{ restore: GroupRestore }>(`/lists/${listId}/groups/${groupId}`, { method: 'DELETE' }))
-      .restore,
+  deleteGroup: async (listId: string, groupId: string, options: { withItems?: boolean } = {}) =>
+    (
+      await request<{ restore: GroupRestore }>(
+        `/lists/${listId}/groups/${groupId}${options.withItems ? '?withItems=true' : ''}`,
+        { method: 'DELETE' },
+      )
+    ).restore,
 
   restoreGroup: (listId: string, restore: GroupRestore) =>
     request<ListGroup>(`/lists/${listId}/groups/restore`, {

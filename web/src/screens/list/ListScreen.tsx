@@ -41,6 +41,7 @@ import { EditListPopover } from './EditListPopover.js'
 import { FilterBar } from './FilterBar.js'
 import { NO_FILTER, isFiltering, shownItemIds, type ListFilter } from './filtering.js'
 import { GroupRow } from './GroupRow.js'
+import { ConfirmPopover } from '../../components/quantum/ConfirmPopover/ConfirmPopover.js'
 import { invertPatch, type ItemPatch } from './itemActions.js'
 import { invertListPatch, type ListFields, type ListPatch } from './listActions.js'
 import { ItemEditPopover } from './ItemEditPopover.js'
@@ -224,6 +225,7 @@ function ListView({
   // A jump asks for a scroll once the group it opened has rendered.
   const [jumpTo, setJumpTo] = useState<{ id: string; n: number } | null>(null)
   const [popover, setPopover] = useState<OpenPopover | null>(null)
+  const [groupDelete, setGroupDelete] = useState<{ group: ListGroup; anchor: HTMLElement } | null>(null)
   const [pulseIds, setPulseIds] = useState<ReadonlySet<string>>(new Set())
   // What an explicit check found for this list and nobody has applied or dismissed (persisted).
   const pendingCount = usePendingMap(pending)[listId]?.count ?? 0
@@ -478,6 +480,29 @@ function ListView({
       })
     } catch {
       setGroups(previous)
+      setError(actions.groupRemoveFailed(group.name))
+    }
+  }
+
+  /** A group with items, after its confirmation: the group and its items go at once; Undo brings all back. */
+  async function removeGroupWithItems(group: ListGroup) {
+    const previous = { items, groups }
+    const inside = items.filter((entry) => entry.group === group.name).length
+    setGroupDelete(null)
+    setError(null)
+    setItems((current) => current.filter((entry) => entry.group !== group.name))
+    setGroups((current) => current.filter((entry) => entry.id !== group.id))
+
+    try {
+      const restore = await api.deleteGroup(listId, group.id, { withItems: true })
+      showToast({
+        text: actions.groupRemovedWithItems(group.name, inside),
+        actionLabel: actions.undo,
+        onAction: () => void undoRemoveGroup(restore, group),
+      })
+    } catch {
+      setItems(previous.items)
+      setGroups(previous.groups)
       setError(actions.groupRemoveFailed(group.name))
     }
   }
@@ -931,6 +956,7 @@ function ListView({
                   onFocus={remember}
                   onHandlePointerDown={(event) => moves.startDrag(event, unit.group.id)}
                   onDelete={() => void removeGroup(unit.group)}
+                  onDeleteWithItems={(anchor) => setGroupDelete({ group: unit.group, anchor })}
                   dragging={moves.dragKey === unit.group.id}
                   dropLine={moves.over?.key === unit.group.id ? moves.over.pos : null}
                   pulse={pulseIds.has(unit.group.id)}
@@ -983,6 +1009,26 @@ function ListView({
           <ItemInfoCard item={popoverItem} />
         </Popover>
       )}
+      {groupDelete &&
+        (() => {
+          const inside = items.filter((entry) => entry.group === groupDelete.group.name)
+          return (
+            <ConfirmPopover
+              open
+              anchorEl={groupDelete.anchor}
+              onDismiss={() => setGroupDelete(null)}
+              width={320}
+              kicker={actions.groupDeleteKicker}
+              cost={moreText.itemCount(inside.length)}
+              question={actions.groupDeleteQuestion(groupDelete.group.name)}
+              note={actions.groupDeleteNote(inside.length, inside.filter((entry) => entry.consumedAt !== null).length)}
+              onKeep={() => setGroupDelete(null)}
+              onConfirm={() => void removeGroupWithItems(groupDelete.group)}
+              confirmLabel={actions.groupDeleteConfirm}
+              danger
+            />
+          )
+        })()}
       {popover?.kind === 'platform' && popoverItem && (
         <Popover open anchorEl={popover.anchor} onDismiss={() => setPopover(null)} width="fit">
           <PlatformCard tags={popoverItem.tags ?? []} />

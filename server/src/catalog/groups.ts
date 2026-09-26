@@ -1,7 +1,7 @@
 import { and, asc, eq, gte, isNotNull, max, min, sql } from 'drizzle-orm'
 import type { PortableDatabase } from '../db/client.js'
-import { listGroups, listItems, lists, type ListGroup } from '../db/schema.js'
-import { toGroupPayload, type GroupRestore } from './restorePayloads.js'
+import { dismissalTitleKey, dismissedItems, listGroups, listItems, lists, type ListGroup } from '../db/schema.js'
+import { toGroupPayload, toItemPayload, type GroupRestore } from './restorePayloads.js'
 
 /**
  * A list's groups as rows of their own (D3, task 10.16).
@@ -152,14 +152,18 @@ async function renumberGroups(db: PortableDatabase, listId: string): Promise<voi
 }
 
 /**
- * Empty groups only. Returns what is needed to restore it, or `undefined` when
- * the group (or the list) is not there.
+ * Deletes a group. One with items is refused unless `withItems` says to take
+ * them too (owner, 2026-09-27, after a confirmation stating how many): then its
+ * items go, each recorded as not wanted the way deleting an item by hand is, so
+ * a refresh does not offer them back. Returns what is needed to restore it all,
+ * or `undefined` when the group (or the list) is not there.
  */
 export async function deleteListGroup(
   db: PortableDatabase,
   userId: string,
   listId: string,
   groupId: string,
+  { withItems = false }: { withItems?: boolean } = {},
 ): Promise<GroupRestore | undefined> {
   if (!(await ownsList(db, userId, listId))) return undefined
 
@@ -167,16 +171,35 @@ export async function deleteListGroup(
   if (!group) return undefined
 
   const inside = await db
-    .select({ id: listItems.id })
+    .select()
     .from(listItems)
     .where(and(eq(listItems.listId, listId), eq(listItems.group, group.name)))
-    .get()
-  if (inside) throw new GroupNotEmptyError('a group with items cannot be deleted')
+    .all()
+  if (inside.length > 0 && !withItems) throw new GroupNotEmptyError('a group with items cannot be deleted')
+
+  let dismissalIds: string[] = []
+  if (inside.length > 0) {
+    await db.delete(listItems).where(and(eq(listItems.listId, listId), eq(listItems.group, group.name))).run()
+    const dismissals = await db
+      .insert(dismissedItems)
+      .values(
+        inside.map((item) => ({
+          listId,
+          titleKey: dismissalTitleKey(item.title),
+          ...(item.externalRef ? { externalRef: item.externalRef } : {}),
+        })),
+      )
+      .returning({ id: dismissedItems.id })
+      .all()
+    dismissalIds = dismissals.map((dismissal) => dismissal.id)
+  }
 
   await db.delete(listGroups).where(eq(listGroups.id, groupId)).run()
   await renumberGroups(db, listId)
 
-  return { group: toGroupPayload(group) }
+  return inside.length > 0
+    ? { group: toGroupPayload(group), items: inside.map(toItemPayload), dismissalIds }
+    : { group: toGroupPayload(group) }
 }
 
 /**

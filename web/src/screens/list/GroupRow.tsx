@@ -1,6 +1,7 @@
 import './Spine.css'
 import type { KeyboardEvent, PointerEvent } from 'react'
 import { Trash2 } from 'lucide-react'
+import { IconButton } from '../../components/quantum/Button/Button.js'
 import { copy } from '../../locale/index.js'
 import { ProgressSentence } from '../../components/quantum/ProgressSentence/ProgressSentence.js'
 import { yearSpanLabel, type GroupBlock } from './spine.js'
@@ -21,6 +22,8 @@ export interface GroupRowProps {
   pulse?: boolean
   /** Deletes the group. Offered only while it holds no items (prototype: "🗑 empty"). */
   onDelete?: () => void
+  /** A group with items: its trash button asks first (a confirmation anchored to it), owner 2026-09-27. */
+  onDeleteWithItems?: (anchor: HTMLElement) => void
   /** While a filter is on: how many of the group's items match, in place of its progress. */
   shownOf?: { shown: number; total: number }
 }
@@ -42,6 +45,7 @@ export function GroupRow({
   dropLine = null,
   pulse = false,
   onDelete,
+  onDeleteWithItems,
   shownOf,
 }: GroupRowProps) {
   const span = yearSpanLabel(block.yearSpan)
@@ -116,6 +120,20 @@ export function GroupRow({
           status={null}
           size="group"
         />
+      )}
+      {block.items.length > 0 && onDeleteWithItems && (
+        <IconButton
+          size="row"
+          className="remove q-group-remove"
+          label={copy.quantum.list.itemActions.deleteGroupWithItems(block.group.name)}
+          onClick={(event) => {
+            event.stopPropagation()
+            onDeleteWithItems(event.currentTarget)
+          }}
+          onKeyDown={(event) => event.stopPropagation()}
+        >
+          <Trash2 width={15} height={15} strokeWidth={1.8} aria-hidden="true" />
+        </IconButton>
       )}
     </div>
   )

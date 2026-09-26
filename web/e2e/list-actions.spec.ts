@@ -35,7 +35,7 @@ test('add, remove with Undo, and edit — each saved, each undoable', async ({ p
 
     // Add: a new group typed in the field, created with the item.
     await page.getByLabel('Title', { exact: true }).fill('Bonus')
-    await page.getByLabel('Group').fill('Specials')
+    await page.getByLabel('Group', { exact: true }).fill('Specials')
     await page.getByRole('button', { name: 'Add', exact: true }).click()
     await expect(page.getByText('Bonus', { exact: true })).toBeVisible()
 
