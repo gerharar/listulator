@@ -1,4 +1,5 @@
 import './DoneCheckbox.css'
+import { copy } from '../../../locale/index.js'
 
 /**
  * design-system/components/DoneCheckbox — the 19×19 box that marks an
@@ -14,7 +15,7 @@ export interface DoneCheckboxProps {
   label?: string
 }
 
-export function DoneCheckbox({ checked, onChange, label = 'Toggle done' }: DoneCheckboxProps) {
+export function DoneCheckbox({ checked, onChange, label = copy.quantum.common.toggleDone }: DoneCheckboxProps) {
   return (
     <button
       type="button"

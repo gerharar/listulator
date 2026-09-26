@@ -1,5 +1,6 @@
 import './LayerCard.css'
 import type { CSSProperties, ReactNode } from 'react'
+import { copy } from '../../../locale/index.js'
 
 export interface LayerCardProps {
   /** Fixed header block (`.q-layer-head`) — omitted while hosting an old screen, which draws its own. */
@@ -48,7 +49,7 @@ export function LayerCard({
       <div className="q-layer-body">{children}</div>
       {covered && (
         <>
-          <button className="q-layer-tab" onClick={onTabClick} title="Back to this layer">
+          <button className="q-layer-tab" onClick={onTabClick} title={copy.quantum.common.backToLayer}>
             <span>{tabLabel}</span>
           </button>
           <div className="q-veil" onClick={onVeilClick} />

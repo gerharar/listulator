@@ -1,5 +1,6 @@
 import { Popover, type PopoverWidth } from '../Popover/Popover.js'
 import { Button } from '../Button/Button.js'
+import { copy } from '../../../locale/index.js'
 
 export interface ConfirmPopoverProps {
   open: boolean
@@ -38,7 +39,7 @@ export function ConfirmPopover({
   question,
   note,
   onKeep,
-  keepLabel = 'Keep',
+  keepLabel = copy.quantum.common.keep,
   onConfirm,
   confirmLabel,
   danger = false,

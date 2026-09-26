@@ -1,24 +1,20 @@
 import './StatusChip.css'
 import { Archive, Footprints } from 'lucide-react'
 import { copy } from '../../../locale/index.js'
-import { STATUS_PICKER_OPTIONS, type PickedStatus } from '../StatusPicker/StatusPicker.js'
+import { type PickedStatus } from '../StatusPicker/StatusPicker.js'
 
 export interface StatusChipData {
   value: 'complete' | 'ongoing'
   label: string
   /**
    * The same consequence sentence StatusPicker shows under its buttons —
-   * read from `STATUS_PICKER_OPTIONS` rather than duplicated through
-   * locale, so the two surfaces can't drift apart (see docs/DECISIONS.md).
+   * read from the same `statusPicker` locale entries, so the two surfaces
+   * can't drift apart (see docs/DECISIONS.md).
    */
   note: string
   tip: string
 }
 
-const NOTE_BY_VALUE: Record<'complete' | 'ongoing', string> = {
-  complete: STATUS_PICKER_OPTIONS.find((option) => option.value === 'complete')!.note,
-  ongoing: STATUS_PICKER_OPTIONS.find((option) => option.value === 'ongoing')!.note,
-}
 
 /**
  * A list's status is a claim about the *source*, not about progress:
@@ -30,7 +26,7 @@ export function statusChipData(status: PickedStatus): StatusChipData | null {
   if (status !== 'complete' && status !== 'ongoing') return null
 
   const label = status === 'ongoing' ? copy.quantum.status.ongoing : copy.quantum.status.complete
-  const note = NOTE_BY_VALUE[status]
+  const note = status === 'ongoing' ? copy.quantum.statusPicker.ongoingNote : copy.quantum.statusPicker.completeNote
   return { value: status, label, note, tip: `${label} — ${note}` }
 }
 

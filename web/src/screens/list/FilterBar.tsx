@@ -39,10 +39,10 @@ export function FilterBar({ text, onText, facets, selection, onSelect, fold, not
       {facets.map((facet) => (
         <FacetToggle
           key={facet.key}
-          label={facet.label}
+          label={t.facetLabels[facet.label] ?? facet.label}
           options={facet.options.map((option) => ({
             key: option.key,
-            label: option.label,
+            label: t.optionLabels[option.label] ?? option.label,
             ...(facet.key === 'platform' && platformFullName(option.label)
               ? { name: platformFullName(option.label)! }
               : {}),

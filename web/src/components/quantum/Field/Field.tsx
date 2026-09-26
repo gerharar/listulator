@@ -1,6 +1,7 @@
 import { useState, type InputHTMLAttributes, type Ref, type TextareaHTMLAttributes } from 'react'
 import { Eye, EyeOff } from 'lucide-react'
 import './Field.css'
+import { copy } from '../../../locale/index.js'
 
 /** design-system/components/Field — a text input, always under a visible kicker label. */
 export interface FieldProps extends Omit<InputHTMLAttributes<HTMLInputElement>, 'size'> {
@@ -65,7 +66,7 @@ export function ReadOnlyBuffer({ label, value, onChange, rows = 4, code, locked 
           onChange={(event) => onChange(event.target.value)}
           onClick={() => setEditing(true)}
         />
-        {!editing && <span className="q-buffer-hint">Click to edit</span>}
+        {!editing && <span className="q-buffer-hint">{copy.quantum.common.clickToEdit}</span>}
       </div>
     </label>
   )
@@ -80,7 +81,7 @@ export interface MaskedKeyProps
 
 export function MaskedKey({ value, onChange, ...rest }: MaskedKeyProps) {
   const [revealed, setRevealed] = useState(false)
-  const label = revealed ? 'Hide the key' : 'Show the key'
+  const label = revealed ? copy.quantum.common.hideKey : copy.quantum.common.showKey
 
   return (
     <span className="q-key">

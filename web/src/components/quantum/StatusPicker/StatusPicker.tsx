@@ -1,4 +1,5 @@
 import './StatusPicker.css'
+import { copy } from '../../../locale/index.js'
 
 export type PickedStatus = 'complete' | 'ongoing' | null
 
@@ -10,13 +11,17 @@ export interface StatusPickerOption {
 
 /**
  * Not known · Ongoing · Complete, in this exact order, always — the same
- * control in the Add-by-hand form and the Edit list popover.
+ * control in the Add-by-hand form and the Edit list popover. A function, not a
+ * constant: the words follow the language, so they are read when used.
  */
-export const STATUS_PICKER_OPTIONS: readonly StatusPickerOption[] = [
-  { value: null, label: 'Not known', note: 'Leave blank if you do not know.' },
-  { value: 'ongoing', label: 'Ongoing', note: 'More may appear upstream.' },
-  { value: 'complete', label: 'Complete', note: 'Finished — it will not gain items.' },
-]
+export function statusPickerOptions(): readonly StatusPickerOption[] {
+  const text = copy.quantum.statusPicker
+  return [
+    { value: null, label: text.notKnown, note: text.notKnownNote },
+    { value: 'ongoing', label: copy.quantum.status.ongoing, note: text.ongoingNote },
+    { value: 'complete', label: copy.quantum.status.complete, note: text.completeNote },
+  ]
+}
 
 /** design-system/components/StatusPicker — three buttons, one line of consequence under them. */
 export interface StatusPickerProps {
@@ -25,12 +30,13 @@ export interface StatusPickerProps {
 }
 
 export function StatusPicker({ value, onChange }: StatusPickerProps) {
-  const chosen = STATUS_PICKER_OPTIONS.find((option) => option.value === value) ?? STATUS_PICKER_OPTIONS[0]!
+  const options = statusPickerOptions()
+  const chosen = options.find((option) => option.value === value) ?? options[0]!
 
   return (
     <div className="q-status-picker-field">
       <div className="q-status-picker">
-        {STATUS_PICKER_OPTIONS.map((option) => (
+        {options.map((option) => (
           <button
             key={option.label}
             type="button"

@@ -3,6 +3,7 @@ import { useEffect, useId, useRef, type ReactNode } from 'react'
 import { IconButton } from '../Button/Button.js'
 import { HeaderPlate } from '../HeaderPlate/HeaderPlate.js'
 import { useOverlayRegistration } from '../overlay/OverlayManagerContext.js'
+import { copy } from '../../../locale/index.js'
 
 export interface SheetProps {
   open: boolean
@@ -58,7 +59,7 @@ export function Sheet({ open, onClose, title, explain, plateSeed = 0, bar, child
           <div className="q-sheet-title">{title}</div>
           <div className="q-sheet-explain">{explain}</div>
         </div>
-        <IconButton size="sq" label="Close" onClick={onClose}>
+        <IconButton size="sq" label={copy.quantum.common.close} onClick={onClose}>
           ✕
         </IconButton>
       </div>

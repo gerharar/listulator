@@ -305,7 +305,7 @@ export function SearchTab({ mediaType, onBuilt }: SearchTabProps) {
               disabled={building}
               onClick={() => changeLanguage(entry.code)}
             >
-              {entry.label}
+              {copy.bookLanguages[entry.code] ?? entry.label}
             </ToggleChip>
           ))}
           {language !== ALL_LANGUAGES && (

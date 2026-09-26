@@ -20,7 +20,7 @@ export function platformFullName(code: string): string | null {
 export function platformChipLabel(tags: readonly string[]): string | null {
   if (tags.length === 0) return null
   if (tags.length === 1) return tags[0]!.toUpperCase()
-  return 'MULTI'
+  return copy.quantum.list.filter.optionLabels['MULTI'] ?? 'MULTI'
 }
 
 export interface PlatformChipProps {

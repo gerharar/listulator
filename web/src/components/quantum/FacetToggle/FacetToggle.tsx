@@ -1,4 +1,5 @@
 import './FacetToggle.css'
+import { copy } from '../../../locale/index.js'
 
 export interface FacetOption {
   key: string
@@ -35,8 +36,8 @@ export function FacetToggle({ label, options, selected, onChange }: FacetToggleP
   return (
     <div className="q-facet">
       <span className="q-kicker">{label}</span>
-      <button aria-pressed={allOn} title="Clear the filter — show everything" onClick={() => onChange(new Set())}>
-        All
+      <button aria-pressed={allOn} title={copy.quantum.list.filter.clearTip} onClick={() => onChange(new Set())}>
+        {copy.quantum.list.filter.all}
       </button>
       <span className="q-facet-seg">
         {options.map((option) => {
@@ -47,8 +48,8 @@ export function FacetToggle({ label, options, selected, onChange }: FacetToggleP
               aria-pressed={on}
               title={
                 on
-                  ? `Hide ${option.name ?? option.label}`
-                  : `Also show ${option.name ?? option.label} — any number can be on at once`
+                  ? copy.quantum.list.filter.hideOption(option.name ?? option.label)
+                  : copy.quantum.list.filter.alsoShowOption(option.name ?? option.label)
               }
               onClick={() => onChange(toggleFacetOption(selected, option.key))}
             >

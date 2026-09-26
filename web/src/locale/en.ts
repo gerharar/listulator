@@ -36,6 +36,26 @@ export const en = {
     title: 'New list',
   },
 
+  /** Book-search language names, by Open Library's three-letter code. */
+  bookLanguages: {
+    eng: 'English',
+    spa: 'Spanish',
+    fre: 'French',
+    ger: 'German',
+    ita: 'Italian',
+    por: 'Portuguese',
+    dut: 'Dutch',
+    rus: 'Russian',
+    pol: 'Polish',
+    swe: 'Swedish',
+    nor: 'Norwegian',
+    dan: 'Danish',
+    fin: 'Finnish',
+    jpn: 'Japanese',
+    chi: 'Chinese',
+    kor: 'Korean',
+  } as Record<string, string | undefined>,
+
   sourceSearch: {
     searchFailed: 'Search failed',
     defaultPlaceholder: 'Search…',
@@ -179,6 +199,23 @@ export const en = {
       newCount: (n: number): string => `${n} ${selectPlural(n, 'en', { other: 'NEW' })}`,
       newItem: 'NEW',
       allDone: '✓ All done',
+    },
+    /** Words several components share, and hover hints that used to be written inside them (task 10.32b). */
+    common: {
+      close: 'Close',
+      keep: 'Keep',
+      toggleDone: 'Toggle done',
+      backToLayer: 'Back to this layer',
+      clickToEdit: 'Click to edit',
+      showKey: 'Show the key',
+      hideKey: 'Hide the key',
+    },
+    /** The three-way status picker and the sentence under it (the same words the status chip's hover uses). */
+    statusPicker: {
+      notKnown: 'Not known',
+      notKnownNote: 'Leave blank if you do not know.',
+      ongoingNote: 'More may appear upstream.',
+      completeNote: 'Finished — it will not gain items.',
     },
     /** AppHeader (task 10.9). */
     appHeader: {
@@ -622,6 +659,39 @@ export const en = {
         /** A group's count while filtering. */
         groupShown: (shown: number, total: number): string => `${shown} of ${total}`,
         nothing: (text: string): string => (text.trim() ? `Nothing matches “${text.trim()}”.` : 'Nothing matches this filter.'),
+        all: 'All',
+        clearTip: 'Clear the filter — show everything',
+        hideOption: (name: string): string => `Hide ${name}`,
+        alsoShowOption: (name: string): string => `Also show ${name} — any number can be on at once`,
+        /** A facet's kicker, by the label the registry gives it. */
+        facetLabels: {
+          Type: 'Type',
+          Medium: 'Medium',
+          Language: 'Language',
+          Platform: 'Platform',
+        } as Record<string, string | undefined>,
+        /** An option's button text, by the label the facet derives; anything not named shows as it is (a platform code, a language). */
+        optionLabels: {
+          Untagged: 'Untagged',
+          MULTI: 'MULTI',
+          Unknown: 'Unknown',
+          Movie: 'Movie',
+          TV: 'TV',
+          Animation: 'Animation',
+          Documentary: 'Documentary',
+          Wrestling: 'Wrestling',
+          MMA: 'MMA',
+          Game: 'Game',
+          Comic: 'Comic',
+          Book: 'Book',
+          Music: 'Music',
+          YouTube: 'YouTube',
+          Album: 'Album',
+          EP: 'EP',
+          Single: 'Single',
+          Live: 'Live',
+          Compilation: 'Compilation',
+        } as Record<string, string | undefined>,
         collapseAll: 'Collapse all',
         expandAll: 'Expand all',
         collapseAllTip: 'Fold every group',
