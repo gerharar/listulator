@@ -26,6 +26,14 @@ describe('toggleFacetOption', () => {
     expect(toggleFacetOption(selected, 'ps3')).toEqual(new Set(['x360']))
   })
 
+  it('turns into All when the last option goes on: every option on hides nothing (U1)', () => {
+    expect(toggleFacetOption(new Set(['movie']), 'tv', ['movie', 'tv'])).toEqual(new Set())
+  })
+
+  it('stays a selection while any option is still off', () => {
+    expect(toggleFacetOption(new Set(['movie']), 'tv', ['movie', 'tv', 'game'])).toEqual(new Set(['movie', 'tv']))
+  })
+
   it('does not mutate the set it was given', () => {
     const selected = new Set(['ps3'])
 

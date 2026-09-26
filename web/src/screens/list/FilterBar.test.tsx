@@ -65,6 +65,14 @@ describe('FilterBar', () => {
     expect(props.onSelect).toHaveBeenLastCalledWith('platform', new Set())
   })
 
+  it('lights All instead when the last remaining option is picked (U1)', () => {
+    const props = bar({ facets: [platform], selection: { platform: new Set(['ps3', 'pc']) } })
+
+    fireEvent.click(screen.getByRole('button', { name: 'Untagged' }))
+
+    expect(props.onSelect).toHaveBeenCalledWith('platform', new Set())
+  })
+
   it('names a platform in full in its hint', () => {
     bar({ facets: [platform] })
     expect(screen.getByRole('button', { name: 'PS3' }).getAttribute('title')).toContain('PlayStation 3')

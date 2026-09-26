@@ -13,11 +13,20 @@ export function isAllOn(selected: ReadonlySet<string>): boolean {
   return selected.size === 0
 }
 
-/** Toggles one option key in/out of the selection, leaving the rest untouched. */
-export function toggleFacetOption(selected: ReadonlySet<string>, key: string): Set<string> {
+/**
+ * Toggles one option key in/out of the selection, leaving the rest untouched.
+ * When that puts every option on, the selection becomes All (empty): every
+ * option on hides nothing, so All is the honest state (U1, owner 2026-09-26).
+ */
+export function toggleFacetOption(
+  selected: ReadonlySet<string>,
+  key: string,
+  allKeys: readonly string[] = [],
+): Set<string> {
   const next = new Set(selected)
   if (next.has(key)) next.delete(key)
   else next.add(key)
+  if (allKeys.length > 0 && allKeys.every((option) => next.has(option))) return new Set()
   return next
 }
 
@@ -51,7 +60,7 @@ export function FacetToggle({ label, options, selected, onChange }: FacetToggleP
                   ? copy.quantum.list.filter.hideOption(option.name ?? option.label)
                   : copy.quantum.list.filter.alsoShowOption(option.name ?? option.label)
               }
-              onClick={() => onChange(toggleFacetOption(selected, option.key))}
+              onClick={() => onChange(toggleFacetOption(selected, option.key, options.map((entry) => entry.key)))}
             >
               {option.label}
             </button>
