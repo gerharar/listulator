@@ -30,3 +30,9 @@ tauri-plugin-store = "2"
 # headers unless this feature is on. Revisit if Tauri ever exposes a safer,
 # narrower way to set just this one header (docs/DECISIONS.md, task 5.7).
 tauri-plugin-http = { version = "2", features = ["unsafe-headers"] }
+
+# Desktop only: remembers the window's size, position, maximized and full-screen
+# state between launches (owner's desktop pass F13, docs/DECISIONS.md).
+[target.'cfg(not(any(target_os = "android", target_os = "ios")))'.dependencies]
+tauri-plugin-window-state = "2"
+
