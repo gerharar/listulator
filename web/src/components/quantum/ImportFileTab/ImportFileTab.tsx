@@ -121,13 +121,9 @@ export function ImportFileTab({ onBuilt }: ImportFileTabProps) {
         />
       )}
 
+      {/* Prototype: the hint on the left, Import on the right, one row; a refusal under it. */}
       <div className="q-import-actions">
-        {refusal && (
-          <p className="q-import-refusal" role="status">
-            <Info width={15} height={15} aria-hidden="true" />
-            {refusal}
-          </p>
-        )}
+        <p className="q-import-footer t-small">{text.footer}</p>
         <Button
           variant="primary"
           disabled={!yaml.trim()}
@@ -139,7 +135,12 @@ export function ImportFileTab({ onBuilt }: ImportFileTabProps) {
         </Button>
       </div>
 
-      <p className="q-import-footer t-small">{text.footer}</p>
+      {refusal && (
+        <p className="q-import-refusal" role="status">
+          <Info width={15} height={15} aria-hidden="true" />
+          {refusal}
+        </p>
+      )}
     </div>
   )
 }

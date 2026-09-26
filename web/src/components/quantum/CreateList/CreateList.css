@@ -1,7 +1,7 @@
 /*
  * The Create layer (design: "New {Category} list", task 10.12). The header
  * is the picker's block (fill ground, 2px rule under it) with the TabStrip
- * sitting on that rule, so its own bottom border *is* the header's.
+ * sitting on that rule; the rule is the header's, so the strip drops its own.
  */
 .q-create {
   display: flex;
@@ -15,6 +15,12 @@
   flex: none;
   padding: 22px 26px 0;
   background: var(--fill);
+  /* The rule runs window edge to edge (prototype: it is the header block's own
+     border), not just under the tabs inside the padding (F6). */
+  border-bottom: 2px solid var(--rule);
+}
+.q-create-head .q-tabs {
+  border-bottom: 0;
 }
 .q-create-head > :not(.q-plate) {
   position: relative;

@@ -17,6 +17,11 @@
   width: 12px;
   color: var(--ink3);
 }
+.q-result[aria-expanded='true'] {
+  /* Open, the row and its details are one tinted block (prototype, F8). */
+  border-bottom: 0;
+  background: var(--hover);
+}
 .q-result[aria-expanded='true'] .chev {
   color: var(--ink);
 }

@@ -167,4 +167,11 @@ describe('ImportFileTab', () => {
       ),
     ).toBeTruthy()
   })
+
+  it('puts that line on the Import button’s own row, left of it (prototype, F7)', () => {
+    renderTab()
+
+    const row = screen.getByRole('button', { name: 'Import' }).parentElement!
+    expect(row.textContent).toContain('Listulator lists travel as YAML files.')
+  })
 })
