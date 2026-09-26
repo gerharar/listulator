@@ -83,6 +83,24 @@ items:
   - { title: B-Sides EP, year: 2005, tags: [EP] }
 ```
 
+### Games: `tags` are platform codes
+
+In a `game` list, `tags` are the game's platforms, written as the codes in
+[`config/platforms.csv`](config/platforms.csv) (the `abbreviation` column; any
+case), or `multi` for "the same game on every platform it shipped on":
+
+```yaml
+  - { title: Halo 3, year: 2007, tags: [X360] }
+  - { title: The Witcher 3, year: 2015, tags: [WIN, PS4, XONE] }
+```
+
+The check below refuses a code that is not in that file, including older
+codes the app still reads (`PC` is now `WIN`). To add or rename a platform,
+edit `config/platforms.csv` (codes in capitals), then run
+`npm run platforms:generate -w server` and commit both files.
+`npm run platforms:check -w server` (needs IGDB keys in `.env`) lists any
+platform IGDB has that the file lacks; games on those import untagged.
+
 ## `category` must be one of the fixed keys
 
 `category` is validated against the app's existing, closed category

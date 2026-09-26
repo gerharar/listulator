@@ -1,7 +1,7 @@
 import './PlatformCard.css'
 import type { CSSProperties } from 'react'
 import { copy } from '../../../locale/index.js'
-import { platformFullName } from './PlatformChip.js'
+import { platformCodes, platformFullName } from './PlatformChip.js'
 
 export interface PlatformCardProps {
   tags: readonly string[]
@@ -15,9 +15,9 @@ export interface PlatformCardProps {
  */
 export function PlatformCard({ tags }: PlatformCardProps) {
   const text = copy.quantum.platformCard
-  const codes = tags.map((tag) => tag.trim()).filter(Boolean)
+  const codes = platformCodes(tags)
 
-  if (codes.length === 1 && codes[0]!.toLowerCase() === 'multi') {
+  if (codes.length === 1 && codes[0] === 'MULTI') {
     return (
       <div className="q-platcard">
         <p className="q-kicker">{text.multi}</p>
@@ -34,8 +34,8 @@ export function PlatformCard({ tags }: PlatformCardProps) {
       <p className="q-kicker">{codes.length === 1 ? text.one : text.many(codes.length)}</p>
       {codes.map((code) => (
         <div key={code} className="q-platcard-row">
-          <span className="code">{code.toUpperCase()}</span>
-          <span className="name">{platformFullName(code) ?? code.toUpperCase()}</span>
+          <span className="code">{code}</span>
+          <span className="name">{platformFullName(code) ?? code}</span>
         </div>
       ))}
     </div>

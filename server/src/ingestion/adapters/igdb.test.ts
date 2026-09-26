@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 import type { FetchLike } from '../http.js'
+import { IGDB_PLATFORM_CODES } from '../../catalog/platforms.generated.js'
 import { createIgdbAdapter } from './igdb.js'
 
 /**
@@ -153,9 +154,18 @@ describe('IGDB search', () => {
 })
 
 describe('IGDB platform tags', () => {
-  const expand = async (platforms: { id: number; abbreviation?: string; name?: string }[] | undefined) => {
+  // As IGDB answers `fields platforms`: ids only. Abbreviations in the tests are for the reader.
+  const expand = async (platforms: { id: number; abbreviation?: string }[] | undefined) => {
     const { fetchImpl } = router({
-      games: [{ id: 1, name: 'Assassin’s Creed', first_release_date: 1194998400, game_type: 0, platforms }],
+      games: [
+        {
+          id: 1,
+          name: 'Assassin’s Creed',
+          first_release_date: 1194998400,
+          game_type: 0,
+          ...(platforms ? { platforms: platforms.map((platform) => platform.id) } : {}),
+        },
+      ],
       game_time_to_beats: [],
     })
 
@@ -167,49 +177,58 @@ describe('IGDB platform tags', () => {
     await createIgdbAdapter(credentials, fetchImpl).expand('franchise:571')
 
     const body = vi.mocked(fetchImpl).mock.calls.find(([url]) => url.endsWith('/games'))![1]?.body
-    expect(body).toContain('platforms.abbreviation')
+    expect(body).toContain('platforms;')
   })
 
-  it('tags a game with its platform codes, in the platform table’s order', async () => {
+  it('tags a game by IGDB platform id with the owner’s codes, in config/platforms.csv’s order (10.24c)', async () => {
     const game = await expand([
-      { id: 6, abbreviation: 'PC' },
       { id: 12, abbreviation: 'X360' },
+      { id: 6, abbreviation: 'PC' },
       { id: 9, abbreviation: 'PS3' },
     ])
 
-    expect(game.tags).toEqual(['PS3', 'X360', 'PC'])
+    expect(game.tags).toEqual(['WIN', 'PS3', 'X360'])
   })
 
-  it('maps IGDB’s spellings to the table’s codes', async () => {
+  it('goes by the id, not IGDB’s spelling: NGC, Series X|S, PS Vita all find their code', async () => {
     const game = await expand([
-      { id: 1, abbreviation: 'NGC' },
-      { id: 2, abbreviation: 'Series X|S' },
-      { id: 3, abbreviation: 'WiiU' },
-      { id: 4, abbreviation: 'PS Vita' },
-      { id: 5, abbreviation: 'Game Boy' },
+      { id: 21, abbreviation: 'NGC' },
+      { id: 169, abbreviation: 'Series X|S' },
+      { id: 41, abbreviation: 'WiiU' },
+      { id: 46, abbreviation: 'PS Vita' },
+      { id: 33, abbreviation: 'Game Boy' },
     ])
 
-    expect(game.tags).toEqual(['VITA', 'XSX', 'GC', 'WIIU', 'GB'])
+    expect(game.tags).toEqual(['XSX', 'VITA', 'WIIU', 'GB', 'GCN'])
   })
 
-  it('keeps a platform the table does not know as its own caps text, after the known ones', async () => {
+  it('tags a platform IGDB gives no abbreviation, since the id is enough', async () => {
+    const game = await expand([{ id: 386 }, { id: 9 }])
+
+    expect(game.tags).toEqual(['PS3', 'VR'])
+  })
+
+  it('tags several platforms that share a code once (Meta Quest 2 and 3 are both VR)', async () => {
+    const game = await expand([{ id: 386 }, { id: 471 }])
+
+    expect(game.tags).toEqual(['VR'])
+  })
+
+  it('leaves out a platform the table does not list (IGDB added it later): no guessed code; platforms:check flags it', async () => {
     const game = await expand([
-      { id: 80, abbreviation: 'Neo Geo' },
-      { id: 23, abbreviation: 'DC' },
+      { id: 99_999, abbreviation: 'New Box' },
+      { id: 99_998 },
       { id: 9, abbreviation: 'PS3' },
     ])
-
-    expect(game.tags).toEqual(['PS3', 'NEO GEO', 'DC'])
-  })
-
-  it('leaves out a platform with no abbreviation, and a repeated one', async () => {
-    const game = await expand([{ id: 99 }, { id: 9, abbreviation: 'PS3' }, { id: 10, abbreviation: 'ps3' }])
 
     expect(game.tags).toEqual(['PS3'])
+    expect((await expand([{ id: 99_999, abbreviation: 'New Box' }])).tags).toBeUndefined()
   })
 
   it('never returns more tags than an item may carry', async () => {
-    const game = await expand(Array.from({ length: 55 }, (_, i) => ({ id: i, abbreviation: `X${i}` })))
+    // 55 platforms with 55 different codes, all in the table.
+    const ids = [...new Map(Object.entries(IGDB_PLATFORM_CODES).map(([id, code]) => [code, Number(id)])).values()].slice(0, 55)
+    const game = await expand(ids.map((id) => ({ id })))
 
     expect(game.tags).toHaveLength(40)
   })

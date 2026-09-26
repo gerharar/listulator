@@ -984,7 +984,7 @@ function ListView({
         </Popover>
       )}
       {popover?.kind === 'platform' && popoverItem && (
-        <Popover open anchorEl={popover.anchor} onDismiss={() => setPopover(null)} width={240}>
+        <Popover open anchorEl={popover.anchor} onDismiss={() => setPopover(null)} width="fit">
           <PlatformCard tags={popoverItem.tags ?? []} />
         </Popover>
       )}

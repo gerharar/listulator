@@ -42,7 +42,7 @@ describe('shownItemIds', () => {
   })
 
   it('matches an item when any selected facet option is among its tags', () => {
-    expect(ids({ text: '', facets: { platform: new Set(['nds', 'pc']) } })).toEqual(['1', '2'])
+    expect(ids({ text: '', facets: { platform: new Set(['ds', 'win']) } })).toEqual(['1', '2'])
   })
 
   it('finds untagged items through Untagged', () => {
@@ -50,12 +50,12 @@ describe('shownItemIds', () => {
   })
 
   it('needs the text and the facets to agree', () => {
-    expect(ids({ text: 'creed', facets: { platform: new Set(['nds']) } })).toEqual([])
-    expect(ids({ text: 'a', facets: { platform: new Set(['nds']) } })).toEqual(['2'])
+    expect(ids({ text: 'creed', facets: { platform: new Set(['ds']) } })).toEqual([])
+    expect(ids({ text: 'a', facets: { platform: new Set(['ds']) } })).toEqual(['2'])
   })
 
   it('ignores a facet selection when the category has no convention', () => {
-    const filter = { text: '', facets: { platform: new Set(['nds']) } }
+    const filter = { text: '', facets: { platform: new Set(['ds']) } }
     expect([...shownItemIds(items, undefined, filter)]).toEqual(['1', '2', '3', '4'])
   })
 })

@@ -18,7 +18,7 @@ describe('PlatformCard', () => {
     render(<PlatformCard tags={['PS3', 'X360', 'pc']} />)
     expect(screen.getByText('Platforms · 3')).toBeTruthy()
     expect(screen.getByText('Xbox 360')).toBeTruthy()
-    expect(screen.getByText('PC', { selector: '.code' })).toBeTruthy()
+    expect(screen.getByText('WIN', { selector: '.code' })).toBeTruthy()
   })
 
   it('makes the code column as wide as the longest code, so a long one never runs into the name (F10)', () => {
@@ -31,6 +31,13 @@ describe('PlatformCard', () => {
     render(<PlatformCard tags={['PS3', 'pc']} />)
 
     expect((document.querySelector('.q-platcard') as HTMLElement).style.getPropertyValue('--code-w')).toBe('5ch')
+  })
+
+  it('shows old codes as today’s, in capitals (10.24c)', () => {
+    render(<PlatformCard tags={['PC', 'firetv']} />)
+    expect(screen.getByText('WIN', { selector: '.code' })).toBeTruthy()
+    expect(screen.getByText('Windows')).toBeTruthy()
+    expect(screen.getByText('FIRETV', { selector: '.code' })).toBeTruthy()
   })
 
   it('says a bare multi means every platform, unnamed', () => {

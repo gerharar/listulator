@@ -2,13 +2,28 @@ import './PlatformChip.css'
 import type { CSSProperties } from 'react'
 import { copy } from '../../../locale/index.js'
 
-import { PLATFORMS, PLATFORM_ORDER } from '../../../../../server/src/catalog/platforms.js'
+import {
+  PLATFORMS,
+  PLATFORM_ORDER,
+  platformCode,
+  platformKey,
+  platformName,
+} from '../../../../../server/src/catalog/platforms.js'
 
 export { PLATFORMS, PLATFORM_ORDER }
 
-/** The full name for a code, matched case-insensitively. Null for an unrecognised code. */
-export function platformFullName(code: string): string | null {
-  return PLATFORMS[code.toLowerCase()] ?? null
+/** The full name for a tag, matched case-insensitively and through old codes (PC is Windows). Null for an unrecognised code. */
+export function platformFullName(tag: string): string | null {
+  return platformName(tag)
+}
+
+/** An item's platform tags as the codes shown, one per platform: an old and a new spelling count once. */
+export function platformCodes(tags: readonly string[]): string[] {
+  const codes = new Map<string, string>()
+  for (const tag of tags) {
+    if (tag.trim()) codes.set(platformKey(tag), platformCode(tag))
+  }
+  return [...codes.values()]
 }
 
 /**
@@ -18,8 +33,9 @@ export function platformFullName(code: string): string | null {
  * An empty list of tags → null, meaning an empty slot, not a chip.
  */
 export function platformChipLabel(tags: readonly string[]): string | null {
-  if (tags.length === 0) return null
-  if (tags.length === 1) return tags[0]!.toUpperCase()
+  const codes = platformCodes(tags)
+  if (codes.length === 0) return null
+  if (codes.length === 1) return codes[0]!
   return copy.quantum.list.filter.optionLabels['MULTI'] ?? 'MULTI'
 }
 

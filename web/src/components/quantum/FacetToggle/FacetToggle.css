@@ -7,14 +7,13 @@
   flex-wrap: wrap;
 }
 /* Wraps (the prototype's run assumed a handful): a real Games list has twenty-odd platforms.
-   The outer border is top and left only; every button closes its own right and bottom, so a
-   wrapped run still reads as cells. */
+   Every button draws its own full border, overlapping its neighbours by 1px, so the lines
+   follow the buttons: a wrapped run's top line stops at its last button, not at the row's end. */
 .q-facet-seg {
   display: flex;
   flex-wrap: wrap;
   max-width: 100%;
-  border-top: 1px solid var(--line);
-  border-left: 1px solid var(--line);
+  padding: 0 1px 1px 0;
 }
 .q-facet button {
   display: flex;
@@ -32,8 +31,8 @@
   border: 1px solid var(--line);
 }
 .q-facet-seg button {
-  border-right: 1px solid var(--line);
-  border-bottom: 1px solid var(--line);
+  border: 1px solid var(--line);
+  margin: 0 -1px -1px 0;
 }
 .q-facet button:hover {
   filter: brightness(1.12);

@@ -1,0 +1,221 @@
+igdb_id;name;abbreviation
+6;Windows;WIN
+14;Macintosh;MAC
+130;Nintendo Switch;NSW
+3;Linux;LIN
+39;iOS;IOS
+34;Android;AND
+48;PlayStation 4;PS4
+49;Xbox One;XONE
+82;Web Browser;WEB
+167;PlayStation 5;PS5
+169;Xbox Series X|S;XSX
+9;PlayStation 3;PS3
+52;Arcade;COIN
+8;PlayStation 2;PS2
+13;DOS;DOS
+12;Xbox 360;X360
+7;PlayStation;PS1
+163;VR;VR
+15;Commodore C64/128;C64
+20;Nintendo DS;DS
+38;PlayStation Portable;PSP
+5;Wii;WII
+16;Amiga;AMI
+411;Dedicated handheld;HAND
+26;ZX Spectrum;ZX
+46;PlayStation Vita;VITA
+24;Game Boy Advance;GBA
+37;Nintendo 3DS;3DS
+19;Super Nintendo Entertainment System;SNES
+25;Amstrad CPC;CPC
+41;Wii U;WIIU
+55;Pre-smartphone mobile;CELL
+18;Nintendo Entertainment System;NES
+29;Sega Genesis/Mega Drive;GEN
+63;Atari ST;ST
+508;Nintendo Switch 2;NSW2
+99;Nintendo Entertainment System;NES
+58;Super Nintendo Entertainment System;SNES
+33;Game Boy;GB
+22;Game Boy Color;GBC
+386;VR;VR
+4;Nintendo 64;N64
+75;Apple II;AP2
+11;Xbox;XBOX
+27;MSX;MSX
+32;Sega Saturn;SAT
+510;Game Boy Advance;GBA
+65;Atari 8-bit;A8
+381;Playdate;PDT
+21;Nintendo GameCube;GCN
+149;PC-98;PC-98
+59;Atari 2600;2600
+377;Dedicated hardware;STD
+23;Dreamcast;DC
+159;Nintendo DS;DS
+165;VR;VR
+74;Windows Phone;WINP
+390;VR;VR
+64;Sega Master System;SMS
+125;PC-88;PC-88
+69;BBC Micro;BBCM
+471;VR;VR
+384;VR;VR
+306;Super Nintendo Entertainment System;SNES
+170;Google Stadia;STADIA
+35;Sega Game Gear;GG
+385;VR;VR
+86;TurboGrafx-16/PC Engine;PCE
+121;Sharp X68000;X68K
+162;VR;VR
+150;TurboGrafx-16/PC Engine;PCE
+50;3DO;3DO
+118;FM Towns;FM-T
+152;FM-7;FM7
+53;MSX2;MSX2
+78;Sega CD;SCD
+71;Commodore VIC-20;VIC
+51;Nintendo Entertainment System;NES
+77;Sharp X1;X1
+126;TRS-80;TRS
+68;ColecoVision;COL
+93;Commodore C16/Plus 4;C16
+67;Intellivision;INTV
+72;Ouya;OUYA
+114;Amiga;AMI
+134;Acorn Electron;ELK
+117;Philips CD-i;CDI
+80;Neo Geo AES;AES
+161;VR;VR
+373;Sinclair ZX81;ZX81
+115;Apple IIGS;GS
+129;Texas Instruments TI-99;TI99
+238;DVD Player;DVD
+407;Mattel HyperScan;HS
+151;TRS-80 Color Computer;COCO
+66;Atari 5200;5200
+84;SG-1000;SG1K
+61;Atari Lynx;LNX
+57;WonderSwan;WS
+438;Arduboy;ABOY
+73;BlackBerry OS;BBOS
+79;Neo Geo MVS;MVS
+133;Odyssey 2 / Videopac G7000;ODY2
+94;Commodore C16/Plus 4;C16
+132;Amazon Fire TV;FIRETV
+136;Neo Geo CD;NGCD
+309;Evercade;ECADE
+123;WonderSwan Color;WSC
+62;Atari Jaguar;JAG
+153;Dragon 32/64;DRG
+120;Neo Geo Pocket Color;NGCP
+405;Windows Mobile;WINM
+60;Atari 7800;7800
+137;Nintendo 3DS;3DS
+70;Vectrex;VEC
+157;PC-60;PC-6X
+412;Leapster;LEAP
+116;Acorn Archimedes;ACORN
+504;Uzebox;UZE
+415;Supervision;SV
+413;Leapster Explorer/LeadPad Explorer;LEXP
+42;N-Gage;NGAGE
+87;Virtual Boy;VB
+472;visionOS;VOS
+307;Game & Watch;G&W
+507;Advanced Pico Beena;BEENA
+339;Sega Pico;PICO
+274;PC-FX;PCFX
+476;Apple Pippin;PIP
+409;Legacy computer platform (unspecified);LCP
+30;Sega 32X;32X
+154;Amstrad PCW;PCW
+90;Commodore PET/CBM;PET
+374;Sharp MZ;MZ
+473;Arcadia 2001;A2001
+240;Zeebo;ZEEBO
+416;Nintendo 64;N64
+138;Interton VC 4000;VC4K
+388;VR;VR
+408;Mega Duck/Cougar Boy;MDCB
+439;V.Smile;VSMILE
+127;Fairchild Channel F;CHF
+91;Bally Astrocade;ASTR
+166;Pok?mon Mini;POKE
+378;Gamate;GMT
+88;Odyssey;ODY
+410;Atari Jaguar;JAG
+505;Elektor TV Games Computer;ELEKTOR
+308;Playdia;PLAYDIA
+376;Epoch Super Cassette Vision;SCV
+417;Palm OS;PALM
+379;Game.com;GCOM
+481;Tomy Tutor / Py?ta;PYUTA
+475;R-Zone;RZ
+479;Terebikko;BIK
+440;Dreamcast;DC
+372;OOParts;OOPARTS
+474;Gizmondo;GIZM
+487;LaserActive;LA
+164;VR;VR
+382;Intellivision Amico;AMICO
+441;PlayStation;PS1
+480;Super A'Can;SAC
+486;Digiblast;DGBL
+387;VR;VR
+158;Commodore CDTV;CDTV
+119;Neo Geo Pocket;NGP
+139;1292 Advanced Programmable Video System;APVS
+156;Thomson MO/TO;THOM
+44;Tapwave Zodiac;ZOD
+509;Polymega;POLY
+113;OnLive Game System;ONLIVE
+414;LeapTV;LEAPTV
+155;Tatung Einstein;TATUNG
+239;Blu-ray Player;BLU
+96;PDP-10;PDP10
+203;Google Stadia;STADIA
+110;PLATO;PLATO
+89;Microvision;MBMV
+142;PC-50;PC-50
+375;Epoch Cassette Vision;CASV
+380;Casio Loopy;LOOPY
+128;PC Engine SuperGrafx;PCE2
+108;PDP-11;PDP11
+478;Panasonic M2;M2
+482;Sega CD 32X;CD32X
+107;Call-A-Computer;CAC
+122;Nuon;NUON
+131;Super NES CD-ROM;SNESCD
+389;AirConsole;AIRC
+104;HP 2100;HP2100
+112;Microcomputer;MC
+135;Hyper Neo Geo 64;HNG64
+406;Sinclair QL;QL
+140;Coleco Telstar;TELSTAR
+141;Dedicated hardware;STD
+143;Dedicated hardware;STD
+236;Exidy Sorcerer;EXIDY
+506;Amstrad GX4000;GX4000
+237;Sol-20;SOL20
+477;Panasonic Jungle;JUNGLE
+97;PDP-8;PDP8
+100;Analogue electronics platforms;ANAL
+102;EDSAC;EDSAC
+103;PDP-7;PDP7
+109;CDC Cyber;CDCC
+111;Imlac PDS-1;PDS1
+147;Dedicated hardware;STD
+47;Virtual Console;VC
+85;Analogue electronics platforms;ANAL
+95;PDP-1;PDP1
+98;DEC GT40;GT40
+101;Nimrod;NIMROD
+105;HP 3000;HP3000
+106;SDS Sigma;SDSS
+145;Dedicated hardware;STD
+146;Dedicated hardware;STD
+148;Dedicated hardware;STD
+124;SwanCrystal;SCRST
+144;Dedicated hardware;STD

@@ -22,6 +22,11 @@
 .q-pop.w240 {
   width: 240px;
 }
+.q-pop.wfit {
+  width: max-content;
+  min-width: 240px;
+  max-width: calc(100vw - 16px);
+}
 .q-pop.w300 {
   width: 300px;
 }

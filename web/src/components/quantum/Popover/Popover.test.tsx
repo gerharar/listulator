@@ -73,6 +73,27 @@ describe('Popover rendering', () => {
     expect(document.querySelector('.q-catcher')).not.toBeNull()
   })
 
+  it('can size to its content instead: the platform card, whose longest name must fit on one line', () => {
+    function Harness() {
+      const [anchorEl, anchorRef] = useAnchor()
+      return (
+        <>
+          <button ref={anchorRef}>Open</button>
+          <Popover open anchorEl={anchorEl} onDismiss={vi.fn()} width="fit">
+            <span>Body</span>
+          </Popover>
+        </>
+      )
+    }
+    render(
+      <OverlayManagerProvider>
+        <Harness />
+      </OverlayManagerProvider>,
+    )
+
+    expect(screen.getByRole('dialog').className).toContain('wfit')
+  })
+
   it('dismisses on a click on the catcher', () => {
     const onDismiss = vi.fn()
     function Harness() {

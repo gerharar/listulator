@@ -1,4 +1,4 @@
-import { PLATFORM_ORDER } from './platforms.js'
+import { platformCode, platformKey } from './platforms.js'
 
 /**
  * Filter facets, derived at read time from an item's `tags` (SPEC.md §4).
@@ -73,12 +73,14 @@ function optionsOf(item: Taggable, def: FacetDef): FacetOption[] {
   const found: FacetOption[] = []
 
   for (const raw of item.tags ?? []) {
-    const key = normal(raw)
+    // A platform tag reads through the owner's table (10.24c): an old code
+    // counts as today's, and shows as the table writes it.
+    const key = def.key === 'platform' ? platformKey(raw) : normal(raw)
     if (!key || empty.includes(key)) continue
     const index = known ? known.indexOf(key) : -1
     if (known && index < 0) continue
 
-    const label = values ? values[index]!.label : def.key === 'platform' ? raw.trim().toUpperCase() : raw.trim()
+    const label = values ? values[index]!.label : def.key === 'platform' ? platformCode(raw) : raw.trim()
     found.push({ key, label })
   }
 
@@ -86,14 +88,13 @@ function optionsOf(item: Taggable, def: FacetDef): FacetOption[] {
 }
 
 /**
- * Canonical platform order, then codes the table doesn't know (first seen),
- * then MULTI, then Untagged — the order the README fixes.
+ * Platform buttons A to Z by the code shown, known and unknown alike, then
+ * MULTI, then Untagged (owner, 2026-09-27: with dozens of platforms the table's
+ * own order made one hard to find). Plain character order, digits first.
  */
-function platformRank(key: string): number {
-  if (key === UNTAGGED) return Number.MAX_SAFE_INTEGER
-  if (key === 'multi') return PLATFORM_ORDER.length + 1_000_000
-  const index = PLATFORM_ORDER.indexOf(key)
-  return index < 0 ? PLATFORM_ORDER.length : index
+function comparePlatforms(a: FacetOption, b: FacetOption): number {
+  const last = (option: FacetOption) => (option.key === UNTAGGED ? 2 : option.key === 'multi' ? 1 : 0)
+  return last(a) - last(b) || (a.label < b.label ? -1 : a.label > b.label ? 1 : 0)
 }
 
 function deriveOne(items: readonly Taggable[], def: FacetDef): FacetGroup | null {
@@ -111,7 +112,7 @@ function deriveOne(items: readonly Taggable[], def: FacetDef): FacetGroup | null
     const known = def.values.map((value) => normal(valueOf(value).tag))
     ordered = [...tagged].sort((a, b) => known.indexOf(a.key) - known.indexOf(b.key))
   } else if (def.key === 'platform') {
-    ordered = [...tagged].sort((a, b) => platformRank(a.key) - platformRank(b.key))
+    ordered = [...tagged].sort(comparePlatforms)
   }
 
   const untagged = seen.get(UNTAGGED)

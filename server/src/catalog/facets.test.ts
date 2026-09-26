@@ -37,21 +37,42 @@ describe('deriveFacets', () => {
     expect(deriveFacets([item('Podcast')], music)).toEqual([])
   })
 
-  it('orders platforms canonically, then unknown codes, then MULTI, then Untagged', () => {
-    const items = [item('multi'), item('ZX81'), item('PC'), item(), item('PS3'), item('X360')]
+  it('orders platforms by code, A to Z (unknown codes among them), then MULTI, then Untagged (owner, 2026-09-27)', () => {
+    const items = [item('multi'), item('Some Box'), item('WIN'), item(), item('PS3'), item('X360')]
     expect(options(platform, items, 'platform')).toEqual([
       'PS3',
+      'SOME BOX',
+      'WIN',
       'X360',
-      'PC',
-      'ZX81',
       'MULTI',
       'Untagged',
     ])
   })
 
   it('lists each platform of a mixed-tag item separately (Assassin’s Creed)', () => {
-    const items = [item('PS3', 'X360', 'PC'), item('NDS'), item('PSP'), item('multi')]
-    expect(options(platform, items, 'platform')).toEqual(['PS3', 'PSP', 'X360', 'NDS', 'PC', 'MULTI'])
+    const items = [item('PS3', 'X360', 'WIN'), item('DS'), item('PSP'), item('multi')]
+    expect(options(platform, items, 'platform')).toEqual(['DS', 'PS3', 'PSP', 'WIN', 'X360', 'MULTI'])
+  })
+
+  it('reads a code written before the table as today’s: a PC item and a WIN item share one WIN button (10.24c)', () => {
+    const items = [item('PC'), item('WIN'), item('NDS')]
+
+    expect(options(platform, items, 'platform')).toEqual(['DS', 'WIN'])
+    const selection: FacetSelection = { platform: new Set(['win']) }
+    expect(items.map((entry) => matchesFacets(entry, platform, selection))).toEqual([true, true, false])
+  })
+
+  it('shows a code in the table’s capitals whatever the tag’s case', () => {
+    expect(options(platform, [item('firetv')], 'platform')).toEqual(['FIRETV'])
+  })
+
+  it('sorts character by character, digits before letters, as a reader scanning the codes expects', () => {
+    expect(options(platform, [item('NES'), item('3DS'), item('32X'), item('2600')], 'platform')).toEqual([
+      '2600',
+      '32X',
+      '3DS',
+      'NES',
+    ])
   })
 
   it('matches platform codes case-insensitively and counts one code once', () => {
@@ -123,8 +144,9 @@ describe('matchesFacets', () => {
   it('matches when any selected tag is among the item’s', () => {
     const ac = item('PS3', 'X360', 'PC')
     expect(matchesFacets(ac, platform, select('platform', 'ps3'))).toBe(true)
-    expect(matchesFacets(ac, platform, select('platform', 'nds', 'pc'))).toBe(true)
-    expect(matchesFacets(ac, platform, select('platform', 'nds'))).toBe(false)
+    // Selections carry the buttons' keys, which read old codes as today's: PC is win.
+    expect(matchesFacets(ac, platform, select('platform', 'ds', 'win'))).toBe(true)
+    expect(matchesFacets(ac, platform, select('platform', 'ds'))).toBe(false)
   })
 
   it('does not treat a named-platform item as MULTI, nor a bare multi as any platform', () => {

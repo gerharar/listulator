@@ -30,21 +30,22 @@ async function openList(page: Page, title: string) {
 const facetBar = (page: Page) => page.locator('.q-filterbar')
 const rows = (page: Page) => page.locator('.q-item .title')
 
+// The fixture keeps old tags (PC, NDS): they read as today's codes, WIN and DS (10.24c).
 test('Games get a Platform facet; it filters additively and keeps the order', async ({ page }) => {
   const title = `e2e list-filter games ${Date.now()}`
   const id = await makeList(page.request, title, 'game', GAMES)
 
   try {
     await openList(page, title)
-    await expect(facetBar(page).locator('.q-facet button')).toHaveText(['All', 'PS3', 'PSP', 'X360', 'NDS', 'PC', 'MULTI', 'Untagged'])
+    await expect(facetBar(page).locator('.q-facet button')).toHaveText(['All', 'DS', 'PS3', 'PSP', 'WIN', 'X360', 'MULTI', 'Untagged'])
     await expect(facetBar(page).getByText('6 items')).toBeVisible()
     await page.screenshot({ path: 'test-results/filter-bar-games.png' })
 
-    await facetBar(page).getByRole('button', { name: 'NDS' }).click()
+    await facetBar(page).getByRole('button', { name: 'DS', exact: true }).click()
     await expect(rows(page)).toHaveText(['Altaïr’s Chronicles'])
     await expect(facetBar(page).getByText('1 of 6 shown')).toBeVisible()
 
-    await facetBar(page).getByRole('button', { name: 'PC' }).click()
+    await facetBar(page).getByRole('button', { name: 'WIN' }).click()
     await expect(rows(page)).toHaveText(['Assassin’s Creed', 'Assassin’s Creed II', 'Altaïr’s Chronicles'])
 
     await facetBar(page).getByRole('button', { name: 'All', exact: true }).click()
@@ -87,7 +88,7 @@ test('a category with no convention gets the text field and no facets', async ({
   }
 })
 
-test('the platform chip opens a 240px popover with full names, never toggles the row, and Esc closes it', async ({ page }) => {
+test('the platform chip opens a popover at least 240px wide with each full name on one line, never toggles the row, and Esc closes it', async ({ page }) => {
   const title = `e2e list-filter chip ${Date.now()}`
   const id = await makeList(page.request, title, 'game', GAMES)
 
@@ -100,7 +101,13 @@ test('the platform chip opens a 240px popover with full names, never toggles the
     const card = page.locator('.q-platcard')
     await expect(card).toContainText('Platforms · 3')
     await expect(card).toContainText('Xbox 360')
-    expect((await page.locator('.q-pop.w240').boundingBox())!.width).toBeCloseTo(240, -1)
+    expect((await page.locator('.q-pop.wfit').boundingBox())!.width).toBeGreaterThanOrEqual(239)
+    // Content-wide (owner, 2026-09-27): no platform name wraps.
+    for (const name of await card.locator('.name').all()) {
+      const box = (await name.boundingBox())!
+      const line = parseFloat(await name.evaluate((el) => getComputedStyle(el).lineHeight))
+      expect(box.height).toBeLessThan(line * 1.5)
+    }
     await page.screenshot({ path: 'test-results/platform-popover.png' })
     await expect(row).not.toHaveClass(/is-done/)
 

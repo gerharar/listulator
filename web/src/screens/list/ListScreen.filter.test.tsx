@@ -134,7 +134,8 @@ describe('the bar', () => {
 
     expect(within(bar()).getByText('6 items')).toBeTruthy()
     const labels = Array.from(bar().querySelectorAll('.q-facet button')).map((button) => button.textContent)
-    expect(labels).toEqual(['All', 'PS3', 'PSP', 'X360', 'NDS', 'PC', 'MULTI', 'Untagged'])
+    // Old tags (PC, NDS) read as today's codes (10.24c); the buttons run A to Z, then MULTI and Untagged.
+    expect(labels).toEqual(['All', 'DS', 'PS3', 'PSP', 'WIN', 'X360', 'MULTI', 'Untagged'])
   })
 
   it('sits below the coloured header block, not inside it (prototype: the header ends at its rule)', async () => {
@@ -187,10 +188,10 @@ describe('filtering', () => {
   it('filters by a platform, and any selected platform matches', async () => {
     await open()
 
-    fireEvent.click(facet('NDS'))
+    fireEvent.click(facet('DS'))
     expect(rowIds()).toEqual(['gh', 'ch'])
 
-    fireEvent.click(facet('PC'))
+    fireEvent.click(facet('WIN'))
     expect(rowIds()).toEqual(['gm', 'ac1', 'ac2', 'gh', 'ch'])
   })
 
@@ -216,7 +217,7 @@ describe('filtering', () => {
   it('quotes what was typed even while a facet is on', async () => {
     await open()
 
-    fireEvent.click(facet('NDS'))
+    fireEvent.click(facet('DS'))
     type('assassin')
 
     expect(screen.getByText('Nothing matches “assassin”.')).toBeTruthy()
@@ -275,7 +276,7 @@ describe('moving rows while filtered', () => {
       detail.items.find((entry) => entry.id === 'ac2')!.tags = ['X360']
       detail.items.find((entry) => entry.id === 'ac3')!.tags = ['PC']
     })
-    fireEvent.click(facet('PC'))
+    fireEvent.click(facet('WIN'))
     expect(rowIds()).toEqual(['gm', 'ac1', 'ac3'])
 
     shiftDown('ac1')
@@ -290,7 +291,7 @@ describe('moving rows while filtered', () => {
 
   it('arrow keys walk only the rows that are shown', async () => {
     await open()
-    fireEvent.click(facet('NDS'))
+    fireEvent.click(facet('DS'))
     act(() => row('gh').focus())
 
     fireEvent.keyDown(row('gh'), { key: 'ArrowDown' })
@@ -307,7 +308,7 @@ describe('platform chips (Games)', () => {
 
     expect(chip('ac1')!.textContent).toBe('MULTI')
     expect(chip('ac3')!.textContent).toBe('MULTI')
-    expect(chip('ch')!.textContent).toBe('NDS')
+    expect(chip('ch')!.textContent).toBe('DS')
     expect(chip('p')).toBeNull()
     expect(row('p').querySelector('.q-plat-gap')).toBeTruthy()
   })

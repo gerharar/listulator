@@ -53,4 +53,37 @@ describe('validateListFiles', () => {
     expect(errors).toHaveLength(1)
     expect(errors[0]).toContain(missing)
   })
+
+  describe('platform codes (10.24c): a curated Games list uses the codes in config/platforms.csv', () => {
+    const GAMES = new Set(['game', 'mega'])
+    const write = (items: string) => {
+      const path = join(dir, 'games.yaml')
+      writeFileSync(path, `title: G\ncategory: game\nitems:\n${items}`)
+      return path
+    }
+
+    it('accepts known codes in any case, and multi', () => {
+      const path = write('  - { title: A, tags: [WIN, ps3] }\n  - { title: B, tags: [multi] }\n')
+
+      expect(validateListFiles([path], GAMES, new Set(['game']))).toEqual([])
+    })
+
+    it('refuses an unknown code and an old one, naming the item and the code', () => {
+      const path = write('  - { title: Halo, tags: [X360, Some Box] }\n  - { title: Doom, tags: [PC] }\n')
+
+      const errors = validateListFiles([path], GAMES, new Set(['game']))
+
+      expect(errors).toHaveLength(2)
+      expect(errors[0]).toMatch(/Halo.*Some Box/)
+      expect(errors[1]).toMatch(/Doom.*PC.*WIN/)
+    })
+
+    it('leaves other categories’ tags alone: a Mega item’s game/movie tags are media, not platforms', () => {
+      const path = join(dir, 'mega.yaml')
+      writeFileSync(path, 'title: M\ncategory: mega\nitems:\n  - { title: A, tags: [game, movie] }\n')
+
+      expect(validateListFiles([path], GAMES, new Set(['game']))).toEqual([])
+    })
+  })
 })
+

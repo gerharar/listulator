@@ -13,7 +13,9 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "tsx src/db/migrate.ts",
     "lists:generate": "tsx src/tools/generateList.ts",
-    "lists:index": "tsx src/tools/generateListsIndex.ts"
+    "lists:index": "tsx src/tools/generateListsIndex.ts",
+    "platforms:generate": "tsx src/tools/generatePlatforms.ts",
+    "platforms:check": "tsx src/tools/checkPlatforms.ts"
   },
   "dependencies": {
     "better-sqlite3": "13.0.3",

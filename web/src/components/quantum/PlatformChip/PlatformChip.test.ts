@@ -18,6 +18,15 @@ describe('platformChipLabel', () => {
     expect(platformChipLabel([])).toBeNull()
   })
 
+  it('shows an old code as today’s, in the table’s capitals (10.24c)', () => {
+    expect(platformChipLabel(['pc'])).toBe('WIN')
+    expect(platformChipLabel(['firetv'])).toBe('FIRETV')
+  })
+
+  it('counts an old and a new spelling of one platform once', () => {
+    expect(platformChipLabel(['PC', 'WIN'])).toBe('WIN')
+  })
+
   it('shows an unknown code as its own caps text, same as a known one', () => {
     expect(platformChipLabel(['dreamcast'])).toBe('DREAMCAST')
   })
@@ -27,6 +36,10 @@ describe('platformFullName', () => {
   it('looks up a known code case-insensitively', () => {
     expect(platformFullName('ps3')).toBe('PlayStation 3')
     expect(platformFullName('PS3')).toBe('PlayStation 3')
+  })
+
+  it('names an old code by today’s platform', () => {
+    expect(platformFullName('PC')).toBe('Windows')
   })
 
   it('is null for a code the table does not carry', () => {

@@ -2,7 +2,7 @@ import { getJson, UnauthorizedError, type FetchLike } from '../http.js'
 import type { ListSource, MediaTypeCandidate, SearchAdapter } from '../mediaTypes.js'
 import { itemsOnly } from '../expansion.js'
 import { MAX_ITEM_TAGS } from '../../catalog/facets.js'
-import { PLATFORM_ORDER } from '../../catalog/platforms.js'
+import { igdbPlatformCode, PLATFORM_ORDER, platformKey } from '../../catalog/platforms.js'
 
 /**
  * IGDB: search a franchise or series, expand to its games.
@@ -37,7 +37,8 @@ interface GameResult {
   name?: string
   first_release_date?: number
   game_type?: number
-  platforms?: { id: number; abbreviation?: string }[]
+  /** IGDB platform ids. */
+  platforms?: number[]
 }
 
 interface TimeToBeatResult {
@@ -70,39 +71,22 @@ function looksLikeAnEdition(name: string): boolean {
 }
 
 /**
- * IGDB's platform abbreviations that differ from the shortcodes in `PLATFORMS`
- * (spaces removed, lower-cased on both sides). Anything else that matches the
- * table is used as is, and anything the table lacks stays as its own caps text.
+ * A game's `tags`: its platforms as the owner's codes (`config/platforms.csv`,
+ * 10.24c), found by IGDB platform id, in the table's order. A platform the
+ * table does not list (IGDB added it later) is left out, not guessed:
+ * `npm run platforms:check -w server` reports it so the owner can add a row.
+ * No tags at all when none is known — an untagged game is honest.
  */
-const PLATFORM_ALIASES: Record<string, string> = {
-  ps: 'ps1',
-  psx: 'ps1',
-  psvita: 'vita',
-  gameboy: 'gb',
-  ngc: 'gc',
-  gcn: 'gc',
-  ds: 'nds',
-  'seriesx|s': 'xsx',
-  seriesx: 'xsx',
-  nintendoswitch: 'switch',
-  windows: 'pc',
-}
-
-/**
- * A game's `tags`: its platforms as the shortcodes the chip and the Platform
- * facet read, in the table's order and then any it doesn't know. Undefined when
- * IGDB names none — an untagged game is honest, a guessed platform is not.
- */
-export function platformTags(platforms: readonly { abbreviation?: string }[] | undefined): string[] | undefined {
+export function platformTags(
+  platforms: readonly number[] | undefined,
+): string[] | undefined {
   const found = new Map<string, string>()
 
   for (const platform of platforms ?? []) {
-    const written = platform.abbreviation?.trim()
-    if (!written) continue
-
-    const squashed = written.toLowerCase().replace(/\s+/g, '')
-    const key = PLATFORM_ALIASES[squashed] ?? squashed
-    if (!found.has(key)) found.set(key, PLATFORM_ORDER.includes(key) ? key.toUpperCase() : written.toUpperCase())
+    const code = igdbPlatformCode(platform)
+    if (!code) continue
+    const key = platformKey(code)
+    if (!found.has(key)) found.set(key, code)
   }
 
   if (found.size === 0) return undefined
@@ -255,7 +239,7 @@ export function createIgdbAdapter(
 
       const games = await query<GameResult>(
         'games',
-        `fields name,first_release_date,game_type,platforms.abbreviation;` +
+        `fields name,first_release_date,game_type,platforms;` +
           ` where ${where} & game_type = ${MAIN_GAME} & first_release_date != null` +
           ` & first_release_date <= ${releasedBy};` +
           ` sort first_release_date asc; limit ${MAX_ITEMS};`,

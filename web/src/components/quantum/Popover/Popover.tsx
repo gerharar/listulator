@@ -11,8 +11,11 @@ import {
 import { useId, useRef, type CSSProperties, type ReactNode } from 'react'
 import { useOverlayRegistration } from '../overlay/OverlayManagerContext.js'
 
-/** The six widths the design system names: skin menu, platforms/list actions, API key/order, list edit/item info, reset, item edit. */
-export type PopoverWidth = 220 | 240 | 300 | 320 | 340 | 360
+/**
+ * The six widths the design system names: skin menu, list actions, API key/order, list edit/item info, reset, item edit;
+ * and `fit`, content-wide from 240px up to the window (the platform card: a platform name stays on one line).
+ */
+export type PopoverWidth = 220 | 240 | 300 | 320 | 340 | 360 | 'fit'
 
 export interface PopoverProps {
   open: boolean
