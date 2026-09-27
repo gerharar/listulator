@@ -66,7 +66,12 @@ test('add, remove with Undo, and edit — each saved, each undoable', async ({ p
     await dialog.getByLabel('Title').fill('Gamma Prime')
     await dialog.getByLabel('Minutes').fill('45')
     await dialog.getByRole('button', { name: 'Save' }).click()
-    await expect(page.getByText('Gamma Prime')).toBeVisible()
+    await expect(page.getByText('Gamma Prime', { exact: true })).toBeVisible()
+    // A plain toast on Save (owner, 2026-09-28: U6), no Undo — a deliberate click needs no safety net.
+    // Scoped to .q-toast: the live region announces the same text for a screen reader.
+    const toast = page.locator('.q-toast')
+    await expect(toast).toContainText('Saved changes to Gamma Prime')
+    await expect(toast.getByRole('button', { name: 'Undo' })).toBeHidden()
     saved = await detail(page.request, id)
     expect(saved.items.find((i: { title: string }) => i.title === 'Gamma Prime')).toMatchObject({
       timeToConsumeMinutes: 45,

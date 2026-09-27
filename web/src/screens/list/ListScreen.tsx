@@ -749,14 +749,17 @@ function ListView({
       const placed = fresh.items.find((entry) => entry.id === item.id)
       if (placed?.group) openGroup(placed.group)
 
-      // The click-away is the safety net, so it is the one that says what it did.
+      // Every save says what it did (owner, 2026-09-28: U6, matching the list edit window); only
+      // the click-away is the safety net, so it is the one that also offers Undo.
+      const title = patch.title ?? item.title
       if (via === 'clickaway') {
-        const title = patch.title ?? item.title
         showToast({
           text: actions.saved(title),
           actionLabel: actions.undo,
           onAction: () => void undoEdit(item, patch),
         })
+      } else {
+        showToast({ text: actions.saved(title) })
       }
     } catch {
       setError(actions.editFailed)

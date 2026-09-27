@@ -656,8 +656,10 @@ describe('ListScreen item actions (task 10.21)', () => {
 
       expect(await screen.findByText('Renamed')).toBeTruthy()
       expect(api.updateItem).toHaveBeenCalledWith('L1', 'a', { title: 'Renamed' })
-      // An explicit save needs no "saved" toast.
-      expect(screen.queryByText('Saved changes to Renamed')).toBeNull()
+      // A plain toast, like the list edit window's own Save (owner, 2026-09-28: U6) — no Undo on
+      // an explicit, deliberate click; click-away is still the one that offers it.
+      expect((await screen.findAllByText('Saved changes to Renamed')).length).toBeGreaterThan(0)
+      expect(screen.queryByRole('button', { name: 'Undo' })).toBeNull()
     })
 
     it('clicking away applies the change and offers Undo, which reverts it', async () => {
