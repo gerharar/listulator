@@ -66,7 +66,7 @@ export function ProgressSentence({
   const sizes = SENTENCE_SIZES[size]
 
   return (
-    <div className="q-progress">
+    <div className={size === 'header' ? 'q-progress header' : 'q-progress'}>
       <MeterBar done={done} total={total} big={size === 'header'} />
       <span className="q-count" style={{ fontSize: sizes.count }}>
         {count}

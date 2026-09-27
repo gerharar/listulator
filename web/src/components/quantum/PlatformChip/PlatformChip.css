@@ -27,3 +27,22 @@
 }
 .q-plat:hover { border-color: var(--rule); color: var(--ink); }
 .q-plat:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+/* U5: an untagged item's [+] once the list has tags — the same box, dashed, the + centred (owner).
+   Element + doubled class so it outranks `.q-tag.kind` and `.q-plat` (whose box it borrows) wherever they load. */
+button.q-tag-add.q-tag-add {
+  justify-content: center;
+  padding: 0;
+  border: 1px dashed var(--line);
+  background: transparent;
+  color: var(--ink3);
+  cursor: pointer;
+}
+button.q-tag-add.q-tag-add:hover {
+  border-color: var(--rule);
+  color: var(--ink);
+}
+.q-tag-add:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}

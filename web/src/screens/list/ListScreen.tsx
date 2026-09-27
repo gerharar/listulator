@@ -323,13 +323,15 @@ function ListView({
   }, [shownUnits, shut])
   const tabStop = focusId && visible.includes(focusId) ? focusId : visible[0]
 
+  // The tag column shows once any item has a tag (U5, owner): until then, no column at all.
+  const anyTags = useMemo(() => items.some((entry) => (entry.tags ?? []).length > 0), [items])
   // A category whose convention names platforms gets chips; the column is as wide as the widest label.
   const platformColumn = useMemo(
     () =>
-      mediaType?.facets?.some((facet) => facet.key === 'platform')
+      anyTags && mediaType?.facets?.some((facet) => facet.key === 'platform')
         ? { widthCh: Math.max(5, ...items.map((entry) => platformChipLabel(entry.tags ?? [])?.length ?? 0)) }
         : undefined,
-    [mediaType, items],
+    [anyTags, mediaType, items],
   )
 
   const minutesWidth = Math.max(4, ...items.map((entry) => formatDuration(entry.timeToConsumeMinutes).length)) + 1
@@ -850,6 +852,16 @@ function ListView({
           onOpen: (row, anchor) => setPopover({ kind: 'platform', itemId: row.id, anchor }),
         }
       }
+      addTag={
+        anyTags && tagEditor
+          ? {
+              label: tagEditor.kind === 'choice' ? tagEditor.label : '',
+              // The Edit window, not a dialog of its own (owner); Games open on the Platform panel.
+              onAdd: (row, anchor) =>
+                setPopover({ kind: 'edit', itemId: row.id, anchor, openPanel: tagEditor.kind === 'platform' }),
+            }
+          : undefined
+      }
     />
   )
 
@@ -1041,7 +1053,15 @@ function ListView({
         })()}
       {popover?.kind === 'platform' && popoverItem && (
         <Popover open anchorEl={popover.anchor} onDismiss={() => setPopover(null)} width="fit">
-          <PlatformCard tags={popoverItem.tags ?? []} />
+          <PlatformCard
+            tags={popoverItem.tags ?? []}
+            itemTitle={popoverItem.title}
+            onEdit={
+              tagEditor?.kind === 'platform'
+                ? () => setPopover({ kind: 'edit', itemId: popoverItem.id, anchor: popover.anchor, openPanel: true })
+                : undefined
+            }
+          />
         </Popover>
       )}
       {popover?.kind === 'edit' && popoverItem && (

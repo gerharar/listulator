@@ -11,6 +11,10 @@
   color: var(--ink2);
   font-variant-numeric: tabular-nums;
 }
+/* The list header's count reads in the title's colour (prototype: no colour of its own). */
+.q-progress.header .q-count {
+  color: var(--ink);
+}
 .q-sep {
   color: var(--ink3);
 }

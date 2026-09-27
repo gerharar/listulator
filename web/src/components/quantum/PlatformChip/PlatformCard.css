@@ -1,5 +1,12 @@
 /* The platform chip's popover body (design: PlatformChip, 240px). */
-.q-platcard .q-kicker { margin: 0 0 6px; }
+.q-platcard .q-kicker { margin: 0; }
+.q-platcard-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 6px;
+}
 .q-platcard-row {
   display: flex;
   align-items: baseline;

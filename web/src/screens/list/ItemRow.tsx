@@ -1,6 +1,6 @@
 import './Spine.css'
 import type { KeyboardEvent, MouseEvent, PointerEvent } from 'react'
-import { Info, Pencil, Trash2 } from 'lucide-react'
+import { Info, Pencil, Plus, Trash2 } from 'lucide-react'
 import { formatDuration } from '../../formatDuration.js'
 import { copy } from '../../locale/index.js'
 import type { ListItem } from '../../lib/api.js'
@@ -39,6 +39,12 @@ export interface ItemRowProps {
   platform?: { widthCh: number; onOpen: (item: ListItem, anchor: HTMLElement) => void }
   /** What the tag column shows for the first tag, when the category names its values (`game` → Game). */
   tagLabel?: string
+  /**
+   * An untagged item's [+] (U5): given once the list has tags and the category
+   * has a tag field. `label` names the field for a short fixed set (Medium,
+   * Type); a platform category's [+] sits in the chip's own slot.
+   */
+  addTag?: { label: string; onAdd: (item: ListItem, anchor: HTMLElement) => void }
 }
 
 /**
@@ -63,8 +69,10 @@ export function ItemRow({
   dropLine = null,
   platform,
   tagLabel,
+  addTag,
 }: ItemRowProps) {
   const text = copy.quantum.list.itemActions
+  const tagText = copy.quantum.list.tags
   const done = item.consumedAt !== null
   const kind = tagLabel ?? item.tags?.[0]
 
@@ -108,7 +116,7 @@ export function ItemRow({
       </span>
       {/* The row's own click does the toggling, so the box only has to look right. */}
       <DoneCheckbox checked={done} onChange={() => {}} label={item.title} />
-      {(platform || kind || item.source === 'manual') && (
+      {(platform || kind || addTag || item.source === 'manual') && (
         <span className="tags">
           {platform ? (
             <PlatformChip
@@ -116,9 +124,22 @@ export function ItemRow({
               widthCh={platform.widthCh}
               itemTitle={item.title}
               onOpen={(anchor) => platform.onOpen(item, anchor)}
+              onAdd={addTag && ((anchor) => addTag.onAdd(item, anchor))}
             />
+          ) : kind ? (
+            <KindTag label={kind} kind />
           ) : (
-            kind && <KindTag label={kind} kind />
+            addTag && (
+              <button
+                type="button"
+                className="q-tag kind q-tag-add"
+                aria-label={tagText.addChoice(addTag.label, item.title)}
+                title={tagText.addChoiceTip(addTag.label)}
+                onClick={act(addTag.onAdd)}
+              >
+                <Plus width={11} height={11} strokeWidth={3} aria-hidden="true" />
+              </button>
+            )
           )}
           {item.source === 'manual' && <ManualMark />}
         </span>

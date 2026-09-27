@@ -38,6 +38,9 @@
 }
 .q-platfield-value.empty,
 .q-tagchoice-value.empty {
+  /* A helper like the Group field's "No group": regular, italic, dimmed (owner). */
+  font: italic 400 14px/1.2 var(--font-sans);
+  letter-spacing: 0;
   color: var(--ink3);
 }
 .q-platfield-caret {

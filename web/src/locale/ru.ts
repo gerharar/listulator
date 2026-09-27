@@ -449,6 +449,8 @@ export const ru: Locale = {
       one: 'Платформа',
       many: (n: number): string => `Платформы · ${n}`,
       chipLabel: (title: string): string => `Платформы: ${title}`,
+      edit: 'Изменить',
+      editLabel: (title: string): string => `Изменить платформы: ${title}`,
     },
     list: {
       loading: 'Загружаем список…',
@@ -473,13 +475,16 @@ export const ru: Locale = {
         inList: 'В этом списке',
         common: 'Самые частые',
         matches: (n: number): string => `Найдено · ${n}`,
-        browseFoot: (n: number): string => `Введите текст, чтобы искать среди всех ${n} платформ.`,
         moreFoot: (shown: number, total: number): string => `Показано ${shown} из ${total} — уточните запрос.`,
         noMatch: (query: string): string =>
           `Нет платформы «${query}». Список фиксирован — попробуйте код или другое название.`,
         sourceSays: (codes: string): string => (codes ? `В источнике: ${codes}.` : 'В источнике платформ нет.'),
         resetToSource: 'Вернуть как в источнике',
         none: 'Нет',
+        addPlatforms: (title: string): string => `Указать платформы: ${title}`,
+        addPlatformsTip: 'Платформа не указана — нажмите, чтобы указать',
+        addChoice: (label: string, title: string): string => `Указать ${label.toLowerCase()}: ${title}`,
+        addChoiceTip: (label: string): string => `${label} не указан — нажмите, чтобы указать`,
       },
       itemActions: {
         details: (title: string): string => `Подробности: ${title}`,

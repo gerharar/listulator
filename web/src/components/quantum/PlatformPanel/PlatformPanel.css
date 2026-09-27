@@ -25,26 +25,10 @@
   text-transform: uppercase;
   color: var(--ink3);
 }
-.q-platpanel-clear {
-  flex: none;
-  padding: 4px 8px;
-  border: 1px solid var(--line);
-  background: transparent;
-  color: var(--ink2);
-  font: 600 11px/1 var(--font-mono);
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  cursor: pointer;
-}
-.q-platpanel-clear:hover {
-  color: var(--ink);
-  border-color: var(--rule);
-}
-
 .q-platpanel-subject {
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: 6px;
 }
 .q-platpanel-title {
   min-width: 0;
@@ -63,7 +47,13 @@
 .q-platpanel-tokens {
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
   gap: 6px;
+  /* A picked chip's height, whether it holds the "Not set" note or the picks. */
+  min-height: 24px;
+}
+.q-platpanel-clear-idle {
+  visibility: hidden;
 }
 .q-platpanel-token {
   display: flex;

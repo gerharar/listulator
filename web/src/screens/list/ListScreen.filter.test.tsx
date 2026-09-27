@@ -22,7 +22,7 @@ vi.mock('../../lib/preferences/store.js', () => ({
 
 vi.mock('../../lib/api.js', () => ({
   ApiError: class extends Error {},
-  api: { list: vi.fn(), restoreOrder: vi.fn(), setConsumed: vi.fn() },
+  api: { list: vi.fn(), restoreOrder: vi.fn(), setConsumed: vi.fn(), itemSource: vi.fn() },
 }))
 
 const TYPES: MediaType[] = [
@@ -95,6 +95,7 @@ beforeEach(() => {
   store.clear()
   vi.mocked(api.list).mockResolvedValue(list())
   vi.mocked(api.restoreOrder).mockResolvedValue(undefined)
+  vi.mocked(api.itemSource).mockResolvedValue({ sourced: false, tags: null })
 })
 afterEach(() => {
   cleanup()
@@ -303,14 +304,70 @@ describe('moving rows while filtered', () => {
 describe('platform chips (Games)', () => {
   const chip = (id: string) => row(id).querySelector('.q-plat') as HTMLElement | null
 
-  it('shows MULTI for several platforms, the code for one, and an empty slot for none', async () => {
+  const addTag = (id: string) => row(id).querySelector('.q-tag-add') as HTMLElement | null
+
+  it('shows MULTI for several platforms, the code for one, and a + for none', async () => {
     await open()
 
     expect(chip('ac1')!.textContent).toBe('MULTI')
     expect(chip('ac3')!.textContent).toBe('MULTI')
     expect(chip('ch')!.textContent).toBe('DS')
-    expect(chip('p')).toBeNull()
-    expect(row('p').querySelector('.q-plat-gap')).toBeTruthy()
+    // A drawn plus, bolder than the text glyph (owner).
+    expect(addTag('p')!.querySelector('svg')).toBeTruthy()
+    expect(addTag('p')!.getAttribute('aria-label')).toBe('Set platforms for Prologue')
+  })
+
+  it('hides the whole column while no item has a tag (U5, owner)', async () => {
+    await open('game', (detail) => {
+      for (const entry of detail.items) entry.tags = null
+    })
+
+    expect(document.querySelector('.q-plat, .q-tag-add, .q-plat-gap')).toBeNull()
+  })
+
+  it('+ opens the Edit window with the Platform panel open, and never toggles the row', async () => {
+    await open()
+
+    fireEvent.click(addTag('p')!)
+
+    expect(await screen.findByRole('dialog', { name: 'Choose platforms' })).toBeTruthy()
+    expect(within(document.querySelector('.q-pop') as HTMLElement).getByLabelText('Title')).toBeTruthy()
+    expect(api.setConsumed).not.toHaveBeenCalled()
+  })
+
+  it('the platform card’s Edit opens the Edit window with the panel open', async () => {
+    await open()
+    fireEvent.click(chip('ac1')!)
+    await screen.findByText('Platforms · 3')
+
+    fireEvent.click(screen.getByRole('button', { name: 'Edit platforms for Assassin’s Creed' }))
+
+    expect(await screen.findByRole('dialog', { name: 'Choose platforms' })).toBeTruthy()
+    expect(document.querySelector('.q-platcard')).toBeNull()
+  })
+
+  it('a short fixed set (Mega) gets a + too, opening the Edit window with its Medium field', async () => {
+    // Mega starts with its groups folded: keep every row loose so all are on screen.
+    await open('mega', (detail) => {
+      detail.groups = []
+      for (const entry of detail.items) {
+        entry.group = null
+        entry.tags = entry.id === 'ac1' ? ['game'] : null
+      }
+    })
+
+    expect(addTag('ac1')).toBeNull()
+    expect(addTag('p')!.getAttribute('aria-label')).toBe('Set medium for Prologue')
+    fireEvent.click(addTag('p')!)
+
+    expect(await screen.findByRole('button', { name: /^Medium:/ })).toBeTruthy()
+    expect(screen.queryByRole('dialog', { name: 'Choose platforms' })).toBeNull()
+  })
+
+  it('offers no + in a category without a tag field', async () => {
+    await open('tv')
+
+    expect(addTag('p')).toBeNull()
   })
 
   it('opens the platform popover with full names, and never toggles the row', async () => {

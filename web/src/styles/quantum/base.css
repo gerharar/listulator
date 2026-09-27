@@ -53,6 +53,12 @@ a {
   color: inherit;
 }
 
+/* Every placeholder is a helper, set in italics (owner, 2026-09-27; the Field's own rule did it for its inputs only). */
+input::placeholder,
+textarea::placeholder {
+  font-style: italic;
+}
+
 :focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;

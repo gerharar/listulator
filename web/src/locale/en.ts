@@ -492,6 +492,8 @@ export const en = {
       many: (n: number): string => `Platforms · ${n}`,
       /** The chip's accessible name: what it opens. */
       chipLabel: (title: string): string => `Platforms for ${title}`,
+      edit: 'Edit',
+      editLabel: (title: string): string => `Edit platforms for ${title}`,
     },
     list: {
       loading: 'Loading the list…',
@@ -519,13 +521,17 @@ export const en = {
         inList: 'In this list',
         common: 'Most common',
         matches: (n: number): string => `Matches · ${n}`,
-        browseFoot: (n: number): string => `Type to search all ${n} platforms.`,
         moreFoot: (shown: number, total: number): string => `Showing ${shown} of ${total} — keep typing.`,
         noMatch: (query: string): string =>
           `No platform matches “${query}”. The list is fixed — try its code or another name.`,
         sourceSays: (codes: string): string => (codes ? `Source says ${codes}.` : 'Source says nothing.'),
         resetToSource: 'Reset to source',
         none: 'None',
+        /** The row's [+] for an untagged item, once the list has tags. */
+        addPlatforms: (title: string): string => `Set platforms for ${title}`,
+        addPlatformsTip: 'No platform — click to set one',
+        addChoice: (label: string, title: string): string => `Set ${label.toLowerCase()} for ${title}`,
+        addChoiceTip: (label: string): string => `No ${label.toLowerCase()} — click to set one`,
       },
       itemActions: {
         details: (title: string): string => `Details for ${title}`,

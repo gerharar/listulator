@@ -1,5 +1,6 @@
 import './PlatformChip.css'
 import type { CSSProperties } from 'react'
+import { Plus } from 'lucide-react'
 import { copy } from '../../../locale/index.js'
 
 import {
@@ -46,6 +47,8 @@ export interface PlatformChipProps {
   itemTitle: string
   /** Click opens the platform popover, anchored to the chip. It never reaches the row. */
   onOpen: (anchor: HTMLElement) => void
+  /** An untagged item's [+] (U5): shown instead of the empty slot; opens the Edit window. */
+  onAdd?: (anchor: HTMLElement) => void
 }
 
 /**
@@ -53,10 +56,27 @@ export interface PlatformChipProps {
  * popover listing full names. Untagged items keep an empty slot of the same
  * width so titles stay aligned.
  */
-export function PlatformChip({ tags, widthCh, itemTitle, onOpen }: PlatformChipProps) {
+export function PlatformChip({ tags, widthCh, itemTitle, onOpen, onAdd }: PlatformChipProps) {
   const label = platformChipLabel(tags)
   const style = widthCh ? ({ '--plat-ch': widthCh } as CSSProperties) : undefined
 
+  if (label === null && onAdd) {
+    return (
+      <button
+        type="button"
+        className="q-plat q-tag-add"
+        style={style}
+        aria-label={copy.quantum.list.tags.addPlatforms(itemTitle)}
+        title={copy.quantum.list.tags.addPlatformsTip}
+        onClick={(event) => {
+          event.stopPropagation()
+          onAdd(event.currentTarget)
+        }}
+      >
+        <Plus width={13} height={13} strokeWidth={2.75} aria-hidden="true" />
+      </button>
+    )
+  }
   if (label === null) {
     return <span className="q-plat-gap" style={style} aria-hidden="true" />
   }

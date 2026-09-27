@@ -4,6 +4,7 @@ import { FloatingPortal, autoUpdate, flip, offset, shift, size, useFloating } fr
 import { platformName } from '../../../../../server/src/catalog/platforms.js'
 import type { ItemSourceTags } from '../../../lib/api.js'
 import { copy } from '../../../locale/index.js'
+import { Button } from '../Button/Button.js'
 import {
   MATCH_CAP,
   PLATFORM_COUNT,
@@ -82,20 +83,26 @@ export function PlatformPanel({ reference, subject, selected, onChange, inList, 
       >
         <div className="q-platpanel-head">
           <span className="q-platpanel-kicker">{text.head(selected.length)}</span>
-          {selected.length > 0 && (
-            <button type="button" className="q-platpanel-clear" title={text.clearTip} onClick={() => onChange([])}>
-              {text.clear}
-            </button>
-          )}
+          {/* Always laid out, hidden while nothing is picked: its arrival must not push the panel down (owner). */}
+          <Button
+            size="sm"
+            variant="quiet"
+            className={selected.length > 0 ? undefined : 'q-platpanel-clear-idle'}
+            title={text.clearTip}
+            disabled={selected.length === 0}
+            aria-hidden={selected.length === 0}
+            tabIndex={selected.length > 0 ? undefined : -1}
+            onClick={() => onChange([])}
+          >
+            {text.clear}
+          </Button>
         </div>
 
         <div className="q-platpanel-subject">
           <span className="q-platpanel-title">{subject}</span>
-          {selected.length === 0 && <span className="q-platpanel-note">{text.notSetNote}</span>}
-        </div>
-
-        {selected.length > 0 && (
+          {/* One line of the same height for the note and the picks, so the first pick moves nothing. */}
           <div className="q-platpanel-tokens">
+            {selected.length === 0 && <span className="q-platpanel-note">{text.notSetNote}</span>}
             {selected.map((code) => (
               <button
                 key={code}
@@ -109,7 +116,7 @@ export function PlatformPanel({ reference, subject, selected, onChange, inList, 
               </button>
             ))}
           </div>
-        )}
+        </div>
 
         <input
           className="q-platpanel-search"
@@ -142,7 +149,6 @@ export function PlatformPanel({ reference, subject, selected, onChange, inList, 
             </div>
           ))}
           {content.noMatch && <p className="q-platpanel-foot">{text.noMatch(query.trim())}</p>}
-          {!query.trim() && <p className="q-platpanel-foot">{text.browseFoot(PLATFORM_COUNT)}</p>}
           {content.hidden > 0 && <p className="q-platpanel-foot">{text.moreFoot(MATCH_CAP, content.hidden + MATCH_CAP)}</p>}
         </div>
 

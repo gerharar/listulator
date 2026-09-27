@@ -444,6 +444,8 @@ export const de: Locale = {
       one: 'Plattform',
       many: (n: number): string => `Plattformen · ${n}`,
       chipLabel: (title: string): string => `Plattformen für ${title}`,
+      edit: 'Bearbeiten',
+      editLabel: (title: string): string => `Plattformen für ${title} bearbeiten`,
     },
     list: {
       loading: 'Liste wird geladen…',
@@ -468,13 +470,16 @@ export const de: Locale = {
         inList: 'In dieser Liste',
         common: 'Am häufigsten',
         matches: (n: number): string => `Treffer · ${n}`,
-        browseFoot: (n: number): string => `Tippen, um alle ${n} Plattformen zu durchsuchen.`,
         moreFoot: (shown: number, total: number): string => `${shown} von ${total} — weiter tippen.`,
         noMatch: (query: string): string =>
           `Keine Plattform passt zu „${query}“. Die Liste ist fest — Code oder anderen Namen versuchen.`,
         sourceSays: (codes: string): string => (codes ? `Quelle: ${codes}.` : 'Quelle: keine.'),
         resetToSource: 'Wie in der Quelle',
         none: 'Keine',
+        addPlatforms: (title: string): string => `Plattformen für ${title} setzen`,
+        addPlatformsTip: 'Keine Plattform — klicken, um eine zu setzen',
+        addChoice: (label: string, title: string): string => `${label} für ${title} setzen`,
+        addChoiceTip: (label: string): string => `${label} nicht gesetzt — klicken, um zu setzen`,
       },
       itemActions: {
         details: (title: string): string => `Details zu ${title}`,
