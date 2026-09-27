@@ -167,6 +167,10 @@ export const de: Locale = {
       label: (done: number, total: number): string => `${done} von ${total} erledigt`,
       noteCapped: (cap: number, perCell: number): string => `${cap} Zellen ≈ je ${perCell} Einträge`,
       noteUncapped: 'Eine Zelle = ein Eintrag',
+      explainHint: 'Was die Zellen bedeuten',
+      detailCapped: (cap: number, perCell: number): string =>
+        `Der Balken wächst nie über ${cap} Zellen hinaus, also steht jede Zelle für etwa ${perCell} Einträge und füllt sich, sobald so viele erledigt sind.`,
+      detailUncapped: 'Jede Zelle ist ein Eintrag dieser Liste. Eine gefüllte Zelle ist erledigt.',
     },
     progress: {
       count: (done: number, total: number, percent: number): string =>

@@ -176,6 +176,10 @@ export const ru: Locale = {
       label: (done: number, total: number): string => `${done} из ${total} готово`,
       noteCapped: (cap: number, perCell: number): string => `${cap} ячеек ≈ по ${perCell} элем. в каждой`,
       noteUncapped: 'Одна ячейка — один элемент',
+      explainHint: 'Что означают ячейки',
+      detailCapped: (cap: number, perCell: number): string =>
+        `Полоса не растёт больше ${cap} ячеек: каждая обозначает примерно ${perCell} элементов и заполняется, когда столько же выполнено.`,
+      detailUncapped: 'Каждая ячейка — один элемент списка. Закрашенная ячейка — выполненный.',
     },
     progress: {
       count: (done: number, total: number, percent: number): string =>

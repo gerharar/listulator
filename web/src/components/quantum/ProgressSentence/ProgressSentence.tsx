@@ -1,7 +1,9 @@
 import './ProgressSentence.css'
+import { useState } from 'react'
 import { formatDuration } from '../../../formatDuration.js'
 import { copy } from '../../../locale/index.js'
-import { MeterBar } from '../MeterBar/MeterBar.js'
+import { MeterBar, meterCellNote, meterCellsPerItem, METER_CELL_CAP } from '../MeterBar/MeterBar.js'
+import { Popover } from '../Popover/Popover.js'
 import type { PickedStatus } from '../StatusPicker/StatusPicker.js'
 
 const SENTENCE_SIZES = {
@@ -64,10 +66,41 @@ export function ProgressSentence({
 }: ProgressSentenceProps) {
   const { count, allDone, left } = formatProgress(done, total, minutesLeft, status)
   const sizes = SENTENCE_SIZES[size]
+  const text = copy.quantum.meter
+  // Only the header bar is a click hint — a button explaining the cells (U6, owner:
+  // matches the prototype). The row and group bars are the plain span they've always been.
+  const [explainAnchor, setExplainAnchor] = useState<HTMLButtonElement | null>(null)
 
   return (
     <div className={size === 'header' ? 'q-progress header' : 'q-progress'}>
-      <MeterBar done={done} total={total} big={size === 'header'} />
+      {size === 'header' ? (
+        <>
+          <button
+            type="button"
+            className="q-meter-explain"
+            aria-label={text.explainHint}
+            title={text.explainHint}
+            onClick={(event) => setExplainAnchor((was) => (was ? null : event.currentTarget))}
+          >
+            <MeterBar done={done} total={total} big />
+          </button>
+          <Popover
+            open={explainAnchor !== null}
+            anchorEl={explainAnchor}
+            onDismiss={() => setExplainAnchor(null)}
+            width={300}
+            side="below"
+            label={text.explainHint}
+          >
+            <span className="q-kicker">{meterCellNote(total)}</span>
+            <span className="q-pop-note">
+              {total > METER_CELL_CAP ? text.detailCapped(METER_CELL_CAP, meterCellsPerItem(total)) : text.detailUncapped}
+            </span>
+          </Popover>
+        </>
+      ) : (
+        <MeterBar done={done} total={total} />
+      )}
       <span className="q-count" style={{ fontSize: sizes.count }}>
         {count}
       </span>

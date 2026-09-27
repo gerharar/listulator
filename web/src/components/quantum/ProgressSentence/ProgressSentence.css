@@ -15,6 +15,17 @@
 .q-progress.header .q-count {
   color: var(--ink);
 }
+/* The header meter bar as a button (U6, owner: a click hint, matching the prototype). Reset to
+   look exactly like the plain bar it wraps — only the pointer cursor and the click say it opens. */
+.q-meter-explain {
+  display: flex;
+  align-items: center;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
 .q-sep {
   color: var(--ink3);
 }

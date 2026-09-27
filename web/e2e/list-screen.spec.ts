@@ -69,3 +69,28 @@ for (const [mediaType, arrives] of [
     }
   })
 }
+
+test('the header meter bar hints that a click explains the cells, and shows the explanation', async ({ page }) => {
+  const title = `e2e list-screen explain ${Date.now()}`
+  const id = await makeList(page.request, 'tv', title)
+
+  try {
+    await page.goto('/')
+    await page.getByRole('button', { name: new RegExp(title) }).click()
+    await expect(page.getByRole('heading', { name: new RegExp(`^${title}`) })).toBeVisible()
+
+    const button = page.getByRole('button', { name: 'What the cells mean' })
+    await expect(button).toBeVisible()
+    await button.click()
+
+    const explain = page.getByRole('dialog', { name: 'What the cells mean' })
+    await expect(explain).toContainText('One cell = one item')
+    await expect(explain).toContainText('Each cell is one item in this list. A filled cell is done.')
+
+    // Esc closes it, like every other popover.
+    await page.keyboard.press('Escape')
+    await expect(explain).toBeHidden()
+  } finally {
+    await page.request.delete(`/api/lists/${id}`)
+  }
+})

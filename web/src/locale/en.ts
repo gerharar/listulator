@@ -185,6 +185,11 @@ export const en = {
       label: (done: number, total: number): string => `${done} of ${total} done`,
       noteCapped: (cap: number, perCell: number): string => `${cap} cells ≈ ${perCell} items each`,
       noteUncapped: 'One cell = one item',
+      /** The header bar only (U6, owner 2026-09-27): a button's title/aria-label, hinting that a click explains it. */
+      explainHint: 'What the cells mean',
+      detailCapped: (cap: number, perCell: number): string =>
+        `The bar stops at ${cap} cells whatever the length, so each cell stands for about ${perCell} items and fills once that many are done.`,
+      detailUncapped: 'Each cell is one item in this list. A filled cell is done.',
     },
     progress: {
       count: (done: number, total: number, percent: number): string =>
