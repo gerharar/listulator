@@ -1,0 +1,54 @@
+title: WWE - All WrestleMania PPVs
+description: All WWE (World Wrestling Entertainment, ex-WWF) WrestleMania Pay-Per-Views/PLEs
+category: wrestling
+status: ongoing
+items:
+- { title: "WrestleMania", year: 1985, minutes: 119 }
+- { title: "WrestleMania 2", year: 1986, minutes: 200 }
+- { title: "WrestleMania III", year: 1987, minutes: 210 }
+- { title: "WrestleMania IV", year: 1988, minutes: 225 }
+- { title: "WrestleMania V", year: 1989, minutes: 205 }
+- { title: "WrestleMania VI", year: 1990, minutes: 190 }
+- { title: "WrestleMania VII", year: 1991, minutes: 195 }
+- { title: "WrestleMania VIII", year: 1992, minutes: 195 }
+- { title: "WrestleMania IX", year: 1993, minutes: 170 }
+- { title: "WrestleMania X", year: 1994, minutes: 205 }
+- { title: "WrestleMania XI", year: 1995, minutes: 165 }
+- { title: "WrestleMania XII", year: 1996, minutes: 185 }
+- { title: "WrestleMania 13", year: 1997, minutes: 190 }
+- { title: "WrestleMania XIV", year: 1998, minutes: 190 }
+- { title: "WrestleMania XV", year: 1999, minutes: 190 }
+- { title: "WrestleMania 2000", year: 2000, minutes: 205 }
+- { title: "WrestleMania X-Seven", year: 2001, minutes: 235 }
+- { title: "WrestleMania X8", year: 2002, minutes: 225 }
+- { title: "WrestleMania XIX", year: 2003, minutes: 225 }
+- { title: "WrestleMania XX", year: 2004, minutes: 255 }
+- { title: "WrestleMania 21", year: 2005, minutes: 225 }
+- { title: "WrestleMania 22", year: 2006, minutes: 235 }
+- { title: "WrestleMania 23", year: 2007, minutes: 225 }
+- { title: "WrestleMania XXIV", year: 2008, minutes: 235 }
+- { title: "WrestleMania XXV", year: 2009, minutes: 235 }
+- { title: "WrestleMania XXVI", year: 2010, minutes: 235 }
+- { title: "WrestleMania XXVII", year: 2011, minutes: 240 }
+- { title: "WrestleMania XXVIII", year: 2012, minutes: 245 }
+- { title: "WrestleMania 29", year: 2013, minutes: 250 }
+- { title: "WrestleMania XXX", year: 2014, minutes: 245 }
+- { title: "WrestleMania 31", year: 2015, minutes: 255 }
+- { title: "WrestleMania 32", year: 2016, minutes: 285 }
+- { title: "WrestleMania 33", year: 2017, minutes: 300 }
+- { title: "WrestleMania 34", year: 2018, minutes: 305 }
+- { title: "WrestleMania 35", year: 2019, minutes: 335 }
+- { title: "WrestleMania 36 - Night 1", year: 2020, minutes: 195 }
+- { title: "WrestleMania 36 - Night 2", year: 2020, minutes: 205 }
+- { title: "WrestleMania 37 - Night 1", year: 2021, minutes: 225 }
+- { title: "WrestleMania 37 - Night 2", year: 2021, minutes: 225 }
+- { title: "WrestleMania 38 - Night 1", year: 2022, minutes: 225 }
+- { title: "WrestleMania 38 - Night 2", year: 2022, minutes: 235 }
+- { title: "WrestleMania 39 - Night 1", year: 2023, minutes: 230 }
+- { title: "WrestleMania 39 - Night 2", year: 2023, minutes: 240 }
+- { title: "WrestleMania XL - Night 1", year: 2024, minutes: 230 }
+- { title: "WrestleMania XL - Night 2", year: 2024, minutes: 245 }
+- { title: "WrestleMania 41 - Night 1", year: 2025, minutes: 225 }
+- { title: "WrestleMania 41 - Night 2", year: 2025, minutes: 235 }
+- { title: "WrestleMania 42 - Night 1", year: 2026, minutes: 225 }
+- { title: "WrestleMania 42 - Night 2", year: 2026, minutes: 235 }

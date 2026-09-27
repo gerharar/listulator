@@ -1,0 +1,488 @@
+title: WWE - all PPVs
+description: All WWE (World Wrestling Entertainment, ex-WWF) Pay-Per-Views/PLEs/specials. NXT & AAA events are excluded
+category: wrestling
+status: ongoing
+items:
+- { title: "WrestleMania", year: 1985, minutes: 119 }
+- { title: "The Wrestling Classic", year: 1985, minutes: 120 }
+- { title: "WrestleMania 2", year: 1986, minutes: 200 }
+- { title: "WrestleMania III", year: 1987, minutes: 210 }
+- { title: "Survivor Series", year: 1987, minutes: 150 }
+- { title: "WrestleMania IV", year: 1988, minutes: 225 }
+- { title: "SummerSlam", year: 1988, minutes: 145 }
+- { title: "Survivor Series", year: 1988, minutes: 145 }
+- { title: "Royal Rumble", year: 1989, minutes: 145 }
+- { title: "WrestleMania V", year: 1989, minutes: 205 }
+- { title: "SummerSlam", year: 1989, minutes: 150 }
+- { title: "Survivor Series", year: 1989, minutes: 145 }
+- { title: "No Holds Barred: The Match/The Movie", year: 1989, minutes: 90 }
+- { title: "Royal Rumble", year: 1990, minutes: 145 }
+- { title: "WrestleMania VI", year: 1990, minutes: 190 }
+- { title: "SummerSlam", year: 1990, minutes: 150 }
+- { title: "Survivor Series", year: 1990, minutes: 145 }
+- { title: "Royal Rumble", year: 1991, minutes: 145 }
+- { title: "WrestleMania VII", year: 1991, minutes: 195 }
+- { title: "SummerSlam", year: 1991, minutes: 155 }
+- { title: "Survivor Series", year: 1991, minutes: 145 }
+- { title: "This Tuesday in Texas", year: 1991, minutes: 110 }
+- { title: "Royal Rumble", year: 1992, minutes: 145 }
+- { title: "WrestleMania VIII", year: 1992, minutes: 195 }
+- { title: "SummerSlam", year: 1992, minutes: 160 }
+- { title: "Survivor Series", year: 1992, minutes: 145 }
+- { title: "Royal Rumble", year: 1993, minutes: 145 }
+- { title: "WrestleMania IX", year: 1993, minutes: 170 }
+- { title: "King Of The Ring", year: 1993, minutes: 145 }
+- { title: "SummerSlam", year: 1993, minutes: 145 }
+- { title: "Survivor Series", year: 1993, minutes: 145 }
+- { title: "Royal Rumble", year: 1994, minutes: 145 }
+- { title: "WrestleMania X", year: 1994, minutes: 205 }
+- { title: "King Of The Ring", year: 1994, minutes: 145 }
+- { title: "SummerSlam", year: 1994, minutes: 145 }
+- { title: "Survivor Series", year: 1994, minutes: 145 }
+- { title: "Royal Rumble", year: 1995, minutes: 145 }
+- { title: "WrestleMania XI", year: 1995, minutes: 165 }
+- { title: "In Your House", year: 1995, minutes: 120 }
+- { title: "King Of The Ring", year: 1995, minutes: 145 }
+- { title: "In Your House 2: The Lumberjacks", year: 1995, minutes: 120 }
+- { title: "SummerSlam", year: 1995, minutes: 145 }
+- { title: "In Your House 3: Triple Header", year: 1995, minutes: 120 }
+- { title: "In Your House 4: Great White North", year: 1995, minutes: 120 }
+- { title: "Survivor Series", year: 1995, minutes: 145 }
+- { title: "In Your House 5: Season's Beatings", year: 1995, minutes: 120 }
+- { title: "Royal Rumble", year: 1996, minutes: 145 }
+- { title: "In Your House 6: Rage in the Cage", year: 1996, minutes: 120 }
+- { title: "WrestleMania XII", year: 1996, minutes: 185 }
+- { title: "In Your House 7: Good Friends, Better Enemies", year: 1996, minutes: 120 }
+- { title: "In Your House 8: Beware of Dog", year: 1996, minutes: 120 }
+- { title: "In Your House 8: Beware of Dog 2", year: 1996, minutes: 120 }
+- { title: "King Of The Ring", year: 1996, minutes: 145 }
+- { title: "In Your House 9: International Incident", year: 1996, minutes: 120 }
+- { title: "SummerSlam", year: 1996, minutes: 145 }
+- { title: "In Your House 10: Mind Games", year: 1996, minutes: 120 }
+- { title: "In Your House 11: Buried Alive", year: 1996, minutes: 120 }
+- { title: "Survivor Series", year: 1996, minutes: 145 }
+- { title: "In Your House 12: It's Time", year: 1996, minutes: 120 }
+- { title: "Royal Rumble", year: 1997, minutes: 145 }
+- { title: "In Your House 13: Final Four", year: 1997, minutes: 120 }
+- { title: "WrestleMania 13", year: 1997, minutes: 190 }
+- { title: "In Your House 14: Revenge of the 'Taker", year: 1997, minutes: 120 }
+- { title: "In Your House 15: A Cold Day in Hell", year: 1997, minutes: 120 }
+- { title: "King Of The Ring", year: 1997, minutes: 145 }
+- { title: "Canadian Stampede", year: 1997, minutes: 120 }
+- { title: "SummerSlam", year: 1997, minutes: 145 }
+- { title: "Ground Zero: In Your House", year: 1997, minutes: 120 }
+- { title: "One Night Only", year: 1997, minutes: 145 }
+- { title: "Badd Blood: In Your House", year: 1997, minutes: 145 }
+- { title: "Survivor Series", year: 1997, minutes: 145 }
+- { title: "D-Generation X: In Your House", year: 1997, minutes: 120 }
+- { title: "Royal Rumble", year: 1998, minutes: 145 }
+- { title: "No Way Out of Texas: In Your House", year: 1998, minutes: 145 }
+- { title: "WrestleMania XIV", year: 1998, minutes: 190 }
+- { title: "Unforgiven: In Your House", year: 1998, minutes: 145 }
+- { title: "Over the Edge: In Your House", year: 1998, minutes: 145 }
+- { title: "King Of The Ring", year: 1998, minutes: 156 }
+- { title: "Fully Loaded: In Your House", year: 1998, minutes: 145 }
+- { title: "SummerSlam", year: 1998, minutes: 145 }
+- { title: "Breakdown: In Your House", year: 1998, minutes: 145 }
+- { title: "Judgment Day: In Your House", year: 1998, minutes: 145 }
+- { title: "Survivor Series", year: 1998, minutes: 145 }
+- { title: "Capital Carnage", year: 1998, minutes: 145 }
+- { title: "Rock Bottom: In Your House", year: 1998, minutes: 145 }
+- { title: "Royal Rumble", year: 1999, minutes: 145 }
+- { title: "St. Valentine's Day Massacre: In Your House", year: 1999, minutes: 145 }
+- { title: "WrestleMania XV", year: 1999, minutes: 190 }
+- { title: "Backlash: In Your House", year: 1999, minutes: 145 }
+- { title: "No Mercy (UK)", year: 1999, minutes: 145 }
+- { title: "Over the Edge", year: 1999, minutes: 145 }
+- { title: "King Of The Ring", year: 1999, minutes: 145 }
+- { title: "Fully Loaded", year: 1999, minutes: 145 }
+- { title: "SummerSlam", year: 1999, minutes: 145 }
+- { title: "Unforgiven", year: 1999, minutes: 145 }
+- { title: "Rebellion", year: 1999, minutes: 145 }
+- { title: "No Mercy", year: 1999, minutes: 145 }
+- { title: "Survivor Series", year: 1999, minutes: 145 }
+- { title: "Armageddon", year: 1999, minutes: 145 }
+- { title: "Royal Rumble", year: 2000, minutes: 145 }
+- { title: "No Way Out", year: 2000, minutes: 145 }
+- { title: "WrestleMania 2000", year: 2000, minutes: 205 }
+- { title: "Backlash", year: 2000, minutes: 145 }
+- { title: "Insurrextion", year: 2000, minutes: 145 }
+- { title: "Judgment Day", year: 2000, minutes: 145 }
+- { title: "King Of The Ring", year: 2000, minutes: 145 }
+- { title: "Fully Loaded", year: 2000, minutes: 145 }
+- { title: "SummerSlam", year: 2000, minutes: 145 }
+- { title: "Unforgiven", year: 2000, minutes: 145 }
+- { title: "No Mercy", year: 2000, minutes: 145 }
+- { title: "Survivor Series", year: 2000, minutes: 145 }
+- { title: "Rebellion", year: 2000, minutes: 145 }
+- { title: "Armageddon", year: 2000, minutes: 145 }
+- { title: "Royal Rumble", year: 2001, minutes: 145 }
+- { title: "No Way Out", year: 2001, minutes: 145 }
+- { title: "WrestleMania X-Seven", year: 2001, minutes: 235 }
+- { title: "Backlash", year: 2001, minutes: 145 }
+- { title: "Insurrextion", year: 2001, minutes: 145 }
+- { title: "Judgment Day", year: 2001, minutes: 145 }
+- { title: "King Of The Ring", year: 2001, minutes: 145 }
+- { title: "Invasion", year: 2001, minutes: 145 }
+- { title: "SummerSlam", year: 2001, minutes: 145 }
+- { title: "Unforgiven", year: 2001, minutes: 145 }
+- { title: "No Mercy", year: 2001, minutes: 145 }
+- { title: "Rebellion", year: 2001, minutes: 145 }
+- { title: "Survivor Series", year: 2001, minutes: 145 }
+- { title: "Vengeance", year: 2001, minutes: 145 }
+- { title: "Royal Rumble", year: 2002, minutes: 180 }
+- { title: "No Way Out", year: 2002, minutes: 145 }
+- { title: "WrestleMania X8", year: 2002, minutes: 225 }
+- { title: "Backlash", year: 2002, minutes: 145 }
+- { title: "Insurrextion", year: 2002, minutes: 145 }
+- { title: "Judgment Day", year: 2002, minutes: 145 }
+- { title: "King Of The Ring", year: 2002, minutes: 145 }
+- { title: "Vengeance", year: 2002, minutes: 145 }
+- { title: "SummerSlam", year: 2002, minutes: 145 }
+- { title: "Unforgiven", year: 2002, minutes: 145 }
+- { title: "No Mercy", year: 2002, minutes: 145 }
+- { title: "Rebellion", year: 2002, minutes: 145 }
+- { title: "Survivor Series", year: 2002, minutes: 145 }
+- { title: "Armageddon", year: 2002, minutes: 145 }
+- { title: "Royal Rumble", year: 2003, minutes: 180 }
+- { title: "No Way Out", year: 2003, minutes: 145 }
+- { title: "WrestleMania XIX", year: 2003, minutes: 225 }
+- { title: "Backlash", year: 2003, minutes: 145 }
+- { title: "Judgment Day", year: 2003, minutes: 145 }
+- { title: "Insurrextion", year: 2003, minutes: 145 }
+- { title: "Bad Blood", year: 2003, minutes: 145 }
+- { title: "Vengeance", year: 2003, minutes: 145 }
+- { title: "SummerSlam", year: 2003, minutes: 145 }
+- { title: "Unforgiven", year: 2003, minutes: 145 }
+- { title: "No Mercy", year: 2003, minutes: 145 }
+- { title: "Survivor Series", year: 2003, minutes: 145 }
+- { title: "Armageddon", year: 2003, minutes: 145 }
+- { title: "Royal Rumble", year: 2004, minutes: 180 }
+- { title: "No Way Out", year: 2004, minutes: 145 }
+- { title: "WrestleMania XX", year: 2004, minutes: 255 }
+- { title: "Backlash", year: 2004, minutes: 145 }
+- { title: "Judgment Day", year: 2004, minutes: 145 }
+- { title: "Bad Blood", year: 2004, minutes: 145 }
+- { title: "The Great American Bash", year: 2004, minutes: 145 }
+- { title: "Vengeance", year: 2004, minutes: 145 }
+- { title: "SummerSlam", year: 2004, minutes: 145 }
+- { title: "Unforgiven", year: 2004, minutes: 145 }
+- { title: "No Mercy", year: 2004, minutes: 145 }
+- { title: "Taboo Tuesday", year: 2004, minutes: 145 }
+- { title: "Survivor Series", year: 2004, minutes: 145 }
+- { title: "Armageddon", year: 2004, minutes: 145 }
+- { title: "New Year's Revolution", year: 2005, minutes: 145 }
+- { title: "Royal Rumble", year: 2005, minutes: 180 }
+- { title: "No Way Out", year: 2005, minutes: 145 }
+- { title: "WrestleMania 21", year: 2005, minutes: 225 }
+- { title: "Backlash", year: 2005, minutes: 145 }
+- { title: "Judgment Day", year: 2005, minutes: 145 }
+- { title: "Vengeance", year: 2005, minutes: 145 }
+- { title: "The Great American Bash", year: 2005, minutes: 145 }
+- { title: "SummerSlam", year: 2005, minutes: 145 }
+- { title: "Unforgiven", year: 2005, minutes: 145 }
+- { title: "No Mercy", year: 2005, minutes: 145 }
+- { title: "Taboo Tuesday", year: 2005, minutes: 145 }
+- { title: "Survivor Series", year: 2005, minutes: 145 }
+- { title: "Armageddon", year: 2005, minutes: 145 }
+- { title: "New Year's Revolution", year: 2006, minutes: 145 }
+- { title: "Royal Rumble", year: 2006, minutes: 180 }
+- { title: "No Way Out", year: 2006, minutes: 145 }
+- { title: "WrestleMania 22", year: 2006, minutes: 235 }
+- { title: "Backlash", year: 2006, minutes: 145 }
+- { title: "Judgment Day", year: 2006, minutes: 145 }
+- { title: "Vengeance", year: 2006, minutes: 145 }
+- { title: "The Great American Bash", year: 2006, minutes: 145 }
+- { title: "SummerSlam", year: 2006, minutes: 145 }
+- { title: "Unforgiven", year: 2006, minutes: 145 }
+- { title: "No Mercy", year: 2006, minutes: 145 }
+- { title: "Cyber Sunday", year: 2006, minutes: 145 }
+- { title: "Survivor Series", year: 2006, minutes: 145 }
+- { title: "Armageddon", year: 2006, minutes: 145 }
+- { title: "New Year's Revolution", year: 2007, minutes: 145 }
+- { title: "Royal Rumble", year: 2007, minutes: 180 }
+- { title: "No Way Out", year: 2007, minutes: 145 }
+- { title: "WrestleMania 23", year: 2007, minutes: 225 }
+- { title: "Backlash", year: 2007, minutes: 145 }
+- { title: "Judgment Day", year: 2007, minutes: 145 }
+- { title: "One Night Stand", year: 2007, minutes: 145 }
+- { title: "Vengeance: Night of Champions", year: 2007, minutes: 145 }
+- { title: "The Great American Bash", year: 2007, minutes: 145 }
+- { title: "SummerSlam", year: 2007, minutes: 145 }
+- { title: "Unforgiven", year: 2007, minutes: 145 }
+- { title: "No Mercy", year: 2007, minutes: 145 }
+- { title: "Cyber Sunday", year: 2007, minutes: 145 }
+- { title: "Survivor Series", year: 2007, minutes: 145 }
+- { title: "Armageddon", year: 2007, minutes: 145 }
+- { title: "Royal Rumble", year: 2008, minutes: 180 }
+- { title: "No Way Out", year: 2008, minutes: 145 }
+- { title: "WrestleMania XXIV", year: 2008, minutes: 235 }
+- { title: "Backlash", year: 2008, minutes: 145 }
+- { title: "Judgment Day", year: 2008, minutes: 145 }
+- { title: "One Night Stand", year: 2008, minutes: 180 }
+- { title: "Night of Champions", year: 2008, minutes: 145 }
+- { title: "The Great American Bash", year: 2008, minutes: 145 }
+- { title: "SummerSlam", year: 2008, minutes: 145 }
+- { title: "Unforgiven", year: 2008, minutes: 145 }
+- { title: "No Mercy", year: 2008, minutes: 145 }
+- { title: "Cyber Sunday", year: 2008, minutes: 145 }
+- { title: "Survivor Series", year: 2008, minutes: 145 }
+- { title: "Armageddon", year: 2008, minutes: 145 }
+- { title: "Royal Rumble", year: 2009, minutes: 180 }
+- { title: "No Way Out", year: 2009, minutes: 145 }
+- { title: "WrestleMania XXV", year: 2009, minutes: 235 }
+- { title: "Backlash", year: 2009, minutes: 145 }
+- { title: "Judgment Day", year: 2009, minutes: 145 }
+- { title: "Extreme Rules", year: 2009, minutes: 145 }
+- { title: "The Bash", year: 2009, minutes: 145 }
+- { title: "Night of Champions", year: 2009, minutes: 145 }
+- { title: "SummerSlam", year: 2009, minutes: 145 }
+- { title: "Breaking Point", year: 2009, minutes: 145 }
+- { title: "Hell in a Cell", year: 2009, minutes: 145 }
+- { title: "Bragging Rights", year: 2009, minutes: 180 }
+- { title: "Survivor Series", year: 2009, minutes: 145 }
+- { title: "TLC: Tables, Ladders & Chairs", year: 2009, minutes: 145 }
+- { title: "Royal Rumble", year: 2010, minutes: 180 }
+- { title: "Elimination Chamber", year: 2010, minutes: 145 }
+- { title: "WrestleMania XXVI", year: 2010, minutes: 235 }
+- { title: "Extreme Rules", year: 2010, minutes: 145 }
+- { title: "Over the Limit", year: 2010, minutes: 145 }
+- { title: "Fatal 4-Way", year: 2010, minutes: 145 }
+- { title: "Money in the Bank", year: 2010, minutes: 180 }
+- { title: "SummerSlam", year: 2010, minutes: 145 }
+- { title: "Night of Champions", year: 2010, minutes: 145 }
+- { title: "Hell in a Cell", year: 2010, minutes: 145 }
+- { title: "Bragging Rights", year: 2010, minutes: 145 }
+- { title: "Survivor Series", year: 2010, minutes: 145 }
+- { title: "TLC: Tables, Ladders & Chairs", year: 2010, minutes: 145 }
+- { title: "Royal Rumble", year: 2011, minutes: 180 }
+- { title: "Elimination Chamber", year: 2011, minutes: 145 }
+- { title: "WrestleMania XXVII", year: 2011, minutes: 240 }
+- { title: "Extreme Rules", year: 2011, minutes: 145 }
+- { title: "Over the Limit", year: 2011, minutes: 145 }
+- { title: "Capitol Punishment", year: 2011, minutes: 145 }
+- { title: "Money in the Bank", year: 2011, minutes: 180 }
+- { title: "SummerSlam", year: 2011, minutes: 145 }
+- { title: "Night of Champions", year: 2011, minutes: 145 }
+- { title: "Hell in a Cell", year: 2011, minutes: 145 }
+- { title: "Vengeance", year: 2011, minutes: 145 }
+- { title: "Survivor Series", year: 2011, minutes: 145 }
+- { title: "TLC: Tables, Ladders & Chairs", year: 2011, minutes: 145 }
+- { title: "Royal Rumble", year: 2012, minutes: 180 }
+- { title: "Elimination Chamber", year: 2012, minutes: 145 }
+- { title: "WrestleMania XXVIII", year: 2012, minutes: 245 }
+- { title: "Extreme Rules", year: 2012, minutes: 180 }
+- { title: "Over the Limit", year: 2012, minutes: 145 }
+- { title: "No Way Out", year: 2012, minutes: 145 }
+- { title: "Money in the Bank", year: 2012, minutes: 180 }
+- { title: "SummerSlam", year: 2012, minutes: 145 }
+- { title: "Night of Champions", year: 2012, minutes: 145 }
+- { title: "Hell in a Cell", year: 2012, minutes: 145 }
+- { title: "Survivor Series", year: 2012, minutes: 145 }
+- { title: "TLC: Tables, Ladders & Chairs", year: 2012, minutes: 145 }
+- { title: "Royal Rumble", year: 2013, minutes: 180 }
+- { title: "Elimination Chamber", year: 2013, minutes: 145 }
+- { title: "WrestleMania 29", year: 2013, minutes: 250 }
+- { title: "Extreme Rules", year: 2013, minutes: 180 }
+- { title: "Payback", year: 2013, minutes: 145 }
+- { title: "Money in the Bank", year: 2013, minutes: 180 }
+- { title: "SummerSlam", year: 2013, minutes: 145 }
+- { title: "Night of Champions", year: 2013, minutes: 145 }
+- { title: "Battleground", year: 2013, minutes: 145 }
+- { title: "Hell in a Cell", year: 2013, minutes: 145 }
+- { title: "Survivor Series", year: 2013, minutes: 145 }
+- { title: "TLC: Tables, Ladders & Chairs", year: 2013, minutes: 145 }
+- { title: "Royal Rumble", year: 2014, minutes: 180 }
+- { title: "Elimination Chamber", year: 2014, minutes: 145 }
+- { title: "WrestleMania XXX", year: 2014, minutes: 245 }
+- { title: "Extreme Rules", year: 2014, minutes: 180 }
+- { title: "Payback", year: 2014, minutes: 145 }
+- { title: "Money in the Bank", year: 2014, minutes: 180 }
+- { title: "Battleground", year: 2014, minutes: 145 }
+- { title: "SummerSlam", year: 2014, minutes: 145 }
+- { title: "Night of Champions", year: 2014, minutes: 145 }
+- { title: "Hell in a Cell", year: 2014, minutes: 145 }
+- { title: "Survivor Series", year: 2014, minutes: 145 }
+- { title: "TLC: Tables, Ladders & Chairs", year: 2014, minutes: 145 }
+- { title: "Royal Rumble", year: 2015, minutes: 180 }
+- { title: "Fastlane", year: 2015, minutes: 145 }
+- { title: "WrestleMania 31", year: 2015, minutes: 255 }
+- { title: "Extreme Rules", year: 2015, minutes: 180 }
+- { title: "King Of The Ring", year: 2015, minutes: 120 }
+- { title: "Payback", year: 2015, minutes: 145 }
+- { title: "Elimination Chamber", year: 2015, minutes: 180 }
+- { title: "Money in the Bank", year: 2015, minutes: 180 }
+- { title: "The Beast in the East", year: 2015, minutes: 120 }
+- { title: "Battleground", year: 2015, minutes: 145 }
+- { title: "SummerSlam", year: 2015, minutes: 180 }
+- { title: "Night of Champions", year: 2015, minutes: 145 }
+- { title: "Live from Madison Square Garden", year: 2015, minutes: 150 }
+- { title: "Hell in a Cell", year: 2015, minutes: 180 }
+- { title: "Survivor Series", year: 2015, minutes: 180 }
+- { title: "TLC: Tables, Ladders & Chairs", year: 2015, minutes: 145 }
+- { title: "Royal Rumble", year: 2016, minutes: 180 }
+- { title: "Fastlane", year: 2016, minutes: 145 }
+- { title: "Roadblock", year: 2016, minutes: 145 }
+- { title: "WrestleMania 32", year: 2016, minutes: 285 }
+- { title: "Payback", year: 2016, minutes: 180 }
+- { title: "Extreme Rules", year: 2016, minutes: 180 }
+- { title: "Money in the Bank", year: 2016, minutes: 180 }
+- { title: "Battleground", year: 2016, minutes: 180 }
+- { title: "SummerSlam", year: 2016, minutes: 240 }
+- { title: "Backlash", year: 2016, minutes: 180 }
+- { title: "Cruiserweight Classic Finale", year: 2016, minutes: 120 }
+- { title: "Clash of Champions", year: 2016, minutes: 180 }
+- { title: "No Mercy", year: 2016, minutes: 180 }
+- { title: "Hell in a Cell", year: 2016, minutes: 180 }
+- { title: "Survivor Series", year: 2016, minutes: 180 }
+- { title: "TLC: Tables, Ladders & Chairs", year: 2016, minutes: 180 }
+- { title: "Roadblock: End of the Line", year: 2016, minutes: 180 }
+- { title: "Royal Rumble", year: 2017, minutes: 240 }
+- { title: "Elimination Chamber", year: 2017, minutes: 180 }
+- { title: "Fastlane", year: 2017, minutes: 180 }
+- { title: "WrestleMania 33", year: 2017, minutes: 300 }
+- { title: "Payback", year: 2017, minutes: 180 }
+- { title: "Backlash", year: 2017, minutes: 180 }
+- { title: "Extreme Rules", year: 2017, minutes: 180 }
+- { title: "Money in the Bank", year: 2017, minutes: 180 }
+- { title: "Great Balls of Fire", year: 2017, minutes: 180 }
+- { title: "Battleground", year: 2017, minutes: 180 }
+- { title: "SummerSlam", year: 2017, minutes: 240 }
+- { title: "Mae Young Classic Finale", year: 2017, minutes: 120 }
+- { title: "No Mercy", year: 2017, minutes: 180 }
+- { title: "Hell in a Cell", year: 2017, minutes: 180 }
+- { title: "TLC: Tables, Ladders & Chairs", year: 2017, minutes: 180 }
+- { title: "Survivor Series", year: 2017, minutes: 180 }
+- { title: "Clash of Champions", year: 2017, minutes: 180 }
+- { title: "Royal Rumble", year: 2018, minutes: 240 }
+- { title: "Elimination Chamber", year: 2018, minutes: 180 }
+- { title: "Fastlane", year: 2018, minutes: 180 }
+- { title: "WrestleMania 34", year: 2018, minutes: 305 }
+- { title: "Greatest Royal Rumble", year: 2018, minutes: 240 }
+- { title: "Backlash", year: 2018, minutes: 180 }
+- { title: "Money in the Bank", year: 2018, minutes: 240 }
+- { title: "Extreme Rules", year: 2018, minutes: 180 }
+- { title: "SummerSlam", year: 2018, minutes: 240 }
+- { title: "Hell in a Cell", year: 2018, minutes: 180 }
+- { title: "Super Show-Down", year: 2018, minutes: 180 }
+- { title: "Evolution", year: 2018, minutes: 180 }
+- { title: "Crown Jewel", year: 2018, minutes: 180 }
+- { title: "Survivor Series", year: 2018, minutes: 180 }
+- { title: "Starrcade", year: 2018, minutes: 180 }
+- { title: "TLC: Tables, Ladders & Chairs", year: 2018, minutes: 180 }
+- { title: "Royal Rumble", year: 2019, minutes: 240 }
+- { title: "Worlds Collide", year: 2019, minutes: 110 }
+- { title: "Elimination Chamber", year: 2019, minutes: 180 }
+- { title: "Fastlane", year: 2019, minutes: 180 }
+- { title: "WrestleMania 35", year: 2019, minutes: 335 }
+- { title: "The Shield's Final Chapter", year: 2019, minutes: 90 }
+- { title: "Money in the Bank", year: 2019, minutes: 240 }
+- { title: "Super ShowDown", year: 2019, minutes: 180 }
+- { title: "Stomping Grounds", year: 2019, minutes: 180 }
+- { title: "Extreme Rules", year: 2019, minutes: 180 }
+- { title: "Smackville", year: 2019, minutes: 120 }
+- { title: "SummerSlam", year: 2019, minutes: 240 }
+- { title: "Clash of Champions", year: 2019, minutes: 180 }
+- { title: "Hell in a Cell", year: 2019, minutes: 180 }
+- { title: "Crown Jewel", year: 2019, minutes: 180 }
+- { title: "Survivor Series", year: 2019, minutes: 180 }
+- { title: "Starrcade", year: 2019, minutes: 120 }
+- { title: "TLC: Tables, Ladders & Chairs", year: 2019, minutes: 180 }
+- { title: "Royal Rumble", year: 2020, minutes: 240 }
+- { title: "Super ShowDown", year: 2020, minutes: 180 }
+- { title: "Elimination Chamber", year: 2020, minutes: 180 }
+- { title: "WrestleMania 36 - Night 1", year: 2020, minutes: 195 }
+- { title: "WrestleMania 36 - Night 2", year: 2020, minutes: 205 }
+- { title: "Money in the Bank", year: 2020, minutes: 180 }
+- { title: "Backlash", year: 2020, minutes: 180 }
+- { title: "Extreme Rules: The Horror Show", year: 2020, minutes: 180 }
+- { title: "SummerSlam", year: 2020, minutes: 180 }
+- { title: "Payback", year: 2020, minutes: 180 }
+- { title: "Clash of Champions", year: 2020, minutes: 180 }
+- { title: "Hell in a Cell", year: 2020, minutes: 180 }
+- { title: "Survivor Series", year: 2020, minutes: 180 }
+- { title: "TLC: Tables, Ladders & Chairs", year: 2020, minutes: 180 }
+- { title: "Royal Rumble", year: 2021, minutes: 240 }
+- { title: "Superstar Spectacle", year: 2021, minutes: 120 }
+- { title: "Elimination Chamber", year: 2021, minutes: 180 }
+- { title: "Fastlane", year: 2021, minutes: 180 }
+- { title: "WrestleMania 37 - Night 1", year: 2021, minutes: 225 }
+- { title: "WrestleMania 37 - Night 2", year: 2021, minutes: 225 }
+- { title: "WrestleMania Backlash", year: 2021, minutes: 180 }
+- { title: "Hell in a Cell", year: 2021, minutes: 180 }
+- { title: "Money in the Bank", year: 2021, minutes: 180 }
+- { title: "SummerSlam", year: 2021, minutes: 180 }
+- { title: "Extreme Rules", year: 2021, minutes: 180 }
+- { title: "Crown Jewel", year: 2021, minutes: 180 }
+- { title: "Survivor Series", year: 2021, minutes: 180 }
+- { title: "Day 1", year: 2022, minutes: 180 }
+- { title: "Royal Rumble", year: 2022, minutes: 240 }
+- { title: "Elimination Chamber", year: 2022, minutes: 180 }
+- { title: "WrestleMania 38 - Night 1", year: 2022, minutes: 225 }
+- { title: "WrestleMania 38 - Night 2", year: 2022, minutes: 235 }
+- { title: "WrestleMania Backlash", year: 2022, minutes: 180 }
+- { title: "Hell in a Cell", year: 2022, minutes: 180 }
+- { title: "Money in the Bank", year: 2022, minutes: 180 }
+- { title: "SummerSlam", year: 2022, minutes: 180 }
+- { title: "Clash at the Castle", year: 2022, minutes: 180 }
+- { title: "Extreme Rules", year: 2022, minutes: 180 }
+- { title: "Crown Jewel", year: 2022, minutes: 180 }
+- { title: "Survivor Series: WarGames", year: 2022, minutes: 180 }
+- { title: "Royal Rumble", year: 2023, minutes: 240 }
+- { title: "Elimination Chamber", year: 2023, minutes: 180 }
+- { title: "WrestleMania 39 - Night 1", year: 2023, minutes: 230 }
+- { title: "WrestleMania 39 - Night 2", year: 2023, minutes: 240 }
+- { title: "Backlash", year: 2023, minutes: 180 }
+- { title: "Night of Champions", year: 2023, minutes: 180 }
+- { title: "Money in the Bank", year: 2023, minutes: 180 }
+- { title: "SummerSlam", year: 2023, minutes: 180 }
+- { title: "Payback", year: 2023, minutes: 180 }
+- { title: "Fastlane", year: 2023, minutes: 180 }
+- { title: "Crown Jewel", year: 2023, minutes: 180 }
+- { title: "Survivor Series: WarGames", year: 2023, minutes: 180 }
+- { title: "Royal Rumble", year: 2024, minutes: 240 }
+- { title: "Elimination Chamber: Perth", year: 2024, minutes: 180 }
+- { title: "WrestleMania XL - Night 1", year: 2024, minutes: 230 }
+- { title: "WrestleMania XL - Night 2", year: 2024, minutes: 245 }
+- { title: "Backlash France", year: 2024, minutes: 180 }
+- { title: "King and Queen of the Ring", year: 2024, minutes: 180 }
+- { title: "Clash at the Castle: Scotland", year: 2024, minutes: 180 }
+- { title: "Money in the Bank", year: 2024, minutes: 180 }
+- { title: "SummerSlam", year: 2024, minutes: 180 }
+- { title: "Bash in Berlin", year: 2024, minutes: 180 }
+- { title: "Bad Blood", year: 2024, minutes: 180 }
+- { title: "Crown Jewel", year: 2024, minutes: 180 }
+- { title: "Survivor Series: WarGames", year: 2024, minutes: 180 }
+- { title: "Saturday Night's Main Event XXXVII", year: 2024, minutes: 120 }
+- { title: "Saturday Night's Main Event XXXVIII", year: 2025, minutes: 120 }
+- { title: "Royal Rumble", year: 2025, minutes: 240 }
+- { title: "Elimination Chamber", year: 2025, minutes: 180 }
+- { title: "WrestleMania 41 - Night 1", year: 2025, minutes: 225 }
+- { title: "WrestleMania 41 - Night 2", year: 2025, minutes: 235 }
+- { title: "Backlash", year: 2025, minutes: 180 }
+- { title: "Saturday Night's Main Event XXXIX", year: 2025, minutes: 120 }
+- { title: "Money in the Bank", year: 2025, minutes: 180 }
+- { title: "Night of Champions", year: 2025, minutes: 180 }
+- { title: "Saturday Night's Main Event XL", year: 2025, minutes: 120 }
+- { title: "Evolution", year: 2025, minutes: 180 }
+- { title: "SummerSlam - Night 1", year: 2025, minutes: 180 }
+- { title: "SummerSlam - Night 2", year: 2025, minutes: 180 }
+- { title: "Clash in Paris", year: 2025, minutes: 180 }
+- { title: "Wrestlepalooza", year: 2025, minutes: 180 }
+- { title: "Crown Jewel", year: 2025, minutes: 180 }
+- { title: "Saturday Night's Main Event XLI", year: 2025, minutes: 120 }
+- { title: "Survivor Series: WarGames", year: 2025, minutes: 180 }
+- { title: "Saturday Night's Main Event XLII", year: 2025, minutes: 120 }
+- { title: "Saturday Night's Main Event XLIII", year: 2026, minutes: 120 }
+- { title: "Royal Rumble", year: 2026, minutes: 240 }
+- { title: "Elimination Chamber", year: 2026, minutes: 180 }
+- { title: "WrestleMania 42 - Night 1", year: 2026, minutes: 225 }
+- { title: "WrestleMania 42 - Night 2", year: 2026, minutes: 235 }
+- { title: "Backlash", year: 2026, minutes: 180 }
+- { title: "Saturday Night's Main Event XLIV", year: 2026, minutes: 120 }
+- { title: "Clash in Italy", year: 2026, minutes: 180 }
+- { title: "Night of Champions", year: 2026, minutes: 180 }
+- { title: "Saturday Night's Main Event XLV", year: 2026, minutes: 120 }
+- { title: "SummerSlam - Night 1", year: 2026, minutes: 180 }
+- { title: "SummerSlam - Night 2", year: 2026, minutes: 180 }
+- { title: "Sunday Night's Main Event", year: 2026, minutes: 120 }

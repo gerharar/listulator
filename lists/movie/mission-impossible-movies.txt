@@ -1,0 +1,13 @@
+title: Mission: Impossible movies
+description: All movies from Mission: Impossible franchise
+category: movie
+status: completed
+items:
+- { title: "Mission: Impossible", year: 1996, minutes: 111 }
+- { title: "Mission: Impossible II", year: 2000, minutes: 123 }
+- { title: "Mission: Impossible III", year: 2006, minutes: 126 }
+- { title: "Mission: Impossible - Ghost Protocol", year: 2011, minutes: 133 }
+- { title: "Mission: Impossible - Rogue Nation", year: 2015, minutes: 131 }
+- { title: "Mission: Impossible - Fallout", year: 2018, minutes: 148 }
+- { title: "Mission: Impossible - Dead Reckoning Part One", year: 2023, minutes: 163 }
+- { title: "Mission: Impossible - The Final Reckoning", year: 2025, minutes: 169 }

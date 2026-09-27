@@ -1,0 +1,32 @@
+title: James Bond movies
+description: All James Bond movies, including non-canon (non-EON) entries
+category: movie
+status: ongoing
+items:
+- { title: "Dr. No", year: 1962, minutes: 109 }
+- { title: "From Russia with Love", year: 1963, minutes: 116 }
+- { title: "Goldfinger", year: 1964, minutes: 109 }
+- { title: "Thunderball", year: 1965, minutes: 130 }
+- { title: "You Only Live Twice", year: 1967, minutes: 116 }
+- { title: "Casino Royale", year: 1967, minutes: 131, tags: [non-canon] }
+- { title: "On Her Majesty's Secret Service", year: 1969, minutes: 142 }
+- { title: "Diamonds Are Forever", year: 1971, minutes: 119 }
+- { title: "Live and Let Die", year: 1973, minutes: 121 }
+- { title: "The Man with the Golden Gun", year: 1974, minutes: 125 }
+- { title: "The Spy Who Loved Me", year: 1977, minutes: 125 }
+- { title: "Moonraker", year: 1979, minutes: 126 }
+- { title: "For Your Eyes Only", year: 1981, minutes: 127 }
+- { title: "Octopussy", year: 1983, minutes: 131 }
+- { title: "Never Say Never Again", year: 1983, minutes: 134, tags: [non-canon] }
+- { title: "A View to a Kill", year: 1985, minutes: 131 }
+- { title: "The Living Daylights", year: 1987, minutes: 130 }
+- { title: "Licence to Kill", year: 1989, minutes: 133 }
+- { title: "GoldenEye", year: 1995, minutes: 130 }
+- { title: "Tomorrow Never Dies", year: 1997, minutes: 119 }
+- { title: "The World Is Not Enough", year: 1999, minutes: 128 }
+- { title: "Die Another Day", year: 2002, minutes: 132 }
+- { title: "Casino Royale", year: 2006, minutes: 144 }
+- { title: "Quantum of Solace", year: 2008, minutes: 106 }
+- { title: "Skyfall", year: 2012, minutes: 143 }
+- { title: "Spectre", year: 2015, minutes: 148 }
+- { title: "No Time to Die", year: 2021, minutes: 163 }
