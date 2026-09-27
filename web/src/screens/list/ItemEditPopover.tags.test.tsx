@@ -26,7 +26,19 @@ const GAME: ListItem = {
 }
 
 const PLATFORM = tagField([{ key: 'platform', label: 'Platform' }])
-const MUSIC = tagField([{ key: 'type', label: 'Type', values: ['Album', 'EP', 'Single', 'Live', 'Compilation'] }])
+const MUSIC = tagField([
+  {
+    key: 'type',
+    label: 'Type',
+    keepOrder: true,
+    prevails: 'Compilation',
+    values: ['Album', { tag: 'Mini', label: 'Mini', aliases: ['EP', 'Single'] }, 'Compilation'],
+  },
+  { key: 'extra', label: 'Recording', flag: true, values: ['Live'] },
+])
+const MEGA = tagField([
+  { key: 'type', label: 'Medium', values: [{ tag: 'movie', label: 'Movie' }, { tag: 'game', label: 'Game' }, { tag: 'book', label: 'Book' }] },
+])
 
 function EscLadder() {
   useEscLadder(() => undefined)
@@ -210,10 +222,10 @@ describe('ItemEditPopover — a short fixed set (U5)', () => {
     expect(type.textContent).toContain('Album')
 
     fireEvent.click(type)
-    fireEvent.click(screen.getByRole('option', { name: 'EP' }))
+    fireEvent.click(screen.getByRole('option', { name: 'Mini' }))
     fireEvent.click(save())
 
-    expect(props.onCommit).toHaveBeenCalledWith({ tags: ['Bonus', 'EP'] }, 'save')
+    expect(props.onCommit).toHaveBeenCalledWith({ tags: ['Bonus', 'Mini'] }, 'save')
   })
 
   it('can set none', () => {
@@ -223,6 +235,61 @@ describe('ItemEditPopover — a short fixed set (U5)', () => {
     fireEvent.click(save())
 
     expect(props.onCommit).toHaveBeenCalledWith({ tags: ['Bonus'] }, 'save')
+  })
+
+  it('lists Music’s types in its own order, then Live to tick', () => {
+    renderEdit({ item: ALBUM, tagField: MUSIC })
+    fireEvent.click(screen.getByRole('button', { name: /^Type:/ }))
+
+    expect(screen.getAllByRole('option').map((option) => option.textContent)).toEqual([
+      'None',
+      'Album',
+      'Mini',
+      'Compilation',
+      'Live',
+    ])
+  })
+
+  it('lists a category’s values A–Z by shown name when it keeps no order of its own', () => {
+    renderEdit({ item: { ...ALBUM, tags: ['movie'] }, tagField: MEGA })
+    fireEvent.click(screen.getByRole('button', { name: /^Medium:/ }))
+
+    expect(screen.getAllByRole('option').map((option) => option.textContent)).toEqual(['None', 'Book', 'Game', 'Movie'])
+  })
+
+  it('ticks Live on top of the type, the list staying open, and keeps the source’s EP (owner, 2026-09-27)', () => {
+    const props = renderEdit({ item: { ...ALBUM, tags: ['EP'] }, tagField: MUSIC })
+    const type = screen.getByRole('button', { name: /^Type:/ })
+    expect(type.textContent).toContain('Mini')
+
+    fireEvent.click(type)
+    fireEvent.click(screen.getByRole('option', { name: 'Live' }))
+    expect(screen.getByRole('option', { name: 'Live' }).getAttribute('aria-selected')).toBe('true')
+    expect(type.textContent).toContain('Mini · Live')
+    fireEvent.click(save())
+
+    expect(props.onCommit).toHaveBeenCalledWith({ tags: ['EP', 'Live'] }, 'save')
+  })
+
+  it('reads a Compilation over the Album under it, and unticks Live', () => {
+    const props = renderEdit({ item: { ...ALBUM, tags: ['Album', 'Compilation', 'Live'] }, tagField: MUSIC })
+    const type = screen.getByRole('button', { name: /^Type:/ })
+    expect(type.textContent).toContain('Compilation · Live')
+
+    fireEvent.click(type)
+    fireEvent.click(screen.getByRole('option', { name: 'Live' }))
+    fireEvent.click(save())
+
+    expect(props.onCommit).toHaveBeenCalledWith({ tags: ['Album', 'Compilation'] }, 'save')
+  })
+
+  it('writes nothing when the pick is unchanged', () => {
+    const props = renderEdit({ item: { ...ALBUM, tags: ['EP', 'Live'] }, tagField: MUSIC })
+    fireEvent.click(screen.getByRole('button', { name: /^Type:/ }))
+    fireEvent.click(screen.getByRole('option', { name: 'Mini' }))
+
+    expect(save().hasAttribute('disabled')).toBe(true)
+    expect(props.onCommit).not.toHaveBeenCalled()
   })
 })
 

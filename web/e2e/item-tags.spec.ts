@@ -60,10 +60,11 @@ test('a game’s platforms are picked in the panel beside the Edit window and sa
   }
 })
 
-test('a music item’s Type is one pick from its short list; other tags stay', async ({ page }) => {
+test('a music item’s Type is one pick from its short list, Live ticked on top; other tags and a source’s EP stay', async ({ page }) => {
   const title = `e2e item-tags music ${Date.now()}`
   const id = await makeList(page.request, title, 'music', [
     { title: 'Panopticon', timeToConsumeMinutes: 60, tags: ['Album', 'Remaster'] },
+    { title: 'The Red Sea', timeToConsumeMinutes: 35, tags: ['EP'] },
   ])
 
   try {
@@ -71,10 +72,21 @@ test('a music item’s Type is one pick from its short list; other tags stay', a
     await page.locator('.q-home-row', { hasText: title }).click()
     await page.getByRole('button', { name: 'Edit Panopticon' }).click()
     await page.getByRole('button', { name: 'Type: Album' }).click()
-    await page.getByRole('option', { name: 'EP' }).click()
+    await page.getByRole('option', { name: 'Mini' }).click()
     await page.getByRole('button', { name: 'Save' }).click()
+    await expect.poll(() => itemTags(page.request, id, 'Panopticon')).toEqual(['Remaster', 'Mini'])
 
-    await expect.poll(() => itemTags(page.request, id, 'Panopticon')).toEqual(['Remaster', 'EP'])
+    await page.getByRole('button', { name: 'Edit The Red Sea' }).click()
+    await page.getByRole('button', { name: 'Type: Mini' }).click()
+    await page.getByRole('option', { name: 'Live' }).click()
+    await expect(page.getByRole('button', { name: 'Type: Mini · Live' })).toBeVisible()
+    // Live leaves the list open; a click past it (here on Save) only closes it (owner).
+    await page.getByRole('button', { name: 'Save' }).click()
+    await expect(page.getByRole('listbox')).toBeHidden()
+    expect(await itemTags(page.request, id, 'The Red Sea')).toEqual(['EP'])
+    await page.getByRole('button', { name: 'Save' }).click()
+    await expect.poll(() => itemTags(page.request, id, 'The Red Sea')).toEqual(['EP', 'Live'])
+    await expect(page.locator('[data-row-id]', { hasText: 'The Red Sea' })).toContainText('Mini · Live')
   } finally {
     await page.request.delete(`/api/lists/${id}`)
   }

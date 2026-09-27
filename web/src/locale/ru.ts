@@ -671,6 +671,7 @@ export const ru: Locale = {
           Medium: 'Медиа',
           Language: 'Язык',
           Platform: 'Платформа',
+          Recording: 'Запись',
         },
         optionLabels: {
           Untagged: 'Без метки',
@@ -690,6 +691,7 @@ export const ru: Locale = {
           Album: 'Альбом',
           EP: 'EP',
           Single: 'Сингл',
+          Mini: 'Мини',
           Live: 'Концертный',
           Compilation: 'Сборник',
         },

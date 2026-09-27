@@ -731,6 +731,7 @@ export const en = {
           Medium: 'Medium',
           Language: 'Language',
           Platform: 'Platform',
+          Recording: 'Recording',
         } as Record<string, string | undefined>,
         /** An option's button text, by the label the facet derives; anything not named shows as it is (a platform code, a language). */
         optionLabels: {
@@ -751,6 +752,7 @@ export const en = {
           Album: 'Album',
           EP: 'EP',
           Single: 'Single',
+          Mini: 'Mini',
           Live: 'Live',
           Compilation: 'Compilation',
         } as Record<string, string | undefined>,

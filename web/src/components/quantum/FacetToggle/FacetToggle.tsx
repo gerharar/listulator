@@ -37,9 +37,14 @@ export interface FacetToggleProps {
   options: FacetOption[]
   selected: ReadonlySet<string>
   onChange: (selected: ReadonlySet<string>) => void
+  /**
+   * Every item holds one of the options (Untagged among them), so all of them
+   * on is All. Not so for a flag (Live): turning its one option on must filter.
+   */
+  coversAll?: boolean
 }
 
-export function FacetToggle({ label, options, selected, onChange }: FacetToggleProps) {
+export function FacetToggle({ label, options, selected, onChange, coversAll = true }: FacetToggleProps) {
   const allOn = isAllOn(selected)
 
   return (
@@ -60,7 +65,9 @@ export function FacetToggle({ label, options, selected, onChange }: FacetToggleP
                   ? copy.quantum.list.filter.hideOption(option.name ?? option.label)
                   : copy.quantum.list.filter.alsoShowOption(option.name ?? option.label)
               }
-              onClick={() => onChange(toggleFacetOption(selected, option.key, options.map((entry) => entry.key)))}
+              onClick={() =>
+                onChange(toggleFacetOption(selected, option.key, coversAll ? options.map((entry) => entry.key) : []))
+              }
             >
               {option.label}
             </button>

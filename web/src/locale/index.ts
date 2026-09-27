@@ -11,6 +11,7 @@ const LOCALES: Record<Language, Locale> = {
 }
 
 let currentLocale: Locale = LOCALES.en
+let collator = new Intl.Collator('en')
 
 /**
  * Switches the locale every `copy.x.y` read resolves against, from here on.
@@ -23,6 +24,12 @@ let currentLocale: Locale = LOCALES.en
  */
 export function setActiveLanguage(language: Language): void {
   currentLocale = LOCALES[language]
+  collator = new Intl.Collator(language)
+}
+
+/** Orders names people read A–Z in the app's language (a Russian list sorts as Russian does). */
+export function compareShown(a: string, b: string): number {
+  return collator.compare(a, b)
 }
 
 /**

@@ -32,12 +32,14 @@ export function normalizeItemTags(tags: readonly string[] | null | undefined): s
   return kept.length > 0 ? kept : null
 }
 
-export type FacetKey = 'type' | 'language' | 'platform'
+export type FacetKey = 'type' | 'language' | 'platform' | 'extra'
 
 /** A tag as a list file writes it, and the name people see for it (`game` → Game). */
 export interface FacetValue {
   tag: string
   label: string
+  /** Other tags read as this value and kept as written (Music: EP and Single are a Mini). */
+  aliases?: readonly string[]
 }
 
 export interface FacetDef {
@@ -52,6 +54,15 @@ export interface FacetDef {
   values?: readonly (string | FacetValue)[]
   /** Tags that say "no value known" and count as untagged (an Unknown language). */
   noValue?: readonly string[]
+  /** The value that alone counts when an item holds it among others (Music: a Compilation, not also an Album). */
+  prevails?: string
+  /**
+   * A flag on top of the main value (Music: Live), not a kind of its own: no
+   * Untagged button, and the tag editor ticks it beside the main pick.
+   */
+  flag?: boolean
+  /** Keep `values` in the written order; otherwise the buttons and the picker go A–Z by shown name. */
+  keepOrder?: boolean
 }
 
 /** What a registry entry declares. Absent or empty: the category has no facets. */
@@ -68,6 +79,10 @@ export interface FacetGroup {
   key: FacetKey
   label: string
   options: FacetOption[]
+  /** Show the options in this order; false: A–Z by the name shown, which only the screen knows (its language). */
+  keepOrder: boolean
+  /** A flag (Live): items without it hold none of the options, so every option on is not the same as All. */
+  flag?: boolean
 }
 
 /** The selected option keys per facet. Nothing selected means nothing hidden. */
@@ -82,26 +97,55 @@ const normal = (tag: string) => tag.trim().toLowerCase()
 const valueOf = (value: string | FacetValue): FacetValue =>
   typeof value === 'string' ? { tag: value, label: value } : value
 
-/** The options an item holds for one facet: matching tags, or Untagged when none match. */
-function optionsOf(item: Taggable, def: FacetDef): FacetOption[] {
+/** The values an item holds for one facet, each once: aliases read as their value, a prevailing value alone. */
+function heldOptions(item: Taggable, def: FacetDef): FacetOption[] {
   const values = def.values?.map(valueOf)
-  const known = values?.map((value) => normal(value.tag))
+  const index = new Map<string, number>()
+  values?.forEach((value, at) => {
+    for (const tag of [value.tag, ...(value.aliases ?? [])]) index.set(normal(tag), at)
+  })
   const empty = def.noValue?.map(normal) ?? []
-  const found: FacetOption[] = []
+  const found = new Map<string, FacetOption>()
 
   for (const raw of item.tags ?? []) {
     // A platform tag reads through the owner's table (10.24c): an old code
     // counts as today's, and shows as the table writes it.
-    const key = def.key === 'platform' ? platformKey(raw) : normal(raw)
+    let key = def.key === 'platform' ? platformKey(raw) : normal(raw)
     if (!key || empty.includes(key)) continue
-    const index = known ? known.indexOf(key) : -1
-    if (known && index < 0) continue
+    const at = values ? index.get(key) : undefined
+    if (values && at === undefined) continue
 
-    const label = values ? values[index]!.label : def.key === 'platform' ? platformCode(raw) : raw.trim()
-    found.push({ key, label })
+    let label: string
+    if (values) {
+      key = normal(values[at!]!.tag)
+      label = values[at!]!.label
+    } else {
+      label = def.key === 'platform' ? platformCode(raw) : raw.trim()
+    }
+    if (!found.has(key)) found.set(key, { key, label })
   }
 
-  return found.length ? found : [{ key: UNTAGGED, label: 'Untagged' }]
+  const prevailing = def.prevails ? found.get(normal(def.prevails)) : undefined
+  if (prevailing) return [prevailing]
+  // In the facet's own order, so a summary reads the same whatever order the tags were written in.
+  const held = [...found.values()]
+  if (values) {
+    const order = values.map((value) => normal(value.tag))
+    held.sort((a, b) => order.indexOf(a.key) - order.indexOf(b.key))
+  }
+  return held
+}
+
+/** The values an item holds for a facet with a fixed set, as the facet writes them (EP → Mini), for the tag editor. */
+export function heldValues(tags: readonly string[] | null | undefined, def: FacetDef): string[] {
+  const values = def.values?.map(valueOf) ?? []
+  return heldOptions({ tags }, def).flatMap((option) => values.find((value) => normal(value.tag) === option.key)?.tag ?? [])
+}
+
+/** The options an item holds for one facet: its values, or Untagged when none match (a flag has no Untagged). */
+function optionsOf(item: Taggable, def: FacetDef): FacetOption[] {
+  const held = heldOptions(item, def)
+  return held.length || def.flag ? held : [{ key: UNTAGGED, label: 'Untagged' }]
 }
 
 /**
@@ -133,7 +177,13 @@ function deriveOne(items: readonly Taggable[], def: FacetDef): FacetGroup | null
   }
 
   const untagged = seen.get(UNTAGGED)
-  return { key: def.key, label: def.label, options: untagged ? [...ordered, untagged] : ordered }
+  return {
+    key: def.key,
+    label: def.label,
+    options: untagged ? [...ordered, untagged] : ordered,
+    keepOrder: def.key === 'platform' || def.keepOrder === true,
+    ...(def.flag ? { flag: true } : {}),
+  }
 }
 
 /** The facets this list's items support under a category's convention, in the convention's order. */
@@ -160,13 +210,18 @@ export function matchesFacets(
   })
 }
 
-/** What the tag column shows for a tag: a facet value's display name, else the tag as written. */
-export function displayTag(tag: string, convention: FacetConvention | undefined): string {
-  const key = normal(tag)
-  for (const def of convention ?? []) {
-    const match = def.values?.map(valueOf).find((value) => normal(value.tag) === key)
-    if (match) return match.label
-  }
-
-  return tag
+/**
+ * What the tag column shows for an item: the value each facet with a fixed set
+ * names, main value first, then any flag (`Mini · Live`, owner 2026-09-27); an
+ * item no value names shows its first tag as written; none, nothing.
+ */
+export function tagSummary(
+  tags: readonly string[] | null | undefined,
+  convention: FacetConvention | undefined,
+): string | undefined {
+  const named = (convention ?? [])
+    .filter((def) => def.values)
+    .flatMap((def) => heldOptions({ tags }, def).map((option) => option.label))
+  if (named.length) return named.join(' · ')
+  return tags?.find((tag) => tag.trim())?.trim()
 }

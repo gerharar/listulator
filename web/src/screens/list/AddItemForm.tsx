@@ -10,7 +10,7 @@ import { PlatformPicker } from '../../components/quantum/PlatformPanel/PlatformP
 import { platformDraft } from '../../components/quantum/PlatformPanel/platformPicks.js'
 import { GroupCombobox } from './GroupCombobox.js'
 import { TagChoice } from './TagChoice.js'
-import { choiceOf, type TagField } from './tagFields.js'
+import { readChoice, writeChoice, type TagField } from './tagFields.js'
 
 /**
  * Whole minutes as typed. Blank is `null` — use the category's default and
@@ -68,7 +68,7 @@ export function AddItemForm({
     tagField?.kind === 'platform'
       ? platformDraft(defaultTags)
       : tagField?.kind === 'choice'
-        ? choiceOf(defaultTags, tagField).slice(0, 1)
+        ? writeChoice([], tagField, readChoice(defaultTags, tagField))
         : [],
   )
   const [pickerAnchor, setPickerAnchor] = useState<HTMLElement | null>(null)
@@ -131,10 +131,9 @@ export function AddItemForm({
         <GroupCombobox label={text.groupLabel} groups={groups} value={group} onChange={setGroup} small />
         {tagField?.kind === 'choice' && (
           <TagChoice
-            label={tagField.label}
-            values={tagField.values}
-            current={tags}
-            onChange={(tag) => setTags(tag ? [tag] : [])}
+            field={tagField}
+            current={readChoice(tags, tagField)}
+            onChange={(next) => setTags(writeChoice(tags, tagField, next))}
           />
         )}
         {tagField?.kind === 'platform' && (

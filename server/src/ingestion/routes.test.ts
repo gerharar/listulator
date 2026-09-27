@@ -49,7 +49,14 @@ describe('GET /api/media-types', () => {
     expect(byKey.get('game')).toEqual([{ key: 'platform', label: 'Platform' }])
     expect(byKey.get('book')).toEqual([{ key: 'language', label: 'Language', noValue: ['Unknown'] }])
     expect(byKey.get('music')).toEqual([
-      { key: 'type', label: 'Type', values: ['Album', 'EP', 'Single', 'Live', 'Compilation'] },
+      {
+        key: 'type',
+        label: 'Type',
+        keepOrder: true,
+        prevails: 'Compilation',
+        values: ['Album', { tag: 'Mini', label: 'Mini', aliases: ['EP', 'Single'] }, 'Compilation'],
+      },
+      { key: 'extra', label: 'Recording', flag: true, values: ['Live'] },
     ])
     expect(byKey.get('animation')).toEqual([{ key: 'type', label: 'Type', values: ['Movie', 'TV'] }])
     // Mega's mediums are the other categories, by the key a list file writes; the label is for people.

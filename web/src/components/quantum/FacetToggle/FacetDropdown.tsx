@@ -58,6 +58,8 @@ export interface FacetDropdownProps {
   onChange: (selected: ReadonlySet<string>) => void
   /** Rendered only to be measured (FilterBar's hidden copy): no popover. */
   measureOnly?: boolean
+  /** As FacetToggle's: false for a flag, whose one option on must still filter. */
+  coversAll?: boolean
 }
 
 /**
@@ -68,7 +70,14 @@ export interface FacetDropdownProps {
  * grows with the picks (owner); it stays open while chips are toggled, and
  * click-away or Esc closes it.
  */
-export function FacetDropdown({ label, options, selected, onChange, measureOnly = false }: FacetDropdownProps) {
+export function FacetDropdown({
+  label,
+  options,
+  selected,
+  onChange,
+  measureOnly = false,
+  coversAll = true,
+}: FacetDropdownProps) {
   const t = copy.quantum.list.filter
   const [anchor, setAnchor] = useState<HTMLElement | null>(null)
   const summary = facetSummary(options, selected)
@@ -103,7 +112,7 @@ export function FacetDropdown({ label, options, selected, onChange, measureOnly 
           <div className="q-pop-head">
             <span className="q-kicker">{t.facetCount(label, options.length)}</span>
           </div>
-          <FacetToggle options={options} selected={selected} onChange={onChange} />
+          <FacetToggle options={options} selected={selected} onChange={onChange} coversAll={coversAll} />
         </Popover>
       )}
     </div>

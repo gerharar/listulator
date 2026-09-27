@@ -45,6 +45,24 @@ const TYPES: MediaType[] = [
     facets: [{ key: 'type', label: 'Medium', values: [{ tag: 'game', label: 'Game' }, { tag: 'movie', label: 'Movie' }] }],
   },
   { key: 'tv', label: 'TV Shows', sortOrder: 2, defaultDurationMinutes: 30, searchAvailable: true, previewable: true },
+  {
+    key: 'music',
+    label: 'Music',
+    sortOrder: 4,
+    defaultDurationMinutes: 45,
+    searchAvailable: true,
+    previewable: true,
+    facets: [
+      {
+        key: 'type',
+        label: 'Type',
+        keepOrder: true,
+        prevails: 'Compilation',
+        values: ['Album', { tag: 'Mini', label: 'Mini', aliases: ['EP', 'Single'] }, 'Compilation'],
+      },
+      { key: 'extra', label: 'Recording', flag: true, values: ['Live'] },
+    ],
+  },
 ]
 
 const item = (id: string, title: string, orderIndex: number, group: string | null, tags: string[] | null): ListItem => ({
@@ -419,5 +437,37 @@ describe('the last opened list', () => {
     await open()
 
     await waitFor(() => expect(store.get('lastOpenedList')).toBe('L1'))
+  })
+})
+
+describe('a Music list (owner, 2026-09-27)', () => {
+  const music = (detail: MediaListDetail) => {
+    detail.items = [
+      item('a', 'Oceanic', 0, null, ['Album']),
+      item('l', 'Live I', 1, null, ['Album', 'Live']),
+      item('e', 'The Red Sea', 2, null, ['EP']),
+      item('c', 'Temporal', 3, null, ['Album', 'Compilation']),
+    ]
+    detail.groups = []
+  }
+
+  it('reads each row’s type, with Live after it: EP as Mini, a compilation as Compilation', async () => {
+    await open('music', music)
+
+    expect(row('a').textContent).toContain('Album')
+    expect(row('l').textContent).toContain('Album · Live')
+    expect(row('e').textContent).toContain('Mini')
+    expect(row('c').textContent).toContain('Compilation')
+    expect(row('c').textContent).not.toContain('Album')
+  })
+
+  it('filters Type and Recording apart: Album with Live on shows live albums only', async () => {
+    await open('music', music)
+    expect(within(bar()).getByText('Recording')).toBeTruthy()
+
+    fireEvent.click(facet('Album'))
+    expect(rowIds()).toEqual(['a', 'l'])
+    fireEvent.click(facet('Live'))
+    expect(rowIds()).toEqual(['l'])
   })
 })

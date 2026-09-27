@@ -666,6 +666,7 @@ export const de: Locale = {
           Medium: 'Medium',
           Language: 'Sprache',
           Platform: 'Plattform',
+          Recording: 'Aufnahme',
         },
         optionLabels: {
           Untagged: 'Ohne Tag',
@@ -685,6 +686,7 @@ export const de: Locale = {
           Album: 'Album',
           EP: 'EP',
           Single: 'Single',
+          Mini: 'Mini',
           Live: 'Live',
           Compilation: 'Compilation',
         },

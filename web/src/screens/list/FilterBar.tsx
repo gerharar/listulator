@@ -1,7 +1,7 @@
 import { useLayoutEffect, useRef, useState } from 'react'
 import { ChevronsDownUp, ChevronsUpDown } from 'lucide-react'
-import type { FacetGroup, FacetKey, FacetSelection } from '../../../../server/src/catalog/facets.js'
-import { copy } from '../../locale/index.js'
+import { UNTAGGED, type FacetGroup, type FacetKey, type FacetSelection } from '../../../../server/src/catalog/facets.js'
+import { compareShown, copy } from '../../locale/index.js'
 import { FacetToggle, type FacetOption } from '../../components/quantum/FacetToggle/FacetToggle.js'
 import { FacetDropdown, facetsToCompact } from '../../components/quantum/FacetToggle/FacetDropdown.js'
 import { platformFullName } from '../../components/quantum/PlatformChip/PlatformChip.js'
@@ -19,16 +19,23 @@ export interface FilterBarProps {
   note: string
 }
 
-/** Its options as the facet components take them: labels translated, platforms named in full. */
+/**
+ * Its options as the facet components take them: labels translated, platforms
+ * named in full, and A–Z by the name shown, Untagged last, unless the facet
+ * keeps its own order (owner, 2026-09-27: Music's Album, Mini, Compilation).
+ */
 function facetOptions(facet: FacetGroup): FacetOption[] {
   const t = copy.quantum.list.filter
-  return facet.options.map((option) => ({
+  const options = facet.options.map((option) => ({
     key: option.key,
     label: t.optionLabels[option.label] ?? option.label,
     ...(facet.key === 'platform' && platformFullName(option.label)
       ? { name: platformFullName(option.label)! }
       : {}),
   }))
+  if (facet.keepOrder) return options
+  const last = (option: FacetOption) => (option.key === UNTAGGED ? 1 : 0)
+  return options.sort((a, b) => last(a) - last(b) || compareShown(a.label, b.label))
 }
 
 /**
@@ -80,6 +87,7 @@ export function FilterBar({ text, onText, facets, selection, onSelect, fold, not
     options: facetOptions(facet),
     selected: selection[facet.key] ?? new Set<string>(),
     onChange: (selected: ReadonlySet<string>) => onSelect(facet.key, selected),
+    coversAll: !facet.flag,
   })
 
   return (

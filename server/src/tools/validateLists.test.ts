@@ -24,6 +24,16 @@ describe('validateListFiles', () => {
     expect(validateListFiles([path], CATEGORIES)).toEqual([])
   })
 
+  it('accepts a Music list tagged Mini, EP, Single and Live alike (owner, 2026-09-27)', () => {
+    const path = join(dir, 'music.yaml')
+    writeFileSync(
+      path,
+      'title: X\ncategory: music\nitems:\n  - { title: A, tags: [Mini] }\n  - { title: B, tags: [EP, Live] }\n  - { title: C, tags: [Single] }\n',
+    )
+
+    expect(validateListFiles([path], new Set(['music']), new Set(['game']))).toEqual([])
+  })
+
   it('reports one error per malformed file, each naming its own path', () => {
     const bad = join(dir, 'bad.yaml')
     const good = join(dir, 'good.yaml')

@@ -173,6 +173,7 @@ const SAME_AS_ENGLISH: Record<'ru' | 'de', readonly string[]> = {
     'quantum.list.filter.optionLabels.EP',
     'quantum.list.filter.optionLabels.Single',
     'quantum.list.filter.optionLabels.Live',
+    'quantum.list.filter.optionLabels.Mini',
     'quantum.list.filter.optionLabels.Compilation',
     'quantum.importFile.boxLabel',
     'quantum.home.helpButtons.finalizer',

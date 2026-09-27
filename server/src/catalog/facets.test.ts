@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   UNTAGGED,
   deriveFacets,
-  displayTag,
+  tagSummary,
   matchesFacets,
   type FacetConvention,
   type FacetSelection,
@@ -161,18 +161,72 @@ describe('matchesFacets', () => {
   })
 })
 
-describe('displayTag (the tag column reads through the same map as the facet)', () => {
-  const medium: FacetConvention = [
-    { key: 'type', label: 'Medium', values: [{ tag: 'game', label: 'Game' }, 'EP'] },
+/**
+ * Music's Type (owner, 2026-09-27): one of Album, Mini (EP or Single, as the
+ * source wrote it), Compilation, which prevails over the other two; Live is a
+ * flag on top, filtered as its own facet so Album + Live means live albums.
+ */
+describe('a main value with aliases, a prevailing value, and a flag', () => {
+  const MUSIC: FacetConvention = [
+    {
+      key: 'type',
+      label: 'Type',
+      keepOrder: true,
+      prevails: 'Compilation',
+      values: ['Album', { tag: 'Mini', label: 'Mini', aliases: ['EP', 'Single'] }, 'Compilation'],
+    },
+    { key: 'extra', label: 'Recording', flag: true, values: ['Live'] },
   ]
 
-  it('shows a value\u2019s display name whatever the tag\u2019s spelling', () => {
-    expect(displayTag('GAME', medium)).toBe('Game')
-    expect(displayTag('ep', medium)).toBe('EP')
+  it('reads EP and Single as Mini, once, whatever the case', () => {
+    expect(options(MUSIC, [item('EP'), item('single'), item('Mini')], 'type')).toEqual(['Mini'])
+    expect(options(MUSIC, [item('EP', 'Single')], 'type')).toEqual(['Mini'])
   })
 
-  it('leaves a tag no value names as it is written', () => {
-    expect(displayTag('podcast', medium)).toBe('podcast')
-    expect(displayTag('PS3', undefined)).toBe('PS3')
+  it('counts a compilation as a Compilation only, not also an Album', () => {
+    expect(options(MUSIC, [item('Album', 'Compilation')], 'type')).toEqual(['Compilation'])
+    const albums: FacetSelection = { type: new Set(['album']) }
+    expect(matchesFacets(item('Album', 'Compilation'), MUSIC, albums)).toBe(false)
+    expect(matchesFacets(item('Album', 'Live'), MUSIC, albums)).toBe(true)
+  })
+
+  it('offers the flag as its own facet, without an Untagged button, and only when an item has it', () => {
+    expect(deriveFacets([item('Album', 'Live'), item('EP')], MUSIC).map((facet) => facet.key)).toEqual(['type', 'extra'])
+    expect(options(MUSIC, [item('Album', 'Live'), item('EP')], 'extra')).toEqual(['Live'])
+    expect(deriveFacets([item('Album', 'Live')], MUSIC).map((facet) => facet.flag ?? false)).toEqual([false, true])
+    expect(deriveFacets([item('Album'), item('EP')], MUSIC).map((facet) => facet.key)).toEqual(['type'])
+  })
+
+  it('narrows to live albums when Album and Live are both on', () => {
+    const liveAlbums: FacetSelection = { type: new Set(['album']), extra: new Set(['live']) }
+    expect(matchesFacets(item('Album', 'Live'), MUSIC, liveAlbums)).toBe(true)
+    expect(matchesFacets(item('Album'), MUSIC, liveAlbums)).toBe(false)
+    expect(matchesFacets(item('EP', 'Live'), MUSIC, liveAlbums)).toBe(false)
+  })
+
+  it('counts an item with only Live as untagged for Type', () => {
+    expect(options(MUSIC, [item('Live'), item('Album')], 'type')).toEqual(['Album', 'Untagged'])
+  })
+
+  it('says whether a facet keeps its written order; platforms keep theirs, the rest go A–Z where shown', () => {
+    const groups = deriveFacets([item('Album', 'Live')], MUSIC)
+    expect(groups.map((facet) => facet.keepOrder)).toEqual([true, false])
+    expect(deriveFacets([item('PS3')], platform)[0]!.keepOrder).toBe(true)
+    expect(deriveFacets([item('English')], books)[0]!.keepOrder).toBe(false)
+  })
+
+  it('sums an item up for the tag column: the main value, then the flag', () => {
+    expect(tagSummary(['EP', 'Live'], MUSIC)).toBe('Mini · Live')
+    expect(tagSummary(['Album', 'Compilation'], MUSIC)).toBe('Compilation')
+    expect(tagSummary(['Live'], MUSIC)).toBe('Live')
+    expect(tagSummary(['Split', 'EP'], MUSIC)).toBe('Mini')
+  })
+
+  it('falls back to the first tag as written when no value names any, and to nothing without tags', () => {
+    expect(tagSummary(['Remix'], MUSIC)).toBe('Remix')
+    expect(tagSummary(['GAME'], [{ key: 'type', label: 'Medium', values: [{ tag: 'game', label: 'Game' }] }])).toBe('Game')
+    expect(tagSummary(['English'], books)).toBe('English')
+    expect(tagSummary(null, MUSIC)).toBeUndefined()
+    expect(tagSummary([], MUSIC)).toBeUndefined()
   })
 })

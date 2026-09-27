@@ -10,7 +10,7 @@ import { platformDraft } from '../../components/quantum/PlatformPanel/platformPi
 import { GroupCombobox } from './GroupCombobox.js'
 import { buildEditPatch, type ItemPatch } from './itemActions.js'
 import { TagChoice } from './TagChoice.js'
-import { choiceOf, withChoice, type TagField } from './tagFields.js'
+import { readChoice, sameChoice, writeChoice, type TagField } from './tagFields.js'
 
 export interface ItemEditPopoverProps {
   item: ListItem
@@ -63,7 +63,7 @@ export function ItemEditPopover({
   // so an edit of the title never rewrites an old spelling (PC) the item still carries.
   const [platforms, setPlatforms] = useState(() => platformDraft(item.tags))
   const choice = tagField?.kind === 'choice' ? tagField : null
-  const [chosen, setChosen] = useState(() => (choice ? choiceOf(item.tags, choice) : []))
+  const [chosen, setChosen] = useState(() => (choice ? readChoice(item.tags, choice) : null))
   const [panelOpen, setPanelOpen] = useState(openPanel && tagField?.kind === 'platform')
   const [source, setSource] = useState<ItemSourceTags | null>(null)
   const editRef = useRef<HTMLDivElement>(null)
@@ -95,8 +95,8 @@ export function ItemEditPopover({
 
   let tags: string[] | undefined
   if (tagField?.kind === 'platform' && joined(platforms) !== joined(platformDraft(item.tags))) tags = platforms
-  if (choice && joined(chosen) !== joined(choiceOf(item.tags, choice))) {
-    tags = withChoice(item.tags, choice, chosen[0] ?? null)
+  if (choice && chosen && !sameChoice(chosen, readChoice(item.tags, choice))) {
+    tags = writeChoice(item.tags, choice, chosen)
   }
 
   const patch = buildEditPatch(item, { title, minutes, group, ...(tags ? { tags } : {}) })
@@ -167,12 +167,7 @@ export function ItemEditPopover({
           </div>
         )}
         {choice && (
-          <TagChoice
-            label={choice.label}
-            values={choice.values}
-            current={chosen}
-            onChange={(tag) => setChosen(tag ? [tag] : [])}
-          />
+          <TagChoice field={choice} current={chosen!} onChange={setChosen} />
         )}
         <div className="q-edit-actions">
           <Button size="sm" variant="quiet" onClick={onDiscard}>

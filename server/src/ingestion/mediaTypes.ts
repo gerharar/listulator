@@ -219,7 +219,18 @@ export function createDefaultMediaTypes({
       defaultDurationMinutes: 45,
       adapter: createMusicBrainzAdapter(fetchImpl.musicbrainz),
       sourceName: 'MusicBrainz',
-      facets: [{ key: 'type', label: 'Type', values: ['Album', 'EP', 'Single', 'Live', 'Compilation'] }],
+      // One Type (owner, 2026-09-27): Mini covers EP and Single, kept as the source wrote them;
+      // a Compilation is that before its size. Live rides on top, filtered as its own facet.
+      facets: [
+        {
+          key: 'type',
+          label: 'Type',
+          keepOrder: true,
+          prevails: 'Compilation',
+          values: ['Album', { tag: 'Mini', label: 'Mini', aliases: ['EP', 'Single'] }, 'Compilation'],
+        },
+        { key: 'extra', label: 'Recording', flag: true, values: ['Live'] },
+      ],
     },
     // Lengths vary from three minutes to three hours, so this default is more
     // placeholder than estimate — real durations come from the API.

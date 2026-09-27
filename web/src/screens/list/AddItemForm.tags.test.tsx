@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { OverlayManagerProvider, useEscLadder } from '../../components/quantum/overlay/OverlayManagerContext.js'
 import { AddItemForm } from './AddItemForm.js'
 import { tagField } from './tagFields.js'
@@ -100,6 +100,63 @@ describe('AddItemForm — a short fixed set (U5)', () => {
     fireEvent.click(addButton())
 
     await waitFor(() => expect(onAdd).toHaveBeenCalledWith({ title: 'Halo', minutes: null, group: '', tags: ['game'] }))
+  })
+})
+
+describe('AddItemForm — the Type/Medium list closes without focus (WebKit never focuses a clicked button)', () => {
+  it('closes on a press anywhere past it, and not on a press inside it', () => {
+    renderForm({ tagField: MEGA })
+    fireEvent.click(screen.getByRole('button', { name: /^Medium:/ }))
+    fireEvent.pointerDown(screen.getByRole('listbox'))
+    expect(screen.queryByRole('listbox')).toBeTruthy()
+
+    fireEvent.pointerDown(document.body)
+    fireEvent.pointerUp(document.body)
+    fireEvent.click(document.body)
+    expect(screen.queryByRole('listbox')).toBeNull()
+  })
+
+  it('a click past it only closes it, like every other picker: the button under it does not act (owner)', async () => {
+    const { onAdd } = renderForm({ tagField: MEGA })
+    fireEvent.change(title(), { target: { value: 'Halo' } })
+    fireEvent.click(screen.getByRole('button', { name: /^Medium:/ }))
+
+    fireEvent.pointerDown(addButton())
+    fireEvent.pointerUp(addButton())
+    fireEvent.click(addButton())
+    expect(screen.queryByRole('listbox')).toBeNull()
+    await act(async () => {})
+    expect(onAdd).not.toHaveBeenCalled()
+
+    // The next click acts as usual.
+    fireEvent.pointerDown(addButton())
+    fireEvent.pointerUp(addButton())
+    fireEvent.click(addButton())
+    await waitFor(() => expect(onAdd).toHaveBeenCalledTimes(1))
+  })
+
+  it('a press past it that never becomes a click (a drag) leaves the next click alone', async () => {
+    const { onAdd } = renderForm({ tagField: MEGA })
+    fireEvent.change(title(), { target: { value: 'Halo' } })
+    fireEvent.click(screen.getByRole('button', { name: /^Medium:/ }))
+
+    fireEvent.pointerDown(document.body)
+    fireEvent.pointerUp(document.body)
+    await act(() => new Promise((done) => setTimeout(done, 0)))
+    // A key's click: no press before it.
+    fireEvent.click(addButton())
+
+    await waitFor(() => expect(onAdd).toHaveBeenCalledTimes(1))
+  })
+
+  it('closes on Esc wherever focus is, and the Esc goes no further', () => {
+    renderForm({ tagField: MEGA })
+    fireEvent.click(screen.getByRole('button', { name: /^Medium:/ }))
+    // fireEvent answers false when the event was cancelled.
+    const notCancelled = fireEvent.keyDown(document.body, { key: 'Escape' })
+
+    expect(screen.queryByRole('listbox')).toBeNull()
+    expect(notCancelled).toBe(false)
   })
 })
 

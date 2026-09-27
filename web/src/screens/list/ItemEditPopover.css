@@ -61,3 +61,34 @@
   flex: none;
   color: var(--ink3);
 }
+
+/* A flag under the values (Music: Live), ticked on top of the pick: a rule above the first, the Platform panel's box. */
+.q-combo-list li.q-tagchoice-flag {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.q-combo-list li.q-tagchoice-flag.active {
+  background: transparent;
+}
+.q-combo-list li.q-tagchoice-flag:hover {
+  background: var(--hover);
+}
+.q-combo-list li.q-tagchoice-flag-first {
+  margin-top: 4px;
+  border-top: 1px solid var(--line);
+  padding-top: 10px;
+}
+.q-tagchoice-box {
+  flex: none;
+  width: 15px;
+  height: 15px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--rule);
+}
+.q-combo-list li.active .q-tagchoice-box {
+  background: var(--accent);
+  color: var(--accentInk);
+  border-color: var(--accent);
+}

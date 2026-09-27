@@ -14,6 +14,7 @@ const platform: FacetGroup = {
     { key: 'pc', label: 'PC' },
     { key: '__untagged', label: 'Untagged' },
   ],
+  keepOrder: true,
 }
 
 function bar(over: Partial<FilterBarProps> = {}) {
@@ -55,6 +56,27 @@ describe('FilterBar', () => {
     bar({ facets: [platform] })
     expect(screen.getByText('Platform')).toBeTruthy()
     for (const name of ['All', 'PS3', 'PC', 'Untagged']) expect(screen.getByRole('button', { name })).toBeTruthy()
+  })
+
+  it('puts a facet’s options A–Z by shown name, Untagged last, unless it keeps its own order (owner, 2026-09-27)', () => {
+    const medium: FacetGroup = {
+      key: 'type',
+      label: 'Medium',
+      options: [
+        { key: 'movie', label: 'Movie' },
+        { key: '__untagged', label: 'Untagged' },
+        { key: 'game', label: 'Game' },
+        { key: 'book', label: 'Book' },
+      ],
+      keepOrder: false,
+    }
+    bar({ facets: [medium] })
+    const names = () => screen.getAllByRole('button').map((button) => button.textContent).filter((name) => name !== 'All')
+    expect(names().slice(0, 4)).toEqual(['Book', 'Game', 'Movie', 'Untagged'])
+
+    cleanup()
+    bar({ facets: [{ ...medium, keepOrder: true }] })
+    expect(names().slice(0, 4)).toEqual(['Movie', 'Untagged', 'Game', 'Book'])
   })
 
   it('toggles an option additively and clears with All', () => {
