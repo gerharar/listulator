@@ -32,6 +32,10 @@ describe('parsePlatformsCsv', () => {
     expect(() => parsePlatformsCsv('igdb_id;name;abbreviation\n200;Amazon Fire TV;FireTV\n')).toThrow(/line 2.*capitals/)
   })
 
+  it('refuses a code of digits only (YAML reads a bare 2600 as a number, so a list file could not use it)', () => {
+    expect(() => parsePlatformsCsv('igdb_id;name;abbreviation\n59;Atari 2600;2600\n')).toThrow(/line 2.*2600.*digits/)
+  })
+
   it('refuses a name or code with spaces around it', () => {
     expect(() => parsePlatformsCsv('igdb_id;name;abbreviation\n6;Windows ;WIN\n')).toThrow(/line 2/)
   })

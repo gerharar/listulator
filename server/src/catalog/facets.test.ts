@@ -67,10 +67,10 @@ describe('deriveFacets', () => {
   })
 
   it('sorts character by character, digits before letters, as a reader scanning the codes expects', () => {
-    expect(options(platform, [item('NES'), item('3DS'), item('32X'), item('2600')], 'platform')).toEqual([
-      '2600',
+    expect(options(platform, [item('NES'), item('3DS'), item('32X'), item('A2600')], 'platform')).toEqual([
       '32X',
       '3DS',
+      'A2600',
       'NES',
     ])
   })

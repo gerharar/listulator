@@ -96,7 +96,8 @@ case), or `multi` for "the same game on every platform it shipped on":
 
 The check below refuses a code that is not in that file, including older
 codes the app still reads (`PC` is now `WIN`). To add or rename a platform,
-edit `config/platforms.csv` (codes in capitals), then run
+edit `config/platforms.csv` (codes in capitals, never digits only: a bare
+`2600` is a number to YAML, so Atari 2600 is `A2600`), then run
 `npm run platforms:generate -w server` and commit both files.
 `npm run platforms:check -w server` (needs IGDB keys in `.env`) lists any
 platform IGDB has that the file lacks; games on those import untagged.

@@ -21,7 +21,8 @@ export const PLATFORMS: Readonly<Record<string, string>> = Object.fromEntries([
 /**
  * The table's own filter order — an unknown code sorts after all of these.
  * Built from the table, never from `Object.keys(PLATFORMS)`: an object lists
- * number-like keys (2600, 5200, 7800) first, whatever order they were added in.
+ * number-like keys first, whatever order they were added in (the table has
+ * none today, and the generator refuses one, but the order must not hinge on it).
  */
 export const PLATFORM_ORDER: readonly string[] = [...PLATFORM_TABLE.map(({ code }) => code.toLowerCase()), 'multi']
 
@@ -36,10 +37,15 @@ const CODES: Readonly<Record<string, string>> = Object.fromEntries([
  * the IGDB abbreviations the importer stored as plain text until 10.24c
  * (GENESIS/MEGADRIVE is GEN). Read-time only, so nothing in a database is
  * rewritten. Built once from the importer's old output against the new table;
- * none of these keys is a code in the table (a test checks).
+ * none of these keys is a code in the table (a test checks). The table's own
+ * first Atari codes (2600, 5200, 7800, digits only until 2026-09-27) are here
+ * too, so a tag an IGDB import stored with them still reads.
  */
 export const LEGACY_PLATFORM_TAGS: Readonly<Record<string, string>> = {
+  "2600": "A2600",
+  "5200": "A5200",
   "64dd": "N64",
+  "7800": "A7800",
   "acorn archimedes": "ACORN",
   "acorn electron": "ELK",
   "acpc": "CPC",
@@ -53,9 +59,9 @@ export const LEGACY_PLATFORM_TAGS: Readonly<Record<string, string>> = {
   "arduboy": "ABOY",
   "astrocade": "ASTR",
   "atari-st": "ST",
-  "atari2600": "2600",
-  "atari5200": "5200",
-  "atari7800": "7800",
+  "atari2600": "A2600",
+  "atari5200": "A5200",
+  "atari7800": "A7800",
   "atari8bit": "A8",
   "bbcmicro": "BBCM",
   "blackberry": "BBOS",

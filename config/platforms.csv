@@ -50,7 +50,7 @@ igdb_id;name;abbreviation
 381;Playdate;PDT
 21;Nintendo GameCube;GCN
 149;PC-98;PC-98
-59;Atari 2600;2600
+59;Atari 2600;A2600
 377;Dedicated hardware;STD
 23;Dreamcast;DC
 159;Nintendo DS;DS
@@ -94,7 +94,7 @@ igdb_id;name;abbreviation
 238;DVD Player;DVD
 407;Mattel HyperScan;HS
 151;TRS-80 Color Computer;COCO
-66;Atari 5200;5200
+66;Atari 5200;A5200
 84;SG-1000;SG1K
 61;Atari Lynx;LNX
 57;WonderSwan;WS
@@ -111,7 +111,7 @@ igdb_id;name;abbreviation
 153;Dragon 32/64;DRG
 120;Neo Geo Pocket Color;NGCP
 405;Windows Mobile;WINM
-60;Atari 7800;7800
+60;Atari 7800;A7800
 137;Nintendo 3DS;3DS
 70;Vectrex;VEC
 157;PC-60;PC-6X

@@ -45,6 +45,8 @@ export function parsePlatformsCsv(text: string): PlatformRow[] {
     if (name !== name.trim() || code !== code.trim()) throw new Error(`${at}: spaces around a name or code`)
     if (!name || !code) throw new Error(`${at}: the name and the code are both required`)
     if (code !== code.toUpperCase()) throw new Error(`${at}: the code "${code}" must be in capitals`)
+    // YAML reads a bare 2600 as a number, and a list file's tags must be text.
+    if (/^\d+$/.test(code)) throw new Error(`${at}: the code "${code}" is digits only; give it a letter (A2600)`)
     rows.push({ igdbId: Number(id), name, code })
   })
 

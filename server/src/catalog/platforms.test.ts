@@ -7,8 +7,7 @@ describe('the platform table (config/platforms.csv, 10.24c)', () => {
     expect(PLATFORM_ORDER[0]).toBe('win')
     expect(PLATFORM_ORDER.at(-1)).toBe('multi')
     expect(new Set(PLATFORM_ORDER).size).toBe(PLATFORM_ORDER.length)
-    // Number-like codes keep their place in the file, not an object's integer-first order.
-    expect(PLATFORM_ORDER.indexOf('2600')).toBeGreaterThan(PLATFORM_ORDER.indexOf('win'))
+    expect(PLATFORM_ORDER.indexOf('a2600')).toBeGreaterThan(PLATFORM_ORDER.indexOf('win'))
   })
 
   it('maps every platform IGDB has (recorded 2026-09-27) to a code', () => {
@@ -16,6 +15,8 @@ describe('the platform table (config/platforms.csv, 10.24c)', () => {
 
     expect(unmapped).toEqual([])
     expect(igdbPlatformCode(6)).toBe('WIN')
+    // Atari's consoles carry a letter: a code of digits alone is a number to YAML (owner, 2026-09-27).
+    expect([59, 66, 60].map(igdbPlatformCode)).toEqual(['A2600', 'A5200', 'A7800'])
   })
 })
 
@@ -23,6 +24,11 @@ describe('reading a tag', () => {
   it('matches a code whatever its case', () => {
     expect(platformKey('win')).toBe('win')
     expect(platformKey(' Win ')).toBe('win')
+  })
+
+  it('reads the digits-only Atari codes the table used before as today’s codes', () => {
+    expect(['2600', '5200', '7800', 'atari2600'].map(platformCode)).toEqual(['A2600', 'A5200', 'A7800', 'A2600'])
+    expect(platformName('2600')).toBe('Atari 2600')
   })
 
   it('no old tag it translates is itself a code in the table', () => {
