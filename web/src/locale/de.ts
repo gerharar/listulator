@@ -1,4 +1,5 @@
 import { selectPlural } from './plural.js'
+import type { RichText } from './types.js'
 import type { Locale } from './en.js'
 
 /**
@@ -703,6 +704,16 @@ export const de: Locale = {
       lines: (n: number): string => lines(n),
       footer:
         'Listulator-Listen reisen als YAML-Dateien. Der Export schreibt eine, der Import liest sie als neue Liste wieder ein.',
+      otherCategoryKicker: 'Andere Kategorie',
+      otherCategoryQuestion: (fileCategory: string): string => `In „${fileCategory}“ importieren?`,
+      otherCategoryNote: (current: string, fileCategory: string): RichText => [
+        'Aktuelle Kategorie ist ',
+        { strong: `„${current}“` },
+        ', die importierte Liste gehört zu ',
+        { strong: `„${fileCategory}“` },
+        '.',
+      ],
+      back: 'Zurück',
       importFailed: 'Die Datei konnte nicht importiert werden, die Liste kann nicht importiert werden.',
     },
     createList: {

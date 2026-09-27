@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react'
 import { Popover, type PopoverWidth } from '../Popover/Popover.js'
 import { Button } from '../Button/Button.js'
 import { copy } from '../../../locale/index.js'
@@ -13,8 +14,8 @@ export interface ConfirmPopoverProps {
   cost?: string
   /** The question in words — `Delete "Star Wars: Main Saga"?`, never just "Delete?". */
   question: string
-  /** States the cost before the buttons. */
-  note: string
+  /** States the cost before the buttons; may set words in bold (U3). */
+  note: ReactNode
   onKeep: () => void
   keepLabel?: string
   onConfirm: () => void

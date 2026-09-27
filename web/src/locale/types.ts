@@ -28,3 +28,10 @@ export type DeepPartial<T> = T extends (...args: infer Args) => infer Return
     : T extends object
       ? { [K in keyof T]?: DeepPartial<T[K]> }
       : T
+
+/**
+ * A sentence with some words set in bold, for a sentence whose names should
+ * stand out (the U3 import question). Plain data, so locale files stay free of
+ * React; `RichText` renders it.
+ */
+export type RichText = readonly (string | { readonly strong: string })[]

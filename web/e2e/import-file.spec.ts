@@ -4,10 +4,10 @@ import { expect, test, type Page } from '@playwright/test'
  * Import a file (task 10.14), against the real parser on the dev server. Only
  * the valid-file test writes, and it cleans up in a `finally`.
  */
-async function openImport(page: Page) {
+async function openImport(page: Page, category = 'Movies') {
   await page.goto('/')
   await page.getByRole('button', { name: 'New List' }).click()
-  await page.locator('.q-tile').first().click()
+  await page.locator('.q-tile', { hasText: new RegExp(`^${category}`) }).click()
   await page.getByRole('tab', { name: 'Import a file' }).click()
 }
 
@@ -73,5 +73,41 @@ test('a valid file becomes a list with no done marks and its notes intact', asyn
     ])
   } finally {
     await page.request.delete(`/api/lists/${id}`)
+  }
+})
+
+test('a file of another category asks first; Back keeps the text, Import puts it in its own category (U3)', async ({
+  page,
+}) => {
+  await openImport(page, 'Games')
+
+  const title = `e2e import other ${Date.now()}`
+  await box(page).fill(`title: ${title}\ncategory: movie\nitems:\n  - { title: Alpha }\n`)
+  await page.getByRole('button', { name: 'Import', exact: true }).click()
+
+  const question = page.getByRole('dialog')
+  await expect(question.getByText('Import to Movies?')).toBeVisible()
+  await expect(
+    question.getByText("Current category is Games, the list you're importing is from Movies."),
+  ).toBeVisible()
+  await page.screenshot({ path: test.info().outputPath('u3-question.png') })
+
+  await question.getByRole('button', { name: 'Back' }).click()
+  await expect(question).toBeHidden()
+  await expect(box(page)).toHaveValue(new RegExp(title))
+
+  await page.getByRole('button', { name: 'Import', exact: true }).click()
+  await page.getByRole('dialog').getByRole('button', { name: 'Import', exact: true }).click()
+  await expect(page.getByRole('heading', { name: title })).toBeVisible()
+
+  const all: { id: string; title: string; mediaType: string }[] = await (
+    await page.request.get('/api/lists')
+  ).json()
+  const made = all.find((entry) => entry.title === title)
+  expect(made).toBeTruthy()
+  try {
+    expect(made?.mediaType).toBe('movie')
+  } finally {
+    await page.request.delete(`/api/lists/${made?.id}`)
   }
 })

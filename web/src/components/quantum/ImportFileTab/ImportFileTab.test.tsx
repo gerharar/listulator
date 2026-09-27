@@ -1,8 +1,9 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
-import { ApiError, api } from '../../../lib/api.js'
-import { ImportFileTab } from './ImportFileTab.js'
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
+import { ApiError, api, type MediaType } from '../../../lib/api.js'
+import { OverlayManagerProvider } from '../overlay/OverlayManagerContext.js'
+import { ImportFileTab, peekCategory } from './ImportFileTab.js'
 
 vi.mock('../../../lib/api.js', async () => {
   class MockApiError extends Error {
@@ -26,6 +27,7 @@ afterEach(() => {
 const YAML = 'title: X\ncategory: movie\nitems:\n  - { title: A }\n'
 
 const box = () => screen.getByLabelText(/^YAML/) as HTMLTextAreaElement
+const dialog = () => screen.getByRole('dialog')
 const importButton = () => screen.getByRole('button', { name: /^Import/ }) as HTMLButtonElement
 
 function chooseFile(text: string, name = 'comfort-rewatches.yaml', size = text.length) {
@@ -34,8 +36,17 @@ function chooseFile(text: string, name = 'comfort-rewatches.yaml', size = text.l
   fireEvent.change(input, { target: { files: [file] } })
 }
 
-function renderTab(onBuilt = vi.fn()) {
-  render(<ImportFileTab onBuilt={onBuilt} />)
+const MEDIA_TYPES = [
+  { key: 'movie', label: 'Movies' },
+  { key: 'game', label: 'Games' },
+] as MediaType[]
+
+function renderTab(onBuilt = vi.fn(), mediaTypeKey = 'movie') {
+  render(
+    <OverlayManagerProvider>
+      <ImportFileTab mediaTypes={MEDIA_TYPES} mediaTypeKey={mediaTypeKey} onBuilt={onBuilt} />
+    </OverlayManagerProvider>,
+  )
   return onBuilt
 }
 
@@ -111,6 +122,65 @@ describe('ImportFileTab', () => {
 
     await waitFor(() => expect(onBuilt).toHaveBeenCalledWith('L9'))
     expect(api.createFromFile).toHaveBeenCalledWith({ yaml: YAML })
+    // Same category as the screen: nothing to ask.
+    expect(screen.queryByRole('dialog')).toBeNull()
+  })
+
+  it('asks before importing a file of another category, naming both (U3)', async () => {
+    vi.mocked(api.createFromFile).mockResolvedValue({ id: 'L9' } as never)
+    const onBuilt = renderTab(vi.fn(), 'game')
+
+    fireEvent.change(box(), { target: { value: YAML } })
+    fireEvent.click(importButton())
+
+    expect(screen.getByText('Import to Movies?')).not.toBeNull()
+    const note = within(dialog()).getByText(/^Current category is/)
+    expect(note.textContent).toBe("Current category is Games, the list you're importing is from Movies.")
+    // Both names stand out, in the note's own font.
+    expect([...note.querySelectorAll('strong')].map((name) => name.textContent)).toEqual([
+      'Games',
+      'Movies',
+    ])
+    expect(api.createFromFile).not.toHaveBeenCalled()
+
+    fireEvent.click(within(dialog()).getByRole('button', { name: 'Import' }))
+
+    await waitFor(() => expect(onBuilt).toHaveBeenCalledWith('L9'))
+    expect(api.createFromFile).toHaveBeenCalledWith({ yaml: YAML })
+  })
+
+  it('Back closes the question and keeps the text, importing nothing (U3)', () => {
+    renderTab(vi.fn(), 'game')
+
+    fireEvent.change(box(), { target: { value: YAML } })
+    fireEvent.click(importButton())
+    fireEvent.click(within(dialog()).getByRole('button', { name: 'Back' }))
+
+    expect(screen.queryByText('Import to Movies?')).toBeNull()
+    expect(box().value).toBe(YAML)
+    expect(api.createFromFile).not.toHaveBeenCalled()
+  })
+
+  it('leaves an unknown category or unreadable text to the server to refuse (U3)', async () => {
+    vi.mocked(api.createFromFile).mockRejectedValue(new Error('Unknown category "comics".'))
+    renderTab(vi.fn(), 'game')
+
+    fireEvent.change(box(), { target: { value: 'title: X\ncategory: comics\n' } })
+    fireEvent.click(importButton())
+    await waitFor(() => expect(screen.getByText('Unknown category "comics".')).not.toBeNull())
+
+    fireEvent.change(box(), { target: { value: 'title: [unclosed' } })
+    fireEvent.click(importButton())
+    await waitFor(() => expect(api.createFromFile).toHaveBeenCalledTimes(2))
+    expect(screen.queryByRole('dialog')).toBeNull()
+  })
+
+  it('peeks the category a file names, if it can read one', () => {
+    expect(peekCategory(YAML)).toBe('movie')
+    expect(peekCategory('title: X\n')).toBeUndefined()
+    expect(peekCategory('category: [movie]\n')).toBeUndefined()
+    expect(peekCategory('title: [unclosed')).toBeUndefined()
+    expect(peekCategory('- a list\n')).toBeUndefined()
   })
 
   it('locks everything while importing', async () => {

@@ -72,7 +72,9 @@ export function CreateList({ mediaTypes, mediaTypeKey }: CreateListProps) {
       <div className="q-create-body">
         {active === 'search' && mediaType && <SearchTab mediaType={mediaType} onBuilt={built} />}
         {active === 'hand' && mediaType && <AddByHandTab mediaType={mediaType} onBuilt={built} />}
-        {active === 'import' && <ImportFileTab onBuilt={built} />}
+        {active === 'import' && mediaType && (
+          <ImportFileTab mediaTypes={mediaTypes} mediaTypeKey={mediaType.key} onBuilt={built} />
+        )}
       </div>
     </div>
   )

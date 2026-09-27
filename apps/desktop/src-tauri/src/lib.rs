@@ -50,15 +50,26 @@ pub fn run() {
         PENDING_FULLSCREEN.store(true, Ordering::SeqCst);
         // Don't wait for a click: an app started from a background process (a
         // terminal, `tauri dev`) is not brought to the front by macOS, so the first
-        // focus may never come. Shortly after the window is up, bring it forward
-        // and enter full screen; the focus hook below stays as the fallback.
+        // focus may never come. Bring the window forward and enter full screen, then
+        // check: macOS ignores the request while the window is not on screen yet (a
+        // slow launch), so a single attempt at a fixed delay could silently miss.
+        // Each check waits out the ~1 s full-screen animation before asking again,
+        // so a transition in progress is never toggled back. The focus hook stays
+        // as the fallback.
         if let Some(window) = app.get_webview_window("main") {
           std::thread::spawn(move || {
             std::thread::sleep(std::time::Duration::from_millis(300));
-            if PENDING_FULLSCREEN.swap(false, Ordering::SeqCst) {
+            for attempt in 1..=5 {
+              if window.is_fullscreen().unwrap_or(false) {
+                PENDING_FULLSCREEN.store(false, Ordering::SeqCst);
+                log::info!("full screen restored after {} request(s)", attempt - 1);
+                return;
+              }
               let _ = window.set_focus();
               let _ = window.set_fullscreen(true);
+              std::thread::sleep(std::time::Duration::from_millis(1500));
             }
+            log::warn!("full screen not restored after 5 attempts");
           });
         }
       }

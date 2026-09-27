@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import type { MediaType } from '../../../lib/api.js'
 import { LayerStackProvider } from '../layerStack/LayerStackContext.js'
+import { OverlayManagerProvider } from '../overlay/OverlayManagerContext.js'
 import { CreateList } from './CreateList.js'
 
 vi.mock('../../../lib/api.js', () => ({
@@ -50,9 +51,11 @@ function renderCreate(key: string, mediaTypes: MediaType[] = [TV, MEGA, PODCAST]
   const home = { id: 'home', kind: 'home', tabLabel: 'My Lists', content: '/' }
 
   return render(
-    <LayerStackProvider home={home}>
-      <CreateList mediaTypes={mediaTypes} mediaTypeKey={key} />
-    </LayerStackProvider>,
+    <OverlayManagerProvider>
+      <LayerStackProvider home={home}>
+        <CreateList mediaTypes={mediaTypes} mediaTypeKey={key} />
+      </LayerStackProvider>
+    </OverlayManagerProvider>,
   )
 }
 

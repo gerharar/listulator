@@ -1,5 +1,5 @@
 import { selectPlural } from './plural.js'
-import type { Widen } from './types.js'
+import type { RichText, Widen } from './types.js'
 
 /**
  * Every word the interface says, in English.
@@ -774,6 +774,17 @@ export const en = {
         `${n} ${selectPlural(n, 'en', { one: 'line', other: 'lines' })}`,
       footer:
         'Listulator lists travel as YAML files. Export writes one; Import reads it back as a new list.',
+      /** U3: the file names another category than the screen's. */
+      otherCategoryKicker: 'Other category',
+      otherCategoryQuestion: (fileCategory: string): string => `Import to ${fileCategory}?`,
+      otherCategoryNote: (current: string, fileCategory: string): RichText => [
+        'Current category is ',
+        { strong: current },
+        ", the list you're importing is from ",
+        { strong: fileCategory },
+        '.',
+      ],
+      back: 'Back',
       importFailed: 'Could not import that file, list cannot be imported.',
     },
     createList: {

@@ -1,4 +1,5 @@
 import { selectPlural } from './plural.js'
+import type { RichText } from './types.js'
 import type { Locale } from './en.js'
 
 /**
@@ -706,6 +707,16 @@ export const ru: Locale = {
       lines: (n: number): string => lines(n),
       footer:
         'Списки Listulator хранятся в YAML-файлах. Экспорт записывает файл, импорт читает его обратно как новый список.',
+      otherCategoryKicker: 'Другой раздел',
+      otherCategoryQuestion: (fileCategory: string): string => `Импортировать в «${fileCategory}»?`,
+      otherCategoryNote: (current: string, fileCategory: string): RichText => [
+        'Текущий раздел — ',
+        { strong: `«${current}»` },
+        ', а импортируемый список из раздела ',
+        { strong: `«${fileCategory}»` },
+        '.',
+      ],
+      back: 'Назад',
       importFailed: 'Не удалось импортировать файл, список нельзя импортировать.',
     },
     createList: {
