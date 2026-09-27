@@ -3,28 +3,28 @@ description: All Studio Ghibli (Hayao Miyazaki) works, excluding shorts
 category: animation
 status: ongoing
 items:
-- { title: "Nausicaä of the Valley of the Wind", year: 1984, minutes: 116 },
-- { title: "Castle in the Sky", year: 1986, minutes: 124 },
-- { title: "Grave of the Fireflies", year: 1988, minutes: 88 },
-- { title: "My Neighbor Totoro", year: 1988, minutes: 86 },
-- { title: "Kiki's Delivery Service", year: 1989, minutes: 102 },
-- { title: "Only Yesterday", year: 1991, minutes: 119 },
-- { title: "Porco Rosso", year: 1992, minutes: 93 },
-- { title: "Ocean Waves", year: 1993, minutes: 72 },
-- { title: "Pom Poko", year: 1994, minutes: 119 },
-- { title: "Whisper of the Heart", year: 1995, minutes: 111 },
-- { title: "Princess Mononoke", year: 1997, minutes: 133 },
-- { title: "My Neighbors the Yamadas", year: 1999, minutes: 104 },
-- { title: "Spirited Away", year: 2001, minutes: 125 },
-- { title: "The Cat Returns", year: 2002, minutes: 75 },
-- { title: "Howl's Moving Castle", year: 2004, minutes: 119 },
-- { title: "Tales from Earthsea", year: 2006, minutes: 115 },
-- { title: "Ponyo", year: 2008, minutes: 101 },
-- { title: "The Secret World of Arrietty", year: 2010, minutes: 94 },
-- { title: "From Up on Poppy Hill", year: 2011, minutes: 91 },
-- { title: "The Wind Rises", year: 2013, minutes: 126 },
-- { title: "The Tale of the Princess Kaguya", year: 2013, minutes: 137 },
-- { title: "When Marnie Was There", year: 2014, minutes: 103 },
-- { title: "The Red Turtle", year: 2016, minutes: 81 },
-- { title: "Earwig and the Witch", year: 2020, minutes: 82 },
-- { title: "The Boy and the Heron", year: 2023, minutes: 124 },
+- { title: "Nausicaä of the Valley of the Wind", year: 1984, minutes: 116 }
+- { title: "Castle in the Sky", year: 1986, minutes: 124 }
+- { title: "Grave of the Fireflies", year: 1988, minutes: 88 }
+- { title: "My Neighbor Totoro", year: 1988, minutes: 86 }
+- { title: "Kiki's Delivery Service", year: 1989, minutes: 102 }
+- { title: "Only Yesterday", year: 1991, minutes: 119 }
+- { title: "Porco Rosso", year: 1992, minutes: 93 }
+- { title: "Ocean Waves", year: 1993, minutes: 72 }
+- { title: "Pom Poko", year: 1994, minutes: 119 }
+- { title: "Whisper of the Heart", year: 1995, minutes: 111 }
+- { title: "Princess Mononoke", year: 1997, minutes: 133 }
+- { title: "My Neighbors the Yamadas", year: 1999, minutes: 104 }
+- { title: "Spirited Away", year: 2001, minutes: 125 }
+- { title: "The Cat Returns", year: 2002, minutes: 75 }
+- { title: "Howl's Moving Castle", year: 2004, minutes: 119 }
+- { title: "Tales from Earthsea", year: 2006, minutes: 115 }
+- { title: "Ponyo", year: 2008, minutes: 101 }
+- { title: "The Secret World of Arrietty", year: 2010, minutes: 94 }
+- { title: "From Up on Poppy Hill", year: 2011, minutes: 91 }
+- { title: "The Wind Rises", year: 2013, minutes: 126 }
+- { title: "The Tale of the Princess Kaguya", year: 2013, minutes: 137 }
+- { title: "When Marnie Was There", year: 2014, minutes: 103 }
+- { title: "The Red Turtle", year: 2016, minutes: 81 }
+- { title: "Earwig and the Witch", year: 2020, minutes: 82 }
+- { title: "The Boy and the Heron", year: 2023, minutes: 124 }

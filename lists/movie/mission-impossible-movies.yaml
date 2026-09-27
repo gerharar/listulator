@@ -1,7 +1,7 @@
-title: Mission: Impossible movies
-description: All movies from Mission: Impossible franchise
+title: "Mission: Impossible movies"
+description: "All movies from Mission: Impossible franchise"
 category: movie
-status: completed
+status: complete
 items:
 - { title: "Mission: Impossible", year: 1996, minutes: 111 }
 - { title: "Mission: Impossible II", year: 2000, minutes: 123 }

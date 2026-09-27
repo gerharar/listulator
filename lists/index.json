@@ -1,9 +1,40 @@
 [
   {
+    "path": "lists/animation/studio-ghibli.yaml",
+    "title": "Studio Ghibli works",
+    "category": "animation",
+    "itemCount": 25,
+    "description": "All Studio Ghibli (Hayao Miyazaki) works, excluding shorts",
+    "status": "ongoing"
+  },
+  {
+    "path": "lists/book/harry-potter-books.yaml",
+    "title": "Harry Potter books",
+    "category": "book",
+    "itemCount": 13,
+    "description": "All official books about the Wizarding World (Harry Potter franchise)"
+  },
+  {
     "path": "lists/book/lord-of-the-rings.yaml",
     "title": "The Lord of the Rings",
     "category": "book",
     "itemCount": 3
+  },
+  {
+    "path": "lists/comic/preacher-comic.yaml",
+    "title": "Preacher (comic book) complete series",
+    "category": "comic",
+    "itemCount": 75,
+    "description": "Complete reading order for Preacher (Vertigo / DC) comic book series",
+    "status": "complete"
+  },
+  {
+    "path": "lists/documentary/world-at-war.yaml",
+    "title": "The World At War complete series",
+    "category": "documentary",
+    "itemCount": 34,
+    "description": "The World At War documentary - original series and additional specials",
+    "status": "complete"
   },
   {
     "path": "lists/game/assassins-creed-games.yaml",
@@ -50,5 +81,85 @@
     "category": "movie",
     "itemCount": 87,
     "description": "All live-action movies where Jackie Chan plays a leading or prominent role"
+  },
+  {
+    "path": "lists/movie/james-bond-movies.yaml",
+    "title": "James Bond movies",
+    "category": "movie",
+    "itemCount": 27,
+    "description": "All James Bond movies, including non-canon (non-EON) entries",
+    "status": "ongoing"
+  },
+  {
+    "path": "lists/movie/mission-impossible-movies.yaml",
+    "title": "Mission: Impossible movies",
+    "category": "movie",
+    "itemCount": 8,
+    "description": "All movies from Mission: Impossible franchise",
+    "status": "complete"
+  },
+  {
+    "path": "lists/music/isis-discography.yaml",
+    "title": "ISIS discography",
+    "category": "music",
+    "itemCount": 23,
+    "description": "Full ISIS discography (excluding compilations)",
+    "status": "complete"
+  },
+  {
+    "path": "lists/tv/the-wire.yaml",
+    "title": "The Wire series",
+    "category": "tv",
+    "itemCount": 60,
+    "description": "All episodes of The Wire TV series (complete)",
+    "status": "complete"
+  },
+  {
+    "path": "lists/wrestling/aew-ppv.yaml",
+    "title": "AEW - all PPVs",
+    "category": "wrestling",
+    "itemCount": 51,
+    "description": "All AEW (All Elite Wrestling) Pay-Per-Views",
+    "status": "ongoing"
+  },
+  {
+    "path": "lists/wrestling/clash-of-the-champions.yaml",
+    "title": "Clash Of The Champions collection",
+    "category": "wrestling",
+    "itemCount": 36,
+    "description": "All \"Clash Of The Champions\" specials by JCP/NWA/WCW",
+    "status": "complete"
+  },
+  {
+    "path": "lists/wrestling/ecw-ppv.yaml",
+    "title": "ECW - all PPVs",
+    "category": "wrestling",
+    "itemCount": 25,
+    "description": "All ECW (Extreme Championship Wrestling) Pay-Per-Views",
+    "status": "complete"
+  },
+  {
+    "path": "lists/wrestling/wcw-ppv.yaml",
+    "title": "WCW - all PPVs",
+    "category": "wrestling",
+    "itemCount": 101,
+    "description": "All WCW (World Championship Wrestling) Pay-Per-View events",
+    "status": "complete"
+  },
+  {
+    "path": "lists/wrestling/wwe-all-ppv.yaml",
+    "title": "WWE - all PPVs",
+    "category": "wrestling",
+    "itemCount": 483,
+    "description": "All WWE (World Wrestling Entertainment, ex-WWF) Pay-Per-Views/PLEs/specials. NXT & AAA events are excluded",
+    "status": "ongoing"
+  },
+  {
+    "path": "lists/wrestling/wwe-wrestlemania.yaml",
+    "title": "WWE - All WrestleMania PPVs",
+    "category": "wrestling",
+    "itemCount": 49,
+    "description": "All WWE (World Wrestling Entertainment, ex-WWF) WrestleMania Pay-Per-Views/PLEs",
+    "status": "ongoing"
   }
 ]

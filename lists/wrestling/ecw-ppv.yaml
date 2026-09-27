@@ -3,28 +3,28 @@ description: All ECW (Extreme Championship Wrestling) Pay-Per-Views
 category: wrestling
 status: complete
 items:
-- { title: "Barely Legal", year: 1997, minutes: 143 },
-- { title: "Hardcore Heaven", year: 1997, minutes: 142 },
-- { title: "November to Remember", year: 1997, minutes: 143 },
-- { title: "Living Dangerously", year: 1998, minutes: 153 },
-- { title: "Wrestlepalooza", year: 1998, minutes: 143 },
-- { title: "Heat Wave", year: 1998, minutes: 143 },
-- { title: "November to Remember", year: 1998, minutes: 143 },
-- { title: "ECW/FMW Supershow - day 1", year: 1998, minutes: 143 },
-- { title: "ECW/FMW Supershow - day 2", year: 1998, minutes: 143 },
-- { title: "Guilty as Charged", year: 1999, minutes: 143 },
-- { title: "Living Dangerously", year: 1999, minutes: 143 },
-- { title: "Hardcore Heaven", year: 1999, minutes: 143 },
-- { title: "Heat Wave", year: 1999, minutes: 143 },
-- { title: "Anarchy Rulz", year: 1999, minutes: 143 },
-- { title: "November to Remember", year: 1999, minutes: 143 },
-- { title: "Guilty as Charged", year: 2000, minutes: 143 },
-- { title: "Living Dangerously", year: 2000, minutes: 143 },
-- { title: "Hardcore Heaven", year: 2000, minutes: 143 },
-- { title: "Heat Wave", year: 2000, minutes: 143 },
-- { title: "Anarchy Rulz", year: 2000, minutes: 143 },
-- { title: "November to Remember", year: 2000, minutes: 143 },
-- { title: "Massacre on 34th Street", year: 2000, minutes: 143 },
-- { title: "Guilty as Charged", year: 2001, minutes: 143 },
-- { title: "One Night Stand", year: 2006, minutes: 143 },
-- { title: "December to Dismember", year: 2006, minutes: 143 },
+- { title: "Barely Legal", year: 1997, minutes: 143 }
+- { title: "Hardcore Heaven", year: 1997, minutes: 142 }
+- { title: "November to Remember", year: 1997, minutes: 143 }
+- { title: "Living Dangerously", year: 1998, minutes: 153 }
+- { title: "Wrestlepalooza", year: 1998, minutes: 143 }
+- { title: "Heat Wave", year: 1998, minutes: 143 }
+- { title: "November to Remember", year: 1998, minutes: 143 }
+- { title: "ECW/FMW Supershow - day 1", year: 1998, minutes: 143 }
+- { title: "ECW/FMW Supershow - day 2", year: 1998, minutes: 143 }
+- { title: "Guilty as Charged", year: 1999, minutes: 143 }
+- { title: "Living Dangerously", year: 1999, minutes: 143 }
+- { title: "Hardcore Heaven", year: 1999, minutes: 143 }
+- { title: "Heat Wave", year: 1999, minutes: 143 }
+- { title: "Anarchy Rulz", year: 1999, minutes: 143 }
+- { title: "November to Remember", year: 1999, minutes: 143 }
+- { title: "Guilty as Charged", year: 2000, minutes: 143 }
+- { title: "Living Dangerously", year: 2000, minutes: 143 }
+- { title: "Hardcore Heaven", year: 2000, minutes: 143 }
+- { title: "Heat Wave", year: 2000, minutes: 143 }
+- { title: "Anarchy Rulz", year: 2000, minutes: 143 }
+- { title: "November to Remember", year: 2000, minutes: 143 }
+- { title: "Massacre on 34th Street", year: 2000, minutes: 143 }
+- { title: "Guilty as Charged", year: 2001, minutes: 143 }
+- { title: "One Night Stand", year: 2006, minutes: 143 }
+- { title: "December to Dismember", year: 2006, minutes: 143 }
