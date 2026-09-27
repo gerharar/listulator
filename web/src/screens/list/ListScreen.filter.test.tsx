@@ -58,7 +58,7 @@ const TYPES: MediaType[] = [
         label: 'Type',
         keepOrder: true,
         prevails: 'Compilation',
-        values: ['Album', { tag: 'Mini', label: 'Mini', aliases: ['EP', 'Single'] }, 'Compilation'],
+        values: ['Album', { tag: 'Mini', label: 'Mini', aliases: ['EP', 'Single'] }, { tag: 'Compilation', label: 'Compilation', short: 'Comp', aliases: ['Comp'] }],
       },
       { key: 'extra', label: 'Recording', flag: true, values: ['Live'] },
     ],
@@ -451,14 +451,20 @@ describe('a Music list (owner, 2026-09-27)', () => {
     detail.groups = []
   }
 
-  it('reads each row’s type, with Live after it: EP as Mini, a compilation as Compilation', async () => {
+  it('reads each row’s type, Live as a mark on it: EP as Mini, a compilation as Comp', async () => {
     await open('music', music)
 
-    expect(row('a').textContent).toContain('Album')
-    expect(row('l').textContent).toContain('Album · Live')
-    expect(row('e').textContent).toContain('Mini')
-    expect(row('c').textContent).toContain('Compilation')
-    expect(row('c').textContent).not.toContain('Album')
+    const chip = (id: string) => row(id).querySelector('.q-tag.kind') as HTMLElement
+    expect(chip('a').textContent).toBe('Album')
+    expect(chip('a').querySelector('.q-tag-mark')).toBeNull()
+    // The chip is 58px: Live is a mark on it, named on hover and to a screen reader (owner).
+    expect(chip('l').querySelector('.q-tag-mark')).toBeTruthy()
+    expect(chip('l').title).toBe('Album · Live')
+    expect(chip('l').textContent).toBe('Album · Live')
+    expect(chip('e').textContent).toBe('Mini')
+    expect(chip('c').textContent).toBe('Comp')
+    // Comp is the chip's short name only; the filter bar says Compilation (owner).
+    expect(facet('Compilation')).toBeTruthy()
   })
 
   it('filters Type and Recording apart: Album with Live on shows live albums only', async () => {

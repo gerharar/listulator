@@ -202,3 +202,46 @@ describe('GroupCombobox', () => {
     expect(input().placeholder).toBe('No group')
   })
 })
+
+describe('a click past the open list only closes it (owner: as every other picker)', () => {
+  function WithButton({ onPress }: { onPress: () => void }) {
+    return (
+      <>
+        <Harness />
+        <button type="button" onClick={onPress}>
+          Save
+        </button>
+      </>
+    )
+  }
+
+  it('closes the list and the click does not reach what is under it; the next click does', () => {
+    const onPress = vi.fn()
+    render(<WithButton onPress={onPress} />)
+    fireEvent.focus(input())
+    fireEvent.change(input(), { target: { value: 'Season 3' } })
+    const save = screen.getByRole('button', { name: 'Save' })
+
+    fireEvent.pointerDown(save)
+    fireEvent.pointerUp(save)
+    fireEvent.click(save)
+    expect(screen.queryByRole('listbox')).toBeNull()
+    expect(onPress).not.toHaveBeenCalled()
+    expect(input().value).toBe('Season 3')
+
+    fireEvent.pointerDown(save)
+    fireEvent.pointerUp(save)
+    fireEvent.click(save)
+    expect(onPress).toHaveBeenCalledTimes(1)
+  })
+
+  it('a press on its own options still picks', () => {
+    render(<WithButton onPress={vi.fn()} />)
+    fireEvent.focus(input())
+    const option = screen.getByRole('option', { name: 'Season 2' })
+    fireEvent.pointerDown(option)
+    fireEvent.pointerUp(option)
+    fireEvent.click(option)
+    expect(input().value).toBe('Season 2')
+  })
+})

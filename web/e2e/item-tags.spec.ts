@@ -65,6 +65,8 @@ test('a music item’s Type is one pick from its short list, Live ticked on top;
   const id = await makeList(page.request, title, 'music', [
     { title: 'Panopticon', timeToConsumeMinutes: 60, tags: ['Album', 'Remaster'] },
     { title: 'The Red Sea', timeToConsumeMinutes: 35, tags: ['EP'] },
+    { title: 'Live I', timeToConsumeMinutes: 70, tags: ['Album', 'Live'] },
+    { title: 'Temporal', timeToConsumeMinutes: 78, tags: ['Album', 'Compilation', 'Live'] },
   ])
 
   try {
@@ -86,7 +88,14 @@ test('a music item’s Type is one pick from its short list, Live ticked on top;
     expect(await itemTags(page.request, id, 'The Red Sea')).toEqual(['EP'])
     await page.getByRole('button', { name: 'Save' }).click()
     await expect.poll(() => itemTags(page.request, id, 'The Red Sea')).toEqual(['EP', 'Live'])
-    await expect(page.locator('[data-row-id]', { hasText: 'The Red Sea' })).toContainText('Mini · Live')
+    // The chip is 58px (owner): the type, and Live as a mark on it; nothing spills.
+    const chip = page.locator('[data-row-id]', { hasText: 'The Red Sea' }).locator('.q-tag.kind')
+    await expect(chip).toHaveAttribute('title', 'Mini · Live')
+    await expect(chip.locator('.q-tag-mark')).toBeVisible()
+    const fits = await page.locator('.q-tag.kind').evaluateAll((chips) =>
+      chips.map((el) => el.scrollWidth <= el.clientWidth),
+    )
+    expect(fits.every(Boolean)).toBe(true)
   } finally {
     await page.request.delete(`/api/lists/${id}`)
   }

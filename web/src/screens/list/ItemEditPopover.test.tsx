@@ -170,8 +170,17 @@ describe('ItemEditPopover', () => {
     const { onCommit } = renderPopover()
 
     fireEvent.change(screen.getByLabelText('Group'), { target: { value: 'Season 3' } })
-    fireEvent.click(save())
+    const press = () => {
+      fireEvent.pointerDown(save())
+      fireEvent.pointerUp(save())
+      fireEvent.click(save())
+    }
+    // The list is open while typing: the first press on Save only closes it (owner: as every picker).
+    press()
+    expect(screen.queryByRole('listbox')).toBeNull()
+    expect(onCommit).not.toHaveBeenCalled()
 
+    press()
     expect(onCommit).toHaveBeenCalledWith({ group: 'Season 3' }, 'save')
   })
 })

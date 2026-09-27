@@ -6,6 +6,8 @@ export interface FacetOption {
   label: string
   /** What the button's hint calls it when the label is a code (`PS3` → PlayStation 3). */
   name?: string
+  /** A flag's option (Live): the row chip's dot to its left, a hint at where it shows (owner). */
+  mark?: boolean
 }
 
 /** `All` is on exactly when no option is — nothing selected means nothing is hidden. */
@@ -69,6 +71,7 @@ export function FacetToggle({ label, options, selected, onChange, coversAll = tr
                 onChange(toggleFacetOption(selected, option.key, coversAll ? options.map((entry) => entry.key) : []))
               }
             >
+              {option.mark && <span className="q-facet-mark" aria-hidden="true" />}
               {option.label}
             </button>
           )

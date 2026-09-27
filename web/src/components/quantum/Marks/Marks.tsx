@@ -61,14 +61,31 @@ export interface KindTagProps {
   kind?: boolean
   /** Fixed width for the default variant — widest label among the row's tags, plus 16px. */
   width?: string
+  /**
+   * Flags on the value (Music: Live), drawn as a mark after the label, a space
+   * apart (owner): `Album · Live` would not fit the 58px chip. Named on hover
+   * and to a screen reader.
+   */
+  flags?: readonly string[]
 }
 
 /** Book / Game / Episode / Language facets, and a preview row's medium. */
-export function KindTag({ label, kind = false, width }: KindTagProps) {
+export function KindTag({ label, kind = false, width, flags = [] }: KindTagProps) {
   const className = ['q-tag', kind && 'kind'].filter(Boolean).join(' ')
+  const full = [label, ...flags].join(' · ')
   return (
-    <span className={className} style={!kind && width ? { width } : undefined}>
+    <span
+      className={className}
+      style={!kind && width ? { width } : undefined}
+      title={flags.length > 0 ? full : undefined}
+    >
       {label}
+      {flags.length > 0 && (
+        <>
+          <span className="q-tag-mark" aria-hidden="true" />
+          <span className="q-tag-sr">{flags.map((flag) => ` · ${flag}`).join('')}</span>
+        </>
+      )}
     </span>
   )
 }

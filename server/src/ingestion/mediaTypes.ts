@@ -227,7 +227,12 @@ export function createDefaultMediaTypes({
           label: 'Type',
           keepOrder: true,
           prevails: 'Compilation',
-          values: ['Album', { tag: 'Mini', label: 'Mini', aliases: ['EP', 'Single'] }, 'Compilation'],
+          values: [
+            'Album',
+            { tag: 'Mini', label: 'Mini', aliases: ['EP', 'Single'] },
+            // Comp on the row's 58px chip only; Compilation in filters and pickers (owner). Stored as sources write it.
+            { tag: 'Compilation', label: 'Compilation', short: 'Comp', aliases: ['Comp'] },
+          ],
         },
         { key: 'extra', label: 'Recording', flag: true, values: ['Live'] },
       ],

@@ -7,6 +7,7 @@ import type { ListItem } from '../../lib/api.js'
 import { IconButton } from '../../components/quantum/Button/Button.js'
 import { DoneCheckbox } from '../../components/quantum/DoneCheckbox/DoneCheckbox.js'
 import { KindTag, ManualMark, NewBadge } from '../../components/quantum/Marks/Marks.js'
+import type { TagChip } from '../../../../server/src/catalog/facets.js'
 import { PlatformChip } from '../../components/quantum/PlatformChip/PlatformChip.js'
 
 export interface ItemRowProps {
@@ -37,8 +38,8 @@ export interface ItemRowProps {
    * chip label on the list, so the column lines up.
    */
   platform?: { widthCh: number; onOpen: (item: ListItem, anchor: HTMLElement) => void }
-  /** What the tag column shows for the first tag, when the category names its values (`game` → Game). */
-  tagLabel?: string
+  /** What the tag column's chip shows: the category's value (`game` → Game, EP → Mini) and any flag, as a mark on it (Live). */
+  tagChip?: TagChip
   /**
    * An untagged item's [+] (U5): given once the list has tags and the category
    * has a tag field. `label` names the field for a short fixed set (Medium,
@@ -68,13 +69,13 @@ export function ItemRow({
   dragging = false,
   dropLine = null,
   platform,
-  tagLabel,
+  tagChip,
   addTag,
 }: ItemRowProps) {
   const text = copy.quantum.list.itemActions
   const tagText = copy.quantum.list.tags
   const done = item.consumedAt !== null
-  const kind = tagLabel ?? item.tags?.[0]
+  const kind = tagChip?.label ?? item.tags?.[0]
 
   /** A row button acts on its own: it must not also toggle the row it sits in. */
   const act =
@@ -127,7 +128,7 @@ export function ItemRow({
               onAdd={addTag && ((anchor) => addTag.onAdd(item, anchor))}
             />
           ) : kind ? (
-            <KindTag label={kind} kind />
+            <KindTag label={kind} kind flags={tagChip?.flags} />
           ) : (
             addTag && (
               <button

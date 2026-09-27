@@ -1,6 +1,7 @@
 import './GroupCombobox.css'
-import { useId, useState, type CSSProperties, type KeyboardEvent } from 'react'
+import { useCallback, useId, useRef, useState, type CSSProperties, type KeyboardEvent } from 'react'
 import { copy } from '../../locale/index.js'
+import { useDismissOnPress } from './dismissOnPress.js'
 import { aboveField, opensUp } from './dropDirection.js'
 
 export interface GroupComboboxProps {
@@ -41,6 +42,11 @@ export function GroupCombobox({
   const [focused, setFocused] = useState(false)
   // Where the list opens: below, or — at the foot of a long list — just above the field.
   const [above, setAbove] = useState<CSSProperties | null>(null)
+  // A press past the open list only closes it, like every other picker (owner): typing a new
+  // name and pressing Save closes the list first, and the next press saves.
+  const fieldRef = useRef<HTMLDivElement>(null)
+  const close = useCallback(() => setOpen(false), [])
+  useDismissOnPress(open, fieldRef, close)
 
   function openFrom(field: HTMLElement) {
     setAbove(opensUp(field.getBoundingClientRect(), window.innerHeight) ? aboveField(field) : null)
@@ -95,7 +101,7 @@ export function GroupCombobox({
   }
 
   return (
-    <div className="q-field q-combo">
+    <div className="q-field q-combo" ref={fieldRef}>
       <label className="q-combo-label">
         <span className="q-kicker">{label}</span>
         <input

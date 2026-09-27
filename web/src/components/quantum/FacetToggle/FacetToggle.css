@@ -42,6 +42,20 @@
   color: var(--accentInk);
 }
 
+/* A flag's option (Live): the row chip's dot (Marks.css .q-tag-mark), to the left of the name, as a hint (owner).
+   On a pressed option the accent is the background, so the dot takes the text's colour. */
+.q-facet-mark {
+  flex: none;
+  width: 5px;
+  height: 5px;
+  margin-right: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+.q-facet button[aria-pressed='true'] .q-facet-mark {
+  background: currentColor;
+}
+
 /* U4: a facet too wide for the bar's row, as one button naming its picks. */
 .q-facet .q-facet-summary {
   gap: 6px;

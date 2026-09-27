@@ -37,7 +37,7 @@ import {
   saveRailHidden,
   saveRailWidth,
 } from './collapse.js'
-import { deriveFacets, tagSummary, type FacetKey } from '../../../../server/src/catalog/facets.js'
+import { deriveFacets, tagChip, type FacetKey } from '../../../../server/src/catalog/facets.js'
 import { AddItemForm, type NewItemInput } from './AddItemForm.js'
 import { EditListPopover } from './EditListPopover.js'
 import { FilterBar } from './FilterBar.js'
@@ -856,7 +856,7 @@ function ListView({
       onInfo={(row, anchor) => setPopover({ kind: 'info', itemId: row.id, anchor })}
       onEdit={(row, anchor) => setPopover({ kind: 'edit', itemId: row.id, anchor })}
       onRemove={(row) => void removeItem(row)}
-      tagLabel={tagSummary(entry.tags, mediaType?.facets)}
+      tagChip={tagChip(entry.tags, mediaType?.facets)}
       platform={
         platformColumn && {
           widthCh: platformColumn.widthCh,

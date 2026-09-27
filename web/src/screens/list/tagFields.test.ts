@@ -9,7 +9,7 @@ const MUSIC: FacetConvention = [
     label: 'Type',
     keepOrder: true,
     prevails: 'Compilation',
-    values: ['Album', { tag: 'Mini', label: 'Mini', aliases: ['EP', 'Single'] }, 'Compilation'],
+    values: ['Album', { tag: 'Mini', label: 'Mini', aliases: ['EP', 'Single'] }, { tag: 'Compilation', label: 'Compilation', short: 'Comp', aliases: ['Comp'] }],
   },
   { key: 'extra', label: 'Recording', flag: true, values: ['Live'] },
 ]

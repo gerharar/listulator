@@ -1,6 +1,7 @@
-import { useEffect, useId, useRef, useState, type CSSProperties } from 'react'
+import { useCallback, useEffect, useId, useRef, useState, type CSSProperties } from 'react'
 import { Check, ChevronDown } from 'lucide-react'
 import { compareShown, copy } from '../../locale/index.js'
+import { useDismissOnPress } from './dismissOnPress.js'
 import { aboveField, opensUp } from './dropDirection.js'
 import type { Choice, TagField } from './tagFields.js'
 
@@ -17,9 +18,8 @@ export interface TagChoiceProps {
  * Mega a Medium. None first, then the values — A–Z by shown name unless the
  * category keeps its own order (Music: Album, Mini, Compilation) — then any
  * flag to tick on top (Music: Live, owner 2026-09-27). A value picks and
- * closes; a flag toggles and leaves the list open. A press past the field or
- * Esc closes only the list — by listening on the document, because WebKit (the
- * desktop app) never focuses a clicked button, so it never blurs either.
+ * closes; a flag toggles and leaves the list open. A press past the field
+ * (useDismissOnPress) or Esc closes only the list.
  */
 export function TagChoice({ field, current, onChange }: TagChoiceProps) {
   const text = copy.quantum.list.tags
@@ -30,43 +30,21 @@ export function TagChoice({ field, current, onChange }: TagChoiceProps) {
   const [above, setAbove] = useState<CSSProperties | null>(null)
   const fieldRef = useRef<HTMLDivElement>(null)
 
+  const close = useCallback(() => setOpen(false), [])
+  useDismissOnPress(open, fieldRef, close)
+
+  // Esc wherever focus is (a clicked button never has it in WebKit). Capture, before the Edit
+  // window's own Esc (cancel the edit): this one only closes the list.
   useEffect(() => {
     if (!open) return
-    // A press past the field only closes the list, as a Popover's catcher does (owner): the press, and
-    // the click it becomes, never reach what is under it. No catcher element: inside the Edit window
-    // it would share the window's layer and cover the list itself.
-    const swallowClick = (event: MouseEvent) => {
-      event.preventDefault()
-      event.stopPropagation()
-      document.removeEventListener('click', swallowClick, true)
-    }
-    const onPress = (event: PointerEvent) => {
-      if (event.target instanceof Node && fieldRef.current?.contains(event.target)) return
-      event.preventDefault() // no focus move, no mouse events after it
-      event.stopPropagation()
-      document.addEventListener('click', swallowClick, true)
-      // The click comes straight after the release; one that never comes (a drag) must not
-      // leave the next click — a key's, say — to be eaten.
-      const onRelease = () => {
-        document.removeEventListener('pointerup', onRelease, true)
-        setTimeout(() => document.removeEventListener('click', swallowClick, true))
-      }
-      document.addEventListener('pointerup', onRelease, true)
-      setOpen(false)
-    }
-    // Capture, before the Edit window's own Esc (cancel the edit): this one only closes the list.
     const onKey = (event: globalThis.KeyboardEvent) => {
       if (event.key !== 'Escape') return
       event.preventDefault()
       event.stopPropagation()
       setOpen(false)
     }
-    document.addEventListener('pointerdown', onPress, true)
     document.addEventListener('keydown', onKey, true)
-    return () => {
-      document.removeEventListener('pointerdown', onPress, true)
-      document.removeEventListener('keydown', onKey, true)
-    }
+    return () => document.removeEventListener('keydown', onKey, true)
   }, [open])
 
   const nameOf = (tag: string) => shownName([...field.values, ...field.flags].find((value) => value.tag === tag)?.label ?? tag)

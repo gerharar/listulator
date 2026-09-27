@@ -36,6 +36,10 @@ test('add, remove with Undo, and edit — each saved, each undoable', async ({ p
     // Add: a new group typed in the field, created with the item.
     await page.getByLabel('Title', { exact: true }).fill('Bonus')
     await page.getByLabel('Group', { exact: true }).fill('Specials')
+    // The Group list is open while typing: the first click on Add only closes it (owner: as every picker).
+    await page.getByRole('button', { name: 'Add', exact: true }).click()
+    await expect(page.getByRole('listbox')).toBeHidden()
+    await expect(page.getByText('Bonus', { exact: true })).toBeHidden()
     await page.getByRole('button', { name: 'Add', exact: true }).click()
     await expect(page.getByText('Bonus', { exact: true })).toBeVisible()
 

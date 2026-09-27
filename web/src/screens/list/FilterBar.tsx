@@ -29,6 +29,7 @@ function facetOptions(facet: FacetGroup): FacetOption[] {
   const options = facet.options.map((option) => ({
     key: option.key,
     label: t.optionLabels[option.label] ?? option.label,
+    ...(facet.flag ? { mark: true } : {}),
     ...(facet.key === 'platform' && platformFullName(option.label)
       ? { name: platformFullName(option.label)! }
       : {}),

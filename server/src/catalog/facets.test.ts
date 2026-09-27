@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   UNTAGGED,
   deriveFacets,
-  tagSummary,
+  tagChip,
   matchesFacets,
   type FacetConvention,
   type FacetSelection,
@@ -173,7 +173,7 @@ describe('a main value with aliases, a prevailing value, and a flag', () => {
       label: 'Type',
       keepOrder: true,
       prevails: 'Compilation',
-      values: ['Album', { tag: 'Mini', label: 'Mini', aliases: ['EP', 'Single'] }, 'Compilation'],
+      values: ['Album', { tag: 'Mini', label: 'Mini', aliases: ['EP', 'Single'] }, { tag: 'Compilation', label: 'Compilation', short: 'Comp', aliases: ['Comp'] }],
     },
     { key: 'extra', label: 'Recording', flag: true, values: ['Live'] },
   ]
@@ -185,6 +185,7 @@ describe('a main value with aliases, a prevailing value, and a flag', () => {
 
   it('counts a compilation as a Compilation only, not also an Album', () => {
     expect(options(MUSIC, [item('Album', 'Compilation')], 'type')).toEqual(['Compilation'])
+    expect(options(MUSIC, [item('comp')], 'type')).toEqual(['Compilation'])
     const albums: FacetSelection = { type: new Set(['album']) }
     expect(matchesFacets(item('Album', 'Compilation'), MUSIC, albums)).toBe(false)
     expect(matchesFacets(item('Album', 'Live'), MUSIC, albums)).toBe(true)
@@ -215,18 +216,21 @@ describe('a main value with aliases, a prevailing value, and a flag', () => {
     expect(deriveFacets([item('English')], books)[0]!.keepOrder).toBe(false)
   })
 
-  it('sums an item up for the tag column: the main value, then the flag', () => {
-    expect(tagSummary(['EP', 'Live'], MUSIC)).toBe('Mini · Live')
-    expect(tagSummary(['Album', 'Compilation'], MUSIC)).toBe('Compilation')
-    expect(tagSummary(['Live'], MUSIC)).toBe('Live')
-    expect(tagSummary(['Split', 'EP'], MUSIC)).toBe('Mini')
+  it('gives the row’s chip the main value — its short name where it has one (Comp, owner) — and Live apart for its mark', () => {
+    expect(tagChip(['EP', 'Live'], MUSIC)).toEqual({ label: 'Mini', flags: ['Live'] })
+    expect(tagChip(['Album', 'Compilation'], MUSIC)).toEqual({ label: 'Comp', flags: [] })
+    expect(tagChip(['Split', 'EP'], MUSIC)).toEqual({ label: 'Mini', flags: [] })
   })
 
-  it('falls back to the first tag as written when no value names any, and to nothing without tags', () => {
-    expect(tagSummary(['Remix'], MUSIC)).toBe('Remix')
-    expect(tagSummary(['GAME'], [{ key: 'type', label: 'Medium', values: [{ tag: 'game', label: 'Game' }] }])).toBe('Game')
-    expect(tagSummary(['English'], books)).toBe('English')
-    expect(tagSummary(null, MUSIC)).toBeUndefined()
-    expect(tagSummary([], MUSIC)).toBeUndefined()
+  it('shows a lone flag as the label, a tag no value names as written, and nothing without tags', () => {
+    expect(tagChip(['Live'], MUSIC)).toEqual({ label: 'Live', flags: [] })
+    expect(tagChip(['Remix'], MUSIC)).toEqual({ label: 'Remix', flags: [] })
+    expect(tagChip(['GAME'], [{ key: 'type', label: 'Medium', values: [{ tag: 'game', label: 'Game' }] }])).toEqual({
+      label: 'Game',
+      flags: [],
+    })
+    expect(tagChip(['English'], books)).toEqual({ label: 'English', flags: [] })
+    expect(tagChip(null, MUSIC)).toBeUndefined()
+    expect(tagChip([], MUSIC)).toBeUndefined()
   })
 })

@@ -79,6 +79,15 @@ describe('FilterBar', () => {
     expect(names().slice(0, 4)).toEqual(['Movie', 'Untagged', 'Game', 'Book'])
   })
 
+  it('marks a flag’s option with the chip’s dot, to its left, as a hint (owner)', () => {
+    const recording: FacetGroup = { key: 'extra', label: 'Recording', options: [{ key: 'live', label: 'Live' }], keepOrder: false, flag: true }
+    bar({ facets: [platform, recording] })
+
+    const live = screen.getByRole('button', { name: 'Live' })
+    expect(live.firstElementChild?.classList.contains('q-facet-mark')).toBe(true)
+    expect(screen.getByRole('button', { name: 'PS3' }).querySelector('.q-facet-mark')).toBeNull()
+  })
+
   it('toggles an option additively and clears with All', () => {
     const props = bar({ facets: [platform], selection: { platform: new Set(['ps3']) } })
     fireEvent.click(screen.getByRole('button', { name: 'PC' }))

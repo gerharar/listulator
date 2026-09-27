@@ -40,6 +40,8 @@ export interface FacetValue {
   label: string
   /** Other tags read as this value and kept as written (Music: EP and Single are a Mini). */
   aliases?: readonly string[]
+  /** The name on the row's 58px chip, where `label` would not fit (Compilation → Comp, owner); filters and pickers keep `label`. */
+  short?: string
 }
 
 export interface FacetDef {
@@ -210,18 +212,36 @@ export function matchesFacets(
   })
 }
 
+/** The row's tag chip: the main value, and any flag drawn as a mark on it (owner: `ALBUM ●` for a live album). */
+export interface TagChip {
+  label: string
+  flags: string[]
+}
+
 /**
  * What the tag column shows for an item: the value each facet with a fixed set
- * names, main value first, then any flag (`Mini · Live`, owner 2026-09-27); an
- * item no value names shows its first tag as written; none, nothing.
+ * names (by its short name, if any), and its flags apart, for a mark on the chip (the chip is 58px: `Album
+ * · Live` would not fit, owner 2026-09-27). An item with only a flag shows the
+ * flag as its label; one no value names shows its first tag as written; none,
+ * nothing.
  */
-export function tagSummary(
+export function tagChip(
   tags: readonly string[] | null | undefined,
   convention: FacetConvention | undefined,
-): string | undefined {
-  const named = (convention ?? [])
-    .filter((def) => def.values)
-    .flatMap((def) => heldOptions({ tags }, def).map((option) => option.label))
-  if (named.length) return named.join(' · ')
-  return tags?.find((tag) => tag.trim())?.trim()
+): TagChip | undefined {
+  const labels = (flag: boolean) =>
+    (convention ?? [])
+      .filter((def) => def.values && (def.flag === true) === flag)
+      .flatMap((def) => {
+        const values = def.values!.map((value) => (typeof value === 'string' ? { tag: value, label: value } : value))
+        return heldOptions({ tags }, def).map(
+          (option) => values.find((value) => normal(value.tag) === option.key)?.short ?? option.label,
+        )
+      })
+  const main = labels(false)
+  const flags = labels(true)
+  if (main.length) return { label: main.join(' · '), flags }
+  if (flags.length) return { label: flags.join(' · '), flags: [] }
+  const first = tags?.find((tag) => tag.trim())?.trim()
+  return first ? { label: first, flags: [] } : undefined
 }

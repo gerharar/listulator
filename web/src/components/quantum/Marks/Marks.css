@@ -49,6 +49,28 @@
   text-transform: uppercase;
 }
 
+/* A flag on the kind chip (Music: Live, owner 2026-09-27): an accent dot a space after the label. */
+.q-tag-mark {
+  flex: none;
+  width: 5px;
+  height: 5px;
+  margin-left: 4px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+/* The flag's name for a screen reader: the standard sr-only clip. */
+.q-tag-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+  margin: -1px;
+  padding: 0;
+}
+
 .q-alldone {
   display: inline-flex;
   flex: none;
