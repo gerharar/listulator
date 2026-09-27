@@ -6,6 +6,21 @@
     "itemCount": 3
   },
   {
+    "path": "lists/game/assassins-creed-games.yaml",
+    "title": "Assassin's Creed franchise games",
+    "category": "game",
+    "itemCount": 29,
+    "description": "All Assassin's Creed franchise games grouped by",
+    "status": "ongoing"
+  },
+  {
+    "path": "lists/game/spy-hunter-games.yaml",
+    "title": "Spy Hunter franchise games",
+    "category": "game",
+    "itemCount": 10,
+    "description": "All Spy Hunter franchise games (without compilation appearances)"
+  },
+  {
     "path": "lists/mega/marvel-cinematic-universe.yaml",
     "title": "Marvel Cinematic Universe — Infinity Saga (Release Order)",
     "category": "mega",
@@ -28,5 +43,12 @@
     "title": "All Numbered UFC Events",
     "category": "mma",
     "itemCount": 331
+  },
+  {
+    "path": "lists/movie/jackie-chan-acting-roles.yaml",
+    "title": "Jackie Chan - live-action starring roles",
+    "category": "movie",
+    "itemCount": 87,
+    "description": "All live-action movies where Jackie Chan plays a leading or prominent role"
   }
 ]

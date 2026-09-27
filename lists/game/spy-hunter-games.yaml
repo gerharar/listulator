@@ -1,0 +1,14 @@
+title: Spy Hunter franchise games
+description: All Spy Hunter franchise games (without compilation appearances)
+category: game
+items:
+- { title: "Spy Hunter", year: 1983, minutes: 30, tags: [COIN, C64, A2600, BBCM, AP2, WIN, COL, A8, ZX, CPC, NES] }
+- { title: "Spy Hunter II", year: 1987, minutes: 30, tags: [COIN] }
+- { title: "Super Spy Hunter", year: 1991, minutes: 90, tags: [NES] }
+- { title: "Spy Hunter", year: 2001, minutes: 300, tags: [PS2, GCN, XBOX, GBA, WIN, MAC, ZOD] }
+- { title: "Spy Hunter", year: 2002, minutes: 300, tags: [GBA] }
+- { title: "Spy Hunter 2", year: 2003, minutes: 300, tags: [PS2, XBOX, GCN] }
+- { title: "Spy Hunter: Missile Crisis", year: 2004, minutes: 90, tags: [ZOD] }
+- { title: "Spy Hunter: Nowhere to Run", year: 2006, minutes: 480, tags: [PS2, XBOX] }
+- { title: "Spy Hunter", year: 2009, minutes: 60, tags: [WINM, BBOS] }
+- { title: "Spy Hunter", year: 2012, minutes: 300, tags: [3DS, VITA] }

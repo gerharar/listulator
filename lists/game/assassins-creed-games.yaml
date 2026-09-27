@@ -1,0 +1,34 @@
+title: Assassin's Creed franchise games
+description: All Assassin's Creed franchise games grouped by 
+category: game
+status: ongoing
+items:
+- { title: "Assassin's Creed", year: 2007, minutes: 720, group: Main Series, tags: [WIN, PS3, X360] }
+- { title: "Assassin's Creed II", year: 2009, minutes: 900, group: Main Series, tags: [WIN, PS3, X360] }
+- { title: "Assassin's Creed: Brotherhood", year: 2010, minutes: 720, group: Main Series, tags: [WIN, PS3, X360] }
+- { title: "Assassin's Creed: Revelations", year: 2011, minutes: 720, group: Main Series, tags: [WIN, PS3, X360] }
+- { title: "Assassin's Creed III", year: 2012, minutes: 960, group: Main Series, tags: [WIN, PS3, X360, WIIU] }
+- { title: "Assassin's Creed IV: Black Flag", year: 2013, minutes: 1320, group: Main Series, tags: [WIN, PS3, PS4, X360, XONE, WIIU] }
+- { title: "Assassin's Creed Rogue", year: 2014, minutes: 720, group: Main Series, tags: [WIN, PS3, PS4, X360, XONE] }
+- { title: "Assassin's Creed Unity", year: 2014, minutes: 900, group: Main Series, tags: [WIN, PS4, XONE] }
+- { title: "Assassin's Creed Syndicate", year: 2015, minutes: 960, group: Main Series, tags: [WIN, PS4, XONE] }
+- { title: "Assassin's Creed Origins", year: 2017, minutes: 1800, group: Main Series, tags: [WIN, PS4, XONE] }
+- { title: "Assassin's Creed Odyssey", year: 2018, minutes: 2700, group: Main Series, tags: [WIN, PS4, XONE] }
+- { title: "Assassin's Creed Valhalla", year: 2020, minutes: 2400, group: Main Series, tags: [WIN, PS4, PS5, XONE, XSX] }
+- { title: "Assassin's Creed Mirage", year: 2023, minutes: 720, group: Main Series, tags: [WIN, PS4, PS5, XONE, XSX, IOS] }
+- { title: "Assassin's Creed Shadows", year: 2025, minutes: 1500, group: Main Series, tags: [WIN, PS5, XSX, MAC, NSW2] }
+- { title: "Assassin's Creed III: Liberation HD", year: 2012, minutes: 600, group: Spin-Offs, tags: [VITA] }
+- { title: "Assassin's Creed: Freedom Cry", year: 2014, minutes: 360, group: Spin-Offs, tags: [WIN, PS3, PS4, X360, XONE, WIIU] }
+- { title: "Assassin's Creed Chronicles: China", year: 2015, minutes: 300, group: Spin-Offs, tags: [WIN, PS4, XONE, VITA] }
+- { title: "Assassin's Creed Chronicles: India", year: 2016, minutes: 300, group: Spin-Offs, tags: [WIN, PS4, XONE, VITA] }
+- { title: "Assassin's Creed Chronicles: Russia", year: 2016, minutes: 300, group: Spin-Offs, tags: [WIN, PS4, XONE, VITA] }
+- { title: "Assassin's Creed Nexus VR", year: 2023, minutes: 600, group: Spin-Offs, tags: [VR] }
+- { title: "Assassin's Creed: Altaïr's Chronicles", year: 2008, minutes: 300, group: Handheld & Mobile, tags: [DS, AND, IOS, CELL, WINP] }
+- { title: "Assassin's Creed: Bloodlines", year: 2009, minutes: 360, group: Handheld & Mobile, tags: [PSP] }
+- { title: "Assassin's Creed II: Discovery", year: 2009, minutes: 240, group: Handheld & Mobile, tags: [DS, IOS] }
+- { title: "Assassin's Creed: Pirates", year: 2013, minutes: 600, group: Handheld & Mobile, tags: [AND, IOS], notes: "Delisted, but technically playable offline if you have the .apk and use older Android version or emulator" }
+- { title: "Assassin's Creed Unity: Arno's Chronicles", year: 2017, group: Handheld & Mobile, tags: [AND] }
+- { title: "Assassin's Creed Rebellion", year: 2018, minutes: 1200, group: Handheld & Mobile, tags: [AND, IOS] }	
+- { title: "Assassin's Creed: Rogue Remastered", year: 2018, minutes: 720, group: Remasters & Remakes, tags: [PS4, XONE] }
+- { title: "Assassin's Creed III Remastered", year: 2019, minutes: 960, group: Remasters & Remakes, tags: [WIN, PS4, XONE, NSW] }
+- { title: "Assassin's Creed Black Flag Resynced", year: 2026, minutes: 1320, group: Remasters & Remakes, tags: [WIN, PS5, XSX] }
