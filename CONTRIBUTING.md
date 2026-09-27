@@ -124,6 +124,30 @@ edit `config/platforms.csv` (codes in capitals, never digits only: a bare
 `npm run platforms:check -w server` (needs IGDB keys in `.env`) lists any
 platform IGDB has that the file lacks; games on those import untagged.
 
+### Mega: `tags` name an item's Medium
+
+A `mega` list spans several media at once, so each item's `tags` must
+include one tag naming what medium *that item* actually is — the other
+category's own **key** (see the table below), not its display name:
+
+```yaml
+title: Marvel Cinematic Universe
+category: mega
+items:
+  - { title: Iron Man, year: 2008, minutes: 126, tags: [movie] }
+  - { title: "Agent Carter", year: 2015, minutes: 43, tags: [tv] }
+  - { title: "What If...?", year: 2021, minutes: 35, tags: [animation] }
+```
+
+Any key from the `category` table below is a valid Medium tag except `mega`
+itself — an item can't be a franchise. An item with no recognized Medium
+tag is still accepted and shown, but won't group under the Medium filter.
+
+`minutes`, when omitted, falls back to **Mega's own** default (120), never
+the tagged medium's — a `game` item left blank does not inherit the Games
+category's 600-minute default. Set `minutes` explicitly whenever 120 is
+badly wrong for that item (a game, a comic issue, a wrestling event…).
+
 ## `category` must be one of the fixed keys
 
 `category` is validated against the app's existing, closed category
