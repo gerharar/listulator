@@ -158,6 +158,16 @@ describe('the jump rail', () => {
     await waitFor(() => expect(store.get('list:L1:rail')).toBe('shown'))
   })
 
+  it('shows again on a click anywhere on the stub, not only its » button', async () => {
+    store.set('list:L1:rail', 'hidden')
+    await open()
+
+    fireEvent.click(document.querySelector('.q-rail-stub .label')!)
+
+    expect(rail()).toBeTruthy()
+    await waitFor(() => expect(store.get('list:L1:rail')).toBe('shown'))
+  })
+
   it('keeps its full counts while a filter narrows the list', async () => {
     await open()
 

@@ -124,18 +124,21 @@ export function JumpRail({ entries, onJump, onHide, width, onResize, onResizeEnd
   )
 }
 
-/** What is left of the rail when it is folded away: a 36px strip with a way back. */
+/**
+ * What is left of the rail when it is folded away: a 36px strip with a way back.
+ * The whole strip is the way back (owner); the » button is its keyboard stop,
+ * and its click reaches the strip's handler.
+ */
 export function JumpRailStub({ onShow }: { onShow: () => void }) {
   const text = copy.quantum.list.rail
 
   return (
-    <div className="q-rail-stub">
+    <div className="q-rail-stub" title={text.show} onClick={onShow}>
       <button
         type="button"
         className="q-rail-toggle"
         aria-label={text.show}
         title={text.show}
-        onClick={onShow}
       >
         »
       </button>

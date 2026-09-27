@@ -67,7 +67,10 @@
   align-items: center;
   gap: 12px;
   padding: 12px 0;
+  cursor: pointer;
 }
+.q-rail-stub:hover { background: var(--fill); }
+.q-rail-stub:hover .q-rail-toggle { color: var(--ink); border-color: var(--rule); }
 .q-rail-stub .label {
   writing-mode: vertical-rl;
   font: 500 10px/1 var(--font-mono);
