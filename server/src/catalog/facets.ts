@@ -106,11 +106,11 @@ function optionsOf(item: Taggable, def: FacetDef): FacetOption[] {
 
 /**
  * Platform buttons A to Z by the code shown, known and unknown alike, then
- * MULTI, then Untagged (owner, 2026-09-27: with dozens of platforms the table's
- * own order made one hard to find). Plain character order, digits first.
+ * Untagged (owner, 2026-09-27: with dozens of platforms the table's own order
+ * made one hard to find). Plain character order, digits first.
  */
 function comparePlatforms(a: FacetOption, b: FacetOption): number {
-  const last = (option: FacetOption) => (option.key === UNTAGGED ? 2 : option.key === 'multi' ? 1 : 0)
+  const last = (option: FacetOption) => (option.key === UNTAGGED ? 1 : 0)
   return last(a) - last(b) || (a.label < b.label ? -1 : a.label > b.label ? 1 : 0)
 }
 

@@ -45,6 +45,7 @@ import { ConfirmPopover } from '../../components/quantum/ConfirmPopover/ConfirmP
 import { invertPatch, type ItemPatch } from './itemActions.js'
 import { invertListPatch, type ListFields, type ListPatch } from './listActions.js'
 import { ItemEditPopover } from './ItemEditPopover.js'
+import { tagField } from './tagFields.js'
 import { ItemInfoCard } from './ItemInfoCard.js'
 import { ItemRow } from './ItemRow.js'
 import { JumpRail, JumpRailStub, type RailEntry } from './JumpRail.js'
@@ -190,7 +191,13 @@ interface ListViewProps {
 /** How long a row stays washed after it was added, moved or restored (design: row pulse). */
 const PULSE_MS = 1900
 
-type OpenPopover = { kind: 'info' | 'edit' | 'platform'; itemId: string; anchor: HTMLElement }
+type OpenPopover = {
+  kind: 'info' | 'edit' | 'platform'
+  itemId: string
+  anchor: HTMLElement
+  /** Edit only: open with the Platform panel already open (U5: the row's [+], the platform card's Edit). */
+  openPanel?: boolean
+}
 
 
 function ListView({
@@ -252,6 +259,9 @@ function ListView({
   const newCount = items.filter((entry) => entry.isNew).length
   const units = useMemo(() => buildSpine(items, groups), [items, groups])
   const groupNames = useMemo(() => groups.map((group) => group.name), [groups])
+  // U5: the category's tag field, and every tag the list carries (the Platform panel's "In this list").
+  const tagEditor = useMemo(() => tagField(mediaType?.facets), [mediaType])
+  const listTags = useMemo(() => items.flatMap((entry) => entry.tags ?? []), [items])
   const pulseRows = useCallback((ids: readonly string[]) => {
     clearTimeout(pulseTimer.current)
     setPulseIds(new Set(ids))
@@ -1042,6 +1052,10 @@ function ListView({
           anchorEl={popover.anchor}
           onCommit={(patch, via) => void saveEdit(popoverItem, patch, via)}
           onDiscard={() => setPopover(null)}
+          tagField={tagEditor}
+          listTags={listTags}
+          openPanel={popover.openPanel}
+          loadSource={() => api.itemSource(listId, popoverItem.id)}
         />
       )}
     </div>

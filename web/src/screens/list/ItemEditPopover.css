@@ -10,3 +10,49 @@
   gap: 8px;
   margin-top: 4px;
 }
+
+/* U5: the Platform field opens the panel beside the window; the Type/Medium field is a short in-app list. */
+.q-platfield,
+.q-tagchoice {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  text-align: left;
+  cursor: pointer;
+}
+.q-platfield:hover,
+.q-platfield.open,
+.q-tagchoice:hover,
+.q-tagchoice[aria-expanded='true'] {
+  border-color: var(--rule);
+}
+.q-platfield-value {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font: 500 13px/1.2 var(--font-mono);
+  letter-spacing: 0.04em;
+  color: var(--ink);
+}
+.q-platfield-value.empty,
+.q-tagchoice-value.empty {
+  color: var(--ink3);
+}
+.q-platfield-caret {
+  flex: none;
+  font-size: 17px;
+  line-height: 1;
+  color: var(--ink3);
+}
+.q-tagchoice-value {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.q-tagchoice svg {
+  flex: none;
+  color: var(--ink3);
+}

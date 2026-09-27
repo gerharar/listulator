@@ -27,10 +27,9 @@ export function platformCodes(tags: readonly string[]): string[] {
 }
 
 /**
- * `[PS3]` → `PS3`. `[PS3, X360, PC]` and `[multi]` both → `MULTI` (one
- * named platform still gets its own code shown; more than one collapses to
- * the claim that it's everywhere, same as the literal `multi` tag).
- * An empty list of tags → null, meaning an empty slot, not a chip.
+ * `[PS3]` → `PS3`; `[PS3, X360, PC]` → `MULTI`: more than one platform
+ * collapses to one label, and the card names them all. An empty list of
+ * tags → null, meaning an empty slot, not a chip.
  */
 export function platformChipLabel(tags: readonly string[]): string | null {
   const codes = platformCodes(tags)

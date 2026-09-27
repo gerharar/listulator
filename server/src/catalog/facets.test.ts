@@ -37,21 +37,15 @@ describe('deriveFacets', () => {
     expect(deriveFacets([item('Podcast')], music)).toEqual([])
   })
 
-  it('orders platforms by code, A to Z (unknown codes among them), then MULTI, then Untagged (owner, 2026-09-27)', () => {
+  it('orders platforms by code, A to Z (unknown codes among them), then Untagged (owner, 2026-09-27)', () => {
+    // A bare `multi` is no longer a claim (owner, U5): just a code the table does not know.
     const items = [item('multi'), item('Some Box'), item('WIN'), item(), item('PS3'), item('X360')]
-    expect(options(platform, items, 'platform')).toEqual([
-      'PS3',
-      'SOME BOX',
-      'WIN',
-      'X360',
-      'MULTI',
-      'Untagged',
-    ])
+    expect(options(platform, items, 'platform')).toEqual(['MULTI', 'PS3', 'SOME BOX', 'WIN', 'X360', 'Untagged'])
   })
 
   it('lists each platform of a mixed-tag item separately (Assassin’s Creed)', () => {
-    const items = [item('PS3', 'X360', 'WIN'), item('DS'), item('PSP'), item('multi')]
-    expect(options(platform, items, 'platform')).toEqual(['DS', 'PS3', 'PSP', 'WIN', 'X360', 'MULTI'])
+    const items = [item('PS3', 'X360', 'WIN'), item('DS'), item('PSP')]
+    expect(options(platform, items, 'platform')).toEqual(['DS', 'PS3', 'PSP', 'WIN', 'X360'])
   })
 
   it('reads a code written before the table as today’s: a PC item and a WIN item share one WIN button (10.24c)', () => {
@@ -147,12 +141,6 @@ describe('matchesFacets', () => {
     // Selections carry the buttons' keys, which read old codes as today's: PC is win.
     expect(matchesFacets(ac, platform, select('platform', 'ds', 'win'))).toBe(true)
     expect(matchesFacets(ac, platform, select('platform', 'ds'))).toBe(false)
-  })
-
-  it('does not treat a named-platform item as MULTI, nor a bare multi as any platform', () => {
-    expect(matchesFacets(item('PS3', 'X360'), platform, select('platform', 'multi'))).toBe(false)
-    expect(matchesFacets(item('multi'), platform, select('platform', 'ps3'))).toBe(false)
-    expect(matchesFacets(item('multi'), platform, select('platform', 'multi'))).toBe(true)
   })
 
   it('matches an untagged item only when Untagged is selected', () => {

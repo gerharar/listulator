@@ -1,0 +1,201 @@
+/* The Platform panel (U5), docs/chips/README.md §3. Above the Edit window's popover (120) and its catcher (119). */
+.q-platpanel {
+  z-index: 121;
+  width: 320px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px;
+  background: var(--card);
+  color: var(--ink);
+  border: 1px solid var(--rule);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.18);
+}
+
+.q-platpanel-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.q-platpanel-kicker {
+  flex: 1;
+  min-width: 0;
+  font: 500 11px/1 var(--font-mono);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink3);
+}
+.q-platpanel-clear {
+  flex: none;
+  padding: 4px 8px;
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--ink2);
+  font: 600 11px/1 var(--font-mono);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+.q-platpanel-clear:hover {
+  color: var(--ink);
+  border-color: var(--rule);
+}
+
+.q-platpanel-subject {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.q-platpanel-title {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font: 600 14px/1.25 var(--font-sans);
+}
+.q-platpanel-note {
+  font-size: 12.5px;
+  line-height: 1.4;
+  color: var(--ink2);
+  text-wrap: pretty;
+}
+
+.q-platpanel-tokens {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.q-platpanel-token {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 6px 4px 8px;
+  border: 1px solid var(--rule);
+  background: var(--fill);
+  color: var(--ink);
+  font: 500 11.5px/1.2 var(--font-mono);
+  letter-spacing: 0.04em;
+  cursor: pointer;
+}
+.q-platpanel-token:hover {
+  background: var(--hover);
+}
+.q-platpanel-token span {
+  font-size: 13px;
+  line-height: 1;
+  color: var(--ink2);
+}
+
+.q-platpanel-search {
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  background: var(--field);
+  color: var(--ink);
+  font: 400 13.5px/1.2 var(--font-sans);
+}
+.q-platpanel-search::placeholder {
+  color: var(--ink3);
+}
+
+/* The only scroller: head, tokens, search and the source line stay in view. */
+.q-platpanel-list {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  border-top: 1px solid var(--line);
+}
+.q-platpanel-section {
+  padding: 12px 6px 6px;
+  font: 500 10.5px/1 var(--font-mono);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink3);
+  border-bottom: 1px solid var(--line);
+}
+.q-platpanel-row {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 6px;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  background: transparent;
+  color: var(--ink);
+  text-align: left;
+  cursor: pointer;
+}
+.q-platpanel-row:hover,
+.q-platpanel-row[aria-pressed='true'] {
+  background: var(--hover);
+}
+.q-platpanel-box {
+  flex: none;
+  width: 17px;
+  height: 17px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--rule);
+  font: 600 12px/1 var(--font-mono);
+}
+.q-platpanel-row[aria-pressed='true'] .q-platpanel-box {
+  background: var(--accent);
+  color: var(--accentInk);
+}
+.q-platpanel-code {
+  flex: none;
+  width: 7ch;
+  font: 500 11.5px/1.2 var(--font-mono);
+  letter-spacing: 0.04em;
+  color: var(--ink3);
+}
+.q-platpanel-name {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font: 500 14px/1.2 var(--font-sans);
+}
+.q-platpanel-sub {
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.3;
+  color: var(--ink3);
+}
+.q-platpanel-foot {
+  margin: 0;
+  padding: 10px 6px 2px;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--ink3);
+}
+
+.q-platpanel-source {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.q-platpanel-source span {
+  flex: 1;
+  min-width: 0;
+  font-size: 12.5px;
+  line-height: 1.4;
+  color: var(--ink2);
+}
+.q-platpanel-source button {
+  flex: none;
+  padding: 7px 11px;
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--ink);
+  font: 600 12.5px/1 var(--font-sans);
+  white-space: nowrap;
+  cursor: pointer;
+}
+.q-platpanel-source button:hover {
+  border-color: var(--rule);
+  background: var(--hover);
+}

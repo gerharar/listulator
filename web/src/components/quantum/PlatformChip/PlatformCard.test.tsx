@@ -40,11 +40,10 @@ describe('PlatformCard', () => {
     expect(screen.getByText('FIRETV', { selector: '.code' })).toBeTruthy()
   })
 
-  it('says a bare multi means every platform, unnamed', () => {
+  it('shows a bare multi like any code the table does not know: no claim behind it (owner, U5)', () => {
     render(<PlatformCard tags={['multi']} />)
-    expect(screen.getByText('Multi-platform')).toBeTruthy()
-    expect(screen.getByText(/Same game on every platform it shipped on/)).toBeTruthy()
-    expect(document.querySelector('.q-platcard-row')).toBeNull()
+    expect(screen.queryByText('Multi-platform')).toBeNull()
+    expect(screen.getByText('MULTI', { selector: '.code' })).toBeTruthy()
   })
 
   it('shows a code the table does not know as its own caps text', () => {

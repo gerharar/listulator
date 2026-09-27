@@ -443,9 +443,6 @@ export const de: Locale = {
     platformCard: {
       one: 'Plattform',
       many: (n: number): string => `Plattformen · ${n}`,
-      multi: 'Plattformübergreifend',
-      multiNote:
-        'Dasselbe Spiel auf jeder Plattform, für die es erschienen ist. Diese Liste nennt sie nicht.',
       chipLabel: (title: string): string => `Plattformen für ${title}`,
     },
     list: {
@@ -456,6 +453,29 @@ export const de: Locale = {
       empty: 'Noch keine Einträge.',
       comingSoon: 'Bald verfügbar',
       noGroup: 'Keine Gruppe',
+      tags: {
+        platform: 'Plattform',
+        notSet: 'Nicht gesetzt',
+        fieldLabel: (label: string, value: string): string => `${label}: ${value}`,
+        fieldTip: 'Plattformen wählen',
+        panelLabel: 'Plattformen wählen',
+        head: (named: number): string => (named > 1 ? `Plattformen · ${named}` : 'Plattform'),
+        clear: 'Leeren',
+        clearTip: 'Alle Plattformen entfernen',
+        notSetNote: 'Nicht gesetzt. Eine oder mehrere wählen.',
+        removeTip: (name: string): string => `${name} entfernen`,
+        search: (n: number): string => `${n} Plattformen durchsuchen`,
+        inList: 'In dieser Liste',
+        common: 'Am häufigsten',
+        matches: (n: number): string => `Treffer · ${n}`,
+        browseFoot: (n: number): string => `Tippen, um alle ${n} Plattformen zu durchsuchen.`,
+        moreFoot: (shown: number, total: number): string => `${shown} von ${total} — weiter tippen.`,
+        noMatch: (query: string): string =>
+          `Keine Plattform passt zu „${query}“. Die Liste ist fest — Code oder anderen Namen versuchen.`,
+        sourceSays: (codes: string): string => (codes ? `Quelle: ${codes}.` : 'Quelle: keine.'),
+        resetToSource: 'Wie in der Quelle',
+        none: 'Keine',
+      },
       itemActions: {
         details: (title: string): string => `Details zu ${title}`,
         dragOnList: 'Ziehen, um diesen Eintrag in der Liste zu verschieben',

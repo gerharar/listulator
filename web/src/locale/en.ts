@@ -490,8 +490,6 @@ export const en = {
     platformCard: {
       one: 'Platform',
       many: (n: number): string => `Platforms · ${n}`,
-      multi: 'Multi-platform',
-      multiNote: "Same game on every platform it shipped on. This list doesn't name them.",
       /** The chip's accessible name: what it opens. */
       chipLabel: (title: string): string => `Platforms for ${title}`,
     },
@@ -505,6 +503,30 @@ export const en = {
       /** Header actions that arrive with later tasks: shown, disabled, and honest about it. */
       comingSoon: 'Coming soon',
       noGroup: 'No group',
+      /** U5: an item's tags by hand — the Platform field and panel, and the short fixed-set dropdown. */
+      tags: {
+        platform: 'Platform',
+        notSet: 'Not set',
+        fieldLabel: (label: string, value: string): string => `${label}: ${value}`,
+        fieldTip: 'Choose platforms',
+        panelLabel: 'Choose platforms',
+        head: (named: number): string => (named > 1 ? `Platforms · ${named}` : 'Platform'),
+        clear: 'Clear',
+        clearTip: 'Remove every platform',
+        notSetNote: 'Not set. Pick one or more.',
+        removeTip: (name: string): string => `Remove ${name}`,
+        search: (n: number): string => `Search ${n} platforms`,
+        inList: 'In this list',
+        common: 'Most common',
+        matches: (n: number): string => `Matches · ${n}`,
+        browseFoot: (n: number): string => `Type to search all ${n} platforms.`,
+        moreFoot: (shown: number, total: number): string => `Showing ${shown} of ${total} — keep typing.`,
+        noMatch: (query: string): string =>
+          `No platform matches “${query}”. The list is fixed — try its code or another name.`,
+        sourceSays: (codes: string): string => (codes ? `Source says ${codes}.` : 'Source says nothing.'),
+        resetToSource: 'Reset to source',
+        none: 'None',
+      },
       itemActions: {
         details: (title: string): string => `Details for ${title}`,
         /** The drag handle's hover text (10.23), in the prototype's words. */

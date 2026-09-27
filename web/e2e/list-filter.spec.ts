@@ -16,7 +16,7 @@ const GAMES = [
   { title: 'Prologue', timeToConsumeMinutes: 60 },
   { title: 'Assassin’s Creed', timeToConsumeMinutes: 900, group: 'Main', tags: ['PS3', 'X360', 'PC'] },
   { title: 'Assassin’s Creed II', timeToConsumeMinutes: 1200, group: 'Main', tags: ['PS3', 'X360', 'PC'] },
-  { title: 'Revelations', timeToConsumeMinutes: 900, group: 'Main', tags: ['multi'] },
+  { title: 'Revelations', timeToConsumeMinutes: 900, group: 'Main', tags: ['PS3', 'X360'] },
   { title: 'Altaïr’s Chronicles', timeToConsumeMinutes: 360, group: 'Handhelds', tags: ['NDS'] },
   { title: 'Bloodlines', timeToConsumeMinutes: 360, group: 'Handhelds', tags: ['PSP'] },
 ]
@@ -39,7 +39,7 @@ test('Games get a Platform facet; it filters additively and keeps the order', as
 
   try {
     await openList(page, title)
-    await expect(facets(page).locator('button')).toHaveText(['All', 'DS', 'PS3', 'PSP', 'WIN', 'X360', 'MULTI', 'Untagged'])
+    await expect(facets(page).locator('button')).toHaveText(['All', 'DS', 'PS3', 'PSP', 'WIN', 'X360', 'Untagged'])
     await expect(facetBar(page).getByText('6 items')).toBeVisible()
     await page.screenshot({ path: 'test-results/filter-bar-games.png' })
 

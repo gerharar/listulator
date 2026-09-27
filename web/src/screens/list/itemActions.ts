@@ -6,6 +6,8 @@ export interface EditDraft {
   title: string
   minutes: string
   group: string
+  /** The tags to save, only when the tag field changed them (U5); absent leaves the stored tags alone. */
+  tags?: string[]
 }
 
 export interface ItemPatch {
@@ -13,6 +15,8 @@ export interface ItemPatch {
   timeToConsumeMinutes?: number
   timeToConsumeIsEstimated?: boolean
   group?: string | null
+  /** The item's whole tag list (U5); null clears it. */
+  tags?: string[] | null
 }
 
 /**
@@ -35,6 +39,7 @@ export function buildEditPatch(item: ListItem, draft: EditDraft): ItemPatch | nu
     patch.timeToConsumeIsEstimated = false
   }
   if (group !== (item.group || null)) patch.group = group
+  if (draft.tags !== undefined) patch.tags = draft.tags.length > 0 ? draft.tags : null
 
   return Object.keys(patch).length > 0 ? patch : null
 }
@@ -49,6 +54,7 @@ export function invertPatch(item: ListItem, patch: ItemPatch): ItemPatch {
     back.timeToConsumeIsEstimated = item.timeToConsumeIsEstimated
   }
   if (patch.group !== undefined) back.group = item.group || null
+  if (patch.tags !== undefined) back.tags = item.tags && item.tags.length > 0 ? [...item.tags] : null
 
   return back
 }

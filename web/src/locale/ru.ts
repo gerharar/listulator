@@ -448,8 +448,6 @@ export const ru: Locale = {
     platformCard: {
       one: 'Платформа',
       many: (n: number): string => `Платформы · ${n}`,
-      multi: 'Мультиплатформа',
-      multiNote: 'Одна и та же игра на всех платформах, где она выходила. Этот список их не называет.',
       chipLabel: (title: string): string => `Платформы: ${title}`,
     },
     list: {
@@ -460,6 +458,29 @@ export const ru: Locale = {
       empty: 'Элементов пока нет.',
       comingSoon: 'Скоро',
       noGroup: 'Без группы',
+      tags: {
+        platform: 'Платформа',
+        notSet: 'Не указана',
+        fieldLabel: (label: string, value: string): string => `${label}: ${value}`,
+        fieldTip: 'Выбрать платформы',
+        panelLabel: 'Выбрать платформы',
+        head: (named: number): string => (named > 1 ? `Платформы · ${named}` : 'Платформа'),
+        clear: 'Очистить',
+        clearTip: 'Убрать все платформы',
+        notSetNote: 'Не указана. Выберите одну или несколько.',
+        removeTip: (name: string): string => `Убрать ${name}`,
+        search: (n: number): string => `Поиск по ${n} платформам`,
+        inList: 'В этом списке',
+        common: 'Самые частые',
+        matches: (n: number): string => `Найдено · ${n}`,
+        browseFoot: (n: number): string => `Введите текст, чтобы искать среди всех ${n} платформ.`,
+        moreFoot: (shown: number, total: number): string => `Показано ${shown} из ${total} — уточните запрос.`,
+        noMatch: (query: string): string =>
+          `Нет платформы «${query}». Список фиксирован — попробуйте код или другое название.`,
+        sourceSays: (codes: string): string => (codes ? `В источнике: ${codes}.` : 'В источнике платформ нет.'),
+        resetToSource: 'Вернуть как в источнике',
+        none: 'Нет',
+      },
       itemActions: {
         details: (title: string): string => `Подробности: ${title}`,
         dragOnList: 'Перетащите, чтобы переместить элемент в списке',

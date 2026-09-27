@@ -77,3 +77,18 @@ describe('invertPatch', () => {
     expect(invertPatch({ ...ITEM, group: null }, { group: 'Season 2' })).toEqual({ group: null })
   })
 })
+
+describe('tags in an edit (U5)', () => {
+  const draft = { title: ITEM.title, minutes: String(ITEM.timeToConsumeMinutes), group: ITEM.group ?? '' }
+
+  it('patches the tags only when the draft carries them; none left clears them', () => {
+    expect(buildEditPatch(ITEM, draft)).toBeNull()
+    expect(buildEditPatch(ITEM, { ...draft, tags: ['PS4'] })).toEqual({ tags: ['PS4'] })
+    expect(buildEditPatch(ITEM, { ...draft, tags: [] })).toEqual({ tags: null })
+  })
+
+  it('undoes a tag change back to the tags the item had, or none', () => {
+    expect(invertPatch({ ...ITEM, tags: ['pc', 'PS3'] }, { tags: ['WIN'] })).toEqual({ tags: ['pc', 'PS3'] })
+    expect(invertPatch({ ...ITEM, tags: null }, { tags: ['WIN'] })).toEqual({ tags: null })
+  })
+})

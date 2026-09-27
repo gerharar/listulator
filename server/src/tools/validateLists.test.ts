@@ -62,10 +62,16 @@ describe('validateListFiles', () => {
       return path
     }
 
-    it('accepts known codes in any case, and multi', () => {
-      const path = write('  - { title: A, tags: [WIN, ps3] }\n  - { title: B, tags: [multi] }\n')
+    it('accepts known codes in any case', () => {
+      const path = write('  - { title: A, tags: [WIN, ps3] }\n')
 
       expect(validateListFiles([path], GAMES, new Set(['game']))).toEqual([])
+    })
+
+    it('refuses a bare multi: it is not a platform (owner, U5)', () => {
+      const path = write('  - { title: B, tags: [multi] }\n')
+
+      expect(validateListFiles([path], GAMES, new Set(['game'])).join()).toContain('multi')
     })
 
     it('refuses an unknown code and an old one, naming the item and the code', () => {

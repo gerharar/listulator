@@ -7,15 +7,13 @@ import { IGDB_PLATFORM_CODES, PLATFORM_TABLE } from './platforms.generated.js'
  * against it. Shared and browser-safe (no Node builtins): the facet derivation,
  * the platform chip and popover, the IGDB importer and the list checker all use it.
  *
- * `multi` is a claim, not a platform: the same content everywhere, platforms unnamed.
+ * There is no "multi" claim (owner, U5): a game on several platforms names them,
+ * and a bare `multi` tag is just a code the table does not know.
  */
-
-const MULTI = { code: 'MULTI', name: 'Multi-platform' }
 
 /** Lower-cased code → full name. For the order, read `PLATFORM_ORDER`. */
 export const PLATFORMS: Readonly<Record<string, string>> = Object.fromEntries([
   ...PLATFORM_TABLE.map(({ code, name }) => [code.toLowerCase(), name] as const),
-  ['multi', MULTI.name] as const,
 ])
 
 /**
@@ -24,11 +22,10 @@ export const PLATFORMS: Readonly<Record<string, string>> = Object.fromEntries([
  * number-like keys first, whatever order they were added in (the table has
  * none today, and the generator refuses one, but the order must not hinge on it).
  */
-export const PLATFORM_ORDER: readonly string[] = [...PLATFORM_TABLE.map(({ code }) => code.toLowerCase()), 'multi']
+export const PLATFORM_ORDER: readonly string[] = PLATFORM_TABLE.map(({ code }) => code.toLowerCase())
 
 const CODES: Readonly<Record<string, string>> = Object.fromEntries([
   ...PLATFORM_TABLE.map(({ code }) => [code.toLowerCase(), code] as const),
-  ['multi', MULTI.code] as const,
 ])
 
 /**

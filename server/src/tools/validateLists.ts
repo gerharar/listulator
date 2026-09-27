@@ -15,7 +15,7 @@ import { LEGACY_PLATFORM_TAGS, PLATFORM_ORDER } from '../catalog/platforms.js'
  */
 /**
  * A curated list in a category whose tags are platforms (Games) must use the
- * codes in `config/platforms.csv` (10.24c), in any case, or `multi`. An old code
+ * codes in `config/platforms.csv` (10.24c), in any case (no `multi`: owner, U5). An old code
  * the app still reads (PC) is refused here, with today's code named, so the
  * library never drifts from the table. The app's own import stays lenient.
  */

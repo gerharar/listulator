@@ -80,7 +80,7 @@ function list(mediaType = 'game'): MediaListDetail {
       item('p', 'Prologue', 0, null, null),
       item('ac1', 'Assassin’s Creed', 1, 'Main', ['PS3', 'X360', 'PC']),
       item('ac2', 'Assassin’s Creed II', 2, 'Main', ['PS3', 'X360', 'PC']),
-      item('ac3', 'Revelations', 3, 'Main', ['multi']),
+      item('ac3', 'Revelations', 3, 'Main', ['PS3', 'X360']),
       item('ch', 'Altaïr’s Chronicles', 4, 'Handhelds', ['NDS']),
       item('bl', 'Bloodlines', 5, 'Handhelds', ['PSP']),
     ],
@@ -134,8 +134,8 @@ describe('the bar', () => {
 
     expect(within(bar()).getByText('6 items')).toBeTruthy()
     const labels = Array.from(bar().querySelectorAll('.q-facet button')).map((button) => button.textContent)
-    // Old tags (PC, NDS) read as today's codes (10.24c); the buttons run A to Z, then MULTI and Untagged.
-    expect(labels).toEqual(['All', 'DS', 'PS3', 'PSP', 'WIN', 'X360', 'MULTI', 'Untagged'])
+    // Old tags (PC, NDS) read as today's codes (10.24c); the buttons run A to Z, then Untagged.
+    expect(labels).toEqual(['All', 'DS', 'PS3', 'PSP', 'WIN', 'X360', 'Untagged'])
   })
 
   it('sits below the coloured header block, not inside it (prototype: the header ends at its rule)', async () => {
@@ -323,15 +323,6 @@ describe('platform chips (Games)', () => {
     expect(screen.getByText('PlayStation 3')).toBeTruthy()
     expect(row('ac1').classList.contains('is-done')).toBe(false)
     expect(api.setConsumed).not.toHaveBeenCalled()
-  })
-
-  it('explains a bare multi without naming platforms', async () => {
-    await open()
-
-    fireEvent.click(chip('ac3')!)
-
-    expect(await screen.findByText('Multi-platform')).toBeTruthy()
-    expect(screen.getByText(/doesn't name them/)).toBeTruthy()
   })
 
   it('keeps the plain first-tag label in a category without a platform convention', async () => {

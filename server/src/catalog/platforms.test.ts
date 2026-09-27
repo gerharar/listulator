@@ -3,9 +3,9 @@ import fixture from '../ingestion/adapters/igdbPlatforms.fixture.json' with { ty
 import { igdbPlatformCode, LEGACY_PLATFORM_TAGS, PLATFORM_ORDER, platformCode, platformKey, platformName } from './platforms.js'
 
 describe('the platform table (config/platforms.csv, 10.24c)', () => {
-  it('follows the file’s order, with MULTI after every platform', () => {
+  it('follows the file’s order, and holds only the table’s platforms (no MULTI claim: owner, U5)', () => {
     expect(PLATFORM_ORDER[0]).toBe('win')
-    expect(PLATFORM_ORDER.at(-1)).toBe('multi')
+    expect(PLATFORM_ORDER).not.toContain('multi')
     expect(new Set(PLATFORM_ORDER).size).toBe(PLATFORM_ORDER.length)
     expect(PLATFORM_ORDER.indexOf('a2600')).toBeGreaterThan(PLATFORM_ORDER.indexOf('win'))
   })
@@ -43,7 +43,7 @@ describe('reading a tag', () => {
     expect(platformName('PC')).toBe('Windows')
   })
 
-  it('shows a code in the file’s capitals, MULTI for the claim, and an unknown tag in capitals', () => {
+  it('shows a code in the file’s capitals, and an unknown tag (a bare multi too) in capitals', () => {
     expect(platformCode('pc')).toBe('WIN')
     expect(platformCode('firetv')).toBe('FIRETV')
     expect(platformCode('multi')).toBe('MULTI')
@@ -52,7 +52,7 @@ describe('reading a tag', () => {
 
   it('has a full name only for a known code', () => {
     expect(platformName('X360')).toBe('Xbox 360')
-    expect(platformName('multi')).toBe('Multi-platform')
+    expect(platformName('multi')).toBeNull()
     expect(platformName('Some Console')).toBeNull()
   })
 })
