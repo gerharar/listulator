@@ -625,6 +625,11 @@ export const de: Locale = {
         hideOption: (name: string): string => `${name} ausblenden`,
         alsoShowOption: (name: string): string =>
           `${name} ebenfalls zeigen — beliebig viele können gleichzeitig aktiv sein`,
+        facetPicks: (named: readonly string[], more: number): string =>
+          more > 0 ? `${named.join(', ')} +${more}` : named.join(', '),
+        facetDropdownLabel: (facet: string, summary: string): string => `${facet}: ${summary}`,
+        facetPickTip: 'Auswählen, was angezeigt wird',
+        facetCount: (facet: string, n: number): string => `${facet} · ${n}`,
         facetLabels: {
           Type: 'Typ',
           Medium: 'Medium',

@@ -41,3 +41,12 @@
   background: var(--accent);
   color: var(--accentInk);
 }
+
+/* U4: a facet too wide for the bar's row, as one button naming its picks. */
+.q-facet .q-facet-summary {
+  gap: 6px;
+}
+.q-facet .q-facet-summary[data-on='true'] {
+  background: var(--accent);
+  color: var(--accentInk);
+}

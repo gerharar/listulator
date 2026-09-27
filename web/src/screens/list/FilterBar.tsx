@@ -1,7 +1,9 @@
+import { useLayoutEffect, useRef, useState } from 'react'
 import { ChevronsDownUp, ChevronsUpDown } from 'lucide-react'
 import type { FacetGroup, FacetKey, FacetSelection } from '../../../../server/src/catalog/facets.js'
 import { copy } from '../../locale/index.js'
-import { FacetToggle } from '../../components/quantum/FacetToggle/FacetToggle.js'
+import { FacetToggle, type FacetOption } from '../../components/quantum/FacetToggle/FacetToggle.js'
+import { FacetDropdown, facetsToCompact } from '../../components/quantum/FacetToggle/FacetDropdown.js'
 import { platformFullName } from '../../components/quantum/PlatformChip/PlatformChip.js'
 
 export interface FilterBarProps {
@@ -17,44 +19,92 @@ export interface FilterBarProps {
   note: string
 }
 
+/** Its options as the facet components take them: labels translated, platforms named in full. */
+function facetOptions(facet: FacetGroup): FacetOption[] {
+  const t = copy.quantum.list.filter
+  return facet.options.map((option) => ({
+    key: option.key,
+    label: t.optionLabels[option.label] ?? option.label,
+    ...(facet.key === 'platform' && platformFullName(option.label)
+      ? { name: platformFullName(option.label)! }
+      : {}),
+  }))
+}
+
 /**
  * The bar under the list header (design: "Filter bar"): a text field, one
  * additive facet row per facet the list has values for, fold-all, and a note
  * that says how much of the list is showing. The facets are whatever the
  * category's convention derived; this bar knows no category.
+ *
+ * One row (U4, owner 2026-09-27): a facet whose chips would push the row onto
+ * a second line becomes a dropdown (FacetDropdown), the one that saves most
+ * first; widen the window and the chips come back. A hidden copy of each facet
+ * in both forms is measured against the bar on every resize.
  */
 export function FilterBar({ text, onText, facets, selection, onSelect, fold, note }: FilterBarProps) {
   const t = copy.quantum.list.filter
+  const barRef = useRef<HTMLDivElement>(null)
+  const ghostRef = useRef<HTMLDivElement>(null)
+  const [compact, setCompact] = useState<ReadonlySet<string>>(new Set())
+
+  useLayoutEffect(() => {
+    const bar = barRef.current
+    const ghost = ghostRef.current
+    // No layout to measure (jsdom): every facet stays inline.
+    if (!bar || !ghost || typeof ResizeObserver === 'undefined') return
+
+    const measure = () => {
+      const style = getComputedStyle(bar)
+      const available = bar.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight)
+      const fixed = [...bar.querySelectorAll<HTMLElement>('[data-bar-fixed]')].map((part) => part.offsetWidth)
+      const widths = facets.map((facet) => ({
+        key: facet.key,
+        inline: ghost.querySelector<HTMLElement>(`[data-inline="${facet.key}"]`)?.offsetWidth ?? 0,
+        compact: ghost.querySelector<HTMLElement>(`[data-compact="${facet.key}"]`)?.offsetWidth ?? 0,
+      }))
+      const next = facetsToCompact(available, fixed, parseFloat(style.columnGap) || 0, widths)
+      setCompact((current) =>
+        current.size === next.size && [...next].every((key) => current.has(key)) ? current : next,
+      )
+    }
+
+    measure()
+    const observer = new ResizeObserver(measure)
+    observer.observe(bar)
+    return () => observer.disconnect()
+  }, [facets, selection, fold, note])
+
+  const facetProps = (facet: FacetGroup) => ({
+    label: t.facetLabels[facet.label] ?? facet.label,
+    options: facetOptions(facet),
+    selected: selection[facet.key] ?? new Set<string>(),
+    onChange: (selected: ReadonlySet<string>) => onSelect(facet.key, selected),
+  })
 
   return (
-    <div className="q-filterbar">
+    <div className="q-filterbar" ref={barRef}>
       <input
         className="q-filter-input"
+        data-bar-fixed=""
         type="text"
         aria-label={t.label}
         placeholder={t.placeholder}
         value={text}
         onChange={(event) => onText(event.target.value)}
       />
-      {facets.map((facet) => (
-        <FacetToggle
-          key={facet.key}
-          label={t.facetLabels[facet.label] ?? facet.label}
-          options={facet.options.map((option) => ({
-            key: option.key,
-            label: t.optionLabels[option.label] ?? option.label,
-            ...(facet.key === 'platform' && platformFullName(option.label)
-              ? { name: platformFullName(option.label)! }
-              : {}),
-          }))}
-          selected={selection[facet.key] ?? new Set()}
-          onChange={(selected) => onSelect(facet.key, selected)}
-        />
-      ))}
+      {facets.map((facet) =>
+        compact.has(facet.key) ? (
+          <FacetDropdown key={facet.key} {...facetProps(facet)} />
+        ) : (
+          <FacetToggle key={facet.key} {...facetProps(facet)} />
+        ),
+      )}
       {fold && (
         <button
           type="button"
           className="q-fold"
+          data-bar-fixed=""
           title={fold.collapse ? t.collapseAllTip : t.expandAllTip}
           onClick={fold.onToggle}
         >
@@ -66,7 +116,26 @@ export function FilterBar({ text, onText, facets, selection, onSelect, fold, not
           {fold.collapse ? t.collapseAll : t.expandAll}
         </button>
       )}
-      <span className={fold ? 'q-filter-note' : 'q-filter-note push'}>{note}</span>
+      <span className={fold ? 'q-filter-note' : 'q-filter-note push'} data-bar-fixed="">
+        {note}
+      </span>
+
+      {/* Both forms of every facet at their natural width, for measuring only;
+          only where there is layout to measure (not jsdom). */}
+      {facets.length > 0 && typeof ResizeObserver !== 'undefined' && (
+        <div className="q-filterbar-ghost" ref={ghostRef} aria-hidden="true" inert>
+          {facets.map((facet) => (
+            <div key={facet.key} className="q-filterbar-ghost-pair">
+              <div data-inline={facet.key}>
+                <FacetToggle {...facetProps(facet)} />
+              </div>
+              <div data-compact={facet.key}>
+                <FacetDropdown {...facetProps(facet)} measureOnly />
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   )
 }

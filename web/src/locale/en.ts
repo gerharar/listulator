@@ -685,6 +685,12 @@ export const en = {
         hideOption: (name: string): string => `Hide ${name}`,
         alsoShowOption: (name: string): string => `Also show ${name} — any number can be on at once`,
         /** A facet's kicker, by the label the registry gives it. */
+        /** U4: a facet too wide for the bar becomes a dropdown naming its picks. */
+        facetPicks: (named: readonly string[], more: number): string =>
+          more > 0 ? `${named.join(', ')} +${more}` : named.join(', '),
+        facetDropdownLabel: (facet: string, summary: string): string => `${facet}: ${summary}`,
+        facetPickTip: 'Pick which to show',
+        facetCount: (facet: string, n: number): string => `${facet} · ${n}`,
         facetLabels: {
           Type: 'Type',
           Medium: 'Medium',

@@ -32,8 +32,8 @@ export function toggleFacetOption(
 
 /** design-system/components/FacetToggle — an additive filter: `All`, then a segmented run of options. */
 export interface FacetToggleProps {
-  /** The mono kicker: Type, Medium, Language, Platform. */
-  label: string
+  /** The mono kicker: Type, Medium, Language, Platform. Left out inside a FacetDropdown, whose popover names it. */
+  label?: string
   options: FacetOption[]
   selected: ReadonlySet<string>
   onChange: (selected: ReadonlySet<string>) => void
@@ -44,7 +44,7 @@ export function FacetToggle({ label, options, selected, onChange }: FacetToggleP
 
   return (
     <div className="q-facet">
-      <span className="q-kicker">{label}</span>
+      {label && <span className="q-kicker">{label}</span>}
       <button aria-pressed={allOn} title={copy.quantum.list.filter.clearTip} onClick={() => onChange(new Set())}>
         {copy.quantum.list.filter.all}
       </button>

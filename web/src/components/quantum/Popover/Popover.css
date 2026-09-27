@@ -75,6 +75,42 @@
   border-right: 0;
   border-left: 9px solid var(--card);
 }
+/* side="below": the tail on the top edge pointing up (or, flipped above, on the
+   bottom edge pointing down); --tail-x from the arrow middleware centres it on
+   the anchor. The fill again climbs 1px over the card's border. */
+.q-pop-tail.up,
+.q-pop-tail.up::before,
+.q-pop-tail.down,
+.q-pop-tail.down::before {
+  border-left: 9px solid transparent;
+  border-right: 9px solid transparent;
+}
+.q-pop-tail.up {
+  top: -9px;
+  left: var(--tail-x, 12px);
+  border-top: 0;
+  border-bottom: 9px solid var(--rule);
+}
+.q-pop-tail.up::before {
+  top: 1px;
+  left: -9px;
+  border-top: 0;
+  border-bottom: 9px solid var(--card);
+}
+.q-pop-tail.down {
+  top: auto;
+  bottom: -9px;
+  left: var(--tail-x, 12px);
+  border-bottom: 0;
+  border-top: 9px solid var(--rule);
+}
+.q-pop-tail.down::before {
+  top: auto;
+  bottom: 1px;
+  left: -9px;
+  border-bottom: 0;
+  border-top: 9px solid var(--card);
+}
 
 .q-pop-head {
   display: flex;

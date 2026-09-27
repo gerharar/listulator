@@ -94,12 +94,33 @@
 /* The filter bar (prototype: field, facet rows, fold-all, note). It sits BELOW the coloured header block, on the
    plain page, so the header ends at its rule and the filter stays readable (owner, 2026-09-26). */
 .q-filterbar {
+  position: relative;
   flex: none;
   display: flex;
   align-items: center;
   flex-wrap: wrap;
   gap: 10px;
   padding: 13px 26px 11px;
+}
+/* U4: both forms of each facet at their natural one-line width, measured and never seen. */
+.q-filterbar-ghost {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 0;
+  overflow: hidden;
+  visibility: hidden;
+  pointer-events: none;
+}
+.q-filterbar-ghost-pair,
+.q-filterbar-ghost-pair > div {
+  display: flex;
+  width: max-content;
+}
+.q-filterbar-ghost .q-facet,
+.q-filterbar-ghost .q-facet-seg {
+  flex-wrap: nowrap;
+  max-width: none;
 }
 .q-filter-input {
   width: 250px;

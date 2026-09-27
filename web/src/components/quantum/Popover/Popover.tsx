@@ -31,6 +31,13 @@ export interface PopoverProps {
   /** Esc, when it should mean something other than click-away (an edit popover cancels). */
   onEscape?: () => void
   width: PopoverWidth
+  /**
+   * `beside` (default): right of the anchor, flipping left, the tail on its side.
+   * `below`: under the anchor from its left edge, flipping above, the tail on top —
+   * for an anchor whose width changes while the popover is open (U4's facet
+   * dropdown names its picks), so the popover does not move along with it.
+   */
+  side?: 'beside' | 'below'
   children: ReactNode
 }
 
@@ -45,17 +52,19 @@ export interface PopoverProps {
  * concern — this component only re-renders whatever `children` it's given
  * for a stable `open`/`anchorEl`, so the tail never moves between them.
  */
-export function Popover({ open, anchorEl, onDismiss, onEscape, width, children }: PopoverProps) {
+export function Popover({ open, anchorEl, onDismiss, onEscape, width, side = 'beside', children }: PopoverProps) {
   const id = useId()
   const arrowRef = useRef<HTMLSpanElement>(null)
 
   const { refs, floatingStyles, placement, middlewareData } = useFloating({
     open,
-    placement: 'right-start',
+    placement: side === 'below' ? 'bottom-start' : 'right-start',
     elements: { reference: anchorEl },
     middleware: [
       offset(12),
-      flip({ fallbackPlacements: ['left-start', 'right-end', 'left-end'] }),
+      flip({
+        fallbackPlacements: side === 'below' ? ['top-start'] : ['left-start', 'right-end', 'left-end'],
+      }),
       shift({ padding: 8 }),
       arrow({ element: arrowRef }),
     ],
@@ -66,19 +75,26 @@ export function Popover({ open, anchorEl, onDismiss, onEscape, width, children }
 
   if (!open) return null
 
-  const tailOnRight = placement.startsWith('left')
+  const tailClass = placement.startsWith('left')
+    ? 'q-pop-tail right'
+    : placement.startsWith('bottom')
+      ? 'q-pop-tail up'
+      : placement.startsWith('top')
+        ? 'q-pop-tail down'
+        : 'q-pop-tail'
   const tailY = middlewareData.arrow?.y ?? 0
+  const tailX = middlewareData.arrow?.x ?? 0
 
   return (
     <FloatingPortal>
       <div className="q-catcher" onClick={onDismiss} />
       <div
         ref={refs.setFloating}
-        style={{ ...floatingStyles, '--tail-y': `${tailY}px` } as CSSProperties}
+        style={{ ...floatingStyles, '--tail-y': `${tailY}px`, '--tail-x': `${tailX}px` } as CSSProperties}
         className={`q-pop w${width}`}
         role="dialog"
       >
-        <span ref={arrowRef} className={tailOnRight ? 'q-pop-tail right' : 'q-pop-tail'} />
+        <span ref={arrowRef} className={tailClass} />
         {children}
       </div>
     </FloatingPortal>
