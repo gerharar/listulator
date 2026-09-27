@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { PreferencesStore } from '../../lib/preferences/store.js'
-import { defaultCollapsed, loadCollapsed, loadFocus, saveCollapsed, saveFocus } from './collapse.js'
+import { defaultCollapsed, loadAddTags, loadCollapsed, loadFocus, saveAddTags, saveCollapsed, saveFocus } from './collapse.js'
 
 function fakeStore(initial: Record<string, string> = {}) {
   const data = new Map(Object.entries(initial))
@@ -99,5 +99,21 @@ describe('saveCollapsed / focus', () => {
     await expect(saveCollapsed(store, 'L1', new Set())).resolves.toBeUndefined()
     await expect(saveFocus(store, 'L1', 'x')).resolves.toBeUndefined()
     expect(await loadFocus(store, 'L1')).toBeUndefined()
+  })
+})
+
+describe('the add row’s remembered tags (U5)', () => {
+  it('is nothing until an item is added with tags, then per list what it used', async () => {
+    const { store } = fakeStore()
+    expect(await loadAddTags(store, 'L1')).toEqual([])
+
+    await saveAddTags(store, 'L1', ['PS4', 'WIN'])
+    expect(await loadAddTags(store, 'L1')).toEqual(['PS4', 'WIN'])
+    expect(await loadAddTags(store, 'L2')).toEqual([])
+  })
+
+  it('reads a damaged value as nothing', async () => {
+    expect(await loadAddTags(fakeStore({ 'list:L1:addTags': 'nope' }).store, 'L1')).toEqual([])
+    expect(await loadAddTags(fakeStore({ 'list:L1:addTags': '["PS4", 3]' }).store, 'L1')).toEqual(['PS4'])
   })
 })

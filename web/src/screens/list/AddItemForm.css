@@ -19,3 +19,48 @@
 .q-add-item-row > .q-combo {
   width: 200px;
 }
+
+/* U5: the next item's platforms (docs/chips §4), labelled above like the other fields (owner):
+   a field-styled button with the picks and a caret, like the Type/Medium dropdown. */
+.q-add-item-row > .q-add-plat-field {
+  width: 180px;
+}
+.q-add-plat {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  text-align: left;
+  cursor: pointer;
+}
+.q-add-plat:hover,
+.q-add-plat.open {
+  border-color: var(--rule);
+}
+.q-add-plat-value {
+  /* The small inputs' line box (14px × 1.2), so this field is exactly as tall as its neighbours. */
+  line-height: 16.8px;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font: 500 13px/1.2 var(--font-mono);
+  letter-spacing: 0.04em;
+}
+.q-add-plat-value.empty {
+  /* A helper, like the Edit window's "Not set" (owner). */
+  font: italic 400 14px/1.2 var(--font-sans);
+  letter-spacing: 0;
+  color: var(--ink3);
+}
+.q-add-plat-caret {
+  flex: none;
+  color: var(--ink3);
+}
+.q-add-item-row > .q-combo + .q-combo {
+  width: 160px;
+}
+/* The picker inside a plain popover: the list scrolls, the rest stays in view. */
+.q-pop .q-platpanel-list {
+  max-height: 280px;
+}

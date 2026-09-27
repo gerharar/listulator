@@ -460,6 +460,8 @@ export const ru: Locale = {
       empty: 'Элементов пока нет.',
       comingSoon: 'Скоро',
       noGroup: 'Без группы',
+      /** The Group field's hint while it has focus: a name typed there makes a group (owner). */
+      typeToCreate: 'Введите, чтобы создать новую',
       tags: {
         platform: 'Платформа',
         notSet: 'Не указана',
@@ -479,6 +481,10 @@ export const ru: Locale = {
         noMatch: (query: string): string =>
           `Нет платформы «${query}». Список фиксирован — попробуйте код или другое название.`,
         sourceSays: (codes: string): string => (codes ? `В источнике: ${codes}.` : 'В источнике платформ нет.'),
+        nextItem: 'Следующий добавленный элемент',
+        nextItemNote: 'Каждый новый элемент этого списка начнётся с этого. Один элемент меняется в его окне правки.',
+        nextField: (value: string): string => `Платформа для следующего элемента: ${value}`,
+        nextTip: 'Платформа для следующего элемента — запоминается для этого списка',
         resetToSource: 'Вернуть как в источнике',
         none: 'Нет',
         addPlatforms: (title: string): string => `Указать платформы: ${title}`,

@@ -455,6 +455,8 @@ export const de: Locale = {
       empty: 'Noch keine Einträge.',
       comingSoon: 'Bald verfügbar',
       noGroup: 'Keine Gruppe',
+      /** The Group field's hint while it has focus: a name typed there makes a group (owner). */
+      typeToCreate: 'Tippen, um eine neue anzulegen',
       tags: {
         platform: 'Plattform',
         notSet: 'Nicht gesetzt',
@@ -474,6 +476,10 @@ export const de: Locale = {
         noMatch: (query: string): string =>
           `Keine Plattform passt zu „${query}“. Die Liste ist fest — Code oder anderen Namen versuchen.`,
         sourceSays: (codes: string): string => (codes ? `Quelle: ${codes}.` : 'Quelle: keine.'),
+        nextItem: 'Nächster Eintrag',
+        nextItemNote: 'Jeder neue Eintrag dieser Liste beginnt damit. Einen einzelnen änderst du in seinem Bearbeiten-Fenster.',
+        nextField: (value: string): string => `Plattform für den nächsten Eintrag: ${value}`,
+        nextTip: 'Plattform für den nächsten Eintrag — für diese Liste gemerkt',
         resetToSource: 'Wie in der Quelle',
         none: 'Keine',
         addPlatforms: (title: string): string => `Plattformen für ${title} setzen`,

@@ -178,4 +178,27 @@ describe('GroupCombobox', () => {
 
     expect(screen.getByLabelText('Group')).toBe(input())
   })
+
+  it('opens its list upward when the field sits too low in the window for it to fit below', () => {
+    render(<Harness />)
+    input().getBoundingClientRect = () => ({ top: 820, bottom: 857, left: 0, right: 200, width: 200, height: 37, x: 0, y: 820, toJSON: () => ({}) })
+    Object.defineProperty(window, 'innerHeight', { value: 900, configurable: true })
+
+    fireEvent.focus(input())
+
+    expect(screen.getByRole('listbox').classList.contains('up')).toBe(true)
+  })
+
+  it('says it takes a new name while it has focus, and No group otherwise (owner)', () => {
+    render(<Harness />)
+    expect(input().placeholder).toBe('No group')
+
+    fireEvent.focus(input())
+    expect(input().placeholder).toBe('Type to create new')
+    // Clearing the group is still one pick away.
+    expect(options()[0]).toBe('No group')
+
+    fireEvent.blur(input())
+    expect(input().placeholder).toBe('No group')
+  })
 })

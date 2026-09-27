@@ -30,6 +30,8 @@ import {
   loadFocus,
   loadRailHidden,
   loadRailWidth,
+  loadAddTags,
+  saveAddTags,
   saveCollapsed,
   saveFocus,
   saveRailHidden,
@@ -75,6 +77,7 @@ type Load =
       focusId: string | undefined
       railHidden: boolean
       railWidth: number
+      addTags: string[]
     }
 
 /**
@@ -112,8 +115,9 @@ export function ListScreen({ listId, mediaTypes, pendingUpdates, onLeave, onClos
       const focusId = await loadFocus(store, listId)
       const railHidden = await loadRailHidden(store, listId)
       const railWidth = await loadRailWidth(store, listId)
+      const addTags = await loadAddTags(store, listId)
       void saveLastOpened(store, listId)
-      if (request.current === mine) setLoad({ state: 'ready', list, collapsed, focusId, railHidden, railWidth })
+      if (request.current === mine) setLoad({ state: 'ready', list, collapsed, focusId, railHidden, railWidth, addTags })
     } catch (cause) {
       if (request.current === mine) {
         setLoad({
@@ -161,6 +165,7 @@ export function ListScreen({ listId, mediaTypes, pendingUpdates, onLeave, onClos
       initialFocusId={load.focusId}
       initialRailHidden={load.railHidden}
       initialRailWidth={load.railWidth}
+      initialAddTags={load.addTags}
       mediaTypes={mediaTypes}
       pending={pendingUpdates ?? getPendingUpdates()}
       onLeave={onLeave}
@@ -179,6 +184,8 @@ interface ListViewProps {
   initialFocusId: string | undefined
   initialRailHidden: boolean
   initialRailWidth: number
+  /** The tags the add row starts with on this list (U5). */
+  initialAddTags: readonly string[]
   mediaTypes: readonly MediaType[]
   pending: PendingUpdates
   onLeave: (() => void) | undefined
@@ -207,6 +214,7 @@ function ListView({
   initialFocusId,
   initialRailHidden,
   initialRailWidth,
+  initialAddTags,
   mediaTypes,
   pending,
   onLeave,
@@ -435,7 +443,10 @@ function ListView({
       timeToConsumeMinutes: input.minutes ?? defaultMinutes,
       timeToConsumeIsEstimated: !known,
       group,
+      ...(input.tags ? { tags: input.tags } : {}),
     })
+    // The next item on this list starts with what this one used (docs/chips §4).
+    if (input.tags) void saveAddTags(getPreferencesStore(), listId, input.tags)
 
     const fresh = await refresh()
     // A collapsed group the item went into opens, or the pulse would mark nothing.
@@ -988,7 +999,14 @@ function ListView({
               </div>
             ),
           )}
-          <AddItemForm groups={groupNames} defaultMinutes={defaultMinutes} onAdd={addItem} />
+          <AddItemForm
+            groups={groupNames}
+            defaultMinutes={defaultMinutes}
+            onAdd={addItem}
+            tagField={tagEditor}
+            listTags={listTags}
+            defaultTags={initialAddTags}
+          />
         </div>
       </div>
 

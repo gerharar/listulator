@@ -28,6 +28,8 @@
   border-color: var(--rule);
 }
 .q-platfield-value {
+  /* The small inputs' line box (14px × 1.2), so this field is exactly as tall as its neighbours. */
+  line-height: 16.8px;
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;

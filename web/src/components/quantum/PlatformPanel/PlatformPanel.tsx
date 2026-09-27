@@ -14,34 +14,33 @@ import {
   type PanelSection,
 } from './platformPicks.js'
 
-export interface PlatformPanelProps {
-  /** The element the panel sits beside: the open Edit window. */
-  reference: HTMLElement | null
-  /** Whose platforms: the item's title. */
+export interface PlatformPickerProps {
+  /** Whose platforms: the item's title, or "Next item you add". */
   subject: string
+  /** A line under the subject (the add row says the pick carries over). */
+  note?: string
   selected: readonly string[]
   onChange: (next: string[]) => void
   /** Every tag the list's items carry, for "In this list". */
   inList: readonly string[]
   /** What the source says for the item; null while not known, or when it has none. */
-  source: ItemSourceTags | null
+  source?: ItemSourceTags | null
+}
+
+export interface PlatformPanelProps extends PlatformPickerProps {
+  /** The element the panel sits beside: the open Edit window. */
+  reference: HTMLElement | null
 }
 
 const joined = (codes: readonly string[]) => codes.join(' · ')
 
 /**
- * The Platform panel (U5, design: docs/chips §3): beside the Edit window, the
- * way the design places its side panels, flipping to the other side when there
- * is no room. Header with Clear, the item, the picks as removable tokens, a
- * search over the whole table, the list (In this list, Most common —
- * or the matches), and, when the draft differs from the
- * source, what the source says with Reset to source. Every change goes to the
- * Edit window's draft; the window's Save or click-away commits it.
+ * The Platform panel beside the Edit window (U5, design: docs/chips §3), the way
+ * the design places its side panels, flipping to the other side when there is no
+ * room. Every change goes to the Edit window's draft; its Save or click-away
+ * commits it. The add row hosts the same picker in a plain Popover instead.
  */
-export function PlatformPanel({ reference, subject, selected, onChange, inList, source }: PlatformPanelProps) {
-  const text = copy.quantum.list.tags
-  const [query, setQuery] = useState('')
-
+export function PlatformPanel({ reference, ...picker }: PlatformPanelProps) {
   const { refs, floatingStyles } = useFloating({
     open: true,
     placement: 'right-start',
@@ -60,6 +59,31 @@ export function PlatformPanel({ reference, subject, selected, onChange, inList, 
     whileElementsMounted: autoUpdate,
   })
 
+  return (
+    <FloatingPortal>
+      <div
+        ref={refs.setFloating}
+        style={floatingStyles}
+        className="q-platpanel"
+        role="dialog"
+        aria-label={copy.quantum.list.tags.panelLabel}
+      >
+        <PlatformPicker {...picker} />
+      </div>
+    </FloatingPortal>
+  )
+}
+
+/**
+ * The Platform picker's body: header with Clear, whose picks (removable tokens),
+ * a search over the whole table, the list (In this list, then Most common — or
+ * the matches), and, when the picks differ from the source, what the source says
+ * with Reset to source.
+ */
+export function PlatformPicker({ subject, note, selected, onChange, inList, source = null }: PlatformPickerProps) {
+  const text = copy.quantum.list.tags
+  const [query, setQuery] = useState('')
+
   const content = panelContent(query, inList)
   const pick = (code: string) => onChange(togglePlatform(selected, code))
   const sourceCodes = source?.sourced ? platformDraft(source.tags) : null
@@ -73,14 +97,7 @@ export function PlatformPanel({ reference, subject, selected, onChange, inList, 
         : text.matches(section.total ?? section.codes.length)
 
   return (
-    <FloatingPortal>
-      <div
-        ref={refs.setFloating}
-        style={floatingStyles}
-        className="q-platpanel"
-        role="dialog"
-        aria-label={text.panelLabel}
-      >
+    <>
         <div className="q-platpanel-head">
           <span className="q-platpanel-kicker">{text.head(selected.length)}</span>
           {/* Always laid out, hidden while nothing is picked: its arrival must not push the panel down (owner). */}
@@ -100,6 +117,7 @@ export function PlatformPanel({ reference, subject, selected, onChange, inList, 
 
         <div className="q-platpanel-subject">
           <span className="q-platpanel-title">{subject}</span>
+          {note && <span className="q-platpanel-note">{note}</span>}
           {/* One line of the same height for the note and the picks, so the first pick moves nothing. */}
           <div className="q-platpanel-tokens">
             {selected.length === 0 && <span className="q-platpanel-note">{text.notSetNote}</span>}
@@ -160,7 +178,6 @@ export function PlatformPanel({ reference, subject, selected, onChange, inList, 
             </button>
           </div>
         )}
-      </div>
-    </FloatingPortal>
+    </>
   )
 }

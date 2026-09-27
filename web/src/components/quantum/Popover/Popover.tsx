@@ -38,6 +38,8 @@ export interface PopoverProps {
    * dropdown names its picks), so the popover does not move along with it.
    */
   side?: 'beside' | 'below'
+  /** The dialog's accessible name, when its content does not give one. */
+  label?: string
   children: ReactNode
 }
 
@@ -52,7 +54,7 @@ export interface PopoverProps {
  * concern — this component only re-renders whatever `children` it's given
  * for a stable `open`/`anchorEl`, so the tail never moves between them.
  */
-export function Popover({ open, anchorEl, onDismiss, onEscape, width, side = 'beside', children }: PopoverProps) {
+export function Popover({ open, anchorEl, onDismiss, onEscape, width, side = 'beside', label, children }: PopoverProps) {
   const id = useId()
   const arrowRef = useRef<HTMLSpanElement>(null)
 
@@ -93,6 +95,7 @@ export function Popover({ open, anchorEl, onDismiss, onEscape, width, side = 'be
         style={{ ...floatingStyles, '--tail-y': `${tailY}px`, '--tail-x': `${tailX}px` } as CSSProperties}
         className={`q-pop w${width}`}
         role="dialog"
+        aria-label={label}
       >
         <span ref={arrowRef} className={tailClass} />
         {children}

@@ -99,14 +99,13 @@ test('once a list has tags, an untagged item shows a centred + that opens its Ed
     const plus = page.getByRole('button', { name: 'Set platforms for Unity' })
     await expect(plus.locator('svg')).toBeVisible()
     // The + sits in the middle of its box (owner), not at the left.
-    const box = (await plus.boundingBox())!
-    const glyph = await plus.evaluate((el) => {
-      const range = document.createRange()
-      range.selectNodeContents(el)
-      const r = range.getBoundingClientRect()
-      return { x: r.x, width: r.width }
+    // Both boxes in one read: the list card may still be sliding in, and two reads could straddle a frame.
+    const offset = await plus.evaluate((el) => {
+      const box = el.getBoundingClientRect()
+      const glyph = el.querySelector('svg')!.getBoundingClientRect()
+      return glyph.x + glyph.width / 2 - (box.x + box.width / 2)
     })
-    expect(Math.abs(glyph.x + glyph.width / 2 - (box.x + box.width / 2))).toBeLessThan(1.5)
+    expect(Math.abs(offset)).toBeLessThan(1.5)
     await expect(plus).toHaveCSS('border-top-style', 'dashed')
     await page.screenshot({ path: test.info().outputPath('plus-games.png') })
 
@@ -132,5 +131,43 @@ test('once a list has tags, an untagged item shows a centred + that opens its Ed
   } finally {
     await page.request.delete(`/api/lists/${id}`)
     await page.request.delete(`/api/lists/${music}`)
+  }
+})
+
+test('the add row picks the next item’s platforms, keeps them for the next, and remembers them for the list', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 })
+  const title = `e2e item-tags add ${Date.now()}`
+  const list = await (await page.request.post('/api/lists', { data: { title, mediaType: 'game' } })).json()
+
+  try {
+    await page.goto('/')
+    await page.locator('.q-home-row', { hasText: title }).click()
+    // An empty Games list: no tag column yet, but the add row can already pick.
+    const picker = page.getByRole('button', { name: /^Platform for the next item:/ })
+    await expect(picker).toContainText('None')
+    await picker.click()
+    const panel = page.getByRole('dialog', { name: 'Choose platforms' })
+    await expect(panel.getByText('Next item you add')).toBeVisible()
+    await panel.getByPlaceholder('Search 186 platforms').fill('ps2')
+    await panel.getByRole('button', { name: /^PS2 / }).click()
+    await page.screenshot({ path: test.info().outputPath('add-picker.png') })
+    await page.keyboard.press('Escape')
+    await expect(picker).toContainText('PS2')
+
+    const addTitle = page.locator('.q-add-item').getByLabel('Title')
+    await addTitle.fill('Dark Cloud')
+    await addTitle.press('Enter')
+    await expect(page.locator('.q-item', { hasText: 'Dark Cloud' }).locator('.q-plat')).toHaveText('PS2')
+    await addTitle.fill('Okami')
+    await addTitle.press('Enter')
+    await expect(page.locator('.q-item', { hasText: 'Okami' }).locator('.q-plat')).toHaveText('PS2')
+    await page.screenshot({ path: test.info().outputPath('add-row.png') })
+
+    // Reopened, the add row still starts on PS2.
+    await page.goto('/')
+    await page.locator('.q-home-row', { hasText: title }).click()
+    await expect(page.getByRole('button', { name: /^Platform for the next item:/ })).toContainText('PS2')
+  } finally {
+    await page.request.delete(`/api/lists/${list.id}`)
   }
 })

@@ -505,6 +505,8 @@ export const en = {
       /** Header actions that arrive with later tasks: shown, disabled, and honest about it. */
       comingSoon: 'Coming soon',
       noGroup: 'No group',
+      /** The Group field's hint while it has focus: a name typed there makes a group (owner). */
+      typeToCreate: 'Type to create new',
       /** U5: an item's tags by hand — the Platform field and panel, and the short fixed-set dropdown. */
       tags: {
         platform: 'Platform',
@@ -525,6 +527,11 @@ export const en = {
         noMatch: (query: string): string =>
           `No platform matches “${query}”. The list is fixed — try its code or another name.`,
         sourceSays: (codes: string): string => (codes ? `Source says ${codes}.` : 'Source says nothing.'),
+        /** U5: the add row's picker for the next item. */
+        nextItem: 'Next item you add',
+        nextItemNote: 'Every new item in this list starts with this. Change one item in its Edit window.',
+        nextField: (value: string): string => `Platform for the next item: ${value}`,
+        nextTip: 'Platform for the next item — remembered for this list',
         resetToSource: 'Reset to source',
         none: 'None',
         /** The row's [+] for an untagged item, once the list has tags. */

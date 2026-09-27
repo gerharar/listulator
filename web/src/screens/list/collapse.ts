@@ -132,3 +132,27 @@ export async function saveRailWidth(store: PreferencesStore, listId: string, wid
     // As above.
   }
 }
+
+const ADD_TAGS = 'addTags'
+
+/**
+ * The tags the add row starts with on this list (U5, docs/chips §4): whatever
+ * the last item added here used, so a run of PS2 games is one pick. Nothing for
+ * a missing or damaged value.
+ */
+export async function loadAddTags(store: PreferencesStore, listId: string): Promise<string[]> {
+  try {
+    const parsed: unknown = JSON.parse((await store.get(listPreferenceKey(listId, ADD_TAGS))) ?? '[]')
+    return Array.isArray(parsed) ? parsed.filter((tag): tag is string => typeof tag === 'string') : []
+  } catch {
+    return []
+  }
+}
+
+export async function saveAddTags(store: PreferencesStore, listId: string, tags: readonly string[]): Promise<void> {
+  try {
+    await store.set(listPreferenceKey(listId, ADD_TAGS), JSON.stringify(tags))
+  } catch {
+    // As above.
+  }
+}

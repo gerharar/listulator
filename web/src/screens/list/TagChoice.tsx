@@ -1,7 +1,8 @@
-import { useId, useState, type KeyboardEvent } from 'react'
+import { useId, useState, type CSSProperties, type KeyboardEvent } from 'react'
 import { ChevronDown } from 'lucide-react'
 import { copy } from '../../locale/index.js'
 import type { FacetValue } from '../../../../server/src/catalog/facets.js'
+import { aboveField, opensUp } from './dropDirection.js'
 
 export interface TagChoiceProps {
   /** The facet's name: Type, Medium. */
@@ -22,6 +23,8 @@ export function TagChoice({ label, values, current, onChange }: TagChoiceProps) 
   const text = copy.quantum.list.tags
   const listId = useId()
   const [open, setOpen] = useState(false)
+  // Below, or — at the foot of a long list — just above the field.
+  const [above, setAbove] = useState<CSSProperties | null>(null)
 
   const labelOf = (tag: string) => values.find((value) => value.tag === tag)?.label ?? tag
   const shown = current.length > 0 ? current.map(labelOf).join(', ') : text.none
@@ -57,7 +60,11 @@ export function TagChoice({ label, values, current, onChange }: TagChoiceProps) 
         aria-haspopup="listbox"
         aria-expanded={open}
         aria-controls={listId}
-        onClick={() => setOpen((was) => !was)}
+        onClick={(event) => {
+          const field = event.currentTarget
+          setAbove(opensUp(field.getBoundingClientRect(), window.innerHeight) ? aboveField(field) : null)
+          setOpen((was) => !was)
+        }}
         onBlur={() => setOpen(false)}
         onKeyDown={onKeyDown}
       >
@@ -65,7 +72,13 @@ export function TagChoice({ label, values, current, onChange }: TagChoiceProps) 
         <ChevronDown width={14} height={14} strokeWidth={2} aria-hidden="true" />
       </button>
       {open && (
-        <ul className="q-combo-list" role="listbox" id={listId} aria-label={label}>
+        <ul
+          className={above ? 'q-combo-list up' : 'q-combo-list'}
+          style={above ?? undefined}
+          role="listbox"
+          id={listId}
+          aria-label={label}
+        >
           {options.map((option) => {
             const selected = option.tag === null ? current.length === 0 : current.includes(option.tag)
             return (

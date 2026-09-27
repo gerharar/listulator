@@ -360,7 +360,8 @@ describe('platform chips (Games)', () => {
     expect(addTag('p')!.getAttribute('aria-label')).toBe('Set medium for Prologue')
     fireEvent.click(addTag('p')!)
 
-    expect(await screen.findByRole('button', { name: /^Medium:/ })).toBeTruthy()
+    await waitFor(() => expect(document.querySelector('.q-pop')).toBeTruthy())
+    expect(within(document.querySelector('.q-pop') as HTMLElement).getByRole('button', { name: /^Medium:/ })).toBeTruthy()
     expect(screen.queryByRole('dialog', { name: 'Choose platforms' })).toBeNull()
   })
 

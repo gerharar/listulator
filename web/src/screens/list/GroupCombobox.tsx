@@ -1,6 +1,7 @@
 import './GroupCombobox.css'
-import { useId, useState, type KeyboardEvent } from 'react'
+import { useId, useState, type CSSProperties, type KeyboardEvent } from 'react'
 import { copy } from '../../locale/index.js'
+import { aboveField, opensUp } from './dropDirection.js'
 
 export interface GroupComboboxProps {
   label: string
@@ -36,6 +37,15 @@ export function GroupCombobox({
   const listId = useId()
   const [open, setOpen] = useState(false)
   const [active, setActive] = useState(-1)
+  // In the field, the hint says a typed name makes a group (owner); "No group" leads the list instead.
+  const [focused, setFocused] = useState(false)
+  // Where the list opens: below, or — at the foot of a long list — just above the field.
+  const [above, setAbove] = useState<CSSProperties | null>(null)
+
+  function openFrom(field: HTMLElement) {
+    setAbove(opensUp(field.getBoundingClientRect(), window.innerHeight) ? aboveField(field) : null)
+    setOpen(true)
+  }
 
   const typed = value.trim()
   const needle = typed.toLowerCase()
@@ -95,21 +105,27 @@ export function GroupCombobox({
           aria-controls={listId}
           aria-autocomplete="list"
           value={value}
-          placeholder={text.noGroup}
+          placeholder={focused ? text.typeToCreate : text.noGroup}
           spellCheck={false}
           autoComplete="off"
           onChange={(event) => {
             onChange(event.target.value)
-            setOpen(true)
+            if (!open) openFrom(event.currentTarget)
             setActive(-1)
           }}
-          onFocus={() => setOpen(true)}
-          onBlur={() => setOpen(false)}
+          onFocus={(event) => {
+            setFocused(true)
+            openFrom(event.currentTarget)
+          }}
+          onBlur={() => {
+            setFocused(false)
+            setOpen(false)
+          }}
           onKeyDown={onKeyDown}
         />
       </label>
       {open && (
-        <ul className="q-combo-list" role="listbox" id={listId}>
+        <ul className={above ? 'q-combo-list up' : 'q-combo-list'} style={above ?? undefined} role="listbox" id={listId}>
           {options.map((option, index) => (
             <li
               key={option.key}

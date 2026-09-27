@@ -18,6 +18,10 @@
   border: 1px solid var(--rule);
   box-shadow: 0 12px 30px rgba(0, 0, 0, 0.18);
 }
+.q-combo-list.up {
+  /* Opened above the field (dropDirection): its 2px gap is in the offset. */
+  margin: 0;
+}
 .q-combo-list li {
   padding: 8px 12px;
   font-size: 13.5px;
