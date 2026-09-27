@@ -771,6 +771,7 @@ function ListView({
       await api.updateItem(listId, item.id, invertPatch(item, patch))
       await refresh()
       pulse(item.id)
+      announce(actions.editUndone(item.title))
     } catch {
       setError(actions.undoFailed)
     }

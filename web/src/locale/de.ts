@@ -525,6 +525,7 @@ export const de: Locale = {
         added: (title: string, group: string | null): string =>
           group ? `${title} zu „${group}“ hinzugefügt` : `${title} hinzugefügt`,
         removeFailed: (title: string): string => `${title} konnte nicht entfernt werden`,
+        editUndone: (title: string): string => `Änderung an ${title} rückgängig gemacht`,
         editFailed: 'Die Änderungen konnten nicht gespeichert werden',
         undoFailed: 'Das ließ sich nicht rückgängig machen',
       },

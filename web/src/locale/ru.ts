@@ -530,6 +530,7 @@ export const ru: Locale = {
         added: (title: string, group: string | null): string =>
           group ? `Добавлено: ${title} — в группу «${group}»` : `Добавлено: ${title}`,
         removeFailed: (title: string): string => `Не удалось удалить: ${title}`,
+        editUndone: (title: string): string => `Изменение отменено: ${title}`,
         editFailed: 'Не удалось сохранить изменения',
         undoFailed: 'Не удалось отменить',
       },

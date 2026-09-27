@@ -83,11 +83,33 @@ items:
   - { title: B-Sides EP, year: 2005, tags: [EP] }
 ```
 
+### Music: `tags` name a release's Type
+
+A `music` item's Type is Album, Mini or Compilation. `EP` and `Single` are
+accepted and read as Mini (the app shows "Mini" either way, but keeps
+whichever you wrote); a `Compilation` tag wins over an `Album` tag on the
+same item, since a compilation's contents being reused matters more than its
+size. `Live` is a separate flag, on top of any Type:
+
+```yaml
+  - { title: Debut Album, year: 2001, tags: [Album] }
+  - { title: Live in Concert, year: 2004, tags: [Album, Live] }
+  - { title: B-Sides EP, year: 2005, tags: [EP] }
+  - { title: Greatest Hits, year: 2010, tags: [Compilation] }
+```
+
+Any other tag (`Split`, `Remix`, …) is kept on the item and shown as its own
+badge, but the app's Music picker doesn't offer it — those are free-text,
+same as any other category's tags.
+
 ### Games: `tags` are platform codes
 
-In a `game` list, `tags` are the game's platforms, written as the codes in
+In a `game` list, `tags` are the game's platforms: one tag per platform it
+shipped on, each written as a code in
 [`config/platforms.csv`](config/platforms.csv) (the `abbreviation` column; any
-case), or `multi` for "the same game on every platform it shipped on":
+case). There is no `multi`/"every platform" shorthand — list them all (owner,
+U5, 2026-09-27: a bare `multi` is just a code the table doesn't know, kept but
+not read as a claim):
 
 ```yaml
   - { title: Halo 3, year: 2007, tags: [X360] }

@@ -583,6 +583,8 @@ export const en = {
         added: (title: string, group: string | null): string =>
           group ? `Added ${title} to ${group}` : `Added ${title}`,
         removeFailed: (title: string): string => `Could not remove ${title}`,
+        // 10.33: the click-away Undo pulses the row; this is what a screen reader hears for it.
+        editUndone: (title: string): string => `Reverted the edit to ${title}`,
         editFailed: 'Could not save those changes',
         undoFailed: 'Could not undo that',
       },

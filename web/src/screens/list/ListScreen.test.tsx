@@ -678,6 +678,8 @@ describe('ListScreen item actions (task 10.21)', () => {
       fireEvent.click(screen.getByRole('button', { name: 'Undo' }))
 
       await waitFor(() => expect(api.updateItem).toHaveBeenLastCalledWith('L1', 'a', { title: 'Alpha' }))
+      // 10.33: every toast and pulse gets a live-region sentence — this Undo pulses the row but said nothing.
+      await waitFor(() => expect(document.querySelector('.q-live')!.textContent).toBe('Reverted the edit to Alpha'))
     })
 
     it('Discard changes nothing', async () => {
