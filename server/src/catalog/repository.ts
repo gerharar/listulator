@@ -1,5 +1,6 @@
 import { and, asc, count, eq, getTableColumns, inArray, max, or, sql } from 'drizzle-orm'
 import type { PortableDatabase } from '../db/client.js'
+import { normalizeItemTags } from './facets.js'
 import { ensureListGroup, findListGroups, placeNewItem } from './groups.js'
 import {
   toDismissalPayload,
@@ -100,6 +101,8 @@ export interface UpdateListItemInput {
   timeToConsumeIsEstimated?: boolean
   /** Join (a string) or leave (null) a group — omit to leave unchanged. */
   group?: string | null
+  /** Replace the item's tags (null clears) — omit to leave unchanged (U5). */
+  tags?: string[] | null
 }
 
 export async function createList(
@@ -382,7 +385,7 @@ export async function createListItem(
       source: input.source ?? 'import',
       year: input.year ?? null,
       group,
-      tags: input.tags ?? null,
+      tags: normalizeItemTags(input.tags),
       notes: input.notes ?? null,
       isNew: input.isNew ?? false,
     })
@@ -437,9 +440,12 @@ export async function updateListItem(
   const label = typeof patch.group === 'string' ? patch.group.trim() : undefined
   const group = label ? { group: (await ensureListGroup(db, listId, label)).name } : {}
 
+  // Tags as stored (U5): trimmed, one spelling each, none as null; absent leaves them alone.
+  const tags = patch.tags === undefined ? {} : { tags: normalizeItemTags(patch.tags) }
+
   return await db
     .update(listItems)
-    .set({ ...patch, ...group, updatedAt: new Date() })
+    .set({ ...patch, ...group, ...tags, updatedAt: new Date() })
     .where(and(eq(listItems.id, itemId), eq(listItems.listId, listId)))
     .returning()
     .get()

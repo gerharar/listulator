@@ -115,6 +115,37 @@ describe('catalog HTTP API', () => {
     expect(cleared.json().group).toBeNull()
   })
 
+  it('takes an item’s tags by hand, on create and on edit, and clears them (U5)', async () => {
+    const list = (await createList({ mediaType: 'game' })).json()
+    const created = (await createItem(list.id, { tags: ['PS4', 'WIN'] })).json()
+    expect(created.tags).toEqual(['PS4', 'WIN'])
+
+    const patch = (tags: unknown) =>
+      harness.app.inject({ method: 'PATCH', url: `/api/lists/${list.id}/items/${created.id}`, payload: { tags } })
+
+    expect((await patch(['X360'])).json().tags).toEqual(['X360'])
+    // Blanks dropped, spacing trimmed, one spelling per tag (the first).
+    expect((await patch([' PS3 ', '', 'ps3', 'WIN'])).json().tags).toEqual(['PS3', 'WIN'])
+    expect((await patch([])).json().tags).toBeNull()
+    expect((await patch(['PS5'])).json().tags).toEqual(['PS5'])
+    expect((await patch(null)).json().tags).toBeNull()
+
+    const tooMany = await patch(Array.from({ length: 41 }, (_, i) => `T${i}`))
+    expect(tooMany.statusCode).toBe(400)
+  })
+
+  it('leaves an item’s tags alone when an edit does not mention them (U5)', async () => {
+    const list = (await createList({ mediaType: 'game' })).json()
+    const created = (await createItem(list.id, { tags: ['PS4'] })).json()
+
+    const renamed = await harness.app.inject({
+      method: 'PATCH',
+      url: `/api/lists/${list.id}/items/${created.id}`,
+      payload: { title: 'Renamed' },
+    })
+    expect(renamed.json().tags).toEqual(['PS4'])
+  })
+
   it('silently drops the retired "group by type" field — it has no effect anymore', async () => {
     // Fastify's default schema validator strips unknown properties rather
     // than rejecting them (`removeAdditional`), so this isn't a 400 — the

@@ -598,6 +598,44 @@ describe('sort and reset', () => {
     })
   })
 
+  describe('An item’s source tags, for “Source says …” and Reset to source (U5)', () => {
+    const sourceOf = async (listId: string, itemId: string) =>
+      send('GET', `/lists/${listId}/items/${itemId}/source`)
+
+    it('reads what the source says for the item, whatever it carries now', async () => {
+      const list = await apiList()
+      const late = byTitle(list, 'Late One')
+      await send('PATCH', `/lists/${list.id}/items/${late.id}`, { tags: ['X360'] })
+
+      expect((await sourceOf(list.id, late.id)).json()).toEqual({ sourced: true, tags: ['Film'] })
+      expect((await sourceOf(list.id, byTitle(list, 'Early One').id)).json()).toEqual({ sourced: true, tags: null })
+    })
+
+    it('says an item added by hand, or a list made by hand, has no source', async () => {
+      const list = await apiList()
+      const added = (await send('POST', `/lists/${list.id}/items`, { title: 'By hand', timeToConsumeMinutes: 5 })).json()
+      expect((await sourceOf(list.id, added.id)).json()).toEqual({ sourced: false, tags: null })
+
+      const hand = (await send('POST', '/lists', { title: 'Hand', mediaType: 'mega' })).json()
+      const item = (await send('POST', `/lists/${hand.id}/items`, { title: 'A', timeToConsumeMinutes: 5 })).json()
+      expect((await sourceOf(hand.id, item.id)).json()).toEqual({ sourced: false, tags: null })
+    })
+
+    it('reads a file list’s stored file', async () => {
+      const created = await send('POST', '/lists/from-file', {
+        yaml: 'title: T\ncategory: mega\nitems:\n  - { title: A, tags: [game] }\n',
+      })
+      const list = await detail(created.json().id)
+
+      expect((await sourceOf(list.id, byTitle(list, 'A').id)).json()).toEqual({ sourced: true, tags: ['game'] })
+    })
+
+    it('is 404 for an item that is not there', async () => {
+      const list = await apiList()
+      expect((await sourceOf(list.id, 'nope')).statusCode).toBe(404)
+    })
+  })
+
   describe('Reset is refused where there is nothing to reset to', () => {
     it('for a hand-made list', async () => {
       const list = (await send('POST', '/lists', { title: 'Hand', mediaType: 'mega' })).json()

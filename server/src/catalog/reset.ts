@@ -90,6 +90,52 @@ export async function resetOrderToSource(
   return reorderBy(db, userId, listId, (item) => positionOf.get(item.id) ?? NO_YEAR)
 }
 
+/** What the source says for one item's tags (U5): `sourced: false` for an item added by hand or a hand-made list. */
+export interface ItemSourceTags {
+  sourced: boolean
+  tags: string[] | null
+}
+
+/**
+ * The tags the item's source gives it, for the Edit window's "Source says …"
+ * and Reset to source (U5). Read from the same place a Reset reads (the live
+ * canonical file, the stored file, or the arrived snapshot) and matched the way
+ * Reset the order matches: by identity, duplicates taking the source's rows in
+ * the order they now stand. Undefined when the list or the item is not there.
+ */
+export async function sourceTagsOf(
+  db: PortableDatabase,
+  userId: string,
+  listId: string,
+  itemId: string,
+  deps: ResetDeps,
+): Promise<ItemSourceTags | undefined> {
+  const list = await findList(db, userId, listId)
+  if (!list) return undefined
+  const items = (await findListItems(db, userId, listId)) ?? []
+  const item = items.find((entry) => entry.id === itemId)
+  if (!item) return undefined
+
+  const none: ItemSourceTags = { sourced: false, tags: null }
+  if (item.source === 'manual') return none
+
+  let target: ResetTarget
+  try {
+    target = await resolveTarget(db, userId, list, deps)
+  } catch (cause) {
+    if (cause instanceof ResetUnavailableError) return none
+    throw cause
+  }
+
+  const rows = new Map<string, TargetItem[]>()
+  for (const row of target.items) rows.set(identity(row), [...(rows.get(identity(row)) ?? []), row])
+  for (const entry of items) {
+    const row = rows.get(identity(entry))?.shift()
+    if (entry.id === itemId) return row ? { sourced: true, tags: row.tags ?? null } : none
+  }
+  return none
+}
+
 async function reorderBy(
   db: PortableDatabase,
   userId: string,

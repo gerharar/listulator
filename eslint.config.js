@@ -5,7 +5,8 @@ import prettier from 'eslint-config-prettier'
 
 export default tseslint.config(
   {
-    ignores: ['**/dist/**', '**/node_modules/**', '**/coverage/**', '**/target/**'],
+    // docs/ holds Claude Design handoffs with their own bundled JS: reference, not app code.
+    ignores: ['**/dist/**', '**/node_modules/**', '**/coverage/**', '**/target/**', 'docs/**'],
   },
   js.configs.recommended,
   ...tseslint.configs.recommended,

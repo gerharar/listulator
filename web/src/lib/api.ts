@@ -8,7 +8,7 @@ import type {
 } from '../../../server/src/catalog/restorePayloads.js'
 import type { FacetConvention } from '../../../server/src/catalog/facets.js'
 import type { LibraryEntry } from '../../../server/src/ingestion/customLists.js'
-import type { ResetPreview, ResetResult } from '../../../server/src/catalog/reset.js'
+import type { ItemSourceTags, ResetPreview, ResetResult } from '../../../server/src/catalog/reset.js'
 import type { SourceOptions } from '../../../server/src/ingestion/sourceRef.js'
 import { createLocalApi } from './api.local.js'
 /** Types mirror the server's responses; see server/src/catalog and /ingestion. */
@@ -120,6 +120,7 @@ export interface CurrentUser {
 export type {
   GroupRestore,
   ItemRestore,
+  ItemSourceTags,
   ItemSetRestore,
   ListRestore,
   OrderRestore,
@@ -336,6 +337,8 @@ export interface ApiClient {
   sortList: (listId: string) => Promise<{ restore: OrderRestore }>
   /** Reset the order: back to the order the source has, nothing else touched. Hands back the old order for Undo (`restoreOrder`). Refused (409) for a list with no source. */
   resetOrder: (listId: string) => Promise<{ restore: OrderRestore }>
+  /** What the source says for one item's tags (U5): "Source says …" and Reset to source in the Edit window. */
+  itemSource: (listId: string, itemId: string) => Promise<ItemSourceTags>
   /** Undo of `sortList` and `resetOrder`. */
   restoreOrder: (listId: string, restore: OrderRestore) => Promise<void>
   /** What Reset everything would do, in numbers, without doing it. Refused (409) for a list with no source. */
@@ -350,6 +353,8 @@ export interface ApiClient {
       timeToConsumeMinutes: number
       timeToConsumeIsEstimated?: boolean
       group?: string | null
+      /** Set by hand (U5); null or [] clears; omit to leave unchanged. */
+      tags?: string[] | null
     },
   ) => Promise<ListItem>
   updateItem: (
@@ -360,6 +365,8 @@ export interface ApiClient {
       timeToConsumeMinutes?: number
       timeToConsumeIsEstimated?: boolean
       group?: string | null
+      /** Set by hand (U5); null or [] clears; omit to leave unchanged. */
+      tags?: string[] | null
     },
   ) => Promise<ListItem>
   /** Renumbers the whole list to this exact id order (task 6.7). */
@@ -544,6 +551,9 @@ export const fetchApi: ApiClient = {
   resetOrder: (listId: string) =>
     request<{ restore: OrderRestore }>(`/lists/${listId}/reset-order`, { method: 'POST' }),
 
+  itemSource: (listId: string, itemId: string) =>
+    request<ItemSourceTags>(`/lists/${listId}/items/${itemId}/source`),
+
   restoreOrder: async (listId: string, restore: OrderRestore) => {
     await request<unknown>(`/lists/${listId}/order/restore`, {
       method: 'PUT',
@@ -568,6 +578,7 @@ export const fetchApi: ApiClient = {
       timeToConsumeMinutes: number
       timeToConsumeIsEstimated?: boolean
       group?: string | null
+      tags?: string[] | null
     },
   ) => request<ListItem>(`/lists/${listId}/items`, { method: 'POST', body: JSON.stringify(input) }),
 
@@ -579,6 +590,7 @@ export const fetchApi: ApiClient = {
       timeToConsumeMinutes?: number
       timeToConsumeIsEstimated?: boolean
       group?: string | null
+      tags?: string[] | null
     },
   ) =>
     request<ListItem>(`/lists/${listId}/items/${itemId}`, {

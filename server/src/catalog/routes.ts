@@ -1,5 +1,6 @@
 import type { FastifyPluginAsync, FastifyReply } from 'fastify'
 import { sendApiError } from '../apiErrors.js'
+import { MAX_ITEM_TAGS } from './facets.js'
 import { getCurrentUser } from '../auth/currentUser.js'
 import type { AppDatabase } from '../db/client.js'
 import type { ListSource, ListStatus } from '../db/schema.js'
@@ -42,6 +43,7 @@ import { IngestionError } from '../ingestion/http.js'
 import {
   previewReset,
   resetOrderToSource,
+  sourceTagsOf,
   resetToSource,
   ResetUnavailableError,
   sortChronologically,
@@ -95,6 +97,8 @@ const itemBodyProperties = {
   // Lets a hand-typed item join (or leave, via null on a patch) a season
   // group started by an import — task 6.6's manual-entry follow-up.
   group: { type: ['string', 'null'], maxLength: 500 },
+  // Set by hand in the Edit window or the add row (U5); null or [] clears them.
+  tags: { type: ['array', 'null'], maxItems: MAX_ITEM_TAGS, items: { type: 'string', maxLength: 40 } },
 } as const
 
 interface ListParams {
@@ -232,6 +236,7 @@ export const catalogRoutes: FastifyPluginAsync<CatalogRoutesOptions> = async (
       timeToConsumeIsEstimated?: boolean
       orderIndex?: number
       group?: string | null
+      tags?: string[] | null
     }
   }>(
     '/lists/:listId/items',
@@ -268,6 +273,7 @@ export const catalogRoutes: FastifyPluginAsync<CatalogRoutesOptions> = async (
       timeToConsumeIsEstimated?: boolean
       orderIndex?: number
       group?: string | null
+      tags?: string[] | null
     }
   }>(
     '/lists/:listId/items/:itemId',
@@ -610,6 +616,21 @@ export const catalogRoutes: FastifyPluginAsync<CatalogRoutesOptions> = async (
       if (!restore) return reply.callNotFound()
 
       return { restore }
+    } catch (cause) {
+      return resetError(reply, cause)
+    }
+  })
+
+  // What the source says for one item's tags: the Edit window's "Source says …" and Reset to source (U5).
+  app.get<{ Params: ItemParams }>('/lists/:listId/items/:itemId/source', async (request, reply) => {
+    const user = getCurrentUser(request)
+    const { listId, itemId } = request.params
+
+    try {
+      const source = await sourceTagsOf(db, user.id, listId, itemId, { mediaTypes: mediaTypes.list() })
+      if (!source) return reply.callNotFound()
+
+      return source
     } catch (cause) {
       return resetError(reply, cause)
     }

@@ -15,6 +15,23 @@ import { platformCode, platformKey } from './platforms.js'
  */
 export const MAX_ITEM_TAGS = 40
 
+/**
+ * Tags typed or picked by hand (U5), as stored: trimmed, blanks dropped, one
+ * spelling per tag regardless of case (the first), and none at all as null.
+ */
+export function normalizeItemTags(tags: readonly string[] | null | undefined): string[] | null {
+  if (!tags) return null
+  const kept: string[] = []
+  const seen = new Set<string>()
+  for (const raw of tags) {
+    const tag = raw.trim()
+    if (!tag || seen.has(tag.toLowerCase())) continue
+    seen.add(tag.toLowerCase())
+    kept.push(tag)
+  }
+  return kept.length > 0 ? kept : null
+}
+
 export type FacetKey = 'type' | 'language' | 'platform'
 
 /** A tag as a list file writes it, and the name people see for it (`game` → Game). */

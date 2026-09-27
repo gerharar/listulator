@@ -50,6 +50,7 @@ import { IngestionError } from '../../../server/src/ingestion/http.js'
 import {
   previewReset,
   resetOrderToSource,
+  sourceTagsOf,
   resetToSource,
   ResetUnavailableError,
   sortChronologically,
@@ -436,6 +437,17 @@ export function createLocalApi(): ApiClient {
         const restore = await resetOrderToSource(database, userId, listId, await resetDeps())
         if (!restore) throw notFound()
         return { restore }
+      } catch (cause) {
+        throw resetError(cause)
+      }
+    },
+
+    itemSource: async (listId, itemId) => {
+      const [database, userId] = [await getDb(), await getUserId()]
+      try {
+        const source = await sourceTagsOf(database, userId, listId, itemId, await resetDeps())
+        if (!source) throw notFound()
+        return source
       } catch (cause) {
         throw resetError(cause)
       }
