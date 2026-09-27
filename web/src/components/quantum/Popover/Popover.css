@@ -44,18 +44,22 @@
 .q-pop-tail,
 .q-pop-tail::before {
   position: absolute;
-  top: var(--tail-y, 8px);
   width: 0;
   height: 0;
   border-top: 9px solid transparent;
   border-bottom: 9px solid transparent;
 }
 .q-pop-tail {
+  top: var(--tail-y, 8px);
   left: -9px;
   border-right: 9px solid var(--rule);
 }
 .q-pop-tail::before {
   content: '';
+  /* Placed inside the tail, below its 9px top border: climb back over it so the
+     fill lines up with the outline (sharing top: var(--tail-y) set it 9px + the
+     tail's offset low, two triangles out of step). */
+  top: -9px;
   left: 1px;
   border-right: 9px solid var(--card);
 }
