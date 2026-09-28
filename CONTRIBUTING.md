@@ -50,6 +50,12 @@ items:
   - { title: Pilot }
 ```
 
+Order is just the array's position — the same mechanism for every category.
+Nothing about `category` or `tags` affects it; users can drag-reorder freely
+in the app, or run its one-off **Sort chronologically** action, which
+re-sorts by `year` (each `group` moving as a block). Write the array in the
+order you want the list to start in.
+
 Per-item fields:
 
 | Field     | Required? | Notes |

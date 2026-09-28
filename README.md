@@ -57,6 +57,13 @@ finishes. As seasons it is 111 entries — 56 films, 55 seasons.
 
 Every list can also be typed in by hand, in any category.
 
+### Ordering
+
+Order works the same in every category: it's just each item's position, not
+its `year` or any tag. Drag-reorder by hand, or run the one-off **Sort
+chronologically** action to re-sort by year (each group moves as a block).
+Category never changes this.
+
 ### Lists stay yours
 
 Imports are deliberately imperfect — a filmography includes things you'd never
