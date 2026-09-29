@@ -64,7 +64,7 @@ test('opens on the list opened last, never offers its medium, and Open The List 
     // create and delete their own lists, so opening an arbitrary pick could open one that just went.
     let mine: string | undefined
     for (let i = 0; i < 40 && !mine; i += 1) {
-      const offered = (await sheet(page).locator('.q-pick-list, .q-alt .alt-list').allTextContents()).join(' | ')
+      const offered = (await sheet(page).locator('.q-pick-list').allTextContents()).join(' | ')
       expect(offered).not.toContain('e2e tired tv')
       const top = await sheet(page).locator('.q-pick-list').textContent()
       mine = [TITLES.game, TITLES.book].find((title) => top?.includes(title))
@@ -97,7 +97,7 @@ test('the button toggles it, the picker does not close it, and Esc closes only t
     await expect(sheet(page)).toBeVisible()
     await expect(sheet(page).locator('.q-tired-target')).toContainText(TITLES.game)
     // Now the game's medium is out, whichever run's game lists exist.
-    const offered = (await sheet(page).locator('.q-pick-list, .q-alt .alt-list').allTextContents()).join(' | ')
+    const offered = (await sheet(page).locator('.q-pick-list').allTextContents()).join(' | ')
     expect(offered).not.toContain('e2e tired game')
 
     // Not That moves on.
@@ -135,7 +135,7 @@ test('a press outside the sheet closes it', async ({ page }) => {
   }
 })
 
-test('the sheet stays inside the home card, and every alternate can be reached', async ({ page }) => {
+test('the sheet stays inside the home card, and its buttons can be reached', async ({ page }) => {
   const ids = [
     await makeList(page.request, `e2e tired fit tv ${stamp}`, 'tv', 1),
     await makeList(page.request, `e2e tired fit game ${stamp}`, 'game', 1),
@@ -148,15 +148,15 @@ test('the sheet stays inside the home card, and every alternate can be reached',
     await openAndCloseList(page, `e2e tired fit tv ${stamp}`)
     await tiredButton(page).click()
     await expect(sheet(page).locator('.q-pick')).toBeVisible()
-    await expect(sheet(page).locator('.q-alt')).toHaveCount(3)
+    await expect(sheet(page).locator('.q-alt')).toHaveCount(0)
 
     // The card clips whatever sticks out of it: the sheet must end inside it, with its own bottom border.
     const card = (await page.locator('.q-home').boundingBox())!
     const box = (await sheet(page).boundingBox())!
     expect(box.y + box.height).toBeLessThanOrEqual(card.y + card.height + 0.5)
 
-    // The last alternate can be scrolled to and seen inside the card.
-    const last = sheet(page).locator('.q-alt').last()
+    // The last button can be scrolled to and seen inside the card.
+    const last = sheet(page).getByRole('button', { name: 'Not That' })
     await last.scrollIntoViewIfNeeded()
     await expect(last).toBeVisible()
     const lastBox = (await last.boundingBox())!

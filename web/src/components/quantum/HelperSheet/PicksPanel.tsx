@@ -8,9 +8,6 @@ import { useState } from 'react'
 import type { HelperAnswer } from './useHelperAnswer.js'
 import { pickKey, reroll } from './helperPicks.js'
 
-/** The top pick and this many alternates. */
-const ALTERNATES = 3
-
 export interface PicksPanelProps {
   answer: HelperAnswer
   /** The one-line why for the top pick. */
@@ -23,8 +20,9 @@ export interface PicksPanelProps {
 
 /**
  * The body every helper sheet shares (design: "Each pick shows the top result,
- * up to three alternates, a one-line why, and reroll / open actions"): loading,
- * failed, nothing, or the pick with Not That and Open The List.
+ * a one-line why, and reroll / open actions"): loading, failed, nothing, or the
+ * pick with Not That and Open The List. The alternates the design also listed are
+ * gone (owner, 11.11); Not That still walks every pick the server sent.
  */
 export function PicksPanel({ answer, why, empty, onRetry, onOpenList }: PicksPanelProps) {
   const text = copy.quantum.helper
@@ -75,33 +73,17 @@ function Picks({ picks, why, onOpenList }: { picks: SuggestionPick[]; why: Picks
   }
 
   return (
-    <>
-      <div className="q-pick">
-        <div className="q-kicker">{text.topPick}</div>
-        <div className="q-pick-item">{top.nextItem?.title ?? top.list.title}</div>
-        <div className="q-pick-list">{line(top)}</div>
-        <div className="q-pick-why">{why(top)}</div>
-        <div className="q-pick-actions">
-          <Button variant="primary" onClick={() => onOpenList(top.list.id)}>
-            {text.openList}
-          </Button>
-          <Button onClick={notThat}>{text.notThat}</Button>
-        </div>
+    <div className="q-pick">
+      <div className="q-kicker">{text.topPick}</div>
+      <div className="q-pick-item">{top.nextItem?.title ?? top.list.title}</div>
+      <div className="q-pick-list">{line(top)}</div>
+      <div className="q-pick-why">{why(top)}</div>
+      <div className="q-pick-actions">
+        <Button variant="primary" onClick={() => onOpenList(top.list.id)}>
+          {text.openList}
+        </Button>
+        <Button onClick={notThat}>{text.notThat}</Button>
       </div>
-      {shown.length > 1 && (
-        <>
-          <div className="q-kicker q-alts-kicker">{text.alternates}</div>
-          {shown.slice(1, 1 + ALTERNATES).map((pick) => (
-            <button key={pickKey(pick)} type="button" className="q-alt" onClick={() => onOpenList(pick.list.id)}>
-              <span className="alt-text">
-                <span className="alt-item">{pick.nextItem?.title ?? pick.list.title}</span>
-                <span className="alt-list">{pick.list.title}</span>
-              </span>
-              <span className="alt-time">{time(pick)}</span>
-            </button>
-          ))}
-        </>
-      )}
-    </>
+    </div>
   )
 }

@@ -372,7 +372,6 @@ export const de: Locale = {
     },
     helper: {
       topPick: 'Erste Wahl',
-      alternates: 'Alternativen',
       openList: 'Liste öffnen',
       notThat: 'Nicht das',
       backToStrongest: '…Zeit ist ein flacher Kreis…',

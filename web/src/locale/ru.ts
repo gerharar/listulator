@@ -380,7 +380,6 @@ export const ru: Locale = {
     },
     helper: {
       topPick: 'Лучший вариант',
-      alternates: 'Запасные',
       openList: 'Открыть список',
       notThat: 'Не это',
       backToStrongest: '…Время — плоский круг…',

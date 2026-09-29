@@ -46,7 +46,7 @@ afterEach(() => {
 })
 
 describe('opening', () => {
-  it('starts from the list opened last and offers a top pick with up to three alternates', async () => {
+  it('starts from the list opened last and offers just the top pick, no alternates', async () => {
     renderSheet()
 
     expect(await screen.findByText('Next in x')).toBeTruthy()
@@ -57,9 +57,8 @@ describe('opening', () => {
     expect(screen.getByText('Top pick')).toBeTruthy()
     expect(screen.getByText('List x · 45m')).toBeTruthy()
     expect(screen.getByText(/Different medium, and you haven't touched it/)).toBeTruthy()
-    expect(screen.getByText('Alternates')).toBeTruthy()
-    expect(['Next in y', 'Next in z', 'Next in w'].every((title) => screen.queryByText(title))).toBe(true)
-    expect(screen.queryByText('Next in v')).toBeNull()
+    expect(['Next in y', 'Next in z', 'Next in w', 'Next in v'].every((title) => screen.queryByText(title) === null)).toBe(true)
+    expect(screen.queryByText('Alternates')).toBeNull()
   })
 
   it('asks nothing and says so when there is no list to start from', () => {
@@ -185,15 +184,6 @@ describe('opening a suggestion', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Open List' }))
 
     expect(props.onOpenList).toHaveBeenCalledWith('x')
-  })
-
-  it('an alternate opens its own list', async () => {
-    const props = renderSheet()
-    await screen.findByText('Next in x')
-
-    fireEvent.click(screen.getByText('Next in z').closest('button')!)
-
-    expect(props.onOpenList).toHaveBeenCalledWith('z')
   })
 })
 

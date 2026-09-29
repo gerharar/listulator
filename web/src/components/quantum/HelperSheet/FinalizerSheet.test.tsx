@@ -41,7 +41,7 @@ afterEach(() => {
 })
 
 describe('Finalizer', () => {
-  it('asks straight away and shows the top pick with three alternates, no list to name', async () => {
+  it('asks straight away and shows only the top pick, no alternates, no list to name', async () => {
     renderSheet()
 
     expect(await screen.findByText('Next in x')).toBeTruthy()
@@ -49,8 +49,8 @@ describe('Finalizer', () => {
     expect(screen.getByText('Tie up loose ends from lists that are closest to being finished')).toBeTruthy()
     expect(screen.queryByText("I'm tired of going through")).toBeNull()
     expect(screen.getByText(/Closest to the finish line: 90% done, 1h left\. This list is Complete/)).toBeTruthy()
-    expect(['Next in y', 'Next in z', 'Next in w'].every((title) => screen.queryByText(title))).toBe(true)
-    expect(screen.queryByText('Next in v')).toBeNull()
+    expect(['Next in y', 'Next in z', 'Next in w', 'Next in v'].every((title) => screen.queryByText(title) === null)).toBe(true)
+    expect(screen.queryByText('Alternates')).toBeNull()
     expect(api.finalizer).toHaveBeenCalledTimes(1)
   })
 

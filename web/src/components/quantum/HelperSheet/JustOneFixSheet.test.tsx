@@ -41,7 +41,7 @@ afterEach(() => {
 })
 
 describe('Just One Fix', () => {
-  it('asks straight away and shows the top pick with three alternates, no list to name', async () => {
+  it('asks straight away and shows only the top pick, no alternates, no list to name', async () => {
     renderSheet()
 
     expect(await screen.findByText('Next in x')).toBeTruthy()
@@ -49,8 +49,8 @@ describe('Just One Fix', () => {
     expect(screen.getByText('A quick dopamine hit from the shortest unfinished thing you track')).toBeTruthy()
     expect(screen.queryByText("I'm tired of going through")).toBeNull()
     expect(screen.getByText('Shortest unfinished item you have -- 30m and it\'s done.')).toBeTruthy()
-    expect(['Next in y', 'Next in z', 'Next in w'].every((title) => screen.queryByText(title))).toBe(true)
-    expect(screen.queryByText('Next in v')).toBeNull()
+    expect(['Next in y', 'Next in z', 'Next in w', 'Next in v'].every((title) => screen.queryByText(title) === null)).toBe(true)
+    expect(screen.queryByText('Alternates')).toBeNull()
     expect(api.justOneFix).toHaveBeenCalledTimes(1)
   })
 
@@ -69,6 +69,17 @@ describe('Just One Fix', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Open List' }))
 
     expect(props.onOpenList).toHaveBeenCalledWith('y')
+  })
+
+  it('Not That swaps in the next pick, which was not on screen until it was turned to', async () => {
+    renderSheet()
+    await screen.findByText('Next in x')
+    expect(screen.queryByText('Next in y')).toBeNull()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Not That' }))
+
+    expect(screen.getByText('Next in y')).toBeTruthy()
+    expect(screen.queryByText('Next in x')).toBeNull()
   })
 
   it('goes back to the strongest pick once everything was turned down, and says so', async () => {

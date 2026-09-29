@@ -419,7 +419,6 @@ export const en = {
     /** The helper sheets under Home's "Need help?" row (tasks 10.26–10.29); copy is the prototype's. */
     helper: {
       topPick: 'Top pick',
-      alternates: 'Alternates',
       openList: 'Open List',
       notThat: 'Not That',
       /** Announced when every pick has been turned down and the strongest is offered again. */

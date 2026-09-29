@@ -50,26 +50,6 @@
 .q-pick-why { margin-top: 11px; font-size: 13px; line-height: 1.5; color: var(--ink2); }
 .q-pick-actions { margin-top: 15px; display: flex; gap: 8px; }
 
-.q-alts-kicker { margin: 18px 0 0; }
-.q-alt {
-  width: 100%;
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  padding: 12px 4px;
-  border: 0;
-  border-bottom: 1px solid var(--line);
-  background: transparent;
-  color: var(--ink);
-  text-align: left;
-  cursor: pointer;
-}
-.q-alt:hover { background: var(--fill); }
-.q-alt .alt-text { flex: 1; min-width: 0; }
-.q-alt .alt-item { display: block; font-weight: 500; font-size: 14px; line-height: 1.25; }
-.q-alt .alt-list { display: block; margin-top: 4px; font-size: 12.5px; color: var(--ink2); }
-.q-alt .alt-time { flex: none; font: 500 12px/1 var(--font-mono); color: var(--ink2); font-variant-numeric: tabular-nums; }
-
 /* Surprise Me (10.29): shelf chips, the six dials and the landed list. */
 .q-shelves { margin: 10px 0 0; display: flex; flex-wrap: wrap; gap: 6px; }
 .q-shelves .q-chip.none { opacity: 0.5; }
