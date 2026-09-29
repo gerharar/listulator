@@ -45,8 +45,11 @@ export interface PlatformChipProps {
   widthCh?: number
   /** The row's title, for the button's accessible name. */
   itemTitle: string
-  /** Click opens the platform popover, anchored to the chip. It never reaches the row. */
-  onOpen: (anchor: HTMLElement) => void
+  /**
+   * Click opens the platform popover, anchored to the chip. It never reaches the row. Left out,
+   * the chip is read-only (the Preview layer's): no button, the full names on hover instead.
+   */
+  onOpen?: (anchor: HTMLElement) => void
   /** An untagged item's [+] (U5): shown instead of the empty slot; opens the Edit window. */
   onAdd?: (anchor: HTMLElement) => void
 }
@@ -79,6 +82,16 @@ export function PlatformChip({ tags, widthCh, itemTitle, onOpen, onAdd }: Platfo
   }
   if (label === null) {
     return <span className="q-plat-gap" style={style} aria-hidden="true" />
+  }
+
+  if (!onOpen) {
+    const names = platformCodes(tags).map((code) => platformFullName(code) ?? code)
+
+    return (
+      <span className="q-plat readonly" style={style} title={names.join(', ')}>
+        {label}
+      </span>
+    )
   }
 
   return (

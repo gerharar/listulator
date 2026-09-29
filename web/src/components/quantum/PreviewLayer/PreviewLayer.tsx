@@ -13,6 +13,7 @@ import { copy, sourceLabel } from '../../../locale/index.js'
 import { Button, IconButton } from '../Button/Button.js'
 import { ErrorBlock } from '../ErrorBlock/ErrorBlock.js'
 import { HeaderPlate } from '../HeaderPlate/HeaderPlate.js'
+import { platformChipLabel } from '../PlatformChip/PlatformChip.js'
 import { PreviewRow } from '../PreviewRow/PreviewRow.js'
 import { Spinner } from '../Spinner/Spinner.js'
 import { StatusChip } from '../StatusChip/StatusChip.js'
@@ -77,6 +78,14 @@ export function PreviewLayer({ source, mediaType, onBuilt }: PreviewLayerProps) 
   const items = load.state === 'done' ? load.preview.items : []
   const rows = useMemo(() => groupPreviewRows(items), [items])
   const summary = summarizePreview(items, mediaType.defaultDurationMinutes)
+  // A category whose convention names platforms gets chips, as wide as the widest label (as on the list).
+  const platformWidthCh = useMemo(
+    () =>
+      mediaType.facets?.some((facet) => facet.key === 'platform')
+        ? Math.max(5, ...items.map((entry) => platformChipLabel(entry.tags ?? [])?.length ?? 0))
+        : undefined,
+    [mediaType, items],
+  )
 
   function toggle(label: string) {
     setCollapsed((current) => {
@@ -192,6 +201,8 @@ export function PreviewLayer({ source, mediaType, onBuilt }: PreviewLayerProps) 
                 item={row.item}
                 grouped={row.grouped}
                 defaultMinutes={mediaType.defaultDurationMinutes}
+                facets={mediaType.facets}
+                platformWidthCh={platformWidthCh}
               />
             )
           })}

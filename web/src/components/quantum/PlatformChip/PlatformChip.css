@@ -26,6 +26,9 @@
   visibility: hidden;
 }
 .q-plat:hover { border-color: var(--rule); color: var(--ink); }
+/* The Preview layer's chip: a label, not a control. */
+.q-plat.readonly { cursor: default; }
+.q-plat.readonly:hover { border-color: var(--line); color: var(--ink2); }
 .q-plat:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
 
 /* U5: an untagged item's [+] once the list has tags — the same box, dashed, the + centred (owner).

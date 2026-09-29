@@ -136,3 +136,34 @@ describe('PreviewLayer', () => {
     expect(await screen.findByText('Glorious Purpose')).toBeTruthy()
   })
 })
+
+describe('PreviewLayer tag column (11.8)', () => {
+  const GAMES: MediaType = {
+    ...TV,
+    key: 'game',
+    label: 'Games',
+    facets: [{ key: 'platform', label: 'Platform' }],
+  }
+
+  it('shows every platform the way the created list will: a chip per game, MULTI for several', async () => {
+    vi.mocked(api.preview).mockResolvedValue({
+      itemCount: 2,
+      items: [
+        { title: 'Halo', tags: ['Xbox', 'PC'] },
+        { title: 'Gran Turismo', tags: ['PS3'] },
+      ],
+    })
+    render(
+      <LayerStackProvider home={home}>
+        <PreviewLayer source={{ ...SOURCE, mediaType: 'game' }} mediaType={GAMES} onBuilt={vi.fn()} />
+      </LayerStackProvider>,
+    )
+
+    await waitFor(() => expect(screen.getByText('Halo')).toBeTruthy())
+    expect([...document.querySelectorAll('.q-preview-row .q-plat')].map((chip) => chip.textContent)).toEqual([
+      'MULTI',
+      'PS3',
+    ])
+  })
+})
+
