@@ -1,5 +1,5 @@
 import './ApiKeysSection.css'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, type CSSProperties } from 'react'
 import { Info } from 'lucide-react'
 import { copy } from '../../locale/index.js'
 import { getLocalSettings, updateLocalSettings, type LocalSettings } from '../../lib/config/localConfig.js'
@@ -86,10 +86,13 @@ export function ApiKeysSection({
   const open = popover
   const openSource = open ? copy.quantum.settings.keys.sources[open.id] : null
 
+  // Every pill is as wide as this language's longest status label, so Test never shifts what follows it.
+  const pillChars = Math.max(...Object.values(text.status).map((label) => label.length))
+
   return (
     <section>
       <span className="q-kicker">{text.title}</span>
-      <div className="q-key-rows">
+      <div className="q-key-rows" style={{ '--pill-chars': pillChars } as CSSProperties}>
         {SOURCES.map(({ id, fields }) => {
           const source = text.sources[id]
           const current = status[id] ?? 'untested'

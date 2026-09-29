@@ -5,9 +5,16 @@ import type { ReactNode } from 'react'
 import type { LocalSettings } from '../../lib/config/localConfig.js'
 import type { KeySource, KeyTestResult } from '../../lib/config/keyTest.js'
 import { OverlayManagerProvider } from '../../components/quantum/overlay/OverlayManagerContext.js'
+import { setActiveLanguage } from '../../locale/index.js'
+import { en } from '../../locale/en.js'
+import { ru } from '../../locale/ru.js'
+import { de } from '../../locale/de.js'
 import { ApiKeysSection } from './ApiKeysSection.js'
 
-afterEach(cleanup)
+afterEach(() => {
+  cleanup()
+  setActiveLanguage('en')
+})
 
 function Providers({ children }: { children: ReactNode }) {
   return <OverlayManagerProvider>{children}</OverlayManagerProvider>
@@ -161,5 +168,21 @@ describe('ApiKeysSection', () => {
     expect(screen.getByText('Getting Your Key')).not.toBeNull()
     expect(screen.getByText('themoviedb.org')).not.toBeNull()
     expect(screen.getByText('Request a Developer key (personal use is approved on the spot):')).not.toBeNull()
+  })
+
+  it("sizes every status pill to the longest status label of the current language, not of all of them", async () => {
+    const widest = (locale: { quantum: { settings: { keys: { status: Record<string, string> } } } }) =>
+      Math.max(...Object.values(locale.quantum.settings.keys.status).map((label) => label.length))
+
+    for (const [language, locale] of [['en', en], ['ru', ru], ['de', de]] as const) {
+      setActiveLanguage(language)
+      const { container, unmount } = setup()
+      await waitFor(() => expect(container.querySelector('.q-key-rows')).not.toBeNull())
+
+      const rows = container.querySelector('.q-key-rows') as HTMLElement
+      expect(rows.style.getPropertyValue('--pill-chars'), language).toBe(String(widest(locale)))
+      unmount()
+    }
+    expect(widest(en)).toBeLessThan(widest(de))
   })
 })
