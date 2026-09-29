@@ -25,7 +25,7 @@ export interface ListMorePopoverProps {
   onDownload: () => void
   onCopy: () => void
   onSortNow: () => void
-  /** "Reset the order": the source's own order back, where Sort now sorts by year. */
+  /** "Restore source order" (in Reorder List): the source's own order back, where Sort by release date sorts by year. */
   onResetOrder: () => void
   onResetEverything: () => void
   onDelete: () => void
@@ -102,12 +102,15 @@ export function ListMorePopover({
           <span className="q-pop-q">{text.reorderQuestion}</span>
           <span className="q-pop-note">{text.reorderHint}</span>
           <span className="q-pop-note">{text.reorderNote}</span>
+          {/* A hand-made list has no source order to go back to, as it has nothing to Reset to. */}
+          {source !== 'manual' && <span className="q-pop-note">{text.restoreHint}</span>}
+          <div className="q-pop-menu">
+            <Button onClick={onSortNow}>{text.sortNow}</Button>
+            {source !== 'manual' && <Button onClick={onResetOrder}>{text.restoreSourceOrder}</Button>}
+          </div>
           <div className="q-pop-actions">
             <Button variant="quiet" onClick={onDismiss}>
               {text.cancel}
-            </Button>
-            <Button variant="primary" onClick={onSortNow}>
-              {text.sortNow}
             </Button>
           </div>
         </>
@@ -119,9 +122,6 @@ export function ListMorePopover({
           <span className="q-pop-note">{leadFor(source)}</span>
           <span className="q-pop-note">{cost(preview)}</span>
           <div className="q-pop-actions">
-            <Button variant="quiet" onClick={onResetOrder}>
-              {order.resetOrder}
-            </Button>
             <Button variant="primary" disabled={preview.state === 'loading'} onClick={onResetEverything}>
               {order.resetEverything}
             </Button>

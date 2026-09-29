@@ -615,7 +615,7 @@ function ListView({
     try {
       const { restore } = await api.resetOrder(listId)
       await refresh()
-      showToast({ text: orderText.orderReset, actionLabel: actions.undo, onAction: () => void undoSort(restore) })
+      showToast({ text: orderText.orderRestored, actionLabel: actions.undo, onAction: () => void undoSort(restore) })
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : orderText.resetFailed)
     }

@@ -102,10 +102,10 @@ describe('ListMorePopover', () => {
   })
 
   describe('reorder', () => {
-    it('asks first, says what it does and that it is one-off, and only then sorts', () => {
-      const { onSortNow, onDismiss } = renderPopover({ mode: 'reorder' })
+    it('asks first, says what sorting does and that it is one-off, and only then sorts', () => {
+      const { onSortNow, onResetOrder, onDismiss } = renderPopover({ mode: 'reorder', source: 'canonical' })
 
-      expect(screen.getByText('Sort this list chronologically?')).toBeTruthy()
+      expect(screen.getByText('Reorder this list?')).toBeTruthy()
       expect(screen.getByText(/Groups are moved as blocks by their earliest item/)).toBeTruthy()
       expect(screen.getByText(/does not block manual reordering later/)).toBeTruthy()
       expect(onSortNow).not.toHaveBeenCalled()
@@ -114,8 +114,27 @@ describe('ListMorePopover', () => {
       expect(onDismiss).toHaveBeenCalledTimes(1)
       expect(onSortNow).not.toHaveBeenCalled()
 
-      fireEvent.click(button('Reorder'))
+      fireEvent.click(button('Sort by release date'))
       expect(onSortNow).toHaveBeenCalledTimes(1)
+      expect(onResetOrder).not.toHaveBeenCalled()
+    })
+
+    it('offers Restore source order beside it, and that does the other thing', () => {
+      const { onSortNow, onResetOrder } = renderPopover({ mode: 'reorder', source: 'api' })
+      expect(screen.getByText(/back the way the source lists them/)).toBeTruthy()
+
+      fireEvent.click(button('Restore source order'))
+
+      expect(onResetOrder).toHaveBeenCalledTimes(1)
+      expect(onSortNow).not.toHaveBeenCalled()
+    })
+
+    it('leaves Restore source order out of a hand-made list, which has no source order to go back to', () => {
+      renderPopover({ mode: 'reorder', source: 'manual' })
+
+      expect(button('Sort by release date')).toBeTruthy()
+      expect(screen.queryByRole('button', { name: 'Restore source order' })).toBeNull()
+      expect(screen.queryByText(/back the way the source lists them/)).toBeNull()
     })
   })
 
@@ -151,11 +170,10 @@ describe('ListMorePopover', () => {
       expect(screen.getByText('Stuff you added, removed or marked done is not affected.')).toBeTruthy()
     })
 
-    it('waits for the numbers before Reset, but not before Reset the order', () => {
+    it('waits for the numbers before Reset', () => {
       renderPopover({ mode: 'reset', preview: { state: 'loading' } })
 
       expect((button('Reset') as HTMLButtonElement).disabled).toBe(true)
-      expect((button('Reset the order') as HTMLButtonElement).disabled).toBe(false)
       expect(screen.getByText(/Working out what would change/)).toBeTruthy()
     })
 
@@ -170,16 +188,14 @@ describe('ListMorePopover', () => {
       expect(onResetEverything).toHaveBeenCalledTimes(1)
     })
 
-    it('the two buttons do the two things, and the dialog says nothing about how long Undo lasts', () => {
+    it('offers only Reset: the order buttons live in Reorder List, and the dialog says nothing about how long Undo lasts', () => {
       const { onResetOrder, onResetEverything } = renderPopover({ mode: 'reset', preview: ready(1, 0, 0) })
       expect(screen.queryByText(/Undo is offered/)).toBeNull()
-
-      fireEvent.click(button('Reset the order'))
-      expect(onResetOrder).toHaveBeenCalledTimes(1)
-      expect(onResetEverything).not.toHaveBeenCalled()
+      expect(screen.queryByRole('button', { name: /order/i })).toBeNull()
 
       fireEvent.click(button('Reset'))
       expect(onResetEverything).toHaveBeenCalledTimes(1)
+      expect(onResetOrder).not.toHaveBeenCalled()
     })
   })
 

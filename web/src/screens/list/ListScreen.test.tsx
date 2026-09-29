@@ -1347,7 +1347,7 @@ describe('ListScreen order menu (task 10.22)', () => {
   /** Reorder List asks first (prototype), then Sort now does it. */
   const sortNow = () => {
     fireEvent.click(pop().getByRole('button', { name: 'Reorder List' }))
-    fireEvent.click(pop().getByRole('button', { name: 'Reorder' }))
+    fireEvent.click(pop().getByRole('button', { name: 'Sort by release date' }))
   }
   const rowTitles = () => Array.from(document.querySelectorAll('.q-item .title')).map((n) => n.textContent)
   const undoOnToast = () =>
@@ -1522,38 +1522,41 @@ describe('ListScreen order menu (task 10.22)', () => {
       expect(api.checkForUpdates).not.toHaveBeenCalled()
     })
 
-    it('Reset the order puts the source order back: not the year sort, and not Reset', async () => {
-      vi.mocked(api.resetPreview).mockResolvedValue(preview)
-      vi.mocked(api.resetOrder).mockResolvedValue({ restore: { items: [], groups: [] } })
-      await openReset()
+    /** Restore source order lives in Reorder List now (11.14): it asks nothing, and does not touch the reset. */
+    const restoreSourceOrder = () => {
+      fireEvent.click(pop().getByRole('button', { name: 'Reorder List' }))
+      fireEvent.click(pop().getByRole('button', { name: 'Restore source order' }))
+    }
 
-      fireEvent.click(pop().getByRole('button', { name: 'Reset the order' }))
+    it('Restore source order puts the source order back: not the year sort, and not Reset', async () => {
+      vi.mocked(api.resetOrder).mockResolvedValue({ restore: { items: [], groups: [] } })
+      await openOrder()
+
+      restoreSourceOrder()
 
       await waitFor(() => expect(api.resetOrder).toHaveBeenCalledWith('L1'))
       expect(api.sortList).not.toHaveBeenCalled()
       expect(api.resetList).not.toHaveBeenCalled()
-      await waitFor(() => expect(document.querySelector('.q-toast')!.textContent).toMatch(/Order reset/))
+      await waitFor(() => expect(document.querySelector('.q-toast')!.textContent).toMatch(/Source order restored/))
     })
 
-    it('Undo of Reset the order puts the old positions back', async () => {
+    it('Undo of Restore source order puts the old positions back', async () => {
       const restore = { items: [{ id: 'a', orderIndex: 3 }], groups: [] }
-      vi.mocked(api.resetPreview).mockResolvedValue(preview)
       vi.mocked(api.resetOrder).mockResolvedValue({ restore })
       vi.mocked(api.restoreOrder).mockResolvedValue(undefined)
-      await openReset()
+      await openOrder()
 
-      fireEvent.click(pop().getByRole('button', { name: 'Reset the order' }))
+      restoreSourceOrder()
       fireEvent.click(await screen.findByRole('button', { name: 'Undo' }))
 
       await waitFor(() => expect(api.restoreOrder).toHaveBeenCalledWith('L1', restore))
     })
 
-    it('says why when the order cannot be reset', async () => {
-      vi.mocked(api.resetPreview).mockResolvedValue(preview)
+    it('says why when the source order cannot be restored', async () => {
       vi.mocked(api.resetOrder).mockRejectedValue(new Error('This list has no source to reset to'))
-      await openReset()
+      await openOrder()
 
-      fireEvent.click(pop().getByRole('button', { name: 'Reset the order' }))
+      restoreSourceOrder()
 
       expect(await screen.findByText('This list has no source to reset to')).toBeTruthy()
     })

@@ -26,17 +26,35 @@ test('sort, reset to the source, and undo both', async ({ page }) => {
     // Sort chronologically: at once, with Undo.
     await page.getByRole('button', { name: 'More' }).click()
     await page.locator('.q-pop').getByRole('button', { name: 'Reorder List' }).click()
-    await page.locator('.q-pop').getByRole('button', { name: 'Sort now' }).click()
+    await page.locator('.q-pop').getByRole('button', { name: 'Sort by release date' }).click()
     await expect(page.locator('.q-toast')).toContainText('Sorted by date')
     expect(await titles()).toEqual(['Older', 'Newer', 'Mine'])
     await page.locator('.q-toast').getByRole('button', { name: 'Undo' }).click()
     await expect.poll(titles).toEqual(['Newer', 'Older', 'Mine'])
 
-    // Reset to the source: the cost first, in words.
+    // Restore source order (in Reorder List): sort, then put the source's own order back, with its Undo.
+    await page.getByRole('button', { name: 'More' }).click()
+    await page.locator('.q-pop').getByRole('button', { name: 'Reorder List' }).click()
+    await page.locator('.q-pop').getByRole('button', { name: 'Sort by release date' }).click()
+    await expect.poll(titles).toEqual(['Older', 'Newer', 'Mine'])
+    await page.getByRole('button', { name: 'More' }).click()
+    await page.locator('.q-pop').getByRole('button', { name: 'Reorder List' }).click()
+    await page.locator('.q-pop').getByRole('button', { name: 'Restore source order' }).click()
+    await expect(page.locator('.q-toast')).toContainText('Source order restored')
+    await expect.poll(titles).toEqual(['Newer', 'Older', 'Mine'])
+    await page.locator('.q-toast').getByRole('button', { name: 'Undo' }).click()
+    await expect.poll(titles).toEqual(['Older', 'Newer', 'Mine'])
+    await page.getByRole('button', { name: 'More' }).click()
+    await page.locator('.q-pop').getByRole('button', { name: 'Reorder List' }).click()
+    await page.locator('.q-pop').getByRole('button', { name: 'Restore source order' }).click()
+    await expect.poll(titles).toEqual(['Newer', 'Older', 'Mine'])
+
+    // Reset to the source: the cost first, in words. Reset List offers only Reset (the order buttons moved).
     await page.getByRole('button', { name: 'More' }).click()
     await page.locator('.q-pop').getByRole('button', { name: 'Reset List' }).click()
     await expect(page.getByText('1 item you added will be removed and 1 done mark will be cleared.')).toBeVisible()
-    await page.locator('.q-pop').getByRole('button', { name: 'Reset everything' }).click()
+    await expect(page.locator('.q-pop').getByRole('button', { name: /order/i })).toHaveCount(0)
+    await page.locator('.q-pop').getByRole('button', { name: 'Reset', exact: true }).click()
     await expect(page.getByText('Mine', { exact: true })).toBeHidden()
     expect(await titles()).toEqual(['Newer', 'Older'])
     expect((await detail()).items.every((i: { consumedAt: string | null }) => i.consumedAt === null)).toBe(true)

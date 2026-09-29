@@ -612,10 +612,9 @@ export const en = {
             ? `${parts[0]}.`
             : `${parts.slice(0, -1).join(', ')} and ${parts[parts.length - 1]}.`,
         noCost: 'Stuff you added, removed or marked done is not affected.',
-        resetOrder: 'Reset the order',
         resetEverything: 'Reset',
         sorted: 'Sorted by date — groups moved as blocks.',
-        orderReset: 'Order reset.',
+        orderRestored: 'Source order restored.',
         resetDone: 'Reset to the source — order, name, description and flag.',
         undone: 'Reset undone',
         orderUndone: 'Order Restored',
@@ -649,12 +648,14 @@ export const en = {
         download: 'Download File',
         copy: 'Copy To Clipboard',
         reorderKicker: 'Reorder List',
-        reorderQuestion: 'Sort this list chronologically?',
+        reorderQuestion: 'Reorder this list?',
         reorderHint:
           'Groups are moved as blocks by their earliest item. Each group is reordered inside too',
         reorderNote: 'This one-time action does not block manual reordering later.',
         cancel: 'Cancel',
-        sortNow: 'Reorder',
+        sortNow: 'Sort by release date',
+        restoreSourceOrder: 'Restore source order',
+        restoreHint: 'Restore source order puts the items back the way the source lists them.',
         deleteKicker: 'Delete List',
         deleteQuestion: (title: string): string => `Delete “${title}”?`,
         deleteNote: (items: number, done: number): string =>

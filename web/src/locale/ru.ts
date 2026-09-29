@@ -559,10 +559,9 @@ export const ru: Locale = {
           return sentence.charAt(0).toUpperCase() + sentence.slice(1)
         },
         noCost: 'Добавленное, удалённое и отмеченное как выполненное не затрагивается.',
-        resetOrder: 'Сбросить порядок',
         resetEverything: 'Сбросить',
         sorted: 'Отсортировано по дате — группы перемещены целиком.',
-        orderReset: 'Порядок сброшен.',
+        orderRestored: 'Порядок источника восстановлен.',
         resetDone: 'Сброшено к источнику — порядок, название, описание и флаг.',
         undone: 'Сброс отменён',
         orderUndone: 'Порядок восстановлен',
@@ -595,12 +594,14 @@ export const ru: Locale = {
         download: 'Скачать файл',
         copy: 'Копировать в буфер',
         reorderKicker: 'Упорядочить список',
-        reorderQuestion: 'Отсортировать этот список по хронологии?',
+        reorderQuestion: 'Изменить порядок списка?',
         reorderHint:
           'Группы перемещаются блоками по самому раннему элементу. Внутри каждой группы порядок тоже меняется',
         reorderNote: 'Это одноразовое действие не мешает вручную менять порядок позже.',
         cancel: 'Отмена',
-        sortNow: 'Упорядочить',
+        sortNow: 'По дате выхода',
+        restoreSourceOrder: 'Вернуть порядок источника',
+        restoreHint: 'Порядок источника возвращает элементы в том порядке, в каком их отдаёт источник.',
         deleteKicker: 'Удаление списка',
         deleteQuestion: (title: string): string => `Удалить «${title}»?`,
         deleteNote: (n: number, done: number): string =>

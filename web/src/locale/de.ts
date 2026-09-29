@@ -549,10 +549,9 @@ export const de: Locale = {
             ? `${parts[0]}.`
             : `${parts.slice(0, -1).join(', ')} und ${parts[parts.length - 1]}.`,
         noCost: 'Was du hinzugefügt, entfernt oder als erledigt markiert hast, bleibt unberührt.',
-        resetOrder: 'Reihenfolge zurücksetzen',
         resetEverything: 'Zurücksetzen',
         sorted: 'Nach Datum sortiert — Gruppen als Blöcke verschoben.',
-        orderReset: 'Reihenfolge zurückgesetzt.',
+        orderRestored: 'Reihenfolge der Quelle wiederhergestellt.',
         resetDone: 'Auf die Quelle zurückgesetzt — Reihenfolge, Name, Beschreibung und Markierung.',
         undone: 'Zurücksetzen rückgängig gemacht',
         orderUndone: 'Reihenfolge wiederhergestellt',
@@ -585,13 +584,15 @@ export const de: Locale = {
         download: 'Datei herunterladen',
         copy: 'In die Zwischenablage kopieren',
         reorderKicker: 'Liste ordnen',
-        reorderQuestion: 'Diese Liste chronologisch sortieren?',
+        reorderQuestion: 'Liste neu ordnen?',
         reorderHint:
           'Gruppen werden als Blöcke nach ihrem frühesten Eintrag verschoben. Auch innerhalb jeder Gruppe wird neu geordnet',
         reorderNote:
           'Diese einmalige Aktion verhindert späteres manuelles Umsortieren nicht.',
         cancel: 'Abbrechen',
-        sortNow: 'Neu ordnen',
+        sortNow: 'Nach Erscheinungsdatum sortieren',
+        restoreSourceOrder: 'Reihenfolge der Quelle wiederherstellen',
+        restoreHint: 'Die Reihenfolge der Quelle stellt die Einträge so wieder her, wie die Quelle sie aufführt.',
         deleteKicker: 'Liste löschen',
         deleteQuestion: (title: string): string => `„${title}“ löschen?`,
         deleteNote: (n: number, done: number): string =>
