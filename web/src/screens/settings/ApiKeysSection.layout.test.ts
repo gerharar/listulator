@@ -10,6 +10,7 @@ import { describe, expect, it } from 'vitest'
  */
 const css = readFileSync(join(import.meta.dirname, 'ApiKeysSection.css'), 'utf8')
 const rule = /\.q-key-pill\s*\{([^}]*)\}/.exec(css)?.[1] ?? ''
+const fields = /\.q-key-fields\s*\{([^}]*)\}/.exec(css)?.[1] ?? ''
 
 describe('API-key status pill CSS', () => {
   it('is a fixed width taken from --pill-chars, with no min-width to grow past', () => {
@@ -19,5 +20,12 @@ describe('API-key status pill CSS', () => {
 
   it('leaves the character count to the component: no number hard-coded per language', () => {
     expect(css).not.toMatch(/--pill-chars:\s*\d/)
+  })
+})
+
+describe('API-key fields CSS', () => {
+  it('are one fixed width in every language: the buttons and the pill move over, the fields never grow or shrink', () => {
+    expect(fields).toMatch(/\bwidth:\s*\d+px/)
+    expect(fields).toMatch(/\bflex:\s*none/)
   })
 })

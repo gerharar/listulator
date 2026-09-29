@@ -37,9 +37,12 @@
 .q-key-info:hover {
   color: var(--ink);
 }
+/* One width in every language (owner): the buttons and pill after it move over, this never resizes.
+   320px fits IGDB's ID and secret side by side (2 × the 150px field minimum + the gap). */
 .q-key-fields {
-  flex: 1;
-  min-width: 150px;
+  flex: none;
+  width: 320px;
+  max-width: 100%;
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
