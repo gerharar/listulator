@@ -430,7 +430,7 @@ function HomeHeader({ summary, checking, onCheckUpdates, onNew }: HomeHeaderProp
       {onCheckUpdates && onNew && (
         <div className="q-home-actions">
           <IconButton
-            label={copy.quantum.home.checkForUpdates}
+            label={checking ? copy.quantum.home.checkingUpdates : copy.quantum.home.checkForUpdates}
             onClick={onCheckUpdates}
             disabled={checking}
           >

@@ -823,7 +823,7 @@ export const en = {
       title: 'My Lists',
       newList: 'New List',
       checkForUpdates: 'Check for updates',
-      checkingUpdates: 'Checking…',
+      checkingUpdates: 'Checking for updates…',
       loadFailed: 'Couldn\'t load your lists',
       retry: 'Retry',
       listCount: (n: number): string =>

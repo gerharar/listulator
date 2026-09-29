@@ -751,7 +751,7 @@ export const de: Locale = {
       title: 'Meine Listen',
       newList: 'Neue Liste',
       checkForUpdates: 'Nach Updates suchen',
-      checkingUpdates: 'Wird geprüft…',
+      checkingUpdates: 'Suche nach Updates…',
       loadFailed: 'Deine Listen konnten nicht geladen werden',
       retry: 'Erneut versuchen',
       listCount: (n: number): string => lists(n),

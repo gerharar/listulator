@@ -760,7 +760,7 @@ export const ru: Locale = {
       title: 'Мои Прелессти',
       newList: 'Новый список',
       checkForUpdates: 'Проверить обновления',
-      checkingUpdates: 'Проверяем…',
+      checkingUpdates: 'Проверяем обновления…',
       loadFailed: 'Не удалось загрузить ваши списки',
       retry: 'Повторить',
       listCount: (n: number): string => lists(n),
