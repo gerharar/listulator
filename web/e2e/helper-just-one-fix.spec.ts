@@ -77,10 +77,10 @@ test('the pick says how long it takes, and Open The List opens its list', async 
       await sheet.getByRole('button', { name: 'Not That' }).click()
     }
     await expect(sheet.locator('.q-pick-list')).toContainText(`${B} · 7m`)
-    await expect(sheet.locator('.q-pick-why')).toHaveText('Shortest unfinished item you have — 7m and it is done.')
+    await expect(sheet.locator('.q-pick-why')).toHaveText("Shortest unfinished item you have -- 7m and it's done.")
     await page.screenshot({ path: 'test-results/just-one-fix.png' })
 
-    await sheet.getByRole('button', { name: 'Open The List' }).click()
+    await sheet.getByRole('button', { name: 'Open List' }).click()
     await expect(sheet).toHaveCount(0)
     await expect(page.locator('.q-list-title')).toContainText(B)
   } finally {

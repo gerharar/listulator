@@ -43,10 +43,10 @@ test('offers the complete list before the ongoing one, however far along the ong
       const top = (await sheet(page).locator('.q-pick-list').textContent()) ?? ''
       for (const title of [COMPLETE, ONGOING]) if (top.includes(title) && !order.includes(title)) order.push(title)
       if (top.includes(ONGOING)) {
-        await expect(sheet(page).locator('.q-pick-why')).toContainText('Marked ongoing')
+        await expect(sheet(page).locator('.q-pick-why')).toContainText('This list is still Ongoing')
       }
       if (top.includes(COMPLETE)) {
-        await expect(sheet(page).locator('.q-pick-why')).toContainText('The list is complete')
+        await expect(sheet(page).locator('.q-pick-why')).toContainText('This list is Complete')
       }
       if (order.length < 2) await button(page, 'Not That').click()
     }
@@ -83,7 +83,7 @@ test('one helper sheet replaces another, the lit button follows, and Open The Li
     }
     await expect(sheet(page).locator('.q-pick-list')).toContainText(COMPLETE)
 
-    await sheet(page).getByRole('button', { name: 'Open The List' }).click()
+    await sheet(page).getByRole('button', { name: 'Open List' }).click()
     await expect(sheet(page)).toHaveCount(0)
     await expect(page.locator('.q-list-title')).toContainText(COMPLETE)
     await expect(page.locator('.q-item').first()).toBeVisible()
