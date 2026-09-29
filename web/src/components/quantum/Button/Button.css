@@ -13,7 +13,7 @@
   cursor: pointer;
   border-radius: 0;
 }
-.q-btn:hover {
+.q-btn:where(:not(:disabled)):hover {
   background: var(--hover);
 }
 .q-btn.primary {
@@ -22,7 +22,7 @@
   color: var(--accentInk);
   font-size: 14px;
 }
-.q-btn.primary:hover {
+.q-btn.primary:where(:not(:disabled)):hover {
   filter: brightness(1.12);
   background: var(--accent);
 }
@@ -34,7 +34,7 @@
   border-color: var(--line);
   color: var(--ink2);
 }
-.q-btn.quiet:hover {
+.q-btn.quiet:where(:not(:disabled)):hover {
   border-color: var(--rule);
   color: var(--ink);
 }
@@ -43,7 +43,7 @@
   padding: 7px 4px;
   color: var(--ink2);
 }
-.q-btn.ghost:hover {
+.q-btn.ghost:where(:not(:disabled)):hover {
   background: var(--hover);
   color: var(--ink);
 }
@@ -53,19 +53,13 @@
   color: var(--accentInk);
   padding: 9px 14px;
 }
-.q-btn.danger:hover {
+.q-btn.danger:where(:not(:disabled)):hover {
   filter: brightness(1.12);
 }
 .q-btn:disabled {
   opacity: 0.45;
   cursor: default;
   filter: none;
-}
-.q-btn:disabled:hover {
-  background: transparent;
-}
-.q-btn.primary:disabled:hover {
-  background: var(--accent);
 }
 
 .q-icon-btn {
@@ -81,7 +75,7 @@
   line-height: 1;
   cursor: pointer;
 }
-.q-icon-btn:hover {
+.q-icon-btn:where(:not(:disabled)):hover {
   border-color: var(--rule);
   background: var(--hover);
 }
@@ -106,7 +100,7 @@
   border: 0;
   color: var(--ink3);
 }
-.q-icon-btn.row:hover {
+.q-icon-btn.row:where(:not(:disabled)):hover {
   background: transparent;
   color: var(--ink);
 }

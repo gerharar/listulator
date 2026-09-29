@@ -9,7 +9,7 @@
   cursor: pointer;
   text-align: left;
 }
-.q-chip:hover {
+.q-chip:where(:not(:disabled)):hover {
   border-color: var(--rule);
   color: var(--ink);
 }
