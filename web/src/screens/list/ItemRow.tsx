@@ -46,6 +46,11 @@ export interface ItemRowProps {
    * Type); a platform category's [+] sits in the chip's own slot.
    */
   addTag?: { label: string; onAdd: (item: ListItem, anchor: HTMLElement) => void }
+  /**
+   * The list mixes hand-added and imported items, so the hand says which are which. In an
+   * all-manual list the header's hand already says it, and a hand on every row is noise (11.9).
+   */
+  showManual?: boolean
 }
 
 /**
@@ -71,6 +76,7 @@ export function ItemRow({
   platform,
   tagChip,
   addTag,
+  showManual = false,
 }: ItemRowProps) {
   const text = copy.quantum.list.itemActions
   const tagText = copy.quantum.list.tags
@@ -117,7 +123,7 @@ export function ItemRow({
       </span>
       {/* The row's own click does the toggling, so the box only has to look right. */}
       <DoneCheckbox checked={done} onChange={() => {}} label={item.title} />
-      {(platform || kind || addTag || item.source === 'manual') && (
+      {(platform || kind || addTag || (showManual && item.source === 'manual')) && (
         <span className="tags">
           {platform ? (
             <PlatformChip
@@ -142,7 +148,7 @@ export function ItemRow({
               </button>
             )
           )}
-          {item.source === 'manual' && <ManualMark />}
+          {showManual && item.source === 'manual' && <ManualMark />}
         </span>
       )}
       <span className="body">

@@ -205,6 +205,55 @@ describe('ListScreen header', () => {
   })
 })
 
+describe('ListScreen marks (task 11.9)', () => {
+  const title = () => document.querySelector('.q-list-title') as HTMLElement
+
+  it('puts the curated star beside the title of a community-library list', async () => {
+    await open(detail({ source: 'canonical', items: [item()] }))
+
+    expect(title().querySelector('.q-star')).not.toBeNull()
+    expect(title().querySelector('.q-byhand')).toBeNull()
+  })
+
+  it('puts the hand beside the title of a list made by hand', async () => {
+    await open(detail({ source: 'manual', items: [item({ source: 'manual' })] }))
+
+    expect(title().querySelector('.q-byhand')).not.toBeNull()
+    expect(title().querySelector('.q-star')).toBeNull()
+  })
+
+  it('puts no mark beside the title of a list synced from an API', async () => {
+    await open(detail({ source: 'api', items: [item()] }))
+
+    expect(title().querySelector('.q-star, .q-byhand')).toBeNull()
+  })
+
+  it('an all-manual list shows no hand on its rows: the header already says so', async () => {
+    await open(detail({ source: 'manual', items: [item({ source: 'manual' }), item({ source: 'manual' })] }))
+
+    expect(document.querySelectorAll('.q-item .q-manual')).toHaveLength(0)
+  })
+
+  it('a list mixing hand-added and imported items marks only the hand-added ones', async () => {
+    await open(detail({ source: 'api', items: [item({ source: 'manual' }), item({ source: 'import' })] }))
+
+    expect(document.querySelectorAll('.q-item .q-manual')).toHaveLength(1)
+  })
+
+  it('decides from every item, not the filtered ones', async () => {
+    await open(
+      detail({
+        source: 'api',
+        items: [item({ title: 'Zed', source: 'manual' }), item({ title: 'Ahab', source: 'import' })],
+      }),
+    )
+    fireEvent.change(screen.getByPlaceholderText('Filter items…'), { target: { value: 'Zed' } })
+
+    expect(document.querySelectorAll('.q-item')).toHaveLength(1)
+    expect(document.querySelectorAll('.q-item .q-manual')).toHaveLength(1)
+  })
+})
+
 describe('ListScreen loading', () => {
   it('shows a spinner, then the list', async () => {
     let resolve: (value: MediaListDetail) => void = () => {}

@@ -50,6 +50,8 @@ import { ItemEditPopover } from './ItemEditPopover.js'
 import { tagField } from './tagFields.js'
 import { ItemInfoCard } from './ItemInfoCard.js'
 import { ItemRow } from './ItemRow.js'
+import { ByHandMark, CuratedStar } from '../../components/quantum/Marks/Marks.js'
+import { listMark } from '../../lib/buckets.js'
 import { JumpRail, JumpRailStub, type RailEntry } from './JumpRail.js'
 import { ListMorePopover, type MoreMode, type PreviewState } from './ListMorePopover.js'
 import { buildSpine, listTotals } from './spine.js'
@@ -262,10 +264,16 @@ function ListView({
   useEffect(() => () => clearTimeout(pulseTimer.current), [])
 
   const mediaType = mediaTypes.find((entry) => entry.key === loaded.mediaType)
+  const mark = listMark(loaded)
   const defaultMinutes = mediaType?.defaultDurationMinutes ?? 30
   const totals = listTotals(items)
   const newCount = items.filter((entry) => entry.isNew).length
   const units = useMemo(() => buildSpine(items, groups), [items, groups])
+  // From every item, not the filtered ones: filtering must not make the hands come and go.
+  const mixedSources = useMemo(
+    () => items.some((entry) => entry.source === 'manual') && items.some((entry) => entry.source !== 'manual'),
+    [items],
+  )
   const groupNames = useMemo(() => groups.map((group) => group.name), [groups])
   // U5: the category's tag field, and every tag the list carries (the Platform panel's "In this list").
   const tagEditor = useMemo(() => tagField(mediaType?.facets), [mediaType])
@@ -850,6 +858,7 @@ function ListView({
       item={entry}
       grouped={grouped}
       focusable={tabStop === entry.id}
+      showManual={mixedSources}
       minutesWidth={minutesWidth}
       pulse={pulseIds.has(entry.id)}
       onHandlePointerDown={(event, row) => moves.startDrag(event, row.id)}
@@ -891,6 +900,8 @@ function ListView({
             <p className="q-kicker">{mediaType ? categoryLabel(mediaType) : loaded.mediaType}</p>
             <h1 className="q-list-title">
               {meta.title}
+              {mark === 'curated' && <CuratedStar large />}
+              {mark === 'byHand' && <ByHandMark large />}
               <StatusChip status={meta.status} />
             </h1>
             {meta.description && <p className="q-list-description">{meta.description}</p>}

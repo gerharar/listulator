@@ -116,10 +116,22 @@ describe('ItemRow', () => {
     expect(document.querySelector('.q-item.in-group')).not.toBeNull()
   })
 
-  it('marks an item added by hand', () => {
-    renderRow({ item: { ...ITEM, source: 'manual' } })
+  it('marks an item added by hand, when the list mixes hand-added and imported items', () => {
+    renderRow({ item: { ...ITEM, source: 'manual' }, showManual: true })
 
     expect(document.querySelector('.q-manual')).not.toBeNull()
+  })
+
+  it('leaves the hand off when the list does not mix (an all-manual list would be a hand on every row)', () => {
+    renderRow({ item: { ...ITEM, source: 'manual' } })
+
+    expect(document.querySelector('.q-manual')).toBeNull()
+  })
+
+  it('never marks an imported item, mixed list or not', () => {
+    renderRow({ item: { ...ITEM, source: 'import' }, showManual: true })
+
+    expect(document.querySelector('.q-manual')).toBeNull()
   })
 
   it('shows the first tag as its kind', () => {
