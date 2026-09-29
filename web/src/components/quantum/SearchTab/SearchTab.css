@@ -17,6 +17,11 @@
 .q-search-form .q-field {
   flex: 1;
 }
+/* As tall as the query field beside it: .q-input's padding, one 15px × 1.2 line, and the borders. */
+.q-search-form > .q-btn {
+  box-sizing: border-box;
+  height: calc(22px + 18px + 2px);
+}
 
 .q-search-facet {
   display: flex;

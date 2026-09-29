@@ -45,6 +45,12 @@
   gap: 6px;
 }
 
+/* As tall as the key field beside it: .q-input.key's padding, one 14px × 1.2 line, and the borders. */
+.q-key-row > .q-btn {
+  box-sizing: border-box;
+  height: calc(18px + 16.8px + 2px);
+}
+
 .q-key-pill {
   flex: none;
   box-sizing: border-box;

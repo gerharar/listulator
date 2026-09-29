@@ -13,6 +13,11 @@
   flex: 1;
   min-width: 0;
 }
+/* As tall as the small fields beside it: .q-input.sm's padding, one 14px × 1.2 line, and the borders. */
+.q-add-item-row > .q-btn {
+  box-sizing: border-box;
+  height: calc(18px + 16.8px + 2px);
+}
 .q-add-item-minutes {
   width: 80px;
 }
