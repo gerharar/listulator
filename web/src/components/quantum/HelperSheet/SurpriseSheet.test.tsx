@@ -73,7 +73,10 @@ describe('opening', () => {
     expect(['Any', 'Mega', 'Books', 'MMA', 'TV Series'].every((label) => chip(label))).toBe(true)
     expect(chip('Any').getAttribute('aria-pressed')).toBe('true')
     expect(screen.getByText('4 candidates across all categories')).toBeTruthy()
-    expect(screen.getByText('Spin to win!')).toBeTruthy()
+    expect(screen.queryByText('Spin to win!')).toBeNull()
+    expect(screen.getAllByText('Spin To Win!')).toHaveLength(1) // the button only: no SPIN kicker above the dials
+    expect(document.querySelector('.q-reel-head .q-kicker')).toBeNull()
+    expect(document.querySelector('.q-reel-meta')).toBeNull()
     expect(digits()).toBe('000000')
     expect(screen.getByText('Choose your categories and try your luck!')).toBeTruthy()
   })
@@ -144,7 +147,8 @@ describe('spinning', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Spin To Win!' }))
     expect(screen.getByRole('button', { name: 'Spinning…' }).hasAttribute('disabled')).toBe(true)
-    expect(screen.getAllByText('Spinning…').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('Spinning…')).toHaveLength(1) // the button's label; no second line above it
+    expect(document.querySelector('.q-reel-meta')).toBeNull()
 
     await settle()
 
@@ -209,7 +213,7 @@ describe('spinning', () => {
 
     expect(screen.queryByRole('button', { name: 'This One' })).toBeNull()
     expect(digits()).toBe('000000')
-    expect(screen.getByText('Spin to win!')).toBeTruthy()
+    expect(screen.queryByText('Spin to win!')).toBeNull()
   })
 
   it('says there is nothing to spin when nothing is left on the shelves, instead of spinning', async () => {

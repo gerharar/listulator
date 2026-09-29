@@ -389,7 +389,6 @@ export const de: Locale = {
         spinAgain: 'Nochmal drehen',
         spinning: 'Dreht sich…',
         thisOne: 'Die hier',
-        idleMeta: 'Dreh und gewinn!',
         note: 'Wähl deine Kategorien und probier dein Glück!',
         nothingHere: 'Hier ist nichts mehr übrig: Du verfolgst alles',
         anyTitle: (n: number): string => `${candidates(n)} in allen Kategorien`,

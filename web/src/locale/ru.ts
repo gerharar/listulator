@@ -397,7 +397,6 @@ export const ru: Locale = {
         spinAgain: 'Ещё раз',
         spinning: 'Крутим…',
         thisOne: 'Эту',
-        idleMeta: 'Крутите — и выиграйте!',
         note: 'Выберите категории и испытайте удачу!',
         nothingHere: 'Здесь ничего не осталось: вы отслеживаете всё',
         anyTitle: (n: number): string => `${candidates(n)} во всех категориях`,

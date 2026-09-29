@@ -75,7 +75,6 @@
 .q-shelves .q-chip.none { opacity: 0.5; }
 .q-reel { margin-top: 20px; border: 2px solid var(--rule); padding: 18px 19px; }
 .q-reel-head { display: flex; align-items: center; gap: 10px; }
-.q-reel-head .q-kicker { margin: 0; }
 .q-dials { display: flex; gap: 3px; }
 .q-digit {
   display: grid;

@@ -188,7 +188,6 @@ function OpenSheet({ onClose, mediaTypes, onTake, random = Math.random }: Surpri
 
           <div className="q-reel">
             <div className="q-reel-head">
-              <span className="q-kicker">{text.spin}</span>
               <span className="q-dials" aria-hidden="true">
                 {[...dials.digits].map((digit, index, all) => (
                   <span
@@ -215,13 +214,11 @@ function OpenSheet({ onClose, mediaTypes, onTake, random = Math.random }: Surpri
                 </span>
                 {settled && result?.status && <StatusChip status={result.status} />}
               </div>
-              <div className="q-reel-meta">
-                {settled && result
-                  ? text.meta(categoryLabel(shelfNames.find((type) => type.key === result.category) ?? { key: result.category, label: result.category }), result.itemCount)
-                  : dials.spinning
-                    ? text.spinning
-                    : text.idleMeta}
-              </div>
+              {settled && result && (
+                <div className="q-reel-meta">
+                  {text.meta(categoryLabel(shelfNames.find((type) => type.key === result.category) ?? { key: result.category, label: result.category }), result.itemCount)}
+                </div>
+              )}
               {settled && result?.description && <p className="q-reel-desc">{result.description}</p>}
             </div>
             <div className="q-pick-actions">

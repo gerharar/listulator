@@ -437,7 +437,6 @@ export const en = {
         spinAgain: 'Spin Again',
         spinning: 'Spinning…',
         thisOne: 'This One',
-        idleMeta: 'Spin to win!',
         note: 'Choose your categories and try your luck!',
         nothingHere: 'Nothing left here: you are tracking everything',
         anyTitle: (n: number): string => `${n} ${selectPlural(n, 'en', { one: 'candidate', other: 'candidates' })} across all categories`,
