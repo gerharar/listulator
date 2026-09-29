@@ -258,7 +258,8 @@ export const en = {
           'Lists can be built without these keys, but only manually or from meatbag-curated List Vault.',
         sources: {
           tmdb: {
-            name: 'TMDB (The Movie Database)',
+            name: 'TMDB',
+            fullName: 'TMDB (The Movie Database)',
             used: 'movies, TV, animation, documentaries',
             host: 'themoviedb.org',
             steps: [
@@ -269,7 +270,8 @@ export const en = {
             ],
           },
           igdb: {
-            name: 'IGDB (Internet Game Database)',
+            name: 'IGDB',
+            fullName: 'IGDB (Internet Game Database)',
             used: 'video games',
             host: 'dev.twitch.tv',
             steps: [
@@ -282,6 +284,7 @@ export const en = {
           },
           comicVine: {
             name: 'Comic Vine',
+            fullName: 'Comic Vine',
             used: 'comics',
             host: 'comicvine.gamespot.com/api',
             steps: [
@@ -292,6 +295,7 @@ export const en = {
           },
           youtube: {
             name: 'YouTube',
+            fullName: 'YouTube',
             used: 'YouTube playlists and channels',
             host: 'console.cloud.google.com',
             steps: [

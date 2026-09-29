@@ -240,7 +240,8 @@ export const ru: Locale = {
           'Списки можно собирать и без этих ключей, но только вручную или из List Vault, который ведут мясные мешки.',
         sources: {
           tmdb: {
-            name: 'TMDB (The Movie Database)',
+            name: 'TMDB',
+            fullName: 'TMDB (The Movie Database)',
             used: 'фильмы, сериалы, анимация, документальное',
             host: 'themoviedb.org',
             steps: [
@@ -251,7 +252,8 @@ export const ru: Locale = {
             ],
           },
           igdb: {
-            name: 'IGDB (Internet Game Database)',
+            name: 'IGDB',
+            fullName: 'IGDB (Internet Game Database)',
             used: 'видеоигры',
             host: 'dev.twitch.tv',
             steps: [
@@ -264,6 +266,7 @@ export const ru: Locale = {
           },
           comicVine: {
             name: 'Comic Vine',
+            fullName: 'Comic Vine',
             used: 'комиксы',
             host: 'comicvine.gamespot.com/api',
             steps: [
@@ -274,6 +277,7 @@ export const ru: Locale = {
           },
           youtube: {
             name: 'YouTube',
+            fullName: 'YouTube',
             used: 'плейлисты и каналы YouTube',
             host: 'console.cloud.google.com',
             steps: [

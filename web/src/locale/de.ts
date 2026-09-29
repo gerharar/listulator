@@ -231,7 +231,8 @@ export const de: Locale = {
           'Listen lassen sich auch ohne diese Schlüssel anlegen, aber nur von Hand oder aus dem von Fleischsäcken kuratierten List Vault.',
         sources: {
           tmdb: {
-            name: 'TMDB (The Movie Database)',
+            name: 'TMDB',
+            fullName: 'TMDB (The Movie Database)',
             used: 'Filme, Serien, Animation, Dokumentationen',
             host: 'themoviedb.org',
             steps: [
@@ -242,7 +243,8 @@ export const de: Locale = {
             ],
           },
           igdb: {
-            name: 'IGDB (Internet Game Database)',
+            name: 'IGDB',
+            fullName: 'IGDB (Internet Game Database)',
             used: 'Videospiele',
             host: 'dev.twitch.tv',
             steps: [
@@ -255,6 +257,7 @@ export const de: Locale = {
           },
           comicVine: {
             name: 'Comic Vine',
+            fullName: 'Comic Vine',
             used: 'Comics',
             host: 'comicvine.gamespot.com/api',
             steps: [
@@ -265,6 +268,7 @@ export const de: Locale = {
           },
           youtube: {
             name: 'YouTube',
+            fullName: 'YouTube',
             used: 'YouTube-Playlists und -Kanäle',
             host: 'console.cloud.google.com',
             steps: [

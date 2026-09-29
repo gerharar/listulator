@@ -155,7 +155,7 @@ export function ApiKeysSection({
           <div className="q-key-pop">
             {open.mode === 'info' ? (
               <>
-                <strong>{openSource.name}</strong>
+                <strong>{openSource.fullName}</strong>
                 <span>{text.usedNote(openSource.used)}</span>
                 <span className="dim">{text.missNote}</span>
               </>
