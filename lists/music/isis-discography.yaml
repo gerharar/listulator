@@ -1,28 +1,28 @@
 title: ISIS discography
-description: Full ISIS discography (excluding compilations)
+description: Full ISIS discography (excluding compilation appearances)
 category: music
 status: complete
 items:
-- { title: "Mosquito Control", year: 1998, minutes: 28, tags: [EP] }
-- { title: "Sawblade EP", year: 1999, minutes: 30, tags: [EP] }
-- { title: "The Red Sea", year: 1999, minutes: 35, tags: [EP] }
+- { title: "Mosquito Control", year: 1998, minutes: 28, tags: [Mini] }
+- { title: "Sawblade EP", year: 1999, minutes: 30, tags: [Mini] }
+- { title: "The Red Sea", year: 1999, minutes: 35, tags: [Mini] }
 - { title: "Celestial", year: 2000, minutes: 50, tags: [Album] }
-- { title: "Split with Pig Destroyer", year: 2000, minutes: 6, tags: [Split, EP] }
-- { title: "SGNL>05", year: 2001, minutes: 29, tags: [EP] }
+- { title: "Split with Pig Destroyer", year: 2000, minutes: 6, tags: [Mini], notes: "Split release" }
+- { title: "SGNL>05", year: 2001, minutes: 29, tags: [Mini] }
 - { title: "Oceanic", year: 2002, minutes: 52, tags: [Album] }
-- { title: "Live I 09.23.03", year: 2004, minutes: 28, tags: [Live] }
-- { title: "Live II 03.19.03", year: 2004, minutes: 40, tags: [Live] }
+- { title: "Live I 09.23.03", year: 2004, minutes: 28, tags: [Album, Live] }
+- { title: "Live II 03.19.03", year: 2004, minutes: 40, tags: [Album, Live] }
 - { title: "Panopticon", year: 2004, minutes: 49, tags: [Album] }
-- { title: "Live III 12.17.04", year: 2005, minutes: 49, tags: [Live] }
-- { title: "Oceanic: Remixes/Reinterpretations", year: 2005, minutes: 63, tags: [Compilation, Remix] }
-- { title: "Live IV: Selections 2001-2005", year: 2006, minutes: 48, tags: [Live] }
+- { title: "Live III 12.17.04", year: 2005, minutes: 49, tags: [Album, Live] }
+- { title: "Oceanic: Remixes/Reinterpretations", year: 2005, minutes: 63, tags: [Compilation] }
+- { title: "Live IV: Selections 2001-2005", year: 2006, minutes: 48, tags: [Album, Live] }
 - { title: "In the Absence of Truth", year: 2006, minutes: 65, tags: [Album] }
-- { title: "In the Fishtank 14", year: 2006, minutes: 32, tags: [EP, Collaboration] }
-- { title: "Holy Tears", year: 2008, minutes: 22, tags: [Single] }
-- { title: "Not In Rivers, But In Drops", year: 2008, minutes: 29, tags: [Single] }
-- { title: "Live V 07.23.06", year: 2009, minutes: 47, tags: [Live] }
+- { title: "In the Fishtank 14", year: 2006, minutes: 32, tags: [Mini], notes: "Collaboration release" }
+- { title: "Holy Tears", year: 2008, minutes: 22, tags: [Mini] }
+- { title: "Not In Rivers, But In Drops", year: 2008, minutes: 29, tags: [Mini] }
+- { title: "Live V 07.23.06", year: 2009, minutes: 47, tags: [Album, Live] }
 - { title: "Wavering Radiant", year: 2009, minutes: 56, tags: [Album] }
-- { title: "Split with Melvins", year: 2010, minutes: 18, tags: [Split, EP] }
+- { title: "Split with Melvins", year: 2010, minutes: 18, tags: [Mini], notes: "Split release" }
 - { title: "Temporal", year: 2012, minutes: 78, tags: [Compilation] }
-- { title: "Live VI 11.16.07", year: 2012, minutes: 60, tags: [Live] }
-- { title: "Live VII 02.25.10", year: 2017, minutes: 50, tags: [Live] }
+- { title: "Live VI 11.16.07", year: 2012, minutes: 60, tags: [Album, Live] }
+- { title: "Live VII 02.25.10", year: 2017, minutes: 50, tags: [Album, Live] }

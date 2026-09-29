@@ -29,11 +29,11 @@ import type { RichText, Widen } from './types.js'
 export const en = {
   app: {
     loading: 'Loading…',
-    unknownError: 'Something went wrong',
+    unknownError: 'Something went wrong. Pantshitality!',
   },
 
   newList: {
-    title: 'New list',
+    title: 'New List',
   },
 
   /** Book-search language names, by Open Library's three-letter code. */
@@ -57,7 +57,7 @@ export const en = {
   } as Record<string, string | undefined>,
 
   sourceSearch: {
-    searchFailed: 'Search failed',
+    searchFailed: 'Search has failed to do its duty',
     defaultPlaceholder: 'Search…',
     /**
      * Nudges toward searching for a *source*, which is not the obvious thing to
@@ -65,19 +65,19 @@ export const en = {
      * back to `defaultPlaceholder`, so adding a category needs nothing here.
      */
     placeholders: {
-      movie: 'An actor, director, or a film series…',
-      music: 'A band or artist…',
-      book: 'An author…',
+      movie: 'Find an actor, a director, or a film series',
+      music: 'Find a band or an artist',
+      book: 'Find an author',
     } as Record<string, string | undefined>,
     /** Book-category-only language filter. */
     languageLabel: 'Language',
     allLanguages: 'All',
-    includeUnknown: 'Also include books with no language listed',
+    includeUnknown: 'Unknown',
     /** Music-category-only discography-type toggles. */
-    discographyTypesLabel: 'Also include',
+    discographyTypesLabel: 'Include',
     includeEp: 'EPs',
     includeSingle: 'Singles',
-    includeLive: 'Live albums',
+    includeLive: 'Live',
     includeCompilation: 'Compilations',
   },
 
@@ -104,49 +104,36 @@ export const en = {
    * wording rather than breaking the page.
    */
   errors: {
-    'search.queryRequired': (): string => 'Give me something to search for.',
-    'search.unavailable': (p: { category: string }): string =>
-      `Search is not available for ${p.category}. Add items by hand.`,
-    'search.unavailableOffline': (p: { category: string }): string =>
-      `Search is not available for ${p.category}, and the community library could not be reached. Add items by hand.`,
-    'list.unknownCategory': (p: { key: string }): string =>
-      `Unknown category ‘${p.key}’, list cannot be imported.`,
-    'list.sourceEmpty': (p: { title: string }): string =>
-      `Found nothing to import for "${p.title}".`,
-    'list.fileInvalid': (): string =>
-      "That file isn't in the list format, list cannot be imported.",
+    'search.queryRequired': (): string => 'Hey, give me something to search for first',
+    'search.unavailable': (p: { category: string }): string => "Search is not available for ${p.category}. You can import a list or create one manually.",
+    'search.unavailableOffline': (p: { category: string }): string => "Search is not available for ${p.category}, and List Vault could not be reached. Try later or create a list by hand.",
+    'list.unknownCategory': (p: { key: string }): string => `All thumbs alert: cannot import list, unknown category ‘${p.key}’. Check your category spelling against CONTRIBUTING.md, that's usually the problem`,
+    'list.sourceEmpty': (p: { title: string }): string => `Premature listulation detected: found nothing to import for "${p.title}"`,
+    'list.fileInvalid': (): string => `Wrong hole, buddy: your file is a square peg trying to penetrate a round hole, so it cannot be imported. Make sure it's in a properly formatted YAML format and has all required fields`,
     'list.fileSyntax': (p: { line?: number }): string =>
       p.line
-        ? `Syntax error on line ${p.line}, list cannot be imported.`
-        : 'Syntax error, list cannot be imported.',
-    'list.fileNoItems': (): string => 'No items found, list cannot be imported.',
-    'list.fileMissingTitle': (): string => 'No title found, list cannot be imported.',
-    'list.fileItemMissingTitle': (p: { index: number }): string =>
-      `Item ${p.index} has no title, list cannot be imported.`,
-    'list.fileItemNotesTooLong': (p: { index: number; max: number }): string =>
-      `Item ${p.index}'s notes are over ${p.max} characters, list cannot be imported.`,
-    'list.alreadyExists': (): string =>
-      'That list already exists again — nothing was restored.',
-    'group.nameEmpty': (): string => 'A group needs a name.',
-    'group.nameTaken': (): string => 'This list already has a group called that.',
-    'group.notEmpty': (): string =>
-      'Only an empty group can be deleted — move or remove its items first.',
-    'group.orderMismatch': (): string =>
-      'The groups changed since you loaded this list — reload it and try again.',
-    'reset.unavailable': (): string =>
-      'This list has no source to reset to — it was made by hand, or arrived before its source was kept.',
-    'refresh.handMadeList': (): string =>
-      'This list was made by hand, so there is nothing to check against.',
-    'refresh.searchUnavailable': (p: { category: string }): string =>
-      `Search is not available for ${p.category}.`,
+        ? `All thumbs alert: cannot import list, syntax error on line ${p.line}`
+        : `All thumbs alert: cannot import list, syntax error`,
+    'list.fileNoItems': (): string => 'Premature listulation detected: cannot import list, no items found',
+    'list.fileMissingTitle': (): string => 'Premature listulation detected: cannot import list, no title found',
+    'list.fileItemMissingTitle': (p: { index: number }): string => `Alzheimer's relapse detected: cannot import list, item ${p.index} has no title`,
+    'list.fileItemNotesTooLong': (p: { index: number; max: number }): string => `Marcel Proust reincarnation detected: cannot import list, item ${p.index}'s notes are over ${p.max} characters`,
+    'list.alreadyExists': (): string => `Fastest hand in the West detected: this list already exists, so nothing was restored`,
+    'group.nameEmpty': (): string => 'A man needs a group name.',
+    'group.nameTaken': (): string => `Alzheimer's relapse detected: this list already has a group with such name.`,
+    'group.notEmpty': (): string => 'You can delete a group only when you embrace its emptiness',
+    'group.orderMismatch': (): string => 'The groups changed since you loaded this list, so reload it and try again.',
+    'reset.unavailable': (): string => 'This list has no source to reset it to, and you should not be seeing this message',
+    'refresh.handMadeList': (): string => 'This list was a hand job, so there is nothing to check against.',
+    'refresh.searchUnavailable': (p: { category: string }): string => `Search is not available for ${p.category}.`,
   },
 
   /** Failures with no code: the network, or a server that said something new. */
   request: {
     /** Told apart from "the server said no" — in development it is the common one. */
-    unreachable: 'Cannot reach the server. Is it running?',
+    unreachable: 'Cannot reach the server. Is anybody there?',
     failed: (status: number): string => `Request failed (${status})`,
-    unknown: 'Something went wrong.',
+    unknown: 'Something went wrong. Pantshitality!',
   },
 
   /** `time_to_consume_minutes` for display. Minutes are the storage unit. */
@@ -176,8 +163,8 @@ export const en = {
   quantum: {
     /** The whole-app error screen (AppErrorBoundary): shown instead of a blank window. */
     crash: {
-      headline: 'Something went wrong',
-      explanation: 'Listulator hit an unexpected error. Your lists are saved; reloading usually brings everything back.',
+      headline: 'Something went wrong. Pantshitality!',
+      explanation: 'Listulator hit an unexpected error and shat its pants in profound existential terror. Do not worry, your lists are not affected. Hit Reload to (hopefully) bring the app back.',
       reload: 'Reload',
     },
     meter: {
@@ -186,47 +173,47 @@ export const en = {
       noteCapped: (cap: number, perCell: number): string => `${cap} cells ≈ ${perCell} items each`,
       noteUncapped: 'One cell = one item',
       /** The header bar only (U6, owner 2026-09-27): a button's title/aria-label, hinting that a click explains it. */
-      explainHint: 'What the cells mean',
+      explainHint: 'How progress bar cells work',
       detailCapped: (cap: number, perCell: number): string =>
-        `The bar stops at ${cap} cells whatever the length, so each cell stands for about ${perCell} items and fills once that many are done.`,
-      detailUncapped: 'Each cell is one item in this list. A filled cell is done.',
+        `The bar caps at ${cap} cells, so each cell stands for about ${perCell} items.`,
+      detailUncapped: 'Each cell is one item in this list. Filled cell = done.',
     },
     progress: {
       count: (done: number, total: number, percent: number): string =>
         total ? `${done}/${total} (${percent}%)` : `${done}/${total}`,
       left: (duration: string): string => `${duration} left`,
-      allDone: '✓ All done',
-      doneForNow: '✓ Done for now',
+      allDone: '✓ All Done',
+      doneForNow: '✓ Done (for now)',
     },
     status: {
       complete: 'Complete',
       ongoing: 'Ongoing',
     },
     marks: {
-      curated: 'Curated list — kept by hand in the community library',
-      byHand: 'Made by hand — no source behind it',
-      manual: 'Added by hand — not restorable from the source',
+      curated: 'Canonical list from List Vault (meatbag-maintained)',
+      byHand: 'Hand-made list (meatbag-generated)',
+      manual: 'Item added manually',
       /** "NEW" itself is invariant in English (a badge, not a countable noun) — the `other`-only form is still ready for a language that does decline it. */
       newCount: (n: number): string => `${n} ${selectPlural(n, 'en', { other: 'NEW' })}`,
       newItem: 'NEW',
-      allDone: '✓ All done',
+      allDone: '✓ All Done',
     },
     /** Words several components share, and hover hints that used to be written inside them (task 10.32b). */
     common: {
       close: 'Close',
       keep: 'Keep',
       toggleDone: 'Toggle done',
-      backToLayer: 'Back to this layer',
+      backToLayer: 'Back to this window',
       clickToEdit: 'Click to edit',
-      showKey: 'Show the key',
-      hideKey: 'Hide the key',
+      showKey: 'Show key',
+      hideKey: 'Hide key',
     },
     /** The three-way status picker and the sentence under it (the same words the status chip's hover uses). */
     statusPicker: {
-      notKnown: 'Not known',
-      notKnownNote: 'Leave blank if you do not know.',
-      ongoingNote: 'More may appear upstream.',
-      completeNote: 'Finished — it will not gain items.',
+      notKnown: 'Schrödinger',
+      notKnownNote: 'You have no idea whether the media behind this list will get new stuff or not',
+      ongoingNote: 'This list is not over yet (new stuff is coming out)',
+      completeNote: 'This list is finished (nothing new will come out)',
     },
     /** AppHeader (task 10.9). */
     appHeader: {
@@ -240,8 +227,8 @@ export const en = {
       themeQuantum: 'Quantum',
       skin: 'Skin',
       motion: 'Motion',
-      reduceMotion: 'Reduce motion — layers cut instead of animating',
-      language: 'Language',
+      reduceMotion: 'Reduce animation motion',
+      language: 'Interface Language',
       languages: {
         en: 'English',
         ru: 'Русский',
@@ -250,13 +237,13 @@ export const en = {
       /** API keys (task 10.31, desktop only). Sources, blurbs and steps are the prototype's, IGDB's amended for its secret. */
       keys: {
         title: 'API keys',
-        placeholder: 'Paste key',
-        clientIdPlaceholder: 'Client ID',
-        clientSecretPlaceholder: 'Client secret',
-        infoLabel: 'What this key is for',
-        how: 'How?',
-        howTitle: 'Where to get this key',
-        howHeading: 'Where to get it',
+        placeholder: 'Your API key',
+        clientIdPlaceholder: 'Your Client ID',
+        clientSecretPlaceholder: 'Your Client Secret',
+        infoLabel: 'What this key is used for',
+        how: 'Huh?',
+        howTitle: 'How to get this key',
+        howHeading: 'Getting Your Key',
         test: 'Test',
         status: {
           untested: 'Untested',
@@ -266,28 +253,31 @@ export const en = {
           unreachable: 'Offline',
           failed: 'Failed',
         },
-        usedNote: (used: string): string => `Fills lists in ${used}.`,
+        usedNote: (used: string): string => `Used when you search for ${used}.`,
         missNote:
-          'Without it those categories can still be built by hand — only the catalogue search goes dark.',
+          'Lists can be built without these keys, but only manually or from meatbag-curated List Vault.',
         sources: {
           tmdb: {
-            name: 'TMDB',
+            name: 'TMDB (The Movie Database)',
             used: 'movies, TV, animation, documentaries',
             host: 'themoviedb.org',
             steps: [
               'Create a free account, then open Settings → API.',
-              'Request a key — personal use is approved on the spot.',
-              'Copy the API Read Access Token and paste it here.',
+              'Request a Developer key (personal use is approved on the spot):',
+			  'App name: any. App URL: http://example.com. Summary: Personal key for Serialized media checklister',
+              'Copy the API Key and paste it here.',
             ],
           },
           igdb: {
-            name: 'IGDB',
-            used: 'games',
+            name: 'IGDB (Internet Game Database)',
+            used: 'video games',
             host: 'dev.twitch.tv',
             steps: [
-              'IGDB runs on Twitch auth, so sign in to the Twitch developer console.',
-              'Register an application to get a Client ID and a secret.',
-              'Paste both here and press Test.',
+              'IGDB runs on Twitch auth. Create a Twitch account and make sure you have Two Factor Authentication enabled.',
+              'Go to Twitch Developer Portal → Applications and register a new app:',
+			  'Name: any. OAuth Redirect URLs: http://localhost. Category: Application Integration. Client type: Confidential',
+              'Click Manage next to your app and generate a New Secret',
+			  'Copy both Client ID and Client Secret, then paste both here.',
             ],
           },
           comicVine: {
@@ -296,18 +286,21 @@ export const en = {
             host: 'comicvine.gamespot.com/api',
             steps: [
               'Create a GameSpot account and sign in.',
-              'Open the API page — your key is printed at the top.',
+              'Open the API page above, your key will be printed at the top.',
               'Copy it and paste it here.',
             ],
           },
           youtube: {
             name: 'YouTube',
-            used: 'playlists and channels',
+            used: 'YouTube playlists and channels',
             host: 'console.cloud.google.com',
             steps: [
-              'Create a project in the Google Cloud console.',
-              'Enable the YouTube Data API v3 for that project.',
-              'Credentials → Create credentials → API key, then paste it here.',
+              'Log in to your Google account, then create a project in the Google Cloud console (Select a project → New project):',
+			  'Project name: any. Parent resource: any.',
+              'Go to API & Services → Enabled APIs & services → click Enable APIs and services',
+			  'Find and enable YouTube Data API v3, then click Credentials → Create credentials → API key:',
+              'Name: any. API restrictions: YouTube Data API v3. Application restrictions: none.',
+			  'Copy your API key and paste it here.',
             ],
           },
         },
@@ -318,11 +311,11 @@ export const en = {
       kicker: 'Skin',
       changed: (label: string): string => `Switched to the ${label} skin.`,
       labels: {
-        'dark-orange': 'Dark orange',
-        'dark-green': 'Dark green',
-        'dark-blue': 'Dark blue',
-        'dark-violet': 'Dark violet',
-        'light-bone': 'Light bone',
+        'dark-orange': 'Destiny',
+        'dark-green': 'Jupiter',
+        'dark-blue': 'Deluge',
+        'dark-violet': 'Romans',
+        'light-bone': 'Jouhou',
       },
     },
     /**
@@ -336,76 +329,73 @@ export const en = {
     },
     /** Home / My Lists (task 10.10), replacing the old hosted `Overview`. */
     categoryPicker: {
-      title: 'Pick A Category',
-      subline:
-        'Categories are built in. Counts show how many lists you have in each category.',
+      title: 'Choose Your Fighter',
+      subline: 'Media categories supported by the app. Numbers show how many lists you have.',
       /** First run only — nothing exists yet, so the picker is the base layer. */
-      firstRunTitle: 'Nothing tracked yet — pick a shelf and fill it',
-      firstRunSubline:
-        'Each category builds lists from its own source. Mega is for cross-medium franchises — one shelf for the films, the games and the comics together.',
+      firstRunTitle: 'No Progress Tracked. Let\'s Start!',
+      firstRunSubline: 'Each media category has a main data source plus List Vault. Lists can also be imported or entered manually. Mega is for cross-medium franchises.',
       /** A category whose registry entry has no search source. */
       byHand: 'by hand',
-      countTitle: 'Lists already on this shelf',
+      countTitle: 'Lists already tracked in this category',
       closeLabel: 'Close',
     },
     search: {
-      queryLabel: (source: string): string => `Search ${source}`,
+      queryLabel: (source: string): string => `Search ${source} or List Vault`,
       searchButton: 'Search',
-      resultsCount: (n: number): string =>
-        `${n} ${selectPlural(n, 'en', { one: 'result', other: 'results' })}`,
+      resultsCount: (n: number): string => `${n} ${selectPlural(n, 'en', { one: 'result', other: 'results' })}`,
       itemsKicker: 'items',
-      countLoading: 'Counting items…',
+      countLoading: 'Counting…',
       expandRow: (title: string): string => `Show details for ${title}`,
       previewButton: 'Preview',
       /** The covered layer's tab label while a Preview is open. */
       previewTab: (title: string): string => `Preview: ${title}`,
-      addButton: 'Add list',
-      nothingToAdd: 'Nothing to add — this source has no items to import',
+      addButton: 'Add List',
+      nothingToAdd: 'Curiously, this list has no items to add',
       /** A source that cannot list its items before import (design: "Preview degrades honestly"). */
       previewUnavailable:
-        "This source can't list its items before import. Add the list — deleting a wrong one costs a click.",
-      curatedTitle: 'Curated list',
-      curatedProvenance: 'Curated · kept by hand in the community library',
+        "This source is too shy to list its items. Just add the list and delete it later if it's a wrong one.",
+      curatedTitle: 'Canonical List',
+      curatedProvenance: 'From List Vault · Created and maintained by meatbags exclusively for Listulator',
       sourceProvenance: (source: string): string => `From ${source}`,
       /** Where a curated-only category (Mega) searches: the tile footer and the Search tab. */
-      librarySource: 'Community library',
+      librarySource: 'List Vault',
       importing: 'Building the list…',
       searching: 'Searching…',
       /** Search needs a key the user has not supplied — hard error (design: ErrorBlock, "no key"). */
-      noKeyHeadline: (source: string): string => `Search needs a ${source} key`,
+      noKeyHeadline: (source: string): string => `Nothing found in List Vault, and search in ${source} needs an API key to work`,
       noKeyDesktop: (category: string): string =>
-        `Add your key in Settings to search ${category}. Until then you can add items by hand.`,
+        `Add your API key in Settings to search the main data source for ${category}. Until then you can add items by hand or rely on canonical lists from List Vault`,
       /** There is no keys section on the web (C7) — keys are the server's, in its `.env`. */
       noKeyWeb: (category: string): string =>
-        `Searching ${category} needs an API key in the server's .env file. Until then you can add items by hand.`,
+        `Searching the main data source for ${category} needs an API key in the server's .env file. Until then you can add items by hand or rely on canonical lists from List Vault`,
       /** No key *and* the curated library unreachable — naming only the key would send the user hunting for half the answer. */
       offlineHeadline: (category: string): string => `Can't search ${category} right now`,
       offlineDesktop: (category: string): string =>
-        `Searching ${category} needs an API key (add yours in Settings), and the community library of curated lists could not be reached. Check your connection, or add items by hand.`,
+        `Searching ${category} needs an API key (add yours in Settings), and List Vault could not be reached. Check your internet connection, add your API key if you want to search the main data source for ${category}, or add items by hand`,
       offlineWeb: (category: string): string =>
-        `Searching ${category} needs an API key in the server's .env file, and the community library of curated lists could not be reached. Check the connection, or add items by hand.`,
+        `Searching ${category} needs an API key in the server's .env file, and List Vault could not be reached. Check your internet connection, add your API key if you want to search the main data source for ${category}, or add items by hand`,
       /** Results came back, but the curated half of them could not be searched. */
       libraryUnreachable:
-        "Couldn't reach the community library, so curated lists are missing from these results.",
+        "Couldn't reach the List Vault, so canonical lists are missing from these results",
       nothingFoundLibraryDown:
-        ' The community library could not be reached, so curated lists were not searched.',
+        'List Vault could not be reached, so canonical lists were not searched.',
       openSettings: 'Open Settings',
-      nothingFoundHeadline: 'Nothing found',
-      nothingFoundBody: 'Try a different spelling, or add by hand.',
-      nothingToImportHeadline: 'Nothing to import',
+      nothingFoundHeadline: 'Nothing Found',
+      nothingFoundBody: 'You sure it\'s a thing? Anyway, try to spell stuff differently, or create a list manually.',
+      nothingToImportHeadline: 'Nothing To Import',
       retry: 'Retry',
       dismiss: 'Dismiss',
     },
     addByHand: {
-      titleLabel: 'List title',
+      titleLabel: 'Title',
       titlePlaceholder: 'All Jackie Chan movies',
       descriptionLabel: 'Description',
       descriptionPlaceholder: 'Optional',
-      itemsLabel: 'Items — one per line',
-      itemsPlaceholder: 'Early films:\nDrunken Master\nPolice Story\n\nLate films:\nRush Hour',
-      itemsHint: 'A line ending in a colon, or starting with #, opens a group.',
+      itemsLabel: 'Items',
+      itemsPlaceholder: 'Early films:\nDrunken Master\nPolice Story\n\n# Late films\nRush Hour\nThe Tuxedo',
+      itemsHint: 'Lines ending in a colon or starting with # open a group that lasts until the next one. Blank lines are ignored',
       statusLabel: 'Status',
-      create: 'Create list',
+      create: 'Create List',
       creating: 'Creating…',
       /** The live count beside Create; groups are only mentioned when there are some. */
       count: (items: number, groups: number): string => {
@@ -414,63 +404,63 @@ export const en = {
 
         return `${itemText} in ${groups} ${selectPlural(groups, 'en', { one: 'group', other: 'groups' })}`
       },
-      noItems: 'No items yet — you can add them later.',
+      noItems: 'No items (can add later)',
       assumedDuration: (duration: string): string =>
-        `Each is assumed to take about ${duration}, which you can correct later.`,
-      createFailed: 'Could not create the list',
+        `Each will get a default duration of ${duration}`,
+      createFailed: 'Could not create the list for whatever reason',
     },
     /** The helper sheets under Home's "Need help?" row (tasks 10.26–10.29); copy is the prototype's. */
     helper: {
       topPick: 'Top pick',
       alternates: 'Alternates',
-      openList: 'Open The List',
+      openList: 'Open List',
       notThat: 'Not That',
       /** Announced when every pick has been turned down and the strongest is offered again. */
-      backToStrongest: 'Back to the strongest pick',
-      nothingUnfinished: 'Nothing left unfinished — add a list.',
-      loading: 'Finding something…',
-      failed: 'Could not get a suggestion',
-      retry: 'Try again',
+      backToStrongest: '…Time is a flat circle…',
+      nothingUnfinished: 'You have finished everything -- time to add a new list!',
+      loading: 'Rummaging…',
+      failed: 'Couldn\'t find anything to suggest',
+      retry: 'Try Again',
       surprise: {
-        title: 'Surprise, Motherfucker!',
-        explain: "A random curated list you're not tracking yet. Millions of flies can't be wrong, eh?",
+        title: 'Surprise, MFer!',
+        explain: "Random canonical list you're not tracking yet. Millions of flies can't be wrong, eh?",
         any: 'Any',
         category: 'CATEGORY',
-        spin: 'Spin',
+        spin: 'Spin To Win!',
         spinAgain: 'Spin Again',
         spinning: 'Spinning…',
         thisOne: 'This One',
         idleMeta: 'Spin to win!',
         note: 'Choose your categories and try your luck!',
-        nothingHere: 'Nothing left here — you track it all',
-        anyTitle: (n: number): string => `${n} ${selectPlural(n, 'en', { one: 'candidate', other: 'candidates' })} across every shelf`,
-        shelfTitle: (n: number): string => `${n} ${selectPlural(n, 'en', { one: 'candidate', other: 'candidates' })} on this shelf`,
+        nothingHere: 'Nothing left here: you are tracking everything',
+        anyTitle: (n: number): string => `${n} ${selectPlural(n, 'en', { one: 'candidate', other: 'candidates' })} across all сategories`,
+        shelfTitle: (n: number): string => `${n} ${selectPlural(n, 'en', { one: 'candidate', other: 'candidates' })} in this category`,
         pool: (n: number, shelves: number): string =>
           `${n} ${selectPlural(n, 'en', { one: 'candidate', other: 'candidates' })}${
-            shelves === 0 ? ' across every shelf' : shelves === 1 ? ' on this shelf' : ` on ${shelves} shelves`
+            shelves === 0 ? ' across all categories' : shelves === 1 ? ' in this category' : ` in ${shelves} categories`
           }`,
         meta: (category: string, count: number | undefined): string =>
-          [category, count === undefined ? null : `${count} ${selectPlural(count, 'en', { one: 'item', other: 'items' })}`, 'curated list']
+          [category, count === undefined ? null : `${count} ${selectPlural(count, 'en', { one: 'item', other: 'items' })}`, 'canonical list']
             .filter(Boolean)
             .join(' · '),
         landed: (title: string): string => `Landed on ${title}`,
         /** Toast when the chosen shelves hold nothing left to spin. */
         nothingLeft: (shelves: number): string =>
-          `Nothing left${shelves === 0 ? ' across every shelf' : shelves === 1 ? ' on this shelf' : ` on ${shelves} shelves`} — you already track every canonical list there.`,
-        unreachable: 'Could not reach the community library.',
-        curatedTip: 'Curated list — kept by hand in the community library',
+          `Nothing left${shelves === 0 ? ' across every category' : shelves === 1 ? ' in this category' : ` in ${shelves} categories`}: you already track every canonical list there.`,
+        unreachable: 'Could not reach the List Vault.',
+        curatedTip: 'Canonical list сreated and maintained by meatbags',
       },
       justOneFix: {
         title: 'Just One Fix',
         explain: 'A quick dopamine hit from the shortest unfinished thing you track',
-        why: (time: string): string => `Shortest unfinished item you have — ${time} and it is done.`,
+        why: (time: string): string => `Shortest unfinished item you have -- ${time} and it's done.`,
       },
       finalizer: {
         title: 'Finish Him!',
         explain: 'Tie up loose ends from lists that are closest to being finished',
-        why: (percent: number, left: string): string => `Closest to the finish line: ${percent}% done, only ${left} left.`,
-        whyComplete: 'The list is complete, so finishing it stays finished.',
-        whyOngoing: 'Marked ongoing — nothing finishable is closer.',
+        why: (percent: number, left: string): string => `Closest to the finish line: ${percent}% done, ${left} left.`,
+        whyComplete: 'This list is Complete, so there will be no Round 2',
+        whyOngoing: 'This list is still Ongoing, but nothing finishable is closer.',
       },
       tired: {
         title: 'And Now For Something Completely Different',
@@ -480,15 +470,15 @@ export const en = {
         pickTitle: 'Pick the list you are tired of',
         pickerKicker: 'OR?',
         pickerCount: (shown: number, total: number): string => `${shown} of ${total}`,
-        pickerFilter: 'Filter lists…',
+        pickerFilter: 'Find the culprit…',
         pickerNone: (query: string): string => `No list matches “${query}”.`,
         /** Nothing from another medium has anything left to offer. */
         nothingElse: 'Nothing else to offer: everything unfinished is in the same medium.',
         /** The one-line why, built from what made the pick (neglect, progress). */
         whyBase: 'Different medium',
-        whyNeglected: 'and you have not touched it in a while',
+        whyNeglected: 'and you haven\'t touched it in a while',
         whyProgress: (percent: number, left: string): string => `${percent}% done, ${left} left`,
-        whyFallback: 'Different medium — the best match among what is left.',
+        whyFallback: 'Different medium: the best match among what\'s left.',
       },
     },
     /** The platform chip's popover (design: PlatformChip). */
@@ -503,10 +493,10 @@ export const en = {
     list: {
       loading: 'Loading the list…',
       /** A tick, or another edit, the server would not take — shown as the list's error strip. */
-      saveFailed: 'Could not save that change',
+      saveFailed: 'Couldn\'t save this change',
       loadFailedHeadline: "Can't open this list",
       retry: 'Retry',
-      empty: 'No items yet.',
+      empty: 'No items... yet',
       /** Header actions that arrive with later tasks: shown, disabled, and honest about it. */
       comingSoon: 'Coming soon',
       noGroup: 'No group',
@@ -522,71 +512,67 @@ export const en = {
         head: (named: number): string => (named > 1 ? `Platforms · ${named}` : 'Platform'),
         clear: 'Clear',
         clearTip: 'Remove every platform',
-        notSetNote: 'Not set. Pick one or more.',
+        notSetNote: 'Not set. Pick a platform:',
         removeTip: (name: string): string => `Remove ${name}`,
         search: (n: number): string => `Search ${n} platforms`,
-        inList: 'In this list',
+        inList: 'From this list',
         common: 'Most common',
         matches: (n: number): string => `Matches · ${n}`,
-        moreFoot: (shown: number, total: number): string => `Showing ${shown} of ${total} — keep typing.`,
-        noMatch: (query: string): string =>
-          `No platform matches “${query}”. The list is fixed — try its code or another name.`,
-        sourceSays: (codes: string): string => (codes ? `Source says ${codes}.` : 'Source says nothing.'),
+        moreFoot: (shown: number, total: number): string => `Showing ${shown} of ${total} -- keep typing`,
+        noMatch: (query: string): string => `No platform matches for “${query}”. Try a platform code or another name`,
+        sourceSays: (codes: string): string => (codes ? `Source: ${codes}` : 'Source is silent'),
         /** U5: the add row's picker for the next item. */
-        nextItem: 'Next item you add',
-        nextItemNote: 'Every new item in this list starts with this. Change one item in its Edit window.',
-        nextField: (value: string): string => `Platform for the next item: ${value}`,
-        nextTip: 'Platform for the next item — remembered for this list',
-        resetToSource: 'Reset to source',
+        nextItem: 'Default Platforms',
+        nextItemNote: 'Define default platforms for manually added items in this list',
+        nextField: (value: string): string => `Default platforms for manually added items: ${value}`,
+        nextTip: 'Default platforms for manually added items',
+        resetToSource: 'Reset',
         none: 'None',
         /** The row's [+] for an untagged item, once the list has tags. */
         addPlatforms: (title: string): string => `Set platforms for ${title}`,
-        addPlatformsTip: 'No platform — click to set one',
+        addPlatformsTip: 'No platform, click to pick',
         addChoice: (label: string, title: string): string => `Set ${label.toLowerCase()} for ${title}`,
-        addChoiceTip: (label: string): string => `No ${label.toLowerCase()} — click to set one`,
+        addChoiceTip: (label: string): string => `No ${label.toLowerCase()} -- click to set one`,
       },
       itemActions: {
         details: (title: string): string => `Details for ${title}`,
         /** The drag handle's hover text (10.23), in the prototype's words. */
-        dragOnList: 'Drag to move this item on the list',
+        dragOnList: 'Drag to move across the list',
         dragWithin: (group: string): string => `Drag to reorder within ${group}`,
-        dragGroup: 'Drag to move this group on the list',
+        dragGroup: 'Drag to move the whole group across the list',
         /** An empty group's own delete button (prototype: "🗑 empty"). */
         deleteGroupLabel: 'empty',
         deleteGroupAria: 'Delete this empty group',
-        deleteGroupTip: 'Delete this empty group — it holds no items',
-        groupRemoved: (name: string): string => `Removed group ${name}`,
+        deleteGroupTip: 'Delete this empty group: it holds no items',
+        groupRemoved: (name: string): string => `Deleted group ${name}`,
         groupRestored: (name: string): string => `Restored group ${name}`,
-        groupRemoveFailed: (name: string): string => `Could not remove group ${name}`,
+        groupRemoveFailed: (name: string): string => `Could not delete group ${name}`,
         /** Deleting a group that has items: a trash button and a confirmation stating the cost (owner, 2026-09-27). */
         deleteGroupWithItems: (name: string): string => `Delete group ${name}`,
-        groupDeleteKicker: 'Delete group',
-        groupDeleteQuestion: (name: string): string => `Delete group “${name}”?`,
-        groupDeleteNote: (n: number, done: number): string =>
-          `Its ${n} ${selectPlural(n, 'en', { one: 'item', other: 'items' })}${done > 0 ? `, ${done} marked done,` : ''} will be deleted as well. Undo is offered for 8 seconds.`,
-        groupDeleteConfirm: 'Delete group',
-        groupRemovedWithItems: (name: string, n: number): string =>
-          `Removed group ${name} and ${n} ${selectPlural(n, 'en', { one: 'item', other: 'items' })}`,
+        groupDeleteKicker: 'Delete Group',
+        groupDeleteQuestion: (name: string): string => `Delete “${name}”?`,
+        groupDeleteNote: (n: number, done: number): string => `${n} ${selectPlural(n, 'en', { one: 'item', other: 'items' })}${done > 0 ? `, ${done} done,` : ''} in this group will be deleted as well`,
+        groupDeleteConfirm: 'Delete',
+        groupRemovedWithItems: (name: string, n: number): string => `Deleted group ${name} with ${n} ${selectPlural(n, 'en', { one: 'item', other: 'items' })}`,
         edit: (title: string): string => `Edit ${title}`,
-        remove: (title: string): string => `Remove ${title}`,
+        remove: (title: string): string => `Delete ${title}`,
         infoKicker: 'Details',
-        estimated: 'The runtime is an estimate — edit the item to set the real one.',
+        estimated: 'This runtime is a rough estimate',
         editTitle: 'Title',
-        editMinutes: 'Minutes',
+        editMinutes: 'Duration (Minutes)',
         editGroup: 'Group',
-        discard: 'Discard',
+        discard: 'Don\'t Save',
         save: 'Save',
         saved: (title: string): string => `Saved changes to ${title}`,
         undo: 'Undo',
-        removed: (title: string): string => `Removed ${title}`,
+        removed: (title: string): string => `Deleted ${title}`,
         restored: (title: string): string => `Restored ${title}`,
-        added: (title: string, group: string | null): string =>
-          group ? `Added ${title} to ${group}` : `Added ${title}`,
-        removeFailed: (title: string): string => `Could not remove ${title}`,
+        added: (title: string, group: string | null): string => group ? `Added ${title} to ${group}` : `Added ${title}`,
+        removeFailed: (title: string): string => `Couldn't delete ${title}`,
         // 10.33: the click-away Undo pulses the row; this is what a screen reader hears for it.
-        editUndone: (title: string): string => `Reverted the edit to ${title}`,
-        editFailed: 'Could not save those changes',
-        undoFailed: 'Could not undo that',
+        editUndone: (title: string): string => `Reverted last edit to ${title}`,
+        editFailed: 'Couldn\'t save those changes',
+        undoFailed: 'Couldn\'t undo that',
       },
       addItem: {
         titleLabel: 'Title',
@@ -595,123 +581,114 @@ export const en = {
         groupLabel: 'Group',
         add: 'Add',
         adding: 'Adding…',
-        failed: 'Could not add that item',
+        failed: 'Couldn\'t add this item',
       },
       createGroup: (name: string): string => `+ Create “${name}”`,
-      editList: 'Edit list',
+      editList: 'Edit List',
       /** The ✎ popover beside the name (10.22). */
       /** The Order popover: Sort, and Reset to the source (10.22). */
       orderMenu: {
-        kicker: 'Reset list',
-        resetQuestion: 'Reset this list to the source?',
+        kicker: 'Reset List',
+        resetQuestion: 'Reset this list to its virgin state?',
         /** Where the list goes back to, by where it came from. */
         resetLead: {
-          canonical: 'Back to the live file in the community library. Anything the file has now is what you get.',
-          file: 'Back to the file you imported.',
-          api: 'Back to how this list arrived.',
+          canonical: 'Back to the canonical list from the List Vault',
+          file: 'Back to the file you imported',
+          api: 'Back to the list you got from search',
         },
         computing: 'Working out what would change…',
-        previewFailed: (message: string): string =>
-          `Could not work out what would change (${message}). Resetting will still put the list back to the source.`,
+        previewFailed: (message: string): string => `Could not work out what would change (${message}). Resetting will still put the list back to the source.`,
         /** Each part of the cost, said only when it applies. */
-        removed: (n: number): string =>
-          `${n} ${selectPlural(n, 'en', { one: 'item', other: 'items' })} you added will be removed`,
-        restored: (n: number): string =>
-          `${n} ${selectPlural(n, 'en', { one: 'item', other: 'items' })} you removed will come back`,
-        cleared: (n: number): string =>
-          `${n} done ${selectPlural(n, 'en', { one: 'mark', other: 'marks' })} will be cleared`,
+        removed: (n: number): string => `${n} ${selectPlural(n, 'en', { one: 'item', other: 'items' })} you added will be removed`,
+        restored: (n: number): string => `${n} ${selectPlural(n, 'en', { one: 'item', other: 'items' })} you removed will come back`,
+        cleared: (n: number): string => `${n} done ${selectPlural(n, 'en', { one: 'mark', other: 'marks' })} will be cleared`,
         joinCost: (parts: readonly string[]): string =>
           parts.length <= 1
             ? `${parts[0]}.`
             : `${parts.slice(0, -1).join(', ')} and ${parts[parts.length - 1]}.`,
-        noCost: 'Nothing you added, removed or marked done is affected.',
+        noCost: 'Stuff you added, removed or marked done is not affected.',
         undoNote: 'Undo is offered for 8 seconds.',
         resetOrder: 'Reset the order',
-        resetEverything: 'Reset everything',
+        resetEverything: 'Reset',
         sorted: 'Sorted by date — groups moved as blocks.',
         orderReset: 'Order reset.',
         resetDone: 'Reset to the source — order, name, description and flag.',
         undone: 'Reset undone',
-        orderUndone: 'Order restored',
-        sortFailed: 'Could not sort this list',
-        resetFailed: 'Could not reset this list',
-        undoFailed: 'Could not undo that',
+        orderUndone: 'Order Restored',
+        sortFailed: 'Couldn\'t sort this list',
+        resetFailed: 'Could\n't reset this list',
+        undoFailed: 'Couldn\'t undo that',
       },
       /** Moving rows (10.23), in the prototype's words. */
       moves: {
-        movedTo: (title: string, position: number, total: number, group?: string): string =>
-          `${title} moved to ${position} of ${total}${group ? ` in ${group}` : ''}`,
-        atEdge: (side: 'top' | 'bottom', group?: string): string =>
-          `Already at the ${side} of ${group ?? 'the list'}`,
-        movedOnList: 'Moved on the list.',
-        movedInside: (group: string): string => `Moved inside ${group}.`,
+        movedTo: (title: string, position: number, total: number, group?: string): string => `${title} moved to ${position} of ${total}${group ? ` in ${group}` : ''}`,
+        atEdge: (side: 'top' | 'bottom', group?: string): string => `Already at the ${side} of ${group ?? 'the list'}`,
+        movedOnList: 'Item moved',
+        movedInside: (group: string): string => `Item moved inside ${group}.`,
         movedRows: (n: number): string => `Moved ${n} ${selectPlural(n, 'en', { one: 'row', other: 'rows' })}.`,
         onlyInsideGroup: 'Reordering only works inside one group',
         undone: 'Move undone',
-        saveFailed: 'Could not save that move',
-        undoFailed: 'Could not undo that move',
+        saveFailed: 'Couldn\'t save that move',
+        undoFailed: 'Couldn\'t undo that move',
       },
       /** The ⋯ menu (10.22). */
       moreMenu: {
-        kicker: 'List actions',
+        kicker: 'List Actions',
         edit: 'Edit List',
         export: 'Export List',
         reorder: 'Reorder List',
         reset: 'Reset List',
         delete: 'Delete List',
-        exportKicker: 'Export list',
+        exportKicker: 'Export List',
         exportNote:
-          'Save this list in YAML format. Your progress is never included. Useful for canonical list submissions.',
+          'Save this list in YAML format. Progress is not included. Useful for canonical list submissions and list sharing.',
         download: 'Download File',
         copy: 'Copy To Clipboard',
-        reorderKicker: 'Reorder list',
+        reorderKicker: 'Reorder List',
         reorderQuestion: 'Sort this list chronologically?',
         reorderHint:
-          'Groups move as blocks, by their earliest item, and each group is sorted inside too. Nothing is dissolved.',
-        reorderNote: 'A one-off action — the list does not stay sorted. Undo is offered for 8 seconds.',
+          'Groups are moved as blocks by their earliest item. Each group is reordered inside too',
+        reorderNote: 'This one-time action does not block manual reordering later.',
         cancel: 'Cancel',
-        sortNow: 'Sort now',
-        deleteKicker: 'Delete list',
+        sortNow: 'Reorder',
+        deleteKicker: 'Delete List',
         deleteQuestion: (title: string): string => `Delete “${title}”?`,
         deleteNote: (items: number, done: number): string =>
           items === 0
-            ? 'The list is empty. Undo is offered for 8 seconds.'
-            : `${items} ${selectPlural(items, 'en', { one: 'item', other: 'items' })} and ${done} marked done go with it. Undo is offered for 8 seconds.`,
-        keep: 'Keep',
-        confirmDelete: 'Delete list',
-        itemCount: (n: number): string =>
-          `${n} ${selectPlural(n, 'en', { one: 'item', other: 'items' })}`,
-        saved: (fileName: string, items: number): string =>
-          `Saved ${fileName} — ${items} ${selectPlural(items, 'en', { one: 'item', other: 'items' })}.`,
-        copied: 'YAML copied to the clipboard.',
-        copyFailed: 'Could not copy — try Download File instead.',
-        exportFailed: 'Could not export this list',
+            ? 'The list is empty.'
+            : `${items} ${selectPlural(items, 'en', { one: 'item', other: 'items' })} (${done} done) will be gone like a turd in the wind`,
+        keep: 'Keep List',
+        confirmDelete: 'Delete List',
+        itemCount: (n: number): string => `${n} ${selectPlural(n, 'en', { one: 'item', other: 'items' })}`,
+        saved: (fileName: string, items: number): string => `Saved ${fileName} — ${items} ${selectPlural(items, 'en', { one: 'item', other: 'items' })}.`,
+        copied: 'YAML list copied to your clipboard',
+        copyFailed: 'Couldn\'t copy to clipboard. Try Download File instead?',
+        exportFailed: 'Angry customs control detected: couldn\'t export this list',
         deleted: (title: string): string => `Deleted “${title}”.`,
         restored: (title: string): string => `Restored ${title}`,
-        deleteFailed: 'Could not delete this list',
-        restoreFailed: 'Could not restore that list',
+        deleteFailed: 'Sudden iddqd detected: couldn\'t delete this list',
+        restoreFailed: 'Necromancy failure detected: couldn\'t restore the list',
       },
       editPopover: {
-        kicker: 'Edit list',
+        kicker: 'Edit List',
         title: 'Title',
         description: 'Description (optional)',
-        descriptionPlaceholder: 'What this list is — a line or two',
+        descriptionPlaceholder: 'Good place for info like what\'s included in the list and what\'s not',
         status: 'Status (optional)',
         renamed: (title: string): string => `Renamed to “${title}”.`,
-        descriptionUpdated: 'Description updated.',
-        statusMarked: (status: 'complete' | 'ongoing'): string =>
-          `Marked ${status === 'complete' ? 'complete' : 'ongoing'}.`,
-        statusCleared: 'Status cleared.',
+        descriptionUpdated: 'Description updated',
+        statusMarked: (status: 'complete' | 'ongoing'): string => `List status changed to ${status === 'complete' ? 'Complete' : 'Ongoing'}.`,
+        statusCleared: 'List status got schrödingered',
         reverted: (title: string): string => `Reverted to ${title}`,
-        saveFailed: 'Could not save your changes to the list',
-        undoFailed: 'Could not undo that',
+        saveFailed: 'Couldn\'t save your changes to this list',
+        undoFailed: 'Couldn\'t undo that',
       },
       /** The jump rail beside the spine: groups only, when there is more than one. */
       rail: {
         title: 'Jump to',
-        hide: 'Collapse the jump rail',
-        show: 'Show the jump rail',
-        resize: 'Resize the jump rail',
+        hide: 'Collapse group jumper',
+        show: 'Enlarge group jumper',
+        resize: 'Resize group jumper',
       },
       /** The filter bar under the header: a text field, the category's facets, fold-all and a note. */
       filter: {
@@ -723,15 +700,14 @@ export const en = {
         groupShown: (shown: number, total: number): string => `${shown} of ${total}`,
         nothing: (text: string): string => (text.trim() ? `Nothing matches “${text.trim()}”.` : 'Nothing matches this filter.'),
         all: 'All',
-        clearTip: 'Clear the filter — show everything',
+        clearTip: 'Show items of all types',
         hideOption: (name: string): string => `Hide ${name}`,
-        alsoShowOption: (name: string): string => `Also show ${name} — any number can be on at once`,
+        alsoShowOption: (name: string): string => `Filter by ${name}`,
         /** A facet's kicker, by the label the registry gives it. */
         /** U4: a facet too wide for the bar becomes a dropdown naming its picks. */
-        facetPicks: (named: readonly string[], more: number): string =>
-          more > 0 ? `${named.join(', ')} +${more}` : named.join(', '),
+        facetPicks: (named: readonly string[], more: number): string => more > 0 ? `${named.join(', ')} +${more}` : named.join(', '),
         facetDropdownLabel: (facet: string, summary: string): string => `${facet}: ${summary}`,
-        facetPickTip: 'Pick which to show',
+        facetPickTip: 'Choose types to filter by',
         facetCount: (facet: string, n: number): string => `${facet} · ${n}`,
         facetLabels: {
           Type: 'Type',
@@ -742,7 +718,7 @@ export const en = {
         } as Record<string, string | undefined>,
         /** An option's button text, by the label the facet derives; anything not named shows as it is (a platform code, a language). */
         optionLabels: {
-          Untagged: 'Untagged',
+          Untagged: '(unknown)',
           MULTI: 'MULTI',
           Unknown: 'Unknown',
           Movie: 'Movie',
@@ -763,10 +739,10 @@ export const en = {
           Live: 'Live',
           Compilation: 'Compilation',
         } as Record<string, string | undefined>,
-        collapseAll: 'Collapse all',
-        expandAll: 'Expand all',
-        collapseAllTip: 'Fold every group',
-        expandAllTip: 'Open every group',
+        collapseAll: 'Collapse',
+        expandAll: 'Expand',
+        collapseAllTip: 'Fold every group below',
+        expandAllTip: 'Open every group below',
       },
       checkForUpdates: 'Check for updates',
       order: 'Order',
@@ -774,74 +750,66 @@ export const en = {
       close: 'Close',
       /** Check for updates, the found band and the NEW marks (10.25, 10.22c). */
       updates: {
-        checkFailed: 'Could not check for updates',
-        nothingNew: 'No new items upstream.',
-        addFailed: 'Could not add them',
+        checkFailed: 'Couldn\'t check for updates',
+        nothingNew: 'No updates found',
+        addFailed: 'Couldn\'t add updates',
         /** The band an explicit check raises; nothing is added until Update List. */
-        foundBand: (n: number): string =>
-          `${n} new ${selectPlural(n, 'en', { one: 'item', other: 'items' })} found.`,
+        foundBand: (n: number): string => `${n} new ${selectPlural(n, 'en', { one: 'item', other: 'items' })} found`,
         updateList: 'Update List',
         dismissFound: 'Dismiss',
-        appliedToast: (n: number): string =>
-          `Added ${n} new ${selectPlural(n, 'en', { one: 'item', other: 'items' })}.`,
+        appliedToast: (n: number): string => `Added ${n} new ${selectPlural(n, 'en', { one: 'item', other: 'items' })}`,
         /** The list's own banner (design prototype): the sentence, then Mark all seen. */
-        newBand: (n: number): string =>
-          `${n} new ${selectPlural(n, 'en', { one: 'item was', other: 'items were' })} added. Sorted something manually? Check if it's affected`,
-        markAllSeen: 'Mark all seen',
-        markedSeen: 'All marked as seen',
-        markSeenFailed: 'Could not mark them as seen',
+        newBand: (n: number): string => `${n} new ${selectPlural(n, 'en', { one: 'item was', other: 'items were' })} added`,
+        markAllSeen: 'Mark All As Seen',
+        markedSeen: 'All new items marked as seen',
+        markSeenFailed: 'Couldn\'t mark all new items as seen',
       },
     },
     preview: {
-      title: 'Preview',
+      title: 'List Preview',
       closeLabel: 'Close',
       loading: 'Listing the items…',
       /** Count and total runtime; `≈` when some runtimes are the category's default. */
-      summary: (count: number, duration: string, estimated: boolean): string =>
-        `${count} ${selectPlural(count, 'en', { one: 'item', other: 'items' })} · ${estimated ? '≈ ' : ''}${duration}`,
-      addButton: 'Add list',
+      summary: (count: number, duration: string, estimated: boolean): string => `${count} ${selectPlural(count, 'en', { one: 'item', other: 'items' })} · ${estimated ? '≈ ' : ''}${duration}`,
+      addButton: 'Add This List',
       adding: 'Building the list…',
-      nothingToAdd: 'Nothing to add — this source has no items to import',
+      nothingToAdd: 'Nothing to add: this list is empty like a billionaire\'s conscience',
       loadFailedHeadline: "Can't preview this list",
       retry: 'Retry',
-      footer: (provenance: string): string =>
-        `${provenance}. Add list makes exactly this list.`,
+      footer: (provenance: string): string => `${provenance}`,
       expandGroup: (label: string): string => `Expand ${label}`,
       collapseGroup: (label: string): string => `Collapse ${label}`,
     },
     importFile: {
-      chooseFile: 'Choose file…',
-      boxLabel: 'YAML',
+      chooseFile: 'Choose File…',
+      boxLabel: 'Or Paste YAML Here',
       boxPlaceholder:
         'title: All Jackie Chan Movies\ncategory: movie\nitems:\n  - { title: Drunken Master, year: 1978 }',
       import: 'Import',
       importing: 'Importing…',
       /** Facts about the text as it arrived; never a verdict. */
-      readOutFile: (name: string, size: string, lines: string): string =>
-        `${name} · ${size} · ${lines}`,
+      readOutFile: (name: string, size: string, lines: string): string => `${name} · ${size} · ${lines}`,
       readOutPasted: (lines: string): string => `Pasted · ${lines}`,
-      lines: (n: number): string =>
-        `${n} ${selectPlural(n, 'en', { one: 'line', other: 'lines' })}`,
-      footer:
-        'Listulator lists travel as YAML files. Export writes one; Import reads it back as a new list.',
+      lines: (n: number): string => `${n} ${selectPlural(n, 'en', { one: 'line', other: 'lines' })}`,
+      footer: 'Use Export feature in a list to create a YAML list file',
       /** U3: the file names another category than the screen's. */
-      otherCategoryKicker: 'Other category',
+      otherCategoryKicker: 'Wrong Hole',
       otherCategoryQuestion: (fileCategory: string): string => `Import to ${fileCategory}?`,
       otherCategoryNote: (current: string, fileCategory: string): RichText => [
-        'Current category is ',
+        'We are in ',
         { strong: current },
-        ", the list you're importing is from ",
+        ", and the list you're importing is from ",
         { strong: fileCategory },
         '.',
       ],
       back: 'Back',
-      importFailed: 'Could not import that file, list cannot be imported.',
+      importFailed: 'Couldn\'t import this file, so list cannot be created',
     },
     createList: {
-      title: (category: string): string => `New ${category} list`,
-      searchTab: (source: string): string => `Search ${source}`,
-      handTab: 'Add by hand',
-      importTab: 'Import a file',
+      title: (category: string): string => `New ${category} List`,
+      searchTab: (source: string): string => `Search`,
+      handTab: 'Use Hands',
+      importTab: 'Import',
       closeLabel: 'Close',
     },
     home: {
@@ -849,15 +817,15 @@ export const en = {
       newList: 'New List',
       checkForUpdates: 'Check for updates',
       checkingUpdates: 'Checking…',
-      loadFailed: 'Could not load your lists',
+      loadFailed: 'Couldn\'t load your lists',
       retry: 'Retry',
       listCount: (n: number): string =>
         `${n} ${selectPlural(n, 'en', { one: 'list', other: 'lists' })}`,
       /** The mono summary line under the title — `null` time means an empty account, nothing left to say about time. */
       summary: (listCount: string, done: number, total: number, timeLeft: string | null): string =>
         timeLeft
-          ? `${listCount} · ${done} of ${total} done · ${timeLeft} left`
-          : `${listCount} · ${done} of ${total} done`,
+          ? `${listCount} · ${done} of ${total} items done · ${timeLeft} left`
+          : `${listCount} · ${done} of ${total} items done`,
       needHelp: 'Need help?',
       helpButtons: {
         tiredBoss: "I'm Tired, Boss",
@@ -868,19 +836,16 @@ export const en = {
       orphanedTitle: 'Uncategorised',
       orphanedNote: 'category no longer exists',
       /** The name is bold in the sentence; this is what follows it. */
-      pendingBand: (n: number): string =>
-        ` has ${n} new ${selectPlural(n, 'en', { one: 'item', other: 'items' })}.`,
+      pendingBand: (n: number): string => ` has ${n} new ${selectPlural(n, 'en', { one: 'item', other: 'items' })}`,
       updateList: 'Update List',
       dismissUpdate: 'Dismiss',
-      noNewUpstream: 'No new items upstream.',
-      updateApplied: (n: number, title: string): string =>
-        `Added ${n} new ${selectPlural(n, 'en', { one: 'item', other: 'items' })} to “${title}”.`,
-      updateFailed: 'Could not update this list',
+      noNewUpstream: 'Nothing new up there.',
+      updateApplied: (n: number, title: string): string => `Added ${n} new ${selectPlural(n, 'en', { one: 'item', other: 'items' })} to “${title}”.`,
+      updateFailed: 'Couldn\'t update this list',
       /** Lists a check could not reach, said once at the end. */
-      checkPartial: (titles: readonly string[]): string =>
-        `Could not check ${titles.length} ${selectPlural(titles.length, 'en', { one: 'list', other: 'lists' })}: ${titles.join(', ')}`,
+      checkPartial: (titles: readonly string[]): string => `Couldn't check ${titles.length} ${selectPlural(titles.length, 'en', { one: 'list', other: 'lists' })}: ${titles.join(', ')}`,
       /** The whole check failed before it could look at anything. */
-      checkUpdatesFailed: 'Could not check for updates',
+      checkUpdatesFailed: 'Couldn\'t check for updates',
     },
   },
 } as const

@@ -1,12 +1,12 @@
-title: Studio Ghibli works
-description: All Studio Ghibli (Hayao Miyazaki) works, excluding shorts
+title: Studio Ghibli feature films
+description: All Studio Ghibli (Hayao Miyazaki) feature films, including TV movies. Excludes shorts, TV series, commercials, documentaries, and related works
 category: animation
 status: ongoing
 items:
 - { title: "Nausicaä of the Valley of the Wind", year: 1984, minutes: 116 }
 - { title: "Castle in the Sky", year: 1986, minutes: 124 }
-- { title: "Grave of the Fireflies", year: 1988, minutes: 88 }
 - { title: "My Neighbor Totoro", year: 1988, minutes: 86 }
+- { title: "Grave of the Fireflies", year: 1988, minutes: 88, notes: "WARNING: this is NOT a children's movie!" }
 - { title: "Kiki's Delivery Service", year: 1989, minutes: 102 }
 - { title: "Only Yesterday", year: 1991, minutes: 119 }
 - { title: "Porco Rosso", year: 1992, minutes: 93 }
@@ -20,7 +20,7 @@ items:
 - { title: "Howl's Moving Castle", year: 2004, minutes: 119 }
 - { title: "Tales from Earthsea", year: 2006, minutes: 115 }
 - { title: "Ponyo", year: 2008, minutes: 101 }
-- { title: "The Secret World of Arrietty", year: 2010, minutes: 94 }
+- { title: "Arrietty", year: 2010, minutes: 94 }
 - { title: "From Up on Poppy Hill", year: 2011, minutes: 91 }
 - { title: "The Wind Rises", year: 2013, minutes: 126 }
 - { title: "The Tale of the Princess Kaguya", year: 2013, minutes: 137 }

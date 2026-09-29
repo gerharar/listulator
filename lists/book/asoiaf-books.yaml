@@ -1,0 +1,22 @@
+title: A Song Of Fire And Ice books (by type)
+description: All books in A Song Of Fire And Ice universe (grouped by type)
+category: book
+status: ongoing
+items:
+- { title: "A Game of Thrones", year: 1996, minutes: 980, group: Main Series }
+- { title: "A Clash of Kings", year: 1998, minutes: 1070, group: Main Series }
+- { title: "A Storm of Swords", year: 2000, minutes: 1390, group: Main Series }
+- { title: "A Feast for Crows", year: 2005, minutes: 1000, group: Main Series }
+- { title: "A Dance with Dragons", year: 2011, minutes: 1390, group: Main Series }
+- { title: "The Hedge Knight", year: 1998, minutes: 170, group: Tales of Dunk and Egg }
+- { title: "The Sworn Sword", year: 2003, minutes: 190, group: Tales of Dunk and Egg }
+- { title: "The Mystery Knight", year: 2010, minutes: 210, group: Tales of Dunk and Egg }
+- { title: "A Knight of the Seven Kingdoms", year: 2015, minutes: 570, group: Tales of Dunk and Egg }
+- { title: "The Princess and the Queen", year: 2013, minutes: 120, group: Tales of the Targaryen Dynasty }
+- { title: "The Rogue Prince", year: 2014, minutes: 100, group: Tales of the Targaryen Dynasty }
+- { title: "The Sons of the Dragon", year: 2017, minutes: 180, group: Tales of the Targaryen Dynasty }
+- { title: "Fire & Blood", year: 2018, minutes: 1150, group: History of the Targaryen Dynasty }
+- { title: "The Rise of the Dragon", year: 2022, minutes: 600, group: History of the Targaryen Dynasty }
+- { title: "The Lands of Ice and Fire", year: 2012, minutes: 30, group: Companion Books }
+- { title: "The Wit & Wisdom of Tyrion Lannister", year: 2013, minutes: 90, group: Companion Books }
+- { title: "The World of Ice & Fire", year: 2014, minutes: 720, group: Companion Books }

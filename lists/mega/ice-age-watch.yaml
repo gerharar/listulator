@@ -1,0 +1,28 @@
+title: Ice Age franchise
+description: Everything to watch in the Ice Age franchise (grouped by media type). Excludes video games
+category: mega
+status: ongoing
+items:
+- { title: "Ice Age", year: 2002, minutes: 81, group: "Ice Age: Main Films", tags: [movie] }
+- { title: "Ice Age: The Meltdown", year: 2006, minutes: 91, group: "Ice Age: Main Films", tags: [movie] }
+- { title: "Ice Age: Dawn of the Dinosaurs", year: 2009, minutes: 94, group: "Ice Age: Main Films", tags: [movie] }
+- { title: "Ice Age: Continental Drift", year: 2012, minutes: 88, group: "Ice Age: Main Films", tags: [movie] }
+- { title: "Ice Age: Collision Course", year: 2016, minutes: 95, group: "Ice Age: Main Films", tags: [movie] }
+- { title: "The Ice Age Adventures of Buck Wild", year: 2022, minutes: 82, group: "Spin-offs", tags: [movie] }
+- { title: "Gone Nutty", year: 2002, minutes: 5, group: "Short Films", tags: [movie] }
+- { title: "No Time for Nuts", year: 2006, minutes: 7, group: "Short Films", tags: [movie] }
+- { title: "Surviving Sid", year: 2008, minutes: 7, group: "Short Films", tags: [movie] }
+- { title: "Scrat in Love", year: 2009, minutes: 2, group: "Short Films", tags: [movie] }
+- { title: "Scrat's Continental Crack-Up", year: 2010, minutes: 3, group: "Short Films", tags: [movie] }
+- { title: "Scrat's Continental Crack-Up: Part 2", year: 2011, minutes: 3, group: "Short Films", tags: [movie] }
+- { title: "Cosmic Scrat-tastrophe", year: 2015, minutes: 5, group: "Short Films", tags: [movie] }
+- { title: "Scrat: Spaced Out", year: 2016, minutes: 14, group: "Short Films", tags: [movie] }
+- { title: "The End", year: 2022, minutes: 1, group: "Short Films", tags: [movie] }
+- { title: "Ice Age: A Mammoth Christmas", year: 2011, minutes: 26, group: "TV Specials", tags: [movie] }
+- { title: "Ice Age: The Great Egg-Scapade", year: 2016, minutes: 25, group: "TV Specials", tags: [movie] }
+- { title: "Nuts About You", year: 2022, minutes: 4, group: "Ice Age: Scrat Tales: Season 1", tags: [tv] }
+- { title: "LoFi Scrat Beats to Sleep/Chill to", year: 2022, minutes: 4, group: "Ice Age: Scrat Tales: Season 1", tags: [tv] }
+- { title: "X's and Uh-O's", year: 2022, minutes: 4, group: "Ice Age: Scrat Tales: Season 1", tags: [tv] }
+- { title: "Nutty Reflections", year: 2022, minutes: 4, group: "Ice Age: Scrat Tales: Season 1", tags: [tv] }
+- { title: "Teeter Toddler", year: 2022, minutes: 4, group: "Ice Age: Scrat Tales: Season 1", tags: [tv] }
+- { title: "Nut The End", year: 2022, minutes: 4, group: "Ice Age: Scrat Tales: Season 1", tags: [tv] }

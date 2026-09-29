@@ -1,0 +1,67 @@
+title: Breaking Bad series
+description: All episodes of Breaking Bad TV series
+category: tv
+status: complete
+items:
+- { title: "Pilot", year: 2008, minutes: 58, group: "Season 1" }
+- { title: "Cat's in the Bag...", year: 2008, minutes: 48, group: "Season 1" }
+- { title: "...and the Bag's in the River", year: 2008, minutes: 48, group: "Season 1" }
+- { title: "Cancer Man", year: 2008, minutes: 48, group: "Season 1" }
+- { title: "Gray Matter", year: 2008, minutes: 48, group: "Season 1" }
+- { title: "Crazy Handful of Nothin'", year: 2008, minutes: 47, group: "Season 1" }
+- { title: "A No-Rough-Stuff-Type Deal", year: 2008, minutes: 47, group: "Season 1" }
+- { title: "Seven Thirty-Seven", year: 2009, minutes: 47, group: "Season 2" }
+- { title: "Grilled", year: 2009, minutes: 46, group: "Season 2" }
+- { title: "Bit by a Dead Bee", year: 2009, minutes: 47, group: "Season 2" }
+- { title: "Down", year: 2009, minutes: 47, group: "Season 2" }
+- { title: "Breakage", year: 2009, minutes: 47, group: "Season 2" }
+- { title: "Peekaboo", year: 2009, minutes: 47, group: "Season 2" }
+- { title: "Negro y Azul", year: 2009, minutes: 47, group: "Season 2" }
+- { title: "Better Call Saul", year: 2009, minutes: 47, group: "Season 2" }
+- { title: "4 Days Out", year: 2009, minutes: 47, group: "Season 2" }
+- { title: "Over", year: 2009, minutes: 47, group: "Season 2" }
+- { title: "Mandala", year: 2009, minutes: 47, group: "Season 2" }
+- { title: "Phoenix", year: 2009, minutes: 47, group: "Season 2" }
+- { title: "ABQ", year: 2009, minutes: 47, group: "Season 2" }
+- { title: "No Más", year: 2010, minutes: 47, group: "Season 3" }
+- { title: "Caballo Sin Nombre", year: 2010, minutes: 47, group: "Season 3" }
+- { title: "I.F.T.", year: 2010, minutes: 47, group: "Season 3" }
+- { title: "Green Light", year: 2010, minutes: 47, group: "Season 3" }
+- { title: "Más", year: 2010, minutes: 47, group: "Season 3" }
+- { title: "Sunset", year: 2010, minutes: 47, group: "Season 3" }
+- { title: "One Minute", year: 2010, minutes: 47, group: "Season 3" }
+- { title: "I See You", year: 2010, minutes: 47, group: "Season 3" }
+- { title: "Kafkaesque", year: 2010, minutes: 47, group: "Season 3" }
+- { title: "Fly", year: 2010, minutes: 47, group: "Season 3" }
+- { title: "Abiquiú", year: 2010, minutes: 47, group: "Season 3" }
+- { title: "Half Measures", year: 2010, minutes: 47, group: "Season 3" }
+- { title: "Full Measure", year: 2010, minutes: 47, group: "Season 3" }
+- { title: "Box Cutter", year: 2011, minutes: 47, group: "Season 4" }
+- { title: "Thirty-Eight Snub", year: 2011, minutes: 45, group: "Season 4" }
+- { title: "Open House", year: 2011, minutes: 46, group: "Season 4" }
+- { title: "Bullet Points", year: 2011, minutes: 45, group: "Season 4" }
+- { title: "Shotgun", year: 2011, minutes: 47, group: "Season 4" }
+- { title: "Cornered", year: 2011, minutes: 47, group: "Season 4" }
+- { title: "Problem Dog", year: 2011, minutes: 47, group: "Season 4" }
+- { title: "Hermanos", year: 2011, minutes: 47, group: "Season 4" }
+- { title: "Bug", year: 2011, minutes: 47, group: "Season 4" }
+- { title: "Salud", year: 2011, minutes: 47, group: "Season 4" }
+- { title: "Crawl Space", year: 2011, minutes: 46, group: "Season 4" }
+- { title: "End Times", year: 2011, minutes: 45, group: "Season 4" }
+- { title: "Face Off", year: 2011, minutes: 50, group: "Season 4" }
+- { title: "Live Free or Die", year: 2012, minutes: 42, group: "Season 5" }
+- { title: "Madrigal", year: 2012, minutes: 47, group: "Season 5" }
+- { title: "Hazard Pay", year: 2012, minutes: 47, group: "Season 5" }
+- { title: "Fifty-One", year: 2012, minutes: 47, group: "Season 5" }
+- { title: "Dead Freight", year: 2012, minutes: 48, group: "Season 5" }
+- { title: "Buyout", year: 2012, minutes: 47, group: "Season 5" }
+- { title: "Say My Name", year: 2012, minutes: 47, group: "Season 5" }
+- { title: "Gliding Over All", year: 2012, minutes: 47, group: "Season 5" }
+- { title: "Blood Money", year: 2013, minutes: 48, group: "Season 5" }
+- { title: "Buried", year: 2013, minutes: 48, group: "Season 5" }
+- { title: "Confessions", year: 2013, minutes: 48, group: "Season 5" }
+- { title: "Rabid Dog", year: 2013, minutes: 48, group: "Season 5" }
+- { title: "To'hajiilee", year: 2013, minutes: 47, group: "Season 5" }
+- { title: "Ozymandias", year: 2013, minutes: 48, group: "Season 5" }
+- { title: "Granite State", year: 2013, minutes: 55, group: "Season 5" }
+- { title: "Felina", year: 2013, minutes: 55, group: "Season 5" }

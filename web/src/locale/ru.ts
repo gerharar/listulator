@@ -33,12 +33,12 @@ const newItems = (n: number): string =>
 
 /** The part after "Ничего не осталось" for a shelf count. */
 const acrossShelves = (shelves: number): string =>
-  shelves === 0 ? 'ни на одной полке' : shelves === 1 ? 'на этой полке' : `на выбранных полках (${shelves})`
+  shelves === 0 ? 'ни в одной категории' : shelves === 1 ? 'в этой категории' : `в выбранных категориях (${shelves})`
 
 export const ru: Locale = {
   app: {
     loading: 'Загрузка…',
-    unknownError: 'Что-то пошло не так',
+    unknownError: 'Что-то пошло не так. Обосралити!',
   },
 
   newList: {
@@ -142,7 +142,7 @@ export const ru: Locale = {
   request: {
     unreachable: 'Нет связи с сервером. Он запущен?',
     failed: (status: number): string => `Запрос не удался (${status})`,
-    unknown: 'Что-то пошло не так.',
+    unknown: 'Что-то пошло не так. Обосралити!',
   },
 
   duration: {
@@ -168,7 +168,7 @@ export const ru: Locale = {
 
   quantum: {
     crash: {
-      headline: 'Что-то пошло не так',
+      headline: 'Что-то пошло не так. Обосралити!',
       explanation: 'В Listulator произошла непредвиденная ошибка. Ваши списки сохранены; обычно помогает перезагрузка.',
       reload: 'Перезагрузить',
     },
@@ -771,7 +771,7 @@ export const ru: Locale = {
       closeLabel: 'Закрыть',
     },
     home: {
-      title: 'Мои списки',
+      title: 'Мои Прелессти',
       newList: 'Новый список',
       checkForUpdates: 'Проверить обновления',
       checkingUpdates: 'Проверяем…',
