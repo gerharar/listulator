@@ -73,7 +73,7 @@ test('opens on the list opened last, never offers its medium, and Open The List 
     expect(mine, 'one of this run’s own lists came up').toBeTruthy()
     await page.screenshot({ path: 'test-results/tired-boss.png' })
 
-    await sheet(page).getByRole('button', { name: 'Open The List' }).click()
+    await sheet(page).getByRole('button', { name: 'Open List' }).click()
     await expect(sheet(page)).toHaveCount(0)
     await expect(page.locator('.q-list-title')).toContainText(mine!)
     await expect(page.locator('.q-item').first()).toBeVisible()
