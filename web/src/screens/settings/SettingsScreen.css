@@ -42,7 +42,8 @@
 .q-settings-sections {
   display: grid;
   gap: 26px;
-  max-width: 760px;
+  /* A cap, not a width. The API-key row (320px fields + buttons + status pill) is sized against it. */
+  max-width: 880px;
 }
 
 .q-settings-row {
