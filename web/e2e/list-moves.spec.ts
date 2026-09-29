@@ -60,7 +60,7 @@ test('Shift+↓ moves a row, focus stays on it, and one toast covers the run', a
     await expect(rowOf(page, 'Alpha')).toBeFocused()
 
     // A pause ends the run: one toast, and its Undo puts Alpha back where it started.
-    await expect(page.locator('.q-toast')).toContainText('Moved 2 rows.', { timeout: 5000 })
+    await expect(page.locator('.q-toast')).toContainText('Item moved', { timeout: 5000 })
     await page.locator('.q-toast').getByRole('button', { name: 'Undo' }).click()
     await expect.poll(() => order(page.request, id)).toEqual(['Alpha', 'S1 one', 'S1 two', 'S1 three', 'Bravo'])
   } finally {
@@ -88,7 +88,7 @@ test('dragging by the handle saves what the keyboard saves, and Undo puts it bac
     await page.mouse.up()
 
     await expect.poll(() => order(page.request, id)).toEqual(['Alpha', 'S1 two', 'S1 one', 'S1 three', 'Bravo'])
-    await expect(page.locator('.q-toast')).toContainText('Moved inside Season 1.')
+    await expect(page.locator('.q-toast')).toContainText('Item moved inside Season 1.')
 
     await page.locator('.q-toast').getByRole('button', { name: 'Undo' }).click()
     await expect.poll(() => order(page.request, id)).toEqual(['Alpha', 'S1 one', 'S1 two', 'S1 three', 'Bravo'])

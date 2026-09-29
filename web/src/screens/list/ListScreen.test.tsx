@@ -1105,6 +1105,38 @@ describe('ListScreen edit list (task 10.22)', () => {
     expect(document.querySelector('.q-toast')?.textContent).not.toMatch(/Undo/)
   })
 
+  it('says what changed when it is one thing: only the description, or only the status', async () => {
+    vi.mocked(api.updateList).mockResolvedValue({} as never)
+    await openEditor()
+    fireEvent.change(pop().getByLabelText(/Description/), { target: { value: 'New blurb' } })
+    fireEvent.click(pop().getByRole('button', { name: 'Save' }))
+
+    expect(await screen.findAllByText('Description updated')).not.toHaveLength(0)
+  })
+
+  it('never says only "Description updated" when the status changed too: it says the list was updated', async () => {
+    vi.mocked(api.updateList).mockResolvedValue({} as never)
+    await openEditor()
+    fireEvent.change(pop().getByLabelText(/Description/), { target: { value: 'New blurb' } })
+    fireEvent.click(pop().getByRole('button', { name: 'Complete' }))
+    fireEvent.click(pop().getByRole('button', { name: 'Save' }))
+
+    expect(await screen.findAllByText('List updated')).not.toHaveLength(0)
+    expect(screen.queryByText('Description updated')).toBeNull()
+    expect(api.updateList).toHaveBeenCalledWith('L1', { description: 'New blurb', status: 'complete' })
+  })
+
+  it('says the list was updated when the title and the description changed together', async () => {
+    vi.mocked(api.updateList).mockResolvedValue({} as never)
+    const title = await openEditor()
+    fireEvent.change(title, { target: { value: 'Loki S2' } })
+    fireEvent.change(pop().getByLabelText(/Description/), { target: { value: 'New blurb' } })
+    fireEvent.click(pop().getByRole('button', { name: 'Save' }))
+
+    expect(await screen.findAllByText('List updated')).not.toHaveLength(0)
+    expect(screen.queryByText(/^Renamed to/)).toBeNull()
+  })
+
   it('click-away commits too, with an Undo that puts the old values back', async () => {
     vi.mocked(api.updateList).mockResolvedValue({} as never)
     const title = await openEditor()

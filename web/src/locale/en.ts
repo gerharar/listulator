@@ -629,7 +629,6 @@ export const en = {
         atEdge: (side: 'top' | 'bottom', group?: string): string => `Already at the ${side} of ${group ?? 'the list'}`,
         movedOnList: 'Item moved',
         movedInside: (group: string): string => `Item moved inside ${group}.`,
-        movedRows: (n: number): string => `Moved ${n} ${selectPlural(n, 'en', { one: 'row', other: 'rows' })}.`,
         /** Defensive: only spoken if the list changes mid-drag (the drag already refuses cross-group targets). */
         onlyInsideGroup: 'Reordering only works inside one group',
         undone: 'Move undone',
@@ -684,6 +683,7 @@ export const en = {
         descriptionUpdated: 'Description updated',
         statusMarked: (status: 'complete' | 'ongoing'): string => `List status changed to ${status === 'complete' ? 'Complete' : 'Ongoing'}.`,
         statusCleared: 'List status got schrödingered',
+        listSaved: 'List updated',
         reverted: (title: string): string => `Reverted to ${title}`,
         saveFailed: 'Couldn\'t save your changes to this list',
         undoFailed: 'Couldn\'t undo that',

@@ -567,8 +567,6 @@ export const de: Locale = {
           `Schon ${side === 'top' ? 'am Anfang' : 'am Ende'} ${group ? `von „${group}“` : 'der Liste'}`,
         movedOnList: 'Eintrag verschoben',
         movedInside: (group: string): string => `Eintrag innerhalb von „${group}“ verschoben.`,
-        movedRows: (n: number): string =>
-          `${n} ${selectPlural(n, 'de', { one: 'Zeile', other: 'Zeilen' })} verschoben.`,
         onlyInsideGroup: 'Umsortieren geht nur innerhalb einer Gruppe',
         undone: 'Verschieben rückgängig gemacht',
         saveFailed: 'Das Verschieben konnte nicht gespeichert werden',
@@ -621,6 +619,7 @@ export const de: Locale = {
         statusMarked: (status: 'complete' | 'ongoing'): string =>
           `Listenstatus geändert auf ${status === 'complete' ? 'Abgeschlossen' : 'Laufend'}.`,
         statusCleared: 'Der Listenstatus wurde geschrödingert',
+        listSaved: 'Liste aktualisiert',
         reverted: (title: string): string => `Zurückgesetzt auf ${title}`,
         saveFailed: 'Deine Änderungen an der Liste konnten nicht gespeichert werden',
         undoFailed: 'Das ließ sich nicht rückgängig machen',

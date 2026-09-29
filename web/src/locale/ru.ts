@@ -577,8 +577,6 @@ export const ru: Locale = {
           `Уже ${side === 'top' ? 'в начале' : 'в конце'} ${group ? `группы «${group}»` : 'списка'}`,
         movedOnList: 'Элемент перемещён',
         movedInside: (group: string): string => `Элемент перемещён внутри группы «${group}».`,
-        movedRows: (n: number): string =>
-          `${selectPlural(n, 'ru', { one: `Перемещена ${n} строка`, few: `Перемещены ${n} строки`, many: `Перемещено ${n} строк`, other: `Перемещено ${n} строки` })}.`,
         onlyInsideGroup: 'Менять порядок можно только внутри одной группы',
         undone: 'Перемещение отменено',
         saveFailed: 'Не удалось сохранить перемещение',
@@ -630,6 +628,7 @@ export const ru: Locale = {
         statusMarked: (status: 'complete' | 'ongoing'): string =>
           `Статус списка изменён на «${status === 'complete' ? 'Завершён' : 'Продолжается'}».`,
         statusCleared: 'Статус списка стал шрёдингеровским',
+        listSaved: 'Список обновлён',
         reverted: (title: string): string => `Возвращено: ${title}`,
         saveFailed: 'Не удалось сохранить изменения списка',
         undoFailed: 'Не удалось отменить',

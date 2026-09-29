@@ -219,7 +219,7 @@ describe('keyboard: Shift+↑↓', () => {
       expect(toast()).toBeNull()
 
       await act(async () => void vi.advanceTimersByTime(1300))
-      expect(toast()!.textContent).toMatch(/Moved 2 rows\./)
+      expect(toast()!.textContent).toMatch(/^Item moved\.?Undo/)
     })
 
     it('waits for a pause, not for the first step’s clock: each step starts the wait again', async () => {
@@ -233,17 +233,28 @@ describe('keyboard: Shift+↑↓', () => {
       expect(toast()).toBeNull()
 
       await act(async () => void vi.advanceTimersByTime(300))
-      expect(toast()!.textContent).toMatch(/Moved 2 rows\./)
+      expect(toast()!.textContent).toMatch(/^Item moved\.?Undo/)
     })
 
-    it('says "Moved 1 row." for a single step', async () => {
+    it('says the standard "Item moved" for a single step, not a count of rows', async () => {
       vi.useFakeTimers({ shouldAdvanceTime: true })
       await open()
 
       shiftDown('a', 'ArrowDown')
       await act(async () => void vi.advanceTimersByTime(1300))
 
-      expect(toast()!.textContent).toMatch(/Moved 1 row\./)
+      expect(toast()!.textContent).toMatch(/^Item moved\.?Undo/)
+    })
+
+    it('names the group when the run stayed inside one, like a drag does', async () => {
+      vi.useFakeTimers({ shouldAdvanceTime: true })
+      await open()
+
+      shiftDown('g1', 'ArrowDown')
+      shiftDown('g1', 'ArrowDown')
+      await act(async () => void vi.advanceTimersByTime(1300))
+
+      expect(toast()!.textContent).toMatch(/^Item moved inside Season 1\.Undo/)
     })
 
     it('ends when focus leaves the list', async () => {
@@ -252,7 +263,7 @@ describe('keyboard: Shift+↑↓', () => {
 
       act(() => screen.getByRole('button', { name: 'outside' }).focus())
 
-      await waitFor(() => expect(toast()?.textContent).toMatch(/Moved 1 row\./))
+      await waitFor(() => expect(toast()?.textContent).toMatch(/^Item moved\.?Undo/))
     })
 
     it('does not end when focus only moves to another row of the list', async () => {
@@ -280,7 +291,7 @@ describe('keyboard: Shift+↑↓', () => {
       await waitFor(() => expect(rowIds()).toEqual(['a', 'gs', 'g1', 'g2', 'g3', 'b']))
       const undo = posted().at(-1)!
       expect(undo.items.find((entry) => entry.id === 'a')).toEqual({ id: 'a', orderIndex: 0 })
-      expect(within(document.body).queryByText(/Moved 2 rows/)).toBeNull()
+      expect(within(document.body).queryByText(/Moved \d+ rows?/)).toBeNull()
     })
 
     it('follows you out: leaving the screen mid-run still raises the toast, and Undo still works', async () => {
@@ -289,7 +300,7 @@ describe('keyboard: Shift+↑↓', () => {
 
       act(() => removable())
 
-      await waitFor(() => expect(toast()?.textContent).toMatch(/Moved 1 row\./))
+      await waitFor(() => expect(toast()?.textContent).toMatch(/^Item moved\.?Undo/))
       fireEvent.click(within(toast()!).getByRole('button', { name: 'Undo' }))
       await waitFor(() => expect(api.restoreOrder).toHaveBeenCalledTimes(2))
       expect(posted().at(-1)!.items).toContainEqual({ id: 'a', orderIndex: 0 })

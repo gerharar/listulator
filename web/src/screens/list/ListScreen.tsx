@@ -564,14 +564,18 @@ function ListView({
       return
     }
 
+    // One change is named; several are just "updated" — never only the first of them.
+    const changed = [patch.title, patch.description, patch.status].filter((value) => value !== undefined).length
     const message =
-      patch.title !== undefined
-        ? editText.renamed(patch.title)
-        : patch.description !== undefined
-          ? editText.descriptionUpdated
-          : patch.status
-            ? editText.statusMarked(patch.status)
-            : editText.statusCleared
+      changed > 1
+        ? editText.listSaved
+        : patch.title !== undefined
+          ? editText.renamed(patch.title)
+          : patch.description !== undefined
+            ? editText.descriptionUpdated
+            : patch.status
+              ? editText.statusMarked(patch.status)
+              : editText.statusCleared
     // The click-away is the safety net, so it is the one that offers Undo.
     if (via === 'clickaway') {
       showToast({

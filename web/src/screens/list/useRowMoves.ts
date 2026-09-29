@@ -172,7 +172,13 @@ export function useRowMoves({ listId, items, groups, setItems, setGroups, setErr
 
   // ---- the keyboard ---------------------------------------------------------------------------
 
-  const run = useRef<{ items: Map<string, number>; groups: Map<string, number>; steps: number; timer: ReturnType<typeof setTimeout> | undefined } | null>(null)
+  const run = useRef<{
+    items: Map<string, number>
+    groups: Map<string, number>
+    /** The group the last step moved inside, for the toast the drag would have raised. */
+    groupName: string | undefined
+    timer: ReturnType<typeof setTimeout> | undefined
+  } | null>(null)
 
   const endRun = useCallback(() => {
     const current = run.current
@@ -185,7 +191,7 @@ export function useRowMoves({ listId, items, groups, setItems, setGroups, setErr
       groups: [...current.groups].map(([id, orderIndex]) => ({ id, orderIndex })),
     }
     showToast({
-      text: text.movedRows(current.steps),
+      text: current.groupName ? text.movedInside(current.groupName) : text.movedOnList,
       actionLabel: copy.quantum.list.itemActions.undo,
       onAction: () => void undoTo(previous, [...current.items.keys()]),
     })
@@ -207,10 +213,10 @@ export function useRowMoves({ listId, items, groups, setItems, setGroups, setErr
       if (outcome.kind !== 'moved') return
 
       // Remember where every row first stood, so one Undo covers the whole run.
-      const current = (run.current ??= { items: new Map(), groups: new Map(), steps: 0, timer: undefined })
+      const current = (run.current ??= { items: new Map(), groups: new Map(), groupName: undefined, timer: undefined })
       for (const entry of outcome.previous.items) if (!current.items.has(entry.id)) current.items.set(entry.id, entry.orderIndex)
       for (const entry of outcome.previous.groups) if (!current.groups.has(entry.id)) current.groups.set(entry.id, entry.orderIndex)
-      current.steps += 1
+      current.groupName = outcome.groupName
       clearTimeout(current.timer)
       current.timer = setTimeout(endRun, RUN_IDLE_MS)
 
