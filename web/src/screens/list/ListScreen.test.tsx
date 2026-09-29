@@ -847,10 +847,13 @@ describe('ListScreen updates (task 10.25)', () => {
 
       fireEvent.click(checkButton())
 
-      await waitFor(() => expect(checkButton().disabled).toBe(true))
-      expect(checkButton().querySelector('.q-spin')).not.toBeNull()
+      const checking = () => screen.getByRole('button', { name: 'Checking for updates…' }) as HTMLButtonElement
+      await waitFor(() => expect(checking().disabled).toBe(true))
+      expect(checking().title).toBe('Checking for updates…')
+      expect(checking().querySelector('.q-spin')).not.toBeNull()
       await act(async () => finish(findings(0)))
       await waitFor(() => expect(checkButton().disabled).toBe(false))
+      expect(checkButton().title).toBe('Check for updates')
       expect(checkButton().querySelector('.q-spin')).toBeNull()
     })
 

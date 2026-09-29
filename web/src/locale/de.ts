@@ -549,7 +549,6 @@ export const de: Locale = {
             ? `${parts[0]}.`
             : `${parts.slice(0, -1).join(', ')} und ${parts[parts.length - 1]}.`,
         noCost: 'Was du hinzugefügt, entfernt oder als erledigt markiert hast, bleibt unberührt.',
-        undoNote: 'Rückgängig machen ist 8 Sekunden lang möglich.',
         resetOrder: 'Reihenfolge zurücksetzen',
         resetEverything: 'Zurücksetzen',
         sorted: 'Nach Datum sortiert — Gruppen als Blöcke verschoben.',
@@ -688,6 +687,7 @@ export const de: Locale = {
       close: 'Schließen',
       updates: {
         checkFailed: 'Die Suche nach Updates ist fehlgeschlagen',
+        checking: 'Suche nach Updates…',
         nothingNew: 'Keine Updates gefunden',
         addFailed: 'Sie konnten nicht hinzugefügt werden',
         foundBand: (n: number): string => `${newEntries(n)} gefunden.`,

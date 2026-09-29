@@ -170,9 +170,9 @@ describe('ListMorePopover', () => {
       expect(onResetEverything).toHaveBeenCalledTimes(1)
     })
 
-    it('the two buttons do the two things, and Undo is mentioned', () => {
+    it('the two buttons do the two things, and the dialog says nothing about how long Undo lasts', () => {
       const { onResetOrder, onResetEverything } = renderPopover({ mode: 'reset', preview: ready(1, 0, 0) })
-      expect(screen.getByText(/Undo is offered for 8 seconds/)).toBeTruthy()
+      expect(screen.queryByText(/Undo is offered/)).toBeNull()
 
       fireEvent.click(button('Reset the order'))
       expect(onResetOrder).toHaveBeenCalledTimes(1)

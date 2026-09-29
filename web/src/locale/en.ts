@@ -612,7 +612,6 @@ export const en = {
             ? `${parts[0]}.`
             : `${parts.slice(0, -1).join(', ')} and ${parts[parts.length - 1]}.`,
         noCost: 'Stuff you added, removed or marked done is not affected.',
-        undoNote: 'Undo is offered for 8 seconds.',
         resetOrder: 'Reset the order',
         resetEverything: 'Reset',
         sorted: 'Sorted by date — groups moved as blocks.',
@@ -756,6 +755,7 @@ export const en = {
       /** Check for updates, the found band and the NEW marks (10.25, 10.22c). */
       updates: {
         checkFailed: 'Couldn\'t check for updates',
+        checking: 'Checking for updates…',
         nothingNew: 'No updates found',
         addFailed: 'Couldn\'t add updates',
         /** The band an explicit check raises; nothing is added until Update List. */

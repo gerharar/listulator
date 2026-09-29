@@ -118,7 +118,6 @@ export function ListMorePopover({
           <span className="q-pop-q">{order.resetQuestion}</span>
           <span className="q-pop-note">{leadFor(source)}</span>
           <span className="q-pop-note">{cost(preview)}</span>
-          <span className="q-pop-note">{order.undoNote}</span>
           <div className="q-pop-actions">
             <Button variant="quiet" onClick={onResetOrder}>
               {order.resetOrder}

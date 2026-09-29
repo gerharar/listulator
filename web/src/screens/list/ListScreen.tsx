@@ -908,7 +908,7 @@ function ListView({
               <IconButton
                 size="list"
                 className="q-check-btn"
-                label={text.checkForUpdates}
+                label={checking ? updatesText.checking : text.checkForUpdates}
                 disabled={checking}
                 onClick={() => void checkForUpdates()}
               >

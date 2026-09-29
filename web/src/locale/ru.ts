@@ -559,7 +559,6 @@ export const ru: Locale = {
           return sentence.charAt(0).toUpperCase() + sentence.slice(1)
         },
         noCost: 'Добавленное, удалённое и отмеченное как выполненное не затрагивается.',
-        undoNote: 'Отменить можно в течение 8 секунд.',
         resetOrder: 'Сбросить порядок',
         resetEverything: 'Сбросить',
         sorted: 'Отсортировано по дате — группы перемещены целиком.',
@@ -697,6 +696,7 @@ export const ru: Locale = {
       close: 'Закрыть',
       updates: {
         checkFailed: 'Не удалось проверить обновления',
+        checking: 'Проверяем обновления…',
         nothingNew: 'Обновлений не найдено',
         addFailed: 'Не удалось добавить',
         foundBand: (n: number): string => `Найдено: ${newItems(n)}.`,
