@@ -118,6 +118,20 @@ describe('keyboard: Shift+↑↓', () => {
     expect(api.restoreOrder).toHaveBeenCalledTimes(1)
   })
 
+  it('scrolls the moved row into view, so a long list follows it instead of leaving it off screen', async () => {
+    // jsdom has no scrollIntoView; the row that moved must be asked to come into view (nearest edge only).
+    const scrolled = vi.fn(function (this: HTMLElement) {})
+    Element.prototype.scrollIntoView = scrolled
+    await open()
+
+    shiftDown('a', 'ArrowDown')
+    await waitFor(() => expect(rowIds()).toEqual(['gs', 'g1', 'g2', 'g3', 'a', 'b']))
+
+    expect(scrolled).toHaveBeenCalledWith({ block: 'nearest' })
+    expect(scrolled.mock.contexts.at(-1)).toBe(row('a'))
+    delete (Element.prototype as { scrollIntoView?: unknown }).scrollIntoView
+  })
+
   it('moves a group as a block', async () => {
     await open()
 

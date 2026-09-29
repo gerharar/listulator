@@ -68,6 +68,37 @@ test('Shift+↓ moves a row, focus stays on it, and one toast covers the run', a
   }
 })
 
+test('a long list follows a row moved down by the keyboard: it never leaves the screen', async ({ page }) => {
+  await page.setViewportSize({ width: 1200, height: 560 })
+  const title = `e2e list-moves scroll ${Date.now()}`
+  const id = await makeList(
+    page.request,
+    title,
+    Array.from({ length: 40 }, (_, i) => ({ title: `Item ${String(i).padStart(2, '0')}`, timeToConsumeMinutes: 30 })),
+  )
+
+  try {
+    await page.goto('/')
+    await page.locator('.q-home-row', { hasText: title }).click()
+    await expect(rowOf(page, 'Item 03')).toBeVisible()
+    await page.waitForTimeout(1200) // the layer drums in first
+    await rowOf(page, 'Item 03').focus()
+
+    for (let step = 0; step < 20; step += 1) {
+      await page.keyboard.press('Shift+ArrowDown')
+      await expect.poll(() => order(page.request, id).then((titles) => titles.indexOf('Item 03'))).toBe(4 + step)
+      const [row, body] = await Promise.all([
+        rowOf(page, 'Item 03').boundingBox(),
+        page.locator('.q-list-body').boundingBox(),
+      ])
+      expect(row!.y).toBeGreaterThanOrEqual(body!.y - 1)
+      expect(row!.y + row!.height).toBeLessThanOrEqual(body!.y + body!.height + 1)
+    }
+  } finally {
+    await page.request.delete(`/api/lists/${id}`)
+  }
+})
+
 test('dragging by the handle saves what the keyboard saves, and Undo puts it back', async ({ page }) => {
   const title = `e2e list-moves drag ${Date.now()}`
   const id = await makeList(page.request, title, SMALL)

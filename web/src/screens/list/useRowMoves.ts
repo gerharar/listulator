@@ -233,7 +233,11 @@ export function useRowMoves({ listId, items, groups, setItems, setGroups, setErr
     const id = pendingFocus.current
     if (!id) return
     pendingFocus.current = null
-    spine.current?.querySelector<HTMLElement>(`[data-row-id="${CSS.escape(id)}"]`)?.focus()
+    const moved = spine.current?.querySelector<HTMLElement>(`[data-row-id="${CSS.escape(id)}"]`)
+    // A row that already holds focus is not scrolled to by focus() (React may move its neighbour's
+    // node instead of it), so a long list would leave it behind: ask for the scroll ourselves.
+    moved?.focus({ preventScroll: true })
+    moved?.scrollIntoView?.({ block: 'nearest' })
   }, [items, groups, spine])
 
   /** Focus left a row: a run ends once it has settled outside the list (a move's own re-render blurs for a moment). */
