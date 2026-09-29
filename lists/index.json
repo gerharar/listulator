@@ -1,10 +1,18 @@
 [
   {
-    "path": "lists/animation/studio-ghibli.yaml",
-    "title": "Studio Ghibli works",
+    "path": "lists/animation/studio-ghibli-feature-films.yaml",
+    "title": "Studio Ghibli feature films",
     "category": "animation",
     "itemCount": 25,
-    "description": "All Studio Ghibli (Hayao Miyazaki) works, excluding shorts",
+    "description": "All Studio Ghibli (Hayao Miyazaki) feature films, including TV movies. Excludes shorts, TV series, commercials, documentaries, and related works",
+    "status": "ongoing"
+  },
+  {
+    "path": "lists/book/asoiaf-books.yaml",
+    "title": "A Song Of Fire And Ice books (by type)",
+    "category": "book",
+    "itemCount": 17,
+    "description": "All books in A Song Of Fire And Ice universe (grouped by type)",
     "status": "ongoing"
   },
   {
@@ -19,6 +27,22 @@
     "title": "The Lord of the Rings",
     "category": "book",
     "itemCount": 3
+  },
+  {
+    "path": "lists/comic/100-bullets-comic.yaml",
+    "title": "100 Bullets (comic book) series",
+    "category": "comic",
+    "itemCount": 111,
+    "description": "Reading order for 100 Bullets (Vertigo / DC) comic book series",
+    "status": "ongoing"
+  },
+  {
+    "path": "lists/comic/planetary-comics.yaml",
+    "title": "Planetary complete series",
+    "category": "comic",
+    "itemCount": 31,
+    "description": "Complete reading order for Planetary (Wildstorm / DC) comic book series",
+    "status": "complete"
   },
   {
     "path": "lists/comic/preacher-comic.yaml",
@@ -41,7 +65,7 @@
     "title": "Assassin's Creed franchise games",
     "category": "game",
     "itemCount": 29,
-    "description": "All Assassin's Creed franchise games grouped by type",
+    "description": "All Assassin's Creed franchise games (grouped by type)",
     "status": "ongoing"
   },
   {
@@ -50,6 +74,30 @@
     "category": "game",
     "itemCount": 10,
     "description": "All Spy Hunter franchise games (without compilation appearances)"
+  },
+  {
+    "path": "lists/mega/breaking-bad-all.yaml",
+    "title": "All Breaking Bad franchise (release order)",
+    "category": "mega",
+    "itemCount": 197,
+    "description": "Everything from Breaking Bad franchise in roughly release-ish order",
+    "status": "complete"
+  },
+  {
+    "path": "lists/mega/breaking-bad-main-watch.yaml",
+    "title": "Breaking Bad franchise (recommended watch order)",
+    "category": "mega",
+    "itemCount": 126,
+    "description": "All main releases from Breaking Bad franchise in the recommended watch order (roughly equivalent to release order)",
+    "status": "complete"
+  },
+  {
+    "path": "lists/mega/ice-age-watch.yaml",
+    "title": "Ice Age franchise",
+    "category": "mega",
+    "itemCount": 23,
+    "description": "Everything to watch in the Ice Age franchise (grouped by media type). Excludes video games",
+    "status": "ongoing"
   },
   {
     "path": "lists/mega/marvel-cinematic-universe.yaml",
@@ -103,7 +151,15 @@
     "title": "ISIS discography",
     "category": "music",
     "itemCount": 23,
-    "description": "Full ISIS discography (excluding compilations)",
+    "description": "Full ISIS discography (excluding compilation appearances)",
+    "status": "complete"
+  },
+  {
+    "path": "lists/tv/breaking-bad-series.yaml",
+    "title": "Breaking Bad series",
+    "category": "tv",
+    "itemCount": 62,
+    "description": "All episodes of Breaking Bad TV series",
     "status": "complete"
   },
   {
@@ -111,7 +167,7 @@
     "title": "The Wire series",
     "category": "tv",
     "itemCount": 60,
-    "description": "All episodes of The Wire TV series (complete)",
+    "description": "All episodes of The Wire TV series",
     "status": "complete"
   },
   {
