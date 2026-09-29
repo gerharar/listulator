@@ -28,12 +28,12 @@ test('spins the dials, lands on a library list with its details, and This One op
   await stubLibrary(page)
   await page.goto('/')
   await surprise(page).click()
-  await expect(sheet(page)).toContainText('Surprise, Motherfucker!')
+  await expect(sheet(page)).toContainText('Surprise, MFer!')
   await expect(surprise(page)).toHaveAttribute('aria-pressed', 'true')
-  await expect(sheet(page).getByRole('button', { name: 'Spin', exact: true })).toBeVisible()
-  await expect(sheet(page)).toContainText('3 candidates across every shelf')
+  await expect(sheet(page).getByRole('button', { name: 'Spin To Win!', exact: true })).toBeVisible()
+  await expect(sheet(page)).toContainText('3 candidates across all categories')
 
-  await sheet(page).getByRole('button', { name: 'Spin', exact: true }).click()
+  await sheet(page).getByRole('button', { name: 'Spin To Win!', exact: true }).click()
   await expect(sheet(page).getByRole('button', { name: 'Spinning…' })).toBeDisabled()
   await expect(sheet(page).locator('.q-digit.ticking').first()).toBeVisible()
   await expect(sheet(page).getByRole('button', { name: 'This One' })).toBeVisible({ timeout: 6000 })
@@ -41,7 +41,7 @@ test('spins the dials, lands on a library list with its details, and This One op
   const landed = (await sheet(page).locator('.q-reel-name').textContent()) ?? ''
   const entry = ENTRIES.find((candidate) => landed.includes(candidate.title))!
   expect(entry).toBeTruthy()
-  await expect(sheet(page).locator('.q-reel-meta')).toContainText(`${entry.itemCount} items · curated list`)
+  await expect(sheet(page).locator('.q-reel-meta')).toContainText(`${entry.itemCount} items · canonical list`)
   await expect(sheet(page).locator('.q-digit').filter({ hasText: /^\d$/ })).toHaveCount(6)
   await expect(sheet(page).locator('.q-digit.on')).toHaveCount(3)
   await page.screenshot({ path: 'test-results/surprise.png' })
@@ -63,12 +63,12 @@ test('Add list on the preview sends the request a search result sends: the entry
   await page.goto('/')
   await page.getByRole('button', { name: 'Surprise Me' }).click()
   await sheet(page).getByRole('button', { name: 'Books', exact: true }).click()
-  await sheet(page).getByRole('button', { name: 'Spin', exact: true }).click()
+  await sheet(page).getByRole('button', { name: 'Spin To Win!', exact: true }).click()
   await expect(sheet(page).getByRole('button', { name: 'This One' })).toBeVisible({ timeout: 6000 })
   await sheet(page).getByRole('button', { name: 'This One' }).click()
   await expect(page.locator('.q-preview-title')).toContainText('The Lord of the Rings')
 
-  await page.getByRole('button', { name: 'Add list', exact: true }).click()
+  await page.getByRole('button', { name: 'Add This List', exact: true }).click()
 
   await expect.poll(() => sent).toEqual({
     mediaType: 'book',
@@ -82,9 +82,9 @@ test('a shelf narrows the draw, and only that shelf ever lands', async ({ page }
   await page.goto('/')
   await surprise(page).click()
   await sheet(page).getByRole('button', { name: 'MMA', exact: true }).click()
-  await expect(sheet(page)).toContainText('1 candidate on this shelf')
+  await expect(sheet(page)).toContainText('1 candidate in this category')
 
-  await sheet(page).getByRole('button', { name: 'Spin', exact: true }).click()
+  await sheet(page).getByRole('button', { name: 'Spin To Win!', exact: true }).click()
 
   await expect(sheet(page).locator('.q-reel-name')).toContainText('All UFC Events', { timeout: 6000 })
   await expect(sheet(page).locator('.q-reel-meta')).toContainText('757 items')
@@ -96,7 +96,7 @@ test('reduced motion skips the show and lands at once', async ({ page }) => {
   await page.goto('/')
   await surprise(page).click()
 
-  await sheet(page).getByRole('button', { name: 'Spin', exact: true }).click()
+  await sheet(page).getByRole('button', { name: 'Spin To Win!', exact: true }).click()
 
   // No spin to wait out: the result is there within a moment, and the dials never tick.
   await expect(sheet(page).getByRole('button', { name: 'This One' })).toBeVisible({ timeout: 1000 })
@@ -108,6 +108,6 @@ test('says when the community library could not be reached', async ({ page }) =>
   await page.goto('/')
   await surprise(page).click()
 
-  await expect(sheet(page)).toContainText('Could not reach the community library.')
-  await expect(sheet(page).getByRole('button', { name: 'Try again' })).toBeVisible()
+  await expect(sheet(page)).toContainText('Could not reach the List Vault.')
+  await expect(sheet(page).getByRole('button', { name: 'Try Again' })).toBeVisible()
 })
