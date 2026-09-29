@@ -15,8 +15,8 @@ export interface SkinSwatchProps {
  * `data-theme` here resolves through the nested-selector form
  * `generateTokens.ts` emits for exactly this (docs/DECISIONS.md).
  *
- * Just the mark. The skin button, its 220px menu (AppHeader, 10.9) and
- * Settings' square `.q-swatch-sq` variant are out of scope here.
+ * Just the mark. The skin button and its 220px menu (AppHeader, 10.9) are
+ * out of scope here; Settings' skin chips use the same small hex (11.5).
  */
 export function SkinSwatch({ skin, small = false }: SkinSwatchProps) {
   return <span className={small ? 'q-hex sm' : 'q-hex'} data-theme={skin} aria-hidden="true" />

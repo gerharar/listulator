@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { useEffect } from 'react'
 import { act, cleanup, render, screen, waitFor } from '@testing-library/react'
 import type { PreferencesStore } from '../../lib/preferences/store.js'
+import { SKINS } from '../../lib/preferences/skin.js'
 import { setActiveLanguage } from '../../locale/index.js'
 import { LanguageProvider } from '../../locale/LanguageProvider.js'
 import { LayerStackProvider, useLayerStack } from '../../components/quantum/layerStack/LayerStackContext.js'
@@ -82,6 +83,15 @@ describe('SettingsScreen', () => {
     }
     expect(pressed('Jouhou')).toBe('true')
     expect(pressed('Deluge')).toBe('false')
+  })
+
+  it('marks each skin with its own hexagon, the same mark as the header skin menu', () => {
+    const { container } = renderSettings()
+
+    const hexes = [...container.querySelectorAll('.q-chip.skin .q-hex')]
+    expect(hexes.map((hex) => hex.getAttribute('data-theme'))).toEqual([...SKINS])
+    expect(hexes.every((hex) => hex.classList.contains('sm'))).toBe(true)
+    expect(container.querySelector('.q-swatch-sq')).toBeNull()
   })
 
   it('picking a skin applies it and announces it in the live region', async () => {

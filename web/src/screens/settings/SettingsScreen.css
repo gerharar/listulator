@@ -81,11 +81,3 @@
   border-color: var(--accent);
 }
 
-/* Always draws its own skin's colours: `data-theme` on the element re-scopes the tokens (see SkinSwatch). */
-.q-swatch-sq {
-  width: 18px;
-  height: 18px;
-  flex: none;
-  background: linear-gradient(135deg, var(--bg) 55%, var(--accent) 55%);
-  border: 1px solid var(--line);
-}

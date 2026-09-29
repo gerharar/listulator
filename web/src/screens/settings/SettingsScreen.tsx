@@ -12,6 +12,7 @@ import { HeaderPlate } from '../../components/quantum/HeaderPlate/HeaderPlate.js
 import { useLayerStack } from '../../components/quantum/layerStack/LayerStackContext.js'
 import { useLiveRegion } from '../../components/quantum/LiveRegion/LiveRegion.js'
 import { useMotion } from '../../components/quantum/Motion/MotionContext.js'
+import { SkinSwatch } from '../../components/quantum/SkinSwatch/SkinSwatch.js'
 import { ToggleChip } from '../../components/quantum/ToggleChip/ToggleChip.js'
 
 export interface SettingsScreenProps {
@@ -70,7 +71,7 @@ export function SettingsScreen({ skin, onSkinChange, store }: SettingsScreenProp
             <div className="q-settings-row">
               {SKINS.map((id) => (
                 <ToggleChip key={id} variant="choice" className="skin" pressed={id === skin} onClick={() => pickSkin(id)}>
-                  <span className="q-swatch-sq" data-theme={id} aria-hidden="true" />
+                  <SkinSwatch skin={id} small />
                   {copy.quantum.skin.labels[id]}
                 </ToggleChip>
               ))}
