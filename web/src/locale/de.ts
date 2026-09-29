@@ -324,8 +324,8 @@ export const de: Locale = {
       previewUnavailable:
         'Diese Quelle ist zu schüchtern, um ihre Einträge zu zeigen. Füge die Liste einfach hinzu und lösche sie später, falls es die falsche war.',
       curatedTitle: 'Kanonische Liste',
-      curatedProvenance: 'Aus dem List Vault · Von Fleischsäcken exklusiv für Listulator erstellt und gepflegt',
-      sourceProvenance: (source: string): string => `Aus ${source}`,
+      curatedProvenance: 'Quelle: List Vault · Von Fleischsäcken exklusiv für Listulator erstellt und gepflegt',
+      sourceProvenance: (source: string): string => `Quelle: ${source}`,
       /** Where a curated-only category (Mega) searches: the tile footer and the Search tab. */
       librarySource: 'Community-Bibliothek',
       importing: 'Liste wird aufgebaut…',

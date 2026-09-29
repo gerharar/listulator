@@ -306,3 +306,13 @@ describe('durations stay short enough for a table column', () => {
   })
 })
 
+describe('search result provenance', () => {
+  it('names the source after a colon, in every language: "From: TMDB"', () => {
+    for (const [name, locale] of Object.entries({ en, ru, de })) {
+      const { sourceProvenance, curatedProvenance } = locale.quantum.search
+      expect(sourceProvenance('TMDB'), name).toMatch(/^[^:]+: TMDB$/)
+      expect(curatedProvenance, name).toMatch(/^[^:·]+: List Vault · /)
+    }
+    expect(en.quantum.search.sourceProvenance('TMDB')).toBe('From: TMDB')
+  })
+})

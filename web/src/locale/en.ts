@@ -359,8 +359,8 @@ export const en = {
       previewUnavailable:
         "This source is too shy to list its items. Just add the list and delete it later if it's a wrong one.",
       curatedTitle: 'Canonical List',
-      curatedProvenance: 'From List Vault · Created and maintained by meatbags exclusively for Listulator',
-      sourceProvenance: (source: string): string => `From ${source}`,
+      curatedProvenance: 'From: List Vault · Created and maintained by meatbags exclusively for Listulator',
+      sourceProvenance: (source: string): string => `From: ${source}`,
       /** Where a curated-only category (Mega) searches: the tile footer and the Search tab. */
       librarySource: 'List Vault',
       importing: 'Building the list…',

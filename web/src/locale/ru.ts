@@ -332,7 +332,7 @@ export const ru: Locale = {
       previewUnavailable:
         'Этот источник слишком застенчив, чтобы показать свои элементы. Просто добавьте список и удалите его позже, если он не тот.',
       curatedTitle: 'Канонический список',
-      curatedProvenance: 'Из List Vault · Создан и поддерживается мясными мешками специально для Listulator',
+      curatedProvenance: 'Из источника: List Vault · Создан и поддерживается мясными мешками специально для Listulator',
       sourceProvenance: (source: string): string => `Из источника: ${source}`,
       /** Where a curated-only category (Mega) searches: the tile footer and the Search tab. */
       librarySource: 'Библиотека сообщества',
