@@ -98,6 +98,9 @@ function OpenSheet({ onClose, lists, initialTarget, onOpenList }: TiredBossSheet
             {lists.length > FILTER_ABOVE && (
               <input
                 type="text"
+                spellCheck={false}
+                autoCorrect="off"
+                autoCapitalize="off"
                 className="filter"
                 aria-label={t.pickerFilter}
                 placeholder={t.pickerFilter}

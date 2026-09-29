@@ -97,6 +97,9 @@ export function FilterBar({ text, onText, facets, selection, onSelect, fold, not
         className="q-filter-input"
         data-bar-fixed=""
         type="text"
+        spellCheck={false}
+        autoCorrect="off"
+        autoCapitalize="off"
         aria-label={t.label}
         placeholder={t.placeholder}
         value={text}

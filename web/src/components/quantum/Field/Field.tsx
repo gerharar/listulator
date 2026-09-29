@@ -61,6 +61,7 @@ export function ReadOnlyBuffer({ label, value, onChange, rows = 4, code, locked 
         <textarea
           className={['q-input', code ? 'code' : ''].filter(Boolean).join(' ')}
           rows={rows}
+          spellCheck={false}
           readOnly={locked || !editing}
           value={value}
           onChange={(event) => onChange(event.target.value)}

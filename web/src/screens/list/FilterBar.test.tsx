@@ -40,6 +40,14 @@ describe('FilterBar', () => {
     expect(screen.getByText('8 items')).toBeTruthy()
   })
 
+  it('keeps the OS from spell-checking or correcting what is typed', () => {
+    bar()
+    const input = screen.getByPlaceholderText('Filter items…')
+    expect(input.getAttribute('spellcheck')).toBe('false')
+    expect(input.getAttribute('autocorrect')).toBe('off')
+    expect(input.getAttribute('autocapitalize')).toBe('off')
+  })
+
   it('reports what is typed', () => {
     const props = bar()
     fireEvent.change(screen.getByPlaceholderText('Filter items…'), { target: { value: 'creed' } })
