@@ -65,7 +65,7 @@ describe('CreateList', () => {
   it("titles the layer with the category's display label, not the registry's", () => {
     renderCreate('tv')
 
-    expect(screen.getByRole('heading', { name: 'New TV Series list' })).not.toBeNull()
+    expect(screen.getByRole('heading', { name: 'New TV Series List' })).not.toBeNull()
   })
 
   it("shows the category's own description under the title when it has one", () => {
@@ -77,8 +77,8 @@ describe('CreateList', () => {
   it('offers Search {source}, Add by hand and Import a file, starting on Search', () => {
     renderCreate('tv')
 
-    expect(tabs()).toEqual(['Search TMDB', 'Add by hand', 'Import a file'])
-    expect(screen.getByRole('tab', { name: 'Search TMDB' }).getAttribute('aria-selected')).toBe(
+    expect(tabs()).toEqual(['Search', 'Use Hands', 'Import'])
+    expect(screen.getByRole('tab', { name: 'Search' }).getAttribute('aria-selected')).toBe(
       'true',
     )
   })
@@ -86,11 +86,11 @@ describe('CreateList', () => {
   it("leaves Search out for a category with no search source, and starts on Add by hand", () => {
     renderCreate('podcast')
 
-    expect(tabs()).toEqual(['Add by hand', 'Import a file'])
-    expect(screen.getByRole('tab', { name: 'Add by hand' }).getAttribute('aria-selected')).toBe(
+    expect(tabs()).toEqual(['Use Hands', 'Import'])
+    expect(screen.getByRole('tab', { name: 'Use Hands' }).getAttribute('aria-selected')).toBe(
       'true',
     )
-    expect(screen.getByLabelText('List title')).not.toBeNull()
+    expect(screen.getByLabelText('Title')).not.toBeNull()
   })
 
   it('a library-only category (Mega) searches the community library, named so on the tab (F9)', () => {
@@ -98,7 +98,7 @@ describe('CreateList', () => {
 
     renderCreate('mega', [library])
 
-    expect(tabs()[0]).toBe('Search Community library')
+    expect(tabs()[0]).toBe('Search')
   })
 
   it('keeps the Search tab for a category whose search needs a key, so it can say so', () => {
@@ -106,35 +106,35 @@ describe('CreateList', () => {
 
     renderCreate('tv', [keyed])
 
-    expect(tabs()).toContain('Search TMDB')
+    expect(tabs()).toContain('Search')
   })
 
   it('shows the by-hand form on its tab and the file import on the other', () => {
     renderCreate('tv')
 
-    fireEvent.click(screen.getByRole('tab', { name: 'Add by hand' }))
-    expect(screen.getByLabelText('List title')).not.toBeNull()
+    fireEvent.click(screen.getByRole('tab', { name: 'Use Hands' }))
+    expect(screen.getByLabelText('Title')).not.toBeNull()
 
-    fireEvent.click(screen.getByRole('tab', { name: 'Import a file' }))
+    fireEvent.click(screen.getByRole('tab', { name: 'Import' }))
     expect(screen.getByRole('button', { name: 'Import' })).not.toBeNull()
-    expect(screen.queryByLabelText('List title')).toBeNull()
+    expect(screen.queryByLabelText('Title')).toBeNull()
   })
 
   it('clears a tab\'s transient state when you leave it', () => {
     renderCreate('tv')
 
-    fireEvent.click(screen.getByRole('tab', { name: 'Add by hand' }))
-    fireEvent.change(screen.getByLabelText('List title'), { target: { value: 'Half typed' } })
+    fireEvent.click(screen.getByRole('tab', { name: 'Use Hands' }))
+    fireEvent.change(screen.getByLabelText('Title'), { target: { value: 'Half typed' } })
 
-    fireEvent.click(screen.getByRole('tab', { name: 'Import a file' }))
-    fireEvent.click(screen.getByRole('tab', { name: 'Add by hand' }))
+    fireEvent.click(screen.getByRole('tab', { name: 'Import' }))
+    fireEvent.click(screen.getByRole('tab', { name: 'Use Hands' }))
 
-    expect((screen.getByLabelText('List title') as HTMLInputElement).value).toBe('')
+    expect((screen.getByLabelText('Title') as HTMLInputElement).value).toBe('')
   })
 
   it('falls back to the first category rather than crashing on a key the registry lacks', () => {
     renderCreate('gone', [TV])
 
-    expect(screen.getByRole('heading', { name: 'New TV Series list' })).not.toBeNull()
+    expect(screen.getByRole('heading', { name: 'New TV Series List' })).not.toBeNull()
   })
 })

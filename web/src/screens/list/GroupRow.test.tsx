@@ -49,7 +49,7 @@ describe('GroupRow', () => {
   it('says "All done" instead of the time left when every item is done', () => {
     renderRow({ ...BLOCK, done: 6, minutesLeft: 0, allDone: true })
 
-    expect(screen.getByText('✓ All done')).toBeTruthy()
+    expect(screen.getByText('✓ All Done')).toBeTruthy()
     expect(screen.queryByText(/left/)).toBeNull()
     expect(document.querySelector('.q-group.complete')).not.toBeNull()
   })
@@ -104,7 +104,7 @@ describe('GroupRow', () => {
     it('has a drag handle when it has items, named for what it does, and none when it is empty', () => {
       renderRow(withItems)
       const handle = document.querySelector('.q-group .q-handle') as HTMLElement
-      expect(handle.getAttribute('title')).toBe('Drag to move this group on the list')
+      expect(handle.getAttribute('title')).toBe('Drag to move the whole group across the list')
 
       cleanup()
       renderRow(BLOCK)

@@ -77,21 +77,21 @@ describe('SettingsScreen', () => {
   it('lists the five skins and lights the current one', () => {
     renderSettings({ skin: 'light-bone' })
 
-    for (const label of ['Dark orange', 'Dark green', 'Dark blue', 'Dark violet', 'Light bone']) {
+    for (const label of ['Destiny', 'Jupiter', 'Deluge', 'Romans', 'Jouhou']) {
       expect(screen.getByRole('button', { name: label })).not.toBeNull()
     }
-    expect(pressed('Light bone')).toBe('true')
-    expect(pressed('Dark blue')).toBe('false')
+    expect(pressed('Jouhou')).toBe('true')
+    expect(pressed('Deluge')).toBe('false')
   })
 
   it('picking a skin applies it and announces it in the live region', async () => {
     const { onSkinChange, container } = renderSettings()
 
-    act(() => screen.getByRole('button', { name: 'Dark violet' }).click())
+    act(() => screen.getByRole('button', { name: 'Romans' }).click())
 
     expect(onSkinChange).toHaveBeenCalledExactlyOnceWith('dark-violet')
     await waitFor(() => {
-      expect(container.querySelector('.q-live')?.textContent).toBe('Switched to the Dark violet skin.')
+      expect(container.querySelector('.q-live')?.textContent).toBe('Switched to the Romans skin.')
     })
   })
 
@@ -99,13 +99,13 @@ describe('SettingsScreen', () => {
     renderSettings()
 
     expect(screen.queryByRole('button', { name: /Drum carousel|Fast push/ })).toBeNull()
-    expect(screen.getByRole('checkbox', { name: /Reduce motion/ })).toBeTruthy()
+    expect(screen.getByRole('checkbox', { name: /Reduce animation motion/ })).toBeTruthy()
   })
 
   it('the reduce-motion box starts ticked when the system asks for less, and unticking persists a no', () => {
     vi.stubGlobal('matchMedia', () => ({ matches: true, addEventListener() {}, removeEventListener() {} }))
     renderSettings()
-    const box = screen.getByRole('checkbox', { name: /Reduce motion/ }) as HTMLInputElement
+    const box = screen.getByRole('checkbox', { name: /Reduce animation motion/ }) as HTMLInputElement
     expect(box.checked).toBe(true)
 
     act(() => box.click())
@@ -116,7 +116,7 @@ describe('SettingsScreen', () => {
 
   it('ticking the reduce-motion box persists a yes', () => {
     renderSettings()
-    const box = screen.getByRole('checkbox', { name: /Reduce motion/ }) as HTMLInputElement
+    const box = screen.getByRole('checkbox', { name: /Reduce animation motion/ }) as HTMLInputElement
     expect(box.checked).toBe(false)
 
     act(() => box.click())

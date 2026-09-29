@@ -45,13 +45,13 @@ describe('AppHeader', () => {
     act(() => screen.getByRole('button', { name: 'Skin' }).click())
 
     const menu = screen.getByRole('dialog')
-    act(() => within(menu).getByText('Dark blue').click())
+    act(() => within(menu).getByText('Deluge').click())
 
     expect(onSkinChange).toHaveBeenCalledExactlyOnceWith('dark-blue')
     expect(screen.queryByRole('dialog')).toBeNull() // menu closed
     await waitFor(() => {
       expect(container.querySelector('.q-live')?.textContent).toBe(
-        'Switched to the Dark blue skin.',
+        'Switched to the Deluge skin.',
       )
     })
   })
@@ -65,7 +65,7 @@ describe('AppHeader', () => {
 
     act(() => screen.getByRole('button', { name: 'Skin' }).click())
 
-    const current = screen.getByRole('button', { name: 'Dark blue' })
+    const current = screen.getByRole('button', { name: 'Deluge' })
     expect(current.getAttribute('aria-current')).toBe('true')
   })
 })

@@ -6,8 +6,8 @@ describe('statusChipData', () => {
     expect(statusChipData('complete')).toEqual({
       value: 'complete',
       label: 'Complete',
-      note: 'Finished — it will not gain items.',
-      tip: 'Complete — Finished — it will not gain items.',
+      note: 'This list is finished (nothing new will come out)',
+      tip: 'Complete — This list is finished (nothing new will come out)',
     })
   })
 
@@ -15,8 +15,8 @@ describe('statusChipData', () => {
     expect(statusChipData('ongoing')).toEqual({
       value: 'ongoing',
       label: 'Ongoing',
-      note: 'More may appear upstream.',
-      tip: 'Ongoing — More may appear upstream.',
+      note: 'This list is not over yet (new stuff is coming out)',
+      tip: 'Ongoing — This list is not over yet (new stuff is coming out)',
     })
   })
 

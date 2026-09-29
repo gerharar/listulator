@@ -4,7 +4,7 @@ import { statusPickerOptions } from './StatusPicker.js'
 describe('statusPickerOptions', () => {
   it('is Not known, Ongoing, Complete, in exactly that order, every time', () => {
     expect(statusPickerOptions().map((option) => option.label)).toEqual([
-      'Not known',
+      'Schrödinger',
       'Ongoing',
       'Complete',
     ])
@@ -13,9 +13,9 @@ describe('statusPickerOptions', () => {
 
   it('carries the exact consequence sentence for each option', () => {
     expect(statusPickerOptions().map((option) => option.note)).toEqual([
-      'Leave blank if you do not know.',
-      'More may appear upstream.',
-      'Finished — it will not gain items.',
+      'You have no idea whether the media behind this list will get new stuff or not',
+      'This list is not over yet (new stuff is coming out)',
+      'This list is finished (nothing new will come out)',
     ])
   })
 })

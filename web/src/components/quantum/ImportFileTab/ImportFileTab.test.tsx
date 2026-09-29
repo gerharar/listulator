@@ -26,7 +26,7 @@ afterEach(() => {
 
 const YAML = 'title: X\ncategory: movie\nitems:\n  - { title: A }\n'
 
-const box = () => screen.getByLabelText(/^YAML/) as HTMLTextAreaElement
+const box = () => screen.getByLabelText(/^Or Paste YAML Here/) as HTMLTextAreaElement
 const dialog = () => screen.getByRole('dialog')
 const importButton = () => screen.getByRole('button', { name: /^Import/ }) as HTMLButtonElement
 
@@ -134,8 +134,8 @@ describe('ImportFileTab', () => {
     fireEvent.click(importButton())
 
     expect(screen.getByText('Import to Movies?')).not.toBeNull()
-    const note = within(dialog()).getByText(/^Current category is/)
-    expect(note.textContent).toBe("Current category is Games, the list you're importing is from Movies.")
+    const note = within(dialog()).getByText(/^We are in/)
+    expect(note.textContent).toBe("We are in Games, and the list you're importing is from Movies.")
     // Both names stand out, in the note's own font.
     expect([...note.querySelectorAll('strong')].map((name) => name.textContent)).toEqual([
       'Games',
@@ -193,7 +193,7 @@ describe('ImportFileTab', () => {
 
     await waitFor(() => expect(screen.getByRole('button', { name: 'Importing…' })).toBeTruthy())
     expect(box().readOnly).toBe(true)
-    expect((screen.getByRole('button', { name: 'Choose file…' }) as HTMLButtonElement).disabled).toBe(true)
+    expect((screen.getByRole('button', { name: 'Choose File…' }) as HTMLButtonElement).disabled).toBe(true)
     finish({ id: 'x' } as never)
   })
 
@@ -233,7 +233,7 @@ describe('ImportFileTab', () => {
 
     expect(
       screen.getByText(
-        'Listulator lists travel as YAML files. Export writes one; Import reads it back as a new list.',
+        'Use Export feature in a list to create a YAML list file',
       ),
     ).toBeTruthy()
   })
@@ -242,6 +242,6 @@ describe('ImportFileTab', () => {
     renderTab()
 
     const row = screen.getByRole('button', { name: 'Import' }).parentElement!
-    expect(row.textContent).toContain('Listulator lists travel as YAML files.')
+    expect(row.textContent).toContain('Use Export feature in a list to create a YAML list file')
   })
 })

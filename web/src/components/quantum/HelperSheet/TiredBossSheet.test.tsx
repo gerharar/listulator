@@ -56,7 +56,7 @@ describe('opening', () => {
     expect(screen.getByRole('button', { name: /Alpha/ })).toBeTruthy()
     expect(screen.getByText('Top pick')).toBeTruthy()
     expect(screen.getByText('List x · 45m')).toBeTruthy()
-    expect(screen.getByText(/Different medium, and you have not touched it/)).toBeTruthy()
+    expect(screen.getByText(/Different medium, and you haven't touched it/)).toBeTruthy()
     expect(screen.getByText('Alternates')).toBeTruthy()
     expect(['Next in y', 'Next in z', 'Next in w'].every((title) => screen.queryByText(title))).toBe(true)
     expect(screen.queryByText('Next in v')).toBeNull()
@@ -108,7 +108,7 @@ describe('the list picker', () => {
     renderSheet({ lists: many, initialTarget: undefined })
 
     fireEvent.click(screen.getByRole('button', { name: /Pick a list/ }))
-    const filter = await screen.findByPlaceholderText('Filter lists…')
+    const filter = await screen.findByPlaceholderText('Find the culprit…')
     fireEvent.change(filter, { target: { value: 'number 3' } })
     expect(screen.getByText('1 of 9')).toBeTruthy()
 
@@ -121,7 +121,7 @@ describe('the list picker', () => {
     fireEvent.click(screen.getByRole('button', { name: /Alpha/ }))
     await screen.findByText('OR?')
 
-    expect(screen.queryByPlaceholderText('Filter lists…')).toBeNull()
+    expect(screen.queryByPlaceholderText('Find the culprit…')).toBeNull()
   })
 
   it('shows only the newest answer when the choice changes while one is on its way', async () => {
@@ -162,7 +162,7 @@ describe('Not That', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Not That' }))
 
     expect(within(screen.getByText('Top pick').parentElement!).getByText('Next in x')).toBeTruthy()
-    await waitFor(() => expect(document.querySelector('.q-live')!.textContent).toBe('Back to the strongest pick'))
+    await waitFor(() => expect(document.querySelector('.q-live')!.textContent).toBe('…Time is a flat circle…'))
   })
 
   it('starts fresh when another list is chosen', async () => {
@@ -182,7 +182,7 @@ describe('opening a suggestion', () => {
     const props = renderSheet()
     await screen.findByText('Next in x')
 
-    fireEvent.click(screen.getByRole('button', { name: 'Open The List' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Open List' }))
 
     expect(props.onOpenList).toHaveBeenCalledWith('x')
   })
@@ -210,9 +210,9 @@ describe('when there is nothing, or something goes wrong', () => {
     vi.mocked(api.tiredBoss).mockRejectedValueOnce(new Error('offline'))
     renderSheet()
 
-    expect(await screen.findByText('Could not get a suggestion')).toBeTruthy()
+    expect(await screen.findByText('Couldn\'t find anything to suggest')).toBeTruthy()
 
-    fireEvent.click(screen.getByRole('button', { name: 'Try again' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Try Again' }))
     expect(await screen.findByText('Next in x')).toBeTruthy()
     expect(api.tiredBoss).toHaveBeenCalledTimes(2)
   })

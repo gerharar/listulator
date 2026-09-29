@@ -182,9 +182,9 @@ describe('ItemEditPopover — Platform (U5)', () => {
     const props = renderEdit({ loadSource })
     fireEvent.click(field())
 
-    await waitFor(() => expect(within(panel()).getByText('Source says PS3.')).toBeTruthy())
-    fireEvent.click(within(panel()).getByRole('button', { name: 'Reset to source' }))
-    expect(within(panel()).queryByText('Source says PS3.')).toBeNull()
+    await waitFor(() => expect(within(panel()).getByText('Source: PS3')).toBeTruthy())
+    fireEvent.click(within(panel()).getByRole('button', { name: 'Reset' }))
+    expect(within(panel()).queryByText('Source: PS3')).toBeNull()
     fireEvent.click(save())
 
     expect(props.onCommit).toHaveBeenCalledWith({ tags: ['PS3'] }, 'save')
@@ -199,7 +199,7 @@ describe('ItemEditPopover — Platform (U5)', () => {
     for (const title of ['A', 'AB', 'ABC']) fireEvent.change(screen.getByLabelText('Title'), { target: { value: title } })
     answer({ sourced: true, tags: ['PS3'] })
 
-    await waitFor(() => expect(within(panel()).getByText('Source says PS3.')).toBeTruthy())
+    await waitFor(() => expect(within(panel()).getByText('Source: PS3')).toBeTruthy())
     expect(spy).toHaveBeenCalledTimes(1)
   })
 
@@ -209,7 +209,7 @@ describe('ItemEditPopover — Platform (U5)', () => {
     fireEvent.click(field())
 
     await waitFor(() => expect(loadSource).toHaveBeenCalled())
-    expect(within(panel()).queryByRole('button', { name: 'Reset to source' })).toBeNull()
+    expect(within(panel()).queryByRole('button', { name: 'Reset' })).toBeNull()
   })
 })
 

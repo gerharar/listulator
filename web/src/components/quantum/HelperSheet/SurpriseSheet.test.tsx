@@ -57,7 +57,7 @@ afterEach(() => {
 })
 
 async function ready() {
-  await screen.findByRole('button', { name: 'Spin' })
+  await screen.findByRole('button', { name: 'Spin To Win!' })
 }
 const chip = (name: string) => screen.getByRole('button', { name })
 const digits = () => Array.from(document.querySelectorAll('.q-digit')).map((d) => d.textContent).join('')
@@ -68,11 +68,11 @@ describe('opening', () => {
     renderSheet()
     await ready()
 
-    expect(screen.getByText('Surprise, Motherfucker!')).toBeTruthy()
-    expect(screen.getByText(/A random curated list you're not tracking yet/)).toBeTruthy()
+    expect(screen.getByText('Surprise, MFer!')).toBeTruthy()
+    expect(screen.getByText(/Random canonical list you're not tracking yet/)).toBeTruthy()
     expect(['Any', 'Mega', 'Books', 'MMA', 'TV Series'].every((label) => chip(label))).toBe(true)
     expect(chip('Any').getAttribute('aria-pressed')).toBe('true')
-    expect(screen.getByText('4 candidates across every shelf')).toBeTruthy()
+    expect(screen.getByText('4 candidates across all categories')).toBeTruthy()
     expect(screen.getByText('Spin to win!')).toBeTruthy()
     expect(digits()).toBe('000000')
     expect(screen.getByText('Choose your categories and try your luck!')).toBeTruthy()
@@ -81,7 +81,7 @@ describe('opening', () => {
   it('renders nothing, and asks nothing, when closed', () => {
     renderSheet({ open: false })
 
-    expect(screen.queryByText('Surprise, Motherfucker!')).toBeNull()
+    expect(screen.queryByText('Surprise, MFer!')).toBeNull()
     expect(api.libraryUntracked).not.toHaveBeenCalled()
   })
 
@@ -89,10 +89,10 @@ describe('opening', () => {
     vi.mocked(api.libraryUntracked).mockResolvedValueOnce({ entries: [], reachable: false })
     renderSheet()
 
-    expect(await screen.findByText('Could not reach the community library.')).toBeTruthy()
-    fireEvent.click(screen.getByRole('button', { name: 'Try again' }))
+    expect(await screen.findByText('Could not reach the List Vault.')).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: 'Try Again' }))
 
-    expect(await screen.findByRole('button', { name: 'Spin' })).toBeTruthy()
+    expect(await screen.findByRole('button', { name: 'Spin To Win!' })).toBeTruthy()
   })
 })
 
@@ -102,25 +102,25 @@ describe('the shelves', () => {
     await ready()
 
     fireEvent.click(chip('Books'))
-    expect(screen.getByText('2 candidates on this shelf')).toBeTruthy()
+    expect(screen.getByText('2 candidates in this category')).toBeTruthy()
     expect(chip('Any').getAttribute('aria-pressed')).toBe('false')
 
     fireEvent.click(chip('MMA'))
-    expect(screen.getByText('3 candidates on 2 shelves')).toBeTruthy()
+    expect(screen.getByText('3 candidates in 2 categories')).toBeTruthy()
 
     fireEvent.click(chip('Any'))
-    expect(screen.getByText('4 candidates across every shelf')).toBeTruthy()
+    expect(screen.getByText('4 candidates across all categories')).toBeTruthy()
   })
 
   it('say when nothing is left on a shelf, and dim it', async () => {
     renderSheet()
     await ready()
 
-    expect(chip('TV Series').getAttribute('title')).toBe('Nothing left here — you track it all')
+    expect(chip('TV Series').getAttribute('title')).toBe('Nothing left here: you are tracking everything')
     expect(chip('TV Series').className).toContain('none')
-    expect(chip('Books').getAttribute('title')).toBe('2 candidates on this shelf')
+    expect(chip('Books').getAttribute('title')).toBe('2 candidates in this category')
     fireEvent.click(chip('TV Series'))
-    expect(screen.getByText('Nothing left here — you track it all')).toBeTruthy()
+    expect(screen.getByText('Nothing left here: you are tracking everything')).toBeTruthy()
   })
 })
 
@@ -142,14 +142,14 @@ describe('spinning', () => {
     renderSheet()
     await act(async () => void (await vi.advanceTimersByTimeAsync(0)))
 
-    fireEvent.click(screen.getByRole('button', { name: 'Spin' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Spin To Win!' }))
     expect(screen.getByRole('button', { name: 'Spinning…' }).hasAttribute('disabled')).toBe(true)
     expect(screen.getAllByText('Spinning…').length).toBeGreaterThan(0)
 
     await settle()
 
     expect(screen.getByText('MCU')).toBeTruthy()
-    expect(screen.getByText('Mega · 23 items · curated list')).toBeTruthy()
+    expect(screen.getByText('Mega · 23 items · canonical list')).toBeTruthy()
     expect(screen.getByText('Every film, in release order.')).toBeTruthy()
     expect(screen.getByText('Complete')).toBeTruthy()
     expect(digits()).toBe('000023')
@@ -165,11 +165,11 @@ describe('spinning', () => {
     await act(async () => void (await vi.advanceTimersByTimeAsync(0)))
 
     fireEvent.click(chip('MMA'))
-    fireEvent.click(screen.getByRole('button', { name: 'Spin' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Spin To Win!' }))
     await settle()
 
     expect(screen.getByText('All UFC Events')).toBeTruthy()
-    expect(screen.getByText('MMA · 757 items · curated list')).toBeTruthy()
+    expect(screen.getByText('MMA · 757 items · canonical list')).toBeTruthy()
   })
 
   it('shows dashes for the count when the index does not carry one', async () => {
@@ -179,10 +179,10 @@ describe('spinning', () => {
     await ready()
 
     fireEvent.click(chip('Books'))
-    fireEvent.click(screen.getByRole('button', { name: 'Spin' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Spin To Win!' }))
 
     expect(await screen.findByText('The Hobbit')).toBeTruthy()
-    expect(screen.getByText('Books · curated list')).toBeTruthy()
+    expect(screen.getByText('Books · canonical list')).toBeTruthy()
     expect(digits()).toBe('——————')
   })
 
@@ -191,7 +191,7 @@ describe('spinning', () => {
     renderSheet()
     await ready()
 
-    fireEvent.click(screen.getByRole('button', { name: 'Spin' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Spin To Win!' }))
 
     expect(await screen.findByText('MCU')).toBeTruthy()
     expect(screen.getByRole('button', { name: 'This One' })).toBeTruthy()
@@ -201,7 +201,7 @@ describe('spinning', () => {
     vi.useFakeTimers()
     renderSheet()
     await act(async () => void (await vi.advanceTimersByTimeAsync(0)))
-    fireEvent.click(screen.getByRole('button', { name: 'Spin' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Spin To Win!' }))
     await settle()
     expect(screen.getByRole('button', { name: 'This One' })).toBeTruthy()
 
@@ -217,9 +217,9 @@ describe('spinning', () => {
     await ready()
 
     fireEvent.click(chip('TV Series'))
-    fireEvent.click(screen.getByRole('button', { name: 'Spin' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Spin To Win!' }))
 
-    expect(await screen.findByText('Nothing left on this shelf — you already track every canonical list there.')).toBeTruthy()
+    expect(await screen.findByText('Nothing left in this category: you already track every canonical list there.')).toBeTruthy()
     expect(screen.queryByText('Spinning…')).toBeNull()
   })
 
@@ -228,7 +228,7 @@ describe('spinning', () => {
     const random = vi.fn(() => 0)
     renderSheet({ random })
     await act(async () => void (await vi.advanceTimersByTimeAsync(0)))
-    fireEvent.click(screen.getByRole('button', { name: 'Spin' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Spin To Win!' }))
     await act(async () => void (await vi.advanceTimersByTimeAsync(200)))
     const during = random.mock.calls.length
     expect(during).toBeGreaterThan(2)
@@ -246,7 +246,7 @@ describe('taking the pick', () => {
     reduced(true)
     const props = renderSheet()
     await ready()
-    fireEvent.click(screen.getByRole('button', { name: 'Spin' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Spin To Win!' }))
     await screen.findByText('MCU')
 
     fireEvent.click(screen.getByRole('button', { name: 'This One' }))

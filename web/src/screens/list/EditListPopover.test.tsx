@@ -148,7 +148,7 @@ describe('EditListPopover', () => {
     const { onCommit, onDiscard } = renderPopover()
 
     fireEvent.change(title(), { target: { value: 'Typed' } })
-    fireEvent.click(screen.getByRole('button', { name: 'Discard' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Don\'t Save' }))
 
     expect(onDiscard).toHaveBeenCalledTimes(1)
     expect(onCommit).not.toHaveBeenCalled()

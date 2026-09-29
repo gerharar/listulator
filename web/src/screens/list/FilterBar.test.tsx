@@ -12,7 +12,7 @@ const platform: FacetGroup = {
   options: [
     { key: 'ps3', label: 'PS3' },
     { key: 'pc', label: 'PC' },
-    { key: '__untagged', label: 'Untagged' },
+    { key: '__untagged', label: '(unknown)' },
   ],
   keepOrder: true,
 }
@@ -55,7 +55,7 @@ describe('FilterBar', () => {
   it('shows a facet row with All and one button per option', () => {
     bar({ facets: [platform] })
     expect(screen.getByText('Platform')).toBeTruthy()
-    for (const name of ['All', 'PS3', 'PC', 'Untagged']) expect(screen.getByRole('button', { name })).toBeTruthy()
+    for (const name of ['All', 'PS3', 'PC', '(unknown)']) expect(screen.getByRole('button', { name })).toBeTruthy()
   })
 
   it('puts a facet’s options A–Z by shown name, Untagged last, unless it keeps its own order (owner, 2026-09-27)', () => {
@@ -64,7 +64,7 @@ describe('FilterBar', () => {
       label: 'Medium',
       options: [
         { key: 'movie', label: 'Movie' },
-        { key: '__untagged', label: 'Untagged' },
+        { key: '__untagged', label: '(unknown)' },
         { key: 'game', label: 'Game' },
         { key: 'book', label: 'Book' },
       ],
@@ -72,11 +72,11 @@ describe('FilterBar', () => {
     }
     bar({ facets: [medium] })
     const names = () => screen.getAllByRole('button').map((button) => button.textContent).filter((name) => name !== 'All')
-    expect(names().slice(0, 4)).toEqual(['Book', 'Game', 'Movie', 'Untagged'])
+    expect(names().slice(0, 4)).toEqual(['Book', 'Game', 'Movie', '(unknown)'])
 
     cleanup()
     bar({ facets: [{ ...medium, keepOrder: true }] })
-    expect(names().slice(0, 4)).toEqual(['Movie', 'Untagged', 'Game', 'Book'])
+    expect(names().slice(0, 4)).toEqual(['Movie', '(unknown)', 'Game', 'Book'])
   })
 
   it('marks a flag’s option with the chip’s dot, to its left, as a hint (owner)', () => {
@@ -99,7 +99,7 @@ describe('FilterBar', () => {
   it('lights All instead when the last remaining option is picked (U1)', () => {
     const props = bar({ facets: [platform], selection: { platform: new Set(['ps3', 'pc']) } })
 
-    fireEvent.click(screen.getByRole('button', { name: 'Untagged' }))
+    fireEvent.click(screen.getByRole('button', { name: '(unknown)' }))
 
     expect(props.onSelect).toHaveBeenCalledWith('platform', new Set())
   })
@@ -112,12 +112,12 @@ describe('FilterBar', () => {
   it('offers fold-all only when told, and says which way it will go', () => {
     const onToggle = vi.fn()
     bar({ fold: { collapse: true, onToggle } })
-    fireEvent.click(screen.getByRole('button', { name: 'Collapse all' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Collapse' }))
     expect(onToggle).toHaveBeenCalled()
   })
 
   it('reads Expand all when nothing is open', () => {
     bar({ fold: { collapse: false, onToggle: vi.fn() } })
-    expect(screen.getByRole('button', { name: 'Expand all' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Expand' })).toBeTruthy()
   })
 })

@@ -18,7 +18,7 @@ describe('turning a failed response into something to show', () => {
     // the sentence is written once, here.
     respondWith({ code: 'search.unavailable', params: { category: 'Movies' } }, 409)
 
-    await expect(api.lists()).rejects.toThrow('Search is not available for Movies. Add items by hand.')
+    await expect(api.lists()).rejects.toThrow('Search is not available for Movies. You can import a list or create one manually.')
   })
 
   it('falls back to a message for errors that carry one', async () => {
@@ -41,7 +41,7 @@ describe('turning a failed response into something to show', () => {
     respondWith({ code: 'refresh.handMadeList', message: 'stale prose' }, 409)
 
     await expect(api.lists()).rejects.toThrow(
-      'This list was made by hand, so there is nothing to check against.',
+      'This list was a hand job, so there is nothing to check against.',
     )
   })
 
@@ -54,7 +54,7 @@ describe('turning a failed response into something to show', () => {
       }),
     )
 
-    await expect(api.lists()).rejects.toThrow('Cannot reach the server. Is it running?')
+    await expect(api.lists()).rejects.toThrow('Cannot reach the server. Is anybody there?')
   })
 
   it('carries the status for callers that need it', async () => {
@@ -266,10 +266,10 @@ describe('group calls (task 10.16)', () => {
 
   it('words the group refusals from the locale', async () => {
     stubFetch({ code: 'group.nameTaken' }, 409)
-    await expect(api.createGroup('L1', 'x')).rejects.toThrow('already has a group called that')
+    await expect(api.createGroup('L1', 'x')).rejects.toThrow('already has a group with such name')
 
     stubFetch({ code: 'group.notEmpty' }, 409)
-    await expect(api.deleteGroup('L1', 'g1')).rejects.toThrow('Only an empty group')
+    await expect(api.deleteGroup('L1', 'g1')).rejects.toThrow('only when you embrace its emptiness')
   })
 })
 

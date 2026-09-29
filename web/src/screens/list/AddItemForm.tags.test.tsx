@@ -37,7 +37,7 @@ function renderForm(overrides: Partial<Parameters<typeof AddItemForm>[0]> = {}) 
 
 const title = () => screen.getByLabelText('Title') as HTMLInputElement
 const addButton = () => screen.getByRole('button', { name: 'Add' }) as HTMLButtonElement
-const platformButton = () => screen.getByRole('button', { name: /^Platform for the next item:/ })
+const platformButton = () => screen.getByRole('button', { name: /^Default platforms for manually added items:/ })
 const panel = () => screen.getByRole('dialog', { name: 'Choose platforms' })
 
 describe('AddItemForm — the next item’s platforms (U5)', () => {
@@ -52,7 +52,7 @@ describe('AddItemForm — the next item’s platforms (U5)', () => {
   it('picks in the Platform panel, headed for the next item, and adds with them', async () => {
     const { onAdd } = renderForm()
     fireEvent.click(platformButton())
-    expect(within(panel()).getByText('Next item you add')).toBeTruthy()
+    expect(within(panel()).getByText('Default Platforms')).toBeTruthy()
     fireEvent.click(within(panel()).getByRole('button', { name: /^PS3/ }))
     expect(platformButton().textContent).toContain('PS3')
 
@@ -163,7 +163,7 @@ describe('AddItemForm — the Type/Medium list closes without focus (WebKit neve
 describe('AddItemForm — no tag field (U5)', () => {
   it('shows no picker and adds without tags', async () => {
     const { onAdd } = renderForm({ tagField: null })
-    expect(screen.queryByRole('button', { name: /^Platform for the next item:/ })).toBeNull()
+    expect(screen.queryByRole('button', { name: /^Default platforms for manually added items:/ })).toBeNull()
 
     fireEvent.change(title(), { target: { value: 'Pilot' } })
     fireEvent.click(addButton())

@@ -186,13 +186,13 @@ describe('Home', () => {
   })
 
   it('shows an ErrorBlock, not the create flow, when the server is unreachable', async () => {
-    vi.mocked(api.mediaTypes).mockRejectedValue(new Error('Cannot reach the server. Is it running?'))
-    vi.mocked(api.lists).mockRejectedValue(new Error('Cannot reach the server. Is it running?'))
+    vi.mocked(api.mediaTypes).mockRejectedValue(new Error('Cannot reach the server. Is anybody there?'))
+    vi.mocked(api.lists).mockRejectedValue(new Error('Cannot reach the server. Is anybody there?'))
 
     renderHome()
 
     await waitFor(() =>
-      expect(screen.getByText('Cannot reach the server. Is it running?')).not.toBeNull(),
+      expect(screen.getByText('Cannot reach the server. Is anybody there?')).not.toBeNull(),
     )
     expect(screen.getByTestId('stack').textContent).toBe('home:home')
     expect(screen.getByRole('button', { name: 'Retry' })).not.toBeNull()
@@ -307,7 +307,7 @@ describe('Home', () => {
       fireEvent.click(tired())
       await screen.findByText('Pilot')
 
-      fireEvent.click(screen.getByRole('button', { name: 'Open The List' }))
+      fireEvent.click(screen.getByRole('button', { name: 'Open List' }))
 
       expect(screen.getByTestId('stack').textContent).toBe('home:home,list:list-list-2')
       await waitFor(() => expect(screen.queryByText('And Now For Something Completely Different')).toBeNull())
@@ -435,7 +435,7 @@ describe('Home updates (task 10.22c)', () => {
     await waitFor(() => expect(bandFor('Alpha')).toBeDefined())
     const band = within(bandFor('Alpha')!)
     expect(band.getByText('Alpha', { selector: 'b' })).not.toBeNull()
-    expect(bandFor('Alpha')!.textContent).toMatch(/has 2 new items\./)
+    expect(bandFor('Alpha')!.textContent).toMatch(/has 2 new items/)
     expect(band.getByRole('button', { name: 'Update List' })).not.toBeNull()
     expect(band.getByRole('button', { name: 'Dismiss' })).not.toBeNull()
   })
@@ -446,7 +446,7 @@ describe('Home updates (task 10.22c)', () => {
 
     renderHome(vi.fn(), pending)
 
-    await waitFor(() => expect(bandFor('Alpha')!.textContent).toMatch(/has 1 new item\./))
+    await waitFor(() => expect(bandFor('Alpha')!.textContent).toMatch(/has 1 new item/))
   })
 
   it('shows at most three bands, in the order the lists are shown, and the next when one is handled', async () => {
@@ -551,7 +551,7 @@ describe('Home updates (task 10.22c)', () => {
 
       act(() => within(bandFor('Alpha')!).getByRole('button', { name: 'Update List' }).click())
 
-      expect(await screen.findAllByText('No new items upstream.')).not.toHaveLength(0)
+      expect(await screen.findAllByText('Nothing new up there.')).not.toHaveLength(0)
       expect(api.importItems).not.toHaveBeenCalled()
       expect(bands()).toHaveLength(0)
     })
@@ -623,7 +623,7 @@ describe('Home updates (task 10.22c)', () => {
       expect((screen.getByRole('button', { name: 'Check for updates' }) as HTMLButtonElement).disabled).toBe(false)
     })
 
-    it('answers "No new items upstream." when there is nothing anywhere', async () => {
+    it('answers "No updates found" when there is nothing anywhere', async () => {
       setupLists([two('a', 'Alpha')])
       vi.mocked(api.checkForUpdates).mockResolvedValue(found(0))
       const { pending } = await pendingWith()
@@ -632,7 +632,7 @@ describe('Home updates (task 10.22c)', () => {
 
       press()
 
-      expect(await screen.findAllByText('No new items upstream.')).not.toHaveLength(0)
+      expect(await screen.findAllByText('Nothing new up there.')).not.toHaveLength(0)
     })
 
     it('brings back an update that was dismissed: an explicit check shows everything available', async () => {
@@ -663,7 +663,7 @@ describe('Home updates (task 10.22c)', () => {
 
       press()
 
-      expect(await screen.findAllByText('Could not check 1 list: Bravo')).not.toHaveLength(0)
+      expect(await screen.findAllByText("Couldn't check 1 list: Bravo")).not.toHaveLength(0)
       expect(bandFor('Alpha')).toBeDefined()
       expect(bandFor('Charlie')).toBeDefined()
     })
@@ -725,7 +725,7 @@ describe('Home updates (task 10.22c)', () => {
       fireEvent.click(finalizer())
       await screen.findByText('Pilot')
 
-      fireEvent.click(screen.getByRole('button', { name: 'Open The List' }))
+      fireEvent.click(screen.getByRole('button', { name: 'Open List' }))
 
       expect(screen.getByTestId('stack').textContent).toBe('home:home,list:list-list-2')
       await waitFor(() => expect(screen.queryByText('Finish Him!')).toBeNull())
@@ -757,7 +757,7 @@ describe('Home updates (task 10.22c)', () => {
 
       fireEvent.click(button())
       expect(await screen.findByText('A short one')).toBeTruthy()
-      expect(screen.getByText('Shortest unfinished item you have — 7m and it is done.')).toBeTruthy()
+      expect(screen.getByText('Shortest unfinished item you have -- 7m and it\'s done.')).toBeTruthy()
       expect(button().getAttribute('aria-pressed')).toBe('true')
 
       fireEvent.click(button())
@@ -769,7 +769,7 @@ describe('Home updates (task 10.22c)', () => {
       fireEvent.click(button())
       await screen.findByText('A short one')
 
-      fireEvent.click(screen.getByRole('button', { name: 'Open The List' }))
+      fireEvent.click(screen.getByRole('button', { name: 'Open List' }))
 
       expect(screen.getByTestId('stack').textContent).toBe('home:home,list:list-list-2')
       await waitFor(() => expect(screen.queryByText('A short one')).toBeNull())
@@ -798,17 +798,17 @@ describe('Home updates (task 10.22c)', () => {
       await ready()
 
       fireEvent.click(button())
-      expect(await screen.findByText('Surprise, Motherfucker!')).toBeTruthy()
+      expect(await screen.findByText('Surprise, MFer!')).toBeTruthy()
       expect(button().getAttribute('aria-pressed')).toBe('true')
 
       fireEvent.click(button())
-      await waitFor(() => expect(screen.queryByText('Surprise, Motherfucker!')).toBeNull())
+      await waitFor(() => expect(screen.queryByText('Surprise, MFer!')).toBeNull())
     })
 
     it('This One opens the preview of that list, in the category it belongs to, and closes the sheet', async () => {
       await ready()
       fireEvent.click(button())
-      fireEvent.click(await screen.findByRole('button', { name: 'Spin' }))
+      fireEvent.click(await screen.findByRole('button', { name: 'Spin To Win!' }))
       fireEvent.click(await screen.findByRole('button', { name: 'This One' }))
 
       expect(screen.getByTestId('stack').textContent).toBe('home:home,preview:preview-canonical:lists/tv/wire.yaml')
@@ -816,7 +816,7 @@ describe('Home updates (task 10.22c)', () => {
       expect(content).toContain('/lists/preview')
       expect(content).toContain('mediaType=tv')
       expect(decodeURIComponent(content)).toContain('canonical:lists/tv/wire.yaml')
-      await waitFor(() => expect(screen.queryByText('Surprise, Motherfucker!')).toBeNull())
+      await waitFor(() => expect(screen.queryByText('Surprise, MFer!')).toBeNull())
     })
   })
 })

@@ -34,8 +34,8 @@ describe('AppErrorBoundary', () => {
     )
 
     const alert = screen.getByRole('alert')
-    expect(alert.textContent).toContain('Something went wrong')
-    expect(alert.textContent).toContain('Your lists are saved')
+    expect(alert.textContent).toContain('Something went wrong. Pantshitality!')
+    expect(alert.textContent).toContain('your lists are not affected')
     fireEvent.click(screen.getByRole('button', { name: 'Reload' }))
     expect(reload).toHaveBeenCalledTimes(1)
   })

@@ -71,10 +71,10 @@ describe('locale', () => {
 
   it('renders a server error with its values', () => {
     expect(errorMessage('search.unavailable', { category: 'Movies' })).toBe(
-      'Search is not available for Movies. Add items by hand.',
+      'Search is not available for Movies. You can import a list or create one manually.',
     )
     expect(errorMessage('refresh.handMadeList')).toBe(
-      'This list was made by hand, so there is nothing to check against.',
+      'This list was a hand job, so there is nothing to check against.',
     )
   })
 
@@ -127,8 +127,6 @@ const SAME_AS_ENGLISH: Record<'ru' | 'de', readonly string[]> = {
     'quantum.settings.languages.en',
     'quantum.settings.languages.ru',
     'quantum.settings.languages.de',
-    'quantum.settings.keys.clientIdPlaceholder',
-    'quantum.settings.keys.clientSecretPlaceholder',
     'quantum.settings.keys.sources.tmdb.name',
     'quantum.settings.keys.sources.tmdb.host',
     'quantum.settings.keys.sources.igdb.name',
@@ -139,7 +137,7 @@ const SAME_AS_ENGLISH: Record<'ru' | 'de', readonly string[]> = {
     'quantum.settings.keys.sources.youtube.host',
     'quantum.list.filter.optionLabels.YouTube',
     'quantum.list.filter.optionLabels.EP',
-    'quantum.importFile.boxLabel',
+    'quantum.skin.labels.light-bone',
   ],
   de: [
     'sourceSearch.includeEp',
@@ -175,8 +173,10 @@ const SAME_AS_ENGLISH: Record<'ru' | 'de', readonly string[]> = {
     'quantum.list.filter.optionLabels.Live',
     'quantum.list.filter.optionLabels.Mini',
     'quantum.list.filter.optionLabels.Compilation',
-    'quantum.importFile.boxLabel',
     'quantum.home.helpButtons.finalizer',
+    'quantum.skin.labels.dark-green',
+    'quantum.skin.labels.light-bone',
+    'quantum.statusPicker.notKnown',
   ],
 }
 

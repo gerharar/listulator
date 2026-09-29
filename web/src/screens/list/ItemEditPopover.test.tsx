@@ -61,7 +61,7 @@ function renderPopover(overrides: Partial<Parameters<typeof ItemEditPopover>[0]>
 }
 
 const title = () => screen.getByLabelText('Title') as HTMLInputElement
-const minutes = () => screen.getByLabelText('Minutes') as HTMLInputElement
+const minutes = () => screen.getByLabelText('Duration (Minutes)') as HTMLInputElement
 const save = () => screen.getByRole('button', { name: 'Save' }) as HTMLButtonElement
 const clickAway = () => fireEvent.click(document.querySelector('.q-catcher')!)
 
@@ -104,7 +104,7 @@ describe('ItemEditPopover', () => {
     const { onCommit, onDiscard } = renderPopover()
 
     fireEvent.change(title(), { target: { value: 'Renamed' } })
-    fireEvent.click(screen.getByRole('button', { name: 'Discard' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Don\'t Save' }))
 
     expect(onDiscard).toHaveBeenCalledTimes(1)
     expect(onCommit).not.toHaveBeenCalled()

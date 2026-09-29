@@ -10,27 +10,27 @@ describe('formatProgress', () => {
     })
   })
 
-  it('reads "✓ All done" when finished and status is unknown', () => {
+  it('reads "✓ All Done" when finished and status is unknown', () => {
     expect(formatProgress(22, 22, 0, null)).toEqual({
       count: '22/22 (100%)',
       allDone: true,
-      left: '✓ All done',
+      left: '✓ All Done',
     })
   })
 
-  it('reads "✓ All done" when finished and the source is marked Complete', () => {
+  it('reads "✓ All Done" when finished and the source is marked Complete', () => {
     expect(formatProgress(22, 22, 0, 'complete')).toEqual({
       count: '22/22 (100%)',
       allDone: true,
-      left: '✓ All done',
+      left: '✓ All Done',
     })
   })
 
-  it('reads "✓ Done for now" when finished but the source is marked Ongoing — it is not a lie about the series', () => {
+  it('reads "✓ Done (for now)" when finished but the source is marked Ongoing — it is not a lie about the series', () => {
     expect(formatProgress(301, 301, 0, 'ongoing')).toEqual({
       count: '301/301 (100%)',
       allDone: true,
-      left: '✓ Done for now',
+      left: '✓ Done (for now)',
     })
   })
 

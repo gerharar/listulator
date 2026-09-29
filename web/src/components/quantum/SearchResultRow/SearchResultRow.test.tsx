@@ -29,7 +29,7 @@ describe('SearchResultRow', () => {
 
     expect(screen.getByText('Star Wars: Main Saga')).not.toBeNull()
     expect(screen.getByText('Collection · TMDB')).not.toBeNull()
-    expect(screen.queryByRole('button', { name: 'Add list' })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Add List' })).toBeNull()
     expect(screen.getByRole('button', { name: /Star Wars: Main Saga/ }).getAttribute('aria-expanded')).toBe('false')
   })
 
@@ -39,7 +39,7 @@ describe('SearchResultRow', () => {
     expect(screen.getByText('The numbered films only.')).not.toBeNull()
     expect(screen.getByText('From TMDB')).not.toBeNull()
     expect(screen.getByRole('button', { name: 'Preview' })).not.toBeNull()
-    expect(screen.getByRole('button', { name: 'Add list' })).not.toBeNull()
+    expect(screen.getByRole('button', { name: 'Add List' })).not.toBeNull()
     expect(screen.getByRole('button', { name: /Star Wars: Main Saga/ }).getAttribute('aria-expanded')).toBe('true')
   })
 
@@ -65,7 +65,7 @@ describe('SearchResultRow', () => {
   it('shows a spinner, not a number, while the count loads', () => {
     renderRow({ expansion: { state: 'loading' } })
 
-    expect(screen.getByRole('status', { name: 'Counting items…' })).not.toBeNull()
+    expect(screen.getByRole('status', { name: 'Counting…' })).not.toBeNull()
     expect(screen.queryByText('items')).toBeNull()
   })
 
@@ -116,7 +116,7 @@ describe('SearchResultRow', () => {
   it('a source that cannot enumerate before import says so in one line', () => {
     renderRow({ expanded: true, previewable: false })
 
-    expect(screen.getByText(/can't list its items before import/)).not.toBeNull()
+    expect(screen.getByText(/too shy to list its items/)).not.toBeNull()
     expect((screen.getByRole('button', { name: 'Preview' }) as HTMLButtonElement).disabled).toBe(true)
   })
 
@@ -125,7 +125,7 @@ describe('SearchResultRow', () => {
     const onToggle = vi.fn()
     renderRow({ expanded: true, onAdd, onToggle })
 
-    fireEvent.click(screen.getByRole('button', { name: 'Add list' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Add List' }))
 
     expect(onAdd).toHaveBeenCalledOnce()
     expect(onToggle).not.toHaveBeenCalled()
@@ -134,14 +134,14 @@ describe('SearchResultRow', () => {
   it('locks Add list while an import is running', () => {
     renderRow({ expanded: true, busy: true })
 
-    expect((screen.getByRole('button', { name: 'Add list' }) as HTMLButtonElement).disabled).toBe(true)
+    expect((screen.getByRole('button', { name: 'Add List' }) as HTMLButtonElement).disabled).toBe(true)
   })
 
   it('disables Add list on a result known to hold nothing, and says why', () => {
     renderRow({ expanded: true, expansion: { state: 'done', itemCount: 0 } })
 
-    const add = screen.getByRole('button', { name: 'Add list' }) as HTMLButtonElement
+    const add = screen.getByRole('button', { name: 'Add List' }) as HTMLButtonElement
     expect(add.disabled).toBe(true)
-    expect(add.title).toBe('Nothing to add — this source has no items to import')
+    expect(add.title).toBe('Curiously, this list has no items to add')
   })
 })

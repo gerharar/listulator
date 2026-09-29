@@ -105,8 +105,8 @@ export const en = {
    */
   errors: {
     'search.queryRequired': (): string => 'Hey, give me something to search for first',
-    'search.unavailable': (p: { category: string }): string => "Search is not available for ${p.category}. You can import a list or create one manually.",
-    'search.unavailableOffline': (p: { category: string }): string => "Search is not available for ${p.category}, and List Vault could not be reached. Try later or create a list by hand.",
+    'search.unavailable': (p: { category: string }): string => `Search is not available for ${p.category}. You can import a list or create one manually.`,
+    'search.unavailableOffline': (p: { category: string }): string => `Search is not available for ${p.category}, and List Vault could not be reached. Try later or create a list by hand.`,
     'list.unknownCategory': (p: { key: string }): string => `All thumbs alert: cannot import list, unknown category ‘${p.key}’. Check your category spelling against CONTRIBUTING.md, that's usually the problem`,
     'list.sourceEmpty': (p: { title: string }): string => `Premature listulation detected: found nothing to import for "${p.title}"`,
     'list.fileInvalid': (): string => `Wrong hole, buddy: your file is a square peg trying to penetrate a round hole, so it cannot be imported. Make sure it's in a properly formatted YAML format and has all required fields`,
@@ -433,7 +433,7 @@ export const en = {
         idleMeta: 'Spin to win!',
         note: 'Choose your categories and try your luck!',
         nothingHere: 'Nothing left here: you are tracking everything',
-        anyTitle: (n: number): string => `${n} ${selectPlural(n, 'en', { one: 'candidate', other: 'candidates' })} across all сategories`,
+        anyTitle: (n: number): string => `${n} ${selectPlural(n, 'en', { one: 'candidate', other: 'candidates' })} across all categories`,
         shelfTitle: (n: number): string => `${n} ${selectPlural(n, 'en', { one: 'candidate', other: 'candidates' })} in this category`,
         pool: (n: number, shelves: number): string =>
           `${n} ${selectPlural(n, 'en', { one: 'candidate', other: 'candidates' })}${
@@ -448,7 +448,7 @@ export const en = {
         nothingLeft: (shelves: number): string =>
           `Nothing left${shelves === 0 ? ' across every category' : shelves === 1 ? ' in this category' : ` in ${shelves} categories`}: you already track every canonical list there.`,
         unreachable: 'Could not reach the List Vault.',
-        curatedTip: 'Canonical list сreated and maintained by meatbags',
+        curatedTip: 'Canonical list created and maintained by meatbags',
       },
       justOneFix: {
         title: 'Just One Fix',
@@ -616,7 +616,7 @@ export const en = {
         undone: 'Reset undone',
         orderUndone: 'Order Restored',
         sortFailed: 'Couldn\'t sort this list',
-        resetFailed: 'Could\n't reset this list',
+        resetFailed: 'Couldn\'t reset this list',
         undoFailed: 'Couldn\'t undo that',
       },
       /** Moving rows (10.23), in the prototype's words. */
@@ -807,7 +807,9 @@ export const en = {
     },
     createList: {
       title: (category: string): string => `New ${category} List`,
-      searchTab: (source: string): string => `Search`,
+      // The source name is dropped in every language; the signature stays because callers still pass it.
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      searchTab: (_source: string): string => 'Search',
       handTab: 'Use Hands',
       importTab: 'Import',
       closeLabel: 'Close',

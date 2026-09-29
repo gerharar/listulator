@@ -154,7 +154,7 @@ describe('the bar', () => {
     expect(within(bar()).getByText('6 items')).toBeTruthy()
     const labels = Array.from(bar().querySelectorAll('.q-facet button')).map((button) => button.textContent)
     // Old tags (PC, NDS) read as today's codes (10.24c); the buttons run A to Z, then Untagged.
-    expect(labels).toEqual(['All', 'DS', 'PS3', 'PSP', 'WIN', 'X360', 'Untagged'])
+    expect(labels).toEqual(['All', 'DS', 'PS3', 'PSP', 'WIN', 'X360', '(unknown)'])
   })
 
   it('sits below the coloured header block, not inside it (prototype: the header ends at its rule)', async () => {
@@ -217,7 +217,7 @@ describe('filtering', () => {
   it('finds untagged rows, and All clears the facet', async () => {
     await open()
 
-    fireEvent.click(facet('Untagged'))
+    fireEvent.click(facet('(unknown)'))
     expect(rowIds()).toEqual(['p'])
 
     fireEvent.click(facet('All'))
@@ -247,18 +247,18 @@ describe('fold all', () => {
   it('collapses every group while any is open, and remembers it', async () => {
     await open()
 
-    fireEvent.click(within(bar()).getByRole('button', { name: 'Collapse all' }))
+    fireEvent.click(within(bar()).getByRole('button', { name: 'Collapse' }))
 
     expect(rowIds()).toEqual(['p', 'gm', 'gh'])
     await waitFor(() => expect(store.get('list:L1:collapsed')).toBe(JSON.stringify(['Main', 'Handhelds'])))
-    expect(within(bar()).getByRole('button', { name: 'Expand all' })).toBeTruthy()
+    expect(within(bar()).getByRole('button', { name: 'Expand' })).toBeTruthy()
   })
 
   it('expands them all when every group is closed', async () => {
     store.set('list:L1:collapsed', JSON.stringify(['Main', 'Handhelds']))
     await open()
 
-    fireEvent.click(within(bar()).getByRole('button', { name: 'Expand all' }))
+    fireEvent.click(within(bar()).getByRole('button', { name: 'Expand' }))
 
     expect(rowIds()).toEqual(['p', 'gm', 'ac1', 'ac2', 'ac3', 'gh', 'ch', 'bl'])
   })
@@ -424,7 +424,7 @@ describe('Mega mediums', () => {
       'All',
       'Game',
       'Movie',
-      'Untagged',
+      '(unknown)',
     ])
 
     fireEvent.click(facet('Game'))

@@ -204,7 +204,7 @@ describe('keyboard: Shift+↑↓', () => {
 
     shiftDown('a', 'ArrowDown')
 
-    expect(await screen.findByText('Could not save that move')).toBeTruthy()
+    expect(await screen.findByText('Couldn\'t save that move')).toBeTruthy()
     expect(rowIds()).toEqual(['a', 'gs', 'g1', 'g2', 'g3', 'b'])
   })
 
@@ -330,7 +330,7 @@ describe('dragging by the handle', () => {
     gesture.release()
 
     await waitFor(() => expect(rowIds()).toEqual(['gs', 'g1', 'g2', 'g3', 'a', 'b']))
-    expect(toast()!.textContent).toMatch(/Moved on the list\./)
+    expect(toast()!.textContent).toMatch(/Item moved/)
     expect(within(toast()!).getByRole('button', { name: 'Undo' })).toBeTruthy()
   })
 
@@ -369,7 +369,7 @@ describe('dragging by the handle', () => {
     gesture.release()
 
     await waitFor(() => expect(rowIds()).toEqual(['a', 'gs', 'g2', 'g3', 'g1', 'b']))
-    expect(toast()!.textContent).toMatch(/Moved inside Season 1\./)
+    expect(toast()!.textContent).toMatch(/Item moved inside Season 1\./)
   })
 
   it('drags a whole group past a loose item', async () => {
@@ -422,7 +422,7 @@ describe('dragging by the handle', () => {
     const gesture = await drag('a', 'gs', 'lower')
     gesture.release()
 
-    expect(await screen.findByText('Could not save that move')).toBeTruthy()
+    expect(await screen.findByText('Couldn\'t save that move')).toBeTruthy()
     expect(rowIds()).toEqual(['a', 'gs', 'g1', 'g2', 'g3', 'b'])
     // A move that was not saved has nothing to undo.
     expect(toast()).toBeNull()

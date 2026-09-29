@@ -144,7 +144,7 @@ describe('the jump rail', () => {
   it('hides to a narrow stub, remembers that, and shows again', async () => {
     await open()
 
-    fireEvent.click(within(rail()!).getByRole('button', { name: 'Collapse the jump rail' }))
+    fireEvent.click(within(rail()!).getByRole('button', { name: 'Collapse group jumper' }))
 
     expect(rail()).toBeNull()
     expect(document.querySelector('.q-rail-stub')).toBeTruthy()
@@ -153,7 +153,7 @@ describe('the jump rail', () => {
     cleanup()
     await open()
     expect(rail()).toBeNull()
-    fireEvent.click(screen.getByRole('button', { name: 'Show the jump rail' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Enlarge group jumper' }))
     expect(rail()).toBeTruthy()
     await waitFor(() => expect(store.get('list:L1:rail')).toBe('shown'))
   })
@@ -180,7 +180,7 @@ describe('the jump rail', () => {
   })
 
   describe('width (F12)', () => {
-    const grip = () => within(rail()!).getByRole('separator', { name: 'Resize the jump rail' })
+    const grip = () => within(rail()!).getByRole('separator', { name: 'Resize group jumper' })
     const width = () => rail()!.style.width
 
     it('starts at the design’s 200px', async () => {

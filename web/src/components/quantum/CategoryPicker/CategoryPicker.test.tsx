@@ -117,7 +117,7 @@ describe('CategoryPicker', () => {
     renderPicker([...REGISTRY, mega])
 
     const tile = tiles().find((entry) => within(entry).queryByText('Mega'))!
-    expect(tile.querySelector('.q-tile-src')?.textContent).toBe('Community library')
+    expect(tile.querySelector('.q-tile-src')?.textContent).toBe('List Vault')
   })
 
   it("footers come from the live registry: a source's own name, and 'by hand' only with no search source", () => {
@@ -174,7 +174,7 @@ describe('CategoryPicker', () => {
   it('on first run it is the base layer: the headline changes, there is no close button and no count chip, and no lists are fetched', () => {
     renderPicker(REGISTRY, { first: true })
 
-    expect(screen.getByRole('heading', { name: 'Nothing tracked yet — pick a shelf and fill it' })).not.toBeNull()
+    expect(screen.getByRole('heading', { name: 'No Progress Tracked. Let\'s Start!' })).not.toBeNull()
     expect(screen.queryByRole('button', { name: 'Close' })).toBeNull()
     expect(document.querySelectorAll('.q-count-chip')).toHaveLength(0)
     expect(api.lists).not.toHaveBeenCalled()
@@ -186,7 +186,7 @@ describe('CategoryPicker', () => {
     renderPicker(REGISTRY)
     expect(screen.getByTestId('stack').textContent).toBe('home:/,category-picker:/')
 
-    expect(screen.getByRole('heading', { name: 'Pick A Category' })).not.toBeNull()
+    expect(screen.getByRole('heading', { name: 'Choose Your Fighter' })).not.toBeNull()
     fireEvent.click(screen.getByRole('button', { name: 'Close' }))
     expect(screen.getByTestId('stack').textContent).toBe('home:/')
   })

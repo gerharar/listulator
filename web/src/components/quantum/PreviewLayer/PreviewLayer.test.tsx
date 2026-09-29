@@ -97,7 +97,7 @@ describe('PreviewLayer', () => {
     const onBuilt = renderLayer(source)
     await screen.findByText('Glorious Purpose')
 
-    fireEvent.click(screen.getByRole('button', { name: 'Add list' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Add This List' }))
 
     await waitFor(() => expect(onBuilt).toHaveBeenCalledWith('L1'))
     expect(api.createFromSource).toHaveBeenCalledWith(createFromSourceInput(source))
@@ -109,7 +109,7 @@ describe('PreviewLayer', () => {
     renderLayer()
     await screen.findByText('Glorious Purpose')
 
-    fireEvent.click(screen.getByRole('button', { name: 'Add list' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Add This List' }))
 
     await waitFor(() =>
       expect((screen.getByRole('button', { name: 'Building the list…' }) as HTMLButtonElement).disabled).toBe(true),
@@ -121,7 +121,7 @@ describe('PreviewLayer', () => {
     renderLayer()
 
     expect(await screen.findByText(/Nothing to add/)).toBeTruthy()
-    expect((screen.getByRole('button', { name: 'Add list' }) as HTMLButtonElement).disabled).toBe(true)
+    expect((screen.getByRole('button', { name: 'Add This List' }) as HTMLButtonElement).disabled).toBe(true)
   })
 
   it('shows the failure in the same place, with Retry', async () => {
@@ -130,7 +130,7 @@ describe('PreviewLayer', () => {
     renderLayer()
 
     expect(await screen.findByText('TMDB is rate-limiting us.')).toBeTruthy()
-    expect((screen.getByRole('button', { name: 'Add list' }) as HTMLButtonElement).disabled).toBe(true)
+    expect((screen.getByRole('button', { name: 'Add This List' }) as HTMLButtonElement).disabled).toBe(true)
 
     fireEvent.click(screen.getByRole('button', { name: 'Retry' }))
     expect(await screen.findByText('Glorious Purpose')).toBeTruthy()

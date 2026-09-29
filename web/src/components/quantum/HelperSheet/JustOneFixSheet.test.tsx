@@ -48,7 +48,7 @@ describe('Just One Fix', () => {
     expect(screen.getByText('Just One Fix')).toBeTruthy()
     expect(screen.getByText('A quick dopamine hit from the shortest unfinished thing you track')).toBeTruthy()
     expect(screen.queryByText("I'm tired of going through")).toBeNull()
-    expect(screen.getByText('Shortest unfinished item you have — 30m and it is done.')).toBeTruthy()
+    expect(screen.getByText('Shortest unfinished item you have -- 30m and it\'s done.')).toBeTruthy()
     expect(['Next in y', 'Next in z', 'Next in w'].every((title) => screen.queryByText(title))).toBe(true)
     expect(screen.queryByText('Next in v')).toBeNull()
     expect(api.justOneFix).toHaveBeenCalledTimes(1)
@@ -66,7 +66,7 @@ describe('Just One Fix', () => {
     await screen.findByText('Next in x')
 
     fireEvent.click(screen.getByRole('button', { name: 'Not That' }))
-    fireEvent.click(screen.getByRole('button', { name: 'Open The List' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Open List' }))
 
     expect(props.onOpenList).toHaveBeenCalledWith('y')
   })
@@ -79,22 +79,22 @@ describe('Just One Fix', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Not That' }))
     fireEvent.click(screen.getByRole('button', { name: 'Not That' }))
 
-    await waitFor(() => expect(document.querySelector('.q-live')!.textContent).toBe('Back to the strongest pick'))
+    await waitFor(() => expect(document.querySelector('.q-live')!.textContent).toBe('…Time is a flat circle…'))
   })
 
   it('says there is nothing when every list is finished or empty', async () => {
     vi.mocked(api.justOneFix).mockResolvedValue({ picks: [] })
     renderSheet()
 
-    expect(await screen.findByText('Nothing left unfinished — add a list.')).toBeTruthy()
+    expect(await screen.findByText('You have finished everything -- time to add a new list!')).toBeTruthy()
   })
 
   it('says what failed and can try again', async () => {
     vi.mocked(api.justOneFix).mockRejectedValueOnce(new Error('offline'))
     renderSheet()
 
-    expect(await screen.findByText('Could not get a suggestion')).toBeTruthy()
-    fireEvent.click(screen.getByRole('button', { name: 'Try again' }))
+    expect(await screen.findByText('Couldn\'t find anything to suggest')).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: 'Try Again' }))
 
     expect(await screen.findByText('Next in x')).toBeTruthy()
   })

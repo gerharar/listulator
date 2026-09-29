@@ -92,7 +92,7 @@ describe('ListMorePopover', () => {
     it('says what a file holds, and offers Download and Copy', () => {
       const { onDownload, onCopy } = renderPopover({ mode: 'export' })
 
-      expect(screen.getByText(/progress is never included/i)).toBeTruthy()
+      expect(screen.getByText(/progress is not included/i)).toBeTruthy()
       fireEvent.click(button('Download File'))
       fireEvent.click(button('Copy To Clipboard'))
 
@@ -106,15 +106,15 @@ describe('ListMorePopover', () => {
       const { onSortNow, onDismiss } = renderPopover({ mode: 'reorder' })
 
       expect(screen.getByText('Sort this list chronologically?')).toBeTruthy()
-      expect(screen.getByText(/Groups move as blocks, by their earliest item/)).toBeTruthy()
-      expect(screen.getByText(/does not stay sorted\. Undo is offered for 8 seconds/)).toBeTruthy()
+      expect(screen.getByText(/Groups are moved as blocks by their earliest item/)).toBeTruthy()
+      expect(screen.getByText(/does not block manual reordering later/)).toBeTruthy()
       expect(onSortNow).not.toHaveBeenCalled()
 
       fireEvent.click(button('Cancel'))
       expect(onDismiss).toHaveBeenCalledTimes(1)
       expect(onSortNow).not.toHaveBeenCalled()
 
-      fireEvent.click(button('Sort now'))
+      fireEvent.click(button('Reorder'))
       expect(onSortNow).toHaveBeenCalledTimes(1)
     })
   })
@@ -122,8 +122,8 @@ describe('ListMorePopover', () => {
   describe('reset', () => {
     it('asks in words, and says where the list goes back to', () => {
       renderPopover({ mode: 'reset', source: 'canonical' })
-      expect(screen.getByText('Reset this list to the source?')).toBeTruthy()
-      expect(screen.getByText(/live file in the community library/)).toBeTruthy()
+      expect(screen.getByText('Reset this list to its virgin state?')).toBeTruthy()
+      expect(screen.getByText(/canonical list from the List Vault/)).toBeTruthy()
 
       cleanup()
       renderPopover({ mode: 'reset', source: 'file' })
@@ -131,7 +131,7 @@ describe('ListMorePopover', () => {
 
       cleanup()
       renderPopover({ mode: 'reset', source: 'api' })
-      expect(screen.getByText(/how this list arrived/)).toBeTruthy()
+      expect(screen.getByText(/the list you got from search/)).toBeTruthy()
     })
 
     it('states the cost in words: what goes, what comes back, what is un-ticked', () => {
@@ -148,13 +148,13 @@ describe('ListMorePopover', () => {
 
       cleanup()
       renderPopover({ mode: 'reset', preview: ready(0, 0, 0) })
-      expect(screen.getByText('Nothing you added, removed or marked done is affected.')).toBeTruthy()
+      expect(screen.getByText('Stuff you added, removed or marked done is not affected.')).toBeTruthy()
     })
 
-    it('waits for the numbers before Reset everything, but not before Reset the order', () => {
+    it('waits for the numbers before Reset, but not before Reset the order', () => {
       renderPopover({ mode: 'reset', preview: { state: 'loading' } })
 
-      expect((button('Reset everything') as HTMLButtonElement).disabled).toBe(true)
+      expect((button('Reset') as HTMLButtonElement).disabled).toBe(true)
       expect((button('Reset the order') as HTMLButtonElement).disabled).toBe(false)
       expect(screen.getByText(/Working out what would change/)).toBeTruthy()
     })
@@ -166,7 +166,7 @@ describe('ListMorePopover', () => {
       })
 
       expect(screen.getByText(/Could not work out what would change \(Source is down\)/)).toBeTruthy()
-      fireEvent.click(button('Reset everything'))
+      fireEvent.click(button('Reset'))
       expect(onResetEverything).toHaveBeenCalledTimes(1)
     })
 
@@ -178,7 +178,7 @@ describe('ListMorePopover', () => {
       expect(onResetOrder).toHaveBeenCalledTimes(1)
       expect(onResetEverything).not.toHaveBeenCalled()
 
-      fireEvent.click(button('Reset everything'))
+      fireEvent.click(button('Reset'))
       expect(onResetEverything).toHaveBeenCalledTimes(1)
     })
   })
@@ -188,26 +188,26 @@ describe('ListMorePopover', () => {
       renderPopover({ mode: 'delete' })
 
       expect(screen.getByText('Delete “Loki”?')).toBeTruthy()
-      expect(screen.getByText('7 items and 3 marked done go with it. Undo is offered for 8 seconds.')).toBeTruthy()
+      expect(screen.getByText('7 items (3 done) will be gone like a turd in the wind')).toBeTruthy()
     })
 
     it('says so for a single item, and for an empty list', () => {
       renderPopover({ mode: 'delete', itemCount: 1, doneCount: 1 })
-      expect(screen.getByText(/^1 item and 1 marked done go with it/)).toBeTruthy()
+      expect(screen.getByText(/^1 item \(1 done\) will be gone/)).toBeTruthy()
 
       cleanup()
       renderPopover({ mode: 'delete', itemCount: 0, doneCount: 0 })
-      expect(screen.getByText('The list is empty. Undo is offered for 8 seconds.')).toBeTruthy()
+      expect(screen.getByText('The list is empty.')).toBeTruthy()
     })
 
     it('Keep leaves the list alone; Delete list deletes', () => {
       const { onDelete, onDismiss } = renderPopover({ mode: 'delete' })
 
-      fireEvent.click(button('Keep'))
+      fireEvent.click(button('Keep List'))
       expect(onDismiss).toHaveBeenCalledTimes(1)
       expect(onDelete).not.toHaveBeenCalled()
 
-      fireEvent.click(button('Delete list'))
+      fireEvent.click(button('Delete List'))
       expect(onDelete).toHaveBeenCalledTimes(1)
     })
   })

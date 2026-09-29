@@ -119,7 +119,7 @@ describe('SearchTab', () => {
     await search()
     fireEvent.click(await screen.findByRole('button', { name: /Better Call Saul/ }))
     await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: 'Add list' }))
+      fireEvent.click(screen.getByRole('button', { name: 'Add List' }))
     })
 
     expect(api.createFromSource).toHaveBeenCalledWith({
@@ -161,7 +161,7 @@ describe('SearchTab', () => {
     const startedBefore = vi.mocked(api.expansion).mock.calls.length
     fireEvent.click(screen.getByRole('button', { name: /Breaking Bad/ }))
     await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: 'Add list' }))
+      fireEvent.click(screen.getByRole('button', { name: 'Add List' }))
     })
 
     expect(screen.getByRole('status', { name: 'Building the list…' })).not.toBeNull()
@@ -176,8 +176,8 @@ describe('SearchTab', () => {
 
     await search('zzzz')
 
-    expect(await screen.findByText('Nothing found')).not.toBeNull()
-    expect(screen.getByText('Try a different spelling, or add by hand.')).not.toBeNull()
+    expect(await screen.findByText('Nothing Found')).not.toBeNull()
+    expect(screen.getByText('You sure it\'s a thing? Anyway, try to spell stuff differently, or create a list manually.')).not.toBeNull()
   })
 
   it('still searches a category whose API key is missing, because the curated library needs none', async () => {
@@ -202,7 +202,7 @@ describe('SearchTab', () => {
     fireEvent.click(await screen.findByRole('button', { name: /Marvel Cinematic Universe/ }))
     expect(document.querySelector('.q-star')).not.toBeNull()
     await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: 'Add list' }))
+      fireEvent.click(screen.getByRole('button', { name: 'Add List' }))
     })
 
     expect(api.createFromSource).toHaveBeenCalledWith(
@@ -219,7 +219,7 @@ describe('SearchTab', () => {
 
     await search()
 
-    expect(await screen.findByText('Search needs a TMDB key')).not.toBeNull()
+    expect(await screen.findByText('Nothing found in List Vault, and search in TMDB needs an API key to work')).not.toBeNull()
     expect(screen.getByText(/\.env file/)).not.toBeNull()
     expect(screen.queryByRole('button', { name: 'Open Settings' })).toBeNull()
   })
@@ -233,7 +233,7 @@ describe('SearchTab', () => {
 
     await search()
 
-    expect(await screen.findByText(/Add your key in Settings/)).not.toBeNull()
+    expect(await screen.findByText(/Add your API key in Settings/)).not.toBeNull()
     const open = screen.getByRole('button', { name: 'Open Settings' }) as HTMLButtonElement
     expect(open.disabled).toBe(false)
 
@@ -252,10 +252,10 @@ describe('SearchTab', () => {
       await search('marvel')
 
       expect(await screen.findByText("Can't search Mega right now")).not.toBeNull()
-      expect(screen.getByText(/community library/)).not.toBeNull()
+      expect(screen.getAllByText(/List Vault/).length).toBeGreaterThan(0)
       expect(screen.getByText(/\.env file/)).not.toBeNull()
       // Not the key-only headline: that would send the user hunting for a key that is only half the story.
-      expect(screen.queryByText('Search needs a TMDB key')).toBeNull()
+      expect(screen.queryByText('Nothing found in List Vault, and search in TMDB needs an API key to work')).toBeNull()
     })
 
     it('on desktop also points at Settings, with Open Settings live', async () => {
@@ -279,7 +279,7 @@ describe('SearchTab', () => {
       await search()
 
       expect(await screen.findByText('Breaking Bad')).not.toBeNull()
-      expect(screen.getByRole('alert').textContent).toMatch(/community library/)
+      expect(screen.getByRole('alert').textContent).toMatch(/List Vault/)
     })
 
     it('Retry on that strip searches again', async () => {
@@ -305,8 +305,8 @@ describe('SearchTab', () => {
 
       await search('zzzz')
 
-      expect(await screen.findByText('Nothing found')).not.toBeNull()
-      expect(screen.getByText(/community library/)).not.toBeNull()
+      expect(await screen.findByText('Nothing Found')).not.toBeNull()
+      expect(screen.getAllByText(/List Vault/).length).toBeGreaterThan(0)
     })
 
     it('says nothing about the library when it was reachable', async () => {
@@ -361,7 +361,7 @@ describe('SearchTab', () => {
     await search()
     fireEvent.click(await screen.findByRole('button', { name: /Breaking Bad/ }))
     await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: 'Add list' }))
+      fireEvent.click(screen.getByRole('button', { name: 'Add List' }))
     })
     await screen.findByText('TMDB returned 500.')
     await act(async () => {
@@ -423,7 +423,7 @@ describe('SearchTab', () => {
       expect(api.searchSources).toHaveBeenCalledWith('music', 'saul', undefined)
 
       await act(async () => {
-        fireEvent.click(screen.getByRole('button', { name: 'Live albums' }))
+        fireEvent.click(screen.getByRole('button', { name: 'Live' }))
       })
 
       await waitFor(() => expect(api.expansion).toHaveBeenCalledTimes(2))
@@ -439,7 +439,7 @@ describe('SearchTab', () => {
       renderTab()
 
       expect(screen.queryByRole('button', { name: 'English' })).toBeNull()
-      expect(screen.queryByRole('button', { name: 'Live albums' })).toBeNull()
+      expect(screen.queryByRole('button', { name: 'Live' })).toBeNull()
     })
   })
 

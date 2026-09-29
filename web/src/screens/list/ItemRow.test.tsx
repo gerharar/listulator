@@ -141,7 +141,7 @@ describe('ItemRow', () => {
 
       expect(screen.getByRole('button', { name: 'Details for Glorious Purpose' })).toBeTruthy()
       expect(screen.getByRole('button', { name: 'Edit Glorious Purpose' })).toBeTruthy()
-      expect(screen.getByRole('button', { name: 'Remove Glorious Purpose' })).toBeTruthy()
+      expect(screen.getByRole('button', { name: 'Delete Glorious Purpose' })).toBeTruthy()
     })
 
     it('each calls back with the item and its own button, and does not toggle the row', () => {
@@ -150,7 +150,7 @@ describe('ItemRow', () => {
       for (const [name, handler] of [
         ['Details for Glorious Purpose', props.onInfo],
         ['Edit Glorious Purpose', props.onEdit],
-        ['Remove Glorious Purpose', props.onRemove],
+        ['Delete Glorious Purpose', props.onRemove],
       ] as const) {
         const button = screen.getByRole('button', { name })
         fireEvent.click(button)
@@ -204,7 +204,7 @@ describe('ItemRow', () => {
     renderRow()
     const handle = document.querySelector('.q-item .q-handle') as HTMLElement
 
-    expect(handle.getAttribute('title')).toBe('Drag to move this item on the list')
+    expect(handle.getAttribute('title')).toBe('Drag to move across the list')
     expect(handle.nextElementSibling?.getAttribute('role')).toBe('checkbox')
 
     cleanup()

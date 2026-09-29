@@ -36,18 +36,18 @@ describe('ApiKeysSection', () => {
     setup()
     await ready()
 
-    for (const name of ['TMDB', 'IGDB', 'Comic Vine', 'YouTube']) expect(row(name)).not.toBeNull()
+    for (const name of ['TMDB (The Movie Database)', 'IGDB (Internet Game Database)', 'Comic Vine', 'YouTube']) expect(row(name)).not.toBeNull()
   })
 
   it('shows what was saved, masked', async () => {
     setup({ tmdbApiKey: 'abc123' })
     await ready()
 
-    const input = within(row('TMDB')).getByPlaceholderText('Paste key') as HTMLInputElement
+    const input = within(row('TMDB (The Movie Database)')).getByPlaceholderText('Your API key') as HTMLInputElement
     expect(input.value).toBe('abc123')
     expect(input.type).toBe('password')
 
-    act(() => within(row('TMDB')).getByRole('button', { name: 'Show the key' }).click())
+    act(() => within(row('TMDB (The Movie Database)')).getByRole('button', { name: 'Show key' }).click())
     expect(input.type).toBe('text')
   })
 
@@ -55,16 +55,16 @@ describe('ApiKeysSection', () => {
     setup()
     await ready()
 
-    expect(within(row('IGDB')).getByPlaceholderText('Client ID')).not.toBeNull()
-    expect(within(row('IGDB')).getByPlaceholderText('Client secret')).not.toBeNull()
+    expect(within(row('IGDB (Internet Game Database)')).getByPlaceholderText('Your Client ID')).not.toBeNull()
+    expect(within(row('IGDB (Internet Game Database)')).getByPlaceholderText('Your Client Secret')).not.toBeNull()
   })
 
   it('typing saves the key at once, and resets the row to Untested', async () => {
     const { save } = setup()
     await ready()
-    const tmdb = row('TMDB')
+    const tmdb = row('TMDB (The Movie Database)')
 
-    const input = within(tmdb).getByPlaceholderText('Paste key')
+    const input = within(tmdb).getByPlaceholderText('Your API key')
     act(() => {
       // React needs the native setter for a controlled input.
       const set = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!
@@ -80,7 +80,7 @@ describe('ApiKeysSection', () => {
     setup({ tmdbApiKey: 'abc123' })
     await ready()
 
-    expect((within(row('TMDB')).getByRole('button', { name: 'Test' }) as HTMLButtonElement).disabled).toBe(false)
+    expect((within(row('TMDB (The Movie Database)')).getByRole('button', { name: 'Test' }) as HTMLButtonElement).disabled).toBe(false)
     expect((within(row('YouTube')).getByRole('button', { name: 'Test' }) as HTMLButtonElement).disabled).toBe(true)
   })
 
@@ -88,7 +88,7 @@ describe('ApiKeysSection', () => {
     setup({ igdbClientId: 'id' })
     await ready()
 
-    expect((within(row('IGDB')).getByRole('button', { name: 'Test' }) as HTMLButtonElement).disabled).toBe(true)
+    expect((within(row('IGDB (Internet Game Database)')).getByRole('button', { name: 'Test' }) as HTMLButtonElement).disabled).toBe(true)
   })
 
   it.each([
@@ -116,7 +116,7 @@ describe('ApiKeysSection', () => {
       </Providers>,
     )
     await ready()
-    const tmdb = row('TMDB')
+    const tmdb = row('TMDB (The Movie Database)')
 
     act(() => within(tmdb).getByRole('button', { name: 'Test' }).click())
     expect(within(tmdb).getByRole('status').textContent).toBe('Testing')
@@ -134,10 +134,10 @@ describe('ApiKeysSection', () => {
       </Providers>,
     )
     await ready()
-    const tmdb = row('TMDB')
+    const tmdb = row('TMDB (The Movie Database)')
     act(() => within(tmdb).getByRole('button', { name: 'Test' }).click())
 
-    const input = within(tmdb).getByPlaceholderText('Paste key')
+    const input = within(tmdb).getByPlaceholderText('Your API key')
     act(() => {
       const set = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!
       set.call(input, 'other')
@@ -151,14 +151,14 @@ describe('ApiKeysSection', () => {
   it('the ⓘ says what the key is for, and How? gives the steps and the site', async () => {
     setup()
     await ready()
-    const tmdb = row('TMDB')
+    const tmdb = row('TMDB (The Movie Database)')
 
-    act(() => within(tmdb).getByRole('button', { name: 'What this key is for' }).click())
-    expect(screen.getByText('Fills lists in movies, TV, animation, documentaries.')).not.toBeNull()
+    act(() => within(tmdb).getByRole('button', { name: 'What this key is used for' }).click())
+    expect(screen.getByText('Used when you search for movies, TV, animation, documentaries.')).not.toBeNull()
 
-    act(() => within(tmdb).getByRole('button', { name: 'How?' }).click())
-    expect(screen.getByText('Where to get it')).not.toBeNull()
+    act(() => within(tmdb).getByRole('button', { name: 'Huh?' }).click())
+    expect(screen.getByText('Getting Your Key')).not.toBeNull()
     expect(screen.getByText('themoviedb.org')).not.toBeNull()
-    expect(screen.getByText('Request a key — personal use is approved on the spot.')).not.toBeNull()
+    expect(screen.getByText('Request a Developer key (personal use is approved on the spot):')).not.toBeNull()
   })
 })
