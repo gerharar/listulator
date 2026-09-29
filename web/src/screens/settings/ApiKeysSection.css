@@ -51,10 +51,14 @@
   height: calc(18px + 16.8px + 2px);
 }
 
+/* One fixed width for every state and language, so pressing Test (Untested → Testing → Working) moves nothing.
+   --pill-chars is the longest status label of en/ru/de (Fehlgeschlagen); ApiKeysPill.width.test.ts keeps it honest.
+   Each character is 1ch plus its letter-spacing; 22px is the padding and border. */
 .q-key-pill {
+  --pill-chars: 14;
   flex: none;
   box-sizing: border-box;
-  min-width: 88px;
+  width: calc(var(--pill-chars) * (1ch + 0.06em) + 22px);
   text-align: center;
   padding: 6px 10px;
   border: 1px solid var(--line);
