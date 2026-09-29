@@ -41,7 +41,12 @@ const joined = (codes: readonly string[]) => codes.join(' · ')
  * commits it. The add row hosts the same picker in a plain Popover instead.
  */
 export function PlatformPanel({ reference, ...picker }: PlatformPanelProps) {
-  const { refs, floatingStyles } = useFloating({
+  // Nothing to sit beside yet: drawing now would put it at the left edge until it jumped (11.3).
+  return reference ? <PositionedPanel reference={reference} {...picker} /> : null
+}
+
+function PositionedPanel({ reference, ...picker }: PlatformPanelProps & { reference: HTMLElement }) {
+  const { refs, floatingStyles, isPositioned } = useFloating({
     open: true,
     placement: 'right-start',
     elements: { reference },
@@ -63,7 +68,7 @@ export function PlatformPanel({ reference, ...picker }: PlatformPanelProps) {
     <FloatingPortal>
       <div
         ref={refs.setFloating}
-        style={floatingStyles}
+        style={{ ...floatingStyles, opacity: isPositioned ? 1 : 0 }}
         className="q-platpanel"
         role="dialog"
         aria-label={copy.quantum.list.tags.panelLabel}

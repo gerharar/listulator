@@ -10,11 +10,18 @@
   z-index: 120;
   display: flex;
   flex-direction: column;
-  gap: 10px;
   padding: 14px;
   background: var(--card);
   border: 1px solid var(--rule);
   box-shadow: 0 12px 30px rgba(0, 0, 0, 0.18);
+}
+/* The content scrolls here, not on .q-pop, whose overflow would clip the tail sitting outside its box. */
+.q-pop-scroll {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 0;
+  overflow-y: auto;
 }
 .q-pop.w220 {
   width: 220px;

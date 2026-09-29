@@ -6,6 +6,7 @@ import {
   FloatingPortal,
   offset,
   shift,
+  size,
   useFloating,
 } from '@floating-ui/react'
 import { useId, useRef, type CSSProperties, type ReactNode } from 'react'
@@ -58,7 +59,7 @@ export function Popover({ open, anchorEl, onDismiss, onEscape, width, side = 'be
   const id = useId()
   const arrowRef = useRef<HTMLSpanElement>(null)
 
-  const { refs, floatingStyles, placement, middlewareData } = useFloating({
+  const { refs, floatingStyles, placement, middlewareData, isPositioned } = useFloating({
     open,
     placement: side === 'below' ? 'bottom-start' : 'right-start',
     elements: { reference: anchorEl },
@@ -68,6 +69,14 @@ export function Popover({ open, anchorEl, onDismiss, onEscape, width, side = 'be
         fallbackPlacements: side === 'below' ? ['top-start'] : ['left-start', 'right-end', 'left-end'],
       }),
       shift({ padding: 8 }),
+      // Taller than the room left (a short window, a long picker): stop at the screen's edge and
+      // scroll the content inside, rather than run off the top or bottom (11.3).
+      size({
+        padding: 8,
+        apply({ availableHeight, elements }) {
+          elements.floating.style.maxHeight = `${Math.max(availableHeight, 160)}px`
+        },
+      }),
       arrow({ element: arrowRef }),
     ],
     whileElementsMounted: autoUpdate,
@@ -92,13 +101,21 @@ export function Popover({ open, anchorEl, onDismiss, onEscape, width, side = 'be
       <div className="q-catcher" onClick={onDismiss} />
       <div
         ref={refs.setFloating}
-        style={{ ...floatingStyles, '--tail-y': `${tailY}px`, '--tail-x': `${tailX}px` } as CSSProperties}
+        // Until floating-ui has placed it the card would sit at the top-left corner: keep it unseen.
+        style={
+          {
+            ...floatingStyles,
+            opacity: isPositioned ? 1 : 0,
+            '--tail-y': `${tailY}px`,
+            '--tail-x': `${tailX}px`,
+          } as CSSProperties
+        }
         className={`q-pop w${width}`}
         role="dialog"
         aria-label={label}
       >
         <span ref={arrowRef} className={tailClass} />
-        {children}
+        <div className="q-pop-scroll">{children}</div>
       </div>
     </FloatingPortal>
   )

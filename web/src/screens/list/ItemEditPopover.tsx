@@ -1,5 +1,5 @@
 import './ItemEditPopover.css'
-import { useEffect, useRef, useState, type KeyboardEvent } from 'react'
+import { useCallback, useEffect, useRef, useState, type KeyboardEvent } from 'react'
 import type { ItemSourceTags, ListItem } from '../../lib/api.js'
 import { copy } from '../../locale/index.js'
 import { Button } from '../../components/quantum/Button/Button.js'
@@ -67,6 +67,14 @@ export function ItemEditPopover({
   const [panelOpen, setPanelOpen] = useState(openPanel && tagField?.kind === 'platform')
   const [source, setSource] = useState<ItemSourceTags | null>(null)
   const editRef = useRef<HTMLDivElement>(null)
+  // The card the panel sits beside, taken when the window's body lands in the DOM (the popover is
+  // portaled, so it is not there at first render): the panel is not mounted without it, so it never
+  // appears at the left edge and then jumps (11.3).
+  const [card, setCard] = useState<HTMLElement | null>(null)
+  const bindEdit = useCallback((node: HTMLDivElement | null) => {
+    editRef.current = node
+    setCard(node?.closest<HTMLElement>('.q-pop') ?? null)
+  }, [])
 
   useEffect(() => {
     if (!panelOpen || !loadSource || source) return
@@ -126,7 +134,7 @@ export function ItemEditPopover({
 
   return (
     <Popover open anchorEl={anchorEl} onDismiss={dismiss} onEscape={escape} width={360}>
-      <div className="q-edit" onKeyDown={saveOnEnter} ref={editRef}>
+      <div className="q-edit" onKeyDown={saveOnEnter} ref={bindEdit}>
         <Field
           label={text.editTitle}
           value={title}
@@ -180,7 +188,7 @@ export function ItemEditPopover({
       </div>
       {panelOpen && (
         <PlatformPanel
-          reference={editRef.current?.closest<HTMLElement>('.q-pop') ?? null}
+          reference={card}
           subject={item.title}
           selected={platforms}
           onChange={setPlatforms}

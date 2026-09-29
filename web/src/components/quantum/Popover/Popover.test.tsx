@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { cleanup, render, screen } from '@testing-library/react'
+import { cleanup, render, screen, waitFor } from '@testing-library/react'
 import { useLayoutEffect, useReducer, useRef, type RefObject } from 'react'
 import { Popover } from './Popover.js'
 import { OverlayManagerProvider } from '../overlay/OverlayManagerContext.js'
@@ -173,3 +173,41 @@ describe('Popover one-at-a-time wiring', () => {
     expect(dismissFirst).toHaveBeenCalledOnce()
   })
 })
+
+describe('Popover never shows in the wrong place (11.3)', () => {
+  function open() {
+    function Harness() {
+      const [anchorEl, anchorRef] = useAnchor()
+      return (
+        <>
+          <button ref={anchorRef}>Open</button>
+          <Popover open anchorEl={anchorEl} onDismiss={vi.fn()} width={320}>
+            <span>Body</span>
+          </Popover>
+        </>
+      )
+    }
+    render(
+      <OverlayManagerProvider>
+        <Harness />
+      </OverlayManagerProvider>,
+    )
+  }
+
+  it('is invisible until floating-ui has placed it, so it never flashes at the left edge', async () => {
+    open()
+    const card = screen.getByRole('dialog')
+
+    expect(card.style.opacity).toBe('0')
+    await waitFor(() => expect(card.style.opacity).toBe('1'))
+  })
+
+  it('caps its height to the room on screen, and scrolls the content inside instead of running off', async () => {
+    open()
+    const card = screen.getByRole('dialog')
+
+    await waitFor(() => expect(card.style.maxHeight).toMatch(/^\d+(\.\d+)?px$/))
+    expect(card.querySelector('.q-pop-scroll')?.textContent).toBe('Body')
+  })
+})
+
