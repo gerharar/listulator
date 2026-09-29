@@ -66,7 +66,8 @@
   display: flex;
   flex-direction: column;
   gap: 9px;
-  padding: 0 16px 14px 34px;
+  /* Left edge = the row's text: 6px padding + 12px chevron + 12px gap (SearchResultRow.layout.test.ts). */
+  padding: 0 16px 14px 30px;
   background: var(--hover);
   border-bottom: 1px solid var(--line);
 }
@@ -75,8 +76,8 @@
   color: var(--ink2);
 }
 .q-result-more .prov {
-  font: 500 11.5px/1 var(--font-mono);
-  color: var(--ink3);
+  font: 400 13px/1.4 var(--font-sans);
+  color: var(--ink2);
 }
 .q-result-more .unavailable {
   font: 400 12.5px/1.4 var(--font-sans);
