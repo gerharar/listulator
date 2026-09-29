@@ -374,6 +374,9 @@ export const en = {
         `Searching ${category} needs an API key (add yours in Settings), and List Vault could not be reached. Check your internet connection, add your API key if you want to search the main data source for ${category}, or add items by hand`,
       offlineWeb: (category: string): string =>
         `Searching ${category} needs an API key in the server's .env file, and List Vault could not be reached. Check your internet connection, add your API key if you want to search the main data source for ${category}, or add items by hand`,
+      /** A library-only category (Mega) has no key: only the connection can be at fault. */
+      libraryOnlyOffline: (category: string): string =>
+        `List Vault is the only place to search ${category}, and it could not be reached. Check your internet connection and try again, or add items by hand`,
       /** Results came back, but the curated half of them could not be searched. */
       libraryUnreachable:
         "Couldn't reach the List Vault, so canonical lists are missing from these results",
@@ -626,6 +629,7 @@ export const en = {
         movedOnList: 'Item moved',
         movedInside: (group: string): string => `Item moved inside ${group}.`,
         movedRows: (n: number): string => `Moved ${n} ${selectPlural(n, 'en', { one: 'row', other: 'rows' })}.`,
+        /** Defensive: only spoken if the list changes mid-drag (the drag already refuses cross-group targets). */
         onlyInsideGroup: 'Reordering only works inside one group',
         undone: 'Move undone',
         saveFailed: 'Couldn\'t save that move',
@@ -720,7 +724,6 @@ export const en = {
         optionLabels: {
           Untagged: '(unknown)',
           MULTI: 'MULTI',
-          Unknown: 'Unknown',
           Movie: 'Movie',
           TV: 'TV',
           Animation: 'Animation',

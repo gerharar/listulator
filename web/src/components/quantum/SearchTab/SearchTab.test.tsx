@@ -247,15 +247,31 @@ describe('SearchTab', () => {
       vi.mocked(api.searchSources).mockRejectedValue(
         new ApiError('needs a key and library down', 409, 'search.unavailableOffline'),
       )
-      renderTab(mediaType({ key: 'mega', label: 'Mega', searchAvailable: false }))
+      renderTab(mediaType({ searchAvailable: false }))
 
       await search('marvel')
 
-      expect(await screen.findByText("Can't search Mega right now")).not.toBeNull()
+      expect(await screen.findByText(/Can't search .+ right now/)).not.toBeNull()
       expect(screen.getAllByText(/List Vault/).length).toBeGreaterThan(0)
       expect(screen.getByText(/\.env file/)).not.toBeNull()
       // Not the key-only headline: that would send the user hunting for a key that is only half the story.
       expect(screen.queryByText('Nothing found in List Vault, and search in TMDB needs an API key to work')).toBeNull()
+    })
+
+    it('for a library-only category (Mega) blames only the connection: no key, no .env, no Settings', async () => {
+      ;(window as unknown as Record<string, unknown>)['__TAURI_INTERNALS__'] = {}
+      vi.mocked(api.searchSources).mockRejectedValue(
+        new ApiError('library down', 409, 'search.unavailableOffline'),
+      )
+      renderTab(mediaType({ key: 'mega', label: 'Mega', searchAvailable: false, searchScope: 'library' }))
+
+      await search('marvel')
+
+      expect(await screen.findByText("Can't search Mega right now")).not.toBeNull()
+      expect(screen.getByText(/only place to search Mega/)).not.toBeNull()
+      expect(screen.queryByText(/API key/)).toBeNull()
+      expect(screen.queryByText(/\.env/)).toBeNull()
+      expect(screen.queryByRole('button', { name: 'Open Settings' })).toBeNull()
     })
 
     it('on desktop also points at Settings, with Open Settings live', async () => {

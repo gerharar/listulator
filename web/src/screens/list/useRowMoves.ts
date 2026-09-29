@@ -148,6 +148,8 @@ export function useRowMoves({ listId, items, groups, setItems, setGroups, setErr
         ? dropItemInGroup(currentItems, currentGroups, dragKey, target.key, target.pos)
         : dropUnit(currentItems, currentGroups, dragKey, target.key, target.pos)
 
+      // `accepts` already keeps a drop off another group's rows, so this is only reachable if the list
+      // changed mid-drag; kept so that race is spoken rather than silent (docs/DECISIONS.md).
       if (outcome.kind === 'refused') announce(text.onlyInsideGroup)
       if (outcome.kind !== 'moved') return
 

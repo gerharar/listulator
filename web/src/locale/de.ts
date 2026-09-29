@@ -332,6 +332,8 @@ export const de: Locale = {
       offlineHeadline: (category: string): string => `„${category}“ lässt sich gerade nicht durchsuchen`,
       offlineDesktop: (category: string): string => `Für die Suche in „${category}“ braucht es einen API-Schlüssel (trage deinen in den Einstellungen ein), und der List Vault war nicht erreichbar. Prüfe deine Internetverbindung, trage deinen API-Schlüssel ein, wenn du die Hauptdatenquelle für „${category}“ durchsuchen möchtest, oder füge Einträge von Hand hinzu`,
       offlineWeb: (category: string): string => `Für die Suche in „${category}“ braucht es einen API-Schlüssel in der .env-Datei des Servers, und der List Vault war nicht erreichbar. Prüfe deine Internetverbindung, trage deinen API-Schlüssel ein, wenn du die Hauptdatenquelle für „${category}“ durchsuchen möchtest, oder füge Einträge von Hand hinzu`,
+      libraryOnlyOffline: (category: string): string =>
+        `Der List Vault ist der einzige Ort, um „${category}“ zu durchsuchen, und er war nicht erreichbar. Prüfe deine Internetverbindung und versuche es erneut, oder füge Einträge von Hand hinzu`,
       libraryUnreachable:
         'Der List Vault war nicht erreichbar, deshalb fehlen kanonische Listen in diesen Ergebnissen',
       nothingFoundLibraryDown:
@@ -655,7 +657,6 @@ export const de: Locale = {
         optionLabels: {
           Untagged: '(unbekannt)',
           MULTI: 'MULTI',
-          Unknown: 'Unbekannt',
           Movie: 'Film',
           TV: 'Serie',
           Animation: 'Animation',

@@ -340,6 +340,8 @@ export const ru: Locale = {
       offlineHeadline: (category: string): string => `Сейчас нельзя искать в категории «${category}»`,
       offlineDesktop: (category: string): string => `Для поиска в категории «${category}» нужен API-ключ (добавьте свой в настройках), а List Vault недоступен. Проверьте подключение к интернету, добавьте API-ключ, если хотите искать в основном источнике данных категории «${category}», или добавьте элементы вручную`,
       offlineWeb: (category: string): string => `Для поиска в категории «${category}» нужен API-ключ в файле .env сервера, а List Vault недоступен. Проверьте подключение к интернету, добавьте API-ключ, если хотите искать в основном источнике данных категории «${category}», или добавьте элементы вручную`,
+      libraryOnlyOffline: (category: string): string =>
+        `List Vault — единственное место для поиска в категории «${category}», и он недоступен. Проверьте подключение к интернету и повторите попытку или добавьте элементы вручную`,
       libraryUnreachable:
         'Не удалось связаться с List Vault, поэтому канонических списков в этих результатах нет',
       nothingFoundLibraryDown:
@@ -664,7 +666,6 @@ export const ru: Locale = {
         optionLabels: {
           Untagged: '(неизвестно)',
           MULTI: 'МУЛЬТИ',
-          Unknown: 'Неизвестно',
           Movie: 'Фильм',
           TV: 'Сериал',
           Animation: 'Анимация',

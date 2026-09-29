@@ -128,6 +128,14 @@ export function SearchTab({ mediaType, onBuilt }: SearchTabProps) {
   function noticeFor(cause: unknown, retry: () => void): Notice {
     if (cause instanceof ApiError && cause.code === 'search.unavailable') return noKeyNotice()
     if (cause instanceof ApiError && cause.code === 'search.unavailableOffline') {
+      // A library-only category (Mega) has no key to add: it is only the connection.
+      if (mediaType.searchScope === 'library') {
+        return {
+          kind: 'block',
+          headline: text.offlineHeadline(categoryLabel(mediaType)),
+          explanation: text.libraryOnlyOffline(categoryLabel(mediaType)),
+        }
+      }
       return noKeyNotice(true)
     }
     if (cause instanceof ApiError && cause.code === 'list.sourceEmpty') {
@@ -189,7 +197,7 @@ export function SearchTab({ mediaType, onBuilt }: SearchTabProps) {
           kind: 'block',
           headline: text.nothingFoundHeadline,
           explanation: libraryUnreachable
-            ? text.nothingFoundBody + text.nothingFoundLibraryDown
+            ? `${text.nothingFoundBody} ${text.nothingFoundLibraryDown}`
             : text.nothingFoundBody,
         })
         return
