@@ -38,10 +38,11 @@
   color: var(--ink);
 }
 /* One width in every language (owner): the buttons and pill after it move over, this never resizes.
-   320px fits IGDB's ID and secret side by side (2 × the 150px field minimum + the gap). */
+   400px leaves the widest row (ru) about 80px of slack in the 880px settings column, and gives IGDB's
+   ID and secret about 197px each, side by side. */
 .q-key-fields {
   flex: none;
-  width: 320px;
+  width: 400px;
   max-width: 100%;
   display: flex;
   flex-wrap: wrap;
