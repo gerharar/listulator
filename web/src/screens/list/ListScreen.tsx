@@ -899,9 +899,9 @@ function ListView({
           <div className="q-list-titles">
             <p className="q-kicker">{mediaType ? categoryLabel(mediaType) : loaded.mediaType}</p>
             <h1 className="q-list-title">
-              {meta.title}
               {mark === 'curated' && <CuratedStar large />}
               {mark === 'byHand' && <ByHandMark large />}
+              {meta.title}
               <StatusChip status={meta.status} />
             </h1>
             {meta.description && <p className="q-list-description">{meta.description}</p>}

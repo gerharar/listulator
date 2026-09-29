@@ -208,17 +208,19 @@ describe('ListScreen header', () => {
 describe('ListScreen marks (task 11.9)', () => {
   const title = () => document.querySelector('.q-list-title') as HTMLElement
 
-  it('puts the curated star beside the title of a community-library list', async () => {
+  it('puts the curated star to the left of the title of a community-library list', async () => {
     await open(detail({ source: 'canonical', items: [item()] }))
 
     expect(title().querySelector('.q-star')).not.toBeNull()
+    expect(title().firstChild).toBe(title().querySelector('.q-star')) // on the left of the name, like the Home rows
     expect(title().querySelector('.q-byhand')).toBeNull()
   })
 
-  it('puts the hand beside the title of a list made by hand', async () => {
+  it('puts the hand to the left of the title of a list made by hand', async () => {
     await open(detail({ source: 'manual', items: [item({ source: 'manual' })] }))
 
     expect(title().querySelector('.q-byhand')).not.toBeNull()
+    expect(title().firstChild).toBe(title().querySelector('.q-byhand'))
     expect(title().querySelector('.q-star')).toBeNull()
   })
 
