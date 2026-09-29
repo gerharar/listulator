@@ -268,7 +268,7 @@ describe('SearchTab', () => {
       await search('marvel')
 
       expect(await screen.findByText("Can't search Mega right now")).not.toBeNull()
-      expect(screen.getByText(/only place to search Mega/)).not.toBeNull()
+      expect(screen.getByText(/only place for searching in Mega/)).not.toBeNull()
       expect(screen.queryByText(/API key/)).toBeNull()
       expect(screen.queryByText(/\.env/)).toBeNull()
       expect(screen.queryByRole('button', { name: 'Open Settings' })).toBeNull()
