@@ -15,12 +15,16 @@
   border: 1px solid var(--rule);
   box-shadow: 0 12px 30px rgba(0, 0, 0, 0.18);
 }
-/* The content scrolls here, not on .q-pop, whose overflow would clip the tail sitting outside its box. */
+/* The content sits here so it can scroll without clipping the tail (outside .q-pop's box). It scrolls only
+   once Popover has capped the card to the screen (data-capped): otherwise overflow stays visible, and a
+   dropdown inside the card (the Group list in the Edit window) can extend past the card's edge. */
 .q-pop-scroll {
   display: flex;
   flex-direction: column;
   gap: 10px;
   min-height: 0;
+}
+.q-pop[data-capped] > .q-pop-scroll {
   overflow-y: auto;
 }
 .q-pop.w220 {

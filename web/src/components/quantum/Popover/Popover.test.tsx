@@ -202,12 +202,14 @@ describe('Popover never shows in the wrong place (11.3)', () => {
     await waitFor(() => expect(card.style.opacity).toBe('1'))
   })
 
-  it('caps its height to the room on screen, and scrolls the content inside instead of running off', async () => {
+  it('keeps its content in a scroll body, which only scrolls once the card is capped to the screen', async () => {
     open()
     const card = screen.getByRole('dialog')
 
-    await waitFor(() => expect(card.style.maxHeight).toMatch(/^\d+(\.\d+)?px$/))
+    await waitFor(() => expect(card.style.opacity).toBe('1'))
     expect(card.querySelector('.q-pop-scroll')?.textContent).toBe('Body')
+    // Whether the card is capped depends on real layout, which jsdom has none of (its viewport is 0px tall):
+    // the cap, the scroll and the "fits, so a dropdown may hang past it" case are measured in a browser
+    // (e2e/popover-fit.spec.ts).
   })
 })
-

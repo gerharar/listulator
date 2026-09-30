@@ -74,3 +74,48 @@ test('the [+] platform editor is never drawn at the left edge before it jumps be
     await page.request.delete(`/api/lists/${list.id}`)
   }
 })
+
+test('the Edit window’s Group suggestions are not clipped by the window: every group can be seen and hit', async ({ page }) => {
+  await page.setViewportSize({ width: 1200, height: 800 })
+  const title = `e2e popover-fit groups ${Date.now()}`
+  const list = await (await page.request.post('/api/lists', { data: { title, mediaType: 'comic' } })).json()
+  const names = ['Better Call Saul Employee Training: Los Pollos Hermanos Employee Training', 'Season 2', 'Season 3', 'Season 4', 'Season 5', 'Specials']
+  await page.request.post(`/api/lists/${list.id}/items/import`, {
+    data: { source: 'manual', items: names.map((group, index) => ({ title: `Issue ${index}`, timeToConsumeMinutes: 20, group })) },
+  })
+
+  try {
+    await page.goto('/')
+    await page.locator('.q-home-row', { hasText: title }).click()
+    await page.getByRole('button', { name: 'Edit Issue 0', exact: true }).click()
+    const card = page.locator('.q-pop', { has: page.getByLabel('Title') })
+    await card.getByLabel('Group').click()
+
+    const options = card.getByRole('option')
+    await expect(options.last()).toBeAttached()
+    expect(await options.count()).toBeGreaterThanOrEqual(names.length)
+
+    // The card fits, so it does not scroll (a scrolling card would clip the list hanging below it).
+    await expect(card.locator('.q-pop-scroll')).toHaveCSS('overflow-y', 'visible')
+    // Every option in view in the list itself answers a hit-test: none is clipped by the Edit window.
+    const { tested, hidden } = await card.getByRole('listbox').evaluate((list) => {
+      const box = list.getBoundingClientRect()
+      const tested: string[] = []
+      const hidden: string[] = []
+      for (const node of list.querySelectorAll('[role=option]')) {
+        const at = node.getBoundingClientRect()
+        const [x, y] = [at.x + at.width / 2, at.y + at.height / 2]
+        if (y < box.y || y > box.y + box.height) continue
+        tested.push(node.textContent ?? '')
+        const hit = document.elementFromPoint(x, y)
+        if (!hit || !node.contains(hit)) hidden.push(node.textContent ?? '')
+      }
+      return { tested, hidden }
+    })
+    expect(tested.length).toBeGreaterThanOrEqual(5)
+    expect(hidden).toEqual([])
+  } finally {
+    await page.request.delete(`/api/lists/${list.id}`)
+  }
+})
+

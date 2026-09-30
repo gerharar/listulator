@@ -70,11 +70,21 @@ export function Popover({ open, anchorEl, onDismiss, onEscape, width, side = 'be
       }),
       shift({ padding: 8 }),
       // Taller than the room left (a short window, a long picker): stop at the screen's edge and
-      // scroll the content inside, rather than run off the top or bottom (11.3).
+      // scroll the content inside, rather than run off the top or bottom (11.3). Only then: a card
+      // that fits keeps visible overflow, so a dropdown inside it can reach past its edge.
       size({
         padding: 8,
         apply({ availableHeight, elements }) {
-          elements.floating.style.maxHeight = `${Math.max(availableHeight, 160)}px`
+          const card = elements.floating
+          // Measured uncapped: a dropdown open inside the card (the Group list) hangs below its box and
+          // must not count, or a card that fits would start clipping its own suggestions.
+          card.style.maxHeight = ''
+          if (card.getBoundingClientRect().height > availableHeight) {
+            card.style.maxHeight = `${Math.max(availableHeight, 160)}px`
+            card.dataset['capped'] = ''
+          } else {
+            delete card.dataset['capped']
+          }
         },
       }),
       arrow({ element: arrowRef }),
