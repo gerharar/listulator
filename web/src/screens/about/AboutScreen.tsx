@@ -44,9 +44,6 @@ export function AboutScreen() {
               </Button>
             </div>
             <div className="q-about-legal">
-              <p>{text.licence}</p>
-              <p>{text.listsLicence}</p>
-              <p>{text.dataTerms}</p>
               <p className="q-about-author">
                 <span>
                   {text.madeBy} <b>{AUTHOR.handle}</b>
@@ -56,6 +53,9 @@ export function AboutScreen() {
                   <span aria-hidden="true">↗</span>
                 </ExternalLink>
               </p>
+              <p>{text.licence}</p>
+              <p>{text.listsLicence}</p>
+              <p>{text.dataTerms}</p>
             </div>
           </section>
 

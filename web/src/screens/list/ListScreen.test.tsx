@@ -175,7 +175,7 @@ describe('where the list came from (link-back under the add band)', () => {
     expect(note.compareDocumentPosition(screen.getByRole('button', { name: 'Add' })) & Node.DOCUMENT_POSITION_PRECEDING).toBeTruthy()
   })
 
-  it('links each source the owner named: Open Library too', async () => {
+  it('links the other sources: Open Library', async () => {
     await open(detail({ source: 'api', externalRef: 'author:OL1A', mediaType: 'book', items: [item()] }))
 
     expect(within(screen.getByText(LINE).closest('p')!).getByRole('link', { name: /Open Library/ }).getAttribute('href')).toBe(
@@ -191,11 +191,15 @@ describe('where the list came from (link-back under the add band)', () => {
     }
   })
 
-  it('says nothing for YouTube, which is not on the owner’s list, or a category with no source', async () => {
+  it('links YouTube too', async () => {
     await open(detail({ source: 'api', externalRef: 'playlist:PL1', mediaType: 'youtube', items: [item()] }))
-    expect(screen.queryByText(LINE)).toBeNull()
-    cleanup()
 
+    expect(within(screen.getByText(LINE).closest('p')!).getByRole('link', { name: /YouTube/ }).getAttribute('href')).toBe(
+      'https://www.youtube.com/',
+    )
+  })
+
+  it('says nothing for a category with no source of its own (Mega)', async () => {
     await open(detail({ source: 'api', externalRef: 'franchise:1', mediaType: 'mega', items: [item()] }))
     expect(screen.queryByText(LINE)).toBeNull()
   })

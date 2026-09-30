@@ -82,6 +82,10 @@ describe('AboutScreen', () => {
       expect(screen.getByText('Data from the sources below stays under each source’s own terms.')).toBeTruthy()
       expect(screen.getByText('gerharar')).toBeTruthy()
       const repo = screen.getByRole('link', { name: /github\.com\/neuroshaoh\/listulator/ })
+      // The author comes first, then the licences (owner, 2026-09-30).
+      const legal = [...document.querySelectorAll('.q-about-legal > p')].map((line) => line.textContent ?? '')
+      expect(legal[0]).toMatch(/^Made by gerharar/)
+      expect(legal[1]).toMatch(/^Released under PolyForm/)
       expect(repo.getAttribute('href')).toBe('https://github.com/neuroshaoh/listulator')
       expect(repo.getAttribute('target')).toBe('_blank')
     })
