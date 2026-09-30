@@ -20,7 +20,10 @@ import '@fontsource/jetbrains-mono/600.css'
 import './styles/quantum/tokens.css'
 import './styles/quantum/base.css'
 import { App } from './App.js'
+import { installContextMenuGuard } from './lib/contextMenu.js'
 import { AppErrorBoundary } from './components/quantum/AppErrorBoundary/AppErrorBoundary.js'
+
+installContextMenuGuard()
 
 const rootElement = document.getElementById('root')
 if (!rootElement) throw new Error('#root not found')
