@@ -127,6 +127,11 @@ export async function runGenerateList(
       `Unknown category "${options.category}". Known categories: ${registry.keys().join(', ')}`,
     )
   }
+  // A curated-only category (Mega) is written by hand; its adapter would draft from TMDB,
+  // whose data cannot go into lists/ (owner, 2026-09-30).
+  if (mediaType.searchScope === 'library') {
+    throw new Error(`Category "${options.category}" is curated only — write its lists by hand, not from an API.`)
+  }
   if (!mediaType.adapter) {
     throw new Error(`Category "${options.category}" has no search adapter — nothing to generate from.`)
   }

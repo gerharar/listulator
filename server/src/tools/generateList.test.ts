@@ -154,6 +154,27 @@ describe('runGenerateList', () => {
     expect(text).toContain('{title: "UFC 2: No Way Out", year: 1994}')
   })
 
+  it('refuses a curated-only category, whatever adapter it has behind it', async () => {
+    const registry = createMediaTypeRegistry([
+      {
+        key: 'mega',
+        label: 'Mega',
+        sortOrder: 100,
+        defaultDurationMinutes: 120,
+        adapter: fakeAdapter(),
+        sourceName: 'TMDB',
+        searchScope: 'library',
+      },
+    ])
+    const outPath = join(dir, 'never.yaml')
+
+    await expect(runGenerateList({ category: 'mega', query: 'marvel' }, registry)).rejects.toThrow(/curated only/)
+    await expect(
+      runGenerateList({ category: 'mega', ref: 'franchise:1', title: 'Never', out: outPath }, registry),
+    ).rejects.toThrow(/curated only/)
+    expect(existsSync(outPath)).toBe(false)
+  })
+
   describe('sources whose terms forbid redistributing their data', () => {
     const registryFrom = (sourceName: string) =>
       createMediaTypeRegistry([

@@ -264,7 +264,7 @@ export function createDefaultMediaTypes({
       defaultDurationMinutes: 120,
       adapter: franchises,
       sourceName: 'TMDB',
-      // Users search curated lists only; TMDB keywords feed the list generator (F9).
+      // Users search curated lists only, and the list generator refuses Mega (TMDB data cannot go into lists/).
       searchScope: 'library',
       // A Mega item's medium is one of the other categories, tagged with the key a list file
       // uses (`tags: [game]`); the label is only for display.
