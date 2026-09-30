@@ -308,9 +308,7 @@ export const en = {
       checkForUpdates: 'Check for updates',
       /** The button is a placeholder until the desktop updater exists (owner, 2026-09-30). */
       updatesLater: 'Checking for updates comes in a later version.',
-      licence: 'Released under PolyForm Noncommercial license (free for personal use). © 2026 Listulator',
-      listsLicence: 'Lists in the List Vault are shared under CC BY 4.0.',
-      dataTerms: 'Data from the sources below stays under each source’s own terms.',
+      licence: 'The app is released under the PolyForm Noncommercial license (free for personal use), List Vault lists under CC BY 4.0, and data from the sources below stays under each source’s own terms. © 2026 Listulator',
       madeBy: 'Made by',
       dataSources: 'Data sources',
       showAttribution: 'Show attribution',

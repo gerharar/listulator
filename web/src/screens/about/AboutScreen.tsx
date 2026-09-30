@@ -54,8 +54,6 @@ export function AboutScreen() {
                 </ExternalLink>
               </p>
               <p>{text.licence}</p>
-              <p>{text.listsLicence}</p>
-              <p>{text.dataTerms}</p>
             </div>
           </section>
 
