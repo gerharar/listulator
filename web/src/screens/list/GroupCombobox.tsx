@@ -1,3 +1,4 @@
+import { NAME_MAX_LENGTH } from '../../../../server/src/catalog/limits.js'
 import './GroupCombobox.css'
 import { useCallback, useId, useRef, useState, type CSSProperties, type KeyboardEvent } from 'react'
 import { copy } from '../../locale/index.js'
@@ -112,6 +113,7 @@ export function GroupCombobox({
           aria-autocomplete="list"
           value={value}
           placeholder={focused ? text.typeToCreate : text.noGroup}
+          maxLength={NAME_MAX_LENGTH}
           spellCheck={false}
           autoComplete="off"
           onChange={(event) => {

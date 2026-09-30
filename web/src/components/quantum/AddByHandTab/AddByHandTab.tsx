@@ -1,3 +1,4 @@
+import { NAME_MAX_LENGTH } from '../../../../../server/src/catalog/limits.js'
 import './AddByHandTab.css'
 import { useRef, useState, type FormEvent } from 'react'
 import { api, type MediaType } from '../../../lib/api.js'
@@ -78,6 +79,7 @@ export function AddByHandTab({ mediaType, onBuilt }: AddByHandTabProps) {
 
       <Field
         label={text.titleLabel}
+        maxLength={NAME_MAX_LENGTH}
         value={title}
         onChange={(event) => setTitle(event.target.value)}
         placeholder={text.titlePlaceholder}

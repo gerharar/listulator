@@ -54,6 +54,16 @@ describe('group routes', () => {
     expect((await detail()).groups).toMatchObject([{ name: 'Season 1' }])
   })
 
+  it('holds a group name to 255 characters when created or renamed', async () => {
+    const max = 'g'.repeat(255)
+    const over = 'g'.repeat(256)
+
+    expect((await send('POST', `/lists/${listId}/groups`, { name: over })).statusCode).toBe(400)
+    const created = await send('POST', `/lists/${listId}/groups`, { name: max })
+    expect(created.statusCode).toBe(201)
+    expect((await send('PATCH', `/lists/${listId}/groups/${created.json().id}`, { name: over })).statusCode).toBe(400)
+  })
+
   it('refuses a taken name with a code, and a blank one', async () => {
     await addGroup('Season 1')
 

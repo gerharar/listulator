@@ -46,6 +46,12 @@ const save = () => screen.getByRole('button', { name: 'Save' }) as HTMLButtonEle
 const clickAway = () => fireEvent.click(document.querySelector('.q-catcher')!)
 
 describe('EditListPopover', () => {
+  it('stops typing at 255 characters in the title: the limit on names', () => {
+    renderPopover()
+
+    expect(title().maxLength).toBe(255)
+  })
+
   it('opens on the list’s own title, description and status', () => {
     renderPopover()
 

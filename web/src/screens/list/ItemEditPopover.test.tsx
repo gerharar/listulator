@@ -66,6 +66,13 @@ const save = () => screen.getByRole('button', { name: 'Save' }) as HTMLButtonEle
 const clickAway = () => fireEvent.click(document.querySelector('.q-catcher')!)
 
 describe('ItemEditPopover', () => {
+  it('stops typing at 255 characters in the title and the group: the limit on names', () => {
+    renderPopover()
+
+    expect(title().maxLength).toBe(255)
+    expect((screen.getByLabelText('Group') as HTMLInputElement).maxLength).toBe(255)
+  })
+
   it('opens on the item’s own title, minutes and group', () => {
     renderPopover()
 

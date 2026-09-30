@@ -154,6 +154,13 @@ describe('AddItemForm', () => {
     expect(title().getAttribute('spellcheck')).toBe('false')
   })
 
+  it('stops typing at 255 characters in the title and the group: the limit on names', () => {
+    renderForm()
+
+    expect(title().maxLength).toBe(255)
+    expect(group().maxLength).toBe(255)
+  })
+
   describe('an empty group (11.17)', () => {
     const groupButton = () => screen.getByRole('button', { name: 'Add Group' }) as HTMLButtonElement
 

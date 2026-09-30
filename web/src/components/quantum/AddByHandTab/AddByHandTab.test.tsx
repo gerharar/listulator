@@ -33,6 +33,12 @@ function renderTab(onBuilt = vi.fn()) {
 }
 
 describe('AddByHandTab', () => {
+  it('stops typing at 255 characters in the list title: the limit on names', () => {
+    renderTab()
+
+    expect((screen.getByLabelText('Title') as HTMLInputElement).maxLength).toBe(255)
+  })
+
   it('turns spellcheck off for titles and items, and leaves it on for the description', () => {
     // jsdom has no `spellcheck` property, so the attribute is what is read.
     renderTab()

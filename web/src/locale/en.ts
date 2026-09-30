@@ -124,6 +124,7 @@ export const en = {
     'group.notEmpty': (): string => 'You can delete a group only when you embrace its emptiness',
     'group.orderMismatch': (): string => 'The groups changed since you loaded this list, so reload it and try again.',
     'reset.unavailable': (): string => 'This list has no source to reset it to, and you should not be seeing this message',
+    'name.tooLong': (p: { max: number }): string => `That name is too long: ${p.max} characters at most.`,
     'refresh.handMadeList': (): string => 'This list was a hand job, so there is nothing to check against.',
     'refresh.searchUnavailable': (p: { category: string }): string => `Search is not available for ${p.category}.`,
   },

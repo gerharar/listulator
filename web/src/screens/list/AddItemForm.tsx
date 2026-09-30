@@ -1,3 +1,4 @@
+import { NAME_MAX_LENGTH } from '../../../../server/src/catalog/limits.js'
 import './AddItemForm.css'
 import { useRef, useState, type FormEvent } from 'react'
 import { ChevronDown } from 'lucide-react'
@@ -127,6 +128,7 @@ export function AddItemForm({
           value={title}
           onChange={(event) => setTitle(event.target.value)}
           placeholder={text.titlePlaceholder}
+          maxLength={NAME_MAX_LENGTH}
           spellCheck={false}
           autoComplete="off"
           disabled={adding}

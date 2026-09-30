@@ -1,3 +1,4 @@
+import { NAME_MAX_LENGTH } from '../../../../server/src/catalog/limits.js'
 import './ItemEditPopover.css'
 import { useState, type KeyboardEvent } from 'react'
 import { copy } from '../../locale/index.js'
@@ -59,6 +60,7 @@ export function EditListPopover({ list, itemCount, anchorEl, onCommit, onDiscard
         </div>
         <Field
           label={text.title}
+          maxLength={NAME_MAX_LENGTH}
           value={title}
           onChange={(event) => setTitle(event.target.value)}
           spellCheck={false}

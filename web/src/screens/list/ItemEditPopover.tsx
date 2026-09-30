@@ -1,3 +1,4 @@
+import { NAME_MAX_LENGTH } from '../../../../server/src/catalog/limits.js'
 import './ItemEditPopover.css'
 import { useCallback, useEffect, useRef, useState, type KeyboardEvent } from 'react'
 import type { ItemSourceTags, ListItem } from '../../lib/api.js'
@@ -137,6 +138,7 @@ export function ItemEditPopover({
       <div className="q-edit" onKeyDown={saveOnEnter} ref={bindEdit}>
         <Field
           label={text.editTitle}
+          maxLength={NAME_MAX_LENGTH}
           value={title}
           onChange={(event) => setTitle(event.target.value)}
           spellCheck={false}

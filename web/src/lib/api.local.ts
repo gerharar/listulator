@@ -69,6 +69,7 @@ import type {
   SuggestionPick,
 } from './api.js'
 import { ApiError } from './api.js'
+import { checkNameLengths } from './nameLimit.js'
 import { createLocalDb, type LocalDatabase } from './db/localDb.js'
 import { getLocalCurrentUser } from './db/localUser.js'
 import { toMediaTypeInfo } from '../../../server/src/ingestion/mediaTypes.js'
@@ -323,6 +324,7 @@ export function createLocalApi(): ApiClient {
     },
 
     createList: async (input) => {
+      checkNameLengths({ title: input.title })
       const [database, userId] = [await getDb(), await getUserId()]
       const created = await repoCreateList(database, userId, input)
       const withStats = await findListWithStats(database, userId, created.id)
@@ -330,6 +332,7 @@ export function createLocalApi(): ApiClient {
     },
 
     updateList: async (id, patch) => {
+      checkNameLengths({ title: patch.title })
       const [database, userId] = [await getDb(), await getUserId()]
       const updated = await repoUpdateList(database, userId, id, patch)
       if (!updated) throw notFound()
@@ -488,6 +491,7 @@ export function createLocalApi(): ApiClient {
     },
 
     addItem: async (listId, input) => {
+      checkNameLengths({ title: input.title, group: input.group })
       const [database, userId] = [await getDb(), await getUserId()]
       // This method's whole reason to exist is adding one item by hand
       // (task 6.1/6.2) — bulk/search-imported items always go through
@@ -498,6 +502,7 @@ export function createLocalApi(): ApiClient {
     },
 
     updateItem: async (listId, itemId, patch) => {
+      checkNameLengths({ title: patch.title, group: patch.group })
       const [database, userId] = [await getDb(), await getUserId()]
       const updated = await updateListItem(database, userId, listId, itemId, patch)
       if (!updated) throw notFound()
@@ -519,6 +524,7 @@ export function createLocalApi(): ApiClient {
 
     // Groups (D3, task 10.16) — the same repository the server's routes call.
     createGroup: async (listId, name) => {
+      checkNameLengths({ name })
       const [database, userId] = [await getDb(), await getUserId()]
 
       try {
@@ -531,6 +537,7 @@ export function createLocalApi(): ApiClient {
     },
 
     renameGroup: async (listId, groupId, name) => {
+      checkNameLengths({ name })
       const [database, userId] = [await getDb(), await getUserId()]
 
       try {

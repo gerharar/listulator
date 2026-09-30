@@ -38,6 +38,7 @@ export type ApiErrorCode =
   | 'group.nameTaken'
   | 'group.notEmpty'
   | 'group.orderMismatch'
+  | 'name.tooLong'
   | 'reset.unavailable'
   | 'refresh.handMadeList'
   | 'refresh.searchUnavailable'

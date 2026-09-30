@@ -287,6 +287,32 @@ describe('catalog HTTP API', () => {
     expect(missingItem.statusCode).toBe(404)
   })
 
+  it('holds list titles, item titles and item groups to 255 characters, and lets 255 through', async () => {
+    const max = 'x'.repeat(255)
+    const over = 'x'.repeat(256)
+
+    expect((await createList({ title: over })).statusCode).toBe(400)
+    const list = (await createList({ title: max })).json()
+    expect(list.title).toBe(max)
+    expect(
+      (await harness.app.inject({ method: 'PATCH', url: `/api/lists/${list.id}`, payload: { title: over } })).statusCode,
+    ).toBe(400)
+
+    expect((await createItem(list.id, { title: over })).statusCode).toBe(400)
+    expect((await createItem(list.id, { title: 'ok', group: over })).statusCode).toBe(400)
+    const item = (await createItem(list.id, { title: max, group: max })).json()
+    expect(item).toMatchObject({ title: max, group: max })
+    expect(
+      (
+        await harness.app.inject({
+          method: 'PATCH',
+          url: `/api/lists/${list.id}/items/${item.id}`,
+          payload: { title: over },
+        })
+      ).statusCode,
+    ).toBe(400)
+  })
+
   it('rejects malformed input', async () => {
     const noTitle = await harness.app.inject({
       method: 'POST',

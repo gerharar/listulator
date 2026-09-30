@@ -119,6 +119,7 @@ export const ru: Locale = {
     'group.notEmpty': (): string => 'Удалить группу можно, только приняв её пустоту',
     'group.orderMismatch': (): string =>
       'Группы изменились с тех пор, как вы открыли список, — перезагрузите его и повторите.',
+    'name.tooLong': (p: { max: number }): string => `Слишком длинное название: не больше ${p.max} символов.`,
     'reset.unavailable': (): string => 'У этого списка нет источника, к которому его можно сбросить, и вы не должны видеть это сообщение',
     'refresh.handMadeList': (): string => 'Этот список — ручная работа, сверять его не с чем.',
     'refresh.searchUnavailable': (p: { category: string }): string =>

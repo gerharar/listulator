@@ -188,6 +188,13 @@ describe('GroupRow', () => {
       expect(onToggle).not.toHaveBeenCalled()
     })
 
+    it('stops typing at 255 characters, the limit on names', () => {
+      renderRow(BLOCK, { onRename: vi.fn(async () => {}) })
+      fireEvent.click(pencil())
+
+      expect(editor().maxLength).toBe(255)
+    })
+
     it('renames on Enter with the name trimmed, then closes the editor', async () => {
       const onRename = vi.fn(async () => {})
       renderRow(BLOCK, { onRename })

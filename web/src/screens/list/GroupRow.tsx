@@ -1,3 +1,4 @@
+import { NAME_MAX_LENGTH } from '../../../../server/src/catalog/limits.js'
 import './Spine.css'
 import { useEffect, useRef, useState, type KeyboardEvent, type PointerEvent } from 'react'
 import { Pencil, Trash2 } from 'lucide-react'
@@ -135,6 +136,7 @@ export function GroupRow({
             className="q-group-input"
             aria-label={text.groupNameLabel}
             value={draft}
+            maxLength={NAME_MAX_LENGTH}
             spellCheck={false}
             autoComplete="off"
             onChange={(event) => setDraft(event.target.value)}

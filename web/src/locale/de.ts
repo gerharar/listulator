@@ -113,6 +113,7 @@ export const de: Locale = {
     'group.notEmpty': (): string => 'Eine Gruppe kann man nur löschen, wenn man ihre Leere annimmt',
     'group.orderMismatch': (): string =>
       'Die Gruppen haben sich geändert, seit du die Liste geladen hast — lade sie neu und versuche es noch einmal.',
+    'name.tooLong': (p: { max: number }): string => `Dieser Name ist zu lang: höchstens ${p.max} Zeichen.`,
     'reset.unavailable': (): string => 'Diese Liste hat keine Quelle, auf die sie zurückgesetzt werden könnte, und du solltest diese Meldung gar nicht sehen',
     'refresh.handMadeList': (): string => 'Diese Liste ist ein Handjob, also gibt es nichts zum Abgleichen.',
     'refresh.searchUnavailable': (p: { category: string }): string =>

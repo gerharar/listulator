@@ -64,6 +64,7 @@ import {
   listPayloadSchema,
   snapshotPayloadSchema,
 } from './restoreSchemas.js'
+import { NAME_MAX_LENGTH } from './limits.js'
 
 const LIST_SOURCES = ['api', 'llm', 'manual'] as const
 const LIST_STATUSES = ['complete', 'ongoing'] as const
@@ -75,7 +76,7 @@ const LIST_STATUSES = ['complete', 'ongoing'] as const
  */
 function listBodyProperties(mediaTypes: MediaTypeRegistry) {
   return {
-    title: { type: 'string', minLength: 1, maxLength: 500 },
+    title: { type: 'string', minLength: 1, maxLength: NAME_MAX_LENGTH },
     description: { type: ['string', 'null'], maxLength: 2000 },
     mediaType: { type: 'string', enum: mediaTypes.keys() },
     source: { type: 'string', enum: LIST_SOURCES },
@@ -88,7 +89,7 @@ function listBodyProperties(mediaTypes: MediaTypeRegistry) {
 }
 
 const itemBodyProperties = {
-  title: { type: 'string', minLength: 1, maxLength: 500 },
+  title: { type: 'string', minLength: 1, maxLength: NAME_MAX_LENGTH },
   // Required on create: the catalog stores a number, and deciding *which*
   // number when nothing is known is ingestion's job (SPEC.md §5).
   timeToConsumeMinutes: { type: 'integer', minimum: 0 },
@@ -96,7 +97,7 @@ const itemBodyProperties = {
   orderIndex: { type: 'integer', minimum: 0 },
   // Lets a hand-typed item join (or leave, via null on a patch) a season
   // group started by an import — task 6.6's manual-entry follow-up.
-  group: { type: ['string', 'null'], maxLength: 500 },
+  group: { type: ['string', 'null'], maxLength: NAME_MAX_LENGTH },
   // Set by hand in the Edit window or the add row (U5); null or [] clears them.
   tags: { type: ['array', 'null'], maxItems: MAX_ITEM_TAGS, items: { type: 'string', maxLength: 40 } },
 } as const
@@ -355,7 +356,7 @@ export const catalogRoutes: FastifyPluginAsync<CatalogRoutesOptions> = async (
     type: 'object',
     required: ['name'],
     additionalProperties: false,
-    properties: { name: { type: 'string', minLength: 1, maxLength: 500 } },
+    properties: { name: { type: 'string', minLength: 1, maxLength: NAME_MAX_LENGTH } },
   } as const
 
   app.post<{ Params: ListParams; Body: { name: string } }>(
