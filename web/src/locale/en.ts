@@ -29,7 +29,7 @@ import type { RichText, Widen } from './types.js'
 export const en = {
   app: {
     loading: 'Loading…',
-    unknownError: 'Something went wrong. Pantshitality!',
+    unknownError: 'Whoops... something went wrong',
   },
 
   newList: {
@@ -133,7 +133,7 @@ export const en = {
     /** Told apart from "the server said no" — in development it is the common one. */
     unreachable: 'Cannot reach the server. Is anybody there?',
     failed: (status: number): string => `Request failed (${status})`,
-    unknown: 'Something went wrong. Pantshitality!',
+    unknown: 'Whoops... something went wrong',
   },
 
   /** `time_to_consume_minutes` for display. Minutes are the storage unit. */
@@ -163,7 +163,7 @@ export const en = {
   quantum: {
     /** The whole-app error screen (AppErrorBoundary): shown instead of a blank window. */
     crash: {
-      headline: 'Something went wrong. Pantshitality!',
+      headline: 'Whoops... ',
       explanation: 'Listulator hit an unexpected error and shat its pants in profound existential terror. Do not worry, your lists are not affected. Hit Reload to (hopefully) bring the app back.',
       reload: 'Reload',
     },
