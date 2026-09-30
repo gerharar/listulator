@@ -38,7 +38,7 @@ const acrossShelves = (shelves: number): string =>
 export const ru: Locale = {
   app: {
     loading: 'Загрузка…',
-    unknownError: 'Что-то пошло не так. Обосралити!',
+    unknownError: 'Упс... Что-то пошло не так',
   },
 
   newList: {
@@ -129,7 +129,7 @@ export const ru: Locale = {
   request: {
     unreachable: 'Нет связи с сервером. Есть там кто-нибудь?',
     failed: (status: number): string => `Запрос не удался (${status})`,
-    unknown: 'Что-то пошло не так. Обосралити!',
+    unknown: 'Упс... Что-то пошло не так',
   },
 
   duration: {
@@ -155,7 +155,7 @@ export const ru: Locale = {
 
   quantum: {
     crash: {
-      headline: 'Что-то пошло не так. Обосралити!',
+      headline: 'Упс... ',
       explanation: 'Listulator наткнулся на непредвиденную ошибку и наложил в штаны от глубокого экзистенциального ужаса. Не волнуйтесь, ваши списки не пострадали. Нажмите «Перезагрузить», чтобы (надеюсь) вернуть приложение к жизни.',
       reload: 'Перезагрузить',
     },

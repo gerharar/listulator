@@ -32,7 +32,7 @@ const acrossShelves = (shelves: number): string =>
 export const de: Locale = {
   app: {
     loading: 'Lädt…',
-    unknownError: 'Etwas ist schiefgelaufen. Scheißality!',
+    unknownError: 'Ups... etwas ist schiefgelaufen',
   },
 
   newList: {
@@ -123,7 +123,7 @@ export const de: Locale = {
   request: {
     unreachable: 'Server nicht erreichbar. Ist da jemand?',
     failed: (status: number): string => `Anfrage fehlgeschlagen (${status})`,
-    unknown: 'Etwas ist schiefgelaufen. Scheißality!',
+    unknown: 'Ups... etwas ist schiefgelaufen',
   },
 
   duration: {
@@ -146,7 +146,7 @@ export const de: Locale = {
 
   quantum: {
     crash: {
-      headline: 'Etwas ist schiefgelaufen. Scheißality!',
+      headline: 'Ups... ',
       explanation: 'Listulator ist auf einen unerwarteten Fehler gestoßen und hat sich vor tiefem existenziellem Grauen in die Hose gemacht. Keine Sorge, deine Listen sind nicht betroffen. Klicke auf „Neu laden“, um die App (hoffentlich) zurückzubringen.',
       reload: 'Neu laden',
     },

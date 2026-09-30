@@ -37,6 +37,30 @@
     "status": "ongoing"
   },
   {
+    "path": "lists/comic/carey-lucifer-comics.yaml",
+    "title": "Mike Carey's Lucifer - complete run",
+    "category": "comic",
+    "itemCount": 79,
+    "description": "Complete reading order for Mike Carey's Lucifer (Vertigo / DC) run",
+    "status": "complete"
+  },
+  {
+    "path": "lists/comic/invincible-comic-complete.yaml",
+    "title": "Invincible comic book series - complete (release order)",
+    "category": "comic",
+    "itemCount": 246,
+    "description": "Complete reading list in release order for the Invincible (Image) comic book series by Robert Kirkman",
+    "status": "complete"
+  },
+  {
+    "path": "lists/comic/kirby-4th-world-reading-order.yaml",
+    "title": "Jack Kirby's \"The Fourth World\" metaseries",
+    "category": "comic",
+    "itemCount": 57,
+    "description": "Complete reading order for \"The Fourth World\" (DC) by Jack Kirby",
+    "status": "complete"
+  },
+  {
     "path": "lists/comic/planetary-comics.yaml",
     "title": "Planetary complete series",
     "category": "comic",
@@ -50,6 +74,46 @@
     "category": "comic",
     "itemCount": 75,
     "description": "Complete reading order for Preacher (Vertigo / DC) comic book series",
+    "status": "complete"
+  },
+  {
+    "path": "lists/comic/the-boys-comic-complete.yaml",
+    "title": "The Boys comic book series - complete",
+    "category": "comic",
+    "itemCount": 98,
+    "description": "Complete reading order for The Boys (Wildstorm / DC / Dynamite) comic books series by Garth Ennis and Darick Robertson",
+    "status": "complete"
+  },
+  {
+    "path": "lists/comic/the-sandman-gaiman-comics.yaml",
+    "title": "The Sandman by Neil Gaiman - complete series",
+    "category": "comic",
+    "itemCount": 97,
+    "description": "Complete reading order for The Sandman (Vol 2, Vertigo / DC) comic book series by Neil Gaiman",
+    "status": "complete"
+  },
+  {
+    "path": "lists/comic/twd-comics.yaml",
+    "title": "The Walking Dead comic book series - complete (chronological order)",
+    "category": "comic",
+    "itemCount": 200,
+    "description": "Complete reading list in chronological(-ish) order for The Walking Dead (Image) comic book series by Robert Kirkman",
+    "status": "complete"
+  },
+  {
+    "path": "lists/comic/watchmen-comic-original.yaml",
+    "title": "Watchmen series (original)",
+    "category": "comic",
+    "itemCount": 12,
+    "description": "Complete reading order for the original \"Watchmen\" (DC) series by Alan Moore and Dave Gibbons",
+    "status": "complete"
+  },
+  {
+    "path": "lists/comic/watchmen-comic-prequels.yaml",
+    "title": "Watchmen series (no sequels)",
+    "category": "comic",
+    "itemCount": 49,
+    "description": "Complete non-chronological (release) reading order for \"Watchmen\" (DC) series, including prequels, but not sequels.",
     "status": "complete"
   },
   {
