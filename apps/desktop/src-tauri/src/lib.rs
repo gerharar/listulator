@@ -42,6 +42,8 @@ pub fn run() {
     .plugin(tauri_plugin_sql::Builder::default().build())
     .plugin(tauri_plugin_store::Builder::default().build())
     .plugin(tauri_plugin_http::init())
+    // Opens the About page's links in the system browser, never in the app's own window (task 11.21).
+    .plugin(tauri_plugin_opener::init())
     .setup(|app| {
       #[cfg(desktop)]
       if left_in_fullscreen(app.handle()) {

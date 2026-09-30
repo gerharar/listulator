@@ -21,6 +21,19 @@
         { "url": "https://comicvine.gamespot.com/*" },
         { "url": "https://musicbrainz.org/*" }
       ]
+    },
+    {
+      "identifier": "opener:allow-open-url",
+      "allow": [
+        { "url": "https://github.com/neuroshaoh/listulator" },
+        { "url": "https://www.igdb.com/*" },
+        { "url": "https://musicbrainz.org/*" },
+        { "url": "https://openlibrary.org/*" },
+        { "url": "https://comicvine.gamespot.com/*" },
+        { "url": "https://www.youtube.com/*" },
+        { "url": "https://www.wikipedia.org/*" },
+        { "url": "https://www.themoviedb.org/*" }
+      ]
     }
   ]
 }

@@ -20,6 +20,7 @@
     "@fontsource/jetbrains-mono": "5.3.0",
     "@tauri-apps/api": "2.11.1",
     "@tauri-apps/plugin-http": "2.6.0",
+    "@tauri-apps/plugin-opener": "2.5.5",
     "@tauri-apps/plugin-sql": "2.4.1",
     "@tauri-apps/plugin-store": "2.4.4",
     "drizzle-orm": "0.45.2",
