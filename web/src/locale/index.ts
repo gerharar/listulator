@@ -57,6 +57,15 @@ export function categoryLabel(mediaType: { key: string; label: string }): string
 }
 
 /**
+ * Categories A–Z by the name the app shows for them, in the app's language (11.15). The registry's
+ * `sortOrder` stays for anything that wants the registry's own order; a person looking for a
+ * category wants the alphabet. Called at render, so a language switch re-sorts.
+ */
+export function sortCategories<T extends { key: string; label: string }>(types: readonly T[]): T[] {
+  return [...types].sort((a, b) => compareShown(categoryLabel(a), categoryLabel(b)) || a.key.localeCompare(b.key))
+}
+
+/**
  * The name of where a category searches: its source ("TMDB"), or the community
  * library for a category that searches curated lists only (Mega, F9). Absent
  * for a category with no search at all.

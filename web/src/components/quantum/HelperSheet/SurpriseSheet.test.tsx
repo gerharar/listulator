@@ -72,6 +72,14 @@ describe('opening', () => {
     expect(screen.getByText(/Random canonical list you're not tracking yet/)).toBeTruthy()
     expect(['Any', 'Mega', 'Books', 'MMA', 'TV Series'].every((label) => chip(label))).toBe(true)
     expect(chip('Any').getAttribute('aria-pressed')).toBe('true')
+    // Any first, then the categories A–Z by the name shown (the registry order was Mega, Books, MMA, TV).
+    expect([...document.querySelectorAll('.q-shelves .q-chip')].map((node) => node.textContent?.replace(/\d+$/, '').trim())).toEqual([
+      'Any',
+      'Books',
+      'Mega',
+      'MMA',
+      'TV Series',
+    ])
     expect(screen.getByText('4 candidates across all categories')).toBeTruthy()
     expect(screen.queryByText('Spin to win!')).toBeNull()
     expect(screen.getAllByText('Spin To Win!')).toHaveLength(1) // the button only: no SPIN kicker above the dials

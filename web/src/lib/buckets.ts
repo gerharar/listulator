@@ -1,4 +1,5 @@
 import type { MediaList, MediaType } from './api.js'
+import { sortCategories } from '../locale/index.js'
 
 export interface CategoryBucket {
   mediaType: MediaType
@@ -6,7 +7,7 @@ export interface CategoryBucket {
 }
 
 export interface BucketLayout {
-  /** Categories with lists — shown as full buckets, in registry order. */
+  /** Categories with lists — shown as full buckets, A–Z by the name shown. */
   used: CategoryBucket[]
   /** Categories with nothing yet — collapsed into the muted "also" strip. */
   unused: MediaType[]
@@ -23,7 +24,7 @@ export interface BucketLayout {
  * otherwise a dozen empty prompts dominate the screen at month six.
  */
 export function buildBuckets(lists: MediaList[], mediaTypes: MediaType[]): BucketLayout {
-  const ordered = [...mediaTypes].sort((a, b) => a.sortOrder - b.sortOrder)
+  const ordered = sortCategories(mediaTypes)
 
   const used: CategoryBucket[] = []
   const unused: MediaType[] = []

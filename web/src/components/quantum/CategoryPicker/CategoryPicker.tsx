@@ -2,14 +2,14 @@ import './CategoryPicker.css'
 import { useEffect, useState } from 'react'
 import { X } from 'lucide-react'
 import { api, type MediaType } from '../../../lib/api.js'
-import { categoryLabel, copy, sourceLabel } from '../../../locale/index.js'
+import { categoryLabel, copy, sortCategories, sourceLabel } from '../../../locale/index.js'
 import { CategoryArt } from '../art/CategoryArt.js'
 import { IconButton } from '../Button/Button.js'
 import { HeaderPlate } from '../HeaderPlate/HeaderPlate.js'
 import { useLayerStack } from '../layerStack/LayerStackContext.js'
 
 export interface CategoryPickerProps {
-  /** The live registry, lifted up from Home (task 10.10) — the tile grid is exactly this, in `sortOrder`. */
+  /** The live registry, lifted up from Home (task 10.10) — the tile grid is exactly this, A–Z by the name shown. */
   mediaTypes: readonly MediaType[]
   /** True when the picker is the base layer (nothing tracked yet): no close button, no counts, first-run headline. */
   first: boolean
@@ -49,7 +49,7 @@ export function CategoryPicker({ mediaTypes, first }: CategoryPickerProps) {
     }
   }, [first])
 
-  const ordered = [...mediaTypes].sort((a, b) => a.sortOrder - b.sortOrder)
+  const ordered = sortCategories(mediaTypes)
   const text = copy.quantum.categoryPicker
 
   return (

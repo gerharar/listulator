@@ -79,16 +79,16 @@ function tiles(): HTMLElement[] {
 }
 
 describe('CategoryPicker', () => {
-  it('renders one tile per registry entry, in sortOrder, with the display label from the locale', async () => {
+  it('renders one tile per registry entry, A–Z by the display label from the locale', async () => {
     vi.mocked(api.lists).mockResolvedValue([])
 
     renderPicker(REGISTRY)
 
     expect(tiles().map((tile) => within(tile).getByText(/./, { selector: 'b' }).textContent)).toEqual([
       'Movies',
-      // The registry says "TV Shows"; the locale's display label wins (C1).
-      'TV Series',
       'Pro Wrestling',
+      // The registry says "TV Shows"; the locale's display label wins (C1), and it is what sorts.
+      'TV Series',
     ])
   })
 
@@ -147,7 +147,7 @@ describe('CategoryPicker', () => {
     expect(chip('Pro Wrestling')).toBeUndefined()
     // A shelf with lists takes the filled ground.
     expect(tiles()[0]!.classList.contains('used')).toBe(true)
-    expect(tiles()[2]!.classList.contains('used')).toBe(false)
+    expect(tiles()[1]!.classList.contains('used')).toBe(false) // Pro Wrestling, between Movies and TV Series
   })
 
   it('still lists every category when the lists fetch fails, just without counts', async () => {

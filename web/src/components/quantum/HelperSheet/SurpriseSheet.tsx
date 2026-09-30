@@ -4,7 +4,7 @@ import { Star } from 'lucide-react'
 import type { LibraryEntry } from '../../../../../server/src/ingestion/customLists.js'
 import { api, type MediaType } from '../../../lib/api.js'
 import { useReducedMotion } from '../Motion/MotionContext.js'
-import { categoryLabel, copy } from '../../../locale/index.js'
+import { categoryLabel, copy, sortCategories } from '../../../locale/index.js'
 import { Button } from '../Button/Button.js'
 import { useLiveRegion } from '../LiveRegion/LiveRegion.js'
 import { Sheet } from '../Sheet/Sheet.js'
@@ -80,10 +80,8 @@ function OpenSheet({ onClose, mediaTypes, onTake, random = Math.random }: Surpri
 
   const entries = library.phase === 'ready' ? library.entries : []
   const pool = useMemo(() => candidatePool(entries, shelves), [entries, shelves])
-  const shelfNames = useMemo(
-    () => [...mediaTypes].sort((a, b) => a.sortOrder - b.sortOrder),
-    [mediaTypes],
-  )
+  // Not memoised: the order follows the language, and this is a dozen entries.
+  const shelfNames = sortCategories(mediaTypes)
 
   function stopSpin() {
     clearTimeout(timer.current)

@@ -50,13 +50,13 @@ describe('buildBuckets', () => {
     expect(layout.used).toHaveLength(1)
     expect(layout.used[0]?.mediaType.key).toBe('movie')
     expect(layout.used[0]?.lists.map((entry) => entry.id)).toEqual(['a', 'b'])
-    expect(layout.unused.map((entry) => entry.key)).toEqual(['game', 'comic'])
+    expect(layout.unused.map((entry) => entry.key)).toEqual(['comic', 'game'])
   })
 
-  it('keeps buckets in registry order, not the order lists were made', () => {
-    const layout = buildBuckets([list('a', 'comic'), list('b', 'movie')], CATEGORIES)
+  it('puts buckets A–Z by category name, not in the order lists were made', () => {
+    const layout = buildBuckets([list('a', 'movie'), list('b', 'comic')], CATEGORIES)
 
-    expect(layout.used.map((bucket) => bucket.mediaType.key)).toEqual(['movie', 'comic'])
+    expect(layout.used.map((bucket) => bucket.mediaType.key)).toEqual(['comic', 'movie'])
   })
 
   it('has nothing to collapse once every category is in use', () => {
@@ -68,10 +68,10 @@ describe('buildBuckets', () => {
     expect(layout.unused).toEqual([])
   })
 
-  it('sorts categories by sortOrder even if the server sent them jumbled', () => {
-    const layout = buildBuckets([], [mediaType('z', 99), mediaType('a', 1)])
+  it('sorts the collapsed categories A–Z too, whatever sortOrder and order the server sent', () => {
+    const layout = buildBuckets([], [mediaType('z', 1), mediaType('a', 99), mediaType('m', 50)])
 
-    expect(layout.unused.map((entry) => entry.key)).toEqual(['a', 'z'])
+    expect(layout.unused.map((entry) => entry.key)).toEqual(['a', 'm', 'z'])
   })
 })
 

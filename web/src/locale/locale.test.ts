@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
-import { categoryDescription, categoryLabel, copy, errorMessage } from './index.js'
+import { categoryDescription, categoryLabel, copy, errorMessage, setActiveLanguage, sortCategories } from './index.js'
 import { en } from './en.js'
 import { ru } from './ru.js'
 import { de } from './de.js'
@@ -316,3 +316,38 @@ describe('search result provenance', () => {
     expect(en.quantum.search.sourceProvenance('TMDB')).toBe('From: TMDB')
   })
 })
+
+describe('sortCategories (11.15)', () => {
+  const type = (key: string, label: string, sortOrder = 0) => ({ key, label, sortOrder })
+
+  it('orders by the label the app shows, not the registry’s label or sortOrder', () => {
+    // The registry calls tv "TV Shows" and wrestling "Wrestling"; the locale shows "TV Series" and "Pro Wrestling".
+    const sorted = sortCategories([
+      type('tv', 'TV Shows', 1),
+      type('wrestling', 'Wrestling', 2),
+      type('movie', 'Movies', 3),
+      type('comic', 'Comics', 4),
+    ])
+
+    expect(sorted.map((entry) => categoryLabel(entry))).toEqual(['Comics', 'Movies', 'Pro Wrestling', 'TV Series'])
+  })
+
+  it('sorts a category the locale never heard of by its registry label, and leaves the input alone', () => {
+    const input = [type('zoo', 'Zoos'), type('brand-new-thing', 'Aardvarks')]
+
+    expect(sortCategories(input).map((entry) => entry.key)).toEqual(['brand-new-thing', 'zoo'])
+    expect(input.map((entry) => entry.key)).toEqual(['zoo', 'brand-new-thing'])
+  })
+
+  it('sorts as the active language does, and follows a switch', () => {
+    const input = [type('x', 'Бананы'), type('y', 'Арбузы'), type('z', 'Вишни')]
+
+    setActiveLanguage('ru')
+    try {
+      expect(sortCategories(input).map((entry) => entry.key)).toEqual(['y', 'x', 'z'])
+    } finally {
+      setActiveLanguage('en')
+    }
+  })
+})
+
