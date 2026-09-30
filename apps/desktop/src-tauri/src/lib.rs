@@ -1,41 +1,66 @@
 use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::Mutex;
+
+mod fullscreen;
 
 /// Set at start-up when the window was left in full screen; cleared once re-entered.
 static PENDING_FULLSCREEN: AtomicBool = AtomicBool::new(false);
 
-/// Whether the window-state plugin's own file says the main window was full screen at the last quit.
+/// Which full-screen changes get recorded (`fullscreen.rs`). Set up in `setup`.
+static TRACKER: Mutex<Option<fullscreen::Tracker>> = Mutex::new(None);
+
+fn with_tracker<T>(action: impl FnOnce(&mut fullscreen::Tracker) -> T) -> Option<T> {
+  TRACKER.lock().ok()?.as_mut().map(action)
+}
+
 #[cfg(desktop)]
-fn left_in_fullscreen(app: &tauri::AppHandle) -> bool {
+fn config_dir(app: &tauri::AppHandle) -> Option<std::path::PathBuf> {
   use tauri::Manager;
 
-  let Ok(dir) = app.path().app_config_dir() else { return false };
-  let Ok(text) = std::fs::read_to_string(dir.join(tauri_plugin_window_state::DEFAULT_FILENAME)) else {
-    return false;
-  };
-  serde_json::from_str::<serde_json::Value>(&text)
-    .ok()
-    .and_then(|state| state.get("main")?.get("fullscreen")?.as_bool())
-    .unwrap_or(false)
+  app.path().app_config_dir().ok()
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
   let builder = tauri::Builder::default();
-  // Restores the window as it was left: size, position, maximized, full screen (F13).
+  // Restores the window as it was left: size, position, maximized (F13). Full screen is
+  // left out: the plugin records it at quit, which saved `false` whenever a quit landed
+  // while the window was briefly windowed (fullscreen.rs); this file records it instead.
   // On the builder, not in `setup`: registered there it arrives after the window
   // is created, never tracks it, and saves an empty state.
   #[cfg(desktop)]
-  let builder = builder.plugin(tauri_plugin_window_state::Builder::default().build());
+  let builder = builder.plugin(
+    tauri_plugin_window_state::Builder::default()
+      .with_state_flags(tauri_plugin_window_state::StateFlags::all() - tauri_plugin_window_state::StateFlags::FULLSCREEN)
+      .build(),
+  );
   // macOS ignores the plugin's full-screen restore: it runs before the window is on
   // screen, so the window only gets the screen's size. When it was left in full
   // screen, enter it again the first time the (now visible) window takes focus.
   #[cfg(desktop)]
-  let builder = builder.on_window_event(|window, event| {
-    if let tauri::WindowEvent::Focused(true) = event {
+  let builder = builder.on_window_event(|window, event| match event {
+    tauri::WindowEvent::Focused(true) => {
       if PENDING_FULLSCREEN.swap(false, Ordering::SeqCst) {
         let _ = window.set_fullscreen(true);
       }
     }
+    // Entering or leaving full screen resizes the window: record the change, if it is one.
+    tauri::WindowEvent::Resized(_) => {
+      use tauri::Manager;
+
+      let Ok(now) = window.is_fullscreen() else { return };
+      if let Some(change) = with_tracker(|tracker| tracker.observe(now)).flatten() {
+        if let Some(dir) = config_dir(window.app_handle()) {
+          if let Err(error) = fullscreen::write(&dir, change) {
+            log::warn!("could not record full screen: {error}");
+          }
+        }
+      }
+    }
+    tauri::WindowEvent::CloseRequested { .. } | tauri::WindowEvent::Destroyed => {
+      with_tracker(fullscreen::Tracker::closing);
+    }
+    _ => {}
   });
 
   builder
@@ -46,7 +71,15 @@ pub fn run() {
     .plugin(tauri_plugin_opener::init())
     .setup(|app| {
       #[cfg(desktop)]
-      if left_in_fullscreen(app.handle()) {
+      let left_in_fullscreen = config_dir(app.handle())
+        .map(|dir| fullscreen::left_in_fullscreen(&dir, tauri_plugin_window_state::DEFAULT_FILENAME))
+        .unwrap_or(false);
+      #[cfg(desktop)]
+      if let Ok(mut tracker) = TRACKER.lock() {
+        *tracker = Some(fullscreen::Tracker::new(left_in_fullscreen));
+      }
+      #[cfg(desktop)]
+      if left_in_fullscreen {
         use tauri::Manager;
 
         PENDING_FULLSCREEN.store(true, Ordering::SeqCst);
@@ -71,6 +104,7 @@ pub fn run() {
               let _ = window.set_fullscreen(true);
               std::thread::sleep(std::time::Duration::from_millis(1500));
             }
+            with_tracker(fullscreen::Tracker::restore_gave_up);
             log::warn!("full screen not restored after 5 attempts");
           });
         }
@@ -84,6 +118,12 @@ pub fn run() {
       }
       Ok(())
     })
-    .run(tauri::generate_context!())
-    .expect("error while running tauri application");
+    .build(tauri::generate_context!())
+    .expect("error while building tauri application")
+    .run(|_app, event| {
+      // Cmd+Q: the app is quitting, and whatever the window does from here is not a choice.
+      if let tauri::RunEvent::ExitRequested { .. } = event {
+        with_tracker(fullscreen::Tracker::closing);
+      }
+    });
 }
