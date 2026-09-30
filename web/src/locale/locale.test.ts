@@ -415,3 +415,16 @@ describe('categoryHandHints: each category’s own Add by hand examples (11.16)'
   })
 })
 
+describe('the source-copy notice (task 12.5)', () => {
+  it('says the interval and the source in every language', () => {
+    for (const [name, locale] of [['en', en], ['ru', ru], ['de', de]] as const) {
+      const line = locale.quantum.list.sourceCopyNotice({ days: 25, source: 'YouTube' })
+
+      expect(line, name).toContain('25')
+      expect(line, name).toContain('YouTube')
+    }
+    expect(en.quantum.list.sourceCopyNotice({ days: 150, source: 'TMDB' })).toBe(
+      'Its source copy is refreshed every 150 days, as TMDB requires.',
+    )
+  })
+})

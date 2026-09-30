@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
-import { api, type MediaList, type SuggestionPick } from '../../../lib/api.js'
+import { api, type MediaList, type MediaType, type SuggestionPick } from '../../../lib/api.js'
 import { LiveRegionProvider } from '../LiveRegion/LiveRegion.js'
 import { OverlayManagerProvider } from '../overlay/OverlayManagerContext.js'
 import { FinalizerSheet } from './FinalizerSheet.js'
@@ -11,9 +11,9 @@ vi.mock('../../../lib/api.js', () => ({
   api: { finalizer: vi.fn() },
 }))
 
-const pick = (id: string, status: MediaList['status'] = null): SuggestionPick =>
+const pick = (id: string, status: MediaList['status'] = null, list: Partial<MediaList> = {}): SuggestionPick =>
   ({
-    list: { id, title: `List ${id}`, status, stats: { completionPercent: 90, timeRemainingMinutes: 60 } },
+    list: { id, title: `List ${id}`, status, ...list, stats: { completionPercent: 90, timeRemainingMinutes: 60 } },
     nextItem: { id: `${id}-1`, title: `Next in ${id}`, timeToConsumeMinutes: 30 },
     score: 1,
     factors: { status_band: 1, completion_percent: 1 },
@@ -106,5 +106,25 @@ describe('Finalizer', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Close' }))
 
     expect(props.onClose).toHaveBeenCalled()
+  })
+})
+
+describe('naming the source on the pick (task 12.5)', () => {
+  const types = [{ key: 'youtube', label: 'YouTube', sourceName: 'YouTube' }] as MediaType[]
+
+  it('adds where a fetched list came from to the list and time line', async () => {
+    vi.mocked(api.finalizer).mockResolvedValue({ picks: [pick('x', null, { source: 'api', mediaType: 'youtube' })] })
+
+    renderSheet({ mediaTypes: types })
+
+    expect(await screen.findByText('List x \u00b7 30m \u00b7 YouTube')).toBeTruthy()
+  })
+
+  it('leaves the line as it was for a list that did not arrive from a source', async () => {
+    vi.mocked(api.finalizer).mockResolvedValue({ picks: [pick('x', null, { source: 'manual', mediaType: 'youtube' })] })
+
+    renderSheet({ mediaTypes: types })
+
+    expect(await screen.findByText('List x \u00b7 30m')).toBeTruthy()
   })
 })

@@ -41,6 +41,7 @@ import { deriveFacets, tagChip, type FacetKey } from '../../../../server/src/cat
 import { AddItemForm, type NewItemInput } from './AddItemForm.js'
 import { ExternalLink } from '../../components/quantum/ExternalLink/ExternalLink.js'
 import { linkBackSource } from '../../lib/dataSources.js'
+import { refreshAfterDays } from '../../../../server/src/catalog/sourceCopyLimits.js'
 import { EditListPopover } from './EditListPopover.js'
 import { FilterBar } from './FilterBar.js'
 import { NO_FILTER, isFiltering, shownItemIds, type ListFilter } from './filtering.js'
@@ -1090,6 +1091,12 @@ function ListView({
                 <span aria-hidden="true"> ↗</span>
               </ExternalLink>
               {text.linkBack.after}
+              {mediaType?.sourceCopyMaxDays
+                ? ` ${text.sourceCopyNotice({
+                    days: Math.round(refreshAfterDays(mediaType.sourceCopyMaxDays)),
+                    source: linkBack.name,
+                  })}`
+                : null}
             </p>
           )}
         </div>

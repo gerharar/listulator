@@ -351,11 +351,12 @@ export function Home({ onMediaTypesLoaded, pendingUpdates }: HomeProps) {
               lists={lists}
               initialTarget={helper.initialTarget}
               onOpenList={openHelperList}
+              mediaTypes={mediaTypes}
             />
           ) : helper.kind === 'finalizer' ? (
-            <FinalizerSheet open onClose={() => setHelper(null)} onOpenList={openHelperList} />
+            <FinalizerSheet open onClose={() => setHelper(null)} onOpenList={openHelperList} mediaTypes={mediaTypes} />
           ) : helper.kind === 'justOneFix' ? (
-            <JustOneFixSheet open onClose={() => setHelper(null)} onOpenList={openHelperList} />
+            <JustOneFixSheet open onClose={() => setHelper(null)} onOpenList={openHelperList} mediaTypes={mediaTypes} />
           ) : (
             <SurpriseSheet open onClose={() => setHelper(null)} mediaTypes={mediaTypes} onTake={previewLibraryEntry} />
           )}

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import type { SuggestionPick } from '../../../lib/api.js'
-import { pickKey, reroll, whyFinalizer, whyJustOneFix, whyTired } from './helperPicks.js'
+import type { MediaType, SuggestionPick } from '../../../lib/api.js'
+import { pickKey, pickSource, reroll, whyFinalizer, whyJustOneFix, whyTired } from './helperPicks.js'
 
 const pick = (
   id: string,
@@ -105,5 +105,32 @@ describe('whyJustOneFix', () => {
 
   it('reads hours and minutes', () => {
     expect(whyJustOneFix(pick('a', { minutes: 95 }))).toBe('Shortest unfinished item you have -- 1h 35m and it\'s done.')
+  })
+})
+
+describe('pickSource', () => {
+  const types = [
+    { key: 'youtube', sourceName: 'YouTube' },
+    { key: 'movie', sourceName: 'TMDB' },
+    { key: 'mega' },
+  ] as MediaType[]
+  const listPick = (source: string, mediaType: string) =>
+    ({ ...pick('a'), list: { ...pick('a').list, source, mediaType } }) as unknown as SuggestionPick
+
+  it('names the source a list arrived from, so a pick never shows its content without it (YouTube\u2019s rule)', () => {
+    expect(pickSource(listPick('api', 'youtube'), types)).toBe('YouTube')
+    expect(pickSource(listPick('api', 'movie'), types)).toBe('TMDB')
+  })
+
+  it('names nothing for a list that did not arrive from a source', () => {
+    for (const source of ['manual', 'file', 'canonical', 'llm']) {
+      expect(pickSource(listPick(source, 'youtube'), types), source).toBeUndefined()
+    }
+  })
+
+  it('names nothing for a category with no source of its own, an unknown category, or no categories at all', () => {
+    expect(pickSource(listPick('api', 'mega'), types)).toBeUndefined()
+    expect(pickSource(listPick('api', 'podcast'), types)).toBeUndefined()
+    expect(pickSource(listPick('api', 'youtube'), undefined)).toBeUndefined()
   })
 })

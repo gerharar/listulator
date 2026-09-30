@@ -6,6 +6,9 @@ import {
   type SourceCopyDeps,
   type SourceCopyOutcome,
 } from './sourceCopy.js'
+import { refreshAfterDays } from './sourceCopyLimits.js'
+
+export { refreshAfterDays }
 
 /**
  * Keeping fetched lists' source copies within their sources' limits (task
@@ -14,14 +17,6 @@ import {
  */
 
 const DAY_MS = 24 * 60 * 60 * 1000
-
-/**
- * The age at which a copy is refreshed, ahead of the day it would have to be
- * dropped: five sixths of the limit, so 25 of YouTube's 30 days and 150 of
- * TMDB's 180. Five days (30) or thirty (180) of retries before a failing
- * refresh costs the copy.
- */
-export const refreshAfterDays = (maxDays: number): number => (maxDays * 5) / 6
 
 export interface SourceCopyRunSummary {
   /** Lists that were due and were looked at. */

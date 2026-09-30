@@ -1,4 +1,4 @@
-import { api } from '../../../lib/api.js'
+import { api, type MediaType } from '../../../lib/api.js'
 import { copy } from '../../../locale/index.js'
 import { AskingSheet } from './AskingSheet.js'
 import { whyJustOneFix } from './helperPicks.js'
@@ -7,6 +7,8 @@ export interface JustOneFixSheetProps {
   open: boolean
   onClose: () => void
   onOpenList: (listId: string) => void
+  /** The registry, so a pick can name the source its list arrived from. */
+  mediaTypes?: readonly MediaType[]
 }
 
 const fetchPicks = () => api.justOneFix()

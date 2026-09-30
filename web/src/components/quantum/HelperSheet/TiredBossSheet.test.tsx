@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
-import { api, type MediaList, type SuggestionPick } from '../../../lib/api.js'
+import { api, type MediaList, type MediaType, type SuggestionPick } from '../../../lib/api.js'
 import { LiveRegionProvider } from '../LiveRegion/LiveRegion.js'
 import { OverlayManagerProvider } from '../overlay/OverlayManagerContext.js'
 import { TiredBossSheet } from './TiredBossSheet.js'
@@ -214,5 +214,18 @@ describe('when there is nothing, or something goes wrong', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Close' }))
 
     expect(props.onClose).toHaveBeenCalled()
+  })
+})
+
+describe('naming the source on the pick (task 12.5)', () => {
+  const types = [{ key: 'youtube', label: 'YouTube', sourceName: 'YouTube' }] as MediaType[]
+
+  it('adds where a fetched list came from to the list and time line', async () => {
+    const fetched = { ...pick('x'), list: { ...pick('x').list, source: 'api', mediaType: 'youtube' } } as unknown as SuggestionPick
+    vi.mocked(api.tiredBoss).mockResolvedValue({ picks: [fetched] })
+
+    renderSheet({ mediaTypes: types })
+
+    expect(await screen.findByText('List x \u00b7 45m \u00b7 YouTube')).toBeTruthy()
   })
 })

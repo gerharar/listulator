@@ -861,6 +861,8 @@ export const en = {
       },
       /** Under the add band of a list fetched from a source: where it arrived from, linked (owner, 2026-09-30). The source's name sits between the two. */
       linkBack: { before: 'The original list arrived from ', after: '; you may have changed it since.' },
+      /** Beside the link-back, where the source caps how long its data may be stored (YouTube 30 days, TMDB 180): how often the stored copy is refreshed (12.5). */
+      sourceCopyNotice: (p: { days: number; source: string }): string => `Its source copy is refreshed every ${p.days} days, as ${p.source} requires.`,
       checkForUpdates: 'Check for updates',
       order: 'Order',
       more: 'More',

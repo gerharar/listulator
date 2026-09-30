@@ -777,6 +777,7 @@ export const de: Locale = {
         expandAllTip: 'Alle Gruppen darunter aufklappen',
       },
       linkBack: { before: 'Die ursprüngliche Liste kam von ', after: '; seitdem hast du sie vielleicht geändert.' },
+      sourceCopyNotice: (p: { days: number; source: string }): string => `Die Kopie aus der Quelle wird alle ${p.days} Tage aktualisiert, wie ${p.source} es verlangt.`,
       checkForUpdates: 'Nach Updates suchen',
       order: 'Reihenfolge',
       more: 'Mehr',

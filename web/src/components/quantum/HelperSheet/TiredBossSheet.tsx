@@ -1,7 +1,7 @@
 import './HelperSheet.css'
 import { useEffect, useState } from 'react'
 import { ChevronDown } from 'lucide-react'
-import { api, type MediaList } from '../../../lib/api.js'
+import { api, type MediaList, type MediaType } from '../../../lib/api.js'
 import { copy } from '../../../locale/index.js'
 import { Popover } from '../Popover/Popover.js'
 import { Sheet } from '../Sheet/Sheet.js'
@@ -18,6 +18,8 @@ export interface TiredBossSheetProps {
   /** The list opened last (a preference); the sheet starts on it. Ignored when it no longer exists. */
   initialTarget: string | undefined
   onOpenList: (listId: string) => void
+  /** The registry, so a pick can name the source its list arrived from. */
+  mediaTypes?: readonly MediaType[]
 }
 
 /** A long shelf gets a filter field in the picker rather than a menu taller than the window. */
@@ -33,7 +35,7 @@ export function TiredBossSheet(props: TiredBossSheetProps) {
   return props.open ? <OpenSheet {...props} /> : null
 }
 
-function OpenSheet({ onClose, lists, initialTarget, onOpenList }: TiredBossSheetProps) {
+function OpenSheet({ onClose, lists, initialTarget, onOpenList, mediaTypes }: TiredBossSheetProps) {
   const text = copy.quantum.helper
   const t = text.tired
   const [target, setTarget] = useState<string | undefined>(() =>
@@ -88,6 +90,7 @@ function OpenSheet({ onClose, lists, initialTarget, onOpenList }: TiredBossSheet
           empty={t.nothingElse}
           onRetry={retry}
           onOpenList={onOpenList}
+          mediaTypes={mediaTypes}
         />
       )}
 

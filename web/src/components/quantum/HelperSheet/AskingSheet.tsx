@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import type { SuggestionPick } from '../../../lib/api.js'
+import type { MediaType, SuggestionPick } from '../../../lib/api.js'
 import { copy } from '../../../locale/index.js'
 import { Sheet } from '../Sheet/Sheet.js'
 import { PicksPanel } from './PicksPanel.js'
@@ -15,6 +15,8 @@ export interface AskingSheetProps {
   fetchPicks: () => Promise<{ picks: SuggestionPick[] }>
   /** The one-line why for the top pick. */
   why: (pick: SuggestionPick) => string
+  /** The registry, so a pick can name the source its list arrived from. */
+  mediaTypes?: readonly MediaType[]
 }
 
 /**
@@ -26,7 +28,7 @@ export function AskingSheet(props: AskingSheetProps) {
   return props.open ? <OpenSheet {...props} /> : null
 }
 
-function OpenSheet({ onClose, onOpenList, title, explain, fetchPicks, why }: AskingSheetProps) {
+function OpenSheet({ onClose, onOpenList, title, explain, fetchPicks, why, mediaTypes }: AskingSheetProps) {
   const { answer, run, retry } = useHelperAnswer()
 
   useEffect(() => run(fetchPicks), [run, fetchPicks])
@@ -38,6 +40,7 @@ function OpenSheet({ onClose, onOpenList, title, explain, fetchPicks, why }: Ask
         why={why}
         empty={copy.quantum.helper.nothingUnfinished}
         onRetry={retry}
+        mediaTypes={mediaTypes}
         onOpenList={onOpenList}
       />
     </Sheet>

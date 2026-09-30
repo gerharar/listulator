@@ -75,7 +75,7 @@ afterEach(() => {
   vi.resetAllMocks()
 })
 
-function mediaType(key: string, label: string, sourceName?: string): MediaType {
+function mediaType(key: string, label: string, sourceName?: string, sourceCopyMaxDays?: number): MediaType {
   return {
     key,
     label,
@@ -84,14 +84,16 @@ function mediaType(key: string, label: string, sourceName?: string): MediaType {
     searchAvailable: true,
     previewable: true,
     ...(sourceName ? { sourceName } : {}),
+    ...(sourceCopyMaxDays ? { sourceCopyMaxDays } : {}),
   }
 }
 
 const TYPES = [
   mediaType('tv', 'TV Shows', 'TMDB'),
+  mediaType('movie', 'Movies', 'TMDB', 180),
   mediaType('mega', 'Mega'),
   mediaType('book', 'Books', 'Open Library'),
-  mediaType('youtube', 'YouTube', 'YouTube'),
+  mediaType('youtube', 'YouTube', 'YouTube', 30),
 ]
 
 let n = 0
@@ -202,6 +204,39 @@ describe('where the list came from (link-back under the add band)', () => {
   it('says nothing for a category with no source of its own (Mega)', async () => {
     await open(detail({ source: 'api', externalRef: 'franchise:1', mediaType: 'mega', items: [item()] }))
     expect(screen.queryByText(LINE)).toBeNull()
+  })
+})
+
+describe('how often a fetched list\u2019s source copy is refreshed (task 12.5)', () => {
+  const LINE = /The original list arrived from/
+
+  it('says so after the link-back, for YouTube: every 25 of its 30 days', async () => {
+    await open(detail({ source: 'api', externalRef: 'playlist:PL1', mediaType: 'youtube', items: [item()] }))
+
+    expect(screen.getByText(LINE).closest('p')!.textContent).toBe(
+      'The original list arrived from YouTube \u2197; you may have changed it since. Its source copy is refreshed every 25 days, as YouTube requires.',
+    )
+  })
+
+  it('says so for TMDB too: every 150 of its 180 days', async () => {
+    await open(detail({ source: 'api', externalRef: 'collection:1', mediaType: 'movie', items: [item()] }))
+
+    expect(screen.getByText(LINE).closest('p')!.textContent).toContain(
+      'Its source copy is refreshed every 150 days, as TMDB requires.',
+    )
+  })
+
+  it('says nothing where the source sets no limit: only the link-back', async () => {
+    await open(detail({ source: 'api', externalRef: 'author:OL1A', mediaType: 'book', items: [item()] }))
+
+    expect(screen.getByText(LINE).closest('p')!.textContent).not.toContain('refreshed every')
+    expect(screen.queryByText(/source copy/)).toBeNull()
+  })
+
+  it('says nothing for a list that did not arrive from a source, even in a category that has a limit', async () => {
+    await open(detail({ source: 'manual', externalRef: null, mediaType: 'youtube', items: [item()] }))
+
+    expect(screen.queryByText(/source copy/)).toBeNull()
   })
 })
 

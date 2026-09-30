@@ -1,10 +1,21 @@
 import { formatDuration } from '../../../formatDuration.js'
-import type { SuggestionPick } from '../../../lib/api.js'
+import type { MediaType, SuggestionPick } from '../../../lib/api.js'
 import { copy } from '../../../locale/index.js'
 
 /** How a pick is named when a reroll turns it down: its list and the item it would start you on. */
 export function pickKey(pick: SuggestionPick): string {
   return `${pick.list.id}|${pick.nextItem?.id ?? ''}`
+}
+
+/**
+ * The source a pick's list arrived from, to name beside it: a helper that shows a fetched list's content
+ * must make its source clear (YouTube's rule, owner 2026-09-30). None for a list that did not arrive from
+ * a source, or a category with no source of its own (Mega).
+ */
+export function pickSource(pick: SuggestionPick, mediaTypes: readonly MediaType[] | undefined): string | undefined {
+  if (pick.list.source !== 'api') return undefined
+
+  return mediaTypes?.find((entry) => entry.key === pick.list.mediaType)?.sourceName
 }
 
 /**

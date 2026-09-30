@@ -786,6 +786,7 @@ export const ru: Locale = {
         expandAllTip: 'Открыть все группы ниже',
       },
       linkBack: { before: 'Исходный список получен из ', after: '; с тех пор вы могли его изменить.' },
+      sourceCopyNotice: (p: { days: number; source: string }): string => `Копия из источника обновляется каждые ${p.days} дн., как того требует ${p.source}.`,
       checkForUpdates: 'Проверить обновления',
       order: 'Порядок',
       more: 'Ещё',
