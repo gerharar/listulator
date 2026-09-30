@@ -18,7 +18,8 @@ export function ExternalLink({ href, onClick, children, ...rest }: ExternalLinkP
     onClick?.(event)
     if (!isDesktop()) return
     event.preventDefault()
-    void openUrl(href)
+    // A URL the capability does not allow is refused here; say why rather than fail silently.
+    openUrl(href).catch((error: unknown) => console.error(`Could not open ${href}`, error))
   }
 
   return (

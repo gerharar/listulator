@@ -50,3 +50,13 @@ test('a source link opens a new tab and leaves the app where it was', async ({ p
   await expect(page.getByRole('heading', { level: 1, name: 'About' })).toBeVisible()
   await tab.close()
 })
+
+test('the disabled Check for updates still says why when hovered', async ({ page }) => {
+  await openAbout(page)
+  const check = page.locator('.q-about').getByRole('button', { name: 'Check for updates' })
+  await expect(check).toBeDisabled()
+
+  await check.hover()
+
+  await expect(page.getByRole('tooltip')).toHaveText('Checking for updates comes in a later version.')
+})
