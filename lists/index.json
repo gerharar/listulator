@@ -9,18 +9,19 @@
   },
   {
     "path": "lists/book/asoiaf-books.yaml",
-    "title": "A Song Of Fire And Ice books (by type)",
+    "title": "A Song Of Fire And Ice books (grouped)",
     "category": "book",
     "itemCount": 17,
-    "description": "All books in A Song Of Fire And Ice universe (grouped by type)",
+    "description": "All books in A Song Of Fire And Ice franchise (grouped by series)",
     "status": "ongoing"
   },
   {
     "path": "lists/book/harry-potter-books.yaml",
-    "title": "Harry Potter books",
+    "title": "Harry Potter books (grouped)",
     "category": "book",
     "itemCount": 13,
-    "description": "All official books about the Wizarding World (Harry Potter franchise)"
+    "description": "Complete list of all books in the Wizarding World (Harry Potter) franchise, grouped by series",
+    "status": "complete"
   },
   {
     "path": "lists/book/lord-of-the-rings.yaml",
@@ -30,106 +31,146 @@
   },
   {
     "path": "lists/comic/100-bullets-comic.yaml",
-    "title": "100 Bullets (comic book) series",
+    "title": "100 Bullets comic book series",
     "category": "comic",
     "itemCount": 111,
-    "description": "Reading order for 100 Bullets (Vertigo / DC) comic book series",
+    "description": "Reading order for 100 Bullets comic book series (Vertigo / DC)",
     "status": "ongoing"
   },
   {
+    "path": "lists/comic/aoa-comics-full.yaml",
+    "title": "Age Of Apocalypse comic book event",
+    "category": "comic",
+    "itemCount": 103,
+    "description": "Complete reading order for Age Of Apocalypse comic book event (Marvel), including related pre- and post-event comics",
+    "status": "complete"
+  },
+  {
     "path": "lists/comic/carey-lucifer-comics.yaml",
-    "title": "Mike Carey's Lucifer - complete run",
+    "title": "Mike Carey's Lucifer comic book series",
     "category": "comic",
     "itemCount": 79,
-    "description": "Complete reading order for Mike Carey's Lucifer (Vertigo / DC) run",
+    "description": "Complete reading order for Mike Carey's Lucifer comic book series run (Vertigo / DC)",
+    "status": "complete"
+  },
+  {
+    "path": "lists/comic/ex-machina-comic.yaml",
+    "title": "Ex Machina comic book series",
+    "category": "comic",
+    "itemCount": 55,
+    "description": "Complete reading order for Ex Machina comic book series (Wildstorm / DC) by Brian K. Vaughan",
+    "status": "complete"
+  },
+  {
+    "path": "lists/comic/fables-comics-complete.yaml",
+    "title": "Fables comic book series (recommended reading order)",
+    "category": "comic",
+    "itemCount": 303,
+    "description": "Complete recommended reading order (chronological with the exception of The Wolf Among Us) for Fables comic book series (DC / Vertigo), excluding prose stories & art/reference books",
     "status": "complete"
   },
   {
     "path": "lists/comic/invincible-comic-complete.yaml",
-    "title": "Invincible comic book series - complete (release order)",
+    "title": "Invincible comic book series (release order)",
     "category": "comic",
     "itemCount": 246,
-    "description": "Complete reading list in release order for the Invincible (Image) comic book series by Robert Kirkman",
+    "description": "Complete reading order (by release date) for Invincible comic book series (Image) by Robert Kirkman",
     "status": "complete"
   },
   {
     "path": "lists/comic/kirby-4th-world-reading-order.yaml",
-    "title": "Jack Kirby's \"The Fourth World\" metaseries",
+    "title": "Jack Kirby's The Fourth World comic book series",
     "category": "comic",
     "itemCount": 57,
-    "description": "Complete reading order for \"The Fourth World\" (DC) by Jack Kirby",
+    "description": "Complete reading order for The Fourth World comic book metaseries (DC) by Jack Kirby",
     "status": "complete"
   },
   {
     "path": "lists/comic/planetary-comics.yaml",
-    "title": "Planetary complete series",
+    "title": "Planetary comic books series",
     "category": "comic",
     "itemCount": 31,
-    "description": "Complete reading order for Planetary (Wildstorm / DC) comic book series",
+    "description": "Complete reading order for Planetary comic book series (Wildstorm / DC) by Warren Ellis and John Cassaday",
     "status": "complete"
   },
   {
     "path": "lists/comic/preacher-comic.yaml",
-    "title": "Preacher (comic book) complete series",
+    "title": "Preacher comic book series",
     "category": "comic",
     "itemCount": 75,
-    "description": "Complete reading order for Preacher (Vertigo / DC) comic book series",
+    "description": "Complete reading order for Preacher comic book series (Vertigo / DC) by Garth Ennis and Steve Dillon",
     "status": "complete"
   },
   {
     "path": "lists/comic/the-boys-comic-complete.yaml",
-    "title": "The Boys comic book series - complete",
+    "title": "The Boys comic book series",
     "category": "comic",
     "itemCount": 98,
-    "description": "Complete reading order for The Boys (Wildstorm / DC / Dynamite) comic books series by Garth Ennis and Darick Robertson",
+    "description": "Complete reading order for The Boys comic books series (Wildstorm / DC / Dynamite) by Garth Ennis and Darick Robertson",
     "status": "complete"
   },
   {
     "path": "lists/comic/the-sandman-gaiman-comics.yaml",
-    "title": "The Sandman by Neil Gaiman - complete series",
+    "title": "Neil Gaiman's The Sandman comic book series",
     "category": "comic",
     "itemCount": 97,
-    "description": "Complete reading order for The Sandman (Vol 2, Vertigo / DC) comic book series by Neil Gaiman",
+    "description": "Complete reading order for Neil Gaiman's The Sandman comic book series (Vol 2, Vertigo / DC)",
+    "status": "complete"
+  },
+  {
+    "path": "lists/comic/transmetropolitan-comics.yaml",
+    "title": "Transmetropolital comic book series",
+    "category": "comic",
+    "itemCount": 64,
+    "description": "Complete reading order for Transmetropolitan comic book series (Vertigo / DC) by Warren Ellis and Darick Robertson",
     "status": "complete"
   },
   {
     "path": "lists/comic/twd-comics.yaml",
-    "title": "The Walking Dead comic book series - complete (chronological order)",
+    "title": "The Walking Dead comic book series (chronological order)",
     "category": "comic",
     "itemCount": 200,
-    "description": "Complete reading list in chronological(-ish) order for The Walking Dead (Image) comic book series by Robert Kirkman",
+    "description": "Complete recommended reading order (chronological-ish) for The Walking Dead comic book series (Image) by Robert Kirkman",
     "status": "complete"
   },
   {
+    "path": "lists/comic/uber-comics.yaml",
+    "title": "Uber comic book series",
+    "category": "comic",
+    "itemCount": 47,
+    "description": "Reading order for Uber (also spelled as Über) comic book series (Avatar) by Kieron Gillen",
+    "status": "ongoing"
+  },
+  {
     "path": "lists/comic/watchmen-comic-original.yaml",
-    "title": "Watchmen series (original)",
+    "title": "The original Watchmen comic book series",
     "category": "comic",
     "itemCount": 12,
-    "description": "Complete reading order for the original \"Watchmen\" (DC) series by Alan Moore and Dave Gibbons",
+    "description": "Complete reading order for the original Watchmen comic book series (DC) by Alan Moore and Dave Gibbons",
     "status": "complete"
   },
   {
     "path": "lists/comic/watchmen-comic-prequels.yaml",
-    "title": "Watchmen series (no sequels)",
+    "title": "Extended Watchmen comic book series - original and prequels (release order)",
     "category": "comic",
     "itemCount": 49,
-    "description": "Complete non-chronological (release) reading order for \"Watchmen\" (DC) series, including prequels, but not sequels.",
+    "description": "Complete reading order (by release date) for the original and prequel Watchmen comic book series (DC). Excludes sequels.",
     "status": "complete"
   },
   {
     "path": "lists/documentary/world-at-war.yaml",
-    "title": "The World At War complete series",
+    "title": "The World At War series",
     "category": "documentary",
     "itemCount": 34,
-    "description": "The World At War documentary - original series and additional specials",
+    "description": "The World At War documentary series - original series plus additional specials",
     "status": "complete"
   },
   {
     "path": "lists/game/assassins-creed-games.yaml",
-    "title": "Assassin's Creed franchise games",
+    "title": "Assassin's Creed franchise games (grouped)",
     "category": "game",
     "itemCount": 29,
-    "description": "All Assassin's Creed franchise games (grouped by type)",
+    "description": "All Assassin's Creed franchise games (grouped by type). Excludes fully unplayable games",
     "status": "ongoing"
   },
   {
@@ -137,27 +178,27 @@
     "title": "Spy Hunter franchise games",
     "category": "game",
     "itemCount": 10,
-    "description": "All Spy Hunter franchise games (without compilation appearances)"
+    "description": "All Spy Hunter franchise games. Excludes compilation appearances"
   },
   {
     "path": "lists/mega/breaking-bad-all.yaml",
-    "title": "All Breaking Bad franchise (release order)",
+    "title": "Breaking Bad franchise - full list (release order)",
     "category": "mega",
     "itemCount": 197,
-    "description": "Everything from Breaking Bad franchise in roughly release-ish order",
+    "description": "Every release in the Breaking Bad franchise in roughly release-ish order. Excludes video games as they're unplayable now",
     "status": "complete"
   },
   {
     "path": "lists/mega/breaking-bad-main-watch.yaml",
-    "title": "Breaking Bad franchise (recommended watch order)",
+    "title": "Breaking Bad franchise - main list (recommended order)",
     "category": "mega",
     "itemCount": 126,
-    "description": "All main releases from Breaking Bad franchise in the recommended watch order (roughly equivalent to release order)",
+    "description": "Main Breaking Bad franchise releases in the recommended viewing order (roughly following release order)",
     "status": "complete"
   },
   {
     "path": "lists/mega/ice-age-watch.yaml",
-    "title": "Ice Age franchise",
+    "title": "Ice Age franchise (no games, grouped)",
     "category": "mega",
     "itemCount": 23,
     "description": "Everything to watch in the Ice Age franchise (grouped by media type). Excludes video games",
@@ -192,14 +233,15 @@
     "title": "Jackie Chan - live-action starring roles",
     "category": "movie",
     "itemCount": 87,
-    "description": "All live-action movies where Jackie Chan plays a leading or prominent role"
+    "description": "All live-action movies where Jackie Chan plays a leading or prominent role",
+    "status": "ongoing"
   },
   {
     "path": "lists/movie/james-bond-movies.yaml",
     "title": "James Bond movies",
     "category": "movie",
     "itemCount": 27,
-    "description": "All James Bond movies, including non-canon (non-EON) entries",
+    "description": "All movies in the James Bond franchise, including non-canon (non-EON) entries",
     "status": "ongoing"
   },
   {
@@ -207,7 +249,7 @@
     "title": "Mission: Impossible movies",
     "category": "movie",
     "itemCount": 8,
-    "description": "All movies from Mission: Impossible franchise",
+    "description": "All movies in Mission: Impossible franchise",
     "status": "complete"
   },
   {
@@ -215,12 +257,12 @@
     "title": "ISIS discography",
     "category": "music",
     "itemCount": 23,
-    "description": "Full ISIS discography (excluding compilation appearances)",
+    "description": "Complete ISIS discography. Excludes demos and compilation appearances",
     "status": "complete"
   },
   {
     "path": "lists/tv/breaking-bad-series.yaml",
-    "title": "Breaking Bad series",
+    "title": "Breaking Bad TV series",
     "category": "tv",
     "itemCount": 62,
     "description": "All episodes of Breaking Bad TV series",
@@ -228,7 +270,7 @@
   },
   {
     "path": "lists/tv/the-wire.yaml",
-    "title": "The Wire series",
+    "title": "The Wire TV series",
     "category": "tv",
     "itemCount": 60,
     "description": "All episodes of The Wire TV series",
@@ -236,7 +278,7 @@
   },
   {
     "path": "lists/wrestling/aew-ppv.yaml",
-    "title": "AEW - all PPVs",
+    "title": "AEW PPVs",
     "category": "wrestling",
     "itemCount": 51,
     "description": "All AEW (All Elite Wrestling) Pay-Per-Views",
@@ -252,7 +294,7 @@
   },
   {
     "path": "lists/wrestling/ecw-ppv.yaml",
-    "title": "ECW - all PPVs",
+    "title": "ECW PPVs",
     "category": "wrestling",
     "itemCount": 25,
     "description": "All ECW (Extreme Championship Wrestling) Pay-Per-Views",
@@ -260,15 +302,15 @@
   },
   {
     "path": "lists/wrestling/wcw-ppv.yaml",
-    "title": "WCW - all PPVs",
+    "title": "WCW PPVs",
     "category": "wrestling",
     "itemCount": 101,
-    "description": "All WCW (World Championship Wrestling) Pay-Per-View events",
+    "description": "All WCW (World Championship Wrestling) Pay-Per-Views",
     "status": "complete"
   },
   {
     "path": "lists/wrestling/wwe-all-ppv.yaml",
-    "title": "WWE - all PPVs",
+    "title": "WWE PPVs",
     "category": "wrestling",
     "itemCount": 483,
     "description": "All WWE (World Wrestling Entertainment, ex-WWF) Pay-Per-Views/PLEs/specials. NXT & AAA events are excluded",
@@ -276,7 +318,7 @@
   },
   {
     "path": "lists/wrestling/wwe-wrestlemania.yaml",
-    "title": "WWE - All WrestleMania PPVs",
+    "title": "WWE - WrestleMania PPVs",
     "category": "wrestling",
     "itemCount": 49,
     "description": "All WWE (World Wrestling Entertainment, ex-WWF) WrestleMania Pay-Per-Views/PLEs",
