@@ -20,10 +20,14 @@ import '@fontsource/jetbrains-mono/600.css'
 import './styles/quantum/tokens.css'
 import './styles/quantum/base.css'
 import { App } from './App.js'
+import { startLocalSourceCopySchedule } from './lib/api.local.js'
 import { installContextMenuGuard } from './lib/contextMenu.js'
 import { AppErrorBoundary } from './components/quantum/AppErrorBoundary/AppErrorBoundary.js'
 
 installContextMenuGuard()
+
+// The desktop app keeps fetched lists' stored copies within their sources' limits (12.4).
+if ('__TAURI_INTERNALS__' in window) startLocalSourceCopySchedule()
 
 const rootElement = document.getElementById('root')
 if (!rootElement) throw new Error('#root not found')

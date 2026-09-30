@@ -48,6 +48,10 @@ import {
 } from '../../../server/src/ingestion/customLists.js'
 import { IngestionError } from '../../../server/src/ingestion/http.js'
 import {
+  maintainSourceCopies,
+  startSourceCopySchedule,
+} from '../../../server/src/catalog/sourceCopySchedule.js'
+import {
   previewReset,
   resetOrderToSource,
   sourceTagsOf,
@@ -253,6 +257,32 @@ async function localSuggest(
 export function testApiKey(source: KeySource, values: LocalSettings): Promise<KeyTestResult> {
   return testKey(source, values, LOCAL_FETCHERS)
 }
+
+let stopSourceCopyCheck: (() => void) | undefined
+
+/**
+ * Looks after the stored source copies of fetched lists for as long as the desktop app is open (task
+ * 12.4): at launch, then every day. The same shared pass the server runs, against the local database
+ * and the registry with the Tauri-routed fetches. Safe to call more than once.
+ */
+export function startLocalSourceCopySchedule(): void {
+  if (stopSourceCopyCheck) return
+
+  stopSourceCopyCheck = startSourceCopySchedule(
+    async () => {
+      const [db, mediaTypes] = await Promise.all([createLocalDb(), getLocalMediaTypes()])
+      const summary = await maintainSourceCopies(db, { mediaTypes })
+      if (summary.checked > 0) console.info('source copies checked:', summary)
+    },
+    { onError: (error) => console.error('source copy check failed:', error) },
+  )
+}
+
+// A hot reload re-runs this module: stop the old timer so two do not run side by side.
+import.meta.hot?.dispose(() => {
+  stopSourceCopyCheck?.()
+  stopSourceCopyCheck = undefined
+})
 
 export function createLocalApi(): ApiClient {
   let db: LocalDatabase | undefined
