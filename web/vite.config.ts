@@ -1,8 +1,20 @@
+import { readFileSync } from 'node:fs'
 import { defaultExclude, defineConfig } from 'vitest/config'
 import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
 
+/**
+ * The app's version, shown on the About page (task 11.21): the root
+ * package.json's. The desktop build runs this same config. tauri.conf.json
+ * and the workspace package.json files carry their own copy and are bumped
+ * together with it (docs/DECISIONS.md).
+ */
+const appVersion = (JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8')) as { version: string }).version
+
 export default defineConfig({
+  define: {
+    __APP_VERSION__: JSON.stringify(appVersion),
+  },
   // Excludes `e2e/` on top of vitest's own defaults, not instead of them —
   // an `include` override here once silently dropped `scripts/`'s own test
   // file from every run (caught by a file-count regression, task 10.9b).

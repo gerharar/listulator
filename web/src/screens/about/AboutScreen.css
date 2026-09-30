@@ -45,3 +45,180 @@
   gap: 30px;
   max-width: 760px;
 }
+
+/* 1. Identity: name and version, the update button, licence and author. */
+.q-about-identity {
+  display: grid;
+  gap: 14px;
+}
+
+.q-about-nameline {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+}
+
+.q-about-name {
+  font-weight: 700;
+  font-size: 34px;
+  line-height: 1;
+  letter-spacing: -0.03em;
+  color: var(--ink);
+}
+
+.q-about-version {
+  font: 500 13px/1 var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  color: var(--ink2);
+}
+
+.q-about-update {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px 14px;
+}
+
+.q-about-legal {
+  display: grid;
+  gap: 4px;
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: var(--ink2);
+}
+.q-about-legal p {
+  margin: 0;
+}
+
+.q-about-author {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+}
+.q-about-author b {
+  font-weight: 600;
+  color: var(--ink);
+}
+
+/* The repository and source links: mono host name and a quiet ↗. */
+.q-about-link {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 5px;
+  font: 500 12.5px/1.2 var(--font-mono);
+  color: var(--ink);
+  text-decoration: none;
+  white-space: nowrap;
+}
+.q-about-link:hover {
+  text-decoration: underline;
+}
+.q-about-link > span {
+  color: var(--ink3);
+}
+
+/* 2. Data sources. */
+.q-about-kicker {
+  margin: 0;
+}
+
+.q-about-sources {
+  margin: 12px 0 0;
+  padding: 0;
+  list-style: none;
+  border-bottom: 1px solid var(--line);
+}
+
+/* The same side padding open or closed, so nothing moves when TMDB's row unfolds. */
+.q-about-source {
+  display: grid;
+  grid-template-columns: minmax(0, 120px) minmax(0, 1fr) auto;
+  align-items: baseline;
+  gap: 6px 16px;
+  padding: 12px 14px;
+  border-top: 1px solid var(--line);
+}
+
+.q-about-source-name {
+  font-weight: 600;
+  font-size: 15px;
+  line-height: 1.25;
+  color: var(--ink);
+}
+
+.q-about-source-powers {
+  font-size: 14px;
+  line-height: 1.4;
+  color: var(--ink2);
+  text-wrap: pretty;
+}
+
+/* TMDB: the whole row is the toggle. */
+.q-about-tmdb {
+  cursor: pointer;
+}
+.q-about-tmdb:not(.open):hover {
+  background: var(--hover);
+}
+.q-about-tmdb.open {
+  background: var(--fill);
+}
+
+.q-about-toggle {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  padding: 0;
+  border: 0;
+  background: none;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.q-about-chevron {
+  font-size: 11px;
+  color: var(--ink3);
+  transition: transform 160ms ease;
+}
+.q-about-tmdb.open .q-about-chevron {
+  transform: rotate(90deg);
+}
+[data-reduced] .q-about-chevron {
+  transition: none;
+}
+
+.q-about-attribution {
+  grid-column: 1 / -1;
+  margin-top: 8px;
+  padding: 14px 0 2px;
+  border-top: 1px dashed var(--line);
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 14px 18px;
+  cursor: default;
+}
+
+/* TMDB's logo in its own colours, never tinted: the terms forbid changing it. */
+.q-about-logo {
+  display: block;
+  flex: none;
+  line-height: 0;
+}
+.q-about-logo img {
+  display: block;
+  width: 182px;
+  height: 24px;
+}
+
+.q-about-attribution p {
+  flex: 1;
+  min-width: 220px;
+  margin: 0;
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: var(--ink);
+}
