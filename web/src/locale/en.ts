@@ -91,48 +91,48 @@ export const en = {
    */
   categories: {
     movie: {
-      handTitlePlaceholder: 'Alfred Hitchcock’s films',
+      handTitlePlaceholder: 'Vin Diesel movies',
       handItemsPlaceholder:
-        'Early films:\nThe Lodger\nBlackmail\n\n# Hollywood\nRebecca\nRear Window\nVertigo',
+        'Fast And Furious franchise:\nThe Fast and the Furios\nFast Five\n\n# The Chronicles of Riddick franchise\nPitch Black\nThe Chronicles of Riddick\nRiddick',
     },
     tv: {
       label: 'TV Series',
-      handTitlePlaceholder: 'Breaking Bad',
+      handTitlePlaceholder: 'The Big Bang Theory',
       handItemsPlaceholder:
-        'Season 1:\nPilot\nCat’s in the Bag...\n...And the Bag’s in the River\n\n# Season 2\nSeven Thirty-Seven\nGrilled',
+        'Season 1:\nS1E1: Pilot\n1S1E2: The Big Bran Hypothesis\nS1E3: The Fuzzy Boots Corollary\n\n# Season 2\nS2E1: The Bad Fish Paradigm\nS2E2: The Codpiece Topology',
       handItemsHint:
         'One episode per line. A line ending in a colon, or starting with #, opens a season that lasts until the next one. Blank lines are ignored',
     },
     animation: {
-      handTitlePlaceholder: 'Studio Ghibli films',
+      handTitlePlaceholder: 'Arcane animated series',
       handItemsPlaceholder:
-        'Miyazaki:\nSpirited Away\nPrincess Mononoke\n\n# Takahata\nGrave of the Fireflies\nPom Poko',
+        'Season 1:\nWelcome to the Playground\nSome Mysteries Are Better Left Unsolved\n\n# Season 2\nHeavy Is the Crown\nWatch It All Burn',
     },
     documentary: {
-      handTitlePlaceholder: 'Ken Burns documentaries',
+      handTitlePlaceholder: 'David Attenborough documentaries',
       handItemsPlaceholder:
-        'Wars:\nThe Civil War\nThe War\n\n# Culture\nBaseball\nJazz\nCountry Music',
+        'The Blue Planet:\nOcean World\nThe Deep\n\n# Planet Earth\nFrom Pole To Pole\nMountains\nFresh Water',
     },
     wrestling: {
       label: 'Pro Wrestling',
-      handTitlePlaceholder: 'WrestleMania main events',
+      handTitlePlaceholder: 'The Undertaker PPV matches',
       handItemsPlaceholder:
-        'Early years:\nWrestleMania I\nWrestleMania III\n\n# Attitude Era\nWrestleMania XIV\nWrestleMania 2000',
+        'The Streak:\nWrestlemania VII (Jimmy Snuka)\nWrestleMania VIII (Jake Roberts)\n\n# Survivor Series\nSurvivor Series 1990 (Survivor Series match)\nSurvivor Series 1991 (singles match)',
     },
     mma: {
       handTitlePlaceholder: 'UFC title fights',
       handItemsPlaceholder:
-        'Early UFC:\nUFC 1\nUFC 2\n\n# Modern era\nUFC 100\nUFC 200',
+        'Heavyweight Title:\nUFC 12 (Coleman vs Severn)\nUFC 14 (Smith vs Coleman)\n\n# Lightweight Title\nUFC 30 (Pulver vs Uno)\nUFC 33 (Pulver vs Hallman)',
     },
     game: {
-      handTitlePlaceholder: 'Every Zelda game',
+      handTitlePlaceholder: 'Pokémon franchise games',
       handItemsPlaceholder:
-        '2D:\nThe Legend of Zelda\nA Link to the Past\n\n# 3D\nOcarina of Time\nBreath of the Wild',
+        'First Generation:\nPokémon Red\nPokémon Blue\n\n# Second Generation\nPokémon Gold\nPokémon Silver',
     },
     comic: {
-      handTitlePlaceholder: 'The Sandman',
+      handTitlePlaceholder: 'Spider-Man Clone Saga',
       handItemsPlaceholder:
-        'Volume 1:\nPreludes & Nocturnes\n\n# Volume 2\nThe Doll’s House\nDream Country',
+        'Phase 1 (Prelude):\n Spider-Man: The Lost Years #1\n Spider-Man: The Lost Years #2\n\n# Phase 2 (The Scarlet Spider)\nThe Amazing Spider-Man #400\nSpider-Man (1990) #57',
       handItemsHint:
         'One issue or volume per line. A line ending in a colon, or starting with #, opens a run that lasts until the next one. Blank lines are ignored',
     },
@@ -144,21 +144,21 @@ export const en = {
         'One book per line. A line ending in a colon, or starting with #, opens a series that lasts until the next one. Blank lines are ignored',
     },
     music: {
-      handTitlePlaceholder: 'Radiohead albums',
+      handTitlePlaceholder: 'Cannibal Corpse discography',
       handItemsPlaceholder:
-        'Studio albums:\nPablo Honey\nThe Bends\nOK Computer\n\n# EPs\nAirbag / How Am I Driving?',
+        'Studio albums:\nEaten Back To Live\nButchered At Birth\nTomb Of The Mutilated\n\n# EPs and singles\nHammer Smashed Face\nWorm Infested',
       handItemsHint:
-        'One album per line. A line ending in a colon, or starting with #, opens a section (an era, a type) that lasts until the next one. Blank lines are ignored',
+        'One release per line. A line ending in a colon, or starting with #, opens a section (an era, a type) that lasts until the next one. Blank lines are ignored',
     },
     youtube: {
-      handTitlePlaceholder: 'Crash Course World History',
+      handTitlePlaceholder: 'Dungeon Soup',
       handItemsPlaceholder:
-        'Ancient world:\nThe Agricultural Revolution\nThe Indus Valley Civilization\n\n# Middle Ages\nThe Mongols',
+        'Chaotic Good Barbarian, Season 1:\nImmortality Killed The Lich\nHearse of Strahd\n\n# Chaotic Good Barbarian, Season 1\nI HAVE NO LUCK AND I MUST SCREAM\nONI-GIRI',
     },
     mega: {
-      handTitlePlaceholder: 'Marvel Cinematic Universe',
+      handTitlePlaceholder: 'The Witcher - everything',
       handItemsPlaceholder:
-        'Phase One:\nIron Man\nThe Incredible Hulk\n\n# Phase Two\nIron Man 3\nThor: The Dark World',
+        'Books:\nThe Last Wish\nSword of Destiny\n\n# Games\nThe Witcher 1\nThe Witcher 2',
     },
   } as Record<
     string,
@@ -203,7 +203,7 @@ export const en = {
     'group.notEmpty': (): string => 'You can delete a group only when you embrace its emptiness',
     'group.orderMismatch': (): string => 'The groups changed since you loaded this list, so reload it and try again.',
     'reset.unavailable': (): string => 'This list has no source to reset it to, and you should not be seeing this message',
-    'name.tooLong': (p: { max: number }): string => `That name is too long: ${p.max} characters at most.`,
+    'name.tooLong': (p: { max: number }): string => `This name is tooo looong: use ${p.max} characters at most.`,
     'refresh.handMadeList': (): string => 'This list was a hand job, so there is nothing to check against.',
     'refresh.searchUnavailable': (p: { category: string }): string => `Search is not available for ${p.category}.`,
   },
