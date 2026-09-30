@@ -260,6 +260,28 @@ export const de: Locale = {
     },
     appHeader: {
       settings: 'Einstellungen',
+      about: 'Über Listulator',
+    },
+    about: {
+      title: 'Über Listulator',
+      closeLabel: 'Schließen',
+      version: 'Version',
+      checkForUpdates: 'Nach Updates suchen',
+      updatesLater: 'Die Update-Suche kommt in einer späteren Version.',
+      licence: 'Veröffentlicht unter der PolyForm-Noncommercial-Lizenz (kostenlos für den privaten Gebrauch). © 2026 Listulator',
+      madeBy: 'Gemacht von',
+      dataSources: 'Datenquellen',
+      showAttribution: 'Quellenhinweis anzeigen',
+      hideAttribution: 'Quellenhinweis ausblenden',
+      powers: {
+        igdb: 'Spiele',
+        musicbrainz: 'Alben und Diskografien',
+        openLibrary: 'Bücher',
+        comicVine: 'Comics',
+        youtube: 'Playlists und Kanäle',
+        wikipedia: 'Wrestling- und MMA-Events',
+        tmdb: 'Filme, Serien, Animation und Dokumentarfilme',
+      },
     },
     settings: {
       title: 'Einstellungen',

@@ -21,7 +21,7 @@ describe('AppHeader', () => {
     const onSettings = vi.fn()
     render(
       <Providers>
-        <AppHeader skin="dark-orange" onSkinChange={vi.fn()} onSettings={onSettings} />
+        <AppHeader skin="dark-orange" onSkinChange={vi.fn()} onSettings={onSettings} onAbout={vi.fn()} />
       </Providers>,
     )
 
@@ -34,11 +34,28 @@ describe('AppHeader', () => {
     expect(onSettings).toHaveBeenCalledOnce()
   })
 
+  it('has an About button straight after Settings that opens About', () => {
+    const onAbout = vi.fn()
+    render(
+      <Providers>
+        <AppHeader skin="dark-orange" onSkinChange={vi.fn()} onSettings={vi.fn()} onAbout={onAbout} />
+      </Providers>,
+    )
+
+    const settings = screen.getByRole('button', { name: 'Settings' })
+    const about = screen.getByRole('button', { name: 'About' })
+    expect(settings.nextElementSibling).toBe(about)
+
+    act(() => about.click())
+
+    expect(onAbout).toHaveBeenCalledOnce()
+  })
+
   it('opens the skin menu, picks a skin, and announces it in the live region', async () => {
     const onSkinChange = vi.fn()
     const { container } = render(
       <Providers>
-        <AppHeader skin="dark-orange" onSkinChange={onSkinChange} onSettings={vi.fn()} />
+        <AppHeader skin="dark-orange" onSkinChange={onSkinChange} onSettings={vi.fn()} onAbout={vi.fn()} />
       </Providers>,
     )
 
@@ -59,7 +76,7 @@ describe('AppHeader', () => {
   it('marks the current skin with aria-current in the menu', () => {
     render(
       <Providers>
-        <AppHeader skin="dark-blue" onSkinChange={vi.fn()} onSettings={vi.fn()} />
+        <AppHeader skin="dark-blue" onSkinChange={vi.fn()} onSettings={vi.fn()} onAbout={vi.fn()} />
       </Providers>,
     )
 

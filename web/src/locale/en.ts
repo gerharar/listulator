@@ -298,6 +298,30 @@ export const en = {
     /** AppHeader (task 10.9). */
     appHeader: {
       settings: 'Settings',
+      about: 'About',
+    },
+    /** The About layer (task 11.21). Source names, hosts, links and the TMDB notice are not copy: `screens/about/sources.ts`. */
+    about: {
+      title: 'About',
+      closeLabel: 'Close',
+      version: 'Version',
+      checkForUpdates: 'Check for updates',
+      /** The button is a placeholder until the desktop updater exists (owner, 2026-09-30). */
+      updatesLater: 'Checking for updates comes in a later version.',
+      licence: 'Released under PolyForm Noncommercial license (free for personal use). © 2026 Listulator',
+      madeBy: 'Made by',
+      dataSources: 'Data sources',
+      showAttribution: 'Show attribution',
+      hideAttribution: 'Hide attribution',
+      powers: {
+        igdb: 'Games',
+        musicbrainz: 'Albums and discographies',
+        openLibrary: 'Books',
+        comicVine: 'Comics',
+        youtube: 'Playlists and channels',
+        wikipedia: 'Pro Wrestling and MMA events',
+        tmdb: 'Movies, TV series, animation and documentaries',
+      },
     },
     /** The Settings layer (task 10.30). Copy is the prototype's; language names stay in their own language. */
     settings: {

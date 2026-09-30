@@ -269,6 +269,28 @@ export const ru: Locale = {
     },
     appHeader: {
       settings: 'Настройки',
+      about: 'О программе',
+    },
+    about: {
+      title: 'О программе',
+      closeLabel: 'Закрыть',
+      version: 'Версия',
+      checkForUpdates: 'Проверить обновления',
+      updatesLater: 'Проверка обновлений появится в следующей версии.',
+      licence: 'Распространяется по лицензии PolyForm Noncommercial (бесплатно для личного использования). © 2026 Listulator',
+      madeBy: 'Автор:',
+      dataSources: 'Источники данных',
+      showAttribution: 'Показать атрибуцию',
+      hideAttribution: 'Скрыть атрибуцию',
+      powers: {
+        igdb: 'Игры',
+        musicbrainz: 'Альбомы и дискографии',
+        openLibrary: 'Книги',
+        comicVine: 'Комиксы',
+        youtube: 'Плейлисты и каналы',
+        wikipedia: 'Турниры по реслингу и MMA',
+        tmdb: 'Фильмы, сериалы, анимация и документальное кино',
+      },
     },
     settings: {
       title: 'Настройки',

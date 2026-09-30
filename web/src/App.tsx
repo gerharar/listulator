@@ -8,6 +8,7 @@ import { resolveLanguage, type Language } from './lib/preferences/language.js'
 import { resolveReducedMotionSetting } from './lib/preferences/motion.js'
 import { MotionProvider } from './components/quantum/Motion/MotionContext.js'
 import { SettingsScreen } from './screens/settings/SettingsScreen.js'
+import { AboutScreen } from './screens/about/AboutScreen.js'
 import { ListScreen } from './screens/list/ListScreen.js'
 import { CreateList } from './components/quantum/CreateList/CreateList.js'
 import { PreviewLayer } from './components/quantum/PreviewLayer/PreviewLayer.js'
@@ -188,9 +189,20 @@ function AppShellBody({ skin, onSkinChange }: AppShellBodyProps) {
     })
   }
 
+  // About, the same way: one layer, and the ⓘ does nothing while it is on top (task 11.21).
+  function openAbout(): void {
+    if (layerStack.stack[layerStack.stack.length - 1]?.kind === 'about') return
+    layerStack.push({
+      id: 'about',
+      kind: 'about',
+      tabLabel: () => copy.quantum.about.title,
+      content: '',
+    })
+  }
+
   return (
     <div className="q-shell">
-      <AppHeader skin={skin} onSkinChange={onSkinChange} onSettings={openSettings} />
+      <AppHeader skin={skin} onSkinChange={onSkinChange} onSettings={openSettings} onAbout={openAbout} />
       <div className="q-stage">
         {layerStack.visible.map((layer, index) => {
           const isTop = index === layerStack.visible.length - 1
@@ -217,6 +229,8 @@ function AppShellBody({ skin, onSkinChange }: AppShellBodyProps) {
                 <Home onMediaTypesLoaded={setMediaTypes} />
               ) : layer.kind === 'settings' ? (
                 <SettingsScreen skin={skin} onSkinChange={onSkinChange} />
+              ) : layer.kind === 'about' ? (
+                <AboutScreen />
               ) : layer.kind === 'category-picker' ? (
                 <CategoryPicker mediaTypes={mediaTypes} first={fullIndex === 0} />
               ) : (

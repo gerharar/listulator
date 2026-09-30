@@ -157,6 +157,8 @@ const SAME_AS_ENGLISH: Record<'ru' | 'de', readonly string[]> = {
     'quantum.skin.labels.light-bone',
   ],
   de: [
+    'quantum.about.version',
+    'quantum.about.powers.comicVine',
     'sourceSearch.includeEp',
     'sourceSearch.includeSingle',
     'sourceSearch.includeCompilation',
