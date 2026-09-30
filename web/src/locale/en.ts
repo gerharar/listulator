@@ -93,13 +93,13 @@ export const en = {
     movie: {
       handTitlePlaceholder: 'Vin Diesel movies',
       handItemsPlaceholder:
-        'Fast And Furious franchise:\nThe Fast and the Furios\nFast Five\n\n# The Chronicles of Riddick franchise\nPitch Black\nThe Chronicles of Riddick\nRiddick',
+        'Fast And Furious franchise:\nThe Fast and the Furious\nFast Five\n\n# The Chronicles of Riddick franchise\nPitch Black\nThe Chronicles of Riddick\nRiddick',
     },
     tv: {
       label: 'TV Series',
       handTitlePlaceholder: 'The Big Bang Theory',
       handItemsPlaceholder:
-        'Season 1:\nS1E1: Pilot\n1S1E2: The Big Bran Hypothesis\nS1E3: The Fuzzy Boots Corollary\n\n# Season 2\nS2E1: The Bad Fish Paradigm\nS2E2: The Codpiece Topology',
+        'Season 1:\nS1E1: Pilot\nS1E2: The Big Bran Hypothesis\nS1E3: The Fuzzy Boots Corollary\n\n# Season 2\nS2E1: The Bad Fish Paradigm\nS2E2: The Codpiece Topology',
       handItemsHint:
         'One episode per line. A line ending in a colon, or starting with #, opens a season that lasts until the next one. Blank lines are ignored',
     },
@@ -117,7 +117,7 @@ export const en = {
       label: 'Pro Wrestling',
       handTitlePlaceholder: 'The Undertaker PPV matches',
       handItemsPlaceholder:
-        'The Streak:\nWrestlemania VII (Jimmy Snuka)\nWrestleMania VIII (Jake Roberts)\n\n# Survivor Series\nSurvivor Series 1990 (Survivor Series match)\nSurvivor Series 1991 (singles match)',
+        'The Streak:\nWrestleMania VII (Jimmy Snuka)\nWrestleMania VIII (Jake Roberts)\n\n# Survivor Series\nSurvivor Series 1990 (Survivor Series match)\nSurvivor Series 1991 (singles match)',
     },
     mma: {
       handTitlePlaceholder: 'UFC title fights',
@@ -132,7 +132,7 @@ export const en = {
     comic: {
       handTitlePlaceholder: 'Spider-Man Clone Saga',
       handItemsPlaceholder:
-        'Phase 1 (Prelude):\n Spider-Man: The Lost Years #1\n Spider-Man: The Lost Years #2\n\n# Phase 2 (The Scarlet Spider)\nThe Amazing Spider-Man #400\nSpider-Man (1990) #57',
+        'Phase 1 (Prelude):\nSpider-Man: The Lost Years #1\nSpider-Man: The Lost Years #2\n\n# Phase 2 (The Scarlet Spider)\nThe Amazing Spider-Man #400\nSpider-Man (1990) #57',
       handItemsHint:
         'One issue or volume per line. A line ending in a colon, or starting with #, opens a run that lasts until the next one. Blank lines are ignored',
     },
@@ -146,14 +146,14 @@ export const en = {
     music: {
       handTitlePlaceholder: 'Cannibal Corpse discography',
       handItemsPlaceholder:
-        'Studio albums:\nEaten Back To Live\nButchered At Birth\nTomb Of The Mutilated\n\n# EPs and singles\nHammer Smashed Face\nWorm Infested',
+        'Studio albums:\nEaten Back to Life\nButchered At Birth\nTomb Of The Mutilated\n\n# EPs and singles\nHammer Smashed Face\nWorm Infested',
       handItemsHint:
         'One release per line. A line ending in a colon, or starting with #, opens a section (an era, a type) that lasts until the next one. Blank lines are ignored',
     },
     youtube: {
       handTitlePlaceholder: 'Dungeon Soup',
       handItemsPlaceholder:
-        'Chaotic Good Barbarian, Season 1:\nImmortality Killed The Lich\nHearse of Strahd\n\n# Chaotic Good Barbarian, Season 1\nI HAVE NO LUCK AND I MUST SCREAM\nONI-GIRI',
+        'Chaotic Good Barbarian, Season 1:\nImmortality Killed The Lich\nHearse of Strahd\n\n# Chaotic Good Barbarian, Season 2\nI HAVE NO LUCK AND I MUST SCREAM\nONI-GIRI',
     },
     mega: {
       handTitlePlaceholder: 'The Witcher - everything',
