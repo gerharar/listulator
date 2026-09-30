@@ -571,6 +571,11 @@ export async function createListSnapshot(
     .run()
 }
 
+/** Removes a list's arrived-state snapshot rows (the source copy's items); the list and its own items are untouched. */
+export async function deleteListSnapshot(db: PortableDatabase, listId: string): Promise<void> {
+  await db.delete(listSnapshots).where(eq(listSnapshots.listId, listId)).run()
+}
+
 /** The arrived-state snapshot for one list, in its original order. Empty for any list without one. */
 export async function findListSnapshot(
   db: PortableDatabase,
