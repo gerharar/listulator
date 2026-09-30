@@ -60,3 +60,33 @@ test('the disabled Check for updates still says why when hovered', async ({ page
 
   await expect(page.getByRole('tooltip')).toHaveText('Checking for updates comes in a later version.')
 })
+
+test.describe('at phone width', () => {
+  test.use({ viewport: { width: 375, height: 812 } })
+
+  test('each source row keeps its link clear of its description, on a line of its own', async ({ page }) => {
+    await openAbout(page)
+
+    const overlaps = await page.locator('.q-about-source').evaluateAll((rows) =>
+      rows.flatMap((row) => {
+        // The text itself, not its grid cell: a squeezed cell lets its words spill out sideways.
+        const range = document.createRange()
+        range.selectNodeContents(row.querySelector('.q-about-source-powers')!)
+        const powers = range.getBoundingClientRect()
+        const link = row.querySelector(':scope > .q-about-link')!.getBoundingClientRect()
+        const clear = link.top >= powers.bottom - 1 || link.left >= powers.right - 1
+        return clear ? [] : [row.querySelector('.q-about-source-name')!.textContent]
+      }),
+    )
+    expect(overlaps).toEqual([])
+
+    const offRow = await page.locator('.q-about-source').evaluateAll((rows) =>
+      rows.filter((row) => {
+        const inner = row.getBoundingClientRect().right - parseFloat(getComputedStyle(row).paddingRight)
+        const link = row.querySelector(':scope > .q-about-link')!.getBoundingClientRect()
+        return link.right > inner + 1
+      }).length,
+    )
+    expect(offRow).toBe(0)
+  })
+})

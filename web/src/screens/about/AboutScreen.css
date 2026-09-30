@@ -33,6 +33,7 @@
 }
 
 .q-about-body {
+  container-type: inline-size;
   flex: 1;
   min-height: 0;
   overflow: auto;
@@ -221,4 +222,20 @@
   font-size: 13.5px;
   line-height: 1.5;
   color: var(--ink);
+}
+
+/*
+ * Narrow layers (a phone): the host name no longer fits beside the description, so it moves
+ * to its own line under it (owner, 2026-09-30). Measured on the layer, not the screen, so a
+ * narrow desktop window gets it too.
+ */
+@container (max-width: 560px) {
+  .q-about-source {
+    grid-template-columns: minmax(0, 104px) minmax(0, 1fr);
+    column-gap: 12px;
+    padding-inline: 10px;
+  }
+  .q-about-source > .q-about-link {
+    grid-column: 2;
+  }
 }
