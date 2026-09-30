@@ -74,10 +74,12 @@ let connection: Database | undefined
 
 async function getConnection(): Promise<Database> {
   if (!connection) {
-    connection = await Database.load('sqlite:listulator.sqlite')
+    const opened = await Database.load('sqlite:listulator.sqlite')
     // Off by default in SQLite, same as the server's own connection
     // (db/client.ts) — deleteList's cascade to list_items depends on it.
-    await connection.execute('PRAGMA foreign_keys = ON')
+    await opened.execute('PRAGMA foreign_keys = ON')
+    // Kept only once it is fully set up, so a retry after a failure here starts over.
+    connection = opened
   }
 
   return connection
@@ -99,7 +101,7 @@ async function getConnection(): Promise<Database> {
  * empty/undefined value there is what lets a `.get()` with no match resolve
  * to `undefined`, which every ownership check in `repository.ts` depends on.
  */
-export async function createLocalDb(): Promise<LocalDatabase> {
+async function openLocalDb(): Promise<LocalDatabase> {
   const sqlite = await getConnection()
   await runLocalMigrations(sqlite)
 
@@ -124,4 +126,23 @@ export async function createLocalDb(): Promise<LocalDatabase> {
     },
     { schema },
   )
+}
+
+let opening: Promise<LocalDatabase> | undefined
+
+/**
+ * The one local database, opened and migrated once. Several API calls ask for
+ * it at start-up before any has finished, so what is remembered is the opening
+ * in progress, not its result: each caller used to open and migrate on its own,
+ * and on the first launch after a migration the second `ALTER TABLE ... ADD`
+ * failed ("Couldn't load your lists", BL-032). A failed opening is forgotten so
+ * the next call tries again.
+ */
+export function createLocalDb(): Promise<LocalDatabase> {
+  opening ??= openLocalDb().catch((cause: unknown) => {
+    opening = undefined
+    throw cause
+  })
+
+  return opening
 }
