@@ -35,6 +35,10 @@
 .q-group-delete:hover { color: var(--ink); border-color: var(--rule); }
 /* A group with items: its trash sits in the items' trash column (the group row pads 18px right, an item 8px). */
 .q-group .q-group-remove { flex: none; height: 26px; margin-right: -10px; } /* the handle's height: a row-size button is 46px and would fatten the row */
+/* Rename (11.18): the pencil is the handle's height so it does not fatten the row; the editor is as tall as the name. */
+.q-group .q-group-rename { flex: none; width: 26px; height: 26px; margin-left: -4px; }
+.q-group-input { flex: 1; min-width: 0; padding: 3px 8px; border: 1px solid var(--rule); background: var(--field); color: var(--ink); font: 600 15px/1.15 var(--font); letter-spacing: .01em; }
+.q-group-input:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
 .q-group .q-left { font-size: 12px; }
 .q-group .q-left.all-done { font-size: 11px; }
 

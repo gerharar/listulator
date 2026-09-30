@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import type { GroupBlock } from './spine.js'
 import { GroupRow } from './GroupRow.js'
 
@@ -166,6 +166,105 @@ describe('GroupRow', () => {
 
     expect(onDeleteWithItems).toHaveBeenCalledWith(expect.any(HTMLElement))
     expect(props.onToggle).not.toHaveBeenCalled()
+  })
+
+  describe('renaming (11.18)', () => {
+    const pencil = () => screen.getByRole('button', { name: 'Rename group Season 1' })
+    const editor = () => screen.getByLabelText('Group name') as HTMLInputElement
+
+    it('offers no rename where the screen gives none', () => {
+      renderRow()
+
+      expect(screen.queryByRole('button', { name: /Rename group/ })).toBeNull()
+    })
+
+    it('opens an editor on the pencil that holds the whole name, focused, and does not fold the group', () => {
+      const { onToggle } = renderRow(BLOCK, { onRename: vi.fn(async () => {}) })
+
+      fireEvent.click(pencil())
+
+      expect(editor().value).toBe('Season 1')
+      expect(document.activeElement).toBe(editor())
+      expect(onToggle).not.toHaveBeenCalled()
+    })
+
+    it('renames on Enter with the name trimmed, then closes the editor', async () => {
+      const onRename = vi.fn(async () => {})
+      renderRow(BLOCK, { onRename })
+      fireEvent.click(pencil())
+
+      fireEvent.change(editor(), { target: { value: '  The Long Season  ' } })
+      fireEvent.keyDown(editor(), { key: 'Enter' })
+
+      await waitFor(() => expect(screen.queryByLabelText('Group name')).toBeNull())
+      expect(onRename).toHaveBeenCalledWith('The Long Season')
+    })
+
+    it('renames when focus leaves the editor too: the click-away is the safety net', async () => {
+      const onRename = vi.fn(async () => {})
+      renderRow(BLOCK, { onRename })
+      fireEvent.click(pencil())
+
+      fireEvent.change(editor(), { target: { value: 'Series One' } })
+      fireEvent.blur(editor())
+
+      await waitFor(() => expect(onRename).toHaveBeenCalledWith('Series One'))
+    })
+
+    it('Esc puts it back untouched, and asks for nothing', () => {
+      const onRename = vi.fn(async () => {})
+      renderRow(BLOCK, { onRename })
+      fireEvent.click(pencil())
+
+      fireEvent.change(editor(), { target: { value: 'Something else' } })
+      fireEvent.keyDown(editor(), { key: 'Escape' })
+
+      expect(screen.queryByLabelText('Group name')).toBeNull()
+      expect(screen.getByText('Season 1')).toBeTruthy()
+      expect(onRename).not.toHaveBeenCalled()
+    })
+
+    it('asks for nothing when the name did not change', () => {
+      const onRename = vi.fn(async () => {})
+      renderRow(BLOCK, { onRename })
+      fireEvent.click(pencil())
+
+      fireEvent.keyDown(editor(), { key: 'Enter' })
+
+      expect(screen.queryByLabelText('Group name')).toBeNull()
+      expect(onRename).not.toHaveBeenCalled()
+    })
+
+    it('stays open with what was typed when the rename is refused, so it can be fixed', async () => {
+      const onRename = vi.fn(async () => {
+        throw new Error('taken')
+      })
+      renderRow(BLOCK, { onRename })
+      fireEvent.click(pencil())
+
+      fireEvent.change(editor(), { target: { value: 'Season 2' } })
+      fireEvent.keyDown(editor(), { key: 'Enter' })
+
+      await waitFor(() => expect(onRename).toHaveBeenCalled())
+      expect(editor().value).toBe('Season 2')
+    })
+
+    it('typing, Space and Enter in the editor do not fold the group', () => {
+      const { onToggle } = renderRow(BLOCK, { onRename: vi.fn(async () => {}) })
+      fireEvent.click(pencil())
+
+      fireEvent.click(editor())
+      fireEvent.keyDown(editor(), { key: ' ' })
+
+      expect(onToggle).not.toHaveBeenCalled()
+    })
+  })
+
+  it('gives a long name its full text on hover, whatever the ellipsis hides', () => {
+    const long = 'Better Call Saul Employee Training: Los Pollos Hermanos Employee Training'
+    renderRow({ ...BLOCK, group: { ...BLOCK.group, name: long } })
+
+    expect(screen.getByText(long).getAttribute('title')).toBe(long)
   })
 })
 

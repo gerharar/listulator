@@ -523,6 +523,48 @@ function ListView({
     }
   }
 
+  /** Carries a folded group's fold across its rename (the folds are remembered by name). */
+  function renameFold(from: string, to: string) {
+    if (!collapsed.has(from)) return
+    const next = new Set(collapsed)
+    next.delete(from)
+    next.add(to)
+    setCollapsed(next)
+    void saveCollapsed(getPreferencesStore(), listId, next)
+  }
+
+  /** The group's new name, from its editor: the items relabel with it; Undo names it back. Rejects when refused. */
+  async function renameGroup(group: ListGroup, name: string) {
+    setError(null)
+
+    try {
+      const renamed = await api.renameGroup(listId, group.id, name)
+      renameFold(group.name, renamed.name)
+      await refresh()
+      pulse(group.id)
+      showToast({
+        text: actions.groupRenamed(group.name, renamed.name),
+        actionLabel: actions.undo,
+        onAction: () => void undoRenameGroup(group, renamed.name),
+      })
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : actions.groupRenameFailed(group.name))
+      throw cause
+    }
+  }
+
+  async function undoRenameGroup(group: ListGroup, current: string) {
+    try {
+      await api.renameGroup(listId, group.id, group.name)
+      renameFold(current, group.name)
+      await refresh()
+      pulse(group.id)
+      announce(actions.groupRenamed(current, group.name))
+    } catch {
+      setError(actions.undoFailed)
+    }
+  }
+
   /** A group with items, after its confirmation: the group and its items go at once; Undo brings all back. */
   async function removeGroupWithItems(group: ListGroup) {
     const previous = { items, groups }
@@ -1016,6 +1058,7 @@ function ListView({
                   onFocus={remember}
                   onHandlePointerDown={(event) => moves.startDrag(event, unit.group.id)}
                   onDelete={() => void removeGroup(unit.group)}
+                  onRename={(name) => renameGroup(unit.group, name)}
                   onDeleteWithItems={(anchor) => setGroupDelete({ group: unit.group, anchor })}
                   dragging={moves.dragKey === unit.group.id}
                   dropLine={moves.over?.key === unit.group.id ? moves.over.pos : null}

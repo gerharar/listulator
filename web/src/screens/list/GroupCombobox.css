@@ -26,6 +26,8 @@
   padding: 8px 12px;
   font-size: 13.5px;
   cursor: pointer;
+  /* A long group name wraps inside the list instead of running out of it (11.18). */
+  overflow-wrap: anywhere;
 }
 .q-combo-list li:hover,
 .q-combo-list li.active {

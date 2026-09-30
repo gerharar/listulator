@@ -551,6 +551,10 @@ export const en = {
         deleteGroupTip: 'Delete this empty group: it holds no items',
         groupRemoved: (name: string): string => `Deleted group ${name}`,
         groupRestored: (name: string): string => `Restored group ${name}`,
+        renameGroupAria: (name: string): string => `Rename group ${name}`,
+        groupNameLabel: 'Group name',
+        groupRenamed: (from: string, to: string): string => `Renamed group ${from} to ${to}`,
+        groupRenameFailed: (name: string): string => `Could not rename group ${name}`,
         groupCreated: (name: string): string => `Created group ${name}`,
         groupRemoveFailed: (name: string): string => `Could not delete group ${name}`,
         /** Deleting a group that has items: a trash button and a confirmation stating the cost (owner, 2026-09-27). */

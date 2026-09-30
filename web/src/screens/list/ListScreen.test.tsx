@@ -54,6 +54,7 @@ vi.mock('../../lib/api.js', async () => {
       deleteGroup: vi.fn(),
       restoreGroup: vi.fn(),
       createGroup: vi.fn(),
+      renameGroup: vi.fn(),
     },
   }
 })
@@ -564,6 +565,71 @@ describe('ListScreen item actions (task 10.21)', () => {
       fireEvent.click(screen.getByRole('button', { name: 'Add Group' }))
 
       expect(await screen.findByText('This list already has a group with such name.')).toBeTruthy()
+    })
+  })
+
+  describe('renaming a group (11.18)', () => {
+    const renamed = { id: 'g1', listId: 'L1', name: 'Series One', orderIndex: 0 }
+    const afterRename = () =>
+      detail({
+        items: [
+          item({ id: 'a', title: 'Alpha', group: 'Series One', orderIndex: 0 }),
+          item({ id: 'b', title: 'Beta', group: 'Series One', orderIndex: 1 }),
+          item({ id: 'c', title: 'Gamma', group: 'Season 2', orderIndex: 2 }),
+        ],
+        groups: [renamed, groups[1]!],
+      })
+    const rename = (to: string) => {
+      fireEvent.click(screen.getByRole('button', { name: 'Rename group Season 1' }))
+      fireEvent.change(screen.getByLabelText('Group name'), { target: { value: to } })
+      fireEvent.keyDown(screen.getByLabelText('Group name'), { key: 'Enter' })
+    }
+
+    it('renames through the API, shows the new name on the group and its items, and says so with an Undo', async () => {
+      vi.mocked(api.renameGroup).mockResolvedValue(renamed)
+      await open(base())
+      vi.mocked(api.list).mockResolvedValue(afterRename())
+
+      rename('Series One')
+
+      await waitFor(() => expect(api.renameGroup).toHaveBeenCalledWith('L1', 'g1', 'Series One'))
+      await waitFor(() => expect(screen.queryByLabelText('Group name')).toBeNull())
+      expect(document.querySelector('[data-row-id="g1"] b')!.textContent).toBe('Series One')
+      expect((await screen.findAllByText('Renamed group Season 1 to Series One')).length).toBeGreaterThan(0)
+    })
+
+    it('Undo names it back', async () => {
+      vi.mocked(api.renameGroup).mockResolvedValue(renamed)
+      await open(base())
+      vi.mocked(api.list).mockResolvedValue(afterRename())
+      rename('Series One')
+      fireEvent.click(await screen.findByRole('button', { name: 'Undo' }))
+
+      await waitFor(() => expect(api.renameGroup).toHaveBeenLastCalledWith('L1', 'g1', 'Season 1'))
+    })
+
+    it('keeps a folded group folded through its rename', async () => {
+      vi.mocked(api.renameGroup).mockResolvedValue(renamed)
+      await open(base())
+      fireEvent.click(document.querySelector('[data-row-id="g1"]')!)
+      expect(screen.queryByText('Alpha')).toBeNull()
+      vi.mocked(api.list).mockResolvedValue(afterRename())
+
+      rename('Series One')
+
+      await waitFor(() => expect(api.renameGroup).toHaveBeenCalled())
+      await waitFor(() => expect(document.querySelector('[data-row-id="g1"] b')!.textContent).toBe('Series One'))
+      expect(screen.queryByText('Alpha')).toBeNull()
+    })
+
+    it('shows the API’s own words and keeps the editor open when the name is refused', async () => {
+      vi.mocked(api.renameGroup).mockRejectedValue(new Error('This list already has a group with such name.'))
+      await open(base())
+
+      rename('Season 2')
+
+      expect(await screen.findByText('This list already has a group with such name.')).toBeTruthy()
+      expect((screen.getByLabelText('Group name') as HTMLInputElement).value).toBe('Season 2')
     })
   })
 

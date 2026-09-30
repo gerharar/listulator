@@ -1,6 +1,6 @@
 import './Spine.css'
-import type { KeyboardEvent, PointerEvent } from 'react'
-import { Trash2 } from 'lucide-react'
+import { useEffect, useRef, useState, type KeyboardEvent, type PointerEvent } from 'react'
+import { Pencil, Trash2 } from 'lucide-react'
 import { IconButton } from '../../components/quantum/Button/Button.js'
 import { copy } from '../../locale/index.js'
 import { ProgressSentence } from '../../components/quantum/ProgressSentence/ProgressSentence.js'
@@ -26,6 +26,11 @@ export interface GroupRowProps {
   onDeleteWithItems?: (anchor: HTMLElement) => void
   /** While a filter is on: how many of the group's items match, in place of its progress. */
   shownOf?: { shown: number; total: number }
+  /**
+   * Gives the group a pencil that turns its name into an editor (11.18). Resolves when the rename is
+   * saved and rejects when it is refused, which leaves the editor open with what was typed.
+   */
+  onRename?: (name: string) => Promise<void>
 }
 
 /**
@@ -47,8 +52,45 @@ export function GroupRow({
   onDelete,
   onDeleteWithItems,
   shownOf,
+  onRename,
 }: GroupRowProps) {
   const span = yearSpanLabel(block.yearSpan)
+  const text = copy.quantum.list.itemActions
+  const [editing, setEditing] = useState(false)
+  const [draft, setDraft] = useState('')
+  const saving = useRef(false)
+  const editor = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    if (!editing) return
+    editor.current?.focus()
+    editor.current?.select()
+  }, [editing])
+
+  function startEditing() {
+    setDraft(block.group.name)
+    setEditing(true)
+  }
+
+  /** Enter, or focus leaving: a changed name is saved, anything else just closes. Refused: stays open. */
+  async function commit() {
+    if (saving.current) return
+    const name = draft.trim()
+    if (name === '' || name === block.group.name || !onRename) {
+      setEditing(false)
+      return
+    }
+
+    saving.current = true
+    try {
+      await onRename(name)
+      setEditing(false)
+    } catch {
+      editor.current?.focus()
+    } finally {
+      saving.current = false
+    }
+  }
 
   function onKeyDown(event: KeyboardEvent<HTMLDivElement>) {
     if (event.key === 'Enter' || event.key === ' ') {
@@ -87,9 +129,50 @@ export function GroupRow({
         ▼
       </span>
       <span className="name">
-        <b>{block.group.name}</b>
-        {span && <span className="q-year">{span}</span>}
+        {editing ? (
+          <input
+            ref={editor}
+            className="q-group-input"
+            aria-label={text.groupNameLabel}
+            value={draft}
+            spellCheck={false}
+            autoComplete="off"
+            onChange={(event) => setDraft(event.target.value)}
+            onBlur={() => void commit()}
+            onClick={(event) => event.stopPropagation()}
+            onKeyDown={(event) => {
+              // Typing here is not the row's: Space and Enter would fold it, arrows would walk the list.
+              event.stopPropagation()
+              if (event.key === 'Enter') {
+                event.preventDefault()
+                void commit()
+              } else if (event.key === 'Escape') {
+                event.preventDefault()
+                setEditing(false)
+              }
+            }}
+          />
+        ) : (
+          <>
+            <b title={block.group.name}>{block.group.name}</b>
+            {span && <span className="q-year">{span}</span>}
+          </>
+        )}
       </span>
+      {onRename && !editing && (
+        <IconButton
+          size="row"
+          className="edit q-group-rename"
+          label={text.renameGroupAria(block.group.name)}
+          onClick={(event) => {
+            event.stopPropagation()
+            startEditing()
+          }}
+          onKeyDown={(event) => event.stopPropagation()}
+        >
+          <Pencil width={14} height={14} strokeWidth={1.8} aria-hidden="true" />
+        </IconButton>
+      )}
       {block.items.length === 0 && onDelete && (
         <button
           type="button"
