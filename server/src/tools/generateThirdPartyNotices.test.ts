@@ -1,3 +1,6 @@
+import { existsSync, readFileSync } from 'node:fs'
+import { dirname, resolve } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
 import { chooseLicence, npmShippedPackages, renderNotices, type Notice } from './generateThirdPartyNotices.js'
 
@@ -63,5 +66,18 @@ describe('renderNotices', () => {
 
     expect(out).toContain('bare 1.0.0 (ISC)')
     expect(out).toContain('No licence file ships with this package; its licence is ISC: https://spdx.org/licenses/ISC.html')
+  })
+})
+
+describe('the desktop bundle', () => {
+  it('carries the licence, the notice and the third-party notices, and each file exists', () => {
+    const confPath = fileURLToPath(new URL('../../../apps/desktop/src-tauri/tauri.conf.json', import.meta.url))
+    const conf = JSON.parse(readFileSync(confPath, 'utf8')) as { bundle: { resources?: Record<string, string> } }
+    const resources = conf.bundle.resources ?? {}
+
+    expect(Object.values(resources).sort()).toEqual(['LICENSE', 'NOTICE.md', 'THIRD-PARTY-NOTICES.txt'])
+    for (const source of Object.keys(resources)) {
+      expect(existsSync(resolve(dirname(confPath), source)), source).toBe(true)
+    }
   })
 })
