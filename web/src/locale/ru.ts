@@ -85,53 +85,53 @@ export const ru: Locale = {
   categories: {
     movie: {
       label: 'Фильмы',
-      handTitlePlaceholder: 'Фильмы Альфреда Хичкока',
+      handTitlePlaceholder: 'Фильмы с Вином Дизелем',
       handItemsPlaceholder:
-        'Ранние фильмы:\nЖилец\nШантаж\n\n# Голливуд\nРебекка\nОкно во двор\nГоловокружение',
+        'Франшиза «Форсаж»:\nФорсаж\nФорсаж 5\n\n# Франшиза «Хроники Риддика»\nЧёрная дыра\nХроники Риддика\nРиддик',
     },
     tv: {
       label: 'Сериалы',
-      handTitlePlaceholder: 'Во все тяжкие',
+      handTitlePlaceholder: 'Теория большого взрыва',
       handItemsPlaceholder:
-        'Сезон 1:\nПилотный эпизод\nКот в мешке\n…И мешок в реке\n\n# Сезон 2\nСемь тридцать семь\nЖаркое',
+        'Сезон 1:\nS1E1: Pilot\nS1E2: The Big Bran Hypothesis\nS1E3: The Fuzzy Boots Corollary\n\n# Сезон 2\nS2E1: The Bad Fish Paradigm\nS2E2: The Codpiece Topology',
       handItemsHint:
         'Один эпизод на строку. Строка, оканчивающаяся двоеточием или начинающаяся с #, открывает сезон, который действует до следующего. Пустые строки игнорируются',
     },
     animation: {
       label: 'Анимация',
-      handTitlePlaceholder: 'Фильмы студии Ghibli',
+      handTitlePlaceholder: 'Аркейн (анимационный сериал)',
       handItemsPlaceholder:
-        'Миядзаки:\nУнесённые призраками\nПринцесса Мононоке\n\n# Такахата\nМогила светлячков\nПомпоко',
+        'Сезон 1:\nWelcome to the Playground\nSome Mysteries Are Better Left Unsolved\n\n# Сезон 2\nHeavy Is the Crown\nWatch It All Burn',
     },
     documentary: {
       label: 'Документальное',
-      handTitlePlaceholder: 'Документальные фильмы Кена Бёрнса',
+      handTitlePlaceholder: 'Документальные фильмы Дэвида Аттенборо',
       handItemsPlaceholder:
-        'Войны:\nГражданская война\nВойна\n\n# Культура\nБейсбол\nДжаз\nКантри',
+        'Голубая планета:\nМир океана\nГлубины\n\n# Планета Земля\nОт полюса до полюса\nГоры\nПресная вода',
     },
     wrestling: {
       label: 'Рестлинг',
-      handTitlePlaceholder: 'Главные матчи WrestleMania',
+      handTitlePlaceholder: 'PPV-матчи Андертейкера',
       handItemsPlaceholder:
-        'Ранние годы:\nWrestleMania I\nWrestleMania III\n\n# Эра Attitude\nWrestleMania XIV\nWrestleMania 2000',
+        'Серия на WrestleMania:\nWrestleMania VII (Джимми Снука)\nWrestleMania VIII (Джейк Робертс)\n\n# Survivor Series\nSurvivor Series 1990 (командный матч на выбывание)\nSurvivor Series 1991 (одиночный матч)',
     },
     mma: {
       label: 'ММА',
       handTitlePlaceholder: 'Титульные бои UFC',
       handItemsPlaceholder:
-        'Ранний UFC:\nUFC 1\nUFC 2\n\n# Современная эра\nUFC 100\nUFC 200',
+        'Титул в тяжёлом весе:\nUFC 12 (Коулман — Северн)\nUFC 14 (Смит — Коулман)\n\n# Титул в лёгком весе\nUFC 30 (Палвер — Уно)\nUFC 33 (Палвер — Холлман)',
     },
     game: {
       label: 'Игры',
-      handTitlePlaceholder: 'Все игры Zelda',
+      handTitlePlaceholder: 'Игры серии Pokémon',
       handItemsPlaceholder:
-        '2D:\nThe Legend of Zelda\nA Link to the Past\n\n# 3D\nOcarina of Time\nBreath of the Wild',
+        'Первое поколение:\nPokémon Red\nPokémon Blue\n\n# Второе поколение\nPokémon Gold\nPokémon Silver',
     },
     comic: {
       label: 'Комиксы',
-      handTitlePlaceholder: 'Песочный человек',
+      handTitlePlaceholder: 'Человек-паук: Сага о клонах',
       handItemsPlaceholder:
-        'Том 1:\nПрелюдии и ноктюрны\n\n# Том 2\nКукольный домик\nСтрана снов',
+        'Фаза 1 (пролог):\nSpider-Man: The Lost Years #1\nSpider-Man: The Lost Years #2\n\n# Фаза 2 (Алый Паук)\nThe Amazing Spider-Man #400\nSpider-Man (1990) #57',
       handItemsHint:
         'Один выпуск или том на строку. Строка, оканчивающаяся двоеточием или начинающаяся с #, открывает серию, которая действует до следующей. Пустые строки игнорируются',
     },
@@ -145,25 +145,25 @@ export const ru: Locale = {
     },
     music: {
       label: 'Музыка',
-      handTitlePlaceholder: 'Альбомы Radiohead',
+      handTitlePlaceholder: 'Дискография Cannibal Corpse',
       handItemsPlaceholder:
-        'Студийные альбомы:\nPablo Honey\nThe Bends\nOK Computer\n\n# EP\nAirbag / How Am I Driving?',
+        'Студийные альбомы:\nEaten Back to Life\nButchered At Birth\nTomb Of The Mutilated\n\n# EP и синглы\nHammer Smashed Face\nWorm Infested',
       handItemsHint:
-        'Один альбом на строку. Строка, оканчивающаяся двоеточием или начинающаяся с #, открывает раздел (эпоху, тип), который действует до следующего. Пустые строки игнорируются',
+        'Один релиз на строку. Строка, оканчивающаяся двоеточием или начинающаяся с #, открывает раздел (эпоху, тип), который действует до следующего. Пустые строки игнорируются',
     },
     youtube: {
       label: 'YouTube',
-      handTitlePlaceholder: 'Crash Course: Всемирная история',
+      handTitlePlaceholder: 'Dungeon Soup',
       handItemsPlaceholder:
-        'Древний мир:\nАграрная революция\nЦивилизация долины Инда\n\n# Средневековье\nМонголы',
+        'Chaotic Good Barbarian, сезон 1:\nImmortality Killed The Lich\nHearse of Strahd\n\n# Chaotic Good Barbarian, сезон 2\nI HAVE NO LUCK AND I MUST SCREAM\nONI-GIRI',
     },
     mega: {
       label: 'Мега',
       description:
         'Франшизы, охватывающие сразу несколько медиа — фильмы, сериалы и анимация вместе, в порядке выхода. Сюда относятся Marvel и Star Trek; отдельный сериал или серия фильмов — нет.',
-      handTitlePlaceholder: 'Кинематографическая вселенная Marvel',
+      handTitlePlaceholder: 'Ведьмак — всё',
       handItemsPlaceholder:
-        'Фаза первая:\nЖелезный человек\nНевероятный Халк\n\n# Фаза вторая\nЖелезный человек 3\nТор 2: Царство тьмы',
+        'Книги:\nПоследнее желание\nМеч Предназначения\n\n# Игры\nВедьмак\nВедьмак 2: Убийцы королей',
     },
   },
 

@@ -79,53 +79,53 @@ export const de: Locale = {
   categories: {
     movie: {
       label: 'Filme',
-      handTitlePlaceholder: 'Filme von Alfred Hitchcock',
+      handTitlePlaceholder: 'Vin-Diesel-Filme',
       handItemsPlaceholder:
-        'Frühe Filme:\nDer Mieter\nErpressung\n\n# Hollywood\nRebecca\nDas Fenster zum Hof\nVertigo',
+        'Fast & Furious:\nThe Fast and the Furious\nFast & Furious Five\n\n# Riddick\nPitch Black – Planet der Finsternis\nRiddick – Chroniken eines Kriegers\nRiddick – Überleben ist seine Rache',
     },
     tv: {
       label: 'Serien',
-      handTitlePlaceholder: 'Breaking Bad',
+      handTitlePlaceholder: 'The Big Bang Theory',
       handItemsPlaceholder:
-        'Staffel 1:\nPilotfolge\nDie Katze im Sack\n…und der Sack ist im Fluss\n\n# Staffel 2\n737\nGrilliert',
+        'Staffel 1:\nS1E1: Pilot\nS1E2: The Big Bran Hypothesis\nS1E3: The Fuzzy Boots Corollary\n\n# Staffel 2\nS2E1: The Bad Fish Paradigm\nS2E2: The Codpiece Topology',
       handItemsHint:
         'Eine Folge pro Zeile. Eine Zeile, die mit einem Doppelpunkt endet oder mit # beginnt, eröffnet eine Staffel, die bis zur nächsten gilt. Leere Zeilen werden ignoriert',
     },
     animation: {
       label: 'Animation',
-      handTitlePlaceholder: 'Filme von Studio Ghibli',
+      handTitlePlaceholder: 'Arcane (Animationsserie)',
       handItemsPlaceholder:
-        'Miyazaki:\nChihiros Reise ins Zauberland\nPrinzessin Mononoke\n\n# Takahata\nDas Grab der Glühwürmchen\nPom Poko',
+        'Staffel 1:\nWelcome to the Playground\nSome Mysteries Are Better Left Unsolved\n\n# Staffel 2\nHeavy Is the Crown\nWatch It All Burn',
     },
     documentary: {
       label: 'Dokumentationen',
-      handTitlePlaceholder: 'Dokumentationen von Ken Burns',
+      handTitlePlaceholder: 'Dokumentationen von David Attenborough',
       handItemsPlaceholder:
-        'Kriege:\nDer Bürgerkrieg\nDer Krieg\n\n# Kultur\nBaseball\nJazz\nCountry Music',
+        'Unser blauer Planet:\nOzeanwelt\nDie Tiefsee\n\n# Planet Erde\nVon Pol zu Pol\nGebirge\nSüßwasser',
     },
     wrestling: {
       label: 'Pro-Wrestling',
-      handTitlePlaceholder: 'WrestleMania-Hauptkämpfe',
+      handTitlePlaceholder: 'PPV-Matches des Undertakers',
       handItemsPlaceholder:
-        'Frühe Jahre:\nWrestleMania I\nWrestleMania III\n\n# Attitude Era\nWrestleMania XIV\nWrestleMania 2000',
+        'The Streak:\nWrestleMania VII (Jimmy Snuka)\nWrestleMania VIII (Jake Roberts)\n\n# Survivor Series\nSurvivor Series 1990 (Survivor-Series-Match)\nSurvivor Series 1991 (Einzelmatch)',
     },
     mma: {
       label: 'MMA',
       handTitlePlaceholder: 'UFC-Titelkämpfe',
       handItemsPlaceholder:
-        'Frühes UFC:\nUFC 1\nUFC 2\n\n# Moderne Ära\nUFC 100\nUFC 200',
+        'Schwergewichtstitel:\nUFC 12 (Coleman vs. Severn)\nUFC 14 (Smith vs. Coleman)\n\n# Leichtgewichtstitel\nUFC 30 (Pulver vs. Uno)\nUFC 33 (Pulver vs. Hallman)',
     },
     game: {
       label: 'Spiele',
-      handTitlePlaceholder: 'Alle Zelda-Spiele',
+      handTitlePlaceholder: 'Pokémon-Spiele',
       handItemsPlaceholder:
-        '2D:\nThe Legend of Zelda\nA Link to the Past\n\n# 3D\nOcarina of Time\nBreath of the Wild',
+        'Erste Generation:\nPokémon Rote Edition\nPokémon Blaue Edition\n\n# Zweite Generation\nPokémon Goldene Edition\nPokémon Silberne Edition',
     },
     comic: {
       label: 'Comics',
-      handTitlePlaceholder: 'Sandman',
+      handTitlePlaceholder: 'Spider-Man: Die Klon-Saga',
       handItemsPlaceholder:
-        'Band 1:\nPräludien & Nocturnes\n\n# Band 2\nDas Puppenhaus\nTraumland',
+        'Phase 1 (Vorspiel):\nSpider-Man: The Lost Years #1\nSpider-Man: The Lost Years #2\n\n# Phase 2 (Scarlet Spider)\nThe Amazing Spider-Man #400\nSpider-Man (1990) #57',
       handItemsHint:
         'Eine Ausgabe oder ein Band pro Zeile. Eine Zeile, die mit einem Doppelpunkt endet oder mit # beginnt, eröffnet eine Reihe, die bis zur nächsten gilt. Leere Zeilen werden ignoriert',
     },
@@ -139,25 +139,25 @@ export const de: Locale = {
     },
     music: {
       label: 'Musik',
-      handTitlePlaceholder: 'Radiohead-Alben',
+      handTitlePlaceholder: 'Cannibal-Corpse-Diskografie',
       handItemsPlaceholder:
-        'Studioalben:\nPablo Honey\nThe Bends\nOK Computer\n\n# EPs\nAirbag / How Am I Driving?',
+        'Studioalben:\nEaten Back to Life\nButchered At Birth\nTomb Of The Mutilated\n\n# EPs und Singles\nHammer Smashed Face\nWorm Infested',
       handItemsHint:
-        'Ein Album pro Zeile. Eine Zeile, die mit einem Doppelpunkt endet oder mit # beginnt, eröffnet einen Abschnitt (eine Ära, eine Art), der bis zum nächsten gilt. Leere Zeilen werden ignoriert',
+        'Ein Release pro Zeile. Eine Zeile, die mit einem Doppelpunkt endet oder mit # beginnt, eröffnet einen Abschnitt (eine Ära, eine Art), der bis zum nächsten gilt. Leere Zeilen werden ignoriert',
     },
     youtube: {
       label: 'YouTube',
-      handTitlePlaceholder: 'Crash Course Weltgeschichte',
+      handTitlePlaceholder: 'Dungeon Soup',
       handItemsPlaceholder:
-        'Antike:\nDie Agrarrevolution\nDie Indus-Kultur\n\n# Mittelalter\nDie Mongolen',
+        'Chaotic Good Barbarian, Staffel 1:\nImmortality Killed The Lich\nHearse of Strahd\n\n# Chaotic Good Barbarian, Staffel 2\nI HAVE NO LUCK AND I MUST SCREAM\nONI-GIRI',
     },
     mega: {
       label: 'Mega',
       description:
         'Franchises, die mehrere Medien zugleich umspannen — Filme, Serien und Animation zusammen, in Erscheinungsreihenfolge. Marvel und Star Trek gehören hierher; eine einzelne Serie oder Filmreihe nicht.',
-      handTitlePlaceholder: 'Marvel Cinematic Universe',
+      handTitlePlaceholder: 'The Witcher – alles',
       handItemsPlaceholder:
-        'Phase 1:\nIron Man\nDer unglaubliche Hulk\n\n# Phase 2\nIron Man 3\nThor – The Dark Kingdom',
+        'Bücher:\nDer letzte Wunsch\nDas Schwert der Vorsehung\n\n# Spiele\nThe Witcher\nThe Witcher 2: Assassins of Kings',
     },
   },
 

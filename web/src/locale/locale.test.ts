@@ -136,6 +136,7 @@ describe('key parity: ru/de against en (strict since task 10.32b)', () => {
 /** Words that are the same in English on purpose: brands, hostnames, language names, and terms German shares. */
 const SAME_AS_ENGLISH: Record<'ru' | 'de', readonly string[]> = {
   ru: [
+    'categories.youtube.handTitlePlaceholder',
     'quantum.settings.themeQuantum',
     'quantum.settings.languages.en',
     'quantum.settings.languages.ru',
@@ -157,6 +158,8 @@ const SAME_AS_ENGLISH: Record<'ru' | 'de', readonly string[]> = {
     'quantum.skin.labels.light-bone',
   ],
   de: [
+    'categories.tv.handTitlePlaceholder',
+    'categories.youtube.handTitlePlaceholder',
     'quantum.about.version',
     'quantum.about.powers.comicVine',
     'sourceSearch.includeEp',
@@ -405,7 +408,7 @@ describe('categoryHandHints: each category’s own Add by hand examples (11.16)'
   it('follows the language', () => {
     setActiveLanguage('ru')
     try {
-      expect(categoryHandHints({ key: 'tv' }).titlePlaceholder).toBe('Во все тяжкие')
+      expect(categoryHandHints({ key: 'tv' }).titlePlaceholder).toBe('Теория большого взрыва')
     } finally {
       setActiveLanguage('en')
     }
