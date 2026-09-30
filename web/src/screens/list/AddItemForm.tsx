@@ -38,6 +38,11 @@ export interface AddItemFormProps {
   groups: readonly string[]
   defaultMinutes: number
   onAdd: (input: NewItemInput) => Promise<void>
+  /**
+   * A group name with no title makes that empty group (11.17). Left out, Add still needs a title.
+   * Throws the API's own refusal (an empty or already-used name), which the form shows.
+   */
+  onCreateGroup?: (name: string) => Promise<void>
   /** The category's tag field (U5): a Platform picker, a short fixed set, or none. */
   tagField?: TagField | null
   /** Every tag the list's items carry: the Platform picker's "In this list". */
@@ -58,6 +63,7 @@ export function AddItemForm({
   groups,
   defaultMinutes,
   onAdd,
+  onCreateGroup,
   tagField = null,
   listTags = [],
   defaultTags = [],
@@ -80,7 +86,10 @@ export function AddItemForm({
   const titleInput = useRef<HTMLInputElement>(null)
 
   const parsed = parseMinutes(minutes)
-  const valid = title.trim() !== '' && !Number.isNaN(parsed)
+  const validItem = title.trim() !== '' && !Number.isNaN(parsed)
+  // No title but a group name: the group itself is what is being added.
+  const makesGroup = onCreateGroup !== undefined && title.trim() === '' && group.trim() !== ''
+  const valid = validItem || makesGroup
 
   async function submit(event: FormEvent) {
     event.preventDefault()
@@ -90,6 +99,11 @@ export function AddItemForm({
     setPickerAnchor(null)
 
     try {
+      if (!validItem && onCreateGroup) {
+        await onCreateGroup(group.trim())
+        titleInput.current?.focus()
+        return
+      }
       await onAdd({ title: title.trim(), minutes: parsed, group: group.trim(), ...(tagField ? { tags } : {}) })
       setTitle('')
       setMinutes('')
@@ -158,7 +172,7 @@ export function AddItemForm({
           </div>
         )}
         <Button variant="primary" size="sm" type="submit" disabled={!valid} busy={adding} busyLabel={text.adding}>
-          {text.add}
+          {makesGroup ? text.addGroup : text.add}
         </Button>
       </div>
       {tagField?.kind === 'platform' && (

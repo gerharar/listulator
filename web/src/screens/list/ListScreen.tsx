@@ -464,6 +464,14 @@ function ListView({
     announce(actions.added(input.title, placed?.group ?? group))
   }
 
+  /** An empty group from the add band: at the end of the list, and named in the live region. */
+  async function createGroup(name: string) {
+    const created = await api.createGroup(listId, name)
+    await refresh()
+    pulse(created.id)
+    announce(actions.groupCreated(created.name))
+  }
+
   async function removeItem(item: ListItem) {
     const previous = items
     setError(null)
@@ -1022,6 +1030,7 @@ function ListView({
             groups={groupNames}
             defaultMinutes={defaultMinutes}
             onAdd={addItem}
+            onCreateGroup={createGroup}
             tagField={tagEditor}
             listTags={listTags}
             defaultTags={initialAddTags}

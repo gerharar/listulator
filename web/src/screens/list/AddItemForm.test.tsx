@@ -153,4 +153,69 @@ describe('AddItemForm', () => {
 
     expect(title().getAttribute('spellcheck')).toBe('false')
   })
+
+  describe('an empty group (11.17)', () => {
+    const groupButton = () => screen.getByRole('button', { name: 'Add Group' }) as HTMLButtonElement
+
+    it('turns Add into Add Group when a group name is typed and the title is blank, and creates that group', async () => {
+      const { onAdd, onCreateGroup } = renderForm({ onCreateGroup: vi.fn(async () => {}) })
+
+      fireEvent.change(group(), { target: { value: '  Extras  ' } })
+      expect(groupButton().disabled).toBe(false)
+      fireEvent.click(groupButton())
+
+      await waitFor(() => expect(onCreateGroup).toHaveBeenCalledWith('Extras'))
+      expect(onAdd).not.toHaveBeenCalled()
+    })
+
+    it('keeps the group in the field, so the first item can go straight into it', async () => {
+      renderForm({ onCreateGroup: vi.fn(async () => {}) })
+
+      fireEvent.change(group(), { target: { value: 'Extras' } })
+      fireEvent.click(groupButton())
+
+      await waitFor(() => expect(groupButton().disabled).toBe(false))
+      expect(group().value).toBe('Extras')
+    })
+
+    it('adds the item as before once there is a title, whatever the group field says', async () => {
+      const { onAdd, onCreateGroup } = renderForm({ onCreateGroup: vi.fn(async () => {}) })
+
+      fireEvent.change(group(), { target: { value: 'Season 2' } })
+      fireEvent.change(title(), { target: { value: 'Bonus' } })
+      fireEvent.click(addButton())
+
+      await waitFor(() => expect(onAdd).toHaveBeenCalledWith({ title: 'Bonus', minutes: null, group: 'Season 2' }))
+      expect(onCreateGroup).not.toHaveBeenCalled()
+    })
+
+    it('does nothing with a blank title and a blank group', () => {
+      renderForm({ onCreateGroup: vi.fn(async () => {}) })
+
+      expect(addButton().disabled).toBe(true)
+    })
+
+    it('says why, and keeps the name, when the group is refused (a name the list already has)', async () => {
+      renderForm({
+        onCreateGroup: vi.fn(async () => {
+          throw new Error('This list already has a group with such name.')
+        }),
+      })
+
+      fireEvent.change(group(), { target: { value: 'Season 1' } })
+      fireEvent.click(groupButton())
+
+      expect(await screen.findByText('This list already has a group with such name.')).toBeTruthy()
+      expect(group().value).toBe('Season 1')
+    })
+
+    it('still cannot add a group where the screen gives no way to (no onCreateGroup)', () => {
+      renderForm()
+
+      fireEvent.change(group(), { target: { value: 'Extras' } })
+
+      expect(addButton().disabled).toBe(true)
+    })
+  })
 })
+

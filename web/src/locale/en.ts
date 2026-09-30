@@ -551,6 +551,7 @@ export const en = {
         deleteGroupTip: 'Delete this empty group: it holds no items',
         groupRemoved: (name: string): string => `Deleted group ${name}`,
         groupRestored: (name: string): string => `Restored group ${name}`,
+        groupCreated: (name: string): string => `Created group ${name}`,
         groupRemoveFailed: (name: string): string => `Could not delete group ${name}`,
         /** Deleting a group that has items: a trash button and a confirmation stating the cost (owner, 2026-09-27). */
         deleteGroupWithItems: (name: string): string => `Delete group ${name}`,
@@ -585,6 +586,7 @@ export const en = {
         minutesLabel: 'Minutes',
         groupLabel: 'Group',
         add: 'Add',
+        addGroup: 'Add Group',
         adding: 'Adding…',
         failed: 'Couldn\'t add this item',
       },

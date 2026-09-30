@@ -53,6 +53,7 @@ vi.mock('../../lib/api.js', async () => {
       restoreItems: vi.fn(),
       deleteGroup: vi.fn(),
       restoreGroup: vi.fn(),
+      createGroup: vi.fn(),
     },
   }
 })
@@ -536,6 +537,33 @@ describe('ListScreen item actions (task 10.21)', () => {
       fireEvent.click(screen.getByRole('button', { name: 'Add' }))
 
       expect(await screen.findByText('Newcomer')).toBeTruthy()
+    })
+  })
+
+  describe('creating an empty group (11.17)', () => {
+    it('makes the group from the add band with no title, shows it at the end and says so', async () => {
+      await open(base())
+      const created = { id: 'g3', listId: 'L1', name: 'Extras', orderIndex: 2 }
+      vi.mocked(api.createGroup).mockResolvedValue(created)
+      vi.mocked(api.list).mockResolvedValue({ ...base(), groups: [...groups, created] })
+
+      fireEvent.change(screen.getByLabelText('Group'), { target: { value: 'Extras' } })
+      fireEvent.click(screen.getByRole('button', { name: 'Add Group' }))
+
+      await waitFor(() => expect(api.createGroup).toHaveBeenCalledWith('L1', 'Extras'))
+      expect(api.addItem).not.toHaveBeenCalled()
+      await waitFor(() => expect(document.querySelector('[data-row-id="g3"]')).not.toBeNull())
+      await waitFor(() => expect(document.querySelector('.q-live')!.textContent).toBe('Created group Extras'))
+    })
+
+    it('shows the API’s own refusal for a name the list already has', async () => {
+      await open(base())
+      vi.mocked(api.createGroup).mockRejectedValue(new Error('This list already has a group with such name.'))
+
+      fireEvent.change(screen.getByLabelText('Group'), { target: { value: 'Season 1' } })
+      fireEvent.click(screen.getByRole('button', { name: 'Add Group' }))
+
+      expect(await screen.findByText('This list already has a group with such name.')).toBeTruthy()
     })
   })
 
