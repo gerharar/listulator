@@ -177,5 +177,10 @@ like Tailscale, and installation works.
 
 ## License
 
-[AGPL-3.0](LICENSE) — free to self-host and modify. If you run a modified
-version as a public service, you must publish your changes.
+[PolyForm Noncommercial 1.0.0](LICENSE) — free for personal and other
+noncommercial use: run it, self-host it, modify it, fork it and share it.
+Commercial use is not permitted under this licence.
+
+This is a source-available licence, not an OSI-approved open-source one.
+The data sources have their own terms: TMDB and Comic Vine are free only for
+noncommercial use.
