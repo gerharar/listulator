@@ -617,14 +617,14 @@ describe('Home updates (task 10.22c)', () => {
       expect(bandFor('Bravo')).toBeUndefined()
       const checking = screen.getByRole('button', { name: 'Checking for updates…' }) as HTMLButtonElement
       expect(checking.disabled).toBe(true)
-      expect(checking.title).toBe('Checking for updates…')
+      expect(checking.getAttribute('aria-label')).toBe('Checking for updates…')
       expect(document.querySelector('.q-home-actions .q-spin')).not.toBeNull()
 
       await act(async () => releaseSecond())
       await waitFor(() => expect(bandFor('Bravo')).toBeDefined())
       const idle = screen.getByRole('button', { name: 'Check for updates' }) as HTMLButtonElement
       expect(idle.disabled).toBe(false)
-      expect(idle.title).toBe('Check for updates')
+      expect(idle.getAttribute('aria-label')).toBe('Check for updates')
     })
 
     it('answers "No updates found" when there is nothing anywhere', async () => {

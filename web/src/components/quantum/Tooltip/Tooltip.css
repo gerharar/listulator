@@ -1,0 +1,16 @@
+/*
+ * The app's hover text (11.19), in place of the native `title`. Deliberately plain: the same card
+ * ground and rim as the popovers, small type, no arrow. Above every popover (120) and dropdown (130).
+ */
+.q-tooltip {
+  z-index: 200;
+  max-width: 320px;
+  padding: 5px 9px;
+  background: var(--card);
+  color: var(--ink);
+  border: 1px solid var(--rule);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.2);
+  font: 400 12px/1.4 var(--font-sans);
+  overflow-wrap: anywhere;
+  pointer-events: none;
+}

@@ -142,6 +142,7 @@ describe('SearchResultRow', () => {
 
     const add = screen.getByRole('button', { name: 'Add List' }) as HTMLButtonElement
     expect(add.disabled).toBe(true)
-    expect(add.title).toBe('Curiously, this list has no items to add')
+    // Its hover text (the app's tooltip, 11.19) is the same words, and assistive tech gets them as its description.
+    expect(add.getAttribute('aria-description')).toBe('Curiously, this list has no items to add')
   })
 })
