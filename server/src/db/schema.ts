@@ -110,8 +110,9 @@ export const lists = sqliteTable(
      * `source = 'api' | 'llm'` lists only — so "Reset everything" can
      * restore the list's own fields, not just its items (list_snapshots
      * below). `canonical`/`file` need no equivalent: re-parsing the
-     * source YAML already gives these back. Written once, at import,
-     * never refreshed.
+     * source YAML already gives these back. Written at import; a refresh
+     * of the source copy (Phase 12) keeps them, except that a list with no
+     * copy takes the list's own title and description when one is made.
      */
     arrivedTitle: text('arrived_title'),
     arrivedDescription: text('arrived_description'),

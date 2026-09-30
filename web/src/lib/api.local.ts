@@ -798,7 +798,7 @@ export function createLocalApi(): ApiClient {
         })
       }
 
-      // The arrived-state snapshot (D4), written once — built from the
+      // The arrived-state snapshot (D4), written here and refreshed later (Phase 12) — built from the
       // items just created, not re-derived from `candidates`, so it can
       // never drift from what's actually in list_items.
       const createdItems = await findListItems(database, userId, list.id)

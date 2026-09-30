@@ -540,10 +540,11 @@ export interface CreateListSnapshotItemInput {
 
 /**
  * Writes a list's arrived-state snapshot (D4) — `source: 'api' | 'llm'`
- * lists only, once, in the same import that creates the list's real
- * items. Never called again for that list: refresh and sync leave the
- * snapshot untouched, by design, so it stays "what arrived," not "what's
- * here now."
+ * lists only — in the same import that creates the list's real items. The
+ * user's edits, a refresh-add and a sync leave the snapshot untouched, by
+ * design, so it stays "what arrived," not "what's here now." Only the source
+ * copy's own refresh (`refreshSourceCopy`, Phase 12) replaces it, and only
+ * from the source, never from the user's list.
  */
 export async function createListSnapshot(
   db: PortableDatabase,
