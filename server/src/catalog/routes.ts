@@ -39,14 +39,18 @@ import {
   restoreOrder,
 } from './restore.js'
 import { CustomListParseError } from '../ingestion/customLists.js'
+import { createExpansionCache } from '../ingestion/expansionCache.js'
+import { SourceUnavailableError } from '../ingestion/expandSource.js'
 import { IngestionError } from '../ingestion/http.js'
 import {
   previewReset,
   resetOrderToSource,
   sourceTagsOf,
   resetToSource,
+  ResetSourceEmptyError,
   ResetUnavailableError,
   sortChronologically,
+  type ResetDeps,
 } from './reset.js'
 import type {
   GroupRestore,
@@ -130,6 +134,11 @@ export const catalogRoutes: FastifyPluginAsync<CatalogRoutesOptions> = async (
   { db, mediaTypes },
 ) => {
   const listProperties = listBodyProperties(mediaTypes)
+
+  // A list with no stored copy is reset from its live source; the preview, the
+  // Reset and "Source says" that follow one another share a single fetch.
+  const expansions = createExpansionCache()
+  const resetDeps = (): ResetDeps => ({ mediaTypes: mediaTypes.list(), expansions })
 
   app.post<{
     Body: {
@@ -597,6 +606,12 @@ export const catalogRoutes: FastifyPluginAsync<CatalogRoutesOptions> = async (
   /** A Reset's refusals, as the codes the client words (a hand-made list, a file that no longer parses, a source that is down). */
   function resetError(reply: FastifyReply, cause: unknown): FastifyReply {
     if (cause instanceof ResetUnavailableError) return sendApiError(reply, 409, 'reset.unavailable')
+    if (cause instanceof SourceUnavailableError) {
+      return sendApiError(reply, 409, 'refresh.searchUnavailable', { category: cause.category })
+    }
+    if (cause instanceof ResetSourceEmptyError) {
+      return sendApiError(reply, 422, 'list.sourceEmpty', { title: cause.title })
+    }
     if (cause instanceof CustomListParseError) {
       return sendApiError(reply, 400, cause.code, cause.params)
     }
@@ -611,9 +626,7 @@ export const catalogRoutes: FastifyPluginAsync<CatalogRoutesOptions> = async (
     const user = getCurrentUser(request)
 
     try {
-      const restore = await resetOrderToSource(db, user.id, request.params.listId, {
-        mediaTypes: mediaTypes.list(),
-      })
+      const restore = await resetOrderToSource(db, user.id, request.params.listId, resetDeps())
       if (!restore) return reply.callNotFound()
 
       return { restore }
@@ -628,7 +641,7 @@ export const catalogRoutes: FastifyPluginAsync<CatalogRoutesOptions> = async (
     const { listId, itemId } = request.params
 
     try {
-      const source = await sourceTagsOf(db, user.id, listId, itemId, { mediaTypes: mediaTypes.list() })
+      const source = await sourceTagsOf(db, user.id, listId, itemId, resetDeps())
       if (!source) return reply.callNotFound()
 
       return source
@@ -642,9 +655,7 @@ export const catalogRoutes: FastifyPluginAsync<CatalogRoutesOptions> = async (
     const user = getCurrentUser(request)
 
     try {
-      const preview = await previewReset(db, user.id, request.params.listId, {
-        mediaTypes: mediaTypes.list(),
-      })
+      const preview = await previewReset(db, user.id, request.params.listId, resetDeps())
       if (!preview) return reply.callNotFound()
 
       return preview
@@ -657,9 +668,7 @@ export const catalogRoutes: FastifyPluginAsync<CatalogRoutesOptions> = async (
     const user = getCurrentUser(request)
 
     try {
-      const result = await resetToSource(db, user.id, request.params.listId, {
-        mediaTypes: mediaTypes.list(),
-      })
+      const result = await resetToSource(db, user.id, request.params.listId, resetDeps())
       if (!result) return reply.callNotFound()
 
       return result

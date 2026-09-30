@@ -127,3 +127,68 @@ export async function refreshSourceCopy(
 
   return { items: rows.length }
 }
+
+/**
+ * Forgets a list's stored source copy: the snapshot rows, the arrived fields
+ * and the date. The user's list is untouched. A list with no copy is what
+ * `resolveTarget` (reset.ts) answers from the live source, and what a list
+ * that never had one already looked like, so "dropped" and "never had one" are
+ * one state (task 12.3).
+ */
+export async function dropSourceCopy(db: PortableDatabase, list: List): Promise<void> {
+  await deleteListSnapshot(db, list.id)
+  await db
+    .update(lists)
+    .set({ arrivedTitle: null, arrivedDescription: null, arrivedStatus: null, snapshotFetchedAt: null })
+    .where(eq(lists.id, list.id))
+    .run()
+}
+
+const DAY_MS = 24 * 60 * 60 * 1000
+
+/** Whether the copy has reached its source's storage limit. False for a source with no limit or a list with no copy. */
+function isOverdue(list: List, mediaTypes: readonly MediaType[], now: Date): boolean {
+  const maxDays = mediaTypes.find((entry) => entry.key === list.mediaType)?.sourceCopyMaxDays
+  if (!maxDays || !list.snapshotFetchedAt) return false
+
+  return now.getTime() - list.snapshotFetchedAt.getTime() >= maxDays * DAY_MS
+}
+
+export type SourceCopyOutcome =
+  | { outcome: 'refreshed'; items: number }
+  /** The refresh failed but the copy is still within its limit, so it stays. */
+  | { outcome: 'kept'; error: unknown }
+  /** The refresh failed and the copy had reached its limit, so it was dropped. */
+  | { outcome: 'dropped'; error: unknown }
+  /** No copy, so nothing was asked of the source. */
+  | { outcome: 'none' }
+
+/**
+ * Keeps one list's copy within its source's limit (task 12.3): refresh it, and
+ * if that fails (offline, no key, the source gone or empty) drop it only when
+ * it has reached the limit. A copy still in time survives a failed refresh and
+ * is tried again later. The limit counts from the date on the copy, and a copy
+ * is overdue on the day it reaches the limit, since the platforms say to delete
+ * or refresh *within* that many days. Which lists are due, and when, is the
+ * schedule's business (12.4).
+ *
+ * Never throws for a failed refresh: the failure comes back in the outcome so a
+ * schedule can go on to the next list.
+ */
+export async function refreshOrDropSourceCopy(
+  db: PortableDatabase,
+  list: List,
+  deps: SourceCopyDeps,
+  now: Date = new Date(),
+): Promise<SourceCopyOutcome> {
+  if (!list.snapshotFetchedAt) return { outcome: 'none' }
+
+  try {
+    return { outcome: 'refreshed', ...(await refreshSourceCopy(db, list, deps, now)) }
+  } catch (error) {
+    if (!isOverdue(list, deps.mediaTypes, now)) return { outcome: 'kept', error }
+
+    await dropSourceCopy(db, list)
+    return { outcome: 'dropped', error }
+  }
+}

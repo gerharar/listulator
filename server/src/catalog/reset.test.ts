@@ -1,9 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { IngestionError } from '../ingestion/http.js'
-import { createMediaTypeRegistry, type SearchAdapter } from '../ingestion/mediaTypes.js'
+import { createMediaTypeRegistry, type ListExpansion, type SearchAdapter } from '../ingestion/mediaTypes.js'
 import { listItems, users } from '../db/schema.js'
 import { createTestApp, type TestApp } from '../testing/harness.js'
 import { resetToSource } from './reset.js'
+import { createList as createStoredList, findList } from './repository.js'
+import { dropSourceCopy } from './sourceCopy.js'
 
 /** Sort chronologically and Reset to the source (10.18, D4), over HTTP. */
 
@@ -41,15 +43,18 @@ describe('sort and reset', () => {
     { title: 'Early Two', year: 2001, group: 'Arc A', externalRef: 'g:4', timeToConsumeMinutes: 42 },
     { title: 'Loose', year: 2005, externalRef: 'g:5' },
   ]
-  const expand = vi.fn(async () => ({ items: upstream, status: 'ongoing' as const }))
+  const expand = vi.fn(async (): Promise<ListExpansion> => ({ items: upstream, status: 'ongoing' }))
+  let available = true
   const adapter: SearchAdapter = {
-    isAvailable: () => true,
+    isAvailable: () => available,
     search: async () => [],
     expand,
   }
 
   beforeEach(() => {
-    expand.mockClear()
+    available = true
+    expand.mockReset()
+    expand.mockImplementation(async () => ({ items: upstream, status: 'ongoing' }))
     harness = createTestApp({
       mediaTypes: createMediaTypeRegistry([
         { key: 'game', label: 'Games', sortOrder: 10, defaultDurationMinutes: 600, adapter },
@@ -649,16 +654,35 @@ describe('sort and reset', () => {
       }
     })
 
-    it('for an API list that arrived before snapshots were kept', async () => {
-      const list = await apiList()
-      const { listSnapshots } = await import('../db/schema.js')
-      harness.db.delete(listSnapshots).run()
+    it('for an API list with no copy, when its category has no source to fetch from', async () => {
+      await send('GET', '/lists')
+      const userId = harness.db.select().from(users).get()!.id
+      const list = await createStoredList(harness.db, userId, {
+        title: 'Orphan',
+        mediaType: 'mega',
+        source: 'api',
+        externalRef: 'x',
+      })
+
+      for (const response of [
+        await send('POST', `/lists/${list.id}/reset`),
+        await send('GET', `/lists/${list.id}/reset-preview`),
+      ]) {
+        expect(response.statusCode).toBe(409)
+        expect(response.json().code).toBe('reset.unavailable')
+      }
+    })
+
+    it('for an API list with no copy and no stored ref to fetch by', async () => {
+      await send('GET', '/lists')
+      const userId = harness.db.select().from(users).get()!.id
+      const list = await createStoredList(harness.db, userId, { title: 'No ref', mediaType: 'game', source: 'api' })
 
       const response = await send('POST', `/lists/${list.id}/reset`)
 
       expect(response.statusCode).toBe(409)
       expect(response.json().code).toBe('reset.unavailable')
-      expect((await detail(list.id)).items).toHaveLength(list.items.length)
+      expect(expand).not.toHaveBeenCalled()
     })
 
     it('for a file list with no stored file', async () => {
@@ -676,6 +700,139 @@ describe('sort and reset', () => {
     it('for a list that is not there', async () => {
       expect((await send('POST', '/lists/nope/reset')).statusCode).toBe(404)
       expect((await send('GET', '/lists/nope/reset-preview')).statusCode).toBe(404)
+    })
+  })
+
+  describe('an API list whose source copy is gone (task 12.3): Reset fetches the source live', () => {
+    const summary = (d: Detail) => ({
+      title: d.title,
+      status: d.status,
+      items: shape(d).items,
+    })
+
+    async function withoutCopy(): Promise<Detail> {
+      const list = await apiList()
+      const user = harness.db.select().from(users).get()!
+      await dropSourceCopy(harness.db, (await findList(harness.db, user.id, list.id))!)
+      expand.mockClear()
+      return detail(list.id)
+    }
+
+    it('rebuilds the items as a fresh import makes them, keeping the list\u2019s own title and taking the status the source has now', async () => {
+      const list = await withoutCopy()
+      const fresh = shape(list).items
+      await send('PUT', `/lists/${list.id}/items/${byTitle(list, 'Early One').id}/consumed`, { consumed: true })
+      await send('DELETE', `/lists/${list.id}/items/${byTitle(list, 'Loose').id}`)
+      await send('POST', `/lists/${list.id}/items`, { title: 'By hand', timeToConsumeMinutes: 5 })
+      await send('PATCH', `/lists/${list.id}`, { title: 'My title', status: 'complete' })
+
+      const reset = await send('POST', `/lists/${list.id}/reset`)
+
+      expect(reset.statusCode).toBe(200)
+      expect(summary(await detail(list.id))).toEqual({ title: 'My title', status: 'ongoing', items: fresh })
+      expect(expand).toHaveBeenCalledTimes(1)
+    })
+
+    it('keeps the list\u2019s own status where the source says nothing', async () => {
+      const list = await withoutCopy()
+      expand.mockImplementation(async () => ({ items: upstream }))
+      await send('PATCH', `/lists/${list.id}`, { status: 'complete' })
+
+      await send('POST', `/lists/${list.id}/reset`)
+
+      expect((await detail(list.id)).status).toBe('complete')
+    })
+
+    it('says in advance what a Reset would do, from the live source, and writes nothing', async () => {
+      const list = await withoutCopy()
+      await send('PUT', `/lists/${list.id}/items/${byTitle(list, 'Early One').id}/consumed`, { consumed: true })
+      await send('DELETE', `/lists/${list.id}/items/${byTitle(list, 'Loose').id}`)
+      await send('POST', `/lists/${list.id}/items`, { title: 'By hand', timeToConsumeMinutes: 5 })
+      const before = exact(await detail(list.id))
+
+      const preview = await send('GET', `/lists/${list.id}/reset-preview`)
+
+      expect(preview.json()).toMatchObject({ removed: 1, restored: 1, doneCleared: 1, followUpCheck: true })
+      expect(exact(await detail(list.id))).toEqual(before)
+    })
+
+    it('reads an item\u2019s source tags from the live source', async () => {
+      const list = await withoutCopy()
+
+      const response = await send('GET', `/lists/${list.id}/items/${byTitle(list, 'Late One').id}/source`)
+
+      expect(response.json()).toEqual({ sourced: true, tags: ['Film'] })
+    })
+
+    it('puts the order back to the source\u2019s from the live source', async () => {
+      const list = await withoutCopy()
+      await send('POST', `/lists/${list.id}/sort`)
+
+      const response = await send('POST', `/lists/${list.id}/reset-order`)
+
+      expect(response.statusCode).toBe(200)
+      expect((await detail(list.id)).items.map((i) => i.title)).toEqual(
+        shape(list).items.map((i) => i.title),
+      )
+    })
+
+    it('shares one fetch between the preview, the Reset and the source tags that follow it', async () => {
+      const list = await withoutCopy()
+
+      await send('GET', `/lists/${list.id}/reset-preview`)
+      await send('GET', `/lists/${list.id}/items/${byTitle(list, 'Late One').id}/source`)
+      await send('POST', `/lists/${list.id}/reset`)
+
+      expect(expand).toHaveBeenCalledTimes(1)
+    })
+
+    it('refuses, and leaves the list exactly as it was, when the source cannot be reached', async () => {
+      const list = await withoutCopy()
+      const before = exact(await detail(list.id))
+      expand.mockRejectedValue(new IngestionError('YouTube is unreachable'))
+
+      for (const response of [
+        await send('POST', `/lists/${list.id}/reset`),
+        await send('GET', `/lists/${list.id}/reset-preview`),
+        await send('POST', `/lists/${list.id}/reset-order`),
+      ]) {
+        expect(response.statusCode).toBe(502)
+      }
+      expect(exact(await detail(list.id))).toEqual(before)
+    })
+
+    it('says there is no source tag, rather than failing, when the source cannot be reached', async () => {
+      const list = await withoutCopy()
+      expand.mockRejectedValue(new IngestionError('YouTube is unreachable'))
+
+      const response = await send('GET', `/lists/${list.id}/items/${byTitle(list, 'Late One').id}/source`)
+
+      expect(response.statusCode).toBe(200)
+      expect(response.json()).toEqual({ sourced: false, tags: null })
+    })
+
+    it('says the source is not available when its key is missing, and changes nothing', async () => {
+      const list = await withoutCopy()
+      const before = exact(await detail(list.id))
+      available = false
+
+      const response = await send('POST', `/lists/${list.id}/reset`)
+
+      expect(response.statusCode).toBe(409)
+      expect(response.json()).toEqual({ code: 'refresh.searchUnavailable', params: { category: 'Games' } })
+      expect(exact(await detail(list.id))).toEqual(before)
+    })
+
+    it('will not wipe the list when the source now has nothing', async () => {
+      const list = await withoutCopy()
+      const before = exact(await detail(list.id))
+      expand.mockImplementation(async () => ({ items: [] }))
+
+      const response = await send('POST', `/lists/${list.id}/reset`)
+
+      expect(response.statusCode).toBe(422)
+      expect(response.json()).toEqual({ code: 'list.sourceEmpty', params: { title: 'A franchise' } })
+      expect(exact(await detail(list.id))).toEqual(before)
     })
   })
 })

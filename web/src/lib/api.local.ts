@@ -52,8 +52,10 @@ import {
   resetOrderToSource,
   sourceTagsOf,
   resetToSource,
+  ResetSourceEmptyError,
   ResetUnavailableError,
   sortChronologically,
+  type ResetDeps,
 } from '../../../server/src/catalog/reset.js'
 import { restoreOrder } from '../../../server/src/catalog/restore.js'
 import { rank, type Suggestion } from '../../../server/src/suggestions/engine.js'
@@ -96,6 +98,7 @@ import {
 import {
   createExpansionCache,
   expansionCacheKey,
+  type ExpansionCache,
 } from '../../../server/src/ingestion/expansionCache.js'
 import {
   expandSource,
@@ -156,6 +159,14 @@ function resetError(cause: unknown): unknown {
   if (cause instanceof ResetUnavailableError) {
     return new ApiError(errorMessage('reset.unavailable') ?? 'reset.unavailable', 409, 'reset.unavailable')
   }
+  if (cause instanceof SourceUnavailableError) {
+    const params = { category: cause.category }
+    return new ApiError(errorMessage('refresh.searchUnavailable', params) ?? 'refresh.searchUnavailable', 409, 'refresh.searchUnavailable')
+  }
+  if (cause instanceof ResetSourceEmptyError) {
+    const params = { title: cause.title }
+    return new ApiError(errorMessage('list.sourceEmpty', params) ?? 'list.sourceEmpty', 422, 'list.sourceEmpty')
+  }
   if (cause instanceof CustomListParseError) {
     return new ApiError(errorMessage(cause.code, cause.params) ?? cause.code, 400, cause.code)
   }
@@ -163,9 +174,12 @@ function resetError(cause: unknown): unknown {
   return cause
 }
 
-/** The live registry, as the shared Reset code wants it: valid categories and default runtimes. */
-async function resetDeps() {
-  return { mediaTypes: await getLocalMediaTypes() }
+/**
+ * The live registry, as the shared Reset code wants it: valid categories, default runtimes and, for a list
+ * with no stored copy, the adapters to fetch its source through (sharing one fetch through `expansions`).
+ */
+async function resetDeps(expansions: ExpansionCache): Promise<ResetDeps> {
+  return { mediaTypes: await getLocalMediaTypes(), expansions }
 }
 
 /** The API's own refusals for the group repository's errors (mirrors catalog/routes.ts). */
@@ -437,7 +451,7 @@ export function createLocalApi(): ApiClient {
     resetOrder: async (listId) => {
       const [database, userId] = [await getDb(), await getUserId()]
       try {
-        const restore = await resetOrderToSource(database, userId, listId, await resetDeps())
+        const restore = await resetOrderToSource(database, userId, listId, await resetDeps(expansions))
         if (!restore) throw notFound()
         return { restore }
       } catch (cause) {
@@ -448,7 +462,7 @@ export function createLocalApi(): ApiClient {
     itemSource: async (listId, itemId) => {
       const [database, userId] = [await getDb(), await getUserId()]
       try {
-        const source = await sourceTagsOf(database, userId, listId, itemId, await resetDeps())
+        const source = await sourceTagsOf(database, userId, listId, itemId, await resetDeps(expansions))
         if (!source) throw notFound()
         return source
       } catch (cause) {
@@ -464,7 +478,7 @@ export function createLocalApi(): ApiClient {
     resetPreview: async (listId) => {
       const [database, userId] = [await getDb(), await getUserId()]
       try {
-        const preview = await previewReset(database, userId, listId, await resetDeps())
+        const preview = await previewReset(database, userId, listId, await resetDeps(expansions))
         if (!preview) throw notFound()
         return preview
       } catch (cause) {
@@ -475,7 +489,7 @@ export function createLocalApi(): ApiClient {
     resetList: async (listId) => {
       const [database, userId] = [await getDb(), await getUserId()]
       try {
-        const result = await resetToSource(database, userId, listId, await resetDeps())
+        const result = await resetToSource(database, userId, listId, await resetDeps(expansions))
         if (!result) throw notFound()
         return result
       } catch (cause) {

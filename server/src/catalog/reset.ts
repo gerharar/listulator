@@ -16,7 +16,10 @@ import {
   parseCustomList,
   type ParsedCustomList,
 } from '../ingestion/customLists.js'
-import type { FetchLike } from '../ingestion/http.js'
+import { expandSource, SourceUnavailableError } from '../ingestion/expandSource.js'
+import type { ExpansionCache } from '../ingestion/expansionCache.js'
+import { IngestionError, type FetchLike } from '../ingestion/http.js'
+import type { ListExpansion, MediaType } from '../ingestion/mediaTypes.js'
 import { findListGroups, seedGroupOrder } from './groups.js'
 import {
   createListItem,
@@ -37,8 +40,19 @@ import type { ItemSetRestore, OrderRestore } from './restorePayloads.js'
  * the desktop has no transactions to fall back on.
  */
 
-/** A list with no source to return to: hand-made, or one that arrived before its source was kept. */
+/** A list with no source to return to: hand-made, or one with no stored copy and no way to fetch its source. */
 export class ResetUnavailableError extends Error {}
+
+/**
+ * The source, fetched live for a list with no stored copy, now has nothing.
+ * Resetting to it would empty the list, so it is refused (task 12.3).
+ */
+export class ResetSourceEmptyError extends Error {
+  constructor(readonly title: string) {
+    super('The source returned no items.')
+    this.name = 'ResetSourceEmptyError'
+  }
+}
 
 const NO_YEAR = Number.POSITIVE_INFINITY
 
@@ -123,7 +137,15 @@ export async function sourceTagsOf(
   try {
     target = await resolveTarget(db, userId, list, deps)
   } catch (cause) {
-    if (cause instanceof ResetUnavailableError) return none
+    // A line in an edit window: a source that cannot be read just has nothing to say.
+    if (
+      cause instanceof ResetUnavailableError ||
+      cause instanceof ResetSourceEmptyError ||
+      cause instanceof SourceUnavailableError ||
+      cause instanceof IngestionError
+    ) {
+      return none
+    }
     throw cause
   }
 
@@ -211,8 +233,13 @@ async function reorderBy(
 }
 
 export interface ResetDeps {
-  /** The live registry: valid categories for a parsed file, and the runtime a source item without one gets. */
-  mediaTypes: readonly { key: string; defaultDurationMinutes: number }[]
+  /**
+   * The live registry: valid categories for a parsed file, the runtime a source item without one gets,
+   * and, for a list with no stored copy, the adapter its source is fetched through.
+   */
+  mediaTypes: readonly (Pick<MediaType, 'key' | 'defaultDurationMinutes'> & Partial<MediaType>)[]
+  /** Lets a preview, a Reset and the source tags that follow it share one live fetch (only a copy-less list fetches). */
+  expansions?: ExpansionCache
   /** For a test; the real fetch otherwise. */
   fetchImpl?: FetchLike
 }
@@ -268,13 +295,57 @@ const fromParsed = (parsed: ParsedCustomList): ResetTarget => ({
   })),
 })
 
+/**
+ * What a list with no stored copy is reset to: its source, fetched now (task
+ * 12.3). The copy is gone because it reached its source's storage limit and
+ * could not be refreshed, or because the list never had one. Nothing names or
+ * describes the list in what a source returns, so the list keeps its own title
+ * and description; its status is the source's where the source has one. The
+ * fetch is never written back: a Reset, its preview and "Source says" only read.
+ */
+async function liveTarget(
+  list: List,
+  { mediaTypes, expansions }: ResetDeps,
+  categories: ReadonlySet<string>,
+): Promise<ResetTarget> {
+  const mediaType = mediaTypes.find((entry) => entry.key === list.mediaType)
+  if (list.source !== 'api' || !list.externalRef || !mediaType?.adapter) {
+    throw new ResetUnavailableError('no arrived state kept, and no source to fetch')
+  }
+
+  const expansion: ListExpansion = await expandSource(
+    { key: mediaType.key, label: mediaType.label ?? mediaType.key, adapter: mediaType.adapter },
+    list.externalRef,
+    {},
+    categories,
+    expansions,
+  )
+  if (expansion.items.length === 0) throw new ResetSourceEmptyError(list.title)
+
+  return {
+    title: list.title,
+    description: list.description,
+    status: expansion.status ?? list.status,
+    items: expansion.items.map((item) => ({
+      title: item.title,
+      ...(item.timeToConsumeMinutes !== undefined ? { minutes: item.timeToConsumeMinutes } : {}),
+      ...(item.externalRef ? { externalRef: item.externalRef } : {}),
+      ...(item.year ? { year: item.year } : {}),
+      ...(item.group ? { group: item.group } : {}),
+      ...(item.tags ? { tags: item.tags } : {}),
+      ...(item.notes ? { notes: item.notes } : {}),
+    })),
+  }
+}
+
 /** What the list is reset *to*, worked out in full before anything is touched. */
 async function resolveTarget(
   db: PortableDatabase,
   userId: string,
   list: List,
-  { mediaTypes, fetchImpl }: ResetDeps,
+  deps: ResetDeps,
 ): Promise<ResetTarget> {
+  const { mediaTypes, fetchImpl } = deps
   const categories = new Set(mediaTypes.map((entry) => entry.key))
 
   if (list.source === 'canonical') {
@@ -294,7 +365,7 @@ async function resolveTarget(
 
   if (list.source === 'api' || list.source === 'llm') {
     const snapshot = await findListSnapshot(db, userId, list.id)
-    if (snapshot.length === 0) throw new ResetUnavailableError('no arrived state kept')
+    if (snapshot.length === 0) return await liveTarget(list, deps, categories)
 
     // A list that arrived before 10.2e has no arrived_* columns: keep what it has.
     const arrived = list.arrivedTitle !== null

@@ -36,7 +36,7 @@ export class UnsafeSourceError extends Error {
  * ref an import would use, so the count shown is the count Add list makes.
  */
 export async function expandSource(
-  mediaType: MediaType,
+  mediaType: Pick<MediaType, 'key' | 'label' | 'adapter'>,
   externalRef: string,
   options: SourceOptions,
   validCategories: ReadonlySet<string>,

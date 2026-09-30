@@ -27,6 +27,8 @@ import {
   updateListItem,
 } from './repository.js'
 import {
+  dropSourceCopy,
+  refreshOrDropSourceCopy,
   refreshSourceCopy,
   SourceCopyEmptyError,
   SourceCopyUnavailableError,
@@ -302,5 +304,126 @@ describe('refreshSourceCopy', () => {
     await refreshSourceCopy(db, list, deps(), REFRESHED)
 
     expect((await snapshotRows(list)).map((row) => row.title)).toEqual(['New one', 'New two'])
+  })
+
+  describe('dropping a copy (task 12.3)', () => {
+    it('removes the copy and its date, and nothing the user owns', async () => {
+      const list = await fetchList()
+      await updateList(harness.db, userId, list.id, { title: 'Mine' })
+      const before = await userOwned(list.id)
+
+      await dropSourceCopy(harness.db, (await findList(harness.db, userId, list.id))!)
+
+      expect(await findListSnapshot(harness.db, userId, list.id)).toEqual([])
+      expect(await findList(harness.db, userId, list.id)).toMatchObject({
+        arrivedTitle: null,
+        arrivedDescription: null,
+        arrivedStatus: null,
+        snapshotFetchedAt: null,
+      })
+      expect(await userOwned(list.id)).toEqual({
+        ...before,
+        list: { ...before.list, arrivedTitle: null, arrivedDescription: null },
+      })
+    })
+  })
+
+  describe('refreshing, or dropping a copy that is overdue and cannot be refreshed (task 12.3)', () => {
+    const DAY = 24 * 60 * 60 * 1000
+    const after = (days: number) => new Date(FETCHED.getTime() + days * DAY)
+
+    it('refreshes a copy when the source answers, whatever its age', async () => {
+      const list = await fetchList()
+      upstream = { items: [{ title: 'Fresh', externalRef: 'f1' }] }
+
+      const result = await refreshOrDropSourceCopy(harness.db, list, deps(), after(40))
+
+      expect(result).toEqual({ outcome: 'refreshed', items: 1 })
+      expect((await snapshotRows(list)).map((row) => row.title)).toEqual(['Fresh'])
+      expect((await findList(harness.db, userId, list.id))!.snapshotFetchedAt).toEqual(after(40))
+    })
+
+    it('keeps a copy that is still in time when the source cannot be reached', async () => {
+      const list = await fetchList()
+      const before = await snapshotRows(list)
+      expand.mockRejectedValueOnce(new Error('offline'))
+
+      const result = await refreshOrDropSourceCopy(harness.db, list, deps(), after(29))
+
+      expect(result).toMatchObject({ outcome: 'kept', error: expect.objectContaining({ message: 'offline' }) })
+      expect(await snapshotRows(list)).toEqual(before)
+      expect((await findList(harness.db, userId, list.id))!.snapshotFetchedAt).toEqual(FETCHED)
+    })
+
+    it('drops a copy that is past its limit when the source cannot be reached, leaving the user\u2019s list alone', async () => {
+      const list = await fetchList()
+      const before = await userOwned(list.id)
+      expand.mockRejectedValueOnce(new Error('offline'))
+
+      const result = await refreshOrDropSourceCopy(harness.db, list, deps(), after(31))
+
+      expect(result).toMatchObject({ outcome: 'dropped', error: expect.objectContaining({ message: 'offline' }) })
+      expect(await findListSnapshot(harness.db, userId, list.id)).toEqual([])
+      expect(await findList(harness.db, userId, list.id)).toMatchObject({ arrivedTitle: null, snapshotFetchedAt: null })
+      expect(await userOwned(list.id)).toEqual({ ...before, list: { ...before.list, arrivedTitle: null } })
+    })
+
+    it('counts a copy as overdue on the day of its limit, not the day after', async () => {
+      const onTheDay = await fetchList('On the day')
+      const justBefore = await fetchList('Just before')
+      await harness.db.update(lists).set({ snapshotFetchedAt: FETCHED }).run()
+      expand.mockRejectedValue(new Error('offline'))
+
+      expect(await refreshOrDropSourceCopy(harness.db, justBefore, deps(), new Date(after(30).getTime() - 1))).toMatchObject({
+        outcome: 'kept',
+      })
+      expect(await refreshOrDropSourceCopy(harness.db, onTheDay, deps(), after(30))).toMatchObject({
+        outcome: 'dropped',
+      })
+    })
+
+    it('drops an overdue copy whose source now expands to nothing, since there is nothing to refresh to', async () => {
+      const list = await fetchList()
+      upstream = { items: [] }
+
+      const result = await refreshOrDropSourceCopy(harness.db, list, deps(), after(31))
+
+      expect(result).toMatchObject({ outcome: 'dropped', error: expect.any(SourceCopyEmptyError) })
+    })
+
+    it('never drops the copy of a category whose source sets no limit', async () => {
+      const unlimited = createMediaTypeRegistry([
+        {
+          key: 'youtube',
+          label: 'YouTube',
+          sortOrder: 10,
+          defaultDurationMinutes: 45,
+          adapter: { isAvailable: () => true, search: async () => [], expand },
+        },
+      ])
+      const list = await fetchList()
+      expand.mockRejectedValueOnce(new Error('offline'))
+
+      const result = await refreshOrDropSourceCopy(harness.db, list, { mediaTypes: unlimited.list() }, after(3650))
+
+      expect(result).toMatchObject({ outcome: 'kept' })
+      expect(await findListSnapshot(harness.db, userId, list.id)).toHaveLength(3)
+    })
+
+    it('does nothing, and asks nothing of the source, for a list with no copy', async () => {
+      const list = await fetchList()
+      await dropSourceCopy(harness.db, list)
+      expand.mockClear()
+
+      const result = await refreshOrDropSourceCopy(
+        harness.db,
+        (await findList(harness.db, userId, list.id))!,
+        deps(),
+        after(400),
+      )
+
+      expect(result).toEqual({ outcome: 'none' })
+      expect(expand).not.toHaveBeenCalled()
+    })
   })
 })
