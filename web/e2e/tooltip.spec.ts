@@ -1,8 +1,7 @@
 import { expect, test } from '@playwright/test'
 
 /**
- * The app's own hover text (11.19) in real browsers: it replaces the native `title`, waits about a quarter
- * of a second, opens for keyboard focus too, closes on leave and Esc, and stays on screen.
+ * The app's own hover text (11.19) in real browsers: it replaces the native `title`, waits half a second, opens for keyboard focus too, closes on leave and Esc, and stays on screen.
  */
 test('an icon button’s tooltip opens after a short wait, on hover and on keyboard focus, and closes on leave and Esc', async ({ page }) => {
   await page.goto('/')

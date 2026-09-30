@@ -2,8 +2,8 @@ import './Tooltip.css'
 import { useCallback, useEffect, useId, useState, type FocusEvent, type PointerEvent, type ReactNode } from 'react'
 import { autoUpdate, flip, FloatingPortal, offset, shift, useFloating } from '@floating-ui/react'
 
-/** About half a native tooltip's wait (owner's ask, 11.19): long enough not to flicker while passing over, short enough to feel prompt. */
-export const TOOLTIP_DELAY_MS = 250
+/** Half a second of a mouse hover (owner's ruling, 11.19; the native wait is several seconds): long enough not to flicker while passing over, far quicker than native. */
+export const TOOLTIP_DELAY_MS = 500
 
 interface Active {
   anchor: HTMLElement
