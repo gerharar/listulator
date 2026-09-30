@@ -278,6 +278,8 @@ export const ru: Locale = {
       checkForUpdates: 'Проверить обновления',
       updatesLater: 'Проверка обновлений появится в следующей версии.',
       licence: 'Распространяется по лицензии PolyForm Noncommercial (бесплатно для личного использования). © 2026 Listulator',
+      listsLicence: 'Списки из List Vault распространяются по лицензии CC BY 4.0.',
+      dataTerms: 'Данные из источников ниже остаются под условиями каждого источника.',
       madeBy: 'Автор:',
       dataSources: 'Источники данных',
       showAttribution: 'Показать атрибуцию',

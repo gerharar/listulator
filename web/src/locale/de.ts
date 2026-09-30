@@ -269,6 +269,8 @@ export const de: Locale = {
       checkForUpdates: 'Nach Updates suchen',
       updatesLater: 'Die Update-Suche kommt in einer späteren Version.',
       licence: 'Veröffentlicht unter der PolyForm-Noncommercial-Lizenz (kostenlos für den privaten Gebrauch). © 2026 Listulator',
+      listsLicence: 'Die Listen im List Vault stehen unter CC BY 4.0.',
+      dataTerms: 'Daten aus den Quellen unten unterliegen den Bedingungen der jeweiligen Quelle.',
       madeBy: 'Gemacht von',
       dataSources: 'Datenquellen',
       showAttribution: 'Quellenhinweis anzeigen',

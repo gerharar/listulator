@@ -45,6 +45,8 @@ export function AboutScreen() {
             </div>
             <div className="q-about-legal">
               <p>{text.licence}</p>
+              <p>{text.listsLicence}</p>
+              <p>{text.dataTerms}</p>
               <p className="q-about-author">
                 <span>
                   {text.madeBy} <b>{AUTHOR.handle}</b>

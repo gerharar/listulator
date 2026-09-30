@@ -74,10 +74,12 @@ describe('AboutScreen', () => {
       expect(screen.queryByText(/latest version/i)).toBeNull()
     })
 
-    it('states the licence, the author, and links the repository', () => {
+    it('states the licences (app, lists, data), the author, and links the repository', () => {
       renderAbout()
 
       expect(screen.getByText(/PolyForm Noncommercial/)).toBeTruthy()
+      expect(screen.getByText('Lists in the List Vault are shared under CC BY 4.0.')).toBeTruthy()
+      expect(screen.getByText('Data from the sources below stays under each source’s own terms.')).toBeTruthy()
       expect(screen.getByText('gerharar')).toBeTruthy()
       const repo = screen.getByRole('link', { name: /github\.com\/neuroshaoh\/listulator/ })
       expect(repo.getAttribute('href')).toBe('https://github.com/neuroshaoh/listulator')
