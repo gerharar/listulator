@@ -89,13 +89,43 @@ mod tests {
   const LEGACY: &str = ".window-state.json";
 
   fn folder() -> std::path::PathBuf {
+    // The time tells runs apart, the counter tells tests apart: parallel tests can read the
+    // same clock tick (BL-031).
+    static MADE: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicUsize::new(0);
     let dir = std::env::temp_dir().join(format!(
-      "listulator-fullscreen-{}-{}",
+      "listulator-fullscreen-{}-{}-{}",
       std::process::id(),
-      std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_nanos()
+      std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_nanos(),
+      MADE.fetch_add(1, std::sync::atomic::Ordering::Relaxed)
     ));
     std::fs::create_dir_all(&dir).unwrap();
     dir
+  }
+
+  #[test]
+  fn folders_made_at_the_same_moment_are_different_folders() {
+    // BL-031: tests run in parallel and macOS's clock ticks in microseconds, so a name built
+    // from the time alone was sometimes shared, and one test read another's record.
+    let gate = std::sync::Barrier::new(16);
+    let made = std::sync::Mutex::new(Vec::new());
+
+    std::thread::scope(|scope| {
+      for _ in 0..16 {
+        scope.spawn(|| {
+          gate.wait();
+          let own: Vec<_> = (0..50).map(|_| folder()).collect();
+          made.lock().unwrap().extend(own);
+        });
+      }
+    });
+
+    let made = made.into_inner().unwrap();
+    let unique: std::collections::HashSet<_> = made.iter().collect();
+    let (distinct, total) = (unique.len(), made.len());
+    for dir in &made {
+      let _ = std::fs::remove_dir(dir); // empty: nothing was written to them
+    }
+    assert_eq!(distinct, total);
   }
 
   #[test]
