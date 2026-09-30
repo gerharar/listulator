@@ -20,7 +20,8 @@
     "lint": "eslint .",
     "format": "prettier --write .",
     "db:migrate": "npm run db:migrate -w @listulator/server",
-    "db:generate": "npm run db:generate -w @listulator/server"
+    "db:generate": "npm run db:generate -w @listulator/server",
+    "notices": "tsx server/src/tools/generateThirdPartyNotices.ts"
   },
   "engines": {
     "node": ">=20"
