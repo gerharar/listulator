@@ -3,6 +3,7 @@ import {
   createDefaultMediaTypes,
   createMediaTypeRegistry,
   DEFAULT_MEDIA_TYPES,
+  toMediaTypeInfo,
   type MediaType,
 } from './mediaTypes.js'
 
@@ -152,5 +153,43 @@ describe('what the Animation and Movies shelves tag on import', () => {
 
     expect((await types.find((entry) => entry.key === 'tv')!.adapter!.expand('show:1')).items[0]).not.toHaveProperty('tags')
     expect((await types.find((entry) => entry.key === 'movie')!.adapter!.expand('company:2')).items[0]).not.toHaveProperty('tags')
+  })
+})
+
+describe('how long a source copy may be kept (task 12.1)', () => {
+  const limits = () =>
+    Object.fromEntries(
+      createMediaTypeRegistry()
+        .list()
+        .map((mediaType) => [mediaType.key, mediaType.sourceCopyMaxDays]),
+    )
+
+  it('limits YouTube to 30 days and the TMDB categories to 180', () => {
+    expect(limits()).toMatchObject({
+      youtube: 30,
+      movie: 180,
+      tv: 180,
+      animation: 180,
+      documentary: 180,
+      mega: 180,
+    })
+  })
+
+  it('sets no limit where the source does not ask for one', () => {
+    for (const key of ['wrestling', 'mma', 'game', 'comic', 'book', 'music']) {
+      expect(limits()[key], key).toBeUndefined()
+    }
+  })
+
+  it('is part of what a category tells the client', () => {
+    const info = Object.fromEntries(
+      createMediaTypeRegistry()
+        .list()
+        .map((mediaType) => [mediaType.key, toMediaTypeInfo(mediaType)]),
+    )
+
+    expect(info['youtube']?.sourceCopyMaxDays).toBe(30)
+    expect(info['movie']?.sourceCopyMaxDays).toBe(180)
+    expect(info['game']).not.toHaveProperty('sourceCopyMaxDays')
   })
 })

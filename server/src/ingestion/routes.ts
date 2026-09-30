@@ -371,6 +371,7 @@ export const ingestionRoutes: FastifyPluginAsync<IngestionRoutesOptions> = async
         arrivedTitle: title,
         arrivedDescription: null,
         arrivedStatus: status ?? null,
+        snapshotFetchedAt: new Date(),
       })
 
       // Sequential, not Promise.all: each create can fall back to

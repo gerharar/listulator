@@ -135,6 +135,7 @@ export function createDefaultMediaTypes({
       defaultDurationMinutes: 120,
       adapter: movieSources,
       sourceName: 'TMDB',
+      sourceCopyMaxDays: 180,
     },
     {
       key: 'tv',
@@ -143,6 +144,7 @@ export function createDefaultMediaTypes({
       defaultDurationMinutes: 50,
       adapter: tmdbTv,
       sourceName: 'TMDB',
+      sourceCopyMaxDays: 180,
     },
     // Episode-length. The category also holds animated features, which this
     // badly under-estimates — flagged estimated and easy to correct per item.
@@ -153,6 +155,7 @@ export function createDefaultMediaTypes({
       defaultDurationMinutes: 25,
       adapter: animationSources,
       sourceName: 'TMDB',
+      sourceCopyMaxDays: 180,
       // A Ghost in the Shell film and its series share this list; Movie/TV tells them apart.
       facets: [{ key: 'type', label: 'Type', values: ['Movie', 'TV'] }],
     },
@@ -165,6 +168,7 @@ export function createDefaultMediaTypes({
       defaultDurationMinutes: 90,
       adapter: documentarySources,
       sourceName: 'TMDB',
+      sourceCopyMaxDays: 180,
     },
     {
       key: 'wrestling',
@@ -248,6 +252,7 @@ export function createDefaultMediaTypes({
         credentials.youtube ?? (() => ({ apiKey: process.env['YOUTUBE_API_KEY'] })),
       ),
       sourceName: 'YouTube',
+      sourceCopyMaxDays: 30,
     },
     /**
      * The shelf for franchises that genuinely span media. Its existence is a
@@ -264,6 +269,7 @@ export function createDefaultMediaTypes({
       defaultDurationMinutes: 120,
       adapter: franchises,
       sourceName: 'TMDB',
+      sourceCopyMaxDays: 180,
       // Users search curated lists only, and the list generator refuses Mega (TMDB data cannot go into lists/).
       searchScope: 'library',
       // A Mega item's medium is one of the other categories, tagged with the key a list file
@@ -422,6 +428,14 @@ export interface MediaType {
    * build a whole franchise, so users get curated lists only.
    */
   searchScope?: 'library'
+  /**
+   * The longest a fetched list's stored source copy may age before it must be
+   * refreshed or dropped, for a source whose terms cap stored API data:
+   * YouTube 30 days (Developer Policies III.E.4), TMDB 180 (API terms 1.C).
+   * Absent where the source sets no cap. Config on the entry, not a list of
+   * keys, so a new capped source is one line (docs/DECISIONS.md, task 12.1).
+   */
+  sourceCopyMaxDays?: number
 }
 
 /** What `GET /media-types` (and the standalone app's `mediaTypes()`) returns per category. */
@@ -440,6 +454,8 @@ export interface MediaTypeInfo {
   facets?: FacetConvention
   /** Present when search offers only community-library lists; the client names that source itself. */
   searchScope?: 'library'
+  /** Days a stored source copy may age before it is refreshed or dropped; absent when the source sets no cap. */
+  sourceCopyMaxDays?: number
 }
 
 /**
@@ -458,6 +474,7 @@ export function toMediaTypeInfo({
   sourceName,
   facets,
   searchScope,
+  sourceCopyMaxDays,
 }: MediaType): MediaTypeInfo {
   // The library needs no key, so a library-only category can always search and preview.
   const available = searchScope === 'library' || (adapter?.isAvailable() ?? false)
@@ -473,6 +490,7 @@ export function toMediaTypeInfo({
     ...(adapter && sourceName && !searchScope ? { sourceName } : {}),
     ...(facets?.length ? { facets } : {}),
     ...(searchScope ? { searchScope } : {}),
+    ...(sourceCopyMaxDays ? { sourceCopyMaxDays } : {}),
   }
 }
 

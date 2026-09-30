@@ -116,6 +116,14 @@ export const lists = sqliteTable(
     arrivedTitle: text('arrived_title'),
     arrivedDescription: text('arrived_description'),
     arrivedStatus: text('arrived_status').$type<ListStatus>(),
+    /**
+     * When that arrived copy (`arrived_*` plus `list_snapshots`) was fetched
+     * from its source — the age a platform's storage limit is measured
+     * against (YouTube 30 days, TMDB 180; `sourceCopyMaxDays` in the media
+     * type registry). Null for a list with no copy, so a list that holds one
+     * always has a date. Stamped at import; a refresh (12.2) moves it.
+     */
+    snapshotFetchedAt: integer('snapshot_fetched_at', { mode: 'timestamp_ms' }),
     createdAt: integer('created_at', { mode: 'timestamp_ms' })
       .notNull()
       .$defaultFn(() => new Date()),

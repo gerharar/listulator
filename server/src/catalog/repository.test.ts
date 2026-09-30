@@ -106,6 +106,23 @@ describe('catalog repository', () => {
     })
   })
 
+  it('dates the source copy only when one is given (task 12.1)', async () => {
+    const without = await createList(harness.db, ownerId, { title: 'X', mediaType: 'movie' })
+    expect(without.snapshotFetchedAt).toBeNull()
+
+    const fetchedAt = new Date('2026-09-01T10:00:00.000Z')
+    const list = await createList(harness.db, ownerId, {
+      title: 'Dungeon Soup',
+      mediaType: 'youtube',
+      source: 'api',
+      arrivedTitle: 'Dungeon Soup',
+      snapshotFetchedAt: fetchedAt,
+    })
+
+    expect(list.snapshotFetchedAt).toEqual(fetchedAt)
+    expect((await findList(harness.db, ownerId, list.id))!.snapshotFetchedAt).toEqual(fetchedAt)
+  })
+
   it('writes and reads back an item-level snapshot (D4), in order', async () => {
     const list = await createList(harness.db, ownerId, { title: 'X', mediaType: 'game' })
 

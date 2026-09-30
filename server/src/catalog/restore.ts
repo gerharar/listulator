@@ -197,6 +197,8 @@ export async function restoreList(
     .values({
       ...list,
       userId,
+      // Absent in a payload written before 12.1; null then, which is how a list with no known copy date reads.
+      snapshotFetchedAt: list.snapshotFetchedAt ? new Date(list.snapshotFetchedAt) : null,
       createdAt: new Date(list.createdAt),
       updatedAt: new Date(list.updatedAt),
     })

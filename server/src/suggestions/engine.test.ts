@@ -45,6 +45,7 @@ function list({
     arrivedTitle: null,
     arrivedDescription: null,
     arrivedStatus: null,
+    snapshotFetchedAt: null,
     createdAt: created,
     updatedAt: created,
     stats: {

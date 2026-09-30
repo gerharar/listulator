@@ -23,6 +23,7 @@ function list(id: string, over: Partial<ListWithStats> = {}): ListWithStats {
     arrivedTitle: null,
     arrivedDescription: null,
     arrivedStatus: null,
+    snapshotFetchedAt: null,
     createdAt: NOW,
     updatedAt: NOW,
     stats: { totalItems: 3, consumedItems: 0, newItems: 0, completionPercent: 0, timeRemainingMinutes: 0, lastConsumedAt: null },

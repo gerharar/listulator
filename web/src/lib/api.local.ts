@@ -732,6 +732,7 @@ export function createLocalApi(): ApiClient {
         arrivedTitle: title,
         arrivedDescription: null,
         arrivedStatus: status ?? null,
+        snapshotFetchedAt: new Date(),
       })
 
       // Sequential, not Promise.all — see docs/DECISIONS.md, task 5.1.

@@ -89,6 +89,8 @@ export interface MediaType {
   sourceName?: string
   /** Search offers only community-library lists (Mega); the name is `sourceLabel`'s. */
   searchScope?: 'library'
+  /** Days a fetched list's stored source copy may age before it is refreshed or dropped; absent: no cap. */
+  sourceCopyMaxDays?: number
   /** Which tags mean Type/Medium, Language, Platform here; absent means no facets. */
   facets?: FacetConvention
 }

@@ -203,6 +203,7 @@ describe('restoring what was deleted', () => {
         arrivedTitle: 'Rich',
         arrivedDescription: 'A blurb',
         arrivedStatus: 'ongoing',
+        snapshotFetchedAt: new Date('2026-09-01T10:00:00.000Z'),
       })
       const a = (await createListItem(harness.db, ownerId, rich.id, { title: 'A', timeToConsumeMinutes: 20, group: 'S1', year: 2001, tags: ['x'], notes: 'n' }))!
       await createListItem(harness.db, ownerId, rich.id, { title: 'B', timeToConsumeMinutes: 25, group: 'S1' })
@@ -241,6 +242,7 @@ describe('restoring what was deleted', () => {
 
       const list = (await findListWithStats(harness.db, ownerId, rich.id))!
       expect(list).toMatchObject({ id: rich.id, title: 'Rich', description: 'A blurb', status: 'ongoing', sourceYaml: 'title: Rich\n', source: 'file', userId: ownerId })
+      expect(list.snapshotFetchedAt).toEqual(new Date('2026-09-01T10:00:00.000Z'))
       expect(list.stats).toEqual(beforeStats)
       const after = (await findListItems(harness.db, ownerId, rich.id))!
       expect(after.map((i) => [i.id, i.title, i.orderIndex, i.group, i.year, i.tags, i.notes, i.consumedAt])).toEqual(

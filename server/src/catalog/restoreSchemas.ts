@@ -99,6 +99,7 @@ export const listPayloadSchema = {
     arrivedTitle: nullableString,
     arrivedDescription: nullableString,
     arrivedStatus: { type: ['string', 'null'], enum: ['complete', 'ongoing', null] },
+    snapshotFetchedAt: { type: ['string', 'null'] },
     createdAt: { type: 'string' },
     updatedAt: { type: 'string' },
   },

@@ -61,6 +61,8 @@ export interface CreateListInput {
   arrivedDescription?: string | null
   /** `status` as it stood at import time — `source: 'api' | 'llm'` lists only (D4). */
   arrivedStatus?: ListStatus | null
+  /** When the arrived copy was fetched from its source; set wherever `arrived*` is (task 12.1). */
+  snapshotFetchedAt?: Date | null
 }
 
 export interface UpdateListInput {
@@ -124,6 +126,7 @@ export async function createList(
       arrivedTitle: input.arrivedTitle ?? null,
       arrivedDescription: input.arrivedDescription ?? null,
       arrivedStatus: input.arrivedStatus ?? null,
+      snapshotFetchedAt: input.snapshotFetchedAt ?? null,
     })
     .returning()
     .get()

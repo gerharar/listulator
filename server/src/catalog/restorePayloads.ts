@@ -77,6 +77,7 @@ export interface ListPayload {
   arrivedTitle: string | null
   arrivedDescription: string | null
   arrivedStatus: ListStatus | null
+  snapshotFetchedAt?: string | null
   createdAt: string
   updatedAt: string
 }
@@ -189,6 +190,7 @@ export const toListPayload = (list: List): ListPayload => ({
   arrivedTitle: list.arrivedTitle,
   arrivedDescription: list.arrivedDescription,
   arrivedStatus: list.arrivedStatus,
+  snapshotFetchedAt: list.snapshotFetchedAt?.toISOString() ?? null,
   createdAt: list.createdAt.toISOString(),
   updatedAt: list.updatedAt.toISOString(),
 })

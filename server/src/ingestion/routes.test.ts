@@ -32,6 +32,7 @@ describe('GET /api/media-types', () => {
       searchAvailable: false,
       previewable: false,
       sourceName: 'TMDB',
+      sourceCopyMaxDays: 180,
     })
   })
 
@@ -631,6 +632,9 @@ describe('search and import from a source', () => {
       arrivedDescription: null,
       arrivedStatus: null,
     })
+    // The copy's age starts when it arrives (task 12.1).
+    expect(list!.snapshotFetchedAt).toBeInstanceOf(Date)
+    expect(Date.now() - list!.snapshotFetchedAt!.getTime()).toBeLessThan(60_000)
   })
 
   it('leaves the snapshot and arrived_* fields untouched by a later refresh', async () => {
