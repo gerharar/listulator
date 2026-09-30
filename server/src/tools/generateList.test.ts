@@ -154,6 +154,47 @@ describe('runGenerateList', () => {
     expect(text).toContain('{title: "UFC 2: No Way Out", year: 1994}')
   })
 
+  describe('sources whose terms forbid redistributing their data', () => {
+    const registryFrom = (sourceName: string) =>
+      createMediaTypeRegistry([
+        { key: 'mega', label: 'Mega', sortOrder: 100, defaultDurationMinutes: 120, adapter: fakeAdapter(), sourceName },
+      ])
+
+    it.each(['TMDB', 'IGDB', 'Comic Vine'])('warns in search mode that a %s draft cannot be contributed', async (source) => {
+      const result = await runGenerateList({ category: 'mega', query: 'marvel' }, registryFrom(source))
+
+      expect(result.warning).toContain(source)
+      expect(result.warning).toMatch(/cannot be contributed/)
+    })
+
+    it('warns in generate mode, and writes the warning into the file so it outlives the terminal', async () => {
+      const outPath = join(dir, 'from-tmdb.yaml')
+
+      const result = await runGenerateList(
+        { category: 'mega', ref: 'franchise:1', title: 'From TMDB', out: outPath },
+        registryFrom('TMDB'),
+      )
+
+      expect(result.warning).toMatch(/TMDB.*cannot be contributed/)
+      const text = readFileSync(outPath, 'utf8')
+      expect(text).toMatch(/^# Generated/)
+      expect(text).toMatch(/^# .*TMDB.*cannot be contributed/m)
+      expect((loadYaml(text) as { title: string }).title).toBe('From TMDB')
+    })
+
+    it('says nothing for a source that allows it', async () => {
+      const outPath = join(dir, 'from-wikipedia.yaml')
+
+      const result = await runGenerateList(
+        { category: 'mega', ref: 'franchise:1', title: 'From Wikipedia', out: outPath },
+        registryFrom('Wikipedia'),
+      )
+
+      expect(result.warning).toBeUndefined()
+      expect(readFileSync(outPath, 'utf8')).not.toMatch(/cannot be contributed/)
+    })
+  })
+
   it('refuses to overwrite an existing file without --force', async () => {
     const outPath = join(dir, 'mcu.yaml')
     const options = { category: 'mega', ref: 'franchise:1', title: 'MCU', out: outPath }

@@ -42,12 +42,32 @@ export interface GenerateListOptions {
 export interface SearchModeResult {
   mode: 'search'
   results: ListSource[]
+  warning?: string
 }
 
 export interface GenerateModeResult {
   mode: 'generate'
   path: string
   itemCount: number
+  warning?: string
+}
+
+/**
+ * Sources whose API terms forbid redistributing what they return (TMDB: no
+ * sublicensing, no caching past six months; Comic Vine: non-commercial only;
+ * IGDB: commercial use needs a partnership). A draft from one of them is
+ * their data, and `lists/` is published under CC BY 4.0, so it cannot go into
+ * the List Vault as it is (NOTICE.md, CONTRIBUTING.md; owner, 2026-09-30).
+ * The tool still runs: a private draft is fine, contributing it is not.
+ */
+const NO_REDISTRIBUTION = new Set(['TMDB', 'IGDB', 'Comic Vine'])
+
+function redistributionWarning(sourceName: string | undefined): string | undefined {
+  if (!sourceName || !NO_REDISTRIBUTION.has(sourceName)) return undefined
+  return (
+    `This draft is ${sourceName} data: ${sourceName}'s terms forbid redistributing it, so it cannot be contributed ` +
+    `to lists/ (CC BY 4.0) as it is. Write the list from your own knowledge or another source. See NOTICE.md.`
+  )
 }
 
 function slugify(title: string): string {
@@ -116,10 +136,12 @@ export async function runGenerateList(
     )
   }
 
+  const warning = redistributionWarning(mediaType.sourceName)
+
   if (!options.ref) {
     if (!options.query) throw new Error('Pass --query to search, or --ref to generate directly.')
     const results = await mediaType.adapter.search(options.query)
-    return { mode: 'search', results }
+    return { mode: 'search', results, ...(warning ? { warning } : {}) }
   }
 
   if (!options.title) throw new Error('Pass --title for the generated list — required in generate mode.')
@@ -127,7 +149,7 @@ export async function runGenerateList(
   const { items: candidates } = await mediaType.adapter.expand(options.ref)
   const itemLines = candidates.map(candidateToItem).map(formatItemLine).join('\n')
 
-  const generatedComment = `# Generated ${new Date().toISOString().slice(0, 10)} by \`generateList.ts\` (--category ${options.category} --ref ${options.ref}).\n# Draft only — review titles/years/minutes and prune/reorder before committing.\n`
+  const generatedComment = `# Generated ${new Date().toISOString().slice(0, 10)} by \`generateList.ts\` (--category ${options.category} --ref ${options.ref}).\n# Draft only — review titles/years/minutes and prune/reorder before committing.\n${warning ? `# ${warning}\n` : ''}`
   const yamlText = `${generatedComment}title: ${yamlString(options.title)}\ncategory: ${options.category}\nitems:\n${itemLines}\n`
 
   const outPath = options.out ?? `${LISTS_DIR}/${options.category}/${slugify(options.title)}.yaml`
@@ -138,7 +160,7 @@ export async function runGenerateList(
   mkdirSync(dirname(outPath), { recursive: true })
   writeFileSync(outPath, yamlText)
 
-  return { mode: 'generate', path: outPath, itemCount: candidates.length }
+  return { mode: 'generate', path: outPath, itemCount: candidates.length, ...(warning ? { warning } : {}) }
 }
 
 function parseArgs(argv: string[]): GenerateListOptions {
@@ -174,6 +196,7 @@ async function main(): Promise<void> {
   const registry = createMediaTypeRegistry()
 
   const result = await runGenerateList(options, registry)
+  if (result.warning) console.warn(`Warning: ${result.warning}\n`)
 
   if (result.mode === 'search') {
     if (result.results.length === 0) {
