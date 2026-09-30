@@ -6,6 +6,7 @@ import { IconButton } from '../../components/quantum/Button/Button.js'
 import { copy } from '../../locale/index.js'
 import { ProgressSentence } from '../../components/quantum/ProgressSentence/ProgressSentence.js'
 import { yearSpanLabel, type GroupBlock } from './spine.js'
+import { Tip } from '../../components/quantum/Tooltip/Tip.js'
 
 export interface GroupRowProps {
   block: GroupBlock
@@ -116,15 +117,15 @@ export function GroupRow({
     >
       {dropLine && <span className={dropLine === 'after' ? 'q-dropline after' : 'q-dropline'} />}
       {block.items.length > 0 && (
-        <span
+        <Tip
           className="q-handle"
           aria-hidden="true"
-          title={copy.quantum.list.itemActions.dragGroup}
+          text={copy.quantum.list.itemActions.dragGroup}
           onPointerDown={(event) => onHandlePointerDown?.(event)}
           onClick={(event) => event.stopPropagation()}
         >
           ⣿
-        </span>
+        </Tip>
       )}
       <span className="q-chev" aria-hidden="true">
         ▼
@@ -156,7 +157,9 @@ export function GroupRow({
           />
         ) : (
           <>
-            <b title={block.group.name}>{block.group.name}</b>
+            <Tip as="b" text={block.group.name} whenClipped>
+              {block.group.name}
+            </Tip>
             {span && <span className="q-year">{span}</span>}
           </>
         )}
@@ -176,11 +179,13 @@ export function GroupRow({
         </IconButton>
       )}
       {block.items.length === 0 && onDelete && (
-        <button
+        <Tip
+          as="button"
           type="button"
           className="q-group-delete"
           aria-label={copy.quantum.list.itemActions.deleteGroupAria}
-          title={copy.quantum.list.itemActions.deleteGroupTip}
+          text={copy.quantum.list.itemActions.deleteGroupTip}
+          describe
           onClick={(event) => {
             event.stopPropagation()
             onDelete()
@@ -189,7 +194,7 @@ export function GroupRow({
         >
           <Trash2 width={13} height={13} strokeWidth={1.8} aria-hidden="true" />
           {copy.quantum.list.itemActions.deleteGroupLabel}
-        </button>
+        </Tip>
       )}
       {shownOf ? (
         <div className="q-progress">

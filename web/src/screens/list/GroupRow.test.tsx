@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import type { GroupBlock } from './spine.js'
 import { GroupRow } from './GroupRow.js'
+import { hoverTooltip } from '../../components/quantum/Tooltip/hoverTooltip.js'
 
 afterEach(cleanup)
 
@@ -101,10 +102,10 @@ describe('GroupRow', () => {
   describe('moving', () => {
     const withItems: GroupBlock = { ...BLOCK, items: [{ id: 'i1' } as never] }
 
-    it('has a drag handle when it has items, named for what it does, and none when it is empty', () => {
+    it('has a drag handle when it has items, named for what it does, and none when it is empty', async () => {
       renderRow(withItems)
       const handle = document.querySelector('.q-group .q-handle') as HTMLElement
-      expect(handle.getAttribute('title')).toBe('Drag to move the whole group across the list')
+      expect(await hoverTooltip(handle)).toBe('Drag to move the whole group across the list')
 
       cleanup()
       renderRow(BLOCK)
@@ -267,11 +268,18 @@ describe('GroupRow', () => {
     })
   })
 
-  it('gives a long name its full text on hover, whatever the ellipsis hides', () => {
+  it('gives a long name its full text on hover when the ellipsis hides it, and says nothing for a name that fits', async () => {
     const long = 'Better Call Saul Employee Training: Los Pollos Hermanos Employee Training'
     renderRow({ ...BLOCK, group: { ...BLOCK.group, name: long } })
+    const name = screen.getByText(long)
 
-    expect(screen.getByText(long).getAttribute('title')).toBe(long)
+    // jsdom lays nothing out: say the name is wider than its box, then that it fits.
+    Object.defineProperty(name, 'scrollWidth', { configurable: true, value: 400 })
+    Object.defineProperty(name, 'clientWidth', { configurable: true, value: 120 })
+    expect(await hoverTooltip(name)).toBe(long)
+
+    Object.defineProperty(name, 'scrollWidth', { configurable: true, value: 100 })
+    expect(await hoverTooltip(name)).toBeNull()
   })
 })
 

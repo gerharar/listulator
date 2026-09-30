@@ -7,6 +7,7 @@ import { LiveRegionProvider } from '../../components/quantum/LiveRegion/LiveRegi
 import { OverlayManagerProvider } from '../../components/quantum/overlay/OverlayManagerContext.js'
 import { ToastProvider } from '../../components/quantum/Toast/Toast.js'
 import { ListScreen } from './ListScreen.js'
+import { hoverTooltip } from '../../components/quantum/Tooltip/hoverTooltip.js'
 
 /** The filter bar on the list screen (task 10.24): text, facets from the category's convention, fold-all. */
 
@@ -459,7 +460,7 @@ describe('a Music list (owner, 2026-09-27)', () => {
     expect(chip('a').querySelector('.q-tag-mark')).toBeNull()
     // The chip is 58px: Live is a mark on it, named on hover and to a screen reader (owner).
     expect(chip('l').querySelector('.q-tag-mark')).toBeTruthy()
-    expect(chip('l').title).toBe('Album · Live')
+    expect(await hoverTooltip(chip('l'))).toBe('Album · Live')
     expect(chip('l').textContent).toBe('Album · Live')
     expect(chip('e').textContent).toBe('Mini')
     expect(chip('c').textContent).toBe('Comp')

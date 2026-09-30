@@ -12,6 +12,7 @@ import { platformDraft } from '../../components/quantum/PlatformPanel/platformPi
 import { GroupCombobox } from './GroupCombobox.js'
 import { TagChoice } from './TagChoice.js'
 import { readChoice, writeChoice, type TagField } from './tagFields.js'
+import { Tip } from '../../components/quantum/Tooltip/Tip.js'
 
 /**
  * Whole minutes as typed. Blank is `null` — use the category's default and
@@ -158,19 +159,21 @@ export function AddItemForm({
             <span className="q-kicker" aria-hidden="true">
               {tagText.platform}
             </span>
-            <button
+            <Tip
+              as="button"
               type="button"
               className={pickerAnchor ? 'q-input sm q-add-plat open' : 'q-input sm q-add-plat'}
               aria-label={tagText.nextField(tags.length > 0 ? tags.join(' · ') : tagText.none)}
               aria-expanded={pickerAnchor !== null}
-              title={tagText.nextTip}
+              text={tagText.nextTip}
+              describe
               onClick={(event) => setPickerAnchor(pickerAnchor ? null : event.currentTarget)}
             >
               <span className={tags.length > 0 ? 'q-add-plat-value' : 'q-add-plat-value empty'}>
                 {tags.length > 0 ? tags.join(' · ') : tagText.none}
               </span>
               <ChevronDown className="q-add-plat-caret" width={14} height={14} strokeWidth={2} aria-hidden="true" />
-            </button>
+            </Tip>
           </div>
         )}
         <Button variant="primary" size="sm" type="submit" disabled={!valid} busy={adding} busyLabel={text.adding}>

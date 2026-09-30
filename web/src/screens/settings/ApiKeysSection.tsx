@@ -9,6 +9,7 @@ import { testApiKey } from '../../lib/api.local.js'
 import { Button } from '../../components/quantum/Button/Button.js'
 import { MaskedKey } from '../../components/quantum/Field/Field.js'
 import { Popover } from '../../components/quantum/Popover/Popover.js'
+import { Tip } from '../../components/quantum/Tooltip/Tip.js'
 
 /** Which saved settings make up each source's key (IGDB needs an ID and a secret). */
 const SOURCES: readonly { id: KeySource; fields: readonly (keyof LocalSettings)[] }[] = [
@@ -102,15 +103,16 @@ export function ApiKeysSection({
             <div key={id} className="q-key-row">
               <div className="q-key-head">
                 <span className="q-key-name">{source.name}</span>
-                <button
+                <Tip
+                  as="button"
                   type="button"
                   className="q-key-info"
                   aria-label={text.infoLabel}
-                  title={text.infoLabel}
+                  text={text.infoLabel}
                   onClick={(event) => setPopover({ id, mode: 'info', anchor: event.currentTarget })}
                 >
                   <Info size={14} strokeWidth={1.8} aria-hidden="true" />
-                </button>
+                </Tip>
               </div>
               <div className="q-key-fields">
                 {fields.map((field, index) => (

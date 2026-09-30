@@ -1,3 +1,4 @@
+import { Tip } from '../Tooltip/Tip.js'
 import './ProgressSentence.css'
 import { useState } from 'react'
 import { formatDuration } from '../../../formatDuration.js'
@@ -75,15 +76,17 @@ export function ProgressSentence({
     <div className={size === 'header' ? 'q-progress header' : 'q-progress'}>
       {size === 'header' ? (
         <>
-          <button
+          <Tip
+            as="button"
             type="button"
             className="q-meter-explain"
             aria-label={text.explainHint}
-            title={text.explainHint}
+            text={meterCellNote(total)}
+            describe
             onClick={(event) => setExplainAnchor((was) => (was ? null : event.currentTarget))}
           >
-            <MeterBar done={done} total={total} big />
-          </button>
+            <MeterBar done={done} total={total} big tooltip={false} />
+          </Tip>
           <Popover
             open={explainAnchor !== null}
             anchorEl={explainAnchor}

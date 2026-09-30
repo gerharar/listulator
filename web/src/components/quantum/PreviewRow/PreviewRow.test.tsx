@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it } from 'vitest'
 import { cleanup, render, screen } from '@testing-library/react'
 import type { FacetConvention } from '../../../../../server/src/catalog/facets.js'
 import { PreviewRow } from './PreviewRow.js'
+import { hoverTooltip } from '../Tooltip/hoverTooltip.js'
 
 afterEach(cleanup)
 
@@ -50,14 +51,14 @@ describe('PreviewRow tag column: the same chip the created list shows', () => {
     expect(screen.getByText('Hardcover')).toBeTruthy()
   })
 
-  it('shows a platform chip, MULTI for several, read-only: nothing to click, the names on hover', () => {
+  it('shows a platform chip, MULTI for several, read-only: nothing to click, the names on hover', async () => {
     row(['PS3', 'X360', 'PC'], { facets: GAMES, platformWidthCh: 5 })
 
     const chip = document.querySelector('.q-plat') as HTMLElement
     expect(chip.textContent).toBe('MULTI')
     expect(chip.tagName).not.toBe('BUTTON')
     expect(screen.queryByRole('button')).toBeNull()
-    expect(chip.title).toMatch(/PlayStation 3.*Xbox 360/)
+    expect(await hoverTooltip(chip)).toMatch(/PlayStation 3.*Xbox 360/)
   })
 
   it('shows one platform as its own code', () => {

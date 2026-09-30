@@ -8,6 +8,7 @@ import { ToastProvider } from '../../components/quantum/Toast/Toast.js'
 import { subscribeListsChanged } from '../../lib/listsChanged.js'
 import { createPendingUpdates, type PendingUpdates } from '../../lib/pendingUpdates.js'
 import { ListScreen } from './ListScreen.js'
+import { hoverTooltip } from '../../components/quantum/Tooltip/hoverTooltip.js'
 
 const store = new Map<string, string>()
 
@@ -203,7 +204,7 @@ describe('ListScreen header', () => {
   it('explains the cell bar on hover: one cell per item, or a block of items past 20', async () => {
     await open(detail({ items: [item(), item()] }))
 
-    expect(document.querySelector('.q-meter')!.getAttribute('title')).toMatch(/One cell = one item/)
+    expect(await hoverTooltip(document.querySelector('.q-meter')!)).toMatch(/One cell = one item/)
   })
 })
 

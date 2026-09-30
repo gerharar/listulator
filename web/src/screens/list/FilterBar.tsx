@@ -5,6 +5,7 @@ import { compareShown, copy } from '../../locale/index.js'
 import { FacetToggle, type FacetOption } from '../../components/quantum/FacetToggle/FacetToggle.js'
 import { FacetDropdown, facetsToCompact } from '../../components/quantum/FacetToggle/FacetDropdown.js'
 import { platformFullName } from '../../components/quantum/PlatformChip/PlatformChip.js'
+import { Tip } from '../../components/quantum/Tooltip/Tip.js'
 
 export interface FilterBarProps {
   text: string
@@ -113,11 +114,13 @@ export function FilterBar({ text, onText, facets, selection, onSelect, fold, not
         ),
       )}
       {fold && (
-        <button
+        <Tip
+          as="button"
           type="button"
           className="q-fold"
           data-bar-fixed=""
-          title={fold.collapse ? t.collapseAllTip : t.expandAllTip}
+          text={fold.collapse ? t.collapseAllTip : t.expandAllTip}
+          describe
           onClick={fold.onToggle}
         >
           {fold.collapse ? (
@@ -126,7 +129,7 @@ export function FilterBar({ text, onText, facets, selection, onSelect, fold, not
             <ChevronsUpDown width={13} height={13} strokeWidth={2} aria-hidden="true" />
           )}
           {fold.collapse ? t.collapseAll : t.expandAll}
-        </button>
+        </Tip>
       )}
       <span className={fold ? 'q-filter-note' : 'q-filter-note push'} data-bar-fixed="">
         {note}

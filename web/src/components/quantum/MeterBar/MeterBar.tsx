@@ -1,3 +1,4 @@
+import { Tip } from '../Tooltip/Tip.js'
 import './MeterBar.css'
 import type { CSSProperties } from 'react'
 import { copy } from '../../../locale/index.js'
@@ -40,6 +41,8 @@ export interface MeterBarProps {
   total: number
   /** The 14×19 header size, vs. the 7×13 row size. */
   big?: boolean
+  /** Its own hover explanation. Off inside a control that has one of its own (the header's explain button). */
+  tooltip?: boolean
 }
 
 /**
@@ -47,17 +50,18 @@ export interface MeterBarProps {
  * gradient cut into segments by a repeating mask, so cells can't drift out
  * of alignment with each other the way separately-boxed cells did.
  */
-export function MeterBar({ done, total, big = false }: MeterBarProps) {
+export function MeterBar({ done, total, big = false, tooltip = true }: MeterBarProps) {
   const { n, f, full } = meterState(done, total)
   const className = ['q-meter', big && 'lg', full && 'full'].filter(Boolean).join(' ')
 
   return (
-    <span
+    <Tip
       className={className}
       style={{ '--n': n, '--f': f } as CSSProperties}
       role="img"
       aria-label={copy.quantum.meter.label(done, total)}
-      title={meterCellNote(total)}
+      text={tooltip ? meterCellNote(total) : undefined}
+      describe={tooltip}
     />
   )
 }

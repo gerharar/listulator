@@ -80,11 +80,7 @@ export function SearchResultRow({
         </span>
         <span className="main">
           <span className="line1">
-            {curated && (
-              <span title={text.curatedTitle}>
-                <CuratedStar />
-              </span>
-            )}
+            {curated && <CuratedStar />}
             <span className="title">{title}</span>
             <StatusChip status={shownStatus ?? null} short />
           </span>

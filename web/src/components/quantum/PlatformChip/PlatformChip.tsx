@@ -1,3 +1,4 @@
+import { Tip } from '../Tooltip/Tip.js'
 import './PlatformChip.css'
 import type { CSSProperties } from 'react'
 import { Plus } from 'lucide-react'
@@ -65,19 +66,21 @@ export function PlatformChip({ tags, widthCh, itemTitle, onOpen, onAdd }: Platfo
 
   if (label === null && onAdd) {
     return (
-      <button
+      <Tip
+        as="button"
         type="button"
         className="q-plat q-tag-add"
         style={style}
         aria-label={copy.quantum.list.tags.addPlatforms(itemTitle)}
-        title={copy.quantum.list.tags.addPlatformsTip}
+        text={copy.quantum.list.tags.addPlatformsTip}
+        describe
         onClick={(event) => {
           event.stopPropagation()
           onAdd(event.currentTarget)
         }}
       >
         <Plus width={13} height={13} strokeWidth={2.75} aria-hidden="true" />
-      </button>
+      </Tip>
     )
   }
   if (label === null) {
@@ -88,9 +91,9 @@ export function PlatformChip({ tags, widthCh, itemTitle, onOpen, onAdd }: Platfo
     const names = platformCodes(tags).map((code) => platformFullName(code) ?? code)
 
     return (
-      <span className="q-plat readonly" style={style} title={names.join(', ')}>
+      <Tip className="q-plat readonly" style={style} text={names.join(', ')}>
         {label}
-      </span>
+      </Tip>
     )
   }
 

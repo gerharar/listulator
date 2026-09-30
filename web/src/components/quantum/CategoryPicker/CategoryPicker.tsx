@@ -1,3 +1,4 @@
+import { Tip } from '../Tooltip/Tip.js'
 import './CategoryPicker.css'
 import { useEffect, useState } from 'react'
 import { X } from 'lucide-react'
@@ -92,9 +93,9 @@ export function CategoryPicker({ mediaTypes, first }: CategoryPickerProps) {
                 <span className="q-tile-name">
                   <b>{categoryLabel(mediaType)}</b>
                   {count > 0 && (
-                    <span className="q-count-chip" title={text.countTitle}>
+                    <Tip className="q-count-chip" text={text.countTitle}>
                       {count}
-                    </span>
+                    </Tip>
                   )}
                 </span>
                 <span className="q-tile-src">{sourceLabel(mediaType) ?? text.byHand}</span>

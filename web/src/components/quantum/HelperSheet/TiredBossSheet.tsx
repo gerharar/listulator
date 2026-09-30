@@ -8,6 +8,7 @@ import { Sheet } from '../Sheet/Sheet.js'
 import { PicksPanel } from './PicksPanel.js'
 import { useHelperAnswer } from './useHelperAnswer.js'
 import { whyTired } from './helperPicks.js'
+import { Tip } from '../Tooltip/Tip.js'
 
 export interface TiredBossSheetProps {
   open: boolean
@@ -59,10 +60,12 @@ function OpenSheet({ onClose, lists, initialTarget, onOpenList }: TiredBossSheet
   const bar = (
     <>
       <span className="q-tired-lead">{t.tiredOf}</span>
-      <button
+      <Tip
+        as="button"
         type="button"
         className="q-tired-target"
-        title={t.pickTitle}
+        text={t.pickTitle}
+        describe
         onClick={(event) => {
           const anchor = event.currentTarget
           setQuery('')
@@ -71,7 +74,7 @@ function OpenSheet({ onClose, lists, initialTarget, onOpenList }: TiredBossSheet
       >
         {targetList?.title ?? t.pickList}
         <ChevronDown width={14} height={14} strokeWidth={2} aria-hidden="true" />
-      </button>
+      </Tip>
     </>
   )
 

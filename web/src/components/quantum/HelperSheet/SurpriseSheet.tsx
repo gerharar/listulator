@@ -13,6 +13,7 @@ import { StatusChip } from '../StatusChip/StatusChip.js'
 import { ToggleChip } from '../ToggleChip/ToggleChip.js'
 import { useToast } from '../Toast/Toast.js'
 import { candidatePool, digitsFor, randomDigits, SPIN_MS, spinDelay } from './discover.js'
+import { Tip } from '../Tooltip/Tip.js'
 
 export interface SurpriseSheetProps {
   open: boolean
@@ -202,9 +203,9 @@ function OpenSheet({ onClose, mediaTypes, onTake, random = Math.random }: Surpri
             <div className="q-reel-result">
               <div className="q-reel-name">
                 {settled && (
-                  <span className="q-curated" title={text.curatedTip}>
+                  <Tip className="q-curated" text={text.curatedTip} role="img" aria-label={text.curatedTip}>
                     <Star width={15} height={15} fill="currentColor" strokeWidth={0} aria-hidden="true" />
-                  </span>
+                  </Tip>
                 )}
                 <span>
                   {dials.name ||

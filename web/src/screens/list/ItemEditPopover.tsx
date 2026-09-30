@@ -12,6 +12,7 @@ import { GroupCombobox } from './GroupCombobox.js'
 import { buildEditPatch, type ItemPatch } from './itemActions.js'
 import { TagChoice } from './TagChoice.js'
 import { readChoice, sameChoice, writeChoice, type TagField } from './tagFields.js'
+import { Tip } from '../../components/quantum/Tooltip/Tip.js'
 
 export interface ItemEditPopoverProps {
   item: ListItem
@@ -159,12 +160,14 @@ export function ItemEditPopover({
             <span className="q-kicker" aria-hidden="true">
               {tagText.platform}
             </span>
-            <button
+            <Tip
+              as="button"
               type="button"
               className={panelOpen ? 'q-input sm q-platfield open' : 'q-input sm q-platfield'}
               aria-label={tagText.fieldLabel(tagText.platform, platformValue)}
               aria-expanded={panelOpen}
-              title={tagText.fieldTip}
+              text={tagText.fieldTip}
+              describe
               onClick={() => setPanelOpen((was) => !was)}
             >
               <span className={platforms.length > 0 ? 'q-platfield-value' : 'q-platfield-value empty'}>
@@ -173,7 +176,7 @@ export function ItemEditPopover({
               <span className="q-platfield-caret" aria-hidden="true">
                 {panelOpen ? '‹' : '›'}
               </span>
-            </button>
+            </Tip>
           </div>
         )}
         {choice && (

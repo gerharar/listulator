@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import type { FacetGroup } from '../../../../server/src/catalog/facets.js'
 import { FilterBar, type FilterBarProps } from './FilterBar.js'
+import { hoverTooltip } from '../../components/quantum/Tooltip/hoverTooltip.js'
 
 afterEach(cleanup)
 
@@ -112,9 +113,9 @@ describe('FilterBar', () => {
     expect(props.onSelect).toHaveBeenCalledWith('platform', new Set())
   })
 
-  it('names a platform in full in its hint', () => {
+  it('names a platform in full in its hint', async () => {
     bar({ facets: [platform] })
-    expect(screen.getByRole('button', { name: 'PS3' }).getAttribute('title')).toContain('PlayStation 3')
+    expect(await hoverTooltip(screen.getByRole('button', { name: 'PS3' }))).toContain('PlayStation 3')
   })
 
   it('offers fold-all only when told, and says which way it will go', () => {

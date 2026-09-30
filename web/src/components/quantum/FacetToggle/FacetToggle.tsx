@@ -1,5 +1,6 @@
 import './FacetToggle.css'
 import { copy } from '../../../locale/index.js'
+import { Tip } from '../Tooltip/Tip.js'
 
 export interface FacetOption {
   key: string
@@ -52,28 +53,30 @@ export function FacetToggle({ label, options, selected, onChange, coversAll = tr
   return (
     <div className="q-facet">
       {label && <span className="q-kicker">{label}</span>}
-      <button aria-pressed={allOn} title={copy.quantum.list.filter.clearTip} onClick={() => onChange(new Set())}>
+      <Tip as="button" aria-pressed={allOn} text={copy.quantum.list.filter.clearTip} describe onClick={() => onChange(new Set())}>
         {copy.quantum.list.filter.all}
-      </button>
+      </Tip>
       <span className="q-facet-seg">
         {options.map((option) => {
           const on = selected.has(option.key)
           return (
-            <button
+            <Tip
               key={option.key}
+              as="button"
               aria-pressed={on}
-              title={
+              text={
                 on
                   ? copy.quantum.list.filter.hideOption(option.name ?? option.label)
                   : copy.quantum.list.filter.alsoShowOption(option.name ?? option.label)
               }
+              describe
               onClick={() =>
                 onChange(toggleFacetOption(selected, option.key, coversAll ? options.map((entry) => entry.key) : []))
               }
             >
               {option.mark && <span className="q-facet-mark" aria-hidden="true" />}
               {option.label}
-            </button>
+            </Tip>
           )
         })}
       </span>

@@ -1,3 +1,4 @@
+import { Tip } from '../Tooltip/Tip.js'
 import './PlatformPanel.css'
 import { useState } from 'react'
 import { FloatingPortal, autoUpdate, flip, offset, shift, size, useFloating } from '@floating-ui/react'
@@ -127,16 +128,18 @@ export function PlatformPicker({ subject, note, selected, onChange, inList, sour
           <div className="q-platpanel-tokens">
             {selected.length === 0 && <span className="q-platpanel-note">{text.notSetNote}</span>}
             {selected.map((code) => (
-              <button
+              <Tip
                 key={code}
+                as="button"
                 type="button"
                 className="q-platpanel-token"
-                title={text.removeTip(platformName(code) ?? code)}
+                text={text.removeTip(platformName(code) ?? code)}
+                describe
                 onClick={() => onChange(selected.filter((entry) => entry !== code))}
               >
                 {code}
                 <span aria-hidden="true">×</span>
-              </button>
+              </Tip>
             ))}
           </div>
         </div>

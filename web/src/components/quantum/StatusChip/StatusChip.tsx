@@ -1,3 +1,4 @@
+import { Tip } from '../Tooltip/Tip.js'
 import './StatusChip.css'
 import { Archive, Footprints } from 'lucide-react'
 import { copy } from '../../../locale/index.js'
@@ -68,8 +69,8 @@ export function StatusMark({ status }: StatusMarkProps) {
   const size = data.value === 'ongoing' ? 12 : 13
 
   return (
-    <span className={className} title={data.tip} aria-label={data.label}>
+    <Tip className={className} text={data.tip} aria-label={data.label} describe>
       <Icon width={size} height={size} strokeWidth={2.1} aria-hidden="true" />
-    </span>
+    </Tip>
   )
 }

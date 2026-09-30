@@ -4,6 +4,7 @@ import { cleanup, fireEvent, render, screen, within } from '@testing-library/rea
 import { OverlayManagerProvider } from '../overlay/OverlayManagerContext.js'
 import { FacetDropdown, facetsToCompact, facetSummary } from './FacetDropdown.js'
 import type { FacetOption } from './FacetToggle.js'
+import { hoverTooltip } from '../Tooltip/hoverTooltip.js'
 
 afterEach(cleanup)
 
@@ -74,11 +75,11 @@ describe('FacetDropdown (U4)', () => {
     expect(summaryButton().getAttribute('data-on')).toBe('false')
   })
 
-  it('fills the button and lists every pick in full in its hint once anything is picked', () => {
+  it('fills the button and lists every pick in full in its hint once anything is picked', async () => {
     renderDropdown(new Set(['xone', 'x360', 'win', 'ps4', 'and']))
     expect(summaryButton().textContent).toBe('AND, PS4, WIN +2')
     expect(summaryButton().getAttribute('data-on')).toBe('true')
-    expect(summaryButton().getAttribute('title')).toBe(
+    expect(await hoverTooltip(summaryButton())).toBe(
       'AND in full, PS4 in full, WIN in full, X360 in full, XONE in full',
     )
   })

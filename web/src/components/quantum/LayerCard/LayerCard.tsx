@@ -1,3 +1,4 @@
+import { Tip } from '../Tooltip/Tip.js'
 import './LayerCard.css'
 import type { CSSProperties, ReactNode } from 'react'
 import { copy } from '../../../locale/index.js'
@@ -49,9 +50,9 @@ export function LayerCard({
       <div className="q-layer-body">{children}</div>
       {covered && (
         <>
-          <button className="q-layer-tab" onClick={onTabClick} title={copy.quantum.common.backToLayer}>
+          <Tip as="button" className="q-layer-tab" onClick={onTabClick} text={copy.quantum.common.backToLayer}>
             <span>{tabLabel}</span>
-          </button>
+          </Tip>
           <div className="q-veil" onClick={onVeilClick} />
         </>
       )}

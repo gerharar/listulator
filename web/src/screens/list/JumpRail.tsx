@@ -2,6 +2,7 @@ import './JumpRail.css'
 import type { KeyboardEvent, PointerEvent } from 'react'
 import { copy } from '../../locale/index.js'
 import { clampRailWidth, RAIL_WIDTH_DEFAULT, RAIL_WIDTH_MAX, RAIL_WIDTH_MIN } from './collapse.js'
+import { Tip } from '../../components/quantum/Tooltip/Tip.js'
 
 export interface RailEntry {
   id: string
@@ -72,12 +73,12 @@ export function JumpRail({ entries, onJump, onHide, width, onResize, onResizeEnd
 
   return (
     <nav className="q-rail" aria-label={text.title} style={{ width }}>
-      <span
+      <Tip
         className="q-rail-grip"
         role="separator"
         aria-orientation="vertical"
         aria-label={text.resize}
-        title={text.resize}
+        text={text.resize}
         aria-valuenow={width}
         aria-valuemin={RAIL_WIDTH_MIN}
         aria-valuemax={RAIL_WIDTH_MAX}
@@ -89,15 +90,9 @@ export function JumpRail({ entries, onJump, onHide, width, onResize, onResizeEnd
       <div className="q-rail-scroll">
         <div className="q-rail-head">
           <span className="q-kicker">{text.title}</span>
-          <button
-            type="button"
-            className="q-rail-toggle"
-            aria-label={text.hide}
-            title={text.hide}
-            onClick={onHide}
-          >
+          <Tip as="button" type="button" className="q-rail-toggle" aria-label={text.hide} text={text.hide} onClick={onHide}>
             «
-          </button>
+          </Tip>
         </div>
         {entries.map((entry) => {
           const complete = entry.total > 0 && entry.done === entry.total
@@ -133,16 +128,12 @@ export function JumpRailStub({ onShow }: { onShow: () => void }) {
   const text = copy.quantum.list.rail
 
   return (
-    <div className="q-rail-stub" title={text.show} onClick={onShow}>
-      <button
-        type="button"
-        className="q-rail-toggle"
-        aria-label={text.show}
-        title={text.show}
-      >
+    // The tooltip is the strip's alone: a second one on the » button would open beside it.
+    <Tip as="div" className="q-rail-stub" text={text.show} onClick={onShow}>
+      <button type="button" className="q-rail-toggle" aria-label={text.show}>
         »
       </button>
       <span className="label">{text.title}</span>
-    </div>
+    </Tip>
   )
 }

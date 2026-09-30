@@ -11,6 +11,12 @@ interface Active {
   by: 'hover' | 'focus'
 }
 
+/**
+ * Only one tooltip shows at a time. A pointer entering nested elements enters the outer one first,
+ * so the last to activate is the innermost, and it takes over (as a native title would: the inner wins).
+ */
+let closeCurrent: (() => void) | null = null
+
 export interface TooltipHandle {
   /** Merges the tooltip's handlers into the element's own props (theirs still run). */
   props: <P extends { onPointerEnter?: unknown; onFocus?: unknown }>(own: P) => P
@@ -26,10 +32,18 @@ export interface TooltipHandle {
  * Cheap to have on every button of a long list: an idle button holds one `useState` and two handlers.
  * The positioning machinery exists only for the one tooltip that is showing.
  */
-export function useTooltip(text: string | undefined): TooltipHandle {
+export function useTooltip(text: string | undefined, options: { whenClipped?: boolean } = {}): TooltipHandle {
   const [active, setActive] = useState<Active | null>(null)
   const enabled = text !== undefined && text !== ''
-  const close = useCallback(() => setActive(null), [])
+  const close = useCallback(() => {
+    if (closeCurrent === close) closeCurrent = null
+    setActive(null)
+  }, [])
+  const activate = (next: Active) => {
+    if (closeCurrent !== close) closeCurrent?.()
+    closeCurrent = close
+    setActive(next)
+  }
 
   return {
     props: (own) => ({
@@ -37,15 +51,24 @@ export function useTooltip(text: string | undefined): TooltipHandle {
       onPointerEnter: (event: PointerEvent<HTMLElement>) => {
         ;(own.onPointerEnter as ((e: PointerEvent<HTMLElement>) => void) | undefined)?.(event)
         // A touch also sends a pointer-enter; it must not raise a tooltip nobody can dismiss.
-        if (enabled && event.pointerType !== 'touch') setActive({ anchor: event.currentTarget, by: 'hover' })
+        if (enabled && event.pointerType !== 'touch' && showsFor(event.currentTarget, options.whenClipped)) {
+          activate({ anchor: event.currentTarget, by: 'hover' })
+        }
       },
       onFocus: (event: FocusEvent<HTMLElement>) => {
         ;(own.onFocus as ((e: FocusEvent<HTMLElement>) => void) | undefined)?.(event)
-        if (enabled && focusIsVisible(event.currentTarget)) setActive({ anchor: event.currentTarget, by: 'focus' })
+        if (enabled && focusIsVisible(event.currentTarget) && showsFor(event.currentTarget, options.whenClipped)) {
+          activate({ anchor: event.currentTarget, by: 'focus' })
+        }
       },
     }),
     node: active && enabled ? <TooltipLayer key={active.by} active={active} text={text} onClose={close} /> : null,
   }
+}
+
+/** For a name that only repeats what is written: a tooltip only when the text is cut off (an ellipsis). */
+function showsFor(element: HTMLElement, whenClipped: boolean | undefined): boolean {
+  return !whenClipped || element.scrollWidth > element.clientWidth
 }
 
 /** Keyboard focus, not the focus a mouse press leaves behind. Where the browser cannot say, count it. */

@@ -2,6 +2,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, render, screen } from '@testing-library/react'
 import { HomeRow } from './HomeRow.js'
+import { hoverTooltip } from '../Tooltip/hoverTooltip.js'
 
 afterEach(cleanup)
 
@@ -43,7 +44,7 @@ describe('HomeRow', () => {
     expect(onOpen).toHaveBeenCalledOnce()
   })
 
-  it('puts the description on the name group as a native tooltip, never a second line', () => {
+  it('puts the description on the name group as a tooltip, never a second line', async () => {
     render(
       <HomeRow
         title="Breaking Bad"
@@ -58,7 +59,9 @@ describe('HomeRow', () => {
     )
 
     expect(screen.queryByText('The Vince Gilligan one.')).toBeNull()
-    expect(screen.getByTitle('The Vince Gilligan one.').textContent).toContain('Breaking Bad')
+    const name = document.querySelector('.q-home-row .name') as HTMLElement
+    expect(name.textContent).toContain('Breaking Bad')
+    expect(await hoverTooltip(name)).toBe('The Vince Gilligan one.')
   })
 
   it('shows the curated star for a canonical list, and nothing for an unmarked one', () => {

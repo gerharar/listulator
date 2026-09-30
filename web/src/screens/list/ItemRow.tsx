@@ -9,6 +9,7 @@ import { DoneCheckbox } from '../../components/quantum/DoneCheckbox/DoneCheckbox
 import { KindTag, ManualMark, NewBadge } from '../../components/quantum/Marks/Marks.js'
 import type { TagChip } from '../../../../server/src/catalog/facets.js'
 import { PlatformChip } from '../../components/quantum/PlatformChip/PlatformChip.js'
+import { Tip } from '../../components/quantum/Tooltip/Tip.js'
 
 export interface ItemRowProps {
   item: ListItem
@@ -112,15 +113,15 @@ export function ItemRow({
       onFocus={() => onFocus(item)}
     >
       {dropLine && <span className={dropLine === 'after' ? 'q-dropline after' : 'q-dropline'} />}
-      <span
+      <Tip
         className="q-handle"
         aria-hidden="true"
-        title={item.group ? text.dragWithin(item.group) : text.dragOnList}
+        text={item.group ? text.dragWithin(item.group) : text.dragOnList}
         onPointerDown={(event) => onHandlePointerDown?.(event, item)}
         onClick={(event) => event.stopPropagation()}
       >
         ⣿
-      </span>
+      </Tip>
       {/* The row's own click does the toggling, so the box only has to look right. */}
       <DoneCheckbox checked={done} onChange={() => {}} label={item.title} />
       {(platform || kind || addTag || (showManual && item.source === 'manual')) && (
@@ -137,15 +138,17 @@ export function ItemRow({
             <KindTag label={kind} kind flags={tagChip?.flags} />
           ) : (
             addTag && (
-              <button
+              <Tip
+                as="button"
                 type="button"
                 className="q-tag kind q-tag-add"
                 aria-label={tagText.addChoice(addTag.label, item.title)}
-                title={tagText.addChoiceTip(addTag.label)}
+                text={tagText.addChoiceTip(addTag.label)}
+                describe
                 onClick={act(addTag.onAdd)}
               >
                 <Plus width={11} height={11} strokeWidth={3} aria-hidden="true" />
-              </button>
+              </Tip>
             )
           )}
           {showManual && item.source === 'manual' && <ManualMark />}
@@ -153,9 +156,9 @@ export function ItemRow({
       )}
       <span className="body">
         <span className="tt">
-          <span className="title" title={item.title}>
+          <Tip className="title" text={item.title} whenClipped>
             {item.title}
-          </span>
+          </Tip>
           {item.year ? <span className="q-year">({item.year})</span> : null}
         </span>
         {/* ⓘ and ✎ sit in the title's own group (the prototype's), so they get its 9px gap. */}

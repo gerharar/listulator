@@ -1,3 +1,4 @@
+import { Tip } from '../Tooltip/Tip.js'
 import { useState, type InputHTMLAttributes, type Ref, type TextareaHTMLAttributes } from 'react'
 import { Eye, EyeOff } from 'lucide-react'
 import './Field.css'
@@ -93,9 +94,9 @@ export function MaskedKey({ value, onChange, ...rest }: MaskedKeyProps) {
         onChange={(event) => onChange(event.target.value)}
         {...rest}
       />
-      <button type="button" aria-label={label} title={label} onClick={() => setRevealed((current) => !current)}>
+      <Tip as="button" type="button" aria-label={label} text={label} onClick={() => setRevealed((current) => !current)}>
         {revealed ? <EyeOff size={15} /> : <Eye size={15} />}
-      </button>
+      </Tip>
     </span>
   )
 }

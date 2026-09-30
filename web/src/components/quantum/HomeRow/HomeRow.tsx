@@ -1,3 +1,4 @@
+import { Tip } from '../Tooltip/Tip.js'
 import './HomeRow.css'
 import { ByHandMark, CuratedStar, NewBadge } from '../Marks/Marks.js'
 import { StatusMark } from '../StatusChip/StatusChip.js'
@@ -35,13 +36,13 @@ export function HomeRow({
 }: HomeRowProps) {
   return (
     <button type="button" className="q-home-row" onClick={onOpen}>
-      <span className="name" title={description ?? undefined}>
+      <Tip className="name" text={description ?? undefined}>
         {mark === 'curated' && <CuratedStar />}
         {mark === 'byHand' && <ByHandMark />}
         <span className="title">{title}</span>
         <StatusMark status={status} />
         {newCount ? <NewBadge count={newCount} /> : null}
-      </span>
+      </Tip>
       <ProgressSentence done={done} total={total} minutesLeft={minutesLeft} status={status} size="row" />
     </button>
   )

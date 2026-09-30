@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import type { ListItem } from '../../lib/api.js'
 import { ItemRow } from './ItemRow.js'
+import { hoverTooltip } from '../../components/quantum/Tooltip/hoverTooltip.js'
 
 afterEach(cleanup)
 
@@ -212,16 +213,16 @@ describe('ItemRow', () => {
     expect(body.nextElementSibling?.classList.contains('q-new')).toBe(true)
   })
 
-  it('has a drag handle before the checkbox, named for where the item can go', () => {
+  it('has a drag handle before the checkbox, named for where the item can go', async () => {
     renderRow()
     const handle = document.querySelector('.q-item .q-handle') as HTMLElement
 
-    expect(handle.getAttribute('title')).toBe('Drag to move across the list')
+    expect(await hoverTooltip(handle)).toBe('Drag to move across the list')
     expect(handle.nextElementSibling?.getAttribute('role')).toBe('checkbox')
 
     cleanup()
     renderRow({ item: { ...ITEM, group: 'Season 1' } })
-    expect(document.querySelector('.q-item .q-handle')!.getAttribute('title')).toBe('Drag to reorder within Season 1')
+    expect(await hoverTooltip(document.querySelector('.q-item .q-handle')!)).toBe('Drag to reorder within Season 1')
   })
 
   it('starts a drag from the handle only, and does not toggle the row', () => {

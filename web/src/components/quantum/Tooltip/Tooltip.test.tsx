@@ -2,6 +2,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { Button, IconButton } from '../Button/Button.js'
+import { Tip } from './Tip.js'
 import { TOOLTIP_DELAY_MS } from './useTooltip.js'
 
 beforeEach(() => vi.useFakeTimers())
@@ -112,3 +113,97 @@ describe('Tooltip (11.19): the Button family’s own hover text', () => {
     expect(tooltip()?.textContent).toBe('What this key is used for')
   })
 })
+
+describe('Tip (11.20): the same tooltip on any element', () => {
+  it('draws the element it is asked for, with its own props, and no native title', async () => {
+    const onClick = vi.fn()
+    render(
+      <Tip as="button" type="button" text="Says more" className="chip" aria-label="Chip" onClick={onClick}>
+        ●
+      </Tip>,
+    )
+    const chip = screen.getByRole('button', { name: 'Chip' })
+
+    expect(chip.className).toBe('chip')
+    expect(chip.hasAttribute('title')).toBe(false)
+    fireEvent.click(chip)
+    expect(onClick).toHaveBeenCalledTimes(1)
+    fireEvent.pointerEnter(chip, { pointerType: 'mouse' })
+    await wait(TOOLTIP_DELAY_MS + 50)
+    expect(tooltip()?.textContent).toBe('Says more')
+  })
+
+  it('works on a span, and shows nothing without a text', async () => {
+    render(
+      <>
+        <Tip text="On a span" data-testid="a">
+          a
+        </Tip>
+        <Tip text={undefined} data-testid="b">
+          b
+        </Tip>
+      </>,
+    )
+
+    fireEvent.pointerEnter(screen.getByTestId('b'), { pointerType: 'mouse' })
+    await wait(TOOLTIP_DELAY_MS + 50)
+    expect(tooltip()).toBeNull()
+
+    fireEvent.pointerEnter(screen.getByTestId('a'), { pointerType: 'mouse' })
+    await wait(TOOLTIP_DELAY_MS + 50)
+    expect(tooltip()?.textContent).toBe('On a span')
+  })
+
+  it('gives a control its tooltip as a description when asked', () => {
+    render(
+      <Tip as="button" text="Delete this empty group: it holds no items" aria-label="Delete this empty group" describe>
+        x
+      </Tip>,
+    )
+
+    expect(screen.getByRole('button').getAttribute('aria-description')).toBe('Delete this empty group: it holds no items')
+  })
+
+  it('whenClipped: opens only for text that is cut off, not for a name that fits', async () => {
+    const size = (element: HTMLElement, scroll: number, client: number) => {
+      Object.defineProperty(element, 'scrollWidth', { configurable: true, value: scroll })
+      Object.defineProperty(element, 'clientWidth', { configurable: true, value: client })
+    }
+    render(
+      <>
+        <Tip text="A very long name indeed" whenClipped data-testid="long">
+          A very lo…
+        </Tip>
+        <Tip text="Short" whenClipped data-testid="short">
+          Short
+        </Tip>
+      </>,
+    )
+    size(screen.getByTestId('long'), 300, 100)
+    size(screen.getByTestId('short'), 100, 100)
+
+    fireEvent.pointerEnter(screen.getByTestId('short'), { pointerType: 'mouse' })
+    await wait(TOOLTIP_DELAY_MS + 50)
+    expect(tooltip()).toBeNull()
+
+    fireEvent.pointerEnter(screen.getByTestId('long'), { pointerType: 'mouse' })
+    await wait(TOOLTIP_DELAY_MS + 50)
+    expect(tooltip()?.textContent).toBe('A very long name indeed')
+  })
+
+  it('one at a time: over a Tip inside a Tip, the inner one’s text shows and the outer’s does not', async () => {
+    render(
+      <Tip text="Outer" data-testid="outer">
+        <Tip text="Inner" data-testid="inner">
+          x
+        </Tip>
+      </Tip>,
+    )
+
+    fireEvent.pointerEnter(screen.getByTestId('inner'), { pointerType: 'mouse' })
+    await wait(TOOLTIP_DELAY_MS + 50)
+
+    expect(screen.getAllByRole('tooltip').map((node) => node.textContent)).toEqual(['Inner'])
+  })
+})
+

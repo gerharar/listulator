@@ -3,6 +3,7 @@ import { ChevronDown } from 'lucide-react'
 import { copy } from '../../../locale/index.js'
 import { Popover } from '../Popover/Popover.js'
 import { FacetToggle, type FacetOption } from './FacetToggle.js'
+import { Tip } from '../Tooltip/Tip.js'
 
 /** How many picks the closed dropdown names before it counts the rest. */
 const NAMED_PICKS = 3
@@ -86,21 +87,20 @@ export function FacetDropdown({
   return (
     <div className="q-facet q-facet-drop">
       <span className="q-kicker">{label}</span>
-      <button
+      <Tip
+        as="button"
         type="button"
         className="q-facet-summary"
         data-on={picked.length > 0}
         aria-label={t.facetDropdownLabel(label, summary)}
         aria-haspopup="dialog"
         aria-expanded={anchor !== null}
-        title={
-          picked.length > 0 ? picked.map((option) => option.name ?? option.label).join(', ') : t.facetPickTip
-        }
+        text={picked.length > 0 ? picked.map((option) => option.name ?? option.label).join(', ') : t.facetPickTip}
         onClick={(event) => setAnchor(anchor ? null : event.currentTarget)}
       >
         {summary}
         <ChevronDown width={13} height={13} strokeWidth={2} aria-hidden="true" />
-      </button>
+      </Tip>
       {!measureOnly && (
         <Popover
           open={anchor !== null}

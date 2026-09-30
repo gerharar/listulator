@@ -1,3 +1,4 @@
+import { Tip } from '../Tooltip/Tip.js'
 import './PreviewRow.css'
 import { formatDuration } from '../../../formatDuration.js'
 import type { PreviewItem } from '../../../lib/api.js'
@@ -36,9 +37,9 @@ export function PreviewRow({ item, grouped, defaultMinutes, facets, platformWidt
         kind && <KindTag label={kind} kind flags={chip?.flags} />
       )}
       <span className="tt">
-        <span className="title" title={item.title}>
+        <Tip className="title" text={item.title} whenClipped>
           {item.title}
-        </span>
+        </Tip>
         {item.year ? <span className="q-year">({item.year})</span> : null}
       </span>
       <span className="mins">{formatDuration(minutes)}</span>

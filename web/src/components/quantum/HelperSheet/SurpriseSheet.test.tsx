@@ -6,6 +6,7 @@ import { LiveRegionProvider } from '../LiveRegion/LiveRegion.js'
 import { OverlayManagerProvider } from '../overlay/OverlayManagerContext.js'
 import { ToastProvider } from '../Toast/Toast.js'
 import { SurpriseSheet } from './SurpriseSheet.js'
+import { hoverTooltip } from '../Tooltip/hoverTooltip.js'
 
 vi.mock('../../../lib/api.js', () => ({
   ApiError: class extends Error {},
@@ -127,9 +128,9 @@ describe('the shelves', () => {
     renderSheet()
     await ready()
 
-    expect(chip('TV Series').getAttribute('title')).toBe('Nothing left here: you are tracking everything')
+    expect(await hoverTooltip(chip('TV Series'))).toBe('Nothing left here: you are tracking everything')
     expect(chip('TV Series').className).toContain('none')
-    expect(chip('Books').getAttribute('title')).toBe('2 candidates in this category')
+    expect(await hoverTooltip(chip('Books'))).toBe('2 candidates in this category')
     fireEvent.click(chip('TV Series'))
     expect(screen.getByText('Nothing left here: you are tracking everything')).toBeTruthy()
   })
