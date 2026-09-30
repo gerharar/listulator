@@ -39,13 +39,19 @@ describe('0017 snapshot_fetched_at migration', () => {
 
   afterEach(() => connection.close())
 
-  function insertList(id: string, source: string, createdAt: number, arrivedTitle: string | null) {
+  function insertList(
+    id: string,
+    source: string,
+    createdAt: number,
+    arrivedTitle: string | null,
+    mediaType = 'youtube',
+  ) {
     connection
       .prepare(
         `INSERT INTO lists (id, user_id, title, media_type, source, arrived_title, created_at, updated_at)
-         VALUES (?, 'u1', ?, 'youtube', ?, ?, ?, ?)`,
+         VALUES (?, 'u1', ?, ?, ?, ?, ?, ?)`,
       )
-      .run(id, id, source, arrivedTitle, createdAt, createdAt)
+      .run(id, id, mediaType, source, arrivedTitle, createdAt, createdAt)
   }
 
   function insertSnapshotRow(listId: string) {
@@ -83,6 +89,15 @@ describe('0017 snapshot_fetched_at migration', () => {
     apply(connection, migrationFile!)
 
     expect(fetchedAtOf('titled')).toBe(1_700_000_000_000)
+  })
+
+  it('leaves a Mega list undated: Mega is curated lists only, never aged', () => {
+    insertList('mega', 'api', 1_700_000_000_000, 'Marvel', 'mega')
+    insertSnapshotRow('mega')
+
+    apply(connection, migrationFile!)
+
+    expect(fetchedAtOf('mega')).toBeNull()
   })
 
   it('leaves a list with no source copy undated, since there is nothing to age', () => {

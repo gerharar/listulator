@@ -171,12 +171,12 @@ describe('how long a source copy may be kept (task 12.1)', () => {
       tv: 180,
       animation: 180,
       documentary: 180,
-      mega: 180,
     })
   })
 
   it('sets no limit where the source does not ask for one', () => {
-    for (const key of ['wrestling', 'mma', 'game', 'comic', 'book', 'music']) {
+    // Mega is curated lists only (owner, 2026-09-30): nothing of it is a fetched, aged copy.
+    for (const key of ['wrestling', 'mma', 'game', 'comic', 'book', 'music', 'mega']) {
       expect(limits()[key], key).toBeUndefined()
     }
   })

@@ -269,7 +269,6 @@ export function createDefaultMediaTypes({
       defaultDurationMinutes: 120,
       adapter: franchises,
       sourceName: 'TMDB',
-      sourceCopyMaxDays: 180,
       // Users search curated lists only, and the list generator refuses Mega (TMDB data cannot go into lists/).
       searchScope: 'library',
       // A Mega item's medium is one of the other categories, tagged with the key a list file
