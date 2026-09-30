@@ -182,5 +182,7 @@ noncommercial use: run it, self-host it, modify it, fork it and share it.
 Commercial use is not permitted under this licence.
 
 This is a source-available licence, not an OSI-approved open-source one.
-The data sources have their own terms: TMDB and Comic Vine are free only for
-noncommercial use.
+The lists in `lists/` are under [CC BY 4.0](lists/LICENSE), and the data the
+app fetches from TMDB, IGDB and the other services stays under each service's
+own terms (TMDB and Comic Vine are free only for noncommercial use). See
+[NOTICE.md](NOTICE.md) for all three.

@@ -7,6 +7,19 @@ feature reads `lists/index.json`, not GitHub's directory API).
 
 Background and full design intent: [`docs/intent/custom-lists.md`](docs/intent/custom-lists.md).
 
+## Licence of your contribution
+
+By submitting a list (a pull request that adds or changes a file under
+`lists/`), you license it under
+[Creative Commons Attribution 4.0 International](lists/LICENSE), the licence
+of the whole List Vault, and you confirm you have the right to do so.
+
+Write your list from your own knowledge or from public sources, in your own
+words. Do not paste data you obtained from a service whose terms forbid
+redistributing it: in particular, output of the TMDB, IGDB or Comic Vine APIs
+(including a file drafted with `server/src/tools/generateList.ts` from those
+sources) cannot be contributed as it is. See [NOTICE.md](NOTICE.md).
+
 ## File format
 
 A list is a single YAML file: a title, a category, and a flat array of items.
