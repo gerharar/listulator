@@ -75,7 +75,7 @@ afterEach(() => {
   vi.resetAllMocks()
 })
 
-function mediaType(key: string, label: string): MediaType {
+function mediaType(key: string, label: string, sourceName?: string): MediaType {
   return {
     key,
     label,
@@ -83,10 +83,16 @@ function mediaType(key: string, label: string): MediaType {
     defaultDurationMinutes: 30,
     searchAvailable: true,
     previewable: true,
+    ...(sourceName ? { sourceName } : {}),
   }
 }
 
-const TYPES = [mediaType('tv', 'TV Shows'), mediaType('mega', 'Mega'), mediaType('book', 'Books')]
+const TYPES = [
+  mediaType('tv', 'TV Shows', 'TMDB'),
+  mediaType('mega', 'Mega'),
+  mediaType('book', 'Books', 'Open Library'),
+  mediaType('youtube', 'YouTube', 'YouTube'),
+]
 
 let n = 0
 function item(overrides: Partial<ListItem> = {}): ListItem {
@@ -156,6 +162,44 @@ async function open(list: MediaListDetail) {
   await screen.findByRole('heading', { name: /^Loki/ }).catch(() => undefined)
   await act(async () => {})
 }
+
+describe('where the list came from (link-back under the add band)', () => {
+  const LINE = /The original list arrived from/
+
+  it('names and links the source a fetched list arrived from, and says it may have changed since', async () => {
+    await open(detail({ source: 'api', externalRef: 'show:1399', items: [item()] }))
+
+    const note = screen.getByText(LINE).closest('p')!
+    expect(note.textContent).toBe('The original list arrived from TMDB ↗; you may have changed it since.')
+    expect(within(note).getByRole('link', { name: /TMDB/ }).getAttribute('href')).toBe('https://www.themoviedb.org/')
+    expect(note.compareDocumentPosition(screen.getByRole('button', { name: 'Add' })) & Node.DOCUMENT_POSITION_PRECEDING).toBeTruthy()
+  })
+
+  it('links each source the owner named: Open Library too', async () => {
+    await open(detail({ source: 'api', externalRef: 'author:OL1A', mediaType: 'book', items: [item()] }))
+
+    expect(within(screen.getByText(LINE).closest('p')!).getByRole('link', { name: /Open Library/ }).getAttribute('href')).toBe(
+      'https://openlibrary.org/',
+    )
+  })
+
+  it('says nothing for a list that did not arrive from a source', async () => {
+    for (const source of ['manual', 'file', 'canonical'] as const) {
+      await open(detail({ source, externalRef: source === 'canonical' ? 'canonical:lists/tv/x.yaml' : null, items: [item()] }))
+      expect(screen.queryByText(LINE)).toBeNull()
+      cleanup()
+    }
+  })
+
+  it('says nothing for YouTube, which is not on the owner’s list, or a category with no source', async () => {
+    await open(detail({ source: 'api', externalRef: 'playlist:PL1', mediaType: 'youtube', items: [item()] }))
+    expect(screen.queryByText(LINE)).toBeNull()
+    cleanup()
+
+    await open(detail({ source: 'api', externalRef: 'franchise:1', mediaType: 'mega', items: [item()] }))
+    expect(screen.queryByText(LINE)).toBeNull()
+  })
+})
 
 describe('ListScreen header', () => {
   it('shows the category, the name with its status, the description and the progress', async () => {

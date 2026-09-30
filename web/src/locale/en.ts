@@ -861,6 +861,8 @@ export const en = {
         collapseAllTip: 'Fold every group below',
         expandAllTip: 'Open every group below',
       },
+      /** Under the add band of a list fetched from a source: where it arrived from, linked (owner, 2026-09-30). The source's name sits between the two. */
+      linkBack: { before: 'The original list arrived from ', after: '; you may have changed it since.' },
       checkForUpdates: 'Check for updates',
       order: 'Order',
       more: 'More',

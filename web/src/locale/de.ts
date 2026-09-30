@@ -778,6 +778,7 @@ export const de: Locale = {
         collapseAllTip: 'Alle Gruppen darunter einklappen',
         expandAllTip: 'Alle Gruppen darunter aufklappen',
       },
+      linkBack: { before: 'Die ursprüngliche Liste kam von ', after: '; seitdem hast du sie vielleicht geändert.' },
       checkForUpdates: 'Nach Updates suchen',
       order: 'Reihenfolge',
       more: 'Mehr',

@@ -8,7 +8,7 @@ import { ExternalLink } from '../../components/quantum/ExternalLink/ExternalLink
 import { HeaderPlate } from '../../components/quantum/HeaderPlate/HeaderPlate.js'
 import { useLayerStack } from '../../components/quantum/layerStack/LayerStackContext.js'
 import { Tip } from '../../components/quantum/Tooltip/Tip.js'
-import { ABOUT_SOURCES, AUTHOR, TMDB_NOTICE, type AboutSource } from './sources.js'
+import { ABOUT_SOURCES, AUTHOR, TMDB_NOTICE, type AboutSource } from '../../lib/dataSources.js'
 import tmdbLogo from './tmdb-long.svg'
 
 /**

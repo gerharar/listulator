@@ -787,6 +787,7 @@ export const ru: Locale = {
         collapseAllTip: 'Свернуть все группы ниже',
         expandAllTip: 'Открыть все группы ниже',
       },
+      linkBack: { before: 'Исходный список получен из ', after: '; с тех пор вы могли его изменить.' },
       checkForUpdates: 'Проверить обновления',
       order: 'Порядок',
       more: 'Ещё',

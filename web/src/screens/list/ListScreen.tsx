@@ -39,6 +39,8 @@ import {
 } from './collapse.js'
 import { deriveFacets, tagChip, type FacetKey } from '../../../../server/src/catalog/facets.js'
 import { AddItemForm, type NewItemInput } from './AddItemForm.js'
+import { ExternalLink } from '../../components/quantum/ExternalLink/ExternalLink.js'
+import { linkBackSource } from '../../lib/dataSources.js'
 import { EditListPopover } from './EditListPopover.js'
 import { FilterBar } from './FilterBar.js'
 import { NO_FILTER, isFiltering, shownItemIds, type ListFilter } from './filtering.js'
@@ -266,6 +268,8 @@ function ListView({
   const mediaType = mediaTypes.find((entry) => entry.key === loaded.mediaType)
   const mark = listMark(loaded)
   const defaultMinutes = mediaType?.defaultDurationMinutes ?? 30
+  // Only a list fetched from a source arrived from somewhere a reader can visit, and Reset returns to.
+  const linkBack = loaded.source === 'api' ? linkBackSource(mediaType?.sourceName) : undefined
   const totals = listTotals(items)
   const newCount = items.filter((entry) => entry.isNew).length
   const units = useMemo(() => buildSpine(items, groups), [items, groups])
@@ -1078,6 +1082,16 @@ function ListView({
             listTags={listTags}
             defaultTags={initialAddTags}
           />
+          {linkBack && (
+            <p className="q-list-linkback">
+              {text.linkBack.before}
+              <ExternalLink href={linkBack.url}>
+                {linkBack.name}
+                <span aria-hidden="true"> ↗</span>
+              </ExternalLink>
+              {text.linkBack.after}
+            </p>
+          )}
         </div>
       </div>
 

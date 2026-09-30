@@ -152,3 +152,18 @@
   color: var(--ink3);
 }
 .q-filter-note.push { margin-left: auto; }
+
+/* Under the add band of a fetched list: where it arrived from, linked (owner, 2026-09-30). Small and quiet. */
+.q-list-linkback {
+  margin: 12px 0 0;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--ink3);
+}
+.q-list-linkback a {
+  color: var(--ink2);
+  text-decoration: none;
+}
+.q-list-linkback a:hover {
+  text-decoration: underline;
+}
