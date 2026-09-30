@@ -410,20 +410,91 @@ describe('refreshSourceCopy', () => {
       expect(await findListSnapshot(harness.db, userId, list.id)).toHaveLength(3)
     })
 
-    it('does nothing, and asks nothing of the source, for a list with no copy', async () => {
-      const list = await fetchList()
-      await dropSourceCopy(harness.db, list)
-      expand.mockClear()
+    describe('a fetched list whose copy is gone', () => {
+      async function droppedList(): Promise<List> {
+        const list = await fetchList()
+        await updateList(harness.db, userId, list.id, { title: 'Mine', description: 'My notes', status: 'complete' })
+        await dropSourceCopy(harness.db, (await findList(harness.db, userId, list.id))!)
+        expand.mockClear()
+        return (await findList(harness.db, userId, list.id))!
+      }
 
-      const result = await refreshOrDropSourceCopy(
-        harness.db,
-        (await findList(harness.db, userId, list.id))!,
-        deps(),
-        after(400),
-      )
+      it('gets a new copy as soon as its source answers', async () => {
+        const list = await droppedList()
+        const before = await userOwned(list.id)
 
-      expect(result).toEqual({ outcome: 'none' })
-      expect(expand).not.toHaveBeenCalled()
+        const result = await refreshOrDropSourceCopy(harness.db, list, deps(), after(45))
+
+        expect(result).toEqual({ outcome: 'created', items: 3 })
+        expect((await snapshotRows(list)).map((row) => row.title)).toEqual(['Episode 1', 'Episode 2', 'Episode 3'])
+        const after45 = (await findList(harness.db, userId, list.id))!
+        expect(after45.snapshotFetchedAt).toEqual(after(45))
+        // The list has no title of the source's to keep, so the copy holds the list as it stands now.
+        expect(after45).toMatchObject({
+          arrivedTitle: 'Mine',
+          arrivedDescription: 'My notes',
+          arrivedStatus: 'ongoing',
+        })
+        expect(await userOwned(list.id)).toEqual({
+          ...before,
+          list: { ...before.list, arrivedTitle: 'Mine', arrivedDescription: 'My notes' },
+        })
+      })
+
+      it('keeps the list\u2019s own status as the copy\u2019s when the source has none', async () => {
+        const list = await droppedList()
+        upstream = { items: [{ title: 'Episode 1', externalRef: 'v1' }] }
+
+        await refreshOrDropSourceCopy(harness.db, list, deps(), after(45))
+
+        expect((await findList(harness.db, userId, list.id))!.arrivedStatus).toBe('complete')
+      })
+
+      it('is left as it is, and tried again next time, while its source cannot be reached', async () => {
+        const list = await droppedList()
+        expand.mockRejectedValueOnce(new Error('offline'))
+
+        const result = await refreshOrDropSourceCopy(harness.db, list, deps(), after(45))
+
+        expect(result).toMatchObject({ outcome: 'missing', error: expect.objectContaining({ message: 'offline' }) })
+        expect(await findListSnapshot(harness.db, userId, list.id)).toEqual([])
+        expect((await findList(harness.db, userId, list.id))!.snapshotFetchedAt).toBeNull()
+      })
+
+      it('is not given a copy when its category sets no limit: nothing there ever has to be dropped', async () => {
+        const unlimited = createMediaTypeRegistry([
+          {
+            key: 'youtube',
+            label: 'YouTube',
+            sortOrder: 10,
+            defaultDurationMinutes: 45,
+            adapter: { isAvailable: () => true, search: async () => [], expand },
+          },
+        ])
+        const list = await droppedList()
+
+        const result = await refreshOrDropSourceCopy(harness.db, list, { mediaTypes: unlimited.list() }, after(45))
+
+        expect(result).toEqual({ outcome: 'none' })
+        expect(expand).not.toHaveBeenCalled()
+      })
+
+      it('is not given a copy when it was never fetched from a source, and the source is not asked', async () => {
+        const byHand = await createList(harness.db, userId, { title: 'By hand', mediaType: 'youtube' })
+        const curated = await createList(harness.db, userId, {
+          title: 'Curated',
+          mediaType: 'youtube',
+          source: 'canonical',
+          externalRef: 'canonical:youtube/curated.yaml',
+        })
+
+        for (const list of [byHand, curated]) {
+          expect(await refreshOrDropSourceCopy(harness.db, list, deps(), after(45)), list.title).toEqual({
+            outcome: 'none',
+          })
+        }
+        expect(expand).not.toHaveBeenCalled()
+      })
     })
   })
 })

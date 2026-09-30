@@ -5,7 +5,7 @@ import { listItems, users } from '../db/schema.js'
 import { createTestApp, type TestApp } from '../testing/harness.js'
 import { resetToSource } from './reset.js'
 import { createList as createStoredList, findList } from './repository.js'
-import { dropSourceCopy } from './sourceCopy.js'
+import { dropSourceCopy, refreshSourceCopy } from './sourceCopy.js'
 
 /** Sort chronologically and Reset to the source (10.18, D4), over HTTP. */
 
@@ -731,6 +731,27 @@ describe('sort and reset', () => {
       expect(reset.statusCode).toBe(200)
       expect(summary(await detail(list.id))).toEqual({ title: 'My title', status: 'ongoing', items: fresh })
       expect(expand).toHaveBeenCalledTimes(1)
+    })
+
+    it('needs no fetch again once the copy has been made again, and goes back to the title the list had then and the status the source gave', async () => {
+      const list = await withoutCopy()
+      const user = harness.db.select().from(users).get()!
+      await send('PATCH', `/lists/${list.id}`, { title: 'My title', status: 'complete' })
+      await refreshSourceCopy(
+        harness.db,
+        (await findList(harness.db, user.id, list.id))!,
+        { mediaTypes: [{ key: 'game', label: 'Games', sortOrder: 10, defaultDurationMinutes: 600, adapter }] },
+      )
+      await send('PATCH', `/lists/${list.id}`, { title: 'Renamed again', status: 'ongoing' })
+      await send('POST', `/lists/${list.id}/items`, { title: 'By hand', timeToConsumeMinutes: 5 })
+      expand.mockClear()
+
+      const reset = await send('POST', `/lists/${list.id}/reset`)
+
+      expect(reset.statusCode).toBe(200)
+      expect(expand).not.toHaveBeenCalled()
+      expect(summary(await detail(list.id))).toMatchObject({ title: 'My title', status: 'ongoing' })
+      expect((await detail(list.id)).items).toHaveLength(list.items.length)
     })
 
     it('keeps the list\u2019s own status where the source says nothing', async () => {

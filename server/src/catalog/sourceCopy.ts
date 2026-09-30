@@ -80,7 +80,11 @@ function snapshotRowsFor(
  *
  * `arrived_title` and `arrived_description` stay as they were: an expansion
  * carries items and a production status, nothing that names or describes the
- * list.
+ * list. The exception is a list with no copy (dropped, task 12.3): it has no
+ * arrived title to keep, so the new copy takes the list's title and description
+ * as they stand, and the source's status where it has one, else the list's.
+ * That is what a Reset from the live source already gave such a list, so making
+ * the copy changes nothing about what Reset does.
  *
  * Not one transaction, because the desktop driver has none (docs/DECISIONS.md,
  * 10.16, 10.18). Everything that can fail on the network happens first, and
@@ -117,11 +121,20 @@ export async function refreshSourceCopy(
 
   const rows = snapshotRowsFor(expansion.items, mediaType.defaultDurationMinutes)
 
+  const arrived =
+    list.arrivedTitle !== null
+      ? { arrivedStatus: expansion.status ?? null }
+      : {
+          arrivedTitle: list.title,
+          arrivedDescription: list.description,
+          arrivedStatus: expansion.status ?? list.status,
+        }
+
   await deleteListSnapshot(db, list.id)
   await createListSnapshot(db, list.id, rows)
   await db
     .update(lists)
-    .set({ arrivedStatus: expansion.status ?? null, snapshotFetchedAt: now })
+    .set({ ...arrived, snapshotFetchedAt: now })
     .where(eq(lists.id, list.id))
     .run()
 
@@ -156,21 +169,30 @@ function isOverdue(list: List, mediaTypes: readonly MediaType[], now: Date): boo
 
 export type SourceCopyOutcome =
   | { outcome: 'refreshed'; items: number }
+  /** A list whose copy had been dropped got one again, because its source answered. */
+  | { outcome: 'created'; items: number }
   /** The refresh failed but the copy is still within its limit, so it stays. */
   | { outcome: 'kept'; error: unknown }
   /** The refresh failed and the copy had reached its limit, so it was dropped. */
   | { outcome: 'dropped'; error: unknown }
-  /** No copy, so nothing was asked of the source. */
+  /** No copy, and the source could not give one now; asked again next time. */
+  | { outcome: 'missing'; error: unknown }
+  /** Nothing to keep or make: not a fetched list, or its source sets no limit. The source was not asked. */
   | { outcome: 'none' }
 
 /**
  * Keeps one list's copy within its source's limit (task 12.3): refresh it, and
- * if that fails (offline, no key, the source gone or empty) drop it only when
- * it has reached the limit. A copy still in time survives a failed refresh and
- * is tried again later. The limit counts from the date on the copy, and a copy
- * is overdue on the day it reaches the limit, since the platforms say to delete
- * or refresh *within* that many days. Which lists are due, and when, is the
- * schedule's business (12.4).
+ * if that fails (offline, no key, source gone or empty) drop it only when it has
+ * reached the limit. A copy still in time survives a failed refresh and is tried
+ * again later. The limit counts from the date on the copy, and a copy is overdue
+ * on the day it reaches the limit, since the platforms say to delete or refresh
+ * *within* that many days. Which lists are due, and when, is the schedule's
+ * business (12.4).
+ *
+ * A fetched list of a category with a limit and no copy gets one again whenever
+ * its source answers (owner, 2026-10-01): a dropped copy is not lost for good,
+ * and until it is back Reset reads the source live. A category with no limit is
+ * left as it is: nothing in it ever has to be dropped, so nothing is made.
  *
  * Never throws for a failed refresh: the failure comes back in the outcome so a
  * schedule can go on to the next list.
@@ -181,7 +203,18 @@ export async function refreshOrDropSourceCopy(
   deps: SourceCopyDeps,
   now: Date = new Date(),
 ): Promise<SourceCopyOutcome> {
-  if (!list.snapshotFetchedAt) return { outcome: 'none' }
+  if (!list.snapshotFetchedAt) {
+    const mediaType = deps.mediaTypes.find((entry) => entry.key === list.mediaType)
+    if (list.source !== 'api' || !list.externalRef || !mediaType?.adapter || !mediaType.sourceCopyMaxDays) {
+      return { outcome: 'none' }
+    }
+
+    try {
+      return { outcome: 'created', ...(await refreshSourceCopy(db, list, deps, now)) }
+    } catch (error) {
+      return { outcome: 'missing', error }
+    }
+  }
 
   try {
     return { outcome: 'refreshed', ...(await refreshSourceCopy(db, list, deps, now)) }
