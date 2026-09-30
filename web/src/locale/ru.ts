@@ -83,21 +83,87 @@ export const ru: Locale = {
   },
 
   categories: {
-    movie: { label: 'Фильмы' },
-    tv: { label: 'Сериалы' },
-    animation: { label: 'Анимация' },
-    documentary: { label: 'Документальное' },
-    wrestling: { label: 'Рестлинг' },
-    mma: { label: 'ММА' },
-    game: { label: 'Игры' },
-    comic: { label: 'Комиксы' },
-    book: { label: 'Книги' },
-    music: { label: 'Музыка' },
-    youtube: { label: 'YouTube' },
+    movie: {
+      label: 'Фильмы',
+      handTitlePlaceholder: 'Фильмы Альфреда Хичкока',
+      handItemsPlaceholder:
+        'Ранние фильмы:\nЖилец\nШантаж\n\n# Голливуд\nРебекка\nОкно во двор\nГоловокружение',
+    },
+    tv: {
+      label: 'Сериалы',
+      handTitlePlaceholder: 'Во все тяжкие',
+      handItemsPlaceholder:
+        'Сезон 1:\nПилотный эпизод\nКот в мешке\n…И мешок в реке\n\n# Сезон 2\nСемь тридцать семь\nЖаркое',
+      handItemsHint:
+        'Один эпизод на строку. Строка, оканчивающаяся двоеточием или начинающаяся с #, открывает сезон, который действует до следующего. Пустые строки игнорируются',
+    },
+    animation: {
+      label: 'Анимация',
+      handTitlePlaceholder: 'Фильмы студии Ghibli',
+      handItemsPlaceholder:
+        'Миядзаки:\nУнесённые призраками\nПринцесса Мононоке\n\n# Такахата\nМогила светлячков\nПомпоко',
+    },
+    documentary: {
+      label: 'Документальное',
+      handTitlePlaceholder: 'Документальные фильмы Кена Бёрнса',
+      handItemsPlaceholder:
+        'Войны:\nГражданская война\nВойна\n\n# Культура\nБейсбол\nДжаз\nКантри',
+    },
+    wrestling: {
+      label: 'Рестлинг',
+      handTitlePlaceholder: 'Главные матчи WrestleMania',
+      handItemsPlaceholder:
+        'Ранние годы:\nWrestleMania I\nWrestleMania III\n\n# Эра Attitude\nWrestleMania XIV\nWrestleMania 2000',
+    },
+    mma: {
+      label: 'ММА',
+      handTitlePlaceholder: 'Титульные бои UFC',
+      handItemsPlaceholder:
+        'Ранний UFC:\nUFC 1\nUFC 2\n\n# Современная эра\nUFC 100\nUFC 200',
+    },
+    game: {
+      label: 'Игры',
+      handTitlePlaceholder: 'Все игры Zelda',
+      handItemsPlaceholder:
+        '2D:\nThe Legend of Zelda\nA Link to the Past\n\n# 3D\nOcarina of Time\nBreath of the Wild',
+    },
+    comic: {
+      label: 'Комиксы',
+      handTitlePlaceholder: 'Песочный человек',
+      handItemsPlaceholder:
+        'Том 1:\nПрелюдии и ноктюрны\n\n# Том 2\nКукольный домик\nСтрана снов',
+      handItemsHint:
+        'Один выпуск или том на строку. Строка, оканчивающаяся двоеточием или начинающаяся с #, открывает серию, которая действует до следующей. Пустые строки игнорируются',
+    },
+    book: {
+      label: 'Книги',
+      handTitlePlaceholder: 'Романы Плоского мира',
+      handItemsPlaceholder:
+        'Ринсвинд:\nЦвет волшебства\nБезумная звезда\n\n# Смерть\nМор, ученик Смерти\nМрачный Жнец',
+      handItemsHint:
+        'Одна книга на строку. Строка, оканчивающаяся двоеточием или начинающаяся с #, открывает цикл, который действует до следующего. Пустые строки игнорируются',
+    },
+    music: {
+      label: 'Музыка',
+      handTitlePlaceholder: 'Альбомы Radiohead',
+      handItemsPlaceholder:
+        'Студийные альбомы:\nPablo Honey\nThe Bends\nOK Computer\n\n# EP\nAirbag / How Am I Driving?',
+      handItemsHint:
+        'Один альбом на строку. Строка, оканчивающаяся двоеточием или начинающаяся с #, открывает раздел (эпоху, тип), который действует до следующего. Пустые строки игнорируются',
+    },
+    youtube: {
+      label: 'YouTube',
+      handTitlePlaceholder: 'Crash Course: Всемирная история',
+      handItemsPlaceholder:
+        'Древний мир:\nАграрная революция\nЦивилизация долины Инда\n\n# Средневековье\nМонголы',
+    },
     mega: {
       label: 'Мега',
       description:
         'Франшизы, охватывающие сразу несколько медиа — фильмы, сериалы и анимация вместе, в порядке выхода. Сюда относятся Marvel и Star Trek; отдельный сериал или серия фильмов — нет.',
+      handTitlePlaceholder: 'Кинематографическая вселенная Marvel',
+      handItemsPlaceholder:
+        'Фаза первая:\nЖелезный человек\nНевероятный Халк\n\n# Фаза вторая\nЖелезный человек 3\nТор 2: Царство тьмы',
     },
   },
 
@@ -360,11 +426,11 @@ export const ru: Locale = {
     },
     addByHand: {
       titleLabel: 'Название',
-      titlePlaceholder: 'Все фильмы Джеки Чана',
+      titlePlaceholder: 'Мой список',
       descriptionLabel: 'Описание',
       descriptionPlaceholder: 'Необязательно',
       itemsLabel: 'Элементы',
-      itemsPlaceholder: 'Ранние фильмы:\nПьяный мастер\nИстория полицейского\n\n# Поздние фильмы\nЧасы пик\nСмокинг',
+      itemsPlaceholder: 'Первый элемент\nВторой элемент\n\nГруппа:\nТретий элемент\nЧетвёртый элемент',
       itemsHint: 'Строки, оканчивающиеся двоеточием или начинающиеся с #, открывают группу, которая действует до следующей. Пустые строки игнорируются',
       statusLabel: 'Статус',
       create: 'Создать список',

@@ -77,21 +77,87 @@ export const de: Locale = {
   },
 
   categories: {
-    movie: { label: 'Filme' },
-    tv: { label: 'Serien' },
-    animation: { label: 'Animation' },
-    documentary: { label: 'Dokumentationen' },
-    wrestling: { label: 'Pro-Wrestling' },
-    mma: { label: 'MMA' },
-    game: { label: 'Spiele' },
-    comic: { label: 'Comics' },
-    book: { label: 'Bücher' },
-    music: { label: 'Musik' },
-    youtube: { label: 'YouTube' },
+    movie: {
+      label: 'Filme',
+      handTitlePlaceholder: 'Filme von Alfred Hitchcock',
+      handItemsPlaceholder:
+        'Frühe Filme:\nDer Mieter\nErpressung\n\n# Hollywood\nRebecca\nDas Fenster zum Hof\nVertigo',
+    },
+    tv: {
+      label: 'Serien',
+      handTitlePlaceholder: 'Breaking Bad',
+      handItemsPlaceholder:
+        'Staffel 1:\nPilotfolge\nDie Katze im Sack\n…und der Sack ist im Fluss\n\n# Staffel 2\n737\nGrilliert',
+      handItemsHint:
+        'Eine Folge pro Zeile. Eine Zeile, die mit einem Doppelpunkt endet oder mit # beginnt, eröffnet eine Staffel, die bis zur nächsten gilt. Leere Zeilen werden ignoriert',
+    },
+    animation: {
+      label: 'Animation',
+      handTitlePlaceholder: 'Filme von Studio Ghibli',
+      handItemsPlaceholder:
+        'Miyazaki:\nChihiros Reise ins Zauberland\nPrinzessin Mononoke\n\n# Takahata\nDas Grab der Glühwürmchen\nPom Poko',
+    },
+    documentary: {
+      label: 'Dokumentationen',
+      handTitlePlaceholder: 'Dokumentationen von Ken Burns',
+      handItemsPlaceholder:
+        'Kriege:\nDer Bürgerkrieg\nDer Krieg\n\n# Kultur\nBaseball\nJazz\nCountry Music',
+    },
+    wrestling: {
+      label: 'Pro-Wrestling',
+      handTitlePlaceholder: 'WrestleMania-Hauptkämpfe',
+      handItemsPlaceholder:
+        'Frühe Jahre:\nWrestleMania I\nWrestleMania III\n\n# Attitude Era\nWrestleMania XIV\nWrestleMania 2000',
+    },
+    mma: {
+      label: 'MMA',
+      handTitlePlaceholder: 'UFC-Titelkämpfe',
+      handItemsPlaceholder:
+        'Frühes UFC:\nUFC 1\nUFC 2\n\n# Moderne Ära\nUFC 100\nUFC 200',
+    },
+    game: {
+      label: 'Spiele',
+      handTitlePlaceholder: 'Alle Zelda-Spiele',
+      handItemsPlaceholder:
+        '2D:\nThe Legend of Zelda\nA Link to the Past\n\n# 3D\nOcarina of Time\nBreath of the Wild',
+    },
+    comic: {
+      label: 'Comics',
+      handTitlePlaceholder: 'Sandman',
+      handItemsPlaceholder:
+        'Band 1:\nPräludien & Nocturnes\n\n# Band 2\nDas Puppenhaus\nTraumland',
+      handItemsHint:
+        'Eine Ausgabe oder ein Band pro Zeile. Eine Zeile, die mit einem Doppelpunkt endet oder mit # beginnt, eröffnet eine Reihe, die bis zur nächsten gilt. Leere Zeilen werden ignoriert',
+    },
+    book: {
+      label: 'Bücher',
+      handTitlePlaceholder: 'Scheibenwelt-Romane',
+      handItemsPlaceholder:
+        'Rincewind:\nDie Farben der Magie\nDas Licht der Phantasie\n\n# Tod\nMort\nGevatter Tod',
+      handItemsHint:
+        'Ein Buch pro Zeile. Eine Zeile, die mit einem Doppelpunkt endet oder mit # beginnt, eröffnet eine Reihe, die bis zur nächsten gilt. Leere Zeilen werden ignoriert',
+    },
+    music: {
+      label: 'Musik',
+      handTitlePlaceholder: 'Radiohead-Alben',
+      handItemsPlaceholder:
+        'Studioalben:\nPablo Honey\nThe Bends\nOK Computer\n\n# EPs\nAirbag / How Am I Driving?',
+      handItemsHint:
+        'Ein Album pro Zeile. Eine Zeile, die mit einem Doppelpunkt endet oder mit # beginnt, eröffnet einen Abschnitt (eine Ära, eine Art), der bis zum nächsten gilt. Leere Zeilen werden ignoriert',
+    },
+    youtube: {
+      label: 'YouTube',
+      handTitlePlaceholder: 'Crash Course Weltgeschichte',
+      handItemsPlaceholder:
+        'Antike:\nDie Agrarrevolution\nDie Indus-Kultur\n\n# Mittelalter\nDie Mongolen',
+    },
     mega: {
       label: 'Mega',
       description:
         'Franchises, die mehrere Medien zugleich umspannen — Filme, Serien und Animation zusammen, in Erscheinungsreihenfolge. Marvel und Star Trek gehören hierher; eine einzelne Serie oder Filmreihe nicht.',
+      handTitlePlaceholder: 'Marvel Cinematic Universe',
+      handItemsPlaceholder:
+        'Phase 1:\nIron Man\nDer unglaubliche Hulk\n\n# Phase 2\nIron Man 3\nThor – The Dark Kingdom',
     },
   },
 
@@ -352,11 +418,11 @@ export const de: Locale = {
     },
     addByHand: {
       titleLabel: 'Titel',
-      titlePlaceholder: 'Alle Jackie-Chan-Filme',
+      titlePlaceholder: 'Meine Liste',
       descriptionLabel: 'Beschreibung',
       descriptionPlaceholder: 'Optional',
       itemsLabel: 'Einträge',
-      itemsPlaceholder: 'Frühe Filme:\nDrunken Master\nPolice Story\n\n# Späte Filme\nRush Hour\nThe Tuxedo',
+      itemsPlaceholder: 'Erster Eintrag\nZweiter Eintrag\n\nEine Gruppe:\nDritter Eintrag\nVierter Eintrag',
       itemsHint: 'Zeilen, die mit einem Doppelpunkt enden oder mit # beginnen, eröffnen eine Gruppe, die bis zur nächsten gilt. Leere Zeilen werden ignoriert',
       statusLabel: 'Status',
       create: 'Liste erstellen',

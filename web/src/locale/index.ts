@@ -66,6 +66,26 @@ export function sortCategories<T extends { key: string; label: string }>(types: 
 }
 
 /**
+ * What Add by hand shows as examples for a category (11.16): a title, a few lines with a group or two,
+ * and the one-line rule. The locale may name a category's own; any other (the registry is open) gets the
+ * neutral ones, so adding a category needs no change here.
+ */
+export function categoryHandHints(mediaType: { key: string }): {
+  titlePlaceholder: string
+  itemsPlaceholder: string
+  itemsHint: string
+} {
+  const own = copy.categories[mediaType.key]
+  const generic = copy.quantum.addByHand
+
+  return {
+    titlePlaceholder: own?.handTitlePlaceholder ?? generic.titlePlaceholder,
+    itemsPlaceholder: own?.handItemsPlaceholder ?? generic.itemsPlaceholder,
+    itemsHint: own?.handItemsHint ?? generic.itemsHint,
+  }
+}
+
+/**
  * The name of where a category searches: its source ("TMDB"), or the community
  * library for a category that searches curated lists only (Mega, F9). Absent
  * for a category with no search at all.

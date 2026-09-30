@@ -4,7 +4,7 @@ import { useRef, useState, type FormEvent } from 'react'
 import { api, type MediaType } from '../../../lib/api.js'
 import { parseHandItems } from '../../../lib/handItems.js'
 import { formatDuration } from '../../../formatDuration.js'
-import { copy } from '../../../locale/index.js'
+import { categoryHandHints, copy } from '../../../locale/index.js'
 import { Button } from '../Button/Button.js'
 import { ErrorStrip } from '../ErrorStrip/ErrorStrip.js'
 import { Field, FieldTextArea } from '../Field/Field.js'
@@ -33,6 +33,8 @@ const NAMES = { spellCheck: false, autoCorrect: 'off', autoCapitalize: 'off' } a
  */
 export function AddByHandTab({ mediaType, onBuilt }: AddByHandTabProps) {
   const text = copy.quantum.addByHand
+  // This category's own examples (11.16); a category nobody wrote for gets the neutral ones.
+  const hints = categoryHandHints(mediaType)
 
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
@@ -82,7 +84,7 @@ export function AddByHandTab({ mediaType, onBuilt }: AddByHandTabProps) {
         maxLength={NAME_MAX_LENGTH}
         value={title}
         onChange={(event) => setTitle(event.target.value)}
-        placeholder={text.titlePlaceholder}
+        placeholder={hints.titlePlaceholder}
         {...NAMES}
         disabled={saving}
         autoFocus
@@ -100,12 +102,12 @@ export function AddByHandTab({ mediaType, onBuilt }: AddByHandTabProps) {
           label={text.itemsLabel}
           value={itemsText}
           onChange={(event) => setItemsText(event.target.value)}
-          placeholder={text.itemsPlaceholder}
+          placeholder={hints.itemsPlaceholder}
           rows={8}
           {...NAMES}
           disabled={saving}
         />
-        <p className="q-hand-hint t-small">{text.itemsHint}</p>
+        <p className="q-hand-hint t-small">{hints.itemsHint}</p>
       </div>
 
       <div className="q-field">

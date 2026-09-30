@@ -135,4 +135,13 @@ describe('AddByHandTab', () => {
     expect(api.createList).toHaveBeenCalledTimes(1)
     expect(api.importItems).toHaveBeenCalledTimes(2)
   })
+
+  it('shows the category’s own examples, not one film director’s for every category (11.16)', () => {
+    renderTab()
+
+    expect((screen.getByLabelText('Title') as HTMLInputElement).placeholder).toBe('Discworld novels')
+    expect((screen.getByLabelText('Items') as HTMLTextAreaElement).placeholder).toContain('Rincewind:')
+    expect(screen.getByText(/One book per line/)).toBeTruthy()
+  })
 })
+

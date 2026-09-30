@@ -90,9 +90,88 @@ export const en = {
    * (task 10.11, C1).
    */
   categories: {
-    tv: { label: 'TV Series' },
-    wrestling: { label: 'Pro Wrestling' },
-  } as Record<string, { label?: string; description?: string } | undefined>,
+    movie: {
+      handTitlePlaceholder: 'Alfred Hitchcock’s films',
+      handItemsPlaceholder:
+        'Early films:\nThe Lodger\nBlackmail\n\n# Hollywood\nRebecca\nRear Window\nVertigo',
+    },
+    tv: {
+      label: 'TV Series',
+      handTitlePlaceholder: 'Breaking Bad',
+      handItemsPlaceholder:
+        'Season 1:\nPilot\nCat’s in the Bag...\n...And the Bag’s in the River\n\n# Season 2\nSeven Thirty-Seven\nGrilled',
+      handItemsHint:
+        'One episode per line. A line ending in a colon, or starting with #, opens a season that lasts until the next one. Blank lines are ignored',
+    },
+    animation: {
+      handTitlePlaceholder: 'Studio Ghibli films',
+      handItemsPlaceholder:
+        'Miyazaki:\nSpirited Away\nPrincess Mononoke\n\n# Takahata\nGrave of the Fireflies\nPom Poko',
+    },
+    documentary: {
+      handTitlePlaceholder: 'Ken Burns documentaries',
+      handItemsPlaceholder:
+        'Wars:\nThe Civil War\nThe War\n\n# Culture\nBaseball\nJazz\nCountry Music',
+    },
+    wrestling: {
+      label: 'Pro Wrestling',
+      handTitlePlaceholder: 'WrestleMania main events',
+      handItemsPlaceholder:
+        'Early years:\nWrestleMania I\nWrestleMania III\n\n# Attitude Era\nWrestleMania XIV\nWrestleMania 2000',
+    },
+    mma: {
+      handTitlePlaceholder: 'UFC title fights',
+      handItemsPlaceholder:
+        'Early UFC:\nUFC 1\nUFC 2\n\n# Modern era\nUFC 100\nUFC 200',
+    },
+    game: {
+      handTitlePlaceholder: 'Every Zelda game',
+      handItemsPlaceholder:
+        '2D:\nThe Legend of Zelda\nA Link to the Past\n\n# 3D\nOcarina of Time\nBreath of the Wild',
+    },
+    comic: {
+      handTitlePlaceholder: 'The Sandman',
+      handItemsPlaceholder:
+        'Volume 1:\nPreludes & Nocturnes\n\n# Volume 2\nThe Doll’s House\nDream Country',
+      handItemsHint:
+        'One issue or volume per line. A line ending in a colon, or starting with #, opens a run that lasts until the next one. Blank lines are ignored',
+    },
+    book: {
+      handTitlePlaceholder: 'Discworld novels',
+      handItemsPlaceholder:
+        'Rincewind:\nThe Colour of Magic\nThe Light Fantastic\n\n# Death\nMort\nReaper Man',
+      handItemsHint:
+        'One book per line. A line ending in a colon, or starting with #, opens a series that lasts until the next one. Blank lines are ignored',
+    },
+    music: {
+      handTitlePlaceholder: 'Radiohead albums',
+      handItemsPlaceholder:
+        'Studio albums:\nPablo Honey\nThe Bends\nOK Computer\n\n# EPs\nAirbag / How Am I Driving?',
+      handItemsHint:
+        'One album per line. A line ending in a colon, or starting with #, opens a section (an era, a type) that lasts until the next one. Blank lines are ignored',
+    },
+    youtube: {
+      handTitlePlaceholder: 'Crash Course World History',
+      handItemsPlaceholder:
+        'Ancient world:\nThe Agricultural Revolution\nThe Indus Valley Civilization\n\n# Middle Ages\nThe Mongols',
+    },
+    mega: {
+      handTitlePlaceholder: 'Marvel Cinematic Universe',
+      handItemsPlaceholder:
+        'Phase One:\nIron Man\nThe Incredible Hulk\n\n# Phase Two\nIron Man 3\nThor: The Dark World',
+    },
+  } as Record<
+    string,
+    | {
+        label?: string
+        description?: string
+        /** Add by hand's examples for this category (11.16); absent: the neutral ones in `quantum.addByHand`. */
+        handTitlePlaceholder?: string
+        handItemsPlaceholder?: string
+        handItemsHint?: string
+      }
+    | undefined
+  >,
 
   /**
    * Errors the server raises, keyed by the code it sends. The server names the
@@ -396,11 +475,11 @@ export const en = {
     },
     addByHand: {
       titleLabel: 'Title',
-      titlePlaceholder: 'All Jackie Chan movies',
+      titlePlaceholder: 'My list',
       descriptionLabel: 'Description',
       descriptionPlaceholder: 'Optional',
       itemsLabel: 'Items',
-      itemsPlaceholder: 'Early films:\nDrunken Master\nPolice Story\n\n# Late films\nRush Hour\nThe Tuxedo',
+      itemsPlaceholder: 'First item\nSecond item\n\nA group:\nThird item\nFourth item',
       itemsHint: 'Lines ending in a colon or starting with # open a group that lasts until the next one. Blank lines are ignored',
       statusLabel: 'Status',
       create: 'Create List',

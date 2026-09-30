@@ -1,7 +1,16 @@
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
-import { categoryDescription, categoryLabel, copy, errorMessage, setActiveLanguage, sortCategories } from './index.js'
+import {
+  categoryDescription,
+  categoryHandHints,
+  categoryLabel,
+  copy,
+  errorMessage,
+  setActiveLanguage,
+  sortCategories,
+} from './index.js'
+import { createDefaultMediaTypes } from '../../../server/src/ingestion/mediaTypes.js'
 import { en } from './en.js'
 import { ru } from './ru.js'
 import { de } from './de.js'
@@ -32,7 +41,11 @@ describe('locale', () => {
   it('overrides only where the design deliberately words a category differently', () => {
     // An override is for wording the app deliberately wants to differ; this
     // pins the whole set so adding one is a visible decision.
-    expect(Object.keys(copy.categories).sort()).toEqual(['tv', 'wrestling'])
+    const renamed = Object.entries(copy.categories)
+      .filter(([, entry]) => entry?.label !== undefined)
+      .map(([key]) => key)
+      .sort()
+    expect(renamed).toEqual(['tv', 'wrestling'])
   })
 
   it('prefers an override where one exists', () => {
@@ -123,6 +136,7 @@ describe('key parity: ru/de against en (strict since task 10.32b)', () => {
 /** Words that are the same in English on purpose: brands, hostnames, language names, and terms German shares. */
 const SAME_AS_ENGLISH: Record<'ru' | 'de', readonly string[]> = {
   ru: [
+    'categories.game.handItemsPlaceholder',
     'quantum.settings.themeQuantum',
     'quantum.settings.languages.en',
     'quantum.settings.languages.ru',
@@ -144,6 +158,9 @@ const SAME_AS_ENGLISH: Record<'ru' | 'de', readonly string[]> = {
     'quantum.skin.labels.light-bone',
   ],
   de: [
+    'categories.game.handItemsPlaceholder',
+    'categories.mega.handTitlePlaceholder',
+    'categories.tv.handTitlePlaceholder',
     'sourceSearch.includeEp',
     'sourceSearch.includeSingle',
     'sourceSearch.includeCompilation',
@@ -345,6 +362,52 @@ describe('sortCategories (11.15)', () => {
     setActiveLanguage('ru')
     try {
       expect(sortCategories(input).map((entry) => entry.key)).toEqual(['y', 'x', 'z'])
+    } finally {
+      setActiveLanguage('en')
+    }
+  })
+})
+
+describe('categoryHandHints: each category’s own Add by hand examples (11.16)', () => {
+  const LANGS = { en, ru, de } as const
+
+  it('names an example for every built-in category, in every language', () => {
+    const keys = createDefaultMediaTypes().map((type) => type.key)
+    expect(keys.length).toBeGreaterThanOrEqual(12)
+
+    for (const [language, locale] of Object.entries(LANGS)) {
+      for (const key of keys) {
+        const entry = (locale.categories as Record<string, Record<string, string> | undefined>)[key]
+        expect(entry?.['handTitlePlaceholder'], `${language}/${key} title`).toBeTruthy()
+        expect(entry?.['handItemsPlaceholder'], `${language}/${key} items`).toContain('\n')
+      }
+    }
+  })
+
+  it('shows the category’s own example, and a neutral one for a category nobody wrote for', () => {
+    setActiveLanguage('en')
+    expect(categoryHandHints({ key: 'tv' }).titlePlaceholder).toBe('Breaking Bad')
+    expect(categoryHandHints({ key: 'book' }).itemsPlaceholder).toContain('Rincewind')
+
+    const unknown = categoryHandHints({ key: 'brand-new-thing' })
+    expect(unknown).toEqual({
+      titlePlaceholder: copy.quantum.addByHand.titlePlaceholder,
+      itemsPlaceholder: copy.quantum.addByHand.itemsPlaceholder,
+      itemsHint: copy.quantum.addByHand.itemsHint,
+    })
+  })
+
+  it('keeps the fallback neutral: no Jackie Chan, in any language', () => {
+    for (const locale of Object.values(LANGS)) {
+      const generic = `${locale.quantum.addByHand.titlePlaceholder}\n${locale.quantum.addByHand.itemsPlaceholder}`
+      expect(generic).not.toMatch(/Jackie|Чан|Chan|Rush Hour/)
+    }
+  })
+
+  it('follows the language', () => {
+    setActiveLanguage('ru')
+    try {
+      expect(categoryHandHints({ key: 'tv' }).titlePlaceholder).toBe('Во все тяжкие')
     } finally {
       setActiveLanguage('en')
     }
