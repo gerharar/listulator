@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { StrictMode } from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { ApiError, api, type ListSourceResult, type MediaType } from '../../../lib/api.js'
@@ -47,13 +48,19 @@ function StackProbe() {
   return <output data-testid="stack">{JSON.stringify(stack.map((layer) => [layer.kind, layer.content]))}</output>
 }
 
-function renderTab(type: MediaType = mediaType(), onBuilt = vi.fn()) {
-  render(
+function renderTab(
+  type: MediaType = mediaType(),
+  onBuilt = vi.fn(),
+  seed: { initialQuery?: string; initialOpen?: string; strict?: boolean } = {},
+) {
+  const { strict, ...props } = seed
+  const tree = (
     <LayerStackProvider home={HOME}>
-      <SearchTab mediaType={type} onBuilt={onBuilt} />
+      <SearchTab mediaType={type} onBuilt={onBuilt} {...props} />
       <StackProbe />
-    </LayerStackProvider>,
+    </LayerStackProvider>
   )
+  render(strict ? <StrictMode>{tree}</StrictMode> : tree)
   return { onBuilt }
 }
 
@@ -470,4 +477,85 @@ describe('SearchTab', () => {
     expect(input.getAttribute('autocapitalize')).toBe('off')
     expect(input.getAttribute('autocomplete')).toBe('off')
   })
+
+  describe('opened already searched (Open in Mega, task 14.1)', () => {
+    const MEGA = mediaType({ key: 'mega', label: 'Mega', sourceName: undefined, searchScope: 'library' })
+    const LISTS: ListSourceResult[] = [
+      { externalRef: 'canonical:lists/mega/breaking-bad-main-watch.yaml', title: 'Breaking Bad franchise - main list', detail: 'Canonical list' },
+      { externalRef: 'canonical:lists/mega/breaking-bad-all.yaml', title: 'Breaking Bad franchise - full list', detail: 'Canonical list' },
+    ]
+    const rowOf = (title: string) => screen.getByRole('button', { name: new RegExp(title) })
+
+    it('runs the search it was given on opening, shows the query in the field, and lists the results', async () => {
+      vi.mocked(api.searchSources).mockResolvedValue({ sources: LISTS })
+      vi.mocked(api.expansion).mockResolvedValue({ itemCount: 1 })
+
+      await act(async () => {
+        renderTab(MEGA, vi.fn(), { initialQuery: 'breaking bad' })
+      })
+
+      expect(api.searchSources).toHaveBeenCalledExactlyOnceWith('mega', 'breaking bad', undefined)
+      expect((screen.getByLabelText(/^Search /) as HTMLInputElement).value).toBe('breaking bad')
+      expect(screen.getByText('Breaking Bad franchise - main list')).toBeTruthy()
+    })
+
+    it('opens the result it was asked to, and only that one', async () => {
+      vi.mocked(api.searchSources).mockResolvedValue({ sources: LISTS })
+      vi.mocked(api.expansion).mockResolvedValue({ itemCount: 1 })
+
+      await act(async () => {
+        renderTab(MEGA, vi.fn(), { initialQuery: 'breaking bad', initialOpen: 'canonical:lists/mega/breaking-bad-all.yaml' })
+      })
+
+      expect(rowOf('full list').getAttribute('aria-expanded')).toBe('true')
+      expect(rowOf('main list').getAttribute('aria-expanded')).toBe('false')
+    })
+
+    it('opens nothing, and does not fail, when the result it was asked to open is not in the results', async () => {
+      vi.mocked(api.searchSources).mockResolvedValue({ sources: LISTS })
+      vi.mocked(api.expansion).mockResolvedValue({ itemCount: 1 })
+
+      await act(async () => {
+        renderTab(MEGA, vi.fn(), { initialQuery: 'breaking bad', initialOpen: 'canonical:lists/mega/gone.yaml' })
+      })
+
+      expect(rowOf('full list').getAttribute('aria-expanded')).toBe('false')
+      expect(rowOf('main list').getAttribute('aria-expanded')).toBe('false')
+    })
+
+    it('does not search at all when it was given no query, even with a result to open', async () => {
+      await act(async () => {
+        renderTab(MEGA, vi.fn(), { initialOpen: 'canonical:lists/mega/breaking-bad-all.yaml' })
+      })
+
+      expect(api.searchSources).not.toHaveBeenCalled()
+      expect((screen.getByLabelText(/^Search /) as HTMLInputElement).value).toBe('')
+    })
+
+    it('searches once even where React mounts twice (StrictMode)', async () => {
+      vi.mocked(api.searchSources).mockResolvedValue({ sources: LISTS })
+      vi.mocked(api.expansion).mockResolvedValue({ itemCount: 1 })
+
+      await act(async () => {
+        renderTab(MEGA, vi.fn(), { initialQuery: 'breaking bad', initialOpen: 'canonical:lists/mega/breaking-bad-all.yaml', strict: true })
+      })
+
+      expect(api.searchSources).toHaveBeenCalledTimes(1)
+      expect(rowOf('full list').getAttribute('aria-expanded')).toBe('true')
+    })
+
+    it('does not reopen it on the next search the user makes themselves', async () => {
+      vi.mocked(api.searchSources).mockResolvedValue({ sources: LISTS })
+      vi.mocked(api.expansion).mockResolvedValue({ itemCount: 1 })
+      await act(async () => {
+        renderTab(MEGA, vi.fn(), { initialQuery: 'breaking bad', initialOpen: 'canonical:lists/mega/breaking-bad-all.yaml' })
+      })
+
+      await search('breaking')
+
+      expect(api.searchSources).toHaveBeenCalledTimes(2)
+      expect(rowOf('full list').getAttribute('aria-expanded')).toBe('false')
+    })
+  })
 })
+

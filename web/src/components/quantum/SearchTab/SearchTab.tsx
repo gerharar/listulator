@@ -28,6 +28,10 @@ export interface SearchTabProps {
   mediaType: MediaType
   /** Called with the new list's id once Add list succeeds. */
   onBuilt: (listId: string) => void
+  /** A search to run on opening, as if typed and submitted (Open in Mega, task 14.1). */
+  initialQuery?: string
+  /** The result to expand once that first search answers, if it is among the results. */
+  initialOpen?: string
 }
 
 /**
@@ -49,18 +53,21 @@ const CANONICAL_PREFIX = 'canonical:'
  * failed count just shows no number. A spinner is the only progress
  * indication, for searching and for importing alike (Q12).
  */
-export function SearchTab({ mediaType, onBuilt }: SearchTabProps) {
+export function SearchTab({ mediaType, onBuilt, initialQuery, initialOpen }: SearchTabProps) {
   const text = copy.quantum.search
   const layerStack = useLayerStack()
   const source = sourceLabel(mediaType) ?? categoryLabel(mediaType)
 
-  const [query, setQuery] = useState('')
+  const [query, setQuery] = useState(initialQuery ?? '')
   const [results, setResults] = useState<ListSourceResult[] | null>(null)
   const [expanded, setExpanded] = useState<ReadonlySet<string>>(new Set())
   const [searching, setSearching] = useState(false)
   const [building, setBuilding] = useState(false)
   const [notice, setNotice] = useState<Notice | null>(null)
   const searchId = useRef(0)
+  // The result to open belongs to the opening search only: taken once, whatever that search turns out to do.
+  const pendingOpen = useRef(initialQuery ? initialOpen : undefined)
+  const seeded = useRef(false)
   const { states, begin, resume, cancel } = useSourceExpansions()
 
   // Book-only: which language a bibliography is built in. Remembered across
@@ -166,12 +173,23 @@ export function SearchTab({ mediaType, onBuilt }: SearchTabProps) {
     // `fetchExpansion` closes over `options`, which `optionsKey` stands for.
   }, [optionsKey])
 
+  // Opened with a search (Open in Mega): run it once, as if the user had typed it and pressed Search. The ref
+  // keeps StrictMode's second mount from searching twice.
+  useEffect(() => {
+    if (!initialQuery || seeded.current) return
+    seeded.current = true
+    void runSearch(initialQuery)
+    // Only the opening: later searches are the user's.
+  }, [])
+
   async function runSearch(rawQuery: string) {
     const trimmed = rawQuery.trim()
     if (!trimmed) return
 
     searchId.current += 1
     const mine = searchId.current
+    const open = pendingOpen.current
+    pendingOpen.current = undefined
 
     cancel()
     shownRefs.current = []
@@ -192,6 +210,7 @@ export function SearchTab({ mediaType, onBuilt }: SearchTabProps) {
       if (searchId.current !== mine) return
 
       setResults(sources)
+      if (open && sources.some((entry) => entry.externalRef === open)) setExpanded(new Set([open]))
       if (sources.length === 0) {
         setNotice({
           kind: 'block',

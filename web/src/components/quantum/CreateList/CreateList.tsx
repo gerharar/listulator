@@ -19,6 +19,9 @@ export interface CreateListProps {
   mediaTypes: readonly MediaType[]
   /** The category the picker chose. A key the registry lacks falls back to the first entry. */
   mediaTypeKey: string
+  /** A search to run when the layer opens, and the result to open once it answers (Open in Mega, task 14.1). */
+  initialQuery?: string
+  initialOpen?: string
 }
 
 /**
@@ -31,7 +34,7 @@ export interface CreateListProps {
  * state it held (the design's rule: "the Import buffer never survives a
  * leave"). Building a list lands on it: the stack collapses to Home and the list.
  */
-export function CreateList({ mediaTypes, mediaTypeKey }: CreateListProps) {
+export function CreateList({ mediaTypes, mediaTypeKey, initialQuery, initialOpen }: CreateListProps) {
   const layerStack = useLayerStack()
   const mediaType = mediaTypes.find((entry) => entry.key === mediaTypeKey) ?? mediaTypes[0]
 
@@ -70,7 +73,14 @@ export function CreateList({ mediaTypes, mediaTypeKey }: CreateListProps) {
       </div>
 
       <div className="q-create-body">
-        {active === 'search' && mediaType && <SearchTab mediaType={mediaType} onBuilt={built} />}
+        {active === 'search' && mediaType && (
+          <SearchTab
+            mediaType={mediaType}
+            onBuilt={built}
+            {...(initialQuery ? { initialQuery } : {})}
+            {...(initialOpen ? { initialOpen } : {})}
+          />
+        )}
         {active === 'hand' && mediaType && <AddByHandTab mediaType={mediaType} onBuilt={built} />}
         {active === 'import' && mediaType && (
           <ImportFileTab mediaTypes={mediaTypes} mediaTypeKey={mediaType.key} onBuilt={built} />

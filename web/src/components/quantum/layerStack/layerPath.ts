@@ -6,7 +6,14 @@
 export type LayerTarget =
   | { kind: 'home' }
   | { kind: 'list'; listId: string }
-  | { kind: 'new-list'; mediaType: string | undefined }
+  | {
+      kind: 'new-list'
+      mediaType: string | undefined
+      /** A search to run when the layer opens (Open in Mega, task 14.1). */
+      query: string | undefined
+      /** The result to open once that search answers. */
+      openRef: string | undefined
+    }
   | { kind: 'preview'; params: URLSearchParams }
 
 const LIST_PATH = /^\/lists\/([^/?]+)$/
@@ -19,8 +26,14 @@ export function parseLayerPath(path: string): LayerTarget {
   }
 
   if (pathname === '/lists/new') {
-    const mediaType = new URLSearchParams(search).get('mediaType')
-    return { kind: 'new-list', mediaType: mediaType ?? undefined }
+    const params = new URLSearchParams(search)
+    // An empty `q` or `open` is the same as none.
+    return {
+      kind: 'new-list',
+      mediaType: params.get('mediaType') ?? undefined,
+      query: params.get('q') || undefined,
+      openRef: params.get('open') || undefined,
+    }
   }
 
   if (pathname === '/lists/preview') {
@@ -35,3 +48,24 @@ export function parseLayerPath(path: string): LayerTarget {
   // Nothing this app's layers recognise — Home is always safe.
   return { kind: 'home' }
 }
+
+/**
+ * The path of a Create layer: the category, and optionally a search to run and a result to open in it. What the
+ * category picker pushes and what Open in Mega replaces the layer with; the encoding is the one `parseLayerPath` reads.
+ */
+export function newListPath({
+  mediaType,
+  query,
+  openRef,
+}: {
+  mediaType: string
+  query?: string
+  openRef?: string
+}): string {
+  const params = new URLSearchParams({ mediaType })
+  if (query) params.set('q', query)
+  if (openRef) params.set('open', openRef)
+
+  return `/lists/new?${params.toString()}`
+}
+

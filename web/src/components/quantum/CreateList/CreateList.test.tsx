@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { cleanup, fireEvent, render, screen } from '@testing-library/react'
-import type { MediaType } from '../../../lib/api.js'
+import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { api, type MediaType } from '../../../lib/api.js'
 import { LayerStackProvider } from '../layerStack/LayerStackContext.js'
 import { OverlayManagerProvider } from '../overlay/OverlayManagerContext.js'
 import { CreateList } from './CreateList.js'
@@ -47,13 +47,17 @@ const PODCAST = mediaType({
   sourceName: undefined,
 })
 
-function renderCreate(key: string, mediaTypes: MediaType[] = [TV, MEGA, PODCAST]) {
+function renderCreate(
+  key: string,
+  mediaTypes: MediaType[] = [TV, MEGA, PODCAST],
+  seed: { initialQuery?: string; initialOpen?: string } = {},
+) {
   const home = { id: 'home', kind: 'home', tabLabel: 'My Lists', content: '/' }
 
   return render(
     <OverlayManagerProvider>
       <LayerStackProvider home={home}>
-        <CreateList mediaTypes={mediaTypes} mediaTypeKey={key} />
+        <CreateList mediaTypes={mediaTypes} mediaTypeKey={key} {...seed} />
       </LayerStackProvider>
     </OverlayManagerProvider>,
   )
@@ -137,4 +141,27 @@ describe('CreateList', () => {
 
     expect(screen.getByRole('heading', { name: 'New TV Series List' })).not.toBeNull()
   })
+
+  it('hands a search to run and a result to open on to its Search tab (task 14.1)', async () => {
+    vi.mocked(api.searchSources).mockResolvedValue({
+      sources: [{ externalRef: 'canonical:lists/mega/a.yaml', title: 'Breaking Bad franchise', detail: 'Canonical list' }],
+    })
+    vi.mocked(api.expansion).mockResolvedValue({ itemCount: 3 })
+
+    await act(async () => {
+      renderCreate('mega', [TV, MEGA, PODCAST], { initialQuery: 'breaking bad', initialOpen: 'canonical:lists/mega/a.yaml' })
+    })
+
+    expect(api.searchSources).toHaveBeenCalledExactlyOnceWith('mega', 'breaking bad', undefined)
+    expect(screen.getByRole('button', { name: /Breaking Bad franchise/ }).getAttribute('aria-expanded')).toBe('true')
+  })
+
+  it('does not search on opening without them', async () => {
+    await act(async () => {
+      renderCreate('tv')
+    })
+
+    expect(api.searchSources).not.toHaveBeenCalled()
+  })
 })
+

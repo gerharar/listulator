@@ -8,6 +8,7 @@ import { CategoryArt } from '../art/CategoryArt.js'
 import { IconButton } from '../Button/Button.js'
 import { HeaderPlate } from '../HeaderPlate/HeaderPlate.js'
 import { useLayerStack } from '../layerStack/LayerStackContext.js'
+import { newListPath } from '../layerStack/layerPath.js'
 
 export interface CategoryPickerProps {
   /** The live registry, lifted up from Home (task 10.10) — the tile grid is exactly this, A–Z by the name shown. */
@@ -85,7 +86,7 @@ export function CategoryPicker({ mediaTypes, first }: CategoryPickerProps) {
                     tabLabel: () => copy.newList.title,
                     // The Create layer (task 10.12) reads the chosen category
                     // from its own path's query string.
-                    content: `/lists/new?mediaType=${encodeURIComponent(mediaType.key)}`,
+                    content: newListPath({ mediaType: mediaType.key }),
                   })
                 }
               >

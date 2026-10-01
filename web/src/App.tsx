@@ -119,7 +119,7 @@ function QuantumShell({ initial }: { initial: BootState }) {
  * the Create layer for a category, or a Preview of a source. Anything the path
  * does not name draws nothing.
  */
-function PathLayer({ path, mediaTypes }: { path: string; mediaTypes: MediaType[] }) {
+export function PathLayer({ path, mediaTypes }: { path: string; mediaTypes: MediaType[] }) {
   const layerStack = useLayerStack()
   const target = parseLayerPath(path)
 
@@ -137,7 +137,17 @@ function PathLayer({ path, mediaTypes }: { path: string; mediaTypes: MediaType[]
   }
 
   if (target.kind === 'new-list') {
-    return <CreateList mediaTypes={mediaTypes} mediaTypeKey={target.mediaType ?? ''} />
+    // Keyed by the path: a Create layer replaced by another (Open in Mega) must start afresh, not keep the
+    // old category's tab, query and results.
+    return (
+      <CreateList
+        key={path}
+        mediaTypes={mediaTypes}
+        mediaTypeKey={target.mediaType ?? ''}
+        {...(target.query ? { initialQuery: target.query } : {})}
+        {...(target.openRef ? { initialOpen: target.openRef } : {})}
+      />
+    )
   }
 
   if (target.kind === 'preview') {
