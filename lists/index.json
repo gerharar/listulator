@@ -1,5 +1,29 @@
 [
   {
+    "path": "lists/animation/bojack-horseman-tv.yaml",
+    "title": "BoJack Horseman animated TV series",
+    "category": "animation",
+    "itemCount": 77,
+    "description": "All episodes of BoJack Horseman animated TV series, including Christmas Special",
+    "status": "complete"
+  },
+  {
+    "path": "lists/animation/gravity-falls-tv.yaml",
+    "title": "Gravity Falls animated TV series (release order)",
+    "category": "animation",
+    "itemCount": 114,
+    "description": "All episodes of Gravity Falls animated TV series, including shorts, in a roughly release order. Excludes comic books and video games",
+    "status": "complete"
+  },
+  {
+    "path": "lists/animation/rick-and-morty-tv-full.yaml",
+    "title": "Rick And Morty animated TV series (chronological)",
+    "category": "animation",
+    "itemCount": 170,
+    "description": "All episodes of Rick And Morty animated TV series, including spin-offs, in a chronological order. Excludes comic books and video games",
+    "status": "ongoing"
+  },
+  {
     "path": "lists/animation/studio-ghibli-feature-films.yaml",
     "title": "Studio Ghibli feature films",
     "category": "animation",
@@ -197,6 +221,22 @@
     "status": "complete"
   },
   {
+    "path": "lists/mega/dekalog-complete.yaml",
+    "title": "Dekalog - TV mini-series and films",
+    "category": "mega",
+    "itemCount": 12,
+    "description": "The complete Dekalog TV mini-series plus both related feature films by Krzysztof Kieślowski",
+    "status": "complete"
+  },
+  {
+    "path": "lists/mega/firefly-serenity-full.yaml",
+    "title": "Firefly / Serenity franchise - full list (recommended order)",
+    "category": "mega",
+    "itemCount": 136,
+    "description": "Every release in the Firefly / Serenity franchise in recommended order (TV series first, then roughly chronological)",
+    "status": "ongoing"
+  },
+  {
     "path": "lists/mega/ice-age-watch.yaml",
     "title": "Ice Age franchise (no games, grouped)",
     "category": "mega",
@@ -261,11 +301,82 @@
     "status": "complete"
   },
   {
+    "path": "lists/tv/band-of-brothers.yaml",
+    "title": "Band Of Brothers TV mini-series",
+    "category": "tv",
+    "itemCount": 10,
+    "description": "All episodes of Band Of Brothers TV mini-series",
+    "status": "complete"
+  },
+  {
     "path": "lists/tv/breaking-bad-series.yaml",
     "title": "Breaking Bad TV series",
     "category": "tv",
     "itemCount": 62,
     "description": "All episodes of Breaking Bad TV series",
+    "status": "complete"
+  },
+  {
+    "path": "lists/tv/chernobyl-tv.yaml",
+    "title": "Chernobyl TV mini-series",
+    "category": "tv",
+    "itemCount": 5,
+    "description": "All episodes of Chernobyl TV mini-series",
+    "status": "complete"
+  },
+  {
+    "path": "lists/tv/dekalog-tv.yaml",
+    "title": "Dekalog TV mini-series",
+    "category": "tv",
+    "itemCount": 10,
+    "description": "All episodes of Dekalog TV mini-series by Krzysztof Kieślowski",
+    "status": "complete"
+  },
+  {
+    "path": "lists/tv/fargo-tv.yaml",
+    "title": "Fargo TV series",
+    "category": "tv",
+    "itemCount": 51,
+    "description": "All episodes of Fargo TV series"
+  },
+  {
+    "path": "lists/tv/game-of-thrones-franchise-tv.yaml",
+    "title": "Game Of Thrones franchise - TV series (release order)",
+    "category": "tv",
+    "itemCount": 105,
+    "description": "All TV series in Game Of Thrones franchise in release order",
+    "status": "complete"
+  },
+  {
+    "path": "lists/tv/narcos-franchise-tv.yaml",
+    "title": "Narcos franchise - TV series (release order)",
+    "category": "tv",
+    "itemCount": 60,
+    "description": "All TV series in Narcos franchise in release order",
+    "status": "complete"
+  },
+  {
+    "path": "lists/tv/sopranos-tv.yaml",
+    "title": "The Sopranos TV series",
+    "category": "tv",
+    "itemCount": 86,
+    "description": "All episodes of The Sopranos TV series",
+    "status": "complete"
+  },
+  {
+    "path": "lists/tv/succession-tv.yaml",
+    "title": "Succession TV series",
+    "category": "tv",
+    "itemCount": 39,
+    "description": "All episodes of Succession TV series",
+    "status": "complete"
+  },
+  {
+    "path": "lists/tv/the-office-tv.yaml",
+    "title": "The Office TV series",
+    "category": "tv",
+    "itemCount": 191,
+    "description": "All episodes of The Office TV series",
     "status": "complete"
   },
   {
@@ -275,6 +386,14 @@
     "itemCount": 60,
     "description": "All episodes of The Wire TV series",
     "status": "complete"
+  },
+  {
+    "path": "lists/tv/true-detective-tv.yaml",
+    "title": "True Detective TV series",
+    "category": "tv",
+    "itemCount": 30,
+    "description": "All episodes of True Detective TV anthology series",
+    "status": "ongoing"
   },
   {
     "path": "lists/wrestling/aew-ppv.yaml",
