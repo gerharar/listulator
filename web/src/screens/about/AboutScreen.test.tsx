@@ -176,12 +176,22 @@ describe('AboutScreen', () => {
     })
   })
 
+  describe('the TMDB row’s expand arrow', () => {
+    it('is the same ▶ the search results use, not the small ▸', () => {
+      renderAbout()
+
+      const chevron = document.querySelector('.q-about-chevron')!
+      expect(chevron.textContent!.trim()).toBe('▶')
+      expect(chevron.getAttribute('aria-hidden')).toBe('true')
+    })
+  })
+
   describe('data sources', () => {
     it('lists the seven sources in the design’s order, TMDB last, each with what it powers and a link', () => {
       renderAbout()
       const rows = screen.getAllByRole('listitem')
 
-      expect(rows.map((row) => row.querySelector('.q-about-source-name')?.textContent?.replace('▸', '').trim())).toEqual([
+      expect(rows.map((row) => row.querySelector('.q-about-source-name')?.textContent?.replace('▶', '').trim())).toEqual([
         'IGDB',
         'MusicBrainz',
         'Open Library',

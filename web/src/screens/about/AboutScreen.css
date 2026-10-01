@@ -223,7 +223,12 @@
 }
 
 .q-about-chevron {
+  /* The search results' expand arrow (SearchResultRow.css `.q-result .chev`): 11px in a 12px column. */
+  flex: none;
+  width: 12px;
+  text-align: center;
   font-size: 11px;
+  line-height: 1;
   color: var(--ink3);
   transition: transform 160ms ease;
 }

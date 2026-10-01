@@ -131,8 +131,9 @@ function TmdbRow({ source }: { source: AboutSource }) {
         aria-expanded={open}
         text={open ? text.hideAttribution : text.showAttribution}
       >
+        {/* The same ▶ as the search results' expand arrow, turned a quarter when open (a ▸ here drew a 3 px mark). */}
         <span className="q-about-chevron" aria-hidden="true">
-          ▸
+          ▶
         </span>
         {source.name}
       </Tip>
