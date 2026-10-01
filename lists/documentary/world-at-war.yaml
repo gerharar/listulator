@@ -3,32 +3,32 @@ description: The World At War documentary series - original series plus addition
 category: documentary
 status: complete
 items:
-- { title: "A New Germany (1933–1939)", year: 1973, minutes: 60, group: Original Series }
-- { title: "Distant War (September 1939 – May 1940)", year: 1973, minutes: 60, group: Original Series }
-- { title: "France Falls (May–June 1940)", year: 1973, minutes: 60, group: Original Series }
-- { title: "Alone (May 1940 – May 1941)", year: 1973, minutes: 60, group: Original Series }
-- { title: "Barbarossa (June–December 1941)", year: 1973, minutes: 60, group: Original Series }
-- { title: "Banzai!: Japan (1931–1942)", year: 1973, minutes: 60, group: Original Series }
-- { title: "On Our Way: U.S.A. (1939–1942)", year: 1973, minutes: 60, group: Original Series }
-- { title: "The Desert: North Africa (1940–1943)", year: 1973, minutes: 60, group: Original Series }
-- { title: "Stalingrad (June 1942 – February 1943)", year: 1974, minutes: 54, group: Original Series }
-- { title: "Wolf Pack: U-Boats in the Atlantic (1939–1943)", year: 1974, minutes: 54, group: Original Series }
-- { title: "Red Star: The Soviet Union (1941–1943)", year: 1974, minutes: 55, group: Original Series }
-- { title: "Whirlwind: Bombing Germany (September 1939 – April 1944)", year: 1974, minutes: 55, group: Original Series }
-- { title: "Tough Old Gut: Italy (November 1942 – June 1944)", year: 1974, minutes: 53, group: Original Series }
-- { title: "It's a Lovely Day Tomorrow: Burma (1942–1944)", year: 1974, minutes: 55, group: Original Series }
-- { title: "Home Fires: Britain (1940–1944)", year: 1974, minutes: 55, group: Original Series }
-- { title: "Inside the Reich: Germany (1940–1944)", year: 1974, minutes: 55, group: Original Series }
-- { title: "Morning (June–August 1944)", year: 1974, minutes: 55, group: Original Series }
-- { title: "Occupation: Holland (1940–1944)", year: 1974, minutes: 55, group: Original Series }
-- { title: "Pincers (August 1944 – March 1945)", year: 1974, minutes: 55, group: Original Series }
-- { title: "Genocide (1941–1945)", year: 1974, minutes: 55, group: Original Series }
-- { title: "Nemesis: Germany (February–May 1945)", year: 1974, minutes: 55, group: Original Series }
-- { title: "Japan (1941–1945)", year: 1974, minutes: 53, group: Original Series }
-- { title: "Pacific (February 1942 – July 1945)", year: 1974, minutes: 53, group: Original Series }
-- { title: "The Bomb (February–September 1945)", year: 1974, minutes: 55, group: Original Series }
-- { title: "Reckoning (1945...and After)", year: 1974, minutes: 54, group: Original Series }
-- { title: "Remember", year: 1974, minutes: 52, group: Original Series }
+- { title: "E01 A New Germany (1933–1939)", year: 1973, minutes: 60, group: Original Series }
+- { title: "E02 Distant War (September 1939 – May 1940)", year: 1973, minutes: 60, group: Original Series }
+- { title: "E03 France Falls (May–June 1940)", year: 1973, minutes: 60, group: Original Series }
+- { title: "E04 Alone (May 1940 – May 1941)", year: 1973, minutes: 60, group: Original Series }
+- { title: "E05 Barbarossa (June–December 1941)", year: 1973, minutes: 60, group: Original Series }
+- { title: "E06 Banzai!: Japan (1931–1942)", year: 1973, minutes: 60, group: Original Series }
+- { title: "E07 On Our Way: U.S.A. (1939–1942)", year: 1973, minutes: 60, group: Original Series }
+- { title: "E08 The Desert: North Africa (1940–1943)", year: 1973, minutes: 60, group: Original Series }
+- { title: "E09 Stalingrad (June 1942 – February 1943)", year: 1974, minutes: 54, group: Original Series }
+- { title: "E10 Wolf Pack: U-Boats in the Atlantic (1939–1943)", year: 1974, minutes: 54, group: Original Series }
+- { title: "E11 Red Star: The Soviet Union (1941–1943)", year: 1974, minutes: 55, group: Original Series }
+- { title: "E12 Whirlwind: Bombing Germany (September 1939 – April 1944)", year: 1974, minutes: 55, group: Original Series }
+- { title: "E13 Tough Old Gut: Italy (November 1942 – June 1944)", year: 1974, minutes: 53, group: Original Series }
+- { title: "E14 It's a Lovely Day Tomorrow: Burma (1942–1944)", year: 1974, minutes: 55, group: Original Series }
+- { title: "E15 Home Fires: Britain (1940–1944)", year: 1974, minutes: 55, group: Original Series }
+- { title: "E16 Inside the Reich: Germany (1940–1944)", year: 1974, minutes: 55, group: Original Series }
+- { title: "E17 Morning (June–August 1944)", year: 1974, minutes: 55, group: Original Series }
+- { title: "E18 Occupation: Holland (1940–1944)", year: 1974, minutes: 55, group: Original Series }
+- { title: "E19 Pincers (August 1944 – March 1945)", year: 1974, minutes: 55, group: Original Series }
+- { title: "E20 Genocide (1941–1945)", year: 1974, minutes: 55, group: Original Series }
+- { title: "E21 Nemesis: Germany (February–May 1945)", year: 1974, minutes: 55, group: Original Series }
+- { title: "E22 Japan (1941–1945)", year: 1974, minutes: 53, group: Original Series }
+- { title: "E23 Pacific (February 1942 – July 1945)", year: 1974, minutes: 53, group: Original Series }
+- { title: "E24 The Bomb (February–September 1945)", year: 1974, minutes: 55, group: Original Series }
+- { title: "E25 Reckoning (1945...and After)", year: 1974, minutes: 54, group: Original Series }
+- { title: "E26 Remember", year: 1974, minutes: 52, group: Original Series }
 - { title: "Secretary to Hitler", year: 1974, minutes: 24, group: Additional Specials }
 - { title: "From War to Peace", year: 1974, minutes: 23, group: Additional Specials }
 - { title: "The Two Deaths of Adolf Hitler", year: 1975, minutes: 49, group: Additional Specials }

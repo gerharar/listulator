@@ -174,18 +174,18 @@ registry — never a value you invent. Use the **key**, not the display name:
 
 | Key           | Display name    |
 |---------------|------------------|
-| `movie`       | Movies           |
-| `tv`          | TV Shows         |
 | `animation`   | Animation        |
-| `documentary` | Documentaries    |
-| `wrestling`   | Wrestling        |
-| `mma`         | MMA              |
-| `game`        | Games            |
-| `comic`       | Comics           |
 | `book`        | Books            |
-| `music`       | Music            |
-| `youtube`     | YouTube          |
+| `comic`       | Comics           |
+| `documentary` | Documentaries    |
+| `game`        | Games            |
 | `mega`        | Mega             |
+| `mma`         | MMA              |
+| `movie`       | Movies           |
+| `music`       | Music            |
+| `wrestling`   | Pro Wrestling    |
+| `tv`          | TV Shows         |
+| `youtube`     | YouTube          |
 
 Want a genuinely new category? That's a code change (a new adapter, a new
 default duration, a new registry entry), not something a list file can

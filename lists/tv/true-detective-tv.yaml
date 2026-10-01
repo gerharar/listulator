@@ -1,0 +1,35 @@
+title: True Detective TV series
+description: All episodes of True Detective TV anthology series
+category: tv
+status: ongoing
+items:
+- { title: "S01E01 The Long Bright Dark", year: 2014, minutes: 58, group: Season 1 }
+- { title: "S01E02 Seeing Things", year: 2014, minutes: 59, group: Season 1 }
+- { title: "S01E03 The Locked Room", year: 2014, minutes: 60, group: Season 1 }
+- { title: "S01E04 Who Goes There", year: 2014, minutes: 56, group: Season 1 }
+- { title: "S01E05 The Secret Fate of All Life", year: 2014, minutes: 57, group: Season 1 }
+- { title: "S01E06 Haunted Houses", year: 2014, minutes: 59, group: Season 1 }
+- { title: "S01E07 After You've Gone", year: 2014, minutes: 54, group: Season 1 }
+- { title: "S01E08 Form and Void", year: 2014, minutes: 54, group: Season 1 }
+- { title: "S02E01 The Western Book of the Dead", year: 2015, minutes: 60, group: Season 2 }
+- { title: "S02E02 Night Finds You", year: 2015, minutes: 58, group: Season 2 }
+- { title: "S02E03 Maybe Tomorrow", year: 2015, minutes: 58, group: Season 2 }
+- { title: "S02E04 Down Will Come", year: 2015, minutes: 55, group: Season 2 }
+- { title: "S02E05 Other Lives", year: 2015, minutes: 59, group: Season 2 }
+- { title: "S02E06 Church in Ruins", year: 2015, minutes: 59, group: Season 2 }
+- { title: "S02E07 Black Maps and Motel Rooms", year: 2015, minutes: 64, group: Season 2 }
+- { title: "S02E08 Omega Station", year: 2015, minutes: 86, group: Season 2 }
+- { title: "S03E01 The Great War and Modern Memory", year: 2019, minutes: 59, group: Season 3 }
+- { title: "S03E02 Kiss Tomorrow Goodbye", year: 2019, minutes: 58, group: Season 3 }
+- { title: "S03E03 The Big Never", year: 2019, minutes: 55, group: Season 3 }
+- { title: "S03E04 The Hour and the Day", year: 2019, minutes: 67, group: Season 3 }
+- { title: "S03E05 If You Have Ghosts", year: 2019, minutes: 59, group: Season 3 }
+- { title: "S03E06 Hunters in the Dark", year: 2019, minutes: 59, group: Season 3 }
+- { title: "S03E07 The Final Country", year: 2019, minutes: 58, group: Season 3 }
+- { title: "S03E08 Now Am Found", year: 2019, minutes: 75, group: Season 3 }
+- { title: "S04E01 Night Country: Part 1", year: 2024, minutes: 59, group: Season 4 }
+- { title: "S04E02 Night Country: Part 2", year: 2024, minutes: 63, group: Season 4 }
+- { title: "S04E03 Night Country: Part 3", year: 2024, minutes: 58, group: Season 4 }
+- { title: "S04E04 Night Country: Part 4", year: 2024, minutes: 60, group: Season 4 }
+- { title: "S04E05 Night Country: Part 5", year: 2024, minutes: 63, group: Season 4 }
+- { title: "S04E06 Night Country: Part 6", year: 2024, minutes: 76, group: Season 4 }

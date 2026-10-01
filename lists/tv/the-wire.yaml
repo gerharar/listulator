@@ -3,63 +3,63 @@ description: All episodes of The Wire TV series
 category: tv
 status: complete
 items:
-- { title: "The Target", year: 2002, minutes: 62, group: Season 1 }
-- { title: "The Detail", year: 2002, minutes: 58, group: Season 1 }
-- { title: "The Buys", year: 2002, minutes: 55, group: Season 1 }
-- { title: "Old Cases", year: 2002, minutes: 59, group: Season 1 }
-- { title: "The Pager", year: 2002, minutes: 60, group: Season 1 }
-- { title: "The Wire", year: 2002, minutes: 59, group: Season 1 }
-- { title: "One Arrest", year: 2002, minutes: 59, group: Season 1 }
-- { title: "Lessons", year: 2002, minutes: 56, group: Season 1 }
-- { title: "Game Day", year: 2002, minutes: 57, group: Season 1 }
-- { title: "The Cost", year: 2002, minutes: 55, group: Season 1 }
-- { title: "The Hunt", year: 2002, minutes: 56, group: Season 1 }
-- { title: "Cleaning Up", year: 2002, minutes: 56, group: Season 1 }
-- { title: "Sentencing", year: 2002, minutes: 65, group: Season 1 }
-- { title: "Ebb Tide", year: 2003, minutes: 58, group: Season 2 }
-- { title: "Collateral Damage", year: 2003, minutes: 58, group: Season 2 }
-- { title: "Hot Shots", year: 2003, minutes: 58, group: Season 2 }
-- { title: "Hard Cases", year: 2003, minutes: 58, group: Season 2 }
-- { title: "Undertow", year: 2003, minutes: 58, group: Season 2 }
-- { title: "All Prologue", year: 2003, minutes: 58, group: Season 2 }
-- { title: "Backwash", year: 2003, minutes: 58, group: Season 2 }
-- { title: "Duck and Cover", year: 2003, minutes: 58, group: Season 2 }
-- { title: "Stray Rounds", year: 2003, minutes: 58, group: Season 2 }
-- { title: "Storm Warnings", year: 2003, minutes: 58, group: Season 2 }
-- { title: "Bad Dreams", year: 2003, minutes: 58, group: Season 2 }
-- { title: "Port in a Storm", year: 2003, minutes: 59, group: Season 2 }
-- { title: "Time After Time", year: 2004, minutes: 57, group: Season 3 }
-- { title: "All Due Respect", year: 2004, minutes: 57, group: Season 3 }
-- { title: "Dead Soldiers", year: 2004, minutes: 57, group: Season 3 }
-- { title: "Hamsterdam", year: 2004, minutes: 57, group: Season 3 }
-- { title: "Straight and True", year: 2004, minutes: 57, group: Season 3 }
-- { title: "Homecoming", year: 2004, minutes: 57, group: Season 3 }
-- { title: "Back Burners", year: 2004, minutes: 57, group: Season 3 }
-- { title: "Moral Midgetry", year: 2004, minutes: 57, group: Season 3 }
-- { title: "Slapstick", year: 2004, minutes: 57, group: Season 3 }
-- { title: "Reformation", year: 2004, minutes: 57, group: Season 3 }
-- { title: "Middle Ground", year: 2004, minutes: 57, group: Season 3 }
-- { title: "Mission Accomplished", year: 2004, minutes: 60, group: Season 3 }
-- { title: "Boys of Summer", year: 2006, minutes: 58, group: Season 4 }
-- { title: "Soft Eyes", year: 2006, minutes: 58, group: Season 4 }
-- { title: "Home Rooms", year: 2006, minutes: 58, group: Season 4 }
-- { title: "Refugees", year: 2006, minutes: 58, group: Season 4 }
-- { title: "Alliances", year: 2006, minutes: 58, group: Season 4 }
-- { title: "Margin of Error", year: 2006, minutes: 58, group: Season 4 }
-- { title: "Unto Others", year: 2006, minutes: 58, group: Season 4 }
-- { title: "Corner Boys", year: 2006, minutes: 58, group: Season 4 }
-- { title: "Know Your Place", year: 2006, minutes: 58, group: Season 4 }
-- { title: "Misgivings", year: 2006, minutes: 58, group: Season 4 }
-- { title: "A New Day", year: 2006, minutes: 58, group: Season 4 }
-- { title: "That's Got His Own", year: 2006, minutes: 58, group: Season 4 }
-- { title: "Final Grades", year: 2006, minutes: 64, group: Season 4 }
-- { title: "More with Less", year: 2008, minutes: 58, group: Season 5 }
-- { title: "Unconfirmed Reports", year: 2008, minutes: 58, group: Season 5 }
-- { title: "Not for Attribution", year: 2008, minutes: 58, group: Season 5 }
-- { title: "Transitions", year: 2008, minutes: 58, group: Season 5 }
-- { title: "React Quotes", year: 2008, minutes: 58, group: Season 5 }
-- { title: "The Dickensian Aspect", year: 2008, minutes: 58, group: Season 5 }
-- { title: "Took", year: 2008, minutes: 58, group: Season 5 }
-- { title: "Clarifications", year: 2008, minutes: 58, group: Season 5 }
-- { title: "Late Editions", year: 2008, minutes: 58, group: Season 5 }
-- { title: "-30-", year: 2008, minutes: 93, group: Season 5 }
+- { title: "S01E01 The Target", year: 2002, minutes: 62, group: Season 1 }
+- { title: "S01E02 The Detail", year: 2002, minutes: 58, group: Season 1 }
+- { title: "S01E03 The Buys", year: 2002, minutes: 55, group: Season 1 }
+- { title: "S01E04 Old Cases", year: 2002, minutes: 59, group: Season 1 }
+- { title: "S01E05 The Pager", year: 2002, minutes: 60, group: Season 1 }
+- { title: "S01E06 The Wire", year: 2002, minutes: 59, group: Season 1 }
+- { title: "S01E07 One Arrest", year: 2002, minutes: 59, group: Season 1 }
+- { title: "S01E08 Lessons", year: 2002, minutes: 56, group: Season 1 }
+- { title: "S01E09 Game Day", year: 2002, minutes: 57, group: Season 1 }
+- { title: "S01E10 The Cost", year: 2002, minutes: 55, group: Season 1 }
+- { title: "S01E11 The Hunt", year: 2002, minutes: 56, group: Season 1 }
+- { title: "S01E12 Cleaning Up", year: 2002, minutes: 56, group: Season 1 }
+- { title: "S01E13 Sentencing", year: 2002, minutes: 65, group: Season 1 }
+- { title: "S02E01 Ebb Tide", year: 2003, minutes: 58, group: Season 2 }
+- { title: "S02E02 Collateral Damage", year: 2003, minutes: 58, group: Season 2 }
+- { title: "S02E03 Hot Shots", year: 2003, minutes: 58, group: Season 2 }
+- { title: "S02E04 Hard Cases", year: 2003, minutes: 58, group: Season 2 }
+- { title: "S02E05 Undertow", year: 2003, minutes: 58, group: Season 2 }
+- { title: "S02E06 All Prologue", year: 2003, minutes: 58, group: Season 2 }
+- { title: "S02E07 Backwash", year: 2003, minutes: 58, group: Season 2 }
+- { title: "S02E08 Duck and Cover", year: 2003, minutes: 58, group: Season 2 }
+- { title: "S02E09 Stray Rounds", year: 2003, minutes: 58, group: Season 2 }
+- { title: "S02E10 Storm Warnings", year: 2003, minutes: 58, group: Season 2 }
+- { title: "S02E11 Bad Dreams", year: 2003, minutes: 58, group: Season 2 }
+- { title: "S02E12 Port in a Storm", year: 2003, minutes: 59, group: Season 2 }
+- { title: "S03E01 Time After Time", year: 2004, minutes: 57, group: Season 3 }
+- { title: "S03E02 All Due Respect", year: 2004, minutes: 57, group: Season 3 }
+- { title: "S03E03 Dead Soldiers", year: 2004, minutes: 57, group: Season 3 }
+- { title: "S03E04 Hamsterdam", year: 2004, minutes: 57, group: Season 3 }
+- { title: "S03E05 Straight and True", year: 2004, minutes: 57, group: Season 3 }
+- { title: "S03E06 Homecoming", year: 2004, minutes: 57, group: Season 3 }
+- { title: "S03E07 Back Burners", year: 2004, minutes: 57, group: Season 3 }
+- { title: "S03E08 Moral Midgetry", year: 2004, minutes: 57, group: Season 3 }
+- { title: "S03E09 Slapstick", year: 2004, minutes: 57, group: Season 3 }
+- { title: "S03E10 Reformation", year: 2004, minutes: 57, group: Season 3 }
+- { title: "S03E11 Middle Ground", year: 2004, minutes: 57, group: Season 3 }
+- { title: "S03E12 Mission Accomplished", year: 2004, minutes: 60, group: Season 3 }
+- { title: "S04E01 Boys of Summer", year: 2006, minutes: 58, group: Season 4 }
+- { title: "S04E02 Soft Eyes", year: 2006, minutes: 58, group: Season 4 }
+- { title: "S04E03 Home Rooms", year: 2006, minutes: 58, group: Season 4 }
+- { title: "S04E04 Refugees", year: 2006, minutes: 58, group: Season 4 }
+- { title: "S04E05 Alliances", year: 2006, minutes: 58, group: Season 4 }
+- { title: "S04E06 Margin of Error", year: 2006, minutes: 58, group: Season 4 }
+- { title: "S04E07 Unto Others", year: 2006, minutes: 58, group: Season 4 }
+- { title: "S04E08 Corner Boys", year: 2006, minutes: 58, group: Season 4 }
+- { title: "S04E09 Know Your Place", year: 2006, minutes: 58, group: Season 4 }
+- { title: "S04E10 Misgivings", year: 2006, minutes: 58, group: Season 4 }
+- { title: "S04E11 A New Day", year: 2006, minutes: 58, group: Season 4 }
+- { title: "S04E12 That's Got His Own", year: 2006, minutes: 58, group: Season 4 }
+- { title: "S04E13 Final Grades", year: 2006, minutes: 64, group: Season 4 }
+- { title: "S05E01 More with Less", year: 2008, minutes: 58, group: Season 5 }
+- { title: "S05E02 Unconfirmed Reports", year: 2008, minutes: 58, group: Season 5 }
+- { title: "S05E03 Not for Attribution", year: 2008, minutes: 58, group: Season 5 }
+- { title: "S05E04 Transitions", year: 2008, minutes: 58, group: Season 5 }
+- { title: "S05E05 React Quotes", year: 2008, minutes: 58, group: Season 5 }
+- { title: "S05E06 The Dickensian Aspect", year: 2008, minutes: 58, group: Season 5 }
+- { title: "S05E07 Took", year: 2008, minutes: 58, group: Season 5 }
+- { title: "S05E08 Clarifications", year: 2008, minutes: 58, group: Season 5 }
+- { title: "S05E09 Late Editions", year: 2008, minutes: 58, group: Season 5 }
+- { title: "S05E10 -30-", year: 2008, minutes: 93, group: Season 5 }

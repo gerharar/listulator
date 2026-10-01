@@ -20,9 +20,9 @@ items:
 - { title: "The End", year: 2022, minutes: 1, group: "Short Films", tags: [movie] }
 - { title: "Ice Age: A Mammoth Christmas", year: 2011, minutes: 26, group: "TV Specials", tags: [movie] }
 - { title: "Ice Age: The Great Egg-Scapade", year: 2016, minutes: 25, group: "TV Specials", tags: [movie] }
-- { title: "Nuts About You", year: 2022, minutes: 4, group: "Ice Age: Scrat Tales: Season 1", tags: [tv] }
-- { title: "LoFi Scrat Beats to Sleep/Chill to", year: 2022, minutes: 4, group: "Ice Age: Scrat Tales: Season 1", tags: [tv] }
-- { title: "X's and Uh-O's", year: 2022, minutes: 4, group: "Ice Age: Scrat Tales: Season 1", tags: [tv] }
-- { title: "Nutty Reflections", year: 2022, minutes: 4, group: "Ice Age: Scrat Tales: Season 1", tags: [tv] }
-- { title: "Teeter Toddler", year: 2022, minutes: 4, group: "Ice Age: Scrat Tales: Season 1", tags: [tv] }
-- { title: "Nut The End", year: 2022, minutes: 4, group: "Ice Age: Scrat Tales: Season 1", tags: [tv] }
+- { title: "S01E01 Nuts About You", year: 2022, minutes: 4, group: "Ice Age: Scrat Tales: Season 1", tags: [tv] }
+- { title: "S01E02 LoFi Scrat Beats to Sleep/Chill to", year: 2022, minutes: 4, group: "Ice Age: Scrat Tales: Season 1", tags: [tv] }
+- { title: "S01E03 X's and Uh-O's", year: 2022, minutes: 4, group: "Ice Age: Scrat Tales: Season 1", tags: [tv] }
+- { title: "S01E04 Nutty Reflections", year: 2022, minutes: 4, group: "Ice Age: Scrat Tales: Season 1", tags: [tv] }
+- { title: "S01E05 Teeter Toddler", year: 2022, minutes: 4, group: "Ice Age: Scrat Tales: Season 1", tags: [tv] }
+- { title: "S01E06 Nut The End", year: 2022, minutes: 4, group: "Ice Age: Scrat Tales: Season 1", tags: [tv] }

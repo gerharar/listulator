@@ -1,0 +1,10 @@
+title: Chernobyl TV mini-series
+description: All episodes of Chernobyl TV mini-series
+category: tv
+status: complete
+items:
+- { title: "E01 1:23:45", year: 2019, minutes: 59, group: Season 1 }
+- { title: "E02 Please Remain Calm", year: 2019, minutes: 65, group: Season 1 }
+- { title: "E03 Open Wide, O Earth", year: 2019, minutes: 62, group: Season 1 }
+- { title: "E04 The Happiness of All Mankind", year: 2019, minutes: 65, group: Season 1 }
+- { title: "E05 Vichnaya Pamyat", year: 2019, minutes: 72, group: Season 1 }
