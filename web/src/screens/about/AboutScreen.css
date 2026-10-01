@@ -47,7 +47,7 @@
   max-width: 760px;
 }
 
-/* 1. Identity: name and version, the update button, the credits line. */
+/* 1. Identity: the name, the update block, the credits line. */
 .q-about-identity {
   display: grid;
   gap: 14px;
@@ -68,17 +68,50 @@
   color: var(--ink);
 }
 
-.q-about-version {
-  font: 500 13px/1 var(--font-mono);
+.q-about-update-block {
+  position: relative;
+  overflow: hidden;
+  /* Hugs its content rather than filling the column. */
+  justify-self: start;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px 16px;
+  padding: 12px 14px;
+  border: 1px solid var(--rule);
+  background: var(--fill);
+}
+/* The wash is the plate, absolutely positioned behind: everything else sits above it. */
+.q-about-update-block > :not(.q-plate) {
+  position: relative;
+}
+.q-about-update-text {
+  display: grid;
+  gap: 3px;
+  font-size: 13.5px;
+  line-height: 1.4;
+  color: var(--ink);
+  white-space: nowrap;
+}
+.q-about-version-line {
+  font: 500 12.5px/1.4 var(--font-mono);
   font-variant-numeric: tabular-nums;
   color: var(--ink2);
 }
 
-.q-about-update {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 10px 14px;
+/*
+ * Zero layout shift: every variant of a text shares one grid cell, the inactive ones only hidden, so the cell
+ * is as wide as its longest variant in the current language and nothing moves when the state changes.
+ */
+.q-about-stack {
+  display: grid;
+  text-align: left;
+}
+.q-about-stack > span {
+  grid-area: 1 / 1;
+}
+.q-about-stack > .off {
+  visibility: hidden;
 }
 
 /* The credits line: copyright, then plain underlined links (design `about-updates`, 1c). */

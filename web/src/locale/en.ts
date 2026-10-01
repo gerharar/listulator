@@ -308,6 +308,13 @@ export const en = {
       checkForUpdates: 'Check For Updates',
       /** The button is a placeholder until the desktop updater exists (owner, 2026-09-30). */
       updatesLater: 'Checking for updates is yet TBD.',
+      /** The update block's status lines and button labels (docs/design/about-updates); "Title Case" buttons as the owner's "Check For Updates". */
+      upToDate: 'Listulator is up to date.',
+      checking: 'Checking…',
+      available: 'An update is available.',
+      failed: 'Couldn’t check for updates.',
+      download: 'Download Update',
+      retry: 'Try Again',
       legal: 'Licensing and notices',
       dataSources: 'Data sources',
       showAttribution: 'Show attribution',

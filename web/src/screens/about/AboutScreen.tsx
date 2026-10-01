@@ -3,13 +3,16 @@ import { useState, type MouseEvent } from 'react'
 import { X } from 'lucide-react'
 import { copy } from '../../locale/index.js'
 import { APP_VERSION } from '../../lib/appVersion.js'
-import { Button, IconButton } from '../../components/quantum/Button/Button.js'
+import { IconButton } from '../../components/quantum/Button/Button.js'
 import { ExternalLink } from '../../components/quantum/ExternalLink/ExternalLink.js'
 import { HeaderPlate } from '../../components/quantum/HeaderPlate/HeaderPlate.js'
 import { useLayerStack } from '../../components/quantum/layerStack/LayerStackContext.js'
 import { Tip } from '../../components/quantum/Tooltip/Tip.js'
 import { ABOUT_SOURCES, AUTHOR, LICENSING_URL, TMDB_NOTICE, type AboutSource } from '../../lib/dataSources.js'
 import tmdbLogo from './tmdb-long.svg'
+import { UpdateBlock } from './UpdateBlock.js'
+
+const noop = (): void => {}
 
 /**
  * The About layer (task 11.21; design handoff `docs/design/about-screen/`,
@@ -36,13 +39,9 @@ export function AboutScreen() {
           <section className="q-about-identity">
             <div className="q-about-nameline">
               <span className="q-about-name">Listulator</span>
-              <span className="q-about-version">{`${text.version} ${APP_VERSION}`}</span>
             </div>
-            <div className="q-about-update">
-              <Button variant="primary" size="sm" disabled title={text.updatesLater}>
-                {text.checkForUpdates}
-              </Button>
-            </div>
+            {/* No updater exists yet, so the block is in its `unavailable` state and its actions do nothing (13.3 wires the check). */}
+            <UpdateBlock state="unavailable" current={APP_VERSION} onCheck={noop} onDownload={noop} />
             <p className="q-about-credits">
               <span>{AUTHOR.copyright}</span>
               <span className="q-about-sep" aria-hidden="true">

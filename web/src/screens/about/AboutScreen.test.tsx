@@ -57,21 +57,30 @@ describe('AboutScreen', () => {
   })
 
   describe('who and what', () => {
-    it('names the app and the version the build carries', () => {
+    it('names the app alone on its line, and shows the version the build carries in the update block', () => {
       renderAbout()
 
-      expect(screen.getByText('Listulator', { selector: '.q-about-name' })).toBeTruthy()
-      expect(screen.getByText(`Version ${APP_VERSION}`)).toBeTruthy()
+      const name = screen.getByText('Listulator', { selector: '.q-about-name' })
+      expect(name.parentElement?.textContent).toBe('Listulator')
+      expect(within(screen.getByRole('status')).getByText(`Version ${APP_VERSION}.`)).toBeTruthy()
       expect(APP_VERSION).toMatch(/^\d+\.\d+\.\d+/)
     })
 
-    it('shows Check for updates as a placeholder: disabled, says why, and never claims the app is up to date', async () => {
+    it('shows the update block in its unavailable state: nothing claimed, the button disabled and explained', async () => {
       renderAbout()
       const check = screen.getByRole('button', { name: 'Check For Updates' }) as HTMLButtonElement
 
       expect(check.disabled).toBe(true)
       expect(await hoverTooltip(check)).toBe('Checking for updates is yet TBD.')
-      expect(screen.queryByText(/latest version/i)).toBeNull()
+      // What a reader hears is the variants that are not hidden: never "up to date" without a check.
+      const heard = [...screen.getByRole('status').querySelectorAll('.q-about-stack')].map((stack) =>
+        [...stack.children]
+          .filter((variant) => variant.getAttribute('aria-hidden') !== 'true')
+          .map((variant) => variant.textContent)
+          .join(''),
+      )
+      expect(heard).toEqual(['Checking for updates is yet TBD.', `Version ${APP_VERSION}.`])
+      expect(document.querySelector('.q-about-update-block > .q-plate.q-wash')).not.toBeNull()
     })
 
     describe('the credits line', () => {
