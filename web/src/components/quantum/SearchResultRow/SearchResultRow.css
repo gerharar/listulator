@@ -64,6 +64,8 @@
   align-self: center;
 }
 .q-result-more {
+  /* Part of the row: a click in it folds it (SearchResultRow.tsx), so it shows the same pointer. */
+  cursor: pointer;
   display: flex;
   flex-direction: column;
   gap: 9px;
