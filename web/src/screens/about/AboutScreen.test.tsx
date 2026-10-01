@@ -1,11 +1,13 @@
 // @vitest-environment jsdom
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { useEffect } from 'react'
-import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { setActiveLanguage } from '../../locale/index.js'
 import { LayerStackProvider, useLayerStack } from '../../components/quantum/layerStack/LayerStackContext.js'
+import { LiveRegionProvider } from '../../components/quantum/LiveRegion/LiveRegion.js'
 import { OverlayManagerProvider } from '../../components/quantum/overlay/OverlayManagerContext.js'
 import { hoverTooltip } from '../../components/quantum/Tooltip/hoverTooltip.js'
+import type { AppUpdateChecker, UpdateResult } from '../../lib/appUpdate.js'
 import { APP_VERSION } from '../../lib/appVersion.js'
 import { AboutScreen } from './AboutScreen.js'
 
@@ -15,7 +17,7 @@ afterEach(() => {
 })
 
 /** About on top of a Home layer, and a way to read the stack's depth. */
-function renderAbout() {
+function renderAbout(checker?: AppUpdateChecker) {
   const depth = { current: 0 }
 
   function Harness() {
@@ -24,18 +26,44 @@ function renderAbout() {
     useEffect(() => {
       stack.push({ id: 'about', kind: 'about', tabLabel: () => 'About', content: '' })
     }, [])
-    return <AboutScreen />
+    return <AboutScreen {...(checker ? { checker } : {})} />
   }
 
   render(
-    <OverlayManagerProvider>
-      <LayerStackProvider home={{ id: 'home', kind: 'home', tabLabel: 'Home', content: '/' }}>
-        <Harness />
-      </LayerStackProvider>
-    </OverlayManagerProvider>,
+    <LiveRegionProvider>
+      <OverlayManagerProvider>
+        <LayerStackProvider home={{ id: 'home', kind: 'home', tabLabel: 'Home', content: '/' }}>
+          <Harness />
+        </LayerStackProvider>
+      </OverlayManagerProvider>
+    </LiveRegionProvider>,
   )
   return depth
 }
+
+/** A checker the test answers when it likes. */
+function controlledChecker(download?: AppUpdateChecker['download']) {
+  const waiting: { resolve: (result: UpdateResult) => void; reject: (error: Error) => void }[] = []
+  const check = vi.fn(
+    () =>
+      new Promise<UpdateResult>((resolve, reject) => {
+        waiting.push({ resolve, reject })
+      }),
+  )
+  const checker: AppUpdateChecker = { check, ...(download ? { download } : {}) }
+
+  return { checker, check, answer: (result: UpdateResult) => waiting.shift()!.resolve(result), fail: () => waiting.shift()!.reject(new Error('offline')) }
+}
+
+/** The status line and the version line a reader hears: the stacked variants that are not hidden. */
+const heard = () =>
+  [...screen.getByRole('status').querySelectorAll('.q-about-stack')].map((stack) =>
+    [...stack.children]
+      .filter((variant) => variant.getAttribute('aria-hidden') !== 'true')
+      .map((variant) => variant.textContent)
+      .join(''),
+  )
+const spoken = () => document.querySelector('.q-live')?.textContent
 
 describe('AboutScreen', () => {
   it('is headed About, and Close takes the layer off the stack', () => {
@@ -68,6 +96,8 @@ describe('AboutScreen', () => {
 
     it('shows the update block in its unavailable state: nothing claimed, the button disabled and explained', async () => {
       renderAbout()
+      // The shipped checker answers on the next tick; until then the block says Checking….
+      await act(async () => {})
       const check = screen.getByRole('button', { name: 'Check For Updates' }) as HTMLButtonElement
 
       expect(check.disabled).toBe(true)
@@ -203,3 +233,75 @@ describe('AboutScreen', () => {
     })
   })
 })
+
+describe('checking for updates when About opens (task 13.3)', () => {
+  it('asks once on opening, says Checking… meanwhile, and says up to date only after the answer', async () => {
+    const { checker, check, answer } = controlledChecker()
+    renderAbout(checker)
+
+    expect(check).toHaveBeenCalledTimes(1)
+    expect(heard()).toEqual(['Checking…', `Version ${APP_VERSION}.`])
+    expect(screen.queryByText('Listulator is up to date.', { selector: '.q-about-stack > span:not(.off)' })).toBeNull()
+
+    await act(async () => answer({ kind: 'latest' }))
+
+    expect(heard()).toEqual(['Listulator is up to date.', `Version ${APP_VERSION}.`])
+    expect((screen.getByRole('button', { name: 'Check For Updates' }) as HTMLButtonElement).disabled).toBe(false)
+  })
+
+  it('announces the result once, with the version, and checks again on request', async () => {
+    const { checker, check, answer } = controlledChecker()
+    renderAbout(checker)
+
+    await act(async () => answer({ kind: 'latest' }))
+    await waitFor(() => expect(spoken()).toBe(`Listulator is up to date. Version ${APP_VERSION}.`))
+
+    fireEvent.click(screen.getByRole('button', { name: 'Check For Updates' }))
+    expect(check).toHaveBeenCalledTimes(2)
+    expect(heard()[0]).toBe('Checking…')
+    await act(async () => answer({ kind: 'latest' }))
+    await waitFor(() => expect(spoken()).toBe(`Listulator is up to date. Version ${APP_VERSION}.`))
+  })
+
+  it('shows Couldn’t check, announces it, and Try Again checks again', async () => {
+    const { checker, check, fail, answer } = controlledChecker()
+    renderAbout(checker)
+
+    await act(async () => fail())
+    expect(heard()[0]).toBe('Couldn’t check for updates.')
+    await waitFor(() => expect(spoken()).toBe(`Couldn’t check for updates. Version ${APP_VERSION}.`))
+
+    fireEvent.click(screen.getByRole('button', { name: 'Try Again' }))
+    expect(check).toHaveBeenCalledTimes(2)
+    await act(async () => answer({ kind: 'latest' }))
+    expect(heard()[0]).toBe('Listulator is up to date.')
+  })
+
+  it('offers the update with both versions, announces it, and hands the download off', async () => {
+    const download = vi.fn()
+    const { checker, answer } = controlledChecker(download)
+    renderAbout(checker)
+
+    await act(async () => answer({ kind: 'available', version: '9.9.9' }))
+
+    expect(heard()).toEqual(['An update is available.', `Version ${APP_VERSION} → 9.9.9.`])
+    await waitFor(() => expect(spoken()).toBe(`An update is available. Version ${APP_VERSION} → 9.9.9.`))
+    fireEvent.click(screen.getByRole('button', { name: 'Download Update' }))
+    expect(download).toHaveBeenCalledExactlyOnceWith('9.9.9')
+  })
+
+  it('says nothing aloud when there is no updater to ask, and nothing about being up to date', async () => {
+    const { checker, answer } = controlledChecker()
+    renderAbout(checker)
+
+    await act(async () => answer({ kind: 'unavailable' }))
+    // The live region fills one animation frame after an announcement: wait that long before calling it silent.
+    await act(async () => {
+      await new Promise((resolve) => requestAnimationFrame(() => resolve(undefined)))
+    })
+
+    expect(heard()).toEqual(['Checking for updates is yet TBD.', `Version ${APP_VERSION}.`])
+    expect(spoken()).toBe('')
+  })
+})
+

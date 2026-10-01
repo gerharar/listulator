@@ -1,18 +1,19 @@
 import './AboutScreen.css'
-import { useState, type MouseEvent } from 'react'
+import { useEffect, useState, type MouseEvent } from 'react'
 import { X } from 'lucide-react'
 import { copy } from '../../locale/index.js'
+import { appUpdateChecker, type AppUpdateChecker } from '../../lib/appUpdate.js'
 import { APP_VERSION } from '../../lib/appVersion.js'
+import { useUpdateCheck } from '../../lib/useUpdateCheck.js'
 import { IconButton } from '../../components/quantum/Button/Button.js'
 import { ExternalLink } from '../../components/quantum/ExternalLink/ExternalLink.js'
 import { HeaderPlate } from '../../components/quantum/HeaderPlate/HeaderPlate.js'
 import { useLayerStack } from '../../components/quantum/layerStack/LayerStackContext.js'
+import { useLiveRegion } from '../../components/quantum/LiveRegion/LiveRegion.js'
 import { Tip } from '../../components/quantum/Tooltip/Tip.js'
 import { ABOUT_SOURCES, AUTHOR, LICENSING_URL, TMDB_NOTICE, type AboutSource } from '../../lib/dataSources.js'
 import tmdbLogo from './tmdb-long.svg'
-import { UpdateBlock } from './UpdateBlock.js'
-
-const noop = (): void => {}
+import { UpdateBlock, updateStatusText, updateVersionText } from './UpdateBlock.js'
 
 /**
  * The About layer (task 11.21; design handoff `docs/design/about-screen/`,
@@ -20,9 +21,21 @@ const noop = (): void => {}
  * scrolling body. Check for updates is a placeholder until the desktop
  * updater exists (owner, 2026-09-30), so it is disabled and says so.
  */
-export function AboutScreen() {
+export function AboutScreen({ checker }: { checker?: AppUpdateChecker }) {
   const layerStack = useLayerStack()
+  const { announce } = useLiveRegion()
   const text = copy.quantum.about
+  // Made once per opening: a new checker on every render would start a new check on every render.
+  const [used] = useState(() => checker ?? appUpdateChecker())
+  const update = useUpdateCheck(used)
+
+  // Each answer is spoken once, with the version; "Checking…" and "no updater yet" are not answers. (The
+  // block's `role="status"` is also a live region: if a screen reader then says it twice, drop the role.)
+  useEffect(() => {
+    if (update.state === 'latest' || update.state === 'available' || update.state === 'error') {
+      announce(`${updateStatusText(update.state)} ${updateVersionText(APP_VERSION, update.state === 'available' ? update.next : undefined)}`)
+    }
+  }, [update.state, update.next, announce])
 
   return (
     <div className="q-about">
@@ -40,8 +53,13 @@ export function AboutScreen() {
             <div className="q-about-nameline">
               <span className="q-about-name">Listulator</span>
             </div>
-            {/* No updater exists yet, so the block is in its `unavailable` state and its actions do nothing (13.3 wires the check). */}
-            <UpdateBlock state="unavailable" current={APP_VERSION} onCheck={noop} onDownload={noop} />
+            <UpdateBlock
+              state={update.state}
+              current={APP_VERSION}
+              {...(update.next === undefined ? {} : { next: update.next })}
+              onCheck={() => void update.check()}
+              onDownload={update.download}
+            />
             <p className="q-about-credits">
               <span>{AUTHOR.copyright}</span>
               <span className="q-about-sep" aria-hidden="true">

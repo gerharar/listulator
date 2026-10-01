@@ -1,5 +1,6 @@
 import { Button } from '../../components/quantum/Button/Button.js'
 import { HeaderPlate } from '../../components/quantum/HeaderPlate/HeaderPlate.js'
+import type { UpdateCheckState } from '../../lib/appUpdate.js'
 import { copy } from '../../locale/index.js'
 
 /**
@@ -7,7 +8,7 @@ import { copy } from '../../locale/index.js'
  * yet (owner's rulings, 2026-10-01: never claim "up to date" without a check, and the real updater comes
  * later), so it says so and offers a disabled button.
  */
-export type UpdateBlockState = 'latest' | 'checking' | 'available' | 'error' | 'unavailable'
+export type UpdateBlockState = UpdateCheckState
 
 export interface UpdateBlockProps {
   state: UpdateBlockState
@@ -19,6 +20,27 @@ export interface UpdateBlockProps {
   onCheck: () => void
   /** Download Update: hands off to the app's update flow. */
   onDownload: () => void
+}
+
+/** The status line for a state, as the block shows it and as a reader is told it. */
+export function updateStatusText(state: UpdateBlockState): string {
+  const text = copy.quantum.about
+  const lines: Record<UpdateBlockState, string> = {
+    latest: text.upToDate,
+    checking: text.checking,
+    available: text.available,
+    error: text.failed,
+    unavailable: text.updatesLater,
+  }
+
+  return lines[state]
+}
+
+/** "Version 1.0.0." or, with an update to offer, "Version 1.0.0 → 1.1.0.". */
+export function updateVersionText(current: string, next?: string): string {
+  const label = copy.quantum.about.version
+
+  return next === undefined ? `${label} ${current}.` : `${label} ${current} → ${next}.`
 }
 
 /**
@@ -53,21 +75,15 @@ export function UpdateBlock({ state, current, next, onCheck, onDownload }: Updat
       <div className="q-about-update-text" role="status">
         <Stack
           active={state}
-          variants={[
-            { key: 'latest', text: text.upToDate },
-            { key: 'checking', text: text.checking },
-            { key: 'available', text: text.available },
-            { key: 'error', text: text.failed },
-            { key: 'unavailable', text: text.updatesLater },
-          ]}
+          variants={(['latest', 'checking', 'available', 'error', 'unavailable'] as const).map((key) => ({ key, text: updateStatusText(key) }))}
         />
         {/* The arrow line is always in the page, so its width is already reserved when an update turns up; without a known version it holds a stand-in of the same length. */}
         <span className="q-about-version-line">
           <Stack
             active={state === 'available' ? 'arrow' : 'plain'}
             variants={[
-              { key: 'plain', text: `${text.version} ${current}.` },
-              { key: 'arrow', text: `${text.version} ${current} → ${next ?? current}.` },
+              { key: 'plain', text: updateVersionText(current) },
+              { key: 'arrow', text: updateVersionText(current, next ?? current) },
             ]}
           />
         </span>
