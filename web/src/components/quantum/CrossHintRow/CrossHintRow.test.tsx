@@ -122,11 +122,24 @@ describe('the row, open', () => {
     expect(screen.queryByRole('button', { name: /Add List/ })).toBeNull()
   })
 
-  it('has no star on the lists shown: the row’s star already says they are canonical', () => {
+  it('marks each canonical list shown with the curated star, before its title, as a canonical result is', () => {
     const { container } = renderRow({ expanded: true })
+    const subRows = [...container.querySelectorAll('.q-hint-list')]
 
-    expect(container.querySelectorAll('.q-hint-list')).toHaveLength(2)
-    expect(container.querySelector('.q-hint-more .q-star')).toBeNull()
+    expect(subRows).toHaveLength(2)
+    for (const subRow of subRows) {
+      const star = subRow.querySelector('.q-star')
+      expect(star?.getAttribute('aria-label')).toBe(copy.quantum.marks.curated)
+      expect(star?.nextElementSibling?.classList.contains('title')).toBe(true)
+    }
+  })
+
+  it('stars only the lists that are canonical', () => {
+    const { container } = renderRow({ expanded: true, lists: [MAIN, { externalRef: 'tmdb:1396', title: 'Breaking Bad' }] })
+    const [first, second] = [...container.querySelectorAll('.q-hint-list')]
+
+    expect(first?.querySelector('.q-star')).not.toBeNull()
+    expect(second?.querySelector('.q-star')).toBeNull()
   })
 
   it('falls back to just the count, or just the description, when the other is missing', () => {

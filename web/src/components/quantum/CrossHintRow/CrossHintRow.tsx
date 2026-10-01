@@ -26,7 +26,7 @@ export interface CrossHintRowProps {
  * The best-bet row above a search's results (design `search-mega-promo`, option 4A): a fuller list for this search
  * lives in another category. It is built from the result row: the curated star (when every list is canonical), the
  * category's icon in ink, a 600 title and a 2px rule that sets it off as its own group; no tint, accent or dismiss.
- * It opens in place to name the lists. Only Open leaves the category, never the row itself, and never to add:
+ * It opens in place to name the lists, each with its own star when it is canonical. Only Open leaves the category, never the row itself, and never to add:
  * adding happens over there.
  */
 export function CrossHintRow({ lists, categoryLabel, expanded, onToggle, onOpen }: CrossHintRowProps) {
@@ -85,7 +85,10 @@ export function CrossHintRow({ lists, categoryLabel, expanded, onToggle, onOpen 
             return (
               <div key={list.externalRef} className="q-hint-list">
                 <div className="info">
-                  <div className="title">{list.title}</div>
+                  <div className="q-hint-line">
+                    {isCanonical(list) && <CuratedStar />}
+                    <div className="title">{list.title}</div>
+                  </div>
                   {meta && <div className="sub">{meta}</div>}
                 </div>
                 <Button size="sm" aria-label={hint.openList(list.title)} onClick={() => onOpen(list)}>
