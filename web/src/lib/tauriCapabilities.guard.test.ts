@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
-import { AUTHOR } from './dataSources.js'
+import { AUTHOR, LICENSING_URL } from './dataSources.js'
 
 /**
  * The desktop app may only open the addresses its capability lists: an external link the screens
@@ -28,6 +28,10 @@ describe('the desktop opener scope', () => {
 
   it('lets a link reach the repository’s own pages, such as its licensing and notices', () => {
     expect(allowed(`${AUTHOR.repoUrl}/blob/main/NOTICE.md`)).toBe(true)
+  })
+
+  it('lets the About screen open the licensing and notices page', () => {
+    expect(allowed(LICENSING_URL)).toBe(true)
   })
 
   it('does not open other people’s repositories on the same host', () => {

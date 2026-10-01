@@ -31,11 +31,18 @@ export const ABOUT_SOURCES: readonly AboutSource[] = [
 export const TMDB_NOTICE =
   'This application uses TMDB and the TMDB APIs but is not endorsed, certified, or otherwise approved by TMDB.'
 
+/**
+ * The credits line under the app's name (docs/design/about-updates): the copyright, and the link to the
+ * repository. Names, not copy: the same in every language.
+ */
 export const AUTHOR = {
-  handle: 'gerharar',
+  copyright: '© 2026 Andrei Kugaevskii',
+  githubLabel: 'GitHub',
   repoUrl: 'https://github.com/gerharar/listulator',
-  repoLabel: 'github.com/gerharar/listulator',
 } as const
+
+/** Licensing and notices: the repository's own page that explains the app's, the lists' and the data's terms. */
+export const LICENSING_URL = `${AUTHOR.repoUrl}/blob/main/NOTICE.md`
 
 /**
  * The source a fetched list links back to under its add band, by the category's `sourceName`

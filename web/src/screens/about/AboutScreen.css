@@ -47,7 +47,7 @@
   max-width: 760px;
 }
 
-/* 1. Identity: name and version, the update button, licence and author. */
+/* 1. Identity: name and version, the update button, the credits line. */
 .q-about-identity {
   display: grid;
   gap: 14px;
@@ -81,29 +81,39 @@
   gap: 10px 14px;
 }
 
-.q-about-legal {
-  display: grid;
-  gap: 4px;
+/* The credits line: copyright, then plain underlined links (design `about-updates`, 1c). */
+.q-about-credits {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  margin: 0;
   font-size: 13.5px;
   line-height: 1.5;
   color: var(--ink2);
 }
-.q-about-legal p {
-  margin: 0;
+.q-about-sep {
+  color: var(--ink3);
 }
-
-.q-about-author {
-  display: flex;
+.q-about-credit-link {
+  display: inline-flex;
   align-items: baseline;
-  flex-wrap: wrap;
-  gap: 4px 12px;
-}
-.q-about-author b {
-  font-weight: 600;
+  gap: 5px;
   color: var(--ink);
+  white-space: nowrap;
+  text-decoration: underline;
+  text-decoration-color: var(--line);
+  text-underline-offset: 3px;
+}
+/* Only the underline changes on hover. */
+.q-about-credit-link:hover {
+  text-decoration-color: var(--ink);
+}
+.q-about-credit-link > span {
+  color: var(--ink3);
 }
 
-/* The repository and source links: mono host name and a quiet ↗. */
+/* The data sources' links: mono host name and a quiet ↗. */
 .q-about-link {
   display: inline-flex;
   align-items: baseline;

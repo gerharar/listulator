@@ -8,7 +8,7 @@ import { ExternalLink } from '../../components/quantum/ExternalLink/ExternalLink
 import { HeaderPlate } from '../../components/quantum/HeaderPlate/HeaderPlate.js'
 import { useLayerStack } from '../../components/quantum/layerStack/LayerStackContext.js'
 import { Tip } from '../../components/quantum/Tooltip/Tip.js'
-import { ABOUT_SOURCES, AUTHOR, TMDB_NOTICE, type AboutSource } from '../../lib/dataSources.js'
+import { ABOUT_SOURCES, AUTHOR, LICENSING_URL, TMDB_NOTICE, type AboutSource } from '../../lib/dataSources.js'
 import tmdbLogo from './tmdb-long.svg'
 
 /**
@@ -43,18 +43,23 @@ export function AboutScreen() {
                 {text.checkForUpdates}
               </Button>
             </div>
-            <div className="q-about-legal">
-              <p className="q-about-author">
-                <span>
-                  {text.madeBy} <b>{AUTHOR.handle}</b>
-                </span>
-                <ExternalLink className="q-about-link" href={AUTHOR.repoUrl}>
-                  {AUTHOR.repoLabel}
-                  <span aria-hidden="true">↗</span>
-                </ExternalLink>
-              </p>
-              <p>{text.licence}</p>
-            </div>
+            <p className="q-about-credits">
+              <span>{AUTHOR.copyright}</span>
+              <span className="q-about-sep" aria-hidden="true">
+                ·
+              </span>
+              <ExternalLink className="q-about-credit-link" href={AUTHOR.repoUrl}>
+                {AUTHOR.githubLabel}
+                <span aria-hidden="true">↗</span>
+              </ExternalLink>
+              <span className="q-about-sep" aria-hidden="true">
+                ·
+              </span>
+              <ExternalLink className="q-about-credit-link" href={LICENSING_URL}>
+                {text.legal}
+                <span aria-hidden="true">↗</span>
+              </ExternalLink>
+            </p>
           </section>
 
           <section>
