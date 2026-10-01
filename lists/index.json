@@ -24,6 +24,14 @@
     "status": "ongoing"
   },
   {
+    "path": "lists/animation/south-park-tv.yaml",
+    "title": "South Park animated TV series (release order)",
+    "category": "animation",
+    "itemCount": 341,
+    "description": "All episodes of South Park animated TV series, including specials and the full-length film, in a roughly release order. Excludes shorts, sketches, and video games",
+    "status": "ongoing"
+  },
+  {
     "path": "lists/animation/studio-ghibli-feature-films.yaml",
     "title": "Studio Ghibli feature films",
     "category": "animation",
@@ -203,6 +211,14 @@
     "category": "game",
     "itemCount": 10,
     "description": "All Spy Hunter franchise games. Excludes compilation appearances"
+  },
+  {
+    "path": "lists/mega/black-mirror-tv-full.yaml",
+    "title": "Black Mirror franchise (release order)",
+    "category": "mega",
+    "itemCount": 41,
+    "description": "Every release in the Black Mirror franchise in release order",
+    "status": "ongoing"
   },
   {
     "path": "lists/mega/breaking-bad-all.yaml",
