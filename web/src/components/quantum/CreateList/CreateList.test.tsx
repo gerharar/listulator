@@ -163,5 +163,28 @@ describe('CreateList', () => {
 
     expect(api.searchSources).not.toHaveBeenCalled()
   })
+
+  it('gives its Search tab the registry’s library-scope category, so a search in another category can point at it (task 14.2)', async () => {
+    const LIBRARY = mediaType({ key: 'shelf', label: 'Shelf', searchScope: 'library' })
+    vi.mocked(api.searchSources).mockResolvedValue({ sources: [] })
+
+    await act(async () => {
+      renderCreate('tv', [TV, LIBRARY], { initialQuery: 'breaking bad' })
+    })
+
+    expect(api.searchSources).toHaveBeenCalledWith('tv', 'breaking bad', undefined)
+    expect(api.searchSources).toHaveBeenCalledWith('shelf', 'breaking bad')
+  })
+
+  it('does not look for another shelf from the library-scope category itself', async () => {
+    const LIBRARY = mediaType({ key: 'shelf', label: 'Shelf', searchScope: 'library' })
+    vi.mocked(api.searchSources).mockResolvedValue({ sources: [] })
+
+    await act(async () => {
+      renderCreate('shelf', [TV, LIBRARY], { initialQuery: 'breaking bad' })
+    })
+
+    expect(api.searchSources).toHaveBeenCalledTimes(1)
+  })
 })
 

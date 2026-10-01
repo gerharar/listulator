@@ -428,3 +428,38 @@ describe('the source-copy notice (task 12.5)', () => {
     )
   })
 })
+
+describe('the Fuller lists in Mega hint strings (task 14.2)', () => {
+  const hint = { en: en.quantum.search.megaHint, ru: ru.quantum.search.megaHint, de: de.quantum.search.megaHint }
+
+  it('en: one list or several, named for the category, with the unit and the counts', () => {
+    expect(hint.en.title({ count: 1, category: 'Mega' })).toBe('Fuller list in Mega')
+    expect(hint.en.title({ count: 2, category: 'Mega' })).toBe('Fuller lists in Mega')
+    expect([1, 2].map(hint.en.unit)).toEqual(['list', 'lists'])
+    expect([1, 126].map(hint.en.items)).toEqual(['1 item', '126 items'])
+    expect(hint.en.seeAll({ n: 5, category: 'Mega' })).toBe('See all 5 in Mega')
+    expect(hint.en.open).toBe('Open')
+    expect(hint.en.openList('Black Mirror')).toBe('Open Black Mirror')
+  })
+
+  it('ru: the unit takes all four plural forms (список, списка, списков)', () => {
+    expect([1, 2, 4, 5, 11, 21, 22].map(hint.ru.unit)).toEqual(['список', 'списка', 'списка', 'списков', 'списков', 'список', 'списка'])
+    expect([1, 2, 5].map(hint.ru.items)).toEqual(['1 элемент', '2 элемента', '5 элементов'])
+    expect(hint.ru.title({ count: 1, category: 'Mega' })).toBe('Более полный список в Mega')
+    expect(hint.ru.title({ count: 3, category: 'Mega' })).toBe('Более полные списки в Mega')
+  })
+
+  it('de: one list or several', () => {
+    expect(hint.de.title({ count: 1, category: 'Mega' })).toBe('Umfassendere Liste in Mega')
+    expect(hint.de.title({ count: 2, category: 'Mega' })).toBe('Umfassendere Listen in Mega')
+    expect([1, 2].map(hint.de.unit)).toEqual(['Liste', 'Listen'])
+  })
+
+  it('every language says what Open does and names the list on it, so each button is distinct to a screen reader', () => {
+    for (const [name, strings] of Object.entries(hint)) {
+      expect(strings.openList('Black Mirror'), name).toContain('Black Mirror')
+      expect(strings.openList('Black Mirror'), name).toContain(strings.open)
+    }
+  })
+})
+

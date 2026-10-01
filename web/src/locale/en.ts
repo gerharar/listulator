@@ -466,6 +466,15 @@ export const en = {
       addButton: 'Add List',
       nothingToAdd: 'Curiously, this list has no items to add',
       /** A source that cannot list its items before import (design: "Preview degrades honestly"). */
+      /** The best-bet row above the results when a fuller list lives in the library-scope category (Mega); the category's own label goes in. */
+      megaHint: {
+        title: (p: { count: number; category: string }): string => `Fuller ${p.count === 1 ? 'list' : 'lists'} in ${p.category}`,
+        unit: (n: number): string => selectPlural(n, 'en', { one: 'list', other: 'lists' }),
+        items: (n: number): string => `${n} ${selectPlural(n, 'en', { one: 'item', other: 'items' })}`,
+        open: 'Open',
+        openList: (title: string): string => `Open ${title}`,
+        seeAll: (p: { n: number; category: string }): string => `See all ${p.n} in ${p.category}`,
+      },
       previewUnavailable:
         "This source is too shy to list its items. Just add the list and delete it later if it's a wrong one.",
       curatedTitle: 'Canonical List',

@@ -423,6 +423,15 @@ export const ru: Locale = {
       previewTab: (title: string): string => `Предпросмотр: ${title}`,
       addButton: 'Добавить список',
       nothingToAdd: 'Как ни странно, в этом списке нечего добавлять',
+      megaHint: {
+        title: (p: { count: number; category: string }): string =>
+          p.count === 1 ? `Более полный список в ${p.category}` : `Более полные списки в ${p.category}`,
+        unit: (n: number): string => selectPlural(n, 'ru', { one: 'список', few: 'списка', many: 'списков', other: 'списка' }),
+        items: (n: number): string => items(n),
+        open: 'Открыть',
+        openList: (title: string): string => `Открыть: ${title}`,
+        seeAll: (p: { n: number; category: string }): string => `Показать все ${p.n} в ${p.category}`,
+      },
       previewUnavailable:
         'Этот источник слишком застенчив, чтобы показать свои элементы. Просто добавьте список и удалите его позже, если он не тот.',
       curatedTitle: 'Канонический список',

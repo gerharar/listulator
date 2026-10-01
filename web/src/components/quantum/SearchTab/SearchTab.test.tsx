@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { StrictMode } from 'react'
+import { StrictMode, useEffect } from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { ApiError, api, type ListSourceResult, type MediaType } from '../../../lib/api.js'
@@ -45,17 +45,23 @@ const HOME = { id: 'home', kind: 'home', tabLabel: 'My Lists', content: '/' }
 function StackProbe() {
   const { stack } = useLayerStack()
 
-  return <output data-testid="stack">{JSON.stringify(stack.map((layer) => [layer.kind, layer.content]))}</output>
+  return (
+    <>
+      <output data-testid="stack">{JSON.stringify(stack.map((layer) => [layer.kind, layer.content]))}</output>
+      <output data-testid="stack-ids">{JSON.stringify(stack.map((layer) => layer.id))}</output>
+    </>
+  )
 }
 
 function renderTab(
   type: MediaType = mediaType(),
   onBuilt = vi.fn(),
-  seed: { initialQuery?: string; initialOpen?: string; strict?: boolean } = {},
+  seed: { initialQuery?: string; initialOpen?: string; strict?: boolean; libraryCategory?: MediaType; underneath?: boolean } = {},
 ) {
-  const { strict, ...props } = seed
+  const { strict, underneath, ...props } = seed
   const tree = (
     <LayerStackProvider home={HOME}>
+      {underneath && <CreateLayerUnderneath />}
       <SearchTab mediaType={type} onBuilt={onBuilt} {...props} />
       <StackProbe />
     </LayerStackProvider>
@@ -63,6 +69,17 @@ function renderTab(
   render(strict ? <StrictMode>{tree}</StrictMode> : tree)
   return { onBuilt }
 }
+
+/** The Create layer the tab lives in, so a test can see it replaced rather than pushed over. */
+function CreateLayerUnderneath() {
+  const layerStack = useLayerStack()
+  useEffect(() => {
+    layerStack.push({ id: 'new-list', kind: 'new-list', tabLabel: () => 'New List', content: '/lists/new?mediaType=tv' })
+  }, [])
+  return null
+}
+
+const stackIds = () => JSON.parse(screen.getByTestId('stack-ids').textContent ?? '[]') as string[]
 
 const pushedLayers = () => JSON.parse(screen.getByTestId('stack').textContent ?? '[]') as string[][]
 
@@ -555,6 +572,121 @@ describe('SearchTab', () => {
 
       expect(api.searchSources).toHaveBeenCalledTimes(2)
       expect(rowOf('full list').getAttribute('aria-expanded')).toBe('false')
+    })
+  })
+
+  describe('the Fuller lists in Mega hint (task 14.2)', () => {
+    const MEGA = mediaType({ key: 'mega', label: 'Mega', sourceName: undefined, searchScope: 'library' })
+    const MEGA_LISTS: ListSourceResult[] = [
+      { externalRef: 'canonical:lists/mega/bb-main.yaml', title: 'Breaking Bad franchise - main list', detail: 'Canonical list', description: 'The recommended order', itemCount: 126 },
+      { externalRef: 'canonical:lists/mega/bb-all.yaml', title: 'Breaking Bad franchise - full list', detail: 'Canonical list', description: 'Every release', itemCount: 197 },
+    ]
+    const hintRow = () => screen.getByRole('button', { name: /Show details for Fuller list/ })
+
+    function answerWith(mega: ListSourceResult[] | Error | 'unreachable' = MEGA_LISTS) {
+      vi.mocked(api.searchSources).mockImplementation(async (key) => {
+        if (key !== 'mega') return { sources: RESULTS }
+        if (mega instanceof Error) throw mega
+        if (mega === 'unreachable') return { sources: [], libraryUnreachable: true }
+        return { sources: mega }
+      })
+      vi.mocked(api.expansion).mockResolvedValue({ itemCount: 1 })
+    }
+
+    it('asks the library-scope category for the same search, beside the category’s own, and shows the row first', async () => {
+      answerWith()
+      renderTab(mediaType(), vi.fn(), { libraryCategory: MEGA })
+
+      await search('breaking bad')
+
+      expect(api.searchSources).toHaveBeenCalledWith('tv', 'breaking bad', undefined)
+      expect(api.searchSources).toHaveBeenCalledWith('mega', 'breaking bad')
+      const rows = screen.getAllByRole('button', { name: /Show details for/ })
+      expect(rows[0]).toBe(hintRow())
+      expect(rows).toHaveLength(3)
+    })
+
+    it('counts the category’s results and Mega’s lists together in the header', async () => {
+      answerWith()
+      renderTab(mediaType(), vi.fn(), { libraryCategory: MEGA })
+
+      await search('breaking bad')
+
+      expect(screen.getByText('4 results')).toBeTruthy()
+    })
+
+    it('opens in place, naming the lists, and does not leave the category', async () => {
+      answerWith()
+      renderTab(mediaType(), vi.fn(), { libraryCategory: MEGA, underneath: true })
+      await search('breaking bad')
+
+      fireEvent.click(hintRow())
+
+      expect(hintRow().getAttribute('aria-expanded')).toBe('true')
+      expect(screen.getByText('The recommended order · 126 items')).toBeTruthy()
+      expect(pushedLayers().map(([kind]) => kind)).toEqual(['home', 'new-list'])
+      expect(pushedLayers()[1]![1]).toBe('/lists/new?mediaType=tv')
+    })
+
+    it('Open replaces this Create layer with Mega’s: query kept, that list open, the stack no deeper, a layer of its own', async () => {
+      answerWith()
+      renderTab(mediaType(), vi.fn(), { libraryCategory: MEGA, underneath: true })
+      await search('breaking bad')
+      fireEvent.click(hintRow())
+
+      fireEvent.click(screen.getByRole('button', { name: 'Open Breaking Bad franchise - full list' }))
+
+      expect(pushedLayers()).toEqual([
+        ['home', '/'],
+        ['new-list', '/lists/new?mediaType=mega&q=breaking+bad&open=canonical%3Alists%2Fmega%2Fbb-all.yaml'],
+      ])
+      expect(stackIds()).toEqual(['home', 'new-list-mega'])
+    })
+
+    it('See all N in Mega opens Mega with the query and no list open', async () => {
+      const five = Array.from({ length: 5 }, (_, n) => ({ externalRef: `canonical:lists/mega/l${n}.yaml`, title: `Breaking Bad list ${n}`, detail: 'Canonical list' }))
+      answerWith(five)
+      renderTab(mediaType(), vi.fn(), { libraryCategory: MEGA, underneath: true })
+      await search('breaking bad')
+      fireEvent.click(hintRow())
+
+      fireEvent.click(screen.getByRole('button', { name: 'See all 5 in Mega' }))
+
+      expect(pushedLayers()[1]).toEqual(['new-list', '/lists/new?mediaType=mega&q=breaking+bad'])
+    })
+
+    it('shows no row, and the header counts only the category’s results, when no Mega list matches', async () => {
+      answerWith([])
+      renderTab(mediaType(), vi.fn(), { libraryCategory: MEGA })
+
+      await search('saul')
+
+      expect(screen.queryByText(/Fuller list/)).toBeNull()
+      expect(screen.getByText('2 results')).toBeTruthy()
+    })
+
+    it('shows no row, and no error, when the Mega lookup fails or the library cannot be reached', async () => {
+      for (const failure of [new Error('offline'), 'unreachable'] as const) {
+        answerWith(failure)
+        renderTab(mediaType(), vi.fn(), { libraryCategory: MEGA })
+
+        await search('breaking bad')
+
+        expect(screen.queryByText(/Fuller list/)).toBeNull()
+        expect(screen.getByText('2 results')).toBeTruthy()
+        expect(screen.queryByRole('alert')).toBeNull()
+        cleanup()
+      }
+    })
+
+    it('makes no second search when the tab has no library category (it is Mega itself, or the registry has none)', async () => {
+      answerWith()
+      renderTab(mediaType(), vi.fn())
+
+      await search('breaking bad')
+
+      expect(api.searchSources).toHaveBeenCalledTimes(1)
+      expect(screen.queryByText(/Fuller list/)).toBeNull()
     })
   })
 })

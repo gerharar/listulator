@@ -112,6 +112,8 @@ export interface ListSourceResult {
   description?: string
   /** Production status of the thing the list is about — canonical results only, when set. */
   status?: 'complete' | 'ongoing'
+  /** How many items the list holds — canonical results only, when the library's index says. */
+  itemCount?: number
 }
 
 export interface CurrentUser {

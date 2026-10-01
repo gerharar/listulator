@@ -433,6 +433,24 @@ describe('searchCanonicalLists', () => {
     ])
   })
 
+  it('carries the item count the manifest holds, so a caller can say how long a list is without fetching it', async () => {
+    const manifest = [{ path: 'lists/mega/mcu.yaml', title: 'MCU', category: 'mega', itemCount: 23 }]
+
+    const results = await searchCanonicalLists('mega', 'mcu', respondWith(manifest))
+
+    expect(results).toEqual([
+      { externalRef: 'canonical:lists/mega/mcu.yaml', title: 'MCU', detail: 'Canonical list', itemCount: 23 },
+    ])
+  })
+
+  it('has no item count when an older manifest lacks one', async () => {
+    const manifest = [{ path: 'lists/mega/mcu.yaml', title: 'MCU', category: 'mega' }]
+
+    const [result] = await searchCanonicalLists('mega', 'mcu', respondWith(manifest))
+
+    expect(result).not.toHaveProperty('itemCount')
+  })
+
   it('omits description and status entirely when the manifest entry has neither', async () => {
     const manifest = [{ path: 'lists/mega/mcu.yaml', title: 'MCU', category: 'mega' }]
 

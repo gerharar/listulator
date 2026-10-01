@@ -51,6 +51,10 @@ export function CreateList({ mediaTypes, mediaTypeKey, initialQuery, initialOpen
   ]
   const [active, setActive] = useState<TabKey>(hasSearch ? 'search' : 'hand')
 
+  // The shelf a search here can point at (Mega): found by what it is (library-only), never by its key, and never
+  // from itself.
+  const libraryCategory = mediaTypes.find((entry) => entry.searchScope === 'library' && entry.key !== mediaType?.key)
+
   const description = mediaType ? categoryDescription(mediaType) : undefined
   const built = (listId: string) => layerStack.landOnList(untitledListLayer(listId))
 
@@ -77,6 +81,7 @@ export function CreateList({ mediaTypes, mediaTypeKey, initialQuery, initialOpen
           <SearchTab
             mediaType={mediaType}
             onBuilt={built}
+            {...(libraryCategory ? { libraryCategory } : {})}
             {...(initialQuery ? { initialQuery } : {})}
             {...(initialOpen ? { initialOpen } : {})}
           />

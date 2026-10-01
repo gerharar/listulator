@@ -4,6 +4,7 @@ import { copy } from '../../../locale/index.js'
 import type { ExpansionState } from '../SearchTab/useSourceExpansions.js'
 import { Button } from '../Button/Button.js'
 import { CuratedStar } from '../Marks/Marks.js'
+import { shouldFoldFromDetails } from './foldFromDetails.js'
 import { Spinner } from '../Spinner/Spinner.js'
 import { StatusChip } from '../StatusChip/StatusChip.js'
 
@@ -64,12 +65,9 @@ export function SearchResultRow({
   }
 
   // Open, the details are one block with the row (one tint), so a click in it folds the row like a click on the title
-  // does: anywhere but a button or a link, and not when it ends a text selection (so the description can be copied).
-  // The row above stays the keyboard way to fold.
+  // does (see `shouldFoldFromDetails`). The row above stays the keyboard way to fold.
   function onDetailsClick(event: MouseEvent<HTMLDivElement>) {
-    if ((event.target as HTMLElement).closest('button, a')) return
-    if (window.getSelection()?.toString()) return
-    onToggle()
+    if (shouldFoldFromDetails(event)) onToggle()
   }
 
   return (

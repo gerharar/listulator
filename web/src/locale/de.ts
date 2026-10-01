@@ -415,6 +415,15 @@ export const de: Locale = {
       previewTab: (title: string): string => `Vorschau: ${title}`,
       addButton: 'Liste hinzufügen',
       nothingToAdd: 'Merkwürdigerweise gibt es in dieser Liste nichts hinzuzufügen',
+      megaHint: {
+        title: (p: { count: number; category: string }): string =>
+          p.count === 1 ? `Umfassendere Liste in ${p.category}` : `Umfassendere Listen in ${p.category}`,
+        unit: (n: number): string => selectPlural(n, 'de', { one: 'Liste', other: 'Listen' }),
+        items: (n: number): string => `${n} ${selectPlural(n, 'de', { one: 'Eintrag', other: 'Einträge' })}`,
+        open: 'Öffnen',
+        openList: (title: string): string => `Öffnen: ${title}`,
+        seeAll: (p: { n: number; category: string }): string => `Alle ${p.n} in ${p.category} ansehen`,
+      },
       previewUnavailable:
         'Diese Quelle ist zu schüchtern, um ihre Einträge zu zeigen. Füge die Liste einfach hinzu und lösche sie später, falls es die falsche war.',
       curatedTitle: 'Kanonische Liste',

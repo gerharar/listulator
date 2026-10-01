@@ -15,6 +15,8 @@ import {
 } from '../../../lib/preview.js'
 import { categoryLabel, copy, sourceLabel } from '../../../locale/index.js'
 import { Button } from '../Button/Button.js'
+import { CrossHintRow } from '../CrossHintRow/CrossHintRow.js'
+import { lookupCrossHint, type CrossHint, type CrossHintList } from '../CrossHintRow/crossHint.js'
 import { ErrorBlock, type ErrorBlockAction } from '../ErrorBlock/ErrorBlock.js'
 import { ErrorStrip } from '../ErrorStrip/ErrorStrip.js'
 import { Field } from '../Field/Field.js'
@@ -22,12 +24,18 @@ import { SearchResultRow } from '../SearchResultRow/SearchResultRow.js'
 import { Spinner } from '../Spinner/Spinner.js'
 import { ToggleChip } from '../ToggleChip/ToggleChip.js'
 import { useLayerStack } from '../layerStack/LayerStackContext.js'
+import { newListPath } from '../layerStack/layerPath.js'
 import { useSourceExpansions } from './useSourceExpansions.js'
 
 export interface SearchTabProps {
   mediaType: MediaType
   /** Called with the new list's id once Add list succeeds. */
   onBuilt: (listId: string) => void
+  /**
+   * The registry's library-scope category (Mega), when this tab is for another one: a search here also asks it,
+   * and a match shows as the "Fuller lists in Mega" row above the results (task 14.2).
+   */
+  libraryCategory?: MediaType
   /** A search to run on opening, as if typed and submitted (Open in Mega, task 14.1). */
   initialQuery?: string
   /** The result to expand once that first search answers, if it is among the results. */
@@ -43,6 +51,8 @@ type Notice =
   | { kind: 'strip'; message: string; retry: () => void }
 
 const CANONICAL_PREFIX = 'canonical:'
+/** The hint row's place in the open-rows set: not a result's ref, so it can never collide with one. */
+const HINT_KEY = '__cross-hint'
 
 /**
  * The Create layer's Search tab (design: "Search {Source}", task 10.12).
@@ -53,7 +63,7 @@ const CANONICAL_PREFIX = 'canonical:'
  * failed count just shows no number. A spinner is the only progress
  * indication, for searching and for importing alike (Q12).
  */
-export function SearchTab({ mediaType, onBuilt, initialQuery, initialOpen }: SearchTabProps) {
+export function SearchTab({ mediaType, onBuilt, libraryCategory, initialQuery, initialOpen }: SearchTabProps) {
   const text = copy.quantum.search
   const layerStack = useLayerStack()
   const source = sourceLabel(mediaType) ?? categoryLabel(mediaType)
@@ -61,6 +71,7 @@ export function SearchTab({ mediaType, onBuilt, initialQuery, initialOpen }: Sea
   const [query, setQuery] = useState(initialQuery ?? '')
   const [results, setResults] = useState<ListSourceResult[] | null>(null)
   const [expanded, setExpanded] = useState<ReadonlySet<string>>(new Set())
+  const [hint, setHint] = useState<CrossHint | null>(null)
   const [searching, setSearching] = useState(false)
   const [building, setBuilding] = useState(false)
   const [notice, setNotice] = useState<Notice | null>(null)
@@ -196,7 +207,11 @@ export function SearchTab({ mediaType, onBuilt, initialQuery, initialOpen }: Sea
     setSearching(true)
     setNotice(null)
     setResults(null)
+    setHint(null)
     setExpanded(new Set())
+
+    // The other shelf is asked at the same moment, so the row arrives with the results and nothing jumps.
+    const hintLookup = libraryCategory ? lookupCrossHint(libraryCategory, trimmed) : Promise.resolve(null)
 
     try {
       // Book-only options — searchSources ignores the third argument for every
@@ -207,9 +222,11 @@ export function SearchTab({ mediaType, onBuilt, initialQuery, initialOpen }: Sea
         trimmed,
         isBook ? { language, includeUnknown } : undefined,
       )
+      const foundHint = await hintLookup
       if (searchId.current !== mine) return
 
       setResults(sources)
+      setHint(foundHint)
       if (open && sources.some((entry) => entry.externalRef === open)) setExpanded(new Set([open]))
       if (sources.length === 0) {
         setNotice({
@@ -272,6 +289,22 @@ export function SearchTab({ mediaType, onBuilt, initialQuery, initialOpen }: Sea
       // known (not the whole batch again — on MusicBrainz that is ~1s each).
       resume(fetchExpansion)
     }
+  }
+
+  /** Open in Mega: this Create layer becomes Mega's, with the search kept and, if one was chosen, that list open. */
+  function openHint(list: CrossHintList | null) {
+    if (!hint) return
+
+    layerStack.replaceTop({
+      id: `new-list-${hint.category}`,
+      kind: 'new-list',
+      tabLabel: () => copy.newList.title,
+      content: newListPath({
+        mediaType: hint.category,
+        query: hint.query,
+        ...(list ? { openRef: list.externalRef } : {}),
+      }),
+    })
   }
 
   function toggle(ref: string) {
@@ -391,8 +424,17 @@ export function SearchTab({ mediaType, onBuilt, initialQuery, initialOpen }: Sea
       {results && results.length > 0 && (
         <div className="q-search-results">
           <div className="q-search-results-head">
-            <span className="q-kicker strong">{text.resultsCount(results.length)}</span>
+            <span className="q-kicker strong">{text.resultsCount(results.length + (hint?.lists.length ?? 0))}</span>
           </div>
+          {hint && libraryCategory && (
+            <CrossHintRow
+              lists={hint.lists}
+              categoryLabel={categoryLabel(libraryCategory)}
+              expanded={expanded.has(HINT_KEY)}
+              onToggle={() => toggle(HINT_KEY)}
+              onOpen={openHint}
+            />
+          )}
           {results.map((result) => {
             const curated = result.externalRef.startsWith(CANONICAL_PREFIX)
 

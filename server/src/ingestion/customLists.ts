@@ -286,6 +286,8 @@ export interface CanonicalSearchResult {
   detail: string
   description?: string
   status?: 'complete' | 'ongoing'
+  /** How many items the list file holds, from the manifest; absent in an older index. */
+  itemCount?: number
 }
 
 /**
@@ -323,6 +325,7 @@ export async function searchLibrary(
       detail: 'Canonical list',
       ...(entry.description !== undefined ? { description: entry.description } : {}),
       ...(entry.status !== undefined ? { status: entry.status } : {}),
+      ...(entry.itemCount !== undefined ? { itemCount: entry.itemCount } : {}),
     }))
 
   return { matches, reachable: true }

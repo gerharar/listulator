@@ -1,0 +1,53 @@
+/*
+ * The best-bet row above a search's results (design `search-mega-promo`, 3A). It is a result row: the row, its
+ * chevron, its open block and its type come from SearchResultRow.css. What it adds is small, and none of it is accent
+ * (accent means "curated"), tint, box or dismiss, so it reads as content, not as a banner.
+ */
+.q-hint-icon {
+  flex: none;
+  color: var(--ink);
+}
+
+/* The subline is the first list's description, kept to one line. */
+.q-hint .meta {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Open: the lists, indented as the row's own text, one size below a result, each with one outline button. */
+.q-hint-more {
+  gap: 0;
+}
+.q-hint-list {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 0;
+}
+.q-hint-list + .q-hint-list {
+  border-top: 1px solid var(--line);
+}
+.q-hint-list .info {
+  flex: 1;
+  min-width: 0;
+}
+.q-hint-list .title {
+  font: 500 14px/1.25 var(--font-sans);
+  color: var(--ink);
+}
+.q-hint-list .sub {
+  margin-top: 3px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font: 400 13px/1.4 var(--font-sans);
+  color: var(--ink2);
+}
+.q-hint-list .q-btn {
+  flex: none;
+}
+.q-hint-all {
+  padding-top: 4px;
+  border-top: 1px solid var(--line);
+}
