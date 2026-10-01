@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react'
-import { setActiveLanguage } from '../../../locale/index.js'
+import { copy, setActiveLanguage } from '../../../locale/index.js'
 import { CrossHintRow, type CrossHintRowProps } from './CrossHintRow.js'
 import type { CrossHintList } from './crossHint.js'
 
@@ -40,13 +40,13 @@ function renderRow(over: Partial<CrossHintRowProps> = {}) {
 const row = () => screen.getByRole('button', { name: /Fuller list/ })
 
 describe('the row, folded', () => {
-  it('says Fuller lists in Mega for several, with the count and the unit lists, and the first list’s description under it', () => {
+  it('says Fuller lists in Mega for several, with the count and the unit lists, and the fixed subline under it', () => {
     const { container } = renderRow()
 
     expect(screen.getByText('Fuller lists in Mega')).toBeTruthy()
     expect(container.querySelector('.n')?.firstChild?.textContent).toBe('2')
     expect(container.querySelector('.n .q-kicker')?.textContent).toBe('lists')
-    expect(screen.getByText('Main releases in the recommended viewing order')).toBeTruthy()
+    expect(container.querySelector('.q-hint .meta')?.textContent).toBe(copy.quantum.search.megaHint.subline)
     expect(row().getAttribute('aria-expanded')).toBe('false')
   })
 
@@ -57,10 +57,16 @@ describe('the row, folded', () => {
     expect(container.querySelector('.n .q-kicker')?.textContent).toBe('list')
   })
 
-  it('has no subline when the first list has no description', () => {
+  it('says the same subline whatever the lists describe, even for a list with no description', () => {
     const { container } = renderRow({ lists: [{ externalRef: 'canonical:lists/mega/mcu.yaml', title: 'MCU', itemCount: 23 }] })
 
-    expect(container.querySelector('.q-hint .meta')).toBeNull()
+    expect(container.querySelector('.q-hint .meta')?.textContent).toBe(copy.quantum.search.megaHint.subline)
+  })
+
+  it('does not repeat a list’s description as the subline (the open row shows it per list)', () => {
+    const { container } = renderRow()
+
+    expect(container.querySelector('.q-hint .meta')?.textContent).not.toBe(MAIN.description)
   })
 
   it('draws the folded ▶ and, open, the ▼, like every result row', () => {

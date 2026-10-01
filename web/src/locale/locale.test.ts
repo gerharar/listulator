@@ -455,6 +455,12 @@ describe('the Fuller lists in Mega hint strings (task 14.2)', () => {
     expect([1, 2].map(hint.de.unit)).toEqual(['Liste', 'Listen'])
   })
 
+  it('every language has its own fixed subline for the row', () => {
+    for (const [name, strings] of Object.entries(hint)) expect(strings.subline.length, name).toBeGreaterThan(0)
+    expect(hint.ru.subline).not.toBe(hint.en.subline)
+    expect(hint.de.subline).not.toBe(hint.en.subline)
+  })
+
   it('every language says what Open does and names the list on it, so each button is distinct to a screen reader', () => {
     for (const [name, strings] of Object.entries(hint)) {
       expect(strings.openList('Black Mirror'), name).toContain('Black Mirror')

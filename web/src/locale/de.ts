@@ -420,6 +420,7 @@ export const de: Locale = {
           p.count === 1 ? `Umfassendere Liste in ${p.category}` : `Umfassendere Listen in ${p.category}`,
         unit: (n: number): string => selectPlural(n, 'de', { one: 'Liste', other: 'Listen' }),
         items: (n: number): string => `${n} ${selectPlural(n, 'de', { one: 'Eintrag', other: 'Einträge' })}`,
+        subline: 'Von Hand kuratiert und umfassender als diese Ergebnisse',
         open: 'Öffnen',
         openList: (title: string): string => `Öffnen: ${title}`,
         seeAll: (p: { n: number; category: string }): string => `Alle ${p.n} in ${p.category} ansehen`,

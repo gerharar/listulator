@@ -8,7 +8,13 @@
   color: var(--ink);
 }
 
-/* The subline is the first list's description, kept to one line. */
+/* The title is bold: all Mega lists are canonical, so this row is the best bet and should stand out from the results.
+   The result row's own `font:` shorthand comes later in the cascade, hence the extra class. */
+.q-result.q-hint .title {
+  font-weight: 700;
+}
+
+/* The subline is one fixed line of text, kept to one line. */
 .q-hint .meta {
   overflow: hidden;
   text-overflow: ellipsis;

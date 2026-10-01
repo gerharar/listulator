@@ -26,6 +26,10 @@ describe('the hint row’s styling', () => {
     expect(rule('.q-hint-list .title')).toMatch(/font:\s*500 14px/)
   })
 
+  it('sets the row’s title in bold, so the best bet stands out from the results below it', () => {
+    expect(rule('.q-result.q-hint .title')).toMatch(/font-weight:\s*(700|bold)/)
+  })
+
   it('keeps the subline to one line', () => {
     const subline = rule('.q-hint .meta')
 

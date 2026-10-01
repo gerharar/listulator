@@ -428,6 +428,7 @@ export const ru: Locale = {
           p.count === 1 ? `Более полный список в ${p.category}` : `Более полные списки в ${p.category}`,
         unit: (n: number): string => selectPlural(n, 'ru', { one: 'список', few: 'списка', many: 'списков', other: 'списка' }),
         items: (n: number): string => items(n),
+        subline: 'Составлен вручную и охватывает больше, чем эти результаты',
         open: 'Открыть',
         openList: (title: string): string => `Открыть: ${title}`,
         seeAll: (p: { n: number; category: string }): string => `Показать все ${p.n} в ${p.category}`,

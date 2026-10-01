@@ -31,7 +31,6 @@ export function CrossHintRow({ lists, categoryLabel, expanded, onToggle, onOpen 
   const text = copy.quantum.search
   const hint = text.megaHint
   const title = hint.title({ count: lists.length, category: categoryLabel })
-  const subline = lists[0]?.description
 
   function onKeyDown(event: KeyboardEvent<HTMLDivElement>) {
     if (event.key === 'Enter' || event.key === ' ') {
@@ -63,7 +62,7 @@ export function CrossHintRow({ lists, categoryLabel, expanded, onToggle, onOpen 
             <Layers className="q-hint-icon" size={14} strokeWidth={2} aria-hidden="true" />
             <span className="title">{title}</span>
           </span>
-          {subline && <span className="meta">{subline}</span>}
+          <span className="meta">{hint.subline}</span>
         </span>
         <span className="n">
           {lists.length}

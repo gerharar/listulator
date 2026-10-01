@@ -471,6 +471,8 @@ export const en = {
         title: (p: { count: number; category: string }): string => `Fuller ${p.count === 1 ? 'list' : 'lists'} in ${p.category}`,
         unit: (n: number): string => selectPlural(n, 'en', { one: 'list', other: 'lists' }),
         items: (n: number): string => `${n} ${selectPlural(n, 'en', { one: 'item', other: 'items' })}`,
+        /** Under the row's title; one fixed line, whatever the lists are (the owner rewrites it). */
+        subline: 'Hand-curated, and covers more than these results',
         open: 'Open',
         openList: (title: string): string => `Open ${title}`,
         seeAll: (p: { n: number; category: string }): string => `See all ${p.n} in ${p.category}`,
