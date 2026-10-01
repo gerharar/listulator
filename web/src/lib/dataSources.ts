@@ -33,8 +33,8 @@ export const TMDB_NOTICE =
 
 export const AUTHOR = {
   handle: 'gerharar',
-  repoUrl: 'https://github.com/neuroshaoh/listulator',
-  repoLabel: 'github.com/neuroshaoh/listulator',
+  repoUrl: 'https://github.com/gerharar/listulator',
+  repoLabel: 'github.com/gerharar/listulator',
 } as const
 
 /**

@@ -182,7 +182,7 @@ export function parseCustomList(
  * somewhere else would defeat the entire point of "every list came through
  * the owner's PR review."
  */
-const CANONICAL_REPO_OWNER = 'neuroshaoh'
+const CANONICAL_REPO_OWNER = 'gerharar'
 const CANONICAL_REPO_NAME = 'listulator'
 const CANONICAL_REPO_BRANCH = 'main'
 
