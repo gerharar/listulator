@@ -113,6 +113,10 @@
 .q-about-stack > .off {
   visibility: hidden;
 }
+/* The button's label is centred (owner; the design says left): the stacked labels share the longest one's width, so the shorter ones would hug the left edge. */
+.q-about-update-block .q-btn .q-about-stack {
+  text-align: center;
+}
 
 /* The credits line: copyright, then plain underlined links (design `about-updates`, 1c). */
 .q-about-credits {
