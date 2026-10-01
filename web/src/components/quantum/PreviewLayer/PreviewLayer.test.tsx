@@ -90,6 +90,20 @@ describe('PreviewLayer', () => {
     expect(screen.getByText('Ouroboros')).toBeTruthy()
   })
 
+  it('draws the group toggle with the list screen’s full-size ▼, open and folded alike (folding turns it, in CSS)', async () => {
+    vi.mocked(api.preview).mockResolvedValue(EXPANSION)
+    renderLayer()
+    await screen.findByText('Glorious Purpose')
+    const glyph = () => document.querySelector('.q-preview-group .q-chev')!.textContent
+
+    expect(glyph()).toBe('▼')
+
+    fireEvent.click(screen.getByRole('button', { name: 'Collapse Season 1' }))
+
+    expect(screen.getByRole('button', { name: 'Expand Season 1' }).getAttribute('aria-expanded')).toBe('false')
+    expect(glyph()).toBe('▼')
+  })
+
   it('adds the list with exactly the request a result row sends, then opens it', async () => {
     vi.mocked(api.preview).mockResolvedValue(EXPANSION)
     vi.mocked(api.createFromSource).mockResolvedValue({ id: 'L1' } as never)

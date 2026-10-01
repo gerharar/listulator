@@ -12,9 +12,10 @@
 }
 .q-result .chev {
   flex: none;
-  display: flex;
-  justify-content: center;
   width: 12px;
+  text-align: center;
+  font-size: 11px;
+  line-height: 1;
   color: var(--ink3);
 }
 .q-result[aria-expanded='true'] {

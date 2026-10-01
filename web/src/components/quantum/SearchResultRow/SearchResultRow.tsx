@@ -1,5 +1,4 @@
 import './SearchResultRow.css'
-import { ChevronDown, ChevronRight } from 'lucide-react'
 import type { KeyboardEvent } from 'react'
 import { copy } from '../../../locale/index.js'
 import type { ExpansionState } from '../SearchTab/useSourceExpansions.js'
@@ -75,8 +74,9 @@ export function SearchResultRow({
         onClick={onToggle}
         onKeyDown={onKeyDown}
       >
+        {/* The design's filled triangles (▼ open, ▶ folded); a 12px Lucide chevron drew a thin 6 x 3 px mark. */}
         <span className="chev" aria-hidden="true">
-          {expanded ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
+          {expanded ? '▼' : '▶'}
         </span>
         <span className="main">
           <span className="line1">

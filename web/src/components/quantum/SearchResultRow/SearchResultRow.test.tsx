@@ -43,6 +43,19 @@ describe('SearchResultRow', () => {
     expect(screen.getByRole('button', { name: /Star Wars: Main Saga/ }).getAttribute('aria-expanded')).toBe('true')
   })
 
+  it('draws the design’s filled triangles, ▶ folded and ▼ open, not a thin icon', () => {
+    const { container, rerender, props } = renderRow()
+    const chevron = () => container.querySelector('.chev')!
+
+    expect(chevron().textContent).toBe('▶')
+    expect(chevron().querySelector('svg')).toBeNull()
+
+    rerender(<SearchResultRow {...props} expanded />)
+
+    expect(chevron().textContent).toBe('▼')
+    expect(chevron().querySelector('svg')).toBeNull()
+  })
+
   it('toggles from a click and from Enter or Space, as a button would', () => {
     const onToggle = vi.fn()
     renderRow({ onToggle })
