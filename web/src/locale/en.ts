@@ -99,7 +99,7 @@ export const en = {
       label: 'TV Series',
       handTitlePlaceholder: 'The Big Bang Theory',
       handItemsPlaceholder:
-        'Season 1:\nS1E1: Pilot\nS1E2: The Big Bran Hypothesis\nS1E3: The Fuzzy Boots Corollary\n\n# Season 2\nS2E1: The Bad Fish Paradigm\nS2E2: The Codpiece Topology',
+        'Season 1:\nS01E01: Pilot\nS01E02: The Big Bran Hypothesis\nS1E3: The Fuzzy Boots Corollary\n\n# Season 2\nS02E01: The Bad Fish Paradigm\nS02E02: The Codpiece Topology',
       handItemsHint:
         'One episode per line. A line ending in a colon, or starting with #, opens a season that lasts until the next one. Blank lines are ignored',
     },
@@ -305,17 +305,17 @@ export const en = {
       title: 'About',
       closeLabel: 'Close',
       version: 'Version',
-      checkForUpdates: 'Check for updates',
+      checkForUpdates: 'Check For Updates',
       /** The button is a placeholder until the desktop updater exists (owner, 2026-09-30). */
-      updatesLater: 'Checking for updates comes in a later version.',
-      licence: 'The app is released under the PolyForm Noncommercial license (free for personal use), List Vault lists under CC BY 4.0, and data from the sources below stays under each source’s own terms. © 2026 Listulator',
+      updatesLater: 'Checking for updates is yet TBD.',
+      licence: 'The app is released under the PolyForm Noncommercial license (free for personal use), List Vault lists under CC BY 4.0, and data from the sources below stays under each source’s own terms. © 2026 Andrei Kugaevskii',
       madeBy: 'Made by',
       dataSources: 'Data sources',
       showAttribution: 'Show attribution',
       hideAttribution: 'Hide attribution',
       powers: {
         igdb: 'Games',
-        musicbrainz: 'Albums and discographies',
+        musicbrainz: 'Artists and bands',
         openLibrary: 'Books',
         comicVine: 'Comics',
         youtube: 'Playlists and channels',
@@ -860,9 +860,9 @@ export const en = {
         expandAllTip: 'Open every group below',
       },
       /** Under the add band of a list fetched from a source: where it arrived from, linked (owner, 2026-09-30). The source's name sits between the two. */
-      linkBack: { before: 'The original list arrived from ', after: '; you may have changed it since.' },
+      linkBack: { before: 'This list arrived from ', after: '. You may have changed it since, so now it\'s yours.' },
       /** Beside the link-back, where the source caps how long its data may be stored (YouTube 30 days, TMDB 180): how often the stored copy is refreshed (12.5). */
-      sourceCopyNotice: (p: { days: number; source: string }): string => `Its source copy is refreshed every ${p.days} days, as ${p.source} requires.`,
+      sourceCopyNotice: (p: { days: number; source: string }): string => `Source copy is refreshed every ${p.days} days, as ${p.source} requires.`,
       checkForUpdates: 'Check for updates',
       order: 'Order',
       more: 'More',
