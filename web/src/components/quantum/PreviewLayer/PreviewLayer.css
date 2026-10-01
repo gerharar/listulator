@@ -81,6 +81,25 @@
   text-align: left;
   cursor: pointer;
 }
+/*
+ * The list screen's group chevron (Spine.css `.q-chev`), as the design system's PreviewRow draws it: a 15px ▼ in a 20px
+ * column (the rows inside a group are padded 34px = 4 + 20 + 10 to line up under the name), turned a quarter when folded.
+ * Owned here too, so the Preview does not depend on the list screen's stylesheet being loaded.
+ */
+.q-preview-group .q-chev {
+  flex: none;
+  width: 20px;
+  text-align: center;
+  font: 500 15px/1 var(--font);
+  color: var(--ink2);
+  transition: transform 140ms ease;
+}
+.q-preview-group[aria-expanded='false'] .q-chev {
+  transform: rotate(-90deg);
+}
+[data-reduced] .q-preview-group .q-chev {
+  transition: none;
+}
 .q-preview-group .name {
   flex: 1;
   min-width: 0;

@@ -16,7 +16,7 @@ The list files in `lists/` are under
 Anyone may use, share and adapt them for any purpose, commercial included,
 as long as they give credit, for example:
 
-> Lists from the Listulator List Vault, https://github.com/neuroshaoh/listulator (CC BY 4.0)
+> Lists from the Listulator List Vault, https://github.com/gerharar/listulator (CC BY 4.0)
 
 Contributors license their lists under the same terms (see
 [CONTRIBUTING.md](CONTRIBUTING.md)).

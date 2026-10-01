@@ -424,7 +424,7 @@ describe('the source-copy notice (task 12.5)', () => {
       expect(line, name).toContain('YouTube')
     }
     expect(en.quantum.list.sourceCopyNotice({ days: 150, source: 'TMDB' })).toBe(
-      'Its source copy is refreshed every 150 days, as TMDB requires.',
+      'Source copy is refreshed every 150 days, as TMDB requires.',
     )
   })
 })

@@ -183,8 +183,9 @@ export function PreviewLayer({ source, mediaType, onBuilt }: PreviewLayerProps) 
                   aria-label={isCollapsed ? text.expandGroup(row.label) : text.collapseGroup(row.label)}
                   onClick={() => toggle(row.label)}
                 >
+                  {/* One glyph, turned a quarter in CSS when folded: the list screen's group rows and the design's PreviewRow do the same. */}
                   <span className="q-chev" aria-hidden="true">
-                    {isCollapsed ? '▸' : '▾'}
+                    ▼
                   </span>
                   <span className="name">{row.label}</span>
                   <span className="count">{row.count}</span>

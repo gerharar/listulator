@@ -936,7 +936,7 @@ describe('search and import from a source', () => {
   })
 
   describe('when the community library cannot be reached', () => {
-    const MANIFEST_URL = 'https://raw.githubusercontent.com/neuroshaoh/listulator/main/lists/index.json'
+    const MANIFEST_URL = 'https://raw.githubusercontent.com/gerharar/listulator/main/lists/index.json'
 
     function stubLibrary(reachable: boolean, manifest: unknown[] = []) {
       vi.stubGlobal(
@@ -1848,8 +1848,8 @@ describe('canonical lists surfaced through search (task 7.4)', () => {
   let harness: TestApp
 
   const MANIFEST_URL =
-    'https://raw.githubusercontent.com/neuroshaoh/listulator/main/lists/index.json'
-  const MCU_URL = 'https://raw.githubusercontent.com/neuroshaoh/listulator/main/lists/mega/mcu.yaml'
+    'https://raw.githubusercontent.com/gerharar/listulator/main/lists/index.json'
+  const MCU_URL = 'https://raw.githubusercontent.com/gerharar/listulator/main/lists/mega/mcu.yaml'
   const MCU_YAML =
     'title: Marvel Cinematic Universe\ncategory: mega\nitems:\n  - { title: Iron Man, year: 2008 }\n'
 
@@ -2063,7 +2063,7 @@ describe('canonical lists surfaced through search (task 7.4)', () => {
 describe('refresh support for synced canonical lists (task 7.5)', () => {
   let harness: TestApp
 
-  const MCU_URL = 'https://raw.githubusercontent.com/neuroshaoh/listulator/main/lists/mega/mcu.yaml'
+  const MCU_URL = 'https://raw.githubusercontent.com/gerharar/listulator/main/lists/mega/mcu.yaml'
 
   function mockGitHub(routes: Record<string, { body: string; status?: number }>) {
     vi.stubGlobal(
@@ -2217,7 +2217,7 @@ describe('GET /api/library/untracked (task 10.29)', () => {
   let harness: TestApp
 
   const MANIFEST_URL =
-    'https://raw.githubusercontent.com/neuroshaoh/listulator/main/lists/index.json'
+    'https://raw.githubusercontent.com/gerharar/listulator/main/lists/index.json'
   const MANIFEST = [
     { path: 'lists/mega/mcu.yaml', title: 'MCU', category: 'mega', description: 'Every film.', status: 'complete', itemCount: 23 },
     { path: 'lists/book/lotr.yaml', title: 'The Lord of the Rings', category: 'book', itemCount: 3 },

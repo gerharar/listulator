@@ -12,9 +12,10 @@
 }
 .q-result .chev {
   flex: none;
-  display: flex;
-  justify-content: center;
   width: 12px;
+  text-align: center;
+  font-size: 11px;
+  line-height: 1;
   color: var(--ink3);
 }
 .q-result[aria-expanded='true'] {
@@ -63,6 +64,8 @@
   align-self: center;
 }
 .q-result-more {
+  /* Part of the row: a click in it folds it (SearchResultRow.tsx), so it shows the same pointer. */
+  cursor: pointer;
   display: flex;
   flex-direction: column;
   gap: 9px;

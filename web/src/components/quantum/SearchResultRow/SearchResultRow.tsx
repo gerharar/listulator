@@ -1,6 +1,5 @@
 import './SearchResultRow.css'
-import { ChevronDown, ChevronRight } from 'lucide-react'
-import type { KeyboardEvent } from 'react'
+import type { KeyboardEvent, MouseEvent } from 'react'
 import { copy } from '../../../locale/index.js'
 import type { ExpansionState } from '../SearchTab/useSourceExpansions.js'
 import { Button } from '../Button/Button.js'
@@ -64,6 +63,15 @@ export function SearchResultRow({
     }
   }
 
+  // Open, the details are one block with the row (one tint), so a click in it folds the row like a click on the title
+  // does: anywhere but a button or a link, and not when it ends a text selection (so the description can be copied).
+  // The row above stays the keyboard way to fold.
+  function onDetailsClick(event: MouseEvent<HTMLDivElement>) {
+    if ((event.target as HTMLElement).closest('button, a')) return
+    if (window.getSelection()?.toString()) return
+    onToggle()
+  }
+
   return (
     <>
       <div
@@ -75,8 +83,9 @@ export function SearchResultRow({
         onClick={onToggle}
         onKeyDown={onKeyDown}
       >
+        {/* The design's filled triangles (▼ open, ▶ folded); a 12px Lucide chevron drew a thin 6 x 3 px mark. */}
         <span className="chev" aria-hidden="true">
-          {expanded ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
+          {expanded ? '▼' : '▶'}
         </span>
         <span className="main">
           <span className="line1">
@@ -98,7 +107,7 @@ export function SearchResultRow({
       </div>
 
       {expanded && (
-        <div className="q-result-more">
+        <div className="q-result-more" onClick={onDetailsClick}>
           {description && <div className="desc">{description}</div>}
           <div className="prov">{provenance}</div>
           {!previewable && <div className="unavailable">{text.previewUnavailable}</div>}

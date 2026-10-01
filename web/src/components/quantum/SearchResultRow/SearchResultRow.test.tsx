@@ -43,6 +43,19 @@ describe('SearchResultRow', () => {
     expect(screen.getByRole('button', { name: /Star Wars: Main Saga/ }).getAttribute('aria-expanded')).toBe('true')
   })
 
+  it('draws the design’s filled triangles, ▶ folded and ▼ open, not a thin icon', () => {
+    const { container, rerender, props } = renderRow()
+    const chevron = () => container.querySelector('.chev')!
+
+    expect(chevron().textContent).toBe('▶')
+    expect(chevron().querySelector('svg')).toBeNull()
+
+    rerender(<SearchResultRow {...props} expanded />)
+
+    expect(chevron().textContent).toBe('▼')
+    expect(chevron().querySelector('svg')).toBeNull()
+  })
+
   it('toggles from a click and from Enter or Space, as a button would', () => {
     const onToggle = vi.fn()
     renderRow({ onToggle })
@@ -145,4 +158,64 @@ describe('SearchResultRow', () => {
     // Its hover text (the app's tooltip, 11.19) is the same words, and assistive tech gets them as its description.
     expect(add.getAttribute('aria-description')).toBe('Curiously, this list has no items to add')
   })
+
+  describe('folding an open result from its details (the block below the title is part of the row)', () => {
+    const details = (container: HTMLElement) => container.querySelector('.q-result-more') as HTMLElement
+
+    afterEach(() => {
+      vi.restoreAllMocks()
+    })
+
+    it('folds when the empty space of the details block is clicked, wherever it is', () => {
+      const onToggle = vi.fn()
+      const { container } = renderRow({ expanded: true, description: 'The numbered films only.', onToggle })
+
+      fireEvent.click(details(container))
+
+      expect(onToggle).toHaveBeenCalledTimes(1)
+    })
+
+    it('folds when the description, the provenance line or the row of buttons (not a button) is clicked', () => {
+      const onToggle = vi.fn()
+      const { container } = renderRow({ expanded: true, description: 'The numbered films only.', provenance: 'From TMDB', onToggle })
+
+      fireEvent.click(screen.getByText('The numbered films only.'))
+      fireEvent.click(screen.getByText('From TMDB'))
+      fireEvent.click(container.querySelector('.q-result-more .actions')!)
+
+      expect(onToggle).toHaveBeenCalledTimes(3)
+    })
+
+    it('does not fold when a button is pressed, and the button does its own work', () => {
+      const onToggle = vi.fn()
+      const { props } = renderRow({ expanded: true, onToggle, onPreview: vi.fn(), onAdd: vi.fn() })
+
+      fireEvent.click(screen.getByRole('button', { name: 'Preview' }))
+      fireEvent.click(screen.getByRole('button', { name: 'Add List' }))
+
+      expect(props.onPreview).toHaveBeenCalledTimes(1)
+      expect(props.onAdd).toHaveBeenCalledTimes(1)
+      expect(onToggle).not.toHaveBeenCalled()
+    })
+
+    it('does not fold when the click ends a text selection, so the description can be copied', () => {
+      const onToggle = vi.fn()
+      vi.spyOn(window, 'getSelection').mockReturnValue({ toString: () => 'The numbered' } as Selection)
+      renderRow({ expanded: true, description: 'The numbered films only.', onToggle })
+
+      fireEvent.click(screen.getByText('The numbered films only.'))
+
+      expect(onToggle).not.toHaveBeenCalled()
+    })
+
+    it('still leaves the keyboard one way to fold: the row itself', () => {
+      const onToggle = vi.fn()
+      renderRow({ expanded: true, onToggle })
+
+      fireEvent.keyDown(screen.getByRole('button', { name: /Star Wars: Main Saga/ }), { key: 'Enter' })
+
+      expect(onToggle).toHaveBeenCalledTimes(1)
+    })
+  })
 })
+

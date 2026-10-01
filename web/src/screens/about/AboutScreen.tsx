@@ -1,15 +1,19 @@
 import './AboutScreen.css'
-import { useState, type MouseEvent } from 'react'
+import { useEffect, useState, type MouseEvent } from 'react'
 import { X } from 'lucide-react'
 import { copy } from '../../locale/index.js'
+import { appUpdateChecker, type AppUpdateChecker } from '../../lib/appUpdate.js'
 import { APP_VERSION } from '../../lib/appVersion.js'
-import { Button, IconButton } from '../../components/quantum/Button/Button.js'
+import { useUpdateCheck } from '../../lib/useUpdateCheck.js'
+import { IconButton } from '../../components/quantum/Button/Button.js'
 import { ExternalLink } from '../../components/quantum/ExternalLink/ExternalLink.js'
 import { HeaderPlate } from '../../components/quantum/HeaderPlate/HeaderPlate.js'
 import { useLayerStack } from '../../components/quantum/layerStack/LayerStackContext.js'
+import { useLiveRegion } from '../../components/quantum/LiveRegion/LiveRegion.js'
 import { Tip } from '../../components/quantum/Tooltip/Tip.js'
-import { ABOUT_SOURCES, AUTHOR, TMDB_NOTICE, type AboutSource } from '../../lib/dataSources.js'
+import { ABOUT_SOURCES, AUTHOR, LICENSING_URL, TMDB_NOTICE, type AboutSource } from '../../lib/dataSources.js'
 import tmdbLogo from './tmdb-long.svg'
+import { UpdateBlock, updateStatusText, updateVersionText } from './UpdateBlock.js'
 
 /**
  * The About layer (task 11.21; design handoff `docs/design/about-screen/`,
@@ -17,9 +21,21 @@ import tmdbLogo from './tmdb-long.svg'
  * scrolling body. Check for updates is a placeholder until the desktop
  * updater exists (owner, 2026-09-30), so it is disabled and says so.
  */
-export function AboutScreen() {
+export function AboutScreen({ checker }: { checker?: AppUpdateChecker }) {
   const layerStack = useLayerStack()
+  const { announce } = useLiveRegion()
   const text = copy.quantum.about
+  // Made once per opening: a new checker on every render would start a new check on every render.
+  const [used] = useState(() => checker ?? appUpdateChecker())
+  const update = useUpdateCheck(used)
+
+  // Each answer is spoken once, with the version; "Checking…" and "no updater yet" are not answers. (The
+  // block's `role="status"` is also a live region: if a screen reader then says it twice, drop the role.)
+  useEffect(() => {
+    if (update.state === 'latest' || update.state === 'available' || update.state === 'error') {
+      announce(`${updateStatusText(update.state)} ${updateVersionText(APP_VERSION, update.state === 'available' ? update.next : undefined)}`)
+    }
+  }, [update.state, update.next, announce])
 
   return (
     <div className="q-about">
@@ -36,25 +52,31 @@ export function AboutScreen() {
           <section className="q-about-identity">
             <div className="q-about-nameline">
               <span className="q-about-name">Listulator</span>
-              <span className="q-about-version">{`${text.version} ${APP_VERSION}`}</span>
             </div>
-            <div className="q-about-update">
-              <Button variant="primary" size="sm" disabled title={text.updatesLater}>
-                {text.checkForUpdates}
-              </Button>
-            </div>
-            <div className="q-about-legal">
-              <p className="q-about-author">
-                <span>
-                  {text.madeBy} <b>{AUTHOR.handle}</b>
-                </span>
-                <ExternalLink className="q-about-link" href={AUTHOR.repoUrl}>
-                  {AUTHOR.repoLabel}
-                  <span aria-hidden="true">↗</span>
-                </ExternalLink>
-              </p>
-              <p>{text.licence}</p>
-            </div>
+            <UpdateBlock
+              state={update.state}
+              current={APP_VERSION}
+              {...(update.next === undefined ? {} : { next: update.next })}
+              onCheck={() => void update.check()}
+              onDownload={update.download}
+            />
+            <p className="q-about-credits">
+              <span>{AUTHOR.copyright}</span>
+              <span className="q-about-sep" aria-hidden="true">
+                ·
+              </span>
+              <ExternalLink className="q-about-credit-link" href={AUTHOR.repoUrl}>
+                {AUTHOR.githubLabel}
+                <span aria-hidden="true">↗</span>
+              </ExternalLink>
+              <span className="q-about-sep" aria-hidden="true">
+                ·
+              </span>
+              <ExternalLink className="q-about-credit-link" href={LICENSING_URL}>
+                {text.legal}
+                <span aria-hidden="true">↗</span>
+              </ExternalLink>
+            </p>
           </section>
 
           <section>
@@ -109,8 +131,9 @@ function TmdbRow({ source }: { source: AboutSource }) {
         aria-expanded={open}
         text={open ? text.hideAttribution : text.showAttribution}
       >
+        {/* The same ▶ as the search results' expand arrow, turned a quarter when open (a ▸ here drew a 3 px mark). */}
         <span className="q-about-chevron" aria-hidden="true">
-          ▸
+          ▶
         </span>
         {source.name}
       </Tip>

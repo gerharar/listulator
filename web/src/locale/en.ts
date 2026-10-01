@@ -308,8 +308,14 @@ export const en = {
       checkForUpdates: 'Check For Updates',
       /** The button is a placeholder until the desktop updater exists (owner, 2026-09-30). */
       updatesLater: 'Checking for updates is yet TBD.',
-      licence: 'The app is released under the PolyForm Noncommercial license (free for personal use), List Vault lists under CC BY 4.0, and data from the sources below stays under each source’s own terms. © 2026 Andrei Kugaevskii',
-      madeBy: 'Made by',
+      /** The update block's status lines and button labels (docs/design/about-updates); "Title Case" buttons as the owner's "Check For Updates". */
+      upToDate: 'Listulator is up to date.',
+      checking: 'Checking…',
+      available: 'An update is available.',
+      failed: 'Couldn’t check for updates.',
+      download: 'Download Update',
+      retry: 'Try Again',
+      legal: 'Licensing and notices',
       dataSources: 'Data sources',
       showAttribution: 'Show attribution',
       hideAttribution: 'Hide attribution',

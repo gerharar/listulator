@@ -26,6 +26,17 @@ describe('expanded search result', () => {
     expect(band).toBe(paddingLeft + chevron + gap)
   })
 
+  it('the chevron is a filled triangle at the design’s 11px in a 12px column', () => {
+    const chevron = rule('.q-result .chev')
+
+    expect(chevron).toMatch(/font-size:\s*11px/)
+    expect(chevron).toMatch(/width:\s*12px/)
+  })
+
+  it('the details block shows the pointer, like the row it belongs to', () => {
+    expect(rule('.q-result-more')).toMatch(/cursor:\s*pointer/)
+  })
+
   it('the provenance line is UI-font text at 13px in ink2, like the description', () => {
     const prov = rule('.q-result-more .prov')
     expect(prov).toMatch(/font:\s*400 13px\/1\.4 var\(--font-sans\)/)

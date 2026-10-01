@@ -166,13 +166,13 @@ async function open(list: MediaListDetail) {
 }
 
 describe('where the list came from (link-back under the add band)', () => {
-  const LINE = /The original list arrived from/
+  const LINE = /This list arrived from/
 
   it('names and links the source a fetched list arrived from, and says it may have changed since', async () => {
     await open(detail({ source: 'api', externalRef: 'show:1399', items: [item()] }))
 
     const note = screen.getByText(LINE).closest('p')!
-    expect(note.textContent).toBe('The original list arrived from TMDB ↗; you may have changed it since.')
+    expect(note.textContent).toBe('This list arrived from TMDB ↗. You may have changed it since, so now it\'s yours.')
     expect(within(note).getByRole('link', { name: /TMDB/ }).getAttribute('href')).toBe('https://www.themoviedb.org/')
     expect(note.compareDocumentPosition(screen.getByRole('button', { name: 'Add' })) & Node.DOCUMENT_POSITION_PRECEDING).toBeTruthy()
   })
@@ -208,13 +208,13 @@ describe('where the list came from (link-back under the add band)', () => {
 })
 
 describe('how often a fetched list\u2019s source copy is refreshed (task 12.5)', () => {
-  const LINE = /The original list arrived from/
+  const LINE = /This list arrived from/
 
   it('says so after the link-back, for YouTube: every 25 of its 30 days', async () => {
     await open(detail({ source: 'api', externalRef: 'playlist:PL1', mediaType: 'youtube', items: [item()] }))
 
     expect(screen.getByText(LINE).closest('p')!.textContent).toBe(
-      'The original list arrived from YouTube \u2197; you may have changed it since. Its source copy is refreshed every 25 days, as YouTube requires.',
+      'This list arrived from YouTube \u2197. You may have changed it since, so now it\'s yours. Source copy is refreshed every 25 days, as YouTube requires.',
     )
   })
 
@@ -222,7 +222,7 @@ describe('how often a fetched list\u2019s source copy is refreshed (task 12.5)',
     await open(detail({ source: 'api', externalRef: 'collection:1', mediaType: 'movie', items: [item()] }))
 
     expect(screen.getByText(LINE).closest('p')!.textContent).toContain(
-      'Its source copy is refreshed every 150 days, as TMDB requires.',
+      'Source copy is refreshed every 150 days, as TMDB requires.',
     )
   })
 
@@ -230,13 +230,13 @@ describe('how often a fetched list\u2019s source copy is refreshed (task 12.5)',
     await open(detail({ source: 'api', externalRef: 'author:OL1A', mediaType: 'book', items: [item()] }))
 
     expect(screen.getByText(LINE).closest('p')!.textContent).not.toContain('refreshed every')
-    expect(screen.queryByText(/source copy/)).toBeNull()
+    expect(screen.queryByText(/source copy/i)).toBeNull()
   })
 
   it('says nothing for a list that did not arrive from a source, even in a category that has a limit', async () => {
     await open(detail({ source: 'manual', externalRef: null, mediaType: 'youtube', items: [item()] }))
 
-    expect(screen.queryByText(/source copy/)).toBeNull()
+    expect(screen.queryByText(/source copy/i)).toBeNull()
   })
 })
 
