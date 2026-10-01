@@ -3,194 +3,194 @@ description: All episodes of The Office TV series
 category: tv
 status: complete
 items:
-- { title: "Pilot", year: 2005, minutes: 23, group: Season 1 }
-- { title: "Diversity Day", year: 2005, minutes: 23, group: Season 1 }
-- { title: "Health Care", year: 2005, minutes: 22, group: Season 1 }
-- { title: "The Alliance", year: 2005, minutes: 23, group: Season 1 }
-- { title: "Basketball", year: 2005, minutes: 23, group: Season 1 }
-- { title: "Hot Girl", year: 2005, minutes: 23, group: Season 1 }
-- { title: "The Dundies", year: 2005, minutes: 21, group: Season 2 }
-- { title: "Sexual Harassment", year: 2005, minutes: 22, group: Season 2 }
-- { title: "Office Olympics", year: 2005, minutes: 22, group: Season 2 }
-- { title: "The Fire", year: 2005, minutes: 22, group: Season 2 }
-- { title: "Halloween", year: 2005, minutes: 30, group: Season 2 }
-- { title: "The Fight", year: 2005, minutes: 22, group: Season 2 }
-- { title: "The Client", year: 2005, minutes: 22, group: Season 2 }
-- { title: "Performance Review", year: 2005, minutes: 22, group: Season 2 }
-- { title: "Email Surveillance", year: 2005, minutes: 23, group: Season 2 }
-- { title: "Christmas Party", year: 2005, minutes: 22, group: Season 2 }
-- { title: "Booze Cruise", year: 2006, minutes: 22, group: Season 2 }
-- { title: "The Injury", year: 2006, minutes: 22, group: Season 2 }
-- { title: "The Secret", year: 2006, minutes: 22, group: Season 2 }
-- { title: "The Carpet", year: 2006, minutes: 22, group: Season 2 }
-- { title: "Boys and Girls", year: 2006, minutes: 22, group: Season 2 }
-- { title: "Valentine's Day", year: 2006, minutes: 22, group: Season 2 }
-- { title: "Dwight's Speech", year: 2006, minutes: 22, group: Season 2 }
-- { title: "Take Your Daughter to Work Day", year: 2006, minutes: 21, group: Season 2 }
-- { title: "Michael's Birthday", year: 2006, minutes: 22, group: Season 2 }
-- { title: "Drug Testing", year: 2006, minutes: 21, group: Season 2 }
-- { title: "Conflict Resolution", year: 2006, minutes: 22, group: Season 2 }
-- { title: "Casino Night", year: 2006, minutes: 29, group: Season 2 }
-- { title: "Gay Witch Hunt", year: 2006, minutes: 23, group: Season 3 }
-- { title: "The Convention", year: 2006, minutes: 22, group: Season 3 }
-- { title: "The Coup", year: 2006, minutes: 22, group: Season 3 }
-- { title: "Grief Counseling", year: 2006, minutes: 22, group: Season 3 }
-- { title: "Initiation", year: 2006, minutes: 22, group: Season 3 }
-- { title: "Diwali", year: 2006, minutes: 22, group: Season 3 }
-- { title: "Branch Closing", year: 2006, minutes: 31, group: Season 3 }
-- { title: "The Merger", year: 2006, minutes: 30, group: Season 3 }
-- { title: "The Convict", year: 2006, minutes: 30, group: Season 3 }
-- { title: "A Benihana Christmas", year: 2006, minutes: 42, group: Season 3 }
-- { title: "Back from Vacation", year: 2007, minutes: 21, group: Season 3 }
-- { title: "Traveling Salesmen", year: 2007, minutes: 22, group: Season 3 }
-- { title: "The Return", year: 2007, minutes: 28, group: Season 3 }
-- { title: "Ben Franklin", year: 2007, minutes: 21, group: Season 3 }
-- { title: "Phyllis' Wedding", year: 2007, minutes: 21, group: Season 3 }
-- { title: "Business School", year: 2007, minutes: 22, group: Season 3 }
-- { title: "Cocktails", year: 2007, minutes: 21, group: Season 3 }
-- { title: "The Negotiation", year: 2007, minutes: 30, group: Season 3 }
-- { title: "Safety Training", year: 2007, minutes: 21, group: Season 3 }
-- { title: "Product Recall", year: 2007, minutes: 21, group: Season 3 }
-- { title: "Women's Appreciation", year: 2007, minutes: 29, group: Season 3 }
-- { title: "Beach Games", year: 2007, minutes: 28, group: Season 3 }
-- { title: "The Job", year: 2007, minutes: 42, group: Season 3 }
-- { title: "Fun Run", year: 2007, minutes: 42, group: Season 4 }
-- { title: "Dunder Mifflin Infinity", year: 2007, minutes: 42, group: Season 4 }
-- { title: "Launch Party", year: 2007, minutes: 42, group: Season 4 }
-- { title: "Money", year: 2007, minutes: 42, group: Season 4 }
-- { title: "Local Ad", year: 2007, minutes: 22, group: Season 4 }
-- { title: "Branch Wars", year: 2007, minutes: 22, group: Season 4 }
-- { title: "Survivor Man", year: 2007, minutes: 30, group: Season 4 }
-- { title: "The Deposition", year: 2007, minutes: 30, group: Season 4 }
-- { title: "Dinner Party", year: 2008, minutes: 30, group: Season 4 }
-- { title: "The Chair Model", year: 2008, minutes: 30, group: Season 4 }
-- { title: "Night Out", year: 2008, minutes: 21, group: Season 4 }
-- { title: "Did I Stutter?", year: 2008, minutes: 22, group: Season 4 }
-- { title: "Job Fair", year: 2008, minutes: 30, group: Season 4 }
-- { title: "Goodbye, Toby", year: 2008, minutes: 42, group: Season 4 }
-- { title: "Weight Loss", year: 2008, minutes: 43, group: Season 5 }
-- { title: "Business Ethics", year: 2008, minutes: 22, group: Season 5 }
-- { title: "Baby Shower", year: 2008, minutes: 22, group: Season 5 }
-- { title: "Crime Aid", year: 2008, minutes: 30, group: Season 5 }
-- { title: "Employee Transfer", year: 2008, minutes: 22, group: Season 5 }
-- { title: "Customer Survey", year: 2008, minutes: 22, group: Season 5 }
-- { title: "Business Trip", year: 2008, minutes: 30, group: Season 5 }
-- { title: "Frame Toby", year: 2008, minutes: 30, group: Season 5 }
-- { title: "The Surplus", year: 2008, minutes: 22, group: Season 5 }
-- { title: "Moroccan Christmas", year: 2008, minutes: 30, group: Season 5 }
-- { title: "The Duel", year: 2009, minutes: 30, group: Season 5 }
-- { title: "Prince Family Paper", year: 2009, minutes: 22, group: Season 5 }
-- { title: "Stress Relief", year: 2009, minutes: 42, group: Season 5 }
-- { title: "Lecture Circuit: Part 1", year: 2009, minutes: 22, group: Season 5 }
-- { title: "Lecture Circuit: Part 2", year: 2009, minutes: 22, group: Season 5 }
-- { title: "Blood Drive", year: 2009, minutes: 22, group: Season 5 }
-- { title: "Golden Ticket", year: 2009, minutes: 30, group: Season 5 }
-- { title: "New Boss", year: 2009, minutes: 30, group: Season 5 }
-- { title: "Two Weeks", year: 2009, minutes: 30, group: Season 5 }
-- { title: "Dream Team", year: 2009, minutes: 30, group: Season 5 }
-- { title: "Michael Scott Paper Company", year: 2009, minutes: 22, group: Season 5 }
-- { title: "Heavy Competition", year: 2009, minutes: 30, group: Season 5 }
-- { title: "Broke", year: 2009, minutes: 30, group: Season 5 }
-- { title: "Casual Friday", year: 2009, minutes: 22, group: Season 5 }
-- { title: "Cafe Disco", year: 2009, minutes: 30, group: Season 5 }
-- { title: "Company Picnic", year: 2009, minutes: 22, group: Season 5 }
-- { title: "Gossip", year: 2009, minutes: 22, group: Season 6 }
-- { title: "The Meeting", year: 2009, minutes: 22, group: Season 6 }
-- { title: "The Promotion", year: 2009, minutes: 22, group: Season 6 }
-- { title: "Niagara: Part 1", year: 2009, minutes: 22, group: Season 6 }
-- { title: "Niagara: Part 2", year: 2009, minutes: 22, group: Season 6 }
-- { title: "Mafia", year: 2009, minutes: 22, group: Season 6 }
-- { title: "The Lover", year: 2009, minutes: 22, group: Season 6 }
-- { title: "Koi Pond", year: 2009, minutes: 22, group: Season 6 }
-- { title: "Double Date", year: 2009, minutes: 22, group: Season 6 }
-- { title: "Murder", year: 2009, minutes: 23, group: Season 6 }
-- { title: "Shareholder Meeting", year: 2009, minutes: 22, group: Season 6 }
-- { title: "Scott's Tots", year: 2009, minutes: 22, group: Season 6 }
-- { title: "Secret Santa", year: 2009, minutes: 22, group: Season 6 }
-- { title: "The Banker", year: 2010, minutes: 22, group: Season 6 }
-- { title: "Sabre", year: 2010, minutes: 22, group: Season 6 }
-- { title: "The Manager and the Salesman", year: 2010, minutes: 22, group: Season 6 }
-- { title: "The Delivery: Part 1", year: 2010, minutes: 22, group: Season 6 }
-- { title: "The Delivery, Part 2", year: 2010, minutes: 22, group: Season 6 }
-- { title: "St. Patrick's Day", year: 2010, minutes: 22, group: Season 6 }
-- { title: "New Leads", year: 2010, minutes: 22, group: Season 6 }
-- { title: "Happy Hour", year: 2010, minutes: 22, group: Season 6 }
-- { title: "Secretary's Day", year: 2010, minutes: 22, group: Season 6 }
-- { title: "Body Language", year: 2010, minutes: 22, group: Season 6 }
-- { title: "The Cover-Up", year: 2010, minutes: 22, group: Season 6 }
-- { title: "The Chump", year: 2010, minutes: 22, group: Season 6 }
-- { title: "Whistleblower", year: 2010, minutes: 22, group: Season 6 }
-- { title: "Nepotism", year: 2010, minutes: 22, group: Season 7 }
-- { title: "Counseling", year: 2010, minutes: 22, group: Season 7 }
-- { title: "Andy's Play", year: 2010, minutes: 22, group: Season 7 }
-- { title: "Sex Ed", year: 2010, minutes: 22, group: Season 7 }
-- { title: "The Sting", year: 2010, minutes: 22, group: Season 7 }
-- { title: "Costume Contest", year: 2010, minutes: 22, group: Season 7 }
-- { title: "Christening", year: 2010, minutes: 22, group: Season 7 }
-- { title: "Viewing Party", year: 2010, minutes: 22, group: Season 7 }
-- { title: "WUPHF.com", year: 2010, minutes: 22, group: Season 7 }
-- { title: "China", year: 2010, minutes: 22, group: Season 7 }
-- { title: "Classy Christmas, Part 1", year: 2010, minutes: 22, group: Season 7 }
-- { title: "Classy Christmas, Part 2", year: 2010, minutes: 22, group: Season 7 }
-- { title: "Ultimatum", year: 2011, minutes: 22, group: Season 7 }
-- { title: "The Seminar", year: 2011, minutes: 22, group: Season 7 }
-- { title: "The Search", year: 2011, minutes: 22, group: Season 7 }
-- { title: "PDA", year: 2011, minutes: 22, group: Season 7 }
-- { title: "Threat Level Midnight", year: 2011, minutes: 22, group: Season 7 }
-- { title: "Todd Packer", year: 2011, minutes: 22, group: Season 7 }
-- { title: "Garage Sale", year: 2011, minutes: 22, group: Season 7 }
-- { title: "Training Day", year: 2011, minutes: 22, group: Season 7 }
-- { title: "Michael's Last Dundies", year: 2011, minutes: 22, group: Season 7 }
-- { title: "Goodbye, Michael", year: 2011, minutes: 30, group: Season 7 }
-- { title: "Goodbye, Michael Part 2", year: 2011, minutes: 30, group: Season 7 }
-- { title: "The Inner Circle", year: 2011, minutes: 22, group: Season 7 }
-- { title: "Dwight K. Schrute, (Acting) Manager", year: 2011, minutes: 22, group: Season 7 }
-- { title: "Search Committee", year: 2011, minutes: 22, group: Season 7 }
-- { title: "Search Committee, Part 2", year: 2011, minutes: 22, group: Season 7 }
-- { title: "The List", year: 2011, minutes: 22, group: Season 8 }
-- { title: "The Incentive", year: 2011, minutes: 22, group: Season 8 }
-- { title: "Lotto", year: 2011, minutes: 22, group: Season 8 }
-- { title: "Garden Party", year: 2011, minutes: 22, group: Season 8 }
-- { title: "Spooked", year: 2011, minutes: 22, group: Season 8 }
-- { title: "Doomsday", year: 2011, minutes: 22, group: Season 8 }
-- { title: "Pam's Replacement", year: 2011, minutes: 22, group: Season 8 }
-- { title: "Gettysburg", year: 2011, minutes: 22, group: Season 8 }
-- { title: "Mrs. California", year: 2011, minutes: 22, group: Season 8 }
-- { title: "Christmas Wishes", year: 2011, minutes: 22, group: Season 8 }
-- { title: "Trivia", year: 2012, minutes: 22, group: Season 8 }
-- { title: "Pool Party", year: 2012, minutes: 22, group: Season 8 }
-- { title: "Jury Duty", year: 2012, minutes: 22, group: Season 8 }
-- { title: "Special Project", year: 2012, minutes: 22, group: Season 8 }
-- { title: "Tallahassee", year: 2012, minutes: 22, group: Season 8 }
-- { title: "After Hours", year: 2012, minutes: 22, group: Season 8 }
-- { title: "Test the Store", year: 2012, minutes: 22, group: Season 8 }
-- { title: "Last Day in Florida", year: 2012, minutes: 22, group: Season 8 }
-- { title: "Get the Girl", year: 2012, minutes: 22, group: Season 8 }
-- { title: "Welcome Party", year: 2012, minutes: 22, group: Season 8 }
-- { title: "Angry Andy", year: 2012, minutes: 22, group: Season 8 }
-- { title: "Fundraiser", year: 2012, minutes: 22, group: Season 8 }
-- { title: "Turf War", year: 2012, minutes: 22, group: Season 8 }
-- { title: "Free Family Portrait Studio", year: 2012, minutes: 22, group: Season 8 }
-- { title: "New Guys", year: 2012, minutes: 22, group: Season 9 }
-- { title: "Roy's Wedding", year: 2012, minutes: 22, group: Season 9 }
-- { title: "Andy's Ancestry", year: 2012, minutes: 22, group: Season 9 }
-- { title: "Work Bus", year: 2012, minutes: 22, group: Season 9 }
-- { title: "Here Comes Treble", year: 2012, minutes: 22, group: Season 9 }
-- { title: "The Boat", year: 2012, minutes: 22, group: Season 9 }
-- { title: "The Whale", year: 2012, minutes: 22, group: Season 9 }
-- { title: "The Target", year: 2012, minutes: 22, group: Season 9 }
-- { title: "Dwight Christmas", year: 2012, minutes: 22, group: Season 9 }
-- { title: "Lice", year: 2013, minutes: 22, group: Season 9 }
-- { title: "Suit Warehouse", year: 2013, minutes: 22, group: Season 9 }
-- { title: "Customer Loyalty", year: 2013, minutes: 22, group: Season 9 }
-- { title: "Junior Salesman", year: 2013, minutes: 22, group: Season 9 }
-- { title: "Vandalism", year: 2013, minutes: 22, group: Season 9 }
-- { title: "Couples Discount", year: 2013, minutes: 22, group: Season 9 }
-- { title: "Moving On", year: 2013, minutes: 42, group: Season 9 }
-- { title: "The Farm", year: 2013, minutes: 22, group: Season 9 }
-- { title: "Promos", year: 2013, minutes: 22, group: Season 9 }
-- { title: "Stairmageddon", year: 2013, minutes: 22, group: Season 9 }
-- { title: "Paper Airplane", year: 2013, minutes: 22, group: Season 9 }
-- { title: "Livin' the Dream", year: 2013, minutes: 40, group: Season 9 }
-- { title: "A.A.R.M.", year: 2013, minutes: 43, group: Season 9 }
-- { title: "Finale", year: 2013, minutes: 51, group: Season 9 }
+- { title: "S01E01 Pilot", year: 2005, minutes: 23, group: Season 1 }
+- { title: "S01E02 Diversity Day", year: 2005, minutes: 23, group: Season 1 }
+- { title: "S01E03 Health Care", year: 2005, minutes: 22, group: Season 1 }
+- { title: "S01E04 The Alliance", year: 2005, minutes: 23, group: Season 1 }
+- { title: "S01E05 Basketball", year: 2005, minutes: 23, group: Season 1 }
+- { title: "S01E06 Hot Girl", year: 2005, minutes: 23, group: Season 1 }
+- { title: "S02E01 The Dundies", year: 2005, minutes: 21, group: Season 2 }
+- { title: "S02E02 Sexual Harassment", year: 2005, minutes: 22, group: Season 2 }
+- { title: "S02E03 Office Olympics", year: 2005, minutes: 22, group: Season 2 }
+- { title: "S02E04 The Fire", year: 2005, minutes: 22, group: Season 2 }
+- { title: "S02E05 Halloween", year: 2005, minutes: 30, group: Season 2 }
+- { title: "S02E06 The Fight", year: 2005, minutes: 22, group: Season 2 }
+- { title: "S02E07 The Client", year: 2005, minutes: 22, group: Season 2 }
+- { title: "S02E08 Performance Review", year: 2005, minutes: 22, group: Season 2 }
+- { title: "S02E09 Email Surveillance", year: 2005, minutes: 23, group: Season 2 }
+- { title: "S02E10 Christmas Party", year: 2005, minutes: 22, group: Season 2 }
+- { title: "S02E11 Booze Cruise", year: 2006, minutes: 22, group: Season 2 }
+- { title: "S02E12 The Injury", year: 2006, minutes: 22, group: Season 2 }
+- { title: "S02E13 The Secret", year: 2006, minutes: 22, group: Season 2 }
+- { title: "S02E14 The Carpet", year: 2006, minutes: 22, group: Season 2 }
+- { title: "S02E15 Boys and Girls", year: 2006, minutes: 22, group: Season 2 }
+- { title: "S02E16 Valentine's Day", year: 2006, minutes: 22, group: Season 2 }
+- { title: "S02E17 Dwight's Speech", year: 2006, minutes: 22, group: Season 2 }
+- { title: "S02E18 Take Your Daughter to Work Day", year: 2006, minutes: 21, group: Season 2 }
+- { title: "S02E19 Michael's Birthday", year: 2006, minutes: 22, group: Season 2 }
+- { title: "S02E20 Drug Testing", year: 2006, minutes: 21, group: Season 2 }
+- { title: "S02E21 Conflict Resolution", year: 2006, minutes: 22, group: Season 2 }
+- { title: "S02E22 Casino Night", year: 2006, minutes: 29, group: Season 2 }
+- { title: "S03E01 Gay Witch Hunt", year: 2006, minutes: 23, group: Season 3 }
+- { title: "S03E02 The Convention", year: 2006, minutes: 22, group: Season 3 }
+- { title: "S03E03 The Coup", year: 2006, minutes: 22, group: Season 3 }
+- { title: "S03E04 Grief Counseling", year: 2006, minutes: 22, group: Season 3 }
+- { title: "S03E05 Initiation", year: 2006, minutes: 22, group: Season 3 }
+- { title: "S03E06 Diwali", year: 2006, minutes: 22, group: Season 3 }
+- { title: "S03E07 Branch Closing", year: 2006, minutes: 31, group: Season 3 }
+- { title: "S03E08 The Merger", year: 2006, minutes: 30, group: Season 3 }
+- { title: "S03E09 The Convict", year: 2006, minutes: 30, group: Season 3 }
+- { title: "S03E10 A Benihana Christmas", year: 2006, minutes: 42, group: Season 3 }
+- { title: "S03E11 Back from Vacation", year: 2007, minutes: 21, group: Season 3 }
+- { title: "S03E12 Traveling Salesmen", year: 2007, minutes: 22, group: Season 3 }
+- { title: "S03E13 The Return", year: 2007, minutes: 28, group: Season 3 }
+- { title: "S03E14 Ben Franklin", year: 2007, minutes: 21, group: Season 3 }
+- { title: "S03E15 Phyllis' Wedding", year: 2007, minutes: 21, group: Season 3 }
+- { title: "S03E16 Business School", year: 2007, minutes: 22, group: Season 3 }
+- { title: "S03E17 Cocktails", year: 2007, minutes: 21, group: Season 3 }
+- { title: "S03E18 The Negotiation", year: 2007, minutes: 30, group: Season 3 }
+- { title: "S03E19 Safety Training", year: 2007, minutes: 21, group: Season 3 }
+- { title: "S03E20 Product Recall", year: 2007, minutes: 21, group: Season 3 }
+- { title: "S03E21 Women's Appreciation", year: 2007, minutes: 29, group: Season 3 }
+- { title: "S03E22 Beach Games", year: 2007, minutes: 28, group: Season 3 }
+- { title: "S03E23 The Job", year: 2007, minutes: 42, group: Season 3 }
+- { title: "S04E01 Fun Run", year: 2007, minutes: 42, group: Season 4 }
+- { title: "S04E02 Dunder Mifflin Infinity", year: 2007, minutes: 42, group: Season 4 }
+- { title: "S04E03 Launch Party", year: 2007, minutes: 42, group: Season 4 }
+- { title: "S04E04 Money", year: 2007, minutes: 42, group: Season 4 }
+- { title: "S04E05 Local Ad", year: 2007, minutes: 22, group: Season 4 }
+- { title: "S04E06 Branch Wars", year: 2007, minutes: 22, group: Season 4 }
+- { title: "S04E07 Survivor Man", year: 2007, minutes: 30, group: Season 4 }
+- { title: "S04E08 The Deposition", year: 2007, minutes: 30, group: Season 4 }
+- { title: "S04E09 Dinner Party", year: 2008, minutes: 30, group: Season 4 }
+- { title: "S04E10 The Chair Model", year: 2008, minutes: 30, group: Season 4 }
+- { title: "S04E11 Night Out", year: 2008, minutes: 21, group: Season 4 }
+- { title: "S04E12 Did I Stutter?", year: 2008, minutes: 22, group: Season 4 }
+- { title: "S04E13 Job Fair", year: 2008, minutes: 30, group: Season 4 }
+- { title: "S04E14 Goodbye, Toby", year: 2008, minutes: 42, group: Season 4 }
+- { title: "S05E01 Weight Loss", year: 2008, minutes: 43, group: Season 5 }
+- { title: "S05E02 Business Ethics", year: 2008, minutes: 22, group: Season 5 }
+- { title: "S05E03 Baby Shower", year: 2008, minutes: 22, group: Season 5 }
+- { title: "S05E04 Crime Aid", year: 2008, minutes: 30, group: Season 5 }
+- { title: "S05E05 Employee Transfer", year: 2008, minutes: 22, group: Season 5 }
+- { title: "S05E06 Customer Survey", year: 2008, minutes: 22, group: Season 5 }
+- { title: "S05E07 Business Trip", year: 2008, minutes: 30, group: Season 5 }
+- { title: "S05E08 Frame Toby", year: 2008, minutes: 30, group: Season 5 }
+- { title: "S05E09 The Surplus", year: 2008, minutes: 22, group: Season 5 }
+- { title: "S05E10 Moroccan Christmas", year: 2008, minutes: 30, group: Season 5 }
+- { title: "S05E11 The Duel", year: 2009, minutes: 30, group: Season 5 }
+- { title: "S05E12 Prince Family Paper", year: 2009, minutes: 22, group: Season 5 }
+- { title: "S05E13 Stress Relief", year: 2009, minutes: 42, group: Season 5 }
+- { title: "S05E14 Lecture Circuit: Part 1", year: 2009, minutes: 22, group: Season 5 }
+- { title: "S05E15 Lecture Circuit: Part 2", year: 2009, minutes: 22, group: Season 5 }
+- { title: "S05E16 Blood Drive", year: 2009, minutes: 22, group: Season 5 }
+- { title: "S05E17 Golden Ticket", year: 2009, minutes: 30, group: Season 5 }
+- { title: "S05E18 New Boss", year: 2009, minutes: 30, group: Season 5 }
+- { title: "S05E19 Two Weeks", year: 2009, minutes: 30, group: Season 5 }
+- { title: "S05E20 Dream Team", year: 2009, minutes: 30, group: Season 5 }
+- { title: "S05E21 Michael Scott Paper Company", year: 2009, minutes: 22, group: Season 5 }
+- { title: "S05E22 Heavy Competition", year: 2009, minutes: 30, group: Season 5 }
+- { title: "S05E23 Broke", year: 2009, minutes: 30, group: Season 5 }
+- { title: "S05E24 Casual Friday", year: 2009, minutes: 22, group: Season 5 }
+- { title: "S05E25 Cafe Disco", year: 2009, minutes: 30, group: Season 5 }
+- { title: "S05E26 Company Picnic", year: 2009, minutes: 22, group: Season 5 }
+- { title: "S06E01 Gossip", year: 2009, minutes: 22, group: Season 6 }
+- { title: "S06E02 The Meeting", year: 2009, minutes: 22, group: Season 6 }
+- { title: "S06E03 The Promotion", year: 2009, minutes: 22, group: Season 6 }
+- { title: "S06E04 Niagara: Part 1", year: 2009, minutes: 22, group: Season 6 }
+- { title: "S06E05 Niagara: Part 2", year: 2009, minutes: 22, group: Season 6 }
+- { title: "S06E06 Mafia", year: 2009, minutes: 22, group: Season 6 }
+- { title: "S06E07 The Lover", year: 2009, minutes: 22, group: Season 6 }
+- { title: "S06E08 Koi Pond", year: 2009, minutes: 22, group: Season 6 }
+- { title: "S06E09 Double Date", year: 2009, minutes: 22, group: Season 6 }
+- { title: "S06E10 Murder", year: 2009, minutes: 23, group: Season 6 }
+- { title: "S06E11 Shareholder Meeting", year: 2009, minutes: 22, group: Season 6 }
+- { title: "S06E12 Scott's Tots", year: 2009, minutes: 22, group: Season 6 }
+- { title: "S06E13 Secret Santa", year: 2009, minutes: 22, group: Season 6 }
+- { title: "S06E14 The Banker", year: 2010, minutes: 22, group: Season 6 }
+- { title: "S06E15 Sabre", year: 2010, minutes: 22, group: Season 6 }
+- { title: "S06E16 The Manager and the Salesman", year: 2010, minutes: 22, group: Season 6 }
+- { title: "S06E17 The Delivery: Part 1", year: 2010, minutes: 22, group: Season 6 }
+- { title: "S06E18 The Delivery, Part 2", year: 2010, minutes: 22, group: Season 6 }
+- { title: "S06E19 St. Patrick's Day", year: 2010, minutes: 22, group: Season 6 }
+- { title: "S06E20 New Leads", year: 2010, minutes: 22, group: Season 6 }
+- { title: "S06E21 Happy Hour", year: 2010, minutes: 22, group: Season 6 }
+- { title: "S06E22 Secretary's Day", year: 2010, minutes: 22, group: Season 6 }
+- { title: "S06E23 Body Language", year: 2010, minutes: 22, group: Season 6 }
+- { title: "S06E24 The Cover-Up", year: 2010, minutes: 22, group: Season 6 }
+- { title: "S06E25 The Chump", year: 2010, minutes: 22, group: Season 6 }
+- { title: "S06E26 Whistleblower", year: 2010, minutes: 22, group: Season 6 }
+- { title: "S07E01 Nepotism", year: 2010, minutes: 22, group: Season 7 }
+- { title: "S07E02 Counseling", year: 2010, minutes: 22, group: Season 7 }
+- { title: "S07E03 Andy's Play", year: 2010, minutes: 22, group: Season 7 }
+- { title: "S07E04 Sex Ed", year: 2010, minutes: 22, group: Season 7 }
+- { title: "S07E05 The Sting", year: 2010, minutes: 22, group: Season 7 }
+- { title: "S07E06 Costume Contest", year: 2010, minutes: 22, group: Season 7 }
+- { title: "S07E07 Christening", year: 2010, minutes: 22, group: Season 7 }
+- { title: "S07E08 Viewing Party", year: 2010, minutes: 22, group: Season 7 }
+- { title: "S07E09 WUPHF.com", year: 2010, minutes: 22, group: Season 7 }
+- { title: "S07E10 China", year: 2010, minutes: 22, group: Season 7 }
+- { title: "S07E11 Classy Christmas, Part 1", year: 2010, minutes: 22, group: Season 7 }
+- { title: "S07E12 Classy Christmas, Part 2", year: 2010, minutes: 22, group: Season 7 }
+- { title: "S07E13 Ultimatum", year: 2011, minutes: 22, group: Season 7 }
+- { title: "S07E14 The Seminar", year: 2011, minutes: 22, group: Season 7 }
+- { title: "S07E15 The Search", year: 2011, minutes: 22, group: Season 7 }
+- { title: "S07E16 PDA", year: 2011, minutes: 22, group: Season 7 }
+- { title: "S07E17 Threat Level Midnight", year: 2011, minutes: 22, group: Season 7 }
+- { title: "S07E18 Todd Packer", year: 2011, minutes: 22, group: Season 7 }
+- { title: "S07E19 Garage Sale", year: 2011, minutes: 22, group: Season 7 }
+- { title: "S07E20 Training Day", year: 2011, minutes: 22, group: Season 7 }
+- { title: "S07E21 Michael's Last Dundies", year: 2011, minutes: 22, group: Season 7 }
+- { title: "S07E22 Goodbye, Michael", year: 2011, minutes: 30, group: Season 7 }
+- { title: "S07E23 Goodbye, Michael Part 2", year: 2011, minutes: 30, group: Season 7 }
+- { title: "S07E24 The Inner Circle", year: 2011, minutes: 22, group: Season 7 }
+- { title: "S07E25 Dwight K. Schrute, (Acting) Manager", year: 2011, minutes: 22, group: Season 7 }
+- { title: "S07E26 Search Committee", year: 2011, minutes: 22, group: Season 7 }
+- { title: "S07E27 Search Committee, Part 2", year: 2011, minutes: 22, group: Season 7 }
+- { title: "S08E01 The List", year: 2011, minutes: 22, group: Season 8 }
+- { title: "S08E02 The Incentive", year: 2011, minutes: 22, group: Season 8 }
+- { title: "S08E03 Lotto", year: 2011, minutes: 22, group: Season 8 }
+- { title: "S08E04 Garden Party", year: 2011, minutes: 22, group: Season 8 }
+- { title: "S08E05 Spooked", year: 2011, minutes: 22, group: Season 8 }
+- { title: "S08E06 Doomsday", year: 2011, minutes: 22, group: Season 8 }
+- { title: "S08E07 Pam's Replacement", year: 2011, minutes: 22, group: Season 8 }
+- { title: "S08E08 Gettysburg", year: 2011, minutes: 22, group: Season 8 }
+- { title: "S08E09 Mrs. California", year: 2011, minutes: 22, group: Season 8 }
+- { title: "S08E10 Christmas Wishes", year: 2011, minutes: 22, group: Season 8 }
+- { title: "S08E11 Trivia", year: 2012, minutes: 22, group: Season 8 }
+- { title: "S08E12 Pool Party", year: 2012, minutes: 22, group: Season 8 }
+- { title: "S08E13 Jury Duty", year: 2012, minutes: 22, group: Season 8 }
+- { title: "S08E14 Special Project", year: 2012, minutes: 22, group: Season 8 }
+- { title: "S08E15 Tallahassee", year: 2012, minutes: 22, group: Season 8 }
+- { title: "S08E16 After Hours", year: 2012, minutes: 22, group: Season 8 }
+- { title: "S08E17 Test the Store", year: 2012, minutes: 22, group: Season 8 }
+- { title: "S08E18 Last Day in Florida", year: 2012, minutes: 22, group: Season 8 }
+- { title: "S08E19 Get the Girl", year: 2012, minutes: 22, group: Season 8 }
+- { title: "S08E20 Welcome Party", year: 2012, minutes: 22, group: Season 8 }
+- { title: "S08E21 Angry Andy", year: 2012, minutes: 22, group: Season 8 }
+- { title: "S08E22 Fundraiser", year: 2012, minutes: 22, group: Season 8 }
+- { title: "S08E23 Turf War", year: 2012, minutes: 22, group: Season 8 }
+- { title: "S08E24 Free Family Portrait Studio", year: 2012, minutes: 22, group: Season 8 }
+- { title: "S09E01 New Guys", year: 2012, minutes: 22, group: Season 9 }
+- { title: "S09E02 Roy's Wedding", year: 2012, minutes: 22, group: Season 9 }
+- { title: "S09E03 Andy's Ancestry", year: 2012, minutes: 22, group: Season 9 }
+- { title: "S09E04 Work Bus", year: 2012, minutes: 22, group: Season 9 }
+- { title: "S09E05 Here Comes Treble", year: 2012, minutes: 22, group: Season 9 }
+- { title: "S09E06 The Boat", year: 2012, minutes: 22, group: Season 9 }
+- { title: "S09E07 The Whale", year: 2012, minutes: 22, group: Season 9 }
+- { title: "S09E08 The Target", year: 2012, minutes: 22, group: Season 9 }
+- { title: "S09E09 Dwight Christmas", year: 2012, minutes: 22, group: Season 9 }
+- { title: "S09E10 Lice", year: 2013, minutes: 22, group: Season 9 }
+- { title: "S09E11 Suit Warehouse", year: 2013, minutes: 22, group: Season 9 }
+- { title: "S09E12 Customer Loyalty", year: 2013, minutes: 22, group: Season 9 }
+- { title: "S09E13 Junior Salesman", year: 2013, minutes: 22, group: Season 9 }
+- { title: "S09E14 Vandalism", year: 2013, minutes: 22, group: Season 9 }
+- { title: "S09E15 Couples Discount", year: 2013, minutes: 22, group: Season 9 }
+- { title: "S09E16 Moving On", year: 2013, minutes: 42, group: Season 9 }
+- { title: "S09E17 The Farm", year: 2013, minutes: 22, group: Season 9 }
+- { title: "S09E18 Promos", year: 2013, minutes: 22, group: Season 9 }
+- { title: "S09E19 Stairmageddon", year: 2013, minutes: 22, group: Season 9 }
+- { title: "S09E20 Paper Airplane", year: 2013, minutes: 22, group: Season 9 }
+- { title: "S09E21 Livin' the Dream", year: 2013, minutes: 40, group: Season 9 }
+- { title: "S09E22 A.A.R.M.", year: 2013, minutes: 43, group: Season 9 }
+- { title: "S09E23 Finale", year: 2013, minutes: 51, group: Season 9 }

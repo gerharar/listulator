@@ -3,15 +3,15 @@ description: The complete Dekalog TV mini-series plus both related feature films
 category: mega
 status: complete
 items:
-- { title: "Dekalog, Jeden", year: 1989, minutes: 57 }
-- { title: "Dekalog, Dwa", year: 1989, minutes: 57 }
-- { title: "Dekalog, Trzy", year: 1989, minutes: 56 }
-- { title: "Dekalog, Cztery", year: 1989, minutes: 55 }
-- { title: "Dekalog, Pięć", year: 1989, minutes: 57 }
-- { title: "Dekalog, Sześć", year: 1989, minutes: 58 }
-- { title: "Dekalog, Siedem", year: 1989, minutes: 55 }
-- { title: "Dekalog, Osiem", year: 1989, minutes: 55 }
-- { title: "Dekalog, Dziewięć", year: 1989, minutes: 58 }
-- { title: "Dekalog, Dziesięć", year: 1989, minutes: 57 }
-- { title: "A Short Film About Killing", year: 1988, minutes: 85 }
-- { title: "A Short Film About Love", year: 1988, minutes: 86 }
+- { title: "Dekalog, Jeden", year: 1989, minutes: 57, tags: [tv] }
+- { title: "Dekalog, Dwa", year: 1989, minutes: 57, tags: [tv] }
+- { title: "Dekalog, Trzy", year: 1989, minutes: 56, tags: [tv] }
+- { title: "Dekalog, Cztery", year: 1989, minutes: 55, tags: [tv] }
+- { title: "Dekalog, Pięć", year: 1989, minutes: 57, tags: [tv] }
+- { title: "Dekalog, Sześć", year: 1989, minutes: 58, tags: [tv] }
+- { title: "Dekalog, Siedem", year: 1989, minutes: 55, tags: [tv] }
+- { title: "Dekalog, Osiem", year: 1989, minutes: 55, tags: [tv] }
+- { title: "Dekalog, Dziewięć", year: 1989, minutes: 58, tags: [tv] }
+- { title: "Dekalog, Dziesięć", year: 1989, minutes: 57, tags: [tv] }
+- { title: "A Short Film About Killing", year: 1988, minutes: 85, tags: [movie] }
+- { title: "A Short Film About Love", year: 1988, minutes: 86, tags: [movie] }
