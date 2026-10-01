@@ -78,7 +78,7 @@ describe('the row, folded', () => {
     expect(container.querySelector('.chev')?.textContent).toBe('▼')
   })
 
-  it('names the Mega category with its icon, in ink, never the curated star', () => {
+  it('names the Mega category with its icon, and puts no star on the folded row itself', () => {
     const { container } = renderRow()
 
     expect(container.querySelector('.q-hint-icon')).not.toBeNull()
@@ -108,6 +108,18 @@ describe('the row, open', () => {
     expect(within(subRows[1] as HTMLElement).getByText('Every release, in release order · 197 items')).toBeTruthy()
     expect(screen.getAllByRole('button', { name: /^Open / })).toHaveLength(2)
     expect(screen.queryByRole('button', { name: /Add List/ })).toBeNull()
+  })
+
+  it('marks every list shown with the curated star, as the canonical lists in the results are, before its title', () => {
+    const { container } = renderRow({ expanded: true, lists: [MAIN, ALL, third(3)] })
+    const subRows = [...container.querySelectorAll('.q-hint-list')]
+
+    expect(subRows).toHaveLength(2)
+    for (const subRow of subRows) {
+      const star = subRow.querySelector('.q-star')
+      expect(star?.getAttribute('aria-label')).toBe(copy.quantum.marks.curated)
+      expect(star?.nextElementSibling?.classList.contains('title')).toBe(true)
+    }
   })
 
   it('falls back to just the count, or just the description, when the other is missing', () => {

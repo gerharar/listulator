@@ -4,6 +4,7 @@ import type { KeyboardEvent, MouseEvent } from 'react'
 import { Layers } from 'lucide-react'
 import { copy } from '../../../locale/index.js'
 import { Button } from '../Button/Button.js'
+import { CuratedStar } from '../Marks/Marks.js'
 import { shouldFoldFromDetails } from '../SearchResultRow/foldFromDetails.js'
 import type { CrossHintList } from './crossHint.js'
 
@@ -23,9 +24,9 @@ export interface CrossHintRowProps {
 
 /**
  * The best-bet row above a search's results (design `search-mega-promo`, option 3A): a fuller list for this search
- * lives in another category. It is built from the result row, with no star, tint, accent or dismiss, and opens in
- * place to name the lists; only Open leaves the category, never the row itself, and never to add: adding happens
- * over there.
+ * lives in another category. It is built from the result row, with a gold icon and a bold title (every library list
+ * is canonical), no tint, accent or dismiss, and opens in place to name the lists, each with the curated star. Only
+ * Open leaves the category, never the row itself, and never to add: adding happens over there.
  */
 export function CrossHintRow({ lists, categoryLabel, expanded, onToggle, onOpen }: CrossHintRowProps) {
   const text = copy.quantum.search
@@ -80,7 +81,10 @@ export function CrossHintRow({ lists, categoryLabel, expanded, onToggle, onOpen 
             return (
               <div key={list.externalRef} className="q-hint-list">
                 <div className="info">
-                  <div className="title">{list.title}</div>
+                  <div className="q-hint-line">
+                    <CuratedStar />
+                    <div className="title">{list.title}</div>
+                  </div>
                   {meta && <div className="sub">{meta}</div>}
                 </div>
                 <Button size="sm" aria-label={hint.openList(list.title)} onClick={() => onOpen(list)}>

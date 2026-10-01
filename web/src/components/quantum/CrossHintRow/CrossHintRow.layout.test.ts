@@ -3,7 +3,7 @@ import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 
 /**
- * The hint must read as content, not as a banner (design 3A): no box, no tint, no accent (accent means "curated").
+ * The hint must read as content, not as a banner (design 3A): no box, no tint, no accent colour. Its gold is the curated star's own `--star`: every Mega list is canonical.
  * jsdom cannot lay anything out, so this reads the stylesheet.
  */
 const css = readFileSync(join(import.meta.dirname, 'CrossHintRow.css'), 'utf8')
@@ -14,8 +14,8 @@ const rule = (selector: string): string => {
 }
 
 describe('the hint row’s styling', () => {
-  it('draws its icon in ink, not accent', () => {
-    expect(rule('.q-hint-icon')).toMatch(/color:\s*var\(--ink\)/)
+  it('draws its icon in the curated star’s gold, like the star on a canonical list', () => {
+    expect(rule('.q-hint-icon')).toMatch(/color:\s*var\(--star\)/)
   })
 
   it('never uses the accent colour anywhere', () => {
