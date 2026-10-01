@@ -109,7 +109,7 @@ describe('AboutScreen', () => {
         'Wikipedia',
         'TMDB',
       ])
-      expect(within(rows[1]!).getByText('Albums and discographies')).toBeTruthy()
+      expect(within(rows[1]!).getByText('Artists and bands')).toBeTruthy()
       expect(within(rows[5]!).getByText('Pro Wrestling and MMA events')).toBeTruthy()
       expect(within(rows[5]!).getByRole('link', { name: /wikipedia\.org/ }).getAttribute('href')).toBe(
         'https://www.wikipedia.org/',
