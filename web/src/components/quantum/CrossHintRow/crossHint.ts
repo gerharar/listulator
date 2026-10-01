@@ -8,6 +8,9 @@ export interface CrossHintList {
   itemCount?: number
 }
 
+/** A list the community library ships: the curated star's meaning (a result row decides it the same way). */
+export const isCanonical = (list: CrossHintList): boolean => list.externalRef.startsWith('canonical:')
+
 /** What a search found one shelf over: every matching list, in the library's order, and what was searched. */
 export interface CrossHint {
   /** The library-scope category's key. */

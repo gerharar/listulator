@@ -78,11 +78,23 @@ describe('the row, folded', () => {
     expect(container.querySelector('.chev')?.textContent).toBe('▼')
   })
 
-  it('names the Mega category with its icon, and puts no star on the folded row itself', () => {
+  it('puts the curated star, then the Mega category icon, then the title, when every list is canonical', () => {
     const { container } = renderRow()
+    const line = container.querySelector('.q-hint .line1') as HTMLElement
+    const [star, icon, title] = [...line.children]
 
-    expect(container.querySelector('.q-hint-icon')).not.toBeNull()
-    expect(container.querySelector('.q-star')).toBeNull()
+    expect(star?.classList.contains('q-star')).toBe(true)
+    expect(star?.getAttribute('aria-label')).toBe(copy.quantum.marks.curated)
+    expect(icon?.classList.contains('q-hint-icon')).toBe(true)
+    expect(title?.classList.contains('title')).toBe(true)
+  })
+
+  it('leaves the star out, and keeps the rest, when any list behind the row is not canonical', () => {
+    const { container } = renderRow({ lists: [MAIN, { externalRef: 'tmdb:1396', title: 'Breaking Bad' }] })
+
+    expect(container.querySelector('.q-hint .q-star')).toBeNull()
+    expect(container.querySelector('.q-hint .q-hint-icon')).not.toBeNull()
+    expect(screen.getByText('Fuller lists in Mega')).toBeTruthy()
   })
 
   it('toggles from a click and from Enter or Space, and never opens Mega by itself', () => {
@@ -110,16 +122,11 @@ describe('the row, open', () => {
     expect(screen.queryByRole('button', { name: /Add List/ })).toBeNull()
   })
 
-  it('marks every list shown with the curated star, as the canonical lists in the results are, before its title', () => {
-    const { container } = renderRow({ expanded: true, lists: [MAIN, ALL, third(3)] })
-    const subRows = [...container.querySelectorAll('.q-hint-list')]
+  it('has no star on the lists shown: the row’s star already says they are canonical', () => {
+    const { container } = renderRow({ expanded: true })
 
-    expect(subRows).toHaveLength(2)
-    for (const subRow of subRows) {
-      const star = subRow.querySelector('.q-star')
-      expect(star?.getAttribute('aria-label')).toBe(copy.quantum.marks.curated)
-      expect(star?.nextElementSibling?.classList.contains('title')).toBe(true)
-    }
+    expect(container.querySelectorAll('.q-hint-list')).toHaveLength(2)
+    expect(container.querySelector('.q-hint-more .q-star')).toBeNull()
   })
 
   it('falls back to just the count, or just the description, when the other is missing', () => {
