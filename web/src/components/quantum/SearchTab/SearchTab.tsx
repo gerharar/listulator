@@ -229,6 +229,14 @@ export function SearchTab({ mediaType, onBuilt, libraryCategory, initialQuery, i
       setHint(foundHint)
       if (open && sources.some((entry) => entry.externalRef === open)) setExpanded(new Set([open]))
       if (sources.length === 0) {
+        if (foundHint) {
+          // Nothing here, but Mega has it: the row stands alone, so this is not "Nothing Found".
+          if (libraryUnreachable) {
+            setNotice({ kind: 'strip', message: text.libraryUnreachable, retry: () => void runSearch(trimmed) })
+          }
+          return
+        }
+
         setNotice({
           kind: 'block',
           headline: text.nothingFoundHeadline,
@@ -421,7 +429,7 @@ export function SearchTab({ mediaType, onBuilt, libraryCategory, initialQuery, i
         )}
       </div>
 
-      {results && results.length > 0 && (
+      {results && (results.length > 0 || hint) && (
         <div className="q-search-results">
           <div className="q-search-results-head">
             <span className="q-kicker strong">{text.resultsCount(results.length + (hint?.lists.length ?? 0))}</span>

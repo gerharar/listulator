@@ -689,5 +689,161 @@ describe('SearchTab', () => {
       expect(screen.queryByText(/Fuller list/)).toBeNull()
     })
   })
-})
 
+  describe('where the hint must not show, and the empty search (task 14.3)', () => {
+    const MEGA = mediaType({ key: 'mega', label: 'Mega', sourceName: undefined, searchScope: 'library' })
+    const BLACK_MIRROR: ListSourceResult = {
+      externalRef: 'canonical:lists/mega/black-mirror.yaml',
+      title: 'Black Mirror franchise (release order)',
+      detail: 'Canonical list',
+      itemCount: 41,
+    }
+    type Answer = { sources: ListSourceResult[]; libraryUnreachable?: boolean }
+    const hintRow = () => screen.queryByRole('button', { name: /Show details for Fuller list/ })
+
+    /** One search at a time, answered by hand: what each category returns for each query, and when. */
+    function gates() {
+      const open: Record<string, (value: Answer) => void> = {}
+      vi.mocked(api.searchSources).mockImplementation(
+        (key, query) =>
+          new Promise((resolve) => {
+            open[`${key}:${query}`] = resolve
+          }),
+      )
+      vi.mocked(api.expansion).mockResolvedValue({ itemCount: 1 })
+
+      return open
+    }
+
+    function answer(tv: Answer | Error, mega: ListSourceResult[] = [BLACK_MIRROR]) {
+      vi.mocked(api.searchSources).mockImplementation(async (key) => {
+        if (key === 'mega') return { sources: mega }
+        if (tv instanceof Error) throw tv
+        return tv
+      })
+      vi.mocked(api.expansion).mockResolvedValue({ itemCount: 1 })
+    }
+
+    it('shows nothing, hint or results, until both searches have answered, and then both at once', async () => {
+      const open = gates()
+      renderTab(mediaType(), vi.fn(), { libraryCategory: MEGA })
+      await search('black mirror')
+
+      await act(async () => open['tv:black mirror']!({ sources: RESULTS }))
+      expect(hintRow()).toBeNull()
+      expect(screen.queryByText(RESULTS[0]!.title)).toBeNull()
+      expect(screen.getByText('Searching…')).toBeTruthy()
+
+      await act(async () => open['mega:black mirror']!({ sources: [BLACK_MIRROR] }))
+      expect(hintRow()).not.toBeNull()
+      expect(screen.getByText(RESULTS[0]!.title)).toBeTruthy()
+    })
+
+    it('drops the last search’s hint the moment a new search starts', async () => {
+      answer({ sources: RESULTS })
+      renderTab(mediaType(), vi.fn(), { libraryCategory: MEGA })
+      await search('black mirror')
+      expect(hintRow()).not.toBeNull()
+
+      gates()
+      await search('saul')
+
+      expect(hintRow()).toBeNull()
+    })
+
+    it('never shows an older search’s hint when a newer search has answered first', async () => {
+      const open = gates()
+      renderTab(mediaType(), vi.fn(), { libraryCategory: MEGA })
+      await search('black mirror')
+      await search('saul')
+
+      await act(async () => {
+        open['tv:saul']!({ sources: RESULTS })
+        open['mega:saul']!({ sources: [] })
+      })
+      await act(async () => {
+        open['tv:black mirror']!({ sources: [] })
+        open['mega:black mirror']!({ sources: [BLACK_MIRROR] })
+      })
+
+      expect(hintRow()).toBeNull()
+      expect(screen.getByText('2 results')).toBeTruthy()
+    })
+
+    it('shows no row when the category’s own search fails, even though Mega has the list', async () => {
+      answer(new Error('TMDB is down'))
+      renderTab(mediaType(), vi.fn(), { libraryCategory: MEGA })
+
+      await search('black mirror')
+
+      expect(await screen.findByText('TMDB is down')).toBeTruthy()
+      expect(hintRow()).toBeNull()
+    })
+
+    it('shows no row in the no-key notice either', async () => {
+      answer(new ApiError('Search is not available for TV Shows.', 409, 'search.unavailable'))
+      renderTab(mediaType({ searchAvailable: false }), vi.fn(), { libraryCategory: MEGA })
+
+      await search('black mirror')
+
+      expect(await screen.findByText(/needs an API key to work/)).toBeTruthy()
+      expect(hintRow()).toBeNull()
+    })
+
+    describe('when the category has nothing but Mega has the list', () => {
+      it('shows the row alone, counted as one result, in place of Nothing Found', async () => {
+        answer({ sources: [] })
+        renderTab(mediaType(), vi.fn(), { libraryCategory: MEGA })
+
+        await search('black mirror')
+
+        expect(hintRow()).not.toBeNull()
+        expect(screen.getAllByRole('button', { name: /Show details for/ })).toHaveLength(1)
+        expect(screen.getByText('1 result')).toBeTruthy()
+        expect(screen.queryByText('Nothing Found')).toBeNull()
+        expect(screen.queryByRole('alert')).toBeNull()
+      })
+
+      it('counts every Mega list, even though only two are named', async () => {
+        const five = Array.from({ length: 5 }, (_, n) => ({ externalRef: `canonical:lists/mega/f${n}.yaml`, title: `Franchise ${n}`, detail: 'Canonical list' }))
+        answer({ sources: [] }, five)
+        renderTab(mediaType(), vi.fn(), { libraryCategory: MEGA })
+
+        await search('franchise')
+
+        expect(screen.getByText('5 results')).toBeTruthy()
+      })
+
+      it('opens in place and leaves from Open, like the row above results', async () => {
+        answer({ sources: [] })
+        renderTab(mediaType(), vi.fn(), { libraryCategory: MEGA, underneath: true })
+        await search('black mirror')
+
+        fireEvent.click(hintRow()!)
+        fireEvent.click(screen.getByRole('button', { name: 'Open Black Mirror franchise (release order)' }))
+
+        expect(pushedLayers()[1]![1]).toBe('/lists/new?mediaType=mega&q=black+mirror&open=canonical%3Alists%2Fmega%2Fblack-mirror.yaml')
+      })
+
+      it('still says the curated lists could not be searched, with Retry, when that is what happened', async () => {
+        answer({ sources: [], libraryUnreachable: true })
+        renderTab(mediaType(), vi.fn(), { libraryCategory: MEGA })
+
+        await search('black mirror')
+
+        expect(hintRow()).not.toBeNull()
+        expect(screen.getByRole('button', { name: 'Retry' })).toBeTruthy()
+      })
+    })
+
+    it('says Nothing Found as before when neither the category nor Mega has anything', async () => {
+      answer({ sources: [] }, [])
+      renderTab(mediaType(), vi.fn(), { libraryCategory: MEGA })
+
+      await search('zzzz')
+
+      expect(await screen.findByText('Nothing Found')).toBeTruthy()
+      expect(hintRow()).toBeNull()
+    })
+  })
+})
