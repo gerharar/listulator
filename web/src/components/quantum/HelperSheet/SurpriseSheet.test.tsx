@@ -69,7 +69,7 @@ describe('opening', () => {
     renderSheet()
     await ready()
 
-    expect(screen.getByText('Surprise, MFer!')).toBeTruthy()
+    expect(screen.getByText('Hold My Beer')).toBeTruthy()
     expect(screen.getByText(/Random canonical list you're not tracking yet/)).toBeTruthy()
     expect(['Any', 'Mega', 'Books', 'MMA', 'TV Series'].every((label) => chip(label))).toBe(true)
     expect(chip('Any').getAttribute('aria-pressed')).toBe('true')
@@ -93,7 +93,7 @@ describe('opening', () => {
   it('renders nothing, and asks nothing, when closed', () => {
     renderSheet({ open: false })
 
-    expect(screen.queryByText('Surprise, MFer!')).toBeNull()
+    expect(screen.queryByText('Hold My Beer')).toBeNull()
     expect(api.libraryUntracked).not.toHaveBeenCalled()
   })
 
@@ -101,7 +101,7 @@ describe('opening', () => {
     vi.mocked(api.libraryUntracked).mockResolvedValueOnce({ entries: [], reachable: false })
     renderSheet()
 
-    expect(await screen.findByText('Could not reach the List Vault.')).toBeTruthy()
+    expect(await screen.findByText('Could not reach the List Vault')).toBeTruthy()
     fireEvent.click(screen.getByRole('button', { name: 'Try Again' }))
 
     expect(await screen.findByRole('button', { name: 'Spin To Win!' })).toBeTruthy()
@@ -232,7 +232,7 @@ describe('spinning', () => {
     fireEvent.click(chip('TV Series'))
     fireEvent.click(screen.getByRole('button', { name: 'Spin To Win!' }))
 
-    expect(await screen.findByText('Nothing left in this category: you already track every canonical list there.')).toBeTruthy()
+    expect(await screen.findByText('Nothing left in this category: you already track every canonical list there')).toBeTruthy()
     expect(screen.queryByText('Spinning…')).toBeNull()
   })
 

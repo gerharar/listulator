@@ -268,7 +268,7 @@ describe('keyboard: Shift+↑↓', () => {
       shiftDown('g1', 'ArrowDown')
       await act(async () => void vi.advanceTimersByTime(1300))
 
-      expect(toast()!.textContent).toMatch(/^Item moved inside Season 1\.Undo/)
+      expect(toast()!.textContent).toMatch(/^Item moved inside Season 1Undo/)
     })
 
     it('ends when focus leaves the list', async () => {
@@ -394,7 +394,7 @@ describe('dragging by the handle', () => {
     gesture.release()
 
     await waitFor(() => expect(rowIds()).toEqual(['a', 'gs', 'g2', 'g3', 'g1', 'b']))
-    expect(toast()!.textContent).toMatch(/Item moved inside Season 1\./)
+    expect(toast()!.textContent).toMatch(/Item moved inside Season 1/)
   })
 
   it('drags a whole group past a loose item', async () => {

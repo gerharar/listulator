@@ -68,7 +68,7 @@ describe('AppHeader', () => {
     expect(screen.queryByRole('dialog')).toBeNull() // menu closed
     await waitFor(() => {
       expect(container.querySelector('.q-live')?.textContent).toBe(
-        'Switched to the Deluge skin.',
+        'Switched to the Deluge skin',
       )
     })
   })

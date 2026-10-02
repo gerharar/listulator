@@ -30,11 +30,11 @@ const stacks = () => [...document.querySelectorAll('.q-about-stack')]
 
 describe('the update-status block, in English', () => {
   const cases: [UpdateBlockState, { status: string; version: string; button: string; disabled: boolean }][] = [
-    ['latest', { status: 'Listulator is up to date.', version: 'Version 1.0.0.', button: 'Check For Updates', disabled: false }],
+    ['latest', { status: 'Listulator is up to date', version: 'Version 1.0.0.', button: 'Check For Updates', disabled: false }],
     ['checking', { status: 'Checking…', version: 'Version 1.0.0.', button: 'Checking…', disabled: true }],
-    ['available', { status: 'An update is available.', version: 'Version 1.0.0 → 1.1.0.', button: 'Download Update', disabled: false }],
-    ['error', { status: 'Couldn’t check for updates.', version: 'Version 1.0.0.', button: 'Try Again', disabled: false }],
-    ['unavailable', { status: 'Checking for updates is yet TBD.', version: 'Version 1.0.0.', button: 'Check For Updates', disabled: true }],
+    ['available', { status: 'An update is available', version: 'Version 1.0.0 → 1.1.0.', button: 'Download Update', disabled: false }],
+    ['error', { status: 'Couldn’t check for updates', version: 'Version 1.0.0.', button: 'Try Again', disabled: false }],
+    ['unavailable', { status: 'Checking for updates is yet TBD', version: 'Version 1.0.0.', button: 'Check For Updates', disabled: true }],
   ]
 
   it.each(cases)('says what the %s state says', (state, expected) => {
@@ -50,7 +50,7 @@ describe('the update-status block, in English', () => {
   it('puts the status and the version in one status region, so a reader hears them together', () => {
     renderBlock('latest')
 
-    expect(within(status()).getByText('Listulator is up to date.')).toBeTruthy()
+    expect(within(status()).getByText('Listulator is up to date')).toBeTruthy()
     expect(within(status()).getByText('Version 1.0.0.')).toBeTruthy()
   })
 })
@@ -61,11 +61,11 @@ describe('zero layout shift: every variant is in the page, only one is shown', (
     const [statusStack, versionStack, buttonStack] = stacks()
 
     expect([...statusStack!.children].map((variant) => variant.textContent)).toEqual([
-      'Listulator is up to date.',
+      'Listulator is up to date',
       'Checking…',
-      'An update is available.',
-      'Couldn’t check for updates.',
-      'Checking for updates is yet TBD.',
+      'An update is available',
+      'Couldn’t check for updates',
+      'Checking for updates is yet TBD',
     ])
     expect([...versionStack!.children].map((variant) => variant.textContent)).toEqual([
       'Version 1.0.0.',
@@ -140,7 +140,7 @@ describe('the buttons', () => {
   it('explains the disabled button in the unavailable state with the owner’s wording', async () => {
     renderBlock('unavailable')
 
-    expect(await hoverTooltip(screen.getByRole('button', { name: 'Check For Updates' }))).toBe('Checking for updates is yet TBD.')
+    expect(await hoverTooltip(screen.getByRole('button', { name: 'Check For Updates' }))).toBe('Checking for updates is yet TBD')
   })
 })
 
@@ -157,7 +157,7 @@ describe('the skin wash', () => {
 describe('other languages', () => {
   it.each([
     ['de', 'Listulator ist auf dem neuesten Stand.', 'Version 1.0.0.', 'Nach Updates suchen'],
-    ['ru', 'Установлена последняя версия Listulator.', 'Версия 1.0.0.', 'Проверить обновления'],
+    ['ru', 'Установлена последняя версия Listulator', 'Версия 1.0.0.', 'Проверить обновления'],
   ] as const)('%s: says its own words for the status, the version and the button', (language, line, version, button) => {
     setActiveLanguage(language)
     renderBlock('latest')

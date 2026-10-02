@@ -61,7 +61,7 @@ describe('LanguageProvider', () => {
       </LanguageProvider>,
     )
 
-    expect(screen.getByText('Мои Прелессти')).not.toBeNull()
+    expect(screen.getByText('Мои Списки')).not.toBeNull()
     expect(screen.queryByText('My Lists')).toBeNull()
   })
 

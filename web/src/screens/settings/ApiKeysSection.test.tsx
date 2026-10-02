@@ -162,12 +162,12 @@ describe('ApiKeysSection', () => {
 
     act(() => within(tmdb).getByRole('button', { name: 'What this key is used for' }).click())
     expect(screen.getByText('TMDB (The Movie Database)')).not.toBeNull()
-    expect(screen.getByText('Used when you search for movies, TV, animation, documentaries.')).not.toBeNull()
+    expect(screen.getByText('Used when you search for movies, TV, animation, documentaries')).not.toBeNull()
 
-    act(() => within(tmdb).getByRole('button', { name: 'Huh?' }).click())
+    act(() => within(tmdb).getByRole('button', { name: 'How?' }).click())
     expect(screen.getByText('Getting Your Key')).not.toBeNull()
     expect(screen.getByText('themoviedb.org')).not.toBeNull()
-    expect(screen.getByText('Request a Developer key (personal use is approved on the spot):')).not.toBeNull()
+    expect(screen.getByText('Request a Developer key (personal use is insta-approved):')).not.toBeNull()
   })
 
   it("sizes every status pill to the longest status label of the current language, not of all of them", async () => {

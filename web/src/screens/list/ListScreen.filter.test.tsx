@@ -230,7 +230,7 @@ describe('filtering', () => {
 
     type('zzz')
 
-    expect(screen.getByText('Nothing matches “zzz”.')).toBeTruthy()
+    expect(screen.getByText('Nothing matches “zzz”')).toBeTruthy()
     expect(rowIds()).toEqual([])
   })
 
@@ -240,7 +240,7 @@ describe('filtering', () => {
     fireEvent.click(facet('DS'))
     type('assassin')
 
-    expect(screen.getByText('Nothing matches “assassin”.')).toBeTruthy()
+    expect(screen.getByText('Nothing matches “assassin”')).toBeTruthy()
   })
 })
 

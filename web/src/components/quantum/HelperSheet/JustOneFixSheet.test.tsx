@@ -48,7 +48,7 @@ describe('Just One Fix', () => {
     expect(screen.getByText('Just One Fix')).toBeTruthy()
     expect(screen.getByText('A quick dopamine hit from the shortest unfinished thing you track')).toBeTruthy()
     expect(screen.queryByText("I'm tired of going through")).toBeNull()
-    expect(screen.getByText('Shortest unfinished item you have -- 30m and it\'s done.')).toBeTruthy()
+    expect(screen.getByText('Shortest unfinished item you have -- 30m and it\'s done')).toBeTruthy()
     expect(['Next in y', 'Next in z', 'Next in w', 'Next in v'].every((title) => screen.queryByText(title) === null)).toBe(true)
     expect(screen.queryByText('Alternates')).toBeNull()
     expect(api.justOneFix).toHaveBeenCalledTimes(1)

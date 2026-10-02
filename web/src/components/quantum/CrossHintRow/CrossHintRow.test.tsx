@@ -37,23 +37,23 @@ function renderRow(over: Partial<CrossHintRowProps> = {}) {
   return { props, ...render(<CrossHintRow {...props} />) }
 }
 
-const row = () => screen.getByRole('button', { name: /Fuller list/ })
+const row = () => screen.getByRole('button', { name: /Your Princess/ })
 
 describe('the row, folded', () => {
-  it('says Fuller lists in Mega for several, with the count and the unit lists, and the fixed subline under it', () => {
+  it('says Your Princesses Are In The Mega Castle for several, with the count and the unit lists, and the fixed subline under it', () => {
     const { container } = renderRow()
 
-    expect(screen.getByText('Fuller lists in Mega')).toBeTruthy()
+    expect(screen.getByText('Your Princesses Are In The Mega Castle')).toBeTruthy()
     expect(container.querySelector('.n')?.firstChild?.textContent).toBe('2')
     expect(container.querySelector('.n .q-kicker')?.textContent).toBe('lists')
     expect(container.querySelector('.q-hint .meta')?.textContent).toBe(copy.quantum.search.megaHint.subline)
     expect(row().getAttribute('aria-expanded')).toBe('false')
   })
 
-  it('says Fuller list in Mega and 1 list for a single match', () => {
+  it('says Your Princess Is In The Mega Castle and 1 list for a single match', () => {
     const { container } = renderRow({ lists: [MAIN] })
 
-    expect(screen.getByText('Fuller list in Mega')).toBeTruthy()
+    expect(screen.getByText('Your Princess Is In The Mega Castle')).toBeTruthy()
     expect(container.querySelector('.n .q-kicker')?.textContent).toBe('list')
   })
 
@@ -94,7 +94,7 @@ describe('the row, folded', () => {
 
     expect(container.querySelector('.q-hint .q-star')).toBeNull()
     expect(container.querySelector('.q-hint .q-hint-icon')).not.toBeNull()
-    expect(screen.getByText('Fuller lists in Mega')).toBeTruthy()
+    expect(screen.getByText('Your Princesses Are In The Mega Castle')).toBeTruthy()
   })
 
   it('toggles from a click and from Enter or Space, and never opens Mega by itself', () => {
@@ -194,7 +194,7 @@ describe('the row, open', () => {
 describe('in other languages', () => {
   it.each([
     ['de', 'Umfassendere Listen in Mega'],
-    ['ru', 'Более полные списки в Mega'],
+    ['ru', 'Твои принцессы в замке Mega'],
   ] as const)('%s: says its own title', (language, title) => {
     setActiveLanguage(language)
     renderRow()

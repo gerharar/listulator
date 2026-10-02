@@ -18,7 +18,7 @@ describe('turning a failed response into something to show', () => {
     // the sentence is written once, here.
     respondWith({ code: 'search.unavailable', params: { category: 'Movies' } }, 409)
 
-    await expect(api.lists()).rejects.toThrow('Search is not available for Movies. You can import a list or create one manually.')
+    await expect(api.lists()).rejects.toThrow('Search is not available for Movies. You can import a list or create one manually')
   })
 
   it('falls back to a message for errors that carry one', async () => {
@@ -41,7 +41,7 @@ describe('turning a failed response into something to show', () => {
     respondWith({ code: 'refresh.handMadeList', message: 'stale prose' }, 409)
 
     await expect(api.lists()).rejects.toThrow(
-      'This list was a hand job, so there is nothing to check against.',
+      'This list was a hand job, so there is nothing to check against',
     )
   })
 

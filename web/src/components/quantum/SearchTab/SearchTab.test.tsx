@@ -201,7 +201,7 @@ describe('SearchTab', () => {
     await search('zzzz')
 
     expect(await screen.findByText('Nothing Found')).not.toBeNull()
-    expect(screen.getByText('You sure it\'s a thing? Anyway, try to spell stuff differently, or create a list manually.')).not.toBeNull()
+    expect(screen.getByText('You sure it\'s a thing? Anyway, try to spell stuff differently, or create a list manually')).not.toBeNull()
   })
 
   it('still searches a category whose API key is missing, because the curated library needs none', async () => {
@@ -593,7 +593,7 @@ describe('SearchTab', () => {
       { externalRef: 'canonical:lists/mega/bb-main.yaml', title: 'Breaking Bad franchise - main list', detail: 'Canonical list', description: 'The recommended order', itemCount: 126 },
       { externalRef: 'canonical:lists/mega/bb-all.yaml', title: 'Breaking Bad franchise - full list', detail: 'Canonical list', description: 'Every release', itemCount: 197 },
     ]
-    const hintRow = () => screen.getByRole('button', { name: /Show details for Fuller list/ })
+    const hintRow = () => screen.getByRole('button', { name: /Show details for Your Princess/ })
 
     function answerWith(mega: ListSourceResult[] | Error | 'unreachable' = MEGA_LISTS) {
       vi.mocked(api.searchSources).mockImplementation(async (key) => {
@@ -673,7 +673,7 @@ describe('SearchTab', () => {
 
       await search('saul')
 
-      expect(screen.queryByText(/Fuller list/)).toBeNull()
+      expect(screen.queryByText(/Your Princess/)).toBeNull()
       expect(screen.getByText('2 results')).toBeTruthy()
     })
 
@@ -684,7 +684,7 @@ describe('SearchTab', () => {
 
         await search('breaking bad')
 
-        expect(screen.queryByText(/Fuller list/)).toBeNull()
+        expect(screen.queryByText(/Your Princess/)).toBeNull()
         expect(screen.getByText('2 results')).toBeTruthy()
         expect(screen.queryByRole('alert')).toBeNull()
         cleanup()
@@ -698,7 +698,7 @@ describe('SearchTab', () => {
       await search('breaking bad')
 
       expect(api.searchSources).toHaveBeenCalledTimes(1)
-      expect(screen.queryByText(/Fuller list/)).toBeNull()
+      expect(screen.queryByText(/Your Princess/)).toBeNull()
     })
   })
 
@@ -711,7 +711,7 @@ describe('SearchTab', () => {
       itemCount: 41,
     }
     type Answer = { sources: ListSourceResult[]; libraryUnreachable?: boolean }
-    const hintRow = () => screen.queryByRole('button', { name: /Show details for Fuller list/ })
+    const hintRow = () => screen.queryByRole('button', { name: /Show details for Your Princess/ })
 
     /** One search at a time, answered by hand: what each category returns for each query, and when. */
     function gates() {

@@ -101,7 +101,7 @@ describe('SettingsScreen', () => {
 
     expect(onSkinChange).toHaveBeenCalledExactlyOnceWith('dark-violet')
     await waitFor(() => {
-      expect(container.querySelector('.q-live')?.textContent).toBe('Switched to the Romans skin.')
+      expect(container.querySelector('.q-live')?.textContent).toBe('Switched to the Romans skin')
     })
   })
 

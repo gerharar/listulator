@@ -84,10 +84,10 @@ describe('locale', () => {
 
   it('renders a server error with its values', () => {
     expect(errorMessage('search.unavailable', { category: 'Movies' })).toBe(
-      'Search is not available for Movies. You can import a list or create one manually.',
+      'Search is not available for Movies. You can import a list or create one manually',
     )
     expect(errorMessage('refresh.handMadeList')).toBe(
-      'This list was a hand job, so there is nothing to check against.',
+      'This list was a hand job, so there is nothing to check against',
     )
   })
 
@@ -162,6 +162,11 @@ const SAME_AS_ENGLISH: Record<'ru' | 'de', readonly string[]> = {
     'quantum.list.filter.optionLabels.YouTube',
     'quantum.list.filter.optionLabels.EP',
     'quantum.skin.labels.light-bone',
+    'quantum.skin.labels.dark-orange',
+    'quantum.skin.labels.dark-green',
+    'quantum.skin.labels.dark-blue',
+    'quantum.skin.labels.dark-violet',
+    'quantum.search.librarySource',
   ],
   de: [
     'categories.tv.handTitlePlaceholder',
@@ -192,7 +197,6 @@ const SAME_AS_ENGLISH: Record<'ru' | 'de', readonly string[]> = {
     'quantum.addByHand.statusLabel',
     'quantum.list.itemActions.infoKicker',
     'quantum.list.editPopover.status',
-    'quantum.list.filter.facetLabels.Medium',
     'quantum.list.filter.optionLabels.MULTI',
     'quantum.list.filter.optionLabels.Animation',
     'quantum.list.filter.optionLabels.Wrestling',
@@ -430,7 +434,7 @@ describe('the source-copy notice (task 12.5)', () => {
       expect(line, name).toContain('YouTube')
     }
     expect(en.quantum.list.sourceCopyNotice({ days: 150, source: 'TMDB' })).toBe(
-      'Source copy is refreshed every 150 days, as TMDB requires.',
+      'Source copy is refreshed every 150 days, as TMDB requires',
     )
   })
 })
@@ -439,8 +443,8 @@ describe('the Fuller lists in Mega hint strings (task 14.2)', () => {
   const hint = { en: en.quantum.search.megaHint, ru: ru.quantum.search.megaHint, de: de.quantum.search.megaHint }
 
   it('en: one list or several, named for the category, with the unit and the counts', () => {
-    expect(hint.en.title({ count: 1, category: 'Mega' })).toBe('Fuller list in Mega')
-    expect(hint.en.title({ count: 2, category: 'Mega' })).toBe('Fuller lists in Mega')
+    expect(hint.en.title({ count: 1, category: 'Mega' })).toBe('Your Princess Is In The Mega Castle')
+    expect(hint.en.title({ count: 2, category: 'Mega' })).toBe('Your Princesses Are In The Mega Castle')
     expect([1, 2].map(hint.en.unit)).toEqual(['list', 'lists'])
     expect([1, 126].map(hint.en.items)).toEqual(['1 item', '126 items'])
     expect(hint.en.seeAll({ n: 5, category: 'Mega' })).toBe('See all 5 in Mega')
@@ -451,8 +455,8 @@ describe('the Fuller lists in Mega hint strings (task 14.2)', () => {
   it('ru: the unit takes all four plural forms (список, списка, списков)', () => {
     expect([1, 2, 4, 5, 11, 21, 22].map(hint.ru.unit)).toEqual(['список', 'списка', 'списка', 'списков', 'списков', 'список', 'списка'])
     expect([1, 2, 5].map(hint.ru.items)).toEqual(['1 элемент', '2 элемента', '5 элементов'])
-    expect(hint.ru.title({ count: 1, category: 'Mega' })).toBe('Более полный список в Mega')
-    expect(hint.ru.title({ count: 3, category: 'Mega' })).toBe('Более полные списки в Mega')
+    expect(hint.ru.title({ count: 1, category: 'Mega' })).toBe('Твоя принцесса в замке Mega')
+    expect(hint.ru.title({ count: 3, category: 'Mega' })).toBe('Твои принцессы в замке Mega')
   })
 
   it('de: one list or several', () => {

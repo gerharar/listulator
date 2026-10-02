@@ -537,7 +537,7 @@ describe('Home updates (task 10.22c)', () => {
 
       await waitFor(() => expect(bands()).toHaveLength(0))
       expect(api.importItems).toHaveBeenCalledWith('a', items, 'import', true)
-      expect(await screen.findAllByText('Added 2 new items to “Alpha”.')).not.toHaveLength(0)
+      expect(await screen.findAllByText('Added 2 new items to “Alpha”')).not.toHaveLength(0)
       // The row gets its N NEW badge from a fresh read.
       await waitFor(() => expect(api.lists).toHaveBeenCalled())
     })
@@ -551,7 +551,7 @@ describe('Home updates (task 10.22c)', () => {
 
       act(() => within(bandFor('Alpha')!).getByRole('button', { name: 'Update List' }).click())
 
-      expect(await screen.findAllByText('Nothing new up there.')).not.toHaveLength(0)
+      expect(await screen.findAllByText('Nothing new up there')).not.toHaveLength(0)
       expect(api.importItems).not.toHaveBeenCalled()
       expect(bands()).toHaveLength(0)
     })
@@ -636,7 +636,7 @@ describe('Home updates (task 10.22c)', () => {
 
       press()
 
-      expect(await screen.findAllByText('Nothing new up there.')).not.toHaveLength(0)
+      expect(await screen.findAllByText('Nothing new up there')).not.toHaveLength(0)
     })
 
     it('brings back an update that was dismissed: an explicit check shows everything available', async () => {
@@ -761,7 +761,7 @@ describe('Home updates (task 10.22c)', () => {
 
       fireEvent.click(button())
       expect(await screen.findByText('A short one')).toBeTruthy()
-      expect(screen.getByText('Shortest unfinished item you have -- 7m and it\'s done.')).toBeTruthy()
+      expect(screen.getByText('Shortest unfinished item you have -- 7m and it\'s done')).toBeTruthy()
       expect(button().getAttribute('aria-pressed')).toBe('true')
 
       fireEvent.click(button())
@@ -802,11 +802,11 @@ describe('Home updates (task 10.22c)', () => {
       await ready()
 
       fireEvent.click(button())
-      expect(await screen.findByText('Surprise, MFer!')).toBeTruthy()
+      expect(await screen.findByText('Hold My Beer')).toBeTruthy()
       expect(button().getAttribute('aria-pressed')).toBe('true')
 
       fireEvent.click(button())
-      await waitFor(() => expect(screen.queryByText('Surprise, MFer!')).toBeNull())
+      await waitFor(() => expect(screen.queryByText('Hold My Beer')).toBeNull())
     })
 
     it('This One opens the preview of that list, in the category it belongs to, and closes the sheet', async () => {
@@ -820,7 +820,7 @@ describe('Home updates (task 10.22c)', () => {
       expect(content).toContain('/lists/preview')
       expect(content).toContain('mediaType=tv')
       expect(decodeURIComponent(content)).toContain('canonical:lists/tv/wire.yaml')
-      await waitFor(() => expect(screen.queryByText('Surprise, MFer!')).toBeNull())
+      await waitFor(() => expect(screen.queryByText('Hold My Beer')).toBeNull())
     })
   })
 })

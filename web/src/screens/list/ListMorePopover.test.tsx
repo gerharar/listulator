@@ -106,7 +106,7 @@ describe('ListMorePopover', () => {
       const { onSortNow, onResetOrder, onDismiss } = renderPopover({ mode: 'reorder', source: 'canonical' })
 
       expect(screen.getByText('Reorder this list?')).toBeTruthy()
-      expect(screen.getByText(/Groups are moved as blocks by their earliest item/)).toBeTruthy()
+      expect(screen.getByText(/Groups are moved by their earliest item/)).toBeTruthy()
       expect(screen.getByText(/does not block manual reordering later/)).toBeTruthy()
       expect(onSortNow).not.toHaveBeenCalled()
 
@@ -146,28 +146,28 @@ describe('ListMorePopover', () => {
 
       cleanup()
       renderPopover({ mode: 'reset', source: 'file' })
-      expect(screen.getByText(/file you imported/)).toBeTruthy()
+      expect(screen.getByText(/imported file/)).toBeTruthy()
 
       cleanup()
       renderPopover({ mode: 'reset', source: 'api' })
-      expect(screen.getByText(/the list you got from search/)).toBeTruthy()
+      expect(screen.getByText(/list from search/)).toBeTruthy()
     })
 
     it('states the cost in words: what goes, what comes back, what is un-ticked', () => {
       renderPopover({ mode: 'reset', preview: ready(3, 1, 12) })
 
       expect(
-        screen.getByText('3 items you added will be removed, 1 item you removed will come back and 12 done marks will be cleared.'),
+        screen.getByText('3 items you added will be deleted, 1 item you removed will be resurrected and 12 done marks will be cleared'),
       ).toBeTruthy()
     })
 
     it('says only what applies, and says so when nothing does', () => {
       renderPopover({ mode: 'reset', preview: ready(0, 2, 0) })
-      expect(screen.getByText('2 items you removed will come back.')).toBeTruthy()
+      expect(screen.getByText('2 items you removed will be resurrected')).toBeTruthy()
 
       cleanup()
       renderPopover({ mode: 'reset', preview: ready(0, 0, 0) })
-      expect(screen.getByText('Stuff you added, removed or marked done is not affected.')).toBeTruthy()
+      expect(screen.getByText('There is no stuff you added, deleted, or marked done in this list')).toBeTruthy()
     })
 
     it('waits for the numbers before Reset', () => {
@@ -213,7 +213,7 @@ describe('ListMorePopover', () => {
 
       cleanup()
       renderPopover({ mode: 'delete', itemCount: 0, doneCount: 0 })
-      expect(screen.getByText('The list is empty.')).toBeTruthy()
+      expect(screen.getByText('The list is empty')).toBeTruthy()
     })
 
     it('Keep leaves the list alone; Delete list deletes', () => {

@@ -172,7 +172,7 @@ describe('where the list came from (link-back under the add band)', () => {
     await open(detail({ source: 'api', externalRef: 'show:1399', items: [item()] }))
 
     const note = screen.getByText(LINE).closest('p')!
-    expect(note.textContent).toBe('This list arrived from TMDB ↗. You may have changed it since, so now it\'s yours.')
+    expect(note.textContent).toBe('This list arrived from TMDB ↗. You may have changed it since, so now it\'s yours')
     expect(within(note).getByRole('link', { name: /TMDB/ }).getAttribute('href')).toBe('https://www.themoviedb.org/')
     expect(note.compareDocumentPosition(screen.getByRole('button', { name: 'Add' })) & Node.DOCUMENT_POSITION_PRECEDING).toBeTruthy()
   })
@@ -214,7 +214,7 @@ describe('how often a fetched list\u2019s source copy is refreshed (task 12.5)',
     await open(detail({ source: 'api', externalRef: 'playlist:PL1', mediaType: 'youtube', items: [item()] }))
 
     expect(screen.getByText(LINE).closest('p')!.textContent).toBe(
-      'This list arrived from YouTube \u2197. You may have changed it since, so now it\'s yours. Source copy is refreshed every 25 days, as YouTube requires.',
+      'This list arrived from YouTube \u2197. You may have changed it since, so now it\'s yours Source copy is refreshed every 25 days, as YouTube requires',
     )
   })
 
@@ -222,7 +222,7 @@ describe('how often a fetched list\u2019s source copy is refreshed (task 12.5)',
     await open(detail({ source: 'api', externalRef: 'collection:1', mediaType: 'movie', items: [item()] }))
 
     expect(screen.getByText(LINE).closest('p')!.textContent).toContain(
-      'Source copy is refreshed every 150 days, as TMDB requires.',
+      'Source copy is refreshed every 150 days, as TMDB requires',
     )
   })
 
@@ -1279,7 +1279,7 @@ describe('ListScreen edit list (task 10.22)', () => {
     fireEvent.change(title, { target: { value: 'Loki S2' } })
     fireEvent.click(pop().getByRole('button', { name: 'Save' }))
 
-    expect(await screen.findAllByText('Renamed to “Loki S2”.')).not.toHaveLength(0)
+    expect(await screen.findAllByText('Renamed to “Loki S2”')).not.toHaveLength(0)
     expect(document.querySelector('.q-toast')?.textContent).not.toMatch(/Undo/)
   })
 
@@ -1391,7 +1391,7 @@ describe('ListScreen more menu (task 10.22)', () => {
       expect(text).toMatch(/Alpha/)
       // Progress is never part of the file.
       expect(text).not.toMatch(/consumed|2026/)
-      expect(await screen.findAllByText('Saved Loki.yaml — 2 items.')).not.toHaveLength(0)
+      expect(await screen.findAllByText('Saved Loki.yaml — 2 items')).not.toHaveLength(0)
     })
 
     it('exports the list as it is now, including a rename made on this screen', async () => {
@@ -1460,7 +1460,7 @@ describe('ListScreen more menu (task 10.22)', () => {
       await waitFor(() => expect(onLeave).toHaveBeenCalledTimes(1))
       expect(api.deleteList).toHaveBeenCalledWith('L1')
       const toast = document.querySelector('.q-toast') as HTMLElement
-      expect(toast.textContent).toMatch(/Deleted “Loki”\./)
+      expect(toast.textContent).toMatch(/Deleted “Loki”/)
       expect(within(toast).getByRole('button', { name: 'Undo' })).toBeTruthy()
     })
 
@@ -1600,7 +1600,7 @@ describe('ListScreen order menu (task 10.22)', () => {
 
       await openReset()
 
-      expect(await pop().findByText(/3 items you added will be removed, 1 item you removed will come back and 12 done marks will be cleared\./)).toBeTruthy()
+      expect(await pop().findByText(/3 items you added will be deleted, 1 item you removed will be resurrected and 12 done marks will be cleared/)).toBeTruthy()
       expect(api.resetPreview).toHaveBeenCalledWith('L1')
       expect(api.resetList).not.toHaveBeenCalled()
     })
@@ -1615,12 +1615,12 @@ describe('ListScreen order menu (task 10.22)', () => {
       fireEvent.click(screen.getByRole('button', { name: 'More' }))
       await waitFor(() => expect(document.querySelector('.q-pop')).not.toBeNull())
       fireEvent.click(pop().getByRole('button', { name: 'Reset List' }))
-      await pop().findByText(/5 items you added will be removed/)
+      await pop().findByText(/5 items you added will be deleted/)
 
       await act(async () => finishFirst({ removed: 99, restored: 0, doneCleared: 0, followUpCheck: true }))
 
       expect(pop().queryByText(/99 items/)).toBeNull()
-      expect(pop().getByText(/5 items you added will be removed/)).toBeTruthy()
+      expect(pop().getByText(/5 items you added will be deleted/)).toBeTruthy()
     })
 
     it('shows why the numbers are missing, and still allows the reset', async () => {

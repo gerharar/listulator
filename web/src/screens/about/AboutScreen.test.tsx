@@ -101,7 +101,7 @@ describe('AboutScreen', () => {
       const check = screen.getByRole('button', { name: 'Check For Updates' }) as HTMLButtonElement
 
       expect(check.disabled).toBe(true)
-      expect(await hoverTooltip(check)).toBe('Checking for updates is yet TBD.')
+      expect(await hoverTooltip(check)).toBe('Checking for updates is yet TBD')
       // What a reader hears is the variants that are not hidden: never "up to date" without a check.
       const heard = [...screen.getByRole('status').querySelectorAll('.q-about-stack')].map((stack) =>
         [...stack.children]
@@ -109,7 +109,7 @@ describe('AboutScreen', () => {
           .map((variant) => variant.textContent)
           .join(''),
       )
-      expect(heard).toEqual(['Checking for updates is yet TBD.', `Version ${APP_VERSION}.`])
+      expect(heard).toEqual(['Checking for updates is yet TBD', `Version ${APP_VERSION}.`])
       expect(document.querySelector('.q-about-update-block > .q-plate.q-wash')).not.toBeNull()
     })
 
@@ -251,11 +251,11 @@ describe('checking for updates when About opens (task 13.3)', () => {
 
     expect(check).toHaveBeenCalledTimes(1)
     expect(heard()).toEqual(['Checking…', `Version ${APP_VERSION}.`])
-    expect(screen.queryByText('Listulator is up to date.', { selector: '.q-about-stack > span:not(.off)' })).toBeNull()
+    expect(screen.queryByText('Listulator is up to date', { selector: '.q-about-stack > span:not(.off)' })).toBeNull()
 
     await act(async () => answer({ kind: 'latest' }))
 
-    expect(heard()).toEqual(['Listulator is up to date.', `Version ${APP_VERSION}.`])
+    expect(heard()).toEqual(['Listulator is up to date', `Version ${APP_VERSION}.`])
     expect((screen.getByRole('button', { name: 'Check For Updates' }) as HTMLButtonElement).disabled).toBe(false)
   })
 
@@ -264,13 +264,13 @@ describe('checking for updates when About opens (task 13.3)', () => {
     renderAbout(checker)
 
     await act(async () => answer({ kind: 'latest' }))
-    await waitFor(() => expect(spoken()).toBe(`Listulator is up to date. Version ${APP_VERSION}.`))
+    await waitFor(() => expect(spoken()).toBe(`Listulator is up to date Version ${APP_VERSION}.`))
 
     fireEvent.click(screen.getByRole('button', { name: 'Check For Updates' }))
     expect(check).toHaveBeenCalledTimes(2)
     expect(heard()[0]).toBe('Checking…')
     await act(async () => answer({ kind: 'latest' }))
-    await waitFor(() => expect(spoken()).toBe(`Listulator is up to date. Version ${APP_VERSION}.`))
+    await waitFor(() => expect(spoken()).toBe(`Listulator is up to date Version ${APP_VERSION}.`))
   })
 
   it('shows Couldn’t check, announces it, and Try Again checks again', async () => {
@@ -278,13 +278,13 @@ describe('checking for updates when About opens (task 13.3)', () => {
     renderAbout(checker)
 
     await act(async () => fail())
-    expect(heard()[0]).toBe('Couldn’t check for updates.')
-    await waitFor(() => expect(spoken()).toBe(`Couldn’t check for updates. Version ${APP_VERSION}.`))
+    expect(heard()[0]).toBe('Couldn’t check for updates')
+    await waitFor(() => expect(spoken()).toBe(`Couldn’t check for updates Version ${APP_VERSION}.`))
 
     fireEvent.click(screen.getByRole('button', { name: 'Try Again' }))
     expect(check).toHaveBeenCalledTimes(2)
     await act(async () => answer({ kind: 'latest' }))
-    expect(heard()[0]).toBe('Listulator is up to date.')
+    expect(heard()[0]).toBe('Listulator is up to date')
   })
 
   it('offers the update with both versions, announces it, and hands the download off', async () => {
@@ -294,8 +294,8 @@ describe('checking for updates when About opens (task 13.3)', () => {
 
     await act(async () => answer({ kind: 'available', version: '9.9.9' }))
 
-    expect(heard()).toEqual(['An update is available.', `Version ${APP_VERSION} → 9.9.9.`])
-    await waitFor(() => expect(spoken()).toBe(`An update is available. Version ${APP_VERSION} → 9.9.9.`))
+    expect(heard()).toEqual(['An update is available', `Version ${APP_VERSION} → 9.9.9.`])
+    await waitFor(() => expect(spoken()).toBe(`An update is available Version ${APP_VERSION} → 9.9.9.`))
     fireEvent.click(screen.getByRole('button', { name: 'Download Update' }))
     expect(download).toHaveBeenCalledExactlyOnceWith('9.9.9')
   })
@@ -310,7 +310,7 @@ describe('checking for updates when About opens (task 13.3)', () => {
       await new Promise((resolve) => requestAnimationFrame(() => resolve(undefined)))
     })
 
-    expect(heard()).toEqual(['Checking for updates is yet TBD.', `Version ${APP_VERSION}.`])
+    expect(heard()).toEqual(['Checking for updates is yet TBD', `Version ${APP_VERSION}.`])
     expect(spoken()).toBe('')
   })
 })

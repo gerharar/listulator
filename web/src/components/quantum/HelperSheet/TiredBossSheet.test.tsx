@@ -56,7 +56,7 @@ describe('opening', () => {
     expect(screen.getByRole('button', { name: /Alpha/ })).toBeTruthy()
     expect(screen.getByText('Top pick')).toBeTruthy()
     expect(screen.getByText('List x · 45m')).toBeTruthy()
-    expect(screen.getByText(/Different medium, and you haven't touched it/)).toBeTruthy()
+    expect(screen.getByText(/Different category, and you haven't touched it/)).toBeTruthy()
     expect(['Next in y', 'Next in z', 'Next in w', 'Next in v'].every((title) => screen.queryByText(title) === null)).toBe(true)
     expect(screen.queryByText('Alternates')).toBeNull()
   })
@@ -112,7 +112,7 @@ describe('the list picker', () => {
     expect(screen.getByText('1 of 9')).toBeTruthy()
 
     fireEvent.change(filter, { target: { value: 'zzz' } })
-    expect(screen.getByText('No list matches “zzz”.')).toBeTruthy()
+    expect(screen.getByText('No list matches “zzz”')).toBeTruthy()
   })
 
   it('has no filter field for a short shelf', async () => {
@@ -188,11 +188,11 @@ describe('opening a suggestion', () => {
 })
 
 describe('when there is nothing, or something goes wrong', () => {
-  it('says so when nothing from another medium has anything left', async () => {
+  it('says so when nothing from another category has anything left', async () => {
     vi.mocked(api.tiredBoss).mockResolvedValue({ picks: [] })
     renderSheet()
 
-    expect(await screen.findByText(/everything unfinished is in the same medium/)).toBeTruthy()
+    expect(await screen.findByText(/everything unfinished is in the same category/)).toBeTruthy()
     expect(screen.queryByText('Top pick')).toBeNull()
   })
 

@@ -42,7 +42,7 @@ describe('the header meter bar hints that it opens an explanation (owner: matche
     const pop = screen.getByRole('dialog', { name: 'How progress bar cells work' })
     expect(pop.textContent).toContain('20 cells ≈ 2 items each')
     expect(pop.textContent).toContain(
-      'The bar caps at 20 cells, so each cell stands for about 2 items.',
+      'The bar caps at 20 cells, so each cell stands for about 2 items',
     )
 
     fireEvent.click(button())
@@ -55,7 +55,7 @@ describe('the header meter bar hints that it opens an explanation (owner: matche
 
     const pop = screen.getByRole('dialog', { name: 'How progress bar cells work' })
     expect(pop.textContent).toContain('One cell = one item')
-    expect(pop.textContent).toContain('Each cell is one item in this list. Filled cell = done.')
+    expect(pop.textContent).toContain('Each cell is one item in this list. Filled cell = done')
   })
 
   it('closes on a click away', () => {
