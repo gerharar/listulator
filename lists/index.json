@@ -12,7 +12,7 @@
     "title": "Gravity Falls animated TV series (release order)",
     "category": "animation",
     "itemCount": 114,
-    "description": "All episodes of Gravity Falls animated TV series, including shorts, in a roughly release order. Excludes comic books and video games",
+    "description": "All episodes of Gravity Falls animated TV series, including shorts, roughly in release order; excludes comic books and video games",
     "status": "complete"
   },
   {
@@ -20,7 +20,7 @@
     "title": "Rick And Morty animated TV series (chronological)",
     "category": "animation",
     "itemCount": 170,
-    "description": "All episodes of Rick And Morty animated TV series, including spin-offs, in a chronological order. Excludes comic books and video games",
+    "description": "All episodes of Rick And Morty animated TV series, including spin-offs, in chronological order; excludes comic books and video games",
     "status": "ongoing"
   },
   {
@@ -28,7 +28,7 @@
     "title": "South Park animated TV series (release order)",
     "category": "animation",
     "itemCount": 341,
-    "description": "All episodes of South Park animated TV series, including specials and the full-length film, in a roughly release order. Excludes shorts, sketches, and video games",
+    "description": "All episodes of South Park animated TV series, including specials and the full-length film, roughly in release order; excludes shorts, sketches, and video games",
     "status": "ongoing"
   },
   {
@@ -36,7 +36,7 @@
     "title": "Studio Ghibli feature films",
     "category": "animation",
     "itemCount": 25,
-    "description": "All Studio Ghibli (Hayao Miyazaki) feature films, including TV movies. Excludes shorts, TV series, commercials, documentaries, and related works",
+    "description": "All Studio Ghibli (Hayao Miyazaki) feature films, including TV movies; excludes shorts, TV series, commercials, documentaries, and related works",
     "status": "ongoing"
   },
   {
@@ -44,7 +44,7 @@
     "title": "A Song Of Fire And Ice books (grouped)",
     "category": "book",
     "itemCount": 17,
-    "description": "All books in A Song Of Fire And Ice franchise (grouped by series)",
+    "description": "All books in A Song Of Fire And Ice franchise, grouped by series",
     "status": "ongoing"
   },
   {
@@ -52,7 +52,7 @@
     "title": "Harry Potter books (grouped)",
     "category": "book",
     "itemCount": 13,
-    "description": "Complete list of all books in the Wizarding World (Harry Potter) franchise, grouped by series",
+    "description": "All books in the Wizarding World (Harry Potter) franchise, grouped by series",
     "status": "complete"
   },
   {
@@ -63,130 +63,130 @@
   },
   {
     "path": "lists/comic/100-bullets-comic.yaml",
-    "title": "100 Bullets comic book series",
+    "title": "100 Bullets comic book series (Vertigo / DC)",
     "category": "comic",
     "itemCount": 111,
-    "description": "Reading order for 100 Bullets comic book series (Vertigo / DC)",
+    "description": "Complete reading order for the 100 Bullets comic book series",
     "status": "ongoing"
   },
   {
     "path": "lists/comic/aoa-comics-full.yaml",
-    "title": "Age Of Apocalypse comic book event",
+    "title": "Age Of Apocalypse comic book event (Marvel)",
     "category": "comic",
     "itemCount": 103,
-    "description": "Complete reading order for Age Of Apocalypse comic book event (Marvel), including related pre- and post-event comics",
+    "description": "Complete reading order for the Age Of Apocalypse comic book event, including related pre- and post-event comics",
     "status": "complete"
   },
   {
     "path": "lists/comic/carey-lucifer-comics.yaml",
-    "title": "Mike Carey's Lucifer comic book series",
+    "title": "Mike Carey's Lucifer comic book series (Vertigo / DC)",
     "category": "comic",
     "itemCount": 79,
-    "description": "Complete reading order for Mike Carey's Lucifer comic book series run (Vertigo / DC)",
+    "description": "Complete reading order for Mike Carey's Lucifer comic book series run",
     "status": "complete"
   },
   {
     "path": "lists/comic/ex-machina-comic.yaml",
-    "title": "Ex Machina comic book series",
+    "title": "Ex Machina comic book series (Wildstorm / DC)",
     "category": "comic",
     "itemCount": 55,
-    "description": "Complete reading order for Ex Machina comic book series (Wildstorm / DC) by Brian K. Vaughan",
+    "description": "Complete reading order for the Ex Machina comic book series by Brian K. Vaughan",
     "status": "complete"
   },
   {
     "path": "lists/comic/fables-comics-complete.yaml",
-    "title": "Fables comic book series (recommended reading order)",
+    "title": "Fables comic book series (DC / Vertigo; recommended order)",
     "category": "comic",
     "itemCount": 303,
-    "description": "Complete recommended reading order (chronological with the exception of The Wolf Among Us) for Fables comic book series (DC / Vertigo), excluding prose stories & art/reference books",
+    "description": "Complete reading order for the Fables comic book series, in chronological order except for The Wolf Among Us; excludes prose stories and art/reference books",
     "status": "complete"
   },
   {
     "path": "lists/comic/invincible-comic-complete.yaml",
-    "title": "Invincible comic book series (release order)",
+    "title": "Invincible comic book series (Image; release order)",
     "category": "comic",
     "itemCount": 246,
-    "description": "Complete reading order (by release date) for Invincible comic book series (Image) by Robert Kirkman",
+    "description": "Complete reading order for the Invincible comic book series by Robert Kirkman, in release order",
     "status": "complete"
   },
   {
     "path": "lists/comic/kirby-4th-world-reading-order.yaml",
-    "title": "Jack Kirby's The Fourth World comic book series",
+    "title": "Jack Kirby's The Fourth World comic book series (DC)",
     "category": "comic",
     "itemCount": 57,
-    "description": "Complete reading order for The Fourth World comic book metaseries (DC) by Jack Kirby",
+    "description": "Complete reading order for The Fourth World comic book metaseries by Jack Kirby",
     "status": "complete"
   },
   {
     "path": "lists/comic/planetary-comics.yaml",
-    "title": "Planetary comic books series",
+    "title": "Planetary comic books series (Wildstorm / DC)",
     "category": "comic",
     "itemCount": 31,
-    "description": "Complete reading order for Planetary comic book series (Wildstorm / DC) by Warren Ellis and John Cassaday",
+    "description": "Complete reading order for the Planetary comic book series by Warren Ellis and John Cassaday",
     "status": "complete"
   },
   {
     "path": "lists/comic/preacher-comic.yaml",
-    "title": "Preacher comic book series",
+    "title": "Preacher comic book series (Vertigo / DC)",
     "category": "comic",
     "itemCount": 75,
-    "description": "Complete reading order for Preacher comic book series (Vertigo / DC) by Garth Ennis and Steve Dillon",
+    "description": "Complete reading order for the Preacher comic book series by Garth Ennis and Steve Dillon",
     "status": "complete"
   },
   {
     "path": "lists/comic/the-boys-comic-complete.yaml",
-    "title": "The Boys comic book series",
+    "title": "The Boys comic book series (Wildstorm / DC / Dynamite)",
     "category": "comic",
     "itemCount": 98,
-    "description": "Complete reading order for The Boys comic books series (Wildstorm / DC / Dynamite) by Garth Ennis and Darick Robertson",
+    "description": "Complete reading order for The Boys comic books series by Garth Ennis and Darick Robertson",
     "status": "complete"
   },
   {
     "path": "lists/comic/the-sandman-gaiman-comics.yaml",
-    "title": "Neil Gaiman's The Sandman comic book series",
+    "title": "Neil Gaiman's The Sandman comic book series (Vol 2, Vertigo / DC)",
     "category": "comic",
     "itemCount": 97,
-    "description": "Complete reading order for Neil Gaiman's The Sandman comic book series (Vol 2, Vertigo / DC)",
+    "description": "Complete reading order for Neil Gaiman's The Sandman comic book series (Vol 2)",
     "status": "complete"
   },
   {
     "path": "lists/comic/transmetropolitan-comics.yaml",
-    "title": "Transmetropolital comic book series",
+    "title": "Transmetropolital comic book series (Vertigo / DC)",
     "category": "comic",
     "itemCount": 64,
-    "description": "Complete reading order for Transmetropolitan comic book series (Vertigo / DC) by Warren Ellis and Darick Robertson",
+    "description": "Complete reading order for Transmetropolitan comic book series by Warren Ellis and Darick Robertson",
     "status": "complete"
   },
   {
     "path": "lists/comic/twd-comics.yaml",
-    "title": "The Walking Dead comic book series (chronological order)",
+    "title": "The Walking Dead comic book series (Image; recommended order)",
     "category": "comic",
     "itemCount": 200,
-    "description": "Complete recommended reading order (chronological-ish) for The Walking Dead comic book series (Image) by Robert Kirkman",
+    "description": "Complete reading order for The Walking Dead comic book series by Robert Kirkman, in mostly chronological order",
     "status": "complete"
   },
   {
     "path": "lists/comic/uber-comics.yaml",
-    "title": "Uber comic book series",
+    "title": "Uber comic book series (Avatar)",
     "category": "comic",
     "itemCount": 47,
-    "description": "Reading order for Uber (also spelled as Über) comic book series (Avatar) by Kieron Gillen",
+    "description": "Reading order for Uber (also spelled as Über) comic book series by Kieron Gillen",
     "status": "ongoing"
   },
   {
     "path": "lists/comic/watchmen-comic-original.yaml",
-    "title": "The original Watchmen comic book series",
+    "title": "Original Watchmen comic book series (DC)",
     "category": "comic",
     "itemCount": 12,
-    "description": "Complete reading order for the original Watchmen comic book series (DC) by Alan Moore and Dave Gibbons",
+    "description": "Complete reading order for the original Watchmen comic book series by Alan Moore and Dave Gibbons",
     "status": "complete"
   },
   {
     "path": "lists/comic/watchmen-comic-prequels.yaml",
-    "title": "Extended Watchmen comic book series - original and prequels (release order)",
+    "title": "Watchmen comic book series: original and prequels (DC; release order)",
     "category": "comic",
     "itemCount": 49,
-    "description": "Complete reading order (by release date) for the original and prequel Watchmen comic book series (DC). Excludes sequels.",
+    "description": "Complete reading order for the original and the prequel Watchmen comic book series, in release date order; excludes sequels",
     "status": "complete"
   },
   {
@@ -194,7 +194,7 @@
     "title": "The World At War series",
     "category": "documentary",
     "itemCount": 34,
-    "description": "The World At War documentary series - original series plus additional specials",
+    "description": "All episodes of The World At War documentary series, including specials",
     "status": "complete"
   },
   {
@@ -202,7 +202,7 @@
     "title": "Assassin's Creed franchise games (grouped)",
     "category": "game",
     "itemCount": 29,
-    "description": "All Assassin's Creed franchise games (grouped by type). Excludes fully unplayable games",
+    "description": "All games in the Assassin's Creed franchise, grouped by type; excludes fully unplayable games",
     "status": "ongoing"
   },
   {
@@ -210,54 +210,54 @@
     "title": "Spy Hunter franchise games",
     "category": "game",
     "itemCount": 10,
-    "description": "All Spy Hunter franchise games. Excludes compilation appearances"
+    "description": "All games in the Spy Hunter franchise; excludes compilation appearances"
   },
   {
     "path": "lists/mega/black-mirror-tv-full.yaml",
     "title": "Black Mirror franchise (release order)",
     "category": "mega",
     "itemCount": 41,
-    "description": "Every release in the Black Mirror franchise in release order",
+    "description": "All releases in the Black Mirror franchise, in release order",
     "status": "ongoing"
   },
   {
     "path": "lists/mega/breaking-bad-all.yaml",
-    "title": "Breaking Bad franchise - full list (release order)",
+    "title": "Breaking Bad franchise (release order)",
     "category": "mega",
     "itemCount": 197,
-    "description": "Every release in the Breaking Bad franchise in roughly release-ish order. Excludes video games as they're unplayable now",
+    "description": "All releases in the Breaking Bad franchise, in recommended order roughly following release order; excludes video games as they're unplayable now",
     "status": "complete"
   },
   {
     "path": "lists/mega/breaking-bad-main-watch.yaml",
-    "title": "Breaking Bad franchise - main list (recommended order)",
+    "title": "Breaking Bad franchise (main releases; recommended order)",
     "category": "mega",
     "itemCount": 126,
-    "description": "Main Breaking Bad franchise releases in the recommended viewing order (roughly following release order)",
+    "description": "Main releases in the Breaking Bad franchise, in recommended viewing order roughly following release order",
     "status": "complete"
   },
   {
     "path": "lists/mega/dekalog-complete.yaml",
-    "title": "Dekalog - TV mini-series and films",
+    "title": "Dekalog collection",
     "category": "mega",
     "itemCount": 12,
-    "description": "The complete Dekalog TV mini-series plus both related feature films by Krzysztof Kieślowski",
+    "description": "All episodes of the Dekalog TV miniseries and both feature films by Krzysztof Kieślowski",
     "status": "complete"
   },
   {
     "path": "lists/mega/firefly-serenity-full.yaml",
-    "title": "Firefly / Serenity franchise - full list (recommended order)",
+    "title": "Firefly / Serenity franchise (recommended order)",
     "category": "mega",
     "itemCount": 136,
-    "description": "Every release in the Firefly / Serenity franchise in recommended order (TV series first, then roughly chronological)",
+    "description": "All releases in the Firefly / Serenity franchise, recommended order (TV series first, then roughly chronological)",
     "status": "ongoing"
   },
   {
     "path": "lists/mega/ice-age-watch.yaml",
-    "title": "Ice Age franchise (no games, grouped)",
+    "title": "Ice Age franchise (no video games; grouped by media)",
     "category": "mega",
     "itemCount": 23,
-    "description": "Everything to watch in the Ice Age franchise (grouped by media type). Excludes video games",
+    "description": "All releases in the Ice Age franchise, grouped by media type; excludes video games",
     "status": "ongoing"
   },
   {
@@ -265,6 +265,14 @@
     "title": "Marvel Cinematic Universe — Infinity Saga (Release Order)",
     "category": "mega",
     "itemCount": 23
+  },
+  {
+    "path": "lists/mega/peaky-blinders-all.yaml",
+    "title": "Peaky Blinders franchise (release order)",
+    "category": "mega",
+    "itemCount": 39,
+    "description": "All releases in the Peaky Blinders franchise, including games, in release order",
+    "status": "ongoing"
   },
   {
     "path": "lists/mma/ufc-all-events.yaml",
@@ -286,7 +294,7 @@
   },
   {
     "path": "lists/movie/jackie-chan-acting-roles.yaml",
-    "title": "Jackie Chan - live-action starring roles",
+    "title": "Jackie Chan live-action starring roles",
     "category": "movie",
     "itemCount": 87,
     "description": "All live-action movies where Jackie Chan plays a leading or prominent role",
@@ -305,7 +313,7 @@
     "title": "Mission: Impossible movies",
     "category": "movie",
     "itemCount": 8,
-    "description": "All movies in Mission: Impossible franchise",
+    "description": "All movies in the Mission: Impossible franchise",
     "status": "complete"
   },
   {
@@ -313,15 +321,15 @@
     "title": "ISIS discography",
     "category": "music",
     "itemCount": 23,
-    "description": "Complete ISIS discography. Excludes demos and compilation appearances",
+    "description": "Complete ISIS discography; excludes demos and compilation appearances",
     "status": "complete"
   },
   {
     "path": "lists/tv/band-of-brothers.yaml",
-    "title": "Band Of Brothers TV mini-series",
+    "title": "Band Of Brothers TV miniseries",
     "category": "tv",
     "itemCount": 10,
-    "description": "All episodes of Band Of Brothers TV mini-series",
+    "description": "All episodes of the Band Of Brothers TV miniseries",
     "status": "complete"
   },
   {
@@ -334,18 +342,18 @@
   },
   {
     "path": "lists/tv/chernobyl-tv.yaml",
-    "title": "Chernobyl TV mini-series",
+    "title": "Chernobyl TV miniseries",
     "category": "tv",
     "itemCount": 5,
-    "description": "All episodes of Chernobyl TV mini-series",
+    "description": "All episodes of Chernobyl TV miniseries",
     "status": "complete"
   },
   {
     "path": "lists/tv/dekalog-tv.yaml",
-    "title": "Dekalog TV mini-series",
+    "title": "Dekalog TV miniseries",
     "category": "tv",
     "itemCount": 10,
-    "description": "All episodes of Dekalog TV mini-series by Krzysztof Kieślowski",
+    "description": "All episodes of Dekalog TV miniseries by Krzysztof Kieślowski",
     "status": "complete"
   },
   {
@@ -357,18 +365,18 @@
   },
   {
     "path": "lists/tv/game-of-thrones-franchise-tv.yaml",
-    "title": "Game Of Thrones franchise - TV series (release order)",
+    "title": "Game Of Thrones franchise TV series (release order)",
     "category": "tv",
     "itemCount": 105,
-    "description": "All TV series in Game Of Thrones franchise in release order",
-    "status": "complete"
+    "description": "All episodes of TV series from the Game Of Thrones franchise, in release order",
+    "status": "ongoing"
   },
   {
     "path": "lists/tv/narcos-franchise-tv.yaml",
-    "title": "Narcos franchise - TV series (release order)",
+    "title": "Narcos franchise TV series (release order)",
     "category": "tv",
     "itemCount": 60,
-    "description": "All TV series in Narcos franchise in release order",
+    "description": "All episodes of TV series from the Narcos franchise, in release order",
     "status": "complete"
   },
   {
@@ -384,7 +392,7 @@
     "title": "Succession TV series",
     "category": "tv",
     "itemCount": 39,
-    "description": "All episodes of Succession TV series",
+    "description": "All episodes of the Succession TV series",
     "status": "complete"
   },
   {
@@ -408,7 +416,7 @@
     "title": "True Detective TV series",
     "category": "tv",
     "itemCount": 30,
-    "description": "All episodes of True Detective TV anthology series",
+    "description": "All episodes of the True Detective TV anthology series",
     "status": "ongoing"
   },
   {
@@ -445,18 +453,18 @@
   },
   {
     "path": "lists/wrestling/wwe-all-ppv.yaml",
-    "title": "WWE PPVs",
+    "title": "WWE (ex-WWF) PPVs",
     "category": "wrestling",
     "itemCount": 483,
-    "description": "All WWE (World Wrestling Entertainment, ex-WWF) Pay-Per-Views/PLEs/specials. NXT & AAA events are excluded",
+    "description": "All WWE (ex-WWF) Pay-Per-Views, PLEs, and specials; NXT & AAA events are excluded",
     "status": "ongoing"
   },
   {
     "path": "lists/wrestling/wwe-wrestlemania.yaml",
-    "title": "WWE - WrestleMania PPVs",
+    "title": "WWE (ex-WWF) WrestleMania PPVs",
     "category": "wrestling",
     "itemCount": 49,
-    "description": "All WWE (World Wrestling Entertainment, ex-WWF) WrestleMania Pay-Per-Views/PLEs",
+    "description": "All WWE (formerly WWF) WrestleMania Pay-Per-Views and PLEs",
     "status": "ongoing"
   }
 ]
