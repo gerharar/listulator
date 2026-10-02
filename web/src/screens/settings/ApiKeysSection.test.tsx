@@ -155,7 +155,7 @@ describe('ApiKeysSection', () => {
     expect(within(tmdb).getByRole('status').textContent).toBe('Untested')
   })
 
-  it('the ⓘ says what the key is for, and How? gives the steps and the site', async () => {
+  it('the ⓘ says what the key is for', async () => {
     setup()
     await ready()
     const tmdb = row('TMDB')
@@ -163,11 +163,29 @@ describe('ApiKeysSection', () => {
     act(() => within(tmdb).getByRole('button', { name: 'What this key is used for' }).click())
     expect(screen.getByText('TMDB (The Movie Database)')).not.toBeNull()
     expect(screen.getByText('Used when you search for movies, TV, animation, documentaries')).not.toBeNull()
+  })
 
-    act(() => within(tmdb).getByRole('button', { name: 'How?' }).click())
-    expect(screen.getByText('Getting Your Key')).not.toBeNull()
-    expect(screen.getByText('themoviedb.org')).not.toBeNull()
-    expect(screen.getByText('Request a Developer key (personal use is insta-approved):')).not.toBeNull()
+  it('How? is a link out of the app to that source’s guide, marked with ↗, and opens no popover', async () => {
+    setup()
+    await ready()
+
+    for (const [name, file] of [
+      ['TMDB', 'tmdb-key.md'],
+      ['IGDB', 'igdb-key.md'],
+      ['Comic Vine', 'comic-vine-key.md'],
+      ['YouTube', 'youtube-key.md'],
+    ] as const) {
+      const how = within(row(name)).getByRole('link', { name: /^How\?/ })
+      expect(how.getAttribute('href')).toBe(`https://github.com/gerharar/listulator/blob/main/guides/${file}`)
+      expect(how.getAttribute('target')).toBe('_blank')
+      expect(how.getAttribute('rel')).toContain('noopener')
+      expect(how.textContent).toBe('How?↗')
+      expect(how.querySelector('[aria-hidden="true"]')?.textContent).toBe('↗')
+    }
+
+    act(() => within(row('TMDB')).getByRole('link', { name: /^How\?/ }).click())
+    expect(screen.queryByText('Getting Your Key')).toBeNull()
+    expect(screen.queryByRole('dialog')).toBeNull()
   })
 
   it("sizes every status pill to the longest status label of the current language, not of all of them", async () => {

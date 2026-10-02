@@ -54,6 +54,13 @@
   box-sizing: border-box;
   height: calc(18px + 16.8px + 2px);
 }
+/* How? is a link dressed as the quiet button: no underline, and its ↗ is quieter than the label. */
+.q-key-row > a.q-btn {
+  text-decoration: none;
+}
+.q-key-row > a.q-btn > span {
+  color: var(--ink3);
+}
 
 /* One fixed width per language, so pressing Test (Untested → Testing → Working) moves nothing.
    --pill-chars is set on .q-key-rows by ApiKeysSection: the longest status label of the current language.

@@ -8,8 +8,11 @@ import { resetLocalMediaTypes } from '../../lib/ingestion/localMediaTypes.js'
 import { testApiKey } from '../../lib/api.local.js'
 import { Button } from '../../components/quantum/Button/Button.js'
 import { MaskedKey } from '../../components/quantum/Field/Field.js'
+import { ExternalLink, type ExternalLinkProps } from '../../components/quantum/ExternalLink/ExternalLink.js'
 import { Popover } from '../../components/quantum/Popover/Popover.js'
 import { Tip } from '../../components/quantum/Tooltip/Tip.js'
+import { useTooltip } from '../../components/quantum/Tooltip/useTooltip.js'
+import { keyGuideUrl } from '../../lib/guides.js'
 
 /** Which saved settings make up each source's key (IGDB needs an ID and a secret). */
 const SOURCES: readonly { id: KeySource; fields: readonly (keyof LocalSettings)[] }[] = [
@@ -35,8 +38,29 @@ async function saveAndReload(patch: Partial<LocalSettings>): Promise<void> {
 
 interface OpenPopover {
   id: KeySource
+  /**
+   * `how` (the steps, in `copy…keys.sources[…].steps`) is not opened by anything:
+   * "How?" is a link to the guide on GitHub for now (owner, 2026-10-02). The popover
+   * and its text stay until the guides are settled, then one of them goes.
+   */
   mode: 'info' | 'how'
   anchor: HTMLElement
+}
+
+/** "How?": a quiet button that leaves the app, so it carries the ↗ every outbound link here does. */
+function HowLink({ href, label, title }: { href: string; label: string; title: string }) {
+  const tip = useTooltip(title)
+  const own: ExternalLinkProps = { href, className: 'q-btn quiet', 'aria-description': title }
+
+  return (
+    <>
+      <ExternalLink {...tip.props(own)}>
+        {label}
+        <span aria-hidden="true">↗</span>
+      </ExternalLink>
+      {tip.node}
+    </>
+  )
 }
 
 /**
@@ -132,13 +156,7 @@ export function ApiKeysSection({
                   />
                 ))}
               </div>
-              <Button
-                variant="quiet"
-                title={text.howTitle}
-                onClick={(event) => setPopover({ id, mode: 'how', anchor: event.currentTarget })}
-              >
-                {text.how}
-              </Button>
+              <HowLink href={keyGuideUrl(id)} label={text.how} title={text.howTitle} />
               <Button disabled={!filled || current === 'testing'} onClick={() => void run(id, fields)}>
                 {text.test}
               </Button>
