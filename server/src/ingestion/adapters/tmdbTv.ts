@@ -1,7 +1,7 @@
 import type { FetchLike } from '../http.js'
 import type { ListStatus } from '../../db/schema.js'
 import type { ListSource, MediaTypeCandidate, SearchAdapter } from '../mediaTypes.js'
-import { createTmdbClient, type TmdbCredentialSource } from './tmdb.js'
+import { createTmdbClient, episodeMinutes, type ShowRuntimeFields, type TmdbCredentialSource } from './tmdb.js'
 
 /**
  * TMDB television: search a show, expand to its episodes.
@@ -28,7 +28,7 @@ interface ShowResult {
   origin_country?: string[]
 }
 
-interface ShowDetail {
+interface ShowDetail extends ShowRuntimeFields {
   name?: string
   /** TMDB's production status: Ended, Canceled, Returning Series, In Production, Planned or Pilot. */
   status?: string
@@ -132,6 +132,8 @@ export function createTmdbTvAdapter(
 
       const today = new Date().toISOString().slice(0, 10)
       const items: MediaTypeCandidate[] = []
+      // For an episode with no length of its own; the show's, as the franchise adapter does.
+      const perEpisode = episodeMinutes(show)
 
       for (const season of fetched) {
         for (const episode of season.episodes ?? []) {
@@ -145,7 +147,7 @@ export function createTmdbTvAdapter(
 
           items.push({
             title: episode.name ? `${label} ${episode.name}` : label,
-            ...(episode.runtime ? { timeToConsumeMinutes: episode.runtime } : {}),
+            ...(episode.runtime || perEpisode ? { timeToConsumeMinutes: episode.runtime || perEpisode! } : {}),
             year: Number(episode.air_date.slice(0, 4)),
             // Specials (season 0) get their own group like any other season —
             // there is no natural "ungrouped" bucket once any season header

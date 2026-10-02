@@ -1,7 +1,7 @@
 import type { FetchLike } from '../http.js'
 import type { ListSource, MediaTypeCandidate, SearchAdapter } from '../mediaTypes.js'
 import { itemsOnly } from '../expansion.js'
-import { createTmdbClient, type TmdbCredentialSource } from './tmdb.js'
+import { createTmdbClient, episodeMinutes, type ShowRuntimeFields, type TmdbCredentialSource } from './tmdb.js'
 
 /**
  * Cross-media franchises: everything under one TMDB keyword, films and
@@ -56,10 +56,7 @@ interface DiscoverTv {
   results?: { id: number; name?: string; first_air_date?: string; genre_ids?: number[] }[]
 }
 
-interface ShowDetail {
-  episode_run_time?: number[]
-  /** Populated where `episode_run_time` is not — see `episodeMinutes`. */
-  last_episode_to_air?: { runtime?: number | null }
+interface ShowDetail extends ShowRuntimeFields {
   seasons?: { season_number?: number; episode_count?: number; air_date?: string; name?: string }[]
 }
 
@@ -70,24 +67,6 @@ interface SeasonDetail {
     runtime?: number | null
     air_date?: string
   }[]
-}
-
-/**
- * How long one episode of a show runs.
- *
- * `episode_run_time` is the documented field and comes back **empty for every
- * modern show** — Agents of S.H.I.E.L.D., Loki, WandaVision, Moon Knight all
- * return `[]`. TMDB has effectively stopped populating it. Without the
- * fallback every season fell back to the category default, so a 22-episode
- * season read as two hours and Quickie would have offered it as a quick win.
- *
- * Only the fallback for an episode with no runtime of its own (10.12b): a show
- * that changed format mid-run inherits its latest length for those, which is an
- * estimate but the right order of magnitude — far better than the category
- * default.
- */
-function episodeMinutes(detail: ShowDetail): number | undefined {
-  return detail.episode_run_time?.[0] ?? detail.last_episode_to_air?.runtime ?? undefined
 }
 
 const pad = (value: number): string => String(value).padStart(2, '0')
@@ -212,8 +191,8 @@ export function createTmdbFranchiseAdapter(
 
       // Films need a runtime each; shows need their season list, then one
       // request per aired season for its episodes (10.12b). Each stage is run
-      // a few at a time, so the whole import never has more than
-      // DETAIL_CONCURRENCY requests in flight.
+      // DETAIL_CONCURRENCY at a time, and the film stage and the episode stage
+      // run side by side, so up to twice that many requests are in flight.
       const filmItems = client.mapLimited(
         films,
         DETAIL_CONCURRENCY,

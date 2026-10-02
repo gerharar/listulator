@@ -167,6 +167,18 @@ describe('TMDB expansion', () => {
     expect((await adapter.expand('nonsense')).items).toEqual([])
   })
 
+  it('refuses a person or collection id that is not a number, without asking TMDB anything', async () => {
+    // The id goes straight into the request path, where `../` would walk to another endpoint
+    // (with the owner's key). The company, franchise and TV adapters already refuse these.
+    const fetchImpl = router({})
+    const adapter = createTmdbAdapter(credentials, {}, fetchImpl)
+
+    for (const ref of ['person:1/../../account', 'person:abc', 'person:', 'collection:1?x=y', 'collection:../x']) {
+      expect((await adapter.expand(ref)).items, ref).toEqual([])
+    }
+    expect(fetchImpl).not.toHaveBeenCalled()
+  })
+
   it('handles a person with no credits', async () => {
     const adapter = createTmdbAdapter(credentials, {}, router({ '/person/1/movie_credits': {} }))
 

@@ -192,6 +192,41 @@ describe('TMDB television expansion', () => {
     expect((await adapter.expand('show:9')).items[0]?.title).toBe('S01E07')
   })
 
+  describe('an episode TMDB has no length for (audit: Doctor Who 9 of 352, Smallville 10 of 254)', () => {
+    const withShow = (show: Record<string, unknown>) =>
+      createTmdbTvAdapter(
+        credentials,
+        {},
+        router({
+          '/tv/5': { name: 'X', seasons: [{ season_number: 1 }], ...show },
+          '/tv/5/season/1': {
+            episodes: [
+              { season_number: 1, episode_number: 1, name: 'Own', runtime: 30, air_date: '2010-01-01' },
+              { season_number: 1, episode_number: 2, name: 'Bare', air_date: '2010-01-08' },
+            ],
+          },
+        }),
+      )
+
+    it("takes the show's usual episode length, as Mega does", async () => {
+      const items = (await withShow({ episode_run_time: [43] }).expand('show:5')).items
+
+      expect(items.map((item) => item.timeToConsumeMinutes)).toEqual([30, 43])
+    })
+
+    it("takes the last aired episode's length when the show lists none, which is every modern show", async () => {
+      const items = (await withShow({ episode_run_time: [], last_episode_to_air: { runtime: 59 } }).expand('show:5')).items
+
+      expect(items.map((item) => item.timeToConsumeMinutes)).toEqual([30, 59])
+    })
+
+    it('leaves the length out when there is nothing to take, so the category default applies and is marked estimated', async () => {
+      const items = (await withShow({ episode_run_time: [], last_episode_to_air: { runtime: null } }).expand('show:5')).items
+
+      expect(items.map((item) => item.timeToConsumeMinutes)).toEqual([30, undefined])
+    })
+  })
+
   it('refuses refs that are not a numeric show id', async () => {
     const adapter = createTmdbTvAdapter(credentials, {}, router(routes))
 

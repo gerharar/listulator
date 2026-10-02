@@ -63,6 +63,33 @@ export interface TmdbCredentials {
  */
 export type TmdbCredentialSource = TmdbCredentials | (() => TmdbCredentials)
 
+/** The show-level fields an episode with no runtime of its own can borrow a length from. */
+export interface ShowRuntimeFields {
+  episode_run_time?: number[]
+  /** Populated where `episode_run_time` is not — see `episodeMinutes`. */
+  last_episode_to_air?: { runtime?: number | null }
+}
+
+/**
+ * How long one episode of a show runs.
+ *
+ * `episode_run_time` is the documented field and comes back **empty for every
+ * modern show** — Agents of S.H.I.E.L.D., Loki, WandaVision, Moon Knight all
+ * return `[]`. TMDB has effectively stopped populating it. Without the
+ * fallback every season fell back to the category default, so a 22-episode
+ * season read as two hours and Quickie would have offered it as a quick win.
+ *
+ * Shared by the television and franchise adapters (audit 2026-10-02: the television one had no fallback, so
+ * Doctor Who lost 9 of 352 episodes' lengths and Smallville 10 of 254 to the category default).
+ * Only the fallback for an episode with no runtime of its own (10.12b): a show
+ * that changed format mid-run inherits its latest length for those, which is an
+ * estimate but the right order of magnitude — far better than the category
+ * default.
+ */
+export function episodeMinutes(detail: ShowRuntimeFields): number | undefined {
+  return detail.episode_run_time?.[0] ?? detail.last_episode_to_air?.runtime ?? undefined
+}
+
 /** Auth, requests and throttling, shared by the film and television adapters. */
 export function createTmdbClient(credentials: TmdbCredentialSource, fetchImpl?: FetchLike) {
   const resolve = (): TmdbCredentials =>
@@ -228,6 +255,9 @@ export function createTmdbAdapter(
     // No upstream signal for whether this is finished, so no `status` (BL-013).
     expand: itemsOnly(async (externalRef) => {
       const [kind, id] = externalRef.split(':')
+      // The id goes straight into the request path: refuse anything but digits, as the other TMDB adapters do.
+      if (!id || !/^\d+$/.test(id)) return []
+
       const today = new Date().toISOString().slice(0, 10)
 
       if (kind === 'collection') {
