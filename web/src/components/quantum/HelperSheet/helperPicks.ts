@@ -1,6 +1,6 @@
 import { formatDuration } from '../../../formatDuration.js'
 import type { MediaType, SuggestionPick } from '../../../lib/api.js'
-import { copy } from '../../../locale/index.js'
+import { copy, joinSentences } from '../../../locale/index.js'
 
 /** How a pick is named when a reroll turns it down: its list and the item it would start you on. */
 export function pickKey(pick: SuggestionPick): string {
@@ -47,11 +47,11 @@ export function whyTired(pick: SuggestionPick): string {
 
   if (!neglected && !along) return text.whyFallback
 
-  const first = neglected ? `${text.whyBase}, ${text.whyNeglected}.` : `${text.whyBase}.`
+  const first = neglected ? `${text.whyBase}, ${text.whyNeglected}` : text.whyBase
   const { completionPercent, timeRemainingMinutes } = pick.list.stats
 
   return along
-    ? `${first} ${text.whyProgress(Math.round(completionPercent), formatDuration(timeRemainingMinutes))}.`
+    ? joinSentences(first, text.whyProgress(Math.round(completionPercent), formatDuration(timeRemainingMinutes)))
     : first
 }
 
@@ -65,8 +65,8 @@ export function whyFinalizer(pick: SuggestionPick): string {
   const { completionPercent, timeRemainingMinutes } = pick.list.stats
   const base = text.why(Math.round(completionPercent), formatDuration(timeRemainingMinutes))
 
-  if (pick.list.status === 'complete') return `${base} ${text.whyComplete}`
-  if (pick.list.status === 'ongoing') return `${base} ${text.whyOngoing}`
+  if (pick.list.status === 'complete') return joinSentences(base, text.whyComplete)
+  if (pick.list.status === 'ongoing') return joinSentences(base, text.whyOngoing)
 
   return base
 }

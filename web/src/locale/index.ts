@@ -86,6 +86,15 @@ export function categoryHandHints(mediaType: { key: string }): {
 }
 
 /**
+ * Two locale sentences run together on one line. The locales end their
+ * sentences without a full stop (owner), so the join supplies one; a string
+ * that still ends in one (a language not yet brought in line) is not given two.
+ */
+export function joinSentences(first: string, second: string): string {
+  return /[.!?…:;]$/.test(first) ? `${first} ${second}` : `${first}. ${second}`
+}
+
+/**
  * The name of where a category searches: its source ("TMDB"), or the community
  * library for a category that searches curated lists only (Mega, F9). Absent
  * for a category with no search at all.

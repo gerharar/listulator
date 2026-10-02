@@ -214,7 +214,7 @@ describe('how often a fetched list\u2019s source copy is refreshed (task 12.5)',
     await open(detail({ source: 'api', externalRef: 'playlist:PL1', mediaType: 'youtube', items: [item()] }))
 
     expect(screen.getByText(LINE).closest('p')!.textContent).toBe(
-      'This list arrived from YouTube \u2197. You may have changed it since, so now it\'s yours Source copy is refreshed every 25 days, as YouTube requires',
+      'This list arrived from YouTube \u2197. You may have changed it since, so now it\'s yours. Source copy is refreshed every 25 days, as YouTube requires',
     )
   })
 

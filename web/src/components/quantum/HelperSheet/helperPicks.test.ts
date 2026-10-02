@@ -58,18 +58,18 @@ describe('reroll (Not That)', () => {
 
 describe('whyTired', () => {
   it('says the category differs, that it has been ignored, and how far along it is', () => {
-    expect(whyTired(pick('a'))).toBe('Different category, and you haven\'t touched it in a while. 45% done, 2h left.')
+    expect(whyTired(pick('a'))).toBe('Different category, and you haven\'t touched it in a while. 45% done, 2h left')
   })
 
   it('leaves out being ignored when the list has been touched recently', () => {
     expect(whyTired(pick('a', { factors: { neglect_time: 0.1, completion_percent: 0.9 } }))).toBe(
-      'Different category. 45% done, 2h left.',
+      'Different category. 45% done, 2h left',
     )
   })
 
   it('leaves out the progress when it is not what made the pick', () => {
     expect(whyTired(pick('a', { factors: { neglect_time: 0.9, completion_percent: 0.2 } }))).toBe(
-      'Different category, and you haven\'t touched it in a while.',
+      'Different category, and you haven\'t touched it in a while',
     )
   })
 
@@ -87,13 +87,13 @@ describe('whyFinalizer', () => {
 
   it('adds that a complete list stays finished', () => {
     expect(whyFinalizer(pick('a', { status: 'complete' }))).toBe(
-      'Closest to the finish line: 45% done, 2h left This list is Complete, so there will be no Round 2',
+      'Closest to the finish line: 45% done, 2h left. This list is Complete, so there will be no Round 2',
     )
   })
 
   it('says so when even the best is an ongoing list, so nothing finishable is closer', () => {
     expect(whyFinalizer(pick('a', { status: 'ongoing' }))).toBe(
-      'Closest to the finish line: 45% done, 2h left This list is still Ongoing, but nothing finishable is closer',
+      'Closest to the finish line: 45% done, 2h left. This list is still Ongoing, but nothing finishable is closer',
     )
   })
 })

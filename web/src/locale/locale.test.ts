@@ -7,6 +7,7 @@ import {
   categoryLabel,
   copy,
   errorMessage,
+  joinSentences,
   setActiveLanguage,
   sortCategories,
 } from './index.js'
@@ -436,6 +437,31 @@ describe('the source-copy notice (task 12.5)', () => {
     expect(en.quantum.list.sourceCopyNotice({ days: 150, source: 'TMDB' })).toBe(
       'Source copy is refreshed every 150 days, as TMDB requires',
     )
+  })
+})
+
+describe('joinSentences', () => {
+  it('puts a full stop between two sentences that have none', () => {
+    expect(joinSentences('Closest to the finish line: 45% done, 2h left', 'This list is Complete')).toBe(
+      'Closest to the finish line: 45% done, 2h left. This list is Complete',
+    )
+  })
+
+  it('does not double the stop a string already ends with, or add one after !, ? or …', () => {
+    expect(joinSentences('Осталось 2ч.', 'Этот список закончен')).toBe('Осталось 2ч. Этот список закончен')
+    expect(joinSentences('Really?', 'Yes')).toBe('Really? Yes')
+    expect(joinSentences('Wait…', 'Done')).toBe('Wait… Done')
+  })
+})
+
+describe('joinSentences with the real strings', () => {
+  it('never doubles a stop, in any language', () => {
+    for (const [name, locale] of [['en', en], ['ru', ru], ['de', de]] as const) {
+      const finalizer = joinSentences(locale.quantum.helper.finalizer.why(45, '2h'), locale.quantum.helper.finalizer.whyOngoing)
+      const linkBack = joinSentences(locale.quantum.list.linkBack.after, locale.quantum.list.sourceCopyNotice({ days: 25, source: 'YouTube' }))
+      expect(finalizer, name).not.toMatch(/\.\.|\.\s*\./)
+      expect(linkBack, name).not.toMatch(/\.\.|\.\s*\./)
+    }
   })
 })
 

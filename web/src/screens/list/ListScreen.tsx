@@ -10,7 +10,7 @@ import { exportFileName, exportList } from '../../lib/exportList.js'
 import { notifyListsChanged } from '../../lib/listsChanged.js'
 import { saveLastOpened } from '../../lib/lastOpened.js'
 import { getPreferencesStore } from '../../lib/preferences/store.js'
-import { categoryLabel, copy } from '../../locale/index.js'
+import { categoryLabel, copy, joinSentences } from '../../locale/index.js'
 import { Banner } from '../../components/quantum/Banner/Banner.js'
 import { IconButton } from '../../components/quantum/Button/Button.js'
 import { ErrorBlock } from '../../components/quantum/ErrorBlock/ErrorBlock.js'
@@ -1090,13 +1090,15 @@ function ListView({
                 {linkBack.name}
                 <span aria-hidden="true"> ↗</span>
               </ExternalLink>
-              {text.linkBack.after}
               {mediaType?.sourceCopyMaxDays
-                ? ` ${text.sourceCopyNotice({
-                    days: Math.round(refreshAfterDays(mediaType.sourceCopyMaxDays)),
-                    source: linkBack.name,
-                  })}`
-                : null}
+                ? joinSentences(
+                    text.linkBack.after,
+                    text.sourceCopyNotice({
+                      days: Math.round(refreshAfterDays(mediaType.sourceCopyMaxDays)),
+                      source: linkBack.name,
+                    }),
+                  )
+                : text.linkBack.after}
             </p>
           )}
         </div>

@@ -48,7 +48,7 @@ describe('Finalizer', () => {
     expect(screen.getByText('Finish Him!')).toBeTruthy()
     expect(screen.getByText('Tie up loose ends from lists that are closest to being finished')).toBeTruthy()
     expect(screen.queryByText("I'm tired of going through")).toBeNull()
-    expect(screen.getByText(/Closest to the finish line: 90% done, 1h left This list is Complete/)).toBeTruthy()
+    expect(screen.getByText(/Closest to the finish line: 90% done, 1h left. This list is Complete/)).toBeTruthy()
     expect(['Next in y', 'Next in z', 'Next in w', 'Next in v'].every((title) => screen.queryByText(title) === null)).toBe(true)
     expect(screen.queryByText('Alternates')).toBeNull()
     expect(api.finalizer).toHaveBeenCalledTimes(1)
