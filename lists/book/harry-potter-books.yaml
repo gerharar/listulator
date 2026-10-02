@@ -1,6 +1,6 @@
 title: Harry Potter books (grouped)
 category: book
-description: Complete list of all books in the Wizarding World (Harry Potter) franchise, grouped by series
+description: All books in the Wizarding World (Harry Potter) franchise, grouped by series
 status: complete
 items:
 - { title: "Harry Potter and the Philosopher's Stone", year: 1997, minutes: 300, group: Main Series }

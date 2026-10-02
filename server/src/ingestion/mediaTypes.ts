@@ -263,7 +263,7 @@ export function createDefaultMediaTypes({
       key: 'mega',
       label: 'Mega',
       description:
-        'Franchises that span several media at once — films, series and animation together, in release order. Marvel and Star Trek belong here; a single show or film series does not.',
+        'For franchise lists that span multiple media types (films, series, games, and so on)',
       sortOrder: 100,
       // Mixed by nature; real runtimes come from the API.
       defaultDurationMinutes: 120,
