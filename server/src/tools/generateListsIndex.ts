@@ -64,5 +64,11 @@ function main(): void {
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {
-  main()
+  try {
+    main()
+  } catch (error) {
+    // The message names the file and what is wrong with it; a stack trace would only bury it.
+    console.error(error instanceof Error ? error.message : String(error))
+    process.exitCode = 1
+  }
 }

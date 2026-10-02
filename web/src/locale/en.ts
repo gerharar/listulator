@@ -188,7 +188,8 @@ export const en = {
     'search.unavailableOffline': (p: { category: string }): string => `Search is not available for ${p.category}, and List Vault could not be reached. Try later or create a list by hand`,
     'list.unknownCategory': (p: { key: string }): string => `All thumbs alert: cannot import list, unknown category ‘${p.key}’. Check your category spelling against CONTRIBUTING.md, that's usually the problem`,
     'list.sourceEmpty': (p: { title: string }): string => `Premature listulation detected: found nothing to import for "${p.title}"`,
-    'list.fileInvalid': (): string => `Wrong hole, buddy: your file is a square peg trying to penetrate a round hole, so it cannot be imported. Make sure it's in a properly formatted YAML format and has all required fields`,
+    'list.fileInvalid': (p: { detail?: string }): string =>
+      `Wrong hole, buddy: your file is a square peg trying to penetrate a round hole, so it cannot be imported. Make sure it's in a properly formatted YAML format and has all required fields${p.detail ? `. What the parser found: ${p.detail}` : ''}`,
     'list.fileSyntax': (p: { line?: number }): string =>
       p.line
         ? `All thumbs alert: cannot import list, syntax error on line ${p.line}`
@@ -455,6 +456,8 @@ export const en = {
     },
     search: {
       queryLabel: (source: string): string => `Search ${source} or List Vault`,
+      /** A library-only category (Mega): the library is the source, so it is named once. */
+      libraryQueryLabel: (source: string): string => `Search ${source}`,
       searchButton: 'Search',
       resultsCount: (n: number): string => `${n} ${selectPlural(n, 'en', { one: 'result', other: 'results' })}`,
       itemsKicker: 'items',

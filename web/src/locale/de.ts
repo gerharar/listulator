@@ -167,7 +167,8 @@ export const de: Locale = {
     'search.unavailableOffline': (p: { category: string }): string => `Die Suche ist für „${p.category}“ nicht verfügbar, und der List Vault war nicht erreichbar. Versuche es später erneut oder lege die Liste von Hand an.`,
     'list.unknownCategory': (p: { key: string }): string => `Zwei linke Hände erkannt: Liste kann nicht importiert werden, unbekannte Kategorie ‘${p.key}’. Vergleiche die Schreibweise der Kategorie mit CONTRIBUTING.md, das ist meistens das Problem`,
     'list.sourceEmpty': (p: { title: string }): string => `Vorzeitige Listulation erkannt: Für „${p.title}“ gibt es nichts zu importieren`,
-    'list.fileInvalid': (): string => 'Falsches Loch, Kumpel: Deine Datei ist ein eckiger Pflock, der in ein rundes Loch will, deshalb lässt sie sich nicht importieren. Achte darauf, dass sie korrektes YAML ist und alle Pflichtfelder enthält',
+    'list.fileInvalid': (p: { detail?: string }): string =>
+      `Falsches Loch, Kumpel: Deine Datei ist ein eckiger Pflock, der in ein rundes Loch will, deshalb lässt sie sich nicht importieren. Achte darauf, dass sie korrektes YAML ist und alle Pflichtfelder enthält${p.detail ? `. Das hat der Parser gefunden: ${p.detail}` : ''}`,
     'list.fileSyntax': (p: { line?: number }): string => p.line ? `Zwei linke Hände erkannt: Liste kann nicht importiert werden, Syntaxfehler in Zeile ${p.line}` : 'Zwei linke Hände erkannt: Liste kann nicht importiert werden, Syntaxfehler',
     'list.fileNoItems': (): string => 'Vorzeitige Listulation erkannt: Liste kann nicht importiert werden, keine Einträge gefunden',
     'list.fileMissingTitle': (): string => 'Vorzeitige Listulation erkannt: Liste kann nicht importiert werden, kein Titel gefunden',
@@ -405,6 +406,7 @@ export const de: Locale = {
     },
     search: {
       queryLabel: (source: string): string => `Suche: ${source} oder List Vault`,
+      libraryQueryLabel: (source: string): string => `Suche: ${source}`,
       searchButton: 'Suchen',
       resultsCount: (n: number): string =>
         `${n} ${selectPlural(n, 'de', { one: 'Ergebnis', other: 'Ergebnisse' })}`,

@@ -80,4 +80,12 @@ describe('generateListsIndex', () => {
 
     expect(() => generateListsIndex(dir, CATEGORIES)).toThrow(/bad\.yaml/)
   })
+
+  it('says what is wrong in the file and where, not just a code', () => {
+    write('mega/bad.yaml', 'title: X\ncategory: mega\nitems:\n  - { title: Mastermind, note: hi }\n')
+
+    expect(() => generateListsIndex(dir, CATEGORIES)).toThrow(
+      'lists/mega/bad.yaml failed to parse: list.fileInvalid: item 1 ("Mastermind"): unknown field "note" (allowed: title, year, minutes, group, tags, notes); did you mean "notes"?',
+    )
+  })
 })

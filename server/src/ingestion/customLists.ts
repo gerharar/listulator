@@ -47,12 +47,37 @@ type CustomListErrorCode = Extract<
 >
 
 export class CustomListParseError extends Error {
+  /**
+   * The message is for whoever runs a command-line tool or reads a log (the
+   * lists-index generator prints it); the app renders `code` and `params`
+   * from the locale instead. English on purpose: it quotes the field names a
+   * curator has to type.
+   */
   constructor(
     readonly code: CustomListErrorCode,
     readonly params?: Record<string, string | number>,
   ) {
-    super(code)
+    super(`${code}: ${describeParseError(code, params)}`)
     this.name = 'CustomListParseError'
+  }
+}
+
+function describeParseError(code: CustomListErrorCode, params?: Record<string, string | number>): string {
+  switch (code) {
+    case 'list.fileSyntax':
+      return params?.['line'] === undefined ? 'YAML syntax error' : `YAML syntax error on line ${params['line']}`
+    case 'list.fileNoItems':
+      return 'the file has no "items"'
+    case 'list.fileMissingTitle':
+      return 'the list has no "title"'
+    case 'list.unknownCategory':
+      return `unknown category "${params?.['key']}"`
+    case 'list.fileItemMissingTitle':
+      return `item ${params?.['index']} has no "title"`
+    case 'list.fileItemNotesTooLong':
+      return `item ${params?.['index']}'s "notes" are over ${params?.['max']} characters`
+    case 'list.fileInvalid':
+      return typeof params?.['detail'] === 'string' ? params['detail'] : 'the file is not a valid list'
   }
 }
 
@@ -73,6 +98,45 @@ export const ITEM_NOTES_MAX_LENGTH = 2048
 
 function fail(code: CustomListErrorCode, params?: Record<string, string | number>): never {
   throw new CustomListParseError(code, params)
+}
+
+/** A value as a curator would name it, short enough that a pasted wall of text cannot become the error. */
+function describeValue(value: unknown): string {
+  if (value === undefined || value === null) return 'empty'
+  if (Array.isArray(value)) return 'a list'
+  if (typeof value === 'string') {
+    const shown = value.length > 40 ? `${value.slice(0, 40)}…` : value
+    return `text "${shown}"`
+  }
+  if (typeof value === 'number') return `the number ${value}`
+  if (typeof value === 'boolean') return `${value}`
+  return 'a mapping'
+}
+
+/** The allowed field a typo most likely meant: same letters in another case, a plural, or one edit away. */
+function closestField(key: string, allowed: ReadonlySet<string>): string | undefined {
+  const lower = key.toLowerCase()
+  for (const field of allowed) {
+    if (field === lower || field === `${lower}s` || `${field}s` === lower) return field
+    if (Math.abs(field.length - lower.length) <= 1 && editDistance(field, lower) <= 1) return field
+  }
+  return undefined
+}
+
+function editDistance(a: string, b: string): number {
+  let previous = Array.from({ length: b.length + 1 }, (_, index) => index)
+  for (let i = 1; i <= a.length; i += 1) {
+    const row = [i]
+    for (let j = 1; j <= b.length; j += 1) {
+      row[j] = Math.min(previous[j]! + 1, row[j - 1]! + 1, previous[j - 1]! + (a[i - 1] === b[j - 1] ? 0 : 1))
+    }
+    previous = row
+  }
+  return previous[b.length]!
+}
+
+function invalid(detail: string): never {
+  fail('list.fileInvalid', { detail })
 }
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {
@@ -108,35 +172,49 @@ export function parseCustomList(
     fail('list.fileSyntax', line === undefined ? undefined : { line })
   }
 
-  if (!isPlainObject(doc)) fail('list.fileInvalid')
+  if (!isPlainObject(doc)) invalid(`the file must be a mapping of fields, but it is ${describeValue(doc)}`)
 
   for (const key of Object.keys(doc)) {
-    if (!TOP_LEVEL_FIELDS.has(key)) fail('list.fileInvalid')
+    if (!TOP_LEVEL_FIELDS.has(key)) {
+      invalid(`unknown top-level field "${key}" (allowed: ${[...TOP_LEVEL_FIELDS].join(', ')})`)
+    }
   }
 
   const { title, description, category, status, items } = doc
 
   if (typeof title !== 'string' || title.trim().length === 0) fail('list.fileMissingTitle')
 
-  if (description !== undefined && typeof description !== 'string') fail('list.fileInvalid')
+  if (description !== undefined && typeof description !== 'string') {
+    invalid(`"description" must be text, but it is ${describeValue(description)}`)
+  }
 
-  if (category === undefined) fail('list.fileInvalid')
+  if (category === undefined) invalid('"category" is missing')
   if (typeof category !== 'string' || !validCategories.has(category)) {
     fail('list.unknownCategory', { key: String(category) })
   }
 
   if (status !== undefined && status !== 'complete' && status !== 'ongoing') {
-    fail('list.fileInvalid')
+    invalid(`"status" must be "complete" or "ongoing", but it is ${describeValue(status)}`)
   }
 
   if (items === undefined) fail('list.fileNoItems')
-  if (!Array.isArray(items)) fail('list.fileInvalid')
+  if (!Array.isArray(items)) invalid(`"items" must be a list, but it is ${describeValue(items)}`)
 
   const parsedItems = items.map((rawItem, index): ParsedCustomListItem => {
-    if (!isPlainObject(rawItem)) fail('list.fileInvalid')
+    if (!isPlainObject(rawItem)) {
+      invalid(`item ${index + 1} must be a mapping like { title: …, year: … }, but it is ${describeValue(rawItem)}`)
+    }
+
+    // Names the item by position and, when it has one, by title: a long file has no line to count to.
+    const named = typeof rawItem['title'] === 'string' ? `item ${index + 1} ("${rawItem['title']}")` : `item ${index + 1}`
 
     for (const key of Object.keys(rawItem)) {
-      if (!ITEM_FIELDS.has(key)) fail('list.fileInvalid')
+      if (!ITEM_FIELDS.has(key)) {
+        const guess = closestField(key, ITEM_FIELDS)
+        invalid(
+          `${named}: unknown field "${key}" (allowed: ${[...ITEM_FIELDS].join(', ')})${guess ? `; did you mean "${guess}"?` : ''}`,
+        )
+      }
     }
 
     const { title: itemTitle, year, minutes, group, tags, notes } = rawItem
@@ -144,13 +222,23 @@ export function parseCustomList(
     if (typeof itemTitle !== 'string' || itemTitle.trim().length === 0) {
       fail('list.fileItemMissingTitle', { index: index + 1 })
     }
-    if (year !== undefined && typeof year !== 'number') fail('list.fileInvalid')
-    if (minutes !== undefined && typeof minutes !== 'number') fail('list.fileInvalid')
-    if (group !== undefined && typeof group !== 'string') fail('list.fileInvalid')
-    if (tags !== undefined && (!Array.isArray(tags) || !tags.every((tag) => typeof tag === 'string'))) {
-      fail('list.fileInvalid')
+    if (year !== undefined && typeof year !== 'number') {
+      invalid(`${named}: "year" must be a number, but it is ${describeValue(year)}`)
     }
-    if (notes !== undefined && typeof notes !== 'string') fail('list.fileInvalid')
+    if (minutes !== undefined && typeof minutes !== 'number') {
+      invalid(`${named}: "minutes" must be a number, but it is ${describeValue(minutes)}`)
+    }
+    if (group !== undefined && typeof group !== 'string') {
+      invalid(`${named}: "group" must be text, but it is ${describeValue(group)}`)
+    }
+    if (tags !== undefined) {
+      if (!Array.isArray(tags)) invalid(`${named}: "tags" must be a list of text, but it is ${describeValue(tags)}`)
+      const bad = tags.findIndex((tag) => typeof tag !== 'string')
+      if (bad !== -1) invalid(`${named}: "tags" must be a list of text, but entry ${bad + 1} is ${describeValue(tags[bad])}`)
+    }
+    if (notes !== undefined && typeof notes !== 'string') {
+      invalid(`${named}: "notes" must be text, but it is ${describeValue(notes)}`)
+    }
 
     const trimmedNotes = typeof notes === 'string' ? notes.trim() : undefined
     if (trimmedNotes !== undefined && trimmedNotes.length > ITEM_NOTES_MAX_LENGTH) {

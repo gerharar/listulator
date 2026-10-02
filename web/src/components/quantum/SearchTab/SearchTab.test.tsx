@@ -495,6 +495,18 @@ describe('SearchTab', () => {
     expect(input.getAttribute('autocomplete')).toBe('off')
   })
 
+  describe('the search field label', () => {
+    it('names the source and the library for a category that searches both', () => {
+      renderTab(mediaType({ sourceName: 'TMDB' }))
+      expect(screen.getByLabelText('Search TMDB or List Vault')).toBeTruthy()
+    })
+
+    it('names the library once for a library-only category (Mega), not "List Vault or List Vault"', () => {
+      renderTab(mediaType({ key: 'mega', label: 'Mega', sourceName: undefined, searchScope: 'library' }))
+      expect(screen.getByLabelText('Search List Vault')).toBeTruthy()
+    })
+  })
+
   describe('opened already searched (Open in Mega, task 14.1)', () => {
     const MEGA = mediaType({ key: 'mega', label: 'Mega', sourceName: undefined, searchScope: 'library' })
     const LISTS: ListSourceResult[] = [

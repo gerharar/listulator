@@ -259,6 +259,78 @@ items:
     )
   })
 
+  describe('errors say what is wrong, so a curator can fix the file unaided', () => {
+    const FIELDS = '(allowed: title, description, category, status, items)'
+    const ITEM_FIELDS = '(allowed: title, year, minutes, group, tags, notes)'
+    const head = 'title: X\ncategory: movie\n'
+
+    const cases: Array<[string, string, string]> = [
+      ['a list at the top level', '- just\n- a\n- list', 'the file must be a mapping of fields, but it is a list'],
+      ['an empty file', '', 'the file must be a mapping of fields, but it is empty'],
+      ['an unknown top-level field', `${head}items: []\nextra: true\n`, `unknown top-level field "extra" ${FIELDS}`],
+      ['a description that is not text', `${head}description: 5\nitems: []\n`, '"description" must be text, but it is the number 5'],
+      ['a missing category', 'title: X\nitems:\n  - { title: X }\n', '"category" is missing'],
+      ['a bad status', `${head}status: finished\nitems: []\n`, '"status" must be "complete" or "ongoing", but it is text "finished"'],
+      ['items that is not a list', `${head}items: nope\n`, '"items" must be a list, but it is text "nope"'],
+      ['an item that is not a mapping', `${head}items:\n  - { title: A }\n  - just text\n`, 'item 2 must be a mapping like { title: …, year: … }, but it is text "just text"'],
+      [
+        'a misspelled item field, suggesting the right one',
+        `${head}items:\n  - { title: A }\n  - { title: "Mastermind", note: hi }\n`,
+        `item 2 ("Mastermind"): unknown field "note" ${ITEM_FIELDS}; did you mean "notes"?`,
+      ],
+      ['an unrelated item field, with no suggestion', `${head}items:\n  - { title: A, colour: red }\n`, `item 1 ("A"): unknown field "colour" ${ITEM_FIELDS}`],
+      ['a year in quotes', `${head}items:\n  - { title: A, year: "2000" }\n`, 'item 1 ("A"): "year" must be a number, but it is text "2000"'],
+      ['minutes in quotes', `${head}items:\n  - { title: A, minutes: "90" }\n`, 'item 1 ("A"): "minutes" must be a number, but it is text "90"'],
+      ['a group that is a number', `${head}items:\n  - { title: A, group: 5 }\n`, 'item 1 ("A"): "group" must be text, but it is the number 5'],
+      ['notes that are a list', `${head}items:\n  - { title: A, notes: [x] }\n`, 'item 1 ("A"): "notes" must be text, but it is a list'],
+      ['tags that is text', `${head}items:\n  - { title: A, tags: Album }\n`, 'item 1 ("A"): "tags" must be a list of text, but it is text "Album"'],
+      ['a tag that is not text', `${head}items:\n  - { title: A, tags: [Album, 5] }\n`, 'item 1 ("A"): "tags" must be a list of text, but entry 2 is the number 5'],
+    ]
+
+    it.each(cases)('%s', (_name, yaml, detail) => {
+      expect(() => parseCustomList(yaml, CATEGORIES)).toThrow(
+        expect.objectContaining({ code: 'list.fileInvalid', params: { detail } }),
+      )
+    })
+
+    it('cuts a long echoed value, so a pasted wall of text does not become the error', () => {
+      const long = 'x'.repeat(200)
+      try {
+        parseCustomList(`${head}items: ${long}\n`, CATEGORIES)
+        expect.unreachable()
+      } catch (error) {
+        const detail = String((error as CustomListParseError).params?.['detail'])
+        expect(detail.length).toBeLessThan(100)
+        expect(detail).toContain('…')
+      }
+    })
+
+    it('puts the same words in the error message, which is all a command-line tool prints', () => {
+      expect(() => parseCustomList(`${head}items:\n  - { title: A, note: hi }\n`, CATEGORIES)).toThrow(
+        'list.fileInvalid: item 1 ("A"): unknown field "note"',
+      )
+    })
+
+    it('says the same for every other code', () => {
+      const message = (yaml: string) => {
+        try {
+          parseCustomList(yaml, CATEGORIES)
+        } catch (error) {
+          return (error as Error).message
+        }
+        return ''
+      }
+      expect(message('title: X\ncategory: movie\nitems: [unclosed')).toBe('list.fileSyntax: YAML syntax error on line 3')
+      expect(message('title: X\ncategory: movie\n')).toBe('list.fileNoItems: the file has no "items"')
+      expect(message('category: movie\nitems: []\n')).toBe('list.fileMissingTitle: the list has no "title"')
+      expect(message('title: X\ncategory: nope\nitems: []\n')).toBe('list.unknownCategory: unknown category "nope"')
+      expect(message('title: X\ncategory: movie\nitems:\n  - { year: 1 }\n')).toBe('list.fileItemMissingTitle: item 1 has no "title"')
+      expect(message(`${head}items:\n  - { title: A, notes: "${'n'.repeat(3000)}" }\n`)).toBe(
+        'list.fileItemNotesTooLong: item 1\'s "notes" are over 2048 characters',
+      )
+    })
+  })
+
   describe('against the real example files from task 7.1', () => {
     const realCategories = new Set([
       'movie',

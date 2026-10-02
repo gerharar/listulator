@@ -338,7 +338,7 @@ export function SearchTab({ mediaType, onBuilt, libraryCategory, initialQuery, i
         }}
       >
         <Field
-          label={text.queryLabel(source)}
+          label={mediaType.searchScope === 'library' ? text.libraryQueryLabel(source) : text.queryLabel(source)}
           value={query}
           onChange={(event) => setQuery(event.target.value)}
           placeholder={

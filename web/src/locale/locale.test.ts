@@ -91,6 +91,12 @@ describe('locale', () => {
     )
   })
 
+  it('adds what the parser found to the "file is invalid" sentence, and stays whole without it', () => {
+    const detail = 'item 35 ("Mastermind"): unknown field "note"; did you mean "notes"?'
+    expect(errorMessage('list.fileInvalid', { detail })).toContain(detail)
+    expect(errorMessage('list.fileInvalid')).not.toContain('undefined')
+  })
+
   it('gives nothing back for a code it does not know, rather than throwing', () => {
     // An older web against a newer server. The caller then falls through to
     // whatever the response carried.
