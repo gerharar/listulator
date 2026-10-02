@@ -33,7 +33,7 @@ items:
 - { title: "S05E04 The Loop", year: 2019, minutes: 58, group: Season 5, tags: [tv] }
 - { title: "S05E05 The Shock", year: 2019, minutes: 56, group: Season 5, tags: [tv] }
 - { title: "S05E06 Mr Jones", year: 2019, minutes: 65, group: Season 5, tags: [tv] }
-- { title: "Peaky Blinders: Mastermind", year: 2020, minutes: 420, tags: [game], note: "Delisted from digital platforms" }
+- { title: "Peaky Blinders: Mastermind", year: 2020, minutes: 420, tags: [game], notes: "Delisted from digital platforms" }
 - { title: "S06E01 Black Day", year: 2022, minutes: 55, group: Season 6, tags: [tv] }
 - { title: "S06E02 Black Shirt", year: 2022, minutes: 59, group: Season 6, tags: [tv] }
 - { title: "S06E03 Gold", year: 2022, minutes: 56, group: Season 6, tags: [tv] }
