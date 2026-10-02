@@ -864,7 +864,7 @@ export const ru: Locale = {
     createList: {
       title: (category: string): string => `Новый список: ${category}`,
       searchTab: (): string => 'Искать',
-      handTab: 'Распустить Руки',
+      handTab: 'Вбить Руками',
       importTab: 'Импортировать',
       closeLabel: 'Закрыть',
     },
