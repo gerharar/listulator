@@ -83,6 +83,17 @@ export function createCompositeAdapter(sources: readonly CompositeSource[]): Sea
         : expansion
     },
 
+    // What a runner finds pending: the kinds of ref an available source claims and can enrich.
+    get enrichPrefixes() {
+      return [
+        ...new Set(
+          usable()
+            .filter((source) => source.adapter.enrich)
+            .flatMap((source) => source.enrichPrefixes ?? []),
+        ),
+      ]
+    },
+
     async enrich(refs) {
       // Each ref goes to the first available source that claims its prefix and can enrich; a ref
       // nobody claims is simply not answered.

@@ -389,6 +389,10 @@ describe('TMDB runtime enrichment (15.2)', () => {
     // /movie/4 is not routed: TMDB answers 404.
   }
 
+  it('says which kind of ref it can enrich, so a runner can find what is pending', () => {
+    expect(createTmdbAdapter(credentials).enrichPrefixes).toEqual(['movie'])
+  })
+
   it('answers found for a runtime, and none for a zero, a null and a 404 (definitive answers)', async () => {
     const adapter = createTmdbAdapter(credentials, {}, router(routes))
 

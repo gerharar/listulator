@@ -223,3 +223,26 @@ describe('composite sources: expand options and enrichment', () => {
     expect(down.enrich).not.toHaveBeenCalled()
   })
 })
+
+describe('composite sources: which refs it can enrich (15.4)', () => {
+  const enricher = (prefixes: string[]): SearchAdapter => ({
+    ...source('x', []),
+    enrichPrefixes: prefixes,
+    enrich: async () => new Map(),
+  })
+
+  it('is the union of what its available sources claim and can enrich', () => {
+    const adapter = createCompositeAdapter([
+      { prefixes: ['person'], enrichPrefixes: ['movie'], adapter: enricher(['movie']) },
+      { prefixes: ['game'], enrichPrefixes: ['game', 'movie'], adapter: enricher(['game']) },
+      { prefixes: ['show'], enrichPrefixes: ['show'], adapter: source('show', []) },
+      { prefixes: ['gone'], enrichPrefixes: ['gone'], adapter: { ...enricher(['gone']), isAvailable: () => false } },
+    ])
+
+    expect([...(adapter.enrichPrefixes ?? [])].sort()).toEqual(['game', 'movie'])
+  })
+
+  it('is empty when nothing can enrich', () => {
+    expect(createCompositeAdapter([{ prefixes: ['show'], adapter: source('show', []) }]).enrichPrefixes).toEqual([])
+  })
+})

@@ -61,6 +61,10 @@ describe('TMDB studio expansion', () => {
     expect(await expandWithRuntimes(adapter, 'company:3')).toEqual(await adapter.expand('company:3'))
   })
 
+  it('says which kind of ref it can enrich', () => {
+    expect(createTmdbCompanyAdapter(credentials).enrichPrefixes).toEqual(['movie'])
+  })
+
   it('enriches the movie refs it listed', async () => {
     const adapter = createTmdbCompanyAdapter(credentials, {}, router(routes))
 

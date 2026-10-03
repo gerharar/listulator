@@ -368,6 +368,7 @@ export function createTmdbAdapter(
 
     // No upstream signal for whether this is finished, so no `status` (BL-013).
     enrich: (refs) => enrichMovieRuntimes(client, refs),
+    enrichPrefixes: ['movie'],
 
     expand: itemsOnly(async (externalRef, options) => {
       const [kind, id] = externalRef.split(':')

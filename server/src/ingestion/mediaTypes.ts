@@ -417,6 +417,12 @@ export interface SearchAdapter {
    * has nothing to look up afterwards.
    */
   enrich?(refs: string[]): Promise<Map<string, RuntimeLookup>>
+  /**
+   * The kinds of item ref (`movie`) `enrich` answers for. What a runner asks the
+   * database to find pending, so it needs the adapter's own answer and not a
+   * guess from the ref's shape. Set with `enrich`; absent means nothing to look up.
+   */
+  enrichPrefixes?: readonly string[]
 }
 
 export interface MediaType {

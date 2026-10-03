@@ -117,12 +117,47 @@ export function withKnownRuntimes<T extends { externalRef?: string; timeToConsum
   })
 }
 
+/** Items whose length is an estimate and whose ref is of one of `prefixes`, as a filter on a list. */
+function estimatedOf(listId: string, prefixes: readonly string[]) {
+  return [
+    eq(listItems.listId, listId),
+    eq(listItems.timeToConsumeIsEstimated, true),
+    isNotNull(listItems.externalRef),
+    // The whole prefix and its colon, not a LIKE: `movie` must not match `movies:`.
+    or(
+      ...prefixes.map((prefix) => sql`substr(${listItems.externalRef}, 1, ${prefix.length + 1}) = ${`${prefix}:`}`),
+    ),
+  ]
+}
+
 /**
- * The refs of a list still to look up, in list order, each once: items whose
- * length is an estimate, with a ref of one of `prefixes` (the kinds of ref an
- * adapter can enrich: `movie`), and no live answer in the table. A null answer
- * counts as an answer. This is the whole of "what is pending", worked out from
- * the data, so a restart needs no saved job.
+ * The refs of a list whose length is still an estimate and that an adapter can
+ * look up (`prefixes`), in list order, each once. Whether the table already has
+ * an answer is another question: see `pendingFor`.
+ */
+export async function estimatedRefsFor(
+  db: PortableDatabase,
+  listId: string,
+  prefixes: readonly string[],
+): Promise<string[]> {
+  if (prefixes.length === 0) return []
+
+  const rows = await db
+    .select({ ref: listItems.externalRef })
+    .from(listItems)
+    .where(and(...estimatedOf(listId, prefixes)))
+    .orderBy(listItems.orderIndex, listItems.id)
+    .all()
+
+  return [...new Set(rows.map((row) => row.ref!))]
+}
+
+/**
+ * The refs of a list still to look up, in list order, each once: estimated
+ * items with a ref of one of `prefixes` (the kinds of ref an adapter can
+ * enrich: `movie`) and no live answer in the table. A null answer counts as an
+ * answer. This is the whole of "what is pending", worked out from the data, so
+ * a restart needs no saved job.
  */
 export async function pendingFor(
   db: PortableDatabase,
@@ -137,15 +172,7 @@ export async function pendingFor(
     .from(listItems)
     .where(
       and(
-        eq(listItems.listId, listId),
-        eq(listItems.timeToConsumeIsEstimated, true),
-        isNotNull(listItems.externalRef),
-        // The whole prefix and its colon, not a LIKE: `movie` must not match `movies:`.
-        or(
-          ...prefixes.map(
-            (prefix) => sql`substr(${listItems.externalRef}, 1, ${prefix.length + 1}) = ${`${prefix}:`}`,
-          ),
-        ),
+        ...estimatedOf(listId, prefixes),
         notExists(
           db
             .select({ one: sql`1` })
