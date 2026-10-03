@@ -40,9 +40,10 @@ export interface TmdbCompanyOptions {
    * Whether a studio's list leaves documentaries out (the default): its films, not the documentaries about
    * making them, which belong to the Documentaries shelf (owner, 2026-10-03). A shelf that keeps to one
    * genre already says what belongs: Animation keeps `'include'`, so an animated short that TMDB also tags
-   * as a documentary stays.
+   * as a documentary stays. The Documentaries shelf lists a studio's documentaries and nothing else
+   * (`'only'`), the mirror of the rule above (BL-053).
    */
-  documentaries?: 'exclude' | 'include'
+  documentaries?: 'exclude' | 'include' | 'only'
 }
 
 export function createTmdbCompanyAdapter(
@@ -88,7 +89,10 @@ export function createTmdbCompanyAdapter(
           with_companies: id,
           sort_by: 'primary_release_date.asc',
           page: String(page),
-          ...(genreFilter ? { with_genres: String(genreFilter) } : {}),
+          // Genres are asked for together ("16,99" means both): a shelf's own genre and, for documentaries only, 99.
+          ...(genreFilter || documentaries === 'only'
+            ? { with_genres: [genreFilter, documentaries === 'only' ? DOCUMENTARY_GENRE : undefined].filter(Boolean).join(',') }
+            : {}),
           // Asked of TMDB, not filtered here, so the pages and the count are exact.
           ...(documentaries === 'exclude' ? { without_genres: String(DOCUMENTARY_GENRE) } : {}),
         })

@@ -178,6 +178,15 @@ describe('TMDB studio lists leave documentaries to the Documentaries shelf (owne
     expect(queries[0]?.get('without_genres')).toBe('99')
   })
 
+  it('can keep only them: the Documentaries shelf lists a studio’s documentaries', async () => {
+    const { fetchImpl, queries } = recording()
+
+    await createTmdbCompanyAdapter(credentials, { documentaries: 'only' }, fetchImpl).expand('company:3', { runtimes: 'skip' })
+
+    expect(queries[0]?.get('with_genres')).toBe('99')
+    expect(queries[0]?.has('without_genres')).toBe(false)
+  })
+
   it('can keep them: a shelf that keeps to one genre already says what belongs (Animation)', async () => {
     const { fetchImpl, queries } = recording()
 

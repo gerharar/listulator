@@ -190,6 +190,31 @@ describe('what the Animation and Movies shelves tag on import', () => {
     expect(seen['16']?.has('without_genres')).toBe(false)
   })
 
+  it('the Documentaries shelf offers a studio, and lists only its documentaries (BL-053)', async () => {
+    const seen: URLSearchParams[] = []
+    const stub = vi.fn(async (url: string) => {
+      const target = new URL(url)
+      if (target.pathname === '/3/discover/movie') seen.push(target.searchParams)
+      const bodies: Record<string, unknown> = {
+        '/3/search/company': { results: [{ id: 3, name: 'Pixar', origin_country: 'US' }] },
+        '/3/discover/movie': { total_pages: 1, results: [{ id: 5, title: 'Making Nemo', release_date: '2003-01-01' }] },
+        '/3/movie/5': { runtime: 52 },
+      }
+
+      return new Response(JSON.stringify(bodies[target.pathname] ?? { results: [] }))
+    })
+    vi.stubGlobal('fetch', stub)
+    const documentary = createDefaultMediaTypes({ credentials: { tmdb: () => ({ apiKey: 'k', readAccessToken: undefined }) } }).find((entry) => entry.key === 'documentary')!.adapter!
+
+    const found = await documentary.search('pixar')
+    const { items } = await documentary.expand('company:3')
+
+    expect(found.map((source) => source.externalRef)).toContain('company:3')
+    expect(items.map((item) => item.title)).toEqual(['Making Nemo'])
+    expect(seen[0]?.get('with_genres')).toBe('99')
+    expect(seen[0]?.has('without_genres')).toBe(false)
+  })
+
   it('Movies still offers both collections and people, unfiltered', async () => {
     const movies = stubTmdb().find((entry) => entry.key === 'movie')!.adapter!
 
@@ -200,6 +225,7 @@ describe('what the Animation and Movies shelves tag on import', () => {
     ['movie', 'company:2'],
     ['animation', 'company:2'],
     ['animation', 'collection:9'],
+    ['documentary', 'company:2'],
     ['documentary', 'person:7'],
   ])('lists %s’s films without lengths and fills them in after, ending where a full expansion does (15.2)', async (key, ref) => {
     const adapter = stubTmdb().find((entry) => entry.key === key)!.adapter!

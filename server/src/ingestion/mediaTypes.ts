@@ -93,6 +93,8 @@ export function createDefaultMediaTypes({
   const documentarySeries = createTmdbTvAdapter(tmdbCredentials, {
     genreFilter: DOCUMENTARY_GENRE,
   })
+  // A studio's documentaries (the making-of films Movies leaves out), and only those.
+  const documentaryStudios = createTmdbCompanyAdapter(tmdbCredentials, { documentaries: 'only' })
   const documentaryFilms = createTmdbAdapter(tmdbCredentials, {
     documentaries: 'only',
     // Documentarians direct rather than appear; cast credits alone found 12 of
@@ -116,10 +118,11 @@ export function createDefaultMediaTypes({
     { prefixes: ['collection'], enrichPrefixes: ['movie'], tag: 'movie', adapter: animationCollections },
   ])
 
-  /** Documentary series, plus a film-maker's documentaries. */
+  /** Documentary series, a film-maker's documentaries, and a studio's documentaries. */
   const documentarySources = createCompositeAdapter([
     { prefixes: ['show'], adapter: documentarySeries },
     { prefixes: ['person', 'collection'], enrichPrefixes: ['movie'], adapter: documentaryFilms },
+    { prefixes: ['company'], enrichPrefixes: ['movie'], adapter: documentaryStudios },
   ])
 
   const igdb = createIgdbAdapter(
