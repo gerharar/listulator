@@ -173,6 +173,8 @@ export const ru: Locale = {
     'search.unavailableOffline': (p: { category: string }): string => `Поиск недоступен для категории ${p.category}, а List Vault не отвечает. Попробуй позже или сделай список вручную`,
     'list.unknownCategory': (p: { key: string }): string => `Руки-крюки: список нельзя импортировать, неизвестная категория ‘${p.key}’. Сверь написание категории с CONTRIBUTING.md, обычно проблема где-то там`,
     'list.sourceEmpty': (p: { title: string }): string => `Обнаружена преждевременная листуляция: для ${p.title} нечего импортировать`,
+    'list.sourceTooLarge': (p: { title?: string; count: number; max: number }): string =>
+      `${p.title ? `«${p.title}»` : 'Этот источник'} слишком велик для одного списка: ${p.count.toLocaleString('ru')}, а в список входит не больше ${p.max.toLocaleString('ru')}`,
     'list.fileInvalid': (p: { detail?: string }): string =>
       `Не та дырка, бро: ты пытаешься запихать квадратный файл в круглую дырку, поэтому его нельзя импортировать. Убедись, что это корректный YAML-файл со всеми обязательными полями${p.detail ? `. Что нашёл разбор: ${p.detail}` : ''}`,
     'list.fileSyntax': (p: { line?: number }): string => p.line ? `Руки-из-жопы-растуки: список нельзя импортировать, синтаксическая ошибка в строке ${p.line}` : 'Руки-из-жопы-растуки: список нельзя импортировать, синтаксическая ошибка',

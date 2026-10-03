@@ -1,4 +1,5 @@
 import { delay, getJson, UpstreamError, type FetchLike } from '../http.js'
+import { createPacer, type RateLimiter } from '../rateLimiter.js'
 import type {
   ExpandOptions,
   ListSource,
@@ -19,8 +20,6 @@ import { itemsOnly } from '../expansion.js'
 
 const BASE = 'https://api.themoviedb.org/3'
 const DOCUMENTARY_GENRE = 99
-/** Bounds a prolific filmography; Jackie Chan alone has 200+ credits. */
-const MAX_ITEMS = 300
 /** Runtime needs one request per film. Polite, and still only seconds. */
 const RUNTIME_CONCURRENCY = 8
 
@@ -108,16 +107,37 @@ const BACKOFF_MS = 500
 /** A `Retry-After` longer than this is not waited out: the request fails and says so. */
 const MAX_RETRY_WAIT_MS = 10_000
 
+/**
+ * TMDB serves no discover page past 500 (20 films each: ten thousand): its own limit, named here instead
+ * of an arbitrary cap of ours. A listing that reaches it has everything TMDB will give.
+ */
+export const TMDB_MAX_DISCOVER_PAGES = 500
+
+/**
+ * One request start every 25 ms, 40 a second: TMDB's published budget (task 15.9), spaced as a pacer, not a
+ * queue: requests overlap, so eight pages in flight stay eight in flight. **One limiter for the whole
+ * process**, so every request to TMDB takes its turn in one line, whether it is a listing (a studio's
+ * pages, a show's seasons) or the background lookup of lengths (15.4); the pacing of the runner's own
+ * batches is gone for this reason.
+ */
+export const tmdbRequestLimiter: RateLimiter = createPacer(25)
+
 export interface TmdbClientOptions {
   /** Injectable so the waits are testable without real waiting. */
   sleep?: (ms: number) => Promise<void>
+  /**
+   * Every request, each retry included, goes through this. Default: the shared `tmdbRequestLimiter` for a
+   * client that talks to the real TMDB, and none for one given a fake `fetch` (it protects the upstream,
+   * and a fake has none, so a test is not slowed by it).
+   */
+  limiter?: RateLimiter
 }
 
 /** Auth, requests and throttling, shared by the film and television adapters. */
 export function createTmdbClient(
   credentials: TmdbCredentialSource,
   fetchImpl?: FetchLike,
-  { sleep = delay }: TmdbClientOptions = {},
+  { sleep = delay, limiter = fetchImpl ? undefined : tmdbRequestLimiter }: TmdbClientOptions = {},
 ) {
   const resolve = (): TmdbCredentials =>
     typeof credentials === 'function' ? credentials() : credentials
@@ -131,11 +151,14 @@ export function createTmdbClient(
 
     for (let attempt = 1; ; attempt += 1) {
       try {
-        return await getJson<T>(`${BASE}${path}?${search.toString()}`, {
-          source: 'TMDB',
-          ...(readAccessToken ? { headers: { authorization: `Bearer ${readAccessToken}` } } : {}),
-          ...(fetchImpl ? { fetchImpl } : {}),
-        })
+        const send = () =>
+          getJson<T>(`${BASE}${path}?${search.toString()}`, {
+            source: 'TMDB',
+            ...(readAccessToken ? { headers: { authorization: `Bearer ${readAccessToken}` } } : {}),
+            ...(fetchImpl ? { fetchImpl } : {}),
+          })
+
+        return await (limiter ? limiter.run(send) : send())
       } catch (error) {
         // Only the upstream saying "slow down" or "I am broken" is worth another go. A 404 is an
         // answer; rejected credentials and an unreachable network will not mend in a second.
@@ -331,7 +354,6 @@ export function createTmdbAdapter(
         return documentaries === 'only' ? isDocumentary : !isDocumentary
       })
       .sort((a, b) => (a.release_date ?? '').localeCompare(b.release_date ?? ''))
-      .slice(0, MAX_ITEMS)
       .map((entry) => ({
         id: entry.id,
         title: entry.title!,

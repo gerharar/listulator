@@ -25,7 +25,8 @@ function filmSource(options: { answer?: (ref: string) => RuntimeLookup } = {}) {
   }
 
   const expand = vi.fn(async (ref: string, expandOptions?: ExpandOptions) => {
-    const numbers = ref === 'first' ? [1, 2, 3] : ref === 'second' ? [2, 3, 4] : Array.from({ length: 10 }, (_, index) => index + 1)
+    const count = ref === 'huge' ? 10_001 : ref === 'limit' ? 10_000 : 10
+    const numbers = ref === 'first' ? [1, 2, 3] : ref === 'second' ? [2, 3, 4] : Array.from({ length: count }, (_, index) => index + 1)
 
     return {
       items: numbers.map(
@@ -302,6 +303,35 @@ describe('building a list at once and filling its lengths afterwards (15.5)', ()
 
       expect(plainExpand).toHaveBeenCalledExactlyOnceWith('anything')
       expect(items.map((item: MediaTypeCandidate) => item.timeToConsumeMinutes)).toEqual([undefined, 30])
+    })
+  })
+
+  describe('the ceiling on a list: ten thousand items (15.9)', () => {
+    const expansion = (ref: string) => harness.app.inject({ method: 'GET', url: `/api/media-types/movie/expansion?externalRef=${ref}` })
+
+    it('counts a source of exactly the ceiling', async () => {
+      harness = build(filmSource().adapter)
+
+      expect((await expansion('limit')).json()).toEqual({ itemCount: 10_000 })
+    })
+
+    it('fails the count of a source above it, in the API’s own terms: the code and the numbers', async () => {
+      harness = build(filmSource().adapter)
+
+      const response = await expansion('huge')
+
+      expect(response.statusCode).toBe(422)
+      expect(response.json()).toEqual({ code: 'list.sourceTooLarge', params: { count: 10_001, max: 10_000 } })
+    })
+
+    it('refuses to build a list of a source above it, names the source, and leaves no list behind', async () => {
+      harness = build(filmSource().adapter)
+
+      const response = await fromSource('huge', 'Everything TMDB has')
+
+      expect(response.statusCode).toBe(422)
+      expect(response.json()).toEqual({ code: 'list.sourceTooLarge', params: { title: 'Everything TMDB has', count: 10_001, max: 10_000 } })
+      expect((await harness.app.inject({ method: 'GET', url: '/api/lists' })).json()).toEqual([])
     })
   })
 

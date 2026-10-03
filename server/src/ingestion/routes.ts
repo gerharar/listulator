@@ -27,6 +27,7 @@ import {
   type ParsedCustomList,
 } from './customLists.js'
 import { createListItems, discardList } from '../catalog/bulkItems.js'
+import { MAX_LIST_ITEMS } from '../catalog/limits.js'
 import { knownRuntimes, withKnownRuntimes } from '../catalog/runtimes.js'
 import { enrichPrefixesByMediaType } from '../catalog/runtimeFill.js'
 import { seedGroupOrder } from '../catalog/groups.js'
@@ -35,7 +36,7 @@ import { IngestionError } from './http.js'
 import { listsDropDir as defaultListsDropDir, scanListsDropFolder } from './listsDropFolder.js'
 import type { AppDatabase } from '../db/client.js'
 import { toMediaTypeInfo, type MediaTypeRegistry } from './mediaTypes.js'
-import { expandSource, listingOptions, SourceUnavailableError, UnsafeSourceError } from './expandSource.js'
+import { expandSource, listingOptions, ListTooLargeError, SourceUnavailableError, UnsafeSourceError } from './expandSource.js'
 import { refForAdapter } from './sourceRef.js'
 import { searchSources, SearchUnavailableError } from './search.js'
 import type { ListSource, User } from '../db/schema.js'
@@ -257,6 +258,9 @@ export const ingestionRoutes: FastifyPluginAsync<IngestionRoutesOptions> = async
         if (cause instanceof SourceUnavailableError) {
           return sendApiError(reply, 409, 'search.unavailable', { category: mediaType.label })
         }
+        if (cause instanceof ListTooLargeError) {
+          return sendApiError(reply, 422, 'list.sourceTooLarge', { count: cause.count, max: cause.max })
+        }
         if (cause instanceof UnsafeSourceError) return sendApiError(reply, 400, 'list.fileInvalid')
         if (cause instanceof CustomListParseError) {
           return sendApiError(reply, 400, cause.code, cause.params)
@@ -398,6 +402,9 @@ export const ingestionRoutes: FastifyPluginAsync<IngestionRoutesOptions> = async
         : listed
       if (candidates.length === 0) {
         return sendApiError(reply, 422, 'list.sourceEmpty', { title })
+      }
+      if (candidates.length > MAX_LIST_ITEMS) {
+        return sendApiError(reply, 422, 'list.sourceTooLarge', { title, count: candidates.length, max: MAX_LIST_ITEMS })
       }
 
       const list = await createList(db, user.id, {

@@ -47,7 +47,7 @@ function filmSource(options: { available?: boolean; answer?: (ref: string) => Ru
     return release
   }
   const expand = vi.fn(async (ref: string, expandOptions?: ExpandOptions) => ({
-    items: (ref === 'first' ? [1, 2, 3] : [2, 3, 4]).map(
+    items: (ref === 'huge' ? Array.from({ length: 10_001 }, (_, index) => index + 1) : ref === 'first' ? [1, 2, 3] : [2, 3, 4]).map(
       (n): MediaTypeCandidate => ({
         title: `Film ${n}`,
         externalRef: `film:${n}`,
@@ -224,6 +224,20 @@ describe('the desktop builds a list at once and fills its lengths afterwards (15
       expect(added.stats.totalItems).toBe(3)
       expect(source.expand).toHaveBeenCalledTimes(1)
       await filler.fill(added.id)
+    })
+  })
+
+  describe('the ceiling on a list: ten thousand items (15.9)', () => {
+    it('fails the count and the Preview of a source above it, and refuses to build it, with the API’s own error', async () => {
+      const { api } = await start(filmSource())
+
+      await expect(api.expansion('movie', 'huge')).rejects.toMatchObject({ code: 'list.sourceTooLarge', status: 422 })
+      await expect(api.preview('movie', 'huge')).rejects.toMatchObject({ code: 'list.sourceTooLarge' })
+      await expect(api.createFromSource({ mediaType: 'movie', externalRef: 'huge', title: 'Everything TMDB has' })).rejects.toMatchObject({
+        code: 'list.sourceTooLarge',
+        message: expect.stringContaining('Everything TMDB has'),
+      })
+      expect(await api.lists()).toEqual([])
     })
   })
 

@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 import { UnauthorizedError, UpstreamError, type FetchLike } from '../http.js'
-import { createTmdbClient } from './tmdb.js'
+import { createPacer, type RateLimiter } from '../rateLimiter.js'
+import { createTmdbClient, tmdbRequestLimiter } from './tmdb.js'
 
 const credentials = { apiKey: 'test-key', readAccessToken: undefined }
 
@@ -119,3 +120,54 @@ describe('TMDB client mapLimited', () => {
     expect(await client.mapLimited([1, 2, 3, 4], 2, async (item) => item * 10)).toEqual([10, 20, 30, 40])
   })
 })
+
+describe('the TMDB request budget, shared by every request that goes to TMDB (15.9)', () => {
+  it('spaces the requests of two clients that share one limiter, as the listing and the runner do', async () => {
+    let clock = 0
+    const waits: number[] = []
+    // Sleeps that end at times of their own, side by side; the clock only moves forward.
+    const sleep = (ms: number) => {
+      const until = clock + ms
+      waits.push(ms)
+
+      return Promise.resolve().then(() => void (clock = Math.max(clock, until)))
+    }
+    const limiter = createPacer(25, { now: () => clock, sleep })
+    const fetchImpl = sequence(ok)
+    const listing = createTmdbClient(credentials, fetchImpl, { limiter })
+    const runner = createTmdbClient(credentials, fetchImpl, { limiter })
+
+    await Promise.all([listing.request('/discover/movie'), runner.request('/movie/1'), listing.request('/discover/movie'), runner.request('/movie/2')])
+
+    expect(fetchImpl).toHaveBeenCalledTimes(4)
+    // One request starts at once; the others take the next slots, 25 ms apart.
+    expect(waits).toEqual([25, 50, 75])
+  })
+
+  it('puts every attempt through it, a retry included', async () => {
+    const run = vi.fn((fn: () => Promise<unknown>) => fn())
+    const fetchImpl = sequence(status(503), ok)
+    const client = createTmdbClient(credentials, fetchImpl, { sleep: async () => undefined, limiter: { run: run as RateLimiter['run'] } })
+
+    await client.request('/movie/1')
+
+    expect(run).toHaveBeenCalledTimes(2)
+  })
+
+  it('is the one shared limiter for a client that talks to the real TMDB, and no limiter for one given a fake fetch', async () => {
+    const shared = vi.spyOn(tmdbRequestLimiter, 'run')
+    vi.stubGlobal('fetch', vi.fn(async () => new Response('{"ok":true}', { status: 200 })))
+
+    try {
+      await createTmdbClient(credentials, sequence(ok)).request('/movie/1')
+      expect(shared).not.toHaveBeenCalled()
+
+      await createTmdbClient(credentials).request('/movie/1')
+      expect(shared).toHaveBeenCalledTimes(1)
+    } finally {
+      vi.unstubAllGlobals()
+      shared.mockRestore()
+    }
+  })
+})
+

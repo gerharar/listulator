@@ -1,7 +1,13 @@
 import type { FetchLike } from '../http.js'
 import type { ListSource, SearchAdapter } from '../mediaTypes.js'
 import { itemsOnly } from '../expansion.js'
-import { createTmdbClient, enrichMovieRuntimes, listFilms, type TmdbCredentialSource } from './tmdb.js'
+import {
+  createTmdbClient,
+  enrichMovieRuntimes,
+  listFilms,
+  TMDB_MAX_DISCOVER_PAGES,
+  type TmdbCredentialSource,
+} from './tmdb.js'
 
 /**
  * TMDB companies: search a studio, expand to the films it made.
@@ -10,8 +16,8 @@ import { createTmdbClient, enrichMovieRuntimes, listFilms, type TmdbCredentialSo
  * completionist unit the film adapter's shapes do not reach.
  */
 
-const MAX_PAGES = 5
-const PAGE_SIZE = 20
+/** The pages after the first are asked for this many at a time. */
+const PAGE_CONCURRENCY = 8
 
 interface CompanyResult {
   id: number
@@ -68,24 +74,31 @@ export function createTmdbCompanyAdapter(
       const today = new Date().toISOString().slice(0, 10)
       const films: { id: number; title: string; year?: number }[] = []
 
-      for (let page = 1; page <= MAX_PAGES; page += 1) {
-        const response = await client.request<DiscoverResult>('/discover/movie', {
+      const fetchPage = (page: number) =>
+        client.request<DiscoverResult>('/discover/movie', {
           with_companies: id,
           sort_by: 'primary_release_date.asc',
           page: String(page),
           ...(genreFilter ? { with_genres: String(genreFilter) } : {}),
         })
 
-        const batch = response.results ?? []
+      // The first page says how many there are; the rest are asked for eight at a time, up to the last
+      // page TMDB serves. Every page, in order: nothing is cut off at an arbitrary number.
+      const first = await fetchPage(1)
+      const lastPage = Math.min(first.total_pages ?? 1, TMDB_MAX_DISCOVER_PAGES)
+      const rest = await client.mapLimited(
+        Array.from({ length: Math.max(0, lastPage - 1) }, (_, index) => index + 2),
+        PAGE_CONCURRENCY,
+        fetchPage,
+      )
 
-        for (const film of batch) {
+      for (const response of [first, ...rest]) {
+        for (const film of response.results ?? []) {
           // Released only, as everywhere else: a studio's announced slate is
           // not something anyone can finish watching.
           if (!film.title || !film.release_date || film.release_date > today) continue
           films.push({ id: film.id, title: film.title, year: Number(film.release_date.slice(0, 4)) })
         }
-
-        if (batch.length < PAGE_SIZE || page >= (response.total_pages ?? 1)) break
       }
 
       return listFilms(client, films, options)

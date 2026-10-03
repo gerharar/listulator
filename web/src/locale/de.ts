@@ -167,6 +167,8 @@ export const de: Locale = {
     'search.unavailableOffline': (p: { category: string }): string => `Die Suche ist für „${p.category}“ nicht verfügbar, und der List Vault war nicht erreichbar. Versuche es später erneut oder lege die Liste von Hand an.`,
     'list.unknownCategory': (p: { key: string }): string => `Zwei linke Hände erkannt: Liste kann nicht importiert werden, unbekannte Kategorie ‘${p.key}’. Vergleiche die Schreibweise der Kategorie mit CONTRIBUTING.md, das ist meistens das Problem`,
     'list.sourceEmpty': (p: { title: string }): string => `Vorzeitige Listulation erkannt: Für „${p.title}“ gibt es nichts zu importieren`,
+    'list.sourceTooLarge': (p: { title?: string; count: number; max: number }): string =>
+      `${p.title ? `„${p.title}“` : 'Diese Quelle'} ist für eine einzige Liste zu groß: ${p.count.toLocaleString('de')} Einträge, höchstens ${p.max.toLocaleString('de')} passen hinein`,
     'list.fileInvalid': (p: { detail?: string }): string =>
       `Falsches Loch, Kumpel: Deine Datei ist ein eckiger Pflock, der in ein rundes Loch will, deshalb lässt sie sich nicht importieren. Achte darauf, dass sie korrektes YAML ist und alle Pflichtfelder enthält${p.detail ? `. Das hat der Parser gefunden: ${p.detail}` : ''}`,
     'list.fileSyntax': (p: { line?: number }): string => p.line ? `Zwei linke Hände erkannt: Liste kann nicht importiert werden, Syntaxfehler in Zeile ${p.line}` : 'Zwei linke Hände erkannt: Liste kann nicht importiert werden, Syntaxfehler',

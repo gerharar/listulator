@@ -1,3 +1,4 @@
+import { MAX_LIST_ITEMS } from '../catalog/limits.js'
 import {
   canonicalPathFromExternalRef,
   expandCanonicalList,
@@ -13,6 +14,22 @@ export class SourceUnavailableError extends Error {
     super(`Search is not available for ${category}.`)
     this.name = 'SourceUnavailableError'
   }
+}
+
+/** A source with more items than a list can hold (`MAX_LIST_ITEMS`): refused, never cut short. */
+export class ListTooLargeError extends Error {
+  constructor(
+    readonly count: number,
+    readonly max: number = MAX_LIST_ITEMS,
+  ) {
+    super(`A list holds at most ${max} items; this source has ${count}.`)
+    this.name = 'ListTooLargeError'
+  }
+}
+
+/** Throws `ListTooLargeError` when `count` is above the ceiling. Checked for the count, the Preview and Add list. */
+export function checkListSize(count: number): void {
+  if (count > MAX_LIST_ITEMS) throw new ListTooLargeError(count)
 }
 
 /** A canonical ref whose path is not one this app would ever fetch. */
@@ -70,5 +87,8 @@ export async function expandSource(
   const expandOptions = listingOptions(adapter)
   const load = () => (expandOptions ? adapter.expand(adapterRef, expandOptions) : adapter.expand(adapterRef))
 
-  return cache ? cache.get(expansionCacheKey(mediaType.key, adapterRef, expandOptions), load) : load()
+  const expansion = await (cache ? cache.get(expansionCacheKey(mediaType.key, adapterRef, expandOptions), load) : load())
+  checkListSize(expansion.items.length)
+
+  return expansion
 }

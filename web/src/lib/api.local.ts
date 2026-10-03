@@ -32,10 +32,10 @@ import {
   type RuntimeStatsOptions,
 } from '../../../server/src/catalog/repository.js'
 import { createListItems, discardList } from '../../../server/src/catalog/bulkItems.js'
+import { MAX_LIST_ITEMS } from '../../../server/src/catalog/limits.js'
 import { knownRuntimes, withKnownRuntimes, withRuntimePending } from '../../../server/src/catalog/runtimes.js'
 import {
   createRuntimeFiller,
-  createSourceLimiters,
   enrichPrefixesByMediaType,
   type RuntimeFiller,
 } from '../../../server/src/catalog/runtimeFill.js'
@@ -116,6 +116,7 @@ import {
 import {
   expandSource,
   listingOptions,
+  ListTooLargeError,
   SourceUnavailableError,
   UnsafeSourceError,
 } from '../../../server/src/ingestion/expandSource.js'
@@ -195,6 +196,11 @@ function resetError(cause: unknown): unknown {
  */
 async function resetDeps(expansions: ExpansionCache): Promise<ResetDeps> {
   return { mediaTypes: await getLocalMediaTypes(), expansions }
+}
+
+/** A source above the ceiling on a list (15.9): the API's own error, 422, with the numbers and, on Add list, the source. */
+function tooLarge(params: { title?: string; count: number; max: number }): ApiError {
+  return new ApiError(copy.errors['list.sourceTooLarge'](params), 422, 'list.sourceTooLarge')
 }
 
 /** The API's own refusals for the group repository's errors (mirrors catalog/routes.ts). */
@@ -304,7 +310,8 @@ let launchFill: Promise<void> | undefined
 /**
  * The one runner that looks up the lengths of items a list was built without (task 15.6; the server's is
  * `app.runtimeFiller`, 15.5): the local database, the registry as it is when a run starts (Settings
- * rebuilds it when a key is saved), one pacing limiter per source, stopped when the window goes.
+ * rebuilds it when a key is saved), stopped when the window goes. Its requests are paced where they are
+ * sent (TMDB's client, 15.9).
  */
 export function getLocalRuntimeFiller(): Promise<RuntimeFiller> {
   runtimeFiller ??= createLocalDb().then((db) => {
@@ -313,7 +320,6 @@ export function getLocalRuntimeFiller(): Promise<RuntimeFiller> {
     return createRuntimeFiller({
       db,
       mediaTypes: () => getLocalMediaTypes(),
-      limiterFor: createSourceLimiters(),
       signal: stopRuntimeFill.signal,
     })
   })
@@ -387,6 +393,9 @@ export function createLocalApi(): ApiClient {
           409,
           'search.unavailable',
         )
+      }
+      if (cause instanceof ListTooLargeError) {
+        throw tooLarge({ count: cause.count, max: cause.max })
       }
       if (cause instanceof UnsafeSourceError) {
         throw new ApiError(
@@ -869,6 +878,7 @@ export function createLocalApi(): ApiClient {
       if (candidates.length === 0) {
         throw new ApiError(copy.errors['list.sourceEmpty']({ title }), 422, 'list.sourceEmpty')
       }
+      if (candidates.length > MAX_LIST_ITEMS) throw tooLarge({ title, count: candidates.length, max: MAX_LIST_ITEMS })
 
       const list = await repoCreateList(database, userId, {
         title,

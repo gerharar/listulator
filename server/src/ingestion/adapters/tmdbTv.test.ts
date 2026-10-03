@@ -338,3 +338,29 @@ describe('TMDB television production status (BL-013)', () => {
     expect(await adapter.expand('show:abc')).toEqual({ items: [] })
   })
 })
+
+describe('TMDB television without a cap (15.9, BL-050)', () => {
+  it('lists every season and every episode of a show that runs for decades', async () => {
+    const seasons = 65
+    const perSeason = 40
+    const show = { name: 'Very Long Show', seasons: Array.from({ length: seasons }, (_, index) => ({ season_number: index + 1, episode_count: perSeason })) }
+    const fetchImpl: FetchLike = vi.fn(async (url: string) => {
+      const path = new URL(url).pathname.replace('/3', '')
+      if (path === '/tv/7') return new Response(JSON.stringify(show), { status: 200 })
+
+      const season = /^\/tv\/7\/season\/(\d+)$/.exec(path)
+      if (!season) return new Response('{}', { status: 404 })
+
+      return new Response(
+        JSON.stringify({ episodes: Array.from({ length: perSeason }, (_, index) => ({ season_number: Number(season[1]), episode_number: index + 1, name: `E${index + 1}`, runtime: 40, air_date: '2001-01-01' })) }),
+        { status: 200 },
+      )
+    })
+
+    const { items } = await createTmdbTvAdapter(credentials, {}, fetchImpl).expand('show:7')
+
+    expect(items).toHaveLength(seasons * perSeason)
+    expect(items.at(-1)?.group).toBe('Season 65')
+  })
+})
+

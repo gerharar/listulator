@@ -80,3 +80,70 @@ describe('TMDB studio expansion', () => {
     expect(fetchImpl).not.toHaveBeenCalled()
   })
 })
+
+describe('TMDB studio paging without a cap (15.9)', () => {
+  /** A studio of `pages` discover pages: 20 released films each, ids unique, oldest first across pages. */
+  function studio(pages: number) {
+    let inFlight = 0
+    let peak = 0
+    const requested: number[] = []
+    const fetchImpl: FetchLike = vi.fn(async (url: string) => {
+      const target = new URL(url)
+      if (target.pathname !== '/3/discover/movie') return new Response('{}', { status: 404 })
+
+      const page = Number(target.searchParams.get('page'))
+      requested.push(page)
+      inFlight += 1
+      peak = Math.max(peak, inFlight)
+      await new Promise((resolve) => setTimeout(resolve, 1))
+      inFlight -= 1
+
+      return new Response(
+        JSON.stringify({
+          total_pages: pages,
+          results: Array.from({ length: 20 }, (_, index) => ({ id: page * 100 + index, title: `P${page} F${index}`, release_date: '2001-01-01' })),
+        }),
+        { status: 200 },
+      )
+    })
+
+    return { fetchImpl, requested, peak: () => peak }
+  }
+
+  it('lists every page the studio has, not the first five', async () => {
+    const { fetchImpl, requested } = studio(12)
+
+    const { items } = await createTmdbCompanyAdapter(credentials, {}, fetchImpl).expand('company:3', { runtimes: 'skip' })
+
+    expect(items).toHaveLength(12 * 20)
+    expect([...requested].sort((a, b) => a - b)).toEqual(Array.from({ length: 12 }, (_, index) => index + 1))
+  })
+
+  it('keeps the pages in order, whichever answered first', async () => {
+    const { fetchImpl } = studio(9)
+
+    const { items } = await createTmdbCompanyAdapter(credentials, {}, fetchImpl).expand('company:3', { runtimes: 'skip' })
+
+    expect(items.map((item) => item.title).slice(0, 2)).toEqual(['P1 F0', 'P1 F1'])
+    expect(items.map((item) => Number(item.title.split(' ')[0]!.slice(1)))).toEqual([...items.map((item) => Number(item.title.split(' ')[0]!.slice(1)))].sort((a, b) => a - b))
+  })
+
+  it('asks for the pages after the first eight at a time, not one after another and not all at once', async () => {
+    const { fetchImpl, peak } = studio(40)
+
+    await createTmdbCompanyAdapter(credentials, {}, fetchImpl).expand('company:3', { runtimes: 'skip' })
+
+    expect(peak()).toBeGreaterThan(1)
+    expect(peak()).toBeLessThanOrEqual(8)
+  })
+
+  it('stops where TMDB itself stops: it serves no page past 500', async () => {
+    const { fetchImpl, requested } = studio(600)
+
+    const { items } = await createTmdbCompanyAdapter(credentials, {}, fetchImpl).expand('company:3', { runtimes: 'skip' })
+
+    expect(Math.max(...requested)).toBe(500)
+    expect(items).toHaveLength(500 * 20)
+  })
+})
+

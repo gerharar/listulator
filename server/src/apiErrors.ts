@@ -27,6 +27,7 @@ export type ApiErrorCode =
   | 'search.unavailableOffline'
   | 'list.unknownCategory'
   | 'list.sourceEmpty'
+  | 'list.sourceTooLarge'
   | 'list.fileInvalid'
   | 'list.fileSyntax'
   | 'list.fileNoItems'

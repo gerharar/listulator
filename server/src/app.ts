@@ -2,7 +2,7 @@ import Fastify, { type FastifyInstance } from 'fastify'
 import { authRoutes } from './auth/routes.js'
 import { currentUserPlugin } from './auth/currentUser.js'
 import { catalogRoutes } from './catalog/routes.js'
-import { createRuntimeFiller, createSourceLimiters, type RuntimeFiller, type RuntimeFillDeps } from './catalog/runtimeFill.js'
+import { createRuntimeFiller, type RuntimeFiller, type RuntimeFillDeps } from './catalog/runtimeFill.js'
 import type { ServerConfig } from './config.js'
 import type { AppDatabase } from './db/client.js'
 import { createMediaTypeRegistry, type MediaTypeRegistry } from './ingestion/mediaTypes.js'
@@ -43,15 +43,15 @@ export function buildApp({
 }: AppDependencies): FastifyInstance {
   const app = Fastify({ logger: false })
 
-  // The background lookup of lengths for lists built from a listing: one runner for the app, with one
-  // pacing limiter per source shared by every list, stopped when the app closes.
+  // The background lookup of lengths for lists built from a listing: one runner for the app, stopped when
+  // the app closes. Its requests are paced where they are sent (TMDB's client has one budget for the
+  // listing and for this, 15.9), so the runner adds no pacing of its own.
   const shutdown = new AbortController()
   app.decorate(
     'runtimeFiller',
     createRuntimeFiller({
       db,
       mediaTypes: mediaTypes.list(),
-      limiterFor: createSourceLimiters(),
       signal: shutdown.signal,
       ...runtimeFill,
     }),

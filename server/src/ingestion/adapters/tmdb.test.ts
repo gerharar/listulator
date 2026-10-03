@@ -505,3 +505,16 @@ describe('TMDB collections alone, keeping one genre (the Animation shelf)', () =
   })
 })
 
+describe('TMDB filmography without a cap (15.9)', () => {
+  it('lists every film a person is credited on, not the first 300', async () => {
+    const cast = Array.from({ length: 450 }, (_, index) => ({ id: index + 1, title: `Film ${index + 1}`, release_date: `${1950 + Math.floor(index / 10)}-01-01`, genre_ids: [28] }))
+    const adapter = createTmdbAdapter(credentials, {}, router({ '/person/1/movie_credits': { cast } }))
+
+    const { items } = await adapter.expand('person:1', { runtimes: 'skip' })
+
+    expect(items).toHaveLength(450)
+    expect(items[0]?.title).toBe('Film 1')
+    expect(items.at(-1)?.title).toBe('Film 450')
+  })
+})
+

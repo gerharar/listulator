@@ -20,10 +20,7 @@ import {
 export const ANIMATION_GENRE = 16
 export const DOCUMENTARY_GENRE = 99
 
-/** A long-running show is genuinely long: The Simpsons is past 750 episodes. */
-const MAX_ITEMS = 2000
-const MAX_SEASONS = 60
-/** Seasons are fetched one request each, a few at a time. */
+/** Seasons are fetched one request each, a few at a time. A show is as long as it is: no cap (BL-050). */
 const SEASON_CONCURRENCY = 5
 
 interface ShowResult {
@@ -129,7 +126,6 @@ export function createTmdbTvAdapter(
         // one is a click to delete where a missing one has to be typed back in
         // by hand.
         .sort((a, b) => (a === 0 ? 1 : b === 0 ? -1 : a - b))
-        .slice(0, MAX_SEASONS)
 
       const fetched = await mapLimited(seasons, SEASON_CONCURRENCY, async (season) =>
         // A season TMDB has no record of (404) costs that season. Any other failure, once the
@@ -166,7 +162,7 @@ export function createTmdbTvAdapter(
 
       const status = listStatus(show.status)
 
-      return { items: items.slice(0, MAX_ITEMS), ...(status ? { status } : {}) }
+      return { items, ...(status ? { status } : {}) }
     },
   }
 }
