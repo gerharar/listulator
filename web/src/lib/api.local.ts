@@ -30,6 +30,7 @@ import {
   updateListItem,
   type ListWithStats,
 } from '../../../server/src/catalog/repository.js'
+import { createListItems, discardList } from '../../../server/src/catalog/bulkItems.js'
 import {
   dismissalTitleKey,
   type ListGroup as SchemaListGroup,
@@ -419,25 +420,29 @@ export function createLocalApi(): ApiClient {
       // deleted it has to go with it (matches ingestion/routes.ts).
       await clearDismissals(database, listId, items)
 
-      // Sequential, not Promise.all — see docs/DECISIONS.md, task 5.1.
-      const created: SchemaListItem[] = []
-      for (const item of items) {
-        const known = item.timeToConsumeMinutes !== undefined
+      // One bulk insert (task 15.9b); it removes what it made if it fails part-way.
+      const created: SchemaListItem[] =
+        (await createListItems(
+          database,
+          userId,
+          listId,
+          items.map((item) => {
+            const known = item.timeToConsumeMinutes !== undefined
 
-        const row = await createListItem(database, userId, listId, {
-          title: item.title,
-          timeToConsumeMinutes: known ? item.timeToConsumeMinutes! : fallbackMinutes,
-          timeToConsumeIsEstimated: !known,
-          ...(item.externalRef ? { externalRef: item.externalRef } : {}),
-          ...(item.year ? { year: item.year } : {}),
-          ...(item.group ? { group: item.group } : {}),
-          ...(item.tags ? { tags: item.tags } : {}),
-          ...(item.notes ? { notes: item.notes } : {}),
-          source,
-          isNew: arrived,
-        })
-        created.push(row!)
-      }
+            return {
+              title: item.title,
+              timeToConsumeMinutes: known ? item.timeToConsumeMinutes! : fallbackMinutes,
+              timeToConsumeIsEstimated: !known,
+              ...(item.externalRef ? { externalRef: item.externalRef } : {}),
+              ...(item.year ? { year: item.year } : {}),
+              ...(item.group ? { group: item.group } : {}),
+              ...(item.tags ? { tags: item.tags } : {}),
+              ...(item.notes ? { notes: item.notes } : {}),
+              source,
+              isNew: arrived,
+            }
+          }),
+        )) ?? []
       await seedGroupOrder(database, listId)
 
       return created.map(toListItem)
@@ -718,22 +723,32 @@ export function createLocalApi(): ApiClient {
           status: parsed.status ?? null,
         })
 
-        // Sequential, not Promise.all — see docs/DECISIONS.md, task 5.1.
-        for (const item of parsed.items) {
-          const known = item.minutes !== undefined
+        // One bulk insert, and a failure removes the list just made (mirrors ingestion/routes.ts, 15.9b).
+        try {
+          await createListItems(
+            database,
+            userId,
+            list.id,
+            parsed.items.map((item) => {
+              const known = item.minutes !== undefined
 
-          await createListItem(database, userId, list.id, {
-            title: item.title,
-            timeToConsumeMinutes: known ? item.minutes! : parsedMediaType.defaultDurationMinutes,
-            timeToConsumeIsEstimated: !known,
-            ...(item.year !== undefined ? { year: item.year } : {}),
-            ...(item.group !== undefined ? { group: item.group } : {}),
-            ...(item.tags !== undefined ? { tags: item.tags } : {}),
-            ...(item.notes !== undefined ? { notes: item.notes } : {}),
-            source: 'import',
-          })
+              return {
+                title: item.title,
+                timeToConsumeMinutes: known ? item.minutes! : parsedMediaType.defaultDurationMinutes,
+                timeToConsumeIsEstimated: !known,
+                ...(item.year !== undefined ? { year: item.year } : {}),
+                ...(item.group !== undefined ? { group: item.group } : {}),
+                ...(item.tags !== undefined ? { tags: item.tags } : {}),
+                ...(item.notes !== undefined ? { notes: item.notes } : {}),
+                source: 'import' as const,
+              }
+            }),
+          )
+          await seedGroupOrder(database, list.id)
+        } catch (error) {
+          await discardList(database, userId, list.id)
+          throw error
         }
-        await seedGroupOrder(database, list.id)
 
         const withStats = await findListWithStats(database, userId, list.id)
         return toMediaList(withStats!)
@@ -779,31 +794,42 @@ export function createLocalApi(): ApiClient {
         snapshotFetchedAt: new Date(),
       })
 
-      // Sequential, not Promise.all — see docs/DECISIONS.md, task 5.1.
-      for (const candidate of candidates) {
-        const known = candidate.timeToConsumeMinutes !== undefined
+      // One bulk insert, and a failure removes the list just made, so an import never leaves a
+      // half-made list (mirrors ingestion/routes.ts, 15.9b).
+      try {
+        await createListItems(
+          database,
+          userId,
+          list.id,
+          candidates.map((candidate) => {
+            const known = candidate.timeToConsumeMinutes !== undefined
 
-        await createListItem(database, userId, list.id, {
-          title: candidate.title,
-          timeToConsumeMinutes: known
-            ? candidate.timeToConsumeMinutes!
-            : mediaType.defaultDurationMinutes,
-          timeToConsumeIsEstimated: !known,
-          ...(candidate.externalRef ? { externalRef: candidate.externalRef } : {}),
-          ...(candidate.year ? { year: candidate.year } : {}),
-          ...(candidate.group ? { group: candidate.group } : {}),
-          ...(candidate.tags ? { tags: candidate.tags } : {}),
-          ...(candidate.notes ? { notes: candidate.notes } : {}),
-          source: 'import',
-        })
+            return {
+              title: candidate.title,
+              timeToConsumeMinutes: known
+                ? candidate.timeToConsumeMinutes!
+                : mediaType.defaultDurationMinutes,
+              timeToConsumeIsEstimated: !known,
+              ...(candidate.externalRef ? { externalRef: candidate.externalRef } : {}),
+              ...(candidate.year ? { year: candidate.year } : {}),
+              ...(candidate.group ? { group: candidate.group } : {}),
+              ...(candidate.tags ? { tags: candidate.tags } : {}),
+              ...(candidate.notes ? { notes: candidate.notes } : {}),
+              source: 'import' as const,
+            }
+          }),
+        )
+
+        // The arrived-state snapshot (D4), written here and refreshed later (Phase 12) — built from the
+        // items just created, not re-derived from `candidates`, so it can
+        // never drift from what's actually in list_items.
+        const createdItems = await findListItems(database, userId, list.id)
+        await createListSnapshot(database, list.id, createdItems ?? [])
+        await seedGroupOrder(database, list.id)
+      } catch (error) {
+        await discardList(database, userId, list.id)
+        throw error
       }
-
-      // The arrived-state snapshot (D4), written here and refreshed later (Phase 12) — built from the
-      // items just created, not re-derived from `candidates`, so it can
-      // never drift from what's actually in list_items.
-      const createdItems = await findListItems(database, userId, list.id)
-      await createListSnapshot(database, list.id, createdItems ?? [])
-      await seedGroupOrder(database, list.id)
 
       // The list exists now; another add of this source should see upstream then.
       expansions.evict(cacheKey)
@@ -841,22 +867,32 @@ export function createLocalApi(): ApiClient {
         sourceYaml: yaml,
       })
 
-      // Sequential, not Promise.all — see docs/DECISIONS.md, task 5.1.
-      for (const item of parsed.items) {
-        const known = item.minutes !== undefined
+      // One bulk insert, and a failure removes the list just made (mirrors ingestion/routes.ts, 15.9b).
+      try {
+        await createListItems(
+          database,
+          userId,
+          list.id,
+          parsed.items.map((item) => {
+            const known = item.minutes !== undefined
 
-        await createListItem(database, userId, list.id, {
-          title: item.title,
-          timeToConsumeMinutes: known ? item.minutes! : mediaType.defaultDurationMinutes,
-          timeToConsumeIsEstimated: !known,
-          ...(item.year !== undefined ? { year: item.year } : {}),
-          ...(item.group !== undefined ? { group: item.group } : {}),
-          ...(item.tags !== undefined ? { tags: item.tags } : {}),
-          ...(item.notes !== undefined ? { notes: item.notes } : {}),
-          source: 'import',
-        })
+            return {
+              title: item.title,
+              timeToConsumeMinutes: known ? item.minutes! : mediaType.defaultDurationMinutes,
+              timeToConsumeIsEstimated: !known,
+              ...(item.year !== undefined ? { year: item.year } : {}),
+              ...(item.group !== undefined ? { group: item.group } : {}),
+              ...(item.tags !== undefined ? { tags: item.tags } : {}),
+              ...(item.notes !== undefined ? { notes: item.notes } : {}),
+              source: 'import' as const,
+            }
+          }),
+        )
+        await seedGroupOrder(database, list.id)
+      } catch (error) {
+        await discardList(database, userId, list.id)
+        throw error
       }
-      await seedGroupOrder(database, list.id)
 
       const withStats = await findListWithStats(database, userId, list.id)
       return toMediaList(withStats!)

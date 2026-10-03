@@ -465,7 +465,9 @@ describe('sort and reset', () => {
           const value = Reflect.get(target, key)
           if (key === 'insert') {
             return (table: unknown) => {
-              if (table === listItems && (inserts += 1) === 3) throw new Error('boom')
+              // The rebuild is one bulk insert (15.9b), so the first insert into the items is the one that fails; the
+              // restore's own inserts after it go through.
+              if (table === listItems && (inserts += 1) === 1) throw new Error('boom')
               return target.insert(table as typeof listItems)
             }
           }

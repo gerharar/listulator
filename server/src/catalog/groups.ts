@@ -41,7 +41,7 @@ async function ownsList(db: PortableDatabase, userId: string, listId: string): P
   return row !== undefined
 }
 
-async function groupsOf(db: PortableDatabase, listId: string): Promise<ListGroup[]> {
+export async function groupsOf(db: PortableDatabase, listId: string): Promise<ListGroup[]> {
   return await db
     .select()
     .from(listGroups)

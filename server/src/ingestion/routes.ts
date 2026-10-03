@@ -5,7 +5,6 @@ import { MAX_ITEM_TAGS } from '../catalog/facets.js'
 import {
   clearDismissals,
   createList,
-  createListItem,
   createListSnapshot,
   findDismissals,
   findList,
@@ -26,6 +25,7 @@ import {
   untrackedLibraryEntries,
   type ParsedCustomList,
 } from './customLists.js'
+import { createListItems, discardList } from '../catalog/bulkItems.js'
 import { seedGroupOrder } from '../catalog/groups.js'
 import { expansionCacheKey, createExpansionCache } from './expansionCache.js'
 import { IngestionError } from './http.js'
@@ -93,23 +93,33 @@ export const ingestionRoutes: FastifyPluginAsync<IngestionRoutesOptions> = async
       ...(sourceYaml !== undefined ? { sourceYaml } : {}),
     })
 
-    // Sequential, not Promise.all — see the from-source route above for why.
-    for (const item of parsed.items) {
-      const known = item.minutes !== undefined
+    // One bulk insert, and a failure removes the list just made (see the from-source route above).
+    try {
+      await createListItems(
+        db,
+        user.id,
+        list.id,
+        parsed.items.map((item) => {
+          const known = item.minutes !== undefined
 
-      await createListItem(db, user.id, list.id, {
-        title: item.title,
-        timeToConsumeMinutes: known ? item.minutes! : mediaType.defaultDurationMinutes,
-        timeToConsumeIsEstimated: !known,
-        ...(item.year !== undefined ? { year: item.year } : {}),
-        ...(item.group !== undefined ? { group: item.group } : {}),
-        ...(item.tags !== undefined ? { tags: item.tags } : {}),
-        ...(item.notes !== undefined ? { notes: item.notes } : {}),
-        source: 'import',
-      })
+          return {
+            title: item.title,
+            timeToConsumeMinutes: known ? item.minutes! : mediaType.defaultDurationMinutes,
+            timeToConsumeIsEstimated: !known,
+            ...(item.year !== undefined ? { year: item.year } : {}),
+            ...(item.group !== undefined ? { group: item.group } : {}),
+            ...(item.tags !== undefined ? { tags: item.tags } : {}),
+            ...(item.notes !== undefined ? { notes: item.notes } : {}),
+            source: 'import' as const,
+          }
+        }),
+      )
+
+      await seedGroupOrder(db, list.id)
+    } catch (error) {
+      await discardList(db, user.id, list.id)
+      throw error
     }
-
-    await seedGroupOrder(db, list.id)
 
     return list
   }
@@ -374,34 +384,44 @@ export const ingestionRoutes: FastifyPluginAsync<IngestionRoutesOptions> = async
         snapshotFetchedAt: new Date(),
       })
 
-      // Sequential, not Promise.all: each create can fall back to
-      // nextOrderIndex's own read of the current max, and concurrent inserts
-      // against that would race under an async driver.
-      for (const candidate of candidates) {
-        const known = candidate.timeToConsumeMinutes !== undefined
+      // One bulk insert, not a create per item (task 15.9b: a big list is thousands of queries one by
+      // one). If any of it fails the list just made is removed and the failure reaches the user, so an
+      // import never leaves a half-made list behind.
+      try {
+        await createListItems(
+          db,
+          user.id,
+          list.id,
+          candidates.map((candidate) => {
+            const known = candidate.timeToConsumeMinutes !== undefined
 
-        await createListItem(db, user.id, list.id, {
-          title: candidate.title,
-          timeToConsumeMinutes: known
-            ? candidate.timeToConsumeMinutes!
-            : mediaType.defaultDurationMinutes,
-          timeToConsumeIsEstimated: !known,
-          ...(candidate.externalRef ? { externalRef: candidate.externalRef } : {}),
-          ...(candidate.year ? { year: candidate.year } : {}),
-          ...(candidate.group ? { group: candidate.group } : {}),
-          ...(candidate.tags ? { tags: candidate.tags } : {}),
-          ...(candidate.notes ? { notes: candidate.notes } : {}),
-          source: 'import',
-        })
+            return {
+              title: candidate.title,
+              timeToConsumeMinutes: known
+                ? candidate.timeToConsumeMinutes!
+                : mediaType.defaultDurationMinutes,
+              timeToConsumeIsEstimated: !known,
+              ...(candidate.externalRef ? { externalRef: candidate.externalRef } : {}),
+              ...(candidate.year ? { year: candidate.year } : {}),
+              ...(candidate.group ? { group: candidate.group } : {}),
+              ...(candidate.tags ? { tags: candidate.tags } : {}),
+              ...(candidate.notes ? { notes: candidate.notes } : {}),
+              source: 'import' as const,
+            }
+          }),
+        )
+
+        // The arrived-state snapshot (D4), written here and refreshed later (Phase 12) — built from the
+        // items just created, not re-derived from `candidates`, so it can
+        // never drift from what's actually in `list_items`.
+        const createdItems = await findListItems(db, user.id, list.id)
+        await createListSnapshot(db, list.id, createdItems ?? [])
+
+        await seedGroupOrder(db, list.id)
+      } catch (error) {
+        await discardList(db, user.id, list.id)
+        throw error
       }
-
-      // The arrived-state snapshot (D4), written here and refreshed later (Phase 12) — built from the
-      // items just created, not re-derived from `candidates`, so it can
-      // never drift from what's actually in `list_items`.
-      const createdItems = await findListItems(db, user.id, list.id)
-      await createListSnapshot(db, list.id, createdItems ?? [])
-
-      await seedGroupOrder(db, list.id)
 
       // The list exists now; another add of this source should see upstream
       // as it is then, not this answer.
@@ -697,26 +717,29 @@ export const ingestionRoutes: FastifyPluginAsync<IngestionRoutesOptions> = async
       // that they once deleted it has to go with it.
       await clearDismissals(db, listId, request.body.items)
 
-      // Sequential, not Promise.all — see the from-source route above for why.
-      const created = []
-      for (const item of request.body.items) {
-        const known = item.timeToConsumeMinutes !== undefined
+      // One bulk insert (task 15.9b); it removes what it made if it fails part-way.
+      const created =
+        (await createListItems(
+          db,
+          user.id,
+          listId,
+          request.body.items.map((item) => {
+            const known = item.timeToConsumeMinutes !== undefined
 
-        created.push(
-          await createListItem(db, user.id, listId, {
-            title: item.title,
-            timeToConsumeMinutes: known ? item.timeToConsumeMinutes! : fallbackMinutes,
-            timeToConsumeIsEstimated: !known,
-            ...(item.externalRef ? { externalRef: item.externalRef } : {}),
-            ...(item.year ? { year: item.year } : {}),
-            ...(item.group ? { group: item.group } : {}),
-            ...(item.tags ? { tags: item.tags } : {}),
-            ...(item.notes ? { notes: item.notes } : {}),
-            source,
-            isNew: request.body.arrived === true,
+            return {
+              title: item.title,
+              timeToConsumeMinutes: known ? item.timeToConsumeMinutes! : fallbackMinutes,
+              timeToConsumeIsEstimated: !known,
+              ...(item.externalRef ? { externalRef: item.externalRef } : {}),
+              ...(item.year ? { year: item.year } : {}),
+              ...(item.group ? { group: item.group } : {}),
+              ...(item.tags ? { tags: item.tags } : {}),
+              ...(item.notes ? { notes: item.notes } : {}),
+              source,
+              isNew: request.body.arrived === true,
+            }
           }),
-        )
-      }
+        )) ?? []
 
       // Hand-typed items rarely carry years, so this mostly keeps the order
       // they were typed in; it is here so every import path seeds the same way.

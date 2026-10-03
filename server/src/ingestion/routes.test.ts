@@ -535,6 +535,29 @@ describe('search and import from a source', () => {
     expect(search).toHaveBeenCalledWith('cannibal', { includeUnknown: false })
   })
 
+  it('leaves no half-made list behind when filling it fails, and the failure reaches the user (15.9b)', async () => {
+    // A length that is not a number cannot be stored, so the insert of the items fails.
+    harness = withAdapter(
+      fakeAdapter({
+        expand: async () => ({
+          items: [
+            { title: 'Fine', timeToConsumeMinutes: 45 },
+            { title: 'Not storable', timeToConsumeMinutes: Number.NaN },
+          ],
+        }),
+      }),
+    )
+
+    const response = await harness.app.inject({
+      method: 'POST',
+      url: '/api/lists/from-source',
+      payload: { mediaType: 'music', externalRef: 'ref-1', title: 'Cannibal Corpse' },
+    })
+
+    expect(response.statusCode).toBeGreaterThanOrEqual(500)
+    expect((await harness.app.inject({ method: 'GET', url: '/api/lists' })).json()).toEqual([])
+  })
+
   it('builds a list from a chosen source, in one step', async () => {
     harness = withAdapter(fakeAdapter())
 

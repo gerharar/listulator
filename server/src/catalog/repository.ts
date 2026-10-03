@@ -539,6 +539,13 @@ export interface CreateListSnapshotItemInput {
 }
 
 /**
+ * Rows per snapshot insert. One statement binding more than 32,766 values is refused: at 11 a row
+ * that was 2,979 items, so a bigger list could be made and then fail on its source copy (BL-049).
+ * About 500 is also the size quickest through the desktop's SQL plugin (DECISIONS "15.0").
+ */
+const SNAPSHOT_CHUNK = 500
+
+/**
  * Writes a list's arrived-state snapshot (D4) — `source: 'api' | 'llm'`
  * lists only — in the same import that creates the list's real items. The
  * user's edits, a refresh-add and a sync leave the snapshot untouched, by
@@ -551,25 +558,25 @@ export async function createListSnapshot(
   listId: string,
   items: CreateListSnapshotItemInput[],
 ): Promise<void> {
-  if (items.length === 0) return
-
-  await db
-    .insert(listSnapshots)
-    .values(
-      items.map((item) => ({
-        listId,
-        title: item.title,
-        orderIndex: item.orderIndex,
-        timeToConsumeMinutes: item.timeToConsumeMinutes,
-        timeToConsumeIsEstimated: item.timeToConsumeIsEstimated,
-        externalRef: item.externalRef ?? null,
-        year: item.year ?? null,
-        group: item.group ?? null,
-        tags: item.tags ?? null,
-        notes: item.notes ?? null,
-      })),
-    )
-    .run()
+  for (let start = 0; start < items.length; start += SNAPSHOT_CHUNK) {
+    await db
+      .insert(listSnapshots)
+      .values(
+        items.slice(start, start + SNAPSHOT_CHUNK).map((item) => ({
+          listId,
+          title: item.title,
+          orderIndex: item.orderIndex,
+          timeToConsumeMinutes: item.timeToConsumeMinutes,
+          timeToConsumeIsEstimated: item.timeToConsumeIsEstimated,
+          externalRef: item.externalRef ?? null,
+          year: item.year ?? null,
+          group: item.group ?? null,
+          tags: item.tags ?? null,
+          notes: item.notes ?? null,
+        })),
+      )
+      .run()
+  }
 }
 
 /** Removes a list's arrived-state snapshot rows (the source copy's items); the list and its own items are untouched. */

@@ -21,8 +21,8 @@ import type { ExpansionCache } from '../ingestion/expansionCache.js'
 import { IngestionError, type FetchLike } from '../ingestion/http.js'
 import type { ListExpansion, MediaType } from '../ingestion/mediaTypes.js'
 import { findListGroups, seedGroupOrder } from './groups.js'
+import { createListItems } from './bulkItems.js'
 import {
-  createListItem,
   findList,
   findListItems,
   findListSnapshot,
@@ -438,7 +438,7 @@ export async function previewReset(
  * groups, and its own name, description and status — and forgets what was done
  * to it: hand-added and arrived items go, every tick is cleared, and what was
  * deleted by hand is no longer held back. Rebuilt through the import's own path
- * (`createListItem`, then `seedGroupOrder`), so it is what a fresh import makes.
+ * (`createListItems`, then `seedGroupOrder`), so it is what a fresh import makes.
  *
  * The target is resolved first and refuses without touching the list. The
  * returned `restore` puts everything back (`restoreItemSet`); if the rebuild
@@ -465,21 +465,27 @@ export async function resetToSource(
     await db.delete(dismissedItems).where(eq(dismissedItems.listId, listId)).run()
     await db.delete(listGroups).where(eq(listGroups.listId, listId)).run()
 
-    // Sequential, as every import is: each create reads the current end of the list.
-    for (const item of target.items) {
-      const known = item.minutes !== undefined
-      await createListItem(db, userId, listId, {
-        title: item.title,
-        timeToConsumeMinutes: known ? item.minutes! : fallbackMinutes,
-        timeToConsumeIsEstimated: !known,
-        ...(item.externalRef ? { externalRef: item.externalRef } : {}),
-        ...(item.year ? { year: item.year } : {}),
-        ...(item.group ? { group: item.group } : {}),
-        ...(item.tags ? { tags: item.tags } : {}),
-        ...(item.notes ? { notes: item.notes } : {}),
-        source: 'import',
-      })
-    }
+    // One bulk insert, as the import makes it (task 15.9b); a failure is caught below and the capture restored.
+    await createListItems(
+      db,
+      userId,
+      listId,
+      target.items.map((item) => {
+        const known = item.minutes !== undefined
+
+        return {
+          title: item.title,
+          timeToConsumeMinutes: known ? item.minutes! : fallbackMinutes,
+          timeToConsumeIsEstimated: !known,
+          ...(item.externalRef ? { externalRef: item.externalRef } : {}),
+          ...(item.year ? { year: item.year } : {}),
+          ...(item.group ? { group: item.group } : {}),
+          ...(item.tags ? { tags: item.tags } : {}),
+          ...(item.notes ? { notes: item.notes } : {}),
+          source: 'import' as const,
+        }
+      }),
+    )
 
     await seedGroupOrder(db, listId)
     await updateList(db, userId, listId, {
