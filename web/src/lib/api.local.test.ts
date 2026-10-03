@@ -268,6 +268,21 @@ describe('the desktop builds a list at once and fills its lengths afterwards (15
       expect(source.enrich).not.toHaveBeenCalled()
     })
 
+    it('does not offer back a film the user deleted, until the check is told to ignore dismissals (BL-010)', async () => {
+      const source = filmSource()
+      const { api, list } = await builtList(source)
+      const deleted = (await api.list(list.id)).items.find((item) => item.title === 'Film 2')!
+      await api.deleteItem(list.id, deleted.id)
+      source.grow('first', [1, 2, 3, 4])
+
+      const found = await api.checkForUpdates(list.id)
+      const everything = await api.checkForUpdates(list.id, true)
+
+      expect(found.newItems.map((item) => item.title)).toEqual(['Film 4'])
+      expect(found.dismissedCount).toBe(1)
+      expect(everything.newItems.map((item) => item.title).sort()).toEqual(['Film 2', 'Film 4'])
+    })
+
     it('adds a new film with the length another list already looked up, and nothing is left to look up', async () => {
       const source = filmSource()
       const { api, filler, list } = await builtList(source)
