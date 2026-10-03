@@ -29,6 +29,11 @@ export interface ListStats {
 }
 
 export interface MediaList {
+  /**
+   * False where Reset could only fail: a list imported from a file before the file was kept, or a hand-made
+   * one. Absent means true. The list's menu leaves Reset out when it is false (Checkpoint C).
+   */
+  canReset?: boolean
   id: string
   title: string
   /** A longer free-text blurb alongside `title`. Null when not set. */

@@ -357,6 +357,22 @@ describe('the desktop builds a list at once and fills its lengths afterwards (15
     })
   })
 
+  describe('which lists can be reset (Checkpoint C)', () => {
+    it('says a file list imported before its file was kept cannot be reset, and one with its file can', async () => {
+      const { api, db, user, repository } = await start(filmSource())
+      const database = await db.createLocalDb()
+      const owner = (await user.getLocalCurrentUser(database)).id
+      const legacy = await repository.createList(database, owner, { title: 'Star Wars', mediaType: 'movie', source: 'file' })
+      const kept = await repository.createList(database, owner, { title: 'Kept', mediaType: 'movie', source: 'file', sourceYaml: 'title: Kept' })
+      const fetched = await repository.createList(database, owner, { title: 'Fetched', mediaType: 'movie', source: 'api', externalRef: 'first' })
+
+      expect((await api.list(legacy.id)).canReset).toBe(false)
+      expect(Object.fromEntries((await api.lists()).map((entry) => [entry.title, entry.canReset]))).toEqual({ 'Star Wars': false, Kept: true, Fetched: true })
+      expect((await api.list(kept.id)).canReset).toBe(true)
+      expect((await api.list(fetched.id)).canReset).toBe(true)
+    })
+  })
+
   describe('opening and listing lists', () => {
     async function builtEarlier(source: ReturnType<typeof filmSource>) {
       const started = await start(source)

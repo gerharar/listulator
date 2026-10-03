@@ -131,6 +131,7 @@ function notFound(): ApiError {
 
 function toMediaList(list: ListWithStats): MediaList {
   return {
+    canReset: list.canReset !== false,
     id: list.id,
     title: list.title,
     description: list.description,

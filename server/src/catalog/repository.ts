@@ -1,6 +1,7 @@
 import { and, asc, count, eq, getTableColumns, inArray, max, or, sql } from 'drizzle-orm'
 import type { PortableDatabase } from '../db/client.js'
 import { normalizeItemTags } from './facets.js'
+import { listCanBeReset } from './resettable.js'
 import { pendingCounts } from './runtimes.js'
 import { ensureListGroup, findListGroups, placeNewItem } from './groups.js'
 import {
@@ -168,7 +169,8 @@ export interface RuntimeStatsOptions {
   now?: Date
 }
 
-export type ListWithStats = List & { stats: ListStats }
+/** `canReset`: false where Reset could only fail (no stored file for a file list, a hand-made list); optional so a hand-built fixture need not carry it. */
+export type ListWithStats = List & { stats: ListStats; canReset?: boolean }
 
 /**
  * One grouped query for any number of lists, rather than loading every item to
@@ -202,6 +204,7 @@ function toListWithStats(row: StatsRow, runtimesPending = 0): ListWithStats {
 
   return {
     ...list,
+    canReset: listCanBeReset(list),
     stats: {
       totalItems,
       consumedItems,

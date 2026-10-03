@@ -26,6 +26,7 @@ function renderPopover(overrides: Partial<ListMorePopoverProps> = {}) {
     onSortNow: vi.fn(),
     onResetOrder: vi.fn(),
     onResetEverything: vi.fn(),
+    canReset: true,
     onDelete: vi.fn(),
     onDismiss: vi.fn(),
     ...overrides,

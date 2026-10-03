@@ -743,7 +743,7 @@ function ListView({
       })
       // An API list is checked against its source straight away; the community
       // library's and a file's were just read live.
-      if (result.followUpCheck) void checkForUpdates()
+      if (result.followUpCheck) void checkForUpdates({ quiet: true })
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : orderText.resetFailed)
     }
@@ -871,13 +871,18 @@ function ListView({
    * nothing to the list. What it finds appears as a band with Update List and
    * Dismiss, so nothing is added until the reader says so.
    */
-  async function checkForUpdates() {
+  /**
+   * `quiet`: the check that follows a Reset says nothing when it finds nothing. It used to take seconds, so the
+   * Reset message stayed readable; now it takes a moment and its "No updates found" would replace the message
+   * about what was just done, with its Undo, at once (Checkpoint C). A found band and a failure still show.
+   */
+  async function checkForUpdates({ quiet = false }: { quiet?: boolean } = {}) {
     setChecking(true)
     setError(null)
 
     try {
       const count = await checkList(listId, { api, pending })
-      if (count === 0) showToast({ text: updatesText.nothingNew })
+      if (count === 0 && !quiet) showToast({ text: updatesText.nothingNew })
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : updatesText.checkFailed)
     } finally {
@@ -1148,6 +1153,7 @@ function ListView({
           onSortNow={() => void sortNow(orderText.sorted)}
           onResetOrder={() => void resetOrder()}
           onResetEverything={() => void resetEverything()}
+          canReset={loaded.canReset !== false}
           onDelete={() => void deleteThisList()}
           onDismiss={() => setMore(null)}
         />

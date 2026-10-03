@@ -1595,6 +1595,26 @@ describe('ListScreen order menu (task 10.22)', () => {
       expect(pop().queryByRole('button', { name: 'Reset List' })).toBeNull()
     })
 
+    it('is not offered on a list that has no source to go back to: it cannot work, so it is not there (owner, Checkpoint C)', async () => {
+      // A list imported from a file before the file itself was kept: nothing to rebuild it from.
+      await openOrder(detail({ source: 'file', canReset: false, items: [item()] }))
+
+      expect(pop().queryByRole('button', { name: 'Reset List' })).toBeNull()
+
+      // Nor can its order be taken back to the source's, so the Reorder window does not offer to.
+      fireEvent.click(pop().getByRole('button', { name: 'Reorder List' }))
+      expect(pop().getByRole('button', { name: 'Sort by release date' })).toBeTruthy()
+      expect(pop().queryByRole('button', { name: 'Restore source order' })).toBeNull()
+    })
+
+    it('is still offered on a file list whose file was kept', async () => {
+      await openOrder(detail({ source: 'file', canReset: true, items: [item()] }))
+
+      expect(pop().getByRole('button', { name: 'Reset List' })).toBeTruthy()
+      fireEvent.click(pop().getByRole('button', { name: 'Reorder List' }))
+      expect(pop().getByRole('button', { name: 'Restore source order' })).toBeTruthy()
+    })
+
     it('works out the cost first, and says it in words before any button is pressed', async () => {
       vi.mocked(api.resetPreview).mockResolvedValue(preview)
 
@@ -1685,6 +1705,35 @@ describe('ListScreen order menu (task 10.22)', () => {
       await waitFor(() => expect(document.body.textContent).toMatch(/1 new item found/))
       expect(api.checkForUpdates).toHaveBeenCalledWith('L1', false)
       expect(api.importItems).not.toHaveBeenCalled()
+    })
+
+    it('the check that follows says nothing when it finds nothing: the Reset message (with its Undo) stays', async () => {
+      vi.mocked(api.resetPreview).mockResolvedValue(preview)
+      vi.mocked(api.resetList).mockResolvedValue(result(true))
+      vi.mocked(api.checkForUpdates).mockResolvedValue({ newItems: [], upstreamCount: 3, existingCount: 3, dismissedCount: 0 })
+      await openReset()
+      await pop().findByText(/12 done marks/)
+
+      fireEvent.click(pop().getByRole('button', { name: 'Reset' }))
+      await waitFor(() => expect(api.checkForUpdates).toHaveBeenCalledWith('L1', false))
+      await act(async () => {})
+
+      // A check that takes a moment must not replace the message about what was just done.
+      expect(document.querySelector('.q-toast')!.textContent).toMatch(/Reset to the source/)
+      expect(document.body.textContent).not.toMatch(/No updates found/)
+      expect(screen.getByRole('button', { name: 'Undo' })).toBeTruthy()
+    })
+
+    it('the check that follows still reports a failure', async () => {
+      vi.mocked(api.resetPreview).mockResolvedValue(preview)
+      vi.mocked(api.resetList).mockResolvedValue(result(true))
+      vi.mocked(api.checkForUpdates).mockRejectedValue(new Error('Source is down'))
+      await openReset()
+      await pop().findByText(/12 done marks/)
+
+      fireEvent.click(pop().getByRole('button', { name: 'Reset' }))
+
+      expect(await screen.findByText(/Source is down/)).toBeTruthy()
     })
 
     it('runs no update check when the source was just read live', async () => {

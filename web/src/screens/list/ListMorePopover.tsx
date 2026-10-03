@@ -28,6 +28,8 @@ export interface ListMorePopoverProps {
   /** "Restore source order" (in Reorder List): the source's own order back, where Sort by release date sorts by year. */
   onResetOrder: () => void
   onResetEverything: () => void
+  /** False where Reset could only fail (a file list whose file was not kept): the menu leaves both Reset entries out. */
+  canReset: boolean
   onDelete: () => void
   /** Click-away, Esc, Keep or Cancel. */
   onDismiss: () => void
@@ -55,6 +57,7 @@ export function ListMorePopover({
   onSortNow,
   onResetOrder,
   onResetEverything,
+  canReset,
   onDelete,
   onDismiss,
 }: ListMorePopoverProps) {
@@ -79,7 +82,7 @@ export function ListMorePopover({
             <Button onClick={() => onMode('edit')}>{text.edit}</Button>
             <Button onClick={() => onMode('export')}>{text.export}</Button>
             <Button onClick={() => onMode('reorder')}>{text.reorder}</Button>
-            {source !== 'manual' && <Button onClick={() => onMode('reset')}>{text.reset}</Button>}
+            {source !== 'manual' && canReset && <Button onClick={() => onMode('reset')}>{text.reset}</Button>}
             <Button className="warn" onClick={() => onMode('delete')}>
               {text.delete}
             </Button>
@@ -103,10 +106,10 @@ export function ListMorePopover({
           <span className="q-pop-note">{text.reorderHint}</span>
           <span className="q-pop-note">{text.reorderNote}</span>
           {/* A hand-made list has no source order to go back to, as it has nothing to Reset to. */}
-          {source !== 'manual' && <span className="q-pop-note">{text.restoreHint}</span>}
+          {source !== 'manual' && canReset && <span className="q-pop-note">{text.restoreHint}</span>}
           <div className="q-pop-menu">
             <Button onClick={onSortNow}>{text.sortNow}</Button>
-            {source !== 'manual' && <Button onClick={onResetOrder}>{text.restoreSourceOrder}</Button>}
+            {source !== 'manual' && canReset && <Button onClick={onResetOrder}>{text.restoreSourceOrder}</Button>}
           </div>
           <div className="q-pop-actions">
             <Button variant="quiet" onClick={onDismiss}>
