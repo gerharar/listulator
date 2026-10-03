@@ -12,6 +12,7 @@ import {
   createListItem,
   deleteList,
   deleteListItem,
+  findList,
   findListItems,
   findListWithStats,
   markListSeen,
@@ -43,7 +44,7 @@ import {
 } from './restore.js'
 import { CustomListParseError } from '../ingestion/customLists.js'
 import { createExpansionCache } from '../ingestion/expansionCache.js'
-import { SourceUnavailableError } from '../ingestion/expandSource.js'
+import { ListTooLargeError, SourceUnavailableError } from '../ingestion/expandSource.js'
 import { IngestionError } from '../ingestion/http.js'
 import {
   previewReset,
@@ -635,6 +636,13 @@ export const catalogRoutes: FastifyPluginAsync<CatalogRoutesOptions> = async (
     if (cause instanceof ResetSourceEmptyError) {
       return sendApiError(reply, 422, 'list.sourceEmpty', { title: cause.title })
     }
+    if (cause instanceof ListTooLargeError) {
+      return sendApiError(reply, 422, 'list.sourceTooLarge', {
+        ...(cause.title ? { title: cause.title } : {}),
+        count: cause.count,
+        max: cause.max,
+      })
+    }
     if (cause instanceof CustomListParseError) {
       return sendApiError(reply, 400, cause.code, cause.params)
     }
@@ -693,6 +701,12 @@ export const catalogRoutes: FastifyPluginAsync<CatalogRoutesOptions> = async (
     try {
       const result = await resetToSource(db, user.id, request.params.listId, resetDeps())
       if (!result) return reply.callNotFound()
+
+      // The list is rebuilt from its source: whatever still has no length is looked up after the reply (15.11).
+      const reset = await findList(db, user.id, request.params.listId)
+      if (reset && enrichPrefixesByMediaType(mediaTypes.list()).has(reset.mediaType)) {
+        app.runtimeFiller.fill(reset.id).catch((error: unknown) => app.log.error(error))
+      }
 
       return result
     } catch (cause) {

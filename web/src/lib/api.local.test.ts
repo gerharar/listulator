@@ -310,6 +310,53 @@ describe('the desktop builds a list at once and fills its lengths afterwards (15
     })
   })
 
+  describe('Reset without the cost (15.11)', () => {
+    /** A fetched list whose stored copy was taken before any length was looked up: all three are estimates. */
+    async function staleCopy(source: ReturnType<typeof filmSource>) {
+      const started = await start(source)
+      const database = await started.db.createLocalDb()
+      const owner = (await started.user.getLocalCurrentUser(database)).id
+      const { repository } = started
+      const list = await repository.createList(database, owner, { title: 'First', mediaType: 'movie', source: 'api', externalRef: 'first', arrivedTitle: 'First', arrivedDescription: null, arrivedStatus: null, snapshotFetchedAt: new Date() })
+      const rows = [1, 2, 3].map((n) => ({ title: `Film ${n}`, externalRef: `film:${n}`, orderIndex: n - 1, timeToConsumeMinutes: DEFAULT_MINUTES, timeToConsumeIsEstimated: true }))
+      for (const row of rows) await repository.createListItem(database, owner, list.id, { title: row.title, externalRef: row.externalRef, timeToConsumeMinutes: DEFAULT_MINUTES, timeToConsumeIsEstimated: true })
+      await repository.createListSnapshot(database, list.id, rows)
+
+      return { ...started, database, owner, list }
+    }
+
+    const lengths = async (api: Awaited<ReturnType<typeof start>>['api'], listId: string) =>
+      (await api.list(listId)).items.filter((item) => ['Film 1', 'Film 2', 'Film 3'].includes(item.title)).map((item) => [item.title, item.timeToConsumeMinutes, item.timeToConsumeIsEstimated])
+
+    it('gives a film another list has looked up its length at once, and the runner fills the rest after', async () => {
+      const source = filmSource()
+      const { api, filler, list, database } = await staleCopy(source)
+      const { recordRuntimes } = await import('../../../server/src/catalog/runtimes.js')
+      await recordRuntimes(database, [{ ref: 'film:2', minutes: 102 }, { ref: 'film:3', minutes: 103 }], { now: new Date(), ttlDays: 150 })
+      const release = source.hold()
+
+      await api.resetList(list.id)
+
+      // Started by the Reset itself, before anything has opened the list; waiting at the source.
+      await vi.waitFor(() => expect(source.enrich).toHaveBeenCalledExactlyOnceWith(['film:1']))
+      expect(await lengths(api, list.id)).toEqual([['Film 1', DEFAULT_MINUTES, true], ['Film 2', 102, false], ['Film 3', 103, false]])
+      release()
+      await filler.fill(list.id)
+      expect((await lengths(api, list.id))[0]).toEqual(['Film 1', 101, false])
+    })
+
+    it('refuses to reset a list with no stored copy to a source that has grown past the ceiling, naming the list', async () => {
+      const source = filmSource()
+      const { api, list, database, owner, repository } = await staleCopy(source)
+      const { dropSourceCopy } = await import('../../../server/src/catalog/sourceCopy.js')
+      await dropSourceCopy(database, (await repository.findList(database, owner, list.id))!)
+      source.grow('first', Array.from({ length: 10_001 }, (_, index) => index + 1))
+
+      await expect(api.resetList(list.id)).rejects.toMatchObject({ code: 'list.sourceTooLarge', status: 422, message: expect.stringContaining('First') })
+      await expect(api.resetPreview(list.id)).rejects.toMatchObject({ code: 'list.sourceTooLarge' })
+    })
+  })
+
   describe('opening and listing lists', () => {
     async function builtEarlier(source: ReturnType<typeof filmSource>) {
       const started = await start(source)

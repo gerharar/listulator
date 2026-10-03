@@ -21,6 +21,8 @@ export class ListTooLargeError extends Error {
   constructor(
     readonly count: number,
     readonly max: number = MAX_LIST_ITEMS,
+    /** The list or source that is too large, where the caller knows it (Reset, a check): the sentence names it. */
+    readonly title?: string,
   ) {
     super(`A list holds at most ${max} items; this source has ${count}.`)
     this.name = 'ListTooLargeError'

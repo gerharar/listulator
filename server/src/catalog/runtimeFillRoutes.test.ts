@@ -4,7 +4,12 @@ import { itemRuntimes, listItems, users } from '../db/schema.js'
 import type { ExpandOptions, MediaTypeCandidate, RuntimeLookup, SearchAdapter } from '../ingestion/mediaTypes.js'
 import { createMediaTypeRegistry } from '../ingestion/mediaTypes.js'
 import { createTestApp, type TestApp } from '../testing/harness.js'
-import { createList, createListItem } from './repository.js'
+import { createList, createListItem, createListSnapshot, findList, findListItems, findListSnapshot } from './repository.js'
+import { resetToSource } from './reset.js'
+import { recordRuntimes } from './runtimes.js'
+import { refreshSourceCopy } from './sourceCopy.js'
+import { dropSourceCopy } from './sourceCopy.js'
+import { ListTooLargeError } from '../ingestion/expandSource.js'
 
 /**
  * Task 15.5: a list is built at once from a listing, with the category's estimate for every length, and
@@ -421,6 +426,148 @@ describe('building a list at once and filling its lengths afterwards (15.5)', ()
 
       expect(response.statusCode).toBe(200)
       expect(plainExpand).toHaveBeenCalledExactlyOnceWith('anything')
+    })
+  })
+
+  describe('Reset and the stored source copy without the cost (15.11)', () => {
+    const reset = (listId: string) => harness.app.inject({ method: 'POST', url: `/api/lists/${listId}/reset` })
+    const preview = (listId: string) => harness.app.inject({ method: 'GET', url: `/api/lists/${listId}/reset-preview` })
+    const owner = async () => (await harness.app.ready(), harness.db.select().from(users).get()!.id)
+    const lengths = async (listId: string) =>
+      (await readList(listId)).items.map((item: { title: string; timeToConsumeMinutes: number; timeToConsumeIsEstimated: boolean }) => [item.title, item.timeToConsumeMinutes, item.timeToConsumeIsEstimated])
+    const copyDeps = (source: ReturnType<typeof filmSource>) => ({
+      mediaTypes: [{ key: 'movie', label: 'Movies', sortOrder: 10, defaultDurationMinutes: DEFAULT_MINUTES, sourceName: 'Fake', sourceCopyMaxDays: 180, adapter: source.adapter }],
+    })
+
+    async function builtList(source: ReturnType<typeof filmSource>, ref = 'first', title = 'First') {
+      const list = (await fromSource(ref, title)).json()
+      await harness.app.runtimeFiller.fill(list.id)
+      source.expand.mockClear()
+      source.enrich.mockClear()
+
+      return list as { id: string }
+    }
+
+    it('keeps the real lengths already looked up: a filled list is reset to the same lengths, with nothing to look up', async () => {
+      const source = filmSource()
+      harness = build(source.adapter)
+      const list = await builtList(source)
+      await harness.app.inject({ method: 'POST', url: `/api/lists/${list.id}/items`, payload: { title: 'By hand', timeToConsumeMinutes: 5 } })
+
+      const response = await reset(list.id)
+
+      expect(response.statusCode).toBe(200)
+      expect(await lengths(list.id)).toEqual([['Film 1', 101, false], ['Film 2', 102, false], ['Film 3', 103, false]])
+      expect(source.enrich).not.toHaveBeenCalled()
+    })
+
+    it('gives a film another list has looked up its length at once, and the runner fills the rest after', async () => {
+      const source = filmSource()
+      harness = build(source.adapter)
+      const userId = await owner()
+      // A fetched list whose stored copy was taken before any length was looked up: all three are estimates.
+      const list = await createList(harness.db, userId, {
+        title: 'First',
+        mediaType: 'movie',
+        source: 'api',
+        externalRef: 'first',
+        arrivedTitle: 'First',
+        arrivedDescription: null,
+        arrivedStatus: null,
+        snapshotFetchedAt: new Date(),
+      })
+      const stored = [1, 2, 3].map((n) => ({ title: `Film ${n}`, externalRef: `film:${n}`, orderIndex: n - 1, timeToConsumeMinutes: DEFAULT_MINUTES, timeToConsumeIsEstimated: true }))
+      for (const row of stored) await createListItem(harness.db, userId, list.id, { title: row.title, externalRef: row.externalRef, timeToConsumeMinutes: DEFAULT_MINUTES, timeToConsumeIsEstimated: true })
+      await createListSnapshot(harness.db, list.id, stored)
+      // Another list has looked films 2 and 3 up since.
+      await recordRuntimes(harness.db, [{ ref: 'film:2', minutes: 102 }, { ref: 'film:3', minutes: 103 }], { now: new Date(), ttlDays: 150 })
+      const release = source.hold()
+
+      await reset(list.id)
+
+      // Started by the Reset itself, before anything has opened the list; waiting at the source.
+      await vi.waitFor(() => expect(source.enrich).toHaveBeenCalledExactlyOnceWith(['film:1']))
+      // Film 1 nobody has looked up: the estimate for now. Films 2 and 3 are known: real at once.
+      expect(await lengths(list.id)).toEqual([['Film 1', DEFAULT_MINUTES, true], ['Film 2', 102, false], ['Film 3', 103, false]])
+      release()
+      await harness.app.runtimeFiller.fill(list.id)
+      expect((await lengths(list.id))[0]).toEqual(['Film 1', 101, false])
+    })
+
+    it('Reset itself gives the known lengths to the rebuilt items, with no runner involved', async () => {
+      const source = filmSource()
+      harness = build(source.adapter)
+      const userId = await owner()
+      const list = await createList(harness.db, userId, { title: 'First', mediaType: 'movie', source: 'api', externalRef: 'first', arrivedTitle: 'First', arrivedDescription: null, arrivedStatus: null, snapshotFetchedAt: new Date() })
+      const stored = [1, 2, 3].map((n) => ({ title: `Film ${n}`, externalRef: `film:${n}`, orderIndex: n - 1, timeToConsumeMinutes: DEFAULT_MINUTES, timeToConsumeIsEstimated: true }))
+      await createListSnapshot(harness.db, list.id, stored)
+      await recordRuntimes(harness.db, [{ ref: 'film:2', minutes: 102 }], { now: new Date(), ttlDays: 150 })
+
+      await resetToSource(harness.db, userId, list.id, { mediaTypes: copyDeps(source).mediaTypes })
+
+      const items = (await findListItems(harness.db, userId, list.id))!
+      expect(items.map((item) => [item.title, item.timeToConsumeMinutes, item.timeToConsumeIsEstimated])).toEqual([['Film 1', DEFAULT_MINUTES, true], ['Film 2', 102, false], ['Film 3', DEFAULT_MINUTES, true]])
+    })
+
+    it('reads a list with no stored copy from its source live, listed without lengths, and takes the known lengths from the table', async () => {
+      const source = filmSource()
+      harness = build(source.adapter)
+      const list = await builtList(source)
+      const stored = (await findList(harness.db, await owner(), list.id))!
+      await dropSourceCopy(harness.db, stored)
+
+      const response = await reset(list.id)
+
+      expect(response.statusCode).toBe(200)
+      expect(source.expand).toHaveBeenCalledWith('first', { runtimes: 'skip' })
+      expect(await lengths(list.id)).toEqual([['Film 1', 101, false], ['Film 2', 102, false], ['Film 3', 103, false]])
+      expect(source.enrich).not.toHaveBeenCalled()
+    })
+
+    it('refuses to reset a list to a source that has grown past the ceiling, naming the list', async () => {
+      const source = filmSource()
+      harness = build(source.adapter)
+      const list = await builtList(source)
+      await dropSourceCopy(harness.db, (await findList(harness.db, await owner(), list.id))!)
+      source.grow('first', Array.from({ length: 10_001 }, (_, index) => index + 1))
+
+      for (const response of [await preview(list.id), await reset(list.id)]) {
+        expect(response.statusCode).toBe(422)
+        expect(response.json()).toEqual({ code: 'list.sourceTooLarge', params: { title: 'First', count: 10_001, max: 10_000 } })
+      }
+      expect(await lengths(list.id)).toHaveLength(3)
+    })
+
+    it('refreshes the stored copy from a listing, with the lengths already looked up in it', async () => {
+      const source = filmSource()
+      harness = build(source.adapter)
+      const list = await builtList(source)
+      const userId = await owner()
+      source.grow('first', [1, 2, 3, 4])
+
+      await refreshSourceCopy(harness.db, (await findList(harness.db, userId, list.id))!, copyDeps(source))
+
+      expect(source.expand).toHaveBeenCalledExactlyOnceWith('first', { runtimes: 'skip' })
+      const copy = await findListSnapshot(harness.db, userId, list.id)
+      expect(copy.map((row) => [row.title, row.timeToConsumeMinutes, row.timeToConsumeIsEstimated])).toEqual([
+        ['Film 1', 101, false],
+        ['Film 2', 102, false],
+        ['Film 3', 103, false],
+        ['Film 4', DEFAULT_MINUTES, true],
+      ])
+      expect(source.enrich).not.toHaveBeenCalled()
+    })
+
+    it('never replaces the copy with one it refused: a source past the ceiling leaves the copy as it was', async () => {
+      const source = filmSource()
+      harness = build(source.adapter)
+      const list = await builtList(source)
+      const userId = await owner()
+      source.grow('first', Array.from({ length: 10_001 }, (_, index) => index + 1))
+
+      await expect(refreshSourceCopy(harness.db, (await findList(harness.db, userId, list.id))!, copyDeps(source))).rejects.toBeInstanceOf(ListTooLargeError)
+
+      expect(await findListSnapshot(harness.db, userId, list.id)).toHaveLength(3)
     })
   })
 

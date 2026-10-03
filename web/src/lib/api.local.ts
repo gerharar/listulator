@@ -183,6 +183,9 @@ function resetError(cause: unknown): unknown {
     const params = { title: cause.title }
     return new ApiError(errorMessage('list.sourceEmpty', params) ?? 'list.sourceEmpty', 422, 'list.sourceEmpty')
   }
+  if (cause instanceof ListTooLargeError) {
+    return tooLarge({ ...(cause.title ? { title: cause.title } : {}), count: cause.count, max: cause.max })
+  }
   if (cause instanceof CustomListParseError) {
     return new ApiError(errorMessage(cause.code, cause.params) ?? cause.code, 400, cause.code)
   }
@@ -626,6 +629,11 @@ export function createLocalApi(): ApiClient {
       try {
         const result = await resetToSource(database, userId, listId, await resetDeps(expansions))
         if (!result) throw notFound()
+
+        // The list is rebuilt from its source: whatever still has no length is looked up after (15.11).
+        const reset = await findList(database, userId, listId)
+        if (reset && enrichPrefixesByMediaType(await getLocalMediaTypes()).has(reset.mediaType)) startRuntimeFill(listId)
+
         return result
       } catch (cause) {
         throw resetError(cause)

@@ -4,6 +4,7 @@ import { lists, type List } from '../db/schema.js'
 import { expandSource } from '../ingestion/expandSource.js'
 import type { MediaType, MediaTypeCandidate } from '../ingestion/mediaTypes.js'
 import { normalizeItemTags } from './facets.js'
+import { knownRuntimes, withKnownRuntimes } from './runtimes.js'
 import {
   createListSnapshot,
   deleteListSnapshot,
@@ -119,7 +120,19 @@ export async function refreshSourceCopy(
   )
   if (expansion.items.length === 0) throw new SourceCopyEmptyError()
 
-  const rows = snapshotRowsFor(expansion.items, mediaType.defaultDurationMinutes)
+  // The copy keeps the lengths already looked up (15.11): a source listed without lengths gives every item
+  // the estimate otherwise, and the list's own lookup only ever fills the list, never the copy.
+  const rows = snapshotRowsFor(
+    withKnownRuntimes(
+      expansion.items,
+      await knownRuntimes(
+        db,
+        expansion.items.filter((item) => item.externalRef && item.timeToConsumeMinutes === undefined).map((item) => item.externalRef!),
+        now,
+      ),
+    ),
+    mediaType.defaultDurationMinutes,
+  )
 
   const arrived =
     list.arrivedTitle !== null

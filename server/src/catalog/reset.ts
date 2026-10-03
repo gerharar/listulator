@@ -16,7 +16,8 @@ import {
   parseCustomList,
   type ParsedCustomList,
 } from '../ingestion/customLists.js'
-import { expandSource, SourceUnavailableError } from '../ingestion/expandSource.js'
+import { expandSource, ListTooLargeError, SourceUnavailableError } from '../ingestion/expandSource.js'
+import { knownRuntimes } from './runtimes.js'
 import type { ExpansionCache } from '../ingestion/expansionCache.js'
 import { IngestionError, type FetchLike } from '../ingestion/http.js'
 import type { ListExpansion, MediaType } from '../ingestion/mediaTypes.js'
@@ -313,13 +314,20 @@ async function liveTarget(
     throw new ResetUnavailableError('no arrived state kept, and no source to fetch')
   }
 
-  const expansion: ListExpansion = await expandSource(
-    { key: mediaType.key, label: mediaType.label ?? mediaType.key, adapter: mediaType.adapter },
-    list.externalRef,
-    {},
-    categories,
-    expansions,
-  )
+  let expansion: ListExpansion
+  try {
+    expansion = await expandSource(
+      { key: mediaType.key, label: mediaType.label ?? mediaType.key, adapter: mediaType.adapter },
+      list.externalRef,
+      {},
+      categories,
+      expansions,
+    )
+  } catch (cause) {
+    // Said in the list's own name: it is the one being reset (15.11).
+    if (cause instanceof ListTooLargeError) throw new ListTooLargeError(cause.count, cause.max, list.title)
+    throw cause
+  }
   if (expansion.items.length === 0) throw new ResetSourceEmptyError(list.title)
 
   return {
@@ -455,6 +463,20 @@ export async function resetToSource(
 
   const target = await resolveTarget(db, userId, list, deps)
   const restore = (await captureItemSet(db, userId, listId))!
+
+  // A film some list has already looked up gets its length now (15.11), whether the target came from the
+  // stored copy (it may have been taken before the lookup) or from the live source (listed without lengths):
+  // the rest keep the estimate, and the caller starts the lookup after.
+  const known = await knownRuntimes(
+    db,
+    target.items.filter((item) => item.externalRef && item.minutes === undefined).map((item) => item.externalRef!),
+    new Date(),
+  )
+  target.items = target.items.map((item) => {
+    const minutes = item.externalRef ? known.get(item.externalRef) : undefined
+
+    return item.minutes === undefined && typeof minutes === 'number' ? { ...item, minutes } : item
+  })
   const current = (await findListItems(db, userId, listId)) ?? []
   const counts = countChanges(current, target.items)
   const fallbackMinutes =
