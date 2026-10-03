@@ -171,6 +171,25 @@ describe('what the Animation and Movies shelves tag on import', () => {
     expect(items.map((item) => [item.title, item.tags])).toEqual([['Ghost in the Shell', ['movie']]])
   })
 
+  it('Movies’ studios leave documentaries out; Animation’s keep to animation and do not (owner, 2026-10-03)', async () => {
+    const seen: Record<string, URLSearchParams> = {}
+    const types = stubTmdb()
+    const stub = globalThis.fetch
+    vi.stubGlobal('fetch', vi.fn(async (url: string, init?: RequestInit) => {
+      const target = new URL(url)
+      if (target.pathname === '/3/discover/movie') seen[`${target.searchParams.get('with_genres') ?? 'any'}`] = target.searchParams
+
+      return await stub(url, init)
+    }))
+
+    await types.find((entry) => entry.key === 'movie')!.adapter!.expand('company:2', { runtimes: 'skip' })
+    await types.find((entry) => entry.key === 'animation')!.adapter!.expand('company:2', { runtimes: 'skip' })
+
+    expect(seen['any']?.get('without_genres')).toBe('99')
+    expect(seen['16']?.get('with_genres')).toBe('16')
+    expect(seen['16']?.has('without_genres')).toBe(false)
+  })
+
   it('Movies still offers both collections and people, unfiltered', async () => {
     const movies = stubTmdb().find((entry) => entry.key === 'movie')!.adapter!
 

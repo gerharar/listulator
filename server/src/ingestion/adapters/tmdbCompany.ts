@@ -16,6 +16,8 @@ import {
  * completionist unit the film adapter's shapes do not reach.
  */
 
+/** TMDB's genre id for documentaries. */
+const DOCUMENTARY_GENRE = 99
 /** The pages after the first are asked for this many at a time. */
 const PAGE_CONCURRENCY = 8
 
@@ -34,11 +36,18 @@ interface DiscoverResult {
 export interface TmdbCompanyOptions {
   /** Restricts to one genre, so the animation category stays animated. */
   genreFilter?: number
+  /**
+   * Whether a studio's list leaves documentaries out (the default): its films, not the documentaries about
+   * making them, which belong to the Documentaries shelf (owner, 2026-10-03). A shelf that keeps to one
+   * genre already says what belongs: Animation keeps `'include'`, so an animated short that TMDB also tags
+   * as a documentary stays.
+   */
+  documentaries?: 'exclude' | 'include'
 }
 
 export function createTmdbCompanyAdapter(
   credentials: TmdbCredentialSource,
-  { genreFilter }: TmdbCompanyOptions = {},
+  { genreFilter, documentaries = 'exclude' }: TmdbCompanyOptions = {},
   fetchImpl?: FetchLike,
 ): SearchAdapter {
   const client = createTmdbClient(credentials, fetchImpl)
@@ -80,6 +89,8 @@ export function createTmdbCompanyAdapter(
           sort_by: 'primary_release_date.asc',
           page: String(page),
           ...(genreFilter ? { with_genres: String(genreFilter) } : {}),
+          // Asked of TMDB, not filtered here, so the pages and the count are exact.
+          ...(documentaries === 'exclude' ? { without_genres: String(DOCUMENTARY_GENRE) } : {}),
         })
 
       // The first page says how many there are; the rest are asked for eight at a time, up to the last

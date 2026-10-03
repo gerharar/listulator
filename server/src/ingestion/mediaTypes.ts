@@ -80,6 +80,8 @@ export function createDefaultMediaTypes({
   const animatedShows = createTmdbTvAdapter(tmdbCredentials, { genreFilter: ANIMATION_GENRE })
   const animationStudios = createTmdbCompanyAdapter(tmdbCredentials, {
     genreFilter: ANIMATION_GENRE,
+    // The genre already keeps it animated; an animated short that is also tagged a documentary stays.
+    documentaries: 'include',
   })
 
   // Animation also holds a collection of animated films (Toy Story): collections alone, animated parts only.

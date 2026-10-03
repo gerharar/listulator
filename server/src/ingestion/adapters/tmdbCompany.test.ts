@@ -147,3 +147,44 @@ describe('TMDB studio paging without a cap (15.9)', () => {
   })
 })
 
+describe('TMDB studio lists leave documentaries to the Documentaries shelf (owner, 2026-10-03)', () => {
+  /** Records the query of every discover request. */
+  function recording() {
+    const queries: URLSearchParams[] = []
+    const fetchImpl: FetchLike = vi.fn(async (url: string) => {
+      const target = new URL(url)
+      if (target.pathname === '/3/discover/movie') queries.push(target.searchParams)
+
+      return new Response(JSON.stringify({ total_pages: 1, results: [{ id: 1, title: 'Toy Story', release_date: '1995-11-22' }] }), { status: 200 })
+    })
+
+    return { fetchImpl, queries }
+  }
+
+  it('asks TMDB to leave documentaries out, so the pages and the count are exact', async () => {
+    const { fetchImpl, queries } = recording()
+
+    await createTmdbCompanyAdapter(credentials, {}, fetchImpl).expand('company:3', { runtimes: 'skip' })
+
+    expect(queries.map((query) => query.get('without_genres'))).toEqual(['99'])
+  })
+
+  it('does so together with a genre a shelf keeps to', async () => {
+    const { fetchImpl, queries } = recording()
+
+    await createTmdbCompanyAdapter(credentials, { genreFilter: 16 }, fetchImpl).expand('company:3', { runtimes: 'skip' })
+
+    expect(queries[0]?.get('with_genres')).toBe('16')
+    expect(queries[0]?.get('without_genres')).toBe('99')
+  })
+
+  it('can keep them: a shelf that keeps to one genre already says what belongs (Animation)', async () => {
+    const { fetchImpl, queries } = recording()
+
+    await createTmdbCompanyAdapter(credentials, { genreFilter: 16, documentaries: 'include' }, fetchImpl).expand('company:3', { runtimes: 'skip' })
+
+    expect(queries[0]?.get('with_genres')).toBe('16')
+    expect(queries[0]?.has('without_genres')).toBe(false)
+  })
+})
+
