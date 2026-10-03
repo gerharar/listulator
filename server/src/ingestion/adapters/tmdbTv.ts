@@ -76,6 +76,10 @@ export interface TmdbTvOptions {
   genreFilter?: number
 }
 
+/** How many shows a search offers, and the most pages of TMDB's results it will read to find them. */
+const SEARCH_RESULTS = 8
+const SEARCH_PAGES = 3
+
 function pad(value: number): string {
   return String(value).padStart(2, '0')
 }
@@ -91,12 +95,25 @@ export function createTmdbTvAdapter(
     isAvailable: isConfigured,
 
     async search(query) {
-      const response = await request<{ results?: ShowResult[] }>('/search/tv', { query })
+      // The genre filter runs after TMDB's page of 20, so one page can leave fewer than a full list of matches
+      // (BL-047: "rick" has 3 animated shows on page 1 and 8 on pages 1 to 3). Ask on until there are enough, or
+      // TMDB has no more, or a few pages have been looked at. Without a filter the first page already has twenty.
+      const shows: ShowResult[] = []
+      for (let page = 1; page <= SEARCH_PAGES; page++) {
+        const response = await request<{ results?: ShowResult[]; total_pages?: number }>('/search/tv', {
+          query,
+          ...(page > 1 ? { page: String(page) } : {}),
+        })
+        shows.push(
+          ...(response.results ?? [])
+            .filter((show) => show.name)
+            .filter((show) => !genreFilter || (show.genre_ids ?? []).includes(genreFilter)),
+        )
+        if (shows.length >= SEARCH_RESULTS || page >= (response.total_pages ?? 1)) break
+      }
 
-      return (response.results ?? [])
-        .filter((show) => show.name)
-        .filter((show) => !genreFilter || (show.genre_ids ?? []).includes(genreFilter))
-        .slice(0, 8)
+      return shows
+        .slice(0, SEARCH_RESULTS)
         .map((show): ListSource => {
           // Shows share names across reboots and countries, so the year and
           // origin are what separate them.

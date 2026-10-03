@@ -106,6 +106,89 @@ describe('TMDB television search', () => {
   })
 })
 
+describe('TMDB television search past the first page (BL-047)', () => {
+  /** One page of search results: `animated` shows with the animation genre, the rest live action. */
+  const page = (number: number, animated: number, other = 20 - animated) => [
+    ...Array.from({ length: animated }, (_, i) => ({
+      id: number * 1000 + i,
+      name: `Cartoon ${number}.${i}`,
+      genre_ids: [ANIMATION_GENRE],
+    })),
+    ...Array.from({ length: other }, (_, i) => ({
+      id: number * 1000 + 500 + i,
+      name: `Live ${number}.${i}`,
+      genre_ids: [18],
+    })),
+  ]
+
+  /** A search that serves the pages it is given, and records which were asked for. */
+  function paged(pages: unknown[][], totalPages = pages.length) {
+    const asked: number[] = []
+    const fetchImpl: FetchLike = vi.fn(async (url: string) => {
+      const requested = Number(new URL(url).searchParams.get('page') ?? '1')
+      asked.push(requested)
+
+      return new Response(
+        JSON.stringify({ page: requested, total_pages: totalPages, results: pages[requested - 1] ?? [] }),
+        { status: 200 },
+      )
+    })
+
+    return { fetchImpl, asked }
+  }
+
+  const animation = (fetchImpl: FetchLike) =>
+    createTmdbTvAdapter(credentials, { genreFilter: ANIMATION_GENRE }, fetchImpl)
+
+  it('asks the next page when the filter leaves fewer than eight, and keeps page order', async () => {
+    const { fetchImpl, asked } = paged([page(1, 3), page(2, 5)])
+
+    const titles = (await animation(fetchImpl).search('rick')).map((source) => source.title)
+
+    expect(asked).toEqual([1, 2])
+    expect(titles).toHaveLength(8)
+    expect(titles.slice(0, 3)).toEqual(['Cartoon 1.0', 'Cartoon 1.1', 'Cartoon 1.2'])
+    expect(titles[3]).toBe('Cartoon 2.0')
+  })
+
+  it('stops as soon as it has eight, and does not ask for the rest', async () => {
+    const { fetchImpl, asked } = paged([page(1, 3), page(2, 9), page(3, 9)])
+
+    expect(await animation(fetchImpl).search('rick')).toHaveLength(8)
+    expect(asked).toEqual([1, 2])
+  })
+
+  it('asks once when the first page already has eight', async () => {
+    const { fetchImpl, asked } = paged([page(1, 12), page(2, 12)])
+
+    await animation(fetchImpl).search('star wars')
+
+    expect(asked).toEqual([1])
+  })
+
+  it('looks at three pages at most, however many TMDB has', async () => {
+    const { fetchImpl, asked } = paged([page(1, 0), page(2, 1), page(3, 1), page(4, 5)], 40)
+
+    expect(await animation(fetchImpl).search('x')).toHaveLength(2)
+    expect(asked).toEqual([1, 2, 3])
+  })
+
+  it('does not ask for a page TMDB says does not exist', async () => {
+    const { fetchImpl, asked } = paged([page(1, 2)], 1)
+
+    expect(await animation(fetchImpl).search('x')).toHaveLength(2)
+    expect(asked).toEqual([1])
+  })
+
+  it('fails when a later page fails, rather than answering with a quiet shortfall', async () => {
+    const { fetchImpl } = paged([page(1, 3), page(2, 5)])
+    const failing: FetchLike = async (url, init) =>
+      new URL(url).searchParams.get('page') === '2' ? new Response('{}', { status: 500 }) : fetchImpl(url, init)
+
+    await expect(animation(failing).search('rick')).rejects.toThrow()
+  })
+})
+
 describe('TMDB television expansion', () => {
   it('expands a show to its episodes, numbered and in order', async () => {
     const adapter = createTmdbTvAdapter(credentials, {}, router(routes))
