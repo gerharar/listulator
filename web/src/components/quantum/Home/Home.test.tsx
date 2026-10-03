@@ -627,6 +627,42 @@ describe('Home updates (task 10.22c)', () => {
       expect(idle.getAttribute('aria-label')).toBe('Check for updates')
     })
 
+    it('looks at lists of different sources together and never two of one source (BL-054)', async () => {
+      const types: MediaType[] = [
+        { key: 'tv', label: 'TV Shows', sortOrder: 1, defaultDurationMinutes: 30, searchAvailable: true, previewable: true, sourceName: 'TMDB' },
+        { key: 'music', label: 'Music', sortOrder: 2, defaultDurationMinutes: 40, searchAvailable: true, previewable: true, sourceName: 'MusicBrainz' },
+      ]
+      vi.mocked(api.mediaTypes).mockResolvedValue(types)
+      vi.mocked(api.lists).mockResolvedValue([
+        two('a', 'Alpha', { mediaType: 'tv', source: 'api' }),
+        two('b', 'Bravo', { mediaType: 'music', source: 'api' }),
+        two('c', 'Charlie', { mediaType: 'tv', source: 'canonical' }),
+        two('d', 'Delta', { mediaType: 'tv', source: 'api' }),
+      ])
+      const open = new Map<string, () => void>()
+      const started: string[] = []
+      vi.mocked(api.checkForUpdates).mockImplementation(
+        (id: string) =>
+          new Promise((resolve) => {
+            started.push(id)
+            open.set(id, () => resolve(found(0)))
+          }),
+      )
+      const { pending } = await pendingWith()
+      renderHome(vi.fn(), pending)
+      await waitFor(() => expect(screen.getByText('Alpha')).not.toBeNull())
+
+      press()
+
+      // TMDB, MusicBrainz and the library go together; Delta is TMDB too, so it waits for Alpha.
+      await waitFor(() => expect(started).toEqual(['a', 'b', 'c']))
+      await act(async () => open.get('a')!())
+      await waitFor(() => expect(started).toEqual(['a', 'b', 'c', 'd']))
+      await act(async () => {
+        for (const release of open.values()) release()
+      })
+    })
+
     it('answers "No updates found" when there is nothing anywhere', async () => {
       setupLists([two('a', 'Alpha')])
       vi.mocked(api.checkForUpdates).mockResolvedValue(found(0))

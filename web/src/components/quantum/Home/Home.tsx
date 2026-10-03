@@ -204,7 +204,11 @@ export function Home({ onMediaTypesLoaded, pendingUpdates }: HomeProps) {
   /** Home's explicit check: every list with a source, a band appearing as each is answered. */
   async function checkUpdatesNow() {
     try {
-      const summary = await checkLists(lists, { api, pending })
+      // Lists of different sources are checked together (BL-054), never two of one: a community-library
+      // list by the library, any other by its category's source.
+      const sourceOf = (entry: MediaList): string =>
+        entry.source === 'canonical' ? 'library' : (mediaTypes.find((type) => type.key === entry.mediaType)?.sourceName ?? entry.mediaType)
+      const summary = await checkLists(lists, { api, pending, sourceOf })
       if (!summary) return
 
       if (summary.failed.length > 0) {

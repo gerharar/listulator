@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest'
 import type { MediaList } from './api.js'
 import type { PreferencesStore } from './preferences/store.js'
 import { createPendingUpdates } from './pendingUpdates.js'
-import { applyUpdate, checkList, checkLists } from './updateCheck.js'
+import { applyUpdate, CHECK_CONCURRENCY, checkList, checkLists } from './updateCheck.js'
 
 const memory = (): PreferencesStore => {
   const data = new Map<string, string>()
@@ -35,7 +35,7 @@ describe('checkLists', () => {
     expect(api.checkForUpdates.mock.calls).toEqual([['a', false], ['c', false]])
   })
 
-  it('goes one list at a time, in order', async () => {
+  it('goes one list at a time, in order, for lists of one source', async () => {
     const pending = await setup()
     let running = 0
     let most = 0
@@ -51,10 +51,158 @@ describe('checkLists', () => {
       importItems: vi.fn(),
     }
 
-    await checkLists([list('a'), list('b'), list('c')], { api, pending })
+    await checkLists([list('a'), list('b'), list('c')], { api, pending, sourceOf: () => 'TMDB' })
 
     expect(most).toBe(1)
     expect(api.checkForUpdates.mock.calls.map((c) => c[0])).toEqual(['a', 'b', 'c'])
+  })
+
+  describe('several lists at once, one per source (BL-054)', () => {
+    /** An API whose checks stay open until released, so what runs together can be seen. */
+    function gated() {
+      const open = new Map<string, () => void>()
+      let running = 0
+      let most = 0
+      const started: string[] = []
+      const api = {
+        checkForUpdates: vi.fn(async (id: string) => {
+          started.push(id)
+          running += 1
+          most = Math.max(most, running)
+          await new Promise<void>((resolve) => open.set(id, resolve))
+          running -= 1
+
+          return found(id === 'b' ? 2 : 0)
+        }),
+        importItems: vi.fn(),
+      }
+
+      return { api, open, started, most: () => most }
+    }
+    const SOURCES: Record<string, string> = { a: 'TMDB', b: 'MusicBrainz', c: 'Wikipedia', d: 'GitHub', e: 'Open Library', f: 'YouTube', g: 'TMDB', h: 'TMDB' }
+    const sourceOf = (item: MediaList) => SOURCES[item.id]!
+
+    it('runs lists of different sources together, and never more than the limit', async () => {
+      const pending = await setup()
+      const { api, open, started, most } = gated()
+      const everyList = ['a', 'b', 'c', 'd', 'e', 'f'].map((id) => list(id))
+
+      const done = checkLists(everyList, { api, pending, sourceOf })
+      await vi.waitFor(() => expect(started).toHaveLength(CHECK_CONCURRENCY))
+      expect(started).toEqual(['a', 'b', 'c', 'd'])
+      // The fifth waits for a place, the sixth behind it.
+      await Promise.resolve()
+      expect(started).toHaveLength(CHECK_CONCURRENCY)
+
+      open.get('a')!()
+      await vi.waitFor(() => expect(started).toContain('e'))
+      for (const id of ['b', 'c', 'd']) open.get(id)!()
+      await vi.waitFor(() => expect(started).toContain('f'))
+      open.get('e')!()
+      open.get('f')!()
+      await done
+
+      expect(most()).toBeLessThanOrEqual(CHECK_CONCURRENCY)
+      expect(most()).toBeGreaterThan(1)
+    })
+
+    it('never has two lists of one source going at once: the next of that source waits, the others pass it', async () => {
+      const pending = await setup()
+      const { api, open, started } = gated()
+
+      // a, g and h are all TMDB; b is MusicBrainz.
+      const done = checkLists(['a', 'g', 'h', 'b'].map((id) => list(id)), { api, pending, sourceOf })
+      await vi.waitFor(() => expect(started).toEqual(['a', 'b']))
+
+      open.get('b')!()
+      await Promise.resolve()
+      expect(started).toEqual(['a', 'b'])
+
+      open.get('a')!()
+      await vi.waitFor(() => expect(started).toEqual(['a', 'b', 'g']))
+      open.get('g')!()
+      await vi.waitFor(() => expect(started).toEqual(['a', 'b', 'g', 'h']))
+      open.get('h')!()
+      await done
+    })
+
+    it('records each finding as it arrives, while the others are still being looked at', async () => {
+      const pending = await setup()
+      const { api, open, started } = gated()
+
+      const done = checkLists([list('a'), list('b'), list('c')], { api, pending, sourceOf })
+      await vi.waitFor(() => expect(started).toHaveLength(3))
+      open.get('b')!()
+
+      await vi.waitFor(() => expect(pending.get()['b']?.count).toBe(2))
+      expect(pending.isChecking()).toBe(true)
+
+      open.get('a')!()
+      open.get('c')!()
+      await done
+    })
+
+    it('reports the lists it could not reach in the order the lists are shown, whichever failed first', async () => {
+      const pending = await setup()
+      const finish: Record<string, () => void> = {}
+      const api = {
+        checkForUpdates: vi.fn(
+          (id: string) =>
+            new Promise<ReturnType<typeof found>>((_resolve, reject) => {
+              finish[id] = () => reject(new Error(`${id} is down`))
+            }),
+        ),
+        importItems: vi.fn(),
+      }
+
+      const done = checkLists([list('a', 'ref:a', 'Ay'), list('b', 'ref:b', 'Bee'), list('c', 'ref:c', 'Sea')], { api, pending, sourceOf })
+      await vi.waitFor(() => expect(Object.keys(finish)).toHaveLength(3))
+      finish['c']!()
+      finish['a']!()
+      finish['b']!()
+
+      expect((await done)?.failed.map((entry) => entry.title)).toEqual(['Ay', 'Bee', 'Sea'])
+    })
+
+    it('does not let a failure to remember one finding leave other checks running: it ends when all have ended, then says so', async () => {
+      const pending = await setup()
+      const realSet = pending.set.bind(pending)
+      vi.spyOn(pending, 'set').mockImplementation(async (id: string, count: number) => {
+        if (id === 'a') throw new Error('disk full')
+        await realSet(id, count)
+      })
+      let finishedB = false
+      const api = {
+        checkForUpdates: vi.fn(async (id: string) => {
+          if (id === 'b') {
+            await new Promise((resolve) => setTimeout(resolve, 5))
+            finishedB = true
+            return found(1)
+          }
+
+          return found(1)
+        }),
+        importItems: vi.fn(),
+      }
+
+      await expect(checkLists([list('a'), list('b')], { api, pending, sourceOf })).rejects.toThrow('disk full')
+
+      // The slower check was not abandoned half-way, and the run is over: a new one may start.
+      expect(finishedB).toBe(true)
+      expect(pending.isChecking()).toBe(false)
+      expect(pending.get()['b']?.count).toBe(1)
+    })
+
+    it('counts every list it looked at, found or not, as before', async () => {
+      const pending = await setup()
+      const { api, open } = gated()
+
+      const done = checkLists(['a', 'b', 'c'].map((id) => list(id)), { api, pending, sourceOf })
+      await vi.waitFor(() => expect(Object.keys(Object.fromEntries(open))).toHaveLength(3))
+      for (const release of open.values()) release()
+
+      expect(await done).toEqual({ checked: 3, found: 1, failed: [] })
+    })
   })
 
   it('records each finding as soon as it arrives, not at the end', async () => {
