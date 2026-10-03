@@ -291,6 +291,33 @@ export const listSnapshots = sqliteTable(
 )
 
 /**
+ * What a source said an item's length is, kept so it is asked once (task 15.3).
+ *
+ * Keyed by the item's source ref (`movie:862`), not by list: a film in two lists
+ * is looked up once, and a list can be built at once from a listing and have its
+ * lengths filled in afterwards from here. `minutes` null is a definitive "the
+ * source has no length", remembered so it is not asked again until the row
+ * lapses. Rows expire (`expires_at`: five sixths of the source's copy limit,
+ * 150 of TMDB's 180 days): this is a cache of a source's data, never a source
+ * of truth, and what was applied to a list lives in `list_items` and
+ * `list_snapshots` as before.
+ *
+ * Deliberately not `user_id`-scoped, unlike every other table: a film's runtime
+ * is a public fact about the source's item, not anyone's data, and nothing
+ * serves this table over the API.
+ */
+export const itemRuntimes = sqliteTable(
+  'item_runtimes',
+  {
+    ref: text('ref').primaryKey(),
+    minutes: integer('minutes'),
+    fetchedAt: integer('fetched_at', { mode: 'timestamp_ms' }).notNull(),
+    expiresAt: integer('expires_at', { mode: 'timestamp_ms' }).notNull(),
+  },
+  (table) => [index('item_runtimes_expires_idx').on(table.expiresAt)],
+)
+
+/**
  * Items the user deleted, so a refresh does not keep offering them back.
  *
  * Import filtering is deliberately imperfect (SPEC.md §5) on the promise that
