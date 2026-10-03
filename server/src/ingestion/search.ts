@@ -18,8 +18,8 @@ export interface SearchResult {
  * One category's search, shared by the server route and the standalone app so
  * the two cannot drift. Community-library matches come first (task 7.4); then
  * the category's own adapter, unless the category searches the library only
- * (`searchScope: 'library'` — Mega, whose adapter is kept for drafting curated
- * lists but not offered to users, F9).
+ * (`searchScope: 'library'` — Mega, which has no adapter: its lists are
+ * curated, never fetched from a connector, F9).
  */
 export async function searchSources(
   mediaType: MediaType,

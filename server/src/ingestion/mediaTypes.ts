@@ -13,7 +13,6 @@ import { createOpenLibraryAdapter } from './adapters/openLibrary.js'
 import { createCompositeAdapter } from './adapters/composite.js'
 import { createTmdbAdapter } from './adapters/tmdb.js'
 import { createTmdbCompanyAdapter } from './adapters/tmdbCompany.js'
-import { createTmdbFranchiseAdapter } from './adapters/tmdbFranchise.js'
 import { ANIMATION_GENRE, DOCUMENTARY_GENRE, createTmdbTvAdapter } from './adapters/tmdbTv.js'
 import type { ListStatus } from '../db/schema.js'
 import type { FacetConvention } from '../catalog/facets.js'
@@ -103,7 +102,6 @@ export function createDefaultMediaTypes({
   })
 
   const tmdbTv = createTmdbTvAdapter(tmdbCredentials)
-  const franchises = createTmdbFranchiseAdapter(tmdbCredentials)
 
   /** Films by a person or collection, plus films by a studio. */
   const movieSources = createCompositeAdapter([
@@ -270,6 +268,11 @@ export function createDefaultMediaTypes({
      * The shelf for franchises that genuinely span media. Its existence is a
      * navigation answer more than a data one: a Marvel list split across
      * Movies, TV and Animation leaves nowhere obvious to look.
+     *
+     * Curated lists only, and **no adapter and no source name** (owner, 2026-10-03): nothing here ever
+     * looks anything up in TMDB or any connector, so no connector's limits, retries or lookups can touch
+     * it. Users search the community library (`searchScope: 'library'`); a list is a library list or a
+     * file, never fetched. The TMDB franchise adapter that once stood behind this entry is deleted.
      */
     {
       key: 'mega',
@@ -279,8 +282,6 @@ export function createDefaultMediaTypes({
       sortOrder: 100,
       // Mixed by nature; real runtimes come from the API.
       defaultDurationMinutes: 120,
-      adapter: franchises,
-      sourceName: 'TMDB',
       // Users search curated lists only, and the list generator refuses Mega (TMDB data cannot go into lists/).
       searchScope: 'library',
       // A Mega item's medium is one of the other categories, tagged with the key a list file

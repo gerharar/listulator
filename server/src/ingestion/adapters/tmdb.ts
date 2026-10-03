@@ -84,7 +84,7 @@ export interface ShowRuntimeFields {
  * fallback every season fell back to the category default, so a 22-episode
  * season read as two hours and Quickie would have offered it as a quick win.
  *
- * Shared by the television and franchise adapters (audit 2026-10-02: the television one had no fallback, so
+ * Used by the television adapter (audit 2026-10-02: it had no fallback, so
  * Doctor Who lost 9 of 352 episodes' lengths and Smallville 10 of 254 to the category default).
  * Only the fallback for an episode with no runtime of its own (10.12b): a show
  * that changed format mid-run inherits its latest length for those, which is an

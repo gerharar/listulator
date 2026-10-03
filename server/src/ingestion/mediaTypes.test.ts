@@ -72,7 +72,8 @@ describe('media type registry', () => {
     // is usable depends on credentials, which isAvailable() decides.
     //
     // Wrestling and MMA were expected to stay out — neither has a usable API —
-    // but Wikipedia's maintained event tables turned out to cover both.
+    // but Wikipedia's maintained event tables turned out to cover both. Mega is out on purpose: it takes
+    // community-library lists only and has no adapter at all (owner, 2026-10-03).
     expect(searchable).toEqual([
       'movie',
       'tv',
@@ -85,7 +86,6 @@ describe('media type registry', () => {
       'book',
       'music',
       'youtube',
-      'mega',
     ])
 
     // Every category now has a source.

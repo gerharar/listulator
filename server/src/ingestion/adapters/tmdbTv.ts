@@ -135,7 +135,7 @@ export function createTmdbTvAdapter(
 
       const today = new Date().toISOString().slice(0, 10)
       const items: MediaTypeCandidate[] = []
-      // For an episode with no length of its own; the show's, as the franchise adapter does.
+      // For an episode with no length of its own; the show's.
       const perEpisode = episodeMinutes(show)
 
       for (const season of fetched) {
