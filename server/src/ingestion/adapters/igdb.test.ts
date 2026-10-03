@@ -135,8 +135,8 @@ describe('IGDB token handling', () => {
 describe('IGDB search', () => {
   it('offers franchises and series, labelled so they can be told apart', async () => {
     const { fetchImpl } = router({
-      franchises: [{ id: 571, name: "Assassin's Creed" }],
-      collections: [{ id: 12998, name: "Assassin's Creed II" }],
+      franchises: [{ id: 571, name: "Assassin's Creed", games: [1, 2, 3, 4, 5] }],
+      collections: [{ id: 12998, name: "Assassin's Creed II", games: [1, 2] }],
     })
 
     expect(await createIgdbAdapter(credentials, fetchImpl).search('assassin')).toEqual([
@@ -145,13 +145,46 @@ describe('IGDB search', () => {
     ])
   })
 
+  it('puts the one with the most entries first, franchises and series together (BL-055)', async () => {
+    const entries = (n: number) => Array.from({ length: n }, (_, index) => index + 1)
+    const { fetchImpl } = router({
+      franchises: [{ id: 1, name: 'Small franchise', games: entries(3) }, { id: 2, name: 'Big franchise', games: entries(359) }],
+      collections: [{ id: 3, name: 'Fan game', games: entries(1) }, { id: 4, name: 'Main series', games: entries(193) }, { id: 5, name: 'No list at all' }],
+    })
+
+    const found = await createIgdbAdapter(credentials, fetchImpl).search('x')
+
+    expect(found.map((source) => source.title)).toEqual(['Big franchise — games', 'Main series', 'Small franchise — games', 'Fan game', 'No list at all'])
+  })
+
+  it('breaks a tie by name, so the order never changes between searches', async () => {
+    const { fetchImpl } = router({
+      franchises: [{ id: 1, name: 'Zeta', games: [1, 2] }, { id: 2, name: 'Alpha', games: [1, 2] }],
+      collections: [],
+    })
+
+    expect((await createIgdbAdapter(credentials, fetchImpl).search('x')).map((source) => source.title)).toEqual(['Alpha — games', 'Zeta — games'])
+  })
+
+  it('shows at most ten, the ten with the most entries', async () => {
+    const many = Array.from({ length: 30 }, (_, index) => ({ id: index + 1, name: `Series ${String(index + 1).padStart(2, '0')}`, games: Array.from({ length: index + 1 }, (_, n) => n) }))
+    const { fetchImpl } = router({ franchises: [], collections: many })
+
+    const found = await createIgdbAdapter(credentials, fetchImpl).search('series')
+
+    expect(found).toHaveLength(10)
+    expect(found[0]!.title).toBe('Series 30')
+    expect(found[9]!.title).toBe('Series 21')
+  })
+
   it('strips quotes from the query, which would otherwise break the syntax', async () => {
     // IGDB queries are a string language, and the search box is user input.
     const { fetchImpl } = router({ franchises: [], collections: [] })
     await createIgdbAdapter(credentials, fetchImpl).search('say "what" \\ now')
 
     const call = vi.mocked(fetchImpl).mock.calls.find(([url]) => url.includes('franchises'))!
-    expect(call[1]?.body).toBe('fields name; where name ~ *"say what  now"*; limit 6;')
+    // Fifty candidates, not six: the right one must not be cut before the entries are counted (BL-055).
+    expect(call[1]?.body).toBe('fields name,games; where name ~ *"say what  now"*; limit 50;')
   })
 })
 
@@ -293,12 +326,24 @@ describe('IGDB expansion', () => {
     expect((await createIgdbAdapter(credentials, fetchImpl).expand('franchise:1')).items).toHaveLength(1)
   })
 
-  it('asks only for main games, leaving out DLC, ports and bundles', async () => {
+  it('expands a series by the game’s `collections` field: the old single `collection` returns nothing for any series now', async () => {
+    // Live, 2026-10-04: `where collection = 39` found 0 games and `where collections = (39)` found 57 (Final Fantasy);
+    // Assassin's Creed 0 and 28, Super Mario 0 and 60, Call of Duty 0 and 31. Every Series result built an empty list.
+    const { fetchImpl, queries } = pagedIgdb(manyGames(3))
+    const { items } = await createIgdbAdapter(credentials, fetchImpl).expand('collection:39')
+
+    expect(items).toHaveLength(3)
+    expect(queries('games')[0]!.body).toContain('where collections = (39)')
+    expect(queries('games')[0]!.body).not.toMatch(/\bcollection = /)
+  })
+
+  it('asks for main games, remakes and remasters, leaving out DLC, ports, bundles and updates', async () => {
     const { fetchImpl } = router({ games: [], game_time_to_beats: [] })
     await createIgdbAdapter(credentials, fetchImpl).expand('franchise:571')
 
     const call = vi.mocked(fetchImpl).mock.calls.find(([url]) => url.endsWith('/games'))!
-    expect(call[1]?.body).toContain('game_type = 0')
+    // 0 Main Game, 8 Remake, 9 Remaster (owner, 2026-10-04: Final Fantasy VII Remake was missing, BL-056).
+    expect(call[1]?.body).toContain('game_type = (0,8,9)')
     // Paged by id, which is unique, so a page never repeats or skips a game that shares a release date.
     expect(call[1]?.body).toContain('sort id asc')
   })
@@ -336,7 +381,7 @@ describe('IGDB expansion', () => {
 })
 
 /** A fake IGDB that honours `limit` and `offset`, and records every query it is asked. */
-function pagedIgdb(allGames: { id: number; name: string; first_release_date?: number }[], times: { game_id: number; normally: number }[] = []) {
+function pagedIgdb(allGames: { id: number; name: string; first_release_date?: number; game_type?: number }[], times: { game_id: number; normally: number }[] = []) {
   const asked: { endpoint: string; body: string }[] = []
   const fetchImpl: FetchLike = vi.fn(async (url: string, init) => {
     if (url.startsWith('https://id.twitch.tv')) return new Response(JSON.stringify({ access_token: 't', expires_in: 5000 }))
@@ -349,9 +394,11 @@ function pagedIgdb(allGames: { id: number; name: string; first_release_date?: nu
     if (limit > 500) return new Response('{}', { status: 403 })
 
     if (endpoint === 'games') {
-      const sorted = [...allGames].sort((a, b) => a.id - b.id)
+      // IGDB applies the `game_type` filter itself; the fake does too, so a type the query leaves out never arrives.
+      const wanted = new Set((/game_type = \(?([\d,]+)\)?/.exec(body)?.[1] ?? '0').split(',').map(Number))
+      const sorted = allGames.filter((game) => wanted.has(game.game_type ?? 0)).sort((a, b) => a.id - b.id)
 
-      return new Response(JSON.stringify(sorted.slice(offset, offset + limit).map((game) => ({ ...game, game_type: 0 }))))
+      return new Response(JSON.stringify(sorted.slice(offset, offset + limit).map((game) => ({ game_type: 0, ...game }))))
     }
     if (endpoint === 'game_time_to_beats') {
       const wanted = new Set((/game_id = \(([\d,]+)\)/.exec(body)?.[1] ?? '').split(',').map(Number))
@@ -558,5 +605,76 @@ describe('IGDB token request', () => {
     expect(String(init?.body)).toContain('client_secret=secret')
     expect(String(init?.body)).toContain('grant_type=client_credentials')
     expect((init?.headers as Record<string, string>)['content-type']).toBe('application/x-www-form-urlencoded')
+  })
+})
+
+describe('IGDB remakes and remasters (BL-056, owner 2026-10-04)', () => {
+  const MAIN = 0
+  const REMAKE = 8
+  const REMASTER = 9
+  const list = async (games: { id: number; name: string; first_release_date?: number; game_type?: number }[]) =>
+    (await createIgdbAdapter(credentials, pagedIgdb(games).fetchImpl).expand('franchise:4')).items.map((item) => item.title)
+
+  it('lists a remake and a remaster beside the main game', async () => {
+    expect(
+      await list([
+        { id: 1, name: 'Final Fantasy VII', first_release_date: 100, game_type: MAIN },
+        { id: 2, name: 'Final Fantasy VII Remake', first_release_date: 200, game_type: REMAKE },
+        { id: 3, name: 'Final Fantasy X HD', first_release_date: 300, game_type: REMASTER },
+      ]),
+    ).toEqual(['Final Fantasy VII', 'Final Fantasy VII Remake', 'Final Fantasy X HD'])
+  })
+
+  it('does not drop a remake or remaster whose name ends in "Edition": that is its name, not a duplicate', async () => {
+    expect(
+      await list([
+        { id: 1, name: 'Final Fantasy XV: Pocket Edition', first_release_date: 100, game_type: REMAKE },
+        { id: 2, name: 'Final Fantasy: 20th Anniversary Edition', first_release_date: 200, game_type: REMASTER },
+        // A main game filed as a Deluxe Edition is still the duplicate the filter exists for.
+        { id: 3, name: 'Final Fantasy XVI: Deluxe Edition', first_release_date: 300, game_type: MAIN },
+      ]),
+    ).toEqual(['Final Fantasy XV: Pocket Edition', 'Final Fantasy: 20th Anniversary Edition'])
+  })
+
+  it('tells a remaster from the original when they share a name, by adding its type', async () => {
+    expect(
+      await list([
+        { id: 1, name: 'Final Fantasy II', first_release_date: 100, game_type: MAIN },
+        { id: 2, name: 'Final Fantasy II', first_release_date: 200, game_type: REMASTER },
+        { id: 3, name: 'Final Fantasy III', first_release_date: 300, game_type: REMAKE },
+      ]),
+    ).toEqual(['Final Fantasy II', 'Final Fantasy II (Remaster)', 'Final Fantasy III'])
+  })
+
+  it('adds the year as well when two of the same type share a name (the Pixel Remasters)', async () => {
+    const year = (y: number) => Date.UTC(y, 5, 1) / 1000
+    expect(
+      await list([
+        { id: 1, name: 'Final Fantasy', first_release_date: year(1987), game_type: MAIN },
+        { id: 2, name: 'Final Fantasy', first_release_date: year(2007), game_type: REMASTER },
+        { id: 3, name: 'Final Fantasy', first_release_date: year(2021), game_type: REMASTER },
+      ]),
+    ).toEqual(['Final Fantasy', 'Final Fantasy (Remaster, 2007)', 'Final Fantasy (Remaster, 2021)'])
+  })
+
+  it('compares names without regard to case, and only among what is listed', async () => {
+    expect(
+      await list([
+        { id: 1, name: 'Chrono Trigger', first_release_date: 100, game_type: MAIN },
+        { id: 2, name: 'CHRONO TRIGGER', first_release_date: 200, game_type: REMAKE },
+        // A DLC of the same name is not listed, so it makes nothing ambiguous.
+        { id: 3, name: 'Secret of Mana', first_release_date: 300, game_type: MAIN },
+        { id: 4, name: 'Secret of Mana', first_release_date: 400, game_type: 1 },
+      ]),
+    ).toEqual(['Chrono Trigger', 'CHRONO TRIGGER (Remake)', 'Secret of Mana'])
+  })
+
+  it('leaves two main games of one name as they are: only a remake or remaster gets a type', async () => {
+    expect(
+      await list([
+        { id: 1, name: 'Sonic the Hedgehog', first_release_date: 100, game_type: MAIN },
+        { id: 2, name: 'Sonic the Hedgehog', first_release_date: 200, game_type: MAIN },
+      ]),
+    ).toEqual(['Sonic the Hedgehog', 'Sonic the Hedgehog'])
   })
 })

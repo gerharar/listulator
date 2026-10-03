@@ -37,8 +37,17 @@ const BACKOFF_MS = 500
 /** A `Retry-After` longer than this is not waited out: the request fails and says so. */
 const MAX_RETRY_WAIT_MS = 10_000
 
-/** IGDB's `game_type`. Main Game only — see the filtering note in `expand`. */
+/**
+ * IGDB's `game_type`s a franchise lists: a main game, a remake and a remaster (owner, 2026-10-04: with Main Game
+ * only, Final Fantasy VII Remake and Rebirth, the Pixel Remasters and more were missing, BL-056). Ports, bundles,
+ * DLC, expansions and updates stay out: the same game again, or something that is not a game of its own. Every
+ * id is IGDB's (`/game_types`).
+ */
 const MAIN_GAME = 0
+const REMAKE = 8
+const REMASTER = 9
+const LISTED_TYPES = [MAIN_GAME, REMAKE, REMASTER]
+const TYPE_LABEL = new Map<number, string>([[REMAKE, 'Remake'], [REMASTER, 'Remaster']])
 
 /**
  * "Normally" is the main story plus a little else. `hastily` is a speedrun and
@@ -51,7 +60,13 @@ const TIME_TO_BEAT: TimeToBeatField = 'normally'
 interface NamedResult {
   id: number
   name: string
+  /** Every entry IGDB files under it, of every type (not unique games, not platforms). */
+  games?: number[]
 }
+
+/** Candidates asked for, then ranked, and how many are shown: the right one must not be cut before the count. */
+const SEARCH_CANDIDATES = 50
+const SEARCH_RESULTS = 10
 
 interface GameResult {
   id: number
@@ -89,6 +104,40 @@ export type IgdbCredentialSource = IgdbCredentials | (() => IgdbCredentials)
  */
 function looksLikeAnEdition(name: string): boolean {
   return /[-:]\s.*\bedition\b\s*$/i.test(name)
+}
+
+const releaseYear = (game: GameResult): number | undefined =>
+  game.first_release_date ? new Date(game.first_release_date * 1000).getUTCFullYear() : undefined
+
+/**
+ * Titles to show. A remake or remaster usually shares its name with the original ("Final Fantasy II" is a main
+ * game and three remasters), and a list of identical rows looks like a bug. Only a remake or remaster whose name
+ * is shared by another listed entry gets its type after it ("Final Fantasy II (Remaster)"); two of one type also
+ * get the year ("Final Fantasy (Remaster, 2021)"). A main game keeps its own name, and a name no other listed
+ * entry has is left alone.
+ */
+function displayTitles(games: readonly GameResult[]): Map<number, string> {
+  const sameName = new Map<string, GameResult[]>()
+  for (const game of games) {
+    const key = game.name!.toLowerCase()
+    sameName.set(key, [...(sameName.get(key) ?? []), game])
+  }
+
+  const titles = new Map<number, string>()
+  for (const group of sameName.values()) {
+    if (group.length < 2) continue
+
+    const typed = group.filter((game) => TYPE_LABEL.has(game.game_type ?? MAIN_GAME))
+    for (const game of typed) {
+      const label = TYPE_LABEL.get(game.game_type!)!
+      const alike = typed.filter((other) => other.game_type === game.game_type)
+      const year = releaseYear(game)
+
+      titles.set(game.id, `${game.name} (${alike.length > 1 && year ? `${label}, ${year}` : label})`)
+    }
+  }
+
+  return titles
 }
 
 /**
@@ -252,26 +301,30 @@ export function createIgdbAdapter(
       // Creed II" is its own series — but they are how some sets are
       // grouped, so both are offered.
       const [franchises, series] = await Promise.all([
-        query<NamedResult>('franchises', `fields name; where name ~ *"${term}"*; limit 6;`),
-        query<NamedResult>('collections', `fields name; where name ~ *"${term}"*; limit 6;`),
+        query<NamedResult>('franchises', `fields name,games; where name ~ *"${term}"*; limit ${SEARCH_CANDIDATES};`),
+        query<NamedResult>('collections', `fields name,games; where name ~ *"${term}"*; limit ${SEARCH_CANDIDATES};`),
       ])
 
-      return [
-        ...franchises.map(
-          (entry): ListSource => ({
-            externalRef: `franchise:${entry.id}`,
-            title: `${entry.name} — games`,
-            detail: 'Franchise',
-          }),
-        ),
-        ...series.map(
-          (entry): ListSource => ({
-            externalRef: `collection:${entry.id}`,
-            title: entry.name,
-            detail: 'Series',
-          }),
-        ),
+      // Most entries first, franchises and series together: the big, well-kept record is nearly always the one
+      // wanted, and the fan games and single-title series that match the same words sink (BL-055: "assassin"
+      // showed six others and not Assassin's Creed; "final fantasy" not Final Fantasy). A tie goes by name, so
+      // the order never changes between searches; equal names keep franchise before series.
+      const entries = (entry: NamedResult) => entry.games?.length ?? 0
+      const found = [
+        ...franchises.map((entry) => ({
+          entry,
+          source: { externalRef: `franchise:${entry.id}`, title: `${entry.name} — games`, detail: 'Franchise' } satisfies ListSource,
+        })),
+        ...series.map((entry) => ({
+          entry,
+          source: { externalRef: `collection:${entry.id}`, title: entry.name, detail: 'Series' } satisfies ListSource,
+        })),
       ]
+
+      return found
+        .sort((a, b) => entries(b.entry) - entries(a.entry) || a.entry.name.localeCompare(b.entry.name))
+        .slice(0, SEARCH_RESULTS)
+        .map(({ source }): ListSource => source)
     },
 
     // No upstream signal for whether this is finished, so no `status` (BL-013).
@@ -283,7 +336,8 @@ export function createIgdbAdapter(
         kind === 'franchise'
           ? `franchises = (${id})`
           : kind === 'collection'
-            ? `collection = ${id}`
+            ? // `collections` (plural): IGDB retired the single `collection` field, which now finds no game for any series.
+              `collections = (${id})`
             : null
 
       if (!where) return []
@@ -301,12 +355,18 @@ export function createIgdbAdapter(
         const page = await query<GameResult>(
           'games',
           `fields name,first_release_date,game_type,platforms;` +
-            ` where ${where} & game_type = ${MAIN_GAME} & first_release_date != null` +
+            ` where ${where} & game_type = (${LISTED_TYPES.join(',')}) & first_release_date != null` +
             ` & first_release_date <= ${releasedBy};` +
             ` sort id asc; limit ${PAGE_SIZE}; offset ${offset};`,
         )
 
-        usable.push(...page.filter((game) => game.name && !looksLikeAnEdition(game.name)))
+        // A deluxe or collector's edition filed as a main game is the duplicate the filter is for; a remake or
+        // remaster whose name ends in "Edition" ("Pocket Edition", "20th Anniversary Edition") is not.
+        usable.push(
+          ...page.filter(
+            (game) => game.name && !((game.game_type ?? MAIN_GAME) === MAIN_GAME && looksLikeAnEdition(game.name)),
+          ),
+        )
         if (page.length < PAGE_SIZE || usable.length > MAX_LIST_ITEMS) break
       }
 
@@ -337,6 +397,8 @@ export function createIgdbAdapter(
           .map((entry) => [entry.game_id, Math.round(entry[TIME_TO_BEAT]! / 60)]),
       )
 
+      const titles = displayTitles(usable)
+
       return usable.map((game): MediaTypeCandidate => {
         const minutes = minutesByGame.get(game.id)
         // Unix seconds, UTC — a Jan-1 release must not flip to the prior
@@ -348,7 +410,7 @@ export function createIgdbAdapter(
         const tags = platformTags(game.platforms)
 
         return {
-          title: game.name!,
+          title: titles.get(game.id) ?? game.name!,
           externalRef: `game:${game.id}`,
           ...(tags ? { tags } : {}),
           // Not every game has been timed by anyone; those fall back to the
