@@ -313,6 +313,65 @@ describe('directing credits', () => {
   })
 })
 
+describe('appearances as themselves (BL-045)', () => {
+  const credit = (id: number, title: string, character: string, genre = 18) => ({
+    id,
+    title,
+    character,
+    release_date: PAST,
+    genre_ids: [genre],
+  })
+  const CAST = [
+    credit(1, 'A Role', 'Nick Fury'),
+    credit(2, 'Uncredited Role', 'Nick Fury (uncredited)'),
+    credit(3, 'Talk Show', 'Self'),
+    credit(4, 'Tribute', 'Himself - Guest'),
+    credit(5, 'Gala', 'Herself'),
+    credit(6, 'Cameo', 'Self (uncredited)'),
+    credit(7, 'Clip Film', 'Self (archive footage)'),
+    credit(8, 'Clip Film Two', 'Nick Fury (archive footage)'),
+    credit(9, 'Self-Made Man', 'Self-Made Man'),
+    credit(10, 'No Character', ''),
+    credit(11, 'Making Of', 'Self', 99),
+  ]
+  const routes = {
+    '/person/1/movie_credits': {
+      cast: CAST,
+      crew: [{ ...credit(3, 'Talk Show', ''), job: 'Director' }],
+    },
+  }
+  const titlesOf = async (options: Parameters<typeof createTmdbAdapter>[1]) =>
+    (await createTmdbAdapter(credentials, options, router(routes)).expand('person:1', { runtimes: 'skip' })).items.map(
+      (item) => item.title,
+    )
+
+  it('leaves out a credit as Self, Himself or Herself, and any archive footage', async () => {
+    const titles = await titlesOf({})
+
+    expect(titles).not.toContain('Talk Show')
+    expect(titles).not.toContain('Tribute')
+    expect(titles).not.toContain('Gala')
+    expect(titles).not.toContain('Clip Film')
+    expect(titles).not.toContain('Clip Film Two')
+  })
+
+  it('keeps an uncredited role, and an uncredited Self, because a completionist wants them', async () => {
+    expect(await titlesOf({})).toEqual(expect.arrayContaining(['Uncredited Role', 'Cameo']))
+  })
+
+  it('keeps a role that only starts like the word, and a credit with no character at all', async () => {
+    expect(await titlesOf({})).toEqual(expect.arrayContaining(['A Role', 'Self-Made Man', 'No Character']))
+  })
+
+  it('keeps them on the Documentaries shelf, where an appearance as oneself is the point', async () => {
+    expect(await titlesOf({ documentaries: 'only' })).toEqual(['Making Of'])
+  })
+
+  it('does not drop a film the person also directed, when directing is read', async () => {
+    expect(await titlesOf({ includeDirecting: true })).toContain('Talk Show')
+  })
+})
+
 describe('TMDB listing without runtimes (15.2)', () => {
   const routes = {
     '/person/18897/movie_credits': {

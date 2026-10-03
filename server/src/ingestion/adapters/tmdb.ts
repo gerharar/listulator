@@ -38,6 +38,7 @@ interface CollectionResult {
 interface CreditEntry {
   id: number
   title?: string
+  character?: string
   release_date?: string
   genre_ids?: number[]
 }
@@ -305,6 +306,21 @@ export async function enrichMovieRuntimes(
   return new Map(answers)
 }
 
+/**
+ * An appearance as oneself, not a role: a talk show, a tribute, a clip film (BL-045). TMDB credits these as
+ * "Self", "Himself - Guest" or "(archive footage)" and does not tag them as documentaries, so a prolific
+ * actor's filmography filled with them (John Wayne 21 of 310, Samuel L. Jackson 18). "(uncredited)" is
+ * kept on purpose: Nick Fury in Iron Man is credited that way, and a completionist wants the film.
+ */
+const SELF_CHARACTER = /(?:^|\/\s*)(?:self|himself|herself|themselves)(?![\w'-])/i
+
+function isAppearanceAsSelf(character: string | undefined): boolean {
+  if (!character) return false
+  if (/archive footage/i.test(character)) return true
+
+  return SELF_CHARACTER.test(character.trim()) && !/uncredited/i.test(character)
+}
+
 export interface TmdbFilmOptions {
   /**
    * How to treat documentaries in a filmography.
@@ -432,7 +448,10 @@ export function createTmdbAdapter(
 
         // A person can be credited twice on one film; keep the first.
         const byFilm = new Map<number, CreditEntry>()
-        for (const entry of [...(credits.cast ?? []), ...directed]) {
+        // Appearances as oneself go before the merge, so a film the person also directed stays.
+        const played = documentaries === 'only' ? (credits.cast ?? []) : (credits.cast ?? []).filter((entry) => !isAppearanceAsSelf(entry.character))
+
+        for (const entry of [...played, ...directed]) {
           if (!byFilm.has(entry.id)) byFilm.set(entry.id, entry)
         }
 
