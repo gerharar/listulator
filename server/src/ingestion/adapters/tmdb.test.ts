@@ -27,6 +27,15 @@ function router(routes: Record<string, unknown>): FetchLike {
 
 const credentials = { apiKey: 'test-key', readAccessToken: undefined }
 
+/** The network drops on one path; every other request goes to `inner`. */
+function unreachableAt(path: string, inner: FetchLike): FetchLike {
+  return async (url, init) => {
+    if (new URL(url).pathname.replace('/3', '') === path) throw new TypeError('fetch failed')
+
+    return inner(url, init)
+  }
+}
+
 describe('TMDB adapter availability', () => {
   it('is unavailable with no credentials, so the category simply has no search', () => {
     expect(
@@ -372,6 +381,73 @@ describe('appearances as themselves (BL-045)', () => {
   })
 })
 
+describe('a scoped search offers only what has something to list (BL-052)', () => {
+  const film = (id: number, genres: number[], date = PAST) => ({ id, title: `Film ${id}`, release_date: date, genre_ids: genres })
+  const routes = {
+    '/search/collection': { results: [{ id: 1, name: 'Animated Collection' }, { id: 2, name: 'Live Collection' }, { id: 3, name: 'Unreachable Collection' }] },
+    '/search/person': {
+      results: [10, 11, 12, 13, 14].map((id) => ({ id, name: `Person ${id}` })),
+    },
+    '/collection/1': { parts: [film(1, [16]), film(2, [28])] },
+    '/collection/2': { parts: [film(3, [28])] },
+    '/person/10/movie_credits': { cast: [{ ...film(4, [16]), character: 'Voice' }] },
+    '/person/11/movie_credits': { cast: [{ ...film(5, [28]), character: 'Hero' }] },
+    // Directed an animated film, appears in none.
+    '/person/12/movie_credits': { cast: [], crew: [{ ...film(6, [16]), job: 'Director' }] },
+    // Their only animated credit is an appearance as themselves, which a list leaves out (BL-045).
+    '/person/13/movie_credits': { cast: [{ ...film(7, [16]), character: 'Self' }] },
+    // Their only animated film is not out yet.
+    '/person/14/movie_credits': { cast: [{ ...film(8, [16], FUTURE), character: 'Voice' }] },
+  }
+  const animation = { kinds: ['collection', 'person'], genreFilter: 16, includeDirecting: true, documentaries: 'include' } as const
+  const refs = async (adapter: ReturnType<typeof createTmdbAdapter>) => (await adapter.search('x')).map((source) => source.externalRef)
+
+  it('drops a collection and a person with nothing animated to list, as the list itself would', async () => {
+    const found = await refs(createTmdbAdapter(credentials, animation, unreachableAt('/collection/3', router(routes))))
+
+    // Kept: the animated collection, a voice actor, a director who does not appear; and the collection whose
+    // check could not be made (below). Dropped: live action, only "Self", only unreleased.
+    expect(found).toEqual(['collection:1', 'collection:3', 'person:10', 'person:12'])
+  })
+
+  it('keeps a result whose check could not be made, rather than hiding it on a network error', async () => {
+    const found = await refs(createTmdbAdapter(credentials, animation, unreachableAt('/collection/3', router(routes))))
+
+    expect(found).toContain('collection:3')
+  })
+
+  it('asks only for what the search shows, one request each, and never lists the films', async () => {
+    const fetchImpl = router(routes)
+    await createTmdbAdapter(credentials, animation, fetchImpl).search('x')
+
+    const paths = vi.mocked(fetchImpl).mock.calls.map(([url]) => new URL(url).pathname.replace('/3', ''))
+    expect(paths.filter((path) => path.startsWith('/movie/'))).toEqual([])
+    expect([...paths].sort()).toEqual(
+      ['/search/collection', '/search/person', ...[1, 2, 3].map((id) => `/collection/${id}`), ...[10, 11, 12, 13, 14].map((id) => `/person/${id}/movie_credits`)].sort(),
+    )
+  })
+
+  it('applies to the Documentaries shelf too: a person with no documentary is not offered', async () => {
+    const credits = {
+      '/search/person': { results: [{ id: 20, name: 'Documentarian' }, { id: 21, name: 'Actor' }] },
+      '/person/20/movie_credits': { cast: [{ ...film(1, [99]), character: 'Narrator' }] },
+      '/person/21/movie_credits': { cast: [{ ...film(2, [18]), character: 'Hero' }] },
+    }
+    const adapter = createTmdbAdapter(credentials, { kinds: ['person'], documentaries: 'only', includeDirecting: true }, router(credits))
+
+    expect(await refs(adapter)).toEqual(['person:20'])
+  })
+
+  it('leaves an unscoped search alone: Movies makes no extra request', async () => {
+    const fetchImpl = router(routes)
+    const found = await refs(createTmdbAdapter(credentials, {}, fetchImpl))
+
+    expect(found).toHaveLength(8)
+    const paths = vi.mocked(fetchImpl).mock.calls.map(([url]) => new URL(url).pathname.replace('/3', ''))
+    expect(paths.sort()).toEqual(['/search/collection', '/search/person'])
+  })
+})
+
 describe('TMDB listing without runtimes (15.2)', () => {
   const routes = {
     '/person/18897/movie_credits': {
@@ -529,7 +605,8 @@ describe('TMDB collections alone, keeping one genre (the Animation shelf)', () =
     const found = await createTmdbAdapter(credentials, options, fetchImpl).search('toy story')
 
     expect(found).toEqual([{ externalRef: 'collection:10194', title: 'Toy Story Collection', detail: 'Collection' }])
-    expect(vi.mocked(fetchImpl).mock.calls.map(([url]) => new URL(url).pathname)).toEqual(['/3/search/collection'])
+    // The collection itself is read once, to see it holds something animated (BL-052); no person is asked for.
+    expect(vi.mocked(fetchImpl).mock.calls.map(([url]) => new URL(url).pathname)).toEqual(['/3/search/collection', '/3/collection/10194'])
   })
 
   it('lists only the collection’s released films of that genre', async () => {

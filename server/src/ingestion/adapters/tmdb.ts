@@ -380,6 +380,58 @@ export function createTmdbAdapter(
       }))
   }
 
+  /**
+   * The released films a collection or a person's credits give, as the list would hold them (before any
+   * lengths), or undefined for a ref this adapter does not take. One request.
+   */
+  async function filmsOf(kind: string | undefined, id: string | undefined) {
+    // The id goes straight into the request path: refuse anything but digits, as the other TMDB adapters do.
+    if (!id || !/^\d+$/.test(id)) return undefined
+
+    const today = new Date().toISOString().slice(0, 10)
+
+    if (kind === 'collection' && kinds.includes('collection')) {
+      const collection = await request<CollectionDetail>(`/collection/${id}`)
+
+      return usableCredits(collection.parts ?? [], today)
+    }
+
+    if (kind === 'person' && kinds.includes('person')) {
+      const credits = await request<{ cast?: CreditEntry[]; crew?: CrewEntry[] }>(`/person/${id}/movie_credits`)
+
+      const directed = includeDirecting ? (credits.crew ?? []).filter((entry) => entry.job === 'Director') : []
+
+      // A person can be credited twice on one film; keep the first.
+      const byFilm = new Map<number, CreditEntry>()
+      // Appearances as oneself go before the merge, so a film the person also directed stays.
+      const played = documentaries === 'only' ? (credits.cast ?? []) : (credits.cast ?? []).filter((entry) => !isAppearanceAsSelf(entry.character))
+
+      for (const entry of [...played, ...directed]) {
+        if (!byFilm.has(entry.id)) byFilm.set(entry.id, entry)
+      }
+
+      return usableCredits([...byFilm.values()], today)
+    }
+
+    return undefined
+  }
+
+  /**
+   * A shelf that keeps to one genre offers only what has something of it to list (BL-052): a collection or a
+   * person whose list would be empty is not worth a place in the results. The check is the list itself, one
+   * request, and a check that fails keeps the result: a network error must not hide a real one.
+   */
+  const scoped = Boolean(genreFilter) || documentaries === 'only'
+  async function hasFilms(source: ListSource): Promise<boolean> {
+    const [kind, id] = source.externalRef.split(':')
+
+    try {
+      return ((await filmsOf(kind, id)) ?? [{}]).length > 0
+    } catch {
+      return true
+    }
+  }
+
   return {
     isAvailable: isConfigured,
 
@@ -420,7 +472,12 @@ export function createTmdbAdapter(
         }),
       )
 
-      return [...asCollections, ...asPeople]
+      const offered = [...asCollections, ...asPeople]
+      if (!scoped) return offered
+
+      const keep = await Promise.all(offered.map(hasFilms))
+
+      return offered.filter((_, index) => keep[index])
     },
 
     // No upstream signal for whether this is finished, so no `status` (BL-013).
@@ -429,39 +486,9 @@ export function createTmdbAdapter(
 
     expand: itemsOnly(async (externalRef, options) => {
       const [kind, id] = externalRef.split(':')
-      // The id goes straight into the request path: refuse anything but digits, as the other TMDB adapters do.
-      if (!id || !/^\d+$/.test(id)) return []
+      const films = await filmsOf(kind, id)
 
-      const today = new Date().toISOString().slice(0, 10)
-
-      if (kind === 'collection' && kinds.includes('collection')) {
-        const collection = await request<CollectionDetail>(`/collection/${id}`)
-
-        return listFilms(client, usableCredits(collection.parts ?? [], today), options)
-      }
-
-      if (kind === 'person' && kinds.includes('person')) {
-        const credits = await request<{ cast?: CreditEntry[]; crew?: CrewEntry[] }>(
-          `/person/${id}/movie_credits`,
-        )
-
-        const directed = includeDirecting
-          ? (credits.crew ?? []).filter((entry) => entry.job === 'Director')
-          : []
-
-        // A person can be credited twice on one film; keep the first.
-        const byFilm = new Map<number, CreditEntry>()
-        // Appearances as oneself go before the merge, so a film the person also directed stays.
-        const played = documentaries === 'only' ? (credits.cast ?? []) : (credits.cast ?? []).filter((entry) => !isAppearanceAsSelf(entry.character))
-
-        for (const entry of [...played, ...directed]) {
-          if (!byFilm.has(entry.id)) byFilm.set(entry.id, entry)
-        }
-
-        return listFilms(client, usableCredits([...byFilm.values()], today), options)
-      }
-
-      return []
+      return films ? listFilms(client, films, options) : []
     }),
   }
 }

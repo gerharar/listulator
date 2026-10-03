@@ -197,3 +197,69 @@ describe('TMDB studio lists leave documentaries to the Documentaries shelf (owne
   })
 })
 
+describe('a scoped studio search offers only studios with something to list (BL-052)', () => {
+  /** Studio 3 has an animated film out, 4 none, 5 only an unreleased one; 6 cannot be checked. */
+  function studios() {
+    const asked: URLSearchParams[] = []
+    const fetchImpl: FetchLike = vi.fn(async (url: string) => {
+      const target = new URL(url)
+      if (target.pathname === '/3/search/company') {
+        return new Response(
+          JSON.stringify({ results: [3, 4, 5, 6].map((id) => ({ id, name: `Studio ${id}`, origin_country: 'US' })) }),
+        )
+      }
+      if (target.pathname === '/3/discover/movie') {
+        asked.push(target.searchParams)
+        const company = target.searchParams.get('with_companies')
+        if (company === '6') throw new TypeError('fetch failed')
+        const results =
+          company === '3'
+            ? [{ id: 1, title: 'Old', release_date: '1995-11-22' }]
+            : company === '5'
+              ? [{ id: 2, title: 'Announced', release_date: '2099-01-01' }]
+              : []
+
+        return new Response(JSON.stringify({ total_pages: 1, total_results: results.length, results }))
+      }
+
+      return new Response('{}', { status: 404 })
+    })
+
+    return { fetchImpl, asked }
+  }
+  const offered = async (adapter: ReturnType<typeof createTmdbCompanyAdapter>) =>
+    (await adapter.search('x')).map((source) => source.externalRef)
+
+  it('drops a studio with no released animated film, and keeps one that could not be checked', async () => {
+    const { fetchImpl } = studios()
+
+    expect(await offered(createTmdbCompanyAdapter(credentials, { genreFilter: 16, documentaries: 'include' }, fetchImpl))).toEqual([
+      'company:3',
+      'company:6',
+    ])
+  })
+
+  it('asks for the first page only, with the shelf’s own genre, as the list itself would', async () => {
+    const { fetchImpl, asked } = studios()
+    await createTmdbCompanyAdapter(credentials, { genreFilter: 16, documentaries: 'include' }, fetchImpl).search('x')
+
+    // (A dropped connection is tried once more by the client, so studio 6 is asked twice.)
+    expect([...new Set(asked.map((query) => query.get('with_companies')))].sort()).toEqual(['3', '4', '5', '6'])
+    expect(asked.every((query) => query.get('with_genres') === '16' && query.get('page') === '1')).toBe(true)
+  })
+
+  it('applies to the Documentaries shelf: only studios with a documentary', async () => {
+    const { fetchImpl, asked } = studios()
+    const found = await offered(createTmdbCompanyAdapter(credentials, { documentaries: 'only' }, fetchImpl))
+
+    expect(found).toEqual(['company:3', 'company:6'])
+    expect(asked.every((query) => query.get('with_genres') === '99')).toBe(true)
+  })
+
+  it('leaves an unscoped search alone: Movies makes no extra request', async () => {
+    const { fetchImpl, asked } = studios()
+
+    expect(await offered(createTmdbCompanyAdapter(credentials, {}, fetchImpl))).toEqual(['company:3', 'company:4', 'company:5', 'company:6'])
+    expect(asked).toEqual([])
+  })
+})

@@ -53,6 +53,37 @@ export function createTmdbCompanyAdapter(
 ): SearchAdapter {
   const client = createTmdbClient(credentials, fetchImpl)
 
+  const discover = (id: string, page: number) =>
+    client.request<DiscoverResult>('/discover/movie', {
+      with_companies: id,
+      sort_by: 'primary_release_date.asc',
+      page: String(page),
+      // Genres are asked for together ("16,99" means both): a shelf's own genre and, for documentaries only, 99.
+      ...(genreFilter || documentaries === 'only'
+        ? { with_genres: [genreFilter, documentaries === 'only' ? DOCUMENTARY_GENRE : undefined].filter(Boolean).join(',') }
+        : {}),
+      // Asked of TMDB, not filtered here, so the pages and the count are exact.
+      ...(documentaries === 'exclude' ? { without_genres: String(DOCUMENTARY_GENRE) } : {}),
+    })
+
+  /**
+   * A shelf that keeps to one genre offers only a studio that has a released film of it (BL-052). The check is
+   * the list's own first page, which is sorted oldest first, so an unreleased first film means nothing is out;
+   * a check that fails keeps the studio: a network error must not hide a real one.
+   */
+  const scoped = Boolean(genreFilter) || documentaries === 'only'
+  async function hasFilms(company: { id: number }): Promise<boolean> {
+    const today = new Date().toISOString().slice(0, 10)
+
+    try {
+      return ((await discover(String(company.id), 1)).results ?? []).some(
+        (film) => film.title && film.release_date && film.release_date <= today,
+      )
+    } catch {
+      return true
+    }
+  }
+
   return {
     isAvailable: client.isConfigured,
 
@@ -61,9 +92,11 @@ export function createTmdbCompanyAdapter(
         query,
       })
 
-      return (response.results ?? [])
-        .filter((company) => company.name)
-        .slice(0, 5)
+      const candidates = (response.results ?? []).filter((company) => company.name).slice(0, 5)
+      const keep = scoped ? await Promise.all(candidates.map(hasFilms)) : candidates.map(() => true)
+
+      return candidates
+        .filter((_, index) => keep[index])
         .map(
           (company): ListSource => ({
             externalRef: `company:${company.id}`,
@@ -84,18 +117,7 @@ export function createTmdbCompanyAdapter(
       const today = new Date().toISOString().slice(0, 10)
       const films: { id: number; title: string; year?: number }[] = []
 
-      const fetchPage = (page: number) =>
-        client.request<DiscoverResult>('/discover/movie', {
-          with_companies: id,
-          sort_by: 'primary_release_date.asc',
-          page: String(page),
-          // Genres are asked for together ("16,99" means both): a shelf's own genre and, for documentaries only, 99.
-          ...(genreFilter || documentaries === 'only'
-            ? { with_genres: [genreFilter, documentaries === 'only' ? DOCUMENTARY_GENRE : undefined].filter(Boolean).join(',') }
-            : {}),
-          // Asked of TMDB, not filtered here, so the pages and the count are exact.
-          ...(documentaries === 'exclude' ? { without_genres: String(DOCUMENTARY_GENRE) } : {}),
-        })
+      const fetchPage = (page: number) => discover(id, page)
 
       // The first page says how many there are; the rest are asked for eight at a time, up to the last
       // page TMDB serves. Every page, in order: nothing is cut off at an arbitrary number.
