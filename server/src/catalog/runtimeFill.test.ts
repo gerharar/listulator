@@ -459,6 +459,39 @@ describe('the runtime runner (15.4)', () => {
     })
   })
 
+  describe('a registry that changes while the app runs (the desktop rebuilds it when a key is saved)', () => {
+    it('reads the media types when a run starts, not when the runner was made', async () => {
+      const source = fakeSource()
+      const list = await listOfFilms(2)
+      let registry: MediaType[] = [movieType(undefined)]
+      const runner = createRuntimeFiller({ db: db(), mediaTypes: () => registry, now: () => NOW, sleep: async () => undefined })
+
+      expect((await runner.fill(list.id)).outcome).toBe('unsupported')
+
+      registry = [movieType(source.adapter)]
+      expect((await runner.fill(list.id)).outcome).toBe('done')
+      expect(source.calls.flat()).toEqual(['movie:1', 'movie:2'])
+    })
+
+    it('also when the registry is only known after waiting for it', async () => {
+      const source = fakeSource()
+      const list = await listOfFilms(2)
+      const runner = createRuntimeFiller({
+        db: db(),
+        mediaTypes: async () => {
+          await Promise.resolve()
+
+          return [movieType(source.adapter)]
+        },
+        now: () => NOW,
+        sleep: async () => undefined,
+      })
+
+      expect(await runner.pendingCount(list.id)).toBe(2)
+      expect(await runner.fillAll()).toEqual({ lists: 1 })
+    })
+  })
+
   describe('enrichPrefixesByMediaType', () => {
     it('names the kinds of ref to look up for each category whose source can do it and is available', () => {
       const unavailable = fakeSource()

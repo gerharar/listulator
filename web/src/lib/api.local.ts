@@ -29,8 +29,16 @@ import {
   updateList as repoUpdateList,
   updateListItem,
   type ListWithStats,
+  type RuntimeStatsOptions,
 } from '../../../server/src/catalog/repository.js'
 import { createListItems, discardList } from '../../../server/src/catalog/bulkItems.js'
+import { knownRuntimes, withKnownRuntimes } from '../../../server/src/catalog/runtimes.js'
+import {
+  createRuntimeFiller,
+  createSourceLimiters,
+  enrichPrefixesByMediaType,
+  type RuntimeFiller,
+} from '../../../server/src/catalog/runtimeFill.js'
 import {
   dismissalTitleKey,
   type ListGroup as SchemaListGroup,
@@ -79,7 +87,7 @@ import { ApiError } from './api.js'
 import { checkNameLengths } from './nameLimit.js'
 import { createLocalDb, type LocalDatabase } from './db/localDb.js'
 import { getLocalCurrentUser } from './db/localUser.js'
-import { toMediaTypeInfo } from '../../../server/src/ingestion/mediaTypes.js'
+import { toMediaTypeInfo, type ExpandOptions } from '../../../server/src/ingestion/mediaTypes.js'
 import { searchSources, SearchUnavailableError } from '../../../server/src/ingestion/search.js'
 import { refForAdapter } from '../../../server/src/ingestion/sourceRef.js'
 import {
@@ -137,6 +145,7 @@ function toMediaList(list: ListWithStats): MediaList {
       completionPercent: list.stats.completionPercent,
       timeRemainingMinutes: list.stats.timeRemainingMinutes,
       lastConsumedAt: list.stats.lastConsumedAt?.toISOString() ?? null,
+      runtimesPending: list.stats.runtimesPending ?? 0,
     },
   }
 }
@@ -283,7 +292,61 @@ export function startLocalSourceCopySchedule(): void {
 import.meta.hot?.dispose(() => {
   stopSourceCopyCheck?.()
   stopSourceCopyCheck = undefined
+  stopRuntimeFill.abort()
 })
+
+/** Stops the lookup of lengths when the app closes (or this module is reloaded): nothing outlives it. */
+const stopRuntimeFill = new AbortController()
+let runtimeFiller: Promise<RuntimeFiller> | undefined
+let launchFill: Promise<void> | undefined
+
+/**
+ * The one runner that looks up the lengths of items a list was built without (task 15.6; the server's is
+ * `app.runtimeFiller`, 15.5): the local database, the registry as it is when a run starts (Settings
+ * rebuilds it when a key is saved), one pacing limiter per source, stopped when the window goes.
+ */
+export function getLocalRuntimeFiller(): Promise<RuntimeFiller> {
+  runtimeFiller ??= createLocalDb().then((db) => {
+    if (typeof window !== 'undefined') window.addEventListener('pagehide', () => stopRuntimeFill.abort(), { once: true })
+
+    return createRuntimeFiller({
+      db,
+      mediaTypes: () => getLocalMediaTypes(),
+      limiterFor: createSourceLimiters(),
+      signal: stopRuntimeFill.signal,
+    })
+  })
+
+  return runtimeFiller
+}
+
+/**
+ * At launch, picks up every list whose lengths were not all looked up when the app was last open: the
+ * pending state is in the database, so this resumes whatever was cut off. Resolves when that is done;
+ * safe to call more than once (the second call is the first run).
+ */
+export function startLocalRuntimeFill(): Promise<void> {
+  launchFill ??= getLocalRuntimeFiller()
+    .then((filler) => filler.fillAll())
+    .then((summary) => {
+      if (summary.lists > 0) console.info('lengths looked up for lists:', summary.lists)
+    })
+    .catch((error: unknown) => console.error('looking up lengths failed:', error))
+
+  return launchFill
+}
+
+/** Looks up a list's missing lengths in the background: not awaited, and never a reason to fail the call. */
+function startRuntimeFill(listId: string): void {
+  getLocalRuntimeFiller()
+    .then((filler) => filler.fill(listId))
+    .catch((error: unknown) => console.error('looking up lengths failed:', error))
+}
+
+/** What the list stats need to count the lengths still to look up: the registry as it is now. */
+async function runtimeStats(): Promise<RuntimeStatsOptions> {
+  return { prefixesByMediaType: enrichPrefixesByMediaType(await getLocalMediaTypes()) }
+}
 
 export function createLocalApi(): ApiClient {
   let db: LocalDatabase | undefined
@@ -351,28 +414,34 @@ export function createLocalApi(): ApiClient {
 
     lists: async () => {
       const [database, userId] = [await getDb(), await getUserId()]
-      return (await findListsWithStats(database, userId)).map(toMediaList)
+      return (await findListsWithStats(database, userId, await runtimeStats())).map(toMediaList)
     },
 
     list: async (id) => {
       const [database, userId] = [await getDb(), await getUserId()]
-      const list = await findListWithStats(database, userId, id)
+      const list = await findListWithStats(database, userId, id, await runtimeStats())
       if (!list) throw notFound()
 
       const items = (await findListItems(database, userId, id)) ?? []
       const groups = (await findListGroups(database, userId, id)) ?? []
-      return {
+      const detail = {
         ...toMediaList(list),
         items: items.map(toListItem),
         groups: groups.map(toListGroup),
       } satisfies MediaListDetail
+
+      // Opening a list tops up its lengths, in the background, started after the read so the answer shows
+      // what the count in it counted (mirrors catalog/routes.ts, 15.5).
+      if ((list.stats.runtimesPending ?? 0) > 0) startRuntimeFill(list.id)
+
+      return detail
     },
 
     createList: async (input) => {
       checkNameLengths({ title: input.title })
       const [database, userId] = [await getDb(), await getUserId()]
       const created = await repoCreateList(database, userId, input)
-      const withStats = await findListWithStats(database, userId, created.id)
+      const withStats = await findListWithStats(database, userId, created.id, await runtimeStats())
       return toMediaList(withStats!)
     },
 
@@ -381,7 +450,7 @@ export function createLocalApi(): ApiClient {
       const [database, userId] = [await getDb(), await getUserId()]
       const updated = await repoUpdateList(database, userId, id, patch)
       if (!updated) throw notFound()
-      const withStats = await findListWithStats(database, userId, updated.id)
+      const withStats = await findListWithStats(database, userId, updated.id, await runtimeStats())
       return toMediaList(withStats!)
     },
 
@@ -404,7 +473,7 @@ export function createLocalApi(): ApiClient {
         throw cause
       }
 
-      const withStats = await findListWithStats(database, userId, restore.list.id)
+      const withStats = await findListWithStats(database, userId, restore.list.id, await runtimeStats())
       return toMediaList(withStats!)
     },
 
@@ -750,7 +819,7 @@ export function createLocalApi(): ApiClient {
           throw error
         }
 
-        const withStats = await findListWithStats(database, userId, list.id)
+        const withStats = await findListWithStats(database, userId, list.id, await runtimeStats())
         return toMediaList(withStats!)
       }
 
@@ -770,12 +839,25 @@ export function createLocalApi(): ApiClient {
       })
 
       // Expanded before the list is created, so a failure upstream does not
-      // leave an empty list behind.
-      const cacheKey = expansionCacheKey(key, adapterRef)
+      // leave an empty list behind. A source that can look lengths up afterwards is listed without them
+      // and its list made at once (mirrors ingestion/routes.ts, 15.5).
       const adapter = mediaType.adapter
-      const { items: candidates, status } = await expansions.get(cacheKey, () =>
-        adapter.expand(adapterRef),
+      const lookedUpLater = Boolean(adapter.enrich && adapter.enrichPrefixes?.length)
+      const expandOptions: ExpandOptions | undefined = lookedUpLater ? { runtimes: 'skip' } : undefined
+      const cacheKey = expansionCacheKey(key, adapterRef, expandOptions)
+      const { items: listed, status } = await expansions.get(cacheKey, () =>
+        expandOptions ? adapter.expand(adapterRef, expandOptions) : adapter.expand(adapterRef),
       )
+      const candidates = lookedUpLater
+        ? withKnownRuntimes(
+            listed,
+            await knownRuntimes(
+              database,
+              listed.filter((item) => item.externalRef && item.timeToConsumeMinutes === undefined).map((item) => item.externalRef!),
+              new Date(),
+            ),
+          )
+        : listed
       if (candidates.length === 0) {
         throw new ApiError(copy.errors['list.sourceEmpty']({ title }), 422, 'list.sourceEmpty')
       }
@@ -834,7 +916,10 @@ export function createLocalApi(): ApiClient {
       // The list exists now; another add of this source should see upstream then.
       expansions.evict(cacheKey)
 
-      const withStats = await findListWithStats(database, userId, list.id)
+      // The lengths are looked up after the reply: not awaited.
+      const withStats = await findListWithStats(database, userId, list.id, await runtimeStats())
+      if (lookedUpLater) startRuntimeFill(list.id)
+
       return toMediaList(withStats!)
     },
 
@@ -894,7 +979,7 @@ export function createLocalApi(): ApiClient {
         throw error
       }
 
-      const withStats = await findListWithStats(database, userId, list.id)
+      const withStats = await findListWithStats(database, userId, list.id, await runtimeStats())
       return toMediaList(withStats!)
     },
 

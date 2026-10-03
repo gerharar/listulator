@@ -46,7 +46,11 @@ export const RUNTIME_BATCH_INTERVAL_MS = 200
 
 export interface RuntimeFillDeps {
   db: PortableDatabase
-  mediaTypes: readonly MediaType[]
+  /**
+   * The categories, or a function that gives them: asked for at the start of every run, so a registry
+   * that is rebuilt while the app runs (the desktop does when a key is saved in Settings) is followed.
+   */
+  mediaTypes: readonly MediaType[] | (() => readonly MediaType[] | Promise<readonly MediaType[]>)
   /** Injectable so expiry is testable without waiting. */
   now?: () => Date
   /** Injectable so the backoff is testable without waiting. */
@@ -156,8 +160,11 @@ export function createRuntimeFiller({
   /** One run per list: asking again while one is going gets that run. */
   const running = new Map<string, Promise<FillResult>>()
 
-  const supportFor = (mediaTypeKey: string) => {
-    const mediaType = mediaTypes.find((entry) => entry.key === mediaTypeKey)
+  const currentMediaTypes = async (): Promise<readonly MediaType[]> =>
+    typeof mediaTypes === 'function' ? await mediaTypes() : mediaTypes
+
+  const supportFor = (all: readonly MediaType[], mediaTypeKey: string) => {
+    const mediaType = all.find((entry) => entry.key === mediaTypeKey)
     const adapter = mediaType?.adapter
     const prefixes = adapter?.enrichPrefixes ?? []
 
@@ -175,7 +182,7 @@ export function createRuntimeFiller({
     const list = await listRow(listId)
     if (!list) return { ...result, outcome: 'list-gone' }
 
-    const support = supportFor(list.mediaType)
+    const support = supportFor(await currentMediaTypes(), list.mediaType)
     if (!support) return { ...result, outcome: 'unsupported' }
     const { mediaType, enrich, prefixes } = support
 
@@ -305,11 +312,12 @@ export function createRuntimeFiller({
         .orderBy(asc(lists.createdAt), asc(lists.id))
         .all()
 
+      const all = await currentMediaTypes()
       let ran = 0
       for (const { id, mediaType } of everyList) {
         if (signal?.aborted) break
 
-        const support = supportFor(mediaType)
+        const support = supportFor(all, mediaType)
         if (!support || !support.mediaType.adapter!.isAvailable()) continue
         if ((await estimatedRefsFor(db, id, support.prefixes)).length === 0) continue
 
@@ -323,7 +331,7 @@ export function createRuntimeFiller({
     /** How many items of the list are still waiting for a length: the progress. */
     async pendingCount(listId: string): Promise<number> {
       const list = await listRow(listId)
-      const support = list ? supportFor(list.mediaType) : undefined
+      const support = list ? supportFor(await currentMediaTypes(), list.mediaType) : undefined
 
       return support ? (await pendingFor(db, listId, now(), support.prefixes)).length : 0
     },
