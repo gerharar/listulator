@@ -46,8 +46,11 @@ function filmSource(options: { available?: boolean; answer?: (ref: string) => Ru
 
     return release
   }
+  /** A source can change after a list was built from it: `grow('first', [1, 2, 3, 4])`. */
+  const overrides = new Map<string, number[]>()
+  const grow = (ref: string, numbers: number[]) => void overrides.set(ref, numbers)
   const expand = vi.fn(async (ref: string, expandOptions?: ExpandOptions) => ({
-    items: (ref === 'huge' ? Array.from({ length: 10_001 }, (_, index) => index + 1) : ref === 'first' ? [1, 2, 3] : [2, 3, 4]).map(
+    items: (overrides.get(ref) ?? (ref === 'huge' ? Array.from({ length: 10_001 }, (_, index) => index + 1) : ref === 'first' ? [1, 2, 3] : [2, 3, 4])).map(
       (n): MediaTypeCandidate => ({
         title: `Film ${n}`,
         externalRef: `film:${n}`,
@@ -70,7 +73,7 @@ function filmSource(options: { available?: boolean; answer?: (ref: string) => Ru
     enrichPrefixes: ['film'],
   }
 
-  return { adapter, expand, enrich, hold }
+  return { adapter, expand, enrich, hold, grow }
 }
 
 const movieType = (adapter: SearchAdapter): MediaType => ({
@@ -238,6 +241,72 @@ describe('the desktop builds a list at once and fills its lengths afterwards (15
         message: expect.stringContaining('Everything TMDB has'),
       })
       expect(await api.lists()).toEqual([])
+    })
+  })
+
+  describe('Check for updates and Update List without the cost (15.10)', () => {
+    async function builtList(source: ReturnType<typeof filmSource>, ref = 'first', title = 'First') {
+      const started = await start(source)
+      const list = await started.api.createFromSource({ mediaType: 'movie', externalRef: ref, title })
+      await started.filler.fill(list.id)
+      source.expand.mockClear()
+      source.enrich.mockClear()
+
+      return { ...started, list }
+    }
+
+    it('lists the source without lengths, finds what is new, and looks nothing up to do it', async () => {
+      const source = filmSource()
+      const { api, list } = await builtList(source)
+      source.grow('first', [1, 2, 3, 4])
+
+      const found = await api.checkForUpdates(list.id)
+
+      expect(found).toMatchObject({ upstreamCount: 4, existingCount: 3 })
+      expect(found.newItems.map((item) => [item.title, item.timeToConsumeMinutes])).toEqual([['Film 4', undefined]])
+      expect(source.expand).toHaveBeenCalledExactlyOnceWith('first', { runtimes: 'skip' })
+      expect(source.enrich).not.toHaveBeenCalled()
+    })
+
+    it('adds a new film with the length another list already looked up, and nothing is left to look up', async () => {
+      const source = filmSource()
+      const { api, filler, list } = await builtList(source)
+      const other = await api.createFromSource({ mediaType: 'movie', externalRef: 'second', title: 'Second' })
+      await filler.fill(other.id)
+      source.enrich.mockClear()
+      source.grow('first', [1, 2, 3, 4])
+
+      const created = await api.importItems(list.id, (await api.checkForUpdates(list.id)).newItems, 'import', true)
+
+      expect(created.map((item) => [item.title, item.timeToConsumeMinutes, item.timeToConsumeIsEstimated])).toEqual([['Film 4', 104, false]])
+      expect(source.enrich).not.toHaveBeenCalled()
+    })
+
+    it('adds a film nobody has looked up with the estimate, and the runner fills it in afterwards', async () => {
+      const source = filmSource()
+      const { api, filler, list } = await builtList(source)
+      source.grow('first', [1, 2, 3, 5])
+      const release = source.hold()
+
+      const created = await api.importItems(list.id, (await api.checkForUpdates(list.id)).newItems, 'import', true)
+
+      expect(created.map((item) => [item.timeToConsumeMinutes, item.timeToConsumeIsEstimated])).toEqual([[DEFAULT_MINUTES, true]])
+      await vi.waitFor(() => expect(source.enrich).toHaveBeenCalledExactlyOnceWith(['film:5']))
+      release()
+      await filler.fill(list.id)
+
+      expect((await api.list(list.id)).items.find((item) => item.title === 'Film 5')).toMatchObject({ timeToConsumeMinutes: 105, timeToConsumeIsEstimated: false })
+    })
+
+    it('refuses a source that has grown past the ceiling, naming the list and the count', async () => {
+      const source = filmSource()
+      const { api, list } = await builtList(source)
+      source.grow('first', Array.from({ length: 10_001 }, (_, index) => index + 1))
+
+      await expect(api.checkForUpdates(list.id)).rejects.toMatchObject({
+        code: 'list.sourceTooLarge',
+        message: expect.stringContaining('First'),
+      })
     })
   })
 

@@ -24,9 +24,13 @@ function filmSource(options: { answer?: (ref: string) => RuntimeLookup } = {}) {
     return release
   }
 
+  /** A source can change after a list was built from it: `grow('first', [1, 2, 3, 4])`. */
+  const overrides = new Map<string, number[]>()
+  const grow = (ref: string, numbers: number[]) => void overrides.set(ref, numbers)
+
   const expand = vi.fn(async (ref: string, expandOptions?: ExpandOptions) => {
     const count = ref === 'huge' ? 10_001 : ref === 'limit' ? 10_000 : 10
-    const numbers = ref === 'first' ? [1, 2, 3] : ref === 'second' ? [2, 3, 4] : Array.from({ length: count }, (_, index) => index + 1)
+    const numbers = overrides.get(ref) ?? (ref === 'first' ? [1, 2, 3] : ref === 'second' ? [2, 3, 4] : Array.from({ length: count }, (_, index) => index + 1))
 
     return {
       items: numbers.map(
@@ -51,7 +55,7 @@ function filmSource(options: { answer?: (ref: string) => RuntimeLookup } = {}) {
     enrichPrefixes: ['film'],
   }
 
-  return { adapter, expand, enrich, hold }
+  return { adapter, expand, enrich, hold, grow }
 }
 
 describe('building a list at once and filling its lengths afterwards (15.5)', () => {
@@ -332,6 +336,91 @@ describe('building a list at once and filling its lengths afterwards (15.5)', ()
       expect(response.statusCode).toBe(422)
       expect(response.json()).toEqual({ code: 'list.sourceTooLarge', params: { title: 'Everything TMDB has', count: 10_001, max: 10_000 } })
       expect((await harness.app.inject({ method: 'GET', url: '/api/lists' })).json()).toEqual([])
+    })
+  })
+
+  describe('Check for updates and Update List without the cost (15.10)', () => {
+    const refresh = (listId: string) => harness.app.inject({ method: 'POST', url: `/api/lists/${listId}/refresh`, payload: {} })
+    const importItems = (listId: string, items: unknown[]) =>
+      harness.app.inject({ method: 'POST', url: `/api/lists/${listId}/items/import`, payload: { items, arrived: true } })
+
+    async function builtList(source: ReturnType<typeof filmSource>, ref = 'first', title = 'First') {
+      const list = (await fromSource(ref, title)).json()
+      await harness.app.runtimeFiller.fill(list.id)
+      source.expand.mockClear()
+      source.enrich.mockClear()
+
+      return list as { id: string }
+    }
+
+    it('lists the source without lengths, finds what is new, and looks nothing up to do it', async () => {
+      const source = filmSource()
+      harness = build(source.adapter)
+      const list = await builtList(source)
+      source.grow('first', [1, 2, 3, 4])
+
+      const response = await refresh(list.id)
+
+      expect(response.json()).toMatchObject({ upstreamCount: 4, existingCount: 3 })
+      expect(response.json().newItems.map((item: MediaTypeCandidate) => [item.title, item.timeToConsumeMinutes])).toEqual([['Film 4', undefined]])
+      expect(source.expand).toHaveBeenCalledExactlyOnceWith('first', { runtimes: 'skip' })
+      expect(source.enrich).not.toHaveBeenCalled()
+    })
+
+    it('adds a new film with the length another list already looked up: no estimate, nothing left to look up', async () => {
+      const source = filmSource()
+      harness = build(source.adapter)
+      const second = await builtList(source, 'second', 'Second')
+      const list = await builtList(source)
+      expect(second.id).toBeDefined()
+      source.grow('first', [1, 2, 3, 4])
+
+      const created = (await importItems(list.id, (await refresh(list.id)).json().newItems)).json()
+
+      expect(created.map((item: { title: string; timeToConsumeMinutes: number; timeToConsumeIsEstimated: boolean }) => [item.title, item.timeToConsumeMinutes, item.timeToConsumeIsEstimated])).toEqual([['Film 4', 104, false]])
+      expect(source.enrich).not.toHaveBeenCalled()
+    })
+
+    it('adds a film nobody has looked up with the estimate, and the runner fills it in afterwards', async () => {
+      const source = filmSource()
+      harness = build(source.adapter)
+      const list = await builtList(source)
+      source.grow('first', [1, 2, 3, 5])
+      const release = source.hold()
+
+      const created = (await importItems(list.id, (await refresh(list.id)).json().newItems)).json()
+
+      expect(created.map((item: { timeToConsumeMinutes: number; timeToConsumeIsEstimated: boolean }) => [item.timeToConsumeMinutes, item.timeToConsumeIsEstimated])).toEqual([[DEFAULT_MINUTES, true]])
+      // Started by the add itself, and waiting at the source until released.
+      await vi.waitFor(() => expect(source.enrich).toHaveBeenCalledExactlyOnceWith(['film:5']))
+      release()
+      await harness.app.runtimeFiller.fill(list.id)
+
+      const items = (await readList(list.id)).items
+      expect(items.at(-1)).toMatchObject({ title: 'Film 5', timeToConsumeMinutes: 105, timeToConsumeIsEstimated: false })
+    })
+
+    it('refuses a source that has grown past the ceiling, naming the list and the count', async () => {
+      const source = filmSource()
+      harness = build(source.adapter)
+      const list = await builtList(source)
+      source.grow('first', Array.from({ length: 10_001 }, (_, index) => index + 1))
+
+      const response = await refresh(list.id)
+
+      expect(response.statusCode).toBe(422)
+      expect(response.json()).toEqual({ code: 'list.sourceTooLarge', params: { title: 'First', count: 10_001, max: 10_000 } })
+    })
+
+    it('leaves a source with nothing to look up as it was: expanded in full, called with the ref alone', async () => {
+      harness = build(filmSource().adapter)
+      const list = (await fromSource('anything', 'Plain list', 'plain')).json()
+      plainExpand.mockClear()
+
+      const response = await refresh(list.id)
+
+      expect(response.statusCode).toBe(200)
+      expect(plainExpand).toHaveBeenCalledExactlyOnceWith('anything')
     })
   })
 

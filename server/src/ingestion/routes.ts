@@ -619,7 +619,17 @@ export const ingestionRoutes: FastifyPluginAsync<IngestionRoutesOptions> = async
           })
         }
 
-        upstream = await mediaType.adapter.expand(list.externalRef)
+        // Listed without lengths when the source can look them up afterwards (15.10): finding what is new
+        // costs a listing, not a request for every film, so checking does not scale with the list's size.
+        // Never through the cache: a check exists to see upstream as it is now.
+        const adapter = mediaType.adapter
+        const listingMode = listingOptions(adapter)
+        upstream = await (listingMode ? adapter.expand(list.externalRef, listingMode) : adapter.expand(list.externalRef))
+
+        // A source that has grown past what a list holds is refused, as on Add list: never cut short.
+        if (upstream.items.length > MAX_LIST_ITEMS) {
+          return sendApiError(reply, 422, 'list.sourceTooLarge', { title: list.title, count: upstream.items.length, max: MAX_LIST_ITEMS })
+        }
       }
       const upstreamItems = upstream.items
       const existing = (await findListItems(db, user.id, listId)) ?? []
@@ -759,13 +769,25 @@ export const ingestionRoutes: FastifyPluginAsync<IngestionRoutesOptions> = async
       // that they once deleted it has to go with it.
       await clearDismissals(db, listId, request.body.items)
 
+      // What was found by a check carries no length for a source whose lengths are looked up afterwards
+      // (15.10): a film some list has already looked up gets it here, the rest the estimate and then the
+      // runner (below).
+      const withKnownLengths = withKnownRuntimes(
+        request.body.items,
+        await knownRuntimes(
+          db,
+          request.body.items.filter((item) => item.externalRef && item.timeToConsumeMinutes === undefined).map((item) => item.externalRef!),
+          new Date(),
+        ),
+      )
+
       // One bulk insert (task 15.9b); it removes what it made if it fails part-way.
       const created =
         (await createListItems(
           db,
           user.id,
           listId,
-          request.body.items.map((item) => {
+          withKnownLengths.map((item) => {
             const known = item.timeToConsumeMinutes !== undefined
 
             return {
@@ -786,6 +808,9 @@ export const ingestionRoutes: FastifyPluginAsync<IngestionRoutesOptions> = async
       // Hand-typed items rarely carry years, so this mostly keeps the order
       // they were typed in; it is here so every import path seeds the same way.
       await seedGroupOrder(db, listId)
+
+      // Whatever is still without a length is looked up in the background, after the reply.
+      if (enrichPrefixesByMediaType(mediaTypes.list()).has(list.mediaType)) startRuntimeFill(listId)
 
       return reply.code(201).send(created)
     },

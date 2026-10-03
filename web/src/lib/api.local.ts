@@ -506,13 +506,24 @@ export function createLocalApi(): ApiClient {
       // deleted it has to go with it (matches ingestion/routes.ts).
       await clearDismissals(database, listId, items)
 
+      // What a check found carries no length for a source whose lengths are looked up afterwards (15.10): a
+      // film some list has already looked up gets it here, the rest the estimate and then the runner.
+      const withKnownLengths = withKnownRuntimes(
+        items,
+        await knownRuntimes(
+          database,
+          items.filter((item) => item.externalRef && item.timeToConsumeMinutes === undefined).map((item) => item.externalRef!),
+          new Date(),
+        ),
+      )
+
       // One bulk insert (task 15.9b); it removes what it made if it fails part-way.
       const created: SchemaListItem[] =
         (await createListItems(
           database,
           userId,
           listId,
-          items.map((item) => {
+          withKnownLengths.map((item) => {
             const known = item.timeToConsumeMinutes !== undefined
 
             return {
@@ -530,6 +541,9 @@ export function createLocalApi(): ApiClient {
           }),
         )) ?? []
       await seedGroupOrder(database, listId)
+
+      // Whatever is still without a length is looked up in the background.
+      if (enrichPrefixesByMediaType(await getLocalMediaTypes()).has(list.mediaType)) startRuntimeFill(listId)
 
       return created.map(toListItem)
     },
@@ -1045,7 +1059,17 @@ export function createLocalApi(): ApiClient {
           )
         }
 
-        upstream = await mediaType.adapter.expand(list.externalRef)
+        // Listed without lengths when the source can look them up afterwards (15.10, mirrors
+        // ingestion/routes.ts): finding what is new costs a listing, not a request for every film. Never
+        // through the cache: a check exists to see upstream as it is now.
+        const adapter = mediaType.adapter
+        const listingMode = listingOptions(adapter)
+        upstream = await (listingMode ? adapter.expand(list.externalRef, listingMode) : adapter.expand(list.externalRef))
+
+        // A source that has grown past what a list holds is refused, as on Add list.
+        if (upstream.items.length > MAX_LIST_ITEMS) {
+          throw tooLarge({ title: list.title, count: upstream.items.length, max: MAX_LIST_ITEMS })
+        }
       }
       const upstreamItems = upstream.items
       const existing = (await findListItems(database, userId, listId)) ?? []
