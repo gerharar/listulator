@@ -1,6 +1,6 @@
-import { and, eq, gt, inArray, isNotNull, lte, notExists, or, sql } from 'drizzle-orm'
+import { and, count, eq, gt, inArray, isNotNull, lte, notExists, or, sql } from 'drizzle-orm'
 import type { PortableDatabase } from '../db/client.js'
-import { itemRuntimes, listItems, listSnapshots } from '../db/schema.js'
+import { itemRuntimes, listItems, lists, listSnapshots } from '../db/schema.js'
 
 /**
  * The shared store of looked-up item lengths (task 15.3, `item_runtimes`), and
@@ -117,10 +117,9 @@ export function withKnownRuntimes<T extends { externalRef?: string; timeToConsum
   })
 }
 
-/** Items whose length is an estimate and whose ref is of one of `prefixes`, as a filter on a list. */
-function estimatedOf(listId: string, prefixes: readonly string[]) {
+/** Items whose length is an estimate and whose ref is of one of `prefixes`, as filter conditions. */
+function estimatedOf(prefixes: readonly string[]) {
   return [
-    eq(listItems.listId, listId),
     eq(listItems.timeToConsumeIsEstimated, true),
     isNotNull(listItems.externalRef),
     // The whole prefix and its colon, not a LIKE: `movie` must not match `movies:`.
@@ -145,7 +144,7 @@ export async function estimatedRefsFor(
   const rows = await db
     .select({ ref: listItems.externalRef })
     .from(listItems)
-    .where(and(...estimatedOf(listId, prefixes)))
+    .where(and(eq(listItems.listId, listId), ...estimatedOf(prefixes)))
     .orderBy(listItems.orderIndex, listItems.id)
     .all()
 
@@ -172,7 +171,8 @@ export async function pendingFor(
     .from(listItems)
     .where(
       and(
-        ...estimatedOf(listId, prefixes),
+        eq(listItems.listId, listId),
+        ...estimatedOf(prefixes),
         notExists(
           db
             .select({ one: sql`1` })
@@ -185,6 +185,60 @@ export async function pendingFor(
     .all()
 
   return [...new Set(rows.map((row) => row.ref!))]
+}
+
+/**
+ * How many items of each of a user's lists are still waiting for a length, for the list stats (15.5):
+ * the same test as `pendingFor`, counted per list in one grouped query for each distinct set of ref kinds
+ * (`prefixesByMediaType`: which categories can look up which kinds, from `enrichPrefixesByMediaType`),
+ * not one query per list. A list with nothing pending, or in a category that cannot look anything up,
+ * is absent. `listId` narrows it to one list.
+ */
+export async function pendingCounts(
+  db: PortableDatabase,
+  userId: string,
+  now: Date,
+  prefixesByMediaType: ReadonlyMap<string, readonly string[]>,
+  listId?: string,
+): Promise<Map<string, number>> {
+  // Categories that share a set of ref kinds share a query.
+  const bySignature = new Map<string, { prefixes: readonly string[]; mediaTypes: string[] }>()
+  for (const [mediaType, prefixes] of prefixesByMediaType) {
+    if (prefixes.length === 0) continue
+    const signature = [...prefixes].sort().join('|')
+    const group = bySignature.get(signature) ?? { prefixes, mediaTypes: [] }
+    group.mediaTypes.push(mediaType)
+    bySignature.set(signature, group)
+  }
+
+  const counts = new Map<string, number>()
+
+  for (const { prefixes, mediaTypes } of bySignature.values()) {
+    const rows = await db
+      .select({ listId: listItems.listId, pending: count(listItems.id) })
+      .from(listItems)
+      .innerJoin(lists, eq(lists.id, listItems.listId))
+      .where(
+        and(
+          eq(lists.userId, userId),
+          inArray(lists.mediaType, mediaTypes),
+          ...(listId ? [eq(lists.id, listId)] : []),
+          ...estimatedOf(prefixes),
+          notExists(
+            db
+              .select({ one: sql`1` })
+              .from(itemRuntimes)
+              .where(and(eq(itemRuntimes.ref, listItems.externalRef), gt(itemRuntimes.expiresAt, now))),
+          ),
+        ),
+      )
+      .groupBy(listItems.listId)
+      .all()
+
+    for (const row of rows) counts.set(row.listId, row.pending)
+  }
+
+  return counts
 }
 
 /**

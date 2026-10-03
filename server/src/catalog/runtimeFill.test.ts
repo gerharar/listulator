@@ -14,7 +14,7 @@ import {
   updateListItem,
 } from './repository.js'
 import { knownRuntimes, pendingFor, recordRuntimes } from './runtimes.js'
-import { createRuntimeFiller, createSourceLimiters, type RuntimeFillDeps } from './runtimeFill.js'
+import { createRuntimeFiller, createSourceLimiters, enrichPrefixesByMediaType, type RuntimeFillDeps } from './runtimeFill.js'
 
 const DAY = 24 * 60 * 60 * 1000
 const NOW = new Date('2026-10-03T12:00:00Z')
@@ -402,6 +402,77 @@ describe('the runtime runner (15.4)', () => {
 
       expect((await runner.fill('no-such-list')).outcome).toBe('list-gone')
       expect((await runner.fill((await listOfFilms(1, 'mystery')).id)).outcome).toBe('unsupported')
+    })
+  })
+
+  describe('a source that is not available (no key)', () => {
+    it('does nothing and asks for nothing, rather than calling a source that cannot answer', async () => {
+      const source = fakeSource()
+      source.adapter.isAvailable = () => false
+      const list = await listOfFilms(3)
+
+      expect(await filler(source).fill(list.id)).toMatchObject({ outcome: 'unavailable', filled: 0, pending: 3 })
+      expect(source.calls).toEqual([])
+    })
+  })
+
+  describe('fillAll: picking everything up where it was left (server start)', () => {
+    it('fills every list that has something to look up, one at a time, and leaves the rest', async () => {
+      const source = fakeSource()
+      const first = await listOfFilms(3)
+      const second = await listOfFilms(2)
+      const other = await listOfFilms(2, 'game')
+      const done = await createList(db(), userId, { title: 'Done', mediaType: 'movie' })
+      await createListItem(db(), userId, done.id, { title: 'Real', timeToConsumeMinutes: 100, timeToConsumeIsEstimated: false, externalRef: 'movie:900' })
+
+      const summary = await filler(source).fillAll()
+
+      expect(summary).toEqual({ lists: 2 })
+      expect((await items(first.id)).every((item) => !item.timeToConsumeIsEstimated)).toBe(true)
+      expect((await items(second.id)).every((item) => !item.timeToConsumeIsEstimated)).toBe(true)
+      expect((await items(other.id)).every((item) => item.timeToConsumeIsEstimated)).toBe(true)
+      expect(source.overlapped()).toBe(false)
+    })
+
+    it('also tops up a list whose estimated films another list has since looked up, without asking again', async () => {
+      const source = fakeSource()
+      const list = await listOfFilms(2)
+      await recordRuntimes(db(), [{ ref: 'movie:1', minutes: 77 }, { ref: 'movie:2', minutes: 88 }], { now: NOW, ttlDays: 150 })
+
+      await filler(source).fillAll()
+
+      expect(source.calls).toEqual([])
+      expect((await items(list.id)).map((item) => item.timeToConsumeMinutes)).toEqual([77, 88])
+    })
+
+    it('stops between lists when asked to', async () => {
+      const source = fakeSource()
+      await listOfFilms(3)
+      await listOfFilms(3)
+      const controller = new AbortController()
+      source.hooks.onCall = () => controller.abort()
+
+      const summary = await filler(source, { signal: controller.signal }).fillAll()
+
+      expect(summary).toEqual({ lists: 1 })
+      expect(source.calls).toHaveLength(1)
+    })
+  })
+
+  describe('enrichPrefixesByMediaType', () => {
+    it('names the kinds of ref to look up for each category whose source can do it and is available', () => {
+      const unavailable = fakeSource()
+      unavailable.adapter.isAvailable = () => false
+      const plain: SearchAdapter = { isAvailable: () => true, search: async () => [], expand: async () => ({ items: [] }) }
+
+      const map = enrichPrefixesByMediaType([
+        movieType(fakeSource().adapter),
+        movieType(unavailable.adapter, { key: 'tv' }),
+        movieType(plain, { key: 'game' }),
+        movieType(undefined, { key: 'hand' }),
+      ])
+
+      expect([...map]).toEqual([['movie', ['movie']]])
     })
   })
 

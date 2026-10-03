@@ -2,7 +2,7 @@ import { mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import type { FastifyInstance } from 'fastify'
-import { buildApp } from '../app.js'
+import { buildApp, type AppDependencies } from '../app.js'
 import { loadConfig, type ServerConfig } from '../config.js'
 import { createDatabase, runMigrations } from '../db/client.js'
 import type { AppDatabase } from '../db/client.js'
@@ -23,6 +23,8 @@ export interface TestAppOptions extends Partial<ServerConfig> {
   strategiesDir?: string
   /** Point at a fixture drop folder instead of the real one. */
   listsDropDir?: string
+  /** Fake the clock, the waits and the pacing of the background lookup of lengths. */
+  runtimeFill?: AppDependencies['runtimeFill']
 }
 
 /**
@@ -33,6 +35,7 @@ export function createTestApp({
   mediaTypes,
   strategiesDir,
   listsDropDir,
+  runtimeFill,
   ...overrides
 }: TestAppOptions = {}): TestApp {
   const directory = mkdtempSync(join(tmpdir(), 'listulator-test-'))
@@ -50,6 +53,7 @@ export function createTestApp({
     ...(mediaTypes ? { mediaTypes } : {}),
     ...(strategiesDir ? { strategiesDir } : {}),
     ...(listsDropDir ? { listsDropDir } : {}),
+    ...(runtimeFill ? { runtimeFill } : {}),
   })
 
   return {

@@ -5,6 +5,7 @@ import { getCurrentUser } from '../auth/currentUser.js'
 import type { AppDatabase } from '../db/client.js'
 import type { ListSource, ListStatus } from '../db/schema.js'
 import type { MediaTypeRegistry } from '../ingestion/mediaTypes.js'
+import { enrichPrefixesByMediaType } from './runtimeFill.js'
 import {
   createList,
   createListItem,
@@ -14,6 +15,7 @@ import {
   findListWithStats,
   markListSeen,
   findListsWithStats,
+  type RuntimeStatsOptions,
   reorderListItems,
   ReorderMismatchError,
   setListItemConsumed,
@@ -140,6 +142,11 @@ export const catalogRoutes: FastifyPluginAsync<CatalogRoutesOptions> = async (
   const expansions = createExpansionCache()
   const resetDeps = (): ResetDeps => ({ mediaTypes: mediaTypes.list(), expansions })
 
+  /** What the list stats need to count the lengths still to look up (15.5). */
+  const runtimeStats = (): RuntimeStatsOptions => ({
+    prefixesByMediaType: enrichPrefixesByMediaType(mediaTypes.list()),
+  })
+
   app.post<{
     Body: {
       title: string
@@ -167,26 +174,34 @@ export const catalogRoutes: FastifyPluginAsync<CatalogRoutesOptions> = async (
 
       // Re-read so every list response carries stats, even a brand new list
       // whose numbers are all zero.
-      return reply.code(201).send(await findListWithStats(db, user.id, list.id))
+      return reply.code(201).send(await findListWithStats(db, user.id, list.id, runtimeStats()))
     },
   )
 
   app.get('/lists', async (request) => {
     const user = getCurrentUser(request)
 
-    return await findListsWithStats(db, user.id)
+    return await findListsWithStats(db, user.id, runtimeStats())
   })
 
   app.get<{ Params: ListParams }>('/lists/:listId', async (request, reply) => {
     const user = getCurrentUser(request)
-    const list = await findListWithStats(db, user.id, request.params.listId)
+    const list = await findListWithStats(db, user.id, request.params.listId, runtimeStats())
     if (!list) return reply.callNotFound()
 
-    return {
+    const body = {
       ...list,
       items: (await findListItems(db, user.id, list.id)) ?? [],
       groups: (await findListGroups(db, user.id, list.id)) ?? [],
     }
+
+    // Opening a list tops up its lengths: in the background, not awaited, and never a reason to fail the
+    // read. Started after the read, so the answer shows what the count in it counted.
+    if ((list.stats.runtimesPending ?? 0) > 0) {
+      app.runtimeFiller.fill(list.id).catch((error: unknown) => app.log.error(error))
+    }
+
+    return body
   })
 
   app.patch<{
@@ -216,7 +231,7 @@ export const catalogRoutes: FastifyPluginAsync<CatalogRoutesOptions> = async (
       const updated = await updateList(db, user.id, request.params.listId, request.body)
       if (!updated) return reply.callNotFound()
 
-      return await findListWithStats(db, user.id, updated.id)
+      return await findListWithStats(db, user.id, updated.id, runtimeStats())
     },
   )
 
@@ -545,7 +560,7 @@ export const catalogRoutes: FastifyPluginAsync<CatalogRoutesOptions> = async (
         throw cause
       }
 
-      return reply.code(201).send(await findListWithStats(db, user.id, request.body.list.id))
+      return reply.code(201).send(await findListWithStats(db, user.id, request.body.list.id, runtimeStats()))
     },
   )
 

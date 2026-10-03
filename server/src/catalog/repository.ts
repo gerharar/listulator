@@ -1,6 +1,7 @@
 import { and, asc, count, eq, getTableColumns, inArray, max, or, sql } from 'drizzle-orm'
 import type { PortableDatabase } from '../db/client.js'
 import { normalizeItemTags } from './facets.js'
+import { pendingCounts } from './runtimes.js'
 import { ensureListGroup, findListGroups, placeNewItem } from './groups.js'
 import {
   toDismissalPayload,
@@ -148,6 +149,23 @@ export interface ListStats {
   timeRemainingMinutes: number
   /** Null when nothing has been consumed yet — "maximally neglected" for ranking. */
   lastConsumedAt: Date | null
+  /**
+   * Items still waiting for their length to be looked up (task 15.5): the list was built from a listing
+   * and the lengths fill in afterwards. Derived, never stored; 0 for a list with nothing to look up.
+   * Always set by the repository; optional in the type so a hand-built stats object (a ranking test)
+   * need not carry it, and absent means 0.
+   */
+  runtimesPending?: number
+}
+
+/**
+ * What the stats need to count `runtimesPending`: which categories can have lengths looked up, and which
+ * kinds of item ref (`enrichPrefixesByMediaType`). Absent, the count is 0, so a caller that does not
+ * show progress pays nothing.
+ */
+export interface RuntimeStatsOptions {
+  prefixesByMediaType: ReadonlyMap<string, readonly string[]>
+  now?: Date
 }
 
 export type ListWithStats = List & { stats: ListStats }
@@ -179,7 +197,7 @@ type StatsRow = List & {
   lastConsumedAt: Date | null
 }
 
-function toListWithStats(row: StatsRow): ListWithStats {
+function toListWithStats(row: StatsRow, runtimesPending = 0): ListWithStats {
   const { totalItems, consumedItems, newItems, timeRemainingMinutes, lastConsumedAt, ...list } = row
 
   return {
@@ -195,6 +213,7 @@ function toListWithStats(row: StatsRow): ListWithStats {
         totalItems === 0 ? 0 : Math.round((consumedItems / totalItems) * 1000) / 10,
       timeRemainingMinutes: Number(timeRemainingMinutes),
       lastConsumedAt: lastConsumedAt ?? null,
+      runtimesPending,
     },
   }
 }
@@ -202,6 +221,7 @@ function toListWithStats(row: StatsRow): ListWithStats {
 export async function findListsWithStats(
   db: PortableDatabase,
   userId: string,
+  runtimes?: RuntimeStatsOptions,
 ): Promise<ListWithStats[]> {
   const rows = await db
     .select(statsSelection())
@@ -213,13 +233,18 @@ export async function findListsWithStats(
     .orderBy(asc(lists.createdAt), asc(lists.id))
     .all()
 
-  return rows.map((row) => toListWithStats(row as StatsRow))
+  const pending = runtimes
+    ? await pendingCounts(db, userId, runtimes.now ?? new Date(), runtimes.prefixesByMediaType)
+    : new Map<string, number>()
+
+  return rows.map((row) => toListWithStats(row as StatsRow, pending.get(row.id) ?? 0))
 }
 
 export async function findListWithStats(
   db: PortableDatabase,
   userId: string,
   listId: string,
+  runtimes?: RuntimeStatsOptions,
 ): Promise<ListWithStats | undefined> {
   const row = await db
     .select(statsSelection())
@@ -229,7 +254,13 @@ export async function findListWithStats(
     .groupBy(lists.id)
     .get()
 
-  return row ? toListWithStats(row as StatsRow) : undefined
+  if (!row) return undefined
+
+  const pending = runtimes
+    ? await pendingCounts(db, userId, runtimes.now ?? new Date(), runtimes.prefixesByMediaType, listId)
+    : undefined
+
+  return toListWithStats(row as StatsRow, pending?.get(listId) ?? 0)
 }
 
 export async function findLists(db: PortableDatabase, userId: string): Promise<List[]> {

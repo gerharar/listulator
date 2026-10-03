@@ -2,10 +2,19 @@ import { and, eq } from 'drizzle-orm'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { itemRuntimes, listItems, listSnapshots, users } from '../db/schema.js'
 import { createTestApp, type TestApp } from '../testing/harness.js'
-import { createList, createListItem, createListSnapshot, findListItems, updateListItem } from './repository.js'
+import {
+  createList,
+  createListItem,
+  createListSnapshot,
+  findListItems,
+  findListsWithStats,
+  findListWithStats,
+  updateListItem,
+} from './repository.js'
 import {
   applyRuntimes,
   knownRuntimes,
+  pendingCounts,
   pendingFor,
   pruneExpiredRuntimes,
   recordRuntimes,
@@ -19,11 +28,13 @@ const later = (days: number): Date => new Date(NOW.getTime() + days * DAY)
 describe('runtime lookups (15.3)', () => {
   let harness: TestApp
   let userId: string
+  let strangerId: string
 
   beforeEach(async () => {
     harness = createTestApp()
     await harness.app.ready()
     userId = harness.db.select().from(users).get()!.id
+    strangerId = harness.db.insert(users).values({}).returning().get().id
   })
 
   afterEach(async () => {
@@ -169,6 +180,91 @@ describe('runtime lookups (15.3)', () => {
       const list = await listWith([{ title: 'a', externalRef: 'movies:1' }, { title: 'b', externalRef: 'movie:1' }])
 
       expect(await pendingFor(db(), list.id, NOW, ['movie'])).toEqual(['movie:1'])
+    })
+  })
+
+  describe('pendingCounts', () => {
+    async function listOf(mediaType: string, refs: (string | undefined)[], who = userId) {
+      const list = await createList(db(), who, { title: mediaType, mediaType })
+      for (const [index, ref] of refs.entries()) {
+        await createListItem(db(), who, list.id, {
+          title: `T${index}`,
+          timeToConsumeMinutes: 120,
+          timeToConsumeIsEstimated: true,
+          ...(ref ? { externalRef: ref } : {}),
+        })
+      }
+
+      return list
+    }
+
+    const kinds = new Map<string, readonly string[]>([['movie', ['movie']], ['animation', ['movie']]])
+
+    it('counts each list’s items still waiting for a length, one grouped query for all of a user’s lists', async () => {
+      const a = await listOf('movie', ['movie:1', 'movie:2', 'movie:3', undefined])
+      const b = await listOf('animation', ['movie:1', 'show:9'])
+      const c = await listOf('game', ['game:1'])
+      await recordRuntimes(db(), [{ ref: 'movie:2', minutes: 90 }], { now: NOW, ttlDays: 150 })
+
+      const counts = await pendingCounts(db(), userId, NOW, kinds)
+
+      expect(counts.get(a.id)).toBe(2)
+      expect(counts.get(b.id)).toBe(0 + 1)
+      expect(counts.has(c.id)).toBe(false)
+    })
+
+    it('counts only the user’s own lists, or the one list asked for', async () => {
+      const mine = await listOf('movie', ['movie:1'])
+      const theirs = await listOf('movie', ['movie:1', 'movie:2'], strangerId)
+
+      expect([...(await pendingCounts(db(), userId, NOW, kinds))]).toEqual([[mine.id, 1]])
+      expect([...(await pendingCounts(db(), strangerId, NOW, kinds, theirs.id))]).toEqual([[theirs.id, 2]])
+      expect((await pendingCounts(db(), userId, NOW, kinds, theirs.id)).size).toBe(0)
+    })
+
+    it('is empty when no category can look anything up', async () => {
+      await listOf('movie', ['movie:1'])
+
+      expect((await pendingCounts(db(), userId, NOW, new Map())).size).toBe(0)
+    })
+  })
+
+  describe('runtimesPending in the list stats (15.5)', () => {
+    const kinds = new Map<string, readonly string[]>([['movie', ['movie']]])
+
+    async function filmList() {
+      const list = await createList(db(), userId, { title: 'L', mediaType: 'movie' })
+      for (const ref of ['movie:1', 'movie:2', 'movie:3']) {
+        await createListItem(db(), userId, list.id, { title: ref, timeToConsumeMinutes: 120, timeToConsumeIsEstimated: true, externalRef: ref })
+      }
+
+      return list
+    }
+
+    it('is the number of items still waiting for a length, on the overview and on one list', async () => {
+      const list = await filmList()
+      await recordRuntimes(db(), [{ ref: 'movie:1', minutes: 90 }], { now: NOW, ttlDays: 150 })
+      const options = { prefixesByMediaType: kinds, now: NOW }
+
+      expect((await findListsWithStats(db(), userId, options))[0]?.stats.runtimesPending).toBe(2)
+      expect((await findListWithStats(db(), userId, list.id, options))?.stats.runtimesPending).toBe(2)
+    })
+
+    it('is 0 when no source is asked about, and for a list with nothing to look up', async () => {
+      const list = await filmList()
+      const other = await createList(db(), userId, { title: 'Games', mediaType: 'game' })
+
+      expect((await findListWithStats(db(), userId, list.id))?.stats.runtimesPending).toBe(0)
+      expect((await findListWithStats(db(), userId, other.id, { prefixesByMediaType: kinds, now: NOW }))?.stats.runtimesPending).toBe(0)
+    })
+
+    it('falls as the lengths come in', async () => {
+      const list = await filmList()
+      const options = { prefixesByMediaType: kinds, now: NOW }
+
+      await applyRuntimes(db(), list.id, [{ ref: 'movie:1', minutes: 90 }, { ref: 'movie:2', minutes: 95 }])
+
+      expect((await findListWithStats(db(), userId, list.id, options))?.stats.runtimesPending).toBe(1)
     })
   })
 

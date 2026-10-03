@@ -11,6 +11,7 @@ import {
   findListItems,
   findListWithStats,
   findLists,
+  type RuntimeStatsOptions,
 } from '../catalog/repository.js'
 import { sendApiError } from '../apiErrors.js'
 import {
@@ -26,12 +27,14 @@ import {
   type ParsedCustomList,
 } from './customLists.js'
 import { createListItems, discardList } from '../catalog/bulkItems.js'
+import { knownRuntimes, withKnownRuntimes } from '../catalog/runtimes.js'
+import { enrichPrefixesByMediaType } from '../catalog/runtimeFill.js'
 import { seedGroupOrder } from '../catalog/groups.js'
 import { expansionCacheKey, createExpansionCache } from './expansionCache.js'
 import { IngestionError } from './http.js'
 import { listsDropDir as defaultListsDropDir, scanListsDropFolder } from './listsDropFolder.js'
 import type { AppDatabase } from '../db/client.js'
-import { toMediaTypeInfo, type MediaTypeRegistry } from './mediaTypes.js'
+import { toMediaTypeInfo, type ExpandOptions, type MediaTypeRegistry } from './mediaTypes.js'
 import { expandSource, SourceUnavailableError, UnsafeSourceError } from './expandSource.js'
 import { refForAdapter } from './sourceRef.js'
 import { searchSources, SearchUnavailableError } from './search.js'
@@ -61,6 +64,16 @@ export const ingestionRoutes: FastifyPluginAsync<IngestionRoutesOptions> = async
 ) => {
   // One per app instance, so tests and servers never share it (task 10.15).
   const expansions = createExpansionCache()
+
+  /** What the list stats need to count the lengths still to look up (15.5). */
+  const runtimeStats = (): RuntimeStatsOptions => ({
+    prefixesByMediaType: enrichPrefixesByMediaType(mediaTypes.list()),
+  })
+
+  /** Looks up a list's missing lengths in the background; it ends with an outcome and never throws. */
+  const startRuntimeFill = (listId: string): void => {
+    app.runtimeFiller.fill(listId).catch((error: unknown) => app.log.error(error))
+  }
 
   /**
    * Shared by `/lists/from-file`, `/lists/scan-folder`, and
@@ -339,7 +352,7 @@ export const ingestionRoutes: FastifyPluginAsync<IngestionRoutesOptions> = async
         }
 
         const list = await importParsedList(user, parsed, { source: 'canonical', externalRef })
-        return reply.code(201).send(await findListWithStats(db, user.id, list.id))
+        return reply.code(201).send(await findListWithStats(db, user.id, list.id, runtimeStats()))
       }
 
       if (!mediaType.adapter?.isAvailable()) {
@@ -360,11 +373,29 @@ export const ingestionRoutes: FastifyPluginAsync<IngestionRoutesOptions> = async
 
       // Expanded before the list is created, so a failure upstream does not
       // leave an empty list behind.
-      const cacheKey = expansionCacheKey(key, adapterRef)
+      //
+      // A source that can look lengths up afterwards (`enrich`) is listed without them (task 15.5): the
+      // list is made at once with the category's estimate, films some list has already looked up arrive
+      // with their length, and the rest are filled in by the background runner. A source with nothing to
+      // look up is expanded in full as it always was, under its old cache key, so the count, the preview
+      // and Add list still share one expansion.
       const adapter = mediaType.adapter
-      const { items: candidates, status } = await expansions.get(cacheKey, () =>
-        adapter.expand(adapterRef),
+      const lookedUpLater = Boolean(adapter.enrich && adapter.enrichPrefixes?.length)
+      const expandOptions: ExpandOptions | undefined = lookedUpLater ? { runtimes: 'skip' } : undefined
+      const cacheKey = expansionCacheKey(key, adapterRef, expandOptions)
+      const { items: listed, status } = await expansions.get(cacheKey, () =>
+        expandOptions ? adapter.expand(adapterRef, expandOptions) : adapter.expand(adapterRef),
       )
+      const candidates = lookedUpLater
+        ? withKnownRuntimes(
+            listed,
+            await knownRuntimes(
+              db,
+              listed.filter((item) => item.externalRef && item.timeToConsumeMinutes === undefined).map((item) => item.externalRef!),
+              new Date(),
+            ),
+          )
+        : listed
       if (candidates.length === 0) {
         return sendApiError(reply, 422, 'list.sourceEmpty', { title })
       }
@@ -427,7 +458,11 @@ export const ingestionRoutes: FastifyPluginAsync<IngestionRoutesOptions> = async
       // as it is then, not this answer.
       expansions.evict(cacheKey)
 
-      return reply.code(201).send(await findListWithStats(db, user.id, list.id))
+      // The lengths are looked up after the reply: not awaited, and never a reason to fail the request.
+      const response = await findListWithStats(db, user.id, list.id, runtimeStats())
+      if (lookedUpLater) startRuntimeFill(list.id)
+
+      return reply.code(201).send(response)
     },
   )
 

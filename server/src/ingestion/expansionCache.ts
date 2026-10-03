@@ -1,4 +1,4 @@
-import type { ListExpansion } from './mediaTypes.js'
+import type { ExpandOptions, ListExpansion } from './mediaTypes.js'
 
 /**
  * A short-lived memory of what a source expanded to (task 10.15).
@@ -75,6 +75,13 @@ export function createExpansionCache({
   }
 }
 
-/** The key an adapter expansion is remembered under: the category and the exact ref an import stores. */
-export const expansionCacheKey = (mediaTypeKey: string, adapterRef: string): string =>
-  `${mediaTypeKey}|${adapterRef}`
+/**
+ * The key an adapter expansion is remembered under: the category, the exact ref an import stores, and
+ * whether per-item lookups were skipped (task 15.5). A listing without lengths and a full expansion of
+ * one source are different answers and must not be handed to each other.
+ */
+export const expansionCacheKey = (
+  mediaTypeKey: string,
+  adapterRef: string,
+  options?: ExpandOptions,
+): string => `${mediaTypeKey}|${adapterRef}${options?.runtimes === 'skip' ? '|skip' : ''}`

@@ -1,4 +1,4 @@
-import { eq } from 'drizzle-orm'
+import { asc, eq } from 'drizzle-orm'
 import type { PortableDatabase } from '../db/client.js'
 import { lists } from '../db/schema.js'
 import { delay, UpstreamError } from '../ingestion/http.js'
@@ -69,6 +69,8 @@ export type FillOutcome =
   | 'list-gone'
   /** The list's category has no source that can look lengths up. */
   | 'unsupported'
+  /** It has one, but it cannot answer now (usually a missing API key): nothing is asked. */
+  | 'unavailable'
   /** The source answered nothing for several batches running: tried again at the next start. */
   | 'upstream-unavailable'
 
@@ -102,6 +104,24 @@ export function createSourceLimiters(
 
     return limiter
   }
+}
+
+/**
+ * For each category whose source can look lengths up and can answer right now (it has a key), the kinds
+ * of item ref it looks up. What the list stats and the runner use to find what is pending.
+ */
+export function enrichPrefixesByMediaType(
+  mediaTypes: readonly MediaType[],
+): Map<string, readonly string[]> {
+  const map = new Map<string, readonly string[]>()
+
+  for (const mediaType of mediaTypes) {
+    const adapter = mediaType.adapter
+    const prefixes = adapter?.enrichPrefixes ?? []
+    if (adapter?.enrich && prefixes.length > 0 && adapter.isAvailable()) map.set(mediaType.key, prefixes)
+  }
+
+  return map
 }
 
 /** `'aborted'` as soon as the signal fires, otherwise once the wait is over. */
@@ -164,6 +184,9 @@ export function createRuntimeFiller({
       outcome,
       pending: (await pendingFor(db, listId, now(), prefixes)).length,
     })
+
+    // Nothing is asked of a source that cannot answer (no key): it would only fail, three batches running.
+    if (!mediaType.adapter!.isAvailable()) return await finish('unavailable')
 
     // Lapsed answers go first, so a film whose answer lapsed is asked again.
     await pruneExpiredRuntimes(db, now())
@@ -249,20 +272,52 @@ export function createRuntimeFiller({
     return await finish('done')
   }
 
+  /**
+   * Looks up the lengths still missing from a list. Never throws for a thing
+   * that goes wrong while it runs (a source failing, the list or an item
+   * deleted): it ends with an outcome, and what is not done stays pending.
+   * One run per list: asking again while one is going gets that run.
+   */
+  function fill(listId: string): Promise<FillResult> {
+    const existing = running.get(listId)
+    if (existing) return existing
+
+    const started = run(listId).finally(() => running.delete(listId))
+    running.set(listId, started)
+
+    return started
+  }
+
   return {
+    fill,
+
     /**
-     * Looks up the lengths still missing from a list. Never throws for a thing
-     * that goes wrong while it runs (a source failing, the list or an item
-     * deleted): it ends with an outcome, and what is not done stays pending.
+     * Fills every list that has something to look up, one at a time and oldest first (a source's limiter
+     * is shared, so there is nothing to gain from several at once). What a server does at start and the
+     * desktop at launch: a list's own pending state is in the database, so this resumes whatever was cut
+     * off. A list whose films another list has since looked up is topped up without a request. Returns
+     * how many lists it ran for.
      */
-    fill(listId: string): Promise<FillResult> {
-      const existing = running.get(listId)
-      if (existing) return existing
+    async fillAll(): Promise<{ lists: number }> {
+      const everyList = await db
+        .select({ id: lists.id, mediaType: lists.mediaType })
+        .from(lists)
+        .orderBy(asc(lists.createdAt), asc(lists.id))
+        .all()
 
-      const started = run(listId).finally(() => running.delete(listId))
-      running.set(listId, started)
+      let ran = 0
+      for (const { id, mediaType } of everyList) {
+        if (signal?.aborted) break
 
-      return started
+        const support = supportFor(mediaType)
+        if (!support || !support.mediaType.adapter!.isAvailable()) continue
+        if ((await estimatedRefsFor(db, id, support.prefixes)).length === 0) continue
+
+        await fill(id)
+        ran += 1
+      }
+
+      return { lists: ran }
     },
 
     /** How many items of the list are still waiting for a length: the progress. */
@@ -274,3 +329,5 @@ export function createRuntimeFiller({
     },
   }
 }
+
+export type RuntimeFiller = ReturnType<typeof createRuntimeFiller>

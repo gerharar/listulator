@@ -33,6 +33,15 @@ try {
     },
     { onError: (error) => console.error('source copy check failed:', error) },
   )
+
+  // Lists built from a listing whose lengths were not all looked up (the server was stopped, or a source
+  // was down) are picked up where they were left (task 15.5). Not awaited: the server is already serving.
+  void app.runtimeFiller
+    .fillAll()
+    .then((summary) => {
+      if (summary.lists > 0) console.log('lengths looked up for lists:', summary.lists)
+    })
+    .catch((error: unknown) => console.error('looking up lengths failed:', error))
 } catch (error) {
   console.error(error)
   process.exit(1)

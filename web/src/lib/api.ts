@@ -21,6 +21,11 @@ export interface ListStats {
   completionPercent: number
   timeRemainingMinutes: number
   lastConsumedAt: string | null
+  /**
+   * Items still waiting for their length to be looked up: the list was built from a listing and the
+   * lengths fill in afterwards (task 15.5). Absent or 0: nothing to wait for.
+   */
+  runtimesPending?: number
 }
 
 export interface MediaList {

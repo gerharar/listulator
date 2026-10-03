@@ -2,11 +2,19 @@ import Fastify, { type FastifyInstance } from 'fastify'
 import { authRoutes } from './auth/routes.js'
 import { currentUserPlugin } from './auth/currentUser.js'
 import { catalogRoutes } from './catalog/routes.js'
+import { createRuntimeFiller, createSourceLimiters, type RuntimeFiller, type RuntimeFillDeps } from './catalog/runtimeFill.js'
 import type { ServerConfig } from './config.js'
 import type { AppDatabase } from './db/client.js'
 import { createMediaTypeRegistry, type MediaTypeRegistry } from './ingestion/mediaTypes.js'
 import { ingestionRoutes } from './ingestion/routes.js'
 import { suggestionsRoutes } from './suggestions/routes.js'
+
+declare module 'fastify' {
+  interface FastifyInstance {
+    /** Looks up the lengths of items a list was built without (task 15.5); one per app. */
+    runtimeFiller: RuntimeFiller
+  }
+}
 
 export interface AppDependencies {
   db: AppDatabase
@@ -17,6 +25,8 @@ export interface AppDependencies {
   strategiesDir?: string
   /** Overridable so tests can scan a fixture directory instead of the real one. */
   listsDropDir?: string
+  /** Overridable so tests can fake the clock, the waits and the pacing of the background lookup of lengths. */
+  runtimeFill?: Partial<Omit<RuntimeFillDeps, 'db' | 'mediaTypes' | 'signal'>>
 }
 
 /**
@@ -29,8 +39,24 @@ export function buildApp({
   mediaTypes = createMediaTypeRegistry(),
   strategiesDir,
   listsDropDir,
+  runtimeFill,
 }: AppDependencies): FastifyInstance {
   const app = Fastify({ logger: false })
+
+  // The background lookup of lengths for lists built from a listing: one runner for the app, with one
+  // pacing limiter per source shared by every list, stopped when the app closes.
+  const shutdown = new AbortController()
+  app.decorate(
+    'runtimeFiller',
+    createRuntimeFiller({
+      db,
+      mediaTypes: mediaTypes.list(),
+      limiterFor: createSourceLimiters(),
+      signal: shutdown.signal,
+      ...runtimeFill,
+    }),
+  )
+  app.addHook('onClose', async () => shutdown.abort())
 
   // Infrastructure probe, deliberately outside /api and outside auth.
   app.get('/health', () => ({ status: 'ok' }))

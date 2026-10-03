@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { createExpansionCache } from './expansionCache.js'
+import { createExpansionCache, expansionCacheKey } from './expansionCache.js'
 
 const value = (title: string) => ({ items: [{ title }] })
 
@@ -108,5 +108,18 @@ describe('expansion cache', () => {
     expect(load).not.toHaveBeenCalled()
     await cache.get('b', load)
     expect(load).toHaveBeenCalledTimes(1)
+  })
+})
+
+describe('expansionCacheKey and expand options (15.5)', () => {
+  it('keeps a listing without lengths apart from a full expansion of the same source', () => {
+    expect(expansionCacheKey('movie', 'company:3', { runtimes: 'skip' })).not.toBe(expansionCacheKey('movie', 'company:3'))
+    expect(expansionCacheKey('movie', 'company:3', { runtimes: 'inline' })).toBe(expansionCacheKey('movie', 'company:3'))
+    expect(expansionCacheKey('movie', 'company:3', {})).toBe(expansionCacheKey('movie', 'company:3'))
+  })
+
+  it('still tells categories and refs apart', () => {
+    expect(expansionCacheKey('movie', 'company:3', { runtimes: 'skip' })).not.toBe(expansionCacheKey('animation', 'company:3', { runtimes: 'skip' }))
+    expect(expansionCacheKey('movie', 'company:3', { runtimes: 'skip' })).not.toBe(expansionCacheKey('movie', 'company:4', { runtimes: 'skip' }))
   })
 })
