@@ -19,6 +19,7 @@ import {
   pruneExpiredRuntimes,
   recordRuntimes,
   withKnownRuntimes,
+  withRuntimePending,
 } from './runtimes.js'
 
 const DAY = 24 * 60 * 60 * 1000
@@ -265,6 +266,58 @@ describe('runtime lookups (15.3)', () => {
       await applyRuntimes(db(), list.id, [{ ref: 'movie:1', minutes: 90 }, { ref: 'movie:2', minutes: 95 }])
 
       expect((await findListWithStats(db(), userId, list.id, options))?.stats.runtimesPending).toBe(1)
+    })
+  })
+
+  describe('withRuntimePending: which items of a list are still being looked up (15.7)', () => {
+    async function mixedList() {
+      const list = await createList(db(), userId, { title: 'L', mediaType: 'movie' })
+      const make = (title: string, extra: { externalRef?: string; estimated?: boolean }) =>
+        createListItem(db(), userId, list.id, {
+          title,
+          timeToConsumeMinutes: 120,
+          timeToConsumeIsEstimated: extra.estimated ?? true,
+          ...(extra.externalRef ? { externalRef: extra.externalRef } : {}),
+        })
+      await make('waiting', { externalRef: 'movie:1' })
+      await make('asked, none', { externalRef: 'movie:2' })
+      await make('real', { externalRef: 'movie:3', estimated: false })
+      await make('by hand', {})
+      await make('other kind', { externalRef: 'episode:9:1:1' })
+      await recordRuntimes(db(), [{ ref: 'movie:2', minutes: null }], { now: NOW, ttlDays: 150 })
+
+      return { list, items: (await findListItems(db(), userId, list.id))! }
+    }
+
+    it('flags only the items still to look up: an estimate, a ref of a kind the source looks up, no answer yet', async () => {
+      const { list, items } = await mixedList()
+
+      const flagged = await withRuntimePending(db(), list.id, items, NOW, ['movie'])
+
+      expect(flagged.map((item) => [item.title, item.runtimePending])).toEqual([
+        ['waiting', true],
+        ['asked, none', false],
+        ['real', false],
+        ['by hand', false],
+        ['other kind', false],
+      ])
+    })
+
+    it('flags nothing, and asks nothing, when no kind of ref can be looked up', async () => {
+      const { list, items } = await mixedList()
+
+      for (const prefixes of [undefined, []]) {
+        const flagged = await withRuntimePending(db(), list.id, items, NOW, prefixes)
+        expect(flagged.every((item) => item.runtimePending === false)).toBe(true)
+      }
+    })
+
+    it('keeps every other field of the item as it was', async () => {
+      const { list, items } = await mixedList()
+
+      const flagged = await withRuntimePending(db(), list.id, items, NOW, ['movie'])
+
+      expect(flagged[0]).toMatchObject({ id: items[0]!.id, title: 'waiting', externalRef: 'movie:1', timeToConsumeMinutes: 120 })
     })
   })
 

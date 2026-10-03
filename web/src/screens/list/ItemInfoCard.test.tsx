@@ -59,4 +59,12 @@ describe('ItemInfoCard', () => {
 
     expect(screen.queryByRole('textbox')).toBeNull()
   })
+
+  it('shows "-" and no estimate note while its length is still being looked up (15.7)', () => {
+    render(<ItemInfoCard item={{ ...ITEM, timeToConsumeMinutes: 120, timeToConsumeIsEstimated: true, runtimePending: true }} />)
+
+    expect(screen.getByText('-')).toBeTruthy()
+    expect(screen.queryByText('2h')).toBeNull()
+    expect(screen.queryByText(/estimate/i)).toBeNull()
+  })
 })

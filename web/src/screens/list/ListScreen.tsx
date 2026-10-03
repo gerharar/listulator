@@ -9,6 +9,8 @@ import { applyUpdate, checkList } from '../../lib/updateCheck.js'
 import { exportFileName, exportList } from '../../lib/exportList.js'
 import { notifyListsChanged } from '../../lib/listsChanged.js'
 import { saveLastOpened } from '../../lib/lastOpened.js'
+import { usePolling } from '../../lib/usePolling.js'
+import { countRuntimesPending, mergeArrivedRuntimes } from './runtimePending.js'
 import { getPreferencesStore } from '../../lib/preferences/store.js'
 import { categoryLabel, copy, joinSentences } from '../../locale/index.js'
 import { Banner } from '../../components/quantum/Banner/Banner.js'
@@ -202,6 +204,8 @@ interface ListViewProps {
 
 /** How long a row stays washed after it was added, moved or restored (design: row pulse). */
 const PULSE_MS = 1900
+/** How often a list reads itself again while some of its lengths are still being looked up (15.7). */
+const RUNTIME_POLL_MS = 3000
 
 type OpenPopover = {
   kind: 'info' | 'edit' | 'platform'
@@ -355,7 +359,25 @@ function ListView({
     [anyTags, mediaType, items],
   )
 
-  const minutesWidth = Math.max(4, ...items.map((entry) => formatDuration(entry.timeToConsumeMinutes).length)) + 1
+  // A length still being looked up shows as "-" (15.7), so it counts for its own width, not the estimate's.
+  const pendingMark = copy.quantum.list.itemActions.runtimePending
+  const minutesWidth =
+    Math.max(
+      4,
+      ...items.map((entry) => (entry.runtimePending ? pendingMark : formatDuration(entry.timeToConsumeMinutes)).length),
+    ) + 1
+
+  // While some lengths are still being looked up, read the list again every few seconds and take only the
+  // lengths that arrived: a re-read never replaces what the screen holds (a drag, an edit, an order).
+  const runtimesPending = useMemo(() => countRuntimesPending(items), [items])
+  usePolling(
+    runtimesPending > 0,
+    async () => {
+      const fresh = await api.list(listId)
+      setItems((current) => mergeArrivedRuntimes(current, fresh.items))
+    },
+    RUNTIME_POLL_MS,
+  )
 
   /** Takes the server's own order and groups: placement and new groups are its call. */
   async function refresh(): Promise<MediaListDetail> {
@@ -970,6 +992,7 @@ function ListView({
               minutesLeft={totals.minutesLeft}
               status={meta.status}
               size="header"
+              runtimesPending={runtimesPending}
             />
           </div>
           <div className="q-list-actions">

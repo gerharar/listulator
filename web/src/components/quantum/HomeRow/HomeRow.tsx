@@ -16,6 +16,8 @@ export interface HomeRowProps {
   minutesLeft: number
   /** Items that arrived with a sync and are not yet marked seen (`stats.newItems`); none, or `undefined`, renders no badge. */
   newCount?: number
+  /** Items whose length is still being looked up (`stats.runtimesPending`, 15.7): the time left is then approximate. */
+  runtimesPending?: number
   onOpen: () => void
 }
 
@@ -32,6 +34,7 @@ export function HomeRow({
   total,
   minutesLeft,
   newCount,
+  runtimesPending,
   onOpen,
 }: HomeRowProps) {
   return (
@@ -43,7 +46,14 @@ export function HomeRow({
         <StatusMark status={status} />
         {newCount ? <NewBadge count={newCount} /> : null}
       </Tip>
-      <ProgressSentence done={done} total={total} minutesLeft={minutesLeft} status={status} size="row" />
+      <ProgressSentence
+        done={done}
+        total={total}
+        minutesLeft={minutesLeft}
+        status={status}
+        size="row"
+        {...(runtimesPending ? { runtimesPending } : {})}
+      />
     </button>
   )
 }

@@ -63,6 +63,11 @@ export interface ListItem {
   notes: string | null
   /** Arrived with the last refresh and not yet marked seen (10.17). */
   isNew: boolean
+  /**
+   * Its length is still being looked up (task 15.7): the number it carries is the category's estimate, and
+   * the row shows "-" until the real one arrives. Only on a list's own read; absent means not pending.
+   */
+  runtimePending?: boolean
 }
 
 /** A group of a list, as a row of its own (D3, task 10.16): an empty one can exist. */

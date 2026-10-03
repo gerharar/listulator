@@ -171,8 +171,8 @@ export function ItemRow({
       </span>
       {item.isNew && <NewBadge />}
       <span className="spacer" />
-      <span className="q-mins" style={{ width: `${minutesWidth}ch` }}>
-        {formatDuration(item.timeToConsumeMinutes)}
+      <span className={item.runtimePending ? 'q-mins pending' : 'q-mins'} style={{ width: `${minutesWidth}ch` }}>
+        {item.runtimePending ? text.runtimePending : formatDuration(item.timeToConsumeMinutes)}
       </span>
       <IconButton size="row" className="remove" label={text.remove(item.title)} onClick={act(onRemove)}>
         <Trash2 width={15} height={15} strokeWidth={1.8} aria-hidden="true" />

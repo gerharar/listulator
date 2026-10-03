@@ -6,6 +6,7 @@ import type { AppDatabase } from '../db/client.js'
 import type { ListSource, ListStatus } from '../db/schema.js'
 import type { MediaTypeRegistry } from '../ingestion/mediaTypes.js'
 import { enrichPrefixesByMediaType } from './runtimeFill.js'
+import { withRuntimePending } from './runtimes.js'
 import {
   createList,
   createListItem,
@@ -189,9 +190,16 @@ export const catalogRoutes: FastifyPluginAsync<CatalogRoutesOptions> = async (
     const list = await findListWithStats(db, user.id, request.params.listId, runtimeStats())
     if (!list) return reply.callNotFound()
 
+    // Each item says whether its length is still being looked up, so the screen can show "-" for it (15.7).
     const body = {
       ...list,
-      items: (await findListItems(db, user.id, list.id)) ?? [],
+      items: await withRuntimePending(
+        db,
+        list.id,
+        (await findListItems(db, user.id, list.id)) ?? [],
+        new Date(),
+        enrichPrefixesByMediaType(mediaTypes.list()).get(list.mediaType),
+      ),
       groups: (await findListGroups(db, user.id, list.id)) ?? [],
     }
 

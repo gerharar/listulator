@@ -171,4 +171,16 @@ describe('HomeRow', () => {
       expect(screen.queryByText(/NEW/)).toBeNull()
     })
   })
+
+  it('marks the time left as approximate while lengths are still being looked up (15.7), and not otherwise', () => {
+    const props = { title: 'Pixar', description: null, mark: null, status: null, done: 0, total: 100, minutesLeft: 12000, onOpen: vi.fn() } as const
+    render(<HomeRow {...props} runtimesPending={40} />)
+
+    expect(screen.getByText('≈ 200h left')).not.toBeNull()
+
+    cleanup()
+    render(<HomeRow {...props} />)
+
+    expect(screen.getByText('200h left')).not.toBeNull()
+  })
 })

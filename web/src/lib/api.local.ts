@@ -32,7 +32,7 @@ import {
   type RuntimeStatsOptions,
 } from '../../../server/src/catalog/repository.js'
 import { createListItems, discardList } from '../../../server/src/catalog/bulkItems.js'
-import { knownRuntimes, withKnownRuntimes } from '../../../server/src/catalog/runtimes.js'
+import { knownRuntimes, withKnownRuntimes, withRuntimePending } from '../../../server/src/catalog/runtimes.js'
 import {
   createRuntimeFiller,
   createSourceLimiters,
@@ -422,11 +422,18 @@ export function createLocalApi(): ApiClient {
       const list = await findListWithStats(database, userId, id, await runtimeStats())
       if (!list) throw notFound()
 
-      const items = (await findListItems(database, userId, id)) ?? []
+      // Each item says whether its length is still being looked up, so the screen can show "-" (15.7).
+      const items = await withRuntimePending(
+        database,
+        id,
+        (await findListItems(database, userId, id)) ?? [],
+        new Date(),
+        enrichPrefixesByMediaType(await getLocalMediaTypes()).get(list.mediaType),
+      )
       const groups = (await findListGroups(database, userId, id)) ?? []
       const detail = {
         ...toMediaList(list),
-        items: items.map(toListItem),
+        items: items.map((item) => ({ ...toListItem(item), runtimePending: item.runtimePending })),
         groups: groups.map(toListGroup),
       } satisfies MediaListDetail
 

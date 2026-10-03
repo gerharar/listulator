@@ -188,6 +188,29 @@ export async function pendingFor(
 }
 
 /**
+ * The items of a list marked with whether their length is still being looked up (task 15.7): an
+ * estimate, with a ref of one of `prefixes`, and no live answer in the table: the same test as
+ * `pendingFor`, so the row that shows "-" and the count in the header always agree. Anything that is
+ * estimated for good (a hand-added item, a film the source has no length for) is not pending. Asks
+ * the database only when some item could be. Returns new items.
+ */
+export async function withRuntimePending<T extends { externalRef: string | null; timeToConsumeIsEstimated: boolean }>(
+  db: PortableDatabase,
+  listId: string,
+  items: readonly T[],
+  now: Date,
+  prefixes: readonly string[] | undefined,
+): Promise<(T & { runtimePending: boolean })[]> {
+  const couldBe = prefixes && prefixes.length > 0 && items.some((item) => item.timeToConsumeIsEstimated && item.externalRef)
+  const pending = couldBe ? new Set(await pendingFor(db, listId, now, prefixes)) : undefined
+
+  return items.map((item) => ({
+    ...item,
+    runtimePending: Boolean(pending && item.timeToConsumeIsEstimated && item.externalRef && pending.has(item.externalRef)),
+  }))
+}
+
+/**
  * How many items of each of a user's lists are still waiting for a length, for the list stats (15.5):
  * the same test as `pendingFor`, counted per list in one grouped query for each distinct set of ref kinds
  * (`prefixesByMediaType`: which categories can look up which kinds, from `enrichPrefixesByMediaType`),

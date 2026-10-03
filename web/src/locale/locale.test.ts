@@ -168,6 +168,8 @@ const SAME_AS_ENGLISH: Record<'ru' | 'de', readonly string[]> = {
     'quantum.skin.labels.dark-blue',
     'quantum.skin.labels.dark-violet',
     'quantum.search.librarySource',
+    // A dash, the same in every language: what a row shows for a length still being looked up (15.7).
+    'quantum.list.itemActions.runtimePending',
   ],
   de: [
     'categories.tv.handTitlePlaceholder',
@@ -214,6 +216,7 @@ const SAME_AS_ENGLISH: Record<'ru' | 'de', readonly string[]> = {
     'quantum.skin.labels.dark-green',
     'quantum.skin.labels.light-bone',
     'quantum.statusPicker.notKnown',
+    'quantum.list.itemActions.runtimePending',
   ],
 }
 

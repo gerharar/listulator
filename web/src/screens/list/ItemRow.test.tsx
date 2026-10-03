@@ -255,4 +255,26 @@ describe('ItemRow', () => {
 
     expect(document.querySelector('.q-item')!.classList.contains('dragging')).toBe(true)
   })
+
+  describe('while its length is still being looked up (15.7)', () => {
+    it('shows "-" in place of the estimate it carries, and the real length once it has one', () => {
+      const pending = { ...ITEM, timeToConsumeMinutes: 120, timeToConsumeIsEstimated: true, runtimePending: true }
+      renderRow({ item: pending })
+
+      expect(screen.getByText('-')).toBeTruthy()
+      expect(screen.queryByText('2h')).toBeNull()
+
+      cleanup()
+      renderRow({ item: { ...pending, timeToConsumeMinutes: 101, timeToConsumeIsEstimated: false, runtimePending: false } })
+
+      expect(screen.getByText('1h 41m')).toBeTruthy()
+      expect(screen.queryByText('-')).toBeNull()
+    })
+
+    it('leaves an estimate that is not going to be looked up as it always was', () => {
+      renderRow({ item: { ...ITEM, timeToConsumeMinutes: 120, timeToConsumeIsEstimated: true, runtimePending: false } })
+
+      expect(screen.getByText('2h')).toBeTruthy()
+    })
+  })
 })

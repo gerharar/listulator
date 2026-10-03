@@ -229,6 +229,8 @@ export const de: Locale = {
       count: (done: number, total: number, percent: number): string =>
         total ? `${done}/${total} (${percent} %)` : `${done}/${total}`,
       left: (duration: string): string => `noch ${duration}`,
+      leftApprox: (duration: string): string => `≈ noch ${duration}`,
+      runtimesPendingTip: (count: number): string => `Laufzeiten werden gesucht: noch ${count}`,
       allDone: '✓ Alles erledigt',
       doneForNow: '✓ Erledigt (vorerst)',
     },
@@ -610,6 +612,7 @@ export const de: Locale = {
         remove: (title: string): string => `${title} entfernen`,
         infoKicker: 'Details',
         estimated: 'Diese Laufzeit ist eine grobe Schätzung',
+        runtimePending: '-',
         editTitle: 'Titel',
         editMinutes: 'Dauer (Minuten)',
         editGroup: 'Gruppe',

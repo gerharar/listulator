@@ -14,6 +14,7 @@ import { useToast } from '../Toast/Toast.js'
 import { useLayerStack } from '../layerStack/LayerStackContext.js'
 import { loadLastOpened } from '../../../lib/lastOpened.js'
 import { subscribeListsChanged } from '../../../lib/listsChanged.js'
+import { usePolling } from '../../../lib/usePolling.js'
 import { previewPath } from '../../../lib/preview.js'
 import { getPreferencesStore } from '../../../lib/preferences/store.js'
 import { FinalizerSheet } from '../HelperSheet/FinalizerSheet.js'
@@ -42,6 +43,8 @@ function listLayer(list: MediaList): LayerDescriptor<string> {
 
 /** How far the helper sheet hangs below the help row, before it starts. */
 const SHEET_DROP = 18
+/** How often the lists are read again while some list's lengths are still being looked up (15.7). */
+const HOME_RUNTIME_POLL_MS = 3000
 
 /** At most this many update bands at once; handling one lets the next take its place. */
 const MAX_UPDATE_BANDS = 3
@@ -165,6 +168,12 @@ export function Home({ onMediaTypesLoaded, pendingUpdates }: HomeProps) {
   // Something elsewhere added or removed a list while Home was covered (the
   // Undo of a delete, say): the ordinary top-layer refetch will not fire.
   useEffect(() => subscribeListsChanged(() => setRetryToken((token) => token + 1)), [])
+
+  // While some list is still having its lengths looked up (15.7), read the lists again every few seconds: the
+  // same quiet revalidation, so the time left and the counts follow. Only from the top layer, and it stops by
+  // itself when nothing is pending.
+  const anyRuntimesPending = lists.some((entry) => (entry.stats.runtimesPending ?? 0) > 0)
+  usePolling(isTop && anyRuntimesPending, () => setRetryToken((token) => token + 1), HOME_RUNTIME_POLL_MS)
 
   /** Opens a helper sheet (I'm Tired, Boss on the list opened last), or closes it if it is the one already open. One at a time. */
   async function toggleHelper(kind: 'tired' | 'finalizer' | 'justOneFix' | 'surprise') {
@@ -380,6 +389,7 @@ export function Home({ onMediaTypesLoaded, pendingUpdates }: HomeProps) {
                 total={list.stats.totalItems}
                 minutesLeft={list.stats.timeRemainingMinutes}
                 newCount={list.stats.newItems}
+                {...(list.stats.runtimesPending ? { runtimesPending: list.stats.runtimesPending } : {})}
                 onOpen={() => openList(list)}
               />
             ))}
@@ -403,6 +413,7 @@ export function Home({ onMediaTypesLoaded, pendingUpdates }: HomeProps) {
                 total={list.stats.totalItems}
                 minutesLeft={list.stats.timeRemainingMinutes}
                 newCount={list.stats.newItems}
+                {...(list.stats.runtimesPending ? { runtimesPending: list.stats.runtimesPending } : {})}
                 onOpen={() => openList(list)}
               />
             ))}

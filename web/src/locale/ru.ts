@@ -238,6 +238,8 @@ export const ru: Locale = {
       count: (done: number, total: number, percent: number): string =>
         total ? `${done}/${total} (${percent}%)` : `${done}/${total}`,
       left: (duration: string): string => `осталось ${duration}`,
+      leftApprox: (duration: string): string => `≈ осталось ${duration}`,
+      runtimesPendingTip: (count: number): string => `Ищем длительность: осталось ${count}`,
       allDone: '✓ Завершён',
       doneForNow: '✓ Завершён (пока что)',
     },
@@ -618,6 +620,7 @@ export const ru: Locale = {
         remove: (title: string): string => `Удалить: ${title}`,
         infoKicker: 'Подробности',
         estimated: 'Длительность на глаз',
+        runtimePending: '-',
         editTitle: 'Название',
         editMinutes: 'Длительность (минуты)',
         editGroup: 'Группа',

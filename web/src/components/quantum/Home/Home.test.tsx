@@ -823,4 +823,45 @@ describe('Home updates (task 10.22c)', () => {
       await waitFor(() => expect(screen.queryByText('Hold My Beer')).toBeNull())
     })
   })
+
+  describe('while a list is having its lengths looked up (15.7)', () => {
+    afterEach(() => vi.useRealTimers())
+
+    const filling = (pending: number) => list({ title: 'Pixar', stats: { ...list().stats, totalItems: 100, consumedItems: 0, timeRemainingMinutes: 12000, runtimesPending: pending } })
+
+    it('shows the time left as approximate, and reads the lists again by itself until nothing is pending', async () => {
+      // Only the interval is faked, so the screen's own waiting still works.
+      vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval'] })
+      vi.mocked(api.mediaTypes).mockResolvedValue(MEDIA_TYPES)
+      vi.mocked(api.lists).mockResolvedValueOnce([filling(60)]).mockResolvedValueOnce([filling(20)]).mockResolvedValue([filling(0)])
+
+      renderHome()
+
+      await waitFor(() => expect(screen.getByText('≈ 200h left')).not.toBeNull())
+      expect(api.lists).toHaveBeenCalledTimes(1)
+
+      await act(async () => void vi.advanceTimersByTime(3000))
+      await waitFor(() => expect(api.lists).toHaveBeenCalledTimes(2))
+      expect(screen.getByText('≈ 200h left')).not.toBeNull()
+
+      await act(async () => void vi.advanceTimersByTime(3000))
+      await waitFor(() => expect(screen.getByText('200h left')).not.toBeNull())
+      expect(api.lists).toHaveBeenCalledTimes(3)
+
+      await act(async () => void vi.advanceTimersByTime(30_000))
+      expect(api.lists).toHaveBeenCalledTimes(3)
+    })
+
+    it('does not read the lists again by itself when nothing is pending', async () => {
+      vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval'] })
+      vi.mocked(api.mediaTypes).mockResolvedValue(MEDIA_TYPES)
+      vi.mocked(api.lists).mockResolvedValue([list()])
+
+      renderHome()
+      await waitFor(() => expect(screen.getByText('Breaking Bad')).not.toBeNull())
+      await act(async () => void vi.advanceTimersByTime(30_000))
+
+      expect(api.lists).toHaveBeenCalledTimes(1)
+    })
+  })
 })

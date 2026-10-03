@@ -27,13 +27,16 @@ export interface ProgressSummary {
  * the time field becomes `✓ All done`, or `✓ Done for now` on a list
  * flagged Ongoing — "All done" would be a lie on a series still running:
  * every item you have is watched, but the list itself is not finished
- * (design-system/components/ProgressSentence).
+ * (design-system/components/ProgressSentence). While some lengths are still
+ * being looked up (`runtimesPending`) the time left is part estimate, and
+ * reads `≈ 14h 43m left` (task 15.7).
  */
 export function formatProgress(
   done: number,
   total: number,
   minutesLeft: number,
   status: PickedStatus,
+  runtimesPending = 0,
 ): ProgressSummary {
   const allDone = total > 0 && done === total
   const percent = total ? Math.round((done / total) * 100) : 0
@@ -45,7 +48,9 @@ export function formatProgress(
       ? status === 'ongoing'
         ? copy.quantum.progress.doneForNow
         : copy.quantum.progress.allDone
-      : copy.quantum.progress.left(formatDuration(minutesLeft))
+      : runtimesPending > 0
+        ? copy.quantum.progress.leftApprox(formatDuration(minutesLeft))
+        : copy.quantum.progress.left(formatDuration(minutesLeft))
 
   return { count, allDone, left }
 }
@@ -56,6 +61,8 @@ export interface ProgressSentenceProps {
   minutesLeft: number
   status: PickedStatus
   size?: ProgressSentenceSize
+  /** How many items' lengths are still being looked up (15.7): the time left is then approximate, with a tooltip saying so. */
+  runtimesPending?: number
 }
 
 export function ProgressSentence({
@@ -64,8 +71,9 @@ export function ProgressSentence({
   minutesLeft,
   status,
   size = 'row',
+  runtimesPending = 0,
 }: ProgressSentenceProps) {
-  const { count, allDone, left } = formatProgress(done, total, minutesLeft, status)
+  const { count, allDone, left } = formatProgress(done, total, minutesLeft, status, runtimesPending)
   const sizes = SENTENCE_SIZES[size]
   const text = copy.quantum.meter
   // Only the header bar is a click hint — a button explaining the cells (U6, owner:
@@ -110,12 +118,13 @@ export function ProgressSentence({
       {left !== null && (
         <>
           <span className="q-sep">·</span>
-          <span
+          <Tip
             className={allDone ? 'q-left all-done' : 'q-left'}
             style={{ fontSize: allDone ? Math.max(11, sizes.time - 2) : sizes.time }}
+            text={!allDone && runtimesPending > 0 ? copy.quantum.progress.runtimesPendingTip(runtimesPending) : undefined}
           >
             {left}
-          </span>
+          </Tip>
         </>
       )}
     </div>

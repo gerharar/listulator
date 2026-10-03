@@ -216,11 +216,14 @@ describe('building a list at once and filling its lengths afterwards (15.5)', ()
 
       const opened = await readList(list.id)
       expect(opened.stats.runtimesPending).toBe(3)
+      // Each row says whether its length is still coming, so the screen can show "-" and not the estimate.
+      expect(opened.items.map((item: { runtimePending: boolean }) => item.runtimePending)).toEqual([true, true, true])
 
       // Nobody asked for the lookup but the opening: it begins by itself, and waits at the source.
       await vi.waitFor(() => expect(source.enrich).toHaveBeenCalled())
       release()
       await harness.app.runtimeFiller.fill(list.id)
+      expect((await readList(list.id)).items.map((item: { runtimePending: boolean }) => item.runtimePending)).toEqual([false, false, false])
       expect(source.enrich.mock.calls.flat().flat().sort()).toEqual(['film:1', 'film:2', 'film:3'])
       expect(harness.db.select().from(listItems).where(eq(listItems.listId, list.id)).all().every((row) => !row.timeToConsumeIsEstimated)).toBe(true)
     })

@@ -23,10 +23,10 @@ export function ItemInfoCard({ item }: ItemInfoCardProps) {
       <div className="q-info-cover" aria-hidden="true" />
       <div className="q-info-facts">
         {item.year ? <span>{item.year}</span> : null}
-        <span>{formatDuration(item.timeToConsumeMinutes)}</span>
+        <span>{item.runtimePending ? text.runtimePending : formatDuration(item.timeToConsumeMinutes)}</span>
       </div>
       {notes && <p className="q-info-notes">{notes}</p>}
-      {item.timeToConsumeIsEstimated && <p className="q-info-note">{text.estimated}</p>}
+      {item.timeToConsumeIsEstimated && !item.runtimePending && <p className="q-info-note">{text.estimated}</p>}
     </div>
   )
 }

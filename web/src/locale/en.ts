@@ -263,6 +263,9 @@ export const en = {
       count: (done: number, total: number, percent: number): string =>
         total ? `${done}/${total} (${percent}%)` : `${done}/${total}`,
       left: (duration: string): string => `${duration} left`,
+      /** Part of the time is the category's estimate: lengths are still being looked up (15.7). */
+      leftApprox: (duration: string): string => `≈ ${duration} left`,
+      runtimesPendingTip: (count: number): string => `Looking up runtimes: ${count} still to go`,
       allDone: '✓ All Done',
       doneForNow: '✓ Done (for now)',
     },
@@ -692,6 +695,8 @@ export const en = {
         remove: (title: string): string => `Delete ${title}`,
         infoKicker: 'Details',
         estimated: 'This runtime is a rough estimate',
+        /** What a row shows in place of a length that is still being looked up (15.7). */
+        runtimePending: '-',
         editTitle: 'Title',
         editMinutes: 'Duration (Minutes)',
         editGroup: 'Group',

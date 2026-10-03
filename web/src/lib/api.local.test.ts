@@ -114,8 +114,8 @@ describe('the desktop builds a list at once and fills its lengths afterwards (15
     return { ...modules, api, filler }
   }
 
-  const summary = (items: { title: string; group: string | null; orderIndex: number; timeToConsumeMinutes: number; timeToConsumeIsEstimated: boolean }[]) =>
-    items.map((item) => [item.title, item.group, item.orderIndex, item.timeToConsumeMinutes, item.timeToConsumeIsEstimated])
+  const summary = (items: { title: string; group: string | null; orderIndex: number; timeToConsumeMinutes: number; timeToConsumeIsEstimated: boolean; runtimePending?: boolean }[]) =>
+    items.map((item) => [item.title, item.group, item.orderIndex, item.timeToConsumeMinutes, item.timeToConsumeIsEstimated, item.runtimePending])
 
   it('lists the source without lengths, makes the list at once with the estimate, and says how many are waiting', async () => {
     const source = filmSource()
@@ -221,11 +221,14 @@ describe('the desktop builds a list at once and fills its lengths afterwards (15
 
       const opened = await api.list(list.id)
       expect(opened.stats.runtimesPending).toBe(3)
+      // Each row says whether its length is still coming, so the screen can show "-" and not the estimate (15.7).
+      expect(opened.items.map((item) => item.runtimePending)).toEqual([true, true, true])
 
       await vi.waitFor(() => expect(source.enrich).toHaveBeenCalled())
       release()
       await filler.fill(list.id)
       expect((await api.list(list.id)).stats.runtimesPending).toBe(0)
+      expect((await api.list(list.id)).items.map((item) => item.runtimePending)).toEqual([false, false, false])
     })
 
     it('does not start anything for a list with nothing waiting', async () => {
