@@ -327,9 +327,10 @@ export interface TmdbFilmOptions {
    *
    * Excluded by default: a person's credits otherwise fill with documentaries
    * *about* them. The documentaries category inverts it, since a director's
-   * documentaries are exactly what it wants.
+   * documentaries are exactly what it wants. Animation includes them: its genre filter already keeps
+   * the list animated, and an animated short that is also tagged a documentary stays (as in a studio's).
    */
-  documentaries?: 'exclude' | 'only'
+  documentaries?: 'exclude' | 'include' | 'only'
   /**
    * Also count films the person directed, not only ones they appeared in.
    *
@@ -366,6 +367,8 @@ export function createTmdbAdapter(
       .filter((entry) => !genreFilter || (entry.genre_ids ?? []).includes(genreFilter))
       .filter((entry) => {
         const isDocumentary = (entry.genre_ids ?? []).includes(DOCUMENTARY_GENRE)
+
+        if (documentaries === 'include') return true
 
         return documentaries === 'only' ? isDocumentary : !isDocumentary
       })

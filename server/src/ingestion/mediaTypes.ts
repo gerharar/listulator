@@ -83,10 +83,14 @@ export function createDefaultMediaTypes({
     documentaries: 'include',
   })
 
-  // Animation also holds a collection of animated films (Toy Story): collections alone, animated parts only.
-  const animationCollections = createTmdbAdapter(tmdbCredentials, {
-    kinds: ['collection'],
+  // Animation also holds a collection of animated films (Toy Story) and a person's animated films: voiced or
+  // directed (BL-051, owner: cast and directing), animated only. The person's credits take the same
+  // "Self"/archive-footage rule as Movies (BL-045), through the same adapter.
+  const animationFilms = createTmdbAdapter(tmdbCredentials, {
+    kinds: ['collection', 'person'],
     genreFilter: ANIMATION_GENRE,
+    includeDirecting: true,
+    documentaries: 'include',
   })
 
   const documentarySeries = createTmdbTvAdapter(tmdbCredentials, {
@@ -113,7 +117,7 @@ export function createDefaultMediaTypes({
   const animationSources = createCompositeAdapter([
     { prefixes: ['show'], tag: 'tv', adapter: animatedShows },
     { prefixes: ['company'], enrichPrefixes: ['movie'], tag: 'movie', adapter: animationStudios },
-    { prefixes: ['collection'], enrichPrefixes: ['movie'], tag: 'movie', adapter: animationCollections },
+    { prefixes: ['collection', 'person'], enrichPrefixes: ['movie'], tag: 'movie', adapter: animationFilms },
   ])
 
   /** Documentary series, a film-maker's documentaries, and a studio's documentaries. */

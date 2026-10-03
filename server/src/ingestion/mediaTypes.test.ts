@@ -142,6 +142,21 @@ describe('what the Animation and Movies shelves tag on import', () => {
               { id: 6, title: 'A live-action remake', release_date: '2017-03-29', genre_ids: [28] },
             ],
           },
+          '/search/person': { results: [{ id: 8, name: 'Mamoru Oshii', known_for: [{ title: 'Ghost in the Shell' }] }] },
+          '/person/8/movie_credits': {
+            cast: [
+              { id: 5, title: 'Ghost in the Shell', release_date: '1995-11-18', genre_ids: [16], character: 'Motoko (voice)' },
+              { id: 6, title: 'A live-action remake', release_date: '2017-03-29', genre_ids: [28], character: 'Major' },
+              { id: 10, title: 'Making of the Shell', release_date: '1996-01-01', genre_ids: [16], character: 'Self' },
+              // An animated short that TMDB also tags a documentary stays, as it does in a studio's list.
+              { id: 11, title: 'Short', release_date: '1997-01-01', genre_ids: [16, 99], character: 'Narrator (voice)' },
+            ],
+            crew: [
+              { id: 12, title: 'Directed Anime', release_date: '1999-01-01', genre_ids: [16], job: 'Director' },
+              { id: 13, title: 'Directed Live', release_date: '2001-01-01', genre_ids: [28], job: 'Director' },
+              { id: 14, title: 'Produced Anime', release_date: '2002-01-01', genre_ids: [16], job: 'Producer' },
+            ],
+          },
           '/person/7/movie_credits': {
             cast: [{ id: 5, title: 'Ghost in the Shell', release_date: '1995-11-18', genre_ids: [99] }],
           },
@@ -164,11 +179,28 @@ describe('what the Animation and Movies shelves tag on import', () => {
   it('Animation offers a collection of animated films, tagged movie, and keeps only the animated ones (owner: everything animation-related is found in Animation)', async () => {
     const animation = stubTmdb().find((entry) => entry.key === 'animation')!.adapter!
 
-    expect(await animation.search('ghost')).toEqual([
-      { externalRef: 'collection:9', title: 'Ghost in the Shell Collection', detail: 'Collection' },
-    ])
+    expect(await animation.search('ghost')).toContainEqual({
+      externalRef: 'collection:9',
+      title: 'Ghost in the Shell Collection',
+      detail: 'Collection',
+    })
     const { items } = await animation.expand('collection:9')
     expect(items.map((item) => [item.title, item.tags])).toEqual([['Ghost in the Shell', ['movie']]])
+  })
+
+  it('Animation offers a person, and lists the animated films they voiced or directed, tagged movie (BL-051, owner: cast and directing)', async () => {
+    const animation = stubTmdb().find((entry) => entry.key === 'animation')!.adapter!
+
+    expect((await animation.search('oshii')).map((source) => source.externalRef)).toContain('person:8')
+    const { items } = await animation.expand('person:8')
+
+    // Voiced and directed, animated only, oldest first; not the live-action film, not a producing credit,
+    // not an appearance as Self (BL-045); an animated short that is also a documentary stays.
+    expect(items.map((item) => [item.title, item.tags])).toEqual([
+      ['Ghost in the Shell', ['movie']],
+      ['Short', ['movie']],
+      ['Directed Anime', ['movie']],
+    ])
   })
 
   it('Movies’ studios leave documentaries out; Animation’s keep to animation and do not (owner, 2026-10-03)', async () => {
@@ -225,6 +257,7 @@ describe('what the Animation and Movies shelves tag on import', () => {
     ['movie', 'company:2'],
     ['animation', 'company:2'],
     ['animation', 'collection:9'],
+    ['animation', 'person:8'],
     ['documentary', 'company:2'],
     ['documentary', 'person:7'],
   ])('lists %s’s films without lengths and fills them in after, ending where a full expansion does (15.2)', async (key, ref) => {
