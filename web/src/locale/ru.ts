@@ -831,6 +831,7 @@ export const ru: Locale = {
       title: 'Поглядеть список',
       closeLabel: 'Закрыть',
       loading: 'Подсчитываем элементы…',
+      noRuntime: '-',
       summary: (count: number, duration: string, estimated: boolean): string =>
         `${items(count)} · ${estimated ? '≈ ' : ''}${duration}`,
       addButton: 'Добавить Список',

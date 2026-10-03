@@ -4,7 +4,7 @@ import {
   isSafeCanonicalPath,
 } from './customLists.js'
 import { expansionCacheKey, type ExpansionCache } from './expansionCache.js'
-import type { ListExpansion, MediaType } from './mediaTypes.js'
+import type { ExpandOptions, ListExpansion, MediaType, SearchAdapter } from './mediaTypes.js'
 import { refForAdapter, type SourceOptions } from './sourceRef.js'
 
 /** The category has no adapter that can run right now (usually a missing API key). */
@@ -21,6 +21,17 @@ export class UnsafeSourceError extends Error {
     super('Not a valid canonical list path.')
     this.name = 'UnsafeSourceError'
   }
+}
+
+/**
+ * How a source is listed (task 15.5, 15.8): one whose lengths can be looked up afterwards (its adapter has
+ * `enrich` and says which refs) is listed **without** them, so the count, the Preview and Add list cost a
+ * listing and not a request for every item; the build fills the lengths in afterwards. Any other source has
+ * nothing to skip and is expanded in full, as it always was. The count, the Preview and the build all use
+ * this, so they ask for the same thing and share one cached listing.
+ */
+export function listingOptions(adapter: SearchAdapter): ExpandOptions | undefined {
+  return adapter.enrich && adapter.enrichPrefixes?.length ? { runtimes: 'skip' } : undefined
 }
 
 /**
@@ -56,7 +67,8 @@ export async function expandSource(
 
   // Only adapter expansions are remembered: they are the ones that cost many
   // upstream requests. A curated list is one small file.
-  return cache
-    ? cache.get(expansionCacheKey(mediaType.key, adapterRef), () => adapter.expand(adapterRef))
-    : adapter.expand(adapterRef)
+  const expandOptions = listingOptions(adapter)
+  const load = () => (expandOptions ? adapter.expand(adapterRef, expandOptions) : adapter.expand(adapterRef))
+
+  return cache ? cache.get(expansionCacheKey(mediaType.key, adapterRef, expandOptions), load) : load()
 }

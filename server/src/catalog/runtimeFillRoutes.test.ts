@@ -253,6 +253,58 @@ describe('building a list at once and filling its lengths afterwards (15.5)', ()
     })
   })
 
+  describe('the per-result count and the Preview (15.8)', () => {
+    const expansion = (key: string, ref: string, items = false) =>
+      harness.app.inject({ method: 'GET', url: `/api/media-types/${key}/expansion?externalRef=${ref}${items ? '&items=true' : ''}` })
+
+    it('counts a source by its listing alone, with no length looked up for it', async () => {
+      const source = filmSource()
+      harness = build(source.adapter)
+
+      const response = await expansion('movie', 'first')
+
+      expect(response.json()).toEqual({ itemCount: 3 })
+      expect(source.expand).toHaveBeenCalledExactlyOnceWith('first', { runtimes: 'skip' })
+      expect(source.enrich).not.toHaveBeenCalled()
+    })
+
+    it('previews the items without lengths: the lookup is the build’s business, not the preview’s', async () => {
+      const source = filmSource()
+      harness = build(source.adapter)
+
+      const { items } = (await expansion('movie', 'first', true)).json()
+
+      expect(items.map((item: MediaTypeCandidate) => [item.title, item.timeToConsumeMinutes])).toEqual([
+        ['Film 1', undefined],
+        ['Film 2', undefined],
+        ['Film 3', undefined],
+      ])
+      expect(source.enrich).not.toHaveBeenCalled()
+    })
+
+    it('shares one listing between the count, the Preview and Add list', async () => {
+      const source = filmSource()
+      harness = build(source.adapter)
+
+      await expansion('movie', 'first')
+      await expansion('movie', 'first', true)
+      const added = await fromSource('first')
+
+      expect(added.json().stats.totalItems).toBe(3)
+      expect(source.expand).toHaveBeenCalledTimes(1)
+      await harness.app.runtimeFiller.fill(added.json().id)
+    })
+
+    it('leaves a source with nothing to look up as it was: expanded in full, called with the ref alone', async () => {
+      harness = build(filmSource().adapter)
+
+      const { items } = (await expansion('plain', 'anything', true)).json()
+
+      expect(plainExpand).toHaveBeenCalledExactlyOnceWith('anything')
+      expect(items.map((item: MediaTypeCandidate) => item.timeToConsumeMinutes)).toEqual([undefined, 30])
+    })
+  })
+
   describe('the runner as the app has it', () => {
     it('picks up lists that were left unfinished when asked to, as the server does at start', async () => {
       const source = filmSource()

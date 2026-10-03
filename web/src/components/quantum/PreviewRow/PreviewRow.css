@@ -30,3 +30,4 @@
   font-variant-numeric: tabular-nums;
   color: var(--ink2);
 }
+.q-preview-row .mins.none { color: var(--ink3); }

@@ -24,7 +24,7 @@ const MUSIC: FacetConvention = [
 const GAMES: FacetConvention = [{ key: 'platform', label: 'Platform' }]
 
 function row(tags: string[] | undefined, props: { facets?: FacetConvention; platformWidthCh?: number } = {}) {
-  render(<PreviewRow item={{ title: 'Some Title', tags }} grouped={false} defaultMinutes={60} {...props} />)
+  render(<PreviewRow item={{ title: 'Some Title', tags }} grouped={false} {...props} />)
 }
 
 describe('PreviewRow tag column: the same chip the created list shows', () => {
@@ -74,3 +74,21 @@ describe('PreviewRow tag column: the same chip the created list shows', () => {
     expect(document.querySelector('.q-plat')).toBeNull()
   })
 })
+
+describe('PreviewRow length (15.8): a length the source did not give is "-", never the category\'s default', () => {
+  it('shows the length the source gave', () => {
+    render(<PreviewRow item={{ title: 'Toy Story', timeToConsumeMinutes: 81 }} grouped={false} />)
+
+    expect(screen.getByText('1h 21m')).toBeTruthy()
+    expect(screen.queryByText('-')).toBeNull()
+  })
+
+  it('shows "-" where there is none, in the quiet style, and not a default that would read as a real length', () => {
+    render(<PreviewRow item={{ title: 'Toy Story' }} grouped={false} />)
+
+    const dash = screen.getByText('-')
+    expect(dash.className).toContain('none')
+    expect(screen.queryByText('1h')).toBeNull()
+  })
+})
+

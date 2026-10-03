@@ -34,8 +34,8 @@ import { expansionCacheKey, createExpansionCache } from './expansionCache.js'
 import { IngestionError } from './http.js'
 import { listsDropDir as defaultListsDropDir, scanListsDropFolder } from './listsDropFolder.js'
 import type { AppDatabase } from '../db/client.js'
-import { toMediaTypeInfo, type ExpandOptions, type MediaTypeRegistry } from './mediaTypes.js'
-import { expandSource, SourceUnavailableError, UnsafeSourceError } from './expandSource.js'
+import { toMediaTypeInfo, type MediaTypeRegistry } from './mediaTypes.js'
+import { expandSource, listingOptions, SourceUnavailableError, UnsafeSourceError } from './expandSource.js'
 import { refForAdapter } from './sourceRef.js'
 import { searchSources, SearchUnavailableError } from './search.js'
 import type { ListSource, User } from '../db/schema.js'
@@ -380,8 +380,8 @@ export const ingestionRoutes: FastifyPluginAsync<IngestionRoutesOptions> = async
       // look up is expanded in full as it always was, under its old cache key, so the count, the preview
       // and Add list still share one expansion.
       const adapter = mediaType.adapter
-      const lookedUpLater = Boolean(adapter.enrich && adapter.enrichPrefixes?.length)
-      const expandOptions: ExpandOptions | undefined = lookedUpLater ? { runtimes: 'skip' } : undefined
+      const expandOptions = listingOptions(adapter)
+      const lookedUpLater = expandOptions !== undefined
       const cacheKey = expansionCacheKey(key, adapterRef, expandOptions)
       const { items: listed, status } = await expansions.get(cacheKey, () =>
         expandOptions ? adapter.expand(adapterRef, expandOptions) : adapter.expand(adapterRef),

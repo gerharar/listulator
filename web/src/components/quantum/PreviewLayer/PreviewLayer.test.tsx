@@ -64,6 +64,16 @@ const EXPANSION = {
 }
 
 describe('PreviewLayer', () => {
+  it('shows "-" for an item the source gave no length, and keeps the header total approximate (15.8)', async () => {
+    vi.mocked(api.preview).mockResolvedValue(EXPANSION)
+    renderLayer()
+
+    await screen.findByText('3 items · ≈ 2h 17m')
+    // Only "Ouroboros" has no length of its own: its row says "-", not the category's 40 minutes.
+    expect(screen.getAllByText('-')).toHaveLength(1)
+    expect(screen.getByText('50m')).toBeTruthy()
+  })
+
   it('shows a spinner while listing, then the title, count and total runtime', async () => {
     vi.mocked(api.preview).mockResolvedValue(EXPANSION)
     renderLayer()

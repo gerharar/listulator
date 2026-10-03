@@ -822,6 +822,7 @@ export const de: Locale = {
       title: 'Listenvorschau',
       closeLabel: 'Schließen',
       loading: 'Einträge werden aufgelistet…',
+      noRuntime: '-',
       summary: (count: number, duration: string, estimated: boolean): string =>
         `${entries(count)} · ${estimated ? '≈ ' : ''}${duration}`,
       addButton: 'Diese Liste hinzufügen',

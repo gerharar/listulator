@@ -914,6 +914,8 @@ export const en = {
       title: 'List Preview',
       closeLabel: 'Close',
       loading: 'Listing the items…',
+      /** What a row shows where the source gave no length: the lengths are looked up after the list is built (15.8). */
+      noRuntime: '-',
       /** Count and total runtime; `≈` when some runtimes are the category's default. */
       summary: (count: number, duration: string, estimated: boolean): string => `${count} ${selectPlural(count, 'en', { one: 'item', other: 'items' })} · ${estimated ? '≈ ' : ''}${duration}`,
       addButton: 'Add This List',

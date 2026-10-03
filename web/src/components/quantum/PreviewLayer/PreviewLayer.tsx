@@ -201,7 +201,6 @@ export function PreviewLayer({ source, mediaType, onBuilt }: PreviewLayerProps) 
                 key={`i${index}`}
                 item={row.item}
                 grouped={row.grouped}
-                defaultMinutes={mediaType.defaultDurationMinutes}
                 facets={mediaType.facets}
                 platformWidthCh={platformWidthCh}
               />

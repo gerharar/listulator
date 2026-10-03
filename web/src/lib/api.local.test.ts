@@ -195,6 +195,38 @@ describe('the desktop builds a list at once and fills its lengths afterwards (15
     expect(list.stats).toMatchObject({ totalItems: 2, runtimesPending: 0 })
   })
 
+  describe('the per-result count and the Preview (15.8)', () => {
+    it('counts a source by its listing alone, and previews its items without lengths', async () => {
+      const source = filmSource()
+      const { api } = await start(source)
+
+      const counted = await api.expansion('movie', 'first')
+      const previewed = await api.preview('movie', 'first')
+
+      expect(counted).toEqual({ itemCount: 3 })
+      expect(previewed.items.map((item) => [item.title, item.timeToConsumeMinutes])).toEqual([
+        ['Film 1', undefined],
+        ['Film 2', undefined],
+        ['Film 3', undefined],
+      ])
+      expect(source.expand).toHaveBeenCalledExactlyOnceWith('first', { runtimes: 'skip' })
+      expect(source.enrich).not.toHaveBeenCalled()
+    })
+
+    it('shares one listing between the count, the Preview and Add list', async () => {
+      const source = filmSource()
+      const { api, filler } = await start(source)
+
+      await api.expansion('movie', 'first')
+      await api.preview('movie', 'first')
+      const added = await api.createFromSource({ mediaType: 'movie', externalRef: 'first', title: 'First' })
+
+      expect(added.stats.totalItems).toBe(3)
+      expect(source.expand).toHaveBeenCalledTimes(1)
+      await filler.fill(added.id)
+    })
+  })
+
   describe('opening and listing lists', () => {
     async function builtEarlier(source: ReturnType<typeof filmSource>) {
       const started = await start(source)

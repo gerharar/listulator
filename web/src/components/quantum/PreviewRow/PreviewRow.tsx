@@ -1,6 +1,7 @@
 import { Tip } from '../Tooltip/Tip.js'
 import './PreviewRow.css'
 import { formatDuration } from '../../../formatDuration.js'
+import { copy } from '../../../locale/index.js'
 import type { PreviewItem } from '../../../lib/api.js'
 import { tagChip, type FacetConvention } from '../../../../../server/src/catalog/facets.js'
 import { KindTag } from '../Marks/Marks.js'
@@ -10,8 +11,6 @@ export interface PreviewRowProps {
   item: PreviewItem
   /** Inside a group: indented under its head. */
   grouped: boolean
-  /** The category's default, shown for an item with no runtime of its own. */
-  defaultMinutes: number
   /** The category's tag conventions: the chip says what the created list's row will say (Mini, Comp, Live). */
   facets?: FacetConvention
   /** A category whose tags name platforms: the widest chip label (`ch`), so the column lines up. */
@@ -20,14 +19,13 @@ export interface PreviewRowProps {
 
 /**
  * A read-only 40px row in the Preview layer (design-system/components/
- * PreviewRow): optional kind tag, title, year, minutes. No handle, no done
+ * PreviewRow): optional kind tag, title, year, minutes (`-` where the source gave none, 15.8). No handle, no done
  * box, no buttons — nothing here is actionable. The tag column is the list row's,
  * read-only (11.8), so the preview and the list it makes agree.
  */
-export function PreviewRow({ item, grouped, defaultMinutes, facets, platformWidthCh }: PreviewRowProps) {
+export function PreviewRow({ item, grouped, facets, platformWidthCh }: PreviewRowProps) {
   const chip = tagChip(item.tags, facets)
   const kind = chip?.label ?? item.tags?.[0]
-  const minutes = item.timeToConsumeMinutes ?? defaultMinutes
 
   return (
     <div className={['q-preview-row', grouped && 'in-group'].filter(Boolean).join(' ')}>
@@ -42,7 +40,11 @@ export function PreviewRow({ item, grouped, defaultMinutes, facets, platformWidt
         </Tip>
         {item.year ? <span className="q-year">({item.year})</span> : null}
       </span>
-      <span className="mins">{formatDuration(minutes)}</span>
+      {item.timeToConsumeMinutes === undefined ? (
+        <span className="mins none">{copy.quantum.preview.noRuntime}</span>
+      ) : (
+        <span className="mins">{formatDuration(item.timeToConsumeMinutes)}</span>
+      )}
     </div>
   )
 }

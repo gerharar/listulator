@@ -87,7 +87,7 @@ import { ApiError } from './api.js'
 import { checkNameLengths } from './nameLimit.js'
 import { createLocalDb, type LocalDatabase } from './db/localDb.js'
 import { getLocalCurrentUser } from './db/localUser.js'
-import { toMediaTypeInfo, type ExpandOptions } from '../../../server/src/ingestion/mediaTypes.js'
+import { toMediaTypeInfo } from '../../../server/src/ingestion/mediaTypes.js'
 import { searchSources, SearchUnavailableError } from '../../../server/src/ingestion/search.js'
 import { refForAdapter } from '../../../server/src/ingestion/sourceRef.js'
 import {
@@ -115,6 +115,7 @@ import {
 } from '../../../server/src/ingestion/expansionCache.js'
 import {
   expandSource,
+  listingOptions,
   SourceUnavailableError,
   UnsafeSourceError,
 } from '../../../server/src/ingestion/expandSource.js'
@@ -849,8 +850,8 @@ export function createLocalApi(): ApiClient {
       // leave an empty list behind. A source that can look lengths up afterwards is listed without them
       // and its list made at once (mirrors ingestion/routes.ts, 15.5).
       const adapter = mediaType.adapter
-      const lookedUpLater = Boolean(adapter.enrich && adapter.enrichPrefixes?.length)
-      const expandOptions: ExpandOptions | undefined = lookedUpLater ? { runtimes: 'skip' } : undefined
+      const expandOptions = listingOptions(adapter)
+      const lookedUpLater = expandOptions !== undefined
       const cacheKey = expansionCacheKey(key, adapterRef, expandOptions)
       const { items: listed, status } = await expansions.get(cacheKey, () =>
         expandOptions ? adapter.expand(adapterRef, expandOptions) : adapter.expand(adapterRef),
