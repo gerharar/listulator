@@ -1,4 +1,7 @@
 import { expect, test, type APIRequestContext } from '@playwright/test'
+import { q } from './fixtures.js'
+
+const actions = q.list.itemActions
 
 /**
  * Item actions on the list layer (task 10.21) against the real dev server:
@@ -49,29 +52,29 @@ test('add, remove with Undo, and edit — each saved, each undoable', async ({ p
 
     // Remove Beta, then Undo: it comes back at its own index.
     const betaBefore = saved.items.find((i: { title: string }) => i.title === 'Beta')
-    await page.getByRole('button', { name: 'Remove Beta' }).click()
+    await page.getByRole('button', { name: actions.remove('Beta') }).click()
     await expect(page.getByText('Beta', { exact: true })).toBeHidden()
     saved = await detail(page.request, id)
     expect(saved.items.some((i: { title: string }) => i.title === 'Beta')).toBe(false)
 
-    await page.locator('.q-toast').getByRole('button', { name: 'Undo' }).click()
+    await page.locator('.q-toast').getByRole('button', { name: actions.undo }).click()
     await expect(page.getByText('Beta', { exact: true })).toBeVisible()
     saved = await detail(page.request, id)
     const betaAfter = saved.items.find((i: { title: string }) => i.title === 'Beta')
     expect(betaAfter).toMatchObject({ id: betaBefore.id, orderIndex: betaBefore.orderIndex })
 
     // Edit Gamma through the popover: Save.
-    await page.getByRole('button', { name: 'Edit Gamma' }).click()
+    await page.getByRole('button', { name: actions.edit('Gamma') }).click()
     const dialog = page.getByRole('dialog')
     await dialog.getByLabel('Title').fill('Gamma Prime')
-    await dialog.getByLabel('Minutes').fill('45')
-    await dialog.getByRole('button', { name: 'Save' }).click()
+    await dialog.getByLabel(actions.editMinutes).fill('45')
+    await dialog.getByRole('button', { name: actions.save, exact: true }).click()
     await expect(page.getByText('Gamma Prime', { exact: true })).toBeVisible()
     // A plain toast on Save (owner, 2026-09-28: U6), no Undo — a deliberate click needs no safety net.
     // Scoped to .q-toast: the live region announces the same text for a screen reader.
     const toast = page.locator('.q-toast')
-    await expect(toast).toContainText('Saved changes to Gamma Prime')
-    await expect(toast.getByRole('button', { name: 'Undo' })).toBeHidden()
+    await expect(toast).toContainText(actions.saved('Gamma Prime'))
+    await expect(toast.getByRole('button', { name: actions.undo })).toBeHidden()
     saved = await detail(page.request, id)
     expect(saved.items.find((i: { title: string }) => i.title === 'Gamma Prime')).toMatchObject({
       timeToConsumeMinutes: 45,
@@ -79,7 +82,7 @@ test('add, remove with Undo, and edit — each saved, each undoable', async ({ p
     })
 
     // Details show the item's notes only when it has some.
-    await page.getByRole('button', { name: 'Details for Alpha' }).click()
+    await page.getByRole('button', { name: actions.details('Alpha') }).click()
     await expect(page.getByRole('dialog')).toBeVisible()
     await expect(page.locator('.q-info-notes')).toHaveCount(0)
   } finally {

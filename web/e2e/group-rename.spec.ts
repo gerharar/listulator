@@ -54,7 +54,9 @@ test('renames a group from its pencil, refuses a taken name, undoes, and keeps a
     await page.getByLabel('Group name').press('Enter')
     const name = page.locator('.q-group b', { hasText: 'Better Call Saul' })
     await expect(name).toBeVisible()
-    await expect(name).toHaveAttribute('title', long)
+    // The whole name is in the app's tooltip on hover (11.20), not a native title.
+    await name.hover()
+    await expect(page.getByRole('tooltip')).toHaveText(long)
     const [row, text] = await Promise.all([page.locator('.q-group', { hasText: 'Better Call Saul' }).boundingBox(), name.boundingBox()])
     expect(text!.x + text!.width).toBeLessThanOrEqual(row!.x + row!.width)
     expect(row!.x + row!.width).toBeLessThanOrEqual(1000)

@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test'
-import { FIXTURE_LIST_ID, FIXTURE_LIST_TITLE, useHomeFixture } from './fixtures.js'
+import { FIXTURE_LIST_ID, FIXTURE_LIST_TITLE, q, useHomeFixture } from './fixtures.js'
 
 /**
  * Q13 (tasks/plan.md): a server that's unreachable or erroring renders
@@ -23,7 +23,7 @@ test('a fully unreachable server shows Home’s ErrorBlock, not the create flow 
   await expect(page.getByRole('button', { name: 'Retry' })).toBeVisible({ timeout: 15_000 })
   await expect(page.getByRole('heading', { name: 'New list' })).toBeHidden()
   await expect(
-    page.getByRole('heading', { name: 'Nothing tracked yet — pick a shelf and fill it' }),
+    page.getByRole('heading', { name: q.categoryPicker.firstRunTitle }),
   ).toBeHidden()
   await expect(page.getByRole('heading', { name: 'My Lists' })).toBeVisible()
 
@@ -59,5 +59,5 @@ test('the fixture list renders its curated star and status mark, and a remembere
   })
   await expect(page.locator('.q-star')).toBeVisible()
   await expect(page.locator('.q-status-mark')).toBeVisible()
-  await expect(page.locator('.q-banner', { hasText: FIXTURE_LIST_TITLE })).toContainText('has 2 new items.')
+  await expect(page.locator('.q-banner', { hasText: FIXTURE_LIST_TITLE })).toContainText(q.home.pendingBand(2).trim())
 })

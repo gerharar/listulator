@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test'
+import { q } from './fixtures.js'
 
 /**
  * Add by hand (task 10.13), against the real dev server: what is typed is what
@@ -9,18 +10,18 @@ test('a hand-made list carries its description, status, groups and estimated run
   page,
 }) => {
   await page.goto('/')
-  await page.getByRole('button', { name: 'New List' }).click()
+  await page.getByRole('button', { name: q.home.newList }).click()
   await page.locator('.q-tile').first().click()
-  await page.getByRole('tab', { name: 'Add by hand' }).click()
+  await page.getByRole('tab', { name: q.createList.handTab }).click()
 
   const title = `e2e by-hand ${Date.now()}`
-  await page.getByLabel('List title').fill(title)
-  await page.getByLabel('Description').fill('Typed in by hand')
-  await page.getByLabel('Items — one per line').fill('Early:\nOne\nTwo\n\n# Late\nThree')
+  await page.getByLabel(q.addByHand.titleLabel, { exact: true }).fill(title)
+  await page.getByLabel(q.addByHand.descriptionLabel, { exact: true }).fill('Typed in by hand')
+  await page.getByLabel(q.addByHand.itemsLabel, { exact: true }).fill('Early:\nOne\nTwo\n\n# Late\nThree')
   await page.getByRole('button', { name: 'Ongoing', exact: true }).click()
 
   await expect(page.getByText(/^3 items in 2 groups/)).toBeVisible()
-  await page.getByRole('button', { name: 'Create list' }).click()
+  await page.getByRole('button', { name: q.addByHand.create }).click()
 
   await expect(page.getByRole('heading', { name: title })).toBeVisible()
   // The layer stack does not move the URL, so find the list by its title.

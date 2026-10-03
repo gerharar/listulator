@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test'
-import { useHomeFixture } from './fixtures.js'
+import { q, useHomeFixture } from './fixtures.js'
 
 /**
  * The real flip/shift decision `Popover.test.tsx` can't make under jsdom
@@ -49,7 +49,7 @@ test('Esc closes the popover first, and leaves a pushed layer in place — a sec
   // popover exists to click through. New List pushes the Category picker
   // (task 10.11) — any pushed layer proves the same thing.
   await page.getByRole('button', { name: 'New List' }).click()
-  await expect(page.getByRole('heading', { name: 'Pick A Category' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: q.categoryPicker.title })).toBeVisible()
 
   await page.getByRole('button', { name: 'Skin' }).click()
   const popover = page.getByRole('dialog')
@@ -57,11 +57,11 @@ test('Esc closes the popover first, and leaves a pushed layer in place — a sec
 
   await page.keyboard.press('Escape')
   await expect(popover).toBeHidden()
-  await expect(page.getByRole('heading', { name: 'Pick A Category' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: q.categoryPicker.title })).toBeVisible()
 
   await page.keyboard.press('Escape')
   // The layer fully unmounts on pop (unlike Home, which never leaves the
   // stack) — and with nothing left covering Home, its veil is gone too.
-  await expect(page.getByRole('heading', { name: 'Pick A Category' })).toBeHidden()
+  await expect(page.getByRole('heading', { name: q.categoryPicker.title })).toBeHidden()
   await expect(page.locator('.q-veil')).toHaveCount(0)
 })

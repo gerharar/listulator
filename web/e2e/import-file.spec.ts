@@ -1,33 +1,42 @@
 import { expect, test, type Page } from '@playwright/test'
+import { en } from '../src/locale/en.js'
+import { q } from './fixtures.js'
+
+const errors = en.errors
+// Category names are the registry's (the locale holds optional overrides only).
+const movies = 'Movies'
+const games = 'Games'
+/** A sentence with bold parts, as it reads. */
+const plain = (parts: readonly (string | { strong: string })[]) => parts.map((part) => (typeof part === 'string' ? part : part.strong)).join('')
 
 /**
  * Import a file (task 10.14), against the real parser on the dev server. Only
  * the valid-file test writes, and it cleans up in a `finally`.
  */
-async function openImport(page: Page, category = 'Movies') {
+async function openImport(page: Page, category = movies) {
   await page.goto('/')
-  await page.getByRole('button', { name: 'New List' }).click()
+  await page.getByRole('button', { name: q.home.newList }).click()
   await page.locator('.q-tile', { hasText: new RegExp(`^${category}`) }).click()
-  await page.getByRole('tab', { name: 'Import a file' }).click()
+  await page.getByRole('tab', { name: q.createList.importTab }).click()
 }
 
-const box = (page: Page) => page.getByLabel('YAML')
+const box = (page: Page) => page.getByLabel(q.importFile.boxLabel)
 
 const REFUSALS: [string, string, string][] = [
   [
     'a syntax error',
     'title: X\ncategory: movie\nitems: [unclosed',
-    'Syntax error on line 3, list cannot be imported.',
+    errors['list.fileSyntax']({ line: 3 }),
   ],
   [
     'no items',
     'title: X\ncategory: movie\nitems: []\n',
-    'No items found, list cannot be imported.',
+    errors['list.fileNoItems'](),
   ],
   [
     'an unknown category',
     'title: X\ncategory: board games\nitems:\n  - { title: A }\n',
-    'Unknown category ‘board games’, list cannot be imported.',
+    errors['list.unknownCategory']({ key: 'board games' }),
   ],
 ]
 
@@ -38,7 +47,7 @@ for (const [name, yaml, sentence] of REFUSALS) {
     await openImport(page)
 
     await box(page).fill(yaml)
-    await page.getByRole('button', { name: 'Import', exact: true }).click()
+    await page.getByRole('button', { name: q.importFile.import, exact: true }).click()
 
     await expect(page.getByText(sentence)).toBeVisible()
     await box(page).press('x')
@@ -54,7 +63,7 @@ test('a valid file becomes a list with no done marks and its notes intact', asyn
     `title: ${title}\ncategory: movie\ndescription: From a file\nitems:\n` +
       '  - { title: Alpha, year: 1999, notes: "Not the 2001 one" }\n  - { title: Beta }\n',
   )
-  await page.getByRole('button', { name: 'Import', exact: true }).click()
+  await page.getByRole('button', { name: q.importFile.import, exact: true }).click()
 
   await expect(page.getByRole('heading', { name: title })).toBeVisible()
 
@@ -79,25 +88,25 @@ test('a valid file becomes a list with no done marks and its notes intact', asyn
 test('a file of another category asks first; Back keeps the text, Import puts it in its own category (U3)', async ({
   page,
 }) => {
-  await openImport(page, 'Games')
+  await openImport(page, games)
 
   const title = `e2e import other ${Date.now()}`
   await box(page).fill(`title: ${title}\ncategory: movie\nitems:\n  - { title: Alpha }\n`)
-  await page.getByRole('button', { name: 'Import', exact: true }).click()
+  await page.getByRole('button', { name: q.importFile.import, exact: true }).click()
 
   const question = page.getByRole('dialog')
-  await expect(question.getByText('Import to Movies?')).toBeVisible()
+  await expect(question.getByText(q.importFile.otherCategoryQuestion(movies))).toBeVisible()
   await expect(
-    question.getByText("Current category is Games, the list you're importing is from Movies."),
+    question.getByText(plain(q.importFile.otherCategoryNote(games, movies))),
   ).toBeVisible()
   await page.screenshot({ path: test.info().outputPath('u3-question.png') })
 
-  await question.getByRole('button', { name: 'Back' }).click()
+  await question.getByRole('button', { name: q.importFile.back }).click()
   await expect(question).toBeHidden()
   await expect(box(page)).toHaveValue(new RegExp(title))
 
-  await page.getByRole('button', { name: 'Import', exact: true }).click()
-  await page.getByRole('dialog').getByRole('button', { name: 'Import', exact: true }).click()
+  await page.getByRole('button', { name: q.importFile.import, exact: true }).click()
+  await page.getByRole('dialog').getByRole('button', { name: q.importFile.import, exact: true }).click()
   await expect(page.getByRole('heading', { name: title })).toBeVisible()
 
   const all: { id: string; title: string; mediaType: string }[] = await (

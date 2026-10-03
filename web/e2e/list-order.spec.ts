@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test'
+import { q } from './fixtures.js'
 
 /**
  * The Order menu (task 10.22) against the real dev server: Sort chronologically
@@ -52,7 +53,7 @@ test('sort, reset to the source, and undo both', async ({ page }) => {
     // Reset to the source: the cost first, in words. Reset List offers only Reset (the order buttons moved).
     await page.getByRole('button', { name: 'More' }).click()
     await page.locator('.q-pop').getByRole('button', { name: 'Reset List' }).click()
-    await expect(page.getByText('1 item you added will be removed and 1 done mark will be cleared.')).toBeVisible()
+    await expect(page.getByText(q.list.orderMenu.joinCost([q.list.orderMenu.removed(1), q.list.orderMenu.cleared(1)]))).toBeVisible()
     await expect(page.locator('.q-pop').getByRole('button', { name: /order/i })).toHaveCount(0)
     await page.locator('.q-pop').getByRole('button', { name: 'Reset', exact: true }).click()
     await expect(page.getByText('Mine', { exact: true })).toBeHidden()

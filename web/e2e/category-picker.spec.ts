@@ -1,5 +1,9 @@
 import { expect, test } from '@playwright/test'
+import { en } from '../src/locale/en.js'
 import { useHomeFixture } from './fixtures.js'
+
+const picker = en.quantum.categoryPicker
+const createList = en.quantum.createList
 
 /**
  * The Category picker against the real `/api/media-types` registry (task
@@ -13,7 +17,7 @@ test('New List opens the picker, driven by the live registry rather than the han
   await page.goto('/')
   await page.getByRole('button', { name: 'New List' }).click()
 
-  await expect(page.getByRole('heading', { name: 'Pick A Category' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: picker.title })).toBeVisible()
 
   // Display labels come from the locale; the registry still says "TV Shows".
   const tvTile = page.locator('.q-tile', { hasText: 'TV Series' })
@@ -45,12 +49,12 @@ test('picking a tile opens the Create layer for that category, Esc returns to th
   await page.getByRole('button', { name: 'New List' }).click()
   await page.locator('.q-tile', { hasText: 'Pro Wrestling' }).click()
 
-  await expect(page.getByRole('heading', { name: 'New Pro Wrestling list' })).toBeVisible()
-  // Wrestling's real source is Wikipedia, so the Search tab names it.
-  await expect(page.getByRole('tab', { name: 'Search Wikipedia' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: createList.title('Pro Wrestling') })).toBeVisible()
+  // The Search tab no longer names its source (the field under it does).
+  await expect(page.getByRole('tab', { name: createList.searchTab('Wikipedia') })).toBeVisible()
 
   // Esc pops one layer — back to the picker, not all the way home.
   await page.keyboard.press('Escape')
-  await expect(page.getByRole('heading', { name: 'Pick A Category' })).toBeVisible()
-  await expect(page.getByRole('heading', { name: 'New Pro Wrestling list' })).toBeHidden()
+  await expect(page.getByRole('heading', { name: picker.title })).toBeVisible()
+  await expect(page.getByRole('heading', { name: createList.title('Pro Wrestling') })).toBeHidden()
 })

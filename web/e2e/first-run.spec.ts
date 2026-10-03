@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test'
+import { q } from './fixtures.js'
 
 /**
  * First run (tasks 10.10, 10.11): a successful fetch returning zero lists
@@ -14,16 +15,14 @@ test('a fresh install with zero lists boots straight into the Category picker, w
 
   await page.goto('/')
 
-  const headline = page.getByRole('heading', {
-    name: 'Nothing tracked yet — pick a shelf and fill it',
-  })
+  const headline = page.getByRole('heading', { name: q.categoryPicker.firstRunTitle })
   await expect(headline).toBeVisible({ timeout: 15_000 })
-  await expect(page.getByRole('heading', { name: 'My Lists' })).toBeHidden()
+  await expect(page.getByRole('heading', { name: q.home.title })).toBeHidden()
 
   // The picker is the base layer itself (index 0), not a layer pushed on top
   // of Home — so there is no close button, matching the design prototype's
   // `canClose:false`.
-  await expect(page.getByRole('button', { name: 'Close' })).toBeHidden()
+  await expect(page.getByRole('button', { name: q.categoryPicker.closeLabel })).toBeHidden()
 })
 
 /**
@@ -43,29 +42,27 @@ test('after the first-run creation, Home exists again with the new list pushed o
   })
 
   await page.goto('/')
-  await expect(
-    page.getByRole('heading', { name: 'Nothing tracked yet — pick a shelf and fill it' }),
-  ).toBeVisible({ timeout: 15_000 })
+  await expect(page.getByRole('heading', { name: q.categoryPicker.firstRunTitle })).toBeVisible({ timeout: 15_000 })
 
   await page.unroute('**/api/lists')
 
   // Pick the first shelf; the Create layer takes it from there. Add by hand
   // works with no API key, unlike the Search tab it opens on.
   await page.locator('.q-tile').first().click()
-  await expect(page.getByRole('heading', { name: /^New .* list$/ })).toBeVisible()
-  await page.getByRole('tab', { name: 'Add by hand' }).click()
+  await expect(page.getByRole('heading', { name: /^New .* List$/ })).toBeVisible()
+  await page.getByRole('tab', { name: q.createList.handTab }).click()
 
   const title = `e2e first-run ${Date.now()}`
-  await page.getByLabel('List title').fill(title)
-  await page.getByRole('button', { name: 'Create list' }).click()
+  await page.getByLabel(q.addByHand.titleLabel, { exact: true }).fill(title)
+  await page.getByRole('button', { name: q.addByHand.create }).click()
 
   await expect(page.getByRole('heading', { name: title })).toBeVisible()
   // Home's LayerTab, covered but present — it would not exist at all if the
   // stack were still just `[list]`.
-  await expect(page.getByRole('button', { name: 'My Lists' })).toBeVisible()
+  await expect(page.getByRole('button', { name: q.home.title })).toBeVisible()
 
-  await page.getByRole('button', { name: 'My Lists' }).click()
-  await expect(page.getByRole('heading', { name: 'My Lists' })).toBeVisible()
+  await page.getByRole('button', { name: q.home.title }).click()
+  await expect(page.getByRole('heading', { name: q.home.title })).toBeVisible()
   await expect(page.getByText(title)).toBeVisible()
 
   // Clean up the real list this test created. (Through the API: the list

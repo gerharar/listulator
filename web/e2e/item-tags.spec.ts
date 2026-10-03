@@ -1,4 +1,9 @@
 import { expect, test, type APIRequestContext } from '@playwright/test'
+import { q } from './fixtures.js'
+
+const tags = q.list.tags
+/** The next-item picker's name starts the same whatever it holds. */
+const nextPicker = new RegExp(`^${tags.nextField('')}`)
 
 /**
  * An item's tags by hand in the Edit window (U5, docs/chips): the Platform
@@ -26,22 +31,22 @@ test('a game’s platforms are picked in the panel beside the Edit window and sa
     await page.goto('/')
     await page.locator('.q-home-row', { hasText: title }).click()
     await page.getByRole('button', { name: 'Edit Unity' }).click()
-    await page.getByRole('button', { name: 'Platform: Not set' }).click()
+    await page.getByRole('button', { name: tags.fieldLabel(tags.platform, tags.notSet) }).click()
 
-    const panel = page.getByRole('dialog', { name: 'Choose platforms' })
+    const panel = page.getByRole('dialog', { name: tags.panelLabel })
     // Beside the window, not over it.
     const edit = (await page.locator('.q-pop').boundingBox())!
     const box = (await panel.boundingBox())!
     expect(box.x >= edit.x + edit.width || box.x + box.width <= edit.x).toBe(true)
-    await expect(panel.getByRole('group', { name: 'In this list' })).toContainText('PS3')
+    await expect(panel.getByRole('group', { name: tags.inList })).toContainText('PS3')
 
     // Most common shows six once the list has platforms (WIN first); PS4 is found by search.
-    await expect(panel.getByRole('group', { name: 'Most common' })).toContainText('WIN')
-    const search = panel.getByPlaceholder('Search 186 platforms')
+    await expect(panel.getByRole('group', { name: tags.common })).toContainText('WIN')
+    const search = panel.getByPlaceholder(tags.search(186))
     // The first pick adds Clear and the picked chips, but nothing below them moves (owner).
     const before = (await search.boundingBox())!.y
     await panel.getByRole('button', { name: /^PS3 / }).click()
-    await expect(panel.getByRole('button', { name: 'Clear' })).toBeVisible()
+    await expect(panel.getByRole('button', { name: tags.clear })).toBeVisible()
     expect((await search.boundingBox())!.y).toBe(before)
     await panel.getByRole('button', { name: /^PS3 / }).click()
     await search.fill('ps4')
@@ -51,8 +56,8 @@ test('a game’s platforms are picked in the panel beside the Edit window and sa
     // Esc closes the panel only; the window keeps the picks.
     await page.keyboard.press('Escape')
     await expect(panel).toBeHidden()
-    await expect(page.getByRole('button', { name: 'Platform: WIN · PS4' })).toBeVisible()
-    await page.getByRole('button', { name: 'Save' }).click()
+    await expect(page.getByRole('button', { name: tags.fieldLabel(tags.platform, 'WIN · PS4') })).toBeVisible()
+    await page.getByRole('button', { name: 'Save', exact: true }).click()
 
     await expect.poll(() => itemTags(page.request, id, 'Unity')).toEqual(['WIN', 'PS4'])
   } finally {
@@ -75,7 +80,7 @@ test('a music item’s Type is one pick from its short list, Live ticked on top;
     await page.getByRole('button', { name: 'Edit Panopticon' }).click()
     await page.getByRole('button', { name: 'Type: Album' }).click()
     await page.getByRole('option', { name: 'Mini' }).click()
-    await page.getByRole('button', { name: 'Save' }).click()
+    await page.getByRole('button', { name: 'Save', exact: true }).click()
     await expect.poll(() => itemTags(page.request, id, 'Panopticon')).toEqual(['Remaster', 'Mini'])
 
     await page.getByRole('button', { name: 'Edit The Red Sea' }).click()
@@ -83,14 +88,16 @@ test('a music item’s Type is one pick from its short list, Live ticked on top;
     await page.getByRole('option', { name: 'Live' }).click()
     await expect(page.getByRole('button', { name: 'Type: Mini · Live' })).toBeVisible()
     // Live leaves the list open; a click past it (here on Save) only closes it (owner).
-    await page.getByRole('button', { name: 'Save' }).click()
+    await page.getByRole('button', { name: 'Save', exact: true }).click()
     await expect(page.getByRole('listbox')).toBeHidden()
     expect(await itemTags(page.request, id, 'The Red Sea')).toEqual(['EP'])
-    await page.getByRole('button', { name: 'Save' }).click()
+    await page.getByRole('button', { name: 'Save', exact: true }).click()
     await expect.poll(() => itemTags(page.request, id, 'The Red Sea')).toEqual(['EP', 'Live'])
     // The chip is 58px (owner): the type, and Live as a mark on it; nothing spills.
     const chip = page.locator('[data-row-id]', { hasText: 'The Red Sea' }).locator('.q-tag.kind')
-    await expect(chip).toHaveAttribute('title', 'Mini · Live')
+    // The tag's full name is in the app's tooltip on hover (11.20), not a native title.
+    await chip.hover()
+    await expect(page.getByRole('tooltip')).toHaveText('Mini · Live')
     await expect(chip.locator('.q-tag-mark')).toBeVisible()
     const fits = await page.locator('.q-tag.kind').evaluateAll((chips) =>
       chips.map((el) => el.scrollWidth <= el.clientWidth),
@@ -131,14 +138,14 @@ test('once a list has tags, an untagged item shows a centred + that opens its Ed
     await page.screenshot({ path: test.info().outputPath('plus-games.png') })
 
     await plus.click()
-    await expect(page.getByRole('dialog', { name: 'Choose platforms' })).toBeVisible()
+    await expect(page.getByRole('dialog', { name: tags.panelLabel })).toBeVisible()
     await page.keyboard.press('Escape')
     await page.keyboard.press('Escape')
 
     await page.locator('.q-item', { hasText: 'Assassin’s Creed' }).locator('.q-plat').click()
     await page.screenshot({ path: test.info().outputPath('card-edit.png') })
     await page.getByRole('button', { name: 'Edit platforms for Assassin’s Creed' }).click()
-    await expect(page.getByRole('dialog', { name: 'Choose platforms' })).toBeVisible()
+    await expect(page.getByRole('dialog', { name: tags.panelLabel })).toBeVisible()
     await page.keyboard.press('Escape')
     await page.keyboard.press('Escape')
 
@@ -164,12 +171,12 @@ test('the add row picks the next item’s platforms, keeps them for the next, an
     await page.goto('/')
     await page.locator('.q-home-row', { hasText: title }).click()
     // An empty Games list: no tag column yet, but the add row can already pick.
-    const picker = page.getByRole('button', { name: /^Platform for the next item:/ })
-    await expect(picker).toContainText('None')
+    const picker = page.getByRole('button', { name: nextPicker })
+    await expect(picker).toContainText(tags.none)
     await picker.click()
-    const panel = page.getByRole('dialog', { name: 'Choose platforms' })
-    await expect(panel.getByText('Next item you add')).toBeVisible()
-    await panel.getByPlaceholder('Search 186 platforms').fill('ps2')
+    const panel = page.getByRole('dialog', { name: tags.panelLabel })
+    await expect(panel.getByText(tags.nextItem, { exact: true })).toBeVisible()
+    await panel.getByPlaceholder(tags.search(186)).fill('ps2')
     await panel.getByRole('button', { name: /^PS2 / }).click()
     await page.screenshot({ path: test.info().outputPath('add-picker.png') })
     await page.keyboard.press('Escape')
@@ -187,7 +194,7 @@ test('the add row picks the next item’s platforms, keeps them for the next, an
     // Reopened, the add row still starts on PS2.
     await page.goto('/')
     await page.locator('.q-home-row', { hasText: title }).click()
-    await expect(page.getByRole('button', { name: /^Platform for the next item:/ })).toContainText('PS2')
+    await expect(page.getByRole('button', { name: nextPicker })).toContainText('PS2')
   } finally {
     await page.request.delete(`/api/lists/${list.id}`)
   }

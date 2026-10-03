@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
-import { useHomeFixture } from './fixtures.js'
+import { q, useHomeFixture } from './fixtures.js'
 
 /**
  * The About layer (task 11.21) in a real browser: jsdom cannot load an image
@@ -58,7 +58,7 @@ test('the disabled Check for updates still says why when hovered', async ({ page
 
   await check.hover()
 
-  await expect(page.getByRole('tooltip')).toHaveText('Checking for updates comes in a later version.')
+  await expect(page.getByRole('tooltip')).toHaveText(q.about.updatesLater)
 })
 
 test.describe('at phone width', () => {

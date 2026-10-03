@@ -18,6 +18,9 @@ export default defineConfig({
   use: {
     baseURL: 'http://127.0.0.1:5173',
     trace: 'on-first-retry',
+    // A click on a label that no longer exists must fail in seconds with its name, not wait out the whole
+    // test timeout and surface as an unrelated error in the cleanup that follows (BL-030).
+    actionTimeout: 10_000,
     locale: 'en-US',
   },
   projects: [

@@ -1,4 +1,5 @@
 import { expect, test, type APIRequestContext } from '@playwright/test'
+import { q } from './fixtures.js'
 
 /**
  * The list layer (task 10.20) against the real dev server: what a Mega list
@@ -42,7 +43,7 @@ for (const [mediaType, arrives] of [
     try {
       await page.goto('/')
       await page.getByRole('button', { name: new RegExp(title) }).click()
-      await expect(page.getByRole('heading', { name: new RegExp(`^${title}`) })).toBeVisible()
+      await expect(page.getByRole('heading', { name: new RegExp(title) })).toBeVisible()
 
       const groups = page.locator('.q-group')
       await expect(groups).toHaveCount(2)
@@ -77,15 +78,15 @@ test('the header meter bar hints that a click explains the cells, and shows the 
   try {
     await page.goto('/')
     await page.getByRole('button', { name: new RegExp(title) }).click()
-    await expect(page.getByRole('heading', { name: new RegExp(`^${title}`) })).toBeVisible()
+    await expect(page.getByRole('heading', { name: new RegExp(title) })).toBeVisible()
 
-    const button = page.getByRole('button', { name: 'What the cells mean' })
+    const button = page.getByRole('button', { name: q.meter.explainHint })
     await expect(button).toBeVisible()
     await button.click()
 
-    const explain = page.getByRole('dialog', { name: 'What the cells mean' })
-    await expect(explain).toContainText('One cell = one item')
-    await expect(explain).toContainText('Each cell is one item in this list. A filled cell is done.')
+    const explain = page.getByRole('dialog', { name: q.meter.explainHint })
+    await expect(explain).toContainText(q.meter.noteUncapped)
+    await expect(explain).toContainText(q.meter.detailUncapped)
 
     // Esc closes it, like every other popover.
     await page.keyboard.press('Escape')

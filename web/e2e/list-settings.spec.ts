@@ -25,7 +25,7 @@ test('edit the list, then export it', async ({ page, context, browserName }) => 
     await pop.getByLabel('Title').fill(`${title} renamed`)
     await pop.getByLabel(/Description/).fill('A description')
     await pop.getByRole('button', { name: 'Ongoing' }).click()
-    await pop.getByRole('button', { name: 'Save' }).click()
+    await pop.getByRole('button', { name: 'Save', exact: true }).click()
 
     await expect(page.getByRole('heading', { name: new RegExp(`${title} renamed`) })).toBeVisible()
     await expect(page.getByText('A description')).toBeVisible()

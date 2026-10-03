@@ -1,4 +1,5 @@
 import { expect, test, type APIRequestContext, type Page } from '@playwright/test'
+import { q } from './fixtures.js'
 
 /**
  * The filter bar (task 10.24) in a real browser against the dev server: a text
@@ -39,7 +40,7 @@ test('Games get a Platform facet; it filters additively and keeps the order', as
 
   try {
     await openList(page, title)
-    await expect(facets(page).locator('button')).toHaveText(['All', 'DS', 'PS3', 'PSP', 'WIN', 'X360', 'Untagged'])
+    await expect(facets(page).locator('button')).toHaveText(['All', 'DS', 'PS3', 'PSP', 'WIN', 'X360', q.list.filter.optionLabels['Untagged']!])
     await expect(facetBar(page).getByText('6 items')).toBeVisible()
     await page.screenshot({ path: 'test-results/filter-bar-games.png' })
 
@@ -71,7 +72,7 @@ test('the text filter narrows a group’s rows and shows its own count', async (
     await page.screenshot({ path: 'test-results/filter-bar-text.png' })
 
     await page.getByPlaceholder('Filter items…').fill('zzz')
-    await expect(page.getByText('Nothing matches “zzz”.')).toBeVisible()
+    await expect(page.getByText(q.list.filter.nothing('zzz'))).toBeVisible()
   } finally {
     await page.request.delete(`/api/lists/${id}`)
   }
@@ -149,7 +150,7 @@ test('the jump rail brings a far group to the top, and stays folded across a rel
       })
       .toBeLessThan(3)
 
-    await rail.getByRole('button', { name: 'Collapse the jump rail' }).click()
+    await rail.getByRole('button', { name: q.list.rail.hide }).click()
     await expect(rail).toHaveCount(0)
     await page.reload()
     await page.locator('.q-home-row', { hasText: title }).click()
@@ -210,7 +211,9 @@ test('many platforms: the facet becomes a dropdown so the bar stays one row; a w
 
     const picked = facetBar(page).getByRole('button', { name: 'Platform: PS4, WIN' })
     await expect(picked).toHaveAttribute('data-on', 'true')
-    await expect(picked).toHaveAttribute('title', 'PlayStation 4, Windows')
+    // The full names are in the app's tooltip on hover (11.20), not a native title.
+    await picked.hover()
+    await expect(page.getByRole('tooltip')).toHaveText('PlayStation 4, Windows')
     await expect(rows(page)).toHaveText(['On PS4', 'On WIN'])
     await page.screenshot({ path: test.info().outputPath('u4-picked.png') })
 

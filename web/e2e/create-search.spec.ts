@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
-import { useHomeFixture } from './fixtures.js'
+import { q, useHomeFixture } from './fixtures.js'
 
 /**
  * The Create layer's Search tab (task 10.12) in a real engine. The network
@@ -17,18 +17,18 @@ const SOURCES = [
 async function openMusicSearch(page: Page) {
   await useHomeFixture(page)
   await page.goto('/')
-  await page.getByRole('button', { name: 'New List' }).click()
+  await page.getByRole('button', { name: q.home.newList }).click()
   await page.locator('.q-tile', { hasText: 'Music' }).click()
-  await expect(page.getByRole('heading', { name: 'New Music list' })).toBeVisible()
-  await expect(page.getByRole('tab', { name: 'Search MusicBrainz' })).toHaveAttribute(
+  await expect(page.getByRole('heading', { name: q.createList.title('Music') })).toBeVisible()
+  await expect(page.getByRole('tab', { name: q.createList.searchTab('MusicBrainz'), exact: true })).toHaveAttribute(
     'aria-selected',
     'true',
   )
 }
 
 async function search(page: Page) {
-  await page.getByLabel('Search MusicBrainz').fill('cannibal')
-  await page.getByRole('button', { name: 'Search', exact: true }).click()
+  await page.getByLabel(q.search.queryLabel('MusicBrainz'), { exact: true }).fill('cannibal')
+  await page.getByRole('button', { name: q.search.searchButton, exact: true }).click()
 }
 
 test('searching lists results, loads a count into each row, and Add list opens the new list', async ({
@@ -55,7 +55,7 @@ test('searching lists results, loads a count into each row, and Add list opens t
   await openMusicSearch(page)
   await search(page)
 
-  await expect(page.getByText('2 results')).toBeVisible()
+  await expect(page.getByText(q.search.resultsCount(2))).toBeVisible()
   await expect(page.getByText('Cannibal Corpse Discography')).toBeVisible()
   // Each row's count loads in after the rows rendered.
   await expect(page.locator('.q-result .n', { hasText: '14' })).toHaveCount(2)
@@ -66,8 +66,8 @@ test('searching lists results, loads a count into each row, and Add list opens t
   expect(expansionUrls[0]).toContain('includeEp=true')
   expect(expansionUrls[0]).toContain('includeLive=false')
 
-  await page.getByRole('button', { name: /Show details for Cannibal Corpse Discography/ }).click()
-  await page.getByRole('button', { name: 'Add list' }).click()
+  await page.getByRole('button', { name: q.search.expandRow('Cannibal Corpse Discography') }).click()
+  await page.getByRole('button', { name: q.search.addButton }).click()
 
   await expect(page.getByRole('heading', { name: 'Cannibal Corpse Discography' })).toBeVisible()
   expect(importBody).toMatchObject({
@@ -80,7 +80,7 @@ test('searching lists results, loads a count into each row, and Add list opens t
     includeCompilation: false,
   })
   // Home is still there under the new list.
-  await expect(page.getByRole('button', { name: 'My Lists' })).toBeVisible()
+  await expect(page.getByRole('button', { name: q.home.title })).toBeVisible()
 })
 
 test('a rate-limited search shows a strip in the results slot, and Retry recovers', async ({
@@ -106,9 +106,9 @@ test('a rate-limited search shows a strip in the results slot, and Retry recover
   const strip = page.getByRole('alert')
   await expect(strip).toContainText('MusicBrainz is rate-limiting us')
   // The form did not move: the search field is still in place above the strip.
-  await expect(page.getByLabel('Search MusicBrainz')).toBeVisible()
+  await expect(page.getByLabel(q.search.queryLabel('MusicBrainz'), { exact: true })).toBeVisible()
 
-  await strip.getByRole('button', { name: 'Retry' }).click()
+  await strip.getByRole('button', { name: q.search.retry }).click()
   await expect(page.getByText('Cannibal Corpse Discography')).toBeVisible()
   await expect(page.getByRole('alert')).toBeHidden()
 })
@@ -127,7 +127,7 @@ test('when the community library cannot be reached, results still show, with a s
   await search(page)
 
   await expect(page.getByText('Cannibal Corpse Discography')).toBeVisible()
-  await expect(page.getByRole('alert')).toContainText('community library')
+  await expect(page.getByRole('alert')).toContainText(q.search.libraryUnreachable)
 })
 
 test('with no key and the library down, the block names both problems', async ({ page }) => {
@@ -141,8 +141,8 @@ test('with no key and the library down, the block names both problems', async ({
   await openMusicSearch(page)
   await search(page)
 
-  await expect(page.getByText("Can't search Music right now")).toBeVisible()
-  await expect(page.getByLabel('Search MusicBrainz')).toBeVisible()
+  await expect(page.getByText(q.search.offlineHeadline('Music'))).toBeVisible()
+  await expect(page.getByLabel(q.search.queryLabel('MusicBrainz'), { exact: true })).toBeVisible()
 })
 
 const LIST_JSON = {
@@ -196,33 +196,33 @@ test('Preview lists every item without creating anything; Esc returns to the res
 
   await openMusicSearch(page)
   await search(page)
-  await page.getByRole('button', { name: /Show details for Cannibal Corpse Discography/ }).click()
-  await page.getByRole('button', { name: 'Preview' }).click()
+  await page.getByRole('button', { name: q.search.expandRow('Cannibal Corpse Discography') }).click()
+  await page.getByRole('button', { name: q.search.previewButton, exact: true }).click()
 
   // Every item, in order, under the group heads; count and runtime up top.
-  await expect(page.getByText('30 items · 2h')).toBeVisible()
+  await expect(page.getByText(q.preview.summary(30, '2h', false))).toBeVisible()
   await expect(page.getByText('Track 1', { exact: true })).toBeVisible()
   await expect(page.locator('.q-preview-row')).toHaveCount(30)
-  await expect(page.getByRole('button', { name: 'Collapse Album A' })).toBeVisible()
+  await expect(page.getByRole('button', { name: q.preview.collapseGroup('Album A') })).toBeVisible()
   expect(importBodies).toHaveLength(0)
 
   // Esc returns to the results, untouched: the row is still expanded.
   await page.keyboard.press('Escape')
-  await expect(page.getByText('30 items · 2h')).toBeHidden()
-  await expect(page.getByText('2 results')).toBeVisible()
-  await expect(page.getByRole('button', { name: 'Add list' })).toBeVisible()
+  await expect(page.getByText(q.preview.summary(30, '2h', false))).toBeHidden()
+  await expect(page.getByText(q.search.resultsCount(2))).toBeVisible()
+  await expect(page.getByRole('button', { name: q.search.addButton })).toBeVisible()
 
   // Add list from Preview sends the same request as the row's.
-  await page.getByRole('button', { name: 'Add list' }).click()
+  await page.getByRole('button', { name: q.search.addButton }).click()
   await expect(page.getByRole('heading', { name: 'Cannibal Corpse Discography' })).toBeVisible()
   await page.goto('/')
   await openMusicSearch(page)
   await search(page)
-  await page.getByRole('button', { name: /Show details for Cannibal Corpse Discography/ }).click()
-  await page.getByRole('button', { name: 'Preview' }).click()
-  await expect(page.getByText('30 items · 2h')).toBeVisible()
+  await page.getByRole('button', { name: q.search.expandRow('Cannibal Corpse Discography') }).click()
+  await page.getByRole('button', { name: q.search.previewButton, exact: true }).click()
+  await expect(page.getByText(q.preview.summary(30, '2h', false))).toBeVisible()
   // The covered results layer has an Add list of its own; this is the Preview's.
-  await page.locator('.q-preview').getByRole('button', { name: 'Add list' }).click()
+  await page.locator('.q-preview').getByRole('button', { name: q.preview.addButton }).click()
   await expect(page.getByRole('heading', { name: 'Cannibal Corpse Discography' })).toBeVisible()
 
   expect(importBodies).toHaveLength(2)

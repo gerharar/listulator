@@ -1,4 +1,5 @@
 import { expect, test, type APIRequestContext } from '@playwright/test'
+import { q } from './fixtures.js'
 
 /**
  * Just One Fix (task 10.28) in a real browser: the shortest unconsumed item anywhere,
@@ -77,7 +78,7 @@ test('the pick says how long it takes, and Open The List opens its list', async 
       await sheet.getByRole('button', { name: 'Not That' }).click()
     }
     await expect(sheet.locator('.q-pick-list')).toContainText(`${B} · 7m`)
-    await expect(sheet.locator('.q-pick-why')).toHaveText("Shortest unfinished item you have -- 7m and it's done.")
+    await expect(sheet.locator('.q-pick-why')).toHaveText(q.helper.justOneFix.why('7m'))
     await page.screenshot({ path: 'test-results/just-one-fix.png' })
 
     await sheet.getByRole('button', { name: 'Open List' }).click()

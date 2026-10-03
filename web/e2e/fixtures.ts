@@ -1,4 +1,8 @@
 import type { Page } from '@playwright/test'
+import { en } from '../src/locale/en.js'
+
+/** The app's own words, read from the locale so a copy pass cannot leave the specs behind (BL-030). */
+export const q = en.quantum
 
 /**
  * Every spec that just needs Home to render normally was implicitly

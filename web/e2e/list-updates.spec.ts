@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test'
+import { q } from './fixtures.js'
 
 /**
  * The update flow end to end (tasks 10.25, 10.22c): nothing checks by itself;
@@ -43,41 +44,41 @@ test('check from Home, apply from Home, review in the list', async ({ page }) =>
     // Nothing checks on open.
     await expect(page.locator('.q-banner', { hasText: title })).toBeHidden()
 
-    await page.locator('.q-home-actions').getByRole('button', { name: 'Check for updates' }).click()
+    await page.locator('.q-home-actions').getByRole('button', { name: q.home.checkForUpdates }).click()
     const band = page.locator('.q-banner', { hasText: title })
-    await expect(band).toContainText('has 2 new items.')
+    await expect(band).toContainText(q.home.pendingBand(2).trim())
 
     // What it found is still there after a reload.
     await page.reload()
-    await expect(band).toContainText('has 2 new items.')
+    await expect(band).toContainText(q.home.pendingBand(2).trim())
 
     // Apply from Home, without opening the list.
-    await band.getByRole('button', { name: 'Update List' }).click()
+    await band.getByRole('button', { name: q.list.updates.updateList }).click()
     await expect(band).toBeHidden()
-    await expect(row).toContainText('2 NEW')
+    await expect(row).toContainText(q.marks.newCount(2))
     const saved = await (await page.request.get(`/api/lists/${list.id}`)).json()
     expect(saved.stats.newItems).toBe(2)
 
     // In the list: NEW rows and the usual band with Mark all seen.
     await row.click()
     const actions = page.locator('.q-list-actions')
-    await expect(page.locator('.q-item').filter({ hasText: 'Beta' }).getByText('NEW')).toBeVisible()
-    await expect(page.locator('.q-item').filter({ hasText: 'Alpha' }).getByText('NEW')).toBeHidden()
-    await expect(page.getByText('2 new items were added')).toBeVisible()
-    await page.getByRole('button', { name: 'Mark all seen' }).click()
-    await expect(page.getByText('NEW', { exact: true })).toHaveCount(0)
+    await expect(page.locator('.q-item').filter({ hasText: 'Beta' }).getByText(q.marks.newItem)).toBeVisible()
+    await expect(page.locator('.q-item').filter({ hasText: 'Alpha' }).getByText(q.marks.newItem)).toBeHidden()
+    await expect(page.getByText(q.list.updates.newBand(2))).toBeVisible()
+    await page.getByRole('button', { name: q.list.updates.markAllSeen }).click()
+    await expect(page.getByText(q.marks.newItem, { exact: true })).toHaveCount(0)
 
     // The list's own check raises the found band; nothing is added; Dismiss puts it away.
     answer = [{ title: 'Delta', timeToConsumeMinutes: 30 }]
-    await actions.getByRole('button', { name: 'Check for updates' }).click()
-    await expect(page.getByText('1 new item found.')).toBeVisible()
+    await actions.getByRole('button', { name: q.home.checkForUpdates }).click()
+    await expect(page.getByText(q.list.updates.foundBand(1))).toBeVisible()
     expect((await (await page.request.get(`/api/lists/${list.id}`)).json()).items).toHaveLength(3)
-    await page.locator('.q-list .q-banner', { hasText: '1 new item found.' }).getByRole('button', { name: 'Dismiss' }).click()
-    await expect(page.getByText('1 new item found.')).toBeHidden()
+    await page.locator('.q-list .q-banner', { hasText: q.list.updates.foundBand(1) }).getByRole('button', { name: q.list.updates.dismissFound }).click()
+    await expect(page.getByText(q.list.updates.foundBand(1))).toBeHidden()
 
     // ✕ closes the layer.
     await actions.getByRole('button', { name: 'Close' }).click()
-    await expect(page.getByRole('heading', { name: 'My Lists' })).toBeVisible()
+    await expect(page.getByRole('heading', { name: q.home.title })).toBeVisible()
   } finally {
     await page.request.delete(`/api/lists/${list.id}`)
   }
