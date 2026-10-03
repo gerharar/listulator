@@ -17,8 +17,12 @@ import { findList, type CreateListItemInput } from './repository.js'
  * same defaults. That is proven by a test that runs random mixes through both.
  */
 
-/** Rows per insert: under SQLite's 32,766 binds at 15 columns, and the size that is quickest through the desktop plugin. */
-const CHUNK = 500
+/**
+ * Rows per insert: 3,750 binds at 15 columns, well under SQLite's 32,766, and measured on the desktop
+ * (DECISIONS "15.9b"): the cost per row rises steeply with the statement, 90 ms per 1,000 rows at 250 a
+ * statement, 156 at 500, 333 at 1,000, 814 at 2,000.
+ */
+const CHUNK = 250
 
 export type BulkItemInput = Omit<CreateListItemInput, 'orderIndex'>
 

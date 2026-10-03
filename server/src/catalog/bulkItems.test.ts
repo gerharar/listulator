@@ -117,6 +117,23 @@ describe('bulk item insert (15.9b)', () => {
       },
     )
 
+    it('also across several statements: more items than fit in one, mixed, into a list that already has items', async () => {
+      const next = random(4242)
+      const existing = sequence(next, 12, 'old')
+      const added = sequence(next, 620, 'new')
+
+      const a = await newList('sequential')
+      const b = await newList('bulk')
+      await sequentially(a.id, existing)
+      await sequentially(b.id, existing)
+
+      await sequentially(a.id, added)
+      const created = (await createListItems(db(), userId, b.id, added))!
+
+      expect(await snapshotOf(b.id)).toEqual(await snapshotOf(a.id))
+      expect(created.map((row) => row.title)).toEqual(added.map((input) => input.title))
+    })
+
     it('also when the list already has gaps in its order and a group with no items', async () => {
       const a = await newList('sequential')
       const b = await newList('bulk')

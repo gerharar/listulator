@@ -541,9 +541,9 @@ export interface CreateListSnapshotItemInput {
 /**
  * Rows per snapshot insert. One statement binding more than 32,766 values is refused: at 11 a row
  * that was 2,979 items, so a bigger list could be made and then fail on its source copy (BL-049).
- * About 500 is also the size quickest through the desktop's SQL plugin (DECISIONS "15.0").
+ * 250 is also the size quickest through the desktop's SQL plugin (DECISIONS "15.9b").
  */
-const SNAPSHOT_CHUNK = 500
+const SNAPSHOT_CHUNK = 250
 
 /**
  * Writes a list's arrived-state snapshot (D4) — `source: 'api' | 'llm'`
