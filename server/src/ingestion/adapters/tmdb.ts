@@ -1,4 +1,4 @@
-import { getJson, type FetchLike } from '../http.js'
+import { delay, getJson, UpstreamError, type FetchLike } from '../http.js'
 import type { ListSource, MediaTypeCandidate, SearchAdapter } from '../mediaTypes.js'
 import { itemsOnly } from '../expansion.js'
 
@@ -90,23 +90,59 @@ export function episodeMinutes(detail: ShowRuntimeFields): number | undefined {
   return detail.episode_run_time?.[0] ?? detail.last_episode_to_air?.runtime ?? undefined
 }
 
+/**
+ * A request is tried this many times in all. TMDB answers 429 when its limit
+ * (about 40 requests a second) is hit and now and then a 5xx; both pass, and a
+ * list built from an expansion that silently lost a season is worse than one
+ * that waited a second (BL-046).
+ */
+const MAX_ATTEMPTS = 3
+/** The wait before a retry when the upstream names none: this, then double. */
+const BACKOFF_MS = 500
+/** A `Retry-After` longer than this is not waited out: the request fails and says so. */
+const MAX_RETRY_WAIT_MS = 10_000
+
+export interface TmdbClientOptions {
+  /** Injectable so the waits are testable without real waiting. */
+  sleep?: (ms: number) => Promise<void>
+}
+
 /** Auth, requests and throttling, shared by the film and television adapters. */
-export function createTmdbClient(credentials: TmdbCredentialSource, fetchImpl?: FetchLike) {
+export function createTmdbClient(
+  credentials: TmdbCredentialSource,
+  fetchImpl?: FetchLike,
+  { sleep = delay }: TmdbClientOptions = {},
+) {
   const resolve = (): TmdbCredentials =>
     typeof credentials === 'function' ? credentials() : credentials
 
-  function request<T>(path: string, params: Record<string, string> = {}): Promise<T> {
+  async function request<T>(path: string, params: Record<string, string> = {}): Promise<T> {
     const { apiKey, readAccessToken } = resolve()
     const search = new URLSearchParams(params)
     // TMDB accepts either scheme on v3 endpoints; the bearer token is their
     // current recommendation, the key is what most people are handed first.
     if (!readAccessToken && apiKey) search.set('api_key', apiKey)
 
-    return getJson<T>(`${BASE}${path}?${search.toString()}`, {
-      source: 'TMDB',
-      ...(readAccessToken ? { headers: { authorization: `Bearer ${readAccessToken}` } } : {}),
-      ...(fetchImpl ? { fetchImpl } : {}),
-    })
+    for (let attempt = 1; ; attempt += 1) {
+      try {
+        return await getJson<T>(`${BASE}${path}?${search.toString()}`, {
+          source: 'TMDB',
+          ...(readAccessToken ? { headers: { authorization: `Bearer ${readAccessToken}` } } : {}),
+          ...(fetchImpl ? { fetchImpl } : {}),
+        })
+      } catch (error) {
+        // Only the upstream saying "slow down" or "I am broken" is worth another go. A 404 is an
+        // answer; rejected credentials and an unreachable network will not mend in a second.
+        const retryable =
+          error instanceof UpstreamError && (error.status === 429 || error.status >= 500)
+        if (!retryable || attempt >= MAX_ATTEMPTS) throw error
+
+        const wait = error.retryAfterMs ?? BACKOFF_MS * 2 ** (attempt - 1)
+        if (wait > MAX_RETRY_WAIT_MS) throw error
+
+        await sleep(wait)
+      }
+    }
   }
 
   /** Runs `work` over `items` a few at a time rather than all at once. */
@@ -117,12 +153,20 @@ export function createTmdbClient(credentials: TmdbCredentialSource, fetchImpl?: 
   ): Promise<Out[]> {
     const results: Out[] = new Array(items.length)
     let next = 0
+    let failed = false
 
     await Promise.all(
       Array.from({ length: Math.min(limit, items.length) }, async () => {
-        while (next < items.length) {
+        // Once one item has failed the run is lost: the other workers finish what they hold and take
+        // nothing new, rather than going on to ask TMDB for an answer nobody will read.
+        while (!failed && next < items.length) {
           const index = next++
-          results[index] = await work(items[index]!)
+          try {
+            results[index] = await work(items[index]!)
+          } catch (error) {
+            failed = true
+            throw error
+          }
         }
       }),
     )
@@ -140,6 +184,23 @@ export function createTmdbClient(credentials: TmdbCredentialSource, fetchImpl?: 
 }
 
 export type TmdbClient = ReturnType<typeof createTmdbClient>
+
+/**
+ * `fallback` when TMDB answers 404 ("there is no such season or show"), and
+ * the failure itself for anything else (BL-046). A 404 is a definitive answer
+ * and costs only that season or show; a failure, once the client has retried,
+ * means the expansion is short, and a short list believed to be whole is worse
+ * than an error saying so.
+ */
+export async function orIfNotFound<T>(request: Promise<T>, fallback: T): Promise<T> {
+  try {
+    return await request
+  } catch (error) {
+    if (error instanceof UpstreamError && error.status === 404) return fallback
+
+    throw error
+  }
+}
 
 /**
  * Fills in each film's runtime, a few at a time.

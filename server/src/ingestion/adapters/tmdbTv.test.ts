@@ -21,6 +21,15 @@ function router(routes: Record<string, unknown>): FetchLike {
   })
 }
 
+/** The network drops on one path; every other request goes to `inner`. */
+function unreachableAt(path: string, inner: FetchLike): FetchLike {
+  return async (url, init) => {
+    if (new URL(url).pathname.replace('/3', '') === path) throw new TypeError('fetch failed')
+
+    return inner(url, init)
+  }
+}
+
 const SHOWS = {
   results: [
     {
@@ -163,7 +172,7 @@ describe('TMDB television expansion', () => {
     ])
   })
 
-  it('keeps the rest of a show when one season fails to load', async () => {
+  it('skips a season TMDB says does not exist (404) and keeps the rest of the show', async () => {
     const adapter = createTmdbTvAdapter(
       credentials,
       {},
@@ -175,6 +184,19 @@ describe('TMDB television expansion', () => {
     )
 
     expect((await adapter.expand('show:1396')).items).toHaveLength(2)
+  })
+
+  it('fails the whole expansion when a season cannot be loaded, rather than returning a short list (BL-046)', async () => {
+    const adapter = createTmdbTvAdapter(
+      credentials,
+      {},
+      unreachableAt(
+        '/tv/1396/season/2',
+        router({ '/tv/1396': SHOW, '/tv/1396/season/1': routes['/tv/1396/season/1'] }),
+      ),
+    )
+
+    await expect(adapter.expand('show:1396')).rejects.toThrow(/Could not reach TMDB/)
   })
 
   it('names an episode by number when it has no title', async () => {

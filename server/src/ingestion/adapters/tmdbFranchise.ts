@@ -1,7 +1,13 @@
 import type { FetchLike } from '../http.js'
 import type { ListSource, MediaTypeCandidate, SearchAdapter } from '../mediaTypes.js'
 import { itemsOnly } from '../expansion.js'
-import { createTmdbClient, episodeMinutes, type ShowRuntimeFields, type TmdbCredentialSource } from './tmdb.js'
+import {
+  createTmdbClient,
+  episodeMinutes,
+  orIfNotFound,
+  type ShowRuntimeFields,
+  type TmdbCredentialSource,
+} from './tmdb.js'
 
 /**
  * Cross-media franchises: everything under one TMDB keyword, films and
@@ -219,7 +225,8 @@ export function createTmdbFranchiseAdapter(
       const episodeItems = (async (): Promise<DatedItem[]> => {
         const details = await client.mapLimited(shows, DETAIL_CONCURRENCY, async (show) => ({
           show,
-          detail: await client.request<ShowDetail>(`/tv/${show.id}`).catch((): ShowDetail => ({})),
+          // TMDB has no such show (404): it costs that show. Any other failure fails the expansion.
+          detail: await orIfNotFound<ShowDetail>(client.request(`/tv/${show.id}`), {}),
         }))
 
         const seasons = details.flatMap(({ show, detail }) =>
@@ -236,10 +243,11 @@ export function createTmdbFranchiseAdapter(
 
         const fetched = await client.mapLimited(seasons, DETAIL_CONCURRENCY, async (season) => ({
           ...season,
-          detail: await client
-            .request<SeasonDetail>(`/tv/${season.show.id}/season/${season.number}`)
-            // One bad season costs that season, not the show.
-            .catch((): SeasonDetail => ({})),
+          // A season TMDB has no record of (404) costs that season, not the show.
+          detail: await orIfNotFound<SeasonDetail>(
+            client.request(`/tv/${season.show.id}/season/${season.number}`),
+            {},
+          ),
         }))
 
         return fetched.flatMap(({ show, number, perEpisode, detail }) =>

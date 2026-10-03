@@ -18,6 +18,15 @@ function router(routes: Record<string, unknown>): FetchLike {
   })
 }
 
+/** The network drops on one path; every other request goes to `inner`. */
+function unreachableAt(path: string, inner: FetchLike): FetchLike {
+  return async (url, init) => {
+    if (new URL(url).pathname.replace('/3', '') === path) throw new TypeError('fetch failed')
+
+    return inner(url, init)
+  }
+}
+
 const routes = {
   '/discover/movie': {
     total_pages: 1,
@@ -284,7 +293,7 @@ describe('franchise expansion', () => {
     ).not.toContain('Marvel Studios: Assembled')
   })
 
-  it('keeps the rest when one title’s details fail', async () => {
+  it('keeps the rest when TMDB has no details for one title (404)', async () => {
     const adapter = createTmdbFranchiseAdapter(
       credentials,
       router({ ...routes, '/movie/1': undefined, '/tv/10': undefined }),
@@ -296,7 +305,7 @@ describe('franchise expansion', () => {
     expect(items[0]?.timeToConsumeMinutes).toBeUndefined()
   })
 
-  it('costs one season, not the show, when a season’s details fail', async () => {
+  it('costs one season, not the show, when TMDB has no such season (404)', async () => {
     const adapter = createTmdbFranchiseAdapter(
       credentials,
       router({ ...routes, '/tv/10/season/1': undefined }),
@@ -305,6 +314,30 @@ describe('franchise expansion', () => {
     expect((await adapter.expand('franchise:180547')).items.map((item) => item.title)).toContain(
       'Loki S02E01 Ouroboros',
     )
+  })
+
+  it('fails the expansion when a season cannot be loaded, rather than returning a short list (BL-046)', async () => {
+    const adapter = createTmdbFranchiseAdapter(
+      credentials,
+      unreachableAt('/tv/10/season/1', router(routes)),
+    )
+
+    await expect(adapter.expand('franchise:180547')).rejects.toThrow(/Could not reach TMDB/)
+  })
+
+  it('fails the expansion when a show’s details cannot be loaded, rather than dropping the show (BL-046)', async () => {
+    const adapter = createTmdbFranchiseAdapter(credentials, unreachableAt('/tv/10', router(routes)))
+
+    await expect(adapter.expand('franchise:180547')).rejects.toThrow(/Could not reach TMDB/)
+  })
+
+  it('still gives a film an estimated length when only its runtime lookup fails', async () => {
+    const adapter = createTmdbFranchiseAdapter(credentials, unreachableAt('/movie/1', router(routes)))
+
+    const items = (await adapter.expand('franchise:180547')).items
+
+    expect(items.map((item) => item.title)).toContain('Iron Man')
+    expect(items.find((item) => item.title === 'Iron Man')?.timeToConsumeMinutes).toBeUndefined()
   })
 
   it('falls back to the last aired episode when episode_run_time is empty', async () => {

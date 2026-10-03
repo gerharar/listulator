@@ -1,7 +1,13 @@
 import type { FetchLike } from '../http.js'
 import type { ListStatus } from '../../db/schema.js'
 import type { ListSource, MediaTypeCandidate, SearchAdapter } from '../mediaTypes.js'
-import { createTmdbClient, episodeMinutes, type ShowRuntimeFields, type TmdbCredentialSource } from './tmdb.js'
+import {
+  createTmdbClient,
+  episodeMinutes,
+  orIfNotFound,
+  type ShowRuntimeFields,
+  type TmdbCredentialSource,
+} from './tmdb.js'
 
 /**
  * TMDB television: search a show, expand to its episodes.
@@ -126,8 +132,9 @@ export function createTmdbTvAdapter(
         .slice(0, MAX_SEASONS)
 
       const fetched = await mapLimited(seasons, SEASON_CONCURRENCY, async (season) =>
-        // One bad season should cost that season, not the whole show.
-        request<SeasonDetail>(`/tv/${id}/season/${season}`).catch(() => ({ episodes: [] })),
+        // A season TMDB has no record of (404) costs that season. Any other failure, once the
+        // client has retried, fails the expansion: a list missing a season must not look whole.
+        orIfNotFound<SeasonDetail>(request(`/tv/${id}/season/${season}`), { episodes: [] }),
       )
 
       const today = new Date().toISOString().slice(0, 10)

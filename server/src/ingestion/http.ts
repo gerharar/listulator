@@ -3,8 +3,43 @@ export type FetchLike = (url: string, init?: RequestInit) => Promise<Response>
 
 export class IngestionError extends Error {}
 
+/**
+ * The upstream answered, and the answer was a failure. Carries the status so a
+ * caller can tell "not there" (404, a definitive answer) from "broken" (a 5xx,
+ * a 429), and the wait a rate-limited upstream asked for (`Retry-After`), so a
+ * client can retry on the upstream's terms (task 15.1, BL-046). Still an
+ * `IngestionError`: everything that handled the old error handles this.
+ */
+export class UpstreamError extends IngestionError {
+  constructor(
+    message: string,
+    readonly status: number,
+    readonly retryAfterMs?: number | undefined,
+  ) {
+    super(message)
+  }
+}
+
 /** Split out so an adapter can refresh an expired token and try again. */
 export class UnauthorizedError extends IngestionError {}
+
+/**
+ * A `Retry-After` header as a wait in milliseconds: a number of seconds, or an
+ * HTTP date (the wait from `now`, never negative). Undefined when absent or
+ * unreadable, so the caller falls back to its own backoff.
+ */
+export function parseRetryAfter(value: string | null, now: number = Date.now()): number | undefined {
+  if (value === null) return undefined
+  const trimmed = value.trim()
+  if (/^\d+$/.test(trimmed)) return Number(trimmed) * 1000
+
+  // An HTTP date names its weekday and month; without letters `Date.parse` would
+  // happily read "-3" as a year.
+  if (!/[a-z]/i.test(trimmed)) return undefined
+
+  const date = Date.parse(trimmed)
+  return Number.isNaN(date) ? undefined : Math.max(0, date - now)
+}
 
 /**
  * Identifies this app to upstream APIs. MusicBrainz in particular *requires*
@@ -85,7 +120,11 @@ async function fetchWithRetry(
   }
 
   if (response.status === 429) {
-    throw new IngestionError(`${source} is rate-limiting us. Try again in a moment.`)
+    throw new UpstreamError(
+      `${source} is rate-limiting us. Try again in a moment.`,
+      429,
+      parseRetryAfter(response.headers.get('retry-after')),
+    )
   }
 
   if (response.status === 401 || response.status === 403) {
@@ -106,8 +145,10 @@ async function fetchWithRetry(
       })
       .catch(() => '')
 
-    throw new IngestionError(
+    throw new UpstreamError(
       `${source} returned ${response.status}${detail ? `: ${detail.slice(0, 200)}` : '.'}`,
+      response.status,
+      parseRetryAfter(response.headers.get('retry-after')),
     )
   }
 
