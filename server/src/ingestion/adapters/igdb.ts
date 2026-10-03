@@ -1,6 +1,8 @@
-import { getJson, UnauthorizedError, type FetchLike } from '../http.js'
+import { delay, getJson, UnauthorizedError, UpstreamError, type FetchLike } from '../http.js'
 import type { ListSource, MediaTypeCandidate, SearchAdapter } from '../mediaTypes.js'
 import { itemsOnly } from '../expansion.js'
+import { MAX_LIST_ITEMS } from '../../catalog/limits.js'
+import { createPacer, type RateLimiter } from '../rateLimiter.js'
 import { MAX_ITEM_TAGS } from '../../catalog/facets.js'
 import { igdbPlatformCode, PLATFORM_ORDER, platformKey } from '../../catalog/platforms.js'
 
@@ -14,7 +16,26 @@ import { igdbPlatformCode, PLATFORM_ORDER, platformKey } from '../../catalog/pla
 
 const BASE = 'https://api.igdb.com/v4'
 const TOKEN_URL = 'https://id.twitch.tv/oauth2/token'
-const MAX_ITEMS = 300
+
+/**
+ * IGDB's own ceiling on one query (`limit`): asked for 501 it answers **403**, which this code would read as
+ * rejected credentials (live, 2026-10-04). A franchise is listed in pages of this size; there is no cap of
+ * ours (Disney has 400 released main games and Mario 319, and a cap of 300 dropped the newest).
+ */
+const PAGE_SIZE = 500
+
+/**
+ * IGDB publishes four requests a second. A burst of sixteen was not refused live, so this is the documented
+ * budget kept, not a measured wall. One limiter for the whole process, spaced as a pacer (requests overlap,
+ * only the starts are spaced), as TMDB's is (15.9).
+ */
+export const igdbRequestLimiter: RateLimiter = createPacer(250)
+
+/** A request is tried this many times in all, as TMDB's is (15.1): a 429 or a 5xx passes, a 400 does not. */
+const MAX_ATTEMPTS = 3
+const BACKOFF_MS = 500
+/** A `Retry-After` longer than this is not waited out: the request fails and says so. */
+const MAX_RETRY_WAIT_MS = 10_000
 
 /** IGDB's `game_type`. Main Game only — see the filtering note in `expand`. */
 const MAIN_GAME = 0
@@ -100,9 +121,20 @@ export function platformTags(
   return [...found.entries()].sort(([a], [b]) => rank(a) - rank(b)).map(([, code]) => code).slice(0, MAX_ITEM_TAGS)
 }
 
+export interface IgdbClientOptions {
+  /** Injectable so the waits are testable without real waiting. */
+  sleep?: (ms: number) => Promise<void>
+  /**
+   * Every request to IGDB's data, each retry included, goes through this. Default: the shared
+   * `igdbRequestLimiter` for the real IGDB, none for a fake `fetch` (a test is not slowed by it).
+   */
+  limiter?: RateLimiter
+}
+
 export function createIgdbAdapter(
   credentials: IgdbCredentialSource,
   fetchImpl?: FetchLike,
+  { sleep = delay, limiter = fetchImpl ? undefined : igdbRequestLimiter }: IgdbClientOptions = {},
 ): SearchAdapter {
   const resolve = (): IgdbCredentials =>
     typeof credentials === 'function' ? credentials() : credentials
@@ -116,11 +148,14 @@ export function createIgdbAdapter(
     const { clientId, clientSecret } = resolve()
     if (!clientId || !clientSecret) throw new UnauthorizedError('IGDB credentials are not set.')
 
-    const granted = await getJson<{ access_token?: string; expires_in?: number }>(
-      `${TOKEN_URL}?client_id=${encodeURIComponent(clientId)}` +
-        `&client_secret=${encodeURIComponent(clientSecret)}&grant_type=client_credentials`,
-      { source: 'Twitch', method: 'POST', ...(fetchImpl ? { fetchImpl } : {}) },
-    )
+    // The secret travels in the body, not the URL: a URL is what gets logged and kept (Twitch accepts both).
+    const granted = await getJson<{ access_token?: string; expires_in?: number }>(TOKEN_URL, {
+      source: 'Twitch',
+      method: 'POST',
+      headers: { 'content-type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({ client_id: clientId, client_secret: clientSecret, grant_type: 'client_credentials' }).toString(),
+      ...(fetchImpl ? { fetchImpl } : {}),
+    })
 
     if (!granted.access_token) throw new UnauthorizedError('Twitch would not issue a token.')
 
@@ -148,8 +183,8 @@ export function createIgdbAdapter(
     return inFlight
   }
 
-  /** IGDB takes an Apicalypse query as the POST body. */
-  async function query<T>(endpoint: string, apicalypse: string, retrying = false): Promise<T[]> {
+  /** IGDB takes an Apicalypse query as the POST body. One try, with the token refresh below. */
+  async function queryOnce<T>(endpoint: string, apicalypse: string, retrying = false): Promise<T[]> {
     const { clientId } = resolve()
 
     try {
@@ -170,10 +205,31 @@ export function createIgdbAdapter(
       if (cause instanceof UnauthorizedError && !retrying) {
         await accessToken(true)
 
-        return query<T>(endpoint, apicalypse, true)
+        return queryOnce<T>(endpoint, apicalypse, true)
       }
 
       throw cause
+    }
+  }
+
+  /**
+   * The upstream saying "slow down" or "I am broken" is worth another go; a 400 is an answer, and rejected
+   * credentials or an unreachable network will not mend in a second. A listing that lost a page to one glitch
+   * is worse than one that waited a second (15.1).
+   */
+  async function query<T>(endpoint: string, apicalypse: string): Promise<T[]> {
+    for (let attempt = 1; ; attempt += 1) {
+      try {
+        return await (limiter ? limiter.run(() => queryOnce<T>(endpoint, apicalypse)) : queryOnce<T>(endpoint, apicalypse))
+      } catch (error) {
+        const retryable = error instanceof UpstreamError && (error.status === 429 || error.status >= 500)
+        if (!retryable || attempt >= MAX_ATTEMPTS) throw error
+
+        const wait = error.retryAfterMs ?? BACKOFF_MS * 2 ** (attempt - 1)
+        if (wait > MAX_RETRY_WAIT_MS) throw error
+
+        await sleep(wait)
+      }
     }
   }
 
@@ -237,26 +293,43 @@ export function createIgdbAdapter(
       // play yet is not one that can be finished.
       const releasedBy = Math.floor(Date.now() / 1000)
 
-      const games = await query<GameResult>(
-        'games',
-        `fields name,first_release_date,game_type,platforms;` +
-          ` where ${where} & game_type = ${MAIN_GAME} & first_release_date != null` +
-          ` & first_release_date <= ${releasedBy};` +
-          ` sort first_release_date asc; limit ${MAX_ITEMS};`,
-      )
+      // Pages of IGDB's maximum, by id (unique), so a page never repeats or skips a game that shares a release
+      // date; the list is put oldest first here. Past the ceiling it stops asking and hands back what it has:
+      // the shared check refuses a list that large, loudly, rather than this cutting it short.
+      const usable: GameResult[] = []
+      for (let offset = 0; ; offset += PAGE_SIZE) {
+        const page = await query<GameResult>(
+          'games',
+          `fields name,first_release_date,game_type,platforms;` +
+            ` where ${where} & game_type = ${MAIN_GAME} & first_release_date != null` +
+            ` & first_release_date <= ${releasedBy};` +
+            ` sort id asc; limit ${PAGE_SIZE}; offset ${offset};`,
+        )
 
-      const usable = games
-        .filter((game) => game.name && !looksLikeAnEdition(game.name))
-        .slice(0, MAX_ITEMS)
+        usable.push(...page.filter((game) => game.name && !looksLikeAnEdition(game.name)))
+        if (page.length < PAGE_SIZE || usable.length > MAX_LIST_ITEMS) break
+      }
+
+      // Oldest first; games sharing a day keep the id order the pages came in (the sort is stable).
+      usable.sort((a, b) => (a.first_release_date ?? 0) - (b.first_release_date ?? 0))
 
       if (usable.length === 0) return []
 
-      // One request covers every game, unlike TMDB's runtime-per-film.
-      const times = await query<TimeToBeatResult>(
-        'game_time_to_beats',
-        `fields game_id,${TIME_TO_BEAT}; where game_id = (${usable.map((game) => game.id).join(',')});` +
-          ` limit ${MAX_ITEMS};`,
-      )
+      // Batched: one request covers up to a page of games, unlike TMDB's runtime-per-film, so there is nothing
+      // to look up afterwards (no `enrich`): a listing here is its lengths too.
+      const batches: GameResult[][] = []
+      for (let start = 0; start < usable.length; start += PAGE_SIZE) batches.push(usable.slice(start, start + PAGE_SIZE))
+      const times = (
+        await Promise.all(
+          batches.map((batch) =>
+            query<TimeToBeatResult>(
+              'game_time_to_beats',
+              `fields game_id,${TIME_TO_BEAT}; where game_id = (${batch.map((game) => game.id).join(',')});` +
+                ` limit ${PAGE_SIZE};`,
+            ),
+          ),
+        )
+      ).flat()
 
       const minutesByGame = new Map(
         times

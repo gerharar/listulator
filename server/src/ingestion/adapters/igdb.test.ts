@@ -1,7 +1,9 @@
 import { describe, expect, it, vi } from 'vitest'
 import type { FetchLike } from '../http.js'
 import { IGDB_PLATFORM_CODES } from '../../catalog/platforms.generated.js'
-import { createIgdbAdapter } from './igdb.js'
+import { MAX_LIST_ITEMS } from '../../catalog/limits.js'
+import { createPacer, type RateLimiter } from '../rateLimiter.js'
+import { createIgdbAdapter, igdbRequestLimiter } from './igdb.js'
 
 /**
  * Fixtures are trimmed from real IGDB responses (verified live against
@@ -297,7 +299,8 @@ describe('IGDB expansion', () => {
 
     const call = vi.mocked(fetchImpl).mock.calls.find(([url]) => url.endsWith('/games'))!
     expect(call[1]?.body).toContain('game_type = 0')
-    expect(call[1]?.body).toContain('sort first_release_date asc')
+    // Paged by id, which is unique, so a page never repeats or skips a game that shares a release date.
+    expect(call[1]?.body).toContain('sort id asc')
   })
 
   it('fetches every time-to-beat in a single request', async () => {
@@ -329,5 +332,231 @@ describe('IGDB expansion', () => {
     expect((await adapter.expand('franchise:1); drop--')).items).toEqual([])
     expect((await adapter.expand('franchise:abc')).items).toEqual([])
     expect((await adapter.expand('nonsense')).items).toEqual([])
+  })
+})
+
+/** A fake IGDB that honours `limit` and `offset`, and records every query it is asked. */
+function pagedIgdb(allGames: { id: number; name: string; first_release_date?: number }[], times: { game_id: number; normally: number }[] = []) {
+  const asked: { endpoint: string; body: string }[] = []
+  const fetchImpl: FetchLike = vi.fn(async (url: string, init) => {
+    if (url.startsWith('https://id.twitch.tv')) return new Response(JSON.stringify({ access_token: 't', expires_in: 5000 }))
+
+    const endpoint = new URL(url).pathname.split('/').pop()!
+    const body = String(init?.body ?? '')
+    asked.push({ endpoint, body })
+    const limit = Number(/limit (\d+)/.exec(body)?.[1] ?? 10)
+    const offset = Number(/offset (\d+)/.exec(body)?.[1] ?? 0)
+    if (limit > 500) return new Response('{}', { status: 403 })
+
+    if (endpoint === 'games') {
+      const sorted = [...allGames].sort((a, b) => a.id - b.id)
+
+      return new Response(JSON.stringify(sorted.slice(offset, offset + limit).map((game) => ({ ...game, game_type: 0 }))))
+    }
+    if (endpoint === 'game_time_to_beats') {
+      const wanted = new Set((/game_id = \(([\d,]+)\)/.exec(body)?.[1] ?? '').split(',').map(Number))
+
+      return new Response(JSON.stringify(times.filter((entry) => wanted.has(entry.game_id)).slice(0, limit)))
+    }
+
+    return new Response('[]')
+  })
+
+  return { fetchImpl, asked, queries: (endpoint: string) => asked.filter((entry) => entry.endpoint === endpoint) }
+}
+
+const manyGames = (count: number) =>
+  Array.from({ length: count }, (_, index) => ({ id: index + 1, name: `Game ${index + 1}`, first_release_date: 946684800 + index * 86400 }))
+
+describe('IGDB listing without a cap (audit 2, as BL-044 for TMDB)', () => {
+  it('lists every game of a big franchise, not the first 300 (Disney has 400, Mario 319)', async () => {
+    const { fetchImpl } = pagedIgdb(manyGames(1234))
+    const { items } = await createIgdbAdapter(credentials, fetchImpl).expand('franchise:26')
+
+    expect(items).toHaveLength(1234)
+    expect(new Set(items.map((item) => item.externalRef)).size).toBe(1234)
+  })
+
+  it('asks in pages of at most 500, IGDB’s own ceiling (501 answers 403, which reads as bad credentials)', async () => {
+    const { fetchImpl, queries } = pagedIgdb(manyGames(1234))
+    await createIgdbAdapter(credentials, fetchImpl).expand('franchise:26')
+
+    const pages = queries('games').map((entry) => [Number(/limit (\d+)/.exec(entry.body)![1]), Number(/offset (\d+)/.exec(entry.body)![1])])
+    expect(pages).toEqual([[500, 0], [500, 500], [500, 1000]])
+  })
+
+  it('stops at a short page, and asks once for a list that fits in one', async () => {
+    const small = pagedIgdb(manyGames(499))
+    await createIgdbAdapter(credentials, small.fetchImpl).expand('franchise:1')
+    expect(small.queries('games')).toHaveLength(1)
+
+    // Exactly one full page: the next page is asked for, and is empty.
+    const exact = pagedIgdb(manyGames(500))
+    expect((await createIgdbAdapter(credentials, exact.fetchImpl).expand('franchise:1')).items).toHaveLength(500)
+    expect(exact.queries('games')).toHaveLength(2)
+  })
+
+  it('pages by id and lists oldest first, ties in id order, so no game repeats or goes missing between pages', async () => {
+    const games = [
+      { id: 3, name: 'Third by id, oldest', first_release_date: 100 },
+      { id: 1, name: 'First by id, same day as 2', first_release_date: 200 },
+      { id: 2, name: 'Second by id, same day as 1', first_release_date: 200 },
+      { id: 4, name: 'Newest', first_release_date: 300 },
+    ]
+    const { fetchImpl, queries } = pagedIgdb(games)
+    const { items } = await createIgdbAdapter(credentials, fetchImpl).expand('franchise:1')
+
+    expect(queries('games')[0]!.body).toContain('sort id asc')
+    expect(items.map((item) => item.externalRef)).toEqual(['game:3', 'game:1', 'game:2', 'game:4'])
+  })
+
+  it('stops asking once the list is past the ceiling, and returns what it has for the shared check to refuse', async () => {
+    const { fetchImpl, queries } = pagedIgdb(manyGames(MAX_LIST_ITEMS + 600))
+    const { items } = await createIgdbAdapter(credentials, fetchImpl).expand('franchise:1')
+
+    expect(items.length).toBeGreaterThan(MAX_LIST_ITEMS)
+    // Twenty full pages hold the ceiling exactly; the twenty-first goes past it. No page after that.
+    expect(queries('games')).toHaveLength(MAX_LIST_ITEMS / 500 + 1)
+  })
+
+  it('fetches the times in batches of at most 500 games, one request per batch, and applies every one', async () => {
+    const games = manyGames(1234)
+    const times = games.map((game) => ({ game_id: game.id, normally: 3600 }))
+    const { fetchImpl, queries } = pagedIgdb(games, times)
+    const { items } = await createIgdbAdapter(credentials, fetchImpl).expand('franchise:1')
+
+    const batches = queries('game_time_to_beats').map((entry) => /game_id = \(([\d,]+)\)/.exec(entry.body)![1]!.split(',').length)
+    expect(batches).toEqual([500, 500, 234])
+    expect(items.every((item) => item.timeToConsumeMinutes === 60)).toBe(true)
+  })
+
+  it('keeps a game with no recorded time without one (the category default, estimated), never zero', async () => {
+    const { fetchImpl } = pagedIgdb(manyGames(3), [{ game_id: 1, normally: 3600 }, { game_id: 2, normally: 10 }])
+    const items = (await createIgdbAdapter(credentials, fetchImpl).expand('franchise:1')).items
+
+    expect(items.map((item) => item.timeToConsumeMinutes)).toEqual([60, undefined, undefined])
+  })
+})
+
+describe('IGDB retries and request budget (audit 2, as 15.1 for TMDB)', () => {
+  const ok = () => new Response('[]', { status: 200 })
+  const status = (code: number, headers: Record<string, string> = {}) => () => new Response('{}', { status: code, headers })
+
+  function flaky(...responses: (() => Response)[]) {
+    let call = 0
+    const fetchImpl: FetchLike = vi.fn(async (url: string) =>
+      url.startsWith('https://id.twitch.tv')
+        ? new Response(JSON.stringify({ access_token: 't', expires_in: 5000 }))
+        : responses[Math.min(call++, responses.length - 1)]!(),
+    )
+    const sleep = vi.fn<(ms: number) => Promise<void>>(async () => undefined)
+    const igdbCalls = () => vi.mocked(fetchImpl).mock.calls.filter(([url]) => url.includes('api.igdb.com')).length
+
+    return { fetchImpl, sleep, igdbCalls }
+  }
+
+  it('waits the Retry-After a 429 asks for, then succeeds', async () => {
+    const { fetchImpl, sleep, igdbCalls } = flaky(status(429, { 'retry-after': '2' }), ok)
+
+    await createIgdbAdapter(credentials, fetchImpl, { sleep }).search('x')
+
+    expect(sleep).toHaveBeenCalledWith(2000)
+    // Two lookups run side by side in a search; each retried once at most.
+    expect(igdbCalls()).toBeGreaterThanOrEqual(3)
+  })
+
+  it('backs off on a 5xx with no Retry-After, and gives up after three attempts naming the source', async () => {
+    const { fetchImpl, sleep, igdbCalls } = flaky(status(503))
+
+    const error = await createIgdbAdapter(credentials, fetchImpl, { sleep }).expand('franchise:1').catch((caught: unknown) => caught)
+
+    expect((error as Error).message).toMatch(/^IGDB returned 503/)
+    expect(igdbCalls()).toBe(3)
+    expect(sleep.mock.calls.map(([ms]) => ms)).toEqual([500, 1000])
+  })
+
+  it('does not wait out a Retry-After longer than a build should stall for', async () => {
+    const { fetchImpl, sleep } = flaky(status(429, { 'retry-after': '120' }), ok)
+
+    await expect(createIgdbAdapter(credentials, fetchImpl, { sleep }).expand('franchise:1')).rejects.toMatchObject({ status: 429 })
+    expect(sleep).not.toHaveBeenCalled()
+  })
+
+  it('does not retry an answer that will not change: a 400 from a bad query', async () => {
+    const { fetchImpl, sleep, igdbCalls } = flaky(status(400))
+
+    await expect(createIgdbAdapter(credentials, fetchImpl, { sleep }).expand('franchise:1')).rejects.toMatchObject({ status: 400 })
+    expect(igdbCalls()).toBe(1)
+    expect(sleep).not.toHaveBeenCalled()
+  })
+
+  it('puts every request, a retry included, through one shared budget', async () => {
+    const run = vi.fn((fn: () => Promise<unknown>) => fn())
+    const { fetchImpl, sleep } = flaky(status(503), ok)
+
+    await createIgdbAdapter(credentials, fetchImpl, { sleep, limiter: { run: run as RateLimiter['run'] } }).expand('franchise:1')
+
+    expect(run).toHaveBeenCalledTimes(2)
+  })
+
+  it('spaces the starts four a second, IGDB’s published limit, even for requests made side by side', async () => {
+    let clock = 0
+    const waits: number[] = []
+    const sleep = (ms: number) => {
+      const until = clock + ms
+      waits.push(ms)
+
+      return Promise.resolve().then(() => void (clock = Math.max(clock, until)))
+    }
+    const limiter = createPacer(250, { now: () => clock, sleep })
+    const { fetchImpl } = flaky(ok)
+
+    await createIgdbAdapter(credentials, fetchImpl, { limiter }).search('x')
+
+    expect(waits).toEqual([250])
+  })
+
+  it('the shared limiter itself spaces starts 250 ms apart', async () => {
+    vi.useFakeTimers()
+    try {
+      const starts: number[] = []
+      const runs = [0, 1, 2].map(() => igdbRequestLimiter.run(async () => void starts.push(Date.now())))
+      await vi.advanceTimersByTimeAsync(2000)
+      await Promise.all(runs)
+
+      expect(starts.slice(1).map((start, index) => start - starts[index]!)).toEqual([250, 250])
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('uses the one shared limiter for the real IGDB and none for a fake fetch', async () => {
+    const shared = vi.spyOn(igdbRequestLimiter, 'run')
+    vi.stubGlobal('fetch', vi.fn(async (url: string) => (url.startsWith('https://id.twitch.tv') ? new Response(JSON.stringify({ access_token: 't', expires_in: 5000 })) : new Response('[]'))))
+
+    try {
+      await createIgdbAdapter(credentials, flaky(ok).fetchImpl).search('x')
+      expect(shared).not.toHaveBeenCalled()
+
+      await createIgdbAdapter(credentials).search('x')
+      expect(shared).toHaveBeenCalledTimes(2)
+    } finally {
+      vi.unstubAllGlobals()
+      shared.mockRestore()
+    }
+  })
+})
+
+describe('IGDB token request', () => {
+  it('keeps the client secret out of the URL, sending it in the request body as Twitch allows', async () => {
+    const { fetchImpl } = router({ franchises: [], collections: [] })
+    await createIgdbAdapter(credentials, fetchImpl).search('a')
+
+    const [url, init] = vi.mocked(fetchImpl).mock.calls.find(([address]) => address.startsWith('https://id.twitch.tv'))!
+    expect(url).not.toContain('secret')
+    expect(url).not.toContain('client_id')
+    expect(String(init?.body)).toContain('client_secret=secret')
+    expect(String(init?.body)).toContain('grant_type=client_credentials')
+    expect((init?.headers as Record<string, string>)['content-type']).toBe('application/x-www-form-urlencoded')
   })
 })
