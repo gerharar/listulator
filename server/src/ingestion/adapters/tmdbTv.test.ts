@@ -199,6 +199,12 @@ describe('TMDB television expansion', () => {
     await expect(adapter.expand('show:1396')).rejects.toThrow(/Could not reach TMDB/)
   })
 
+  it('has no separate lookup to skip: episode lengths arrive with their season, so skip changes nothing (15.2)', async () => {
+    const adapter = createTmdbTvAdapter(credentials, {}, router(routes))
+
+    expect(await adapter.expand('show:1396', { runtimes: 'skip' })).toEqual(await adapter.expand('show:1396'))
+  })
+
   it('names an episode by number when it has no title', async () => {
     const adapter = createTmdbTvAdapter(
       credentials,

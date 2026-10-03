@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import type { SearchAdapter } from '../mediaTypes.js'
+import type { RuntimeLookup, SearchAdapter } from '../mediaTypes.js'
 import { createCompositeAdapter } from './composite.js'
 
 function source(
@@ -159,5 +159,67 @@ describe('composite sources', () => {
       items: [{ title: 'Episode 1' }],
       status: 'complete',
     })
+  })
+})
+
+describe('composite sources: expand options and enrichment', () => {
+  const found = (minutes: number): RuntimeLookup => ({ status: 'found', minutes })
+
+  /** A source that can enrich the `movie:` refs it is handed. */
+  function enriching(minutes: number): SearchAdapter & { enrich: NonNullable<SearchAdapter['enrich']> } {
+    return {
+      ...source('x', []),
+      enrich: vi.fn(async (refs: string[]) => new Map(refs.map((ref) => [ref, found(minutes)]))),
+    }
+  }
+
+  it('passes the expand options on to the source that owns the ref', async () => {
+    const companies = source('company', [])
+    const spy = vi.spyOn(companies, 'expand')
+
+    await createCompositeAdapter([{ prefixes: ['company'], adapter: companies }]).expand('company:1', {
+      runtimes: 'skip',
+    })
+
+    expect(spy).toHaveBeenCalledWith('company:1', { runtimes: 'skip' })
+  })
+
+  it('sends refs to the source that owns their prefix for enrichment, and merges the answers', async () => {
+    const films = enriching(100)
+    const games = enriching(7)
+
+    const adapter = createCompositeAdapter([
+      { prefixes: ['person'], enrichPrefixes: ['movie'], adapter: films },
+      { prefixes: ['game'], enrichPrefixes: ['game'], adapter: games },
+    ])
+
+    const lookups = await adapter.enrich!(['movie:1', 'game:2', 'movie:3'])
+
+    expect(films.enrich).toHaveBeenCalledExactlyOnceWith(['movie:1', 'movie:3'])
+    expect(games.enrich).toHaveBeenCalledExactlyOnceWith(['game:2'])
+    expect([...lookups]).toEqual([
+      ['movie:1', found(100)],
+      ['movie:3', found(100)],
+      ['game:2', found(7)],
+    ])
+  })
+
+  it('does not answer for a ref no source claims, and never asks a source that cannot enrich', async () => {
+    const plain = source('show', [])
+
+    const adapter = createCompositeAdapter([
+      { prefixes: ['show'], enrichPrefixes: ['show'], adapter: plain },
+    ])
+
+    expect([...(await adapter.enrich!(['show:1', 'nothing:9']))]).toEqual([])
+  })
+
+  it('skips a source that is unavailable', async () => {
+    const down = { ...enriching(1), isAvailable: () => false }
+
+    const adapter = createCompositeAdapter([{ prefixes: ['p'], enrichPrefixes: ['movie'], adapter: down }])
+
+    expect([...(await adapter.enrich!(['movie:1']))]).toEqual([])
+    expect(down.enrich).not.toHaveBeenCalled()
   })
 })

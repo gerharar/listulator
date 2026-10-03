@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import { expandWithRuntimes } from './expansion.js'
 import {
   createDefaultMediaTypes,
   createMediaTypeRegistry,
@@ -132,6 +133,9 @@ describe('what the Animation and Movies shelves tag on import', () => {
           },
           '/discover/movie': { results: [{ id: 5, title: 'Ghost in the Shell', release_date: '1995-11-18' }], total_pages: 1 },
           '/movie/5': { runtime: 83 },
+          '/person/7/movie_credits': {
+            cast: [{ id: 5, title: 'Ghost in the Shell', release_date: '1995-11-18', genre_ids: [99] }],
+          },
         }
 
         return new Response(JSON.stringify(body[path] ?? {}))
@@ -146,6 +150,21 @@ describe('what the Animation and Movies shelves tag on import', () => {
 
     expect((await animation.expand('show:1')).items.map((item) => item.tags)).toEqual([['tv']])
     expect((await animation.expand('company:2')).items.map((item) => item.tags)).toEqual([['movie']])
+  })
+
+  it.each([
+    ['movie', 'company:2'],
+    ['animation', 'company:2'],
+    ['documentary', 'person:7'],
+  ])('lists %s’s films without lengths and fills them in after, ending where a full expansion does (15.2)', async (key, ref) => {
+    const adapter = stubTmdb().find((entry) => entry.key === key)!.adapter!
+
+    expect((await adapter.expand(ref, { runtimes: 'skip' })).items[0]).not.toHaveProperty('timeToConsumeMinutes')
+
+    const filled = await expandWithRuntimes(adapter, ref)
+
+    expect(filled.items[0]?.timeToConsumeMinutes).toBe(83)
+    expect(filled).toEqual(await adapter.expand(ref))
   })
 
   it('tags nothing on Movies or TV, which have no Type facet to feed', async () => {

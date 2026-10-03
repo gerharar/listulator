@@ -1,5 +1,11 @@
 import { delay, getJson, UpstreamError, type FetchLike } from '../http.js'
-import type { ListSource, MediaTypeCandidate, SearchAdapter } from '../mediaTypes.js'
+import type {
+  ExpandOptions,
+  ListSource,
+  MediaTypeCandidate,
+  RuntimeLookup,
+  SearchAdapter,
+} from '../mediaTypes.js'
 import { itemsOnly } from '../expansion.js'
 
 /**
@@ -202,6 +208,21 @@ export async function orIfNotFound<T>(request: Promise<T>, fallback: T): Promise
   }
 }
 
+interface FilmStub {
+  id: number
+  title: string
+  year?: number
+}
+
+/** A film as a list item, with no length: all a credits or discover list says about it. */
+function filmCandidate(film: FilmStub): MediaTypeCandidate {
+  return {
+    title: film.title,
+    externalRef: `movie:${film.id}`,
+    ...(film.year ? { year: film.year } : {}),
+  }
+}
+
 /**
  * Fills in each film's runtime, a few at a time.
  *
@@ -210,23 +231,55 @@ export async function orIfNotFound<T>(request: Promise<T>, fallback: T): Promise
  * filmography sharing one guessed duration would tell it nothing. A failed
  * lookup costs that film its runtime and nothing else.
  */
-export async function withRuntimes(
-  client: TmdbClient,
-  films: { id: number; title: string; year?: number }[],
-): Promise<MediaTypeCandidate[]> {
+export async function withRuntimes(client: TmdbClient, films: FilmStub[]): Promise<MediaTypeCandidate[]> {
   return client.mapLimited(films, RUNTIME_CONCURRENCY, async (film) => {
     const runtime = await client
       .request<{ runtime?: number | null }>(`/movie/${film.id}`)
       .then((detail) => detail.runtime)
       .catch(() => null)
 
-    return {
-      title: film.title,
-      externalRef: `movie:${film.id}`,
-      ...(runtime ? { timeToConsumeMinutes: runtime } : {}),
-      ...(film.year ? { year: film.year } : {}),
-    }
+    return { ...filmCandidate(film), ...(runtime ? { timeToConsumeMinutes: runtime } : {}) }
   })
+}
+
+/** The films as list items: with their runtimes by default, or listed alone for `{ runtimes: 'skip' }` (15.2). */
+export async function listFilms(
+  client: TmdbClient,
+  films: FilmStub[],
+  options?: ExpandOptions,
+): Promise<MediaTypeCandidate[]> {
+  return options?.runtimes === 'skip' ? films.map(filmCandidate) : await withRuntimes(client, films)
+}
+
+/**
+ * The runtimes of films listed without them (15.2), keyed by the `movie:<id>` ref.
+ *
+ * Only `movie:` refs with a numeric id are answered: the id goes straight into
+ * the request path. A runtime is `found`; a zero, a null or a 404 is `none`, a
+ * definitive answer (TMDB has no length for that film). Any other failure,
+ * once the client has retried, is that ref's `failed` and nothing else's.
+ */
+export async function enrichMovieRuntimes(
+  client: TmdbClient,
+  refs: string[],
+): Promise<Map<string, RuntimeLookup>> {
+  const movies = [...new Set(refs.filter((ref) => /^movie:\d+$/.test(ref)))]
+
+  const answers = await client.mapLimited(
+    movies,
+    RUNTIME_CONCURRENCY,
+    async (ref): Promise<[string, RuntimeLookup]> => {
+      try {
+        const detail = await client.request<{ runtime?: number | null }>(`/movie/${ref.slice('movie:'.length)}`)
+
+        return [ref, detail.runtime ? { status: 'found', minutes: detail.runtime } : { status: 'none' }]
+      } catch (error) {
+        return [ref, error instanceof UpstreamError && error.status === 404 ? { status: 'none' } : { status: 'failed', error }]
+      }
+    },
+  )
+
+  return new Map(answers)
 }
 
 export interface TmdbFilmOptions {
@@ -314,7 +367,9 @@ export function createTmdbAdapter(
     },
 
     // No upstream signal for whether this is finished, so no `status` (BL-013).
-    expand: itemsOnly(async (externalRef) => {
+    enrich: (refs) => enrichMovieRuntimes(client, refs),
+
+    expand: itemsOnly(async (externalRef, options) => {
       const [kind, id] = externalRef.split(':')
       // The id goes straight into the request path: refuse anything but digits, as the other TMDB adapters do.
       if (!id || !/^\d+$/.test(id)) return []
@@ -324,7 +379,7 @@ export function createTmdbAdapter(
       if (kind === 'collection') {
         const collection = await request<CollectionDetail>(`/collection/${id}`)
 
-        return withRuntimes(client, usableCredits(collection.parts ?? [], today))
+        return listFilms(client, usableCredits(collection.parts ?? [], today), options)
       }
 
       if (kind === 'person') {
@@ -342,7 +397,7 @@ export function createTmdbAdapter(
           if (!byFilm.has(entry.id)) byFilm.set(entry.id, entry)
         }
 
-        return withRuntimes(client, usableCredits([...byFilm.values()], today))
+        return listFilms(client, usableCredits([...byFilm.values()], today), options)
       }
 
       return []

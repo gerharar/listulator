@@ -97,20 +97,20 @@ export function createDefaultMediaTypes({
 
   /** Films by a person or collection, plus films by a studio. */
   const movieSources = createCompositeAdapter([
-    { prefixes: ['person', 'collection'], adapter: films },
-    { prefixes: ['company'], adapter: studios },
+    { prefixes: ['person', 'collection'], enrichPrefixes: ['movie'], adapter: films },
+    { prefixes: ['company'], enrichPrefixes: ['movie'], adapter: studios },
   ])
 
   /** Animated series, plus the studios that make animated films. */
   const animationSources = createCompositeAdapter([
     { prefixes: ['show'], tag: 'tv', adapter: animatedShows },
-    { prefixes: ['company'], tag: 'movie', adapter: animationStudios },
+    { prefixes: ['company'], enrichPrefixes: ['movie'], tag: 'movie', adapter: animationStudios },
   ])
 
   /** Documentary series, plus a film-maker's documentaries. */
   const documentarySources = createCompositeAdapter([
     { prefixes: ['show'], adapter: documentarySeries },
-    { prefixes: ['person', 'collection'], adapter: documentaryFilms },
+    { prefixes: ['person', 'collection'], enrichPrefixes: ['movie'], adapter: documentaryFilms },
   ])
 
   const igdb = createIgdbAdapter(
@@ -380,11 +380,43 @@ export interface ListExpansion {
   status?: ListStatus
 }
 
+/**
+ * How `expand()` treats the per-item lookups that cost a request each (task 15.2).
+ *
+ * `'inline'` (the default, and what every caller got before) fills every item's
+ * length during the expansion. `'skip'` lists the items only: an item whose
+ * length needs its own request comes back without `timeToConsumeMinutes`, and
+ * `enrich` fetches those afterwards, so a big list can be built at once and its
+ * lengths filled in later. An adapter with no such lookup (its lengths arrive
+ * with the listing, or it has none) ignores the option.
+ */
+export interface ExpandOptions {
+  runtimes?: 'inline' | 'skip'
+}
+
+/**
+ * What `enrich()` found for one ref. `none` is a definitive answer (the source
+ * has no length for it: a 404, a zero), to be stored as such and not asked
+ * again; `failed` is not (the request did not get through), so the item stays
+ * pending and the caller tries it later.
+ */
+export type RuntimeLookup =
+  | { status: 'found'; minutes: number }
+  | { status: 'none' }
+  | { status: 'failed'; error: unknown }
+
 export interface SearchAdapter {
   /** False when, say, an API key is missing — the UI hides search for it. */
   isAvailable(): boolean
   search(query: string, options?: SearchOptions): Promise<ListSource[]>
-  expand(externalRef: string): Promise<ListExpansion>
+  expand(externalRef: string, options?: ExpandOptions): Promise<ListExpansion>
+  /**
+   * The lengths of items an `expand(ref, { runtimes: 'skip' })` left without
+   * one, keyed by item ref. Answers only for refs this adapter owns; one ref's
+   * failure is that ref's `failed`, never the whole call's. Absent: the adapter
+   * has nothing to look up afterwards.
+   */
+  enrich?(refs: string[]): Promise<Map<string, RuntimeLookup>>
 }
 
 export interface MediaType {

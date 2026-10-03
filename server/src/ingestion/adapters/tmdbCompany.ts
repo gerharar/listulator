@@ -1,7 +1,7 @@
 import type { FetchLike } from '../http.js'
-import type { ListSource, MediaTypeCandidate, SearchAdapter } from '../mediaTypes.js'
+import type { ListSource, SearchAdapter } from '../mediaTypes.js'
 import { itemsOnly } from '../expansion.js'
-import { createTmdbClient, withRuntimes, type TmdbCredentialSource } from './tmdb.js'
+import { createTmdbClient, enrichMovieRuntimes, listFilms, type TmdbCredentialSource } from './tmdb.js'
 
 /**
  * TMDB companies: search a studio, expand to the films it made.
@@ -58,7 +58,9 @@ export function createTmdbCompanyAdapter(
     },
 
     // No upstream signal for whether this is finished, so no `status` (BL-013).
-    expand: itemsOnly(async (externalRef) => {
+    enrich: (refs) => enrichMovieRuntimes(client, refs),
+
+    expand: itemsOnly(async (externalRef, options) => {
       const [kind, id] = externalRef.split(':')
       if (kind !== 'company' || !id || !/^\d+$/.test(id)) return []
 
@@ -85,7 +87,7 @@ export function createTmdbCompanyAdapter(
         if (batch.length < PAGE_SIZE || page >= (response.total_pages ?? 1)) break
       }
 
-      return withRuntimes(client, films) as Promise<MediaTypeCandidate[]>
+      return listFilms(client, films, options)
     }),
   }
 }

@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 import type { FetchLike } from '../http.js'
+import { expandWithRuntimes } from '../expansion.js'
 import { createTmdbAdapter } from './tmdb.js'
 
 /**
@@ -309,5 +310,135 @@ describe('directing credits', () => {
     const titles = (await adapter.expand('person:1')).items.map((item) => item.title)
 
     expect(titles.filter((title) => title === 'Appeared In')).toHaveLength(1)
+  })
+})
+
+describe('TMDB listing without runtimes (15.2)', () => {
+  const routes = {
+    '/person/18897/movie_credits': {
+      cast: [
+        { id: 2109, title: 'Rush Hour', release_date: PAST, genre_ids: [28] },
+        { id: 10044, title: 'My Lucky Stars', release_date: '1985-02-10', genre_ids: [28] },
+      ],
+    },
+    '/collection/645': {
+      parts: [{ id: 658, title: 'Dr. No', release_date: '1962-10-05' }],
+    },
+    '/movie/2109': { runtime: 97 },
+    '/movie/10044': { runtime: 96 },
+    '/movie/658': { runtime: 110 },
+  }
+
+  const paths = (fetchImpl: FetchLike): string[] =>
+    vi.mocked(fetchImpl).mock.calls.map(([url]) => new URL(url).pathname.replace('/3', ''))
+
+  it.each(['person:18897', 'collection:645'])(
+    'lists %s with no /movie request and no length on any item',
+    async (ref) => {
+      const fetchImpl = router(routes)
+      const { items } = await createTmdbAdapter(credentials, {}, fetchImpl).expand(ref, { runtimes: 'skip' })
+
+      expect(items.length).toBeGreaterThan(0)
+      expect(paths(fetchImpl).filter((path) => path.startsWith('/movie/'))).toEqual([])
+      for (const item of items) expect(item).not.toHaveProperty('timeToConsumeMinutes')
+    },
+  )
+
+  it('lists the same films in the same order as the full expansion, with the same refs and years', async () => {
+    const adapter = createTmdbAdapter(credentials, {}, router(routes))
+
+    const listed = (await adapter.expand('person:18897', { runtimes: 'skip' })).items
+    const full = (await adapter.expand('person:18897')).items
+
+    expect(listed).toEqual(
+      full.map((item) => {
+        const withoutLength = { ...item }
+        delete withoutLength.timeToConsumeMinutes
+
+        return withoutLength
+      }),
+    )
+  })
+
+  it('still looks every runtime up by default, as before', async () => {
+    const fetchImpl = router(routes)
+    const { items } = await createTmdbAdapter(credentials, {}, fetchImpl).expand('person:18897')
+
+    expect(items.map((item) => item.timeToConsumeMinutes)).toEqual([96, 97])
+    expect(paths(fetchImpl)).toEqual(expect.arrayContaining(['/movie/2109', '/movie/10044']))
+  })
+
+  it('skip then enrich gives exactly the full expansion', async () => {
+    const adapter = createTmdbAdapter(credentials, {}, router(routes))
+
+    expect(await expandWithRuntimes(adapter, 'person:18897')).toEqual(await adapter.expand('person:18897'))
+  })
+})
+
+describe('TMDB runtime enrichment (15.2)', () => {
+  const unreachableAt = (path: string, inner: FetchLike): FetchLike => async (url, init) => {
+    if (new URL(url).pathname.replace('/3', '') === path) throw new TypeError('fetch failed')
+
+    return inner(url, init)
+  }
+
+  const routes = {
+    '/movie/1': { runtime: 97 },
+    '/movie/2': { runtime: 0 },
+    '/movie/3': { runtime: null },
+    // /movie/4 is not routed: TMDB answers 404.
+  }
+
+  it('answers found for a runtime, and none for a zero, a null and a 404 (definitive answers)', async () => {
+    const adapter = createTmdbAdapter(credentials, {}, router(routes))
+
+    const lookups = await adapter.enrich!(['movie:1', 'movie:2', 'movie:3', 'movie:4'])
+
+    expect([...lookups]).toEqual([
+      ['movie:1', { status: 'found', minutes: 97 }],
+      ['movie:2', { status: 'none' }],
+      ['movie:3', { status: 'none' }],
+      ['movie:4', { status: 'none' }],
+    ])
+  })
+
+  it('fails only the ref whose request failed, so it can be tried again later', async () => {
+    const adapter = createTmdbAdapter(credentials, {}, unreachableAt('/movie/2', router({ '/movie/1': { runtime: 97 }, '/movie/3': { runtime: 50 } })))
+
+    const lookups = await adapter.enrich!(['movie:1', 'movie:2', 'movie:3'])
+
+    expect(lookups.get('movie:1')).toEqual({ status: 'found', minutes: 97 })
+    expect(lookups.get('movie:2')).toMatchObject({ status: 'failed' })
+    expect(lookups.get('movie:3')).toEqual({ status: 'found', minutes: 50 })
+  })
+
+  it('does not answer for a ref that is not a movie id, and never puts one in a request path', async () => {
+    const fetchImpl = router(routes)
+    const adapter = createTmdbAdapter(credentials, {}, fetchImpl)
+
+    const lookups = await adapter.enrich!(['person:1', 'movie:../tv/5', 'movie:', 'movie:1'])
+
+    expect([...lookups.keys()]).toEqual(['movie:1'])
+    expect(fetchImpl).toHaveBeenCalledTimes(1)
+  })
+
+  it('asks a few at a time, not all at once', async () => {
+    let inFlight = 0
+    let peak = 0
+    const fetchImpl: FetchLike = async () => {
+      inFlight += 1
+      peak = Math.max(peak, inFlight)
+      await new Promise((resolve) => setTimeout(resolve, 1))
+      inFlight -= 1
+
+      return new Response('{"runtime":90}', { status: 200 })
+    }
+
+    const refs = Array.from({ length: 30 }, (_, index) => `movie:${index + 1}`)
+    const lookups = await createTmdbAdapter(credentials, {}, fetchImpl).enrich!(refs)
+
+    expect(lookups.size).toBe(30)
+    expect(peak).toBeGreaterThan(1)
+    expect(peak).toBeLessThanOrEqual(8)
   })
 })
