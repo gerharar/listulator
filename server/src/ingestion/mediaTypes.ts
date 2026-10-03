@@ -82,6 +82,12 @@ export function createDefaultMediaTypes({
     genreFilter: ANIMATION_GENRE,
   })
 
+  // Animation also holds a collection of animated films (Toy Story): collections alone, animated parts only.
+  const animationCollections = createTmdbAdapter(tmdbCredentials, {
+    kinds: ['collection'],
+    genreFilter: ANIMATION_GENRE,
+  })
+
   const documentarySeries = createTmdbTvAdapter(tmdbCredentials, {
     genreFilter: DOCUMENTARY_GENRE,
   })
@@ -101,10 +107,11 @@ export function createDefaultMediaTypes({
     { prefixes: ['company'], enrichPrefixes: ['movie'], adapter: studios },
   ])
 
-  /** Animated series, plus the studios that make animated films. */
+  /** Animated series, the studios that make animated films, and collections of animated films. */
   const animationSources = createCompositeAdapter([
     { prefixes: ['show'], tag: 'tv', adapter: animatedShows },
     { prefixes: ['company'], enrichPrefixes: ['movie'], tag: 'movie', adapter: animationStudios },
+    { prefixes: ['collection'], enrichPrefixes: ['movie'], tag: 'movie', adapter: animationCollections },
   ])
 
   /** Documentary series, plus a film-maker's documentaries. */

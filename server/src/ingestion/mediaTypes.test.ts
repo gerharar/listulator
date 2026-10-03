@@ -133,6 +133,15 @@ describe('what the Animation and Movies shelves tag on import', () => {
           },
           '/discover/movie': { results: [{ id: 5, title: 'Ghost in the Shell', release_date: '1995-11-18' }], total_pages: 1 },
           '/movie/5': { runtime: 83 },
+          '/search/tv': { results: [] },
+          '/search/company': { results: [] },
+          '/search/collection': { results: [{ id: 9, name: 'Ghost in the Shell Collection' }] },
+          '/collection/9': {
+            parts: [
+              { id: 5, title: 'Ghost in the Shell', release_date: '1995-11-18', genre_ids: [16] },
+              { id: 6, title: 'A live-action remake', release_date: '2017-03-29', genre_ids: [28] },
+            ],
+          },
           '/person/7/movie_credits': {
             cast: [{ id: 5, title: 'Ghost in the Shell', release_date: '1995-11-18', genre_ids: [99] }],
           },
@@ -152,9 +161,26 @@ describe('what the Animation and Movies shelves tag on import', () => {
     expect((await animation.expand('company:2')).items.map((item) => item.tags)).toEqual([['movie']])
   })
 
+  it('Animation offers a collection of animated films, tagged movie, and keeps only the animated ones (owner: everything animation-related is found in Animation)', async () => {
+    const animation = stubTmdb().find((entry) => entry.key === 'animation')!.adapter!
+
+    expect(await animation.search('ghost')).toEqual([
+      { externalRef: 'collection:9', title: 'Ghost in the Shell Collection', detail: 'Collection' },
+    ])
+    const { items } = await animation.expand('collection:9')
+    expect(items.map((item) => [item.title, item.tags])).toEqual([['Ghost in the Shell', ['movie']]])
+  })
+
+  it('Movies still offers both collections and people, unfiltered', async () => {
+    const movies = stubTmdb().find((entry) => entry.key === 'movie')!.adapter!
+
+    expect((await movies.expand('collection:9')).items.map((item) => item.title)).toEqual(['Ghost in the Shell', 'A live-action remake'])
+  })
+
   it.each([
     ['movie', 'company:2'],
     ['animation', 'company:2'],
+    ['animation', 'collection:9'],
     ['documentary', 'person:7'],
   ])('lists %s’s films without lengths and fills them in after, ending where a full expansion does (15.2)', async (key, ref) => {
     const adapter = stubTmdb().find((entry) => entry.key === key)!.adapter!

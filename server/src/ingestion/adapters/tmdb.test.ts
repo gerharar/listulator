@@ -446,3 +446,62 @@ describe('TMDB runtime enrichment (15.2)', () => {
     expect(peak).toBeLessThanOrEqual(8)
   })
 })
+
+describe('TMDB collections alone, keeping one genre (the Animation shelf)', () => {
+  const ANIMATION = 16
+  const routes = {
+    '/search/collection': { results: [{ id: 10194, name: 'Toy Story Collection' }] },
+    '/collection/10194': {
+      parts: [
+        { id: 862, title: 'Toy Story', release_date: '1995-11-22', genre_ids: [16, 35] },
+        { id: 7, title: 'Live-action cameo', release_date: '1996-01-01', genre_ids: [35] },
+        { id: 8, title: 'Announced sequel', release_date: FUTURE, genre_ids: [16] },
+        { id: 863, title: 'Toy Story 2', release_date: '1999-11-24', genre_ids: [16] },
+      ],
+    },
+    '/movie/862': { runtime: 81 },
+    '/movie/863': { runtime: 92 },
+  }
+  const options = { kinds: ['collection'] as const, genreFilter: ANIMATION }
+
+  it('searches collections only: it never asks for people', async () => {
+    const fetchImpl = router(routes)
+
+    const found = await createTmdbAdapter(credentials, options, fetchImpl).search('toy story')
+
+    expect(found).toEqual([{ externalRef: 'collection:10194', title: 'Toy Story Collection', detail: 'Collection' }])
+    expect(vi.mocked(fetchImpl).mock.calls.map(([url]) => new URL(url).pathname)).toEqual(['/3/search/collection'])
+  })
+
+  it('lists only the collection’s released films of that genre', async () => {
+    const { items } = await createTmdbAdapter(credentials, options, router(routes)).expand('collection:10194')
+
+    expect(items.map((item) => [item.title, item.timeToConsumeMinutes])).toEqual([
+      ['Toy Story', 81],
+      ['Toy Story 2', 92],
+    ])
+  })
+
+  it('lists them without lengths when asked to, and looks the lengths up after', async () => {
+    const adapter = createTmdbAdapter(credentials, options, router(routes))
+
+    expect((await adapter.expand('collection:10194', { runtimes: 'skip' })).items.map((item) => item.timeToConsumeMinutes)).toEqual([undefined, undefined])
+    expect(await expandWithRuntimes(adapter, 'collection:10194')).toEqual(await adapter.expand('collection:10194'))
+  })
+
+  it('does not take a person’s filmography, and asks for nothing when given one', async () => {
+    const fetchImpl = router({ ...routes, '/person/1/movie_credits': { cast: [{ id: 862, title: 'Toy Story', release_date: PAST, genre_ids: [16] }] } })
+
+    const { items } = await createTmdbAdapter(credentials, options, fetchImpl).expand('person:1')
+
+    expect(items).toEqual([])
+    expect(fetchImpl).not.toHaveBeenCalled()
+  })
+
+  it('leaves the default adapter alone: both kinds, every genre', async () => {
+    const { items } = await createTmdbAdapter(credentials, {}, router(routes)).expand('collection:10194')
+
+    expect(items.map((item) => item.title)).toEqual(['Toy Story', 'Live-action cameo', 'Toy Story 2'])
+  })
+})
+

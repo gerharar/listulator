@@ -48,7 +48,7 @@ interface CrewEntry extends CreditEntry {
 }
 
 interface CollectionDetail {
-  parts?: { id: number; title?: string; release_date?: string }[]
+  parts?: { id: number; title?: string; release_date?: string; genre_ids?: number[] }[]
 }
 
 export interface TmdbCredentials {
@@ -299,11 +299,21 @@ export interface TmdbFilmOptions {
    * only the cast credits found 12 of his 59 documentaries.
    */
   includeDirecting?: boolean
+  /**
+   * Which kinds of source to offer: a person's filmography and a collection by default. The Animation
+   * shelf takes collections alone (a person there is not wired in).
+   */
+  kinds?: readonly ('person' | 'collection')[]
+  /**
+   * Keep only the films with this genre, as the studio and show adapters do for the shelves that keep to
+   * one (Animation: 16). Search is not filtered, as a studio's is not: the list is.
+   */
+  genreFilter?: number
 }
 
 export function createTmdbAdapter(
   credentials: TmdbCredentialSource,
-  { documentaries = 'exclude', includeDirecting = false }: TmdbFilmOptions = {},
+  { documentaries = 'exclude', includeDirecting = false, kinds = ['person', 'collection'], genreFilter }: TmdbFilmOptions = {},
   fetchImpl?: FetchLike,
 ): SearchAdapter {
   const client = createTmdbClient(credentials, fetchImpl)
@@ -314,6 +324,7 @@ export function createTmdbAdapter(
   function usableCredits(entries: CreditEntry[], today: string) {
     return entries
       .filter((entry) => entry.title && entry.release_date && entry.release_date <= today)
+      .filter((entry) => !genreFilter || (entry.genre_ids ?? []).includes(genreFilter))
       .filter((entry) => {
         const isDocumentary = (entry.genre_ids ?? []).includes(DOCUMENTARY_GENRE)
 
@@ -332,9 +343,14 @@ export function createTmdbAdapter(
     isAvailable: isConfigured,
 
     async search(query) {
+      // Only the kinds this adapter offers are asked for.
       const [people, collections] = await Promise.all([
-        request<{ results?: PersonResult[] }>('/search/person', { query }),
-        request<{ results?: CollectionResult[] }>('/search/collection', { query }),
+        kinds.includes('person')
+          ? request<{ results?: PersonResult[] }>('/search/person', { query })
+          : Promise.resolve<{ results?: PersonResult[] }>({}),
+        kinds.includes('collection')
+          ? request<{ results?: CollectionResult[] }>('/search/collection', { query })
+          : Promise.resolve<{ results?: CollectionResult[] }>({}),
       ])
 
       const asPeople = (people.results ?? []).slice(0, 6).map((person): ListSource => {
@@ -377,13 +393,13 @@ export function createTmdbAdapter(
 
       const today = new Date().toISOString().slice(0, 10)
 
-      if (kind === 'collection') {
+      if (kind === 'collection' && kinds.includes('collection')) {
         const collection = await request<CollectionDetail>(`/collection/${id}`)
 
         return listFilms(client, usableCredits(collection.parts ?? [], today), options)
       }
 
-      if (kind === 'person') {
+      if (kind === 'person' && kinds.includes('person')) {
         const credits = await request<{ cast?: CreditEntry[]; crew?: CrewEntry[] }>(
           `/person/${id}/movie_credits`,
         )
