@@ -249,6 +249,39 @@ describe('the desktop builds a list at once and fills its lengths afterwards (15
     })
   })
 
+  describe('a count that costs less than a listing (YouTube audit)', () => {
+    function countedSource(total: number) {
+      const count = vi.fn(async () => total)
+      const expand = vi.fn(async () => ({ items: [{ title: 'A' }, { title: 'B' }] }))
+      registryHolder.current = [
+        { key: 'plain', label: 'Plain', sortOrder: 1, defaultDurationMinutes: 45, adapter: { isAvailable: () => true, search: async () => [], expand, count } },
+      ]
+
+      return { count, expand }
+    }
+
+    it('counts by the adapter’s own count without listing, and lists for the Preview', async () => {
+      const { count, expand } = countedSource(6184)
+      const { local } = await freshModules()
+      const api = local.createLocalApi()
+
+      expect(await api.expansion('plain', 'channel:UC1')).toEqual({ itemCount: 6184 })
+      expect(count).toHaveBeenCalledExactlyOnceWith('channel:UC1')
+      expect(expand).not.toHaveBeenCalled()
+
+      expect((await api.preview('plain', 'channel:UC1')).itemCount).toBe(2)
+      expect(expand).toHaveBeenCalledTimes(1)
+    })
+
+    it('refuses a counted source above the ceiling with the API’s own error', async () => {
+      countedSource(10_001)
+      const { local } = await freshModules()
+      const api = local.createLocalApi()
+
+      await expect(api.expansion('plain', 'channel:UC1')).rejects.toMatchObject({ code: 'list.sourceTooLarge', status: 422 })
+    })
+  })
+
   describe('the ceiling on a list: ten thousand items (15.9)', () => {
     it('fails the count and the Preview of a source above it, and refuses to build it, with the API’s own error', async () => {
       const { api } = await start(filmSource())

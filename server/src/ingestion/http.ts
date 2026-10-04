@@ -61,6 +61,18 @@ export interface GetOptions {
 
 export type GetJsonOptions = GetOptions
 
+/** The `reason` of a Google-shaped error body, or undefined for anything else (another API, plain text, no body). */
+async function googleReason(response: Response): Promise<string | undefined> {
+  try {
+    const parsed = JSON.parse(await response.text()) as { error?: { errors?: { reason?: unknown }[] } }
+    const reason = parsed.error?.errors?.[0]?.reason
+
+    return typeof reason === 'string' ? reason : undefined
+  } catch {
+    return undefined
+  }
+}
+
 /**
  * Fetches with a timeout, the WebKit-User-Agent retry, and upstream
  * status-code handling shared by `getJson` and `getText` — everything up to
@@ -127,7 +139,23 @@ async function fetchWithRetry(
     )
   }
 
-  if (response.status === 401 || response.status === 403) {
+  if (response.status === 403) {
+    // Google's APIs (YouTube) use 403 for a spent quota and a rate limit as well as a refused key, and say which in
+    // `error.errors[0].reason`. Read as bad credentials, a used-up daily quota tells the owner their key is wrong.
+    const reason = await googleReason(response)
+
+    if (reason === 'quotaExceeded' || reason === 'dailyLimitExceeded') {
+      throw new UpstreamError(`${source}'s daily quota is used up. It resets at midnight Pacific Time.`, 403)
+    }
+
+    if (reason === 'rateLimitExceeded' || reason === 'userRateLimitExceeded' || reason === 'concurrentLimitExceeded') {
+      throw new UpstreamError(`${source} is rate-limiting us. Try again in a moment.`, 429)
+    }
+
+    throw new UnauthorizedError(`${source} rejected our credentials${reason ? ` (${reason})` : ''}.`)
+  }
+
+  if (response.status === 401) {
     throw new UnauthorizedError(`${source} rejected our credentials.`)
   }
 

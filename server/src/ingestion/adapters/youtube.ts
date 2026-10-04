@@ -1,4 +1,5 @@
-import { getJson, type FetchLike } from '../http.js'
+import { MAX_LIST_ITEMS } from '../../catalog/limits.js'
+import { delay, getJson, UpstreamError, type FetchLike } from '../http.js'
 import type { ListSource, MediaTypeCandidate, SearchAdapter } from '../mediaTypes.js'
 import { itemsOnly } from '../expansion.js'
 
@@ -14,10 +15,20 @@ import { itemsOnly } from '../expansion.js'
  */
 
 const API = 'https://www.googleapis.com/youtube/v3'
+/** The API's own ceiling for `maxResults` on playlist items, and for the ids one `videos` call takes. */
 const PAGE_SIZE = 50
-/** A prolific channel has thousands of uploads; 20 pages is a fair ceiling. */
-const MAX_PAGES = 20
-const MAX_ITEMS = 1000
+/**
+ * Lengths are asked for this many batches at a time: a channel of 10,000 uploads is 200 batches, about a minute
+ * one after another. YouTube publishes a daily quota (10,000 units, a batch is one) and no rate per second, so
+ * there is no pacer here, only a modest overlap.
+ */
+const DURATION_BATCHES_AT_ONCE = 5
+
+/** A request is tried this many times in all, as TMDB's and IGDB's are (15.1): a 429 or a 5xx passes, a 400 does not. */
+const MAX_ATTEMPTS = 3
+const BACKOFF_MS = 500
+/** A `Retry-After` longer than this is not waited out: the request fails and says so. */
+const MAX_RETRY_WAIT_MS = 10_000
 
 interface PlaylistResource {
   id?: string
@@ -38,6 +49,8 @@ interface SearchResource {
 
 interface PlaylistItemsResponse {
   nextPageToken?: string
+  /** `totalResults` is the playlist's whole length, whatever the page size. */
+  pageInfo?: { totalResults?: number }
   items?: {
     snippet?: { title?: string; resourceId?: { videoId?: string } }
   }[]
@@ -103,20 +116,43 @@ export interface YouTubeCredentials {
 
 export type YouTubeCredentialSource = YouTubeCredentials | (() => YouTubeCredentials)
 
+export interface YouTubeClientOptions {
+  /** Injectable so the waits are testable without real waiting. */
+  sleep?: (ms: number) => Promise<void>
+}
+
 export function createYouTubeAdapter(
   credentials: YouTubeCredentialSource,
   fetchImpl?: FetchLike,
+  { sleep = delay }: YouTubeClientOptions = {},
 ): SearchAdapter {
   const resolve = (): YouTubeCredentials =>
     typeof credentials === 'function' ? credentials() : credentials
 
-  function request<T>(path: string, params: Record<string, string>): Promise<T> {
+  /**
+   * The upstream saying "slow down" or "I am broken" is worth another go; a 400 (a bad key or request), rejected
+   * credentials, an unreachable network and a spent daily quota (a 403) will not mend in a second. A listing that
+   * lost a page to one glitch is worse than one that waited a second (15.1).
+   */
+  async function request<T>(path: string, params: Record<string, string>): Promise<T> {
     const search = new URLSearchParams({ ...params, key: resolve().apiKey ?? '' })
 
-    return getJson<T>(`${API}/${path}?${search.toString()}`, {
-      source: 'YouTube',
-      ...(fetchImpl ? { fetchImpl } : {}),
-    })
+    for (let attempt = 1; ; attempt += 1) {
+      try {
+        return await getJson<T>(`${API}/${path}?${search.toString()}`, {
+          source: 'YouTube',
+          ...(fetchImpl ? { fetchImpl } : {}),
+        })
+      } catch (error) {
+        const retryable = error instanceof UpstreamError && (error.status === 429 || error.status >= 500)
+        if (!retryable || attempt >= MAX_ATTEMPTS) throw error
+
+        const wait = error.retryAfterMs ?? BACKOFF_MS * 2 ** (attempt - 1)
+        if (wait > MAX_RETRY_WAIT_MS) throw error
+
+        await sleep(wait)
+      }
+    }
   }
 
   /** A channel, offered as its uploads plus whatever playlists it keeps. */
@@ -133,12 +169,13 @@ export function createYouTubeAdapter(
     ]
 
     // Most channels meant to be watched through keep playlists, so these are
-    // usually the more useful answer.
+    // usually the more useful answer. A failure here fails the search: offering the uploads alone would
+    // read as a channel with no playlists.
     const playlists = await request<{ items?: PlaylistResource[] }>('playlists', {
       part: 'snippet,contentDetails',
       channelId: channel.id,
       maxResults: '10',
-    }).catch(() => ({ items: [] }))
+    })
 
     for (const playlist of playlists.items ?? []) {
       if (!playlist.id) continue
@@ -152,6 +189,27 @@ export function createYouTubeAdapter(
     }
 
     return sources
+  }
+
+  /**
+   * The playlist a ref lists, and whether it arrives newest first. A channel's uploads live in a playlist of
+   * their own, which the API hands over rather than requiring the id be guessed from the channel's.
+   */
+  async function playlistFor(externalRef: string): Promise<{ playlistId: string; newestFirst: boolean } | undefined> {
+    const [kind, id] = externalRef.split(':')
+    if (!id) return undefined
+
+    if (kind === 'playlist') return { playlistId: id, newestFirst: false }
+    if (kind !== 'channel') return undefined
+
+    const response = await request<{ items?: ChannelResource[] }>('channels', {
+      part: 'contentDetails',
+      id,
+    })
+
+    const uploads = response.items?.[0]?.contentDetails?.relatedPlaylists?.uploads
+
+    return uploads ? { playlistId: uploads, newestFirst: true } : undefined
   }
 
   return {
@@ -224,35 +282,38 @@ export function createYouTubeAdapter(
       })
     },
 
+    // How many videos `expand` would list, from the playlist's own total: a request or two, where listing a
+    // channel of 6,000 uploads is 250 (the Search tab counts every result it shows). `totalResults` equals what
+    // the listing finds (6,184 and 6,184 live), deleted and private entries included, as the listing keeps them.
+    count: async (externalRef) => {
+      const source = await playlistFor(externalRef)
+      if (!source) return undefined
+
+      const response = await request<PlaylistItemsResponse>('playlistItems', {
+        part: 'id',
+        playlistId: source.playlistId,
+        // A full page, not one entry: a mix (`RD...`) reports the size of the page it was asked for as its
+        // total (1 asked, 1 counted; live), and a page costs the same one unit.
+        maxResults: String(PAGE_SIZE),
+      })
+
+      return response.pageInfo?.totalResults
+    },
+
     // No upstream signal for whether this is finished, so no `status` (BL-013).
     expand: itemsOnly(async (externalRef) => {
-      const [kind, id] = externalRef.split(':')
-      if (!id) return []
+      const source = await playlistFor(externalRef)
+      if (!source) return []
 
-      let playlistId = id
-      // A channel's uploads live in a playlist of their own, which the API
-      // hands over rather than requiring the id be guessed from the channel's.
-      let newestFirst = false
-
-      if (kind === 'channel') {
-        const response = await request<{ items?: ChannelResource[] }>('channels', {
-          part: 'contentDetails',
-          id,
-        })
-
-        const uploads = response.items?.[0]?.contentDetails?.relatedPlaylists?.uploads
-        if (!uploads) return []
-
-        playlistId = uploads
-        newestFirst = true
-      } else if (kind !== 'playlist') {
-        return []
-      }
+      const { playlistId, newestFirst } = source
 
       const videos: { id: string | undefined; title: string }[] = []
       let pageToken: string | undefined
 
-      for (let page = 0; page < MAX_PAGES; page += 1) {
+      // No cap of ours: a channel's newest-first uploads are reversed below, so cutting early would drop the
+      // oldest, the first thing a completionist wants. Paging stops at the end, or once past what a list can
+      // hold, when the shared size check refuses the list and a longer one would only cost quota (a page is one unit).
+      for (;;) {
         const response: PlaylistItemsResponse = await request('playlistItems', {
           part: 'snippet',
           playlistId,
@@ -271,30 +332,38 @@ export function createYouTubeAdapter(
         }
 
         pageToken = response.nextPageToken
-        if (!pageToken || videos.length >= MAX_ITEMS) break
+        if (!pageToken || videos.length > MAX_LIST_ITEMS) break
       }
 
       const ordered = newestFirst ? videos.reverse() : videos
-      const capped = ordered.slice(0, MAX_ITEMS)
 
-      // Durations need a second call, but fifty ids at a time for one unit.
+      // Durations need a second call, but fifty ids at a time for one unit. A list past the ceiling is refused
+      // by the caller, so its lengths are not worth the quota.
       const durations = new Map<string, number>()
-      const ids = capped.map((video) => video.id).filter((value): value is string => Boolean(value))
+      const ids = ordered.map((video) => video.id).filter((value): value is string => Boolean(value))
+      const batches: string[][] = []
 
-      for (let index = 0; index < ids.length; index += PAGE_SIZE) {
-        const batch = ids.slice(index, index + PAGE_SIZE)
-        const response = await request<VideosResponse>('videos', {
-          part: 'contentDetails',
-          id: batch.join(','),
-        }).catch(() => ({ items: [] }))
+      if (ordered.length <= MAX_LIST_ITEMS) {
+        for (let index = 0; index < ids.length; index += PAGE_SIZE) batches.push(ids.slice(index, index + PAGE_SIZE))
+      }
 
-        for (const video of response.items ?? []) {
-          const minutes = parseIsoDuration(video.contentDetails?.duration)
-          if (video.id && minutes) durations.set(video.id, minutes)
+      // A failed batch fails the listing: swallowed, it turned fifty videos into placeholder lengths unnoticed.
+      for (let index = 0; index < batches.length; index += DURATION_BATCHES_AT_ONCE) {
+        const answers = await Promise.all(
+          batches.slice(index, index + DURATION_BATCHES_AT_ONCE).map((batch) =>
+            request<VideosResponse>('videos', { part: 'contentDetails', id: batch.join(',') }),
+          ),
+        )
+
+        for (const response of answers) {
+          for (const video of response.items ?? []) {
+            const minutes = parseIsoDuration(video.contentDetails?.duration)
+            if (video.id && minutes) durations.set(video.id, minutes)
+          }
         }
       }
 
-      return capped.map((video): MediaTypeCandidate => {
+      return ordered.map((video): MediaTypeCandidate => {
         const minutes = video.id ? durations.get(video.id) : undefined
 
         return {

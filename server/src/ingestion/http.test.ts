@@ -70,6 +70,56 @@ describe('getJson upstream errors', () => {
     expect(error).not.toBeInstanceOf(UpstreamError)
   })
 
+  // Google's APIs answer a used-up quota, a rate limit and a refused key all with 403, told apart only by the
+  // `reason` in the body (YouTube, documented). Read as "rejected our credentials", a spent daily quota would
+  // tell the owner their key is bad.
+  const google403 = (reason: string): FetchLike =>
+    answer(403, {}, JSON.stringify({ error: { code: 403, message: 'x', errors: [{ reason }] } }))
+
+  it('reads a Google 403 for a spent quota as the quota, not as bad credentials', async () => {
+    for (const reason of ['quotaExceeded', 'dailyLimitExceeded']) {
+      const error = await failure(google403(reason))
+
+      expect(error).toBeInstanceOf(UpstreamError)
+      expect(error).not.toBeInstanceOf(UnauthorizedError)
+      expect(error).toMatchObject({ status: 403 })
+      expect((error as Error).message).toBe(
+        "Example's daily quota is used up. It resets at midnight Pacific Time.",
+      )
+    }
+  })
+
+  it('reads a Google 403 for a rate limit as a 429, so a caller retries it', async () => {
+    for (const reason of ['rateLimitExceeded', 'userRateLimitExceeded', 'concurrentLimitExceeded']) {
+      const error = await failure(google403(reason))
+
+      expect(error).toBeInstanceOf(UpstreamError)
+      expect(error).toMatchObject({ status: 429 })
+      expect((error as Error).message).toBe('Example is rate-limiting us. Try again in a moment.')
+    }
+  })
+
+  it('names the reason of any other Google 403 and keeps it an UnauthorizedError', async () => {
+    const error = await failure(google403('forbidden'))
+
+    expect(error).toBeInstanceOf(UnauthorizedError)
+    expect((error as Error).message).toBe('Example rejected our credentials (forbidden).')
+  })
+
+  it('leaves a 403 that is not shaped like Google’s as it was', async () => {
+    for (const body of [
+      '{}',
+      'forbidden',
+      JSON.stringify({ error: { message: 'no' } }),
+      JSON.stringify({ error: { errors: [{ reason: 5 }] } }),
+    ]) {
+      const error = await failure(answer(403, {}, body))
+
+      expect(error).toBeInstanceOf(UnauthorizedError)
+      expect((error as Error).message).toBe('Example rejected our credentials.')
+    }
+  })
+
   it('has no status when the upstream could not be reached at all', async () => {
     const error = await failure(async () => {
       throw new TypeError('fetch failed')

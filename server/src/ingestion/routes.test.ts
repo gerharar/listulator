@@ -846,6 +846,28 @@ describe('search and import from a source', () => {
       expect((await harness.app.inject({ method: 'GET', url: '/api/lists' })).json()).toEqual([])
     })
 
+    it('counts by the adapter’s cheap count when only the number is wanted, and lists when the items are', async () => {
+      const count = vi.fn(async () => 6184)
+      const expand = vi.fn(async () => ({ items: [{ title: 'A' }, { title: 'B' }] }))
+      harness = withAdapter(fakeAdapter({ expand, count }))
+
+      expect((await expansion('externalRef=ref-1')).json()).toEqual({ itemCount: 6184 })
+      expect(count).toHaveBeenCalledExactlyOnceWith('ref-1')
+      expect(expand).not.toHaveBeenCalled()
+
+      expect((await expansion('externalRef=ref-1&items=true')).json()).toMatchObject({ itemCount: 2 })
+      expect(expand).toHaveBeenCalledTimes(1)
+    })
+
+    it('refuses a counted source above the ceiling with the same error a listing gives', async () => {
+      harness = withAdapter(fakeAdapter({ count: async () => 10_001 }))
+
+      const response = await expansion('externalRef=ref-1')
+
+      expect(response.statusCode).toBe(422)
+      expect(response.json()).toEqual({ code: 'list.sourceTooLarge', params: { count: 10_001, max: 10_000 } })
+    })
+
     it('omits status when the adapter reports none', async () => {
       harness = withAdapter(fakeAdapter())
 

@@ -54,6 +54,30 @@ export function listingOptions(adapter: SearchAdapter): ExpandOptions | undefine
 }
 
 /**
+ * The item count of one search result by the adapter's own cheap count, where it has one (`SearchAdapter.count`),
+ * without listing the source; `undefined` when there is none, so the caller expands as it always did. Only the
+ * Search tab's per-result count wants this, and it is asked for every result, so a source that costs a request for
+ * every fifty items to list (a YouTube channel) costs one or two here. Refused above the ceiling exactly as a
+ * listing is. A curated list, a category with no usable adapter and an adapter without `count` all answer
+ * `undefined`: the listing path owns their errors.
+ */
+export async function countSource(
+  mediaType: Pick<MediaType, 'key' | 'label' | 'adapter'>,
+  externalRef: string,
+  options: SourceOptions,
+): Promise<number | undefined> {
+  if (canonicalPathFromExternalRef(externalRef)) return undefined
+
+  const adapter = mediaType.adapter
+  if (!adapter?.count || !adapter.isAvailable()) return undefined
+
+  const count = await adapter.count(refForAdapter(externalRef, options))
+  if (count !== undefined) checkListSize(count)
+
+  return count
+}
+
+/**
  * Expands one search result without creating anything: its items and, where
  * the source has an honest signal, its production status. What the Search
  * tab's per-result count comes from (task 10.12, Q11) — and what 10.15's

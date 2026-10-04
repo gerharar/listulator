@@ -96,6 +96,15 @@ describe('testKey', () => {
     expect(await testKey('youtube', { youtubeApiKey: 'x' }, viaGlobal(good.fetchImpl))).toBe('working')
   })
 
+  it('YouTube: a spent daily quota is failed, since the key itself is fine', async () => {
+    // Google answers a used-up quota with 403, the same status as a refused key; only the reason differs.
+    const spent = network(() => json({ error: { code: 403, errors: [{ reason: 'quotaExceeded' }] } }, 403))
+    expect(await testKey('youtube', { youtubeApiKey: 'x' }, viaGlobal(spent.fetchImpl))).toBe('failed')
+
+    const refused = network(() => json({ error: { code: 403, errors: [{ reason: 'accessNotConfigured' }] } }, 403))
+    expect(await testKey('youtube', { youtubeApiKey: 'x' }, viaGlobal(refused.fetchImpl))).toBe('rejected')
+  })
+
   it('a dead network is unreachable, not rejected', async () => {
     const { fetchImpl } = network(() => {
       throw new TypeError('Failed to fetch')

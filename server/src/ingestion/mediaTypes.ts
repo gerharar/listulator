@@ -434,6 +434,13 @@ export interface SearchAdapter {
   search(query: string, options?: SearchOptions): Promise<ListSource[]>
   expand(externalRef: string, options?: ExpandOptions): Promise<ListExpansion>
   /**
+   * How many items `expand(ref)` would give, for a source that can say so in far fewer requests than listing it
+   * (YouTube: one or two, against a request for every fifty videos). Used where only the number is wanted, the
+   * Search tab's per-result count, which is asked for every result. `undefined` means "no cheap answer": the
+   * caller lists the source as it would without this. Absent: always list.
+   */
+  count?(externalRef: string): Promise<number | undefined>
+  /**
    * The lengths of items an `expand(ref, { runtimes: 'skip' })` left without
    * one, keyed by item ref. Answers only for refs this adapter owns; one ref's
    * failure is that ref's `failed`, never the whole call's. Absent: the adapter

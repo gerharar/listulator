@@ -87,7 +87,7 @@ import { ApiError } from './api.js'
 import { checkNameLengths } from './nameLimit.js'
 import { createLocalDb, type LocalDatabase } from './db/localDb.js'
 import { getLocalCurrentUser } from './db/localUser.js'
-import { toMediaTypeInfo } from '../../../server/src/ingestion/mediaTypes.js'
+import { toMediaTypeInfo, type MediaType } from '../../../server/src/ingestion/mediaTypes.js'
 import { searchSources, SearchUnavailableError } from '../../../server/src/ingestion/search.js'
 import { refForAdapter } from '../../../server/src/ingestion/sourceRef.js'
 import {
@@ -114,6 +114,7 @@ import {
   type ExpansionCache,
 } from '../../../server/src/ingestion/expansionCache.js'
 import {
+  countSource,
   expandSource,
   listingOptions,
   ListTooLargeError,
@@ -374,22 +375,17 @@ export function createLocalApi(): ApiClient {
     return user.id
   }
 
-  /** What `expansion` and `preview` share: expand a source, in the API's own errors. */
-  async function expandForApi(mediaTypeKey: string, externalRef: string, options: SourceOptions) {
+  /** What `expansion` and `preview` share: run something on a source, in the API's own errors. */
+  async function forSource<T>(
+    mediaTypeKey: string,
+    run: (mediaType: MediaType, validCategories: ReadonlySet<string>) => Promise<T>,
+  ): Promise<T> {
     const mediaTypes = await getLocalMediaTypes()
     const mediaType = mediaTypes.find((entry) => entry.key === mediaTypeKey)
     if (!mediaType) throw notFound()
 
     try {
-      const { items, status } = await expandSource(
-        mediaType,
-        externalRef,
-        options,
-        new Set(mediaTypes.map((entry) => entry.key)),
-        expansions,
-      )
-
-      return { items, status }
+      return await run(mediaType, new Set(mediaTypes.map((entry) => entry.key)))
     } catch (cause) {
       if (cause instanceof SourceUnavailableError) {
         throw new ApiError(
@@ -414,6 +410,15 @@ export function createLocalApi(): ApiClient {
       throw cause
     }
   }
+
+  const expandForApi = (mediaTypeKey: string, externalRef: string, options: SourceOptions) =>
+    forSource(mediaTypeKey, (mediaType, validCategories) =>
+      expandSource(mediaType, externalRef, options, validCategories, expansions),
+    )
+
+  /** The number alone, by the adapter's cheap count where it has one (a YouTube channel); undefined: list it. */
+  const countForApi = (mediaTypeKey: string, externalRef: string, options: SourceOptions) =>
+    forSource(mediaTypeKey, (mediaType) => countSource(mediaType, externalRef, options))
 
   return {
     me: async () => {
@@ -771,6 +776,9 @@ export function createLocalApi(): ApiClient {
     },
 
     expansion: async (mediaTypeKey, externalRef, options = {}) => {
+      const counted = await countForApi(mediaTypeKey, externalRef, options)
+      if (counted !== undefined) return { itemCount: counted }
+
       const { items, status } = await expandForApi(mediaTypeKey, externalRef, options)
 
       return { itemCount: items.length, ...(status ? { status } : {}) }

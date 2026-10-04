@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
-import type { FetchLike } from '../http.js'
+import { MAX_LIST_ITEMS } from '../../catalog/limits.js'
+import { IngestionError, type FetchLike } from '../http.js'
 import { createYouTubeAdapter, parseIsoDuration, parseYouTubeInput } from './youtube.js'
 
 const credentials = { apiKey: 'test-key' }
@@ -269,5 +270,288 @@ describe('YouTube adapter', () => {
 
     expect((await adapter.expand('video:abc')).items).toEqual([])
     expect((await adapter.expand('nonsense')).items).toEqual([])
+  })
+
+  describe('a long channel', () => {
+    /** A channel of `total` uploads as the API serves it: newest first, fifty to a page, durations by id. */
+    function channelOf(total: number): FetchLike {
+      return vi.fn(async (url: string) => {
+        const parsed = new URL(url)
+        const endpoint = parsed.pathname.split('/').pop()
+
+        if (endpoint === 'channels') {
+          return new Response(JSON.stringify({ items: [{ contentDetails: { relatedPlaylists: { uploads: 'UU1' } } }] }))
+        }
+
+        if (endpoint === 'playlistItems') {
+          const start = Number(parsed.searchParams.get('pageToken') ?? 0)
+          const count = Math.min(50, total - start)
+
+          return new Response(
+            JSON.stringify({
+              items: Array.from({ length: count }, (_, index) => {
+                const number = total - (start + index)
+
+                return { snippet: { title: `Upload ${number}`, resourceId: { videoId: `v${number}` } } }
+              }),
+              ...(start + count < total ? { nextPageToken: String(start + count) } : {}),
+            }),
+          )
+        }
+
+        const ids = (parsed.searchParams.get('id') ?? '').split(',')
+
+        return new Response(
+          JSON.stringify({ items: ids.map((id) => ({ id, contentDetails: { duration: 'PT7M' } })) }),
+        )
+      })
+    }
+
+    it('lists every upload past a thousand, oldest first, not just the newest thousand', async () => {
+      // A cap of 1,000 used to cut the channel's oldest uploads after the newest-first order was
+      // reversed: the first video a completionist wants was the one dropped.
+      const { items } = await createYouTubeAdapter(credentials, channelOf(1200)).expand('channel:UC1')
+
+      expect(items).toHaveLength(1200)
+      expect(items[0]).toEqual({ title: 'Upload 1', externalRef: 'video:v1', timeToConsumeMinutes: 7 })
+      expect(items[1199]!.title).toBe('Upload 1200')
+    })
+
+    it('stops paging once it is past what a list can hold, and spends nothing on lengths', async () => {
+      // The shared size check refuses the list; fetching its lengths first would cost about two hundred
+      // quota units for nothing.
+      const fetchImpl = channelOf(MAX_LIST_ITEMS + 500)
+      const { items } = await createYouTubeAdapter(credentials, fetchImpl).expand('channel:UC1')
+      const calls = vi.mocked(fetchImpl).mock.calls.map(([url]) => new URL(url).pathname.split('/').pop())
+
+      expect(items.length).toBeGreaterThan(MAX_LIST_ITEMS)
+      expect(items.length).toBeLessThan(MAX_LIST_ITEMS + 500)
+      expect(calls.filter((call) => call === 'videos')).toHaveLength(0)
+      expect(calls.filter((call) => call === 'playlistItems')).toHaveLength(Math.ceil((MAX_LIST_ITEMS + 1) / 50))
+    })
+
+    it('keeps a list of exactly the most a list can hold, lengths included', async () => {
+      const { items } = await createYouTubeAdapter(credentials, channelOf(MAX_LIST_ITEMS)).expand('channel:UC1')
+
+      expect(items).toHaveLength(MAX_LIST_ITEMS)
+      expect(items.every((item) => item.timeToConsumeMinutes === 7)).toBe(true)
+    })
+
+    it('asks for lengths a few batches at a time, and every length still lands on its own video', async () => {
+      let inFlight = 0
+      let peak = 0
+      const base = channelOf(1000)
+      const fetchImpl: FetchLike = vi.fn(async (url: string) => {
+        if (!url.includes('/videos')) return base(url)
+
+        inFlight += 1
+        peak = Math.max(peak, inFlight)
+        await new Promise((resolve) => setTimeout(resolve, 5))
+        inFlight -= 1
+
+        const ids = (new URL(url).searchParams.get('id') ?? '').split(',')
+
+        // The length is the video's own number, so a mix-up between batches would show.
+        return new Response(
+          JSON.stringify({
+            items: ids.map((id) => ({ id, contentDetails: { duration: `PT${Number(id.slice(1))}M` } })),
+          }),
+        )
+      })
+
+      const { items } = await createYouTubeAdapter(credentials, fetchImpl).expand('channel:UC1')
+
+      expect(peak).toBeGreaterThan(1)
+      expect(peak).toBeLessThanOrEqual(5)
+      expect(items.every((item) => item.timeToConsumeMinutes === Number(item.externalRef!.slice(7)))).toBe(true)
+    })
+  })
+
+  describe('a count', () => {
+    /** One `playlistItems` answer of a single entry, carrying the playlist's total as the API does. */
+    function totals(total: number | undefined): FetchLike {
+      return vi.fn(async (url: string) => {
+        const endpoint = new URL(url).pathname.split('/').pop()
+
+        if (endpoint === 'channels') {
+          return new Response(JSON.stringify({ items: [{ contentDetails: { relatedPlaylists: { uploads: 'UU1' } } }] }))
+        }
+
+        return new Response(
+          JSON.stringify({
+            items: [{ snippet: { title: 'One', resourceId: { videoId: 'v1' } } }],
+            ...(total === undefined ? {} : { pageInfo: { totalResults: total, resultsPerPage: 1 } }),
+          }),
+        )
+      })
+    }
+
+    const endpoints = (fetchImpl: FetchLike) =>
+      vi.mocked(fetchImpl).mock.calls.map(([url]) => new URL(url).pathname.split('/').pop())
+
+    it('is one request for a playlist, and the whole total, not a page of it', async () => {
+      // The Search tab asks for a count of every result; listing a 6,000-video channel for it cost
+      // about 250 quota units a row.
+      const fetchImpl = totals(6184)
+
+      expect(await createYouTubeAdapter(credentials, fetchImpl).count!('playlist:PL1')).toBe(6184)
+      expect(endpoints(fetchImpl)).toEqual(['playlistItems'])
+      // A full page: a mix (`RD...`) counts as many entries as the page it is asked for, so asking for one says 1.
+      expect(new URL(vi.mocked(fetchImpl).mock.calls[0]![0]).searchParams.get('maxResults')).toBe('50')
+    })
+
+    it('is two requests for a channel: its uploads playlist, then that playlist’s total', async () => {
+      const fetchImpl = totals(6184)
+
+      expect(await createYouTubeAdapter(credentials, fetchImpl).count!('channel:UC1')).toBe(6184)
+      expect(endpoints(fetchImpl)).toEqual(['channels', 'playlistItems'])
+      expect(new URL(vi.mocked(fetchImpl).mock.calls[1]![0]).searchParams.get('playlistId')).toBe('UU1')
+    })
+
+    it('has no answer for a ref it does not understand, or when the API gives no total, so a listing decides', async () => {
+      expect(await createYouTubeAdapter(credentials, totals(5)).count!('video:abc')).toBeUndefined()
+      expect(await createYouTubeAdapter(credentials, totals(undefined)).count!('playlist:PL1')).toBeUndefined()
+    })
+
+    it('has no answer for a channel the API does not know, and asks nothing more', async () => {
+      const fetchImpl = router({ channels: { items: [] } })
+      const adapter = createYouTubeAdapter(credentials, fetchImpl)
+
+      expect(await adapter.count!('channel:UCnone')).toBeUndefined()
+      expect((await adapter.expand('channel:UCnone')).items).toEqual([])
+      expect(vi.mocked(fetchImpl).mock.calls.every(([url]) => new URL(url).pathname.endsWith('/channels'))).toBe(true)
+    })
+
+    it('fails when the request fails, rather than answering zero', async () => {
+      const fetchImpl: FetchLike = vi.fn(async () => new Response('{}', { status: 400 }))
+
+      await expect(createYouTubeAdapter(credentials, fetchImpl).count!('playlist:PL1')).rejects.toBeInstanceOf(IngestionError)
+    })
+  })
+
+  describe('failures', () => {
+    const noWait = async (): Promise<void> => {}
+    const quotaBody = JSON.stringify({ error: { code: 403, message: 'x', errors: [{ reason: 'quotaExceeded' }] } })
+
+    /** The first calls to each endpoint fail as told, then it answers like `router`. */
+    function failingThen(failures: Response[], routes: Record<string, unknown>): FetchLike {
+      const pending = [...failures]
+
+      return vi.fn(async (url: string) => {
+        const next = pending.shift()
+        if (next) return next
+
+        const body = routes[new URL(url).pathname.split('/').pop()!]
+
+        return new Response(JSON.stringify(body ?? {}))
+      })
+    }
+
+    const playlist = {
+      playlistItems: { items: [{ snippet: { title: 'One', resourceId: { videoId: 'v1' } } }] },
+      videos: { items: [{ id: 'v1', contentDetails: { duration: 'PT5M' } }] },
+    }
+
+    it('fails the listing when a batch of lengths fails, rather than guessing fifty lengths', async () => {
+      // A swallowed failure turned fifty videos into 20-minute estimates with no word to anyone.
+      const fetchImpl: FetchLike = vi.fn(async (url: string) =>
+        url.includes('/videos')
+          ? new Response('{}', { status: 400 })
+          : new Response(JSON.stringify(playlist.playlistItems)),
+      )
+
+      await expect(createYouTubeAdapter(credentials, fetchImpl, { sleep: noWait }).expand('playlist:PL1')).rejects.toBeInstanceOf(
+        IngestionError,
+      )
+    })
+
+    it('fails a channel search when its playlists cannot be listed, rather than offering the uploads alone', async () => {
+      const fetchImpl: FetchLike = vi.fn(async (url: string) =>
+        url.includes('/playlists')
+          ? new Response('{}', { status: 400 })
+          : new Response(JSON.stringify({ items: [{ id: 'UC1', snippet: { title: 'Veritasium' } }] })),
+      )
+
+      await expect(createYouTubeAdapter(credentials, fetchImpl, { sleep: noWait }).search('@veritasium')).rejects.toBeInstanceOf(
+        IngestionError,
+      )
+    })
+
+    it('tries a 503 again and lists what the second answer holds', async () => {
+      const fetchImpl = failingThen([new Response('{}', { status: 503 })], playlist)
+      const sleep = vi.fn<(ms: number) => Promise<void>>(noWait)
+
+      const { items } = await createYouTubeAdapter(credentials, fetchImpl, { sleep }).expand('playlist:PL1')
+
+      expect(items).toHaveLength(1)
+      expect(sleep).toHaveBeenCalledWith(500)
+    })
+
+    it('waits as long as a 429 asks, and doubles the wait between plain failures', async () => {
+      const sleep = vi.fn<(ms: number) => Promise<void>>(noWait)
+      const asked = failingThen([new Response('{}', { status: 429, headers: { 'retry-after': '2' } })], playlist)
+
+      await createYouTubeAdapter(credentials, asked, { sleep }).expand('playlist:PL1')
+      expect(sleep).toHaveBeenLastCalledWith(2000)
+
+      sleep.mockClear()
+      const plain = failingThen([new Response('{}', { status: 500 }), new Response('{}', { status: 500 })], playlist)
+
+      await createYouTubeAdapter(credentials, plain, { sleep }).expand('playlist:PL1')
+      expect(sleep.mock.calls.map(([ms]) => ms)).toEqual([500, 1000])
+    })
+
+    it('tries a Google rate limit (a 403) again, as a 429', async () => {
+      const body = JSON.stringify({ error: { errors: [{ reason: 'rateLimitExceeded' }] } })
+      const fetchImpl = failingThen([new Response(body, { status: 403 })], playlist)
+
+      expect((await createYouTubeAdapter(credentials, fetchImpl, { sleep: noWait }).expand('playlist:PL1')).items).toHaveLength(1)
+    })
+
+    it('gives up after three tries and says what the upstream said', async () => {
+      const fetchImpl = failingThen(
+        [new Response('{}', { status: 503 }), new Response('{}', { status: 503 }), new Response('{}', { status: 503 })],
+        playlist,
+      )
+
+      await expect(createYouTubeAdapter(credentials, fetchImpl, { sleep: noWait }).expand('playlist:PL1')).rejects.toThrow(
+        'YouTube returned 503',
+      )
+      expect(fetchImpl).toHaveBeenCalledTimes(3)
+    })
+
+    it('does not wait out a Retry-After longer than ten seconds', async () => {
+      const fetchImpl = failingThen([new Response('{}', { status: 429, headers: { 'retry-after': '60' } })], playlist)
+      const sleep = vi.fn<(ms: number) => Promise<void>>(noWait)
+
+      await expect(createYouTubeAdapter(credentials, fetchImpl, { sleep }).expand('playlist:PL1')).rejects.toThrow('rate-limiting')
+      expect(sleep).not.toHaveBeenCalled()
+    })
+
+    it('does wait a Retry-After of exactly ten seconds', async () => {
+      const fetchImpl = failingThen([new Response('{}', { status: 429, headers: { 'retry-after': '10' } })], playlist)
+      const sleep = vi.fn<(ms: number) => Promise<void>>(noWait)
+
+      await createYouTubeAdapter(credentials, fetchImpl, { sleep }).expand('playlist:PL1')
+
+      expect(sleep).toHaveBeenCalledWith(10_000)
+    })
+
+    it('does not try a spent daily quota again, and says it is the quota', async () => {
+      // It will not mend in a second; and it is not a bad key, which is what a bare 403 reads as.
+      const fetchImpl = failingThen([new Response(quotaBody, { status: 403 })], playlist)
+
+      await expect(createYouTubeAdapter(credentials, fetchImpl, { sleep: noWait }).expand('playlist:PL1')).rejects.toThrow(
+        'daily quota is used up',
+      )
+      expect(fetchImpl).toHaveBeenCalledTimes(1)
+    })
+
+    it('does not try a 400 again', async () => {
+      const fetchImpl = failingThen([new Response('{}', { status: 400 })], playlist)
+
+      await expect(createYouTubeAdapter(credentials, fetchImpl, { sleep: noWait }).expand('playlist:PL1')).rejects.toThrow('YouTube returned 400')
+      expect(fetchImpl).toHaveBeenCalledTimes(1)
+    })
   })
 })

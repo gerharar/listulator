@@ -36,7 +36,7 @@ import { IngestionError } from './http.js'
 import { listsDropDir as defaultListsDropDir, scanListsDropFolder } from './listsDropFolder.js'
 import type { AppDatabase } from '../db/client.js'
 import { toMediaTypeInfo, type MediaTypeRegistry } from './mediaTypes.js'
-import { expandSource, listingOptions, ListTooLargeError, SourceUnavailableError, UnsafeSourceError } from './expandSource.js'
+import { countSource, expandSource, listingOptions, ListTooLargeError, SourceUnavailableError, UnsafeSourceError } from './expandSource.js'
 import { refForAdapter } from './sourceRef.js'
 import { searchSources, SearchUnavailableError } from './search.js'
 import type { ListSource, User } from '../db/schema.js'
@@ -243,6 +243,11 @@ export const ingestionRoutes: FastifyPluginAsync<IngestionRoutesOptions> = async
       const { externalRef, items: withItems, ...options } = request.query
 
       try {
+        // Only the number is wanted when no items are asked for, and it is asked of every result: a source
+        // with a cheap count (a YouTube channel) is counted without being listed.
+        const counted = withItems ? undefined : await countSource(mediaType, externalRef, options)
+        if (counted !== undefined) return { itemCount: counted }
+
         const { items, status } = await expandSource(
           mediaType,
           externalRef,
