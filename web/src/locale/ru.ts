@@ -174,7 +174,7 @@ export const ru: Locale = {
     'list.unknownCategory': (p: { key: string }): string => `Руки-крюки: список нельзя импортировать, неизвестная категория ‘${p.key}’. Сверь написание категории с CONTRIBUTING.md, обычно проблема где-то там`,
     'list.sourceEmpty': (p: { title: string }): string => `Обнаружена преждевременная листуляция: для ${p.title} нечего импортировать`,
     'list.sourceTooLarge': (p: { title?: string; count: number; max: number }): string =>
-      `${p.title ? `«${p.title}»` : 'Этот источник'} слишком велик для одного списка: ${p.count.toLocaleString('ru')}, а в список входит не больше ${p.max.toLocaleString('ru')}`,
+      `${p.title ? `${p.title}` : 'Этот источник'} слишком толстый для одного списка: ${p.count.toLocaleString('ru')}, а в список входит не больше ${p.max.toLocaleString('ru')}`,
     'list.fileInvalid': (p: { detail?: string }): string =>
       `Не та дырка, бро: ты пытаешься запихать квадратный файл в круглую дырку, поэтому его нельзя импортировать. Убедись, что это корректный YAML-файл со всеми обязательными полями${p.detail ? `. Что нашёл разбор: ${p.detail}` : ''}`,
     'list.fileSyntax': (p: { line?: number }): string => p.line ? `Руки-из-жопы-растуки: список нельзя импортировать, синтаксическая ошибка в строке ${p.line}` : 'Руки-из-жопы-растуки: список нельзя импортировать, синтаксическая ошибка',
@@ -427,10 +427,10 @@ export const ru: Locale = {
         count: (shown: number, total: number, lowerBound: boolean): string =>
           `${shown} из ${total}${lowerBound ? '+' : ''} ${selectPlural(total, 'ru', { one: 'результата', few: 'результатов', many: 'результатов', other: 'результатов' })}`,
         caption: (shown: number): string => `Конец первых ${shown}`,
-        note: 'Найдены ещё совпадения. Уточни запрос, чтобы улучшить результаты — добавь год, слово из названия или выбери категорию поуже',
-        showMore: 'Показать ещё',
+        note: 'Найдены ещё совпадения. Уточни запрос, чтобы улучшить результаты',
+        showMore: 'Показать Ещё',
         loading: 'Загружаем…',
-        refine: 'Уточнить поиск',
+        refine: 'Уточнить Запрос',
       },
       itemsKicker: 'элементов',
       countLoading: 'Считаем…',

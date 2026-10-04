@@ -1,0 +1,65 @@
+title: The Crown TV series
+description: All episodes of The Crown TV series
+category: tv
+status: complete
+items:
+- { title: "S01E01 Wolferton Splash", year: 2016, minutes: 57, group: Season 1 }
+- { title: "S01E02 Hyde Park Corner", year: 2016, minutes: 61, group: Season 1 }
+- { title: "S01E03 Windsor", year: 2016, minutes: 59, group: Season 1 }
+- { title: "S01E04 Act of God", year: 2016, minutes: 58, group: Season 1 }
+- { title: "S01E05 Smoke and Mirrors", year: 2016, minutes: 55, group: Season 1 }
+- { title: "S01E06 Gelignite", year: 2016, minutes: 58, group: Season 1 }
+- { title: "S01E07 Scientia Potentia Est", year: 2016, minutes: 59, group: Season 1 }
+- { title: "S01E08 Pride & Joy", year: 2016, minutes: 58, group: Season 1 }
+- { title: "S01E09 Assassins", year: 2016, minutes: 60, group: Season 1 }
+- { title: "S01E10 Gloriana", year: 2016, minutes: 55, group: Season 1 }
+- { title: "S02E01 Misadventure", year: 2017, minutes: 57, group: Season 2 }
+- { title: "S02E02 A Company of Men", year: 2017, minutes: 55, group: Season 2 }
+- { title: "S02E03 Lisbon", year: 2017, minutes: 56, group: Season 2 }
+- { title: "S02E04 Beryl", year: 2017, minutes: 61, group: Season 2 }
+- { title: "S02E05 Marionettes", year: 2017, minutes: 61, group: Season 2 }
+- { title: "S02E06 Vergangenheit", year: 2017, minutes: 62, group: Season 2 }
+- { title: "S02E07 Matrimonium", year: 2017, minutes: 60, group: Season 2 }
+- { title: "S02E08 Dear Mrs. Kennedy", year: 2017, minutes: 57, group: Season 2 }
+- { title: "S02E09 Paterfamilias", year: 2017, minutes: 60, group: Season 2 }
+- { title: "S02E10 Mystery Man", year: 2017, minutes: 59, group: Season 2 }
+- { title: "S03E01 Olding", year: 2019, minutes: 47, group: Season 3 }
+- { title: "S03E02 Margaretology", year: 2019, minutes: 47, group: Season 3 }
+- { title: "S03E03 Aberfan", year: 2019, minutes: 55, group: Season 3 }
+- { title: "S03E04 Bubbikins", year: 2019, minutes: 59, group: Season 3 }
+- { title: "S03E05 Coup", year: 2019, minutes: 57, group: Season 3 }
+- { title: "S03E06 Tywysog Cymru", year: 2019, minutes: 55, group: Season 3 }
+- { title: "S03E07 Moondust", year: 2019, minutes: 56, group: Season 3 }
+- { title: "S03E08 Dangling Man", year: 2019, minutes: 47, group: Season 3 }
+- { title: "S03E09 Imbroglio", year: 2019, minutes: 47, group: Season 3 }
+- { title: "S03E10 Cri de Coeur", year: 2019, minutes: 58, group: Season 3 }
+- { title: "S04E01 Gold Stick", year: 2020, minutes: 54, group: Season 4 }
+- { title: "S04E02 The Balmoral Test", year: 2020, minutes: 57, group: Season 4 }
+- { title: "S04E03 Fairytale", year: 2020, minutes: 56, group: Season 4 }
+- { title: "S04E04 Favourites", year: 2020, minutes: 60, group: Season 4 }
+- { title: "S04E05 Fagan", year: 2020, minutes: 52, group: Season 4 }
+- { title: "S04E06 Terra Nullius", year: 2020, minutes: 54, group: Season 4 }
+- { title: "S04E07 The Hereditary Principle", year: 2020, minutes: 50, group: Season 4 }
+- { title: "S04E08 48:1", year: 2020, minutes: 53, group: Season 4 }
+- { title: "S04E09 Avalanche", year: 2020, minutes: 49, group: Season 4 }
+- { title: "S04E10 War", year: 2020, minutes: 54, group: Season 4 }
+- { title: "S05E01 Queen Victoria Syndrome", year: 2022, minutes: 55, group: Season 5 }
+- { title: "S05E02 The System", year: 2022, minutes: 49, group: Season 5 }
+- { title: "S05E03 Mou Mou", year: 2022, minutes: 52, group: Season 5 }
+- { title: "S05E04 Annus Horribilis", year: 2022, minutes: 53, group: Season 5 }
+- { title: "S05E05 The Way Ahead", year: 2022, minutes: 49, group: Season 5 }
+- { title: "S05E06 Ipatiev House", year: 2022, minutes: 58, group: Season 5 }
+- { title: "S05E07 No Woman's Land", year: 2022, minutes: 51, group: Season 5 }
+- { title: "S05E08 Gunpowder", year: 2022, minutes: 55, group: Season 5 }
+- { title: "S05E09 Couple 31", year: 2022, minutes: 52, group: Season 5 }
+- { title: "S05E10 Decommissioned", year: 2022, minutes: 51, group: Season 5 }
+- { title: "S06E01 Persona Non Grata", year: 2023, minutes: 51, group: Season 6 }
+- { title: "S06E02 Two Photographs", year: 2023, minutes: 39, group: Season 6 }
+- { title: "S06E03 Dis-Moi Oui", year: 2023, minutes: 56, group: Season 6 }
+- { title: "S06E04 Aftermath", year: 2023, minutes: 52, group: Season 6 }
+- { title: "S06E05 Willsmania", year: 2023, minutes: 52, group: Season 6 }
+- { title: "S06E06 Ruritania", year: 2023, minutes: 48, group: Season 6 }
+- { title: "S06E07 Alma Mater", year: 2023, minutes: 49, group: Season 6 }
+- { title: "S06E08 Ritz", year: 2023, minutes: 50, group: Season 6 }
+- { title: "S06E09 Hope Street", year: 2023, minutes: 52, group: Season 6 }
+- { title: "S06E10 Sleep, Dearie Sleep", year: 2023, minutes: 72, group: Season 6 }

@@ -472,11 +472,11 @@ export const en = {
           `${shown} of ${total}${lowerBound ? '+' : ''} ${selectPlural(total, 'en', { one: 'result', other: 'results' })}`,
         /** The mono caption over the note, after the last row. */
         caption: (shown: number): string => `End of first ${shown}`,
-        note: 'More matches found. Refine your search to improve results — add a year, a word from the title, or pick a narrower category',
-        showMore: 'Show more',
+        note: 'More matches found. Refine your search to improve results',
+        showMore: 'Show More',
         /** On the Show more button while the next rows load. */
         loading: 'Loading…',
-        refine: 'Refine search',
+        refine: 'Refine Rearch',
       },
       itemsKicker: 'items',
       countLoading: 'Counting…',
