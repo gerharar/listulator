@@ -6,8 +6,8 @@ import { itemsOnly } from '../expansion.js'
 /**
  * YouTube: a playlist, or everything a channel has uploaded.
  *
- * Three ways in, because one alone is not usable: paste a link, type an
- * `@handle`, or search by name. The first two cost about one quota unit; a
+ * Three ways in, because one alone is not usable: paste a link (a playlist, a channel or a video, which offers the
+ * video's channel) or a bare id, type an `@handle`, or search by name. The first two cost one to three quota units; a
  * name search is the scarce call, which is why they are tried in that order:
  * Google's current quota page gives `search.list` a bucket of its own, 100 calls
  * a day at 1 unit each (older documentation said 100 units of the 10,000, the
@@ -88,10 +88,20 @@ export function parseIsoDuration(value: string | undefined): number | undefined 
   return total > 0 ? Math.max(1, Math.round(total)) : undefined
 }
 
-/** Pulls a playlist id, channel id or handle out of whatever was typed. */
-export function parseYouTubeInput(
-  raw: string,
-): { kind: 'playlist' | 'channel' | 'handle' | 'query'; value: string } {
+export type YouTubeInput = {
+  kind: 'playlist' | 'channel' | 'handle' | 'video' | 'query' | 'unusable'
+  value: string
+}
+
+/** A video's id: eleven characters of letters, digits, `-` and `_`. */
+const VIDEO_ID = /^[\w-]{11}$/
+
+/**
+ * Pulls a playlist, channel, handle or video out of whatever was typed. `query` is a name worth one of the day's
+ * hundred searches; `unusable` is input that is not a name and that nothing here can look up (a mix id, a link to
+ * some other page), which is answered with nothing rather than a search that finds nothing (BL-059).
+ */
+export function parseYouTubeInput(raw: string): YouTubeInput {
   const input = raw.trim()
 
   if (/^https?:\/\//i.test(input)) {
@@ -111,6 +121,16 @@ export function parseYouTubeInput(
       // name is still the best search term available.
       const legacy = /^\/(?:c|user)\/([\w.-]+)/.exec(path)
       if (legacy) return { kind: 'query', value: legacy[1]! }
+
+      const video =
+        url.hostname === 'youtu.be' || url.hostname.endsWith('.youtu.be')
+          ? path.slice(1)
+          : path === '/watch'
+            ? (url.searchParams.get('v') ?? '')
+            : (/^\/(?:shorts|live|embed)\/([^/]+)/.exec(path)?.[1] ?? '')
+      if (VIDEO_ID.test(video)) return { kind: 'video', value: video }
+
+      return { kind: 'unusable', value: input }
     } catch {
       // Not a usable URL; fall through and treat it as a search.
     }
@@ -119,6 +139,13 @@ export function parseYouTubeInput(
   if (input.startsWith('@')) return { kind: 'handle', value: input }
   if (/^PL[\w-]{10,}$/.test(input)) return { kind: 'playlist', value: input }
   if (/^UC[\w-]{20,}$/.test(input)) return { kind: 'channel', value: input }
+  // A channel's uploads playlist is its channel id with UC swapped for UU (checked live on one channel); read as the
+  // channel, so the uploads come oldest first as a channel's always do.
+  if (/^UU[\w-]{22}$/.test(input)) return { kind: 'channel', value: `UC${input.slice(2)}` }
+  // An album (YouTube Music) or a favourites list: ordinary playlists to the API (the favourites one checked live).
+  if (/^(?:OLAK5uy_[\w-]{10,}|FL[\w-]{20,})$/.test(input)) return { kind: 'playlist', value: input }
+  // A mix is made for whoever asked, and is a different list tomorrow: no list to keep.
+  if (/^RD[\w-]{9,}$/.test(input)) return { kind: 'unusable', value: input }
 
   return { kind: 'query', value: input }
 }
@@ -161,7 +188,7 @@ export function createYouTubeAdapter(
   }
 
   /** A channel, offered as its uploads plus whatever playlists it keeps. */
-  async function sourcesForChannel(channel: ChannelResource): Promise<ListSource[]> {
+  async function sourcesForChannel(channel: ChannelResource, note?: string): Promise<ListSource[]> {
     if (!channel.id) return []
 
     const name = channel.snippet?.title ?? channel.id
@@ -169,7 +196,7 @@ export function createYouTubeAdapter(
       {
         externalRef: `channel:${channel.id}`,
         title: `${name} — every upload`,
-        detail: ['Channel', channel.snippet?.customUrl].filter(Boolean).join(' · '),
+        detail: ['Channel', channel.snippet?.customUrl, note].filter(Boolean).join(' · '),
       },
     ]
 
@@ -231,6 +258,25 @@ export function createYouTubeAdapter(
 
     async search(query) {
       const input = parseYouTubeInput(query)
+
+      if (input.kind === 'unusable') return []
+
+      // A video says its channel and no more (the API does not say which playlists hold it), so the channel is
+      // offered, with its playlists, and the row says where it came from.
+      if (input.kind === 'video') {
+        const response = await request<{ items?: { snippet?: { channelId?: string; channelTitle?: string } }[] }>(
+          'videos',
+          { part: 'snippet', id: input.value },
+        )
+
+        const snippet = response.items?.[0]?.snippet
+        if (!snippet?.channelId) return []
+
+        return sourcesForChannel(
+          { id: snippet.channelId, snippet: { title: snippet.channelTitle ?? snippet.channelId } },
+          'the channel of the video you pasted',
+        )
+      }
 
       if (input.kind === 'playlist') {
         const response = await request<{ items?: PlaylistResource[] }>('playlists', {

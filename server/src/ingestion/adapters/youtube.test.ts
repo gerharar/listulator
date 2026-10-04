@@ -59,6 +59,60 @@ describe('parseYouTubeInput', () => {
     })
   })
 
+  it('takes a video out of a link, in every form YouTube hands out', () => {
+    const video = { kind: 'video', value: 'dQw4w9WgXcQ' }
+
+    for (const link of [
+      'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+      'https://www.youtube.com/watch?v=dQw4w9WgXcQ&t=42s',
+      'https://m.youtube.com/watch?v=dQw4w9WgXcQ',
+      'https://music.youtube.com/watch?v=dQw4w9WgXcQ',
+      'https://youtu.be/dQw4w9WgXcQ',
+      'https://youtu.be/dQw4w9WgXcQ?si=abc',
+      'https://www.youtube.com/shorts/dQw4w9WgXcQ',
+      'https://www.youtube.com/live/dQw4w9WgXcQ?feature=share',
+      'https://www.youtube.com/embed/dQw4w9WgXcQ',
+    ]) {
+      expect(parseYouTubeInput(link)).toEqual(video)
+    }
+  })
+
+  it('still reads a playlist out of a video link that names one', () => {
+    expect(parseYouTubeInput('https://youtu.be/dQw4w9WgXcQ?list=PLZHQObOWTQDP')).toEqual({
+      kind: 'playlist',
+      value: 'PLZHQObOWTQDP',
+    })
+  })
+
+  it('reads a bare uploads id (UU…) as the channel it belongs to', () => {
+    expect(parseYouTubeInput('UUHnyfMqiRRG1u-2MsSQLbXA')).toEqual({
+      kind: 'channel',
+      value: 'UCHnyfMqiRRG1u-2MsSQLbXA',
+    })
+  })
+
+  it('reads a bare album (OLAK5uy_…) or favourites (FL…) id as a playlist', () => {
+    expect(parseYouTubeInput('OLAK5uy_kiwRYvPdVYD5m1G6RgfbGUUYsP2XqPxX0')).toEqual({
+      kind: 'playlist',
+      value: 'OLAK5uy_kiwRYvPdVYD5m1G6RgfbGUUYsP2XqPxX0',
+    })
+    expect(parseYouTubeInput('FLHnyfMqiRRG1u-2MsSQLbXA')).toEqual({
+      kind: 'playlist',
+      value: 'FLHnyfMqiRRG1u-2MsSQLbXA',
+    })
+  })
+
+  it('has nothing to search for in a bare mix id (RD…) or a link it cannot read', () => {
+    for (const input of [
+      'RDdQw4w9WgXcQ',
+      'https://example.com/some/page',
+      'https://www.youtube.com/feed/subscriptions',
+      'https://www.youtube.com/watch?v=tooshort',
+    ]) {
+      expect(parseYouTubeInput(input)).toEqual({ kind: 'unusable', value: input })
+    }
+  })
+
   it('treats anything else as a name to search for', () => {
     expect(parseYouTubeInput('3blue1brown')).toEqual({ kind: 'query', value: '3blue1brown' })
     expect(parseYouTubeInput('https://not a url')).toEqual({
@@ -165,6 +219,107 @@ describe('YouTube adapter', () => {
     expect(sources.map((source) => source.externalRef)).toEqual(['channel:UC9', 'playlist:PL9'])
     // One call rather than two, since each spends one of the day's hundred searches.
     expect(vi.mocked(fetchImpl).mock.calls.filter(([url]) => url.includes('/search'))).toHaveLength(1)
+  })
+
+  describe('input that is not a name', () => {
+    const paths = (fetchImpl: FetchLike) =>
+      vi.mocked(fetchImpl).mock.calls.map(([url]) => new URL(url).pathname.split('/').pop())
+
+    it('offers the channel of a pasted video, and its playlists, for a few units and no search', async () => {
+      const fetchImpl = router({
+        videos: { items: [{ id: 'dQw4w9WgXcQ', snippet: { channelId: 'UC1', channelTitle: 'Rick Astley' } }] },
+        playlists: { items: [{ id: 'PLa', snippet: { title: 'Hits' }, contentDetails: { itemCount: 7 } }] },
+      })
+
+      const sources = await createYouTubeAdapter(credentials, fetchImpl).search('https://youtu.be/dQw4w9WgXcQ')
+
+      expect(sources).toEqual([
+        {
+          externalRef: 'channel:UC1',
+          title: 'Rick Astley — every upload',
+          detail: 'Channel · the channel of the video you pasted',
+        },
+        { externalRef: 'playlist:PLa', title: 'Hits', detail: 'Playlist · Rick Astley · 7 videos' },
+      ])
+      expect(paths(fetchImpl)).toEqual(['videos', 'playlists'])
+      const [videoCall, playlistCall] = vi.mocked(fetchImpl).mock.calls.map(([url]) => new URL(url))
+      expect(videoCall!.searchParams.get('id')).toBe('dQw4w9WgXcQ')
+      expect(playlistCall!.searchParams.get('channelId')).toBe('UC1')
+    })
+
+    it('offers nothing for a video that is gone, or that names no channel, and asks no more', async () => {
+      const gone = router({ videos: { items: [] } })
+      expect(await createYouTubeAdapter(credentials, gone).search('https://youtu.be/dQw4w9WgXcQ')).toEqual([])
+      expect(paths(gone)).toEqual(['videos'])
+
+      const orphan = router({ videos: { items: [{ id: 'dQw4w9WgXcQ', snippet: {} }] } })
+      expect(await createYouTubeAdapter(credentials, orphan).search('https://youtu.be/dQw4w9WgXcQ')).toEqual([])
+      expect(paths(orphan)).toEqual(['videos'])
+    })
+
+    it('names the channel by its id when the video does not give a title', async () => {
+      const fetchImpl = router({
+        videos: { items: [{ id: 'dQw4w9WgXcQ', snippet: { channelId: 'UC1' } }] },
+        playlists: { items: [] },
+      })
+
+      const sources = await createYouTubeAdapter(credentials, fetchImpl).search('https://youtu.be/dQw4w9WgXcQ')
+
+      expect(sources[0]?.title).toBe('UC1 — every upload')
+    })
+
+    it('fails a video link when the lookup fails, rather than saying nothing was found', async () => {
+      const fetchImpl: FetchLike = vi.fn(async () => new Response('{}', { status: 400 }))
+
+      await expect(
+        createYouTubeAdapter(credentials, fetchImpl).search('https://youtu.be/dQw4w9WgXcQ'),
+      ).rejects.toBeInstanceOf(IngestionError)
+    })
+
+    it('treats a bare uploads id as its channel, looked up by the channel id', async () => {
+      const fetchImpl = router({
+        channels: { items: [{ id: 'UC1', snippet: { title: 'Veritasium' } }] },
+        playlists: { items: [] },
+      })
+
+      const sources = await createYouTubeAdapter(credentials, fetchImpl).search('UUHnyfMqiRRG1u-2MsSQLbXA')
+
+      expect(sources.map((source) => source.externalRef)).toEqual(['channel:UC1'])
+      expect(paths(fetchImpl)).toEqual(['channels', 'playlists'])
+      expect(new URL(vi.mocked(fetchImpl).mock.calls[0]![0]).searchParams.get('id')).toBe('UCHnyfMqiRRG1u-2MsSQLbXA')
+    })
+
+    it('looks up a bare album or favourites id as a playlist, one call', async () => {
+      for (const id of ['OLAK5uy_kiwRYvPdVYD5m1G6RgfbGUUYsP2XqPxX0', 'FLHnyfMqiRRG1u-2MsSQLbXA']) {
+        const fetchImpl = router({
+          playlists: { items: [{ id, snippet: { title: 'Album', channelTitle: 'Band' }, contentDetails: { itemCount: 9 } }] },
+        })
+
+        const sources = await createYouTubeAdapter(credentials, fetchImpl).search(id)
+
+        expect(sources).toEqual([{ externalRef: `playlist:${id}`, title: 'Album', detail: 'Playlist · Band · 9 videos' }])
+        expect(paths(fetchImpl)).toEqual(['playlists'])
+        expect(new URL(vi.mocked(fetchImpl).mock.calls[0]![0]).searchParams.get('id')).toBe(id)
+      }
+    })
+
+    it('offers nothing, and asks nothing, for a mix id or a link it cannot read', async () => {
+      for (const input of ['RDdQw4w9WgXcQ', 'https://example.com/some/page', 'https://www.youtube.com/feed/subscriptions']) {
+        const fetchImpl = router({})
+
+        expect(await createYouTubeAdapter(credentials, fetchImpl).search(input)).toEqual([])
+        expect(fetchImpl).not.toHaveBeenCalled()
+      }
+    })
+
+    it('still searches by name for a legacy /c/ link, the one link whose name is worth a search', async () => {
+      const fetchImpl = router({ search: { items: [] } })
+
+      await createYouTubeAdapter(credentials, fetchImpl).search('https://www.youtube.com/c/veritasium')
+
+      expect(paths(fetchImpl)).toEqual(['search'])
+      expect(new URL(vi.mocked(fetchImpl).mock.calls[0]![0]).searchParams.get('q')).toBe('veritasium')
+    })
   })
 
   it('asks for fifty results in the one name search, which costs the same as ten', async () => {
