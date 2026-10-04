@@ -226,9 +226,8 @@ export function SearchTab({ mediaType, onBuilt, libraryCategory, initialQuery, i
     const hintLookup = libraryCategory ? lookupCrossHint(libraryCategory, trimmed) : Promise.resolve(null)
 
     try {
-      // Book-only options — searchSources ignores the third argument for every
-      // other category. The server computes each result's language-filtered
-      // work count itself, so the detail line already matches what Add list makes.
+      // Book-only options — searchSources ignores the third argument for every other category. An author search
+      // does not use them (a row names no count of works); the per-row count below does, and is the number Add list makes.
       const searchOptions = isBook ? { language, includeUnknown } : undefined
       const { sources, libraryUnreachable, hasMore, total, totalIsLowerBound } = await api.searchSources(
         mediaType.key,

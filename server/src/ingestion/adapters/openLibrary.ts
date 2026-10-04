@@ -15,6 +15,8 @@ import { itemsOnly } from '../expansion.js'
  */
 
 const BASE = 'https://openlibrary.org'
+/** Authors a search offers. One request holds up to a hundred; each row costs a count request, so not all. */
+const MAX_AUTHORS = 15
 /**
  * Works asked for in one request. Open Library takes far more (a `limit` of 5,000 answered, live) but a page costs
  * its size: 1,000 works took 1.6 s and 10,000 took 16.7 s, so a thousand keeps each request short and a prolific
@@ -181,85 +183,32 @@ export function createOpenLibraryAdapter(
     return withRetries(() => (limiter ? limiter.run(() => getJson<T>(url, options)) : getJson<T>(url, options)), sleep)
   }
 
-  /** One `limit=0` request — Open Library's own `numFound`, no document bodies fetched. */
-  async function countWorks(authorKey: string, query: string): Promise<number> {
-    const response = await request<WorkSearchResponse>(
-      `${BASE}/search.json?author_key=${encodeURIComponent(authorKey)}` +
-        `&q=${encodeURIComponent(query)}&limit=0`,
-    )
-
-    return response.numFound ?? 0
-  }
-
-  /** The exact count of an author's works tagged with `language` — mirrors `classifyLanguage`'s strict branch. */
-  function countWorksInLanguage(authorKey: string, language: string): Promise<number> {
-    return countWorks(authorKey, `language:${language}`)
-  }
-
-  /**
-   * The exact count of an author's works carrying no language tag at all —
-   * confirmed live that Open Library's query syntax supports this directly
-   * (`-language:*`, a real Solr existence-negation, not a guess), so
-   * `classifyLanguage`'s "include unknown" widening gets a real number too,
-   * not just the strict language count.
-   */
-  function countUntaggedWorks(authorKey: string): Promise<number> {
-    return countWorks(authorKey, '-language:*')
-  }
-
   return {
     // Needs no credentials.
     isAvailable: () => true,
 
     /**
-     * The "N works" detail is an author's total across every language by
-     * default. Once the GUI's language picker chooses a specific one, that
-     * total stops being the number this search will actually build — real,
-     * verified-live case: Lucinda Riley shows "133 works" but a strict
-     * Russian filter builds a 1-item list. Rather than show a number known
-     * to be wrong, this fetches the real filtered count instead — one cheap
-     * request per candidate author (two with "include unknown" also
-     * checked, added together), run in parallel.
+     * Up to fifteen authors, each told apart by its most-edited work (BL-064). Open Library's own `top_work` is the
+     * author's work with the most editions (its Solr updater sorts `edition_count desc`), which the row calls the
+     * popular work. Nothing else is asked for: the row shows no count of works. Open Library's `work_count` is
+     * raw (Asimov: 1,456 for a list of 1,332 after duplicate titles collapse), and with a language filter a
+     * count per author cost one or two requests each in a line of one a second, 9 to 18 s before any row showed.
+     * The Search tab's own per-row count is the exact number, filter included, and arrives after the row.
      */
-    async search(query, searchOptions) {
+    async search(query) {
       const response = await request<AuthorSearchResponse>(
         `${BASE}/search/authors.json?q=${encodeURIComponent(query)}`,
       )
 
-      // Collapsed before the top-8 cut, not after — otherwise a duplicate
-      // record could push a genuinely different author out of the results.
-      const authors = collapseAuthorDuplicates(response.docs ?? []).slice(0, 8)
-
-      const language = searchOptions?.language
-      const isFiltering = Boolean(language && language !== 'all')
-      const includeUnknown = Boolean(searchOptions?.includeUnknown)
-
-      const counts = isFiltering
-        ? await Promise.all(
-            authors.map(async (author) => {
-              const tagged = await countWorksInLanguage(author.key, language!)
-              const untagged = includeUnknown ? await countUntaggedWorks(author.key) : 0
-              return tagged + untagged
-            }),
-          )
-        : undefined
-
-      return authors.map((author, index): ListSource => {
-        // No filter: the original unfiltered total. Otherwise: this
-        // author's own accurate, filter-matching count, including a real
-        // zero, which is still meaningful signal.
-        const workCount = !isFiltering ? author.work_count : counts?.[index]
-
-        const detail = [workCount !== undefined ? `${workCount} works` : undefined, author.top_work]
-          .filter(Boolean)
-          .join(' · ')
-
-        return {
+      // Collapsed before the cut, not after — otherwise a duplicate record could push a genuinely different
+      // author out of the results.
+      return collapseAuthorDuplicates(response.docs ?? [])
+        .slice(0, MAX_AUTHORS)
+        .map((author): ListSource => ({
           externalRef: `author:${author.key}`,
           title: `${author.name} — bibliography`,
-          ...(detail ? { detail } : {}),
-        }
-      })
+          ...(author.top_work ? { detail: `Popular work: ${author.top_work}` } : {}),
+        }))
     },
 
     // No upstream signal for whether this is finished, so no `status` (BL-013).

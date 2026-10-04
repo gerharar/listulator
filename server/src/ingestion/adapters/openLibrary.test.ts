@@ -48,14 +48,14 @@ describe('Open Library adapter', () => {
     expect(createOpenLibraryAdapter().isAvailable()).toBe(true)
   })
 
-  it('finds authors, with their size and best-known work to tell them apart', async () => {
+  it('finds authors, each told apart by its popular work and showing no count of works', async () => {
     const adapter = createOpenLibraryAdapter(respondWith(AUTHORS))
 
     expect(await adapter.search('terry pratchett')).toEqual([
       {
         externalRef: 'author:OL25712A',
         title: 'Terry Pratchett — bibliography',
-        detail: '236 works · The Colour of Magic',
+        detail: 'Popular work: The Colour of Magic',
       },
       { externalRef: 'author:OL9999A', title: 'Terry Pratchett Jr — bibliography' },
     ])
@@ -79,21 +79,21 @@ describe('Open Library adapter', () => {
     const results = await adapter.search('stephen king')
 
     expect(results).toEqual([
-      { externalRef: 'author:OL2A', title: 'Stephen King — bibliography', detail: '611 works' },
-      { externalRef: 'author:OL4A', title: 'Neil Gaiman — bibliography', detail: '90 works' },
+      { externalRef: 'author:OL2A', title: 'Stephen King — bibliography' },
+      { externalRef: 'author:OL4A', title: 'Neil Gaiman — bibliography' },
     ])
   })
 
-  it('collapses duplicates before the top-8 cut, not after', async () => {
-    // Six duplicate records for one name plus five genuinely distinct
-    // authors is 11 raw docs — collapsing first must not let the
-    // duplicates crowd out real authors from the top 8.
+  it('collapses duplicates before the cut, not after', async () => {
+    // Six duplicate records for one name plus fifteen genuinely distinct
+    // authors is 21 raw docs — collapsing first must not let the
+    // duplicates crowd out real authors from the fifteen.
     const duplicates = Array.from({ length: 6 }, (_, i) => ({
       key: `OL-dup-${i}`,
       name: 'Stephen King',
       work_count: i,
     }))
-    const distinct = Array.from({ length: 5 }, (_, i) => ({
+    const distinct = Array.from({ length: 14 }, (_, i) => ({
       key: `OL-real-${i}`,
       name: `Author ${i}`,
       work_count: 10,
@@ -102,8 +102,45 @@ describe('Open Library adapter', () => {
     const adapter = createOpenLibraryAdapter(respondWith({ docs: [...duplicates, ...distinct] }))
     const results = await adapter.search('king')
 
-    expect(results).toHaveLength(6)
-    expect(results.map((entry) => entry.title)).toContain('Author 4 — bibliography')
+    expect(results).toHaveLength(15)
+    expect(results.map((entry) => entry.title)).toContain('Author 13 — bibliography')
+  })
+
+  it('offers fifteen authors and no more, from one request', async () => {
+    const docs = Array.from({ length: 40 }, (_, i) => ({ key: `OL${i}A`, name: `Author ${i}`, work_count: 40 - i }))
+    const fetchImpl = respondWith({ docs })
+
+    const results = await createOpenLibraryAdapter(fetchImpl).search('author')
+
+    expect(results.map((entry) => entry.externalRef)).toEqual(Array.from({ length: 15 }, (_, i) => `author:OL${i}A`))
+    expect(fetchImpl).toHaveBeenCalledTimes(1)
+  })
+
+  it('names no count of works, and nothing at all for an author with no popular work', async () => {
+    const results = await createOpenLibraryAdapter(
+      respondWith({
+        docs: [
+          { key: 'OL1A', name: 'Usmon Azimov', work_count: 0, top_work: 'Zhodu' },
+          { key: 'OL2A', name: 'Nobody', work_count: 3 },
+        ],
+      }),
+    ).search('azimov')
+
+    expect(results).toEqual([
+      { externalRef: 'author:OL1A', title: 'Usmon Azimov — bibliography', detail: 'Popular work: Zhodu' },
+      { externalRef: 'author:OL2A', title: 'Nobody — bibliography' },
+    ])
+  })
+
+  it('asks for the authors alone, whatever language filter is on: the Search tab counts the list itself', async () => {
+    const fetchImpl = respondWith({ docs: [{ key: 'OL1A', name: 'Lucinda Riley', work_count: 133, top_work: 'The Seven Sisters' }] })
+
+    const results = await createOpenLibraryAdapter(fetchImpl).search('riley', { language: 'rus', includeUnknown: true })
+
+    expect(results).toEqual([
+      { externalRef: 'author:OL1A', title: 'Lucinda Riley — bibliography', detail: 'Popular work: The Seven Sisters' },
+    ])
+    expect(fetchImpl).toHaveBeenCalledTimes(1)
   })
 
   it('collapses case-different or padded duplicate names too', async () => {
@@ -117,100 +154,8 @@ describe('Open Library adapter', () => {
     )
 
     expect(await adapter.search('king')).toEqual([
-      { externalRef: 'author:OL2A', title: 'Stephen King — bibliography', detail: '611 works' },
+      { externalRef: 'author:OL2A', title: 'Stephen King — bibliography' },
     ])
-  })
-
-  it("shows an author's real, language-filtered count instead of the misleading unfiltered total", async () => {
-    // Real, verified-live case: Lucinda Riley's search result says "133
-    // works" (every language combined), but a strict Russian filter builds
-    // a 1-item list — showing "133" here would be actively wrong.
-    const fetchImpl = routedFetch({
-      'search/authors.json': {
-        docs: [{ key: 'OL1A', name: 'Lucinda Riley', work_count: 133 }],
-      },
-      'author_key=OL1A&q=language%3Arus&limit=0': { numFound: 1, docs: [] },
-    })
-
-    const results = await createOpenLibraryAdapter(fetchImpl).search('riley', { language: 'rus' })
-
-    expect(results).toEqual([
-      { externalRef: 'author:OL1A', title: 'Lucinda Riley — bibliography', detail: '1 works' },
-    ])
-  })
-
-  it('shows a real zero rather than falling back to the unfiltered total', async () => {
-    const fetchImpl = routedFetch({
-      'search/authors.json': { docs: [{ key: 'OL1A', name: 'Some Author', work_count: 40 }] },
-      'author_key=OL1A&q=language%3Akor&limit=0': { numFound: 0, docs: [] },
-    })
-
-    const results = await createOpenLibraryAdapter(fetchImpl).search('some', { language: 'kor' })
-
-    expect(results).toEqual([
-      { externalRef: 'author:OL1A', title: 'Some Author — bibliography', detail: '0 works' },
-    ])
-  })
-
-  it('counts each candidate author independently, in parallel', async () => {
-    const fetchImpl = routedFetch({
-      'search/authors.json': {
-        docs: [
-          { key: 'OL1A', name: 'Author One', work_count: 10 },
-          { key: 'OL2A', name: 'Author Two', work_count: 20 },
-        ],
-      },
-      'author_key=OL1A&q=language%3Afre&limit=0': { numFound: 3, docs: [] },
-      'author_key=OL2A&q=language%3Afre&limit=0': { numFound: 7, docs: [] },
-    })
-
-    const results = await createOpenLibraryAdapter(fetchImpl).search('author', { language: 'fre' })
-
-    expect(results.map((r) => r.detail)).toEqual(['3 works', '7 works'])
-  })
-
-  it('keeps the unfiltered total when the language is "all"', async () => {
-    const fetchImpl = respondWith({
-      docs: [{ key: 'OL1A', name: 'Lucinda Riley', work_count: 133 }],
-    })
-
-    const results = await createOpenLibraryAdapter(fetchImpl).search('riley', { language: 'all' })
-
-    expect(results).toEqual([
-      { externalRef: 'author:OL1A', title: 'Lucinda Riley — bibliography', detail: '133 works' },
-    ])
-  })
-
-  it('adds the untagged count to the language count for "include unknown", confirmed against Open Library\'s own negation query', async () => {
-    // Confirmed live: Open Library's search syntax supports `-language:*`
-    // as a real existence-negation query, not a guess — Lucinda Riley
-    // returns exactly 76 this way, matching the real 76 untagged works
-    // found by inspecting her full bibliography by hand.
-    const fetchImpl = routedFetch({
-      'search/authors.json': {
-        docs: [
-          { key: 'OL1A', name: 'Lucinda Riley', work_count: 133, top_work: 'The Seven Sisters' },
-        ],
-      },
-      'author_key=OL1A&q=language%3Arus&limit=0': { numFound: 1, docs: [] },
-      'author_key=OL1A&q=-language%3A*&limit=0': { numFound: 76, docs: [] },
-    })
-
-    const results = await createOpenLibraryAdapter(fetchImpl).search('riley', {
-      language: 'rus',
-      includeUnknown: true,
-    })
-
-    expect(results).toEqual([
-      {
-        externalRef: 'author:OL1A',
-        title: 'Lucinda Riley — bibliography',
-        detail: '77 works · The Seven Sisters',
-      },
-    ])
-    // Author search, plus one count request per query — still cheap
-    // (`limit=0`, no document bodies), never the full paginated fetch.
-    expect(vi.mocked(fetchImpl).mock.calls).toHaveLength(3)
   })
 
   it('turns page counts into reading time', async () => {
@@ -586,20 +531,19 @@ describe('Open Library adapter', () => {
       return { state, limiter }
     }
 
-    it('takes every request through one line: a search, each count a language filter asks for, each page of a listing', async () => {
+    it('takes every request through one line: a search and each page of a listing', async () => {
       const { state, limiter } = countingLimiter()
       const fetchImpl = routedFetch({
-        'search/authors.json': { docs: [{ key: 'OL1A', name: 'Author One', work_count: 5 }, { key: 'OL2A', name: 'Author Two' }] },
-        'limit=0': { numFound: 3, docs: [] },
+        'search/authors.json': { docs: [{ key: 'OL1A', name: 'Author One' }] },
         'fields=': { numFound: 1, docs: [{ title: 'Book' }] },
       })
       const adapter = createOpenLibraryAdapter(fetchImpl, limiter)
 
-      await adapter.search('author', { language: 'fre', includeUnknown: true })
-      expect(state.calls).toBe(1 + 2 * 2)
+      await adapter.search('author')
+      expect(state.calls).toBe(1)
 
       await adapter.expand('author:OL1A')
-      expect(state.calls).toBe(1 + 2 * 2 + 1)
+      expect(state.calls).toBe(2)
     })
 
     it('makes a retry take its turn behind the rest', async () => {
