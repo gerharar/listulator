@@ -397,6 +397,36 @@ describe('rows that miss a cell', () => {
     expect(items.map((item) => item.title)).toEqual(['Clash in Italy'])
   })
 
+  it('skips a short row whose missing cell came before the event column, so the next cell slid into it', async () => {
+    // Review 2026-10-04: the "one cell short" rule took the gap to be after the name. A row that leaves out its
+    // number puts the date in the event column; one that leaves out its date in a numberless table puts the number there.
+    const wikitext = table(
+      '! # !! Event !! Date !! Attendance',
+      '|1\n|[[UFC 1]]\n|November 12, 1993\n|15,000',
+      '|[[UFC 2]]\n|March 11, 1994\n|2,000',
+      '|3\n|[[UFC 3]]\n|September 9, 1994\n|2,000',
+      '|[[UFC 4]]\n|16 December 1994\n|2,000',
+      '|5\n|[[UFC 5]]\n|1995-04-07',
+      '|6\n|2,000\n|1995-07-14',
+    )
+
+    const items = (await createWikipediaEventsAdapter([UFC], respondWith(wikitext)).expand('promotion:ufc')).items
+
+    expect(items.map((item) => item.title)).toEqual(['UFC 1', 'UFC 3', 'UFC 5'])
+  })
+
+  it('still keeps a short row whose name only starts like a date or holds a number', async () => {
+    const wikitext = table(
+      '! Date !! Event !! Venue !! Attendance',
+      '|May 1\n|[[May Day Mayhem]]\n|[[Arena]]',
+      '|June 2\n|[[WrestleMania 2000]]\n|[[Arena]]',
+    )
+
+    const items = (await createWikipediaEventsAdapter([WWE], respondWith(wikitext)).expand('promotion:wwe')).items
+
+    expect(items.map((item) => item.title)).toEqual(['May Day Mayhem', 'WrestleMania 2000'])
+  })
+
   it('skips a short row that never reached the event column', async () => {
     const wikitext = table(
       '! Date !! Venue !! Location !! Event',

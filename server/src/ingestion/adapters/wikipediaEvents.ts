@@ -38,6 +38,15 @@ const NON_EVENT_SECTIONS =
 const CALLED_OFF_CELL = /^(?:cancell?ed|postponed)\b/i
 const CALLED_OFF_NAME = /\((?:cancell?ed|postponed)\)\s*$/i
 
+/**
+ * What a row one cell short holds in its event column when the missing cell came before it: the next column slid
+ * left, so a date ("March 11, 1994", "16 December 1994", "1995-04-07") or a bare number (an attendance, a "#") sits
+ * where the name should be. Only the start of a date counts, a month followed by a day, so "May Day Mayhem" is a name.
+ * A venue that slid in reads like a name and is not caught (not seen on the eight pages).
+ */
+const MONTH = '(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\\.?'
+const SLID_INTO_NAME = new RegExp(`^(?:${MONTH}\\s+\\d{1,2}\\b|\\d{1,2}\\s+${MONTH}(?:\\s|,|$)|\\d{4}-\\d{2}-\\d{2}|[\\d,.]+$)`, 'i')
+
 function calledOff(cells: string[], nameColumn: number): boolean {
   // The name column is read for its suffix only: a show called "Cancelled Dreams" is held.
   return cells.some((cell, column) =>
@@ -616,8 +625,9 @@ async function fetchPromotionEvents(
       // losing a row being better than inventing a wrong one — with one exception. A row one cell short is an
       // event with a cell left out, and it is real: a card just held with no attendance written yet (checked live:
       // 38 UFC events, among them UFC Freedom 250 at the White House, two WWE 2026 shows and a TNA one were
-      // dropped). Only the name and the year are read from it, and both sit before the gap. A row with no name
-      // (the event column is the one missing) is skipped below.
+      // dropped). Only the name and the year are read from it. A row with no name (the event column is the one
+      // missing) is skipped below, and so is one whose gap came before the name, a date or a number having slid
+      // into the event column (`SLID_INTO_NAME`).
       const aligned = rows.filter(
         (row) => row.cells.length === headers.length || row.cells.length === headers.length - 1,
       )
@@ -632,6 +642,7 @@ async function fetchPromotionEvents(
       for (const row of ordered) {
         const name = row.cells[nameColumn]
         if (!name) continue
+        if (row.cells.length < headers.length && SLID_INTO_NAME.test(name)) continue
 
         // Before the duplicate check below: a cancelled show must not stand in the way of the same show held later.
         if (calledOff(row.cells, nameColumn)) continue
