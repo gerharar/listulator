@@ -12,6 +12,12 @@ export interface SearchResult {
   sources: ListSource[]
   /** Only when true: curated lists may be missing from these results. */
   libraryUnreachable?: true
+  /** Only when true: the source has more matches than these rows (the Search tab offers "Show more"). */
+  hasMore?: true
+  /** How many matches there are, curated lists included, when the source says. */
+  total?: number
+  /** Only when true: `total` is what has been found so far, so there may be more. */
+  totalIsLowerBound?: true
 }
 
 /**
@@ -27,6 +33,16 @@ export async function searchSources(
   options: SearchOptions,
   library: typeof searchLibrary = searchLibrary,
 ): Promise<SearchResult> {
+  // A later page is the adapter's rows alone: the curated lists and their hint belong to the first page, and an
+  // adapter that does not page has nothing more to give.
+  const page = options.page ?? 1
+  if (page > 1) {
+    const adapter = mediaType.searchScope === 'library' ? undefined : mediaType.adapter
+    if (!adapter?.isAvailable() || !adapter.searchPage) return { sources: [] }
+
+    return adapter.searchPage(query, options)
+  }
+
   const { matches, reachable } = await library(mediaType.key, query)
 
   if (mediaType.searchScope === 'library') {
@@ -44,8 +60,19 @@ export async function searchSources(
     return { sources: matches }
   }
 
-  return {
-    sources: [...matches, ...(await mediaType.adapter.search(query, options))],
-    ...(reachable ? {} : { libraryUnreachable: true as const }),
+  const unreachable = reachable ? {} : { libraryUnreachable: true as const }
+
+  if (mediaType.adapter.searchPage) {
+    const found = await mediaType.adapter.searchPage(query, options)
+
+    return {
+      sources: [...matches, ...found.sources],
+      ...unreachable,
+      ...(found.hasMore ? { hasMore: true as const } : {}),
+      ...(found.total === undefined ? {} : { total: matches.length + found.total }),
+      ...(found.totalIsLowerBound ? { totalIsLowerBound: true as const } : {}),
+    }
   }
+
+  return { sources: [...matches, ...(await mediaType.adapter.search(query, options))], ...unreachable }
 }

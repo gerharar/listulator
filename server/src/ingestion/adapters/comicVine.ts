@@ -1,7 +1,7 @@
 import { MAX_LIST_ITEMS } from '../../catalog/limits.js'
 import { delay, getJson, IngestionError, UnauthorizedError, withRetries, type FetchLike } from '../http.js'
 import { createRateLimiter, type RateLimiter } from '../rateLimiter.js'
-import type { ListSource, MediaTypeCandidate, SearchAdapter } from '../mediaTypes.js'
+import type { ListSource, MediaTypeCandidate, SearchAdapter, SearchOptions, SearchPage } from '../mediaTypes.js'
 import { itemsOnly } from '../expansion.js'
 
 /**
@@ -30,12 +30,48 @@ const PAGE_SIZE = 100
  */
 export const comicVineRequestLimiter: RateLimiter = createRateLimiter(REQUEST_INTERVAL_MS)
 
+/** Rows the Search tab shows at a time, and so per "Show more". */
+const SEARCH_PAGE_SIZE = 20
+/**
+ * How many of Comic Vine's own pages of a hundred matches one call looks at, at most. A query with thousands of
+ * matches ("action comics": 3,452, half of them not named like it) must not chain requests to find twenty rows;
+ * past this the call answers with what it found and no "more" (500 matches by Comic Vine's own relevance).
+ */
+const MAX_SEARCH_BATCHES = 5
+
 interface VolumeResult {
   id: number
   name?: string
-  start_year?: string
-  count_of_issues?: number
+  start_year?: string | null
+  count_of_issues?: number | null
   publisher?: { name?: string }
+}
+
+/**
+ * Text as plain lowercase letters and digits: accents off, punctuation and spacing dropped, as IGDB's search folds
+ * (BL-055), so "pacman" is in "Pac-Man (1980)" and "x men" in "X-Men". Third use of it: lift it into one place then.
+ */
+const fold = (text: string): string =>
+  text
+    .normalize('NFD')
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}]+/gu, '')
+
+/** The title a row shows: the name, then the year in brackets. A match is made against what the user reads. */
+const titleOf = (volume: VolumeResult): string =>
+  volume.start_year ? `${volume.name} (${volume.start_year})` : volume.name!
+
+/**
+ * Most issues first; a tie by name, then year (a volume with none last), then id, so the same answer always ranks
+ * the same way and a later page can never reorder what an earlier one showed.
+ */
+function byIssueCount(a: VolumeResult, b: VolumeResult): number {
+  return (
+    (b.count_of_issues ?? 0) - (a.count_of_issues ?? 0) ||
+    a.name!.localeCompare(b.name!) ||
+    (a.start_year ?? '9999').localeCompare(b.start_year ?? '9999') ||
+    a.id - b.id
+  )
 }
 
 interface IssueResult {
@@ -126,36 +162,75 @@ export function createComicVineAdapter(
     return response
   }
 
-  return {
-    isAvailable: () => Boolean(resolve().apiKey),
+  function toSource(volume: VolumeResult): ListSource {
+    // "Fantastic Four" alone matches five different runs; the year, length and publisher are what tell them apart.
+    const detail = [
+      volume.start_year,
+      volume.count_of_issues ? `${volume.count_of_issues} issues` : undefined,
+      volume.publisher?.name,
+    ]
+      .filter(Boolean)
+      .join(' · ')
 
-    async search(query) {
-      const { results: volumes = [] } = await request<VolumeResult>('/search/', {
+    return {
+      externalRef: `volume:${volume.id}`,
+      title: titleOf(volume),
+      ...(detail ? { detail } : {}),
+      // The answer already says how many issues: the Search tab shows it and asks for no count of its own.
+      ...(typeof volume.count_of_issues === 'number' ? { itemCount: volume.count_of_issues } : {}),
+    }
+  }
+
+  /**
+   * The Search tab's rows a page of twenty at a time, ranked by how many issues a run has (owner, 2026-10-04):
+   * Comic Vine's own order puts one-issue oddities and fuzzy matches among the real runs, and a name like "action
+   * comics" matches 3,452 volumes. Each hundred matches Comic Vine returns is filtered to the volumes whose title
+   * contains the query and ranked by itself, and the hundreds are joined in the order they came, so a page
+   * already shown is never reordered by the next. Stateless: a later page asks again from the first hundred
+   * (Comic Vine's order is stable, checked), reading on only until it has one row past the page.
+   */
+  async function searchPage(query: string, options?: SearchOptions): Promise<SearchPage> {
+    const needle = fold(query)
+    if (!needle) return { sources: [] }
+
+    const from = SEARCH_PAGE_SIZE * (Math.max(1, options?.page ?? 1) - 1)
+    const ranked: VolumeResult[] = []
+    let looked = 0
+    let matches = 0
+
+    for (let batch = 1; batch <= MAX_SEARCH_BATCHES; batch += 1) {
+      const response = await request<VolumeResult>('/search/', {
         resources: 'volume',
         query,
         field_list: 'id,name,start_year,count_of_issues,publisher',
-        limit: '8',
+        limit: String(PAGE_SIZE),
+        page: String(batch),
       })
+      const found = response.results ?? []
 
-      return volumes
-        .filter((volume) => volume.name)
-        .map((volume): ListSource => {
-          // "Fantastic Four" alone matches five different runs; the year,
-          // length and publisher are what tell them apart.
-          const detail = [
-            volume.start_year,
-            volume.count_of_issues ? `${volume.count_of_issues} issues` : undefined,
-            volume.publisher?.name,
-          ]
-            .filter(Boolean)
-            .join(' · ')
+      looked += found.length
+      // No total in the answer: nothing is known beyond what came.
+      matches = response.number_of_total_results ?? 0
+      ranked.push(...found.filter((volume) => volume.name && fold(titleOf(volume)).includes(needle)).sort(byIssueCount))
 
-          return {
-            externalRef: `volume:${volume.id}`,
-            title: volume.start_year ? `${volume.name} (${volume.start_year})` : volume.name!,
-            ...(detail ? { detail } : {}),
-          }
-        })
+      if (ranked.length > from + SEARCH_PAGE_SIZE || found.length < PAGE_SIZE || looked >= matches) break
+    }
+
+    return {
+      sources: ranked.slice(from, from + SEARCH_PAGE_SIZE).map(toSource),
+      ...(ranked.length > from + SEARCH_PAGE_SIZE ? { hasMore: true as const } : {}),
+      total: ranked.length,
+      ...(looked < matches ? { totalIsLowerBound: true as const } : {}),
+    }
+  }
+
+  return {
+    isAvailable: () => Boolean(resolve().apiKey),
+
+    searchPage,
+
+    async search(query) {
+      return (await searchPage(query)).sources
     },
 
     // How many issues `expand` would list, from the total the API puts in every answer: one request, where

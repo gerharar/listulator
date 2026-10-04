@@ -166,32 +166,42 @@ export const ingestionRoutes: FastifyPluginAsync<IngestionRoutesOptions> = async
    */
   app.get<{
     Params: { key: string }
-    Querystring: { q?: string; language?: string; includeUnknown?: string }
-  }>('/media-types/:key/search', async (request, reply) => {
-    getCurrentUser(request)
+    Querystring: { q?: string; language?: string; includeUnknown?: string; page?: number }
+  }>(
+    '/media-types/:key/search',
+    {
+      schema: {
+        // The Search tab's "Show more" (a page of twenty, from 1); the bound is far past what any adapter reaches.
+        querystring: { type: 'object', properties: { page: { type: 'integer', minimum: 1, maximum: 100 } } },
+      },
+    },
+    async (request, reply) => {
+      getCurrentUser(request)
 
-    const mediaType = mediaTypes.get(request.params.key)
-    if (!mediaType) return reply.callNotFound()
+      const mediaType = mediaTypes.get(request.params.key)
+      if (!mediaType) return reply.callNotFound()
 
-    const query = request.query.q?.trim()
-    if (!query) return sendApiError(reply, 400, 'search.queryRequired')
+      const query = request.query.q?.trim()
+      if (!query) return sendApiError(reply, 400, 'search.queryRequired')
 
-    // Book-only GUI options (never sent for any other category) — every
-    // other adapter's search() ignores this second argument entirely.
-    const searchOptions = {
-      ...(request.query.language ? { language: request.query.language } : {}),
-      includeUnknown: request.query.includeUnknown === 'true',
-    }
-
-    try {
-      return await searchSources(mediaType, query, searchOptions)
-    } catch (cause) {
-      if (cause instanceof SearchUnavailableError) {
-        return sendApiError(reply, 409, cause.code, { category: mediaType.label })
+      // Book-only GUI options (never sent for any other category) — every
+      // other adapter's search() ignores this second argument entirely.
+      const searchOptions = {
+        ...(request.query.language ? { language: request.query.language } : {}),
+        includeUnknown: request.query.includeUnknown === 'true',
+        ...(request.query.page ? { page: request.query.page } : {}),
       }
-      throw cause
-    }
-  })
+
+      try {
+        return await searchSources(mediaType, query, searchOptions)
+      } catch (cause) {
+        if (cause instanceof SearchUnavailableError) {
+          return sendApiError(reply, 409, cause.code, { category: mediaType.label })
+        }
+        throw cause
+      }
+    },
+  )
 
   /**
    * Expands one search result *without creating anything*: its item count and,

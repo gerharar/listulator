@@ -56,3 +56,89 @@ describe('searchSources', () => {
     expect(result).toEqual({ sources: [{ externalRef: 'franchise:1', title: 'tmdb x' }], libraryUnreachable: true })
   })
 })
+
+describe('searchSources, a page at a time (Comic Vine "Show more")', () => {
+  /** An adapter that pages: `pages` is what `searchPage` answers for page 1, 2, ... */
+  function paging(pages: { sources: { externalRef: string; title: string }[]; hasMore?: true; total?: number; totalIsLowerBound?: true }[]): SearchAdapter {
+    return {
+      isAvailable: () => true,
+      search: vi.fn(async () => []),
+      expand: vi.fn(async () => ({ items: [] })),
+      searchPage: vi.fn(async (_query, options) => pages[(options?.page ?? 1) - 1] ?? { sources: [] }),
+    }
+  }
+
+  const row = (id: number) => ({ externalRef: `volume:${id}`, title: `Volume ${id}` })
+
+  it('says there is more, and how many there are, when the adapter does, counting the curated matches too', async () => {
+    const own = paging([{ sources: [row(1), row(2)], hasMore: true, total: 52, totalIsLowerBound: true }])
+    const result = await searchSources(type({ adapter: own }), 'x', {}, library([curated]))
+
+    expect(result).toEqual({
+      sources: [curated, row(1), row(2)],
+      hasMore: true,
+      total: 53,
+      totalIsLowerBound: true,
+    })
+  })
+
+  it('leaves out hasMore and the lower-bound flag when the adapter has none, and keeps an exact total', async () => {
+    const result = await searchSources(type({ adapter: paging([{ sources: [row(1)], total: 1 }]) }), 'x', {}, library([]))
+
+    expect(result).toEqual({ sources: [row(1)], total: 1 })
+  })
+
+  it('asks the adapter for the page wanted, and for page one when none is named', async () => {
+    const own = paging([{ sources: [row(1)] }, { sources: [row(2)] }])
+
+    await searchSources(type({ adapter: own }), 'x', {}, library([]))
+    await searchSources(type({ adapter: own }), 'x', { page: 2 }, library([]))
+
+    expect(vi.mocked(own.searchPage!).mock.calls.map(([, options]) => options?.page ?? 1)).toEqual([1, 2])
+  })
+
+  it('a later page is the adapter’s rows alone: the library is not asked again, and nothing about it is reported', async () => {
+    const own = paging([{ sources: [row(1)] }, { sources: [row(2)], hasMore: true, total: 40, totalIsLowerBound: true }])
+    const lookup = library([curated], false)
+
+    const result = await searchSources(type({ adapter: own }), 'x', { page: 2 }, lookup)
+
+    expect(lookup).not.toHaveBeenCalled()
+    expect(result).toEqual({ sources: [row(2)], hasMore: true, total: 40, totalIsLowerBound: true })
+  })
+
+  it('an adapter that does not page has nothing on a later page, and says nothing is more on the first', async () => {
+    const own = adapter()
+
+    expect(await searchSources(type({ adapter: own }), 'x', { page: 2 }, library([curated]))).toEqual({ sources: [] })
+    expect(own.search).not.toHaveBeenCalled()
+    expect(await searchSources(type({ adapter: own }), 'x', {}, library([]))).toEqual({ sources: [{ externalRef: 'franchise:1', title: 'tmdb x' }] })
+  })
+
+  it('a later page of an adapter that cannot run now is empty, though it pages', async () => {
+    const own = { ...paging([{ sources: [row(1)] }, { sources: [row(2)] }]), isAvailable: () => false }
+
+    expect(await searchSources(type({ adapter: own }), 'x', { page: 2 }, library([]))).toEqual({ sources: [] })
+    expect(own.searchPage).not.toHaveBeenCalled()
+  })
+
+  it('still flags an unreachable library beside a paging adapter’s first page', async () => {
+    const own = paging([{ sources: [row(1)], total: 1 }])
+
+    expect(await searchSources(type({ adapter: own }), 'x', {}, library([], false))).toEqual({
+      sources: [row(1)],
+      libraryUnreachable: true,
+      total: 1,
+    })
+  })
+
+  it('a later page of a library-only category, or of a category with no usable adapter, is empty and not an error', async () => {
+    const lookup = library([curated])
+
+    expect(await searchSources(type({ searchScope: 'library' }), 'x', { page: 2 }, lookup)).toEqual({ sources: [] })
+    expect(await searchSources(type({ adapter: adapter(false) }), 'x', { page: 2 }, lookup)).toEqual({ sources: [] })
+    expect(await searchSources(type(), 'x', { page: 2 }, lookup)).toEqual({ sources: [] })
+    expect(lookup).not.toHaveBeenCalled()
+  })
+})
+

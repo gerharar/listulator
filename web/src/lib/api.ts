@@ -127,7 +127,11 @@ export interface ListSourceResult {
   description?: string
   /** Production status of the thing the list is about — canonical results only, when set. */
   status?: 'complete' | 'ongoing'
-  /** How many items the list holds — canonical results only, when the library's index says. */
+  /**
+   * How many items the list holds — a curated result when the library's index says, and a source whose search
+   * answer already says (Comic Vine). The Search tab shows it as the row's count and asks for none of its own
+   * for a source row; a curated row is still expanded, as before.
+   */
   itemCount?: number
 }
 
@@ -152,6 +156,12 @@ export interface SourceSearchResponse {
   sources: ListSourceResult[]
   /** Set only when the community library could not be reached, so curated lists may be missing from `sources`. */
   libraryUnreachable?: boolean
+  /** Only when true: the source has more matches than these rows, and `searchSources` with the next `page` gives them. */
+  hasMore?: boolean
+  /** How many matches there are, curated lists included, when the source says. */
+  total?: number
+  /** Only when true: `total` is what has been found so far, so there may be more ("52+"). */
+  totalIsLowerBound?: boolean
 }
 
 export interface SourceExpansion {
@@ -290,8 +300,11 @@ export interface ApiClient {
   searchSources: (
     mediaType: string,
     query: string,
-    /** Book-category-only GUI options — ignored by every other category. */
-    options?: { language?: string; includeUnknown?: boolean },
+    /**
+     * Book-category-only GUI options (ignored by every other category), and the page wanted from 1 ("Show more":
+     * a page of twenty; an adapter that does not page has nothing on a second).
+     */
+    options?: { language?: string; includeUnknown?: boolean; page?: number },
   ) => Promise<SourceSearchResponse>
   /**
    * Expands one search result without creating anything — its item count and,
@@ -499,11 +512,12 @@ export const fetchApi: ApiClient = {
   searchSources: (
     mediaType: string,
     query: string,
-    options?: { language?: string; includeUnknown?: boolean },
+    options?: { language?: string; includeUnknown?: boolean; page?: number },
   ) => {
     const params = new URLSearchParams({ q: query })
     if (options?.language) params.set('language', options.language)
     if (options?.includeUnknown) params.set('includeUnknown', 'true')
+    if (options?.page && options.page > 1) params.set('page', String(options.page))
 
     return request<SourceSearchResponse>(`/media-types/${mediaType}/search?${params.toString()}`)
   },

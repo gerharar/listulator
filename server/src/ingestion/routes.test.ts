@@ -551,6 +551,55 @@ describe('search and import from a source', () => {
     expect(search).toHaveBeenCalledWith('cannibal', { includeUnknown: false })
   })
 
+  describe('a page of results at a time ("Show more")', () => {
+    const search = (query: string) => harness.app.inject({ method: 'GET', url: `/api/media-types/music/search?${query}` })
+
+    it('carries whether there are more matches, and how many, beside the sources', async () => {
+      const searchPage = vi.fn(async () => ({
+        sources: [{ externalRef: 'volume:1', title: 'Batman (1940)', itemCount: 716 }],
+        hasMore: true as const,
+        total: 52,
+        totalIsLowerBound: true as const,
+      }))
+      harness = withAdapter(fakeAdapter({ searchPage }))
+
+      const response = await search('q=batman')
+
+      expect(response.statusCode).toBe(200)
+      expect(response.json()).toEqual({
+        sources: [{ externalRef: 'volume:1', title: 'Batman (1940)', itemCount: 716 }],
+        hasMore: true,
+        total: 52,
+        totalIsLowerBound: true,
+      })
+      expect(searchPage).toHaveBeenCalledWith('batman', { includeUnknown: false })
+    })
+
+    it('asks the adapter for the page named, and the adapter alone', async () => {
+      const searchPage = vi.fn(async () => ({ sources: [{ externalRef: 'volume:21', title: 'Batman (1961)' }], total: 21 }))
+      harness = withAdapter(fakeAdapter({ searchPage }))
+
+      const response = await search('q=batman&page=2')
+
+      expect(searchPage).toHaveBeenCalledWith('batman', { includeUnknown: false, page: 2 })
+      expect(response.json()).toEqual({ sources: [{ externalRef: 'volume:21', title: 'Batman (1961)' }], total: 21 })
+    })
+
+    it('has nothing on a later page for an adapter that does not page', async () => {
+      harness = withAdapter(fakeAdapter())
+
+      expect((await search('q=cannibal&page=2')).json()).toEqual({ sources: [] })
+    })
+
+    it('refuses a page that is not a whole number from 1', async () => {
+      harness = withAdapter(fakeAdapter())
+
+      for (const page of ['0', '-1', 'two', '1.5', '1000']) {
+        expect((await search(`q=cannibal&page=${page}`)).statusCode).toBe(400)
+      }
+    })
+  })
+
   it('leaves no half-made list behind when filling it fails, and the failure reaches the user (15.9b)', async () => {
     // A length that is not a number cannot be stored, so the insert of the items fails.
     harness = withAdapter(

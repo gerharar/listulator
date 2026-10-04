@@ -364,6 +364,11 @@ export interface ListSource {
   title: string
   /** Disambiguation, since searches return near-identical names. */
   detail?: string
+  /**
+   * How many items the source holds, when the search answer already says so (Comic Vine's `count_of_issues`):
+   * the Search tab shows it without asking `expansion` for a count. Absent: it asks, as it always did.
+   */
+  itemCount?: number
 }
 
 /**
@@ -390,6 +395,20 @@ export interface SearchOptions {
   language?: string
   /** Also count/keep works with no language tag, widening a strict filter. */
   includeUnknown?: boolean
+  /** Which page of results, from 1 (absent is 1): the Search tab's "Show more". Only an adapter with `searchPage` has a second. */
+  page?: number
+}
+
+/**
+ * One page of an adapter's search, for a source with more matches than one page shows. `hasMore` is only ever
+ * true (absent means this is the last page); `total` is how many matches the adapter has found so far, and
+ * `totalIsLowerBound` says it has not looked at them all, so the real number may be higher.
+ */
+export interface SearchPage {
+  sources: ListSource[]
+  hasMore?: true
+  total?: number
+  totalIsLowerBound?: true
 }
 
 /**
@@ -432,6 +451,12 @@ export interface SearchAdapter {
   /** False when, say, an API key is missing — the UI hides search for it. */
   isAvailable(): boolean
   search(query: string, options?: SearchOptions): Promise<ListSource[]>
+  /**
+   * The same search a page at a time, with how many matches there are: the Search tab's "Show more" (Comic Vine
+   * matches thousands, and shows twenty at once). `options.page` is the page wanted, from 1. Absent: the adapter's
+   * `search` is everything it offers and there is no second page.
+   */
+  searchPage?(query: string, options?: SearchOptions): Promise<SearchPage>
   expand(externalRef: string, options?: ExpandOptions): Promise<ListExpansion>
   /**
    * How many items `expand(ref)` would give, for a source that can say so in far fewer requests than listing it

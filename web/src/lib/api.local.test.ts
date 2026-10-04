@@ -282,6 +282,53 @@ describe('the desktop builds a list at once and fills its lengths afterwards (15
     })
   })
 
+  describe('a page of results at a time (Comic Vine "Show more")', () => {
+    function pagingSource() {
+      const searchPage = vi.fn(async (_query: string, options?: { page?: number }) =>
+        options?.page === 2
+          ? { sources: [{ externalRef: 'volume:21', title: 'Batman (1961)' }], total: 21 }
+          : { sources: [{ externalRef: 'volume:1', title: 'Batman (1940)', itemCount: 716 }], hasMore: true as const, total: 21, totalIsLowerBound: true as const },
+      )
+      registryHolder.current = [
+        {
+          key: 'plain',
+          label: 'Plain',
+          sortOrder: 1,
+          defaultDurationMinutes: 45,
+          adapter: { isAvailable: () => true, search: async () => [], expand: async () => ({ items: [] }), searchPage },
+        },
+      ]
+
+      return searchPage
+    }
+
+    it('answers with whether there is more and how many, as the server does', async () => {
+      pagingSource()
+      const { local } = await freshModules()
+      const api = local.createLocalApi()
+
+      // (The community library is not reachable from a test, so `libraryUnreachable` may be there too.)
+      expect(await api.searchSources('plain', 'batman')).toMatchObject({
+        sources: [{ externalRef: 'volume:1', title: 'Batman (1940)', itemCount: 716 }],
+        hasMore: true,
+        total: 21,
+        totalIsLowerBound: true,
+      })
+    })
+
+    it('asks the adapter for the page named', async () => {
+      const searchPage = pagingSource()
+      const { local } = await freshModules()
+      const api = local.createLocalApi()
+
+      expect(await api.searchSources('plain', 'batman', { page: 2 })).toEqual({
+        sources: [{ externalRef: 'volume:21', title: 'Batman (1961)' }],
+        total: 21,
+      })
+      expect(searchPage).toHaveBeenCalledWith('batman', { page: 2 })
+    })
+  })
+
   describe('the ceiling on a list: ten thousand items (15.9)', () => {
     it('fails the count and the Preview of a source above it, and refuses to build it, with the API’s own error', async () => {
       const { api } = await start(filmSource())

@@ -109,6 +109,22 @@ describe('expanding a search result without creating it', () => {
     expect(result.items).toEqual([{ title: 'A' }])
   })
 
+  it('asks the search route for the page wanted, and for none on the first', async () => {
+    const fetchMock = stubFetch({ sources: [], hasMore: true, total: 52, totalIsLowerBound: true })
+
+    const first = await api.searchSources('comic', 'batman')
+    await api.searchSources('comic', 'batman', { page: 1 })
+    await api.searchSources('comic', 'batman', { page: 3 })
+
+    const urls = fetchMock.mock.calls.map((call) => (call as unknown as [string])[0])
+    expect(urls).toEqual([
+      '/api/media-types/comic/search?q=batman',
+      '/api/media-types/comic/search?q=batman',
+      '/api/media-types/comic/search?q=batman&page=3',
+    ])
+    expect(first).toEqual({ sources: [], hasMore: true, total: 52, totalIsLowerBound: true })
+  })
+
   it('asks the expansion route for the ref and returns count and status', async () => {
     const fetchMock = stubFetch({ itemCount: 12, status: 'ongoing' })
 

@@ -66,8 +66,9 @@ describe('Comic Vine adapter', () => {
         externalRef: 'volume:2045',
         title: 'Fantastic Four (1961)',
         detail: '1961 · 416 issues · Marvel',
+        itemCount: 416,
       },
-      { externalRef: 'volume:112685', title: 'Fantastic Four (2018)', detail: '2018 · 48 issues' },
+      { externalRef: 'volume:112685', title: 'Fantastic Four (2018)', detail: '2018 · 48 issues', itemCount: 48 },
     ])
   })
 
@@ -367,5 +368,259 @@ describe('one line for the whole process', () => {
     await work
 
     expect(started.map((time) => time - started[0]!)).toEqual([0, 1100, 2200])
+  })
+})
+
+interface RawVolume {
+  id: number
+  name: string
+  start_year?: string | null
+  count_of_issues?: number | null
+}
+
+/** Comic Vine's search over `volumes` in relevance order: `page` and `limit` (100 at most) honoured, the total in every answer. */
+function searchOf(volumes: RawVolume[]): FetchLike {
+  return vi.fn(async (url: string) => {
+    const query = new URL(url).searchParams
+    const limit = Math.min(Number(query.get('limit') ?? 10), 100)
+    const page = Number(query.get('page') ?? 1)
+
+    return new Response(
+      JSON.stringify({
+        status_code: 1,
+        number_of_total_results: volumes.length,
+        results: volumes.slice((page - 1) * limit, page * limit),
+      }),
+    )
+  })
+}
+
+/** `count` volumes all called "Batman", the nth with n issues, in an order that is not the order of their size. */
+const batmen = (count: number, first = 1): RawVolume[] =>
+  Array.from({ length: count }, (_, index) => ({
+    id: first + index,
+    name: 'Batman',
+    start_year: String(1940 + ((first + index) % 80)),
+    count_of_issues: first + index,
+  }))
+
+const rows = (page: { sources: { externalRef: string }[] }) => page.sources.map((source) => source.externalRef)
+
+describe('a page of search results', () => {
+  it('ranks by issue count and keeps only volumes whose title contains the query', async () => {
+    // Comic Vine's own order puts the fuzzy matches (Manga Action, 426) among, and above, the real runs.
+    const adapter = createComicVineAdapter(
+      credentials,
+      searchOf([
+        { id: 1, name: 'Manga Action', start_year: '2004', count_of_issues: 426 },
+        { id: 2, name: 'Action Comics', start_year: '2011', count_of_issues: 57 },
+        { id: 3, name: 'Action Comics', start_year: '1938', count_of_issues: 864 },
+        { id: 4, name: 'Action (1993)', start_year: '1993', count_of_issues: 385 },
+        { id: 5, name: 'Action Comics Weekly', start_year: '1988', count_of_issues: 42 },
+      ]),
+    )
+
+    expect(rows(await adapter.searchPage!('action comics'))).toEqual(['volume:3', 'volume:2', 'volume:5'])
+  })
+
+  it('matches the title as the row shows it, year included, with accents, punctuation and case folded', async () => {
+    const volumes: RawVolume[] = [
+      { id: 1, name: 'Batman', start_year: '2016', count_of_issues: 163 },
+      { id: 2, name: 'Batman', start_year: '1940', count_of_issues: 716 },
+      { id: 3, name: 'X-Men', start_year: '1991', count_of_issues: 275 },
+      { id: 4, name: 'Pokémon Adventures', start_year: '1997', count_of_issues: 90 },
+    ]
+    const adapter = createComicVineAdapter(credentials, searchOf(volumes))
+
+    expect(rows(await adapter.searchPage!('Batman 2016'))).toEqual(['volume:1'])
+    expect(rows(await adapter.searchPage!('batman (1940)'))).toEqual(['volume:2'])
+    expect(rows(await adapter.searchPage!('x men'))).toEqual(['volume:3'])
+    expect(rows(await adapter.searchPage!('POKEMON'))).toEqual(['volume:4'])
+  })
+
+  it('breaks a tie in issue count by name, then year (none last), then id, so a later page cannot reorder an earlier one', async () => {
+    const tied: RawVolume[] = [
+      { id: 9, name: 'Abe', start_year: '1990', count_of_issues: 10 },
+      { id: 8, name: 'Abe', start_year: '2000', count_of_issues: 10 },
+      { id: 7, name: 'Abe', start_year: '1990', count_of_issues: 10 },
+      { id: 6, name: 'Abe', start_year: '1990', count_of_issues: 10 },
+      { id: 5, name: 'Abe', start_year: null, count_of_issues: 10 },
+      { id: 4, name: 'Abe B', start_year: '1990', count_of_issues: 10 },
+    ]
+    const wanted = ['volume:6', 'volume:7', 'volume:9', 'volume:8', 'volume:5', 'volume:4']
+
+    // The same answer in any order of arrival ranks the same way.
+    for (const order of [tied, [...tied].reverse(), [tied[2]!, tied[4]!, tied[0]!, tied[5]!, tied[3]!, tied[1]!]]) {
+      expect(rows(await createComicVineAdapter(credentials, searchOf(order)).searchPage!('abe'))).toEqual(wanted)
+    }
+  })
+
+  it('seeds each row’s count from the search answer, and leaves it out when the answer has none', async () => {
+    const adapter = createComicVineAdapter(
+      credentials,
+      searchOf([
+        { id: 1, name: 'Batman', start_year: '1940', count_of_issues: 716 },
+        { id: 2, name: 'Batman', start_year: '1941', count_of_issues: 0 },
+        { id: 3, name: 'Batman', start_year: '1942', count_of_issues: null },
+        { id: 4, name: 'Batman', start_year: '1943' },
+      ]),
+    )
+
+    const { sources } = await adapter.searchPage!('batman')
+
+    expect(sources.map((source) => [source.externalRef, source.itemCount])).toEqual([
+      ['volume:1', 716],
+      ['volume:2', 0],
+      ['volume:3', undefined],
+      ['volume:4', undefined],
+    ])
+  })
+
+  it('shows twenty rows, and says there is more only when there is a twenty-first', async () => {
+    const twenty = await createComicVineAdapter(credentials, searchOf(batmen(20))).searchPage!('batman')
+    const twentyOne = await createComicVineAdapter(credentials, searchOf(batmen(21))).searchPage!('batman')
+
+    expect(twenty.sources).toHaveLength(20)
+    expect(twenty.hasMore).toBeUndefined()
+    expect(twentyOne.sources).toHaveLength(20)
+    expect(twentyOne.hasMore).toBe(true)
+  })
+
+  it('counts what it found, exactly when it has looked at every match', async () => {
+    const all = await createComicVineAdapter(credentials, searchOf(batmen(35))).searchPage!('batman')
+
+    expect(all).toMatchObject({ total: 35, hasMore: true })
+    expect(all.totalIsLowerBound).toBeUndefined()
+  })
+
+  it('counts a lower bound when it has not looked at every match: 20 of 52+', async () => {
+    // 250 matches in all; the first hundred hold 52 that qualify, which is enough for the first pages.
+    const volumes = [...batmen(52), ...Array.from({ length: 198 }, (_, index) => ({ id: 1000 + index, name: 'Other', start_year: '2000', count_of_issues: 5 }))]
+    const fetchImpl = searchOf([...volumes.slice(0, 52), ...volumes.slice(52, 100), ...volumes.slice(100)])
+    const page = await createComicVineAdapter(credentials, fetchImpl).searchPage!('batman')
+
+    expect(page).toMatchObject({ total: 52, hasMore: true, totalIsLowerBound: true })
+    expect(fetchImpl).toHaveBeenCalledTimes(1)
+  })
+
+  it('asks for a hundred matches at a time, by Comic Vine’s own page number, with the query as typed', async () => {
+    const fetchImpl = searchOf(batmen(3))
+    await createComicVineAdapter(credentials, fetchImpl).searchPage!('Batman  Dark')
+
+    const sent = new URL(vi.mocked(fetchImpl).mock.calls[0]![0]).searchParams
+    expect([sent.get('limit'), sent.get('page'), sent.get('resources'), sent.get('query')]).toEqual(['100', '1', 'volume', 'Batman  Dark'])
+  })
+
+  it('a later page continues the same ranking: rows 21 to 40, no repeat of the first twenty', async () => {
+    const adapter = createComicVineAdapter(credentials, searchOf(batmen(52)))
+    const first = rows(await adapter.searchPage!('batman'))
+    const second = await adapter.searchPage!('batman', { page: 2 })
+    const third = await adapter.searchPage!('batman', { page: 3 })
+
+    expect(first).toHaveLength(20)
+    expect(rows(second)).toHaveLength(20)
+    expect(rows(third)).toHaveLength(12)
+    expect(new Set([...first, ...rows(second), ...rows(third)]).size).toBe(52)
+    expect(second.hasMore).toBe(true)
+    expect(third.hasMore).toBeUndefined()
+    expect(third.totalIsLowerBound).toBeUndefined()
+  })
+
+  it('reads the next hundred only when the first has too few that qualify, ranking each hundred by itself', async () => {
+    // The first hundred holds 10 qualifying volumes (small), the second 15 (larger): the rows of the second come after
+    // those of the first, however big, so a row already on screen never moves.
+    const noise = (from: number, count: number): RawVolume[] => Array.from({ length: count }, (_, index) => ({ id: from + index, name: 'Noise', start_year: '2000', count_of_issues: 1 }))
+    const small = batmen(10, 1)
+    const large = batmen(15, 500)
+    const fetchImpl = searchOf([...small, ...noise(100, 90), ...large, ...noise(200, 85)])
+    const adapter = createComicVineAdapter(credentials, fetchImpl)
+
+    const page = await adapter.searchPage!('batman')
+
+    expect(fetchImpl).toHaveBeenCalledTimes(2)
+    expect(rows(page).slice(0, 10).sort()).toEqual(small.map((volume) => `volume:${volume.id}`).sort())
+    expect(rows(page).slice(10)).toEqual(large.map((volume) => `volume:${volume.id}`).reverse().slice(0, 10))
+  })
+
+  it('stops after five hundreds, and says there is no more rather than chain requests through a query with few matches', async () => {
+    const noise: RawVolume[] = Array.from({ length: 2000 }, (_, index) => ({ id: 10_000 + index, name: 'Noise', start_year: '2000', count_of_issues: 1 }))
+    const fetchImpl = searchOf([...batmen(3), ...noise])
+    const page = await createComicVineAdapter(credentials, fetchImpl).searchPage!('batman')
+
+    expect(fetchImpl).toHaveBeenCalledTimes(5)
+    expect(rows(page)).toHaveLength(3)
+    expect(page.hasMore).toBeUndefined()
+    expect(page.totalIsLowerBound).toBe(true)
+  })
+
+  it('has no rows past the end, and asks for no hundred beyond the last', async () => {
+    const fetchImpl = searchOf(batmen(5))
+    const page = await createComicVineAdapter(credentials, fetchImpl).searchPage!('batman', { page: 4 })
+
+    expect(page.sources).toEqual([])
+    expect(page.hasMore).toBeUndefined()
+    expect(fetchImpl).toHaveBeenCalledTimes(1)
+  })
+
+  it('treats a page below the first as the first', async () => {
+    const adapter = createComicVineAdapter(credentials, searchOf(batmen(30)))
+
+    expect(await adapter.searchPage!('batman', { page: 0 })).toEqual(await adapter.searchPage!('batman'))
+    expect(await adapter.searchPage!('batman', { page: -3 })).toEqual(await adapter.searchPage!('batman'))
+  })
+
+  it('stops on a short page even when the total claims more, rather than ask for pages that are not there', async () => {
+    const fetchImpl: FetchLike = vi.fn(async () =>
+      new Response(JSON.stringify({ status_code: 1, number_of_total_results: 900, results: batmen(5) })),
+    )
+    const page = await createComicVineAdapter(credentials, fetchImpl).searchPage!('batman')
+
+    expect(fetchImpl).toHaveBeenCalledTimes(1)
+    expect(rows(page)).toHaveLength(5)
+  })
+
+  it('asks for no second hundred when the first holds every match, exactly a hundred', async () => {
+    // Five qualify among exactly a hundred matches: nothing in the first twenty-one rows ends the reading early,
+    // only knowing that a hundred is all there is.
+    const noise: RawVolume[] = Array.from({ length: 95 }, (_, index) => ({ id: 500 + index, name: 'Noise', start_year: '2000', count_of_issues: 1 }))
+    const fetchImpl = searchOf([...batmen(5), ...noise])
+    const page = await createComicVineAdapter(credentials, fetchImpl).searchPage!('batman')
+
+    expect(fetchImpl).toHaveBeenCalledTimes(1)
+    expect(page).toMatchObject({ total: 5 })
+    expect(page.hasMore).toBeUndefined()
+    expect(page.totalIsLowerBound).toBeUndefined()
+  })
+
+  it('reads on to the next hundred to learn whether a twenty-first row exists', async () => {
+    // Exactly twenty qualify in the first hundred; the twenty-first is in the second. Stopping at twenty would
+    // say there is no more.
+    const noise: RawVolume[] = Array.from({ length: 80 }, (_, index) => ({ id: 500 + index, name: 'Noise', start_year: '2000', count_of_issues: 1 }))
+    const fetchImpl = searchOf([...batmen(20), ...noise, ...batmen(1, 900), ...noise.map((volume) => ({ ...volume, id: volume.id + 1000 }))])
+    const page = await createComicVineAdapter(credentials, fetchImpl).searchPage!('batman')
+
+    expect(fetchImpl).toHaveBeenCalledTimes(2)
+    expect(page.sources).toHaveLength(20)
+    expect(page.hasMore).toBe(true)
+  })
+
+  it('asks nothing for a query with no letters or digits in it', async () => {
+    const fetchImpl = searchOf(batmen(5))
+
+    expect(await createComicVineAdapter(credentials, fetchImpl).searchPage!('?!')).toEqual({ sources: [] })
+    expect(fetchImpl).not.toHaveBeenCalled()
+  })
+
+  it('fails when a request fails, rather than showing the rows found so far as all there is', async () => {
+    const adapter = createComicVineAdapter(credentials, respondWith({}, 400))
+
+    await expect(adapter.searchPage!('batman')).rejects.toBeInstanceOf(IngestionError)
+  })
+
+  it('is what `search` shows: the first page of twenty', async () => {
+    const adapter = createComicVineAdapter(credentials, searchOf(batmen(30)))
+
+    expect(await adapter.search('batman')).toEqual((await adapter.searchPage!('batman')).sources)
+    expect(await adapter.search('batman')).toHaveLength(20)
   })
 })
