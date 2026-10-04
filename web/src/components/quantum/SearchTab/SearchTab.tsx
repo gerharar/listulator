@@ -21,11 +21,12 @@ import { ErrorBlock, type ErrorBlockAction } from '../ErrorBlock/ErrorBlock.js'
 import { ErrorStrip } from '../ErrorStrip/ErrorStrip.js'
 import { Field } from '../Field/Field.js'
 import { SearchResultRow } from '../SearchResultRow/SearchResultRow.js'
+import { SearchResultsStop } from '../SearchResultsStop/SearchResultsStop.js'
 import { Spinner } from '../Spinner/Spinner.js'
 import { ToggleChip } from '../ToggleChip/ToggleChip.js'
 import { useLayerStack } from '../layerStack/LayerStackContext.js'
 import { newListPath } from '../layerStack/layerPath.js'
-import { useSourceExpansions } from './useSourceExpansions.js'
+import { useSourceExpansions, type KnownCounts } from './useSourceExpansions.js'
 
 export interface SearchTabProps {
   mediaType: MediaType
@@ -75,11 +76,19 @@ export function SearchTab({ mediaType, onBuilt, libraryCategory, initialQuery, i
   const [searching, setSearching] = useState(false)
   const [building, setBuilding] = useState(false)
   const [notice, setNotice] = useState<Notice | null>(null)
+  // More matches than the rows shown: how many there are (`lowerBound`: found so far), for the header and the stop.
+  const [more, setMore] = useState<{ total: number | undefined; lowerBound: boolean } | null>(null)
+  const [loadingMore, setLoadingMore] = useState(false)
   const searchId = useRef(0)
+  /** What the rows on screen were searched with: "Show more" continues that search, whatever the field says now. */
+  const searched = useRef<{ query: string; options: { language: string; includeUnknown: boolean } | undefined } | null>(null)
+  const page = useRef(1)
+  const loadingMoreNow = useRef(false)
+  const queryInput = useRef<HTMLInputElement>(null)
   // The result to open belongs to the opening search only: taken once, whatever that search turns out to do.
   const pendingOpen = useRef(initialQuery ? initialOpen : undefined)
   const seeded = useRef(false)
-  const { states, begin, resume, cancel } = useSourceExpansions()
+  const { states, begin, append, resume, cancel } = useSourceExpansions()
 
   // Book-only: which language a bibliography is built in. Remembered across
   // searches, like the old picker. Strict about untagged works by default
@@ -204,6 +213,9 @@ export function SearchTab({ mediaType, onBuilt, libraryCategory, initialQuery, i
 
     cancel()
     shownRefs.current = []
+    page.current = 1
+    loadingMoreNow.current = false
+    setLoadingMore(false)
     setSearching(true)
     setNotice(null)
     setResults(null)
@@ -217,15 +229,18 @@ export function SearchTab({ mediaType, onBuilt, libraryCategory, initialQuery, i
       // Book-only options — searchSources ignores the third argument for every
       // other category. The server computes each result's language-filtered
       // work count itself, so the detail line already matches what Add list makes.
-      const { sources, libraryUnreachable } = await api.searchSources(
+      const searchOptions = isBook ? { language, includeUnknown } : undefined
+      const { sources, libraryUnreachable, hasMore, total, totalIsLowerBound } = await api.searchSources(
         mediaType.key,
         trimmed,
-        isBook ? { language, includeUnknown } : undefined,
+        searchOptions,
       )
       const foundHint = await hintLookup
       if (searchId.current !== mine) return
 
+      searched.current = { query: trimmed, options: searchOptions }
       setResults(sources)
+      setMore(hasMore ? { total, lowerBound: Boolean(totalIsLowerBound) || total === undefined } : null)
       setHint(foundHint)
       if (open && sources.some((entry) => entry.externalRef === open)) setExpanded(new Set([open]))
       if (sources.length === 0) {
@@ -254,7 +269,7 @@ export function SearchTab({ mediaType, onBuilt, libraryCategory, initialQuery, i
       }
 
       shownRefs.current = sources.map((entry) => entry.externalRef)
-      begin(shownRefs.current, fetchExpansion)
+      begin(shownRefs.current, fetchExpansion, knownCounts(sources))
     } catch (cause) {
       if (searchId.current !== mine) return
       setNotice(noticeFor(cause, () => void runSearch(trimmed)))
@@ -299,6 +314,54 @@ export function SearchTab({ mediaType, onBuilt, libraryCategory, initialQuery, i
     }
   }
 
+  /**
+   * "Show more" (design `search-show-more`, 5A): the next page of the search that was made, appended under the rows
+   * above. Rows already open stay open and counts already loading are not dropped; a failure keeps every row and
+   * shows the strip, with Retry. A newer search drops the answer.
+   */
+  async function showMore() {
+    const previous = searched.current
+    if (!previous || loadingMoreNow.current) return
+
+    const mine = searchId.current
+    const wanted = page.current + 1
+    loadingMoreNow.current = true
+    setLoadingMore(true)
+    setNotice(null)
+
+    try {
+      const next = await api.searchSources(mediaType.key, previous.query, { ...previous.options, page: wanted })
+      if (searchId.current !== mine) return
+
+      const onScreen = new Set(shownRefs.current)
+      const fresh = next.sources.filter((entry) => !onScreen.has(entry.externalRef))
+      page.current = wanted
+      shownRefs.current = [...shownRefs.current, ...fresh.map((entry) => entry.externalRef)]
+      setResults((rows) => [...(rows ?? []), ...fresh])
+      setMore(next.hasMore ? { total: next.total, lowerBound: Boolean(next.totalIsLowerBound) || next.total === undefined } : null)
+      append(fresh.map((entry) => entry.externalRef), fetchExpansion, knownCounts(fresh))
+    } catch (cause) {
+      if (searchId.current !== mine) return
+      setNotice(noticeFor(cause, () => void showMore()))
+    } finally {
+      if (searchId.current === mine) {
+        loadingMoreNow.current = false
+        setLoadingMore(false)
+      }
+    }
+  }
+
+  /** "Refine search": the query is focused and selected, and brought into view by the scroller's own `scrollTop`. */
+  function refine() {
+    const input = queryInput.current
+    if (!input) return
+
+    input.focus({ preventScroll: true })
+    input.select()
+    const scroller = scrollParent(input)
+    if (scroller) scroller.scrollTop += input.getBoundingClientRect().top - scroller.getBoundingClientRect().top
+  }
+
   /** Open in Mega: this Create layer becomes Mega's, with the search kept and, if one was chosen, that list open. */
   function openHint(list: CrossHintList | null) {
     if (!hint) return
@@ -338,6 +401,7 @@ export function SearchTab({ mediaType, onBuilt, libraryCategory, initialQuery, i
         }}
       >
         <Field
+          ref={queryInput}
           label={mediaType.searchScope === 'library' ? text.libraryQueryLabel(source) : text.queryLabel(source)}
           value={query}
           onChange={(event) => setQuery(event.target.value)}
@@ -432,7 +496,11 @@ export function SearchTab({ mediaType, onBuilt, libraryCategory, initialQuery, i
       {results && (results.length > 0 || hint) && (
         <div className="q-search-results">
           <div className="q-search-results-head">
-            <span className="q-kicker strong">{text.resultsCount(results.length + (hint?.lists.length ?? 0))}</span>
+            <span className="q-kicker strong">
+              {more
+                ? text.more.count(results.length, more.total ?? results.length, more.lowerBound)
+                : text.resultsCount(results.length + (hint?.lists.length ?? 0))}
+            </span>
           </div>
           {hint && libraryCategory && (
             <CrossHintRow
@@ -467,6 +535,15 @@ export function SearchTab({ mediaType, onBuilt, libraryCategory, initialQuery, i
               />
             )
           })}
+          {more && results.length > 0 && (
+            <SearchResultsStop
+              shown={results.length}
+              loadingMore={loadingMore}
+              locked={building}
+              onRefine={refine}
+              onShowMore={() => void showMore()}
+            />
+          )}
         </div>
       )}
     </div>
@@ -483,4 +560,26 @@ function SearchNotice({ notice, onDismiss }: { notice: Notice; onDismiss: () => 
   ) : (
     <ErrorStrip message={notice.message} onRetry={notice.retry} onDismiss={onDismiss} />
   )
+}
+
+/**
+ * The counts the search answer already carries, for the rows that are a source's (a curated list's count is the
+ * library's index, still checked against its file by `expansion`): shown at once, with no request of their own.
+ */
+function knownCounts(sources: readonly ListSourceResult[]): KnownCounts {
+  return new Map(
+    sources
+      .filter((entry) => !entry.externalRef.startsWith(CANONICAL_PREFIX) && typeof entry.itemCount === 'number')
+      .map((entry): [string, { itemCount: number }] => [entry.externalRef, { itemCount: entry.itemCount! }]),
+  )
+}
+
+/** The nearest ancestor that scrolls, for putting the query back in view by `scrollTop` and not `scrollIntoView`. */
+function scrollParent(node: HTMLElement): HTMLElement | null {
+  for (let parent = node.parentElement; parent; parent = parent.parentElement) {
+    const overflow = getComputedStyle(parent).overflowY
+    if (overflow === 'auto' || overflow === 'scroll') return parent
+  }
+
+  return null
 }

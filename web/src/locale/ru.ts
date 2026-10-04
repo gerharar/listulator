@@ -422,6 +422,16 @@ export const ru: Locale = {
       libraryQueryLabel: (source: string): string => `Поиск: ${source}`,
       searchButton: 'Искать',
       resultsCount: (n: number): string => results(n),
+      more: {
+        // «из N» takes the genitive: «из 21 результата», «из 22 результатов»; the plus does not change the noun.
+        count: (shown: number, total: number, lowerBound: boolean): string =>
+          `${shown} из ${total}${lowerBound ? '+' : ''} ${selectPlural(total, 'ru', { one: 'результата', few: 'результатов', many: 'результатов', other: 'результатов' })}`,
+        caption: (shown: number): string => `Конец первых ${shown}`,
+        note: 'Найдены ещё совпадения. Уточни запрос, чтобы улучшить результаты — добавь год, слово из названия или выбери категорию поуже',
+        showMore: 'Показать ещё',
+        loading: 'Загружаем…',
+        refine: 'Уточнить поиск',
+      },
       itemsKicker: 'элементов',
       countLoading: 'Считаем…',
       expandRow: (title: string): string => `Показать подробности: ${title}`,

@@ -858,4 +858,425 @@ describe('SearchTab', () => {
       expect(hintRow()).toBeNull()
     })
   })
+
+  describe('more matches than the rows shown (design search-show-more, 5A)', () => {
+    const COMIC = mediaType({ key: 'comic', label: 'Comics', sourceName: 'Comic Vine' })
+    const volume = (n: number): ListSourceResult => ({ externalRef: `volume:${n}`, title: `Batman (${1900 + n})`, detail: `${n} issues`, itemCount: n })
+    const volumes = (from: number, count: number): ListSourceResult[] => Array.from({ length: count }, (_, index) => volume(from + index))
+    const rows = () => screen.queryAllByRole('button', { name: /Show details for/ })
+    const stop = () => screen.queryByText(/^End of first/)
+
+    const firstPage = { sources: volumes(1, 20), hasMore: true, total: 52, totalIsLowerBound: true }
+
+    it('shows "20 of 52+ results" and closes the list with the stop, after the last row', async () => {
+      vi.mocked(api.searchSources).mockResolvedValue(firstPage)
+      renderTab(COMIC)
+
+      await search('batman')
+
+      expect(await screen.findByText('20 of 52+ results')).not.toBeNull()
+      expect(rows()).toHaveLength(20)
+      expect(screen.getByText('End of first 20')).not.toBeNull()
+      expect(screen.getByRole('button', { name: 'Refine search' })).not.toBeNull()
+      expect(screen.getByRole('button', { name: 'Show more' })).not.toBeNull()
+      // After the last row, not before it.
+      const last = rows().at(-1)!
+      expect(last.compareDocumentPosition(screen.getByText('End of first 20')) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    })
+
+    it('says "of 52" without the plus when the total is exact', async () => {
+      vi.mocked(api.searchSources).mockResolvedValue({ ...firstPage, totalIsLowerBound: undefined })
+      renderTab(COMIC)
+
+      await search('batman')
+
+      expect(await screen.findByText('20 of 52 results')).not.toBeNull()
+    })
+
+    it('keeps today’s "N results" and shows no stop when nothing is cut off', async () => {
+      vi.mocked(api.searchSources).mockResolvedValue({ sources: volumes(1, 3), total: 3 })
+      renderTab(COMIC)
+
+      await search('batman')
+
+      expect(await screen.findByText('3 results')).not.toBeNull()
+      expect(stop()).toBeNull()
+      expect(screen.queryByRole('button', { name: 'Show more' })).toBeNull()
+    })
+
+    it('shows no stop in the empty state or the error state, or while the search is running', async () => {
+      vi.mocked(api.searchSources).mockResolvedValueOnce({ sources: [], hasMore: true })
+      renderTab(COMIC)
+      await search('nothing')
+      expect(stop()).toBeNull()
+
+      vi.mocked(api.searchSources).mockRejectedValueOnce(new Error('down'))
+      await search('boom')
+      expect(stop()).toBeNull()
+
+      vi.mocked(api.searchSources).mockResolvedValueOnce(firstPage)
+      await search('batman')
+      expect(stop()).not.toBeNull()
+      vi.mocked(api.searchSources).mockImplementationOnce(() => new Promise(() => {}))
+      await search('again')
+      expect(stop()).toBeNull()
+    })
+
+    it('does not count the Mega hint row in the shown rows when the list is cut off', async () => {
+      const MEGA = mediaType({ key: 'mega', label: 'Mega', sourceName: undefined, searchScope: 'library' })
+      vi.mocked(api.searchSources).mockImplementation(async (key) =>
+        key === 'mega'
+          ? { sources: [{ externalRef: 'canonical:lists/mega/b.yaml', title: 'Batman franchise', itemCount: 90 }] }
+          : firstPage,
+      )
+      renderTab(COMIC, vi.fn(), { libraryCategory: MEGA })
+
+      await search('batman')
+
+      expect(await screen.findByText('20 of 52+ results')).not.toBeNull()
+      expect(screen.getByText('End of first 20')).not.toBeNull()
+    })
+
+    it('Show more asks for the next page of the query that was searched and puts its rows under the ones above', async () => {
+      vi.mocked(api.searchSources).mockResolvedValueOnce(firstPage).mockResolvedValueOnce({ sources: volumes(21, 20), hasMore: true, total: 52, totalIsLowerBound: true })
+      renderTab(COMIC)
+      await search('batman')
+      await screen.findByText('20 of 52+ results')
+
+      // The field is edited after the search; Show more still continues the search that was made.
+      fireEvent.change(screen.getByLabelText(/^Search /), { target: { value: 'something else' } })
+      await act(async () => {
+        fireEvent.click(screen.getByRole('button', { name: 'Show more' }))
+      })
+
+      expect(api.searchSources).toHaveBeenLastCalledWith('comic', 'batman', { page: 2 })
+      expect(rows()).toHaveLength(40)
+      expect(rows()[19]!.textContent).toContain('Batman (1920)')
+      expect(rows()[20]!.textContent).toContain('Batman (1921)')
+      expect(screen.getByText('40 of 52+ results')).not.toBeNull()
+      expect(screen.getByText('End of first 40')).not.toBeNull()
+    })
+
+    it('goes on offering Show more while there is more, and takes the stop away with the last page', async () => {
+      vi.mocked(api.searchSources)
+        .mockResolvedValueOnce(firstPage)
+        .mockResolvedValueOnce({ sources: volumes(21, 20), hasMore: true, total: 52, totalIsLowerBound: true })
+        .mockResolvedValueOnce({ sources: volumes(41, 12), total: 52 })
+      renderTab(COMIC)
+      await search('batman')
+      await screen.findByText('20 of 52+ results')
+
+      for (const call of [2, 3]) {
+        await act(async () => {
+          fireEvent.click(screen.getByRole('button', { name: 'Show more' }))
+        })
+        expect(api.searchSources).toHaveBeenLastCalledWith('comic', 'batman', { page: call })
+      }
+
+      expect(rows()).toHaveLength(52)
+      expect(stop()).toBeNull()
+      expect(screen.getByText('52 results')).not.toBeNull()
+    })
+
+    it('leaves rows that are open open, and the count of a row above untouched, when more rows arrive', async () => {
+      vi.mocked(api.searchSources).mockResolvedValueOnce(firstPage).mockResolvedValueOnce({ sources: volumes(21, 20), hasMore: true, total: 52 })
+      renderTab(COMIC)
+      await search('batman')
+      fireEvent.click(await screen.findByRole('button', { name: /Show details for Batman \(1901\)/ }))
+
+      await act(async () => {
+        fireEvent.click(screen.getByRole('button', { name: 'Show more' }))
+      })
+
+      expect(screen.getByRole('button', { name: /Show details for Batman \(1901\)/ }).getAttribute('aria-expanded')).toBe('true')
+    })
+
+    it('does not show a row twice if the next page repeats one', async () => {
+      vi.mocked(api.searchSources).mockResolvedValueOnce(firstPage).mockResolvedValueOnce({ sources: [volume(20), ...volumes(21, 3)], total: 52 })
+      renderTab(COMIC)
+      await search('batman')
+      await screen.findByText('20 of 52+ results')
+
+      await act(async () => {
+        fireEvent.click(screen.getByRole('button', { name: 'Show more' }))
+      })
+
+      expect(rows()).toHaveLength(23)
+    })
+
+    it('locks Show more while the next rows load, and asks only once however often it is pressed', async () => {
+      let release: (value: { sources: ListSourceResult[] }) => void = () => {}
+      vi.mocked(api.searchSources)
+        .mockResolvedValueOnce(firstPage)
+        .mockImplementationOnce(() => new Promise((resolve) => (release = resolve)))
+      renderTab(COMIC)
+      await search('batman')
+      await screen.findByText('20 of 52+ results')
+
+      await act(async () => {
+        fireEvent.click(screen.getByRole('button', { name: 'Show more' }))
+      })
+      const loading = screen.getByRole('button', { name: 'Loading…' }) as HTMLButtonElement
+      fireEvent.click(loading)
+
+      expect(loading.disabled).toBe(true)
+      expect(api.searchSources).toHaveBeenCalledTimes(2)
+      await act(async () => release({ sources: volumes(21, 2) }))
+      expect(rows()).toHaveLength(22)
+    })
+
+    it('keeps the rows and shows the soft error strip when the next page fails, and Retry asks again', async () => {
+      vi.mocked(api.searchSources)
+        .mockResolvedValueOnce(firstPage)
+        .mockRejectedValueOnce(new Error('down'))
+        .mockResolvedValueOnce({ sources: volumes(21, 5), total: 25 })
+      renderTab(COMIC)
+      await search('batman')
+      await screen.findByText('20 of 52+ results')
+
+      await act(async () => {
+        fireEvent.click(screen.getByRole('button', { name: 'Show more' }))
+      })
+
+      expect(rows()).toHaveLength(20)
+      expect(screen.getByRole('alert')).not.toBeNull()
+      expect((screen.getByRole('button', { name: 'Show more' }) as HTMLButtonElement).disabled).toBe(false)
+
+      await act(async () => {
+        fireEvent.click(screen.getByRole('button', { name: /Retry/ }))
+      })
+      expect(rows()).toHaveLength(25)
+      expect(api.searchSources).toHaveBeenLastCalledWith('comic', 'batman', { page: 2 })
+    })
+
+    it('drops a late next page once a new search has been made', async () => {
+      let release: (value: { sources: ListSourceResult[] }) => void = () => {}
+      vi.mocked(api.searchSources)
+        .mockResolvedValueOnce(firstPage)
+        .mockImplementationOnce(() => new Promise((resolve) => (release = resolve)))
+        .mockResolvedValueOnce({ sources: [{ externalRef: 'volume:99', title: 'Superman (1938)', itemCount: 5 }] })
+      renderTab(COMIC)
+      await search('batman')
+      await screen.findByText('20 of 52+ results')
+      await act(async () => {
+        fireEvent.click(screen.getByRole('button', { name: 'Show more' }))
+      })
+
+      await search('superman')
+      await act(async () => release({ sources: volumes(21, 20) }))
+
+      expect(rows()).toHaveLength(1)
+      expect(screen.getByText('Superman (1938)')).not.toBeNull()
+    })
+
+    it('sends the book options with the page, as the first search did', async () => {
+      vi.mocked(api.searchSources).mockResolvedValueOnce(firstPage).mockResolvedValueOnce({ sources: volumes(21, 2) })
+      vi.mocked(api.expansion).mockResolvedValue({ itemCount: 1 })
+      renderTab(mediaType({ key: 'book', label: 'Books', sourceName: 'Open Library' }))
+      fireEvent.click(screen.getByRole('button', { name: 'English' }))
+      await search('batman')
+      await screen.findByText('20 of 52+ results')
+
+      await act(async () => {
+        fireEvent.click(screen.getByRole('button', { name: 'Show more' }))
+      })
+
+      expect(api.searchSources).toHaveBeenLastCalledWith('book', 'batman', { language: 'eng', includeUnknown: false, page: 2 })
+    })
+
+    it('shows a count the search answer carries, and asks for none for that row', async () => {
+      vi.mocked(api.searchSources).mockResolvedValue({ sources: [volume(716), volume(0)], total: 2 })
+      renderTab(COMIC)
+
+      await search('batman')
+
+      expect(await screen.findByText('716')).not.toBeNull()
+      expect(screen.getByText('0')).not.toBeNull()
+      expect(api.expansion).not.toHaveBeenCalled()
+    })
+
+    it('asks for the count of a row whose answer carries none, and of a curated list even when the index gives one', async () => {
+      const curated: ListSourceResult = { externalRef: 'canonical:lists/comic/b.yaml', title: 'Curated Batman', itemCount: 90 }
+      vi.mocked(api.searchSources).mockResolvedValue({ sources: [curated, volume(5), { externalRef: 'volume:6', title: 'Batman (1906)' }], total: 3 })
+      vi.mocked(api.expansion).mockResolvedValue({ itemCount: 42 })
+      renderTab(COMIC)
+
+      await search('batman')
+
+      await waitFor(() => expect(api.expansion).toHaveBeenCalledTimes(2))
+      expect(vi.mocked(api.expansion).mock.calls.map((call) => call[1]).sort()).toEqual(['canonical:lists/comic/b.yaml', 'volume:6'])
+    })
+
+    it('asks for the counts of new rows without seeded ones, and not again for rows already counted', async () => {
+      vi.mocked(api.searchSources)
+        .mockResolvedValueOnce({ sources: [{ externalRef: 'volume:1', title: 'Batman (1901)' }], hasMore: true, total: 3 })
+        .mockResolvedValueOnce({ sources: [volume(2), { externalRef: 'volume:3', title: 'Batman (1903)' }], total: 3 })
+      vi.mocked(api.expansion).mockResolvedValue({ itemCount: 7 })
+      renderTab(COMIC)
+      await search('batman')
+      await waitFor(() => expect(api.expansion).toHaveBeenCalledTimes(1))
+
+      await act(async () => {
+        fireEvent.click(screen.getByRole('button', { name: 'Show more' }))
+      })
+
+      await waitFor(() => expect(api.expansion).toHaveBeenCalledTimes(2))
+      expect(vi.mocked(api.expansion).mock.calls.map((call) => call[1])).toEqual(['volume:1', 'volume:3'])
+    })
+
+    it('asks only once when Show more is pressed twice before the page has re-rendered', async () => {
+      vi.mocked(api.searchSources).mockResolvedValueOnce(firstPage).mockImplementationOnce(() => new Promise(() => {}))
+      renderTab(COMIC)
+      await search('batman')
+      await screen.findByText('20 of 52+ results')
+      const button = screen.getByRole('button', { name: 'Show more' })
+
+      await act(async () => {
+        fireEvent.click(button)
+        fireEvent.click(button)
+      })
+
+      expect(api.searchSources).toHaveBeenCalledTimes(2)
+    })
+
+    it('shows no stop under a Mega hint alone, whatever the empty category search says about more', async () => {
+      const MEGA = mediaType({ key: 'mega', label: 'Mega', sourceName: undefined, searchScope: 'library' })
+      vi.mocked(api.searchSources).mockImplementation(async (key) =>
+        key === 'mega'
+          ? { sources: [{ externalRef: 'canonical:lists/mega/b.yaml', title: 'Batman franchise', itemCount: 90 }] }
+          : { sources: [], hasMore: true, total: 30 },
+      )
+      renderTab(COMIC, vi.fn(), { libraryCategory: MEGA })
+
+      await search('batman')
+
+      expect(await screen.findByRole('button', { name: /Show details for Your Princess/ })).not.toBeNull()
+      expect(stop()).toBeNull()
+    })
+
+    it('says "of 20+" when the source has more but cannot say how many', async () => {
+      vi.mocked(api.searchSources).mockResolvedValue({ sources: volumes(1, 20), hasMore: true })
+      renderTab(COMIC)
+
+      await search('batman')
+
+      expect(await screen.findByText('20 of 20+ results')).not.toBeNull()
+    })
+
+    it('starts again at the second page on a new search, not where the last one left off', async () => {
+      vi.mocked(api.searchSources)
+        .mockResolvedValueOnce(firstPage)
+        .mockResolvedValueOnce({ sources: volumes(21, 20), hasMore: true, total: 52 })
+        .mockResolvedValueOnce({ sources: volumes(100, 20), hasMore: true, total: 60 })
+        .mockResolvedValueOnce({ sources: volumes(120, 5), total: 60 })
+      renderTab(COMIC)
+      await search('batman')
+      await screen.findByText('20 of 52+ results')
+      await act(async () => {
+        fireEvent.click(screen.getByRole('button', { name: 'Show more' }))
+      })
+
+      await search('superman')
+      await screen.findByText('20 of 60 results')
+      await act(async () => {
+        fireEvent.click(screen.getByRole('button', { name: 'Show more' }))
+      })
+
+      expect(api.searchSources).toHaveBeenLastCalledWith('comic', 'superman', { page: 2 })
+    })
+
+    it('can show more after a new search was made while the last Show more was still waiting', async () => {
+      vi.mocked(api.searchSources)
+        .mockResolvedValueOnce(firstPage)
+        .mockImplementationOnce(() => new Promise(() => {}))
+        .mockResolvedValueOnce({ sources: volumes(100, 20), hasMore: true, total: 60 })
+        .mockResolvedValueOnce({ sources: volumes(120, 5), total: 60 })
+      renderTab(COMIC)
+      await search('batman')
+      await screen.findByText('20 of 52+ results')
+      await act(async () => {
+        fireEvent.click(screen.getByRole('button', { name: 'Show more' }))
+      })
+
+      await search('superman')
+      await screen.findByText('20 of 60 results')
+      await act(async () => {
+        fireEvent.click(screen.getByRole('button', { name: 'Show more' }))
+      })
+
+      expect(rows()).toHaveLength(25)
+    })
+
+    it('takes the error strip away when Show more is pressed again', async () => {
+      vi.mocked(api.searchSources)
+        .mockResolvedValueOnce(firstPage)
+        .mockRejectedValueOnce(new Error('down'))
+        .mockImplementationOnce(() => new Promise(() => {}))
+      renderTab(COMIC)
+      await search('batman')
+      await screen.findByText('20 of 52+ results')
+      await act(async () => {
+        fireEvent.click(screen.getByRole('button', { name: 'Show more' }))
+      })
+      expect(screen.getByRole('alert')).not.toBeNull()
+
+      await act(async () => {
+        fireEvent.click(screen.getByRole('button', { name: 'Show more' }))
+      })
+
+      expect(screen.queryByRole('alert')).toBeNull()
+    })
+
+    it('locks Show more and Refine while the tab is adding a list', async () => {
+      vi.mocked(api.searchSources).mockResolvedValue(firstPage)
+      vi.mocked(api.createFromSource).mockImplementation(() => new Promise(() => {}))
+      renderTab(COMIC)
+      await search('batman')
+      await screen.findByText('20 of 52+ results')
+      fireEvent.click(rows()[0]!)
+      await act(async () => {
+        fireEvent.click(screen.getByRole('button', { name: 'Add List' }))
+      })
+
+      expect((screen.getByRole('button', { name: 'Show more' }) as HTMLButtonElement).disabled).toBe(true)
+      expect((screen.getByRole('button', { name: 'Refine search' }) as HTMLButtonElement).disabled).toBe(true)
+    })
+
+    describe('Refine search', () => {
+      it('focuses the query and selects its text, and leaves the results where they are', async () => {
+        vi.mocked(api.searchSources).mockResolvedValue(firstPage)
+        renderTab(COMIC)
+        await search('batman')
+        await screen.findByText('20 of 52+ results')
+
+        fireEvent.click(screen.getByRole('button', { name: 'Refine search' }))
+
+        const input = screen.getByLabelText(/^Search /) as HTMLInputElement
+        expect(document.activeElement).toBe(input)
+        expect([input.selectionStart, input.selectionEnd]).toEqual([0, 'batman'.length])
+        expect(rows()).toHaveLength(20)
+      })
+
+      it.each(['auto', 'scroll'])('brings the field into view by the scroll container’s own scrollTop (overflow %s), never scrollIntoView', async (overflow) => {
+        const scrollIntoView = vi.fn()
+        Element.prototype.scrollIntoView = scrollIntoView
+        vi.mocked(api.searchSources).mockResolvedValue(firstPage)
+        renderTab(COMIC)
+        await search('batman')
+        await screen.findByText('20 of 52+ results')
+        const input = screen.getByLabelText(/^Search /) as HTMLInputElement
+        // The tab's parent stands for the layer body that scrolls.
+        const scroller = input.closest('.q-search')!.parentElement as HTMLElement
+        scroller.style.overflowY = overflow
+        scroller.scrollTop = 300
+        scroller.getBoundingClientRect = () => ({ top: 100 }) as DOMRect
+        input.getBoundingClientRect = () => ({ top: 30 }) as DOMRect
+
+        fireEvent.click(screen.getByRole('button', { name: 'Refine search' }))
+
+        expect(scroller.scrollTop).toBe(230)
+        expect(scrollIntoView).not.toHaveBeenCalled()
+      })
+    })
+  })
 })

@@ -414,6 +414,16 @@ export const de: Locale = {
       searchButton: 'Suchen',
       resultsCount: (n: number): string =>
         `${n} ${selectPlural(n, 'de', { one: 'Ergebnis', other: 'Ergebnisse' })}`,
+      more: {
+        // «von N» takes the dative: «von 140 Ergebnissen».
+        count: (shown: number, total: number, lowerBound: boolean): string =>
+          `${shown} von ${total}${lowerBound ? '+' : ''} ${selectPlural(total, 'de', { one: 'Ergebnis', other: 'Ergebnissen' })}`,
+        caption: (shown: number): string => `Ende der ersten ${shown}`,
+        note: 'Weitere Treffer gefunden. Verfeinere die Suche, um bessere Ergebnisse zu erhalten — füge ein Jahr oder ein Wort aus dem Titel hinzu oder wähle eine engere Kategorie',
+        showMore: 'Mehr anzeigen',
+        loading: 'Lade…',
+        refine: 'Suche verfeinern',
+      },
       itemsKicker: 'Einträge',
       countLoading: 'Zähle…',
       expandRow: (title: string): string => `Details anzeigen: ${title}`,

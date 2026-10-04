@@ -465,6 +465,19 @@ export const en = {
       libraryQueryLabel: (source: string): string => `Search ${source}`,
       searchButton: 'Search',
       resultsCount: (n: number): string => `${n} ${selectPlural(n, 'en', { one: 'result', other: 'results' })}`,
+      /** When a search has more matches than the rows shown (Comic Vine): the design `docs/design/search-show-more`, option 5A. */
+      more: {
+        /** The results header while the list is cut off: "20 of 140+ results". The plus means the total is what has been found so far. */
+        count: (shown: number, total: number, lowerBound: boolean): string =>
+          `${shown} of ${total}${lowerBound ? '+' : ''} ${selectPlural(total, 'en', { one: 'result', other: 'results' })}`,
+        /** The mono caption over the note, after the last row. */
+        caption: (shown: number): string => `End of first ${shown}`,
+        note: 'More matches found. Refine your search to improve results — add a year, a word from the title, or pick a narrower category',
+        showMore: 'Show more',
+        /** On the Show more button while the next rows load. */
+        loading: 'Loading…',
+        refine: 'Refine search',
+      },
       itemsKicker: 'items',
       countLoading: 'Counting…',
       expandRow: (title: string): string => `Show details for ${title}`,

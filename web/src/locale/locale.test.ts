@@ -329,6 +329,49 @@ describe('plural forms', () => {
   })
 })
 
+describe('the "more matches" block of the Search tab', () => {
+  it('English: "{shown} of {total} results", with a plus while the total is a lower bound', () => {
+    const more = en.quantum.search.more
+
+    expect(more.count(20, 140, false)).toBe('20 of 140 results')
+    expect(more.count(20, 140, true)).toBe('20 of 140+ results')
+    expect(more.caption(20)).toBe('End of first 20')
+  })
+
+  it('Russian puts the noun after «из N» in the genitive: результата after 1 (21, 101), otherwise результатов', () => {
+    const count = ru.quantum.search.more.count
+
+    expect(count(20, 21, false)).toBe('20 из 21 результата')
+    expect(count(20, 101, true)).toBe('20 из 101+ результата')
+    expect(count(20, 22, false)).toBe('20 из 22 результатов')
+    expect(count(20, 25, false)).toBe('20 из 25 результатов')
+    expect(count(20, 111, false)).toBe('20 из 111 результатов')
+    expect(count(20, 140, true)).toBe('20 из 140+ результатов')
+    expect(ru.quantum.search.more.caption(20)).toBe('Конец первых 20')
+  })
+
+  it('German puts the noun after «von N» in the dative: Ergebnissen', () => {
+    const count = de.quantum.search.more.count
+
+    expect(count(20, 140, false)).toBe('20 von 140 Ergebnissen')
+    expect(count(20, 140, true)).toBe('20 von 140+ Ergebnissen')
+    expect(de.quantum.search.more.caption(20)).toBe('Ende der ersten 20')
+  })
+
+  it('names both actions and carries the design’s note in every language, with no full stop at its end', () => {
+    for (const locale of [en, ru, de]) {
+      const more = locale.quantum.search.more
+
+      expect(more.note.length).toBeGreaterThan(40)
+      expect(more.note.endsWith('.')).toBe(false)
+      expect([more.showMore, more.refine, more.loading].every((text) => text.length > 0)).toBe(true)
+    }
+    expect(en.quantum.search.more.note).toBe(
+      'More matches found. Refine your search to improve results — add a year, a word from the title, or pick a narrower category',
+    )
+  })
+})
+
 describe('durations stay short enough for a table column', () => {
   it('Russian and German abbreviate like the English "1h 30m" — spelled-out words clipped Home\'s time column', () => {
     expect(ru.duration.hoursMinutes(1, 30)).toBe('1 ч 30 мин')

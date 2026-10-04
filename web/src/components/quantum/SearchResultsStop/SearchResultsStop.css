@@ -1,0 +1,27 @@
+/* Design `docs/design/search-show-more`, 5A. A status of the list, so nothing here is row-shaped. */
+.q-search-stop {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  /* The strong rule overlaps the last row's light rule, so the list reads as closed. */
+  margin-top: -1px;
+  padding: 14px 6px 4px;
+  border-top: 1px solid var(--rule);
+}
+.q-search-stop-caption {
+  font: 500 11px/1 var(--font-mono);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink2);
+}
+.q-search-stop-note {
+  margin: 0;
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: var(--ink2);
+}
+.q-search-stop-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
