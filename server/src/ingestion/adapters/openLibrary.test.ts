@@ -1,6 +1,11 @@
 import { describe, expect, it, vi } from 'vitest'
-import type { FetchLike } from '../http.js'
+import { MAX_LIST_ITEMS } from '../../catalog/limits.js'
+import { ListTooLargeError } from '../expandSource.js'
+import { IngestionError, type FetchLike } from '../http.js'
+import type { RateLimiter } from '../rateLimiter.js'
 import { createOpenLibraryAdapter } from './openLibrary.js'
+
+const noWait = vi.fn<(ms: number) => Promise<void>>(async () => {})
 
 /**
  * Fixtures are trimmed from real Open Library responses (verified live against
@@ -306,7 +311,7 @@ describe('Open Library adapter', () => {
   })
 
   it('names the service when it fails', async () => {
-    const adapter = createOpenLibraryAdapter(respondWith({}, 503))
+    const adapter = createOpenLibraryAdapter(respondWith({}, 503), undefined, { sleep: noWait })
 
     await expect(adapter.search('x')).rejects.toThrow(/Open Library returned 503/)
   })
@@ -421,28 +426,216 @@ describe('Open Library adapter', () => {
     expect(url).toContain('language')
   })
 
-  it('stops after a bounded number of pages', async () => {
-    // A full page every time would otherwise loop forever on a big author.
-    // Titles are unique across pages (not just within one) so this exercises
-    // the pagination bound on its own, not task 6.10's title dedup.
-    let page = 0
-    const fetchImpl: FetchLike = vi.fn(async () => {
-      const offset = page * 100
-      page += 1
+  describe('an author with many works', () => {
+    /** Open Library holding `n` works with distinct titles, answered as the real one does: a page of what was asked for, and `numFound` the whole. */
+    function author(n: number, { withTotal = true } = {}) {
+      const calls: URL[] = []
+      const fetchImpl: FetchLike = vi.fn(async (url: string) => {
+        const parsed = new URL(url)
+        calls.push(parsed)
+        const offset = Number(parsed.searchParams.get('offset'))
+        const limit = Number(parsed.searchParams.get('limit'))
+        const docs = Array.from({ length: Math.max(0, Math.min(limit, n - offset)) }, (_, index) => ({
+          title: `Book ${offset + index}`,
+          number_of_pages_median: 200,
+          first_publish_year: 1900 + ((offset + index) % 100),
+        }))
 
-      return new Response(
-        JSON.stringify({
-          docs: Array.from({ length: 100 }, (_, index) => ({
-            title: `Book ${offset + index}`,
-            number_of_pages_median: 200,
-          })),
-        }),
-      )
+        return new Response(JSON.stringify({ ...(withTotal ? { numFound: n } : {}), docs }))
+      })
+
+      return { calls, fetchImpl }
+    }
+
+    it('lists every work, a thousand to a request, with nothing cut at three hundred', async () => {
+      const { calls, fetchImpl } = author(2500)
+
+      const { items } = await createOpenLibraryAdapter(fetchImpl).expand('author:OL1A')
+
+      expect(items).toHaveLength(2500)
+      expect(calls.map((url) => [url.searchParams.get('limit'), url.searchParams.get('offset')])).toEqual([
+        ['1000', '0'],
+        ['1000', '1000'],
+        ['1000', '2000'],
+      ])
     })
 
-    const items = (await createOpenLibraryAdapter(fetchImpl).expand('author:OL1A')).items
+    it('asks once for an author of a thousand works, when the answer says that is all', async () => {
+      const { calls, fetchImpl } = author(1000)
 
-    expect(items).toHaveLength(300)
-    expect(vi.mocked(fetchImpl).mock.calls.length).toBeLessThanOrEqual(3)
+      expect((await createOpenLibraryAdapter(fetchImpl).expand('author:OL1A')).items).toHaveLength(1000)
+      expect(calls).toHaveLength(1)
+    })
+
+    it('stops at the first short page when the answer names no total', async () => {
+      const { calls, fetchImpl } = author(1001, { withTotal: false })
+
+      expect((await createOpenLibraryAdapter(fetchImpl).expand('author:OL1A')).items).toHaveLength(1001)
+      expect(calls).toHaveLength(2)
+    })
+
+    it('refuses an author with more works than it will read, after one request', async () => {
+      const { calls, fetchImpl } = author(2 * MAX_LIST_ITEMS + 1)
+
+      const error = await createOpenLibraryAdapter(fetchImpl).expand('author:OL1A').catch((cause: unknown) => cause)
+
+      expect(error).toBeInstanceOf(ListTooLargeError)
+      expect(error).toMatchObject({ count: 2 * MAX_LIST_ITEMS + 1 })
+      expect(calls).toHaveLength(1)
+    })
+
+    it('reads exactly as many as it will: twenty thousand works, twenty pages', async () => {
+      const { calls, fetchImpl } = author(2 * MAX_LIST_ITEMS)
+
+      expect((await createOpenLibraryAdapter(fetchImpl).expand('author:OL1A')).items).toHaveLength(2 * MAX_LIST_ITEMS)
+      expect(calls).toHaveLength(20)
+    })
+
+    it('stops reading an endless answer that names no total, rather than reading on', async () => {
+      const { calls, fetchImpl } = author(10 * MAX_LIST_ITEMS, { withTotal: false })
+
+      const error = await createOpenLibraryAdapter(fetchImpl).expand('author:OL1A').catch((cause: unknown) => cause)
+
+      expect(error).toBeInstanceOf(ListTooLargeError)
+      expect(calls).toHaveLength(21)
+    })
+
+    it('does not cut a list above the ceiling: whoever asked refuses it, with the real count', async () => {
+      const { fetchImpl } = author(MAX_LIST_ITEMS + 500)
+
+      expect((await createOpenLibraryAdapter(fetchImpl).expand('author:OL1A')).items).toHaveLength(MAX_LIST_ITEMS + 500)
+    })
+
+    it('keeps what a language filter keeps of an author too large unfiltered', async () => {
+      // 12,000 works, a hundred of them English: the filter, not the size, decides the list.
+      const fetchImpl: FetchLike = vi.fn(async (url: string) => {
+        const offset = Number(new URL(url).searchParams.get('offset'))
+        const docs = Array.from({ length: Math.min(1000, 12_000 - offset) }, (_, index) => ({
+          title: `Book ${offset + index}`,
+          language: offset + index < 100 ? ['eng'] : ['fre'],
+        }))
+
+        return new Response(JSON.stringify({ numFound: 12_000, docs }))
+      })
+
+      expect((await createOpenLibraryAdapter(fetchImpl).expand('author:OL1A:eng')).items).toHaveLength(100)
+      expect(fetchImpl).toHaveBeenCalledTimes(12)
+    })
+
+    it('fails the listing when a later page fails, rather than listing part of a bibliography', async () => {
+      const { fetchImpl: answer } = author(2500)
+      const fetchImpl: FetchLike = vi.fn(async (url: string, init?: RequestInit) =>
+        new URL(url).searchParams.get('offset') === '1000' ? new Response('{}', { status: 400 }) : answer(url, init),
+      )
+
+      await expect(createOpenLibraryAdapter(fetchImpl, undefined, { sleep: noWait }).expand('author:OL1A')).rejects.toBeInstanceOf(
+        IngestionError,
+      )
+    })
+  })
+
+  describe('when Open Library is busy', () => {
+    function flaky(failures: number, status: number, headers: Record<string, string> = {}): FetchLike {
+      let seen = 0
+
+      return vi.fn(async () =>
+        seen++ < failures ? new Response('{}', { status, headers }) : new Response(JSON.stringify({ docs: [] })),
+      )
+    }
+
+    it('tries a 503 again, doubling the wait from half a second', async () => {
+      noWait.mockClear()
+      const fetchImpl = flaky(2, 503)
+
+      expect(await createOpenLibraryAdapter(fetchImpl, undefined, { sleep: noWait }).search('x')).toEqual([])
+      expect(fetchImpl).toHaveBeenCalledTimes(3)
+      expect(noWait.mock.calls.map(([ms]) => ms)).toEqual([500, 1000])
+    })
+
+    it('waits as long as a 429 asks, in a listing too', async () => {
+      noWait.mockClear()
+
+      await createOpenLibraryAdapter(flaky(1, 429, { 'retry-after': '4' }), undefined, { sleep: noWait }).expand('author:OL1A')
+
+      expect(noWait).toHaveBeenCalledWith(4000)
+    })
+
+    it('gives up after three tries, and does not try a 400 again', async () => {
+      const busy = flaky(9, 503)
+      await expect(createOpenLibraryAdapter(busy, undefined, { sleep: noWait }).search('x')).rejects.toThrow(
+        /Open Library returned 503/,
+      )
+      expect(busy).toHaveBeenCalledTimes(3)
+
+      const refused = flaky(9, 400)
+      await expect(createOpenLibraryAdapter(refused, undefined, { sleep: noWait }).search('x')).rejects.toThrow(IngestionError)
+      expect(refused).toHaveBeenCalledTimes(1)
+    })
+  })
+
+  describe('the line', () => {
+    function countingLimiter() {
+      const state = { calls: 0 }
+      const limiter: RateLimiter = {
+        run: (fn) => {
+          state.calls += 1
+          return fn()
+        },
+      }
+
+      return { state, limiter }
+    }
+
+    it('takes every request through one line: a search, each count a language filter asks for, each page of a listing', async () => {
+      const { state, limiter } = countingLimiter()
+      const fetchImpl = routedFetch({
+        'search/authors.json': { docs: [{ key: 'OL1A', name: 'Author One', work_count: 5 }, { key: 'OL2A', name: 'Author Two' }] },
+        'limit=0': { numFound: 3, docs: [] },
+        'fields=': { numFound: 1, docs: [{ title: 'Book' }] },
+      })
+      const adapter = createOpenLibraryAdapter(fetchImpl, limiter)
+
+      await adapter.search('author', { language: 'fre', includeUnknown: true })
+      expect(state.calls).toBe(1 + 2 * 2)
+
+      await adapter.expand('author:OL1A')
+      expect(state.calls).toBe(1 + 2 * 2 + 1)
+    })
+
+    it('makes a retry take its turn behind the rest', async () => {
+      const { state, limiter } = countingLimiter()
+      let seen = 0
+      const fetchImpl: FetchLike = vi.fn(async () =>
+        seen++ === 0 ? new Response('{}', { status: 503 }) : new Response(JSON.stringify({ docs: [] })),
+      )
+
+      await createOpenLibraryAdapter(fetchImpl, limiter, { sleep: noWait }).search('x')
+
+      expect(state.calls).toBe(2)
+    })
+
+    it('is one line for every adapter in the process, since the desktop builds its adapters again for each request', async () => {
+      vi.useFakeTimers()
+      const started: number[] = []
+      vi.stubGlobal(
+        'fetch',
+        vi.fn(async () => {
+          started.push(Date.now())
+          return new Response(JSON.stringify({ docs: [] }))
+        }),
+      )
+
+      try {
+        const searches = Promise.all([createOpenLibraryAdapter().search('a'), createOpenLibraryAdapter().search('b')])
+        await vi.advanceTimersByTimeAsync(5000)
+        await searches
+
+        expect(started).toHaveLength(2)
+        expect(started[1]! - started[0]!).toBeGreaterThanOrEqual(1100)
+      } finally {
+        vi.unstubAllGlobals()
+        vi.useRealTimers()
+      }
+    })
   })
 })

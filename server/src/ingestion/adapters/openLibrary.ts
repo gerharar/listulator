@@ -1,5 +1,8 @@
+import { MAX_LIST_ITEMS } from '../../catalog/limits.js'
 import { dedupeByTitle } from '../dedupe.js'
-import { getJson, type FetchLike } from '../http.js'
+import { ListTooLargeError } from '../expandSource.js'
+import { delay, getJson, withRetries, type FetchLike } from '../http.js'
+import { createRateLimiter, type RateLimiter } from '../rateLimiter.js'
 import type { ListSource, MediaTypeCandidate, SearchAdapter } from '../mediaTypes.js'
 import { itemsOnly } from '../expansion.js'
 
@@ -12,10 +15,28 @@ import { itemsOnly } from '../expansion.js'
  */
 
 const BASE = 'https://openlibrary.org'
-const PAGE_SIZE = 100
-/** Prolific authors are genuinely prolific: Terry Pratchett has 235 works. */
-const MAX_ITEMS = 300
-const MAX_PAGES = 3
+/**
+ * Works asked for in one request. Open Library takes far more (a `limit` of 5,000 answered, live) but a page costs
+ * its size: 1,000 works took 1.6 s and 10,000 took 16.7 s, so a thousand keeps each request short and a prolific
+ * author (Isaac Asimov: 1,476 works) at two requests, where pages of a hundred were fifteen.
+ */
+const PAGE_SIZE = 1000
+/**
+ * The most works one author's listing reads, whatever the filters later keep: twenty pages, about half a minute.
+ * An author with more (an "Anonymous" record holds many times this) is refused as too large, after one request.
+ */
+const MAX_WORKS_READ = 2 * MAX_LIST_ITEMS
+/**
+ * Open Library's documented rate is one request a second for an anonymous client, three for one that identifies
+ * itself with a contact email or phone in its `User-Agent`. Ours names the project's repository, not a contact, so
+ * it is the first; a little headroom on top.
+ */
+const REQUEST_INTERVAL_MS = 1100
+/**
+ * The line every Open Library request waits in, for the whole process: the desktop builds its adapters again for
+ * each request. A client given its own `fetch` (a test) gets none.
+ */
+export const openLibraryRequestLimiter: RateLimiter = createRateLimiter(REQUEST_INTERVAL_MS)
 
 /**
  * Minutes of reading per page.
@@ -139,15 +160,32 @@ function classifyLanguage(
   return bookLanguages.includes(wanted) ? wanted : null
 }
 
-export function createOpenLibraryAdapter(fetchImpl?: FetchLike): SearchAdapter {
+export interface OpenLibraryClientOptions {
+  /** Injectable so the waits between retries are testable without waiting. */
+  sleep?: (ms: number) => Promise<void>
+}
+
+export function createOpenLibraryAdapter(
+  fetchImpl?: FetchLike,
+  /** One line for every request this adapter makes. By default the process-wide one; a client given its own `fetch` gets none. */
+  limiter: RateLimiter | undefined = fetchImpl ? undefined : openLibraryRequestLimiter,
+  { sleep = delay }: OpenLibraryClientOptions = {},
+): SearchAdapter {
   const options = { source: 'Open Library', ...(fetchImpl ? { fetchImpl } : {}) }
+
+  /**
+   * One request in the line, tried again when Open Library says it is busy (a 5xx) or rate-limits us (a 429).
+   * Each try takes its turn in the line.
+   */
+  function request<T>(url: string): Promise<T> {
+    return withRetries(() => (limiter ? limiter.run(() => getJson<T>(url, options)) : getJson<T>(url, options)), sleep)
+  }
 
   /** One `limit=0` request — Open Library's own `numFound`, no document bodies fetched. */
   async function countWorks(authorKey: string, query: string): Promise<number> {
-    const response = await getJson<WorkSearchResponse>(
+    const response = await request<WorkSearchResponse>(
       `${BASE}/search.json?author_key=${encodeURIComponent(authorKey)}` +
         `&q=${encodeURIComponent(query)}&limit=0`,
-      options,
     )
 
     return response.numFound ?? 0
@@ -184,9 +222,8 @@ export function createOpenLibraryAdapter(fetchImpl?: FetchLike): SearchAdapter {
      * checked, added together), run in parallel.
      */
     async search(query, searchOptions) {
-      const response = await getJson<AuthorSearchResponse>(
+      const response = await request<AuthorSearchResponse>(
         `${BASE}/search/authors.json?q=${encodeURIComponent(query)}`,
-        options,
       )
 
       // Collapsed before the top-8 cut, not after — otherwise a duplicate
@@ -239,18 +276,22 @@ export function createOpenLibraryAdapter(fetchImpl?: FetchLike): SearchAdapter {
 
       const works: NonNullable<WorkSearchResponse['docs']> = []
 
-      for (let page = 0; page < MAX_PAGES; page += 1) {
-        const response = await getJson<WorkSearchResponse>(
+      for (let offset = 0; ; offset += PAGE_SIZE) {
+        const response = await request<WorkSearchResponse>(
           `${BASE}/search.json?author_key=${encodeURIComponent(key)}` +
             `&fields=title,number_of_pages_median,first_publish_year,language&sort=old` +
-            `&limit=${PAGE_SIZE}&offset=${page * PAGE_SIZE}`,
-          options,
+            `&limit=${PAGE_SIZE}&offset=${offset}`,
         )
+
+        // Said before reading on: an author this large is refused after one request, not twenty.
+        const total = response.numFound
+        if (total !== undefined && total > MAX_WORKS_READ) throw new ListTooLargeError(total)
 
         const batch = response.docs ?? []
         works.push(...batch)
+        if (works.length > MAX_WORKS_READ) throw new ListTooLargeError(works.length)
 
-        if (batch.length < PAGE_SIZE || works.length >= MAX_ITEMS) break
+        if (batch.length < PAGE_SIZE || (total !== undefined && works.length >= total)) break
       }
 
       const candidates = works
@@ -274,10 +315,9 @@ export function createOpenLibraryAdapter(fetchImpl?: FetchLike): SearchAdapter {
           ]
         })
 
-      // Deduped before the size cap, not after — the same reasoning as
-      // search()'s author collapse above: cutting first could count a
-      // duplicate against the limit instead of a real, distinct title.
-      return dedupeByTitle(candidates).slice(0, MAX_ITEMS)
+      // Every work read is listed, a duplicate title collapsed to one: the list is cut by nothing here, and a list
+      // above the ceiling is refused by whoever asked (`checkListSize`), never trimmed.
+      return dedupeByTitle(candidates)
     }),
   }
 }
