@@ -8,7 +8,10 @@ import { itemsOnly } from '../expansion.js'
  *
  * Three ways in, because one alone is not usable: paste a link, type an
  * `@handle`, or search by name. The first two cost about one quota unit; a
- * name search costs a hundred, which is why they are tried in that order.
+ * name search is the scarce call, which is why they are tried in that order:
+ * Google's current quota page gives `search.list` a bucket of its own, 100 calls
+ * a day at 1 unit each (older documentation said 100 units of the 10,000, the
+ * same hundred a day). Not observable from the API; check the key's quotas in the Cloud Console.
  *
  * The keyless RSS feeds were checked first and are no good — truncated to 15
  * entries and carrying no durations at all.
@@ -234,7 +237,7 @@ export function createYouTubeAdapter(
         return channel ? sourcesForChannel(channel) : []
       }
 
-      // Costs 100 quota units against a daily 10,000, so it is the last
+      // One of the day's 100 searches (its own quota bucket), so it is the last
       // resort — one call covering both kinds rather than two.
       const response = await request<{ items?: SearchResource[] }>('search', {
         part: 'snippet',

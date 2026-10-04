@@ -101,8 +101,8 @@ describe('YouTube adapter', () => {
   })
 
   it('resolves a pasted playlist link without spending a search', async () => {
-    // A search costs a hundred quota units against a daily ten thousand; this
-    // path costs one.
+    // A search is one of the day's hundred (its own quota bucket); this path costs one unit
+    // of the ten thousand.
     const fetchImpl = router({
       playlists: {
         items: [
@@ -163,7 +163,7 @@ describe('YouTube adapter', () => {
     const sources = await createYouTubeAdapter(credentials, fetchImpl).search('3blue1brown')
 
     expect(sources.map((source) => source.externalRef)).toEqual(['channel:UC9', 'playlist:PL9'])
-    // One call rather than two, since each costs a hundred units.
+    // One call rather than two, since each spends one of the day's hundred searches.
     expect(vi.mocked(fetchImpl).mock.calls.filter(([url]) => url.includes('/search'))).toHaveLength(1)
   })
 

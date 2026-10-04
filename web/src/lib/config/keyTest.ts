@@ -38,7 +38,7 @@ export function credentialsFor(settings: LocalSettings): NonNullable<MediaTypeOv
 
 /**
  * One category per provider and the cheapest search that still needs the key.
- * YouTube: a handle costs about one quota unit, a name search a hundred.
+ * YouTube: a handle costs about one quota unit, a name search is one of the day's hundred (its own bucket).
  */
 const PROBES: Record<KeySource, { category: string; query: string }> = {
   tmdb: { category: 'movie', query: 'Alien' },
