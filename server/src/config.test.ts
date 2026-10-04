@@ -11,7 +11,12 @@ describe('loadConfig', () => {
       databasePath: 'data/listulator.sqlite',
       port: 3001,
       host: '127.0.0.1',
+      allowedHosts: [],
     })
+  })
+
+  it('reads the extra host names the server answers to, as a comma-separated list', () => {
+    expect(loadConfig({ ALLOWED_HOSTS: ' NAS.local, 192.168.1.20 ,,' }).allowedHosts).toEqual(['nas.local', '192.168.1.20'])
   })
 
   it('accepts the usual spellings of a boolean', () => {

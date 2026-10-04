@@ -31,6 +31,12 @@ export interface ServerConfig {
   databasePath: string
   port: number
   host: string
+  /**
+   * Host names the server answers to beside this machine's own (`localhost`, `127.0.0.1`, `::1`) and `host`:
+   * what a phone or another computer uses to reach it (`ALLOWED_HOSTS=nas.local,192.168.1.20`). Every other
+   * name is refused (`auth/allowedHosts.ts`).
+   */
+  allowedHosts: string[]
 }
 
 function parseBoolean(value: string | undefined, fallback: boolean): boolean {
@@ -47,5 +53,9 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): ServerConfig {
     databasePath: env['DATABASE_PATH'] ?? 'data/listulator.sqlite',
     port: Number(env['PORT'] ?? 3001),
     host: env['HOST'] ?? '127.0.0.1',
+    allowedHosts: (env['ALLOWED_HOSTS'] ?? '')
+      .split(',')
+      .map((name) => name.trim().toLowerCase())
+      .filter(Boolean),
   }
 }

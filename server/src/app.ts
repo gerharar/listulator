@@ -1,4 +1,5 @@
 import Fastify, { type FastifyInstance } from 'fastify'
+import { allowedHostsPlugin } from './auth/allowedHosts.js'
 import { authRoutes } from './auth/routes.js'
 import { currentUserPlugin } from './auth/currentUser.js'
 import { catalogRoutes } from './catalog/routes.js'
@@ -66,6 +67,8 @@ export function buildApp({
   // every capability router registered inside it gets a resolved user.
   app.register(
     async (api) => {
+      // First: a request addressed to a name this server does not answer to (DNS rebinding) is refused before anything.
+      await api.register(allowedHostsPlugin, { bindHost: config.host, extra: config.allowedHosts })
       await api.register(currentUserPlugin, { db, config })
       await api.register(authRoutes)
       await api.register(catalogRoutes, { db, mediaTypes })
