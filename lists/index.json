@@ -190,8 +190,24 @@
     "status": "complete"
   },
   {
+    "path": "lists/documentary/dsotc-tv.yaml",
+    "title": "Dark Side Of The Cage documentary series",
+    "category": "documentary",
+    "itemCount": 15,
+    "description": "All episodes of the Dark Side Of The Cage documentary series",
+    "status": "ongoing"
+  },
+  {
+    "path": "lists/documentary/dsotr-tv.yaml",
+    "title": "Dark Side Of The Ring documentary series",
+    "category": "documentary",
+    "itemCount": 86,
+    "description": "All episodes of the Dark Side Of The Ring documentary series, including aftershows & talk shows",
+    "status": "ongoing"
+  },
+  {
     "path": "lists/documentary/world-at-war.yaml",
-    "title": "The World At War series",
+    "title": "The World At War documentary series",
     "category": "documentary",
     "itemCount": 34,
     "description": "All episodes of The World At War documentary series, including specials",
