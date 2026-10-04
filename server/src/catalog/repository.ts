@@ -27,6 +27,7 @@ import {
   type ListSource,
   type ListStatus,
 } from '../db/schema.js'
+import { setItemPositions } from './orderIndex.js'
 
 /**
  * Data access for lists and their items.
@@ -384,14 +385,12 @@ export async function reorderListItems(
     throw new ReorderMismatchError("itemIds must be exactly this list's current items, each once")
   }
 
-  // Sequential, not Promise.all — see the from-source route for why.
-  for (const [index, id] of itemIds.entries()) {
-    await db
-      .update(listItems)
-      .set({ orderIndex: index, updatedAt: new Date() })
-      .where(and(eq(listItems.id, id), eq(listItems.listId, listId)))
-      .run()
-  }
+  await setItemPositions(
+    db,
+    listId,
+    itemIds.map((id, index) => ({ id, orderIndex: index })),
+    { touch: new Date() },
+  )
 
   return findListItems(db, userId, listId)
 }

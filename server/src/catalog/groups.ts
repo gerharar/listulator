@@ -2,6 +2,7 @@ import { and, asc, eq, gte, isNotNull, max, min, sql } from 'drizzle-orm'
 import type { PortableDatabase } from '../db/client.js'
 import { dismissalTitleKey, dismissedItems, listGroups, listItems, lists, type ListGroup } from '../db/schema.js'
 import { toGroupPayload, toItemPayload, type GroupRestore } from './restorePayloads.js'
+import { movedOnly, setGroupPositions, setItemPositions } from './orderIndex.js'
 
 /**
  * A list's groups as rows of their own (D3, task 10.16).
@@ -144,11 +145,7 @@ export async function renameListGroup(
 }
 
 async function renumberGroups(db: PortableDatabase, listId: string): Promise<void> {
-  for (const [index, group] of (await groupsOf(db, listId)).entries()) {
-    if (group.orderIndex !== index) {
-      await db.update(listGroups).set({ orderIndex: index }).where(eq(listGroups.id, group.id)).run()
-    }
-  }
+  await setGroupPositions(db, listId, movedOnly(await groupsOf(db, listId)))
 }
 
 /** Dismissal rows per insert: well under SQLite's limit on bound values (`restore.ts` batches the same way). */
@@ -232,9 +229,7 @@ export async function reorderListGroups(
     throw new GroupReorderMismatchError("groupIds must be exactly this list's groups, each once")
   }
 
-  for (const [index, id] of groupIds.entries()) {
-    await db.update(listGroups).set({ orderIndex: index }).where(eq(listGroups.id, id)).run()
-  }
+  await setGroupPositions(db, listId, groupIds.map((id, index) => ({ id, orderIndex: index })))
 
   const rankByName = new Map(
     groupIds.map((id, index) => [groups.find((group) => group.id === id)!.name, index] as const),
@@ -255,15 +250,14 @@ export async function reorderListGroups(
       a.orderIndex - b.orderIndex,
   )
 
-  for (const [position, item] of sequence.entries()) {
-    if (item.orderIndex !== slots[position]) {
-      await db
-        .update(listItems)
-        .set({ orderIndex: slots[position]!, updatedAt: new Date() })
-        .where(eq(listItems.id, item.id))
-        .run()
-    }
-  }
+  await setItemPositions(
+    db,
+    listId,
+    sequence
+      .map((item, position) => ({ id: item.id, from: item.orderIndex, orderIndex: slots[position]! }))
+      .filter((move) => move.from !== move.orderIndex),
+    { touch: new Date() },
+  )
 
   return await groupsOf(db, listId)
 }
@@ -290,11 +284,7 @@ export async function seedGroupOrder(db: PortableDatabase, listId: string): Prom
     (a, b) => (earliest.get(a.name) ?? Infinity) - (earliest.get(b.name) ?? Infinity),
   )
 
-  for (const [index, group] of sorted.entries()) {
-    if (group.orderIndex !== index) {
-      await db.update(listGroups).set({ orderIndex: index }).where(eq(listGroups.id, group.id)).run()
-    }
-  }
+  await setGroupPositions(db, listId, movedOnly(sorted))
 }
 
 /**

@@ -32,6 +32,7 @@ export type {
   ListRestore,
   OrderRestore,
 } from './restorePayloads.js'
+import { setGroupPositions, setItemPositions } from './orderIndex.js'
 
 /**
  * The other half of Undo (D2, task 10.19a): put back what a destructive call
@@ -330,20 +331,8 @@ export async function restoreOrder(
 ): Promise<boolean> {
   if (!(await findList(db, userId, listId))) return false
 
-  for (const entry of items) {
-    await db
-      .update(listItems)
-      .set({ orderIndex: entry.orderIndex })
-      .where(and(eq(listItems.id, entry.id), eq(listItems.listId, listId)))
-      .run()
-  }
-  for (const entry of groups) {
-    await db
-      .update(listGroups)
-      .set({ orderIndex: entry.orderIndex })
-      .where(and(eq(listGroups.id, entry.id), eq(listGroups.listId, listId)))
-      .run()
-  }
+  await setItemPositions(db, listId, items)
+  await setGroupPositions(db, listId, groups)
 
   return true
 }

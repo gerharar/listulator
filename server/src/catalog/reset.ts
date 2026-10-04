@@ -29,6 +29,7 @@ import {
   findListSnapshot,
   updateList,
 } from './repository.js'
+import { movedOnly, setGroupPositions, setItemPositions } from './orderIndex.js'
 import { captureItemSet, restoreItemSet } from './restore.js'
 import type { ItemSetRestore, OrderRestore } from './restorePayloads.js'
 
@@ -201,20 +202,14 @@ async function reorderBy(
 
   const ordered = [...units].sort((a, b) => a.key - b.key || a.first - b.first)
 
-  let next = 0
-  for (const unit of ordered) {
-    // Inside a group too (owner, 2026-09-26): by year, no-year last, ties as they were.
-    const members = unit.members
+  // Inside a group too (owner, 2026-09-26): by year, no-year last, ties as they were.
+  const sortedItems = ordered.flatMap((unit) =>
+    unit.members
       .map((member, position) => ({ member, position }))
       .sort((a, b) => keyOf(a.member) - keyOf(b.member) || a.position - b.position)
-      .map((entry) => entry.member)
-    for (const member of members) {
-      if (member.orderIndex !== next) {
-        await db.update(listItems).set({ orderIndex: next }).where(eq(listItems.id, member.id)).run()
-      }
-      next += 1
-    }
-  }
+      .map((entry) => entry.member),
+  )
+  await setItemPositions(db, listId, movedOnly(sortedItems))
 
   // Group rows follow the blocks; a group with no items yet stays after them, as it was.
   const rank = new Map(
@@ -224,11 +219,7 @@ async function reorderBy(
     (a, b) =>
       (rank.get(a.name) ?? NO_YEAR) - (rank.get(b.name) ?? NO_YEAR) || a.orderIndex - b.orderIndex,
   )
-  for (const [index, group] of sequence.entries()) {
-    if (group.orderIndex !== index) {
-      await db.update(listGroups).set({ orderIndex: index }).where(eq(listGroups.id, group.id)).run()
-    }
-  }
+  await setGroupPositions(db, listId, movedOnly(sequence))
 
   return restore
 }
