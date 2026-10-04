@@ -846,3 +846,108 @@ describe('IGDB remakes and remasters (BL-056, owner 2026-10-04)', () => {
     ).toEqual(['Sonic the Hedgehog', 'Sonic the Hedgehog'])
   })
 })
+
+describe('IGDB groups DLC and standalone expansions under their game (owner, 2026-10-04)', () => {
+  const MAIN = 0
+  const DLC = 1
+  const STANDALONE = 4
+  const REMAKE = 8
+  const EXPANDED = 10
+  type Game = { id: number; name: string; first_release_date?: number; game_type?: number; parent_game?: number }
+  const items = async (games: Game[]) => (await createIgdbAdapter(credentials, pagedIgdb(games).fetchImpl).expand('franchise:4')).items
+  const shape = async (games: Game[]) => (await items(games)).map((item) => `${item.group ?? '-'}: ${item.title}`)
+
+  it('puts a DLC and a standalone expansion in a group named after their game, the game in it too, straight after it', async () => {
+    expect(
+      await shape([
+        { id: 1, name: 'Final Fantasy XV', first_release_date: 100, game_type: MAIN },
+        { id: 2, name: 'Final Fantasy XVI', first_release_date: 150, game_type: MAIN },
+        { id: 3, name: 'Episode Duscae', first_release_date: 50, game_type: STANDALONE, parent_game: 1 },
+        { id: 4, name: 'Episode Gladiolus', first_release_date: 200, game_type: DLC, parent_game: 1 },
+      ]),
+    ).toEqual([
+      'Final Fantasy XV: Final Fantasy XV',
+      'Final Fantasy XV: Episode Duscae',
+      'Final Fantasy XV: Episode Gladiolus',
+      '-: Final Fantasy XVI',
+    ])
+  })
+
+  it('leaves a DLC ungrouped when its game is not in the list, and the game of a group alone when it has no add-on', async () => {
+    expect(
+      await shape([
+        { id: 1, name: 'Final Fantasy XIII', first_release_date: 100, game_type: MAIN },
+        { id: 2, name: 'Tekken 7: Noctis Lucis Caelum', first_release_date: 200, game_type: DLC, parent_game: 999 },
+        { id: 3, name: 'Orphan DLC', first_release_date: 300, game_type: DLC },
+      ]),
+    ).toEqual(['-: Final Fantasy XIII', '-: Tekken 7: Noctis Lucis Caelum', '-: Orphan DLC'])
+  })
+
+  it('does not group a remake, a remaster or an expanded game under the game it is a version of', async () => {
+    expect(
+      await shape([
+        { id: 1, name: 'Final Fantasy XII', first_release_date: 100, game_type: MAIN },
+        { id: 2, name: 'Final Fantasy XII: The Zodiac Age', first_release_date: 200, game_type: EXPANDED, parent_game: 1 },
+        { id: 3, name: 'Final Fantasy VII', first_release_date: 300, game_type: MAIN },
+        { id: 4, name: 'Final Fantasy VII Remake', first_release_date: 400, game_type: REMAKE, parent_game: 3 },
+      ]),
+    ).toEqual(['-: Final Fantasy XII', '-: Final Fantasy XII: The Zodiac Age', '-: Final Fantasy VII', '-: Final Fantasy VII Remake'])
+  })
+
+  it('groups a DLC under a remake when that is its game, named as the list shows it', async () => {
+    expect(
+      await shape([
+        { id: 1, name: 'Final Fantasy VII', first_release_date: 100, game_type: MAIN },
+        { id: 2, name: 'Final Fantasy VII', first_release_date: 200, game_type: REMAKE },
+        { id: 3, name: 'Episode Intermission', first_release_date: 300, game_type: DLC, parent_game: 2 },
+      ]),
+    ).toEqual(['-: Final Fantasy VII', 'Final Fantasy VII (Remake): Final Fantasy VII (Remake)', 'Final Fantasy VII (Remake): Episode Intermission'])
+  })
+
+  it('follows a chain: a DLC of a standalone expansion goes under the game the expansion belongs to', async () => {
+    expect(
+      await shape([
+        { id: 1, name: 'Game', first_release_date: 100, game_type: MAIN },
+        { id: 2, name: 'Standalone', first_release_date: 200, game_type: STANDALONE, parent_game: 1 },
+        { id: 3, name: 'Pack', first_release_date: 300, game_type: DLC, parent_game: 2 },
+      ]),
+    ).toEqual(['Game: Game', 'Game: Standalone', 'Game: Pack'])
+  })
+
+  it('keeps every item when upstream loops (each add-on the other’s parent): ungrouped, none dropped', async () => {
+    expect(
+      await shape([
+        { id: 1, name: 'A', first_release_date: 100, game_type: DLC, parent_game: 2 },
+        { id: 2, name: 'B', first_release_date: 200, game_type: DLC, parent_game: 1 },
+      ]),
+    ).toEqual(['-: A', '-: B'])
+  })
+
+  it('keeps two groups apart when two games share a name: the year, then the id', async () => {
+    const year = (y: number) => Date.UTC(y, 5, 1) / 1000
+    expect(
+      await shape([
+        { id: 1, name: 'Sonic', first_release_date: year(1991), game_type: MAIN },
+        { id: 2, name: 'Sonic', first_release_date: year(2006), game_type: MAIN },
+        { id: 3, name: 'Sonic', first_release_date: year(2006), game_type: MAIN },
+        { id: 4, name: 'Pack 1', first_release_date: year(2007), game_type: DLC, parent_game: 1 },
+        { id: 5, name: 'Pack 2', first_release_date: year(2007), game_type: DLC, parent_game: 2 },
+        { id: 6, name: 'Pack 3', first_release_date: year(2007), game_type: DLC, parent_game: 3 },
+      ]),
+    ).toEqual([
+      'Sonic: Sonic',
+      'Sonic: Pack 1',
+      'Sonic (2006): Sonic',
+      'Sonic (2006): Pack 2',
+      'Sonic (3): Sonic',
+      'Sonic (3): Pack 3',
+    ])
+  })
+
+  it('asks IGDB for the parent', async () => {
+    const { fetchImpl, queries } = pagedIgdb([])
+    await createIgdbAdapter(credentials, fetchImpl).expand('franchise:4')
+
+    expect(queries('games')[0]!.body).toContain('parent_game')
+  })
+})

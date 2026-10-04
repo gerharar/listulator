@@ -96,6 +96,8 @@ interface GameResult {
   name?: string
   first_release_date?: number
   game_type?: number
+  /** The game a DLC or an expansion belongs to (IGDB game id). */
+  parent_game?: number
   /** IGDB platform ids. */
   platforms?: number[]
 }
@@ -174,6 +176,57 @@ function displayTitles(games: readonly GameResult[]): Map<number, string> {
   }
 
   return titles
+}
+
+/**
+ * DLC and standalone expansions sit in a group named after the game they belong to, the game in it too, so the
+ * group's count is the game plus its add-ons (owner, 2026-10-04). Only where the parent is itself in the list: a
+ * DLC whose game is not listed (another franchise's, or a bundle) stays ungrouped. A remake, a remaster and an
+ * expanded game are versions of a game, played and ticked apart, and are never grouped. The group follows the
+ * parent's chain (a DLC of a standalone expansion goes under the game that has none above it), the add-ons come
+ * straight after their game in release order, and two games of one name get their year (then their id) after it,
+ * so two groups never merge.
+ */
+function groupAddOns(games: readonly GameResult[], titles: ReadonlyMap<number, string>): { ordered: GameResult[]; groups: Map<number, string> } {
+  const byId = new Map(games.map((game) => [game.id, game]))
+  const isAddOn = (game: GameResult) => game.game_type === DLC || game.game_type === STANDALONE_EXPANSION
+
+  // A parent chain is short. One that has not ended in five steps is an upstream loop: those games stay ungrouped.
+  const rootOf = (game: GameResult): GameResult => {
+    let root = game
+    for (let hops = 0; hops < 5; hops += 1) {
+      if (!isAddOn(root) || root.parent_game === undefined || !byId.has(root.parent_game)) return root
+      root = byId.get(root.parent_game)!
+    }
+
+    return game
+  }
+
+  const addOns = new Map<number, GameResult[]>()
+  for (const game of games) {
+    const root = rootOf(game)
+    if (root !== game) addOns.set(root.id, [...(addOns.get(root.id) ?? []), game])
+  }
+
+  const groups = new Map<number, string>()
+  const taken = new Set<string>()
+  const ordered: GameResult[] = []
+  for (const game of games) {
+    const children = addOns.get(game.id)
+    if (rootOf(game) !== game) continue
+
+    ordered.push(game)
+    if (!children) continue
+
+    const name = titles.get(game.id) ?? game.name!
+    const year = releaseYear(game)
+    const label = [name, year ? `${name} (${year})` : undefined, `${name} (${game.id})`].find((candidate) => candidate && !taken.has(candidate.toLowerCase()))!
+    taken.add(label.toLowerCase())
+    for (const member of [game, ...children]) groups.set(member.id, label)
+    ordered.push(...children)
+  }
+
+  return { ordered, groups }
 }
 
 /**
@@ -410,7 +463,7 @@ export function createIgdbAdapter(
       for (let offset = 0; ; offset += PAGE_SIZE) {
         const page = await query<GameResult>(
           'games',
-          `fields name,first_release_date,game_type,platforms;` +
+          `fields name,first_release_date,game_type,parent_game,platforms;` +
             ` where ${where} & game_type = (${LISTED_TYPES.join(',')}) & first_release_date != null` +
             ` & first_release_date <= ${releasedBy};` +
             ` sort id asc; limit ${PAGE_SIZE}; offset ${offset};`,
@@ -454,8 +507,9 @@ export function createIgdbAdapter(
       )
 
       const titles = displayTitles(usable)
+      const { ordered, groups } = groupAddOns(usable, titles)
 
-      return usable.map((game): MediaTypeCandidate => {
+      return ordered.map((game): MediaTypeCandidate => {
         const minutes = minutesByGame.get(game.id)
         // Unix seconds, UTC — a Jan-1 release must not flip to the prior
         // year just because this process runs in a negative-offset zone.
@@ -468,6 +522,7 @@ export function createIgdbAdapter(
         return {
           title: titles.get(game.id) ?? game.name!,
           externalRef: `game:${game.id}`,
+          ...(groups.has(game.id) ? { group: groups.get(game.id)! } : {}),
           ...(tags ? { tags } : {}),
           // Not every game has been timed by anyone; those fall back to the
           // category default.
