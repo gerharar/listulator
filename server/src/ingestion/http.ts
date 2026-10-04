@@ -73,64 +73,85 @@ async function googleReason(response: Response): Promise<string | undefined> {
   }
 }
 
+/** An aborted request or body read: the timeout fired. Checked by name, as a `DOMException` from a webview's `fetch`. */
+function isAbort(cause: unknown): boolean {
+  return typeof cause === 'object' && cause !== null && (cause as { name?: unknown }).name === 'AbortError'
+}
+
 /**
  * Fetches with a timeout, the WebKit-User-Agent retry, and upstream
- * status-code handling shared by `getJson` and `getText` — everything up to
- * turning a successful response into a caller-shaped value, which is the one
- * thing that differs between an API that answers JSON and a raw file that
- * answers plain text (`getText`, task 7.4's canonical-repo fetch).
+ * status-code handling shared by `getJson` and `getText`, then turns the
+ * successful response into a caller-shaped value with `read`, which is the
+ * one thing that differs between an API that answers JSON and a raw file that
+ * answers plain text (`getText`, task 7.4's canonical-repo fetch). The timeout
+ * covers `read` too.
  */
-async function fetchWithRetry(
+async function request<T>(
   url: string,
   { headers = {}, timeoutMs = 15_000, source, fetchImpl = fetch, method = 'GET', body }: GetOptions,
   accept: string,
-): Promise<Response> {
+  read: (response: Response) => Promise<T>,
+): Promise<T> {
+  // One timer for the whole of an attempt, the body included: it used to stop when the headers came, so an
+  // upstream that stalled mid-answer held a one-at-a-time queue (MusicBrainz, Comic Vine, Open Library) for as
+  // long as the platform's own limit, or for ever (review 2026-10-04).
+  let timeout: ReturnType<typeof setTimeout> | undefined
+
   async function attempt(withUserAgent: boolean): Promise<Response> {
+    clearTimeout(timeout)
     const controller = new AbortController()
-    const timeout = setTimeout(() => controller.abort(), timeoutMs)
+    timeout = setTimeout(() => controller.abort(), timeoutMs)
 
-    try {
-      return await fetchImpl(url, {
-        method,
-        headers: {
-          ...(withUserAgent ? { 'user-agent': USER_AGENT } : {}),
-          accept,
-          ...headers,
-        },
-        ...(body === undefined ? {} : { body }),
-        signal: controller.signal,
-      })
-    } finally {
-      clearTimeout(timeout)
-    }
+    return await fetchImpl(url, {
+      method,
+      headers: {
+        ...(withUserAgent ? { 'user-agent': USER_AGENT } : {}),
+        accept,
+        ...headers,
+      },
+      ...(body === undefined ? {} : { body }),
+      signal: controller.signal,
+    })
   }
 
-  let response: Response
   try {
-    response = await attempt(true)
-  } catch (cause) {
-    // A browser's `fetch` refuses to let JS set `User-Agent` at all.
-    // Chromium silently drops the header; WebKit (the standalone app's
-    // macOS webview) throws synchronously instead, which otherwise looks
-    // identical to a dead network (task 5.7's smoke test caught this on
-    // Open Library, tested via a Chrome tab in task 5.3 and never seen
-    // there). Retry once without it — a no-op for Node and the Tauri HTTP
-    // plugin, which already succeeded on the first attempt. Not retried on
-    // a timeout: a slow upstream will be slow again, and doubling the wait
-    // teaches nothing.
-    if (cause instanceof Error && cause.name === 'AbortError') {
-      throw new IngestionError(`Could not reach ${source} (timed out).`)
+    let response: Response
+    try {
+      response = await attempt(true)
+    } catch (cause) {
+      // A browser's `fetch` refuses to let JS set `User-Agent` at all.
+      // Chromium silently drops the header; WebKit (the standalone app's
+      // macOS webview) throws synchronously instead, which otherwise looks
+      // identical to a dead network (task 5.7's smoke test caught this on
+      // Open Library, tested via a Chrome tab in task 5.3 and never seen
+      // there). Retry once without it — a no-op for Node and the Tauri HTTP
+      // plugin, which already succeeded on the first attempt. Not retried on
+      // a timeout: a slow upstream will be slow again, and doubling the wait
+      // teaches nothing.
+      if (isAbort(cause)) throw new IngestionError(`Could not reach ${source} (timed out).`)
+
+      try {
+        response = await attempt(false)
+      } catch (retryCause) {
+        throw new IngestionError(`Could not reach ${source}${isAbort(retryCause) ? ' (timed out)' : ''}.`)
+      }
     }
+
+    await refuseFailure(response, source)
 
     try {
-      response = await attempt(false)
-    } catch (retryCause) {
-      throw new IngestionError(
-        `Could not reach ${source}${retryCause instanceof Error && retryCause.name === 'AbortError' ? ' (timed out)' : ''}.`,
-      )
+      return await read(response)
+    } catch (cause) {
+      if (isAbort(cause)) throw new IngestionError(`Could not reach ${source} (timed out).`)
+      throw cause
     }
+  } finally {
+    clearTimeout(timeout)
   }
+}
 
+/** Throws the error a failing status stands for; returns for a success. */
+async function refuseFailure(response: Response, source: string): Promise<void> {
   if (response.status === 429) {
     throw new UpstreamError(
       `${source} is rate-limiting us. Try again in a moment.`,
@@ -179,24 +200,22 @@ async function fetchWithRetry(
       parseRetryAfter(response.headers.get('retry-after')),
     )
   }
-
-  return response
 }
 
 export async function getJson<T>(url: string, options: GetJsonOptions): Promise<T> {
-  const response = await fetchWithRetry(url, options, 'application/json')
-
-  try {
-    return (await response.json()) as T
-  } catch {
-    throw new IngestionError(`${options.source} returned something that was not JSON.`)
-  }
+  return await request(url, options, 'application/json', async (response) => {
+    try {
+      return (await response.json()) as T
+    } catch (cause) {
+      if (isAbort(cause)) throw cause
+      throw new IngestionError(`${options.source} returned something that was not JSON.`)
+    }
+  })
 }
 
 /** As `getJson`, for a plain-text response — a raw file, not an API. */
 export async function getText(url: string, options: GetOptions): Promise<string> {
-  const response = await fetchWithRetry(url, options, 'text/plain')
-  return await response.text()
+  return await request(url, options, 'text/plain', (response) => response.text())
 }
 
 /** MusicBrainz asks for no more than one request per second. */

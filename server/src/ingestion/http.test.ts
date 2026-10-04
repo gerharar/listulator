@@ -131,6 +131,41 @@ describe('getJson upstream errors', () => {
   })
 })
 
+describe('the timeout', () => {
+  /**
+   * Headers at once, then a body that never ends: what an upstream that stalls mid-answer looks like. Like a real
+   * `fetch`, the body fails when the request's signal is aborted, and only then.
+   */
+  const stallsAfterHeaders: FetchLike = async (_url, init) =>
+    new Response(
+      new ReadableStream({
+        start(controller) {
+          controller.enqueue(new TextEncoder().encode('{"partial":'))
+          init?.signal?.addEventListener('abort', () => controller.error(new DOMException('aborted', 'AbortError')))
+        },
+      }),
+      { status: 200 },
+    )
+
+  it('covers reading the body too: a stalled answer fails as timed out instead of waiting for ever', async () => {
+    // Review 2026-10-04: the timer stopped when the headers came, so a stalled body held a one-at-a-time queue
+    // (MusicBrainz, Comic Vine, Open Library) for as long as the platform's own limit, or for ever.
+    const error = await getJson('https://example.test/x', { source: 'Example', fetchImpl: stallsAfterHeaders, timeoutMs: 50 }).then(
+      () => undefined,
+      (cause: unknown) => cause,
+    )
+
+    expect(error).toBeInstanceOf(IngestionError)
+    expect((error as Error).message).toBe('Could not reach Example (timed out).')
+  })
+
+  it('still says "not JSON" for a body that ended and was not JSON', async () => {
+    const error = await failure(answer(200, {}, 'not json'))
+
+    expect((error as Error).message).toBe('Example returned something that was not JSON.')
+  })
+})
+
 describe('withRetries', () => {
   const noWait = vi.fn<(ms: number) => Promise<void>>(async () => {})
   const failing = (...errors: unknown[]) => {
