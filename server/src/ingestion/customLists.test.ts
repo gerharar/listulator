@@ -382,8 +382,25 @@ describe('isSafeCanonicalPath', () => {
     ['a traversal segment mid-path', 'lists/../../../secret.yaml'],
     ['a scheme', 'https://evil.example/x.yaml'],
     ['a backslash', 'lists\\..\\..\\secret.yaml'],
+    // Review 2026-10-04: `fetch`'s URL parser reads %2e%2e as "..", so this reached another repo's file.
+    ['an encoded traversal', '%2e%2e/%2e%2e/%2e%2e/evil/repo/main/x.yaml'],
+    ['a half-encoded traversal', '.%2E/.%2E/.%2E/evil/repo/main/x.yaml'],
+    ['an encoded slash', 'lists%2F..%2F..%2Fsecret.yaml'],
+    ['a query', 'lists/x.yaml?ref=other'],
+    ['a fragment', 'lists/x.yaml#x'],
+    // Passes the character check: the URL parser drops the tab, and ".\t." becomes "..". Only the comparison of the
+    // URL requested with the path as written catches it.
+    ['a traversal split by a tab', '.\t./.\t./.\t./evil/repo/main/x.yaml'],
+    ['a name the URL would rewrite (a space)', 'lists/my list.yaml'],
   ])('rejects %s', (_label, path) => {
     expect(isSafeCanonicalPath(path)).toBe(false)
+  })
+
+  it('accepts every path the library index lists', () => {
+    const entries = JSON.parse(fixture('lists/index.json')) as { path: string }[]
+
+    expect(entries.length).toBeGreaterThan(0)
+    expect(entries.filter((entry) => !isSafeCanonicalPath(entry.path))).toEqual([])
   })
 })
 

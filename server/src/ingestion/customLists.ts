@@ -279,17 +279,22 @@ function canonicalRawUrl(path: string): string {
 }
 
 /**
- * Rejects anything that isn't a plain, relative path inside the repo —
- * independent of, and in addition to, checking the path is actually one the
- * manifest lists. `raw.githubusercontent.com/.../main/` + a path containing
- * `..` can normalize to a different repo/host entirely, which would defeat
- * the "hardcoded to the canonical repo, never configurable" trust boundary
- * even though the manifest-membership check on its own looks sufficient.
+ * Rejects anything that isn't a plain, relative path inside the repo. The path
+ * comes from a list's `externalRef`, which any caller can set, and is not
+ * checked against the manifest, so this is the whole guard: `raw.githubusercontent.com/.../main/`
+ * + a path containing `..` normalizes to a different repo entirely, which would
+ * defeat the "hardcoded to the canonical repo, never configurable" trust boundary.
+ *
+ * `%`, `?` and `#` are refused outright (no list file name has one): `fetch`'s URL
+ * parser reads `%2e%2e` as `..`, so checking the segments as written was not
+ * enough (review 2026-10-04). And the URL actually requested must be the path
+ * as written, nothing normalized away.
  */
 export function isSafeCanonicalPath(path: string): boolean {
-  if (path.length === 0 || path.startsWith('/') || path.includes('\\')) return false
-  if (path.includes(':')) return false
-  return path.split('/').every((segment) => segment !== '..' && segment !== '.')
+  if (path.length === 0 || path.startsWith('/') || /[\\:%?#]/.test(path)) return false
+  if (!path.split('/').every((segment) => segment !== '..' && segment !== '.')) return false
+
+  return new URL(canonicalRawUrl(path)).pathname === `/${CANONICAL_REPO_OWNER}/${CANONICAL_REPO_NAME}/${CANONICAL_REPO_BRANCH}/${path}`
 }
 
 export interface CanonicalListEntry {
