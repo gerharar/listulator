@@ -1,4 +1,4 @@
-import { delay, getJson, UpstreamError, type FetchLike } from '../http.js'
+import { delay, getJson, UpstreamError, withRetries, type FetchLike } from '../http.js'
 import { createPacer, type RateLimiter } from '../rateLimiter.js'
 import type {
   ExpandOptions,
@@ -97,18 +97,6 @@ export function episodeMinutes(detail: ShowRuntimeFields): number | undefined {
 }
 
 /**
- * A request is tried this many times in all. TMDB answers 429 when its limit
- * (about 40 requests a second) is hit and now and then a 5xx; both pass, and a
- * list built from an expansion that silently lost a season is worse than one
- * that waited a second (BL-046).
- */
-const MAX_ATTEMPTS = 3
-/** The wait before a retry when the upstream names none: this, then double. */
-const BACKOFF_MS = 500
-/** A `Retry-After` longer than this is not waited out: the request fails and says so. */
-const MAX_RETRY_WAIT_MS = 10_000
-
-/**
  * TMDB serves no discover page past 500 (20 films each: ten thousand): its own limit, named here instead
  * of an arbitrary cap of ours. A listing that reaches it has everything TMDB will give.
  */
@@ -150,29 +138,18 @@ export function createTmdbClient(
     // current recommendation, the key is what most people are handed first.
     if (!readAccessToken && apiKey) search.set('api_key', apiKey)
 
-    for (let attempt = 1; ; attempt += 1) {
-      try {
-        const send = () =>
-          getJson<T>(`${BASE}${path}?${search.toString()}`, {
-            source: 'TMDB',
-            ...(readAccessToken ? { headers: { authorization: `Bearer ${readAccessToken}` } } : {}),
-            ...(fetchImpl ? { fetchImpl } : {}),
-          })
+    // TMDB answers 429 when its limit (about 40 requests a second) is hit and now and then a 5xx; both pass, and a
+    // list built from an expansion that silently lost a season is worse than one that waited a second (BL-046).
+    return withRetries(() => {
+      const send = () =>
+        getJson<T>(`${BASE}${path}?${search.toString()}`, {
+          source: 'TMDB',
+          ...(readAccessToken ? { headers: { authorization: `Bearer ${readAccessToken}` } } : {}),
+          ...(fetchImpl ? { fetchImpl } : {}),
+        })
 
-        return await (limiter ? limiter.run(send) : send())
-      } catch (error) {
-        // Only the upstream saying "slow down" or "I am broken" is worth another go. A 404 is an
-        // answer; rejected credentials and an unreachable network will not mend in a second.
-        const retryable =
-          error instanceof UpstreamError && (error.status === 429 || error.status >= 500)
-        if (!retryable || attempt >= MAX_ATTEMPTS) throw error
-
-        const wait = error.retryAfterMs ?? BACKOFF_MS * 2 ** (attempt - 1)
-        if (wait > MAX_RETRY_WAIT_MS) throw error
-
-        await sleep(wait)
-      }
-    }
+      return limiter ? limiter.run(send) : send()
+    }, sleep)
   }
 
   /** Runs `work` over `items` a few at a time rather than all at once. */

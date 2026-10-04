@@ -1,4 +1,4 @@
-import { delay, getJson, UnauthorizedError, UpstreamError, type FetchLike } from '../http.js'
+import { delay, getJson, UnauthorizedError, withRetries, type FetchLike } from '../http.js'
 import type { ListSource, MediaTypeCandidate, SearchAdapter } from '../mediaTypes.js'
 import { itemsOnly } from '../expansion.js'
 import { MAX_LIST_ITEMS } from '../../catalog/limits.js'
@@ -30,12 +30,6 @@ const PAGE_SIZE = 500
  * only the starts are spaced), as TMDB's is (15.9).
  */
 export const igdbRequestLimiter: RateLimiter = createPacer(250)
-
-/** A request is tried this many times in all, as TMDB's is (15.1): a 429 or a 5xx passes, a 400 does not. */
-const MAX_ATTEMPTS = 3
-const BACKOFF_MS = 500
-/** A `Retry-After` longer than this is not waited out: the request fails and says so. */
-const MAX_RETRY_WAIT_MS = 10_000
 
 /**
  * IGDB's `game_type`s a franchise lists: a main game, a remake, a remaster (owner, 2026-10-04: with Main Game only,
@@ -362,19 +356,10 @@ export function createIgdbAdapter(
    * is worse than one that waited a second (15.1).
    */
   async function query<T>(endpoint: string, apicalypse: string): Promise<T[]> {
-    for (let attempt = 1; ; attempt += 1) {
-      try {
-        return await (limiter ? limiter.run(() => queryOnce<T>(endpoint, apicalypse)) : queryOnce<T>(endpoint, apicalypse))
-      } catch (error) {
-        const retryable = error instanceof UpstreamError && (error.status === 429 || error.status >= 500)
-        if (!retryable || attempt >= MAX_ATTEMPTS) throw error
-
-        const wait = error.retryAfterMs ?? BACKOFF_MS * 2 ** (attempt - 1)
-        if (wait > MAX_RETRY_WAIT_MS) throw error
-
-        await sleep(wait)
-      }
-    }
+    return withRetries(
+      () => (limiter ? limiter.run(() => queryOnce<T>(endpoint, apicalypse)) : queryOnce<T>(endpoint, apicalypse)),
+      sleep,
+    )
   }
 
   return {

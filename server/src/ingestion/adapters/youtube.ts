@@ -1,5 +1,5 @@
 import { MAX_LIST_ITEMS } from '../../catalog/limits.js'
-import { delay, getJson, UpstreamError, type FetchLike } from '../http.js'
+import { delay, getJson, withRetries, type FetchLike } from '../http.js'
 import type { ListSource, MediaTypeCandidate, SearchAdapter } from '../mediaTypes.js'
 import { itemsOnly } from '../expansion.js'
 
@@ -23,12 +23,6 @@ const PAGE_SIZE = 50
  * there is no pacer here, only a modest overlap.
  */
 const DURATION_BATCHES_AT_ONCE = 5
-
-/** A request is tried this many times in all, as TMDB's and IGDB's are (15.1): a 429 or a 5xx passes, a 400 does not. */
-const MAX_ATTEMPTS = 3
-const BACKOFF_MS = 500
-/** A `Retry-After` longer than this is not waited out: the request fails and says so. */
-const MAX_RETRY_WAIT_MS = 10_000
 
 interface PlaylistResource {
   id?: string
@@ -137,22 +131,14 @@ export function createYouTubeAdapter(
   async function request<T>(path: string, params: Record<string, string>): Promise<T> {
     const search = new URLSearchParams({ ...params, key: resolve().apiKey ?? '' })
 
-    for (let attempt = 1; ; attempt += 1) {
-      try {
-        return await getJson<T>(`${API}/${path}?${search.toString()}`, {
+    return withRetries(
+      () =>
+        getJson<T>(`${API}/${path}?${search.toString()}`, {
           source: 'YouTube',
           ...(fetchImpl ? { fetchImpl } : {}),
-        })
-      } catch (error) {
-        const retryable = error instanceof UpstreamError && (error.status === 429 || error.status >= 500)
-        if (!retryable || attempt >= MAX_ATTEMPTS) throw error
-
-        const wait = error.retryAfterMs ?? BACKOFF_MS * 2 ** (attempt - 1)
-        if (wait > MAX_RETRY_WAIT_MS) throw error
-
-        await sleep(wait)
-      }
-    }
+        }),
+      sleep,
+    )
   }
 
   /** A channel, offered as its uploads plus whatever playlists it keeps. */

@@ -1,10 +1,11 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import {
   getJson,
   IngestionError,
   parseRetryAfter,
   UnauthorizedError,
   UpstreamError,
+  withRetries,
   type FetchLike,
 } from './http.js'
 
@@ -127,5 +128,67 @@ describe('getJson upstream errors', () => {
 
     expect(error).toBeInstanceOf(IngestionError)
     expect(error).not.toBeInstanceOf(UpstreamError)
+  })
+})
+
+describe('withRetries', () => {
+  const noWait = vi.fn<(ms: number) => Promise<void>>(async () => {})
+  const failing = (...errors: unknown[]) => {
+    const pending = [...errors]
+
+    return vi.fn(async () => {
+      if (pending.length > 0) throw pending.shift()
+
+      return 'answer'
+    })
+  }
+
+  it('returns the answer of the first try without waiting', async () => {
+    noWait.mockClear()
+
+    expect(await withRetries(failing(), noWait)).toBe('answer')
+    expect(noWait).not.toHaveBeenCalled()
+  })
+
+  it('tries a 429 or a 5xx again, doubling the wait from 500 ms', async () => {
+    noWait.mockClear()
+    const attempt = failing(new UpstreamError('x', 503), new UpstreamError('x', 429))
+
+    expect(await withRetries(attempt, noWait)).toBe('answer')
+    expect(noWait.mock.calls.map(([ms]) => ms)).toEqual([500, 1000])
+  })
+
+  it('waits what Retry-After names, up to ten seconds and not beyond', async () => {
+    noWait.mockClear()
+    expect(await withRetries(failing(new UpstreamError('x', 429, 10_000)), noWait)).toBe('answer')
+    expect(noWait).toHaveBeenLastCalledWith(10_000)
+
+    noWait.mockClear()
+    const refused = new UpstreamError('x', 429, 10_001)
+    await expect(withRetries(failing(refused), noWait)).rejects.toBe(refused)
+    expect(noWait).not.toHaveBeenCalled()
+  })
+
+  it('gives up after three tries with the last error', async () => {
+    const last = new UpstreamError('last', 500)
+    const attempt = failing(new UpstreamError('a', 500), new UpstreamError('b', 500), last)
+
+    await expect(withRetries(attempt, noWait)).rejects.toBe(last)
+    expect(attempt).toHaveBeenCalledTimes(3)
+  })
+
+  it('does not try again what will not mend: a 400, a 404, rejected credentials, a dead network, any other error', async () => {
+    for (const error of [
+      new UpstreamError('x', 400),
+      new UpstreamError('x', 404),
+      new UnauthorizedError('x'),
+      new IngestionError('Could not reach X.'),
+      new TypeError('boom'),
+    ]) {
+      const attempt = failing(error)
+
+      await expect(withRetries(attempt, noWait)).rejects.toBe(error)
+      expect(attempt).toHaveBeenCalledTimes(1)
+    }
   })
 })

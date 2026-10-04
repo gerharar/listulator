@@ -203,3 +203,39 @@ export async function getText(url: string, options: GetOptions): Promise<string>
 export function delay(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms))
 }
+
+/** A request is tried this many times in all. */
+const MAX_ATTEMPTS = 3
+/** The wait before a retry when the upstream names none: this, then double. */
+const BACKOFF_MS = 500
+/** A `Retry-After` longer than this is not waited out: the request fails and says so. */
+const MAX_RETRY_WAIT_MS = 10_000
+
+/**
+ * Runs `attempt`, and tries it again when the upstream said "slow down" (429) or "I am broken" (a 5xx): up to
+ * three tries in all, waiting what `Retry-After` names or 500 ms and then 1000 ms, and never longer than ten
+ * seconds (a longer ask fails now, saying so). Anything else is an answer or will not mend in a second (a 400,
+ * a 404, rejected credentials, an unreachable network) and passes through untouched. A listing that lost a page
+ * to one glitch is worse than one that waited a second (15.1, BL-046).
+ *
+ * `attempt` should include any pacing of its own, so each retry takes its turn in the upstream's line.
+ * `sleep` is injectable so the waits are testable without real waiting.
+ */
+export async function withRetries<T>(
+  attempt: () => Promise<T>,
+  sleep: (ms: number) => Promise<void> = delay,
+): Promise<T> {
+  for (let tries = 1; ; tries += 1) {
+    try {
+      return await attempt()
+    } catch (error) {
+      const retryable = error instanceof UpstreamError && (error.status === 429 || error.status >= 500)
+      if (!retryable || tries >= MAX_ATTEMPTS) throw error
+
+      const wait = error.retryAfterMs ?? BACKOFF_MS * 2 ** (tries - 1)
+      if (wait > MAX_RETRY_WAIT_MS) throw error
+
+      await sleep(wait)
+    }
+  }
+}
