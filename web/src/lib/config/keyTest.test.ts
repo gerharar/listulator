@@ -80,9 +80,16 @@ describe('testKey', () => {
     expect(await testKey('igdb', { igdbClientId: 'id', igdbClientSecret: 'bad' }, { igdb: fetchImpl })).toBe('rejected')
   })
 
-  it('Comic Vine: reads a bad key from the body, since it answers 200 either way', async () => {
+  it('Comic Vine: a bad key is rejected, whether it comes as the real HTTP 401 or as code 100 in a 200', async () => {
+    // Live (2026-10-04) it is a 401 with this body; the body check stays for a 200 that carries the same.
+    const refused = network(() => json({ status_code: 100, error: 'Invalid API Key' }, 401))
+    expect(await testKey('comicVine', { comicVineApiKey: 'x' }, { comicVine: refused.fetchImpl })).toBe('rejected')
+
     const bad = network(() => json({ status_code: 100, error: 'Invalid API Key', results: [] }))
     expect(await testKey('comicVine', { comicVineApiKey: 'x' }, { comicVine: bad.fetchImpl })).toBe('rejected')
+
+    const filter = network(() => json({ status_code: 104, error: 'Filter Error', results: [] }))
+    expect(await testKey('comicVine', { comicVineApiKey: 'x' }, { comicVine: filter.fetchImpl })).toBe('failed')
 
     const good = network(() => json({ status_code: 1, error: 'OK', results: [] }))
     expect(await testKey('comicVine', { comicVineApiKey: 'x' }, { comicVine: good.fetchImpl })).toBe('working')
