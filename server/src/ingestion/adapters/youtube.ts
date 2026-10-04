@@ -21,6 +21,17 @@ const API = 'https://www.googleapis.com/youtube/v3'
 /** The API's own ceiling for `maxResults` on playlist items, and for the ids one `videos` call takes. */
 const PAGE_SIZE = 50
 /**
+ * A channel's playlists offered in a search: two pages. Listing is one unit a page, so the cost that matters is the
+ * count each row then asks for (one unit apiece): a hundred rows are about 1% of the day's 10,000, and a channel
+ * past that (rare) loses its tail, so refine by pasting the playlist's own link. BL-058; DECISIONS 2026-10-04.
+ */
+const MAX_CHANNEL_PLAYLISTS = 100
+/**
+ * A name search is one of the day's 100 `search.list` calls however many results it asks for, and 50 is the most a
+ * call gives, so it asks for all of them. A second page would spend another of the hundred: not offered.
+ */
+const NAME_SEARCH_RESULTS = 50
+/**
  * Lengths are asked for this many batches at a time: a channel of 10,000 uploads is 200 batches, about a minute
  * one after another. YouTube publishes a daily quota (10,000 units, a batch is one) and no rate per second, so
  * there is no pacer here, only a modest overlap.
@@ -31,6 +42,11 @@ interface PlaylistResource {
   id?: string
   snippet?: { title?: string; channelTitle?: string; publishedAt?: string }
   contentDetails?: { itemCount?: number }
+}
+
+interface PlaylistsResponse {
+  nextPageToken?: string
+  items?: PlaylistResource[]
 }
 
 interface ChannelResource {
@@ -158,15 +174,24 @@ export function createYouTubeAdapter(
     ]
 
     // Most channels meant to be watched through keep playlists, so these are
-    // usually the more useful answer. A failure here fails the search: offering the uploads alone would
-    // read as a channel with no playlists.
-    const playlists = await request<{ items?: PlaylistResource[] }>('playlists', {
-      part: 'snippet,contentDetails',
-      channelId: channel.id,
-      maxResults: '10',
-    })
+    // usually the more useful answer. A failure here (any page) fails the search: offering the uploads alone, or the
+    // first fifty, would read as a channel with no more playlists.
+    const playlists: PlaylistResource[] = []
+    let pageToken: string | undefined
 
-    for (const playlist of playlists.items ?? []) {
+    do {
+      const page: PlaylistsResponse = await request<PlaylistsResponse>('playlists', {
+        part: 'snippet,contentDetails',
+        channelId: channel.id,
+        maxResults: String(PAGE_SIZE),
+        ...(pageToken ? { pageToken } : {}),
+      })
+
+      playlists.push(...(page.items ?? []))
+      pageToken = page.nextPageToken
+    } while (pageToken && playlists.length < MAX_CHANNEL_PLAYLISTS)
+
+    for (const playlist of playlists.slice(0, MAX_CHANNEL_PLAYLISTS)) {
       if (!playlist.id) continue
       sources.push({
         externalRef: `playlist:${playlist.id}`,
@@ -242,7 +267,7 @@ export function createYouTubeAdapter(
       const response = await request<{ items?: SearchResource[] }>('search', {
         part: 'snippet',
         type: 'channel,playlist',
-        maxResults: '10',
+        maxResults: String(NAME_SEARCH_RESULTS),
         q: input.value,
       })
 

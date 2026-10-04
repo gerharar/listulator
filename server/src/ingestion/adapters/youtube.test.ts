@@ -167,6 +167,106 @@ describe('YouTube adapter', () => {
     expect(vi.mocked(fetchImpl).mock.calls.filter(([url]) => url.includes('/search'))).toHaveLength(1)
   })
 
+  it('asks for fifty results in the one name search, which costs the same as ten', async () => {
+    const fetchImpl = router({ search: { items: [] } })
+
+    await createYouTubeAdapter(credentials, fetchImpl).search('3blue1brown')
+
+    const calls = vi.mocked(fetchImpl).mock.calls.map(([url]) => new URL(url))
+    expect(calls).toHaveLength(1)
+    expect(calls[0]!.searchParams.get('maxResults')).toBe('50')
+    expect(calls[0]!.searchParams.has('pageToken')).toBe(false)
+  })
+
+  describe('a channel with many playlists', () => {
+    const channel = { items: [{ id: 'UC1', snippet: { title: 'Veritasium' } }] }
+
+    /** A channel keeping `total` playlists, answered fifty a page, pages numbered from 1. */
+    function channelOf(total: number): FetchLike {
+      return vi.fn(async (url: string) => {
+        const parsed = new URL(url)
+        if (!parsed.pathname.endsWith('/playlists')) return new Response(JSON.stringify(channel))
+
+        const first = parsed.searchParams.has('pageToken') ? Number(parsed.searchParams.get('pageToken')) : 0
+        const size = Number(parsed.searchParams.get('maxResults'))
+        const last = Math.min(first + size, total)
+
+        return new Response(
+          JSON.stringify({
+            items: Array.from({ length: last - first }, (_, index) => ({
+              id: `PL${first + index}`,
+              snippet: { title: `Playlist ${first + index}` },
+              contentDetails: { itemCount: 1 },
+            })),
+            ...(last < total ? { nextPageToken: String(last) } : {}),
+          }),
+        )
+      })
+    }
+
+    const playlistCalls = (fetchImpl: FetchLike) =>
+      vi.mocked(fetchImpl).mock.calls.map(([url]) => new URL(url)).filter((url) => url.pathname.endsWith('/playlists'))
+
+    it('offers every playlist when it keeps sixty, asking for fifty a page', async () => {
+      const fetchImpl = channelOf(60)
+
+      const sources = await createYouTubeAdapter(credentials, fetchImpl).search('@veritasium')
+
+      expect(sources).toHaveLength(61)
+      expect(sources.at(-1)?.externalRef).toBe('playlist:PL59')
+      const calls = playlistCalls(fetchImpl)
+      expect(calls).toHaveLength(2)
+      expect(calls[0]!.searchParams.get('maxResults')).toBe('50')
+      expect(calls[0]!.searchParams.has('pageToken')).toBe(false)
+      expect(calls[1]!.searchParams.get('pageToken')).toBe('50')
+    })
+
+    it('stops at a hundred playlists, and does not ask for a third page', async () => {
+      const fetchImpl = channelOf(500)
+
+      const sources = await createYouTubeAdapter(credentials, fetchImpl).search('@veritasium')
+
+      expect(sources).toHaveLength(101)
+      expect(sources.at(-1)?.externalRef).toBe('playlist:PL99')
+      expect(playlistCalls(fetchImpl)).toHaveLength(2)
+    })
+
+    it('keeps a hundred even when the API hands over more than it was asked for', async () => {
+      const fetchImpl: FetchLike = vi.fn(async (url: string) =>
+        new URL(url).pathname.endsWith('/playlists')
+          ? new Response(
+              JSON.stringify({
+                items: Array.from({ length: 70 }, (_, index) => ({ id: `PL${index}`, snippet: { title: 'p' } })),
+                nextPageToken: 'more',
+              }),
+            )
+          : new Response(JSON.stringify(channel)),
+      )
+
+      expect(await createYouTubeAdapter(credentials, fetchImpl).search('@veritasium')).toHaveLength(101)
+    })
+
+    it('asks once for a channel with no playlists, and offers its uploads', async () => {
+      const fetchImpl = channelOf(0)
+
+      const sources = await createYouTubeAdapter(credentials, fetchImpl).search('@veritasium')
+
+      expect(sources.map((source) => source.externalRef)).toEqual(['channel:UC1'])
+      expect(playlistCalls(fetchImpl)).toHaveLength(1)
+    })
+
+    it('fails the search when a later page fails, rather than offering half the playlists', async () => {
+      const first = channelOf(500)
+      const fetchImpl: FetchLike = vi.fn(async (url: string, init?: RequestInit) =>
+        new URL(url).searchParams.has('pageToken') ? new Response('{}', { status: 400 }) : first(url, init),
+      )
+
+      await expect(createYouTubeAdapter(credentials, fetchImpl).search('@veritasium')).rejects.toBeInstanceOf(
+        IngestionError,
+      )
+    })
+  })
+
   it('expands a playlist in its own order, with durations', async () => {
     const adapter = createYouTubeAdapter(
       credentials,
