@@ -26,6 +26,71 @@ const CHUNK = 250
 
 export type BulkItemInput = Omit<CreateListItemInput, 'orderIndex'>
 
+/** What a source says about one item: a search result, a listing, a stored copy, a refresh's "what's new". */
+export interface SourcedItem {
+  title: string
+  // Null as well: Reset reads them back from stored rows. Empty either way.
+  externalRef?: string | null | undefined
+  year?: number | null | undefined
+  group?: string | null | undefined
+  tags?: string[] | null | undefined
+  notes?: string | null | undefined
+  /** A better guess than the category's default when the source has no length (an IGDB DLC). */
+  estimatedMinutes?: number | undefined
+}
+
+/**
+ * A new item from what a source said, one rule for Add list, the import route and Reset (review 2026-10-04: it was
+ * written out five times). The length is the source's own when known (`minutes`); otherwise its better guess or
+ * the category's default, marked estimated, which is how `time_to_consume_minutes` is never null. Empty values are
+ * left out. `source` is `'import'`; a caller that knows better spreads its own over it.
+ */
+export function itemFromSource(item: SourcedItem, minutes: number | undefined, fallbackMinutes: number): BulkItemInput {
+  const known = minutes !== undefined
+
+  return {
+    title: item.title,
+    timeToConsumeMinutes: known ? minutes : (item.estimatedMinutes ?? fallbackMinutes),
+    timeToConsumeIsEstimated: !known,
+    ...(item.externalRef ? { externalRef: item.externalRef } : {}),
+    ...(item.year ? { year: item.year } : {}),
+    ...(item.group ? { group: item.group } : {}),
+    ...(item.tags ? { tags: item.tags } : {}),
+    ...(item.notes ? { notes: item.notes } : {}),
+    source: 'import',
+  }
+}
+
+/** One item of a list file, as the parser hands it over. */
+export interface FileItem {
+  title: string
+  year?: number | undefined
+  minutes?: number | undefined
+  group?: string | undefined
+  tags?: string[] | undefined
+  notes?: string | undefined
+}
+
+/**
+ * A new item from a list file (pasted, uploaded, dropped in the folder, or from the library): the file's
+ * `minutes`, or the category's default marked estimated. Every field the file wrote is kept as written, an empty
+ * one too, unlike `itemFromSource`: the file paths always did, and a refactor is not the place to change it.
+ */
+export function itemFromFile(item: FileItem, defaultMinutes: number): BulkItemInput {
+  const known = item.minutes !== undefined
+
+  return {
+    title: item.title,
+    timeToConsumeMinutes: known ? item.minutes! : defaultMinutes,
+    timeToConsumeIsEstimated: !known,
+    ...(item.year !== undefined ? { year: item.year } : {}),
+    ...(item.group !== undefined ? { group: item.group } : {}),
+    ...(item.tags !== undefined ? { tags: item.tags } : {}),
+    ...(item.notes !== undefined ? { notes: item.notes } : {}),
+    source: 'import',
+  }
+}
+
 const chunksOf = <T>(items: readonly T[]): T[][] => {
   const out: T[][] = []
   for (let start = 0; start < items.length; start += CHUNK) out.push(items.slice(start, start + CHUNK))

@@ -31,7 +31,7 @@ import {
   type ListWithStats,
   type RuntimeStatsOptions,
 } from '../../../server/src/catalog/repository.js'
-import { createListItems, discardList } from '../../../server/src/catalog/bulkItems.js'
+import { createListItems, discardList, itemFromFile, itemFromSource } from '../../../server/src/catalog/bulkItems.js'
 import { MAX_LIST_ITEMS } from '../../../server/src/catalog/limits.js'
 import { knownRuntimes, withKnownRuntimes, withRuntimePending } from '../../../server/src/catalog/runtimes.js'
 import {
@@ -532,22 +532,7 @@ export function createLocalApi(): ApiClient {
           database,
           userId,
           listId,
-          withKnownLengths.map((item) => {
-            const known = item.timeToConsumeMinutes !== undefined
-
-            return {
-              title: item.title,
-              timeToConsumeMinutes: known ? item.timeToConsumeMinutes! : (item.estimatedMinutes ?? fallbackMinutes),
-              timeToConsumeIsEstimated: !known,
-              ...(item.externalRef ? { externalRef: item.externalRef } : {}),
-              ...(item.year ? { year: item.year } : {}),
-              ...(item.group ? { group: item.group } : {}),
-              ...(item.tags ? { tags: item.tags } : {}),
-              ...(item.notes ? { notes: item.notes } : {}),
-              source,
-              isNew: arrived,
-            }
-          }),
+          withKnownLengths.map((item) => ({ ...itemFromSource(item, item.timeToConsumeMinutes, fallbackMinutes), source, isNew: arrived })),
         )) ?? []
       await seedGroupOrder(database, listId)
 
@@ -846,20 +831,7 @@ export function createLocalApi(): ApiClient {
             database,
             userId,
             list.id,
-            parsed.items.map((item) => {
-              const known = item.minutes !== undefined
-
-              return {
-                title: item.title,
-                timeToConsumeMinutes: known ? item.minutes! : parsedMediaType.defaultDurationMinutes,
-                timeToConsumeIsEstimated: !known,
-                ...(item.year !== undefined ? { year: item.year } : {}),
-                ...(item.group !== undefined ? { group: item.group } : {}),
-                ...(item.tags !== undefined ? { tags: item.tags } : {}),
-                ...(item.notes !== undefined ? { notes: item.notes } : {}),
-                source: 'import' as const,
-              }
-            }),
+            parsed.items.map((item) => itemFromFile(item, parsedMediaType.defaultDurationMinutes)),
           )
           await seedGroupOrder(database, list.id)
         } catch (error) {
@@ -932,23 +904,7 @@ export function createLocalApi(): ApiClient {
           database,
           userId,
           list.id,
-          candidates.map((candidate) => {
-            const known = candidate.timeToConsumeMinutes !== undefined
-
-            return {
-              title: candidate.title,
-              timeToConsumeMinutes: known
-                ? candidate.timeToConsumeMinutes!
-                : (candidate.estimatedMinutes ?? mediaType.defaultDurationMinutes),
-              timeToConsumeIsEstimated: !known,
-              ...(candidate.externalRef ? { externalRef: candidate.externalRef } : {}),
-              ...(candidate.year ? { year: candidate.year } : {}),
-              ...(candidate.group ? { group: candidate.group } : {}),
-              ...(candidate.tags ? { tags: candidate.tags } : {}),
-              ...(candidate.notes ? { notes: candidate.notes } : {}),
-              source: 'import' as const,
-            }
-          }),
+          candidates.map((candidate) => itemFromSource(candidate, candidate.timeToConsumeMinutes, mediaType.defaultDurationMinutes)),
         )
 
         // The arrived-state snapshot (D4), written here and refreshed later (Phase 12) — built from the
@@ -1007,20 +963,7 @@ export function createLocalApi(): ApiClient {
           database,
           userId,
           list.id,
-          parsed.items.map((item) => {
-            const known = item.minutes !== undefined
-
-            return {
-              title: item.title,
-              timeToConsumeMinutes: known ? item.minutes! : mediaType.defaultDurationMinutes,
-              timeToConsumeIsEstimated: !known,
-              ...(item.year !== undefined ? { year: item.year } : {}),
-              ...(item.group !== undefined ? { group: item.group } : {}),
-              ...(item.tags !== undefined ? { tags: item.tags } : {}),
-              ...(item.notes !== undefined ? { notes: item.notes } : {}),
-              source: 'import' as const,
-            }
-          }),
+          parsed.items.map((item) => itemFromFile(item, mediaType.defaultDurationMinutes)),
         )
         await seedGroupOrder(database, list.id)
       } catch (error) {

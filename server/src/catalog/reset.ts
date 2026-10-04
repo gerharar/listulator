@@ -22,7 +22,7 @@ import type { ExpansionCache } from '../ingestion/expansionCache.js'
 import { IngestionError, type FetchLike } from '../ingestion/http.js'
 import type { ListExpansion, MediaType } from '../ingestion/mediaTypes.js'
 import { findListGroups, seedGroupOrder } from './groups.js'
-import { createListItems } from './bulkItems.js'
+import { createListItems, itemFromSource } from './bulkItems.js'
 import {
   findList,
   findListItems,
@@ -490,21 +490,7 @@ export async function resetToSource(
       db,
       userId,
       listId,
-      target.items.map((item) => {
-        const known = item.minutes !== undefined
-
-        return {
-          title: item.title,
-          timeToConsumeMinutes: known ? item.minutes! : (item.estimatedMinutes ?? fallbackMinutes),
-          timeToConsumeIsEstimated: !known,
-          ...(item.externalRef ? { externalRef: item.externalRef } : {}),
-          ...(item.year ? { year: item.year } : {}),
-          ...(item.group ? { group: item.group } : {}),
-          ...(item.tags ? { tags: item.tags } : {}),
-          ...(item.notes ? { notes: item.notes } : {}),
-          source: 'import' as const,
-        }
-      }),
+      target.items.map((item) => itemFromSource(item, item.minutes, fallbackMinutes)),
     )
 
     await seedGroupOrder(db, listId)

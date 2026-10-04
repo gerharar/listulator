@@ -26,7 +26,7 @@ import {
   untrackedLibraryEntries,
   type ParsedCustomList,
 } from './customLists.js'
-import { createListItems, discardList } from '../catalog/bulkItems.js'
+import { createListItems, discardList, itemFromFile, itemFromSource } from '../catalog/bulkItems.js'
 import { MAX_LIST_ITEMS } from '../catalog/limits.js'
 import { knownRuntimes, withKnownRuntimes } from '../catalog/runtimes.js'
 import { enrichPrefixesByMediaType } from '../catalog/runtimeFill.js'
@@ -115,20 +115,7 @@ export const ingestionRoutes: FastifyPluginAsync<IngestionRoutesOptions> = async
         db,
         user.id,
         list.id,
-        parsed.items.map((item) => {
-          const known = item.minutes !== undefined
-
-          return {
-            title: item.title,
-            timeToConsumeMinutes: known ? item.minutes! : mediaType.defaultDurationMinutes,
-            timeToConsumeIsEstimated: !known,
-            ...(item.year !== undefined ? { year: item.year } : {}),
-            ...(item.group !== undefined ? { group: item.group } : {}),
-            ...(item.tags !== undefined ? { tags: item.tags } : {}),
-            ...(item.notes !== undefined ? { notes: item.notes } : {}),
-            source: 'import' as const,
-          }
-        }),
+        parsed.items.map((item) => itemFromFile(item, mediaType.defaultDurationMinutes)),
       )
 
       await seedGroupOrder(db, list.id)
@@ -447,23 +434,7 @@ export const ingestionRoutes: FastifyPluginAsync<IngestionRoutesOptions> = async
           db,
           user.id,
           list.id,
-          candidates.map((candidate) => {
-            const known = candidate.timeToConsumeMinutes !== undefined
-
-            return {
-              title: candidate.title,
-              timeToConsumeMinutes: known
-                ? candidate.timeToConsumeMinutes!
-                : (candidate.estimatedMinutes ?? mediaType.defaultDurationMinutes),
-              timeToConsumeIsEstimated: !known,
-              ...(candidate.externalRef ? { externalRef: candidate.externalRef } : {}),
-              ...(candidate.year ? { year: candidate.year } : {}),
-              ...(candidate.group ? { group: candidate.group } : {}),
-              ...(candidate.tags ? { tags: candidate.tags } : {}),
-              ...(candidate.notes ? { notes: candidate.notes } : {}),
-              source: 'import' as const,
-            }
-          }),
+          candidates.map((candidate) => itemFromSource(candidate, candidate.timeToConsumeMinutes, mediaType.defaultDurationMinutes)),
         )
 
         // The arrived-state snapshot (D4), written here and refreshed later (Phase 12) — built from the
@@ -805,22 +776,7 @@ export const ingestionRoutes: FastifyPluginAsync<IngestionRoutesOptions> = async
           db,
           user.id,
           listId,
-          withKnownLengths.map((item) => {
-            const known = item.timeToConsumeMinutes !== undefined
-
-            return {
-              title: item.title,
-              timeToConsumeMinutes: known ? item.timeToConsumeMinutes! : (item.estimatedMinutes ?? fallbackMinutes),
-              timeToConsumeIsEstimated: !known,
-              ...(item.externalRef ? { externalRef: item.externalRef } : {}),
-              ...(item.year ? { year: item.year } : {}),
-              ...(item.group ? { group: item.group } : {}),
-              ...(item.tags ? { tags: item.tags } : {}),
-              ...(item.notes ? { notes: item.notes } : {}),
-              source,
-              isNew: request.body.arrived === true,
-            }
-          }),
+          withKnownLengths.map((item) => ({ ...itemFromSource(item, item.timeToConsumeMinutes, fallbackMinutes), source, isNew: request.body.arrived === true })),
         )) ?? []
 
       // Hand-typed items rarely carry years, so this mostly keeps the order

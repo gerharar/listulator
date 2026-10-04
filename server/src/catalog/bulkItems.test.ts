@@ -2,7 +2,7 @@ import { eq } from 'drizzle-orm'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { listGroups, listItems, lists, users } from '../db/schema.js'
 import { createTestApp, type TestApp } from '../testing/harness.js'
-import { createListItems, discardList } from './bulkItems.js'
+import { createListItems, discardList, itemFromFile, itemFromSource } from './bulkItems.js'
 import {
   createList,
   createListItem,
@@ -270,6 +270,78 @@ describe('bulk item insert (15.9b)', () => {
       expect(db().select().from(lists).where(eq(lists.id, list.id)).all()).toHaveLength(1)
 
       await discardList(db(), userId, 'no-such-list')
+    })
+  })
+})
+
+describe('a new item from what a source said (one rule for every import path)', () => {
+  it('takes the source’s own length when it knows one, not estimated', () => {
+    expect(itemFromSource({ title: 'Heat', estimatedMinutes: 40 }, 170, 100)).toEqual({
+      title: 'Heat',
+      timeToConsumeMinutes: 170,
+      timeToConsumeIsEstimated: false,
+      source: 'import',
+    })
+  })
+
+  it('falls back to the source’s better guess, then the category default, marked estimated', () => {
+    expect(itemFromSource({ title: 'DLC', estimatedMinutes: 240 }, undefined, 600)).toMatchObject({
+      timeToConsumeMinutes: 240,
+      timeToConsumeIsEstimated: true,
+    })
+    expect(itemFromSource({ title: 'Film' }, undefined, 100)).toMatchObject({ timeToConsumeMinutes: 100, timeToConsumeIsEstimated: true })
+  })
+
+  it('carries what the source knows and leaves out what is empty', () => {
+    expect(
+      itemFromSource(
+        { title: 'E1', externalRef: 'tmdb:1', year: 2001, group: 'S1', tags: ['Pilot'], notes: 'Cut' },
+        42,
+        30,
+      ),
+    ).toEqual({
+      title: 'E1',
+      timeToConsumeMinutes: 42,
+      timeToConsumeIsEstimated: false,
+      externalRef: 'tmdb:1',
+      year: 2001,
+      group: 'S1',
+      tags: ['Pilot'],
+      notes: 'Cut',
+      source: 'import',
+    })
+    expect(itemFromSource({ title: 'Bare', externalRef: '', group: '', notes: '' }, 1, 30)).toEqual({
+      title: 'Bare',
+      timeToConsumeMinutes: 1,
+      timeToConsumeIsEstimated: false,
+      source: 'import',
+    })
+    // A stored row's nulls, as Reset reads them.
+    expect(itemFromSource({ title: 'Bare', externalRef: null, year: null, group: null, tags: null, notes: null }, 1, 30)).toEqual({
+      title: 'Bare',
+      timeToConsumeMinutes: 1,
+      timeToConsumeIsEstimated: false,
+      source: 'import',
+    })
+  })
+})
+
+describe('a new item from a list file', () => {
+  it('takes the file’s minutes, or the category default marked estimated', () => {
+    expect(itemFromFile({ title: 'A', minutes: 90 }, 30)).toEqual({ title: 'A', timeToConsumeMinutes: 90, timeToConsumeIsEstimated: false, source: 'import' })
+    expect(itemFromFile({ title: 'B' }, 30)).toEqual({ title: 'B', timeToConsumeMinutes: 30, timeToConsumeIsEstimated: true, source: 'import' })
+  })
+
+  it('keeps every field the file wrote, an empty one included, as the file paths always have', () => {
+    expect(itemFromFile({ title: 'C', year: 1999, group: '', tags: [], notes: '' }, 30)).toEqual({
+      title: 'C',
+      timeToConsumeMinutes: 30,
+      timeToConsumeIsEstimated: true,
+      year: 1999,
+      group: '',
+      tags: [],
+      notes: '',
+      source: 'import',
     })
   })
 })
