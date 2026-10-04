@@ -16,10 +16,13 @@ set -e
 repo_root=$(git rev-parse --show-toplevel)
 cd "$repo_root"
 
-staged=$(git diff --cached --name-only --diff-filter=ACM -- lists/ | grep -E '\.ya?ml$' || true)
+lists='lists/*.yaml lists/*.yml'
 
-if [ -z "$staged" ]; then
+# shellcheck disable=SC2086 # the two pathspecs are meant to split
+if [ -z "$(git diff --cached --name-only --diff-filter=ACM -- $lists)" ]; then
   exit 0
 fi
 
-echo "$staged" | xargs npx tsx server/src/tools/validateLists.ts
+# NUL-separated, so a file name with a space reaches the validator as one name, not two.
+# shellcheck disable=SC2086
+git diff --cached --name-only -z --diff-filter=ACM -- $lists | xargs -0 npx tsx server/src/tools/validateLists.ts

@@ -28,6 +28,13 @@ describe('loadConfig', () => {
     }
   })
 
+  it('refuses a port that is not a whole number from 1 to 65535, rather than starting on a random one', () => {
+    for (const value of ['abc', '', '0', '65536', '30.5', '-1']) {
+      expect(() => loadConfig({ PORT: value })).toThrow(/PORT/)
+    }
+    expect(loadConfig({ PORT: ' 3002 ' }).port).toBe(3002)
+  })
+
   it('refuses a boolean it cannot understand rather than guessing', () => {
     // Guessing here would silently decide whether the app is multi-tenant.
     expect(() => loadConfig({ SINGLE_USER_MODE: 'maybe' })).toThrow(/boolean/)

@@ -501,7 +501,7 @@ export const ingestionRoutes: FastifyPluginAsync<IngestionRoutesOptions> = async
       }
 
       const list = await importParsedList(user, parsed, { sourceYaml: request.body.yaml })
-      return reply.code(201).send(await findListWithStats(db, user.id, list.id))
+      return reply.code(201).send(await findListWithStats(db, user.id, list.id, runtimeStats()))
     },
   )
 

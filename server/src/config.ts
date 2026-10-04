@@ -47,11 +47,22 @@ function parseBoolean(value: string | undefined, fallback: boolean): boolean {
   throw new Error(`Expected a boolean value, got "${value}"`)
 }
 
+/** `PORT`: a whole number from 1 to 65535. Anything else would start the server somewhere unexpected (0 is "any free port"). */
+function parsePort(value: string | undefined, fallback: number): number {
+  if (value === undefined) return fallback
+  const trimmed = value.trim()
+  const port = Number(trimmed)
+  if (!/^\d+$/.test(trimmed) || port < 1 || port > 65535) {
+    throw new Error(`Expected PORT to be a whole number from 1 to 65535, got "${value}"`)
+  }
+  return port
+}
+
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): ServerConfig {
   return {
     singleUserMode: parseBoolean(env['SINGLE_USER_MODE'], true),
     databasePath: env['DATABASE_PATH'] ?? 'data/listulator.sqlite',
-    port: Number(env['PORT'] ?? 3001),
+    port: parsePort(env['PORT'], 3001),
     host: env['HOST'] ?? '127.0.0.1',
     allowedHosts: (env['ALLOWED_HOSTS'] ?? '')
       .split(',')
