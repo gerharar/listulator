@@ -91,7 +91,7 @@ describe('parseYouTubeInput', () => {
     })
   })
 
-  it('reads a bare album (OLAK5uy_…) or favourites (FL…) id as a playlist', () => {
+  it('reads a bare album (OLAK5uy_…), favourites (FL…) or mix (RD…) id as a playlist', () => {
     expect(parseYouTubeInput('OLAK5uy_kiwRYvPdVYD5m1G6RgfbGUUYsP2XqPxX0')).toEqual({
       kind: 'playlist',
       value: 'OLAK5uy_kiwRYvPdVYD5m1G6RgfbGUUYsP2XqPxX0',
@@ -100,11 +100,11 @@ describe('parseYouTubeInput', () => {
       kind: 'playlist',
       value: 'FLHnyfMqiRRG1u-2MsSQLbXA',
     })
+    expect(parseYouTubeInput('RDdQw4w9WgXcQ')).toEqual({ kind: 'playlist', value: 'RDdQw4w9WgXcQ' })
   })
 
-  it('has nothing to search for in a bare mix id (RD…) or a link it cannot read', () => {
+  it('has nothing to search for in a link it cannot read', () => {
     for (const input of [
-      'RDdQw4w9WgXcQ',
       'https://example.com/some/page',
       'https://www.youtube.com/feed/subscriptions',
       'https://www.youtube.com/watch?v=tooshort',
@@ -289,8 +289,8 @@ describe('YouTube adapter', () => {
       expect(new URL(vi.mocked(fetchImpl).mock.calls[0]![0]).searchParams.get('id')).toBe('UCHnyfMqiRRG1u-2MsSQLbXA')
     })
 
-    it('looks up a bare album or favourites id as a playlist, one call', async () => {
-      for (const id of ['OLAK5uy_kiwRYvPdVYD5m1G6RgfbGUUYsP2XqPxX0', 'FLHnyfMqiRRG1u-2MsSQLbXA']) {
+    it('looks up a bare album, favourites or mix id as a playlist, one call', async () => {
+      for (const id of ['OLAK5uy_kiwRYvPdVYD5m1G6RgfbGUUYsP2XqPxX0', 'FLHnyfMqiRRG1u-2MsSQLbXA', 'RDdQw4w9WgXcQ']) {
         const fetchImpl = router({
           playlists: { items: [{ id, snippet: { title: 'Album', channelTitle: 'Band' }, contentDetails: { itemCount: 9 } }] },
         })
@@ -303,8 +303,8 @@ describe('YouTube adapter', () => {
       }
     })
 
-    it('offers nothing, and asks nothing, for a mix id or a link it cannot read', async () => {
-      for (const input of ['RDdQw4w9WgXcQ', 'https://example.com/some/page', 'https://www.youtube.com/feed/subscriptions']) {
+    it('offers nothing, and asks nothing, for a link it cannot read', async () => {
+      for (const input of ['https://example.com/some/page', 'https://www.youtube.com/feed/subscriptions']) {
         const fetchImpl = router({})
 
         expect(await createYouTubeAdapter(credentials, fetchImpl).search(input)).toEqual([])

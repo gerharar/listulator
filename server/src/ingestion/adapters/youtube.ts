@@ -98,8 +98,8 @@ const VIDEO_ID = /^[\w-]{11}$/
 
 /**
  * Pulls a playlist, channel, handle or video out of whatever was typed. `query` is a name worth one of the day's
- * hundred searches; `unusable` is input that is not a name and that nothing here can look up (a mix id, a link to
- * some other page), which is answered with nothing rather than a search that finds nothing (BL-059).
+ * hundred searches; `unusable` is input that is not a name and that nothing here can look up (a link to some other
+ * page), which is answered with nothing rather than a search that finds nothing (BL-059).
  */
 export function parseYouTubeInput(raw: string): YouTubeInput {
   const input = raw.trim()
@@ -142,10 +142,9 @@ export function parseYouTubeInput(raw: string): YouTubeInput {
   // A channel's uploads playlist is its channel id with UC swapped for UU (checked live on one channel); read as the
   // channel, so the uploads come oldest first as a channel's always do.
   if (/^UU[\w-]{22}$/.test(input)) return { kind: 'channel', value: `UC${input.slice(2)}` }
-  // An album (YouTube Music) or a favourites list: ordinary playlists to the API (the favourites one checked live).
-  if (/^(?:OLAK5uy_[\w-]{10,}|FL[\w-]{20,})$/.test(input)) return { kind: 'playlist', value: input }
-  // A mix is made for whoever asked, and is a different list tomorrow: no list to keep.
-  if (/^RD[\w-]{9,}$/.test(input)) return { kind: 'unusable', value: input }
+  // An album (YouTube Music), a favourites list or a mix: ordinary playlists to the API (favourites and a mix checked
+  // live). A mix is made for whoever asked and is another list tomorrow; the owner chose to offer it anyway.
+  if (/^(?:OLAK5uy_[\w-]{10,}|FL[\w-]{20,}|RD[\w-]{9,})$/.test(input)) return { kind: 'playlist', value: input }
 
   return { kind: 'query', value: input }
 }
