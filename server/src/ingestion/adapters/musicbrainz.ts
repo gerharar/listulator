@@ -2,7 +2,7 @@ import { MAX_LIST_ITEMS } from '../../catalog/limits.js'
 import { delay, getJson, IngestionError, withRetries, type FetchLike } from '../http.js'
 import { createRateLimiter, type RateLimiter } from '../rateLimiter.js'
 import { ListTooLargeError } from '../expandSource.js'
-import type { ListSource, MediaTypeCandidate, SearchAdapter } from '../mediaTypes.js'
+import type { ListSource, MediaTypeCandidate, SearchAdapter, SearchOptions, SearchPage } from '../mediaTypes.js'
 import { itemsOnly } from '../expansion.js'
 
 /**
@@ -23,10 +23,13 @@ const REQUEST_INTERVAL_MS = 1100
  */
 export const musicBrainzRequestLimiter: RateLimiter = createRateLimiter(REQUEST_INTERVAL_MS)
 /**
- * A search stops paging at offset 500: past it the answer is HTTP 400 (checked live), whatever `count` says. A
- * discography with more matches than this is read by browsing instead.
+ * A search (of artists, of release groups) stops paging at offset 500: past it the answer is HTTP 400 (checked
+ * live), whatever `count` says. A discography with more matches than this is read by browsing instead; an artist
+ * search simply ends there.
  */
 const SEARCH_WINDOW = 500
+/** Artists a page of the Search tab shows, and what "Show more" adds: twenty, as Comic Vine's. */
+const SEARCH_PAGE_SIZE = 20
 /**
  * The most release groups a browse reads, matching or not (a browse cannot leave out a live album, so an artist's
  * whole catalogue is read to find the studio ones): a hundred pages, about two minutes at one request a second.
@@ -34,6 +37,8 @@ const SEARCH_WINDOW = 500
 const MAX_GROUPS_READ = MAX_LIST_ITEMS
 
 interface ArtistSearchResponse {
+  /** How many artists match, exactly (7,145 for "smith"), not how many the answer holds. */
+  count?: number
   artists?: {
     id: string
     name: string
@@ -219,23 +224,43 @@ export function createMusicBrainzAdapter(
     }
   }
 
-  return {
-    // Needs no credentials, so it is always usable.
-    isAvailable: () => true,
+  async function searchPage(query: string, searchOptions?: SearchOptions): Promise<SearchPage> {
+    const offset = SEARCH_PAGE_SIZE * (Math.max(1, searchOptions?.page ?? 1) - 1)
+    // Past the window MusicBrainz answers 400, so the pages end there and a page beyond is empty without asking.
+    if (offset >= SEARCH_WINDOW) return { sources: [] }
 
-    async search(query) {
-      const response = await request<ArtistSearchResponse>(
-        `${BASE}/artist?query=${encodeURIComponent(query)}&fmt=json&limit=10`,
-      )
+    const response = await request<ArtistSearchResponse>(
+      `${BASE}/artist?query=${encodeURIComponent(query)}&fmt=json&limit=${SEARCH_PAGE_SIZE}&offset=${offset}`,
+    )
 
-      return (response.artists ?? []).map((artist): ListSource => ({
+    const artists = response.artists ?? []
+    const reachable = Math.min(response.count ?? 0, SEARCH_WINDOW)
+
+    return {
+      sources: artists.map((artist): ListSource => ({
         externalRef: artist.id,
         // Every list this adapter builds is a discography (studio albums,
         // plus whichever release types the discography-type filters opt
         // into) — never a mixed or partial catalogue, so the name says so.
         title: `${artist.name} Discography`,
         ...(describe(artist) ? { detail: describe(artist) } : {}),
-      }))
+      })),
+      ...(artists.length > 0 && offset + artists.length < reachable ? { hasMore: true as const } : {}),
+      ...(response.count === undefined ? {} : { total: response.count }),
+    }
+  }
+
+  return {
+    // Needs no credentials, so it is always usable.
+    isAvailable: () => true,
+
+    // The search a page at a time (BL-063): up to twenty artists a page, with how many match. Always the same page
+    // size, since a page of ten and a page of twenty are not slices of one order (checked live); the order is
+    // stable for the same question.
+    searchPage,
+
+    async search(query) {
+      return (await searchPage(query)).sources
     },
 
     // How many items `expand` would list, in one request: the search's own `count` of what the facets keep. A

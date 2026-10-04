@@ -194,6 +194,112 @@ describe('MusicBrainz adapter', () => {
     ])
   })
 
+  describe('an artist search a page at a time (BL-063)', () => {
+    /** `n` artists answered as MusicBrainz does: `count` is the whole, a page is the slice asked for. */
+    function artists(n: number) {
+      const all = Array.from({ length: n }, (_, index) => ({ id: `artist-${index}`, name: `Artist ${index}` }))
+      const calls: URL[] = []
+      const fetchImpl: FetchLike = vi.fn(async (url: string) => {
+        const parsed = new URL(url)
+        calls.push(parsed)
+        const offset = Number(parsed.searchParams.get('offset'))
+        const limit = Number(parsed.searchParams.get('limit'))
+
+        return new Response(JSON.stringify({ count: n, offset, artists: all.slice(offset, offset + limit) }))
+      })
+
+      return { calls, fetchImpl }
+    }
+
+    it('asks for twenty, and says there are more and how many match', async () => {
+      const { calls, fetchImpl } = artists(45)
+
+      const page = await createMusicBrainzAdapter(fetchImpl).searchPage!('smith')
+
+      expect(page.sources).toHaveLength(20)
+      expect(page.sources[0]?.externalRef).toBe('artist-0')
+      expect(page).toMatchObject({ hasMore: true, total: 45 })
+      expect(page.totalIsLowerBound).toBeUndefined()
+      expect(calls[0]!.searchParams.get('limit')).toBe('20')
+      expect(calls[0]!.searchParams.get('offset')).toBe('0')
+    })
+
+    it('gives the next twenty for page two and the rest, with no more to come, for the last', async () => {
+      const { calls, fetchImpl } = artists(45)
+      const adapter = createMusicBrainzAdapter(fetchImpl)
+
+      const second = await adapter.searchPage!('smith', { page: 2 })
+      const third = await adapter.searchPage!('smith', { page: 3 })
+
+      expect(second.sources.map((source) => source.externalRef)).toEqual(
+        Array.from({ length: 20 }, (_, index) => `artist-${20 + index}`),
+      )
+      expect(second.hasMore).toBe(true)
+      expect(third.sources).toHaveLength(5)
+      expect(third.hasMore).toBeUndefined()
+      expect(third.total).toBe(45)
+      expect(calls.map((url) => url.searchParams.get('offset'))).toEqual(['20', '40'])
+    })
+
+    it('has no more after exactly one full page', async () => {
+      const { fetchImpl } = artists(20)
+
+      expect((await createMusicBrainzAdapter(fetchImpl).searchPage!('x')).hasMore).toBeUndefined()
+    })
+
+    it('ends at the five-hundredth result, where MusicBrainz stops answering, and says how many match', async () => {
+      const { calls, fetchImpl } = artists(7145)
+      const adapter = createMusicBrainzAdapter(fetchImpl)
+
+      const last = await adapter.searchPage!('smith', { page: 25 })
+      expect(last.sources).toHaveLength(20)
+      expect(last.hasMore).toBeUndefined()
+      expect(last.total).toBe(7145)
+      expect(calls[0]!.searchParams.get('offset')).toBe('480')
+
+      const beyond = await adapter.searchPage!('smith', { page: 26 })
+      expect(beyond).toEqual({ sources: [] })
+      expect(calls).toHaveLength(1)
+
+      expect((await adapter.searchPage!('smith', { page: 24 })).hasMore).toBe(true)
+    })
+
+    it('offers no more from an answer that holds no artists, whatever it counts', async () => {
+      const fetchImpl: FetchLike = vi.fn(async () => new Response(JSON.stringify({ count: 99, artists: [] })))
+
+      expect(await createMusicBrainzAdapter(fetchImpl).searchPage!('x')).toEqual({ sources: [], total: 99 })
+    })
+
+    it('says nothing of a total, or of more, when the answer carries no count', async () => {
+      const page = await createMusicBrainzAdapter(respondWith(ARTIST_SEARCH)).searchPage!('x')
+
+      expect(page.sources).toHaveLength(2)
+      expect(page).not.toHaveProperty('hasMore')
+      expect(page).not.toHaveProperty('total')
+    })
+
+    it('reads a page below one as the first', async () => {
+      const { calls, fetchImpl } = artists(45)
+
+      await createMusicBrainzAdapter(fetchImpl).searchPage!('x', { page: 0 })
+
+      expect(calls[0]!.searchParams.get('offset')).toBe('0')
+    })
+
+    it('is what a plain search returns on its first page', async () => {
+      const { fetchImpl } = artists(45)
+      const adapter = createMusicBrainzAdapter(fetchImpl)
+
+      expect(await adapter.search('smith')).toEqual((await adapter.searchPage!('smith')).sources)
+    })
+
+    it('fails a later page when the request fails, rather than ending the list quietly', async () => {
+      const fetchImpl: FetchLike = vi.fn(async () => new Response('{}', { status: 400 }))
+
+      await expect(createMusicBrainzAdapter(fetchImpl).searchPage!('x', { page: 2 })).rejects.toBeInstanceOf(IngestionError)
+    })
+  })
+
   it('identifies itself, because MusicBrainz refuses anonymous clients', async () => {
     const fetchImpl = respondWith(ARTIST_SEARCH)
     await createMusicBrainzAdapter(fetchImpl).search('anything')
