@@ -184,6 +184,25 @@ describe('the desktop builds a list at once and fills its lengths afterwards (15
     expect((await api.list(list.id)).stats.runtimesPending).toBe(1)
   })
 
+  it('counts an item the source estimated better than the category default at that, still estimated', async () => {
+    const expand = vi.fn<(ref: string) => Promise<{ items: MediaTypeCandidate[] }>>(async () => ({
+      items: [{ title: 'A' }, { title: 'A DLC', estimatedMinutes: 20 }, { title: 'B', timeToConsumeMinutes: 30, estimatedMinutes: 20 }],
+    }))
+    registryHolder.current = [{ key: 'plain', label: 'Plain', sortOrder: 1, defaultDurationMinutes: 45, adapter: { isAvailable: () => true, search: async () => [], expand } }]
+    const { local } = await freshModules()
+    const api = local.createLocalApi()
+
+    const list = await api.createFromSource({ mediaType: 'plain', externalRef: 'anything', title: 'Plain list' })
+    await api.importItems(list.id, [{ title: 'Later DLC', estimatedMinutes: 20 }])
+
+    expect((await api.list(list.id)).items.map((item) => [item.title, item.timeToConsumeMinutes, item.timeToConsumeIsEstimated])).toEqual([
+      ['A', 45, true],
+      ['A DLC', 20, true],
+      ['B', 30, false],
+      ['Later DLC', 20, true],
+    ])
+  })
+
   it('leaves a source with nothing to look up as it was', async () => {
     const expand = vi.fn<(ref: string) => Promise<{ items: MediaTypeCandidate[] }>>(async () => ({
       items: [{ title: 'A' }, { title: 'B', timeToConsumeMinutes: 30 }],

@@ -532,7 +532,7 @@ export function createLocalApi(): ApiClient {
 
             return {
               title: item.title,
-              timeToConsumeMinutes: known ? item.timeToConsumeMinutes! : fallbackMinutes,
+              timeToConsumeMinutes: known ? item.timeToConsumeMinutes! : (item.estimatedMinutes ?? fallbackMinutes),
               timeToConsumeIsEstimated: !known,
               ...(item.externalRef ? { externalRef: item.externalRef } : {}),
               ...(item.year ? { year: item.year } : {}),
@@ -931,7 +931,7 @@ export function createLocalApi(): ApiClient {
               title: candidate.title,
               timeToConsumeMinutes: known
                 ? candidate.timeToConsumeMinutes!
-                : mediaType.defaultDurationMinutes,
+                : (candidate.estimatedMinutes ?? mediaType.defaultDurationMinutes),
               timeToConsumeIsEstimated: !known,
               ...(candidate.externalRef ? { externalRef: candidate.externalRef } : {}),
               ...(candidate.year ? { year: candidate.year } : {}),

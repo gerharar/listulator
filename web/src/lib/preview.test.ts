@@ -86,6 +86,14 @@ describe('summarizePreview', () => {
     })
   })
 
+  it('uses a source’s own estimate before the category default, still an estimate', () => {
+    expect(summarizePreview([{ title: 'A', estimatedMinutes: 20 }, { title: 'B' }, { title: 'C', timeToConsumeMinutes: 30, estimatedMinutes: 20 }], 60)).toEqual({
+      count: 3,
+      minutes: 110,
+      estimated: true,
+    })
+  })
+
   it('handles an empty list', () => {
     expect(summarizePreview([], 60)).toEqual({ count: 0, minutes: 0, estimated: false })
   })

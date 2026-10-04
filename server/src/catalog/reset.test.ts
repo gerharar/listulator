@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { IngestionError } from '../ingestion/http.js'
 import { createMediaTypeRegistry, type ListExpansion, type SearchAdapter } from '../ingestion/mediaTypes.js'
-import { listItems, users } from '../db/schema.js'
+import { listItems, listSnapshots, users } from '../db/schema.js'
 import { createTestApp, type TestApp } from '../testing/harness.js'
 import { resetToSource } from './reset.js'
 import { createList as createStoredList, findList } from './repository.js'
@@ -375,6 +375,36 @@ describe('sort and reset', () => {
 
       expect(reset.statusCode).toBe(200)
       expect(shape(await detail(list.id))).toEqual(fresh)
+    })
+
+    it('gives back a source’s own estimate for an item with no length (an IGDB DLC), not the category default', async () => {
+      expand.mockImplementation(async () => ({
+        items: [
+          { title: 'A game', externalRef: 'g:1' },
+          { title: 'A DLC', externalRef: 'g:2', estimatedMinutes: 240 },
+          { title: 'A timed one', externalRef: 'g:3', timeToConsumeMinutes: 90 },
+        ],
+      }))
+      const list = await apiList()
+      const lengths = async () => (await detail(list.id)).items.map((i) => [i.title, i.timeToConsumeMinutes, i.timeToConsumeIsEstimated])
+      const fresh = [['A game', 600, true], ['A DLC', 240, true], ['A timed one', 90, false]]
+      expect(await lengths()).toEqual(fresh)
+
+      await send('DELETE', `/lists/${list.id}/items/${byTitle(list, 'A DLC').id}`)
+      await send('POST', `/lists/${list.id}/reset`)
+
+      expect(await lengths()).toEqual(fresh)
+    })
+
+    it('gives a source’s own estimate to a list with no stored copy too, taken from the source now', async () => {
+      expand.mockImplementation(async () => ({ items: [{ title: 'A DLC', externalRef: 'g:2', estimatedMinutes: 240 }, { title: 'A game', externalRef: 'g:1' }] }))
+      const list = await apiList()
+      await harness.db.delete(listSnapshots).run()
+
+      const reset = await send('POST', `/lists/${list.id}/reset`)
+
+      expect(reset.statusCode).toBe(200)
+      expect((await detail(list.id)).items.map((i) => [i.title, i.timeToConsumeMinutes, i.timeToConsumeIsEstimated])).toEqual([['A DLC', 240, true], ['A game', 600, true]])
     })
 
     it('makes no call to the source', async () => {

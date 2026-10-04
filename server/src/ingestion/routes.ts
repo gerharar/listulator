@@ -51,6 +51,8 @@ export interface IngestionRoutesOptions {
 interface ImportItem {
   title: string
   timeToConsumeMinutes?: number
+  /** An estimate better than the category's default, carried from a source's candidate (see `MediaTypeCandidate`). */
+  estimatedMinutes?: number
   externalRef?: string
   year?: number
   group?: string
@@ -437,7 +439,7 @@ export const ingestionRoutes: FastifyPluginAsync<IngestionRoutesOptions> = async
               title: candidate.title,
               timeToConsumeMinutes: known
                 ? candidate.timeToConsumeMinutes!
-                : mediaType.defaultDurationMinutes,
+                : (candidate.estimatedMinutes ?? mediaType.defaultDurationMinutes),
               timeToConsumeIsEstimated: !known,
               ...(candidate.externalRef ? { externalRef: candidate.externalRef } : {}),
               ...(candidate.year ? { year: candidate.year } : {}),
@@ -732,6 +734,7 @@ export const ingestionRoutes: FastifyPluginAsync<IngestionRoutesOptions> = async
                 properties: {
                   title: { type: 'string', minLength: 1, maxLength: 500 },
                   timeToConsumeMinutes: { type: 'integer', minimum: 0 },
+                  estimatedMinutes: { type: 'integer', minimum: 0 },
                   externalRef: { type: 'string', maxLength: 500 },
                   year: { type: 'integer' },
                   group: { type: 'string', maxLength: 500 },
@@ -792,7 +795,7 @@ export const ingestionRoutes: FastifyPluginAsync<IngestionRoutesOptions> = async
 
             return {
               title: item.title,
-              timeToConsumeMinutes: known ? item.timeToConsumeMinutes! : fallbackMinutes,
+              timeToConsumeMinutes: known ? item.timeToConsumeMinutes! : (item.estimatedMinutes ?? fallbackMinutes),
               timeToConsumeIsEstimated: !known,
               ...(item.externalRef ? { externalRef: item.externalRef } : {}),
               ...(item.year ? { year: item.year } : {}),

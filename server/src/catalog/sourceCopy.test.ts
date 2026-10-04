@@ -119,6 +119,18 @@ describe('refreshSourceCopy', () => {
     }
   }
 
+  it('stores a source’s own estimate for an item with no length, in place of the category default', async () => {
+    const list = await fetchList()
+    upstream = { items: [{ title: 'Episode 1', externalRef: 'v1', estimatedMinutes: 12 }, { title: 'Episode 2', externalRef: 'v2' }] }
+
+    await refreshSourceCopy(harness.db, list, deps(), REFRESHED)
+
+    expect(await snapshotRows(list)).toMatchObject([
+      { title: 'Episode 1', timeToConsumeMinutes: 12, timeToConsumeIsEstimated: true },
+      { title: 'Episode 2', timeToConsumeMinutes: 45, timeToConsumeIsEstimated: true },
+    ])
+  })
+
   it('replaces the snapshot with what the source says now, and dates it', async () => {
     const list = await fetchList()
     upstream = {

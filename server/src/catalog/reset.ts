@@ -268,6 +268,8 @@ export interface ResetResult {
 interface TargetItem {
   title: string
   minutes?: number
+  /** A better estimate than the category's default, from a source's candidate. */
+  estimatedMinutes?: number
   externalRef?: string | null
   year?: number | null
   group?: string | null
@@ -337,6 +339,7 @@ async function liveTarget(
     items: expansion.items.map((item) => ({
       title: item.title,
       ...(item.timeToConsumeMinutes !== undefined ? { minutes: item.timeToConsumeMinutes } : {}),
+      ...(item.estimatedMinutes !== undefined ? { estimatedMinutes: item.estimatedMinutes } : {}),
       ...(item.externalRef ? { externalRef: item.externalRef } : {}),
       ...(item.year ? { year: item.year } : {}),
       ...(item.group ? { group: item.group } : {}),
@@ -377,13 +380,17 @@ async function resolveTarget(
 
     // A list that arrived before 10.2e has no arrived_* columns: keep what it has.
     const arrived = list.arrivedTitle !== null
+    // An estimate the source itself made (an IGDB DLC's 4 hours) was stored as the row's length: it is kept, so a
+    // Reset gives back what the import made.
     return {
       title: arrived ? list.arrivedTitle! : list.title,
       description: arrived ? list.arrivedDescription : list.description,
       status: arrived ? list.arrivedStatus : list.status,
       items: snapshot.map((row) => ({
         title: row.title,
-        ...(row.timeToConsumeIsEstimated ? {} : { minutes: row.timeToConsumeMinutes }),
+        ...(row.timeToConsumeIsEstimated
+          ? { estimatedMinutes: row.timeToConsumeMinutes }
+          : { minutes: row.timeToConsumeMinutes }),
         externalRef: row.externalRef,
         year: row.year,
         group: row.group,
@@ -497,7 +504,7 @@ export async function resetToSource(
 
         return {
           title: item.title,
-          timeToConsumeMinutes: known ? item.minutes! : fallbackMinutes,
+          timeToConsumeMinutes: known ? item.minutes! : (item.estimatedMinutes ?? fallbackMinutes),
           timeToConsumeIsEstimated: !known,
           ...(item.externalRef ? { externalRef: item.externalRef } : {}),
           ...(item.year ? { year: item.year } : {}),

@@ -55,7 +55,7 @@ function snapshotRowsFor(
     const known = candidate.timeToConsumeMinutes !== undefined
     const row = {
       title: candidate.title,
-      timeToConsumeMinutes: known ? candidate.timeToConsumeMinutes! : defaultDurationMinutes,
+      timeToConsumeMinutes: known ? candidate.timeToConsumeMinutes! : (candidate.estimatedMinutes ?? defaultDurationMinutes),
       timeToConsumeIsEstimated: !known,
       externalRef: candidate.externalRef || null,
       year: candidate.year || null,

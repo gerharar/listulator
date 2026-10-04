@@ -71,7 +71,7 @@ export function summarizePreview(
 
   for (const item of items) {
     if (item.timeToConsumeMinutes === undefined) estimated = true
-    minutes += item.timeToConsumeMinutes ?? defaultMinutes
+    minutes += item.timeToConsumeMinutes ?? item.estimatedMinutes ?? defaultMinutes
   }
 
   return { count: items.length, minutes, estimated }

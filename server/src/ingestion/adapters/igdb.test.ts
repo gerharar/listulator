@@ -951,3 +951,35 @@ describe('IGDB groups DLC and standalone expansions under their game (owner, 202
     expect(queries('games')[0]!.body).toContain('parent_game')
   })
 })
+
+describe('IGDB counts a DLC with no time-to-beat as 4 hours, not a whole game (owner, 2026-10-04)', () => {
+  const MAIN = 0
+  const DLC = 1
+  const STANDALONE = 4
+  it('estimates a DLC IGDB has no time for, and leaves the length itself unset so the item stays estimated', async () => {
+    const { fetchImpl } = pagedIgdb([{ id: 1, name: 'Game', first_release_date: 100, game_type: MAIN }, { id: 2, name: 'Game: Pack', first_release_date: 200, game_type: DLC }])
+    const { items } = await createIgdbAdapter(credentials, fetchImpl).expand('franchise:4')
+
+    expect(items.find((item) => item.title === 'Game: Pack')).toMatchObject({ estimatedMinutes: 240 })
+    expect(items.find((item) => item.title === 'Game: Pack')).not.toHaveProperty('timeToConsumeMinutes')
+  })
+
+  it('leaves a main game and a standalone expansion with no time on the category default, and a timed DLC on its own time', async () => {
+    const { fetchImpl } = pagedIgdb(
+      [
+        { id: 1, name: 'Game', first_release_date: 100, game_type: MAIN },
+        { id: 2, name: 'Standalone', first_release_date: 200, game_type: STANDALONE },
+        { id: 3, name: 'Timed DLC', first_release_date: 300, game_type: DLC },
+      ],
+      [{ game_id: 3, normally: 7200 }],
+    )
+    const { items } = await createIgdbAdapter(credentials, fetchImpl).expand('franchise:4')
+
+    expect(items.map((item) => [item.title, item.estimatedMinutes, item.timeToConsumeMinutes])).toEqual([
+      ['Game', undefined, undefined],
+      ['Standalone', undefined, undefined],
+      ['Timed DLC', undefined, 120],
+    ])
+  })
+})
+

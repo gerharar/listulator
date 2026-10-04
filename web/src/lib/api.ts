@@ -165,6 +165,8 @@ export interface PreviewItem {
   title: string
   externalRef?: string
   timeToConsumeMinutes?: number
+  /** A better guess than the category default, from the source: still an estimate. */
+  estimatedMinutes?: number
   year?: number
   group?: string
   tags?: string[]
@@ -265,6 +267,7 @@ export interface ApiClient {
       title: string
       externalRef?: string
       timeToConsumeMinutes?: number
+      estimatedMinutes?: number
       year?: number
       group?: string
       tags?: string[]
@@ -338,6 +341,7 @@ export interface ApiClient {
       title: string
       externalRef?: string
       timeToConsumeMinutes?: number
+      estimatedMinutes?: number
       year?: number
       group?: string
       tags?: string[]
@@ -455,6 +459,7 @@ export const fetchApi: ApiClient = {
       title: string
       externalRef?: string
       timeToConsumeMinutes?: number
+      estimatedMinutes?: number
       year?: number
       group?: string
       tags?: string[]
@@ -531,6 +536,7 @@ export const fetchApi: ApiClient = {
         title: string
         externalRef?: string
         timeToConsumeMinutes?: number
+        estimatedMinutes?: number
         year?: number
         group?: string
         tags?: string[]

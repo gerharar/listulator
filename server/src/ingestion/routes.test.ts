@@ -267,6 +267,22 @@ describe('POST /api/lists/:listId/items/import', () => {
     })
   })
 
+  it('counts an item the source estimated better than the category default, still marked estimated', async () => {
+    const list = await createList('game')
+
+    const response = await importItems(list.id, [
+      { title: 'A DLC', estimatedMinutes: 240 },
+      { title: 'Timed', timeToConsumeMinutes: 90, estimatedMinutes: 240 },
+      { title: 'No idea' },
+    ])
+
+    expect(response.json().map((item: { title: string; timeToConsumeMinutes: number; timeToConsumeIsEstimated: boolean }) => [item.title, item.timeToConsumeMinutes, item.timeToConsumeIsEstimated])).toEqual([
+      ['A DLC', 240, true],
+      ['Timed', 90, false],
+      ['No idea', 600, true],
+    ])
+  })
+
   it('defaults new items to import-sourced when the caller says nothing', async () => {
     const list = await createList()
 
@@ -556,6 +572,33 @@ describe('search and import from a source', () => {
 
     expect(response.statusCode).toBeGreaterThanOrEqual(500)
     expect((await harness.app.inject({ method: 'GET', url: '/api/lists' })).json()).toEqual([])
+  })
+
+  it('builds a list from a source with an estimate of its own for an item that has no length', async () => {
+    harness = withAdapter(
+      fakeAdapter({
+        expand: async () => ({
+          items: [
+            { title: 'Pack', estimatedMinutes: 90 },
+            { title: 'Known', timeToConsumeMinutes: 47, estimatedMinutes: 90 },
+            { title: 'Nothing' },
+          ],
+        }),
+      }),
+    )
+
+    const created = await harness.app.inject({
+      method: 'POST',
+      url: '/api/lists/from-source',
+      payload: { mediaType: 'music', externalRef: 'ref-1', title: 'Cannibal Corpse' },
+    })
+    const read = await harness.app.inject({ method: 'GET', url: `/api/lists/${created.json().id}` })
+
+    expect(read.json().items.map((item: { title: string; timeToConsumeMinutes: number; timeToConsumeIsEstimated: boolean }) => [item.title, item.timeToConsumeMinutes, item.timeToConsumeIsEstimated])).toEqual([
+      ['Pack', 90, true],
+      ['Known', 47, false],
+      ['Nothing', 45, true],
+    ])
   })
 
   it('builds a list from a chosen source, in one step', async () => {

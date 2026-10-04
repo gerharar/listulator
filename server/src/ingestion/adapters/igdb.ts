@@ -51,6 +51,12 @@ const REMAKE = 8
 const REMASTER = 9
 const EXPANDED_GAME = 10
 const LISTED_TYPES = [MAIN_GAME, DLC, STANDALONE_EXPANSION, REMAKE, REMASTER, EXPANDED_GAME]
+/**
+ * What a DLC with no time-to-beat is counted as, in place of the Games default (10 hours, a whole game). Live,
+ * 2026-10-04: the 157 of the 500 most-rated DLC that IGDB has a time for take 4 hours at the median (a quarter of
+ * them 2 hours or less, a quarter 6 or more). Standalone expansions (median 6 hours) are left on the default.
+ */
+const DLC_ESTIMATE_MINUTES = 240
 const TYPE_LABEL = new Map<number, string>([
   [DLC, 'DLC'],
   [STANDALONE_EXPANSION, 'Standalone Expansion'],
@@ -527,6 +533,7 @@ export function createIgdbAdapter(
           // Not every game has been timed by anyone; those fall back to the
           // category default.
           ...(minutes ? { timeToConsumeMinutes: minutes } : {}),
+          ...(!minutes && game.game_type === DLC ? { estimatedMinutes: DLC_ESTIMATE_MINUTES } : {}),
           ...(year ? { year } : {}),
         }
       })

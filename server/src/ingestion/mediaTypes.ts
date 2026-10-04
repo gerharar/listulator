@@ -329,6 +329,12 @@ export interface MediaTypeCandidate {
   externalRef?: string
   /** Only when the source actually knows it; otherwise the category default applies. */
   timeToConsumeMinutes?: number
+  /**
+   * A better guess than the category's default for what this item lasts, set only when the source has no length
+   * and knows the kind of thing it is (an IGDB DLC). The item is still estimated: `timeToConsumeMinutes` stays
+   * unset and every import takes this in place of the category default.
+   */
+  estimatedMinutes?: number
   /** Only when the source actually knows it — never guessed from another field. */
   year?: number
   /** Optional grouping label, e.g. "Season 1" — presentation only (task 6.6). */
