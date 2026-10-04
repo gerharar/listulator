@@ -72,6 +72,7 @@ import {
 } from '../../../server/src/catalog/reset.js'
 import { restoreOrder } from '../../../server/src/catalog/restore.js'
 import { rank, type Suggestion } from '../../../server/src/suggestions/engine.js'
+import { loadRankingInputs } from '../../../server/src/suggestions/rankingInputs.js'
 import { copy, errorMessage } from '../locale/index.js'
 import type {
   ApiClient,
@@ -235,7 +236,7 @@ function toSuggestionPick(suggestion: Suggestion): SuggestionPick {
   }
 }
 
-/** Mirrors server/src/suggestions/routes.ts's own inline `suggest()`. */
+/** Mirrors server/src/suggestions/routes.ts's own inline `suggest()`; both load through `loadRankingInputs`. */
 async function localSuggest(
   database: LocalDatabase,
   userId: string,
@@ -243,30 +244,10 @@ async function localSuggest(
   currentListId?: string,
 ): Promise<Suggestion[]> {
   const strategy = loadLocalStrategy(strategyName)
-  const candidates = await findListsWithStats(database, userId)
-
-  // Every list's unconsumed items, in order: the first is the next thing to do, and an
-  // item strategy (Just One Fix) ranks all of them. Mirrors the server's route.
-  const unconsumed = new Map<string, SchemaListItem[]>(
-    await Promise.all(
-      candidates.map(
-        async (list) =>
-          [
-            list.id,
-            ((await findListItems(database, userId, list.id)) ?? []).filter((item) => item.consumedAt === null),
-          ] as const,
-      ),
-    ),
-  )
-  const nextItems = new Map<string, SchemaListItem | undefined>(
-    [...unconsumed].map(([listId, items]) => [listId, items[0]] as const),
-  )
 
   return rank({
     strategy,
-    candidates,
-    nextItems,
-    unconsumed,
+    ...(await loadRankingInputs(database, userId)),
     ...(currentListId ? { currentListId } : {}),
   })
 }

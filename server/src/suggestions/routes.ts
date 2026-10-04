@@ -1,10 +1,9 @@
 import type { FastifyPluginAsync } from 'fastify'
 import { getCurrentUser } from '../auth/currentUser.js'
-import { findListItems, findListsWithStats } from '../catalog/repository.js'
 import type { AppDatabase } from '../db/client.js'
-import type { ListItem } from '../db/schema.js'
 import { rank, type Suggestion } from './engine.js'
 import { loadStrategy } from './loader.js'
+import { loadRankingInputs } from './rankingInputs.js'
 import { StrategyError } from './strategy.js'
 
 export interface SuggestionsRoutesOptions {
@@ -42,30 +41,10 @@ export const suggestionsRoutes: FastifyPluginAsync<SuggestionsRoutesOptions> = a
 
   async function suggest(userId: string, strategyName: string, currentListId?: string) {
     const strategy = strategiesDir ? loadStrategy(strategyName, strategiesDir) : loadStrategy(strategyName)
-    const candidates = await findListsWithStats(db, userId)
-
-    // Every list's unconsumed items, in order: the first is the next thing to do, and an item
-    // strategy (Just One Fix) ranks all of them. Lists are independent, so these run concurrently.
-    const unconsumed = new Map<string, ListItem[]>(
-      await Promise.all(
-        candidates.map(
-          async (list) =>
-            [
-              list.id,
-              ((await findListItems(db, userId, list.id)) ?? []).filter((item) => item.consumedAt === null),
-            ] as const,
-        ),
-      ),
-    )
-    const nextItems = new Map<string, ListItem | undefined>(
-      [...unconsumed].map(([listId, items]) => [listId, items[0]] as const),
-    )
 
     return rank({
       strategy,
-      candidates,
-      nextItems,
-      unconsumed,
+      ...(await loadRankingInputs(db, userId)),
       ...(currentListId ? { currentListId } : {}),
     })
   }
