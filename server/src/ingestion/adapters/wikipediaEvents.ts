@@ -28,6 +28,23 @@ const FUTURE_SECTIONS = /scheduled|upcoming|future|announced/i
 const NON_EVENT_SECTIONS =
   /number of events|by year|locations|themed|recurring|see also|references|external links|notes/i
 
+/**
+ * An event that was never held: a table cell that says so ("Canceled" in the UFC page's Attendance column, spanned
+ * over the rows it covers; "Cancelled" in Bellator's) or a name ending in "(Cancelled)" (Bellator's other
+ * convention). Whole-cell and name-suffix matches only, so a held event whose notes mention a cancelled bout is not
+ * read as one. "Postponed" is read the same way; none was found on the eight pages (2026-10-04), the rescheduled show
+ * having a row of its own. BL-067.
+ */
+const CALLED_OFF_CELL = /^(?:cancell?ed|postponed)\b/i
+const CALLED_OFF_NAME = /\((?:cancell?ed|postponed)\)\s*$/i
+
+function calledOff(cells: string[], nameColumn: number): boolean {
+  // The name column is read for its suffix only: a show called "Cancelled Dreams" is held.
+  return cells.some((cell, column) =>
+    column === nameColumn ? CALLED_OFF_NAME.test(cell.trim()) : CALLED_OFF_CELL.test(cell.trim()),
+  )
+}
+
 export interface Promotion {
   key: string
   name: string
@@ -615,6 +632,9 @@ async function fetchPromotionEvents(
       for (const row of ordered) {
         const name = row.cells[nameColumn]
         if (!name) continue
+
+        // Before the duplicate check below: a cancelled show must not stand in the way of the same show held later.
+        if (calledOff(row.cells, nameColumn)) continue
 
         const title = sectionYear ? `${name} (${sectionYear})` : name
 

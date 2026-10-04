@@ -620,3 +620,86 @@ describe('sections that are not events held', () => {
     expect(items.map((item) => item.title)).toEqual(['Real Show'])
   })
 })
+
+describe('events that were called off (BL-067)', () => {
+  const table = (headers: string, ...rows: string[]) =>
+    ['==Past events==', '{| class="wikitable"', headers, ...rows.flatMap((row) => ['|-', row]), '|}'].join('\n')
+  const titles = async (wikitext: string) =>
+    (await createWikipediaEventsAdapter([UFC], respondWith(wikitext)).expand('promotion:ufc')).items.map((item) => item.title)
+
+  it('drops an event whose attendance cell says Canceled, UFC-style, spanned over the rows it covers', async () => {
+    // Checked live: nine on the UFC page (UFC 176, UFC 151, UFC 233 among them) and none dropped before.
+    const wikitext = table(
+      '! # !! Event !! Date !! Attendance',
+      '|1\n|[[UFC 1]]\n|{{dts|1993|Nov|12}}\n|7,800',
+      '|2\n|[[UFC 151]]\n|{{dts|2012|Sep|1}}\n|rowspan=2|Canceled',
+      '|3\n|[[UFC Fight Night: Smith vs. Teixeira]]\n|{{dts|2020|Apr|25}}',
+      '|4\n|[[UFC 2]]\n|{{dts|1994|Mar|11}}\n|2,000',
+    )
+
+    expect(await titles(wikitext)).toEqual(['UFC 1', 'UFC 2'])
+  })
+
+  it('drops an event whose name ends in "(Cancelled)" or "(Postponed)", Bellator-style', async () => {
+    const wikitext = table(
+      '! Event !! Date',
+      '|Bellator 240\n|{{dts|2019|Dec|1}}',
+      '|[[Bellator MMA in 2020#Bellator 241 (Cancelled)|Bellator 241 (Cancelled)]]\n|{{dts|2020|Apr|1}}',
+      '|Bellator 242 (Postponed)\n|{{dts|2020|Apr|2}}',
+      '|Bellator 245\n|{{dts|2020|Jun|1}}',
+    )
+
+    expect(await titles(wikitext)).toEqual(['Bellator 240', 'Bellator 245'])
+  })
+
+  it('reads either spelling, any case, and a cell that goes on to say why, and Postponed in a cell', async () => {
+    const wikitext = table(
+      '! Event !! Date !! Notes',
+      '|A\n|{{dts|2020|Jan|1}}\n|Cancelled',
+      '|B\n|{{dts|2020|Jan|2}}\n|canceled',
+      '|C\n|{{dts|2020|Jan|3}}\n|Canceled due to the pandemic',
+      '|D\n|{{dts|2020|Jan|4}}\n|POSTPONED',
+      '|E\n|{{dts|2020|Jan|5}}\n|Held',
+    )
+
+    expect(await titles(wikitext)).toEqual(['E'])
+  })
+
+  it('keeps a held event whose notes only mention a cancelled bout, or whose name has the word elsewhere', async () => {
+    const wikitext = table(
+      '! Event !! Date !! Notes',
+      '|UFC 100\n|{{dts|2009|Jul|11}}\n|The co-main event was cancelled and replaced',
+      '|Cancelled Dreams Fight Night\n|{{dts|2010|Jan|1}}\n|Held',
+      '|Not Postponed (Again) Show\n|{{dts|2011|Jan|1}}\n|Held',
+    )
+
+    expect(await titles(wikitext)).toEqual(['UFC 100', 'Cancelled Dreams Fight Night', 'Not Postponed (Again) Show'])
+  })
+
+  it('does not let a cancelled show stand in the way of the same show held later', async () => {
+    const wikitext = table(
+      '! Event !! Date !! Attendance',
+      '|[[UFC Fight Night: Smith vs. Teixeira]]\n|{{dts|2020|Apr|25}}\n|Canceled',
+      '|[[UFC Fight Night: Smith vs. Teixeira]]\n|{{dts|2021|Jan|16}}\n|9,000',
+    )
+
+    expect(await titles(wikitext)).toEqual(['UFC Fight Night: Smith vs. Teixeira'])
+  })
+
+  it('drops a cancelled sub-series row too, since it filters the same events', async () => {
+    const wikitext = [
+      '==2020==',
+      '{| class="wikitable"',
+      '! Date !! Event !! Attendance',
+      '|-',
+      '|April 25\n|[[WrestleMania 36]]\n|Cancelled',
+      '|-',
+      '|April 4\n|[[WrestleMania 37]]\n|1,000',
+      '|}',
+    ].join('\n')
+
+    const adapter = createWikipediaEventsAdapter([WWE], respondWith(wikitext), WWE_SUB_SERIES)
+
+    expect((await adapter.expand('subseries:wrestlemania')).items.map((item) => item.title)).toEqual(['WrestleMania 37 (2020)'])
+  })
+})
