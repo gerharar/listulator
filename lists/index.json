@@ -70,7 +70,7 @@
     "status": "ongoing"
   },
   {
-    "path": "lists/comic/aoa-comics-full.yaml",
+    "path": "lists/comic/aoa-comic-full.yaml",
     "title": "Age Of Apocalypse comic book event (Marvel)",
     "category": "comic",
     "itemCount": 103,
@@ -78,7 +78,7 @@
     "status": "complete"
   },
   {
-    "path": "lists/comic/carey-lucifer-comics.yaml",
+    "path": "lists/comic/carey-lucifer-comic.yaml",
     "title": "Mike Carey's Lucifer comic book series (Vertigo / DC)",
     "category": "comic",
     "itemCount": 79,
@@ -94,7 +94,7 @@
     "status": "complete"
   },
   {
-    "path": "lists/comic/fables-comics-complete.yaml",
+    "path": "lists/comic/fables-comic-full.yaml",
     "title": "Fables comic book series (DC / Vertigo; recommended order)",
     "category": "comic",
     "itemCount": 303,
@@ -102,7 +102,7 @@
     "status": "complete"
   },
   {
-    "path": "lists/comic/invincible-comic-complete.yaml",
+    "path": "lists/comic/invincible-comic-full.yaml",
     "title": "Invincible comic book series (Image; release order)",
     "category": "comic",
     "itemCount": 246,
@@ -110,7 +110,7 @@
     "status": "complete"
   },
   {
-    "path": "lists/comic/kirby-4th-world-reading-order.yaml",
+    "path": "lists/comic/kirby-4th-world-comic.yaml",
     "title": "Jack Kirby's The Fourth World comic book series (DC)",
     "category": "comic",
     "itemCount": 57,
@@ -118,7 +118,7 @@
     "status": "complete"
   },
   {
-    "path": "lists/comic/planetary-comics.yaml",
+    "path": "lists/comic/planetary-comic.yaml",
     "title": "Planetary comic books series (Wildstorm / DC)",
     "category": "comic",
     "itemCount": 31,
@@ -134,7 +134,7 @@
     "status": "complete"
   },
   {
-    "path": "lists/comic/the-boys-comic-complete.yaml",
+    "path": "lists/comic/the-boys-comic-full.yaml",
     "title": "The Boys comic book series (Wildstorm / DC / Dynamite)",
     "category": "comic",
     "itemCount": 98,
@@ -142,7 +142,7 @@
     "status": "complete"
   },
   {
-    "path": "lists/comic/the-sandman-gaiman-comics.yaml",
+    "path": "lists/comic/the-sandman-gaiman-comic.yaml",
     "title": "Neil Gaiman's The Sandman comic book series (Vol 2, Vertigo / DC)",
     "category": "comic",
     "itemCount": 97,
@@ -150,7 +150,7 @@
     "status": "complete"
   },
   {
-    "path": "lists/comic/transmetropolitan-comics.yaml",
+    "path": "lists/comic/transmetropolitan-comic.yaml",
     "title": "Transmetropolital comic book series (Vertigo / DC)",
     "category": "comic",
     "itemCount": 64,
@@ -158,7 +158,7 @@
     "status": "complete"
   },
   {
-    "path": "lists/comic/twd-comics.yaml",
+    "path": "lists/comic/twd-comic-full.yaml",
     "title": "The Walking Dead comic book series (Image; recommended order)",
     "category": "comic",
     "itemCount": 200,
@@ -166,7 +166,7 @@
     "status": "complete"
   },
   {
-    "path": "lists/comic/uber-comics.yaml",
+    "path": "lists/comic/uber-comic.yaml",
     "title": "Uber comic book series (Avatar)",
     "category": "comic",
     "itemCount": 47,
@@ -206,7 +206,7 @@
     "status": "ongoing"
   },
   {
-    "path": "lists/documentary/world-at-war.yaml",
+    "path": "lists/documentary/world-at-war-tv.yaml",
     "title": "The World At War documentary series",
     "category": "documentary",
     "itemCount": 34,
@@ -229,7 +229,7 @@
     "description": "All games in the Spy Hunter franchise; excludes compilation appearances"
   },
   {
-    "path": "lists/mega/black-mirror-tv-full.yaml",
+    "path": "lists/mega/black-mirror-all.yaml",
     "title": "Black Mirror franchise (release order)",
     "category": "mega",
     "itemCount": 41,
@@ -245,7 +245,7 @@
     "status": "complete"
   },
   {
-    "path": "lists/mega/breaking-bad-main-watch.yaml",
+    "path": "lists/mega/breaking-bad-main.yaml",
     "title": "Breaking Bad franchise (main releases; recommended order)",
     "category": "mega",
     "itemCount": 126,
@@ -261,7 +261,7 @@
     "status": "complete"
   },
   {
-    "path": "lists/mega/firefly-serenity-full.yaml",
+    "path": "lists/mega/firefly-serenity-all.yaml",
     "title": "Firefly / Serenity franchise (recommended order)",
     "category": "mega",
     "itemCount": 136,
@@ -341,7 +341,7 @@
     "status": "complete"
   },
   {
-    "path": "lists/tv/band-of-brothers.yaml",
+    "path": "lists/tv/band-of-brothers-tv.yaml",
     "title": "Band Of Brothers TV miniseries",
     "category": "tv",
     "itemCount": 10,
@@ -349,7 +349,7 @@
     "status": "complete"
   },
   {
-    "path": "lists/tv/breaking-bad-series.yaml",
+    "path": "lists/tv/breaking-bad-tv.yaml",
     "title": "Breaking Bad TV series",
     "category": "tv",
     "itemCount": 62,
@@ -388,6 +388,14 @@
     "status": "ongoing"
   },
   {
+    "path": "lists/tv/house-of-cards-tv.yaml",
+    "title": "House Of Cards TV series",
+    "category": "tv",
+    "itemCount": 73,
+    "description": "All episodes of the House Of Cards series",
+    "status": "complete"
+  },
+  {
     "path": "lists/tv/narcos-franchise-tv.yaml",
     "title": "Narcos franchise TV series (release order)",
     "category": "tv",
@@ -409,6 +417,14 @@
     "category": "tv",
     "itemCount": 39,
     "description": "All episodes of the Succession TV series",
+    "status": "complete"
+  },
+  {
+    "path": "lists/tv/the-crown-tv.yaml",
+    "title": "The Crown TV series",
+    "category": "tv",
+    "itemCount": 60,
+    "description": "All episodes of The Crown TV series",
     "status": "complete"
   },
   {
