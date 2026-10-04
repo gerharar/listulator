@@ -145,7 +145,9 @@ export async function restoreListGroup(
     (await db.select({ id: listItems.id }).from(listItems).where(eq(listItems.listId, listId)).all()).map((row) => row.id),
   )
   const missing = items.filter((item) => !present.has(item.id))
-  if (missing.length > 0) await db.insert(listItems).values(missing.map((item) => itemRow(listId, item))).run()
+  await insertInBatches(missing, async (batch) => {
+    await db.insert(listItems).values(batch.map((item) => itemRow(listId, item))).run()
+  })
   for (const id of dismissalIds) {
     await db.delete(dismissedItems).where(and(eq(dismissedItems.id, id), eq(dismissedItems.listId, listId))).run()
   }

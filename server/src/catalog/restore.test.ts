@@ -2,7 +2,8 @@ import { asc, eq } from 'drizzle-orm'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { dismissedItems, listGroups, listItems, listSnapshots, lists, users } from '../db/schema.js'
 import { createTestApp, type TestApp } from '../testing/harness.js'
-import { createListGroup, deleteListGroup, findListGroups, GroupNameError } from './groups.js'
+import { createListItems } from './bulkItems.js'
+import { createListGroup, deleteListGroup, findListGroups, GroupNameError, seedGroupOrder } from './groups.js'
 import {
   captureItemSet,
   ListExistsError,
@@ -188,6 +189,59 @@ describe('restoring what was deleted', () => {
       await restoreListGroup(harness.db, ownerId, listId, restore)
 
       expect((await findListGroups(harness.db, ownerId, listId))!).toHaveLength(1)
+    })
+
+    it('brings back a group deleted with more items than one statement can bind', async () => {
+      // Review 2026-10-04: one insert for all of them, 16 values a row, failed above 2,047 items with "too many
+      // SQL variables", after the delete had already happened: the group came back empty and the items were lost.
+      await createListItems(
+        harness.db,
+        ownerId,
+        listId,
+        Array.from({ length: 2100 }, (_, index) => ({
+          title: `E${index}`,
+          timeToConsumeMinutes: 30,
+          timeToConsumeIsEstimated: false,
+          group: 'Huge',
+          source: 'import' as const,
+        })),
+      )
+      await seedGroupOrder(harness.db, listId)
+      const group = (await findListGroups(harness.db, ownerId, listId))![0]!
+      const restore = (await deleteListGroup(harness.db, ownerId, listId, group.id, { withItems: true }))!
+
+      await restoreListGroup(harness.db, ownerId, listId, restore)
+
+      const items = (await findListItems(harness.db, ownerId, listId))!
+      expect(items).toHaveLength(2100)
+      expect(items.every((item) => item.group === 'Huge')).toBe(true)
+    })
+
+    it('deletes, and brings back, a group whose items need more dismissals than one statement can bind', async () => {
+      // The same review: the delete wrote one dismissal per item in a single insert, after removing the items; above
+      // ~6,500 it failed there, with the items gone and no Undo handed back.
+      await createListItems(
+        harness.db,
+        ownerId,
+        listId,
+        Array.from({ length: 7000 }, (_, index) => ({
+          title: `E${index}`,
+          timeToConsumeMinutes: 30,
+          timeToConsumeIsEstimated: false,
+          externalRef: `tmdb:${index}`,
+          group: 'Huge',
+          source: 'import' as const,
+        })),
+      )
+      await seedGroupOrder(harness.db, listId)
+      const group = (await findListGroups(harness.db, ownerId, listId))![0]!
+
+      const restore = (await deleteListGroup(harness.db, ownerId, listId, group.id, { withItems: true }))!
+
+      expect(restore.dismissalIds).toHaveLength(7000)
+      await restoreListGroup(harness.db, ownerId, listId, restore)
+      expect((await findListItems(harness.db, ownerId, listId))!).toHaveLength(7000)
+      expect(harness.db.select().from(dismissedItems).all()).toEqual([])
     })
   })
 

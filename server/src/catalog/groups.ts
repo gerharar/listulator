@@ -151,6 +151,9 @@ async function renumberGroups(db: PortableDatabase, listId: string): Promise<voi
   }
 }
 
+/** Dismissal rows per insert: well under SQLite's limit on bound values (`restore.ts` batches the same way). */
+const DISMISSAL_BATCH = 500
+
 /**
  * Deletes a group. One with items is refused unless `withItems` says to take
  * them too (owner, 2026-09-27, after a confirmation stating how many): then its
@@ -177,21 +180,25 @@ export async function deleteListGroup(
     .all()
   if (inside.length > 0 && !withItems) throw new GroupNotEmptyError('a group with items cannot be deleted')
 
-  let dismissalIds: string[] = []
+  const dismissalIds: string[] = []
   if (inside.length > 0) {
     await db.delete(listItems).where(and(eq(listItems.listId, listId), eq(listItems.group, group.name))).run()
-    const dismissals = await db
-      .insert(dismissedItems)
-      .values(
-        inside.map((item) => ({
-          listId,
-          titleKey: dismissalTitleKey(item.title),
-          ...(item.externalRef ? { externalRef: item.externalRef } : {}),
-        })),
-      )
-      .returning({ id: dismissedItems.id })
-      .all()
-    dismissalIds = dismissals.map((dismissal) => dismissal.id)
+    // In batches: one dismissal per item, and one statement for thousands of them is past SQLite's limit on bound
+    // values, failing here with the items already gone and no Undo handed back.
+    for (let start = 0; start < inside.length; start += DISMISSAL_BATCH) {
+      const dismissals = await db
+        .insert(dismissedItems)
+        .values(
+          inside.slice(start, start + DISMISSAL_BATCH).map((item) => ({
+            listId,
+            titleKey: dismissalTitleKey(item.title),
+            ...(item.externalRef ? { externalRef: item.externalRef } : {}),
+          })),
+        )
+        .returning({ id: dismissedItems.id })
+        .all()
+      dismissalIds.push(...dismissals.map((dismissal) => dismissal.id))
+    }
   }
 
   await db.delete(listGroups).where(eq(listGroups.id, groupId)).run()
