@@ -283,6 +283,16 @@ describe('splitSections', () => {
       'B',
     ])
   })
+
+  it('says how deep each heading is, the lead being 0', () => {
+    expect(splitSections('lead\n==A==\nx\n===B===\ny\n====C====\nz\n==D==\nw').map((section) => [section.heading, section.level])).toEqual([
+      ['', 0],
+      ['A', 2],
+      ['B', 3],
+      ['C', 4],
+      ['D', 2],
+    ])
+  })
 })
 
 describe('columnIndex', () => {

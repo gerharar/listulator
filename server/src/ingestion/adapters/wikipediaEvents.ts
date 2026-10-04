@@ -1,4 +1,4 @@
-import { getJson, type FetchLike } from '../http.js'
+import { delay, getJson, IngestionError, withRetries, type FetchLike } from '../http.js'
 import type { ListSource, MediaTypeCandidate, SearchAdapter } from '../mediaTypes.js'
 import { itemsOnly } from '../expansion.js'
 import { columnIndex, extractTables, parseTable, rowYear, splitSections } from './wikitext.js'
@@ -87,8 +87,48 @@ export const MMA_PROMOTIONS: readonly Promotion[] = [
 
 interface ParseResponse {
   parse?: { wikitext?: { '*'?: string } }
-  error?: { info?: string }
+  /** The MediaWiki API answers a failure (a page that does not exist) with HTTP 200 and this. */
+  error?: { code?: string; info?: string }
 }
+
+/** A page's events remembered for this long, so the rows of one search that read one page read it once. */
+const PAGE_CACHE_MS = 60_000
+
+/**
+ * Parsed events by Wikipedia page, for `PAGE_CACHE_MS`. A promotion with fifty sub-series (WWE) offers fifty search
+ * rows, and the Search tab counts every row: each count is "the whole page, filtered", so without this a search for
+ * "ppv" read the same 210 KB page fifty times. A failure is never remembered, and concurrent askers share one
+ * request. Hands out copies: whoever asks may keep or change what it got.
+ */
+export interface PageCache {
+  get(page: string, load: () => Promise<MediaTypeCandidate[]>): Promise<MediaTypeCandidate[]>
+}
+
+export function createPageCache(ttlMs: number = PAGE_CACHE_MS, now: () => number = Date.now): PageCache {
+  const entries = new Map<string, { at: number; events: Promise<MediaTypeCandidate[]> }>()
+
+  return {
+    async get(page, load) {
+      const found = entries.get(page)
+      let events: Promise<MediaTypeCandidate[]>
+
+      if (found && now() - found.at < ttlMs) {
+        events = found.events
+      } else {
+        events = load()
+        entries.set(page, { at: now(), events })
+        events.catch(() => {
+          if (entries.get(page)?.events === events) entries.delete(page)
+        })
+      }
+
+      return (await events).map((event) => ({ ...event, ...(event.tags ? { tags: [...event.tags] } : {}) }))
+    },
+  }
+}
+
+/** The one cache of the process: the desktop builds its adapters again for each request. A client given its own `fetch` (a test) gets none. */
+const sharedPageCache = createPageCache()
 
 /**
  * A curated, named subset of one promotion's events — "just WrestleMania,"
@@ -496,25 +536,42 @@ export const UFC_SUB_SERIES: readonly SubSeries[] = [
  */
 async function fetchPromotionEvents(
   promotion: Promotion,
-  fetchImpl?: FetchLike,
+  request: (url: string) => Promise<ParseResponse>,
 ): Promise<MediaTypeCandidate[]> {
-  const response = await getJson<ParseResponse>(
+  const response = await request(
     // `origin=*` opts into CORS (task 5.3, docs/DECISIONS.md) — Wikipedia's
     // API sends no CORS headers at all without it, blocking every browser
     // origin including a Tauri webview's. Harmless server-side too.
     `${API}?action=parse&format=json&redirects=1&prop=wikitext&page=${encodeURIComponent(promotion.page)}&origin=*`,
-    { source: 'Wikipedia', ...(fetchImpl ? { fetchImpl } : {}) },
   )
 
+  // A page that was renamed or deleted comes back as a 200 with an `error`, and used to read as a promotion with no
+  // events: an empty list, with no word. Said, with what Wikipedia said.
+  if (response.error) {
+    throw new IngestionError(`Wikipedia could not give "${promotion.page}": ${response.error.info ?? response.error.code ?? 'unknown error'}`)
+  }
+
   const wikitext = response.parse?.wikitext?.['*']
-  if (!wikitext) return []
+  if (!wikitext) throw new IngestionError(`Wikipedia returned no text for "${promotion.page}".`)
 
   const events: MediaTypeCandidate[] = []
   const seen = new Set<string>()
 
+  // The level of the section being skipped, so the sections inside it are skipped too: "Upcoming event schedule"
+  // holds a "2026" and a "2027" of its own, which read as year sections of events already held (WWE's Survivor
+  // Series and Wrestlepalooza, AEW's Full Gear and Worlds End, TNA's Bound for Glory were listed).
+  let skippingBelow: number | undefined
+
   for (const section of splitSections(wikitext)) {
-    if (FUTURE_SECTIONS.test(section.heading)) continue
-    if (NON_EVENT_SECTIONS.test(section.heading)) continue
+    if (skippingBelow !== undefined) {
+      if (section.level > skippingBelow) continue
+      skippingBelow = undefined
+    }
+
+    if (FUTURE_SECTIONS.test(section.heading) || NON_EVENT_SECTIONS.test(section.heading)) {
+      skippingBelow = section.level
+      continue
+    }
 
     // Pages like WWE's are split into a section per year, and the year
     // appears nowhere in the row. Without it every annual Royal Rumble
@@ -536,12 +593,17 @@ async function fetchPromotionEvents(
       const nameColumn = columnIndex(headers, EVENT_HEADERS)
       if (nameColumn === -1) continue
 
-      // A row with a spanned cell has fewer cells than the header, which
-      // shifts every later column left — that is how "Los Angeles,
-      // California" ended up being imported as an event. Rather than
-      // implement rowspan, mismatched rows are skipped: losing a row is
-      // better than inventing a wrong one.
-      const aligned = rows.filter((row) => row.cells.length === headers.length)
+      // A row with fewer cells than the header would shift every later column left — that is how "Los Angeles,
+      // California" once ended up being imported as an event. A cell spanned from the row above is rebuilt by
+      // `parseTable`, so what is left is a row that misses a cell outright: skipped (a legend line, a footnote),
+      // losing a row being better than inventing a wrong one — with one exception. A row one cell short is an
+      // event with a cell left out, and it is real: a card just held with no attendance written yet (checked live:
+      // 38 UFC events, among them UFC Freedom 250 at the White House, two WWE 2026 shows and a TNA one were
+      // dropped). Only the name and the year are read from it, and both sit before the gap. A row with no name
+      // (the event column is the one missing) is skipped below.
+      const aligned = rows.filter(
+        (row) => row.cells.length === headers.length || row.cells.length === headers.length - 1,
+      )
 
       // Some tables are written newest first (the UFC page's "Past
       // events" is), which would import a career backwards.
@@ -588,11 +650,31 @@ async function fetchPromotionEvents(
   })
 }
 
+export interface WikipediaClientOptions {
+  /** Injectable so the waits between retries are testable without waiting. */
+  sleep?: (ms: number) => Promise<void>
+  /** Where parsed pages are remembered; by default the process-wide one, and none for a client given its own `fetch`. */
+  cache?: PageCache | undefined
+}
+
 export function createWikipediaEventsAdapter(
   promotions: readonly Promotion[],
   fetchImpl?: FetchLike,
   subSeries: readonly SubSeries[] = [],
+  { sleep = delay, cache = fetchImpl ? undefined : sharedPageCache }: WikipediaClientOptions = {},
 ): SearchAdapter {
+  /** One request, tried again when Wikipedia is busy (a 5xx) or rate-limits us (a 429). */
+  const request = (url: string) =>
+    withRetries(
+      () => getJson<ParseResponse>(url, { source: 'Wikipedia', ...(fetchImpl ? { fetchImpl } : {}) }),
+      sleep,
+    )
+
+  const eventsOf = (promotion: Promotion) => {
+    const load = () => fetchPromotionEvents(promotion, request)
+    return cache ? cache.get(promotion.page, load) : load()
+  }
+
   return {
     // Wikipedia needs no credentials.
     isAvailable: () => true,
@@ -637,7 +719,7 @@ export function createWikipediaEventsAdapter(
         // Looked up by key rather than taking a page title from the caller,
         // so this can only ever fetch pages the app ships with.
         const promotion = promotions.find((candidate) => candidate.key === key)
-        return promotion ? fetchPromotionEvents(promotion, fetchImpl) : []
+        return promotion ? eventsOf(promotion) : []
       }
 
       if (kind === 'subseries') {
@@ -650,7 +732,7 @@ export function createWikipediaEventsAdapter(
         // Same fetch and sort as a plain promotion, filtered afterward — a
         // sub-series inherits 6.3's chronological guarantee for free rather
         // than needing its own.
-        const events = await fetchPromotionEvents(promotion, fetchImpl)
+        const events = await eventsOf(promotion)
 
         return events.filter((event) => series.matches(event.title))
       }

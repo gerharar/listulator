@@ -12,24 +12,28 @@
 export interface WikiSection {
   heading: string
   body: string
+  /** How many `=` the heading has: 2 for `== Heading ==`, 3 for `=== Sub ===`. 0 for the lead. */
+  level: number
 }
 
 /** Splits a page on its `== Heading ==` lines, keeping the lead as "". */
 export function splitSections(wikitext: string): WikiSection[] {
   const sections: WikiSection[] = []
-  const pattern = /^==+\s*(.+?)\s*==+\s*$/gm
+  const pattern = /^(==+)\s*(.+?)\s*==+\s*$/gm
 
   let lastHeading = ''
+  let lastLevel = 0
   let lastIndex = 0
   let match: RegExpExecArray | null
 
   while ((match = pattern.exec(wikitext)) !== null) {
-    sections.push({ heading: lastHeading, body: wikitext.slice(lastIndex, match.index) })
-    lastHeading = match[1]!
+    sections.push({ heading: lastHeading, body: wikitext.slice(lastIndex, match.index), level: lastLevel })
+    lastHeading = match[2]!
+    lastLevel = match[1]!.length
     lastIndex = pattern.lastIndex
   }
 
-  sections.push({ heading: lastHeading, body: wikitext.slice(lastIndex) })
+  sections.push({ heading: lastHeading, body: wikitext.slice(lastIndex), level: lastLevel })
 
   return sections
 }
