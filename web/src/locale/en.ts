@@ -476,7 +476,7 @@ export const en = {
         showMore: 'Show More',
         /** On the Show more button while the next rows load. */
         loading: 'Loading…',
-        refine: 'Refine Rearch',
+        refine: 'Refine Search',
       },
       itemsKicker: 'items',
       countLoading: 'Counting…',

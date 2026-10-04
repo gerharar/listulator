@@ -367,7 +367,7 @@ describe('the "more matches" block of the Search tab', () => {
       expect([more.showMore, more.refine, more.loading].every((text) => text.length > 0)).toBe(true)
     }
     expect(en.quantum.search.more.note).toBe(
-      'More matches found. Refine your search to improve results — add a year, a word from the title, or pick a narrower category',
+      'More matches found. Refine your search to improve results',
     )
   })
 })

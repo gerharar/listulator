@@ -419,10 +419,10 @@ export const de: Locale = {
         count: (shown: number, total: number, lowerBound: boolean): string =>
           `${shown} von ${total}${lowerBound ? '+' : ''} ${selectPlural(total, 'de', { one: 'Ergebnis', other: 'Ergebnissen' })}`,
         caption: (shown: number): string => `Ende der ersten ${shown}`,
-        note: 'Weitere Treffer gefunden. Verfeinere die Suche, um bessere Ergebnisse zu erhalten — füge ein Jahr oder ein Wort aus dem Titel hinzu oder wähle eine engere Kategorie',
-        showMore: 'Mehr anzeigen',
+        note: 'Weitere Treffer gefunden. Verfeinere die Suche, um bessere Ergebnisse zu erhalten',
+        showMore: 'Mehr Anzeigen',
         loading: 'Lade…',
-        refine: 'Suche verfeinern',
+        refine: 'Suche Verfeinern',
       },
       itemsKicker: 'Einträge',
       countLoading: 'Zähle…',

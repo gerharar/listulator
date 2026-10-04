@@ -877,8 +877,8 @@ describe('SearchTab', () => {
       expect(await screen.findByText('20 of 52+ results')).not.toBeNull()
       expect(rows()).toHaveLength(20)
       expect(screen.getByText('End of first 20')).not.toBeNull()
-      expect(screen.getByRole('button', { name: 'Refine search' })).not.toBeNull()
-      expect(screen.getByRole('button', { name: 'Show more' })).not.toBeNull()
+      expect(screen.getByRole('button', { name: 'Refine Search' })).not.toBeNull()
+      expect(screen.getByRole('button', { name: 'Show More' })).not.toBeNull()
       // After the last row, not before it.
       const last = rows().at(-1)!
       expect(last.compareDocumentPosition(screen.getByText('End of first 20')) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
@@ -901,7 +901,7 @@ describe('SearchTab', () => {
 
       expect(await screen.findByText('3 results')).not.toBeNull()
       expect(stop()).toBeNull()
-      expect(screen.queryByRole('button', { name: 'Show more' })).toBeNull()
+      expect(screen.queryByRole('button', { name: 'Show More' })).toBeNull()
     })
 
     it('shows no stop in the empty state or the error state, or while the search is running', async () => {
@@ -946,7 +946,7 @@ describe('SearchTab', () => {
       // The field is edited after the search; Show more still continues the search that was made.
       fireEvent.change(screen.getByLabelText(/^Search /), { target: { value: 'something else' } })
       await act(async () => {
-        fireEvent.click(screen.getByRole('button', { name: 'Show more' }))
+        fireEvent.click(screen.getByRole('button', { name: 'Show More' }))
       })
 
       expect(api.searchSources).toHaveBeenLastCalledWith('comic', 'batman', { page: 2 })
@@ -968,7 +968,7 @@ describe('SearchTab', () => {
 
       for (const call of [2, 3]) {
         await act(async () => {
-          fireEvent.click(screen.getByRole('button', { name: 'Show more' }))
+          fireEvent.click(screen.getByRole('button', { name: 'Show More' }))
         })
         expect(api.searchSources).toHaveBeenLastCalledWith('comic', 'batman', { page: call })
       }
@@ -985,7 +985,7 @@ describe('SearchTab', () => {
       fireEvent.click(await screen.findByRole('button', { name: /Show details for Batman \(1901\)/ }))
 
       await act(async () => {
-        fireEvent.click(screen.getByRole('button', { name: 'Show more' }))
+        fireEvent.click(screen.getByRole('button', { name: 'Show More' }))
       })
 
       expect(screen.getByRole('button', { name: /Show details for Batman \(1901\)/ }).getAttribute('aria-expanded')).toBe('true')
@@ -998,7 +998,7 @@ describe('SearchTab', () => {
       await screen.findByText('20 of 52+ results')
 
       await act(async () => {
-        fireEvent.click(screen.getByRole('button', { name: 'Show more' }))
+        fireEvent.click(screen.getByRole('button', { name: 'Show More' }))
       })
 
       expect(rows()).toHaveLength(23)
@@ -1014,7 +1014,7 @@ describe('SearchTab', () => {
       await screen.findByText('20 of 52+ results')
 
       await act(async () => {
-        fireEvent.click(screen.getByRole('button', { name: 'Show more' }))
+        fireEvent.click(screen.getByRole('button', { name: 'Show More' }))
       })
       const loading = screen.getByRole('button', { name: 'Loading…' }) as HTMLButtonElement
       fireEvent.click(loading)
@@ -1035,12 +1035,12 @@ describe('SearchTab', () => {
       await screen.findByText('20 of 52+ results')
 
       await act(async () => {
-        fireEvent.click(screen.getByRole('button', { name: 'Show more' }))
+        fireEvent.click(screen.getByRole('button', { name: 'Show More' }))
       })
 
       expect(rows()).toHaveLength(20)
       expect(screen.getByRole('alert')).not.toBeNull()
-      expect((screen.getByRole('button', { name: 'Show more' }) as HTMLButtonElement).disabled).toBe(false)
+      expect((screen.getByRole('button', { name: 'Show More' }) as HTMLButtonElement).disabled).toBe(false)
 
       await act(async () => {
         fireEvent.click(screen.getByRole('button', { name: /Retry/ }))
@@ -1059,7 +1059,7 @@ describe('SearchTab', () => {
       await search('batman')
       await screen.findByText('20 of 52+ results')
       await act(async () => {
-        fireEvent.click(screen.getByRole('button', { name: 'Show more' }))
+        fireEvent.click(screen.getByRole('button', { name: 'Show More' }))
       })
 
       await search('superman')
@@ -1078,7 +1078,7 @@ describe('SearchTab', () => {
       await screen.findByText('20 of 52+ results')
 
       await act(async () => {
-        fireEvent.click(screen.getByRole('button', { name: 'Show more' }))
+        fireEvent.click(screen.getByRole('button', { name: 'Show More' }))
       })
 
       expect(api.searchSources).toHaveBeenLastCalledWith('book', 'batman', { language: 'eng', includeUnknown: false, page: 2 })
@@ -1117,7 +1117,7 @@ describe('SearchTab', () => {
       await waitFor(() => expect(api.expansion).toHaveBeenCalledTimes(1))
 
       await act(async () => {
-        fireEvent.click(screen.getByRole('button', { name: 'Show more' }))
+        fireEvent.click(screen.getByRole('button', { name: 'Show More' }))
       })
 
       await waitFor(() => expect(api.expansion).toHaveBeenCalledTimes(2))
@@ -1129,7 +1129,7 @@ describe('SearchTab', () => {
       renderTab(COMIC)
       await search('batman')
       await screen.findByText('20 of 52+ results')
-      const button = screen.getByRole('button', { name: 'Show more' })
+      const button = screen.getByRole('button', { name: 'Show More' })
 
       await act(async () => {
         fireEvent.click(button)
@@ -1173,13 +1173,13 @@ describe('SearchTab', () => {
       await search('batman')
       await screen.findByText('20 of 52+ results')
       await act(async () => {
-        fireEvent.click(screen.getByRole('button', { name: 'Show more' }))
+        fireEvent.click(screen.getByRole('button', { name: 'Show More' }))
       })
 
       await search('superman')
       await screen.findByText('20 of 60 results')
       await act(async () => {
-        fireEvent.click(screen.getByRole('button', { name: 'Show more' }))
+        fireEvent.click(screen.getByRole('button', { name: 'Show More' }))
       })
 
       expect(api.searchSources).toHaveBeenLastCalledWith('comic', 'superman', { page: 2 })
@@ -1195,13 +1195,13 @@ describe('SearchTab', () => {
       await search('batman')
       await screen.findByText('20 of 52+ results')
       await act(async () => {
-        fireEvent.click(screen.getByRole('button', { name: 'Show more' }))
+        fireEvent.click(screen.getByRole('button', { name: 'Show More' }))
       })
 
       await search('superman')
       await screen.findByText('20 of 60 results')
       await act(async () => {
-        fireEvent.click(screen.getByRole('button', { name: 'Show more' }))
+        fireEvent.click(screen.getByRole('button', { name: 'Show More' }))
       })
 
       expect(rows()).toHaveLength(25)
@@ -1216,12 +1216,12 @@ describe('SearchTab', () => {
       await search('batman')
       await screen.findByText('20 of 52+ results')
       await act(async () => {
-        fireEvent.click(screen.getByRole('button', { name: 'Show more' }))
+        fireEvent.click(screen.getByRole('button', { name: 'Show More' }))
       })
       expect(screen.getByRole('alert')).not.toBeNull()
 
       await act(async () => {
-        fireEvent.click(screen.getByRole('button', { name: 'Show more' }))
+        fireEvent.click(screen.getByRole('button', { name: 'Show More' }))
       })
 
       expect(screen.queryByRole('alert')).toBeNull()
@@ -1238,8 +1238,8 @@ describe('SearchTab', () => {
         fireEvent.click(screen.getByRole('button', { name: 'Add List' }))
       })
 
-      expect((screen.getByRole('button', { name: 'Show more' }) as HTMLButtonElement).disabled).toBe(true)
-      expect((screen.getByRole('button', { name: 'Refine search' }) as HTMLButtonElement).disabled).toBe(true)
+      expect((screen.getByRole('button', { name: 'Show More' }) as HTMLButtonElement).disabled).toBe(true)
+      expect((screen.getByRole('button', { name: 'Refine Search' }) as HTMLButtonElement).disabled).toBe(true)
     })
 
     describe('Refine search', () => {
@@ -1249,7 +1249,7 @@ describe('SearchTab', () => {
         await search('batman')
         await screen.findByText('20 of 52+ results')
 
-        fireEvent.click(screen.getByRole('button', { name: 'Refine search' }))
+        fireEvent.click(screen.getByRole('button', { name: 'Refine Search' }))
 
         const input = screen.getByLabelText(/^Search /) as HTMLInputElement
         expect(document.activeElement).toBe(input)
@@ -1272,7 +1272,7 @@ describe('SearchTab', () => {
         scroller.getBoundingClientRect = () => ({ top: 100 }) as DOMRect
         input.getBoundingClientRect = () => ({ top: 30 }) as DOMRect
 
-        fireEvent.click(screen.getByRole('button', { name: 'Refine search' }))
+        fireEvent.click(screen.getByRole('button', { name: 'Refine Search' }))
 
         expect(scroller.scrollTop).toBe(230)
         expect(scrollIntoView).not.toHaveBeenCalled()

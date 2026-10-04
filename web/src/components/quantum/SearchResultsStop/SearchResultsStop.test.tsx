@@ -19,17 +19,17 @@ describe('SearchResultsStop (design 5A)', () => {
     expect(screen.getByText('End of first 40')).not.toBeNull()
     expect(
       screen.getByText(
-        'More matches found. Refine your search to improve results — add a year, a word from the title, or pick a narrower category',
+        'More matches found. Refine your search to improve results',
       ),
     ).not.toBeNull()
-    expect(screen.getAllByRole('button').map((button) => button.textContent)).toEqual(['Refine search', 'Show more'])
+    expect(screen.getAllByRole('button').map((button) => button.textContent)).toEqual(['Refine Search', 'Show More'])
   })
 
   it('calls back for each action', () => {
     const { onRefine, onShowMore } = renderStop()
 
-    fireEvent.click(screen.getByRole('button', { name: 'Refine search' }))
-    fireEvent.click(screen.getByRole('button', { name: 'Show more' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Refine Search' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Show More' }))
 
     expect(onRefine).toHaveBeenCalledTimes(1)
     expect(onShowMore).toHaveBeenCalledTimes(1)
@@ -43,7 +43,7 @@ describe('SearchResultsStop (design 5A)', () => {
 
     expect(loading.disabled).toBe(true)
     expect(onShowMore).not.toHaveBeenCalled()
-    expect((screen.getByRole('button', { name: 'Refine search' }) as HTMLButtonElement).disabled).toBe(false)
+    expect((screen.getByRole('button', { name: 'Refine Search' }) as HTMLButtonElement).disabled).toBe(false)
   })
 
   it('locks both actions while the tab is busy with an import', () => {
