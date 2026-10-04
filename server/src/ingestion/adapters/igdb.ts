@@ -38,16 +38,26 @@ const BACKOFF_MS = 500
 const MAX_RETRY_WAIT_MS = 10_000
 
 /**
- * IGDB's `game_type`s a franchise lists: a main game, a remake and a remaster (owner, 2026-10-04: with Main Game
- * only, Final Fantasy VII Remake and Rebirth, the Pixel Remasters and more were missing, BL-056). Ports, bundles,
- * DLC, expansions and updates stay out: the same game again, or something that is not a game of its own. Every
- * id is IGDB's (`/game_types`).
+ * IGDB's `game_type`s a franchise lists: a main game, a remake, a remaster (owner, 2026-10-04: with Main Game only,
+ * Final Fantasy VII Remake and Rebirth, the Pixel Remasters and more were missing, BL-056), then an expanded game,
+ * a standalone expansion and DLC (owner, after reading the Final Fantasy types file: Zodiac Age and Royal Edition,
+ * Episode Duscae, Echoes of the Fallen are things a completionist plays). Ports, bundles, updates, packs, seasons
+ * and add-on expansions stay out: the same game again, or not a thing of its own. Every id is IGDB's (`/game_types`).
  */
 const MAIN_GAME = 0
+const DLC = 1
+const STANDALONE_EXPANSION = 4
 const REMAKE = 8
 const REMASTER = 9
-const LISTED_TYPES = [MAIN_GAME, REMAKE, REMASTER]
-const TYPE_LABEL = new Map<number, string>([[REMAKE, 'Remake'], [REMASTER, 'Remaster']])
+const EXPANDED_GAME = 10
+const LISTED_TYPES = [MAIN_GAME, DLC, STANDALONE_EXPANSION, REMAKE, REMASTER, EXPANDED_GAME]
+const TYPE_LABEL = new Map<number, string>([
+  [DLC, 'DLC'],
+  [STANDALONE_EXPANSION, 'Standalone Expansion'],
+  [REMAKE, 'Remake'],
+  [REMASTER, 'Remaster'],
+  [EXPANDED_GAME, 'Expanded Game'],
+])
 
 /**
  * "Normally" is the main story plus a little else. `hastily` is a speedrun and
@@ -64,9 +74,22 @@ interface NamedResult {
   games?: number[]
 }
 
-/** Candidates asked for, then ranked, and how many are shown: the right one must not be cut before the count. */
-const SEARCH_CANDIDATES = 50
+/**
+ * A search asks for every record that has a fragment of the query in its name, in pages of IGDB's maximum, then
+ * keeps the ones that match once accents, punctuation and "&" are folded away and shows the ten with most entries.
+ * Live, 2026-10-04: a three-letter fragment is in at most about 1,100 franchises and series ("the"; "mar" 244,
+ * "sta" 337), so four pages hold any fragment and the right record is never cut before the entries are counted.
+ */
+const SEARCH_CANDIDATE_PAGES = 4
 const SEARCH_RESULTS = 10
+/**
+ * Letters asked for from a query word: its first and its last, so a hyphen near one end ("xmen" is X-Men) leaves the
+ * other intact. Measured over the 133 franchises and series IGDB's literal match missed: the front alone finds all
+ * but ten ("xmen", "fzero", "rtype", "xcom", "atrain"), front and back all but "yugioh" (Yu-Gi-Oh!).
+ */
+const FRAGMENT_LENGTH = 3
+/** Query words asked for, longest first: a name has them all, so any one that is intact finds it. */
+const FRAGMENT_WORDS = 2
 
 interface GameResult {
   id: number
@@ -106,15 +129,28 @@ function looksLikeAnEdition(name: string): boolean {
   return /[-:]\s.*\bedition\b\s*$/i.test(name)
 }
 
+/**
+ * A name or a query as plain lowercase words: accents taken off ("Pokémon" is "pokemon"), "&" and the rest of the
+ * punctuation and spacing dropped. IGDB matches names literally, so "pokemon", "assassins creed", "pacman" and
+ * "dungeons and dragons" find nothing for Pokémon, Assassin's Creed, Pac-Man and Dungeons & Dragons (BL-055).
+ */
+const foldWords = (text: string): string[] =>
+  text
+    .normalize('NFD')
+    .replace(/\p{M}/gu, '')
+    .toLowerCase()
+    .split(/[^\p{L}\p{N}]+/u)
+    .filter(Boolean)
+
 const releaseYear = (game: GameResult): number | undefined =>
   game.first_release_date ? new Date(game.first_release_date * 1000).getUTCFullYear() : undefined
 
 /**
- * Titles to show. A remake or remaster usually shares its name with the original ("Final Fantasy II" is a main
- * game and three remasters), and a list of identical rows looks like a bug. Only a remake or remaster whose name
- * is shared by another listed entry gets its type after it ("Final Fantasy II (Remaster)"); two of one type also
- * get the year ("Final Fantasy (Remaster, 2021)"). A main game keeps its own name, and a name no other listed
- * entry has is left alone.
+ * Titles to show. A remake, remaster or expanded game usually shares its name with the original ("Final Fantasy II"
+ * is a main game, three remasters and an expanded game), and a list of identical rows looks like a bug. Only a
+ * non-main entry whose name is shared by another listed entry gets its type after it ("Final Fantasy II
+ * (Remaster)"); two of one type also get the year ("Final Fantasy (Remaster, 2021)"). A main game keeps its own
+ * name, and a name no other listed entry has is left alone.
  */
 function displayTitles(games: readonly GameResult[]): Map<number, string> {
   const sameName = new Map<string, GameResult[]>()
@@ -282,10 +318,6 @@ export function createIgdbAdapter(
     }
   }
 
-  function escape(value: string): string {
-    return value.replace(/["\\]/g, '')
-  }
-
   return {
     isAvailable: () => {
       const { clientId, clientSecret } = resolve()
@@ -294,16 +326,40 @@ export function createIgdbAdapter(
     },
 
     async search(rawQuery) {
-      const term = escape(rawQuery)
+      // "and" is left out of the query and of every name it is compared with: a name may spell it "&" or leave it
+      // out of what people type ("ratchet clank" is Ratchet & Clank, "dungeons dragons" Dungeons & Dragons).
+      const words = foldWords(rawQuery).filter((word) => word !== 'and')
+      const key = words.join('')
+      if (!key) return []
+
+      // IGDB cannot match across an accent or a punctuation mark, so it is asked for the ends of the longest words
+      // (any one fragment being intact is enough to find the name) and the match itself is made here, on folded
+      // names.
+      const longest = [...words].sort((a, b) => b.length - a.length).slice(0, FRAGMENT_WORDS)
+      const fragments = new Set(
+        longest.flatMap((word) => [word.slice(0, FRAGMENT_LENGTH), word.slice(-FRAGMENT_LENGTH)]),
+      )
+      const where = `(${[...fragments].map((fragment) => `name ~ *"${fragment}"*`).join(' | ')})`
+
+      const candidates = async (endpoint: 'franchises' | 'collections'): Promise<NamedResult[]> => {
+        const found: NamedResult[] = []
+        for (let page = 0; page < SEARCH_CANDIDATE_PAGES; page += 1) {
+          const batch = await query<NamedResult>(
+            endpoint,
+            `fields name,games; where ${where}; sort id asc; limit ${PAGE_SIZE}; offset ${page * PAGE_SIZE};`,
+          )
+          found.push(...batch)
+          if (batch.length < PAGE_SIZE) break
+        }
+
+        return found.filter((entry) => foldWords(entry.name).filter((word) => word !== 'and').join('').includes(key))
+      }
 
       // Franchises are the unit that matches "all the X games". Series
       // (IGDB's "collections") are narrower and fragmented — "Assassin's
       // Creed II" is its own series — but they are how some sets are
       // grouped, so both are offered.
-      const [franchises, series] = await Promise.all([
-        query<NamedResult>('franchises', `fields name,games; where name ~ *"${term}"*; limit ${SEARCH_CANDIDATES};`),
-        query<NamedResult>('collections', `fields name,games; where name ~ *"${term}"*; limit ${SEARCH_CANDIDATES};`),
-      ])
+      const [franchises, series] = await Promise.all([candidates('franchises'), candidates('collections')])
 
       // Most entries first, franchises and series together: the big, well-kept record is nearly always the one
       // wanted, and the fan games and single-title series that match the same words sink (BL-055: "assassin"

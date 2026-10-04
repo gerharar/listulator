@@ -148,13 +148,13 @@ describe('IGDB search', () => {
   it('puts the one with the most entries first, franchises and series together (BL-055)', async () => {
     const entries = (n: number) => Array.from({ length: n }, (_, index) => index + 1)
     const { fetchImpl } = router({
-      franchises: [{ id: 1, name: 'Small franchise', games: entries(3) }, { id: 2, name: 'Big franchise', games: entries(359) }],
-      collections: [{ id: 3, name: 'Fan game', games: entries(1) }, { id: 4, name: 'Main series', games: entries(193) }, { id: 5, name: 'No list at all' }],
+      franchises: [{ id: 1, name: 'Zelda small franchise', games: entries(3) }, { id: 2, name: 'Zelda big franchise', games: entries(359) }],
+      collections: [{ id: 3, name: 'Zelda fan game', games: entries(1) }, { id: 4, name: 'Zelda main series', games: entries(193) }, { id: 5, name: 'Zelda no list at all' }],
     })
 
-    const found = await createIgdbAdapter(credentials, fetchImpl).search('x')
+    const found = await createIgdbAdapter(credentials, fetchImpl).search('zelda')
 
-    expect(found.map((source) => source.title)).toEqual(['Big franchise — games', 'Main series', 'Small franchise — games', 'Fan game', 'No list at all'])
+    expect(found.map((source) => source.title)).toEqual(['Zelda big franchise — games', 'Zelda main series', 'Zelda small franchise — games', 'Zelda fan game', 'Zelda no list at all'])
   })
 
   it('breaks a tie by name, so the order never changes between searches', async () => {
@@ -163,7 +163,7 @@ describe('IGDB search', () => {
       collections: [],
     })
 
-    expect((await createIgdbAdapter(credentials, fetchImpl).search('x')).map((source) => source.title)).toEqual(['Alpha — games', 'Zeta — games'])
+    expect((await createIgdbAdapter(credentials, fetchImpl).search('a')).map((source) => source.title)).toEqual(['Alpha — games', 'Zeta — games'])
   })
 
   it('shows at most ten, the ten with the most entries', async () => {
@@ -177,14 +177,145 @@ describe('IGDB search', () => {
     expect(found[9]!.title).toBe('Series 21')
   })
 
-  it('strips quotes from the query, which would otherwise break the syntax', async () => {
+  it('puts only letters and digits into the query it sends, which would otherwise break the syntax', async () => {
     // IGDB queries are a string language, and the search box is user input.
     const { fetchImpl } = router({ franchises: [], collections: [] })
     await createIgdbAdapter(credentials, fetchImpl).search('say "what" \\ now')
 
     const call = vi.mocked(fetchImpl).mock.calls.find(([url]) => url.includes('franchises'))!
-    // Fifty candidates, not six: the right one must not be cut before the entries are counted (BL-055).
-    expect(call[1]?.body).toBe('fields name,games; where name ~ *"say what  now"*; limit 50;')
+    // The ends of the two longest words, a page of IGDB's maximum, by id (BL-055).
+    expect(call[1]?.body).toBe('fields name,games; where (name ~ *"wha"* | name ~ *"hat"* | name ~ *"say"*); sort id asc; limit 500; offset 0;')
+  })
+})
+
+/**
+ * A fake that matches the way IGDB does: a name has to contain the fragment, accents and punctuation as they are
+ * (live, 2026-10-04: "pokemon" finds no Pokémon, "assassins creed" no Assassin's Creed), by id, paged by offset.
+ */
+function literalIgdb(records: { franchises?: NamedRecord[]; collections?: NamedRecord[] }) {
+  const requests: { endpoint: string; body: string }[] = []
+  const fetchImpl: FetchLike = vi.fn(async (url: string, init) => {
+    if (url.startsWith('https://id.twitch.tv')) return new Response(JSON.stringify({ access_token: 't', expires_in: 5000 }))
+
+    const endpoint = new URL(url).pathname.split('/').pop() as 'franchises' | 'collections'
+    const body = String(init?.body)
+    requests.push({ endpoint, body })
+
+    const fragments = [...body.matchAll(/name ~ \*"([^"]*)"\*/g)].map((match) => match[1]!.toLowerCase())
+    const offset = Number(/offset (\d+)/.exec(body)![1])
+    const limit = Number(/limit (\d+)/.exec(body)![1])
+    const matching = (records[endpoint] ?? []).filter((record) => fragments.some((fragment) => record.name.toLowerCase().includes(fragment)))
+
+    return new Response(JSON.stringify(matching.slice(offset, offset + limit)))
+  })
+
+  return { fetchImpl, requests }
+}
+
+interface NamedRecord {
+  id: number
+  name: string
+  games?: number[]
+}
+
+describe('IGDB search matches names with accents and punctuation folded (BL-055, owner 2026-10-04)', () => {
+  const entries = (n: number) => Array.from({ length: n }, (_, index) => index + 1)
+  const franchises = [
+    { id: 60, name: 'Pokémon', games: entries(347) },
+    { id: 571, name: "Assassin's Creed", games: entries(224) },
+    { id: 892, name: 'Pac-Man', games: entries(295) },
+    { id: 151, name: 'Spider-Man', games: entries(246) },
+    { id: 10, name: 'X-Men', games: entries(100) },
+    { id: 11, name: 'F-Zero', games: entries(20) },
+    { id: 20, name: 'Dungeons & Dragons', games: entries(150) },
+    { id: 30, name: 'Turma da Mônica', games: entries(16) },
+    { id: 40, name: 'Assassin Parks', games: entries(2) },
+    { id: 41, name: 'Ratchet & Clank', games: entries(30) },
+    { id: 42, name: 'Sword and Shield Tales', games: entries(3) },
+  ]
+  const find = async (query: string) =>
+    (await createIgdbAdapter(credentials, literalIgdb({ franchises }).fetchImpl).search(query)).map((source) => source.title)
+
+  it.each([
+    ['pokemon', 'Pokémon — games'],
+    ['Pokémon', 'Pokémon — games'],
+    ['assassins creed', "Assassin's Creed — games"],
+    ['assassin s creed', "Assassin's Creed — games"],
+    ['pacman', 'Pac-Man — games'],
+    ['pac man', 'Pac-Man — games'],
+    ['spiderman', 'Spider-Man — games'],
+    ['xmen', 'X-Men — games'],
+    ['fzero', 'F-Zero — games'],
+    ['dungeons and dragons', 'Dungeons & Dragons — games'],
+    ['dungeons & dragons', 'Dungeons & Dragons — games'],
+    ['dungeons dragons', 'Dungeons & Dragons — games'],
+    ['ratchet clank', 'Ratchet & Clank — games'],
+    ['ratchet and clank', 'Ratchet & Clank — games'],
+    ['sword shield', 'Sword and Shield Tales — games'],
+    ['turma da monica', 'Turma da Mônica — games'],
+  ])('finds %s', async (query, title) => {
+    expect(await find(query)).toContain(title)
+  })
+
+  it('offers only names that have the whole query once folded, not every one that shares a word of it', async () => {
+    expect(await find('assassins creed')).toEqual(["Assassin's Creed — games"])
+  })
+
+  it('still finds a name typed as it is spelled, and ranks by entries as before', async () => {
+    expect(await find('man')).toEqual(['Pac-Man — games', 'Spider-Man — games'])
+  })
+
+  it('asks for the front and the back of the two longest words, leaving "and" out because a name may say "&"', async () => {
+    const { fetchImpl, requests } = literalIgdb({ franchises })
+    await createIgdbAdapter(credentials, fetchImpl).search('dungeons and dragons')
+
+    expect(requests[0]!.body).toContain('where (name ~ *"dun"* | name ~ *"ons"* | name ~ *"dra"*);')
+  })
+
+  it('makes no request for a query that is only "and" or "&": every name has one', async () => {
+    const { fetchImpl, requests } = literalIgdb({ franchises })
+
+    expect(await createIgdbAdapter(credentials, fetchImpl).search('& and')).toEqual([])
+    expect(requests).toEqual([])
+  })
+
+  it('asks for a short word whole when that is all there is', async () => {
+    const { fetchImpl, requests } = literalIgdb({ franchises })
+    await createIgdbAdapter(credentials, fetchImpl).search('x')
+
+    expect(requests[0]!.body).toContain('where (name ~ *"x"*);')
+  })
+
+  it('makes no request for a query that is only punctuation', async () => {
+    const { fetchImpl, requests } = literalIgdb({ franchises })
+
+    expect(await createIgdbAdapter(credentials, fetchImpl).search('?! -')).toEqual([])
+    expect(requests).toEqual([])
+  })
+
+  it('asks once for each kind when the fragment is rare, and again only while a page comes back full', async () => {
+    const { fetchImpl, requests } = literalIgdb({ franchises })
+    await createIgdbAdapter(credentials, fetchImpl).search('pokemon')
+
+    expect(requests.map((request) => request.endpoint).sort()).toEqual(['collections', 'franchises'])
+
+    const crowded = Array.from({ length: 1200 }, (_, index) => ({ id: index + 1, name: `Zelda ${index + 1}`, games: entries(1) }))
+    const wanted = { id: 5000, name: 'Zelda: The Real One', games: entries(50) }
+    const many = literalIgdb({ franchises: [...crowded, wanted] })
+    const found = await createIgdbAdapter(credentials, many.fetchImpl).search('zelda the real one')
+
+    expect(found.map((source) => source.title)).toEqual(['Zelda: The Real One — games'])
+    // 1,201 records by id: three pages, the last one short; the series side has none.
+    expect(many.requests.filter((request) => request.endpoint === 'franchises')).toHaveLength(3)
+    expect(many.requests.filter((request) => request.endpoint === 'collections')).toHaveLength(1)
+  })
+
+  it('stops at four pages, so a fragment in thousands of names cannot ask without end', async () => {
+    const crowded = Array.from({ length: 3000 }, (_, index) => ({ id: index + 1, name: `Zelda ${index + 1}` }))
+    const { fetchImpl, requests } = literalIgdb({ franchises: crowded })
+    await createIgdbAdapter(credentials, fetchImpl).search('zelda')
+
+    expect(requests.filter((request) => request.endpoint === 'franchises')).toHaveLength(4)
   })
 })
 
@@ -337,13 +468,14 @@ describe('IGDB expansion', () => {
     expect(queries('games')[0]!.body).not.toMatch(/\bcollection = /)
   })
 
-  it('asks for main games, remakes and remasters, leaving out DLC, ports, bundles and updates', async () => {
+  it('asks for main games, remakes, remasters, expanded games, standalone expansions and DLC, leaving out ports, bundles, updates, packs, seasons and add-on expansions', async () => {
     const { fetchImpl } = router({ games: [], game_time_to_beats: [] })
     await createIgdbAdapter(credentials, fetchImpl).expand('franchise:571')
 
     const call = vi.mocked(fetchImpl).mock.calls.find(([url]) => url.endsWith('/games'))!
-    // 0 Main Game, 8 Remake, 9 Remaster (owner, 2026-10-04: Final Fantasy VII Remake was missing, BL-056).
-    expect(call[1]?.body).toContain('game_type = (0,8,9)')
+    // 0 Main Game, 1 DLC, 4 Standalone Expansion, 8 Remake, 9 Remaster, 10 Expanded Game (owner, 2026-10-04: Final
+    // Fantasy VII Remake was missing, BL-056; the other three after reading the Final Fantasy types file).
+    expect(call[1]?.body).toContain('game_type = (0,1,4,8,9,10)')
     // Paged by id, which is unique, so a page never repeats or skips a game that shares a release date.
     expect(call[1]?.body).toContain('sort id asc')
   })
@@ -610,6 +742,9 @@ describe('IGDB token request', () => {
 
 describe('IGDB remakes and remasters (BL-056, owner 2026-10-04)', () => {
   const MAIN = 0
+  const DLC = 1
+  const STANDALONE_EXPANSION = 4
+  const EXPANDED_GAME = 10
   const REMAKE = 8
   const REMASTER = 9
   const list = async (games: { id: number; name: string; first_release_date?: number; game_type?: number }[]) =>
@@ -662,11 +797,44 @@ describe('IGDB remakes and remasters (BL-056, owner 2026-10-04)', () => {
       await list([
         { id: 1, name: 'Chrono Trigger', first_release_date: 100, game_type: MAIN },
         { id: 2, name: 'CHRONO TRIGGER', first_release_date: 200, game_type: REMAKE },
-        // A DLC of the same name is not listed, so it makes nothing ambiguous.
+        // A port of the same name is not listed, so it makes nothing ambiguous.
         { id: 3, name: 'Secret of Mana', first_release_date: 300, game_type: MAIN },
-        { id: 4, name: 'Secret of Mana', first_release_date: 400, game_type: 1 },
+        { id: 4, name: 'Secret of Mana', first_release_date: 400, game_type: 11 },
       ]),
     ).toEqual(['Chrono Trigger', 'CHRONO TRIGGER (Remake)', 'Secret of Mana'])
+  })
+
+  it('lists DLC, a standalone expansion and an expanded game, and still leaves out a port, a bundle, an update, a pack, a season and an add-on expansion', async () => {
+    expect(
+      await list([
+        { id: 1, name: 'Final Fantasy XV', first_release_date: 100, game_type: MAIN },
+        { id: 2, name: 'Final Fantasy XV: Episode Duscae', first_release_date: 200, game_type: STANDALONE_EXPANSION },
+        { id: 3, name: 'Final Fantasy XV: Episode Gladiolus', first_release_date: 300, game_type: DLC },
+        { id: 4, name: 'Final Fantasy XV: Royal Edition', first_release_date: 400, game_type: EXPANDED_GAME },
+        { id: 5, name: 'Port', first_release_date: 500, game_type: 11 },
+        { id: 6, name: 'Bundle', first_release_date: 500, game_type: 3 },
+        { id: 7, name: 'Update', first_release_date: 500, game_type: 14 },
+        { id: 8, name: 'Pack', first_release_date: 500, game_type: 13 },
+        { id: 9, name: 'Season', first_release_date: 500, game_type: 7 },
+        { id: 10, name: 'Add-on expansion', first_release_date: 500, game_type: 2 },
+      ]),
+    ).toEqual([
+      'Final Fantasy XV',
+      'Final Fantasy XV: Episode Duscae',
+      'Final Fantasy XV: Episode Gladiolus',
+      'Final Fantasy XV: Royal Edition',
+    ])
+  })
+
+  it('tells an expanded game from the original when they share a name, by its type', async () => {
+    expect(
+      await list([
+        { id: 1, name: 'Final Fantasy II', first_release_date: 100, game_type: MAIN },
+        { id: 2, name: 'Final Fantasy II', first_release_date: 200, game_type: EXPANDED_GAME },
+        { id: 3, name: 'Tekken 8', first_release_date: 300, game_type: MAIN },
+        { id: 4, name: 'Tekken 8', first_release_date: 400, game_type: DLC },
+      ]),
+    ).toEqual(['Final Fantasy II', 'Final Fantasy II (Expanded Game)', 'Tekken 8', 'Tekken 8 (DLC)'])
   })
 
   it('leaves two main games of one name as they are: only a remake or remaster gets a type', async () => {

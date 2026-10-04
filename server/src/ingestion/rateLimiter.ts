@@ -26,7 +26,7 @@ export interface RateLimiterClock {
  */
 export function createRateLimiter(
   minIntervalMs: number,
-  { now = Date.now, sleep = delay }: RateLimiterClock = {},
+  { now = () => Date.now(), sleep = delay }: RateLimiterClock = {},
 ): RateLimiter {
   let tail: Promise<unknown> = Promise.resolve()
   let lastStart = Number.NEGATIVE_INFINITY
@@ -58,7 +58,7 @@ export function createRateLimiter(
  */
 export function createPacer(
   minIntervalMs: number,
-  { now = Date.now, sleep = delay }: RateLimiterClock = {},
+  { now = () => Date.now(), sleep = delay }: RateLimiterClock = {},
 ): RateLimiter {
   let nextStart = Number.NEGATIVE_INFINITY
 
