@@ -38,11 +38,14 @@ export function updateStatusText(state: UpdateBlockState): string {
   return lines[state]
 }
 
-/** "Version 1.0.0." or, with an update to offer, "Version 1.0.0 → 1.1.0.". */
+/**
+ * "Version 1.0.0" or, with an update to offer, "Version 1.0.0 → 1.1.0". No full stop: the Changelog link follows it
+ * on the same line, and a dot there pushed the link away (owner, 2026-10-05).
+ */
 export function updateVersionText(current: string, next?: string): string {
   const label = copy.quantum.about.version
 
-  return next === undefined ? `${label} ${current}.` : `${label} ${current} → ${next}.`
+  return next === undefined ? `${label} ${current}` : `${label} ${current} → ${next}`
 }
 
 /**
