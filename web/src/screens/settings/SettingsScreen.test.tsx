@@ -12,6 +12,21 @@ import { OverlayManagerProvider } from '../../components/quantum/overlay/Overlay
 import { MotionProvider } from '../../components/quantum/Motion/MotionContext.js'
 import { SettingsScreen } from './SettingsScreen.js'
 
+const tauriWindow = vi.hoisted(() => ({
+  fullscreen: false,
+  setFullscreen: vi.fn(async (on: boolean) => {
+    tauriWindow.fullscreen = on
+  }),
+}))
+
+vi.mock('@tauri-apps/api/window', () => ({
+  getCurrentWindow: () => ({
+    isFullscreen: async () => tauriWindow.fullscreen,
+    setFullscreen: tauriWindow.setFullscreen,
+    onResized: async () => () => {},
+  }),
+}))
+
 vi.mock('../../lib/config/localConfig.js', () => ({
   getLocalSettings: vi.fn(async () => ({})),
   updateLocalSettings: vi.fn(async () => {}),
@@ -168,6 +183,38 @@ describe('SettingsScreen', () => {
     renderSettings()
 
     expect(screen.queryByText('API keys')).toBeNull()
+  })
+
+  it('names the group Screen, with no Fullscreen box outside the desktop app (17.7)', () => {
+    renderSettings()
+
+    expect(screen.getByText('Screen')).not.toBeNull()
+    expect(screen.queryByText('Motion')).toBeNull()
+    expect(screen.queryByRole('checkbox', { name: 'Fullscreen' })).toBeNull()
+    expect(screen.getByRole('checkbox', { name: 'Reduce animation motion' })).not.toBeNull()
+  })
+
+  it('in the desktop app, has Fullscreen above Reduce animation motion, showing and setting the window (17.7)', async () => {
+    Object.assign(window, { __TAURI_INTERNALS__: {} })
+    tauriWindow.fullscreen = true
+    tauriWindow.setFullscreen.mockClear()
+    try {
+      renderSettings()
+
+      const box = screen.getByRole('checkbox', { name: 'Fullscreen' }) as HTMLInputElement
+      const boxes = screen.getAllByRole('checkbox').map((entry) => entry.closest('label')?.textContent)
+      expect(boxes.indexOf('Fullscreen')).toBe(boxes.indexOf('Reduce animation motion') - 1)
+      // A launch restored into full screen shows ticked.
+      await waitFor(() => expect(box.checked).toBe(true))
+
+      act(() => box.click())
+
+      expect(tauriWindow.setFullscreen).toHaveBeenCalledWith(false)
+      await waitFor(() => expect(box.checked).toBe(false))
+    } finally {
+      delete (window as unknown as Record<string, unknown>)['__TAURI_INTERNALS__']
+      tauriWindow.fullscreen = false
+    }
   })
 
   it('has the API keys section in the desktop app', async () => {

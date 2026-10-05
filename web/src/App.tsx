@@ -7,6 +7,7 @@ import { resolveSkin, setSkin as persistSkin, type Skin } from './lib/preference
 import { resolveLanguage, type Language } from './lib/preferences/language.js'
 import { resolveReducedMotionSetting } from './lib/preferences/motion.js'
 import { MotionProvider } from './components/quantum/Motion/MotionContext.js'
+import { useFullscreenKey } from './lib/windowFullscreen.js'
 import { SettingsScreen } from './screens/settings/SettingsScreen.js'
 import { AboutScreen } from './screens/about/AboutScreen.js'
 import { ListScreen } from './screens/list/ListScreen.js'
@@ -85,6 +86,8 @@ export function App() {
 function QuantumShell({ initial }: { initial: BootState }) {
   const [skin, setSkinState] = useState<Skin>(initial.skin)
   const store = getPreferencesStore()
+  // F11 toggles full screen in the desktop app, wherever focus is (17.7); nothing in the browser.
+  useFullscreenKey()
 
   function handleSkinChange(next: Skin): void {
     setSkinState(next)

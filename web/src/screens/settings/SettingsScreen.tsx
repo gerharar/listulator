@@ -12,6 +12,7 @@ import { HeaderPlate } from '../../components/quantum/HeaderPlate/HeaderPlate.js
 import { useLayerStack } from '../../components/quantum/layerStack/LayerStackContext.js'
 import { useLiveRegion } from '../../components/quantum/LiveRegion/LiveRegion.js'
 import { useMotion } from '../../components/quantum/Motion/MotionContext.js'
+import { useWindowFullscreen } from '../../lib/windowFullscreen.js'
 import { SkinSwatch } from '../../components/quantum/SkinSwatch/SkinSwatch.js'
 import { ToggleChip } from '../../components/quantum/ToggleChip/ToggleChip.js'
 
@@ -33,6 +34,7 @@ export function SettingsScreen({ skin, onSkinChange, store }: SettingsScreenProp
   const { announce } = useLiveRegion()
   const { language, setLanguage } = useLanguage()
   const { reduced, setReducedMotion } = useMotion()
+  const fullscreen = useWindowFullscreen()
   const text = copy.quantum.settings
 
   function pickSkin(next: Skin): void {
@@ -79,7 +81,18 @@ export function SettingsScreen({ skin, onSkinChange, store }: SettingsScreenProp
           </section>
 
           <section>
-            <span className="q-kicker">{text.motion}</span>
+            <span className="q-kicker">{text.screen}</span>
+            {/* Desktop only (17.7): Windows has no full-screen control of its own; F11 does the same. */}
+            {fullscreen.available && (
+              <label className="q-settings-check">
+                <input
+                  type="checkbox"
+                  checked={fullscreen.fullscreen}
+                  onChange={(event) => fullscreen.setFullscreen(event.target.checked)}
+                />
+                {text.fullscreen}
+              </label>
+            )}
             <label className="q-settings-check">
               <input type="checkbox" checked={reduced} onChange={(event) => setReducedMotion(event.target.checked)} />
               {text.reduceMotion}

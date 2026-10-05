@@ -342,7 +342,10 @@ export const en = {
       theme: 'Theme',
       themeQuantum: 'Quantum',
       skin: 'Skin',
-      motion: 'Motion',
+      /** The group with full screen and reduced motion (owner, 2026-10-05: was "Motion"). */
+      screen: 'Screen',
+      /** Desktop only (17.7): the window's own state, so it shows full screen however it was entered. */
+      fullscreen: 'Fullscreen',
       reduceMotion: 'Reduce animation motion',
       language: 'Interface Language',
       languages: {

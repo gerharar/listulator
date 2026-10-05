@@ -308,7 +308,8 @@ export const ru: Locale = {
       theme: 'Тема',
       themeQuantum: 'Quantum',
       skin: 'Шкура',
-      motion: 'Анимация',
+      screen: 'Экран',
+      fullscreen: 'Полноэкранный режим',
       reduceMotion: 'Минимизировать анимацию',
       language: 'Язык интерфейса',
       languages: {

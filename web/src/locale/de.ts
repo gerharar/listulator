@@ -299,7 +299,8 @@ export const de: Locale = {
       theme: 'Design',
       themeQuantum: 'Quantum',
       skin: 'Farbschema',
-      motion: 'Animation',
+      screen: 'Bildschirm',
+      fullscreen: 'Vollbild',
       reduceMotion: 'Weniger Animationen',
       language: 'Sprache der Oberfläche',
       languages: {
