@@ -215,6 +215,10 @@ type OpenPopover = {
   openPanel?: boolean
 }
 
+/** The longer of the note's two forms: the note is set in mono, so the most characters is the widest. */
+function widest(...forms: string[]): string {
+  return forms.reduce((longest, form) => (form.length > longest.length ? form : longest))
+}
 
 function ListView({
   listId,
@@ -296,8 +300,27 @@ function ListView({
   // The filter is view state: what was typed and which facet buttons are on, never saved.
   const [filter, setFilter] = useState<ListFilter>(NO_FILTER)
   const filtering = isFiltering(filter)
+  // Hide Completed (18.1): items ticked done while it is on stay where they are until it is switched again. Worked
+  // out from each change of the items, so every way of ticking (the row, Undo, a whole group) is covered.
+  const [doneThisVisit, setDoneThisVisit] = useState<ReadonlySet<string>>(new Set())
+  const [itemsSeen, setItemsSeen] = useState(items)
+  if (itemsSeen !== items) {
+    setItemsSeen(items)
+    if (filter.hideDone) {
+      const before = new Set(itemsSeen.filter((entry) => entry.consumedAt !== null).map((entry) => entry.id))
+      const fresh = items.filter((entry) => entry.consumedAt !== null && !before.has(entry.id)).map((entry) => entry.id)
+      if (fresh.length > 0) setDoneThisVisit((current) => new Set([...current, ...fresh]))
+    }
+  }
+  const toggleHideDone = () => {
+    setFilter((current) => ({ ...current, hideDone: !current.hideDone }))
+    setDoneThisVisit(new Set())
+  }
   const facetGroups = useMemo(() => deriveFacets(items, mediaType?.facets), [items, mediaType])
-  const shownIds = useMemo(() => shownItemIds(items, mediaType?.facets, filter), [items, mediaType, filter])
+  const shownIds = useMemo(
+    () => shownItemIds(items, mediaType?.facets, filter, doneThisVisit),
+    [items, mediaType, filter, doneThisVisit],
+  )
   // What stays on the spine: a loose item that matches, and a group with a matching item (its items narrowed).
   const shownUnits = useMemo(
     () =>
@@ -1031,7 +1054,9 @@ function ListView({
         selection={filter.facets}
         onSelect={selectFacet}
         fold={groupNames.length > 1 ? { collapse: anyOpen, onToggle: foldAll } : null}
+        hideDone={{ on: filter.hideDone === true, onToggle: toggleHideDone }}
         note={filtering ? text.filter.shown(shownIds.size, items.length) : text.filter.total(items.length)}
+        noteRoom={widest(text.filter.shown(items.length, items.length), text.filter.total(items.length))}
       />
 
       {pendingCount > 0 && (
@@ -1075,8 +1100,11 @@ function ListView({
         {railEntries.length > 1 && railHidden && <JumpRailStub onShow={() => setRail(false)} />}
         <div className="q-list-body" ref={spine} onKeyDown={onKeyDown} onBlur={moves.onBlur}>
           {units.length === 0 && <p className="q-list-empty">{text.empty}</p>}
-          {filtering && shownUnits.length === 0 && (
-            <p className="q-list-empty">{text.filter.nothing(filter.text)}</p>
+          {units.length > 0 && filtering && shownUnits.length === 0 && (
+            <p className="q-list-empty">
+              {/* Hide Completed alone left nothing: the list is done, not a filter that found nothing. */}
+              {isFiltering({ ...filter, hideDone: false }) ? text.filter.nothing(filter.text) : text.filter.allDone}
+            </p>
           )}
           {shownUnits.map(({ unit, members }) =>
             unit.kind === 'item' ? (

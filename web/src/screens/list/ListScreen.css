@@ -131,7 +131,9 @@
   font: 400 14px/1.2 var(--font-sans);
 }
 .q-filter-input:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
-.q-fold {
+/* Hide Completed (18.1) wears fold-all's look; whichever comes first takes the push to the right. */
+.q-fold,
+.q-hide-done {
   flex: none;
   display: flex;
   align-items: center;
@@ -145,11 +147,30 @@
   white-space: nowrap;
   cursor: pointer;
 }
-.q-fold:hover { border-color: var(--rule); color: var(--ink); background: var(--hover); }
+.q-fold:hover,
+.q-hide-done:hover { border-color: var(--rule); color: var(--ink); background: var(--hover); }
+.q-hide-done ~ .q-fold { margin-left: 0; }
+/* On: the pressed look of the facet chips (ToggleChip.css). */
+.q-hide-done[aria-pressed='true'],
+.q-hide-done[aria-pressed='true']:hover {
+  border-color: var(--rule);
+  background: var(--accent);
+  color: var(--accentInk);
+}
 .q-filter-note {
   flex: none;
+  display: inline-grid;
+  justify-items: end;
   font: 500 12px/1 var(--font-mono);
   color: var(--ink3);
+}
+/* The widest the note gets, drawn invisibly in the same cell: "6 items" and "3 of 6 shown" take the same room, so
+   switching a filter moves no button (owner, 2026-10-05). A pseudo-element, so it is neither read out nor found. */
+.q-filter-note > span,
+.q-filter-note::after { grid-area: 1 / 1; }
+.q-filter-note::after {
+  content: attr(data-room);
+  visibility: hidden;
 }
 .q-filter-note.push { margin-left: auto; }
 

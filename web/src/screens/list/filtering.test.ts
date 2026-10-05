@@ -3,8 +3,8 @@ import type { FacetConvention } from '../../../../server/src/catalog/facets.js'
 import type { ListItem } from '../../lib/api.js'
 import { NO_FILTER, isFiltering, shownItemIds, type ListFilter } from './filtering.js'
 
-const item = (id: string, title: string, tags: string[] | null = null): ListItem =>
-  ({ id, title, tags }) as ListItem
+const item = (id: string, title: string, tags: string[] | null = null, consumedAt: string | null = null): ListItem =>
+  ({ id, title, tags, consumedAt }) as ListItem
 
 const games: FacetConvention = [{ key: 'platform', label: 'Platform' }]
 const items = [
@@ -57,5 +57,37 @@ describe('shownItemIds', () => {
   it('ignores a facet selection when the category has no convention', () => {
     const filter = { text: '', facets: { platform: new Set(['ds']) } }
     expect([...shownItemIds(items, undefined, filter)]).toEqual(['1', '2', '3', '4'])
+  })
+})
+
+describe('Hide Completed (18.1)', () => {
+  const mixed = [
+    item('1', 'Assassin’s Creed', ['PS3'], '2026-01-01'),
+    item('2', 'Altaïr’s Chronicles', ['NDS']),
+    item('3', 'Revelations', ['PS3'], '2026-01-02'),
+    item('4', 'Unmarked'),
+  ]
+  const hidden = (filter: ListFilter, keep?: ReadonlySet<string>) => [...shownItemIds(mixed, games, filter, keep)]
+
+  it('counts as filtering on its own', () => {
+    expect(isFiltering({ text: '', facets: {}, hideDone: true })).toBe(true)
+    expect(isFiltering({ text: '', facets: {}, hideDone: false })).toBe(false)
+  })
+
+  it('hides every done item', () => {
+    expect(hidden({ text: '', facets: {}, hideDone: true })).toEqual(['2', '4'])
+  })
+
+  it('needs the text and the facets to agree as well', () => {
+    expect(hidden({ text: 'a', facets: { platform: new Set(['ds']) }, hideDone: true })).toEqual(['2'])
+    expect(hidden({ text: 'creed', facets: {}, hideDone: true })).toEqual([])
+  })
+
+  it('keeps the items ticked during this visit', () => {
+    expect(hidden({ text: '', facets: {}, hideDone: true }, new Set(['3']))).toEqual(['2', '3', '4'])
+  })
+
+  it('shows done items while it is off', () => {
+    expect(hidden({ text: '', facets: {}, hideDone: false })).toEqual(['1', '2', '3', '4'])
   })
 })

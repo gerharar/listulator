@@ -780,6 +780,10 @@ export const ru: Locale = {
         total: (n: number): string => items(n),
         shown: (shown: number, total: number): string => `показано ${shown} из ${total}`,
         groupShown: (shown: number, total: number): string => `${shown} из ${total}`,
+        /** Hide Completed (task 18.1): the button, its hint while on, and the line when nothing is left. */
+        hideDone: 'Скрыть завершённое',
+        hideDoneTip: 'Снова показать завершённое',
+        allDone: 'Всё в этом списке завершено',
         nothing: (text: string): string =>
           text.trim() ? `Ничего подходящего под ${text.trim()}.` : 'Ничего подходящего под этот фильтр',
         all: 'Все',

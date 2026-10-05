@@ -34,25 +34,69 @@ const facets = (page: Page) => facetBar(page).locator(':scope > .q-facet')
 const rows = (page: Page) => page.locator('.q-item .title')
 
 // The fixture keeps old tags (PC, NDS): they read as today's codes, WIN and DS (10.24c).
+// Platform is always a dropdown (owner, 2026-10-05): its chips are in the popover.
 test('Games get a Platform facet; it filters additively and keeps the order', async ({ page }) => {
   const title = `e2e list-filter games ${Date.now()}`
   const id = await makeList(page.request, title, 'game', GAMES)
 
   try {
     await openList(page, title)
-    await expect(facets(page).locator('button')).toHaveText(['All', 'DS', 'PS3', 'PSP', 'WIN', 'X360', q.list.filter.optionLabels['Untagged']!])
+    await expect(facets(page).locator('.q-facet-seg')).toHaveCount(0)
     await expect(facetBar(page).getByText('6 items')).toBeVisible()
     await page.screenshot({ path: 'test-results/filter-bar-games.png' })
 
-    await facetBar(page).getByRole('button', { name: 'DS', exact: true }).click()
+    await facetBar(page).getByRole('button', { name: 'Platform: All' }).click()
+    const pop = page.getByRole('dialog')
+    await expect(pop.locator('.q-facet button')).toHaveText(['All', 'DS', 'PS3', 'PSP', 'WIN', 'X360', q.list.filter.optionLabels['Untagged']!])
+
+    await pop.getByRole('button', { name: 'DS', exact: true }).click()
     await expect(rows(page)).toHaveText(['Altaïr’s Chronicles'])
     await expect(facetBar(page).getByText('1 of 6 shown')).toBeVisible()
 
-    await facetBar(page).getByRole('button', { name: 'WIN' }).click()
+    await pop.getByRole('button', { name: 'WIN' }).click()
     await expect(rows(page)).toHaveText(['Assassin’s Creed', 'Assassin’s Creed II', 'Altaïr’s Chronicles'])
 
-    await facetBar(page).getByRole('button', { name: 'All', exact: true }).click()
+    await pop.getByRole('button', { name: 'All', exact: true }).click()
     await expect(rows(page)).toHaveCount(6)
+  } finally {
+    await page.request.delete(`/api/lists/${id}`)
+  }
+})
+
+test('Hide Completed hides done items, keeps one ticked meanwhile, and moves nothing on the bar (18.1)', async ({ page }) => {
+  const title = `e2e list-filter hide done ${Date.now()}`
+  const id = await makeList(page.request, title, 'game', GAMES)
+
+  try {
+    await openList(page, title)
+    await page.locator('.q-item', { hasText: 'Bloodlines' }).locator('.title').click()
+    await expect(page.locator('.q-item', { hasText: 'Bloodlines' })).toHaveClass(/is-done/)
+
+    const hide = facetBar(page).getByRole('button', { name: q.list.filter.hideDone })
+    const places = async () =>
+      Promise.all(['.q-hide-done', '.q-fold', '.q-facet-summary'].map(async (part) => (await facetBar(page).locator(`:scope ${part}`).first().boundingBox())!.x))
+    const before = await places()
+
+    await hide.click()
+    await expect(hide).toHaveAttribute('aria-pressed', 'true')
+    await expect(facetBar(page).getByText('5 of 6 shown')).toBeVisible()
+    await expect(rows(page)).not.toContainText(['Bloodlines'])
+    // The note changed from "6 items" to "5 of 6 shown" without shifting anything (owner, 2026-10-05),
+    // and still sits level with the buttons.
+    expect(await places()).toEqual(before)
+    const middle = async (part: string) => {
+      const box = (await facetBar(page).locator(`:scope > ${part}`).boundingBox())!
+      return box.y + box.height / 2
+    }
+    expect(Math.abs((await middle('.q-filter-note')) - (await middle('.q-hide-done')))).toBeLessThan(2)
+    await page.screenshot({ path: 'test-results/filter-bar-hide-done.png' })
+
+    // Ticked while it is on: the row stays until the toggle is switched again.
+    await page.locator('.q-item', { hasText: 'Revelations' }).locator('.title').click()
+    await expect(page.locator('.q-item', { hasText: 'Revelations' })).toHaveClass(/is-done/)
+    await hide.click()
+    await hide.click()
+    await expect(rows(page)).toHaveText(['Prologue', 'Assassin’s Creed', 'Assassin’s Creed II', 'Altaïr’s Chronicles'])
   } finally {
     await page.request.delete(`/api/lists/${id}`)
   }
@@ -161,7 +205,7 @@ test('the jump rail brings a far group to the top, and stays folded across a rel
   }
 })
 
-test('many platforms: the facet becomes a dropdown so the bar stays one row; a wider bar brings the chips back (U4)', async ({ page }) => {
+test('many platforms: the dropdown keeps the bar one row, and names the picks (U4)', async ({ page }) => {
   const title = `e2e list-filter wrap ${Date.now()}`
   const codes = ['AND', 'CELL', 'DS', 'IOS', 'MAC', 'NSW', 'NSW2', 'PS3', 'PS4', 'PS5', 'PSP', 'VITA', 'VR', 'WIIU', 'WIN', 'WINP', 'X360', 'XONE', 'XSX']
   const id = await makeList(page.request, title, 'game', [
@@ -174,12 +218,12 @@ test('many platforms: the facet becomes a dropdown so the bar stays one row; a w
     await page.setViewportSize({ width: 1440, height: 900 })
     await openList(page, title)
 
-    // One row: the text field, the dropdown, fold-all and the note share a line.
+    // One row: the text field, the dropdown, Hide Completed, fold-all and the note share a line.
     const summary = facetBar(page).getByRole('button', { name: 'Platform: All' })
     await expect(summary).toBeVisible()
     await expect(facets(page).locator('.q-facet-seg')).toHaveCount(0)
     const tops = await Promise.all(
-      ['.q-filter-input', '.q-facet-summary', '.q-fold', '.q-filter-note'].map(
+      ['.q-filter-input', '.q-facet-summary', '.q-hide-done', '.q-fold', '.q-filter-note'].map(
         async (part) => (await facetBar(page).locator(`:scope > ${part}, :scope > .q-facet > ${part}`).boundingBox())!,
       ),
     )
@@ -217,18 +261,12 @@ test('many platforms: the facet becomes a dropdown so the bar stays one row; a w
     await expect(rows(page)).toHaveText(['On PS4', 'On WIN'])
     await page.screenshot({ path: test.info().outputPath('u4-picked.png') })
 
-    // The list card has a maximum width, so twenty chips never fit; a short list shows
-    // the switch both ways: a narrow window turns its chips into the dropdown, a wide one
-    // brings them back, the picks intact.
+    // A short list keeps the dropdown too, however wide the window (owner, 2026-10-05).
     const small = await makeList(page.request, `${title} small`, 'game', GAMES)
     try {
       await openList(page, `${title} small`)
-      await expect(facets(page).locator('.q-facet-seg')).toHaveCount(1)
-      await facets(page).getByRole('button', { name: 'PS3', exact: true }).click()
-      await page.setViewportSize({ width: 800, height: 900 })
-      await expect(facetBar(page).getByRole('button', { name: 'Platform: PS3' })).toBeVisible()
-      await page.setViewportSize({ width: 1440, height: 900 })
-      await expect(facets(page).getByRole('button', { name: 'PS3', exact: true })).toHaveAttribute('aria-pressed', 'true')
+      await expect(facetBar(page).getByRole('button', { name: 'Platform: All' })).toBeVisible()
+      await expect(facets(page).locator('.q-facet-seg')).toHaveCount(0)
     } finally {
       await page.request.delete(`/api/lists/${small}`)
     }

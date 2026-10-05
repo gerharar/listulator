@@ -864,6 +864,10 @@ export const en = {
         shown: (shown: number, total: number): string => `${shown} of ${total} shown`,
         /** A group's count while filtering. */
         groupShown: (shown: number, total: number): string => `${shown} of ${total}`,
+        /** Hide Completed (task 18.1): the button, its hint while on, and the line when nothing is left. */
+        hideDone: 'Hide Completed',
+        hideDoneTip: 'Show done items again',
+        allDone: 'Everything in this list is done',
         nothing: (text: string): string => (text.trim() ? `Nothing matches “${text.trim()}”` : 'Nothing matches this filter'),
         all: 'All',
         clearTip: 'Show items of all types',

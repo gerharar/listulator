@@ -1,9 +1,10 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, within } from '@testing-library/react'
 import type { FacetGroup } from '../../../../server/src/catalog/facets.js'
 import { FilterBar, type FilterBarProps } from './FilterBar.js'
 import { hoverTooltip } from '../../components/quantum/Tooltip/hoverTooltip.js'
+import { OverlayManagerProvider } from '../../components/quantum/overlay/OverlayManagerContext.js'
 
 afterEach(cleanup)
 
@@ -18,6 +19,17 @@ const platform: FacetGroup = {
   keepOrder: true,
 }
 
+const language: FacetGroup = {
+  key: 'language',
+  label: 'Language',
+  options: [
+    { key: 'en', label: 'EN' },
+    { key: 'ja', label: 'JA' },
+    { key: '__untagged', label: '(unknown)' },
+  ],
+  keepOrder: true,
+}
+
 function bar(over: Partial<FilterBarProps> = {}) {
   const props: FilterBarProps = {
     text: '',
@@ -26,10 +38,15 @@ function bar(over: Partial<FilterBarProps> = {}) {
     selection: {},
     onSelect: vi.fn(),
     fold: null,
+    hideDone: null,
     note: '8 items',
     ...over,
   }
-  render(<FilterBar {...props} />)
+  render(
+    <OverlayManagerProvider>
+      <FilterBar {...props} />
+    </OverlayManagerProvider>,
+  )
 
   return props
 }
@@ -62,9 +79,20 @@ describe('FilterBar', () => {
   })
 
   it('shows a facet row with All and one button per option', () => {
-    bar({ facets: [platform] })
-    expect(screen.getByText('Platform')).toBeTruthy()
-    for (const name of ['All', 'PS3', 'PC', '(unknown)']) expect(screen.getByRole('button', { name })).toBeTruthy()
+    bar({ facets: [language] })
+    expect(screen.getByText('Language')).toBeTruthy()
+    for (const name of ['All', 'EN', 'JA', '(unknown)']) expect(screen.getByRole('button', { name })).toBeTruthy()
+  })
+
+  it('always shows Platform as a dropdown, its chips in the popover (owner, 2026-10-05)', () => {
+    bar({ facets: [platform, language] })
+
+    expect(screen.queryByRole('button', { name: 'PS3' })).toBeNull()
+    expect(screen.getByRole('button', { name: 'EN' })).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: 'Platform: All' }))
+
+    const pop = screen.getByRole('dialog')
+    for (const name of ['All', 'PS3', 'PC', '(unknown)']) expect(within(pop).getByRole('button', { name })).toBeTruthy()
   })
 
   it('puts a facet’s options A–Z by shown name, Untagged last, unless it keeps its own order (owner, 2026-09-27)', () => {
@@ -90,32 +118,35 @@ describe('FilterBar', () => {
 
   it('marks a flag’s option with the chip’s dot, to its left, as a hint (owner)', () => {
     const recording: FacetGroup = { key: 'extra', label: 'Recording', options: [{ key: 'live', label: 'Live' }], keepOrder: false, flag: true }
-    bar({ facets: [platform, recording] })
+    bar({ facets: [language, recording] })
 
     const live = screen.getByRole('button', { name: 'Live' })
     expect(live.firstElementChild?.classList.contains('q-facet-mark')).toBe(true)
-    expect(screen.getByRole('button', { name: 'PS3' }).querySelector('.q-facet-mark')).toBeNull()
+    expect(screen.getByRole('button', { name: 'EN' }).querySelector('.q-facet-mark')).toBeNull()
   })
 
   it('toggles an option additively and clears with All', () => {
-    const props = bar({ facets: [platform], selection: { platform: new Set(['ps3']) } })
-    fireEvent.click(screen.getByRole('button', { name: 'PC' }))
-    expect(props.onSelect).toHaveBeenCalledWith('platform', new Set(['ps3', 'pc']))
+    const props = bar({ facets: [language], selection: { language: new Set(['en']) } })
+    fireEvent.click(screen.getByRole('button', { name: 'JA' }))
+    expect(props.onSelect).toHaveBeenCalledWith('language', new Set(['en', 'ja']))
     fireEvent.click(screen.getByRole('button', { name: 'All' }))
-    expect(props.onSelect).toHaveBeenLastCalledWith('platform', new Set())
+    expect(props.onSelect).toHaveBeenLastCalledWith('language', new Set())
   })
 
   it('lights All instead when the last remaining option is picked (U1)', () => {
-    const props = bar({ facets: [platform], selection: { platform: new Set(['ps3', 'pc']) } })
+    const props = bar({ facets: [language], selection: { language: new Set(['en', 'ja']) } })
 
     fireEvent.click(screen.getByRole('button', { name: '(unknown)' }))
 
-    expect(props.onSelect).toHaveBeenCalledWith('platform', new Set())
+    expect(props.onSelect).toHaveBeenCalledWith('language', new Set())
   })
 
   it('names a platform in full in its hint', async () => {
     bar({ facets: [platform] })
-    expect(await hoverTooltip(screen.getByRole('button', { name: 'PS3' }))).toContain('PlayStation 3')
+    fireEvent.click(screen.getByRole('button', { name: 'Platform: All' }))
+    expect(await hoverTooltip(within(screen.getByRole('dialog')).getByRole('button', { name: 'PS3' }))).toContain(
+      'PlayStation 3',
+    )
   })
 
   it('offers fold-all only when told, and says which way it will go', () => {
@@ -128,5 +159,37 @@ describe('FilterBar', () => {
   it('reads Expand all when nothing is open', () => {
     bar({ fold: { collapse: false, onToggle: vi.fn() } })
     expect(screen.getByRole('button', { name: 'Expand' })).toBeTruthy()
+  })
+
+  it('offers Hide Completed, pressed while it is on, and reports a click', () => {
+    const onToggle = vi.fn()
+    bar({ hideDone: { on: false, onToggle } })
+
+    const button = screen.getByRole('button', { name: 'Hide Completed' })
+    expect(button.getAttribute('aria-pressed')).toBe('false')
+    fireEvent.click(button)
+    expect(onToggle).toHaveBeenCalledOnce()
+  })
+
+  it('shows Hide Completed pressed, with a hint that a click brings the done items back', async () => {
+    bar({ hideDone: { on: true, onToggle: vi.fn() } })
+
+    const button = screen.getByRole('button', { name: 'Hide Completed' })
+    expect(button.getAttribute('aria-pressed')).toBe('true')
+    expect(await hoverTooltip(button)).toContain('Show done items again')
+  })
+
+  it('puts Hide Completed just before fold-all', () => {
+    bar({ hideDone: { on: false, onToggle: vi.fn() }, fold: { collapse: true, onToggle: vi.fn() } })
+
+    const names = screen.getAllByRole('button').map((button) => button.textContent)
+    expect(names.slice(-2)).toEqual(['Hide Completed', 'Collapse'])
+  })
+
+  it('keeps room for the widest the note gets, so a changing count moves nothing', () => {
+    bar({ note: '8 items', noteRoom: '8 of 8 shown' })
+
+    const note = screen.getByText('8 items').closest('.q-filter-note') as HTMLElement
+    expect(note.dataset['room']).toBe('8 of 8 shown')
   })
 })

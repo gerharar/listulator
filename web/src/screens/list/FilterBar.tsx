@@ -1,5 +1,5 @@
 import { useLayoutEffect, useRef, useState } from 'react'
-import { ChevronsDownUp, ChevronsUpDown } from 'lucide-react'
+import { ChevronsDownUp, ChevronsUpDown, EyeOff } from 'lucide-react'
 import { UNTAGGED, type FacetGroup, type FacetKey, type FacetSelection } from '../../../../server/src/catalog/facets.js'
 import { compareShown, copy } from '../../locale/index.js'
 import { FacetToggle, type FacetOption } from '../../components/quantum/FacetToggle/FacetToggle.js'
@@ -16,8 +16,20 @@ export interface FilterBarProps {
   onSelect: (facet: FacetKey, selected: ReadonlySet<string>) => void
   /** Fold-all, offered when the list has more than one group. `collapse` says which way it will go. */
   fold: { collapse: boolean; onToggle: () => void } | null
+  /** Hide Completed (task 18.1): pressed while done items are hidden. */
+  hideDone: { on: boolean; onToggle: () => void } | null
   /** "8 items", or "3 of 8 shown" while filtering. */
   note: string
+  /** The widest the note gets ("8 of 8 shown"): its room is kept, so a changing count moves nothing on the bar. */
+  noteRoom?: string
+}
+
+/**
+ * Platform is always a dropdown (owner, 2026-10-05): a games list is likely to have many platforms, and chips that
+ * fold into a dropdown only when the row runs short made the bar change shape as a filter came on.
+ */
+function alwaysDropdown(facet: FacetGroup): boolean {
+  return facet.key === 'platform'
 }
 
 /**
@@ -42,7 +54,8 @@ function facetOptions(facet: FacetGroup): FacetOption[] {
 
 /**
  * The bar under the list header (design: "Filter bar"): a text field, one
- * additive facet row per facet the list has values for, fold-all, and a note
+ * additive facet row per facet the list has values for, Hide Completed,
+ * fold-all, and a note
  * that says how much of the list is showing. The facets are whatever the
  * category's convention derived; this bar knows no category.
  *
@@ -51,7 +64,7 @@ function facetOptions(facet: FacetGroup): FacetOption[] {
  * first; widen the window and the chips come back. A hidden copy of each facet
  * in both forms is measured against the bar on every resize.
  */
-export function FilterBar({ text, onText, facets, selection, onSelect, fold, note }: FilterBarProps) {
+export function FilterBar({ text, onText, facets, selection, onSelect, fold, hideDone, note, noteRoom }: FilterBarProps) {
   const t = copy.quantum.list.filter
   const barRef = useRef<HTMLDivElement>(null)
   const ghostRef = useRef<HTMLDivElement>(null)
@@ -67,11 +80,12 @@ export function FilterBar({ text, onText, facets, selection, onSelect, fold, not
       const style = getComputedStyle(bar)
       const available = bar.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight)
       const fixed = [...bar.querySelectorAll<HTMLElement>('[data-bar-fixed]')].map((part) => part.offsetWidth)
-      const widths = facets.map((facet) => ({
-        key: facet.key,
-        inline: ghost.querySelector<HTMLElement>(`[data-inline="${facet.key}"]`)?.offsetWidth ?? 0,
-        compact: ghost.querySelector<HTMLElement>(`[data-compact="${facet.key}"]`)?.offsetWidth ?? 0,
-      }))
+      const widths = facets.map((facet) => {
+        const compact = ghost.querySelector<HTMLElement>(`[data-compact="${facet.key}"]`)?.offsetWidth ?? 0
+        const inline = ghost.querySelector<HTMLElement>(`[data-inline="${facet.key}"]`)?.offsetWidth ?? 0
+        // A facet that is always a dropdown takes the dropdown's width whatever the row has room for.
+        return { key: facet.key, inline: alwaysDropdown(facet) ? compact : inline, compact }
+      })
       const next = facetsToCompact(available, fixed, parseFloat(style.columnGap) || 0, widths)
       setCompact((current) =>
         current.size === next.size && [...next].every((key) => current.has(key)) ? current : next,
@@ -82,7 +96,7 @@ export function FilterBar({ text, onText, facets, selection, onSelect, fold, not
     const observer = new ResizeObserver(measure)
     observer.observe(bar)
     return () => observer.disconnect()
-  }, [facets, selection, fold, note])
+  }, [facets, selection, fold, hideDone, note, noteRoom])
 
   const facetProps = (facet: FacetGroup) => ({
     label: t.facetLabels[facet.label] ?? facet.label,
@@ -107,11 +121,26 @@ export function FilterBar({ text, onText, facets, selection, onSelect, fold, not
         onChange={(event) => onText(event.target.value)}
       />
       {facets.map((facet) =>
-        compact.has(facet.key) ? (
+        compact.has(facet.key) || alwaysDropdown(facet) ? (
           <FacetDropdown key={facet.key} {...facetProps(facet)} />
         ) : (
           <FacetToggle key={facet.key} {...facetProps(facet)} />
         ),
+      )}
+      {hideDone && (
+        <Tip
+          as="button"
+          type="button"
+          className="q-hide-done"
+          data-bar-fixed=""
+          aria-pressed={hideDone.on}
+          text={hideDone.on ? t.hideDoneTip : undefined}
+          describe
+          onClick={hideDone.onToggle}
+        >
+          <EyeOff width={13} height={13} strokeWidth={2} aria-hidden="true" />
+          {t.hideDone}
+        </Tip>
       )}
       {fold && (
         <Tip
@@ -131,8 +160,12 @@ export function FilterBar({ text, onText, facets, selection, onSelect, fold, not
           {fold.collapse ? t.collapseAll : t.expandAll}
         </Tip>
       )}
-      <span className={fold ? 'q-filter-note' : 'q-filter-note push'} data-bar-fixed="">
-        {note}
+      <span
+        className={fold || hideDone ? 'q-filter-note' : 'q-filter-note push'}
+        data-bar-fixed=""
+        {...(noteRoom ? { 'data-room': noteRoom } : {})}
+      >
+        <span>{note}</span>
       </span>
 
       {/* Both forms of every facet at their natural width, for measuring only;

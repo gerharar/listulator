@@ -771,6 +771,10 @@ export const de: Locale = {
         total: (n: number): string => entries(n),
         shown: (shown: number, total: number): string => `${shown} von ${total} angezeigt`,
         groupShown: (shown: number, total: number): string => `${shown} von ${total}`,
+        /** Hide Completed (task 18.1): the button, its hint while on, and the line when nothing is left. */
+        hideDone: 'Erledigte ausblenden',
+        hideDoneTip: 'Erledigte wieder anzeigen',
+        allDone: 'Alles in dieser Liste ist erledigt',
         nothing: (text: string): string =>
           text.trim() ? `Nichts passt zu „${text.trim()}“.` : 'Nichts passt zu diesem Filter.',
         all: 'Alle',

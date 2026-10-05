@@ -146,14 +146,22 @@ const rowIds = () => Array.from(document.querySelectorAll('[data-row-id]')).map(
 const row = (id: string) => document.querySelector(`[data-row-id="${id}"]`) as HTMLElement
 const type = (value: string) => fireEvent.change(screen.getByPlaceholderText('Filter items…'), { target: { value } })
 const bar = () => document.querySelector('.q-filterbar') as HTMLElement
-const facet = (name: string) => within(bar()).getByRole('button', { name })
+/** A facet option: on the bar, or in the Platform dropdown's popover (always a dropdown, owner 2026-10-05), opened if need be. */
+const facet = (name: string) => {
+  const onBar = within(bar()).queryByRole('button', { name })
+  if (onBar) return onBar
+  if (!screen.queryByRole('dialog')) fireEvent.click(within(bar()).getByRole('button', { name: /^Platform: / }))
+  return within(screen.getByRole('dialog')).getByRole('button', { name })
+}
 
 describe('the bar', () => {
   it('shows the note and the facets the list has values for, in canonical order', async () => {
     await open()
 
     expect(within(bar()).getByText('6 items')).toBeTruthy()
-    const labels = Array.from(bar().querySelectorAll('.q-facet button')).map((button) => button.textContent)
+    // Platform is always a dropdown (owner, 2026-10-05); its chips are in the popover.
+    fireEvent.click(within(bar()).getByRole('button', { name: 'Platform: All' }))
+    const labels = Array.from(screen.getByRole('dialog').querySelectorAll('.q-facet button')).map((button) => button.textContent)
     // Old tags (PC, NDS) read as today's codes (10.24c); the buttons run A to Z, then Untagged.
     expect(labels).toEqual(['All', 'DS', 'PS3', 'PSP', 'WIN', 'X360', '(unknown)'])
   })
@@ -241,6 +249,73 @@ describe('filtering', () => {
     type('assassin')
 
     expect(screen.getByText('Nothing matches “assassin”')).toBeTruthy()
+  })
+})
+
+describe('Hide Completed (18.1)', () => {
+  const doneOf = (...ids: string[]) => (detail: MediaListDetail) => {
+    for (const entry of detail.items) if (ids.includes(entry.id)) entry.consumedAt = '2026-01-01'
+  }
+  const hideDone = () => within(bar()).getByRole('button', { name: 'Hide Completed' })
+
+  it('hides the done items and any group left empty, and counts as filtering', async () => {
+    await open('game', doneOf('ch', 'bl', 'ac1'))
+
+    act(() => hideDone().click())
+
+    expect(hideDone().getAttribute('aria-pressed')).toBe('true')
+    expect(rowIds()).toEqual(['p', 'gm', 'ac2', 'ac3'])
+    expect(within(bar()).getByText('3 of 6 shown')).toBeTruthy()
+    expect((bar().querySelector('.q-filter-note') as HTMLElement).dataset['room']).toBe('6 of 6 shown')
+    expect(within(row('gm')).getByText('2 of 3')).toBeTruthy()
+
+    act(() => hideDone().click())
+
+    expect(rowIds()).toEqual(['p', 'gm', 'ac1', 'ac2', 'ac3', 'gh', 'ch', 'bl'])
+  })
+
+  it('leaves an item ticked while it is on where it is, until it is switched again', async () => {
+    vi.mocked(api.setConsumed).mockResolvedValue({} as never)
+    await open('game', doneOf('ac1'))
+    act(() => hideDone().click())
+
+    fireEvent.click(within(row('ac2')).getByText('Assassin’s Creed II'))
+
+    expect(api.setConsumed).toHaveBeenCalledWith('L1', 'ac2', true)
+    expect(rowIds()).toContain('ac2')
+
+    act(() => hideDone().click())
+    act(() => hideDone().click())
+
+    expect(rowIds()).not.toContain('ac2')
+  })
+
+  it('says everything is done when nothing is left', async () => {
+    await open('game', doneOf('p', 'ac1', 'ac2', 'ac3', 'ch', 'bl'))
+
+    act(() => hideDone().click())
+
+    expect(rowIds()).toEqual([])
+    expect(screen.getByText('Everything in this list is done')).toBeTruthy()
+    expect(screen.queryByText('Nothing matches this filter')).toBeNull()
+  })
+
+  it('still says nothing matches when the text finds nothing left', async () => {
+    await open('game', doneOf('ac1', 'ac2'))
+    act(() => hideDone().click())
+
+    type('assassin')
+
+    expect(screen.getByText('Nothing matches “assassin”')).toBeTruthy()
+  })
+
+  it('combines with the text: a done match stays hidden and does not open its group', async () => {
+    await open('game', doneOf('ch'))
+    act(() => hideDone().click())
+
+    type('chronicles')
+
+    expect(rowIds()).toEqual([])
   })
 })
 
