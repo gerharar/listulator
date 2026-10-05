@@ -40,7 +40,8 @@ describe('the update-status block, in English', () => {
   it.each(cases)('says what the %s state says', (state, expected) => {
     renderBlock(state, { next: '1.1.0' })
 
-    const [statusLine, versionLine] = stacks().slice(0, 2).map((stack) => shown(stack)[0]!.textContent)
+    const statusLine = shown(stacks()[0]!)[0]!.textContent
+    const versionLine = shown(stacks()[1]!)[0]!.querySelector('.q-about-version-text')!.textContent
     expect(statusLine).toBe(expected.status)
     expect(versionLine).toBe(expected.version)
     const button = screen.getByRole('button', { name: expected.button }) as HTMLButtonElement
@@ -52,6 +53,36 @@ describe('the update-status block, in English', () => {
 
     expect(within(status()).getByText('Listulator is up to date')).toBeTruthy()
     expect(within(status()).getByText('Version 1.0.0.')).toBeTruthy()
+  })
+})
+
+describe('the changelog link (owner, 2026-10-05)', () => {
+  it('sits on the version line after a separator, and opens the repository’s CHANGELOG.md in a new tab', () => {
+    renderBlock('unavailable')
+
+    const link = screen.getByRole('link', { name: 'Changelog' })
+    expect(link.getAttribute('href')).toBe('https://github.com/gerharar/listulator/blob/main/CHANGELOG.md')
+    expect(link.getAttribute('target')).toBe('_blank')
+    expect(link.getAttribute('rel')).toBe('noopener noreferrer')
+    const line = link.closest('.q-about-version-line')!
+    expect(line.querySelector('.q-about-sep')?.getAttribute('aria-hidden')).toBe('true')
+    expect(line.querySelector('.q-about-sep')?.textContent).toBe('·')
+  })
+
+  it('is one link to a reader: the copy that keeps the update line’s room is hidden', () => {
+    renderBlock('latest')
+
+    expect(screen.getAllByRole('link', { name: 'Changelog' })).toHaveLength(1)
+    const copies = document.querySelectorAll('.q-about-version-line a')
+    expect(copies).toHaveLength(2)
+    expect(copies[1]!.closest('.off')?.getAttribute('aria-hidden')).toBe('true')
+  })
+
+  it('is translated', () => {
+    setActiveLanguage('ru')
+    renderBlock('unavailable')
+
+    expect(screen.getByRole('link', { name: 'Список изменений' })).toBeTruthy()
   })
 })
 
@@ -67,7 +98,7 @@ describe('zero layout shift: every variant is in the page, only one is shown', (
       'Couldn’t check for updates',
       'Checking for updates is yet TBD',
     ])
-    expect([...versionStack!.children].map((variant) => variant.textContent)).toEqual([
+    expect([...versionStack!.children].map((variant) => variant.querySelector('.q-about-version-text')!.textContent)).toEqual([
       'Version 1.0.0.',
       'Version 1.0.0 → 1.1.0.',
     ])
@@ -96,7 +127,7 @@ describe('zero layout shift: every variant is in the page, only one is shown', (
   it('keeps the arrow version line in the page when no update is known, so its width is already reserved', () => {
     renderBlock('latest')
 
-    expect([...stacks()[1]!.children].map((variant) => variant.textContent)).toEqual([
+    expect([...stacks()[1]!.children].map((variant) => variant.querySelector('.q-about-version-text')!.textContent)).toEqual([
       'Version 1.0.0.',
       'Version 1.0.0 → 1.0.0.',
     ])
@@ -162,7 +193,8 @@ describe('other languages', () => {
     setActiveLanguage(language)
     renderBlock('latest')
 
-    const [statusLine, versionLine] = stacks().slice(0, 2).map((stack) => shown(stack)[0]!.textContent)
+    const statusLine = shown(stacks()[0]!)[0]!.textContent
+    const versionLine = shown(stacks()[1]!)[0]!.querySelector('.q-about-version-text')!.textContent
     expect(statusLine).toBe(line)
     expect(versionLine).toBe(version)
     expect(screen.getByRole('button', { name: button })).toBeTruthy()

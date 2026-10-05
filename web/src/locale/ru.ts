@@ -294,6 +294,8 @@ export const ru: Locale = {
       failed: 'Не удалось проверить обновления',
       download: 'Скачать обновление',
       retry: 'Повторить',
+      /** The link beside the version line, to the repository's CHANGELOG.md. */
+      changelog: 'Список изменений',
       legal: 'Лицензия и уведомления',
       dataSources: 'Источники данных',
       showAttribution: 'Показать атрибуцию',

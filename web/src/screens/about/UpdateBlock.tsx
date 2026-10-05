@@ -1,6 +1,8 @@
 import { Button } from '../../components/quantum/Button/Button.js'
+import { ExternalLink } from '../../components/quantum/ExternalLink/ExternalLink.js'
 import { HeaderPlate } from '../../components/quantum/HeaderPlate/HeaderPlate.js'
 import type { UpdateCheckState } from '../../lib/appUpdate.js'
+import { CHANGELOG_URL } from '../../lib/dataSources.js'
 import { copy } from '../../locale/index.js'
 
 /**
@@ -77,15 +79,27 @@ export function UpdateBlock({ state, current, next, onCheck, onDownload }: Updat
           active={state}
           variants={(['latest', 'checking', 'available', 'error', 'unavailable'] as const).map((key) => ({ key, text: updateStatusText(key) }))}
         />
-        {/* The arrow line is always in the page, so its width is already reserved when an update turns up; without a known version it holds a stand-in of the same length. */}
+        {/* The arrow line is always in the page, so its width is already reserved when an update turns up; without a known version it holds a stand-in of the same length. The changelog link rides in each variant, so it follows the version shown with no gap (owner, 2026-10-05); the hidden copy is invisible, so neither seen, read out nor focused. */}
         <span className="q-about-version-line">
-          <Stack
-            active={state === 'available' ? 'arrow' : 'plain'}
-            variants={[
-              { key: 'plain', text: updateVersionText(current) },
-              { key: 'arrow', text: updateVersionText(current, next ?? current) },
-            ]}
-          />
+          <span className="q-about-stack">
+            {(['plain', 'arrow'] as const).map((key) => {
+              const active = (state === 'available' ? 'arrow' : 'plain') === key
+              return (
+                <span key={key} className={active ? undefined : 'off'} aria-hidden={active ? undefined : true}>
+                  <span className="q-about-version-text">
+                    {key === 'plain' ? updateVersionText(current) : updateVersionText(current, next ?? current)}
+                  </span>
+                  <span className="q-about-sep" aria-hidden="true">
+                    ·
+                  </span>
+                  <ExternalLink className="q-about-credit-link" href={CHANGELOG_URL}>
+                    {text.changelog}
+                    <span aria-hidden="true">↗</span>
+                  </ExternalLink>
+                </span>
+              )
+            })}
+          </span>
         </span>
       </div>
       <Button

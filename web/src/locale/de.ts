@@ -285,6 +285,8 @@ export const de: Locale = {
       failed: 'Suche nach Updates fehlgeschlagen.',
       download: 'Update herunterladen',
       retry: 'Erneut versuchen',
+      /** The link beside the version line, to the repository's CHANGELOG.md. */
+      changelog: 'Änderungsprotokoll',
       legal: 'Lizenz und Hinweise',
       dataSources: 'Datenquellen',
       showAttribution: 'Quellenhinweis anzeigen',

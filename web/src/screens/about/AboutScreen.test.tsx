@@ -60,7 +60,7 @@ const heard = () =>
   [...screen.getByRole('status').querySelectorAll('.q-about-stack')].map((stack) =>
     [...stack.children]
       .filter((variant) => variant.getAttribute('aria-hidden') !== 'true')
-      .map((variant) => variant.textContent)
+      .map((variant) => variant.querySelector('.q-about-version-text')?.textContent ?? variant.textContent)
       .join(''),
   )
 const spoken = () => document.querySelector('.q-live')?.textContent
@@ -106,7 +106,7 @@ describe('AboutScreen', () => {
       const heard = [...screen.getByRole('status').querySelectorAll('.q-about-stack')].map((stack) =>
         [...stack.children]
           .filter((variant) => variant.getAttribute('aria-hidden') !== 'true')
-          .map((variant) => variant.textContent)
+          .map((variant) => variant.querySelector('.q-about-version-text')?.textContent ?? variant.textContent)
           .join(''),
       )
       expect(heard).toEqual(['Checking for updates is yet TBD', `Version ${APP_VERSION}.`])

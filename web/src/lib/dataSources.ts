@@ -44,6 +44,9 @@ export const AUTHOR = {
 /** Licensing and notices: the repository's own page that explains the app's, the lists' and the data's terms. */
 export const LICENSING_URL = `${AUTHOR.repoUrl}/blob/main/NOTICE.md`
 
+/** What changed in each version: the repository's CHANGELOG.md, linked beside the version on About (owner, 2026-10-05). */
+export const CHANGELOG_URL = `${AUTHOR.repoUrl}/blob/main/CHANGELOG.md`
+
 /**
  * The source a fetched list links back to under its add band, by the category's `sourceName`
  * (owner, 2026-09-30: costs nothing, helps them, reminds the reader what Reset goes back to).

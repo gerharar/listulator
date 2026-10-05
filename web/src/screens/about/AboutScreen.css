@@ -113,6 +113,12 @@
 .q-about-stack > .off {
   visibility: hidden;
 }
+/* Each version variant: the version, then · Changelog ↗ (owner, 2026-10-05). */
+.q-about-version-line .q-about-stack > span {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
 /* The button's label is centred (owner; the design says left): the stacked labels share the longest one's width, so the shorter ones would hug the left edge. */
 .q-about-update-block .q-btn .q-about-stack {
   text-align: center;

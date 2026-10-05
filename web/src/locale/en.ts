@@ -328,6 +328,8 @@ export const en = {
       failed: 'Couldn’t check for updates',
       download: 'Download Update',
       retry: 'Try Again',
+      /** The link beside the version line, to the repository's CHANGELOG.md. */
+      changelog: 'Changelog',
       legal: 'Licensing and notices',
       dataSources: 'Data sources',
       showAttribution: 'Show attribution',
