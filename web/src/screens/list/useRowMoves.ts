@@ -43,7 +43,7 @@ type Moved = Extract<MoveOutcome, { kind: 'moved' }>
  * dragging by the handle and Shift+↑↓, both through the same pure functions
  * (`moves.ts`), so they save the same order. A move shows at once and is saved
  * as the positions that changed (`restoreOrder`, the same call that undoes it);
- * if the save fails the rows go back. A dropped drag gets an 8s Undo; a run of
+ * if the save fails the rows go back. A dropped drag gets a 5s Undo; a run of
  * keyboard steps gets one toast when it ends, which outlives the screen, and
  * whose Undo restores the positions from before the first step.
  */

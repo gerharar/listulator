@@ -18,10 +18,13 @@ export interface ToastOptions {
   onAction?: () => void
 }
 
-const TOAST_DURATION_MS = 3200
-const TOAST_ACTION_DURATION_MS = 8000
+const TOAST_DURATION_MS = 3000
+const TOAST_ACTION_DURATION_MS = 5000
 
-/** A plain toast lasts 3.2s; one with an action lasts 8s (design-system/components/Toast). */
+/**
+ * A plain toast lasts 3s; one with an action (Undo) lasts 5s. The design system said 3.2s and 8s; the owner found 8s
+ * far too long (2026-10-05).
+ */
 export function toastDuration(hasAction: boolean): number {
   return hasAction ? TOAST_ACTION_DURATION_MS : TOAST_DURATION_MS
 }
