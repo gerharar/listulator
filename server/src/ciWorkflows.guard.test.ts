@@ -18,7 +18,7 @@ const PINNED = /^[\w.-]+\/[\w.-]+(\/[\w./-]+)?@[0-9a-f]{40}$/
 interface Workflow {
   on: unknown
   permissions?: unknown
-  jobs: Record<string, { permissions?: unknown; uses?: string; steps?: { uses?: string }[] }>
+  jobs: Record<string, { permissions?: unknown; uses?: string; steps?: { uses?: string; run?: string }[] }>
 }
 
 const workflows = readdirSync(WORKFLOWS)
@@ -54,6 +54,14 @@ describe('GitHub Actions workflows', () => {
 
     expect(uses.length).toBeGreaterThan(0)
     expect(uses.filter((use) => !PINNED.test(use))).toEqual([])
+  })
+
+  it.each(workflows)('$name hands inputs to scripts only through the environment', ({ workflow }) => {
+    // `${{ inputs.x }}` written into a `run:` is pasted into the script before it runs: whoever sets the input
+    // writes shell. Through `env:` it stays a value.
+    const runs = Object.values(workflow.jobs).flatMap((job) => (job.steps ?? []).flatMap((step) => (step.run ? [step.run] : [])))
+
+    expect(runs.filter((run) => /\$\{\{\s*(inputs|github\.event)\./.test(run))).toEqual([])
   })
 
   it.each(workflows)('$name uses no secret', ({ text }) => {
