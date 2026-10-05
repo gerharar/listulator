@@ -30,12 +30,14 @@ import {
   defaultCollapsed,
   loadCollapsed,
   loadFocus,
+  loadHideDone,
   loadRailHidden,
   loadRailWidth,
   loadAddTags,
   saveAddTags,
   saveCollapsed,
   saveFocus,
+  saveHideDone,
   saveRailHidden,
   saveRailWidth,
 } from './collapse.js'
@@ -85,6 +87,7 @@ type Load =
       railHidden: boolean
       railWidth: number
       addTags: string[]
+      hideDone: boolean
     }
 
 /**
@@ -123,8 +126,10 @@ export function ListScreen({ listId, mediaTypes, pendingUpdates, onLeave, onClos
       const railHidden = await loadRailHidden(store, listId)
       const railWidth = await loadRailWidth(store, listId)
       const addTags = await loadAddTags(store, listId)
+      // Before the first frame, so a long list never shows its done items for a moment (18.2).
+      const hideDone = await loadHideDone(store, listId)
       void saveLastOpened(store, listId)
-      if (request.current === mine) setLoad({ state: 'ready', list, collapsed, focusId, railHidden, railWidth, addTags })
+      if (request.current === mine) setLoad({ state: 'ready', list, collapsed, focusId, railHidden, railWidth, addTags, hideDone })
     } catch (cause) {
       if (request.current === mine) {
         setLoad({
@@ -173,6 +178,7 @@ export function ListScreen({ listId, mediaTypes, pendingUpdates, onLeave, onClos
       initialRailHidden={load.railHidden}
       initialRailWidth={load.railWidth}
       initialAddTags={load.addTags}
+      initialHideDone={load.hideDone}
       mediaTypes={mediaTypes}
       pending={pendingUpdates ?? getPendingUpdates()}
       onLeave={onLeave}
@@ -193,6 +199,8 @@ interface ListViewProps {
   initialRailWidth: number
   /** The tags the add row starts with on this list (U5). */
   initialAddTags: readonly string[]
+  /** Hide Completed as this list last had it (18.2). */
+  initialHideDone: boolean
   mediaTypes: readonly MediaType[]
   pending: PendingUpdates
   onLeave: (() => void) | undefined
@@ -224,6 +232,7 @@ function ListView({
   initialRailHidden,
   initialRailWidth,
   initialAddTags,
+  initialHideDone,
   mediaTypes,
   pending,
   onLeave,
@@ -293,8 +302,9 @@ function ListView({
     pulseTimer.current = setTimeout(() => setPulseIds(new Set()), PULSE_MS)
   }, [])
   const pulse = (itemId: string) => pulseRows([itemId])
-  // The filter is view state: what was typed and which facet buttons are on, never saved.
-  const [filter, setFilter] = useState<ListFilter>(NO_FILTER)
+  // The filter is view state: what was typed and which facet buttons are on, never saved; Hide Completed alone is
+  // remembered per list (18.2).
+  const [filter, setFilter] = useState<ListFilter>({ ...NO_FILTER, hideDone: initialHideDone })
   const filtering = isFiltering(filter)
   // Hide Completed (18.1): items ticked done while it is on stay where they are until it is switched again. Worked
   // out from each change of the items, so every way of ticking (the row, Undo, a whole group) is covered.
@@ -309,8 +319,10 @@ function ListView({
     }
   }
   const toggleHideDone = () => {
-    setFilter((current) => ({ ...current, hideDone: !current.hideDone }))
+    const on = !filter.hideDone
+    setFilter((current) => ({ ...current, hideDone: on }))
     setDoneThisVisit(new Set())
+    void saveHideDone(getPreferencesStore(), listId, on)
   }
   const facetGroups = useMemo(() => deriveFacets(items, mediaType?.facets), [items, mediaType])
   const shownIds = useMemo(

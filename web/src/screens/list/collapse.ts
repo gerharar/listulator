@@ -133,6 +133,28 @@ export async function saveRailWidth(store: PreferencesStore, listId: string, wid
   }
 }
 
+const HIDE_DONE = 'hideDone'
+
+/**
+ * Whether Hide Completed is on for this list (task 18.2; owner, 2026-10-05): remembered per list, so a long list you
+ * work through opens at what is left. Off unless said otherwise, and for a missing or damaged value.
+ */
+export async function loadHideDone(store: PreferencesStore, listId: string): Promise<boolean> {
+  try {
+    return (await store.get(listPreferenceKey(listId, HIDE_DONE))) === 'on'
+  } catch {
+    return false
+  }
+}
+
+export async function saveHideDone(store: PreferencesStore, listId: string, on: boolean): Promise<void> {
+  try {
+    await store.set(listPreferenceKey(listId, HIDE_DONE), on ? 'on' : 'off')
+  } catch {
+    // As above.
+  }
+}
+
 const ADD_TAGS = 'addTags'
 
 /**

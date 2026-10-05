@@ -1,6 +1,16 @@
 import { describe, expect, it } from 'vitest'
 import type { PreferencesStore } from '../../lib/preferences/store.js'
-import { defaultCollapsed, loadAddTags, loadCollapsed, loadFocus, saveAddTags, saveCollapsed, saveFocus } from './collapse.js'
+import {
+  defaultCollapsed,
+  loadAddTags,
+  loadCollapsed,
+  loadFocus,
+  loadHideDone,
+  saveAddTags,
+  saveCollapsed,
+  saveFocus,
+  saveHideDone,
+} from './collapse.js'
 
 function fakeStore(initial: Record<string, string> = {}) {
   const data = new Map(Object.entries(initial))
@@ -115,5 +125,37 @@ describe('the add row’s remembered tags (U5)', () => {
   it('reads a damaged value as nothing', async () => {
     expect(await loadAddTags(fakeStore({ 'list:L1:addTags': 'nope' }).store, 'L1')).toEqual([])
     expect(await loadAddTags(fakeStore({ 'list:L1:addTags': '["PS4", 3]' }).store, 'L1')).toEqual(['PS4'])
+  })
+})
+
+describe('Hide Completed, remembered per list (18.2)', () => {
+  it('is off until switched on, then per list', async () => {
+    const { store } = fakeStore()
+    expect(await loadHideDone(store, 'L1')).toBe(false)
+
+    await saveHideDone(store, 'L1', true)
+    expect(await loadHideDone(store, 'L1')).toBe(true)
+    expect(await loadHideDone(store, 'L2')).toBe(false)
+
+    await saveHideDone(store, 'L1', false)
+    expect(await loadHideDone(store, 'L1')).toBe(false)
+  })
+
+  it('reads a damaged value as off', async () => {
+    expect(await loadHideDone(fakeStore({ 'list:L1:hideDone': 'yes please' }).store, 'L1')).toBe(false)
+  })
+
+  it('does not throw when the store fails', async () => {
+    const store: PreferencesStore = {
+      get: async () => {
+        throw new Error('blocked')
+      },
+      set: async () => {
+        throw new Error('blocked')
+      },
+    }
+
+    expect(await loadHideDone(store, 'L1')).toBe(false)
+    await expect(saveHideDone(store, 'L1', true)).resolves.toBeUndefined()
   })
 })

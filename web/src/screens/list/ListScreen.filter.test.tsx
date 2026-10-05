@@ -289,6 +289,29 @@ describe('Hide Completed (18.1)', () => {
     expect(rowIds()).not.toContain('ac2')
   })
 
+  it('is remembered for the list: on at the next opening, done items hidden from the first frame', async () => {
+    await open('game', doneOf('ac1'))
+    act(() => hideDone().click())
+    await waitFor(() => expect(store.get('list:L1:hideDone')).toBe('on'))
+    cleanup()
+
+    await open('game', doneOf('ac1'))
+
+    expect(hideDone().getAttribute('aria-pressed')).toBe('true')
+    expect(rowIds()).not.toContain('ac1')
+
+    act(() => hideDone().click())
+    await waitFor(() => expect(store.get('list:L1:hideDone')).toBe('off'))
+  })
+
+  it('starts off for a list that never had it on', async () => {
+    store.set('list:L2:hideDone', 'on')
+    await open('game', doneOf('ac1'))
+
+    expect(hideDone().getAttribute('aria-pressed')).toBe('false')
+    expect(rowIds()).toContain('ac1')
+  })
+
   it('says everything is done when nothing is left', async () => {
     await open('game', doneOf('p', 'ac1', 'ac2', 'ac3', 'ch', 'bl'))
 

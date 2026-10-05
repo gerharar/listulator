@@ -63,7 +63,7 @@ test('Games get a Platform facet; it filters additively and keeps the order', as
   }
 })
 
-test('Hide Completed hides done items, keeps one ticked meanwhile, and moves nothing on the bar (18.1)', async ({ page }) => {
+test('Hide Completed hides done items, keeps one ticked meanwhile, moves nothing on the bar, and is remembered (18.1, 18.2)', async ({ page }) => {
   const title = `e2e list-filter hide done ${Date.now()}`
   const id = await makeList(page.request, title, 'game', GAMES)
 
@@ -101,6 +101,11 @@ test('Hide Completed hides done items, keeps one ticked meanwhile, and moves not
     await expect(page.locator('.q-item', { hasText: 'Revelations' })).toHaveClass(/is-done/)
     await hide.click()
     await hide.click()
+    await expect(rows(page)).toHaveText(['Prologue', 'Assassin’s Creed', 'Assassin’s Creed II', 'Altaïr’s Chronicles'])
+
+    // Remembered for the list (18.2): a reload opens it with the done items still hidden.
+    await openList(page, title)
+    await expect(hide).toHaveAttribute('aria-pressed', 'true')
     await expect(rows(page)).toHaveText(['Prologue', 'Assassin’s Creed', 'Assassin’s Creed II', 'Altaïr’s Chronicles'])
   } finally {
     await page.request.delete(`/api/lists/${id}`)
