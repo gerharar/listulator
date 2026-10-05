@@ -25,6 +25,12 @@
   padding: 9px 36px 9px 11px;
   font: 500 14px/1.2 var(--font-mono);
 }
+/* Edge's engine (WebView2, the Windows desktop app) draws its own reveal eye in a password field once it holds
+   text, beside the field's own toggle (Phase 17, 17.4: two eyes). WebKit draws none; hidden so only ours shows. */
+.q-input.key::-ms-reveal,
+.q-input.key::-ms-clear {
+  display: none;
+}
 .q-input[readonly] {
   background: var(--fill);
   color: var(--ink3);
