@@ -1,0 +1,59 @@
+# Builds the Windows desktop app (NSIS installer) for private testing (Phase 17, docs/DECISIONS.md).
+#
+# The repository is public, so this workflow is kept narrow on purpose, and server/src/ciWorkflows.guard.test.ts
+# fails if any of it slips:
+# - Started by hand only (Actions -> "Desktop (Windows)" -> Run workflow): no push or pull-request trigger, so only
+#   someone with write access can start it and no stranger's change is ever built.
+# - Reads the repository and nothing else; no secrets (API keys are typed into Settings at run time).
+# - Only GitHub's own actions, each pinned by full commit SHA (the version in the comment beside it).
+# - The installer is a run artifact kept 3 days, not a Release: anyone signed in to GitHub can download it, so a test
+#   build is unannounced, not secret. Releases wait for the security review.
+
+name: Desktop (Windows)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: desktop-windows
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: windows-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 26
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Rust (the runner's own rustup)
+        run: |
+          rustup toolchain install stable --profile minimal --no-self-update
+          rustup default stable
+
+      # bundle.targets is "all" in tauri.conf.json (the .app and .dmg on macOS); here only the NSIS installer.
+      - name: Build the installer
+        run: npm run tauri:build -w @listulator/desktop -- --bundles nsis
+
+      - name: List what was built
+        shell: pwsh
+        run: Get-ChildItem -Recurse apps/desktop/src-tauri/target/release/bundle | Format-Table FullName, Length -AutoSize
+
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: listulator-windows-nsis
+          path: apps/desktop/src-tauri/target/release/bundle/nsis/*.exe
+          if-no-files-found: error
+          retention-days: 3
