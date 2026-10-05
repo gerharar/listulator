@@ -20,8 +20,6 @@ export interface FilterBarProps {
   hideDone: { on: boolean; onToggle: () => void } | null
   /** "8 items", or "3 of 8 shown" while filtering. */
   note: string
-  /** The widest the note gets ("8 of 8 shown"): its room is kept, so a changing count moves nothing on the bar. */
-  noteRoom?: string
 }
 
 /**
@@ -54,9 +52,9 @@ function facetOptions(facet: FacetGroup): FacetOption[] {
 
 /**
  * The bar under the list header (design: "Filter bar"): a text field, one
- * additive facet row per facet the list has values for, Hide Completed,
- * fold-all, and a note
- * that says how much of the list is showing. The facets are whatever the
+ * additive facet row per facet the list has values for, then at the right
+ * edge a note, Hide Completed and fold-all
+ * (the note says how much of the list is showing). The facets are whatever the
  * category's convention derived; this bar knows no category.
  *
  * One row (U4, owner 2026-09-27): a facet whose chips would push the row onto
@@ -64,7 +62,7 @@ function facetOptions(facet: FacetGroup): FacetOption[] {
  * first; widen the window and the chips come back. A hidden copy of each facet
  * in both forms is measured against the bar on every resize.
  */
-export function FilterBar({ text, onText, facets, selection, onSelect, fold, hideDone, note, noteRoom }: FilterBarProps) {
+export function FilterBar({ text, onText, facets, selection, onSelect, fold, hideDone, note }: FilterBarProps) {
   const t = copy.quantum.list.filter
   const barRef = useRef<HTMLDivElement>(null)
   const ghostRef = useRef<HTMLDivElement>(null)
@@ -96,7 +94,7 @@ export function FilterBar({ text, onText, facets, selection, onSelect, fold, hid
     const observer = new ResizeObserver(measure)
     observer.observe(bar)
     return () => observer.disconnect()
-  }, [facets, selection, fold, hideDone, note, noteRoom])
+  }, [facets, selection, fold, hideDone, note])
 
   const facetProps = (facet: FacetGroup) => ({
     label: t.facetLabels[facet.label] ?? facet.label,
@@ -127,6 +125,10 @@ export function FilterBar({ text, onText, facets, selection, onSelect, fold, hid
           <FacetToggle key={facet.key} {...facetProps(facet)} />
         ),
       )}
+      {/* Before the buttons, which keep to the right edge: a count that changes length moves nothing (owner, 2026-10-05). */}
+      <span className="q-filter-note" data-bar-fixed="">
+        {note}
+      </span>
       {hideDone && (
         <Tip
           as="button"
@@ -157,16 +159,12 @@ export function FilterBar({ text, onText, facets, selection, onSelect, fold, hid
           ) : (
             <ChevronsUpDown width={13} height={13} strokeWidth={2} aria-hidden="true" />
           )}
-          {fold.collapse ? t.collapseAll : t.expandAll}
+          {/* As wide as the longer word, so Collapse turning into Expand moves nothing beside it. */}
+          <span className="q-steady" data-room={fold.collapse ? t.expandAll : t.collapseAll}>
+            <span>{fold.collapse ? t.collapseAll : t.expandAll}</span>
+          </span>
         </Tip>
       )}
-      <span
-        className={fold || hideDone ? 'q-filter-note' : 'q-filter-note push'}
-        data-bar-fixed=""
-        {...(noteRoom ? { 'data-room': noteRoom } : {})}
-      >
-        <span>{note}</span>
-      </span>
 
       {/* Both forms of every facet at their natural width, for measuring only;
           only where there is layout to measure (not jsdom). */}

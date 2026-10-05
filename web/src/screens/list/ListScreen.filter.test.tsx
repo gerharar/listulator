@@ -266,7 +266,6 @@ describe('Hide Completed (18.1)', () => {
     expect(hideDone().getAttribute('aria-pressed')).toBe('true')
     expect(rowIds()).toEqual(['p', 'gm', 'ac2', 'ac3'])
     expect(within(bar()).getByText('3 of 6 shown')).toBeTruthy()
-    expect((bar().querySelector('.q-filter-note') as HTMLElement).dataset['room']).toBe('6 of 6 shown')
     expect(within(row('gm')).getByText('2 of 3')).toBeTruthy()
 
     act(() => hideDone().click())

@@ -215,10 +215,6 @@ type OpenPopover = {
   openPanel?: boolean
 }
 
-/** The longer of the note's two forms: the note is set in mono, so the most characters is the widest. */
-function widest(...forms: string[]): string {
-  return forms.reduce((longest, form) => (form.length > longest.length ? form : longest))
-}
 
 function ListView({
   listId,
@@ -1056,7 +1052,6 @@ function ListView({
         fold={groupNames.length > 1 ? { collapse: anyOpen, onToggle: foldAll } : null}
         hideDone={{ on: filter.hideDone === true, onToggle: toggleHideDone }}
         note={filtering ? text.filter.shown(shownIds.size, items.length) : text.filter.total(items.length)}
-        noteRoom={widest(text.filter.shown(items.length, items.length), text.filter.total(items.length))}
       />
 
       {pendingCount > 0 && (

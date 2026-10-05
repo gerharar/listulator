@@ -131,14 +131,13 @@
   font: 400 14px/1.2 var(--font-sans);
 }
 .q-filter-input:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
-/* Hide Completed (18.1) wears fold-all's look; whichever comes first takes the push to the right. */
+/* Hide Completed (18.1) wears fold-all's look. */
 .q-fold,
 .q-hide-done {
   flex: none;
   display: flex;
   align-items: center;
   gap: 7px;
-  margin-left: auto;
   padding: 8px 11px;
   border: 1px solid var(--line);
   background: transparent;
@@ -149,7 +148,6 @@
 }
 .q-fold:hover,
 .q-hide-done:hover { border-color: var(--rule); color: var(--ink); background: var(--hover); }
-.q-hide-done ~ .q-fold { margin-left: 0; }
 /* On: the pressed look of the facet chips (ToggleChip.css). */
 .q-hide-done[aria-pressed='true'],
 .q-hide-done[aria-pressed='true']:hover {
@@ -159,20 +157,19 @@
 }
 .q-filter-note {
   flex: none;
-  display: inline-grid;
-  justify-items: end;
+  margin-left: auto;
   font: 500 12px/1 var(--font-mono);
   color: var(--ink3);
 }
-/* The widest the note gets, drawn invisibly in the same cell: "6 items" and "3 of 6 shown" take the same room, so
-   switching a filter moves no button (owner, 2026-10-05). A pseudo-element, so it is neither read out nor found. */
-.q-filter-note > span,
-.q-filter-note::after { grid-area: 1 / 1; }
-.q-filter-note::after {
+/* A word that keeps the room of its other form (data-room), drawn invisibly in the same cell: fold-all's
+   Collapse / Expand (owner, 2026-10-05). A pseudo-element, so it is neither read out nor found. */
+.q-steady { display: inline-grid; justify-items: start; }
+.q-steady > span,
+.q-steady::after { grid-area: 1 / 1; }
+.q-steady::after {
   content: attr(data-room);
   visibility: hidden;
 }
-.q-filter-note.push { margin-left: auto; }
 
 /* Under the add band of a fetched list: where it arrived from, linked (owner, 2026-09-30). Small and quiet. */
 .q-list-linkback {

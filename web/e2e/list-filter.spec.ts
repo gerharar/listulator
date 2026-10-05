@@ -81,9 +81,14 @@ test('Hide Completed hides done items, keeps one ticked meanwhile, and moves not
     await expect(hide).toHaveAttribute('aria-pressed', 'true')
     await expect(facetBar(page).getByText('5 of 6 shown')).toBeVisible()
     await expect(rows(page)).not.toContainText(['Bloodlines'])
-    // The note changed from "6 items" to "5 of 6 shown" without shifting anything (owner, 2026-10-05),
-    // and still sits level with the buttons.
+    // The note changed from "6 items" to "5 of 6 shown" without shifting a button (owner, 2026-10-05),
+    // and still sits level with them.
     expect(await places()).toEqual(before)
+    // Collapse becoming Expand moves nothing either: fold-all keeps its longer word's width.
+    await facetBar(page).getByRole('button', { name: q.list.filter.collapseAll }).click()
+    await expect(facetBar(page).getByRole('button', { name: q.list.filter.expandAll })).toBeVisible()
+    expect(await places()).toEqual(before)
+    await facetBar(page).getByRole('button', { name: q.list.filter.expandAll }).click()
     const middle = async (part: string) => {
       const box = (await facetBar(page).locator(`:scope > ${part}`).boundingBox())!
       return box.y + box.height / 2

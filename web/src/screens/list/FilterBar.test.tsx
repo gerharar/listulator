@@ -186,10 +186,18 @@ describe('FilterBar', () => {
     expect(names.slice(-2)).toEqual(['Hide Completed', 'Collapse'])
   })
 
-  it('keeps room for the widest the note gets, so a changing count moves nothing', () => {
-    bar({ note: '8 items', noteRoom: '8 of 8 shown' })
+  it('puts the note before Hide Completed and fold-all, which keep to the right edge (owner, 2026-10-05)', () => {
+    bar({ hideDone: { on: false, onToggle: vi.fn() }, fold: { collapse: true, onToggle: vi.fn() } })
 
-    const note = screen.getByText('8 items').closest('.q-filter-note') as HTMLElement
-    expect(note.dataset['room']).toBe('8 of 8 shown')
+    const note = screen.getByText('8 items')
+    const hide = screen.getByRole('button', { name: 'Hide Completed' })
+    expect(note.compareDocumentPosition(hide) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+  })
+
+  it('keeps fold-all as wide as its longer word, so switching it moves nothing', () => {
+    bar({ fold: { collapse: true, onToggle: vi.fn() } })
+
+    const label = screen.getByText('Collapse')
+    expect(label.closest('[data-room]')?.getAttribute('data-room')).toBe('Expand')
   })
 })
