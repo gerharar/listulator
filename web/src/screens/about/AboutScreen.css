@@ -119,6 +119,10 @@
   align-items: baseline;
   gap: 8px;
 }
+/* The version is mono; its Changelog link is in the text font, as every other link (owner, 2026-10-05). */
+.q-about-version-line .q-about-credit-link {
+  font-family: var(--font-sans);
+}
 /* The button's label is centred (owner; the design says left): the stacked labels share the longest one's width, so the shorter ones would hug the left edge. */
 .q-about-update-block .q-btn .q-about-stack {
   text-align: center;
@@ -156,12 +160,12 @@
   color: var(--ink3);
 }
 
-/* The data sources' links: mono host name and a quiet ↗. */
+/* The data sources' links: the host name in the text font (owner, 2026-10-05: mono is for figures and labels, not links) and a quiet ↗. */
 .q-about-link {
   display: inline-flex;
   align-items: baseline;
   gap: 5px;
-  font: 500 12.5px/1.2 var(--font-mono);
+  font: 500 12.5px/1.2 var(--font-sans);
   color: var(--ink);
   text-decoration: none;
   white-space: nowrap;
