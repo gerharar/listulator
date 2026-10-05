@@ -167,7 +167,7 @@ export function PreviewLayer({ source, mediaType, onBuilt }: PreviewLayerProps) 
           <ErrorBlock headline={text.loadFailedHeadline} explanation={addError} />
         )}
         {load.state === 'done' && load.preview.items.length === 0 && (
-          <ErrorBlock headline={text.nothingToAdd} explanation="" />
+          <ErrorBlock headline={text.nothingToAdd} />
         )}
         {load.state === 'done' &&
           rows.map((row, index) => {

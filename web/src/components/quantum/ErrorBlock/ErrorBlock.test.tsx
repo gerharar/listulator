@@ -13,6 +13,15 @@ describe('ErrorBlock', () => {
     expect(screen.getByText('Cannot reach the server.')).not.toBeNull()
   })
 
+  it('draws no explanation paragraph when there is none, so the headline sits centred (owner, 2026-10-05)', () => {
+    // An empty <p> kept its 7 px top margin: 18 px above the headline, 25 px below, the text 7 px high.
+    const { container } = render(<ErrorBlock headline="Nothing to add" />)
+    const { container: blank } = render(<ErrorBlock headline="Nothing to add" explanation="" />)
+
+    expect(container.querySelector('p')).toBeNull()
+    expect(blank.querySelector('p')).toBeNull()
+  })
+
   it('renders no action when none is given', () => {
     render(<ErrorBlock headline="Broken" explanation="Something failed." />)
 

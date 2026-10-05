@@ -11,7 +11,8 @@ export interface ErrorBlockAction {
 
 export interface ErrorBlockProps {
   headline: string
-  explanation: string
+  /** Left out (or empty) for a headline that says it all: no paragraph is drawn, so no margin is left under it. */
+  explanation?: string
   /** At most one — design-system/components/ErrorStrip. */
   action?: ErrorBlockAction
 }
@@ -25,7 +26,7 @@ export function ErrorBlock({ headline, explanation, action }: ErrorBlockProps) {
   return (
     <div className="q-error-block">
       <b>{headline}</b>
-      <p>{explanation}</p>
+      {explanation && <p>{explanation}</p>}
       {action && (
         <Button onClick={action.onClick} disabled={action.disabled} title={action.title}>
           {action.label}
