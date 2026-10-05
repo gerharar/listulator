@@ -63,6 +63,14 @@ jobs:
           }
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
+      # The desktop app must register no service worker (web/vite.config.ts): WebView2 cannot update one, so a
+      # caching worker serves an old build after every reinstall (Phase 17).
+      - name: Check the pages register no service worker
+        shell: pwsh
+        run: |
+          $found = Select-String -Path web/dist/index.html, web/dist/assets/*.js -Pattern 'registerSW', 'serviceWorker.register' -SimpleMatch
+          if ($found) { $found | Format-Table Path, LineNumber -AutoSize; throw 'The desktop build registers a service worker' }
+
       - name: List what was built
         shell: pwsh
         env:

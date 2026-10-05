@@ -11,6 +11,9 @@ import { VitePWA } from 'vite-plugin-pwa'
  */
 const appVersion = (JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8')) as { version: string }).version
 
+/** Built by the Tauri CLI for the desktop app, which sets this for its before-build command. */
+const desktopBuild = process.env['TAURI_ENV_PLATFORM'] !== undefined
+
 export default defineConfig({
   define: {
     __APP_VERSION__: JSON.stringify(appVersion),
@@ -26,12 +29,14 @@ export default defineConfig({
   plugins: [
     react(),
     VitePWA({
-      // The desktop app must never cache its own pages: an update replaces them, and a worker kept serving the
-      // old ones (Phase 17: a reinstall on Windows showed the previous build, as WebView2 runs service workers at
-      // http://tauri.localhost; WebKit's tauri:// never did). A desktop build therefore ships a worker that removes
-      // itself and its caches, which also cleans up one an earlier build installed. The Tauri CLI sets
-      // TAURI_ENV_PLATFORM for its before-build command; the web build keeps its PWA.
-      selfDestroying: process.env['TAURI_ENV_PLATFORM'] !== undefined,
+      // The PWA is the browser's (task 4.1). The desktop app, which reuses this build (task 5.2), registers no
+      // service worker at all (Phase 17): its pages are in the binary, and WebView2, which runs workers at
+      // http://tauri.localhost (WebKit's tauri:// never did), cannot update one there: the update check never
+      // reaches the app's files, so a caching worker went on serving an old build after every reinstall. The Tauri
+      // CLI sets TAURI_ENV_PLATFORM for its before-build command. The sw.js a desktop build still writes removes
+      // itself if anything ever registers it. The Windows workflow fails a build whose index.html registers one.
+      injectRegister: desktopBuild ? false : 'auto',
+      selfDestroying: desktopBuild,
       // A new build takes over on the next visit rather than waiting for every
       // tab to close. This is a personal tracker, not a live document — there
       // is nothing to lose to a reload.
