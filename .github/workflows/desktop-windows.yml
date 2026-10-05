@@ -41,8 +41,11 @@ jobs:
           node-version: 26
           cache: npm
 
+      # No install scripts: the only native one is the server's better-sqlite3 (compiled from source by node-gyp,
+      # which crashed on the runner once), and the desktop app never loads it. esbuild and the Tauri CLI run from
+      # their prebuilt platform packages without one.
       - name: Install dependencies
-        run: npm ci
+        run: npm ci --ignore-scripts
 
       - name: Rust (the runner's own rustup)
         run: |
