@@ -82,7 +82,7 @@ describe('the changelog link (owner, 2026-10-05)', () => {
     setActiveLanguage('ru')
     renderBlock('unavailable')
 
-    expect(screen.getByRole('link', { name: 'Список изменений' })).toBeTruthy()
+    expect(screen.getByRole('link', { name: 'Изменения' })).toBeTruthy()
   })
 })
 

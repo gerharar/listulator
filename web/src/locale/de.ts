@@ -286,7 +286,7 @@ export const de: Locale = {
       download: 'Update herunterladen',
       retry: 'Erneut versuchen',
       /** The link beside the version line, to the repository's CHANGELOG.md. */
-      changelog: 'Änderungsprotokoll',
+      changelog: 'Änderungen',
       legal: 'Lizenz und Hinweise',
       dataSources: 'Datenquellen',
       showAttribution: 'Quellenhinweis anzeigen',

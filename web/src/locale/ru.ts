@@ -295,7 +295,7 @@ export const ru: Locale = {
       download: 'Скачать обновление',
       retry: 'Повторить',
       /** The link beside the version line, to the repository's CHANGELOG.md. */
-      changelog: 'Список изменений',
+      changelog: 'Изменения',
       legal: 'Лицензия и уведомления',
       dataSources: 'Источники данных',
       showAttribution: 'Показать атрибуцию',
