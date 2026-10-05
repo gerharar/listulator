@@ -9,7 +9,14 @@ import { setActiveLanguage } from '../../locale/index.js'
 import { en } from '../../locale/en.js'
 import { ru } from '../../locale/ru.js'
 import { de } from '../../locale/de.js'
-import { ApiKeysSection } from './ApiKeysSection.js'
+import { ApiKeysSection, saveAndReload } from './ApiKeysSection.js'
+import { updateLocalSettings } from '../../lib/config/localConfig.js'
+import { resetLocalMediaTypes } from '../../lib/ingestion/localMediaTypes.js'
+import { notifyRegistryChanged } from '../../lib/registryChanges.js'
+
+vi.mock('../../lib/config/localConfig.js', () => ({ getLocalSettings: vi.fn(async () => ({})), updateLocalSettings: vi.fn(async () => {}) }))
+vi.mock('../../lib/ingestion/localMediaTypes.js', () => ({ resetLocalMediaTypes: vi.fn() }))
+vi.mock('../../lib/registryChanges.js', () => ({ notifyRegistryChanged: vi.fn() }))
 
 afterEach(() => {
   cleanup()
@@ -202,5 +209,18 @@ describe('ApiKeysSection', () => {
       unmount()
     }
     expect(widest(en)).toBeLessThan(widest(de))
+  })
+})
+
+describe('saving a key (16.5 finding)', () => {
+  it('writes it, rebuilds the registry, and tells the app so every screen asks again what can be searched and previewed', async () => {
+    await saveAndReload({ tmdbApiKey: 'k' } as Partial<LocalSettings>)
+
+    expect(updateLocalSettings).toHaveBeenCalledWith({ tmdbApiKey: 'k' })
+    expect(resetLocalMediaTypes).toHaveBeenCalledOnce()
+    expect(notifyRegistryChanged).toHaveBeenCalledOnce()
+    expect(vi.mocked(resetLocalMediaTypes).mock.invocationCallOrder[0]!).toBeLessThan(
+      vi.mocked(notifyRegistryChanged).mock.invocationCallOrder[0]!,
+    )
   })
 })

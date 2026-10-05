@@ -5,6 +5,7 @@ import { copy } from '../../locale/index.js'
 import { getLocalSettings, updateLocalSettings, type LocalSettings } from '../../lib/config/localConfig.js'
 import type { KeySource, KeyTestResult } from '../../lib/config/keyTest.js'
 import { resetLocalMediaTypes } from '../../lib/ingestion/localMediaTypes.js'
+import { notifyRegistryChanged } from '../../lib/registryChanges.js'
 import { testApiKey } from '../../lib/api.local.js'
 import { Button } from '../../components/quantum/Button/Button.js'
 import { MaskedKey } from '../../components/quantum/Field/Field.js'
@@ -31,9 +32,11 @@ export interface ApiKeysSectionProps {
   test?: (source: KeySource, values: LocalSettings) => Promise<KeyTestResult>
 }
 
-async function saveAndReload(patch: Partial<LocalSettings>): Promise<void> {
+/** Saves the changed key fields, rebuilds the search sources from them, and tells the app to ask them again (16.5). */
+export async function saveAndReload(patch: Partial<LocalSettings>): Promise<void> {
   await updateLocalSettings(patch)
   resetLocalMediaTypes()
+  notifyRegistryChanged()
 }
 
 interface OpenPopover {

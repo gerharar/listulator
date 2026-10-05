@@ -1,6 +1,6 @@
 import './App.css'
 import { useEffect, useState } from 'react'
-import type { MediaType } from './lib/api.js'
+import { api, type MediaType } from './lib/api.js'
 import { copy } from './locale/index.js'
 import { getPreferencesStore } from './lib/preferences/store.js'
 import { resolveSkin, setSkin as persistSkin, type Skin } from './lib/preferences/skin.js'
@@ -9,6 +9,7 @@ import { resolveReducedMotionSetting } from './lib/preferences/motion.js'
 import { MotionProvider } from './components/quantum/Motion/MotionContext.js'
 import { useFullscreenKey } from './lib/windowFullscreen.js'
 import { getAppQuit } from './lib/appQuit.js'
+import { useRefetchOnRegistryChange } from './lib/registryChanges.js'
 import { SettingsScreen } from './screens/settings/SettingsScreen.js'
 import { AboutScreen } from './screens/about/AboutScreen.js'
 import { ListScreen } from './screens/list/ListScreen.js'
@@ -190,6 +191,8 @@ function AppShellBody({ skin, onSkinChange }: AppShellBodyProps) {
   // lives here and Home lifts it up once loaded. Empty until then; neither
   // hosted screen is reachable before Home has rendered at least once.
   const [mediaTypes, setMediaTypes] = useState<MediaType[]>([])
+  // A key saved in Settings changes what can be searched and previewed: ask again, whichever layer is showing (16.5).
+  useRefetchOnRegistryChange(() => api.mediaTypes(), setMediaTypes)
   // The Esc ladder's second rung: nothing is open, so pop one layer — the
   // design prototype's own handler ends in `this.pop()`. Esc from the Create
   // layer returns to the Category picker; from a layer over Home, to Home.
