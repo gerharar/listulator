@@ -54,7 +54,7 @@ npm-debug.log*
 # public visitors. Scrubbed from history on 2026-09-14, kept locally.
 /.claude/skills/list-generator/
 
-# Generated from design-system/tokens.json by web/scripts/generateTokens.ts
-# (Phase 10, task 10.3, D9) — regenerated on every `predev`/`prebuild`, never
-# hand-edited, so it isn't the source of truth and isn't committed.
-/web/src/styles/quantum/tokens.css
+# web/src/styles/quantum/tokens.css is generated from the design handoff's
+# tokens.json (in docs/, local) by web/scripts/generateTokens.ts, but it IS
+# committed (Phase 17): a clone or CI has no docs/ and builds from it. Never
+# hand-edit it; a test checks it matches the tokens wherever docs/ exists.

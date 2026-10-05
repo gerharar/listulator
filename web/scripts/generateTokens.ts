@@ -1,5 +1,7 @@
-import { readFileSync, writeFileSync, mkdirSync } from 'node:fs'
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { isRunDirectly } from '../../server/src/tools/runDirectly.js'
 
 /**
  * Generates the Quantum token CSS from `design-system/tokens.json` (task
@@ -132,26 +134,43 @@ export function generateTokenCss(tokens: QuantumTokens, scope: string): string {
   ].join('\n')
 }
 
-const TOKENS_JSON_PATH = fileURLToPath(
+/** The design handoff's tokens: in `docs/`, which is local (gitignored), so absent from a clone and from CI. */
+export const TOKENS_JSON_PATH = fileURLToPath(
   new URL(
     '../../docs/design/claude-design/design_handoff_listulator_quantum_v2/design-system/tokens.json',
     import.meta.url,
   ),
 )
-const OUTPUT_DIR = fileURLToPath(new URL('../src/styles/quantum', import.meta.url))
-const OUTPUT_PATH = `${OUTPUT_DIR}/tokens.css`
+/** Committed (Phase 17): a clone or CI builds from it; where the handoff exists, it is regenerated each build. */
+export const OUTPUT_PATH = fileURLToPath(new URL('../src/styles/quantum/tokens.css', import.meta.url))
 /** `html` since cutover (task 10.32): the tokens apply to the whole document, portals included. */
 export const SCOPE = 'html'
 
-function main(): void {
-  const tokens = JSON.parse(readFileSync(TOKENS_JSON_PATH, 'utf8')) as QuantumTokens
-  const css = generateTokenCss(tokens, SCOPE)
+/**
+ * Writes `tokens.css` from the design tokens when they are there; keeps the committed file when they are not (a
+ * fresh clone, the Windows build on GitHub Actions); fails, naming both files, when neither is there. A test checks
+ * the committed file is what the tokens generate, so keeping it never means keeping a stale one.
+ */
+export function writeTokens({
+  input = TOKENS_JSON_PATH,
+  output = OUTPUT_PATH,
+  log = console.log,
+}: { input?: string; output?: string; log?: (line: string) => void } = {}): 'generated' | 'kept' {
+  if (!existsSync(input)) {
+    if (existsSync(output)) {
+      log(`Kept ${output} (no design tokens at ${input})`)
+      return 'kept'
+    }
+    throw new Error(`No design tokens at ${input}, and no committed ${output} to build from.`)
+  }
 
-  mkdirSync(OUTPUT_DIR, { recursive: true })
-  writeFileSync(OUTPUT_PATH, `${css}\n`)
-  console.log(`Wrote ${OUTPUT_PATH}`)
+  const tokens = JSON.parse(readFileSync(input, 'utf8')) as QuantumTokens
+  mkdirSync(dirname(output), { recursive: true })
+  writeFileSync(output, `${generateTokenCss(tokens, SCOPE)}\n`)
+  log(`Wrote ${output}`)
+  return 'generated'
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
-  main()
+if (isRunDirectly(import.meta.url)) {
+  writeTokens()
 }

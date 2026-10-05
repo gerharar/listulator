@@ -1,5 +1,6 @@
 import { readFileSync, writeFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
+import { isRunDirectly } from './runDirectly.js'
 
 /**
  * Turns the owner's platform file (`config/platforms.csv`: IGDB id; full name;
@@ -108,7 +109,7 @@ export function renderPlatformsModule({ table, igdb }: PlatformTable): string {
   ].join('\n')
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (isRunDirectly(import.meta.url)) {
   const built = buildPlatformTable(parsePlatformsCsv(readFileSync(CSV_PATH, 'utf8')))
   writeFileSync(OUT_PATH, renderPlatformsModule(built))
   console.log(`Wrote ${built.table.length} codes and ${Object.keys(built.igdb).length} IGDB ids to ${OUT_PATH}`)

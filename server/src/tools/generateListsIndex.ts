@@ -2,6 +2,7 @@ import { readdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { parseCustomList, type CanonicalListEntry } from '../ingestion/customLists.js'
 import { createMediaTypeRegistry } from '../ingestion/mediaTypes.js'
+import { isRunDirectly } from './runDirectly.js'
 
 /**
  * Regenerates `lists/index.json` by scanning every `lists/**\/*.yaml` file,
@@ -63,7 +64,7 @@ function main(): void {
   console.log(`Wrote ${entries.length} entries to lists/index.json`)
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (isRunDirectly(import.meta.url)) {
   try {
     main()
   } catch (error) {

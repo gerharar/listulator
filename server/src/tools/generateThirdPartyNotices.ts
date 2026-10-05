@@ -2,6 +2,7 @@ import { execFileSync } from 'node:child_process'
 import { existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { isRunDirectly } from './runDirectly.js'
 
 /**
  * Writes `THIRD-PARTY-NOTICES.txt` at the repo root: the licence text of every
@@ -224,4 +225,4 @@ function main(): void {
   for (const notice of missing) console.log(`  no licence file: ${notice.name} ${notice.version} (${notice.licence})`)
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) main()
+if (isRunDirectly(import.meta.url)) main()

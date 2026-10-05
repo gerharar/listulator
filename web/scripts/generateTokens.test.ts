@@ -1,5 +1,8 @@
-import { describe, expect, it } from 'vitest'
-import { generateTokenCss, SCOPE, type QuantumTokens } from './generateTokens.js'
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
+import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { generateTokenCss, OUTPUT_PATH, SCOPE, TOKENS_JSON_PATH, writeTokens, type QuantumTokens } from './generateTokens.js'
 
 function fixture(): QuantumTokens {
   return {
@@ -121,5 +124,67 @@ describe('generateTokenCss', () => {
 
     expect(css).toContain('html, html[data-theme="dark-orange"], html [data-theme="dark-orange"] {')
     expect(css).not.toContain('.q-root')
+  })
+})
+
+/**
+ * Phase 17: the design handoff (`docs/`, gitignored) is not in the public repo, so a fresh clone or CI cannot
+ * generate `tokens.css`. The generated file is committed; the generator refreshes it where the handoff exists and
+ * keeps it where it does not.
+ */
+describe('writeTokens', () => {
+  let dir: string
+  const logged: string[] = []
+  const log = (line: string) => logged.push(line)
+
+  beforeEach(() => {
+    dir = mkdtempSync(join(tmpdir(), 'tokens-'))
+    logged.length = 0
+  })
+
+  afterEach(() => {
+    rmSync(dir, { recursive: true, force: true })
+  })
+
+  it('writes the CSS from the design tokens when they are there', () => {
+    const input = join(dir, 'tokens.json')
+    const output = join(dir, 'out', 'tokens.css')
+    writeFileSync(input, JSON.stringify(fixture()))
+
+    expect(writeTokens({ input, output, log })).toBe('generated')
+    expect(readFileSync(output, 'utf8')).toBe(`${generateTokenCss(fixture(), SCOPE)}\n`)
+  })
+
+  it('keeps the committed CSS when the design tokens are not there (a clone, CI)', () => {
+    const output = join(dir, 'tokens.css')
+    writeFileSync(output, 'committed')
+
+    expect(writeTokens({ input: join(dir, 'absent.json'), output, log })).toBe('kept')
+    expect(readFileSync(output, 'utf8')).toBe('committed')
+    expect(logged.join(' ')).toMatch(/kept/i)
+  })
+
+  it('fails, naming both files, when neither is there', () => {
+    const input = join(dir, 'absent.json')
+    const output = join(dir, 'tokens.css')
+
+    let message = ''
+    try {
+      writeTokens({ input, output, log })
+    } catch (error) {
+      message = (error as Error).message
+    }
+
+    expect(message).toContain(input)
+    expect(message).toContain(output)
+    expect(existsSync(output)).toBe(false)
+  })
+})
+
+describe('the committed tokens.css', () => {
+  it.skipIf(!existsSync(TOKENS_JSON_PATH))('is what the design tokens generate (it cannot go stale)', () => {
+    const tokens = JSON.parse(readFileSync(TOKENS_JSON_PATH, 'utf8')) as QuantumTokens
+
+    expect(readFileSync(OUTPUT_PATH, 'utf8')).toBe(`${generateTokenCss(tokens, SCOPE)}\n`)
   })
 })

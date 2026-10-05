@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs'
 import { parseCustomList } from '../ingestion/customLists.js'
 import { createMediaTypeRegistry } from '../ingestion/mediaTypes.js'
 import { LEGACY_PLATFORM_TAGS, PLATFORM_ORDER } from '../catalog/platforms.js'
+import { isRunDirectly } from './runDirectly.js'
 
 /**
  * Validates each of `paths` through the real parser (task 10.2d) — the same
@@ -86,6 +87,6 @@ function main(): void {
   console.log(`validateLists: ${paths.length} file(s) OK.`)
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (isRunDirectly(import.meta.url)) {
   main()
 }

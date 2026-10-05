@@ -9,6 +9,7 @@ import {
   type MediaTypeCandidate,
   type MediaTypeRegistry,
 } from '../ingestion/mediaTypes.js'
+import { isRunDirectly } from './runDirectly.js'
 
 /**
  * Drafts a `lists/` YAML file from a live search adapter, instead of typing
@@ -219,7 +220,7 @@ async function main(): Promise<void> {
   }
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (isRunDirectly(import.meta.url)) {
   main().catch((error: unknown) => {
     console.error(error instanceof Error ? error.message : error)
     process.exit(1)

@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { parsePlatformsCsv, type PlatformRow } from './generatePlatforms.js'
+import { isRunDirectly } from './runDirectly.js'
 
 /**
  * Compares IGDB's live platform list with `config/platforms.csv` (10.24c). A
@@ -48,7 +49,7 @@ async function fetchIgdbPlatforms(): Promise<{ id: number; name: string }[]> {
   }
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (isRunDirectly(import.meta.url)) {
   try {
     process.loadEnvFile(fileURLToPath(new URL('../../../.env', import.meta.url)))
   } catch {
