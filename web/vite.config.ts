@@ -26,6 +26,12 @@ export default defineConfig({
   plugins: [
     react(),
     VitePWA({
+      // The desktop app must never cache its own pages: an update replaces them, and a worker kept serving the
+      // old ones (Phase 17: a reinstall on Windows showed the previous build, as WebView2 runs service workers at
+      // http://tauri.localhost; WebKit's tauri:// never did). A desktop build therefore ships a worker that removes
+      // itself and its caches, which also cleans up one an earlier build installed. The Tauri CLI sets
+      // TAURI_ENV_PLATFORM for its before-build command; the web build keeps its PWA.
+      selfDestroying: process.env['TAURI_ENV_PLATFORM'] !== undefined,
       // A new build takes over on the next visit rather than waiting for every
       // tab to close. This is a personal tracker, not a live document — there
       // is nothing to lose to a reload.
