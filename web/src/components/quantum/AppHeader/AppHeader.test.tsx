@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { act, cleanup, render, screen, waitFor, within } from '@testing-library/react'
 import type { ReactNode } from 'react'
 import { AppHeader } from './AppHeader.js'
+import type { AppQuit } from '../../../lib/appQuit.js'
 import { LiveRegionProvider } from '../LiveRegion/LiveRegion.js'
 import { OverlayManagerProvider } from '../overlay/OverlayManagerContext.js'
 
@@ -70,6 +71,64 @@ describe('AppHeader', () => {
       expect(container.querySelector('.q-live')?.textContent).toBe(
         'Switched to the Deluge skin',
       )
+    })
+  })
+
+  describe('Quit / Exit (16.2b)', () => {
+    function renderWith(quit?: AppQuit) {
+      render(
+        <Providers>
+          <AppHeader skin="dark-orange" onSkinChange={vi.fn()} onSettings={vi.fn()} onAbout={vi.fn()} quit={quit} />
+        </Providers>,
+      )
+    }
+
+    it('is not there outside the desktop app', () => {
+      renderWith(undefined)
+
+      expect(screen.getAllByRole('button').map((button) => button.getAttribute('aria-label'))).toEqual([
+        'Skin',
+        'Settings',
+        'About',
+      ])
+    })
+
+    it('is last, after About, and named Quit on a Mac', () => {
+      renderWith({ platform: 'mac', quit: vi.fn() })
+
+      const quit = screen.getByRole('button', { name: 'Quit' })
+      expect(screen.getByRole('button', { name: 'About' }).nextElementSibling).toBe(quit)
+      expect(quit.nextElementSibling).toBeNull()
+    })
+
+    it('asks first, and Cancel leaves the app running', () => {
+      const quit = vi.fn(() => Promise.resolve())
+      renderWith({ platform: 'mac', quit })
+
+      act(() => screen.getByRole('button', { name: 'Quit' }).click())
+
+      const dialog = screen.getByRole('dialog')
+      expect(within(dialog).getByText('Quit Listulator?')).not.toBeNull()
+      expect(within(dialog).getByText("Everything you've saved stays")).not.toBeNull()
+
+      act(() => within(dialog).getByRole('button', { name: 'Cancel' }).click())
+
+      expect(screen.queryByRole('dialog')).toBeNull()
+      expect(quit).not.toHaveBeenCalled()
+    })
+
+    it('is named Exit elsewhere, and confirming ends the app', () => {
+      const quit = vi.fn(() => Promise.resolve())
+      renderWith({ platform: 'other', quit })
+
+      act(() => screen.getByRole('button', { name: 'Exit' }).click())
+
+      const dialog = screen.getByRole('dialog')
+      expect(within(dialog).getByText('Exit Listulator?')).not.toBeNull()
+
+      act(() => within(dialog).getByRole('button', { name: 'Exit' }).click())
+
+      expect(quit).toHaveBeenCalledOnce()
     })
   })
 

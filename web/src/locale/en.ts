@@ -305,6 +305,13 @@ export const en = {
     appHeader: {
       settings: 'Settings',
       about: 'About',
+      /** The desktop-only header button and its confirmation (task 16.2b): the system's own word, Quit on a Mac, Exit elsewhere. */
+      quit: {
+        mac: { action: 'Quit', question: 'Quit Listulator?' },
+        other: { action: 'Exit', question: 'Exit Listulator?' },
+        note: "Everything you've saved stays",
+        cancel: 'Cancel',
+      },
     },
     /** The About layer (task 11.21). Source names, hosts, links and the TMDB notice are not copy: `screens/about/sources.ts`. */
     about: {

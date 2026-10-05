@@ -275,6 +275,12 @@ export const ru: Locale = {
     appHeader: {
       settings: 'Настройки',
       about: 'О программе',
+      quit: {
+        mac: { action: 'Завершить', question: 'Завершить Listulator?' },
+        other: { action: 'Выйти', question: 'Выйти из Listulator?' },
+        note: 'Всё сохранённое останется',
+        cancel: 'Отмена',
+      },
     },
     about: {
       title: 'О программе',

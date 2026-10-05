@@ -8,6 +8,7 @@ import { resolveLanguage, type Language } from './lib/preferences/language.js'
 import { resolveReducedMotionSetting } from './lib/preferences/motion.js'
 import { MotionProvider } from './components/quantum/Motion/MotionContext.js'
 import { useFullscreenKey } from './lib/windowFullscreen.js'
+import { getAppQuit } from './lib/appQuit.js'
 import { SettingsScreen } from './screens/settings/SettingsScreen.js'
 import { AboutScreen } from './screens/about/AboutScreen.js'
 import { ListScreen } from './screens/list/ListScreen.js'
@@ -46,6 +47,9 @@ interface BootState {
   /** `undefined` until the user has ticked or unticked the box: the system setting decides then. */
   reducedSetting: boolean | undefined
 }
+
+/** The header's Quit/Exit (task 16.2b): the desktop window, or none in the browser build. */
+const appQuit = getAppQuit()
 
 /**
  * Boots the app: resolves the skin/language preferences before the first
@@ -215,7 +219,7 @@ function AppShellBody({ skin, onSkinChange }: AppShellBodyProps) {
 
   return (
     <div className="q-shell">
-      <AppHeader skin={skin} onSkinChange={onSkinChange} onSettings={openSettings} onAbout={openAbout} />
+      <AppHeader skin={skin} onSkinChange={onSkinChange} onSettings={openSettings} onAbout={openAbout} quit={appQuit} />
       <div className="q-stage">
         {layerStack.visible.map((layer, index) => {
           const isTop = index === layerStack.visible.length - 1

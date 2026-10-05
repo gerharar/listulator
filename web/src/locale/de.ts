@@ -266,6 +266,12 @@ export const de: Locale = {
     appHeader: {
       settings: 'Einstellungen',
       about: 'Über Listulator',
+      quit: {
+        mac: { action: 'Beenden', question: 'Listulator beenden?' },
+        other: { action: 'Beenden', question: 'Listulator beenden?' },
+        note: 'Alles Gespeicherte bleibt erhalten',
+        cancel: 'Abbrechen',
+      },
     },
     about: {
       title: 'Über Listulator',
