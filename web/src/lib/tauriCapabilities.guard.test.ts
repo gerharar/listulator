@@ -38,3 +38,83 @@ describe('the desktop opener scope', () => {
     expect(allowed('https://github.com/someone-else/listulator')).toBe(false)
   })
 })
+
+/**
+ * The shape of what the webview may ask the native side to do (security review, Phase 19, task 19.2; docs/security-review.md).
+ * The webview holds raw SQL, the key store and the HTTP plugin, so a permission added here widens what an injected script
+ * could reach. Adding one is a decision: change this list in the same commit and say why in docs/DECISIONS.md.
+ */
+const DESKTOP = fileURLToPath(new URL('../../../apps/desktop/src-tauri/', import.meta.url))
+const read = (file: string): string => readFileSync(`${DESKTOP}${file}`, 'utf8')
+
+interface RawCapability {
+  windows: string[]
+  local?: boolean
+  remote?: unknown
+  platforms?: unknown
+  permissions: (string | { identifier: string; allow?: { url: string }[] })[]
+}
+
+const capability = JSON.parse(read('capabilities/default.json')) as RawCapability
+
+describe('the desktop capability, as the security review left it', () => {
+  it('grants exactly these permissions', () => {
+    const identifiers = capability.permissions.map((permission) => (typeof permission === 'string' ? permission : permission.identifier))
+
+    expect(identifiers).toEqual([
+      'core:default',
+      'core:window:allow-set-fullscreen',
+      'core:window:allow-is-fullscreen',
+      'core:window:allow-close',
+      'sql:default',
+      'sql:allow-load',
+      'sql:allow-execute',
+      'sql:allow-select',
+      'sql:allow-close',
+      'store:default',
+      'http:default',
+      'opener:allow-open-url',
+    ])
+  })
+
+  it('belongs to the main window only and never to a remote page', () => {
+    expect(capability.windows).toEqual(['main'])
+    expect(capability.remote).toBeUndefined()
+  })
+
+  it('lets the HTTP plugin reach exactly these four hosts', () => {
+    const http = capability.permissions.find((permission) => typeof permission === 'object' && permission.identifier === 'http:default')
+
+    expect(typeof http === 'object' ? http.allow?.map((entry) => entry.url) : undefined).toEqual([
+      'https://api.igdb.com/*',
+      'https://id.twitch.tv/*',
+      'https://comicvine.gamespot.com/*',
+      'https://musicbrainz.org/*',
+    ])
+  })
+
+  it('opens only https addresses on a named host, with no wildcard in the host', () => {
+    // The scope is a string pattern: `*` stands for any text, so a wildcard in the host would admit any site.
+    for (const pattern of openerAllows) expect(pattern).toMatch(/^https:\/\/[a-z0-9.-]+(\/|$)/)
+  })
+})
+
+describe('the desktop app configuration, as the security review left it', () => {
+  const config = JSON.parse(read('tauri.conf.json')) as { app: { withGlobalTauri?: boolean; security?: Record<string, unknown> } }
+
+  it('keeps the content security policy and none of the switches that weaken it', () => {
+    expect(typeof config.app.security?.csp).toBe('object')
+    expect(config.app.withGlobalTauri ?? false).toBe(false)
+    expect(config.app.security).not.toHaveProperty('dangerousDisableAssetCspModification')
+    expect(config.app.security).not.toHaveProperty('devCsp')
+    expect(config.app.security).not.toHaveProperty('assetProtocol')
+  })
+
+  it('compiles in neither the developer tools nor the HTTP plugin’s dangerous settings', () => {
+    // `devtools` is compiled out of a release build unless this feature asks for it; `dangerous-settings` would let a
+    // page turn off certificate checks on the requests the plugin makes.
+    const cargo = read('Cargo.toml').replace(/^\s*#.*$/gm, '')
+
+    expect(cargo).not.toMatch(/devtools|dangerous-settings/)
+  })
+})
