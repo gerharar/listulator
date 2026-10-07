@@ -3,6 +3,7 @@ import { IngestionError, type FetchLike } from '../http.js'
 import {
   createPageCache,
   createWikipediaEventsAdapter,
+  PAGE_MAX_CHARS,
   UFC_SUB_SERIES,
   WWE_SUB_SERIES,
   type Promotion,
@@ -733,3 +734,40 @@ describe('events that were called off (BL-067)', () => {
     expect((await adapter.expand('subseries:wrestlemania')).items.map((item) => item.title)).toEqual(['WrestleMania 37 (2020)'])
   })
 })
+
+/**
+ * Anyone may edit the pages these categories read (security review, Phase 19, SR-024). A page over a limit is refused, and a page that
+ * is within it but built to be slow is read in a moment: the reader was quadratic, so one run of `== a` and spaces, or of `<ref `,
+ * froze the app for seconds to hours.
+ */
+describe('a page that is too big or built to be slow', () => {
+  const TABLE = ['==Past events==', '{| class="wikitable"', '! Event !! Date', '|-', '|[[UFC 1]]', '|{{dts|1993|Nov|12}}', '|}'].join('\n')
+
+  it('says the limit', () => {
+    expect(PAGE_MAX_CHARS).toBe(3 * 1024 * 1024)
+  })
+
+  it('refuses a page over the limit, naming the page, and reads one of exactly the limit', async () => {
+    const padding = (length: number) => `\n<!-- ${'x'.repeat(length - 10)} -->` // 10 characters of comment around it
+    const exactly = TABLE + padding(PAGE_MAX_CHARS - TABLE.length)
+
+    expect(exactly.length).toBe(PAGE_MAX_CHARS)
+    expect((await createWikipediaEventsAdapter([UFC], respondWith(exactly)).expand('promotion:ufc')).items).toEqual([{ title: 'UFC 1', year: 1993 }])
+    await expect(createWikipediaEventsAdapter([UFC], respondWith(`${exactly}x`)).expand('promotion:ufc')).rejects.toThrow(/"List of UFC events" is too large to read/)
+  })
+
+  it.each([
+    ['a heading that never ends', `== a${' '.repeat(PAGE_MAX_CHARS - 10)}`],
+    ['a heading of words', `== ${'a '.repeat((PAGE_MAX_CHARS - 10) / 2)}`],
+    ['a cell of reference openers', `${TABLE.replace('[[UFC 1]]', `[[UFC 1]]${'<ref '.repeat((PAGE_MAX_CHARS - 200) / 5)}`)}`],
+    ['a cell of links never closed', `${TABLE.replace('[[UFC 1]]', `UFC 1${'[[a'.repeat((PAGE_MAX_CHARS - 200) / 3)}`)}`],
+    ['many cells, each as slow as one may be', `==Past events==\n{|\n! Event !! Date\n${`|-\n|${'<ref '.repeat(4_000)} || 2024\n`.repeat(140)}|}`],
+  ])('reads a page with %s in a few seconds at the very most', async (_name, wikitext) => {
+    expect(wikitext.length).toBeLessThanOrEqual(PAGE_MAX_CHARS)
+    const start = performance.now()
+    await createWikipediaEventsAdapter([UFC], respondWith(wikitext)).expand('promotion:ufc')
+
+    expect(performance.now() - start).toBeLessThan(3_000)
+  }, 60_000)
+})
+

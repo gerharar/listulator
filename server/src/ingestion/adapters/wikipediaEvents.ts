@@ -555,6 +555,12 @@ export const UFC_SUB_SERIES: readonly SubSeries[] = [
 ]
 
 /**
+ * The most of a page's text that is read. MediaWiki's default limit on a page is 2 MiB of text, so a page over this is something
+ * wrong; the reader is linear in whatever it is given, and this keeps what it is given bounded (SR-024).
+ */
+export const PAGE_MAX_CHARS = 3 * 1024 * 1024
+
+/**
  * Fetches and parses one promotion's full event table — the shared core of
  * both a plain promotion expansion and a sub-series' filtered one, so the
  * sort/reversal/dedup logic (task 6.3) only exists once and a sub-series
@@ -579,6 +585,10 @@ async function fetchPromotionEvents(
 
   const wikitext = response.parse?.wikitext?.['*']
   if (!wikitext) throw new IngestionError(`Wikipedia returned no text for "${promotion.page}".`)
+  // Anyone may edit the page (SR-024): MediaWiki's own limit on a page is 2 MiB, so this is only ever met by something wrong.
+  if (wikitext.length > PAGE_MAX_CHARS) {
+    throw new IngestionError(`Wikipedia's page "${promotion.page}" is too large to read (over ${PAGE_MAX_CHARS / (1024 * 1024)} MB of text).`)
+  }
 
   const events: MediaTypeCandidate[] = []
   const seen = new Set<string>()
