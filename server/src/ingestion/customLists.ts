@@ -1,7 +1,20 @@
 import { load as loadYaml, YAMLException } from 'js-yaml'
 import type { ApiErrorCode } from '../apiErrors.js'
+import {
+  DESCRIPTION_MAX_LENGTH,
+  LIST_FILE_MAX_CHARS,
+  MAX_LIST_ITEMS,
+  MINUTES_RANGE,
+  NAME_MAX_LENGTH,
+  TAG_MAX_LENGTH,
+  TAGS_MAX,
+  validMinutes,
+  validYear,
+  YEAR_RANGE,
+} from '../catalog/limits.js'
 import { getJson, getText, IngestionError, type FetchLike } from './http.js'
 import type { ListExpansion } from './mediaTypes.js'
+import { textHazard, withoutHazards } from './textHazards.js'
 
 // No `node:fs`/`node:path`/`node:url` imports in this file, ever — it is
 // imported directly by web/src/lib/api.local.ts for the standalone app, and
@@ -105,7 +118,7 @@ function describeValue(value: unknown): string {
   if (value === undefined || value === null) return 'empty'
   if (Array.isArray(value)) return 'a list'
   if (typeof value === 'string') {
-    const shown = value.length > 40 ? `${value.slice(0, 40)}…` : value
+    const shown = withoutHazards(value.length > 40 ? `${value.slice(0, 40)}…` : value)
     return `text "${shown}"`
   }
   if (typeof value === 'number') return `the number ${value}`
@@ -139,6 +152,21 @@ function invalid(detail: string): never {
   fail('list.fileInvalid', { detail })
 }
 
+/** A title as a message may show it: short, and with nothing in it that disguises or breaks text. */
+function describeTitle(title: string): string {
+  return withoutHazards(title.length > 40 ? `${title.slice(0, 40)}…` : title)
+}
+
+/**
+ * One piece of text of a list file: no longer than `max` and free of what disguises or breaks text (`textHazard`). `where` names it
+ * for the person who has to fix the file (`item 2 ("Safe"): "title"`), and the text itself is never put in the message.
+ */
+function checkText(where: string, text: string, { max, multiline = false }: { max?: number; multiline?: boolean }): void {
+  if (max !== undefined && text.length > max) invalid(`${where} is over ${max} characters`)
+  const hazard = textHazard(text, multiline)
+  if (hazard) invalid(`${where} contains ${hazard}`)
+}
+
 function isPlainObject(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
@@ -158,6 +186,9 @@ export function parseCustomList(
   yamlText: string,
   validCategories: ReadonlySet<string>,
 ): ParsedCustomList {
+  // Before anything reads it: the desktop's import had no limit at all (SR-019).
+  if (yamlText.length > LIST_FILE_MAX_CHARS) invalid(`the file is over ${LIST_FILE_MAX_CHARS / (1024 * 1024)} MiB`)
+
   let doc: unknown
   try {
     doc = loadYaml(yamlText)
@@ -183,10 +214,12 @@ export function parseCustomList(
   const { title, description, category, status, items } = doc
 
   if (typeof title !== 'string' || title.trim().length === 0) fail('list.fileMissingTitle')
+  checkText('"title"', title.trim(), { max: NAME_MAX_LENGTH })
 
   if (description !== undefined && typeof description !== 'string') {
     invalid(`"description" must be text, but it is ${describeValue(description)}`)
   }
+  if (typeof description === 'string') checkText('"description"', description.trim(), { max: DESCRIPTION_MAX_LENGTH, multiline: true })
 
   if (category === undefined) invalid('"category" is missing')
   if (typeof category !== 'string' || !validCategories.has(category)) {
@@ -199,6 +232,7 @@ export function parseCustomList(
 
   if (items === undefined) fail('list.fileNoItems')
   if (!Array.isArray(items)) invalid(`"items" must be a list, but it is ${describeValue(items)}`)
+  if (items.length > MAX_LIST_ITEMS) invalid(`the list has ${items.length} items, and one list can hold at most ${MAX_LIST_ITEMS}`)
 
   const parsedItems = items.map((rawItem, index): ParsedCustomListItem => {
     if (!isPlainObject(rawItem)) {
@@ -206,7 +240,8 @@ export function parseCustomList(
     }
 
     // Names the item by position and, when it has one, by title: a long file has no line to count to.
-    const named = typeof rawItem['title'] === 'string' ? `item ${index + 1} ("${rawItem['title']}")` : `item ${index + 1}`
+    // Short, and without the characters this very check refuses: a 5 MB title must not become the error message.
+    const named = typeof rawItem['title'] === 'string' ? `item ${index + 1} ("${describeTitle(rawItem['title'])}")` : `item ${index + 1}`
 
     for (const key of Object.keys(rawItem)) {
       if (!ITEM_FIELDS.has(key)) {
@@ -244,6 +279,21 @@ export function parseCustomList(
     if (trimmedNotes !== undefined && trimmedNotes.length > ITEM_NOTES_MAX_LENGTH) {
       fail('list.fileItemNotesTooLong', { index: index + 1, max: ITEM_NOTES_MAX_LENGTH })
     }
+
+    // The same rules wherever a row is made (`itemFromFile`); here a bad file is refused whole, naming the item and the field.
+    checkText(`${named}: "title"`, itemTitle, { max: NAME_MAX_LENGTH })
+    if (year !== undefined && validYear(year) === undefined) {
+      invalid(`${named}: "year" must be a whole number from ${YEAR_RANGE[0]} to ${YEAR_RANGE[1]}, but it is ${describeValue(year)}`)
+    }
+    if (minutes !== undefined && validMinutes(minutes) === undefined) {
+      invalid(`${named}: "minutes" must be a whole number from ${MINUTES_RANGE[0]} to ${MINUTES_RANGE[1]}, but it is ${describeValue(minutes)}`)
+    }
+    if (group !== undefined) checkText(`${named}: "group"`, group, { max: NAME_MAX_LENGTH })
+    if (tags !== undefined) {
+      if (tags.length > TAGS_MAX) invalid(`${named}: "tags" has more than ${TAGS_MAX} entries`)
+      ;(tags as string[]).forEach((tag, tagIndex) => checkText(`${named}: "tags" entry ${tagIndex + 1}`, tag, { max: TAG_MAX_LENGTH }))
+    }
+    if (trimmedNotes !== undefined) checkText(`${named}: "notes"`, trimmedNotes, { multiline: true })
 
     return {
       title: itemTitle,
@@ -322,19 +372,39 @@ export interface CanonicalListEntry {
   itemCount?: number
 }
 
+/**
+ * What a fetch from the library may bring (security review, Phase 19, SR-020): the library is read from the head of `main` and
+ * shown as it arrives. The committed library is far inside these (a manifest of 17 KB with 64 entries; the largest list is 45
+ * KB), so they stop a stolen branch or a mistake from feeding every installed app something huge, not a growing library.
+ */
+export const LIBRARY_FILE_MAX_BYTES = 1024 * 1024
+export const LIBRARY_MANIFEST_MAX_BYTES = 512 * 1024
+export const LIBRARY_MANIFEST_MAX_ENTRIES = 2000
+const MANIFEST_PATH_MAX_LENGTH = 200
+const MANIFEST_CATEGORY_MAX_LENGTH = 64
+
+/** Text from the manifest that a picker will show: within its length and free of what disguises or breaks text. */
+function isShownText(value: unknown, max: number, multiline = false): value is string {
+  return typeof value === 'string' && value.length <= max && textHazard(value, multiline) === undefined
+}
+
 function isCanonicalListEntry(value: unknown): value is CanonicalListEntry {
   return (
     isPlainObject(value) &&
     typeof value['path'] === 'string' &&
-    typeof value['title'] === 'string' &&
-    typeof value['category'] === 'string' &&
+    value['path'].length <= MANIFEST_PATH_MAX_LENGTH &&
+    isShownText(value['title'], NAME_MAX_LENGTH) &&
+    isShownText(value['category'], MANIFEST_CATEGORY_MAX_LENGTH) &&
     isSafeCanonicalPath(value['path']) &&
     // Both optional, so a manifest generated before this field existed still
     // validates — an older index.json simply omits them.
-    (value['description'] === undefined || typeof value['description'] === 'string') &&
+    (value['description'] === undefined || isShownText(value['description'], DESCRIPTION_MAX_LENGTH, true)) &&
     (value['status'] === undefined || value['status'] === 'complete' || value['status'] === 'ongoing') &&
     (value['itemCount'] === undefined ||
-      (typeof value['itemCount'] === 'number' && Number.isInteger(value['itemCount']) && value['itemCount'] >= 0))
+      (typeof value['itemCount'] === 'number' &&
+        Number.isInteger(value['itemCount']) &&
+        value['itemCount'] >= 0 &&
+        value['itemCount'] <= MAX_LIST_ITEMS))
   )
 }
 
@@ -342,10 +412,11 @@ function isCanonicalListEntry(value: unknown): value is CanonicalListEntry {
 export async function fetchCanonicalManifest(fetchImpl?: FetchLike): Promise<CanonicalListEntry[]> {
   const manifest = await getJson<unknown>(canonicalRawUrl('lists/index.json'), {
     source: 'the canonical list repository',
+    maxBytes: LIBRARY_MANIFEST_MAX_BYTES,
     ...(fetchImpl ? { fetchImpl } : {}),
   })
 
-  if (!Array.isArray(manifest) || !manifest.every(isCanonicalListEntry)) {
+  if (!Array.isArray(manifest) || manifest.length > LIBRARY_MANIFEST_MAX_ENTRIES || !manifest.every(isCanonicalListEntry)) {
     throw new IngestionError('The canonical list repository returned a malformed manifest.')
   }
 
@@ -379,6 +450,7 @@ export async function fetchCanonicalList(
 ): Promise<ParsedCustomList> {
   const text = await getText(canonicalRawUrl(path), {
     source: 'the canonical list repository',
+    maxBytes: LIBRARY_FILE_MAX_BYTES,
     ...(fetchImpl ? { fetchImpl } : {}),
   })
 

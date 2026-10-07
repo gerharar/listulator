@@ -1,6 +1,8 @@
 import { describe, expect, it, vi } from 'vitest'
 import {
+  DEFAULT_MAX_BYTES,
   getJson,
+  getText,
   IngestionError,
   parseRetryAfter,
   UnauthorizedError,
@@ -225,5 +227,96 @@ describe('withRetries', () => {
       await expect(withRetries(attempt, noWait)).rejects.toBe(error)
       expect(attempt).toHaveBeenCalledTimes(1)
     }
+  })
+})
+
+/**
+ * A response is read only up to a limit (security review, Phase 19, SR-020). Every connector and the library read a whole body
+ * with `response.json()` or `.text()` and a 15 s timer only, so a huge or never-ending answer was held in memory until the timer.
+ */
+describe('the size limit on what is read', () => {
+  /** A body of `chunks` chunks of `size` bytes, that counts how many were pulled out of it. */
+  function streamed(chunks: number, size: number, init: ResponseInit = {}) {
+    let pulled = 0
+    const body = new ReadableStream<Uint8Array>({
+      pull(controller) {
+        if (pulled >= chunks) {
+          controller.close()
+
+          return
+        }
+        pulled += 1
+        controller.enqueue(new Uint8Array(size).fill(97))
+      },
+    })
+
+    return { fetchImpl: (async () => new Response(body, { status: 200, ...init })) as FetchLike, pulled: () => pulled }
+  }
+
+  const text = (fetchImpl: FetchLike, maxBytes?: number) =>
+    getText('https://example.test/x', { source: 'Example', fetchImpl, ...(maxBytes === undefined ? {} : { maxBytes }) })
+  const json = (fetchImpl: FetchLike, maxBytes?: number) =>
+    getJson<unknown>('https://example.test/x', { source: 'Example', fetchImpl, ...(maxBytes === undefined ? {} : { maxBytes }) })
+
+  it('reads a body under the limit, and one of exactly the limit', async () => {
+    expect(await text(streamed(2, 500).fetchImpl, 1000)).toBe('a'.repeat(1000))
+    expect(await json(answer(200, {}, '{"a":1}'), 100)).toEqual({ a: 1 })
+  })
+
+  it('refuses a body one byte over the limit, naming the source', async () => {
+    const error = await text(streamed(1, 1001).fetchImpl, 1000).then(() => undefined, (cause: unknown) => cause)
+
+    expect(error).toBeInstanceOf(IngestionError)
+    expect((error as Error).message).toMatch(/^Example sent more than/)
+  })
+
+  it('stops reading a body with no declared length as soon as it passes the limit', async () => {
+    const response = streamed(10_000, 400)
+
+    await expect(text(response.fetchImpl, 1000)).rejects.toThrow(/Example sent more than/)
+    expect(response.pulled()).toBeLessThan(10)
+  })
+
+  it('refuses a declared length over the limit without reading any of the body', async () => {
+    const response = streamed(10, 400, { headers: { 'content-length': '5000000' } })
+
+    await expect(json(response.fetchImpl, 1000)).rejects.toThrow(/Example sent more than/)
+    // A stream fills its queue with one chunk when it is made; nothing is read beyond that.
+    expect(response.pulled()).toBeLessThanOrEqual(1)
+  })
+
+  it('applies a limit when the caller names none, and it is the one exported', async () => {
+    const response = streamed(1, 10, { headers: { 'content-length': String(DEFAULT_MAX_BYTES + 1) } })
+
+    await expect(text(response.fetchImpl)).rejects.toThrow(/Example sent more than 10 MB/)
+    expect(DEFAULT_MAX_BYTES).toBe(10 * 1024 * 1024)
+  })
+
+  it('decodes text split across chunks the way `response.text()` does', async () => {
+    const bytes = new TextEncoder().encode('café \u{1F600} and a very long tail'.repeat(5))
+    const body = new ReadableStream<Uint8Array>({
+      start(controller) {
+        // One byte at a time: every multi-byte character is split across chunks.
+        for (const byte of bytes) controller.enqueue(Uint8Array.of(byte))
+        controller.close()
+      },
+    })
+
+    expect(await text((async () => new Response(body)) as FetchLike, 100_000)).toBe(new TextDecoder().decode(bytes))
+  })
+
+  it('still says a body that is not JSON is not JSON, and still reads JSON', async () => {
+    await expect(json(answer(200, {}, '<html>'))).rejects.toThrow('Example returned something that was not JSON.')
+    expect(await json(answer(200, {}, '{"ok":true}'))).toEqual({ ok: true })
+  })
+
+  it('does not read an error body past a small limit either, and still reports the status', async () => {
+    const response = streamed(100_000, 1024, { status: 500 })
+
+    const error = await getJson('https://example.test/x', { source: 'Example', fetchImpl: response.fetchImpl }).then(() => undefined, (cause: unknown) => cause)
+
+    expect(error).toBeInstanceOf(UpstreamError)
+    expect(error).toMatchObject({ status: 500 })
+    expect(response.pulled()).toBeLessThan(200)
   })
 })

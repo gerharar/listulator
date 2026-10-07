@@ -601,14 +601,12 @@ describe('search and import from a source', () => {
   })
 
   it('leaves no half-made list behind when filling it fails, and the failure reaches the user (15.9b)', async () => {
-    // A length that is not a number cannot be stored, so the insert of the items fails.
+    // An item with no title cannot be stored (NOT NULL), so the insert of the items fails. (A length that is not a number used
+    // to be the unstorable thing here; since SR-019 it is never written at all, so it cannot fail an insert.)
     harness = withAdapter(
       fakeAdapter({
         expand: async () => ({
-          items: [
-            { title: 'Fine', timeToConsumeMinutes: 45 },
-            { title: 'Not storable', timeToConsumeMinutes: Number.NaN },
-          ],
+          items: [{ title: 'Fine', timeToConsumeMinutes: 45 }, { title: null as unknown as string }],
         }),
       }),
     )
@@ -1518,12 +1516,16 @@ items:
     expect(response.json()).toEqual({ code: 'list.fileNoItems' })
   })
 
-  it('has no size ceiling worth the name: a 12,000-item file imports', async () => {
-    // The old 200,000-character cap refused files a real list can reach.
-    const rows = Array.from({ length: 12_000 }, (_, index) => `  - { title: "Item ${index}" }`)
-    const response = await fromFile(`title: Big\ncategory: movie\nitems:\n${rows.join('\n')}\n`)
+  it('imports a file of as many items as one list may hold, and no more (the same ceiling as a built list)', async () => {
+    // The old 200,000-character cap refused files a real list can reach; the ceiling is now the item count, the one a built
+    // list has had since 15.9, and the parser applies it to every file (SR-019). A 12,000-item file used to import.
+    const rows = (count: number) => Array.from({ length: count }, (_, index) => `  - { title: "Item ${index}" }`).join('\n')
 
-    expect(response.statusCode).toBe(201)
+    expect((await fromFile(`title: Big\ncategory: movie\nitems:\n${rows(10_000)}\n`)).statusCode).toBe(201)
+    const over = await fromFile(`title: Bigger\ncategory: movie\nitems:\n${rows(10_001)}\n`)
+
+    expect(over.statusCode).toBe(400)
+    expect(over.json().params.detail).toMatch(/10001 items.*at most 10000/)
   }, 30_000)
 
   it('rejects an unknown category with the same code the search-based path uses', async () => {
@@ -2438,3 +2440,45 @@ describe('GET /api/library/untracked (task 10.29)', () => {
   })
 })
 
+
+/**
+ * A hostile list file is refused whole and nothing is made (security review, Phase 19, SR-019). `minutes: .nan` used to end as a
+ * 500 carrying the database's own error; `.inf` and negative numbers were stored and broke the list's totals.
+ */
+describe('a hostile list file is refused before anything is made', () => {
+  let harness: TestApp
+
+  beforeEach(() => {
+    harness = createTestApp()
+  })
+
+  afterEach(async () => {
+    await harness.cleanup()
+  })
+
+  const fromFile = (yaml: string) => harness.app.inject({ method: 'POST', url: '/api/lists/from-file', payload: { yaml } })
+  const file = (item: string) => `title: T\ncategory: movie\nitems:\n  - title: A\n${item}\n`
+
+  it.each([
+    ['minutes of .nan (it was a 500)', file('    minutes: .nan'), /"minutes" must be a whole number/],
+    ['minutes of .inf', file('    minutes: .inf'), /"minutes" must be a whole number/],
+    ['negative minutes', file('    minutes: -5'), /"minutes" must be a whole number/],
+    ['minutes of 1e308', file('    minutes: 1e308'), /"minutes" must be a whole number/],
+    ['a year of 1e308', file('    year: 1e308'), /"year" must be a whole number/],
+    ['200,000 items', `title: T\ncategory: movie\nitems:\n${'  - title: i\n'.repeat(200_000)}`, /200000 items/],
+    ['a 5 MB title', file('').replace('title: A', `title: ${'x'.repeat(5_000_000)}`), /over 4 MiB|over 255 characters/],
+    ['a right-to-left override', file('    group: "Safe\\u202Etxt.exe"'), /direction-changing/],
+    ['a NUL in the notes', file('    notes: "a\\u0000b"'), /control character/],
+  ])('answers 400 for %s, with the field named, and creates no list', async (_name, yaml, expected) => {
+    const response = await fromFile(yaml)
+
+    expect(response.statusCode).toBe(400)
+    expect(response.json()).toMatchObject({ code: 'list.fileInvalid' })
+    expect(response.json().params.detail).toMatch(expected)
+    expect((await harness.app.inject({ method: 'GET', url: '/api/lists' })).json()).toEqual([])
+  })
+
+  it('still creates an ordinary list', async () => {
+    expect((await fromFile(file('    minutes: 100000\n    year: 1605'))).statusCode).toBe(201)
+  })
+})

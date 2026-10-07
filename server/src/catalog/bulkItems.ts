@@ -3,6 +3,7 @@ import type { PortableDatabase } from '../db/client.js'
 import { listGroups, listItems, lists, type ListItem } from '../db/schema.js'
 import { normalizeItemTags } from './facets.js'
 import { groupsOf } from './groups.js'
+import { validMinutes, validYear } from './limits.js'
 import { findList, type CreateListItemInput } from './repository.js'
 
 /**
@@ -46,14 +47,17 @@ export interface SourcedItem {
  * left out. `source` is `'import'`; a caller that knows better spreads its own over it.
  */
 export function itemFromSource(item: SourcedItem, minutes: number | undefined, fallbackMinutes: number): BulkItemInput {
-  const known = minutes !== undefined
+  // Only a length the app can show counts as known (SR-019): a source that says `.nan`, a negative number or `1e308` is
+  // treated as not knowing, and the row falls back to an estimate.
+  const known = validMinutes(minutes)
+  const year = validYear(item.year)
 
   return {
     title: item.title,
-    timeToConsumeMinutes: known ? minutes : (item.estimatedMinutes ?? fallbackMinutes),
-    timeToConsumeIsEstimated: !known,
+    timeToConsumeMinutes: known ?? validMinutes(item.estimatedMinutes) ?? fallbackMinutes,
+    timeToConsumeIsEstimated: known === undefined,
     ...(item.externalRef ? { externalRef: item.externalRef } : {}),
-    ...(item.year ? { year: item.year } : {}),
+    ...(year ? { year } : {}),
     ...(item.group ? { group: item.group } : {}),
     ...(item.tags ? { tags: item.tags } : {}),
     ...(item.notes ? { notes: item.notes } : {}),
@@ -77,13 +81,16 @@ export interface FileItem {
  * one too, unlike `itemFromSource`: the file paths always did, and a refactor is not the place to change it.
  */
 export function itemFromFile(item: FileItem, defaultMinutes: number): BulkItemInput {
-  const known = item.minutes !== undefined
+  // The parser refuses a number the app cannot show; this is the same rule at the place the row is made, so a path that
+  // never went through the parser cannot write one (SR-019).
+  const known = validMinutes(item.minutes)
+  const year = validYear(item.year)
 
   return {
     title: item.title,
-    timeToConsumeMinutes: known ? item.minutes! : defaultMinutes,
-    timeToConsumeIsEstimated: !known,
-    ...(item.year !== undefined ? { year: item.year } : {}),
+    timeToConsumeMinutes: known ?? defaultMinutes,
+    timeToConsumeIsEstimated: known === undefined,
+    ...(year !== undefined ? { year } : {}),
     ...(item.group !== undefined ? { group: item.group } : {}),
     ...(item.tags !== undefined ? { tags: item.tags } : {}),
     ...(item.notes !== undefined ? { notes: item.notes } : {}),

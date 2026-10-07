@@ -1,5 +1,6 @@
 import { and, count, eq, gt, inArray, isNotNull, lte, notExists, or, sql } from 'drizzle-orm'
 import type { PortableDatabase } from '../db/client.js'
+import { validMinutes } from './limits.js'
 import { itemRuntimes, listItems, lists, listSnapshots } from '../db/schema.js'
 
 /**
@@ -49,7 +50,7 @@ export async function recordRuntimes(
   for (const batch of chunks(rows)) {
     await db
       .insert(itemRuntimes)
-      .values(batch.map((row) => ({ ref: row.ref, minutes: row.minutes, fetchedAt: now, expiresAt })))
+      .values(batch.map((row) => ({ ref: row.ref, minutes: validMinutes(row.minutes) ?? null, fetchedAt: now, expiresAt })))
       .onConflictDoUpdate({
         target: itemRuntimes.ref,
         set: {
@@ -80,7 +81,8 @@ export async function knownRuntimes(
       .where(and(inArray(itemRuntimes.ref, batch), gt(itemRuntimes.expiresAt, now)))
       .all()
 
-    for (const row of found) known.set(row.ref, row.minutes)
+    // An answer stored before the rule (it lives up to 150 days) is read under it too.
+    for (const row of found) known.set(row.ref, validMinutes(row.minutes) ?? null)
   }
 
   return known
@@ -109,9 +111,9 @@ export function withKnownRuntimes<T extends { externalRef?: string; timeToConsum
   known: ReadonlyMap<string, number | null>,
 ): T[] {
   return items.map((item) => {
-    const minutes = item.externalRef ? known.get(item.externalRef) : undefined
+    const minutes = validMinutes(item.externalRef ? known.get(item.externalRef) : undefined)
 
-    return item.timeToConsumeMinutes === undefined && typeof minutes === 'number'
+    return item.timeToConsumeMinutes === undefined && minutes !== undefined
       ? { ...item, timeToConsumeMinutes: minutes }
       : item
   })
@@ -279,6 +281,9 @@ export async function applyRuntimes(
   let changed = 0
 
   for (const { ref, minutes } of rows) {
+    // A length the app cannot show leaves the item an estimate (SR-019).
+    if (validMinutes(minutes) === undefined) continue
+
     const set = { timeToConsumeMinutes: minutes, timeToConsumeIsEstimated: false }
 
     const updated = await db

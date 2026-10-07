@@ -321,6 +321,37 @@ describe('runtime lookups (15.3)', () => {
     })
   })
 
+  describe('a length the app cannot show is never kept, remembered or written (SR-019)', () => {
+    const hostile = [-5, 0, 1.5, 100_001, 1e308]
+
+    it.each(hostile)('records a source’s %s as "the source has none", not as a length', async (minutes) => {
+      await recordRuntimes(db(), [{ ref: 'movie:1', minutes }], { now: NOW, ttlDays: 150 })
+
+      expect(db().select().from(itemRuntimes).where(eq(itemRuntimes.ref, 'movie:1')).get()?.minutes).toBeNull()
+    })
+
+    it.each(hostile)('reads an answer stored as %s earlier as "none"', async (minutes) => {
+      db().insert(itemRuntimes).values({ ref: 'movie:1', minutes, fetchedAt: NOW, expiresAt: later(30) }).run()
+
+      expect((await knownRuntimes(db(), ['movie:1'], NOW)).get('movie:1')).toBeNull()
+    })
+
+    it.each(hostile)('does not give an item a remembered length of %s', (minutes) => {
+      const [item] = withKnownRuntimes([{ externalRef: 'movie:1', title: 'A' }], new Map([['movie:1', minutes]]))
+
+      expect(item).not.toHaveProperty('timeToConsumeMinutes')
+    })
+
+    it.each(hostile)('does not write a looked-up %s into a list, and leaves the item an estimate', async (minutes) => {
+      const list = await createList(db(), userId, { title: 'L', mediaType: 'movie' })
+      await createListItem(db(), userId, list.id, { title: 'A', timeToConsumeMinutes: 120, timeToConsumeIsEstimated: true, externalRef: 'movie:1' })
+
+      expect(await applyRuntimes(db(), list.id, [{ ref: 'movie:1', minutes }])).toBe(0)
+
+      expect((await findListItems(db(), userId, list.id))![0]).toMatchObject({ timeToConsumeMinutes: 120, timeToConsumeIsEstimated: true })
+    })
+  })
+
   describe('applyRuntimes', () => {
     async function listWithSnapshot() {
       const list = await createList(db(), userId, { title: 'L', mediaType: 'movie' })

@@ -9,6 +9,9 @@ import {
   fetchCanonicalList,
   fetchCanonicalManifest,
   isSafeCanonicalPath,
+  LIBRARY_FILE_MAX_BYTES,
+  LIBRARY_MANIFEST_MAX_BYTES,
+  LIBRARY_MANIFEST_MAX_ENTRIES,
   parseCustomList,
   searchCanonicalLists,
   searchLibrary,
@@ -703,5 +706,216 @@ describe('searchLibrary', () => {
     const fetchImpl: FetchLike = async () => new Response('nope', { status: 500 })
 
     expect(await searchCanonicalLists('mega', 'mcu', fetchImpl)).toEqual([])
+  })
+})
+
+/**
+ * What a list file may contain, whoever hands it over (security review, Phase 19, SR-019). The parser used to check the shape of a
+ * file only: `.inf`, `.nan`, a negative or `1e308` minutes, 200,000 items, a 5 MB title and right-to-left or invisible characters
+ * all parsed, and the numbers reached the database (`.nan` as a 500). Every path shares this parser: a pasted or uploaded file, the
+ * desktop import, the folder drop, a library list's creation and its refresh.
+ */
+describe('parseCustomList refuses what would corrupt or freeze a list', () => {
+  const file = (items: string, top = 'title: T') => `${top}\ncategory: movie\nitems:\n${items}\n`
+  const one = (fields: string) => file(`  - title: A\n${fields}`)
+  const refusal = (text: string): CustomListParseError | undefined => {
+    try {
+      parseCustomList(text, CATEGORIES)
+    } catch (error) {
+      if (error instanceof CustomListParseError) return error
+      throw error
+    }
+
+    return undefined
+  }
+  const detail = (text: string): string => refusal(text)?.message ?? 'accepted'
+
+  describe('numbers', () => {
+    it.each(['.inf', '-.inf', '.nan', '-5', '0', '1.5', '100001', '1e308', '-1e308', '0.5'])('refuses minutes of %s, naming the item and the field', (minutes) => {
+      expect(refusal(one(`    minutes: ${minutes}`))).toMatchObject({ code: 'list.fileInvalid' })
+      expect(detail(one(`    minutes: ${minutes}`))).toMatch(/item 1 \("A"\): "minutes" must be a whole number from 1 to 100000/)
+    })
+
+    it.each(['.inf', '-.inf', '.nan', '-1', '0', '10000', '2000.5', '1e308'])('refuses a year of %s, naming the item and the field', (year) => {
+      expect(detail(one(`    year: ${year}`))).toMatch(/item 1 \("A"\): "year" must be a whole number from 1 to 9999/)
+    })
+
+    it.each(['1', '90', '109', '100000', '0x10'])('accepts minutes of %s', (minutes) => {
+      expect(refusal(one(`    minutes: ${minutes}`))).toBeUndefined()
+    })
+
+    it.each(['1', '476', '1605', '1962', '2024', '9999'])('accepts a year of %s', (year) => {
+      expect(refusal(one(`    year: ${year}`))).toBeUndefined()
+    })
+  })
+
+  describe('sizes', () => {
+    it('refuses more items than one list may hold, and accepts exactly that many', () => {
+      const items = (count: number) => file(Array.from({ length: count }, (_, n) => `  - t${n}`.replace('- t', '- title: t')).join('\n'))
+
+      expect(detail(items(10_001))).toMatch(/10001 items.*10000/)
+      expect(refusal(items(10_000))).toBeUndefined()
+    })
+
+    it('refuses a title, a group and the list’s own title over 255 characters, and accepts 255', () => {
+      expect(detail(file(`  - title: ${'x'.repeat(256)}`))).toMatch(/item 1 \("x{40}…"\): "title" is over 255 characters/)
+      expect(detail(one(`    group: ${'g'.repeat(256)}`))).toMatch(/item 1 \("A"\): "group" is over 255 characters/)
+      expect(detail(file('  - title: A', `title: ${'t'.repeat(256)}`))).toMatch(/"title" is over 255 characters/)
+      expect(refusal(file(`  - title: ${'x'.repeat(255)}`, `title: ${'t'.repeat(255)}`))).toBeUndefined()
+    })
+
+    it('refuses a description over 1000 characters, and accepts 1000', () => {
+      expect(detail(file('  - title: A', `title: T\ndescription: ${'d'.repeat(1001)}`))).toMatch(/"description" is over 1000 characters/)
+      expect(refusal(file('  - title: A', `title: T\ndescription: ${'d'.repeat(1000)}`))).toBeUndefined()
+    })
+
+    it('refuses more than 20 tags on an item, and a tag over 64 characters', () => {
+      const tags = (count: number) => `    tags: [${Array.from({ length: count }, (_, n) => `t${n}`).join(', ')}]`
+
+      expect(detail(one(tags(21)))).toMatch(/item 1 \("A"\): "tags" has more than 20 entries/)
+      expect(refusal(one(tags(20)))).toBeUndefined()
+      expect(detail(one(`    tags: [${'t'.repeat(65)}]`))).toMatch(/item 1 \("A"\): "tags" entry 1 is over 64 characters/)
+      expect(refusal(one(`    tags: [${'t'.repeat(64)}]`))).toBeUndefined()
+    })
+
+    it('refuses a file over 4 MiB before parsing it, even when it is not YAML', () => {
+      expect(detail('#'.repeat(4 * 1024 * 1024 + 1))).toMatch(/the file is over 4 MiB/)
+      expect(refusal(`${file('  - title: A')}${'#'.repeat(1000)}`)).toBeUndefined()
+    })
+
+    it('keeps the notes limit and its own message', () => {
+      expect(refusal(one(`    notes: ${'n'.repeat(2049)}`))).toMatchObject({ code: 'list.fileItemNotesTooLong' })
+    })
+  })
+
+  describe('characters that disguise or break text', () => {
+    // Written as YAML escapes (`\u202E` inside quotes is plain ASCII in this file and a real character once parsed): an
+    // invisible character in this file would be invisible to its reader too.
+    const hazards: [string, string, RegExp][] = [
+      ['a NUL', '\\u0000', /control character/],
+      ['an escape', '\\u001b', /control character/],
+      ['a delete', '\\u007f', /control character/],
+      ['a C1 control', '\\u0085', /control character/],
+      ['a line separator', '\\u2028', /control character/],
+      ['a paragraph separator', '\\u2029', /control character/],
+      ['a right-to-left override', '\\u202E', /direction-changing/],
+      ['a left-to-right override', '\\u202D', /direction-changing/],
+      ['an embedding', '\\u202A', /direction-changing/],
+      ['an isolate', '\\u2066', /direction-changing/],
+      ['a pop isolate', '\\u2069', /direction-changing/],
+      ['a zero-width space', '\\u200B', /invisible/],
+      ['a word joiner', '\\u2060', /invisible/],
+      ['a byte-order mark', '\\uFEFF', /invisible/],
+      ['a soft hyphen', '\\u00AD', /invisible/],
+    ]
+
+    it.each(hazards)('refuses %s in an item’s title, group, tag and in the list’s title', (_name, escape, expected) => {
+      expect(detail(file(`  - title: "Sa${escape}fe"`))).toMatch(expected)
+      expect(detail(one(`    group: "Sa${escape}fe"`))).toMatch(expected)
+      expect(detail(one(`    tags: ["Sa${escape}fe"]`))).toMatch(expected)
+      expect(detail(file('  - title: A', `title: "Sa${escape}fe"`))).toMatch(expected)
+    })
+
+    it.each(hazards)('refuses %s in the notes and the description', (_name, escape, expected) => {
+      expect(detail(one(`    notes: "Sa${escape}fe"`))).toMatch(expected)
+      expect(detail(file('  - title: A', `title: T\ndescription: "Sa${escape}fe"`))).toMatch(expected)
+    })
+
+    it('names the item and the field', () => {
+      expect(detail(file('  - title: ok\n  - title: "Safe\\u202Etxt.exe"'))).toMatch(/item 2 \("Safe.{0,3}txt\.exe"\): "title" contains a direction-changing character/)
+    })
+
+    it('refuses a line break, a tab or a carriage return in a single-line field, and allows them in notes and description', () => {
+      for (const escape of ['\\n', '\\t', '\\r']) {
+        expect(detail(file(`  - title: "a${escape}b"`))).toMatch(/control character/)
+        expect(detail(one(`    group: "a${escape}b"`))).toMatch(/control character/)
+        expect(refusal(one(`    notes: "a${escape}b"`))).toBeUndefined()
+        expect(refusal(file('  - title: A', `title: T\ndescription: "a${escape}b"`))).toBeUndefined()
+      }
+    })
+
+    it('does not refuse text people really write: emoji sequences, Persian and Hebrew, composed or decomposed accents', () => {
+      for (const title of ['"\\U0001F468\\u200D\\U0001F469\\u200D\\U0001F467 Family"', '"\\u0645\\u06CC\\u200C\\u062E\\u0648\\u0627\\u0647\\u0645"', '"\\u05E9\\u05DC\\u05D5\\u05DD\\u200F (1990)"', '"\\u0627\\u0644\\u0639\\u0631\\u0628\\u064A\\u0629\\u061C"', '"Cafe\\u0301"', '"Caf\\u00E9"', 'Dr. No', '"Amelie: the 1st \\"cut\\""']) {
+        expect(refusal(file(`  - title: ${title}`)), title).toBeUndefined()
+      }
+    })
+  })
+})
+
+/**
+ * The library is fetched from the head of `main` and shown as it arrives, so what a fetch may bring is bounded (security
+ * review, Phase 19, SR-020): the size of a file and of the manifest, how many entries the manifest has, and what its text
+ * may hold. The committed library is far inside all of it (a manifest of 17 KB and 64 entries; the largest list 45 KB).
+ */
+describe('the library fetch is bounded', () => {
+  const respondWith = (body: string, init: ResponseInit = {}): FetchLike => vi.fn(async () => new Response(body, { status: 200, ...init }))
+  const entry = (n: number, extra: Record<string, unknown> = {}) => ({ path: `lists/movie/list-${n}.yaml`, title: `List ${n}`, category: 'movie', ...extra })
+  const manifestOf = (entries: unknown[]) => respondWith(JSON.stringify(entries))
+  const malformed = /malformed manifest/
+
+  it('says what its limits are', () => {
+    expect([LIBRARY_FILE_MAX_BYTES, LIBRARY_MANIFEST_MAX_BYTES, LIBRARY_MANIFEST_MAX_ENTRIES]).toEqual([1024 * 1024, 512 * 1024, 2000])
+  })
+
+  describe('the manifest', () => {
+    it('refuses one over the size limit, declared or not, naming the source', async () => {
+      const big = JSON.stringify([entry(1, { description: 'd'.repeat(LIBRARY_MANIFEST_MAX_BYTES) })])
+
+      await expect(fetchCanonicalManifest(respondWith(big))).rejects.toThrow(/canonical list repository sent more than 512 KB/)
+      await expect(fetchCanonicalManifest(respondWith('[]', { headers: { 'content-length': String(LIBRARY_MANIFEST_MAX_BYTES + 1) } }))).rejects.toThrow(/sent more than 512 KB/)
+    })
+
+    it('refuses more entries than 2000, and accepts exactly 2000', async () => {
+      const entries = (count: number) => Array.from({ length: count }, (_, n) => entry(n))
+
+      await expect(fetchCanonicalManifest(manifestOf(entries(2001)))).rejects.toThrow(malformed)
+      expect(await fetchCanonicalManifest(manifestOf(entries(2000)))).toHaveLength(2000)
+    })
+
+    it.each([
+      ['a title over 255 characters', entry(1, { title: 'x'.repeat(256) })],
+      ['a description over 1000 characters', entry(1, { description: 'd'.repeat(1001) })],
+      ['a category over 64 characters', entry(1, { category: 'c'.repeat(65) })],
+      ['a path over 200 characters', entry(1, { path: `lists/movie/${'a'.repeat(200)}.yaml` })],
+      ['a title with a right-to-left override', entry(1, { title: 'Safe\u202Etxt.exe' })],
+      ['a title with a NUL', entry(1, { title: 'a\u0000b' })],
+      ['a title with a line break', entry(1, { title: 'a\nb' })],
+      ['a description with a zero-width space', entry(1, { description: 'Fa\u200Bke' })],
+      ['an item count that is not a whole number', entry(1, { itemCount: 1.5 })],
+      ['an item count beyond what a list may hold', entry(1, { itemCount: 10_001 })],
+    ])('refuses an entry with %s', async (_name, bad) => {
+      await expect(fetchCanonicalManifest(manifestOf([entry(0), bad]))).rejects.toThrow(malformed)
+    })
+
+    it('accepts an entry at the limits', async () => {
+      const edge = entry(1, { title: 'x'.repeat(255), description: 'd\nd'.repeat(300).slice(0, 1000), itemCount: 10_000, category: 'c'.repeat(64) })
+
+      expect(await fetchCanonicalManifest(manifestOf([edge]))).toEqual([edge])
+    })
+  })
+
+  describe('a list file', () => {
+    const list = 'title: T\ncategory: movie\nitems:\n  - title: A\n'
+
+    it('refuses one over 1 MiB, declared or not, before parsing it', async () => {
+      const big = `${list}${'#'.repeat(LIBRARY_FILE_MAX_BYTES)}`
+
+      await expect(fetchCanonicalList('lists/movie/x.yaml', CATEGORIES, respondWith(big))).rejects.toThrow(/canonical list repository sent more than 1 MB/)
+      await expect(
+        fetchCanonicalList('lists/movie/x.yaml', CATEGORIES, respondWith(list, { headers: { 'content-length': String(LIBRARY_FILE_MAX_BYTES + 1) } })),
+      ).rejects.toThrow(/sent more than 1 MB/)
+    })
+
+    it('reads an ordinary one, and one of exactly 1 MiB', async () => {
+      expect((await fetchCanonicalList('lists/movie/x.yaml', CATEGORIES, respondWith(list))).items).toHaveLength(1)
+      const exact = `${list}${'#'.repeat(LIBRARY_FILE_MAX_BYTES - list.length)}`
+
+      expect(Buffer.byteLength(exact)).toBe(LIBRARY_FILE_MAX_BYTES)
+      expect((await fetchCanonicalList('lists/movie/x.yaml', CATEGORIES, respondWith(exact))).items).toHaveLength(1)
+    })
+
+    it('holds a fetched list to the parser’s bounds as it holds a pasted one', async () => {
+      await expect(fetchCanonicalList('lists/movie/x.yaml', CATEGORIES, respondWith(`${list}    minutes: .inf\n`))).rejects.toThrow(/"minutes" must be a whole number/)
+    })
   })
 })

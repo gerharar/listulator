@@ -48,6 +48,17 @@ export function parseRetryAfter(value: string | null, now: number = Date.now()):
  */
 export const USER_AGENT = 'listulator/0.1.0 (https://github.com/gerharar/listulator)'
 
+/**
+ * The most of one response that is read (security review, Phase 19, SR-020). Every connector read a whole body with only a 15 s
+ * timer, so an upstream that answered with a huge or never-ending body held it all in memory until the timer. Ten megabytes is
+ * several times the largest real answer (a long Wikipedia page's wikitext is about two); a caller that needs a tighter limit,
+ * such as the library, passes `maxBytes`.
+ */
+export const DEFAULT_MAX_BYTES = 10 * 1024 * 1024
+
+/** An error body is read only for its first words (a message, a Google `reason`); this is plenty and cannot be abused. */
+const ERROR_BODY_MAX_BYTES = 64 * 1024
+
 export interface GetOptions {
   headers?: Record<string, string>
   timeoutMs?: number
@@ -57,14 +68,100 @@ export interface GetOptions {
   /** IGDB takes its queries as a POST body rather than a query string. */
   method?: 'GET' | 'POST'
   body?: string
+  /** The most of the response that is read; more is refused (default `DEFAULT_MAX_BYTES`). */
+  maxBytes?: number
 }
 
 export type GetJsonOptions = GetOptions
 
+const limitText = (bytes: number): string =>
+  bytes >= 1024 * 1024 ? `${Math.round((bytes / (1024 * 1024)) * 10) / 10} MB` : `${Math.max(1, Math.round(bytes / 1024))} KB`
+
+/**
+ * The body as text, read at most `maxBytes` of: `truncated` says whether there was more, which was then not read (the stream is
+ * cancelled, so a huge or endless body costs a few chunks). A declared length over the limit is refused before reading anything.
+ * Text is decoded as `response.text()` decodes it (UTF-8, a byte-order mark dropped), split characters included.
+ */
+async function readLimited(response: Response, maxBytes: number): Promise<{ text: string; truncated: boolean }> {
+  const declared = Number(response.headers.get('content-length'))
+  if (Number.isFinite(declared) && declared > maxBytes) {
+    await response.body?.cancel().catch(() => undefined)
+
+    return { text: '', truncated: true }
+  }
+
+  const reader = response.body?.getReader()
+  if (!reader) {
+    const text = await response.text()
+
+    return text.length > maxBytes ? { text: '', truncated: true } : { text, truncated: false }
+  }
+
+  const chunks: Uint8Array[] = []
+  let total = 0
+  for (;;) {
+    const { done, value } = await reader.read()
+    if (done) break
+    total += value.byteLength
+    if (total > maxBytes) {
+      await reader.cancel().catch(() => undefined)
+
+      return { text: '', truncated: true }
+    }
+    chunks.push(value)
+  }
+
+  const bytes = new Uint8Array(total)
+  let at = 0
+  for (const chunk of chunks) {
+    bytes.set(chunk, at)
+    at += chunk.byteLength
+  }
+
+  return { text: new TextDecoder().decode(bytes), truncated: false }
+}
+
+/** A success body, whole or not at all: a response over the limit is refused, saying which service sent it. */
+async function readBody(response: Response, { source, maxBytes = DEFAULT_MAX_BYTES }: GetOptions): Promise<string> {
+  const { text, truncated } = await readLimited(response, maxBytes)
+  if (truncated) throw new IngestionError(`${source} sent more than ${limitText(maxBytes)} in one response, so it was not read.`)
+
+  return text
+}
+
+/** The start of an error body (up to a small limit), for the message and the Google `reason`; never an error itself. */
+async function readErrorBody(response: Response): Promise<string> {
+  try {
+    const reader = response.body?.getReader()
+    if (!reader) return (await response.text()).slice(0, ERROR_BODY_MAX_BYTES)
+
+    const chunks: Uint8Array[] = []
+    let total = 0
+    while (total < ERROR_BODY_MAX_BYTES) {
+      const { done, value } = await reader.read()
+      if (done) break
+      chunks.push(value)
+      total += value.byteLength
+    }
+    await reader.cancel().catch(() => undefined)
+
+    const bytes = new Uint8Array(total)
+    let at = 0
+    for (const chunk of chunks) {
+      bytes.set(chunk, at)
+      at += chunk.byteLength
+    }
+
+    return new TextDecoder().decode(bytes.subarray(0, ERROR_BODY_MAX_BYTES))
+  } catch {
+    return ''
+  }
+}
+
 /** The `reason` of a Google-shaped error body, or undefined for anything else (another API, plain text, no body). */
 async function googleReason(response: Response): Promise<string | undefined> {
   try {
-    const parsed = JSON.parse(await response.text()) as { error?: { errors?: { reason?: unknown }[] } }
+    const parsed = JSON.parse(await readErrorBody(response)) as { error?: { errors?: { reason?: unknown }[] } }
     const reason = parsed.error?.errors?.[0]?.reason
 
     return typeof reason === 'string' ? reason : undefined
@@ -185,14 +282,15 @@ async function refuseFailure(response: Response, source: string): Promise<void> 
     // sends whoever is debugging to the wrong place entirely. Not every
     // upstream answers JSON (a 404 from raw file hosting is plain text) —
     // that just falls through to the raw body via the inner catch.
-    const detail = await response
-      .text()
-      .then((body) => {
+    const detail = await readErrorBody(response).then((body) => {
+      try {
         const parsed = JSON.parse(body) as { error?: { message?: string } }
 
         return parsed.error?.message ?? body
-      })
-      .catch(() => '')
+      } catch {
+        return body
+      }
+    })
 
     throw new UpstreamError(
       `${source} returned ${response.status}${detail ? `: ${detail.slice(0, 200)}` : '.'}`,
@@ -204,8 +302,9 @@ async function refuseFailure(response: Response, source: string): Promise<void> 
 
 export async function getJson<T>(url: string, options: GetJsonOptions): Promise<T> {
   return await request(url, options, 'application/json', async (response) => {
+    const text = await readBody(response, options)
     try {
-      return (await response.json()) as T
+      return JSON.parse(text) as T
     } catch (cause) {
       if (isAbort(cause)) throw cause
       throw new IngestionError(`${options.source} returned something that was not JSON.`)
@@ -215,7 +314,7 @@ export async function getJson<T>(url: string, options: GetJsonOptions): Promise<
 
 /** As `getJson`, for a plain-text response — a raw file, not an API. */
 export async function getText(url: string, options: GetOptions): Promise<string> {
-  return await request(url, options, 'text/plain', (response) => response.text())
+  return await request(url, options, 'text/plain', (response) => readBody(response, options))
 }
 
 /** MusicBrainz asks for no more than one request per second. */

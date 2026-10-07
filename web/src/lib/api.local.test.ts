@@ -626,3 +626,47 @@ describe('the desktop builds a list at once and fills its lengths afterwards (15
     })
   })
 })
+
+/**
+ * A hostile list file is refused whole on the desktop too, before anything is made (security review, Phase 19, SR-019): the
+ * desktop runs the same parser as the server, with no request limit of its own.
+ */
+describe('the desktop refuses a hostile list file before anything is made', () => {
+  beforeEach(() => {
+    sqlite = new BetterSqlite3(':memory:')
+  })
+
+  afterEach(() => {
+    sqlite.close()
+    registryHolder.current = []
+  })
+
+  const file = (item: string) => `title: T\ncategory: movie\nitems:\n  - title: A\n${item}\n`
+
+  it.each([
+    ['minutes of .nan', file('    minutes: .nan'), /"minutes" must be a whole number/],
+    ['minutes of .inf', file('    minutes: .inf'), /"minutes" must be a whole number/],
+    ['negative minutes', file('    minutes: -5'), /"minutes" must be a whole number/],
+    ['a year of 1e308', file('    year: 1e308'), /"year" must be a whole number/],
+    ['200,000 items', `title: T\ncategory: movie\nitems:\n${'  - title: i\n'.repeat(200_000)}`, /200000 items/],
+    ['a file over 4 MiB', `title: T\ncategory: movie\nitems:\n  - title: A\n#${'x'.repeat(4 * 1024 * 1024)}`, /over 4 MiB/],
+    ['a right-to-left override', file('    group: "Safe\\u202Etxt.exe"'), /direction-changing/],
+    ['a NUL in the notes', file('    notes: "a\\u0000b"'), /control character/],
+  ])('answers 400 for %s and creates no list', async (_name, yaml, expected) => {
+    registryHolder.current = [movieType(filmSource().adapter)]
+    const { local } = await freshModules()
+    const api = local.createLocalApi()
+
+    await expect(api.createFromFile({ yaml })).rejects.toMatchObject({ status: 400, code: 'list.fileInvalid', message: expect.stringMatching(expected) })
+    expect(await api.lists()).toEqual([])
+  })
+
+  it('still creates an ordinary list', async () => {
+    registryHolder.current = [movieType(filmSource().adapter)]
+    const { local } = await freshModules()
+    const api = local.createLocalApi()
+
+    expect((await api.createFromFile({ yaml: file('    minutes: 100000\n    year: 1605') })).title).toBe('T')
+  })
+})
+

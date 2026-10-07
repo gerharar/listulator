@@ -345,3 +345,37 @@ describe('a new item from a list file', () => {
     })
   })
 })
+
+describe('a row never carries a number the app cannot show (SR-019)', () => {
+  const hostileMinutes = [Number.NaN, Number.POSITIVE_INFINITY, Number.NEGATIVE_INFINITY, -5, 0, 1.5, 1e308, 100_001]
+  const hostileYears = [Number.NaN, Number.POSITIVE_INFINITY, -1, 0, 2000.5, 1e308, 10_000]
+
+  it.each(hostileMinutes)('a list file’s minutes of %s become the default, marked estimated', (minutes) => {
+    expect(itemFromFile({ title: 'A', minutes }, 120)).toMatchObject({ timeToConsumeMinutes: 120, timeToConsumeIsEstimated: true })
+  })
+
+  it.each(hostileYears)('a list file’s year of %s is left out', (year) => {
+    expect(itemFromFile({ title: 'A', year }, 120)).not.toHaveProperty('year')
+  })
+
+  it('keeps a file’s ordinary numbers as written', () => {
+    expect(itemFromFile({ title: 'A', minutes: 109, year: 1962 }, 120)).toMatchObject({ timeToConsumeMinutes: 109, timeToConsumeIsEstimated: false, year: 1962 })
+  })
+
+  it.each(hostileMinutes)('a source’s length of %s becomes its own estimate or the default, marked estimated', (minutes) => {
+    expect(itemFromSource({ title: 'A' }, minutes, 100)).toMatchObject({ timeToConsumeMinutes: 100, timeToConsumeIsEstimated: true })
+    expect(itemFromSource({ title: 'A', estimatedMinutes: 240 }, minutes, 100)).toMatchObject({ timeToConsumeMinutes: 240, timeToConsumeIsEstimated: true })
+  })
+
+  it.each(hostileMinutes)('a source’s own estimate of %s is not used either', (estimatedMinutes) => {
+    expect(itemFromSource({ title: 'A', estimatedMinutes }, undefined, 100)).toMatchObject({ timeToConsumeMinutes: 100, timeToConsumeIsEstimated: true })
+  })
+
+  it.each(hostileYears)('a source’s year of %s is left out', (year) => {
+    expect(itemFromSource({ title: 'A', year }, 90, 100)).not.toHaveProperty('year')
+  })
+
+  it('keeps a source’s ordinary numbers as given', () => {
+    expect(itemFromSource({ title: 'A', year: 1962 }, 109, 100)).toMatchObject({ timeToConsumeMinutes: 109, timeToConsumeIsEstimated: false, year: 1962 })
+  })
+})
