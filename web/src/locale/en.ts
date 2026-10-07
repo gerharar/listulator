@@ -385,7 +385,7 @@ export const en = {
         missNote:
           'Lists can be built without these keys, but only manually or from meatbag-curated List Vault',
         storedNote:
-          'Your keys are stored as plain text in the app’s data folder on this computer, and sent only to the service they belong to. Removing the app’s data removes them',
+          'Your keys are stored as plain text in the app\'s data folder on this computer. They\'re sent only to the service they belong to. To delete these keys, delete the app data',
         sources: {
           tmdb: {
             name: 'TMDB',
