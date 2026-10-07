@@ -19,14 +19,26 @@ import { createTestApp, type TestApp } from '../../../server/src/testing/harness
 let sqlite: BetterSqlite3.Database
 const positional = (sql: string) => sql.replace(/\$\d+/g, '?')
 
-vi.mock('@tauri-apps/plugin-sql', () => ({
-  default: {
-    load: vi.fn(async () => ({
-      execute: async (sql: string, params: unknown[] = []) => void sqlite.prepare(positional(sql)).run(...params),
-      select: async (sql: string, params: unknown[] = []) => sqlite.prepare(positional(sql)).all(...params),
-    })),
-  },
-}))
+vi.mock('@tauri-apps/plugin-sql', async () => {
+  // Every statement goes through the desktop's isolation hook first, as in the built app (19.12.3).
+  const { sqlThroughHook } = await import('./isolationHook.testing.js')
+  const checked = sqlThroughHook()
+
+  return {
+    default: {
+      load: vi.fn(async () => ({
+        execute: async (sql: string, params: unknown[] = []) => {
+          checked('execute', sql, params)
+          sqlite.prepare(positional(sql)).run(...params)
+        },
+        select: async (sql: string, params: unknown[] = []) => {
+          checked('select', sql, params)
+          return sqlite.prepare(positional(sql)).all(...params)
+        },
+      })),
+    },
+  }
+})
 
 const registryHolder = vi.hoisted(() => ({ current: [] as readonly MediaType[] }))
 vi.mock('./ingestion/localMediaTypes.js', () => ({

@@ -25,6 +25,11 @@ export default tseslint.config(
     },
   },
   {
+    // The isolation hook is a plain browser script that Tauri inlines into the isolation frame: no modules, the frame's globals.
+    files: ['apps/desktop/isolation/**/*.js'],
+    languageOptions: { sourceType: 'script', globals: { window: 'readonly', console: 'readonly', URL: 'readonly' } },
+  },
+  {
     // Tooling config files must default-export; the named-exports rule is for
     // application code.
     files: ['**/*.config.js', '**/*.config.ts'],

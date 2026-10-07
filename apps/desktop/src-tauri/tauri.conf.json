@@ -30,8 +30,16 @@
         "connect-src": "'self' ipc: http://ipc.localhost https://api.themoviedb.org https://openlibrary.org https://en.wikipedia.org https://www.googleapis.com https://raw.githubusercontent.com",
         "object-src": "'none'",
         "base-uri": "'self'",
-        "form-action": "'none'"
-      }
+        "form-action": "'none'",
+        "frame-src": "isolation: http://isolation.localhost"
+      },
+      "pattern": {
+        "use": "isolation",
+        "options": {
+          "dir": "../isolation"
+        }
+      },
+      "freezePrototype": true
     }
   },
   "bundle": {

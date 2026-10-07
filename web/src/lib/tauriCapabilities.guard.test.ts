@@ -66,11 +66,9 @@ describe('the desktop capability, as the security review left it', () => {
       'core:window:allow-set-fullscreen',
       'core:window:allow-is-fullscreen',
       'core:window:allow-close',
-      'sql:default',
       'sql:allow-load',
       'sql:allow-execute',
       'sql:allow-select',
-      'sql:allow-close',
       'store:default',
       'http:default',
       'opener:allow-open-url',
@@ -144,3 +142,54 @@ describe('the desktop window’s navigation, as the security review left it (SR-
     expect(JSON.stringify(JSON.parse(read('tauri.conf.json')))).not.toContain('useHttpsScheme')
   })
 })
+
+describe('the isolation hook is switched on, as the security review left it (SR-002 to SR-004, SR-008, SR-009; 19.12.3)', () => {
+  const config = JSON.parse(read('tauri.conf.json')) as {
+    app: { security: { pattern?: { use: string; options?: { dir: string } }; freezePrototype?: boolean; csp: Record<string, string> } }
+  }
+
+  it('runs the app under the isolation pattern, with its page in apps/desktop/isolation', () => {
+    expect(config.app.security.pattern).toEqual({ use: 'isolation', options: { dir: '../isolation' } })
+  })
+
+  it('freezes the prototypes the page’s scripts share', () => {
+    expect(config.app.security.freezePrototype).toBe(true)
+  })
+
+  it('lets the window frame the isolation page, and nothing else', () => {
+    // Without this the CSP's `default-src 'self'` blocks the frame, no request ever leaves, and the app hangs at start.
+    // The scheme is `isolation:` on macOS and `http://isolation.localhost` on Windows.
+    expect(config.app.security.csp['frame-src']).toBe('isolation: http://isolation.localhost')
+  })
+
+  it('compiles the isolation feature into both `tauri` and `tauri-build` (the build refuses otherwise)', () => {
+    const cargo = read('Cargo.toml').replace(/^\s*#.*$/gm, '')
+
+    expect(cargo).toMatch(/^tauri = \{[^}]*features = \[[^\]]*"isolation"/m)
+    expect(cargo).toMatch(/^tauri-build = \{[^}]*features = \[[^\]]*"isolation"/m)
+  })
+
+  it('serves a page that loads the hook and nothing else', () => {
+    const page = readFileSync(`${DESKTOP}../isolation/index.html`, 'utf8')
+
+    expect([...page.matchAll(/<script\b[^>]*>/g)].map((match) => match[0])).toEqual(['<script src="hook.js">'])
+    expect(page).not.toMatch(/<(iframe|link|img|object|embed)\b/i)
+  })
+
+  it('has the hook set itself as the one hook Tauri calls, and refuse by rewriting the command, never by throwing', () => {
+    const hook = readFileSync(`${DESKTOP}../isolation/hook.js`, 'utf8').replace(/^\s*\/\/.*$/gm, '')
+
+    expect(hook).toMatch(/window\.__TAURI_ISOLATION_HOOK__ = function/)
+    expect(hook).not.toMatch(/\bthrow\b/)
+  })
+
+  it('does not grant the commands that work without the hook (an empty request body is not encrypted: probe P7e)', () => {
+    // `sql|close` with no database closes every pool and needs no arguments, so it would get past the hook; the app never
+    // calls it. The window calls act on the window that asks and stay (close is how Exit works).
+    const identifiers = capability.permissions.map((permission) => (typeof permission === 'string' ? permission : permission.identifier))
+
+    expect(identifiers).not.toContain('sql:default')
+    expect(identifiers).not.toContain('sql:allow-close')
+  })
+})
+

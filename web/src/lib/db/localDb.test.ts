@@ -17,13 +17,18 @@ const yieldToOthers = () => new Promise<void>((resolve) => setTimeout(resolve, 0
 // The plugin numbers its parameters `$1, $2`, in order; better-sqlite3 binds plain `?`.
 const positional = (sql: string) => sql.replace(/\$\d+/g, '?')
 
+// Every statement goes through the desktop's isolation hook first, as in the built app (19.12.3).
+const hookAllows = vi.hoisted(() => ({ check: undefined as undefined | ((command: 'select' | 'execute', query: string, values: unknown[]) => void) }))
+
 const fakeConnection = {
   execute: async (sql: string, params: unknown[] = []) => {
     await yieldToOthers()
+    hookAllows.check?.('execute', sql, params)
     sqlite.prepare(positional(sql)).run(...params)
   },
   select: async (sql: string, params: unknown[] = []) => {
     await yieldToOthers()
+    hookAllows.check?.('select', sql, params)
     return sqlite.prepare(positional(sql)).all(...params)
   },
 }
@@ -44,9 +49,10 @@ async function freshModule() {
 }
 
 describe('createLocalDb', () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     sqlite = new BetterSqlite3(':memory:')
     loads = 0
+    hookAllows.check = (await import('../isolationHook.testing.js')).sqlThroughHook()
   })
 
   afterEach(() => sqlite.close())
