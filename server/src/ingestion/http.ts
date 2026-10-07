@@ -194,6 +194,8 @@ async function request<T>(
   // long as the platform's own limit, or for ever (review 2026-10-04).
   let timeout: ReturnType<typeof setTimeout> | undefined
 
+  const credentials = credentialsOf(url, headers, body)
+
   async function attempt(withUserAgent: boolean): Promise<Response> {
     clearTimeout(timeout)
     const controller = new AbortController()
@@ -234,7 +236,7 @@ async function request<T>(
       }
     }
 
-    await refuseFailure(response, source)
+    await refuseFailure(response, source, credentials)
 
     try {
       return await read(response)
@@ -247,8 +249,74 @@ async function request<T>(
   }
 }
 
+/**
+ * Names that carry a credential, in a query, a header or a body. Matched whole and without regard to case (`key` is Google's
+ * and `api_key` is TMDB's and Comic Vine's; `client_id` and `client_secret` are Twitch's, for IGDB).
+ */
+const CREDENTIAL_NAME = /^(api[_-]?key|key|access[_-]?token|token|client[_-]?secret|client[_-]?id|secret|password|passwd|auth|authorization|x-api-key|x-goog-api-key|client-id|x-client-id)$/i
+
+/** A value shorter than this is not replaced everywhere: it could be a word (and no real key is this short). */
+const MIN_CREDENTIAL_LENGTH = 6
+
+const REDACTED = '…'
+
+/** The ways one credential can be written back: as is, percent-encoded, as a form value (`+` for a space), inside a JSON string. */
+function spellingsOf(value: string): string[] {
+  return [value, encodeURIComponent(value), new URLSearchParams([['x', value]]).toString().slice(2), JSON.stringify(value).slice(1, -1)]
+}
+
+/**
+ * The credentials a request carries: the values of its sensitive query parameters, its sensitive headers (the token of an
+ * `Authorization: Bearer …` too, and not only the whole header) and the sensitive fields of a form or JSON body, each in every
+ * spelling. These are what an upstream's error text must not repeat (SR-028).
+ */
+function credentialsOf(url: string, headers: Record<string, string>, body: string | undefined): string[] {
+  const found = new Set<string>()
+  const add = (value: unknown) => {
+    if (typeof value !== 'string' || value.length < MIN_CREDENTIAL_LENGTH) return
+    for (const spelling of spellingsOf(value)) found.add(spelling)
+  }
+
+  try {
+    for (const [name, value] of new URL(url).searchParams) if (CREDENTIAL_NAME.test(name)) add(value)
+  } catch {
+    // Not an address `URL` reads: nothing in a query to take.
+  }
+
+  for (const [name, value] of Object.entries(headers)) {
+    if (!CREDENTIAL_NAME.test(name)) continue
+    add(value)
+    add(/^(?:bearer|basic|token)\s+(.+)$/i.exec(value)?.[1])
+  }
+
+  if (body !== undefined) {
+    for (const [name, value] of new URLSearchParams(body)) if (CREDENTIAL_NAME.test(name)) add(value)
+    try {
+      const parsed: unknown = JSON.parse(body)
+      if (typeof parsed === 'object' && parsed !== null) {
+        for (const [name, value] of Object.entries(parsed)) if (CREDENTIAL_NAME.test(name)) add(value)
+      }
+    } catch {
+      // Not JSON (a form, or an Apicalypse query): nothing more to take.
+    }
+  }
+
+  // Longest first, so a value that holds another is replaced whole.
+  return [...found].sort((a, b) => b.length - a.length)
+}
+
+/** `text` without the request's credentials, and without anything that reads as one (`key=…`, `"api_key": "…"`, `Bearer …`). */
+function withoutCredentials(text: string, credentials: readonly string[]): string {
+  let out = text
+  for (const credential of credentials) out = out.split(credential).join(REDACTED)
+
+  return out
+    .replace(/\b(api[_-]?key|key|access[_-]?token|token|client[_-]?secret|secret|password)(["']?\s*[=:]\s*["']?)[^&\s"'<>,;}]+/gi, `$1$2${REDACTED}`)
+    .replace(/\bBearer\s+[A-Za-z0-9._~+/=-]+/gi, `Bearer ${REDACTED}`)
+}
+
 /** Throws the error a failing status stands for; returns for a success. */
-async function refuseFailure(response: Response, source: string): Promise<void> {
+async function refuseFailure(response: Response, source: string, credentials: readonly string[]): Promise<void> {
   if (response.status === 429) {
     throw new UpstreamError(
       `${source} is rate-limiting us. Try again in a moment.`,
@@ -292,8 +360,9 @@ async function refuseFailure(response: Response, source: string): Promise<void> 
       }
     })
 
+    // The credentials come out before the text is cut to length, so no half of a key is left at the cut (SR-028).
     throw new UpstreamError(
-      `${source} returned ${response.status}${detail ? `: ${detail.slice(0, 200)}` : '.'}`,
+      `${source} returned ${response.status}${detail ? `: ${withoutCredentials(detail, credentials).slice(0, 200)}` : '.'}`,
       response.status,
       parseRetryAfter(response.headers.get('retry-after')),
     )

@@ -320,3 +320,119 @@ describe('the size limit on what is read', () => {
     expect(response.pulled()).toBeLessThan(200)
   })
 })
+
+/**
+ * An upstream's error text may repeat the request, and the request holds the user's key (security review, Phase 19, SR-028). The
+ * message is shown on screen, so a screenshot for a bug report or a log the user pastes would carry the key. Credentials are removed
+ * from the text before it is cut to length and put in a message.
+ */
+describe('a credential the upstream echoes in an error is not shown', () => {
+  const SECRET = 'SECRETKEY123456'
+
+  /** An upstream that answers 400 with a JSON error whose message is `text(url, init)`. */
+  const echoing = (text: (url: string, init: RequestInit) => string): FetchLike => async (url, init) =>
+    new Response(JSON.stringify({ error: { message: text(url, init ?? {}) } }), { status: 400 })
+
+  async function failureMessage(url: string, fetchImpl: FetchLike, options: { headers?: Record<string, string>; method?: 'GET' | 'POST'; body?: string } = {}): Promise<string> {
+    const error = await getJson(url, { source: 'Example', fetchImpl, ...options }).then(() => undefined, (cause: unknown) => cause)
+
+    expect(error).toBeInstanceOf(UpstreamError)
+
+    return (error as Error).message
+  }
+
+  it.each([
+    ['TMDB’s api_key', `https://api.example.test/3/search/person?query=Alien&api_key=${SECRET}`],
+    ['YouTube’s key', `https://api.example.test/youtube/v3/search?part=snippet&key=${SECRET}&q=Alien`],
+    ['Comic Vine’s api_key', `https://api.example.test/api/search/?api_key=${SECRET}&format=json&query=Alien`],
+    ['a token', `https://api.example.test/x?access_token=${SECRET}`],
+    ['a secret', `https://api.example.test/x?client_secret=${SECRET}&grant_type=client_credentials`],
+  ])('removes %s from a message that repeats the address', async (_name, url) => {
+    const message = await failureMessage(url, echoing((echoed) => `bad request ${echoed}`))
+
+    expect(message).toMatch(/^Example returned 400: bad request https:\/\/api\.example\.test\//)
+    expect(message).not.toContain(SECRET)
+    expect(message).toContain('…')
+  })
+
+  it('keeps the rest of the address, so the message still says what was asked', async () => {
+    const message = await failureMessage(`https://api.example.test/3/search/person?query=Alien&api_key=${SECRET}`, echoing((echoed) => `bad request ${echoed}`))
+
+    expect(message).toContain('query=Alien')
+    expect(message).toContain('/3/search/person')
+  })
+
+  it('removes a key the upstream repeats percent-encoded, or on its own, or with the quotes of JSON', async () => {
+    const weird = 'a b&c/d+e=f'
+    const url = `https://api.example.test/x?key=${encodeURIComponent(weird)}`
+    const message = await failureMessage(url, echoing(() => `got ${encodeURIComponent(weird)} and ${weird} and "${weird}"`))
+
+    expect(message).not.toContain(weird)
+    expect(message).not.toContain(encodeURIComponent(weird))
+  })
+
+  it('removes a bearer token and a key header the upstream repeats', async () => {
+    const message = await failureMessage(
+      'https://api.example.test/x',
+      echoing((_url, init) => `the token on its own: ${SECRET}; headers were ${JSON.stringify(init.headers)}`),
+      { headers: { authorization: `Bearer ${SECRET}`, 'x-api-key': 'HEADERKEY654321', 'client-id': 'CLIENTID7777777', accept: 'application/json' } },
+    )
+
+    for (const secret of [SECRET, 'HEADERKEY654321', 'CLIENTID7777777']) expect(message).not.toContain(secret)
+    expect(message).toContain('application/json')
+  })
+
+  it('removes the secret of a form body the upstream repeats (the Twitch token request)', async () => {
+    const body = new URLSearchParams({ client_id: 'CLIENTID7777777', client_secret: SECRET, grant_type: 'client_credentials' }).toString()
+    const message = await failureMessage('https://id.example.test/oauth2/token', echoing((_url, init) => `invalid request ${String(init.body)}`), {
+      method: 'POST',
+      headers: { 'content-type': 'application/x-www-form-urlencoded' },
+      body,
+    })
+
+    expect(message).not.toContain(SECRET)
+    expect(message).not.toContain('CLIENTID7777777')
+    expect(message).toContain('grant_type=client_credentials')
+  })
+
+  it('removes a credential in a JSON body, whatever it is called here and however the upstream repeats it', async () => {
+    const message = await failureMessage('https://id.example.test/x', echoing((_url, init) => `the value ${(JSON.parse(String(init.body)) as { client_id: string }).client_id} and ${(JSON.parse(String(init.body)) as { query: string }).query}`), {
+      method: 'POST',
+      body: JSON.stringify({ client_id: 'CLIENTID7777777', query: 'Alien' }),
+    })
+
+    expect(message).not.toContain('CLIENTID7777777')
+    expect(message).toContain('Alien')
+  })
+
+  it('removes a credential-looking parameter even when the request did not carry it', async () => {
+    const message = await failureMessage('https://api.example.test/x', echoing(() => 'try again with api_key=OTHERKEY9999999&key=ANOTHER88888888 or Bearer TOKENVALUE12345.abc-def'))
+
+    for (const secret of ['OTHERKEY9999999', 'ANOTHER88888888', 'TOKENVALUE12345']) expect(message).not.toContain(secret)
+  })
+
+  it('removes it before cutting the message to length, so no half of a credential is left at the cut', async () => {
+    // A value the generic `key=…` scrub does not know (a client id, a bare value), placed to straddle the 200th character.
+    const id = 'CLIENTID7777777'
+    const message = await failureMessage('https://api.example.test/x', echoing(() => `${'x'.repeat(188)} ${id}`), { headers: { 'client-id': id } })
+
+    expect(message).not.toContain('CLIENTID')
+    expect(message.length).toBeLessThan(260)
+  })
+
+  it('leaves a message with no credential in it as it was', async () => {
+    expect((await failureMessage('https://api.example.test/x?query=Alien', echoing(() => 'down for maintenance, key points: none'))).endsWith('down for maintenance, key points: none')).toBe(true)
+  })
+
+  it('does not take the words out of a message because a short value matches them', async () => {
+    const message = await failureMessage('https://api.example.test/x?key=abc', echoing(() => 'the abc of it, abc and abcdef'))
+
+    expect(message).toContain('the abc of it, abc and abcdef')
+  })
+
+  it('also removes it from a plain-text error body', async () => {
+    const message = await failureMessage(`https://api.example.test/x?api_key=${SECRET}`, async (url) => new Response(`Forbidden: ${url}`, { status: 400 }))
+
+    expect(message).not.toContain(SECRET)
+  })
+})
