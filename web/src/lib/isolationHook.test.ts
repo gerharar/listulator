@@ -68,12 +68,195 @@ describe('what the app sends passes untouched', () => {
     expect(passes(sent)).toBe(true)
   })
 
-  it.each(['plugin:window|is_fullscreen', 'plugin:window|set_fullscreen', 'plugin:window|close', 'plugin:event|listen', 'plugin:resources|close'])(
-    'other commands are left to the permissions, not the hook: %s',
-    (cmd) => {
-      expect(passes(message(cmd, { label: 'main' }))).toBe(true)
-    },
-  )
+  it.each([
+    ['window is_fullscreen', message('plugin:window|is_fullscreen', { label: 'main' })],
+    ['window set_fullscreen', message('plugin:window|set_fullscreen', { label: 'main', value: true })],
+    ['window set_fullscreen back', message('plugin:window|set_fullscreen', { label: 'main', value: false })],
+    ['window close', message('plugin:window|close', { label: 'main' })],
+    ['event listen, the window being resized', message('plugin:event|listen', { event: 'tauri://resize', target: { kind: 'Window', label: 'main' }, handler: 12 })],
+    ['event unlisten', message('plugin:event|unlisten', { event: 'tauri://resize', eventId: 5 })],
+    ['the inspector toggle (the dev and debug builds only; the permission is not granted in a release)', message('plugin:webview|internal_toggle_devtools', {})],
+  ])('the window and its events: %s', (_name, sent) => {
+    expect(passes(sent)).toBe(true)
+  })
+})
+
+describe('only what the app sends (SR-062: the approval is not bound to the command name)', () => {
+  // Tauri encrypts the payload but sends the command name in the clear and does not tie the two together, so a payload this
+  // hook approves under one name can be presented to the native side under another. The hook therefore approves no payload
+  // it has not checked against the command it is for: a command it does not know is refused, whatever plugin it is of.
+  it.each([
+    'plugin:event|emit',
+    'plugin:event|emit_to',
+    'plugin:event|listen_all',
+    'plugin:window|create',
+    'plugin:window|set_title',
+    'plugin:window|destroy',
+    'plugin:window|start_dragging',
+    'plugin:window|is_maximized',
+    'plugin:webview|webview_close',
+    'plugin:webview|create_webview',
+    'plugin:resources|close',
+    'plugin:app|app_hide',
+    'plugin:path|resolve_directory',
+    'plugin:fs|read_text_file',
+    'plugin:shell|execute',
+    'plugin:dialog|open',
+    'plugin:log|log',
+    'plugin:window-state|save_window_state',
+    'plugin:nothing|here',
+    'plugin:sql|close',
+    'plugin:sql|get_migrations',
+    'plugin:store|close',
+    'plugin:http|fetch_something_new',
+    'plugin:opener|reveal_item_in_dir',
+    'plugin:opener|open_path',
+    'some-app-command',
+    'greet',
+    '',
+    'plugin:|',
+  ])('refuses the command %j, with an empty payload and with a payload that is valid for another command', (cmd) => {
+    expect(isRefused(message(cmd, {}))).toBe(true)
+    expect(isRefused(message(cmd, { label: 'main' }))).toBe(true)
+    expect(isRefused(message(cmd, { db: DATABASE, query: 'SELECT 1', values: [] }))).toBe(true)
+    expect(isRefused(message(cmd, { path: 'settings.json' }))).toBe(true)
+  })
+
+  it('refuses a command that is not text, and a message that is not an object', () => {
+    for (const sent of [{ cmd: 1, callback: 1, error: 2, payload: {} }, { cmd: null, payload: {} }, { payload: {} }, null, undefined, 'plugin:event|listen'] as unknown[]) {
+      expect(isRefused(sent as IpcMessage)).toBe(true)
+    }
+  })
+
+  describe('the window calls', () => {
+    it.each([
+      ['another window', { label: 'other' }],
+      ['no label', {}],
+      ['a label that is not text', { label: 1 }],
+      ['an extra key', { label: 'main', extra: 1 }],
+      ['a database beside the label', { label: 'main', db: DATABASE }],
+      ['a path beside the label', { label: 'main', path: '/tmp/x' }],
+    ])('refuses is_fullscreen and close with %s', (_name, payload) => {
+      expect(isRefused(message('plugin:window|is_fullscreen', payload))).toBe(true)
+      expect(isRefused(message('plugin:window|close', payload))).toBe(true)
+    })
+
+    it.each([
+      ['a value that is not a boolean', { label: 'main', value: 1 }],
+      ['a text value', { label: 'main', value: 'true' }],
+      ['no value', { label: 'main' }],
+      ['another window', { label: 'other', value: true }],
+      ['an extra key', { label: 'main', value: true, extra: 1 }],
+    ])('refuses set_fullscreen with %s', (_name, payload) => {
+      expect(isRefused(message('plugin:window|set_fullscreen', payload))).toBe(true)
+    })
+  })
+
+  describe('the events', () => {
+    const good = { event: 'tauri://resize', target: { kind: 'Window', label: 'main' }, handler: 12 }
+
+    it.each([
+      ['another event', { ...good, event: 'tauri://close-requested' }],
+      ['an event of the app’s own making', { ...good, event: 'anything' }],
+      ['no event', { target: good.target, handler: 12 }],
+      ['another window as the target', { ...good, target: { kind: 'Window', label: 'other' } }],
+      ['every window as the target', { ...good, target: { kind: 'Any' } }],
+      ['a target of another kind', { ...good, target: { kind: 'AnyLabel', label: 'main' } }],
+      ['a target with an extra key', { ...good, target: { kind: 'Window', label: 'main', extra: 1 } }],
+      ['a target that is text', { ...good, target: 'main' }],
+      ['no target', { event: good.event, handler: 12 }],
+      ['a handler that is not a whole number', { ...good, handler: 1.5 }],
+      ['a handler that is text', { ...good, handler: 'x' }],
+      ['no handler', { event: good.event, target: good.target }],
+      ['an extra key', { ...good, extra: 1 }],
+      ['a database in the payload', { ...good, db: DATABASE }],
+    ])('refuses listen with %s', (_name, payload) => {
+      expect(isRefused(message('plugin:event|listen', payload))).toBe(true)
+    })
+
+    it.each([
+      ['another event', { event: 'x', eventId: 5 }],
+      ['no event id', { event: 'tauri://resize' }],
+      ['an event id that is not a whole number', { event: 'tauri://resize', eventId: -1 }],
+      ['an event id that is text', { event: 'tauri://resize', eventId: '5' }],
+      ['an extra key', { event: 'tauri://resize', eventId: 5, extra: 1 }],
+      ['no event', { eventId: 5 }],
+    ])('refuses unlisten with %s', (_name, payload) => {
+      expect(isRefused(message('plugin:event|unlisten', payload))).toBe(true)
+    })
+  })
+
+  it('refuses the inspector toggle when it carries anything', () => {
+    expect(isRefused(message('plugin:webview|internal_toggle_devtools', { label: 'main' }))).toBe(true)
+    expect(isRefused(message('plugin:webview|internal_toggle_devtools', { db: DATABASE }))).toBe(true)
+  })
+
+  // The property itself: a payload that is valid for one command is refused under every command it was not written for,
+  // except the commands that take the very same shape. Each exception is a pair the app's own resources stay inside of.
+  describe('a payload approved for one command is refused under any other', () => {
+    const examples: Record<string, { payload: unknown; shape: string }> = {
+      'plugin:sql|load': { payload: { db: DATABASE }, shape: 'db' },
+      'plugin:sql|select': { payload: { db: DATABASE, query: 'SELECT 1', values: [] }, shape: 'statement' },
+      'plugin:sql|execute': { payload: { db: DATABASE, query: 'SELECT 1', values: [] }, shape: 'statement' },
+      'plugin:store|load': { payload: { path: 'settings.json', options: { autoSave: true } }, shape: 'store-load' },
+      'plugin:store|get_store': { payload: { path: 'settings.json' }, shape: 'path' },
+      'plugin:store|get': { payload: { rid: 7, key: 'k' }, shape: 'rid-key' },
+      'plugin:store|has': { payload: { rid: 7, key: 'k' }, shape: 'rid-key' },
+      'plugin:store|delete': { payload: { rid: 7, key: 'k' }, shape: 'rid-key' },
+      'plugin:store|set': { payload: { rid: 7, key: 'k', value: 'x' }, shape: 'rid-key-value' },
+      'plugin:store|reload': { payload: { rid: 7, ignoreDefaults: true }, shape: 'rid-reload' },
+      'plugin:store|clear': { payload: { rid: 7 }, shape: 'rid' },
+      'plugin:store|reset': { payload: { rid: 7 }, shape: 'rid' },
+      'plugin:store|keys': { payload: { rid: 7 }, shape: 'rid' },
+      'plugin:store|values': { payload: { rid: 7 }, shape: 'rid' },
+      'plugin:store|entries': { payload: { rid: 7 }, shape: 'rid' },
+      'plugin:store|length': { payload: { rid: 7 }, shape: 'rid' },
+      'plugin:store|save': { payload: { rid: 7 }, shape: 'rid' },
+      'plugin:http|fetch': { payload: { clientConfig: { method: 'GET', url: 'https://musicbrainz.org/ws/2/', headers: [], data: null } }, shape: 'fetch' },
+      'plugin:http|fetch_send': { payload: { rid: 7 }, shape: 'rid' },
+      'plugin:http|fetch_read_body': { payload: { rid: 7 }, shape: 'rid' },
+      'plugin:http|fetch_cancel': { payload: { rid: 7 }, shape: 'rid' },
+      'plugin:http|fetch_cancel_body': { payload: { rid: 7 }, shape: 'rid' },
+      'plugin:opener|open_url': { payload: { url: 'https://github.com/gerharar/listulator' }, shape: 'url' },
+      'plugin:window|is_fullscreen': { payload: { label: 'main' }, shape: 'label' },
+      'plugin:window|close': { payload: { label: 'main' }, shape: 'label' },
+      'plugin:window|set_fullscreen': { payload: { label: 'main', value: true }, shape: 'label-value' },
+      'plugin:event|listen': { payload: { event: 'tauri://resize', target: { kind: 'Window', label: 'main' }, handler: 12 }, shape: 'listen' },
+      'plugin:event|unlisten': { payload: { event: 'tauri://resize', eventId: 5 }, shape: 'unlisten' },
+      'plugin:webview|internal_toggle_devtools': { payload: {}, shape: 'empty' },
+    }
+    // Shapes that another shape's payload also satisfies: the optional keys. `store|load` takes `path` alone as `get_store`
+    // does; `reload` takes `rid` alone as the rid-only commands do (a reload payload that sets `ignoreDefaults` does not
+    // pass for them); `store|set` takes `rid` and `key` without a value, which the native side rejects as a missing field
+    // (the hook cannot require it: a value may be null or unset). All of them stay inside the app's own settings stores.
+    const alsoSatisfies: Record<string, string[]> = {
+      path: ['store-load'],
+      rid: ['rid-reload'],
+      'rid-key': ['rid-key-value'],
+    }
+    const names = Object.keys(examples)
+
+    it('has an example for every command the hook knows', () => {
+      expect(names.length).toBe(29)
+    })
+
+    it('passes each example under its own command', () => {
+      for (const cmd of names) expect(passes(message(cmd, examples[cmd]!.payload)), cmd).toBe(true)
+    })
+
+    it('refuses each example under every command of another shape', () => {
+      const wrongly: string[] = []
+      for (const to of names) {
+        for (const from of names) {
+          const source = examples[from]!
+          const target = examples[to]!
+          const sameShape = source.shape === target.shape || (alsoSatisfies[source.shape] ?? []).includes(target.shape)
+          if (!sameShape && passes(message(to, source.payload))) wrongly.push(`${from} payload passes as ${to}`)
+        }
+      }
+      expect(wrongly).toEqual([])
+    })
+  })
 })
 
 describe('a refusal', () => {
@@ -523,9 +706,9 @@ describe('the command name', () => {
     expect(isRefused(message(cmd, {}))).toBe(true)
   })
 
-  it('leaves a command of an unguarded plugin to the permissions, however it is spelled', () => {
-    expect(passes(message('plugin:window|IS_FULLSCREEN', {}))).toBe(true)
-    expect(passes(message('plugin:event|listen', { event: 'x' }))).toBe(true)
-    expect(passes(message('some-app-command', { x: 1 }))).toBe(true)
+  it('refuses a look-alike of the window and event commands too', () => {
+    for (const cmd of ['plugin:window|IS_FULLSCREEN', ' plugin:window|close', 'plugin:event|LISTEN', 'plugin:event |listen', 'Plugin:window|close']) {
+      expect(isRefused(message(cmd, { label: 'main' })), cmd).toBe(true)
+    }
   })
 })

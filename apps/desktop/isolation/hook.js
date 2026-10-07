@@ -1,8 +1,14 @@
 // The desktop app's isolation hook (security review, Phase 19, 19.12.3: SR-002, 003, 004, 008; docs/DECISIONS.md "Security
-// review spike S1"). Tauri runs this in a sandboxed iframe that sees every request the window sends to the native side,
-// before it is encrypted, and the native side accepts nothing that did not pass through here. So even a script running in
-// the window can only do what the app itself does: open the app's own database, read and write its two settings files,
-// ask the HTTP plugin for a plain request, and open a link in the browser.
+// review spike S1"). Tauri runs this in a sandboxed iframe that sees every request the window sends through `invoke`,
+// before it is encrypted. A request that passes is exactly what the app itself sends: open the app's own database, read
+// and write its two settings files, ask the HTTP plugin for a plain request, open a link in the browser, and the window's
+// own few calls. Everything else is refused, whatever plugin it is of (SR-062).
+//
+// What this does NOT do (SR-062, DECISIONS "Security review 19.14"): Tauri encrypts the payload but sends the command name
+// in the clear and does not tie the two together, and the page forwards the frame's answer. So a script that handles that
+// step itself can present an approved payload under another command name. This hook narrows that to payloads that are valid
+// for the command they were approved under (it approves nothing it has not checked against its own command, and no command
+// it does not know); the durable answer is the app's own native commands (BACKLOG).
 //
 // A refusal rewrites the command to one that does not exist: the caller gets a clean rejection. A hook that throws would
 // leave the caller waiting for ever (probe P7c), so nothing here may throw: any error is a refusal.
@@ -296,6 +302,48 @@
     return null
   }
 
+  // ---- the window and its events: the few calls the app makes itself ----
+
+  var WINDOW_LABEL = 'main'
+  var WINDOW_EVENT = 'tauri://resize' // the one event the app listens to (the window's size, for the full-screen switch)
+
+  function windowLabelProblem(payload) {
+    return keysProblem(payload, ['label'], ['label']) || (payload.label === WINDOW_LABEL ? null : 'window')
+  }
+
+  function setFullscreenProblem(payload) {
+    return (
+      keysProblem(payload, ['label', 'value'], ['label', 'value']) ||
+      (payload.label === WINDOW_LABEL ? null : 'window') ||
+      (typeof payload.value === 'boolean' ? null : 'full-screen value')
+    )
+  }
+
+  function listenProblem(payload) {
+    var problem = keysProblem(payload, ['event', 'target', 'handler'], ['event', 'target', 'handler'])
+    if (problem) return problem
+    if (payload.event !== WINDOW_EVENT) return 'event'
+    var target = payload.target
+    if (!isObject(target)) return 'event target'
+    var keys = Object.keys(target)
+    if (keys.length !== 2 || keys.indexOf('kind') < 0 || keys.indexOf('label') < 0) return 'event target'
+    if (target.kind !== 'Window' || target.label !== WINDOW_LABEL) return 'event target'
+    return isWholeNumber(payload.handler) ? null : 'event handler'
+  }
+
+  function unlistenProblem(payload) {
+    return (
+      keysProblem(payload, ['event', 'eventId'], ['event', 'eventId']) ||
+      (payload.event === WINDOW_EVENT ? null : 'event') ||
+      (isWholeNumber(payload.eventId) ? null : 'event id')
+    )
+  }
+
+  /** The inspector's shortcut in a dev or debug build (the native side grants it nowhere else); it carries nothing. */
+  function noPayload(payload) {
+    return isObject(payload) && Object.keys(payload).length === 0 ? null : 'payload for a command that takes none'
+  }
+
   // ---- the commands of the four plugins that reach outside the window ----
 
   var COMMANDS = {
@@ -326,11 +374,15 @@
     'plugin:http|fetch_cancel': ridOnly,
     'plugin:http|fetch_cancel_body': ridOnly,
     'plugin:opener|open_url': openUrlProblem,
+    'plugin:window|is_fullscreen': windowLabelProblem,
+    'plugin:window|close': windowLabelProblem,
+    'plugin:window|set_fullscreen': setFullscreenProblem,
+    'plugin:event|listen': listenProblem,
+    'plugin:event|unlisten': unlistenProblem,
+    'plugin:webview|internal_toggle_devtools': noPayload,
   }
-  // The window's other commands (events, the window itself) are for the permissions to govern. These four plugins are
-  // governed here: a command of theirs that is not above is refused, whatever its spelling (the native side matches
-  // exactly, so a look-alike runs nothing, and this does not rely on that).
-  var GUARDED_PLUGIN = /^\s*plugin:\s*(sql|store|http|opener)\s*\|/i
+  // Anything not in the table is refused, whatever plugin it is of and however it is spelled: the native side matches a
+  // command name exactly, and this hook approves a payload only for the command it has checked it against.
 
   function describe(data) {
     var cmd = data && typeof data.cmd === 'string' ? data.cmd : '(not text)'
@@ -359,9 +411,8 @@
 
         return problem ? refuse(data, problem) : data
       }
-      if (GUARDED_PLUGIN.test(cmd)) return refuse(data, 'command not allowed')
 
-      return data
+      return refuse(data, 'command not allowed')
     } catch {
       return refuse(data, 'error')
     }
