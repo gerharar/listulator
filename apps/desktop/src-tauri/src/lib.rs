@@ -2,6 +2,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Mutex;
 
 mod fullscreen;
+mod navigation;
 
 /// Set at start-up when the window was left in full screen; cleared once re-entered.
 static PENDING_FULLSCREEN: AtomicBool = AtomicBool::new(false);
@@ -64,6 +65,8 @@ pub fn run() {
   });
 
   builder
+    // Keeps the window on the app's own page: nothing else may be navigated to (SR-015, navigation.rs).
+    .plugin(navigation::guard())
     .plugin(tauri_plugin_sql::Builder::default().build())
     .plugin(tauri_plugin_store::Builder::default().build())
     .plugin(tauri_plugin_http::init())

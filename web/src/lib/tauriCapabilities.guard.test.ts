@@ -118,3 +118,29 @@ describe('the desktop app configuration, as the security review left it', () => 
     expect(cargo).not.toMatch(/devtools|dangerous-settings/)
   })
 })
+
+describe('the desktop window’s navigation, as the security review left it (SR-015)', () => {
+  // Rust code is not run here: the unit tests in `navigation.rs` check which addresses are allowed; this checks that
+  // the hook is registered and that it asks that function, so deleting the line that installs it fails a test.
+  const code = (file: string): string => read(`src/${file}`).replace(/^\s*\/\/.*$/gm, '')
+
+  it('installs the navigation hook on the app', () => {
+    expect(code('lib.rs')).toMatch(/\.plugin\(navigation::guard\(\)\)/)
+    expect(code('lib.rs')).toMatch(/^mod navigation;$/m)
+  })
+
+  it('has the hook ask the allow function, and stay inside the app’s own origins', () => {
+    const navigation = code('navigation.rs')
+
+    expect(navigation).toMatch(/\.on_navigation\(\|_webview, url\| \{[^}]*allowed\(url, tauri::is_dev\(\)\)/)
+    // The two origins of the packaged app, and the dev server under `tauri dev` only.
+    expect(navigation).toContain('[("tauri", "localhost"), ("http", "tauri.localhost")]')
+    expect(navigation).toContain('const DEV_ORIGIN: (&str, &str, u16) = ("http", "localhost", 5173);')
+  })
+
+  it('keeps the packaged app on the origins the hook allows (no https scheme for the window)', () => {
+    // `useHttpsScheme` would serve the Windows app from https://tauri.localhost, which the hook refuses: the app would
+    // block itself. Turning it on means changing the allow list and its tests in the same commit.
+    expect(JSON.stringify(JSON.parse(read('tauri.conf.json')))).not.toContain('useHttpsScheme')
+  })
+})
