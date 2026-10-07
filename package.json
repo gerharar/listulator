@@ -38,5 +38,10 @@
   },
   "overrides": {
     "shell-quote": "1.11.0"
+  },
+  "allowScripts": {
+    "esbuild": false,
+    "better-sqlite3": false,
+    "fsevents": false
   }
 }
