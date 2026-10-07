@@ -52,16 +52,16 @@ describe('validMinutes', () => {
 })
 
 describe('validYear', () => {
-  it.each([1, 476, 1605, 1962, 2024, 9999])('accepts %d (a year as a person writes it, old books included)', (value) => {
+  it.each([1, 476, 1605, 1962, 2024, 3000])('accepts %d (a year as a person writes it, old books included)', (value) => {
     expect(validYear(value)).toBe(value)
   })
 
-  it.each([0, -1, -800, 10_000, 2000.5, 1e308, Number.NaN, Number.POSITIVE_INFINITY, '1999', null, undefined, false, {}])('refuses %j', (value) => {
+  it.each([0, -1, -800, 3001, 10_000, 2000.5, 1e308, Number.NaN, Number.POSITIVE_INFINITY, '1999', null, undefined, false, {}])('refuses %j', (value) => {
     expect(validYear(value)).toBeUndefined()
   })
 
-  it('is a whole four-digit year at most', () => {
-    expect(YEAR_RANGE).toEqual([1, 9999])
+  it('is a whole number from 1 to 3000', () => {
+    expect(YEAR_RANGE).toEqual([1, 3000])
   })
 })
 

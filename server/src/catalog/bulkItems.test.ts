@@ -348,7 +348,7 @@ describe('a new item from a list file', () => {
 
 describe('a row never carries a number the app cannot show (SR-019)', () => {
   const hostileMinutes = [Number.NaN, Number.POSITIVE_INFINITY, Number.NEGATIVE_INFINITY, -5, 0, 1.5, 1e308, 100_001]
-  const hostileYears = [Number.NaN, Number.POSITIVE_INFINITY, -1, 0, 2000.5, 1e308, 10_000]
+  const hostileYears = [Number.NaN, Number.POSITIVE_INFINITY, -1, 0, 2000.5, 1e308, 3001, 10_000]
 
   it.each(hostileMinutes)('a list file’s minutes of %s become the default, marked estimated', (minutes) => {
     expect(itemFromFile({ title: 'A', minutes }, 120)).toMatchObject({ timeToConsumeMinutes: 120, timeToConsumeIsEstimated: true })

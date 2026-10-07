@@ -736,15 +736,15 @@ describe('parseCustomList refuses what would corrupt or freeze a list', () => {
       expect(detail(one(`    minutes: ${minutes}`))).toMatch(/item 1 \("A"\): "minutes" must be a whole number from 1 to 100000/)
     })
 
-    it.each(['.inf', '-.inf', '.nan', '-1', '0', '10000', '2000.5', '1e308'])('refuses a year of %s, naming the item and the field', (year) => {
-      expect(detail(one(`    year: ${year}`))).toMatch(/item 1 \("A"\): "year" must be a whole number from 1 to 9999/)
+    it.each(['.inf', '-.inf', '.nan', '-1', '0', '3001', '10000', '2000.5', '1e308'])('refuses a year of %s, naming the item and the field', (year) => {
+      expect(detail(one(`    year: ${year}`))).toMatch(/item 1 \("A"\): "year" must be a whole number from 1 to 3000/)
     })
 
     it.each(['1', '90', '109', '100000', '0x10'])('accepts minutes of %s', (minutes) => {
       expect(refusal(one(`    minutes: ${minutes}`))).toBeUndefined()
     })
 
-    it.each(['1', '476', '1605', '1962', '2024', '9999'])('accepts a year of %s', (year) => {
+    it.each(['1', '476', '1605', '1962', '2024', '3000'])('accepts a year of %s', (year) => {
       expect(refusal(one(`    year: ${year}`))).toBeUndefined()
     })
   })

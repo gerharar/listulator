@@ -26,11 +26,11 @@ export const MAX_LIST_ITEMS = 10_000
 export const MINUTES_RANGE = [1, 100_000] as const
 
 /**
- * What an item's year may be: a whole number up to four digits. Wide on purpose (Don Quixote is 1605): this stops nonsense
- * (`1e308`, `.nan`, a negative number), not an unusual year. The committed library is held to the narrower 1800 to 2100 by
- * its own guard test.
+ * What an item's year may be: a whole number from 1 to 3000 (the owner's choice, 2026-10-07). Wide on purpose (Don Quixote is
+ * 1605, a film can be set in the future): this stops nonsense (`1e308`, `.nan`, a negative number), not an unusual year. The
+ * committed library is held to the narrower 1800 to 2100 by its own guard test.
  */
-export const YEAR_RANGE = [1, 9999] as const
+export const YEAR_RANGE = [1, 3000] as const
 
 /** A list's own blurb. The library's guard test has held committed lists to this since 19.4; the parser now holds every file. */
 export const DESCRIPTION_MAX_LENGTH = 1_000
