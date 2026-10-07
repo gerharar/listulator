@@ -18,10 +18,13 @@ const DEV_ORIGIN: (&str, &str, u16) = ("http", "localhost", 5173);
 
 /// A navigation hook for the window: `true` lets it through. A refusal logs the host only, never the address, which is
 /// where a script would put what it is sending out.
-pub fn guard<R: tauri::Runtime>() -> tauri::plugin::TauriPlugin<R> {
+///
+/// `isolation_scheme` is this build's isolation scheme (`isolation_csp`): the frame that carries every call to the native side is
+/// loaded from it, on Windows as `http://<scheme>.localhost`, which Tauri's own exception for it does not match.
+pub fn guard<R: tauri::Runtime>(isolation_scheme: Option<String>) -> tauri::plugin::TauriPlugin<R> {
   tauri::plugin::Builder::new("navigation-guard")
-    .on_navigation(|_webview, url| {
-      let allowed = allowed(url, tauri::is_dev());
+    .on_navigation(move |_webview, url| {
+      let allowed = allowed_with(url, tauri::is_dev(), isolation_scheme.as_deref());
       if !allowed {
         log::warn!("refused navigation to {}://{}", url.scheme(), url.host_str().unwrap_or(""));
       }
@@ -30,12 +33,18 @@ pub fn guard<R: tauri::Runtime>() -> tauri::plugin::TauriPlugin<R> {
     .build()
 }
 
-/// Whether the window may load `url`. `dev` allows the development server's origin: true under `tauri dev` only.
+/// Whether the window may load `url`, with no isolation frame to allow (what the tests of the app's own origins ask). `dev` allows the development server's origin: true under `tauri dev` only.
+#[cfg(test)]
 pub fn allowed(url: &Url, dev: bool) -> bool {
+  allowed_with(url, dev, None)
+}
+
+/// `allowed`, and the isolation frame of this build too when its scheme is given (`isolation_csp`, DECISIONS "CORRECTION").
+pub fn allowed_with(url: &Url, dev: bool, isolation: Option<&str>) -> bool {
   // A blob address is made by our own page (an export download) and carries that page's origin after the scheme:
   // `blob:tauri://localhost/<uuid>`. It is as safe as the origin inside it, and a blob inside a blob is not allowed.
   if url.scheme() == "blob" {
-    return Url::parse(url.path()).is_ok_and(|inner| inner.scheme() != "blob" && allowed(&inner, dev));
+    return Url::parse(url.path()).is_ok_and(|inner| inner.scheme() != "blob" && allowed_with(&inner, dev, isolation));
   }
   // `http://tauri.localhost@evil.example` has the host `evil.example`; a password or name has no place in the app's own
   // address at all.
@@ -43,6 +52,13 @@ pub fn allowed(url: &Url, dev: bool) -> bool {
     return false;
   }
   let host = url.host_str().unwrap_or("");
+  if let Some(scheme) = isolation {
+    // macOS and Linux: `isolation-<id>://localhost/`; Windows and Android: `http://isolation-<id>.localhost/`. This build's id only.
+    let own_frame = (url.scheme() == scheme && host == "localhost") || (url.scheme() == "http" && host == format!("{scheme}.localhost"));
+    if own_frame && url.port().is_none() {
+      return true;
+    }
+  }
   if url.port().is_none() && APP_ORIGINS.iter().any(|(scheme, app_host)| url.scheme() == *scheme && host == *app_host) {
     return true;
   }
@@ -167,6 +183,44 @@ mod tests {
       "http://user@localhost:5173/",
     ] {
       assert!(!allowed(&url(text), true), "{text} must be refused even under `tauri dev`");
+    }
+  }
+
+  #[test]
+  fn lets_the_isolation_frame_load_in_either_shape_when_it_is_this_builds_scheme() {
+    // The frame is `isolation-<id>://localhost/` on macOS and `http://isolation-<id>.localhost/` on Windows. Tauri lets the first
+    // through by itself and its own check misses the second; the id is this build's own (a built app was stuck on "Loading…").
+    for text in ["isolation-1429cb57://localhost/", "isolation-1429cb57://localhost", "http://isolation-1429cb57.localhost/", "http://isolation-1429cb57.localhost"] {
+      assert!(allowed_with(&url(text), false, Some("isolation-1429cb57")), "{text} must be allowed");
+      assert!(!allowed_with(&url(text), false, None), "{text} must be refused when there is no isolation scheme");
+      assert!(!allowed_with(&url(text), false, Some("isolation-other")), "{text} must be refused for another build's scheme");
+    }
+  }
+
+  #[test]
+  fn does_not_let_look_alikes_of_the_isolation_frame_through() {
+    for text in [
+      "isolation-1429cb57://evil.example/",
+      "isolation-1429cb57://localhost.evil.example/",
+      "isolation-1429cb57://localhost:1234/",
+      "isolation-1429cb57://user@localhost/",
+      "http://isolation-1429cb57.localhost.evil.example/",
+      "http://isolation-1429cb57.localhost:8080/",
+      "http://user@isolation-1429cb57.localhost/",
+      "http://isolation-1429cb57.localhost@evil.example/",
+      "https://isolation-1429cb57.localhost/",
+      "http://evil.isolation-1429cb57.localhost/",
+      "http://isolation-14.localhost/",
+    ] {
+      assert!(!allowed_with(&url(text), false, Some("isolation-1429cb57")), "{text} must be refused");
+      assert!(!allowed_with(&url(text), true, Some("isolation-1429cb57")), "{text} must be refused under tauri dev too");
+    }
+  }
+
+  #[test]
+  fn keeps_every_other_answer_with_an_isolation_scheme_given() {
+    for text in ["tauri://localhost/", "http://tauri.localhost/index.html", "https://example.com/", "file:///etc/passwd", "about:blank"] {
+      assert_eq!(allowed_with(&url(text), false, Some("isolation-1429cb57")), allowed(&url(text), false), "{text}");
     }
   }
 }

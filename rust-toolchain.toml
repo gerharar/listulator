@@ -4,3 +4,5 @@
 [toolchain]
 channel = "1.98.1"
 profile = "minimal"
+# Local checks (`cargo clippy`); the Windows workflow installs by version and does not need it.
+components = ["clippy"]

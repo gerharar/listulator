@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto'
 import { existsSync, readdirSync, readFileSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { fileURLToPath } from 'node:url'
@@ -135,14 +136,14 @@ describe('the desktop window’s navigation, as the security review left it (SR-
   const code = (file: string): string => read(`src/${file}`).replace(/^\s*\/\/.*$/gm, '')
 
   it('installs the navigation hook on the app', () => {
-    expect(code('lib.rs')).toMatch(/\.plugin\(navigation::guard\(\)\)/)
+    expect(code('lib.rs')).toMatch(/\.plugin\(navigation::guard\(isolation_scheme\)\)/)
     expect(code('lib.rs')).toMatch(/^mod navigation;$/m)
   })
 
   it('has the hook ask the allow function, and stay inside the app’s own origins', () => {
     const navigation = code('navigation.rs')
 
-    expect(navigation).toMatch(/\.on_navigation\(\|_webview, url\| \{[^}]*allowed\(url, tauri::is_dev\(\)\)/)
+    expect(navigation).toMatch(/\.on_navigation\(move \|_webview, url\| \{[^}]*allowed_with\(url, tauri::is_dev\(\), isolation_scheme\.as_deref\(\)\)/)
     // The two origins of the packaged app, and the dev server under `tauri dev` only.
     expect(navigation).toContain('[("tauri", "localhost"), ("http", "tauri.localhost")]')
     expect(navigation).toContain('const DEV_ORIGIN: (&str, &str, u16) = ("http", "localhost", 5173);')
@@ -168,10 +169,44 @@ describe('the isolation hook is switched on, as the security review left it (SR-
     expect(config.app.security.freezePrototype).toBe(true)
   })
 
-  it('lets the window frame the isolation page, and nothing else', () => {
-    // Without this the CSP's `default-src 'self'` blocks the frame, no request ever leaves, and the app hangs at start.
-    // The scheme is `isolation:` on macOS and `http://isolation.localhost` on Windows.
-    expect(config.app.security.csp['frame-src']).toBe('isolation: http://isolation.localhost')
+  // Found in the first built app (Windows run 1; DECISIONS "CORRECTION"): `tauri dev` does not enforce the CSP on the dev server's
+  // pages, so a built app was the first place the isolation frame met it, and it stayed on "Loading…".
+  it('does not write the isolation frame into the CSP: its scheme is made at compile time, so the app adds it at start-up', () => {
+    // `isolation-<new id>` on every compile: no fixed `frame-src` can match it (and `isolation:` or `http://isolation.localhost` never did).
+    expect(config.app.security.csp).not.toHaveProperty('frame-src')
+    expect(config.app.security.csp).not.toHaveProperty('child-src')
+
+    const lib = read('src/lib.rs').replace(/^\s*\/\/.*$/gm, '')
+    expect(lib).toMatch(/let mut context = tauri::generate_context!\(\);/)
+    expect(lib).toMatch(/isolation_csp::allow_isolation_frame\(&mut context\)/)
+    expect(lib).toMatch(/\.build\(context\)/)
+    expect(lib.indexOf('allow_isolation_frame')).toBeLessThan(lib.indexOf('.build(context)'))
+  })
+
+  it('allows the one inline style Tauri injects to hide the isolation frame, by its hash and by nothing broader', () => {
+    // Tauri adds `<style>#__tauri_isolation__ { display: none !important }</style>` to the page; with `style-src 'self'` the browser
+    // refuses it and the frame shows at the default size ("This content is blocked").
+    const style = '#__tauri_isolation__ { display: none !important }'
+    const hash = `'sha256-${createHash('sha256').update(style).digest('base64')}'`
+
+    expect(config.app.security.csp['style-src']?.split(/\s+/)).toEqual(["'self'", hash])
+    expect(config.app.security.csp['style-src']).not.toMatch(/unsafe-inline/)
+  })
+
+  // The text is Tauri's own (`IFRAME_STYLE` in tauri-utils): a release that changed it would change the hash. Checked where its source
+  // is in cargo's registry (after the desktop app has been built on this machine); the version check of the lockfile is the gate elsewhere.
+  const tauriUtils = (() => {
+    const registry = `${homedir()}/.cargo/registry/src`
+    const version = /\[\[package\]\]\nname = "tauri-utils"\nversion = "([^"]+)"/.exec(read('Cargo.lock'))?.[1]
+    if (!version || !existsSync(registry)) return undefined
+
+    return readdirSync(registry)
+      .map((dir) => `${registry}/${dir}/tauri-utils-${version}/src/pattern/isolation.rs`)
+      .find((file) => existsSync(file))
+  })()
+
+  it.skipIf(!tauriUtils)('hashes the text Tauri injects, in the locked version of its own source', () => {
+    expect(readFileSync(tauriUtils as string, 'utf8')).toContain('pub const IFRAME_STYLE: &str = "#__tauri_isolation__ { display: none !important }";')
   })
 
   it('compiles the isolation feature into both `tauri` and `tauri-build` (the build refuses otherwise)', () => {

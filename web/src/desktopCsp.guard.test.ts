@@ -51,9 +51,11 @@ describe('the desktop window’s Content-Security-Policy', () => {
   })
 
   it('runs only the app’s own scripts and styles: nothing inline, nothing evaluated, no plugins', () => {
-    for (const directive of ['script-src', 'style-src']) {
-      expect(sources(directive)).toEqual(["'self'"])
-    }
+    expect(sources('script-src')).toEqual(["'self'"])
+    // One hash beside `'self'`: the hide-the-frame rule Tauri injects for the isolation frame (tauriCapabilities.guard.test.ts pins it).
+    expect(sources('style-src')).toHaveLength(2)
+    expect(sources('style-src')[0]).toBe("'self'")
+    expect(sources('style-src')[1]).toMatch(/^'sha256-[A-Za-z0-9+/]{43}='$/)
     expect(sources('object-src')).toEqual(["'none'"])
   })
 

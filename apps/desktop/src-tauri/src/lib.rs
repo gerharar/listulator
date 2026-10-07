@@ -2,6 +2,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Mutex;
 
 mod fullscreen;
+mod isolation_csp;
 mod navigation;
 
 /// Set at start-up when the window was left in full screen; cleared once re-entered.
@@ -23,6 +24,10 @@ fn config_dir(app: &tauri::AppHandle) -> Option<std::path::PathBuf> {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+  // The page's CSP must allow this build's own isolation frame, whose scheme is made at compile time: see `isolation_csp`.
+  let mut context = tauri::generate_context!();
+  let isolation_scheme = isolation_csp::allow_isolation_frame(&mut context);
+
   let builder = tauri::Builder::default();
   // Restores the window as it was left: size, position, maximized (F13). Full screen is
   // left out: the plugin records it at quit, which saved `false` whenever a quit landed
@@ -66,7 +71,7 @@ pub fn run() {
 
   builder
     // Keeps the window on the app's own page: nothing else may be navigated to (SR-015, navigation.rs).
-    .plugin(navigation::guard())
+    .plugin(navigation::guard(isolation_scheme))
     .plugin(tauri_plugin_sql::Builder::default().build())
     .plugin(tauri_plugin_store::Builder::default().build())
     .plugin(tauri_plugin_http::init())
@@ -121,7 +126,7 @@ pub fn run() {
       }
       Ok(())
     })
-    .build(tauri::generate_context!())
+    .build(context)
     .expect("error while building tauri application")
     .run(|_app, event| {
       // Cmd+Q: the app is quitting, and whatever the window does from here is not a choice.

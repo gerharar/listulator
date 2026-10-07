@@ -24,14 +24,13 @@
       "csp": {
         "default-src": "'self'",
         "script-src": "'self'",
-        "style-src": "'self'",
+        "style-src": "'self' 'sha256-YEercZJImS+vUX2bz7vkQ0aA4rtBIPLuCEWz+yraQ/g='",
         "img-src": "'self'",
         "font-src": "'self' data:",
         "connect-src": "'self' ipc: http://ipc.localhost https://api.themoviedb.org https://openlibrary.org https://en.wikipedia.org https://www.googleapis.com https://raw.githubusercontent.com",
         "object-src": "'none'",
         "base-uri": "'self'",
-        "form-action": "'none'",
-        "frame-src": "isolation: http://isolation.localhost"
+        "form-action": "'none'"
       },
       "pattern": {
         "use": "isolation",
