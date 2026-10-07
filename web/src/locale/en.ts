@@ -384,6 +384,8 @@ export const en = {
         usedNote: (used: string): string => `Used when you search for ${used}`,
         missNote:
           'Lists can be built without these keys, but only manually or from meatbag-curated List Vault',
+        storedNote:
+          'Your keys are stored as plain text in the app’s data folder on this computer, and sent only to the service they belong to. Removing the app’s data removes them',
         sources: {
           tmdb: {
             name: 'TMDB',

@@ -337,6 +337,8 @@ export const de: Locale = {
         usedNote: (used: string): string => `Wird verwendet, wenn du nach ${used} suchst.`,
         missNote:
           'Listen lassen sich auch ohne diese Schlüssel anlegen, aber nur von Hand oder aus dem von Fleischsäcken kuratierten List Vault.',
+        storedNote:
+          'Deine Schlüssel werden als Klartext im Datenordner der App auf diesem Computer gespeichert und nur an den Dienst gesendet, zu dem sie gehören. Wenn du die Daten der App entfernst, sind sie auch weg.',
         sources: {
           tmdb: {
             name: 'TMDB',

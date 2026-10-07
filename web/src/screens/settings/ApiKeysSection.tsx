@@ -184,6 +184,7 @@ export function ApiKeysSection({
                 <strong>{openSource.fullName}</strong>
                 <span>{text.usedNote(openSource.used)}</span>
                 <span className="dim">{text.missNote}</span>
+                <span className="dim">{text.storedNote}</span>
               </>
             ) : (
               <>

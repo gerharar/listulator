@@ -172,6 +172,19 @@ describe('ApiKeysSection', () => {
     expect(screen.getByText('Used when you search for movies, TV, animation, documentaries')).not.toBeNull()
   })
 
+  it('the ⓘ also says where the keys are kept and how they go (SR-030, SR-031)', async () => {
+    setup()
+    await ready()
+
+    act(() => within(row('TMDB')).getByRole('button', { name: 'What this key is used for' }).click())
+
+    expect(
+      screen.getByText(
+        'Your keys are stored as plain text in the app’s data folder on this computer, and sent only to the service they belong to. Removing the app’s data removes them',
+      ),
+    ).not.toBeNull()
+  })
+
   it('How? is a link out of the app to that source’s guide, marked with ↗, and opens no popover', async () => {
     setup()
     await ready()

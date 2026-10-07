@@ -166,6 +166,47 @@ Searching by channel name costs 100 units per search — about 100 a day — whi
 pasting a link or an `@handle` costs roughly 1, so the quota rarely matters in
 practice.
 
+### Your data and your keys (desktop app)
+
+The desktop app keeps everything on your computer, in one data folder named after its identifier, `com.listulator.desktop`: your
+lists (`listulator.sqlite`), your preferences, and the API keys you type into Settings (`settings.json`).
+
+**The keys are stored as plain text.** Nothing but your computer account (and the disk encryption you turned on: FileVault on a Mac,
+BitLocker on Windows) keeps another program or person at that computer from reading them. They are sent only to the service they
+belong to, and never shown in an error message. TMDB, YouTube and Comic Vine take the key in the web address, as their documentation
+asks, so that service's own logs can see it; a TMDB *read access token* (instead of the v3 key) goes in a header and avoids that.
+IGDB's secret goes in the body of its request.
+
+**Removing one key:** clear its field in Settings. The old text is gone from `settings.json` at once.
+
+**Removing everything, on Windows:** uninstall the app and tick **Delete the application data**. That removes
+`%APPDATA%\com.listulator.desktop` (lists, preferences, keys) and `%LOCALAPPDATA%\com.listulator.desktop` (the webview's own storage).
+Without the tick, the data stays for a reinstall.
+
+**Removing everything, on a Mac:** there is no uninstaller. Dragging the app to the Trash and emptying it removes the app and nothing
+else. Quit the app, then delete these folders (in Finder: Go, Go to Folder, `~/Library`):
+
+| Folder | What is in it |
+|---|---|
+| `~/Library/Application Support/com.listulator.desktop` | lists, preferences, **the keys** |
+| `~/Library/Caches/com.listulator.desktop` | the webview's cache |
+| `~/Library/WebKit/com.listulator.desktop` | the webview's storage |
+| `~/Library/Logs/com.listulator.desktop` | logs |
+
+or, in Terminal (this deletes your lists and keys too):
+
+```
+rm -rf ~/Library/{"Application Support",Caches,WebKit,Logs}/com.listulator.desktop
+```
+
+A cleaner such as AppCleaner finds the same folders by the identifier.
+
+**A Mac cache from an older version may still hold a copy of a TMDB or YouTube key**, because those two were fetched through the
+webview, which cached the answers under their web address. Newer versions ask the webview not to cache a request that carries a key.
+If you used the app before that change, delete `~/Library/Caches/com.listulator.desktop` once.
+
+The self-hosted server reads its keys from environment variables (above), not from this folder.
+
 ### Installing it on a phone
 
 The built app is a PWA — it installs to a home screen and runs without browser
