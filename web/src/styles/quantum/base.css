@@ -28,6 +28,16 @@ html {
   color-scheme: light dark;
 }
 
+/* Once a skin is chosen the page follows the skin, not the system: the native scrollbar and the form controls take
+   their colours from this, and a dark skin on a light Windows theme drew a white scrollbar (BL-079). */
+html[data-theme^="dark"] {
+  color-scheme: dark;
+}
+
+html[data-theme^="light"] {
+  color-scheme: light;
+}
+
 body {
   font-family: var(--font-sans);
   /* Tabular figures keep counts, percentages and durations from jittering as they change. */
