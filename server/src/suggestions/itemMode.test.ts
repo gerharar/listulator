@@ -19,7 +19,6 @@ function list(id: string, over: Partial<ListWithStats> = {}): ListWithStats {
     source: 'manual',
     externalRef: null,
     status: null,
-    sourceYaml: null,
     arrivedTitle: null,
     arrivedDescription: null,
     arrivedStatus: null,

@@ -6,16 +6,16 @@ import { listCanBeReset } from './resettable.js'
 
 describe('which lists can be reset to a source at all (Checkpoint C)', () => {
   it('a hand-made list cannot: it has nothing to go back to', () => {
-    expect(listCanBeReset({ source: 'manual', sourceYaml: null })).toBe(false)
+    expect(listCanBeReset({ source: 'manual', hasStoredFile: false })).toBe(false)
   })
 
   it('a file list can when its file was kept, and cannot when it was imported before the file was', () => {
-    expect(listCanBeReset({ source: 'file', sourceYaml: 'title: T' })).toBe(true)
-    expect(listCanBeReset({ source: 'file', sourceYaml: null })).toBe(false)
+    expect(listCanBeReset({ source: 'file', hasStoredFile: true })).toBe(true)
+    expect(listCanBeReset({ source: 'file', hasStoredFile: false })).toBe(false)
   })
 
   it('a fetched list and a community-library list can: their source is read when Reset runs', () => {
-    for (const source of ['api', 'llm', 'canonical'] as const) expect(listCanBeReset({ source, sourceYaml: null })).toBe(true)
+    for (const source of ['api', 'llm', 'canonical'] as const) expect(listCanBeReset({ source, hasStoredFile: false })).toBe(true)
   })
 })
 

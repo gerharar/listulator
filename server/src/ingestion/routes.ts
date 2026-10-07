@@ -10,7 +10,7 @@ import {
   findList,
   findListItems,
   findListWithStats,
-  findLists,
+  findListExternalRefs,
   type RuntimeStatsOptions,
 } from '../catalog/repository.js'
 import { sendApiError } from '../apiErrors.js'
@@ -678,9 +678,7 @@ export const ingestionRoutes: FastifyPluginAsync<IngestionRoutesOptions> = async
       throw error
     }
 
-    const tracked = new Set(
-      (await findLists(db, user.id)).flatMap((list) => (list.externalRef ? [list.externalRef] : [])),
-    )
+    const tracked = new Set(await findListExternalRefs(db, user.id))
 
     return {
       entries: untrackedLibraryEntries(manifest, tracked, new Set(mediaTypes.keys())),

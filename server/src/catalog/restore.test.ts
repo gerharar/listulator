@@ -295,7 +295,9 @@ describe('restoring what was deleted', () => {
       await restoreList(harness.db, ownerId, restore)
 
       const list = (await findListWithStats(harness.db, ownerId, rich.id))!
-      expect(list).toMatchObject({ id: rich.id, title: 'Rich', description: 'A blurb', status: 'ongoing', sourceYaml: 'title: Rich\n', source: 'file', userId: ownerId })
+      expect(list).toMatchObject({ id: rich.id, title: 'Rich', description: 'A blurb', status: 'ongoing', source: 'file', userId: ownerId })
+      // The stored file is read from the row itself: the overview deliberately does not carry it (BL-075).
+      expect((await findList(harness.db, ownerId, rich.id))?.sourceYaml).toBe('title: Rich\n')
       expect(list.snapshotFetchedAt).toEqual(new Date('2026-09-01T10:00:00.000Z'))
       expect(list.stats).toEqual(beforeStats)
       const after = (await findListItems(harness.db, ownerId, rich.id))!

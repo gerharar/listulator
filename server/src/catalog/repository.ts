@@ -1,4 +1,4 @@
-import { and, asc, count, eq, getTableColumns, inArray, max, or, sql } from 'drizzle-orm'
+import { and, asc, count, eq, getTableColumns, inArray, or, sql, type SQL } from 'drizzle-orm'
 import type { PortableDatabase } from '../db/client.js'
 import { normalizeItemTags } from './facets.js'
 import { listCanBeReset } from './resettable.js'
@@ -171,41 +171,79 @@ export interface RuntimeStatsOptions {
 }
 
 /** `canReset`: false where Reset could only fail (no stored file for a file list, a hand-made list); optional so a hand-built fixture need not carry it. */
-export type ListWithStats = List & { stats: ListStats; canReset?: boolean }
+/**
+ * A list as the overview and the single-list read give it. Never carries `sourceYaml`: that is the stored copy of an imported file,
+ * can be megabytes, and only Reset reads it (`findList`). Whether it exists is `canReset`.
+ */
+export type ListWithStats = Omit<List, 'sourceYaml'> & { stats: ListStats; canReset?: boolean }
 
 /**
- * One grouped query for any number of lists, rather than loading every item to
- * count them — the lists overview shows a completion badge per list, and this
- * keeps that a single round trip regardless of library size.
+ * The totals of every list's items, worked out once per list before the lists are joined (BL-075). They used to be worked out by
+ * joining every item row to its list and grouping, which made SQLite handle the list's whole row once per item: a list of 10,000
+ * items imported from a 700 KB file took the overview 16 to 27 s (36 to 116 s on the desktop), because the stored copy of the file
+ * was read 10,000 times. Totalled first, each list row is read once.
+ *
+ * `listIds` limits the totals to the lists wanted, so one list's read does not total the whole library.
  */
-function statsSelection() {
-  return {
-    ...getTableColumns(lists),
-    totalItems: count(listItems.id),
-    // count() over a nullable column counts only non-null values.
-    consumedItems: count(listItems.consumedAt),
-    newItems: sql<number>`coalesce(sum(${listItems.isNew}), 0)`,
-    timeRemainingMinutes: sql<number>`coalesce(sum(case when ${listItems.consumedAt} is null then ${listItems.timeToConsumeMinutes} else 0 end), 0)`,
-    // Drizzle applies the column's timestamp mapping here, so this is already
-    // a Date — do not convert it again.
-    lastConsumedAt: max(listItems.consumedAt),
-  }
+function itemTotals(db: PortableDatabase, listIds: SQL) {
+  return db
+    .select({
+      listId: listItems.listId,
+      totalItems: count(listItems.id).as('total_items'),
+      // count() over a nullable column counts only non-null values.
+      consumedItems: count(listItems.consumedAt).as('consumed_items'),
+      newItems: sql<number>`coalesce(sum(${listItems.isNew}), 0)`.as('new_items'),
+      timeRemainingMinutes: sql<number>`coalesce(sum(case when ${listItems.consumedAt} is null then ${listItems.timeToConsumeMinutes} else 0 end), 0)`.as(
+        'time_remaining_minutes',
+      ),
+      // Epoch milliseconds as stored; turned into a Date where the row is read.
+      lastConsumedAt: sql<number | null>`max(${listItems.consumedAt})`.as('last_consumed_at'),
+    })
+    .from(listItems)
+    .where(listIds)
+    .groupBy(listItems.listId)
+    .as('totals')
 }
 
-type StatsRow = List & {
+/**
+ * The list columns, but not `sourceYaml` (the stored copy of an imported file, which can be megabytes; only Reset reads it): whether
+ * one is stored is all the overview needs. One query for any number of lists, rather than loading every item to count them.
+ */
+function statsQuery(db: PortableDatabase, listIds: SQL) {
+  const { sourceYaml, ...columns } = getTableColumns(lists)
+  void sourceYaml
+  const totals = itemTotals(db, listIds)
+
+  return db
+    .select({
+      ...columns,
+      hasStoredFile: sql<number>`${lists.sourceYaml} is not null`,
+      totalItems: sql<number>`coalesce(${totals.totalItems}, 0)`,
+      consumedItems: sql<number>`coalesce(${totals.consumedItems}, 0)`,
+      newItems: sql<number>`coalesce(${totals.newItems}, 0)`,
+      timeRemainingMinutes: sql<number>`coalesce(${totals.timeRemainingMinutes}, 0)`,
+      lastConsumedAt: sql<number | null>`${totals.lastConsumedAt}`,
+    })
+    .from(lists)
+    .leftJoin(totals, eq(totals.listId, lists.id))
+}
+
+type StatsRow = Omit<List, 'sourceYaml'> & {
+  hasStoredFile: number
   totalItems: number
   consumedItems: number
   newItems: number
   timeRemainingMinutes: number
-  lastConsumedAt: Date | null
+  /** Epoch milliseconds, or null when nothing has been consumed. */
+  lastConsumedAt: number | null
 }
 
 function toListWithStats(row: StatsRow, runtimesPending = 0): ListWithStats {
-  const { totalItems, consumedItems, newItems, timeRemainingMinutes, lastConsumedAt, ...list } = row
+  const { totalItems, consumedItems, newItems, timeRemainingMinutes, lastConsumedAt, hasStoredFile, ...list } = row
 
   return {
     ...list,
-    canReset: listCanBeReset(list),
+    canReset: listCanBeReset({ source: list.source, hasStoredFile: Number(hasStoredFile) === 1 }),
     stats: {
       totalItems,
       consumedItems,
@@ -216,7 +254,7 @@ function toListWithStats(row: StatsRow, runtimesPending = 0): ListWithStats {
       completionPercent:
         totalItems === 0 ? 0 : Math.round((consumedItems / totalItems) * 1000) / 10,
       timeRemainingMinutes: Number(timeRemainingMinutes),
-      lastConsumedAt: lastConsumedAt ?? null,
+      lastConsumedAt: lastConsumedAt === null ? null : new Date(Number(lastConsumedAt)),
       runtimesPending,
     },
   }
@@ -227,12 +265,8 @@ export async function findListsWithStats(
   userId: string,
   runtimes?: RuntimeStatsOptions,
 ): Promise<ListWithStats[]> {
-  const rows = await db
-    .select(statsSelection())
-    .from(lists)
-    .leftJoin(listItems, eq(listItems.listId, lists.id))
+  const rows = await statsQuery(db, inArray(listItems.listId, db.select({ id: lists.id }).from(lists).where(eq(lists.userId, userId))))
     .where(eq(lists.userId, userId))
-    .groupBy(lists.id)
     // id breaks ties so ordering is total and stable, not just "usually right".
     .orderBy(asc(lists.createdAt), asc(lists.id))
     .all()
@@ -250,12 +284,8 @@ export async function findListWithStats(
   listId: string,
   runtimes?: RuntimeStatsOptions,
 ): Promise<ListWithStats | undefined> {
-  const row = await db
-    .select(statsSelection())
-    .from(lists)
-    .leftJoin(listItems, eq(listItems.listId, lists.id))
+  const row = await statsQuery(db, eq(listItems.listId, listId))
     .where(and(eq(lists.id, listId), eq(lists.userId, userId)))
-    .groupBy(lists.id)
     .get()
 
   if (!row) return undefined
@@ -265,6 +295,16 @@ export async function findListWithStats(
     : undefined
 
   return toListWithStats(row as StatsRow, pending?.get(listId) ?? 0)
+}
+
+/**
+ * The `externalRef` of every list the user has that has one, and nothing else: the library picker only needs these to mark what is
+ * already added, and a whole row carries the stored file (BL-075).
+ */
+export async function findListExternalRefs(db: PortableDatabase, userId: string): Promise<string[]> {
+  const rows = await db.select({ externalRef: lists.externalRef }).from(lists).where(eq(lists.userId, userId)).all()
+
+  return rows.flatMap((row) => (row.externalRef ? [row.externalRef] : []))
 }
 
 export async function findLists(db: PortableDatabase, userId: string): Promise<List[]> {
