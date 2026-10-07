@@ -1,4 +1,17 @@
 {
   "$schema": "../../../node_modules/@tauri-apps/cli/config.schema.json",
-  "identifier": "com.listulator.desktop.dev"
+  "identifier": "com.listulator.desktop.dev",
+  "app": {
+    "security": {
+      "capabilities": [
+        "default",
+        {
+          "identifier": "dev-tools",
+          "description": "Development only (tauri dev merges this file, tauri build does not): the inspector's keyboard shortcut.",
+          "windows": ["main"],
+          "permissions": ["core:webview:allow-internal-toggle-devtools"]
+        }
+      ]
+    }
+  }
 }

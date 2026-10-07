@@ -62,7 +62,10 @@ describe('the desktop capability, as the security review left it', () => {
     const identifiers = capability.permissions.map((permission) => (typeof permission === 'string' ? permission : permission.identifier))
 
     expect(identifiers).toEqual([
-      'core:default',
+      // The window's own full-screen state is followed through its resize events (`windowFullscreen.ts`), which is a
+      // listen and an unlisten; nothing else of `core:default` is called by the app (19.12.4, SR-007).
+      'core:event:allow-listen',
+      'core:event:allow-unlisten',
       'core:window:allow-set-fullscreen',
       'core:window:allow-is-fullscreen',
       'core:window:allow-close',
@@ -110,10 +113,18 @@ describe('the desktop app configuration, as the security review left it', () => 
 
   it('compiles in neither the developer tools nor the HTTP plugin’s dangerous settings', () => {
     // `devtools` is compiled out of a release build unless this feature asks for it; `dangerous-settings` would let a
-    // page turn off certificate checks on the requests the plugin makes.
+    // page turn off certificate checks on the requests the plugin makes; `unsafe-headers` would let it send the headers
+    // the fetch standard forbids (Host, Cookie, Origin, Referer, Sec-*) and drop the Origin the plugin sets (SR-006: the
+    // app's one header of interest, User-Agent, is not on that list).
     const cargo = read('Cargo.toml').replace(/^\s*#.*$/gm, '')
 
-    expect(cargo).not.toMatch(/devtools|dangerous-settings/)
+    expect(cargo).not.toMatch(/devtools|dangerous-settings|unsafe-headers/)
+  })
+
+  it('never grants the whole core permission set, only the calls the app makes', () => {
+    const identifiers = capability.permissions.map((permission) => (typeof permission === 'string' ? permission : permission.identifier))
+
+    expect(identifiers.filter((identifier) => /^core:[a-z]+:default$|^core:default$/.test(identifier))).toEqual([])
   })
 })
 
@@ -190,6 +201,33 @@ describe('the isolation hook is switched on, as the security review left it (SR-
 
     expect(identifiers).not.toContain('sql:default')
     expect(identifiers).not.toContain('sql:allow-close')
+  })
+})
+
+describe('what `tauri dev` adds, and a release does not (19.12.4)', () => {
+  // `tauri dev` merges tauri.dev.conf.json; `tauri build` never reads it. The inspector's keyboard shortcut calls a window
+  // command that `core:default` used to grant; it is granted again for development only, so a release carries no trace of it.
+  type CapabilityEntry = string | { identifier: string; windows: string[]; permissions: string[]; remote?: unknown }
+  const release = JSON.parse(read('tauri.conf.json')) as { app: { security: { capabilities?: unknown } } }
+  const dev = JSON.parse(read('tauri.dev.conf.json')) as { app?: { security?: { capabilities?: CapabilityEntry[] } } }
+
+  it('has no capability list in the release configuration (every file in capabilities/ applies)', () => {
+    expect(release.app.security.capabilities).toBeUndefined()
+  })
+
+  it('adds the inspector permission, to the main window and only for development, beside the default capability', () => {
+    const entries = (dev.app?.security?.capabilities ?? []).map((entry) =>
+      typeof entry === 'string' ? entry : { identifier: entry.identifier, windows: entry.windows, permissions: entry.permissions, remote: entry.remote },
+    )
+
+    expect(entries).toEqual([
+      'default',
+      { identifier: 'dev-tools', windows: ['main'], permissions: ['core:webview:allow-internal-toggle-devtools'], remote: undefined },
+    ])
+  })
+
+  it('does not put that permission in any capability file a release reads', () => {
+    expect(JSON.stringify(capability)).not.toContain('internal-toggle-devtools')
   })
 })
 
