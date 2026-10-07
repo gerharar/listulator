@@ -1,4 +1,5 @@
-import { readFileSync } from 'node:fs'
+import { existsSync, readdirSync, readFileSync } from 'node:fs'
+import { homedir } from 'node:os'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
 import { AUTHOR, LICENSING_URL } from './dataSources.js'
@@ -228,6 +229,54 @@ describe('what `tauri dev` adds, and a release does not (19.12.4)', () => {
 
   it('does not put that permission in any capability file a release reads', () => {
     expect(JSON.stringify(capability)).not.toContain('internal-toggle-devtools')
+  })
+})
+
+describe('the HTTP plugin’s header filter, which the app relies on to send its User-Agent (SR-006, 19.12.4)', () => {
+  // `unsafe-headers` is off, so the plugin drops the headers the fetch standard forbids. Our User-Agent (MusicBrainz asks for an
+  // identifying one) gets through only because that list does not name it. A plugin update could change the list and the
+  // plugin would then send its own default instead, with nothing failing but a connector's terms.
+
+  /** The version of tauri-plugin-http whose filter was read and whose behaviour probe P8 showed (DECISIONS "Security review fix 19.12.4"). */
+  const VERIFIED_VERSION = '2.6.0'
+
+  const lockedVersion = (lock: string): string | undefined => /\[\[package\]\]\nname = "tauri-plugin-http"\nversion = "([^"]+)"/.exec(lock)?.[1]
+
+  /** The text of the plugin's `is_unsafe_header`, the list of headers it drops. */
+  const filterOf = (commandsSource: string): string | undefined => /fn is_unsafe_header[\s\S]*?\n\}\n/.exec(commandsSource)?.[0]
+
+  it('is still the version whose filter was read; a new one needs probe P8 repeated first', () => {
+    expect(
+      lockedVersion(read('Cargo.lock')),
+      [
+        `tauri-plugin-http is no longer ${VERIFIED_VERSION}. Before updating VERIFIED_VERSION in this test, repeat probe P8`,
+        '(docs/security-review.md, section 12: an echo host in the http:default scope, `tauri dev`, the P8 script) and read',
+        '`is_unsafe_header` in the new version: our User-Agent must arrive and must not be on the plugin’s forbidden list.',
+      ].join(' '),
+    ).toBe(VERIFIED_VERSION)
+  })
+
+  it('finds the filter and the User-Agent in none of it (the check itself, on made-up sources)', () => {
+    expect(filterOf('fn is_unsafe_header(h: &HeaderName) -> bool {\n    matches!(*h, header::COOKIE | header::HOST)\n}\n')).toBeDefined()
+    expect(filterOf('fn is_unsafe_header(h: &HeaderName) -> bool {\n    matches!(*h, header::COOKIE | header::USER_AGENT)\n}\n')).toMatch(/USER_AGENT/)
+    expect(filterOf('fn something_else() {}\n')).toBeUndefined()
+  })
+
+  // The plugin's source is in cargo's registry once the desktop app has been built on this machine; a fresh checkout has none, and
+  // the version check above is then the only gate.
+  const registry = `${homedir()}/.cargo/registry/src`
+  const sourceFile = existsSync(registry)
+    ? readdirSync(registry)
+        .map((dir) => `${registry}/${dir}/tauri-plugin-http-${VERIFIED_VERSION}/src/commands.rs`)
+        .find((file) => existsSync(file))
+    : undefined
+
+  it.skipIf(!sourceFile)('does not list user-agent among the headers it drops, in the verified version’s own source', () => {
+    const filter = filterOf(readFileSync(sourceFile as string, 'utf8'))
+
+    expect(filter).toBeDefined()
+    expect(filter).toContain('header::COOKIE')
+    expect(filter).not.toMatch(/user[-_]agent/i)
   })
 })
 
