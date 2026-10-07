@@ -115,6 +115,25 @@ function workflowProblems(workflow: Workflow): string[] {
     if (/\bnpx\b/.test(run)) problems.push(`job ${job}: a run: script uses npx`)
   }
 
+  // The toolchain is the one the repository names, never "whatever is current today" (SR-041): Node comes from `.node-version`,
+  // Rust from `rust-toolchain.toml`, and a build resolves its dependencies from the committed lockfiles or fails (`--locked`).
+  for (const { job, step } of steps.filter(({ step }) => step.uses?.startsWith('actions/setup-node@'))) {
+    if (step.with?.['node-version'] !== undefined) problems.push(`job ${job}: setup-node names a node-version (read .node-version instead)`)
+    if (step.with?.['node-version-file'] !== '.node-version') problems.push(`job ${job}: setup-node does not read .node-version`)
+  }
+  for (const { job, step } of steps.filter(({ step }) => step.run !== undefined)) {
+    const run = step.run!
+    if (/\brustup\s+(toolchain\s+install|default|update|override)\b/.test(run)) {
+      if (/\b(stable|beta|nightly)\b/.test(run)) problems.push(`job ${job}: rustup is given a moving channel (stable, beta or nightly)`)
+      if (!run.includes('rust-toolchain.toml')) problems.push(`job ${job}: rustup does not take its version from rust-toolchain.toml`)
+    }
+    for (const line of run.split('\n')) {
+      if (/\b(tauri:build|tauri build|cargo\s+(build|test|run|check|clippy|install|bench))\b/.test(line) && !/--locked\b/.test(line)) {
+        problems.push(`job ${job}: \`${line.trim().slice(0, 70)}\` is not run with --locked`)
+      }
+    }
+  }
+
   // No secret, and no token handed on, in any spelling: the key `secrets:` of a reusable-workflow call
   // (`secrets: inherit`), `${{ secrets.X }}`, `secrets['X']`, `toJSON(secrets)`, `github.token`, `GITHUB_TOKEN`.
   for (const [name, job] of jobs) if (job.secrets !== undefined) problems.push(`job ${name} passes secrets`)
@@ -158,6 +177,22 @@ jobs:
         env:
           PROFILE: \${{ inputs.profile || 'release' }}
         run: npm ci --ignore-scripts
+      - uses: actions/setup-node@${sha('c')} # v1
+        with:
+          node-version-file: .node-version
+      - name: Rust
+        shell: pwsh
+        run: |
+          $channel = (Select-String -Path rust-toolchain.toml -Pattern '^channel').Line
+          rustup toolchain install $channel --profile minimal --no-self-update
+      - name: Installer
+        shell: pwsh
+        run: |
+          if ($true) {
+            npm run tauri:build -w @listulator/desktop -- --bundles nsis --debug -- --locked
+          } else {
+            npm run tauri:build -w @listulator/desktop -- --bundles nsis -- --locked
+          }
       - uses: actions/upload-artifact@${sha('b')} # v1
         with:
           name: x
@@ -205,6 +240,17 @@ describe('the rules for a workflow, proven on hostile workflows', () => {
     ['a job that may fail quietly', (t) => t.replace('    runs-on: windows-latest', '    runs-on: windows-latest\n    continue-on-error: true'), /continue-on-error/],
     ['a step that may fail quietly', (t) => t.replace('        run: npm ci --ignore-scripts', '        continue-on-error: true\n        run: npm ci --ignore-scripts'), /continue-on-error/],
     ['an environment', (t) => t.replace('    runs-on: windows-latest', '    runs-on: windows-latest\n    environment: release'), /uses an environment/],
+    ['a node version named in the workflow', (t) => t.replace('node-version-file: .node-version', 'node-version: 26'), /names a node-version/],
+    ['a node version range', (t) => t.replace('node-version-file: .node-version', 'node-version: ">=20"\n          node-version-file: .node-version'), /names a node-version/],
+    ['a node version file that is not .node-version', (t) => t.replace('node-version-file: .node-version', 'node-version-file: package.json'), /does not read .node-version/],
+    ['rustup given stable', (t) => t.replace('rustup toolchain install $channel --profile minimal --no-self-update', 'rustup toolchain install stable --profile minimal rust-toolchain.toml'), /moving channel/],
+    ['rustup default stable', (t) => t.replace('rustup toolchain install $channel --profile minimal --no-self-update', 'rustup default stable # rust-toolchain.toml'), /moving channel/],
+    ['rustup given a nightly', (t) => t.replace('rustup toolchain install $channel --profile minimal --no-self-update', 'rustup toolchain install nightly # rust-toolchain.toml'), /moving channel/],
+    ['rustup with a version written in the workflow, not read from the file', (t) => t.replace("$channel = (Select-String -Path rust-toolchain.toml -Pattern '^channel').Line\n          rustup toolchain install $channel", 'rustup toolchain install 1.98.1'), /does not take its version from rust-toolchain.toml/],
+    ['a tauri build without --locked (the release branch)', (t) => t.replace('--bundles nsis -- --locked', '--bundles nsis'), /not run with --locked/],
+    ['a tauri build without --locked (the debug branch)', (t) => t.replace('--debug -- --locked', '--debug'), /not run with --locked/],
+    ['a cargo build without --locked', (t) => t.replace('run: npm ci --ignore-scripts', 'run: cargo build --release'), /not run with --locked/],
+    ['a cargo test without --locked', (t) => t.replace('run: npm ci --ignore-scripts', 'run: cargo test'), /not run with --locked/],
   ]
 
   it.each(hostile)('refuse %s', (_name, change, expected) => {
@@ -228,3 +274,40 @@ describe('GitHub Actions workflows', () => {
     expect(workflowProblems(workflow)).toEqual([])
   })
 })
+
+/**
+ * The versions the repository builds with are written down once each and are exact (security review, Phase 19, SR-041): the compiler in
+ * `rust-toolchain.toml`, Node in `.node-version`. The workflow reads both (the rules above), Cargo's own `rust-version` agrees with the
+ * compiler, so a bump is one deliberate commit that changes these files together and says why in docs/DECISIONS.md.
+ */
+describe('the pinned toolchain', () => {
+  const ROOT = join(import.meta.dirname, '../..')
+  const EXACT = /^\d+\.\d+\.\d+$/
+  const read = (path: string) => readFileSync(join(ROOT, path), 'utf8')
+  const toolchain = read('rust-toolchain.toml')
+  const channel = /^channel\s*=\s*"([^"]+)"/m.exec(toolchain)?.[1]
+
+  it('names Node exactly, once, in .node-version', () => {
+    expect(read('.node-version').trim()).toMatch(EXACT)
+  })
+
+  it('names the Rust compiler exactly, once, in rust-toolchain.toml, with the minimal profile', () => {
+    expect(channel).toMatch(EXACT)
+    expect(toolchain).toMatch(/^profile\s*=\s*"minimal"/m)
+    // The settings, not the comments (which explain why "stable" is not used).
+    expect(toolchain.replace(/^\s*#.*$/gm, '')).not.toMatch(/\b(stable|beta|nightly)\b/)
+  })
+
+  it('has Cargo.toml say the same compiler as its minimum (a lower number was never tried)', () => {
+    expect(/^rust-version\s*=\s*"([^"]+)"/m.exec(read('apps/desktop/src-tauri/Cargo.toml'))?.[1]).toBe(channel)
+  })
+
+  it('is what the root package says it runs on: Node at the version file or above within the same major', () => {
+    const engines = (JSON.parse(read('package.json')) as { engines?: { node?: string } }).engines?.node ?? ''
+    const major = Number(read('.node-version').trim().split('.')[0])
+
+    expect(engines).toMatch(/^>=\d+/)
+    expect(Number(engines.replace(/^>=/, ''))).toBeLessThanOrEqual(major)
+  })
+})
+

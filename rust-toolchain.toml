@@ -1,0 +1,6 @@
+# The Rust compiler every build uses, locally and in the Windows workflow (security review SR-041, docs/DECISIONS.md "19.12.11").
+# Exact on purpose: "stable" is whichever release is current on the day, so two builds of the same commit could differ.
+# To change it: this line, `rust-version` in apps/desktop/src-tauri/Cargo.toml (a test keeps them equal), then a DECISIONS line.
+[toolchain]
+channel = "1.98.1"
+profile = "minimal"

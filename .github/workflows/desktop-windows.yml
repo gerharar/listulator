@@ -36,9 +36,11 @@ jobs:
         with:
           persist-credentials: false
 
+      # The Node version is the one in .node-version (exact), the same file a local build reads: a Node release between two
+      # runs must not change the installer (SR-041).
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
-          node-version: 26
+          node-version-file: .node-version
           cache: npm
 
       # No install scripts: the only native one is the server's better-sqlite3 (compiled from source by node-gyp,
@@ -47,22 +49,31 @@ jobs:
       - name: Install dependencies
         run: npm ci --ignore-scripts
 
-      - name: Rust (the runner's own rustup)
+      # The compiler is the one in rust-toolchain.toml (exact), read from the file so the version is written in one place;
+      # `stable` would be whichever release is current on the day of the run (SR-041).
+      - name: Rust (the version in rust-toolchain.toml, on the runner's own rustup)
+        shell: pwsh
         run: |
-          rustup toolchain install stable --profile minimal --no-self-update
-          rustup default stable
+          $channel = (Select-String -Path rust-toolchain.toml -Pattern '^channel\s*=\s*"([^"]+)"').Matches[0].Groups[1].Value
+          if ($channel -notmatch '^\d+\.\d+\.\d+$') { throw "rust-toolchain.toml does not name an exact version: $channel" }
+          rustup toolchain install $channel --profile minimal --no-self-update
+          rustup default $channel
+          rustc --version
+          cargo --version
 
       # bundle.targets is "all" in tauri.conf.json (the .app and .dmg on macOS); here only the NSIS installer.
       # The profile reaches the script through env, never pasted into it (ciWorkflows.guard.test.ts).
+      # The second `--` hands `--locked` to cargo: a Cargo.lock that disagrees with Cargo.toml fails the build instead of being
+      # re-resolved silently (SR-041). The local macOS build is made the same way.
       - name: Build the installer
         shell: pwsh
         env:
           PROFILE: ${{ inputs.profile || 'release' }}
         run: |
           if ($env:PROFILE -eq 'debug') {
-            npm run tauri:build -w @listulator/desktop -- --bundles nsis --debug
+            npm run tauri:build -w @listulator/desktop -- --bundles nsis --debug -- --locked
           } else {
-            npm run tauri:build -w @listulator/desktop -- --bundles nsis
+            npm run tauri:build -w @listulator/desktop -- --bundles nsis -- --locked
           }
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
