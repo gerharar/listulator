@@ -222,6 +222,75 @@ describe('the SQL text (SR-002; probe P3b: ATTACH reaches any database file)', (
     expect(isRefused(sql('select', query))).toBe(true)
   })
 
+  // The reader above is not SQLite's lexer, so any place where SQLite groups characters differently from it is a place text
+  // can be read as "inside a string" by one and as code by the other (review of the fix batch, 2026-10-07). SQLite reads a
+  // parameter mark followed by a name and a bracket (`$a(`, `@a(`, `:a(`, `#a(`) as one token that swallows quotes, `;` and
+  // `--` up to the next space or `)`. The app sends only `$N` (and `?`, `?N`), so the reader accepts nothing else: any other
+  // parameter form, and any character that SQL itself does not use, is refused instead of skipped as punctuation.
+  describe('parameter marks and characters SQLite groups in its own way', () => {
+    const refusedShapes: [string, string][] = [
+      ['a named `$` parameter with a bracket', 'SELECT $a(x)'],
+      ['a numbered `$` parameter with a bracket', 'SELECT $1(x)'],
+      ['an `@` parameter with a bracket', 'SELECT @a(x)'],
+      ['a `:` parameter with a bracket', 'SELECT :a(x)'],
+      ['a `#` parameter with a bracket', 'SELECT #a(x)'],
+      ['a lone quote after such a parameter', "SELECT $1(')"],
+      ['a lone double quote after such a parameter', 'SELECT $1(")'],
+      ['a lone quote after an `@` parameter', "SELECT @a(')"],
+      ['a lone quote after a `:` parameter', "SELECT :a(')"],
+      ['a `$` parameter with a name', 'SELECT $a FROM lists'],
+      ['a `$` parameter that is a number then a name', 'SELECT $1a FROM lists'],
+      ['a `$` parameter that is a number then `::`', 'SELECT $1::a FROM lists'],
+      ['a `$` with nothing after it', 'SELECT $ FROM lists'],
+      ['an `@` parameter', 'SELECT @a FROM lists'],
+      ['a `:` parameter', 'SELECT :a FROM lists'],
+      ['a `#` mark', 'SELECT #a FROM lists'],
+      ['a backslash outside a string', 'SELECT \\ FROM lists'],
+      ['a caret', 'SELECT 1 ^ 2'],
+      ['a curly bracket', 'SELECT {1}'],
+      ['a closing square bracket on its own', 'SELECT 1]'],
+    ]
+
+    it.each(refusedShapes)('refuses %s', (_name, query) => {
+      expect(isRefused(sql('execute', query))).toBe(true)
+      expect(isRefused(sql('select', query))).toBe(true)
+    })
+
+    it('refuses these marks even where a hostile word would follow in the text', () => {
+      for (const mark of ['$a(', '$1(', '@a(', ':a(', '#a(']) {
+        expect(isRefused(sql('execute', `SELECT ${mark}x) FROM lists`)), mark).toBe(true)
+      }
+    })
+
+    it('still lets the parameter forms the app sends through, next to every kind of neighbour', () => {
+      for (const query of [
+        'select * from "lists" where "id" = $1',
+        'select * from "lists" where "id" = $12 and "name" = $2',
+        'select * from "lists" where ("id" = $1)',
+        'select * from "lists" where "id" in ($1, $2, $3)',
+        'select lower($1) from "lists"',
+        'select * from "lists" where "id" = $1;',
+        'insert into "t" ("a", "b") values ($1, $2) returning "a"',
+        'select * from "lists" where "id" = ?',
+        'select * from "lists" where "id" = ?1 and "name" = ?2',
+        'select "a" || "b", "a" <> "b", "a" != "b", "a" >= 1, -1, 2 * 3 / 4 % 5, 1 << 2, ~1, 1 & 2, 1 | 2 from "t"',
+      ]) {
+        expect(passes(sql('execute', query)), query).toBe(true)
+      }
+    })
+
+    it('does not refuse these characters inside a string, a quoted name or a comment', () => {
+      for (const query of [
+        "SELECT '$a(', '@x', ':y', '#z', '\\', '{', '^' FROM lists",
+        'SELECT "$a(", "@x", "a:b" FROM lists',
+        'SELECT 1 /* $a( @x :y #z */',
+        'SELECT 1 -- $a( @x :y #z',
+      ]) {
+        expect(passes(sql('execute', query)), query).toBe(true)
+      }
+    })
+  })
+
   it('does not refuse a keyword that is only a word inside a string, a quoted name or a comment', () => {
     for (const query of [
       "SELECT 'ATTACH', 'vacuum' FROM lists",

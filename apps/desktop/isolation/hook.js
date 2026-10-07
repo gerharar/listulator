@@ -62,6 +62,8 @@
   var FORBIDDEN_WORDS = ['attach', 'detach', 'vacuum', 'load_extension', 'fts3_tokenizer']
   var WORD = /[A-Za-z_\u0080-\uffff][A-Za-z0-9_$\u0080-\uffff]*/y
   var NUMBER = /[0-9][0-9.]*/y
+  var PARAMETER = /\$[0-9]+(?![A-Za-z0-9_$\u0080-\uffff(:])/y
+  var PUNCTUATION = '(),.*=<>!+-/%|&~?'
   var UNSAFE_TEXT = /[^\t\n\f\r\u0020-\u007e\u0080-\uffff]/
 
   /**
@@ -121,9 +123,23 @@
         if (number) {
           tokens.push('<number>')
           at += number[0].length
-        } else {
-          at += 1 // punctuation: an operator, a bracket, a comma, the mark of a parameter
+          continue
         }
+        // A parameter the app sends: `$1`, `$12` (Drizzle's form). SQLite reads `$` + a name + `(` as ONE token that runs on
+        // past quotes, `;` and `--` to the next space or `)`, and `$1::x` the same way, so a `$N` that is followed by a name
+        // character, `(` or `:` is not the form the app sends and is refused, not guessed at.
+        PARAMETER.lastIndex = at
+        var parameter = PARAMETER.exec(query)
+        if (parameter) {
+          at += parameter[0].length
+          continue
+        }
+        // Every other character is either an operator or a bracket SQL itself uses (`?` and `?N` are parameter marks that
+        // end at the digits), or something this reader does not know: `@`, `:`, `#` start parameters whose spelling SQLite
+        // reads differently from this reader, and `\`, `^`, `{`, `}`, a stray `]`, a lone `$` are not SQL. A character this
+        // reader would only skip is a character it could be wrong about, so it is refused.
+        if (PUNCTUATION.indexOf(c) < 0) return 'character the reader does not know'
+        at += 1
       }
     }
 
