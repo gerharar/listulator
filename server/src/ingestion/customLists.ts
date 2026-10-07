@@ -274,8 +274,21 @@ const CANONICAL_REPO_OWNER = 'gerharar'
 const CANONICAL_REPO_NAME = 'listulator'
 const CANONICAL_REPO_BRANCH = 'main'
 
-function canonicalRawUrl(path: string): string {
+/** The address a path would have, unchecked: `isSafeCanonicalPath` compares what the URL parser makes of it. */
+function rawUrlOf(path: string): string {
   return `https://raw.githubusercontent.com/${CANONICAL_REPO_OWNER}/${CANONICAL_REPO_NAME}/${CANONICAL_REPO_BRANCH}/${path}`
+}
+
+/**
+ * The one place a request address to the canonical repository is made, and it checks the path itself (security
+ * review SR-053): the guard used to be applied by each caller, so a new caller that forgot it would have let a
+ * list's `externalRef` pick a path the URL parser rewrites into another repository. Callers still check first
+ * where they want to reply with their own error; this makes the check impossible to forget.
+ */
+function canonicalRawUrl(path: string): string {
+  if (!isSafeCanonicalPath(path)) throw new CustomListParseError('list.fileInvalid')
+
+  return rawUrlOf(path)
 }
 
 /**
@@ -294,7 +307,7 @@ export function isSafeCanonicalPath(path: string): boolean {
   if (path.length === 0 || path.startsWith('/') || /[\\:%?#]/.test(path)) return false
   if (!path.split('/').every((segment) => segment !== '..' && segment !== '.')) return false
 
-  return new URL(canonicalRawUrl(path)).pathname === `/${CANONICAL_REPO_OWNER}/${CANONICAL_REPO_NAME}/${CANONICAL_REPO_BRANCH}/${path}`
+  return new URL(rawUrlOf(path)).pathname === `/${CANONICAL_REPO_OWNER}/${CANONICAL_REPO_NAME}/${CANONICAL_REPO_BRANCH}/${path}`
 }
 
 export interface CanonicalListEntry {

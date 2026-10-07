@@ -370,29 +370,33 @@ items:
   })
 })
 
+/** Every kind of path the guard has to refuse: shared by the guard's own tests and by the functions that fetch. */
+const UNSAFE_PATHS: [string, string][] = [
+
+  ['empty string', ''],
+  ['leading slash', '/etc/passwd'],
+  ['parent-directory traversal', '../../other-repo/main/secret.yaml'],
+  ['a traversal segment mid-path', 'lists/../../../secret.yaml'],
+  ['a scheme', 'https://evil.example/x.yaml'],
+  ['a backslash', 'lists\\..\\..\\secret.yaml'],
+  // Review 2026-10-04: `fetch`'s URL parser reads %2e%2e as "..", so this reached another repo's file.
+  ['an encoded traversal', '%2e%2e/%2e%2e/%2e%2e/evil/repo/main/x.yaml'],
+  ['a half-encoded traversal', '.%2E/.%2E/.%2E/evil/repo/main/x.yaml'],
+  ['an encoded slash', 'lists%2F..%2F..%2Fsecret.yaml'],
+  ['a query', 'lists/x.yaml?ref=other'],
+  ['a fragment', 'lists/x.yaml#x'],
+  // Passes the character check: the URL parser drops the tab, and ".\t." becomes "..". Only the comparison of the
+  // URL requested with the path as written catches it.
+  ['a traversal split by a tab', '.\t./.\t./.\t./evil/repo/main/x.yaml'],
+  ['a name the URL would rewrite (a space)', 'lists/my list.yaml'],
+]
+
 describe('isSafeCanonicalPath', () => {
   it('accepts a plain relative path', () => {
     expect(isSafeCanonicalPath('lists/mega/marvel-cinematic-universe.yaml')).toBe(true)
   })
 
-  it.each([
-    ['empty string', ''],
-    ['leading slash', '/etc/passwd'],
-    ['parent-directory traversal', '../../other-repo/main/secret.yaml'],
-    ['a traversal segment mid-path', 'lists/../../../secret.yaml'],
-    ['a scheme', 'https://evil.example/x.yaml'],
-    ['a backslash', 'lists\\..\\..\\secret.yaml'],
-    // Review 2026-10-04: `fetch`'s URL parser reads %2e%2e as "..", so this reached another repo's file.
-    ['an encoded traversal', '%2e%2e/%2e%2e/%2e%2e/evil/repo/main/x.yaml'],
-    ['a half-encoded traversal', '.%2E/.%2E/.%2E/evil/repo/main/x.yaml'],
-    ['an encoded slash', 'lists%2F..%2F..%2Fsecret.yaml'],
-    ['a query', 'lists/x.yaml?ref=other'],
-    ['a fragment', 'lists/x.yaml#x'],
-    // Passes the character check: the URL parser drops the tab, and ".\t." becomes "..". Only the comparison of the
-    // URL requested with the path as written catches it.
-    ['a traversal split by a tab', '.\t./.\t./.\t./evil/repo/main/x.yaml'],
-    ['a name the URL would rewrite (a space)', 'lists/my list.yaml'],
-  ])('rejects %s', (_label, path) => {
+  it.each(UNSAFE_PATHS)('rejects %s', (_label, path) => {
     expect(isSafeCanonicalPath(path)).toBe(false)
   })
 
@@ -578,12 +582,40 @@ describe('fetchCanonicalList', () => {
       fetchCanonicalList('lists/x.yaml', new Set(['mega']), respondWithText('404: Not Found', 404)),
     ).rejects.toThrow(IngestionError)
   })
+
+  // SR-053 (security review): the guard used to sit in each caller, so a new caller that forgot it could make a
+  // reference choose a path the URL parser turns into another repository. The function that builds the URL checks.
+  it.each(UNSAFE_PATHS)('refuses %s itself, and sends no request', async (_label, path) => {
+    const fetchImpl = respondWithText('title: X\ncategory: mega\nitems:\n  - { title: A }\n')
+
+    await expect(fetchCanonicalList(path, new Set(['mega']), fetchImpl)).rejects.toMatchObject({
+      name: 'CustomListParseError',
+      code: 'list.fileInvalid',
+    })
+    expect(fetchImpl).not.toHaveBeenCalled()
+  })
+
+  it('asks for the file by its exact path on the one repository and branch', async () => {
+    const fetchImpl = respondWithText('title: X\ncategory: mega\nitems:\n  - { title: A }\n')
+
+    await fetchCanonicalList('lists/mega/mcu.yaml', new Set(['mega']), fetchImpl)
+
+    expect(fetchImpl).toHaveBeenCalledTimes(1)
+    expect(vi.mocked(fetchImpl).mock.calls[0]![0]).toBe('https://raw.githubusercontent.com/gerharar/listulator/main/lists/mega/mcu.yaml')
+  })
 })
 
 describe('expandCanonicalList', () => {
   function respondWithText(body: string, status = 200): FetchLike {
     return vi.fn(async () => new Response(body, { status }))
   }
+
+  it.each(UNSAFE_PATHS)('refuses %s itself, and sends no request (SR-053)', async (_label, path) => {
+    const fetchImpl = respondWithText('title: X\ncategory: mega\nitems:\n  - { title: A }\n')
+
+    await expect(expandCanonicalList(path, new Set(['mega']), fetchImpl)).rejects.toMatchObject({ code: 'list.fileInvalid' })
+    expect(fetchImpl).not.toHaveBeenCalled()
+  })
 
   it('carries tags through into the candidate shape, same as group', () => {
     const yaml = `
