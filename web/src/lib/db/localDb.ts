@@ -35,36 +35,90 @@ function orderedMigrations(): { tag: string; sql: string }[] {
 }
 
 /**
+ * What SQLite answers when a statement that has already run is run again, for the kinds of statement a migration holds.
+ * Only the one statement that may have run before a crash is judged by this (see `runLocalMigrations`); anything else it
+ * answers is a real error and stops the start.
+ */
+export function alreadyApplied(statement: string, error: unknown): boolean {
+  const kind = statement
+    .replace(/--[^\n]*(\n|$)/g, ' ')
+    .replace(/\/\*[\s\S]*?\*\//g, ' ')
+    .trim()
+    .toUpperCase()
+  const message = error instanceof Error ? error.message : String(error)
+
+  if (/^ALTER\s+TABLE\b[\s\S]*\bDROP\s+COLUMN\b/.test(kind)) return /no such column/i.test(message)
+  if (/^ALTER\s+TABLE\b[\s\S]*\bADD\b/.test(kind)) return /duplicate column name/i.test(message)
+  if (/^CREATE\b/.test(kind)) return /already exists/i.test(message)
+  if (/^DROP\b/.test(kind)) return /no such (table|index)/i.test(message)
+  // A single INSERT is all or nothing, so a unique key it now trips over is its own earlier rows (the backfill of 0015).
+  if (/^INSERT\b/.test(kind)) return /UNIQUE constraint failed/i.test(message)
+
+  return false
+}
+
+/**
  * Own tracking table, deliberately not Drizzle's `__drizzle_migrations` name
  * — that name implies Drizzle's migrator wrote it, and it did not.
+ *
+ * A migration file is applied statement by statement and its tag is recorded last. A transaction would make that atomic
+ * but is not available: the isolation hook refuses `BEGIN` and a second statement in one call, and the plugin's pool may
+ * give each call another connection. So a process killed in the middle used to leave the schema half changed with the tag
+ * missing, and every start then ran the same statements again and failed ("duplicate column name") for ever (BL-082).
+ * Progress is therefore recorded as rows of the same table: `<tag>#start` before the first statement, `<tag>#<n>` after
+ * statement n, and the plain tag when all are done (the progress rows are then removed). On a start that finds `#start`
+ * without the tag, the statements with a row are skipped, and the next one, the only one that may have run without its
+ * row being written, is allowed to answer "already done" (`alreadyApplied`). Every other failure stops the start, and so
+ * does any failure on a first attempt.
  */
 async function runLocalMigrations(connection: Database): Promise<void> {
   await connection.execute(
     'CREATE TABLE IF NOT EXISTS __local_migrations (tag text PRIMARY KEY NOT NULL, applied_at integer NOT NULL)',
   )
 
-  const applied = new Set(
+  const recorded = new Set(
     (await connection.select<{ tag: string }[]>('SELECT tag FROM __local_migrations')).map(
       (row) => row.tag,
     ),
   )
 
+  const record = (tag: string) =>
+    connection.execute('INSERT INTO __local_migrations (tag, applied_at) VALUES ($1, $2)', [tag, Date.now()])
+  const forgetProgress = (tag: string) =>
+    connection.execute('DELETE FROM __local_migrations WHERE tag LIKE $1', [`${tag}#%`])
+
   for (const { tag, sql } of orderedMigrations()) {
-    if (applied.has(tag)) continue
+    if (recorded.has(tag)) {
+      // Done, but the process may have died before it cleared its progress rows.
+      if (recorded.has(`${tag}#start`)) await forgetProgress(tag)
+      continue
+    }
 
     const statements = sql
       .split('--> statement-breakpoint')
       .map((statement) => statement.trim())
       .filter(Boolean)
 
-    for (const statement of statements) {
-      await connection.execute(statement)
+    const resuming = recorded.has(`${tag}#start`)
+    let next = 0
+    while (next < statements.length && recorded.has(`${tag}#${next}`)) next += 1
+
+    if (!resuming) await record(`${tag}#start`)
+
+    for (let index = next; index < statements.length; index += 1) {
+      const statement = statements[index]!
+
+      try {
+        await connection.execute(statement)
+      } catch (error) {
+        if (!(resuming && index === next && alreadyApplied(statement, error))) throw error
+      }
+
+      await record(`${tag}#${index}`)
     }
 
-    await connection.execute('INSERT INTO __local_migrations (tag, applied_at) VALUES ($1, $2)', [
-      tag,
-      Date.now(),
-    ])
+    await record(tag)
+    await forgetProgress(tag)
   }
 }
 
