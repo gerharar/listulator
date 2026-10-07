@@ -43,3 +43,35 @@ describe('what an adapter throws when its upstream echoes the request', () => {
     for (const secret of SECRET_PARTS) expect(message).not.toContain(secret)
   })
 })
+
+/** And none of them is cached by the webview (SR-059): the key is in the address of TMDB's, YouTube's and Comic Vine's requests. */
+describe('what an adapter asks of the cache', () => {
+  const recording = (): { fetchImpl: FetchLike; inits: RequestInit[] } => {
+    const inits: RequestInit[] = []
+
+    return {
+      inits,
+      fetchImpl: async (url, init) => {
+        inits.push(init ?? {})
+
+        return echoing(url, init)
+      },
+    }
+  }
+
+  const cases: [string, (fetchImpl: FetchLike) => Promise<unknown>][] = [
+    ['TMDB with an api key', (fetchImpl) => createTmdbAdapter({ apiKey: KEY, readAccessToken: undefined }, {}, fetchImpl).search('Alien')],
+    ['TMDB with a read access token', (fetchImpl) => createTmdbAdapter({ apiKey: undefined, readAccessToken: KEY }, {}, fetchImpl).search('Alien')],
+    ['YouTube', (fetchImpl) => createYouTubeAdapter({ apiKey: KEY }, fetchImpl, { sleep: async () => undefined }).search('Alien')],
+    ['Comic Vine', (fetchImpl) => createComicVineAdapter({ apiKey: KEY }, fetchImpl, { sleep: async () => undefined }).search('Alien')],
+  ]
+
+  it.each(cases)('%s asks for no copy to be kept', async (_name, call) => {
+    const { fetchImpl, inits } = recording()
+    await thrownBy(() => call(fetchImpl))
+
+    expect(inits.length).toBeGreaterThan(0)
+    expect(inits.map((init) => init.cache)).toEqual(inits.map(() => 'no-store'))
+  })
+})
+

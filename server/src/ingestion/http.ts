@@ -209,6 +209,9 @@ async function request<T>(
         ...headers,
       },
       ...(body === undefined ? {} : { body }),
+      // The webview keys its cache by address, and a key in the address would be written into it, where "remove my keys" and an
+      // uninstall do not reach (SR-059). A request with no credential (the library's files) stays cacheable.
+      ...(credentials.length > 0 ? { cache: 'no-store' as const } : {}),
       signal: controller.signal,
     })
   }

@@ -436,3 +436,60 @@ describe('a credential the upstream echoes in an error is not shown', () => {
     expect(message).not.toContain(SECRET)
   })
 })
+
+/**
+ * A request that carries a credential is made so that the webview keeps no copy (security review, Phase 19, SR-059). TMDB and YouTube
+ * put the key in the address, and WebKit's network cache is keyed by the address: the owner's TMDB key was found in 198 of 346 cache
+ * files under `~/Library/Caches`, where "remove my keys" and an uninstall do not reach it.
+ */
+describe('a request with a credential asks not to be cached', () => {
+  const seen = (): { fetchImpl: FetchLike; inits: RequestInit[] } => {
+    const inits: RequestInit[] = []
+
+    return {
+      inits,
+      fetchImpl: async (_url, init) => {
+        inits.push(init ?? {})
+
+        return new Response('{}', { status: 200 })
+      },
+    }
+  }
+
+  it.each([
+    ['a key in the address', 'https://api.example.test/x?api_key=SECRETKEY123456', {}],
+    ['Google’s key in the address', 'https://api.example.test/x?part=snippet&key=SECRETKEY123456', {}],
+    ['an Authorization header', 'https://api.example.test/x', { headers: { authorization: 'Bearer SECRETKEY123456' } }],
+    ['a key header', 'https://api.example.test/x', { headers: { 'x-api-key': 'SECRETKEY123456' } }],
+    ['a secret in a form body', 'https://id.example.test/token', { method: 'POST' as const, body: 'client_id=CLIENTID7777777&client_secret=SECRETKEY123456' }],
+  ])('has `cache: "no-store"` for %s', async (_name, url, options) => {
+    const { fetchImpl, inits } = seen()
+    await getJson(url, { source: 'Example', fetchImpl, ...options })
+
+    expect(inits[0]?.cache).toBe('no-store')
+  })
+
+  it.each([
+    ['a plain address', 'https://api.example.test/x?query=Alien', {}],
+    ['the library’s file', 'https://raw.example.test/lists/index.json', {}],
+    ['a short value under a credential-like name', 'https://api.example.test/x?key=abc', {}],
+  ])('leaves the cache alone for %s', async (_name, url, options) => {
+    const { fetchImpl, inits } = seen()
+    await getText(url, { source: 'Example', fetchImpl, ...options })
+
+    expect(inits[0]).not.toHaveProperty('cache')
+  })
+
+  it('asks the same of the retry without a User-Agent', async () => {
+    const inits: RequestInit[] = []
+    const fetchImpl: FetchLike = async (_url, init) => {
+      inits.push(init ?? {})
+      if (inits.length === 1) throw new TypeError('the first attempt fails, as WebKit does with a User-Agent')
+
+      return new Response('{}', { status: 200 })
+    }
+    await getJson('https://api.example.test/x?api_key=SECRETKEY123456', { source: 'Example', fetchImpl })
+
+    expect(inits.map((init) => init.cache)).toEqual(['no-store', 'no-store'])
+  })
+})
