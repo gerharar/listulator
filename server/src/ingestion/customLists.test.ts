@@ -834,6 +834,17 @@ describe('parseCustomList refuses what would corrupt or freeze a list', () => {
       }
     })
 
+    it('reads a title or group written as a YAML block as the text it holds, without the line break the block ends in', () => {
+      const list = parseCustomList(file('  - title: |\n      Heat\n    group: >\n      The 90s\n    notes: |\n      two\n      lines\n'), CATEGORIES)
+
+      expect(list.items[0]).toMatchObject({ title: 'Heat', group: 'The 90s', notes: 'two\nlines' })
+    })
+
+    it('drops the line break a block ends in, and keeps the spaces a title was written with', () => {
+      expect(parseCustomList(file('  - title: "  Heat  "\n    group: " 90s "'), CATEGORIES).items[0]).toMatchObject({ title: '  Heat  ', group: ' 90s ' })
+      expect(parseCustomList(file('  - title: "Heat\\n\\n"'), CATEGORIES).items[0]).toMatchObject({ title: 'Heat' })
+    })
+
     it('does not refuse text people really write: emoji sequences, Persian and Hebrew, composed or decomposed accents', () => {
       for (const title of ['"\\U0001F468\\u200D\\U0001F469\\u200D\\U0001F467 Family"', '"\\u0645\\u06CC\\u200C\\u062E\\u0648\\u0627\\u0647\\u0645"', '"\\u05E9\\u05DC\\u05D5\\u05DD\\u200F (1990)"', '"\\u0627\\u0644\\u0639\\u0631\\u0628\\u064A\\u0629\\u061C"', '"Cafe\\u0301"', '"Caf\\u00E9"', 'Dr. No', '"Amelie: the 1st \\"cut\\""']) {
         expect(refusal(file(`  - title: ${title}`)), title).toBeUndefined()

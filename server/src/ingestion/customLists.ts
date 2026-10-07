@@ -281,14 +281,18 @@ export function parseCustomList(
     }
 
     // The same rules wherever a row is made (`itemFromFile`); here a bad file is refused whole, naming the item and the field.
-    checkText(`${named}: "title"`, itemTitle, { max: NAME_MAX_LENGTH })
+    // A title or group written as a YAML block ends in a line break; that is dropped (and nothing else: a title with spaces at
+    // either end survives an export and an import, exportList.test.ts), so it is not mistaken for a hazard.
+    const cleanTitle = itemTitle.replace(/[\r\n]+$/, '')
+    const cleanGroup = group?.replace(/[\r\n]+$/, '')
+    checkText(`${named}: "title"`, cleanTitle, { max: NAME_MAX_LENGTH })
     if (year !== undefined && validYear(year) === undefined) {
       invalid(`${named}: "year" must be a whole number from ${YEAR_RANGE[0]} to ${YEAR_RANGE[1]}, but it is ${describeValue(year)}`)
     }
     if (minutes !== undefined && validMinutes(minutes) === undefined) {
       invalid(`${named}: "minutes" must be a whole number from ${MINUTES_RANGE[0]} to ${MINUTES_RANGE[1]}, but it is ${describeValue(minutes)}`)
     }
-    if (group !== undefined) checkText(`${named}: "group"`, group, { max: NAME_MAX_LENGTH })
+    if (cleanGroup !== undefined) checkText(`${named}: "group"`, cleanGroup, { max: NAME_MAX_LENGTH })
     if (tags !== undefined) {
       if (tags.length > TAGS_MAX) invalid(`${named}: "tags" has more than ${TAGS_MAX} entries`)
       ;(tags as string[]).forEach((tag, tagIndex) => checkText(`${named}: "tags" entry ${tagIndex + 1}`, tag, { max: TAG_MAX_LENGTH }))
@@ -296,10 +300,10 @@ export function parseCustomList(
     if (trimmedNotes !== undefined) checkText(`${named}: "notes"`, trimmedNotes, { multiline: true })
 
     return {
-      title: itemTitle,
+      title: cleanTitle,
       ...(year !== undefined ? { year } : {}),
       ...(minutes !== undefined ? { minutes } : {}),
-      ...(group !== undefined ? { group } : {}),
+      ...(cleanGroup !== undefined ? { group: cleanGroup } : {}),
       ...(tags !== undefined ? { tags: tags as string[] } : {}),
       ...(trimmedNotes !== undefined ? { notes: trimmedNotes } : {}),
     }
