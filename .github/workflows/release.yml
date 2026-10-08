@@ -3,7 +3,7 @@
 # Runs when a version tag is pushed (v1.0.0, v1.0.0-rc.1) and on nothing else: no branch, no pull request, no button, no
 # input. Who may create such a tag is a repository ruleset (only the owner). server/src/ciWorkflows.guard.test.ts holds the
 # rest to account and fails if any of it slips:
-# - The build job has `contents: read`, no secret and no token, and checks out the tag without keeping credentials.
+# - The build jobs (Windows and macOS) have `contents: read`, no secret and no token, and check out the tag without keeping credentials.
 # - The only job that may write is `publish`, and only `contents: write`, to create a DRAFT Release. Publishing it, and
 #   editing it afterwards, is a person clicking on GitHub; nothing here un-drafts or edits a Release.
 # - A tag is released only if its commit is on `main` and the tag is exactly v + the version in package.json, so a tag on a
@@ -26,7 +26,7 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  build:
+  build-windows:
     runs-on: windows-2025
     timeout-minutes: 60
     permissions:
@@ -90,8 +90,83 @@ jobs:
           if-no-files-found: error
           retention-days: 3
 
+  build-macos:
+    # An Apple-silicon image (macos-15 is arm64; the Intel images carry an -intel suffix). The app is arm64 only (20.1).
+    runs-on: macos-15
+    timeout-minutes: 60
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+
+      - name: The tag is a release of main, at this version
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          if ! git merge-base --is-ancestor "$GITHUB_SHA" origin/main; then echo "The commit tagged $TAG is not on main"; exit 1; fi
+          VERSION="$(plutil -extract version raw -o - package.json)"
+          if [ "v$VERSION" != "$TAG" ]; then echo "The tag is $TAG but package.json says version $VERSION"; exit 1; fi
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .node-version
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+
+      - name: Rust (the version in rust-toolchain.toml, on the runner's own rustup)
+        run: |
+          channel="$(sed -n 's/^channel *= *"\([^"]*\)".*/\1/p' rust-toolchain.toml)"
+          if ! [[ "$channel" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then echo "rust-toolchain.toml does not name an exact version: $channel"; exit 1; fi
+          rustup toolchain install "$channel" --profile minimal --no-self-update
+          rustup default "$channel"
+          rustc --version
+          cargo --version
+
+      - name: Build the app and the disk image
+        run: |
+          if [ "$(uname -m)" != arm64 ]; then echo "This runner is not Apple silicon"; exit 1; fi
+          npm run tauri:build -w @listulator/desktop -- --bundles app,dmg -- --locked
+
+      - name: Check the pages register no service worker
+        run: |
+          if grep -lE 'registerSW|serviceWorker\.register' web/dist/index.html web/dist/assets/*.js; then echo "The desktop build registers a service worker"; exit 1; fi
+
+      # What the bundle may hold (the 16.4 audit, as a check on every release): the app is arm64 only, sealed (ad-hoc, 20.1),
+      # asks for macOS 11.0 or newer, carries the tag's version, and ships only the icon and the three notice files: no .env,
+      # database or lists folder. A key could only get in from a file that is not in a clean checkout.
+      - name: Audit the bundle
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          app="apps/desktop/src-tauri/target/release/bundle/macos/Listulator.app"
+          plist="$app/Contents/Info.plist"
+          fail() { echo "AUDIT FAILED: $1"; exit 1; }
+
+          [ "$(lipo -archs "$app/Contents/MacOS/listulator-desktop")" = arm64 ] || fail "the executable is not arm64 only"
+          codesign --verify --deep --strict --verbose=2 "$app" || fail "the seal is broken"
+          [ "$(plutil -extract LSMinimumSystemVersion raw -o - "$plist")" = 11.0 ] || fail "minimum macOS is not 11.0"
+          [ "v$(plutil -extract CFBundleShortVersionString raw -o - "$plist")" = "$TAG" ] || fail "the app's version is not the tag's"
+          [ "$(ls -A "$app/Contents/Resources" | LC_ALL=C sort | tr '\n' ' ')" = "LICENSE NOTICE.md THIRD-PARTY-NOTICES.txt icon.icns " ] || fail "Resources holds something unexpected"
+          [ -z "$(find "$app" \( -name '.env*' -o -name '*.sqlite*' -o -name lists \) -print)" ] || fail "a .env, database or lists folder is inside"
+
+          for dmg in apps/desktop/src-tauri/target/release/bundle/dmg/*.dmg; do hdiutil verify "$dmg" || fail "the disk image does not verify"; done
+          du -sh "$app"
+          shasum -a 256 apps/desktop/src-tauri/target/release/bundle/dmg/*.dmg
+
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: listulator-macos-dmg
+          path: apps/desktop/src-tauri/target/release/bundle/dmg/*.dmg
+          if-no-files-found: error
+          retention-days: 3
+
   publish:
-    needs: build
+    needs: [build-windows, build-macos]
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     permissions:
@@ -112,11 +187,11 @@ jobs:
           TAG: ${{ github.ref_name }}
         run: |
           cd dist
-          sha256sum -- *.exe > SHA256SUMS
+          sha256sum -- *.exe *.dmg > SHA256SUMS
           cat SHA256SUMS
           args=()
           if [[ "$TAG" == *-* ]]; then args+=(--prerelease); fi
           gh release create "$TAG" --draft --verify-tag "${args[@]}" \
             --title "Listulator $TAG" \
             --notes "Draft made by the release workflow from the tag. Write the notes, check the files, then publish." \
-            -- *.exe SHA256SUMS
+            -- *.exe *.dmg SHA256SUMS

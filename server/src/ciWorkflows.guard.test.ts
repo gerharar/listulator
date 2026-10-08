@@ -192,8 +192,12 @@ function releaseProblems(jobs: [string, Job][], steps: { job: string; step: Step
   else if (publish.needs === undefined) problems.push('job publish does not wait for the builds (needs)')
 
   const runs = steps.filter(({ step }) => step.run !== undefined).map(({ job, step }) => ({ job, run: step.run! }))
-  if (!runs.some(({ run }) => /git merge-base --is-ancestor/.test(run))) problems.push('never checks that the tagged commit is on main (git merge-base --is-ancestor)')
-  if (!runs.some(({ run }) => /package\.json/.test(run))) problems.push('never checks that the tag matches the version in package.json')
+  // Every job that builds an installer checks, before building, that the tag is a release of main at this version.
+  for (const [name] of jobs.filter(([name]) => name !== 'publish')) {
+    const own = runs.filter(({ job }) => job === name)
+    if (!own.some(({ run }) => /git merge-base --is-ancestor/.test(run))) problems.push(`job ${name} never checks that the tagged commit is on main (git merge-base --is-ancestor)`)
+    if (!own.some(({ run }) => /\b(Get-Content|plutil|jq|node)\b[^\n]*package\.json/.test(run))) problems.push(`job ${name} never checks that the tag matches the version in package.json`)
+  }
 
   for (const { job, run } of runs) {
     if (/\bgh\s+release\b/.test(run) && job !== 'publish') problems.push(`job ${job}: uses gh release (only publish creates a Release)`)
@@ -355,8 +359,30 @@ jobs:
           name: installer
           path: x
           retention-days: 3
+  build-macos:
+    runs-on: macos-15
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@${sha('a')} # v1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - name: The tag is a release of main
+        env:
+          TAG: \${{ github.ref_name }}
+        run: |
+          git merge-base --is-ancestor "$GITHUB_SHA" origin/main
+          test "v$(node -p "require('./package.json').version")" = "$TAG"
+      - name: Installer
+        run: npm run tauri:build -w @listulator/desktop -- --bundles app,dmg -- --locked
+      - uses: actions/upload-artifact@${sha('b')} # v1
+        with:
+          name: dmg
+          path: y
+          retention-days: 3
   publish:
-    needs: build
+    needs: [build, build-macos]
     runs-on: ubuntu-24.04
     permissions:
       contents: write
@@ -394,7 +420,7 @@ describe('the rules for the release workflow, proven on hostile workflows', () =
     ['the token in the build job', (t) => t.replace('          TAG: ${{ github.ref_name }}\n        run: |\n          git merge', '          TAG: ${{ github.ref_name }}\n          GH_TOKEN: ${{ github.token }}\n        run: |\n          git merge'), /secret or the token/],
     ['the token under another name in publish', (t) => t.replace('GH_TOKEN: ${{ github.token }}', 'OTHER: ${{ github.token }}'), /secret or the token/],
     ['a secret in publish', (t) => t.replace('GH_TOKEN: ${{ github.token }}', 'GH_TOKEN: ${{ secrets.PAT }}'), /secret or the token/],
-    ['an environment', (t) => t.replace('  publish:\n    needs: build', '  publish:\n    needs: build\n    environment: release'), /uses an environment/],
+    ['an environment', (t) => t.replace('  publish:\n    needs: [build, build-macos]', '  publish:\n    needs: [build, build-macos]\n    environment: release'), /uses an environment/],
     ['an action named by tag', (t) => t.replace(`actions/download-artifact@${sha('d')} # v1`, 'actions/download-artifact@v8'), /not a GitHub-owned action pinned/],
     ['an action from another owner', (t) => t.replace(`actions/download-artifact@${sha('d')}`, `softprops/action-gh-release@${sha('d')}`), /not a GitHub-owned action pinned/],
     ['a Release that is not a draft', (t) => t.replace('--draft ', ''), /without --draft/],
@@ -403,8 +429,12 @@ describe('the rules for the release workflow, proven on hostile workflows', () =
     ['gh release in the build job', (t) => t.replace('          git merge-base', '          gh release list\n          git merge-base'), /uses gh release/],
     ['no check that the commit is on main', (t) => t.replace('git merge-base --is-ancestor $env:GITHUB_SHA origin/main', 'git log -1'), /on main/],
     ['no check that the tag is the version', (t) => t.replace('package.json', 'something.json'), /matches the version/],
+    ['the macOS job without the ancestry check', (t) => t.replace('git merge-base --is-ancestor "$GITHUB_SHA" origin/main', 'git log -1'), /job build-macos never checks.*on main/],
+    ['the macOS job without the version check', (t) => t.replace("test \"v$(node -p \"require('./package.json').version\")\" = \"$TAG\"", 'true'), /job build-macos never checks.*version in package.json/],
+    ['a moving macOS image', (t) => t.replace('macos-15', 'macos-latest'), /names its image/],
+    ['a macOS build that may write', (t) => t.replace('  build-macos:\n    runs-on: macos-15\n    permissions:\n      contents: read', '  build-macos:\n    runs-on: macos-15\n    permissions:\n      contents: write'), /job build-macos widens/],
     ['no publish job', (t) => t.replace('  publish:', '  other:'), /no job named publish/],
-    ['a publish job that does not wait', (t) => t.replace('    needs: build\n', ''), /does not wait/],
+    ['a publish job that does not wait', (t) => t.replace('    needs: [build, build-macos]\n', ''), /does not wait/],
     ['the tag pasted into a script', (t) => t.replace('gh release create "$TAG"', 'gh release create ${{ github.ref_name }}'), /contains \$\{\{/],
     ['an artifact kept a month', (t) => t.replace('retention-days: 3', 'retention-days: 30'), /retention-days/],
     ['a build without --locked', (t) => t.replace('--bundles nsis -- --locked', '--bundles nsis'), /not run with --locked/],
