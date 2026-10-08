@@ -253,6 +253,14 @@
     "status": "complete"
   },
   {
+    "path": "lists/mega/deadwood-all.yaml",
+    "title": "Deadwood franchise (release order)",
+    "category": "mega",
+    "itemCount": 37,
+    "description": "All releases in the Deadwood franchise, including the movie",
+    "status": "complete"
+  },
+  {
     "path": "lists/mega/dekalog-complete.yaml",
     "title": "Dekalog collection",
     "category": "mega",
