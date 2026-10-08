@@ -1,0 +1,122 @@
+# Builds the installers for a release and drafts the GitHub Release (Phase 20, tasks 20.4 to 20.6, docs/DECISIONS.md).
+#
+# Runs when a version tag is pushed (v1.0.0, v1.0.0-rc.1) and on nothing else: no branch, no pull request, no button, no
+# input. Who may create such a tag is a repository ruleset (only the owner). server/src/ciWorkflows.guard.test.ts holds the
+# rest to account and fails if any of it slips:
+# - The build job has `contents: read`, no secret and no token, and checks out the tag without keeping credentials.
+# - The only job that may write is `publish`, and only `contents: write`, to create a DRAFT Release. Publishing it, and
+#   editing it afterwards, is a person clicking on GitHub; nothing here un-drafts or edits a Release.
+# - A tag is released only if its commit is on `main` and the tag is exactly v + the version in package.json, so a tag on a
+#   side branch or a typo cannot produce an installer.
+# - Only GitHub's own actions, each pinned by full commit SHA (the version in the comment beside it), on a numbered runner
+#   image (a moving `-latest` can change the operating system between two releases).
+# - The toolchain is the one named in .node-version and rust-toolchain.toml, and the build runs with --locked (SR-041).
+
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: windows-2025
+    timeout-minutes: 60
+    permissions:
+      contents: read
+    steps:
+      # The whole history, because the next step asks whether the tagged commit is on main.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+
+      - name: The tag is a release of main, at this version
+        shell: pwsh
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          git merge-base --is-ancestor $env:GITHUB_SHA origin/main
+          if ($LASTEXITCODE -ne 0) { throw "The commit tagged $env:TAG is not on main" }
+          $version = (Get-Content package.json -Raw | ConvertFrom-Json).version
+          if ("v$version" -ne $env:TAG) { throw "The tag is $env:TAG but package.json says version $version" }
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .node-version
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+
+      - name: Rust (the version in rust-toolchain.toml, on the runner's own rustup)
+        shell: pwsh
+        run: |
+          $channel = (Select-String -Path rust-toolchain.toml -Pattern '^channel\s*=\s*"([^"]+)"').Matches[0].Groups[1].Value
+          if ($channel -notmatch '^\d+\.\d+\.\d+$') { throw "rust-toolchain.toml does not name an exact version: $channel" }
+          rustup toolchain install $channel --profile minimal --no-self-update
+          rustup default $channel
+          rustc --version
+          cargo --version
+
+      - name: Build the installer
+        shell: pwsh
+        run: |
+          npm run tauri:build -w @listulator/desktop -- --bundles nsis -- --locked
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Check the pages register no service worker
+        shell: pwsh
+        run: |
+          $found = Select-String -Path web/dist/index.html, web/dist/assets/*.js -Pattern 'registerSW', 'serviceWorker.register' -SimpleMatch
+          if ($found) { $found | Format-Table Path, LineNumber -AutoSize; throw 'The desktop build registers a service worker' }
+
+      - name: List what was built, with its SHA-256
+        shell: pwsh
+        run: |
+          Get-ChildItem apps/desktop/src-tauri/target/release/bundle/nsis/*.exe | Get-FileHash -Algorithm SHA256 | Format-Table Hash, Path -AutoSize
+
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: listulator-windows-nsis
+          path: apps/desktop/src-tauri/target/release/bundle/nsis/*.exe
+          if-no-files-found: error
+          retention-days: 3
+
+  publish:
+    needs: build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          pattern: listulator-*
+          merge-multiple: true
+          path: dist
+
+      # No checkout: the job only handles the built files and talks to GitHub, so GH_REPO names the repository for the CLI.
+      # The token is handed to the CLI here and nowhere else (ciWorkflows.guard.test.ts), and the Release is a DRAFT.
+      - name: Draft the Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          cd dist
+          sha256sum -- *.exe > SHA256SUMS
+          cat SHA256SUMS
+          args=()
+          if [[ "$TAG" == *-* ]]; then args+=(--prerelease); fi
+          gh release create "$TAG" --draft --verify-tag "${args[@]}" \
+            --title "Listulator $TAG" \
+            --notes "Draft made by the release workflow from the tag. Write the notes, check the files, then publish." \
+            -- *.exe SHA256SUMS

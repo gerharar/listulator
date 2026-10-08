@@ -21,6 +21,16 @@ const WORKFLOWS = join(import.meta.dirname, '../../.github/workflows')
 const PINNED_GITHUB_ACTION = /^actions\/[\w.-]+(\/[\w./-]+)?@[0-9a-f]{40}$/
 /** A GitHub-hosted runner. A self-hosted runner on a public repository runs whatever a workflow says, on a machine. */
 const HOSTED_RUNNER = /^(windows|macos|ubuntu)-(latest|\d[\w.]*)$/
+/** The release workflow names its image: `-latest` moves to a new operating system on GitHub's schedule, mid-release (20.4). */
+const NUMBERED_RUNNER = /^(windows|macos|ubuntu)-\d[\w.]*$/
+/** The release workflow runs on a pushed version tag and on nothing else (Phase 20, task 20.4): no branch, no button, no input. */
+const RELEASE_TRIGGER = JSON.stringify({ push: { tags: ['v*'] } })
+
+/**
+ * `manual`: a test build, started by hand, read-only, no token (Phase 17). `release`: runs on a pushed `v*` tag, builds with read-only
+ * permissions and no token, and one job, `publish`, may write to the repository to create a DRAFT Release (Phase 20, task 20.4).
+ */
+type Profile = 'manual' | 'release'
 /** The longest an artifact may live: a test build is unannounced, not a release (DECISIONS 2026-10-05). */
 const MAX_RETENTION_DAYS = 7
 
@@ -32,6 +42,7 @@ interface Step {
 }
 
 interface Job {
+  needs?: unknown
   'runs-on'?: unknown
   permissions?: unknown
   uses?: string
@@ -59,21 +70,26 @@ function strings(value: unknown, key = ''): [string, string][] {
 }
 
 /** Every rule a workflow breaks, as sentences; empty when it breaks none. */
-function workflowProblems(workflow: Workflow): string[] {
+function workflowProblems(workflow: Workflow, profile: Profile = 'manual'): string[] {
   const problems: string[] = []
   const jobs = Object.entries(workflow.jobs)
   const steps = jobs.flatMap(([name, job]) => (job.steps ?? []).map((step) => ({ job: name, step })))
 
   // Started by hand only: no push or pull-request trigger, so no stranger's change is ever built.
   const triggers = typeof workflow.on === 'string' ? [workflow.on] : Object.keys((workflow.on ?? {}) as object)
-  if (JSON.stringify(triggers) !== JSON.stringify(['workflow_dispatch'])) {
+  if (profile === 'manual' && JSON.stringify(triggers) !== JSON.stringify(['workflow_dispatch'])) {
     problems.push(`is started by ${triggers.join(', ') || 'nothing'}, not by hand only (workflow_dispatch)`)
+  }
+  if (profile === 'release' && JSON.stringify(workflow.on) !== RELEASE_TRIGGER) {
+    problems.push(`is started by ${JSON.stringify(workflow.on)}, not only by a pushed v* tag`)
   }
 
   // Reads the repository and nothing more.
   if (JSON.stringify(workflow.permissions) !== JSON.stringify({ contents: 'read' })) problems.push('does not have permissions: { contents: read }')
   for (const [name, job] of jobs) {
-    if (job.permissions !== undefined && JSON.stringify(job.permissions) !== JSON.stringify({ contents: 'read' })) {
+    // Only `publish` may write, and only contents (a draft Release); a build job never does.
+    const allowed = profile === 'release' && name === 'publish' ? [{ contents: 'read' }, { contents: 'write' }] : [{ contents: 'read' }]
+    if (job.permissions !== undefined && !allowed.some((set) => JSON.stringify(set) === JSON.stringify(job.permissions))) {
       problems.push(`job ${name} widens its permissions`)
     }
   }
@@ -87,6 +103,8 @@ function workflowProblems(workflow: Workflow): string[] {
   for (const [name, job] of jobs) {
     if (typeof job['runs-on'] !== 'string' || !HOSTED_RUNNER.test(job['runs-on'])) {
       problems.push(`job ${name} runs on ${JSON.stringify(job['runs-on'])}, not a GitHub-hosted runner`)
+    } else if (profile === 'release' && !NUMBERED_RUNNER.test(job['runs-on'])) {
+      problems.push(`job ${name} runs on ${job['runs-on']}: a release names its image (windows-2025), never -latest`)
     }
   }
 
@@ -137,9 +155,16 @@ function workflowProblems(workflow: Workflow): string[] {
   // No secret, and no token handed on, in any spelling: the key `secrets:` of a reusable-workflow call
   // (`secrets: inherit`), `${{ secrets.X }}`, `secrets['X']`, `toJSON(secrets)`, `github.token`, `GITHUB_TOKEN`.
   for (const [name, job] of jobs) if (job.secrets !== undefined) problems.push(`job ${name} passes secrets`)
-  for (const [key, text] of strings(workflow)) {
-    if (/\$\{\{[^}]*\bsecrets\b/.test(text) || /\bgithub\.token\b|\bGITHUB_TOKEN\b/.test(text)) {
-      problems.push(`${key || 'a value'} reaches for a secret or the token: ${text.slice(0, 60)}`)
+  // The release workflow's `publish` job hands the token to the GitHub CLI as GH_TOKEN, once, to create the draft; nowhere else.
+  const rest = Object.fromEntries(Object.entries(workflow).filter(([key]) => key !== 'jobs'))
+  const scopes: [string, unknown][] = [['', rest], ...jobs.map(([name, job]): [string, unknown] => [name, job])]
+  for (const [scope, value] of scopes) {
+    for (const [key, text] of strings(value)) {
+      const token = /\bgithub\.token\b|\bGITHUB_TOKEN\b/.test(text)
+      const handed = profile === 'release' && scope === 'publish' && key === 'GH_TOKEN' && text === '${{ github.token }}'
+      if (/\$\{\{[^}]*\bsecrets\b/.test(text) || (token && !handed)) {
+        problems.push(`${key || 'a value'} reaches for a secret or the token: ${text.slice(0, 60)}`)
+      }
     }
   }
 
@@ -149,6 +174,32 @@ function workflowProblems(workflow: Workflow): string[] {
     if (job.environment !== undefined) problems.push(`job ${name} uses an environment`)
   }
   for (const { job, step } of steps) if (step['continue-on-error'] !== undefined) problems.push(`job ${job}: a step sets continue-on-error`)
+
+  if (profile === 'release') problems.push(...releaseProblems(jobs, steps))
+
+  return problems
+}
+
+/**
+ * What only the release workflow must do (Phase 20, task 20.4). A Release is created as a DRAFT and never published or edited by the
+ * workflow, so going public is a human click on GitHub; the commit being released must be on `main`, and its version must be the tag's.
+ */
+function releaseProblems(jobs: [string, Job][], steps: { job: string; step: Step }[]): string[] {
+  const problems: string[] = []
+  const publish = jobs.find(([name]) => name === 'publish')?.[1]
+
+  if (publish === undefined) problems.push('has no job named publish (the only job that may write)')
+  else if (publish.needs === undefined) problems.push('job publish does not wait for the builds (needs)')
+
+  const runs = steps.filter(({ step }) => step.run !== undefined).map(({ job, step }) => ({ job, run: step.run! }))
+  if (!runs.some(({ run }) => /git merge-base --is-ancestor/.test(run))) problems.push('never checks that the tagged commit is on main (git merge-base --is-ancestor)')
+  if (!runs.some(({ run }) => /package\.json/.test(run))) problems.push('never checks that the tag matches the version in package.json')
+
+  for (const { job, run } of runs) {
+    if (/\bgh\s+release\b/.test(run) && job !== 'publish') problems.push(`job ${job}: uses gh release (only publish creates a Release)`)
+    if (/\bgh\s+release\s+create\b/.test(run) && !/--draft(?!=)/.test(run)) problems.push(`job ${job}: gh release create without --draft`)
+    if (/--draft=false|\bgh\s+release\s+(edit|delete)\b/.test(run)) problems.push(`job ${job}: edits or deletes a Release or un-drafts it (publishing is a human click)`)
+  }
 
   return problems
 }
@@ -261,17 +312,128 @@ describe('the rules for a workflow, proven on hostile workflows', () => {
   })
 })
 
+
+/** A release workflow that breaks no rule; each hostile one below changes one thing in it. */
+const GOOD_RELEASE = `
+name: Release
+on:
+  push:
+    tags: ['v*']
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: windows-2025
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@${sha('a')} # v1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - name: The tag is a release of main
+        shell: pwsh
+        env:
+          TAG: \${{ github.ref_name }}
+        run: |
+          git merge-base --is-ancestor $env:GITHUB_SHA origin/main
+          $version = (Get-Content package.json | ConvertFrom-Json).version
+          if ("v$version" -ne $env:TAG) { throw 'tag and version differ' }
+      - uses: actions/setup-node@${sha('c')} # v1
+        with:
+          node-version-file: .node-version
+      - name: Rust
+        shell: pwsh
+        run: |
+          $channel = (Select-String -Path rust-toolchain.toml -Pattern '^channel').Line
+          rustup toolchain install $channel --profile minimal --no-self-update
+      - name: Installer
+        shell: pwsh
+        run: npm run tauri:build -w @listulator/desktop -- --bundles nsis -- --locked
+      - uses: actions/upload-artifact@${sha('b')} # v1
+        with:
+          name: installer
+          path: x
+          retention-days: 3
+  publish:
+    needs: build
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@${sha('d')} # v1
+        with:
+          name: installer
+      - name: Draft the Release
+        env:
+          GH_TOKEN: \${{ github.token }}
+          TAG: \${{ github.ref_name }}
+        run: |
+          sha256sum * > SHA256SUMS
+          gh release create "$TAG" --draft --verify-tag --title "Listulator $TAG" --notes "Draft" *
+`
+
+describe('the rules for the release workflow, proven on hostile workflows', () => {
+  const release = (text: string) => workflowProblems(parse(text), 'release')
+
+  it('accept a release workflow that breaks none', () => {
+    expect(release(GOOD_RELEASE)).toEqual([])
+  })
+
+  const hostile: [string, (text: string) => string, RegExp][] = [
+    ['a branch trigger as well', (t) => t.replace("    tags: ['v*']", "    tags: ['v*']\n    branches: [main]"), /not only by a pushed v\* tag/],
+    ['a push to any branch instead of a tag', (t) => t.replace("    tags: ['v*']", '    branches: [main]'), /not only by a pushed v\* tag/],
+    ['a pull request trigger as well', (t) => t.replace('  push:', '  pull_request:\n  push:'), /not only by a pushed v\* tag/],
+    ['a button with a debug input', (t) => t.replace('  push:', '  workflow_dispatch:\n    inputs:\n      debug:\n        type: boolean\n  push:'), /not only by a pushed v\* tag/],
+    ['any tag, not only v*', (t) => t.replace("tags: ['v*']", "tags: ['*']"), /not only by a pushed v\* tag/],
+    ['write permission for the whole workflow', (t) => t.replace('permissions:\n  contents: read\njobs:', 'permissions:\n  contents: write\njobs:'), /permissions: \{ contents: read \}/],
+    ['write permission in the build job', (t) => t.replace('    runs-on: windows-2025\n    permissions:\n      contents: read', '    runs-on: windows-2025\n    permissions:\n      contents: write'), /job build widens/],
+    ['an id-token in the build job', (t) => t.replace('    runs-on: windows-2025\n    permissions:\n      contents: read', '    runs-on: windows-2025\n    permissions:\n      contents: read\n      id-token: write'), /job build widens/],
+    ['more than contents in the publish job', (t) => t.replace('      contents: write', '      contents: write\n      attestations: write'), /job publish widens/],
+    ['a moving runner image', (t) => t.replace('windows-2025', 'windows-latest'), /names its image/],
+    ['the token in the build job', (t) => t.replace('          TAG: ${{ github.ref_name }}\n        run: |\n          git merge', '          TAG: ${{ github.ref_name }}\n          GH_TOKEN: ${{ github.token }}\n        run: |\n          git merge'), /secret or the token/],
+    ['the token under another name in publish', (t) => t.replace('GH_TOKEN: ${{ github.token }}', 'OTHER: ${{ github.token }}'), /secret or the token/],
+    ['a secret in publish', (t) => t.replace('GH_TOKEN: ${{ github.token }}', 'GH_TOKEN: ${{ secrets.PAT }}'), /secret or the token/],
+    ['an environment', (t) => t.replace('  publish:\n    needs: build', '  publish:\n    needs: build\n    environment: release'), /uses an environment/],
+    ['an action named by tag', (t) => t.replace(`actions/download-artifact@${sha('d')} # v1`, 'actions/download-artifact@v8'), /not a GitHub-owned action pinned/],
+    ['an action from another owner', (t) => t.replace(`actions/download-artifact@${sha('d')}`, `softprops/action-gh-release@${sha('d')}`), /not a GitHub-owned action pinned/],
+    ['a Release that is not a draft', (t) => t.replace('--draft ', ''), /without --draft/],
+    ['a Release published after it is drafted', (t) => t.replace('--draft ', '--draft=false '), /un-drafts/],
+    ['a Release edited afterwards', (t) => t.replace('sha256sum * > SHA256SUMS', 'gh release edit "$TAG" --latest\n          sha256sum * > SHA256SUMS'), /edits or deletes/],
+    ['gh release in the build job', (t) => t.replace('          git merge-base', '          gh release list\n          git merge-base'), /uses gh release/],
+    ['no check that the commit is on main', (t) => t.replace('git merge-base --is-ancestor $env:GITHUB_SHA origin/main', 'git log -1'), /on main/],
+    ['no check that the tag is the version', (t) => t.replace('package.json', 'something.json'), /matches the version/],
+    ['no publish job', (t) => t.replace('  publish:', '  other:'), /no job named publish/],
+    ['a publish job that does not wait', (t) => t.replace('    needs: build\n', ''), /does not wait/],
+    ['the tag pasted into a script', (t) => t.replace('gh release create "$TAG"', 'gh release create ${{ github.ref_name }}'), /contains \$\{\{/],
+    ['an artifact kept a month', (t) => t.replace('retention-days: 3', 'retention-days: 30'), /retention-days/],
+    ['a build without --locked', (t) => t.replace('--bundles nsis -- --locked', '--bundles nsis'), /not run with --locked/],
+  ]
+
+  it.each(hostile)('refuse %s', (_name, change, expected) => {
+    const changed = change(GOOD_RELEASE)
+
+    expect(changed).not.toBe(GOOD_RELEASE)
+    expect(release(changed).join(' | ')).toMatch(expected)
+  })
+
+  it('does not let the manual workflow have the release privileges: its publish job may not write, nor may it use the token', () => {
+    expect(workflowProblems(parse(GOOD_RELEASE), 'manual').length).toBeGreaterThan(0)
+  })
+})
+
 describe('GitHub Actions workflows', () => {
   const workflows = readdirSync(WORKFLOWS)
     .filter((name) => /\.ya?ml$/.test(name))
     .map((name) => ({ name, workflow: loadYaml(readFileSync(join(WORKFLOWS, name), 'utf8')) as Workflow }))
 
   it('exist (an empty folder would make every rule below pass on nothing)', () => {
-    expect(workflows.map((entry) => entry.name)).toContain('desktop-windows.yml')
+    expect(workflows.map((entry) => entry.name)).toEqual(expect.arrayContaining(['desktop-windows.yml', 'release.yml']))
   })
 
-  it.each(workflows)('$name breaks none of the rules', ({ workflow }) => {
-    expect(workflowProblems(workflow)).toEqual([])
+  // `release.yml` is judged by the release rules; any other workflow, including one added later, by the strict manual ones.
+  it.each(workflows)('$name breaks none of the rules', ({ name, workflow }) => {
+    expect(workflowProblems(workflow, name === 'release.yml' ? 'release' : 'manual')).toEqual([])
   })
 })
 
