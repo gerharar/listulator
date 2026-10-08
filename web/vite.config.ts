@@ -5,9 +5,10 @@ import { VitePWA } from 'vite-plugin-pwa'
 
 /**
  * The app's version, shown on the About page (task 11.21): the root
- * package.json's. The desktop build runs this same config. tauri.conf.json
- * and the workspace package.json files carry their own copy and are bumped
- * together with it (docs/DECISIONS.md).
+ * package.json's. The desktop build runs this same config. tauri.conf.json,
+ * Cargo.toml and the other package.json files carry their own copy: change
+ * them all with `npm run version:set -w @listulator/server -- <version>`;
+ * server/src/version.guard.test.ts fails when one disagrees (docs/DECISIONS.md).
  */
 const appVersion = (JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8')) as { version: string }).version
 

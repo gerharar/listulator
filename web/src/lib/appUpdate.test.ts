@@ -46,6 +46,14 @@ describe('the dev-only checker (?aboutUpdate=…)', () => {
     expect(checker.download).toBeTypeOf('function')
   })
 
+  it('available: still offers the next minor version when the current one is a release candidate (1.0.0-rc.1)', async () => {
+    const checker = devChecker('?aboutUpdate=available', '1.0.0-rc.1')!
+    const answer = checker.check()
+    await vi.advanceTimersByTimeAsync(600)
+
+    await expect(answer).resolves.toEqual({ kind: 'available', version: '1.1.0' })
+  })
+
   it('error: fails after a moment', async () => {
     const answer = devChecker('?aboutUpdate=error')!.check()
     const failure = expect(answer).rejects.toThrow()

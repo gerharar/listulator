@@ -1,7 +1,7 @@
 {
   "$schema": "../../../node_modules/@tauri-apps/cli/config.schema.json",
   "productName": "Listulator",
-  "version": "0.1.0",
+  "version": "1.0.0-rc.1",
   "identifier": "com.listulator.desktop",
   "build": {
     "frontendDist": "../../../web/dist",
