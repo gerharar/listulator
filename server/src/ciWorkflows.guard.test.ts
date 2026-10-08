@@ -87,9 +87,13 @@ function workflowProblems(workflow: Workflow, profile: Profile = 'manual'): stri
   // Reads the repository and nothing more.
   if (JSON.stringify(workflow.permissions) !== JSON.stringify({ contents: 'read' })) problems.push('does not have permissions: { contents: read }')
   for (const [name, job] of jobs) {
-    // Only `publish` may write, and only contents (a draft Release); a build job never does.
-    const allowed = profile === 'release' && name === 'publish' ? [{ contents: 'read' }, { contents: 'write' }] : [{ contents: 'read' }]
-    if (job.permissions !== undefined && !allowed.some((set) => JSON.stringify(set) === JSON.stringify(job.permissions))) {
+    // Only `publish` may write, and only contents (a draft Release); only `attest` may mint a signing token and write an attestation
+    // (20.6), and it writes nothing else; a build job never does either.
+    const allowed: Record<string, string>[] = [{ contents: 'read' }]
+    if (profile === 'release' && name === 'publish') allowed.push({ contents: 'write' })
+    if (profile === 'release' && name === 'attest') allowed.push({ contents: 'read', 'id-token': 'write', attestations: 'write' })
+    const same = (a: unknown, b: unknown) => JSON.stringify(Object.entries(a as object).sort()) === JSON.stringify(Object.entries(b as object).sort())
+    if (job.permissions !== undefined && !allowed.some((set) => same(set, job.permissions))) {
       problems.push(`job ${name} widens its permissions`)
     }
   }
@@ -191,9 +195,21 @@ function releaseProblems(jobs: [string, Job][], steps: { job: string; step: Step
   if (publish === undefined) problems.push('has no job named publish (the only job that may write)')
   else if (publish.needs === undefined) problems.push('job publish does not wait for the builds (needs)')
 
+  const attest = jobs.find(([name]) => name === 'attest')?.[1]
+  if (attest === undefined) problems.push('has no job named attest (build provenance for every installer)')
+  else {
+    const attestStep = (attest.steps ?? []).find((step) => step.uses?.startsWith('actions/attest-build-provenance@'))
+    if (attestStep === undefined) problems.push('job attest does not use actions/attest-build-provenance')
+    const subjects = String(attestStep?.with?.['subject-path'] ?? '')
+    if (attestStep !== undefined && !(subjects.includes('*.exe') && subjects.includes('*.dmg'))) problems.push('job attest does not attest every installer (*.exe and *.dmg)')
+    if ((attest.steps ?? []).some((step) => step.run !== undefined)) problems.push('job attest runs a script (it holds the signing token: it only downloads and attests)')
+  }
+  const waits = (job: Job | undefined, name: string) => [job?.needs].flat().includes(name)
+  if (publish !== undefined && !waits(publish, 'attest')) problems.push('job publish does not wait for attest')
+
   const runs = steps.filter(({ step }) => step.run !== undefined).map(({ job, step }) => ({ job, run: step.run! }))
   // Every job that builds an installer checks, before building, that the tag is a release of main at this version.
-  for (const [name] of jobs.filter(([name]) => name !== 'publish')) {
+  for (const [name] of jobs.filter(([name]) => name !== 'publish' && name !== 'attest')) {
     const own = runs.filter(({ job }) => job === name)
     if (!own.some(({ run }) => /git merge-base --is-ancestor/.test(run))) problems.push(`job ${name} never checks that the tagged commit is on main (git merge-base --is-ancestor)`)
     if (!own.some(({ run }) => /\b(Get-Content|plutil|jq|node)\b[^\n]*package\.json/.test(run))) problems.push(`job ${name} never checks that the tag matches the version in package.json`)
@@ -381,8 +397,24 @@ jobs:
           name: dmg
           path: y
           retention-days: 3
-  publish:
+  attest:
     needs: [build, build-macos]
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      id-token: write
+      attestations: write
+    steps:
+      - uses: actions/download-artifact@${sha('d')} # v1
+        with:
+          path: dist
+      - uses: actions/attest-build-provenance@${sha('e')} # v1
+        with:
+          subject-path: |
+            dist/*.exe
+            dist/*.dmg
+  publish:
+    needs: [build, build-macos, attest]
     runs-on: ubuntu-24.04
     permissions:
       contents: write
@@ -420,7 +452,7 @@ describe('the rules for the release workflow, proven on hostile workflows', () =
     ['the token in the build job', (t) => t.replace('          TAG: ${{ github.ref_name }}\n        run: |\n          git merge', '          TAG: ${{ github.ref_name }}\n          GH_TOKEN: ${{ github.token }}\n        run: |\n          git merge'), /secret or the token/],
     ['the token under another name in publish', (t) => t.replace('GH_TOKEN: ${{ github.token }}', 'OTHER: ${{ github.token }}'), /secret or the token/],
     ['a secret in publish', (t) => t.replace('GH_TOKEN: ${{ github.token }}', 'GH_TOKEN: ${{ secrets.PAT }}'), /secret or the token/],
-    ['an environment', (t) => t.replace('  publish:\n    needs: [build, build-macos]', '  publish:\n    needs: [build, build-macos]\n    environment: release'), /uses an environment/],
+    ['an environment', (t) => t.replace('  publish:\n    needs: [build, build-macos, attest]', '  publish:\n    needs: [build, build-macos, attest]\n    environment: release'), /uses an environment/],
     ['an action named by tag', (t) => t.replace(`actions/download-artifact@${sha('d')} # v1`, 'actions/download-artifact@v8'), /not a GitHub-owned action pinned/],
     ['an action from another owner', (t) => t.replace(`actions/download-artifact@${sha('d')}`, `softprops/action-gh-release@${sha('d')}`), /not a GitHub-owned action pinned/],
     ['a Release that is not a draft', (t) => t.replace('--draft ', ''), /without --draft/],
@@ -433,8 +465,18 @@ describe('the rules for the release workflow, proven on hostile workflows', () =
     ['the macOS job without the version check', (t) => t.replace("test \"v$(node -p \"require('./package.json').version\")\" = \"$TAG\"", 'true'), /job build-macos never checks.*version in package.json/],
     ['a moving macOS image', (t) => t.replace('macos-15', 'macos-latest'), /names its image/],
     ['a macOS build that may write', (t) => t.replace('  build-macos:\n    runs-on: macos-15\n    permissions:\n      contents: read', '  build-macos:\n    runs-on: macos-15\n    permissions:\n      contents: write'), /job build-macos widens/],
+    ['an attest job with write access to the repository', (t) => t.replace('  attest:\n    needs: [build, build-macos]\n    runs-on: ubuntu-24.04\n    permissions:\n      contents: read', '  attest:\n    needs: [build, build-macos]\n    runs-on: ubuntu-24.04\n    permissions:\n      contents: write'), /job attest widens/],
+    ['the signing token in the publish job', (t) => t.replace(`      contents: write\n    steps:\n      - uses: actions/download-artifact@${sha('d')} # v1\n        with:\n          name: installer`, `      contents: write\n      id-token: write\n    steps:\n      - uses: actions/download-artifact@${sha('d')} # v1\n        with:\n          name: installer`), /job publish widens/],
+    ['the signing token in a build job', (t) => t.replace('  build-macos:\n    runs-on: macos-15\n    permissions:\n      contents: read', '  build-macos:\n    runs-on: macos-15\n    permissions:\n      contents: read\n      id-token: write\n      attestations: write'), /job build-macos widens/],
+    ['an attest job that also writes an extra permission', (t) => t.replace('      attestations: write\n    steps:', '      attestations: write\n      packages: write\n    steps:'), /job attest widens/],
+    ['an attest job that runs a script', (t) => t.replace(`      - uses: actions/attest-build-provenance@${sha('e')} # v1`, `      - run: echo hello\n      - uses: actions/attest-build-provenance@${sha('e')} # v1`), /attest runs a script/],
+    ['an attest job that attests only the Windows installer', (t) => t.replace('            dist/*.exe\n            dist/*.dmg', '            dist/*.exe'), /attest every installer/],
+    ['an attest job with no attestation step', (t) => t.replace(`actions/attest-build-provenance@${sha('e')} # v1`, `actions/upload-artifact@${sha('e')} # v1`), /does not use actions\/attest-build-provenance/],
+    ['the attestation action named by tag', (t) => t.replace(`actions/attest-build-provenance@${sha('e')} # v1`, 'actions/attest-build-provenance@v4'), /not a GitHub-owned action pinned/],
+    ['the attestation action from another owner', (t) => t.replace(`actions/attest-build-provenance@${sha('e')}`, `someone/attest@${sha('e')}`), /not a GitHub-owned action pinned/],
+    ['no attest job', (t) => t.replace('  attest:', '  other:'), /no job named attest/],
     ['no publish job', (t) => t.replace('  publish:', '  other:'), /no job named publish/],
-    ['a publish job that does not wait', (t) => t.replace('    needs: [build, build-macos]\n', ''), /does not wait/],
+    ['a publish job that does not wait', (t) => t.replace('    needs: [build, build-macos, attest]\n', ''), /does not wait/],
     ['the tag pasted into a script', (t) => t.replace('gh release create "$TAG"', 'gh release create ${{ github.ref_name }}'), /contains \$\{\{/],
     ['an artifact kept a month', (t) => t.replace('retention-days: 3', 'retention-days: 30'), /retention-days/],
     ['a build without --locked', (t) => t.replace('--bundles nsis -- --locked', '--bundles nsis'), /not run with --locked/],

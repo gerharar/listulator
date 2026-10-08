@@ -1,4 +1,4 @@
-# Builds the installers for a release and drafts the GitHub Release (Phase 20, tasks 20.4 to 20.6, docs/DECISIONS.md).
+# Builds the installers for a release, attests them, and drafts the GitHub Release (Phase 20, tasks 20.4 to 20.6, docs/DECISIONS.md).
 #
 # Runs when a version tag is pushed (v1.0.0, v1.0.0-rc.1) and on nothing else: no branch, no pull request, no button, no
 # input. Who may create such a tag is a repository ruleset (only the owner). server/src/ciWorkflows.guard.test.ts holds the
@@ -6,6 +6,8 @@
 # - The build jobs (Windows and macOS) have `contents: read`, no secret and no token, and check out the tag without keeping credentials.
 # - The only job that may write is `publish`, and only `contents: write`, to create a DRAFT Release. Publishing it, and
 #   editing it afterwards, is a person clicking on GitHub; nothing here un-drafts or edits a Release.
+# - Only the `attest` job may mint the signing token and write the attestation; it runs no script, and `publish` waits for
+#   it and verifies each installer's attestation before drafting anything.
 # - A tag is released only if its commit is on `main` and the tag is exactly v + the version in package.json, so a tag on a
 #   side branch or a typo cannot produce an installer.
 # - Only GitHub's own actions, each pinned by full commit SHA (the version in the comment beside it), on a numbered runner
@@ -165,8 +167,32 @@ jobs:
           if-no-files-found: error
           retention-days: 3
 
-  publish:
+  # Build provenance for every installer (20.6): a signed statement, kept by GitHub, that these exact files were built by this
+  # workflow from this commit. This job alone may mint the signing token (`id-token`) and write the attestation, and it runs no
+  # script of ours: it downloads the builds and hands them to GitHub's action. It does not touch the repository or the Release.
+  attest:
     needs: [build-windows, build-macos]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      id-token: write
+      attestations: write
+    steps:
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          pattern: listulator-*
+          merge-multiple: true
+          path: dist
+
+      - uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-path: |
+            dist/*.exe
+            dist/*.dmg
+
+  publish:
+    needs: [build-windows, build-macos, attest]
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     permissions:
@@ -187,6 +213,16 @@ jobs:
           TAG: ${{ github.ref_name }}
         run: |
           cd dist
+          # The files drafted are the files attested: each must verify against this repository's attestation, or nothing is drafted.
+          # A new attestation can take a few seconds to be readable, so a miss is retried.
+          for file in *.exe *.dmg; do
+            verified=no
+            for attempt in 1 2 3 4 5 6; do
+              if gh attestation verify "$file" --repo "$GH_REPO"; then verified=yes; break; fi
+              sleep 10
+            done
+            if [ "$verified" != yes ]; then echo "No valid attestation for $file"; exit 1; fi
+          done
           sha256sum -- *.exe *.dmg > SHA256SUMS
           cat SHA256SUMS
           args=()
