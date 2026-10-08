@@ -84,6 +84,53 @@ way to use Listulator (see [SECURITY.md](SECURITY.md)).
 Not done yet: the phone layout hasn't been checked on real hardware, and
 multi-tenancy is scaffolded in the schema but not switched on.
 
+## Install (desktop app)
+
+Download the installer for your computer from the
+[Releases page](https://github.com/gerharar/listulator/releases):
+
+| System | File | Needs |
+|---|---|---|
+| Windows | `Listulator_<version>_x64-setup.exe` | 64-bit Windows. The installer fetches Microsoft's WebView2 runtime if your PC lacks it. |
+| macOS | `Listulator_<version>_aarch64.dmg` | A Mac with Apple silicon (M1 or later), macOS 11 or newer. Intel Macs are not supported. |
+
+Everything stays on your computer; see [Your data and your keys](#your-data-and-your-keys-desktop-app) for where, and
+how to remove it.
+
+### The warnings you will see, and why
+
+The installers are **not code-signed**: signing costs money every year and Listulator is a hobby project. So your system
+does not recognise the publisher, and says so. Nothing is wrong with the file; the checks further down show it is the one
+this repository's build made.
+
+**Windows.** The browser may warn about, or refuse to keep, the download (look for "Keep" in its downloads list), and
+Windows SmartScreen shows "Windows protected your PC". Choose **More info**, then **Run anyway**.
+
+**macOS.** Open the `.dmg` and drag Listulator to Applications. The first time you open it, macOS refuses ("Apple could not
+verify it is free of malware"). Open **System Settings, Privacy & Security**, scroll to the **Security** section, and choose
+**Open Anyway** next to Listulator; confirm with your password. From then on it opens normally.
+
+### Checking the download
+
+Each release lists a `SHA256SUMS` file next to the installers. Two checks, strongest last:
+
+1. **The checksum** shows the file was not damaged or swapped on the way. No account needed.
+
+   - macOS, in the folder with the download: `grep dmg SHA256SUMS | shasum -a 256 -c` should print `OK`.
+   - Windows, PowerShell: `Get-FileHash .\Listulator_<version>_x64-setup.exe -Algorithm SHA256`; in cmd.exe:
+     `certutil -hashfile Listulator_<version>_x64-setup.exe SHA256`. The hash must equal the one on that file's line in
+     `SHA256SUMS`.
+
+2. **The build attestation** is a signed statement, kept by GitHub, that this exact file was built from this repository by
+   its release workflow. It needs the [GitHub CLI](https://cli.github.com/) signed in (`gh auth login`, any GitHub
+   account):
+
+   ```
+   gh attestation verify Listulator_<version>_aarch64.dmg --repo gerharar/listulator
+   ```
+
+   It should end with "Verification succeeded". Use the `.exe` file name for Windows.
+
 ## Stack
 
 Node.js + TypeScript (Fastify) · React + Vite · SQLite (Drizzle ORM) ·
