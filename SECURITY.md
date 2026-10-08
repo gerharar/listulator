@@ -34,8 +34,9 @@ what you think an attacker could do with it. **Never include your own API keys o
 
 ## Which versions
 
-There is no release yet. Until there is one, the latest commit on `main` is the supported version; after the first
-release, the latest release.
+Only the **latest release** is supported. A fix is published as a new version rather than added to an older one, so
+if you are not on the latest release, update first and check whether the problem is still there. Pre-releases
+(versions like `1.0.0-rc.1`) are for testing and are not supported once the release they lead to is out.
 
 ## What you can expect
 

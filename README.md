@@ -73,16 +73,16 @@ rescanning and it returns.
 
 ## Status
 
-Feature-complete for phase 1 and walked end to end: all twelve categories, all
-three suggestion buttons, list refresh, and a PWA build. Single-user only (see
-`SINGLE_USER_MODE` below).
+Heading for its first public release, 1.0.0: a desktop app for Windows and
+macOS (Apple silicon) that keeps your library and your API keys on your own
+computer. Walked end to end: all twelve categories, all three suggestion
+buttons, list refresh. Single-user only (see `SINGLE_USER_MODE` below).
+
+Running the server and web app yourself is possible, but it is not a supported
+way to use Listulator (see [SECURITY.md](SECURITY.md)).
 
 Not done yet: the phone layout hasn't been checked on real hardware, and
 multi-tenancy is scaffolded in the schema but not switched on.
-
-See [`SPEC.md`](SPEC.md) for the design, [`tasks/plan.md`](tasks/plan.md) for
-the build plan, and [`docs/DECISIONS.md`](docs/DECISIONS.md) for why things are
-the way they are — including the things that were tried and rejected.
 
 ## Stack
 

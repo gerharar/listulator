@@ -4,9 +4,9 @@ What changed in each version of Listulator, newest first. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and version numbers
 follow [Semantic Versioning](https://semver.org/).
 
-## [0.1.0] — Unreleased
+## [1.0.0] — Unreleased
 
-The first version: not released yet.
+The first release. The date is filled in when it is published.
 
 ### Added
 

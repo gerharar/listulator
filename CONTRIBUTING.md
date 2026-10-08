@@ -5,8 +5,6 @@ reviewed and merged the same way any other change is: open a pull request.
 Once merged, a list is pullable into any instance with one click (the sync
 feature reads `lists/index.json`, not GitHub's directory API).
 
-Background and full design intent: [`docs/intent/custom-lists.md`](docs/intent/custom-lists.md).
-
 ## Licence of your contribution
 
 By submitting a list (a pull request that adds or changes a file under
