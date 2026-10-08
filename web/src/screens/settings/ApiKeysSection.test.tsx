@@ -180,7 +180,7 @@ describe('ApiKeysSection', () => {
 
     expect(
       screen.getByText(
-        'Your keys are stored as plain text in the app’s data folder on this computer, and sent only to the service they belong to. Removing the app’s data removes them',
+        "Your keys are stored as plain text in the app's data folder on this computer. They're sent only to the service they belong to. To delete these keys, delete the app data",
       ),
     ).not.toBeNull()
   })

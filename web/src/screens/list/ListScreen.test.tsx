@@ -1525,7 +1525,7 @@ describe('ListScreen order menu (task 10.22)', () => {
   /** Reorder List asks first (prototype), then Sort now does it. */
   const sortNow = () => {
     fireEvent.click(pop().getByRole('button', { name: 'Reorder List' }))
-    fireEvent.click(pop().getByRole('button', { name: 'Sort by release date' }))
+    fireEvent.click(pop().getByRole('button', { name: 'Sort By Release Date' }))
   }
   const rowTitles = () => Array.from(document.querySelectorAll('.q-item .title')).map((n) => n.textContent)
   const undoOnToast = () =>
@@ -1603,8 +1603,8 @@ describe('ListScreen order menu (task 10.22)', () => {
 
       // Nor can its order be taken back to the source's, so the Reorder window does not offer to.
       fireEvent.click(pop().getByRole('button', { name: 'Reorder List' }))
-      expect(pop().getByRole('button', { name: 'Sort by release date' })).toBeTruthy()
-      expect(pop().queryByRole('button', { name: 'Restore source order' })).toBeNull()
+      expect(pop().getByRole('button', { name: 'Sort By Release Date' })).toBeTruthy()
+      expect(pop().queryByRole('button', { name: 'Restore Source Order' })).toBeNull()
     })
 
     it('is still offered on a file list whose file was kept', async () => {
@@ -1612,7 +1612,7 @@ describe('ListScreen order menu (task 10.22)', () => {
 
       expect(pop().getByRole('button', { name: 'Reset List' })).toBeTruthy()
       fireEvent.click(pop().getByRole('button', { name: 'Reorder List' }))
-      expect(pop().getByRole('button', { name: 'Restore source order' })).toBeTruthy()
+      expect(pop().getByRole('button', { name: 'Restore Source Order' })).toBeTruthy()
     })
 
     it('works out the cost first, and says it in words before any button is pressed', async () => {
@@ -1667,7 +1667,7 @@ describe('ListScreen order menu (task 10.22)', () => {
       expect(screen.getByText('From the source')).toBeTruthy()
       expect(rowTitles()).toEqual(['Zeta'])
       expect(api.resetList).toHaveBeenCalledWith('L1')
-      expect(document.querySelector('.q-toast')!.textContent).toMatch(/Reset to the source/)
+      expect(document.querySelector('.q-toast')!.textContent).toMatch(/List was reset to the source/)
     })
 
     it('Undo restores the whole item set from the payload, and the name it had', async () => {
@@ -1719,7 +1719,7 @@ describe('ListScreen order menu (task 10.22)', () => {
       await act(async () => {})
 
       // A check that takes a moment must not replace the message about what was just done.
-      expect(document.querySelector('.q-toast')!.textContent).toMatch(/Reset to the source/)
+      expect(document.querySelector('.q-toast')!.textContent).toMatch(/List was reset to the source/)
       expect(document.body.textContent).not.toMatch(/No updates found/)
       expect(screen.getByRole('button', { name: 'Undo' })).toBeTruthy()
     })
@@ -1752,7 +1752,7 @@ describe('ListScreen order menu (task 10.22)', () => {
     /** Restore source order lives in Reorder List now (11.14): it asks nothing, and does not touch the reset. */
     const restoreSourceOrder = () => {
       fireEvent.click(pop().getByRole('button', { name: 'Reorder List' }))
-      fireEvent.click(pop().getByRole('button', { name: 'Restore source order' }))
+      fireEvent.click(pop().getByRole('button', { name: 'Restore Source Order' }))
     }
 
     it('Restore source order puts the source order back: not the year sort, and not Reset', async () => {

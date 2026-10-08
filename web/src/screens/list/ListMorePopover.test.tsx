@@ -115,7 +115,7 @@ describe('ListMorePopover', () => {
       expect(onDismiss).toHaveBeenCalledTimes(1)
       expect(onSortNow).not.toHaveBeenCalled()
 
-      fireEvent.click(button('Sort by release date'))
+      fireEvent.click(button('Sort By Release Date'))
       expect(onSortNow).toHaveBeenCalledTimes(1)
       expect(onResetOrder).not.toHaveBeenCalled()
     })
@@ -124,7 +124,7 @@ describe('ListMorePopover', () => {
       const { onSortNow, onResetOrder } = renderPopover({ mode: 'reorder', source: 'api' })
       expect(screen.getByText(/back the way the source lists them/)).toBeTruthy()
 
-      fireEvent.click(button('Restore source order'))
+      fireEvent.click(button('Restore Source Order'))
 
       expect(onResetOrder).toHaveBeenCalledTimes(1)
       expect(onSortNow).not.toHaveBeenCalled()
@@ -133,8 +133,8 @@ describe('ListMorePopover', () => {
     it('leaves Restore source order out of a hand-made list, which has no source order to go back to', () => {
       renderPopover({ mode: 'reorder', source: 'manual' })
 
-      expect(button('Sort by release date')).toBeTruthy()
-      expect(screen.queryByRole('button', { name: 'Restore source order' })).toBeNull()
+      expect(button('Sort By Release Date')).toBeTruthy()
+      expect(screen.queryByRole('button', { name: 'Restore Source Order' })).toBeNull()
       expect(screen.queryByText(/back the way the source lists them/)).toBeNull()
     })
   })
