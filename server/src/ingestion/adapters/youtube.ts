@@ -1,5 +1,6 @@
 import { MAX_LIST_ITEMS } from '../../catalog/limits.js'
 import { delay, getJson, withRetries, type FetchLike } from '../http.js'
+import { validYear } from '../../catalog/limits.js'
 import type { ListSource, MediaTypeCandidate, SearchAdapter } from '../mediaTypes.js'
 import { itemsOnly } from '../expansion.js'
 
@@ -65,12 +66,22 @@ interface PlaylistItemsResponse {
   /** `totalResults` is the playlist's whole length, whatever the page size. */
   pageInfo?: { totalResults?: number }
   items?: {
+    // `snippet.publishedAt` here is when the video was added to the playlist, so it is not read.
     snippet?: { title?: string; resourceId?: { videoId?: string } }
+    // `videoPublishedAt` is when the video itself went public. Absent for a deleted or private entry.
+    contentDetails?: { videoPublishedAt?: string }
   }[]
 }
 
 interface VideosResponse {
   items?: { id?: string; contentDetails?: { duration?: string } }[]
+}
+
+/** The year in an ISO 8601 timestamp ("2011-06-30T23:59:59Z" gives 2011), or `undefined` for anything else. */
+export function yearOfTimestamp(value: string | undefined): number | undefined {
+  const year = /^(\d{4})-\d{2}-\d{2}/.exec(value ?? '')?.[1]
+
+  return year === undefined ? undefined : validYear(Number(year))
 }
 
 /** `PT1H2M13S` → minutes, rounded up so nothing reads as zero. */
@@ -366,7 +377,7 @@ export function createYouTubeAdapter(
 
       const { playlistId, newestFirst } = source
 
-      const videos: { id: string | undefined; title: string }[] = []
+      const videos: { id: string | undefined; title: string; year: number | undefined }[] = []
       let pageToken: string | undefined
 
       // No cap of ours: a channel's newest-first uploads are reversed below, so cutting early would drop the
@@ -374,7 +385,8 @@ export function createYouTubeAdapter(
       // hold, when the shared size check refuses the list and a longer one would only cost quota (a page is one unit).
       for (;;) {
         const response: PlaylistItemsResponse = await request('playlistItems', {
-          part: 'snippet',
+          // contentDetails carries the video's own publish date; both parts cost the same one unit.
+          part: 'snippet,contentDetails',
           playlistId,
           maxResults: String(PAGE_SIZE),
           ...(pageToken ? { pageToken } : {}),
@@ -387,6 +399,7 @@ export function createYouTubeAdapter(
           videos.push({
             id: item.snippet?.resourceId?.videoId,
             title: item.snippet?.title ?? 'Untitled',
+            year: yearOfTimestamp(item.contentDetails?.videoPublishedAt),
           })
         }
 
@@ -431,6 +444,8 @@ export function createYouTubeAdapter(
           // back to the category default like anything else unknown.
           ...(video.id ? { externalRef: `video:${video.id}` } : {}),
           ...(minutes ? { timeToConsumeMinutes: minutes } : {}),
+          // Only when YouTube gave a publish date: a deleted or private entry has none (never guessed).
+          ...(video.year ? { year: video.year } : {}),
         }
       })
     }),

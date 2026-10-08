@@ -475,6 +475,79 @@ describe('YouTube adapter', () => {
     expect(items[1]).toEqual({ title: 'Deleted video' })
   })
 
+  describe('the year a video was published (so a list can be sorted by release date)', () => {
+    it('asks the playlist for contentDetails too, where videoPublishedAt lives, and takes the year from it', async () => {
+      const fetchImpl = router({
+        playlistItems: {
+          items: [
+            {
+              // snippet.publishedAt is when it was added to the playlist, not when it was published: never the year.
+              snippet: { title: 'Old talk', publishedAt: '2024-03-01T10:00:00Z', resourceId: { videoId: 'v1' } },
+              contentDetails: { videoId: 'v1', videoPublishedAt: '2011-06-30T23:59:59Z' },
+            },
+            {
+              snippet: { title: 'New talk', publishedAt: '2024-03-01T10:00:00Z', resourceId: { videoId: 'v2' } },
+              contentDetails: { videoId: 'v2', videoPublishedAt: '2023-01-01T00:00:00Z' },
+            },
+          ],
+        },
+        videos: { items: [{ id: 'v1', contentDetails: { duration: 'PT10M' } }] },
+      })
+      const adapter = createYouTubeAdapter(credentials, fetchImpl)
+
+      const items = (await adapter.expand('playlist:PL1')).items
+
+      expect(items.map((item) => [item.title, item.year])).toEqual([
+        ['Old talk', 2011],
+        ['New talk', 2023],
+      ])
+      const asked = vi.mocked(fetchImpl).mock.calls.map(([url]) => new URL(url))
+      expect(asked.find((url) => url.pathname.endsWith('playlistItems'))!.searchParams.get('part')).toBe('snippet,contentDetails')
+    })
+
+    it('gives no year to an entry that has no publish date (deleted, private) or a date it cannot read', async () => {
+      const adapter = createYouTubeAdapter(
+        credentials,
+        router({
+          playlistItems: {
+            items: [
+              { snippet: { title: 'Deleted video' }, contentDetails: { videoId: 'gone' } },
+              { snippet: { title: 'Private video' } },
+              { snippet: { title: 'Odd date', resourceId: { videoId: 'v3' } }, contentDetails: { videoPublishedAt: 'sometime' } },
+              { snippet: { title: 'Zero year', resourceId: { videoId: 'v4' } }, contentDetails: { videoPublishedAt: '0000-01-01T00:00:00Z' } },
+            ],
+          },
+          videos: { items: [] },
+        }),
+      )
+
+      const items = (await adapter.expand('playlist:PL1')).items
+
+      expect(items.map((item) => 'year' in item)).toEqual([false, false, false, false])
+    })
+
+    it('keeps each year with its video when a channel’s uploads are turned oldest first', async () => {
+      const adapter = createYouTubeAdapter(
+        credentials,
+        router({
+          channels: { items: [{ contentDetails: { relatedPlaylists: { uploads: 'UU1' } } }] },
+          playlistItems: {
+            items: [
+              { snippet: { title: 'Newest', resourceId: { videoId: 'v2' } }, contentDetails: { videoPublishedAt: '2024-05-05T00:00:00Z' } },
+              { snippet: { title: 'Oldest', resourceId: { videoId: 'v1' } }, contentDetails: { videoPublishedAt: '2019-02-02T00:00:00Z' } },
+            ],
+          },
+          videos: { items: [] },
+        }),
+      )
+
+      expect((await adapter.expand('channel:UC1')).items.map((item) => [item.title, item.year])).toEqual([
+        ['Oldest', 2019],
+        ['Newest', 2024],
+      ])
+    })
+  })
+
   it('reverses a channel’s uploads, which arrive newest first', async () => {
     const adapter = createYouTubeAdapter(
       credentials,
