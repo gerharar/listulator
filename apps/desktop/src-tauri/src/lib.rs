@@ -22,6 +22,15 @@ fn config_dir(app: &tauri::AppHandle) -> Option<std::path::PathBuf> {
   app.path().app_config_dir().ok()
 }
 
+/// Restarts the app after an update was installed (macOS: Windows restarts through its installer). Goes through the exit events
+/// (`request_restart`), not `restart()`: on the main thread `restart()` skips them, and the window's size and the full-screen
+/// state are saved on them. Takes nothing from the page: the only parameter is the app handle Tauri supplies. Not run by a test
+/// (it replaces the process); `tauriCapabilities.guard.test.ts` reads this source, and a built app is the proof.
+#[tauri::command]
+fn relaunch(app: tauri::AppHandle) {
+  app.request_restart();
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
   // The page's CSP must allow this build's own isolation frame, whose scheme is made at compile time: see `isolation_csp`.
@@ -40,6 +49,11 @@ pub fn run() {
       .with_state_flags(tauri_plugin_window_state::StateFlags::all() - tauri_plugin_window_state::StateFlags::FULLSCREEN)
       .build(),
   );
+  // Checks for a release and installs one signed with the owner's key; the key, the address and `requireSignedVersion` are in
+  // `tauri.conf.json` (task 20.10a, docs/security-review.md section 13). Nothing runs until the page asks, and the hook admits
+  // only the calls the client makes.
+  #[cfg(desktop)]
+  let builder = builder.plugin(tauri_plugin_updater::Builder::new().build());
   // macOS ignores the plugin's full-screen restore: it runs before the window is on
   // screen, so the window only gets the screen's size. When it was left in full
   // screen, enter it again the first time the (now visible) window takes focus.
@@ -70,6 +84,7 @@ pub fn run() {
   });
 
   builder
+    .invoke_handler(tauri::generate_handler![relaunch])
     // Keeps the window on the app's own page: nothing else may be navigated to (SR-015, navigation.rs).
     .plugin(navigation::guard(isolation_scheme))
     .plugin(tauri_plugin_sql::Builder::default().build())

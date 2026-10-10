@@ -77,6 +77,9 @@ describe('the desktop capability, as the security review left it', () => {
       'store:default',
       'http:default',
       'opener:allow-open-url',
+      // The updater's two calls the client makes (20.10a, SR-066); never `updater:default`, which adds `download` and `install`.
+      'updater:allow-check',
+      'updater:allow-download-and-install',
     ])
   })
 
@@ -237,6 +240,77 @@ describe('the isolation hook is switched on, as the security review left it (SR-
 
     expect(identifiers).not.toContain('sql:default')
     expect(identifiers).not.toContain('sql:allow-close')
+  })
+})
+
+describe('the updater, as the design left it (task 20.10a; docs/security-review.md section 13, SR-063 to SR-067)', () => {
+  const config = JSON.parse(read('tauri.conf.json')) as { plugins?: { updater?: Record<string, unknown> } }
+  const updater = config.plugins?.updater ?? {}
+  const code = (file: string): string => read(`src/${file}`).replace(/^\s*\/\/.*$/gm, '')
+  const cargo = read('Cargo.toml').replace(/^\s*#.*$/gm, '')
+
+  // The public half of the key made in 20.9c (DECISIONS "20.9c"); a different value here is a key rotation, not an edit.
+  const PUBLIC_KEY_ID = '738FF42772526511'
+
+  it('trusts the one public key made for releases, and no other', () => {
+    const decoded = Buffer.from(String(updater.pubkey), 'base64').toString('utf8')
+
+    expect(decoded).toContain(`untrusted comment: minisign public key: ${PUBLIC_KEY_ID}`)
+  })
+
+  it('asks one https address, the latest published release (a draft or pre-release is never "latest")', () => {
+    expect(updater.endpoints).toEqual(['https://github.com/gerharar/listulator/releases/latest/download/latest.json'])
+  })
+
+  it('refuses an update whose signature does not name the version the manifest announces (SR-065)', () => {
+    expect(updater.requireSignedVersion).toBe(true)
+  })
+
+  it('has no switch that weakens the check: nothing dangerous, no downgrades, no installer arguments', () => {
+    expect(Object.keys(updater).filter((key) => /^dangerous/i.test(key))).toEqual([])
+    expect(updater.allowDowngrades ?? false).toBe(false)
+    expect(updater).not.toHaveProperty('windows')
+    expect(Object.keys(updater).sort()).toEqual(['endpoints', 'pubkey', 'requireSignedVersion'])
+  })
+
+  it('compiles the updater into the desktop build only, and brings no process plugin (the app has its own relaunch)', () => {
+    const desktopOnly = /\[target\.'cfg\(not\(any\(target_os = "android", target_os = "ios"\)\)\)'\.dependencies\]([\s\S]*)$/.exec(cargo)?.[1] ?? ''
+
+    expect(desktopOnly).toMatch(/^tauri-plugin-updater\s*=/m)
+    expect(cargo.split(desktopOnly)[0]).not.toMatch(/tauri-plugin-updater/)
+    expect(cargo).not.toMatch(/tauri-plugin-process/)
+  })
+
+  it('registers the plugin and the relaunch command on the app', () => {
+    const lib = code('lib.rs')
+
+    expect(lib).toMatch(/\.plugin\(tauri_plugin_updater::Builder::new\(\)\.build\(\)\)/)
+    expect(lib).toMatch(/\.invoke_handler\(tauri::generate_handler!\[relaunch\]\)/)
+  })
+
+  it('relaunches through the exit events, so the window and full-screen state are saved first (`restart()` skips them on the main thread)', () => {
+    const body = /fn relaunch\([^)]*\)\s*\{([\s\S]*?)\n\}/.exec(code('lib.rs'))?.[1] ?? ''
+
+    expect(body).toContain('request_restart()')
+    expect(body).not.toMatch(/\.restart\(\)/)
+    // Nothing the page sends can reach it: the only parameter is the app handle Tauri supplies.
+    expect(/fn relaunch\(([^)]*)\)/.exec(code('lib.rs'))?.[1]?.trim()).toBe('app: tauri::AppHandle')
+  })
+
+  it('grants no more of the updater than the client calls (no `download`, no `install`, no default set)', () => {
+    const identifiers = capability.permissions.map((permission) => (typeof permission === 'string' ? permission : permission.identifier))
+
+    expect(identifiers.filter((identifier) => identifier.startsWith('updater:'))).toEqual(['updater:allow-check', 'updater:allow-download-and-install'])
+  })
+
+  // `tauri build` and `tauri dev` write the capability list they compiled into gen/schemas (not tracked); when it is there, it must
+  // say what the source says. A permission that does not exist fails the build; this catches the other drift, a stale or edited copy.
+  const generated = `${DESKTOP}gen/schemas/capabilities.json`
+
+  it.skipIf(!existsSync(generated))('has the generated capability list equal to the source', () => {
+    const built = JSON.parse(readFileSync(generated, 'utf8')) as { default?: { permissions: unknown[] } }
+
+    expect(built.default?.permissions).toEqual(capability.permissions)
   })
 })
 

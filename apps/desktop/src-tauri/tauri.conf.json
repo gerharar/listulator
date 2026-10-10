@@ -41,6 +41,15 @@
       "freezePrototype": true
     }
   },
+  "plugins": {
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDczOEZGNDI3NzI1MjY1MTEKUldRUlpWSnlKL1NQYzREUFRLZ0M3dXRCZDMxdE5BQlowRkE5RHRZV0NVVUNjWjk3ZHRwRnEwTzUK",
+      "endpoints": [
+        "https://github.com/gerharar/listulator/releases/latest/download/latest.json"
+      ],
+      "requireSignedVersion": true
+    }
+  },
   "bundle": {
     "active": true,
     "targets": "all",

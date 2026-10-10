@@ -37,6 +37,8 @@
         { "url": "https://www.wikipedia.org/*" },
         { "url": "https://www.themoviedb.org/*" }
       ]
-    }
+    },
+    "updater:allow-check",
+    "updater:allow-download-and-install"
   ]
 }

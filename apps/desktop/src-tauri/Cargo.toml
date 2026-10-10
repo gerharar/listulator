@@ -35,4 +35,9 @@ tauri-plugin-opener = "~2.5"
 # state between launches (owner's desktop pass F13, docs/DECISIONS.md).
 [target.'cfg(not(any(target_os = "android", target_os = "ios")))'.dependencies]
 tauri-plugin-window-state = "2"
+# Updates (task 20.10a, docs/security-review.md section 13): checks and installs a release signed with the owner's offline key.
+# Desktop only (the plugin has no mobile build). The minor is held: `requireSignedVersion` exists from 2.13.2, and a new minor is
+# read for what it adds to the webview's reach (SR-066) before it is taken. No `tauri-plugin-process`: the app has its own `relaunch`.
+# 2.13.3 is 2.13.2 (the version the design read) with `minisign-verify` 0.3, which also rejects a non-canonical signature.
+tauri-plugin-updater = "~2.13.3"
 
