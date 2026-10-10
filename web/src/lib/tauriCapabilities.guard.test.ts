@@ -303,6 +303,36 @@ describe('the updater, as the design left it (task 20.10a; docs/security-review.
     expect(identifiers.filter((identifier) => identifier.startsWith('updater:'))).toEqual(['updater:allow-check', 'updater:allow-download-and-install'])
   })
 
+  // The two gates must say the same thing (20.10b): the native side's permission list and the isolation hook's command table. A
+  // permission without a hook entry is dead weight that a hook change could one day wake; a hook entry without a permission is a
+  // call the native side refuses after the page has been told it passed.
+  describe('the capability and the isolation hook admit the same updater calls', () => {
+    const hook = readFileSync(`${DESKTOP}../isolation/hook.js`, 'utf8').replace(/^\s*\/\/.*$/gm, '')
+    const table = /var COMMANDS = \{([\s\S]*?)\n {2}\}/.exec(hook)?.[1] ?? ''
+    const identifiers = capability.permissions.map((permission) => (typeof permission === 'string' ? permission : permission.identifier))
+
+    it('finds the hook’s command table (the check itself)', () => {
+      expect(table).toContain("'plugin:updater|check'")
+      expect(table.length).toBeGreaterThan(500)
+    })
+
+    it('has a hook entry for every updater permission, and a permission for every updater entry', () => {
+      const inHook = [...table.matchAll(/'plugin:updater\|([a-z_]+)'/g)].map((match) => match[1])
+      const granted = identifiers.filter((id) => id.startsWith('updater:')).map((id) => id.replace(/^updater:allow-/, '').replace(/-/g, '_'))
+
+      expect(inHook.sort()).toEqual(granted.sort())
+      expect(granted.length).toBeGreaterThan(0)
+    })
+
+    it('has a hook entry for every command the app registers itself, and a registered command for every such entry', () => {
+      const own = [...table.matchAll(/^ {4}([a-z_]+): /gm)].map((match) => match[1])
+      const registered = (/generate_handler!\[([^\]]*)\]/.exec(code('lib.rs'))?.[1] ?? '').split(',').map((name) => name.trim()).filter(Boolean)
+
+      expect(own.sort()).toEqual(registered.sort())
+      expect(registered).toEqual(['relaunch'])
+    })
+  })
+
   // `tauri build` and `tauri dev` write the capability list they compiled into gen/schemas (not tracked); when it is there, it must
   // say what the source says. A permission that does not exist fails the build; this catches the other drift, a stale or edited copy.
   const generated = `${DESKTOP}gen/schemas/capabilities.json`

@@ -1,8 +1,9 @@
 // The desktop app's isolation hook (security review, Phase 19, 19.12.3: SR-002, 003, 004, 008; docs/DECISIONS.md "Security
 // review spike S1"). Tauri runs this in a sandboxed iframe that sees every request the window sends through `invoke`,
 // before it is encrypted. A request that passes is exactly what the app itself sends: open the app's own database, read
-// and write its two settings files, ask the HTTP plugin for a plain request, open a link in the browser, and the window's
-// own few calls. Everything else is refused, whatever plugin it is of (SR-062).
+// and write its two settings files, ask the HTTP plugin for a plain request, open a link in the browser, the window's own
+// few calls, and the updater's check and install with the app's own relaunch (task 20.10b, SR-066). Everything else is
+// refused, whatever plugin it is of (SR-062).
 //
 // What this does NOT do (SR-062, DECISIONS "Security review 19.14"): Tauri encrypts the payload but sends the command name
 // in the clear and does not tie the two together, and the page forwards the frame's answer. So a script that handles that
@@ -344,6 +345,33 @@
     return isObject(payload) && Object.keys(payload).length === 0 ? null : 'payload for a command that takes none'
   }
 
+  // ---- the updater: the two calls the client makes, and the app's own relaunch (task 20.10b, SR-066) ----
+
+  // How `ipc.js` hands a channel to this frame: the page's `Channel` is turned into its text form (`SERIALIZE_TO_IPC_FN`) before
+  // the message is posted, and the id is the page's callback number.
+  var CHANNEL = /^__CHANNEL__:[0-9]{1,10}$/
+
+  /**
+   * `check()` sends `{ ...options }` and the client passes none: an empty object, or the plugin's four options all unset. A
+   * header, a timeout, a proxy or a target would steer the request the plugin makes (SR-066, SR-067).
+   */
+  function updaterCheckProblem(payload) {
+    return keysProblem(payload, [], [])
+  }
+
+  /**
+   * `downloadAndInstall(onEvent)` sends `{ onEvent: channel, rid, ...options }`: the progress channel and the update that `check`
+   * returned. Not `headers`, `timeout` or `restartAfterInstall` (the install is the plugin's, and the restart is `relaunch`). Not
+   * `download` or `install`, which take a downloaded-bytes resource the page could point anywhere.
+   */
+  function updaterInstallProblem(payload) {
+    var problem = keysProblem(payload, ['onEvent', 'rid'], ['onEvent', 'rid'])
+    if (problem) return problem
+    if (typeof payload.onEvent !== 'string' || !CHANNEL.test(payload.onEvent)) return 'progress channel'
+
+    return ridProblem(payload)
+  }
+
   // ---- the commands of the four plugins that reach outside the window ----
 
   var COMMANDS = {
@@ -380,6 +408,10 @@
     'plugin:event|listen': listenProblem,
     'plugin:event|unlisten': unlistenProblem,
     'plugin:webview|internal_toggle_devtools': noPayload,
+    'plugin:updater|check': updaterCheckProblem,
+    'plugin:updater|download_and_install': updaterInstallProblem,
+    // The app's own command (`relaunch` in lib.rs): restarts the app after an update; it takes nothing.
+    relaunch: noPayload,
   }
   // Anything not in the table is refused, whatever plugin it is of and however it is spelled: the native side matches a
   // command name exactly, and this hook approves a payload only for the command it has checked it against.

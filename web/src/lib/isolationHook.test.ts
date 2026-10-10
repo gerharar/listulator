@@ -79,6 +79,18 @@ describe('what the app sends passes untouched', () => {
   ])('the window and its events: %s', (_name, sent) => {
     expect(passes(sent)).toBe(true)
   })
+
+  // The updater plugin's own JavaScript (2.13.3, `dist-js/index.js`): `check()` sends `{ ...options }`, `downloadAndInstall(onEvent)` sends
+  // `{ onEvent: channel, rid, ...options }`. By the time the hook sees it, `ipc.js` has turned the channel into its text form.
+  it.each([
+    ['updater check, no options', message('plugin:updater|check', {})],
+    ['updater check, every option unset (the client may spell them so)', message('plugin:updater|check', { headers: undefined, timeout: undefined, proxy: undefined, target: undefined })],
+    ['updater download_and_install', message('plugin:updater|download_and_install', { onEvent: '__CHANNEL__:12', rid: 3 })],
+    ['updater download_and_install, options unset', message('plugin:updater|download_and_install', { onEvent: '__CHANNEL__:12', rid: 3, headers: undefined, timeout: undefined, restartAfterInstall: undefined })],
+    ['relaunch (the app\u2019s own command: macOS restarts after an update)', message('relaunch', {})],
+  ])('the updater: %s', (_name, sent) => {
+    expect(passes(sent)).toBe(true)
+  })
 })
 
 describe('only what the app sends (SR-062: the approval is not bound to the command name)', () => {
@@ -224,6 +236,10 @@ describe('only what the app sends (SR-062: the approval is not bound to the comm
       'plugin:event|listen': { payload: { event: 'tauri://resize', target: { kind: 'Window', label: 'main' }, handler: 12 }, shape: 'listen' },
       'plugin:event|unlisten': { payload: { event: 'tauri://resize', eventId: 5 }, shape: 'unlisten' },
       'plugin:webview|internal_toggle_devtools': { payload: {}, shape: 'empty' },
+      // `{}` is the whole payload of three commands (the inspector's toggle, the updater's check and our relaunch), so they are one shape here.
+      'plugin:updater|check': { payload: {}, shape: 'empty' },
+      'plugin:updater|download_and_install': { payload: { onEvent: '__CHANNEL__:12', rid: 3 }, shape: 'channel-rid' },
+      relaunch: { payload: {}, shape: 'empty' },
     }
     // Shapes that another shape's payload also satisfies: the optional keys. `store|load` takes `path` alone as `get_store`
     // does; `reload` takes `rid` alone as the rid-only commands do (a reload payload that sets `ignoreDefaults` does not
@@ -237,7 +253,7 @@ describe('only what the app sends (SR-062: the approval is not bound to the comm
     const names = Object.keys(examples)
 
     it('has an example for every command the hook knows', () => {
-      expect(names.length).toBe(29)
+      expect(names.length).toBe(32)
     })
 
     it('passes each example under its own command', () => {
@@ -257,6 +273,97 @@ describe('only what the app sends (SR-062: the approval is not bound to the comm
       expect(wrongly).toEqual([])
     })
   })
+})
+
+describe('the updater (SR-063 to SR-067; task 20.10b: only the calls the client makes, in the shapes it sends them)', () => {
+  const CHANNEL = '__CHANNEL__:12'
+
+  it.each(['plugin:updater|download', 'plugin:updater|install', 'plugin:resources|close', 'plugin:updater|', 'plugin:updater|check_all', 'plugin:updater|download_and_install_all'])(
+    'refuses the command %j, with the payload of a call it does allow',
+    (cmd) => {
+      expect(isRefused(message(cmd, {}))).toBe(true)
+      expect(isRefused(message(cmd, { onEvent: CHANNEL, rid: 3 }))).toBe(true)
+      expect(isRefused(message(cmd, { rid: 3 }))).toBe(true)
+      expect(isRefused(message(cmd, { updateRid: 3, bytesRid: 4 }))).toBe(true)
+    },
+  )
+
+  describe('check', () => {
+    it.each([
+      ['headers', [['x-a', 'b']]],
+      ['timeout', 1000],
+      ['proxy', 'http://127.0.0.1:8080'],
+      ['target', 'windows-x86_64'],
+      ['an option the plugin does not have', true],
+    ])('refuses the option %s', (key, value) => {
+      expect(isRefused(message('plugin:updater|check', { [key === 'an option the plugin does not have' ? 'extra' : key]: value }))).toBe(true)
+    })
+
+    it('refuses a payload that is not an empty object', () => {
+      for (const payload of [null, undefined, 'check', 0, [], [{}], { rid: 3 }, { onEvent: CHANNEL }]) {
+        expect(isRefused(message('plugin:updater|check', payload)), JSON.stringify(payload)).toBe(true)
+      }
+    })
+  })
+
+  describe('download_and_install', () => {
+    it.each([
+      ['headers', [['x-a', 'b']]],
+      ['timeout', 1000],
+      ['restartAfterInstall', false],
+      ['restartAfterInstall', true],
+      ['proxy', 'http://127.0.0.1:8080'],
+      ['target', 'windows-x86_64'],
+    ])('refuses the option %s', (key, value) => {
+      expect(isRefused(message('plugin:updater|download_and_install', { onEvent: CHANNEL, rid: 3, [key]: value }))).toBe(true)
+    })
+
+    it.each([1.5, -1, '3', '3 ', NaN, Infinity, 2 ** 32, 2 ** 53, null, undefined, {}, [3], true])('refuses the resource number %j', (rid) => {
+      expect(isRefused(message('plugin:updater|download_and_install', { onEvent: CHANNEL, rid }))).toBe(true)
+    })
+
+    it.each([5, null, undefined, true, {}, { id: 12 }, ['__CHANNEL__:12'], '', '__CHANNEL__:', '__CHANNEL__:abc', '__CHANNEL__:-1', '__CHANNEL__:1.5', '__CHANNEL__: 12', '__CHANNEL__:12\n', '__CHANNEL__:12 ', 'x__CHANNEL__:12', '__channel__:12', '__CHANNEL__:12345678901', 'javascript:alert(1)'])(
+      'refuses %j in place of the channel',
+      (onEvent) => {
+        expect(isRefused(message('plugin:updater|download_and_install', { onEvent, rid: 3 }))).toBe(true)
+      },
+    )
+
+    it('refuses a call that lacks either part, or is not an object', () => {
+      expect(isRefused(message('plugin:updater|download_and_install', { rid: 3 }))).toBe(true)
+      expect(isRefused(message('plugin:updater|download_and_install', { onEvent: CHANNEL }))).toBe(true)
+      for (const payload of [{}, null, undefined, [], 'x', [CHANNEL, 3]]) {
+        expect(isRefused(message('plugin:updater|download_and_install', payload)), JSON.stringify(payload)).toBe(true)
+      }
+    })
+
+    it('refuses the shape of download or install (a second resource number) and the key store’s shapes', () => {
+      expect(isRefused(message('plugin:updater|download_and_install', { updateRid: 3, bytesRid: 4 }))).toBe(true)
+      expect(isRefused(message('plugin:updater|download_and_install', { onEvent: CHANNEL, rid: 3, bytesRid: 4 }))).toBe(true)
+      expect(isRefused(message('plugin:updater|download_and_install', { rid: 3, key: 'k' }))).toBe(true)
+    })
+  })
+
+  describe('relaunch', () => {
+    it.each([{ label: 'main' }, { rid: 3 }, { exitCode: 0 }, { onEvent: CHANNEL, rid: 3 }, null, undefined, [], 'now', 0])('refuses the payload %j', (payload) => {
+      expect(isRefused(message('relaunch', payload))).toBe(true)
+    })
+
+    it.each(['Relaunch', 'RELAUNCH', ' relaunch', 'relaunch ', 'relaunch\u0000', 'plugin:app|relaunch', 'plugin:process|restart', 'plugin:process|exit', 'restart', 'exit'])(
+      'refuses the look-alike or neighbour %j, even with an empty payload',
+      (cmd) => {
+        expect(isRefused(message(cmd, {}))).toBe(true)
+      },
+    )
+  })
+
+  it.each(['plugin:updater|CHECK', 'Plugin:updater|check', 'plugin:UPDATER|check', 'plugin:updater |check', 'plugin:updater| check', ' plugin:updater|check', 'plugin:updater|check ', 'plugin:updater|DOWNLOAD_AND_INSTALL'])(
+    'refuses the look-alike %j',
+    (cmd) => {
+      expect(isRefused(message(cmd, {}))).toBe(true)
+      expect(isRefused(message(cmd, { onEvent: '__CHANNEL__:12', rid: 3 }))).toBe(true)
+    },
+  )
 })
 
 describe('a refusal', () => {
