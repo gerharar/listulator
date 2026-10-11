@@ -774,6 +774,10 @@ describe('the updater test build', () => {
       expect(setting?.run).toContain('$env:VERSION')
     })
 
+    it('lets the two versions of a test build at the same time: its concurrency group is per version', () => {
+      expect((workflow as Workflow & { concurrency?: unknown }).concurrency).toEqual({ group: 'updater-test-windows-${{ inputs.version }}', 'cancel-in-progress': true })
+    })
+
     it('has no updater key, no update files and no signature: the owner signs the installer afterwards, on their own machine', () => {
       expect(text).not.toMatch(/TAURI_SIGNING|updater-artifacts|\.sig\b|createUpdaterArtifacts/)
     })

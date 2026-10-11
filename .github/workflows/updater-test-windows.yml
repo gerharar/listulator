@@ -23,8 +23,10 @@ on:
 permissions:
   contents: read
 
+# One group per version: the two builds of a test (1.0.0-rc.1 and 1.0.0-rc.2) run side by side, and only a second run of the SAME
+# version replaces the first.
 concurrency:
-  group: updater-test-windows
+  group: updater-test-windows-${{ inputs.version }}
   cancel-in-progress: true
 
 jobs:
