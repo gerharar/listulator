@@ -90,9 +90,14 @@ jobs:
       # built at all), and the upload below takes the .exe only, so the throw-away signature stays on this runner.
       - name: The installer is also the update file
         shell: pwsh
+        env:
+          TAG: ${{ github.ref_name }}
         run: |
           $installers = Get-ChildItem apps/desktop/src-tauri/target/release/bundle/nsis/*.exe
           if (-not $installers) { throw 'No installer was built' }
+          # The installer's name carries the version the app was built with: it must be the tag's, or the app would offer its own version as an update.
+          $expected = "Listulator_$($env:TAG.Substring(1))_x64-setup.exe"
+          if (@($installers).Count -ne 1 -or $installers[0].Name -ne $expected) { throw "Expected exactly $expected, found: $($installers.Name -join ', ')" }
           foreach ($installer in $installers) { if (-not (Test-Path "$($installer.FullName).sig")) { throw "No update signature next to $($installer.Name)" } }
 
       - name: Check the pages register no service worker
@@ -184,6 +189,7 @@ jobs:
             codesign --verify --deep --strict --verbose=2 "$app" || fail "$2: the seal is broken"
             [ "$(plutil -extract LSMinimumSystemVersion raw -o - "$plist")" = 11.0 ] || fail "$2: minimum macOS is not 11.0"
             [ "v$(plutil -extract CFBundleShortVersionString raw -o - "$plist")" = "$TAG" ] || fail "$2: the version is not the tag's"
+            [ "$(plutil -extract CFBundleIdentifier raw -o - "$plist")" = com.listulator.desktop ] || fail "$2: the identifier is not com.listulator.desktop (a test or dev build?)"
             [ "$(ls -A "$app/Contents/Resources" | LC_ALL=C sort | tr '\n' ' ')" = "LICENSE NOTICE.md THIRD-PARTY-NOTICES.txt icon.icns " ] || fail "$2: Resources holds something unexpected"
             [ -z "$(find "$app" \( -name '.env*' -o -name '*.sqlite*' -o -name lists \) -print)" ] || fail "$2: a .env, database or lists folder is inside"
           }

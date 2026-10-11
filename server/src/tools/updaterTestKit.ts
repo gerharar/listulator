@@ -23,6 +23,12 @@ import { RELEASE_VERSION } from './versionSources.js'
 
 const REPO_ROOT = fileURLToPath(new URL('../../../', import.meta.url))
 const BASE_URL = `http://127.0.0.1:${DEFAULT_PORT}`
+/**
+ * The first version that is shipped. The test files are signed with the REAL key, and the plugin does not tie a signature to the file
+ * it is for, so a test build signed for a shipped version could be offered to every install by whoever controls the endpoint
+ * (20.14, SR-070). A signed version below this one is never offered to an install of it. Revisit: a separate test key (then this goes).
+ */
+const FIRST_RELEASE = '1.0.0'
 
 export interface KitFile {
   name: string
@@ -70,6 +76,7 @@ export function buildKitScenarios(input: KitInput): KitScenario[] {
   const [exe, archive] = signed as [(typeof signed)[number], (typeof signed)[number]]
   if (exe.version !== archive.version) throw new Error(`The two files must be signed for the same version, not ${exe.version} and ${archive.version}`)
   const version = exe.version
+  if (compareVersions(version, FIRST_RELEASE) >= 0) throw new Error(`The test files are signed for ${version}: with the real key, a test build must stay below ${FIRST_RELEASE} (a prerelease like ${FIRST_RELEASE}-rc.2)`)
   if (compareVersions(input.installed, version) >= 0) throw new Error(`The installed version ${input.installed} must be older than the signed version ${version}, or there is no update to test`)
 
   // Signatures by another key that are right in every other way: the same file and version in the trusted comment.

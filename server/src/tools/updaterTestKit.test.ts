@@ -136,6 +136,14 @@ describe('what it refuses to build from', () => {
     expect(() => buildKitScenarios(input({ exe: { name: EXE, bytes: exeBytes, signature: sign('other.exe', exeBytes) } }))).toThrow(/other\.exe/)
   })
 
+  it.each(['1.0.0', '1.0.1', '2.3.4'])('a signed version of %s, which is a version that is or may be shipped: a test build signed with the real key must stay below the first release', (version) => {
+    const exe = `ListulatorUpdaterTest_${version}_x64-setup.exe`
+
+    expect(() =>
+      buildKitScenarios(input({ installed: '1.0.0-rc.1', exe: { name: exe, bytes: exeBytes, signature: sign(exe, exeBytes, version) }, archive: { name: TAR, bytes: tarBytes, signature: sign(TAR, tarBytes, version) } })),
+    ).toThrow(/below 1\.0\.0/)
+  })
+
   it('an installed version that is not older than the signed one (there would be no update to test)', () => {
     expect(() => buildKitScenarios(input({ installed: SIGNED }))).toThrow(/older/)
     expect(() => buildKitScenarios(input({ installed: '2.0.0' }))).toThrow(/older/)

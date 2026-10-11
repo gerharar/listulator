@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os'
 import { basename, join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { makeKeyPair, signLikeTauri } from './minisignTesting.js'
-import { createGhHost, nodeRunner, parseReleaseSignArguments, readPubkey, releaseSign, type ReleaseHost, type Runner } from './releaseSign.js'
+import { createGhHost, nodeRunner, parseReleaseSignArguments, readPubkey, releaseSign, type ReleaseHost, type Runner, type TagState } from './releaseSign.js'
 import { parseSignature } from './updateManifest.js'
 
 /**
@@ -51,7 +51,11 @@ interface World {
   /** The `.sig` content the fake signer writes for a file, or an error it fails with. */
   signer: (name: string, data: Buffer, version: string) => string
   uploadFails: boolean
+  /** Where the tag is in the owner's clone. */
+  tag: TagState | Error
 }
+
+const COMMIT = 'a'.repeat(40)
 
 function world(over: Partial<World> = {}): World {
   const files: Record<string, Buffer> = {
@@ -69,6 +73,7 @@ function world(over: Partial<World> = {}): World {
     attested: () => true,
     signer: (name, data, version) => signLikeTauri(app.privateKey, app.keyIdBytes, data, `timestamp:1791727313\tfile:${name}\tversion:${version}`),
     uploadFails: false,
+    tag: { commit: COMMIT, onMain: true, checkedOut: true, clean: true },
     ...over,
   }
 }
@@ -78,11 +83,17 @@ interface Fake {
   calls: string[]
   uploaded: { name: string; content: Buffer }[]
   signCalls: { file: string; keyFile: string; version: string }[]
+  attestedCommits: string[]
 }
 
 function fake(w: World): Fake {
-  const out: Fake = { calls: [], uploaded: [], signCalls: [], host: undefined as unknown as ReleaseHost }
+  const out: Fake = { calls: [], uploaded: [], signCalls: [], attestedCommits: [], host: undefined as unknown as ReleaseHost }
   out.host = {
+    tagState: async () => {
+      out.calls.push('tag')
+      if (w.tag instanceof Error) throw w.tag
+      return w.tag
+    },
     viewRelease: async () => {
       out.calls.push('view')
       return { isDraft: w.draft, assets: w.assets }
@@ -100,8 +111,9 @@ function fake(w: World): Fake {
         writeFileSync(join(dir, name), data)
       }
     },
-    verifyAttestation: async (file) => {
+    verifyAttestation: async (file, _tag, commit) => {
       out.calls.push(`attest:${basename(file)}`)
+      out.attestedCommits.push(commit)
       return w.attested(basename(file))
     },
     signFile: async (file, keyFileArgument, version) => {
@@ -167,7 +179,7 @@ describe('a release that is as it should be', () => {
   it('checks every file before it signs anything: the checksums, then the attestation of the installer, the disk image and the archive', async () => {
     const r = await run(world())
 
-    expect(r.calls).toEqual(['view', 'download', `attest:${EXE}`, `attest:${DMG}`, `attest:${TAR}`, 'latest', `sign:${EXE}`, `sign:${TAR}`, 'upload'])
+    expect(r.calls).toEqual(['tag', 'view', 'download', `attest:${EXE}`, `attest:${DMG}`, `attest:${TAR}`, 'latest', `sign:${EXE}`, `sign:${TAR}`, 'upload'])
   })
 
   it('removes what it downloaded and signed, on success', async () => {
@@ -201,6 +213,89 @@ describe('a release that is as it should be', () => {
   })
 })
 
+describe('which commit it signs for (20.14: the tools run on the key machine, and the attestation must bind the commit)', () => {
+  const nothingHappened = (r: Awaited<ReturnType<typeof run>>) => {
+    expect(r.calls).not.toContain('download')
+    expect(r.signCalls).toEqual([])
+    expect(r.uploaded).toEqual([])
+  }
+
+  it('checks that every file was built from the commit the tag points at: the attestation is asked for that commit', async () => {
+    const r = await run(world({ tag: { commit: 'b'.repeat(40), onMain: true, checkedOut: true, clean: true } }))
+
+    expect(r.error).toBeUndefined()
+    expect(r.attestedCommits).toEqual(['b'.repeat(40), 'b'.repeat(40), 'b'.repeat(40)])
+  })
+
+  it('refuses a tag whose commit is not on main, before it downloads anything', async () => {
+    const r = await run(world({ tag: { commit: COMMIT, onMain: false, checkedOut: true, clean: true } }))
+
+    expect(r.error?.message).toMatch(/not on main/)
+    nothingHappened(r)
+  })
+
+  it('refuses to sign when the tag is not what is checked out, and says the exact commands', async () => {
+    const r = await run(world({ tag: { commit: COMMIT, onMain: true, checkedOut: false, clean: true } }))
+
+    expect(r.error?.message).toContain(`git checkout ${TAG} && npm ci --ignore-scripts`)
+    nothingHappened(r)
+  })
+
+  it('refuses to sign from a working tree with changes in it', async () => {
+    const r = await run(world({ tag: { commit: COMMIT, onMain: true, checkedOut: true, clean: false } }))
+
+    expect(r.error?.message).toMatch(/changes/)
+    nothingHappened(r)
+  })
+
+  it('lets a dry run be made from anywhere (it signs nothing), but still wants the tag on main', async () => {
+    const elsewhere = { commit: COMMIT, onMain: true, checkedOut: false, clean: false }
+
+    expect((await run(world({ tag: elsewhere }), { dryRun: true, keyFile: undefined })).error).toBeUndefined()
+    expect((await run(world({ tag: { ...elsewhere, onMain: false } }), { dryRun: true, keyFile: undefined })).error?.message).toMatch(/not on main/)
+  })
+
+  it('stops with the reason when the tag is not in the clone', async () => {
+    const r = await run(world({ tag: new Error(`The tag ${TAG} is not in this clone: run git fetch --tags`) }))
+
+    expect(r.error?.message).toMatch(/git fetch --tags/)
+    nothingHappened(r)
+  })
+})
+
+describe('a key rotation: the new key must be one the owner named', () => {
+  const newKey = makeKeyPair('0123456789ABCDEF')
+  const rotation = { newPubkey: newKey.pubkey, newKeyId: '0123456789ABCDEF' }
+
+  it('signs when the tag carries the key whose ID the owner named (any letter case)', async () => {
+    expect((await run(world(), { rotation })).error).toBeUndefined()
+    expect((await run(world(), { rotation: { ...rotation, newKeyId: '0123456789abcdef' } })).error).toBeUndefined()
+  })
+
+  it('refuses a tag that carries another key than the one named, before it downloads or signs anything', async () => {
+    const r = await run(world(), { rotation: { newPubkey: other.pubkey, newKeyId: '0123456789ABCDEF' } })
+
+    expect(r.error?.message).toMatch(/61BCBF5980E87475/)
+    expect(r.error?.message).toMatch(/0123456789ABCDEF/)
+    expect(r.calls).not.toContain('download')
+    expect(r.signCalls).toEqual([])
+  })
+
+  it('refuses a "rotation" to the key the apps already trust', async () => {
+    const r = await run(world(), { rotation: { newPubkey: app.pubkey, newKeyId: '738FF42772526511' } })
+
+    expect(r.error?.message).toMatch(/same key/)
+    expect(r.signCalls).toEqual([])
+  })
+
+  it('refuses a new key that is not a minisign public key', async () => {
+    const r = await run(world(), { rotation: { newPubkey: 'not a key', newKeyId: '0123456789ABCDEF' } })
+
+    expect(r.error?.message).toMatch(/new public key/)
+    expect(r.signCalls).toEqual([])
+  })
+})
+
 describe('what makes it stop before anything is signed or uploaded', () => {
   const nothingChanged = (r: Awaited<ReturnType<typeof run>>) => {
     expect(r.signCalls).toEqual([])
@@ -223,7 +318,7 @@ describe('what makes it stop before anything is signed or uploaded', () => {
     const r = await run(world({ draft: false }))
 
     expect(r.error?.message).toMatch(/not a draft/)
-    expect(r.calls).toEqual(['view'])
+    expect(r.calls).toEqual(['tag', 'view'])
   })
 
   it('refuses a draft that lacks one of the four files', async () => {
@@ -385,7 +480,7 @@ describe('--dry-run', () => {
 
     expect(r.error).toBeUndefined()
     expect(r.value?.dryRun).toBe(true)
-    expect(r.calls).toEqual(['view', 'download', `attest:${EXE}`, `attest:${DMG}`, `attest:${TAR}`])
+    expect(r.calls).toEqual(['tag', 'view', 'download', `attest:${EXE}`, `attest:${DMG}`, `attest:${TAR}`])
     expect(r.signCalls).toEqual([])
     expect(r.uploaded).toEqual([])
     expect(existsSync(downloadDirs[0]!)).toBe(false)
@@ -439,8 +534,18 @@ describe('the command line', () => {
     expect(parseReleaseSignArguments(['v1.0.1'])).toEqual({ tag: 'v1.0.1', dryRun: false })
     expect(parseReleaseSignArguments(['v1.0.1', '--dry-run'])).toEqual({ tag: 'v1.0.1', dryRun: true })
     expect(parseReleaseSignArguments(['v1.0.1', '--key-file', '/keys/updater.key', '--current', '1.0.0'])).toEqual({ tag: 'v1.0.1', dryRun: false, keyFile: '/keys/updater.key', current: '1.0.0' })
-    expect(parseReleaseSignArguments(['v1.1.0', '--pubkey-from', 'v1.0.0'])).toEqual({ tag: 'v1.1.0', dryRun: false, pubkeyFrom: 'v1.0.0' })
+    expect(parseReleaseSignArguments(['v1.1.0', '--pubkey-from', 'v1.0.0', '--new-key-id', '0123456789abcdef'])).toEqual({ tag: 'v1.1.0', dryRun: false, pubkeyFrom: 'v1.0.0', newKeyId: '0123456789ABCDEF' })
     expect(parseReleaseSignArguments(['v1.1.0', '--pubkey-from'])).toMatch(/needs a value/)
+  })
+
+  it.each([
+    ['--pubkey-from without --new-key-id', ['v1.1.0', '--pubkey-from', 'v1.0.0'], /--new-key-id/],
+    ['--new-key-id without --pubkey-from', ['v1.1.0', '--new-key-id', '0123456789ABCDEF'], /--pubkey-from/],
+    ['a key ID that is not 16 hex digits', ['v1.1.0', '--pubkey-from', 'v1.0.0', '--new-key-id', '0123'], /16/],
+    ['a --pubkey-from that is not a tag', ['v1.1.0', '--pubkey-from', 'main', '--new-key-id', '0123456789ABCDEF'], /tag/],
+    ['a --pubkey-from with a path in it', ['v1.1.0', '--pubkey-from', 'v1.0.0/../x', '--new-key-id', '0123456789ABCDEF'], /tag/],
+  ])('refuses %s', (_name, args, expected) => {
+    expect(parseReleaseSignArguments(args)).toMatch(expected)
   })
 
   it.each([
@@ -516,14 +621,43 @@ describe('the real commands (GitHub CLI and the Tauri signer), as they are run',
   it('verifies an attestation as made by THIS repository’s release workflow on THIS tag, not just by anyone', async () => {
     const { calls, runner } = recorder()
 
-    expect(await createGhHost(runner, repoRoot).verifyAttestation('/tmp/dir/x.exe', TAG)).toBe(true)
-    expect(calls[0]!.args).toEqual(['attestation', 'verify', '/tmp/dir/x.exe', '--repo', 'gerharar/listulator', '--signer-workflow', 'gerharar/listulator/.github/workflows/release.yml', '--source-ref', `refs/tags/${TAG}`])
+    expect(await createGhHost(runner, repoRoot).verifyAttestation('/tmp/dir/x.exe', TAG, COMMIT)).toBe(true)
+    expect(calls[0]!.args).toEqual(['attestation', 'verify', '/tmp/dir/x.exe', '--repo', 'gerharar/listulator', '--signer-workflow', 'gerharar/listulator/.github/workflows/release.yml', '--source-ref', `refs/tags/${TAG}`, '--source-digest', COMMIT])
   })
 
   it('treats a failed verification as false, not as an exception', async () => {
     const { runner } = recorder(() => ({ code: 1, stdout: '' }))
 
-    expect(await createGhHost(runner, repoRoot).verifyAttestation('/tmp/dir/x.exe', TAG)).toBe(false)
+    expect(await createGhHost(runner, repoRoot).verifyAttestation('/tmp/dir/x.exe', TAG, COMMIT)).toBe(false)
+  })
+
+  describe('where the tag is in the clone (git, no shell)', () => {
+    const answers = (over: { commit?: { code: number; stdout: string }; head?: string; status?: string; ancestor?: number } = {}) =>
+      recorder((call) => {
+        const key = call.args.join(' ')
+        if (key === `rev-parse --verify --quiet ${TAG}^{commit}`) return over.commit ?? { code: 0, stdout: `${COMMIT}\n` }
+        if (key === 'rev-parse HEAD') return { code: 0, stdout: `${over.head ?? COMMIT}\n` }
+        if (key === 'status --porcelain') return { code: 0, stdout: over.status ?? '' }
+        if (key === `merge-base --is-ancestor ${COMMIT} origin/main`) return { code: over.ancestor ?? 0, stdout: '' }
+        throw new Error(`unexpected git call: ${key}`)
+      })
+
+    it('reports the tag’s commit, that it is on origin/main, that it is checked out and that the tree is clean', async () => {
+      const { calls, runner } = answers()
+
+      expect(await createGhHost(runner, repoRoot).tagState(TAG)).toEqual({ commit: COMMIT, onMain: true, checkedOut: true, clean: true })
+      expect(calls.every((call) => call.command === 'git' && call.options.cwd === repoRoot)).toBe(true)
+    })
+
+    it('reports a tag that is not on main, another checked-out commit, and a tree with changes', async () => {
+      expect((await createGhHost(answers({ ancestor: 1 }).runner, repoRoot).tagState(TAG)).onMain).toBe(false)
+      expect((await createGhHost(answers({ head: 'c'.repeat(40) }).runner, repoRoot).tagState(TAG)).checkedOut).toBe(false)
+      expect((await createGhHost(answers({ status: ' M package.json\n' }).runner, repoRoot).tagState(TAG)).clean).toBe(false)
+    })
+
+    it('says to fetch the tags when the tag is not in the clone', async () => {
+      await expect(createGhHost(answers({ commit: { code: 1, stdout: '' } }).runner, repoRoot).tagState(TAG)).rejects.toThrow(/git fetch --tags/)
+    })
   })
 
   it('runs the Tauri signer with the key FILE, the version, a terminal of its own for the passphrase, and no secret from the environment', async () => {
@@ -609,14 +743,11 @@ describe('which public key it checks against', () => {
     expect(calls[0]).toEqual(['show', 'v1.0.0:apps/desktop/src-tauri/tauri.conf.json'])
   })
 
-  it('falls back to the working tree when the tag is not here, and says so', async () => {
+  it('does not fall back to the working tree when the tag is not here: it stops and says to fetch the tags', async () => {
     mkdirSync(join(repoRoot, 'apps/desktop/src-tauri'), { recursive: true })
     writeFileSync(join(repoRoot, 'apps/desktop/src-tauri/tauri.conf.json'), config('WORKING-TREE-KEY'))
 
-    const result = await readPubkey(TAG, async () => ({ code: 128, stdout: '', stderr: 'unknown revision' }), repoRoot)
-
-    expect(result.pubkey).toBe('WORKING-TREE-KEY')
-    expect(result.source).toMatch(/working tree/)
+    await expect(readPubkey(TAG, async () => ({ code: 128, stdout: '', stderr: 'unknown revision' }), repoRoot)).rejects.toThrow(/git fetch --tags/)
   })
 
   it('fails when the config has no updater key', async () => {

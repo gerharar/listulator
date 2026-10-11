@@ -274,6 +274,12 @@ function releaseProblems(jobs: [string, Job][], steps: { job: string; step: Step
       problems.push(`job ${name}: the build does not pass --config ${UPDATER_OVERLAY} (no update files without it)`)
     }
   }
+  // The Windows installer's name carries the version the app was built with; it has to be the tag's (as the macOS job checks its plist).
+  const windows = jobs.find(([name]) => name === 'build' || name === 'build-windows')?.[1]
+  const windowsRun = (windows?.steps ?? []).map((step) => step.run ?? '').join('\n')
+  if (windows !== undefined && !(/_x64-setup\.exe/.test(windowsRun) && /\$env:TAG/.test(windowsRun) && /\.Name -ne \$expected/.test(windowsRun))) {
+    problems.push("the Windows build job does not check that the installer's name carries the tag's version (Listulator_<version>_x64-setup.exe)")
+  }
   // The files that travel are checked as they are handed on: no signature among them, and the update archive is among them.
   const publishRun = (publish?.steps ?? []).map((step) => step.run ?? '').join('\n')
   if (publish !== undefined && !/\*\.tar\.gz/.test(publishRun)) problems.push('job publish does not handle the update archive (*.tar.gz)')
@@ -286,6 +292,9 @@ function releaseProblems(jobs: [string, Job][], steps: { job: string; step: Step
   const macosRun = (macos?.steps ?? []).map((step) => step.run ?? '').join('\n')
   if (macos !== undefined && !(/Listulator\.app\.tar\.gz/.test(macosRun) && /\btar -xzf\b/.test(macosRun) && /codesign --verify/.test(macosRun))) {
     problems.push('job build-macos does not unpack and audit the update archive (Listulator.app.tar.gz)')
+  }
+  if (macos !== undefined && !/CFBundleIdentifier[^\n]*= com\.listulator\.desktop \]/.test(macosRun)) {
+    problems.push('job build-macos does not check that the app identifier is com.listulator.desktop (a test or dev build must not be released)')
   }
 
   for (const { job, run } of runs) {
@@ -452,6 +461,13 @@ jobs:
           TAURI_SIGNING_PRIVATE_KEY: \${{ runner.temp }}/updater-throwaway.key
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ''
         run: npm run tauri:build -w @listulator/desktop -- --bundles nsis --config src-tauri/tauri.updater-artifacts.conf.json -- --locked
+      - name: The installer carries the tag
+        shell: pwsh
+        env:
+          TAG: \${{ github.ref_name }}
+        run: |
+          $expected = "Listulator_$($env:TAG.Substring(1))_x64-setup.exe"
+          if (@($installers).Count -ne 1 -or $installers[0].Name -ne $expected) { throw 'wrong installer' }
       - uses: actions/upload-artifact@${sha('b')} # v1
         with:
           name: installer
@@ -483,6 +499,7 @@ jobs:
         run: |
           tar -xzf Listulator.app.tar.gz -C unpacked
           codesign --verify --deep --strict unpacked/Listulator.app
+          [ "$(plutil -extract CFBundleIdentifier raw -o - unpacked/Listulator.app/Contents/Info.plist)" = com.listulator.desktop ] || exit 1
       - uses: actions/upload-artifact@${sha('b')} # v1
         with:
           name: dmg
@@ -589,6 +606,8 @@ describe('the rules for the release workflow, proven on hostile workflows', () =
     ['a build step with no key', (t) => t.replace("          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ''\n        run: npm run tauri:build -w @listulator/desktop -- --bundles app,dmg", "        run: npm run tauri:build -w @listulator/desktop -- --bundles app,dmg").replace('          TAURI_SIGNING_PRIVATE_KEY: ${{ runner.temp }}/updater-throwaway.key\n        run: npm run tauri:build -w @listulator/desktop -- --bundles app,dmg', '        run: npm run tauri:build -w @listulator/desktop -- --bundles app,dmg'), /job build-macos: the build step does not get the throw-away key/],
     ['a build that does not switch the update files on', (t) => t.replace(' --config src-tauri/tauri.updater-artifacts.conf.json -- --locked', ' -- --locked'), /does not pass --config/],
     ['the overlay on another line than the build', (t) => t.replace('--bundles nsis --config src-tauri/tauri.updater-artifacts.conf.json -- --locked', '--bundles nsis -- --locked # --config src-tauri/tauri.updater-artifacts.conf.json').replace('# --config src-tauri/tauri.updater-artifacts.conf.json', '#'), /job build: the build does not pass --config/],
+    ['a Windows job that does not check the installer carries the tag’s version', (t) => t.replace('_x64-setup.exe', '_x64.exe'), /does not check that the installer's name/],
+    ['a macOS job that does not check the app identifier', (t) => t.replace('= com.listulator.desktop ]', '= com.listulator.desktop.dev ]'), /does not check that the app identifier is com\.listulator\.desktop/],
     ['a signature file uploaded', (t) => t.replace('          name: installer\n          path: x', '          name: installer\n          path: x/*.exe.sig'), /takes a \.sig file/],
     ['a publish job that never mentions the update archive', (t) => t.replace('for file in *.exe *.dmg *.tar.gz; do', 'for file in *.exe *.dmg; do').replace('sha256sum -- *.exe *.dmg *.tar.gz > SHA256SUMS', 'sha256sum -- *.exe *.dmg > SHA256SUMS').replace('-- *.exe *.dmg *.tar.gz SHA256SUMS', '-- *.exe *.dmg SHA256SUMS'), /does not handle the update archive/],
     ['a macOS job that does not unpack the update archive', (t) => t.replace('tar -xzf Listulator.app.tar.gz -C unpacked', 'true'), /does not unpack and audit the update archive/],
