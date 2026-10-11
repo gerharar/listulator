@@ -24,7 +24,7 @@ export interface VersionSource {
 }
 
 /** Semantic Versioning 2.0.0 with an optional pre-release (`1.0.0-rc.1`) and no build metadata (`+…`). */
-const RELEASE_VERSION =
+export const RELEASE_VERSION =
   /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(-(0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(\.(0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*)?$/
 
 export function isReleaseVersion(version: string): boolean {
