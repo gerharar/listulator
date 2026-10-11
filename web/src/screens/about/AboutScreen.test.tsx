@@ -7,7 +7,7 @@ import { LayerStackProvider, useLayerStack } from '../../components/quantum/laye
 import { LiveRegionProvider } from '../../components/quantum/LiveRegion/LiveRegion.js'
 import { OverlayManagerProvider } from '../../components/quantum/overlay/OverlayManagerContext.js'
 import { hoverTooltip } from '../../components/quantum/Tooltip/hoverTooltip.js'
-import type { AppUpdateChecker, UpdateResult } from '../../lib/appUpdate.js'
+import type { AppUpdateChecker, UpdatePhase, UpdateResult } from '../../lib/appUpdate.js'
 import { APP_VERSION } from '../../lib/appVersion.js'
 import { AboutScreen } from './AboutScreen.js'
 
@@ -296,8 +296,48 @@ describe('checking for updates when About opens (task 13.3)', () => {
 
     expect(heard()).toEqual(['An update is available', `Version ${APP_VERSION} → 9.9.9`])
     await waitFor(() => expect(spoken()).toBe(`An update is available Version ${APP_VERSION} → 9.9.9`))
+    expect(download).not.toHaveBeenCalled()
     fireEvent.click(screen.getByRole('button', { name: 'Download Update' }))
-    expect(download).toHaveBeenCalledExactlyOnceWith('9.9.9')
+    expect(download).toHaveBeenCalledExactlyOnceWith('9.9.9', expect.any(Function))
+  })
+
+  it('shows each phase of the update in the block, disables the button meanwhile, and announces each phase', async () => {
+    const reports: ((phase: UpdatePhase) => void)[] = []
+    const { checker, answer, check } = controlledChecker((_version, onPhase) => {
+      reports.push(onPhase)
+      return new Promise<void>(() => {})
+    })
+    renderAbout(checker)
+    await act(async () => answer({ kind: 'available', version: '9.9.9' }))
+
+    fireEvent.click(screen.getByRole('button', { name: 'Download Update' }))
+
+    expect(heard()).toEqual(['Downloading update…', `Version ${APP_VERSION} → 9.9.9`])
+    expect((screen.getByRole('button', { name: 'Downloading…' }) as HTMLButtonElement).disabled).toBe(true)
+    await waitFor(() => expect(spoken()).toBe('Downloading update…'))
+    act(() => reports[0]!('installing'))
+    expect(heard()[0]).toBe('Installing update…')
+    await waitFor(() => expect(spoken()).toBe('Installing update…'))
+    act(() => reports[0]!('restarting'))
+    expect(heard()[0]).toBe('Restarting…')
+    await waitFor(() => expect(spoken()).toBe('Restarting…'))
+    expect((screen.getByRole('button', { name: 'Restarting…' }) as HTMLButtonElement).disabled).toBe(true)
+    expect(check).toHaveBeenCalledTimes(1)
+  })
+
+  it('says Couldn’t install the update when the update fails, never "up to date", and Try Again checks again', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+    const { checker, answer, check } = controlledChecker(() => Promise.reject(new Error('bad signature')))
+    renderAbout(checker)
+    await act(async () => answer({ kind: 'available', version: '9.9.9' }))
+
+    await act(async () => fireEvent.click(screen.getByRole('button', { name: 'Download Update' })))
+
+    expect(heard()).toEqual(['Couldn’t install the update', `Version ${APP_VERSION} → 9.9.9`])
+    await waitFor(() => expect(spoken()).toBe(`Couldn’t install the update Version ${APP_VERSION} → 9.9.9`))
+    fireEvent.click(screen.getByRole('button', { name: 'Try Again' }))
+    expect(check).toHaveBeenCalledTimes(2)
+    expect(heard()[0]).toBe('Checking…')
   })
 
   it('says nothing aloud when there is no updater to ask, and nothing about being up to date', async () => {

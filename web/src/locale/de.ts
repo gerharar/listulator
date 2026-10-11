@@ -285,6 +285,12 @@ export const de: Locale = {
       failed: 'Suche nach Updates fehlgeschlagen.',
       download: 'Update herunterladen',
       retry: 'Erneut versuchen',
+      downloadingUpdate: 'Update wird heruntergeladen…',
+      installingUpdate: 'Update wird installiert…',
+      restarting: 'Neustart…',
+      downloading: 'Lädt herunter…',
+      installing: 'Installiert…',
+      installFailed: 'Update konnte nicht installiert werden',
       /** The link beside the version line, to the repository's CHANGELOG.md. */
       changelog: 'Änderungen',
       legal: 'Lizenz und Hinweise',

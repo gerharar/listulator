@@ -1,13 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import type { AppUpdateChecker, UpdateCheckState } from './appUpdate.js'
+import type { AppUpdateChecker, UpdateCheckState, UpdatePhase } from './appUpdate.js'
 
 export interface UpdateCheck {
   state: UpdateCheckState
-  /** The version an update offers; set in the `available` state. */
+  /** The version an update offers; set from `available` on, through the update's phases. */
   next: string | undefined
   /** Checks again. Does nothing while a check is running. */
   check: () => Promise<void>
-  /** Hands off to the checker's download for the offered version. */
+  /** Starts the offered update: only from `available`, only once, and only by this call (never by a check). */
   download: () => void
 }
 
@@ -15,6 +15,10 @@ export interface UpdateCheck {
  * The state machine behind the About screen's update block (task 13.3). It checks once when the screen opens,
  * starting in `checking` so nothing is ever claimed before an answer. A press while a check runs does
  * nothing; a failed check is `error`; an answer that arrives after the screen has closed is dropped.
+ *
+ * The update itself (task 20.11) starts only from `available` and only on a press: `downloading`, then the
+ * phases the checker reports, with `installError` if any step fails. While it runs, a check and another press do
+ * nothing. The state it ends in is the last phase: the app is replaced, there is nothing to go back to.
  */
 export function useUpdateCheck(checker: AppUpdateChecker): UpdateCheck {
   const [state, setState] = useState<UpdateCheckState>('checking')
@@ -52,10 +56,27 @@ export function useUpdateCheck(checker: AppUpdateChecker): UpdateCheck {
   }, [check])
 
   const download = useCallback((): void => {
-    if (next === undefined) return
+    if (next === undefined || state !== 'available' || !checker.download || running.current) return
 
-    Promise.resolve(checker.download?.(next)).catch((error: unknown) => console.error('Could not start the update', error))
-  }, [checker, next])
+    running.current = true
+    setState('downloading')
+    const report = (phase: UpdatePhase): void => {
+      if (alive.current) setState(phase)
+    }
+
+    void (async () => {
+      try {
+        await checker.download?.(next, report)
+      } catch (error) {
+        if (!alive.current) return
+
+        console.error('Could not install the update', error)
+        setState('installError')
+      } finally {
+        running.current = false
+      }
+    })()
+  }, [checker, next, state])
 
   return { state, next, check, download }
 }

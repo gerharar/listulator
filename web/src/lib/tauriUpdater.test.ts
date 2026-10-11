@@ -1,0 +1,215 @@
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import type { UpdatePhase } from './appUpdate.js'
+import { loadIsolationHook, type IpcMessage } from './isolationHook.testing.js'
+import { createTauriChecker } from './tauriUpdater.js'
+
+/**
+ * The updater client against a stand-in for the Tauri bridge (task 20.11). Every call it makes is also sent through
+ * the real isolation hook (`apps/desktop/isolation/hook.js`) the way the isolation frame would see it, so the client
+ * and the hook cannot drift apart: a call the hook would refuse fails the test. (Node, not jsdom: the hook loader
+ * reads a file by URL, and the client needs only a `window` with the bridge on it.)
+ */
+const { hook } = loadIsolationHook()
+
+interface Sent {
+  cmd: string
+  payload: unknown
+}
+
+type Reply = (cmd: string, payload: Record<string, unknown>) => unknown
+
+let sent: Sent[]
+let callbacks: Map<number, (message: unknown) => void>
+let reply: Reply
+
+beforeEach(() => {
+  sent = []
+  callbacks = new Map()
+  reply = () => undefined
+  let next = 40
+  vi.stubGlobal('window', {})
+  ;(window as unknown as { __TAURI_INTERNALS__: unknown }).__TAURI_INTERNALS__ = {
+    transformCallback: (callback: (message: unknown) => void) => {
+      next += 1
+      callbacks.set(next, callback)
+      return next
+    },
+    unregisterCallback: (id: number) => void callbacks.delete(id),
+    invoke: async (cmd: string, args: Record<string, unknown> = {}) => {
+      // What the isolation frame receives: the payload after JSON, where a Channel has become its marker text.
+      const payload = JSON.parse(JSON.stringify(args)) as Record<string, unknown>
+      sent.push({ cmd, payload })
+      const message: IpcMessage = { cmd, callback: 1, error: 2, payload }
+      if (hook(message) !== message) throw new Error(`the isolation hook refused ${cmd}`)
+
+      return reply(cmd, payload)
+    },
+  }
+})
+
+afterEach(() => {
+  vi.unstubAllGlobals()
+  vi.restoreAllMocks()
+})
+
+const found = { rid: 7, currentVersion: '1.0.0', version: '1.1.0', date: '2026-10-20T00:00:00Z', body: 'notes the server chose', rawJson: {} }
+
+/** Moves the download along the way the plugin's channel does. */
+function emit(event: unknown, index = 0): void {
+  const last = [...callbacks.values()].at(-1)!
+  last({ index, message: event })
+}
+
+describe('check', () => {
+  it('asks the plugin with an empty object, and nothing else', async () => {
+    reply = () => null
+
+    await createTauriChecker({ relaunchAfterInstall: true }).check()
+
+    expect(sent).toEqual([{ cmd: 'plugin:updater|check', payload: {} }])
+  })
+
+  it('says "latest" only when the plugin answers null', async () => {
+    reply = () => null
+
+    expect(await createTauriChecker({ relaunchAfterInstall: true }).check()).toEqual({ kind: 'latest' })
+  })
+
+  it('offers the version, and only the version: nothing else the server sent reaches the screen', async () => {
+    reply = () => found
+
+    expect(await createTauriChecker({ relaunchAfterInstall: true }).check()).toEqual({ kind: 'available', version: '1.1.0' })
+  })
+
+  it.each([
+    ['no answer at all', undefined],
+    ['an empty object', {}],
+    ['no version', { rid: 7 }],
+    ['no resource id', { version: '1.1.0' }],
+    ['a version that is not text', { rid: 7, version: 110 }],
+    ['a resource id that is not a whole number', { rid: 7.5, version: '1.1.0' }],
+    ['a version with markup in it', { rid: 7, version: '1.1.0<img src=x>' }],
+    ['a version that is not a version', { rid: 7, version: 'Download the new Listulator now' }],
+    ['an empty version', { rid: 7, version: '' }],
+    ['an endless version', { rid: 7, version: `1.${'1'.repeat(200)}.0` }],
+  ])('fails, and never claims "up to date", on %s', async (_name, answer) => {
+    reply = () => answer
+
+    await expect(createTauriChecker({ relaunchAfterInstall: true }).check()).rejects.toThrow()
+  })
+
+  it('fails when the plugin fails (no release file, no network, a bad answer)', async () => {
+    reply = () => Promise.reject('Could not fetch a valid release JSON from the remote')
+
+    await expect(createTauriChecker({ relaunchAfterInstall: true }).check()).rejects.toBeDefined()
+  })
+})
+
+describe('download', () => {
+  async function offered(relaunchAfterInstall: boolean) {
+    reply = (cmd) => (cmd === 'plugin:updater|check' ? found : null)
+    const checker = createTauriChecker({ relaunchAfterInstall })
+    await checker.check()
+    sent.length = 0
+
+    return checker
+  }
+
+  it('refuses to download what no check offered, and sends nothing', async () => {
+    const checker = createTauriChecker({ relaunchAfterInstall: true })
+
+    await expect(checker.download?.('1.1.0', () => undefined)).rejects.toThrow()
+    expect(sent).toEqual([])
+  })
+
+  it('forgets the offer when the next check fails, so an old offer cannot be installed after a failed look', async () => {
+    const checker = await offered(true)
+    reply = () => Promise.reject('offline')
+    await checker.check().catch(() => undefined)
+    sent.length = 0
+
+    await expect(checker.download?.('1.1.0', () => undefined)).rejects.toThrow()
+    expect(sent).toEqual([])
+  })
+
+  it('refuses a version other than the one the check offered, and sends nothing', async () => {
+    const checker = await offered(true)
+
+    await expect(checker.download?.('9.9.9', () => undefined)).rejects.toThrow()
+    expect(sent).toEqual([])
+  })
+
+  it('downloads and installs the resource the check returned, with a channel for progress and no options', async () => {
+    const checker = await offered(true)
+
+    await checker.download?.('1.1.0', () => undefined)
+
+    expect(sent[0]).toEqual({ cmd: 'plugin:updater|download_and_install', payload: { onEvent: '__CHANNEL__:41', rid: 7 } })
+  })
+
+  it('reports downloading, then installing when the download is done, then restarting', async () => {
+    const checker = await offered(true)
+    const phases: UpdatePhase[] = []
+    reply = async (cmd) => {
+      if (cmd === 'plugin:updater|download_and_install') {
+        emit({ event: 'Started', data: { contentLength: 100 } })
+        emit({ event: 'Progress', data: { chunkLength: 60 } }, 1)
+        expect(phases).toEqual(['downloading'])
+        emit({ event: 'Finished' }, 2)
+      }
+
+      return null
+    }
+
+    await checker.download?.('1.1.0', (phase) => phases.push(phase))
+
+    expect(phases).toEqual(['downloading', 'installing', 'restarting'])
+  })
+
+  it('relaunches the app by hand after an install on macOS, with no payload', async () => {
+    const checker = await offered(true)
+
+    await checker.download?.('1.1.0', () => undefined)
+
+    expect(sent.map((call) => call.cmd)).toEqual(['plugin:updater|download_and_install', 'relaunch'])
+    expect(sent[1]?.payload).toEqual({})
+  })
+
+  it('does not relaunch where the installer restarts the app itself (Windows)', async () => {
+    const checker = await offered(false)
+    const phases: UpdatePhase[] = []
+
+    await checker.download?.('1.1.0', (phase) => phases.push(phase))
+
+    expect(sent.map((call) => call.cmd)).toEqual(['plugin:updater|download_and_install'])
+    expect(phases.at(-1)).toBe('restarting')
+  })
+
+  it('fails, and does not relaunch, when the download, the signature or the install fails', async () => {
+    const checker = await offered(true)
+    reply = () => Promise.reject('signature verification failed')
+
+    await expect(checker.download?.('1.1.0', () => undefined)).rejects.toBeDefined()
+    expect(sent.map((call) => call.cmd)).toEqual(['plugin:updater|download_and_install'])
+  })
+
+  it('fails when the relaunch fails, so the screen does not claim a restart that did not happen', async () => {
+    const checker = await offered(true)
+    reply = (cmd) => (cmd === 'relaunch' ? Promise.reject('no') : null)
+
+    await expect(checker.download?.('1.1.0', () => undefined)).rejects.toBeDefined()
+  })
+})
+
+describe('what the client may ever send', () => {
+  it('is only the three calls the hook admits, nothing else even on the failing paths', async () => {
+    reply = (cmd) => (cmd === 'plugin:updater|check' ? found : null)
+    const checker = createTauriChecker({ relaunchAfterInstall: true })
+    await checker.check()
+    await checker.download?.('1.1.0', () => undefined)
+    reply = () => Promise.reject('x')
+    await checker.check().catch(() => undefined)
+
+    expect(new Set(sent.map((call) => call.cmd))).toEqual(new Set(['plugin:updater|check', 'plugin:updater|download_and_install', 'relaunch']))
+  })
+})

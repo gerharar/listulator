@@ -35,6 +35,10 @@ describe('the update-status block, in English', () => {
     ['available', { status: 'An update is available', version: 'Version 1.0.0 → 1.1.0', button: 'Download Update', disabled: false }],
     ['error', { status: 'Couldn’t check for updates', version: 'Version 1.0.0', button: 'Try Again', disabled: false }],
     ['unavailable', { status: 'Checking for updates is yet TBD', version: 'Version 1.0.0', button: 'Check For Updates', disabled: true }],
+    ['installError', { status: 'Couldn’t install the update', version: 'Version 1.0.0 → 1.1.0', button: 'Try Again', disabled: false }],
+    ['downloading', { status: 'Downloading update…', version: 'Version 1.0.0 → 1.1.0', button: 'Downloading…', disabled: true }],
+    ['installing', { status: 'Installing update…', version: 'Version 1.0.0 → 1.1.0', button: 'Installing…', disabled: true }],
+    ['restarting', { status: 'Restarting…', version: 'Version 1.0.0 → 1.1.0', button: 'Restarting…', disabled: true }],
   ]
 
   it.each(cases)('says what the %s state says', (state, expected) => {
@@ -97,6 +101,10 @@ describe('zero layout shift: every variant is in the page, only one is shown', (
       'An update is available',
       'Couldn’t check for updates',
       'Checking for updates is yet TBD',
+      'Couldn’t install the update',
+      'Downloading update…',
+      'Installing update…',
+      'Restarting…',
     ])
     expect([...versionStack!.children].map((variant) => variant.querySelector('.q-about-version-text')!.textContent)).toEqual([
       'Version 1.0.0',
@@ -107,10 +115,13 @@ describe('zero layout shift: every variant is in the page, only one is shown', (
       'Checking…',
       'Download Update',
       'Try Again',
+      'Downloading…',
+      'Installing…',
+      'Restarting…',
     ])
   })
 
-  it.each(['latest', 'checking', 'available', 'error', 'unavailable'] as const)(
+  it.each(['latest', 'checking', 'available', 'error', 'unavailable', 'installError', 'downloading', 'installing', 'restarting'] as const)(
     'shows exactly one variant per slot in the %s state and hides the rest from assistive technology',
     (state) => {
       renderBlock(state, { next: '1.1.0' })
@@ -135,8 +146,8 @@ describe('zero layout shift: every variant is in the page, only one is shown', (
 })
 
 describe('the buttons', () => {
-  it('checks again from the up to date state and from the error state', () => {
-    for (const [state, label] of [['latest', 'Check For Updates'], ['error', 'Try Again']] as const) {
+  it('checks again from the up to date state and from both error states', () => {
+    for (const [state, label] of [['latest', 'Check For Updates'], ['error', 'Try Again'], ['installError', 'Try Again']] as const) {
       const props = renderBlock(state)
 
       fireEvent.click(screen.getByRole('button', { name: label }))
@@ -156,14 +167,41 @@ describe('the buttons', () => {
     expect(props.onCheck).not.toHaveBeenCalled()
   })
 
-  it('does nothing while checking or while there is nothing to check', () => {
-    for (const [state, label] of [['checking', 'Checking…'], ['unavailable', 'Check For Updates']] as const) {
+  it('does nothing while checking, while there is nothing to check, or while the update is in progress', () => {
+    for (const [state, label] of [
+      ['checking', 'Checking…'],
+      ['unavailable', 'Check For Updates'],
+      ['downloading', 'Downloading…'],
+      ['installing', 'Installing…'],
+      ['restarting', 'Restarting…'],
+    ] as const) {
       const props = renderBlock(state)
 
       fireEvent.click(screen.getByRole('button', { name: label }))
 
       expect(props.onCheck).not.toHaveBeenCalled()
       expect(props.onDownload).not.toHaveBeenCalled()
+      cleanup()
+    }
+  })
+
+  it('says the in-progress and install-error states in German and Russian, with no full stop and no guillemets', () => {
+    for (const [language, state, line, button] of [
+      ['de', 'downloading', 'Update wird heruntergeladen…', 'Lädt herunter…'],
+      ['de', 'installing', 'Update wird installiert…', 'Installiert…'],
+      ['de', 'restarting', 'Neustart…', 'Neustart…'],
+      ['de', 'installError', 'Update konnte nicht installiert werden', 'Erneut versuchen'],
+      ['ru', 'downloading', 'Скачиваем обновление…', 'Скачиваем…'],
+      ['ru', 'installing', 'Устанавливаем обновление…', 'Устанавливаем…'],
+      ['ru', 'restarting', 'Перезапускаем…', 'Перезапускаем…'],
+      ['ru', 'installError', 'Не удалось установить обновление', 'Повторить'],
+    ] as const) {
+      setActiveLanguage(language)
+      renderBlock(state, { next: '1.1.0' })
+
+      expect(shown(stacks()[0]!)[0]!.textContent).toBe(line)
+      expect(screen.getByRole('button', { name: button })).toBeTruthy()
+      expect(line).not.toMatch(/[.«»]/)
       cleanup()
     }
   })

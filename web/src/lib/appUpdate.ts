@@ -1,4 +1,7 @@
+import { quitPlatform } from './appQuit.js'
 import { APP_VERSION } from './appVersion.js'
+import { isDesktop } from './platform.js'
+import { createTauriChecker } from './tauriUpdater.js'
 
 /**
  * What a check for a new version of the app found. `unavailable` is not a failure: there is nothing to ask
@@ -6,22 +9,36 @@ import { APP_VERSION } from './appVersion.js'
  */
 export type UpdateResult = { kind: 'latest' } | { kind: 'available'; version: string } | { kind: 'unavailable' }
 
-/** What the About screen shows (the update block's states). */
-export type UpdateCheckState = 'checking' | 'latest' | 'available' | 'error' | 'unavailable'
+/**
+ * The steps of an update the person asked for, after the press (task 20.11; owner: text only, no percentage).
+ * `restarting` is also where a Windows install ends: the installer closes the app and starts it again itself.
+ */
+export type UpdatePhase = 'downloading' | 'installing' | 'restarting'
 
 /**
- * Where the About screen gets its answer. The real updater (endpoint, signing, download flow, one source of
- * truth for the version) is a later task and implements this; until then the shipped checker is
- * `unavailableChecker`. A check that fails rejects; a checker that can report `available` also implements
- * `download`.
+ * What the About screen shows (the update block's states). `installError` is a download, a signature check or
+ * an install that failed after a check had succeeded: `error` ("couldn't check") would be untrue there.
+ */
+export type UpdateCheckState = 'checking' | 'latest' | 'available' | 'error' | 'unavailable' | 'installError' | UpdatePhase
+
+/**
+ * Where the About screen gets its answer. The desktop app's is `createTauriChecker` (task 20.11); every other
+ * build ships `unavailableChecker`. A check that fails rejects; a checker that can report `available` also
+ * implements `download`.
  */
 export interface AppUpdateChecker {
   check(): Promise<UpdateResult>
-  /** Hands off to the app's update flow for the version a check offered. */
-  download?(version: string): Promise<void> | void
+  /**
+   * Downloads, installs and restarts for the version a check offered, reporting each step as it begins. Rejects
+   * when any step fails; on a successful update the app is replaced, so it may never resolve.
+   */
+  download?(version: string, onPhase: (phase: UpdatePhase) => void): Promise<void> | void
 }
 
-/** The shipped checker: no updater exists yet, so it never claims "up to date" and offers nothing to download. */
+/**
+ * The checker of a build that has no updater to ask (the browser build and a self-hosted server: a server's
+ * app is updated by deploying it): it never claims "up to date" and offers nothing to download.
+ */
 export const unavailableChecker: AppUpdateChecker = {
   check: async () => ({ kind: 'unavailable' }),
 }
@@ -35,7 +52,7 @@ function nextMinor(current: string): string {
 }
 
 /**
- * Lets a developer see each state of the update block: `?aboutUpdate=latest|available|error|slow`. Fake
+ * Lets a developer see each state of the update block: `?aboutUpdate=latest|available|installError|error|slow`. Fake
  * answers, so it exists only in a development build (`appUpdateChecker` below); a production build contains
  * neither the parameter nor these results.
  */
@@ -52,22 +69,37 @@ export function devChecker(search: string, current: string = APP_VERSION): AppUp
       },
     }
   }
-  if (wanted === 'available') {
+  if (wanted === 'available' || wanted === 'installError') {
     return {
       check: async () => (await wait(600), { kind: 'available', version: nextMinor(current) }),
-      download: (version) => console.info(`[dev] Download Update ${version}: no updater yet`),
+      // Walks the phases the real update goes through. `available` ends in the last one, as the real one does when
+      // the app is replaced; `installError` fails while installing.
+      download: async (_version, onPhase) => {
+        onPhase('downloading')
+        await wait(1500)
+        onPhase('installing')
+        await wait(1500)
+        if (wanted === 'installError') throw new Error('Simulated failure (?aboutUpdate=installError)')
+        onPhase('restarting')
+      },
     }
   }
 
   return undefined
 }
 
-/** The checker the app uses: the shipped one, or in a development build the one the URL asked for. */
+/**
+ * The checker the app uses: in a development build the one the URL asked for; otherwise the plugin-backed one inside
+ * the desktop shell, and the shipped one everywhere else. Building it sends nothing: a check runs only when the
+ * About screen asks (`useUpdateCheck`).
+ */
 export function appUpdateChecker(): AppUpdateChecker {
   if (import.meta.env.DEV) {
     const dev = devChecker(window.location.search)
     if (dev) return dev
   }
+
+  if (isDesktop()) return createTauriChecker({ relaunchAfterInstall: quitPlatform(navigator.userAgent) === 'mac' })
 
   return unavailableChecker
 }

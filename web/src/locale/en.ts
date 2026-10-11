@@ -328,6 +328,14 @@ export const en = {
       failed: 'Couldn’t check for updates',
       download: 'Download Update',
       retry: 'Try Again',
+      /** The update in progress (task 20.11; owner: text only, wording is a placeholder): status lines, then the disabled button's labels. */
+      downloadingUpdate: 'Downloading update…',
+      installingUpdate: 'Installing update…',
+      restarting: 'Restarting…',
+      downloading: 'Downloading…',
+      installing: 'Installing…',
+      /** A download, signature check or install that failed after a check had succeeded. */
+      installFailed: 'Couldn’t install the update',
       /** The link beside the version line, to the repository's CHANGELOG.md. */
       changelog: 'Changelog',
       legal: 'Licensing and notices',

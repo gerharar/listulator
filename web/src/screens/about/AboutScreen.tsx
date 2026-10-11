@@ -18,8 +18,8 @@ import { UpdateBlock, updateStatusText, updateVersionText } from './UpdateBlock.
 /**
  * The About layer (task 11.21; design handoff `docs/design/about-screen/`,
  * plate right seed 6). The same shell as Settings: a header bar and a
- * scrolling body. Check for updates is a placeholder until the desktop
- * updater exists (owner, 2026-09-30), so it is disabled and says so.
+ * scrolling body. Where there is no updater (the browser build, a self-hosted
+ * server) Check for updates is disabled and says so; the desktop app has one.
  */
 export function AboutScreen({ checker }: { checker?: AppUpdateChecker }) {
   const layerStack = useLayerStack()
@@ -29,11 +29,16 @@ export function AboutScreen({ checker }: { checker?: AppUpdateChecker }) {
   const [used] = useState(() => checker ?? appUpdateChecker())
   const update = useUpdateCheck(used)
 
-  // Each answer is spoken once, with the version; "Checking…" and "no updater yet" are not answers. (The
-  // block's `role="status"` is also a live region: if a screen reader then says it twice, drop the role.)
+  // Each answer is spoken once, with the version; "Checking…" and "no updater yet" are not answers. A phase of the
+  // update itself is spoken as the status line alone; a failed install says which version it was. (The block's
+  // `role="status"` is also a live region: if a screen reader then says it twice, drop the role.)
   useEffect(() => {
     if (update.state === 'latest' || update.state === 'available' || update.state === 'error') {
       announce(`${updateStatusText(update.state)} ${updateVersionText(APP_VERSION, update.state === 'available' ? update.next : undefined)}`)
+    } else if (update.state === 'installError') {
+      announce(`${updateStatusText(update.state)} ${updateVersionText(APP_VERSION, update.next)}`)
+    } else if (update.state === 'downloading' || update.state === 'installing' || update.state === 'restarting') {
+      announce(updateStatusText(update.state))
     }
   }, [update.state, update.next, announce])
 

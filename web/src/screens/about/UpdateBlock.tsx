@@ -1,7 +1,7 @@
 import { Button } from '../../components/quantum/Button/Button.js'
 import { ExternalLink } from '../../components/quantum/ExternalLink/ExternalLink.js'
 import { HeaderPlate } from '../../components/quantum/HeaderPlate/HeaderPlate.js'
-import type { UpdateCheckState } from '../../lib/appUpdate.js'
+import type { UpdateCheckState, UpdatePhase } from '../../lib/appUpdate.js'
 import { CHANGELOG_URL } from '../../lib/dataSources.js'
 import { copy } from '../../locale/index.js'
 
@@ -16,12 +16,28 @@ export interface UpdateBlockProps {
   state: UpdateBlockState
   /** The version this build carries. */
   current: string
-  /** The version an update offers; only read in the `available` state. */
+  /** The version an update offers; read from the `available` state on (the in-progress states and `installError` keep showing it). */
   next?: string
   /** Check for updates, and Try Again. */
   onCheck: () => void
   /** Download Update: hands off to the app's update flow. */
   onDownload: () => void
+}
+
+/** Every state, in the order the status lines are stacked. */
+const STATES = ['latest', 'checking', 'available', 'error', 'unavailable', 'installError', 'downloading', 'installing', 'restarting'] as const satisfies readonly UpdateBlockState[]
+
+/** The update itself is running: after the press on Download Update, until the app is replaced. */
+function inProgress(state: UpdateBlockState): state is UpdatePhase {
+  return state === 'downloading' || state === 'installing' || state === 'restarting'
+}
+
+/** Which of the stacked button labels a state shows. */
+function buttonFor(state: UpdateBlockState): 'check' | 'checking' | 'download' | 'retry' | UpdatePhase {
+  if (inProgress(state)) return state
+  if (state === 'checking') return 'checking'
+  if (state === 'available') return 'download'
+  return state === 'error' || state === 'installError' ? 'retry' : 'check'
 }
 
 /** The status line for a state, as the block shows it and as a reader is told it. */
@@ -33,6 +49,10 @@ export function updateStatusText(state: UpdateBlockState): string {
     available: text.available,
     error: text.failed,
     unavailable: text.updatesLater,
+    installError: text.installFailed,
+    downloading: text.downloadingUpdate,
+    installing: text.installingUpdate,
+    restarting: text.restarting,
   }
 
   return lines[state]
@@ -71,8 +91,10 @@ function Stack<Key extends string>({ active, variants }: { active: Key; variants
  */
 export function UpdateBlock({ state, current, next, onCheck, onDownload }: UpdateBlockProps) {
   const text = copy.quantum.about
-  const busy = state === 'checking'
-  const disabled = busy || state === 'unavailable'
+  // No action while a check or the update itself runs, or where there is no updater to ask.
+  const disabled = state === 'checking' || state === 'unavailable' || inProgress(state)
+  // The version line shows the update's version from the offer on, and keeps it after a failed install.
+  const showsNext = state === 'available' || state === 'installError' || inProgress(state)
 
   return (
     <div className="q-about-update-block">
@@ -80,13 +102,13 @@ export function UpdateBlock({ state, current, next, onCheck, onDownload }: Updat
       <div className="q-about-update-text" role="status">
         <Stack
           active={state}
-          variants={(['latest', 'checking', 'available', 'error', 'unavailable'] as const).map((key) => ({ key, text: updateStatusText(key) }))}
+          variants={STATES.map((key) => ({ key, text: updateStatusText(key) }))}
         />
         {/* The arrow line is always in the page, so its width is already reserved when an update turns up; without a known version it holds a stand-in of the same length. The changelog link rides in each variant, so it follows the version shown with no gap (owner, 2026-10-05); the hidden copy is invisible, so neither seen, read out nor focused. */}
         <span className="q-about-version-line">
           <span className="q-about-stack">
             {(['plain', 'arrow'] as const).map((key) => {
-              const active = (state === 'available' ? 'arrow' : 'plain') === key
+              const active = (showsNext ? 'arrow' : 'plain') === key
               return (
                 <span key={key} className={active ? undefined : 'off'} aria-hidden={active ? undefined : true}>
                   <span className="q-about-version-text">
@@ -113,12 +135,15 @@ export function UpdateBlock({ state, current, next, onCheck, onDownload }: Updat
         onClick={state === 'available' ? onDownload : onCheck}
       >
         <Stack
-          active={state === 'latest' || state === 'unavailable' ? 'check' : state === 'checking' ? 'checking' : state === 'available' ? 'download' : 'retry'}
+          active={buttonFor(state)}
           variants={[
             { key: 'check', text: text.checkForUpdates },
             { key: 'checking', text: text.checking },
             { key: 'download', text: text.download },
             { key: 'retry', text: text.retry },
+            { key: 'downloading', text: text.downloading },
+            { key: 'installing', text: text.installing },
+            { key: 'restarting', text: text.restarting },
           ]}
         />
       </Button>

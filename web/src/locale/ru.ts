@@ -294,6 +294,12 @@ export const ru: Locale = {
       failed: 'Не удалось проверить обновления',
       download: 'Скачать обновление',
       retry: 'Повторить',
+      downloadingUpdate: 'Скачиваем обновление…',
+      installingUpdate: 'Устанавливаем обновление…',
+      restarting: 'Перезапускаем…',
+      downloading: 'Скачиваем…',
+      installing: 'Устанавливаем…',
+      installFailed: 'Не удалось установить обновление',
       /** The link beside the version line, to the repository's CHANGELOG.md. */
       changelog: 'Изменения',
       legal: 'Лицензия и уведомления',
