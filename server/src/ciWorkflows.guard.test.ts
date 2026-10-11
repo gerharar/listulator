@@ -23,6 +23,14 @@ const PINNED_GITHUB_ACTION = /^actions\/[\w.-]+(\/[\w./-]+)?@[0-9a-f]{40}$/
 const HOSTED_RUNNER = /^(windows|macos|ubuntu)-(latest|\d[\w.]*)$/
 /** The release workflow names its image: `-latest` moves to a new operating system on GitHub's schedule, mid-release (20.4). */
 const NUMBERED_RUNNER = /^(windows|macos|ubuntu)-\d[\w.]*$/
+/**
+ * The updater key never reaches a workflow (20.12a, SR-063). `tauri build` needs a key to bundle update files at all, so each release build
+ * job makes a throw-away one for itself and points `TAURI_SIGNING_PRIVATE_KEY` at that file, for the build step only. This is the only
+ * value the variable may have, and the password is empty because `signer generate --ci` makes the key without one.
+ */
+const THROWAWAY_KEY = '${{ runner.temp }}/updater-throwaway.key'
+/** The overlay (not the shared config) switches the update files on, so only the release build needs a key. */
+const UPDATER_OVERLAY = 'src-tauri/tauri.updater-artifacts.conf.json'
 /** The release workflow runs on a pushed version tag and on nothing else (Phase 20, task 20.4): no branch, no button, no input. */
 const RELEASE_TRIGGER = JSON.stringify({ push: { tags: ['v*'] } })
 
@@ -37,6 +45,7 @@ const MAX_RETENTION_DAYS = 7
 interface Step {
   uses?: string
   run?: string
+  env?: Record<string, unknown>
   with?: Record<string, unknown>
   'continue-on-error'?: unknown
 }
@@ -46,6 +55,7 @@ interface Job {
   'runs-on'?: unknown
   permissions?: unknown
   uses?: string
+  env?: unknown
   secrets?: unknown
   environment?: unknown
   'continue-on-error'?: unknown
@@ -54,6 +64,7 @@ interface Job {
 
 interface Workflow {
   on: unknown
+  env?: unknown
   permissions?: unknown
   jobs: Record<string, Job>
 }
@@ -172,6 +183,25 @@ function workflowProblems(workflow: Workflow, profile: Profile = 'manual'): stri
     }
   }
 
+  // No repository variable either: the updater key (or anything else) is not read from `vars` (20.12a).
+  for (const [scope, value] of scopes) {
+    for (const [key, text] of strings(value)) {
+      if (/\$\{\{[^}]*\bvars\b/.test(text)) problems.push(`${scope || 'the workflow'}: ${key || 'a value'} reads a repository variable: ${text.slice(0, 60)}`)
+    }
+  }
+
+  // Only the release workflow builds update files: nothing else names the updater key variables or the overlay that switches them on.
+  if (profile === 'manual' && /TAURI_SIGNING|tauri\.updater-artifacts/.test(JSON.stringify(workflow))) {
+    problems.push('names the updater key or the updater-artifacts overlay (only the release workflow builds update files)')
+  }
+
+  if (profile === 'release' && /TAURI_SIGNING/.test(JSON.stringify(rest))) problems.push('names the updater key at the workflow level (it is for one build step only)')
+
+  // A signature file is never uploaded: the throw-away ones are discarded, the owner's are added by hand.
+  for (const { job, step } of steps.filter(({ step }) => step.uses?.startsWith('actions/upload-artifact@'))) {
+    if (/\.sig\b/.test(String(step.with?.path ?? ''))) problems.push(`job ${job}: upload-artifact takes a .sig file (a signature never leaves the runner)`)
+  }
+
   // Nothing is allowed to fail quietly, and no environment (with its own secrets and reviewers) is in play.
   for (const [name, job] of jobs) {
     if (job['continue-on-error'] !== undefined) problems.push(`job ${name} sets continue-on-error`)
@@ -202,6 +232,7 @@ function releaseProblems(jobs: [string, Job][], steps: { job: string; step: Step
     if (attestStep === undefined) problems.push('job attest does not use actions/attest-build-provenance')
     const subjects = String(attestStep?.with?.['subject-path'] ?? '')
     if (attestStep !== undefined && !(subjects.includes('*.exe') && subjects.includes('*.dmg'))) problems.push('job attest does not attest every installer (*.exe and *.dmg)')
+    if (attestStep !== undefined && !subjects.includes('*.tar.gz')) problems.push('job attest does not attest the update archive (*.tar.gz)')
     if ((attest.steps ?? []).some((step) => step.run !== undefined)) problems.push('job attest runs a script (it holds the signing token: it only downloads and attests)')
   }
   const waits = (job: Job | undefined, name: string) => [job?.needs].flat().includes(name)
@@ -213,6 +244,48 @@ function releaseProblems(jobs: [string, Job][], steps: { job: string; step: Step
     const own = runs.filter(({ job }) => job === name)
     if (!own.some(({ run }) => /git merge-base --is-ancestor/.test(run))) problems.push(`job ${name} never checks that the tagged commit is on main (git merge-base --is-ancestor)`)
     if (!own.some(({ run }) => /\b(Get-Content|plutil|jq|node)\b[^\n]*package\.json/.test(run))) problems.push(`job ${name} never checks that the tag matches the version in package.json`)
+  }
+
+  // The updater key (20.12a). A build job makes its own throw-away key and uses it for the build step alone; nothing else, anywhere, names it.
+  const builds = jobs.filter(([name]) => name !== 'publish' && name !== 'attest')
+  for (const [name, job] of jobs) {
+    if (/TAURI_SIGNING/.test(JSON.stringify({ ...job, steps: undefined }))) problems.push(`job ${name}: names the updater key outside a step's env (it is for one build step only)`)
+  }
+  for (const { job, step } of steps) {
+    const isBuild = builds.some(([name]) => name === job)
+    for (const [name, value] of Object.entries(step.env ?? {}).filter(([key]) => key.startsWith('TAURI_SIGNING'))) {
+      if (!isBuild) problems.push(`job ${job}: has the updater key variable ${name} (only a build job has a key, and it is throw-away)`)
+      else if (name === 'TAURI_SIGNING_PRIVATE_KEY' && value !== THROWAWAY_KEY) problems.push(`job ${job}: ${name} is ${JSON.stringify(value)}, not the job's own throw-away key file`)
+      else if (name === 'TAURI_SIGNING_PRIVATE_KEY_PASSWORD' && value !== '') problems.push(`job ${job}: ${name} is not empty (the throw-away key has no password)`)
+      else if (name !== 'TAURI_SIGNING_PRIVATE_KEY' && name !== 'TAURI_SIGNING_PRIVATE_KEY_PASSWORD') problems.push(`job ${job}: uses ${name} (only the key file and an empty password are allowed)`)
+    }
+    if (step.run !== undefined && /TAURI_SIGNING/.test(step.run)) problems.push(`job ${job}: a run: script names the updater key (the CLI reads it from the step's env)`)
+  }
+  for (const [name, job] of builds) {
+    const own = (job.steps ?? [])
+    if (!own.some((step) => /\bsigner generate\b[^\n]*--ci[^\n]*-w\s+"(\$env:RUNNER_TEMP|\$RUNNER_TEMP)\/updater-throwaway\.key"/.test(step.run ?? ''))) {
+      problems.push(`job ${name} does not make its own throw-away key (tauri signer generate --ci -w "$RUNNER_TEMP/updater-throwaway.key")`)
+    }
+    const building = own.filter((step) => /\btauri:build\b/.test(step.run ?? ''))
+    if (!building.some((step) => step.env?.['TAURI_SIGNING_PRIVATE_KEY'] === THROWAWAY_KEY && step.env?.['TAURI_SIGNING_PRIVATE_KEY_PASSWORD'] === '')) {
+      problems.push(`job ${name}: the build step does not get the throw-away key (the update files cannot be bundled without one)`)
+    }
+    if (!building.some((step) => (step.run ?? '').split('\n').some((line) => /\btauri:build\b/.test(line) && line.includes(`--config ${UPDATER_OVERLAY}`)))) {
+      problems.push(`job ${name}: the build does not pass --config ${UPDATER_OVERLAY} (no update files without it)`)
+    }
+  }
+  // The files that travel are checked as they are handed on: no signature among them, and the update archive is among them.
+  const publishRun = (publish?.steps ?? []).map((step) => step.run ?? '').join('\n')
+  if (publish !== undefined && !/\*\.tar\.gz/.test(publishRun)) problems.push('job publish does not handle the update archive (*.tar.gz)')
+  if (publish !== undefined && !/\*\.sig/.test(publishRun)) problems.push('job publish does not refuse a signature file (*.sig) in the build output')
+  if (publish !== undefined && !(/gh attestation verify/.test(publishRun) && /for file in [^\n]*\*\.exe[^\n]*\*\.dmg[^\n]*\*\.tar\.gz/.test(publishRun))) {
+    problems.push('job publish does not verify the attestation of every file it drafts (*.exe, *.dmg and *.tar.gz)')
+  }
+  // The app inside the update archive is audited as the one in the disk image is: after an update, it is the one people run.
+  const macos = jobs.find(([name]) => name === 'build-macos')?.[1]
+  const macosRun = (macos?.steps ?? []).map((step) => step.run ?? '').join('\n')
+  if (macos !== undefined && !(/Listulator\.app\.tar\.gz/.test(macosRun) && /\btar -xzf\b/.test(macosRun) && /codesign --verify/.test(macosRun))) {
+    problems.push('job build-macos does not unpack and audit the update archive (Listulator.app.tar.gz)')
   }
 
   for (const { job, run } of runs) {
@@ -321,6 +394,9 @@ describe('the rules for a workflow, proven on hostile workflows', () => {
     ['a tauri build without --locked (the release branch)', (t) => t.replace('--bundles nsis -- --locked', '--bundles nsis'), /not run with --locked/],
     ['a tauri build without --locked (the debug branch)', (t) => t.replace('--debug -- --locked', '--debug'), /not run with --locked/],
     ['a cargo build without --locked', (t) => t.replace('run: npm ci --ignore-scripts', 'run: cargo build --release'), /not run with --locked/],
+    ['the updater key variable in a manual workflow', (t) => t.replace("PROFILE: ${{ inputs.profile || 'release' }}", 'TAURI_SIGNING_PRIVATE_KEY: x'), /names the updater key/],
+    ['the updater-artifacts overlay in a manual workflow', (t) => t.replace('--bundles nsis --debug -- --locked', '--bundles nsis --debug --config src-tauri/tauri.updater-artifacts.conf.json -- --locked'), /names the updater key or the updater-artifacts overlay/],
+    ['a repository variable in a manual workflow', (t) => t.replace("PROFILE: ${{ inputs.profile || 'release' }}", 'V: ${{ vars.SOMETHING }}'), /reads a repository variable/],
     ['a cargo test without --locked', (t) => t.replace('run: npm ci --ignore-scripts', 'run: cargo test'), /not run with --locked/],
   ]
 
@@ -367,9 +443,15 @@ jobs:
         run: |
           $channel = (Select-String -Path rust-toolchain.toml -Pattern '^channel').Line
           rustup toolchain install $channel --profile minimal --no-self-update
+      - name: Throw-away key
+        shell: pwsh
+        run: npm run tauri -w @listulator/desktop -- signer generate --ci -w "$env:RUNNER_TEMP/updater-throwaway.key"
       - name: Installer
         shell: pwsh
-        run: npm run tauri:build -w @listulator/desktop -- --bundles nsis -- --locked
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: \${{ runner.temp }}/updater-throwaway.key
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ''
+        run: npm run tauri:build -w @listulator/desktop -- --bundles nsis --config src-tauri/tauri.updater-artifacts.conf.json -- --locked
       - uses: actions/upload-artifact@${sha('b')} # v1
         with:
           name: installer
@@ -390,8 +472,17 @@ jobs:
         run: |
           git merge-base --is-ancestor "$GITHUB_SHA" origin/main
           test "v$(node -p "require('./package.json').version")" = "$TAG"
+      - name: Throw-away key
+        run: npm run tauri -w @listulator/desktop -- signer generate --ci -w "$RUNNER_TEMP/updater-throwaway.key"
       - name: Installer
-        run: npm run tauri:build -w @listulator/desktop -- --bundles app,dmg -- --locked
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: \${{ runner.temp }}/updater-throwaway.key
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ''
+        run: npm run tauri:build -w @listulator/desktop -- --bundles app,dmg --config src-tauri/tauri.updater-artifacts.conf.json -- --locked
+      - name: Audit
+        run: |
+          tar -xzf Listulator.app.tar.gz -C unpacked
+          codesign --verify --deep --strict unpacked/Listulator.app
       - uses: actions/upload-artifact@${sha('b')} # v1
         with:
           name: dmg
@@ -413,6 +504,7 @@ jobs:
           subject-path: |
             dist/*.exe
             dist/*.dmg
+            dist/*.tar.gz
   publish:
     needs: [build, build-macos, attest]
     runs-on: ubuntu-24.04
@@ -427,8 +519,10 @@ jobs:
           GH_TOKEN: \${{ github.token }}
           TAG: \${{ github.ref_name }}
         run: |
-          sha256sum * > SHA256SUMS
-          gh release create "$TAG" --draft --verify-tag --title "Listulator $TAG" --notes "Draft" *
+          if compgen -G '*.sig' > /dev/null; then exit 1; fi
+          for file in *.exe *.dmg *.tar.gz; do gh attestation verify "$file" --repo x; done
+          sha256sum -- *.exe *.dmg *.tar.gz > SHA256SUMS
+          gh release create "$TAG" --draft --verify-tag --title "Listulator $TAG" --notes "Draft" -- *.exe *.dmg *.tar.gz SHA256SUMS
 `
 
 describe('the rules for the release workflow, proven on hostile workflows', () => {
@@ -457,7 +551,7 @@ describe('the rules for the release workflow, proven on hostile workflows', () =
     ['an action from another owner', (t) => t.replace(`actions/download-artifact@${sha('d')}`, `softprops/action-gh-release@${sha('d')}`), /not a GitHub-owned action pinned/],
     ['a Release that is not a draft', (t) => t.replace('--draft ', ''), /without --draft/],
     ['a Release published after it is drafted', (t) => t.replace('--draft ', '--draft=false '), /un-drafts/],
-    ['a Release edited afterwards', (t) => t.replace('sha256sum * > SHA256SUMS', 'gh release edit "$TAG" --latest\n          sha256sum * > SHA256SUMS'), /edits or deletes/],
+    ['a Release edited afterwards', (t) => t.replace('sha256sum -- *.exe', 'gh release edit "$TAG" --latest\n          sha256sum -- *.exe'), /edits or deletes/],
     ['gh release in the build job', (t) => t.replace('          git merge-base', '          gh release list\n          git merge-base'), /uses gh release/],
     ['no check that the commit is on main', (t) => t.replace('git merge-base --is-ancestor $env:GITHUB_SHA origin/main', 'git log -1'), /on main/],
     ['no check that the tag is the version', (t) => t.replace('package.json', 'something.json'), /matches the version/],
@@ -470,7 +564,8 @@ describe('the rules for the release workflow, proven on hostile workflows', () =
     ['the signing token in a build job', (t) => t.replace('  build-macos:\n    runs-on: macos-15\n    permissions:\n      contents: read', '  build-macos:\n    runs-on: macos-15\n    permissions:\n      contents: read\n      id-token: write\n      attestations: write'), /job build-macos widens/],
     ['an attest job that also writes an extra permission', (t) => t.replace('      attestations: write\n    steps:', '      attestations: write\n      packages: write\n    steps:'), /job attest widens/],
     ['an attest job that runs a script', (t) => t.replace(`      - uses: actions/attest-build-provenance@${sha('e')} # v1`, `      - run: echo hello\n      - uses: actions/attest-build-provenance@${sha('e')} # v1`), /attest runs a script/],
-    ['an attest job that attests only the Windows installer', (t) => t.replace('            dist/*.exe\n            dist/*.dmg', '            dist/*.exe'), /attest every installer/],
+    ['an attest job that attests only the Windows installer', (t) => t.replace('            dist/*.exe\n            dist/*.dmg\n            dist/*.tar.gz', '            dist/*.exe'), /attest every installer/],
+    ['an attest job that leaves the update archive out', (t) => t.replace('\n            dist/*.tar.gz', ''), /does not attest the update archive/],
     ['an attest job with no attestation step', (t) => t.replace(`actions/attest-build-provenance@${sha('e')} # v1`, `actions/upload-artifact@${sha('e')} # v1`), /does not use actions\/attest-build-provenance/],
     ['the attestation action named by tag', (t) => t.replace(`actions/attest-build-provenance@${sha('e')} # v1`, 'actions/attest-build-provenance@v4'), /not a GitHub-owned action pinned/],
     ['the attestation action from another owner', (t) => t.replace(`actions/attest-build-provenance@${sha('e')}`, `someone/attest@${sha('e')}`), /not a GitHub-owned action pinned/],
@@ -478,8 +573,29 @@ describe('the rules for the release workflow, proven on hostile workflows', () =
     ['no publish job', (t) => t.replace('  publish:', '  other:'), /no job named publish/],
     ['a publish job that does not wait', (t) => t.replace('    needs: [build, build-macos, attest]\n', ''), /does not wait/],
     ['the tag pasted into a script', (t) => t.replace('gh release create "$TAG"', 'gh release create ${{ github.ref_name }}'), /contains \$\{\{/],
+    // The updater key (20.12a, SR-063): a build job's own throw-away key, for its build step only, and nothing else anywhere.
+    ['the updater key read from a secret', (t) => t.replace('TAURI_SIGNING_PRIVATE_KEY: ${{ runner.temp }}/updater-throwaway.key', 'TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.UPDATER_KEY }}'), /secret or the token/],
+    ['the updater key read from a variable', (t) => t.replace('TAURI_SIGNING_PRIVATE_KEY: ${{ runner.temp }}/updater-throwaway.key', 'TAURI_SIGNING_PRIVATE_KEY: ${{ vars.UPDATER_KEY }}'), /reads a repository variable/],
+    ['the updater key as text in the workflow', (t) => t.replace('TAURI_SIGNING_PRIVATE_KEY: ${{ runner.temp }}/updater-throwaway.key', 'TAURI_SIGNING_PRIVATE_KEY: dW50cnVzdGVk'), /not the job's own throw-away key file/],
+    ['the updater key from another file', (t) => t.replace('${{ runner.temp }}/updater-throwaway.key', '${{ runner.temp }}/real.key'), /not the job's own throw-away key file/],
+    ['a password for the throw-away key', (t) => t.replace("TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ''", "TAURI_SIGNING_PRIVATE_KEY_PASSWORD: hunter2"), /is not empty/],
+    ['the key path variable', (t) => t.replace('TAURI_SIGNING_PRIVATE_KEY_PASSWORD: \'\'', 'TAURI_SIGNING_PRIVATE_KEY_PATH: x'), /only the key file and an empty password/],
+    ['the updater key in the publish job', (t) => t.replace('          GH_TOKEN: ${{ github.token }}\n', '          GH_TOKEN: ${{ github.token }}\n          TAURI_SIGNING_PRIVATE_KEY: ${{ runner.temp }}/updater-throwaway.key\n'), /only a build job has a key/],
+    ['the updater key for a whole job', (t) => t.replace('  build-macos:\n    runs-on: macos-15\n', '  build-macos:\n    runs-on: macos-15\n    env:\n      TAURI_SIGNING_PRIVATE_KEY: ${{ runner.temp }}/updater-throwaway.key\n'), /outside a step's env/],
+    ['the updater key for the whole workflow', (t) => t.replace('permissions:\n  contents: read\njobs:', 'permissions:\n  contents: read\nenv:\n  TAURI_SIGNING_PRIVATE_KEY: x\njobs:'), /at the workflow level/],
+    ['the updater key printed by a script', (t) => t.replace('run: npm run tauri -w @listulator/desktop -- signer generate --ci -w "$RUNNER_TEMP/updater-throwaway.key"', 'run: echo $TAURI_SIGNING_PRIVATE_KEY'), /a run: script names the updater key/],
+    ['a build job with no throw-away key of its own', (t) => t.replace('signer generate --ci -w "$env:RUNNER_TEMP/updater-throwaway.key"', 'signer generate --ci -w "$env:RUNNER_TEMP/other.key"'), /job build does not make its own throw-away key/],
+    ['a macOS build job with no throw-away key of its own', (t) => t.replace('signer generate --ci -w "$RUNNER_TEMP/updater-throwaway.key"', 'signer generate --ci'), /job build-macos does not make its own throw-away key/],
+    ['a build step with no key', (t) => t.replace("          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ''\n        run: npm run tauri:build -w @listulator/desktop -- --bundles app,dmg", "        run: npm run tauri:build -w @listulator/desktop -- --bundles app,dmg").replace('          TAURI_SIGNING_PRIVATE_KEY: ${{ runner.temp }}/updater-throwaway.key\n        run: npm run tauri:build -w @listulator/desktop -- --bundles app,dmg', '        run: npm run tauri:build -w @listulator/desktop -- --bundles app,dmg'), /job build-macos: the build step does not get the throw-away key/],
+    ['a build that does not switch the update files on', (t) => t.replace(' --config src-tauri/tauri.updater-artifacts.conf.json -- --locked', ' -- --locked'), /does not pass --config/],
+    ['the overlay on another line than the build', (t) => t.replace('--bundles nsis --config src-tauri/tauri.updater-artifacts.conf.json -- --locked', '--bundles nsis -- --locked # --config src-tauri/tauri.updater-artifacts.conf.json').replace('# --config src-tauri/tauri.updater-artifacts.conf.json', '#'), /job build: the build does not pass --config/],
+    ['a signature file uploaded', (t) => t.replace('          name: installer\n          path: x', '          name: installer\n          path: x/*.exe.sig'), /takes a \.sig file/],
+    ['a publish job that never mentions the update archive', (t) => t.replace('for file in *.exe *.dmg *.tar.gz; do', 'for file in *.exe *.dmg; do').replace('sha256sum -- *.exe *.dmg *.tar.gz > SHA256SUMS', 'sha256sum -- *.exe *.dmg > SHA256SUMS').replace('-- *.exe *.dmg *.tar.gz SHA256SUMS', '-- *.exe *.dmg SHA256SUMS'), /does not handle the update archive/],
+    ['a macOS job that does not unpack the update archive', (t) => t.replace('tar -xzf Listulator.app.tar.gz -C unpacked', 'true'), /does not unpack and audit the update archive/],
+    ['a publish job that does not verify the archive’s attestation', (t) => t.replace('for file in *.exe *.dmg *.tar.gz; do', 'for file in *.exe *.dmg; do'), /does not verify the attestation of every file/],
+    ['a publish job that does not refuse a signature file', (t) => t.replace("          if compgen -G '*.sig' > /dev/null; then exit 1; fi\n", ''), /does not refuse a signature file/],
     ['an artifact kept a month', (t) => t.replace('retention-days: 3', 'retention-days: 30'), /retention-days/],
-    ['a build without --locked', (t) => t.replace('--bundles nsis -- --locked', '--bundles nsis'), /not run with --locked/],
+    ['a build without --locked', (t) => t.replace('tauri.updater-artifacts.conf.json -- --locked', 'tauri.updater-artifacts.conf.json'), /not run with --locked/],
   ]
 
   it.each(hostile)('refuse %s', (_name, change, expected) => {
@@ -545,3 +661,32 @@ describe('the pinned toolchain', () => {
   })
 })
 
+
+/**
+ * The switch that makes `tauri build` produce update files lives in an overlay that only `release.yml` passes (20.12a, DECISIONS
+ * 2026-10-11). In the shared config it would make every bundling build, the owner's own included, fail without a private key.
+ */
+describe('the updater-artifacts overlay', () => {
+  const ROOT = join(import.meta.dirname, '../..')
+  const read = (path: string) => readFileSync(join(ROOT, path), 'utf8')
+  const overlay = JSON.parse(read('apps/desktop/src-tauri/tauri.updater-artifacts.conf.json')) as Record<string, unknown>
+  const shared = JSON.parse(read('apps/desktop/src-tauri/tauri.conf.json')) as { bundle?: Record<string, unknown>; plugins?: { updater?: Record<string, unknown> } }
+
+  it('holds the one switch and nothing else: no key, no endpoint, no insecure flag', () => {
+    expect(Object.fromEntries(Object.entries(overlay).filter(([key]) => key !== '$schema'))).toEqual({ bundle: { createUpdaterArtifacts: true } })
+  })
+
+  it('is not in the shared config, which stays buildable without a key', () => {
+    expect(shared.bundle).not.toHaveProperty('createUpdaterArtifacts')
+  })
+
+  it('is the file the release workflow passes, by the path the guard above requires', () => {
+    expect(UPDATER_OVERLAY).toBe('src-tauri/tauri.updater-artifacts.conf.json')
+    expect(read('.github/workflows/release.yml')).toContain(`--config ${UPDATER_OVERLAY}`)
+  })
+
+  it('leaves the updater plugin config (the real public key, a signed version, https only) to the shared config', () => {
+    expect(shared.plugins?.updater).toMatchObject({ requireSignedVersion: true })
+    expect(JSON.stringify(shared.plugins?.updater)).not.toMatch(/dangerous/)
+  })
+})
