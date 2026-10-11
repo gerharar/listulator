@@ -809,3 +809,50 @@ describe('the updater test build', () => {
     })
   })
 })
+
+/**
+ * The probe build (20.16, DECISIONS 2026-10-12). The probes of the security review (the isolation hook, the navigation guard, the
+ * updater's shapes) need a build with an inspector, and they must never run in an app that holds the owner's library. So the debug
+ * profile of the hand-started Windows workflow builds a SEPARATE app: its own product name (its own install folder and uninstall
+ * entry) and identifier (its own data folder). Nothing else differs from the release config, so the capabilities, the hook and the
+ * CSP under test are the shipped ones. No release path can reach the file.
+ */
+describe('the probe build', () => {
+  const ROOT = join(import.meta.dirname, '../..')
+  const read = (path: string) => readFileSync(join(ROOT, path), 'utf8')
+  const PROBE_CONFIG = 'apps/desktop/src-tauri/tauri.probe.conf.json'
+  const PROBE_ARGUMENT = 'src-tauri/tauri.probe.conf.json'
+  const probe = JSON.parse(read(PROBE_CONFIG)) as { productName?: string; identifier?: string } & Record<string, unknown>
+  const release = JSON.parse(read('apps/desktop/src-tauri/tauri.conf.json')) as { productName: string; identifier: string }
+  const others = ['tauri.updater-test.conf.json', 'tauri.dev.conf.json'].map((name) => JSON.parse(read(`apps/desktop/src-tauri/${name}`)) as { productName?: string; identifier: string })
+
+  it('is a separate app: its own product name and identifier, different from the release app, the updater test app and the dev app', () => {
+    expect(probe.identifier).toBe('com.listulator.desktop.probe')
+    expect(probe.productName).toBe('ListulatorProbe')
+    for (const other of [release, ...others]) {
+      expect(probe.identifier).not.toBe(other.identifier)
+      if (other.productName !== undefined) expect(probe.productName).not.toBe(other.productName)
+    }
+  })
+
+  it('changes nothing but the name and the identifier: the capabilities, the hook, the CSP and the updater are the shipped ones', () => {
+    expect(Object.keys(probe).sort()).toEqual(['$schema', 'identifier', 'productName'])
+  })
+
+  it('is passed by the debug branch of the manual Windows workflow only, never by the release branch', () => {
+    const lines = read('.github/workflows/desktop-windows.yml').split('\n').filter((line) => /\btauri:build\b/.test(line))
+    const debug = lines.filter((line) => line.includes('--debug'))
+    const shipped = lines.filter((line) => !line.includes('--debug'))
+
+    expect(debug).toHaveLength(1)
+    expect(debug[0]).toContain(`--config ${PROBE_ARGUMENT}`)
+    expect(shipped).toHaveLength(1)
+    expect(shipped[0]).not.toMatch(/--config/)
+  })
+
+  it('is never named by the release workflow, the updater-artifacts overlay, the updater test workflow or the release config', () => {
+    for (const file of ['.github/workflows/release.yml', '.github/workflows/updater-test-windows.yml', 'apps/desktop/src-tauri/tauri.updater-artifacts.conf.json', 'apps/desktop/src-tauri/tauri.conf.json', 'apps/desktop/src-tauri/tauri.updater-test.conf.json']) {
+      expect(read(file), file).not.toMatch(/tauri\.probe|ListulatorProbe|desktop\.probe/)
+    }
+  })
+})

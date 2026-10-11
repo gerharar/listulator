@@ -15,7 +15,7 @@ on:
   workflow_dispatch:
     inputs:
       profile:
-        description: "release, or debug: with developer tools (Ctrl+Shift+I, or right-click in a text field > Inspect)"
+        description: "release, or debug: a separate probe app (ListulatorProbe) with developer tools (F12, Ctrl+Shift+I, or right-click > Inspect)"
         type: choice
         options: [release, debug]
         default: release
@@ -62,6 +62,8 @@ jobs:
           cargo --version
 
       # bundle.targets is "all" in tauri.conf.json (the .app and .dmg on macOS); here only the NSIS installer.
+      # The debug profile is a PROBE app (20.16): its own product name and identifier (tauri.probe.conf.json), so installing it
+      # replaces nothing and shares no data folder with a real install; the release profile is the shipped config unchanged.
       # The profile reaches the script through env, never pasted into it (ciWorkflows.guard.test.ts).
       # The second `--` hands `--locked` to cargo: a Cargo.lock that disagrees with Cargo.toml fails the build instead of being
       # re-resolved silently (SR-041). The local macOS build is made the same way.
@@ -71,7 +73,7 @@ jobs:
           PROFILE: ${{ inputs.profile || 'release' }}
         run: |
           if ($env:PROFILE -eq 'debug') {
-            npm run tauri:build -w @listulator/desktop -- --bundles nsis --debug -- --locked
+            npm run tauri:build -w @listulator/desktop -- --bundles nsis --debug --config src-tauri/tauri.probe.conf.json -- --locked
           } else {
             npm run tauri:build -w @listulator/desktop -- --bundles nsis -- --locked
           }
