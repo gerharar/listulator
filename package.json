@@ -23,7 +23,8 @@
     "db:generate": "npm run db:generate -w @listulator/server",
     "notices": "tsx server/src/tools/generateThirdPartyNotices.ts",
     "updater:serve": "tsx server/src/tools/updaterServe.ts",
-    "updater:manifest": "tsx server/src/tools/updaterTestManifest.ts"
+    "updater:manifest": "tsx server/src/tools/updaterTestManifest.ts",
+    "release:sign": "tsx server/src/tools/releaseSign.ts"
   },
   "engines": {
     "node": ">=20"
