@@ -1,0 +1,91 @@
+# Builds a Windows TEST app for the updater's two-version test (Phase 20, task 20.13; docs/DECISIONS.md). It is not the release.
+#
+# The app it builds is a separate one: its own name and identifier (so it never touches a real Listulator install or its data),
+# and its update address is http://127.0.0.1:8099/latest.json, a file server on the tester's own machine, with the flag that
+# allows plain http. That config (apps/desktop/src-tauri/tauri.updater-test.conf.json) is used here and nowhere else;
+# server/src/ciWorkflows.guard.test.ts fails if the release config or release.yml ever carries or names it, and holds this
+# workflow to the same strict rules as every non-release workflow:
+# - Started by hand only (Actions -> "Updater test (Windows)" -> Run workflow, with the version to build), read-only, no secrets.
+# - Only GitHub's own actions, each pinned by full commit SHA; the toolchain from .node-version and rust-toolchain.toml; --locked.
+# - No updater key, no update files: the installer is the update file on Windows, and the owner signs it afterwards on their own
+#   machine with the real key (`tauri signer sign`). The run artifact is the installer only, kept 3 days.
+
+name: Updater test (Windows)
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "The version to build, e.g. 1.0.0-rc.1 (the app to install) or 1.0.0-rc.2 (the update to serve)"
+        type: string
+        required: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: updater-test-windows
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: windows-2025
+    timeout-minutes: 60
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .node-version
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+
+      - name: Rust (the version in rust-toolchain.toml, on the runner's own rustup)
+        shell: pwsh
+        run: |
+          $channel = (Select-String -Path rust-toolchain.toml -Pattern '^channel\s*=\s*"([^"]+)"').Matches[0].Groups[1].Value
+          if ($channel -notmatch '^\d+\.\d+\.\d+$') { throw "rust-toolchain.toml does not name an exact version: $channel" }
+          rustup toolchain install $channel --profile minimal --no-self-update
+          rustup default $channel
+          rustc --version
+          cargo --version
+
+      # The version is set everywhere it is written (package files, tauri.conf.json, Cargo.toml and Cargo.lock) in this checkout only;
+      # nothing is committed. `version:set` refuses a text that is not a version, so the input reaches nothing else.
+      - name: Set the version to build
+        shell: pwsh
+        env:
+          VERSION: ${{ inputs.version }}
+        run: |
+          npm run version:set -w @listulator/server -- $env:VERSION
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Build the test installer
+        shell: pwsh
+        run: |
+          npm run tauri:build -w @listulator/desktop -- --bundles nsis --config src-tauri/tauri.updater-test.conf.json -- --locked
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Check the pages register no service worker
+        shell: pwsh
+        run: |
+          $found = Select-String -Path web/dist/index.html, web/dist/assets/*.js -Pattern 'registerSW', 'serviceWorker.register' -SimpleMatch
+          if ($found) { $found | Format-Table Path, LineNumber -AutoSize; throw 'The desktop build registers a service worker' }
+
+      - name: List what was built, with its SHA-256
+        shell: pwsh
+        run: |
+          Get-ChildItem apps/desktop/src-tauri/target/release/bundle/nsis/*.exe | Get-FileHash -Algorithm SHA256 | Format-Table Hash, Path -AutoSize
+
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: listulator-updater-test-windows-${{ inputs.version }}
+          path: apps/desktop/src-tauri/target/release/bundle/nsis/*.exe
+          if-no-files-found: error
+          retention-days: 3

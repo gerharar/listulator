@@ -690,3 +690,99 @@ describe('the updater-artifacts overlay', () => {
     expect(JSON.stringify(shared.plugins?.updater)).not.toMatch(/dangerous/)
   })
 })
+
+/**
+ * The test build of the updater (20.13a, DECISIONS 2026-10-11). Two versions of the app are installed and updated over `http://127.0.0.1`,
+ * which needs an insecure-transport flag. That flag, the local endpoint and the separate app identity live in ONE file that no release
+ * path can reach: the release config and `release.yml` never carry or name it, and only the hand-started test workflow passes it.
+ */
+describe('the updater test build', () => {
+  const ROOT = join(import.meta.dirname, '../..')
+  const read = (path: string) => readFileSync(join(ROOT, path), 'utf8')
+  const TEST_CONFIG = 'apps/desktop/src-tauri/tauri.updater-test.conf.json'
+  const TEST_CONFIG_ARGUMENT = 'src-tauri/tauri.updater-test.conf.json'
+  const testConfig = JSON.parse(read(TEST_CONFIG)) as {
+    productName?: string
+    identifier?: string
+    plugins?: { updater?: Record<string, unknown> }
+  } & Record<string, unknown>
+  const release = JSON.parse(read('apps/desktop/src-tauri/tauri.conf.json')) as {
+    productName: string
+    identifier: string
+    plugins: { updater: { endpoints: string[] } }
+  }
+
+  it('is a separate app: its own identifier and product name, so a test install never touches a real install or its data folder', () => {
+    expect(testConfig.identifier).toBe('com.listulator.desktop.updatertest')
+    expect(testConfig.identifier).not.toBe(release.identifier)
+    expect(testConfig.productName).toBe('ListulatorUpdaterTest')
+    expect(testConfig.productName).not.toBe(release.productName)
+  })
+
+  it('points at the local endpoint only, with the insecure flag, and changes nothing else about the updater (the real public key stays)', () => {
+    expect(testConfig.plugins?.updater).toEqual({
+      endpoints: ['http://127.0.0.1:8099/latest.json'],
+      dangerousInsecureTransportProtocol: true,
+    })
+    expect(Object.keys(testConfig).sort()).toEqual(['$schema', 'identifier', 'plugins', 'productName'])
+  })
+
+  it('is not in the release config, whose only endpoint is GitHub’s latest download over https and which has no dangerous* key anywhere', () => {
+    const text = read('apps/desktop/src-tauri/tauri.conf.json')
+
+    expect(release.plugins.updater.endpoints).toEqual(['https://github.com/gerharar/listulator/releases/latest/download/latest.json'])
+    expect(text).not.toMatch(/dangerous|127\.0\.0\.1|updater-test/i)
+    // `localhost` appears legitimately (the dev server's address, the IPC host in the CSP); the updater's own block must not have it or any plain http.
+    expect(JSON.stringify(release.plugins)).not.toMatch(/localhost|http:/i)
+  })
+
+  it('is never named or carried by the release workflow, the updater-artifacts overlay, or any other workflow than its own', () => {
+    for (const file of ['.github/workflows/release.yml', 'apps/desktop/src-tauri/tauri.updater-artifacts.conf.json']) {
+      expect(read(file), file).not.toMatch(/updater-test|dangerous|127\.0\.0\.1/i)
+    }
+    for (const name of readdirSync(WORKFLOWS).filter((file) => /\.ya?ml$/.test(file) && file !== 'updater-test-windows.yml')) {
+      expect(readFileSync(join(WORKFLOWS, name), 'utf8'), name).not.toMatch(/updater-test/)
+    }
+  })
+
+  describe('the hand-started workflow that builds it', () => {
+    const text = readFileSync(join(WORKFLOWS, 'updater-test-windows.yml'), 'utf8')
+    const workflow = loadYaml(text) as Workflow
+    const steps = Object.values(workflow.jobs).flatMap((job) => job.steps ?? [])
+    const runs = steps.map((step) => step.run ?? '')
+
+    it('passes the strict manual rules like every workflow that is not the release', () => {
+      expect(workflowProblems(workflow, 'manual')).toEqual([])
+    })
+
+    it('builds with the test config on the build line, and only the installer', () => {
+      const build = runs.flatMap((run) => run.split('\n')).filter((line) => /\btauri:build\b/.test(line))
+
+      expect(build).toHaveLength(1)
+      expect(build[0]).toContain(`--config ${TEST_CONFIG_ARGUMENT}`)
+      expect(build[0]).toContain('--bundles nsis')
+    })
+
+    it('is started by hand with the version to build as its one required input', () => {
+      expect(workflow.on).toEqual({ workflow_dispatch: { inputs: { version: expect.objectContaining({ type: 'string', required: true }) } } })
+    })
+
+    it('sets the version it builds from its input through version:set, handing the input over env, never pasted', () => {
+      const setting = steps.find((step) => /\bversion:set\b/.test(step.run ?? ''))
+
+      expect(setting?.env?.['VERSION']).toBe('${{ inputs.version }}')
+      expect(setting?.run).toContain('$env:VERSION')
+    })
+
+    it('has no updater key, no update files and no signature: the owner signs the installer afterwards, on their own machine', () => {
+      expect(text).not.toMatch(/TAURI_SIGNING|updater-artifacts|\.sig\b|createUpdaterArtifacts/)
+    })
+
+    it('keeps its artifact for 3 days', () => {
+      const upload = steps.find((step) => step.uses?.startsWith('actions/upload-artifact@'))
+
+      expect(upload?.with?.['retention-days']).toBe(3)
+      expect(String(upload?.with?.['path'])).toMatch(/nsis\/\*\.exe$/)
+    })
+  })
+})

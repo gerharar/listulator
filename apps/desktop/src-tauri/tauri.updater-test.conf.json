@@ -1,0 +1,11 @@
+{
+  "$schema": "../../../node_modules/@tauri-apps/cli/config.schema.json",
+  "productName": "ListulatorUpdaterTest",
+  "identifier": "com.listulator.desktop.updatertest",
+  "plugins": {
+    "updater": {
+      "endpoints": ["http://127.0.0.1:8099/latest.json"],
+      "dangerousInsecureTransportProtocol": true
+    }
+  }
+}
