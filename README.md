@@ -1,267 +1,211 @@
 # Listulator
 
-A self-hostable **completionist tracker** for serialized and pseudo-serialized
-media — built around *finishing* curated lists, not logging arbitrary one-off
-media.
+Listulator is a personal **progress tracker** for media franchises and (pseudo-)serialized media. Whether you're watching all the James Bond movies, playing through a game franchise, reading a book series, or listening to a band's discography, Listulator will help you make a list of what to explore and keep track of your progress.
 
-All the Jackie Chan movies. Every WWF PPV. The full Fantastic Four run. A
-band's discography. A game franchise. Each is its own list; you check things
-off, watch the completion percentage climb, and when you don't know what to
-pick up next, the app tells you.
+**Note:** This README is written by a human for humans. AI/LLM agents and people suffering from insomnia should refer to README-AI.md.
 
-## Why
 
-Existing watchlist apps track *individual* items. This one tracks *lists* —
-progress toward 100% is the unit that matters, and the suggestion engine
-exists to keep you moving forward on them instead of losing steam.
+## Why?
 
-## The three buttons
+Because I got tired of forgetting which Boards Of Canada album I should listen to next, figuring out which LEGO game comes next chronologically, and constantly looking up which Jackie Chan movie I should watch after the one I just finished. There are apps for tracking reading orders and watchlists, but they're all built around a single medium: movies, comic books, games, and so on. The thing is, all these forms of media compete for the same limited amount of your entertainment time, and your choice lies across many categories, not just within one. The app also has four helper buttons, each offering suggestions tailored to a specific need.
 
-When you don't know what to consume next:
+For neuroscience nerds, here are two specific things the app helps with:
+1. [Cognitive offloading](https://pubmed.ncbi.nlm.nih.gov/27542527/)
+2. Overcoming the [paradox of choice](https://en.wikipedia.org/wiki/The_Paradox_of_Choice).
 
-| Button | What it does |
+
+### Was this made by a clanker or a meatbag?
+
+Both. I'm a Product Manager with 17+ years of PM experience. Over the years, I've worked with engineers to take several products from zero to being used by millions of websites. I've learned many things from working alongside smart people, and I wanted to see what I could build on my own with modern LLM tools -- without any extra meatbags. This is the result. Along the way, I've picked up a lot about different tools and frameworks, and I'm happy with how Listulator turned out so far.
+
+My main tools for building Listulator are Claude Code, Claude Design, and my own experience, not "vibes". I'm using [production-grade SDLC framework](https://skills.addy.ie/) with time-tested TDD approach to make sure the app is stable, works properly and can be updated in the future without comeing apart at the seams. The app passed multiple security audits and code reviews on its way to the first release, and I've already got some juicy plans for the next versions.
+
+If you need an Senior Product Manager that can built stuff 0-to-1 using LLMs, or just want to talk about agentic product building, ping me on [LinkedIn](https://www.linkedin.com/in/akugaevskiy). With that out of the way, let's get back to the app, shall we?
+
+
+## The buttons, ~~Mason~~ Andy! What do they mean?
+
+When the paradox of choice has you in its merciless grip, call upon the power of the helper buttons:
+
+| Button | When To Use |
 |---|---|
-| **I'm tired, boss** | You name the list you're sick of; it suggests a different one — favouring long-neglected lists that are close to done, so you actually finish things. |
-| **Suggest** | Picks something fresh: long-neglected lists you haven't started or have barely touched, avoiding the ones stuck in the middle. |
-| **Quickie** | Whatever you can finish fastest. |
-
-The ranking logic for each button lives in a plain JSON file under
-`config/strategies/` — tune the weights, restart nothing, no rebuild.
+| **I'm Tired, Boss** | Tired of griding a list? This finds a different one favouring other categories and long-neglected lists |
+| **Finalizer** |  Your inner completionist demands to finish a list? This finds you items that bring you closer to the finish |
+| **Just One Fix** | Want to get a a quick dopamine hit? This finds you the shortest item on your lists that you can complete |
+| **Surprise Me** | Curious what others might be enjoying? Choose a media category and spin to win a curated list suggestion! |
 
 ## Categories
 
-Twelve, built in. You can't add your own from the app: a category is a search
-adapter plus a fallback duration, not just a name.
+Listulator has 11 media categories and one Mega category for cross-media franchises (for example, Marvel Cinematic Universe, which has movies, TV series, and animation)
 
-| Category | Search finds | Where the data comes from |
+| Category | Search finds | Data Source |
 |---|---|---|
-| Movies | An actor, a director, a film series, a studio | TMDB |
-| TV Shows | A show → its episodes, specials included | TMDB |
 | Animation | An animated series, or an animation studio's films | TMDB |
+| Books | An author and their bibliography | Open Library |
+| Comics | A volume and its issues, in reading order | Comic Vine |
 | Documentaries | A documentary series, or a film-maker's documentaries | TMDB |
-| Wrestling | WWE, AEW, TNA, ROH | Wikipedia event tables |
-| MMA | UFC, Bellator, PFL | Wikipedia event tables |
 | Games | A franchise or collection | IGDB |
-| Comics | A volume → its issues, in reading order | Comic Vine |
-| Books | An author → their bibliography | Open Library |
-| Music | An artist → their discography | MusicBrainz |
-| YouTube | A playlist, or every upload from a channel | YouTube Data API |
-| Mega | A cross-media franchise — films *and* series together, in release order | TMDB |
+| Mega | A cross-media franchise | List Vault |
+| MMA | UFC, Bellator, PFL | Wikipedia |
+| Movies | An actor, a director, a film series, a studio | TMDB |
+| Music | An artist and their discography | MusicBrainz |
+| Pro Wrestling | WWE, AEW, TNA, ROH | Wikipedia |
+| TV Shows | A show and its episodes, specials included | TMDB |
+| YouTube | A playlist, or every upload from a channel | YouTube |
 
-**Mega** is the odd one, and deliberate. Marvel is films, live-action series
-and animation at once, so no medium category can hold it — and the question
-isn't "where does this data live" but "where do I look". Television in a Mega
-list is counted by *season*, because an MCU list at episode granularity runs to
-several hundred entries against 56 films and stops being a checklist anyone
-finishes. As seasons it is 111 entries — 56 films, 55 seasons.
+Every list can also be typed in by hand. Alternatively, you can create a YAML file and import it in the app -- check CONTRIBUTING.md for YAML structure details
 
-Every list can also be typed in by hand, in any category.
-
-### Ordering
-
-Order works the same in every category: it's just each item's position, not
-its `year` or any tag. Drag-reorder by hand, or run the one-off **Sort
-chronologically** action to re-sort by year (each group moves as a block).
-Category never changes this.
-
-### Lists stay yours
-
-Imports are deliberately imperfect — a filmography includes things you'd never
-watch. Delete them and they stay deleted: a rescan won't offer them back. If
-you delete something by mistake, tick **Re-add deleted entries** before
-rescanning and it returns.
-
-## Status
-
-Heading for its first public release, 1.0.0: a desktop app for Windows and
-macOS (Apple silicon) that keeps your library and your API keys on your own
-computer. Walked end to end: all twelve categories, all three suggestion
-buttons, list refresh. Single-user only (see `SINGLE_USER_MODE` below).
-
-Running the server and web app yourself is possible, but it is not a supported
-way to use Listulator (see [SECURITY.md](SECURITY.md)).
-
-Not done yet: the phone layout hasn't been checked on real hardware, and
-multi-tenancy is scaffolded in the schema but not switched on.
 
 ## Install (desktop app)
 
-Download the installer for your computer from the
-[Releases page](https://github.com/gerharar/listulator/releases):
+Download the installer for your computer from the [Releases page](https://github.com/gerharar/listulator/releases):
 
-| System | File | Needs |
+| System | File | Requirements |
 |---|---|---|
-| Windows | `Listulator_<version>_x64-setup.exe` | 64-bit Windows. The installer fetches Microsoft's WebView2 runtime if your PC lacks it. |
-| macOS | `Listulator_<version>_aarch64.dmg` | A Mac with Apple silicon (M1 or later), macOS 11 or newer. Intel Macs are not supported. |
+| Windows | `Listulator_<version>_x64-setup.exe` | 64-bit Windows. The installer fetches Microsoft's WebView2 runtime if your PC lacks it |
+| macOS | `Listulator_<version>_aarch64.dmg` | A Mac with Apple silicon (M1 or later), macOS 11 or newer. Intel Macs are not supported |
 
-Everything stays on your computer; see [Your data and your keys](#your-data-and-your-keys-desktop-app) for where, and
-how to remove it.
 
-### The warnings you will see, and why
+## FAQ
 
-The installers are **not code-signed**: signing costs money every year and Listulator is a hobby project. So your system
-does not recognise the publisher, and says so. Nothing is wrong with the file; the checks further down show it is the one
-this repository's build made.
+<details>
+<summary><strong>Q: Wait, the app is desktop-only? Where are the web and mobile apps?</strong></summary>
 
-**Windows.** The browser may warn about, or refuse to keep, the download (look for "Keep" in its downloads list), and
-Windows SmartScreen shows "Windows protected your PC". Choose **More info**, then **Run anyway**.
+A: Listulator currently has desktop-only builds for Windows & MacOS. Technically, Listulator already works as a web app (it's built natively on a web client-server architecture, after all), but I'd need to host it and make it multi-tenant, which is overkill for my own use-case.
 
-**macOS.** Open the `.dmg` and drag Listulator to Applications. The first time you open it, macOS refuses ("Apple could not
-verify it is free of malware"). Open **System Settings, Privacy & Security**, scroll to the **Security** section, and choose
-**Open Anyway** next to Listulator; confirm with your password. From then on it opens normally.
+Mobile app presents a different set of obstacles: 
+1. The current design wasn't built with mobile devices in mind, so adapting it for mobile would take quite a bit of work
+2. Since I use desktop for engaging with the majority of media tracked by Listulator, I don't have a strong personal need for a mobile app
+3. Upcoming new Listulator themes will be mobile-unfriendly due to the nature of their design
 
-### Checking the download
+Bottom line: I can add either/both if there's demand and someone presents a clear case why they prefer a web app or a mobile app over a desktop app.
+</details>
 
-Each release lists a `SHA256SUMS` file next to the installers. Two checks, strongest last:
+<details>
+<summary><strong>Q: Is Listulator free?</strong></summary>
 
-1. **The checksum** shows the file was not damaged or swapped on the way. No account needed.
+A: Listulator is free to use and will remain so. Most APIs used by Listulator connectors have a hard requirement of non-commercial use only, so I couldn't monetize Listulator app itself, even if I wanted to.
+ 
+</details>
 
-   - macOS, in the folder with the download: `grep dmg SHA256SUMS | shasum -a 256 -c` should print `OK`.
-   - Windows, PowerShell: `Get-FileHash .\Listulator_<version>_x64-setup.exe -Algorithm SHA256`; in cmd.exe:
-     `certutil -hashfile Listulator_<version>_x64-setup.exe SHA256`. The hash must equal the one on that file's line in
-     `SHA256SUMS`.
+<details>
+<summary><strong>Q: Why my OS throws a fit when I install the app?</strong></summary>
 
-2. **The build attestation** is a signed statement, kept by GitHub, that this exact file was built from this repository by
-   its release workflow. It needs the [GitHub CLI](https://cli.github.com/) signed in (`gh auth login`, any GitHub
-   account):
+A: Big companies like to invent the problem, then sell the solution. The problem being invented here is *users are running untrusted apps in our OS, which can put them in danger*. The solution is *we'll "verify" apps so users can trust them, but only if the developer pays us -- and if we aren't getting paid, our OS will scare users away from installing your app*. 
 
-   ```
-   gh attestation verify Listulator_<version>_aarch64.dmg --repo gerharar/listulator
-   ```
+In layman's terms, both Windows and MacOS prevent users from running "unsigned" applications, and to sign them, you need to pay at least $100 per year per platform. I've compared my budget to those of Apple and Microsoft, and it's pretty clear that I need the money more than they do, so the app will remain unsigned for the time being.  
 
-   It should end with "Verification succeeded". Use the `.exe` file name for Windows.
+If you need help going past this, scroll to [OS warnings and how to deal with them](#os-warnings-and-how-to-deal-with-them)
 
-## Stack
+</details>
 
-Node.js + TypeScript (Fastify) · React + Vite · SQLite (Drizzle ORM) ·
-npm workspaces. No Docker required, no separate database server — the whole
-thing is a Node process and a SQLite file.
+<details>
+<summary><strong>Q: Is Listulator safe to use?</strong></summary>
 
-## Development
+A: I regularly check Listulator's .exe files on [VirusTotal](https://www.virustotal.com) to see what new hallucinations ML-based "antivirus" engines have come up with. The results are usually green almost unanimously for the exception of one or two vendors flagging the .exe with some generic "malicious" or "unsafe" tag. Turns out some engines simply check if the app is signed, and if not, they will complain regardless of actual file contents. Machine Learning, baby! 💪
 
-```bash
-npm install
-npm run dev        # server (:3001) + web (:5173)
-npm run test
-npm run lint
-npm run typecheck
-npm run build
-```
+</details>
 
-The dev server binds IPv4 only; use `vite --host` to reach it from another
-device on your network.
+<details>
+<summary><strong>Q: Why there's no Podcasts category?</strong></summary>
 
-### Changing the wording
+A: Two reasons: 
+1. I don't listen to / watch podcasts outside of Youtube
+2. Podcast category requires creating, using, and testing a connector that integrates with [PodChaser](https://www.podchaser.com/). Their cheapest plan is $30/mo, which is about $30 more than I'm willing to pay for something I'm not using.
 
-Every word the interface says lives in
-[`web/src/locale/en.ts`](web/src/locale/en.ts) — including the text of server
-errors, which travel as codes and are worded on the client. Edit that one file
-to reword anything; a second language is a second file.
+If someone **really** needs this and is willing to share their PodChaser API key for a couple of days (or sends me $30), I can add this connector. The key is required for testing it against actual PodChaser API and making sure it actually works. Keep in mind I won't be checking the connector after the initial implementation for obvious reasons.
+</details>
 
-## Configuration
+<details>
+<summary><strong>Q: Does the app collect any usage data?</strong></summary>
 
-Everything has a working default, so the app runs with no configuration at
-all. To change something, copy `.env.example` to `.env` in the repo root:
+A: The app collects no usage telemetry -- I see no reason to collect usage data that wouldn't inform any meaningful decisions. Everything stays on your computer; see [Your lists and your API keys](#your-lists-and-your-api-keys) for data location and removal.
+</details>
 
-```bash
-cp .env.example .env
-```
+<details>
+<summary><strong>Q: What is the List Vault?</strong></summary>
 
-`.env` is gitignored, and an exported shell variable always wins over the file.
+A: It's a Github repository of Canonical lists I've created manually. I'm making these for two reasons: first, there's no single database that gives you a list of cross-franchise items; second, I've found a lot of lacking or imprecise results when using database search. Yeah, you can edit these search results by adding, reordering, and removing items, but a ~~human-reviewed~~ meatbag-certified list feels better.
+</details>
 
-`SINGLE_USER_MODE` defaults to `true`: one implicit local user, no login, no
-account to create. Every table is already `user_id`-scoped and handlers only
-ever get the current user from a shared resolver, so switching this off later
-is a config change rather than a rewrite — but the multi-user path isn't
-implemented, and setting it to `false` today makes every request answer 501.
+<details>
+<summary><strong>Q: I found a problem, how do I report it?</strong></summary>
+
+A: File it in [Issues](https://github.com/gerharar/listulator/issues). State what the problem is, which platform and app version you're using, and what are the steps to reproduce the bug.
+</details>
+
+<details>
+<summary><strong>Q: I have a feature request, how do I file it?</strong></summary>
+
+A: File it in [Issues](https://github.com/gerharar/listulator/issues). Describe [the job you're trying to get done](https://jobs-to-be-done.com/jobs-to-be-done-a-framework-for-customer-needs-c883cbf61c90) and, optionally, how you envision the in-app changes helping you get it done.
+</details>
+
+<details>
+<summary><strong>Q: I've found a security defect, how do I report it?</strong></summary>
+
+A: Read [SECURITY.md](SECURITY.md) for the submission procedure. I obviously don't have any bug bounty programs, lol.
+</details>
+
+<details>
+<summary><strong>Q: Can I contribute a canonical list to the List Vault?</strong></summary>
+
+A: Sure, list contributions are always welcome. Refer to [CONTRIBUTING.md](CONTRIBUTING.md) for details. I'd suggest to get in touch first, though -- I might be working on the same list already. If you're planning to plow through a particular category, let me know! It'll help me focus on other categories that need more love.
+
+</details>
+
+
+### OS warnings and how to deal with them
+
+The installers are **not code-signed**: signing costs money every year and Listulator is a hobby project. Your system doesn't recognise the publisher and complains to you that he hasn't paid the poor multibillion-dollar corporation for a code-signing certificate. How to deal with this?
+
+**Windows.** The browser may warn about (or refuse to keep) the download (look for "Keep" in its downloads list), and Windows SmartScreen shows "Windows protected your PC". Choose **More info**, then **Run anyway**.
+
+**macOS.** Open the `.dmg` and drag Listulator to Applications. The first time you open it, macOS refuses ("Apple could not verify it is free of malware"). Open **System Settings, Privacy & Security**, scroll to the **Security** section, and choose **Open Anyway** next to Listulator; confirm with your password. From then on it opens normally.
+
 
 ### API keys
 
-Keys are only needed for **search**. Without one, that category simply has no
-search and you add items by hand — nothing breaks, and no key is needed to use
-the app at all.
+Keys are only needed for database search in certain categories. Without a key, such category simply can't search in the corresponding database. You can still add items by hand or use List Vault.
 
-| Variable | Category | Where |
+| Variable | Category | How |
 |---|---|---|
-| `TMDB_API_KEY` | Movies, TV, Animation, Documentaries, Mega | themoviedb.org → Settings → API (free, non-commercial) |
-| `IGDB_CLIENT_ID` + `IGDB_CLIENT_SECRET` | Games | dev.twitch.tv/console/apps → register an app |
-| `COMIC_VINE_API_KEY` | Comics | comicvine.gamespot.com/api (free, needs an account) |
-| `YOUTUBE_API_KEY` | YouTube | See below |
+| `TMDB_API_KEY` | Movies, TV, Animation, Documentaries | [Guide](https://github.com/gerharar/listulator/blob/main/guides/tmdb-key.md) |
+| `IGDB_CLIENT_ID` + `IGDB_CLIENT_SECRET` | Games | [Guide](https://github.com/gerharar/listulator/blob/main/guides/igdb-key.md) |
+| `COMIC_VINE_API_KEY` | Comics | [Guide](https://github.com/gerharar/listulator/blob/main/guides/comic-vine-key.md) |
+| `YOUTUBE_API_KEY` | YouTube | [Guide](https://github.com/gerharar/listulator/blob/main/guides/youtube-key.md) |
 
-Music (MusicBrainz), books (Open Library), wrestling and MMA (Wikipedia) need
-no key and are always on.
+Music (MusicBrainz), books (Open Library), wrestling and MMA (Wikipedia) need no key and are always on. Canonical lists from List Vault are always available as long as you have a working internet connection.
 
-#### Getting a YouTube key
 
-More involved than the others, so in full:
+### Your lists and your API keys
 
-1. Go to [console.cloud.google.com](https://console.cloud.google.com/) and sign
-   in with any Google account.
-2. Create a project — the dropdown in the top bar, then **New Project**. Name it
-   anything.
-3. Enable the API:
-   [console.cloud.google.com/apis/library/youtube.googleapis.com](https://console.cloud.google.com/apis/library/youtube.googleapis.com)
-   → **Enable**. (Or *APIs & Services → Library*, search "YouTube Data API v3".)
-4. Create the key: *APIs & Services → Credentials* →
-   **+ Create Credentials → API key**. It looks like `AIza…`, 39 characters.
-5. Optional but worth it: **Restrict key** → *API restrictions* → limit it to
-   YouTube Data API v3, so a leaked key cannot be spent on other Google
-   services.
+Listulator keeps everything on your computer, in one data folder called `com.listulator.desktop`: your lists (`listulator.sqlite`), your preferences, and the API keys you type into Settings (`settings.json`).
 
-**No billing account is required.** The free quota is 10,000 units a day.
-Searching by channel name costs 100 units per search — about 100 a day — while
-pasting a link or an `@handle` costs roughly 1, so the quota rarely matters in
-practice.
+**The keys are stored as plain text.** Nothing but your own account (and the disk encryption you turned on: FileVault on a Mac,
+BitLocker on Windows) keeps another program or person at your computer from reading them. They are sent only to the service they
+belong to, and never shown in error messages.
 
-### Your data and your keys (desktop app)
-
-The desktop app keeps everything on your computer, in one data folder named after its identifier, `com.listulator.desktop`: your
-lists (`listulator.sqlite`), your preferences, and the API keys you type into Settings (`settings.json`).
-
-**The keys are stored as plain text.** Nothing but your computer account (and the disk encryption you turned on: FileVault on a Mac,
-BitLocker on Windows) keeps another program or person at that computer from reading them. They are sent only to the service they
-belong to, and never shown in an error message. TMDB, YouTube and Comic Vine take the key in the web address, as their documentation
-asks, so that service's own logs can see it; a TMDB *read access token* (instead of the v3 key) goes in a header and avoids that.
-IGDB's secret goes in the body of its request.
-
-**Removing one key:** clear its field in Settings. The old text is gone from `settings.json` at once.
+**Removing one key:** clear its field in Settings. The key will be gone from `settings.json` at once.
 
 **Removing everything, on Windows:** uninstall the app and tick **Delete the application data**. That removes
 `%APPDATA%\com.listulator.desktop` (lists, preferences, keys) and `%LOCALAPPDATA%\com.listulator.desktop` (the webview's own storage).
-Without the tick, the data stays for a reinstall.
+Without the tick, the data stays, awaiting app reinstall.
 
-**Removing everything, on a Mac:** there is no uninstaller. Dragging the app to the Trash and emptying it removes the app and nothing
-else. Quit the app, then delete these folders (in Finder: Go, Go to Folder, `~/Library`):
+**Removing everything, on a Mac:** it's a Mac, so there is no proper uninstaller. Dragging the app to the Trash and emptying it removes the app and does nothing
+else. Quit the app, then delete the following folders (in Finder: Go, Go to Folder, `~/Library`):
 
-| Folder | What is in it |
+| Folder | Contents |
 |---|---|
-| `~/Library/Application Support/com.listulator.desktop` | lists, preferences, **the keys** |
-| `~/Library/Caches/com.listulator.desktop` | the webview's cache |
-| `~/Library/WebKit/com.listulator.desktop` | the webview's storage |
+| `~/Library/Application Support/com.listulator.desktop` | lists, preferences, **API keys** |
+| `~/Library/Caches/com.listulator.desktop` | webview cache |
+| `~/Library/WebKit/com.listulator.desktop` | webview storage |
 | `~/Library/Logs/com.listulator.desktop` | logs |
 
-or, in Terminal (this deletes your lists and keys too):
+Alternatively, run the following command in Terminal (this deletes your lists and API keys too):
 
 ```
 rm -rf ~/Library/{"Application Support",Caches,WebKit,Logs}/com.listulator.desktop
 ```
-
-A cleaner such as AppCleaner finds the same folders by the identifier.
-
-**A Mac cache from an older version may still hold a copy of a TMDB or YouTube key**, because those two were fetched through the
-webview, which cached the answers under their web address. Newer versions ask the webview not to cache a request that carries a key.
-If you used the app before that change, delete `~/Library/Caches/com.listulator.desktop` once.
-
-The self-hosted server reads its keys from environment variables (above), not from this folder.
-
-### Installing it on a phone
-
-The built app is a PWA — it installs to a home screen and runs without browser
-chrome. **This requires HTTPS.** Browsers only register a service worker on a
-secure origin, and `localhost` is the only exception, so opening
-`http://192.168.x.x:5173` on a phone will show the app but will not offer to
-install it. Put it behind a reverse proxy with a certificate, or use something
-like Tailscale, and installation works.
 
 ## License
 
