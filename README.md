@@ -2,7 +2,9 @@
 
 Listulator is a personal **progress tracker** for media franchises and (pseudo-)serialized media. Whether you're watching all the James Bond movies, playing through a game franchise, reading a book series, or listening to a band's discography, Listulator will help you make a list of what to explore and keep track of your progress.
 
-**Note:** This README is written by a human for humans. AI/LLM agents and people suffering from insomnia should refer to README-AI.md.
+![My Lists screen](app-screen.png)
+
+**Note:** This README is written by a human for humans. AI/LLM agents and people suffering from insomnia should refer to [README-AI.md](README-AI.md).
 
 
 ## Why?
@@ -11,8 +13,11 @@ Because I got tired of forgetting which Boards Of Canada album I should listen t
 
 For neuroscience nerds, here are two specific things the app helps with:
 1. [Cognitive offloading](https://pubmed.ncbi.nlm.nih.gov/27542527/)
-2. Overcoming the [paradox of choice](https://en.wikipedia.org/wiki/The_Paradox_of_Choice).
+2. Overcoming the [paradox of choice](https://en.wikipedia.org/wiki/The_Paradox_of_Choice)
 
+This is how a real list looks like:
+
+![List screen](app-screen-list.png)
 
 ### Was this made by a clanker or a meatbag?
 
@@ -154,7 +159,7 @@ A: Sure, list contributions are always welcome. Refer to [CONTRIBUTING.md](CONTR
 </details>
 
 
-### OS warnings and how to deal with them
+## OS warnings and how to deal with them
 
 The installers are **not code-signed**: signing costs money every year and Listulator is a hobby project. Your system doesn't recognise the publisher and complains to you that he hasn't paid the poor multibillion-dollar corporation for a code-signing certificate. How to deal with this?
 
@@ -163,7 +168,7 @@ The installers are **not code-signed**: signing costs money every year and Listu
 **macOS.** Open the `.dmg` and drag Listulator to Applications. The first time you open it, macOS refuses ("Apple could not verify it is free of malware"). Open **System Settings, Privacy & Security**, scroll to the **Security** section, and choose **Open Anyway** next to Listulator; confirm with your password. From then on it opens normally.
 
 
-### API keys
+## API keys
 
 Keys are only needed for database search in certain categories. Without a key, such category simply can't search in the corresponding database. You can still add items by hand or use List Vault.
 
@@ -177,7 +182,7 @@ Keys are only needed for database search in certain categories. Without a key, s
 Music (MusicBrainz), books (Open Library), wrestling and MMA (Wikipedia) need no key and are always on. Canonical lists from List Vault are always available as long as you have a working internet connection.
 
 
-### Your lists and your API keys
+## Your lists and your API keys
 
 Listulator keeps everything on your computer, in one data folder called `com.listulator.desktop`: your lists (`listulator.sqlite`), your preferences, and the API keys you type into Settings (`settings.json`).
 
