@@ -2,7 +2,7 @@
 
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and version numbers follow [Semantic Versioning](https://semver.org/).
 
-## [1.0.1] - 13 October 2026
+## [1.0.1] - 14 October 2026
 
 ### Fixes
 - Startup performance on Windows was improved: the app loads noticeably faster
