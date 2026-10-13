@@ -28,13 +28,25 @@ static SAVE_PENDING: AtomicBool = AtomicBool::new(false);
 
 /// Writes the window-state file a moment after the window last moved or resized (BL-088: the Windows updater ends the app without
 /// the exit events that save it).
+///
+/// The save itself runs on the main thread, never on the timer's thread. The plugin's `save_window_state` holds its cache lock while
+/// it asks the window for its size and state; from another thread that asks the main thread and waits, and the plugin's own
+/// resize and move handlers (which run on the main thread) take the same lock: each waits for the other and the window freezes
+/// (found in the first `v1.0.1` draft: a hung app, both systems; a process sample showed exactly this). On the main thread the
+/// window answers directly and the handlers cannot run at the same time.
 #[cfg(desktop)]
 fn save_window_state_soon(app: &tauri::AppHandle) {
   use tauri_plugin_window_state::AppHandleExt;
 
   let app = app.clone();
   window_save::schedule(&SAVE_PENDING, window_save::DELAY, move || {
-    if let Err(error) = app.save_window_state(window_state_flags()) {
+    let on_main_thread = app.clone();
+    let handed_over = app.run_on_main_thread(move || {
+      if let Err(error) = on_main_thread.save_window_state(window_state_flags()) {
+        log::warn!("could not save the window state: {error}");
+      }
+    });
+    if let Err(error) = handed_over {
       log::warn!("could not save the window state: {error}");
     }
   });

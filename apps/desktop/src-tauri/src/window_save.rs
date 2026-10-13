@@ -12,7 +12,8 @@ use std::time::Duration;
 /// How long after the last move or resize the file is written: a drag is one write, not hundreds.
 pub const DELAY: Duration = Duration::from_millis(800);
 
-/// Runs `action` once, `delay` from now, on its own thread. A call made while one is waiting is dropped: the action reads the
+/// Runs `action` once, `delay` from now, on its own thread (so `action` must not call into the window itself: hand over to the
+/// main thread, as `lib.rs` does). A call made while one is waiting is dropped: the action reads the
 /// window as it is when it runs, so the last change is always the one saved. `pending` is the caller's own flag.
 pub fn schedule(pending: &'static AtomicBool, delay: Duration, action: impl FnOnce() + Send + 'static) {
   if pending.swap(true, Ordering::SeqCst) {

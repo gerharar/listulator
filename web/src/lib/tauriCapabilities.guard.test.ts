@@ -309,6 +309,15 @@ describe('the updater, as the design left it (task 20.10a; docs/security-review.
     expect(lib).not.toMatch(/#\[tauri::command\]\s*(?:async\s+)?fn save_window_state/)
   })
 
+  it('does the save on the main thread: the plugin holds its lock while it asks the window, so from another thread it deadlocks with its own resize handler (the hung first 1.0.1 draft)', () => {
+    const body = /fn save_window_state_soon\([^)]*\)\s*\{([\s\S]*?)\n\}/.exec(code('lib.rs'))?.[1] ?? ''
+    const inMain = /run_on_main_thread\(move \|\| \{([\s\S]*?)\n {4}\}\)/.exec(body)?.[1] ?? ''
+
+    expect(inMain).toContain('save_window_state(')
+    // Every call to the plugin's save is inside that closure.
+    expect(body.match(/save_window_state\(/g)).toHaveLength(1)
+  })
+
   it('grants no more of the updater than the client calls (no `download`, no `install`, no default set)', () => {
     const identifiers = capability.permissions.map((permission) => (typeof permission === 'string' ? permission : permission.identifier))
 
