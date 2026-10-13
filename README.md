@@ -58,7 +58,7 @@ Listulator has 11 media categories and one Mega category for cross-media franchi
 | TV Shows | A show and its episodes, specials included | TMDB |
 | YouTube | A playlist, or every upload from a channel | YouTube |
 
-Every list can also be typed in by hand. Alternatively, you can create a YAML file and import it in the app -- check CONTRIBUTING.md for YAML structure details
+Every list can also be typed in by hand. Alternatively, you can create a YAML file and import it in the app -- check [CONTRIBUTING.md](CONTRIBUTING.md) for YAML structure details
 
 
 ## Install (desktop app)
