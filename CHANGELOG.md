@@ -2,6 +2,14 @@
 
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and version numbers follow [Semantic Versioning](https://semver.org/).
 
+## [1.0.1] - 13 October 2026
+
+### Fixes
+- Startup performance on Windows was improved: the app loads roughly two times faster
+- App update on Windows now remembers window size & position
+- Four cosmetic bugs were fixed, increasing the level of design polish
+
+
 ## [1.0.0] - 13 October 2026
 
 ### Initial Release
