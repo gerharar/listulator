@@ -61,9 +61,9 @@ Listulator has 11 media categories and one Mega category for cross-media franchi
 Every list can also be typed in by hand. Alternatively, you can create a YAML file and import it in the app -- check [CONTRIBUTING.md](CONTRIBUTING.md) for YAML structure details
 
 
-## Install (desktop app)
+## Installation
 
-Download the installer for your computer from the [Releases page](https://github.com/gerharar/listulator/releases):
+Download the installer for your OS from the [Releases page](https://github.com/gerharar/listulator/releases):
 
 | System | File | Requirements |
 |---|---|---|
@@ -124,7 +124,7 @@ If someone **really** needs this and is willing to share their PodChaser API key
 <details>
 <summary><strong>Q: Does the app collect any usage data?</strong></summary>
 
-A: The app collects no usage telemetry -- I see no reason to collect usage data that wouldn't inform any meaningful decisions. Everything stays on your computer; see [Your lists and your API keys](#your-lists-and-your-api-keys) for data location and removal.
+A: The app collects no usage telemetry -- I see no reason to collect usage data that wouldn't inform any meaningful decisions. Everything stays on your computer; see [Your local data](#your-local-data) for data location and removal.
 </details>
 
 <details>
@@ -170,9 +170,9 @@ The installers are **not code-signed**: signing costs money every year and Listu
 
 ## API keys
 
-Keys are only needed for database search in certain categories. Without a key, such category simply can't search in the corresponding database. You can still add items by hand or use List Vault.
+Several online services integrated with Listulator require API keys to search their databases. Without these keys you won't be able to search those services from within Listulator. Obtaining these API keys is free for personal use, and I've prepared a separate guide for each one to help you get started. Obviously, you can always add items by hand or use List Vault.
 
-| Variable | Category | How |
+| API Key | Categories | Guide Link |
 |---|---|---|
 | `TMDB_API_KEY` | Movies, TV, Animation, Documentaries | [Guide](https://github.com/gerharar/listulator/blob/main/guides/tmdb-key.md) |
 | `IGDB_CLIENT_ID` + `IGDB_CLIENT_SECRET` | Games | [Guide](https://github.com/gerharar/listulator/blob/main/guides/igdb-key.md) |
@@ -182,22 +182,17 @@ Keys are only needed for database search in certain categories. Without a key, s
 Music (MusicBrainz), books (Open Library), wrestling and MMA (Wikipedia) need no key and are always on. Canonical lists from List Vault are always available as long as you have a working internet connection.
 
 
-## Your lists and your API keys
+## Your local data
 
 Listulator keeps everything on your computer, in one data folder called `com.listulator.desktop`: your lists (`listulator.sqlite`), your preferences, and the API keys you type into Settings (`settings.json`).
 
-**The keys are stored as plain text.** Nothing but your own account (and the disk encryption you turned on: FileVault on a Mac,
-BitLocker on Windows) keeps another program or person at your computer from reading them. They are sent only to the service they
-belong to, and never shown in error messages.
+**The keys are stored in plain text.** Anyone or anything with access to your OS account can access them. Full-disk encryption (such as FileVault on macOS or BitLocker on Windows) offers some protection if your device is lost or accessed while powered off. The keys are sent only to the service they belong to, and never shown in error messages.
 
 **Removing one key:** clear its field in Settings. The key will be gone from `settings.json` at once.
 
-**Removing everything, on Windows:** uninstall the app and tick **Delete the application data**. That removes
-`%APPDATA%\com.listulator.desktop` (lists, preferences, keys) and `%LOCALAPPDATA%\com.listulator.desktop` (the webview's own storage).
-Without the tick, the data stays, awaiting app reinstall.
+**Removing everything, Windows edition:** uninstall the app via "Add or Remove Programs" OS menu and tick **Delete the application data**. That removes `%APPDATA%\com.listulator.desktop` (lists, preferences, keys) and `%LOCALAPPDATA%\com.listulator.desktop` (the webview's own storage). Without the tick, the data stays, awaiting app reinstall, Hachikō-style.
 
-**Removing everything, on a Mac:** it's a Mac, so there is no proper uninstaller. Dragging the app to the Trash and emptying it removes the app and does nothing
-else. Quit the app, then delete the following folders (in Finder: Go, Go to Folder, `~/Library`):
+**Removing everything, Mac edition:** it's a Mac, so there is no full uninstaller. Dragging the app to the Trash and emptying it removes the app itself and does nothing else. If you want a full clean-up after that, delete the following folders (in Finder: Go, Go to Folder, `~/Library`):
 
 | Folder | Contents |
 |---|---|
@@ -206,7 +201,7 @@ else. Quit the app, then delete the following folders (in Finder: Go, Go to Fold
 | `~/Library/WebKit/com.listulator.desktop` | webview storage |
 | `~/Library/Logs/com.listulator.desktop` | logs |
 
-Alternatively, run the following command in Terminal (this deletes your lists and API keys too):
+Alternatively, run the following command in Terminal (note: this won't be recoverable through the Trash):
 
 ```
 rm -rf ~/Library/{"Application Support",Caches,WebKit,Logs}/com.listulator.desktop
