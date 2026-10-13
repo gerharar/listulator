@@ -4,7 +4,7 @@ Listulator is a personal **progress tracker** for media franchises and (pseudo-)
 
 ![My Lists screen](app-screen.png)
 
-**Note:** This README is written by a human for humans. AI/LLM agents and people suffering from insomnia should refer to [README-AI.md](README-AI.md).
+**Note:** This README is written by a human for humans. AI/LLM agents and people suffering from insomnia should refer to [README-AI.md](README-AI.md), which includes technical information not relevant for regular users.
 
 
 ## Why?
