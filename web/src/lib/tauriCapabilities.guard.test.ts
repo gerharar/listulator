@@ -297,6 +297,18 @@ describe('the updater, as the design left it (task 20.10a; docs/security-review.
     expect(/fn relaunch\(([^)]*)\)/.exec(code('lib.rs'))?.[1]?.trim()).toBe('app: tauri::AppHandle')
   })
 
+  it('saves the window state a moment after every move and resize, with no command of the page’s own (BL-088: the Windows updater ends the app without the exit events that save it)', () => {
+    const lib = code('lib.rs')
+
+    expect(lib).toMatch(/^mod window_save;$/m)
+    expect(/tauri::WindowEvent::Resized\(_\) => \{([\s\S]*?)\n {4}\}/.exec(lib)?.[1]).toContain('save_window_state_soon(')
+    expect(/tauri::WindowEvent::Moved\(_\) => \{([\s\S]*?)\n {4}\}/.exec(lib)?.[1]).toContain('save_window_state_soon(')
+    // The page cannot ask for it: still one command, `relaunch`, and the save is not one.
+    expect(lib).toMatch(/generate_handler!\[relaunch\]/)
+    expect(/fn save_window_state_soon\(([^)]*)\)/.exec(lib)?.[1]?.trim()).toBe('app: &tauri::AppHandle')
+    expect(lib).not.toMatch(/#\[tauri::command\]\s*(?:async\s+)?fn save_window_state/)
+  })
+
   it('grants no more of the updater than the client calls (no `download`, no `install`, no default set)', () => {
     const identifiers = capability.permissions.map((permission) => (typeof permission === 'string' ? permission : permission.identifier))
 

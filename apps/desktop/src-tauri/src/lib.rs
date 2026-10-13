@@ -4,6 +4,7 @@ use std::sync::Mutex;
 mod fullscreen;
 mod isolation_csp;
 mod navigation;
+mod window_save;
 
 /// Set at start-up when the window was left in full screen; cleared once re-entered.
 static PENDING_FULLSCREEN: AtomicBool = AtomicBool::new(false);
@@ -13,6 +14,30 @@ static TRACKER: Mutex<Option<fullscreen::Tracker>> = Mutex::new(None);
 
 fn with_tracker<T>(action: impl FnOnce(&mut fullscreen::Tracker) -> T) -> Option<T> {
   TRACKER.lock().ok()?.as_mut().map(action)
+}
+
+/// What the window-state plugin keeps: everything but full screen, which `fullscreen.rs` records itself.
+#[cfg(desktop)]
+fn window_state_flags() -> tauri_plugin_window_state::StateFlags {
+  tauri_plugin_window_state::StateFlags::all() - tauri_plugin_window_state::StateFlags::FULLSCREEN
+}
+
+/// Set while a save of the window state is waiting (`window_save.rs`).
+#[cfg(desktop)]
+static SAVE_PENDING: AtomicBool = AtomicBool::new(false);
+
+/// Writes the window-state file a moment after the window last moved or resized (BL-088: the Windows updater ends the app without
+/// the exit events that save it).
+#[cfg(desktop)]
+fn save_window_state_soon(app: &tauri::AppHandle) {
+  use tauri_plugin_window_state::AppHandleExt;
+
+  let app = app.clone();
+  window_save::schedule(&SAVE_PENDING, window_save::DELAY, move || {
+    if let Err(error) = app.save_window_state(window_state_flags()) {
+      log::warn!("could not save the window state: {error}");
+    }
+  });
 }
 
 #[cfg(desktop)]
@@ -46,7 +71,7 @@ pub fn run() {
   #[cfg(desktop)]
   let builder = builder.plugin(
     tauri_plugin_window_state::Builder::default()
-      .with_state_flags(tauri_plugin_window_state::StateFlags::all() - tauri_plugin_window_state::StateFlags::FULLSCREEN)
+      .with_state_flags(window_state_flags())
       .build(),
   );
   // Checks for a release and installs one signed with the owner's key; the key, the address and `requireSignedVersion` are in
@@ -68,6 +93,7 @@ pub fn run() {
     tauri::WindowEvent::Resized(_) => {
       use tauri::Manager;
 
+      save_window_state_soon(window.app_handle());
       let Ok(now) = window.is_fullscreen() else { return };
       if let Some(change) = with_tracker(|tracker| tracker.observe(now)).flatten() {
         if let Some(dir) = config_dir(window.app_handle()) {
@@ -76,6 +102,11 @@ pub fn run() {
           }
         }
       }
+    }
+    tauri::WindowEvent::Moved(_) => {
+      use tauri::Manager;
+
+      save_window_state_soon(window.app_handle());
     }
     tauri::WindowEvent::CloseRequested { .. } | tauri::WindowEvent::Destroyed => {
       with_tracker(fullscreen::Tracker::closing);
