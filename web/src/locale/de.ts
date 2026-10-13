@@ -866,6 +866,7 @@ export const de: Locale = {
       footer: (provenance: string): string => `${provenance}`,
       expandGroup: (label: string): string => `${label} ausklappen`,
       collapseGroup: (label: string): string => `${label} einklappen`,
+      groupItems: (n: number): string => entries(n),
     },
     importFile: {
       chooseFile: 'Datei wählen…',

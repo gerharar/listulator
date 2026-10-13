@@ -23,7 +23,7 @@ export interface ProgressSummary {
 }
 
 /**
- * One progress sentence everywhere: `16/38 (42%) · 14h 43m left`. Finished,
+ * One progress sentence everywhere: `16/38 (42%) · 14h 43m left` (on a My Lists row without the dot). Finished,
  * the time field becomes `✓ All done`, or `✓ Done for now` on a list
  * flagged Ongoing — "All done" would be a lie on a series still running:
  * every item you have is watched, but the list itself is not finished
@@ -117,7 +117,8 @@ export function ProgressSentence({
       </span>
       {left !== null && (
         <>
-          <span className="q-sep">·</span>
+          {/* The prototype's My Lists row is the count and the time with nothing between; its header and group rows keep the dot. */}
+          {size !== 'row' && <span className="q-sep">·</span>}
           <Tip
             className={allDone ? 'q-left all-done' : 'q-left'}
             style={{ fontSize: allDone ? Math.max(11, sizes.time - 2) : sizes.time }}

@@ -34,9 +34,15 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+/* The prototype's row is a flex row with a 16px gap between the cells, the count and the time (no dot between the last two). */
+.q-home-row .q-progress {
+  gap: 16px;
+}
 .q-home-row .q-count {
   width: 112px;
   text-align: right;
+  /* The prototype gives the row's count no colour of its own, so it reads in the main text colour, as the list header's does. */
+  color: var(--ink);
 }
 .q-home-row .q-left {
   /* 114px is the design's column; a longer translation ("noch 1 Std. 30 Min.") grows it rather than being clipped. */

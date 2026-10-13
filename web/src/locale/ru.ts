@@ -875,6 +875,7 @@ export const ru: Locale = {
       footer: (provenance: string): string => `${provenance}`,
       expandGroup: (label: string): string => `Развернуть: ${label}`,
       collapseGroup: (label: string): string => `Свернуть: ${label}`,
+      groupItems: (n: number): string => items(n),
     },
     importFile: {
       chooseFile: 'Выбрать файл…',

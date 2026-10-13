@@ -967,6 +967,8 @@ export const en = {
       footer: (provenance: string): string => `${provenance}`,
       expandGroup: (label: string): string => `Expand ${label}`,
       collapseGroup: (label: string): string => `Collapse ${label}`,
+      /** The number on a group's head in the preview: what it counts (owner, 1.0.1). */
+      groupItems: (n: number): string => `${n} ${selectPlural(n, 'en', { one: 'item', other: 'items' })}`,
     },
     importFile: {
       chooseFile: 'Choose File…',

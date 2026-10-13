@@ -100,6 +100,18 @@ describe('PreviewLayer', () => {
     expect(screen.getByText('Ouroboros')).toBeTruthy()
   })
 
+  it('says what a group head’s number counts: "2 items", "1 item", not a bare "2" (1.0.1)', async () => {
+    vi.mocked(api.preview).mockResolvedValue({
+      ...EXPANSION,
+      items: [...EXPANSION.items, { title: 'Lonely', group: 'Specials' }],
+    })
+    renderLayer()
+    await screen.findByText('Glorious Purpose')
+
+    const counts = [...document.querySelectorAll('.q-preview-group .count')].map((node) => node.textContent)
+    expect(counts).toEqual(['2 items', '1 item'])
+  })
+
   it('draws the group toggle with the list screen’s full-size ▼, open and folded alike (folding turns it, in CSS)', async () => {
     vi.mocked(api.preview).mockResolvedValue(EXPANSION)
     renderLayer()

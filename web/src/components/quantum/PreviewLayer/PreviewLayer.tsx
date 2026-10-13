@@ -188,7 +188,7 @@ export function PreviewLayer({ source, mediaType, onBuilt }: PreviewLayerProps) 
                     ▼
                   </span>
                   <span className="name">{row.label}</span>
-                  <span className="count">{row.count}</span>
+                  <span className="count">{text.groupItems(row.count)}</span>
                 </button>
               )
             }
