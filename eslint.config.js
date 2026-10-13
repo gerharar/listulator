@@ -30,6 +30,22 @@ export default tseslint.config(
     languageOptions: { sourceType: 'script', globals: { window: 'readonly', console: 'readonly', URL: 'readonly' } },
   },
   {
+    // Diagnostic scripts run by hand under Node (scripts/startup-probe.mjs); part of what they run is sent into the page, so the browser's globals count too.
+    files: ['scripts/**/*.mjs'],
+    languageOptions: {
+      globals: {
+        process: 'readonly',
+        console: 'readonly',
+        window: 'readonly',
+        document: 'readonly',
+        performance: 'readonly',
+        setTimeout: 'readonly',
+        MutationObserver: 'readonly',
+        Request: 'readonly',
+      },
+    },
+  },
+  {
     // Tooling config files must default-export; the named-exports rule is for
     // application code.
     files: ['**/*.config.js', '**/*.config.ts'],
