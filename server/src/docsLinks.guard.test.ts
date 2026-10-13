@@ -11,7 +11,7 @@ import { brokenLinks } from './tools/docLinks.js'
  */
 
 const REPO_ROOT = fileURLToPath(new URL('../../', import.meta.url))
-const PUBLIC_DOCUMENTS = ['README.md', 'CHANGELOG.md', 'SECURITY.md', 'CONTRIBUTING.md', 'NOTICE.md']
+const PUBLIC_DOCUMENTS = ['README.md', 'README-AI.md', 'CHANGELOG.md', 'SECURITY.md', 'CONTRIBUTING.md', 'NOTICE.md']
 
 describe('the public documents', () => {
   const tracked = new Set(
