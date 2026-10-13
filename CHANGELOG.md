@@ -1,6 +1,6 @@
 # Changelog
 
-What changed in each version of Listulator, newest first. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and version numbers follow [Semantic Versioning](https://semver.org/).
+The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and version numbers follow [Semantic Versioning](https://semver.org/).
 
 ## [1.0.0] - 13 October 2026
 
@@ -15,7 +15,7 @@ What changed in each version of Listulator, newest first. The format follows [Ke
 	- Filter a list by text, use category-specific filters (Platform, Type, Language), or toggle Hide Completed. Each list remembers its own Hide Completed setting
 	- Group items within a list and quickly navigate large lists using the "Jump To" group navigator
 	- Export lists to a YAML file or to the clipboard
-	- Sort lists, reordinging items within by year or by original list order (if applicable)
+	- Sort lists, reordering items within by year or by original list order (if applicable)
 	- Reset lists added from Search or the List Vault to their source versions. Note that these lists may have gained new items since you added them
 	- Delete lists
 - Work on list items:
@@ -23,7 +23,7 @@ What changed in each version of Listulator, newest first. The format follows [Ke
 	- Tick items as done. You don't have to click the checkbox -- click anywhere on the item's row, just make sure you don't hit another control
 	- Edit item's name, duration, group, plus category-specific data like platform for games
 	- Reorder items by drag'n'dropping them by their "handle" or by clicking on them and using Shift+Up & Shift+Down
-	- Group and ungroup items. Grouped items can only be reordered withing a group (change the group in item properties to move items between groups)
+	- Group and ungroup items. Grouped items can only be reordered within a group (change the group in item properties to move items between groups)
 	- When reordering a group, all other expanded groups automatically collapse. Once you finish the reordering, groups that were previously expanded will re-expand automatically
 	- Delete items
 - Choose from twelve categories with built-in search:
