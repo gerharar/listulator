@@ -1,6 +1,6 @@
 [package]
 name = "listulator-desktop"
-version = "1.0.0"
+version = "1.0.1"
 description = "Listulator standalone desktop app"
 authors = ["Listulator contributors"]
 license = "PolyForm-Noncommercial-1.0.0"
