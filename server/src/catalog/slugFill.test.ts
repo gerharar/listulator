@@ -231,6 +231,41 @@ describe('the background lookup of page slugs', () => {
       expect(igdb.slugs).toHaveBeenCalledTimes(1)
     })
 
+    it('give up on a lookup that never answers, so the links are not "coming" for ever and the screen stops polling', async () => {
+      const igdb = source()
+      igdb.slugs.mockImplementation(() => new Promise<Map<string, string | null>>(() => {}))
+      const list = await gameList(3)
+      const onError = vi.fn()
+      const fill = filler({ runTimeoutMs: 30, cooldownMs: 60_000, onError })
+
+      expect(fill.start(list.id, igdb.mediaType)).toBe(true)
+      await fill.idle(list.id)
+
+      expect(onError).toHaveBeenCalledTimes(1)
+      expect(String(onError.mock.calls[0]![0])).toMatch(/did not finish/)
+      // The list is left alone for a while, as after any failure.
+      expect(fill.start(list.id, igdb.mediaType)).toBe(false)
+      clock += 60_001
+      expect(fill.start(list.id, igdb.mediaType)).toBe(true)
+    })
+
+    it('not start another batch after giving up, even if the old request answers late', async () => {
+      const igdb = source()
+      let answerLate!: () => void
+      igdb.slugs.mockImplementation(
+        (refs: string[]) => new Promise<Map<string, string | null>>((resolve) => (answerLate = () => resolve(new Map(refs.map((ref): [string, string | null] => [ref, 'late'])))))
+      )
+      const list = await gameList(1200)
+      const fill = filler({ runTimeoutMs: 30 })
+
+      fill.start(list.id, igdb.mediaType)
+      await fill.idle(list.id)
+      answerLate()
+      await new Promise((resolve) => setTimeout(resolve, 20))
+
+      expect(igdb.slugs).toHaveBeenCalledTimes(1)
+    })
+
     it('report a failure to whoever listens, and never throw out of the background', async () => {
       const igdb = source({ fail: () => true })
       const list = await gameList(2)

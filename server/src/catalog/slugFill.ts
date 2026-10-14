@@ -21,19 +21,27 @@ import { missingSlugRefs, recordSlugs } from './itemSlugs.js'
 const BATCH_SIZE = 500
 /** How long a list is left alone after a failed or incomplete lookup. */
 const DEFAULT_COOLDOWN_MS = 5 * 60 * 1000
+/**
+ * The longest one run may take. A request that never answers (a stalled connection; the desktop's HTTP plugin has no
+ * timeout of its own) would otherwise leave the list "pending" for ever and the screen polling every few seconds with
+ * it. Ten thousand games are twenty requests, a few seconds at IGDB's pace: this is a deadline for a hang, not a budget.
+ */
+const DEFAULT_RUN_TIMEOUT_MS = 2 * 60 * 1000
 
 export interface SlugFillDeps {
   db: PortableDatabase
   /** Injectable so the cooldown is testable without waiting. */
   now?: () => Date
   cooldownMs?: number
+  /** Injectable so a hung request is testable without waiting two minutes. */
+  runTimeoutMs?: number
   /** Stops the run after the batch in hand. */
   signal?: AbortSignal
   /** Where a failed lookup is reported; it is never thrown out of the background. */
   onError?: (error: unknown) => void
 }
 
-export function createSlugFiller({ db, now = () => new Date(), cooldownMs = DEFAULT_COOLDOWN_MS, signal, onError }: SlugFillDeps) {
+export function createSlugFiller({ db, now = () => new Date(), cooldownMs = DEFAULT_COOLDOWN_MS, runTimeoutMs = DEFAULT_RUN_TIMEOUT_MS, signal, onError }: SlugFillDeps) {
   /** One run per list: asking again while one is going gets that run. */
   const running = new Map<string, Promise<void>>()
   /** Lists left alone until this time (ms). */
@@ -41,11 +49,17 @@ export function createSlugFiller({ db, now = () => new Date(), cooldownMs = DEFA
 
   const cool = (listId: string): void => void coolingUntil.set(listId, now().getTime() + cooldownMs)
 
-  async function run(listId: string, adapter: NonNullable<MediaType['adapter']>, prefixes: readonly string[]): Promise<void> {
+  async function run(
+    listId: string,
+    adapter: NonNullable<MediaType['adapter']>,
+    prefixes: readonly string[],
+    gaveUp: { value: boolean },
+  ): Promise<void> {
     const missing = await missingSlugRefs(db, listId, prefixes)
 
     for (let start = 0; start < missing.length; start += BATCH_SIZE) {
-      if (signal?.aborted) return
+      // A run that was given up on does not start another batch, even if its stalled request answers late.
+      if (signal?.aborted || gaveUp.value) return
 
       const batch = missing.slice(start, start + BATCH_SIZE)
       const answers = await adapter.slugs!(batch)
@@ -83,12 +97,24 @@ export function createSlugFiller({ db, now = () => new Date(), cooldownMs = DEFA
         coolingUntil.delete(listId)
       }
 
-      const job = run(listId, adapter, prefixes)
+      const gaveUp = { value: false }
+      let deadline: ReturnType<typeof setTimeout> | undefined
+      const timedOut = new Promise<never>((_, reject) => {
+        deadline = setTimeout(() => {
+          gaveUp.value = true
+          reject(new Error(`looking up page slugs did not finish in ${runTimeoutMs} ms`))
+        }, runTimeoutMs)
+      })
+
+      const job = Promise.race([run(listId, adapter, prefixes, gaveUp), timedOut])
         .catch((error: unknown) => {
           cool(listId)
           onError?.(error)
         })
-        .finally(() => running.delete(listId))
+        .finally(() => {
+          clearTimeout(deadline)
+          running.delete(listId)
+        })
       running.set(listId, job)
 
       return true
