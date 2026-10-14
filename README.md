@@ -19,11 +19,11 @@ This is what a real list looks like:
 
 ![List screen](app-screen-list.png)
 
-### Was this made by a clanker or a meatbag?
+### Was this made by AI or human?
 
 Both. I'm a Product Manager with 17+ years of PM experience. Over the years, I've worked with engineers to take several products from zero to being used by millions of websites. I've learned many things from working alongside smart people, and I wanted to see what I could build on my own with modern LLM tools -- without any extra meatbags. This is the result. Along the way, I've picked up a lot about different tools and frameworks, and I'm happy with how Listulator turned out so far.
 
-My main tools for building Listulator are Claude Code, Claude Design, and my own experience, not "vibes". I'm using [production-grade SDLC framework](https://skills.addy.ie/) with time-tested TDD approach to make sure the app is stable, works properly and can be updated in the future without coming apart at the seams. The app passed AI-assisted security and code audits plus my own review on its way to the first release, and I've already got some juicy plans for the next versions.
+My main tools for building Listulator are Claude Code, Claude Design, and my own experience, not "vibes". I'm using [production-grade SDLC framework](https://skills.addy.ie/) with time-tested TDD approach to make sure the app is stable, works properly and can be updated in the future without coming apart at the seams. The app passed several AI-assisted security and code audits plus my own review on its way to the first release, and I've already got some juicy plans for the next versions.
 
 If you need a Senior Product Manager that can built stuff 0-to-1 using LLMs, or just want to talk about agentic product building, ping me on [LinkedIn](https://www.linkedin.com/in/akugaevskiy). With that out of the way, let's get back to the app, shall we?
 
