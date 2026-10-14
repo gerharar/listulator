@@ -19,7 +19,7 @@ This is what a real list looks like:
 
 ![List screen](app-screen-list.png)
 
-### Was this made by AI or human?
+### Was this made by AI or a human?
 
 Both. I'm a Product Manager with 17+ years of PM experience. Over the years, I've worked with engineers to take several products from zero to being used by millions of websites. I've learned many things from working alongside smart people, and I wanted to see what I could build on my own with modern LLM tools -- without any extra meatbags. This is the result. Along the way, I've picked up a lot about different tools and frameworks, and I'm happy with how Listulator turned out so far.
 
