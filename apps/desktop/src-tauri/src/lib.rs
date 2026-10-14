@@ -4,6 +4,7 @@ use std::sync::Mutex;
 mod fullscreen;
 mod isolation_csp;
 mod navigation;
+mod window_fit;
 mod window_save;
 
 /// Set at start-up when the window was left in full screen; cleared once re-entered.
@@ -50,6 +51,52 @@ fn save_window_state_soon(app: &tauri::AppHandle) {
       log::warn!("could not save the window state: {error}");
     }
   });
+}
+
+/// The window has been shown and focused once (`fit_window_once` may now run). Before that the plugin is still putting it back.
+#[cfg(desktop)]
+static FIT_STARTED: AtomicBool = AtomicBool::new(false);
+/// The restored window has not been checked against its monitor yet.
+#[cfg(desktop)]
+static FIT_PENDING: AtomicBool = AtomicBool::new(false);
+
+/// Brings the window inside its monitor's usable area, once per run (BL-095): the window-state plugin restores a saved size
+/// without checking it fits, so a window saved on a bigger monitor or at another scale could come back with its bottom under the
+/// taskbar. Waits for the window's normal state: a window restored maximized is checked the first time it is un-maximized, because
+/// that is when the saved size takes effect. The decision is `window_fit::fit`; this only asks the window and applies the answer.
+/// Runs on the main thread (window events do) and calls no plugin; the plugin saves the new size by its own resize handler.
+#[cfg(desktop)]
+fn fit_window_once(window: &tauri::Window) {
+  use tauri::{PhysicalPosition, PhysicalSize};
+
+  if !FIT_PENDING.load(Ordering::SeqCst) {
+    return;
+  }
+  if window.is_maximized().unwrap_or(true) || window.is_fullscreen().unwrap_or(true) || window.is_minimized().unwrap_or(true) {
+    return;
+  }
+  FIT_PENDING.store(false, Ordering::SeqCst);
+
+  let (Ok(position), Ok(outer), Ok(inner), Ok(Some(monitor))) =
+    (window.outer_position(), window.outer_size(), window.inner_size(), window.current_monitor())
+  else {
+    return;
+  };
+  let work = monitor.work_area();
+  let area = window_fit::Rect { x: work.position.x, y: work.position.y, width: work.size.width, height: work.size.height };
+  let now = window_fit::Rect { x: position.x, y: position.y, width: outer.width, height: outer.height };
+
+  if let Some(fit) = window_fit::fit(now, area) {
+    if fit.shrink_width > 0 || fit.shrink_height > 0 {
+      let size = PhysicalSize::new(inner.width.saturating_sub(fit.shrink_width), inner.height.saturating_sub(fit.shrink_height));
+      if let Err(error) = window.set_size(size) {
+        log::warn!("could not fit the window to its monitor: {error}");
+      }
+    }
+    if let Err(error) = window.set_position(PhysicalPosition::new(fit.x, fit.y)) {
+      log::warn!("could not fit the window to its monitor: {error}");
+    }
+  }
 }
 
 #[cfg(desktop)]
@@ -100,11 +147,16 @@ pub fn run() {
       if PENDING_FULLSCREEN.swap(false, Ordering::SeqCst) {
         let _ = window.set_fullscreen(true);
       }
+      if !FIT_STARTED.swap(true, Ordering::SeqCst) {
+        FIT_PENDING.store(true, Ordering::SeqCst);
+      }
+      fit_window_once(window);
     }
     // Entering or leaving full screen resizes the window: record the change, if it is one.
     tauri::WindowEvent::Resized(_) => {
       use tauri::Manager;
 
+      fit_window_once(window);
       save_window_state_soon(window.app_handle());
       let Ok(now) = window.is_fullscreen() else { return };
       if let Some(change) = with_tracker(|tracker| tracker.observe(now)).flatten() {
@@ -118,6 +170,7 @@ pub fn run() {
     tauri::WindowEvent::Moved(_) => {
       use tauri::Manager;
 
+      fit_window_once(window);
       save_window_state_soon(window.app_handle());
     }
     tauri::WindowEvent::CloseRequested { .. } | tauri::WindowEvent::Destroyed => {
