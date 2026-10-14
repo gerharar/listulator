@@ -109,6 +109,37 @@ describe('getJson upstream errors', () => {
     expect((error as Error).message).toBe('Example rejected our credentials (forbidden).')
   })
 
+  // BL-077 (2): the reason is the upstream's text, so it is shown only when it is the short identifier Google documents
+  // (`keyInvalid`, `ipRefererBlocked`), and never with the request's credentials in it.
+  it('does not repeat a 403 reason that is not a short identifier', async () => {
+    for (const reason of [
+      'x'.repeat(41),
+      'API key not valid. Please pass a valid API key.',
+      'see https://example.test/?key=abc',
+      'line\nbreak',
+      '',
+      '<script>alert(1)</script>',
+    ]) {
+      const error = await failure(google403(reason))
+
+      expect(error).toBeInstanceOf(UnauthorizedError)
+      expect((error as Error).message, reason).toBe('Example rejected our credentials.')
+    }
+  })
+
+  it('keeps the credentials out of a 403 reason, even one that looks like an identifier', async () => {
+    const key = 'AIzaSyD4hQ8vL2pZ0xKq9mWnR7tUeB1cJfGhY3o'
+    const fetchImpl: FetchLike = async () =>
+      new Response(JSON.stringify({ error: { errors: [{ reason: key }] } }), { status: 403 })
+    const error = await getJson(`https://example.test/x?key=${key}`, { source: 'Example', fetchImpl }).then(
+      () => undefined,
+      (cause: unknown) => cause,
+    )
+
+    expect(error).toBeInstanceOf(UnauthorizedError)
+    expect((error as Error).message).not.toContain(key)
+  })
+
   it('leaves a 403 that is not shaped like Google’s as it was', async () => {
     for (const body of [
       '{}',

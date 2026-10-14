@@ -318,6 +318,19 @@ function withoutCredentials(text: string, credentials: readonly string[]): strin
     .replace(/\bBearer\s+[A-Za-z0-9._~+/=-]+/gi, `Bearer ${REDACTED}`)
 }
 
+/** What Google documents a `reason` to be: a short identifier (`keyInvalid`, `ipRefererBlocked`). */
+const REASON_SHAPE = /^[A-Za-z][A-Za-z0-9_]{0,39}$/
+
+/**
+ * A `reason` the 403 message may repeat: an identifier short enough to be one, with the request's credentials taken out.
+ * Anything else is the upstream's own text (BL-077), which this message does not carry; `undefined` leaves it out.
+ */
+function shownReason(reason: string, credentials: readonly string[]): string | undefined {
+  const clean = withoutCredentials(reason, credentials)
+
+  return REASON_SHAPE.test(clean) ? clean : undefined
+}
+
 /** Throws the error a failing status stands for; returns for a success. */
 async function refuseFailure(response: Response, source: string, credentials: readonly string[]): Promise<void> {
   if (response.status === 429) {
@@ -341,7 +354,9 @@ async function refuseFailure(response: Response, source: string, credentials: re
       throw new UpstreamError(`${source} is rate-limiting us. Try again in a moment.`, 429)
     }
 
-    throw new UnauthorizedError(`${source} rejected our credentials${reason ? ` (${reason})` : ''}.`)
+    const shown = reason === undefined ? undefined : shownReason(reason, credentials)
+
+    throw new UnauthorizedError(`${source} rejected our credentials${shown ? ` (${shown})` : ''}.`)
   }
 
   if (response.status === 401) {

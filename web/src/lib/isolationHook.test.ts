@@ -505,6 +505,19 @@ describe('the SQL text (SR-002; probe P3b: ATTACH reaches any database file)', (
       [`${word} inside an insert`, `INSERT INTO t SELECT 1 ${word}`],
       [`${word} after a comment inside a statement`, `SELECT 1 /* x */ ${word} -- y\n`],
     ]),
+    // SQLite reads a quoted name followed by `(` as a call (`"abs"(-1)`, `` `abs`(-1) `` and `[abs](-1)` all run; BL-077), so a
+    // quoted forbidden word that is called is the function, however it is spelled. (A single-quoted string is a syntax error there.)
+    ...['load_extension', 'fts3_tokenizer'].flatMap((word): [string, string][] => [
+      [`${word} in double quotes, called`, `SELECT "${word}"('x')`],
+      [`${word} in backticks, called`, `SELECT \`${word}\`('x')`],
+      [`${word} in brackets, called`, `SELECT [${word}]('x')`],
+      [`${word} quoted, upper case, called`, `SELECT "${word.toUpperCase()}"('x')`],
+      [`${word} quoted, a comment before the bracket`, `SELECT "${word}" /* x */ ('x')`],
+      [`${word} quoted, a line comment before the bracket`, `SELECT "${word}" -- x\n('x')`],
+      [`${word} quoted, called inside a CTE`, `WITH t AS (SELECT "${word}"('x')) SELECT * FROM t`],
+    ]),
+    ['attach, quoted and called', `SELECT "attach"('x')`],
+    ['vacuum, quoted and called', `SELECT [vacuum]('x')`],
   ]
 
   it.each(hostile)('refuses %s', (_name, query) => {
@@ -590,6 +603,11 @@ describe('the SQL text (SR-002; probe P3b: ATTACH reaches any database file)', (
       'SELECT 1 /* ATTACH x */',
       'SELECT 1 -- VACUUM INTO x',
       "UPDATE list_items SET title = 'PRAGMA writable_schema' WHERE id = $1",
+      // A quoted forbidden word is a name unless it is called: a column, or a name followed by something else than `(`.
+      'SELECT "load_extension", "fts3_tokenizer" FROM lists',
+      'SELECT "attach" + 1 FROM lists WHERE 1 IN ("attach")',
+      'SELECT abs("load_extension") FROM lists',
+      "SELECT 'load_extension'",
     ]) {
       expect(passes(sql('execute', query)), query).toBe(true)
     }

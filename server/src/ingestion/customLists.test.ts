@@ -807,6 +807,18 @@ describe('parseCustomList refuses what would corrupt or freeze a list', () => {
       ['a word joiner', '\\u2060', /invisible/],
       ['a byte-order mark', '\\uFEFF', /invisible/],
       ['a soft hyphen', '\\u00AD', /invisible/],
+      // BL-077 (3): characters that draw nothing, so two titles can look the same.
+      ['a Hangul choseong filler', '\\u115F', /invisible/],
+      ['a Hangul jungseong filler', '\\u1160', /invisible/],
+      ['a Hangul filler', '\\u3164', /invisible/],
+      ['a halfwidth Hangul filler', '\\uFFA0', /invisible/],
+      ['a combining grapheme joiner', '\\u034F', /invisible/],
+      ['a function application mark', '\\u2061', /invisible/],
+      ['an invisible times', '\\u2062', /invisible/],
+      ['an invisible separator', '\\u2063', /invisible/],
+      ['an invisible plus', '\\u2064', /invisible/],
+      ['a tag letter', '\\U000E0041', /invisible/],
+      ['a tag cancel', '\\U000E007F', /invisible/],
     ]
 
     it.each(hazards)('refuses %s in an item’s title, group, tag and in the list’s title', (_name, escape, expected) => {
@@ -892,6 +904,8 @@ describe('the library fetch is bounded', () => {
       ['a title with a NUL', entry(1, { title: 'a\u0000b' })],
       ['a title with a line break', entry(1, { title: 'a\nb' })],
       ['a description with a zero-width space', entry(1, { description: 'Fa\u200Bke' })],
+      ['a title with a Hangul filler', entry(1, { title: 'Fa\u3164ke' })],
+      ['a title with a tag character', entry(1, { title: 'Fa\u{E0041}ke' })],
       ['an item count that is not a whole number', entry(1, { itemCount: 1.5 })],
       ['an item count beyond what a list may hold', entry(1, { itemCount: 10_001 })],
     ])('refuses an entry with %s', async (_name, bad) => {

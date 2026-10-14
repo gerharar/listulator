@@ -85,6 +85,9 @@
     var tokens = []
     var length = query.length
     var at = 0
+    // The text of the quoted name just read, lower case, until something other than blank space or a comment follows it:
+    // SQLite reads a quoted name followed by `(` as a call (`"load_extension"(...)`, as `[...]` and backticks do).
+    var quotedName = null
     while (at < length) {
       var c = query.charAt(at)
       var next = query.charAt(at + 1)
@@ -108,16 +111,21 @@
           else break
         }
         tokens.push(c === "'" ? '<string>' : '<name>')
+        quotedName = c === "'" ? null : query.slice(at + 1, end).toLowerCase()
         at = end + 1
       } else if (c === '[') {
         end = query.indexOf(']', at + 1)
         if (end < 0) return 'unterminated name'
         tokens.push('<name>')
+        quotedName = query.slice(at + 1, end).toLowerCase()
         at = end + 1
       } else if (c === ';') {
         tokens.push(';')
+        quotedName = null
         at += 1
       } else {
+        var calledName = quotedName
+        quotedName = null
         WORD.lastIndex = at
         var word = WORD.exec(query)
         if (word) {
@@ -146,6 +154,7 @@
         // reads differently from this reader, and `\`, `^`, `{`, `}`, a stray `]`, a lone `$` are not SQL. A character this
         // reader would only skip is a character it could be wrong about, so it is refused.
         if (PUNCTUATION.indexOf(c) < 0) return 'character the reader does not know'
+        if (c === '(' && calledName !== null && FORBIDDEN_WORDS.indexOf(calledName) >= 0) return 'forbidden word'
         at += 1
       }
     }
