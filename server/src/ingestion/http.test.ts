@@ -128,7 +128,9 @@ describe('getJson upstream errors', () => {
   })
 
   it('keeps the credentials out of a 403 reason, even one that looks like an identifier', async () => {
-    const key = 'AIzaSyD4hQ8vL2pZ0xKq9mWnR7tUeB1cJfGhY3o'
+    // Made up, and not shaped like any provider's key (a key-shaped string trips secret scanning), but a valid identifier, so
+    // only the redaction keeps it out of the message.
+    const key = 'dummyCredential0123456789'
     const fetchImpl: FetchLike = async () =>
       new Response(JSON.stringify({ error: { errors: [{ reason: key }] } }), { status: 403 })
     const error = await getJson(`https://example.test/x?key=${key}`, { source: 'Example', fetchImpl }).then(
