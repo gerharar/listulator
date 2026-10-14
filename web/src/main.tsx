@@ -23,6 +23,7 @@ import { App } from './App.js'
 import { startLocalRuntimeFill, startLocalSourceCopySchedule } from './lib/api.local.js'
 import { installContextMenuGuard } from './lib/contextMenu.js'
 import { keepIsolationFrameAwake } from './lib/isolationFrame.js'
+import { traceStartAfterUpdate } from './lib/updateTrace.js'
 import { AppErrorBoundary } from './components/quantum/AppErrorBoundary/AppErrorBoundary.js'
 
 installContextMenuGuard()
@@ -31,6 +32,8 @@ installContextMenuGuard()
 if ('__TAURI_INTERNALS__' in window) {
   // Before the first call to the backend can be queued behind a throttled frame (isolationFrame.ts).
   keepIsolationFrameAwake()
+  // BL-092, temporary: at the first start of a new version, marks how long it took to come up (remove with `lib/updateTrace.ts`).
+  void traceStartAfterUpdate()
   startLocalSourceCopySchedule()
   // Lists left with lengths still to look up when the app was last open are picked up where they were (15.6).
   void startLocalRuntimeFill()

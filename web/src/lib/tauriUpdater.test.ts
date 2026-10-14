@@ -3,6 +3,18 @@ import type { UpdatePhase } from './appUpdate.js'
 import { loadIsolationHook, type IpcMessage } from './isolationHook.testing.js'
 import { createTauriChecker } from './tauriUpdater.js'
 
+/** The trace (BL-092) writes through the preferences store; here it only reports which marks were asked for. */
+const traced = vi.hoisted(() => [] as string[])
+vi.mock('./updateTrace.js', () => ({
+  createUpdateTrace: () => ({
+    record: (step: string) => {
+      traced.push(step)
+
+      return Promise.resolve()
+    },
+  }),
+}))
+
 /**
  * The updater client against a stand-in for the Tauri bridge (task 20.11). Every call it makes is also sent through
  * the real isolation hook (`apps/desktop/isolation/hook.js`) the way the isolation frame would see it, so the client
@@ -23,6 +35,7 @@ let callbacks: Map<number, (message: unknown) => void>
 let reply: Reply
 
 beforeEach(() => {
+  traced.length = 0
   sent = []
   callbacks = new Map()
   reply = () => undefined
@@ -198,6 +211,92 @@ describe('download', () => {
     reply = (cmd) => (cmd === 'relaunch' ? Promise.reject('no') : null)
 
     await expect(checker.download?.('1.1.0', () => undefined)).rejects.toBeDefined()
+  })
+})
+
+describe('the update trace (BL-092)', () => {
+  async function offered(relaunchAfterInstall: boolean) {
+    reply = (cmd) => (cmd === 'plugin:updater|check' ? found : null)
+    const checker = createTauriChecker({ relaunchAfterInstall })
+    await checker.check()
+    sent.length = 0
+
+    return checker
+  }
+
+  it('marks the press, the start, the last tenth, the end of the download and the return of the install, in that order', async () => {
+    const checker = await offered(false)
+    reply = async (cmd) => {
+      if (cmd === 'plugin:updater|download_and_install') {
+        emit({ event: 'Started', data: { contentLength: 100 } })
+        emit({ event: 'Progress', data: { chunkLength: 50 } }, 1)
+        emit({ event: 'Progress', data: { chunkLength: 45 } }, 2)
+        emit({ event: 'Progress', data: { chunkLength: 5 } }, 3)
+        emit({ event: 'Finished' }, 4)
+      }
+
+      return null
+    }
+
+    await checker.download?.('1.1.0', () => undefined)
+
+    expect(traced).toEqual(['pressed', 'download-started', 'download-90%', 'download-finished', 'install-returned'])
+  })
+
+  it('marks the relaunch where the app relaunches itself (macOS)', async () => {
+    const checker = await offered(true)
+
+    await checker.download?.('1.1.0', () => undefined)
+
+    expect(traced.slice(-2)).toEqual(['install-returned', 'relaunch-called'])
+  })
+
+  it('marks the 90% point once, however many chunks follow it', async () => {
+    const checker = await offered(false)
+    reply = async (cmd) => {
+      if (cmd === 'plugin:updater|download_and_install') {
+        emit({ event: 'Started', data: { contentLength: 10 } })
+        for (let i = 1; i <= 10; i += 1) emit({ event: 'Progress', data: { chunkLength: 1 } }, i)
+        emit({ event: 'Finished' }, 11)
+      }
+
+      return null
+    }
+
+    await checker.download?.('1.1.0', () => undefined)
+
+    expect(traced.filter((step) => step === 'download-90%')).toHaveLength(1)
+  })
+
+  it('copes with a progress event that carries no data, and a download of unknown length', async () => {
+    const checker = await offered(false)
+    reply = async (cmd) => {
+      if (cmd === 'plugin:updater|download_and_install') {
+        emit({ event: 'Started' })
+        emit({ event: 'Progress' }, 1)
+        emit({ event: 'Finished' }, 2)
+      }
+
+      return null
+    }
+
+    await expect(checker.download?.('1.1.0', () => undefined)).resolves.toBeUndefined()
+    expect(traced).toEqual(['pressed', 'download-started', 'download-finished', 'install-returned'])
+  })
+
+  it('marks nothing for a download it refuses', async () => {
+    const checker = createTauriChecker({ relaunchAfterInstall: true })
+
+    await expect(checker.download?.('1.1.0', () => undefined)).rejects.toThrow()
+    expect(traced).toEqual([])
+  })
+
+  it('does not mark the return of an install that failed', async () => {
+    const checker = await offered(false)
+    reply = () => Promise.reject('signature verification failed')
+
+    await expect(checker.download?.('1.1.0', () => undefined)).rejects.toBeDefined()
+    expect(traced).toEqual(['pressed'])
   })
 })
 

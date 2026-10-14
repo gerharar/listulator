@@ -12,6 +12,8 @@ import { load, type Store } from '@tauri-apps/plugin-store'
 export interface PreferencesStore {
   get(key: string): Promise<string | undefined>
   set(key: string, value: string): Promise<void>
+  /** Writes what is pending to disk now (the desktop store autosaves a moment after a `set`). Absent where there is nothing to flush. */
+  flush?(): Promise<void>
 }
 
 /**
@@ -58,6 +60,10 @@ function createDesktopPreferencesStore(): PreferencesStore {
     async set(key, value) {
       const store = await getDesktopStore()
       await store.set(key, value)
+    },
+    async flush() {
+      const store = await getDesktopStore()
+      await store.save()
     },
   }
 }

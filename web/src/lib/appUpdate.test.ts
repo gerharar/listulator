@@ -3,6 +3,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { APP_VERSION } from './appVersion.js'
 import { appUpdateChecker, devChecker, unavailableChecker, type UpdatePhase } from './appUpdate.js'
 
+// The update trace (BL-092) writes through the preferences store; these tests are about the commands the checker sends.
+vi.mock('./updateTrace.js', () => ({ createUpdateTrace: () => ({ record: () => Promise.resolve() }) }))
+
 beforeEach(() => {
   vi.useFakeTimers()
 })
