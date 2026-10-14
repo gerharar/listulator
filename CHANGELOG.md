@@ -2,6 +2,13 @@
 
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and version numbers follow [Semantic Versioning](https://semver.org/).
 
+## [1.0.2] - 14 October 2026
+
+### Fixes
+- Listulator update on Windows should now show update progress in Windows instead of nothing
+- If Listulator detects that its screen goes beyond usable monitor area upon launching, it resizes itself to properly fit the usable area
+
+
 ## [1.0.1] - 14 October 2026
 
 ### Fixes
