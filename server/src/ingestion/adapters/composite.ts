@@ -83,6 +83,15 @@ export function createCompositeAdapter(sources: readonly CompositeSource[]): Sea
         : expansion
     },
 
+    // An item's page: the first source that has one. Every source, not only the usable ones: a link needs no key.
+    itemUrl(item, listExternalRef) {
+      for (const source of sources) {
+        const url = source.adapter.itemUrl?.(item, listExternalRef)
+        if (url) return url
+      }
+      return undefined
+    },
+
     // What a runner finds pending: the kinds of ref an available source claims and can enrich.
     get enrichPrefixes() {
       return [

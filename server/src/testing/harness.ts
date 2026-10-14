@@ -25,6 +25,8 @@ export interface TestAppOptions extends Partial<ServerConfig> {
   listsDropDir?: string
   /** Fake the clock, the waits and the pacing of the background lookup of lengths. */
   runtimeFill?: AppDependencies['runtimeFill']
+  /** Fake the clock and the cooldown of the background lookup of page slugs. */
+  slugFill?: AppDependencies['slugFill']
 }
 
 /**
@@ -36,6 +38,7 @@ export function createTestApp({
   strategiesDir,
   listsDropDir,
   runtimeFill,
+  slugFill,
   ...overrides
 }: TestAppOptions = {}): TestApp {
   const directory = mkdtempSync(join(tmpdir(), 'listulator-test-'))
@@ -54,6 +57,7 @@ export function createTestApp({
     ...(strategiesDir ? { strategiesDir } : {}),
     ...(listsDropDir ? { listsDropDir } : {}),
     ...(runtimeFill ? { runtimeFill } : {}),
+    ...(slugFill ? { slugFill } : {}),
   })
 
   return {

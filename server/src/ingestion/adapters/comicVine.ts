@@ -3,6 +3,7 @@ import { delay, getJson, IngestionError, UnauthorizedError, withRetries, type Fe
 import { createRateLimiter, type RateLimiter } from '../rateLimiter.js'
 import type { ListSource, MediaTypeCandidate, SearchAdapter, SearchOptions, SearchPage } from '../mediaTypes.js'
 import { itemsOnly } from '../expansion.js'
+import { comicVineIssueUrl } from '../itemPages.js'
 
 /**
  * Comic Vine: search a volume, expand to its issues.
@@ -226,6 +227,7 @@ export function createComicVineAdapter(
 
   return {
     isAvailable: () => Boolean(resolve().apiKey),
+    itemUrl: comicVineIssueUrl,
 
     searchPage,
 

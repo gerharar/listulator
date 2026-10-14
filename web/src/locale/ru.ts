@@ -646,6 +646,8 @@ export const ru: Locale = {
         groupDeleteConfirm: 'Удалить',
         groupRemovedWithItems: (name: string, n: number): string => `Группа ${name} удалена вместе с элементами: ${n}`,
         edit: (title: string): string => `Изменить: ${title}`,
+        openOnSource: (title: string, source: string): string => `Открыть на ${source}: ${title}`,
+        openOnSourceTip: (source: string): string => `Открыть на ${source}`,
         remove: (title: string): string => `Удалить: ${title}`,
         infoKicker: 'Подробности',
         estimated: 'Длительность на глаз',

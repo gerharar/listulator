@@ -4,6 +4,7 @@ import { createRateLimiter, type RateLimiter } from '../rateLimiter.js'
 import { ListTooLargeError } from '../expandSource.js'
 import type { ListSource, MediaTypeCandidate, SearchAdapter, SearchOptions, SearchPage } from '../mediaTypes.js'
 import { itemsOnly } from '../expansion.js'
+import { musicBrainzReleaseGroupUrl } from '../itemPages.js'
 
 /**
  * MusicBrainz: search an artist, expand to their discography.
@@ -253,6 +254,7 @@ export function createMusicBrainzAdapter(
   return {
     // Needs no credentials, so it is always usable.
     isAvailable: () => true,
+    itemUrl: musicBrainzReleaseGroupUrl,
 
     // The search a page at a time (BL-063): up to twenty artists a page, with how many match. Always the same page
     // size, since a page of ten and a page of twenty are not slices of one order (checked live); the order is

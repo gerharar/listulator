@@ -11,6 +11,7 @@ import { notifyListsChanged } from '../../lib/listsChanged.js'
 import { saveLastOpened } from '../../lib/lastOpened.js'
 import { usePolling } from '../../lib/usePolling.js'
 import { countRuntimesPending, mergeArrivedRuntimes } from './runtimePending.js'
+import { countLinksPending, mergeArrivedLinks } from './linkPending.js'
 import { getPreferencesStore } from '../../lib/preferences/store.js'
 import { categoryLabel, copy, joinSentences } from '../../locale/index.js'
 import { Banner } from '../../components/quantum/Banner/Banner.js'
@@ -398,14 +399,16 @@ function ListView({
       ...items.map((entry) => (entry.runtimePending ? pendingMark : formatDuration(entry.timeToConsumeMinutes)).length),
     ) + 1
 
-  // While some lengths are still being looked up, read the list again every few seconds and take only the
-  // lengths that arrived: a re-read never replaces what the screen holds (a drag, an edit, an order).
+  // While some lengths, or some links (H-002: a page slug looked up in the background), are still on their way,
+  // read the list again every few seconds and take only what arrived: a re-read never replaces what the screen
+  // holds (a drag, an edit, an order).
   const runtimesPending = useMemo(() => countRuntimesPending(items), [items])
+  const linksPending = useMemo(() => countLinksPending(items), [items])
   usePolling(
-    runtimesPending > 0,
+    runtimesPending > 0 || linksPending > 0,
     async () => {
       const fresh = await api.list(listId)
-      setItems((current) => mergeArrivedRuntimes(current, fresh.items))
+      setItems((current) => mergeArrivedLinks(mergeArrivedRuntimes(current, fresh.items), fresh.items))
     },
     RUNTIME_POLL_MS,
   )

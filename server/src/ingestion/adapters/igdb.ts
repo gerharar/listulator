@@ -1,6 +1,7 @@
 import { delay, getJson, UnauthorizedError, withRetries, type FetchLike } from '../http.js'
 import type { ListSource, MediaTypeCandidate, SearchAdapter } from '../mediaTypes.js'
 import { itemsOnly } from '../expansion.js'
+import { igdbGameUrl } from '../itemPages.js'
 import { MAX_LIST_ITEMS } from '../../catalog/limits.js'
 import { createPacer, type RateLimiter } from '../rateLimiter.js'
 import { MAX_ITEM_TAGS } from '../../catalog/facets.js'
@@ -367,6 +368,35 @@ export function createIgdbAdapter(
       const { clientId, clientSecret } = resolve()
 
       return Boolean(clientId && clientSecret)
+    },
+
+    itemUrl: igdbGameUrl,
+    slugPrefixes: ['game'],
+
+    /**
+     * The page slug of each game (H-002), one request for up to IGDB's ceiling of games, through the same pacer as
+     * every other request. A game IGDB answers no row for is `null`, a definitive answer; a failed request throws.
+     */
+    async slugs(refs) {
+      const ids = new Map<number, string>()
+      for (const ref of refs) {
+        const id = /^game:(\d+)$/.exec(ref)?.[1]
+        if (id) ids.set(Number(id), ref)
+      }
+
+      const found = new Map<string, string | null>()
+      const all = [...ids.keys()]
+      for (let start = 0; start < all.length; start += PAGE_SIZE) {
+        const batch = all.slice(start, start + PAGE_SIZE)
+        const rows = await query<{ id: number; slug?: string }>(
+          'games',
+          `fields id,slug; where id = (${batch.join(',')}); limit ${PAGE_SIZE};`,
+        )
+        const slugs = new Map(rows.map((row) => [row.id, row.slug]))
+        for (const id of batch) found.set(ids.get(id)!, slugs.get(id) ?? null)
+      }
+
+      return found
     },
 
     async search(rawQuery) {

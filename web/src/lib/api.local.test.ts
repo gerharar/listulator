@@ -512,6 +512,51 @@ describe('the desktop builds a list at once and fills its lengths afterwards (15
       return { ...started, list }
     }
 
+    it('gives each imported item its link from the category’s adapter, as the server does (H-002)', async () => {
+      const source = filmSource()
+      source.adapter.itemUrl = (item, listExternalRef) => (item.externalRef ? `https://example.org/${listExternalRef}/${item.externalRef}` : undefined)
+      const started = await start(source)
+      const database = await started.db.createLocalDb()
+      const owner = (await started.user.getLocalCurrentUser(database)).id
+      const list = await started.repository.createList(database, owner, { title: 'Films', mediaType: 'movie', source: 'api', externalRef: 'first' })
+      await started.repository.createListItem(database, owner, list.id, { title: 'Imported', timeToConsumeMinutes: 90, externalRef: 'film:1', source: 'import' })
+      await started.repository.createListItem(database, owner, list.id, { title: 'By hand', timeToConsumeMinutes: 90, externalRef: 'film:2', source: 'manual' })
+      await started.repository.createListItem(database, owner, list.id, { title: 'No ref', timeToConsumeMinutes: 90, source: 'import' })
+
+      expect((await started.api.list(list.id)).items.map((item) => [item.title, item.link])).toEqual([
+        ['Imported', { url: 'https://example.org/first/film:1', source: 'Fake' }],
+        ['By hand', null],
+        ['No ref', null],
+      ])
+    })
+
+    it('looks up the page slugs a category’s links need in the background, and says the links are coming (H-002, IGDB)', async () => {
+      const source = filmSource()
+      const slugs = vi.fn(async (refs: string[]) => new Map(refs.map((ref): [string, string | null] => [ref, `slug-${ref.slice(5)}`])))
+      source.adapter.slugPrefixes = ['film']
+      source.adapter.slugs = slugs
+      source.adapter.itemUrl = (item) => (item.slug ? `https://example.org/games/${item.slug}` : undefined)
+      const started = await start(source)
+      const database = await started.db.createLocalDb()
+      const owner = (await started.user.getLocalCurrentUser(database)).id
+      const list = await started.repository.createList(database, owner, { title: 'Games', mediaType: 'movie', source: 'api', externalRef: 'first' })
+      for (const n of [1, 2]) {
+        await started.repository.createListItem(database, owner, list.id, { title: `Game ${n}`, timeToConsumeMinutes: 90, externalRef: `film:${n}`, source: 'import' })
+      }
+
+      const first = await started.api.list(list.id)
+      expect(first.items.map((item) => [item.link, item.linkPending])).toEqual([[null, true], [null, true]])
+
+      await (await started.local.getLocalSlugFiller()).idle(list.id)
+
+      const second = await started.api.list(list.id)
+      expect(second.items.map((item) => [item.link?.url, item.linkPending])).toEqual([
+        ['https://example.org/games/slug-1', undefined],
+        ['https://example.org/games/slug-2', undefined],
+      ])
+      expect(slugs).toHaveBeenCalledTimes(1)
+    })
+
     it('shows how many lengths each list is still waiting for', async () => {
       const { api, list } = await builtEarlier(filmSource())
 

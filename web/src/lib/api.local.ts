@@ -34,6 +34,8 @@ import {
 import { createListItems, discardList, itemFromFile, itemFromSource } from '../../../server/src/catalog/bulkItems.js'
 import { MAX_LIST_ITEMS } from '../../../server/src/catalog/limits.js'
 import { knownRuntimes, withKnownRuntimes, withRuntimePending } from '../../../server/src/catalog/runtimes.js'
+import { withLinks } from '../../../server/src/catalog/itemLinks.js'
+import { createSlugFiller, type SlugFiller } from '../../../server/src/catalog/slugFill.js'
 import {
   createRuntimeFiller,
   enrichPrefixesByMediaType,
@@ -313,6 +315,20 @@ export function getLocalRuntimeFiller(): Promise<RuntimeFiller> {
   return runtimeFiller
 }
 
+let slugFiller: Promise<SlugFiller> | undefined
+
+/**
+ * The one runner that looks up the page slugs a category's item links need (H-002, IGDB; the server's is
+ * `app.slugFiller`): the local database, stopped when the window goes. Started by opening a list, never at launch.
+ */
+export function getLocalSlugFiller(): Promise<SlugFiller> {
+  slugFiller ??= createLocalDb().then((db) =>
+    createSlugFiller({ db, signal: stopRuntimeFill.signal, onError: (error) => console.error('looking up page links failed:', error) }),
+  )
+
+  return slugFiller
+}
+
 /**
  * At launch, picks up every list whose lengths were not all looked up when the app was last open: the
  * pending state is in the database, so this resumes whatever was cut off. Resolves when that is done;
@@ -423,17 +439,25 @@ export function createLocalApi(): ApiClient {
       if (!list) throw notFound()
 
       // Each item says whether its length is still being looked up, so the screen can show "-" (15.7).
-      const items = await withRuntimePending(
-        database,
-        id,
-        (await findListItems(database, userId, id)) ?? [],
-        new Date(),
-        enrichPrefixesByMediaType(await getLocalMediaTypes()).get(list.mediaType),
-      )
+      const mediaTypes = await getLocalMediaTypes()
+      const items = await withLinks({
+        db: database,
+        filler: await getLocalSlugFiller(),
+        listId: id,
+        mediaType: mediaTypes.find((type) => type.key === list.mediaType),
+        listExternalRef: list.externalRef,
+        items: await withRuntimePending(
+          database,
+          id,
+          (await findListItems(database, userId, id)) ?? [],
+          new Date(),
+          enrichPrefixesByMediaType(mediaTypes).get(list.mediaType),
+        ),
+      })
       const groups = (await findListGroups(database, userId, id)) ?? []
       const detail = {
         ...toMediaList(list),
-        items: items.map((item) => ({ ...toListItem(item), runtimePending: item.runtimePending })),
+        items: items.map((item) => ({ ...toListItem(item), runtimePending: item.runtimePending, link: item.link, ...(item.linkPending ? { linkPending: true } : {}) })),
         groups: groups.map(toListGroup),
       } satisfies MediaListDetail
 

@@ -73,6 +73,16 @@ export interface ListItem {
    * the row shows "-" until the real one arrives. Only on a list's own read; absent means not pending.
    */
   runtimePending?: boolean
+  /**
+   * Its page at the source (H-002, BL-087), for the ↗ on the row; `source` is the name the tooltip uses ("TMDB").
+   * Null: it has none. Only on a list's own read, like `runtimePending`; absent means not asked.
+   */
+  link?: { url: string; source: string } | null
+  /**
+   * Its link needs a page slug that is still being looked up in the background (IGDB): the screen reads the list
+   * again until it is gone. Only ever `true`, and only on a list's own read.
+   */
+  linkPending?: boolean
 }
 
 /** A group of a list, as a row of its own (D3, task 10.16): an empty one can exist. */

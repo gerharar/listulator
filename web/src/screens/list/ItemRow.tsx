@@ -1,6 +1,6 @@
 import './Spine.css'
-import type { KeyboardEvent, MouseEvent, PointerEvent } from 'react'
-import { Info, Pencil, Plus, Trash2 } from 'lucide-react'
+import type { AnchorHTMLAttributes, KeyboardEvent, MouseEvent, PointerEvent } from 'react'
+import { ArrowUpRight, Info, Pencil, Plus, Trash2 } from 'lucide-react'
 import { formatDuration } from '../../formatDuration.js'
 import { copy } from '../../locale/index.js'
 import type { ListItem } from '../../lib/api.js'
@@ -10,6 +10,8 @@ import { KindTag, ManualMark, NewBadge } from '../../components/quantum/Marks/Ma
 import type { TagChip } from '../../../../server/src/catalog/facets.js'
 import { PlatformChip } from '../../components/quantum/PlatformChip/PlatformChip.js'
 import { Tip } from '../../components/quantum/Tooltip/Tip.js'
+import { useTooltip } from '../../components/quantum/Tooltip/useTooltip.js'
+import { ExternalLink } from '../../components/quantum/ExternalLink/ExternalLink.js'
 
 export interface ItemRowProps {
   item: ListItem
@@ -52,6 +54,30 @@ export interface ItemRowProps {
    * all-manual list the header's hand already says it, and a hand on every row is noise (11.9).
    */
   showManual?: boolean
+}
+
+/**
+ * The ↗ after the pencil (H-002, BL-087): the item's page at its source, in the system browser on desktop. A link and
+ * not a button, so it can be opened in a tab, copied and read out as one. It must not also toggle the row it sits in.
+ */
+function SourceLink({ url, source, title }: { url: string; source: string; title: string }) {
+  const text = copy.quantum.list.itemActions
+  const tip = useTooltip(text.openOnSourceTip(source))
+  const own: AnchorHTMLAttributes<HTMLAnchorElement> & { href: string } = {
+    href: url,
+    className: 'q-icon-btn row link',
+    'aria-label': text.openOnSource(title, source),
+    onClick: (event: MouseEvent<HTMLAnchorElement>) => event.stopPropagation(),
+  }
+
+  return (
+    <>
+      <ExternalLink {...tip.props(own)}>
+        <ArrowUpRight width={15} height={15} strokeWidth={1.8} aria-hidden="true" />
+      </ExternalLink>
+      {tip.node}
+    </>
+  )
 }
 
 /**
@@ -168,6 +194,7 @@ export function ItemRow({
         <IconButton size="row" className="edit" label={text.edit(item.title)} onClick={act(onEdit)}>
           <Pencil width={15} height={15} strokeWidth={1.8} aria-hidden="true" />
         </IconButton>
+        {item.link && <SourceLink url={item.link.url} source={item.link.source} title={item.title} />}
       </span>
       {item.isNew && <NewBadge />}
       <span className="spacer" />

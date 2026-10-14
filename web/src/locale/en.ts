@@ -729,6 +729,9 @@ export const en = {
         groupDeleteConfirm: 'Delete',
         groupRemovedWithItems: (name: string, n: number): string => `Deleted group ${name} with ${n} ${selectPlural(n, 'en', { one: 'item', other: 'items' })}`,
         edit: (title: string): string => `Edit ${title}`,
+        /** The ↗ on a row (H-002): its page at the source; `source` is a name (TMDB), the same in every language. */
+        openOnSource: (title: string, source: string): string => `Open ${title} on ${source}`,
+        openOnSourceTip: (source: string): string => `Open on ${source}`,
         remove: (title: string): string => `Delete ${title}`,
         infoKicker: 'Details',
         estimated: 'This runtime is a rough estimate',

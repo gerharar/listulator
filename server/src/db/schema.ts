@@ -318,6 +318,21 @@ export const itemRuntimes = sqliteTable(
 )
 
 /**
+ * The page slug a source gives an item (H-002, BL-087), looked up in the background and cached by the item's source
+ * ref, as `item_runtimes` does for lengths. IGDB's pages are `/games/<slug>`, and an item stores only `game:<id>`.
+ *
+ * `slug` null is a definitive "asked, and the source has none", kept so the question is not asked at every opening.
+ * No expiry: unlike a length, a slug is not content the source limits keeping (IGDB has no copy limit here), and a
+ * stale one costs a link that opens a "not found" page, which a re-lookup mends. Not `user_id`-scoped, for the same
+ * reason as `item_runtimes`: a public fact about the source's item, never served over the API.
+ */
+export const itemSlugs = sqliteTable('item_slugs', {
+  ref: text('ref').primaryKey(),
+  slug: text('slug'),
+  fetchedAt: integer('fetched_at', { mode: 'timestamp_ms' }).notNull(),
+})
+
+/**
  * Items the user deleted, so a refresh does not keep offering them back.
  *
  * Import filtering is deliberately imperfect (SPEC.md §5) on the promise that

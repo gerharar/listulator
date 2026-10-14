@@ -638,6 +638,8 @@ export const de: Locale = {
         groupDeleteConfirm: 'Löschen',
         groupRemovedWithItems: (name: string, n: number): string => `Gruppe ${name} und ${entries(n)} entfernt`,
         edit: (title: string): string => `${title} bearbeiten`,
+        openOnSource: (title: string, source: string): string => `${title} auf ${source} öffnen`,
+        openOnSourceTip: (source: string): string => `Auf ${source} öffnen`,
         remove: (title: string): string => `${title} entfernen`,
         infoKicker: 'Details',
         estimated: 'Diese Laufzeit ist eine grobe Schätzung',

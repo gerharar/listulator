@@ -983,3 +983,74 @@ describe('IGDB counts a DLC with no time-to-beat as 4 hours, not a whole game (o
   })
 })
 
+describe('IGDB page slugs (H-002, BL-087)', () => {
+  const ids = (n: number, from = 1) => Array.from({ length: n }, (_, index) => from + index)
+
+  /** A fetch that answers a `games` query with a slug for every id asked, except the ids in `missing`. */
+  function slugRouter(missing: number[] = []) {
+    const asked: string[] = []
+    const fetchImpl: FetchLike = vi.fn(async (url: string, init) => {
+      if (url.startsWith('https://id.twitch.tv')) return new Response(JSON.stringify({ access_token: 't', expires_in: 5000 }))
+      const body = String(init?.body ?? '')
+      asked.push(body)
+      const wanted = /where id = \(([\d,]+)\)/.exec(body)![1]!.split(',').map(Number)
+
+      return new Response(JSON.stringify(wanted.filter((id) => !missing.includes(id)).map((id) => ({ id, slug: `game-${id}` }))))
+    })
+
+    return { fetchImpl, asked }
+  }
+
+  const adapterFor = (fetchImpl: FetchLike) => createIgdbAdapter(credentials, fetchImpl, { sleep: async () => {} })
+
+  it('says which kind of ref it can look up', () => {
+    expect(adapterFor(slugRouter().fetchImpl).slugPrefixes).toEqual(['game'])
+  })
+
+  it('asks for the slug of each game, one request, and answers by ref', async () => {
+    const { fetchImpl, asked } = slugRouter()
+
+    const found = await adapterFor(fetchImpl).slugs!(['game:3', 'game:7'])
+
+    expect(found.get('game:3')).toBe('game-3')
+    expect(found.get('game:7')).toBe('game-7')
+    expect(asked).toHaveLength(1)
+    expect(asked[0]).toMatch(/fields id,slug;/)
+  })
+
+  it('answers "none" for a game IGDB no longer has, so it is not asked again', async () => {
+    const found = await adapterFor(slugRouter([7]).fetchImpl).slugs!(['game:3', 'game:7'])
+
+    expect(found.get('game:3')).toBe('game-3')
+    expect(found.has('game:7')).toBe(true)
+    expect(found.get('game:7')).toBeNull()
+  })
+
+  it('splits a long list into requests of IGDB’s own ceiling, never above it', async () => {
+    const { fetchImpl, asked } = slugRouter()
+    const refs = ids(1200).map((id) => `game:${id}`)
+
+    const found = await adapterFor(fetchImpl).slugs!(refs)
+
+    expect(found.size).toBe(1200)
+    expect(asked).toHaveLength(3)
+    for (const body of asked) expect(body).toMatch(/limit 500;/)
+  })
+
+  it('asks nothing for refs of another kind, and nothing for none at all', async () => {
+    const { fetchImpl, asked } = slugRouter()
+    const adapter = adapterFor(fetchImpl)
+
+    expect((await adapter.slugs!([])).size).toBe(0)
+    expect((await adapter.slugs!(['movie:1', 'game:x', 'game:1; drop'])).size).toBe(0)
+    expect(asked).toHaveLength(0)
+  })
+
+  it('lets a failed request be seen, so nothing is remembered as "none"', async () => {
+    const fetchImpl: FetchLike = vi.fn(async (url: string) =>
+      url.startsWith('https://id.twitch.tv') ? new Response(JSON.stringify({ access_token: 't', expires_in: 5000 })) : new Response('{}', { status: 400 }),
+    )
+
+    await expect(adapterFor(fetchImpl).slugs!(['game:1'])).rejects.toThrow()
+  })
+})

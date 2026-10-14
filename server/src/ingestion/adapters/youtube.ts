@@ -2,6 +2,7 @@ import { MAX_LIST_ITEMS } from '../../catalog/limits.js'
 import { delay, getJson, withRetries, type FetchLike } from '../http.js'
 import { validYear } from '../../catalog/limits.js'
 import type { ListSource, MediaTypeCandidate, SearchAdapter } from '../mediaTypes.js'
+import { youTubeVideoUrl } from '../itemPages.js'
 import { itemsOnly } from '../expansion.js'
 
 /**
@@ -265,6 +266,7 @@ export function createYouTubeAdapter(
 
   return {
     isAvailable: () => Boolean(resolve().apiKey),
+    itemUrl: youTubeVideoUrl,
 
     async search(query) {
       const input = parseYouTubeInput(query)

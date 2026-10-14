@@ -1,6 +1,7 @@
 import type { FetchLike } from '../http.js'
 import type { ListSource, SearchAdapter } from '../mediaTypes.js'
 import { itemsOnly } from '../expansion.js'
+import { tmdbMovieUrl } from '../itemPages.js'
 import {
   createTmdbClient,
   enrichMovieRuntimes,
@@ -86,6 +87,7 @@ export function createTmdbCompanyAdapter(
 
   return {
     isAvailable: client.isConfigured,
+    itemUrl: tmdbMovieUrl,
 
     async search(query) {
       const response = await client.request<{ results?: CompanyResult[] }>('/search/company', {

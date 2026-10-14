@@ -1,6 +1,7 @@
 import type { FetchLike } from '../http.js'
 import type { ListStatus } from '../../db/schema.js'
 import type { ListSource, MediaTypeCandidate, SearchAdapter } from '../mediaTypes.js'
+import { tmdbEpisodeUrl } from '../itemPages.js'
 import {
   createTmdbClient,
   episodeMinutes,
@@ -93,6 +94,7 @@ export function createTmdbTvAdapter(
 
   return {
     isAvailable: isConfigured,
+    itemUrl: tmdbEpisodeUrl,
 
     async search(query) {
       // The genre filter runs after TMDB's page of 20, so one page can leave fewer than a full list of matches

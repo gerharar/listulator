@@ -134,6 +134,13 @@
       "when": 1791051002511,
       "tag": "0018_item_runtimes",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "6",
+      "when": 1792008283785,
+      "tag": "0019_item_slugs",
+      "breakpoints": true
     }
   ]
 }

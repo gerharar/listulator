@@ -4,8 +4,15 @@ import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import type { ListItem } from '../../lib/api.js'
 import { ItemRow } from './ItemRow.js'
 import { hoverTooltip } from '../../components/quantum/Tooltip/hoverTooltip.js'
+import { openUrl } from '@tauri-apps/plugin-opener'
 
-afterEach(cleanup)
+vi.mock('@tauri-apps/plugin-opener', () => ({ openUrl: vi.fn(async () => {}) }))
+
+afterEach(() => {
+  cleanup()
+  vi.mocked(openUrl).mockClear()
+  delete (window as unknown as Record<string, unknown>)['__TAURI_INTERNALS__']
+})
 
 const ITEM: ListItem = {
   id: 'i1',
@@ -276,5 +283,58 @@ describe('ItemRow', () => {
 
       expect(screen.getByText('2h')).toBeTruthy()
     })
+  })
+})
+
+describe('ItemRow: the link to the item’s page at its source (H-002, BL-087)', () => {
+  const LINKED: ListItem = { ...ITEM, link: { url: 'https://www.themoviedb.org/movie/603', source: 'TMDB' } }
+
+  it('has no ↗ for an item with no link, or with none asked for', () => {
+    renderRow()
+    expect(screen.queryByRole('link')).toBeNull()
+
+    cleanup()
+    renderRow({ item: { ...ITEM, link: null } })
+    expect(screen.queryByRole('link')).toBeNull()
+  })
+
+  it('is a link to the page, named for the item and the source, that opens a new tab and hands the page nothing', () => {
+    renderRow({ item: LINKED })
+    const link = screen.getByRole('link', { name: 'Open Glorious Purpose on TMDB' })
+
+    expect(link.getAttribute('href')).toBe('https://www.themoviedb.org/movie/603')
+    expect(link.getAttribute('target')).toBe('_blank')
+    expect(link.getAttribute('rel')).toBe('noopener noreferrer')
+  })
+
+  it('sits after the pencil in the title group, which is where the design puts it', () => {
+    renderRow({ item: LINKED })
+    const body = document.querySelector('.q-item .body')!
+    const order = [...body.children].map((child) => child.getAttribute('aria-label') ?? child.className)
+
+    expect(order).toEqual(['tt', 'Details for Glorious Purpose', 'Edit Glorious Purpose', 'Open Glorious Purpose on TMDB'])
+  })
+
+  it('says "Open on TMDB" when hovered', async () => {
+    renderRow({ item: LINKED })
+
+    expect(await hoverTooltip(screen.getByRole('link'))).toBe('Open on TMDB')
+  })
+
+  it('does not toggle the row it sits in when clicked', () => {
+    const { onToggle } = renderRow({ item: LINKED })
+
+    fireEvent.click(screen.getByRole('link'))
+
+    expect(onToggle).not.toHaveBeenCalled()
+  })
+
+  it('in the desktop app opens the system browser', () => {
+    ;(window as unknown as Record<string, unknown>)['__TAURI_INTERNALS__'] = {}
+    renderRow({ item: LINKED })
+
+    fireEvent.click(screen.getByRole('link'))
+
+    expect(openUrl).toHaveBeenCalledExactlyOnceWith('https://www.themoviedb.org/movie/603')
   })
 })

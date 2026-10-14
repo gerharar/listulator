@@ -3,6 +3,8 @@ import { existsSync, readdirSync, readFileSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
+import { itemLinkFor } from '../../../server/src/ingestion/itemLink.js'
+import { createMediaTypeRegistry } from '../../../server/src/ingestion/mediaTypes.js'
 import { AUTHOR, LICENSING_URL } from './dataSources.js'
 
 /**
@@ -38,6 +40,23 @@ describe('the desktop opener scope', () => {
 
   it('does not open other people’s repositories on the same host', () => {
     expect(allowed('https://github.com/someone-else/listulator')).toBe(false)
+  })
+
+  /**
+   * An item's ↗ (H-002) that the scope refuses does nothing in the desktop app, and nothing in a browser run or a unit
+   * test says so. One item per source the link is built for, through the real registry.
+   */
+  it.each([
+    ['movie', 'movie:603', null],
+    ['tv', null, 'show:1396'],
+    ['music', 'f5093c06-23e3-404f-aeaa-40f72885ee3a', null],
+    ['youtube', 'video:dQw4w9WgXcQ', null],
+    ['comic', 'issue:1196700', null],
+  ] as const)('lets an item link open: %s (%s)', (mediaType, externalRef, listRef) => {
+    const link = itemLinkFor(createMediaTypeRegistry().get(mediaType), { externalRef, title: 'S01E02 Pilot', source: 'import' }, listRef)
+
+    expect(link).not.toBeNull()
+    expect(allowed(link!.url)).toBe(true)
   })
 })
 

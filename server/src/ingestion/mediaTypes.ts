@@ -16,6 +16,7 @@ import { createTmdbCompanyAdapter } from './adapters/tmdbCompany.js'
 import { ANIMATION_GENRE, DOCUMENTARY_GENRE, createTmdbTvAdapter } from './adapters/tmdbTv.js'
 import type { ListStatus } from '../db/schema.js'
 import type { FacetConvention } from '../catalog/facets.js'
+import type { ItemLinkInput } from './itemLink.js'
 import type { FetchLike } from './http.js'
 import type { TmdbCredentialSource } from './adapters/tmdb.js'
 import type { IgdbCredentialSource } from './adapters/igdb.js'
@@ -478,6 +479,25 @@ export interface SearchAdapter {
    * guess from the ref's shape. Set with `enrich`; absent means nothing to look up.
    */
   enrichPrefixes?: readonly string[]
+  /**
+   * The address of an item's page at this source (H-002, BL-087), built from its stored ref and the list's own ref,
+   * with no request: a fixed https host and a validated id, never a URL that came with the data. `undefined` when
+   * the item has none (no ref, a ref of another kind, a source with no page per item). Absent: the adapter has
+   * no item pages. Must not depend on credentials: a link needs no API key.
+   */
+  itemUrl?(item: ItemLinkInput, listExternalRef: string | null): string | undefined
+  /**
+   * The kinds of item ref (`game`) whose page address needs a slug the item does not carry (IGDB). What a read of a
+   * list asks the database about, and the background lookup runs for; absent: the address needs nothing more than
+   * the ref, and the list read costs nothing extra. Set with `slugs`.
+   */
+  slugPrefixes?: readonly string[]
+  /**
+   * The page slugs of items, keyed by ref, looked up in the background and cached (`item_slugs`). Answers only for
+   * refs of its own `slugPrefixes`; a ref the source has no slug for is `null` (a definitive answer, kept so it is
+   * not asked again); a request that failed throws, and nothing is remembered. Absent: nothing to look up.
+   */
+  slugs?(refs: string[]): Promise<Map<string, string | null>>
 }
 
 export interface MediaType {

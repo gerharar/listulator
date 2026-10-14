@@ -8,6 +8,7 @@ import type {
   SearchAdapter,
 } from '../mediaTypes.js'
 import { itemsOnly } from '../expansion.js'
+import { tmdbMovieUrl } from '../itemPages.js'
 
 /**
  * TMDB: search a person or a collection, expand to their films.
@@ -19,6 +20,7 @@ import { itemsOnly } from '../expansion.js'
  */
 
 const BASE = 'https://api.themoviedb.org/3'
+
 const DOCUMENTARY_GENRE = 99
 /** Runtime needs one request per film. Polite, and still only seconds. */
 const RUNTIME_CONCURRENCY = 8
@@ -411,6 +413,7 @@ export function createTmdbAdapter(
 
   return {
     isAvailable: isConfigured,
+    itemUrl: tmdbMovieUrl,
 
     async search(query) {
       // Only the kinds this adapter offers are asked for.

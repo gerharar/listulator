@@ -27,7 +27,11 @@ const pluginOrigins = (
   .flatMap((permission) => (typeof permission === 'object' && permission.identifier === 'http:default' ? (permission.allow ?? []) : []))
   .map(({ url }) => new URL(url.replace(/\*$/, '')).origin)
 
-/** Every `https://` origin written in the ingestion code (adapters and the library fetch), tests left out. */
+/**
+ * Every `https://` origin written in the ingestion code (adapters and the library fetch), tests left out. The item page
+ * addresses (`itemPages.ts`, H-002) are not here: the browser opens them, nothing fetches them, and the opener's own
+ * list is checked against them in `tauriCapabilities.guard.test.ts`.
+ */
 function upstreamOrigins(): string[] {
   const dir = join(REPO, 'server/src/ingestion')
   const files = [

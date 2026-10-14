@@ -4,6 +4,7 @@ import { authRoutes } from './auth/routes.js'
 import { currentUserPlugin } from './auth/currentUser.js'
 import { catalogRoutes } from './catalog/routes.js'
 import { createRuntimeFiller, type RuntimeFiller, type RuntimeFillDeps } from './catalog/runtimeFill.js'
+import { createSlugFiller, type SlugFiller, type SlugFillDeps } from './catalog/slugFill.js'
 import type { ServerConfig } from './config.js'
 import type { AppDatabase } from './db/client.js'
 import { createMediaTypeRegistry, type MediaTypeRegistry } from './ingestion/mediaTypes.js'
@@ -14,6 +15,8 @@ declare module 'fastify' {
   interface FastifyInstance {
     /** Looks up the lengths of items a list was built without (task 15.5); one per app. */
     runtimeFiller: RuntimeFiller
+    /** Looks up the page slugs a list's item links need (H-002, IGDB); one per app. */
+    slugFiller: SlugFiller
   }
 }
 
@@ -28,6 +31,8 @@ export interface AppDependencies {
   listsDropDir?: string
   /** Overridable so tests can fake the clock, the waits and the pacing of the background lookup of lengths. */
   runtimeFill?: Partial<Omit<RuntimeFillDeps, 'db' | 'mediaTypes' | 'signal'>>
+  /** Overridable so tests can fake the clock and the cooldown of the background lookup of page slugs. */
+  slugFill?: Partial<Omit<SlugFillDeps, 'db' | 'signal'>>
 }
 
 /**
@@ -41,6 +46,7 @@ export function buildApp({
   strategiesDir,
   listsDropDir,
   runtimeFill,
+  slugFill,
 }: AppDependencies): FastifyInstance {
   const app = Fastify({ logger: false })
 
@@ -57,6 +63,7 @@ export function buildApp({
       ...runtimeFill,
     }),
   )
+  app.decorate('slugFiller', createSlugFiller({ db, signal: shutdown.signal, onError: (error) => app.log.error(error), ...slugFill }))
   app.addHook('onClose', async () => shutdown.abort())
 
   // Infrastructure probe, deliberately outside /api and outside auth.
