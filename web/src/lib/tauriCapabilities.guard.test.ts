@@ -222,7 +222,7 @@ describe('the isolation hook is switched on, as the security review left it (SR-
   it('serves a page that loads the hook and nothing else', () => {
     const page = readFileSync(`${DESKTOP}../isolation/index.html`, 'utf8')
 
-    expect([...page.matchAll(/<script\b[^>]*>/g)].map((match) => match[0])).toEqual(['<script src="hook.js">'])
+    expect([...page.matchAll(/<script\b[^>]*>/gi)].map((match) => match[0])).toEqual(['<script src="hook.js">'])
     expect(page).not.toMatch(/<(iframe|link|img|object|embed)\b/i)
   })
 

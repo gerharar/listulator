@@ -7,6 +7,9 @@ import { makeKeyPair, signLikeTauri } from './minisignTesting.js'
 import { createGhHost, nodeRunner, parseReleaseSignArguments, readPubkey, releaseSign, type ReleaseHost, type Runner, type TagState } from './releaseSign.js'
 import { parseSignature } from './updateManifest.js'
 
+/** `text` as a regular expression that matches it literally (every special character escaped, the backslash too). */
+const escapeRegExp = (text: string): string => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+
 /**
  * `npm run release:sign -- <tag>` (20.12c): downloads a draft Release's files, checks them against their checksums and their
  * build attestations, signs the two update files with the owner's updater key, builds and re-verifies `latest.json`, and uploads
@@ -324,7 +327,7 @@ describe('what makes it stop before anything is signed or uploaded', () => {
   it('refuses a draft that lacks one of the four files', async () => {
     const r = await run(world({ assets: [EXE, DMG, SUMS] }))
 
-    expect(r.error?.message).toMatch(new RegExp(TAR.replace(/\./g, '\\.')))
+    expect(r.error?.message).toMatch(new RegExp(escapeRegExp(TAR)))
     nothingChanged(r)
   })
 
@@ -341,7 +344,7 @@ describe('what makes it stop before anything is signed or uploaded', () => {
 
     const r = await run(w)
 
-    expect(r.error?.message).toMatch(new RegExp(`${TAR.replace(/\./g, '\\.')}.*checksum`))
+    expect(r.error?.message).toMatch(new RegExp(`${escapeRegExp(TAR)}.*checksum`))
     expect(r.calls.filter((call) => call.startsWith('attest'))).toEqual([])
     nothingChanged(r)
   })
@@ -375,7 +378,7 @@ describe('what makes it stop before anything is signed or uploaded', () => {
   it.each([EXE, DMG, TAR])('refuses a release when %s has no valid build attestation, and signs none of the files', async (bad) => {
     const r = await run(world({ attested: (name) => name !== bad }))
 
-    expect(r.error?.message).toMatch(new RegExp(`${bad.replace(/\./g, '\\.')}.*attestation`))
+    expect(r.error?.message).toMatch(new RegExp(`${escapeRegExp(bad)}.*attestation`))
     nothingChanged(r)
   })
 

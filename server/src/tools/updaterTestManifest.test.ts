@@ -4,6 +4,9 @@ import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { buildTestManifest, parseTestManifestArguments, writeTestManifest } from './updaterTestManifest.js'
 
+/** `text` as a regular expression that matches it literally (every special character escaped, the backslash too). */
+const escapeRegExp = (text: string): string => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+
 /**
  * The manifest for the updater's two-version test (20.13a), pointing at the local file server. Unlike `updateManifest.ts` (the
  * release's, which refuses anything that could mislead an app), this one has to be able to make a WRONG manifest on purpose
@@ -162,7 +165,7 @@ describe('writing latest.json into the folder the server serves', () => {
   })
 
   it('says which file is missing instead of writing a manifest that points at nothing', () => {
-    expect(() => writeTestManifest({ dir, port: 8099, mac: MAC }, () => new Date())).toThrow(new RegExp(MAC.replace(/\./g, '\\.')))
+    expect(() => writeTestManifest({ dir, port: 8099, mac: MAC }, () => new Date())).toThrow(new RegExp(escapeRegExp(MAC)))
     writeFileSync(join(dir, MAC), 'bundle')
     expect(() => writeTestManifest({ dir, port: 8099, mac: MAC }, () => new Date())).toThrow(/needs the file and its \.sig/)
   })
