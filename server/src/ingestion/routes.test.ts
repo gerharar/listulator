@@ -2479,6 +2479,6 @@ describe('a hostile list file is refused before anything is made', () => {
   })
 
   it('still creates an ordinary list', async () => {
-    expect((await fromFile(file('    minutes: 100000\n    year: 1605'))).statusCode).toBe(201)
+    expect((await fromFile(file('    minutes: 99999\n    year: 1605'))).statusCode).toBe(201)
   })
 })

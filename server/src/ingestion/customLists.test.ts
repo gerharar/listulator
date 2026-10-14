@@ -283,7 +283,7 @@ items:
       ],
       ['an unrelated item field, with no suggestion', `${head}items:\n  - { title: A, colour: red }\n`, `item 1 ("A"): unknown field "colour" ${ITEM_FIELDS}`],
       ['a year that is a list', `${head}items:\n  - { title: A, year: [2000] }\n`, 'item 1 ("A"): "year" must be a number, or text like 199? or 19??, but it is a list'],
-      ['a year that is not a year', `${head}items:\n  - { title: A, year: "20x0" }\n`, 'item 1 ("A"): "year" must be a whole number from 1 to 3000, or 199? or 19?? when only the decade or century is known, but it is text "20x0"'],
+      ['a year that is not a year', `${head}items:\n  - { title: A, year: "20x0" }\n`, 'item 1 ("A"): "year" must be a whole number from 1000 to 2100, or 199? or 19?? when only the decade or century is known, but it is text "20x0"'],
       ['minutes in quotes', `${head}items:\n  - { title: A, minutes: "90" }\n`, 'item 1 ("A"): "minutes" must be a number, but it is text "90"'],
       ['a group that is a number', `${head}items:\n  - { title: A, group: 5 }\n`, 'item 1 ("A"): "group" must be text, but it is the number 5'],
       ['notes that are a list', `${head}items:\n  - { title: A, notes: [x] }\n`, 'item 1 ("A"): "notes" must be text, but it is a list'],
@@ -732,20 +732,20 @@ describe('parseCustomList refuses what would corrupt or freeze a list', () => {
   const detail = (text: string): string => refusal(text)?.message ?? 'accepted'
 
   describe('numbers', () => {
-    it.each(['.inf', '-.inf', '.nan', '-5', '0', '1.5', '100001', '1e308', '-1e308', '0.5'])('refuses minutes of %s, naming the item and the field', (minutes) => {
+    it.each(['.inf', '-.inf', '.nan', '-5', '0', '1.5', '100000', '100001', '1e308', '-1e308', '0.5'])('refuses minutes of %s, naming the item and the field', (minutes) => {
       expect(refusal(one(`    minutes: ${minutes}`))).toMatchObject({ code: 'list.fileInvalid' })
-      expect(detail(one(`    minutes: ${minutes}`))).toMatch(/item 1 \("A"\): "minutes" must be a whole number from 1 to 100000/)
+      expect(detail(one(`    minutes: ${minutes}`))).toMatch(/item 1 \("A"\): "minutes" must be a whole number from 1 to 99999/)
     })
 
-    it.each(['.inf', '-.inf', '.nan', '-1', '0', '3001', '10000', '2000.5', '1e308'])('refuses a year of %s, naming the item and the field', (year) => {
-      expect(detail(one(`    year: ${year}`))).toMatch(/item 1 \("A"\): "year" must be a whole number from 1 to 3000/)
+    it.each(['.inf', '-.inf', '.nan', '-1', '0', '999', '2101', '3000', '10000', '2000.5', '1e308'])('refuses a year of %s, naming the item and the field', (year) => {
+      expect(detail(one(`    year: ${year}`))).toMatch(/item 1 \("A"\): "year" must be a whole number from 1000 to 2100/)
     })
 
-    it.each(['1', '90', '109', '100000', '0x10'])('accepts minutes of %s', (minutes) => {
+    it.each(['1', '90', '109', '99999', '0x10'])('accepts minutes of %s', (minutes) => {
       expect(refusal(one(`    minutes: ${minutes}`))).toBeUndefined()
     })
 
-    it.each(['1', '476', '1605', '1962', '2024', '3000'])('accepts a year of %s', (year) => {
+    it.each(['1000', '1605', '1962', '2024', '2100'])('accepts a year of %s', (year) => {
       expect(refusal(one(`    year: ${year}`))).toBeUndefined()
     })
   })

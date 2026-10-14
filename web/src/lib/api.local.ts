@@ -32,7 +32,7 @@ import {
   type RuntimeStatsOptions,
 } from '../../../server/src/catalog/repository.js'
 import { createListItems, discardList, itemFromFile, itemFromSource } from '../../../server/src/catalog/bulkItems.js'
-import { MAX_LIST_ITEMS } from '../../../server/src/catalog/limits.js'
+import { InvalidMinutesError, MAX_LIST_ITEMS } from '../../../server/src/catalog/limits.js'
 import { knownRuntimes, withKnownRuntimes, withRuntimePending } from '../../../server/src/catalog/runtimes.js'
 import { withLinks } from '../../../server/src/catalog/itemLinks.js'
 import { InvalidYearError } from '../../../server/src/catalog/years.js'
@@ -134,9 +134,15 @@ function notFound(): ApiError {
   return new ApiError('Not found.', 404)
 }
 
-/** A year that does not fit its unknown digits is the server's 400 `item.invalidYear`; anything else passes through (H-004). */
+/**
+ * A year that is out of range or does not fit its unknown digits is the server's 400 `item.invalidYear`, a length out of range
+ * its 400 `item.invalidMinutes` (H-004, H-006); anything else passes through.
+ */
 function yearError(cause: unknown): unknown {
-  return cause instanceof InvalidYearError ? new ApiError(errorMessage('item.invalidYear') ?? 'item.invalidYear', 400, 'item.invalidYear') : cause
+  if (cause instanceof InvalidYearError) return new ApiError(errorMessage('item.invalidYear') ?? 'item.invalidYear', 400, 'item.invalidYear')
+  if (cause instanceof InvalidMinutesError) return new ApiError(errorMessage('item.invalidMinutes') ?? 'item.invalidMinutes', 400, 'item.invalidMinutes')
+
+  return cause
 }
 
 function toMediaList(list: ListWithStats): MediaList {

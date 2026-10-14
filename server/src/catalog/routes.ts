@@ -74,7 +74,7 @@ import {
   listPayloadSchema,
   snapshotPayloadSchema,
 } from './restoreSchemas.js'
-import { NAME_MAX_LENGTH } from './limits.js'
+import { InvalidMinutesError, NAME_MAX_LENGTH } from './limits.js'
 
 const LIST_SOURCES = ['api', 'llm', 'manual'] as const
 const LIST_STATUSES = ['complete', 'ongoing'] as const
@@ -314,6 +314,7 @@ export const catalogRoutes: FastifyPluginAsync<CatalogRoutesOptions> = async (
         return reply.code(201).send(item)
       } catch (cause) {
         if (cause instanceof InvalidYearError) return sendApiError(reply, 400, 'item.invalidYear')
+        if (cause instanceof InvalidMinutesError) return sendApiError(reply, 400, 'item.invalidMinutes')
         throw cause
       }
     },
@@ -353,6 +354,7 @@ export const catalogRoutes: FastifyPluginAsync<CatalogRoutesOptions> = async (
         return updated
       } catch (cause) {
         if (cause instanceof InvalidYearError) return sendApiError(reply, 400, 'item.invalidYear')
+        if (cause instanceof InvalidMinutesError) return sendApiError(reply, 400, 'item.invalidMinutes')
         throw cause
       }
     },

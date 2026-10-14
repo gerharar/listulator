@@ -569,6 +569,17 @@ describe('the desktop builds a list at once and fills its lengths afterwards (15
       expect((await api.list(list.id)).items.find((item) => item.id === first!.id)).toMatchObject({ year: 1990, yearUnk: 1 })
     })
 
+    it('holds a typed year to 1000-2100 and a typed length to 1-99,999 minutes, as the server does (H-004, H-006)', async () => {
+      const { api, list } = await builtEarlier(filmSource())
+      const [first] = (await api.list(list.id)).items
+
+      expect(await api.addItem(list.id, { title: 'Old', timeToConsumeMinutes: 99_999, year: 1000 })).toMatchObject({ year: 1000, timeToConsumeMinutes: 99_999 })
+      await expect(api.addItem(list.id, { title: 'Early', timeToConsumeMinutes: 30, year: 999 })).rejects.toMatchObject({ status: 400, code: 'item.invalidYear' })
+      await expect(api.updateItem(list.id, first!.id, { year: 2101 })).rejects.toMatchObject({ status: 400, code: 'item.invalidYear' })
+      await expect(api.addItem(list.id, { title: 'Zero', timeToConsumeMinutes: 0 })).rejects.toMatchObject({ status: 400, code: 'item.invalidMinutes' })
+      await expect(api.updateItem(list.id, first!.id, { timeToConsumeMinutes: 100_000 })).rejects.toMatchObject({ status: 400, code: 'item.invalidMinutes' })
+    })
+
     it('shows how many lengths each list is still waiting for', async () => {
       const { api, list } = await builtEarlier(filmSource())
 
@@ -723,7 +734,7 @@ describe('the desktop refuses a hostile list file before anything is made', () =
     const { local } = await freshModules()
     const api = local.createLocalApi()
 
-    expect((await api.createFromFile({ yaml: file('    minutes: 100000\n    year: 1605') })).title).toBe('T')
+    expect((await api.createFromFile({ yaml: file('    minutes: 99999\n    year: 1605') })).title).toBe('T')
   })
 })
 

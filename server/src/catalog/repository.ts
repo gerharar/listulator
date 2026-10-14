@@ -1,6 +1,7 @@
 import { and, asc, count, eq, getTableColumns, inArray, or, sql, type SQL } from 'drizzle-orm'
 import type { PortableDatabase } from '../db/client.js'
 import { normalizeItemTags } from './facets.js'
+import { InvalidMinutesError, validMinutes } from './limits.js'
 import { InvalidYearError, validYearPair } from './years.js'
 import { listCanBeReset } from './resettable.js'
 import { pendingCounts } from './runtimes.js'
@@ -457,9 +458,11 @@ export async function createListItem(
   const label = input.group?.trim()
   const group = label ? (await ensureListGroup(db, listId, label)).name : null
 
-  // The year and its unknown digits must fit together (H-005); checked before anything is written.
+  // The year and its unknown digits must fit together (H-005), and the length is a typed one (H-006, H-007); checked before
+  // anything is written.
   const year = validYearPair(input.year ?? null, input.yearUnk ?? 0)
   if (!year) throw new InvalidYearError()
+  if (validMinutes(input.timeToConsumeMinutes) === undefined) throw new InvalidMinutesError()
 
   return await db
     .insert(listItems)
@@ -524,6 +527,8 @@ export async function updateListItem(
   patch: UpdateListItemInput,
 ): Promise<ListItem | undefined> {
   if (!(await findListItem(db, userId, listId, itemId))) return undefined
+
+  if (patch.timeToConsumeMinutes !== undefined && validMinutes(patch.timeToConsumeMinutes) === undefined) throw new InvalidMinutesError()
 
   // A year edit sets both halves at once (H-004): a year without its unknown digits is exact, so editing 199? to 1994
   // clears them; the digits without a year, or a pair that does not fit, is refused before anything is written.

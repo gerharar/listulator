@@ -18,7 +18,7 @@ import {
  * the paths cannot disagree.
  */
 describe('validMinutes', () => {
-  it.each([1, 2, 90, 109, 1440, 100_000])('accepts %d', (value) => {
+  it.each([1, 2, 90, 109, 1440, 99_999])('accepts %d', (value) => {
     expect(validMinutes(value)).toBe(value)
   })
 
@@ -28,6 +28,7 @@ describe('validMinutes', () => {
     -5,
     1.5,
     90.25,
+    100_000,
     100_001,
     1e308,
     -1e308,
@@ -47,21 +48,21 @@ describe('validMinutes', () => {
   })
 
   it('has the range the library guard test has always held its lists to', () => {
-    expect(MINUTES_RANGE).toEqual([1, 100_000])
+    expect(MINUTES_RANGE).toEqual([1, 99_999])
   })
 })
 
 describe('validYear', () => {
-  it.each([1, 476, 1605, 1962, 2024, 3000])('accepts %d (a year as a person writes it, old books included)', (value) => {
+  it.each([1000, 1605, 1962, 2024, 2100])('accepts %d (a year as a person writes it, old books included)', (value) => {
     expect(validYear(value)).toBe(value)
   })
 
-  it.each([0, -1, -800, 3001, 10_000, 2000.5, 1e308, Number.NaN, Number.POSITIVE_INFINITY, '1999', null, undefined, false, {}])('refuses %j', (value) => {
+  it.each([0, -1, -800, 1, 476, 999, 2101, 3000, 3001, 10_000, 2000.5, 1e308, Number.NaN, Number.POSITIVE_INFINITY, '1999', null, undefined, false, {}])('refuses %j', (value) => {
     expect(validYear(value)).toBeUndefined()
   })
 
-  it('is a whole number from 1 to 3000', () => {
-    expect(YEAR_RANGE).toEqual([1, 3000])
+  it('is a whole number from 1000 to 2100', () => {
+    expect(YEAR_RANGE).toEqual([1000, 2100])
   })
 })
 

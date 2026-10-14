@@ -219,10 +219,10 @@ describe('ItemEditPopover: the year (H-004, H-005)', () => {
     expect(year().value).toBe('')
   })
 
-  it('holds a year below 1000 with its zero, so what it reads back is the same year', () => {
+  it('shows a year stored below 1000 as it is (the range is 1000 to 2100 since 2026-10-15)', () => {
     renderPopover({ item: { ...ITEM, year: 800 } })
 
-    expect(year().value).toBe('0800')
+    expect(year().value).toBe('800')
   })
 
   it('keeps only digits and then ?, four at most, as they are typed', () => {

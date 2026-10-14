@@ -178,6 +178,7 @@ export const de: Locale = {
     'list.fileItemNotesTooLong': (p: { index: number; max: number }): string => `Marcel-Proust-Reinkarnation erkannt: Liste kann nicht importiert werden, die Notizen von Eintrag ${p.index} sind länger als ${p.max} Zeichen`,
     'list.alreadyExists': (): string => 'Schnellste Hand im Wilden Westen erkannt: Diese Liste gibt es schon, deshalb wurde nichts wiederhergestellt',
     'item.invalidYear': (): string => 'Ein Jahr hat vier Ziffern, etwa 1994. Bei den letzten ein oder zwei Ziffern unsicher? Tippe ?: 199? oder 19??. Ganz leer lassen, wenn du es gar nicht weißt',
+    'item.invalidMinutes': (): string => 'Eine Dauer ist eine ganze Zahl von Minuten, von 1 bis 99.999',
     'group.nameEmpty': (): string => 'Ein Mann braucht einen Gruppennamen.',
     'group.nameTaken': (): string => 'Alzheimer-Rückfall erkannt: In dieser Liste gibt es bereits eine Gruppe mit diesem Namen.',
     'group.notEmpty': (): string => 'Eine Gruppe kann man nur löschen, wenn man ihre Leere annimmt',

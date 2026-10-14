@@ -202,6 +202,7 @@ export const en = {
     'list.fileItemNotesTooLong': (p: { index: number; max: number }): string => `Marcel Proust reincarnation detected: cannot import list, item ${p.index}'s notes are over ${p.max} characters`,
     'list.alreadyExists': (): string => `Fastest hand in the West detected: this list already exists, so nothing was restored`,
     'item.invalidYear': (): string => 'A year has four digits, like 1994. Unsure of the last one or two? Type ?: 199? or 19??. Leave it empty if you don\'t know it at all',
+    'item.invalidMinutes': (): string => 'A duration is a whole number of minutes, from 1 to 99,999',
     'group.nameEmpty': (): string => 'A man needs a group name',
     'group.nameTaken': (): string => `Alzheimer's relapse detected: this list already has a group with such name`,
     'group.notEmpty': (): string => 'You can delete a group only when you embrace its emptiness',

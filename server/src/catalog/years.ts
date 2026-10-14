@@ -87,7 +87,7 @@ export function yearTextProblem(text: string): 'form' | 'range' | null {
   return FORM.test(text.trim()) ? 'range' : 'form'
 }
 
-/** A year as a row and a header show it: `1994`, `199?`, `19??`; nothing for none. A year below 1000 has no zero here. */
+/** A year as a row and a header show it: `1994`, `199?`, `19??`; nothing for none. */
 export function formatYear(value: YearLike): string {
   if (value.year === null) return ''
   if (value.yearUnk === 0) return String(value.year)
@@ -95,11 +95,9 @@ export function formatYear(value: YearLike): string {
   return `${String(value.year).padStart(4, '0').slice(0, 4 - value.yearUnk)}${'?'.repeat(value.yearUnk)}`
 }
 
-/** A year as the field holds it: four characters, so what `parseYearText` reads back is the same year (`0800`). */
+/** A year as the field holds it, so what `parseYearText` reads back is the same year. */
 export function yearFieldText(value: YearLike): string {
-  if (value.year === null) return ''
-
-  return value.yearUnk === 0 ? String(value.year).padStart(4, '0') : formatYear(value)
+  return formatYear(value)
 }
 
 /**

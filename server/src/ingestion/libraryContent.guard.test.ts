@@ -27,8 +27,8 @@ const CATEGORIES = new Set(createMediaTypeRegistry().keys())
 
 /** The most a list file, and the manifest, may weigh. The largest list is 44 KB. */
 const FILE_MAX_BYTES = 256 * 1024
-const MINUTES_RANGE = [1, 100_000] as const
-/** Narrower than the parser's (1 to 9999): the library is films, shows, games, comics and books of the last two centuries. */
+const MINUTES_RANGE = [1, 99_999] as const
+/** Narrower than the parser's (1000 to 2100): the library is films, shows, games, comics and books of the last two centuries. */
 const YEAR_RANGE = [1800, 2100] as const
 
 /**

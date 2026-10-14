@@ -19,7 +19,7 @@ import {
 /**
  * H-004 / H-005: an item's year is a four-digit year, or one whose last one or two digits are unknown (`199?`, `19??`).
  * Stored as `year` = the earliest it can be (1990) and `yearUnk` = how many digits are unknown (0, 1, 2). The owner's
- * rulings (2026-10-14): a year outside 1 to 3000 is invalid like any other bad form; a quoted exact year is accepted
+ * rulings (2026-10-14): a year outside 1000 to 2100 is invalid (the range was 1 to 3000 until 2026-10-15) like any other bad form; a quoted exact year is accepted
  * in a YAML file; a bracket with an out-of-range year stays in the title in Use Hands.
  */
 const y = (year: number, yearUnk: 0 | 1 | 2 = 0): ItemYear => ({ year, yearUnk })
@@ -68,21 +68,24 @@ describe('parseYearText', () => {
     },
   )
 
-  it.each(['0000', '3001', '3500', '9999', '31??', '000?'])('refuses %j: four characters, but outside the years the app holds', (text) => {
+  it.each(['0000', '0800', '0999', '2101', '3000', '3500', '9999', '09??', '22??', '30??', '000?', '211?'])('refuses %j: four characters, but outside the years the app holds (1000 to 2100)', (text) => {
     expect(parseYearText(text)).toBeUndefined()
   })
 
-  it('keeps the ends of the range: 0001 and 3000 are years, so are 001? and 30??', () => {
-    expect(parseYearText('0001')).toEqual(y(1))
-    expect(parseYearText('3000')).toEqual(y(3000))
-    expect(parseYearText('30??')).toEqual(y(3000, 2))
-    expect(parseYearText('0800')).toEqual(y(800))
+  it('keeps the ends of the range: 1000 and 2100 are years, and a partial year passes when its earliest value does (owner, 2026-10-15)', () => {
+    expect(parseYearText('1000')).toEqual(y(1000))
+    expect(parseYearText('2100')).toEqual(y(2100))
+    expect(parseYearText('10??')).toEqual(y(1000, 2))
+    expect(parseYearText('100?')).toEqual(y(1000, 1))
+    expect(parseYearText('20??')).toEqual(y(2000, 2))
+    expect(parseYearText('21??')).toEqual(y(2100, 2))
+    expect(parseYearText('210?')).toEqual(y(2100, 1))
   })
 })
 
 describe('yearTextProblem: why the field is wrong, so each reason can have its own words', () => {
   it('is null for empty and for every valid form', () => {
-    for (const text of ['', ' ', '1994', '199?', '19??', '0800']) expect(yearTextProblem(text)).toBeNull()
+    for (const text of ['', ' ', '1994', '199?', '19??', '1000', '2100', '20??']) expect(yearTextProblem(text)).toBeNull()
   })
 
   it('says "form" for text that is not one of the three forms', () => {
@@ -90,7 +93,7 @@ describe('yearTextProblem: why the field is wrong, so each reason can have its o
   })
 
   it('says "range" for a year of the right form that the app does not hold (owner, 2026-10-14)', () => {
-    for (const text of ['0000', '3001', '3500', '9999', '31??', '000?']) expect(yearTextProblem(text)).toBe('range')
+    for (const text of ['0000', '0800', '0999', '2101', '3000', '3500', '9999', '09??', '30??', '000?']) expect(yearTextProblem(text)).toBe('range')
   })
 })
 
@@ -106,13 +109,12 @@ describe('formatYear and yearFieldText', () => {
     expect(yearFieldText(NO_YEAR)).toBe('')
   })
 
-  it('shows a year below 1000 as it is in a row, and with its zero in the field, so the field reads back as the same year', () => {
+  it('shows a year stored below 1000 (from before the range was 1000 to 2100) as it is, in a row and in the field', () => {
     expect(formatYear(y(800))).toBe('800')
-    expect(yearFieldText(y(800))).toBe('0800')
-    expect(parseYearText(yearFieldText(y(800)))).toEqual(y(800))
+    expect(yearFieldText(y(800))).toBe('800')
   })
 
-  it.each(['1994', '199?', '19??', '0800', '0010', '001?', ''])('round-trips %j through the field', (text) => {
+  it.each(['1994', '199?', '19??', '1000', '2100', '100?', ''])('round-trips %j through the field', (text) => {
     expect(yearFieldText(parseYearText(text)!)).toBe(text)
   })
 })
@@ -194,6 +196,11 @@ describe('splitTrailingYear: Use Hands (a year in brackets at the end of a line)
     expect(splitTrailingYear('Foo (0000)')).toBeNull()
     expect(splitTrailingYear('Foo (3500)')).toBeNull()
     expect(splitTrailingYear('Foo (31??)')).toBeNull()
+    expect(splitTrailingYear('Foo (0800)')).toBeNull()
+    expect(splitTrailingYear('Foo (2101)')).toBeNull()
+    expect(splitTrailingYear('Foo (3000)')).toBeNull()
+    expect(splitTrailingYear('Foo (1000)')).toEqual({ title: 'Foo', year: y(1000) })
+    expect(splitTrailingYear('Foo (2100)')).toEqual({ title: 'Foo', year: y(2100) })
   })
 
   it('does not need a space before the bracket, and takes only the last bracket', () => {
@@ -214,7 +221,14 @@ describe('parseYamlYear and yamlYearValue (a list file)', () => {
     expect(parseYamlYear('3500')).toBeUndefined()
   })
 
-  it.each([1994.5, 0, 3001, -5, 'abc', '1?', '19?4', '199', ' 1994', '1994 ', '', '1e3', null, true, [], {}, Number.NaN])(
+  it('holds a file to 1000 to 2100 like the field', () => {
+    expect(parseYamlYear(1000)).toEqual(y(1000))
+    expect(parseYamlYear(2100)).toEqual(y(2100))
+    expect(parseYamlYear('21??')).toEqual(y(2100, 2))
+    for (const value of [999, 2101, 3000, '0999', '2101', '30??']) expect(parseYamlYear(value)).toBeUndefined()
+  })
+
+  it.each([1994.5, 0, 3001, 999, 2101, -5, 'abc', '1?', '19?4', '199', ' 1994', '1994 ', '', '1e3', null, true, [], {}, Number.NaN])(
     'refuses %j',
     (value) => {
       expect(parseYamlYear(value)).toBeUndefined()
@@ -228,7 +242,7 @@ describe('parseYamlYear and yamlYearValue (a list file)', () => {
   })
 
   it('reads back what it writes', () => {
-    for (const year of [y(1994), y(1990, 1), y(1900, 2), y(1), y(3000)]) {
+    for (const year of [y(1994), y(1990, 1), y(1900, 2), y(1000), y(2100)]) {
       expect(parseYamlYear(yamlYearValue(year))).toEqual(year)
     }
   })
@@ -240,6 +254,13 @@ describe('validYearPair: a year and its unknown digits, as an API or a file hand
     expect(validYearPair(1990, 1)).toEqual(y(1990, 1))
     expect(validYearPair(1900, 2)).toEqual(y(1900, 2))
     expect(validYearPair(null, 0)).toEqual(NO_YEAR)
+  })
+
+  it('accepts the ends of 1000 to 2100, also with unknown digits', () => {
+    expect(validYearPair(1000, 0)).toEqual(y(1000))
+    expect(validYearPair(2100, 0)).toEqual(y(2100))
+    expect(validYearPair(2100, 1)).toEqual(y(2100, 1))
+    expect(validYearPair(2100, 2)).toEqual(y(2100, 2))
   })
 
   it('takes a missing yearUnk as 0 and a missing year as none', () => {
@@ -260,6 +281,9 @@ describe('validYearPair: a year and its unknown digits, as an API or a file hand
     [undefined, 2],
     [0, 0],
     [3001, 0],
+    [999, 0],
+    [2101, 0],
+    [2110, 1],
     [3100, 2],
     [1994.5, 0],
     ['1994', 0],
