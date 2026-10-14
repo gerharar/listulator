@@ -220,8 +220,8 @@ html {
   --d-layer-shift: 300ms;
   --d-pulse-hold: 400ms;
   --d-pulse-fade: 1500ms;
-  --d-toast: 3200ms;
-  --d-toast-action: 8000ms;
+  --d-toast: 3000ms;
+  --d-toast-action: 5000ms;
   --d-spinner-delay: 400ms;
   --o-disabled: 0.45;
   --o-dragging: 0.4;
