@@ -68,8 +68,10 @@ describe('direct dependencies', () => {
     expect(specs.filter((spec) => !EXACT.test(spec.slice(spec.lastIndexOf('@') + 1)))).toEqual([])
   })
 
-  it('are overridden only where a package pins a vulnerable one (each override has a reason in DECISIONS)', () => {
-    expect(readJson('package.json')['overrides']).toEqual({ 'shell-quote': '1.11.0' })
+  // `shell-quote`: a vulnerable pin (SR-040). `glob`: a deprecated pin that npm warns about on every install (BL-091); the
+  // reason and the condition for dropping it are in DECISIONS ("Fix BL-091").
+  it('are overridden only where a package pins a vulnerable or deprecated one (each override has a reason in DECISIONS)', () => {
+    expect(readJson('package.json')['overrides']).toEqual({ glob: '13.0.6', 'shell-quote': '1.11.0' })
   })
 })
 
