@@ -8,6 +8,7 @@ import type { MediaTypeRegistry } from '../ingestion/mediaTypes.js'
 import { enrichPrefixesByMediaType } from './runtimeFill.js'
 import { withRuntimePending } from './runtimes.js'
 import { withLinks } from './itemLinks.js'
+import { InvalidYearError } from './years.js'
 import {
   createList,
   createListItem,
@@ -107,6 +108,10 @@ const itemBodyProperties = {
   // Lets a hand-typed item join (or leave, via null on a patch) a season
   // group started by an import — task 6.6's manual-entry follow-up.
   group: { type: ['string', 'null'], maxLength: NAME_MAX_LENGTH },
+  // The year, and how many of its last digits are unknown (H-004, H-005): `199?` is 1990 with 1. Null clears the year.
+  // Whether the two fit together, and are in range, is the repository's call (400 `item.invalidYear`).
+  year: { type: ['integer', 'null'] },
+  yearUnk: { type: 'integer', minimum: 0, maximum: 2 },
   // Set by hand in the Edit window or the add row (U5); null or [] clears them.
   tags: { type: ['array', 'null'], maxItems: MAX_ITEM_TAGS, items: { type: 'string', maxLength: 40 } },
 } as const
@@ -278,6 +283,8 @@ export const catalogRoutes: FastifyPluginAsync<CatalogRoutesOptions> = async (
       timeToConsumeIsEstimated?: boolean
       orderIndex?: number
       group?: string | null
+      year?: number | null
+      yearUnk?: number
       tags?: string[] | null
     }
   }>(
@@ -297,13 +304,18 @@ export const catalogRoutes: FastifyPluginAsync<CatalogRoutesOptions> = async (
       // This route's whole reason to exist is adding one item by hand
       // (task 6.1/6.2) — bulk/search-imported items always go through
       // ingestion's own routes instead.
-      const item = await createListItem(db, user.id, request.params.listId, {
-        ...request.body,
-        source: 'manual',
-      })
-      if (!item) return reply.callNotFound()
+      try {
+        const item = await createListItem(db, user.id, request.params.listId, {
+          ...request.body,
+          source: 'manual',
+        })
+        if (!item) return reply.callNotFound()
 
-      return reply.code(201).send(item)
+        return reply.code(201).send(item)
+      } catch (cause) {
+        if (cause instanceof InvalidYearError) return sendApiError(reply, 400, 'item.invalidYear')
+        throw cause
+      }
     },
   )
 
@@ -315,6 +327,8 @@ export const catalogRoutes: FastifyPluginAsync<CatalogRoutesOptions> = async (
       timeToConsumeIsEstimated?: boolean
       orderIndex?: number
       group?: string | null
+      year?: number | null
+      yearUnk?: number
       tags?: string[] | null
     }
   }>(
@@ -332,10 +346,15 @@ export const catalogRoutes: FastifyPluginAsync<CatalogRoutesOptions> = async (
     async (request, reply) => {
       const user = getCurrentUser(request)
       const { listId, itemId } = request.params
-      const updated = await updateListItem(db, user.id, listId, itemId, request.body)
-      if (!updated) return reply.callNotFound()
+      try {
+        const updated = await updateListItem(db, user.id, listId, itemId, request.body)
+        if (!updated) return reply.callNotFound()
 
-      return updated
+        return updated
+      } catch (cause) {
+        if (cause instanceof InvalidYearError) return sendApiError(reply, 400, 'item.invalidYear')
+        throw cause
+      }
     },
   )
 

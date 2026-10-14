@@ -42,6 +42,7 @@ const item = (id: string, orderIndex: number, group: string | null, done = false
   group,
   tags: null,
   notes: null,
+  yearUnk: 0,
   isNew: false,
 })
 

@@ -2,6 +2,8 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { AddItemForm, parseMinutes } from './AddItemForm.js'
+import { copy } from '../../locale/index.js'
+import { hoverTooltip } from '../../components/quantum/Tooltip/hoverTooltip.js'
 
 afterEach(cleanup)
 
@@ -226,3 +228,89 @@ describe('AddItemForm', () => {
   })
 })
 
+describe('AddItemForm: the year (H-004, H-005)', () => {
+  const year = () => screen.getByLabelText('Year') as HTMLInputElement
+  const text = copy.quantum.list.addItem
+
+  it('has a Year field between the title and the minutes', () => {
+    renderForm()
+
+    expect(year().placeholder).toBe('Year')
+    expect(year().maxLength).toBe(4)
+    expect(title().compareDocumentPosition(year()) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(year().compareDocumentPosition(minutes()) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+  })
+
+  it('keeps only digits and then ?, four at most', () => {
+    renderForm()
+
+    fireEvent.change(year(), { target: { value: '1?9x' } })
+
+    expect(year().value).toBe('1?')
+  })
+
+  it('adds without a year when the field is empty, as it always did', async () => {
+    const { onAdd } = renderForm()
+
+    fireEvent.change(title(), { target: { value: 'Bonus' } })
+    fireEvent.click(addButton())
+
+    await waitFor(() => expect(onAdd).toHaveBeenCalledWith({ title: 'Bonus', minutes: null, group: '' }))
+  })
+
+  it('adds with an exact year and with a partial one, with the digits it does not know', async () => {
+    const { onAdd } = renderForm()
+
+    fireEvent.change(title(), { target: { value: 'Single' } })
+    fireEvent.change(year(), { target: { value: '1994' } })
+    fireEvent.click(addButton())
+    await waitFor(() => expect(onAdd).toHaveBeenLastCalledWith({ title: 'Single', minutes: null, group: '', year: { year: 1994, yearUnk: 0 } }))
+
+    fireEvent.change(title(), { target: { value: 'Tape' } })
+    fireEvent.change(year(), { target: { value: '198?' } })
+    fireEvent.click(addButton())
+    await waitFor(() => expect(onAdd).toHaveBeenLastCalledWith({ title: 'Tape', minutes: null, group: '', year: { year: 1980, yearUnk: 1 } }))
+  })
+
+  it('clears the year with the title after an add: each item has its own', async () => {
+    renderForm()
+
+    fireEvent.change(title(), { target: { value: 'Single' } })
+    fireEvent.change(year(), { target: { value: '1994' } })
+    fireEvent.click(addButton())
+
+    await waitFor(() => expect(title().value).toBe(''))
+    expect(year().value).toBe('')
+  })
+
+  it.each(['1', '19', '199', '1?', '19?4'])('turns Add off for a year of %j, with the reason as a tooltip and no hint line', async (value) => {
+    renderForm()
+    fireEvent.change(title(), { target: { value: 'Bonus' } })
+
+    fireEvent.change(year(), { target: { value } })
+
+    expect(addButton().disabled).toBe(true)
+    expect(year().getAttribute('aria-invalid')).toBe('true')
+    expect(screen.queryByRole('alert')).toBeNull()
+    expect(await hoverTooltip(addButton())).toBe(text.yearTip)
+  })
+
+  it.each(['3500', '0000', '31??'])('turns Add off for %j with its own tooltip: the right shape, a year the app does not hold', async (value) => {
+    renderForm()
+    fireEvent.change(title(), { target: { value: 'Bonus' } })
+
+    fireEvent.change(year(), { target: { value } })
+
+    expect(addButton().disabled).toBe(true)
+    expect(await hoverTooltip(addButton())).toBe(text.yearTipRange)
+  })
+
+  it('has no tooltip on Add while the year is right', async () => {
+    renderForm()
+    fireEvent.change(title(), { target: { value: 'Bonus' } })
+    fireEvent.change(year(), { target: { value: '1994' } })
+
+    expect(addButton().disabled).toBe(false)
+    expect(await hoverTooltip(addButton())).toBeNull()
+  })
+})

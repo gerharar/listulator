@@ -15,6 +15,7 @@ const item = (id: string, extra: Partial<ListItem> = {}): ListItem => ({
   group: null,
   tags: null,
   notes: null,
+  yearUnk: 0,
   isNew: false,
   runtimePending: true,
   ...extra,

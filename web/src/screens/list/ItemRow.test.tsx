@@ -27,6 +27,7 @@ const ITEM: ListItem = {
   group: null,
   tags: null,
   notes: null,
+  yearUnk: 0,
   isNew: false,
 }
 
@@ -336,5 +337,37 @@ describe('ItemRow: the link to the item’s page at its source (H-002, BL-087)',
     fireEvent.click(screen.getByRole('link'))
 
     expect(openUrl).toHaveBeenCalledExactlyOnceWith('https://www.themoviedb.org/movie/603')
+  })
+})
+
+describe('ItemRow: the year (H-004, H-005)', () => {
+  it('says "Release year" for an exact year', async () => {
+    renderRow()
+    const year = screen.getByText('(2021)')
+
+    expect(year.getAttribute('aria-label')).toBe('Release year')
+    expect(await hoverTooltip(year)).toBe('Release year')
+  })
+
+  it('shows 199? as (199?) and says it is sometime in the 1990s', async () => {
+    renderRow({ item: { ...ITEM, year: 1990, yearUnk: 1 } })
+    const year = screen.getByText('(199?)')
+
+    expect(year.getAttribute('aria-label')).toBe('Sometime in the 1990s')
+    expect(await hoverTooltip(year)).toBe('Sometime in the 1990s')
+  })
+
+  it('shows 19?? as (19??) and says it is sometime in the 1900s', async () => {
+    renderRow({ item: { ...ITEM, year: 1900, yearUnk: 2 } })
+    const year = screen.getByText('(19??)')
+
+    expect(year.getAttribute('aria-label')).toBe('Sometime in the 1900s')
+    expect(await hoverTooltip(year)).toBe('Sometime in the 1900s')
+  })
+
+  it('shows nothing for an item with no year', () => {
+    renderRow({ item: { ...ITEM, year: null } })
+
+    expect(screen.queryByText(/^\(/)).toBeNull()
   })
 })

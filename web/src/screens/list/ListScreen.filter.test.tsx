@@ -79,6 +79,7 @@ const item = (id: string, title: string, orderIndex: number, group: string | nul
   group,
   tags,
   notes: null,
+  yearUnk: 0,
   isNew: false,
 })
 

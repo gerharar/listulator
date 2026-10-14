@@ -5,6 +5,7 @@ import { useLayoutEffect, useReducer, useRef } from 'react'
 import type { ListItem } from '../../lib/api.js'
 import { OverlayManagerProvider, useEscLadder } from '../../components/quantum/overlay/OverlayManagerContext.js'
 import { ItemEditPopover } from './ItemEditPopover.js'
+import { copy } from '../../locale/index.js'
 
 afterEach(cleanup)
 
@@ -21,6 +22,7 @@ const ITEM: ListItem = {
   group: 'Season 1',
   tags: null,
   notes: null,
+  yearUnk: 0,
   isNew: false,
 }
 
@@ -189,5 +191,117 @@ describe('ItemEditPopover', () => {
 
     press()
     expect(onCommit).toHaveBeenCalledWith({ group: 'Season 3' }, 'save')
+  })
+})
+
+describe('ItemEditPopover: the year (H-004, H-005)', () => {
+  const year = () => screen.getByLabelText('Year') as HTMLInputElement
+  const hint = () => screen.queryByRole('alert')
+  const text = copy.quantum.list.itemActions
+
+  it('has a Year field before the duration, holding the item’s year as the field writes it', () => {
+    renderPopover()
+
+    expect(year().value).toBe('2021')
+    expect(year().placeholder).toBe('1994, 199?')
+    expect(year().maxLength).toBe(4)
+    // Beside the duration, on the same line: Year first.
+    expect(year().compareDocumentPosition(minutes()) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(year().closest('.q-edit-pair')).toBe(minutes().closest('.q-edit-pair'))
+  })
+
+  it('shows a partial year with its ?, and an empty field for an item with none', () => {
+    renderPopover({ item: { ...ITEM, year: 1990, yearUnk: 1 } })
+    expect(year().value).toBe('199?')
+    cleanup()
+
+    renderPopover({ item: { ...ITEM, year: null } })
+    expect(year().value).toBe('')
+  })
+
+  it('holds a year below 1000 with its zero, so what it reads back is the same year', () => {
+    renderPopover({ item: { ...ITEM, year: 800 } })
+
+    expect(year().value).toBe('0800')
+  })
+
+  it('keeps only digits and then ?, four at most, as they are typed', () => {
+    renderPopover()
+
+    fireEvent.change(year(), { target: { value: '1?9x' } })
+    expect(year().value).toBe('1?')
+    fireEvent.change(year(), { target: { value: '19999' } })
+    expect(year().value).toBe('1999')
+  })
+
+  it('saves a changed year with the digits it does not know', () => {
+    const { onCommit } = renderPopover()
+
+    fireEvent.change(year(), { target: { value: '199?' } })
+    fireEvent.click(save())
+
+    expect(onCommit).toHaveBeenCalledWith({ year: 1990, yearUnk: 1 }, 'save')
+  })
+
+  it('clears the year when the field is emptied', () => {
+    const { onCommit } = renderPopover()
+
+    fireEvent.change(year(), { target: { value: '' } })
+    fireEvent.click(save())
+
+    expect(onCommit).toHaveBeenCalledWith({ year: null, yearUnk: 0 }, 'save')
+  })
+
+  it('says nothing, and keeps Save for other changes, while the year is a year', () => {
+    renderPopover()
+
+    expect(hint()).toBeNull()
+    expect(year().getAttribute('aria-invalid')).not.toBe('true')
+    expect(save().disabled).toBe(true)
+  })
+
+  it.each(['1', '19', '199', '1?', '19?4'])('turns Save off and gives the hint for a year of %j', (value) => {
+    renderPopover()
+    fireEvent.change(title(), { target: { value: 'Renamed' } })
+    expect(save().disabled).toBe(false)
+
+    fireEvent.change(year(), { target: { value: value } })
+
+    expect(save().disabled).toBe(true)
+    expect(hint()?.textContent).toBe(text.yearHint)
+    expect(year().getAttribute('aria-invalid')).toBe('true')
+  })
+
+  it.each(['3500', '0000', '31??'])('gives its own hint for %j, a year of the right shape the app does not hold', (value) => {
+    renderPopover()
+
+    fireEvent.change(year(), { target: { value } })
+
+    expect(save().disabled).toBe(true)
+    expect(hint()?.textContent).toBe(text.yearHintRange)
+  })
+
+  it('takes the hint away again when the year is right', () => {
+    renderPopover()
+    fireEvent.change(year(), { target: { value: '19' } })
+    expect(hint()).not.toBeNull()
+
+    fireEvent.change(year(), { target: { value: '1999' } })
+
+    expect(hint()).toBeNull()
+    expect(save().disabled).toBe(false)
+  })
+
+  it('does not save on Enter, or on a click away, while the year is wrong: the buttons are the contract', () => {
+    const { onCommit, onDiscard } = renderPopover()
+    fireEvent.change(title(), { target: { value: 'Renamed' } })
+    fireEvent.change(year(), { target: { value: '19' } })
+
+    fireEvent.keyDown(title(), { key: 'Enter' })
+    expect(onCommit).not.toHaveBeenCalled()
+
+    clickAway()
+    expect(onCommit).not.toHaveBeenCalled()
+    expect(onDiscard).toHaveBeenCalled()
   })
 })

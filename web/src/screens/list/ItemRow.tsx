@@ -1,6 +1,7 @@
 import './Spine.css'
 import type { AnchorHTMLAttributes, KeyboardEvent, MouseEvent, PointerEvent } from 'react'
 import { ArrowUpRight, Info, Pencil, Plus, Trash2 } from 'lucide-react'
+import { approximateDecade, formatYear } from '../../../../server/src/catalog/years.js'
 import { formatDuration } from '../../formatDuration.js'
 import { copy } from '../../locale/index.js'
 import type { ListItem } from '../../lib/api.js'
@@ -108,6 +109,8 @@ export function ItemRow({
   const text = copy.quantum.list.itemActions
   const tagText = copy.quantum.list.tags
   const done = item.consumedAt !== null
+  const decade = approximateDecade(item)
+  const yearTip = decade ? text.sometimeIn(decade) : text.releaseYear
   const kind = tagChip?.label ?? item.tags?.[0]
 
   /** A row button acts on its own: it must not also toggle the row it sits in. */
@@ -185,7 +188,11 @@ export function ItemRow({
           <Tip className="title" text={item.title} whenClipped>
             {item.title}
           </Tip>
-          {item.year ? <span className="q-year">({item.year})</span> : null}
+          {item.year ? (
+            <Tip className="q-year" text={yearTip} aria-label={yearTip}>
+              ({formatYear(item)})
+            </Tip>
+          ) : null}
         </span>
         {/* ⓘ and ✎ sit in the title's own group (the prototype's), so they get its 9px gap. */}
         <IconButton size="row" className="info" label={text.details(item.title)} onClick={act(onInfo)}>

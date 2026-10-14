@@ -27,6 +27,8 @@ export interface ItemPayload {
   externalRef: string | null
   source: ItemSource
   year: number | null
+  /** Unknown digits of `year` (H-005). Absent on payloads from before: read as 0. */
+  yearUnk?: number
   group: string | null
   tags: string[] | null
   consumedAt: string | null
@@ -141,6 +143,7 @@ export const toItemPayload = (item: ListItem): ItemPayload => ({
   externalRef: item.externalRef,
   source: item.source,
   year: item.year,
+  yearUnk: item.yearUnk,
   group: item.group,
   tags: item.tags,
   consumedAt: item.consumedAt?.toISOString() ?? null,

@@ -512,6 +512,7 @@ function ListView({
       timeToConsumeMinutes: input.minutes ?? defaultMinutes,
       timeToConsumeIsEstimated: !known,
       group,
+      ...(input.year ? { year: input.year.year, yearUnk: input.year.yearUnk } : {}),
       ...(input.tags ? { tags: input.tags } : {}),
     })
     // The next item on this list starts with what this one used (docs/chips §4).

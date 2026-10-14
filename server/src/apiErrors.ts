@@ -35,6 +35,7 @@ export type ApiErrorCode =
   | 'list.fileItemMissingTitle'
   | 'list.fileItemNotesTooLong'
   | 'list.alreadyExists'
+  | 'item.invalidYear'
   | 'group.nameEmpty'
   | 'group.nameTaken'
   | 'group.notEmpty'

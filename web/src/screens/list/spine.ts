@@ -1,8 +1,10 @@
+import { formatYear, yearSpan, type YearLike } from '../../../../server/src/catalog/years.js'
 import type { ListGroup, ListItem } from '../../lib/api.js'
 
+/** The ends of a group's years, by the sort's own order, so `199?` can be an end (H-005). */
 export interface YearSpan {
-  from: number
-  to: number
+  from: YearLike
+  to: YearLike
 }
 
 /** A group and the items inside it, with its own progress. */
@@ -44,16 +46,16 @@ export function listTotals(items: readonly ListItem[]): ListTotals {
 }
 
 function spanOf(items: readonly ListItem[]): YearSpan | null {
-  const years = items.map((item) => item.year).filter((year): year is number => year !== null)
-
-  return years.length > 0 ? { from: Math.min(...years), to: Math.max(...years) } : null
+  return yearSpan(items.map((item) => ({ year: item.year, yearUnk: item.yearUnk })))
 }
 
 /** `(2019–2021)`, `(2019)`, or nothing. */
 export function yearSpanLabel(span: YearSpan | null): string | null {
   if (!span) return null
+  const from = formatYear(span.from)
+  const to = formatYear(span.to)
 
-  return span.from === span.to ? `(${span.from})` : `(${span.from}–${span.to})`
+  return from === to ? `(${from})` : `(${from}–${to})`
 }
 
 /**

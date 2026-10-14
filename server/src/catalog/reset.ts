@@ -30,6 +30,7 @@ import {
   updateList,
 } from './repository.js'
 import { movedOnly, setGroupPositions, setItemPositions } from './orderIndex.js'
+import { yearSortKey } from './years.js'
 import { captureItemSet, restoreItemSet } from './restore.js'
 import type { ItemSetRestore, OrderRestore } from './restorePayloads.js'
 
@@ -71,7 +72,7 @@ export async function sortChronologically(
   userId: string,
   listId: string,
 ): Promise<OrderRestore | undefined> {
-  return reorderBy(db, userId, listId, (item) => item.year ?? NO_YEAR)
+  return reorderBy(db, userId, listId, yearSortKey)
 }
 
 /**
@@ -164,7 +165,7 @@ async function reorderBy(
   db: PortableDatabase,
   userId: string,
   listId: string,
-  keyOf: (item: { id: string; year: number | null }) => number,
+  keyOf: (item: { id: string; year: number | null; yearUnk: number }) => number,
 ): Promise<OrderRestore | undefined> {
   const items = await findListItems(db, userId, listId)
   const groups = await findListGroups(db, userId, listId)
@@ -263,6 +264,8 @@ interface TargetItem {
   estimatedMinutes?: number
   externalRef?: string | null
   year?: number | null
+  /** Unknown digits of `year` (H-005): a list file's partial year comes back on Reset. */
+  yearUnk?: number
   group?: string | null
   tags?: string[] | null
   notes?: string | null
@@ -283,6 +286,7 @@ const fromParsed = (parsed: ParsedCustomList): ResetTarget => ({
     title: item.title,
     ...(item.minutes !== undefined ? { minutes: item.minutes } : {}),
     ...(item.year !== undefined ? { year: item.year } : {}),
+    ...(item.yearUnk !== undefined ? { yearUnk: item.yearUnk } : {}),
     ...(item.group !== undefined ? { group: item.group } : {}),
     ...(item.tags !== undefined ? { tags: item.tags } : {}),
     ...(item.notes !== undefined ? { notes: item.notes } : {}),
@@ -333,6 +337,7 @@ async function liveTarget(
       ...(item.estimatedMinutes !== undefined ? { estimatedMinutes: item.estimatedMinutes } : {}),
       ...(item.externalRef ? { externalRef: item.externalRef } : {}),
       ...(item.year ? { year: item.year } : {}),
+      ...(item.yearUnk ? { yearUnk: item.yearUnk } : {}),
       ...(item.group ? { group: item.group } : {}),
       ...(item.tags ? { tags: item.tags } : {}),
       ...(item.notes ? { notes: item.notes } : {}),

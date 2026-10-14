@@ -30,6 +30,7 @@ export const itemPayloadSchema = {
     externalRef: { type: ['string', 'null'], maxLength: 500 },
     source: { type: 'string', enum: ['manual', 'import'] },
     year: { type: ['integer', 'null'] },
+    yearUnk: { type: 'integer', minimum: 0, maximum: 2 },
     group: { type: ['string', 'null'], maxLength: 500 },
     tags: { type: ['array', 'null'], items: { type: 'string', maxLength: 40 }, maxItems: MAX_ITEM_TAGS },
     consumedAt: nullableString,

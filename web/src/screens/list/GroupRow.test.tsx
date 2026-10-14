@@ -14,7 +14,7 @@ const BLOCK: GroupBlock = {
   done: 2,
   total: 6,
   minutesLeft: 200,
-  yearSpan: { from: 2021, to: 2023 },
+  yearSpan: { from: { year: 2021, yearUnk: 0 }, to: { year: 2023, yearUnk: 0 } },
   allDone: false,
 }
 
@@ -32,11 +32,12 @@ function renderRow(block: GroupBlock = BLOCK, overrides: Partial<Parameters<type
 }
 
 describe('GroupRow', () => {
-  it('shows its name, its year span and its own progress', () => {
+  it('shows its name, its year span and its own progress', async () => {
     renderRow()
 
     expect(screen.getByText('Season 1')).toBeTruthy()
     expect(screen.getByText('(2021–2023)')).toBeTruthy()
+    expect(await hoverTooltip(screen.getByText('(2021–2023)'))).toBe('Release years in this group')
     expect(screen.getByText('2/6 (33%)')).toBeTruthy()
     expect(screen.getByText('3h 20m left')).toBeTruthy()
   })

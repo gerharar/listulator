@@ -9,9 +9,9 @@ import {
   TAG_MAX_LENGTH,
   TAGS_MAX,
   validMinutes,
-  validYear,
   YEAR_RANGE,
 } from '../catalog/limits.js'
+import { parseYamlYear } from '../catalog/years.js'
 import { getJson, getText, IngestionError, type FetchLike } from './http.js'
 import type { ListExpansion } from './mediaTypes.js'
 import { textHazard, withoutHazards } from './textHazards.js'
@@ -26,7 +26,10 @@ import { textHazard, withoutHazards } from './textHazards.js'
 
 export interface ParsedCustomListItem {
   title: string
+  /** The year, or the earliest it can be when `yearUnk` says some digits are unknown (`"199?"` is 1990). */
   year?: number
+  /** How many of `year`'s last digits are unknown (H-005): present only when 1 or 2; an exact year has none. */
+  yearUnk?: 1 | 2
   minutes?: number
   group?: string
   tags?: string[]
@@ -257,8 +260,8 @@ export function parseCustomList(
     if (typeof itemTitle !== 'string' || itemTitle.trim().length === 0) {
       fail('list.fileItemMissingTitle', { index: index + 1 })
     }
-    if (year !== undefined && typeof year !== 'number') {
-      invalid(`${named}: "year" must be a number, but it is ${describeValue(year)}`)
+    if (year !== undefined && typeof year !== 'number' && typeof year !== 'string') {
+      invalid(`${named}: "year" must be a number, or text like 199? or 19??, but it is ${describeValue(year)}`)
     }
     if (minutes !== undefined && typeof minutes !== 'number') {
       invalid(`${named}: "minutes" must be a number, but it is ${describeValue(minutes)}`)
@@ -286,8 +289,12 @@ export function parseCustomList(
     const cleanTitle = itemTitle.replace(/[\r\n]+$/, '')
     const cleanGroup = group?.replace(/[\r\n]+$/, '')
     checkText(`${named}: "title"`, cleanTitle, { max: NAME_MAX_LENGTH })
-    if (year !== undefined && validYear(year) === undefined) {
-      invalid(`${named}: "year" must be a whole number from ${YEAR_RANGE[0]} to ${YEAR_RANGE[1]}, but it is ${describeValue(year)}`)
+    // A whole number, or text in one of the three forms (`1994`, `199?`, `19??`), within the years the app holds (H-005).
+    const itemYear = year === undefined ? undefined : parseYamlYear(year)
+    if (year !== undefined && itemYear === undefined) {
+      invalid(
+        `${named}: "year" must be a whole number from ${YEAR_RANGE[0]} to ${YEAR_RANGE[1]}, or 199? or 19?? when only the decade or century is known, but it is ${describeValue(year)}`,
+      )
     }
     if (minutes !== undefined && validMinutes(minutes) === undefined) {
       invalid(`${named}: "minutes" must be a whole number from ${MINUTES_RANGE[0]} to ${MINUTES_RANGE[1]}, but it is ${describeValue(minutes)}`)
@@ -301,7 +308,8 @@ export function parseCustomList(
 
     return {
       title: cleanTitle,
-      ...(year !== undefined ? { year } : {}),
+      ...(itemYear?.year ? { year: itemYear.year } : {}),
+      ...(itemYear?.yearUnk ? { yearUnk: itemYear.yearUnk } : {}),
       ...(minutes !== undefined ? { minutes } : {}),
       ...(cleanGroup !== undefined ? { group: cleanGroup } : {}),
       ...(tags !== undefined ? { tags: tags as string[] } : {}),
@@ -546,6 +554,7 @@ export async function expandCanonicalList(
   const items = parsed.items.map((item) => ({
     title: item.title,
     ...(item.year !== undefined ? { year: item.year } : {}),
+    ...(item.yearUnk !== undefined ? { yearUnk: item.yearUnk } : {}),
     ...(item.minutes !== undefined ? { timeToConsumeMinutes: item.minutes } : {}),
     ...(item.group !== undefined ? { group: item.group } : {}),
     ...(item.tags !== undefined ? { tags: item.tags } : {}),

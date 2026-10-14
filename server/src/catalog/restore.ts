@@ -12,6 +12,7 @@ import {
 } from '../db/schema.js'
 import { ensureListGroup, GroupNameError } from './groups.js'
 import { findList } from './repository.js'
+import { validYearPair } from './years.js'
 import {
   toDismissalPayload,
   toGroupPayload,
@@ -65,6 +66,7 @@ const itemRow = (listId: string, item: ItemPayload) => ({
   externalRef: item.externalRef,
   source: item.source,
   year: item.year,
+  yearUnk: validYearPair(item.year, item.yearUnk)?.yearUnk ?? 0,
   group: item.group,
   tags: item.tags,
   consumedAt: item.consumedAt ? new Date(item.consumedAt) : null,

@@ -1,4 +1,5 @@
 import './ItemInfoCard.css'
+import { formatYear } from '../../../../server/src/catalog/years.js'
 import { formatDuration } from '../../formatDuration.js'
 import type { ListItem } from '../../lib/api.js'
 import { copy } from '../../locale/index.js'
@@ -22,7 +23,7 @@ export function ItemInfoCard({ item }: ItemInfoCardProps) {
       <div className="q-info-title">{item.title}</div>
       <div className="q-info-cover" aria-hidden="true" />
       <div className="q-info-facts">
-        {item.year ? <span>{item.year}</span> : null}
+        {item.year ? <span>{formatYear(item)}</span> : null}
         <span>{item.runtimePending ? text.runtimePending : formatDuration(item.timeToConsumeMinutes)}</span>
       </div>
       {notes && <p className="q-info-notes">{notes}</p>}

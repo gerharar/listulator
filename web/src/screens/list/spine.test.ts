@@ -20,6 +20,7 @@ function item(overrides: Partial<ListItem> = {}): ListItem {
     group: null,
     tags: null,
     notes: null,
+    yearUnk: 0,
     isNew: false,
     ...overrides,
   }
@@ -138,7 +139,18 @@ describe('buildSpine', () => {
         item({ group: 'A' }),
       ])
 
-      expect(block.yearSpan).toEqual({ from: 2019, to: 2021 })
+      expect(block.yearSpan).toEqual({ from: { year: 2019, yearUnk: 0 }, to: { year: 2021, yearUnk: 0 } })
+    })
+
+    it('reaches into a partial year at either end, by the same order as the sort (H-005)', () => {
+      const block = blockOf([
+        item({ group: 'A', year: 1990, yearUnk: 1 }),
+        item({ group: 'A', year: 2008 }),
+        item({ group: 'A', year: 1999 }),
+      ])
+
+      expect(block.yearSpan).toEqual({ from: { year: 1999, yearUnk: 0 }, to: { year: 2008, yearUnk: 0 } })
+      expect(yearSpanLabel(blockOf([item({ group: 'A', year: 1990, yearUnk: 1 }), item({ group: 'A', year: 2008 })]).yearSpan)).toBe('(199?–2008)')
     })
 
     it('has no span when no item has a year', () => {
@@ -149,9 +161,19 @@ describe('buildSpine', () => {
 
 describe('yearSpanLabel', () => {
   it('reads "(2019–2021)", or a single year, or nothing', () => {
-    expect(yearSpanLabel({ from: 2019, to: 2021 })).toBe('(2019–2021)')
-    expect(yearSpanLabel({ from: 2019, to: 2019 })).toBe('(2019)')
+    const y = (year: number, yearUnk = 0) => ({ year, yearUnk })
+
+    expect(yearSpanLabel({ from: y(2019), to: y(2021) })).toBe('(2019–2021)')
+    expect(yearSpanLabel({ from: y(2019), to: y(2019) })).toBe('(2019)')
     expect(yearSpanLabel(null)).toBeNull()
+  })
+
+  it('writes a partial end with its ?, and one partial year once (H-005)', () => {
+    const y = (year: number, yearUnk = 0) => ({ year, yearUnk })
+
+    expect(yearSpanLabel({ from: y(1990, 1), to: y(2008) })).toBe('(199?–2008)')
+    expect(yearSpanLabel({ from: y(1999), to: y(1990, 1) })).toBe('(1999–199?)')
+    expect(yearSpanLabel({ from: y(1900, 2), to: y(1900, 2) })).toBe('(19??)')
   })
 })
 

@@ -41,6 +41,7 @@ const film = (n: number, minutes: number, pending: boolean): ListItem => ({
   group: null,
   tags: null,
   notes: null,
+  yearUnk: 0,
   isNew: false,
   runtimePending: pending,
 })

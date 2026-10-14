@@ -42,6 +42,7 @@ function item(listId: string, index: number, minutes: number): ListItem {
     externalRef: null,
     source: 'import',
     year: null,
+    yearUnk: 0,
     group: null,
     tags: null,
     notes: null,

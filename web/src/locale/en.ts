@@ -93,7 +93,7 @@ export const en = {
     movie: {
       handTitlePlaceholder: 'Vin Diesel movies',
       handItemsPlaceholder:
-        'Fast And Furious franchise:\nThe Fast and the Furious\nFast Five\n\n# The Chronicles of Riddick franchise\nPitch Black\nThe Chronicles of Riddick\nRiddick',
+        'Fast And Furious franchise:\nThe Fast and the Furious (2001)\nFast Five (2011)\n\n# The Chronicles of Riddick franchise\nPitch Black (2000)\nThe Chronicles of Riddick (2004)\nRiddick (2013)',
     },
     tv: {
       label: 'TV Series',
@@ -201,6 +201,7 @@ export const en = {
     'list.fileItemMissingTitle': (p: { index: number }): string => `Alzheimer's relapse detected: cannot import list, item ${p.index} has no title`,
     'list.fileItemNotesTooLong': (p: { index: number; max: number }): string => `Marcel Proust reincarnation detected: cannot import list, item ${p.index}'s notes are over ${p.max} characters`,
     'list.alreadyExists': (): string => `Fastest hand in the West detected: this list already exists, so nothing was restored`,
+    'item.invalidYear': (): string => 'A year has four digits, like 1994. Unsure of the last one or two? Type ?: 199? or 19??. Leave it empty if you don\'t know it at all',
     'group.nameEmpty': (): string => 'A man needs a group name',
     'group.nameTaken': (): string => `Alzheimer's relapse detected: this list already has a group with such name`,
     'group.notEmpty': (): string => 'You can delete a group only when you embrace its emptiness',
@@ -565,6 +566,8 @@ export const en = {
       itemsLabel: 'Items',
       itemsPlaceholder: 'First item\nSecond item\n\nA group:\nThird item\nFourth item',
       itemsHint: 'Lines ending in a colon or starting with # open a group that lasts until the next one',
+      /** Added after the hint in every category (H-004): a year in brackets at the end of a line is the item's year. */
+      yearHint: "A year in brackets at the end of a line is the item's year: Fast Five (2011), or (199?) when you only know the decade",
       statusLabel: 'Status',
       create: 'Create List',
       creating: 'Creating…',
@@ -705,6 +708,11 @@ export const en = {
       },
       itemActions: {
         details: (title: string): string => `Details for ${title}`,
+        /** The year beside a title (H-004, H-005): an exact one, or `199?` / `19??` when only the decade or century is known. */
+        releaseYear: 'Release year',
+        sometimeIn: (decade: string): string => `Sometime in the ${decade}`,
+        /** The span after a group's name, e.g. (1999–2008). */
+        groupYears: 'Release years in this group',
         /** The drag handle's hover text (10.23), in the prototype's words. */
         dragOnList: 'Drag to move across the list',
         dragWithin: (group: string): string => `Drag to reorder within ${group}`,
@@ -739,6 +747,12 @@ export const en = {
         runtimePending: '-',
         editTitle: 'Title',
         editMinutes: 'Duration (Minutes)',
+        editYear: 'Year',
+        yearPlaceholder: '1994, 199?',
+        /** Under the year field when it is wrong (H-004, H-005). The owner rewords these two; they are separate on purpose. */
+        yearHint: "A year has four digits, like 1994. Unsure of the last one or two? Type ?: 199? or 19??. Leave it empty if you don't know it at all",
+        /** A year of the right shape the app does not hold (3500, 0000): the same words for now. */
+        yearHintRange: "A year has four digits, like 1994. Unsure of the last one or two? Type ?: 199? or 19??. Leave it empty if you don't know it at all",
         editGroup: 'Group',
         discard: 'Don\'t Save',
         save: 'Save',
@@ -756,6 +770,12 @@ export const en = {
       addItem: {
         titleLabel: 'Title',
         titlePlaceholder: 'Add an item…',
+        yearLabel: 'Year',
+        yearPlaceholder: 'Year',
+        /** On the Add button while the year is wrong: the button is off and there is no hint line (H-004). */
+        yearTip: 'A year has four digits (1994), or ? for unknown last digits (199?, 19??)',
+        /** A year of the right shape the app does not hold (3500, 0000): the same words for now. */
+        yearTipRange: 'A year has four digits (1994), or ? for unknown last digits (199?, 19??)',
         minutesLabel: 'Minutes',
         groupLabel: 'Group',
         add: 'Add',

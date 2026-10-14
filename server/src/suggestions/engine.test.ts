@@ -73,6 +73,7 @@ function nextItemsFor(lists: ListWithStats[]): Map<string, ListItem | undefined>
         externalRef: null,
         source: 'import',
         year: null,
+        yearUnk: 0,
         group: null,
         tags: null,
         notes: null,

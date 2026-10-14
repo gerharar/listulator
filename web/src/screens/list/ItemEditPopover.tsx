@@ -1,4 +1,5 @@
 import { NAME_MAX_LENGTH } from '../../../../server/src/catalog/limits.js'
+import { filterYearInput, yearFieldText, yearTextProblem } from '../../../../server/src/catalog/years.js'
 import './ItemEditPopover.css'
 import { useCallback, useEffect, useRef, useState, type KeyboardEvent } from 'react'
 import type { ItemSourceTags, ListItem } from '../../lib/api.js'
@@ -39,7 +40,7 @@ export interface ItemEditPopoverProps {
 const joined = (codes: readonly string[]) => codes.join('\n')
 
 /**
- * The ✎ popover (design: item edit, 360px): Title, Minutes, Group, and
+ * The ✎ popover (design: item edit, 360px): Title, Year beside Minutes, Group, and
  * Discard / Save. Clicking away commits what can be saved — "the buttons are the
  * contract; the click-away is the safety net" — but Esc cancels (owner ruling, 2026-09-26: Enter saves, Esc cancels). There is
  * no field for `notes`: they are curator prose and read-only.
@@ -60,6 +61,8 @@ export function ItemEditPopover({
   const [title, setTitle] = useState(item.title)
   const [minutes, setMinutes] = useState(String(item.timeToConsumeMinutes))
   const [group, setGroup] = useState(item.group ?? '')
+  const [year, setYear] = useState(() => yearFieldText(item))
+  const yearProblem = yearTextProblem(year)
 
   // U5: the tag field's draft. Tags are written only when the field changed them,
   // so an edit of the title never rewrites an old spelling (PC) the item still carries.
@@ -109,7 +112,7 @@ export function ItemEditPopover({
     tags = writeChoice(item.tags, choice, chosen)
   }
 
-  const patch = buildEditPatch(item, { title, minutes, group, ...(tags ? { tags } : {}) })
+  const patch = buildEditPatch(item, { title, minutes, group, year, ...(tags ? { tags } : {}) })
 
   // Enter saves, Esc cancels. Not in a text area (Enter is a new line there), not in
   // the Platform panel (its search), and not when something inside already took the key.
@@ -147,13 +150,36 @@ export function ItemEditPopover({
           autoFocus={!panelOpen}
           size="sm"
         />
-        <Field
-          label={text.editMinutes}
-          value={minutes}
-          onChange={(event) => setMinutes(event.target.value)}
-          inputMode="numeric"
-          size="sm"
-        />
+        {/* Year beside the duration on one line (design: H-004); the hint under the pair, only while the year is wrong. */}
+        <div className="q-edit-pair">
+          <div className="q-edit-year">
+            <Field
+              label={text.editYear}
+              value={year}
+              onChange={(event) => setYear(filterYearInput(event.target.value))}
+              maxLength={4}
+              placeholder={text.yearPlaceholder}
+              inputMode="numeric"
+              autoComplete="off"
+              aria-invalid={yearProblem !== null}
+              size="sm"
+            />
+          </div>
+          <div className="q-edit-grow">
+            <Field
+              label={text.editMinutes}
+              value={minutes}
+              onChange={(event) => setMinutes(event.target.value)}
+              inputMode="numeric"
+              size="sm"
+            />
+          </div>
+        </div>
+        {yearProblem && (
+          <p className="q-edit-hint" role="alert">
+            {yearProblem === 'range' ? text.yearHintRange : text.yearHint}
+          </p>
+        )}
         <GroupCombobox label={text.editGroup} groups={groups} value={group} onChange={setGroup} small />
         {tagField?.kind === 'platform' && (
           <div className="q-field">

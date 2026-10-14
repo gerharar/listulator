@@ -40,6 +40,7 @@ const game = (n: number, state: 'pending' | 'linked' | 'none'): ListItem => ({
   group: null,
   tags: null,
   notes: null,
+  yearUnk: 0,
   isNew: false,
   link: state === 'linked' ? { url: `https://www.igdb.com/games/game-${n}`, source: 'IGDB' } : null,
   ...(state === 'pending' ? { linkPending: true } : {}),

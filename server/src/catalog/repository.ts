@@ -1,6 +1,7 @@
 import { and, asc, count, eq, getTableColumns, inArray, or, sql, type SQL } from 'drizzle-orm'
 import type { PortableDatabase } from '../db/client.js'
 import { normalizeItemTags } from './facets.js'
+import { InvalidYearError, validYearPair } from './years.js'
 import { listCanBeReset } from './resettable.js'
 import { pendingCounts } from './runtimes.js'
 import { ensureListGroup, findListGroups, placeNewItem } from './groups.js'
@@ -89,6 +90,8 @@ export interface CreateListItemInput {
   source?: ItemSource
   /** Release/publish year, when the source knows one. Null if not. */
   year?: number | null
+  /** How many of `year`'s last digits are unknown (H-005): 0 (the default), 1 or 2. Checked with `year`. */
+  yearUnk?: number | null
   /** Optional grouping label, e.g. "Season 1". Null if not grouped. */
   group?: string | null
   /** Generic per-item display tags (SPEC.md §4), e.g. ["Album", "Live"]. Null if none. */
@@ -104,6 +107,12 @@ export interface UpdateListItemInput {
   orderIndex?: number
   timeToConsumeMinutes?: number
   timeToConsumeIsEstimated?: boolean
+  /**
+   * The item's year (H-004): a number, or null for none; omit to leave it alone. Sent with `yearUnk` when some digits are
+   * unknown; without it the year is exact. `yearUnk` alone, or a pair that does not fit, is an `InvalidYearError`.
+   */
+  year?: number | null
+  yearUnk?: number | null
   /** Join (a string) or leave (null) a group — omit to leave unchanged. */
   group?: string | null
   /** Replace the item's tags (null clears) — omit to leave unchanged (U5). */
@@ -448,6 +457,10 @@ export async function createListItem(
   const label = input.group?.trim()
   const group = label ? (await ensureListGroup(db, listId, label)).name : null
 
+  // The year and its unknown digits must fit together (H-005); checked before anything is written.
+  const year = validYearPair(input.year ?? null, input.yearUnk ?? 0)
+  if (!year) throw new InvalidYearError()
+
   return await db
     .insert(listItems)
     .values({
@@ -459,7 +472,8 @@ export async function createListItem(
       timeToConsumeIsEstimated: input.timeToConsumeIsEstimated ?? true,
       externalRef: input.externalRef ?? null,
       source: input.source ?? 'import',
-      year: input.year ?? null,
+      year: year.year,
+      yearUnk: year.yearUnk,
       group,
       tags: normalizeItemTags(input.tags),
       notes: input.notes ?? null,
@@ -511,6 +525,17 @@ export async function updateListItem(
 ): Promise<ListItem | undefined> {
   if (!(await findListItem(db, userId, listId, itemId))) return undefined
 
+  // A year edit sets both halves at once (H-004): a year without its unknown digits is exact, so editing 199? to 1994
+  // clears them; the digits without a year, or a pair that does not fit, is refused before anything is written.
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- both halves come back through `yearFields`, checked
+  const { year: _year, yearUnk: _yearUnk, ...rest } = patch
+  let yearFields: { year?: number | null; yearUnk?: number } = {}
+  if (patch.year !== undefined || patch.yearUnk !== undefined) {
+    const year = patch.year === undefined ? undefined : validYearPair(patch.year, patch.yearUnk ?? 0)
+    if (!year) throw new InvalidYearError()
+    yearFields = { year: year.year, yearUnk: year.yearUnk }
+  }
+
   // Joining a label the list has no group for yet makes one (D3), spelled the
   // way the list already spells it.
   const label = typeof patch.group === 'string' ? patch.group.trim() : undefined
@@ -521,7 +546,7 @@ export async function updateListItem(
 
   return await db
     .update(listItems)
-    .set({ ...patch, ...group, ...tags, updatedAt: new Date() })
+    .set({ ...rest, ...yearFields, ...group, ...tags, updatedAt: new Date() })
     .where(and(eq(listItems.id, itemId), eq(listItems.listId, listId)))
     .returning()
     .get()

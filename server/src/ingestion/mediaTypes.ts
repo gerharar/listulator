@@ -338,6 +338,8 @@ export interface MediaTypeCandidate {
   estimatedMinutes?: number
   /** Only when the source actually knows it — never guessed from another field. */
   year?: number
+  /** How many of `year`'s last digits are unknown (H-005): only a list file says so, never a connector. */
+  yearUnk?: number
   /** Optional grouping label, e.g. "Season 1" — presentation only (task 6.6). */
   group?: string
   /**

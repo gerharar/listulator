@@ -21,6 +21,10 @@
 .q-add-item-minutes {
   width: 80px;
 }
+/* Between the title and the minutes (design: H-004). */
+.q-add-item-year {
+  width: 72px;
+}
 .q-add-item-row > .q-combo {
   width: 200px;
 }

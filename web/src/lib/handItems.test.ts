@@ -71,3 +71,48 @@ describe('parseHandItems', () => {
     expect(parseHandItems('   \n  ')).toEqual({ items: [], groups: [] })
   })
 })
+
+describe('parseHandItems: a year in brackets at the end of a line (H-004, H-005)', () => {
+  const items = (text: string) => parseHandItems(text).items
+
+  it('takes an exact year off the end of the line and keeps the title without it', () => {
+    expect(items('Fast Five (2011)')).toEqual([{ title: 'Fast Five', year: 2011 }])
+  })
+
+  it('takes a partial year with the digits it does not know', () => {
+    expect(items('Rehearsal tape (198?)\nDemo (19??)')).toEqual([
+      { title: 'Rehearsal tape', year: 1980, yearUnk: 1 },
+      { title: 'Demo', year: 1900, yearUnk: 2 },
+    ])
+  })
+
+  it('leaves a bracket in the middle of a title where it is', () => {
+    expect(items('Spider-Man (1990) #57')).toEqual([{ title: 'Spider-Man (1990) #57' }])
+  })
+
+  it('keeps the group an item is under', () => {
+    expect(items('The Fast and the Furious:\nFast Five (2011)')).toEqual([{ title: 'Fast Five', group: 'The Fast and the Furious', year: 2011 }])
+  })
+
+  it('does not take a year out of a group line: a colon or a # makes it a group, whatever is in it', () => {
+    const parsed = parseHandItems('Phase 1 (1999):\nA\n# Phase 2 (2004)\nB')
+
+    expect(parsed.groups).toEqual(['Phase 1 (1999)', 'Phase 2 (2004)'])
+    expect(parsed.items).toEqual([
+      { title: 'A', group: 'Phase 1 (1999)' },
+      { title: 'B', group: 'Phase 2 (2004)' },
+    ])
+  })
+
+  it.each(['Foo (0000)', 'Foo (3500)', 'Foo (31??)', 'Foo (1?)', 'Foo (19?4)', 'Foo (201)', '(2011)', 'Foo 2011'])(
+    'leaves %j as it is: no year, or one the app does not hold (owner, 2026-10-14)',
+    (line) => {
+      expect(items(line)).toEqual([{ title: line }])
+    },
+  )
+
+  it('trims the line first, as it always did', () => {
+    expect(items('   Fast Five (2011)   ')).toEqual([{ title: 'Fast Five', year: 2011 }])
+  })
+})
+

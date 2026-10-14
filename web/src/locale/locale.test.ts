@@ -12,6 +12,7 @@ import {
   sortCategories,
 } from './index.js'
 import { createDefaultMediaTypes } from '../../../server/src/ingestion/mediaTypes.js'
+import { parseHandItems } from '../lib/handItems.js'
 import { en } from './en.js'
 import { ru } from './ru.js'
 import { de } from './de.js'
@@ -170,6 +171,8 @@ const SAME_AS_ENGLISH: Record<'ru' | 'de', readonly string[]> = {
     'quantum.search.librarySource',
     // A dash, the same in every language: what a row shows for a length still being looked up (15.7).
     'quantum.list.itemActions.runtimePending',
+    // The same placeholder in every language: it shows the two forms a year takes, 1994 and 199?.
+    'quantum.list.itemActions.yearPlaceholder',
     'quantum.preview.noRuntime',
   ],
   de: [
@@ -218,6 +221,8 @@ const SAME_AS_ENGLISH: Record<'ru' | 'de', readonly string[]> = {
     'quantum.skin.labels.light-bone',
     'quantum.statusPicker.notKnown',
     'quantum.list.itemActions.runtimePending',
+    // The same placeholder in every language: it shows the two forms a year takes, 1994 and 199?.
+    'quantum.list.itemActions.yearPlaceholder',
     'quantum.preview.noRuntime',
   ],
 }
@@ -441,6 +446,22 @@ describe('categoryHandHints: each category’s own Add by hand examples (11.16)'
         expect(entry?.['handTitlePlaceholder'], `${language}/${key} title`).toBeTruthy()
         expect(entry?.['handItemsPlaceholder'], `${language}/${key} items`).toContain('\n')
       }
+    }
+  })
+
+  it('gives the Movies example a year on every film, in every language, so the example shows what a year in brackets does (H-004)', () => {
+    for (const [language, locale] of Object.entries(LANGS)) {
+      const example = (locale.categories as Record<string, Record<string, string>>)['movie']!['handItemsPlaceholder']!
+      const films = parseHandItems(example).items
+
+      expect(films.length, `${language} films`).toBeGreaterThanOrEqual(4)
+      expect(films.every((film) => film.year !== undefined), `${language} every film has a year`).toBe(true)
+    }
+  })
+
+  it('says in every language what a year in brackets at the end of a line does', () => {
+    for (const [language, locale] of Object.entries(LANGS)) {
+      expect(locale.quantum.addByHand.yearHint, language).toMatch(/\(199\?\)/)
     }
   })
 

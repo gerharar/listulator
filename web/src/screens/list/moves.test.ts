@@ -26,6 +26,7 @@ function item(id: string, over: Partial<ListItem> = {}): ListItem {
     group: null,
     tags: null,
     notes: null,
+    yearUnk: 0,
     isNew: false,
     ...over,
   }

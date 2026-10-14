@@ -216,9 +216,9 @@ items:
     )
   })
 
-  it('rejects a non-number year or minutes, and a non-string group', () => {
+  it('rejects a year that is neither a number nor text, a non-number minutes, and a non-string group', () => {
     expect(() =>
-      parseCustomList('title: X\ncategory: movie\nitems:\n  - { title: X, year: "2000" }\n', CATEGORIES),
+      parseCustomList('title: X\ncategory: movie\nitems:\n  - { title: X, year: [2000] }\n', CATEGORIES),
     ).toThrow(expect.objectContaining({ code: 'list.fileInvalid' }))
     expect(() =>
       parseCustomList('title: X\ncategory: movie\nitems:\n  - { title: X, minutes: "90" }\n', CATEGORIES),
@@ -282,7 +282,8 @@ items:
         `item 2 ("Mastermind"): unknown field "note" ${ITEM_FIELDS}; did you mean "notes"?`,
       ],
       ['an unrelated item field, with no suggestion', `${head}items:\n  - { title: A, colour: red }\n`, `item 1 ("A"): unknown field "colour" ${ITEM_FIELDS}`],
-      ['a year in quotes', `${head}items:\n  - { title: A, year: "2000" }\n`, 'item 1 ("A"): "year" must be a number, but it is text "2000"'],
+      ['a year that is a list', `${head}items:\n  - { title: A, year: [2000] }\n`, 'item 1 ("A"): "year" must be a number, or text like 199? or 19??, but it is a list'],
+      ['a year that is not a year', `${head}items:\n  - { title: A, year: "20x0" }\n`, 'item 1 ("A"): "year" must be a whole number from 1 to 3000, or 199? or 19?? when only the decade or century is known, but it is text "20x0"'],
       ['minutes in quotes', `${head}items:\n  - { title: A, minutes: "90" }\n`, 'item 1 ("A"): "minutes" must be a number, but it is text "90"'],
       ['a group that is a number', `${head}items:\n  - { title: A, group: 5 }\n`, 'item 1 ("A"): "group" must be text, but it is the number 5'],
       ['notes that are a list', `${head}items:\n  - { title: A, notes: [x] }\n`, 'item 1 ("A"): "notes" must be text, but it is a list'],
@@ -942,5 +943,51 @@ describe('the library fetch is bounded', () => {
     it('holds a fetched list to the parser’s bounds as it holds a pasted one', async () => {
       await expect(fetchCanonicalList('lists/movie/x.yaml', CATEGORIES, respondWith(`${list}    minutes: .inf\n`))).rejects.toThrow(/"minutes" must be a whole number/)
     })
+  })
+})
+
+describe('partial years in a list file (H-005)', () => {
+  const one = (yearLine: string) => `title: X\ncategory: movie\nitems:\n  - title: A\n${yearLine}\n`
+  const parsedYear = (yearLine: string) => {
+    const { year, yearUnk } = parseCustomList(one(yearLine), CATEGORIES).items[0]! as { year?: number; yearUnk?: number }
+
+    return [year, yearUnk]
+  }
+
+  it('reads an exact year as a number, as it always did, with no unknown digits to carry', () => {
+    expect(parseCustomList(one('    year: 1994'), CATEGORIES).items[0]).toEqual({ title: 'A', year: 1994 })
+  })
+
+  it('reads 199? and 19?? as the earliest year they can be and the digits not known', () => {
+    expect(parsedYear('    year: "199?"')).toEqual([1990, 1])
+    expect(parsedYear('    year: "19??"')).toEqual([1900, 2])
+    // Written the way a hand writes it, with no quotes.
+    expect(parsedYear('    year: 199?')).toEqual([1990, 1])
+    expect(parsedYear('    year: 19??')).toEqual([1900, 2])
+  })
+
+  it('also reads an exact year in quotes, when it is in range (owner, 2026-10-14)', () => {
+    expect(parseCustomList(one('    year: "1994"'), CATEGORIES).items[0]).toEqual({ title: 'A', year: 1994 })
+  })
+
+  it.each(['"1?"', '"19?4"', '"199"', '"1???"', '"????"', '"3500"', '"0000"', '"31??"', '" 1994"', '"1994 "', '"abc"', '""', '"1e3"'])(
+    'refuses a year of %s, naming the item and the field',
+    (year) => {
+      expect(() => parseCustomList(one(`    year: ${year}`), CATEGORIES)).toThrow(
+        expect.objectContaining({ code: 'list.fileInvalid', message: expect.stringContaining('item 1 ("A"): "year"') }),
+      )
+    },
+  )
+
+  it('reaches a library list’s items as candidates, with the digits not known', async () => {
+    const yaml = 'title: X\ncategory: mega\nitems:\n  - { title: Tape, year: "198?" }\n  - { title: Album, year: 1999 }\n'
+
+    const fetchImpl: FetchLike = vi.fn(async () => new Response(yaml))
+    const { items } = await expandCanonicalList('lists/x.yaml', new Set(['mega']), fetchImpl)
+
+    expect(items).toEqual([
+      { title: 'Tape', year: 1980, yearUnk: 1 },
+      { title: 'Album', year: 1999 },
+    ])
   })
 })

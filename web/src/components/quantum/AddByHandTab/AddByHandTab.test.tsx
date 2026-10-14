@@ -143,5 +143,24 @@ describe('AddByHandTab', () => {
     expect((screen.getByLabelText('Items') as HTMLTextAreaElement).placeholder).toContain('Rincewind:')
     expect(screen.getByText(/One book per line/)).toBeTruthy()
   })
-})
 
+  it('sends each line’s year, partial ones with the digits not known, and says in the hint that a year in brackets is read (H-004)', async () => {
+    vi.mocked(api.createList).mockResolvedValue({ id: 'L3' } as never)
+    vi.mocked(api.importItems).mockResolvedValue([])
+    renderTab()
+
+    expect(document.querySelector('.q-hand-hint')?.textContent).toContain('A year in brackets at the end of a line is the item')
+
+    type('Title', 'Music')
+    fireEvent.change(screen.getByLabelText('Items'), { target: { value: 'Single (1994)\nRehearsal tape (198?)\nNo year' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Create List' }))
+
+    await waitFor(() =>
+      expect(api.importItems).toHaveBeenCalledWith(
+        'L3',
+        [{ title: 'Single', year: 1994 }, { title: 'Rehearsal tape', year: 1980, yearUnk: 1 }, { title: 'No year' }],
+        'manual',
+      ),
+    )
+  })
+})

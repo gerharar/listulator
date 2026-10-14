@@ -1,4 +1,5 @@
 import { dump } from 'js-yaml'
+import { yamlYearValue } from '../../../server/src/catalog/years.js'
 import type { MediaListDetail } from './api.js'
 
 /**
@@ -8,7 +9,8 @@ import type { MediaListDetail } from './api.js'
  * already loaded.
  *
  * What goes out is what the format can say: title, description, category (the
- * registry key), status, and each item's title, year, minutes, group, tags and
+ * registry key), status, and each item's title, year (a number, or `198?` / `19??` when
+ * the last digits are not known), minutes, group, tags and
  * notes, in the list's own order. A runtime that is only an estimate is left
  * out, so it is still an estimate after the round trip. Done marks, NEW
  * markers and ids are the reader's own state, not part of a list, and stay
@@ -20,7 +22,7 @@ export function exportList(list: MediaListDetail): string {
     .sort((a, b) => a.orderIndex - b.orderIndex || a.id.localeCompare(b.id))
     .map((item) => ({
       title: item.title,
-      ...(item.year !== null ? { year: item.year } : {}),
+      ...(item.year !== null ? { year: yamlYearValue({ year: item.year, yearUnk: item.yearUnk }) } : {}),
       ...(item.timeToConsumeIsEstimated ? {} : { minutes: item.timeToConsumeMinutes }),
       ...(item.group ? { group: item.group } : {}),
       ...(item.tags && item.tags.length > 0 ? { tags: item.tags } : {}),

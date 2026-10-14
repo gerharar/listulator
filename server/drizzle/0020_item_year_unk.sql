@@ -1,0 +1,1 @@
+ALTER TABLE `list_items` ADD `year_unk` integer DEFAULT 0 NOT NULL;

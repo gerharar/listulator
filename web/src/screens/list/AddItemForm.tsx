@@ -1,4 +1,5 @@
 import { NAME_MAX_LENGTH } from '../../../../server/src/catalog/limits.js'
+import { filterYearInput, parseYearText, yearTextProblem } from '../../../../server/src/catalog/years.js'
 import './AddItemForm.css'
 import { useRef, useState, type FormEvent } from 'react'
 import { ChevronDown } from 'lucide-react'
@@ -31,6 +32,8 @@ export interface NewItemInput {
   minutes: number | null
   /** Empty: no group. A name the list lacks creates the group. */
   group: string
+  /** The year, with how many of its last digits are unknown (H-004, H-005); absent: no year. */
+  year?: { year: number; yearUnk: number }
   /** The new item's tags (U5), only where the category has a tag field. */
   tags?: string[]
 }
@@ -81,6 +84,7 @@ export function AddItemForm({
   )
   const [pickerAnchor, setPickerAnchor] = useState<HTMLElement | null>(null)
   const [title, setTitle] = useState('')
+  const [year, setYear] = useState('')
   const [minutes, setMinutes] = useState('')
   const [group, setGroup] = useState('')
   const [adding, setAdding] = useState(false)
@@ -91,7 +95,10 @@ export function AddItemForm({
   const validItem = title.trim() !== '' && !Number.isNaN(parsed)
   // No title but a group name: the group itself is what is being added.
   const makesGroup = onCreateGroup !== undefined && title.trim() === '' && group.trim() !== ''
-  const valid = validItem || makesGroup
+  // An incomplete or impossible year turns Add off; the reason is the button's tooltip, with no hint line (design: H-004).
+  const yearProblem = yearTextProblem(year)
+  const valid = (validItem || makesGroup) && yearProblem === null
+  const typedYear = parseYearText(year)
 
   async function submit(event: FormEvent) {
     event.preventDefault()
@@ -106,8 +113,15 @@ export function AddItemForm({
         titleInput.current?.focus()
         return
       }
-      await onAdd({ title: title.trim(), minutes: parsed, group: group.trim(), ...(tagField ? { tags } : {}) })
+      await onAdd({
+        title: title.trim(),
+        minutes: parsed,
+        group: group.trim(),
+        ...(typedYear?.year ? { year: { year: typedYear.year, yearUnk: typedYear.yearUnk } } : {}),
+        ...(tagField ? { tags } : {}),
+      })
       setTitle('')
+      setYear('')
       setMinutes('')
       titleInput.current?.focus()
     } catch (cause) {
@@ -134,6 +148,19 @@ export function AddItemForm({
           autoComplete="off"
           disabled={adding}
           size="sm"
+        />
+        <Field
+          label={text.yearLabel}
+          value={year}
+          onChange={(event) => setYear(filterYearInput(event.target.value))}
+          placeholder={text.yearPlaceholder}
+          maxLength={4}
+          inputMode="numeric"
+          autoComplete="off"
+          aria-invalid={yearProblem !== null}
+          disabled={adding}
+          size="sm"
+          className="q-add-item-year"
         />
         <Field
           label={text.minutesLabel}
@@ -176,7 +203,15 @@ export function AddItemForm({
             </Tip>
           </div>
         )}
-        <Button variant="primary" size="sm" type="submit" disabled={!valid} busy={adding} busyLabel={text.adding}>
+        <Button
+          variant="primary"
+          size="sm"
+          type="submit"
+          disabled={!valid}
+          busy={adding}
+          busyLabel={text.adding}
+          {...(yearProblem ? { title: yearProblem === 'range' ? text.yearTipRange : text.yearTip } : {})}
+        >
           {makesGroup ? text.addGroup : text.add}
         </Button>
       </div>

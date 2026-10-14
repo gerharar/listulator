@@ -1,8 +1,9 @@
-import { and, asc, eq, gte, isNotNull, max, min, sql } from 'drizzle-orm'
+import { and, asc, eq, gte, isNotNull, max, sql } from 'drizzle-orm'
 import type { PortableDatabase } from '../db/client.js'
 import { dismissalTitleKey, dismissedItems, listGroups, listItems, lists, type ListGroup } from '../db/schema.js'
 import { toGroupPayload, toItemPayload, type GroupRestore } from './restorePayloads.js'
 import { movedOnly, setGroupPositions, setItemPositions } from './orderIndex.js'
+import { yearSortKey } from './years.js'
 
 /**
  * A list's groups as rows of their own (D3, task 10.16).
@@ -269,16 +270,17 @@ export async function reorderListGroups(
  */
 export async function seedGroupOrder(db: PortableDatabase, listId: string): Promise<void> {
   const groups = await groupsOf(db, listId)
-  const earliest = new Map(
-    (
-      await db
-        .select({ name: listItems.group, year: min(listItems.year) })
-        .from(listItems)
-        .where(and(eq(listItems.listId, listId), isNotNull(listItems.group)))
-        .groupBy(listItems.group)
-        .all()
-    ).map((row) => [row.name, row.year] as const),
-  )
+  // By the same key as Sort by release date, so a group with only `199?` in it is placed as late as 1999 (H-005).
+  const earliest = new Map<string, number>()
+  const dated = await db
+    .select({ name: listItems.group, year: listItems.year, yearUnk: listItems.yearUnk })
+    .from(listItems)
+    .where(and(eq(listItems.listId, listId), isNotNull(listItems.group), isNotNull(listItems.year)))
+    .all()
+  for (const row of dated) {
+    const key = yearSortKey(row)
+    if (key < (earliest.get(row.name!) ?? Infinity)) earliest.set(row.name!, key)
+  }
 
   const sorted = [...groups].sort(
     (a, b) => (earliest.get(a.name) ?? Infinity) - (earliest.get(b.name) ?? Infinity),

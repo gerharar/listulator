@@ -160,7 +160,11 @@ export function GroupRow({
             <Tip as="b" text={block.group.name} whenClipped>
               {block.group.name}
             </Tip>
-            {span && <span className="q-year">{span}</span>}
+            {span && (
+              <Tip className="q-year" text={copy.quantum.list.itemActions.groupYears}>
+                {span}
+              </Tip>
+            )}
           </>
         )}
       </span>

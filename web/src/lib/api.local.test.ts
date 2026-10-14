@@ -557,6 +557,18 @@ describe('the desktop builds a list at once and fills its lengths afterwards (15
       expect(slugs).toHaveBeenCalledTimes(1)
     })
 
+    it('adds and edits an item’s year with its unknown digits, and refuses a pair that does not fit, as the server does (H-004, H-005)', async () => {
+      const { api, list } = await builtEarlier(filmSource())
+      const [first] = (await api.list(list.id)).items
+
+      expect(await api.updateItem(list.id, first!.id, { year: 1990, yearUnk: 1 })).toMatchObject({ year: 1990, yearUnk: 1 })
+      expect(await api.addItem(list.id, { title: 'Tape', timeToConsumeMinutes: 30, year: 1900, yearUnk: 2 })).toMatchObject({ year: 1900, yearUnk: 2 })
+
+      await expect(api.updateItem(list.id, first!.id, { year: 1994, yearUnk: 1 })).rejects.toMatchObject({ status: 400, code: 'item.invalidYear' })
+      await expect(api.addItem(list.id, { title: 'Bad', timeToConsumeMinutes: 30, year: 3500 })).rejects.toMatchObject({ status: 400, code: 'item.invalidYear' })
+      expect((await api.list(list.id)).items.find((item) => item.id === first!.id)).toMatchObject({ year: 1990, yearUnk: 1 })
+    })
+
     it('shows how many lengths each list is still waiting for', async () => {
       const { api, list } = await builtEarlier(filmSource())
 

@@ -22,6 +22,7 @@ const GAME: ListItem = {
   group: null,
   tags: ['PS3', 'WIN'],
   notes: null,
+  yearUnk: 0,
   isNew: false,
 }
 

@@ -4,6 +4,7 @@ import { formatDuration } from '../../../formatDuration.js'
 import { copy } from '../../../locale/index.js'
 import type { PreviewItem } from '../../../lib/api.js'
 import { tagChip, type FacetConvention } from '../../../../../server/src/catalog/facets.js'
+import { formatYear } from '../../../../../server/src/catalog/years.js'
 import { KindTag } from '../Marks/Marks.js'
 import { PlatformChip } from '../PlatformChip/PlatformChip.js'
 
@@ -38,7 +39,7 @@ export function PreviewRow({ item, grouped, facets, platformWidthCh }: PreviewRo
         <Tip className="title" text={item.title} whenClipped>
           {item.title}
         </Tip>
-        {item.year ? <span className="q-year">({item.year})</span> : null}
+        {item.year ? <span className="q-year">({formatYear({ year: item.year, yearUnk: item.yearUnk ?? 0 })})</span> : null}
       </span>
       {item.timeToConsumeMinutes === undefined ? (
         <span className="mins none">{copy.quantum.preview.noRuntime}</span>

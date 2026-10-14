@@ -4,7 +4,7 @@ import { useRef, useState, type FormEvent } from 'react'
 import { api, type MediaType } from '../../../lib/api.js'
 import { parseHandItems } from '../../../lib/handItems.js'
 import { formatDuration } from '../../../formatDuration.js'
-import { categoryHandHints, copy } from '../../../locale/index.js'
+import { categoryHandHints, copy, joinSentences } from '../../../locale/index.js'
 import { Button } from '../Button/Button.js'
 import { ErrorStrip } from '../ErrorStrip/ErrorStrip.js'
 import { Field, FieldTextArea } from '../Field/Field.js'
@@ -107,7 +107,7 @@ export function AddByHandTab({ mediaType, onBuilt }: AddByHandTabProps) {
           {...NAMES}
           disabled={saving}
         />
-        <p className="q-hand-hint t-small">{hints.itemsHint}</p>
+        <p className="q-hand-hint t-small">{joinSentences(hints.itemsHint, text.yearHint)}</p>
       </div>
 
       <div className="q-field">

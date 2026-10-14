@@ -1,6 +1,12 @@
+import { splitTrailingYear } from '../../../server/src/catalog/years.js'
+
 export interface HandItem {
   title: string
   group?: string
+  /** A year in brackets at the end of the line (H-004), or the earliest it can be when `yearUnk` is set. */
+  year?: number
+  /** How many of `year`'s last digits are unknown (H-005): present only for `(199?)` and `(19??)`. */
+  yearUnk?: number
 }
 
 export interface ParsedHandItems {
@@ -40,7 +46,12 @@ export function parseHandItems(raw: string): ParsedHandItems {
       continue
     }
 
-    items.push(current === undefined ? { title: line } : { title: line, group: current })
+    // A year in brackets at the very end is the item's year (`Fast Five (2011)`, `(199?)`); a bracket anywhere else, or a
+    // year the app does not hold, stays in the title (`Spider-Man (1990) #57`, `Foo (0000)`).
+    const split = splitTrailingYear(line)
+    const year = split ? { year: split.year.year!, ...(split.year.yearUnk ? { yearUnk: split.year.yearUnk } : {}) } : {}
+
+    items.push({ title: split ? split.title : line, ...(current === undefined ? {} : { group: current }), ...year })
   }
 
   return { items, groups }

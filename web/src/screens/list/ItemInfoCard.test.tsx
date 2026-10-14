@@ -19,10 +19,17 @@ const ITEM: ListItem = {
   group: null,
   tags: null,
   notes: null,
+  yearUnk: 0,
   isNew: false,
 }
 
 describe('ItemInfoCard', () => {
+  it('shows the year as the row does, with its unknown digits as ? (H-005)', () => {
+    render(<ItemInfoCard item={{ ...ITEM, year: 1990, yearUnk: 1 }} />)
+
+    expect(screen.getByText('199?')).toBeTruthy()
+  })
+
   it('shows the item’s title and a placeholder where its cover will go', () => {
     render(<ItemInfoCard item={ITEM} />)
 

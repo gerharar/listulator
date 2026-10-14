@@ -3,7 +3,8 @@ import type { PortableDatabase } from '../db/client.js'
 import { listGroups, listItems, lists, type ListItem } from '../db/schema.js'
 import { normalizeItemTags } from './facets.js'
 import { groupsOf } from './groups.js'
-import { validMinutes, validYear } from './limits.js'
+import { validMinutes } from './limits.js'
+import { validYearPair } from './years.js'
 import { findList, type CreateListItemInput } from './repository.js'
 
 /**
@@ -33,6 +34,8 @@ export interface SourcedItem {
   // Null as well: Reset reads them back from stored rows. Empty either way.
   externalRef?: string | null | undefined
   year?: number | null | undefined
+  /** Unknown digits of `year` (H-005): only a list file or the user ever has them, never a connector. */
+  yearUnk?: number | null | undefined
   group?: string | null | undefined
   tags?: string[] | null | undefined
   notes?: string | null | undefined
@@ -50,14 +53,15 @@ export function itemFromSource(item: SourcedItem, minutes: number | undefined, f
   // Only a length the app can show counts as known (SR-019): a source that says `.nan`, a negative number or `1e308` is
   // treated as not knowing, and the row falls back to an estimate.
   const known = validMinutes(minutes)
-  const year = validYear(item.year)
+  // A year the app cannot show, or unknown digits that do not fit it, count as no year (H-005).
+  const year = validYearPair(item.year ?? null, item.yearUnk ?? 0)
 
   return {
     title: item.title,
     timeToConsumeMinutes: known ?? validMinutes(item.estimatedMinutes) ?? fallbackMinutes,
     timeToConsumeIsEstimated: known === undefined,
     ...(item.externalRef ? { externalRef: item.externalRef } : {}),
-    ...(year ? { year } : {}),
+    ...(year?.year ? { year: year.year, ...(year.yearUnk ? { yearUnk: year.yearUnk } : {}) } : {}),
     ...(item.group ? { group: item.group } : {}),
     ...(item.tags ? { tags: item.tags } : {}),
     ...(item.notes ? { notes: item.notes } : {}),
@@ -69,6 +73,7 @@ export function itemFromSource(item: SourcedItem, minutes: number | undefined, f
 export interface FileItem {
   title: string
   year?: number | undefined
+  yearUnk?: number | undefined
   minutes?: number | undefined
   group?: string | undefined
   tags?: string[] | undefined
@@ -84,13 +89,13 @@ export function itemFromFile(item: FileItem, defaultMinutes: number): BulkItemIn
   // The parser refuses a number the app cannot show; this is the same rule at the place the row is made, so a path that
   // never went through the parser cannot write one (SR-019).
   const known = validMinutes(item.minutes)
-  const year = validYear(item.year)
+  const year = validYearPair(item.year ?? null, item.yearUnk ?? 0)
 
   return {
     title: item.title,
     timeToConsumeMinutes: known ?? defaultMinutes,
     timeToConsumeIsEstimated: known === undefined,
-    ...(year !== undefined ? { year } : {}),
+    ...(year?.year ? { year: year.year, ...(year.yearUnk ? { yearUnk: year.yearUnk } : {}) } : {}),
     ...(item.group !== undefined ? { group: item.group } : {}),
     ...(item.tags !== undefined ? { tags: item.tags } : {}),
     ...(item.notes !== undefined ? { notes: item.notes } : {}),
@@ -242,6 +247,7 @@ export async function createListItems(
             externalRef: input.externalRef ?? null,
             source: input.source ?? 'import',
             year: input.year ?? null,
+            yearUnk: input.yearUnk ?? 0,
             group,
             tags: normalizeItemTags(input.tags),
             notes: input.notes ?? null,

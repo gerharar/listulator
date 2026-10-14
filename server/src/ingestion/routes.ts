@@ -55,6 +55,7 @@ interface ImportItem {
   estimatedMinutes?: number
   externalRef?: string
   year?: number
+  yearUnk?: number
   group?: string
   tags?: string[]
   /** Curator-authored disambiguation prose, capped at 2048 characters. Never adapter-set. */
@@ -721,6 +722,7 @@ export const ingestionRoutes: FastifyPluginAsync<IngestionRoutesOptions> = async
                   estimatedMinutes: { type: 'integer', minimum: 0 },
                   externalRef: { type: 'string', maxLength: 500 },
                   year: { type: 'integer' },
+                  yearUnk: { type: 'integer', minimum: 0, maximum: 2 },
                   group: { type: 'string', maxLength: 500 },
                   tags: { type: 'array', maxItems: MAX_ITEM_TAGS, items: { type: 'string', maxLength: 40 } },
                   notes: { type: 'string', maxLength: 2048 },

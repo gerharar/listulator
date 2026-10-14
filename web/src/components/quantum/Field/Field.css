@@ -12,6 +12,10 @@
   color: var(--ink);
   font: 400 15px/1.2 var(--font-sans);
 }
+/* A field whose value is wrong (the year, H-004): the strong border, never red (README: errors are never red). */
+.q-input[aria-invalid='true'] {
+  border-color: var(--rule);
+}
 .q-input::placeholder {
   font-style: italic;
   font-size: 14px;

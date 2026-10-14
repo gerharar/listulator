@@ -18,6 +18,7 @@ function item(overrides: Partial<ListItem> = {}): ListItem {
     consumedAt: null,
     source: 'import',
     year: null,
+    yearUnk: 0,
     group: null,
     tags: null,
     notes: null,
@@ -46,6 +47,40 @@ function list(items: ListItem[], overrides: Partial<MediaListDetail> = {}): Medi
 
 /** What the real parser makes of the export. */
 const back = (detail: MediaListDetail) => parseCustomList(exportList(detail), CATEGORIES)
+
+describe('exportList: partial years (H-005)', () => {
+  it('writes an exact year as a number and a partial one as text a person can read: 198?, 19??', () => {
+    const text = exportList(
+      list([
+        item({ title: 'Single', orderIndex: 1, year: 1994 }),
+        item({ title: 'Tape', orderIndex: 2, year: 1980, yearUnk: 1 }),
+        item({ title: 'Demo', orderIndex: 3, year: 1900, yearUnk: 2 }),
+      ]),
+    )
+
+    expect(text).toMatch(/\{title: Single, year: 1994, minutes: 60\}/)
+    expect(text).toMatch(/\{title: Tape, year: 198\?, minutes: 60\}/)
+    expect(text).toMatch(/\{title: Demo, year: 19\?\?, minutes: 60\}/)
+  })
+
+  it('reads back as the same years, digits unknown included', () => {
+    const parsed = back(
+      list([
+        item({ title: 'Single', orderIndex: 1, year: 1994 }),
+        item({ title: 'Tape', orderIndex: 2, year: 1980, yearUnk: 1 }),
+        item({ title: 'Demo', orderIndex: 3, year: 1900, yearUnk: 2 }),
+        item({ title: 'Nothing', orderIndex: 4 }),
+      ]),
+    )
+
+    expect(parsed.items.map((entry) => [entry.title, entry.year, entry.yearUnk])).toEqual([
+      ['Single', 1994, undefined],
+      ['Tape', 1980, 1],
+      ['Demo', 1900, 2],
+      ['Nothing', undefined, undefined],
+    ])
+  })
+})
 
 describe('exportList', () => {
   it('writes the title, category, description and status the parser reads back', () => {

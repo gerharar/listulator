@@ -180,6 +180,12 @@ export const listItems = sqliteTable(
      */
     year: integer('year'),
     /**
+     * How many of `year`'s last digits are unknown (H-005): 0 for an exact year, 1 for `199?` (stored as 1990, the
+     * earliest it can be), 2 for `19??` (1900). Only the user or a list file ever says so; a source gives exact years.
+     * 0 whenever `year` is null. The text (`199?`) is never stored, so a reader that ignores this still sees a sane year.
+     */
+    yearUnk: integer('year_unk').notNull().default(0),
+    /**
      * Optional grouping label, e.g. "Season 1" for a TV episode — presentation
      * only, never affects ordering or progress (task 6.6). The same field
      * Phase 7's custom-list YAML uses for its per-item `group` (SPEC.md's

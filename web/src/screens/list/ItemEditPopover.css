@@ -4,6 +4,27 @@
   flex-direction: column;
   gap: 10px;
 }
+.q-edit-pair {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+}
+/* Year beside Duration on one line (design: H-004): the year is a fixed 96px, the duration takes the rest. */
+.q-edit-year {
+  flex: none;
+  width: 96px;
+}
+.q-edit-grow {
+  flex: 1;
+  min-width: 0;
+}
+/* Under the pair while the year is wrong: help text, so ink2 and no red (README: errors are never red). */
+.q-edit-hint {
+  margin: -3px 0 0;
+  font-size: 12.5px;
+  line-height: 1.4;
+  color: var(--ink2);
+}
 .q-edit-actions {
   display: flex;
   justify-content: flex-end;

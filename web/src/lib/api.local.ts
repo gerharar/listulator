@@ -35,6 +35,7 @@ import { createListItems, discardList, itemFromFile, itemFromSource } from '../.
 import { MAX_LIST_ITEMS } from '../../../server/src/catalog/limits.js'
 import { knownRuntimes, withKnownRuntimes, withRuntimePending } from '../../../server/src/catalog/runtimes.js'
 import { withLinks } from '../../../server/src/catalog/itemLinks.js'
+import { InvalidYearError } from '../../../server/src/catalog/years.js'
 import { createSlugFiller, type SlugFiller } from '../../../server/src/catalog/slugFill.js'
 import {
   createRuntimeFiller,
@@ -133,6 +134,11 @@ function notFound(): ApiError {
   return new ApiError('Not found.', 404)
 }
 
+/** A year that does not fit its unknown digits is the server's 400 `item.invalidYear`; anything else passes through (H-004). */
+function yearError(cause: unknown): unknown {
+  return cause instanceof InvalidYearError ? new ApiError(errorMessage('item.invalidYear') ?? 'item.invalidYear', 400, 'item.invalidYear') : cause
+}
+
 function toMediaList(list: ListWithStats): MediaList {
   return {
     canReset: list.canReset !== false,
@@ -168,6 +174,7 @@ function toListItem(item: SchemaListItem): ListItem {
     consumedAt: item.consumedAt?.toISOString() ?? null,
     source: item.source,
     year: item.year,
+    yearUnk: item.yearUnk,
     group: item.group,
     tags: item.tags,
     notes: item.notes,
@@ -649,17 +656,25 @@ export function createLocalApi(): ApiClient {
       // This method's whole reason to exist is adding one item by hand
       // (task 6.1/6.2) — bulk/search-imported items always go through
       // importItems/createFromSource instead.
-      const item = await createListItem(database, userId, listId, { ...input, source: 'manual' })
-      if (!item) throw notFound()
-      return toListItem(item)
+      try {
+        const item = await createListItem(database, userId, listId, { ...input, source: 'manual' })
+        if (!item) throw notFound()
+        return toListItem(item)
+      } catch (cause) {
+        throw yearError(cause)
+      }
     },
 
     updateItem: async (listId, itemId, patch) => {
       checkNameLengths({ title: patch.title, group: patch.group })
       const [database, userId] = [await getDb(), await getUserId()]
-      const updated = await updateListItem(database, userId, listId, itemId, patch)
-      if (!updated) throw notFound()
-      return toListItem(updated)
+      try {
+        const updated = await updateListItem(database, userId, listId, itemId, patch)
+        if (!updated) throw notFound()
+        return toListItem(updated)
+      } catch (cause) {
+        throw yearError(cause)
+      }
     },
 
     reorderItems: async (listId, itemIds) => {

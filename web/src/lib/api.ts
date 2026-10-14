@@ -60,6 +60,11 @@ export interface ListItem {
   source: 'manual' | 'import'
   /** Release/publish year, when the source knows one. Null otherwise. */
   year: number | null
+  /**
+   * How many of `year`'s last digits are unknown (H-005): 0 for an exact year, 1 for `199?` (then `year` is 1990, the
+   * earliest it can be), 2 for `19??` (1900). 0 whenever `year` is null.
+   */
+  yearUnk: number
   /** Optional grouping label, e.g. "Season 1" — presentation only. Null otherwise. */
   group: string | null
   /** Generic per-item display tags, e.g. ["Album", "Live"]. Null if none. */
@@ -188,6 +193,7 @@ export interface PreviewItem {
   /** A better guess than the category default, from the source: still an estimate. */
   estimatedMinutes?: number
   year?: number
+  yearUnk?: number
   group?: string
   tags?: string[]
   notes?: string
@@ -289,6 +295,7 @@ export interface ApiClient {
       timeToConsumeMinutes?: number
       estimatedMinutes?: number
       year?: number
+      yearUnk?: number
       group?: string
       tags?: string[]
       notes?: string
@@ -366,6 +373,7 @@ export interface ApiClient {
       timeToConsumeMinutes?: number
       estimatedMinutes?: number
       year?: number
+      yearUnk?: number
       group?: string
       tags?: string[]
       notes?: string
@@ -398,6 +406,9 @@ export interface ApiClient {
       title: string
       timeToConsumeMinutes: number
       timeToConsumeIsEstimated?: boolean
+      /** The item's year, with `yearUnk` when some digits are unknown (H-004, H-005); `null` clears it on an edit. */
+      year?: number | null
+      yearUnk?: number
       group?: string | null
       /** Set by hand (U5); null or [] clears; omit to leave unchanged. */
       tags?: string[] | null
@@ -410,6 +421,9 @@ export interface ApiClient {
       title?: string
       timeToConsumeMinutes?: number
       timeToConsumeIsEstimated?: boolean
+      /** The item's year, with `yearUnk` when some digits are unknown (H-004, H-005); `null` clears it on an edit. */
+      year?: number | null
+      yearUnk?: number
       group?: string | null
       /** Set by hand (U5); null or [] clears; omit to leave unchanged. */
       tags?: string[] | null
@@ -484,6 +498,7 @@ export const fetchApi: ApiClient = {
       timeToConsumeMinutes?: number
       estimatedMinutes?: number
       year?: number
+      yearUnk?: number
       group?: string
       tags?: string[]
       notes?: string
@@ -562,6 +577,7 @@ export const fetchApi: ApiClient = {
         timeToConsumeMinutes?: number
         estimatedMinutes?: number
         year?: number
+      yearUnk?: number
         group?: string
         tags?: string[]
         notes?: string
@@ -626,6 +642,9 @@ export const fetchApi: ApiClient = {
       title: string
       timeToConsumeMinutes: number
       timeToConsumeIsEstimated?: boolean
+      /** The item's year, with `yearUnk` when some digits are unknown (H-004, H-005); `null` clears it on an edit. */
+      year?: number | null
+      yearUnk?: number
       group?: string | null
       tags?: string[] | null
     },
@@ -638,6 +657,9 @@ export const fetchApi: ApiClient = {
       title?: string
       timeToConsumeMinutes?: number
       timeToConsumeIsEstimated?: boolean
+      /** The item's year, with `yearUnk` when some digits are unknown (H-004, H-005); `null` clears it on an edit. */
+      year?: number | null
+      yearUnk?: number
       group?: string | null
       tags?: string[] | null
     },

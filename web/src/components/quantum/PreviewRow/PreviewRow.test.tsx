@@ -27,6 +27,20 @@ function row(tags: string[] | undefined, props: { facets?: FacetConvention; plat
   render(<PreviewRow item={{ title: 'Some Title', tags }} grouped={false} {...props} />)
 }
 
+describe('PreviewRow year', () => {
+  it('shows a library list’s partial year with its ? (H-005)', () => {
+    render(<PreviewRow item={{ title: 'Rehearsal tape', year: 1980, yearUnk: 1 }} grouped={false} />)
+
+    expect(screen.getByText('(198?)')).toBeTruthy()
+  })
+
+  it('shows an exact year as before', () => {
+    render(<PreviewRow item={{ title: 'Album', year: 1994 }} grouped={false} />)
+
+    expect(screen.getByText('(1994)')).toBeTruthy()
+  })
+})
+
 describe('PreviewRow tag column: the same chip the created list shows', () => {
   it('shows Music’s Mini for an EP or a Single, never the raw tag', () => {
     row(['EP'], { facets: MUSIC })
