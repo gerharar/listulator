@@ -15,7 +15,7 @@ For neuroscience nerds, here are two specific things the app helps with:
 1. [Cognitive offloading](https://pubmed.ncbi.nlm.nih.gov/27542527/)
 2. Overcoming the [paradox of choice](https://en.wikipedia.org/wiki/The_Paradox_of_Choice)
 
-This is how a real list looks like:
+This is what a real list looks like:
 
 ![List screen](app-screen-list.png)
 
@@ -23,9 +23,9 @@ This is how a real list looks like:
 
 Both. I'm a Product Manager with 17+ years of PM experience. Over the years, I've worked with engineers to take several products from zero to being used by millions of websites. I've learned many things from working alongside smart people, and I wanted to see what I could build on my own with modern LLM tools -- without any extra meatbags. This is the result. Along the way, I've picked up a lot about different tools and frameworks, and I'm happy with how Listulator turned out so far.
 
-My main tools for building Listulator are Claude Code, Claude Design, and my own experience, not "vibes". I'm using [production-grade SDLC framework](https://skills.addy.ie/) with time-tested TDD approach to make sure the app is stable, works properly and can be updated in the future without comeing apart at the seams. The app passed multiple security audits and code reviews on its way to the first release, and I've already got some juicy plans for the next versions.
+My main tools for building Listulator are Claude Code, Claude Design, and my own experience, not "vibes". I'm using [production-grade SDLC framework](https://skills.addy.ie/) with time-tested TDD approach to make sure the app is stable, works properly and can be updated in the future without coming apart at the seams. The app passed AI-assisted security and code audits plus my own review on its way to the first release, and I've already got some juicy plans for the next versions.
 
-If you need an Senior Product Manager that can built stuff 0-to-1 using LLMs, or just want to talk about agentic product building, ping me on [LinkedIn](https://www.linkedin.com/in/akugaevskiy). With that out of the way, let's get back to the app, shall we?
+If you need a Senior Product Manager that can built stuff 0-to-1 using LLMs, or just want to talk about agentic product building, ping me on [LinkedIn](https://www.linkedin.com/in/akugaevskiy). With that out of the way, let's get back to the app, shall we?
 
 
 ## The buttons, ~~Mason~~ Andy! What do they mean?
@@ -34,9 +34,9 @@ When the paradox of choice has you in its merciless grip, call upon the power of
 
 | Button | When To Use |
 |---|---|
-| **I'm Tired, Boss** | Tired of griding a list? This finds a different one favouring other categories and long-neglected lists |
+| **I'm Tired, Boss** | Tired of grinding a list? This finds a different one favouring other categories and long-neglected lists |
 | **Finalizer** |  Your inner completionist demands to finish a list? This finds you items that bring you closer to the finish |
-| **Just One Fix** | Want to get a a quick dopamine hit? This finds you the shortest item on your lists that you can complete |
+| **Just One Fix** | Want to get a quick dopamine hit? This finds you the shortest item on your lists that you can complete |
 | **Surprise Me** | Curious what others might be enjoying? Choose a media category and spin to win a curated list suggestion! |
 
 ## Categories
@@ -94,7 +94,7 @@ A: Listulator is free to use and will remain so. Most APIs used by Listulator co
 </details>
 
 <details>
-<summary><strong>Q: Why my OS throws a fit when I install the app?</strong></summary>
+<summary><strong>Q: Why does my OS throw a fit when I install the app?</strong></summary>
 
 A: Big companies like to invent the problem, then sell the solution. The problem being invented here is *users are running untrusted apps in our OS, which can put them in danger*. The solution is *we'll "verify" apps so users can trust them, but only if the developer pays us -- and if we aren't getting paid, our OS will scare users away from installing your app*. 
 
@@ -112,7 +112,7 @@ A: I regularly check Listulator's .exe files on [VirusTotal](https://www.virusto
 </details>
 
 <details>
-<summary><strong>Q: Why there's no Podcasts category?</strong></summary>
+<summary><strong>Q: Why is there no Podcasts category?</strong></summary>
 
 A: Two reasons: 
 1. I don't listen to / watch podcasts outside of Youtube
