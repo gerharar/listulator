@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
+import { en } from '../src/locale/en.js'
 import { q, useHomeFixture } from './fixtures.js'
 
 /**
@@ -30,6 +31,21 @@ async function search(page: Page) {
   await page.getByLabel(q.search.queryLabel('MusicBrainz'), { exact: true }).fill('cannibal')
   await page.getByRole('button', { name: q.search.searchButton, exact: true }).click()
 }
+
+/** H-006: Search is never disabled by an empty query; pressing it asks for something to search for. */
+test('pressing Search with an empty query asks for something to search for and keeps the cursor in the field', async ({ page }) => {
+  await openMusicSearch(page)
+  const requests: string[] = []
+  page.on('request', (request) => {
+    if (/search/i.test(request.url())) requests.push(request.url())
+  })
+
+  await page.getByRole('button', { name: q.search.searchButton, exact: true }).click()
+
+  await expect(page.getByRole('alert')).toHaveText(en.errors['search.queryRequired']())
+  await expect(page.getByLabel(/^Search /)).toBeFocused()
+  expect(requests).toEqual([])
+})
 
 test('searching lists results, loads a count into each row, and Add list opens the new list', async ({
   page,

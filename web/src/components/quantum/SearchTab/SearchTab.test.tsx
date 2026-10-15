@@ -4,6 +4,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { ApiError, api, type ListSourceResult, type MediaType } from '../../../lib/api.js'
 import { LayerStackProvider, useLayerStack } from '../layerStack/LayerStackContext.js'
+import { copy } from '../../../locale/index.js'
 import { SearchTab } from './SearchTab.js'
 
 vi.mock('../../../lib/api.js', async (importOriginal) => ({
@@ -89,6 +90,61 @@ async function search(query = 'saul') {
     fireEvent.click(screen.getByRole('button', { name: 'Search' }))
   })
 }
+
+describe('SearchTab: an empty query (H-006)', () => {
+  const searchButton = () => screen.getByRole('button', { name: 'Search' }) as HTMLButtonElement
+  const field = () => screen.getByLabelText(/^Search /) as HTMLInputElement
+  const sentence = () => copy.errors['search.queryRequired']()
+  const alerts = () => screen.queryAllByRole('alert').map((alert) => alert.textContent)
+
+  it('does not disable Search for an empty query: only a search under way does', () => {
+    renderTab()
+
+    expect(searchButton().disabled).toBe(false)
+  })
+
+  it.each([['', 'nothing'], ['   ', 'spaces']])('pressing Search with %s asks for something to search for, searches nothing and keeps the cursor in the field', (value) => {
+    renderTab()
+    fireEvent.change(field(), { target: { value } })
+
+    fireEvent.click(searchButton())
+
+    expect(api.searchSources).not.toHaveBeenCalled()
+    expect(alerts()).toEqual([sentence()])
+    expect(field().getAttribute('aria-invalid')).toBe('true')
+    expect(document.activeElement).toBe(field())
+  })
+
+  it('does the same on Enter in the field', () => {
+    renderTab()
+
+    fireEvent.submit(field().closest('form')!)
+
+    expect(api.searchSources).not.toHaveBeenCalled()
+    expect(alerts()).toEqual([sentence()])
+  })
+
+  it('says nothing when the field is left empty: only when Search is pressed', () => {
+    renderTab()
+
+    fireEvent.blur(field())
+
+    expect(alerts()).toEqual([])
+  })
+
+  it('takes the sentence away once something is typed, and Search then searches', async () => {
+    vi.mocked(api.searchSources).mockResolvedValue({ sources: [] })
+    renderTab()
+    fireEvent.click(searchButton())
+    expect(alerts()).toEqual([sentence()])
+
+    fireEvent.change(field(), { target: { value: 'breaking' } })
+    expect(alerts()).toEqual([])
+    fireEvent.click(searchButton())
+
+    await waitFor(() => expect(api.searchSources).toHaveBeenCalledTimes(1))
+  })
+})
 
 describe('SearchTab', () => {
   it('searches the chosen category and lists the results', async () => {

@@ -20,6 +20,7 @@ import { lookupCrossHint, type CrossHint, type CrossHintList } from '../CrossHin
 import { ErrorBlock, type ErrorBlockAction } from '../ErrorBlock/ErrorBlock.js'
 import { ErrorStrip } from '../ErrorStrip/ErrorStrip.js'
 import { Field } from '../Field/Field.js'
+import { useFieldValidation } from '../Field/useFieldValidation.js'
 import { SearchResultRow } from '../SearchResultRow/SearchResultRow.js'
 import { SearchResultsStop } from '../SearchResultsStop/SearchResultsStop.js'
 import { Spinner } from '../Spinner/Spinner.js'
@@ -85,6 +86,11 @@ export function SearchTab({ mediaType, onBuilt, libraryCategory, initialQuery, i
   const page = useRef(1)
   const loadingMoreNow = useRef(false)
   const queryInput = useRef<HTMLInputElement>(null)
+  // An empty query is said when Search is pressed, not by a disabled button (H-006).
+  const checks = useFieldValidation({
+    query: { value: query, problem: (value) => (value.trim() === '' ? copy.errors['search.queryRequired']() : null) },
+  })
+  const queryChecks = checks.props('query')
   // The result to open belongs to the opening search only: taken once, whatever that search turns out to do.
   const pendingOpen = useRef(initialQuery ? initialOpen : undefined)
   const seeded = useRef(false)
@@ -396,11 +402,16 @@ export function SearchTab({ mediaType, onBuilt, libraryCategory, initialQuery, i
         className="q-search-form"
         onSubmit={(event: FormEvent) => {
           event.preventDefault()
+          if (building || !checks.validate()) return
           void runSearch(query)
         }}
       >
         <Field
-          ref={queryInput}
+          {...queryChecks}
+          ref={(element) => {
+            queryInput.current = element as HTMLInputElement | null
+            queryChecks.ref(element)
+          }}
           label={mediaType.searchScope === 'library' ? text.libraryQueryLabel(source) : text.queryLabel(source)}
           value={query}
           onChange={(event) => setQuery(event.target.value)}
@@ -414,10 +425,11 @@ export function SearchTab({ mediaType, onBuilt, libraryCategory, initialQuery, i
           autoCapitalize="off"
           autoComplete="off"
         />
-        <Button type="submit" variant="primary" disabled={building || !query.trim()}>
+        <Button type="submit" variant="primary" disabled={building}>
           {text.searchButton}
         </Button>
       </form>
+      {checks.message('query')}
 
       {isBook && (
         <div className="q-search-facet">
