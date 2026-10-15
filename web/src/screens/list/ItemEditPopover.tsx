@@ -3,7 +3,7 @@ import { USER_NOTE_MAX_LENGTH } from '../../../../server/src/catalog/userNotes.j
 import { quitPlatform } from '../../lib/appQuit.js'
 import { filterYearInput, formatYear } from '../../../../server/src/catalog/years.js'
 import './ItemEditPopover.css'
-import { useCallback, useEffect, useLayoutEffect, useRef, useState, type KeyboardEvent } from 'react'
+import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState, type KeyboardEvent } from 'react'
 import type { ItemSourceTags, ListItem } from '../../lib/api.js'
 import { copy } from '../../locale/index.js'
 import { Button } from '../../components/quantum/Button/Button.js'
@@ -88,9 +88,10 @@ export function ItemEditPopover({
   const [minutes, setMinutes] = useState(() => durationFieldText(item))
   const [group, setGroup] = useState(item.group ?? '')
   const [year, setYear] = useState(() => formatYear(item))
-  // The user's own note (H-003): empty for none. The counter shows from 1,800 characters. The shortcut is in the placeholder.
+  // The user's own note (H-003): empty for none. The counter shows from 1,800 characters, in the label row. The shortcut is in the placeholder.
   const [note, setNote] = useState(item.userNote ?? '')
   const noteRef = useRef<HTMLTextAreaElement | null>(null)
+  const noteCounterId = useId()
   // Opened on the note (the card's ✎): the cursor goes to the end, where a person adds to it (design: the caret after the text).
   // The window's body is portaled, so the field is only there once it lands; set once, as it mounts, so typing never moves it.
   const bindNote = useCallback((node: HTMLTextAreaElement | null) => {
@@ -298,10 +299,17 @@ export function ItemEditPopover({
             maxLength={USER_NOTE_MAX_LENGTH}
             placeholder={quitPlatform(navigator.userAgent) === 'mac' ? text.notePlaceholderCmd : text.notePlaceholderCtrl}
             autoFocus={focusNote && !panelOpen}
+            meta={
+              note.length >= NOTE_COUNTER_FROM ? (
+                <span id={noteCounterId} className="q-field-meta">
+                  {text.noteCounter(note.length, USER_NOTE_MAX_LENGTH)}
+                </span>
+              ) : (
+                ''
+              )
+            }
+            {...(note.length >= NOTE_COUNTER_FROM ? { 'aria-describedby': noteCounterId } : {})}
           />
-          {note.length >= NOTE_COUNTER_FROM && (
-            <div className="q-edit-note-meta">{text.noteCounter(note.length, USER_NOTE_MAX_LENGTH)}</div>
-          )}
         </div>
         <div className="q-edit-actions" onMouseDown={(event) => event.preventDefault()}>
           <Button size="sm" variant="quiet" onClick={onDiscard}>

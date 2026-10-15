@@ -66,6 +66,15 @@ test('the counter shows from 1,800 characters and the field stops at 2,048, with
 
     await note.fill('a'.repeat(1799))
     await expect(edit.getByText(/ \/ 2,048$/)).toHaveCount(0)
+    const before = (await edit.boundingBox())!
+
+    // The counter is in the label row (prototype): the window is exactly as tall with it as without.
+    await note.fill('a'.repeat(1800))
+    await expect(edit.getByText('1,800 / 2,048')).toBeVisible()
+    expect((await edit.boundingBox())!.height).toBe(before.height)
+    const label = (await edit.getByText('Note', { exact: true }).boundingBox())!
+    const counter = (await edit.getByText('1,800 / 2,048').boundingBox())!
+    expect(Math.abs(counter.y - label.y)).toBeLessThan(6)
 
     await note.fill('a'.repeat(1994))
     await expect(edit.getByText('1,994 / 2,048')).toBeVisible()

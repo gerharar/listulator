@@ -4,6 +4,18 @@
   flex-direction: column;
   gap: 5px;
 }
+.q-field-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+}
+/* The prototype's label-row counter: the label's mono face, not upper-cased or spaced, digits that do not jump. */
+.q-field-meta {
+  font: 500 11px/1 var(--font-mono);
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
 .q-input {
   width: 100%;
   padding: 11px 13px;

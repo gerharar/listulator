@@ -546,6 +546,31 @@ describe('ItemEditPopover: the user’s own note (H-003)', () => {
       expect(counter()?.textContent).toBe('1,994 / 2,048')
     })
 
+    it('sits in the label row, right of "Note", a row that is there from the start: the window never grows for it (prototype)', () => {
+      renderPopover()
+      const head = () => note().closest('.q-field')!.querySelector('.q-field-head') as HTMLElement
+      const rowBefore = head()
+      expect(rowBefore.textContent).toBe('Note')
+
+      fireEvent.change(note(), { target: { value: 'a'.repeat(1800) } })
+
+      expect(head()).toBe(rowBefore)
+      expect(head().textContent).toBe('Note1,800 / 2,048')
+      expect(head().firstElementChild!.tagName).toBe('LABEL')
+      expect(counter()!.parentElement).toBe(head())
+      expect(document.querySelector('.q-edit-note-meta')).toBeNull()
+      // Nothing was added beside the field: the block is the label row and the field.
+      expect(note().closest('.q-edit-note-block')!.children).toHaveLength(1)
+    })
+
+    it('leaves the field’s name as "Note" and is read with the field', () => {
+      renderPopover()
+      fireEvent.change(note(), { target: { value: 'a'.repeat(1994) } })
+
+      expect(screen.getByLabelText('Note')).toBe(note())
+      expect(note().getAttribute('aria-describedby')).toBe(counter()!.id)
+    })
+
     it('has no error state at the limit: it is just full', () => {
       renderPopover()
 

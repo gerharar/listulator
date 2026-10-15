@@ -1,5 +1,5 @@
 import { Tip } from '../Tooltip/Tip.js'
-import { useState, type InputHTMLAttributes, type Ref, type TextareaHTMLAttributes } from 'react'
+import { useId, useState, type InputHTMLAttributes, type ReactNode, type Ref, type TextareaHTMLAttributes } from 'react'
 import { Eye, EyeOff } from 'lucide-react'
 import './Field.css'
 import { copy } from '../../../locale/index.js'
@@ -26,13 +26,34 @@ export interface FieldTextAreaProps extends TextareaHTMLAttributes<HTMLTextAreaE
   /** The Import-tab YAML box: mono 13px/1.55, `resize: none`. */
   code?: boolean
   ref?: Ref<HTMLTextAreaElement>
+  /**
+   * Something at the right end of the label row, such as a character counter (H-003). The label row is a row of its own,
+   * so what goes in it never changes the field's height, and the label stays only the label (it is the field's name).
+   */
+  meta?: ReactNode
 }
 
-export function FieldTextArea({ label, code, className, ...rest }: FieldTextAreaProps) {
+export function FieldTextArea({ label, code, className, meta, id, ...rest }: FieldTextAreaProps) {
+  const own = useId()
+  const inputId = id ?? own
+  if (meta !== undefined) {
+    return (
+      <div className="q-field">
+        <div className="q-field-head">
+          <label htmlFor={inputId} className="q-kicker">
+            {label}
+          </label>
+          {meta}
+        </div>
+        <textarea id={inputId} className={['q-input', code ? 'code' : '', className].filter(Boolean).join(' ')} {...rest} />
+      </div>
+    )
+  }
+
   return (
     <label className="q-field">
       <span className="q-kicker">{label}</span>
-      <textarea className={['q-input', code ? 'code' : '', className].filter(Boolean).join(' ')} {...rest} />
+      <textarea id={id} className={['q-input', code ? 'code' : '', className].filter(Boolean).join(' ')} {...rest} />
     </label>
   )
 }
