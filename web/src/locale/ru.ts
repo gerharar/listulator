@@ -830,6 +830,9 @@ export const ru: Locale = {
       filter: {
         label: 'Фильтр элементов',
         placeholder: 'Фильтр элементов…',
+        /** The ✕ inside the field (H-008): its name and tooltip, and what is announced once the text is cleared. */
+        clearText: 'Очистить фильтр',
+        cleared: 'Фильтр очищен',
         total: (n: number): string => items(n),
         shown: (shown: number, total: number): string => `показано ${shown} из ${total}`,
         groupShown: (shown: number, total: number): string => `${shown} из ${total}`,

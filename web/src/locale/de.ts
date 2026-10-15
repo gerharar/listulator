@@ -821,6 +821,9 @@ export const de: Locale = {
       filter: {
         label: 'Einträge filtern',
         placeholder: 'Einträge filtern…',
+        /** The ✕ inside the field (H-008): its name and tooltip, and what is announced once the text is cleared. */
+        clearText: 'Filter leeren',
+        cleared: 'Filter geleert',
         total: (n: number): string => entries(n),
         shown: (shown: number, total: number): string => `${shown} von ${total} angezeigt`,
         groupShown: (shown: number, total: number): string => `${shown} von ${total}`,

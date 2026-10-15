@@ -1,4 +1,6 @@
 // @vitest-environment jsdom
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react'
 import type { FacetGroup } from '../../../../server/src/catalog/facets.js'
@@ -34,6 +36,7 @@ function bar(over: Partial<FilterBarProps> = {}) {
   const props: FilterBarProps = {
     text: '',
     onText: vi.fn(),
+    onClear: vi.fn(),
     facets: [],
     selection: {},
     onSelect: vi.fn(),
@@ -70,6 +73,57 @@ describe('FilterBar', () => {
     const props = bar()
     fireEvent.change(screen.getByPlaceholderText('Filter items…'), { target: { value: 'creed' } })
     expect(props.onText).toHaveBeenCalledWith('creed')
+  })
+
+  describe('the ✕ that clears the text (H-008)', () => {
+    const input = () => screen.getByPlaceholderText('Filter items…') as HTMLInputElement
+    const clear = () => screen.queryByRole('button', { name: 'Clear filter' })
+
+    it('is only there while the field has text, spaces included', () => {
+      bar({ text: '' })
+      expect(clear()).toBeNull()
+      cleanup()
+
+      bar({ text: 'creed' })
+      expect(clear()).not.toBeNull()
+      cleanup()
+
+      bar({ text: '   ' })
+      expect(clear()).not.toBeNull()
+    })
+
+    it('asks to clear when pressed, and says what it is on hover', async () => {
+      const props = bar({ text: 'creed' })
+
+      expect(await hoverTooltip(clear()!)).toBe('Clear filter')
+      fireEvent.click(clear()!)
+
+      expect(props.onClear).toHaveBeenCalledTimes(1)
+      expect(props.onText).not.toHaveBeenCalled()
+    })
+
+    it('keeps the cursor in the field: the press is not a press on a button that is about to go', () => {
+      bar({ text: 'creed' })
+      input().focus()
+
+      // Cancelled mouse-down: the browser does not move focus to the button.
+      expect(fireEvent.mouseDown(clear()!)).toBe(false)
+      fireEvent.click(clear()!)
+
+      expect(document.activeElement).toBe(input())
+    })
+
+    it('sits in the field’s own wrapper, which is the part the bar measures, with the room for it always reserved', () => {
+      bar({ text: 'creed' })
+
+      const wrapper = input().parentElement!
+      expect(wrapper.hasAttribute('data-bar-fixed')).toBe(true)
+      expect(wrapper.contains(clear())).toBe(true)
+      expect(wrapper.classList.contains('q-filter-field')).toBe(true)
+      // The padding that keeps the text off the ✕ is the field's own, there with or without it (the css is read: jsdom has none).
+      const css = readFileSync(join(import.meta.dirname, 'ListScreen.css'), 'utf8')
+      expect(css).toMatch(/\.q-filter-input\s*\{[^}]*padding:\s*9px 34px 9px 12px/)
+    })
   })
 
   it('shows no facet row for a category without facets', () => {

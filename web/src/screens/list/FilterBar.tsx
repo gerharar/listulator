@@ -1,5 +1,5 @@
 import { useLayoutEffect, useRef, useState } from 'react'
-import { ChevronsDownUp, ChevronsUpDown, EyeOff } from 'lucide-react'
+import { ChevronsDownUp, ChevronsUpDown, EyeOff, X } from 'lucide-react'
 import { UNTAGGED, type FacetGroup, type FacetKey, type FacetSelection } from '../../../../server/src/catalog/facets.js'
 import { compareShown, copy } from '../../locale/index.js'
 import { FacetToggle, type FacetOption } from '../../components/quantum/FacetToggle/FacetToggle.js'
@@ -10,6 +10,8 @@ import { Tip } from '../../components/quantum/Tooltip/Tip.js'
 export interface FilterBarProps {
   text: string
   onText: (text: string) => void
+  /** The ✕ in the field (H-008): clear the text, announce it. The cursor is put back in the field here. */
+  onClear: () => void
   /** The category's facets that this list has values for; empty means the text field only. */
   facets: readonly FacetGroup[]
   selection: FacetSelection
@@ -62,9 +64,10 @@ function facetOptions(facet: FacetGroup): FacetOption[] {
  * first; widen the window and the chips come back. A hidden copy of each facet
  * in both forms is measured against the bar on every resize.
  */
-export function FilterBar({ text, onText, facets, selection, onSelect, fold, hideDone, note }: FilterBarProps) {
+export function FilterBar({ text, onText, onClear, facets, selection, onSelect, fold, hideDone, note }: FilterBarProps) {
   const t = copy.quantum.list.filter
   const barRef = useRef<HTMLDivElement>(null)
+  const inputRef = useRef<HTMLInputElement>(null)
   const ghostRef = useRef<HTMLDivElement>(null)
   const [compact, setCompact] = useState<ReadonlySet<string>>(new Set())
 
@@ -106,18 +109,39 @@ export function FilterBar({ text, onText, facets, selection, onSelect, fold, hid
 
   return (
     <div className="q-filterbar" ref={barRef}>
-      <input
-        className="q-filter-input"
-        data-bar-fixed=""
-        type="text"
-        spellCheck={false}
-        autoCorrect="off"
-        autoCapitalize="off"
-        aria-label={t.label}
-        placeholder={t.placeholder}
-        value={text}
-        onChange={(event) => onText(event.target.value)}
-      />
+      {/* The field and its ✕ are one measured part (`data-bar-fixed`); the room for the ✕ is the input's own right padding, so
+          the text never shifts when it appears (H-008). */}
+      <span className="q-filter-field" data-bar-fixed="">
+        <input
+          ref={inputRef}
+          className="q-filter-input"
+          type="text"
+          spellCheck={false}
+          autoCorrect="off"
+          autoCapitalize="off"
+          aria-label={t.label}
+          placeholder={t.placeholder}
+          value={text}
+          onChange={(event) => onText(event.target.value)}
+        />
+        {text !== '' && (
+          <Tip
+            as="button"
+            type="button"
+            className="q-filter-clear"
+            aria-label={t.clearText}
+            text={t.clearText}
+            // A press must not take the cursor off the field: the button goes as the text does.
+            onMouseDown={(event) => event.preventDefault()}
+            onClick={() => {
+              onClear()
+              inputRef.current?.focus()
+            }}
+          >
+            <X width={14} height={14} strokeWidth={2} aria-hidden="true" />
+          </Tip>
+        )}
+      </span>
       {facets.map((facet) =>
         compact.has(facet.key) || alwaysDropdown(facet) ? (
           <FacetDropdown key={facet.key} {...facetProps(facet)} />

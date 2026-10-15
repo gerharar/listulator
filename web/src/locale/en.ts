@@ -921,6 +921,9 @@ export const en = {
       filter: {
         label: 'Filter items',
         placeholder: 'Filter items…',
+        /** The ✕ inside the field (H-008): its name and tooltip, and what is announced once the text is cleared. */
+        clearText: 'Clear filter',
+        cleared: 'Filter cleared',
         total: (n: number): string => `${n} ${selectPlural(n, 'en', { one: 'item', other: 'items' })}`,
         shown: (shown: number, total: number): string => `${shown} of ${total} shown`,
         /** A group's count while filtering. */

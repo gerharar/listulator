@@ -1064,6 +1064,10 @@ function ListView({
       <FilterBar
         text={filter.text}
         onText={(value) => setFilter((current) => ({ ...current, text: value }))}
+        onClear={() => {
+          setFilter((current) => ({ ...current, text: '' }))
+          announce(text.filter.cleared)
+        }}
         facets={facetGroups}
         selection={filter.facets}
         onSelect={selectFacet}

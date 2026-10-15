@@ -233,7 +233,7 @@ test('many platforms: the dropdown keeps the bar one row, and names the picks (U
     await expect(summary).toBeVisible()
     await expect(facets(page).locator('.q-facet-seg')).toHaveCount(0)
     const tops = await Promise.all(
-      ['.q-filter-input', '.q-facet-summary', '.q-hide-done', '.q-fold', '.q-filter-note'].map(
+      ['.q-filter-field', '.q-facet-summary', '.q-hide-done', '.q-fold', '.q-filter-note'].map(
         async (part) => (await facetBar(page).locator(`:scope > ${part}, :scope > .q-facet > ${part}`).boundingBox())!,
       ),
     )

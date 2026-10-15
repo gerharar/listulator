@@ -303,6 +303,50 @@ describe('notes in the filter (H-003)', () => {
   })
 })
 
+describe('clearing the text (H-008)', () => {
+  const field = () => screen.getByPlaceholderText('Filter items…') as HTMLInputElement
+  const clear = () => screen.getByRole('button', { name: 'Clear filter' })
+
+  it('the ✕ empties the field, shows the rows again, announces it and keeps the cursor in the field', async () => {
+    await open()
+    type('assassin')
+    expect(rowIds()).toEqual(['gm', 'ac1', 'ac2'])
+    field().focus()
+
+    fireEvent.click(clear())
+
+    expect(field().value).toBe('')
+    expect(rowIds()).toEqual(['p', 'gm', 'ac1', 'ac2', 'ac3', 'gh', 'ch', 'bl'])
+    expect(within(bar()).getByText('6 items')).toBeTruthy()
+    await waitFor(() => expect(document.querySelector('.q-live')!.textContent).toBe('Filter cleared'))
+    expect(document.activeElement).toBe(field())
+    expect(screen.queryByRole('button', { name: 'Clear filter' })).toBeNull()
+  })
+
+  it('clears the text only: a chosen platform and Hide Completed keep their state', async () => {
+    await open('game', (detail) => {
+      detail.items.find((entry) => entry.id === 'ac3')!.consumedAt = '2026-01-01'
+    })
+    fireEvent.click(facet('X360'))
+    act(() => within(bar()).getByRole('button', { name: 'Hide Completed' }).click())
+    type('assassin')
+    expect(rowIds()).toEqual(['gm', 'ac1', 'ac2'])
+
+    fireEvent.click(clear())
+
+    // The platform and Hide Completed still apply: ac1 and ac2 have X360, ac3 is done and hidden.
+    expect(rowIds()).toEqual(['gm', 'ac1', 'ac2'])
+    expect(within(bar()).getByRole('button', { name: 'Hide Completed' }).getAttribute('aria-pressed')).toBe('true')
+    expect(within(bar()).getByRole('button', { name: /^Platform: X360/ })).toBeTruthy()
+  })
+
+  it('has no ✕ for an empty field', async () => {
+    await open()
+
+    expect(screen.queryByRole('button', { name: 'Clear filter' })).toBeNull()
+  })
+})
+
 describe('Hide Completed (18.1)', () => {
   const doneOf = (...ids: string[]) => (detail: MediaListDetail) => {
     for (const entry of detail.items) if (ids.includes(entry.id)) entry.consumedAt = '2026-01-01'
