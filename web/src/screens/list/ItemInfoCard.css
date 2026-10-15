@@ -8,7 +8,8 @@
   margin: 0;
 }
 .q-info-title {
-  font: 600 15px/1.25 var(--font);
+  font: 600 15px/1.25 var(--font-sans);
+  color: var(--ink);
 }
 /* A note as it was typed: its line breaks kept, long words wrapped inside the card. */
 .q-info-text {

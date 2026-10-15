@@ -14,8 +14,8 @@ export interface ItemInfoCardProps {
 /**
  * The ⓘ popover's body (design: item notes, 320px). The ⓘ is only on an item with a note, so there is always one to show:
  * the curator's (read-only, from the source), the user's own (with a ✎ to edit it), or both, curator first, split by a
- * hairline. A kicker says whose it is; with one note it sits above the title, with both the title goes first. Line breaks
- * are kept, and a note is only ever drawn as text.
+ * hairline. The title is always first (the prototype, updated 2026-10-15) and a kicker says whose each note is. Line
+ * breaks are kept, and a note is only ever drawn as text.
  */
 export function ItemInfoCard({ item, onEditNote }: ItemInfoCardProps) {
   const text = copy.quantum.list.itemActions
@@ -32,25 +32,17 @@ export function ItemInfoCard({ item, onEditNote }: ItemInfoCardProps) {
 
   return (
     <div className="q-info">
-      {curator && mine ? (
-        <>
-          {title}
-          <p className="q-kicker">{text.curatorNote}</p>
-          <p className="q-info-text">{curator}</p>
-          <hr />
-          {yours}
-          <p className="q-info-text">{mine}</p>
-        </>
-      ) : curator ? (
+      {title}
+      {curator && (
         <>
           <p className="q-kicker">{text.curatorNote}</p>
-          {title}
           <p className="q-info-text">{curator}</p>
         </>
-      ) : (
+      )}
+      {curator && mine && <hr />}
+      {mine && (
         <>
           {yours}
-          {title}
           <p className="q-info-text">{mine}</p>
         </>
       )}

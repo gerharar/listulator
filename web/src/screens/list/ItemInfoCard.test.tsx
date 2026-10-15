@@ -41,19 +41,19 @@ const order = () =>
   )
 
 describe('ItemInfoCard (H-003): the notes of an item, and whose they are', () => {
-  it('a curator note only: its kicker above the title, then the note, no pencil', () => {
+  it('a curator note only: the title, then its kicker and the note, no pencil', () => {
     renderCard({ notes: CURATOR })
 
-    expect(order()).toEqual(['kicker', 'info-title', 'info-text'])
+    expect(order()).toEqual(['info-title', 'kicker', 'info-text'])
     expect(screen.getByText('Curator note').className).toBe('q-kicker')
     expect(screen.getByText(CURATOR)).toBeTruthy()
     expect(screen.queryByRole('button')).toBeNull()
   })
 
-  it('a note of the user’s only: its kicker with the pencil above the title, then the note', () => {
+  it('a note of the user’s only: the title, then its kicker with the pencil and the note', () => {
     renderCard({ userNote: MINE })
 
-    expect(order()).toEqual(['info-head', 'info-title', 'info-text'])
+    expect(order()).toEqual(['info-title', 'info-head', 'info-text'])
     expect(document.querySelector('.q-info-head')!.textContent).toContain('Your note')
     expect(screen.getByRole('button', { name: 'Edit your note' })).toBeTruthy()
   })
@@ -83,6 +83,12 @@ describe('ItemInfoCard (H-003): the notes of an item, and whose they are', () =>
 
     expect(onEditNote).toHaveBeenCalledTimes(1)
     expect(screen.getAllByRole('button')).toHaveLength(1)
+  })
+
+  it('has the title bold, in the sans family the prototype names (the app’s --font does not exist)', () => {
+    const css = readFileSync(join(import.meta.dirname, 'ItemInfoCard.css'), 'utf8')
+
+    expect(css).toMatch(/\.q-info-title\s*\{[^}]*font:\s*600 15px\/1\.25 var\(--font-sans\)/)
   })
 
   it('shows no cover, year or length any more: the row has those', () => {
