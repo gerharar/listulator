@@ -1,4 +1,5 @@
 import { NAME_MAX_LENGTH } from '../../../../server/src/catalog/limits.js'
+import { durationTextProblem, parseDurationText } from '../../../../server/src/catalog/durations.js'
 import { filterYearInput, parseYearText, yearTextProblem } from '../../../../server/src/catalog/years.js'
 import './AddItemForm.css'
 import { useRef, useState, type FormEvent } from 'react'
@@ -7,24 +8,15 @@ import { copy } from '../../locale/index.js'
 import { Button } from '../../components/quantum/Button/Button.js'
 import { ErrorStrip } from '../../components/quantum/ErrorStrip/ErrorStrip.js'
 import { Field } from '../../components/quantum/Field/Field.js'
+import { useFieldValidation } from '../../components/quantum/Field/useFieldValidation.js'
 import { Popover } from '../../components/quantum/Popover/Popover.js'
 import { PlatformPicker } from '../../components/quantum/PlatformPanel/PlatformPanel.js'
 import { platformDraft } from '../../components/quantum/PlatformPanel/platformPicks.js'
 import { GroupCombobox } from './GroupCombobox.js'
+import { minutesSentence, yearSentence } from './itemActions.js'
 import { TagChoice } from './TagChoice.js'
 import { readChoice, writeChoice, type TagField } from './tagFields.js'
 import { Tip } from '../../components/quantum/Tooltip/Tip.js'
-
-/**
- * Whole minutes as typed. Blank is `null` — use the category's default and
- * mark it estimated — and anything that is not a whole number is `NaN`.
- */
-export function parseMinutes(raw: string): number | null {
-  const trimmed = raw.trim()
-  if (trimmed === '') return null
-
-  return /^\d+$/.test(trimmed) ? Number(trimmed) : Number.NaN
-}
 
 export interface NewItemInput {
   title: string
@@ -58,11 +50,16 @@ export interface AddItemFormProps {
 
 /**
  * The add-item form at the foot of the list (design: "Add item form"): title,
- * minutes, and a group you pick or type. The item lands at the end of its
+ * year, minutes, and a group you pick or type. The item lands at the end of its
  * group (BL-003). The group stays after adding, so a run of items into one
  * group is one field filled in once. So do the tags (U5, docs/chips §4): a
  * Games list picks the next item's platforms in the Platform picker under a
  * button before Add; Music, Animation and Mega pick a Type/Medium.
+ *
+ * One rule for a wrong field (H-006): Add is never disabled by a value. Pressing it with no title (and no new group name),
+ * a wrong year or a wrong length adds nothing, shows each wrong field's sentence under the row, title first, and puts the
+ * cursor on the first. A wrong year or length blocks a group-only add too. Minutes are read as 95, 1h 35m or 1:35; empty
+ * is the category's default, estimated.
  */
 export function AddItemForm({
   groups,
@@ -91,31 +88,53 @@ export function AddItemForm({
   const [error, setError] = useState<string | null>(null)
   const titleInput = useRef<HTMLInputElement>(null)
 
-  const parsed = parseMinutes(minutes)
-  const validItem = title.trim() !== '' && !Number.isNaN(parsed)
+  const sentences = copy.quantum.list.itemActions
   // No title but a group name: the group itself is what is being added.
   const makesGroup = onCreateGroup !== undefined && title.trim() === '' && group.trim() !== ''
-  // An incomplete or impossible year turns Add off; the reason is the button's tooltip, with no hint line (design: H-004).
-  const yearProblem = yearTextProblem(year)
-  const valid = (validItem || makesGroup) && yearProblem === null
-  const typedYear = parseYearText(year)
+  const hasTitleOrGroup = title.trim() !== '' || makesGroup
+
+  // The cursor and the sentences go in this order: the title, the year, the length (the design's).
+  const checks = useFieldValidation({
+    title: {
+      value: title,
+      problem: () => (hasTitleOrGroup ? null : onCreateGroup ? text.titleOrGroupRequired : sentences.titleRequired),
+    },
+    year: {
+      value: year,
+      problem: (value) => {
+        const problem = yearTextProblem(value)
+
+        return problem === null ? null : yearSentence(sentences, problem, value)
+      },
+    },
+    minutes: {
+      value: minutes,
+      problem: (value) => {
+        const problem = durationTextProblem(value)
+
+        return problem === null ? null : minutesSentence(sentences, problem, defaultMinutes)
+      },
+    },
+  })
+  const titleChecks = checks.props('title')
 
   async function submit(event: FormEvent) {
     event.preventDefault()
-    if (!valid || adding) return
+    if (adding || !checks.validate()) return
     setError(null)
     setAdding(true)
     setPickerAnchor(null)
 
     try {
-      if (!validItem && onCreateGroup) {
+      if (makesGroup) {
         await onCreateGroup(group.trim())
         titleInput.current?.focus()
         return
       }
+      const typedYear = parseYearText(year)
       await onAdd({
         title: title.trim(),
-        minutes: parsed,
+        minutes: parseDurationText(minutes) ?? null,
         group: group.trim(),
         ...(typedYear?.year ? { year: { year: typedYear.year, yearUnk: typedYear.yearUnk } } : {}),
         ...(tagField ? { tags } : {}),
@@ -123,6 +142,7 @@ export function AddItemForm({
       setTitle('')
       setYear('')
       setMinutes('')
+      checks.reset()
       titleInput.current?.focus()
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : text.failed)
@@ -138,7 +158,11 @@ export function AddItemForm({
       )}
       <div className="q-add-item-row">
         <Field
-          ref={titleInput}
+          {...titleChecks}
+          ref={(element) => {
+            titleInput.current = element as HTMLInputElement | null
+            titleChecks.ref(element)
+          }}
           label={text.titleLabel}
           value={title}
           onChange={(event) => setTitle(event.target.value)}
@@ -157,20 +181,22 @@ export function AddItemForm({
           maxLength={4}
           inputMode="numeric"
           autoComplete="off"
-          aria-invalid={yearProblem !== null}
           disabled={adding}
           size="sm"
           className="q-add-item-year"
+          {...checks.props('year')}
         />
         <Field
           label={text.minutesLabel}
           value={minutes}
           onChange={(event) => setMinutes(event.target.value)}
           placeholder={String(defaultMinutes)}
-          inputMode="numeric"
+          spellCheck={false}
+          autoComplete="off"
           disabled={adding}
           size="sm"
           className="q-add-item-minutes"
+          {...checks.props('minutes')}
         />
         <GroupCombobox label={text.groupLabel} groups={groups} value={group} onChange={setGroup} small />
         {tagField?.kind === 'choice' && (
@@ -207,13 +233,17 @@ export function AddItemForm({
           variant="primary"
           size="sm"
           type="submit"
-          disabled={!valid}
           busy={adding}
           busyLabel={text.adding}
-          {...(yearProblem ? { title: yearProblem === 'form' ? text.yearTip : text.yearTipRange } : {})}
         >
           {makesGroup ? text.addGroup : text.add}
         </Button>
+      </div>
+      {/* The sentences of the wrong fields, under the whole row, the title first (design: H-006). */}
+      <div className="q-add-item-msgs">
+        {checks.message('title')}
+        {checks.message('year')}
+        {checks.message('minutes')}
       </div>
       {tagField?.kind === 'platform' && (
         <Popover

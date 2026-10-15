@@ -201,7 +201,7 @@ export const en = {
     'list.fileItemMissingTitle': (p: { index: number }): string => `Alzheimer's relapse detected: cannot import list, item ${p.index} has no title`,
     'list.fileItemNotesTooLong': (p: { index: number; max: number }): string => `Marcel Proust reincarnation detected: cannot import list, item ${p.index}'s notes are over ${p.max} characters`,
     'list.alreadyExists': (): string => `Fastest hand in the West detected: this list already exists, so nothing was restored`,
-    'item.invalidYear': (): string => 'A year has four digits, like 1994. Unsure of the last one or two? Type ?: 199? or 19??. Leave it empty if you don\'t know it at all',
+    'item.invalidYear': (): string => "Use four digits, like 1994, or 199? / 19?? if you're unsure of the end",
     'item.invalidMinutes': (): string => 'A duration is a whole number of minutes, from 1 to 99,999',
     'group.nameEmpty': (): string => 'A man needs a group name',
     'group.nameTaken': (): string => `Alzheimer's relapse detected: this list already has a group with such name`,
@@ -779,10 +779,7 @@ export const en = {
         titlePlaceholder: 'Add an item…',
         yearLabel: 'Year',
         yearPlaceholder: 'Year',
-        /** On the Add button while the year is wrong: the button is off and there is no hint line (H-004). */
-        yearTip: 'A year has four digits (1994), or ? for unknown last digits (199?, 19??)',
-        /** A year of the right shape the app does not hold (3500, 0000): the same words for now. */
-        yearTipRange: 'A year has four digits (1994), or ? for unknown last digits (199?, 19??)',
+        titleOrGroupRequired: 'Type a title, or a new group name to add an empty group',
         minutesLabel: 'Minutes',
         groupLabel: 'Group',
         add: 'Add',

@@ -1,27 +1,10 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
-import { AddItemForm, parseMinutes } from './AddItemForm.js'
+import { AddItemForm } from './AddItemForm.js'
 import { copy } from '../../locale/index.js'
-import { hoverTooltip } from '../../components/quantum/Tooltip/hoverTooltip.js'
 
 afterEach(cleanup)
-
-describe('parseMinutes', () => {
-  it('reads whole minutes, and nothing as "use the default"', () => {
-    expect(parseMinutes('45')).toBe(45)
-    expect(parseMinutes(' 45 ')).toBe(45)
-    expect(parseMinutes('')).toBeNull()
-    expect(parseMinutes('   ')).toBeNull()
-    expect(parseMinutes('0')).toBe(0)
-  })
-
-  it('says invalid for anything else', () => {
-    expect(parseMinutes('4.5')).toBeNaN()
-    expect(parseMinutes('-3')).toBeNaN()
-    expect(parseMinutes('1h')).toBeNaN()
-  })
-})
 
 function renderForm(overrides: Partial<Parameters<typeof AddItemForm>[0]> = {}) {
   const props = {
@@ -38,17 +21,40 @@ const title = () => screen.getByLabelText('Title') as HTMLInputElement
 const minutes = () => screen.getByLabelText('Minutes') as HTMLInputElement
 const group = () => screen.getByLabelText('Group') as HTMLInputElement
 const addButton = () => screen.getByRole('button', { name: 'Add' }) as HTMLButtonElement
+const alerts = () => screen.queryAllByRole('alert').map((alert) => alert.textContent)
+const sentences = copy.quantum.list.itemActions
 
 describe('AddItemForm', () => {
-  it('cannot add without a title', () => {
+  it('is never disabled by what the fields hold (H-006): not empty, not wrong', () => {
     renderForm()
-    expect(addButton().disabled).toBe(true)
-
-    fireEvent.change(title(), { target: { value: 'New thing' } })
     expect(addButton().disabled).toBe(false)
 
     fireEvent.change(title(), { target: { value: '   ' } })
-    expect(addButton().disabled).toBe(true)
+    fireEvent.change(minutes(), { target: { value: 'abc' } })
+    fireEvent.change(screen.getByLabelText('Year'), { target: { value: '19' } })
+
+    expect(addButton().disabled).toBe(false)
+  })
+
+  it('pressing Add with nothing typed adds nothing, says to type a title and puts the cursor in Title (no group name can be added here)', () => {
+    const { onAdd } = renderForm()
+
+    fireEvent.click(addButton())
+
+    expect(onAdd).not.toHaveBeenCalled()
+    expect(alerts()).toEqual([sentences.titleRequired])
+    expect(title().getAttribute('aria-invalid')).toBe('true')
+    expect(document.activeElement).toBe(title())
+  })
+
+  it('treats a title of spaces as no title', () => {
+    const { onAdd } = renderForm()
+
+    fireEvent.change(title(), { target: { value: '   ' } })
+    fireEvent.click(addButton())
+
+    expect(onAdd).not.toHaveBeenCalled()
+    expect(alerts()).toEqual([sentences.titleRequired])
   })
 
   it('adds with the title, minutes and group as typed', async () => {
@@ -92,13 +98,85 @@ describe('AddItemForm', () => {
     await waitFor(() => expect(onAdd).toHaveBeenCalledWith({ title: 'X', minutes: null, group: 'Season 3' }))
   })
 
-  it('will not add with minutes that are not a whole number', () => {
-    renderForm()
-    fireEvent.change(title(), { target: { value: 'X' } })
+  describe('the minutes (H-006, H-007)', () => {
+    it('is a text field, so h, m and : can be typed, and its placeholder is the category default, as before', () => {
+      renderForm({ defaultMinutes: 40 })
 
-    fireEvent.change(minutes(), { target: { value: '4.5' } })
+      expect(minutes().getAttribute('inputmode')).toBeNull()
+      expect(minutes().placeholder).toBe('40')
+    })
 
-    expect(addButton().disabled).toBe(true)
+    it.each([
+      ['1h 35m', 95],
+      ['1:35', 95],
+      ['45 min', 45],
+      ['12', 12],
+    ])('adds %j as %d minutes', async (value, expected) => {
+      const { onAdd } = renderForm()
+
+      fireEvent.change(title(), { target: { value: 'X' } })
+      fireEvent.change(minutes(), { target: { value } })
+      fireEvent.click(addButton())
+
+      await waitFor(() => expect(onAdd).toHaveBeenCalledWith({ title: 'X', minutes: expected, group: '' }))
+    })
+
+    it.each([
+      ['4.5', () => sentences.minutesForm],
+      ['abc', () => sentences.minutesForm],
+      ['1:61', () => sentences.minutesForm],
+      ['0', () => sentences.minutesZero(30)],
+      ['100000', () => sentences.minutesRange],
+    ])('adds nothing for %j, says why and puts the cursor in Minutes', (value, sentence) => {
+      const { onAdd } = renderForm()
+      fireEvent.change(title(), { target: { value: 'X' } })
+
+      fireEvent.change(minutes(), { target: { value } })
+      fireEvent.click(addButton())
+
+      expect(onAdd).not.toHaveBeenCalled()
+      expect(alerts()).toEqual([sentence()])
+      expect(minutes().getAttribute('aria-invalid')).toBe('true')
+      expect(document.activeElement).toBe(minutes())
+    })
+
+    it('says so when a wrong length is left, before anything is pressed', () => {
+      renderForm()
+
+      fireEvent.change(minutes(), { target: { value: 'abc' } })
+      fireEvent.blur(minutes())
+
+      expect(alerts()).toEqual([sentences.minutesForm])
+    })
+  })
+
+  it('stacks the sentences of several wrong fields under the row, the title first, and puts the cursor on the first', () => {
+    const { onAdd } = renderForm()
+    fireEvent.change(screen.getByLabelText('Year'), { target: { value: '3500' } })
+    fireEvent.change(minutes(), { target: { value: 'abc' } })
+
+    fireEvent.click(addButton())
+
+    expect(onAdd).not.toHaveBeenCalled()
+    expect(alerts()).toEqual([sentences.titleRequired, sentences.yearTooLate('3500'), sentences.minutesForm])
+    expect(document.activeElement).toBe(title())
+    const row = document.querySelector('.q-add-item-row')!
+    for (const alert of screen.getAllByRole('alert')) expect(row.contains(alert)).toBe(false)
+  })
+
+  it('takes the sentences away once the fields are right, and after an add leaves no sentence behind', async () => {
+    const { onAdd } = renderForm()
+    fireEvent.click(addButton())
+    expect(alerts()).toHaveLength(1)
+
+    fireEvent.change(title(), { target: { value: 'Now with a title' } })
+    expect(alerts()).toEqual([])
+    fireEvent.click(addButton())
+
+    await waitFor(() => expect(onAdd).toHaveBeenCalledTimes(1))
+    await waitFor(() => expect(title().value).toBe(''))
+    expect(alerts()).toEqual([])
+    expect(title().getAttribute('aria-invalid')).toBeNull()
   })
 
   it('adds on Enter in the title field', async () => {
@@ -198,10 +276,39 @@ describe('AddItemForm', () => {
       expect(onCreateGroup).not.toHaveBeenCalled()
     })
 
-    it('does nothing with a blank title and a blank group', () => {
-      renderForm({ onCreateGroup: vi.fn(async () => {}) })
+    it('with a blank title and a blank group, adds nothing and says to type a title or a new group name', () => {
+      const { onAdd, onCreateGroup } = renderForm({ onCreateGroup: vi.fn(async () => {}) })
 
-      expect(addButton().disabled).toBe(true)
+      fireEvent.click(addButton())
+
+      expect(onAdd).not.toHaveBeenCalled()
+      expect(onCreateGroup).not.toHaveBeenCalled()
+      expect(alerts()).toEqual([copy.quantum.list.addItem.titleOrGroupRequired])
+      expect(document.activeElement).toBe(title())
+    })
+
+    it('takes that sentence away when a group name is typed instead: the group can be added', () => {
+      renderForm({ onCreateGroup: vi.fn(async () => {}) })
+      fireEvent.click(addButton())
+      expect(alerts()).toHaveLength(1)
+
+      fireEvent.change(group(), { target: { value: 'Extras' } })
+
+      expect(alerts()).toEqual([])
+    })
+
+    it.each([
+      ['a wrong length', () => fireEvent.change(minutes(), { target: { value: 'abc' } }), () => sentences.minutesForm],
+      ['a wrong year', () => fireEvent.change(screen.getByLabelText('Year'), { target: { value: '19' } }), () => sentences.yearForm],
+    ])('does not create the group while there is %s: a wrong field is wrong whatever is being added (owner)', (_name, type, sentence) => {
+      const { onCreateGroup } = renderForm({ onCreateGroup: vi.fn(async () => {}) })
+      fireEvent.change(group(), { target: { value: 'Extras' } })
+      type()
+
+      fireEvent.click(screen.getByRole('button', { name: 'Add Group' }))
+
+      expect(onCreateGroup).not.toHaveBeenCalled()
+      expect(alerts()).toEqual([sentence()])
     })
 
     it('says why, and keeps the name, when the group is refused (a name the list already has)', async () => {
@@ -218,20 +325,20 @@ describe('AddItemForm', () => {
       expect(group().value).toBe('Season 1')
     })
 
-    it('still cannot add a group where the screen gives no way to (no onCreateGroup)', () => {
-      renderForm()
+    it('still cannot add a group where the screen gives no way to (no onCreateGroup): it asks for a title', () => {
+      const { onAdd } = renderForm()
 
       fireEvent.change(group(), { target: { value: 'Extras' } })
+      fireEvent.click(addButton())
 
-      expect(addButton().disabled).toBe(true)
+      expect(onAdd).not.toHaveBeenCalled()
+      expect(alerts()).toEqual([sentences.titleRequired])
     })
   })
 })
 
 describe('AddItemForm: the year (H-004, H-005)', () => {
   const year = () => screen.getByLabelText('Year') as HTMLInputElement
-  const text = copy.quantum.list.addItem
-
   it('has a Year field between the title and the minutes', () => {
     renderForm()
 
@@ -283,34 +390,44 @@ describe('AddItemForm: the year (H-004, H-005)', () => {
     expect(year().value).toBe('')
   })
 
-  it.each(['1', '19', '199', '1?', '19?4'])('turns Add off for a year of %j, with the reason as a tooltip and no hint line', async (value) => {
-    renderForm()
+  it.each([
+    ['1', () => sentences.yearForm],
+    ['199', () => sentences.yearForm],
+    ['19?4', () => sentences.yearForm],
+    ['0999', () => sentences.yearTooEarly],
+    ['3500', () => sentences.yearTooLate('3500')],
+    ['31??', () => sentences.yearTooLate('31??')],
+  ])('adds nothing for a year of %j, says why under the row and puts the cursor in Year with its text selected', (value, sentence) => {
+    const { onAdd } = renderForm()
     fireEvent.change(title(), { target: { value: 'Bonus' } })
 
     fireEvent.change(year(), { target: { value } })
+    fireEvent.click(addButton())
 
-    expect(addButton().disabled).toBe(true)
+    expect(onAdd).not.toHaveBeenCalled()
+    expect(alerts()).toEqual([sentence()])
     expect(year().getAttribute('aria-invalid')).toBe('true')
-    expect(screen.queryByRole('alert')).toBeNull()
-    expect(await hoverTooltip(addButton())).toBe(text.yearTip)
+    expect(document.activeElement).toBe(year())
+    expect([year().selectionStart, year().selectionEnd]).toEqual([0, year().value.length])
   })
 
-  it.each(['3500', '0000', '31??'])('turns Add off for %j with its own tooltip: the right shape, a year the app does not hold', async (value) => {
+  it('says nothing about a year while it is being typed, only when it is left', () => {
     renderForm()
-    fireEvent.change(title(), { target: { value: 'Bonus' } })
 
-    fireEvent.change(year(), { target: { value } })
+    fireEvent.change(year(), { target: { value: '19' } })
+    expect(alerts()).toEqual([])
 
-    expect(addButton().disabled).toBe(true)
-    expect(await hoverTooltip(addButton())).toBe(text.yearTipRange)
+    fireEvent.blur(year())
+    expect(alerts()).toEqual([sentences.yearForm])
   })
 
-  it('has no tooltip on Add while the year is right', async () => {
+  it('has no tooltip on Add and no sentence while the year is right', () => {
     renderForm()
     fireEvent.change(title(), { target: { value: 'Bonus' } })
     fireEvent.change(year(), { target: { value: '1994' } })
 
     expect(addButton().disabled).toBe(false)
-    expect(await hoverTooltip(addButton())).toBeNull()
+    expect(addButton().getAttribute('title')).toBeNull()
+    expect(alerts()).toEqual([])
   })
 })

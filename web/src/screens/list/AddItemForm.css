@@ -18,6 +18,14 @@
   box-sizing: border-box;
   height: calc(18px + 16.8px + 2px);
 }
+.q-add-item-msgs {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.q-add-item-msgs:not(:empty) {
+  margin-top: 8px;
+}
 .q-add-item-minutes {
   width: 80px;
 }

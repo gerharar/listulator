@@ -544,6 +544,10 @@ describe('the Edit window’s validation sentences (H-006, H-007)', () => {
     expect(text.minutesForm).toContain('1h 35m')
   })
 
+  it.each(languages)('%s: the server’s answer for a wrong year is the field’s own sentence, so a screen that skipped its check says the same', (_name, locale) => {
+    expect(locale.errors['item.invalidYear']()).toBe(locale.quantum.list.itemActions.yearForm)
+  })
+
   it('Russian uses no « » quotes in them (owner)', () => {
     const text = ru.quantum.list.itemActions
 
