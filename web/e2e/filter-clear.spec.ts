@@ -169,3 +169,32 @@ test('the ✕ is as far from the last typed character as it is from the field’
     await page.request.delete(`/api/lists/${id}`)
   }
 })
+
+test('Esc in the field: with text the first Esc only clears it, the second (field empty) leaves the list as before', async ({ page }) => {
+  const title = `e2e filter-clear esc ${Date.now()}`
+  const id = await makeList(page.request, title)
+
+  try {
+    await page.goto('/')
+    await page.locator('.q-home-row', { hasText: title }).click()
+    const field = page.getByPlaceholder(filter.placeholder)
+    await field.click()
+    await page.keyboard.type('ron')
+    await expect(page.locator('.q-item')).toHaveCount(1)
+
+    await page.keyboard.press('Escape')
+
+    // Cleared, and nothing else happened: the list is still open, the cursor is still in the field.
+    await expect(field).toHaveValue('')
+    await expect(field).toBeFocused()
+    await expect(page.locator('.q-item')).toHaveCount(3)
+    await expect(page.locator('.q-live')).toHaveText(filter.cleared)
+    await expect(field).toBeVisible()
+
+    // The field is empty now: Esc does what it did, and the list closes back to Home.
+    await page.keyboard.press('Escape')
+    await expect(field).toHaveCount(0)
+  } finally {
+    await page.request.delete(`/api/lists/${id}`)
+  }
+})

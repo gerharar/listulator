@@ -340,6 +340,30 @@ describe('clearing the text (H-008)', () => {
     expect(within(bar()).getByRole('button', { name: /^Platform: X360/ })).toBeTruthy()
   })
 
+  it('Esc in the field clears the text, announces it and keeps the platform and Hide Completed, as the ✕ does', async () => {
+    await open('game', (detail) => {
+      detail.items.find((entry) => entry.id === 'ac3')!.consumedAt = '2026-01-01'
+    })
+    fireEvent.click(facet('X360'))
+    act(() => within(bar()).getByRole('button', { name: 'Hide Completed' }).click())
+    type('assassin')
+
+    fireEvent.keyDown(field(), { key: 'Escape' })
+
+    expect(field().value).toBe('')
+    expect(rowIds()).toEqual(['gm', 'ac1', 'ac2'])
+    await waitFor(() => expect(document.querySelector('.q-live')!.textContent).toBe('Filter cleared'))
+    expect(within(bar()).getByRole('button', { name: 'Hide Completed' }).getAttribute('aria-pressed')).toBe('true')
+  })
+
+  it('Esc in an empty field clears nothing and announces nothing', async () => {
+    await open()
+
+    fireEvent.keyDown(field(), { key: 'Escape' })
+
+    expect(document.querySelector('.q-live')!.textContent).toBe('')
+  })
+
   it('has no ✕ for an empty field', async () => {
     await open()
 

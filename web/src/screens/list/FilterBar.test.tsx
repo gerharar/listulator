@@ -6,7 +6,7 @@ import { cleanup, fireEvent, render, screen, within } from '@testing-library/rea
 import type { FacetGroup } from '../../../../server/src/catalog/facets.js'
 import { FilterBar, type FilterBarProps } from './FilterBar.js'
 import { hoverTooltip } from '../../components/quantum/Tooltip/hoverTooltip.js'
-import { OverlayManagerProvider } from '../../components/quantum/overlay/OverlayManagerContext.js'
+import { OverlayManagerProvider, useEscLadder } from '../../components/quantum/overlay/OverlayManagerContext.js'
 
 afterEach(cleanup)
 
@@ -123,6 +123,70 @@ describe('FilterBar', () => {
       // The padding that keeps the text off the ✕ is the field's own, there with or without it (the css is read: jsdom has none).
       const css = readFileSync(join(import.meta.dirname, 'ListScreen.css'), 'utf8')
       expect(css).toMatch(/\.q-filter-input\s*\{[^}]*padding:\s*9px 30px 9px 12px/)
+    })
+  })
+
+  describe('Esc in the field (H-008)', () => {
+    const input = () => screen.getByPlaceholderText('Filter items…')
+    const esc = (init: KeyboardEventInit = {}) => fireEvent.keyDown(input(), { key: 'Escape', ...init })
+
+    it('with text, clears it, and the key is spent: nothing else sees it', () => {
+      const props = bar({ text: 'creed' })
+
+      // fireEvent returns false when the default was prevented.
+      expect(esc()).toBe(false)
+
+      expect(props.onClear).toHaveBeenCalledTimes(1)
+    })
+
+    it('with text of only spaces, clears it too: the field is not empty', () => {
+      const props = bar({ text: '   ' })
+
+      esc()
+
+      expect(props.onClear).toHaveBeenCalledTimes(1)
+    })
+
+    it('with the field empty, does nothing: the key goes on to close the popover, then the layer, as it did', () => {
+      const props = bar({ text: '' })
+
+      expect(esc()).toBe(true)
+
+      expect(props.onClear).not.toHaveBeenCalled()
+    })
+
+    it('does not act while a composition is under way, or for any other key', () => {
+      const props = bar({ text: 'creed' })
+
+      esc({ isComposing: true })
+      fireEvent.keyDown(input(), { key: 'Enter' })
+      fireEvent.keyDown(input(), { key: 'a' })
+
+      expect(props.onClear).not.toHaveBeenCalled()
+    })
+
+    it('against the real Esc ladder: with text the layer stays, with the field empty the layer is popped', () => {
+      const popLayer = vi.fn()
+      function Ladder() {
+        useEscLadder(popLayer)
+        return null
+      }
+      const mount = (text: string) =>
+        render(
+          <OverlayManagerProvider>
+            <Ladder />
+            <FilterBar text={text} onText={vi.fn()} onClear={vi.fn()} facets={[]} selection={{}} onSelect={vi.fn()} fold={null} hideDone={null} note="8 items" />
+          </OverlayManagerProvider>,
+        )
+
+      mount('creed')
+      fireEvent.keyDown(input(), { key: 'Escape' })
+      expect(popLayer).not.toHaveBeenCalled()
+      cleanup()
+
+      mount('')
+      fireEvent.keyDown(input(), { key: 'Escape' })
+      expect(popLayer).toHaveBeenCalledTimes(1)
     })
   })
 
