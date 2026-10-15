@@ -888,7 +888,7 @@ export const ru: Locale = {
       loading: 'Подсчитываем элементы…',
       noRuntime: '-',
       summary: (count: number, duration: string, estimated: boolean): string =>
-        `${items(count)} · ${estimated ? '≈ ' : ''}${duration}`,
+        `${items(count)} · ${estimated ? '≈' : ''}${duration}`,
       addButton: 'Добавить Список',
       adding: 'Строим список…',
       nothingToAdd: 'Добавлять нечего: этот список пуст, как совесть миллиардера',

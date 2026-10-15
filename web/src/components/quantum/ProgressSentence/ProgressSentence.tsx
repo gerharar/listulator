@@ -29,7 +29,7 @@ export interface ProgressSummary {
  * every item you have is watched, but the list itself is not finished
  * (design-system/components/ProgressSentence). While some lengths are still
  * being looked up (`runtimesPending`) the time left is part estimate, and
- * reads `≈ 14h 43m left` (task 15.7).
+ * reads `≈14h 43m left` (task 15.7).
  */
 export function formatProgress(
   done: number,

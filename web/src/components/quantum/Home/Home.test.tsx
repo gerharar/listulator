@@ -873,12 +873,12 @@ describe('Home updates (task 10.22c)', () => {
 
       renderHome()
 
-      await waitFor(() => expect(screen.getByText('≈ 200h left')).not.toBeNull())
+      await waitFor(() => expect(screen.getByText('≈200h left')).not.toBeNull())
       expect(api.lists).toHaveBeenCalledTimes(1)
 
       await act(async () => void vi.advanceTimersByTime(3000))
       await waitFor(() => expect(api.lists).toHaveBeenCalledTimes(2))
-      expect(screen.getByText('≈ 200h left')).not.toBeNull()
+      expect(screen.getByText('≈200h left')).not.toBeNull()
 
       await act(async () => void vi.advanceTimersByTime(3000))
       await waitFor(() => expect(screen.getByText('200h left')).not.toBeNull())

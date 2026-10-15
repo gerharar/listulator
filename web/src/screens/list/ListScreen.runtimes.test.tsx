@@ -96,7 +96,7 @@ describe('a list whose lengths are still being looked up (15.7)', () => {
     await open()
 
     expect(['Film 1', 'Film 2', 'Film 3'].map(rowTime)).toEqual(['-', '-', '-'])
-    expect(screen.getByText('≈ 6h left')).toBeTruthy()
+    expect(screen.getByText('≈6h left')).toBeTruthy()
   })
 
   it('fills in as the lengths arrive, and stops reading the list once nothing is pending', async () => {

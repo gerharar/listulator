@@ -879,7 +879,7 @@ export const de: Locale = {
       loading: 'Einträge werden aufgelistet…',
       noRuntime: '-',
       summary: (count: number, duration: string, estimated: boolean): string =>
-        `${entries(count)} · ${estimated ? '≈ ' : ''}${duration}`,
+        `${entries(count)} · ${estimated ? '≈' : ''}${duration}`,
       addButton: 'Diese Liste hinzufügen',
       adding: 'Liste wird aufgebaut…',
       nothingToAdd: 'Nichts hinzuzufügen: Diese Liste ist leer wie das Gewissen eines Milliardärs',

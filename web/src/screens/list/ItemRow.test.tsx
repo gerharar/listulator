@@ -54,7 +54,7 @@ describe('ItemRow', () => {
     renderRow({ item: { ...ITEM, timeToConsumeMinutes: 120, timeToConsumeIsEstimated: true } })
 
     const length = document.querySelector('.q-mins')!
-    expect(length.textContent).toBe('≈ 2h')
+    expect(length.textContent).toBe('≈2h')
     expect(await hoverTooltip(length)).toBe('This runtime is a rough estimate')
   })
 
@@ -302,7 +302,7 @@ describe('ItemRow', () => {
     it('shows an estimate that is not going to be looked up with its ≈', () => {
       renderRow({ item: { ...ITEM, timeToConsumeMinutes: 120, timeToConsumeIsEstimated: true, runtimePending: false } })
 
-      expect(screen.getByText('≈ 2h')).toBeTruthy()
+      expect(screen.getByText('≈2h')).toBeTruthy()
     })
   })
 })

@@ -268,7 +268,7 @@ export const en = {
         total ? `${done}/${total} (${percent}%)` : `${done}/${total}`,
       left: (duration: string): string => `${duration} left`,
       /** Part of the time is the category's estimate: lengths are still being looked up (15.7). */
-      leftApprox: (duration: string): string => `≈ ${duration} left`,
+      leftApprox: (duration: string): string => `≈${duration} left`,
       runtimesPendingTip: (count: number): string => `Looking up runtimes: ${count} still to go`,
       allDone: '✓ All Done',
       doneForNow: '✓ Done (for now)',
@@ -988,7 +988,7 @@ export const en = {
       /** What a row shows where the source gave no length: the lengths are looked up after the list is built (15.8). */
       noRuntime: '-',
       /** Count and total runtime; `≈` when some runtimes are the category's default. */
-      summary: (count: number, duration: string, estimated: boolean): string => `${count} ${selectPlural(count, 'en', { one: 'item', other: 'items' })} · ${estimated ? '≈ ' : ''}${duration}`,
+      summary: (count: number, duration: string, estimated: boolean): string => `${count} ${selectPlural(count, 'en', { one: 'item', other: 'items' })} · ${estimated ? '≈' : ''}${duration}`,
       addButton: 'Add This List',
       adding: 'Building the list…',
       nothingToAdd: 'Nothing to add: this list is empty like a billionaire\'s conscience',

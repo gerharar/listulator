@@ -68,7 +68,7 @@ describe('PreviewLayer', () => {
     vi.mocked(api.preview).mockResolvedValue(EXPANSION)
     renderLayer()
 
-    await screen.findByText('3 items · ≈ 2h 17m')
+    await screen.findByText('3 items · ≈2h 17m')
     // Only "Ouroboros" has no length of its own: its row says "-", not the category's 40 minutes.
     expect(screen.getAllByText('-')).toHaveLength(1)
     expect(screen.getByText('50m')).toBeTruthy()
@@ -80,7 +80,7 @@ describe('PreviewLayer', () => {
 
     expect(screen.getByText('Listing the items…')).toBeTruthy()
     // 50 + 47 + the category default (40), so an estimate: 2h 17m.
-    expect(await screen.findByText('3 items · ≈ 2h 17m')).toBeTruthy()
+    expect(await screen.findByText('3 items · ≈2h 17m')).toBeTruthy()
     expect(screen.getByRole('heading', { name: /^Loki/ })).toBeTruthy()
     expect(screen.getByText('Ongoing')).toBeTruthy()
     expect(api.preview).toHaveBeenCalledWith('tv', 'show:1', {})

@@ -55,7 +55,7 @@ describe('formatProgress', () => {
       expect(formatProgress(16, 38, 14 * 60 + 43, null, 12)).toEqual({
         count: '16/38 (42%)',
         allDone: false,
-        left: '≈ 14h 43m left',
+        left: '≈14h 43m left',
       })
     })
 

@@ -176,7 +176,7 @@ describe('HomeRow', () => {
     const props = { title: 'Pixar', description: null, mark: null, status: null, done: 0, total: 100, minutesLeft: 12000, onOpen: vi.fn() } as const
     render(<HomeRow {...props} runtimesPending={40} />)
 
-    expect(screen.getByText('≈ 200h left')).not.toBeNull()
+    expect(screen.getByText('≈200h left')).not.toBeNull()
 
     cleanup()
     render(<HomeRow {...props} />)

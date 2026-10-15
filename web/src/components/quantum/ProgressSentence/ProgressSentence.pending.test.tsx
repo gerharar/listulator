@@ -25,7 +25,7 @@ describe('the progress sentence while lengths are being looked up (15.7)', () =>
   it('shows the time left as approximate, and says on hover how many lengths are still to come', async () => {
     renderSentence(12)
 
-    const left = screen.getByText('≈ 14h 43m left')
+    const left = screen.getByText('≈14h 43m left')
     fireEvent.pointerEnter(left, { pointerType: 'mouse' })
     await wait(TOOLTIP_DELAY_MS + 50)
 
