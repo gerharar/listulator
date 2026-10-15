@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { useLayoutEffect, useReducer, useRef } from 'react'
 import { OverlayManagerProvider, useEscLadder } from '../../components/quantum/overlay/OverlayManagerContext.js'
+import { copy } from '../../locale/index.js'
 import { EditListPopover } from './EditListPopover.js'
 import type { ListFields } from './listActions.js'
 
@@ -66,21 +67,75 @@ describe('EditListPopover', () => {
     expect(screen.getByText('1 item')).toBeTruthy()
   })
 
-  it('cannot be saved until something changes', () => {
+  it('Save is never disabled by what the fields hold (H-006): not for nothing changed, not for a blank title', () => {
     renderPopover()
-    expect(save().disabled).toBe(true)
+    expect(save().disabled).toBe(false)
 
-    fireEvent.change(title(), { target: { value: 'Loki S2' } })
+    fireEvent.change(title(), { target: { value: '  ' } })
 
     expect(save().disabled).toBe(false)
   })
 
-  it('cannot be saved with a blank title', () => {
-    renderPopover()
+  it('Save with nothing changed closes the window with no message', () => {
+    const { onCommit, onDiscard } = renderPopover()
 
-    fireEvent.change(title(), { target: { value: '  ' } })
+    fireEvent.click(save())
 
-    expect(save().disabled).toBe(true)
+    expect(onCommit).not.toHaveBeenCalled()
+    expect(onDiscard).toHaveBeenCalledTimes(1)
+    expect(screen.queryByRole('alert')).toBeNull()
+  })
+
+  describe('a blank title (H-006)', () => {
+    const sentence = copy.quantum.list.editPopover.titleRequired
+    const alerts = () => screen.queryAllByRole('alert').map((alert) => alert.textContent)
+
+    it.each([['Save', () => fireEvent.click(save())], ['Enter', () => fireEvent.keyDown(title(), { key: 'Enter' })], ['a click away', clickAway]])(
+      '%s saves nothing, keeps the window open, says a list needs a title and puts the cursor in Title',
+      (_name, press) => {
+        const { onCommit, onDiscard } = renderPopover()
+        fireEvent.change(title(), { target: { value: '   ' } })
+
+        press()
+
+        expect(onCommit).not.toHaveBeenCalled()
+        expect(onDiscard).not.toHaveBeenCalled()
+        expect(alerts()).toEqual([sentence])
+        expect(title().getAttribute('aria-invalid')).toBe('true')
+        expect(document.activeElement).toBe(title())
+      },
+    )
+
+    it('says nothing while the title is being emptied, nor when it is left empty: only when something is pressed', () => {
+      renderPopover()
+
+      fireEvent.change(title(), { target: { value: '' } })
+      fireEvent.blur(title())
+
+      expect(alerts()).toEqual([])
+    })
+
+    it('takes the sentence away once there is a title, and Save then saves', () => {
+      const { onCommit } = renderPopover()
+      fireEvent.change(title(), { target: { value: '' } })
+      fireEvent.click(save())
+      expect(alerts()).toEqual([sentence])
+
+      fireEvent.change(title(), { target: { value: 'Loki S2' } })
+      expect(alerts()).toEqual([])
+      fireEvent.click(save())
+
+      expect(onCommit).toHaveBeenCalledWith({ title: 'Loki S2' }, 'save')
+    })
+
+    it('Don’t Save and Esc still close it', () => {
+      const { onDiscard } = renderPopover()
+      fireEvent.change(title(), { target: { value: '' } })
+
+      fireEvent.keyDown(title(), { key: 'Escape' })
+
+      expect(onDiscard).toHaveBeenCalledTimes(1)
+    })
   })
 
   it('Save commits only what changed, as the explicit save', () => {
@@ -112,13 +167,13 @@ describe('EditListPopover', () => {
     expect(onCommit).toHaveBeenCalledWith({ title: 'Loki S2' }, 'save')
   })
 
-  it('Enter with nothing to save does nothing', () => {
+  it('Enter with nothing changed closes the window, like Save', () => {
     const { onCommit, onDiscard } = renderPopover()
 
     fireEvent.keyDown(title(), { key: 'Enter' })
 
     expect(onCommit).not.toHaveBeenCalled()
-    expect(onDiscard).not.toHaveBeenCalled()
+    expect(onDiscard).toHaveBeenCalledTimes(1)
   })
 
   it('Esc cancels: the edits are thrown away, not saved (Enter saves, Esc cancels)', () => {
@@ -134,16 +189,6 @@ describe('EditListPopover', () => {
   it('clicking away with nothing changed just closes', () => {
     const { onCommit, onDiscard } = renderPopover()
 
-    clickAway()
-
-    expect(onDiscard).toHaveBeenCalledTimes(1)
-    expect(onCommit).not.toHaveBeenCalled()
-  })
-
-  it('clicking away with an unsaveable draft discards it', () => {
-    const { onCommit, onDiscard } = renderPopover()
-
-    fireEvent.change(title(), { target: { value: '' } })
     clickAway()
 
     expect(onDiscard).toHaveBeenCalledTimes(1)

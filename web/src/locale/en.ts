@@ -876,6 +876,7 @@ export const en = {
       editPopover: {
         kicker: 'Edit List',
         title: 'Title',
+        titleRequired: 'A list needs a title',
         description: 'Description (optional)',
         descriptionPlaceholder: 'Good place for info like what\'s included in the list and what\'s not',
         status: 'Status (optional)',

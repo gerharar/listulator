@@ -4,6 +4,7 @@ import { useState, type KeyboardEvent } from 'react'
 import { copy } from '../../locale/index.js'
 import { Button } from '../../components/quantum/Button/Button.js'
 import { Field, FieldTextArea } from '../../components/quantum/Field/Field.js'
+import { useFieldValidation } from '../../components/quantum/Field/useFieldValidation.js'
 import { Popover } from '../../components/quantum/Popover/Popover.js'
 import { StatusPicker } from '../../components/quantum/StatusPicker/StatusPicker.js'
 import { buildListPatch, type ListFields, type ListPatch } from './listActions.js'
@@ -35,18 +36,28 @@ export function EditListPopover({ list, itemCount, anchorEl, onCommit, onDiscard
   const [status, setStatus] = useState(list.status)
 
   const patch = buildListPatch(list, { title, description, status })
+  const checks = useFieldValidation({
+    title: { value: title, problem: (value) => (value.trim() === '' ? text.titleRequired : null) },
+  })
+
+  // Save, Enter and a click away all end here (H-006): a blank title keeps the window open and says so, nothing changed
+  // just closes.
+  function commit(via: 'save' | 'clickaway') {
+    if (!checks.validate()) return
+    if (patch) onCommit(patch, via)
+    else onDiscard()
+  }
 
   // Enter saves, Esc cancels. Not in a text area (Enter is a new line there) and
   // not when something inside already took the key (an open group list picks with it).
   function saveOnEnter(event: KeyboardEvent<HTMLDivElement>) {
     if (event.key !== 'Enter' || event.defaultPrevented || event.nativeEvent.isComposing) return
     if (event.target instanceof HTMLTextAreaElement || event.target instanceof HTMLButtonElement) return
-    if (patch) onCommit(patch, 'save')
+    commit('save')
   }
 
   function dismiss() {
-    if (patch) onCommit(patch, 'clickaway')
-    else onDiscard()
+    commit('clickaway')
   }
 
   return (
@@ -67,7 +78,9 @@ export function EditListPopover({ list, itemCount, anchorEl, onCommit, onDiscard
           autoComplete="off"
           autoFocus
           size="sm"
+          {...checks.props('title')}
         />
+        {checks.message('title')}
         <FieldTextArea
           label={text.description}
           value={description}
@@ -83,7 +96,7 @@ export function EditListPopover({ list, itemCount, anchorEl, onCommit, onDiscard
           <Button size="sm" variant="quiet" onClick={onDiscard}>
             {copy.quantum.list.itemActions.discard}
           </Button>
-          <Button size="sm" variant="primary" disabled={!patch} onClick={() => patch && onCommit(patch, 'save')}>
+          <Button size="sm" variant="primary" onClick={() => commit('save')}>
             {copy.quantum.list.itemActions.save}
           </Button>
         </div>

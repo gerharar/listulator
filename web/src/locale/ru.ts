@@ -786,6 +786,7 @@ export const ru: Locale = {
       editPopover: {
         kicker: 'Изменить Список',
         title: 'Название',
+        titleRequired: 'Списку нужно название',
         description: 'Описание (необязательно)',
         descriptionPlaceholder: 'Хорошее место для сведений о том, что входит в список, а что нет',
         status: 'Статус (необязательно)',

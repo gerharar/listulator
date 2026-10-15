@@ -777,6 +777,7 @@ export const de: Locale = {
       editPopover: {
         kicker: 'Liste bearbeiten',
         title: 'Titel',
+        titleRequired: 'Eine Liste braucht einen Titel',
         description: 'Beschreibung (optional)',
         descriptionPlaceholder: 'Guter Ort für Infos dazu, was in der Liste enthalten ist und was nicht',
         status: 'Status (optional)',
