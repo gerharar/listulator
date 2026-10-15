@@ -12,9 +12,31 @@
   color: var(--ink);
   font: 400 15px/1.2 var(--font-sans);
 }
-/* A field whose value is wrong (the year, H-004): the strong border, never red (README: errors are never red). */
+/* A field whose value is wrong (H-004, H-006; DS card Field, state Invalid): a 2px ink border with the padding one pixel
+   less, so the field keeps its size; never red (README: errors are never red). */
 .q-input[aria-invalid='true'] {
-  border-color: var(--rule);
+  border: 2px solid var(--ink);
+  padding: 10px 12px;
+}
+.q-input.sm[aria-invalid='true'] {
+  padding: 8px 10px;
+}
+.q-input.key[aria-invalid='true'] {
+  padding: 8px 35px 8px 10px;
+}
+/* The sentence under a wrong field: the icon and one sentence in the ink colour. */
+.q-field-msg {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  margin-top: -2px;
+  font-size: 12.5px;
+  line-height: 1.4;
+  color: var(--ink);
+}
+.q-field-msg svg {
+  flex: none;
+  margin-top: 1px;
 }
 .q-input::placeholder {
   font-style: italic;
