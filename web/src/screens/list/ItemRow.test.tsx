@@ -50,6 +50,26 @@ function renderRow(overrides: Partial<Parameters<typeof ItemRow>[0]> = {}) {
 }
 
 describe('ItemRow', () => {
+  it('marks a length the category guessed with ≈ on the row, and says so on hover (owner, 2026-10-14)', async () => {
+    renderRow({ item: { ...ITEM, timeToConsumeMinutes: 120, timeToConsumeIsEstimated: true } })
+
+    const length = document.querySelector('.q-mins')!
+    expect(length.textContent).toBe('≈ 2h')
+    expect(await hoverTooltip(length)).toBe('This runtime is a rough estimate')
+  })
+
+  it('has no mark and no hover on a length that was given', () => {
+    renderRow()
+
+    expect(document.querySelector('.q-mins')!.textContent).toBe('51m')
+  })
+
+  it('shows only the dash, without the mark, while the length is still being looked up', () => {
+    renderRow({ item: { ...ITEM, timeToConsumeIsEstimated: true, runtimePending: true } })
+
+    expect(document.querySelector('.q-mins')!.textContent).toBe('-')
+  })
+
   it('shows the title, the year in brackets and the runtime', () => {
     renderRow()
 
@@ -279,10 +299,10 @@ describe('ItemRow', () => {
       expect(screen.queryByText('-')).toBeNull()
     })
 
-    it('leaves an estimate that is not going to be looked up as it always was', () => {
+    it('shows an estimate that is not going to be looked up with its ≈', () => {
       renderRow({ item: { ...ITEM, timeToConsumeMinutes: 120, timeToConsumeIsEstimated: true, runtimePending: false } })
 
-      expect(screen.getByText('2h')).toBeTruthy()
+      expect(screen.getByText('≈ 2h')).toBeTruthy()
     })
   })
 })

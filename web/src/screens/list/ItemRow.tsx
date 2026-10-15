@@ -2,7 +2,7 @@ import './Spine.css'
 import type { AnchorHTMLAttributes, KeyboardEvent, MouseEvent, PointerEvent } from 'react'
 import { ArrowUpRight, Info, Pencil, Plus, Trash2 } from 'lucide-react'
 import { approximateDecade, formatYear } from '../../../../server/src/catalog/years.js'
-import { formatDuration } from '../../formatDuration.js'
+import { lengthLabel } from './lengthLabel.js'
 import { copy } from '../../locale/index.js'
 import type { ListItem } from '../../lib/api.js'
 import { IconButton } from '../../components/quantum/Button/Button.js'
@@ -205,9 +205,13 @@ export function ItemRow({
       </span>
       {item.isNew && <NewBadge />}
       <span className="spacer" />
-      <span className={item.runtimePending ? 'q-mins pending' : 'q-mins'} style={{ width: `${minutesWidth}ch` }}>
-        {item.runtimePending ? text.runtimePending : formatDuration(item.timeToConsumeMinutes)}
-      </span>
+      <Tip
+        className={item.runtimePending ? 'q-mins pending' : 'q-mins'}
+        style={{ width: `${minutesWidth}ch` }}
+        text={item.timeToConsumeIsEstimated && !item.runtimePending ? text.estimated : undefined}
+      >
+        {lengthLabel(item, text.runtimePending)}
+      </Tip>
       <IconButton size="row" className="remove" label={text.remove(item.title)} onClick={act(onRemove)}>
         <Trash2 width={15} height={15} strokeWidth={1.8} aria-hidden="true" />
       </IconButton>

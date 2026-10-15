@@ -27,7 +27,6 @@ export function ItemInfoCard({ item }: ItemInfoCardProps) {
         <span>{item.runtimePending ? text.runtimePending : formatDuration(item.timeToConsumeMinutes)}</span>
       </div>
       {notes && <p className="q-info-notes">{notes}</p>}
-      {item.timeToConsumeIsEstimated && !item.runtimePending && <p className="q-info-note">{text.estimated}</p>}
     </div>
   )
 }

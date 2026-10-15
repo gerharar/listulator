@@ -1,7 +1,6 @@
 import './ListScreen.css'
 import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react'
 import { EllipsisVertical, RefreshCw, X } from 'lucide-react'
-import { formatDuration } from '../../formatDuration.js'
 import { api, type ListGroup, type ListItem, type MediaListDetail, type MediaType } from '../../lib/api.js'
 import { downloadText } from '../../lib/downloadText.js'
 import { getPendingUpdates, usePendingMap, type PendingUpdates } from '../../lib/pendingUpdates.js'
@@ -55,6 +54,7 @@ import { ConfirmPopover } from '../../components/quantum/ConfirmPopover/ConfirmP
 import { invertPatch, type ItemPatch } from './itemActions.js'
 import { invertListPatch, type ListFields, type ListPatch } from './listActions.js'
 import { ItemEditPopover } from './ItemEditPopover.js'
+import { minutesColumnWidth } from './lengthLabel.js'
 import { tagField } from './tagFields.js'
 import { ItemInfoCard } from './ItemInfoCard.js'
 import { ItemRow } from './ItemRow.js'
@@ -393,11 +393,7 @@ function ListView({
 
   // A length still being looked up shows as "-" (15.7), so it counts for its own width, not the estimate's.
   const pendingMark = copy.quantum.list.itemActions.runtimePending
-  const minutesWidth =
-    Math.max(
-      4,
-      ...items.map((entry) => (entry.runtimePending ? pendingMark : formatDuration(entry.timeToConsumeMinutes)).length),
-    ) + 1
+  const minutesWidth = minutesColumnWidth(items, pendingMark)
 
   // While some lengths, or some links (H-002: a page slug looked up in the background), are still on their way,
   // read the list again every few seconds and take only what arrived: a re-read never replaces what the screen

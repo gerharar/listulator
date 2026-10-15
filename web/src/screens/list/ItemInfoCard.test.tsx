@@ -43,6 +43,13 @@ describe('ItemInfoCard', () => {
     expect(screen.getByText('The game on this platform has extra missions.')).toBeTruthy()
   })
 
+  it('has no line about an estimated length: the row carries the ≈ now (owner, 2026-10-15)', () => {
+    render(<ItemInfoCard item={{ ...ITEM, timeToConsumeIsEstimated: true }} />)
+
+    expect(document.querySelector('.q-info-note')).toBeNull()
+    expect(screen.queryByText('This runtime is a rough estimate')).toBeNull()
+  })
+
   it('leaves no empty slot when there are no notes', () => {
     render(<ItemInfoCard item={ITEM} />)
 
@@ -53,12 +60,6 @@ describe('ItemInfoCard', () => {
     render(<ItemInfoCard item={{ ...ITEM, notes: '   ' }} />)
 
     expect(document.querySelector('.q-info-notes')).toBeNull()
-  })
-
-  it('says the runtime is an estimate when it is one', () => {
-    render(<ItemInfoCard item={{ ...ITEM, timeToConsumeIsEstimated: true }} />)
-
-    expect(screen.getByText(/estimate/i)).toBeTruthy()
   })
 
   it('is read-only: no field to edit the notes, now or later this phase', () => {
