@@ -1002,6 +1002,7 @@ export const en = {
     importFile: {
       chooseFile: 'Choose File…',
       boxLabel: 'Or Paste YAML Here',
+      emptyRequired: 'Choose a file or paste YAML first',
       boxPlaceholder:
         'title: All Jackie Chan Movies\ncategory: movie\nitems:\n  - { title: Drunken Master, year: 1978 }',
       import: 'Import',

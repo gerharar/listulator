@@ -8,6 +8,7 @@ import { Button } from '../Button/Button.js'
 import { ConfirmPopover } from '../ConfirmPopover/ConfirmPopover.js'
 import { RichSentence } from '../RichSentence/RichSentence.js'
 import { FieldTextArea, ReadOnlyBuffer } from '../Field/Field.js'
+import { useFieldValidation } from '../Field/useFieldValidation.js'
 
 export interface ImportFileTabProps {
   /** The registry, to name the category a file belongs to. */
@@ -99,8 +100,13 @@ export function ImportFileTab({ mediaTypes, mediaTypeKey, onBuilt }: ImportFileT
     setRefusal(null)
   }
 
+  // Nothing to import is said when Import is pressed, not by a disabled button (H-006).
+  const checks = useFieldValidation({
+    yaml: { value: yaml, problem: (value) => (value.trim() === '' ? text.emptyRequired : null) },
+  })
+
   function requestImport(anchor: HTMLElement) {
-    if (importing || !yaml.trim()) return
+    if (importing || !checks.validate()) return
     const key = peekCategory(yaml)
     const landed = key === mediaTypeKey ? undefined : mediaTypes.find((entry) => entry.key === key)
     if (landed) setElsewhere({ mediaType: landed, anchor })
@@ -161,15 +167,16 @@ export function ImportFileTab({ mediaTypes, mediaTypeKey, onBuilt }: ImportFileT
           spellCheck={false}
           autoCorrect="off"
           autoCapitalize="off"
+          {...checks.props('yaml')}
         />
       )}
+      {checks.message('yaml')}
 
       {/* Prototype: the hint on the left, Import on the right, one row; a refusal under it. */}
       <div className="q-import-actions">
         <p className="q-import-footer t-small">{text.footer}</p>
         <Button
           variant="primary"
-          disabled={!yaml.trim()}
           busy={importing}
           busyLabel={text.importing}
           onClick={(event) => requestImport(event.currentTarget)}

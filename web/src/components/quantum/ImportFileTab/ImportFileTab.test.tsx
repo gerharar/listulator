@@ -2,6 +2,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { ApiError, api, type MediaType } from '../../../lib/api.js'
+import { copy } from '../../../locale/index.js'
 import { OverlayManagerProvider } from '../overlay/OverlayManagerContext.js'
 import { ImportFileTab, peekCategory } from './ImportFileTab.js'
 
@@ -51,12 +52,59 @@ function renderTab(onBuilt = vi.fn(), mediaTypeKey = 'movie') {
 }
 
 describe('ImportFileTab', () => {
-  it('cannot import while the box is empty', () => {
-    renderTab()
+  describe('nothing to import (H-006)', () => {
+    const sentence = copy.quantum.importFile.emptyRequired
+    const alerts = () => screen.queryAllByRole('alert').map((alert) => alert.textContent)
 
-    expect(importButton().disabled).toBe(true)
-    fireEvent.change(box(), { target: { value: YAML } })
-    expect(importButton().disabled).toBe(false)
+    it('does not disable Import for an empty box', () => {
+      renderTab()
+
+      expect(importButton().disabled).toBe(false)
+    })
+
+    it.each([['', 'nothing'], ['  \n ', 'spaces']])('pressing Import with %s in the box imports nothing, asks for a file or YAML and puts the cursor in the box', (value) => {
+      renderTab()
+      fireEvent.change(box(), { target: { value } })
+
+      fireEvent.click(importButton())
+
+      expect(api.createFromFile).not.toHaveBeenCalled()
+      expect(alerts()).toEqual([sentence])
+      expect(box().getAttribute('aria-invalid')).toBe('true')
+      expect(document.activeElement).toBe(box())
+    })
+
+    it('says nothing while the box is left empty: only when Import is pressed', () => {
+      renderTab()
+
+      fireEvent.blur(box())
+
+      expect(alerts()).toEqual([])
+    })
+
+    it('takes the sentence away once YAML is pasted, and Import then imports', async () => {
+      vi.mocked(api.createFromFile).mockResolvedValue({ id: 'L1' } as never)
+      const onBuilt = renderTab()
+      fireEvent.click(importButton())
+      expect(alerts()).toEqual([sentence])
+
+      fireEvent.change(box(), { target: { value: YAML } })
+      expect(alerts()).toEqual([])
+      fireEvent.click(importButton())
+
+      await waitFor(() => expect(onBuilt).toHaveBeenCalledWith('L1'))
+    })
+
+    it('says it under the box when an empty file was chosen, too', async () => {
+      renderTab()
+      chooseFile('')
+      await screen.findByLabelText(/^Or Paste YAML Here/)
+
+      fireEvent.click(importButton())
+
+      expect(api.createFromFile).not.toHaveBeenCalled()
+      expect(alerts()).toEqual([sentence])
+    })
   })
 
   it('reads a chosen file into the box, read-only, with a fact-only read-out', async () => {

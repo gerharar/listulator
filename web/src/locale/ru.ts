@@ -903,6 +903,7 @@ export const ru: Locale = {
     importFile: {
       chooseFile: 'Выбрать файл…',
       boxLabel: 'Или вставь YAML сюда',
+      emptyRequired: 'Сначала выбери файл или вставь YAML',
       boxPlaceholder:
         'title: Все фильмы Джеки Чана\ncategory: movie\nitems:\n  - { title: Пьяный мастер, year: 1978 }',
       import: 'Импортировать',

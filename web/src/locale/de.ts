@@ -894,6 +894,7 @@ export const de: Locale = {
     importFile: {
       chooseFile: 'Datei wählen…',
       boxLabel: 'Oder füge YAML hier ein',
+      emptyRequired: 'Wähle zuerst eine Datei oder füge YAML ein',
       boxPlaceholder:
         'title: Alle Jackie-Chan-Filme\ncategory: movie\nitems:\n  - { title: Drunken Master, year: 1978 }',
       import: 'Importieren',

@@ -22,6 +22,22 @@ async function openImport(page: Page, category = movies) {
 
 const box = (page: Page) => page.getByLabel(q.importFile.boxLabel)
 
+/** H-006: Import is never disabled by an empty box; pressing it asks for a file or YAML. */
+test('pressing Import with nothing to import asks for a file or YAML, imports nothing and keeps the cursor in the box', async ({ page }) => {
+  await openImport(page)
+  const posts: string[] = []
+  page.on('request', (request) => {
+    if (request.method() === 'POST' && /\/api\/lists/.test(request.url())) posts.push(request.url())
+  })
+
+  await page.getByRole('button', { name: q.importFile.import, exact: true }).click()
+
+  await expect(page.getByRole('alert')).toHaveText(q.importFile.emptyRequired)
+  await expect(box(page)).toBeFocused()
+  await expect(box(page)).toHaveAttribute('aria-invalid', 'true')
+  expect(posts).toEqual([])
+})
+
 const REFUSALS: [string, string, string][] = [
   [
     'a syntax error',
