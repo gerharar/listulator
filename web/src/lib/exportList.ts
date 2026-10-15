@@ -14,7 +14,8 @@ import type { MediaListDetail } from './api.js'
  * notes, in the list's own order. A runtime that is only an estimate is left
  * out, so it is still an estimate after the round trip. Done marks, NEW
  * markers and ids are the reader's own state, not part of a list, and stay
- * behind; so does whether an item was added by hand, and a group with no
+ * behind; so do the reader's own notes on items (H-003: the list is universal,
+ * notes are personal; the curator's `notes` do go out); so does whether an item was added by hand, and a group with no
  * items (the format names groups only through their items).
  */
 export function exportList(list: MediaListDetail): string {

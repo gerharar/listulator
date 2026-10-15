@@ -132,6 +132,16 @@ describe('exportList', () => {
     expect(parsed.items.map((i) => i.title)).toEqual(['Mine'])
   })
 
+  it('leaves the reader’s own notes out, and keeps the curator’s (H-003; owner: the list is universal, notes are personal)', () => {
+    const detail = list([item({ title: 'Crime Story', notes: 'Curator: read this first', userNote: 'The serious one. Watch the Cantonese cut.' })])
+
+    const yaml = exportList(detail)
+
+    expect(yaml).toContain('Curator: read this first')
+    expect(yaml).not.toContain('Cantonese')
+    expect(yaml).not.toMatch(/userNote|user_note/)
+  })
+
   it('survives titles and notes that YAML would otherwise misread', () => {
     const tricky = [
       '1984',

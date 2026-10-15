@@ -423,7 +423,7 @@ describe('sort and reset', () => {
 
       const reset = (await send('POST', `/lists/${list.id}/reset`)).json()
 
-      expect(reset.counts).toEqual({ removed: 2, restored: 1, doneCleared: 1 })
+      expect(reset.counts).toEqual({ removed: 2, restored: 1, doneCleared: 1, notesCleared: 0 })
     })
 
     it('says the same in advance, and writes nothing', async () => {

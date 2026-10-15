@@ -812,6 +812,7 @@ export const en = {
         removed: (n: number): string => `${n} ${selectPlural(n, 'en', { one: 'item', other: 'items' })} you added will be deleted`,
         restored: (n: number): string => `${n} ${selectPlural(n, 'en', { one: 'item', other: 'items' })} you removed will be resurrected`,
         cleared: (n: number): string => `${n} done ${selectPlural(n, 'en', { one: 'mark', other: 'marks' })} will be cleared`,
+        notesCleared: (n: number): string => `${n} ${selectPlural(n, 'en', { one: 'note', other: 'notes' })} you wrote will be cleared`,
         joinCost: (parts: readonly string[]): string =>
           parts.length <= 1
             ? `${parts[0]}`

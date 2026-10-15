@@ -1616,11 +1616,11 @@ describe('ListScreen order menu (task 10.22)', () => {
   describe('Reset to the source', () => {
     const restore = { items: [], dismissals: [], groups: [], list: { title: 'Loki', description: 'The trickster', status: 'ongoing' as const } }
     const result = (followUpCheck: boolean) => ({
-      counts: { removed: 1, restored: 0, doneCleared: 0 },
+      counts: { removed: 1, restored: 0, doneCleared: 0, notesCleared: 0 },
       followUpCheck,
       restore,
     })
-    const preview = { removed: 3, restored: 1, doneCleared: 12, followUpCheck: true }
+    const preview = { removed: 3, restored: 1, doneCleared: 12, notesCleared: 0, followUpCheck: true }
     const openReset = async (list = sourced()) => {
       await openOrder(list)
       fireEvent.click(pop().getByRole('button', { name: 'Reset List' }))
@@ -1666,7 +1666,7 @@ describe('ListScreen order menu (task 10.22)', () => {
       let finishFirst!: (value: typeof preview) => void
       vi.mocked(api.resetPreview)
         .mockReturnValueOnce(new Promise((resolve) => (finishFirst = resolve)))
-        .mockResolvedValueOnce({ removed: 5, restored: 0, doneCleared: 0, followUpCheck: true })
+        .mockResolvedValueOnce({ removed: 5, restored: 0, doneCleared: 0, notesCleared: 0, followUpCheck: true })
       await openReset()
       fireEvent.click(document.querySelector('.q-catcher')!)
       fireEvent.click(screen.getByRole('button', { name: 'More' }))
@@ -1674,7 +1674,7 @@ describe('ListScreen order menu (task 10.22)', () => {
       fireEvent.click(pop().getByRole('button', { name: 'Reset List' }))
       await pop().findByText(/5 items you added will be deleted/)
 
-      await act(async () => finishFirst({ removed: 99, restored: 0, doneCleared: 0, followUpCheck: true }))
+      await act(async () => finishFirst({ removed: 99, restored: 0, doneCleared: 0, notesCleared: 0, followUpCheck: true }))
 
       expect(pop().queryByText(/99 items/)).toBeNull()
       expect(pop().getByText(/5 items you added will be deleted/)).toBeTruthy()

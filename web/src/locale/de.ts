@@ -715,6 +715,8 @@ export const de: Locale = {
           `${selectPlural(n, 'de', { one: `${n} von dir entfernter Eintrag kommt zurück`, other: `${n} von dir entfernte Einträge kommen zurück` })}`,
         cleared: (n: number): string =>
           `${selectPlural(n, 'de', { one: `${n} Erledigt-Markierung wird gelöscht`, other: `${n} Erledigt-Markierungen werden gelöscht` })}`,
+        notesCleared: (n: number): string =>
+          `${selectPlural(n, 'de', { one: `${n} von dir geschriebene Notiz wird gelöscht`, other: `${n} von dir geschriebene Notizen werden gelöscht` })}`,
         joinCost: (parts: readonly string[]): string =>
           parts.length <= 1
             ? `${parts[0]}.`

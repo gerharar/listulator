@@ -161,11 +161,13 @@ function cost(preview: PreviewState): string {
   if (preview.state === 'loading') return text.computing
   if (preview.state === 'failed') return text.previewFailed(preview.message)
 
-  const { removed, restored, doneCleared } = preview.data
+  const { removed, restored, doneCleared, notesCleared } = preview.data
   const parts = [
     ...(removed > 0 ? [text.removed(removed)] : []),
     ...(restored > 0 ? [text.restored(restored)] : []),
     ...(doneCleared > 0 ? [text.cleared(doneCleared)] : []),
+    // Last, in the same sentence (H-003): the notes on items that stay; curator notes are not mentioned, Reset reloads them.
+    ...(notesCleared > 0 ? [text.notesCleared(notesCleared)] : []),
   ]
 
   return parts.length > 0 ? text.joinCost(parts) : text.noCost

@@ -722,6 +722,8 @@ export const ru: Locale = {
           `${selectPlural(n, 'ru', { one: `вернётся ${n} удалённый тобой элемент`, few: `вернутся ${n} удалённых тобой элемента`, many: `вернутся ${n} удалённых тобой элементов`, other: `вернутся ${n} удалённых тобой элемента` })}`,
         cleared: (n: number): string =>
           `${selectPlural(n, 'ru', { one: `будет снята ${n} отметка о завершении`, few: `будут сняты ${n} отметки о завершении`, many: `будут сняты ${n} отметок о завершении`, other: `будут сняты ${n} отметки о завершении` })}`,
+        notesCleared: (n: number): string =>
+          `${selectPlural(n, 'ru', { one: `будет удалена ${n} твоя заметка`, few: `будут удалены ${n} твои заметки`, many: `будут удалены ${n} твоих заметок`, other: `будут удалены ${n} твои заметки` })}`,
         joinCost: (parts: readonly string[]): string => {
           const sentence =
             parts.length <= 1

@@ -244,6 +244,11 @@ export interface ResetCounts {
   restored: number
   /** Items that were ticked done. */
   doneCleared: number
+  /**
+   * The user's own notes (H-003) on items that stay: a Reset rebuilds the items, so these are cleared. A note on an item
+   * the Reset removes goes with the item and is not counted twice.
+   */
+  notesCleared: number
 }
 
 export interface ResetPreview extends ResetCounts {
@@ -404,24 +409,27 @@ const identity = (item: { title: string; externalRef?: string | null }): string 
   item.externalRef ? `ref:${item.externalRef}` : `title:${dismissalTitleKey(item.title)}`
 
 function countChanges(
-  current: { title: string; externalRef: string | null; consumedAt: Date | null }[],
+  current: { title: string; externalRef: string | null; consumedAt: Date | null; userNote: string | null }[],
   target: TargetItem[],
 ): ResetCounts {
   const wanted = new Map<string, number>()
   for (const item of target) wanted.set(identity(item), (wanted.get(identity(item)) ?? 0) + 1)
 
   let removed = 0
+  let notesCleared = 0
   for (const item of current) {
     const key = identity(item)
     const left = wanted.get(key) ?? 0
-    if (left > 0) wanted.set(key, left - 1)
-    else removed += 1
+    if (left > 0) {
+      wanted.set(key, left - 1)
+      if (item.userNote) notesCleared += 1
+    } else removed += 1
   }
 
   let restored = 0
   for (const left of wanted.values()) restored += left
 
-  return { removed, restored, doneCleared: current.filter((item) => item.consumedAt !== null).length }
+  return { removed, restored, doneCleared: current.filter((item) => item.consumedAt !== null).length, notesCleared }
 }
 
 const wantsFollowUp = (list: List): boolean =>

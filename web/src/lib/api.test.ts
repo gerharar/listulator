@@ -358,13 +358,13 @@ describe('undo calls (task 10.19a)', () => {
   })
 
   it('resetPreview reads what a Reset would do; resetList does it and returns the payload for Undo', async () => {
-    const preview = { removed: 2, restored: 1, doneCleared: 3, followUpCheck: true }
+    const preview = { removed: 2, restored: 1, doneCleared: 3, notesCleared: 0, followUpCheck: true }
     let fetchMock = stubFetch(preview)
 
     expect(await api.resetPreview('L1')).toEqual(preview)
     expect(fetchMock).toHaveBeenCalledWith('/api/lists/L1/reset-preview', expect.anything())
 
-    const result = { counts: { removed: 2, restored: 1, doneCleared: 3 }, followUpCheck: true, restore: { items: [], dismissals: [] } }
+    const result = { counts: { removed: 2, restored: 1, doneCleared: 3, notesCleared: 0 }, followUpCheck: true, restore: { items: [], dismissals: [] } }
     fetchMock = stubFetch(result)
     expect(await api.resetList('L1')).toEqual(result)
     expect(fetchMock).toHaveBeenCalledWith('/api/lists/L1/reset', expect.objectContaining({ method: 'POST' }))
