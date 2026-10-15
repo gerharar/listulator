@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { ListItem } from '../../lib/api.js'
-import { buildEditPatch, invertPatch } from './itemActions.js'
+import { buildEditPatch as build, editProblems, invertPatch } from './itemActions.js'
 
 const ITEM: ListItem = {
   id: 'i1',
@@ -20,6 +20,9 @@ const ITEM: ListItem = {
 }
 
 const same = { title: 'Glorious Purpose', minutes: '51', group: 'Season 1' }
+/** The category's default length, which an empty Duration means (H-006). */
+const DEFAULT = 120
+const buildEditPatch = (item: ListItem, draft: Parameters<typeof build>[1]) => build(item, draft, DEFAULT)
 
 describe('buildEditPatch', () => {
   it('is nothing when nothing changed', () => {
@@ -52,10 +55,99 @@ describe('buildEditPatch', () => {
     expect(buildEditPatch({ ...ITEM, group: null }, { ...same, group: '' })).toBeNull()
   })
 
-  it('is nothing for a blank title or minutes that are not a whole number', () => {
+  it.each(['4.5', '0', '100000', 'abc', '1:61'])('is nothing for minutes of %j, which cannot be saved', (minutes) => {
+    expect(buildEditPatch(ITEM, { ...same, title: 'Renamed', minutes })).toBeNull()
+  })
+
+  it('is nothing for a blank title', () => {
     expect(buildEditPatch(ITEM, { ...same, title: '   ' })).toBeNull()
-    expect(buildEditPatch(ITEM, { ...same, minutes: '4.5' })).toBeNull()
-    expect(buildEditPatch(ITEM, { ...same, minutes: '' })).toBeNull()
+  })
+
+  it.each([
+    ['1h 30m', 90],
+    ['1:30', 90],
+    ['90m', 90],
+    ['2h', 120],
+  ])('reads %j as %d minutes (H-007)', (minutes, expected) => {
+    expect(buildEditPatch(ITEM, { ...same, minutes })).toEqual({ timeToConsumeMinutes: expected, timeToConsumeIsEstimated: false })
+  })
+
+  it('does not change anything for a time typed another way that is the same length', () => {
+    expect(buildEditPatch({ ...ITEM, timeToConsumeMinutes: 90, timeToConsumeIsEstimated: false }, { ...same, minutes: '1h 30m' })).toBeNull()
+  })
+
+  describe('an empty duration is the category default, estimated (owner, 2026-10-15)', () => {
+    it('sets the default and marks it estimated', () => {
+      expect(buildEditPatch(ITEM, { ...same, minutes: '' })).toEqual({ timeToConsumeMinutes: 120, timeToConsumeIsEstimated: true })
+      expect(buildEditPatch(ITEM, { ...same, minutes: '   ' })).toEqual({ timeToConsumeMinutes: 120, timeToConsumeIsEstimated: true })
+    })
+
+    it('also for an item that had a real length from its source', () => {
+      const real = { ...ITEM, timeToConsumeMinutes: 142, timeToConsumeIsEstimated: false }
+
+      expect(buildEditPatch(real, { ...same, minutes: '' })).toEqual({ timeToConsumeMinutes: 120, timeToConsumeIsEstimated: true })
+    })
+
+    it('marks an item that already has the default length, typed, as an estimate', () => {
+      const typed = { ...ITEM, timeToConsumeMinutes: 120, timeToConsumeIsEstimated: false }
+
+      expect(buildEditPatch(typed, { ...same, minutes: '' })).toEqual({ timeToConsumeMinutes: 120, timeToConsumeIsEstimated: true })
+    })
+
+    it('is nothing for an item that is already the default estimate', () => {
+      const estimate = { ...ITEM, timeToConsumeMinutes: 120, timeToConsumeIsEstimated: true }
+
+      expect(buildEditPatch(estimate, { ...same, minutes: '' })).toBeNull()
+    })
+  })
+})
+
+describe('editProblems: what is wrong with the draft, for the window to say (H-006)', () => {
+  it('is nothing wrong for a draft that is good, and for the empty fields that mean something', () => {
+    expect(editProblems(ITEM, { ...same, year: '2021' })).toEqual({ title: null, minutes: null, year: null })
+    expect(editProblems(ITEM, { ...same, minutes: '', year: '' })).toEqual({ title: null, minutes: null, year: null })
+  })
+
+  it('says an empty title is wrong', () => {
+    expect(editProblems(ITEM, { ...same, title: '  ' }).title).toBe('empty')
+  })
+
+  it.each([
+    ['abc', 'form'],
+    ['1.5h', 'form'],
+    ['0', 'zero'],
+    ['0m', 'zero'],
+    ['100000', 'range'],
+    ['1667h', 'range'],
+  ])('says minutes of %j are wrong: %s', (minutes, problem) => {
+    expect(editProblems(ITEM, { ...same, minutes }).minutes).toBe(problem)
+  })
+
+  it.each([
+    ['199', 'form'],
+    ['19?4', 'form'],
+    ['0999', 'early'],
+    ['3500', 'late'],
+    ['31??', 'late'],
+  ])('says a year of %j is wrong: %s', (year, problem) => {
+    expect(editProblems(ITEM, { ...same, year }).year).toBe(problem)
+  })
+
+  it('reports every field that is wrong at once', () => {
+    expect(editProblems(ITEM, { title: '', minutes: 'x', group: '', year: '3500' })).toEqual({ title: 'empty', minutes: 'form', year: 'late' })
+  })
+
+  it('does not check a year or a length the person did not change, so an old stored value never blocks another edit', () => {
+    const old = { ...ITEM, year: 800, timeToConsumeMinutes: 0 }
+
+    expect(editProblems(old, { ...same, minutes: '0', year: '800' })).toEqual({ title: null, minutes: null, year: null })
+    expect(buildEditPatch(old, { ...same, title: 'Renamed', minutes: '0', year: '800' })).toEqual({ title: 'Renamed' })
+  })
+
+  it('checks it again as soon as it is changed', () => {
+    const old = { ...ITEM, year: 800 }
+
+    expect(editProblems(old, { ...same, year: '0801' }).year).toBe('early')
   })
 })
 

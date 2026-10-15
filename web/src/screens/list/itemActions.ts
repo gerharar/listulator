@@ -1,6 +1,6 @@
 import type { ListItem } from '../../lib/api.js'
-import { parseYearText } from '../../../../server/src/catalog/years.js'
-import { parseMinutes } from './AddItemForm.js'
+import { durationTextProblem, parseDurationText, type DurationProblem } from '../../../../server/src/catalog/durations.js'
+import { parseYearText, yearFieldText, yearTextProblem } from '../../../../server/src/catalog/years.js'
 
 /** What the edit popover holds while it is open, as typed. */
 export interface EditDraft {
@@ -26,26 +26,56 @@ export interface ItemPatch {
   tags?: string[] | null
 }
 
-/**
- * What saving the draft would change — only the fields that differ, or `null`
- * when nothing does *or* the draft cannot be saved (a blank title, minutes
- * that are not a whole number, a year that is not one). A minutes value you typed is no longer an
- * estimate; an unchanged one keeps whatever flag it had.
- */
-export function buildEditPatch(item: ListItem, draft: EditDraft): ItemPatch | null {
-  const title = draft.title.trim()
-  const minutes = parseMinutes(draft.minutes)
-  if (title === '' || minutes === null || Number.isNaN(minutes)) return null
+export interface EditProblems {
+  /** An item needs a title. */
+  title: 'empty' | null
+  /** The Duration field's text is not a length (H-007); an empty one is not wrong, it means the category default. */
+  minutes: DurationProblem | null
+  /** The Year field's text is not a year in the years the app holds (H-004, H-005); null when the draft carries none. */
+  year: 'form' | 'early' | 'late' | null
+}
 
+/**
+ * What is wrong with the draft, for the window to say (H-006). A length or a year the person did not change is never
+ * checked, so a value stored from before (a year below 1000, a length of 0) cannot stop another edit from being saved.
+ */
+export function editProblems(item: ListItem, draft: EditDraft): EditProblems {
+  const minutesChanged = draft.minutes.trim() !== String(item.timeToConsumeMinutes)
+  const yearChanged = draft.year !== undefined && draft.year.trim() !== yearFieldText(item)
+
+  return {
+    title: draft.title.trim() === '' ? 'empty' : null,
+    minutes: minutesChanged ? durationTextProblem(draft.minutes) : null,
+    year: yearChanged ? yearTextProblem(draft.year!) : null,
+  }
+}
+
+/**
+ * What saving the draft would change: only the fields that differ, or `null` when nothing does or the draft cannot be
+ * saved (`editProblems` says why). An empty duration is the category's default, marked as an estimate (owner, 2026-10-15);
+ * a length you typed is no longer an estimate, and an unchanged one keeps whatever flag it had.
+ */
+export function buildEditPatch(item: ListItem, draft: EditDraft, defaultMinutes: number): ItemPatch | null {
+  const problems = editProblems(item, draft)
+  if (problems.title || problems.minutes || problems.year) return null
+
+  const title = draft.title.trim()
   const group = draft.group.trim() === '' ? null : draft.group.trim()
   const year = draft.year === undefined ? undefined : parseYearText(draft.year)
-  if (draft.year !== undefined && year === undefined) return null
   const patch: ItemPatch = {}
 
   if (title !== item.title) patch.title = title
-  if (minutes !== item.timeToConsumeMinutes) {
-    patch.timeToConsumeMinutes = minutes
-    patch.timeToConsumeIsEstimated = false
+  if (draft.minutes.trim() !== String(item.timeToConsumeMinutes)) {
+    const typed = parseDurationText(draft.minutes)
+    if (typed === null) {
+      if (item.timeToConsumeMinutes !== defaultMinutes || !item.timeToConsumeIsEstimated) {
+        patch.timeToConsumeMinutes = defaultMinutes
+        patch.timeToConsumeIsEstimated = true
+      }
+    } else if (typed !== undefined && typed !== item.timeToConsumeMinutes) {
+      patch.timeToConsumeMinutes = typed
+      patch.timeToConsumeIsEstimated = false
+    }
   }
   if (group !== (item.group || null)) patch.group = group
   // The year and its unknown digits go together: 1990 and 199? are different years.

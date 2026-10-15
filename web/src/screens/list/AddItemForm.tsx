@@ -210,7 +210,7 @@ export function AddItemForm({
           disabled={!valid}
           busy={adding}
           busyLabel={text.adding}
-          {...(yearProblem ? { title: yearProblem === 'range' ? text.yearTipRange : text.yearTip } : {})}
+          {...(yearProblem ? { title: yearProblem === 'form' ? text.yearTip : text.yearTipRange } : {})}
         >
           {makesGroup ? text.addGroup : text.add}
         </Button>

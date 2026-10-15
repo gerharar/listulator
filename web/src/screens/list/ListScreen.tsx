@@ -1249,6 +1249,7 @@ function ListView({
           key={popoverItem.id}
           item={popoverItem}
           groups={groupNames}
+          defaultMinutes={defaultMinutes}
           anchorEl={popover.anchor}
           onCommit={(patch, via) => void saveEdit(popoverItem, patch, via)}
           onDiscard={() => setPopover(null)}

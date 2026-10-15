@@ -750,10 +750,16 @@ export const en = {
         editMinutes: 'Duration (Minutes)',
         editYear: 'Year',
         yearPlaceholder: '1994, 199?',
-        /** Under the year field when it is wrong (H-004, H-005). The owner rewords these two; they are separate on purpose. */
-        yearHint: "A year has four digits, like 1994. Unsure of the last one or two? Type ?: 199? or 19??. Leave it empty if you don't know it at all",
-        /** A year of the right shape the app does not hold (3500, 0000): the same words for now. */
-        yearHintRange: "A year has four digits, like 1994. Unsure of the last one or two? Type ?: 199? or 19??. Leave it empty if you don't know it at all",
+        /** Under a field of the Edit window that is wrong (H-004, H-006, H-007). The owner rewords the year's range sentences. */
+        titleRequired: 'An item needs a title',
+        minutesForm: 'Use minutes (95), hours and minutes (1h 35m) or 1:35',
+        minutesZero: (standard: number): string => `0 isn't a duration. Leave it empty to use the default (${standard})`,
+        minutesRange: "That's over 99,999 minutes",
+        /** The Duration field's placeholder: the category's default, which an empty field means. */
+        minutesPlaceholder: (standard: number): string => `${standard} (default)`,
+        yearForm: "Use four digits, like 1994, or 199? / 19?? if you're unsure of the end",
+        yearTooEarly: 'The earliest year is 1000',
+        yearTooLate: (typed: string): string => `${typed} is too far ahead. The latest year is 2100`,
         editGroup: 'Group',
         discard: 'Don\'t Save',
         save: 'Save',

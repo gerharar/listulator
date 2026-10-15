@@ -92,8 +92,9 @@ describe('yearTextProblem: why the field is wrong, so each reason can have its o
     for (const text of ['1', '199', '1?', '19?4', '????', '?', 'abc', '12345', '1???']) expect(yearTextProblem(text)).toBe('form')
   })
 
-  it('says "range" for a year of the right form that the app does not hold (owner, 2026-10-14)', () => {
-    for (const text of ['0000', '0800', '0999', '2101', '3000', '3500', '9999', '09??', '30??', '000?']) expect(yearTextProblem(text)).toBe('range')
+  it('says "early" for a year of the right form before 1000 and "late" after 2100 (owner, 2026-10-15)', () => {
+    for (const text of ['0000', '0800', '0999', '09??', '000?']) expect(yearTextProblem(text)).toBe('early')
+    for (const text of ['2101', '3000', '3500', '9999', '22??', '30??', '211?']) expect(yearTextProblem(text)).toBe('late')
   })
 })
 

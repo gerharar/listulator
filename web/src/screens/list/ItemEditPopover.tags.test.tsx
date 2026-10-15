@@ -50,6 +50,7 @@ function renderEdit(overrides: Partial<Parameters<typeof ItemEditPopover>[0]> = 
   const props = {
     item: GAME,
     groups: [],
+    defaultMinutes: 30,
     onCommit: vi.fn(),
     onDiscard: vi.fn(),
     tagField: PLATFORM,
@@ -289,8 +290,11 @@ describe('ItemEditPopover — a short fixed set (U5)', () => {
     fireEvent.click(screen.getByRole('button', { name: /^Type:/ }))
     fireEvent.click(screen.getByRole('option', { name: 'Mini' }))
 
-    expect(save().hasAttribute('disabled')).toBe(true)
+    // Save is never disabled by a value (H-006); with nothing changed it just closes.
+    fireEvent.click(save())
+
     expect(props.onCommit).not.toHaveBeenCalled()
+    expect(props.onDiscard).toHaveBeenCalledTimes(1)
   })
 })
 

@@ -35,6 +35,7 @@ function renderPopover(overrides: Partial<Parameters<typeof ItemEditPopover>[0]>
   const props = {
     item: ITEM,
     groups: ['Season 1', 'Season 2'],
+    defaultMinutes: 120,
     onCommit: vi.fn(),
     onDiscard: vi.fn(),
     ...overrides,
@@ -63,6 +64,7 @@ function renderPopover(overrides: Partial<Parameters<typeof ItemEditPopover>[0]>
 }
 
 const title = () => screen.getByLabelText('Title') as HTMLInputElement
+const year = () => screen.getByLabelText('Year') as HTMLInputElement
 const minutes = () => screen.getByLabelText('Duration (Minutes)') as HTMLInputElement
 const save = () => screen.getByRole('button', { name: 'Save' }) as HTMLButtonElement
 const clickAway = () => fireEvent.click(document.querySelector('.q-catcher')!)
@@ -89,15 +91,24 @@ describe('ItemEditPopover', () => {
     expect(screen.queryByLabelText(/notes/i)).toBeNull()
   })
 
-  it('Save is only there to press once something has changed and can be saved', () => {
+  it('Save is never disabled by what the fields hold (H-006): not for nothing changed, not for a wrong field', () => {
     renderPopover()
-    expect(save().disabled).toBe(true)
-
-    fireEvent.change(title(), { target: { value: 'Renamed' } })
     expect(save().disabled).toBe(false)
 
+    fireEvent.change(title(), { target: { value: 'Renamed' } })
     fireEvent.change(minutes(), { target: { value: 'abc' } })
-    expect(save().disabled).toBe(true)
+    fireEvent.change(year(), { target: { value: '19' } })
+    expect(save().disabled).toBe(false)
+  })
+
+  it('Save with nothing changed closes the window with no message', () => {
+    const { onCommit, onDiscard } = renderPopover()
+
+    fireEvent.click(save())
+
+    expect(onCommit).not.toHaveBeenCalled()
+    expect(onDiscard).toHaveBeenCalledTimes(1)
+    expect(screen.queryByRole('alert')).toBeNull()
   })
 
   it('Save commits only what changed, as an explicit save', () => {
@@ -137,13 +148,13 @@ describe('ItemEditPopover', () => {
     expect(onCommit).toHaveBeenCalledWith({ title: 'Renamed' }, 'save')
   })
 
-  it('Enter with nothing to save does nothing', () => {
+  it('Enter with nothing changed closes the window, like Save', () => {
     const { onCommit, onDiscard } = renderPopover()
 
     fireEvent.keyDown(title(), { key: 'Enter' })
 
     expect(onCommit).not.toHaveBeenCalled()
-    expect(onDiscard).not.toHaveBeenCalled()
+    expect(onDiscard).toHaveBeenCalledTimes(1)
   })
 
   it('Esc cancels: the edits are thrown away, not saved (Enter saves, Esc cancels)', () => {
@@ -165,14 +176,15 @@ describe('ItemEditPopover', () => {
     expect(onDiscard).toHaveBeenCalledTimes(1)
   })
 
-  it('clicking away with edits that cannot be saved discards them', () => {
+  it('clicking away with edits that cannot be saved keeps the window open and says what is wrong (H-006)', () => {
     const { onCommit, onDiscard } = renderPopover()
 
     fireEvent.change(title(), { target: { value: '   ' } })
     clickAway()
 
     expect(onCommit).not.toHaveBeenCalled()
-    expect(onDiscard).toHaveBeenCalledTimes(1)
+    expect(onDiscard).not.toHaveBeenCalled()
+    expect(screen.getByRole('alert').textContent).toBe(copy.quantum.list.itemActions.titleRequired)
   })
 
   it('can move the item to a group that does not exist yet by typing it', () => {
@@ -195,7 +207,6 @@ describe('ItemEditPopover', () => {
 })
 
 describe('ItemEditPopover: the year (H-004, H-005)', () => {
-  const year = () => screen.getByLabelText('Year') as HTMLInputElement
   const hint = () => screen.queryByRole('alert')
   const text = copy.quantum.list.itemActions
 
@@ -252,56 +263,171 @@ describe('ItemEditPopover: the year (H-004, H-005)', () => {
     expect(onCommit).toHaveBeenCalledWith({ year: null, yearUnk: 0 }, 'save')
   })
 
-  it('says nothing, and keeps Save for other changes, while the year is a year', () => {
+  it('says nothing while the year is a year', () => {
     renderPopover()
 
     expect(hint()).toBeNull()
     expect(year().getAttribute('aria-invalid')).not.toBe('true')
-    expect(save().disabled).toBe(true)
   })
 
-  it.each(['1', '19', '199', '1?', '19?4'])('turns Save off and gives the hint for a year of %j', (value) => {
+  it('does not say anything about a wrong year while it is being typed, before it is left', () => {
     renderPopover()
-    fireEvent.change(title(), { target: { value: 'Renamed' } })
-    expect(save().disabled).toBe(false)
 
-    fireEvent.change(year(), { target: { value: value } })
+    fireEvent.change(year(), { target: { value: '19' } })
 
-    expect(save().disabled).toBe(true)
-    expect(hint()?.textContent).toBe(text.yearHint)
-    expect(year().getAttribute('aria-invalid')).toBe('true')
+    expect(hint()).toBeNull()
   })
 
-  it.each(['3500', '0000', '31??'])('gives its own hint for %j, a year of the right shape the app does not hold', (value) => {
+  it.each([
+    ['1', () => text.yearForm],
+    ['199', () => text.yearForm],
+    ['1?', () => text.yearForm],
+    ['19?4', () => text.yearForm],
+    ['0999', () => text.yearTooEarly],
+    ['0000', () => text.yearTooEarly],
+    ['3500', () => text.yearTooLate('3500')],
+    ['31??', () => text.yearTooLate('31??')],
+    ['2101', () => text.yearTooLate('2101')],
+  ])('says so when the year %j is left: its own sentence under the pair', (value, sentence) => {
     renderPopover()
 
     fireEvent.change(year(), { target: { value } })
+    fireEvent.blur(year())
 
-    expect(save().disabled).toBe(true)
-    expect(hint()?.textContent).toBe(text.yearHintRange)
+    expect(hint()?.textContent).toBe(sentence())
+    expect(year().getAttribute('aria-invalid')).toBe('true')
+    expect(year().getAttribute('aria-describedby')).toBe(hint()!.id)
   })
 
-  it('takes the hint away again when the year is right', () => {
+  it('does not say anything on leaving an empty year: empty is no year', () => {
+    renderPopover({ item: { ...ITEM, year: null } })
+
+    fireEvent.blur(year())
+
+    expect(hint()).toBeNull()
+  })
+
+  it('follows the year once shown: it goes when the year is right and returns when it is not', () => {
     renderPopover()
     fireEvent.change(year(), { target: { value: '19' } })
+    fireEvent.blur(year())
     expect(hint()).not.toBeNull()
 
     fireEvent.change(year(), { target: { value: '1999' } })
-
     expect(hint()).toBeNull()
-    expect(save().disabled).toBe(false)
+
+    fireEvent.change(year(), { target: { value: '3500' } })
+    expect(hint()?.textContent).toBe(text.yearTooLate('3500'))
   })
 
-  it('does not save on Enter, or on a click away, while the year is wrong: the buttons are the contract', () => {
+  it('Save with a wrong year saves nothing, keeps the window open and puts the cursor on Year with its text selected', () => {
     const { onCommit, onDiscard } = renderPopover()
     fireEvent.change(title(), { target: { value: 'Renamed' } })
     fireEvent.change(year(), { target: { value: '19' } })
 
-    fireEvent.keyDown(title(), { key: 'Enter' })
-    expect(onCommit).not.toHaveBeenCalled()
+    fireEvent.click(save())
 
+    expect(onCommit).not.toHaveBeenCalled()
+    expect(onDiscard).not.toHaveBeenCalled()
+    expect(hint()?.textContent).toBe(text.yearForm)
+    expect(document.activeElement).toBe(year())
+    expect([year().selectionStart, year().selectionEnd]).toEqual([0, 2])
+  })
+
+  it('Enter and a click away do the same with a wrong year; Don’t Save and Esc still close', () => {
+    const { onCommit, onDiscard } = renderPopover()
+    fireEvent.change(year(), { target: { value: '19' } })
+
+    fireEvent.keyDown(title(), { key: 'Enter' })
     clickAway()
     expect(onCommit).not.toHaveBeenCalled()
-    expect(onDiscard).toHaveBeenCalled()
+    expect(onDiscard).not.toHaveBeenCalled()
+
+    fireEvent.keyDown(title(), { key: 'Escape' })
+    expect(onDiscard).toHaveBeenCalledTimes(1)
+  })
+
+  it('does not check a year it was opened with, so an old one outside the range never stops another edit', () => {
+    const { onCommit } = renderPopover({ item: { ...ITEM, year: 800 } })
+
+    fireEvent.change(title(), { target: { value: 'Renamed' } })
+    fireEvent.click(save())
+
+    expect(onCommit).toHaveBeenCalledWith({ title: 'Renamed' }, 'save')
+  })
+})
+
+describe('ItemEditPopover: the title and the duration (H-006, H-007)', () => {
+  const alerts = () => screen.queryAllByRole('alert').map((alert) => alert.textContent)
+  const text = copy.quantum.list.itemActions
+
+  it('says an item needs a title when Save is pressed on an empty one, with the cursor there', () => {
+    const { onCommit } = renderPopover()
+    fireEvent.change(title(), { target: { value: '' } })
+
+    fireEvent.click(save())
+
+    expect(onCommit).not.toHaveBeenCalled()
+    expect(alerts()).toEqual([text.titleRequired])
+    expect(title().getAttribute('aria-invalid')).toBe('true')
+    expect(document.activeElement).toBe(title())
+  })
+
+  it('is a text input, so h, m and : can be typed, with the category default as its placeholder', () => {
+    renderPopover()
+
+    expect(minutes().getAttribute('inputmode')).toBeNull()
+    expect(minutes().placeholder).toBe(text.minutesPlaceholder(120))
+  })
+
+  it.each([
+    ['1h 30m', { timeToConsumeMinutes: 90, timeToConsumeIsEstimated: false }],
+    ['1:30', { timeToConsumeMinutes: 90, timeToConsumeIsEstimated: false }],
+    ['', { timeToConsumeMinutes: 120, timeToConsumeIsEstimated: true }],
+  ])('saves a duration typed as %j', (value, patch) => {
+    const { onCommit } = renderPopover()
+
+    fireEvent.change(minutes(), { target: { value } })
+    fireEvent.click(save())
+
+    expect(onCommit).toHaveBeenCalledWith(patch, 'save')
+  })
+
+  it.each([
+    ['abc', () => text.minutesForm],
+    ['1.5h', () => text.minutesForm],
+    ['1:61', () => text.minutesForm],
+    ['0', () => text.minutesZero(120)],
+    ['100000', () => text.minutesRange],
+  ])('says so when the duration %j is left', (value, sentence) => {
+    renderPopover()
+
+    fireEvent.change(minutes(), { target: { value } })
+    fireEvent.blur(minutes())
+
+    expect(alerts()).toEqual([sentence()])
+    expect(minutes().getAttribute('aria-invalid')).toBe('true')
+  })
+
+  it('marks every wrong field on Save, the title above the year above the duration, and puts the cursor on the first', () => {
+    const { onCommit } = renderPopover()
+    fireEvent.change(title(), { target: { value: '' } })
+    fireEvent.change(screen.getByLabelText('Year'), { target: { value: '3500' } })
+    fireEvent.change(minutes(), { target: { value: 'abc' } })
+
+    fireEvent.click(save())
+
+    expect(onCommit).not.toHaveBeenCalled()
+    expect(alerts()).toEqual([text.titleRequired, text.yearTooLate('3500'), text.minutesForm])
+    expect(document.activeElement).toBe(title())
+  })
+
+  it('does not check a duration it was opened with, so an old length never stops another edit', () => {
+    const { onCommit } = renderPopover({ item: { ...ITEM, timeToConsumeMinutes: 0 } })
+
+    fireEvent.change(title(), { target: { value: 'Renamed' } })
+    fireEvent.click(save())
+
+    expect(onCommit).toHaveBeenCalledWith({ title: 'Renamed' }, 'save')
   })
 })

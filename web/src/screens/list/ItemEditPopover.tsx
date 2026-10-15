@@ -1,16 +1,17 @@
 import { NAME_MAX_LENGTH } from '../../../../server/src/catalog/limits.js'
-import { filterYearInput, yearFieldText, yearTextProblem } from '../../../../server/src/catalog/years.js'
+import { filterYearInput, yearFieldText } from '../../../../server/src/catalog/years.js'
 import './ItemEditPopover.css'
 import { useCallback, useEffect, useRef, useState, type KeyboardEvent } from 'react'
 import type { ItemSourceTags, ListItem } from '../../lib/api.js'
 import { copy } from '../../locale/index.js'
 import { Button } from '../../components/quantum/Button/Button.js'
 import { Field } from '../../components/quantum/Field/Field.js'
+import { useFieldValidation } from '../../components/quantum/Field/useFieldValidation.js'
 import { Popover } from '../../components/quantum/Popover/Popover.js'
 import { PlatformPanel } from '../../components/quantum/PlatformPanel/PlatformPanel.js'
 import { platformDraft } from '../../components/quantum/PlatformPanel/platformPicks.js'
 import { GroupCombobox } from './GroupCombobox.js'
-import { buildEditPatch, type ItemPatch } from './itemActions.js'
+import { buildEditPatch, editProblems, type EditDraft, type ItemPatch } from './itemActions.js'
 import { TagChoice } from './TagChoice.js'
 import { readChoice, sameChoice, writeChoice, type TagField } from './tagFields.js'
 import { Tip } from '../../components/quantum/Tooltip/Tip.js'
@@ -19,13 +20,15 @@ export interface ItemEditPopoverProps {
   item: ListItem
   /** The list's groups, in order. */
   groups: readonly string[]
+  /** The category's default length: what an empty Duration means, marked as an estimate (H-006). */
+  defaultMinutes: number
   anchorEl: HTMLElement | null
   /**
-   * The edits to apply. `save` is the explicit button; `clickaway` is the
-   * safety net, which the caller answers with an Undo toast.
+   * The edits to apply, only ever a draft that can be saved (a wrong field keeps the window open and says what is wrong).
+   * `save` is the explicit button or Enter; `clickaway` is the safety net, which the caller answers with an Undo toast.
    */
   onCommit: (patch: ItemPatch, via: 'save' | 'clickaway') => void
-  /** Closed without changing anything. */
+  /** Closed without changing anything: Don't Save, Esc, or Save with nothing changed. */
   onDiscard: () => void
   /** The category's tag field (U5): the Platform panel, a short fixed set, or none. */
   tagField?: TagField | null
@@ -40,14 +43,19 @@ export interface ItemEditPopoverProps {
 const joined = (codes: readonly string[]) => codes.join('\n')
 
 /**
- * The ✎ popover (design: item edit, 360px): Title, Year beside Minutes, Group, and
+ * The ✎ popover (design: item edit, 360px): Title, Year beside Duration, Group, and
  * Discard / Save. Clicking away commits what can be saved — "the buttons are the
  * contract; the click-away is the safety net" — but Esc cancels (owner ruling, 2026-09-26: Enter saves, Esc cancels). There is
  * no field for `notes`: they are curator prose and read-only.
+ *
+ * One rule for a wrong field (H-006): Save is never disabled by a value. Save, Enter and a click away with a wrong Title,
+ * Year or Duration save nothing and keep the window open; every wrong field shows its sentence and the cursor goes to the
+ * first. Save with nothing changed just closes. An empty Duration is the category's default, marked as an estimate.
  */
 export function ItemEditPopover({
   item,
   groups,
+  defaultMinutes,
   anchorEl,
   onCommit,
   onDiscard,
@@ -62,7 +70,6 @@ export function ItemEditPopover({
   const [minutes, setMinutes] = useState(String(item.timeToConsumeMinutes))
   const [group, setGroup] = useState(item.group ?? '')
   const [year, setYear] = useState(() => yearFieldText(item))
-  const yearProblem = yearTextProblem(year)
 
   // U5: the tag field's draft. Tags are written only when the field changed them,
   // so an edit of the title never rewrites an old spelling (PC) the item still carries.
@@ -112,7 +119,39 @@ export function ItemEditPopover({
     tags = writeChoice(item.tags, choice, chosen)
   }
 
-  const patch = buildEditPatch(item, { title, minutes, group, year, ...(tags ? { tags } : {}) })
+  const draft: EditDraft = { title, minutes, group, year, ...(tags ? { tags } : {}) }
+  const patch = buildEditPatch(item, draft, defaultMinutes)
+
+  // What is wrong with each field, in the order the cursor visits them (H-006). A year or a length the person left as it was
+  // is not checked, so a value stored from before cannot stop another edit.
+  const checks = useFieldValidation({
+    title: { value: title, problem: (value) => (editProblems(item, { ...draft, title: value }).title ? text.titleRequired : null) },
+    year: {
+      value: year,
+      problem: (value) => {
+        const problem = editProblems(item, { ...draft, year: value }).year
+        if (problem === null) return null
+
+        return problem === 'form' ? text.yearForm : problem === 'early' ? text.yearTooEarly : text.yearTooLate(value.trim())
+      },
+    },
+    minutes: {
+      value: minutes,
+      problem: (value) => {
+        const problem = editProblems(item, { ...draft, minutes: value }).minutes
+        if (problem === null) return null
+
+        return problem === 'form' ? text.minutesForm : problem === 'zero' ? text.minutesZero(defaultMinutes) : text.minutesRange
+      },
+    },
+  })
+
+  // Save, Enter and a click away all end here: a wrong field keeps the window open, nothing changed just closes.
+  function commit(via: 'save' | 'clickaway') {
+    if (!checks.validate()) return
+    if (patch) onCommit(patch, via)
+    else onDiscard()
+  }
 
   // Enter saves, Esc cancels. Not in a text area (Enter is a new line there), not in
   // the Platform panel (its search), and not when something inside already took the key.
@@ -120,14 +159,13 @@ export function ItemEditPopover({
     if (event.key !== 'Enter' || event.defaultPrevented || event.nativeEvent.isComposing) return
     if (event.target instanceof HTMLTextAreaElement || event.target instanceof HTMLButtonElement) return
     if (event.target instanceof Element && event.target.closest('.q-platpanel')) return
-    if (patch) onCommit(patch, 'save')
+    commit('save')
   }
 
   // With the Platform panel open, a click away and Esc close only the panel (docs/chips).
   function dismiss() {
     if (panelOpen) return setPanelOpen(false)
-    if (patch) onCommit(patch, 'clickaway')
-    else onDiscard()
+    commit('clickaway')
   }
 
   function escape() {
@@ -149,8 +187,10 @@ export function ItemEditPopover({
           autoComplete="off"
           autoFocus={!panelOpen}
           size="sm"
+          {...checks.props('title')}
         />
-        {/* Year beside the duration on one line (design: H-004); the hint under the pair, only while the year is wrong. */}
+        {checks.message('title')}
+        {/* Year beside the duration on one line (design: H-004); the sentences under the pair, only while a field is wrong. */}
         <div className="q-edit-pair">
           <div className="q-edit-year">
             <Field
@@ -161,8 +201,8 @@ export function ItemEditPopover({
               placeholder={text.yearPlaceholder}
               inputMode="numeric"
               autoComplete="off"
-              aria-invalid={yearProblem !== null}
               size="sm"
+              {...checks.props('year')}
             />
           </div>
           <div className="q-edit-grow">
@@ -170,16 +210,16 @@ export function ItemEditPopover({
               label={text.editMinutes}
               value={minutes}
               onChange={(event) => setMinutes(event.target.value)}
-              inputMode="numeric"
+              placeholder={text.minutesPlaceholder(defaultMinutes)}
+              autoComplete="off"
+              spellCheck={false}
               size="sm"
+              {...checks.props('minutes')}
             />
           </div>
         </div>
-        {yearProblem && (
-          <p className="q-edit-hint" role="alert">
-            {yearProblem === 'range' ? text.yearHintRange : text.yearHint}
-          </p>
-        )}
+        {checks.message('year')}
+        {checks.message('minutes')}
         <GroupCombobox label={text.editGroup} groups={groups} value={group} onChange={setGroup} small />
         {tagField?.kind === 'platform' && (
           <div className="q-field">
@@ -212,7 +252,7 @@ export function ItemEditPopover({
           <Button size="sm" variant="quiet" onClick={onDiscard}>
             {text.discard}
           </Button>
-          <Button size="sm" variant="primary" disabled={!patch} onClick={() => patch && onCommit(patch, 'save')}>
+          <Button size="sm" variant="primary" onClick={() => commit('save')}>
             {text.save}
           </Button>
         </div>

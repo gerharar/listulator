@@ -1,4 +1,4 @@
-import { validYear } from './limits.js'
+import { validYear, YEAR_RANGE } from './limits.js'
 
 /**
  * An item's year (H-004, H-005): four digits, or four with the last one or two unknown (`199?`, `19??`).
@@ -79,12 +79,16 @@ export function parseYearText(text: string): ItemYear | undefined {
 
 /**
  * Why the field's text is not a year, or null when it is (or is empty): `form` for text that is not one of the three forms,
- * `range` for a year of the right form outside the years the app holds (`3500`, `0000`). The screens word the two apart.
+ * `early` and `late` for a year of the right form before or after the years the app holds (`0999`, `3500`; a partial year
+ * by its earliest value). The screens word the three apart.
  */
-export function yearTextProblem(text: string): 'form' | 'range' | null {
+export function yearTextProblem(text: string): 'form' | 'early' | 'late' | null {
   if (parseYearText(text) !== undefined) return null
 
-  return FORM.test(text.trim()) ? 'range' : 'form'
+  const trimmed = text.trim()
+  if (!FORM.test(trimmed)) return 'form'
+
+  return Number.parseInt(trimmed.replace(/\?/g, '0'), 10) < YEAR_RANGE[0] ? 'early' : 'late'
 }
 
 /** A year as a row and a header show it: `1994`, `199?`, `19??`; nothing for none. */
