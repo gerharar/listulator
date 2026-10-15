@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { listItems, users } from '../db/schema.js'
 import { createTestApp, type TestApp } from '../testing/harness.js'
 import { createList, createListItem, findListItems, updateListItem } from './repository.js'
-import { InvalidMinutesError } from './limits.js'
+import { InvalidMinutesError } from './durations.js'
 import { InvalidYearError } from './years.js'
 
 /**
@@ -93,7 +93,7 @@ describe('the ranges of a typed item year and length', () => {
     it.each([0, -1, 1.5, 100_000, 1e308])('refuses to make an item of %d minutes', async (minutes) => {
       const list = await newList()
 
-      await expect(createListItem(db(), owner, list.id, { title: 'x', timeToConsumeMinutes: minutes })).rejects.toThrow(InvalidMinutesError)
+      await expect(createListItem(db(), owner, list.id, { title: 'x', timeToConsumeMinutes: minutes })).rejects.toBeInstanceOf(InvalidMinutesError)
       expect(await findListItems(db(), owner, list.id)).toEqual([])
     })
 
@@ -101,7 +101,7 @@ describe('the ranges of a typed item year and length', () => {
       const list = await newList()
       const item = (await createListItem(db(), owner, list.id, { title: 'x', timeToConsumeMinutes: 90 }))!
 
-      await expect(updateListItem(db(), owner, list.id, item.id, { timeToConsumeMinutes: minutes })).rejects.toThrow(InvalidMinutesError)
+      await expect(updateListItem(db(), owner, list.id, item.id, { timeToConsumeMinutes: minutes })).rejects.toBeInstanceOf(InvalidMinutesError)
       expect(row(item.id).timeToConsumeMinutes).toBe(90)
     })
 

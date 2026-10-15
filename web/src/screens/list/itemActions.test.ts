@@ -1,7 +1,17 @@
 import { describe, expect, it } from 'vitest'
 import type { ListItem } from '../../lib/api.js'
 import { copy } from '../../locale/index.js'
-import { buildEditPatch as build, editProblems, invertPatch, minutesSentence, yearSentence } from './itemActions.js'
+import {
+  buildEditPatch as build,
+  durationFieldText,
+  editProblems,
+  invertPatch,
+  minutesProblem,
+  minutesSentence,
+  titleProblem,
+  yearProblem,
+  yearSentence,
+} from './itemActions.js'
 
 const ITEM: ListItem = {
   id: 'i1',
@@ -9,7 +19,7 @@ const ITEM: ListItem = {
   title: 'Glorious Purpose',
   orderIndex: 0,
   timeToConsumeMinutes: 51,
-  timeToConsumeIsEstimated: true,
+  timeToConsumeIsEstimated: false,
   consumedAt: null,
   source: 'import',
   year: 2021,
@@ -103,6 +113,67 @@ describe('buildEditPatch', () => {
   })
 })
 
+describe('an estimated length: the Duration field opens empty (owner, 2026-10-15: "empty = default, different from category to category")', () => {
+  const estimate = { ...ITEM, timeToConsumeMinutes: 90, timeToConsumeIsEstimated: true }
+
+  it('opens with the number for a length that was given and with nothing for an estimate', () => {
+    expect(durationFieldText(ITEM)).toBe('51')
+    expect(durationFieldText(estimate)).toBe('')
+    const pending: ListItem = { ...estimate, runtimePending: true }
+
+    expect(durationFieldText(pending)).toBe('')
+  })
+
+  it('changes nothing when the field is left empty', () => {
+    expect(buildEditPatch(estimate, { ...same, minutes: '' })).toBeNull()
+    expect(buildEditPatch(estimate, { ...same, title: 'Renamed', minutes: '' })).toEqual({ title: 'Renamed' })
+  })
+
+  it('makes a typed length of it, estimate off', () => {
+    expect(buildEditPatch(estimate, { ...same, minutes: '60' })).toEqual({ timeToConsumeMinutes: 60, timeToConsumeIsEstimated: false })
+  })
+
+  it('makes it a typed length even when the number is the estimate’s own: the person confirmed it', () => {
+    expect(buildEditPatch(estimate, { ...same, minutes: '90' })).toEqual({ timeToConsumeIsEstimated: false })
+    expect(buildEditPatch(estimate, { ...same, minutes: '1h 30m' })).toEqual({ timeToConsumeIsEstimated: false })
+  })
+
+  it('checks what was typed over an estimate, since the field was empty', () => {
+    expect(editProblems(estimate, { ...same, minutes: 'abc' }).minutes).toBe('form')
+    expect(buildEditPatch(estimate, { ...same, minutes: '0' })).toBeNull()
+  })
+
+  it('gives the category default back, as an estimate, to a length that was typed and then cleared', () => {
+    expect(buildEditPatch(ITEM, { ...same, minutes: '' })).toEqual({ timeToConsumeMinutes: 120, timeToConsumeIsEstimated: true })
+  })
+})
+
+describe('the problem of one field, for the window to check each as it is left (H-006)', () => {
+  it('titleProblem: an empty title or spaces only', () => {
+    expect(titleProblem('')).toBe('empty')
+    expect(titleProblem('   ')).toBe('empty')
+    expect(titleProblem('Heat')).toBeNull()
+  })
+
+  it('minutesProblem: only what was changed, and empty is no problem', () => {
+    expect(minutesProblem(ITEM, '')).toBeNull()
+    expect(minutesProblem(ITEM, '51')).toBeNull()
+    expect(minutesProblem(ITEM, 'abc')).toBe('form')
+    expect(minutesProblem(ITEM, '0')).toBe('zero')
+    expect(minutesProblem(ITEM, '100000')).toBe('range')
+    expect(minutesProblem({ ...ITEM, timeToConsumeMinutes: 0 }, '0')).toBeNull()
+  })
+
+  it('yearProblem: only what was changed, and empty is no problem', () => {
+    expect(yearProblem(ITEM, '2021')).toBeNull()
+    expect(yearProblem(ITEM, '')).toBeNull()
+    expect(yearProblem(ITEM, '19')).toBe('form')
+    expect(yearProblem(ITEM, '0999')).toBe('early')
+    expect(yearProblem(ITEM, '3500')).toBe('late')
+    expect(yearProblem({ ...ITEM, year: 800 }, '800')).toBeNull()
+  })
+})
+
 describe('editProblems: what is wrong with the draft, for the window to say (H-006)', () => {
   it('is nothing wrong for a draft that is good, and for the empty fields that mean something', () => {
     expect(editProblems(ITEM, { ...same, year: '2021' })).toEqual({ title: null, minutes: null, year: null })
@@ -182,9 +253,24 @@ describe('invertPatch', () => {
   })
 
   it('puts back the minutes and whether they were an estimate', () => {
-    expect(invertPatch(ITEM, { timeToConsumeMinutes: 60, timeToConsumeIsEstimated: false })).toEqual({
+    const estimate = { ...ITEM, timeToConsumeIsEstimated: true }
+
+    expect(invertPatch(estimate, { timeToConsumeMinutes: 60, timeToConsumeIsEstimated: false })).toEqual({
       timeToConsumeMinutes: 51,
       timeToConsumeIsEstimated: true,
+    })
+  })
+
+  it('puts the estimate back when only the flag changed: a typed length with the estimate’s own number', () => {
+    const estimate = { ...ITEM, timeToConsumeMinutes: 90, timeToConsumeIsEstimated: true }
+
+    expect(invertPatch(estimate, { timeToConsumeIsEstimated: false })).toEqual({ timeToConsumeIsEstimated: true })
+  })
+
+  it('puts a typed length back, estimate off, after it was cleared to the default', () => {
+    expect(invertPatch(ITEM, { timeToConsumeMinutes: 120, timeToConsumeIsEstimated: true })).toEqual({
+      timeToConsumeMinutes: 51,
+      timeToConsumeIsEstimated: false,
     })
   })
 

@@ -8,7 +8,6 @@ import {
   parseYearText,
   splitTrailingYear,
   validYearPair,
-  yearFieldText,
   yamlYearValue,
   yearTextProblem,
   yearSortKey,
@@ -98,7 +97,7 @@ describe('yearTextProblem: why the field is wrong, so each reason can have its o
   })
 })
 
-describe('formatYear and yearFieldText', () => {
+describe('formatYear', () => {
   it('writes an exact year as digits and a partial one with ?', () => {
     expect(formatYear(y(1994))).toBe('1994')
     expect(formatYear(y(1990, 1))).toBe('199?')
@@ -107,16 +106,15 @@ describe('formatYear and yearFieldText', () => {
 
   it('writes no year as nothing', () => {
     expect(formatYear(NO_YEAR)).toBe('')
-    expect(yearFieldText(NO_YEAR)).toBe('')
   })
 
   it('shows a year stored below 1000 (from before the range was 1000 to 2100) as it is, in a row and in the field', () => {
     expect(formatYear(y(800))).toBe('800')
-    expect(yearFieldText(y(800))).toBe('800')
+    expect(formatYear(y(800))).toBe('800')
   })
 
   it.each(['1994', '199?', '19??', '1000', '2100', '100?', ''])('round-trips %j through the field', (text) => {
-    expect(yearFieldText(parseYearText(text)!)).toBe(text)
+    expect(formatYear(parseYearText(text)!)).toBe(text)
   })
 })
 

@@ -381,6 +381,44 @@ describe('ItemEditPopover: the title and the duration (H-006, H-007)', () => {
     expect(document.activeElement).toBe(title())
   })
 
+  describe('an item whose length is an estimate (owner, 2026-10-15: empty = the category default)', () => {
+    const estimated = { ...ITEM, timeToConsumeMinutes: 90, timeToConsumeIsEstimated: true }
+
+    it('opens with an empty Duration and the category default as its placeholder, not with the estimate’s number', () => {
+      renderPopover({ item: estimated })
+
+      expect(minutes().value).toBe('')
+      expect(minutes().placeholder).toBe(text.minutesPlaceholder(120))
+    })
+
+    it('Save with it still empty changes nothing: the window just closes', () => {
+      const { onCommit, onDiscard } = renderPopover({ item: estimated })
+
+      fireEvent.click(save())
+
+      expect(onCommit).not.toHaveBeenCalled()
+      expect(onDiscard).toHaveBeenCalledTimes(1)
+    })
+
+    it('typing a length over it makes it a typed length, even the estimate’s own number', () => {
+      const { onCommit } = renderPopover({ item: estimated })
+
+      fireEvent.change(minutes(), { target: { value: '1h 30m' } })
+      fireEvent.click(save())
+
+      expect(onCommit).toHaveBeenCalledWith({ timeToConsumeIsEstimated: false }, 'save')
+    })
+
+    it('says so when what is typed over it is wrong', () => {
+      renderPopover({ item: estimated })
+
+      fireEvent.change(minutes(), { target: { value: 'abc' } })
+      fireEvent.blur(minutes())
+
+      expect(alerts()).toEqual([text.minutesForm])
+    })
+  })
+
   it('is a text input, so h, m and : can be typed, with the category default as its placeholder', () => {
     renderPopover()
 

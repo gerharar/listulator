@@ -74,7 +74,8 @@ import {
   listPayloadSchema,
   snapshotPayloadSchema,
 } from './restoreSchemas.js'
-import { InvalidMinutesError, NAME_MAX_LENGTH } from './limits.js'
+import { InvalidMinutesError } from './durations.js'
+import { NAME_MAX_LENGTH } from './limits.js'
 
 const LIST_SOURCES = ['api', 'llm', 'manual'] as const
 const LIST_STATUSES = ['complete', 'ongoing'] as const

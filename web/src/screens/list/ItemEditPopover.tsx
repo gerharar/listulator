@@ -1,5 +1,5 @@
 import { NAME_MAX_LENGTH } from '../../../../server/src/catalog/limits.js'
-import { filterYearInput, yearFieldText } from '../../../../server/src/catalog/years.js'
+import { filterYearInput, formatYear } from '../../../../server/src/catalog/years.js'
 import './ItemEditPopover.css'
 import { useCallback, useEffect, useRef, useState, type KeyboardEvent } from 'react'
 import type { ItemSourceTags, ListItem } from '../../lib/api.js'
@@ -11,7 +11,17 @@ import { Popover } from '../../components/quantum/Popover/Popover.js'
 import { PlatformPanel } from '../../components/quantum/PlatformPanel/PlatformPanel.js'
 import { platformDraft } from '../../components/quantum/PlatformPanel/platformPicks.js'
 import { GroupCombobox } from './GroupCombobox.js'
-import { buildEditPatch, editProblems, minutesSentence, yearSentence, type EditDraft, type ItemPatch } from './itemActions.js'
+import {
+  buildEditPatch,
+  durationFieldText,
+  minutesProblem,
+  minutesSentence,
+  titleProblem,
+  yearProblem,
+  yearSentence,
+  type EditDraft,
+  type ItemPatch,
+} from './itemActions.js'
 import { TagChoice } from './TagChoice.js'
 import { readChoice, sameChoice, writeChoice, type TagField } from './tagFields.js'
 import { Tip } from '../../components/quantum/Tooltip/Tip.js'
@@ -67,9 +77,9 @@ export function ItemEditPopover({
   const text = copy.quantum.list.itemActions
   const tagText = copy.quantum.list.tags
   const [title, setTitle] = useState(item.title)
-  const [minutes, setMinutes] = useState(String(item.timeToConsumeMinutes))
+  const [minutes, setMinutes] = useState(() => durationFieldText(item))
   const [group, setGroup] = useState(item.group ?? '')
-  const [year, setYear] = useState(() => yearFieldText(item))
+  const [year, setYear] = useState(() => formatYear(item))
 
   // U5: the tag field's draft. Tags are written only when the field changed them,
   // so an edit of the title never rewrites an old spelling (PC) the item still carries.
@@ -125,11 +135,11 @@ export function ItemEditPopover({
   // What is wrong with each field, in the order the cursor visits them (H-006). A year or a length the person left as it was
   // is not checked, so a value stored from before cannot stop another edit.
   const checks = useFieldValidation({
-    title: { value: title, problem: (value) => (editProblems(item, { ...draft, title: value }).title ? text.titleRequired : null) },
+    title: { value: title, problem: (value) => (titleProblem(value) ? text.titleRequired : null) },
     year: {
       value: year,
       problem: (value) => {
-        const problem = editProblems(item, { ...draft, year: value }).year
+        const problem = yearProblem(item, value)
 
         return problem === null ? null : yearSentence(text, problem, value)
       },
@@ -137,7 +147,7 @@ export function ItemEditPopover({
     minutes: {
       value: minutes,
       problem: (value) => {
-        const problem = editProblems(item, { ...draft, minutes: value }).minutes
+        const problem = minutesProblem(item, value)
 
         return problem === null ? null : minutesSentence(text, problem, defaultMinutes)
       },

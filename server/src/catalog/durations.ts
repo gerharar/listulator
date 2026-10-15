@@ -10,6 +10,14 @@ import { MINUTES_RANGE } from './limits.js'
 
 export type DurationProblem = 'form' | 'zero' | 'range'
 
+/** A length outside `MINUTES_RANGE` where one is typed (a new item, an edit): the API says 400, `item.invalidMinutes`. */
+export class InvalidMinutesError extends Error {
+  constructor() {
+    super('invalid minutes')
+    this.name = 'InvalidMinutesError'
+  }
+}
+
 /** `1h 35m`, `1h`, `45m`, `45 min`: hours and minutes each optional, at least one, in that order. */
 const WORDS = /^(?:(\d+)\s*h)?\s*(?:(\d+)\s*(?:m|min))?$/i
 /** `1:35`: hours, then exactly two digits of minutes. */

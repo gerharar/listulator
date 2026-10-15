@@ -20,8 +20,9 @@ export const MAX_LIST_ITEMS = 10_000
 
 /**
  * What an item's length may be, in minutes: a whole number from one minute to 99,999 (about 69 days; security review,
- * Phase 19, SR-019; the top is the screens' own limit since 2026-10-15, H-006). A list file or a connector that says `.inf`, `.nan`, a negative number or `1e308` otherwise corrupts the totals,
- * the "time remaining" sentence and, for `.nan`, ends in a database error.
+ * Phase 19, SR-019; the top is the screens' own limit since 2026-10-15, H-006). A list file or a connector that says
+ * `.inf`, `.nan`, a negative number or `1e308` otherwise corrupts the totals, the "time remaining" sentence and, for
+ * `.nan`, ends in a database error.
  */
 export const MINUTES_RANGE = [1, 99_999] as const
 
@@ -31,14 +32,6 @@ export const MINUTES_RANGE = [1, 99_999] as const
  * is held to the narrower 1800 to 2100 by its own guard test.
  */
 export const YEAR_RANGE = [1000, 2100] as const
-
-/** A length outside `MINUTES_RANGE` where one is typed (a new item, an edit): the API says 400, `item.invalidMinutes`. */
-export class InvalidMinutesError extends Error {
-  constructor() {
-    super('invalid minutes')
-    this.name = 'InvalidMinutesError'
-  }
-}
 
 /** A list's own blurb. The library's guard test has held committed lists to this since 19.4; the parser now holds every file. */
 export const DESCRIPTION_MAX_LENGTH = 1_000

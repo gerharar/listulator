@@ -1,7 +1,7 @@
 import type { ListItem } from '../../lib/api.js'
 import type { Locale } from '../../locale/index.js'
 import { durationTextProblem, parseDurationText, type DurationProblem } from '../../../../server/src/catalog/durations.js'
-import { parseYearText, yearFieldText, yearTextProblem } from '../../../../server/src/catalog/years.js'
+import { formatYear, parseYearText, yearTextProblem } from '../../../../server/src/catalog/years.js'
 
 /** What the edit popover holds while it is open, as typed. */
 export interface EditDraft {
@@ -37,17 +37,35 @@ export interface EditProblems {
 }
 
 /**
+ * What the Duration field holds when the window opens (owner, 2026-10-15): the number for a length that was given, and
+ * nothing for an estimate, since an empty field means the category's default, which is what an estimate is. The field is
+ * checked and saved only when it no longer reads this.
+ */
+export function durationFieldText(item: Pick<ListItem, 'timeToConsumeMinutes' | 'timeToConsumeIsEstimated'>): string {
+  return item.timeToConsumeIsEstimated ? '' : String(item.timeToConsumeMinutes)
+}
+
+export const titleProblem = (text: string): 'empty' | null => (text.trim() === '' ? 'empty' : null)
+
+/** What is wrong with the Duration text; a length the person did not change is never checked (a stored 0 stays editable). */
+export function minutesProblem(item: ListItem, text: string): DurationProblem | null {
+  return text.trim() === durationFieldText(item) ? null : durationTextProblem(text)
+}
+
+/** What is wrong with the Year text; a year the person did not change is never checked (a stored 800 stays editable). */
+export function yearProblem(item: ListItem, text: string): EditProblems['year'] {
+  return text.trim() === formatYear(item) ? null : yearTextProblem(text)
+}
+
+/**
  * What is wrong with the draft, for the window to say (H-006). A length or a year the person did not change is never
  * checked, so a value stored from before (a year below 1000, a length of 0) cannot stop another edit from being saved.
  */
 export function editProblems(item: ListItem, draft: EditDraft): EditProblems {
-  const minutesChanged = draft.minutes.trim() !== String(item.timeToConsumeMinutes)
-  const yearChanged = draft.year !== undefined && draft.year.trim() !== yearFieldText(item)
-
   return {
-    title: draft.title.trim() === '' ? 'empty' : null,
-    minutes: minutesChanged ? durationTextProblem(draft.minutes) : null,
-    year: yearChanged ? yearTextProblem(draft.year!) : null,
+    title: titleProblem(draft.title),
+    minutes: minutesProblem(item, draft.minutes),
+    year: draft.year === undefined ? null : yearProblem(item, draft.year),
   }
 }
 
@@ -82,16 +100,17 @@ export function buildEditPatch(item: ListItem, draft: EditDraft, defaultMinutes:
   const patch: ItemPatch = {}
 
   if (title !== item.title) patch.title = title
-  if (draft.minutes.trim() !== String(item.timeToConsumeMinutes)) {
+  if (draft.minutes.trim() !== durationFieldText(item)) {
     const typed = parseDurationText(draft.minutes)
     if (typed === null) {
-      if (item.timeToConsumeMinutes !== defaultMinutes || !item.timeToConsumeIsEstimated) {
-        patch.timeToConsumeMinutes = defaultMinutes
-        patch.timeToConsumeIsEstimated = true
-      }
-    } else if (typed !== undefined && typed !== item.timeToConsumeMinutes) {
-      patch.timeToConsumeMinutes = typed
-      patch.timeToConsumeIsEstimated = false
+      // A length that was given, cleared: the category's default again, as an estimate.
+      patch.timeToConsumeMinutes = defaultMinutes
+      patch.timeToConsumeIsEstimated = true
+    } else if (typed !== undefined) {
+      // A length typed is the person's own, even over an estimate with the same number; the same number as a given length
+      // written another way (1h 30m for 90) changes nothing.
+      if (typed !== item.timeToConsumeMinutes) patch.timeToConsumeMinutes = typed
+      if (typed !== item.timeToConsumeMinutes || item.timeToConsumeIsEstimated) patch.timeToConsumeIsEstimated = false
     }
   }
   if (group !== (item.group || null)) patch.group = group
@@ -110,8 +129,10 @@ export function invertPatch(item: ListItem, patch: ItemPatch): ItemPatch {
   const back: ItemPatch = {}
 
   if (patch.title !== undefined) back.title = item.title
-  if (patch.timeToConsumeMinutes !== undefined) {
-    back.timeToConsumeMinutes = item.timeToConsumeMinutes
+  // The length and whether it was an estimate go back together; the flag can also change alone (a typed length with
+  // the estimate's own number).
+  if (patch.timeToConsumeMinutes !== undefined) back.timeToConsumeMinutes = item.timeToConsumeMinutes
+  if (patch.timeToConsumeMinutes !== undefined || patch.timeToConsumeIsEstimated !== undefined) {
     back.timeToConsumeIsEstimated = item.timeToConsumeIsEstimated
   }
   if (patch.group !== undefined) back.group = item.group || null

@@ -99,11 +99,6 @@ export function formatYear(value: YearLike): string {
   return `${String(value.year).padStart(4, '0').slice(0, 4 - value.yearUnk)}${'?'.repeat(value.yearUnk)}`
 }
 
-/** A year as the field holds it, so what `parseYearText` reads back is the same year. */
-export function yearFieldText(value: YearLike): string {
-  return formatYear(value)
-}
-
 /**
  * Where an item sorts by release date: the latest year it can be, a narrower guess before a wider one ending the same year,
  * so `1989 < 198? < 1990 < 1999 < 199? < 19?? < 2000`. No year sorts after every year.
