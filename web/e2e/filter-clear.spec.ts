@@ -75,16 +75,10 @@ test('the field and the bar do not move when the ✕ appears: the room for it is
       padding: await field.evaluate((input) => getComputedStyle(input).paddingRight),
     })
 
-    // The list layer slides in: measure once it has stopped moving, or the layer's own motion looks like the ✕'s.
-    let last = JSON.stringify(await wrapper.boundingBox())
-    await expect
-      .poll(async () => {
-        const now = JSON.stringify(await wrapper.boundingBox())
-        const still = now === last
-        last = now
-        return still
-      })
-      .toBe(true)
+    // The list layer slides in (a CSS animation that scales it): measure once every animation has finished, or the layer's own motion
+    // looks like the ✕ moving the bar. Waiting on the animations themselves, not on the box to stop changing: a box that has not
+    // started to move yet looks the same twice.
+    await page.evaluate(() => Promise.all(document.getAnimations().map((animation) => animation.finished.catch(() => undefined))))
     const without = await measure()
     await field.fill('ron')
     await expect(page.getByRole('button', { name: filter.clearText })).toBeVisible()

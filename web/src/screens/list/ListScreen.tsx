@@ -65,6 +65,8 @@ import { listMark } from '../../lib/buckets.js'
 import { JumpRail, JumpRailStub, type RailEntry } from './JumpRail.js'
 import { ListMorePopover, type MoreMode, type PreviewState } from './ListMorePopover.js'
 import { buildSpine, listTotals } from './spine.js'
+import { buildRowModel, shouldVirtualize, type VirtualizationMode } from './rowModel.js'
+import { WindowedRows } from './WindowedRows.js'
 import { useRowMoves } from './useRowMoves.js'
 
 export interface ListScreenProps {
@@ -380,6 +382,22 @@ function ListView({
     () => (moves.draggingUnit ? new Set(groupNames) : new Set([...collapsed].filter((name) => !openByText.has(name)))),
     [moves.draggingUnit, groupNames, collapsed, openByText],
   )
+
+  // The rows as pixels, and which of them to draw (Phase 25): a long list draws a window, short ones everything. Off and the
+  // preference arrive with 25.7; until then it is automatic.
+  const virtualization: VirtualizationMode = 'auto'
+  const rowModel = useMemo(() => buildRowModel(shownUnits, (name) => shut.has(name)), [shownUnits, shut])
+  const windowed = shouldVirtualize(rowModel.rowTops.size, virtualization)
+  // Rows that stay drawn wherever the list is scrolled: the roving tab stop, a row being dragged, a row with a window open on it.
+  const pinnedRows = useMemo(() => {
+    const ids = new Set<string>()
+    if (focusId) ids.add(focusId)
+    if (moves.dragKey) ids.add(moves.dragKey)
+    if (popover?.itemId) ids.add(popover.itemId)
+    for (const id of pulseIds) ids.add(id)
+
+    return ids
+  }, [focusId, moves.dragKey, popover?.itemId, pulseIds])
 
   // The rows that are on screen, in order: what the arrow keys walk.
   const visible = useMemo(() => {
@@ -1145,30 +1163,36 @@ function ListView({
               {isFiltering({ ...filter, hideDone: false }) ? text.filter.nothing(filter.text) : text.filter.allDone}
             </p>
           )}
-          {shownUnits.map(({ unit, members }) =>
-            unit.kind === 'item' ? (
-              itemRow(unit.item, false)
-            ) : (
-              <div key={unit.group.id} className="q-list-block">
-                <GroupRow
-                  block={unit}
-                  collapsed={shut.has(unit.group.name)}
-                  focusable={tabStop === unit.group.id}
-                  onToggle={toggleGroup}
-                  onFocus={remember}
-                  onHandlePointerDown={(event) => moves.startDrag(event, unit.group.id)}
-                  onDelete={() => void removeGroup(unit.group)}
-                  onRename={(name) => renameGroup(unit.group, name)}
-                  onDeleteWithItems={(anchor) => setGroupDelete({ group: unit.group, anchor })}
-                  dragging={moves.dragKey === unit.group.id}
-                  dropLine={moves.over?.key === unit.group.id ? moves.over.pos : null}
-                  pulse={pulseIds.has(unit.group.id)}
-                  shownOf={filtering ? { shown: members.length, total: unit.items.length } : undefined}
-                />
-                {!shut.has(unit.group.name) && members.map((entry) => itemRow(entry, true))}
-              </div>
-            ),
-          )}
+          <WindowedRows
+            shown={shownUnits}
+            model={rowModel}
+            enabled={windowed}
+            pinned={pinnedRows}
+            scroller={spine}
+            renderItem={itemRow}
+            renderGroup={({ unit, members }, rows) =>
+              unit.kind === 'group' ? (
+                <div key={unit.group.id} className="q-list-block">
+                  <GroupRow
+                    block={unit}
+                    collapsed={shut.has(unit.group.name)}
+                    focusable={tabStop === unit.group.id}
+                    onToggle={toggleGroup}
+                    onFocus={remember}
+                    onHandlePointerDown={(event) => moves.startDrag(event, unit.group.id)}
+                    onDelete={() => void removeGroup(unit.group)}
+                    onRename={(name) => renameGroup(unit.group, name)}
+                    onDeleteWithItems={(anchor) => setGroupDelete({ group: unit.group, anchor })}
+                    dragging={moves.dragKey === unit.group.id}
+                    dropLine={moves.over?.key === unit.group.id ? moves.over.pos : null}
+                    pulse={pulseIds.has(unit.group.id)}
+                    shownOf={filtering ? { shown: members.length, total: unit.items.length } : undefined}
+                  />
+                  {rows}
+                </div>
+              ) : null
+            }
+          />
           <AddItemForm
             groups={groupNames}
             defaultMinutes={defaultMinutes}

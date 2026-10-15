@@ -2,8 +2,8 @@ import { expect, test, type Page } from '@playwright/test'
 
 /**
  * Phase 25.0: open, scroll, tick and filter lists of 2,500 to 50,000 items (BL-074). Prints one `PERF|` line per case; the table
- * in DECISIONS is made from them. Chromium measures memory too; WebKit (the macOS webview's engine) is only run up to 10,000
- * items, where its answers already say what it says. By hand: see `playwright.perf.config.ts`.
+ * in DECISIONS is made from them. Chromium measures memory too; WebKit is the macOS webview's engine. Before the window (Phase 25.2) WebKit was only run up to
+ * 10,000 items, because a whole 30,000-row page took minutes. By hand: see `playwright.perf.config.ts`.
  */
 const SIZES = [2_500, 10_000, 30_000, 50_000]
 const LAYOUTS = [
@@ -94,7 +94,6 @@ async function measure(page: Page) {
 for (const count of SIZES) {
   for (const layout of LAYOUTS) {
     test(`${count.toLocaleString('en-US')} items, ${layout.name}`, async ({ page, request }, testInfo) => {
-      test.skip(testInfo.project.name === 'webkit' && count > 10_000, 'WebKit is measured up to 10,000 items')
       const made = await request.post('/api/lists/from-file', { data: { yaml: yamlFor(count, layout.groups) } })
       expect(made.status()).toBe(201)
       const id = (await made.json()).id as string
