@@ -101,6 +101,14 @@ describe('ItemEditPopover', () => {
     expect(save().disabled).toBe(false)
   })
 
+  it('keeps the cursor in the field when a button is pressed, so a sentence that appears on leaving it cannot move the button out from under the click', () => {
+    renderPopover()
+
+    // A mouse-down nobody cancelled would take the focus, which shows the sentence, which moves Save down.
+    expect(fireEvent.mouseDown(save())).toBe(false)
+    expect(fireEvent.mouseDown(screen.getByRole('button', { name: 'Don\'t Save' }))).toBe(false)
+  })
+
   it('Save with nothing changed closes the window with no message', () => {
     const { onCommit, onDiscard } = renderPopover()
 

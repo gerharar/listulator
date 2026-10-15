@@ -1,4 +1,5 @@
 import type { ListItem } from '../../lib/api.js'
+import type { Locale } from '../../locale/index.js'
 import { durationTextProblem, parseDurationText, type DurationProblem } from '../../../../server/src/catalog/durations.js'
 import { parseYearText, yearFieldText, yearTextProblem } from '../../../../server/src/catalog/years.js'
 
@@ -48,6 +49,22 @@ export function editProblems(item: ListItem, draft: EditDraft): EditProblems {
     minutes: minutesChanged ? durationTextProblem(draft.minutes) : null,
     year: yearChanged ? yearTextProblem(draft.year!) : null,
   }
+}
+
+type ItemActionsText = Locale['quantum']['list']['itemActions']
+
+/** The sentence for a year problem (`editProblems`, `yearTextProblem`); a year too far ahead repeats what was typed. */
+export function yearSentence(text: ItemActionsText, problem: 'form' | 'early' | 'late', typed: string): string {
+  if (problem === 'form') return text.yearForm
+
+  return problem === 'early' ? text.yearTooEarly : text.yearTooLate(typed.trim())
+}
+
+/** The sentence for a duration problem; a length of nothing names the category's default, which an empty field means. */
+export function minutesSentence(text: ItemActionsText, problem: DurationProblem, defaultMinutes: number): string {
+  if (problem === 'form') return text.minutesForm
+
+  return problem === 'zero' ? text.minutesZero(defaultMinutes) : text.minutesRange
 }
 
 /**

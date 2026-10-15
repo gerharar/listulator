@@ -11,7 +11,7 @@ import { Popover } from '../../components/quantum/Popover/Popover.js'
 import { PlatformPanel } from '../../components/quantum/PlatformPanel/PlatformPanel.js'
 import { platformDraft } from '../../components/quantum/PlatformPanel/platformPicks.js'
 import { GroupCombobox } from './GroupCombobox.js'
-import { buildEditPatch, editProblems, type EditDraft, type ItemPatch } from './itemActions.js'
+import { buildEditPatch, editProblems, minutesSentence, yearSentence, type EditDraft, type ItemPatch } from './itemActions.js'
 import { TagChoice } from './TagChoice.js'
 import { readChoice, sameChoice, writeChoice, type TagField } from './tagFields.js'
 import { Tip } from '../../components/quantum/Tooltip/Tip.js'
@@ -130,18 +130,16 @@ export function ItemEditPopover({
       value: year,
       problem: (value) => {
         const problem = editProblems(item, { ...draft, year: value }).year
-        if (problem === null) return null
 
-        return problem === 'form' ? text.yearForm : problem === 'early' ? text.yearTooEarly : text.yearTooLate(value.trim())
+        return problem === null ? null : yearSentence(text, problem, value)
       },
     },
     minutes: {
       value: minutes,
       problem: (value) => {
         const problem = editProblems(item, { ...draft, minutes: value }).minutes
-        if (problem === null) return null
 
-        return problem === 'form' ? text.minutesForm : problem === 'zero' ? text.minutesZero(defaultMinutes) : text.minutesRange
+        return problem === null ? null : minutesSentence(text, problem, defaultMinutes)
       },
     },
   })
@@ -248,7 +246,9 @@ export function ItemEditPopover({
         {choice && (
           <TagChoice field={choice} current={chosen!} onChange={setChosen} />
         )}
-        <div className="q-edit-actions">
+        {/* A press on a button keeps the cursor in its field: leaving it would show a sentence above the buttons, move them
+            down while the mouse is still pressed, and drop the click. The keyboard is not affected. */}
+        <div className="q-edit-actions" onMouseDown={(event) => event.preventDefault()}>
           <Button size="sm" variant="quiet" onClick={onDiscard}>
             {text.discard}
           </Button>

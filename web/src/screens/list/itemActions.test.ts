@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { ListItem } from '../../lib/api.js'
-import { buildEditPatch as build, editProblems, invertPatch } from './itemActions.js'
+import { copy } from '../../locale/index.js'
+import { buildEditPatch as build, editProblems, invertPatch, minutesSentence, yearSentence } from './itemActions.js'
 
 const ITEM: ListItem = {
   id: 'i1',
@@ -148,6 +149,27 @@ describe('editProblems: what is wrong with the draft, for the window to say (H-0
     const old = { ...ITEM, year: 800 }
 
     expect(editProblems(old, { ...same, year: '0801' }).year).toBe('early')
+  })
+})
+
+describe('the sentences for what editProblems finds (H-004, H-006, H-007)', () => {
+  const text = copy.quantum.list.itemActions
+
+  it('names the year problems: the form, too early, and too far ahead with what was typed', () => {
+    expect(yearSentence(text, 'form', '19')).toBe(text.yearForm)
+    expect(yearSentence(text, 'early', '0999')).toBe(text.yearTooEarly)
+    expect(yearSentence(text, 'late', '3500')).toBe(text.yearTooLate('3500'))
+  })
+
+  it('repeats the year without the spaces around it', () => {
+    expect(yearSentence(text, 'late', ' 3500 ')).toBe(text.yearTooLate('3500'))
+  })
+
+  it('names the duration problems: the form, nothing, and over the limit, with the category default for nothing', () => {
+    expect(minutesSentence(text, 'form', 120)).toBe(text.minutesForm)
+    expect(minutesSentence(text, 'zero', 120)).toBe(text.minutesZero(120))
+    expect(minutesSentence(text, 'zero', 30)).toBe(text.minutesZero(30))
+    expect(minutesSentence(text, 'range', 120)).toBe(text.minutesRange)
   })
 })
 
