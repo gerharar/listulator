@@ -2,7 +2,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, render } from '@testing-library/react'
 import { Popover } from '../Popover/Popover.js'
-import { OverlayManagerProvider, useEscLadder, useOverlayRegistration } from './OverlayManagerContext.js'
+import { OverlayManagerProvider, useEscLadder, useEscStep, useOverlayRegistration } from './OverlayManagerContext.js'
 
 afterEach(cleanup)
 
@@ -89,3 +89,55 @@ describe('useEscLadder', () => {
     expect(popLayer).not.toHaveBeenCalled()
   })
 })
+
+describe('useEscStep', () => {
+  function StepHarness({ popLayer, active, run }: { popLayer: () => void; active: boolean; run: () => void }) {
+    useEscLadder(popLayer)
+    useEscStep('step', active, run)
+    return null
+  }
+  const mountStep = (popLayer: () => void, active: boolean, run: () => void) =>
+    render(
+      <OverlayManagerProvider>
+        <StepHarness popLayer={popLayer} active={active} run={run} />
+      </OverlayManagerProvider>,
+    )
+
+  it('while active, Esc runs the step, claims the key, and pops no layer', () => {
+    const popLayer = vi.fn()
+    const run = vi.fn()
+    mountStep(popLayer, true, run)
+
+    const event = pressEsc()
+
+    expect(run).toHaveBeenCalledOnce()
+    expect(popLayer).not.toHaveBeenCalled()
+    expect(event.defaultPrevented).toBe(true)
+  })
+
+  it('while not active (a layer is on top of this one), Esc pops the layer as before', () => {
+    const popLayer = vi.fn()
+    const run = vi.fn()
+    mountStep(popLayer, false, run)
+
+    pressEsc()
+
+    expect(run).not.toHaveBeenCalled()
+    expect(popLayer).toHaveBeenCalledOnce()
+  })
+
+  it('stops being a step when it becomes inactive, and when it unmounts', () => {
+    const popLayer = vi.fn()
+    const run = vi.fn()
+    const view = mountStep(popLayer, true, run)
+
+    view.rerender(
+      <OverlayManagerProvider>
+        <StepHarness popLayer={popLayer} active={false} run={run} />
+      </OverlayManagerProvider>,
+    )
+    pressEsc()
+    expect(run).not.toHaveBeenCalled()
+  })
+})
+

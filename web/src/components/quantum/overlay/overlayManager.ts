@@ -7,10 +7,22 @@ export interface OverlayEntry {
   close: () => void
 }
 
+/**
+ * A layer's own rung of the Esc ladder (H-008: a list's filter text): after the popovers, before the layer is popped,
+ * Esc runs the topmost step. A step is registered only while it has something to undo.
+ */
+export interface EscStep {
+  id: string
+  run: () => void
+}
+
 export interface OverlayManager {
   register(entry: OverlayEntry): void
   unregister(id: string): void
   topmost(): OverlayEntry | undefined
+  registerStep(step: EscStep): void
+  unregisterStep(id: string): void
+  topmostStep(): EscStep | undefined
 }
 
 /**
@@ -25,6 +37,7 @@ export interface OverlayManager {
  */
 export function createOverlayManager(): OverlayManager {
   let stack: OverlayEntry[] = []
+  let steps: EscStep[] = []
 
   return {
     register(entry) {
@@ -43,6 +56,16 @@ export function createOverlayManager(): OverlayManager {
     },
     topmost() {
       return stack[stack.length - 1]
+    },
+    registerStep(step) {
+      steps = steps.filter((existing) => existing.id !== step.id)
+      steps.push(step)
+    },
+    unregisterStep(id) {
+      steps = steps.filter((existing) => existing.id !== id)
+    },
+    topmostStep() {
+      return steps[steps.length - 1]
     },
   }
 }

@@ -51,3 +51,43 @@ describe('handleEscape', () => {
     expect(popLayer).not.toHaveBeenCalled()
   })
 })
+
+describe('handleEscape: the steps between a popover and popping a layer', () => {
+  it('runs the step instead of popping the layer when nothing is open', () => {
+    const manager = createOverlayManager()
+    const run = vi.fn()
+    const popLayer = vi.fn()
+    manager.registerStep({ id: 'filter', run })
+
+    handleEscape(manager, popLayer)
+
+    expect(run).toHaveBeenCalledOnce()
+    expect(popLayer).not.toHaveBeenCalled()
+  })
+
+  it('closes the popover first and leaves the step for the next Esc', () => {
+    const manager = createOverlayManager()
+    const run = vi.fn()
+    manager.registerStep({ id: 'filter', run })
+    manager.register({ id: 'pop', kind: 'popover', close: () => manager.unregister('pop') })
+
+    handleEscape(manager, vi.fn())
+    expect(run).not.toHaveBeenCalled()
+
+    handleEscape(manager, vi.fn())
+    expect(run).toHaveBeenCalledOnce()
+  })
+
+  it('pops the layer once the step has gone (it unregisters itself when its work is done)', () => {
+    const manager = createOverlayManager()
+    manager.registerStep({ id: 'filter', run: () => manager.unregisterStep('filter') })
+    const popLayer = vi.fn()
+
+    handleEscape(manager, popLayer)
+    expect(popLayer).not.toHaveBeenCalled()
+
+    handleEscape(manager, popLayer)
+    expect(popLayer).toHaveBeenCalledOnce()
+  })
+})
+

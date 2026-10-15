@@ -4,7 +4,7 @@ import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testi
 import { api, type ListGroup, type ListItem, type MediaListDetail, type MediaType } from '../../lib/api.js'
 import { createPendingUpdates } from '../../lib/pendingUpdates.js'
 import { LiveRegionProvider } from '../../components/quantum/LiveRegion/LiveRegion.js'
-import { OverlayManagerProvider } from '../../components/quantum/overlay/OverlayManagerContext.js'
+import { OverlayManagerProvider, useEscLadder } from '../../components/quantum/overlay/OverlayManagerContext.js'
 import { ToastProvider } from '../../components/quantum/Toast/Toast.js'
 import { ListScreen } from './ListScreen.js'
 import { hoverTooltip } from '../../components/quantum/Tooltip/hoverTooltip.js'
@@ -120,9 +120,17 @@ beforeEach(() => {
 afterEach(() => {
   cleanup()
   vi.resetAllMocks()
+  popLayer.mockReset()
 })
 
-async function open(mediaType = 'game', tweak?: (detail: MediaListDetail) => void) {
+/** The app's real Esc ladder around the list, with the layer pop as a mock. */
+const popLayer = vi.fn()
+function Ladder() {
+  useEscLadder(popLayer)
+  return null
+}
+
+async function open(mediaType = 'game', tweak?: (detail: MediaListDetail) => void, active?: boolean) {
   const detail = list(mediaType)
   tweak?.(detail)
   vi.mocked(api.list).mockResolvedValue(detail)
@@ -130,9 +138,11 @@ async function open(mediaType = 'game', tweak?: (detail: MediaListDetail) => voi
     <LiveRegionProvider>
       <ToastProvider>
         <OverlayManagerProvider>
+          <Ladder />
           <ListScreen
             listId="L1"
             mediaTypes={TYPES}
+            {...(active === undefined ? {} : { active })}
             pendingUpdates={createPendingUpdates({ get: async () => undefined, set: async () => {} })}
           />
         </OverlayManagerProvider>
@@ -348,6 +358,9 @@ describe('clearing the text (H-008)', () => {
     act(() => within(bar()).getByRole('button', { name: 'Hide Completed' }).click())
     type('assassin')
 
+    // The Platform popover that picked X360 is still open: Esc closes it first, then clears the text.
+    fireEvent.keyDown(field(), { key: 'Escape' })
+    expect(field().value).toBe('assassin')
     fireEvent.keyDown(field(), { key: 'Escape' })
 
     expect(field().value).toBe('')
@@ -356,12 +369,58 @@ describe('clearing the text (H-008)', () => {
     expect(within(bar()).getByRole('button', { name: 'Hide Completed' }).getAttribute('aria-pressed')).toBe('true')
   })
 
-  it('Esc in an empty field clears nothing and announces nothing', async () => {
+  it('Esc in an empty field clears nothing and announces nothing: the list layer is popped, as before', async () => {
     await open()
 
     fireEvent.keyDown(field(), { key: 'Escape' })
 
     expect(document.querySelector('.q-live')!.textContent).toBe('')
+    expect(popLayer).toHaveBeenCalledTimes(1)
+  })
+
+  it('Esc with text clears it and does not pop the list, wherever the cursor is, not only in the field (owner, 2026-10-15)', async () => {
+    await open()
+    type('assassin')
+    // The cursor is elsewhere: on a row.
+    row('ac1').focus()
+
+    fireEvent.keyDown(row('ac1'), { key: 'Escape' })
+
+    expect(field().value).toBe('')
+    expect(popLayer).not.toHaveBeenCalled()
+    await waitFor(() => expect(document.querySelector('.q-live')!.textContent).toBe('Filter cleared'))
+
+    fireEvent.keyDown(row('ac1'), { key: 'Escape' })
+    expect(popLayer).toHaveBeenCalledTimes(1)
+  })
+
+  it('with a popover open the order is: the popover, then the filter text, then the list', async () => {
+    await open()
+    type('assassin')
+    fireEvent.click(within(bar()).getByRole('button', { name: /^Platform: / }))
+    expect(screen.getByRole('dialog')).toBeTruthy()
+
+    fireEvent.keyDown(document.body, { key: 'Escape' })
+    expect(screen.queryByRole('dialog')).toBeNull()
+    expect(field().value).toBe('assassin')
+    expect(popLayer).not.toHaveBeenCalled()
+
+    fireEvent.keyDown(document.body, { key: 'Escape' })
+    expect(field().value).toBe('')
+    expect(popLayer).not.toHaveBeenCalled()
+
+    fireEvent.keyDown(document.body, { key: 'Escape' })
+    expect(popLayer).toHaveBeenCalledTimes(1)
+  })
+
+  it('a list with another layer on top of it leaves its filter alone: Esc pops that layer', async () => {
+    await open('game', undefined, false)
+    type('assassin')
+
+    fireEvent.keyDown(document.body, { key: 'Escape' })
+
+    expect(field().value).toBe('assassin')
+    expect(popLayer).toHaveBeenCalledTimes(1)
   })
 
   it('has no ✕ for an empty field', async () => {

@@ -20,6 +20,7 @@ import { ErrorStrip } from '../../components/quantum/ErrorStrip/ErrorStrip.js'
 import { HeaderPlate } from '../../components/quantum/HeaderPlate/HeaderPlate.js'
 import { ProgressSentence } from '../../components/quantum/ProgressSentence/ProgressSentence.js'
 import { useLiveRegion } from '../../components/quantum/LiveRegion/LiveRegion.js'
+import { useEscStep } from '../../components/quantum/overlay/OverlayManagerContext.js'
 import { Popover } from '../../components/quantum/Popover/Popover.js'
 import { PlatformCard } from '../../components/quantum/PlatformChip/PlatformCard.js'
 import { platformChipLabel } from '../../components/quantum/PlatformChip/PlatformChip.js'
@@ -75,6 +76,8 @@ export interface ListScreenProps {
   onLeave?: () => void
   /** The ✕: closes this layer, back to what is under it. */
   onClose?: () => void
+  /** False while another layer is on top of this one: its Esc rung (clear the filter text) is then not this list's to take (H-008). */
+  active?: boolean
 }
 
 type Load =
@@ -103,7 +106,7 @@ type Load =
  * last focused are remembered per list (D5); a Mega list's groups arrive
  * collapsed (C3).
  */
-export function ListScreen({ listId, mediaTypes, pendingUpdates, onLeave, onClose }: ListScreenProps) {
+export function ListScreen({ listId, mediaTypes, pendingUpdates, onLeave, onClose, active = true }: ListScreenProps) {
   const text = copy.quantum.list
   const [load, setLoad] = useState<Load>({ state: 'loading' })
   const [error, setError] = useState<string | null>(null)
@@ -184,6 +187,7 @@ export function ListScreen({ listId, mediaTypes, pendingUpdates, onLeave, onClos
       pending={pendingUpdates ?? getPendingUpdates()}
       onLeave={onLeave}
       onClose={onClose}
+      active={active}
       error={error}
       setError={setError}
       reload={() => void fetchList()}
@@ -206,6 +210,7 @@ interface ListViewProps {
   pending: PendingUpdates
   onLeave: (() => void) | undefined
   onClose: (() => void) | undefined
+  active: boolean
   error: string | null
   setError: (message: string | null) => void
   reload: () => void
@@ -240,6 +245,7 @@ function ListView({
   pending,
   onLeave,
   onClose,
+  active,
   error,
   setError,
   reload,
@@ -309,6 +315,13 @@ function ListView({
   // remembered per list (18.2).
   const [filter, setFilter] = useState<ListFilter>({ ...NO_FILTER, hideDone: initialHideDone })
   const filtering = isFiltering(filter)
+  // The ✕ and Esc clear the typed text and nothing else (H-008): the facets and Hide Completed stay.
+  const clearFilterText = () => {
+    setFilter((current) => ({ ...current, text: '' }))
+    announce(text.filter.cleared)
+  }
+  // The Esc ladder's rung for this list: after its popovers, before the list closes, Esc clears the text, wherever the cursor is.
+  useEscStep(`list-filter:${listId}`, active && filter.text !== '', clearFilterText)
   // Hide Completed (18.1): items ticked done while it is on stay where they are until it is switched again. Worked
   // out from each change of the items, so every way of ticking (the row, Undo, a whole group) is covered.
   const [doneThisVisit, setDoneThisVisit] = useState<ReadonlySet<string>>(new Set())
@@ -1064,10 +1077,7 @@ function ListView({
       <FilterBar
         text={filter.text}
         onText={(value) => setFilter((current) => ({ ...current, text: value }))}
-        onClear={() => {
-          setFilter((current) => ({ ...current, text: '' }))
-          announce(text.filter.cleared)
-        }}
+        onClear={clearFilterText}
         facets={facetGroups}
         selection={filter.facets}
         onSelect={selectFacet}

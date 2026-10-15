@@ -123,13 +123,6 @@ export function FilterBar({ text, onText, onClear, facets, selection, onSelect, 
           placeholder={t.placeholder}
           value={text}
           onChange={(event) => onText(event.target.value)}
-          onKeyDown={(event) => {
-            // Esc with text clears it and nothing else: the key is spent here, so the Esc ladder (which skips a key that was
-            // handled) closes no popover and no layer. With the field empty it goes on as it always did (H-008).
-            if (event.key !== 'Escape' || event.nativeEvent.isComposing || text === '') return
-            event.preventDefault()
-            onClear()
-          }}
         />
         {text !== '' && (
           <Tip

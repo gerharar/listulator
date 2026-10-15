@@ -45,6 +45,22 @@ export function useOverlayRegistration(
 }
 
 /**
+ * A layer's own rung of the Esc ladder, there only while `active` (a list's filter has text, and the list is the layer on
+ * top): Esc, with no popover open, runs `run` instead of popping the layer. `run` is read through a ref.
+ */
+export function useEscStep(id: string, active: boolean, run: () => void): void {
+  const manager = useOverlayManager()
+  const runRef = useRef(run)
+  runRef.current = run
+
+  useEffect(() => {
+    if (!active) return undefined
+    manager.registerStep({ id, run: () => runRef.current() })
+    return () => manager.unregisterStep(id)
+  }, [manager, id, active])
+}
+
+/**
  * Wires the real Escape key to the ladder: the topmost popover or sheet
  * first, then `popLayer`. Call once, near the app root — the LayerStack
  * (10.9) supplies the real `popLayer`; nothing does yet.

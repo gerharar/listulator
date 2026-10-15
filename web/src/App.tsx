@@ -127,7 +127,7 @@ function QuantumShell({ initial }: { initial: BootState }) {
  * the Create layer for a category, or a Preview of a source. Anything the path
  * does not name draws nothing.
  */
-export function PathLayer({ path, mediaTypes }: { path: string; mediaTypes: MediaType[] }) {
+export function PathLayer({ path, mediaTypes, active = true }: { path: string; mediaTypes: MediaType[]; active?: boolean }) {
   const layerStack = useLayerStack()
   const target = parseLayerPath(path)
 
@@ -140,6 +140,7 @@ export function PathLayer({ path, mediaTypes }: { path: string; mediaTypes: Medi
         // A deleted list has nothing left to show: leaving always means Home, however deep the stack.
         onLeave={() => layerStack.popToIndex(0)}
         onClose={() => layerStack.pop()}
+        active={active}
       />
     )
   }
@@ -254,7 +255,7 @@ function AppShellBody({ skin, onSkinChange }: AppShellBodyProps) {
               ) : layer.kind === 'category-picker' ? (
                 <CategoryPicker mediaTypes={mediaTypes} first={fullIndex === 0} />
               ) : (
-                <PathLayer path={layer.content} mediaTypes={mediaTypes} />
+                <PathLayer path={layer.content} mediaTypes={mediaTypes} active={isTop} />
               )}
             </LayerCard>
           )

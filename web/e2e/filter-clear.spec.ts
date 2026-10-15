@@ -170,7 +170,7 @@ test('the ✕ is as far from the last typed character as it is from the field’
   }
 })
 
-test('Esc in the field: with text the first Esc only clears it, the second (field empty) leaves the list as before', async ({ page }) => {
+test('Esc with text clears it before the list closes, wherever the cursor is: popover first, then the text, then the list (owner, 2026-10-15)', async ({ page }) => {
   const title = `e2e filter-clear esc ${Date.now()}`
   const id = await makeList(page.request, title)
 
@@ -182,18 +182,51 @@ test('Esc in the field: with text the first Esc only clears it, the second (fiel
     await page.keyboard.type('ron')
     await expect(page.locator('.q-item')).toHaveCount(1)
 
+    // A popover opens (the cursor leaves the field): the first Esc closes it and nothing else.
+    await page.getByRole('button', { name: q.list.more, exact: true }).click()
+    await expect(page.getByRole('dialog')).toBeVisible()
     await page.keyboard.press('Escape')
+    await expect(page.getByRole('dialog')).toHaveCount(0)
+    await expect(field).toHaveValue('ron')
 
-    // Cleared, and nothing else happened: the list is still open, the cursor is still in the field.
+    // The second clears the text, the list is still open.
+    await page.keyboard.press('Escape')
+    await expect(field).toHaveValue('')
+    await expect(page.locator('.q-item')).toHaveCount(3)
+    await expect(page.locator('.q-live')).toHaveText(filter.cleared)
+
+    // Nothing left to undo: Esc does what it did, and the list closes back to Home.
+    await page.keyboard.press('Escape')
+    await expect(field).toHaveCount(0)
+  } finally {
+    await page.request.delete(`/api/lists/${id}`)
+  }
+})
+
+test('Esc in the field itself clears the text first too, and a layer over the list is closed before the list’s filter is touched', async ({ page }) => {
+  const title = `e2e filter-clear layers ${Date.now()}`
+  const id = await makeList(page.request, title)
+
+  try {
+    await page.goto('/')
+    await page.locator('.q-home-row', { hasText: title }).click()
+    const field = page.getByPlaceholder(filter.placeholder)
+    await field.click()
+    await page.keyboard.type('ron')
+
+    // Settings opens over the list: Esc closes Settings; the list's filter is not Settings' to clear.
+    await page.getByRole('button', { name: q.appHeader.settings, exact: true }).click()
+    await expect(page.getByRole('heading', { name: q.settings.title })).toBeVisible()
+    await page.keyboard.press('Escape')
+    await expect(page.getByRole('heading', { name: q.settings.title })).toHaveCount(0)
+    await expect(field).toHaveValue('ron')
+
+    // Back on the list, with the cursor in the field: the first Esc clears the text and the cursor stays.
+    await field.click()
+    await page.keyboard.press('Escape')
     await expect(field).toHaveValue('')
     await expect(field).toBeFocused()
     await expect(page.locator('.q-item')).toHaveCount(3)
-    await expect(page.locator('.q-live')).toHaveText(filter.cleared)
-    await expect(field).toBeVisible()
-
-    // The field is empty now: Esc does what it did, and the list closes back to Home.
-    await page.keyboard.press('Escape')
-    await expect(field).toHaveCount(0)
   } finally {
     await page.request.delete(`/api/lists/${id}`)
   }

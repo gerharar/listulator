@@ -54,3 +54,38 @@ describe('createOverlayManager', () => {
     expect(manager.topmost()?.id).toBe('a')
   })
 })
+
+describe('createOverlayManager: Esc steps (a layer\'s own rung between its popovers and popping it)', () => {
+  it('has no step when nothing is registered', () => {
+    expect(createOverlayManager().topmostStep()).toBeUndefined()
+  })
+
+  it('reports the most recently registered step, and drops one on unregister', () => {
+    const manager = createOverlayManager()
+    manager.registerStep({ id: 'a', run: vi.fn() })
+    manager.registerStep({ id: 'b', run: vi.fn() })
+    expect(manager.topmostStep()?.id).toBe('b')
+
+    manager.unregisterStep('b')
+    expect(manager.topmostStep()?.id).toBe('a')
+  })
+
+  it('registering a step again by its id replaces it rather than stacking two', () => {
+    const manager = createOverlayManager()
+    manager.registerStep({ id: 'a', run: vi.fn() })
+    manager.registerStep({ id: 'b', run: vi.fn() })
+    manager.registerStep({ id: 'a', run: vi.fn() })
+
+    expect(manager.topmostStep()?.id).toBe('a')
+    manager.unregisterStep('a')
+    expect(manager.topmostStep()?.id).toBe('b')
+  })
+
+  it('is apart from the overlays: a step never shows up as an overlay, and closing none of them touches it', () => {
+    const manager = createOverlayManager()
+    manager.registerStep({ id: 's', run: vi.fn() })
+
+    expect(manager.topmost()).toBeUndefined()
+  })
+})
+
