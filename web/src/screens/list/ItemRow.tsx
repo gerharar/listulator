@@ -1,5 +1,5 @@
 import './Spine.css'
-import type { AnchorHTMLAttributes, KeyboardEvent, MouseEvent, PointerEvent } from 'react'
+import { memo, type AnchorHTMLAttributes, type KeyboardEvent, type MouseEvent, type PointerEvent } from 'react'
 import { ArrowUpRight, Info, Pencil, Plus, Trash2 } from 'lucide-react'
 import { approximateDecade, formatYear } from '../../../../server/src/catalog/years.js'
 import { lengthLabel } from './lengthLabel.js'
@@ -90,7 +90,7 @@ function SourceLink({ url, source, title }: { url: string; source: string; title
  * anywhere on the row toggles done. The handle starts a drag (10.23); the
  * rest of the row stays free to scroll on touch.
  */
-export function ItemRow({
+function ItemRowView({
   item,
   grouped,
   focusable,
@@ -232,3 +232,24 @@ export function ItemRow({
     </div>
   )
 }
+
+/**
+ * A row is drawn again only when something it shows changed (Phase 25.0b): every prop is compared as it is, except `tagChip`,
+ * which the list builds anew for each row on each render and which is compared by what it says. The handlers it is given are
+ * stable (`useStableCallback`) and read the screen's latest state when called, so ignoring their identity would be safe, but
+ * they are compared too: a caller that does pass a fresh function gets a fresh row, as before.
+ */
+function sameRow(previous: ItemRowProps, next: ItemRowProps): boolean {
+  for (const key of Object.keys(next) as Array<keyof ItemRowProps>) {
+    if (key === 'tagChip') continue
+    if (!Object.is(previous[key], next[key])) return false
+  }
+  const before = previous.tagChip
+  const after = next.tagChip
+  if (before === after) return true
+  if (!before || !after) return false
+
+  return before.label === after.label && (before.flags ?? []).join('\u0000') === (after.flags ?? []).join('\u0000')
+}
+
+export const ItemRow = memo(ItemRowView, sameRow)

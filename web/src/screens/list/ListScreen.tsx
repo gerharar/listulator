@@ -1,5 +1,5 @@
 import './ListScreen.css'
-import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent, type PointerEvent as ReactPointerEvent } from 'react'
 import { EllipsisVertical, RefreshCw, X } from 'lucide-react'
 import { ApiError, api, type ListGroup, type ListItem, type MediaListDetail, type MediaType } from '../../lib/api.js'
 import { downloadText } from '../../lib/downloadText.js'
@@ -21,6 +21,7 @@ import { HeaderPlate } from '../../components/quantum/HeaderPlate/HeaderPlate.js
 import { ProgressSentence } from '../../components/quantum/ProgressSentence/ProgressSentence.js'
 import { useLiveRegion } from '../../components/quantum/LiveRegion/LiveRegion.js'
 import { useEscStep } from '../../components/quantum/overlay/OverlayManagerContext.js'
+import { useStableCallback } from '../../lib/useStableCallback.js'
 import { Popover } from '../../components/quantum/Popover/Popover.js'
 import { PlatformCard } from '../../components/quantum/PlatformChip/PlatformCard.js'
 import { platformChipLabel } from '../../components/quantum/PlatformChip/PlatformChip.js'
@@ -987,6 +988,31 @@ function ListView({
     spine.current?.querySelector<HTMLElement>(`[data-row-id="${CSS.escape(target)}"]`)?.focus()
   }
 
+  // The row handlers keep their identity and call the latest of this screen (Phase 25.0b): a row is drawn again only when
+  // what it shows changed, so one tick does not redraw every row of a long list.
+  const onRowToggle = useStableCallback((row: ListItem) => void toggleItem(row))
+  const onRowFocus = useStableCallback((row: ListItem) => remember(row.id))
+  const onRowInfo = useStableCallback((row: ListItem, anchor: HTMLElement) => setPopover({ kind: 'info', itemId: row.id, anchor }))
+  const onRowEdit = useStableCallback((row: ListItem, anchor: HTMLElement) => setPopover({ kind: 'edit', itemId: row.id, anchor }))
+  const onRowRemove = useStableCallback((row: ListItem) => void removeItem(row))
+  const onRowHandle = useStableCallback((event: ReactPointerEvent, row: ListItem) => moves.startDrag(event, row.id))
+  const onRowPlatform = useStableCallback((row: ListItem, anchor: HTMLElement) => setPopover({ kind: 'platform', itemId: row.id, anchor }))
+  const platformKind = tagEditor?.kind
+  // The Edit window, not a dialog of its own (owner); Games open on the Platform panel.
+  const onRowAddTag = useStableCallback((row: ListItem, anchor: HTMLElement) =>
+    setPopover({ kind: 'edit', itemId: row.id, anchor, openPanel: platformKind === 'platform' }),
+  )
+  const platformWidthCh = platformColumn?.widthCh
+  const rowPlatform = useMemo(
+    () => (platformWidthCh === undefined ? undefined : { widthCh: platformWidthCh, onOpen: onRowPlatform }),
+    [platformWidthCh, onRowPlatform],
+  )
+  const addTagLabel = tagEditor ? (tagEditor.kind === 'choice' ? tagEditor.label : '') : undefined
+  const rowAddTag = useMemo(
+    () => (anyTags && addTagLabel !== undefined ? { label: addTagLabel, onAdd: onRowAddTag } : undefined),
+    [anyTags, addTagLabel, onRowAddTag],
+  )
+
   const itemRow = (entry: ListItem, grouped: boolean) => (
     <ItemRow
       key={entry.id}
@@ -997,31 +1023,17 @@ function ListView({
       noteMatch={noteOnlyMatch(entry, filter.text)}
       minutesWidth={minutesWidth}
       pulse={pulseIds.has(entry.id)}
-      onHandlePointerDown={(event, row) => moves.startDrag(event, row.id)}
+      onHandlePointerDown={onRowHandle}
       dragging={moves.dragKey === entry.id}
       dropLine={moves.over?.key === entry.id ? moves.over.pos : null}
-      onToggle={(row) => void toggleItem(row)}
-      onFocus={(row) => remember(row.id)}
-      onInfo={(row, anchor) => setPopover({ kind: 'info', itemId: row.id, anchor })}
-      onEdit={(row, anchor) => setPopover({ kind: 'edit', itemId: row.id, anchor })}
-      onRemove={(row) => void removeItem(row)}
+      onToggle={onRowToggle}
+      onFocus={onRowFocus}
+      onInfo={onRowInfo}
+      onEdit={onRowEdit}
+      onRemove={onRowRemove}
       tagChip={tagChip(entry.tags, mediaType?.facets)}
-      platform={
-        platformColumn && {
-          widthCh: platformColumn.widthCh,
-          onOpen: (row, anchor) => setPopover({ kind: 'platform', itemId: row.id, anchor }),
-        }
-      }
-      addTag={
-        anyTags && tagEditor
-          ? {
-              label: tagEditor.kind === 'choice' ? tagEditor.label : '',
-              // The Edit window, not a dialog of its own (owner); Games open on the Platform panel.
-              onAdd: (row, anchor) =>
-                setPopover({ kind: 'edit', itemId: row.id, anchor, openPanel: tagEditor.kind === 'platform' }),
-            }
-          : undefined
-      }
+      platform={rowPlatform}
+      addTag={rowAddTag}
     />
   )
 
