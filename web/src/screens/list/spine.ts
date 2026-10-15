@@ -73,9 +73,13 @@ export function buildSpine(items: readonly ListItem[], groups: readonly ListGrou
   const ordered = [...items].sort((a, b) => a.orderIndex - b.orderIndex || a.id.localeCompare(b.id))
   const known = new Map(groups.map((group) => [group.name, group]))
 
+  // Pushed, not copied: copying the group's array for every item took 2.3 s for one group of 50,000 (Phase 25.0).
   const byLabel = new Map<string, ListItem[]>()
   for (const entry of ordered) {
-    if (entry.group) byLabel.set(entry.group, [...(byLabel.get(entry.group) ?? []), entry])
+    if (!entry.group) continue
+    const members = byLabel.get(entry.group)
+    if (members) members.push(entry)
+    else byLabel.set(entry.group, [entry])
   }
 
   const blockFor = (group: ListGroup, members: ListItem[]): GroupBlock => {

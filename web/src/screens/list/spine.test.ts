@@ -192,3 +192,38 @@ describe('listTotals', () => {
     expect(listTotals([])).toEqual({ done: 0, total: 0, minutesLeft: 0 })
   })
 })
+
+describe('buildSpine on a big list (Phase 25.1)', () => {
+  const big = (count: number, groupOf: (n: number) => string | null): ListItem[] =>
+    Array.from({ length: count }, (_, n) => ({ id: `i${n}`, listId: 'L', title: `Issue ${n}`, orderIndex: n, group: groupOf(n), timeToConsumeMinutes: 30, consumedAt: null, year: null, yearUnk: 0 }) as ListItem)
+
+  it('builds a list that is ONE group of 40,000 items in well under a second (it copied the group for every item: 1.5 s at 40,000, 2.3 s at 50,000)', () => {
+    const items = big(40_000, () => 'Volume 1')
+    const groups = [{ id: 'g1', listId: 'L', name: 'Volume 1', orderIndex: 0 }] as ListGroup[]
+
+    const started = performance.now()
+    const units = buildSpine(items, groups)
+    const took = performance.now() - started
+
+    expect(units).toHaveLength(1)
+    expect((units[0] as { items: ListItem[] }).items).toHaveLength(40_000)
+    expect((units[0] as { items: ListItem[] }).items[39_999]!.id).toBe('i39999')
+    expect(took).toBeLessThan(400)
+  })
+
+  it('keeps each group’s items in the list’s order, for many groups interleaved', () => {
+    const items = big(3_000, (n) => `Volume ${n % 7}`)
+    const groups = Array.from({ length: 7 }, (_, n) => ({ id: `g${n}`, listId: 'L', name: `Volume ${n}`, orderIndex: n })) as ListGroup[]
+
+    const units = buildSpine(items, groups)
+
+    expect(units.map((unit) => (unit.kind === 'group' ? unit.group.name : '?'))).toEqual(Array.from({ length: 7 }, (_, n) => `Volume ${n}`))
+    for (const unit of units) {
+      if (unit.kind !== 'group') continue
+      const orders = unit.items.map((entry) => entry.orderIndex)
+      expect(orders).toEqual([...orders].sort((a, b) => a - b))
+      expect(unit.total).toBe(unit.items.length)
+    }
+  })
+})
+
