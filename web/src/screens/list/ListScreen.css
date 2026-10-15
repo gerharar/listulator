@@ -131,7 +131,7 @@
 .q-filter-input {
   width: 100%;
   /* The right side is always the ✕'s room (H-008), so the text never shifts when it appears. */
-  padding: 9px 34px 9px 12px;
+  padding: 9px 32px 9px 12px;
   border: 1px solid var(--line);
   background: var(--field);
   color: var(--ink);

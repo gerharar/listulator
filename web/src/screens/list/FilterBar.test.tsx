@@ -122,7 +122,7 @@ describe('FilterBar', () => {
       expect(wrapper.classList.contains('q-filter-field')).toBe(true)
       // The padding that keeps the text off the ✕ is the field's own, there with or without it (the css is read: jsdom has none).
       const css = readFileSync(join(import.meta.dirname, 'ListScreen.css'), 'utf8')
-      expect(css).toMatch(/\.q-filter-input\s*\{[^}]*padding:\s*9px 34px 9px 12px/)
+      expect(css).toMatch(/\.q-filter-input\s*\{[^}]*padding:\s*9px 32px 9px 12px/)
     })
   })
 

@@ -88,8 +88,8 @@ test('the field and the bar do not move when the ✕ appears: the room for it is
     await expect(page.getByRole('button', { name: filter.clearText })).toBeVisible()
     const withText = await measure()
 
-    expect(without.padding).toBe('34px')
-    expect(withText.padding).toBe('34px')
+    expect(without.padding).toBe('32px')
+    expect(withText.padding).toBe('32px')
     expect(withText.wrapper).toEqual(without.wrapper)
     expect(withText.input).toEqual(without.input)
     // The ✕ is inside the field, at its right edge.
@@ -97,6 +97,16 @@ test('the field and the bar do not move when the ✕ appears: the room for it is
     const box = without.input!
     expect(button.x + button.width).toBeLessThanOrEqual(box.x + box.width)
     expect(button.x).toBeGreaterThan(box.x + box.width - 40)
+    // The ✕'s glyph is as far from where the text stops as it is from the field's right border (owner, 2026-10-15).
+    const gaps = await page.evaluate(() => {
+      const input = document.querySelector('.q-filter-input') as HTMLElement
+      const style = getComputedStyle(input)
+      const rect = input.getBoundingClientRect()
+      const ink = document.querySelector('.q-filter-clear svg path')!.getBoundingClientRect()
+      const textStops = rect.right - parseFloat(style.borderRightWidth) - parseFloat(style.paddingRight)
+      return { left: ink.left - textStops, right: rect.right - parseFloat(style.borderRightWidth) - ink.right }
+    })
+    expect(Math.abs(gaps.left - gaps.right)).toBeLessThan(0.75)
     // The note (which says "1 of 3 shown") sits where it did: nothing in the bar was pushed.
     expect(Math.abs(withText.noteX - without.noteX)).toBeLessThan(40)
   } finally {
