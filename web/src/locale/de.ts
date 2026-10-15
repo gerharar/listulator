@@ -233,7 +233,7 @@ export const de: Locale = {
       count: (done: number, total: number, percent: number): string =>
         total ? `${done}/${total} (${percent} %)` : `${done}/${total}`,
       left: (duration: string): string => `noch ${duration}`,
-      leftApprox: (duration: string): string => `≈ noch ${duration}`,
+      leftApprox: (duration: string): string => `noch ≈${duration}`,
       runtimesPendingTip: (count: number): string => `Laufzeiten werden gesucht: noch ${count}`,
       allDone: '✓ Alles erledigt',
       doneForNow: '✓ Erledigt (vorerst)',

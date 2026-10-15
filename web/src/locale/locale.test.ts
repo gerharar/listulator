@@ -523,6 +523,16 @@ describe('joinSentences', () => {
   })
 })
 
+describe('the approximate time left (owner, 2026-10-15: ≈ against the time, no space)', () => {
+  it.each([
+    ['en', en, '≈14h 43m left'],
+    ['de', de, 'noch ≈14h 43m'],
+    ['ru', ru, 'осталось ≈14h 43m'],
+  ] as const)('%s writes ≈ right against the time', (_name, locale, expected) => {
+    expect(locale.quantum.progress.leftApprox('14h 43m')).toBe(expected)
+  })
+})
+
 describe('the Edit window’s validation sentences (H-006, H-007)', () => {
   const languages = [['en', en], ['ru', ru], ['de', de]] as const
 
