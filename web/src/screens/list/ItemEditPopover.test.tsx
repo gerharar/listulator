@@ -619,6 +619,13 @@ describe('ItemEditPopover: the user’s own note (H-003)', () => {
     expect(title()).not.toBe(document.activeElement)
   })
 
+  it('puts the cursor at the end of the note it opens on, so typing adds to it (the design’s caret)', () => {
+    renderPopover({ item: noted, focusNote: true })
+
+    expect(note().selectionStart).toBe(noted.userNote.length)
+    expect(note().selectionEnd).toBe(noted.userNote.length)
+  })
+
   it('puts the cursor in the title otherwise, as it always did', () => {
     renderPopover({ item: noted })
 

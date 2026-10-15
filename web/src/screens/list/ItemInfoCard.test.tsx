@@ -1,6 +1,8 @@
 // @vitest-environment jsdom
-import { afterEach, describe, expect, it } from 'vitest'
-import { cleanup, render, screen } from '@testing-library/react'
+import { afterEach, describe, expect, it, vi } from 'vitest'
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
+import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import type { ListItem } from '../../lib/api.js'
 import { ItemInfoCard } from './ItemInfoCard.js'
 
@@ -19,60 +21,90 @@ const ITEM: ListItem = {
   group: null,
   tags: null,
   notes: null,
+  userNote: null,
   yearUnk: 0,
   isNew: false,
 }
 
-describe('ItemInfoCard', () => {
-  it('shows the year as the row does, with its unknown digits as ? (H-005)', () => {
-    render(<ItemInfoCard item={{ ...ITEM, year: 1990, yearUnk: 1 }} />)
+const CURATOR = 'Prequel to the series. Fine to watch any time before season 2.'
+const MINE = 'Skipped the first time.\nMira says it is better than season 2.'
 
-    expect(screen.getByText('199?')).toBeTruthy()
+function renderCard(item: Partial<ListItem>, onEditNote = vi.fn()) {
+  render(<ItemInfoCard item={{ ...ITEM, ...item }} onEditNote={onEditNote} />)
+  return onEditNote
+}
+
+/** The card's parts in reading order, as the design lays them out. */
+const order = () =>
+  [...document.querySelector('.q-info')!.children].map((child) =>
+    child.tagName === 'HR' ? 'hr' : child.className.replace(/^q-/, '') || child.textContent,
+  )
+
+describe('ItemInfoCard (H-003): the notes of an item, and whose they are', () => {
+  it('a curator note only: its kicker above the title, then the note, no pencil', () => {
+    renderCard({ notes: CURATOR })
+
+    expect(order()).toEqual(['kicker', 'info-title', 'info-text'])
+    expect(screen.getByText('Curator note').className).toBe('q-kicker')
+    expect(screen.getByText(CURATOR)).toBeTruthy()
+    expect(screen.queryByRole('button')).toBeNull()
   })
 
-  it('shows the item’s title and a placeholder where its cover will go', () => {
-    render(<ItemInfoCard item={ITEM} />)
+  it('a note of the user’s only: its kicker with the pencil above the title, then the note', () => {
+    renderCard({ userNote: MINE })
 
-    expect(screen.getByText('Batman Begins')).toBeTruthy()
-    expect(document.querySelector('.q-info-cover')).not.toBeNull()
+    expect(order()).toEqual(['info-head', 'info-title', 'info-text'])
+    expect(document.querySelector('.q-info-head')!.textContent).toContain('Your note')
+    expect(screen.getByRole('button', { name: 'Edit your note' })).toBeTruthy()
   })
 
-  it('shows the item’s notes when it has them', () => {
-    render(<ItemInfoCard item={{ ...ITEM, notes: 'The game on this platform has extra missions.' }} />)
+  it('both: the title first, then the curator’s note, a hairline, and the user’s note with its pencil', () => {
+    renderCard({ notes: CURATOR, userNote: MINE })
 
-    expect(screen.getByText('The game on this platform has extra missions.')).toBeTruthy()
+    expect(order()).toEqual(['info-title', 'kicker', 'info-text', 'hr', 'info-head', 'info-text'])
+    const kickers = [...document.querySelectorAll('.q-kicker')].map((node) => node.textContent)
+    expect(kickers).toEqual(['Curator note', 'Your note'])
   })
 
-  it('has no line about an estimated length: the row carries the ≈ now (owner, 2026-10-15)', () => {
-    render(<ItemInfoCard item={{ ...ITEM, timeToConsumeIsEstimated: true }} />)
+  it('keeps the line breaks that were typed', () => {
+    renderCard({ userNote: MINE })
 
-    expect(document.querySelector('.q-info-note')).toBeNull()
-    expect(screen.queryByText('This runtime is a rough estimate')).toBeNull()
+    const body = [...document.querySelectorAll('.q-info-text')].at(-1) as HTMLElement
+    expect(body.textContent).toBe(MINE)
+    // jsdom does not apply the stylesheet, so the rule that keeps the breaks is read from it.
+    const css = readFileSync(join(import.meta.dirname, 'ItemInfoCard.css'), 'utf8')
+    expect(css).toMatch(/\.q-info-text\s*\{[^}]*white-space:\s*pre-line/)
   })
 
-  it('leaves no empty slot when there are no notes', () => {
-    render(<ItemInfoCard item={ITEM} />)
+  it('the pencil on Your note asks for the Edit window on the note; the curator’s note has none', () => {
+    const onEditNote = renderCard({ notes: CURATOR, userNote: MINE })
 
-    expect(document.querySelector('.q-info-notes')).toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: 'Edit your note' }))
+
+    expect(onEditNote).toHaveBeenCalledTimes(1)
+    expect(screen.getAllByRole('button')).toHaveLength(1)
   })
 
-  it('shows no notes for a blank note', () => {
-    render(<ItemInfoCard item={{ ...ITEM, notes: '   ' }} />)
+  it('shows no cover, year or length any more: the row has those', () => {
+    renderCard({ notes: CURATOR, timeToConsumeIsEstimated: true })
 
-    expect(document.querySelector('.q-info-notes')).toBeNull()
+    expect(document.querySelector('.q-info-cover')).toBeNull()
+    expect(document.querySelector('.q-info-facts')).toBeNull()
+    expect(screen.queryByText('2005')).toBeNull()
+    expect(screen.queryByText('2h 20m')).toBeNull()
+    expect(screen.queryByText(/estimate/i)).toBeNull()
   })
 
-  it('is read-only: no field to edit the notes, now or later this phase', () => {
-    render(<ItemInfoCard item={{ ...ITEM, notes: 'Curator note' }} />)
+  it('is read-only: the notes are text, never a field', () => {
+    renderCard({ notes: CURATOR, userNote: MINE })
 
     expect(screen.queryByRole('textbox')).toBeNull()
   })
 
-  it('shows "-" and no estimate note while its length is still being looked up (15.7)', () => {
-    render(<ItemInfoCard item={{ ...ITEM, timeToConsumeMinutes: 120, timeToConsumeIsEstimated: true, runtimePending: true }} />)
+  it('draws a note as text, so markup in it stays text', () => {
+    renderCard({ userNote: '<img src=x onerror=alert(1)> **bold**' })
 
-    expect(screen.getByText('-')).toBeTruthy()
-    expect(screen.queryByText('2h')).toBeNull()
-    expect(screen.queryByText(/estimate/i)).toBeNull()
+    expect(document.querySelector('.q-info img')).toBeNull()
+    expect(screen.getByText('<img src=x onerror=alert(1)> **bold**')).toBeTruthy()
   })
 })

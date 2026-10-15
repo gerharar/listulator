@@ -31,6 +31,9 @@ const ITEM: ListItem = {
   isNew: false,
 }
 
+/** The ⓘ is there only for an item with a note (H-003). */
+const NOTED: ListItem = { ...ITEM, userNote: 'Watch the Cantonese cut.' }
+
 function renderRow(overrides: Partial<Parameters<typeof ItemRow>[0]> = {}) {
   const props = {
     item: ITEM,
@@ -176,26 +179,52 @@ describe('ItemRow', () => {
     expect((document.querySelector('.q-item') as HTMLElement).dataset['rowId']).toBe('i1')
   })
 
+  describe('the ⓘ (H-003): only for an item with a note', () => {
+    const info = () => document.querySelector('.q-item .body button.info')
+
+    it('is not there for an item with no note, nor for blank ones, and nothing keeps its place', () => {
+      renderRow()
+      expect(info()).toBeNull()
+      cleanup()
+      renderRow({ item: { ...ITEM, notes: '  ', userNote: ' ' } })
+      expect(info()).toBeNull()
+      expect(screen.queryByRole('button', { name: /Details for|note for|Notes for/i })).toBeNull()
+      // The pencil is still there, directly after the title.
+      expect([...document.querySelector('.q-item .body')!.children].map((child) => child.getAttribute('aria-label') ?? child.className)).toEqual(['tt', 'Edit Glorious Purpose'])
+    })
+
+    it.each([
+      ['a curator note', { notes: 'Read it last.' }, 'Curator note'],
+      ['a note of the user’s', { userNote: 'Mine.' }, 'Your note'],
+      ['both', { notes: 'Read it last.', userNote: 'Mine.' }, 'Notes'],
+    ])('names itself for %s, and says it on hover', async (_name, notes, label) => {
+      renderRow({ item: { ...ITEM, ...notes } })
+
+      expect(info()!.getAttribute('aria-label')).toBe(`${label} for Glorious Purpose`)
+      expect(await hoverTooltip(info() as HTMLElement)).toBe(label)
+    })
+  })
+
   describe('row buttons (task 10.21)', () => {
     it('has an info, an edit and a remove button, named for the item', () => {
-      renderRow()
+      renderRow({ item: NOTED })
 
-      expect(screen.getByRole('button', { name: 'Details for Glorious Purpose' })).toBeTruthy()
+      expect(screen.getByRole('button', { name: 'Your note for Glorious Purpose' })).toBeTruthy()
       expect(screen.getByRole('button', { name: 'Edit Glorious Purpose' })).toBeTruthy()
       expect(screen.getByRole('button', { name: 'Delete Glorious Purpose' })).toBeTruthy()
     })
 
     it('each calls back with the item and its own button, and does not toggle the row', () => {
-      const props = renderRow()
+      const props = renderRow({ item: NOTED })
 
       for (const [name, handler] of [
-        ['Details for Glorious Purpose', props.onInfo],
+        ['Your note for Glorious Purpose', props.onInfo],
         ['Edit Glorious Purpose', props.onEdit],
         ['Delete Glorious Purpose', props.onRemove],
       ] as const) {
         const button = screen.getByRole('button', { name })
         fireEvent.click(button)
-        expect(handler).toHaveBeenCalledWith(ITEM, button)
+        expect(handler).toHaveBeenCalledWith(NOTED, button)
       }
 
       expect(props.onToggle).not.toHaveBeenCalled()
@@ -226,7 +255,7 @@ describe('ItemRow', () => {
   })
 
   it('keeps ⓘ and ✎ inside the title’s own group, so they get its gap and do not touch the text', () => {
-    renderRow({ item: { ...ITEM, isNew: true } })
+    renderRow({ item: { ...NOTED, isNew: true } })
 
     const body = document.querySelector('.q-item .body')!
     expect(body.querySelector('button.info')).not.toBeNull()
@@ -329,11 +358,11 @@ describe('ItemRow: the link to the item’s page at its source (H-002, BL-087)',
   })
 
   it('sits after the pencil in the title group, which is where the design puts it', () => {
-    renderRow({ item: LINKED })
+    renderRow({ item: { ...LINKED, notes: 'Read it last.' } })
     const body = document.querySelector('.q-item .body')!
     const order = [...body.children].map((child) => child.getAttribute('aria-label') ?? child.className)
 
-    expect(order).toEqual(['tt', 'Details for Glorious Purpose', 'Edit Glorious Purpose', 'Open Glorious Purpose on TMDB'])
+    expect(order).toEqual(['tt', 'Curator note for Glorious Purpose', 'Edit Glorious Purpose', 'Open Glorious Purpose on TMDB'])
   })
 
   it('says "Open on TMDB" when hovered', async () => {

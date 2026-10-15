@@ -62,7 +62,10 @@
 .q-item .body .q-icon-btn.link { margin-left: -12px; text-decoration: none; }
 
 /* ✎ sits closer to ⓘ than the shared 9px gap plus both buttons' padding would leave it (owner: match the year-to-ⓘ distance). */
-.q-item .body .q-icon-btn.edit { margin-left: -12px; }
+.q-item .body .q-icon-btn.info + .q-icon-btn.edit { margin-left: -12px; }
+/* With no ⓘ (an item without a note, H-003) the ✎ is first after the title: its glyph sits where the ⓘ's would (measured: the ✎ button is
+   27px wide and the ⓘ's 26px, so the glyphs are 6px and 5px in; e2e item-notes-card checks the two are within a pixel). */
+.q-item .body .q-icon-btn.edit { margin-left: -1px; }
 
 /* While a row is being dragged: no text selection anywhere, and the grabbing cursor (BL-019). */
 body.q-dragging { -webkit-user-select: none; user-select: none; cursor: grabbing; }

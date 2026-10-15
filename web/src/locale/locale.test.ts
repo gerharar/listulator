@@ -202,7 +202,6 @@ const SAME_AS_ENGLISH: Record<'ru' | 'de', readonly string[]> = {
     'quantum.settings.keys.sources.youtube.host',
     'quantum.addByHand.descriptionPlaceholder',
     'quantum.addByHand.statusLabel',
-    'quantum.list.itemActions.infoKicker',
     'quantum.list.editPopover.status',
     'quantum.list.filter.optionLabels.MULTI',
     'quantum.list.filter.optionLabels.Animation',

@@ -3,6 +3,7 @@ import type { AnchorHTMLAttributes, KeyboardEvent, MouseEvent, PointerEvent } fr
 import { ArrowUpRight, Info, Pencil, Plus, Trash2 } from 'lucide-react'
 import { approximateDecade, formatYear } from '../../../../server/src/catalog/years.js'
 import { lengthLabel } from './lengthLabel.js'
+import { itemNotes, notesLabel } from './itemNotes.js'
 import { copy } from '../../locale/index.js'
 import type { ListItem } from '../../lib/api.js'
 import { IconButton } from '../../components/quantum/Button/Button.js'
@@ -112,6 +113,8 @@ export function ItemRow({
   const decade = approximateDecade(item)
   const yearTip = decade ? text.sometimeIn(decade) : text.releaseYear
   const kind = tagChip?.label ?? item.tags?.[0]
+  // The ⓘ is only for an item with a note, named for whose it is (H-003); nothing keeps its place when there is none.
+  const noteLabel = notesLabel(itemNotes(item), text)
 
   /** A row button acts on its own: it must not also toggle the row it sits in. */
   const act =
@@ -195,9 +198,11 @@ export function ItemRow({
           ) : null}
         </span>
         {/* ⓘ and ✎ sit in the title's own group (the prototype's), so they get its 9px gap. */}
-        <IconButton size="row" className="info" label={text.details(item.title)} onClick={act(onInfo)}>
-          <Info width={15} height={15} strokeWidth={1.8} aria-hidden="true" />
-        </IconButton>
+        {noteLabel && (
+          <IconButton size="row" className="info" label={text.noteFor(noteLabel, item.title)} title={noteLabel} onClick={act(onInfo)}>
+            <Info width={15} height={15} strokeWidth={1.8} aria-hidden="true" />
+          </IconButton>
+        )}
         <IconButton size="row" className="edit" label={text.edit(item.title)} onClick={act(onEdit)}>
           <Pencil width={15} height={15} strokeWidth={1.8} aria-hidden="true" />
         </IconButton>

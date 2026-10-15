@@ -81,10 +81,9 @@ test('add, remove with Undo, and edit — each saved, each undoable', async ({ p
       timeToConsumeIsEstimated: false,
     })
 
-    // Details show the item's notes only when it has some.
-    await page.getByRole('button', { name: actions.details('Alpha') }).click()
-    await expect(page.getByRole('dialog')).toBeVisible()
-    await expect(page.locator('.q-info-notes')).toHaveCount(0)
+    // An item with no note has no ⓘ at all (H-003); the card of one that has a note is in item-notes-card.spec.ts.
+    await expect(page.getByRole('button', { name: actions.edit('Alpha') })).toBeVisible()
+    await expect(page.getByRole('button', { name: /note.* for Alpha|Notes for Alpha/i })).toHaveCount(0)
   } finally {
     await page.request.delete(`/api/lists/${id}`)
   }

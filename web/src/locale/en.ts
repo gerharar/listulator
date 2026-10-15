@@ -714,7 +714,13 @@ export const en = {
         addChoiceTip: (label: string): string => `No ${label.toLowerCase()} -- click to set one`,
       },
       itemActions: {
-        details: (title: string): string => `Details for ${title}`,
+        /** The ⓘ and its card (H-003): the row's ⓘ is there only for an item with a note, named for whose it is. */
+        curatorNote: 'Curator note',
+        yourNote: 'Your note',
+        notes: 'Notes',
+        noteFor: (label: string, title: string): string => `${label} for ${title}`,
+        editYourNote: 'Edit your note',
+        editYourNoteTip: 'Edit',
         /** The year beside a title (H-004, H-005): an exact one, or `199?` / `19??` when only the decade or century is known. */
         releaseYear: 'Release year',
         sometimeIn: (decade: string): string => `Sometime in the ${decade}`,
@@ -748,7 +754,6 @@ export const en = {
         openOnSource: (title: string, source: string): string => `Open ${title} on ${source}`,
         openOnSourceTip: (source: string): string => `Open on ${source}`,
         remove: (title: string): string => `Delete ${title}`,
-        infoKicker: 'Details',
         estimated: 'This runtime is a rough estimate',
         /** What a row shows in place of a length that is still being looked up (15.7). */
         runtimePending: '-',

@@ -875,12 +875,32 @@ describe('ListScreen item actions (task 10.21)', () => {
   })
 
   describe('details and editing', () => {
-    it('opens the item’s details, with its notes', async () => {
+    it('opens the card of an item with a note, and an item with none has no ⓘ at all (H-003)', async () => {
       await open(base())
 
-      fireEvent.click(screen.getByRole('button', { name: 'Details for Alpha' }))
+      expect(screen.getByRole('button', { name: 'Edit Beta' })).toBeTruthy()
+      expect(screen.queryByRole('button', { name: /note.* for Beta|Notes for Beta/ })).toBeNull()
+      fireEvent.click(screen.getByRole('button', { name: 'Curator note for Alpha' }))
 
-      expect(await screen.findByText('Curator note')).toBeTruthy()
+      expect(await screen.findByText('Curator note', { selector: '.q-kicker' })).toBeTruthy()
+      expect(screen.getByText('Alpha', { selector: '.q-info-title' })).toBeTruthy()
+    })
+
+    it('the ✎ on Your note closes the card and opens the Edit window with the cursor in Note', async () => {
+      await open(
+        detail({
+          items: [item({ id: 'a', title: 'Alpha', group: 'Season 1', orderIndex: 0, userNote: 'Watch the Cantonese cut.' })],
+          groups,
+        }),
+      )
+      fireEvent.click(screen.getByRole('button', { name: 'Your note for Alpha' }))
+      fireEvent.click(await screen.findByRole('button', { name: 'Edit your note' }))
+
+      const edit = await screen.findByRole('dialog')
+      expect(screen.queryByText('Your note', { selector: '.q-kicker' })).toBeNull()
+      const note = within(edit).getByLabelText('Note') as HTMLTextAreaElement
+      expect(note.value).toBe('Watch the Cantonese cut.')
+      expect(document.activeElement).toBe(note)
     })
 
     it('an empty Duration saves the category’s default, marked as an estimate (H-006)', async () => {

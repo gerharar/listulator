@@ -624,7 +624,13 @@ export const de: Locale = {
         addChoiceTip: (label: string): string => `${label} nicht gesetzt — klicken, um zu setzen`,
       },
       itemActions: {
-        details: (title: string): string => `Details zu ${title}`,
+        /** The ⓘ and its card (H-003): the row's ⓘ is there only for an item with a note, named for whose it is. */
+        curatorNote: 'Notiz der Kuratoren',
+        yourNote: 'Deine Notiz',
+        notes: 'Notizen',
+        noteFor: (label: string, title: string): string => `${label} zu ${title}`,
+        editYourNote: 'Deine Notiz bearbeiten',
+        editYourNoteTip: 'Bearbeiten',
         releaseYear: 'Erscheinungsjahr',
         sometimeIn: (decade: string): string => `Irgendwann in den ${decade.slice(0, -1)}ern`,
         groupYears: 'Erscheinungsjahre in dieser Gruppe',
@@ -653,7 +659,6 @@ export const de: Locale = {
         openOnSource: (title: string, source: string): string => `${title} auf ${source} öffnen`,
         openOnSourceTip: (source: string): string => `Auf ${source} öffnen`,
         remove: (title: string): string => `${title} entfernen`,
-        infoKicker: 'Details',
         estimated: 'Diese Laufzeit ist eine grobe Schätzung',
         runtimePending: '-',
         editTitle: 'Titel',

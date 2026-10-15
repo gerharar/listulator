@@ -222,6 +222,8 @@ type OpenPopover = {
   anchor: HTMLElement
   /** Edit only: open with the Platform panel already open (U5: the row's [+], the platform card's Edit). */
   openPanel?: boolean
+  /** Edit only: open with the cursor in Note (the ✎ on "Your note" in the ⓘ card, H-003). */
+  focusNote?: boolean
 }
 
 
@@ -1207,7 +1209,10 @@ function ListView({
       )}
       {popover?.kind === 'info' && popoverItem && (
         <Popover open anchorEl={popover.anchor} onDismiss={() => setPopover(null)} width={320}>
-          <ItemInfoCard item={popoverItem} />
+          <ItemInfoCard
+            item={popoverItem}
+            onEditNote={() => setPopover({ kind: 'edit', itemId: popoverItem.id, anchor: popover.anchor, focusNote: true })}
+          />
         </Popover>
       )}
       {groupDelete &&
@@ -1255,6 +1260,7 @@ function ListView({
           tagField={tagEditor}
           listTags={listTags}
           openPanel={popover.openPanel}
+          focusNote={popover.focusNote}
           loadSource={() => api.itemSource(listId, popoverItem.id)}
         />
       )}

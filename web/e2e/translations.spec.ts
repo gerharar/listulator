@@ -55,6 +55,10 @@ async function makeList(request: APIRequestContext, title: string): Promise<stri
       ],
     },
   })
+  // Alpha carries a note of the user's own, so it has an ⓘ and a card to scan (H-003).
+  const { items } = await (await request.get(`/api/lists/${list.id}`)).json()
+  const alpha = items.find((item: { title: string }) => item.title === 'Alpha')
+  await request.patch(`/api/lists/${list.id}/items/${alpha.id}`, { data: { userNote: 'Watch it with subtitles.' } })
   return list.id
 }
 
@@ -171,7 +175,7 @@ for (const [code, locale] of Object.entries(LANGUAGES)) {
         await page.getByRole('button', { name: t.list.more, exact: true }).click()
       }
       await page.keyboard.press('Escape')
-      await page.getByRole('button', { name: t.list.itemActions.details('Alpha') }).click()
+      await page.getByRole('button', { name: t.list.itemActions.noteFor(t.list.itemActions.yourNote, 'Alpha') }).click()
       await scan('list-item-details')
       await page.keyboard.press('Escape')
       await page.getByRole('button', { name: t.list.itemActions.edit('Alpha') }).click()

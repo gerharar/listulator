@@ -90,7 +90,13 @@ export function ItemEditPopover({
   const [year, setYear] = useState(() => formatYear(item))
   // The user's own note (H-003): empty for none. The counter shows from 1,800 characters. The shortcut is in the placeholder.
   const [note, setNote] = useState(item.userNote ?? '')
-  const noteRef = useRef<HTMLTextAreaElement>(null)
+  const noteRef = useRef<HTMLTextAreaElement | null>(null)
+  // Opened on the note (the card's ✎): the cursor goes to the end, where a person adds to it (design: the caret after the text).
+  // The window's body is portaled, so the field is only there once it lands; set once, as it mounts, so typing never moves it.
+  const bindNote = useCallback((node: HTMLTextAreaElement | null) => {
+    noteRef.current = node
+    if (node && focusNote && !panelOpen) node.setSelectionRange(node.value.length, node.value.length)
+  }, [])
 
   // U5: the tag field's draft. Tags are written only when the field changed them,
   // so an edit of the title never rewrites an old spelling (PC) the item still carries.
@@ -283,7 +289,7 @@ export function ItemEditPopover({
         {/* Note is the last field, under Group and Platform (design: H-003). */}
         <div className="q-edit-note-block">
           <FieldTextArea
-            ref={noteRef}
+            ref={bindNote}
             className="q-edit-note"
             label={text.editNote}
             value={note}

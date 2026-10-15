@@ -1,32 +1,59 @@
 import './ItemInfoCard.css'
-import { formatYear } from '../../../../server/src/catalog/years.js'
-import { formatDuration } from '../../formatDuration.js'
+import { Pencil } from 'lucide-react'
 import type { ListItem } from '../../lib/api.js'
 import { copy } from '../../locale/index.js'
+import { IconButton } from '../../components/quantum/Button/Button.js'
+import { itemNotes } from './itemNotes.js'
 
 export interface ItemInfoCardProps {
   item: ListItem
+  /** The ✎ on "Your note": the Edit window with the cursor in Note. */
+  onEditNote: () => void
 }
 
 /**
- * The ⓘ popover's body (design: item info, 320px): a dashed placeholder where
- * a cover will go (Q6, deferred) and the item's `notes` — curator prose,
- * read-only, shown only when there are some so there is never an empty slot.
+ * The ⓘ popover's body (design: item notes, 320px). The ⓘ is only on an item with a note, so there is always one to show:
+ * the curator's (read-only, from the source), the user's own (with a ✎ to edit it), or both, curator first, split by a
+ * hairline. A kicker says whose it is; with one note it sits above the title, with both the title goes first. Line breaks
+ * are kept, and a note is only ever drawn as text.
  */
-export function ItemInfoCard({ item }: ItemInfoCardProps) {
+export function ItemInfoCard({ item, onEditNote }: ItemInfoCardProps) {
   const text = copy.quantum.list.itemActions
-  const notes = item.notes?.trim()
+  const { curator, mine } = itemNotes(item)
+  const title = <div className="q-info-title">{item.title}</div>
+  const yours = (
+    <div className="q-info-head">
+      <span className="q-kicker">{text.yourNote}</span>
+      <IconButton label={text.editYourNote} title={text.editYourNoteTip} onClick={onEditNote}>
+        <Pencil width={15} height={15} strokeWidth={1.8} aria-hidden="true" />
+      </IconButton>
+    </div>
+  )
 
   return (
     <div className="q-info">
-      <p className="q-kicker">{text.infoKicker}</p>
-      <div className="q-info-title">{item.title}</div>
-      <div className="q-info-cover" aria-hidden="true" />
-      <div className="q-info-facts">
-        {item.year ? <span>{formatYear(item)}</span> : null}
-        <span>{item.runtimePending ? text.runtimePending : formatDuration(item.timeToConsumeMinutes)}</span>
-      </div>
-      {notes && <p className="q-info-notes">{notes}</p>}
+      {curator && mine ? (
+        <>
+          {title}
+          <p className="q-kicker">{text.curatorNote}</p>
+          <p className="q-info-text">{curator}</p>
+          <hr />
+          {yours}
+          <p className="q-info-text">{mine}</p>
+        </>
+      ) : curator ? (
+        <>
+          <p className="q-kicker">{text.curatorNote}</p>
+          {title}
+          <p className="q-info-text">{curator}</p>
+        </>
+      ) : (
+        <>
+          {yours}
+          {title}
+          <p className="q-info-text">{mine}</p>
+        </>
+      )}
     </div>
   )
 }

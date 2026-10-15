@@ -632,7 +632,13 @@ export const ru: Locale = {
         addChoiceTip: (label: string): string => `${label} не указан -- нажми, чтобы указать`,
       },
       itemActions: {
-        details: (title: string): string => `Подробности: ${title}`,
+        /** The ⓘ and its card (H-003): the row's ⓘ is there only for an item with a note, named for whose it is. */
+        curatorNote: 'Заметка куратора',
+        yourNote: 'Твоя заметка',
+        notes: 'Заметки',
+        noteFor: (label: string, title: string): string => `${label}: ${title}`,
+        editYourNote: 'Изменить свою заметку',
+        editYourNoteTip: 'Изменить',
         releaseYear: 'Год выхода',
         sometimeIn: (decade: string): string => `Когда-то в ${decade.slice(0, -1)}-х`,
         groupYears: 'Годы выхода в этой группе',
@@ -661,7 +667,6 @@ export const ru: Locale = {
         openOnSource: (title: string, source: string): string => `Открыть на ${source}: ${title}`,
         openOnSourceTip: (source: string): string => `Открыть на ${source}`,
         remove: (title: string): string => `Удалить: ${title}`,
-        infoKicker: 'Подробности',
         estimated: 'Длительность на глаз',
         runtimePending: '-',
         editTitle: 'Название',
