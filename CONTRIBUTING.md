@@ -78,6 +78,8 @@ Per-item fields:
 | `tags`    | No        | A list of short free-text strings, rendered as badges, e.g. `tags: [Album, Live]`. One generic field for every category — there's no fixed vocabulary or category-specific field name. Use whatever short labels make sense for what you're contributing: a music release type, a book's language, a franchise entry's medium, a promotion's event format, or anything else worth flagging at a glance. Purely a display attribute — it never affects ordering or `group`. |
 | `notes`   | No        | Curator prose explaining *why this item is here*, shown read-only in the app — never a synopsis, and never your own commentary. Add one only when a reader would otherwise be confused, e.g. `notes: "Same game as the PS3 entry above, but this platform shipped extra missions."` Capped at 2048 characters; longer values are rejected, not truncated. |
 
+A list file never carries a reader's own notes. In the app a reader can write a note on any item, but those notes are personal: the YAML export leaves them out, and a file with a `userNote` field (or any other field not in the table) is refused, naming the field.
+
 Example using `group`:
 
 ```yaml
