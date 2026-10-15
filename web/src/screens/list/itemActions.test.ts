@@ -244,6 +244,46 @@ describe('the sentences for what editProblems finds (H-004, H-006, H-007)', () =
   })
 })
 
+describe('the user’s own note in an edit (H-003)', () => {
+  const noted = { ...ITEM, userNote: 'Watch the Cantonese cut.' }
+
+  it('changes nothing when the field is left as it was, empty or not', () => {
+    expect(buildEditPatch(ITEM, { ...same, note: '' })).toBeNull()
+    expect(buildEditPatch(noted, { ...same, note: 'Watch the Cantonese cut.' })).toBeNull()
+    expect(buildEditPatch(ITEM, { ...same })).toBeNull()
+  })
+
+  it('sets a note, trimmed', () => {
+    expect(buildEditPatch(ITEM, { ...same, note: '  The serious one.  ' })).toEqual({ userNote: 'The serious one.' })
+  })
+
+  it('changes a note', () => {
+    expect(buildEditPatch(noted, { ...same, note: 'Skipped the first time.' })).toEqual({ userNote: 'Skipped the first time.' })
+  })
+
+  it.each([['an empty field', ''], ['spaces and line breaks only', '  \n  ']])('removes the note when the field holds %s', (_name, note) => {
+    expect(buildEditPatch(noted, { ...same, note })).toEqual({ userNote: null })
+  })
+
+  it('does not call spaces a note on an item that has none', () => {
+    expect(buildEditPatch(ITEM, { ...same, note: '   ' })).toBeNull()
+  })
+
+  it('sees a note written with Windows line breaks as the same note', () => {
+    expect(buildEditPatch({ ...ITEM, userNote: 'one\ntwo' }, { ...same, note: 'one\r\ntwo' })).toBeNull()
+  })
+
+  it('goes with the other changes in one patch', () => {
+    expect(buildEditPatch(ITEM, { ...same, title: 'Renamed', note: 'Mine' })).toEqual({ title: 'Renamed', userNote: 'Mine' })
+  })
+
+  it('puts the note back on Undo, and none back as none', () => {
+    expect(invertPatch(noted, { userNote: 'Changed' })).toEqual({ userNote: 'Watch the Cantonese cut.' })
+    expect(invertPatch(ITEM, { userNote: 'Added' })).toEqual({ userNote: null })
+    expect(invertPatch(noted, { userNote: null })).toEqual({ userNote: 'Watch the Cantonese cut.' })
+  })
+})
+
 describe('invertPatch', () => {
   it('puts back each field the patch changed, and only those', () => {
     expect(invertPatch(ITEM, { title: 'Renamed', group: 'Season 2' })).toEqual({

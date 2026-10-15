@@ -1,11 +1,13 @@
 import { NAME_MAX_LENGTH } from '../../../../server/src/catalog/limits.js'
+import { USER_NOTE_MAX_LENGTH } from '../../../../server/src/catalog/userNotes.js'
+import { quitPlatform } from '../../lib/appQuit.js'
 import { filterYearInput, formatYear } from '../../../../server/src/catalog/years.js'
 import './ItemEditPopover.css'
-import { useCallback, useEffect, useRef, useState, type KeyboardEvent } from 'react'
+import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState, type KeyboardEvent } from 'react'
 import type { ItemSourceTags, ListItem } from '../../lib/api.js'
 import { copy } from '../../locale/index.js'
 import { Button } from '../../components/quantum/Button/Button.js'
-import { Field } from '../../components/quantum/Field/Field.js'
+import { Field, FieldTextArea } from '../../components/quantum/Field/Field.js'
 import { useFieldValidation } from '../../components/quantum/Field/useFieldValidation.js'
 import { Popover } from '../../components/quantum/Popover/Popover.js'
 import { PlatformPanel } from '../../components/quantum/PlatformPanel/PlatformPanel.js'
@@ -46,11 +48,16 @@ export interface ItemEditPopoverProps {
   listTags?: readonly string[]
   /** Open with the Platform panel already open: the row's [+] and the platform card's Edit. */
   openPanel?: boolean
+  /** Open with the cursor in Note, not Title: the card's ✎ on Your note (H-003). */
+  focusNote?: boolean
   /** What the item's source says for its tags: "Source says …" and Reset to source. */
   loadSource?: () => Promise<ItemSourceTags>
 }
 
 const joined = (codes: readonly string[]) => codes.join('\n')
+
+/** The counter appears from this many characters (design: H-003). */
+const NOTE_COUNTER_FROM = 1800
 
 /**
  * The ✎ popover (design: item edit, 360px): Title, Year beside Duration, Group, and
@@ -72,6 +79,7 @@ export function ItemEditPopover({
   tagField = null,
   listTags = [],
   openPanel = false,
+  focusNote = false,
   loadSource,
 }: ItemEditPopoverProps) {
   const text = copy.quantum.list.itemActions
@@ -80,6 +88,11 @@ export function ItemEditPopover({
   const [minutes, setMinutes] = useState(() => durationFieldText(item))
   const [group, setGroup] = useState(item.group ?? '')
   const [year, setYear] = useState(() => formatYear(item))
+  // The user's own note (H-003): empty for none. The counter shows from 1,800 characters; the hint only while it has focus.
+  const [note, setNote] = useState(item.userNote ?? '')
+  const [noteFocused, setNoteFocused] = useState(false)
+  const noteRef = useRef<HTMLTextAreaElement>(null)
+  const noteHintId = useId()
 
   // U5: the tag field's draft. Tags are written only when the field changed them,
   // so an edit of the title never rewrites an old spelling (PC) the item still carries.
@@ -129,7 +142,7 @@ export function ItemEditPopover({
     tags = writeChoice(item.tags, choice, chosen)
   }
 
-  const draft: EditDraft = { title, minutes, group, year, ...(tags ? { tags } : {}) }
+  const draft: EditDraft = { title, minutes, group, year, note, ...(tags ? { tags } : {}) }
   const patch = buildEditPatch(item, draft, defaultMinutes)
 
   // What is wrong with each field, in the order the cursor visits them (H-006). A year or a length the person left as it was
@@ -161,11 +174,22 @@ export function ItemEditPopover({
     else onDiscard()
   }
 
-  // Enter saves, Esc cancels. Not in a text area (Enter is a new line there), not in
-  // the Platform panel (its search), and not when something inside already took the key.
+  // The note grows with what is typed, from four lines to eight, then scrolls (design: H-003).
+  useLayoutEffect(() => {
+    const field = noteRef.current
+    if (!field) return
+    field.style.height = 'auto'
+    field.style.height = `${field.scrollHeight + 2}px`
+  }, [note])
+
+  // Enter saves, Esc cancels. In the note Enter is a new line and Ctrl or ⌘ with Enter saves; not on a button, not in the
+  // Platform panel (its search), and not when something inside already took the key.
   function saveOnEnter(event: KeyboardEvent<HTMLDivElement>) {
     if (event.key !== 'Enter' || event.defaultPrevented || event.nativeEvent.isComposing) return
-    if (event.target instanceof HTMLTextAreaElement || event.target instanceof HTMLButtonElement) return
+    if (event.target instanceof HTMLTextAreaElement) {
+      if (!(event.ctrlKey || event.metaKey)) return
+      event.preventDefault()
+    } else if (event.target instanceof HTMLButtonElement) return
     if (event.target instanceof Element && event.target.closest('.q-platpanel')) return
     commit('save')
   }
@@ -193,7 +217,7 @@ export function ItemEditPopover({
           onChange={(event) => setTitle(event.target.value)}
           spellCheck={false}
           autoComplete="off"
-          autoFocus={!panelOpen}
+          autoFocus={!panelOpen && !focusNote}
           size="sm"
           {...checks.props('title')}
         />
@@ -258,6 +282,31 @@ export function ItemEditPopover({
         )}
         {/* A press on a button keeps the cursor in its field: leaving it would show a sentence above the buttons, move them
             down while the mouse is still pressed, and drop the click. The keyboard is not affected. */}
+        {/* Note is the last field, under Group and Platform (design: H-003). */}
+        <div className="q-edit-note-block">
+          <FieldTextArea
+            ref={noteRef}
+            className="q-edit-note"
+            label={text.editNote}
+            value={note}
+            onChange={(event) => setNote(event.target.value)}
+            onFocus={() => setNoteFocused(true)}
+            onBlur={() => setNoteFocused(false)}
+            rows={4}
+            maxLength={USER_NOTE_MAX_LENGTH}
+            placeholder={text.notePlaceholder}
+            autoFocus={focusNote && !panelOpen}
+            {...(noteFocused ? { 'aria-describedby': noteHintId } : {})}
+          />
+          {(noteFocused || note.length >= NOTE_COUNTER_FROM) && (
+            <div className="q-edit-note-meta">
+              <span id={noteHintId}>
+                {noteFocused ? (quitPlatform(navigator.userAgent) === 'mac' ? text.noteHintCmd : text.noteHintCtrl) : ''}
+              </span>
+              {note.length >= NOTE_COUNTER_FROM && <span>{text.noteCounter(note.length, USER_NOTE_MAX_LENGTH)}</span>}
+            </div>
+          )}
+        </div>
         <div className="q-edit-actions" onMouseDown={(event) => event.preventDefault()}>
           <Button size="sm" variant="quiet" onClick={onDiscard}>
             {text.discard}

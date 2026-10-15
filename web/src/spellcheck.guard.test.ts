@@ -21,6 +21,8 @@ const NON_TEXT = /\btype="(checkbox|radio|file|range|hidden|color)"|\binputMode=
 const PROSE = new Set([
   'screens/list/EditListPopover.tsx|FieldTextArea|text.description',
   'components/quantum/AddByHandTab/AddByHandTab.tsx|FieldTextArea|text.descriptionLabel',
+  // The user's own note on an item (H-003): prose, so the browser may check it.
+  'screens/list/ItemEditPopover.tsx|FieldTextArea|text.editNote',
 ])
 
 function sourceFiles(dir: string): string[] {

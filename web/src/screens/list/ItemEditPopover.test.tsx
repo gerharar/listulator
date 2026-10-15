@@ -477,3 +477,150 @@ describe('ItemEditPopover: the title and the duration (H-006, H-007)', () => {
     expect(onCommit).toHaveBeenCalledWith({ title: 'Renamed' }, 'save')
   })
 })
+
+describe('ItemEditPopover: the user’s own note (H-003)', () => {
+  const text = copy.quantum.list.itemActions
+  const note = () => screen.getByLabelText('Note') as HTMLTextAreaElement
+  const noted = { ...ITEM, userNote: 'Watch the Cantonese cut.' }
+  const hint = () => screen.queryByText(/saves\. Enter|speichert\. Enter|сохраняет\. Enter/)
+  const counter = () => screen.queryByText(/ \/ 2,048$/)
+
+  it('is the last field of the window, under Group: a multi-line field four lines tall, stopping at 2,048', () => {
+    renderPopover()
+
+    expect(note().tagName).toBe('TEXTAREA')
+    expect(note().rows).toBe(4)
+    expect(note().maxLength).toBe(2048)
+    expect(note().placeholder).toBe(text.notePlaceholder)
+    expect(screen.getByLabelText('Group').compareDocumentPosition(note()) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    const actions = document.querySelector('.q-edit-actions')!
+    expect(note().compareDocumentPosition(actions) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+  })
+
+  it('opens empty for an item with no note, and on the note for an item that has one', () => {
+    renderPopover()
+    expect(note().value).toBe('')
+    cleanup()
+
+    renderPopover({ item: noted })
+    expect(note().value).toBe('Watch the Cantonese cut.')
+  })
+
+  it('saves a typed note, and only that', () => {
+    const { onCommit } = renderPopover()
+
+    fireEvent.change(note(), { target: { value: '  The serious one.\nWatch the Cantonese cut.  ' } })
+    fireEvent.click(save())
+
+    expect(onCommit).toHaveBeenCalledWith({ userNote: 'The serious one.\nWatch the Cantonese cut.' }, 'save')
+  })
+
+  it.each([['an empty note', ''], ['spaces only', '   ']])('removes the note when it is saved as %s', (_name, value) => {
+    const { onCommit } = renderPopover({ item: noted })
+
+    fireEvent.change(note(), { target: { value } })
+    fireEvent.click(save())
+
+    expect(onCommit).toHaveBeenCalledWith({ userNote: null }, 'save')
+  })
+
+  it('leaves a note that was not touched alone: Save with nothing changed just closes', () => {
+    const { onCommit, onDiscard } = renderPopover({ item: noted })
+
+    fireEvent.click(save())
+
+    expect(onCommit).not.toHaveBeenCalled()
+    expect(onDiscard).toHaveBeenCalledTimes(1)
+  })
+
+  describe('the counter', () => {
+    it('shows nothing until 1,800 characters, then how many of 2,048', () => {
+      renderPopover()
+
+      fireEvent.change(note(), { target: { value: 'a'.repeat(1799) } })
+      expect(counter()).toBeNull()
+
+      fireEvent.change(note(), { target: { value: 'a'.repeat(1800) } })
+      expect(counter()?.textContent).toBe('1,800 / 2,048')
+
+      fireEvent.change(note(), { target: { value: 'a'.repeat(1994) } })
+      expect(counter()?.textContent).toBe('1,994 / 2,048')
+    })
+
+    it('has no error state at the limit: it is just full', () => {
+      renderPopover()
+
+      fireEvent.change(note(), { target: { value: 'a'.repeat(2048) } })
+
+      expect(counter()?.textContent).toBe('2,048 / 2,048')
+      expect(note().getAttribute('aria-invalid')).toBeNull()
+      expect(screen.queryByRole('alert')).toBeNull()
+    })
+  })
+
+  describe('the keys', () => {
+    it('Enter in the note is a new line, not a save', () => {
+      const { onCommit, onDiscard } = renderPopover()
+      fireEvent.change(note(), { target: { value: 'line one' } })
+
+      const proceeded = fireEvent.keyDown(note(), { key: 'Enter' })
+
+      expect(proceeded).toBe(true)
+      expect(onCommit).not.toHaveBeenCalled()
+      expect(onDiscard).not.toHaveBeenCalled()
+    })
+
+    it.each([['Ctrl+Enter', { ctrlKey: true }], ['⌘+Enter', { metaKey: true }]])('%s in the note saves', (_name, modifier) => {
+      const { onCommit } = renderPopover()
+      fireEvent.change(note(), { target: { value: 'Mine' } })
+
+      fireEvent.keyDown(note(), { key: 'Enter', ...modifier })
+
+      expect(onCommit).toHaveBeenCalledWith({ userNote: 'Mine' }, 'save')
+    })
+
+    it('Enter in the other fields still saves', () => {
+      const { onCommit } = renderPopover()
+      fireEvent.change(title(), { target: { value: 'Renamed' } })
+
+      fireEvent.keyDown(title(), { key: 'Enter' })
+
+      expect(onCommit).toHaveBeenCalledWith({ title: 'Renamed' }, 'save')
+    })
+
+    it('shows the hint only while the note has the cursor', () => {
+      renderPopover()
+      expect(hint()).toBeNull()
+
+      fireEvent.focus(note())
+      expect(hint()).not.toBeNull()
+
+      fireEvent.blur(note())
+      expect(hint()).toBeNull()
+    })
+  })
+
+  it('puts the cursor in the note when it is opened for it (the card’s ✎ on Your note)', () => {
+    renderPopover({ item: noted, focusNote: true })
+
+    expect(document.activeElement).toBe(note())
+    expect(title()).not.toBe(document.activeElement)
+  })
+
+  it('puts the cursor in the title otherwise, as it always did', () => {
+    renderPopover({ item: noted })
+
+    expect(document.activeElement).toBe(title())
+  })
+
+  it('a note and a wrong year: the year is said, nothing saved, the note kept', () => {
+    const { onCommit } = renderPopover()
+    fireEvent.change(note(), { target: { value: 'Mine' } })
+    fireEvent.change(year(), { target: { value: '19' } })
+
+    fireEvent.click(save())
+
+    expect(onCommit).not.toHaveBeenCalled()
+    expect(note().value).toBe('Mine')
+  })
+})

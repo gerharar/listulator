@@ -18,6 +18,27 @@
   flex: 1;
   min-width: 0;
 }
+.q-edit-note-block {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+/* Four lines tall, growing to eight and then scrolling (the height is set from the content, up to this). */
+.q-edit-note {
+  box-sizing: border-box;
+  resize: none;
+  overflow-y: auto;
+  max-height: calc(8 * 1.45em + 24px);
+  font: 400 14px/1.45 var(--font-sans);
+}
+.q-edit-note-meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--ink2);
+}
 .q-edit-actions {
   display: flex;
   justify-content: flex-end;

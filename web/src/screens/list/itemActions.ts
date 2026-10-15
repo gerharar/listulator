@@ -2,6 +2,7 @@ import type { ListItem } from '../../lib/api.js'
 import type { Locale } from '../../locale/index.js'
 import { durationTextProblem, parseDurationText, type DurationProblem } from '../../../../server/src/catalog/durations.js'
 import { formatYear, parseYearText, yearTextProblem } from '../../../../server/src/catalog/years.js'
+import { normalizeUserNote, USER_NOTE_MAX_LENGTH } from '../../../../server/src/catalog/userNotes.js'
 
 /** What the edit popover holds while it is open, as typed. */
 export interface EditDraft {
@@ -12,6 +13,8 @@ export interface EditDraft {
   year?: string
   /** The tags to save, only when the tag field changed them (U5); absent leaves the stored tags alone. */
   tags?: string[]
+  /** The Note field as typed (H-003): empty or spaces removes the note; absent leaves it alone. */
+  note?: string
 }
 
 export interface ItemPatch {
@@ -25,6 +28,8 @@ export interface ItemPatch {
   yearUnk?: number
   /** The item's whole tag list (U5); null clears it. */
   tags?: string[] | null
+  /** The user's own note (H-003); null removes it. */
+  userNote?: string | null
 }
 
 export interface EditProblems {
@@ -120,6 +125,12 @@ export function buildEditPatch(item: ListItem, draft: EditDraft, defaultMinutes:
     patch.yearUnk = year.yearUnk
   }
   if (draft.tags !== undefined) patch.tags = draft.tags.length > 0 ? draft.tags : null
+  if (draft.note !== undefined) {
+    // As stored (trimmed, line breaks made newlines): a note written another way that is the same note changes nothing.
+    // The field stops at the limit, so the cut is only for a paste that got round it.
+    const note = normalizeUserNote(draft.note.slice(0, USER_NOTE_MAX_LENGTH))
+    if (note !== (item.userNote ?? null)) patch.userNote = note
+  }
 
   return Object.keys(patch).length > 0 ? patch : null
 }
@@ -141,6 +152,7 @@ export function invertPatch(item: ListItem, patch: ItemPatch): ItemPatch {
     back.yearUnk = item.yearUnk
   }
   if (patch.tags !== undefined) back.tags = item.tags && item.tags.length > 0 ? [...item.tags] : null
+  if (patch.userNote !== undefined) back.userNote = item.userNote ?? null
 
   return back
 }

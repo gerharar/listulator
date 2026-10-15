@@ -56,11 +56,15 @@ test('pressing Create List with no title makes nothing, says a list needs a titl
   await page.getByRole('button', { name: q.home.newList }).click()
   await page.locator('.q-tile').first().click()
   await page.getByRole('tab', { name: q.createList.handTab }).click()
-  const before = (await (await page.request.get('/api/lists')).json()).length
+  // Not a count of every list: other specs create and delete lists in parallel. What must not happen is the request.
+  const posts: string[] = []
+  page.on('request', (request) => {
+    if (request.method() === 'POST' && /\/api\/lists\/?$/.test(request.url())) posts.push(request.url())
+  })
 
   await page.getByRole('button', { name: q.addByHand.create }).click()
 
   await expect(page.getByRole('alert')).toHaveText(q.addByHand.titleRequired)
   await expect(page.getByLabel(q.addByHand.titleLabel, { exact: true })).toBeFocused()
-  expect((await (await page.request.get('/api/lists')).json()).length).toBe(before)
+  expect(posts).toEqual([])
 })

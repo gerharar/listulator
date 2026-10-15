@@ -87,8 +87,9 @@ test('a music item’s Type is one pick from its short list, Live ticked on top;
     await page.getByRole('button', { name: 'Type: Mini' }).click()
     await page.getByRole('option', { name: 'Live' }).click()
     await expect(page.getByRole('button', { name: 'Type: Mini · Live' })).toBeVisible()
-    // Live leaves the list open; a click past it (here on Save) only closes it (owner).
-    await page.getByRole('button', { name: 'Save', exact: true }).click()
+    // Live leaves the list open; a click past it (here on the window's Title label: the list can now reach down over the
+    // Note and Save, since the window holds a Note under the Type) only closes it (owner).
+    await page.locator('.q-pop').getByText('Title', { exact: true }).click()
     await expect(page.getByRole('listbox')).toBeHidden()
     expect(await itemTags(page.request, id, 'The Red Sea')).toEqual(['EP'])
     await page.getByRole('button', { name: 'Save', exact: true }).click()

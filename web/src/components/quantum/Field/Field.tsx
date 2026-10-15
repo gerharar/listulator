@@ -25,6 +25,7 @@ export interface FieldTextAreaProps extends TextareaHTMLAttributes<HTMLTextAreaE
   label: string
   /** The Import-tab YAML box: mono 13px/1.55, `resize: none`. */
   code?: boolean
+  ref?: Ref<HTMLTextAreaElement>
 }
 
 export function FieldTextArea({ label, code, className, ...rest }: FieldTextAreaProps) {
