@@ -108,7 +108,10 @@ test('an emptied Duration becomes the category’s default, marked ≈ on the ro
     await expect(row.locator('.q-mins')).toHaveText(/^≈\d/)
     expect((await item(page.request, id, 'Heat')).timeToConsumeIsEstimated).toBe(true)
 
+    // An estimate opens as an empty field: empty is the category's default.
     await page.getByRole('button', { name: 'Edit Heat' }).click()
+    await expect(field(page, text.editMinutes)).toHaveValue('')
+    await expect(field(page, text.editMinutes)).toHaveAttribute('placeholder', /\(default\)$/)
     await field(page, text.editMinutes).fill('1h 35m')
     await save(page).click()
 
