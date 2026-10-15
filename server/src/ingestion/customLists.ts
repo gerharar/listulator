@@ -387,9 +387,11 @@ export interface CanonicalListEntry {
 /**
  * What a fetch from the library may bring (security review, Phase 19, SR-020): the library is read from the head of `main` and
  * shown as it arrives. The committed library is far inside these (a manifest of 17 KB with 64 entries; the largest list is 45
- * KB), so they stop a stolen branch or a mistake from feeding every installed app something huge, not a growing library.
+ * KB), so they stop a stolen branch or a mistake from feeding every installed app something huge, not a growing library. The file
+ * limit was 1 MiB until 2026-10-15 and is 8 MiB so that a canonical list of `MAX_LIST_ITEMS` (50,000) items, about 5.5 MB at the
+ * library's 110 bytes an item, can be read at all; `listCap.test.ts` holds the two together.
  */
-export const LIBRARY_FILE_MAX_BYTES = 1024 * 1024
+export const LIBRARY_FILE_MAX_BYTES = 8 * 1024 * 1024
 export const LIBRARY_MANIFEST_MAX_BYTES = 512 * 1024
 export const LIBRARY_MANIFEST_MAX_ENTRIES = 2000
 const MANIFEST_PATH_MAX_LENGTH = 200

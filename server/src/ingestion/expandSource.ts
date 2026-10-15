@@ -1,4 +1,4 @@
-import { MAX_LIST_ITEMS } from '../catalog/limits.js'
+import { MAX_CONNECTOR_ITEMS } from '../catalog/limits.js'
 import {
   canonicalPathFromExternalRef,
   expandCanonicalList,
@@ -16,11 +16,11 @@ export class SourceUnavailableError extends Error {
   }
 }
 
-/** A source with more items than a list can hold (`MAX_LIST_ITEMS`): refused, never cut short. */
+/** A connector source with more items than one can give a list (`MAX_CONNECTOR_ITEMS`): refused, never cut short. */
 export class ListTooLargeError extends Error {
   constructor(
     readonly count: number,
-    readonly max: number = MAX_LIST_ITEMS,
+    readonly max: number = MAX_CONNECTOR_ITEMS,
     /** The list or source that is too large, where the caller knows it (Reset, a check): the sentence names it. */
     readonly title?: string,
   ) {
@@ -29,9 +29,9 @@ export class ListTooLargeError extends Error {
   }
 }
 
-/** Throws `ListTooLargeError` when `count` is above the ceiling. Checked for the count, the Preview and Add list. */
+/** Throws `ListTooLargeError` when a connector's `count` is above its ceiling. Checked for the count, the Preview and Add list; a file or a canonical list is held to `MAX_LIST_ITEMS` by its parser. */
 export function checkListSize(count: number): void {
-  if (count > MAX_LIST_ITEMS) throw new ListTooLargeError(count)
+  if (count > MAX_CONNECTOR_ITEMS) throw new ListTooLargeError(count)
 }
 
 /** A canonical ref whose path is not one this app would ever fetch. */

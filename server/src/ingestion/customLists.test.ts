@@ -756,8 +756,8 @@ describe('parseCustomList refuses what would corrupt or freeze a list', () => {
     it('refuses more items than one list may hold, and accepts exactly that many', () => {
       const items = (count: number) => file(Array.from({ length: count }, (_, n) => `  - t${n}`.replace('- t', '- title: t')).join('\n'))
 
-      expect(detail(items(10_001))).toMatch(/10001 items.*10000/)
-      expect(refusal(items(10_000))).toBeUndefined()
+      expect(detail(items(50_001))).toMatch(/50001 items.*50000/)
+      expect(refusal(items(50_000))).toBeUndefined()
     })
 
     it('refuses a title, a group and the list’s own title over 255 characters, and accepts 255', () => {
@@ -781,8 +781,8 @@ describe('parseCustomList refuses what would corrupt or freeze a list', () => {
       expect(refusal(one(`    tags: [${'t'.repeat(64)}]`))).toBeUndefined()
     })
 
-    it('refuses a file over 4 MiB before parsing it, even when it is not YAML', () => {
-      expect(detail('#'.repeat(4 * 1024 * 1024 + 1))).toMatch(/the file is over 4 MiB/)
+    it('refuses a file over 16 MiB before parsing it, even when it is not YAML', () => {
+      expect(detail('#'.repeat(16 * 1024 * 1024 + 1))).toMatch(/the file is over 16 MiB/)
       expect(refusal(`${file('  - title: A')}${'#'.repeat(1000)}`)).toBeUndefined()
     })
 
@@ -880,7 +880,7 @@ describe('the library fetch is bounded', () => {
   const malformed = /malformed manifest/
 
   it('says what its limits are', () => {
-    expect([LIBRARY_FILE_MAX_BYTES, LIBRARY_MANIFEST_MAX_BYTES, LIBRARY_MANIFEST_MAX_ENTRIES]).toEqual([1024 * 1024, 512 * 1024, 2000])
+    expect([LIBRARY_FILE_MAX_BYTES, LIBRARY_MANIFEST_MAX_BYTES, LIBRARY_MANIFEST_MAX_ENTRIES]).toEqual([8 * 1024 * 1024, 512 * 1024, 2000])
   })
 
   describe('the manifest', () => {
@@ -910,13 +910,13 @@ describe('the library fetch is bounded', () => {
       ['a title with a Hangul filler', entry(1, { title: 'Fa\u3164ke' })],
       ['a title with a tag character', entry(1, { title: 'Fa\u{E0041}ke' })],
       ['an item count that is not a whole number', entry(1, { itemCount: 1.5 })],
-      ['an item count beyond what a list may hold', entry(1, { itemCount: 10_001 })],
+      ['an item count beyond what a list may hold', entry(1, { itemCount: 50_001 })],
     ])('refuses an entry with %s', async (_name, bad) => {
       await expect(fetchCanonicalManifest(manifestOf([entry(0), bad]))).rejects.toThrow(malformed)
     })
 
     it('accepts an entry at the limits', async () => {
-      const edge = entry(1, { title: 'x'.repeat(255), description: 'd\nd'.repeat(300).slice(0, 1000), itemCount: 10_000, category: 'c'.repeat(64) })
+      const edge = entry(1, { title: 'x'.repeat(255), description: 'd\nd'.repeat(300).slice(0, 1000), itemCount: 50_000, category: 'c'.repeat(64) })
 
       expect(await fetchCanonicalManifest(manifestOf([edge]))).toEqual([edge])
     })
@@ -925,16 +925,16 @@ describe('the library fetch is bounded', () => {
   describe('a list file', () => {
     const list = 'title: T\ncategory: movie\nitems:\n  - title: A\n'
 
-    it('refuses one over 1 MiB, declared or not, before parsing it', async () => {
+    it('refuses one over 8 MiB, declared or not, before parsing it', async () => {
       const big = `${list}${'#'.repeat(LIBRARY_FILE_MAX_BYTES)}`
 
-      await expect(fetchCanonicalList('lists/movie/x.yaml', CATEGORIES, respondWith(big))).rejects.toThrow(/canonical list repository sent more than 1 MB/)
+      await expect(fetchCanonicalList('lists/movie/x.yaml', CATEGORIES, respondWith(big))).rejects.toThrow(/canonical list repository sent more than 8 MB/)
       await expect(
         fetchCanonicalList('lists/movie/x.yaml', CATEGORIES, respondWith(list, { headers: { 'content-length': String(LIBRARY_FILE_MAX_BYTES + 1) } })),
-      ).rejects.toThrow(/sent more than 1 MB/)
+      ).rejects.toThrow(/sent more than 8 MB/)
     })
 
-    it('reads an ordinary one, and one of exactly 1 MiB', async () => {
+    it('reads an ordinary one, and one of exactly 8 MiB', async () => {
       expect((await fetchCanonicalList('lists/movie/x.yaml', CATEGORIES, respondWith(list))).items).toHaveLength(1)
       const exact = `${list}${'#'.repeat(LIBRARY_FILE_MAX_BYTES - list.length)}`
 

@@ -1,4 +1,4 @@
-import { MAX_LIST_ITEMS } from '../../catalog/limits.js'
+import { MAX_CONNECTOR_ITEMS } from '../../catalog/limits.js'
 import { delay, getJson, IngestionError, UnauthorizedError, withRetries, type FetchLike } from '../http.js'
 import { createRateLimiter, type RateLimiter } from '../rateLimiter.js'
 import type { ListSource, MediaTypeCandidate, SearchAdapter, SearchOptions, SearchPage } from '../mediaTypes.js'
@@ -271,7 +271,7 @@ export function createComicVineAdapter(
         issues.push(...batch)
 
         const total = response.number_of_total_results
-        if (batch.length < PAGE_SIZE || issues.length > MAX_LIST_ITEMS || (total !== undefined && issues.length >= total)) break
+        if (batch.length < PAGE_SIZE || issues.length > MAX_CONNECTOR_ITEMS || (total !== undefined && issues.length >= total)) break
       }
 
       return issues

@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 import type { FetchLike } from '../http.js'
 import { IGDB_PLATFORM_CODES } from '../../catalog/platforms.generated.js'
-import { MAX_LIST_ITEMS } from '../../catalog/limits.js'
+import { MAX_CONNECTOR_ITEMS } from '../../catalog/limits.js'
 import { createPacer, type RateLimiter } from '../rateLimiter.js'
 import { createIgdbAdapter, igdbRequestLimiter } from './igdb.js'
 
@@ -590,12 +590,12 @@ describe('IGDB listing without a cap (audit 2, as BL-044 for TMDB)', () => {
   })
 
   it('stops asking once the list is past the ceiling, and returns what it has for the shared check to refuse', async () => {
-    const { fetchImpl, queries } = pagedIgdb(manyGames(MAX_LIST_ITEMS + 600))
+    const { fetchImpl, queries } = pagedIgdb(manyGames(MAX_CONNECTOR_ITEMS + 600))
     const { items } = await createIgdbAdapter(credentials, fetchImpl).expand('franchise:1')
 
-    expect(items.length).toBeGreaterThan(MAX_LIST_ITEMS)
+    expect(items.length).toBeGreaterThan(MAX_CONNECTOR_ITEMS)
     // Twenty full pages hold the ceiling exactly; the twenty-first goes past it. No page after that.
-    expect(queries('games')).toHaveLength(MAX_LIST_ITEMS / 500 + 1)
+    expect(queries('games')).toHaveLength(MAX_CONNECTOR_ITEMS / 500 + 1)
   })
 
   it('fetches the times in batches of at most 500 games, one request per batch, and applies every one', async () => {

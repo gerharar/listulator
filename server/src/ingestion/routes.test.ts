@@ -1516,17 +1516,18 @@ items:
     expect(response.json()).toEqual({ code: 'list.fileNoItems' })
   })
 
-  it('imports a file of as many items as one list may hold, and no more (the same ceiling as a built list)', async () => {
-    // The old 200,000-character cap refused files a real list can reach; the ceiling is now the item count, the one a built
-    // list has had since 15.9, and the parser applies it to every file (SR-019). A 12,000-item file used to import.
+  it('refuses a file of more items than one list may hold, naming both numbers (the ceiling is 50,000 since 2026-10-15; a file AT it is built in listCap.test.ts)', async () => {
+    // The old 200,000-character cap refused files a real list can reach; the ceiling is the item count, and the parser
+    // applies it to every file (SR-019). It was 10,000 until the owner's real lists of about 32,000 items.
     const rows = (count: number) => Array.from({ length: count }, (_, index) => `  - { title: "Item ${index}" }`).join('\n')
 
-    expect((await fromFile(`title: Big\ncategory: movie\nitems:\n${rows(10_000)}\n`)).statusCode).toBe(201)
-    const over = await fromFile(`title: Bigger\ncategory: movie\nitems:\n${rows(10_001)}\n`)
+    const over = await fromFile(`title: Bigger\ncategory: movie\nitems:\n${rows(50_001)}\n`)
 
     expect(over.statusCode).toBe(400)
-    expect(over.json().params.detail).toMatch(/10001 items.*at most 10000/)
-  }, 30_000)
+    expect(over.json().params.detail).toMatch(/50001 items.*at most 50000/)
+    // A list a little over the OLD ceiling now imports.
+    expect((await fromFile(`title: Big\ncategory: movie\nitems:\n${rows(12_000)}\n`)).statusCode).toBe(201)
+  }, 60_000)
 
   it('rejects an unknown category with the same code the search-based path uses', async () => {
     const response = await fromFile(

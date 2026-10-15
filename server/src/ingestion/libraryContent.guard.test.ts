@@ -123,7 +123,7 @@ describe('the rules for a list file, proven on hostile fixtures', () => {
     ['a description that is too long', file('  - title: A', `title: T\ndescription: ${'d'.repeat(1001)}`), /parser refuses.*"description" is over/],
     ['too many tags', one(`    tags: [${Array.from({ length: 21 }, (_, n) => `t${n}`).join(', ')}]`), /parser refuses.*"tags"/],
     ['a tag that is too long', one(`    tags: [${'t'.repeat(65)}]`), /parser refuses.*entry 1 is over 64/],
-    ['too many items', file(Array.from({ length: 10_001 }, (_, n) => `  - title: i${n}`).join('\n')), /parser refuses.*10001 items/],
+    ['too many items', file(Array.from({ length: 50_001 }, (_, n) => `  - title: i${n}`).join('\n')), /parser refuses.*50001 items/],
     ['a file that is too big', file(`  - title: A\n    notes: "${'n'.repeat(1000)}"\n`.repeat(300)), /bytes/],
   ])('refuse %s', (_name, text, expected) => {
     expect(listFileProblems(text).join(' | ')).toMatch(expected)

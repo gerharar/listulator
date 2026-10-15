@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   DESCRIPTION_MAX_LENGTH,
   LIST_FILE_MAX_CHARS,
+  MAX_CONNECTOR_ITEMS,
   MAX_LIST_ITEMS,
   MINUTES_RANGE,
   NAME_MAX_LENGTH,
@@ -68,7 +69,7 @@ describe('validYear', () => {
 
 describe('the sizes a list may have', () => {
   it('are the ones the library guard test has held its lists to, with the parser now holding every file to them', () => {
-    expect([NAME_MAX_LENGTH, DESCRIPTION_MAX_LENGTH, TAGS_MAX, TAG_MAX_LENGTH, MAX_LIST_ITEMS]).toEqual([255, 1_000, 20, 64, 10_000])
-    expect(LIST_FILE_MAX_CHARS).toBe(4 * 1024 * 1024)
+    expect([NAME_MAX_LENGTH, DESCRIPTION_MAX_LENGTH, TAGS_MAX, TAG_MAX_LENGTH, MAX_LIST_ITEMS, MAX_CONNECTOR_ITEMS]).toEqual([255, 1_000, 20, 64, 50_000, 10_000])
+    expect(LIST_FILE_MAX_CHARS).toBe(16 * 1024 * 1024)
   })
 })

@@ -27,7 +27,7 @@ import {
   type ParsedCustomList,
 } from './customLists.js'
 import { createListItems, discardList, itemFromFile, itemFromSource } from '../catalog/bulkItems.js'
-import { MAX_LIST_ITEMS } from '../catalog/limits.js'
+import { LIST_FILE_MAX_CHARS, MAX_CONNECTOR_ITEMS } from '../catalog/limits.js'
 import { knownRuntimes, withKnownRuntimes } from '../catalog/runtimes.js'
 import { enrichPrefixesByMediaType } from '../catalog/runtimeFill.js'
 import { seedGroupOrder } from '../catalog/groups.js'
@@ -408,8 +408,8 @@ export const ingestionRoutes: FastifyPluginAsync<IngestionRoutesOptions> = async
       if (candidates.length === 0) {
         return sendApiError(reply, 422, 'list.sourceEmpty', { title })
       }
-      if (candidates.length > MAX_LIST_ITEMS) {
-        return sendApiError(reply, 422, 'list.sourceTooLarge', { title, count: candidates.length, max: MAX_LIST_ITEMS })
+      if (candidates.length > MAX_CONNECTOR_ITEMS) {
+        return sendApiError(reply, 422, 'list.sourceTooLarge', { title, count: candidates.length, max: MAX_CONNECTOR_ITEMS })
       }
 
       const list = await createList(db, user.id, {
@@ -472,15 +472,15 @@ export const ingestionRoutes: FastifyPluginAsync<IngestionRoutesOptions> = async
   app.post<{ Body: { yaml: string } }>(
     '/lists/from-file',
     {
-      // The design says an import has no ceiling ("if it parses, it imports").
-      // 10 MB is far past any real list and only guards against a wrong file.
-      bodyLimit: 10 * 1024 * 1024,
+      // The design says an import has no ceiling ("if it parses, it imports"): the limit is the file's own, `LIST_FILE_MAX_CHARS`
+      // (16 MiB, room for 50,000 items), plus what JSON escaping adds to the string. It only guards against a wrong file.
+      bodyLimit: LIST_FILE_MAX_CHARS + 2 * 1024 * 1024,
       schema: {
         body: {
           type: 'object',
           required: ['yaml'],
           additionalProperties: false,
-          properties: { yaml: { type: 'string', minLength: 1, maxLength: 10 * 1024 * 1024 } },
+          properties: { yaml: { type: 'string', minLength: 1, maxLength: LIST_FILE_MAX_CHARS } },
         },
       },
     },
@@ -616,8 +616,8 @@ export const ingestionRoutes: FastifyPluginAsync<IngestionRoutesOptions> = async
         upstream = await (listingMode ? adapter.expand(list.externalRef, listingMode) : adapter.expand(list.externalRef))
 
         // A source that has grown past what a list holds is refused, as on Add list: never cut short.
-        if (upstream.items.length > MAX_LIST_ITEMS) {
-          return sendApiError(reply, 422, 'list.sourceTooLarge', { title: list.title, count: upstream.items.length, max: MAX_LIST_ITEMS })
+        if (upstream.items.length > MAX_CONNECTOR_ITEMS) {
+          return sendApiError(reply, 422, 'list.sourceTooLarge', { title: list.title, count: upstream.items.length, max: MAX_CONNECTOR_ITEMS })
         }
       }
       const upstreamItems = upstream.items

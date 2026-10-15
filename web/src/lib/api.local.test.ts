@@ -734,7 +734,7 @@ describe('the desktop refuses a hostile list file before anything is made', () =
     ['negative minutes', file('    minutes: -5'), /"minutes" must be a whole number/],
     ['a year of 1e308', file('    year: 1e308'), /"year" must be a whole number/],
     ['200,000 items', `title: T\ncategory: movie\nitems:\n${'  - title: i\n'.repeat(200_000)}`, /200000 items/],
-    ['a file over 4 MiB', `title: T\ncategory: movie\nitems:\n  - title: A\n#${'x'.repeat(4 * 1024 * 1024)}`, /over 4 MiB/],
+    ['a file over 16 MiB', `title: T\ncategory: movie\nitems:\n  - title: A\n#${'x'.repeat(16 * 1024 * 1024)}`, /over 16 MiB/],
     ['a right-to-left override', file('    group: "Safe\\u202Etxt.exe"'), /direction-changing/],
     ['a NUL in the notes', file('    notes: "a\\u0000b"'), /control character/],
   ])('answers 400 for %s and creates no list', async (_name, yaml, expected) => {
@@ -745,6 +745,26 @@ describe('the desktop refuses a hostile list file before anything is made', () =
     await expect(api.createFromFile({ yaml })).rejects.toMatchObject({ status: 400, code: 'list.fileInvalid', message: expect.stringMatching(expected) })
     expect(await api.lists()).toEqual([])
   })
+
+  it('builds a list of exactly 50,000 items, as the server does, and keeps them all in order (25.0a)', async () => {
+    registryHolder.current = [movieType(filmSource().adapter)]
+    const { local } = await freshModules()
+    const api = local.createLocalApi()
+    const rows = Array.from({ length: 50_000 }, (_, n) => `  - { title: "Issue ${n}", year: ${1960 + (n % 60)}, minutes: ${20 + (n % 90)}, group: "Volume ${Math.floor(n / 500)}" }`).join('\n')
+
+    const made = await api.createFromFile({ yaml: `title: Huge\ncategory: movie\nitems:\n${rows}\n` })
+
+    const list = await api.list(made.id)
+    expect(list.items).toHaveLength(50_000)
+    expect(list.items[0]!.title).toBe('Issue 0')
+    expect(list.items[49_999]!.title).toBe('Issue 49999')
+    expect(list.groups).toHaveLength(100)
+    await expect(api.createFromFile({ yaml: `title: Huge\ncategory: movie\nitems:\n${rows}\n  - title: one too many\n` })).rejects.toMatchObject({
+      status: 400,
+      code: 'list.fileInvalid',
+      message: expect.stringMatching(/50001 items/),
+    })
+  }, 180_000)
 
   it('still creates an ordinary list', async () => {
     registryHolder.current = [movieType(filmSource().adapter)]

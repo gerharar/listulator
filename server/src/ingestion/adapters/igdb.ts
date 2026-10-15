@@ -2,7 +2,7 @@ import { delay, getJson, UnauthorizedError, withRetries, type FetchLike } from '
 import type { ListSource, MediaTypeCandidate, SearchAdapter } from '../mediaTypes.js'
 import { itemsOnly } from '../expansion.js'
 import { igdbGameUrl } from '../itemPages.js'
-import { MAX_LIST_ITEMS } from '../../catalog/limits.js'
+import { MAX_CONNECTOR_ITEMS } from '../../catalog/limits.js'
 import { createPacer, type RateLimiter } from '../rateLimiter.js'
 import { MAX_ITEM_TAGS } from '../../catalog/facets.js'
 import { igdbPlatformCode, PLATFORM_ORDER, platformKey } from '../../catalog/platforms.js'
@@ -497,7 +497,7 @@ export function createIgdbAdapter(
             (game) => game.name && !((game.game_type ?? MAIN_GAME) === MAIN_GAME && looksLikeAnEdition(game.name)),
           ),
         )
-        if (page.length < PAGE_SIZE || usable.length > MAX_LIST_ITEMS) break
+        if (page.length < PAGE_SIZE || usable.length > MAX_CONNECTOR_ITEMS) break
       }
 
       // Oldest first; games sharing a day keep the id order the pages came in (the sort is stable).

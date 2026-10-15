@@ -1,4 +1,4 @@
-import { MAX_LIST_ITEMS } from '../../catalog/limits.js'
+import { MAX_CONNECTOR_ITEMS } from '../../catalog/limits.js'
 import { delay, getJson, withRetries, type FetchLike } from '../http.js'
 import { validYear } from '../../catalog/limits.js'
 import type { ListSource, MediaTypeCandidate, SearchAdapter } from '../mediaTypes.js'
@@ -406,7 +406,7 @@ export function createYouTubeAdapter(
         }
 
         pageToken = response.nextPageToken
-        if (!pageToken || videos.length > MAX_LIST_ITEMS) break
+        if (!pageToken || videos.length > MAX_CONNECTOR_ITEMS) break
       }
 
       const ordered = newestFirst ? videos.reverse() : videos
@@ -417,7 +417,7 @@ export function createYouTubeAdapter(
       const ids = ordered.map((video) => video.id).filter((value): value is string => Boolean(value))
       const batches: string[][] = []
 
-      if (ordered.length <= MAX_LIST_ITEMS) {
+      if (ordered.length <= MAX_CONNECTOR_ITEMS) {
         for (let index = 0; index < ids.length; index += PAGE_SIZE) batches.push(ids.slice(index, index + PAGE_SIZE))
       }
 

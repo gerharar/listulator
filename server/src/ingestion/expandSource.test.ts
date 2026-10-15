@@ -1,22 +1,24 @@
 import { describe, expect, it, vi } from 'vitest'
-import { MAX_LIST_ITEMS } from '../catalog/limits.js'
+import { MAX_CONNECTOR_ITEMS, MAX_LIST_ITEMS } from '../catalog/limits.js'
 import { checkListSize, countSource, expandSource, ListTooLargeError } from './expandSource.js'
 import type { MediaTypeCandidate, SearchAdapter } from './mediaTypes.js'
 import { refForAdapter } from './sourceRef.js'
 
 const items = (count: number): MediaTypeCandidate[] => Array.from({ length: count }, (_, index) => ({ title: `Item ${index + 1}` }))
 
-describe('the ceiling on a list (15.9)', () => {
-  it('is ten thousand items', () => {
-    expect(MAX_LIST_ITEMS).toBe(10_000)
+describe('the ceiling on a list (15.9, split 2026-10-15)', () => {
+  it('is fifty thousand items for a file or a canonical list, and ten thousand for what a connector reads', () => {
+    expect(MAX_LIST_ITEMS).toBe(50_000)
+    expect(MAX_CONNECTOR_ITEMS).toBe(10_000)
+    expect(MAX_CONNECTOR_ITEMS).toBeLessThanOrEqual(MAX_LIST_ITEMS)
   })
 
   it('lets a source of exactly the ceiling through, and fails loudly one item above it, naming the count', () => {
-    expect(() => checkListSize(MAX_LIST_ITEMS)).not.toThrow()
+    expect(() => checkListSize(MAX_CONNECTOR_ITEMS)).not.toThrow()
 
     const error = (() => {
       try {
-        checkListSize(MAX_LIST_ITEMS + 1)
+        checkListSize(MAX_CONNECTOR_ITEMS + 1)
       } catch (caught) {
         return caught
       }
@@ -80,10 +82,10 @@ describe('a count that costs less than a listing (YouTube audit)', () => {
   })
 
   it('refuses a source above the ceiling by its count, as the listing would', async () => {
-    const error = await countSource(movie({ ...base, count: async () => MAX_LIST_ITEMS + 1 }), 'x', {}).catch((caught: unknown) => caught)
+    const error = await countSource(movie({ ...base, count: async () => MAX_CONNECTOR_ITEMS + 1 }), 'x', {}).catch((caught: unknown) => caught)
 
     expect(error).toBeInstanceOf(ListTooLargeError)
-    expect(error).toMatchObject({ count: MAX_LIST_ITEMS + 1 })
-    expect(await countSource(movie({ ...base, count: async () => MAX_LIST_ITEMS }), 'x', {})).toBe(MAX_LIST_ITEMS)
+    expect(error).toMatchObject({ count: MAX_CONNECTOR_ITEMS + 1 })
+    expect(await countSource(movie({ ...base, count: async () => MAX_CONNECTOR_ITEMS }), 'x', {})).toBe(MAX_CONNECTOR_ITEMS)
   })
 })

@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { MAX_LIST_ITEMS } from '../../catalog/limits.js'
+import { MAX_CONNECTOR_ITEMS } from '../../catalog/limits.js'
 import { IngestionError, type FetchLike } from '../http.js'
 import { createYouTubeAdapter, parseIsoDuration, parseYouTubeInput } from './youtube.js'
 
@@ -648,20 +648,20 @@ describe('YouTube adapter', () => {
     it('stops paging once it is past what a list can hold, and spends nothing on lengths', async () => {
       // The shared size check refuses the list; fetching its lengths first would cost about two hundred
       // quota units for nothing.
-      const fetchImpl = channelOf(MAX_LIST_ITEMS + 500)
+      const fetchImpl = channelOf(MAX_CONNECTOR_ITEMS + 500)
       const { items } = await createYouTubeAdapter(credentials, fetchImpl).expand('channel:UC1')
       const calls = vi.mocked(fetchImpl).mock.calls.map(([url]) => new URL(url).pathname.split('/').pop())
 
-      expect(items.length).toBeGreaterThan(MAX_LIST_ITEMS)
-      expect(items.length).toBeLessThan(MAX_LIST_ITEMS + 500)
+      expect(items.length).toBeGreaterThan(MAX_CONNECTOR_ITEMS)
+      expect(items.length).toBeLessThan(MAX_CONNECTOR_ITEMS + 500)
       expect(calls.filter((call) => call === 'videos')).toHaveLength(0)
-      expect(calls.filter((call) => call === 'playlistItems')).toHaveLength(Math.ceil((MAX_LIST_ITEMS + 1) / 50))
+      expect(calls.filter((call) => call === 'playlistItems')).toHaveLength(Math.ceil((MAX_CONNECTOR_ITEMS + 1) / 50))
     })
 
     it('keeps a list of exactly the most a list can hold, lengths included', async () => {
-      const { items } = await createYouTubeAdapter(credentials, channelOf(MAX_LIST_ITEMS)).expand('channel:UC1')
+      const { items } = await createYouTubeAdapter(credentials, channelOf(MAX_CONNECTOR_ITEMS)).expand('channel:UC1')
 
-      expect(items).toHaveLength(MAX_LIST_ITEMS)
+      expect(items).toHaveLength(MAX_CONNECTOR_ITEMS)
       expect(items.every((item) => item.timeToConsumeMinutes === 7)).toBe(true)
     })
 

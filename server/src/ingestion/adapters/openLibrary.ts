@@ -1,4 +1,4 @@
-import { MAX_LIST_ITEMS } from '../../catalog/limits.js'
+import { MAX_CONNECTOR_ITEMS } from '../../catalog/limits.js'
 import { dedupeByTitle } from '../dedupe.js'
 import { ListTooLargeError } from '../expandSource.js'
 import { delay, getJson, withRetries, type FetchLike } from '../http.js'
@@ -27,7 +27,7 @@ const PAGE_SIZE = 1000
  * The most works one author's listing reads, whatever the filters later keep: twenty pages, about half a minute.
  * An author with more (an "Anonymous" record holds many times this) is refused as too large, after one request.
  */
-const MAX_WORKS_READ = 2 * MAX_LIST_ITEMS
+const MAX_WORKS_READ = 2 * MAX_CONNECTOR_ITEMS
 /**
  * Open Library's documented rate is one request a second for an anonymous client, three for one that identifies
  * itself with a contact email or phone in its `User-Agent`. Ours names the project's repository, not a contact, so

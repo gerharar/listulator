@@ -10,12 +10,22 @@
 export const NAME_MAX_LENGTH = 255
 
 /**
- * The most items one list can be built with (task 15.9, owner: built lists are uncapped, but not without
- * end). A source above it is refused with a sentence naming the source and how many items it has, in the
- * count, the Preview and Add list alike, and never cut short without a word. Ten thousand is where one
- * list stops being a thing a person can finish and where TMDB's own discover paging ends (500 pages of 20).
+ * The most items one list can hold when it is made from a list file or a canonical (library) list: fifty thousand (owner,
+ * 2026-10-15: real lists of about 32,000 items; it was ten thousand, task 15.9, SR-019). A file above it is refused whole, with
+ * a sentence naming the count and the ceiling, never cut short. Every limit that scales with it is held to it by
+ * `listCap.test.ts` (`LIST_FILE_MAX_CHARS`, the library's file size, the from-file request body): raise them together.
+ * What a CONNECTOR reads is a separate, smaller number, `MAX_CONNECTOR_ITEMS`.
  */
-export const MAX_LIST_ITEMS = 10_000
+export const MAX_LIST_ITEMS = 50_000
+
+/**
+ * The most a connector (TMDB, IGDB, Comic Vine, MusicBrainz, Open Library, YouTube, ...) reads for one source, and so the
+ * most a list built from one holds: ten thousand, where TMDB's own paging ends (500 pages of 20) and where the others'
+ * request counts, rate limits and waits stay reasonable (Open Library took 16.7 s per 10,000 works, a YouTube channel costs
+ * a request per 50 videos of a daily quota). Not raised with `MAX_LIST_ITEMS`: a bigger list comes from a file or the library,
+ * never from asking an upstream service for five times as much.
+ */
+export const MAX_CONNECTOR_ITEMS = 10_000
 
 
 /**
@@ -41,10 +51,11 @@ export const TAGS_MAX = 20
 export const TAG_MAX_LENGTH = 64
 
 /**
- * The most text a list file may be, as read: the largest committed list is 45 KB and a list of `MAX_LIST_ITEMS` items with
- * a line or two each is about a megabyte. A file over this is refused before it is parsed (a desktop import had no limit).
+ * The most text a list file may be, as read: the largest committed list is 45 KB, and a list of `MAX_LIST_ITEMS` (50,000) items
+ * with a line of about 150 characters each is about 7.5 MB; sixteen MiB leaves room for longer notes and titles. A file over this
+ * is refused before it is parsed (a desktop import had no limit, SR-019). It is also the limit of the from-file request.
  */
-export const LIST_FILE_MAX_CHARS = 4 * 1024 * 1024
+export const LIST_FILE_MAX_CHARS = 16 * 1024 * 1024
 
 const wholeWithin = (value: unknown, [min, max]: readonly [number, number]): number | undefined =>
   typeof value === 'number' && Number.isInteger(value) && value >= min && value <= max ? value : undefined

@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { MAX_LIST_ITEMS } from '../../catalog/limits.js'
+import { MAX_CONNECTOR_ITEMS } from '../../catalog/limits.js'
 import { IngestionError, UnauthorizedError, type FetchLike } from '../http.js'
 import { createRateLimiter, type RateLimiter } from '../rateLimiter.js'
 import { createComicVineAdapter } from './comicVine.js'
@@ -245,19 +245,19 @@ describe('a long volume', () => {
   })
 
   it('stops paging once past what a list can hold, handing back what it has for the size check to refuse', async () => {
-    const fetchImpl = volumeOf(MAX_LIST_ITEMS + 1000)
+    const fetchImpl = volumeOf(MAX_CONNECTOR_ITEMS + 1000)
     const { items } = await createComicVineAdapter(credentials, fetchImpl).expand('volume:1')
 
-    expect(items.length).toBeGreaterThan(MAX_LIST_ITEMS)
-    expect(items.length).toBeLessThanOrEqual(MAX_LIST_ITEMS + 100)
-    expect(fetchImpl).toHaveBeenCalledTimes(Math.floor(MAX_LIST_ITEMS / 100) + 1)
+    expect(items.length).toBeGreaterThan(MAX_CONNECTOR_ITEMS)
+    expect(items.length).toBeLessThanOrEqual(MAX_CONNECTOR_ITEMS + 100)
+    expect(fetchImpl).toHaveBeenCalledTimes(Math.floor(MAX_CONNECTOR_ITEMS / 100) + 1)
   })
 
   it('keeps a volume of exactly the most a list can hold', async () => {
-    const fetchImpl = volumeOf(MAX_LIST_ITEMS)
+    const fetchImpl = volumeOf(MAX_CONNECTOR_ITEMS)
 
-    expect((await createComicVineAdapter(credentials, fetchImpl).expand('volume:1')).items).toHaveLength(MAX_LIST_ITEMS)
-    expect(fetchImpl).toHaveBeenCalledTimes(MAX_LIST_ITEMS / 100)
+    expect((await createComicVineAdapter(credentials, fetchImpl).expand('volume:1')).items).toHaveLength(MAX_CONNECTOR_ITEMS)
+    expect(fetchImpl).toHaveBeenCalledTimes(MAX_CONNECTOR_ITEMS / 100)
   })
 })
 

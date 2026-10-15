@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { MAX_LIST_ITEMS } from '../../catalog/limits.js'
+import { MAX_CONNECTOR_ITEMS } from '../../catalog/limits.js'
 import { ListTooLargeError } from '../expandSource.js'
 import { IngestionError, USER_AGENT, type FetchLike } from '../http.js'
 import { createRateLimiter, type RateLimiter } from '../rateLimiter.js'
@@ -525,11 +525,11 @@ describe('MusicBrainz adapter', () => {
     })
 
     it('reads exactly the most a list holds: ten thousand groups, a hundred pages of browse', async () => {
-      const { calls, fetchImpl } = musicBrainz(studioAlbums(MAX_LIST_ITEMS))
+      const { calls, fetchImpl } = musicBrainz(studioAlbums(MAX_CONNECTOR_ITEMS))
 
       const { items } = await createMusicBrainzAdapter(fetchImpl).expand('af8e4cc5')
 
-      expect(items).toHaveLength(MAX_LIST_ITEMS)
+      expect(items).toHaveLength(MAX_CONNECTOR_ITEMS)
       expect(browseCalls(calls)).toHaveLength(100)
     })
 
@@ -569,13 +569,13 @@ describe('MusicBrainz adapter', () => {
 
     it('refuses a source with more matches than a list holds, after one request', async () => {
       const fetchImpl: FetchLike = vi.fn(
-        async () => new Response(JSON.stringify({ count: MAX_LIST_ITEMS + 1, 'release-groups': studioAlbums(100) })),
+        async () => new Response(JSON.stringify({ count: MAX_CONNECTOR_ITEMS + 1, 'release-groups': studioAlbums(100) })),
       )
 
       const error = await createMusicBrainzAdapter(fetchImpl).expand('af8e4cc5').catch((cause: unknown) => cause)
 
       expect(error).toBeInstanceOf(ListTooLargeError)
-      expect(error).toMatchObject({ count: MAX_LIST_ITEMS + 1 })
+      expect(error).toMatchObject({ count: MAX_CONNECTOR_ITEMS + 1 })
       expect(fetchImpl).toHaveBeenCalledTimes(1)
     })
 
@@ -584,7 +584,7 @@ describe('MusicBrainz adapter', () => {
       const fetchImpl: FetchLike = vi.fn(async (url: string) =>
         new URL(url).searchParams.has('query')
           ? new Response(JSON.stringify({ count: 600, 'release-groups': studioAlbums(100) }))
-          : new Response(JSON.stringify({ 'release-group-count': MAX_LIST_ITEMS + 1, 'release-groups': studioAlbums(100) })),
+          : new Response(JSON.stringify({ 'release-group-count': MAX_CONNECTOR_ITEMS + 1, 'release-groups': studioAlbums(100) })),
       )
 
       const error = await createMusicBrainzAdapter(fetchImpl).expand('af8e4cc5').catch((cause: unknown) => cause)

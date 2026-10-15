@@ -1,4 +1,4 @@
-import { MAX_LIST_ITEMS } from '../../catalog/limits.js'
+import { MAX_CONNECTOR_ITEMS } from '../../catalog/limits.js'
 import { delay, getJson, IngestionError, withRetries, type FetchLike } from '../http.js'
 import { createRateLimiter, type RateLimiter } from '../rateLimiter.js'
 import { ListTooLargeError } from '../expandSource.js'
@@ -35,7 +35,7 @@ const SEARCH_PAGE_SIZE = 20
  * The most release groups a browse reads, matching or not (a browse cannot leave out a live album, so an artist's
  * whole catalogue is read to find the studio ones): a hundred pages, about two minutes at one request a second.
  */
-const MAX_GROUPS_READ = MAX_LIST_ITEMS
+const MAX_GROUPS_READ = MAX_CONNECTOR_ITEMS
 
 interface ArtistSearchResponse {
   /** How many artists match, exactly (7,145 for "smith"), not how many the answer holds. */
@@ -290,7 +290,7 @@ export function createMusicBrainzAdapter(
       const found = first['release-groups'] ?? []
       // No count: the page in hand is all there is.
       const total = first.count ?? 0
-      if (total > MAX_LIST_ITEMS) throw new ListTooLargeError(total)
+      if (total > MAX_CONNECTOR_ITEMS) throw new ListTooLargeError(total)
 
       let groups = found
       if (total > SEARCH_WINDOW) {

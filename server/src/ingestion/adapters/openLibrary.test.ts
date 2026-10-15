@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { MAX_LIST_ITEMS } from '../../catalog/limits.js'
+import { MAX_CONNECTOR_ITEMS } from '../../catalog/limits.js'
 import { ListTooLargeError } from '../expandSource.js'
 import { IngestionError, type FetchLike } from '../http.js'
 import type { RateLimiter } from '../rateLimiter.js'
@@ -420,24 +420,24 @@ describe('Open Library adapter', () => {
     })
 
     it('refuses an author with more works than it will read, after one request', async () => {
-      const { calls, fetchImpl } = author(2 * MAX_LIST_ITEMS + 1)
+      const { calls, fetchImpl } = author(2 * MAX_CONNECTOR_ITEMS + 1)
 
       const error = await createOpenLibraryAdapter(fetchImpl).expand('author:OL1A').catch((cause: unknown) => cause)
 
       expect(error).toBeInstanceOf(ListTooLargeError)
-      expect(error).toMatchObject({ count: 2 * MAX_LIST_ITEMS + 1 })
+      expect(error).toMatchObject({ count: 2 * MAX_CONNECTOR_ITEMS + 1 })
       expect(calls).toHaveLength(1)
     })
 
     it('reads exactly as many as it will: twenty thousand works, twenty pages', async () => {
-      const { calls, fetchImpl } = author(2 * MAX_LIST_ITEMS)
+      const { calls, fetchImpl } = author(2 * MAX_CONNECTOR_ITEMS)
 
-      expect((await createOpenLibraryAdapter(fetchImpl).expand('author:OL1A')).items).toHaveLength(2 * MAX_LIST_ITEMS)
+      expect((await createOpenLibraryAdapter(fetchImpl).expand('author:OL1A')).items).toHaveLength(2 * MAX_CONNECTOR_ITEMS)
       expect(calls).toHaveLength(20)
     })
 
     it('stops reading an endless answer that names no total, rather than reading on', async () => {
-      const { calls, fetchImpl } = author(10 * MAX_LIST_ITEMS, { withTotal: false })
+      const { calls, fetchImpl } = author(10 * MAX_CONNECTOR_ITEMS, { withTotal: false })
 
       const error = await createOpenLibraryAdapter(fetchImpl).expand('author:OL1A').catch((cause: unknown) => cause)
 
@@ -446,9 +446,9 @@ describe('Open Library adapter', () => {
     })
 
     it('does not cut a list above the ceiling: whoever asked refuses it, with the real count', async () => {
-      const { fetchImpl } = author(MAX_LIST_ITEMS + 500)
+      const { fetchImpl } = author(MAX_CONNECTOR_ITEMS + 500)
 
-      expect((await createOpenLibraryAdapter(fetchImpl).expand('author:OL1A')).items).toHaveLength(MAX_LIST_ITEMS + 500)
+      expect((await createOpenLibraryAdapter(fetchImpl).expand('author:OL1A')).items).toHaveLength(MAX_CONNECTOR_ITEMS + 500)
     })
 
     it('keeps what a language filter keeps of an author too large unfiltered', async () => {

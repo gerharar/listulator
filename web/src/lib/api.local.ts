@@ -34,7 +34,7 @@ import {
 import { createListItems, discardList, itemFromFile, itemFromSource } from '../../../server/src/catalog/bulkItems.js'
 import { InvalidMinutesError } from '../../../server/src/catalog/durations.js'
 import { InvalidNoteError } from '../../../server/src/catalog/userNotes.js'
-import { MAX_LIST_ITEMS } from '../../../server/src/catalog/limits.js'
+import { MAX_CONNECTOR_ITEMS } from '../../../server/src/catalog/limits.js'
 import { knownRuntimes, withKnownRuntimes, withRuntimePending } from '../../../server/src/catalog/runtimes.js'
 import { withLinks } from '../../../server/src/catalog/itemLinks.js'
 import { InvalidYearError } from '../../../server/src/catalog/years.js'
@@ -912,7 +912,7 @@ export function createLocalApi(): ApiClient {
       if (candidates.length === 0) {
         throw new ApiError(copy.errors['list.sourceEmpty']({ title }), 422, 'list.sourceEmpty')
       }
-      if (candidates.length > MAX_LIST_ITEMS) throw tooLarge({ title, count: candidates.length, max: MAX_LIST_ITEMS })
+      if (candidates.length > MAX_CONNECTOR_ITEMS) throw tooLarge({ title, count: candidates.length, max: MAX_CONNECTOR_ITEMS })
 
       const list = await repoCreateList(database, userId, {
         title,
@@ -1058,8 +1058,8 @@ export function createLocalApi(): ApiClient {
         upstream = await (listingMode ? adapter.expand(list.externalRef, listingMode) : adapter.expand(list.externalRef))
 
         // A source that has grown past what a list holds is refused, as on Add list.
-        if (upstream.items.length > MAX_LIST_ITEMS) {
-          throw tooLarge({ title: list.title, count: upstream.items.length, max: MAX_LIST_ITEMS })
+        if (upstream.items.length > MAX_CONNECTOR_ITEMS) {
+          throw tooLarge({ title: list.title, count: upstream.items.length, max: MAX_CONNECTOR_ITEMS })
         }
       }
       const upstreamItems = upstream.items
