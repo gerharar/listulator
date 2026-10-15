@@ -82,7 +82,7 @@
   border: 0;
   border-bottom: 1px solid var(--line);
   background: none;
-  font: 600 14px/1.2 var(--font);
+  font: 600 14px/1.2 var(--font-sans);
   color: var(--ink);
   text-align: left;
   cursor: pointer;
@@ -96,7 +96,7 @@
   flex: none;
   width: 20px;
   text-align: center;
-  font: 500 15px/1 var(--font);
+  font: 500 15px/1 var(--font-sans);
   color: var(--ink2);
   transition: transform 140ms ease;
 }

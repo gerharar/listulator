@@ -19,7 +19,7 @@
 .q-item .tags { flex: none; display: flex; align-items: center; gap: 6px; margin-right: 12px; }
 .q-item .body { flex: 0 1 auto; min-width: 0; display: flex; align-items: center; gap: 9px; height: 46px; }
 .q-item .tt { flex: 0 1 auto; min-width: 0; display: flex; align-items: baseline; gap: 7px; }
-.q-item .title { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: 400 15px/1.2 var(--font); }
+.q-item .title { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: 400 15px/1.2 var(--font-sans); }
 .q-item .spacer { flex: 1; min-width: 8px; }
 .q-mins { flex: none; margin-left: 14px; width: 7ch; font: 500 12px/1 var(--font-mono); font-variant-numeric: tabular-nums; white-space: nowrap; text-align: right; color: var(--ink2); }
 .q-mins.pending { color: var(--ink3); }
@@ -27,10 +27,10 @@
 .q-group.complete { color: var(--ink2); }
 .q-group.complete::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: var(--ink2); }
 .q-group .q-handle { height: 26px; }
-.q-chev { flex: none; width: 20px; text-align: center; font: 500 15px/1 var(--font); color: var(--ink2); transition: transform 140ms ease; }
+.q-chev { flex: none; width: 20px; text-align: center; font: 500 15px/1 var(--font-sans); color: var(--ink2); transition: transform 140ms ease; }
 .q-group[aria-expanded=false] .q-chev { transform: rotate(-90deg); }
 .q-group .name { flex: 1; min-width: 0; display: flex; align-items: baseline; gap: 7px; }
-.q-group .name b { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: 600 15px/1.15 var(--font); letter-spacing: .01em; }
+.q-group .name b { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: 600 15px/1.15 var(--font-sans); letter-spacing: .01em; }
 .q-group .gcount { flex: none; font: 500 12px/1 var(--font-mono); font-variant-numeric: tabular-nums; color: var(--ink2); }
 .q-group-delete { flex: none; display: flex; align-items: center; gap: 6px; padding: 4px 8px; border: 1px solid var(--line); background: transparent; color: var(--ink2); font: 600 11px/1 var(--font-mono); letter-spacing: .08em; text-transform: uppercase; white-space: nowrap; cursor: pointer; }
 .q-group-delete:hover { color: var(--ink); border-color: var(--rule); }
@@ -38,7 +38,7 @@
 .q-group .q-group-remove { flex: none; height: 26px; margin-right: -10px; } /* the handle's height: a row-size button is 46px and would fatten the row */
 /* Rename (11.18): the pencil is the handle's height so it does not fatten the row; the editor is as tall as the name. */
 .q-group .q-group-rename { flex: none; width: 26px; height: 26px; margin-left: -4px; }
-.q-group-input { flex: 1; min-width: 0; padding: 3px 8px; border: 1px solid var(--rule); background: var(--field); color: var(--ink); font: 600 15px/1.15 var(--font); letter-spacing: .01em; }
+.q-group-input { flex: 1; min-width: 0; padding: 3px 8px; border: 1px solid var(--rule); background: var(--field); color: var(--ink); font: 600 15px/1.15 var(--font-sans); letter-spacing: .01em; }
 .q-group-input[aria-invalid='true'] { border: 2px solid var(--ink); padding: 2px 7px; }
 /* The refusal of a taken name, under the header (H-006): over the rows below, so nothing moves. */
 .q-group-msg { position: absolute; left: 4px; right: 18px; top: 100%; z-index: 3; padding: 8px 10px; background: var(--card); border: 1px solid var(--line); }

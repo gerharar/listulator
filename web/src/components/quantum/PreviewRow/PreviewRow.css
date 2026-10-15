@@ -15,7 +15,7 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font: 400 15px/1.2 var(--font);
+  font: 400 15px/1.2 var(--font-sans);
 }
 .q-preview-row .tt {
   flex: 1;
