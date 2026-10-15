@@ -668,10 +668,10 @@ export const ru: Locale = {
         editMinutes: 'Длительность (минуты)',
         editYear: 'Год',
         editNote: 'Заметка',
-        notePlaceholder: 'Всё, что хочется запомнить об этом',
+        /** The shortcut is said in the field itself, so nothing appears or goes while it has the cursor (H-003). */
+        notePlaceholderCtrl: 'Всё, что хочется запомнить об этом. Ctrl+Enter сохраняет.',
+        notePlaceholderCmd: 'Всё, что хочется запомнить об этом. ⌘+Enter сохраняет.',
         noteCounter: (used: number, max: number): string => `${used.toLocaleString('ru-RU')} / ${max.toLocaleString('ru-RU')}`,
-        noteHintCtrl: 'Ctrl+Enter сохраняет. Enter — новая строка.',
-        noteHintCmd: '⌘+Enter сохраняет. Enter — новая строка.',
         yearPlaceholder: '1994, 199?',
         titleRequired: 'Элементу нужно название',
         minutesForm: 'Введи минуты (95), часы и минуты (1h 35m) или 1:35',

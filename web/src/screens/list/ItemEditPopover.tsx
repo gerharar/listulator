@@ -3,7 +3,7 @@ import { USER_NOTE_MAX_LENGTH } from '../../../../server/src/catalog/userNotes.j
 import { quitPlatform } from '../../lib/appQuit.js'
 import { filterYearInput, formatYear } from '../../../../server/src/catalog/years.js'
 import './ItemEditPopover.css'
-import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState, type KeyboardEvent } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, type KeyboardEvent } from 'react'
 import type { ItemSourceTags, ListItem } from '../../lib/api.js'
 import { copy } from '../../locale/index.js'
 import { Button } from '../../components/quantum/Button/Button.js'
@@ -88,11 +88,9 @@ export function ItemEditPopover({
   const [minutes, setMinutes] = useState(() => durationFieldText(item))
   const [group, setGroup] = useState(item.group ?? '')
   const [year, setYear] = useState(() => formatYear(item))
-  // The user's own note (H-003): empty for none. The counter shows from 1,800 characters; the hint only while it has focus.
+  // The user's own note (H-003): empty for none. The counter shows from 1,800 characters. The shortcut is in the placeholder.
   const [note, setNote] = useState(item.userNote ?? '')
-  const [noteFocused, setNoteFocused] = useState(false)
   const noteRef = useRef<HTMLTextAreaElement>(null)
-  const noteHintId = useId()
 
   // U5: the tag field's draft. Tags are written only when the field changed them,
   // so an edit of the title never rewrites an old spelling (PC) the item still carries.
@@ -290,21 +288,13 @@ export function ItemEditPopover({
             label={text.editNote}
             value={note}
             onChange={(event) => setNote(event.target.value)}
-            onFocus={() => setNoteFocused(true)}
-            onBlur={() => setNoteFocused(false)}
             rows={4}
             maxLength={USER_NOTE_MAX_LENGTH}
-            placeholder={text.notePlaceholder}
+            placeholder={quitPlatform(navigator.userAgent) === 'mac' ? text.notePlaceholderCmd : text.notePlaceholderCtrl}
             autoFocus={focusNote && !panelOpen}
-            {...(noteFocused ? { 'aria-describedby': noteHintId } : {})}
           />
-          {(noteFocused || note.length >= NOTE_COUNTER_FROM) && (
-            <div className="q-edit-note-meta">
-              <span id={noteHintId}>
-                {noteFocused ? (quitPlatform(navigator.userAgent) === 'mac' ? text.noteHintCmd : text.noteHintCtrl) : ''}
-              </span>
-              {note.length >= NOTE_COUNTER_FROM && <span>{text.noteCounter(note.length, USER_NOTE_MAX_LENGTH)}</span>}
-            </div>
+          {note.length >= NOTE_COUNTER_FROM && (
+            <div className="q-edit-note-meta">{text.noteCounter(note.length, USER_NOTE_MAX_LENGTH)}</div>
           )}
         </div>
         <div className="q-edit-actions" onMouseDown={(event) => event.preventDefault()}>

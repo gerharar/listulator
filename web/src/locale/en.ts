@@ -756,11 +756,11 @@ export const en = {
         editMinutes: 'Duration (Minutes)',
         editYear: 'Year',
         editNote: 'Note',
-        notePlaceholder: 'Anything you want to remember about it',
+        /** The shortcut is said in the field itself, so nothing appears or goes while it has the cursor (H-003). */
+        notePlaceholderCtrl: 'Anything you want to remember about it. Ctrl+Enter saves.',
+        notePlaceholderCmd: 'Anything you want to remember about it. ⌘+Enter saves.',
         /** From 1,800 characters on (H-003); the number is written the way the language writes it. */
         noteCounter: (used: number, max: number): string => `${used.toLocaleString('en-US')} / ${max.toLocaleString('en-US')}`,
-        noteHintCtrl: 'Ctrl+Enter saves. Enter starts a new line.',
-        noteHintCmd: '⌘+Enter saves. Enter starts a new line.',
         yearPlaceholder: '1994, 199?',
         /** Under a field of the Edit window that is wrong (H-004, H-006, H-007). The owner rewords the year's range sentences. */
         titleRequired: 'An item needs a title',

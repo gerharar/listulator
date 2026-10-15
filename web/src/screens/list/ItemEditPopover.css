@@ -32,9 +32,7 @@
   font: 400 14px/1.45 var(--font-sans);
 }
 .q-edit-note-meta {
-  display: flex;
-  justify-content: space-between;
-  gap: 10px;
+  text-align: right;
   font-size: 12px;
   line-height: 1.4;
   color: var(--ink2);

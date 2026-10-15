@@ -38,8 +38,6 @@ test('Enter is a new line and Ctrl+Enter saves: the note is stored with its line
     // Enter did not save: the window is open and nothing is stored.
     await expect(edit).toBeVisible()
     expect(await noteOf(page.request, id)).toBeNull()
-    // The hint is there while the note has the cursor.
-    await expect(edit.getByText(/saves\. Enter starts a new line/)).toBeVisible()
 
     await page.keyboard.press('Control+Enter')
 

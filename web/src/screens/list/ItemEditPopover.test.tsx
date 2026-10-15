@@ -482,7 +482,6 @@ describe('ItemEditPopover: the user’s own note (H-003)', () => {
   const text = copy.quantum.list.itemActions
   const note = () => screen.getByLabelText('Note') as HTMLTextAreaElement
   const noted = { ...ITEM, userNote: 'Watch the Cantonese cut.' }
-  const hint = () => screen.queryByText(/saves\. Enter|speichert\. Enter|сохраняет\. Enter/)
   const counter = () => screen.queryByText(/ \/ 2,048$/)
 
   it('is the last field of the window, under Group: a multi-line field four lines tall, stopping at 2,048', () => {
@@ -491,7 +490,7 @@ describe('ItemEditPopover: the user’s own note (H-003)', () => {
     expect(note().tagName).toBe('TEXTAREA')
     expect(note().rows).toBe(4)
     expect(note().maxLength).toBe(2048)
-    expect(note().placeholder).toBe(text.notePlaceholder)
+    expect(note().placeholder).toBe(text.notePlaceholderCtrl)
     expect(screen.getByLabelText('Group').compareDocumentPosition(note()) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
     const actions = document.querySelector('.q-edit-actions')!
     expect(note().compareDocumentPosition(actions) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
@@ -588,15 +587,28 @@ describe('ItemEditPopover: the user’s own note (H-003)', () => {
       expect(onCommit).toHaveBeenCalledWith({ title: 'Renamed' }, 'save')
     })
 
-    it('shows the hint only while the note has the cursor', () => {
+    it('says in the field itself that Ctrl+Enter saves, and adds nothing to the window while it has the cursor', () => {
       renderPopover()
-      expect(hint()).toBeNull()
+      const before = document.querySelector('.q-pop')!.innerHTML.length
 
       fireEvent.focus(note())
-      expect(hint()).not.toBeNull()
 
-      fireEvent.blur(note())
-      expect(hint()).toBeNull()
+      expect(note().placeholder).toBe(text.notePlaceholderCtrl)
+      expect(text.notePlaceholderCtrl).toContain('Ctrl+Enter')
+      expect(document.querySelector('.q-edit-note-meta')).toBeNull()
+      expect(document.querySelector('.q-pop')!.innerHTML.length).toBe(before)
+    })
+
+    it('names ⌘ in the placeholder on a Mac', () => {
+      const agent = vi.spyOn(navigator, 'userAgent', 'get').mockReturnValue('Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)')
+      try {
+        renderPopover()
+
+        expect(note().placeholder).toBe(text.notePlaceholderCmd)
+        expect(text.notePlaceholderCmd).toContain('⌘+Enter')
+      } finally {
+        agent.mockRestore()
+      }
     })
   })
 

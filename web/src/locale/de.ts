@@ -660,10 +660,10 @@ export const de: Locale = {
         editMinutes: 'Dauer (Minuten)',
         editYear: 'Jahr',
         editNote: 'Notiz',
-        notePlaceholder: 'Alles, was du dir dazu merken willst',
+        /** The shortcut is said in the field itself, so nothing appears or goes while it has the cursor (H-003). */
+        notePlaceholderCtrl: 'Alles, was du dir dazu merken willst. Strg+Enter speichert.',
+        notePlaceholderCmd: 'Alles, was du dir dazu merken willst. ⌘+Enter speichert.',
         noteCounter: (used: number, max: number): string => `${used.toLocaleString('de-DE')} / ${max.toLocaleString('de-DE')}`,
-        noteHintCtrl: 'Strg+Enter speichert. Enter beginnt eine neue Zeile.',
-        noteHintCmd: '⌘+Enter speichert. Enter beginnt eine neue Zeile.',
         yearPlaceholder: '1994, 199?',
         titleRequired: 'Ein Eintrag braucht einen Titel',
         minutesForm: 'Nimm Minuten (95), Stunden und Minuten (1h 35m) oder 1:35',
