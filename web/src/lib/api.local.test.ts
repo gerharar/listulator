@@ -580,6 +580,23 @@ describe('the desktop builds a list at once and fills its lengths afterwards (15
       await expect(api.updateItem(list.id, first!.id, { timeToConsumeMinutes: 100_000 })).rejects.toMatchObject({ status: 400, code: 'item.invalidMinutes' })
     })
 
+    it('keeps an item’s own note as the server does: edited, read with the list, refused over 2,048 characters, and back after a delete is undone (H-003)', async () => {
+      const { api, list } = await builtEarlier(filmSource())
+      const [first] = (await api.list(list.id)).items
+      expect(first!.userNote ?? null).toBeNull()
+
+      expect(await api.updateItem(list.id, first!.id, { userNote: '  Watch the director’s cut  ' })).toMatchObject({ userNote: 'Watch the director’s cut' })
+      expect((await api.list(list.id)).items.find((item) => item.id === first!.id)).toMatchObject({ userNote: 'Watch the director’s cut' })
+      await expect(api.updateItem(list.id, first!.id, { userNote: 'x'.repeat(2049) })).rejects.toMatchObject({ status: 400, code: 'item.noteTooLong' })
+
+      const restore = await api.deleteItem(list.id, first!.id)
+      await api.restoreItem(list.id, restore)
+      expect((await api.list(list.id)).items.find((item) => item.id === first!.id)).toMatchObject({ userNote: 'Watch the director’s cut' })
+
+      await api.updateItem(list.id, first!.id, { userNote: null })
+      expect((await api.list(list.id)).items.find((item) => item.id === first!.id)!.userNote ?? null).toBeNull()
+    })
+
     it('shows how many lengths each list is still waiting for', async () => {
       const { api, list } = await builtEarlier(filmSource())
 

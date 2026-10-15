@@ -213,6 +213,12 @@ export const listItems = sqliteTable(
      */
     notes: text('notes'),
     /**
+     * The user's own note on the item (H-003, BL-043): typed text, a field of its own beside the curator's read-only
+     * `notes` and never anything fetched from a source. At most 2048 characters, trimmed, null for none (enforced in code,
+     * `catalog/userNotes.ts`). Not on `list_snapshots`: a source copy is what the source gave. Cleared by a Reset.
+     */
+    userNote: text('user_note'),
+    /**
      * Arrived with the last refresh and not yet acknowledged (10.17) — the
      * source of "N NEW" and the NEW marks. Set only by the import a refresh's
      * "add what's new" makes; cleared by Mark all seen.

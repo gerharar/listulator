@@ -203,6 +203,7 @@ export const en = {
     'list.alreadyExists': (): string => `Fastest hand in the West detected: this list already exists, so nothing was restored`,
     'item.invalidYear': (): string => "Use four digits, like 1994, or 199? / 19?? if you're unsure of the end",
     'item.invalidMinutes': (): string => 'A duration is a whole number of minutes, from 1 to 99,999',
+    'item.noteTooLong': (): string => 'A note is at most 2,048 characters',
     'group.nameEmpty': (): string => 'A man needs a group name',
     'group.nameTaken': (): string => `Alzheimer's relapse detected: this list already has a group with such name`,
     'group.notEmpty': (): string => 'You can delete a group only when you embrace its emptiness',

@@ -71,6 +71,7 @@ const itemRow = (listId: string, item: ItemPayload) => ({
   tags: item.tags,
   consumedAt: item.consumedAt ? new Date(item.consumedAt) : null,
   notes: item.notes,
+  userNote: item.userNote ?? null,
   isNew: item.isNew ?? false,
   createdAt: new Date(item.createdAt),
   updatedAt: new Date(item.updatedAt),

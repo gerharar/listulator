@@ -75,6 +75,7 @@ import {
   snapshotPayloadSchema,
 } from './restoreSchemas.js'
 import { InvalidMinutesError } from './durations.js'
+import { InvalidNoteError } from './userNotes.js'
 import { NAME_MAX_LENGTH } from './limits.js'
 
 const LIST_SOURCES = ['api', 'llm', 'manual'] as const
@@ -113,6 +114,8 @@ const itemBodyProperties = {
   // Whether the two fit together, and are in range, is the repository's call (400 `item.invalidYear`).
   year: { type: ['integer', 'null'] },
   yearUnk: { type: 'integer', minimum: 0, maximum: 2 },
+  // The user's own note (H-003): the repository decides what is too long once line breaks and spaces are settled (400 `item.noteTooLong`).
+  userNote: { type: ['string', 'null'], maxLength: 8192 },
   // Set by hand in the Edit window or the add row (U5); null or [] clears them.
   tags: { type: ['array', 'null'], maxItems: MAX_ITEM_TAGS, items: { type: 'string', maxLength: 40 } },
 } as const
@@ -316,6 +319,7 @@ export const catalogRoutes: FastifyPluginAsync<CatalogRoutesOptions> = async (
       } catch (cause) {
         if (cause instanceof InvalidYearError) return sendApiError(reply, 400, 'item.invalidYear')
         if (cause instanceof InvalidMinutesError) return sendApiError(reply, 400, 'item.invalidMinutes')
+        if (cause instanceof InvalidNoteError) return sendApiError(reply, 400, 'item.noteTooLong')
         throw cause
       }
     },
@@ -356,6 +360,7 @@ export const catalogRoutes: FastifyPluginAsync<CatalogRoutesOptions> = async (
       } catch (cause) {
         if (cause instanceof InvalidYearError) return sendApiError(reply, 400, 'item.invalidYear')
         if (cause instanceof InvalidMinutesError) return sendApiError(reply, 400, 'item.invalidMinutes')
+        if (cause instanceof InvalidNoteError) return sendApiError(reply, 400, 'item.noteTooLong')
         throw cause
       }
     },

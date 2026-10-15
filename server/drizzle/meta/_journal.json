@@ -148,6 +148,13 @@
       "when": 1792011117525,
       "tag": "0020_item_year_unk",
       "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "6",
+      "when": 1792067369042,
+      "tag": "0021_item_user_note",
+      "breakpoints": true
     }
   ]
 }

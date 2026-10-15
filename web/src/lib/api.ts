@@ -71,6 +71,8 @@ export interface ListItem {
   tags: string[] | null
   /** Curator-authored disambiguation prose, capped at 2048 chars. Read-only in the UI. Null if none. */
   notes: string | null
+  /** The user's own note (H-003, BL-043): a field of its own, trimmed, at most 2048 characters. Null (or absent) if none. */
+  userNote?: string | null
   /** Arrived with the last refresh and not yet marked seen (10.17). */
   isNew: boolean
   /**
@@ -427,6 +429,8 @@ export interface ApiClient {
       group?: string | null
       /** Set by hand (U5); null or [] clears; omit to leave unchanged. */
       tags?: string[] | null
+      /** The user's own note (H-003): a text sets it, null or empty clears it, omit to leave it alone. */
+      userNote?: string | null
     },
   ) => Promise<ListItem>
   /** Renumbers the whole list to this exact id order (task 6.7). */

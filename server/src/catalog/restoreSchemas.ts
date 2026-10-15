@@ -35,6 +35,7 @@ export const itemPayloadSchema = {
     tags: { type: ['array', 'null'], items: { type: 'string', maxLength: 40 }, maxItems: MAX_ITEM_TAGS },
     consumedAt: nullableString,
     notes: { type: ['string', 'null'], maxLength: 2048 },
+    userNote: { type: ['string', 'null'], maxLength: 8192 },
     isNew: { type: 'boolean' },
     createdAt: { type: 'string' },
     updatedAt: { type: 'string' },

@@ -2,6 +2,7 @@ import { and, asc, count, eq, getTableColumns, inArray, or, sql, type SQL } from
 import type { PortableDatabase } from '../db/client.js'
 import { normalizeItemTags } from './facets.js'
 import { InvalidMinutesError } from './durations.js'
+import { normalizeUserNote } from './userNotes.js'
 import { validMinutes } from './limits.js'
 import { InvalidYearError, validYearPair } from './years.js'
 import { listCanBeReset } from './resettable.js'
@@ -100,6 +101,8 @@ export interface CreateListItemInput {
   tags?: string[] | null
   /** Curator-authored disambiguation prose, capped at 2048 chars. Null if none. Never adapter-set. */
   notes?: string | null
+  /** The user's own note (H-003): trimmed, empty is none, at most 2048 characters, else an `InvalidNoteError`. */
+  userNote?: string | null
   /** Arrived with a refresh and not yet seen (10.17). Defaults to false. */
   isNew?: boolean
 }
@@ -119,6 +122,8 @@ export interface UpdateListItemInput {
   group?: string | null
   /** Replace the item's tags (null clears) — omit to leave unchanged (U5). */
   tags?: string[] | null
+  /** The user's own note (H-003): a text sets it, null or empty or spaces clears it, omit to leave it alone. */
+  userNote?: string | null
 }
 
 export async function createList(
@@ -464,6 +469,7 @@ export async function createListItem(
   const year = validYearPair(input.year ?? null, input.yearUnk ?? 0)
   if (!year) throw new InvalidYearError()
   if (validMinutes(input.timeToConsumeMinutes) === undefined) throw new InvalidMinutesError()
+  const userNote = normalizeUserNote(input.userNote)
 
   return await db
     .insert(listItems)
@@ -481,6 +487,7 @@ export async function createListItem(
       group,
       tags: normalizeItemTags(input.tags),
       notes: input.notes ?? null,
+      userNote,
       isNew: input.isNew ?? false,
     })
     .returning()
@@ -533,14 +540,17 @@ export async function updateListItem(
 
   // A year edit sets both halves at once (H-004): a year without its unknown digits is exact, so editing 199? to 1994
   // clears them; the digits without a year, or a pair that does not fit, is refused before anything is written.
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- both halves come back through `yearFields`, checked
-  const { year: _year, yearUnk: _yearUnk, ...rest } = patch
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- both halves come back through `yearFields`, checked, and the note through `noteFields`
+  const { year: _year, yearUnk: _yearUnk, userNote: _userNote, ...rest } = patch
   let yearFields: { year?: number | null; yearUnk?: number } = {}
   if (patch.year !== undefined || patch.yearUnk !== undefined) {
     const year = patch.year === undefined ? undefined : validYearPair(patch.year, patch.yearUnk ?? 0)
     if (!year) throw new InvalidYearError()
     yearFields = { year: year.year, yearUnk: year.yearUnk }
   }
+
+  // The user's own note (H-003), as stored; absent leaves it alone, a note over the limit is refused before anything is written.
+  const noteFields = patch.userNote === undefined ? {} : { userNote: normalizeUserNote(patch.userNote) }
 
   // Joining a label the list has no group for yet makes one (D3), spelled the
   // way the list already spells it.
@@ -552,7 +562,7 @@ export async function updateListItem(
 
   return await db
     .update(listItems)
-    .set({ ...rest, ...yearFields, ...group, ...tags, updatedAt: new Date() })
+    .set({ ...rest, ...yearFields, ...noteFields, ...group, ...tags, updatedAt: new Date() })
     .where(and(eq(listItems.id, itemId), eq(listItems.listId, listId)))
     .returning()
     .get()

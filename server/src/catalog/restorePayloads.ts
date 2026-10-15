@@ -33,6 +33,8 @@ export interface ItemPayload {
   tags: string[] | null
   consumedAt: string | null
   notes: string | null
+  /** The user's own note (H-003). Absent on payloads from before: read as none. */
+  userNote?: string | null
   /** Absent on payloads from before 10.17; read as false. */
   isNew?: boolean
   createdAt: string
@@ -148,6 +150,7 @@ export const toItemPayload = (item: ListItem): ItemPayload => ({
   tags: item.tags,
   consumedAt: item.consumedAt?.toISOString() ?? null,
   notes: item.notes,
+  userNote: item.userNote,
   isNew: item.isNew,
   createdAt: item.createdAt.toISOString(),
   updatedAt: item.updatedAt.toISOString(),

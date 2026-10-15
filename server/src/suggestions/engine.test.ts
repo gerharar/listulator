@@ -77,6 +77,7 @@ function nextItemsFor(lists: ListWithStats[]): Map<string, ListItem | undefined>
         group: null,
         tags: null,
         notes: null,
+        userNote: null,
         isNew: false,
         createdAt: NOW,
         updatedAt: NOW,

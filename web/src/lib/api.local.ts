@@ -33,6 +33,7 @@ import {
 } from '../../../server/src/catalog/repository.js'
 import { createListItems, discardList, itemFromFile, itemFromSource } from '../../../server/src/catalog/bulkItems.js'
 import { InvalidMinutesError } from '../../../server/src/catalog/durations.js'
+import { InvalidNoteError } from '../../../server/src/catalog/userNotes.js'
 import { MAX_LIST_ITEMS } from '../../../server/src/catalog/limits.js'
 import { knownRuntimes, withKnownRuntimes, withRuntimePending } from '../../../server/src/catalog/runtimes.js'
 import { withLinks } from '../../../server/src/catalog/itemLinks.js'
@@ -137,11 +138,13 @@ function notFound(): ApiError {
 
 /**
  * A year that is out of range or does not fit its unknown digits is the server's 400 `item.invalidYear`, a length out of range
- * its 400 `item.invalidMinutes` (H-004, H-006); anything else passes through.
+ * its 400 `item.invalidMinutes` (H-004, H-006), a note over its limit its 400 `item.noteTooLong` (H-003); anything else passes
+ * through.
  */
 function itemError(cause: unknown): unknown {
   if (cause instanceof InvalidYearError) return new ApiError(errorMessage('item.invalidYear') ?? 'item.invalidYear', 400, 'item.invalidYear')
   if (cause instanceof InvalidMinutesError) return new ApiError(errorMessage('item.invalidMinutes') ?? 'item.invalidMinutes', 400, 'item.invalidMinutes')
+  if (cause instanceof InvalidNoteError) return new ApiError(errorMessage('item.noteTooLong') ?? 'item.noteTooLong', 400, 'item.noteTooLong')
 
   return cause
 }
@@ -185,6 +188,7 @@ function toListItem(item: SchemaListItem): ListItem {
     group: item.group,
     tags: item.tags,
     notes: item.notes,
+    userNote: item.userNote,
     isNew: item.isNew,
   }
 }

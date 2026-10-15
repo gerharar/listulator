@@ -179,6 +179,7 @@ export const de: Locale = {
     'list.alreadyExists': (): string => 'Schnellste Hand im Wilden Westen erkannt: Diese Liste gibt es schon, deshalb wurde nichts wiederhergestellt',
     'item.invalidYear': (): string => 'Nimm vier Ziffern, etwa 1994, oder 199? / 19??, wenn du das Ende nicht sicher weißt',
     'item.invalidMinutes': (): string => 'Eine Dauer ist eine ganze Zahl von Minuten, von 1 bis 99.999',
+    'item.noteTooLong': (): string => 'Eine Notiz hat höchstens 2.048 Zeichen',
     'group.nameEmpty': (): string => 'Ein Mann braucht einen Gruppennamen.',
     'group.nameTaken': (): string => 'Alzheimer-Rückfall erkannt: In dieser Liste gibt es bereits eine Gruppe mit diesem Namen.',
     'group.notEmpty': (): string => 'Eine Gruppe kann man nur löschen, wenn man ihre Leere annimmt',

@@ -37,6 +37,7 @@ export type ApiErrorCode =
   | 'list.alreadyExists'
   | 'item.invalidYear'
   | 'item.invalidMinutes'
+  | 'item.noteTooLong'
   | 'group.nameEmpty'
   | 'group.nameTaken'
   | 'group.notEmpty'

@@ -46,6 +46,7 @@ function item(listId: string, index: number, minutes: number): ListItem {
     group: null,
     tags: null,
     notes: null,
+    userNote: null,
     isNew: false,
     createdAt: NOW,
     updatedAt: NOW,

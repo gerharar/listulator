@@ -41,6 +41,17 @@ export function textHazard(text: string, multiline = false): string | undefined 
   return undefined
 }
 
+/**
+ * `text` with every hazardous character taken out, for text a person typed and may keep (a note on an item): nothing is
+ * refused, the characters that disguise or break it just do not go in. `multiline` keeps a tab, a newline and a carriage
+ * return, as for `textHazard`.
+ */
+export function strippedOfHazards(text: string, multiline = false): string {
+  const hazard = multiline ? classOf(`\\u0000-\\u0008\\u000B\\u000C\\u000E-\\u001F\\u007F-\\u009F\\u2028\\u2029\\u202A-\\u202E\\u2066-\\u2069${INVISIBLE_RANGES}`) : ANY_HAZARD
+
+  return text.replace(new RegExp(hazard.source, 'gu'), '')
+}
+
 /** `text` with every hazardous character shown as `?`, for a message that must name a value without carrying the hazard. */
 export function withoutHazards(text: string): string {
   return text.replace(new RegExp(ANY_HAZARD.source, 'gu'), '?')
