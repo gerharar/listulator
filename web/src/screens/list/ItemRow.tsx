@@ -56,6 +56,8 @@ export interface ItemRowProps {
    * all-manual list the header's hand already says it, and a hand on every row is noise (11.9).
    */
   showManual?: boolean
+  /** The filter text is in this row's note and not in its title (H-003): the ⓘ lights, and says whose note it is. */
+  noteMatch?: 'curator' | 'mine' | null
 }
 
 /**
@@ -106,6 +108,7 @@ export function ItemRow({
   tagChip,
   addTag,
   showManual = false,
+  noteMatch = null,
 }: ItemRowProps) {
   const text = copy.quantum.list.itemActions
   const tagText = copy.quantum.list.tags
@@ -199,7 +202,13 @@ export function ItemRow({
         </span>
         {/* ⓘ and ✎ sit in the title's own group (the prototype's), so they get its 9px gap. */}
         {noteLabel && (
-          <IconButton size="row" className="info" label={text.noteFor(noteLabel, item.title)} title={noteLabel} onClick={act(onInfo)}>
+          <IconButton
+            size="row"
+            className={noteMatch ? 'info lit' : 'info'}
+            label={noteMatch ? text.noteForMatch(noteLabel, item.title) : text.noteFor(noteLabel, item.title)}
+            title={noteMatch ? (noteMatch === 'mine' ? text.yourNoteMatches : text.curatorNoteMatches) : noteLabel}
+            onClick={act(onInfo)}
+          >
             <Info width={15} height={15} strokeWidth={1.8} aria-hidden="true" />
           </IconButton>
         )}

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { FacetConvention } from '../../../../server/src/catalog/facets.js'
 import type { ListItem } from '../../lib/api.js'
-import { NO_FILTER, isFiltering, shownItemIds, type ListFilter } from './filtering.js'
+import { NO_FILTER, isFiltering, noteOnlyMatch, shownItemIds, type ListFilter } from './filtering.js'
 
 const item = (id: string, title: string, tags: string[] | null = null, consumedAt: string | null = null): ListItem =>
   ({ id, title, tags, consumedAt }) as ListItem
@@ -89,5 +89,67 @@ describe('Hide Completed (18.1)', () => {
 
   it('shows done items while it is off', () => {
     expect(hidden({ text: '', facets: {}, hideDone: false })).toEqual(['1', '2', '3', '4'])
+  })
+})
+
+describe('the filter searches notes too (H-003)', () => {
+  const noted = [
+    { ...item('1', 'Crime Story', ['PS3']), notes: 'Watch the Cantonese cut.', userNote: null },
+    { ...item('2', 'Heat'), notes: null, userNote: 'Seen it with Mira' },
+    { ...item('3', 'Collateral'), notes: '  ', userNote: null },
+    { ...item('4', 'Ronin'), notes: 'Mira would love it', userNote: 'Cantonese? No.' },
+    { ...item('5', 'Cantonese Kitchen'), notes: null, userNote: null },
+  ] as ListItem[]
+  const shown = (filter: ListFilter, keep?: ReadonlySet<string>) => [...shownItemIds(noted, games, filter, keep)]
+
+  it('shows an item whose curator note has the text, ignoring case and surrounding spaces', () => {
+    expect(shown({ text: ' WATCH the ', facets: {} })).toEqual(['1'])
+  })
+
+  it('shows an item whose own note has the text', () => {
+    expect(shown({ text: 'seen it', facets: {} })).toEqual(['2'])
+  })
+
+  it('shows an item for its title, its curator note or its own note, each on its own', () => {
+    expect(shown({ text: 'cantonese', facets: {} })).toEqual(['1', '4', '5'])
+    expect(shown({ text: 'mira', facets: {} })).toEqual(['2', '4'])
+  })
+
+  it('does not match a blank note, and a note never matches an empty filter by itself', () => {
+    expect(shown({ text: 'x ', facets: {} })).toEqual([])
+    expect(shown(NO_FILTER)).toEqual(['1', '2', '3', '4', '5'])
+  })
+
+  it('still needs the facets and Hide Completed to agree with a note match', () => {
+    expect(shown({ text: 'cantonese', facets: { platform: new Set(['ps3']) } })).toEqual(['1'])
+    const done = noted.map((entry) => (entry.id === '1' ? { ...entry, consumedAt: 'x' } : entry))
+    expect([...shownItemIds(done, games, { text: 'cantonese', facets: {}, hideDone: true })]).toEqual(['4', '5'])
+  })
+})
+
+describe('noteOnlyMatch: which note lights the ⓘ', () => {
+  const row = (title: string, notes: string | null, userNote: string | null) => ({ title, notes, userNote }) as ListItem
+
+  it('is nothing for no text', () => {
+    expect(noteOnlyMatch(row('Heat', 'x', 'y'), '')).toBeNull()
+    expect(noteOnlyMatch(row('Heat', 'x', 'y'), '   ')).toBeNull()
+  })
+
+  it('is nothing when the title matches: a title match looks as it does today, even if a note matches too', () => {
+    expect(noteOnlyMatch(row('Heat', 'a heat wave', null), 'heat')).toBeNull()
+  })
+
+  it('is the curator’s note when only it has the text', () => {
+    expect(noteOnlyMatch(row('Heat', 'Watch the Cantonese cut', 'Mira'), ' CANTONESE')).toBe('curator')
+  })
+
+  it('is the user’s note when it has the text, alone or with the curator’s', () => {
+    expect(noteOnlyMatch(row('Heat', null, 'Seen it with Mira'), 'mira')).toBe('mine')
+    expect(noteOnlyMatch(row('Heat', 'Mira says so', 'Seen it with Mira'), 'mira')).toBe('mine')
+  })
+
+  it('is nothing when no note has the text', () => {
+    expect(noteOnlyMatch(row('Heat', 'a', 'b'), 'zzz')).toBeNull()
+    expect(noteOnlyMatch(row('Heat', null, null), 'a')).toBeNull()
   })
 })

@@ -50,6 +50,10 @@
 .q-item .q-icon-btn.row.info {
   width: 26px;
 }
+/* A note that matches the filter lights its ⓘ in the accent (H-003): the row is shown for its note, not its title. */
+.q-item .q-icon-btn.row.info.lit {
+  color: var(--accent);
+}
 .q-item .q-icon-btn.row.remove {
   width: 30px;
   margin-left: 6px;

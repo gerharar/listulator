@@ -721,6 +721,9 @@ export const en = {
         noteFor: (label: string, title: string): string => `${label} for ${title}`,
         editYourNote: 'Edit your note',
         editYourNoteTip: 'Edit',
+        yourNoteMatches: 'Your note matches the filter',
+        curatorNoteMatches: 'Curator note matches the filter',
+        noteForMatch: (label: string, title: string): string => `${label} for ${title}, matches the filter`,
         /** The year beside a title (H-004, H-005): an exact one, or `199?` / `19??` when only the decade or century is known. */
         releaseYear: 'Release year',
         sometimeIn: (decade: string): string => `Sometime in the ${decade}`,

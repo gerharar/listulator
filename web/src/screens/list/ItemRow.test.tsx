@@ -205,6 +205,31 @@ describe('ItemRow', () => {
     })
   })
 
+  describe('a note that matches the filter (H-003)', () => {
+    const info = () => document.querySelector('.q-item .body button.info') as HTMLElement
+
+    it.each([
+      ['curator', { notes: 'Read it last.' }, 'Curator note matches the filter', 'Curator note for Glorious Purpose, matches the filter'],
+      ['mine', { userNote: 'Mine.' }, 'Your note matches the filter', 'Your note for Glorious Purpose, matches the filter'],
+    ] as const)('lights the ⓘ and says so when %s is why the row is shown', async (kind, notes, tip, name) => {
+      renderRow({ item: { ...ITEM, ...notes }, noteMatch: kind })
+
+      expect(info().classList.contains('lit')).toBe(true)
+      expect(info().getAttribute('aria-label')).toBe(name)
+      expect(await hoverTooltip(info())).toBe(tip)
+    })
+
+    it('does not light it for a row shown by its title, or with no filter', () => {
+      renderRow({ item: { ...ITEM, userNote: 'Mine.' } })
+      expect(info().classList.contains('lit')).toBe(false)
+      expect(info().getAttribute('aria-label')).toBe('Your note for Glorious Purpose')
+
+      cleanup()
+      renderRow({ item: { ...ITEM, userNote: 'Mine.' }, noteMatch: null })
+      expect(info().classList.contains('lit')).toBe(false)
+    })
+  })
+
   describe('row buttons (task 10.21)', () => {
     it('has an info, an edit and a remove button, named for the item', () => {
       renderRow({ item: NOTED })

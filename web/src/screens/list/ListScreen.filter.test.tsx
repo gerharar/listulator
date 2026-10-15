@@ -253,6 +253,56 @@ describe('filtering', () => {
   })
 })
 
+describe('notes in the filter (H-003)', () => {
+  const withNotes = (detail: MediaListDetail) => {
+    detail.items.find((entry) => entry.id === 'ac2')!.userNote = 'Seen it with Mira'
+    detail.items.find((entry) => entry.id === 'ch')!.notes = 'Mira rates this one'
+    detail.items.find((entry) => entry.id === 'bl')!.userNote = 'Bloodlines is short'
+  }
+  const info = (id: string) => row(id).querySelector('button.info') as HTMLElement
+
+  it('shows the items whose note has the text, lights their ⓘ and says whose note it is', async () => {
+    await open('game', withNotes)
+
+    type('mira')
+
+    expect(rowIds().filter((id) => id !== undefined && id !== 'gm' && id !== 'gh')).toEqual(['ac2', 'ch'])
+    expect(info('ac2').classList.contains('lit')).toBe(true)
+    expect(await hoverTooltip(info('ac2'))).toBe('Your note matches the filter')
+    expect(info('ch').classList.contains('lit')).toBe(true)
+    expect(await hoverTooltip(info('ch'))).toBe('Curator note matches the filter')
+    expect(within(bar()).getByText('2 of 6 shown')).toBeTruthy()
+  })
+
+  it('does not light the ⓘ of a row whose title has the text, even when its note has it too', async () => {
+    await open('game', withNotes)
+
+    type('bloodlines')
+
+    expect(rowIds()).toContain('bl')
+    expect(info('bl').classList.contains('lit')).toBe(false)
+  })
+
+  it('lights nothing when nothing is typed, and clearing the text puts the ⓘ back to normal', async () => {
+    await open('game', withNotes)
+    expect(info('ac2').classList.contains('lit')).toBe(false)
+
+    type('mira')
+    type('')
+
+    expect(info('ac2').classList.contains('lit')).toBe(false)
+    expect(info('ac2').getAttribute('aria-label')).toBe('Your note for Assassin’s Creed II')
+  })
+
+  it('opens a collapsed group that has a note match, as it does for a title match', async () => {
+    await open('game', withNotes)
+
+    type('rates this')
+
+    expect(rowIds()).toContain('ch')
+  })
+})
+
 describe('Hide Completed (18.1)', () => {
   const doneOf = (...ids: string[]) => (detail: MediaListDetail) => {
     for (const entry of detail.items) if (ids.includes(entry.id)) entry.consumedAt = '2026-01-01'

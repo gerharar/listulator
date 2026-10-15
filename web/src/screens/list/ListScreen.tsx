@@ -48,7 +48,7 @@ import { linkBackSource } from '../../lib/dataSources.js'
 import { refreshAfterDays } from '../../../../server/src/catalog/sourceCopyLimits.js'
 import { EditListPopover } from './EditListPopover.js'
 import { FilterBar } from './FilterBar.js'
-import { NO_FILTER, isFiltering, shownItemIds, type ListFilter } from './filtering.js'
+import { NO_FILTER, isFiltering, noteOnlyMatch, shownItemIds, type ListFilter } from './filtering.js'
 import { GroupRow } from './GroupRow.js'
 import { ConfirmPopover } from '../../components/quantum/ConfirmPopover/ConfirmPopover.js'
 import { invertPatch, type ItemPatch } from './itemActions.js'
@@ -981,6 +981,7 @@ function ListView({
       grouped={grouped}
       focusable={tabStop === entry.id}
       showManual={mixedSources}
+      noteMatch={noteOnlyMatch(entry, filter.text)}
       minutesWidth={minutesWidth}
       pulse={pulseIds.has(entry.id)}
       onHandlePointerDown={(event, row) => moves.startDrag(event, row.id)}
