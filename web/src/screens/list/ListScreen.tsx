@@ -509,6 +509,10 @@ function ListView({
     setFilter((current) => ({ ...current, facets: { ...current.facets, [facet]: selected } }))
   }
 
+  /**
+   * The one thing a list remembers about where the reader was: the last row (item or group header) that took focus, saved per list. It is
+   * the roving tab stop, and a long list reopens scrolled to it. The scroll position is NOT remembered (DECISIONS 2026-10-16, BL-099).
+   */
   function remember(rowId: string) {
     setFocusId(rowId)
     void saveFocus(getPreferencesStore(), listId, rowId)
