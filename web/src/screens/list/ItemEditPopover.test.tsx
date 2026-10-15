@@ -594,6 +594,17 @@ describe('ItemEditPopover: the user’s own note (H-003)', () => {
       expect(onDiscard).not.toHaveBeenCalled()
     })
 
+    it('Ctrl+Enter in the note follows the same rule as Save: a wrong year saves nothing and puts the cursor in Year', () => {
+      const { onCommit } = renderPopover()
+      fireEvent.change(screen.getByLabelText('Year'), { target: { value: '3500' } })
+      fireEvent.change(note(), { target: { value: 'a note' } })
+
+      fireEvent.keyDown(note(), { key: 'Enter', ctrlKey: true })
+
+      expect(onCommit).not.toHaveBeenCalled()
+      expect(document.activeElement).toBe(screen.getByLabelText('Year'))
+    })
+
     it.each([['Ctrl+Enter', { ctrlKey: true }], ['⌘+Enter', { metaKey: true }]])('%s in the note saves', (_name, modifier) => {
       const { onCommit } = renderPopover()
       fireEvent.change(note(), { target: { value: 'Mine' } })

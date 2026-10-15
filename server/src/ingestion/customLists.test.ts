@@ -281,6 +281,8 @@ items:
         `${head}items:\n  - { title: A }\n  - { title: "Mastermind", note: hi }\n`,
         `item 2 ("Mastermind"): unknown field "note" ${ITEM_FIELDS}; did you mean "notes"?`,
       ],
+      // The user's own note is never in a list file: a file is the list's, notes are personal (H-003, BL-043).
+      ['the user\'s own note, which a list file never carries', `${head}items:\n  - { title: A, userNote: mine }\n`, `item 1 ("A"): unknown field "userNote" ${ITEM_FIELDS}`],
       ['an unrelated item field, with no suggestion', `${head}items:\n  - { title: A, colour: red }\n`, `item 1 ("A"): unknown field "colour" ${ITEM_FIELDS}`],
       ['a year that is a list', `${head}items:\n  - { title: A, year: [2000] }\n`, 'item 1 ("A"): "year" must be a number, or text like 199? or 19??, but it is a list'],
       ['a year that is not a year', `${head}items:\n  - { title: A, year: "20x0" }\n`, 'item 1 ("A"): "year" must be a whole number from 1000 to 2100, or 199? or 19?? when only the decade or century is known, but it is text "20x0"'],

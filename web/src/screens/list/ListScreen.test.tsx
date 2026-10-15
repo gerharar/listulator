@@ -886,6 +886,33 @@ describe('ListScreen item actions (task 10.21)', () => {
       expect(screen.getByText('Alpha', { selector: '.q-info-title' })).toBeTruthy()
     })
 
+    it('saving a note in the Edit window gives the row its ⓘ, and saving it empty takes it away again (H-003)', async () => {
+      const first = base().items[1]!
+      const withNote = (note: string | null) => ({ ...base(), items: base().items.map((entry) => (entry.id === 'b' ? { ...entry, userNote: note } : entry)) })
+      vi.mocked(api.updateItem).mockResolvedValue(first)
+      await open(base())
+      expect(screen.queryByRole('button', { name: /note.* for Beta/ })).toBeNull()
+      // A save reads the list again: the server's answer is what puts the ⓘ on the row.
+      vi.mocked(api.list).mockResolvedValue(withNote('Watch it twice'))
+
+      fireEvent.click(screen.getByRole('button', { name: 'Edit Beta' }))
+      const edit = await screen.findByRole('dialog')
+      fireEvent.change(within(edit).getByLabelText('Note'), { target: { value: 'Watch it twice' } })
+      fireEvent.click(within(edit).getByRole('button', { name: 'Save' }))
+
+      await waitFor(() => expect(api.updateItem).toHaveBeenCalledWith('L1', 'b', { userNote: 'Watch it twice' }))
+      expect(await screen.findByRole('button', { name: 'Your note for Beta' })).toBeTruthy()
+
+      vi.mocked(api.list).mockResolvedValue(withNote(null))
+      fireEvent.click(screen.getByRole('button', { name: 'Edit Beta' }))
+      const again = await screen.findByRole('dialog')
+      fireEvent.change(within(again).getByLabelText('Note'), { target: { value: '  ' } })
+      fireEvent.click(within(again).getByRole('button', { name: 'Save' }))
+
+      await waitFor(() => expect(api.updateItem).toHaveBeenLastCalledWith('L1', 'b', { userNote: null }))
+      await waitFor(() => expect(screen.queryByRole('button', { name: /note.* for Beta/ })).toBeNull())
+    })
+
     it('the ✎ on Your note closes the card and opens the Edit window with the cursor in Note', async () => {
       await open(
         detail({

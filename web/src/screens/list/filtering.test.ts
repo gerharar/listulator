@@ -153,3 +153,20 @@ describe('noteOnlyMatch: which note lights the ⓘ', () => {
     expect(noteOnlyMatch(row('Heat', null, null), 'a')).toBeNull()
   })
 })
+
+describe('the typed text is matched as typed, not as a pattern', () => {
+  const rows = [
+    { ...item('1', 'Heat (1995)'), notes: 'a.b', userNote: null },
+    { ...item('2', 'Ronin'), notes: null, userNote: 'axb [draft]' },
+  ] as ListItem[]
+  const shown = (text: string) => [...shownItemIds(rows, undefined, { text, facets: {} })]
+
+  it('treats . ( [ * as the characters they are, in titles and notes, and never throws', () => {
+    expect(shown('a.b')).toEqual(['1'])
+    expect(shown('(1995)')).toEqual(['1'])
+    expect(shown('[draft]')).toEqual(['2'])
+    expect(shown('.*')).toEqual([])
+    expect(shown('(')).toEqual(['1'])
+  })
+})
+

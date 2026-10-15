@@ -126,7 +126,7 @@ describe('useEscStep', () => {
     expect(popLayer).toHaveBeenCalledOnce()
   })
 
-  it('stops being a step when it becomes inactive, and when it unmounts', () => {
+  it('stops being a step when it becomes inactive', () => {
     const popLayer = vi.fn()
     const run = vi.fn()
     const view = mountStep(popLayer, true, run)
@@ -137,7 +137,32 @@ describe('useEscStep', () => {
       </OverlayManagerProvider>,
     )
     pressEsc()
+
     expect(run).not.toHaveBeenCalled()
+    expect(popLayer).toHaveBeenCalledOnce()
+  })
+
+  it('leaves nothing behind when the layer unmounts: the next Esc pops a layer', () => {
+    const popLayer = vi.fn()
+    const run = vi.fn()
+    function StepHost() {
+      useEscStep('step', true, run)
+      return null
+    }
+    // One manager throughout: the ladder stays, the step's host goes.
+    const tree = (withHost: boolean) => (
+      <OverlayManagerProvider>
+        <Harness popLayer={popLayer} />
+        {withHost && <StepHost />}
+      </OverlayManagerProvider>
+    )
+    const view = render(tree(true))
+
+    view.rerender(tree(false))
+    pressEsc()
+
+    expect(run).not.toHaveBeenCalled()
+    expect(popLayer).toHaveBeenCalledOnce()
   })
 })
 
