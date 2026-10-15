@@ -872,6 +872,31 @@ describe('ListScreen item actions (task 10.21)', () => {
       expect(await screen.findByText('Curator note')).toBeTruthy()
     })
 
+    it('an empty Duration saves the category’s default, marked as an estimate (H-006)', async () => {
+      vi.mocked(api.updateItem).mockResolvedValue(base().items[0]!)
+      await open(base())
+      fireEvent.click(screen.getByRole('button', { name: 'Edit Alpha' }))
+      await screen.findByRole('dialog')
+
+      fireEvent.change(within(screen.getByRole('dialog')).getByLabelText('Duration (Minutes)'), { target: { value: '' } })
+      fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Save' }))
+
+      await waitFor(() => expect(api.updateItem).toHaveBeenCalledWith('L1', 'a', { timeToConsumeMinutes: 30, timeToConsumeIsEstimated: true }))
+    })
+
+    it('a wrong field keeps the window open, saves nothing and says what is wrong (H-006)', async () => {
+      await open(base())
+      fireEvent.click(screen.getByRole('button', { name: 'Edit Alpha' }))
+      await screen.findByRole('dialog')
+
+      fireEvent.change(within(screen.getByRole('dialog')).getByLabelText('Title'), { target: { value: '' } })
+      fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Save' }))
+
+      expect(api.updateItem).not.toHaveBeenCalled()
+      expect(screen.getByRole('dialog')).toBeTruthy()
+      expect(within(screen.getByRole('dialog')).getByRole('alert').textContent).toBe('An item needs a title')
+    })
+
     it('Save applies just the change, and reloads the list', async () => {
       vi.mocked(api.updateItem).mockResolvedValue(base().items[0]!)
       await open(base())

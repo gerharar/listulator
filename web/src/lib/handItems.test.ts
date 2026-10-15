@@ -104,7 +104,7 @@ describe('parseHandItems: a year in brackets at the end of a line (H-004, H-005)
     ])
   })
 
-  it.each(['Foo (0000)', 'Foo (3500)', 'Foo (31??)', 'Foo (1?)', 'Foo (19?4)', 'Foo (201)', '(2011)', 'Foo 2011'])(
+  it.each(['Foo (0000)', 'Foo (0999)', 'Foo (2101)', 'Foo (3000)', 'Foo (3500)', 'Foo (31??)', 'Foo (22??)', 'Foo (1?)', 'Foo (19?4)', 'Foo (201)', '(2011)', 'Foo 2011'])(
     'leaves %j as it is: no year, or one the app does not hold (owner, 2026-10-14)',
     (line) => {
       expect(items(line)).toEqual([{ title: line }])

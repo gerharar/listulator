@@ -86,6 +86,16 @@ describe('restoring what was deleted', () => {
       expect(await deleteListItem(harness.db, strangerId, listId, item.id)).toBeUndefined()
     })
 
+    it('puts back an item whose year is outside 1000-2100, stored before the range was narrowed: Undo is never held to it', async () => {
+      const old = await addItem('Old', { year: 1999 })
+      harness.db.update(listItems).set({ year: 800 }).where(eq(listItems.id, old.id)).run()
+      const restore = (await deleteListItem(harness.db, ownerId, listId, old.id))!
+
+      const back = await restoreListItem(harness.db, ownerId, listId, restore)
+
+      expect(back).toMatchObject({ id: old.id, year: 800, yearUnk: 0 })
+    })
+
     it('puts the item back with its id, its position index and its done state', async () => {
       await addItem('First')
       const middle = await addItem('Middle', { timeToConsumeMinutes: 45 })

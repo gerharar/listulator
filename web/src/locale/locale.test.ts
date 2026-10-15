@@ -523,6 +523,36 @@ describe('joinSentences', () => {
   })
 })
 
+describe('the Edit window’s validation sentences (H-006, H-007)', () => {
+  const languages = [['en', en], ['ru', ru], ['de', de]] as const
+
+  it.each(languages)('%s: the sentences carry the number or the text they are about', (_name, locale) => {
+    const text = locale.quantum.list.itemActions
+
+    expect(text.minutesZero(120)).toContain('120')
+    expect(text.minutesPlaceholder(120)).toContain('120')
+    expect(text.yearTooLate('3500')).toContain('3500')
+    expect(text.yearTooLate('31??')).toContain('31??')
+  })
+
+  it.each(languages)('%s: the range sentences name the limits the app holds', (_name, locale) => {
+    const text = locale.quantum.list.itemActions
+
+    expect(text.yearTooEarly).toContain('1000')
+    expect(text.yearTooLate('3500')).toContain('2100')
+    expect(text.minutesRange).toMatch(/99[ .,\u00a0\u202f]?999/)
+    expect(text.minutesForm).toContain('1h 35m')
+  })
+
+  it('Russian uses no « » quotes in them (owner)', () => {
+    const text = ru.quantum.list.itemActions
+
+    for (const sentence of [text.titleRequired, text.minutesForm, text.minutesZero(120), text.minutesRange, text.yearForm, text.yearTooEarly, text.yearTooLate('3500')]) {
+      expect(sentence).not.toMatch(/[«»]/)
+    }
+  })
+})
+
 describe('joinSentences with the real strings', () => {
   it('never doubles a stop, in any language', () => {
     for (const [name, locale] of [['en', en], ['ru', ru], ['de', de]] as const) {

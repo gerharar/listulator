@@ -99,6 +99,18 @@ describe('useFieldValidation', () => {
     expect(screen.queryByRole('alert')).toBeNull()
   })
 
+  it('does not turn a good field that was left into one that speaks per keystroke: a bad value typed later waits for the next blur', () => {
+    render(<Form onSubmit={vi.fn()} />)
+    type(minutes(), '95')
+    fireEvent.blur(minutes())
+
+    type(minutes(), '95x')
+    expect(screen.queryByRole('alert')).toBeNull()
+
+    fireEvent.blur(minutes())
+    expect(screen.getByRole('alert').textContent).toBe(MINUTES_SENTENCE)
+  })
+
   it('follows the value once shown: the sentence goes when it is valid and comes back when it is not', () => {
     render(<Form onSubmit={vi.fn()} />)
     type(minutes(), 'abc')
@@ -151,6 +163,34 @@ describe('useFieldValidation', () => {
 
       expect(document.activeElement).toBe(minutes())
       expect([minutes().selectionStart, minutes().selectionEnd]).toEqual([0, 3])
+    })
+
+    it('still says no, and shows the sentence, when the first bad field is no longer on the screen', () => {
+      function Shrinking({ onSubmit }: { onSubmit: (ok: boolean) => void }) {
+        const [shown, setShown] = useState(true)
+        const checks = useFieldValidation({
+          a: { value: '', problem: () => 'A is wrong' },
+          b: { value: '', problem: () => 'B is wrong' },
+        })
+
+        return (
+          <div>
+            {shown && <Field label="A" value="" onChange={() => undefined} {...checks.props('a')} />}
+            <Field label="B" value="" onChange={() => undefined} {...checks.props('b')} />
+            {checks.message('b')}
+            <button onClick={() => setShown(false)}>Hide A</button>
+            <button onClick={() => onSubmit(checks.validate())}>Check</button>
+          </div>
+        )
+      }
+      const onSubmit = vi.fn()
+      render(<Shrinking onSubmit={onSubmit} />)
+      fireEvent.click(screen.getByRole('button', { name: 'Hide A' }))
+
+      fireEvent.click(screen.getByRole('button', { name: 'Check' }))
+
+      expect(onSubmit).toHaveBeenCalledWith(false)
+      expect(screen.getByRole('alert').textContent).toBe('B is wrong')
     })
 
     it('does not check a field twice for the same blur and submit: one sentence per field', () => {
