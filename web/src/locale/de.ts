@@ -327,6 +327,10 @@ export const de: Locale = {
       keys: {
         title: 'API-Schlüssel',
         placeholder: 'Dein API-Schlüssel',
+        pasteKey: 'Füge zuerst den Schlüssel ein',
+        pasteClientId: 'Füge zuerst die Client-ID ein',
+        pasteClientSecret: 'Füge zuerst das Client-Secret ein',
+        pasteBoth: 'Füge zuerst Client-ID und Client-Secret ein',
         clientIdPlaceholder: 'Deine Client-ID',
         clientSecretPlaceholder: 'Dein Client-Secret',
         infoLabel: 'Wofür dieser Schlüssel verwendet wird',

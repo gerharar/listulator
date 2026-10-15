@@ -1,11 +1,11 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { act, cleanup, render, screen, waitFor, within } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import type { ReactNode } from 'react'
 import type { LocalSettings } from '../../lib/config/localConfig.js'
 import type { KeySource, KeyTestResult } from '../../lib/config/keyTest.js'
 import { OverlayManagerProvider } from '../../components/quantum/overlay/OverlayManagerContext.js'
-import { setActiveLanguage } from '../../locale/index.js'
+import { copy, setActiveLanguage } from '../../locale/index.js'
 import { en } from '../../locale/en.js'
 import { ru } from '../../locale/ru.js'
 import { de } from '../../locale/de.js'
@@ -90,19 +90,92 @@ describe('ApiKeysSection', () => {
     expect(within(tmdb).getByRole('status').textContent).toBe('Untested')
   })
 
-  it('Test is off while the key is blank', async () => {
-    setup({ tmdbApiKey: 'abc123' })
-    await ready()
+  describe('Test with a field left empty (H-006)', () => {
+    const testButton = (name: string) => within(row(name)).getByRole('button', { name: 'Test' }) as HTMLButtonElement
+    const sentences = copy.quantum.settings.keys
+    const alerts = (name: string) => within(row(name)).queryAllByRole('alert').map((alert) => alert.textContent)
+    const inputs = (name: string) => [...row(name).querySelectorAll('input')] as HTMLInputElement[]
 
-    expect((within(row('TMDB')).getByRole('button', { name: 'Test' }) as HTMLButtonElement).disabled).toBe(false)
-    expect((within(row('YouTube')).getByRole('button', { name: 'Test' }) as HTMLButtonElement).disabled).toBe(true)
-  })
+    it('does not disable Test for a blank key: only a test under way does', async () => {
+      setup({ tmdbApiKey: 'abc123' })
+      await ready()
 
-  it('IGDB Test needs both fields', async () => {
-    setup({ igdbClientId: 'id' })
-    await ready()
+      expect(testButton('TMDB').disabled).toBe(false)
+      expect(testButton('YouTube').disabled).toBe(false)
+      expect(testButton('IGDB').disabled).toBe(false)
+    })
 
-    expect((within(row('IGDB')).getByRole('button', { name: 'Test' }) as HTMLButtonElement).disabled).toBe(true)
+    it('pressing Test on a blank key tests nothing, asks to paste the key and puts the cursor in the field', async () => {
+      const { test } = setup({ tmdbApiKey: 'abc123' })
+      await ready()
+
+      fireEvent.click(testButton('YouTube'))
+
+      expect(test).not.toHaveBeenCalled()
+      expect(alerts('YouTube')).toEqual([sentences.pasteKey])
+      expect(inputs('YouTube')[0]!.getAttribute('aria-invalid')).toBe('true')
+      expect(document.activeElement).toBe(inputs('YouTube')[0])
+      expect(within(row('YouTube')).getByRole('status').textContent).toBe('Untested')
+    })
+
+    it('says nothing in the rows that were not pressed', async () => {
+      setup()
+      await ready()
+
+      fireEvent.click(testButton('TMDB'))
+
+      expect(alerts('YouTube')).toEqual([])
+      expect(alerts('IGDB')).toEqual([])
+    })
+
+    it.each([
+      ['no Client ID and no secret', {}, () => sentences.pasteBoth, [0, 1]],
+      ['no Client ID', { igdbClientSecret: 's' }, () => sentences.pasteClientId, [0]],
+      ['no Client Secret', { igdbClientId: 'id' }, () => sentences.pasteClientSecret, [1]],
+    ] as const)('IGDB with %s names what is missing, marks the empty field(s) and puts the cursor in the first', async (_name, saved, sentence, empty) => {
+      const { test } = setup(saved)
+      await ready()
+
+      fireEvent.click(testButton('IGDB'))
+
+      expect(test).not.toHaveBeenCalled()
+      expect(alerts('IGDB')).toEqual([sentence()])
+      const fields = inputs('IGDB')
+      for (const index of [0, 1]) {
+        expect(fields[index]!.getAttribute('aria-invalid')).toBe(empty.includes(index as never) ? 'true' : null)
+      }
+      expect(document.activeElement).toBe(fields[empty[0]!])
+    })
+
+    it('takes the sentence away once the field is filled, and Test then tests', async () => {
+      const { test } = setup()
+      await ready()
+      fireEvent.click(testButton('TMDB'))
+      expect(alerts('TMDB')).toEqual([sentences.pasteKey])
+
+      fireEvent.change(inputs('TMDB')[0]!, { target: { value: 'abc' } })
+      expect(alerts('TMDB')).toEqual([])
+      fireEvent.click(testButton('TMDB'))
+
+      await waitFor(() => expect(test).toHaveBeenCalledTimes(1))
+    })
+
+    it('is disabled while its test runs', async () => {
+      let finish: (value: KeyTestResult) => void = () => {}
+      const test = vi.fn(() => new Promise<KeyTestResult>((resolve) => (finish = resolve)))
+      render(
+        <Providers>
+          <ApiKeysSection load={async () => ({ tmdbApiKey: 'k' })} save={async () => {}} test={test} />
+        </Providers>,
+      )
+      await ready()
+
+      act(() => testButton('TMDB').click())
+      expect(testButton('TMDB').disabled).toBe(true)
+
+      await act(async () => finish('working'))
+      expect(testButton('TMDB').disabled).toBe(false)
+    })
   })
 
   it.each([

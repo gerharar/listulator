@@ -79,6 +79,7 @@ export interface MaskedKeyProps
   extends Omit<InputHTMLAttributes<HTMLInputElement>, 'type' | 'className' | 'value' | 'onChange'> {
   value: string
   onChange: (value: string) => void
+  ref?: Ref<HTMLInputElement>
 }
 
 export function MaskedKey({ value, onChange, ...rest }: MaskedKeyProps) {

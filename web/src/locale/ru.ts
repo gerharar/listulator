@@ -336,6 +336,10 @@ export const ru: Locale = {
       keys: {
         title: 'API-ключи',
         placeholder: 'Ваш API-ключ',
+        pasteKey: 'Сначала вставь ключ',
+        pasteClientId: 'Сначала вставь Client ID',
+        pasteClientSecret: 'Сначала вставь Client Secret',
+        pasteBoth: 'Сначала вставь Client ID и Client Secret',
         clientIdPlaceholder: 'Ваш Client ID',
         clientSecretPlaceholder: 'Ваш Client Secret',
         infoLabel: 'Для чего используется этот ключ',

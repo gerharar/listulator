@@ -9,6 +9,7 @@ import { notifyRegistryChanged } from '../../lib/registryChanges.js'
 import { testApiKey } from '../../lib/api.local.js'
 import { Button } from '../../components/quantum/Button/Button.js'
 import { MaskedKey } from '../../components/quantum/Field/Field.js'
+import { useFieldValidation } from '../../components/quantum/Field/useFieldValidation.js'
 import { ExternalLink, type ExternalLinkProps } from '../../components/quantum/ExternalLink/ExternalLink.js'
 import { Popover } from '../../components/quantum/Popover/Popover.js'
 import { Tip } from '../../components/quantum/Tooltip/Tip.js'
@@ -63,6 +64,84 @@ function HowLink({ href, label, title }: { href: string; label: string; title: s
       </ExternalLink>
       {tip.node}
     </>
+  )
+}
+
+interface KeyRowProps {
+  id: KeySource
+  fields: readonly (keyof LocalSettings)[]
+  values: LocalSettings
+  current: Status
+  onEdit: (field: keyof LocalSettings, value: string) => void
+  onInfo: (anchor: HTMLElement) => void
+  onTest: () => void
+}
+
+/**
+ * One source's row. Test is never disabled by an empty field (H-006), only while a test runs: pressing it with a field
+ * empty tests nothing and says what is missing, once for the row ("Paste the Client ID first"), marks every empty field
+ * and puts the cursor in the first. Typing takes the sentence away.
+ */
+function KeyRow({ id, fields, values, current, onEdit, onInfo, onTest }: KeyRowProps) {
+  const text = copy.quantum.settings.keys
+  const source = text.sources[id]
+  const empty = (field: keyof LocalSettings): boolean => (values[field] ?? '').trim() === ''
+  const missing = fields.filter(empty)
+  const sentence =
+    fields.length === 1
+      ? text.pasteKey
+      : missing.length === fields.length
+        ? text.pasteBoth
+        : missing[0] === fields[0]
+          ? text.pasteClientId
+          : text.pasteClientSecret
+  const checks = useFieldValidation(
+    Object.fromEntries(fields.map((field) => [field, { value: values[field] ?? '', problem: () => (empty(field) ? sentence : null) }])),
+  )
+  // One sentence for the row, under the first empty field; every empty field points at it.
+  const shown = fields.find((field) => checks.error(field) !== null)
+  const describedBy = shown ? checks.props(shown)['aria-describedby'] : undefined
+
+  return (
+    <div className="q-key-row">
+      <div className="q-key-head">
+        <span className="q-key-name">{source.name}</span>
+        <Tip
+          as="button"
+          type="button"
+          className="q-key-info"
+          aria-label={text.infoLabel}
+          text={text.infoLabel}
+          onClick={(event) => onInfo(event.currentTarget)}
+        >
+          <Info size={14} strokeWidth={1.8} aria-hidden="true" />
+        </Tip>
+      </div>
+      <div className="q-key-fields">
+        {fields.map((field, index) => (
+          <MaskedKey
+            key={field}
+            value={values[field] ?? ''}
+            onChange={(value) => onEdit(field, value)}
+            placeholder={
+              fields.length === 1 ? text.placeholder : index === 0 ? text.clientIdPlaceholder : text.clientSecretPlaceholder
+            }
+            autoComplete="off"
+            spellCheck={false}
+            {...checks.props(field)}
+            {...(checks.error(field) !== null ? { 'aria-describedby': describedBy } : {})}
+          />
+        ))}
+      </div>
+      <HowLink href={keyGuideUrl(id)} label={text.how} title={text.howTitle} />
+      <Button disabled={current === 'testing'} onClick={() => checks.validate() && onTest()}>
+        {text.test}
+      </Button>
+      <span className={`q-key-pill ${current}`} role="status">
+        {text.status[current]}
+      </span>
+      {shown && checks.message(shown)}
+    </div>
   )
 }
 
@@ -121,54 +200,18 @@ export function ApiKeysSection({
     <section>
       <span className="q-kicker">{text.title}</span>
       <div className="q-key-rows" style={{ '--pill-chars': pillChars } as CSSProperties}>
-        {SOURCES.map(({ id, fields }) => {
-          const source = text.sources[id]
-          const current = status[id] ?? 'untested'
-          const filled = fields.every((field) => (values[field] ?? '').trim() !== '')
-
-          return (
-            <div key={id} className="q-key-row">
-              <div className="q-key-head">
-                <span className="q-key-name">{source.name}</span>
-                <Tip
-                  as="button"
-                  type="button"
-                  className="q-key-info"
-                  aria-label={text.infoLabel}
-                  text={text.infoLabel}
-                  onClick={(event) => setPopover({ id, mode: 'info', anchor: event.currentTarget })}
-                >
-                  <Info size={14} strokeWidth={1.8} aria-hidden="true" />
-                </Tip>
-              </div>
-              <div className="q-key-fields">
-                {fields.map((field, index) => (
-                  <MaskedKey
-                    key={field}
-                    value={values[field] ?? ''}
-                    onChange={(value) => edit(id, field, value)}
-                    placeholder={
-                      fields.length === 1
-                        ? text.placeholder
-                        : index === 0
-                          ? text.clientIdPlaceholder
-                          : text.clientSecretPlaceholder
-                    }
-                    autoComplete="off"
-                    spellCheck={false}
-                  />
-                ))}
-              </div>
-              <HowLink href={keyGuideUrl(id)} label={text.how} title={text.howTitle} />
-              <Button disabled={!filled || current === 'testing'} onClick={() => void run(id, fields)}>
-                {text.test}
-              </Button>
-              <span className={`q-key-pill ${current}`} role="status">
-                {text.status[current]}
-              </span>
-            </div>
-          )
-        })}
+        {SOURCES.map(({ id, fields }) => (
+          <KeyRow
+            key={id}
+            id={id}
+            fields={fields}
+            values={values}
+            current={status[id] ?? 'untested'}
+            onEdit={(field, value) => edit(id, field, value)}
+            onInfo={(anchor) => setPopover({ id, mode: 'info', anchor })}
+            onTest={() => void run(id, fields)}
+          />
+        ))}
       </div>
 
       <Popover

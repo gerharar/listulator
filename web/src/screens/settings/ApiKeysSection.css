@@ -49,6 +49,11 @@
   gap: 6px;
 }
 
+/* The row's one sentence (H-006) takes a line of its own under the row. */
+.q-key-row > .q-field-msg {
+  flex: 0 0 100%;
+}
+
 /* As tall as the key field beside it: .q-input.key's padding, one 14px × 1.2 line, and the borders. */
 .q-key-row > .q-btn {
   box-sizing: border-box;

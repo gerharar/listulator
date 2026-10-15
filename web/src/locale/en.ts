@@ -376,6 +376,10 @@ export const en = {
       keys: {
         title: 'API keys',
         placeholder: 'Your API key',
+        pasteKey: 'Paste the key first',
+        pasteClientId: 'Paste the Client ID first',
+        pasteClientSecret: 'Paste the Client Secret first',
+        pasteBoth: 'Paste the Client ID and Client Secret first',
         clientIdPlaceholder: 'Your Client ID',
         clientSecretPlaceholder: 'Your Client Secret',
         infoLabel: 'What this key is used for',
