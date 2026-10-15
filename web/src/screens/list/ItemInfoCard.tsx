@@ -14,7 +14,7 @@ export interface ItemInfoCardProps {
 /**
  * The ⓘ popover's body (design: item notes, 320px). The ⓘ is only on an item with a note, so there is always one to show:
  * the curator's (read-only, from the source), the user's own (with a ✎ to edit it), or both, curator first, split by a
- * hairline. The title is always first (the prototype, updated 2026-10-15) and a kicker says whose each note is. Line
+ * hairline. The title is always first, with a hairline under it that keeps the notes together as one block (the prototype, updated 2026-10-15), and a kicker says whose each note is. Line
  * breaks are kept, and a note is only ever drawn as text.
  */
 export function ItemInfoCard({ item, onEditNote }: ItemInfoCardProps) {
@@ -33,6 +33,7 @@ export function ItemInfoCard({ item, onEditNote }: ItemInfoCardProps) {
   return (
     <div className="q-info">
       {title}
+      <hr />
       {curator && (
         <>
           <p className="q-kicker">{text.curatorNote}</p>

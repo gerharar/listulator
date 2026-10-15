@@ -41,27 +41,27 @@ const order = () =>
   )
 
 describe('ItemInfoCard (H-003): the notes of an item, and whose they are', () => {
-  it('a curator note only: the title, then its kicker and the note, no pencil', () => {
+  it('a curator note only: the title, a hairline, then its kicker and the note, no pencil', () => {
     renderCard({ notes: CURATOR })
 
-    expect(order()).toEqual(['info-title', 'kicker', 'info-text'])
+    expect(order()).toEqual(['info-title', 'hr', 'kicker', 'info-text'])
     expect(screen.getByText('Curator note').className).toBe('q-kicker')
     expect(screen.getByText(CURATOR)).toBeTruthy()
     expect(screen.queryByRole('button')).toBeNull()
   })
 
-  it('a note of the user’s only: the title, then its kicker with the pencil and the note', () => {
+  it('a note of the user’s only: the title, a hairline, then its kicker with the pencil and the note', () => {
     renderCard({ userNote: MINE })
 
-    expect(order()).toEqual(['info-title', 'info-head', 'info-text'])
+    expect(order()).toEqual(['info-title', 'hr', 'info-head', 'info-text'])
     expect(document.querySelector('.q-info-head')!.textContent).toContain('Your note')
     expect(screen.getByRole('button', { name: 'Edit your note' })).toBeTruthy()
   })
 
-  it('both: the title first, then the curator’s note, a hairline, and the user’s note with its pencil', () => {
+  it('both: the title first, a hairline, the curator’s note, another hairline, and the user’s note with its pencil', () => {
     renderCard({ notes: CURATOR, userNote: MINE })
 
-    expect(order()).toEqual(['info-title', 'kicker', 'info-text', 'hr', 'info-head', 'info-text'])
+    expect(order()).toEqual(['info-title', 'hr', 'kicker', 'info-text', 'hr', 'info-head', 'info-text'])
     const kickers = [...document.querySelectorAll('.q-kicker')].map((node) => node.textContent)
     expect(kickers).toEqual(['Curator note', 'Your note'])
   })
