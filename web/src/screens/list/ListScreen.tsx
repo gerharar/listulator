@@ -1,5 +1,5 @@
 import './ListScreen.css'
-import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent, type PointerEvent as ReactPointerEvent } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent, type PointerEvent as ReactPointerEvent } from 'react'
 import { EllipsisVertical, RefreshCw, X } from 'lucide-react'
 import { ApiError, api, type ListGroup, type ListItem, type MediaListDetail, type MediaType } from '../../lib/api.js'
 import { downloadText } from '../../lib/downloadText.js'
@@ -65,7 +65,7 @@ import { listMark } from '../../lib/buckets.js'
 import { JumpRail, JumpRailStub, type RailEntry } from './JumpRail.js'
 import { ListMorePopover, type MoreMode, type PreviewState } from './ListMorePopover.js'
 import { buildSpine, listTotals } from './spine.js'
-import { buildRowModel, shouldVirtualize, type VirtualizationMode } from './rowModel.js'
+import { buildRowModel, ITEM_HEIGHT, offsetOf, shouldVirtualize, type VirtualizationMode } from './rowModel.js'
 import { WindowedRows } from './WindowedRows.js'
 import { useRowMoves } from './useRowMoves.js'
 
@@ -388,17 +388,6 @@ function ListView({
   const virtualization: VirtualizationMode = 'auto'
   const rowModel = useMemo(() => buildRowModel(shownUnits, (name) => shut.has(name)), [shownUnits, shut])
   const windowed = shouldVirtualize(rowModel.rowTops.size, virtualization)
-  // Rows that stay drawn wherever the list is scrolled: the roving tab stop, a row being dragged, a row with a window open on it.
-  const pinnedRows = useMemo(() => {
-    const ids = new Set<string>()
-    if (focusId) ids.add(focusId)
-    if (moves.dragKey) ids.add(moves.dragKey)
-    if (popover?.itemId) ids.add(popover.itemId)
-    for (const id of pulseIds) ids.add(id)
-
-    return ids
-  }, [focusId, moves.dragKey, popover?.itemId, pulseIds])
-
   // The rows that are on screen, in order: what the arrow keys walk.
   const visible = useMemo(() => {
     const ids: string[] = []
@@ -413,6 +402,17 @@ function ListView({
     return ids
   }, [shownUnits, shut])
   const tabStop = focusId && visible.includes(focusId) ? focusId : visible[0]
+  // Rows that stay drawn wherever the list is scrolled: the roving tab stop (so Tab always finds a row to land on, also before anything was
+  // focused), a row being dragged, a row with a window open on it.
+  const pinnedRows = useMemo(() => {
+    const ids = new Set<string>()
+    if (tabStop) ids.add(tabStop)
+    if (moves.dragKey) ids.add(moves.dragKey)
+    if (popover?.itemId) ids.add(popover.itemId)
+    for (const id of pulseIds) ids.add(id)
+
+    return ids
+  }, [tabStop, moves.dragKey, popover?.itemId, pulseIds])
 
   // The tag column shows once any item has a tag (U5, owner): until then, no column at all.
   const anyTags = useMemo(() => items.some((entry) => (entry.tags ?? []).length > 0), [items])
@@ -1003,8 +1003,37 @@ function ListView({
     if (target === undefined) return
 
     event.preventDefault()
-    spine.current?.querySelector<HTMLElement>(`[data-row-id="${CSS.escape(target)}"]`)?.focus()
+    const drawn = spine.current?.querySelector<HTMLElement>(`[data-row-id="${CSS.escape(target)}"]`)
+    if (drawn) {
+      drawn.focus()
+      return
+    }
+
+    // The next row is not drawn (the reader scrolled away from the row that has focus): make it the tab stop, which pins it, and
+    // focus it once it is there; the browser scrolls a focused row into view, and the window follows.
+    focusWhenDrawn.current = target
+    setFocusId(target)
   }
+
+  // Focus the row an arrow key asked for as soon as it has been drawn. It is dropped after the first commit either way, so a row that
+  // never comes (the list changed) cannot take focus later.
+  const focusWhenDrawn = useRef<string | null>(null)
+  useLayoutEffect(() => {
+    const id = focusWhenDrawn.current
+    if (id === null) return
+    focusWhenDrawn.current = null
+    spine.current?.querySelector<HTMLElement>(`[data-row-id="${CSS.escape(id)}"]`)?.focus()
+  })
+
+  // A long list that is opened again scrolls to the row it remembers, which is otherwise only its tab stop: centred, as far as the list allows.
+  // Short lists are drawn whole and have always opened at the top.
+  useEffect(() => {
+    const body = spine.current
+    const top = initialFocusId === undefined ? undefined : offsetOf(rowModel, initialFocusId)
+    if (!windowed || !body || top === undefined) return
+    body.scrollTop = Math.max(0, top - (body.clientHeight - ITEM_HEIGHT) / 2)
+    // Once, when the list opens.
+  }, [])
 
   // The row handlers keep their identity and call the latest of this screen (Phase 25.0b): a row is drawn again only when
   // what it shows changed, so one tick does not redraw every row of a long list.
