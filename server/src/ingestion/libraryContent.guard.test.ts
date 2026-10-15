@@ -2,7 +2,7 @@ import { execFileSync } from 'node:child_process'
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
-import { CustomListParseError, parseCustomList } from './customLists.js'
+import { CustomListParseError, LIBRARY_FILE_MAX_BYTES, LIBRARY_MANIFEST_MAX_BYTES, parseCustomList } from './customLists.js'
 import { createMediaTypeRegistry } from './mediaTypes.js'
 
 /**
@@ -25,8 +25,13 @@ import { createMediaTypeRegistry } from './mediaTypes.js'
 const REPO_ROOT = fileURLToPath(new URL('../../../', import.meta.url))
 const CATEGORIES = new Set(createMediaTypeRegistry().keys())
 
-/** The most a list file, and the manifest, may weigh. The largest list is 44 KB. */
-const FILE_MAX_BYTES = 256 * 1024
+/**
+ * The most a committed list file may weigh: what the app is allowed to fetch (`LIBRARY_FILE_MAX_BYTES`, 8 MiB: a list of the
+ * 50,000-item ceiling is about 5.5 MB), so a file this guard passes is a file every installed app can read. It was 256 KiB
+ * (the largest list is 44 KB) until 2026-10-15, when the owner asked for it to follow the ceiling. The manifest keeps its
+ * own, smaller limit.
+ */
+const FILE_MAX_BYTES = LIBRARY_FILE_MAX_BYTES
 const MINUTES_RANGE = [1, 99_999] as const
 /** Narrower than the parser's (1000 to 2100): the library is films, shows, games, comics and books of the last two centuries. */
 const YEAR_RANGE = [1800, 2100] as const
@@ -124,7 +129,7 @@ describe('the rules for a list file, proven on hostile fixtures', () => {
     ['too many tags', one(`    tags: [${Array.from({ length: 21 }, (_, n) => `t${n}`).join(', ')}]`), /parser refuses.*"tags"/],
     ['a tag that is too long', one(`    tags: [${'t'.repeat(65)}]`), /parser refuses.*entry 1 is over 64/],
     ['too many items', file(Array.from({ length: 50_001 }, (_, n) => `  - title: i${n}`).join('\n')), /parser refuses.*50001 items/],
-    ['a file that is too big', file(`  - title: A\n    notes: "${'n'.repeat(1000)}"\n`.repeat(300)), /bytes/],
+    ['a file that is too big', file(`  - title: A\n#${'x'.repeat(FILE_MAX_BYTES)}\n`), /bytes/],
   ])('refuse %s', (_name, text, expected) => {
     expect(listFileProblems(text).join(' | ')).toMatch(expected)
   })
@@ -144,6 +149,14 @@ describe('the committed lists/ library, against those rules', () => {
   })
 
   it('keeps the manifest small', () => {
-    expect(readFileSync(`${REPO_ROOT}lists/index.json`).byteLength).toBeLessThan(FILE_MAX_BYTES)
+    expect(readFileSync(`${REPO_ROOT}lists/index.json`).byteLength).toBeLessThan(LIBRARY_MANIFEST_MAX_BYTES)
+  })
+
+  it('lets a big curated list through: 50,000 items at the library\'s 110 bytes each is under the limit, and well past the old 256 KiB', () => {
+    const items = Array.from({ length: 50_000 }, (_, n) => `  - { title: "Issue ${n}", year: ${1960 + (n % 60)}, minutes: ${20 + (n % 90)} }`).join('\n')
+    const text = `title: Huge\ncategory: comic\nitems:\n${items}\n`
+
+    expect(Buffer.byteLength(text)).toBeGreaterThan(256 * 1024)
+    expect(listFileProblems(text)).toEqual([])
   })
 })
