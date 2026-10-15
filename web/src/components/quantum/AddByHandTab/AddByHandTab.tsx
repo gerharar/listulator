@@ -8,6 +8,7 @@ import { categoryHandHints, copy, joinSentences } from '../../../locale/index.js
 import { Button } from '../Button/Button.js'
 import { ErrorStrip } from '../ErrorStrip/ErrorStrip.js'
 import { Field, FieldTextArea } from '../Field/Field.js'
+import { useFieldValidation } from '../Field/useFieldValidation.js'
 import { StatusPicker, type PickedStatus } from '../StatusPicker/StatusPicker.js'
 
 export interface AddByHandTabProps {
@@ -47,10 +48,14 @@ export function AddByHandTab({ mediaType, onBuilt }: AddByHandTabProps) {
   const created = useRef<string | null>(null)
 
   const { items, groups } = parseHandItems(itemsText)
+  const checks = useFieldValidation({
+    title: { value: title, problem: (value) => (value.trim() === '' ? text.titleRequired : null) },
+  })
 
+  /** Create List is never disabled by the title (H-006): a blank one is said when it is pressed. */
   async function submit(event?: FormEvent) {
     event?.preventDefault()
-    if (saving || !title.trim()) return
+    if (saving || !checks.validate()) return
     setError(null)
     setSaving(true)
 
@@ -88,7 +93,9 @@ export function AddByHandTab({ mediaType, onBuilt }: AddByHandTabProps) {
         {...NAMES}
         disabled={saving}
         autoFocus
+        {...checks.props('title')}
       />
+      {checks.message('title')}
       <FieldTextArea
         label={text.descriptionLabel}
         value={description}
@@ -119,7 +126,6 @@ export function AddByHandTab({ mediaType, onBuilt }: AddByHandTabProps) {
         <Button
           variant="primary"
           type="submit"
-          disabled={!title.trim()}
           busy={saving}
           busyLabel={text.creating}
         >

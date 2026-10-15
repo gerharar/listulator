@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import type { MediaType } from '../../../lib/api.js'
 import { api } from '../../../lib/api.js'
+import { copy } from '../../../locale/index.js'
 import { AddByHandTab } from './AddByHandTab.js'
 
 vi.mock('../../../lib/api.js', () => ({
@@ -48,12 +49,60 @@ describe('AddByHandTab', () => {
     expect(screen.getByLabelText('Description').getAttribute('spellcheck')).toBeNull()
   })
 
-  it('cannot create without a title', () => {
-    renderTab()
+  describe('a blank title (H-006)', () => {
+    const create = () => screen.getByRole('button', { name: 'Create List' }) as HTMLButtonElement
+    const sentence = copy.quantum.addByHand.titleRequired
+    const alerts = () => screen.queryAllByRole('alert').map((alert) => alert.textContent)
 
-    expect(screen.getByRole('button', { name: 'Create List' })).toHaveProperty('disabled', true)
-    type('Title', 'My list')
-    expect(screen.getByRole('button', { name: 'Create List' })).toHaveProperty('disabled', false)
+    it('does not disable Create List: not for a blank title, not for a title', () => {
+      renderTab()
+      expect(create().disabled).toBe(false)
+
+      type('Title', 'My list')
+      expect(create().disabled).toBe(false)
+    })
+
+    it.each([['', 'nothing'], ['   ', 'spaces']])('pressing Create with %s as the title creates nothing, says a list needs a title and puts the cursor in Title', (value) => {
+      renderTab()
+      type('Title', value)
+
+      fireEvent.click(create())
+
+      expect(api.createList).not.toHaveBeenCalled()
+      expect(alerts()).toEqual([sentence])
+      expect(screen.getByLabelText('Title').getAttribute('aria-invalid')).toBe('true')
+      expect(document.activeElement).toBe(screen.getByLabelText('Title'))
+    })
+
+    it('does the same on Enter in the title', () => {
+      renderTab()
+
+      fireEvent.submit(screen.getByLabelText('Title').closest('form')!)
+
+      expect(api.createList).not.toHaveBeenCalled()
+      expect(alerts()).toEqual([sentence])
+    })
+
+    it('says nothing while the title is left empty: only when Create is pressed', () => {
+      renderTab()
+
+      fireEvent.blur(screen.getByLabelText('Title'))
+
+      expect(alerts()).toEqual([])
+    })
+
+    it('takes the sentence away once there is a title, and Create then creates', async () => {
+      vi.mocked(api.createList).mockResolvedValue({ id: 'L1' } as never)
+      const onBuilt = renderTab()
+      fireEvent.click(create())
+      expect(alerts()).toEqual([sentence])
+
+      type('Title', 'My list')
+      expect(alerts()).toEqual([])
+      fireEvent.click(create())
+
+      await waitFor(() => expect(onBuilt).toHaveBeenCalledWith('L1'))
+    })
   })
 
   it('counts items and groups as you type', () => {

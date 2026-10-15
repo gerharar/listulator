@@ -49,3 +49,18 @@ test('a hand-made list carries its description, status, groups and estimated run
     await page.request.delete(`/api/lists/${id}`)
   }
 })
+
+/** H-006: Create List is never disabled by the title; a blank one is said when it is pressed. */
+test('pressing Create List with no title makes nothing, says a list needs a title and keeps the cursor in Title', async ({ page }) => {
+  await page.goto('/')
+  await page.getByRole('button', { name: q.home.newList }).click()
+  await page.locator('.q-tile').first().click()
+  await page.getByRole('tab', { name: q.createList.handTab }).click()
+  const before = (await (await page.request.get('/api/lists')).json()).length
+
+  await page.getByRole('button', { name: q.addByHand.create }).click()
+
+  await expect(page.getByRole('alert')).toHaveText(q.addByHand.titleRequired)
+  await expect(page.getByLabel(q.addByHand.titleLabel, { exact: true })).toBeFocused()
+  expect((await (await page.request.get('/api/lists')).json()).length).toBe(before)
+})

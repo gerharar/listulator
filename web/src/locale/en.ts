@@ -561,6 +561,7 @@ export const en = {
     },
     addByHand: {
       titleLabel: 'Title',
+      titleRequired: 'A list needs a title',
       titlePlaceholder: 'My list',
       descriptionLabel: 'Description',
       descriptionPlaceholder: 'Optional',

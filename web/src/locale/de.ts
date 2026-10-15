@@ -490,6 +490,7 @@ export const de: Locale = {
     },
     addByHand: {
       titleLabel: 'Titel',
+      titleRequired: 'Eine Liste braucht einen Titel',
       titlePlaceholder: 'Meine Liste',
       descriptionLabel: 'Beschreibung',
       descriptionPlaceholder: 'Optional',

@@ -498,6 +498,7 @@ export const ru: Locale = {
     },
     addByHand: {
       titleLabel: 'Название',
+      titleRequired: 'Списку нужно название',
       titlePlaceholder: 'Мой список',
       descriptionLabel: 'Описание',
       descriptionPlaceholder: 'Необязательно',
