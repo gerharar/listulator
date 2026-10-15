@@ -1,7 +1,7 @@
 import './ListScreen.css'
 import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react'
 import { EllipsisVertical, RefreshCw, X } from 'lucide-react'
-import { api, type ListGroup, type ListItem, type MediaListDetail, type MediaType } from '../../lib/api.js'
+import { ApiError, api, type ListGroup, type ListItem, type MediaListDetail, type MediaType } from '../../lib/api.js'
 import { downloadText } from '../../lib/downloadText.js'
 import { getPendingUpdates, usePendingMap, type PendingUpdates } from '../../lib/pendingUpdates.js'
 import { applyUpdate, checkList } from '../../lib/updateCheck.js'
@@ -606,7 +606,10 @@ function ListView({
         onAction: () => void undoRenameGroup(group, renamed.name),
       })
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : actions.groupRenameFailed(group.name))
+      // A name another group has is said under the group's own header by its editor (H-006), not by the strip.
+      if (!(cause instanceof ApiError && cause.code === 'group.nameTaken')) {
+        setError(cause instanceof Error ? cause.message : actions.groupRenameFailed(group.name))
+      }
       throw cause
     }
   }

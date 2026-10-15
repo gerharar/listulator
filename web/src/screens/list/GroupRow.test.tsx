@@ -4,6 +4,7 @@ import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/re
 import type { GroupBlock } from './spine.js'
 import { GroupRow } from './GroupRow.js'
 import { hoverTooltip } from '../../components/quantum/Tooltip/hoverTooltip.js'
+import { ApiError } from '../../lib/api.js'
 
 afterEach(cleanup)
 
@@ -256,6 +257,74 @@ describe('GroupRow', () => {
 
       await waitFor(() => expect(onRename).toHaveBeenCalled())
       expect(editor().value).toBe('Season 2')
+    })
+
+    describe('a name another group has (H-006; owner, 2026-10-15)', () => {
+      const taken = 'Alzheimer’s relapse detected: this list already has a group with such name'
+      const refuse = () =>
+        vi.fn(async () => {
+          throw new ApiError(taken, 409, 'group.nameTaken')
+        })
+      const sentence = () => screen.getByRole('alert')
+
+      it('is refused under the group header in the API’s own words, with the editor still open, marked and holding the cursor', async () => {
+        const onRename = refuse()
+        renderRow(BLOCK, { onRename })
+        fireEvent.click(pencil())
+
+        fireEvent.change(editor(), { target: { value: 'Season 2' } })
+        fireEvent.keyDown(editor(), { key: 'Enter' })
+
+        await waitFor(() => expect(sentence().textContent).toBe(taken))
+        expect(editor().value).toBe('Season 2')
+        expect(editor().getAttribute('aria-invalid')).toBe('true')
+        expect(editor().getAttribute('aria-describedby')).toBe(sentence().id)
+        expect(document.activeElement).toBe(editor())
+        expect(document.querySelector('.q-group')!.contains(sentence())).toBe(true)
+      })
+
+      it('takes the sentence away as soon as the name is changed', async () => {
+        renderRow(BLOCK, { onRename: refuse() })
+        fireEvent.click(pencil())
+        fireEvent.change(editor(), { target: { value: 'Season 2' } })
+        fireEvent.keyDown(editor(), { key: 'Enter' })
+        await waitFor(() => expect(screen.queryByRole('alert')).not.toBeNull())
+
+        fireEvent.change(editor(), { target: { value: 'Season 2b' } })
+
+        expect(screen.queryByRole('alert')).toBeNull()
+        expect(editor().getAttribute('aria-invalid')).toBeNull()
+      })
+
+      it('Esc reverts: the editor closes, the name is the old one, and the sentence is gone when it is opened again', async () => {
+        renderRow(BLOCK, { onRename: refuse() })
+        fireEvent.click(pencil())
+        fireEvent.change(editor(), { target: { value: 'Season 2' } })
+        fireEvent.keyDown(editor(), { key: 'Enter' })
+        await waitFor(() => expect(screen.queryByRole('alert')).not.toBeNull())
+
+        fireEvent.keyDown(editor(), { key: 'Escape' })
+
+        expect(screen.queryByLabelText('Group name')).toBeNull()
+        expect(screen.queryByRole('alert')).toBeNull()
+        fireEvent.click(pencil())
+        expect(editor().value).toBe(BLOCK.group.name)
+        expect(screen.queryByRole('alert')).toBeNull()
+      })
+
+      it('says nothing for any other refusal: those keep the screen’s error strip', async () => {
+        renderRow(BLOCK, {
+          onRename: vi.fn(async () => {
+            throw new ApiError('Could not rename', 500)
+          }),
+        })
+        fireEvent.click(pencil())
+        fireEvent.change(editor(), { target: { value: 'Season 2' } })
+        fireEvent.keyDown(editor(), { key: 'Enter' })
+
+        await waitFor(() => expect(editor().value).toBe('Season 2'))
+        expect(screen.queryByRole('alert')).toBeNull()
+      })
     })
 
     it('typing, Space and Enter in the editor do not fold the group', () => {

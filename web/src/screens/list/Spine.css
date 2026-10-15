@@ -39,6 +39,9 @@
 /* Rename (11.18): the pencil is the handle's height so it does not fatten the row; the editor is as tall as the name. */
 .q-group .q-group-rename { flex: none; width: 26px; height: 26px; margin-left: -4px; }
 .q-group-input { flex: 1; min-width: 0; padding: 3px 8px; border: 1px solid var(--rule); background: var(--field); color: var(--ink); font: 600 15px/1.15 var(--font); letter-spacing: .01em; }
+.q-group-input[aria-invalid='true'] { border: 2px solid var(--ink); padding: 2px 7px; }
+/* The refusal of a taken name, under the header (H-006): over the rows below, so nothing moves. */
+.q-group-msg { position: absolute; left: 4px; right: 18px; top: 100%; z-index: 3; padding: 8px 10px; background: var(--card); border: 1px solid var(--line); }
 .q-group-input:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
 .q-group .q-left { font-size: 12px; }
 .q-group .q-left.all-done { font-size: 11px; }

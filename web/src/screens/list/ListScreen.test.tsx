@@ -707,14 +707,25 @@ describe('ListScreen item actions (task 10.21)', () => {
       expect(screen.queryByText('Alpha')).toBeNull()
     })
 
-    it('shows the API’s own words and keeps the editor open when the name is refused', async () => {
-      vi.mocked(api.renameGroup).mockRejectedValue(new Error('This list already has a group with such name.'))
+    it('shows the API’s own words under the group header, not in the error strip, and keeps the editor open when the name is taken', async () => {
+      vi.mocked(api.renameGroup).mockRejectedValue(new ApiError('This list already has a group with such name.', 409, 'group.nameTaken'))
       await open(base())
 
       rename('Season 2')
 
-      expect(await screen.findByText('This list already has a group with such name.')).toBeTruthy()
+      const sentence = await screen.findByText('This list already has a group with such name.')
+      expect(sentence.closest('[data-row-id="g1"]')).not.toBeNull()
+      expect(sentence.closest('.q-error-strip')).toBeNull()
       expect((screen.getByLabelText('Group name') as HTMLInputElement).value).toBe('Season 2')
+    })
+
+    it('keeps the error strip for a rename that failed for another reason', async () => {
+      vi.mocked(api.renameGroup).mockRejectedValue(new Error('The server fell over'))
+      await open(base())
+
+      rename('Season 2')
+
+      expect(await screen.findByText('The server fell over')).toBeTruthy()
     })
   })
 

@@ -32,9 +32,23 @@ test('renames a group from its pencil, refuses a taken name, undoes, and keeps a
     const editor = page.getByLabel('Group name')
     await editor.fill('season 2')
     await editor.press('Enter')
-    await expect(page.getByText(/group with such name/).first()).toBeVisible()
+    // Said under the group's own header, not in the error strip or a toast (H-006); the editor keeps the cursor.
+    await expect(page.locator('.q-group').getByRole('alert')).toContainText(/group with such name/)
+    await expect(page.locator('.q-error-strip')).toHaveCount(0)
     await expect(editor).toBeVisible()
+    await expect(editor).toBeFocused()
+    await expect(editor).toHaveAttribute('aria-invalid', 'true')
     expect(await groupNames()).toEqual(['Season 1', 'Season 2'])
+    // Typing takes the sentence away; Esc reverts and the next editor opens clean.
+    await editor.fill('season 2b')
+    await expect(page.locator('.q-group').getByRole('alert')).toHaveCount(0)
+    await editor.fill('season 2')
+    await editor.press('Enter')
+    await expect(page.locator('.q-group').getByRole('alert')).toBeVisible()
+    await editor.press('Escape')
+    await expect(editor).toHaveCount(0)
+    await expect(page.locator('.q-group').getByRole('alert')).toHaveCount(0)
+    await page.getByRole('button', { name: 'Rename group Season 1', exact: true }).click()
 
     // A free name: the group and its items follow.
     await editor.fill('The Long Season')

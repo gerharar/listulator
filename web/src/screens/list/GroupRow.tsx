@@ -1,9 +1,11 @@
 import { NAME_MAX_LENGTH } from '../../../../server/src/catalog/limits.js'
 import './Spine.css'
-import { useEffect, useRef, useState, type KeyboardEvent, type PointerEvent } from 'react'
+import { useEffect, useId, useRef, useState, type KeyboardEvent, type PointerEvent } from 'react'
 import { Pencil, Trash2 } from 'lucide-react'
 import { IconButton } from '../../components/quantum/Button/Button.js'
+import { ApiError } from '../../lib/api.js'
 import { copy } from '../../locale/index.js'
+import { FieldMessage } from '../../components/quantum/Field/FieldMessage.js'
 import { ProgressSentence } from '../../components/quantum/ProgressSentence/ProgressSentence.js'
 import { yearSpanLabel, type GroupBlock } from './spine.js'
 import { Tip } from '../../components/quantum/Tooltip/Tip.js'
@@ -60,6 +62,9 @@ export function GroupRow({
   const text = copy.quantum.list.itemActions
   const [editing, setEditing] = useState(false)
   const [draft, setDraft] = useState('')
+  // A name another group has is refused where it was typed, in the API's own words (H-006), not in a toast or the strip.
+  const [nameError, setNameError] = useState<string | null>(null)
+  const nameErrorId = useId()
   const saving = useRef(false)
   const editor = useRef<HTMLInputElement>(null)
 
@@ -71,6 +76,7 @@ export function GroupRow({
 
   function startEditing() {
     setDraft(block.group.name)
+    setNameError(null)
     setEditing(true)
   }
 
@@ -87,7 +93,8 @@ export function GroupRow({
     try {
       await onRename(name)
       setEditing(false)
-    } catch {
+    } catch (cause) {
+      if (cause instanceof ApiError && cause.code === 'group.nameTaken') setNameError(cause.message)
       editor.current?.focus()
     } finally {
       saving.current = false
@@ -140,7 +147,12 @@ export function GroupRow({
             maxLength={NAME_MAX_LENGTH}
             spellCheck={false}
             autoComplete="off"
-            onChange={(event) => setDraft(event.target.value)}
+            aria-invalid={nameError ? true : undefined}
+            aria-describedby={nameError ? nameErrorId : undefined}
+            onChange={(event) => {
+              setDraft(event.target.value)
+              setNameError(null)
+            }}
             onBlur={() => void commit()}
             onClick={(event) => event.stopPropagation()}
             onKeyDown={(event) => {
@@ -151,6 +163,7 @@ export function GroupRow({
                 void commit()
               } else if (event.key === 'Escape') {
                 event.preventDefault()
+                setNameError(null)
                 setEditing(false)
               }
             }}
@@ -228,6 +241,11 @@ export function GroupRow({
         >
           <Trash2 width={15} height={15} strokeWidth={1.8} aria-hidden="true" />
         </IconButton>
+      )}
+      {editing && nameError && (
+        <span className="q-group-msg">
+          <FieldMessage id={nameErrorId} text={nameError} />
+        </span>
       )}
     </div>
   )
