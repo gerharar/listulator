@@ -292,7 +292,7 @@ export function useRowMoves({ listId, items, groups, setItems, setGroups, setErr
     dragKey: drag.dragKey,
     over: drag.over,
     startDrag: drag.startDrag,
-    /** True while a block (a group or a loose item) is carried: every group shuts so only boundaries are targets. */
+    /** True while a block (a group or a loose item) is carried: a carried group folds itself, nothing else changes (H-009). */
     draggingUnit,
     /** The drop that just happened, taken by the screen once the moved rows are in and it has scrolled to the line. */
     dropped,

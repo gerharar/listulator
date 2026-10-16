@@ -156,8 +156,8 @@ export function scrollAfterChange(before: RowModel, after: RowModel, scrollTop: 
 }
 
 /**
- * Where the reader should be so that one unit stays where it is on the screen when the rows change around it: a block is picked up and
- * every group shuts, or put down and they open again. The unit keeps its distance below the top of the view; a header that was stuck at the
+ * Where the reader should be so that one unit stays where it is on the screen when the rows change around it: a group is picked up and
+ * folds, or put down and it opens again. The unit keeps its distance below the top of the view; a header that was stuck at the
  * top (the view was inside its group) stays at the top; never above the top of the list. `undefined` when the unit is not in both models.
  */
 export function scrollKeepingUnit(before: RowModel, after: RowModel, key: string, scrollTop: number): number | undefined {

@@ -2,7 +2,7 @@ import { expect, test, type APIRequestContext, type Locator, type Page } from '@
 
 /**
  * Dragging across rows that are not drawn (Phase 25.5, BACKLOG BL-074), with real pointer events in a real browser: one item from the top of
- * a 5,000-item list to its 2,500th place, a whole group over many groups (every group shuts while it is carried), an item inside a
+ * a 5,000-item list to its 2,500th place, a whole group over many open groups (only it folds while it is carried), an item inside a
  * 3,000-item group, and the autoscroll with the pointer held at the edge. Each ends where it was dropped and Undo puts it back. Real
  * writes on the dev server, removed in a `finally`.
  */

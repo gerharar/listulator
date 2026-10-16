@@ -388,7 +388,7 @@ describe('scrollAfterChange: the reader keeps their place when the rows change',
   })
 })
 
-describe('scrollKeepingUnit: a carried block stays where it is on the screen when every group shuts and opens', () => {
+describe('scrollKeepingUnit: a carried block stays where it is on the screen when the groups fold and open around it', () => {
   const groups = Array.from({ length: 10 }, (_, n) => block(`G${n}`, 5))
   const open = buildRowModel(groups, noneShut)
   const shutAll = buildRowModel(groups, shut(...groups.map((entry) => (entry.unit as { group: ListGroup }).group.name)))
