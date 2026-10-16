@@ -417,6 +417,56 @@ describe('a block carried over an open group targets the whole group (H-009)', (
     await waitFor(() => expect(rowIds()).toEqual(['gs', 'g1', 'g2', 'g3', 'ga', 'a']))
   })
 
+  it('the target group takes the hover ground on its drawn rows and a tint of its own on its header, and loses them when the block is let go', async () => {
+    await open()
+
+    const gesture = await carry('a', 270)
+
+    for (const id of ['g1', 'g2', 'g3']) expect(row(id).classList.contains('is-hover')).toBe(true)
+    expect(row('gs').classList.contains('is-target')).toBe(true)
+    expect(row('gs').classList.contains('is-hover')).toBe(false)
+    for (const id of ['a', 'b']) expect(row(id).classList.contains('is-hover')).toBe(false)
+
+    gesture.release()
+    await waitFor(() => expect(rowIds()).toEqual(['gs', 'g1', 'g2', 'g3', 'a', 'b']))
+    expect(document.querySelector('.is-hover, .is-target')).toBeNull()
+  })
+
+  it('a group carried over another open group tints that group, not itself; a loose item as a target tints nothing', async () => {
+    store.set('list:L1:collapsed', JSON.stringify([]))
+    vi.mocked(api.list).mockResolvedValue({
+      ...list(),
+      items: [item('a', 0, 'Alpha'), item('g1', 1, 'Season 1'), item('g2', 2, 'Season 1'), item('x', 3)],
+      groups: [
+        { id: 'ga', listId: 'L1', name: 'Alpha', orderIndex: 0 } as ListGroup,
+        { id: 'gs', listId: 'L1', name: 'Season 1', orderIndex: 1 } as ListGroup,
+      ],
+    })
+    await open()
+
+    // Alpha (carried) over Season 1's rows: laid out before it folds, g1 is 238-284 and g2 284-330.
+    const gesture = await carry('ga', 260)
+    expect(row('gs').classList.contains('is-target')).toBe(true)
+    expect(row('g1').classList.contains('is-hover')).toBe(true)
+    expect(row('ga').classList.contains('is-target')).toBe(false)
+
+    // Over the loose item x: a plain target, nothing tinted. (The rows were laid out before Alpha folded: x is 330-376.)
+    pointer('pointermove', 345)
+    expect(document.querySelector('.is-hover, .is-target')).toBeNull()
+    expect(row('x').querySelector('.q-dropline')).not.toBeNull()
+    gesture.release()
+  })
+
+  it('a collapsed group is a plain target: its header has the line and no tint (there are no rows to pair it with)', async () => {
+    store.set('list:L1:collapsed', JSON.stringify(['Season 1']))
+    await open()
+
+    await carry('a', 160)
+
+    expect(row('gs').classList.contains('is-target')).toBe(false)
+    expect(document.querySelector('.is-hover')).toBeNull()
+  })
+
   it('a collapsed group keeps the plain rule: its header\'s upper half is before, its lower half after', async () => {
     store.set('list:L1:collapsed', JSON.stringify(['Season 1']))
     await open()

@@ -22,6 +22,8 @@ export interface GroupRowProps {
   dragging?: boolean
   /** The drop line, when a drag would land just above or just below this group. */
   dropLine?: 'before' | 'after' | null
+  /** A block is carried over this open group: it is the drop target, and its header takes a tint of its own (H-009). */
+  target?: boolean
   /** Just moved or restored. */
   pulse?: boolean
   /** Deletes the group. Offered only while it holds no items (prototype: "🗑 empty"). */
@@ -52,6 +54,7 @@ export function GroupRow({
   onHandlePointerDown,
   dragging = false,
   dropLine = null,
+  target = false,
   pulse = false,
   onDelete,
   onDeleteWithItems,
@@ -110,7 +113,7 @@ export function GroupRow({
 
   return (
     <div
-      className={['q-group', block.allDone && 'complete', dragging && 'dragging', pulse && 'pulse']
+      className={['q-group', block.allDone && 'complete', dragging && 'dragging', pulse && 'pulse', target && 'is-target']
         .filter(Boolean)
         .join(' ')}
       role="button"

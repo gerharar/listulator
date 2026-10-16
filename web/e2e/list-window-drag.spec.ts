@@ -220,6 +220,31 @@ test('a loose item over the upper half of a 3,000-row group lands before the who
     await page.mouse.move(pointer.x, pointer.y + 10)
     await page.mouse.move(at.x, at.y, { steps: 6 })
 
+    // The target group: every drawn row has the hover ground and the header a mix of its own (7.5% ink into the card colour), two shades.
+    await expect(page.locator('.q-group.is-target')).toHaveCount(1)
+    const drawnRows = await page.locator('.q-item').count()
+    await expect(page.locator('.q-item.is-hover')).toHaveCount(drawnRows - 1)
+    const colours = await page.evaluate(() => {
+      const probe = (value: string) => {
+        const node = document.createElement('div')
+        node.style.background = value
+        document.querySelector('.q-list-body')!.append(node)
+        const colour = getComputedStyle(node).backgroundColor
+        node.remove()
+        return colour
+      }
+      const bg = (selector: string) => getComputedStyle(document.querySelector(selector) as HTMLElement).backgroundColor
+      return {
+        header: bg('.q-group.is-target'),
+        headerWanted: probe('color-mix(in srgb, var(--ink) 7.5%, var(--card))'),
+        row: bg('.q-item.is-hover'),
+        rowWanted: probe('var(--hover)'),
+      }
+    })
+    expect(colours.header).toBe(colours.headerWanted)
+    expect(colours.row).toBe(colours.rowWanted)
+    expect(colours.header).not.toBe(colours.row)
+
     // The line is on the group's header (its top edge), not on the row under the pointer, and not at the bottom.
     await expect(page.locator('.q-group .q-dropline:not(.after)')).toHaveCount(1)
     await expect(page.locator('.q-item .q-dropline')).toHaveCount(0)
@@ -227,6 +252,7 @@ test('a loose item over the upper half of a 3,000-row group lands before the who
     await page.mouse.up()
 
     await expect.poll(async () => (await titles(page.request, id))[0]).toBe('Loose 1')
+    await expect(page.locator('.q-item.is-hover, .q-group.is-target')).toHaveCount(0)
     const order = await titles(page.request, id)
     expect(order.at(-1)).toBe('Loose 0')
     expect(order.slice(1, 3001).every((entry) => entry.startsWith('Vol '))).toBe(true)

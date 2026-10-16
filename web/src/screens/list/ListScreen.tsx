@@ -400,6 +400,16 @@ function ListView({
     return names
   }, [carriedGroup, collapsed, openByText])
 
+  // The group a carried block would land beside as a whole (H-009): an open group with rows; its rows and header are tinted. Only the key
+  // matters, so the tint is worked out again when the target changes and not when the line only moves between "before" and "after".
+  const overKey = moves.over?.key
+  const targetGroup = useMemo(() => {
+    if (overKey === undefined) return undefined
+    const entry = shownUnits.find(({ unit }) => unit.kind === 'group' && unit.group.id === overKey)
+
+    return entry && entry.unit.kind === 'group' && entry.members.length > 0 && !shut.has(entry.unit.group.name) ? entry.unit.group.name : undefined
+  }, [overKey, shownUnits, shut])
+
   // The rows as pixels, and which of them to draw (Phase 25): a long list draws a window, short ones everything. Off and the
   // preference arrive with 25.7; until then it is automatic.
   const virtualization: VirtualizationMode = 'auto'
@@ -1147,6 +1157,7 @@ function ListView({
       pulse={pulseIds.has(entry.id)}
       onHandlePointerDown={onRowHandle}
       dragging={moves.dragKey === entry.id}
+      hover={grouped && targetGroup !== undefined && entry.group === targetGroup}
       dropLine={moves.over?.key === entry.id ? moves.over.pos : null}
       onToggle={onRowToggle}
       onFocus={onRowFocus}
@@ -1298,6 +1309,7 @@ function ListView({
                     onRename={(name) => renameGroup(unit.group, name)}
                     onDeleteWithItems={(anchor) => setGroupDelete({ group: unit.group, anchor })}
                     dragging={moves.dragKey === unit.group.id}
+                    target={targetGroup === unit.group.name}
                     dropLine={
                       moves.over?.key === unit.group.id && !(moves.over.pos === 'after' && !shut.has(unit.group.name) && members.length > 0)
                         ? moves.over.pos
