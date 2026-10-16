@@ -58,7 +58,7 @@ export function useRowMoves({ listId, items, groups, setItems, setGroups, setErr
   const mounted = useRef(true)
   const chain = useRef<Promise<unknown>>(Promise.resolve())
   const pendingFocus = useRef<string | null>(null)
-  // The drop that just happened, for the screen to scroll the dropped block to the drop line; it takes it (sets it back to null).
+  // The drop that just happened, for the screen to scroll what was dropped to the drop line; it takes it (sets it back to null).
   const dropped = useRef<{ key: string; targetKey: string; pos: DropTarget['pos'] } | null>(null)
 
   const groupIds = useMemo(() => new Set(groups.map((entry) => entry.id)), [groups])
@@ -155,8 +155,9 @@ export function useRowMoves({ listId, items, groups, setItems, setGroups, setErr
       if (outcome.kind === 'refused') announce(text.onlyInsideGroup)
       if (outcome.kind !== 'moved') return
 
-      // Only a block's drop is landed at the line by the screen; an item moved inside its group is not a carry (a stale record would be replayed by the next one).
-      dropped.current = grouped ? null : { key: dragKey, targetKey: target.key, pos: target.pos }
+      // The screen lands what was dropped at the line (an item moved inside its group too, as in the design). It reads the record once, when the
+      // moved rows are in; a new drag forgets it.
+      dropped.current = { key: dragKey, targetKey: target.key, pos: target.pos }
       announce(said(outcome))
       void commit(outcome).then((saved) => {
         if (!saved) return
@@ -293,7 +294,7 @@ export function useRowMoves({ listId, items, groups, setItems, setGroups, setErr
     startDrag: drag.startDrag,
     /** True while a block (a group or a loose item) is carried: every group shuts so only boundaries are targets. */
     draggingUnit,
-    /** The drop that just happened (a block put down among the shut groups), taken by the screen once it has scrolled to it. */
+    /** The drop that just happened, taken by the screen once the moved rows are in and it has scrolled to the line. */
     dropped,
     moveByKey,
     onBlur,

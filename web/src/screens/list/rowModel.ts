@@ -169,13 +169,25 @@ export function scrollKeepingUnit(before: RowModel, after: RowModel, key: string
   return Math.max(0, after.units[now]!.top - below)
 }
 
+/** A thing that can be dropped on or moved: a group is its whole box (header and open rows), an item (loose or in a group) is its own row. */
+function boxOf(model: RowModel, key: string): { top: number; height: number } | undefined {
+  const index = model.rowUnit.get(key)
+  if (index === undefined) return undefined
+  const unit = model.units[index]!
+  if (unit.key === key) return { top: unit.top, height: unit.height }
+  const top = model.rowTops.get(key)
+
+  return top === undefined ? undefined : { top, height: model.rowHeights.get(key)! }
+}
+
 /**
- * Where the reader should be after a block was dropped, so that it lands exactly at the drop line, where the pointer let go (H-009). The line
- * is on the edge of the target UNIT in the model the drop was made in (the carried group shut, the others as they were): its top for
- * "before" (a group's own box, not its sticky header, and never above the list's top edge: a group whose header is stuck at the top has its
- * line there), its bottom for "after" (which may be below the view: the block then lands out of sight, as the line was). After the move
- * re-lays the list, the moved unit's own top is put on that screen position; nothing is rounded to a row, so a short move in a list with no
- * groups shifts the view by the row that moved, as the prototype does. `undefined` when the unit or its target is not in both models.
+ * Where the reader should be after something was dropped, so that it lands exactly at the drop line, where the pointer let go (H-009). The
+ * line is on the edge of the target's box in the model the drop was made in (a carried group shut, the others as they were): its top for
+ * "before", its bottom for "after", never above the list's top edge (so a group whose header is stuck at the top has its line there). A
+ * group target is its whole box (the header is only where its top is, not where it sticks); an item target, loose or inside a group, is its
+ * own row. After the move re-lays the list, the moved thing's own top (a group's box, not its sticky header; an item's row) is put on that
+ * screen position; nothing is rounded to a row, so a short move shifts the view by the row that moved, as the prototype does. `undefined`
+ * when the moved thing or its target is not in both models.
  */
 export function scrollAfterDrop(
   before: RowModel,
@@ -185,14 +197,13 @@ export function scrollAfterDrop(
   pos: 'before' | 'after',
   scrollTop: number,
 ): number | undefined {
-  const target = before.rowUnit.get(targetKey)
-  const now = after.rowUnit.get(key)
-  if (target === undefined || now === undefined) return undefined
+  const target = boxOf(before, targetKey)
+  const moved = boxOf(after, key)
+  if (!target || !moved) return undefined
 
-  const box = before.units[target]!
-  const lineOnScreen = Math.max(0, (pos === 'after' ? box.top + box.height : box.top) - scrollTop)
+  const lineOnScreen = Math.max(0, (pos === 'after' ? target.top + target.height : target.top) - scrollTop)
 
-  return Math.max(0, after.units[now]!.top - lineOnScreen)
+  return Math.max(0, moved.top - lineOnScreen)
 }
 
 /** The members of a group that are drawn: runs of member indexes, with a spacer for each gap, in order. */

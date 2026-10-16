@@ -505,6 +505,24 @@ describe('scrollAfterDrop: a dropped unit lands exactly at the drop line (H-009)
     expect(scrollAfterDrop(before, after, 'a', 'c', 'after', 0)).toBe(0)
   })
 
+  it('an item moved inside its group lands on the line too: the member\'s own row is the box, not the whole group', () => {
+    const big = block('G', 10)
+    const reorder = (ids: number[]) => ({ unit: big.unit, members: ids.map((n) => big.members[n]!) })
+    const shown = [loose('a'), big]
+    const before = buildRowModel(shown, noneShut)
+    const scrollTop = top(before, 'G.5') - 120
+    // G.1 moved after G.5 (downwards): G.2 to G.5 close up, G.1 takes the slot above G.6.
+    const down = buildRowModel([shown[0]!, reorder([0, 2, 3, 4, 5, 1, 6, 7, 8, 9])], noneShut)
+
+    const at = scrollAfterDrop(before, down, 'G.1', 'G.5', 'after', scrollTop)!
+
+    // G.5's bottom was 120 + 46 below the top of the view; G.1's top is there.
+    expect(top(down, 'G.1') - at).toBe(120 + ITEM_HEIGHT)
+    // G.7 moved before G.3 (upwards): it takes the slot of G.3, which is the line: nothing shifts.
+    const up = buildRowModel([shown[0]!, reorder([0, 1, 2, 7, 3, 4, 5, 6, 8, 9])], noneShut)
+    expect(scrollAfterDrop(before, up, 'G.7', 'G.3', 'before', top(before, 'G.3') - 80)).toBe(top(before, 'G.3') - 80)
+  })
+
   it('has nothing to say when the unit or its target is not in the models', () => {
     expect(scrollAfterDrop(carried, carried, 'nope', 'G1', 'before', 0)).toBeUndefined()
     expect(scrollAfterDrop(carried, carried, 'G1', 'nope', 'before', 0)).toBeUndefined()

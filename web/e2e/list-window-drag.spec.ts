@@ -455,7 +455,7 @@ test('a group whose header is stuck at the top of the view can be picked up with
   }
 })
 
-test('an item is dragged inside a 3,000-item group to its 1,500th place', async ({ page }) => {
+test('an item is dragged inside a 3,000-item group to its 1,500th place, and lands on the line like any other drop', async ({ page }) => {
   test.setTimeout(120_000)
   const title = `e2e list-drag member ${Date.now()}`
   const rows = [...loose(3), ...Array.from({ length: 3000 }, (_, n) => `  - { title: "Vol ${n}", minutes: 30, group: "Big volume" }`)]
@@ -463,6 +463,7 @@ test('an item is dragged inside a 3,000-item group to its 1,500th place', async 
 
   try {
     await openList(page, title)
+    const movedId = await rowId(rowOf(page, 'Vol 0'))
     const pointer = await pickUp(page, rowOf(page, 'Vol 0').locator('.q-handle'))
     await setScroll(page, 3 * ITEM + GROUP + 1495 * ITEM)
     const target = rowOf(page, 'Vol 1500')
@@ -471,11 +472,35 @@ test('an item is dragged inside a 3,000-item group to its 1,500th place', async 
     await page.mouse.move(pointer.x, pointer.y + 10)
     await page.mouse.move(at.x, at.y, { steps: 6 })
     await expect(target.locator('.q-dropline')).toBeVisible()
-    await page.mouse.up()
+    expectOnTheLine(await releaseAndMeasure(page, `[data-row-id="${movedId}"]`))
 
     await expect.poll(async () => (await titles(page.request, id)).indexOf('Vol 0')).toBe(3 + 1499)
     await page.locator('.q-toast').getByRole('button', { name: 'Undo' }).click()
     await expect.poll(async () => (await titles(page.request, id)).indexOf('Vol 0')).toBe(3)
+  } finally {
+    await page.request.delete(`/api/lists/${id}`)
+  }
+})
+
+test('an item moved down a few rows inside a group lands on the line, as a loose item does', async ({ page }) => {
+  test.setTimeout(120_000)
+  const title = `e2e list-drag member near ${Date.now()}`
+  const rows = Array.from({ length: 400 }, (_, n) => `  - { title: "Vol ${n}", minutes: 30, group: "Big volume" }`)
+  const id = await makeList(page.request, title, rows)
+
+  try {
+    await openList(page, title)
+    await setScroll(page, GROUP + 125 * ITEM - 150)
+    const movedId = await rowId(rowOf(page, 'Vol 125'))
+    const pointer = await pickUp(page, rowOf(page, 'Vol 125').locator('.q-handle'))
+    const target = rowOf(page, 'Vol 128')
+    await expect(target).toBeVisible()
+    const at = await pointOn(target, 'lower')
+    await page.mouse.move(pointer.x, pointer.y + 10)
+    await page.mouse.move(at.x, at.y, { steps: 6 })
+    expectOnTheLine(await releaseAndMeasure(page, `[data-row-id="${movedId}"]`))
+
+    await expect.poll(async () => (await titles(page.request, id)).indexOf('Vol 125')).toBe(128)
   } finally {
     await page.request.delete(`/api/lists/${id}`)
   }

@@ -304,22 +304,25 @@ describe('a carry that ends without a drop does not reuse an earlier drop (27.1)
     rectAt(sibling, 100)
     document.elementFromPoint = () => sibling
     await pointer('pointerup', 10, 140)
-    expect(body().scrollTop).toBe(21 * GROUP - 300)
+    // It landed on the line like any drop: moved down one row, the view shifts up by that row.
+    expect(body().scrollTop).toBe(21 * GROUP - 300 - 46)
   }
 
   it('Escape on a group picked up afterwards leaves the view where it was (the item drop is not replayed)', async () => {
     await dropAnItemInsideItsGroup()
+    const settled = body().scrollTop
     document.elementFromPoint = () => null
     fireEvent.pointerDown(row('g21')!.querySelector('.q-handle') as HTMLElement, { button: 0, clientX: 10, clientY: 300 })
     await pointer('pointermove', 10, 330)
 
     await act(async () => void window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true })))
 
-    expect(body().scrollTop).toBe(21 * GROUP - 300)
+    expect(body().scrollTop).toBe(settled)
   })
 
   it('releasing a carried group over a row inside an open group (no target) leaves the view where it was too', async () => {
     await dropAnItemInsideItsGroup()
+    const settled = body().scrollTop
     document.elementFromPoint = () => null
     fireEvent.pointerDown(row('g21')!.querySelector('.q-handle') as HTMLElement, { button: 0, clientX: 10, clientY: 300 })
     await pointer('pointermove', 10, 330)
@@ -329,7 +332,7 @@ describe('a carry that ends without a drop does not reuse an earlier drop (27.1)
 
     await pointer('pointerup', 10, 120)
 
-    expect(body().scrollTop).toBe(21 * GROUP - 300)
+    expect(body().scrollTop).toBe(settled)
   })
 })
 

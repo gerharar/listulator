@@ -550,9 +550,11 @@ function ListView({
     modelSeen.current = rowModel
     carryingSeen.current = carrying
     const body = spine.current
-    // Put down: at the drop line. Picked up, or let go of without a drop (Esc): where it was on the screen. A drop is used once.
-    const drop = wasCarrying && !carrying ? moves.dropped.current : null
-    if (wasCarrying && !carrying) moves.dropped.current = null
+    // Put down: at the drop line (a block, or an item moved inside its group). Picked up, or let go of without a drop (Esc): where it was on the
+    // screen. A drop is used once: on the first change of the rows after it (or when a carry ends), and a new drag forgets it.
+    const carryEnded = wasCarrying && !carrying
+    const drop = moves.dropped.current
+    if (drop && (carryEnded || before !== rowModel)) moves.dropped.current = null
     if (before === rowModel || !body || (carrying && wasCarrying)) return
     const landed = drop ? scrollAfterDrop(before, rowModel, drop.key, drop.targetKey, drop.pos, scrolledTo.current) : undefined
     const kept =
