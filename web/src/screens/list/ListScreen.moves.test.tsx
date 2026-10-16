@@ -348,6 +348,96 @@ async function drag(id: string, toId: string, half: 'upper' | 'lower') {
   return { y, release: () => pointer('pointerup', y) }
 }
 
+/** The block of each group as one box, from its rows: jsdom has no layout (call after `layout()`). */
+function blockRects() {
+  for (const block of document.querySelectorAll<HTMLElement>('[data-block-key]')) {
+    const rows = [...block.querySelectorAll<HTMLElement>('[data-drag-key]')]
+    const top = rows[0]!.getBoundingClientRect().top
+    const bottom = rows[rows.length - 1]!.getBoundingClientRect().bottom
+    block.getBoundingClientRect = () => ({ top, bottom, height: bottom - top, left: 0, right: 400, width: 400, x: 0, y: top, toJSON: () => ({}) })
+  }
+}
+
+/** Picks up a block by its handle and moves to `y` (the rows are 46px from y=100: a, the group's header and rows, b). */
+async function carry(id: string, y: number) {
+  const top = layout()
+  blockRects()
+  const startY = top(id) + 20
+  fireEvent.pointerDown(handleOf(id), { button: 0, clientX: 10, clientY: startY })
+  pointer('pointermove', startY + 12)
+  pointer('pointermove', y)
+  return { release: () => pointer('pointerup', y) }
+}
+
+describe('a block carried over an open group targets the whole group (H-009)', () => {
+  // a 100-146, the group header 146-192, g1 192-238, g2 238-284, g3 284-330, b 330-376: the group's span is 146-330, its middle 238.
+  it('over a row in the lower half of the group: the line is at the group\'s bottom edge, and the block lands after the whole group', async () => {
+    await open()
+
+    const gesture = await carry('a', 270)
+
+    const block = document.querySelector('[data-block-key="gs"]') as HTMLElement
+    expect(block.querySelector(':scope > .q-dropline.after')).not.toBeNull()
+    expect(row('gs').querySelector('.q-dropline')).toBeNull()
+    expect(row('g2').querySelector('.q-dropline')).toBeNull()
+
+    gesture.release()
+    await waitFor(() => expect(rowIds()).toEqual(['gs', 'g1', 'g2', 'g3', 'a', 'b']))
+  })
+
+  it('over a row in the upper half of the group: the line is at the group\'s top edge, and the block lands before the group', async () => {
+    await open()
+
+    const gesture = await carry('b', 200)
+
+    expect(row('gs').querySelector('.q-dropline:not(.after)')).not.toBeNull()
+    expect(document.querySelector('[data-block-key="gs"] > .q-dropline')).toBeNull()
+
+    gesture.release()
+    await waitFor(() => expect(rowIds()).toEqual(['a', 'b', 'gs', 'g1', 'g2', 'g3']))
+  })
+
+  it('a group is carried the same way: over an open group\'s rows it lands before or after the whole group', async () => {
+    store.set('list:L1:collapsed', JSON.stringify([]))
+    vi.mocked(api.list).mockResolvedValue({
+      ...list(),
+      items: [item('a', 0, 'Alpha'), item('g1', 1, 'Season 1'), item('g2', 2, 'Season 1'), item('g3', 3, 'Season 1')],
+      groups: [
+        { id: 'ga', listId: 'L1', name: 'Alpha', orderIndex: 0 } as ListGroup,
+        { id: 'gs', listId: 'L1', name: 'Season 1', orderIndex: 1 } as ListGroup,
+      ],
+    })
+    await open()
+
+    // Alpha is carried (it folds to its header: 100-146); Season 1 is then 146-330, its middle 238; the pointer is over g3.
+    const gesture = await carry('ga', 300)
+    expect(document.querySelector('[data-block-key="gs"] > .q-dropline.after')).not.toBeNull()
+
+    gesture.release()
+    await waitFor(() => expect(rowIds()).toEqual(['gs', 'g1', 'g2', 'g3', 'ga', 'a']))
+  })
+
+  it('a collapsed group keeps the plain rule: its header\'s upper half is before, its lower half after', async () => {
+    store.set('list:L1:collapsed', JSON.stringify(['Season 1']))
+    await open()
+
+    // a 100-146, the shut header 146-192, b 192-238.
+    const gesture = await carry('a', 185)
+    expect(row('gs').querySelector('.q-dropline.after')).not.toBeNull()
+
+    gesture.release()
+    await waitFor(() => expect(rowIds()).toEqual(['gs', 'a', 'b']))
+  })
+
+  it('an item inside a group still meets only its siblings: over another block it has no target', async () => {
+    await open()
+
+    await carry('g1', 125)
+
+    expect(document.querySelector('.q-dropline')).toBeNull()
+  })
+})
+
 describe('dragging by the handle', () => {
   it('drops a loose item after a group, and offers Undo', async () => {
     await open()

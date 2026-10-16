@@ -17,11 +17,13 @@ function Harness(props: {
   onStart?: (key: string) => void
   onEnd?: () => void
   scroller?: () => HTMLElement | null
+  resolve?: (dragKey: string, hit: Element | null, y: number) => DropTarget | null | undefined
 }) {
   const drag = useRowDrag({
     accepts: props.accepts ?? (() => true),
     onDrop: props.onDrop,
     ...(props.scroller ? { scrollContainer: props.scroller } : {}),
+    ...(props.resolve ? { resolve: props.resolve } : {}),
     ...(props.onStart ? { onStart: props.onStart } : {}),
     ...(props.onEnd ? { onEnd: props.onEnd } : {}),
   })
@@ -64,6 +66,40 @@ const press = (key: string, x = 10, y = 120, button = 0) =>
   fireEvent.pointerDown(screen.getByTestId(`handle-${key}`), { button, clientX: x, clientY: y })
 const move = (x: number, y: number) => act(() => void window.dispatchEvent(new MouseEvent('pointermove', { clientX: x, clientY: y, bubbles: true, cancelable: true })))
 const release = (x: number, y: number) => act(() => void window.dispatchEvent(new MouseEvent('pointerup', { clientX: x, clientY: y, bubbles: true })))
+
+describe('useRowDrag: a caller that resolves the target itself', () => {
+  it('shows and drops what the resolver answers for what is under the pointer, instead of the row it is over', () => {
+    pointAt()
+    const onDrop = vi.fn()
+    const resolve = vi.fn((_key: string, hit: Element | null, y: number) => (hit ? { key: 'c', pos: y < 150 ? ('before' as const) : ('after' as const) } : null))
+    render(<Harness onDrop={onDrop} resolve={resolve} />)
+    press('a')
+
+    move(10, 145)
+    expect(state().over).toEqual({ key: 'c', pos: 'before' })
+    expect(resolve).toHaveBeenLastCalledWith('a', screen.getByTestId('handle-b'), 145)
+
+    move(10, 170)
+    expect(state().over).toEqual({ key: 'c', pos: 'after' })
+
+    release(10, 170)
+    expect(onDrop).toHaveBeenCalledWith('a', { key: 'c', pos: 'after' })
+  })
+
+  it('`undefined` leaves it to the plain rule, and `null` means no target at all', () => {
+    pointAt()
+    let answer: DropTarget | null | undefined = undefined
+    render(<Harness onDrop={vi.fn()} resolve={() => answer} />)
+    press('a')
+
+    move(10, 150)
+    expect(state().over).toEqual({ key: 'b', pos: 'before' })
+
+    answer = null
+    move(10, 151)
+    expect(state().over).toBeNull()
+  })
+})
 
 describe('useRowDrag', () => {
   it('shows the drop line for what is under the pointer after the list scrolls under it (the wheel), without the pointer moving', async () => {

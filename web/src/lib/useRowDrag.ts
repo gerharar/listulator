@@ -26,6 +26,11 @@ export interface RowDragOptions {
   accepts: (dragKey: string, targetKey: string) => boolean
   onDrop: (dragKey: string, target: DropTarget) => void
   onStart?: (dragKey: string) => void
+  /**
+   * Lets the caller decide the target from what is under the pointer (`hit`) and its height, where the row under it is not the whole story
+   * (a block carried over an open group targets the group, Phase 27). `undefined` leaves it to the plain rule, `null` means no target.
+   */
+  resolve?: (dragKey: string, hit: Element | null, y: number) => DropTarget | null | undefined
   /** However it ended: dropped, escaped or cancelled. */
   onEnd?: () => void
   /** The scrollable ancestor to nudge while the pointer is near its edge; found from the handle if omitted. */
@@ -92,7 +97,10 @@ export function useRowDrag(options: RowDragOptions) {
       setOver((current) => (current?.key === next?.key && current?.pos === next?.pos ? current : next))
 
     function targetAt(px: number, py: number): DropTarget | null {
-      const row = document.elementFromPoint(px, py)?.closest<HTMLElement>('[data-drag-key]')
+      const hit = document.elementFromPoint(px, py)
+      const resolved = latest.current.resolve?.(key, hit, py)
+      if (resolved !== undefined) return resolved
+      const row = hit?.closest<HTMLElement>('[data-drag-key]')
       const targetKey = row?.dataset['dragKey']
       if (!row || !targetKey || targetKey === key || !latest.current.accepts(key, targetKey)) return null
 

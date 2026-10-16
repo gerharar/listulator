@@ -1286,7 +1286,7 @@ function ListView({
             renderItem={itemRow}
             renderGroup={({ unit, members }, rows) =>
               unit.kind === 'group' ? (
-                <div key={unit.group.id} className="q-list-block">
+                <div key={unit.group.id} className="q-list-block" data-block-key={unit.group.id}>
                   <GroupRow
                     block={unit}
                     collapsed={shut.has(unit.group.name)}
@@ -1298,11 +1298,19 @@ function ListView({
                     onRename={(name) => renameGroup(unit.group, name)}
                     onDeleteWithItems={(anchor) => setGroupDelete({ group: unit.group, anchor })}
                     dragging={moves.dragKey === unit.group.id}
-                    dropLine={moves.over?.key === unit.group.id ? moves.over.pos : null}
+                    dropLine={
+                      moves.over?.key === unit.group.id && !(moves.over.pos === 'after' && !shut.has(unit.group.name) && members.length > 0)
+                        ? moves.over.pos
+                        : null
+                    }
                     pulse={pulseIds.has(unit.group.id)}
                     shownOf={filtering ? { shown: members.length, total: unit.items.length } : undefined}
                   />
                   {rows}
+                  {/* An open group's "after" line is at its bottom edge, under its last row (H-009); a shut or empty group's is under its header. */}
+                  {moves.over?.key === unit.group.id && moves.over.pos === 'after' && !shut.has(unit.group.name) && members.length > 0 && (
+                    <span className="q-dropline after" />
+                  )}
                 </div>
               ) : null
             }
