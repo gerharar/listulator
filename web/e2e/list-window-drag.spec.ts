@@ -52,11 +52,42 @@ const frames = (page: Page, count = 3) =>
 const rowOf = (page: Page, text: string): Locator =>
   page.locator('.q-item', { has: page.getByText(text, { exact: true }) })
 
-/** A dropped row (or header) lands at the drop line: its top edge is within about a row of where the pointer was released. */
-async function expectLandedAt(row: Locator, dropY: number) {
-  const box = (await row.boundingBox())!
-  expect(Math.abs(box.y - dropY), `the row's top (${box.y}) is far from the drop point (${dropY})`).toBeLessThanOrEqual(ITEM + 4)
+/**
+ * Releases the pointer and reads where the moved row (or group block) is in the FIRST animation frame after the release (H-009: the drop
+ * lands where it was released, in the same commit as the move and before paint, not a frame later). `selector` finds the moved element;
+ * the drop line's own edge is read just before the release: its top, or its bottom for an "after" line, never above the list's top edge.
+ */
+async function releaseAndMeasure(page: Page, selector: string) {
+  const lineY = await page.evaluate(() => {
+    const line = document.querySelector('.q-dropline') as HTMLElement
+    const edge = line.parentElement!.getBoundingClientRect()
+    const area = (document.querySelector('.q-list-body') as HTMLElement).getBoundingClientRect()
+    return Math.max(area.top, line.classList.contains('after') ? edge.bottom : edge.top)
+  })
+  await page.evaluate((sel) => {
+    const w = window as unknown as { __landed: number | null }
+    w.__landed = null
+    window.addEventListener(
+      'pointerup',
+      () =>
+        requestAnimationFrame(() => {
+          const element = document.querySelector(sel)
+          w.__landed = element ? element.getBoundingClientRect().top : -1
+        }),
+      { capture: true, once: true },
+    )
+  }, selector)
+  await page.mouse.up()
+  await page.waitForFunction(() => (window as unknown as { __landed: number | null }).__landed !== null)
+  const landed = await page.evaluate(() => (window as unknown as { __landed: number }).__landed)
+
+  return { lineY, landed }
 }
+
+const expectOnTheLine = ({ lineY, landed }: { lineY: number; landed: number }) =>
+  expect(Math.abs(landed - lineY), `the moved block's top is ${landed}, the drop line was at ${lineY}`).toBeLessThanOrEqual(1)
+
+const rowId = (row: Locator) => row.getAttribute('data-row-id')
 
 const scrollTop = (page: Page) => page.evaluate(() => (document.querySelector('.q-list-body') as HTMLElement).scrollTop)
 
@@ -89,6 +120,7 @@ test('one item is dragged from the top of 5,000 to its 2,500th place, and Undo p
 
   try {
     await openList(page, title)
+    const movedId = await rowId(rowOf(page, 'Issue 0'))
     const pointer = await pickUp(page, rowOf(page, 'Issue 0').locator('.q-handle'))
 
     // The reader scrolls while carrying (the wheel; the edge autoscroll does the same to `scrollTop`): the rows follow.
@@ -99,12 +131,11 @@ test('one item is dragged from the top of 5,000 to its 2,500th place, and Undo p
     await page.mouse.move(pointer.x, pointer.y + 10)
     await page.mouse.move(at.x, at.y, { steps: 6 })
     await expect(target.locator('.q-dropline')).toBeVisible()
-    await page.mouse.up()
+    // It is in the list where the pointer let go (on the line, in the first frame), not snapped to wherever it was picked up.
+    expectOnTheLine(await releaseAndMeasure(page, `[data-row-id="${movedId}"]`))
 
     await expect.poll(async () => (await titles(page.request, id)).indexOf('Issue 0')).toBe(2499)
     expect((await titles(page.request, id))[2500]).toBe('Issue 2500')
-    // It is in the list where the pointer let go, not snapped to wherever it was picked up.
-    await expectLandedAt(rowOf(page, 'Issue 0'), at.y)
     await expect(page.locator('.q-toast')).toBeVisible()
 
     await page.locator('.q-toast').getByRole('button', { name: 'Undo' }).click()
@@ -124,6 +155,7 @@ test('an item moved a few rows inside a long list lands at the drop line, and th
     // Issue 125 is 150px below the top of the view, so it and the row it goes to are clear of the edge bands (they scroll the list).
     await setScroll(page, 125 * ITEM - 150)
     const before = await scrollTop(page)
+    const movedId = await rowId(rowOf(page, 'Issue 125'))
     const pointer = await pickUp(page, rowOf(page, 'Issue 125').locator('.q-handle'))
     // The wheel moves the list under a still pointer: the drop line moves to the row that is under it now.
     const lineRow = () => page.locator('.q-item:has(.q-dropline)').textContent()
@@ -137,11 +169,11 @@ test('an item moved a few rows inside a long list lands at the drop line, and th
     const at = await pointOn(target, 'lower')
     await page.mouse.move(pointer.x, pointer.y + 10)
     await page.mouse.move(at.x, at.y, { steps: 6 })
-    await page.mouse.up()
+    // On the line, exactly: the view shifts by the one row that moved (the prototype's rule), no more.
+    expectOnTheLine(await releaseAndMeasure(page, `[data-row-id="${movedId}"]`))
 
     await expect.poll(async () => (await titles(page.request, id)).indexOf('Issue 125')).toBe(128)
-    await expectLandedAt(rowOf(page, 'Issue 125'), at.y)
-    expect(Math.abs((await scrollTop(page)) - before)).toBeLessThanOrEqual(ITEM)
+    expect(Math.abs((await scrollTop(page)) - before)).toBeLessThanOrEqual(ITEM + 1)
   } finally {
     await page.request.delete(`/api/lists/${id}`)
   }
@@ -167,6 +199,7 @@ test('a group is dragged over 25 open groups: only it folds, its header does not
     await setScroll(page, 20 * BLOCK - 150)
     const header = page.locator('.q-group', { hasText: name(20) })
     const before = await headerTop(page, name(20))
+    const movedGroupId = await rowId(header)
     const pointer = await pickUp(page, header.locator('.q-handle'))
     await frames(page, 4)
 
@@ -187,12 +220,11 @@ test('a group is dragged over 25 open groups: only it folds, its header does not
     await page.mouse.move(pointer.x, pointer.y + 10)
     await page.mouse.move(at.x, at.y, { steps: 8 })
     await expect(target.locator('.q-dropline:not(.after)')).toBeVisible()
-    await page.mouse.up()
+    // The group opens again where it landed: its box's top is on the line in the first frame.
+    expectOnTheLine(await releaseAndMeasure(page, `[data-block-key="${movedGroupId}"]`))
 
     await expect.poll(async () => (await groupOrder(page.request, id)).indexOf(name(20))).toBe(44)
-    // The group opens again where it landed, at the drop line.
     await expect(page.locator('.q-group', { hasText: name(20) })).toBeVisible()
-    await expectLandedAt(page.locator('.q-group', { hasText: name(20) }), at.y)
     await expect(page.locator('.q-item').first()).toBeVisible()
 
     await page.locator('.q-toast').getByRole('button', { name: 'Undo' }).click()
@@ -211,6 +243,7 @@ test('a loose item over the upper half of a 3,000-row group lands before the who
   try {
     await openList(page, title)
     await setScroll(page, 10_000_000)
+    const movedId = await rowId(rowOf(page, 'Loose 1'))
     const pointer = await pickUp(page, rowOf(page, 'Loose 1').locator('.q-handle'))
     // Nothing folds: the group is as open as it was.
     await setScroll(page, GROUP + 1000 * ITEM - 150)
@@ -249,7 +282,7 @@ test('a loose item over the upper half of a 3,000-row group lands before the who
     await expect(page.locator('.q-group .q-dropline:not(.after)')).toHaveCount(1)
     await expect(page.locator('.q-item .q-dropline')).toHaveCount(0)
     await expect(page.locator('.q-list-block > .q-dropline.after')).toHaveCount(0)
-    await page.mouse.up()
+    expectOnTheLine(await releaseAndMeasure(page, `[data-row-id="${movedId}"]`))
 
     await expect.poll(async () => (await titles(page.request, id))[0]).toBe('Loose 1')
     await expect(page.locator('.q-item.is-hover, .q-group.is-target')).toHaveCount(0)
@@ -269,6 +302,7 @@ test('a loose item over the lower half of a 3,000-row group lands after the whol
 
   try {
     await openList(page, title)
+    const movedId = await rowId(rowOf(page, 'Loose 0'))
     const pointer = await pickUp(page, rowOf(page, 'Loose 0').locator('.q-handle'))
     await setScroll(page, 2 * ITEM + GROUP + 2000 * ITEM - 150)
     const target = rowOf(page, 'Vol 2000')
@@ -281,10 +315,106 @@ test('a loose item over the lower half of a 3,000-row group lands after the whol
     await expect(page.locator('.q-list-block > .q-dropline.after')).toHaveCount(1)
     await expect(page.locator('.q-group .q-dropline')).toHaveCount(0)
     await expect(page.locator('.q-item .q-dropline')).toHaveCount(0)
-    await page.mouse.up()
+    // The line is thousands of pixels below the view; the moved row (kept drawn while it pulses) is exactly on it all the same.
+    expectOnTheLine(await releaseAndMeasure(page, `[data-row-id="${movedId}"]`))
 
     await expect.poll(async () => (await titles(page.request, id)).at(-1)).toBe('Loose 0')
     expect((await titles(page.request, id))[0]).toBe('Loose 1')
+  } finally {
+    await page.request.delete(`/api/lists/${id}`)
+  }
+})
+
+test('a loose item dropped after a short open group lands on the group\'s bottom edge, in view', async ({ page }) => {
+  test.setTimeout(120_000)
+  const title = `e2e list-drag short ${Date.now()}`
+  // Ten loose rows first: the view is scrolled below the top, so the block that leaves the top of the list can be made up for (at the very
+  // top of a list nothing can scroll the view further up: the moved block would land by up to its own height above the line).
+  const rows = [
+    ...Array.from({ length: 10 }, (_, n) => `  - { title: "Head ${n}", minutes: 30 }`),
+    ...Array.from({ length: 6 }, (_, n) => `  - { title: "Mid ${n}", minutes: 30, group: "Mid" }`),
+    ...Array.from({ length: 300 }, (_, n) => `  - { title: "Tail ${n}", minutes: 30 }`),
+  ]
+  const id = await makeList(page.request, title, rows)
+
+  try {
+    await openList(page, title)
+    await setScroll(page, 8 * ITEM)
+    const movedId = await rowId(rowOf(page, 'Head 9'))
+    const pointer = await pickUp(page, rowOf(page, 'Head 9').locator('.q-handle'))
+    // Clear of the bottom edge band, which would scroll the list under the pointer.
+    const target = rowOf(page, 'Mid 3')
+    await expect(target).toBeVisible()
+    const at = await pointOn(target, 'upper')
+    await page.mouse.move(pointer.x, pointer.y + 10)
+    await page.mouse.move(at.x, at.y, { steps: 6 })
+    await expect(page.locator('.q-list-block > .q-dropline.after')).toHaveCount(1)
+
+    expectOnTheLine(await releaseAndMeasure(page, `[data-row-id="${movedId}"]`))
+    await expect.poll(async () => (await titles(page.request, id)).slice(8, 16)).toEqual(['Head 8', 'Mid 0', 'Mid 1', 'Mid 2', 'Mid 3', 'Mid 4', 'Mid 5', 'Head 9'])
+  } finally {
+    await page.request.delete(`/api/lists/${id}`)
+  }
+})
+
+test('a loose item dropped before a group whose header is stuck at the top lands at the list\'s top edge, and the header is not stuck mid-group', async ({ page }) => {
+  test.setTimeout(120_000)
+  const title = `e2e list-drag stuck before ${Date.now()}`
+  const rows = ['  - { title: "Loose 0", minutes: 30 }', ...Array.from({ length: 1000 }, (_, n) => `  - { title: "Issue ${n}", minutes: 30, group: "${name(Math.floor(n / 100))}" }`)]
+  const id = await makeList(page.request, title, rows)
+
+  try {
+    await openList(page, title)
+    const movedId = await rowId(rowOf(page, 'Loose 0'))
+    const pointer = await pickUp(page, rowOf(page, 'Loose 0').locator('.q-handle'))
+    // The view is inside Group 03: its header is stuck at the top.
+    await setScroll(page, ITEM + 3 * BLOCK + GROUP + 40 * ITEM)
+    const target = rowOf(page, 'Issue 340')
+    await expect(target).toBeVisible()
+    const at = await pointOn(target, 'upper')
+    await page.mouse.move(pointer.x, pointer.y + 10)
+    await page.mouse.move(at.x, at.y, { steps: 6 })
+    await expect(page.locator('.q-group.is-target')).toContainText(name(3))
+
+    const measured = await releaseAndMeasure(page, `[data-row-id="${movedId}"]`)
+    const listTop = await page.locator('.q-list-body').evaluate((node) => node.getBoundingClientRect().top)
+    expectOnTheLine(measured)
+    expect(Math.abs(measured.landed - listTop)).toBeLessThanOrEqual(1)
+    // Group 03's header sits right under the moved row (a row's height below the list's top), not stuck over its own rows.
+    expect(Math.abs((await headerTop(page, name(3))) - (listTop + ITEM))).toBeLessThanOrEqual(1)
+    // Before Group 03: after the 300 rows of Groups 00 to 02.
+    await expect.poll(async () => (await titles(page.request, id)).indexOf('Loose 0')).toBe(300)
+  } finally {
+    await page.request.delete(`/api/lists/${id}`)
+  }
+})
+
+test('a group dropped before a group whose header is stuck lands with its box at the list\'s top edge', async ({ page }) => {
+  test.setTimeout(120_000)
+  const title = `e2e list-drag stuck group ${Date.now()}`
+  const rows = Array.from({ length: 1000 }, (_, n) => `  - { title: "Issue ${n}", minutes: 30, group: "${name(Math.floor(n / 100))}" }`)
+  const id = await makeList(page.request, title, rows)
+
+  try {
+    await openList(page, title)
+    await setScroll(page, BLOCK - 150)
+    const header = page.locator('.q-group', { hasText: name(1) })
+    const movedGroupId = await rowId(header)
+    const pointer = await pickUp(page, header.locator('.q-handle'))
+    // Group 01 is folded: Group 05 starts 4,600px nearer. The view is inside it, its header stuck at the top.
+    await setScroll(page, 5 * BLOCK - 100 * ITEM + GROUP + 30 * ITEM)
+    const target = rowOf(page, 'Issue 530')
+    await expect(target).toBeVisible()
+    const at = await pointOn(target, 'upper')
+    await page.mouse.move(pointer.x, pointer.y + 10)
+    await page.mouse.move(at.x, at.y, { steps: 6 })
+    await expect(page.locator('.q-group.is-target')).toContainText(name(5))
+
+    const measured = await releaseAndMeasure(page, `[data-block-key="${movedGroupId}"]`)
+    const listTop = await page.locator('.q-list-body').evaluate((node) => node.getBoundingClientRect().top)
+    expectOnTheLine(measured)
+    expect(Math.abs(measured.landed - listTop)).toBeLessThanOrEqual(1)
+    await expect.poll(async () => (await groupOrder(page.request, id)).indexOf(name(1))).toBe(4)
   } finally {
     await page.request.delete(`/api/lists/${id}`)
   }

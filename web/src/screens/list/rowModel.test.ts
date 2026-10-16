@@ -423,53 +423,91 @@ describe('scrollKeepingUnit: a carried block stays where it is on the screen whe
   })
 })
 
-describe('scrollAfterDrop: a dropped unit lands at the drop line', () => {
+describe('scrollAfterDrop: a dropped unit lands exactly at the drop line (H-009)', () => {
   // 10 groups of 5 (277px each, 47px when shut) and a loose row after them.
   const groups = Array.from({ length: 10 }, (_, n) => block(`G${n}`, 5))
   const names = groups.map((entry) => (entry.unit as { group: ListGroup }).group.name)
-  const shutAll = buildRowModel(groups, shut(...names))
   const top = (model: RowModel, id: string) => offsetOf(model, id)!
+  /** The model the drop was made in (Group 2 carried, so shut, the others open) and the one after it (Group 2 moved, open). */
+  const carried = buildRowModel(groups, shut(names[2]!))
+  const moved = (order: Shown[]) => buildRowModel(order, noneShut)
+  const without2 = [...groups.slice(0, 2), ...groups.slice(3)]
 
-  it('a group dropped after a shut group far from where it was picked up has its header at the line, once the groups are open', () => {
-    // Group 2 carried to the line after G7, with G7 120px below the top of the (shut) view.
-    const reordered = [...groups.slice(0, 2), ...groups.slice(3, 8), groups[2]!, ...groups.slice(8)]
-    const open = buildRowModel(reordered, noneShut)
-    const scrollTop = top(shutAll, 'G7') - 120
+  it('after an open group the moved group\'s top is on the group\'s BOTTOM edge, wherever that was on the screen', () => {
+    const order = [...without2.slice(0, 7), groups[2]!, ...without2.slice(7)]
+    const open = moved(order)
+    const scrollTop = top(carried, 'G7') - 120
+    // G7 (open, 277px tall in the model the drop was made in): its bottom was 120 + 277 below the top of the view.
+    const bottomOnScreen = top(carried, 'G7') + 277 - scrollTop
 
-    const at = scrollAfterDrop(shutAll, open, 'G2', 'G7', 'after', scrollTop)!
+    const at = scrollAfterDrop(carried, open, 'G2', 'G7', 'after', scrollTop)!
 
-    // The line is G7's bottom: 120 + 47 below the top of the view; the dropped group's header is there.
+    expect(top(open, 'G2') - at).toBe(bottomOnScreen)
+  })
+
+  it('before an open group the moved group\'s top is on the group\'s top edge', () => {
+    const open = moved([...without2.slice(0, 6), groups[2]!, ...without2.slice(6)])
+    const scrollTop = top(carried, 'G7') - 120
+
+    const at = scrollAfterDrop(carried, open, 'G2', 'G7', 'before', scrollTop)!
+
+    expect(top(open, 'G2') - at).toBe(120)
+  })
+
+  it('before a group whose header is stuck at the top (the view is inside it) the line is the list\'s top edge: the moved group\'s box is there', () => {
+    const open = moved([...without2.slice(0, 6), groups[2]!, ...without2.slice(6)])
+    const scrollTop = top(carried, 'G7') + 90
+
+    const at = scrollAfterDrop(carried, open, 'G2', 'G7', 'before', scrollTop)!
+
+    expect(top(open, 'G2') - at).toBe(0)
+  })
+
+  it('after a shut group the line is under its header', () => {
+    const shutSeven = buildRowModel(groups, shut(names[2]!, names[7]!))
+    const open = moved([...without2.slice(0, 7), groups[2]!, ...without2.slice(7)])
+    const scrollTop = top(shutSeven, 'G7') - 120
+
+    const at = scrollAfterDrop(shutSeven, open, 'G2', 'G7', 'after', scrollTop)!
+
     expect(top(open, 'G2') - at).toBe(120 + GROUP_HEIGHT)
   })
 
-  it('a drop before a target puts the dropped unit at the target\'s top', () => {
-    const reordered = [groups[0]!, groups[2]!, groups[1]!, ...groups.slice(3)]
-    const open = buildRowModel(reordered, noneShut)
-
-    const at = scrollAfterDrop(shutAll, open, 'G2', 'G1', 'before', top(shutAll, 'G1') - 80)!
-
-    expect(top(open, 'G2') - at).toBe(80)
-  })
-
-  it('a move that already leaves the dropped unit within a row of the line is not scrolled (a short move in a flat list)', () => {
+  it('a short move in a flat list is exact too: the row\'s top goes on the line, so the view shifts by the row that moved (as the prototype does)', () => {
     const rows = Array.from({ length: 300 }, (_, n) => loose(`r${n}`))
     const before = buildRowModel(rows, noneShut)
-    // r30 carried to just after r33 (moving down): the rows between shift up by one.
+    // r30 after r33 (moving down): r31..r33 close up, r30 takes the slot above r34.
     const after = buildRowModel([...rows.slice(0, 30), ...rows.slice(31, 34), rows[30]!, ...rows.slice(34)], noneShut)
 
-    expect(scrollAfterDrop(before, after, 'r30', 'r33', 'after', 1000)).toBe(1000)
+    expect(scrollAfterDrop(before, after, 'r30', 'r33', 'after', 1000)).toBe(1000 - ITEM_HEIGHT)
+    // r40 before r33 (moving up): the moved row is where the line was; nothing shifts.
+    const up = buildRowModel([...rows.slice(0, 33), rows[40]!, ...rows.slice(33, 40), ...rows.slice(41)], noneShut)
+    expect(scrollAfterDrop(before, up, 'r40', 'r33', 'before', 1000)).toBe(1000)
   })
 
-  it('a far drop in a flat list needs no scroll either: wherever the view is, the dropped row is within a row of the line', () => {
+  it('a far drop in a flat list puts the moved row on the line wherever the view was', () => {
     const rows = Array.from({ length: 5000 }, (_, n) => loose(`r${n}`))
     const before = buildRowModel(rows, noneShut)
     const after = buildRowModel([...rows.slice(1, 2500), rows[0]!, ...rows.slice(2500)], noneShut)
+    const scrollTop = 2495 * ITEM_HEIGHT
 
-    expect(scrollAfterDrop(before, after, 'r0', 'r2500', 'before', 2495 * ITEM_HEIGHT)).toBe(2495 * ITEM_HEIGHT)
+    const at = scrollAfterDrop(before, after, 'r0', 'r2500', 'before', scrollTop)!
+
+    // r2500 was 5 rows below the top of the view; the moved row (now at 2499) is on that line.
+    expect(offsetOf(after, 'r0')! - at).toBe(5 * ITEM_HEIGHT)
+  })
+
+  it('never scrolls above the top of the list', () => {
+    const rows = [loose('a'), loose('b'), loose('c')]
+    const before = buildRowModel(rows, noneShut)
+    const after = buildRowModel([rows[1]!, rows[2]!, rows[0]!], noneShut)
+
+    expect(scrollAfterDrop(before, after, 'a', 'c', 'after', 0)).toBe(0)
   })
 
   it('has nothing to say when the unit or its target is not in the models', () => {
-    expect(scrollAfterDrop(shutAll, shutAll, 'nope', 'G1', 'before', 0)).toBeUndefined()
-    expect(scrollAfterDrop(shutAll, shutAll, 'G1', 'nope', 'before', 0)).toBeUndefined()
+    expect(scrollAfterDrop(carried, carried, 'nope', 'G1', 'before', 0)).toBeUndefined()
+    expect(scrollAfterDrop(carried, carried, 'G1', 'nope', 'before', 0)).toBeUndefined()
   })
 })
+

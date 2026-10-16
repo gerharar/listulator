@@ -270,14 +270,15 @@ describe('carrying a group folds that group only, and keeps its header where it 
     grab('g20')
     await pointer('pointermove', 10, 330)
 
-    // Dropped in the lower half of Group 21's header. (Until 27.2 the line is under the header, and the 25.5 landing is used:
-    // the line was 194px below the top of the view; Group 20 now follows Group 21.)
+    // Dropped on Group 21 (open: the whole group is the target; jsdom measures its block as 0px tall, so this is "after"). The line is the
+    // group's bottom edge: Group 21 is 4,647px tall, so it was 21 x 4,647 + 47 - (20 x 4,647 - 100) below the top of the view; Group 20
+    // (now after Group 21, at 21 x 4,647) has its top there.
     const target = row('g21')!
     target.getBoundingClientRect = () => ({ top: 100, height: 47, bottom: 147, left: 0, right: 400, width: 400, x: 0, y: 100, toJSON: () => ({}) })
     document.elementFromPoint = () => target
     await pointer('pointerup', 10, 140)
 
-    expect(body().scrollTop).toBe(21 * GROUP - 194)
+    expect(body().scrollTop).toBe(20 * GROUP - 147)
     expect(row('g20')).not.toBeNull()
     expect(drawn('Film 2000')).toBe(true)
   })
