@@ -827,6 +827,12 @@ export const ru: Locale = {
         show: 'Распахнуть навигацию по группам',
         resize: 'Изменить размер навигации по группам',
       },
+      place: {
+        item: (n: number, total: number): string => `${n} из ${total}`,
+        group: (n: number, total: number): string => `Группа ${n} из ${total}`,
+        note: (total: number): string =>
+          `${items(total)}. Показаны только строки рядом с экраном. Остальные можно найти стрелками вверх и вниз или через фильтр.`,
+      },
       filter: {
         label: 'Фильтр элементов',
         placeholder: 'Фильтр элементов…',

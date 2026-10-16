@@ -72,7 +72,7 @@ afterEach(() => {
   vi.resetAllMocks()
 })
 
-async function open(count: number) {
+async function open(count: number, firstRow = 'Film 0') {
   vi.mocked(api.list).mockResolvedValue(detail(count))
   render(
     <LiveRegionProvider>
@@ -83,7 +83,7 @@ async function open(count: number) {
       </ToastProvider>
     </LiveRegionProvider>,
   )
-  await screen.findByText('Film 0')
+  await screen.findByText(firstRow)
   await act(async () => {})
 }
 
@@ -149,3 +149,77 @@ describe('a long list draws a window of its rows (25.2)', () => {
     expect(vi.mocked(api.setConsumed)).toHaveBeenCalledWith('L1', 'i3', true)
   })
 })
+
+describe('a long list says where each row is, for a screen reader (25.6, option A)', () => {
+  const place = (id: string) => document.querySelector(`[data-row-id="${id}"] .q-place`)?.textContent
+  const scrollTo = async (top: number) => {
+    const body = document.querySelector('.q-list-body') as HTMLElement
+    Object.defineProperty(body, 'scrollTop', { value: top, configurable: true, writable: true })
+    await act(async () => {
+      body.dispatchEvent(new Event('scroll'))
+      await new Promise((resolve) => requestAnimationFrame(() => resolve(undefined)))
+    })
+  }
+
+  it('names each drawn item and group by its place among the rows there are, and says how the list is drawn before the rows', async () => {
+    await open(5000)
+
+    expect(place('i0')).toBe('1 of 5000')
+    expect(place('g1')).toBe('Group 1 of 1')
+    const note = document.querySelector('.q-list-body > .q-place')
+    expect(note?.textContent).toMatch(/^5000 items\. Only the rows near the screen are drawn/)
+    expect(note?.textContent).toMatch(/arrow keys/)
+    // Before the rows, so a reader meets it first.
+    expect(note?.nextElementSibling?.className).not.toContain('q-place')
+    expect(document.querySelector('.q-list-body')?.firstElementChild).toBe(note)
+
+    await scrollTo(2500 * 46)
+    expect(place('i2500')).toBe('2501 of 5000')
+  })
+
+  it('changes no role and no accessible name: the place is plain text inside the row (a plain div cannot be given a name)', async () => {
+    await open(5000)
+
+    const item = document.querySelector('[data-row-id="i0"]') as HTMLElement
+    const header = document.querySelector('[data-row-id="g1"]') as HTMLElement
+    expect(item.getAttribute('role')).toBeNull()
+    expect(item.hasAttribute('aria-label')).toBe(false)
+    expect(header.getAttribute('role')).toBe('button')
+    expect(header.hasAttribute('aria-label')).toBe(false)
+  })
+
+  it('counts only the rows that exist: a folded group\'s items are not rows', async () => {
+    prefs.set('list:L1:collapsed', JSON.stringify(['First']))
+    await open(5000, 'Film 2500')
+
+    expect(place('i2500')).toBe('1 of 2500')
+    expect(document.querySelector('.q-list-body > .q-place')?.textContent).toMatch(/^2500 items\./)
+  })
+
+  it('a list under 200 rows is untouched: no place on a row and no sentence', async () => {
+    await open(150)
+
+    expect(document.querySelector('.q-place')).toBeNull()
+  })
+})
+
+describe('a row with an open window stays drawn and anchored when the list is scrolled away (25.6)', () => {
+  it('the Edit window stays open on its row, which is still in the page', async () => {
+    await open(5000)
+    fireEvent.click(screen.getByRole('button', { name: 'Edit Film 3' }))
+    expect(await screen.findByRole('dialog')).toBeTruthy()
+    const body = document.querySelector('.q-list-body') as HTMLElement
+    Object.defineProperty(body, 'scrollTop', { value: 4000 * 46, configurable: true, writable: true })
+
+    await act(async () => {
+      body.dispatchEvent(new Event('scroll'))
+      await new Promise((resolve) => requestAnimationFrame(() => resolve(undefined)))
+    })
+
+    expect(screen.getByText('Film 4000')).toBeTruthy()
+    expect(screen.queryByRole('dialog')).not.toBeNull()
+    expect(document.querySelector('[data-row-id="i3"]')).not.toBeNull()
+    expect(screen.getByRole('button', { name: 'Edit Film 3' })).toBeTruthy()
+  })
+})
+

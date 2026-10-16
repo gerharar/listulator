@@ -9,7 +9,7 @@ import { expect, test, type APIRequestContext, type Page } from '@playwright/tes
 const ITEM = 46
 const GROUP = 47
 const BLOCK = GROUP + 100 * ITEM
-const name = (k: number) => `Group ${String(k).padStart(2, '0')}`
+const name = (k: number) => `Volume ${String(k).padStart(2, '0')}`
 
 async function makeList(request: APIRequestContext, title: string) {
   const rows = Array.from({ length: 5000 }, (_, n) => `  - { title: "Issue ${n}", minutes: 30, group: "${name(Math.floor(n / 100))}" }`)

@@ -24,6 +24,8 @@ export interface GroupRowProps {
   dropLine?: 'before' | 'after' | null
   /** A block is carried over this open group: it is the drop target, and its header takes a tint of its own (H-009). */
   target?: boolean
+  /** On a list drawn as a window: where this group is, as hidden text for a screen reader ("Group 3 of 50", Phase 25.6). Absent on a short list. */
+  place?: string
   /** Just moved or restored. */
   pulse?: boolean
   /** Deletes the group. Offered only while it holds no items (prototype: "🗑 empty"). */
@@ -55,6 +57,7 @@ export function GroupRow({
   dragging = false,
   dropLine = null,
   target = false,
+  place,
   pulse = false,
   onDelete,
   onDeleteWithItems,
@@ -250,6 +253,7 @@ export function GroupRow({
           <FieldMessage id={nameErrorId} text={nameError} />
         </span>
       )}
+      {place && <span className="q-place">{place}</span>}
     </div>
   )
 }

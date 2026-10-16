@@ -16,7 +16,7 @@ async function makeList(request: APIRequestContext, title: string, rows: string[
 }
 
 const loose = (count: number) => Array.from({ length: count }, (_, n) => `  - { title: "Issue ${n}", minutes: 30 }`)
-const name = (k: number) => `Group ${String(k).padStart(2, '0')}`
+const name = (k: number) => `Volume ${String(k).padStart(2, '0')}`
 
 async function openList(page: Page, title: string) {
   await page.goto('/')

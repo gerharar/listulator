@@ -415,6 +415,22 @@ function ListView({
   const virtualization: VirtualizationMode = 'auto'
   const rowModel = useMemo(() => buildRowModel(shownUnits, (name) => shut.has(name)), [shownUnits, shut])
   const windowed = shouldVirtualize(rowModel.rowTops.size, virtualization)
+  // Where each drawn row is, for a screen reader (Phase 25.6, option A): only on a list drawn as a window, which shows a fraction of its rows.
+  // Counted among the rows there are (items, and groups; not the items of a folded group), in the order they are walked.
+  const places = useMemo(() => {
+    if (!windowed) return undefined
+    const itemAt = new Map<string, number>()
+    const groupAt = new Map<string, number>()
+    for (const { unit, members } of shownUnits) {
+      if (unit.kind === 'item') itemAt.set(unit.item.id, itemAt.size + 1)
+      else {
+        groupAt.set(unit.group.id, groupAt.size + 1)
+        if (!shut.has(unit.group.name)) for (const member of members) itemAt.set(member.id, itemAt.size + 1)
+      }
+    }
+
+    return { itemAt, groupAt }
+  }, [windowed, shownUnits, shut])
   // The rows that are on screen, in order: what the arrow keys walk.
   const visible = useMemo(() => {
     const ids: string[] = []
@@ -1159,6 +1175,7 @@ function ListView({
       pulse={pulseIds.has(entry.id)}
       onHandlePointerDown={onRowHandle}
       dragging={moves.dragKey === entry.id}
+      place={places && places.itemAt.has(entry.id) ? text.place.item(places.itemAt.get(entry.id)!, places.itemAt.size) : undefined}
       hover={grouped && targetGroup !== undefined && entry.group === targetGroup}
       dropLine={moves.over?.key === entry.id ? moves.over.pos : null}
       onToggle={onRowToggle}
@@ -1288,6 +1305,7 @@ function ListView({
               {isFiltering({ ...filter, hideDone: false }) ? text.filter.nothing(filter.text) : text.filter.allDone}
             </p>
           )}
+          {places && <p className="q-place">{text.place.note(places.itemAt.size)}</p>}
           <WindowedRows
             shown={shownUnits}
             model={rowModel}
@@ -1312,6 +1330,7 @@ function ListView({
                     onDeleteWithItems={(anchor) => setGroupDelete({ group: unit.group, anchor })}
                     dragging={moves.dragKey === unit.group.id}
                     target={targetGroup === unit.group.name}
+                    place={places && places.groupAt.has(unit.group.id) ? text.place.group(places.groupAt.get(unit.group.id)!, places.groupAt.size) : undefined}
                     dropLine={
                       moves.over?.key === unit.group.id && !(moves.over.pos === 'after' && !shut.has(unit.group.name) && members.length > 0)
                         ? moves.over.pos

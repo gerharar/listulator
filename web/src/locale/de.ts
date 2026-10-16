@@ -818,6 +818,12 @@ export const de: Locale = {
         show: 'Gruppen-Sprungleiste vergrößern',
         resize: 'Größe der Gruppen-Sprungleiste ändern',
       },
+      place: {
+        item: (n: number, total: number): string => `${n} von ${total}`,
+        group: (n: number, total: number): string => `Gruppe ${n} von ${total}`,
+        note: (total: number): string =>
+          `${entries(total)}. Es sind nur die Zeilen in Bildschirmnähe gezeichnet. Mit den Pfeiltasten nach oben und unten oder mit dem Filter erreicht man die übrigen.`,
+      },
       filter: {
         label: 'Einträge filtern',
         placeholder: 'Einträge filtern…',

@@ -917,6 +917,16 @@ export const en = {
         show: 'Enlarge group jumper',
         resize: 'Resize group jumper',
       },
+      /**
+       * A list drawn as a window (200 rows or more) names each row's place for a screen reader, as hidden text inside the row, and says before the
+       * rows how it is drawn (Phase 25.6). Counted among the rows there are: items, and groups, not the items of a folded group.
+       */
+      place: {
+        item: (n: number, total: number): string => `${n} of ${total}`,
+        group: (n: number, total: number): string => `Group ${n} of ${total}`,
+        note: (total: number): string =>
+          `${total} items. Only the rows near the screen are drawn. Use the up and down arrow keys, or the filter, to reach the others.`,
+      },
       /** The filter bar under the header: a text field, the category's facets, fold-all and a note. */
       filter: {
         label: 'Filter items',
