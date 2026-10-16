@@ -156,3 +156,71 @@ test('ticking a row of a long list works at the bottom of it as at the top', asy
     await page.request.delete(`/api/lists/${id}`)
   }
 })
+
+/**
+ * The window's arithmetic is only right while every row is exactly the height the model says (BL-074, 25.4 review): a row that grows by a
+ * fraction of a pixel drifts the whole list (0.1px over 50,000 rows is 5,000px). Computed heights, not `offsetHeight` (which rounds), at the
+ * display scalings a Windows laptop uses, with the content that could make a row taller: a title and a group name of hundreds of characters,
+ * chips, a year, a note, an estimated length, a NEW marker, a done row, and a header being renamed.
+ */
+for (const scale of [1, 1.25, 1.5]) {
+  test.describe(`at ${scale}x display scaling`, () => {
+    test.use({ deviceScaleFactor: scale })
+
+    test('every item row is exactly 46px and every group header exactly 47px, whatever they hold', async ({ page }) => {
+      const title = `e2e list-window drift ${scale} ${Date.now()}`
+      const made = await page.request.post('/api/lists', { data: { title, mediaType: 'game' } })
+      const list = await made.json()
+      const long = 'A very long title that keeps going '.repeat(9).trim()
+      const longGroup = 'A group with a very long name '.repeat(10).trim()
+
+      try {
+        await page.request.post(`/api/lists/${list.id}/items/import`, {
+          data: {
+            source: 'manual',
+            items: [
+              { title: long, timeToConsumeMinutes: 95, group: 'Plain', tags: ['PC'], year: 2011, notes: 'A curator note' },
+              { title: 'Many chips', group: 'Plain', tags: ['PC', 'Switch', 'PlayStation 5', 'Xbox Series X'], year: 1994 },
+              { title: 'In a long group', timeToConsumeMinutes: 600, group: longGroup, tags: ['PC'] },
+              { title: 'Loose, with a year', timeToConsumeMinutes: 61, year: 2024 },
+            ],
+          },
+        })
+        await page.request.post(`/api/lists/${list.id}/items/import`, {
+          data: { source: 'import', arrived: true, items: [{ title: 'Arrived with a sync', timeToConsumeMinutes: 30, group: 'Plain' }] },
+        })
+
+        await page.goto('/')
+        await page.locator('.q-home-row', { hasText: title }).click()
+        await page.locator('.q-item').first().waitFor()
+        await page.locator('.q-item', { hasText: 'Many chips' }).click()
+        await expect(page.locator('.q-item.is-done', { hasText: 'Many chips' })).toBeVisible()
+        await page.evaluate(async () => {
+          await Promise.all(document.getAnimations().map((animation) => animation.finished.catch(() => undefined)))
+        })
+
+        const exact = () =>
+          page.evaluate(() => {
+            const height = (node: Element) => parseFloat(getComputedStyle(node).height)
+            return {
+              items: [...document.querySelectorAll('.q-item')].map(height),
+              groups: [...document.querySelectorAll('.q-group')].map(height),
+            }
+          })
+
+        let seen = await exact()
+        expect(seen.items.length).toBeGreaterThanOrEqual(5)
+        expect([...new Set(seen.items)]).toEqual([ITEM])
+        expect([...new Set(seen.groups)]).toEqual([GROUP])
+
+        // A header being renamed has an input where the name was.
+        await page.locator('.q-group', { hasText: 'Plain' }).locator('.q-group-rename').click()
+        await expect(page.locator('.q-group-input')).toBeVisible()
+        seen = await exact()
+        expect([...new Set(seen.groups)]).toEqual([GROUP])
+      } finally {
+        await page.request.delete(`/api/lists/${list.id}`)
+      }
+    })
+  })
+}
