@@ -58,6 +58,8 @@ export function useRowMoves({ listId, items, groups, setItems, setGroups, setErr
   const mounted = useRef(true)
   const chain = useRef<Promise<unknown>>(Promise.resolve())
   const pendingFocus = useRef<string | null>(null)
+  // The drop that just happened, for the screen to scroll the dropped block to the drop line; it takes it (sets it back to null).
+  const dropped = useRef<{ key: string; targetKey: string; pos: DropTarget['pos'] } | null>(null)
 
   const groupIds = useMemo(() => new Set(groups.map((entry) => entry.id)), [groups])
   const itemById = useMemo(() => new Map(items.map((entry) => [entry.id, entry])), [items])
@@ -153,6 +155,7 @@ export function useRowMoves({ listId, items, groups, setItems, setGroups, setErr
       if (outcome.kind === 'refused') announce(text.onlyInsideGroup)
       if (outcome.kind !== 'moved') return
 
+      dropped.current = { key: dragKey, targetKey: target.key, pos: target.pos }
       announce(said(outcome))
       void commit(outcome).then((saved) => {
         if (!saved) return
@@ -265,6 +268,8 @@ export function useRowMoves({ listId, items, groups, setItems, setGroups, setErr
     startDrag: drag.startDrag,
     /** True while a block (a group or a loose item) is carried: every group shuts so only boundaries are targets. */
     draggingUnit,
+    /** The drop that just happened (a block put down among the shut groups), taken by the screen once it has scrolled to it. */
+    dropped,
     moveByKey,
     onBlur,
   }

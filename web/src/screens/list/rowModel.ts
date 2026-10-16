@@ -155,6 +155,45 @@ export function scrollAfterChange(before: RowModel, after: RowModel, scrollTop: 
   return Math.max(0, after.total - viewportHeight)
 }
 
+/**
+ * Where the reader should be so that one unit stays where it is on the screen when the rows change around it: a block is picked up and
+ * every group shuts, or put down and they open again. The unit keeps its distance below the top of the view; a header that was stuck at the
+ * top (the view was inside its group) stays at the top; never above the top of the list. `undefined` when the unit is not in both models.
+ */
+export function scrollKeepingUnit(before: RowModel, after: RowModel, key: string, scrollTop: number): number | undefined {
+  const was = before.rowUnit.get(key)
+  const now = after.rowUnit.get(key)
+  if (was === undefined || now === undefined) return undefined
+  const below = Math.max(0, before.units[was]!.top - scrollTop)
+
+  return Math.max(0, after.units[now]!.top - below)
+}
+
+/**
+ * Where the reader should be after a block was dropped, so that it lands at the drop line (where the pointer let go), and not wherever it was
+ * picked up: its new top is put at the screen offset the line had in the model it was dropped in (every group shut, so the line is among
+ * headers), and the groups open around it. A move that already leaves it within a row of the line is not scrolled (in a list with no groups the
+ * rows below only shift by the one that moved). `undefined` when the unit or its target is not in both models.
+ */
+export function scrollAfterDrop(
+  before: RowModel,
+  after: RowModel,
+  key: string,
+  targetKey: string,
+  pos: 'before' | 'after',
+  scrollTop: number,
+): number | undefined {
+  const targetTop = before.rowTops.get(targetKey)
+  const targetHeight = before.rowHeights.get(targetKey)
+  const now = after.rowUnit.get(key)
+  if (targetTop === undefined || targetHeight === undefined || now === undefined) return undefined
+
+  const lineOnScreen = targetTop + (pos === 'after' ? targetHeight : 0) - scrollTop
+  const want = Math.max(0, after.units[now]!.top - lineOnScreen)
+
+  return Math.abs(want - scrollTop) <= ITEM_HEIGHT ? scrollTop : want
+}
+
 /** The members of a group that are drawn: runs of member indexes, with a spacer for each gap, in order. */
 export type GroupPart = { kind: 'spacer'; height: number } | { kind: 'rows'; from: number; to: number }
 

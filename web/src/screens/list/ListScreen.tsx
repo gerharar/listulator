@@ -65,7 +65,7 @@ import { listMark } from '../../lib/buckets.js'
 import { JumpRail, JumpRailStub, type RailEntry } from './JumpRail.js'
 import { ListMorePopover, type MoreMode, type PreviewState } from './ListMorePopover.js'
 import { buildSpine, listTotals } from './spine.js'
-import { buildRowModel, centreOn, offsetOf, revealScrollTop, scrollAfterChange, shouldVirtualize, type VirtualizationMode } from './rowModel.js'
+import { buildRowModel, centreOn, offsetOf, revealScrollTop, scrollAfterChange, scrollAfterDrop, scrollKeepingUnit, shouldVirtualize, type VirtualizationMode } from './rowModel.js'
 import { DEFAULT_VIEWPORT, WindowedRows } from './WindowedRows.js'
 import { useRowMoves } from './useRowMoves.js'
 
@@ -518,19 +518,29 @@ function ListView({
     windowSync.current?.()
   }
 
-  // The reader keeps their place when the rows change under them: a group folded or opened, Collapse / Expand all, a filter, Hide Completed
-  // (not while a block is carried: that shuts every group on purpose and is the drag's own business, 25.5). Declared before the effects that
-  // scroll on purpose, so theirs win.
+  // The reader keeps their place when the rows change under them: a group folded or opened, Collapse / Expand all, a filter, Hide Completed.
+  // A block that is picked up shuts every group on purpose, and when it is put down they open: then the CARRIED unit stays where it is on
+  // the screen when it is picked up (it is under the pointer) and lands at the drop line when it is put down; nothing moves while it is carried. Declared before the effects that scroll on purpose, so theirs win.
   const modelSeen = useRef(rowModel)
   const carryingSeen = useRef(false)
+  const carriedKey = useRef<string | null>(null)
   useLayoutEffect(() => {
     const before = modelSeen.current
     const wasCarrying = carryingSeen.current
+    const carrying = Boolean(moves.draggingUnit)
+    if (carrying && moves.dragKey) carriedKey.current = moves.dragKey
     modelSeen.current = rowModel
-    carryingSeen.current = Boolean(moves.draggingUnit)
+    carryingSeen.current = carrying
     const body = spine.current
-    if (before === rowModel || !body || wasCarrying || carryingSeen.current) return
-    const next = scrollAfterChange(before, rowModel, scrolledTo.current, body.clientHeight || DEFAULT_VIEWPORT.height)
+    if (before === rowModel || !body || (carrying && wasCarrying)) return
+    // Put down: at the drop line. Picked up, or let go of without a drop (Esc): where it was on the screen.
+    const drop = wasCarrying && !carrying ? moves.dropped.current : null
+    if (wasCarrying && !carrying) moves.dropped.current = null
+    const landed = drop ? scrollAfterDrop(before, rowModel, drop.key, drop.targetKey, drop.pos, scrolledTo.current) : undefined
+    const kept =
+      landed ??
+      (carrying !== wasCarrying && carriedKey.current !== null ? scrollKeepingUnit(before, rowModel, carriedKey.current, scrolledTo.current) : undefined)
+    const next = kept ?? scrollAfterChange(before, rowModel, scrolledTo.current, body.clientHeight || DEFAULT_VIEWPORT.height)
     if (next !== scrolledTo.current) scrollBodyTo(next)
   }, [rowModel])
 

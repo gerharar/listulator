@@ -224,6 +224,56 @@ describe('Hide Completed keeps the reader in the list that is left (25.4)', () =
   })
 })
 
+describe('carrying a block keeps it where it is on the screen (25.5)', () => {
+  const pointer = (type: 'pointermove' | 'pointerup', x: number, y: number) =>
+    act(async () => void window.dispatchEvent(new MouseEvent(type, { clientX: x, clientY: y, bubbles: true, cancelable: true })))
+
+  it('a group picked up stays where it is while every group shuts, and is in view when they open again', async () => {
+    vi.mocked(api.restoreOrder).mockResolvedValue(undefined as never)
+    // jsdom has no hit testing: nothing is under the pointer until the drop below.
+    document.elementFromPoint = () => null
+    await open()
+    // Group 20's header is 100px below the top of the view.
+    await scrollRows(20 * GROUP - 100)
+    expect(row('g20')).not.toBeNull()
+
+    fireEvent.pointerDown(row('g20')!.querySelector('.q-handle') as HTMLElement, { button: 0, clientX: 10, clientY: 300 })
+    await pointer('pointermove', 10, 330)
+
+    // Fifty shut groups are fifty headers: the carried one is 100px below the top of the view still, not wherever the old position lands.
+    expect(document.querySelectorAll('.q-item')).toHaveLength(0)
+    expect(row('g20')).not.toBeNull()
+    expect(body().scrollTop).toBe(20 * 47 - 100)
+
+    // Dropped after Group 45: the groups open, and the dropped group (now the 46th) has its header at the drop line, which was Group 45's
+    // bottom: (45 x 47 + 47) - 840 = 1,322px below the top of the view.
+    const target = row('g45')!
+    target.getBoundingClientRect = () => ({ top: 100, height: 47, bottom: 147, left: 0, right: 400, width: 400, x: 0, y: 100, toJSON: () => ({}) })
+    document.elementFromPoint = () => target
+    await pointer('pointerup', 10, 140)
+
+    expect(body().scrollTop).toBe(45 * GROUP - 1322)
+    expect(row('g20')).not.toBeNull()
+  })
+})
+
+describe('a carried block that is let go of without dropping (25.5)', () => {
+  it('Escape puts the view back where it was: the groups open and the carried group has not moved on the screen', async () => {
+    document.elementFromPoint = () => null
+    await open()
+    await scrollRows(20 * GROUP - 100)
+    fireEvent.pointerDown(row('g20')!.querySelector('.q-handle') as HTMLElement, { button: 0, clientX: 10, clientY: 300 })
+    await act(async () => void window.dispatchEvent(new MouseEvent('pointermove', { clientX: 10, clientY: 330, bubbles: true, cancelable: true })))
+    expect(body().scrollTop).toBe(20 * 47 - 100)
+
+    await act(async () => void window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true })))
+
+    expect(body().scrollTop).toBe(20 * GROUP - 100)
+    expect(row('g20')).not.toBeNull()
+    expect(drawn('Film 2000')).toBe(true)
+  })
+})
+
 describe('a row that was added is scrolled to (25.4)', () => {
   it('brings an item added to a far group into view, drawn and pulsing', async () => {
     await open()

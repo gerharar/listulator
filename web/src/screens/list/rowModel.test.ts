@@ -9,6 +9,8 @@ import {
   offsetOf,
   revealScrollTop,
   scrollAfterChange,
+  scrollAfterDrop,
+  scrollKeepingUnit,
   shouldVirtualize,
   windowSlices,
   type RowModel,
@@ -383,5 +385,91 @@ describe('scrollAfterChange: the reader keeps their place when the rows change',
 
     expect(scrollAfterChange(model, model, 500, VH)).toBe(500)
     expect(scrollAfterChange(buildRowModel([], noneShut), model, 0, VH)).toBe(0)
+  })
+})
+
+describe('scrollKeepingUnit: a carried block stays where it is on the screen when every group shuts and opens', () => {
+  const groups = Array.from({ length: 10 }, (_, n) => block(`G${n}`, 5))
+  const open = buildRowModel(groups, noneShut)
+  const shutAll = buildRowModel(groups, shut(...groups.map((entry) => (entry.unit as { group: ListGroup }).group.name)))
+  const top = (model: RowModel, id: string) => offsetOf(model, id)!
+
+  it('a header 120px below the top of the view is still 120px below it once everything is shut', () => {
+    const at = top(open, 'G5') - 120
+
+    expect(scrollKeepingUnit(open, shutAll, 'G5', at)).toBe(top(shutAll, 'G5') - 120)
+  })
+
+  it('a header stuck at the top (the view is inside its group) is at the top once it is shut', () => {
+    expect(scrollKeepingUnit(open, shutAll, 'G5', top(open, 'G5') + 100)).toBe(top(shutAll, 'G5'))
+  })
+
+  it('does not go above the top of the list, and works the other way (the groups open again)', () => {
+    expect(scrollKeepingUnit(open, shutAll, 'G1', 0)).toBe(0)
+    expect(scrollKeepingUnit(shutAll, open, 'G5', top(shutAll, 'G5') - 60)).toBe(top(open, 'G5') - 60)
+  })
+
+  it('has nothing to say about a unit that is not in both models', () => {
+    expect(scrollKeepingUnit(open, shutAll, 'nope', 100)).toBeUndefined()
+    expect(scrollKeepingUnit(open, buildRowModel([loose('a')], noneShut), 'G5', 100)).toBeUndefined()
+  })
+
+  it('a loose item carried keeps its place too', () => {
+    const shown = [loose('a'), block('G', 50), loose('b'), loose('c')]
+    const before = buildRowModel(shown, noneShut)
+    const after = buildRowModel(shown, shut('G'))
+
+    expect(scrollKeepingUnit(before, after, 'c', top(before, 'c') - 30)).toBe(top(after, 'c') - 30)
+  })
+})
+
+describe('scrollAfterDrop: a dropped unit lands at the drop line', () => {
+  // 10 groups of 5 (277px each, 47px when shut) and a loose row after them.
+  const groups = Array.from({ length: 10 }, (_, n) => block(`G${n}`, 5))
+  const names = groups.map((entry) => (entry.unit as { group: ListGroup }).group.name)
+  const shutAll = buildRowModel(groups, shut(...names))
+  const top = (model: RowModel, id: string) => offsetOf(model, id)!
+
+  it('a group dropped after a shut group far from where it was picked up has its header at the line, once the groups are open', () => {
+    // Group 2 carried to the line after G7, with G7 120px below the top of the (shut) view.
+    const reordered = [...groups.slice(0, 2), ...groups.slice(3, 8), groups[2]!, ...groups.slice(8)]
+    const open = buildRowModel(reordered, noneShut)
+    const scrollTop = top(shutAll, 'G7') - 120
+
+    const at = scrollAfterDrop(shutAll, open, 'G2', 'G7', 'after', scrollTop)!
+
+    // The line is G7's bottom: 120 + 47 below the top of the view; the dropped group's header is there.
+    expect(top(open, 'G2') - at).toBe(120 + GROUP_HEIGHT)
+  })
+
+  it('a drop before a target puts the dropped unit at the target\'s top', () => {
+    const reordered = [groups[0]!, groups[2]!, groups[1]!, ...groups.slice(3)]
+    const open = buildRowModel(reordered, noneShut)
+
+    const at = scrollAfterDrop(shutAll, open, 'G2', 'G1', 'before', top(shutAll, 'G1') - 80)!
+
+    expect(top(open, 'G2') - at).toBe(80)
+  })
+
+  it('a move that already leaves the dropped unit within a row of the line is not scrolled (a short move in a flat list)', () => {
+    const rows = Array.from({ length: 300 }, (_, n) => loose(`r${n}`))
+    const before = buildRowModel(rows, noneShut)
+    // r30 carried to just after r33 (moving down): the rows between shift up by one.
+    const after = buildRowModel([...rows.slice(0, 30), ...rows.slice(31, 34), rows[30]!, ...rows.slice(34)], noneShut)
+
+    expect(scrollAfterDrop(before, after, 'r30', 'r33', 'after', 1000)).toBe(1000)
+  })
+
+  it('a far drop in a flat list needs no scroll either: wherever the view is, the dropped row is within a row of the line', () => {
+    const rows = Array.from({ length: 5000 }, (_, n) => loose(`r${n}`))
+    const before = buildRowModel(rows, noneShut)
+    const after = buildRowModel([...rows.slice(1, 2500), rows[0]!, ...rows.slice(2500)], noneShut)
+
+    expect(scrollAfterDrop(before, after, 'r0', 'r2500', 'before', 2495 * ITEM_HEIGHT)).toBe(2495 * ITEM_HEIGHT)
+  })
+
+  it('has nothing to say when the unit or its target is not in the models', () => {
+    expect(scrollAfterDrop(shutAll, shutAll, 'nope', 'G1', 'before', 0)).toBeUndefined()
+    expect(scrollAfterDrop(shutAll, shutAll, 'G1', 'nope', 'before', 0)).toBeUndefined()
   })
 })
