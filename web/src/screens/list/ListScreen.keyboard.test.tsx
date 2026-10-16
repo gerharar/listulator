@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, waitFor } from '@testing-library/react'
 import { api, type ListGroup, type ListItem, type MediaListDetail, type MediaType } from '../../lib/api.js'
 import { createPendingUpdates } from '../../lib/pendingUpdates.js'
 import { LiveRegionProvider } from '../../components/quantum/LiveRegion/LiveRegion.js'
@@ -83,7 +83,8 @@ async function open(count: number) {
       </ToastProvider>
     </LiveRegionProvider>,
   )
-  await screen.findByText('Film 0')
+  // A list opens at the row it remembers, so its first rows need not be there: wait for any row.
+  await waitFor(() => expect(document.querySelector('[data-row-id]')).not.toBeNull())
   await act(async () => {})
 }
 
@@ -195,14 +196,35 @@ describe('keyboard and focus across rows that are not drawn (25.3)', () => {
     expect(asked[0]).toBeLessThanOrEqual(offset)
   })
 
-  it('a list that is reopened with no remembered row, or a short one, is not scrolled', async () => {
+  it('a list that is opened with no remembered row is not scrolled', async () => {
     const set = vi.spyOn(Element.prototype, 'scrollTop', 'set')
 
     await open(5000)
-    cleanup()
-    prefs.set('list:L1:focus', 'i100')
-    await open(150)
 
     expect(set.mock.calls.filter(([top]) => (top as number) > 0)).toHaveLength(0)
+  })
+
+  it('a short list is reopened at the row it remembers too (owner, 2026-10-16: the same for every list)', async () => {
+    prefs.set('list:L1:focus', 'i100')
+    const set = vi.spyOn(Element.prototype, 'scrollTop', 'set')
+
+    await open(150)
+
+    // 75 rows in the group "First" (its header 47px), then 25 loose rows before row 100.
+    const offset = 47 + 75 * 46 + 25 * 46
+    const asked = set.mock.calls.map(([top]) => top as number).filter((top) => top > 0)
+    expect(asked).toHaveLength(1)
+    expect(asked[0]).toBeGreaterThan(offset - 460)
+    expect(asked[0]).toBeLessThanOrEqual(offset)
+    expect(document.querySelectorAll('.q-list-spacer')).toHaveLength(0)
+  })
+
+  it('the rows of a list that opens at a remembered row are the ones around it from the first frame, not the top ones', async () => {
+    prefs.set('list:L1:focus', 'i3000')
+
+    await open(5000)
+
+    expect(row('i3000')).not.toBeNull()
+    expect(row('i0')).toBeNull()
   })
 })

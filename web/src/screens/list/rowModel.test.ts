@@ -5,7 +5,10 @@ import {
   ITEM_HEIGHT,
   VIRTUALIZE_FROM,
   buildRowModel,
+  centreOn,
   offsetOf,
+  revealScrollTop,
+  scrollAfterChange,
   shouldVirtualize,
   windowSlices,
   type RowModel,
@@ -260,5 +263,125 @@ describe('windowSlices: cost', () => {
     expect(model.total).toBe(100 * (47 + 500 * 46))
     expect(built).toBeLessThan(1500)
     expect(perWindow).toBeLessThan(15)
+  })
+})
+
+describe('centreOn and revealScrollTop: where to scroll to show a row', () => {
+  const VH = 460
+  // a: 0, the group G: 46 (header 47, 100 members from 93), b: 4693.
+  const shown = [loose('a'), block('G', 100), loose('b')]
+  const model = buildRowModel(shown, noneShut)
+  const member = offsetOf(model, 'G.50')!
+
+  /** The row sits wholly in the part of the viewport that the sticky header does not cover. */
+  const inView = (scrollTop: number, top: number, covered: number) => top >= scrollTop + covered && top + ITEM_HEIGHT <= scrollTop + VH
+
+  it('centres a row, below the sticky header of its group when it is a member', () => {
+    const at = centreOn(model, 'G.50', VH)!
+
+    expect(inView(at, member, GROUP_HEIGHT)).toBe(true)
+    const above = member - (at + GROUP_HEIGHT)
+    const below = at + VH - (member + ITEM_HEIGHT)
+    expect(Math.abs(above - below)).toBeLessThanOrEqual(1)
+  })
+
+  it('never scrolls above the top, and a row that is not in the model has no place to scroll to', () => {
+    expect(centreOn(model, 'a', VH)).toBe(0)
+    expect(centreOn(model, 'nope', VH)).toBeUndefined()
+    expect(revealScrollTop(model, 'nope', 0, VH)).toBeUndefined()
+  })
+
+  it('leaves the scroll alone when the row is already in view', () => {
+    expect(revealScrollTop(model, 'G.50', member - 200, VH)).toBe(member - 200)
+    expect(revealScrollTop(model, 'a', 0, VH)).toBe(0)
+  })
+
+  it('a member under its group sticky header is not in view: the row is brought just below it', () => {
+    expect(revealScrollTop(model, 'G.50', member - 10, VH)).toBe(member - GROUP_HEIGHT)
+  })
+
+  it('a row just below the view is brought in by the least scroll, a row far away is centred', () => {
+    const nearBelow = revealScrollTop(model, 'G.50', member - VH, VH)!
+    expect(nearBelow).toBe(member + ITEM_HEIGHT - VH)
+
+    const far = revealScrollTop(model, 'b', 0, VH)!
+    expect(far).toBe(centreOn(model, 'b', VH))
+  })
+})
+
+describe('scrollAfterChange: the reader keeps their place when the rows change', () => {
+  const VH = 460
+
+  it('is the same position when nothing moved', () => {
+    const shown = [loose('a'), block('G', 100), loose('b')]
+    const model = buildRowModel(shown, noneShut)
+
+    expect(scrollAfterChange(model, buildRowModel(shown, noneShut), 1473, VH)).toBe(1473)
+  })
+
+  it('folding the group the reader is inside puts its header at the top of the view', () => {
+    const shown = [loose('a'), block('G', 100), loose('b')]
+    const before = buildRowModel(shown, noneShut)
+    const after = buildRowModel(shown, shut('G'))
+
+    expect(scrollAfterChange(before, after, offsetOf(before, 'G.30')!, VH)).toBe(offsetOf(after, 'G'))
+  })
+
+  it('unfolding a group above the view moves the view by exactly what it opened', () => {
+    const shown = [block('G1', 10), block('G2', 100)]
+    const before = buildRowModel(shown, shut('G1'))
+    const after = buildRowModel(shown, noneShut)
+    const at = offsetOf(before, 'G2.20')! + 12
+
+    expect(scrollAfterChange(before, after, at, VH)).toBe(at + 10 * ITEM_HEIGHT)
+  })
+
+  it('folding or unfolding a group below the view changes nothing', () => {
+    const shown = [block('G1', 10), block('G2', 100)]
+    const before = buildRowModel(shown, noneShut)
+
+    expect(scrollAfterChange(before, buildRowModel(shown, shut('G2')), 100, VH)).toBe(100)
+  })
+
+  it('keeps a row at the same place in the view when a row above it goes', () => {
+    const before = buildRowModel([loose('a'), loose('b'), loose('c')], noneShut)
+    const after = buildRowModel([loose('b'), loose('c')], noneShut)
+
+    // 14px into b.
+    expect(scrollAfterChange(before, after, ITEM_HEIGHT + 14, VH)).toBe(14)
+  })
+
+  it('a group that shrinks keeps the reader at its last rows; a group that is shut, at its header', () => {
+    const big = block('G', 100)
+    const small = { unit: big.unit, members: big.members.slice(0, 3) }
+    const before = buildRowModel([loose('a'), big], noneShut)
+    const at = offsetOf(before, 'G.80')!
+
+    const narrowed = buildRowModel([loose('a'), small], noneShut)
+    expect(scrollAfterChange(before, narrowed, at, VH)).toBe(offsetOf(narrowed, 'G')! + (GROUP_HEIGHT + 3 * ITEM_HEIGHT) - ITEM_HEIGHT)
+  })
+
+  it('a row that is filtered out hands the place to the next row that is left', () => {
+    const before = buildRowModel([loose('a'), loose('b'), loose('c'), loose('d')], noneShut)
+    const after = buildRowModel([loose('a'), loose('b'), loose('d')], noneShut)
+
+    // In c (92..138); c is gone, d is the next one.
+    expect(scrollAfterChange(before, after, 100, VH)).toBe(offsetOf(after, 'd'))
+  })
+
+  it('when nothing after the reader is left, the view stays inside the list that is left', () => {
+    const many = Array.from({ length: 20 }, (_, n) => loose(`r${n}`))
+    const before = buildRowModel(many, noneShut)
+    const after = buildRowModel(many.slice(0, 10), noneShut)
+
+    expect(scrollAfterChange(before, after, 17 * ITEM_HEIGHT, 200)).toBe(after.total - 200)
+    expect(scrollAfterChange(before, after, 17 * ITEM_HEIGHT, 1000)).toBe(0)
+  })
+
+  it('a reader past the last row (on the Add row) or in an empty list is left where they are', () => {
+    const model = buildRowModel([loose('a'), loose('b')], noneShut)
+
+    expect(scrollAfterChange(model, model, 500, VH)).toBe(500)
+    expect(scrollAfterChange(buildRowModel([], noneShut), model, 0, VH)).toBe(0)
   })
 })

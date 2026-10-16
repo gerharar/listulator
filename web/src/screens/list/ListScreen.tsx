@@ -65,8 +65,8 @@ import { listMark } from '../../lib/buckets.js'
 import { JumpRail, JumpRailStub, type RailEntry } from './JumpRail.js'
 import { ListMorePopover, type MoreMode, type PreviewState } from './ListMorePopover.js'
 import { buildSpine, listTotals } from './spine.js'
-import { buildRowModel, ITEM_HEIGHT, offsetOf, shouldVirtualize, type VirtualizationMode } from './rowModel.js'
-import { WindowedRows } from './WindowedRows.js'
+import { buildRowModel, centreOn, offsetOf, revealScrollTop, scrollAfterChange, shouldVirtualize, type VirtualizationMode } from './rowModel.js'
+import { DEFAULT_VIEWPORT, WindowedRows } from './WindowedRows.js'
 import { useRowMoves } from './useRowMoves.js'
 
 export interface ListScreenProps {
@@ -287,6 +287,8 @@ function ListView({
   const [preview, setPreview] = useState<PreviewState>({ state: 'loading' })
   const previewRequest = useRef(0)
   const pulseTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
+  // A row the screen should scroll to once it is in the list (an added or restored one), until its pulse is over.
+  const revealId = useRef<string | null>(null)
   const spine = useRef<HTMLDivElement>(null)
 
   useEffect(() => () => clearTimeout(pulseTimer.current), [])
@@ -311,9 +313,17 @@ function ListView({
   const pulseRows = useCallback((ids: readonly string[]) => {
     clearTimeout(pulseTimer.current)
     setPulseIds(new Set(ids))
-    pulseTimer.current = setTimeout(() => setPulseIds(new Set()), PULSE_MS)
+    pulseTimer.current = setTimeout(() => {
+      revealId.current = null
+      setPulseIds(new Set())
+    }, PULSE_MS)
   }, [])
   const pulse = (itemId: string) => pulseRows([itemId])
+  // An added or restored row is also scrolled to if it is not in view (25.4); a row that was only edited or renamed is where the reader is.
+  const reveal = (itemId: string) => {
+    revealId.current = itemId
+    pulse(itemId)
+  }
   // The filter is view state: what was typed and which facet buttons are on, never saved; Hide Completed alone is
   // remembered per list (18.2).
   const [filter, setFilter] = useState<ListFilter>({ ...NO_FILTER, hideDone: initialHideDone })
@@ -491,13 +501,56 @@ function ListView({
     setJumpTo((current) => ({ id: entry.id, n: (current?.n ?? 0) + 1 }))
   }
 
-  useEffect(() => {
-    if (!jumpTo) return
+  // Moving the scroller from code (Phase 25.4). The position is set and the window is told in the same layout effect, so the rows that
+  // belong to the new place are drawn before anything is painted (a scroll event would come a frame later, and show the old rows or a
+  // spacer). Lists of any length: a short one is moved the same way and simply has no window to tell.
+  const windowSync = useRef<(() => void) | null>(null)
+  // Where the scroller is: the last scroll event, or where this screen put it. When the rows change the browser may already have moved it
+  // (it clamps a position that is past the new end), so the position to keep is this one and not what the element says by then.
+  const scrolledTo = useRef(0)
+  function scrollBodyTo(top: number) {
     const body = spine.current
-    const target = body?.querySelector<HTMLElement>(`[data-row-id="${CSS.escape(jumpTo.id)}"]`)
-    if (body && target) body.scrollTop += target.getBoundingClientRect().top - body.getBoundingClientRect().top
+    if (!body) return
+    const at = Math.max(0, Math.round(top))
+    if (Math.abs(body.scrollTop - at) >= 1) body.scrollTop = at
+    // Where the browser settled, not what was asked: a position past the end is clamped, and no scroll event follows if that equals the old one.
+    scrolledTo.current = body.scrollTop
+    windowSync.current?.()
+  }
+
+  // The reader keeps their place when the rows change under them: a group folded or opened, Collapse / Expand all, a filter, Hide Completed
+  // (not while a block is carried: that shuts every group on purpose and is the drag's own business, 25.5). Declared before the effects that
+  // scroll on purpose, so theirs win.
+  const modelSeen = useRef(rowModel)
+  const carryingSeen = useRef(false)
+  useLayoutEffect(() => {
+    const before = modelSeen.current
+    const wasCarrying = carryingSeen.current
+    modelSeen.current = rowModel
+    carryingSeen.current = Boolean(moves.draggingUnit)
+    const body = spine.current
+    if (before === rowModel || !body || wasCarrying || carryingSeen.current) return
+    const next = scrollAfterChange(before, rowModel, scrolledTo.current, body.clientHeight || DEFAULT_VIEWPORT.height)
+    if (next !== scrolledTo.current) scrollBodyTo(next)
+  }, [rowModel])
+
+  useLayoutEffect(() => {
+    if (!jumpTo) return
+    const top = offsetOf(rowModel, jumpTo.id)
+    if (top !== undefined) scrollBodyTo(top)
     setJumpTo(null)
   }, [jumpTo])
+
+  // Every commit: a row to reveal waits until it is in the list (a filter may hide it), or until its pulse is over.
+  useLayoutEffect(() => {
+    const id = revealId.current
+    const body = spine.current
+    if (id === null || !body) return
+    const top = revealScrollTop(rowModel, id, scrolledTo.current, body.clientHeight || DEFAULT_VIEWPORT.height)
+    if (top === undefined) return
+    revealId.current = null
+    scrollBodyTo(top)
+  })
 
   function foldAll() {
     const next = anyOpen ? new Set(groupNames) : new Set<string>()
@@ -556,7 +609,7 @@ function ListView({
     // A collapsed group the item went into opens, or the pulse would mark nothing.
     const placed = fresh.items.find((entry) => entry.id === created.id)
     if (placed?.group) openGroup(placed.group)
-    pulse(created.id)
+    reveal(created.id)
     announce(actions.added(input.title, placed?.group ?? group))
   }
 
@@ -564,7 +617,7 @@ function ListView({
   async function createGroup(name: string) {
     const created = await api.createGroup(listId, name)
     await refresh()
-    pulse(created.id)
+    reveal(created.id)
     announce(actions.groupCreated(created.name))
   }
 
@@ -593,7 +646,7 @@ function ListView({
       const fresh = await refresh()
       const placed = fresh.items.find((entry) => entry.id === item.id)
       if (placed?.group) openGroup(placed.group)
-      pulse(item.id)
+      reveal(item.id)
       announce(actions.restored(item.title))
     } catch {
       setError(actions.undoFailed)
@@ -691,7 +744,7 @@ function ListView({
     try {
       await api.restoreGroup(listId, restore)
       await refresh()
-      pulse(group.id)
+      reveal(group.id)
       announce(actions.groupRestored(group.name))
     } catch {
       setError(actions.undoFailed)
@@ -1029,13 +1082,13 @@ function ListView({
     spine.current?.querySelector<HTMLElement>(`[data-row-id="${CSS.escape(id)}"]`)?.focus()
   })
 
-  // A long list that is opened again scrolls to the row it remembers, which is otherwise only its tab stop: centred, as far as the list allows.
-  // Short lists are drawn whole and have always opened at the top.
-  useEffect(() => {
+  // A list that is opened again scrolls to the row it remembers, which is otherwise only its tab stop: centred, as far as the list allows.
+  // Long and short alike (owner, 2026-10-16). Before the first paint, and the window starts there (`openAt`), so nothing shows at the top first.
+  const [openAt] = useState(() => (initialFocusId === undefined ? 0 : (centreOn(rowModel, initialFocusId, DEFAULT_VIEWPORT.height) ?? 0)))
+  useLayoutEffect(() => {
     const body = spine.current
-    const top = initialFocusId === undefined ? undefined : offsetOf(rowModel, initialFocusId)
-    if (!windowed || !body || top === undefined) return
-    body.scrollTop = Math.max(0, top - (body.clientHeight - ITEM_HEIGHT) / 2)
+    const top = initialFocusId === undefined ? undefined : centreOn(rowModel, initialFocusId, body?.clientHeight || DEFAULT_VIEWPORT.height)
+    if (top !== undefined) scrollBodyTo(top)
     // Once, when the list opens.
   }, [])
 
@@ -1188,7 +1241,15 @@ function ListView({
           />
         )}
         {railEntries.length > 1 && railHidden && <JumpRailStub onShow={() => setRail(false)} />}
-        <div className="q-list-body" ref={spine} onKeyDown={onKeyDown} onBlur={moves.onBlur}>
+        <div
+          className="q-list-body"
+          ref={spine}
+          onKeyDown={onKeyDown}
+          onBlur={moves.onBlur}
+          onScroll={(event) => {
+            scrolledTo.current = event.currentTarget.scrollTop
+          }}
+        >
           {units.length === 0 && <p className="q-list-empty">{text.empty}</p>}
           {units.length > 0 && filtering && shownUnits.length === 0 && (
             <p className="q-list-empty">
@@ -1202,6 +1263,8 @@ function ListView({
             enabled={windowed}
             pinned={pinnedRows}
             scroller={spine}
+            initialScrollTop={openAt}
+            syncRef={windowSync}
             renderItem={itemRow}
             renderGroup={({ unit, members }, rows) =>
               unit.kind === 'group' ? (

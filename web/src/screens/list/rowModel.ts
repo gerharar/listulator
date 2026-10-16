@@ -93,6 +93,68 @@ export function offsetOf(model: RowModel, id: string): number | undefined {
   return model.rowTops.get(id)
 }
 
+/** Where a row is, and how much of the top of the viewport is taken from it: a member sits under its group's sticky header. */
+function placeOf(model: RowModel, id: string): { top: number; height: number; covered: number } | undefined {
+  const top = model.rowTops.get(id)
+  const unitIndex = model.rowUnit.get(id)
+  if (top === undefined || unitIndex === undefined) return undefined
+  const unit = model.units[unitIndex]!
+
+  return { top, height: model.rowHeights.get(id)!, covered: unit.kind === 'group' && unit.key !== id ? GROUP_HEIGHT : 0 }
+}
+
+/** The scroll position that puts a row in the middle of the viewport, below its group's sticky header; never above the top. */
+export function centreOn(model: RowModel, id: string, viewportHeight: number): number | undefined {
+  const place = placeOf(model, id)
+  if (!place) return undefined
+
+  return Math.max(0, Math.round(place.top - place.covered - (viewportHeight - place.covered - place.height) / 2))
+}
+
+/**
+ * The scroll position that shows a row: the one it has when the row is already in view (below the sticky header of its group), the least
+ * scroll when the row is less than a viewport away, otherwise the row in the middle. `undefined` for a row that is not there.
+ */
+export function revealScrollTop(model: RowModel, id: string, scrollTop: number, viewportHeight: number): number | undefined {
+  const place = placeOf(model, id)
+  if (!place) return undefined
+  const bottom = place.top + place.height
+  const low = scrollTop + place.covered
+  const high = scrollTop + viewportHeight
+  if (place.top >= low && bottom <= high) return scrollTop
+  if (place.top < low) return low - place.top <= viewportHeight ? Math.max(0, place.top - place.covered) : centreOn(model, id, viewportHeight)
+
+  return bottom - high <= viewportHeight ? bottom - viewportHeight : centreOn(model, id, viewportHeight)
+}
+
+/**
+ * Where the reader should be after the rows changed (a group folded or opened, a filter, Hide Completed), so that they keep their place.
+ * The anchor is the unit at the top of the viewport (the first one whose bottom is below it): it keeps its distance from the top when it is
+ * still there. A group that shrank leaves the reader at its last row, a group that was shut at its header; a unit that is gone hands the
+ * place to the next one that is left, and with none left the end of the rows. Past the last row (on the Add row) nothing is moved.
+ */
+export function scrollAfterChange(before: RowModel, after: RowModel, scrollTop: number, viewportHeight: number): number {
+  const index = firstEndingAfter(before.units, scrollTop)
+  const anchor = before.units[index]
+  if (!anchor) return scrollTop
+
+  const still = after.rowUnit.get(anchor.key)
+  if (still !== undefined) {
+    const unit = after.units[still]!
+    const delta = scrollTop - anchor.top
+    const room = unit.kind === 'item' ? ITEM_HEIGHT - 1 : unit.members === 0 ? 0 : unit.height - ITEM_HEIGHT
+
+    return unit.top + Math.min(delta, room)
+  }
+
+  for (let next = index + 1; next < before.units.length; next += 1) {
+    const survivor = after.rowUnit.get(before.units[next]!.key)
+    if (survivor !== undefined) return after.units[survivor]!.top
+  }
+
+  return Math.max(0, after.total - viewportHeight)
+}
+
 /** The members of a group that are drawn: runs of member indexes, with a spacer for each gap, in order. */
 export type GroupPart = { kind: 'spacer'; height: number } | { kind: 'rows'; from: number; to: number }
 
