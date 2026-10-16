@@ -4,6 +4,22 @@ import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { loadConfig, loadEnvFile } from './config.js'
 
+describe('loadConfig: LIST_VIRTUALIZATION', () => {
+  it('is `auto` when unset or empty (an empty line in a compose file is not a choice)', () => {
+    expect(loadConfig({}).listVirtualization).toBe('auto')
+    expect(loadConfig({ LIST_VIRTUALIZATION: '' }).listVirtualization).toBe('auto')
+    expect(loadConfig({ LIST_VIRTUALIZATION: 'auto' }).listVirtualization).toBe('auto')
+  })
+
+  it('is `off` for off, false, 0 and no, in any case', () => {
+    for (const value of ['off', 'OFF', ' false ', '0', 'No']) expect(loadConfig({ LIST_VIRTUALIZATION: value }).listVirtualization).toBe('off')
+  })
+
+  it('refuses a value it does not understand at start, with a sentence that names the setting and the two choices, rather than guessing', () => {
+    expect(() => loadConfig({ LIST_VIRTUALIZATION: 'maybe' })).toThrow(/LIST_VIRTUALIZATION.*"auto".*"off".*"maybe"/)
+  })
+})
+
 describe('loadConfig', () => {
   it('runs with no configuration at all', () => {
     expect(loadConfig({})).toEqual({
@@ -12,6 +28,7 @@ describe('loadConfig', () => {
       port: 3001,
       host: '127.0.0.1',
       allowedHosts: [],
+      listVirtualization: 'auto',
     })
   })
 

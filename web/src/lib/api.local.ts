@@ -441,6 +441,9 @@ export function createLocalApi(): ApiClient {
       return { id: user.id, isDefaultLocalUser: user.isDefaultLocalUser } satisfies CurrentUser
     },
 
+    // No server here: the switch is only the app's own preference.
+    serverSettings: async () => ({ listVirtualization: 'auto' as const }),
+
     mediaTypes: async () => {
       const entries = await getLocalMediaTypes()
       return [...entries].sort((a, b) => a.sortOrder - b.sortOrder).map(toMediaTypeInfo)

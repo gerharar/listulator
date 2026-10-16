@@ -159,6 +159,13 @@ A: Sure, list contributions are always welcome. Refer to [CONTRIBUTING.md](CONTR
 </details>
 
 
+<details>
+<summary><strong>Q: Ctrl+F doesn't find everything in a very long list. Can I make it draw every row?</strong></summary>
+
+A: From version 1.1.0, a list of 200 or more rows is drawn a screenful at a time, which is what keeps a list of tens of thousands of items fast; the browser's find-in-page only sees the rows that are drawn, and the filter box above the list (which searches every item and its notes) is the way to find things. If you'd rather have every row on the page, or you want to rule it out while chasing a problem, you can turn it off; [the guide](guides/long-lists.md) shows how, for the desktop app, the browser and a self-hosted server. Very long lists get slow with it off.
+
+</details>
+
 ## OS warnings and how to deal with them
 
 The installers are **not code-signed**: signing costs money every year and Listulator is a hobby project. Your system doesn't recognise the publisher and complains to you that he hasn't paid the poor multibillion-dollar corporation for a code-signing certificate. How to deal with this?

@@ -1,5 +1,6 @@
 import { existsSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
+import { parseVirtualization, type VirtualizationMode } from './catalog/listVirtualization.js'
 
 /** `<repo>/.env` — beside config/strategies, where a self-hoster looks for settings. */
 const ENV_FILE = fileURLToPath(new URL('../../.env', import.meta.url))
@@ -37,6 +38,12 @@ export interface ServerConfig {
    * name is refused (`auth/allowedHosts.ts`).
    */
   allowedHosts: string[]
+  /**
+   * `LIST_VIRTUALIZATION`: `auto` (the default) or `off` (also false, 0, no): whether a long list draws only the rows in view. A safety
+   * net for a self-hoster; `off` here wins over anything the app's own preference says. The desktop app has no server and reads only its
+   * own preference.
+   */
+  listVirtualization: VirtualizationMode
 }
 
 function parseBoolean(value: string | undefined, fallback: boolean): boolean {
@@ -58,6 +65,14 @@ function parsePort(value: string | undefined, fallback: number): number {
   return port
 }
 
+/** `LIST_VIRTUALIZATION`: `auto` or `off`. A value nobody can read is refused at start, like the other settings, not guessed at. */
+function parseListVirtualization(value: string | undefined): VirtualizationMode {
+  const mode = parseVirtualization(value)
+  if (mode === undefined) throw new Error(`Expected LIST_VIRTUALIZATION to be "auto" or "off", got "${value}"`)
+
+  return mode
+}
+
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): ServerConfig {
   return {
     singleUserMode: parseBoolean(env['SINGLE_USER_MODE'], true),
@@ -68,5 +83,6 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): ServerConfig {
       .split(',')
       .map((name) => name.trim().toLowerCase())
       .filter(Boolean),
+    listVirtualization: parseListVirtualization(env['LIST_VIRTUALIZATION']),
   }
 }

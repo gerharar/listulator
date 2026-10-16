@@ -12,6 +12,7 @@ import { usePolling } from '../../lib/usePolling.js'
 import { countRuntimesPending, mergeArrivedRuntimes } from './runtimePending.js'
 import { countLinksPending, mergeArrivedLinks } from './linkPending.js'
 import { getPreferencesStore } from '../../lib/preferences/store.js'
+import { loadVirtualization } from '../../lib/listVirtualization.js'
 import { categoryLabel, copy, joinSentences } from '../../locale/index.js'
 import { Banner } from '../../components/quantum/Banner/Banner.js'
 import { IconButton } from '../../components/quantum/Button/Button.js'
@@ -95,6 +96,7 @@ type Load =
       railWidth: number
       addTags: string[]
       hideDone: boolean
+      virtualization: VirtualizationMode
     }
 
 /**
@@ -135,8 +137,10 @@ export function ListScreen({ listId, mediaTypes, pendingUpdates, onLeave, onClos
       const addTags = await loadAddTags(store, listId)
       // Before the first frame, so a long list never shows its done items for a moment (18.2).
       const hideDone = await loadHideDone(store, listId)
+      // Whether a long list draws only the rows in view (25.7): the app's own preference and the server's setting, `off` from either wins.
+      const virtualization = await loadVirtualization(store, () => api.serverSettings())
       void saveLastOpened(store, listId)
-      if (request.current === mine) setLoad({ state: 'ready', list, collapsed, focusId, railHidden, railWidth, addTags, hideDone })
+      if (request.current === mine) setLoad({ state: 'ready', list, collapsed, focusId, railHidden, railWidth, addTags, hideDone, virtualization })
     } catch (cause) {
       if (request.current === mine) {
         setLoad({
@@ -186,6 +190,7 @@ export function ListScreen({ listId, mediaTypes, pendingUpdates, onLeave, onClos
       initialRailWidth={load.railWidth}
       initialAddTags={load.addTags}
       initialHideDone={load.hideDone}
+      initialVirtualization={load.virtualization}
       mediaTypes={mediaTypes}
       pending={pendingUpdates ?? getPendingUpdates()}
       onLeave={onLeave}
@@ -209,6 +214,8 @@ interface ListViewProps {
   initialAddTags: readonly string[]
   /** Hide Completed as this list last had it (18.2). */
   initialHideDone: boolean
+  /** Whether a long list draws only the rows in view, as read before the first frame (25.7). */
+  initialVirtualization: VirtualizationMode
   mediaTypes: readonly MediaType[]
   pending: PendingUpdates
   onLeave: (() => void) | undefined
@@ -244,6 +251,7 @@ function ListView({
   initialRailWidth,
   initialAddTags,
   initialHideDone,
+  initialVirtualization,
   mediaTypes,
   pending,
   onLeave,
@@ -410,9 +418,9 @@ function ListView({
     return entry && entry.unit.kind === 'group' && entry.members.length > 0 && !shut.has(entry.unit.group.name) ? entry.unit.group.name : undefined
   }, [overKey, shownUnits, shut])
 
-  // The rows as pixels, and which of them to draw (Phase 25): a long list draws a window, short ones everything. Off and the
-  // preference arrive with 25.7; until then it is automatic.
-  const virtualization: VirtualizationMode = 'auto'
+  // The rows as pixels, and which of them to draw (Phase 25): a long list draws a window, short ones everything; `off` (the app's
+  // preference or the server's setting, read before the first frame, 25.7) draws every row of any list.
+  const virtualization = initialVirtualization
   const rowModel = useMemo(() => buildRowModel(shownUnits, (name) => shut.has(name)), [shownUnits, shut])
   const windowed = shouldVirtualize(rowModel.rowTops.size, virtualization)
   // Where each drawn row is, for a screen reader (Phase 25.6, option A): only on a list drawn as a window, which shows a fraction of its rows.

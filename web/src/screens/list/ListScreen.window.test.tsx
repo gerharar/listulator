@@ -22,7 +22,7 @@ vi.mock('../../lib/preferences/store.js', () => ({
 
 vi.mock('../../lib/api.js', () => ({
   ApiError: class extends Error {},
-  api: { list: vi.fn(), setConsumed: vi.fn(), itemSource: vi.fn(), restoreOrder: vi.fn() },
+  api: { list: vi.fn(), setConsumed: vi.fn(), itemSource: vi.fn(), restoreOrder: vi.fn(), serverSettings: vi.fn() },
 }))
 
 const TYPES: MediaType[] = [{ key: 'movie', label: 'Movies', sortOrder: 1, defaultDurationMinutes: 120, searchAvailable: true, previewable: true }]
@@ -220,6 +220,65 @@ describe('a row with an open window stays drawn and anchored when the list is sc
     expect(screen.queryByRole('dialog')).not.toBeNull()
     expect(document.querySelector('[data-row-id="i3"]')).not.toBeNull()
     expect(screen.getByRole('button', { name: 'Edit Film 3' })).toBeTruthy()
+  })
+})
+
+describe('the switch: `off` draws every row of any list, `auto` a window (25.7)', () => {
+  const COUNT = 1000
+  const rowsOf = () =>
+    Array.from(document.querySelectorAll<HTMLElement>('.q-item')).map((row) => [
+      row.dataset['rowId'],
+      // What the row shows, without the hidden place that only a windowed list adds.
+      Array.from(row.children)
+        .filter((child) => !child.classList.contains('q-place'))
+        .map((child) => child.textContent)
+        .join('|'),
+    ])
+
+  it('with `off` in the preference a 1,000-row list draws all of its rows: no spacer, no place text, no sentence', async () => {
+    vi.mocked(api.serverSettings).mockResolvedValue({ listVirtualization: 'auto' })
+    prefs.set('listVirtualization', 'off')
+
+    await open(COUNT)
+
+    expect(rows()).toHaveLength(COUNT)
+    expect(document.querySelector('.q-list-spacer')).toBeNull()
+    expect(document.querySelector('.q-place')).toBeNull()
+  })
+
+  it('with `off` from the server alone the list is drawn whole too, and a server that cannot be asked leaves it on auto', async () => {
+    vi.mocked(api.serverSettings).mockResolvedValue({ listVirtualization: 'off' })
+    await open(COUNT)
+    expect(rows()).toHaveLength(COUNT)
+    cleanup()
+
+    vi.mocked(api.serverSettings).mockRejectedValue(new Error('no server'))
+    await open(COUNT)
+    expect(rows().length).toBeLessThan(80)
+  })
+
+  it('draws the same rows in the same order with the same content in both modes: auto is a window onto what off draws', async () => {
+    vi.mocked(api.serverSettings).mockResolvedValue({ listVirtualization: 'auto' })
+    await open(COUNT)
+    const windowed = rowsOf()
+    expect(windowed.length).toBeGreaterThan(9)
+    expect(windowed.length).toBeLessThan(80)
+    cleanup()
+
+    prefs.set('listVirtualization', 'off')
+    await open(COUNT)
+    const whole = rowsOf()
+
+    expect(whole).toHaveLength(COUNT)
+    expect(whole.slice(0, windowed.length)).toEqual(windowed)
+  })
+
+  it('and the screen-reader place text appears only while it is windowed', async () => {
+    vi.mocked(api.serverSettings).mockResolvedValue({ listVirtualization: 'auto' })
+    await open(COUNT)
+
+    expect(document.querySelector('.q-list-body > .q-place')).not.toBeNull()
+    expect(document.querySelectorAll('.q-place').length).toBeGreaterThan(10)
   })
 })
 

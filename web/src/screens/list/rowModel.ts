@@ -1,5 +1,6 @@
 import type { ListItem } from '../../lib/api.js'
 import type { SpineUnit } from './spine.js'
+import type { VirtualizationMode } from '../../../../server/src/catalog/listVirtualization.js'
 
 /**
  * The list screen's rows as a linear model, and which of them to draw (Phase 25, BACKLOG BL-074): a list of thousands draws only the
@@ -15,8 +16,8 @@ export const GROUP_HEIGHT = 47
 /** From this many rows on, the list is drawn as a window (owner, 2026-10-15; WebKit takes about 0.3 ms a row to redraw, so 200 rows stay under 70 ms). */
 export const VIRTUALIZE_FROM = 200
 
-/** `auto` is the default; `off` draws every row of any list (the preference `listVirtualization`). */
-export type VirtualizationMode = 'auto' | 'off'
+/** `auto` is the default; `off` draws every row of any list (the preference `listVirtualization` and the server's `LIST_VIRTUALIZATION`, Phase 25.7). */
+export type { VirtualizationMode }
 
 export function shouldVirtualize(rowCount: number, mode: VirtualizationMode): boolean {
   return mode === 'auto' && rowCount >= VIRTUALIZE_FROM

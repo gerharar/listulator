@@ -233,6 +233,7 @@ cp .env.example .env
 | `PORT`, `HOST` | `3001`, `127.0.0.1` | Where the server listens |
 | `ALLOWED_HOSTS` | (none) | Extra host names the server answers to when `HOST` is not loopback; not a login |
 | `DATABASE_PATH` | `data/listulator.sqlite` | The SQLite file |
+| `LIST_VIRTUALIZATION` | `auto` | `off` (also `false`, `0`, `no`) draws every row of every list instead of a window of the long ones; the browser's `localStorage` key and the desktop's `preferences.json` key `listVirtualization` do the same, and `off` from any of them wins. See `guides/long-lists.md` |
 | `SINGLE_USER_MODE` | `true` | The only supported value; `false` makes every request answer 501 |
 | `STRATEGIES_DIR` | `config/strategies` | Where the suggestion strategies are read from |
 | `LISTS_DROP_DIR` | `server/list_customs/` | Drop folder for custom-list files (`POST /api/lists/scan-folder`) |

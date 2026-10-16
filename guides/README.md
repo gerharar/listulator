@@ -8,6 +8,7 @@ Step-by-step guides the app links to. English only.
 | [Get an IGDB key](igdb-key.md) | Settings → API keys → IGDB → How? |
 | [Get a Comic Vine key](comic-vine-key.md) | Settings → API keys → Comic Vine → How? |
 | [Get a YouTube key](youtube-key.md) | Settings → API keys → YouTube → How? |
+| [Very long lists: turning the "draw only what you see" mode off](long-lists.md) | README → Very long lists |
 
 ## Writing a guide
 
