@@ -369,15 +369,28 @@ describe('dragging by the handle', () => {
     expect(row('b').querySelector('.q-dropline.after')).not.toBeNull()
   })
 
-  it('shuts every group while a block is dragged, so only boundaries are targets, and opens them again after', async () => {
+  it('folds only the group it carries while a group is dragged, and opens it again after (H-009)', async () => {
     await open()
     expect(rowIds()).toContain('g1')
 
-    const gesture = await drag('a', 'b', 'lower')
+    const gesture = await drag('gs', 'b', 'lower')
+    expect(rowIds()).toContain('gs')
     expect(rowIds()).not.toContain('g1')
 
     gesture.release()
     await waitFor(() => expect(rowIds()).toContain('g1'))
+  })
+
+  it('folds nothing while a loose item is dragged: every group stays as it was (H-009)', async () => {
+    await open()
+
+    const gesture = await drag('a', 'b', 'lower')
+    expect(rowIds()).toContain('g1')
+    expect(rowIds()).toContain('g3')
+
+    gesture.release()
+    await waitFor(() => expect(rowIds()).toEqual(['gs', 'g1', 'g2', 'g3', 'b', 'a']))
+    expect(rowIds()).toContain('g1')
   })
 
   it('does not shut a group for dragging an item inside it', async () => {

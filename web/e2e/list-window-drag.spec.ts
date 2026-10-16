@@ -22,6 +22,10 @@ async function openList(page: Page, title: string) {
   await page.goto('/')
   await page.locator('.q-home-row', { hasText: title }).click()
   await page.locator('.q-item').first().waitFor()
+  // The layer's entrance animation scales what `getBoundingClientRect` reports: measure only once it is over.
+  await page.evaluate(async () => {
+    await Promise.all(document.getAnimations().map((animation) => animation.finished.catch(() => undefined)))
+  })
 }
 
 /** The items by their place in the list, as the server holds them. */
@@ -143,7 +147,15 @@ test('an item moved a few rows inside a long list lands at the drop line, and th
   }
 })
 
-test('a group is dragged over many groups: it stays under the pointer when every group shuts, and lands where it is dropped', async ({ page }) => {
+const BLOCK = GROUP + 100 * ITEM
+
+const headerTop = (page: Page, title: string) =>
+  page.evaluate((text) => {
+    const header = [...document.querySelectorAll('.q-group')].find((node) => node.textContent?.includes(text)) as HTMLElement
+    return header.getBoundingClientRect().top
+  }, title)
+
+test('a group is dragged over 25 open groups: only it folds, its header does not move, and it lands where it is dropped', async ({ page }) => {
   test.setTimeout(120_000)
   const title = `e2e list-drag block ${Date.now()}`
   const rows = Array.from({ length: 5000 }, (_, n) => `  - { title: "Issue ${n}", minutes: 30, group: "${name(Math.floor(n / 100))}" }`)
@@ -151,34 +163,73 @@ test('a group is dragged over many groups: it stays under the pointer when every
 
   try {
     await openList(page, title)
-    await page.locator('.q-rail button', { hasText: name(20) }).click()
     // Not at the very top of the view (the top edge scrolls the list while a block is held there): 150px below it.
-    await setScroll(page, 20 * (GROUP + 100 * ITEM) - 150)
+    await setScroll(page, 20 * BLOCK - 150)
     const header = page.locator('.q-group', { hasText: name(20) })
+    const before = await headerTop(page, name(20))
     const pointer = await pickUp(page, header.locator('.q-handle'))
     await frames(page, 4)
 
-    // Every group is shut now, and the carried one is still where it was picked up.
-    const under = await page.evaluate(([x, y]) => document.elementFromPoint(x!, y!)?.closest('.q-group')?.textContent ?? '', [pointer.grab.x, pointer.grab.y])
-    expect(under).toContain(name(20))
-    await expect(page.locator('.q-item')).toHaveCount(0)
+    // Group 20 folded (its rows are gone), nothing else did (the next group's rows are there), and its header has not moved.
+    expect(Math.abs((await headerTop(page, name(20))) - before)).toBeLessThan(1)
+    await expect(page.getByText('Issue 2000', { exact: true })).toHaveCount(0)
+    await expect(page.getByText('Issue 2100', { exact: true })).toBeVisible()
+    await expect(page.locator('.q-group', { hasText: name(21) })).toBeVisible()
+    expect(pointer.grab.y).toBeGreaterThan(0)
 
+    // The reader scrolls on while carrying (the wheel; the edge autoscroll does the same to `scrollTop`) to Group 45: 25 open groups later.
+    await setScroll(page, 45 * BLOCK - 100 * ITEM - 150)
     const target = page.locator('.q-group', { hasText: name(45) })
-    await target.scrollIntoViewIfNeeded()
-    await frames(page, 4)
+    await expect(target).toBeVisible()
     const at = await pointOn(target, 'lower')
+    await page.mouse.move(pointer.x, pointer.y + 10)
     await page.mouse.move(at.x, at.y, { steps: 8 })
     await expect(target.locator('.q-dropline.after')).toBeVisible()
     await page.mouse.up()
 
     await expect.poll(async () => (await groupOrder(page.request, id)).indexOf(name(20))).toBe(45)
-    // The groups open again and the carried one is not lost: it is in view, at the drop line.
+    // The group opens again where it landed, at the drop line.
     await expect(page.locator('.q-group', { hasText: name(20) })).toBeVisible()
     await expectLandedAt(page.locator('.q-group', { hasText: name(20) }), at.y)
     await expect(page.locator('.q-item').first()).toBeVisible()
 
     await page.locator('.q-toast').getByRole('button', { name: 'Undo' }).click()
     await expect.poll(async () => (await groupOrder(page.request, id)).indexOf(name(20))).toBe(20)
+  } finally {
+    await page.request.delete(`/api/lists/${id}`)
+  }
+})
+
+test('a group whose header is stuck at the top of the view can be picked up with a real pointer, and Esc puts everything back', async ({ page }) => {
+  test.setTimeout(120_000)
+  const title = `e2e list-drag stuck ${Date.now()}-${Math.random().toString(36).slice(2, 6)}`
+  const rows = Array.from({ length: 1000 }, (_, n) => `  - { title: "Issue ${n}", minutes: 30, group: "${name(Math.floor(n / 100))}" }`)
+  const id = await makeList(page.request, title, rows)
+
+  try {
+    await openList(page, title)
+    await setScroll(page, 3 * BLOCK + GROUP + 40 * ITEM)
+    const header = page.locator('.q-group', { hasText: name(3) })
+    expect(Math.abs(await headerTop(page, name(3)) - (await page.locator('.q-list-body').evaluate((node) => node.getBoundingClientRect().top)))).toBeLessThan(1)
+
+    const from = (await header.locator('.q-handle').boundingBox())!
+    await page.mouse.move(from.x + from.width / 2, from.y + from.height / 2)
+    await page.mouse.down()
+    await page.mouse.move(from.x + 8, from.y + 140, { steps: 6 })
+
+    // A real drag: the group is dimmed, its rows have gone with it, and the drag is still on a moment later (nothing cancelled it).
+    await expect(header).toHaveClass(/dragging/)
+    await page.waitForTimeout(300)
+    await expect(header).toHaveClass(/dragging/)
+    await expect(page.getByText('Issue 340', { exact: true })).toHaveCount(0)
+    await expect(page.locator('.q-group', { hasText: name(4) })).toBeVisible()
+
+    await page.keyboard.press('Escape')
+    await page.mouse.up()
+    // The group opens again with its header at the top of the view, where the fold left it (the rows the reader had scrolled past stay above).
+    await expect(page.getByText('Issue 300', { exact: true })).toBeVisible()
+    await expect(header).not.toHaveClass(/dragging/)
+    expect((await groupOrder(page.request, id)).indexOf(name(3))).toBe(3)
   } finally {
     await page.request.delete(`/api/lists/${id}`)
   }

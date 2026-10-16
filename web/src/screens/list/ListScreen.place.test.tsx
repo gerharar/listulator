@@ -224,47 +224,122 @@ describe('Hide Completed keeps the reader in the list that is left (25.4)', () =
   })
 })
 
-describe('carrying a block keeps it where it is on the screen (25.5)', () => {
+describe('carrying a group folds that group only, and keeps its header where it was grabbed (25.5, H-009 27.1)', () => {
   const pointer = (type: 'pointermove' | 'pointerup', x: number, y: number) =>
     act(async () => void window.dispatchEvent(new MouseEvent(type, { clientX: x, clientY: y, bubbles: true, cancelable: true })))
+  const grab = (id: string) => fireEvent.pointerDown(row(id)!.querySelector('.q-handle') as HTMLElement, { button: 0, clientX: 10, clientY: 300 })
 
-  it('a group picked up stays where it is while every group shuts, and is in view when they open again', async () => {
-    vi.mocked(api.restoreOrder).mockResolvedValue(undefined as never)
-    // jsdom has no hit testing: nothing is under the pointer until the drop below.
+  it('a group picked up folds itself: the groups around it stay open and its header does not move on the screen', async () => {
     document.elementFromPoint = () => null
     await open()
     // Group 20's header is 100px below the top of the view.
     await scrollRows(20 * GROUP - 100)
-    expect(row('g20')).not.toBeNull()
+    expect(drawn('Film 2000')).toBe(true)
+    expect(drawn('Film 1999')).toBe(true)
 
-    fireEvent.pointerDown(row('g20')!.querySelector('.q-handle') as HTMLElement, { button: 0, clientX: 10, clientY: 300 })
+    grab('g20')
     await pointer('pointermove', 10, 330)
 
-    // Fifty shut groups are fifty headers: the carried one is 100px below the top of the view still, not wherever the old position lands.
-    expect(document.querySelectorAll('.q-item')).toHaveLength(0)
+    // Nothing above it changed, so the view has not moved; its own rows are gone and the next group's header is right under it.
+    expect(body().scrollTop).toBe(20 * GROUP - 100)
     expect(row('g20')).not.toBeNull()
-    expect(body().scrollTop).toBe(20 * 47 - 100)
+    expect(drawn('Film 2000')).toBe(false)
+    expect(drawn('Film 1999')).toBe(true)
+    expect(row('g21')).not.toBeNull()
+    expect(drawn('Film 2100')).toBe(true)
+  })
 
-    // Dropped after Group 45: the groups open, and the dropped group (now the 46th) has its header at the drop line, which was Group 45's
-    // bottom: (45 x 47 + 47) - 840 = 1,322px below the top of the view.
-    const target = row('g45')!
+  it('a group whose header is stuck at the top (the view is inside it) ends with its header at the top of the view', async () => {
+    document.elementFromPoint = () => null
+    await open()
+    await scrollRows(20 * GROUP + 47 + 30 * 46)
+
+    grab('g20')
+    await pointer('pointermove', 10, 330)
+
+    expect(body().scrollTop).toBe(20 * GROUP)
+    expect(row('g20')).not.toBeNull()
+    expect(drawn('Film 2100')).toBe(true)
+  })
+
+  it('a group is put down at the drop line, and opens where it landed', async () => {
+    vi.mocked(api.restoreOrder).mockResolvedValue(undefined as never)
+    document.elementFromPoint = () => null
+    await open()
+    await scrollRows(20 * GROUP - 100)
+    grab('g20')
+    await pointer('pointermove', 10, 330)
+
+    // Dropped in the lower half of Group 21's header. (Until 27.2 the line is under the header, and the 25.5 landing is used:
+    // the line was 194px below the top of the view; Group 20 now follows Group 21.)
+    const target = row('g21')!
     target.getBoundingClientRect = () => ({ top: 100, height: 47, bottom: 147, left: 0, right: 400, width: 400, x: 0, y: 100, toJSON: () => ({}) })
     document.elementFromPoint = () => target
     await pointer('pointerup', 10, 140)
 
-    expect(body().scrollTop).toBe(45 * GROUP - 1322)
+    expect(body().scrollTop).toBe(21 * GROUP - 194)
     expect(row('g20')).not.toBeNull()
+    expect(drawn('Film 2000')).toBe(true)
   })
 })
 
-describe('a carried block that is let go of without dropping (25.5)', () => {
-  it('Escape puts the view back where it was: the groups open and the carried group has not moved on the screen', async () => {
+describe('a carry that ends without a drop does not reuse an earlier drop (27.1)', () => {
+  const pointer = (type: 'pointermove' | 'pointerup', x: number, y: number) =>
+    act(async () => void window.dispatchEvent(new MouseEvent(type, { clientX: x, clientY: y, bubbles: true, cancelable: true })))
+  const rectAt = (el: HTMLElement, top: number) =>
+    (el.getBoundingClientRect = () => ({ top, height: 46, bottom: top + 46, left: 0, right: 400, width: 400, x: 0, y: top, toJSON: () => ({}) }))
+
+  /** An item dropped inside its own group (Group 20's last two rows are in view, and Group 21's header below them). */
+  async function dropAnItemInsideItsGroup() {
+    vi.mocked(api.restoreOrder).mockResolvedValue(undefined as never)
+    document.elementFromPoint = () => null
+    await open()
+    await scrollRows(21 * GROUP - 300)
+    expect(row('i2098')).not.toBeNull()
+    expect(row('g21')).not.toBeNull()
+    fireEvent.pointerDown(row('i2098')!.querySelector('.q-handle') as HTMLElement, { button: 0, clientX: 10, clientY: 100 })
+    await pointer('pointermove', 10, 130)
+    const sibling = row('i2099')!
+    rectAt(sibling, 100)
+    document.elementFromPoint = () => sibling
+    await pointer('pointerup', 10, 140)
+    expect(body().scrollTop).toBe(21 * GROUP - 300)
+  }
+
+  it('Escape on a group picked up afterwards leaves the view where it was (the item drop is not replayed)', async () => {
+    await dropAnItemInsideItsGroup()
+    document.elementFromPoint = () => null
+    fireEvent.pointerDown(row('g21')!.querySelector('.q-handle') as HTMLElement, { button: 0, clientX: 10, clientY: 300 })
+    await pointer('pointermove', 10, 330)
+
+    await act(async () => void window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true })))
+
+    expect(body().scrollTop).toBe(21 * GROUP - 300)
+  })
+
+  it('releasing a carried group over a row inside an open group (no target) leaves the view where it was too', async () => {
+    await dropAnItemInsideItsGroup()
+    document.elementFromPoint = () => null
+    fireEvent.pointerDown(row('g21')!.querySelector('.q-handle') as HTMLElement, { button: 0, clientX: 10, clientY: 300 })
+    await pointer('pointermove', 10, 330)
+    const inside = row('i2000') ?? row('i2090')!
+    rectAt(inside, 100)
+    document.elementFromPoint = () => inside
+
+    await pointer('pointerup', 10, 120)
+
+    expect(body().scrollTop).toBe(21 * GROUP - 300)
+  })
+})
+
+describe('a carried group that is let go of without dropping (25.5)', () => {
+  it('Escape puts the view back where it was: the group opens again and its header has not moved on the screen', async () => {
     document.elementFromPoint = () => null
     await open()
     await scrollRows(20 * GROUP - 100)
     fireEvent.pointerDown(row('g20')!.querySelector('.q-handle') as HTMLElement, { button: 0, clientX: 10, clientY: 300 })
     await act(async () => void window.dispatchEvent(new MouseEvent('pointermove', { clientX: 10, clientY: 330, bubbles: true, cancelable: true })))
-    expect(body().scrollTop).toBe(20 * 47 - 100)
+    expect(drawn('Film 2000')).toBe(false)
 
     await act(async () => void window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true })))
 

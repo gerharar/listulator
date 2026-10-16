@@ -387,11 +387,18 @@ function ListView({
         : new Set(shownUnits.flatMap(({ unit }) => (unit.kind === 'group' ? [unit.group.name] : []))),
     [filter.text, shownUnits],
   )
-  // While a block is carried every group shuts, so only boundaries are targets; nothing is remembered.
-  const shut = useMemo<ReadonlySet<string>>(
-    () => (moves.draggingUnit ? new Set(groupNames) : new Set([...collapsed].filter((name) => !openByText.has(name)))),
-    [moves.draggingUnit, groupNames, collapsed, openByText],
+  // While a group is carried it folds itself (its items travel with it) and unfolds where it lands; no other group changes, and a carried
+  // loose item changes nothing (H-009). Nothing is remembered.
+  const carriedGroup = useMemo(
+    () => (moves.draggingUnit && moves.dragKey ? groups.find((entry) => entry.id === moves.dragKey)?.name : undefined),
+    [moves.draggingUnit, moves.dragKey, groups],
   )
+  const shut = useMemo<ReadonlySet<string>>(() => {
+    const names = new Set([...collapsed].filter((name) => !openByText.has(name)))
+    if (carriedGroup !== undefined) names.add(carriedGroup)
+
+    return names
+  }, [carriedGroup, collapsed, openByText])
 
   // The rows as pixels, and which of them to draw (Phase 25): a long list draws a window, short ones everything. Off and the
   // preference arrive with 25.7; until then it is automatic.
@@ -519,8 +526,9 @@ function ListView({
   }
 
   // The reader keeps their place when the rows change under them: a group folded or opened, Collapse / Expand all, a filter, Hide Completed.
-  // A block that is picked up shuts every group on purpose, and when it is put down they open: then the CARRIED unit stays where it is on
-  // the screen when it is picked up (it is under the pointer) and lands at the drop line when it is put down; nothing moves while it is carried. Declared before the effects that scroll on purpose, so theirs win.
+  // A group that is picked up folds itself, and unfolds when it is put down: it stays where it is on the screen when it is picked up (it is
+  // under the pointer) and lands at the drop line when it is put down; nothing moves while it is carried. Declared before the effects that
+  // scroll on purpose, so theirs win.
   const modelSeen = useRef(rowModel)
   const carryingSeen = useRef(false)
   const carriedKey = useRef<string | null>(null)
@@ -532,17 +540,17 @@ function ListView({
     modelSeen.current = rowModel
     carryingSeen.current = carrying
     const body = spine.current
-    if (before === rowModel || !body || (carrying && wasCarrying)) return
-    // Put down: at the drop line. Picked up, or let go of without a drop (Esc): where it was on the screen.
+    // Put down: at the drop line. Picked up, or let go of without a drop (Esc): where it was on the screen. A drop is used once.
     const drop = wasCarrying && !carrying ? moves.dropped.current : null
     if (wasCarrying && !carrying) moves.dropped.current = null
+    if (before === rowModel || !body || (carrying && wasCarrying)) return
     const landed = drop ? scrollAfterDrop(before, rowModel, drop.key, drop.targetKey, drop.pos, scrolledTo.current) : undefined
     const kept =
       landed ??
       (carrying !== wasCarrying && carriedKey.current !== null ? scrollKeepingUnit(before, rowModel, carriedKey.current, scrolledTo.current) : undefined)
     const next = kept ?? scrollAfterChange(before, rowModel, scrolledTo.current, body.clientHeight || DEFAULT_VIEWPORT.height)
     if (next !== scrolledTo.current) scrollBodyTo(next)
-  }, [rowModel])
+  }, [rowModel, moves.draggingUnit])
 
   useLayoutEffect(() => {
     if (!jumpTo) return

@@ -155,7 +155,8 @@ export function useRowMoves({ listId, items, groups, setItems, setGroups, setErr
       if (outcome.kind === 'refused') announce(text.onlyInsideGroup)
       if (outcome.kind !== 'moved') return
 
-      dropped.current = { key: dragKey, targetKey: target.key, pos: target.pos }
+      // Only a block's drop is landed at the line by the screen; an item moved inside its group is not a carry (a stale record would be replayed by the next one).
+      dropped.current = grouped ? null : { key: dragKey, targetKey: target.key, pos: target.pos }
       announce(said(outcome))
       void commit(outcome).then((saved) => {
         if (!saved) return
@@ -170,7 +171,11 @@ export function useRowMoves({ listId, items, groups, setItems, setGroups, setErr
     [kindOf, commit, showToast, undoTo, announce, text],
   )
 
-  const drag = useRowDrag({ accepts, onDrop })
+  // A new drag forgets the last drop: the screen reads the record once, when a block's carry ends, and a carry that ends with no drop must not find an old one.
+  const onStart = useCallback(() => {
+    dropped.current = null
+  }, [])
+  const drag = useRowDrag({ accepts, onDrop, onStart })
   const draggingUnit = drag.dragKey !== null && kindOf(drag.dragKey) === 'unit'
 
   // ---- the keyboard ---------------------------------------------------------------------------
