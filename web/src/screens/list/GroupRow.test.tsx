@@ -43,6 +43,48 @@ describe('GroupRow', () => {
     expect(screen.getByText('3h 20m left')).toBeTruthy()
   })
 
+  it('adds a muted count in front of its progress when a filter shows only some of its rows (H-010)', () => {
+    renderRow(BLOCK, { matched: 4 })
+
+    expect(screen.getByText('4 shown')).toBeTruthy()
+    expect(screen.getByText('2/6 (33%)')).toBeTruthy()
+    expect(screen.getByText('3h 20m left')).toBeTruthy()
+    const lead = screen.getByText('4 shown')
+    expect(lead.nextElementSibling!.textContent).toBe('·')
+    expect(lead.nextElementSibling!.nextElementSibling!.textContent).toBe('2/6 (33%)')
+  })
+
+  it('shows no count when nothing is filtered away', () => {
+    renderRow()
+
+    expect(screen.queryByText(/shown/)).toBeNull()
+  })
+
+  it('puts the rename pencil right after the name, then the free space, then the progress (H-011)', () => {
+    renderRow(BLOCK, { onRename: vi.fn() })
+
+    const parts = Array.from(document.querySelector('.q-group')!.children).map((node) => node.className)
+    const name = parts.findIndex((entry) => entry.split(' ').includes('name'))
+    const pencil = parts.findIndex((entry) => entry.split(' ').includes('q-group-rename'))
+    const fill = parts.findIndex((entry) => entry.split(' ').includes('q-group-fill'))
+    const progress = parts.findIndex((entry) => entry.split(' ').includes('q-progress'))
+
+    expect([name, pencil, fill, progress].every((index) => index >= 0)).toBe(true)
+    expect(name).toBeLessThan(pencil)
+    expect(pencil).toBe(name + 1)
+    expect(fill).toBe(pencil + 1)
+    expect(fill).toBeLessThan(progress)
+  })
+
+  it('while renaming, the field takes the free width: the name is the flexible part and there is no spacer (H-011)', () => {
+    renderRow(BLOCK, { onRename: vi.fn() })
+
+    fireEvent.click(screen.getByRole('button', { name: 'Rename group Season 1' }))
+
+    expect(document.querySelector('.q-group .name.editing')).not.toBeNull()
+    expect(document.querySelector('.q-group-fill')).toBeNull()
+  })
+
   it('has the prototype’s full-size chevron, not the small one (F11)', () => {
     renderRow()
 
@@ -324,6 +366,180 @@ describe('GroupRow', () => {
 
         await waitFor(() => expect(editor().value).toBe('Season 2'))
         expect(screen.queryByRole('alert')).toBeNull()
+      })
+    })
+
+    describe('a click away only ends the rename (H-013; owner, 2026-10-17)', () => {
+      /** A whole press as a browser sends it: pointer, mouse, then the click. */
+      const press = (target: Element) => {
+        fireEvent.pointerDown(target)
+        fireEvent.mouseDown(target)
+        fireEvent.pointerUp(target)
+        fireEvent.mouseUp(target)
+        fireEvent.click(target)
+      }
+      function renderWithNeighbours(onRename: (name: string) => Promise<void>) {
+        const toggled = vi.fn()
+        const other = vi.fn()
+        const props = {
+          block: BLOCK,
+          collapsed: false,
+          focusable: false,
+          onToggle: vi.fn(),
+          onFocus: vi.fn(),
+          onRename,
+        }
+        render(
+          <>
+            <button onClick={toggled}>Hide Completed</button>
+            <GroupRow {...props} />
+            <GroupRow {...props} block={{ ...BLOCK, group: { ...BLOCK.group, id: 'g2', name: 'Season 2' } }} onRename={other as never} />
+          </>,
+        )
+
+        return { toggled, other, props }
+      }
+      const outside = () => screen.getByRole('button', { name: 'Hide Completed' })
+
+      it('saves the new name, and nothing under the pointer reacts: no click, no toggle', async () => {
+        const onRename = vi.fn(async () => {})
+        const { toggled } = renderWithNeighbours(onRename)
+        fireEvent.click(pencil())
+        fireEvent.change(editor(), { target: { value: 'Series One' } })
+
+        press(outside())
+
+        await waitFor(() => expect(onRename).toHaveBeenCalledWith('Series One'))
+        expect(toggled).not.toHaveBeenCalled()
+        await waitFor(() => expect(screen.queryByLabelText('Group name')).toBeNull())
+      })
+
+      it('the next press works as normal', async () => {
+        const { toggled } = renderWithNeighbours(vi.fn(async () => {}))
+        fireEvent.click(pencil())
+        press(outside())
+        await waitFor(() => expect(screen.queryByLabelText('Group name')).toBeNull())
+
+        press(outside())
+
+        expect(toggled).toHaveBeenCalledTimes(1)
+      })
+
+      it('also ends the rename when only a mouse press arrives, with no pointer events', async () => {
+        const onRename = vi.fn(async () => {})
+        const { toggled } = renderWithNeighbours(onRename)
+        fireEvent.click(pencil())
+        fireEvent.change(editor(), { target: { value: 'Series One' } })
+
+        fireEvent.mouseDown(outside())
+        fireEvent.mouseUp(outside())
+        fireEvent.click(outside())
+
+        await waitFor(() => expect(onRename).toHaveBeenCalledWith('Series One'))
+        expect(toggled).not.toHaveBeenCalled()
+      })
+
+      it('a press inside the field is its own: the cursor is placed, nothing is saved', () => {
+        const onRename = vi.fn(async () => {})
+        renderWithNeighbours(onRename)
+        fireEvent.click(pencil())
+        fireEvent.change(editor(), { target: { value: 'Series One' } })
+
+        press(editor())
+
+        expect(editor()).toBeTruthy()
+        expect(onRename).not.toHaveBeenCalled()
+      })
+
+      it('a taken name keeps the field open with its message and the cursor in it, and the press is still swallowed', async () => {
+        const taken = 'This list already has a group with such name'
+        const onRename = vi.fn(async () => {
+          throw new ApiError(taken, 409, 'group.nameTaken')
+        })
+        const { toggled } = renderWithNeighbours(onRename)
+        fireEvent.click(pencil())
+        fireEvent.change(editor(), { target: { value: 'Season 2' } })
+
+        press(outside())
+
+        await waitFor(() => expect(screen.getByRole('alert').textContent).toBe(taken))
+        expect(document.activeElement).toBe(editor())
+        expect(toggled).not.toHaveBeenCalled()
+      })
+
+      it('a press on the message under the header is not "away": it does not save again', async () => {
+        const onRename = vi.fn(async () => {
+          throw new ApiError('taken', 409, 'group.nameTaken')
+        })
+        renderWithNeighbours(onRename)
+        fireEvent.click(pencil())
+        fireEvent.change(editor(), { target: { value: 'Season 2' } })
+        fireEvent.keyDown(editor(), { key: 'Enter' })
+        await waitFor(() => expect(screen.getByRole('alert')))
+
+        press(screen.getByRole('alert'))
+
+        expect(onRename).toHaveBeenCalledTimes(1)
+      })
+
+      it('a click on another group\'s pencil ends this rename and does not start the other', async () => {
+        const onRename = vi.fn(async () => {})
+        renderWithNeighbours(onRename)
+        fireEvent.click(pencil())
+        fireEvent.change(editor(), { target: { value: 'Series One' } })
+
+        press(screen.getByRole('button', { name: 'Rename group Season 2' }))
+
+        await waitFor(() => expect(onRename).toHaveBeenCalledWith('Series One'))
+        await waitFor(() => expect(screen.queryByLabelText('Group name')).toBeNull())
+        expect(screen.getByRole('button', { name: 'Rename group Season 2' })).toBeTruthy()
+      })
+
+      it('the wheel still scrolls: it is not touched', () => {
+        renderWithNeighbours(vi.fn(async () => {}))
+        fireEvent.click(pencil())
+
+        const wheel = new WheelEvent('wheel', { bubbles: true, cancelable: true, deltaY: 40 })
+        outside().dispatchEvent(wheel)
+
+        expect(wheel.defaultPrevented).toBe(false)
+      })
+
+      it('a press that never becomes a click (a touch that scrolled) does not eat the next one', async () => {
+        vi.useFakeTimers()
+        try {
+          const { toggled } = renderWithNeighbours(vi.fn(async () => {}))
+          fireEvent.click(pencil())
+
+          fireEvent.pointerDown(outside())
+          fireEvent.pointerCancel(outside())
+          await vi.advanceTimersByTimeAsync(200)
+          press(outside())
+
+          expect(toggled).toHaveBeenCalledTimes(1)
+        } finally {
+          vi.useRealTimers()
+        }
+      })
+
+      it('a press whose release never arrives (it ended outside the window) does not eat the next press: a second pointerdown is a new gesture', async () => {
+        const { toggled } = renderWithNeighbours(vi.fn(async () => {}))
+        fireEvent.click(pencil())
+
+        fireEvent.pointerDown(outside())
+        await waitFor(() => expect(screen.queryByLabelText('Group name')).toBeNull())
+        // No pointerup, no click. The next press is a whole new one.
+        press(outside())
+
+        expect(toggled).toHaveBeenCalledTimes(1)
+      })
+
+      it('listens only while a rename is open: with none, a press is nobody\'s business', () => {
+        const { toggled } = renderWithNeighbours(vi.fn(async () => {}))
+
+        press(outside())
+
+        expect(toggled).toHaveBeenCalledTimes(1)
       })
     })
 

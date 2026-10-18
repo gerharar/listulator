@@ -35,6 +35,10 @@ export interface ItemRowProps {
   onHandlePointerDown?: (event: PointerEvent, item: ListItem) => void
   /** This is the row being dragged. */
   dragging?: boolean
+  /** On a list drawn as a window: where this row is, as hidden text for a screen reader ("4212 of 30000", Phase 25.6). Absent on a short list. */
+  place?: string
+  /** A block is carried over this row's group: the group is the drop target, and its rows take the hover ground (H-009). */
+  hover?: boolean
   /** The drop line, when a drag would land just above or just below this row. */
   dropLine?: 'before' | 'after' | null
   /**
@@ -103,6 +107,8 @@ function ItemRowView({
   pulse,
   onHandlePointerDown,
   dragging = false,
+  place,
+  hover = false,
   dropLine = null,
   platform,
   tagChip,
@@ -137,7 +143,7 @@ function ItemRowView({
 
   return (
     <div
-      className={['q-item', grouped && 'in-group', done && 'is-done', pulse && 'pulse', dragging && 'dragging']
+      className={['q-item', grouped && 'in-group', done && 'is-done', pulse && 'pulse', dragging && 'dragging', hover && 'is-hover']
         .filter(Boolean)
         .join(' ')}
       data-row-id={item.id}
@@ -229,6 +235,7 @@ function ItemRowView({
       <IconButton size="row" className="remove" label={text.remove(item.title)} onClick={act(onRemove)}>
         <Trash2 width={15} height={15} strokeWidth={1.8} aria-hidden="true" />
       </IconButton>
+      {place && <span className="q-place">{place}</span>}
     </div>
   )
 }

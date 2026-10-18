@@ -17,6 +17,13 @@ import { createTestApp, type TestApp } from '../../../server/src/testing/harness
  */
 
 let sqlite: BetterSqlite3.Database
+/** The real plugin answers over an IPC, so statements of two overlapping calls take turns; a test turns that on (BL-103). */
+let yieldBetweenStatements = false
+/** Bytes the SQL plugin has sent back to the webview since a test last zeroed this: what the IPC carries (BL-104). */
+let bytesSelected = 0
+/** A statement that should fail once, as a plugin call that errors half-way through a rebuild would (28.4): armed by a test, disarmed when it fires. */
+let failOnce: ((sql: string) => boolean) | null = null
+const pause = () => (yieldBetweenStatements ? new Promise((resolve) => setImmediate(resolve)) : undefined)
 const positional = (sql: string) => sql.replace(/\$\d+/g, '?')
 
 vi.mock('@tauri-apps/plugin-sql', async () => {
@@ -29,11 +36,19 @@ vi.mock('@tauri-apps/plugin-sql', async () => {
       load: vi.fn(async () => ({
         execute: async (sql: string, params: unknown[] = []) => {
           checked('execute', sql, params)
+          await pause()
+          if (failOnce?.(sql)) {
+            failOnce = null
+            throw new Error('boom')
+          }
           sqlite.prepare(positional(sql)).run(...params)
         },
         select: async (sql: string, params: unknown[] = []) => {
           checked('select', sql, params)
-          return sqlite.prepare(positional(sql)).all(...params)
+          await pause()
+          const rows = sqlite.prepare(positional(sql)).all(...params)
+          bytesSelected += JSON.stringify(rows).length
+          return rows
         },
       })),
     },
@@ -480,6 +495,110 @@ describe('the desktop builds a list at once and fills its lengths afterwards (15
 
       await expect(api.resetList(list.id)).rejects.toMatchObject({ code: 'list.sourceTooLarge', status: 422, message: expect.stringContaining('First') })
       await expect(api.resetPreview(list.id)).rejects.toMatchObject({ code: 'list.sourceTooLarge' })
+    })
+  })
+
+  describe('Resets that overlap (BL-103)', () => {
+    const yaml = `title: Mine\ncategory: movie\nitems:\n${Array.from({ length: 60 }, (_, n) => `  - { title: "Item ${n}", group: "Volume ${n % 3}" }`).join('\n')}\n`
+
+    afterEach(() => {
+      yieldBetweenStatements = false
+    })
+
+    it('two Resets at once leave the file’s 60 items once, not twice', async () => {
+      const { api } = await start(filmSource())
+      const list = await api.createFromFile({ yaml })
+      yieldBetweenStatements = true
+
+      await Promise.all([api.resetList(list.id), api.resetList(list.id)])
+
+      yieldBetweenStatements = false
+      expect((await api.list(list.id)).items).toHaveLength(60)
+    })
+
+    it('a Reset’s cost asked during a Reset is the finished list’s: nothing to remove or restore', async () => {
+      const { api } = await start(filmSource())
+      const list = await api.createFromFile({ yaml })
+      yieldBetweenStatements = true
+
+      const [, preview] = await Promise.all([api.resetList(list.id), api.resetPreview(list.id)])
+
+      expect(preview).toMatchObject({ removed: 0, restored: 0 })
+    })
+  })
+
+  describe('a list opened while a Reset or Undo runs (28.4)', () => {
+    const yaml = `title: Mine\ncategory: movie\nitems:\n${Array.from({ length: 60 }, (_, n) => `  - { title: "Item ${n}", group: "Volume ${n % 3}" }`).join('\n')}\n`
+
+    afterEach(() => {
+      yieldBetweenStatements = false
+      failOnce = null
+    })
+
+    it('waits for the Reset and reads the finished list, never the half-built one', async () => {
+      const { api } = await start(filmSource())
+      const list = await api.createFromFile({ yaml })
+      const first = (await api.list(list.id)).items[0]!
+      await api.deleteItem(list.id, first.id)
+      yieldBetweenStatements = true
+
+      const reset = api.resetList(list.id)
+      const read = api.list(list.id)
+      await reset
+      const seen = await read
+
+      yieldBetweenStatements = false
+      expect(seen.items).toHaveLength(60)
+      expect(seen.items.map((entry) => entry.id)).toEqual((await api.list(list.id)).items.map((entry) => entry.id))
+    })
+
+    it('an Undo whose first attempt fails part-way is tried once more and ends with the whole set', async () => {
+      const { api } = await start(filmSource())
+      const list = await api.createFromFile({ yaml })
+      const before = await api.list(list.id)
+      await api.addItem(list.id, { title: 'By hand', timeToConsumeMinutes: 5 })
+      const messy = await api.list(list.id)
+      const reset = await api.resetList(list.id)
+      expect((await api.list(list.id)).items).toHaveLength(60)
+      expect(messy.items).toHaveLength(61)
+
+      // The restore's first insert into the items fails, after it has emptied the list.
+      failOnce = (sql) => /^insert into "list_items"/i.test(sql)
+      await api.restoreItems(list.id, reset.restore)
+
+      const after = await api.list(list.id)
+      expect(after.items.map((entry) => [entry.id, entry.title, entry.orderIndex])).toEqual(messy.items.map((entry) => [entry.id, entry.title, entry.orderIndex]))
+      expect(before.items).toHaveLength(60)
+    })
+  })
+
+  describe('what the Reset question reads (BL-104)', () => {
+    it('carries only what it counts with: under half of what opening the list carries (the stored file it re-reads is the rest)', async () => {
+      const { api } = await start(filmSource())
+      const yaml = `title: Long\ncategory: movie\nitems:\n${Array.from({ length: 2_000 }, (_, n) => `  - { title: "Item ${n}: a title of ordinary length", year: ${1960 + (n % 60)}, minutes: ${20 + (n % 90)}, group: "Volume ${n % 20}" }`).join('\n')}\n`
+      const list = await api.createFromFile({ yaml })
+
+      bytesSelected = 0
+      await api.list(list.id)
+      const opening = bytesSelected
+      bytesSelected = 0
+      const preview = await api.resetPreview(list.id)
+      const asking = bytesSelected
+
+      expect(preview).toMatchObject({ removed: 0, restored: 0 })
+      expect(asking).toBeLessThan(opening / 2)
+    })
+
+    it('still counts what a Reset would remove, restore and clear', async () => {
+      const { api } = await start(filmSource())
+      const list = await api.createFromFile({ yaml: 'title: Mine\ncategory: movie\nitems:\n  - { title: One }\n  - { title: Two }\n  - { title: Three }\n' })
+      const detail = await api.list(list.id)
+      await api.deleteItem(list.id, detail.items[0]!.id)
+      await api.addItem(list.id, { title: 'By hand', timeToConsumeMinutes: 5 })
+      await api.setConsumed(list.id, detail.items[1]!.id, true)
+      await api.updateItem(list.id, detail.items[2]!.id, { userNote: 'mine' })
+
+      expect(await api.resetPreview(list.id)).toMatchObject({ removed: 1, restored: 1, doneCleared: 1, notesCleared: 1 })
     })
   })
 

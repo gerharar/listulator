@@ -3,6 +3,7 @@ import { IngestionError } from '../ingestion/http.js'
 import { createMediaTypeRegistry, type ListExpansion, type SearchAdapter } from '../ingestion/mediaTypes.js'
 import { listItems, listSnapshots, users } from '../db/schema.js'
 import { createTestApp, type TestApp } from '../testing/harness.js'
+import { withListLock } from './listLock.js'
 import { resetToSource } from './reset.js'
 import { createList as createStoredList, findList } from './repository.js'
 import { dropSourceCopy, refreshSourceCopy } from './sourceCopy.js'
@@ -480,6 +481,50 @@ describe('sort and reset', () => {
     })
   })
 
+  describe('reading a list while a Reset or Undo holds it (28.4)', () => {
+    it('waits for the work to finish and then answers: a list reopened mid-run is never half built', async () => {
+      const created = await send('POST', '/lists/from-file', { yaml: 'title: T\ncategory: mega\nitems:\n  - { title: A }\n  - { title: B }\n' })
+      const id = created.json().id
+      let release!: () => void
+      const work = withListLock(id, () => new Promise<void>((resolve) => (release = resolve)))
+
+      let answered = false
+      const read = send('GET', `/lists/${id}`).then((reply) => {
+        answered = true
+        return reply
+      })
+      await new Promise((resolve) => setTimeout(resolve, 50))
+      expect(answered).toBe(false)
+
+      release()
+      await work
+      const reply = await read
+      expect(reply.statusCode).toBe(200)
+      expect(reply.json().items).toHaveLength(2)
+    })
+
+    it('a list that is not the caller\'s (or does not exist) is refused at once, even while that id is held: nobody learns that work is going on', async () => {
+      void withListLock('someone-elses-list', () => new Promise<void>(() => {}))
+
+      const reply = await Promise.race([
+        send('GET', '/lists/someone-elses-list'),
+        new Promise<'waited'>((resolve) => setTimeout(() => resolve('waited'), 300)),
+      ])
+
+      expect(reply).not.toBe('waited')
+      expect((reply as { statusCode: number }).statusCode).toBe(404)
+    })
+
+    it('a list that is not being worked on is read at once, and another list is never held up', async () => {
+      const first = (await send('POST', '/lists/from-file', { yaml: 'title: One\ncategory: mega\nitems:\n  - { title: A }\n' })).json().id
+      const second = (await send('POST', '/lists/from-file', { yaml: 'title: Two\ncategory: mega\nitems:\n  - { title: B }\n' })).json().id
+      const work = withListLock(first, () => new Promise<void>(() => {}))
+      void work
+
+      expect((await send('GET', `/lists/${second}`)).statusCode).toBe(200)
+    })
+  })
+
   describe('a Reset that fails part-way', () => {
     it('puts the list back as it was, and reports the failure', async () => {
       const created = await send('POST', '/lists/from-file', {
@@ -597,6 +642,58 @@ describe('sort and reset', () => {
       await send('PUT', `/lists/${list.id}/items/restore-all`, reset.json().restore)
 
       expect(exact(await detail(list.id))).toEqual(exact(messy))
+    })
+  })
+
+  describe('Resets that overlap (BL-103)', () => {
+    const yaml = 'title: Mine\ncategory: mega\nitems:\n  - { title: One }\n  - { title: Two }\n  - { title: Three }\n  - { title: Four }\n'
+
+    async function fileList() {
+      const created = await send('POST', '/lists/from-file', { yaml })
+      expect(created.statusCode).toBe(201)
+      return detail(created.json().id)
+    }
+
+    it('two Resets at once leave the source’s items once, not twice', async () => {
+      const list = await fileList()
+
+      const [first, second] = await Promise.all([
+        send('POST', `/lists/${list.id}/reset`),
+        send('POST', `/lists/${list.id}/reset`),
+      ])
+
+      expect([first.statusCode, second.statusCode]).toEqual([200, 200])
+      expect((await detail(list.id)).items.map((i) => i.title)).toEqual(['One', 'Two', 'Three', 'Four'])
+    })
+
+    it('a Reset preview asked during a Reset sees the finished list, not a half-built one', async () => {
+      const list = await fileList()
+
+      const [reset, preview] = await Promise.all([
+        send('POST', `/lists/${list.id}/reset`),
+        send('GET', `/lists/${list.id}/reset-preview`),
+      ])
+
+      expect(reset.statusCode).toBe(200)
+      expect(preview.json()).toMatchObject({ removed: 0, restored: 0 })
+    })
+
+    it('an Undo asked during a Reset waits for it, and puts back what the Reset took', async () => {
+      const list = await fileList()
+      await send('POST', `/lists/${list.id}/items`, { title: 'By hand', timeToConsumeMinutes: 5 })
+      const messy = await send('POST', `/lists/${list.id}/reset`)
+      const restore = messy.json().restore
+
+      const [again, undo] = await Promise.all([
+        send('POST', `/lists/${list.id}/reset`),
+        send('PUT', `/lists/${list.id}/items/restore-all`, restore),
+      ])
+
+      expect([again.statusCode, undo.statusCode]).toEqual([200, 200])
+      // Whichever finished last, the list is one whole state: the source's four, or the four plus the item by hand.
+      const titles = (await detail(list.id)).items.map((i) => i.title)
+      expect([4, 5]).toContain(titles.length)
+      expect(new Set(titles).size).toBe(titles.length)
     })
   })
 

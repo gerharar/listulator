@@ -16,6 +16,8 @@ export interface PreviewRowProps {
   facets?: FacetConvention
   /** A category whose tags name platforms: the widest chip label (`ch`), so the column lines up. */
   platformWidthCh?: number
+  /** On a Preview drawn as a window: where this row is, as hidden text for a screen reader ("4212 of 10000", Phase 26.3). Absent on a short one. */
+  place?: string
 }
 
 /**
@@ -24,7 +26,7 @@ export interface PreviewRowProps {
  * box, no buttons — nothing here is actionable. The tag column is the list row's,
  * read-only (11.8), so the preview and the list it makes agree.
  */
-export function PreviewRow({ item, grouped, facets, platformWidthCh }: PreviewRowProps) {
+export function PreviewRow({ item, grouped, facets, platformWidthCh, place }: PreviewRowProps) {
   const chip = tagChip(item.tags, facets)
   const kind = chip?.label ?? item.tags?.[0]
 
@@ -46,6 +48,7 @@ export function PreviewRow({ item, grouped, facets, platformWidthCh }: PreviewRo
       ) : (
         <span className="mins">{formatDuration(item.timeToConsumeMinutes)}</span>
       )}
+      {place && <span className="q-place">{place}</span>}
     </div>
   )
 }

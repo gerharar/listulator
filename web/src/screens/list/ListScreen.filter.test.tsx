@@ -23,7 +23,7 @@ vi.mock('../../lib/preferences/store.js', () => ({
 
 vi.mock('../../lib/api.js', () => ({
   ApiError: class extends Error {},
-  api: { list: vi.fn(), restoreOrder: vi.fn(), setConsumed: vi.fn(), itemSource: vi.fn() },
+  api: { list: vi.fn(), restoreOrder: vi.fn(), resetOrder: vi.fn(), setConsumed: vi.fn(), itemSource: vi.fn() },
 }))
 
 const TYPES: MediaType[] = [
@@ -181,7 +181,10 @@ describe('the bar', () => {
     await open()
 
     expect(bar().closest('.q-list-head')).toBeNull()
-    expect(document.querySelector('.q-list-head')!.nextElementSibling).toBe(bar())
+    // Straight under it, in the region a whole-list rewrite holds (H-012), as the first thing in it.
+    expect(document.querySelector('.q-list-head')!.nextElementSibling).toBe(bar().parentElement)
+    expect(bar().parentElement!.classList.contains('q-hold')).toBe(true)
+    expect(bar().parentElement!.firstElementChild).toBe(bar())
   })
 
   it('shows no facets for a category without a convention, only the text field', async () => {
@@ -202,12 +205,23 @@ describe('filtering', () => {
     expect(within(bar()).getByText('2 of 6 shown')).toBeTruthy()
   })
 
-  it('shows a group’s own count of what matches while filtering', async () => {
+  it('a group keeps its own progress under a filter, and a filter that hides some of its rows adds a muted count in front (H-010)', async () => {
     await open()
-
     type('assassin')
 
-    expect(within(row('gm')).getByText('2 of 3')).toBeTruthy()
+    // The group's progress is the whole group's, unchanged; the count says how many of its rows the filter leaves.
+    expect(within(row('gm')).getByText('2 shown')).toBeTruthy()
+    expect(within(row('gm')).getByText(/^0\/3 \(0%\)$/)).toBeTruthy()
+    expect(within(row('gm')).queryByText('2 of 3')).toBeNull()
+  })
+
+  it('a filter that keeps every row of a group adds no count (H-010)', async () => {
+    await open()
+
+    type('a')
+
+    expect(within(row('gm')).queryByText(/shown/)).toBeNull()
+    expect(within(row('gm')).getByText(/^0\/3 \(0%\)$/)).toBeTruthy()
   })
 
   it('opens a collapsed group that has a match, without remembering that it did', async () => {
@@ -413,6 +427,24 @@ describe('clearing the text (H-008)', () => {
     expect(popLayer).toHaveBeenCalledTimes(1)
   })
 
+  it('Esc while a run holds the list closes the list: the filter text is not cleared under it, its field cannot be reached (H-012, 28.3)', async () => {
+    let finish!: (value: { restore: { items: never[]; groups: never[] } }) => void
+    vi.mocked(api.resetOrder).mockReturnValue(new Promise((resolve) => (finish = resolve)))
+    await open()
+    type('assassin')
+    fireEvent.click(screen.getByRole('button', { name: 'More' }))
+    await waitFor(() => expect(document.querySelector('.q-pop')).not.toBeNull())
+    fireEvent.click(within(document.querySelector('.q-pop') as HTMLElement).getByRole('button', { name: 'Reorder List' }))
+    fireEvent.click(within(document.querySelector('.q-pop') as HTMLElement).getByRole('button', { name: 'Restore Source Order' }))
+    await waitFor(() => expect(field().closest('[inert]')).not.toBeNull())
+
+    fireEvent.keyDown(document.body, { key: 'Escape' })
+
+    expect(field().value).toBe('assassin')
+    expect(popLayer).toHaveBeenCalledTimes(1)
+    await act(async () => finish({ restore: { items: [], groups: [] } }))
+  })
+
   it('a list with another layer on top of it leaves its filter alone: Esc pops that layer', async () => {
     await open('game', undefined, false)
     type('assassin')
@@ -444,11 +476,37 @@ describe('Hide Completed (18.1)', () => {
     expect(hideDone().getAttribute('aria-pressed')).toBe('true')
     expect(rowIds()).toEqual(['p', 'gm', 'ac2', 'ac3'])
     expect(within(bar()).getByText('3 of 6 shown')).toBeTruthy()
-    expect(within(row('gm')).getByText('2 of 3')).toBeTruthy()
+    // Hide Completed removes the done count's rows, but the group's own progress already says them: its header does not change (H-010).
+    expect(within(row('gm')).queryByText(/shown/)).toBeNull()
+    expect(within(row('gm')).getByText(/^1\/3 \(33%\)$/)).toBeTruthy()
 
     act(() => hideDone().click())
 
     expect(rowIds()).toEqual(['p', 'gm', 'ac1', 'ac2', 'ac3', 'gh', 'ch', 'bl'])
+  })
+
+  it('leaves every group header\'s text exactly as it was (H-010)', async () => {
+    await open('game', doneOf('ch', 'bl', 'ac1'))
+    const headers = () => ['gm', 'gh'].map((id) => document.querySelector(`[data-row-id="${id}"]`)?.textContent ?? null)
+    const before = headers()
+
+    act(() => hideDone().click())
+
+    // Handhelds is wholly done and goes; Main stays, with the text it had.
+    expect(headers()[0]).toBe(before[0])
+    expect(headers()[1]).toBeNull()
+  })
+
+  it('with a matching filter too, the count is the filter\'s alone: Hide Completed does not change it (H-010)', async () => {
+    await open('game', doneOf('ac1'))
+    type('assassin')
+    expect(within(row('gm')).getByText('2 shown')).toBeTruthy()
+
+    act(() => hideDone().click())
+
+    expect(rowIds()).toEqual(['gm', 'ac2'])
+    expect(within(row('gm')).getByText('2 shown')).toBeTruthy()
+    expect(within(row('gm')).getByText(/^1\/3 \(33%\)$/)).toBeTruthy()
   })
 
   it('leaves an item ticked while it is on where it is, until it is switched again', async () => {

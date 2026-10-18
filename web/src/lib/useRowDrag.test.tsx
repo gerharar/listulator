@@ -16,10 +16,14 @@ function Harness(props: {
   accepts?: (dragKey: string, targetKey: string) => boolean
   onStart?: (key: string) => void
   onEnd?: () => void
+  scroller?: () => HTMLElement | null
+  resolve?: (dragKey: string, hit: Element | null, y: number) => DropTarget | null | undefined
 }) {
   const drag = useRowDrag({
     accepts: props.accepts ?? (() => true),
     onDrop: props.onDrop,
+    ...(props.scroller ? { scrollContainer: props.scroller } : {}),
+    ...(props.resolve ? { resolve: props.resolve } : {}),
     ...(props.onStart ? { onStart: props.onStart } : {}),
     ...(props.onEnd ? { onEnd: props.onEnd } : {}),
   })
@@ -63,7 +67,66 @@ const press = (key: string, x = 10, y = 120, button = 0) =>
 const move = (x: number, y: number) => act(() => void window.dispatchEvent(new MouseEvent('pointermove', { clientX: x, clientY: y, bubbles: true, cancelable: true })))
 const release = (x: number, y: number) => act(() => void window.dispatchEvent(new MouseEvent('pointerup', { clientX: x, clientY: y, bubbles: true })))
 
+describe('useRowDrag: a caller that resolves the target itself', () => {
+  it('shows and drops what the resolver answers for what is under the pointer, instead of the row it is over', () => {
+    pointAt()
+    const onDrop = vi.fn()
+    const resolve = vi.fn((_key: string, hit: Element | null, y: number) => (hit ? { key: 'c', pos: y < 150 ? ('before' as const) : ('after' as const) } : null))
+    render(<Harness onDrop={onDrop} resolve={resolve} />)
+    press('a')
+
+    move(10, 145)
+    expect(state().over).toEqual({ key: 'c', pos: 'before' })
+    expect(resolve).toHaveBeenLastCalledWith('a', screen.getByTestId('handle-b'), 145)
+
+    move(10, 170)
+    expect(state().over).toEqual({ key: 'c', pos: 'after' })
+
+    release(10, 170)
+    expect(onDrop).toHaveBeenCalledWith('a', { key: 'c', pos: 'after' })
+  })
+
+  it('`undefined` leaves it to the plain rule, and `null` means no target at all', () => {
+    pointAt()
+    let answer: DropTarget | null | undefined = undefined
+    render(<Harness onDrop={vi.fn()} resolve={() => answer} />)
+    press('a')
+
+    move(10, 150)
+    expect(state().over).toEqual({ key: 'b', pos: 'before' })
+
+    answer = null
+    move(10, 151)
+    expect(state().over).toBeNull()
+  })
+})
+
 describe('useRowDrag', () => {
+  it('shows the drop line for what is under the pointer after the list scrolls under it (the wheel), without the pointer moving', async () => {
+    const scroller = document.createElement('div')
+    // Tall, so the pointer is nowhere near its edges: only the scroll itself can refresh the line.
+    scroller.getBoundingClientRect = () => ({ top: 0, bottom: 1000, left: 0, right: 200, width: 200, height: 1000, x: 0, y: 0, toJSON: () => ({}) })
+    document.body.append(scroller)
+    let shift = 0
+    document.elementFromPoint = (_x: number, y: number) => {
+      const key = Object.entries(ROWS).find(([, r]) => y + shift >= r.top && y + shift < r.top + r.height)?.[0]
+      return key ? screen.getByTestId(`handle-${key}`) : null
+    }
+    render(<Harness onDrop={vi.fn()} scroller={() => scroller} />)
+    press('a')
+    move(10, 150)
+    expect(state().over).toEqual({ key: 'b', pos: 'before' })
+
+    shift = 40
+    await act(async () => {
+      scroller.dispatchEvent(new Event('scroll'))
+      await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve(undefined))))
+    })
+
+    expect(state().over).toEqual({ key: 'c', pos: 'before' })
+    scroller.remove()
+  })
+
   it('is not a drag until the pointer has really moved, so a plain click on the handle does nothing', () => {
     pointAt()
     const onDrop = vi.fn()
@@ -312,6 +375,16 @@ describe('useRowDrag', () => {
 
 describe('autoscrollDelta', () => {
   const rect = { top: 100, bottom: 500 }
+
+  it('speeds up the longer the pointer is held at the edge, up to five times (so 2,500 rows can be crossed in seconds, not minutes)', () => {
+    expect(autoscrollDelta(9000, rect, 0)).toBe(18)
+    expect(autoscrollDelta(9000, rect, 500)).toBe(18)
+    expect(autoscrollDelta(9000, rect, 1500)).toBe(54)
+    expect(autoscrollDelta(9000, rect, 2500)).toBe(90)
+    expect(autoscrollDelta(9000, rect, 60_000)).toBe(90)
+    expect(autoscrollDelta(-500, rect, 60_000)).toBe(-90)
+    expect(autoscrollDelta(300, rect, 60_000)).toBe(0)
+  })
 
   it('is zero away from the edges', () => {
     expect(autoscrollDelta(300, rect)).toBe(0)

@@ -129,7 +129,7 @@ test('dragging by the handle saves what the keyboard saves, and Undo puts it bac
   }
 })
 
-test('a group is dragged as a block, and every group shuts while it is carried', async ({ page }) => {
+test('a group is dragged as a block: it folds itself while it is carried and opens where it lands', async ({ page }) => {
   const title = `e2e list-moves group ${Date.now()}`
   const id = await makeList(page.request, title, SMALL)
 

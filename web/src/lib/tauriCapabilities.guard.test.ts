@@ -304,7 +304,7 @@ describe('the updater, as the design left it (task 20.10a; docs/security-review.
     const lib = code('lib.rs')
 
     expect(lib).toMatch(/\.plugin\(tauri_plugin_updater::Builder::new\(\)\.build\(\)\)/)
-    expect(lib).toMatch(/\.invoke_handler\(tauri::generate_handler!\[relaunch\]\)/)
+    expect(lib).toMatch(/\.invoke_handler\(tauri::generate_handler!\[relaunch, hold_close\]\)/)
   })
 
   it('relaunches through the exit events, so the window and full-screen state are saved first (`restart()` skips them on the main thread)', () => {
@@ -322,10 +322,33 @@ describe('the updater, as the design left it (task 20.10a; docs/security-review.
     expect(lib).toMatch(/^mod window_save;$/m)
     expect(/tauri::WindowEvent::Resized\(_\) => \{([\s\S]*?)\n {4}\}/.exec(lib)?.[1]).toContain('save_window_state_soon(')
     expect(/tauri::WindowEvent::Moved\(_\) => \{([\s\S]*?)\n {4}\}/.exec(lib)?.[1]).toContain('save_window_state_soon(')
-    // The page cannot ask for it: still one command, `relaunch`, and the save is not one.
-    expect(lib).toMatch(/generate_handler!\[relaunch\]/)
+    // The page cannot ask for it: the two commands are `relaunch` and `hold_close` (H-015), and the save is not one.
+    expect(lib).toMatch(/generate_handler!\[relaunch, hold_close\]/)
     expect(/fn save_window_state_soon\(([^)]*)\)/.exec(lib)?.[1]?.trim()).toBe('app: &tauri::AppHandle')
     expect(lib).not.toMatch(/#\[tauri::command\]\s*(?:async\s+)?fn save_window_state/)
+  })
+
+  it('holds the window\u2019s close while a run holds it, and only then; the hold is a lease that lapses (H-015: Alt+F4 and the close button went round the Quit question; Cmd+Q on a Mac cannot be held this way)', () => {
+    const lib = code('lib.rs')
+    const hold = code('close_hold.rs')
+
+    // The window's own close: prevented only inside the held branch, and recorded as a close only when it goes ahead.
+    const closing = /tauri::WindowEvent::CloseRequested \{ api, \.\. \} => \{([\s\S]*?)\n {4}\}/.exec(lib)?.[1] ?? ''
+    expect(closing).toMatch(/if close_hold::is_held\(\) \{[\s\S]*api\.prevent_close\(\);[\s\S]*\} else \{[\s\S]*Tracker::closing/)
+    // Only the window's close is held. An exit request with no code is raised when the last window is already gone (and never for Cmd+Q on a
+    // Mac, which AppKit ends without it): preventing it would leave an app with no window, so nothing prevents an exit.
+    expect(lib.match(/prevent_close\(\)/g)).toHaveLength(1)
+    expect(lib).not.toMatch(/prevent_exit/)
+    // The page's command takes a flag and nothing else.
+    expect(/fn hold_close\(([^)]*)\)/.exec(lib)?.[1]?.trim()).toBe('held: bool')
+    expect(hold).toMatch(/pub const LEASE: Duration = Duration::from_secs\(20\);/)
+    // The page renews far inside the lease, so one missed renewal does not drop the hold, and a hung page lets go within the lease.
+    const renew = Number(/HOLD_RENEW_MS = (\d+)/.exec(readFileSync(fileURLToPath(new URL('./appQuit.ts', import.meta.url)), 'utf8'))?.[1])
+    expect(renew * 3).toBeLessThanOrEqual(20_000)
+    // No permission was added for it: the page cannot emit events or destroy the window.
+    expect(capability.permissions).not.toContain('core:window:allow-destroy')
+    expect(capability.permissions).not.toContain('core:event:allow-emit')
+    expect(capability.permissions).not.toContain('core:event:allow-emit-to')
   })
 
   it('does the save on the main thread: the plugin holds its lock while it asks the window, so from another thread it deadlocks with its own resize handler (the hung first 1.0.1 draft)', () => {
@@ -369,7 +392,7 @@ describe('the updater, as the design left it (task 20.10a; docs/security-review.
       const registered = (/generate_handler!\[([^\]]*)\]/.exec(code('lib.rs'))?.[1] ?? '').split(',').map((name) => name.trim()).filter(Boolean)
 
       expect(own.sort()).toEqual(registered.sort())
-      expect(registered).toEqual(['relaunch'])
+      expect(registered).toEqual(['hold_close', 'relaunch'])
     })
   })
 

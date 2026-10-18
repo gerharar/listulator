@@ -26,6 +26,11 @@ export interface RowDragOptions {
   accepts: (dragKey: string, targetKey: string) => boolean
   onDrop: (dragKey: string, target: DropTarget) => void
   onStart?: (dragKey: string) => void
+  /**
+   * Lets the caller decide the target from what is under the pointer (`hit`) and its height, where the row under it is not the whole story
+   * (a block carried over an open group targets the group, Phase 27). `undefined` leaves it to the plain rule, `null` means no target.
+   */
+  resolve?: (dragKey: string, hit: Element | null, y: number) => DropTarget | null | undefined
   /** However it ended: dropped, escaped or cancelled. */
   onEnd?: () => void
   /** The scrollable ancestor to nudge while the pointer is near its edge; found from the handle if omitted. */
@@ -36,11 +41,21 @@ export interface RowDragOptions {
 const THRESHOLD = 6
 const EDGE = 48
 const MAX_SPEED = 18
+/**
+ * Held at the edge for a while, the scroll speeds up to this many times the top speed: a list of thousands (Phase 25) would otherwise take
+ * minutes to cross (18px a frame is 23 rows a second). Not more: the window draws a viewport ahead, and the rows must be drawn before the
+ * pointer is over them.
+ */
+const RAMP_TIMES = 5
+const RAMP_AFTER_MS = 500
+const RAMP_OVER_MS = 2000
 
-/** How far to scroll this frame: negative near the top edge, positive near the bottom, faster the closer. */
-export function autoscrollDelta(y: number, rect: { top: number; bottom: number }): number {
-  if (y < rect.top + EDGE) return -Math.min(MAX_SPEED, Math.ceil(((rect.top + EDGE - y) / EDGE) * MAX_SPEED))
-  if (y > rect.bottom - EDGE) return Math.min(MAX_SPEED, Math.ceil(((y - (rect.bottom - EDGE)) / EDGE) * MAX_SPEED))
+/** How far to scroll this frame: negative near the top edge, positive near the bottom, faster the closer, and faster the longer it has been held. */
+export function autoscrollDelta(y: number, rect: { top: number; bottom: number }, heldMs = 0): number {
+  const ramp = 1 + (RAMP_TIMES - 1) * Math.min(1, Math.max(0, (heldMs - RAMP_AFTER_MS) / RAMP_OVER_MS))
+  const top = MAX_SPEED * ramp
+  if (y < rect.top + EDGE) return -Math.min(top, Math.ceil(((rect.top + EDGE - y) / EDGE) * top))
+  if (y > rect.bottom - EDGE) return Math.min(top, Math.ceil(((y - (rect.bottom - EDGE)) / EDGE) * top))
 
   return 0
 }
@@ -77,8 +92,15 @@ export function useRowDrag(options: RowDragOptions) {
     let frame = 0
     let scroller: HTMLElement | null = null
 
+    /** The drop line moves only when its target does: a frame of autoscroll over the same row renders nothing. */
+    const show = (next: DropTarget | null) =>
+      setOver((current) => (current?.key === next?.key && current?.pos === next?.pos ? current : next))
+
     function targetAt(px: number, py: number): DropTarget | null {
-      const row = document.elementFromPoint(px, py)?.closest<HTMLElement>('[data-drag-key]')
+      const hit = document.elementFromPoint(px, py)
+      const resolved = latest.current.resolve?.(key, hit, py)
+      if (resolved !== undefined) return resolved
+      const row = hit?.closest<HTMLElement>('[data-drag-key]')
       const targetKey = row?.dataset['dragKey']
       if (!row || !targetKey || targetKey === key || !latest.current.accepts(key, targetKey)) return null
 
@@ -87,16 +109,33 @@ export function useRowDrag(options: RowDragOptions) {
       return { key: targetKey, pos: py < rect.top + rect.height / 2 ? 'before' : 'after' }
     }
 
+    // Since when the pointer has been in an edge band, for the speed-up.
+    let heldSince: number | null = null
+
     function tick() {
       if (!dragging) return
       if (scroller) {
-        const delta = autoscrollDelta(y, scroller.getBoundingClientRect())
+        const now = performance.now()
+        const delta = autoscrollDelta(y, scroller.getBoundingClientRect(), heldSince === null ? 0 : now - heldSince)
         if (delta !== 0) {
+          heldSince ??= now
           scroller.scrollTop += delta
-          setOver(targetAt(x, y))
-        }
+          show(targetAt(x, y))
+        } else heldSince = null
       }
       frame = requestAnimationFrame(tick)
+    }
+
+    // The list moves under a still pointer (the wheel, or the autoscroll above): what is under it is read again, once the rows that
+    // belong to the new position have been drawn (a windowed list draws them a frame or two after the scroll).
+    let refresh = 0
+    function onScroll() {
+      cancelAnimationFrame(refresh)
+      refresh = requestAnimationFrame(() => {
+        refresh = requestAnimationFrame(() => {
+          if (dragging) show(targetAt(x, y))
+        })
+      })
     }
 
     function finish(drop: boolean, px: number, py: number) {
@@ -106,6 +145,8 @@ export function useRowDrag(options: RowDragOptions) {
       window.removeEventListener('keydown', onKey, true)
       document.removeEventListener('selectstart', noSelect, true)
       cancelAnimationFrame(frame)
+      cancelAnimationFrame(refresh)
+      scroller?.removeEventListener('scroll', onScroll)
       cleanup.current = null
 
       const target = dragging && drop ? targetAt(px, py) : null
@@ -132,12 +173,13 @@ export function useRowDrag(options: RowDragOptions) {
         setDragKey(key)
         latest.current.onStart?.(key)
         scroller = (latest.current.scrollContainer ?? scrollParent)(handle)
+        scroller?.addEventListener('scroll', onScroll, { passive: true })
         frame = requestAnimationFrame(tick)
       }
 
       // Only once it is a drag: a plain click must still reach whatever it landed on.
       moveEvent.preventDefault()
-      setOver(targetAt(x, y))
+      show(targetAt(x, y))
     }
 
     const onUp = (upEvent: PointerEvent) => finish(true, upEvent.clientX, upEvent.clientY)

@@ -26,6 +26,10 @@
   cursor: pointer;
 }
 
+.q-count.q-lead {
+  color: var(--ink3);
+}
+
 .q-sep {
   color: var(--ink3);
 }

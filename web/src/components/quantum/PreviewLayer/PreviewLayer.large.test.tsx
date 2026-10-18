@@ -17,6 +17,11 @@ vi.mock('../../../lib/api.js', async () => ({
   api: { preview: vi.fn(), createFromSource: vi.fn() },
 }))
 
+// This test counts every row in the DOM, which is what the switch `off` draws; the window (26.2) has its own tests (`PreviewLayer.window.test.tsx`).
+vi.mock('../../../lib/preferences/store.js', () => ({
+  getPreferencesStore: () => ({ get: async (key: string) => (key === 'listVirtualization' ? 'off' : undefined), set: async () => {} }),
+}))
+
 afterEach(() => {
   cleanup()
   vi.resetAllMocks()

@@ -421,3 +421,14 @@ describe('undo calls (task 10.19a)', () => {
     await expect(api.restoreList({} as never)).rejects.toThrow('already exists')
   })
 })
+
+describe('the server settings (Phase 25.7)', () => {
+  it('asks the server for them, apart from any user', async () => {
+    const fetchMock = vi.fn(async () => new Response(JSON.stringify({ listVirtualization: 'off' }), { status: 200 }))
+    vi.stubGlobal('fetch', fetchMock)
+
+    await expect(api.serverSettings()).resolves.toEqual({ listVirtualization: 'off' })
+    expect((fetchMock.mock.calls[0] as unknown as [string])[0]).toBe('/api/server-settings')
+  })
+})
+

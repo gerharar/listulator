@@ -26,6 +26,18 @@ export const ENTER_DURATION_MS = 380
  * concrete layer-content shape today. Widen this (and thread a real type
  * parameter through) only once a second shape actually shows up.
  */
+/** What `acquire` hands back: `release` ends this hold (once; a second call does nothing). */
+export interface NavigationHold {
+  release: () => void
+}
+
+/** Which whole-list run holds the stack, for the controls that wait for it to end (H-015): their tooltip, the Esc sentence and the Quit question. */
+export interface NavigationRun {
+  kind: 'reset' | 'order' | 'undo'
+  /** The list being rewritten: the Quit question names it. */
+  listName: string
+}
+
 export interface LayerStackContextValue {
   stack: readonly LayerDescriptor<string>[]
   visible: readonly LayerDescriptor<string>[]
@@ -42,6 +54,16 @@ export interface LayerStackContextValue {
    * the base layer and Home never existed (docs/DECISIONS.md).
    */
   landOnList: (list: LayerDescriptor<string>) => void
+  /**
+   * Freezes the stack until released: while anything holds it, `push`, `pop`, `popToIndex`, `replaceTop` and `landOnList` change nothing. A whole-list
+   * rewrite (Reset, Restore order and their Undo) holds it, because a screen that is left mid-run is drawn again with a toast whose Undo belongs to the
+   * screen that is gone, and the list on screen is then not the one in the database.
+   */
+  holdNavigation: (run?: NavigationRun) => NavigationHold
+  /** True while anything holds the stack: the header's Quit warns, because a run that is cut short leaves its list half-finished. */
+  navigationHeld: boolean
+  /** The latest run that holds the stack, with an id of its own (a sentence said once per run is said again for the next); null with none, or a hold that named none. */
+  navigationRun: (NavigationRun & { id: number }) | null
 }
 
 const LayerStackReactContext = createContext<LayerStackContextValue | null>(null)
@@ -61,6 +83,11 @@ export function LayerStackProvider({ home, children }: LayerStackProviderProps) 
   const [stack, setStack] = useState<LayerDescriptor<string>[]>([home])
   const [enteringId, setEnteringId] = useState<string | null>(null)
   const timerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
+  // How many whole-list runs hold the stack. A ref, not state: a press that comes while it is held is refused at once, with no render in between.
+  const holds = useRef(0)
+  const [navigationHeld, setNavigationHeld] = useState(false)
+  const [runs, setRuns] = useState<readonly (NavigationRun & { id: number })[]>([])
+  const runIds = useRef(0)
 
   const markEntering = useCallback(
     (id: string) => {
@@ -73,15 +100,21 @@ export function LayerStackProvider({ home, children }: LayerStackProviderProps) 
 
   const push = useCallback(
     (layer: LayerDescriptor<string>) => {
+      if (holds.current > 0) return
       setStack((s) => pushLayer(s, layer))
       markEntering(layer.id)
     },
     [markEntering],
   )
-  const pop = useCallback(() => setStack((s) => popLayer(s)), [])
-  const popTo = useCallback((index: number) => setStack((s) => popToIndex(s, index)), [])
+  const pop = useCallback(() => {
+    if (holds.current === 0) setStack((s) => popLayer(s))
+  }, [])
+  const popTo = useCallback((index: number) => {
+    if (holds.current === 0) setStack((s) => popToIndex(s, index))
+  }, [])
   const replaceTop = useCallback(
     (layer: LayerDescriptor<string>) => {
+      if (holds.current > 0) return
       setStack((s) => replaceTopLayer(s, layer))
       markEntering(layer.id)
     },
@@ -90,11 +123,30 @@ export function LayerStackProvider({ home, children }: LayerStackProviderProps) 
 
   const landOnList = useCallback(
     (list: LayerDescriptor<string>) => {
+      if (holds.current > 0) return
       setStack([home, list])
       markEntering(list.id)
     },
     [home, markEntering],
   )
+
+  const holdNavigation = useCallback((run?: NavigationRun): NavigationHold => {
+    holds.current += 1
+    setNavigationHeld(true)
+    const named = run ? { ...run, id: (runIds.current += 1) } : undefined
+    if (named) setRuns((current) => [...current, named])
+    let released = false
+
+    return {
+      release: () => {
+        if (released) return
+        released = true
+        holds.current -= 1
+        setNavigationHeld(holds.current > 0)
+        if (named) setRuns((current) => current.filter((entry) => entry !== named))
+      },
+    }
+  }, [])
 
   useEffect(() => () => clearTimeout(timerRef.current), [])
 
@@ -108,8 +160,11 @@ export function LayerStackProvider({ home, children }: LayerStackProviderProps) 
       popToIndex: popTo,
       replaceTop,
       landOnList,
+      holdNavigation,
+      navigationHeld,
+      navigationRun: runs[runs.length - 1] ?? null,
     }),
-    [stack, enteringId, push, pop, popTo, replaceTop, landOnList],
+    [stack, enteringId, push, pop, popTo, replaceTop, landOnList, holdNavigation, navigationHeld, runs],
   )
 
   return <LayerStackReactContext.Provider value={value}>{children}</LayerStackReactContext.Provider>
@@ -121,4 +176,16 @@ export function useLayerStack(): LayerStackContextValue {
     throw new Error('useLayerStack must be used within a LayerStackProvider')
   }
   return context
+}
+
+const NO_HOLD: NavigationHold = { release: () => {} }
+
+/**
+ * Takes hold of the navigation (`holdNavigation`) from a screen that may be shown without a layer stack around it (a test): there it holds nothing.
+ * Returns the function to call when a run starts; the run calls `release` when it ends, in a `finally`.
+ */
+export function useNavigationHold(): (run?: NavigationRun) => NavigationHold {
+  const context = useContext(LayerStackReactContext)
+
+  return context ? context.holdNavigation : () => NO_HOLD
 }

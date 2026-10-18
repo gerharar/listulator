@@ -58,6 +58,8 @@ export function useRowMoves({ listId, items, groups, setItems, setGroups, setErr
   const mounted = useRef(true)
   const chain = useRef<Promise<unknown>>(Promise.resolve())
   const pendingFocus = useRef<string | null>(null)
+  // The drop that just happened, for the screen to scroll what was dropped to the drop line; it takes it (sets it back to null).
+  const dropped = useRef<{ key: string; targetKey: string; pos: DropTarget['pos'] } | null>(null)
 
   const groupIds = useMemo(() => new Set(groups.map((entry) => entry.id)), [groups])
   const itemById = useMemo(() => new Map(items.map((entry) => [entry.id, entry])), [items])
@@ -153,6 +155,9 @@ export function useRowMoves({ listId, items, groups, setItems, setGroups, setErr
       if (outcome.kind === 'refused') announce(text.onlyInsideGroup)
       if (outcome.kind !== 'moved') return
 
+      // The screen lands what was dropped at the line (an item moved inside its group too, as in the design). It reads the record once, when the
+      // moved rows are in; a new drag forgets it.
+      dropped.current = { key: dragKey, targetKey: target.key, pos: target.pos }
       announce(said(outcome))
       void commit(outcome).then((saved) => {
         if (!saved) return
@@ -167,7 +172,31 @@ export function useRowMoves({ listId, items, groups, setItems, setGroups, setErr
     [kindOf, commit, showToast, undoTo, announce, text],
   )
 
-  const drag = useRowDrag({ accepts, onDrop })
+  /**
+   * A block (a group, or a loose item) carried over an open group targets the whole group, whether the pointer is on its header, one of its
+   * rows or the gap of rows that are not drawn: its upper half is before, its lower half after, measured on the group's own box (the
+   * spacers make that its true height). A collapsed or empty group, a loose item and everything an item inside a group meets keep the plain
+   * rule (H-009).
+   */
+  const resolve = useCallback(
+    (dragKey: string, hit: Element | null, y: number): DropTarget | null | undefined => {
+      if (kindOf(dragKey) !== 'unit') return undefined
+      const block = hit?.closest<HTMLElement>('[data-block-key]')
+      if (!block || !block.querySelector('.q-item, .q-list-spacer')) return undefined
+      const key = block.dataset['blockKey']!
+      if (key === dragKey) return null
+      const box = block.getBoundingClientRect()
+
+      return { key, pos: y < box.top + box.height / 2 ? 'before' : 'after' }
+    },
+    [kindOf],
+  )
+
+  // A new drag forgets the last drop: the screen reads the record once, when a block's carry ends, and a carry that ends with no drop must not find an old one.
+  const onStart = useCallback(() => {
+    dropped.current = null
+  }, [])
+  const drag = useRowDrag({ accepts, onDrop, onStart, resolve })
   const draggingUnit = drag.dragKey !== null && kindOf(drag.dragKey) === 'unit'
 
   // ---- the keyboard ---------------------------------------------------------------------------
@@ -263,8 +292,10 @@ export function useRowMoves({ listId, items, groups, setItems, setGroups, setErr
     dragKey: drag.dragKey,
     over: drag.over,
     startDrag: drag.startDrag,
-    /** True while a block (a group or a loose item) is carried: every group shuts so only boundaries are targets. */
+    /** True while a block (a group or a loose item) is carried: a carried group folds itself, nothing else changes (H-009). */
     draggingUnit,
+    /** The drop that just happened, taken by the screen once the moved rows are in and it has scrolled to the line. */
+    dropped,
     moveByKey,
     onBlur,
   }

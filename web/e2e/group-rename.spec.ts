@@ -68,7 +68,9 @@ test('renames a group from its pencil, refuses a taken name, undoes, and keeps a
     await page.getByLabel('Group name').press('Enter')
     const name = page.locator('.q-group b', { hasText: 'Better Call Saul' })
     await expect(name).toBeVisible()
-    // The whole name is in the app's tooltip on hover (11.20), not a native title.
+    // The whole name is in the app's tooltip on hover (11.20), not a native title. The pointer is parked where the pencil was, which the longer
+    // name now covers (H-011: the pencil follows the name): it has to come in from outside for the tooltip to open.
+    await page.mouse.move(5, 5)
     await name.hover()
     await expect(page.getByRole('tooltip')).toHaveText(long)
     const [row, text] = await Promise.all([page.locator('.q-group', { hasText: 'Better Call Saul' }).boundingBox(), name.boundingBox()])

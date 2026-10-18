@@ -315,7 +315,9 @@
   // ---- the window and its events: the few calls the app makes itself ----
 
   var WINDOW_LABEL = 'main'
-  var WINDOW_EVENT = 'tauri://resize' // the one event the app listens to (the window's size, for the full-screen switch)
+  // The two events the app listens to: the window's size (for the full-screen switch), and the native side telling the page that a close or a quit
+  // was held back while a whole-list run goes on (H-015, `close_hold.rs`). Nothing else, and only on the app's own window.
+  var WINDOW_EVENTS = ['tauri://resize', 'quit-while-running']
 
   function windowLabelProblem(payload) {
     return keysProblem(payload, ['label'], ['label']) || (payload.label === WINDOW_LABEL ? null : 'window')
@@ -332,7 +334,7 @@
   function listenProblem(payload) {
     var problem = keysProblem(payload, ['event', 'target', 'handler'], ['event', 'target', 'handler'])
     if (problem) return problem
-    if (payload.event !== WINDOW_EVENT) return 'event'
+    if (WINDOW_EVENTS.indexOf(payload.event) < 0) return 'event'
     var target = payload.target
     if (!isObject(target)) return 'event target'
     var keys = Object.keys(target)
@@ -344,9 +346,14 @@
   function unlistenProblem(payload) {
     return (
       keysProblem(payload, ['event', 'eventId'], ['event', 'eventId']) ||
-      (payload.event === WINDOW_EVENT ? null : 'event') ||
+      (WINDOW_EVENTS.indexOf(payload.event) >= 0 ? null : 'event') ||
       (isWholeNumber(payload.eventId) ? null : 'event id')
     )
+  }
+
+  /** `hold_close`: whether a whole-list run holds the window's close; exactly one key, a true or false. */
+  function heldProblem(payload) {
+    return keysProblem(payload, ['held'], ['held']) || (typeof payload.held === 'boolean' ? null : 'held value')
   }
 
   /** The inspector's shortcut in a dev or debug build (the native side grants it nowhere else); it carries nothing. */
@@ -421,6 +428,8 @@
     'plugin:updater|download_and_install': updaterInstallProblem,
     // The app's own command (`relaunch` in lib.rs): restarts the app after an update; it takes nothing.
     relaunch: noPayload,
+    // The app's own command (`hold_close` in lib.rs, close_hold.rs): a whole-list run holds the window's own ways of closing; it takes a flag.
+    hold_close: heldProblem,
   }
   // Anything not in the table is refused, whatever plugin it is of and however it is spelled: the native side matches a
   // command name exactly, and this hook approves a payload only for the command it has checked it against.

@@ -75,6 +75,7 @@ import {
   sortChronologically,
   type ResetDeps,
 } from '../../../server/src/catalog/reset.js'
+import { withListLock } from '../../../server/src/catalog/listLock.js'
 import { restoreOrder } from '../../../server/src/catalog/restore.js'
 import { rank, type Suggestion } from '../../../server/src/suggestions/engine.js'
 import { loadRankingInputs } from '../../../server/src/suggestions/rankingInputs.js'
@@ -441,6 +442,9 @@ export function createLocalApi(): ApiClient {
       return { id: user.id, isDefaultLocalUser: user.isDefaultLocalUser } satisfies CurrentUser
     },
 
+    // No server here: the switch is only the app's own preference.
+    serverSettings: async () => ({ listVirtualization: 'auto' as const }),
+
     mediaTypes: async () => {
       const entries = await getLocalMediaTypes()
       return [...entries].sort((a, b) => a.sortOrder - b.sortOrder).map(toMediaTypeInfo)
@@ -453,7 +457,17 @@ export function createLocalApi(): ApiClient {
 
     list: async (id) => {
       const [database, userId] = [await getDb(), await getUserId()]
-      const list = await findListWithStats(database, userId, id, await runtimeStats())
+      const stats = await runtimeStats()
+      // Behind a Reset or Undo that is rebuilding this list: a read in the middle of it would show a half-built list (28.4).
+      const { list, stored, groups } = await withListLock(id, async () => {
+        const found = await findListWithStats(database, userId, id, stats)
+
+        return {
+          list: found,
+          stored: found ? ((await findListItems(database, userId, id)) ?? []) : [],
+          groups: found ? ((await findListGroups(database, userId, id)) ?? []) : [],
+        }
+      })
       if (!list) throw notFound()
 
       // Each item says whether its length is still being looked up, so the screen can show "-" (15.7).
@@ -467,12 +481,11 @@ export function createLocalApi(): ApiClient {
         items: await withRuntimePending(
           database,
           id,
-          (await findListItems(database, userId, id)) ?? [],
+          stored,
           new Date(),
           enrichPrefixesByMediaType(mediaTypes).get(list.mediaType),
         ),
       })
-      const groups = (await findListGroups(database, userId, id)) ?? []
       const detail = {
         ...toMediaList(list),
         items: items.map((item) => ({ ...toListItem(item), runtimePending: item.runtimePending, link: item.link, ...(item.linkPending ? { linkPending: true } : {}) })),

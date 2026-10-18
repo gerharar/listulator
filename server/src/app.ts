@@ -1,6 +1,7 @@
 import Fastify, { type FastifyInstance } from 'fastify'
 import { allowedHostsPlugin } from './auth/allowedHosts.js'
 import { authRoutes } from './auth/routes.js'
+import { serverSettingsRoutes } from './serverSettings.js'
 import { currentUserPlugin } from './auth/currentUser.js'
 import { catalogRoutes } from './catalog/routes.js'
 import { createRuntimeFiller, type RuntimeFiller, type RuntimeFillDeps } from './catalog/runtimeFill.js'
@@ -78,6 +79,7 @@ export function buildApp({
       await api.register(allowedHostsPlugin, { bindHost: config.host, extra: config.allowedHosts })
       await api.register(currentUserPlugin, { db, config })
       await api.register(authRoutes)
+      await api.register(serverSettingsRoutes, { config })
       await api.register(catalogRoutes, { db, mediaTypes })
       await api.register(ingestionRoutes, { db, mediaTypes, ...(listsDropDir ? { listsDropDir } : {}) })
       await api.register(suggestionsRoutes, { db, ...(strategiesDir ? { strategiesDir } : {}) })

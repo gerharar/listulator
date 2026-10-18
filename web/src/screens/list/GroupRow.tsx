@@ -9,6 +9,7 @@ import { FieldMessage } from '../../components/quantum/Field/FieldMessage.js'
 import { ProgressSentence } from '../../components/quantum/ProgressSentence/ProgressSentence.js'
 import { yearSpanLabel, type GroupBlock } from './spine.js'
 import { Tip } from '../../components/quantum/Tooltip/Tip.js'
+import { guardRename } from './renameGuard.js'
 
 export interface GroupRowProps {
   block: GroupBlock
@@ -22,6 +23,10 @@ export interface GroupRowProps {
   dragging?: boolean
   /** The drop line, when a drag would land just above or just below this group. */
   dropLine?: 'before' | 'after' | null
+  /** A block is carried over this group, open, collapsed or empty: it is the drop target, and its header takes a tint of its own (H-009, H-016). */
+  target?: boolean
+  /** On a list drawn as a window: where this group is, as hidden text for a screen reader ("Group 3 of 50", Phase 25.6). Absent on a short list. */
+  place?: string
   /** Just moved or restored. */
   pulse?: boolean
   /** Deletes the group. Offered only while it holds no items (prototype: "🗑 empty"). */
@@ -29,7 +34,8 @@ export interface GroupRowProps {
   /** A group with items: its trash button asks first (a confirmation anchored to it), owner 2026-09-27. */
   onDeleteWithItems?: (anchor: HTMLElement) => void
   /** While a filter is on: how many of the group's items match, in place of its progress. */
-  shownOf?: { shown: number; total: number }
+  /** While a matching filter (text, a facet) leaves only some of the group's rows: how many. The progress itself is always the whole group's (H-010). */
+  matched?: number
   /**
    * Gives the group a pencil that turns its name into an editor (11.18). Resolves when the rename is
    * saved and rejects when it is refused, which leaves the editor open with what was typed.
@@ -52,10 +58,12 @@ export function GroupRow({
   onHandlePointerDown,
   dragging = false,
   dropLine = null,
+  target = false,
+  place,
   pulse = false,
   onDelete,
   onDeleteWithItems,
-  shownOf,
+  matched,
   onRename,
 }: GroupRowProps) {
   const span = yearSpanLabel(block.yearSpan)
@@ -72,6 +80,18 @@ export function GroupRow({
     if (!editing) return
     editor.current?.focus()
     editor.current?.select()
+  }, [editing])
+
+  // While the field is open, a click away only ends the rename: it never also presses what it landed on (H-013).
+  const message = useRef<HTMLSpanElement>(null)
+  useEffect(() => {
+    if (!editing) return
+    const guard = guardRename(
+      () => editor.current,
+      (target) => target !== null && (editor.current?.contains(target) === true || message.current?.contains(target) === true),
+    )
+
+    return guard.release
   }, [editing])
 
   function startEditing() {
@@ -110,7 +130,7 @@ export function GroupRow({
 
   return (
     <div
-      className={['q-group', block.allDone && 'complete', dragging && 'dragging', pulse && 'pulse']
+      className={['q-group', block.allDone && 'complete', dragging && 'dragging', pulse && 'pulse', target && 'is-target']
         .filter(Boolean)
         .join(' ')}
       role="button"
@@ -137,7 +157,7 @@ export function GroupRow({
       <span className="q-chev" aria-hidden="true">
         ▼
       </span>
-      <span className="name">
+      <span className={editing ? 'name editing' : 'name'}>
         {editing ? (
           <input
             ref={editor}
@@ -195,6 +215,8 @@ export function GroupRow({
           <Pencil width={14} height={14} strokeWidth={1.8} aria-hidden="true" />
         </IconButton>
       )}
+      {/* The free space comes after the pencil, so it sits by the name as an item's does and the progress stays on the right (H-011); a field being typed in takes it instead. */}
+      {!editing && <span className="q-group-fill" />}
       {block.items.length === 0 && onDelete && (
         <Tip
           as="button"
@@ -213,21 +235,14 @@ export function GroupRow({
           {copy.quantum.list.itemActions.deleteGroupLabel}
         </Tip>
       )}
-      {shownOf ? (
-        <div className="q-progress">
-          <span className="q-count" style={{ fontSize: 13 }}>
-            {copy.quantum.list.filter.groupShown(shownOf.shown, shownOf.total)}
-          </span>
-        </div>
-      ) : (
-        <ProgressSentence
-          done={block.done}
-          total={block.total}
-          minutesLeft={block.minutesLeft}
-          status={null}
-          size="group"
-        />
-      )}
+      <ProgressSentence
+        done={block.done}
+        total={block.total}
+        minutesLeft={block.minutesLeft}
+        status={null}
+        size="group"
+        lead={matched !== undefined ? copy.quantum.list.filter.groupMatched(matched) : undefined}
+      />
       {block.items.length > 0 && onDeleteWithItems && (
         <IconButton
           size="row"
@@ -243,10 +258,11 @@ export function GroupRow({
         </IconButton>
       )}
       {editing && nameError && (
-        <span className="q-group-msg">
+        <span className="q-group-msg" ref={message}>
           <FieldMessage id={nameErrorId} text={nameError} />
         </span>
       )}
+      {place && <span className="q-place">{place}</span>}
     </div>
   )
 }

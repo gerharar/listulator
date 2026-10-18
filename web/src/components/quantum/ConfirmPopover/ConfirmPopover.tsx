@@ -22,6 +22,8 @@ export interface ConfirmPopoverProps {
   confirmLabel: string
   /** Delete is `danger` (red); Sort/Reset use `accent` (the Button `primary` variant). */
   danger?: boolean
+  /** The keep button takes focus when the question opens: for a question that is safest answered by doing nothing (the Quit question during a run, H-015). */
+  focusKeep?: boolean
 }
 
 /**
@@ -44,6 +46,7 @@ export function ConfirmPopover({
   onConfirm,
   confirmLabel,
   danger = false,
+  focusKeep = false,
 }: ConfirmPopoverProps) {
   return (
     <Popover open={open} anchorEl={anchorEl} onDismiss={onDismiss} width={width}>
@@ -58,7 +61,7 @@ export function ConfirmPopover({
       <span className="q-pop-q">{question}</span>
       <span className="q-pop-note">{note}</span>
       <div className="q-pop-actions">
-        <Button variant="quiet" onClick={onKeep}>
+        <Button variant="quiet" onClick={onKeep} autoFocus={focusKeep}>
           {keepLabel}
         </Button>
         <Button variant={danger ? 'danger' : 'primary'} onClick={onConfirm}>

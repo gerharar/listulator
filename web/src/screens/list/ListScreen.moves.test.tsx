@@ -348,6 +348,315 @@ async function drag(id: string, toId: string, half: 'upper' | 'lower') {
   return { y, release: () => pointer('pointerup', y) }
 }
 
+/** The block of each group as one box, from its rows: jsdom has no layout (call after `layout()`). */
+function blockRects() {
+  for (const block of document.querySelectorAll<HTMLElement>('[data-block-key]')) {
+    const rows = [...block.querySelectorAll<HTMLElement>('[data-drag-key]')]
+    const top = rows[0]!.getBoundingClientRect().top
+    const bottom = rows[rows.length - 1]!.getBoundingClientRect().bottom
+    block.getBoundingClientRect = () => ({ top, bottom, height: bottom - top, left: 0, right: 400, width: 400, x: 0, y: top, toJSON: () => ({}) })
+  }
+}
+
+/** Picks up a block by its handle and moves to `y` (the rows are 46px from y=100: a, the group's header and rows, b). */
+async function carry(id: string, y: number) {
+  const top = layout()
+  blockRects()
+  const startY = top(id) + 20
+  fireEvent.pointerDown(handleOf(id), { button: 0, clientX: 10, clientY: startY })
+  pointer('pointermove', startY + 12)
+  pointer('pointermove', y)
+  return { release: () => pointer('pointerup', y) }
+}
+
+describe('a block carried over an open group targets the whole group (H-009)', () => {
+  // a 100-146, the group header 146-192, g1 192-238, g2 238-284, g3 284-330, b 330-376: the group's span is 146-330, its middle 238.
+  it('over a row in the lower half of the group: the line is at the group\'s bottom edge, and the block lands after the whole group', async () => {
+    await open()
+
+    const gesture = await carry('a', 270)
+
+    const block = document.querySelector('[data-block-key="gs"]') as HTMLElement
+    expect(block.querySelector(':scope > .q-dropline.after')).not.toBeNull()
+    expect(row('gs').querySelector('.q-dropline')).toBeNull()
+    expect(row('g2').querySelector('.q-dropline')).toBeNull()
+
+    gesture.release()
+    await waitFor(() => expect(rowIds()).toEqual(['gs', 'g1', 'g2', 'g3', 'a', 'b']))
+  })
+
+  it('over a row in the upper half of the group: the line is at the group\'s top edge, and the block lands before the group', async () => {
+    await open()
+
+    const gesture = await carry('b', 200)
+
+    expect(row('gs').querySelector('.q-dropline:not(.after)')).not.toBeNull()
+    expect(document.querySelector('[data-block-key="gs"] > .q-dropline')).toBeNull()
+
+    gesture.release()
+    await waitFor(() => expect(rowIds()).toEqual(['a', 'b', 'gs', 'g1', 'g2', 'g3']))
+  })
+
+  it('a group is carried the same way: over an open group\'s rows it lands before or after the whole group', async () => {
+    store.set('list:L1:collapsed', JSON.stringify([]))
+    vi.mocked(api.list).mockResolvedValue({
+      ...list(),
+      items: [item('a', 0, 'Alpha'), item('g1', 1, 'Season 1'), item('g2', 2, 'Season 1'), item('g3', 3, 'Season 1')],
+      groups: [
+        { id: 'ga', listId: 'L1', name: 'Alpha', orderIndex: 0 } as ListGroup,
+        { id: 'gs', listId: 'L1', name: 'Season 1', orderIndex: 1 } as ListGroup,
+      ],
+    })
+    await open()
+
+    // Alpha is carried (it folds to its header: 100-146); Season 1 is then 146-330, its middle 238; the pointer is over g3.
+    const gesture = await carry('ga', 300)
+    expect(document.querySelector('[data-block-key="gs"] > .q-dropline.after')).not.toBeNull()
+
+    gesture.release()
+    await waitFor(() => expect(rowIds()).toEqual(['gs', 'g1', 'g2', 'g3', 'ga', 'a']))
+  })
+
+  it('the target group takes the hover ground on its drawn rows and a tint of its own on its header, and loses them when the block is let go', async () => {
+    await open()
+
+    const gesture = await carry('a', 270)
+
+    for (const id of ['g1', 'g2', 'g3']) expect(row(id).classList.contains('is-hover')).toBe(true)
+    expect(row('gs').classList.contains('is-target')).toBe(true)
+    expect(row('gs').classList.contains('is-hover')).toBe(false)
+    for (const id of ['a', 'b']) expect(row(id).classList.contains('is-hover')).toBe(false)
+
+    gesture.release()
+    await waitFor(() => expect(rowIds()).toEqual(['gs', 'g1', 'g2', 'g3', 'a', 'b']))
+    expect(document.querySelector('.is-hover, .is-target')).toBeNull()
+  })
+
+  it('a group carried over another open group tints that group, not itself; a loose item as a target tints nothing', async () => {
+    store.set('list:L1:collapsed', JSON.stringify([]))
+    vi.mocked(api.list).mockResolvedValue({
+      ...list(),
+      items: [item('a', 0, 'Alpha'), item('g1', 1, 'Season 1'), item('g2', 2, 'Season 1'), item('x', 3)],
+      groups: [
+        { id: 'ga', listId: 'L1', name: 'Alpha', orderIndex: 0 } as ListGroup,
+        { id: 'gs', listId: 'L1', name: 'Season 1', orderIndex: 1 } as ListGroup,
+      ],
+    })
+    await open()
+
+    // Alpha (carried) over Season 1's rows: laid out before it folds, g1 is 238-284 and g2 284-330.
+    const gesture = await carry('ga', 260)
+    expect(row('gs').classList.contains('is-target')).toBe(true)
+    expect(row('g1').classList.contains('is-hover')).toBe(true)
+    expect(row('ga').classList.contains('is-target')).toBe(false)
+
+    // Over the loose item x: a plain target, nothing tinted. (The rows were laid out before Alpha folded: x is 330-376.)
+    pointer('pointermove', 345)
+    expect(document.querySelector('.is-hover, .is-target')).toBeNull()
+    expect(row('x').querySelector('.q-dropline')).not.toBeNull()
+    gesture.release()
+  })
+
+  // H-016: one rule for every target, an open group's header and the rest: the line and the ground.
+  it('a collapsed group\'s header takes the tint too, with the line, and loses both when the block is let go', async () => {
+    store.set('list:L1:collapsed', JSON.stringify(['Season 1']))
+    await open()
+
+    const gesture = await carry('a', 160)
+
+    expect(row('gs').classList.contains('is-target')).toBe(true)
+    expect(row('gs').querySelector('.q-dropline')).not.toBeNull()
+    expect(document.querySelector('.is-hover')).toBeNull()
+
+    gesture.release()
+    await waitFor(() => expect(document.querySelector('.is-target')).toBeNull())
+  })
+
+  it('an empty group\'s header takes the tint too, and loses it when the drag is cancelled with Esc', async () => {
+    vi.mocked(api.list).mockResolvedValue({
+      ...list(),
+      groups: [
+        { id: 'gs', listId: 'L1', name: 'Season 1', orderIndex: 0 } as ListGroup,
+        { id: 'ge', listId: 'L1', name: 'Empty', orderIndex: 1 } as ListGroup,
+      ],
+    })
+    await open()
+    const top = layout()
+
+    await carry('a', top('ge') + 8)
+
+    expect(row('ge').classList.contains('is-target')).toBe(true)
+    expect(row('gs').classList.contains('is-target')).toBe(false)
+
+    act(() => void window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true })))
+    await waitFor(() => expect(document.querySelector('.is-target')).toBeNull())
+  })
+
+  it('a collapsed group keeps the plain rule: its header\'s upper half is before, its lower half after', async () => {
+    store.set('list:L1:collapsed', JSON.stringify(['Season 1']))
+    await open()
+
+    // a 100-146, the shut header 146-192, b 192-238.
+    const gesture = await carry('a', 185)
+    expect(row('gs').querySelector('.q-dropline.after')).not.toBeNull()
+
+    gesture.release()
+    await waitFor(() => expect(rowIds()).toEqual(['gs', 'a', 'b']))
+  })
+
+  it('an item inside a group still meets only its siblings: over another block it has no target', async () => {
+    await open()
+
+    await carry('g1', 125)
+
+    expect(document.querySelector('.q-dropline')).toBeNull()
+  })
+})
+
+describe('a drop line that is off screen is pinned to the list\'s edge (H-014)', () => {
+  /** The list's scroll area as jsdom cannot have it: `viewport` px tall, scrolled to `scrollTop` (a scroll event tells the screen). */
+  function view(viewport: number, scrollTop: number) {
+    const body = document.querySelector('.q-list-body') as HTMLElement
+    Object.defineProperty(body, 'clientHeight', { configurable: true, value: viewport })
+    body.scrollTop = scrollTop
+    fireEvent.scroll(body)
+  }
+  const pin = () => document.querySelector('.q-droppin') as HTMLElement | null
+
+  // a 0-46, Season 1 46-231 (the header 47, three rows of 46), b 231-277 in the model; the pointer rules use the fake layout (blockRects).
+  it('over a group taller than the view whose top is above it, in the upper half: a line at the top edge saying "↑ Before Season 1", and no line on the header', async () => {
+    await open()
+    view(120, 60)
+
+    const gesture = await carry('b', 200)
+
+    expect(pin()?.textContent).toBe('↑ Before Season 1')
+    expect(pin()?.classList.contains('top')).toBe(true)
+    expect(pin()?.getAttribute('aria-hidden')).toBe('true')
+    expect(document.querySelector('.q-dropline')).toBeNull()
+
+    gesture.release()
+    await waitFor(() => expect(rowIds()).toEqual(['a', 'b', 'gs', 'g1', 'g2', 'g3']))
+    expect(pin()).toBeNull()
+  })
+
+  it('over the lower half of a group whose bottom is below the view: a line at the bottom edge saying "↓ After Season 1"', async () => {
+    await open()
+    view(120, 0)
+
+    const gesture = await carry('a', 270)
+
+    expect(pin()?.textContent).toBe('↓ After Season 1')
+    expect(pin()?.classList.contains('bottom')).toBe(true)
+    expect(document.querySelector('.q-dropline')).toBeNull()
+
+    gesture.release()
+    await waitFor(() => expect(rowIds()).toEqual(['gs', 'g1', 'g2', 'g3', 'a', 'b']))
+    expect(pin()).toBeNull()
+  })
+
+  it('a group that fits in the view never pins: its real line shows as before', async () => {
+    await open()
+    view(400, 60)
+
+    await carry('b', 200)
+
+    expect(pin()).toBeNull()
+    expect(row('gs').querySelector('.q-dropline:not(.after)')).not.toBeNull()
+  })
+
+  it('a tall group whose real line is on screen does not pin (top at the view\'s top, scrolled by its own height)', async () => {
+    await open()
+    view(120, 40)
+    // The top (46) is below the view's top (40): the line is where the header is.
+    await carry('b', 200)
+
+    expect(pin()).toBeNull()
+    expect(row('gs').querySelector('.q-dropline:not(.after)')).not.toBeNull()
+  })
+
+  it('goes away when the pointer moves to another target, on Esc and on a drop', async () => {
+    await open()
+    view(120, 60)
+    await carry('b', 200)
+    expect(pin()).not.toBeNull()
+
+    // Over the loose item a (the first row, 100-146): a plain target, nothing is pinned.
+    pointer('pointermove', 110)
+    expect(pin()).toBeNull()
+
+    pointer('pointermove', 200)
+    expect(pin()).not.toBeNull()
+    act(() => void window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true })))
+    expect(pin()).toBeNull()
+  })
+
+  it('follows the scroll: it shows when the scroll takes the real line out of view and goes when it brings it back', async () => {
+    await open()
+    view(120, 0)
+    await carry('b', 200)
+    expect(pin()).toBeNull()
+
+    view(120, 100)
+    expect(pin()?.textContent).toBe('↑ Before Season 1')
+
+    view(120, 0)
+    expect(pin()).toBeNull()
+  })
+
+  it('a collapsed group never pins', async () => {
+    store.set('list:L1:collapsed', JSON.stringify(['Season 1']))
+    await open()
+    view(20, 60)
+
+    await carry('a', 160)
+
+    expect(pin()).toBeNull()
+  })
+})
+
+describe('no row is tinted by the pointer during or after an item drag (BL-105)', () => {
+  const tinted = () => Array.from(document.querySelectorAll('[data-pointer]')).map((node) => (node as HTMLElement).dataset['rowId'])
+  /** The pointer over a row as the browser sends it: the event goes to the row and bubbles up to the list and the window. */
+  const over = (id: string, y: number) =>
+    act(() => void row(id).dispatchEvent(new MouseEvent('pointermove', { clientX: 20, clientY: y, bubbles: true, cancelable: true })))
+
+  it('the row under a resting mouse is tinted; one carried over many rows leaves none tinted, while carrying and after the drop', async () => {
+    await open()
+    const top = layout()
+    over('a', top('a') + 10)
+    expect(tinted()).toEqual(['a'])
+
+    fireEvent.pointerDown(handleOf('a'), { button: 0, clientX: 10, clientY: top('a') + 20 })
+    pointer('pointermove', top('a') + 32)
+    for (const id of ['g1', 'g2', 'g3', 'b']) {
+      over(id, top(id) + 38)
+      expect(tinted()).toEqual([])
+    }
+
+    pointer('pointerup', top('b') + 38)
+    await waitFor(() => expect(rowIds()).toEqual(['gs', 'g1', 'g2', 'g3', 'b', 'a']))
+    expect(tinted()).toEqual([])
+
+    // Only the next real move over a row tints it.
+    over('g2', top('g2') + 10)
+    expect(tinted()).toEqual(['g2'])
+  })
+
+  it('Esc during the drag leaves none tinted either', async () => {
+    await open()
+    const top = layout()
+    over('b', top('b') + 10)
+    fireEvent.pointerDown(handleOf('b'), { button: 0, clientX: 10, clientY: top('b') + 20 })
+    pointer('pointermove', top('b') + 32)
+    over('g1', top('g1') + 10)
+
+    act(() => void window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true })))
+
+    expect(tinted()).toEqual([])
+  })
+})
+
 describe('dragging by the handle', () => {
   it('drops a loose item after a group, and offers Undo', async () => {
     await open()
@@ -369,15 +678,28 @@ describe('dragging by the handle', () => {
     expect(row('b').querySelector('.q-dropline.after')).not.toBeNull()
   })
 
-  it('shuts every group while a block is dragged, so only boundaries are targets, and opens them again after', async () => {
+  it('folds only the group it carries while a group is dragged, and opens it again after (H-009)', async () => {
     await open()
     expect(rowIds()).toContain('g1')
 
-    const gesture = await drag('a', 'b', 'lower')
+    const gesture = await drag('gs', 'b', 'lower')
+    expect(rowIds()).toContain('gs')
     expect(rowIds()).not.toContain('g1')
 
     gesture.release()
     await waitFor(() => expect(rowIds()).toContain('g1'))
+  })
+
+  it('folds nothing while a loose item is dragged: every group stays as it was (H-009)', async () => {
+    await open()
+
+    const gesture = await drag('a', 'b', 'lower')
+    expect(rowIds()).toContain('g1')
+    expect(rowIds()).toContain('g3')
+
+    gesture.release()
+    await waitFor(() => expect(rowIds()).toEqual(['gs', 'g1', 'g2', 'g3', 'b', 'a']))
+    expect(rowIds()).toContain('g1')
   })
 
   it('does not shut a group for dragging an item inside it', async () => {

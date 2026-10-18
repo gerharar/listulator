@@ -11,10 +11,20 @@ import type { LocalDatabase } from './localDb.js'
  * There is no Fastify plugin, no request, no `onRequest` hook here — the
  * standalone app has no concept of a request. The user is resolved once,
  * at startup, and cached for the app's lifetime.
+ *
+ * What is cached is the lookup in progress, not its result: several calls ask
+ * at start-up before the first has finished, and on a fresh database each used
+ * to find nobody and insert, so the second hit `users_one_default_local` and
+ * the very first launch said "Couldn't load your lists". A failed lookup is
+ * forgotten, so the next call tries again.
  */
-let cachedUser: User | undefined
+let currentUser: Promise<User> | undefined
 
-export async function getLocalCurrentUser(db: LocalDatabase): Promise<User> {
-  cachedUser ??= await ensureDefaultLocalUser(db)
-  return cachedUser
+export function getLocalCurrentUser(db: LocalDatabase): Promise<User> {
+  currentUser ??= ensureDefaultLocalUser(db).catch((cause: unknown) => {
+    currentUser = undefined
+    throw cause
+  })
+
+  return currentUser
 }

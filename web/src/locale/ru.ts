@@ -283,7 +283,18 @@ export const ru: Locale = {
         other: { action: 'Выйти', question: 'Выйти из Listulator?' },
         note: 'Всё сохранённое останется',
         cancel: 'Отмена',
+        running: {
+          question: { mac: (name: string) => `Завершить, пока список “${name}” перезаписывается?`, other: (name: string) => `Выйти, пока список “${name}” перезаписывается?` },
+          note: 'Если выйти сейчас, список останется недоделанным. Нужно ещё несколько секунд.',
+          keep: 'Подождать',
+          confirm: { mac: 'Всё равно завершить', other: 'Всё равно выйти' },
+        },
       },
+    },
+    /** While a whole-list run (Reset, Restore order, an Undo) goes on and the app waits (H-015): what the disabled controls say, and the first Esc of the run. */
+    hold: {
+      wait: { reset: 'Подождите, пока завершится сброс', order: 'Подождите, пока восстановится порядок', undo: 'Подождите, пока завершится отмена' },
+      escape: { reset: 'Список сбрасывается. Подождите, пока это завершится.', order: 'Порядок восстанавливается. Подождите, пока это завершится.', undo: 'Отмена выполняется. Подождите, пока это завершится.' },
     },
     about: {
       title: 'О программе',
@@ -727,6 +738,7 @@ export const ru: Locale = {
           api: 'Назад к списку из поиска',
         },
         computing: 'Вычисляем, что изменится…',
+        resetting: 'Сбрасываем список…',
         previewFailed: (message: string): string =>
           `Не удалось вычислить, что изменится (${message}). Сброс всё равно вернёт список к источнику`,
         removed: (n: number): string =>
@@ -749,6 +761,10 @@ export const ru: Locale = {
         sorted: 'Отсортировано по дате -- группы перемещены целиком',
         orderRestored: 'Порядок источника восстановлен',
         resetDone: 'Сброшено к источнику -- порядок, название, описание и отметки о завершении',
+        /** The busy toasts of a whole-list rewrite (H-012): said once, kept until the run ends. */
+        restoringOrder: 'Восстанавливаем порядок источника…',
+        undoingReset: 'Отменяем сброс…',
+        undoingOrder: 'Отменяем изменение порядка…',
         undone: 'Сброс отменён',
         orderUndone: 'Порядок восстановлен',
         sortFailed: 'Не удалось отсортировать список',
@@ -763,6 +779,9 @@ export const ru: Locale = {
         movedOnList: 'Элемент перемещён',
         movedInside: (group: string): string => `Элемент перемещён внутри группы ${group}`,
         onlyInsideGroup: 'Менять порядок можно только внутри одной группы',
+        /** The drop line of a group taller than the list, pinned to the list's edge (H-014). */
+        dropBefore: (group: string): string => `↑ Перед ${group}`,
+        dropAfter: (group: string): string => `↓ После ${group}`,
         undone: 'Перемещение отменено',
         saveFailed: 'Не удалось сохранить перемещение',
         undoFailed: 'Не удалось отменить перемещение',
@@ -827,6 +846,12 @@ export const ru: Locale = {
         show: 'Распахнуть навигацию по группам',
         resize: 'Изменить размер навигации по группам',
       },
+      place: {
+        item: (n: number, total: number): string => `${n} из ${total}`,
+        group: (n: number, total: number): string => `Группа ${n} из ${total}`,
+        note: (total: number): string =>
+          `${items(total)}. Показаны только строки рядом с экраном. Остальные можно найти стрелками вверх и вниз или через фильтр.`,
+      },
       filter: {
         label: 'Фильтр элементов',
         placeholder: 'Фильтр элементов…',
@@ -835,7 +860,7 @@ export const ru: Locale = {
         cleared: 'Фильтр очищен',
         total: (n: number): string => items(n),
         shown: (shown: number, total: number): string => `показано ${shown} из ${total}`,
-        groupShown: (shown: number, total: number): string => `${shown} из ${total}`,
+        groupMatched: (n: number): string => `показано ${n}`,
         /** Hide Completed (task 18.1): the button, its hint while on, and the line when nothing is left. */
         hideDone: 'Скрыть завершённое',
         hideDoneTip: 'Снова показать завершённое',
@@ -922,6 +947,11 @@ export const ru: Locale = {
       expandGroup: (label: string): string => `Развернуть: ${label}`,
       collapseGroup: (label: string): string => `Свернуть: ${label}`,
       groupItems: (n: number): string => items(n),
+      place: {
+        item: (n: number, total: number): string => `${n} из ${total}`,
+        group: (n: number, total: number): string => `Группа ${n} из ${total}`,
+        note: (total: number): string => `${items(total)}. Показаны только строки рядом с экраном. Остальные появятся при прокрутке.`,
+      },
     },
     importFile: {
       chooseFile: 'Выбрать файл…',

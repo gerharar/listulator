@@ -1,5 +1,5 @@
 import './ListScreen.css'
-import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent, type PointerEvent as ReactPointerEvent } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent, type PointerEvent as ReactPointerEvent } from 'react'
 import { EllipsisVertical, RefreshCw, X } from 'lucide-react'
 import { ApiError, api, type ListGroup, type ListItem, type MediaListDetail, type MediaType } from '../../lib/api.js'
 import { downloadText } from '../../lib/downloadText.js'
@@ -12,6 +12,7 @@ import { usePolling } from '../../lib/usePolling.js'
 import { countRuntimesPending, mergeArrivedRuntimes } from './runtimePending.js'
 import { countLinksPending, mergeArrivedLinks } from './linkPending.js'
 import { getPreferencesStore } from '../../lib/preferences/store.js'
+import { loadVirtualization } from '../../lib/listVirtualization.js'
 import { categoryLabel, copy, joinSentences } from '../../locale/index.js'
 import { Banner } from '../../components/quantum/Banner/Banner.js'
 import { IconButton } from '../../components/quantum/Button/Button.js'
@@ -20,6 +21,7 @@ import { ErrorStrip } from '../../components/quantum/ErrorStrip/ErrorStrip.js'
 import { HeaderPlate } from '../../components/quantum/HeaderPlate/HeaderPlate.js'
 import { ProgressSentence } from '../../components/quantum/ProgressSentence/ProgressSentence.js'
 import { useLiveRegion } from '../../components/quantum/LiveRegion/LiveRegion.js'
+import { useNavigationHold, type NavigationRun } from '../../components/quantum/layerStack/LayerStackContext.js'
 import { useEscStep } from '../../components/quantum/overlay/OverlayManagerContext.js'
 import { useStableCallback } from '../../lib/useStableCallback.js'
 import { Popover } from '../../components/quantum/Popover/Popover.js'
@@ -50,7 +52,7 @@ import { linkBackSource } from '../../lib/dataSources.js'
 import { refreshAfterDays } from '../../../../server/src/catalog/sourceCopyLimits.js'
 import { EditListPopover } from './EditListPopover.js'
 import { FilterBar } from './FilterBar.js'
-import { NO_FILTER, isFiltering, noteOnlyMatch, shownItemIds, type ListFilter } from './filtering.js'
+import { NO_FILTER, isFiltering, isMatchFiltering, matchedCount, noteOnlyMatch, shownItemIds, type ListFilter } from './filtering.js'
 import { GroupRow } from './GroupRow.js'
 import { ConfirmPopover } from '../../components/quantum/ConfirmPopover/ConfirmPopover.js'
 import { invertPatch, type ItemPatch } from './itemActions.js'
@@ -65,7 +67,11 @@ import { listMark } from '../../lib/buckets.js'
 import { JumpRail, JumpRailStub, type RailEntry } from './JumpRail.js'
 import { ListMorePopover, type MoreMode, type PreviewState } from './ListMorePopover.js'
 import { buildSpine, listTotals } from './spine.js'
+import { dropPinEdge, type PinEdge } from './dropPin.js'
+import { buildRowModel, centreOn, offsetOf, revealScrollTop, scrollAfterChange, scrollAfterDrop, scrollKeepingUnit, shouldVirtualize, type VirtualizationMode } from './rowModel.js'
+import { DEFAULT_VIEWPORT, WindowedRows } from './WindowedRows.js'
 import { useRowMoves } from './useRowMoves.js'
+import { useRowHover } from './useRowHover.js'
 
 export interface ListScreenProps {
   listId: string
@@ -93,6 +99,7 @@ type Load =
       railWidth: number
       addTags: string[]
       hideDone: boolean
+      virtualization: VirtualizationMode
     }
 
 /**
@@ -133,8 +140,10 @@ export function ListScreen({ listId, mediaTypes, pendingUpdates, onLeave, onClos
       const addTags = await loadAddTags(store, listId)
       // Before the first frame, so a long list never shows its done items for a moment (18.2).
       const hideDone = await loadHideDone(store, listId)
+      // Whether a long list draws only the rows in view (25.7): the app's own preference and the server's setting, `off` from either wins.
+      const virtualization = await loadVirtualization(store, () => api.serverSettings())
       void saveLastOpened(store, listId)
-      if (request.current === mine) setLoad({ state: 'ready', list, collapsed, focusId, railHidden, railWidth, addTags, hideDone })
+      if (request.current === mine) setLoad({ state: 'ready', list, collapsed, focusId, railHidden, railWidth, addTags, hideDone, virtualization })
     } catch (cause) {
       if (request.current === mine) {
         setLoad({
@@ -184,6 +193,7 @@ export function ListScreen({ listId, mediaTypes, pendingUpdates, onLeave, onClos
       initialRailWidth={load.railWidth}
       initialAddTags={load.addTags}
       initialHideDone={load.hideDone}
+      initialVirtualization={load.virtualization}
       mediaTypes={mediaTypes}
       pending={pendingUpdates ?? getPendingUpdates()}
       onLeave={onLeave}
@@ -207,6 +217,8 @@ interface ListViewProps {
   initialAddTags: readonly string[]
   /** Hide Completed as this list last had it (18.2). */
   initialHideDone: boolean
+  /** Whether a long list draws only the rows in view, as read before the first frame (25.7). */
+  initialVirtualization: VirtualizationMode
   mediaTypes: readonly MediaType[]
   pending: PendingUpdates
   onLeave: (() => void) | undefined
@@ -242,6 +254,7 @@ function ListView({
   initialRailWidth,
   initialAddTags,
   initialHideDone,
+  initialVirtualization,
   mediaTypes,
   pending,
   onLeave,
@@ -257,7 +270,7 @@ function ListView({
   const editText = text.editPopover
   const moreText = text.moreMenu
   const orderText = text.orderMenu
-  const { showToast } = useToast()
+  const { showToast, hideToast } = useToast()
   const { announce } = useLiveRegion()
   const [items, setItems] = useState<ListItem[]>(loaded.items)
   const [groups, setGroups] = useState<ListGroup[]>(loaded.groups)
@@ -284,7 +297,16 @@ function ListView({
   const [more, setMore] = useState<{ anchor: HTMLElement; mode: MoreMode } | null>(null)
   const [preview, setPreview] = useState<PreviewState>({ state: 'loading' })
   const previewRequest = useRef(0)
+  // A whole-list rewrite (Reset, Restore source order, and their Undo) takes seconds at 50,000 items, and an edit made meanwhile lands on rows
+  // about to go (BL-103, BL-106): one busy state holds the list and says what is happening in a toast that stays until the run ends (H-012).
+  const [busy, setBusy] = useState(false)
+  // Which run it is, for what the disabled controls say (H-015).
+  const [busyKind, setBusyKind] = useState<NavigationRun['kind']>('reset')
+  const busyNow = useRef(false)
+  const holdNavigation = useNavigationHold()
   const pulseTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
+  // A row the screen should scroll to once it is in the list (an added or restored one), until its pulse is over.
+  const revealId = useRef<string | null>(null)
   const spine = useRef<HTMLDivElement>(null)
 
   useEffect(() => () => clearTimeout(pulseTimer.current), [])
@@ -309,9 +331,17 @@ function ListView({
   const pulseRows = useCallback((ids: readonly string[]) => {
     clearTimeout(pulseTimer.current)
     setPulseIds(new Set(ids))
-    pulseTimer.current = setTimeout(() => setPulseIds(new Set()), PULSE_MS)
+    pulseTimer.current = setTimeout(() => {
+      revealId.current = null
+      setPulseIds(new Set())
+    }, PULSE_MS)
   }, [])
   const pulse = (itemId: string) => pulseRows([itemId])
+  // An added or restored row is also scrolled to if it is not in view (25.4); a row that was only edited or renamed is where the reader is.
+  const reveal = (itemId: string) => {
+    revealId.current = itemId
+    pulse(itemId)
+  }
   // The filter is view state: what was typed and which facet buttons are on, never saved; Hide Completed alone is
   // remembered per list (18.2).
   const [filter, setFilter] = useState<ListFilter>({ ...NO_FILTER, hideDone: initialHideDone })
@@ -321,8 +351,9 @@ function ListView({
     setFilter((current) => ({ ...current, text: '' }))
     announce(text.filter.cleared)
   }
-  // The Esc ladder's rung for this list: after its popovers, before the list closes, Esc clears the text, wherever the cursor is.
-  useEscStep(`list-filter:${listId}`, active && filter.text !== '', clearFilterText)
+  // The Esc ladder's rung for this list: after its popovers, before the list closes, Esc clears the text, wherever the cursor is. Not while a
+  // run holds the list (H-012): the field is out of reach then, and Esc closes the list as the X does.
+  useEscStep(`list-filter:${listId}`, active && filter.text !== '' && !busy, clearFilterText)
   // Hide Completed (18.1): items ticked done while it is on stay where they are until it is switched again. Worked
   // out from each change of the items, so every way of ticking (the row, Undo, a whole group) is covered.
   const [doneThisVisit, setDoneThisVisit] = useState<ReadonlySet<string>>(new Set())
@@ -347,6 +378,12 @@ function ListView({
     [items, mediaType, filter, doneThisVisit],
   )
   // What stays on the spine: a loose item that matches, and a group with a matching item (its items narrowed).
+  // The rows a matching filter leaves, with Hide Completed left out of it: a group's header says "N shown" from this, so Hide Completed never
+  // changes a group's header (H-010).
+  const matchedIds = useMemo(
+    () => (isMatchFiltering(filter) ? shownItemIds(items, mediaType?.facets, { ...filter, hideDone: false }) : null),
+    [items, mediaType, filter],
+  )
   const shownUnits = useMemo(
     () =>
       units.flatMap((unit) => {
@@ -375,12 +412,54 @@ function ListView({
         : new Set(shownUnits.flatMap(({ unit }) => (unit.kind === 'group' ? [unit.group.name] : []))),
     [filter.text, shownUnits],
   )
-  // While a block is carried every group shuts, so only boundaries are targets; nothing is remembered.
-  const shut = useMemo<ReadonlySet<string>>(
-    () => (moves.draggingUnit ? new Set(groupNames) : new Set([...collapsed].filter((name) => !openByText.has(name)))),
-    [moves.draggingUnit, groupNames, collapsed, openByText],
+  // While a group is carried it folds itself (its items travel with it) and unfolds where it lands; no other group changes, and a carried
+  // loose item changes nothing (H-009). Nothing is remembered.
+  const carriedGroup = useMemo(
+    () => (moves.draggingUnit && moves.dragKey ? groups.find((entry) => entry.id === moves.dragKey)?.name : undefined),
+    [moves.draggingUnit, moves.dragKey, groups],
   )
+  const shut = useMemo<ReadonlySet<string>>(() => {
+    const names = new Set([...collapsed].filter((name) => !openByText.has(name)))
+    if (carriedGroup !== undefined) names.add(carriedGroup)
 
+    return names
+  }, [carriedGroup, collapsed, openByText])
+
+  // The group a carried block would land beside as a whole (H-009): its header is tinted, and its rows if it has any drawn. A collapsed or
+  // empty group is a target like any other (H-016): the line and the same ground. Only the key matters, so the tint is worked out again when
+  // the target changes and not when the line only moves between "before" and "after".
+  const overKey = moves.over?.key
+  const targetGroup = useMemo(() => {
+    if (overKey === undefined) return undefined
+    const entry = shownUnits.find(({ unit }) => unit.kind === 'group' && unit.group.id === overKey)
+
+    return entry && entry.unit.kind === 'group' ? entry.unit.group.name : undefined
+  }, [overKey, shownUnits])
+
+  // The tint under the mouse follows the pointer's own events, and is off while an item is carried (BL-105).
+  useRowHover(spine, moves.dragKey !== null)
+
+  // The rows as pixels, and which of them to draw (Phase 25): a long list draws a window, short ones everything; `off` (the app's
+  // preference or the server's setting, read before the first frame, 25.7) draws every row of any list.
+  const virtualization = initialVirtualization
+  const rowModel = useMemo(() => buildRowModel(shownUnits, (name) => shut.has(name)), [shownUnits, shut])
+  const windowed = shouldVirtualize(rowModel.rowTops.size, virtualization)
+  // Where each drawn row is, for a screen reader (Phase 25.6, option A): only on a list drawn as a window, which shows a fraction of its rows.
+  // Counted among the rows there are (items, and groups; not the items of a folded group), in the order they are walked.
+  const places = useMemo(() => {
+    if (!windowed) return undefined
+    const itemAt = new Map<string, number>()
+    const groupAt = new Map<string, number>()
+    for (const { unit, members } of shownUnits) {
+      if (unit.kind === 'item') itemAt.set(unit.item.id, itemAt.size + 1)
+      else {
+        groupAt.set(unit.group.id, groupAt.size + 1)
+        if (!shut.has(unit.group.name)) for (const member of members) itemAt.set(member.id, itemAt.size + 1)
+      }
+    }
+
+    return { itemAt, groupAt }
+  }, [windowed, shownUnits, shut])
   // The rows that are on screen, in order: what the arrow keys walk.
   const visible = useMemo(() => {
     const ids: string[] = []
@@ -395,6 +474,17 @@ function ListView({
     return ids
   }, [shownUnits, shut])
   const tabStop = focusId && visible.includes(focusId) ? focusId : visible[0]
+  // Rows that stay drawn wherever the list is scrolled: the roving tab stop (so Tab always finds a row to land on, also before anything was
+  // focused), a row being dragged, a row with a window open on it.
+  const pinnedRows = useMemo(() => {
+    const ids = new Set<string>()
+    if (tabStop) ids.add(tabStop)
+    if (moves.dragKey) ids.add(moves.dragKey)
+    if (popover?.itemId) ids.add(popover.itemId)
+    for (const id of pulseIds) ids.add(id)
+
+    return ids
+  }, [tabStop, moves.dragKey, popover?.itemId, pulseIds])
 
   // The tag column shows once any item has a tag (U5, owner): until then, no column at all.
   const anyTags = useMemo(() => items.some((entry) => (entry.tags ?? []).length > 0), [items])
@@ -473,13 +563,81 @@ function ListView({
     setJumpTo((current) => ({ id: entry.id, n: (current?.n ?? 0) + 1 }))
   }
 
-  useEffect(() => {
-    if (!jumpTo) return
+  // Moving the scroller from code (Phase 25.4). The position is set and the window is told in the same layout effect, so the rows that
+  // belong to the new place are drawn before anything is painted (a scroll event would come a frame later, and show the old rows or a
+  // spacer). Lists of any length: a short one is moved the same way and simply has no window to tell.
+  const windowSync = useRef<(() => void) | null>(null)
+  // Where the scroller is: the last scroll event, or where this screen put it. When the rows change the browser may already have moved it
+  // (it clamps a position that is past the new end), so the position to keep is this one and not what the element says by then.
+  const scrolledTo = useRef(0)
+  function scrollBodyTo(top: number) {
     const body = spine.current
-    const target = body?.querySelector<HTMLElement>(`[data-row-id="${CSS.escape(jumpTo.id)}"]`)
-    if (body && target) body.scrollTop += target.getBoundingClientRect().top - body.getBoundingClientRect().top
+    if (!body) return
+    const at = Math.max(0, Math.round(top))
+    if (Math.abs(body.scrollTop - at) >= 1) body.scrollTop = at
+    // Where the browser settled, not what was asked: a position past the end is clamped, and no scroll event follows if that equals the old one.
+    scrolledTo.current = body.scrollTop
+    windowSync.current?.()
+  }
+
+  // The reader keeps their place when the rows change under them: a group folded or opened, Collapse / Expand all, a filter, Hide Completed.
+  // A group that is picked up folds itself, and unfolds when it is put down: it stays where it is on the screen when it is picked up (it is
+  // under the pointer) and lands at the drop line when it is put down; nothing moves while it is carried. Declared before the effects that
+  // scroll on purpose, so theirs win.
+  const modelSeen = useRef(rowModel)
+  const carryingSeen = useRef(false)
+  const carriedKey = useRef<string | null>(null)
+  useLayoutEffect(() => {
+    const before = modelSeen.current
+    const wasCarrying = carryingSeen.current
+    const carrying = Boolean(moves.draggingUnit)
+    if (carrying && moves.dragKey) carriedKey.current = moves.dragKey
+    modelSeen.current = rowModel
+    carryingSeen.current = carrying
+    const body = spine.current
+    // Put down: at the drop line (a block, or an item moved inside its group). Picked up, or let go of without a drop (Esc): where it was on the
+    // screen. A drop is used once: on the first change of the rows after it (or when a carry ends), and a new drag forgets it.
+    const carryEnded = wasCarrying && !carrying
+    const drop = moves.dropped.current
+    if (drop && (carryEnded || before !== rowModel)) moves.dropped.current = null
+    if (before === rowModel || !body || (carrying && wasCarrying)) return
+    const viewportHeight = body.clientHeight || DEFAULT_VIEWPORT.height
+    const landed = drop ? scrollAfterDrop(before, rowModel, drop.key, drop.targetKey, drop.pos, scrolledTo.current, viewportHeight) : undefined
+    const kept =
+      landed ??
+      (carrying !== wasCarrying && carriedKey.current !== null ? scrollKeepingUnit(before, rowModel, carriedKey.current, scrolledTo.current) : undefined)
+    const next = kept ?? scrollAfterChange(before, rowModel, scrolledTo.current, viewportHeight)
+    if (next !== scrolledTo.current) scrollBodyTo(next)
+  }, [rowModel, moves.draggingUnit])
+
+  // A group taller than the view has its real drop line off screen (H-014): then the line is pinned to the list's nearest edge, with a label. Worked out
+  // from the row model whenever the target moves or the list scrolls (a state that only changes when the answer does, so a scroll re-renders nothing else).
+  const [pinEdge, setPinEdge] = useState<PinEdge | null>(null)
+  const measurePin = useStableCallback(() => {
+    const body = spine.current
+    const over = moves.over
+    setPinEdge(over && body ? dropPinEdge(rowModel, over, scrolledTo.current, body.clientHeight || DEFAULT_VIEWPORT.height) : null)
+  })
+  useLayoutEffect(measurePin, [measurePin, moves.over?.key, moves.over?.pos, rowModel])
+  const pinnedGroup = pinEdge && moves.over ? groups.find((entry) => entry.id === moves.over!.key) : undefined
+
+  useLayoutEffect(() => {
+    if (!jumpTo) return
+    const top = offsetOf(rowModel, jumpTo.id)
+    if (top !== undefined) scrollBodyTo(top)
     setJumpTo(null)
   }, [jumpTo])
+
+  // Every commit: a row to reveal waits until it is in the list (a filter may hide it), or until its pulse is over.
+  useLayoutEffect(() => {
+    const id = revealId.current
+    const body = spine.current
+    if (id === null || !body) return
+    const top = revealScrollTop(rowModel, id, scrolledTo.current, body.clientHeight || DEFAULT_VIEWPORT.height)
+    if (top === undefined) return
+    revealId.current = null
+    scrollBodyTo(top)
+  })
 
   function foldAll() {
     const next = anyOpen ? new Set(groupNames) : new Set<string>()
@@ -491,13 +649,16 @@ function ListView({
     setFilter((current) => ({ ...current, facets: { ...current.facets, [facet]: selected } }))
   }
 
+  /**
+   * The one thing a list remembers about where the reader was: the last row (item or group header) that took focus, saved per list. It is
+   * the roving tab stop, and a long list reopens scrolled to it. The scroll position is NOT remembered (DECISIONS 2026-10-16, BL-099).
+   */
   function remember(rowId: string) {
     setFocusId(rowId)
     void saveFocus(getPreferencesStore(), listId, rowId)
   }
 
   async function toggleItem(item: ListItem) {
-    const previous = items
     const nowDone = item.consumedAt === null
     setError(null)
     setItems((current) =>
@@ -511,7 +672,8 @@ function ListView({
     try {
       await api.setConsumed(listId, item.id, nowDone)
     } catch {
-      setItems(previous)
+      // This item only: a snapshot of the whole list taken at the click would put back rows that changed since (another tick, a Reset's Undo).
+      setItems((current) => current.map((entry) => (entry.id === item.id ? { ...entry, consumedAt: item.consumedAt } : entry)))
       setError(copy.quantum.list.saveFailed)
     }
   }
@@ -534,7 +696,7 @@ function ListView({
     // A collapsed group the item went into opens, or the pulse would mark nothing.
     const placed = fresh.items.find((entry) => entry.id === created.id)
     if (placed?.group) openGroup(placed.group)
-    pulse(created.id)
+    reveal(created.id)
     announce(actions.added(input.title, placed?.group ?? group))
   }
 
@@ -542,7 +704,7 @@ function ListView({
   async function createGroup(name: string) {
     const created = await api.createGroup(listId, name)
     await refresh()
-    pulse(created.id)
+    reveal(created.id)
     announce(actions.groupCreated(created.name))
   }
 
@@ -571,7 +733,7 @@ function ListView({
       const fresh = await refresh()
       const placed = fresh.items.find((entry) => entry.id === item.id)
       if (placed?.group) openGroup(placed.group)
-      pulse(item.id)
+      reveal(item.id)
       announce(actions.restored(item.title))
     } catch {
       setError(actions.undoFailed)
@@ -669,7 +831,7 @@ function ListView({
     try {
       await api.restoreGroup(listId, restore)
       await refresh()
-      pulse(group.id)
+      reveal(group.id)
       announce(actions.groupRestored(group.name))
     } catch {
       setError(actions.undoFailed)
@@ -720,6 +882,32 @@ function ListView({
     setMeta({ title: fresh.title, description: fresh.description, status: fresh.status })
   }
 
+  /**
+   * Runs a whole-list rewrite with the list held and `text` in a toast that stays until it ends (H-012): the result (the caller's own toast) replaces
+   * it, and a failure takes it away. One at a time: a second run is refused while one goes on. Returns false when it was refused.
+   */
+  async function runBusy(kind: NavigationRun['kind'], text: string, work: () => Promise<void>): Promise<boolean> {
+    if (busyNow.current) return false
+    busyNow.current = true
+    setBusy(true)
+    setBusyKind(kind)
+    // The layers are frozen for the run: a screen that is left mid-run is drawn again without the run's state, and the toast's Undo is then the
+    // gone screen's, so the list on screen would not be the one in the database (owner, A11, 2026-10-18).
+    const hold = holdNavigation({ kind, listName: loaded.title })
+    showToast({ text, sticky: true })
+
+    try {
+      await work()
+    } finally {
+      hold.release()
+      busyNow.current = false
+      setBusy(false)
+      hideToast()
+    }
+
+    return true
+  }
+
   /** Sort chronologically: one in-place re-sort, undone by putting the old positions back. */
   async function sortNow(message: string) {
     setMore(null)
@@ -739,23 +927,27 @@ function ListView({
     setMore(null)
     setError(null)
 
-    try {
-      const { restore } = await api.resetOrder(listId)
-      await refresh()
-      showToast({ text: orderText.orderRestored, actionLabel: actions.undo, onAction: () => void undoSort(restore) })
-    } catch (cause) {
-      setError(cause instanceof Error ? cause.message : orderText.resetFailed)
-    }
+    await runBusy('order', orderText.restoringOrder, async () => {
+      try {
+        const { restore } = await api.resetOrder(listId)
+        await refresh()
+        showToast({ text: orderText.orderRestored, actionLabel: actions.undo, onAction: () => void undoSort(restore) })
+      } catch (cause) {
+        setError(cause instanceof Error ? cause.message : orderText.resetFailed)
+      }
+    })
   }
 
   async function undoSort(restore: Parameters<typeof api.restoreOrder>[1]) {
-    try {
-      await api.restoreOrder(listId, restore)
-      await refresh()
-      announce(orderText.orderUndone)
-    } catch {
-      setError(orderText.undoFailed)
-    }
+    await runBusy('undo', orderText.undoingOrder, async () => {
+      try {
+        await api.restoreOrder(listId, restore)
+        await refresh()
+        showToast({ text: orderText.orderUndone })
+      } catch {
+        setError(orderText.undoFailed)
+      }
+    })
   }
 
   /** Opens the Reset question and works out its cost while it is on screen. */
@@ -779,34 +971,38 @@ function ListView({
   }
 
   async function resetEverything() {
-    if (!more) return
+    if (!more || busyNow.current) return
     setMore(null)
     setError(null)
 
-    try {
-      const result = await api.resetList(listId)
-      adoptMeta(await refresh())
-      showToast({
-        text: orderText.resetDone,
-        actionLabel: actions.undo,
-        onAction: () => void undoReset(result.restore),
-      })
-      // An API list is checked against its source straight away; the community
-      // library's and a file's were just read live.
-      if (result.followUpCheck) void checkForUpdates({ quiet: true })
-    } catch (cause) {
-      setError(cause instanceof Error ? cause.message : orderText.resetFailed)
-    }
+    await runBusy('reset', orderText.resetting, async () => {
+      try {
+        const result = await api.resetList(listId)
+        adoptMeta(await refresh())
+        showToast({
+          text: orderText.resetDone,
+          actionLabel: actions.undo,
+          onAction: () => void undoReset(result.restore),
+        })
+        // An API list is checked against its source straight away; the community
+        // library's and a file's were just read live.
+        if (result.followUpCheck) void checkForUpdates({ quiet: true })
+      } catch (cause) {
+        setError(cause instanceof Error ? cause.message : orderText.resetFailed)
+      }
+    })
   }
 
   async function undoReset(restore: Parameters<typeof api.restoreItems>[1]) {
-    try {
-      await api.restoreItems(listId, restore)
-      adoptMeta(await refresh())
-      announce(orderText.undone)
-    } catch {
-      setError(orderText.undoFailed)
-    }
+    await runBusy('undo', orderText.undoingReset, async () => {
+      try {
+        await api.restoreItems(listId, restore)
+        adoptMeta(await refresh())
+        showToast({ text: orderText.undone })
+      } catch {
+        setError(orderText.undoFailed)
+      }
+    })
   }
 
   /** The list as the file format sees it: its current name, status and items. */
@@ -985,8 +1181,37 @@ function ListView({
     if (target === undefined) return
 
     event.preventDefault()
-    spine.current?.querySelector<HTMLElement>(`[data-row-id="${CSS.escape(target)}"]`)?.focus()
+    const drawn = spine.current?.querySelector<HTMLElement>(`[data-row-id="${CSS.escape(target)}"]`)
+    if (drawn) {
+      drawn.focus()
+      return
+    }
+
+    // The next row is not drawn (the reader scrolled away from the row that has focus): make it the tab stop, which pins it, and
+    // focus it once it is there; the browser scrolls a focused row into view, and the window follows.
+    focusWhenDrawn.current = target
+    setFocusId(target)
   }
+
+  // Focus the row an arrow key asked for as soon as it has been drawn. It is dropped after the first commit either way, so a row that
+  // never comes (the list changed) cannot take focus later.
+  const focusWhenDrawn = useRef<string | null>(null)
+  useLayoutEffect(() => {
+    const id = focusWhenDrawn.current
+    if (id === null) return
+    focusWhenDrawn.current = null
+    spine.current?.querySelector<HTMLElement>(`[data-row-id="${CSS.escape(id)}"]`)?.focus()
+  })
+
+  // A list that is opened again scrolls to the row it remembers, which is otherwise only its tab stop: centred, as far as the list allows.
+  // Long and short alike (owner, 2026-10-16). Before the first paint, and the window starts there (`openAt`), so nothing shows at the top first.
+  const [openAt] = useState(() => (initialFocusId === undefined ? 0 : (centreOn(rowModel, initialFocusId, DEFAULT_VIEWPORT.height) ?? 0)))
+  useLayoutEffect(() => {
+    const body = spine.current
+    const top = initialFocusId === undefined ? undefined : centreOn(rowModel, initialFocusId, body?.clientHeight || DEFAULT_VIEWPORT.height)
+    if (top !== undefined) scrollBodyTo(top)
+    // Once, when the list opens.
+  }, [])
 
   // The row handlers keep their identity and call the latest of this screen (Phase 25.0b): a row is drawn again only when
   // what it shows changed, so one tick does not redraw every row of a long list.
@@ -1025,6 +1250,8 @@ function ListView({
       pulse={pulseIds.has(entry.id)}
       onHandlePointerDown={onRowHandle}
       dragging={moves.dragKey === entry.id}
+      place={places && places.itemAt.has(entry.id) ? text.place.item(places.itemAt.get(entry.id)!, places.itemAt.size) : undefined}
+      hover={grouped && targetGroup !== undefined && entry.group === targetGroup}
       dropLine={moves.over?.key === entry.id ? moves.over.pos : null}
       onToggle={onRowToggle}
       onFocus={onRowFocus}
@@ -1069,7 +1296,8 @@ function ListView({
                 size="list"
                 className="q-check-btn"
                 label={checking ? updatesText.checking : text.checkForUpdates}
-                disabled={checking}
+                {...(busy ? { title: copy.quantum.hold.wait[busyKind] } : {})}
+                disabled={checking || busy}
                 onClick={() => void checkForUpdates()}
               >
                 <span className={checking ? 'q-spin' : undefined} style={{ display: 'flex' }}>
@@ -1077,47 +1305,50 @@ function ListView({
                 </span>
               </IconButton>
             )}
-            <IconButton size="list" label={text.more} onClick={(event) => setMore({ anchor: event.currentTarget, mode: 'menu' })}>
+            <IconButton size="list" label={text.more} {...(busy ? { title: copy.quantum.hold.wait[busyKind] } : {})} disabled={busy} onClick={(event) => setMore({ anchor: event.currentTarget, mode: 'menu' })}>
               <EllipsisVertical width={17} height={17} strokeWidth={1.9} aria-hidden="true" />
             </IconButton>
-            <IconButton size="list" label={text.close} onClick={() => onClose?.()}>
+            <IconButton size="list" label={text.close} {...(busy ? { title: copy.quantum.hold.wait[busyKind] } : {})} disabled={busy} onClick={() => onClose?.()}>
               <X width={16} height={16} strokeWidth={1.9} aria-hidden="true" />
             </IconButton>
           </div>
         </div>
       </div>
-      <FilterBar
-        text={filter.text}
-        onText={(value) => setFilter((current) => ({ ...current, text: value }))}
-        onClear={clearFilterText}
-        facets={facetGroups}
-        selection={filter.facets}
-        onSelect={selectFacet}
-        fold={groupNames.length > 1 ? { collapse: anyOpen, onToggle: foldAll } : null}
-        hideDone={{ on: filter.hideDone === true, onToggle: toggleHideDone }}
-        note={filtering ? text.filter.shown(shownIds.size, items.length) : text.filter.total(items.length)}
-      />
+      {/* The toolbar and the update banners are held while a whole-list rewrite runs (H-012): Update List would race it. */}
+      <div className={busy ? 'q-hold is-busy' : 'q-hold'} inert={busy} aria-busy={busy || undefined}>
+        <FilterBar
+          text={filter.text}
+          onText={(value) => setFilter((current) => ({ ...current, text: value }))}
+          onClear={clearFilterText}
+          facets={facetGroups}
+          selection={filter.facets}
+          onSelect={selectFacet}
+          fold={groupNames.length > 1 ? { collapse: anyOpen, onToggle: foldAll } : null}
+          hideDone={{ on: filter.hideDone === true, onToggle: toggleHideDone }}
+          note={filtering ? text.filter.shown(shownIds.size, items.length) : text.filter.total(items.length)}
+        />
 
-      {pendingCount > 0 && (
-        <Banner
-          onDismiss={() => void pending.remove(listId)}
-          dismissLabel={updatesText.dismissFound}
-          action={{ label: updatesText.updateList, onClick: () => void applyFound(), busy: applying }}
-        >
-          {updatesText.foundBand(pendingCount)}
-        </Banner>
-      )}
+        {pendingCount > 0 && (
+          <Banner
+            onDismiss={() => void pending.remove(listId)}
+            dismissLabel={updatesText.dismissFound}
+            action={{ label: updatesText.updateList, onClick: () => void applyFound(), busy: applying }}
+          >
+            {updatesText.foundBand(pendingCount)}
+          </Banner>
+        )}
 
-      {newCount > 0 && (
-        // The banner's one action is Mark all seen, a secondary button (design-system/components/Banner).
-        <Banner
-          onDismiss={() => void markAllSeen()}
-          dismissLabel={updatesText.markAllSeen}
-          actionVariant="secondary"
-        >
-          {updatesText.newBand(newCount)}
-        </Banner>
-      )}
+        {newCount > 0 && (
+          // The banner's one action is Mark all seen, a secondary button (design-system/components/Banner).
+          <Banner
+            onDismiss={() => void markAllSeen()}
+            dismissLabel={updatesText.markAllSeen}
+            actionVariant="secondary"
+          >
+            {updatesText.newBand(newCount)}
+          </Banner>
+        )}
+      </div>
 
       {error && (
         <div className="q-list-error">
@@ -1125,7 +1356,7 @@ function ListView({
         </div>
       )}
 
-      <div className="q-list-cols">
+      <div className={busy ? 'q-list-cols q-hold is-busy' : 'q-list-cols q-hold'} inert={busy} aria-busy={busy || undefined}>
         {railEntries.length > 1 && !railHidden && (
           <JumpRail
             entries={railEntries}
@@ -1137,7 +1368,16 @@ function ListView({
           />
         )}
         {railEntries.length > 1 && railHidden && <JumpRailStub onShow={() => setRail(false)} />}
-        <div className="q-list-body" ref={spine} onKeyDown={onKeyDown} onBlur={moves.onBlur}>
+        <div
+          className="q-list-body"
+          ref={spine}
+          onKeyDown={onKeyDown}
+          onBlur={moves.onBlur}
+          onScroll={(event) => {
+            scrolledTo.current = event.currentTarget.scrollTop
+            measurePin()
+          }}
+        >
           {units.length === 0 && <p className="q-list-empty">{text.empty}</p>}
           {units.length > 0 && filtering && shownUnits.length === 0 && (
             <p className="q-list-empty">
@@ -1145,30 +1385,49 @@ function ListView({
               {isFiltering({ ...filter, hideDone: false }) ? text.filter.nothing(filter.text) : text.filter.allDone}
             </p>
           )}
-          {shownUnits.map(({ unit, members }) =>
-            unit.kind === 'item' ? (
-              itemRow(unit.item, false)
-            ) : (
-              <div key={unit.group.id} className="q-list-block">
-                <GroupRow
-                  block={unit}
-                  collapsed={shut.has(unit.group.name)}
-                  focusable={tabStop === unit.group.id}
-                  onToggle={toggleGroup}
-                  onFocus={remember}
-                  onHandlePointerDown={(event) => moves.startDrag(event, unit.group.id)}
-                  onDelete={() => void removeGroup(unit.group)}
-                  onRename={(name) => renameGroup(unit.group, name)}
-                  onDeleteWithItems={(anchor) => setGroupDelete({ group: unit.group, anchor })}
-                  dragging={moves.dragKey === unit.group.id}
-                  dropLine={moves.over?.key === unit.group.id ? moves.over.pos : null}
-                  pulse={pulseIds.has(unit.group.id)}
-                  shownOf={filtering ? { shown: members.length, total: unit.items.length } : undefined}
-                />
-                {!shut.has(unit.group.name) && members.map((entry) => itemRow(entry, true))}
-              </div>
-            ),
-          )}
+          {places && <p className="q-place">{text.place.note(places.itemAt.size)}</p>}
+          <WindowedRows
+            shown={shownUnits}
+            model={rowModel}
+            enabled={windowed}
+            pinned={pinnedRows}
+            scroller={spine}
+            initialScrollTop={openAt}
+            syncRef={windowSync}
+            renderItem={itemRow}
+            renderGroup={({ unit, members }, rows) =>
+              unit.kind === 'group' ? (
+                <div key={unit.group.id} className="q-list-block" data-block-key={unit.group.id}>
+                  <GroupRow
+                    block={unit}
+                    collapsed={shut.has(unit.group.name)}
+                    focusable={tabStop === unit.group.id}
+                    onToggle={toggleGroup}
+                    onFocus={remember}
+                    onHandlePointerDown={(event) => moves.startDrag(event, unit.group.id)}
+                    onDelete={() => void removeGroup(unit.group)}
+                    onRename={(name) => renameGroup(unit.group, name)}
+                    onDeleteWithItems={(anchor) => setGroupDelete({ group: unit.group, anchor })}
+                    dragging={moves.dragKey === unit.group.id}
+                    target={targetGroup === unit.group.name}
+                    place={places && places.groupAt.has(unit.group.id) ? text.place.group(places.groupAt.get(unit.group.id)!, places.groupAt.size) : undefined}
+                    dropLine={
+                      moves.over?.key === unit.group.id && !pinnedGroup && !(moves.over.pos === 'after' && !shut.has(unit.group.name) && members.length > 0)
+                        ? moves.over.pos
+                        : null
+                    }
+                    pulse={pulseIds.has(unit.group.id)}
+                    matched={matchedIds ? matchedCount(unit.items, matchedIds) : undefined}
+                  />
+                  {rows}
+                  {/* An open group's "after" line is at its bottom edge, under its last row (H-009); a shut or empty group's is under its header. */}
+                  {moves.over?.key === unit.group.id && !pinnedGroup && moves.over.pos === 'after' && !shut.has(unit.group.name) && members.length > 0 && (
+                    <span className="q-dropline after" />
+                  )}
+                </div>
+              ) : null
+            }
+          />
           <AddItemForm
             groups={groupNames}
             defaultMinutes={defaultMinutes}
@@ -1197,6 +1456,15 @@ function ListView({
             </p>
           )}
         </div>
+        {pinEdge && pinnedGroup && moves.over && spine.current && (
+          <div
+            className={`q-droppin ${pinEdge}`}
+            aria-hidden="true"
+            style={{ left: spine.current.offsetLeft + 22, width: spine.current.clientWidth - 44 }}
+          >
+            <span>{pinEdge === 'top' ? text.moves.dropBefore(pinnedGroup.name) : text.moves.dropAfter(pinnedGroup.name)}</span>
+          </div>
+        )}
       </div>
 
       {more && (

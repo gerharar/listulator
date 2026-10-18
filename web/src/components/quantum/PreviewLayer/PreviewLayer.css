@@ -118,6 +118,20 @@
   color: var(--ink3);
 }
 
+/* Hidden text for a screen reader on a Preview drawn as a window (26.3): the list screen's `.q-place`, owned here so the Preview does not depend on its stylesheet. */
+.q-preview-body .q-place,
+.q-preview-group .q-place {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+  margin: -1px;
+  padding: 0;
+}
+
 .q-preview-footer {
   flex: none;
   margin: 0;

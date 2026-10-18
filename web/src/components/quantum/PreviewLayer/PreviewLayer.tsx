@@ -1,5 +1,5 @@
 import './PreviewLayer.css'
-import { useEffect, useMemo, useState } from 'react'
+import { Fragment, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { X } from 'lucide-react'
 import { formatDuration } from '../../../formatDuration.js'
 import { api, type MediaType, type SourcePreview } from '../../../lib/api.js'
@@ -9,7 +9,11 @@ import {
   summarizePreview,
   type PreviewSource,
 } from '../../../lib/preview.js'
+import { loadVirtualization } from '../../../lib/listVirtualization.js'
+import { getPreferencesStore } from '../../../lib/preferences/store.js'
 import { copy, sourceLabel } from '../../../locale/index.js'
+import { buildRowModel, scrollAfterChange, shouldVirtualize, type VirtualizationMode } from '../../../screens/list/rowModel.js'
+import { DEFAULT_VIEWPORT, WindowedRows } from '../../../screens/list/WindowedRows.js'
 import { Button, IconButton } from '../Button/Button.js'
 import { ErrorBlock } from '../ErrorBlock/ErrorBlock.js'
 import { HeaderPlate } from '../HeaderPlate/HeaderPlate.js'
@@ -18,6 +22,7 @@ import { PreviewRow } from '../PreviewRow/PreviewRow.js'
 import { Spinner } from '../Spinner/Spinner.js'
 import { StatusChip } from '../StatusChip/StatusChip.js'
 import { useLayerStack } from '../layerStack/LayerStackContext.js'
+import { PREVIEW_HEIGHTS, previewUnits } from './previewRows.js'
 
 const CANONICAL_PREFIX = 'canonical:'
 
@@ -32,7 +37,16 @@ export interface PreviewLayerProps {
 type Load =
   | { state: 'loading' }
   | { state: 'error'; message: string }
-  | { state: 'done'; preview: SourcePreview }
+  | { state: 'done'; preview: SourcePreview; virtualization: VirtualizationMode }
+
+/** The switch, read while the request is in flight (the spinner is showing), so the first frame of rows is already in the right mode. Never throws: unreadable counts as `auto`. */
+async function readVirtualization(): Promise<VirtualizationMode> {
+  try {
+    return await loadVirtualization(getPreferencesStore(), () => api.serverSettings())
+  } catch {
+    return 'auto'
+  }
+}
 
 /**
  * The Preview layer (design: "Preview", task 10.15): the whole candidate list
@@ -57,9 +71,8 @@ export function PreviewLayer({ source, mediaType, onBuilt }: PreviewLayerProps) 
     let current = true
     setLoad({ state: 'loading' })
 
-    api
-      .preview(source.mediaType, source.externalRef, source.options)
-      .then((preview) => current && setLoad({ state: 'done', preview }))
+    Promise.all([api.preview(source.mediaType, source.externalRef, source.options), readVirtualization()])
+      .then(([preview, virtualization]) => current && setLoad({ state: 'done', preview, virtualization }))
       .catch(
         (cause: unknown) =>
           current &&
@@ -77,6 +90,32 @@ export function PreviewLayer({ source, mediaType, onBuilt }: PreviewLayerProps) 
 
   const items = load.state === 'done' ? load.preview.items : []
   const rows = useMemo(() => groupPreviewRows(items), [items])
+  const units = useMemo(() => previewUnits(rows), [rows])
+  const model = useMemo(() => buildRowModel(units, (label) => collapsed.has(label), PREVIEW_HEIGHTS), [units, collapsed])
+  // A long Preview draws only the rows near the view (Phase 26.2); under 200 rows, or with the switch off, every row, as it always did.
+  const windowed = load.state === 'done' && shouldVirtualize(model.rowTops.size, load.virtualization)
+  const body = useRef<HTMLDivElement>(null)
+  const windowSync = useRef<(() => void) | null>(null)
+  // A group head that has the focus stays drawn wherever the body is scrolled, so the focus is never lost to the window.
+  const [focused, setFocused] = useState<string | null>(null)
+  const pinned = useMemo(() => new Set(focused ? [focused] : []), [focused])
+  // Where each row is, for a screen reader: only while windowed, which shows a fraction of the rows. Counted among the rows there are (the rows
+  // of a folded group are not), the heads among the heads; the same numbers the list screen says.
+  const places = useMemo(() => {
+    if (!windowed) return undefined
+    const itemAt = new Map<string, number>()
+    const groupAt = new Map<string, number>()
+    for (const { unit, members } of units) {
+      if (unit.kind === 'item') itemAt.set(unit.item.id, itemAt.size + 1)
+      else {
+        groupAt.set(unit.group.id, groupAt.size + 1)
+        if (!collapsed.has(unit.group.name)) for (const member of members) itemAt.set(member.id, itemAt.size + 1)
+      }
+    }
+
+    return { itemAt, groupAt }
+  }, [windowed, units, collapsed])
+  const placeId = useId()
   const summary = summarizePreview(items, mediaType.defaultDurationMinutes)
   // A category whose convention names platforms gets chips, as wide as the widest label (as on the list).
   const platformWidthCh = useMemo(
@@ -87,7 +126,22 @@ export function PreviewLayer({ source, mediaType, onBuilt }: PreviewLayerProps) 
     [mediaType, items],
   )
 
+  // The reader keeps their place when a group folds or opens: the group at the top of the view stays where it is.
+  const modelSeen = useRef(model)
+  const scrolledAt = useRef(0)
+  useLayoutEffect(() => {
+    const before = modelSeen.current
+    modelSeen.current = model
+    const element = body.current
+    if (before === model || !element || !windowed) return
+    const next = scrollAfterChange(before, model, scrolledAt.current, element.clientHeight || DEFAULT_VIEWPORT.height)
+    if (Math.abs(element.scrollTop - next) >= 1) element.scrollTop = next
+    windowSync.current?.()
+  }, [model, windowed])
+
   function toggle(label: string) {
+    // Where the reader is now, before the rows change under them (the browser may clamp the position once they do).
+    scrolledAt.current = body.current?.scrollTop ?? 0
     setCollapsed((current) => {
       const next = new Set(current)
       if (next.has(label)) next.delete(label)
@@ -149,7 +203,7 @@ export function PreviewLayer({ source, mediaType, onBuilt }: PreviewLayerProps) 
         </div>
       </div>
 
-      <div className="q-preview-body">
+      <div className="q-preview-body" ref={body}>
         {load.state === 'loading' && (
           <div className="q-preview-progress">
             <Spinner label={text.loading} />
@@ -169,43 +223,59 @@ export function PreviewLayer({ source, mediaType, onBuilt }: PreviewLayerProps) 
         {load.state === 'done' && load.preview.items.length === 0 && (
           <ErrorBlock headline={text.nothingToAdd} />
         )}
-        {load.state === 'done' &&
-          rows.map((row, index) => {
-            if (row.kind === 'group') {
-              const isCollapsed = collapsed.has(row.label)
-
-              return (
-                <button
-                  key={`g${index}`}
-                  type="button"
-                  className="q-preview-group"
-                  aria-expanded={!isCollapsed}
-                  aria-label={isCollapsed ? text.expandGroup(row.label) : text.collapseGroup(row.label)}
-                  onClick={() => toggle(row.label)}
-                >
-                  {/* One glyph, turned a quarter in CSS when folded: the list screen's group rows and the design's PreviewRow do the same. */}
-                  <span className="q-chev" aria-hidden="true">
-                    ▼
-                  </span>
-                  <span className="name">{row.label}</span>
-                  <span className="count">{text.groupItems(row.count)}</span>
-                </button>
-              )
-            }
-
-            // A row inside a collapsed group is hidden, wherever that group's head is.
-            if (row.item.group !== undefined && collapsed.has(row.item.group)) return null
-
-            return (
+        {places && <p className="q-place">{text.place.note(places.itemAt.size)}</p>}
+        {load.state === 'done' && (
+          <WindowedRows
+            shown={units}
+            model={model}
+            enabled={windowed}
+            pinned={pinned}
+            scroller={body}
+            syncRef={windowSync}
+            renderItem={(entry) => (
               <PreviewRow
-                key={`i${index}`}
-                item={row.item}
-                grouped={row.grouped}
+                key={entry.id}
+                item={entry.item}
+                grouped={entry.grouped}
                 facets={mediaType.facets}
                 platformWidthCh={platformWidthCh}
+                place={places?.itemAt.has(entry.id) ? text.place.item(places.itemAt.get(entry.id)!, places.itemAt.size) : undefined}
               />
-            )
-          })}
+            )}
+            renderGroup={({ unit }, members) => {
+              if (unit.kind !== 'group') return null
+              const isCollapsed = collapsed.has(unit.group.name)
+
+              // A fragment, not a block: the Preview's markup is flat, a head and then its rows, as it always was.
+              return (
+                <Fragment key={unit.group.id}>
+                  <button
+                    type="button"
+                    className="q-preview-group"
+                    aria-expanded={!isCollapsed}
+                    aria-label={isCollapsed ? text.expandGroup(unit.group.name) : text.collapseGroup(unit.group.name)}
+                    onClick={() => toggle(unit.group.name)}
+                    onFocus={() => setFocused(unit.group.id)}
+                    aria-describedby={places ? `${placeId}${unit.group.id}` : undefined}
+                  >
+                    {/* One glyph, turned a quarter in CSS when folded: the list screen's group rows and the design's PreviewRow do the same. */}
+                    <span className="q-chev" aria-hidden="true">
+                      ▼
+                    </span>
+                    <span className="name">{unit.group.name}</span>
+                    <span className="count">{text.groupItems(unit.group.count)}</span>
+                    {places?.groupAt.has(unit.group.id) && (
+                      <span className="q-place" id={`${placeId}${unit.group.id}`}>
+                        {text.place.group(places.groupAt.get(unit.group.id)!, places.groupAt.size)}
+                      </span>
+                    )}
+                  </button>
+                  {members}
+                </Fragment>
+              )
+            }}
+          />
+        )}
       </div>
 
       <p className="q-preview-footer t-small">{text.footer(provenance)}</p>

@@ -75,6 +75,8 @@ describe('what the app sends passes untouched', () => {
     ['window close', message('plugin:window|close', { label: 'main' })],
     ['event listen, the window being resized', message('plugin:event|listen', { event: 'tauri://resize', target: { kind: 'Window', label: 'main' }, handler: 12 })],
     ['event unlisten', message('plugin:event|unlisten', { event: 'tauri://resize', eventId: 5 })],
+    ['event listen, a close or quit held back while a run goes on (H-015)', message('plugin:event|listen', { event: 'quit-while-running', target: { kind: 'Window', label: 'main' }, handler: 12 })],
+    ['event unlisten, the same', message('plugin:event|unlisten', { event: 'quit-while-running', eventId: 5 })],
     ['the inspector toggle (the dev and debug builds only; the permission is not granted in a release)', message('plugin:webview|internal_toggle_devtools', {})],
   ])('the window and its events: %s', (_name, sent) => {
     expect(passes(sent)).toBe(true)
@@ -88,6 +90,8 @@ describe('what the app sends passes untouched', () => {
     ['updater download_and_install', message('plugin:updater|download_and_install', { onEvent: '__CHANNEL__:12', rid: 3 })],
     ['updater download_and_install, options unset', message('plugin:updater|download_and_install', { onEvent: '__CHANNEL__:12', rid: 3, headers: undefined, timeout: undefined, restartAfterInstall: undefined })],
     ['relaunch (the app\u2019s own command: macOS restarts after an update)', message('relaunch', {})],
+    ['hold_close on (the app\u2019s own command: a whole-list run holds the window\u2019s close, H-015)', message('hold_close', { held: true })],
+    ['hold_close off', message('hold_close', { held: false })],
   ])('the updater: %s', (_name, sent) => {
     expect(passes(sent)).toBe(true)
   })
@@ -240,6 +244,7 @@ describe('only what the app sends (SR-062: the approval is not bound to the comm
       'plugin:updater|check': { payload: {}, shape: 'empty' },
       'plugin:updater|download_and_install': { payload: { onEvent: '__CHANNEL__:12', rid: 3 }, shape: 'channel-rid' },
       relaunch: { payload: {}, shape: 'empty' },
+      hold_close: { payload: { held: true }, shape: 'held' },
     }
     // Shapes that another shape's payload also satisfies: the optional keys. `store|load` takes `path` alone as `get_store`
     // does; `reload` takes `rid` alone as the rid-only commands do (a reload payload that sets `ignoreDefaults` does not
@@ -253,7 +258,7 @@ describe('only what the app sends (SR-062: the approval is not bound to the comm
     const names = Object.keys(examples)
 
     it('has an example for every command the hook knows', () => {
-      expect(names.length).toBe(32)
+      expect(names.length).toBe(33)
     })
 
     it('passes each example under its own command', () => {
@@ -342,6 +347,32 @@ describe('the updater (SR-063 to SR-067; task 20.10b: only the calls the client 
       expect(isRefused(message('plugin:updater|download_and_install', { onEvent: CHANNEL, rid: 3, bytesRid: 4 }))).toBe(true)
       expect(isRefused(message('plugin:updater|download_and_install', { rid: 3, key: 'k' }))).toBe(true)
     })
+  })
+
+  describe('hold_close (H-015)', () => {
+    it.each([
+      ['no payload', {}],
+      ['text', { held: 'true' }],
+      ['a number', { held: 1 }],
+      ['null', { held: null }],
+      ['unset', { held: undefined }],
+      ['an extra key', { held: true, extra: 1 }],
+      ['a label', { held: true, label: 'main' }],
+      ['another key instead', { value: true }],
+    ])('refuses the payload with %s', (_name, payload) => {
+      expect(isRefused(message('hold_close', payload))).toBe(true)
+    })
+
+    it.each([null, undefined, [], 'now', 0, true])('refuses the payload %j', (payload) => {
+      expect(isRefused(message('hold_close', payload))).toBe(true)
+    })
+
+    it.each(['Hold_close', 'HOLD_CLOSE', ' hold_close', 'hold_close ', 'hold_close\u0000', 'plugin:window|hold_close', 'hold-close', 'holdClose', 'close'])(
+      'refuses the look-alike %j, even with a good payload',
+      (cmd) => {
+        expect(isRefused(message(cmd, { held: true }))).toBe(true)
+      },
+    )
   })
 
   describe('relaunch', () => {

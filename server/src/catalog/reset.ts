@@ -31,7 +31,8 @@ import {
 } from './repository.js'
 import { movedOnly, setGroupPositions, setItemPositions } from './orderIndex.js'
 import { yearSortKey } from './years.js'
-import { captureItemSet, restoreItemSet } from './restore.js'
+import { withListLock } from './listLock.js'
+import { captureItemSet, restoreItemSetNow } from './restore.js'
 import type { ItemSetRestore, OrderRestore } from './restorePayloads.js'
 
 /**
@@ -82,7 +83,16 @@ export async function sortChronologically(
  * goes after the rest, in the order it had. Nothing is added, removed or ticked
  * and the list's own fields are left alone. Returns where everything stood, for Undo.
  */
-export async function resetOrderToSource(
+export function resetOrderToSource(
+  db: PortableDatabase,
+  userId: string,
+  listId: string,
+  deps: ResetDeps,
+): Promise<OrderRestore | undefined> {
+  return withListLock(listId, () => resetOrderToSourceNow(db, userId, listId, deps))
+}
+
+async function resetOrderToSourceNow(
   db: PortableDatabase,
   userId: string,
   listId: string,
@@ -436,8 +446,35 @@ const wantsFollowUp = (list: List): boolean =>
   (list.source === 'api' || list.source === 'llm') &&
   Boolean(list.externalRef)
 
+/**
+ * The four columns the cost is counted from, not the whole rows (BL-104). On the desktop every row crosses the SQL plugin's
+ * IPC, and the full rows of 50,000 items are some 19 MB: the Reset question waited seconds on them for four small fields.
+ */
+async function findItemsToCount(db: PortableDatabase, listId: string) {
+  return await db
+    .select({
+      title: listItems.title,
+      externalRef: listItems.externalRef,
+      consumedAt: listItems.consumedAt,
+      userNote: listItems.userNote,
+    })
+    .from(listItems)
+    .where(eq(listItems.listId, listId))
+    .all()
+}
+
 /** What a Reset would do, in numbers, without doing it: the confirm sentence states the cost first. */
-export async function previewReset(
+export function previewReset(
+  db: PortableDatabase,
+  userId: string,
+  listId: string,
+  deps: ResetDeps,
+): Promise<ResetPreview | undefined> {
+  // Behind a Reset that is running: its cost on a half-built list is a wrong number (BL-103).
+  return withListLock(listId, () => previewResetNow(db, userId, listId, deps))
+}
+
+async function previewResetNow(
   db: PortableDatabase,
   userId: string,
   listId: string,
@@ -447,9 +484,8 @@ export async function previewReset(
   if (!list) return undefined
 
   const target = await resolveTarget(db, userId, list, deps)
-  const current = (await findListItems(db, userId, listId)) ?? []
 
-  return { ...countChanges(current, target.items), followUpCheck: wantsFollowUp(list) }
+  return { ...countChanges(await findItemsToCount(db, listId), target.items), followUpCheck: wantsFollowUp(list) }
 }
 
 /**
@@ -463,7 +499,17 @@ export async function previewReset(
  * returned `restore` puts everything back (`restoreItemSet`); if the rebuild
  * itself fails part-way, that same payload is applied before the error goes on.
  */
-export async function resetToSource(
+export function resetToSource(
+  db: PortableDatabase,
+  userId: string,
+  listId: string,
+  deps: ResetDeps,
+): Promise<ResetResult | undefined> {
+  // One at a time per list: two overlapping Resets duplicated every item (BL-103).
+  return withListLock(listId, () => resetToSourceNow(db, userId, listId, deps))
+}
+
+async function resetToSourceNow(
   db: PortableDatabase,
   userId: string,
   listId: string,
@@ -513,7 +559,7 @@ export async function resetToSource(
       status: target.status,
     })
   } catch (cause) {
-    await restoreItemSet(db, userId, listId, restore)
+    await restoreItemSetNow(db, userId, listId, restore)
     throw cause
   }
 

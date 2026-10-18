@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { FacetConvention } from '../../../../server/src/catalog/facets.js'
 import type { ListItem } from '../../lib/api.js'
-import { NO_FILTER, isFiltering, noteOnlyMatch, shownItemIds, type ListFilter } from './filtering.js'
+import { NO_FILTER, isFiltering, isMatchFiltering, matchedCount, noteOnlyMatch, shownItemIds, type ListFilter } from './filtering.js'
 
 const item = (id: string, title: string, tags: string[] | null = null, consumedAt: string | null = null): ListItem =>
   ({ id, title, tags, consumedAt }) as ListItem
@@ -170,3 +170,25 @@ describe('the typed text is matched as typed, not as a pattern', () => {
   })
 })
 
+
+describe('what a group header says under a filter (H-010)', () => {
+  const row = (id: string): ListItem => ({ id, title: id }) as ListItem
+
+  it('Hide Completed is not a matching filter; text and a facet are', () => {
+    expect(isMatchFiltering(NO_FILTER)).toBe(false)
+    expect(isMatchFiltering({ ...NO_FILTER, hideDone: true })).toBe(false)
+    expect(isMatchFiltering({ ...NO_FILTER, text: ' a ' })).toBe(true)
+    expect(isMatchFiltering({ ...NO_FILTER, text: '  ' })).toBe(false)
+    expect(isMatchFiltering({ ...NO_FILTER, facets: { platform: new Set(['PC']) } })).toBe(true)
+    expect(isMatchFiltering({ ...NO_FILTER, facets: { platform: new Set() } })).toBe(false)
+  })
+
+  it('counts the group\'s rows a filter leaves, and says nothing when it leaves them all', () => {
+    const items = [row('a'), row('b'), row('c'), row('d')]
+
+    expect(matchedCount(items, new Set(['a', 'c', 'x']))).toBe(2)
+    expect(matchedCount(items, new Set())).toBe(0)
+    expect(matchedCount(items, new Set(['a', 'b', 'c', 'd']))).toBeUndefined()
+    expect(matchedCount([], new Set(['a']))).toBeUndefined()
+  })
+})

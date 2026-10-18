@@ -1,6 +1,7 @@
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Mutex;
 
+mod close_hold;
 mod fullscreen;
 mod isolation_csp;
 mod navigation;
@@ -115,6 +116,13 @@ fn relaunch(app: tauri::AppHandle) {
   app.request_restart();
 }
 
+/// The page says whether a whole-list run holds the window's close (H-015, `close_hold.rs`). The only parameter is the flag; a hold lapses
+/// by itself after 20 seconds unless it is renewed, so a page that hangs cannot make the app impossible to close.
+#[tauri::command]
+fn hold_close(held: bool) {
+  close_hold::hold(held);
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
   // The page's CSP must allow this build's own isolation frame, whose scheme is made at compile time: see `isolation_csp`.
@@ -173,14 +181,26 @@ pub fn run() {
       fit_window_once(window);
       save_window_state_soon(window.app_handle());
     }
-    tauri::WindowEvent::CloseRequested { .. } | tauri::WindowEvent::Destroyed => {
+    // The window's own close (its button, Alt+F4) while a run holds it: not carried out, and the page asks (H-015). Only a close that goes
+    // ahead is recorded as one.
+    tauri::WindowEvent::CloseRequested { api, .. } => {
+      use tauri::Manager;
+
+      if close_hold::is_held() {
+        api.prevent_close();
+        close_hold::ask(window.app_handle());
+      } else {
+        with_tracker(fullscreen::Tracker::closing);
+      }
+    }
+    tauri::WindowEvent::Destroyed => {
       with_tracker(fullscreen::Tracker::closing);
     }
     _ => {}
   });
 
   builder
-    .invoke_handler(tauri::generate_handler![relaunch])
+    .invoke_handler(tauri::generate_handler![relaunch, hold_close])
     // Keeps the window on the app's own page: nothing else may be navigated to (SR-015, navigation.rs).
     .plugin(navigation::guard(isolation_scheme))
     .plugin(tauri_plugin_sql::Builder::default().build())
@@ -240,7 +260,8 @@ pub fn run() {
     .build(context)
     .expect("error while building tauri application")
     .run(|_app, event| {
-      // Cmd+Q: the app is quitting, and whatever the window does from here is not a choice.
+      // Cmd+Q: the app is quitting, and whatever the window does from here is not a choice. (An exit request with no code also comes when the
+      // last window is already gone: preventing that would leave an app with no window, so a held close is only ever held at the window, H-015.)
       if let tauri::RunEvent::ExitRequested { .. } = event {
         with_tracker(fullscreen::Tracker::closing);
       }

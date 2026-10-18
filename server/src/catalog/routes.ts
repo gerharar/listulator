@@ -8,6 +8,7 @@ import type { MediaTypeRegistry } from '../ingestion/mediaTypes.js'
 import { enrichPrefixesByMediaType } from './runtimeFill.js'
 import { withRuntimePending } from './runtimes.js'
 import { withLinks } from './itemLinks.js'
+import { withListLock } from './listLock.js'
 import { InvalidYearError } from './years.js'
 import {
   createList,
@@ -198,7 +199,18 @@ export const catalogRoutes: FastifyPluginAsync<CatalogRoutesOptions> = async (
 
   app.get<{ Params: ListParams }>('/lists/:listId', async (request, reply) => {
     const user = getCurrentUser(request)
-    const list = await findListWithStats(db, user.id, request.params.listId, runtimeStats())
+    // Who owns it is settled BEFORE waiting: a list that is not the caller's is refused at once, so the wait cannot tell anyone that work is going on.
+    if (!(await findList(db, user.id, request.params.listId))) return reply.callNotFound()
+    // Behind a Reset or Undo that is rebuilding this list: a read in the middle of it would show a half-built list (28.4).
+    const { list, items: stored, groups } = await withListLock(request.params.listId, async () => {
+      const found = await findListWithStats(db, user.id, request.params.listId, runtimeStats())
+
+      return {
+        list: found,
+        items: found ? ((await findListItems(db, user.id, found.id)) ?? []) : [],
+        groups: found ? ((await findListGroups(db, user.id, found.id)) ?? []) : [],
+      }
+    })
     if (!list) return reply.callNotFound()
 
     // Each item says whether its length is still being looked up, so the screen can show "-" for it (15.7).
@@ -213,12 +225,12 @@ export const catalogRoutes: FastifyPluginAsync<CatalogRoutesOptions> = async (
         items: await withRuntimePending(
           db,
           list.id,
-          (await findListItems(db, user.id, list.id)) ?? [],
+          stored,
           new Date(),
           enrichPrefixesByMediaType(mediaTypes.list()).get(list.mediaType),
         ),
       }),
-      groups: (await findListGroups(db, user.id, list.id)) ?? [],
+      groups,
     }
 
     // Opening a list tops up its lengths: in the background, not awaited, and never a reason to fail the

@@ -63,6 +63,8 @@ export interface ProgressSentenceProps {
   size?: ProgressSentenceSize
   /** How many items' lengths are still being looked up (15.7): the time left is then approximate, with a tooltip saying so. */
   runtimesPending?: number
+  /** A muted count in front, then the dot: how many of a group's rows a filter leaves (H-010). */
+  lead?: string
 }
 
 export function ProgressSentence({
@@ -72,6 +74,7 @@ export function ProgressSentence({
   status,
   size = 'row',
   runtimesPending = 0,
+  lead,
 }: ProgressSentenceProps) {
   const { count, allDone, left } = formatProgress(done, total, minutesLeft, status, runtimesPending)
   const sizes = SENTENCE_SIZES[size]
@@ -111,6 +114,14 @@ export function ProgressSentence({
         </>
       ) : (
         <MeterBar done={done} total={total} />
+      )}
+      {lead !== undefined && (
+        <>
+          <span className="q-count q-lead" style={{ fontSize: sizes.count }}>
+            {lead}
+          </span>
+          <span className="q-sep">·</span>
+        </>
       )}
       <span className="q-count" style={{ fontSize: sizes.count }}>
         {count}

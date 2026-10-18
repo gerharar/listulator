@@ -37,6 +37,7 @@ import { parseLayerPath } from './components/quantum/layerStack/layerPath.js'
 import { untitledListLayer } from './components/quantum/layerStack/listLayer.js'
 import { layerGeometry } from './components/quantum/layerStack/layerGeometry.js'
 import { resolveTabLabel, type LayerDescriptor } from './components/quantum/layerStack/layerStack.js'
+import { useLayerEscape } from './components/quantum/layerStack/useLayerEscape.js'
 
 function homeLayer(): LayerDescriptor<string> {
   return { id: 'home', kind: 'home', tabLabel: () => copy.quantum.home.title, content: '/' }
@@ -197,7 +198,8 @@ function AppShellBody({ skin, onSkinChange }: AppShellBodyProps) {
   // The Esc ladder's second rung: nothing is open, so pop one layer — the
   // design prototype's own handler ends in `this.pop()`. Esc from the Create
   // layer returns to the Category picker; from a layer over Home, to Home.
-  useEscLadder(() => layerStack.pop())
+  // While a whole-list run holds the stack it pops nothing, and says why once per run (H-015).
+  useEscLadder(useLayerEscape())
 
   // Settings is one layer: pressing the gear while it is already on top does nothing.
   function openSettings(): void {
@@ -223,7 +225,7 @@ function AppShellBody({ skin, onSkinChange }: AppShellBodyProps) {
 
   return (
     <div className="q-shell">
-      <AppHeader skin={skin} onSkinChange={onSkinChange} onSettings={openSettings} onAbout={openAbout} quit={appQuit} />
+      <AppHeader skin={skin} onSkinChange={onSkinChange} onSettings={openSettings} onAbout={openAbout} quit={appQuit} run={layerStack.navigationRun ?? undefined} />
       <div className="q-stage">
         {layerStack.visible.map((layer, index) => {
           const isTop = index === layerStack.visible.length - 1

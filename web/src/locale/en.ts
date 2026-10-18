@@ -314,7 +314,19 @@ export const en = {
         other: { action: 'Exit', question: 'Exit Listulator?' },
         note: "Everything you've saved stays",
         cancel: 'Cancel',
+        /** While a whole-list run (Reset, Restore order, an Undo) goes on: leaving now leaves that list half-done. Design's words (H-015). */
+        running: {
+          question: { mac: (name: string) => `Quit while “${name}” is being rewritten?`, other: (name: string) => `Exit while “${name}” is being rewritten?` },
+          note: 'Quitting now leaves it half-done. It needs a few more seconds.',
+          keep: 'Keep waiting',
+          confirm: { mac: 'Quit anyway', other: 'Exit anyway' },
+        },
       },
+    },
+    /** While a whole-list run (Reset, Restore order, an Undo) goes on and the app waits (H-015): what the disabled controls say, and the first Esc of the run. */
+    hold: {
+      wait: { reset: 'Wait until the reset finishes', order: 'Wait until the order is restored', undo: 'Wait until the undo finishes' },
+      escape: { reset: 'The list is being reset. Wait until it finishes.', order: 'The order is being restored. Wait until it finishes.', undo: 'The undo is running. Wait until it finishes.' },
     },
     /** The About layer (task 11.21). Source names, hosts, links and the TMDB notice are not copy: `screens/about/sources.ts`. */
     about: {
@@ -821,6 +833,8 @@ export const en = {
           api: 'Back to the list from search',
         },
         computing: 'Working out what would change…',
+        /** The toast while the Reset itself runs (seconds on a long list), kept until the list is back (H-012, BL-103). */
+        resetting: 'Resetting the list…',
         previewFailed: (message: string): string => `Could not work out what would change (${message}). Resetting will still put the list back to the source`,
         /** Each part of the cost, said only when it applies. */
         removed: (n: number): string => `${n} ${selectPlural(n, 'en', { one: 'item', other: 'items' })} you added will be deleted`,
@@ -837,6 +851,10 @@ export const en = {
         orderRestored: 'Source order restored',
         resetDone: 'List was reset to the source (order, name, description and completion flags)',
         undone: 'Reset undone',
+        /** The busy toasts of a whole-list rewrite (H-012): said once, kept until the run ends. */
+        restoringOrder: 'Restoring the source order…',
+        undoingReset: 'Undoing the reset…',
+        undoingOrder: 'Undoing the order change…',
         orderUndone: 'Order Restored',
         sortFailed: 'Couldn\'t sort this list',
         resetFailed: 'Couldn\'t reset this list',
@@ -850,6 +868,9 @@ export const en = {
         movedInside: (group: string): string => `Item moved inside ${group}`,
         /** Defensive: only spoken if the list changes mid-drag (the drag already refuses cross-group targets). */
         onlyInsideGroup: 'Reordering only works inside one group',
+        /** The drop line of a group taller than the list, pinned to the list's edge (H-014). */
+        dropBefore: (group: string): string => `↑ Before ${group}`,
+        dropAfter: (group: string): string => `↓ After ${group}`,
         undone: 'Move undone',
         saveFailed: 'Couldn\'t save that move',
         undoFailed: 'Couldn\'t undo that move',
@@ -917,6 +938,16 @@ export const en = {
         show: 'Enlarge group jumper',
         resize: 'Resize group jumper',
       },
+      /**
+       * A list drawn as a window (200 rows or more) names each row's place for a screen reader, as hidden text inside the row, and says before the
+       * rows how it is drawn (Phase 25.6). Counted among the rows there are: items, and groups, not the items of a folded group.
+       */
+      place: {
+        item: (n: number, total: number): string => `${n} of ${total}`,
+        group: (n: number, total: number): string => `Group ${n} of ${total}`,
+        note: (total: number): string =>
+          `${total} items. Only the rows near the screen are drawn. Use the up and down arrow keys, or the filter, to reach the others.`,
+      },
       /** The filter bar under the header: a text field, the category's facets, fold-all and a note. */
       filter: {
         label: 'Filter items',
@@ -926,8 +957,8 @@ export const en = {
         cleared: 'Filter cleared',
         total: (n: number): string => `${n} ${selectPlural(n, 'en', { one: 'item', other: 'items' })}`,
         shown: (shown: number, total: number): string => `${shown} of ${total} shown`,
-        /** A group's count while filtering. */
-        groupShown: (shown: number, total: number): string => `${shown} of ${total}`,
+        /** In front of a group's progress while a text or facet filter leaves only some of its rows (H-010). */
+        groupMatched: (n: number): string => `${n} shown`,
         /** Hide Completed (task 18.1): the button, its hint while on, and the line when nothing is left. */
         hideDone: 'Hide Completed',
         hideDoneTip: 'Show done items again',
@@ -1021,6 +1052,12 @@ export const en = {
       collapseGroup: (label: string): string => `Collapse ${label}`,
       /** The number on a group's head in the preview: what it counts (owner, 1.0.1). */
       groupItems: (n: number): string => `${n} ${selectPlural(n, 'en', { one: 'item', other: 'items' })}`,
+      /** A long Preview is drawn as a window (Phase 26.3): hidden text for a screen reader, as on the list screen. Only then. */
+      place: {
+        item: (n: number, total: number): string => `${n} of ${total}`,
+        group: (n: number, total: number): string => `Group ${n} of ${total}`,
+        note: (total: number): string => `${total} items. Only the rows near the screen are drawn. Scroll to reach the others.`,
+      },
     },
     importFile: {
       chooseFile: 'Choose File…',

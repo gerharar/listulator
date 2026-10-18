@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { useEffect } from 'react'
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { ApiError, api, type ListItem, type MediaListDetail, type MediaType } from '../../lib/api.js'
 import { LiveRegionProvider } from '../../components/quantum/LiveRegion/LiveRegion.js'
@@ -7,6 +8,7 @@ import { OverlayManagerProvider } from '../../components/quantum/overlay/Overlay
 import { ToastProvider } from '../../components/quantum/Toast/Toast.js'
 import { subscribeListsChanged } from '../../lib/listsChanged.js'
 import { createPendingUpdates, type PendingUpdates } from '../../lib/pendingUpdates.js'
+import { LayerStackProvider, useLayerStack } from '../../components/quantum/layerStack/LayerStackContext.js'
 import { ListScreen } from './ListScreen.js'
 import { hoverTooltip } from '../../components/quantum/Tooltip/hoverTooltip.js'
 
@@ -466,6 +468,22 @@ describe('ListScreen done state', () => {
 
     expect(await screen.findByText('Couldn\'t save this change')).toBeTruthy()
     expect(screen.getByText('0/1 (0%)')).toBeTruthy()
+  })
+
+  it('a refused tick rolls back that item only: another tick made meanwhile keeps its place (a whole-list snapshot would undo it)', async () => {
+    let refuse!: (cause: Error) => void
+    vi.mocked(api.setConsumed)
+      .mockReturnValueOnce(new Promise((_resolve, reject) => (refuse = reject)))
+      .mockResolvedValueOnce({} as never)
+    await open(detail({ items: [item({ id: 'a', title: 'a' }), item({ id: 'b', title: 'b' })] }))
+
+    fireEvent.click(screen.getByText('a'))
+    fireEvent.click(screen.getByText('b'))
+    expect(screen.getByText('2/2 (100%)')).toBeTruthy()
+    await act(async () => refuse(new ApiError('nope', 500)))
+
+    expect(await screen.findByText('Couldn\'t save this change')).toBeTruthy()
+    expect(screen.getByText('1/2 (50%)')).toBeTruthy()
   })
 
   it('updates a group’s own progress too', async () => {
@@ -1614,6 +1632,9 @@ describe('ListScreen order menu (task 10.22)', () => {
   const rowTitles = () => Array.from(document.querySelectorAll('.q-item .title')).map((n) => n.textContent)
   const undoOnToast = () =>
     fireEvent.click(within(document.querySelector('.q-toast') as HTMLElement).getByRole('button', { name: 'Undo' }))
+  /** The toast slot and the list's hold, as the busy state shows them (H-012, 28.2). */
+  const toastEl = () => document.querySelector('.q-toast') as HTMLElement | null
+  const columns = () => document.querySelector('.q-list-cols')!
 
   describe('Sort chronologically', () => {
     it('sorts at once, shows the new order, and offers Undo', async () => {
@@ -1647,6 +1668,24 @@ describe('ListScreen order menu (task 10.22)', () => {
 
       await waitFor(() => expect(api.restoreOrder).toHaveBeenCalledWith('L1', restore))
       await waitFor(() => expect(rowTitles()).toEqual(['Alpha', 'Beta']))
+    })
+
+    it('Undo of a sort holds the list like any other Undo (28.2), but the sort itself shows no busy state: it only moves positions', async () => {
+      const restore = { items: [{ id: 'a', orderIndex: 0 }], groups: [] }
+      vi.mocked(api.sortList).mockResolvedValue({ restore })
+      let finish!: (value: undefined) => void
+      vi.mocked(api.restoreOrder).mockReturnValue(new Promise((resolve) => (finish = resolve)))
+      await openOrder()
+      sortNow()
+      await screen.findByRole('button', { name: 'Undo' })
+      expect(toastEl()!.textContent).not.toMatch(/…/)
+
+      undoOnToast()
+
+      await waitFor(() => expect(toastEl()!.textContent).toBe('Undoing the order change…'))
+      expect(document.querySelector('.q-list-cols')!.hasAttribute('inert')).toBe(true)
+      await act(async () => finish(undefined))
+      await waitFor(() => expect(document.querySelector('.q-list-cols')!.hasAttribute('inert')).toBe(false))
     })
 
     it('says so, and changes nothing, when the sort fails', async () => {
@@ -1754,6 +1793,180 @@ describe('ListScreen order menu (task 10.22)', () => {
       expect(document.querySelector('.q-toast')!.textContent).toMatch(/List was reset to the source/)
     })
 
+    it('Confirm closes the question at once; a toast with no action says it is resetting, the list is held, and the result replaces the toast (28.2)', async () => {
+      vi.mocked(api.resetPreview).mockResolvedValue(preview)
+      let finish!: (value: ReturnType<typeof result>) => void
+      vi.mocked(api.resetList).mockReturnValue(new Promise((resolve) => (finish = resolve)))
+      await openReset()
+      await pop().findByText(/12 done marks/)
+
+      fireEvent.click(pop().getByRole('button', { name: 'Reset' }))
+
+      await waitFor(() => expect(document.querySelector('.q-pop')).toBeNull())
+      expect(toastEl()!.textContent).toBe('Resetting the list…')
+      expect(within(toastEl()!).queryByRole('button')).toBeNull()
+      await waitFor(() => expect(document.querySelector('.q-live')!.textContent).toBe('Resetting the list…'))
+      expect(columns().hasAttribute('inert')).toBe(true)
+      expect(columns().getAttribute('aria-busy')).toBe('true')
+
+      await act(async () => finish(result(false)))
+
+      await waitFor(() => expect(toastEl()!.textContent).toMatch(/List was reset to the source/))
+      expect(within(toastEl()!).getByRole('button', { name: 'Undo' })).toBeTruthy()
+      expect(columns().hasAttribute('inert')).toBe(false)
+      expect(columns().hasAttribute('aria-busy')).toBe(false)
+    })
+
+    it('while a run goes on the toolbar, the update banners, the rail and the rows are held, and refresh, More and Close are disabled: the list cannot be left while the run goes on (H-012, 28.3)', async () => {
+      await pending.set('L1', 2)
+      vi.mocked(api.resetPreview).mockResolvedValue(preview)
+      let finish!: (value: ReturnType<typeof result>) => void
+      vi.mocked(api.resetList).mockReturnValue(new Promise((resolve) => (finish = resolve)))
+      await openReset(sourced({ groups: [] }))
+      await pop().findByText(/12 done marks/)
+      const held = () => Array.from(document.querySelectorAll('[inert]')).filter((node) => node.querySelector('.q-filterbar, .q-item, .q-banner') !== null || node.classList.contains('q-list-cols'))
+      expect(held()).toHaveLength(0)
+
+      fireEvent.click(pop().getByRole('button', { name: 'Reset' }))
+      await waitFor(() => expect(document.querySelector('.q-pop')).toBeNull())
+
+      // The toolbar and both banners are in one held region, the rows in another; neither is the header.
+      const toolbar = document.querySelector('.q-filterbar')!.closest('[inert]')!
+      expect(toolbar.getAttribute('aria-busy')).toBe('true')
+      expect(toolbar.contains(document.querySelector('.q-banner'))).toBe(true)
+      expect(toolbar.contains(document.querySelector('.q-list-head'))).toBe(false)
+      expect(document.querySelector('.q-item')!.closest('[inert]')!.getAttribute('aria-busy')).toBe('true')
+      expect((screen.getByRole('button', { name: 'Check for updates' }) as HTMLButtonElement).disabled).toBe(true)
+      expect((screen.getByRole('button', { name: 'More' }) as HTMLButtonElement).disabled).toBe(true)
+      expect((screen.getByRole('button', { name: 'Close' }) as HTMLButtonElement).disabled).toBe(true)
+      // The controls say why they wait, in the app's own tooltip (H-015); the name stays what it is.
+      for (const name of ['Check for updates', 'More', 'Close']) expect(screen.getByRole('button', { name }).getAttribute('aria-description')).toBe('Wait until the reset finishes')
+
+      await act(async () => finish(result(false)))
+      await waitFor(() => expect(held()).toHaveLength(0))
+      for (const name of ['Check for updates', 'More', 'Close']) expect(screen.getByRole('button', { name }).hasAttribute('aria-description')).toBe(false)
+      expect((screen.getByRole('button', { name: 'Close' }) as HTMLButtonElement).disabled).toBe(false)
+      expect(document.querySelector('[aria-busy]')).toBeNull()
+      expect((screen.getByRole('button', { name: 'More' }) as HTMLButtonElement).disabled).toBe(false)
+      expect((screen.getByRole('button', { name: 'Check for updates' }) as HTMLButtonElement).disabled).toBe(false)
+    })
+
+    /** The same screen inside a real layer stack, with a probe that tries to leave or cover it. */
+    function renderInStack() {
+      let tryTo!: { pop: () => void; push: () => void; popToIndex: (index: number) => void }
+      const stackNow = { value: '' }
+      function Probe() {
+        const layerStack = useLayerStack()
+        tryTo = { pop: layerStack.pop, push: () => layerStack.push({ id: 'x', kind: 'screen', tabLabel: 'x', content: '/x' }), popToIndex: layerStack.popToIndex }
+        stackNow.value = layerStack.stack.map((entry) => entry.id).join(',')
+        return null
+      }
+      function Opener() {
+        const layerStack = useLayerStack()
+        useEffect(() => layerStack.push({ id: 'list-L1', kind: 'list', tabLabel: 'Loki', content: '/lists/L1' }), [])
+        return null
+      }
+      render(
+        <LiveRegionProvider>
+          <ToastProvider>
+            <OverlayManagerProvider>
+              <LayerStackProvider home={{ id: 'home', kind: 'home', tabLabel: 'My Lists', content: '/' }}>
+                <Opener />
+                <Probe />
+                <ListScreen listId="L1" mediaTypes={TYPES} pendingUpdates={pending} onLeave={onLeave} onClose={onClose} />
+              </LayerStackProvider>
+            </OverlayManagerProvider>
+          </ToastProvider>
+        </LiveRegionProvider>,
+      )
+
+      return { tryTo: () => tryTo, stack: () => stackNow.value }
+    }
+
+    it('the stack of layers is frozen while a Reset goes on, so the list is not left (a tab, Esc, a layer pushed over it), and free again when it ends', async () => {
+      vi.mocked(api.list).mockResolvedValue(sourced())
+      vi.mocked(api.resetPreview).mockResolvedValue(preview)
+      let finish!: (value: ReturnType<typeof result>) => void
+      vi.mocked(api.resetList).mockReturnValue(new Promise((resolve) => (finish = resolve)))
+      const view = renderInStack()
+      await screen.findByRole('heading', { name: /^Loki/ })
+      await act(async () => {})
+      expect(view.stack()).toBe('home,list-L1')
+      await pickFromMenu('Reset List')
+      await pop().findByText(/12 done marks/)
+
+      fireEvent.click(pop().getByRole('button', { name: 'Reset' }))
+      await waitFor(() => expect(toastEl()!.textContent).toBe('Resetting the list…'))
+      act(() => {
+        view.tryTo().pop()
+        view.tryTo().popToIndex(0)
+        view.tryTo().push()
+      })
+
+      expect(view.stack()).toBe('home,list-L1')
+
+      await act(async () => finish(result(false)))
+      await waitFor(() => expect(toastEl()!.textContent).toMatch(/List was reset to the source/))
+      act(() => view.tryTo().pop())
+      expect(view.stack()).toBe('home')
+    })
+
+    it('the stack is frozen while the Undo of a Reset goes on too: the toast\'s Undo belongs to this screen and must still find it', async () => {
+      vi.mocked(api.list).mockResolvedValue(sourced())
+      vi.mocked(api.resetPreview).mockResolvedValue(preview)
+      vi.mocked(api.resetList).mockResolvedValue(result(false))
+      let finish!: () => void
+      vi.mocked(api.restoreItems).mockReturnValue(new Promise((resolve) => (finish = () => resolve(undefined as never))))
+      const view = renderInStack()
+      await screen.findByRole('heading', { name: /^Loki/ })
+      await act(async () => {})
+      await pickFromMenu('Reset List')
+      await pop().findByText(/12 done marks/)
+      fireEvent.click(pop().getByRole('button', { name: 'Reset' }))
+      await waitFor(() => expect(within(toastEl()!).getByRole('button', { name: 'Undo' })).toBeTruthy())
+
+      fireEvent.click(within(toastEl()!).getByRole('button', { name: 'Undo' }))
+      await waitFor(() => expect(toastEl()!.textContent).toBe('Undoing the reset…'))
+      act(() => view.tryTo().pop())
+      expect(view.stack()).toBe('home,list-L1')
+      expect((screen.getByRole('button', { name: 'Close' }) as HTMLButtonElement).disabled).toBe(true)
+
+      await act(async () => finish())
+      await waitFor(() => expect(toastEl()!.textContent).toBe('Reset undone'))
+      act(() => view.tryTo().pop())
+      expect(view.stack()).toBe('home')
+    })
+
+    it('the held regions are marked to dim (a CSS delay of 300 ms decides whether anyone sees it) only while the run goes on (28.3)', async () => {
+      vi.mocked(api.resetPreview).mockResolvedValue(preview)
+      let finish!: (value: ReturnType<typeof result>) => void
+      vi.mocked(api.resetList).mockReturnValue(new Promise((resolve) => (finish = resolve)))
+      await openReset()
+      await pop().findByText(/12 done marks/)
+      expect(document.querySelectorAll('.q-hold.is-busy')).toHaveLength(0)
+
+      fireEvent.click(pop().getByRole('button', { name: 'Reset' }))
+
+      await waitFor(() => expect(document.querySelectorAll('.q-hold.is-busy')).toHaveLength(2))
+      await act(async () => finish(result(false)))
+      await waitFor(() => expect(document.querySelectorAll('.q-hold.is-busy')).toHaveLength(0))
+      expect(document.querySelectorAll('.q-hold')).toHaveLength(2)
+    })
+
+    it('clears the toast, lets go of the list and says why when the Reset fails (BL-103, 28.2)', async () => {
+      vi.mocked(api.resetPreview).mockResolvedValue(preview)
+      vi.mocked(api.resetList).mockRejectedValue(new Error('This list has no source to reset to'))
+      await openReset()
+      await pop().findByText(/12 done marks/)
+
+      fireEvent.click(pop().getByRole('button', { name: 'Reset' }))
+
+      expect(await screen.findByText('This list has no source to reset to')).toBeTruthy()
+      await waitFor(() => expect(document.querySelector('.q-pop')).toBeNull())
+      expect(toastEl()).toBeNull()
+      expect(columns().hasAttribute('inert')).toBe(false)
+    })
+
     it('Undo restores the whole item set from the payload, and the name it had', async () => {
       vi.mocked(api.resetPreview).mockResolvedValue(preview)
       vi.mocked(api.resetList).mockResolvedValue(result(false))
@@ -1770,6 +1983,52 @@ describe('ListScreen order menu (task 10.22)', () => {
       await waitFor(() => expect(api.restoreItems).toHaveBeenCalledWith('L1', restore))
       expect(await screen.findByRole('heading', { name: /^Loki(?! \()/ })).toBeTruthy()
       await waitFor(() => expect(rowTitles()).toEqual(['Alpha', 'Beta']))
+    })
+
+    it('Undo of a Reset says so in a toast with no action, holds the list, and a plain "Reset undone" replaces it (BL-106, 28.2)', async () => {
+      vi.mocked(api.resetPreview).mockResolvedValue(preview)
+      vi.mocked(api.resetList).mockResolvedValue(result(false))
+      let finish!: (value: never[]) => void
+      vi.mocked(api.restoreItems).mockReturnValue(new Promise((resolve) => (finish = resolve)))
+      await openReset()
+      await pop().findByText(/12 done marks/)
+      vi.mocked(api.list).mockResolvedValue(sourced({ title: 'Loki (source)', items: [item({ id: 'z', title: 'Zeta' })] }))
+      fireEvent.click(pop().getByRole('button', { name: 'Reset' }))
+      await screen.findByRole('heading', { name: /^Loki \(source\)/ })
+      expect(columns().hasAttribute('inert')).toBe(false)
+      vi.mocked(api.list).mockResolvedValue(sourced())
+
+      undoOnToast()
+
+      await waitFor(() => expect(columns().hasAttribute('inert')).toBe(true))
+      expect(columns().getAttribute('aria-busy')).toBe('true')
+      expect(toastEl()!.textContent).toBe('Undoing the reset…')
+      expect(within(toastEl()!).queryByRole('button')).toBeNull()
+      await waitFor(() => expect(document.querySelector('.q-live')!.textContent).toBe('Undoing the reset…'))
+      expect(screen.getByRole('button', { name: 'Close' }).getAttribute('aria-description')).toBe('Wait until the undo finishes')
+
+      await act(async () => finish([]))
+
+      await waitFor(() => expect(toastEl()!.textContent).toBe('Reset undone'))
+      expect(within(toastEl()!).queryByRole('button')).toBeNull()
+      expect(columns().hasAttribute('inert')).toBe(false)
+      expect(columns().hasAttribute('aria-busy')).toBe(false)
+    })
+
+    it('lets go of the list, clears the toast and says so when Undo fails (BL-106, 28.2)', async () => {
+      vi.mocked(api.resetPreview).mockResolvedValue(preview)
+      vi.mocked(api.resetList).mockResolvedValue(result(false))
+      vi.mocked(api.restoreItems).mockRejectedValue(new Error('boom'))
+      await openReset()
+      await pop().findByText(/12 done marks/)
+      fireEvent.click(pop().getByRole('button', { name: 'Reset' }))
+      await screen.findByText(/List was reset to the source/)
+
+      undoOnToast()
+
+      expect(await screen.findByText("Couldn't undo that")).toBeTruthy()
+      expect(columns().hasAttribute('inert')).toBe(false)
+      expect(toastEl()).toBeNull()
     })
 
     it('an API list then checks for updates by itself, and shows what it found as a band', async () => {
@@ -1849,6 +2108,55 @@ describe('ListScreen order menu (task 10.22)', () => {
       expect(api.sortList).not.toHaveBeenCalled()
       expect(api.resetList).not.toHaveBeenCalled()
       await waitFor(() => expect(document.querySelector('.q-toast')!.textContent).toMatch(/Source order restored/))
+    })
+
+    it('Restore source order is a busy run too: a toast with no action, the list held, the result replacing the toast (28.2)', async () => {
+      let finish!: (value: { restore: { items: never[]; groups: never[] } }) => void
+      vi.mocked(api.resetOrder).mockReturnValue(new Promise((resolve) => (finish = resolve)))
+      await openOrder()
+
+      restoreSourceOrder()
+
+      await waitFor(() => expect(document.querySelector('.q-pop')).toBeNull())
+      expect(toastEl()!.textContent).toBe('Restoring the source order…')
+      expect(within(toastEl()!).queryByRole('button')).toBeNull()
+      expect(columns().hasAttribute('inert')).toBe(true)
+      expect(screen.getByRole('button', { name: 'Close' }).getAttribute('aria-description')).toBe('Wait until the order is restored')
+
+      await act(async () => finish({ restore: { items: [], groups: [] } }))
+
+      await waitFor(() => expect(toastEl()!.textContent).toMatch(/Source order restored/))
+      expect(within(toastEl()!).getByRole('button', { name: 'Undo' })).toBeTruthy()
+      expect(columns().hasAttribute('inert')).toBe(false)
+    })
+
+    it('a failed Restore source order clears the toast and lets go of the list (28.2)', async () => {
+      vi.mocked(api.resetOrder).mockRejectedValue(new Error('This list has no source to reset to'))
+      await openOrder()
+
+      restoreSourceOrder()
+
+      expect(await screen.findByText('This list has no source to reset to')).toBeTruthy()
+      expect(toastEl()).toBeNull()
+      expect(columns().hasAttribute('inert')).toBe(false)
+    })
+
+    it('Undo of Restore source order says "Undoing the order change…" while the old positions go back, then "Order Restored" (28.2)', async () => {
+      const restore = { items: [{ id: 'a', orderIndex: 3 }], groups: [] }
+      vi.mocked(api.resetOrder).mockResolvedValue({ restore })
+      let finish!: (value: undefined) => void
+      vi.mocked(api.restoreOrder).mockReturnValue(new Promise((resolve) => (finish = resolve)))
+      await openOrder()
+      restoreSourceOrder()
+      await screen.findByRole('button', { name: 'Undo' })
+
+      undoOnToast()
+
+      await waitFor(() => expect(toastEl()!.textContent).toBe('Undoing the order change…'))
+      expect(columns().hasAttribute('inert')).toBe(true)
+      await act(async () => finish(undefined))
+      await waitFor(() => expect(toastEl()!.textContent).toBe('Order Restored'))
+      expect(columns().hasAttribute('inert')).toBe(false)
     })
 
     it('Undo of Restore source order puts the old positions back', async () => {

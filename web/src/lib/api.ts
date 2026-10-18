@@ -10,6 +10,7 @@ import type { FacetConvention } from '../../../server/src/catalog/facets.js'
 import type { LibraryEntry } from '../../../server/src/ingestion/customLists.js'
 import type { ItemSourceTags, ResetPreview, ResetResult } from '../../../server/src/catalog/reset.js'
 import type { SourceOptions } from '../../../server/src/ingestion/sourceRef.js'
+import type { VirtualizationMode } from '../../../server/src/catalog/listVirtualization.js'
 import { createLocalApi } from './api.local.js'
 /** Types mirror the server's responses; see server/src/catalog and /ingestion. */
 
@@ -272,6 +273,8 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
  */
 export interface ApiClient {
   me: () => Promise<CurrentUser>
+  /** What the server says about itself, the same for every user: the list virtualization switch (Phase 25.7). The desktop has no server and always answers `auto`. */
+  serverSettings: () => Promise<{ listVirtualization: VirtualizationMode }>
   mediaTypes: () => Promise<MediaType[]>
   lists: () => Promise<MediaList[]>
   list: (id: string) => Promise<MediaListDetail>
@@ -472,6 +475,7 @@ function expansionUrl(
 
 export const fetchApi: ApiClient = {
   me: () => request<CurrentUser>('/me'),
+  serverSettings: () => request<{ listVirtualization: VirtualizationMode }>('/server-settings'),
   mediaTypes: () => request<MediaType[]>('/media-types'),
   lists: () => request<MediaList[]>('/lists'),
   list: (id: string) => request<MediaListDetail>(`/lists/${id}`),

@@ -1,4 +1,4 @@
-import type { ButtonHTMLAttributes, ReactNode } from 'react'
+import type { ButtonHTMLAttributes, ReactNode, Ref } from 'react'
 import './Button.css'
 import { useTooltip } from '../Tooltip/useTooltip.js'
 
@@ -64,6 +64,8 @@ export interface IconButtonProps extends ButtonHTMLAttributes<HTMLButtonElement>
   size?: IconButtonSize
   /** Required — an icon button always carries an accessible name (README). */
   label: string
+  /** The button element, for a caller that has to anchor something to it without a click (the Quit question, H-015). */
+  ref?: Ref<HTMLButtonElement>
 }
 
 const ICON_SIZE_CLASS: Record<IconButtonSize, string> = {

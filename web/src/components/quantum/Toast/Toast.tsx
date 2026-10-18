@@ -16,6 +16,11 @@ export interface ToastOptions {
   /** Both or neither — an action needs somewhere to go. */
   actionLabel?: string
   onAction?: () => void
+  /**
+   * Says what is happening while a long run goes on (H-012): no timer, no action. It stays until the next toast replaces it or `hideToast`
+   * takes it away, and the live region says its sentence once.
+   */
+  sticky?: boolean
 }
 
 const TOAST_DURATION_MS = 3000
@@ -31,6 +36,8 @@ export function toastDuration(hasAction: boolean): number {
 
 export interface ToastContextValue {
   showToast: (options: ToastOptions) => void
+  /** Takes a sticky toast away; a toast that has replaced it, or any other, stays. */
+  hideToast: () => void
 }
 
 const ToastReactContext = createContext<ToastContextValue | null>(null)
@@ -51,20 +58,24 @@ export function ToastProvider({ children }: { children: ReactNode }) {
       clearTimeout(timerRef.current)
       setToast(options)
       announce(options.text)
-      timerRef.current = setTimeout(() => setToast(null), toastDuration(!!options.actionLabel))
+      if (!options.sticky) timerRef.current = setTimeout(() => setToast(null), toastDuration(!!options.actionLabel))
     },
     [announce],
   )
 
+  const hideToast = useCallback(() => {
+    setToast((current) => (current?.sticky ? null : current))
+  }, [])
+
   useEffect(() => () => clearTimeout(timerRef.current), [])
 
   return (
-    <ToastReactContext.Provider value={{ showToast }}>
+    <ToastReactContext.Provider value={{ showToast, hideToast }}>
       {children}
       {toast && (
         <div className="q-toast fixed">
           <span>{toast.text}</span>
-          {toast.actionLabel && toast.onAction && (
+          {!toast.sticky && toast.actionLabel && toast.onAction && (
             <Button
               onClick={() => {
                 clearTimeout(timerRef.current)

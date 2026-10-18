@@ -20,6 +20,18 @@ export function isFiltering(filter: ListFilter): boolean {
   )
 }
 
+/** A filter that says which rows match (text, a facet): Hide Completed is not one, it only takes away what the progress already counts (H-010). */
+export function isMatchFiltering(filter: ListFilter): boolean {
+  return filter.text.trim() !== '' || Object.values(filter.facets).some((chosen) => chosen && chosen.size > 0)
+}
+
+/** How many of a group's items a matching filter leaves, or `undefined` when it leaves them all (nothing to say, H-010). */
+export function matchedCount(items: readonly ListItem[], matching: ReadonlySet<string>): number | undefined {
+  const count = items.filter((entry) => matching.has(entry.id)).length
+
+  return count < items.length ? count : undefined
+}
+
 const contains = (haystack: string | null, needle: string) => haystack !== null && haystack.toLowerCase().includes(needle)
 
 /**

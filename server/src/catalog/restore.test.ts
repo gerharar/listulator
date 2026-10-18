@@ -374,6 +374,51 @@ describe('restoring what was deleted', () => {
       expect((await findListGroups(harness.db, ownerId, listId))!.map((g) => g.name)).toEqual(['S1'])
     })
 
+    /** A database whose first `failures` inserts into the items throw, as a connection that drops half-way through the rebuild would (28.4). */
+    const flakyInserts = (failures: number) => {
+      let failed = 0
+
+      return new Proxy(harness.db, {
+        get(target, key) {
+          const value = Reflect.get(target, key)
+          if (key === 'insert') {
+            return (table: unknown) => {
+              if (table === listItems && (failed += 1) <= failures) throw new Error('boom')
+              return target.insert(table as typeof listItems)
+            }
+          }
+          return typeof value === 'function' ? value.bind(target) : value
+        },
+      })
+    }
+
+    it('an Undo that fails part-way is tried once more and ends with the whole set (28.4)', async () => {
+      const a = await addItem('A', { group: 'S1' })
+      await addItem('B', { group: 'S1' })
+      await setListItemConsumed(harness.db, ownerId, listId, a.id, true)
+      const before = (await findListItems(harness.db, ownerId, listId))!
+      const captured = (await captureItemSet(harness.db, ownerId, listId))!
+      // The list as a Reset leaves it.
+      await deleteListItem(harness.db, ownerId, listId, a.id)
+      await addItem('Different')
+
+      // The first attempt deletes everything and then fails on its first insert: the list is empty until the retry puts it back.
+      await restoreItemSet(flakyInserts(1), ownerId, listId, captured)
+
+      const after = (await findListItems(harness.db, ownerId, listId))!
+      expect(after.map((i) => [i.id, i.title, i.orderIndex, i.group, i.consumedAt])).toEqual(
+        before.map((i) => [i.id, i.title, i.orderIndex, i.group, i.consumedAt]),
+      )
+      expect((await findListGroups(harness.db, ownerId, listId))!.map((g) => g.name)).toEqual(['S1'])
+    })
+
+    it('an Undo that fails twice reports the failure: one retry, not a loop (28.4)', async () => {
+      await addItem('A')
+      const captured = (await captureItemSet(harness.db, ownerId, listId))!
+
+      await expect(restoreItemSet(flakyInserts(2), ownerId, listId, captured)).rejects.toThrow('boom')
+    })
+
     it('touches nothing in a list that is not yours', async () => {
       await addItem('A')
       const captured = (await captureItemSet(harness.db, ownerId, listId))!

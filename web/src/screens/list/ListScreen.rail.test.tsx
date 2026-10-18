@@ -130,15 +130,13 @@ describe('the jump rail', () => {
     await open()
     expect(rowIds()).not.toContain('b1')
     const body = document.querySelector('.q-list-body') as HTMLElement
-    vi.spyOn(body, 'getBoundingClientRect').mockReturnValue({ top: 100 } as DOMRect)
-    vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function (this: HTMLElement) {
-      return { top: this.dataset['rowId'] === 'g2' ? 460 : 100 } as DOMRect
-    })
 
     fireEvent.click(within(rail()!).getByRole('button', { name: /Season 2/ }))
 
     await waitFor(() => expect(rowIds()).toContain('b1'))
-    await waitFor(() => expect(body.scrollTop).toBe(360))
+    // Where the model puts the header of Season 2: Season 1's header (47px) and its two rows (46px each). Since 25.4 the jump scrolls to
+    // the model's offset, not to a measured rectangle (a row that is not drawn has none).
+    await waitFor(() => expect(body.scrollTop).toBe(47 + 2 * 46))
     expect(store.get('list:L1:collapsed')).toBe(JSON.stringify([]))
   })
 

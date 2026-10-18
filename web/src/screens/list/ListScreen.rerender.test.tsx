@@ -131,3 +131,36 @@ describe('a tick re-renders the row that was ticked, not every row (25.0b)', () 
     expect((screen.getByLabelText('Title', { selector: '.q-pop input' }) as HTMLInputElement).value).toBe('Film 9')
   })
 })
+
+describe('carrying a block over a group re-renders that group\'s rows only (27.3)', () => {
+  const pointer = (y: number) =>
+    act(async () => void window.dispatchEvent(new MouseEvent('pointermove', { clientX: 10, clientY: y, bubbles: true, cancelable: true })))
+
+  it('the target group\'s rows are drawn again once; moving on inside the same group draws no row, nor does its other half; the loose rows are never drawn again', async () => {
+    await open()
+    const inside = document.querySelector('[data-row-id="i10"]') as HTMLElement
+    const block = document.querySelector('[data-block-key="g1"]') as HTMLElement
+    // The group's block is 100-1500: its middle is 800.
+    block.getBoundingClientRect = () => ({ top: 100, bottom: 1500, height: 1400, left: 0, right: 400, width: 400, x: 0, y: 100, toJSON: () => ({}) })
+    document.elementFromPoint = () => inside
+    fireEvent.pointerDown((document.querySelector('[data-row-id="i50"]') as HTMLElement).querySelector('.q-handle') as HTMLElement, { button: 0, clientX: 10, clientY: 40 })
+    vi.mocked(lengthLabel).mockClear()
+
+    await pointer(60)
+    expect(document.querySelectorAll('.q-item.is-hover')).toHaveLength(30)
+    // The 30 rows of the group (and the carried row, which is now being dragged), none of the other 29 loose rows.
+    expect(vi.mocked(lengthLabel).mock.calls.length).toBeGreaterThanOrEqual(30)
+    expect(vi.mocked(lengthLabel).mock.calls.length).toBeLessThanOrEqual(34)
+
+    // Moving on inside the same half of the same group changes nothing.
+    vi.mocked(lengthLabel).mockClear()
+    await pointer(300)
+    expect(vi.mocked(lengthLabel).mock.calls.length).toBe(0)
+
+    vi.mocked(lengthLabel).mockClear()
+    await pointer(1000)
+    expect(document.querySelectorAll('.q-item.is-hover')).toHaveLength(30)
+    expect(vi.mocked(lengthLabel).mock.calls.length).toBe(0)
+  })
+})
+

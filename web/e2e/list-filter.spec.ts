@@ -112,7 +112,7 @@ test('Hide Completed hides done items, keeps one ticked meanwhile, moves nothing
   }
 })
 
-test('the text filter narrows a group’s rows and shows its own count', async ({ page }) => {
+test('the text filter narrows a group’s rows and shows its own count in front of its unchanged progress', async ({ page }) => {
   const title = `e2e list-filter text ${Date.now()}`
   const id = await makeList(page.request, title, 'game', GAMES)
 
@@ -121,7 +121,8 @@ test('the text filter narrows a group’s rows and shows its own count', async (
     await page.getByPlaceholder('Filter items…').fill('assassin')
 
     await expect(rows(page)).toHaveText(['Assassin’s Creed', 'Assassin’s Creed II'])
-    await expect(page.locator('.q-group', { hasText: 'Main' })).toContainText('2 of 3')
+    // The group keeps its whole progress; the filter adds "2 shown ·" in front of it (H-010).
+    await expect(page.locator('.q-group', { hasText: 'Main' })).toContainText(/2 shown\s*·\s*0\/3 \(0%\)/)
     await expect(page.locator('.q-group', { hasText: 'Handhelds' })).toHaveCount(0)
     await page.screenshot({ path: 'test-results/filter-bar-text.png' })
 

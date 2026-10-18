@@ -25,7 +25,8 @@ export default defineConfig({
   // Vitest's default `include` already matches `*.spec.ts` too, and a
   // `@playwright/test` import crashes `vitest run`.
   test: {
-    exclude: [...defaultExclude, 'e2e/**'],
+    // `*.perf.test.ts` are the by-hand performance runs (`vitest.perf.config.ts`), not part of the suite.
+    exclude: [...defaultExclude, 'e2e/**', '**/*.perf.test.ts'],
   },
   plugins: [
     react(),

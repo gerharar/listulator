@@ -274,7 +274,18 @@ export const de: Locale = {
         other: { action: 'Beenden', question: 'Listulator beenden?' },
         note: 'Alles Gespeicherte bleibt erhalten',
         cancel: 'Abbrechen',
+        running: {
+          question: { mac: (name: string) => `Beenden, während „${name}“ umgeschrieben wird?`, other: (name: string) => `Beenden, während „${name}“ umgeschrieben wird?` },
+          note: 'Beendest du jetzt, bleibt sie halb fertig. Es dauert nur noch ein paar Sekunden.',
+          keep: 'Weiter warten',
+          confirm: { mac: 'Trotzdem beenden', other: 'Trotzdem beenden' },
+        },
       },
+    },
+    /** While a whole-list run (Reset, Restore order, an Undo) goes on and the app waits (H-015): what the disabled controls say, and the first Esc of the run. */
+    hold: {
+      wait: { reset: 'Warte, bis das Zurücksetzen fertig ist', order: 'Warte, bis die Reihenfolge wiederhergestellt ist', undo: 'Warte, bis das Rückgängigmachen fertig ist' },
+      escape: { reset: 'Die Liste wird zurückgesetzt. Warte, bis es fertig ist.', order: 'Die Reihenfolge wird wiederhergestellt. Warte, bis es fertig ist.', undo: 'Das Rückgängigmachen läuft. Warte, bis es fertig ist.' },
     },
     about: {
       title: 'Über Listulator',
@@ -720,6 +731,7 @@ export const de: Locale = {
           api: 'Zurück zur Liste aus der Suche',
         },
         computing: 'Wir rechnen aus, was sich ändern würde…',
+        resetting: 'Die Liste wird zurückgesetzt…',
         previewFailed: (message: string): string =>
           `Es ließ sich nicht ausrechnen, was sich ändern würde (${message}). Das Zurücksetzen stellt die Liste trotzdem auf die Quelle zurück.`,
         removed: (n: number): string =>
@@ -739,6 +751,10 @@ export const de: Locale = {
         sorted: 'Nach Datum sortiert — Gruppen als Blöcke verschoben.',
         orderRestored: 'Reihenfolge der Quelle wiederhergestellt.',
         resetDone: 'Auf die Quelle zurückgesetzt — Reihenfolge, Name, Beschreibung und Markierung.',
+        /** The busy toasts of a whole-list rewrite (H-012): said once, kept until the run ends. */
+        restoringOrder: 'Die Quellreihenfolge wird wiederhergestellt…',
+        undoingReset: 'Das Zurücksetzen wird rückgängig gemacht…',
+        undoingOrder: 'Die Änderung der Reihenfolge wird rückgängig gemacht…',
         undone: 'Zurücksetzen rückgängig gemacht',
         orderUndone: 'Reihenfolge wiederhergestellt',
         sortFailed: 'Die Liste konnte nicht sortiert werden',
@@ -753,6 +769,9 @@ export const de: Locale = {
         movedOnList: 'Eintrag verschoben',
         movedInside: (group: string): string => `Eintrag innerhalb von „${group}“ verschoben.`,
         onlyInsideGroup: 'Umsortieren geht nur innerhalb einer Gruppe',
+        /** The drop line of a group taller than the list, pinned to the list's edge (H-014). */
+        dropBefore: (group: string): string => `↑ Vor ${group}`,
+        dropAfter: (group: string): string => `↓ Nach ${group}`,
         undone: 'Verschieben rückgängig gemacht',
         saveFailed: 'Das Verschieben konnte nicht gespeichert werden',
         undoFailed: 'Das Verschieben ließ sich nicht rückgängig machen',
@@ -818,6 +837,12 @@ export const de: Locale = {
         show: 'Gruppen-Sprungleiste vergrößern',
         resize: 'Größe der Gruppen-Sprungleiste ändern',
       },
+      place: {
+        item: (n: number, total: number): string => `${n} von ${total}`,
+        group: (n: number, total: number): string => `Gruppe ${n} von ${total}`,
+        note: (total: number): string =>
+          `${entries(total)}. Es sind nur die Zeilen in Bildschirmnähe gezeichnet. Mit den Pfeiltasten nach oben und unten oder mit dem Filter erreicht man die übrigen.`,
+      },
       filter: {
         label: 'Einträge filtern',
         placeholder: 'Einträge filtern…',
@@ -826,7 +851,7 @@ export const de: Locale = {
         cleared: 'Filter geleert',
         total: (n: number): string => entries(n),
         shown: (shown: number, total: number): string => `${shown} von ${total} angezeigt`,
-        groupShown: (shown: number, total: number): string => `${shown} von ${total}`,
+        groupMatched: (n: number): string => `${n} angezeigt`,
         /** Hide Completed (task 18.1): the button, its hint while on, and the line when nothing is left. */
         hideDone: 'Erledigte ausblenden',
         hideDoneTip: 'Erledigte wieder anzeigen',
@@ -913,6 +938,11 @@ export const de: Locale = {
       expandGroup: (label: string): string => `${label} ausklappen`,
       collapseGroup: (label: string): string => `${label} einklappen`,
       groupItems: (n: number): string => entries(n),
+      place: {
+        item: (n: number, total: number): string => `${n} von ${total}`,
+        group: (n: number, total: number): string => `Gruppe ${n} von ${total}`,
+        note: (total: number): string => `${entries(total)}. Es sind nur die Zeilen in Bildschirmnähe gezeichnet. Die übrigen erreicht man durch Scrollen.`,
+      },
     },
     importFile: {
       chooseFile: 'Datei wählen…',

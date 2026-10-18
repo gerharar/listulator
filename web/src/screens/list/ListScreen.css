@@ -61,6 +61,12 @@
   flex: none;
 }
 
+/* A whole-list rewrite holds the toolbar, banners and rows (H-012). The dim waits 300 ms (the delay is on the busy state only, so letting go is at once): a run
+   that is quicker never flickers, and no timer is needed. */
+.q-hold { flex: none; transition: opacity 160ms linear; }
+.q-list-cols.q-hold { flex: 1; }
+.q-hold.is-busy { opacity: .45; transition-delay: 300ms; }
+
 .q-list-error {
   flex: none;
   padding: 10px 26px 0;
@@ -70,6 +76,9 @@
   flex: 1;
   min-height: 0;
   overflow-y: auto;
+  /* The screen keeps the reader's place itself (scrollAfterChange). The browser's own scroll anchoring moved the view by a line when a row was
+     moved under a group header at the top (BL-110: Chromium and WebKit), and it fights the windowed rows. */
+  overflow-anchor: none;
   padding: 0 22px 22px;
 }
 .q-list-progress {

@@ -1,3 +1,4 @@
+import { withListLock } from './listLock.js'
 import { and, eq, gte, sql } from 'drizzle-orm'
 import type { PortableDatabase } from '../db/client.js'
 import {
@@ -271,8 +272,36 @@ export async function captureItemSet(
   }
 }
 
-/** Replaces the list's items and dismissals with the captured set — undoing a Reset. */
-export async function restoreItemSet(
+/** Replaces the list's items and dismissals with the captured set — undoing a Reset. Takes its turn behind a Reset on the list (BL-103). */
+export function restoreItemSet(
+  db: PortableDatabase,
+  userId: string,
+  listId: string,
+  set: ItemSetRestore,
+): Promise<ListItem[] | undefined> {
+  return withListLock(listId, () => restoreItemSetNow(db, userId, listId, set))
+}
+
+/**
+ * `restoreItemSet` without waiting its turn: for a Reset that already holds the list and puts it back after a failure. A restore that fails
+ * part-way (the desktop's plugin calls can fail one by one, and there is no transaction to roll back, 28.4) is tried once more: it deletes
+ * every item and re-inserts the captured rows with their ids, so running it again from any partial state ends with the whole set. A second
+ * failure is the caller's to report; the list is then whatever the failure left.
+ */
+export async function restoreItemSetNow(
+  db: PortableDatabase,
+  userId: string,
+  listId: string,
+  set: ItemSetRestore,
+): Promise<ListItem[] | undefined> {
+  try {
+    return await restoreItemSetOnce(db, userId, listId, set)
+  } catch {
+    return await restoreItemSetOnce(db, userId, listId, set)
+  }
+}
+
+async function restoreItemSetOnce(
   db: PortableDatabase,
   userId: string,
   listId: string,
