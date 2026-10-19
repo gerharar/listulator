@@ -166,7 +166,7 @@ describe('AppHeader', () => {
 
       const dialog = screen.getByRole('dialog')
       expect(within(dialog).getByText('Quit while “Loki” is being rewritten?')).not.toBeNull()
-      expect(within(dialog).getByText('Quitting now leaves it half-done. It needs a few more seconds.')).not.toBeNull()
+      expect(within(dialog).getByText('Quitting now leaves it half-done. It needs juuuust a few more seconds.')).not.toBeNull()
       expect(within(dialog).getByRole('button', { name: 'Quit anyway' })).not.toBeNull()
       expect(within(dialog).queryByText("Everything you've saved stays")).toBeNull()
 

@@ -60,7 +60,7 @@ describe('Esc over the layer stack (H-015)', () => {
     act(() => void (first = hold({ kind: 'reset', listName: 'Loki' })))
 
     esc()
-    await waitFor(() => expect(said()).toBe('The list is being reset. Wait until it finishes.'))
+    await waitFor(() => expect(said()).toBe('The list is being reset. Please wait until it finishes.'))
     expect(screen.getByTestId('stack').textContent).toBe('home,list')
 
     // A second press in the same run is silent: the live region is cleared by hand, and it stays empty.
@@ -73,7 +73,7 @@ describe('Esc over the layer stack (H-015)', () => {
     let second!: NavigationHold
     act(() => void (second = hold({ kind: 'undo', listName: 'Loki' })))
     esc()
-    await waitFor(() => expect(said()).toBe('The undo is running. Wait until it finishes.'))
+    await waitFor(() => expect(said()).toBe('The undo is running. Please wait until it finishes.'))
     act(() => second.release())
   })
 })
