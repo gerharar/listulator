@@ -69,6 +69,11 @@
       "signingIdentity": "-",
       "minimumSystemVersion": "11.0"
     },
+    "windows": {
+      "nsis": {
+        "installerHooks": "./nsis/hooks.nsh"
+      }
+    },
     "android": {
       "debugApplicationIdSuffix": ".debug"
     }
