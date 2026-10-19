@@ -317,7 +317,7 @@ export const en = {
         /** While a whole-list run (Reset, Restore order, an Undo) goes on: leaving now leaves that list half-done. Design's words (H-015). */
         running: {
           question: { mac: (name: string) => `Quit while “${name}” is being rewritten?`, other: (name: string) => `Exit while “${name}” is being rewritten?` },
-          note: 'Quitting now leaves it half-done. It needs a few more seconds.',
+          note: 'Quitting now leaves it half-done. It needs juuuust a few more seconds.',
           keep: 'Keep waiting',
           confirm: { mac: 'Quit anyway', other: 'Exit anyway' },
         },
@@ -326,7 +326,7 @@ export const en = {
     /** While a whole-list run (Reset, Restore order, an Undo) goes on and the app waits (H-015): what the disabled controls say, and the first Esc of the run. */
     hold: {
       wait: { reset: 'Wait until the reset finishes', order: 'Wait until the order is restored', undo: 'Wait until the undo finishes' },
-      escape: { reset: 'The list is being reset. Wait until it finishes.', order: 'The order is being restored. Wait until it finishes.', undo: 'The undo is running. Wait until it finishes.' },
+      escape: { reset: 'The list is being reset. Please wait until it finishes.', order: 'The order is being restored. Please wait until it finishes.', undo: 'The undo is running. Please wait until it finishes.' },
     },
     /** The About layer (task 11.21). Source names, hosts, links and the TMDB notice are not copy: `screens/about/sources.ts`. */
     about: {
