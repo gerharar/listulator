@@ -162,18 +162,18 @@ describe('ListMorePopover', () => {
       ).toBeTruthy()
     })
 
-    it('says last how many notes you wrote will be cleared, in the same sentence (H-003)', () => {
+    it('says last how many notes you wrote will be deleted, in the same sentence (H-003)', () => {
       renderPopover({ mode: 'reset', preview: ready(2, 1, 5, 3) })
 
       expect(
-        screen.getByText('2 items you added will be deleted, 1 item you removed will be resurrected, 5 done marks will be cleared and 3 notes you wrote will be cleared'),
+        screen.getByText('2 items you added will be deleted, 1 item you removed will be resurrected, 5 done marks will be cleared and 3 notes you wrote will be deleted'),
       ).toBeTruthy()
     })
 
     it('says "1 note", and says it alone when it is all a Reset would take', () => {
       renderPopover({ mode: 'reset', source: 'canonical', preview: ready(0, 0, 0, 1) })
 
-      expect(screen.getByText('1 note you wrote will be cleared')).toBeTruthy()
+      expect(screen.getByText('1 note you wrote will be deleted')).toBeTruthy()
       expect(screen.queryByText(/There is no stuff/)).toBeNull()
     })
 

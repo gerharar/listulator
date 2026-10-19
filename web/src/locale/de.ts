@@ -683,7 +683,7 @@ export const de: Locale = {
         notePlaceholderCtrl: 'Alles, was du dir dazu merken willst. Strg+Enter speichert.',
         notePlaceholderCmd: 'Alles, was du dir dazu merken willst. ⌘+Enter speichert.',
         noteCounter: (used: number, max: number): string => `${used.toLocaleString('de-DE')} / ${max.toLocaleString('de-DE')}`,
-        yearPlaceholder: '1994, 199?',
+        yearPlaceholder: '1994, 19??',
         titleRequired: 'Ein Eintrag braucht einen Titel',
         minutesForm: 'Nimm Minuten (95), Stunden und Minuten (1h 35m) oder 1:35',
         minutesZero: (standard: number): string => `0 ist keine Dauer. Lass das Feld leer, dann gilt der Standard (${standard})`,

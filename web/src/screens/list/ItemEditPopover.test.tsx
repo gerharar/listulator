@@ -222,7 +222,7 @@ describe('ItemEditPopover: the year (H-004, H-005)', () => {
     renderPopover()
 
     expect(year().value).toBe('2021')
-    expect(year().placeholder).toBe('1994, 199?')
+    expect(year().placeholder).toBe('1994, 19??')
     expect(year().maxLength).toBe(4)
     // Beside the duration, on the same line: Year first.
     expect(year().compareDocumentPosition(minutes()) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()

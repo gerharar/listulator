@@ -33,9 +33,9 @@ describe('the update-status block, in English', () => {
     ['latest', { status: 'Listulator is up to date', version: 'Version 1.0.0', button: 'Check For Updates', disabled: false }],
     ['checking', { status: 'Checking…', version: 'Version 1.0.0', button: 'Checking…', disabled: true }],
     ['available', { status: 'An update is available', version: 'Version 1.0.0 → 1.1.0', button: 'Download Update', disabled: false }],
-    ['error', { status: 'Couldn’t check for updates', version: 'Version 1.0.0', button: 'Try Again', disabled: false }],
+    ['error', { status: "Couldn't check for updates", version: 'Version 1.0.0', button: 'Try Again', disabled: false }],
     ['unavailable', { status: 'Checking for updates is yet TBD', version: 'Version 1.0.0', button: 'Check For Updates', disabled: true }],
-    ['installError', { status: 'Couldn’t install the update', version: 'Version 1.0.0 → 1.1.0', button: 'Try Again', disabled: false }],
+    ['installError', { status: "Couldn't install the update", version: 'Version 1.0.0 → 1.1.0', button: 'Try Again', disabled: false }],
     ['downloading', { status: 'Downloading update…', version: 'Version 1.0.0 → 1.1.0', button: 'Downloading…', disabled: true }],
     ['installing', { status: 'Installing update…', version: 'Version 1.0.0 → 1.1.0', button: 'Installing…', disabled: true }],
     ['restarting', { status: 'Restarting…', version: 'Version 1.0.0 → 1.1.0', button: 'Restarting…', disabled: true }],
@@ -99,9 +99,9 @@ describe('zero layout shift: every variant is in the page, only one is shown', (
       'Listulator is up to date',
       'Checking…',
       'An update is available',
-      'Couldn’t check for updates',
+      "Couldn't check for updates",
       'Checking for updates is yet TBD',
-      'Couldn’t install the update',
+      "Couldn't install the update",
       'Downloading update…',
       'Installing update…',
       'Restarting…',
@@ -194,7 +194,7 @@ describe('the buttons', () => {
       ['ru', 'downloading', 'Скачиваем обновление…', 'Скачиваем…'],
       ['ru', 'installing', 'Устанавливаем обновление…', 'Устанавливаем…'],
       ['ru', 'restarting', 'Перезапускаем…', 'Перезапускаем…'],
-      ['ru', 'installError', 'Не удалось установить обновление', 'Повторить'],
+      ['ru', 'installError', 'Не шмог обновить Listulator', 'Повторить'],
     ] as const) {
       setActiveLanguage(language)
       renderBlock(state, { next: '1.1.0' })

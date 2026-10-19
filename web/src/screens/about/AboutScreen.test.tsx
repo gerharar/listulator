@@ -278,8 +278,8 @@ describe('checking for updates when About opens (task 13.3)', () => {
     renderAbout(checker)
 
     await act(async () => fail())
-    expect(heard()[0]).toBe('Couldn’t check for updates')
-    await waitFor(() => expect(spoken()).toBe(`Couldn’t check for updates Version ${APP_VERSION}`))
+    expect(heard()[0]).toBe("Couldn't check for updates")
+    await waitFor(() => expect(spoken()).toBe(`Couldn't check for updates Version ${APP_VERSION}`))
 
     fireEvent.click(screen.getByRole('button', { name: 'Try Again' }))
     expect(check).toHaveBeenCalledTimes(2)
@@ -333,8 +333,8 @@ describe('checking for updates when About opens (task 13.3)', () => {
 
     await act(async () => fireEvent.click(screen.getByRole('button', { name: 'Download Update' })))
 
-    expect(heard()).toEqual(['Couldn’t install the update', `Version ${APP_VERSION} → 9.9.9`])
-    await waitFor(() => expect(spoken()).toBe(`Couldn’t install the update Version ${APP_VERSION} → 9.9.9`))
+    expect(heard()).toEqual(["Couldn't install the update", `Version ${APP_VERSION} → 9.9.9`])
+    await waitFor(() => expect(spoken()).toBe(`Couldn't install the update Version ${APP_VERSION} → 9.9.9`))
     fireEvent.click(screen.getByRole('button', { name: 'Try Again' }))
     expect(check).toHaveBeenCalledTimes(2)
     expect(heard()[0]).toBe('Checking…')
