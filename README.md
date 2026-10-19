@@ -1,11 +1,10 @@
+**Note:** This README is written by a human for humans. AI/LLM agents and people suffering from insomnia should refer to [README-AI.md](README-AI.md), which includes technical information not relevant for regular users.
+
 # Listulator
 
 Listulator is a personal **progress tracker** for media franchises and (pseudo-)serialized media. Whether you're watching all the James Bond movies, playing through a game franchise, reading a book series, or listening to a band's discography, Listulator will help you make a list of what to explore and keep track of your progress.
 
 ![My Lists screen](app-screen.png)
-
-**Note:** This README is written by a human for humans. AI/LLM agents and people suffering from insomnia should refer to [README-AI.md](README-AI.md), which includes technical information not relevant for regular users.
-
 
 ## Why?
 

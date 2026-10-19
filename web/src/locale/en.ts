@@ -201,9 +201,9 @@ export const en = {
     'list.fileItemMissingTitle': (p: { index: number }): string => `Alzheimer's relapse detected: cannot import list, item ${p.index} has no title`,
     'list.fileItemNotesTooLong': (p: { index: number; max: number }): string => `Marcel Proust reincarnation detected: cannot import list, item ${p.index}'s notes are over ${p.max} characters`,
     'list.alreadyExists': (): string => `Fastest hand in the West detected: this list already exists, so nothing was restored`,
-    'item.invalidYear': (): string => "Use four digits, like 1994, or 199? / 19?? if you're unsure of the end",
-    'item.invalidMinutes': (): string => 'A duration is a whole number of minutes, from 1 to 99,999',
-    'item.noteTooLong': (): string => 'A note is at most 2,048 characters',
+    'item.invalidYear': (): string => "Years require all four digits or '?' if unsure (199? / 19??)",
+    'item.invalidMinutes': (): string => 'A duration is a whole number of minutes from 1 to 99999',
+    'item.noteTooLong': (): string => 'Take it easy, Marcel Proust: a note can only have up to 2048 characters',
     'group.nameEmpty': (): string => 'A man needs a group name',
     'group.nameTaken': (): string => `Alzheimer's relapse detected: this list already has a group with such name`,
     'group.notEmpty': (): string => 'You can delete a group only when you embrace its emptiness',
@@ -340,7 +340,7 @@ export const en = {
       upToDate: 'Listulator is up to date',
       checking: 'Checking…',
       available: 'An update is available',
-      failed: 'Couldn’t check for updates',
+      failed: 'Couldn\'t check for updates',
       download: 'Download Update',
       retry: 'Try Again',
       /** The update in progress (task 20.11; owner: text only, wording is a placeholder): status lines, then the disabled button's labels. */
@@ -350,7 +350,7 @@ export const en = {
       downloading: 'Downloading…',
       installing: 'Installing…',
       /** A download, signature check or install that failed after a check had succeeded. */
-      installFailed: 'Couldn’t install the update',
+      installFailed: 'Couldn\'t install the update',
       /** The link beside the version line, to the repository's CHANGELOG.md. */
       changelog: 'Changelog',
       legal: 'Licensing and notices',
@@ -586,7 +586,7 @@ export const en = {
       itemsPlaceholder: 'First item\nSecond item\n\nA group:\nThird item\nFourth item',
       itemsHint: 'Lines ending in a colon or starting with # open a group that lasts until the next one',
       /** Added after the hint in every category (H-004): a year in brackets at the end of a line is the item's year. */
-      yearHint: "A year in brackets at the end of a line is the item's year: Fast Five (2011), or (199?) when you only know the decade",
+      yearHint: "A year in brackets at the end of a line is the item's year: (2011), or (199?) when you only know the decade",
       statusLabel: 'Status',
       create: 'Create List',
       creating: 'Creating…',
@@ -777,21 +777,21 @@ export const en = {
         editYear: 'Year',
         editNote: 'Note',
         /** The shortcut is said in the field itself, so nothing appears or goes while it has the cursor (H-003). */
-        notePlaceholderCtrl: 'Anything you want to remember about it. Ctrl+Enter saves.',
-        notePlaceholderCmd: 'Anything you want to remember about it. ⌘+Enter saves.',
+        notePlaceholderCtrl: 'A short note about this item for yourself. Ctrl+Enter saves.',
+        notePlaceholderCmd: 'A short note about this item for yourself. ⌘+Enter saves.',
         /** From 1,800 characters on (H-003); the number is written the way the language writes it. */
         noteCounter: (used: number, max: number): string => `${used.toLocaleString('en-US')} / ${max.toLocaleString('en-US')}`,
-        yearPlaceholder: '1994, 199?',
+        yearPlaceholder: '1994, 19??',
         /** Under a field of the Edit window that is wrong (H-004, H-006, H-007). The owner rewords the year's range sentences. */
         titleRequired: 'An item needs a title',
-        minutesForm: 'Use minutes (95), hours and minutes (1h 35m) or 1:35',
-        minutesZero: (standard: number): string => `0 isn't a duration. Leave it empty to use the default (${standard})`,
-        minutesRange: "That's over 99,999 minutes",
+        minutesForm: 'Use minutes (95), hours and minutes (1h 35m), or simply 1:35',
+        minutesZero: (standard: number): string => `0 won't do. Put at least 1 here or leave the field empty to use the default (${standard})`,
+        minutesRange: "That's over 99999 minutes! No.",
         /** The Duration field's placeholder: the category's default, which an empty field means. */
         minutesPlaceholder: (standard: number): string => `${standard} (default)`,
-        yearForm: "Use four digits, like 1994, or 199? / 19?? if you're unsure of the end",
-        yearTooEarly: 'The earliest year is 1000',
-        yearTooLate: (typed: string): string => `${typed} is too far ahead. The latest year is 2100`,
+        yearForm: "Years require all four digits or '?' if unsure (199? / 19??)",
+        yearTooEarly: "Don't tell me something was released before the year 1000...",
+        yearTooLate: (typed: string): string => `${typed}? You from the future or something? Don't give me anything beyond 2100, deal?`,
         editGroup: 'Group',
         discard: 'Don\'t Save',
         save: 'Save',
@@ -811,7 +811,7 @@ export const en = {
         titlePlaceholder: 'Add an item…',
         yearLabel: 'Year',
         yearPlaceholder: 'Year',
-        titleOrGroupRequired: 'Type a title, or a new group name to add an empty group',
+        titleOrGroupRequired: 'Type an item title or a new group name',
         minutesLabel: 'Minutes',
         groupLabel: 'Group',
         add: 'Add',
@@ -840,7 +840,7 @@ export const en = {
         removed: (n: number): string => `${n} ${selectPlural(n, 'en', { one: 'item', other: 'items' })} you added will be deleted`,
         restored: (n: number): string => `${n} ${selectPlural(n, 'en', { one: 'item', other: 'items' })} you removed will be resurrected`,
         cleared: (n: number): string => `${n} done ${selectPlural(n, 'en', { one: 'mark', other: 'marks' })} will be cleared`,
-        notesCleared: (n: number): string => `${n} ${selectPlural(n, 'en', { one: 'note', other: 'notes' })} you wrote will be cleared`,
+        notesCleared: (n: number): string => `${n} ${selectPlural(n, 'en', { one: 'note', other: 'notes' })} you wrote will be deleted`,
         joinCost: (parts: readonly string[]): string =>
           parts.length <= 1
             ? `${parts[0]}`
@@ -1062,7 +1062,7 @@ export const en = {
     importFile: {
       chooseFile: 'Choose File…',
       boxLabel: 'Or Paste YAML Here',
-      emptyRequired: 'Choose a file or paste YAML first',
+      emptyRequired: 'Hellooo, give me something to import first',
       boxPlaceholder:
         'title: All Jackie Chan Movies\ncategory: movie\nitems:\n  - { title: Drunken Master, year: 1978 }',
       import: 'Import',
