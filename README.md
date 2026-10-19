@@ -159,9 +159,9 @@ A: Sure, list contributions are always welcome. Refer to [CONTRIBUTING.md](CONTR
 
 
 <details>
-<summary><strong>Q: Ctrl+F doesn't find everything in a very long list. Can I make it draw every row?</strong></summary>
+<summary><strong>Q: Ctrl+F doesn't find stuff in a very long list. What the?</strong></summary>
 
-A: From version 1.1.0, a list of 200 or more rows is drawn a screenful at a time, which is what keeps a list of tens of thousands of items fast; the browser's find-in-page only sees the rows that are drawn, and the filter box above the list (which searches every item and its notes) is the way to find things. If you'd rather have every row on the page, or you want to rule it out while chasing a problem, you can turn it off; [the guide](guides/long-lists.md) shows how, for the desktop app, the browser and a self-hosted server. The Preview of a very long source list is drawn the same way, and the same setting covers it. Very long lists get slow with it off.
+A: Use **Filter** feature instead. Starting with version 1.1.0, a list of 200 or more rows is drawn in batches ("a screenful at a time", as LLM puts it), which is why working with large lists feels just as responsive as working with small ones. **Ctrl+F** only sees the rows that are drawn, so if you're looking for something that's not in the currently drawn batch, you're out of luck. 
 
 </details>
 
