@@ -142,7 +142,7 @@ test('the controls that wait say why when hovered, disabled as they are, in both
     }
     // Esc during the run changes nothing and says why once.
     await page.keyboard.press('Escape')
-    await expect(page.locator('.q-live')).toHaveText('The list is being reset. Wait until it finishes.')
+    await expect(page.locator('.q-live')).toHaveText('The list is being reset. Please wait until it finishes.')
     await expect(page.getByRole('heading', { name: new RegExp(`^${title}`) })).toBeVisible()
   } finally {
     await page.request.delete(`/api/lists/${id}`)
