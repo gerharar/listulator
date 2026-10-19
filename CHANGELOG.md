@@ -10,25 +10,28 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 	- BTW, did you know you can paste the playlist URL from YouTube into Listulator's YouTube search to get a list based on this playlist? Well, now you do!
 	- Items in **TV Series** will show links only if the individual episode names in the list start with an episode code like *S01E02*
 	- Items in **Games** take their time to get their link, please be patient (finding slugs requires moving at a slug's pace, apparently)
-- Personal notes (up to 2048 characters) can be added in the **Edit** window for any item. To see a note for a given item while browsing a list, click **(i)** (only shown if there's a note present). Curator notes from Canonical Lists are shown separately in the same window, if they're present
-	- List filter now also searches in notes -- if it finds something, the **(i)** will change its color
+- Personal notes (up to 2048 characters) can be added in the **Edit** window for any item. To see a note for a given item while browsing a list, click **(i)** (only shown if there's a note present). Curator notes from Canonical Lists are shown separately in the same card, if they're present
+	- List filter now also searches in notes. If it finds something that's only present in a note, the **(i)** will change its color
 	- **Reset** clears your notes, **Undo** resurrects them. Other operations like sorting, reordering, or updating your list do not touch your notes
 	- List exports do not include your notes
 - You can now specify a year when adding or editing an item. Don't know the exact year? No worries, the app also accepts *?* where applicable (example: *199?* or *20??*)
+	- Lists added manually via **Use Hands** can now take a year in closing brackets, for example: *Fast Five (2011)*
 - Item durations are now accepted in more than just minutes (*95*): you can also use *1h 35m*, *1h35m*, or *1:35*
 
 ### Improvements
 
-- Listulator now supports lists up to 50000 items
+- Listulator now supports lists up to 50000 items for imported and curated lists. Lists made from a connector search (TMDB, IGDB, and so on) are limited to 10000 items
 	- Large lists now open fast(er) and scroll smoothly
+	- Previews of large lists are also faster now
 - **Filter** field now has an **x** button to clear the typed text. Alternatively, you can hit **Esc** to do the same
 - Forms now have proper validation and show what's wrong instead of silently disabling buttons
 - Improved UX and overall clarity of dragging items and groups around, especially when you rearrange a group across other large groups that don't fit the screen
 	- Removed sudden auto-folding of all groups when stuff was dragged around. Only the group you're dragging is now collapsed automatically during the dragging
-- **Reset**, **Restore Order**, and **Undo** now prevent users from accidentally messing up their lists when these tasks are running on large lists (we're talking thousands of items). This is done by blocking most operations (except quitting the app) during these tasks
+- **Reset**, **Restore Source Order**, and **Undo** now prevent users from accidentally messing up their lists when these tasks are running on large lists (we're talking thousands of items). This is done by blocking most operations (except quitting the app) during these tasks
 - Listulator will now warn users who try to quit it when a long-running task (like resetting a 30k-item list) is running
-	- Known limitation: **Cmd+Q** on Mac bypasses this warning, so if you accidentally screw up your database by quitting mid-task, launch the app and run the task again (unless it was **Undo** -- my condolences then)
+	- Known limitation: quitting the app on Mac via **Cmd+Q** or the app menu bypasses this warning. If you accidentally screw up your database by quitting mid-task, launch the app and run the task again (unless it was **Undo** -- my condolences then)
 - Estimated item length is now marked with *≈*, so that you know it's not an exact measurement, but merely a shot in the dark
+- Group headers now show how many items in them match your filter
 
 ### Fixes
 
