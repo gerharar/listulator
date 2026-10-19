@@ -38,17 +38,20 @@ describe('the installer hooks', () => {
     expect((text.match(/\$\{If(?:Not)?\}\s/g) ?? []).length).toBe((text.match(/\$\{EndIf\}/g) ?? []).length)
   })
 
-  it('write the installer trace only in update mode, and only into the app data folder', () => {
-    const writes = text.split('\n').filter((line) => line.includes('FileOpen'))
-    expect(writes).toHaveLength(1)
-    expect(writes[0]).toContain('$APPDATA\\${BUNDLEID}\\update-installer-trace.txt')
-    // Both hooks reach the trace through the update-mode test.
-    expect((text.match(/\$\{If\} \$UpdateMode = 1/g) ?? []).length).toBe(2)
+  it('write only the two trace files, and only where the app data folder already is', () => {
+    const opens = text.split('\n').filter((line) => line.includes('FileOpen'))
+    expect(opens).toHaveLength(2)
+    expect(opens[0]).toContain('$APPDATA\\${BUNDLEID}\\update-installer-trace.txt')
+    expect(opens[1]).toContain('$APPDATA\\${BUNDLEID}\\update-installer-trace-end.txt')
+    // Each write sits inside the test for the folder, so a fresh install creates nothing.
+    expect((text.match(/\$\{If\} \$\{FileExists\} "\$APPDATA\\\$\{BUNDLEID\}\\\*\.\*"/g) ?? []).length).toBe(2)
   })
 
-  it('touch no file outside that one trace', () => {
-    const deletes = text.split('\n').filter((line) => /^\s*(Delete|RMDir|RmDir)\b/.test(line))
-    expect(deletes).toHaveLength(1)
-    expect(deletes[0]).toContain('update-installer-trace.txt')
+  it('delete and remove nothing', () => {
+    expect(text.split('\n').filter((line) => /^\s*(Delete|RMDir|RmDir)\b/.test(line))).toEqual([])
+  })
+
+  it('leave the stack as it found it: as many Pop as Push', () => {
+    expect((text.match(/^\s*Push /gm) ?? []).length).toBe((text.match(/^\s*Pop /gm) ?? []).length - (text.match(/^\s*Pop \$\{reg\}$/gm) ?? []).length)
   })
 })
