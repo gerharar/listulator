@@ -59,7 +59,71 @@ jobs:
           npm run tauri:build -w @listulator/desktop -- --bundles nsis --config src-tauri/tauri.updater-test.conf.json -- --locked
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
+      - name: Experiments, how to get the debugging port out of the app
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Continue'
+          function Mark($text) { "[{0}] {1}" -f ([DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds()), $text }
+          $installer = Get-ChildItem apps/desktop/src-tauri/target/release/bundle/nsis/*.exe | Select-Object -First 1
+          Start-Process -FilePath $installer.FullName -ArgumentList '/S' -Wait
+          $dir = Join-Path $env:LOCALAPPDATA 'ListulatorUpdaterTest'
+          $exe = Get-ChildItem $dir -Filter *.exe | Where-Object { $_.Name -notmatch 'uninstall' } | Select-Object -First 1
+          function Stop-App { Get-Process | Where-Object { $_.Path -eq $exe.FullName } | Stop-Process -Force -ErrorAction SilentlyContinue; Get-Process msedgewebview2 -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue; Start-Sleep -Seconds 3 }
+          function Report($name) {
+            Start-Sleep -Seconds 12
+            $browser = Get-CimInstance Win32_Process -Filter "Name='msedgewebview2.exe'" | Where-Object { $_.CommandLine -notmatch '--type=' -and $_.CommandLine -match 'embedded-browser-webview' } | Select-Object -First 1
+            if ($browser) { Mark ("[$name] browser process command line: " + ($browser.CommandLine -replace '\s+', ' ')) } else { Mark "[$name] no WebView2 browser process" }
+            Mark ("[$name] flag in the command line: " + [bool]($browser -and $browser.CommandLine -match 'remote-debugging-port'))
+            try { Mark ("[$name] port 9222 answers: " + (Invoke-RestMethod http://127.0.0.1:9222/json/version -TimeoutSec 3).Browser) } catch { Mark "[$name] port 9222: no answer" }
+          }
+          Mark ('env before: ' + ((Get-ChildItem env:WEBVIEW2* | ForEach-Object { $_.Name + '=' + $_.Value }) -join '; '))
+
+          Stop-App
+          $env:WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS = '--remote-debugging-port=9222'
+          Start-Process -FilePath $exe.FullName
+          Report 'E1 env set in the script, Start-Process'
+          Stop-App
+
+          $info = New-Object System.Diagnostics.ProcessStartInfo
+          $info.FileName = $exe.FullName
+          $info.UseShellExecute = $false
+          $info.EnvironmentVariables['WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS'] = '--remote-debugging-port=9222'
+          [void][System.Diagnostics.Process]::Start($info)
+          Report 'E2 ProcessStartInfo with its own environment'
+          Stop-App
+
+          cmd.exe /c "set WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS=--remote-debugging-port=9222&& start `"`" `"$($exe.FullName)`""
+          Report 'E3 cmd /c start'
+          Stop-App
+
+          $env:WEBVIEW2_USER_DATA_FOLDER = 'C:\wv2-fresh-profile'
+          Start-Process -FilePath $exe.FullName
+          Report 'E4 env plus a fresh WebView2 user data folder'
+          Stop-App
+          Remove-Item Env:WEBVIEW2_USER_DATA_FOLDER
+
+          # The supported route: tauri-driver + msedgedriver (the version of the installed WebView2 runtime).
+          $runtime = (Get-ItemProperty 'HKLM:\SOFTWARE\WOW6432Node\Microsoft\EdgeUpdate\Clients\{F3017226-FE2A-4295-8BDF-00C3A9A7E4C5}').pv
+          Mark "WebView2 runtime $runtime"
+          cargo install tauri-driver --locked
+          Mark ('tauri-driver installed: ' + (Test-Path "$env:USERPROFILE\.cargo\bin\tauri-driver.exe"))
+          try {
+            Invoke-WebRequest "https://msedgedriver.microsoft.com/$runtime/edgedriver_win64.zip" -OutFile edgedriver.zip
+            Expand-Archive edgedriver.zip -DestinationPath edgedriver -Force
+            Mark ('msedgedriver: ' + (Get-ChildItem edgedriver -Filter msedgedriver.exe | Select-Object -First 1).FullName)
+          } catch { Mark ('msedgedriver download failed: ' + $_.Exception.Message) }
+          $driver = Start-Process -FilePath "$env:USERPROFILE\.cargo\bin\tauri-driver.exe" -ArgumentList '--native-driver', (Join-Path (Get-Location) 'edgedriver\msedgedriver.exe') -PassThru
+          Start-Sleep -Seconds 4
+          $env:SPIKE_APP = $exe.FullName
+          node scripts/spike/webdriver-probe.mjs
+          Mark ("webdriver probe exit code " + $LASTEXITCODE)
+          Stop-Process -Id $driver.Id -Force -ErrorAction SilentlyContinue
+          Stop-App
+          $uninstaller = Join-Path $dir 'uninstall.exe'
+          if (Test-Path $uninstaller) { Start-Process -FilePath $uninstaller -ArgumentList '/S' -Wait }
+
       - name: Install, start, drive, then update the way the updater does
+        continue-on-error: true
         shell: pwsh
         env:
           WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS: --remote-debugging-port=9222 --remote-allow-origins=*
