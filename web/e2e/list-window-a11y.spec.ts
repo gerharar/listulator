@@ -75,7 +75,8 @@ test('a row with an open Edit window stays in the page when the list is scrolled
 
   try {
     await openList(page, title)
-    await page.getByRole('button', { name: 'Edit Issue 3' }).click()
+    // Exact: a name is matched as a substring, and whenever Issue 30 to 39 are drawn too, 'Edit Issue 3' is eleven buttons.
+    await page.getByRole('button', { name: 'Edit Issue 3', exact: true }).click()
     await expect(page.getByRole('dialog')).toBeVisible()
 
     await setScroll(page, 3000 * 46)

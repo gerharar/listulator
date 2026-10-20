@@ -8,6 +8,8 @@ import { expect, test } from '@playwright/test'
  * is none, so a database that already has lists is left exactly as it is (Phase 31, task 31.1).
  */
 test('the server has a list, so Home shows', async ({ request }) => {
+  // Playwright counts the app as up when Vite answers on 5173, which can be before the API behind its proxy is listening.
+  await expect.poll(async () => (await request.get('/api/lists')).ok(), { timeout: 30_000 }).toBe(true)
   const lists = (await (await request.get('/api/lists')).json()) as unknown[]
   if (lists.length > 0) return
 

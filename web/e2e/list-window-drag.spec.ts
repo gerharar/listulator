@@ -604,10 +604,12 @@ test('holding the pointer at the bottom edge scrolls on, faster the longer it is
     // Counts the frames in which no row (and no spacer's absence of one) is under the held pointer.
     await page.evaluate(
       ([px, py]) => {
-        const w = window as unknown as { __miss: number; __run: boolean }
+        const w = window as unknown as { __miss: number; __frames: number; __run: boolean }
         w.__miss = 0
+        w.__frames = 0
         w.__run = true
         const tick = () => {
+          w.__frames += 1
           if (!document.elementFromPoint(px!, py!)?.closest('[data-drag-key]')) w.__miss += 1
           if (w.__run) requestAnimationFrame(tick)
         }
@@ -617,6 +619,7 @@ test('holding the pointer at the bottom edge scrolls on, faster the longer it is
     )
     await page.waitForTimeout(1000)
     const early = await scrollTop(page)
+    const earlyFrames = await page.evaluate(() => (window as unknown as { __frames: number }).__frames)
     await page.waitForTimeout(3000)
     const late = await scrollTop(page)
     const miss = await page.evaluate(() => {
@@ -625,7 +628,9 @@ test('holding the pointer at the bottom edge scrolls on, faster the longer it is
       return w.__miss
     })
 
-    expect(early).toBeGreaterThan(500)
+    // The autoscroll moves a fixed distance per FRAME (useRowDrag.ts), so how far it gets in a second is the frame rate times that: about 60
+    // frames on a Mac (the old '500 px' was 8 px a frame), a handful in headless WebKit on a CI runner with no GPU. Judge the distance per frame.
+    expect(early).toBeGreaterThan(8 * earlyFrames)
     // The second three seconds cover more than three times the first second: it speeds up while held.
     expect(late - early).toBeGreaterThan(3 * early)
     expect(miss).toBeLessThanOrEqual(2)
