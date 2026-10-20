@@ -112,7 +112,7 @@ jobs:
           Get-ChildItem (Join-Path $env:APPDATA 'com.listulator.desktop.updatertest') -ErrorAction SilentlyContinue | Select-Object Name, Length | Format-Table | Out-String
           foreach ($name in 'update-installer-trace.txt', 'update-installer-trace-end.txt') {
             $file = Join-Path (Join-Path $env:APPDATA 'com.listulator.desktop.updatertest') $name
-            if (Test-Path $file) { "--- $name"; Get-Content $file } else { "--- $name: not there" }
+            if (Test-Path $file) { "--- $name"; Get-Content $file } else { "--- ${name}: not there" }
           }
 
           # 6. Leave nothing behind.
