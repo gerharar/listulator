@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import type { MediaList, MediaType } from '../../../lib/api.js'
 import { api } from '../../../lib/api.js'
@@ -862,6 +862,28 @@ describe('Home updates (task 10.22c)', () => {
 
   describe('while a list is having its lengths looked up (15.7)', () => {
     afterEach(() => vi.useRealTimers())
+    // A test that stops half-way must not leave its queued answers (mockResolvedValueOnce) for the next one: clearAllMocks keeps them.
+    beforeEach(() => vi.mocked(api.lists).mockReset())
+
+    // Testing Library's waitFor looks again on a setInterval, which these tests fake (the screen's own poll is that interval): it would
+    // then look again only when the DOM changes, and a read that was merely CALLED changes nothing. How soon the call comes depends on
+    // how busy the machine is (React schedules the effect after the act() flush), so on a slow runner the first look can be too early
+    // and nothing prompts a second one. This looks again on a real timer (setTimeout is not faked here).
+    async function until(check: () => void, timeoutMs = 3000): Promise<void> {
+      const end = Date.now() + timeoutMs
+      for (;;) {
+        try {
+          check()
+
+          return
+        } catch (error) {
+          if (Date.now() > end) throw error
+          await act(async () => {
+            await new Promise((resolve) => setTimeout(resolve, 10))
+          })
+        }
+      }
+    }
 
     const filling = (pending: number) => list({ title: 'Pixar', stats: { ...list().stats, totalItems: 100, consumedItems: 0, timeRemainingMinutes: 12000, runtimesPending: pending } })
 
@@ -873,15 +895,15 @@ describe('Home updates (task 10.22c)', () => {
 
       renderHome()
 
-      await waitFor(() => expect(screen.getByText('≈200h left')).not.toBeNull())
+      await until(() => expect(screen.getByText('≈200h left')).not.toBeNull())
       expect(api.lists).toHaveBeenCalledTimes(1)
 
       await act(async () => void vi.advanceTimersByTime(3000))
-      await waitFor(() => expect(api.lists).toHaveBeenCalledTimes(2))
+      await until(() => expect(api.lists).toHaveBeenCalledTimes(2))
       expect(screen.getByText('≈200h left')).not.toBeNull()
 
       await act(async () => void vi.advanceTimersByTime(3000))
-      await waitFor(() => expect(screen.getByText('200h left')).not.toBeNull())
+      await until(() => expect(screen.getByText('200h left')).not.toBeNull())
       expect(api.lists).toHaveBeenCalledTimes(3)
 
       await act(async () => void vi.advanceTimersByTime(30_000))
@@ -894,7 +916,7 @@ describe('Home updates (task 10.22c)', () => {
       vi.mocked(api.lists).mockResolvedValue([list()])
 
       renderHome()
-      await waitFor(() => expect(screen.getByText('Breaking Bad')).not.toBeNull())
+      await until(() => expect(screen.getByText('Breaking Bad')).not.toBeNull())
       await act(async () => void vi.advanceTimersByTime(30_000))
 
       expect(api.lists).toHaveBeenCalledTimes(1)
