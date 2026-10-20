@@ -5648,7 +5648,7 @@ THE SOFTWARE.
 ------------------------------------------------------------------------------
 
 hyper-rustls 0.27.9 (MIT)
-rustls 0.23.45 (MIT)
+rustls 0.23.46 (MIT)
 rustls-native-certs 0.8.4 (MIT)
 
 Copyright (c) 2016 Joseph Birr-Pixton <jpixton@gmail.com>
@@ -10460,7 +10460,7 @@ tauri-plugin-log 2.9.1 (MIT)
 tauri-plugin-opener 2.5.5 (MIT)
 tauri-plugin-sql 2.4.1 (MIT)
 tauri-plugin-store 2.4.4 (MIT)
-tauri-plugin-updater 2.13.3 (MIT)
+tauri-plugin-updater 2.14.0 (MIT)
 tauri-plugin-window-state 2.4.1 (MIT)
 tauri-runtime 2.12.1 (MIT)
 tauri-runtime-wry 2.12.1 (MIT)
