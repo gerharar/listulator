@@ -30,7 +30,7 @@ export interface UpdateBlockProps {
 
 /**
  * `mac` restarts quickly; every other desktop platform is Windows, whose installer closes the window for a while (H-017, BL-092). Only the two ship
- * (Windows and macOS builds), so "not a Mac" is "Windows"; a Linux build would need its own notice, and this the third case, before it ships.
+ * (Windows and macOS builds), so "not a Mac" is "Windows". Linux is not a target platform; design groups it with macOS if it ever becomes one.
  */
 export type UpdatePlatform = ReturnType<typeof quitPlatform>
 
