@@ -1,0 +1,128 @@
+# Tests every commit that lands on main (Phase 31, task 31.1, docs/DECISIONS.md "Phase 31").
+#
+# Until now nothing ran the checks except the owner's own Mac: the release workflow builds installers and runs no test. This runs
+# what a release depends on, so `release:prepare` can wait for a green run on the commit it tags.
+#
+# The repository is public, so this workflow is kept as narrow as the manual ones, and server/src/ciWorkflows.guard.test.ts
+# (the `ci` rules) fails if any of it slips:
+# - Runs on a push to main and by hand, and on nothing else: no pull request (a stranger's change would run here), no other
+#   branch or tag, no schedule, no input.
+# - Reads the repository and nothing else: contents: read, no secret, no token, no repository variable, no environment.
+# - Uploads nothing: the logs and the artifacts of a public repository can be read by anyone, and a test run has nothing to publish.
+# - Only GitHub's own actions, each pinned by full commit SHA; numbered runner images; the toolchain from .node-version and
+#   rust-toolchain.toml; every cargo command with --locked; every job has a time limit.
+# - It starts with the key and secret scan (`npm run secrets:scan`): no key may be in the repository, and a failure here is a
+#   finding to act on at once, not a flaky test (docs/release-runbook.md, "The key is stolen").
+#
+# Browser tests run in both engines (Chromium is the Windows app's WebView2, WebKit is the Mac app's WKWebView).
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# A newer push replaces a run still going: only the latest commit's result matters to a release.
+concurrency:
+  group: ci
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .node-version
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+
+      - name: No key or secret in the repository
+        run: npm run secrets:scan
+
+      - name: Type check
+        run: npm run typecheck
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Server tests
+        run: npm run test -w @listulator/server
+
+      - name: Web tests
+        run: npm run test -w @listulator/web
+
+      # The notices file lists every crate of the desktop app, for all platforms; the generator reads them from disk, so they are fetched first.
+      - name: Rust (the version in rust-toolchain.toml, on the runner's own rustup)
+        run: |
+          channel=$(sed -n 's/^channel[[:space:]]*=[[:space:]]*"\([^"]*\)".*/\1/p' rust-toolchain.toml)
+          case "$channel" in
+            *[!0-9.]* | '') echo "rust-toolchain.toml does not name an exact version: $channel"; exit 1 ;;
+          esac
+          rustup toolchain install "$channel" --profile minimal --no-self-update
+          rustup default "$channel"
+          rustc --version
+          cargo --version
+
+      - name: The third-party notices are up to date
+        run: |
+          cargo fetch --locked --manifest-path apps/desktop/src-tauri/Cargo.toml
+          npm run notices
+          git diff --exit-code -- THIRD-PARTY-NOTICES.txt
+
+      - name: Browsers for the browser tests
+        run: npm run playwright:install -w @listulator/web
+
+      - name: Browser tests (Chromium and WebKit)
+        run: npm run test:e2e -w @listulator/web
+
+  desktop:
+    runs-on: windows-2025
+    timeout-minutes: 60
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .node-version
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+
+      - name: Rust (the version in rust-toolchain.toml, on the runner's own rustup)
+        shell: pwsh
+        run: |
+          $channel = (Select-String -Path rust-toolchain.toml -Pattern '^channel\s*=\s*"([^"]+)"').Matches[0].Groups[1].Value
+          if ($channel -notmatch '^\d+\.\d+\.\d+$') { throw "rust-toolchain.toml does not name an exact version: $channel" }
+          rustup toolchain install $channel --profile minimal --no-self-update
+          rustup default $channel
+          rustc --version
+          cargo --version
+
+      # The app's Rust code embeds the built web app at compile time, so the web app is built first.
+      - name: Build the web app the desktop app embeds
+        run: npm run build -w @listulator/web
+
+      - name: Desktop app tests (Rust)
+        shell: pwsh
+        run: |
+          cargo test --locked --manifest-path apps/desktop/src-tauri/Cargo.toml
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }

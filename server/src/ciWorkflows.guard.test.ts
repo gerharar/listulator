@@ -33,12 +33,21 @@ const THROWAWAY_KEY = '${{ runner.temp }}/updater-throwaway.key'
 const UPDATER_OVERLAY = 'src-tauri/tauri.updater-artifacts.conf.json'
 /** The release workflow runs on a pushed version tag and on nothing else (Phase 20, task 20.4): no branch, no button, no input. */
 const RELEASE_TRIGGER = JSON.stringify({ push: { tags: ['v*'] } })
+/**
+ * The CI workflow runs on a push to `main` and by hand, and on nothing else (Phase 31, task 31.1; docs/DECISIONS.md): no pull request (a
+ * stranger's change would run here), no other branch or tag, no schedule, no input. `main` is where the owner pushes; a green run on a commit
+ * is what `release:prepare` waits for.
+ */
+const CI_TRIGGER = JSON.stringify({ push: { branches: ['main'] }, workflow_dispatch: null })
+/** The longest a CI job may run: a hung job must end, and a run is billed in minutes. */
+const MAX_CI_MINUTES = 90
 
 /**
  * `manual`: a test build, started by hand, read-only, no token (Phase 17). `release`: runs on a pushed `v*` tag, builds with read-only
- * permissions and no token, and one job, `publish`, may write to the repository to create a DRAFT Release (Phase 20, task 20.4).
+ * permissions and no token, and one job, `publish`, may write to the repository to create a DRAFT Release (Phase 20, task 20.4). `ci`: runs on a
+ * push to `main` and by hand, read-only, no token, no secret, uploads nothing (Phase 31, task 31.1).
  */
-type Profile = 'manual' | 'release'
+type Profile = 'manual' | 'release' | 'ci'
 /** The longest an artifact may live: a test build is unannounced, not a release (DECISIONS 2026-10-05). */
 const MAX_RETENTION_DAYS = 7
 
@@ -59,6 +68,7 @@ interface Job {
   secrets?: unknown
   environment?: unknown
   'continue-on-error'?: unknown
+  'timeout-minutes'?: unknown
   steps?: Step[]
 }
 
@@ -94,6 +104,9 @@ function workflowProblems(workflow: Workflow, profile: Profile = 'manual'): stri
   if (profile === 'release' && JSON.stringify(workflow.on) !== RELEASE_TRIGGER) {
     problems.push(`is started by ${JSON.stringify(workflow.on)}, not only by a pushed v* tag`)
   }
+  if (profile === 'ci' && JSON.stringify(workflow.on) !== CI_TRIGGER) {
+    problems.push(`is started by ${JSON.stringify(workflow.on)}, not only by a push to main and by hand (no input)`)
+  }
 
   // Reads the repository and nothing more.
   if (JSON.stringify(workflow.permissions) !== JSON.stringify({ contents: 'read' })) problems.push('does not have permissions: { contents: read }')
@@ -118,8 +131,8 @@ function workflowProblems(workflow: Workflow, profile: Profile = 'manual'): stri
   for (const [name, job] of jobs) {
     if (typeof job['runs-on'] !== 'string' || !HOSTED_RUNNER.test(job['runs-on'])) {
       problems.push(`job ${name} runs on ${JSON.stringify(job['runs-on'])}, not a GitHub-hosted runner`)
-    } else if (profile === 'release' && !NUMBERED_RUNNER.test(job['runs-on'])) {
-      problems.push(`job ${name} runs on ${job['runs-on']}: a release names its image (windows-2025), never -latest`)
+    } else if (profile !== 'manual' && !NUMBERED_RUNNER.test(job['runs-on'])) {
+      problems.push(`job ${name} runs on ${job['runs-on']}: a release or a CI run names its image (windows-2025), never -latest`)
     }
   }
 
@@ -191,11 +204,25 @@ function workflowProblems(workflow: Workflow, profile: Profile = 'manual'): stri
   }
 
   // Only the release workflow builds update files: nothing else names the updater key variables or the overlay that switches them on.
-  if (profile === 'manual' && /TAURI_SIGNING|tauri\.updater-artifacts/.test(JSON.stringify(workflow))) {
+  if (profile !== 'release' && /TAURI_SIGNING|tauri\.updater-artifacts/.test(JSON.stringify(workflow))) {
     problems.push('names the updater key or the updater-artifacts overlay (only the release workflow builds update files)')
   }
 
   if (profile === 'release' && /TAURI_SIGNING/.test(JSON.stringify(rest))) problems.push('names the updater key at the workflow level (it is for one build step only)')
+
+  // A CI run uploads nothing: the logs and the artifacts of a public repository can be read by anyone (Phase 31, rule S2), and a test run has
+  // nothing to publish. A job also names its time limit, so a hung run ends.
+  if (profile === 'ci') {
+    for (const { job } of steps.filter(({ step }) => step.uses?.startsWith('actions/upload-artifact@'))) {
+      problems.push(`job ${job}: uploads an artifact (a CI run uploads nothing)`)
+    }
+    for (const [name, job] of jobs) {
+      const minutes = job['timeout-minutes']
+      if (typeof minutes !== 'number' || minutes < 1 || minutes > MAX_CI_MINUTES) {
+        problems.push(`job ${name}: timeout-minutes is ${JSON.stringify(minutes)}, not 1 to ${MAX_CI_MINUTES}`)
+      }
+    }
+  }
 
   // A signature file is never uploaded: the throw-away ones are discarded, the owner's are added by hand.
   for (const { job, step } of steps.filter(({ step }) => step.uses?.startsWith('actions/upload-artifact@'))) {
@@ -629,18 +656,130 @@ describe('the rules for the release workflow, proven on hostile workflows', () =
   })
 })
 
+/** A CI workflow that breaks no rule; each hostile one below changes one thing in it. */
+const GOOD_CI = `
+name: CI
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  checks:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@${sha('a')} # v1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@${sha('c')} # v1
+        with:
+          node-version-file: .node-version
+      - name: Install
+        run: npm ci --ignore-scripts
+      - name: Rust
+        run: |
+          cargo test --locked
+`
+
+describe('the rules for a CI workflow, proven on hostile workflows', () => {
+  it('accept a CI workflow that breaks none', () => {
+    expect(workflowProblems(parse(GOOD_CI), 'ci')).toEqual([])
+  })
+
+  const hostile: [string, (text: string) => string, RegExp][] = [
+    ['a pull request trigger (a stranger\'s change would run here)', (t) => t.replace('  workflow_dispatch:', '  pull_request:\n  workflow_dispatch:'), /not only by a push to main/],
+    ['pull_request_target (runs a stranger\'s change with this repository\'s rights)', (t) => t.replace('  workflow_dispatch:', '  pull_request_target:\n  workflow_dispatch:'), /not only by a push to main/],
+    ['a schedule', (t) => t.replace('  workflow_dispatch:', '  schedule:\n    - cron: "0 3 * * *"\n  workflow_dispatch:'), /not only by a push to main/],
+    ['workflow_run (chained to another workflow)', (t) => t.replace('  workflow_dispatch:', '  workflow_run:\n    workflows: [x]\n  workflow_dispatch:'), /not only by a push to main/],
+    ['a push to every branch', (t) => t.replace('    branches: [main]', '    branches: ["**"]'), /not only by a push to main/],
+    ['a push to another branch', (t) => t.replace('    branches: [main]', '    branches: [main, spike]'), /not only by a push to main/],
+    ['a push of tags', (t) => t.replace('    branches: [main]', '    branches: [main]\n    tags: ["v*"]'), /not only by a push to main/],
+    ['a push with no branch filter', (t) => t.replace('  push:\n    branches: [main]', '  push:'), /not only by a push to main/],
+    ['no button', (t) => t.replace('  workflow_dispatch:\n', ''), /not only by a push to main/],
+    ['a button with an input', (t) => t.replace('  workflow_dispatch:', '  workflow_dispatch:\n    inputs:\n      x:\n        type: string'), /not only by a push to main/],
+    ['write permission', (t) => t.replace('contents: read\njobs', 'contents: write\njobs'), /permissions: \{ contents: read \}/],
+    ['a job that widens its permissions', (t) => t.replace('    permissions:\n      contents: read', '    permissions:\n      contents: write'), /widens its permissions/],
+    ['an action named by tag', (t) => t.replace(`actions/checkout@${sha('a')} # v1`, 'actions/checkout@v4'), /not a GitHub-owned action pinned/],
+    ['a self-hosted runner', (t) => t.replace('ubuntu-24.04', 'self-hosted'), /not a GitHub-hosted runner/],
+    ['a moving runner image', (t) => t.replace('ubuntu-24.04', 'ubuntu-latest'), /names its image/],
+    ['a secret', (t) => t.replace('        run: npm ci --ignore-scripts', '        env:\n          T: ${{ secrets.T }}\n        run: npm ci --ignore-scripts'), /secret or the token/],
+    ['the workflow token', (t) => t.replace('        run: npm ci --ignore-scripts', '        env:\n          T: ${{ github.token }}\n        run: npm ci --ignore-scripts'), /secret or the token/],
+    ['a repository variable', (t) => t.replace('        run: npm ci --ignore-scripts', '        env:\n          V: ${{ vars.X }}\n        run: npm ci --ignore-scripts'), /reads a repository variable/],
+    ['the updater key', (t) => t.replace('        run: npm ci --ignore-scripts', '        env:\n          TAURI_SIGNING_PRIVATE_KEY: x\n        run: npm ci --ignore-scripts'), /names the updater key/],
+    ['an artifact upload (logs and artifacts of a public repository are public)', (t) => t.replace('      - name: Rust', `      - uses: actions/upload-artifact@${sha('b')} # v1\n        with:\n          name: x\n          path: y\n          retention-days: 1\n      - name: Rust`), /uploads an artifact/],
+    ['a job with no time limit', (t) => t.replace('    timeout-minutes: 60\n', ''), /timeout-minutes/],
+    ['a job with an hours-long time limit', (t) => t.replace('timeout-minutes: 60', 'timeout-minutes: 360'), /timeout-minutes/],
+    ['npx', (t) => t.replace('run: npm ci --ignore-scripts', 'run: npx some-package'), /uses npx/],
+    ['a download piped to a shell', (t) => t.replace('run: npm ci --ignore-scripts', 'run: curl -fsSL https://example.com/i.sh | sh'), /downloads or evaluates/],
+    ['a value pasted into a script', (t) => t.replace('run: npm ci --ignore-scripts', 'run: echo ${{ github.head_ref }}'), /contains \$\{\{/],
+    ['a step that may fail quietly', (t) => t.replace('        run: npm ci --ignore-scripts', '        continue-on-error: true\n        run: npm ci --ignore-scripts'), /continue-on-error/],
+    ['a cargo test without --locked', (t) => t.replace('cargo test --locked', 'cargo test'), /not run with --locked/],
+  ]
+
+  it.each(hostile)('refuse %s', (_name, change, expected) => {
+    const changed = change(GOOD_CI)
+
+    expect(changed).not.toBe(GOOD_CI)
+    expect(workflowProblems(parse(changed), 'ci').join(' | ')).toMatch(expected)
+  })
+
+  it('are not met by the manual rules alone: a push trigger is refused there, as before', () => {
+    expect(workflowProblems(parse(GOOD_CI), 'manual').join(' | ')).toMatch(/not by hand only/)
+  })
+})
+
+describe('the CI workflow (31.1)', () => {
+  const text = readFileSync(join(WORKFLOWS, 'ci.yml'), 'utf8')
+  const workflow = loadYaml(text) as Workflow
+  const runs = Object.values(workflow.jobs).flatMap((job) => (job.steps ?? []).map((step) => step.run ?? ''))
+  const lines = runs.flatMap((run) => run.split('\n').map((line) => line.trim()))
+
+  // What it promises (docs/tasks/plan.md Phase 31, 31.1): a rule that is dropped from the file must fail here.
+  it.each([
+    ['the key and secret scan', 'npm run secrets:scan'],
+    ['the type check', 'npm run typecheck'],
+    ['the linter', 'npm run lint'],
+    ['the server tests', 'npm run test -w @listulator/server'],
+    ['the web tests', 'npm run test -w @listulator/web'],
+    ['the browser tests', 'npm run test:e2e -w @listulator/web'],
+    ['the notices check', 'git diff --exit-code -- THIRD-PARTY-NOTICES.txt'],
+  ])('runs %s', (_name, command) => {
+    expect(lines.some((line) => line.startsWith(command))).toBe(true)
+  })
+
+  it('runs the Rust tests on Windows, where the desktop app ships, and the web checks on Linux', () => {
+    const runners = Object.fromEntries(Object.entries(workflow.jobs).map(([name, job]) => [name, job['runs-on']]))
+
+    expect(Object.values(runners)).toEqual(expect.arrayContaining(['ubuntu-24.04', 'windows-2025']))
+    expect(lines.some((line) => /^cargo test .*--locked/.test(line))).toBe(true)
+  })
+
+  it('runs the secret scan before anything else that installs or builds more than the dependencies', () => {
+    const scan = lines.findIndex((line) => line.startsWith('npm run secrets:scan'))
+    const build = lines.findIndex((line) => /^npm run (typecheck|lint|test)/.test(line))
+
+    expect(scan).toBeGreaterThanOrEqual(0)
+    expect(scan).toBeLessThan(build)
+  })
+})
+
 describe('GitHub Actions workflows', () => {
   const workflows = readdirSync(WORKFLOWS)
     .filter((name) => /\.ya?ml$/.test(name))
     .map((name) => ({ name, workflow: loadYaml(readFileSync(join(WORKFLOWS, name), 'utf8')) as Workflow }))
 
   it('exist (an empty folder would make every rule below pass on nothing)', () => {
-    expect(workflows.map((entry) => entry.name)).toEqual(expect.arrayContaining(['desktop-windows.yml', 'release.yml']))
+    expect(workflows.map((entry) => entry.name)).toEqual(expect.arrayContaining(['ci.yml', 'desktop-windows.yml', 'release.yml']))
   })
 
-  // `release.yml` is judged by the release rules; any other workflow, including one added later, by the strict manual ones.
+  // `release.yml` is judged by the release rules, `ci.yml` by the CI rules; any other workflow, including one added later, by the strict manual ones.
+  const profileOf = (name: string): Profile => (name === 'release.yml' ? 'release' : name === 'ci.yml' ? 'ci' : 'manual')
   it.each(workflows)('$name breaks none of the rules', ({ name, workflow }) => {
-    expect(workflowProblems(workflow, name === 'release.yml' ? 'release' : 'manual')).toEqual([])
+    expect(workflowProblems(workflow, profileOf(name))).toEqual([])
   })
 })
 
