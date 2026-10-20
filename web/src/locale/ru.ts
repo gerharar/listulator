@@ -315,6 +315,7 @@ export const ru: Locale = {
       installing: 'Устанавливаем…',
       updateNoticeWindows: 'Окно закроется на время до 15 секунд и откроется само.',
       updateNoticeRestart: 'Listulator перезапустится сам.',
+      updatedTo: (version: string): string => `Обновлено до ${version}`,
       installFailed: 'Не шмог обновить Listulator',
       /** The link beside the version line, to the repository's CHANGELOG.md. */
       changelog: 'Изменения',

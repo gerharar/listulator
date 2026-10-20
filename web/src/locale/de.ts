@@ -306,6 +306,7 @@ export const de: Locale = {
       installing: 'Installiert…',
       updateNoticeWindows: 'Das Fenster ist bis zu 15 Sekunden weg und kommt von selbst wieder.',
       updateNoticeRestart: 'Listulator startet von selbst neu.',
+      updatedTo: (version: string): string => `Auf ${version} aktualisiert`,
       installFailed: 'Update konnte nicht installiert werden',
       /** The link beside the version line, to the repository's CHANGELOG.md. */
       changelog: 'Änderungen',

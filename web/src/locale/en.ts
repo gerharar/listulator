@@ -352,6 +352,8 @@ export const en = {
       /** The notice row of the update block (canvas H-017): said before the window goes, from Download Update on. Windows closes the window for the installer's gap (BL-092); macOS restarts quickly. */
       updateNoticeWindows: 'The window closes for up to 15 seconds, then reopens by itself.',
       updateNoticeRestart: 'Listulator will restart by itself.',
+      /** The toast on the first screen of a newer version (canvas H-017). */
+      updatedTo: (version: string): string => `Updated to ${version}`,
       /** A download, signature check or install that failed after a check had succeeded. */
       installFailed: 'Couldn\'t install the update',
       /** The link beside the version line, to the repository's CHANGELOG.md. */

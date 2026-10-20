@@ -7,6 +7,7 @@ import { resolveSkin, setSkin as persistSkin, type Skin } from './lib/preference
 import { resolveLanguage, type Language } from './lib/preferences/language.js'
 import { resolveReducedMotionSetting } from './lib/preferences/motion.js'
 import { MotionProvider } from './components/quantum/Motion/MotionContext.js'
+import { useUpdatedToast } from './lib/useUpdatedToast.js'
 import { useFullscreenKey } from './lib/windowFullscreen.js'
 import { getAppQuit } from './lib/appQuit.js'
 import { useRefetchOnRegistryChange } from './lib/registryChanges.js'
@@ -187,6 +188,8 @@ function AppShellBody({ skin, onSkinChange }: AppShellBodyProps) {
   // Subscribes the whole shell (header, Home) to the language, so a switch in
   // Settings re-renders them live rather than at the next unrelated render.
   useLanguage()
+  // The first screen of a newer version says so (canvas H-017).
+  useUpdatedToast()
   const layerStack = useLayerStack()
   // `Home` is the only thing that fetches the registry (task 10.10) — the
   // still-hosted legacy screens (List detail, New list) need it too, so it

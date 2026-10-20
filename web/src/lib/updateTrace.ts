@@ -1,5 +1,6 @@
 import { APP_VERSION } from './appVersion.js'
 import { getPreferencesStore, type PreferencesStore } from './preferences/store.js'
+import { noteRunVersion } from './runVersion.js'
 
 /**
  * A temporary diagnostic (BL-092, 1.0.2): how long an app update takes and where the time goes, written where the owner can read
@@ -17,7 +18,6 @@ import { getPreferencesStore, type PreferencesStore } from './preferences/store.
  */
 const TRACE_KEY = 'updateTrace'
 const SUMMARY_KEY = 'updateTraceSummary'
-const LAST_RUN_KEY = 'lastRunVersion'
 const MAX_ENTRIES = 30
 /** How long after the start the paint times are read: the lists are on screen well before. */
 const SETTLE_MS = 4000
@@ -127,6 +127,8 @@ export interface StartAfterUpdateOptions {
   readPaint?: () => Promise<PaintTimes>
   wait?: (ms: number) => Promise<void>
   version?: string
+  /** The version the last start recorded, from `previousRunVersion()` when the app asked for it already (it records this start's once); read here when not. */
+  previous?: Promise<string | undefined>
 }
 
 /**
@@ -140,13 +142,13 @@ export async function traceStartAfterUpdate({
   readPaint = readPaintTimes,
   wait = (ms) => new Promise<void>((resolve) => setTimeout(resolve, ms)),
   version = APP_VERSION,
+  previous,
 }: StartAfterUpdateOptions = {}): Promise<void> {
   try {
-    const last = await store.get(LAST_RUN_KEY)
+    // This start's version is remembered by now (`runVersion.ts`), before the wait: a start that is closed before it ends is not marked again at the next start.
+    const last = await (previous ?? noteRunVersion(store, version))
     if (last === version) return
 
-    // Remembered first, so a start that is closed before the wait ends is not marked again at the next start.
-    await store.set(LAST_RUN_KEY, version)
     const trace = createUpdateTrace(store, now, version)
     await trace.record('new-app-start', `from ${last ?? 'unknown'}`, Math.round(timeOrigin))
 
