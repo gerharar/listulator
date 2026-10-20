@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url'
 import { verifyMinisign } from './minisignVerify.js'
 import { isRunDirectly } from './runDirectly.js'
 import { describeFindings, scanFiles } from './secretScan.js'
-import { keyIdOfPublicKey, parseSignature } from './updateManifest.js'
+import { compareVersions, keyIdOfPublicKey, parseSignature } from './updateManifest.js'
 
 /**
  * The three checks the updater test workflow makes around its THROW-AWAY key (Phase 31, task 31.6; docs/DECISIONS.md "Phase 31").
@@ -14,8 +14,9 @@ import { keyIdOfPublicKey, parseSignature } from './updateManifest.js'
  *
  *   updater-test-config config  --pubkey-file <run.key.pub> --out <config.json>
  *       the committed test config plus the run's public key (refuses the app's real one), for `tauri build --config`.
- *   updater-test-config verify  --pubkey-file <run.key.pub> --installer <setup.exe> --version <v>
- *       the installer's `.sig` verifies against the run's key for that version, and FAILS against the real key.
+ *   updater-test-config verify  --pubkey-file <run.key.pub> --installer <setup.exe> --version <v> [--installed-version <v>]
+ *       the installer's `.sig` verifies against the run's key for that version, FAILS against the real key, and (with
+ *       --installed-version) the update is newer than the app it is offered to.
  *   updater-test-config staging --dir <upload folder> --key-file <run.key>
  *       no file in the folder holds the key's text, and none looks like a key or a secret.
  */
@@ -49,7 +50,10 @@ export interface SignedInstaller {
   installer: Uint8Array
   /** The content of the installer's `.sig` file. */
   signature: string
+  /** The version the update is signed for. */
   version: string
+  /** The version of the test app the update is offered to; the update must be newer than it. */
+  installedVersion?: string
 }
 
 /** What is wrong with a signed test installer; empty when it is right. */
@@ -61,6 +65,9 @@ export function checkSignedInstaller(input: SignedInstaller): string[] {
   const run = verifyMinisign(input.runPubkey.trim(), input.signature.trim(), input.installer)
   if (!run.ok) problems.push(`the signature does not verify against the run's public key: ${run.reason}`)
   if (parsed.version !== input.version) problems.push(`it is signed for version ${parsed.version}, not ${input.version}`)
+  if (input.installedVersion !== undefined && compareVersions(input.version, input.installedVersion) <= 0) {
+    problems.push(`the update ${input.version} is not newer than the installed ${input.installedVersion}`)
+  }
   if (verifyMinisign(input.realPubkey.trim(), input.signature.trim(), input.installer).ok) {
     problems.push('the signature verifies against the real public key (a test build must never be signed for it)')
   }
@@ -126,6 +133,7 @@ function main(args: string[]): number {
       installer: readFileSync(installer),
       signature: readFileSync(`${installer}.sig`, 'utf8'),
       version: option(rest, '--version'),
+      installedVersion: rest.includes('--installed-version') ? option(rest, '--installed-version') : undefined,
     })
     if (problems.length > 0) {
       console.error(`The signed installer is wrong:\n${problems.map((problem) => `  ${problem}`).join('\n')}`)

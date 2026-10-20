@@ -45,14 +45,17 @@ const MAX_CI_MINUTES = 90
 /**
  * `manual`: a test build, started by hand, read-only, no token (Phase 17). `release`: runs on a pushed `v*` tag, builds with read-only
  * permissions and no token, and one job, `publish`, may write to the repository to create a DRAFT Release (Phase 20, task 20.4). `ci`: runs on a
- * push to `main` and by hand, read-only, no token, no secret, uploads nothing (Phase 31, task 31.1).
+ * push to `main` and by hand, read-only, no token, no secret, uploads nothing (Phase 31, task 31.1). `updaterTest`: the manual rules, plus
+ * the rules for the one workflow that makes a THROW-AWAY signing key for its run (Phase 31, task 31.6, rules S1 to S4 of the plan).
  */
-type Profile = 'manual' | 'release' | 'ci'
+type Profile = 'manual' | 'release' | 'ci' | 'updaterTest'
 /** The longest an artifact may live: a test build is unannounced, not a release (DECISIONS 2026-10-05). */
 const MAX_RETENTION_DAYS = 7
 
 interface Step {
   uses?: string
+  if?: unknown
+  name?: string
   run?: string
   env?: Record<string, unknown>
   with?: Record<string, unknown>
@@ -69,6 +72,7 @@ interface Job {
   environment?: unknown
   'continue-on-error'?: unknown
   'timeout-minutes'?: unknown
+  outputs?: unknown
   steps?: Step[]
 }
 
@@ -98,7 +102,7 @@ function workflowProblems(workflow: Workflow, profile: Profile = 'manual'): stri
 
   // Started by hand only: no push or pull-request trigger, so no stranger's change is ever built.
   const triggers = typeof workflow.on === 'string' ? [workflow.on] : Object.keys((workflow.on ?? {}) as object)
-  if (profile === 'manual' && JSON.stringify(triggers) !== JSON.stringify(['workflow_dispatch'])) {
+  if ((profile === 'manual' || profile === 'updaterTest') && JSON.stringify(triggers) !== JSON.stringify(['workflow_dispatch'])) {
     problems.push(`is started by ${triggers.join(', ') || 'nothing'}, not by hand only (workflow_dispatch)`)
   }
   if (profile === 'release' && JSON.stringify(workflow.on) !== RELEASE_TRIGGER) {
@@ -224,9 +228,12 @@ function workflowProblems(workflow: Workflow, profile: Profile = 'manual'): stri
     }
   }
 
-  // A signature file is never uploaded: the throw-away ones are discarded, the owner's are added by hand.
-  for (const { job, step } of steps.filter(({ step }) => step.uses?.startsWith('actions/upload-artifact@'))) {
-    if (/\.sig\b/.test(String(step.with?.path ?? ''))) problems.push(`job ${job}: upload-artifact takes a .sig file (a signature never leaves the runner)`)
+  // A signature file is never uploaded: the throw-away ones are discarded, the owner's are added by hand. The one exception is the updater test
+  // workflow, whose test update's signature IS the file the test serves; its own rules (updaterTestProblems) allow exactly that file by name.
+  if (profile !== 'updaterTest') {
+    for (const { job, step } of steps.filter(({ step }) => step.uses?.startsWith('actions/upload-artifact@'))) {
+      if (/\.sig\b/.test(String(step.with?.path ?? ''))) problems.push(`job ${job}: upload-artifact takes a .sig file (a signature never leaves the runner)`)
+    }
   }
 
   // Nothing is allowed to fail quietly, and no environment (with its own secrets and reviewers) is in play.
@@ -237,6 +244,108 @@ function workflowProblems(workflow: Workflow, profile: Profile = 'manual'): stri
   for (const { job, step } of steps) if (step['continue-on-error'] !== undefined) problems.push(`job ${job}: a step sets continue-on-error`)
 
   if (profile === 'release') problems.push(...releaseProblems(jobs, steps))
+  if (profile === 'updaterTest') problems.push(...updaterTestProblems(workflow))
+
+  return problems
+}
+
+/**
+ * What only the updater test workflow must do (Phase 31, task 31.6; rules S1 to S4 of docs/tasks/plan.md). It makes a signing key for ONE
+ * run, builds a test app that trusts only that key, signs the update with it and throws the key away. The repository is public, and so are
+ * its logs and its artifacts, so the key is kept where nothing can pick it up: made once, in the runner's temp folder (never the checkout),
+ * hidden from the log, read by nothing but the line that hides it, handed to no other step or job, uploaded nowhere, deleted at the end. The
+ * artifact is a list of exact file names, so nothing else can ride along. The key can only sign a test app that embeds its own public key
+ * (a release pins the real one), but that is a second line of defence, not a reason to relax these.
+ */
+function updaterTestProblems(workflow: Workflow): string[] {
+  const problems: string[] = []
+  const jobs = Object.entries(workflow.jobs)
+  const steps = jobs.flatMap(([name, job]) => (job.steps ?? []).map((step) => ({ job: name, step })))
+  const indexed = steps.map(({ step }, index) => ({ step, index, run: step.run ?? '' }))
+  const lines = indexed.flatMap(({ run, index }) => run.split('\n').map((line) => ({ line: line.trim(), index })))
+  const text = JSON.stringify(workflow)
+
+  // The key never leaves the one job: no other job to hand it to, no output, no file or variable that outlives a step.
+  if (jobs.length !== 1) problems.push(`has ${jobs.length} jobs (the key must live in exactly one)`)
+  for (const [name, job] of jobs) if (job.outputs !== undefined) problems.push(`job ${name} has outputs (a way to hand a value to another job)`)
+  if (/GITHUB_ENV|GITHUB_OUTPUT|GITHUB_STATE|GITHUB_STEP_SUMMARY|GITHUB_PATH/.test(text)) problems.push('writes to a file that outlives a step (GITHUB_ENV, GITHUB_OUTPUT, GITHUB_STATE, GITHUB_STEP_SUMMARY or GITHUB_PATH)')
+  for (const { step } of steps) {
+    if (/^actions\/(cache|download-artifact)@/.test(step.uses ?? '')) problems.push(`uses ${step.uses!.split('@')[0]} (a way to carry the key between runs)`)
+  }
+  if (/Set-PSDebug|set -x|Start-Transcript|Trace-Command|\$VerbosePreference|\$DebugPreference|\s-Verbose\b|\s-Debug\b/.test(text)) problems.push('turns on tracing, a transcript or verbose output (anything that could print the key)')
+
+  // One key, made with --ci (no passphrase prompt), in the runner's temp folder.
+  const generating = lines.filter(({ line }) => /\bsigner\s+generate\b/.test(line))
+  if (generating.length !== 1) problems.push(`makes ${generating.length} keys, not exactly one`)
+  for (const { line } of generating) {
+    if (!/--ci\b/.test(line)) problems.push('the key is not made with --ci')
+    if (!/\s-w \$key\b/.test(line)) problems.push('the key is not written to $key')
+  }
+  // EVERY definition of $key, in every step: one step that points it at the checkout would put the key where an upload could reach it.
+  const keyDefinitions = lines.filter(({ line }) => /^\$key\s*=/.test(line))
+  if (keyDefinitions.length === 0 || keyDefinitions.some(({ line }) => !/^\$key = Join-Path \$env:RUNNER_TEMP '[\w.-]+\.key'$/.test(line))) {
+    problems.push("$key is not a file in the runner's temp folder in every step (Join-Path $env:RUNNER_TEMP '…key')")
+  }
+  for (const { line } of lines) {
+    if (/[\w-]\.key\b/.test(line) && !line.includes('$env:RUNNER_TEMP')) problems.push(`a key file is named outside the runner's temp folder: ${line.slice(0, 70)}`)
+  }
+
+  // Hidden in the log before it is used, and read by that line alone: nothing prints it, copies it or moves it.
+  const hiding = indexed.filter(({ run }) => run.includes('::add-mask::'))
+  const making = indexed.find(({ run }) => /\bsigner\s+generate\b/.test(run))
+  if (hiding.length === 0) problems.push('does not hide the key in the log (::add-mask::)')
+  else if (making !== undefined && hiding.some(({ index }) => index < making.index)) problems.push('hides the key before it exists')
+  for (const { line } of lines) {
+    if (/\b(Get-Content|cat|type|gc|Out-File|Set-Content|Add-Content|Copy-Item|Move-Item|Write-Output|Write-Host|Write-Warning|Write-Error|echo|Tee-Object|Select-String|Compress-Archive)\b.*\$key\b/.test(line) && !line.includes('::add-mask::')) {
+      problems.push(`reads or prints the key outside the line that hides it: ${line.slice(0, 70)}`)
+    }
+  }
+
+  // Signs with the file, never with the key text on a command line or in a variable.
+  for (const { line } of lines.filter(({ line }) => /\bsigner\s+sign\b/.test(line))) {
+    if (!/\s-f \$key\b/.test(line)) problems.push('signs with something other than the key file ($key)')
+    if (/\s(-k|--private-key)\b/.test(line)) problems.push('signs with the key text on the command line')
+    // One token: npm is npm.cmd, and a batch file's argument list drops an empty '' argument, which would leave a bare -p to swallow the next flag.
+    if (!/\s--password=(\s|$)/.test(line)) problems.push('does not give the empty passphrase of a --ci key as one token (--password=)')
+    if (!/--app-version\b/.test(line)) problems.push('signs without --app-version (the plugin binds a signature to a version)')
+  }
+  if (!lines.some(({ line }) => /\bsigner\s+sign\b/.test(line))) problems.push('never signs the update')
+
+  // Deleted at the end, whatever happened, after the last step that uses it.
+  const deleting = indexed.filter(({ step, run }) => step.if === 'always()' && /Remove-Item[^\n]*\.key/.test(run))
+  const lastUse = Math.max(-1, ...lines.filter(({ line }) => /\$key\b/.test(line) && !/Remove-Item/.test(line)).map(({ index }) => index))
+  if (deleting.length === 0) problems.push('does not delete the key in a step that always runs (if: always())')
+  else if (!deleting.some(({ index }) => index > lastUse)) problems.push('deletes the key before its last use')
+
+  // The checks run before anything is uploaded, and the build uses the config that trusts the run's key.
+  const upload = indexed.find(({ step }) => step.uses?.startsWith('actions/upload-artifact@'))
+  const before = (pattern: RegExp) => lines.some(({ line, index }) => pattern.test(line) && (upload === undefined || index < upload.index))
+  if (!before(/updater:test-config -- verify\b/)) problems.push('does not verify the signed installer before the upload')
+  if (!before(/updater:test-config -- staging\b/)) problems.push('does not check the upload folder for the key before the upload')
+  if (!before(/updater:test-config -- config\b[^\n]*--out \$conf\b/)) problems.push('does not make the run config (updater:test-config config … --out $conf)')
+  const confDefinitions = lines.filter(({ line }) => /^\$conf\s*=/.test(line))
+  if (confDefinitions.length === 0 || confDefinitions.some(({ line }) => !/^\$conf = Join-Path \$env:RUNNER_TEMP '[\w.-]+\.json'$/.test(line))) {
+    problems.push("$conf is not a file in the runner's temp folder in every step")
+  }
+  const building = lines.filter(({ line }) => /\btauri:build\b/.test(line))
+  if (building.length !== 2) problems.push(`builds ${building.length} times, not twice (the app to install and the update)`)
+  for (const { line } of building) {
+    if (!/--config \$conf\b/.test(line)) problems.push('a build does not use the run config (--config $conf)')
+    if (!/--bundles nsis\b/.test(line)) problems.push('a build makes more than the installer')
+  }
+
+  // One artifact, an exact list of names: the two installers, the update's signature and the manifest. Nothing the key could ride along in.
+  const uploads = indexed.filter(({ step }) => step.uses?.startsWith('actions/upload-artifact@'))
+  if (uploads.length !== 1) problems.push(`has ${uploads.length} upload-artifact steps, not exactly one`)
+  for (const { step } of uploads) {
+    const paths = String(step.with?.path ?? '').split('\n').map((path) => path.trim()).filter((path) => path !== '')
+    if (paths.length < 1 || paths.length > 4) problems.push(`the artifact lists ${paths.length} paths, not 1 to 4`)
+    for (const path of paths) {
+      const plain = path.replace(/\$\{\{[^}]*\}\}/g, 'X')
+      if (!/^updater-test-out\/[\w.-]+\.(exe|exe\.sig|json)$/.test(plain)) problems.push(`the artifact path is not an exact file name under updater-test-out/: ${path.slice(0, 80)}`)
+    }
+    if (step.with?.['retention-days'] !== 3) problems.push('the artifact is not kept for exactly 3 days')
+  }
 
   return problems
 }
@@ -777,7 +886,7 @@ describe('GitHub Actions workflows', () => {
   })
 
   // `release.yml` is judged by the release rules, `ci.yml` by the CI rules; any other workflow, including one added later, by the strict manual ones.
-  const profileOf = (name: string): Profile => (name === 'release.yml' ? 'release' : name === 'ci.yml' ? 'ci' : 'manual')
+  const profileOf = (name: string): Profile => (name === 'release.yml' ? 'release' : name === 'ci.yml' ? 'ci' : name === 'updater-test-windows.yml' ? 'updaterTest' : 'manual')
   it.each(workflows)('$name breaks none of the rules', ({ name, workflow }) => {
     expect(workflowProblems(workflow, profileOf(name))).toEqual([])
   })
@@ -858,7 +967,6 @@ describe('the updater test build', () => {
   const ROOT = join(import.meta.dirname, '../..')
   const read = (path: string) => readFileSync(join(ROOT, path), 'utf8')
   const TEST_CONFIG = 'apps/desktop/src-tauri/tauri.updater-test.conf.json'
-  const TEST_CONFIG_ARGUMENT = 'src-tauri/tauri.updater-test.conf.json'
   const testConfig = JSON.parse(read(TEST_CONFIG)) as {
     productName?: string
     identifier?: string
@@ -896,10 +1004,10 @@ describe('the updater test build', () => {
 
   it('is never named or carried by the release workflow, the updater-artifacts overlay, or any other workflow than its own', () => {
     for (const file of ['.github/workflows/release.yml', 'apps/desktop/src-tauri/tauri.updater-artifacts.conf.json']) {
-      expect(read(file), file).not.toMatch(/updater-test|dangerous|127\.0\.0\.1/i)
+      expect(read(file), file).not.toMatch(/updater-test|updater:test-config|dangerous|127\.0\.0\.1/i)
     }
     for (const name of readdirSync(WORKFLOWS).filter((file) => /\.ya?ml$/.test(file) && file !== 'updater-test-windows.yml')) {
-      expect(readFileSync(join(WORKFLOWS, name), 'utf8'), name).not.toMatch(/updater-test/)
+      expect(readFileSync(join(WORKFLOWS, name), 'utf8'), name).not.toMatch(/updater-test|updater:test-config/)
     }
   })
 
@@ -909,42 +1017,99 @@ describe('the updater test build', () => {
     const steps = Object.values(workflow.jobs).flatMap((job) => job.steps ?? [])
     const runs = steps.map((step) => step.run ?? '')
 
-    it('passes the strict manual rules like every workflow that is not the release', () => {
-      expect(workflowProblems(workflow, 'manual')).toEqual([])
+    it('passes the updater test rules (the manual rules, and the rules for its throw-away key)', () => {
+      expect(workflowProblems(workflow, 'updaterTest')).toEqual([])
     })
 
-    it('builds with the test config on the build line, and only the installer', () => {
-      const build = runs.flatMap((run) => run.split('\n')).filter((line) => /\btauri:build\b/.test(line))
-
-      expect(build).toHaveLength(1)
-      expect(build[0]).toContain(`--config ${TEST_CONFIG_ARGUMENT}`)
-      expect(build[0]).toContain('--bundles nsis')
+    it('is started by hand with two required inputs: the app to install and the update it is offered', () => {
+      expect(workflow.on).toEqual({
+        workflow_dispatch: { inputs: { version: expect.objectContaining({ type: 'string', required: true }), update_version: expect.objectContaining({ type: 'string', required: true }) } },
+      })
     })
 
-    it('is started by hand with the version to build as its one required input', () => {
-      expect(workflow.on).toEqual({ workflow_dispatch: { inputs: { version: expect.objectContaining({ type: 'string', required: true }) } } })
+    it('sets each version it builds from its own input through version:set, handing the input over env, never pasted', () => {
+      const setting = steps.filter((step) => /\bversion:set\b/.test(step.run ?? ''))
+
+      expect(setting.map((step) => step.env?.['VERSION'])).toEqual(['${{ inputs.version }}', '${{ inputs.update_version }}'])
+      for (const step of setting) expect(step.run).toContain('$env:VERSION')
     })
 
-    it('sets the version it builds from its input through version:set, handing the input over env, never pasted', () => {
-      const setting = steps.find((step) => /\bversion:set\b/.test(step.run ?? ''))
-
-      expect(setting?.env?.['VERSION']).toBe('${{ inputs.version }}')
-      expect(setting?.run).toContain('$env:VERSION')
+    it('builds the two apps of one test at the same time as other tests, but never the same pair twice: its concurrency group names both versions', () => {
+      expect((workflow as Workflow & { concurrency?: unknown }).concurrency).toEqual({
+        group: 'updater-test-windows-${{ inputs.version }}-${{ inputs.update_version }}',
+        'cancel-in-progress': true,
+      })
     })
 
-    it('lets the two versions of a test build at the same time: its concurrency group is per version', () => {
-      expect((workflow as Workflow & { concurrency?: unknown }).concurrency).toEqual({ group: 'updater-test-windows-${{ inputs.version }}', 'cancel-in-progress': true })
+    it('has no repository secret, no variable and no release key: the key is made in the run', () => {
+      expect(text).not.toMatch(/secrets\.|vars\.|TAURI_SIGNING|updater-artifacts|createUpdaterArtifacts/)
     })
 
-    it('has no updater key, no update files and no signature: the owner signs the installer afterwards, on their own machine', () => {
-      expect(text).not.toMatch(/TAURI_SIGNING|updater-artifacts|\.sig\b|createUpdaterArtifacts/)
+    it('builds with the config the run made, which derives from the committed test config and carries no key of its own', () => {
+      const made = runs.join('\n')
+
+      expect(made).toContain('updater:test-config -- config')
+      expect(made).toContain('--out $conf')
+      expect(testConfig.plugins?.updater).not.toHaveProperty('pubkey')
     })
 
-    it('keeps its artifact for 3 days', () => {
+    it('uploads the two installers, the update’s signature and the manifest by exact name, kept for 3 days', () => {
       const upload = steps.find((step) => step.uses?.startsWith('actions/upload-artifact@'))
 
+      expect(String(upload?.with?.['path']).trim().split('\n')).toEqual([
+        'updater-test-out/ListulatorUpdaterTest_${{ inputs.version }}_x64-setup.exe',
+        'updater-test-out/ListulatorUpdaterTest_${{ inputs.update_version }}_x64-setup.exe',
+        'updater-test-out/ListulatorUpdaterTest_${{ inputs.update_version }}_x64-setup.exe.sig',
+        'updater-test-out/latest.json',
+      ])
       expect(upload?.with?.['retention-days']).toBe(3)
-      expect(String(upload?.with?.['path'])).toMatch(/nsis\/\*\.exe$/)
+    })
+
+    // Each change below breaks one rule of the throw-away key (S1 to S4); the real workflow, changed in that one place, must be refused.
+    const hostile: [string, (t: string) => string, RegExp][] = [
+      ['a key made without --ci', (t) => t.replace('signer generate --ci', 'signer generate'), /not made with --ci/],
+      ['a second key', (t) => t.replace('Write-Output "::add-mask::', 'npm run tauri -w @listulator/desktop -- signer generate --ci -w $key\n          Write-Output "::add-mask::'), /makes 2 keys/],
+      ['a key in the checkout, not the temp folder', (t) => t.replace("$key = Join-Path $env:RUNNER_TEMP 'updater-test-run.key'", "$key = 'updater-test-run.key'"), /not a file in the runner's temp folder in every step/],
+      ['a key file named elsewhere', (t) => t.replace('-f $key', '-f D:\\keys\\other.key'), /outside the runner's temp folder|signs with something other than the key file/],
+      ['no hiding of the key in the log', (t) => t.replace(/ *Write-Output "::add-mask::[^\n]*\n/, ''), /does not hide the key/],
+      ['the key printed', (t) => t.replace(/Write-Output "::add-mask::[^\n]*/, 'Get-Content $key'), /reads or prints the key|does not hide the key/],
+      ['the key printed after it is hidden', (t) => t.replace('exit $LASTEXITCODE }\n          Write-Output', 'exit $LASTEXITCODE }\n          Write-Host (Get-Content $key)\n          Write-Output'), /reads or prints the key outside the line that hides it/],
+      ['the key copied to the upload folder', (t) => t.replace('exit $LASTEXITCODE }\n          Write-Output', 'exit $LASTEXITCODE }\n          Copy-Item $key updater-test-out\n          Write-Output'), /reads or prints the key outside the line that hides it/],
+      ['signing with the key text on the command line', (t) => t.replace('-f $key', '-k $env:KEY'), /signs with something other than the key file|key text on the command line/],
+      ['signing without a version', (t) => t.replace(' --app-version $env:UPDATE_VERSION', ''), /without --app-version/],
+      ['a key that is not deleted when the run fails', (t) => t.replace('if: always()', 'if: success()'), /does not delete the key in a step that always runs/],
+      ['a key deleted before its last use', (t) => t.replace(/ - name: Delete the run's key[\s\S]*?\n(?=\s+- name:|$)/, ''), /does not delete the key|deletes the key before/],
+      ['a value handed on through GITHUB_ENV', (t) => t.replace('exit $LASTEXITCODE }\n          Write-Output', 'exit $LASTEXITCODE }\n          "K=1" >> $env:GITHUB_ENV\n          Write-Output'), /outlives a step/],
+      ['a value handed on through GITHUB_OUTPUT', (t) => t.replace('exit $LASTEXITCODE }\n          Write-Output', 'exit $LASTEXITCODE }\n          "k=1" >> $env:GITHUB_OUTPUT\n          Write-Output'), /outlives a step/],
+      ['a trace of every command', (t) => t.replace('$key = Join-Path', 'Set-PSDebug -Trace 1\n          $key = Join-Path'), /tracing, a transcript or verbose/],
+      ['a second job', (t) => t + '\n  other:\n    runs-on: windows-2025\n    timeout-minutes: 5\n    steps:\n      - run: echo hi\n', /jobs \(the key must live in exactly one\)/],
+      ['a cache that could carry the key between runs', (t) => t.replace('      - name: Install dependencies', `      - uses: actions/cache@${'a'.repeat(40)} # v1\n        with:\n          path: x\n          key: y\n      - name: Install dependencies`), /a way to carry the key between runs/],
+      ['an upload of everything in the folder', (t) => t.replace('updater-test-out/latest.json', 'updater-test-out/'), /not an exact file name/],
+      ['an upload with a wildcard', (t) => t.replace('updater-test-out/latest.json', 'updater-test-out/*'), /not an exact file name/],
+      ['an upload of the temp folder', (t) => t.replace('updater-test-out/latest.json', '${{ runner.temp }}/updater-test-run.key'), /not an exact file name/],
+      ['an upload of a key file by name', (t) => t.replace('updater-test-out/latest.json', 'updater-test-out/updater-test-run.key'), /not an exact file name/],
+      ['an artifact kept a week', (t) => t.replace('retention-days: 3', 'retention-days: 7'), /not kept for exactly 3 days/],
+      ['a second upload', (t) => t + `\n      - uses: actions/upload-artifact@${'b'.repeat(40)} # v1\n        with:\n          name: z\n          path: updater-test-out/latest.json\n          retention-days: 3\n`, /2 upload-artifact steps/],
+      ['no verification of the signed installer', (t) => t.replace('updater:test-config -- verify', 'echo skipped'), /does not verify the signed installer/],
+      ['no check of the upload folder', (t) => t.replace('updater:test-config -- staging', 'echo skipped'), /does not check the upload folder/],
+      ['a build that does not use the run config', (t) => t.replace(/--config \$conf/, '--config src-tauri/tauri.updater-test.conf.json'), /does not use the run config/],
+      ['a build of more than the installer', (t) => t.replace(/--bundles nsis/, '--bundles all'), /makes more than the installer/],
+      ['a secret', (t) => t.replace('        shell: pwsh', '        env:\n          K: ${{ secrets.KEY }}\n        shell: pwsh'), /secret or the token/],
+      ['a push trigger', (t) => t.replace('on:\n  workflow_dispatch:', 'on:\n  push:\n  workflow_dispatch:'), /not by hand only/],
+    ]
+
+    it.each(hostile)('refuses %s', (_name, change, expected) => {
+      const changed = change(text)
+
+      expect(changed).not.toBe(text)
+      expect(workflowProblems(loadYaml(changed) as Workflow, 'updaterTest').join(' | ')).toMatch(expected)
+    })
+
+    it('is judged as strictly as a manual workflow by the manual profile too, apart from the one signature it uploads', () => {
+      const problems = workflowProblems(workflow, 'manual').join(' | ')
+
+      expect(problems).toMatch(/\.sig file/)
+      expect(problems.replace(/job [\w-]+: upload-artifact takes a \.sig file[^|]*/, '').replace(/ \| $/, '')).toBe('')
     })
   })
 })

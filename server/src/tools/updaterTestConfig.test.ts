@@ -86,6 +86,12 @@ describe('checkSignedInstaller', () => {
     expect(check({ runPubkey: realKey.pubkey, realPubkey: realKey.pubkey, signature: forged }).join(' | ')).toMatch(/verifies against the real public key/)
   })
 
+  it('says so when the update is not newer than the app it is offered to: the test would prove nothing', () => {
+    expect(check({ installedVersion: '1.0.0-rc.1' })).toEqual([])
+    expect(check({ installedVersion: '1.0.0-rc.2' }).join(' | ')).toMatch(/not newer than the installed 1\.0\.0-rc\.2/)
+    expect(check({ installedVersion: '1.0.0' }).join(' | ')).toMatch(/not newer than the installed 1\.0\.0/)
+  })
+
   it('says so when the signature file is not a signature', () => {
     expect(check({ signature: 'nonsense' }).length).toBeGreaterThan(0)
   })
