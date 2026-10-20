@@ -1,0 +1,122 @@
+# SPIKE (Phase 31, task 31.2): THROWAWAY, lives only on the branch spike/windows-runner and is never merged into main.
+# Question: can a GitHub Windows runner host the real Tauri test app (silent NSIS install, start, WebView2), be driven from outside
+# (WebView2's debugging port + Playwright), and survive the updater's way of starting the installer (/P /UPDATE /R) with the app
+# relaunched and reachable again? No key, no secret, no token, nothing uploaded: read the log.
+name: Spike (Windows runner)
+
+on:
+  push:
+    branches: [spike/windows-runner]
+
+permissions:
+  contents: read
+
+jobs:
+  spike:
+    runs-on: windows-2025
+    timeout-minutes: 75
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .node-version
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+
+      - name: Rust (the version in rust-toolchain.toml, on the runner's own rustup)
+        shell: pwsh
+        run: |
+          $channel = (Select-String -Path rust-toolchain.toml -Pattern '^channel\s*=\s*"([^"]+)"').Matches[0].Groups[1].Value
+          if ($channel -notmatch '^\d+\.\d+\.\d+$') { throw "rust-toolchain.toml does not name an exact version: $channel" }
+          rustup toolchain install $channel --profile minimal --no-self-update
+          rustup default $channel
+          rustc --version
+
+      - name: The machine
+        shell: pwsh
+        run: |
+          'OS: ' + [Environment]::OSVersion.VersionString
+          'User: ' + $env:USERNAME + ', interactive: ' + [Environment]::UserInteractive + ', session id: ' + (Get-Process -Id $PID).SessionId
+          $webview = Get-ItemProperty 'HKLM:\SOFTWARE\WOW6432Node\Microsoft\EdgeUpdate\Clients\{F3017226-FE2A-4295-8BDF-00C3A9A7E4C5}' -ErrorAction SilentlyContinue
+          'WebView2 runtime: ' + $(if ($webview) { $webview.pv } else { 'NOT FOUND in the usual place' })
+          try { Get-MpComputerStatus | Select-Object AntivirusEnabled, RealTimeProtectionEnabled, AMServiceEnabled | Format-List | Out-String } catch { 'Defender status unreadable: ' + $_.Exception.Message }
+          'Windows Installer service: ' + (Get-Service msiserver -ErrorAction SilentlyContinue).Status
+          'Screen: ' + (Get-CimInstance Win32_VideoController | Select-Object -First 1).Name
+
+      - name: Set the version to build
+        run: npm run version:set -w @listulator/server -- 1.0.0-rc.1
+
+      - name: Build the test installer
+        shell: pwsh
+        run: |
+          npm run tauri:build -w @listulator/desktop -- --bundles nsis --config src-tauri/tauri.updater-test.conf.json -- --locked
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Install, start, drive, then update the way the updater does
+        shell: pwsh
+        env:
+          WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS: --remote-debugging-port=9222
+        run: |
+          $ErrorActionPreference = 'Stop'
+          function Now { [DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds() }
+          function Mark($text) { "[{0}] {1}" -f (Now), $text }
+          $installer = Get-ChildItem apps/desktop/src-tauri/target/release/bundle/nsis/*.exe | Select-Object -First 1
+          Mark ("installer: " + $installer.Name + ", " + $installer.Length + " bytes")
+
+          # 1. Silent install.
+          $t = Now
+          $install = Start-Process -FilePath $installer.FullName -ArgumentList '/S' -Wait -PassThru
+          Mark ("silent install exit code " + $install.ExitCode + " after " + ((Now) - $t) + " ms")
+          $dir = Join-Path $env:LOCALAPPDATA 'ListulatorUpdaterTest'
+          Get-ChildItem $dir | Select-Object Name, Length | Format-Table | Out-String
+          $exe = Get-ChildItem $dir -Filter *.exe | Where-Object { $_.Name -notmatch 'uninstall' } | Select-Object -First 1
+          Mark ("app exe: " + $exe.FullName)
+
+          # 2. Start the app with the debugging port (the variable is in this step's environment) and drive it.
+          $app = Start-Process -FilePath $exe.FullName -PassThru
+          Mark ("app started, pid " + $app.Id)
+          node scripts/spike/cdp-probe.mjs after-install
+          Mark ("probe 1 exit code " + $LASTEXITCODE)
+
+          # 3. Do what the updater does: start the installer with its arguments and leave (process::exit(0)) a moment later.
+          $before = (Get-Process | Where-Object { $_.Path -eq $exe.FullName }).Id
+          Mark ("app pids before the update: " + ($before -join ','))
+          $t = Now
+          Start-Process -FilePath $installer.FullName -ArgumentList '/P', '/UPDATE', '/R', '/ARGS'
+          Mark 'installer launched with /P /UPDATE /R /ARGS'
+          Start-Sleep -Milliseconds 300
+          Stop-Process -Id $app.Id -Force
+          Mark 'old app ended (as the updater does, right after launching the installer)'
+
+          # 4. Wait for a NEW app process, and for the installer to be gone.
+          $deadline = (Get-Date).AddSeconds(150)
+          $newPid = $null
+          while ((Get-Date) -lt $deadline -and -not $newPid) {
+            $found = Get-Process | Where-Object { $_.Path -eq $exe.FullName -and $_.Id -ne $app.Id } | Select-Object -First 1
+            if ($found) { $newPid = $found.Id } else { Start-Sleep -Milliseconds 250 }
+          }
+          Mark ("new app pid: " + $newPid + " after " + ((Now) - $t) + " ms from the installer launch")
+          $setup = Get-Process | Where-Object { $_.Path -eq $installer.FullName }
+          Mark ("installer processes still running: " + @($setup).Count)
+          node scripts/spike/cdp-probe.mjs after-update
+          Mark ("probe 2 exit code " + $LASTEXITCODE)
+
+          # 5. What the installer's hooks wrote (the folder exists because the app ran).
+          Get-ChildItem (Join-Path $env:APPDATA 'com.listulator.desktop.updatertest') -ErrorAction SilentlyContinue | Select-Object Name, Length | Format-Table | Out-String
+          foreach ($name in 'update-installer-trace.txt', 'update-installer-trace-end.txt') {
+            $file = Join-Path (Join-Path $env:APPDATA 'com.listulator.desktop.updatertest') $name
+            if (Test-Path $file) { "--- $name"; Get-Content $file } else { "--- $name: not there" }
+          }
+
+          # 6. Leave nothing behind.
+          Get-Process | Where-Object { $_.Path -eq $exe.FullName } | Stop-Process -Force
+          $uninstaller = Join-Path $dir 'uninstall.exe'
+          if (Test-Path $uninstaller) { Start-Process -FilePath $uninstaller -ArgumentList '/S' -Wait }
+          Mark 'done'
