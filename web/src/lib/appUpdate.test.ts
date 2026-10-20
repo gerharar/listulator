@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { APP_VERSION } from './appVersion.js'
-import { appUpdateChecker, devChecker, unavailableChecker, type UpdatePhase } from './appUpdate.js'
+import { appUpdateChecker, devChecker, InstallStuckError, unavailableChecker, type UpdatePhase } from './appUpdate.js'
 
 // The update trace (BL-092) writes through the preferences store; these tests are about the commands the checker sends.
 vi.mock('./updateTrace.js', () => ({ createUpdateTrace: () => ({ record: () => Promise.resolve() }) }))
@@ -84,6 +84,20 @@ describe('the dev-only checker (?aboutUpdate=…)', () => {
 
     await failure
     expect(phases[0]).toBe('downloading')
+  })
+
+  it('installStuck: installs for good, then fails as an install that never started (BL-116)', async () => {
+    const checker = devChecker('?aboutUpdate=installStuck')!
+    const answer = checker.check()
+    await vi.advanceTimersByTimeAsync(600)
+    await expect(answer).resolves.toMatchObject({ kind: 'available' })
+    const phases: UpdatePhase[] = []
+
+    const failure = expect(Promise.resolve(checker.download?.('1.1.0', (phase) => phases.push(phase)))).rejects.toBeInstanceOf(InstallStuckError)
+    await vi.advanceTimersByTimeAsync(10_000)
+
+    await failure
+    expect(phases).toEqual(['downloading', 'installing'])
   })
 
   it('error: fails after a moment', async () => {

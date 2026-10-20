@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import type { UpdatePhase } from './appUpdate.js'
+import { InstallStuckError, type UpdatePhase } from './appUpdate.js'
 import { loadIsolationHook, type IpcMessage } from './isolationHook.testing.js'
 import { createTauriChecker } from './tauriUpdater.js'
 
@@ -310,5 +310,124 @@ describe('what the client may ever send', () => {
     await checker.check().catch(() => undefined)
 
     expect(new Set(sent.map((call) => call.cmd))).toEqual(new Set(['plugin:updater|check', 'plugin:updater|download_and_install', 'relaunch']))
+  })
+})
+
+/**
+ * BL-116: on Windows the plugin hands the installer to the OS and ends the app. Once, in a test, the app stayed on "Installing" for good: the installer
+ * never started, nothing failed, nothing was shown. After a limit the screen leaves it and says to close the app and try again.
+ */
+describe('an install that never starts (BL-116)', () => {
+  const LIMIT = 60_000
+
+  async function offered(installTimeoutMs?: number) {
+    reply = (cmd) => (cmd === 'plugin:updater|check' ? found : null)
+    const checker = createTauriChecker({ relaunchAfterInstall: false, ...(installTimeoutMs === undefined ? {} : { installTimeoutMs }) })
+    await checker.check()
+    sent.length = 0
+
+    return checker
+  }
+
+  /** The plugin's download is done and the install never answers: neither a result nor an exit. */
+  function neverInstalls(): void {
+    reply = async () => {
+      emit({ event: 'Started', data: { contentLength: 100 } })
+      emit({ event: 'Finished' }, 1)
+
+      return new Promise(() => {})
+    }
+  }
+
+  beforeEach(() => vi.useFakeTimers())
+  afterEach(() => vi.useRealTimers())
+
+  it('fails with InstallStuckError once the limit has passed since the download finished, after reporting installing', async () => {
+    const checker = await offered(LIMIT)
+    neverInstalls()
+    const phases: UpdatePhase[] = []
+
+    const outcome = checker.download!('1.1.0', (phase) => phases.push(phase))
+    const failure = expect(Promise.resolve(outcome)).rejects.toBeInstanceOf(InstallStuckError)
+    await vi.advanceTimersByTimeAsync(LIMIT)
+
+    await failure
+    expect(phases).toEqual(['downloading', 'installing'])
+    expect(traced).toContain('install-timed-out')
+  })
+
+  it('waits the whole limit: nothing fails a moment before it', async () => {
+    const checker = await offered(LIMIT)
+    neverInstalls()
+    let settled = false
+    void Promise.resolve(checker.download!('1.1.0', () => undefined)).then(() => (settled = true), () => (settled = true))
+
+    await vi.advanceTimersByTimeAsync(LIMIT - 1)
+
+    expect(settled).toBe(false)
+  })
+
+  it('does not count the download: a slow one is not a stuck install', async () => {
+    const checker = await offered(LIMIT)
+    let finish!: () => void
+    reply = async () => {
+      emit({ event: 'Started', data: { contentLength: 100 } })
+      await new Promise<void>((resolve) => (finish = resolve))
+      emit({ event: 'Finished' }, 1)
+
+      return null
+    }
+    const phases: UpdatePhase[] = []
+    const outcome = Promise.resolve(checker.download!('1.1.0', (phase) => phases.push(phase)))
+
+    await vi.advanceTimersByTimeAsync(30 * 60_000)
+    expect(phases).toEqual(['downloading'])
+    finish()
+
+    await expect(outcome).resolves.toBeUndefined()
+    expect(phases).toEqual(['downloading', 'installing', 'restarting'])
+  })
+
+  it('leaves an install that answers in time alone: restarting, and no failure later', async () => {
+    const checker = await offered(LIMIT)
+    reply = async () => {
+      emit({ event: 'Finished' })
+      await new Promise((resolve) => setTimeout(resolve, 5_000))
+
+      return null
+    }
+    const phases: UpdatePhase[] = []
+    const outcome = Promise.resolve(checker.download!('1.1.0', (phase) => phases.push(phase)))
+
+    await vi.advanceTimersByTimeAsync(5_000)
+    await expect(outcome).resolves.toBeUndefined()
+    await vi.advanceTimersByTimeAsync(LIMIT * 2)
+
+    expect(phases).toEqual(['downloading', 'installing', 'restarting'])
+    expect(traced).not.toContain('install-timed-out')
+  })
+
+  it('passes on the plugin’s own failure as it is, not as a stuck install', async () => {
+    const checker = await offered(LIMIT)
+    reply = async () => {
+      emit({ event: 'Finished' })
+
+      throw 'Access is denied'
+    }
+
+    const failure = checker.download!('1.1.0', () => undefined)
+
+    await expect(Promise.resolve(failure)).rejects.not.toBeInstanceOf(InstallStuckError)
+  })
+
+  it('has no limit unless it is given one (macOS replaces the app and returns)', async () => {
+    const checker = await offered()
+    neverInstalls()
+    let settled = false
+    void Promise.resolve(checker.download!('1.1.0', () => undefined)).then(() => (settled = true), () => (settled = true))
+
+    await vi.advanceTimersByTimeAsync(10 * 60_000)
+
+    expect(settled).toBe(false)
   })
 })

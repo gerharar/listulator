@@ -2,7 +2,7 @@
 import { StrictMode } from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { act, cleanup, renderHook } from '@testing-library/react'
-import type { AppUpdateChecker, UpdatePhase, UpdateResult } from './appUpdate.js'
+import { InstallStuckError, type AppUpdateChecker, type UpdatePhase, type UpdateResult } from './appUpdate.js'
 import { useUpdateCheck } from './useUpdateCheck.js'
 
 afterEach(() => {
@@ -140,6 +140,18 @@ describe('useUpdateCheck', () => {
     expect(result.current.state).toBe('installError')
     expect(result.current.next).toBe('1.1.0')
     expect(error).toHaveBeenCalled()
+  })
+
+  it('shows an install that never started as its own state, still offering the version (BL-116)', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+    const { checker, answer } = controlledChecker(() => Promise.reject(new InstallStuckError()))
+    const { result } = renderHook(() => useUpdateCheck(checker))
+    await act(async () => answer({ kind: 'available', version: '1.1.0' }))
+
+    await act(async () => result.current.download())
+
+    expect(result.current.state).toBe('installStuck')
+    expect(result.current.next).toBe('1.1.0')
   })
 })
 

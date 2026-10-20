@@ -317,6 +317,7 @@ export const ru: Locale = {
       updateNoticeRestart: 'Listulator перезапустится сам.',
       updatedTo: (version: string): string => `Обновлено до ${version}`,
       installFailed: 'Не шмог обновить Listulator',
+      installStuck: 'Закройте приложение и попробуйте снова',
       /** The link beside the version line, to the repository's CHANGELOG.md. */
       changelog: 'Изменения',
       legal: 'Лицензия и уведомления',

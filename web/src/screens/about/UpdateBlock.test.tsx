@@ -36,6 +36,7 @@ describe('the update-status block, in English', () => {
     ['error', { status: "Couldn't check for updates", version: 'Version 1.0.0', button: 'Try Again', disabled: false }],
     ['unavailable', { status: 'Checking for updates is yet TBD', version: 'Version 1.0.0', button: 'Check For Updates', disabled: true }],
     ['installError', { status: "Couldn't install the update", version: 'Version 1.0.0 → 1.1.0', button: 'Try Again', disabled: false }],
+    ['installStuck', { status: 'Close the app and try again', version: 'Version 1.0.0 → 1.1.0', button: 'Try Again', disabled: false }],
     ['downloading', { status: 'Downloading update…', version: 'Version 1.0.0 → 1.1.0', button: 'Downloading…', disabled: true }],
     ['installing', { status: 'Installing update…', version: 'Version 1.0.0 → 1.1.0', button: 'Installing…', disabled: true }],
     ['restarting', { status: 'Restarting…', version: 'Version 1.0.0 → 1.1.0', button: 'Restarting…', disabled: true }],
@@ -102,6 +103,7 @@ describe('zero layout shift: every variant is in the page, only one is shown', (
       "Couldn't check for updates",
       'Checking for updates is yet TBD',
       "Couldn't install the update",
+      'Close the app and try again',
       'Downloading update…',
       'Installing update…',
       'Restarting…',
@@ -121,7 +123,7 @@ describe('zero layout shift: every variant is in the page, only one is shown', (
     ])
   })
 
-  it.each(['latest', 'checking', 'available', 'error', 'unavailable', 'installError', 'downloading', 'installing', 'restarting'] as const)(
+  it.each(['latest', 'checking', 'available', 'error', 'unavailable', 'installError', 'installStuck', 'downloading', 'installing', 'restarting'] as const)(
     'shows exactly one variant per slot in the %s state and hides the rest from assistive technology',
     (state) => {
       renderBlock(state, { next: '1.1.0' })
@@ -147,7 +149,7 @@ describe('zero layout shift: every variant is in the page, only one is shown', (
 
 describe('the buttons', () => {
   it('checks again from the up to date state and from both error states', () => {
-    for (const [state, label] of [['latest', 'Check For Updates'], ['error', 'Try Again'], ['installError', 'Try Again']] as const) {
+    for (const [state, label] of [['latest', 'Check For Updates'], ['error', 'Try Again'], ['installError', 'Try Again'], ['installStuck', 'Try Again']] as const) {
       const props = renderBlock(state)
 
       fireEvent.click(screen.getByRole('button', { name: label }))
@@ -191,10 +193,12 @@ describe('the buttons', () => {
       ['de', 'installing', 'Update wird installiert…', 'Installiert…'],
       ['de', 'restarting', 'Neustart…', 'Neustart…'],
       ['de', 'installError', 'Update konnte nicht installiert werden', 'Erneut versuchen'],
+      ['de', 'installStuck', 'App schließen und erneut versuchen', 'Erneut versuchen'],
       ['ru', 'downloading', 'Скачиваем обновление…', 'Скачиваем…'],
       ['ru', 'installing', 'Устанавливаем обновление…', 'Устанавливаем…'],
       ['ru', 'restarting', 'Перезапускаем…', 'Перезапускаем…'],
       ['ru', 'installError', 'Не шмог обновить Listulator', 'Повторить'],
+      ['ru', 'installStuck', 'Закройте приложение и попробуйте снова', 'Повторить'],
     ] as const) {
       setActiveLanguage(language)
       renderBlock(state, { next: '1.1.0' })
@@ -240,7 +244,7 @@ describe('other languages', () => {
 })
 
 describe('the notice row (canvas H-017): the window will close and reopen', () => {
-  const STATES: UpdateBlockState[] = ['latest', 'checking', 'available', 'error', 'unavailable', 'installError', 'downloading', 'installing', 'restarting']
+  const STATES: UpdateBlockState[] = ['latest', 'checking', 'available', 'error', 'unavailable', 'installError', 'installStuck', 'downloading', 'installing', 'restarting']
   const notice = () => document.querySelector('.q-about-update-notice')
 
   it.each(STATES)('%s: is in the page exactly where an update is on offer or under way, and nowhere else', (state) => {

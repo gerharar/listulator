@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import type { AppUpdateChecker, UpdateCheckState, UpdatePhase } from './appUpdate.js'
+import { InstallStuckError, type AppUpdateChecker, type UpdateCheckState, type UpdatePhase } from './appUpdate.js'
 
 export interface UpdateCheck {
   state: UpdateCheckState
@@ -71,7 +71,7 @@ export function useUpdateCheck(checker: AppUpdateChecker): UpdateCheck {
         if (!alive.current) return
 
         console.error('Could not install the update', error)
-        setState('installError')
+        setState(error instanceof InstallStuckError ? 'installStuck' : 'installError')
       } finally {
         running.current = false
       }

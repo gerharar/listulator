@@ -308,6 +308,7 @@ export const de: Locale = {
       updateNoticeRestart: 'Listulator startet von selbst neu.',
       updatedTo: (version: string): string => `Auf ${version} aktualisiert`,
       installFailed: 'Update konnte nicht installiert werden',
+      installStuck: 'App schließen und erneut versuchen',
       /** The link beside the version line, to the repository's CHANGELOG.md. */
       changelog: 'Änderungen',
       legal: 'Lizenz und Hinweise',

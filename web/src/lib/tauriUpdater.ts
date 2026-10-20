@@ -1,5 +1,5 @@
 import { Channel, invoke } from '@tauri-apps/api/core'
-import type { AppUpdateChecker, UpdatePhase, UpdateResult } from './appUpdate.js'
+import { InstallStuckError, type AppUpdateChecker, type UpdatePhase, type UpdateResult } from './appUpdate.js'
 import { createUpdateTrace } from './updateTrace.js'
 
 /**
@@ -38,15 +38,24 @@ function foundUpdate(answer: unknown): FoundUpdate {
   return { rid, version }
 }
 
+/**
+ * How long an install may take, from the end of the download, before the screen gives up on it (BL-116). The installer is normally started and
+ * the app ended within a few seconds; the slowest start measured was 8 s (BL-092), so a minute is several times that, and a false alarm costs
+ * only a message on a window that is about to close anyway.
+ */
+export const INSTALL_STUCK_AFTER_MS = 60_000
+
 export interface TauriCheckerOptions {
   /**
    * macOS: the plugin replaces the app and leaves it running, so this app restarts it. Windows: the installer
    * closes the app and starts it again itself, so a restart by hand would start a second copy.
    */
   relaunchAfterInstall: boolean
+  /** Fails the install with `InstallStuckError` after this long without an answer. Unset: no limit (macOS, which replaces the app and returns). */
+  installTimeoutMs?: number
 }
 
-export function createTauriChecker({ relaunchAfterInstall }: TauriCheckerOptions): AppUpdateChecker {
+export function createTauriChecker({ relaunchAfterInstall, installTimeoutMs }: TauriCheckerOptions): AppUpdateChecker {
   // The update the last check offered. A download is for that one only: the version on screen has to be the version
   // that installs, and a new check replaces it.
   let offer: FoundUpdate | undefined
@@ -72,6 +81,10 @@ export function createTauriChecker({ relaunchAfterInstall }: TauriCheckerOptions
       let total = 0
       let received = 0
       let nearEnd = false
+      // The limit starts when the download ends: a slow download is not a stuck install.
+      let stuckTimer: ReturnType<typeof setTimeout> | undefined
+      let giveUp: (cause: InstallStuckError) => void = () => undefined
+      const stuck = new Promise<never>((_resolve, reject) => (giveUp = reject))
       const progress = new Channel<DownloadEvent>((event) => {
         if (event.event === 'Started') {
           total = event.data?.contentLength ?? 0
@@ -86,9 +99,23 @@ export function createTauriChecker({ relaunchAfterInstall }: TauriCheckerOptions
         } else if (event.event === 'Finished') {
           void trace.record('download-finished')
           onPhase('installing')
+          if (installTimeoutMs !== undefined) {
+            stuckTimer = setTimeout(() => {
+              void trace.record('install-timed-out')
+              giveUp(new InstallStuckError())
+            }, installTimeoutMs)
+          }
         }
       })
-      await invoke('plugin:updater|download_and_install', { onEvent: progress, rid: offer.rid })
+      const installing = invoke('plugin:updater|download_and_install', { onEvent: progress, rid: offer.rid })
+      // A call that is given up on may still answer, or fail, long after: that is no longer anyone's to handle.
+      installing.catch(() => undefined)
+
+      try {
+        await Promise.race([installing, stuck])
+      } finally {
+        clearTimeout(stuckTimer)
+      }
 
       void trace.record('install-returned')
       onPhase('restarting')

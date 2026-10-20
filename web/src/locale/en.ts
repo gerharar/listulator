@@ -356,6 +356,8 @@ export const en = {
       updatedTo: (version: string): string => `Updated to ${version}`,
       /** A download, signature check or install that failed after a check had succeeded. */
       installFailed: 'Couldn\'t install the update',
+      /** The install never started and never failed (BL-116): the window stayed on "Installing". As short as the other status lines, so the block keeps its width. */
+      installStuck: 'Close the app and try again',
       /** The link beside the version line, to the repository's CHANGELOG.md. */
       changelog: 'Changelog',
       legal: 'Licensing and notices',

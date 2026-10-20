@@ -38,7 +38,7 @@ export function AboutScreen({ checker }: { checker?: AppUpdateChecker }) {
   useEffect(() => {
     if (update.state === 'latest' || update.state === 'available' || update.state === 'error') {
       announce(`${updateStatusText(update.state)} ${updateVersionText(APP_VERSION, update.state === 'available' ? update.next : undefined)}`)
-    } else if (update.state === 'installError') {
+    } else if (update.state === 'installError' || update.state === 'installStuck') {
       announce(`${updateStatusText(update.state)} ${updateVersionText(APP_VERSION, update.next)}`)
     } else if (update.state === 'downloading') {
       // The notice (canvas H-017) is said once, here, after the first phase: the window is about to go, and the later phases repeat nothing.

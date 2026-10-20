@@ -7,7 +7,7 @@ import { LayerStackProvider, useLayerStack } from '../../components/quantum/laye
 import { LiveRegionProvider } from '../../components/quantum/LiveRegion/LiveRegion.js'
 import { OverlayManagerProvider } from '../../components/quantum/overlay/OverlayManagerContext.js'
 import { hoverTooltip } from '../../components/quantum/Tooltip/hoverTooltip.js'
-import type { AppUpdateChecker, UpdatePhase, UpdateResult } from '../../lib/appUpdate.js'
+import { InstallStuckError, type AppUpdateChecker, type UpdatePhase, type UpdateResult } from '../../lib/appUpdate.js'
 import { APP_VERSION } from '../../lib/appVersion.js'
 import { AboutScreen } from './AboutScreen.js'
 
@@ -345,6 +345,18 @@ describe('checking for updates when About opens (task 13.3)', () => {
     } finally {
       agent.mockRestore()
     }
+  })
+
+  it('says to close the app and try again when the install never started, with the version (BL-116)', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+    const { checker, answer } = controlledChecker(() => Promise.reject(new InstallStuckError()))
+    renderAbout(checker)
+    await act(async () => answer({ kind: 'available', version: '9.9.9' }))
+
+    await act(async () => fireEvent.click(screen.getByRole('button', { name: 'Download Update' })))
+
+    expect(heard()).toEqual(['Close the app and try again', `Version ${APP_VERSION} → 9.9.9`])
+    await waitFor(() => expect(spoken()).toBe(`Close the app and try again Version ${APP_VERSION} → 9.9.9`))
   })
 
   it('says Couldn’t install the update when the update fails, never "up to date", and Try Again checks again', async () => {

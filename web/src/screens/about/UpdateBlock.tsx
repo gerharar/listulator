@@ -35,7 +35,7 @@ export interface UpdateBlockProps {
 export type UpdatePlatform = ReturnType<typeof quitPlatform>
 
 /** Every state, in the order the status lines are stacked. */
-const STATES = ['latest', 'checking', 'available', 'error', 'unavailable', 'installError', 'downloading', 'installing', 'restarting'] as const satisfies readonly UpdateBlockState[]
+const STATES = ['latest', 'checking', 'available', 'error', 'unavailable', 'installError', 'installStuck', 'downloading', 'installing', 'restarting'] as const satisfies readonly UpdateBlockState[]
 
 /** The update itself is running: after the press on Download Update, until the app is replaced. */
 function inProgress(state: UpdateBlockState): state is UpdatePhase {
@@ -63,7 +63,7 @@ function buttonFor(state: UpdateBlockState): 'check' | 'checking' | 'download' |
   if (inProgress(state)) return state
   if (state === 'checking') return 'checking'
   if (state === 'available') return 'download'
-  return state === 'error' || state === 'installError' ? 'retry' : 'check'
+  return state === 'error' || state === 'installError' || state === 'installStuck' ? 'retry' : 'check'
 }
 
 /** The status line for a state, as the block shows it and as a reader is told it. */
@@ -76,6 +76,7 @@ export function updateStatusText(state: UpdateBlockState): string {
     error: text.failed,
     unavailable: text.updatesLater,
     installError: text.installFailed,
+    installStuck: text.installStuck,
     downloading: text.downloadingUpdate,
     installing: text.installingUpdate,
     restarting: text.restarting,
@@ -120,7 +121,7 @@ export function UpdateBlock({ state, current, next, onCheck, onDownload, platfor
   // No action while a check or the update itself runs, or where there is no updater to ask.
   const disabled = state === 'checking' || state === 'unavailable' || inProgress(state)
   // The version line shows the update's version from the offer on, and keeps it after a failed install.
-  const showsNext = state === 'available' || state === 'installError' || inProgress(state)
+  const showsNext = state === 'available' || state === 'installError' || state === 'installStuck' || inProgress(state)
 
   return (
     <div className="q-about-update-block">

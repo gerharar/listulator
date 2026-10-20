@@ -1,7 +1,7 @@
 import { quitPlatform } from './appQuit.js'
 import { APP_VERSION } from './appVersion.js'
 import { isDesktop } from './platform.js'
-import { createTauriChecker } from './tauriUpdater.js'
+import { createTauriChecker, INSTALL_STUCK_AFTER_MS } from './tauriUpdater.js'
 
 /**
  * What a check for a new version of the app found. `unavailable` is not a failure: there is nothing to ask
@@ -19,7 +19,18 @@ export type UpdatePhase = 'downloading' | 'installing' | 'restarting'
  * What the About screen shows (the update block's states). `installError` is a download, a signature check or
  * an install that failed after a check had succeeded: `error` ("couldn't check") would be untrue there.
  */
-export type UpdateCheckState = 'checking' | 'latest' | 'available' | 'error' | 'unavailable' | 'installError' | UpdatePhase
+export type UpdateCheckState = 'checking' | 'latest' | 'available' | 'error' | 'unavailable' | 'installError' | 'installStuck' | UpdatePhase
+
+/**
+ * An install that neither started the installer nor failed (BL-116): the screen stayed on "Installing" for good once, with the app alive and
+ * idle. A checker rejects with this after its limit, and the About screen then says to close the app and try again (`installStuck`).
+ */
+export class InstallStuckError extends Error {
+  constructor() {
+    super('The installer did not start')
+    this.name = 'InstallStuckError'
+  }
+}
 
 /**
  * Where the About screen gets its answer. The desktop app's is `createTauriChecker` (task 20.11); every other
@@ -52,7 +63,7 @@ function nextMinor(current: string): string {
 }
 
 /**
- * Lets a developer see each state of the update block: `?aboutUpdate=latest|available|installError|error|slow`. Fake
+ * Lets a developer see each state of the update block: `?aboutUpdate=latest|available|installError|installStuck|error|slow`. Fake
  * answers, so it exists only in a development build (`appUpdateChecker` below); a production build contains
  * neither the parameter nor these results.
  */
@@ -69,17 +80,18 @@ export function devChecker(search: string, current: string = APP_VERSION): AppUp
       },
     }
   }
-  if (wanted === 'available' || wanted === 'installError') {
+  if (wanted === 'available' || wanted === 'installError' || wanted === 'installStuck') {
     return {
       check: async () => (await wait(600), { kind: 'available', version: nextMinor(current) }),
       // Walks the phases the real update goes through. `available` ends in the last one, as the real one does when
-      // the app is replaced; `installError` fails while installing.
+      // the app is replaced; `installError` fails while installing, `installStuck` as an install that never started.
       download: async (_version, onPhase) => {
         onPhase('downloading')
         await wait(1500)
         onPhase('installing')
         await wait(1500)
         if (wanted === 'installError') throw new Error('Simulated failure (?aboutUpdate=installError)')
+        if (wanted === 'installStuck') throw new InstallStuckError()
         onPhase('restarting')
       },
     }
@@ -99,7 +111,12 @@ export function appUpdateChecker(): AppUpdateChecker {
     if (dev) return dev
   }
 
-  if (isDesktop()) return createTauriChecker({ relaunchAfterInstall: quitPlatform(navigator.userAgent) === 'mac' })
+  if (isDesktop()) {
+    const mac = quitPlatform(navigator.userAgent) === 'mac'
+
+    // Only the Windows install can end in nothing (BL-116): macOS replaces the app and returns.
+    return createTauriChecker({ relaunchAfterInstall: mac, ...(mac ? {} : { installTimeoutMs: INSTALL_STUCK_AFTER_MS }) })
+  }
 
   return unavailableChecker
 }
