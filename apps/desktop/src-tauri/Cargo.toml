@@ -39,5 +39,7 @@ tauri-plugin-window-state = "2"
 # Desktop only (the plugin has no mobile build). The minor is held: `requireSignedVersion` exists from 2.13.2, and a new minor is
 # read for what it adds to the webview's reach (SR-066) before it is taken. No `tauri-plugin-process`: the app has its own `relaunch`.
 # 2.13.3 is 2.13.2 (the version the design read) with `minisign-verify` 0.3, which also rejects a non-canonical signature.
-tauri-plugin-updater = "~2.13.3"
+# 2.14.0 (BL-116, 2026-10-20) was read the same way: `permissions/`, `commands.rs` and `lib.rs` are identical to 2.13.3, so the webview's
+# reach is unchanged; Windows differs only in the text of the error when `ShellExecuteW` refuses to start the installer.
+tauri-plugin-updater = "~2.14.0"
 
