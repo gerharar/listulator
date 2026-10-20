@@ -112,3 +112,31 @@ test('the row stays through every phase of the update and goes when the install 
   expect((await box(card)).height).toBeLessThan(offered.height - 10)
   expect(Math.abs((await box(card)).width - offered.width)).toBeLessThanOrEqual(0.5)
 })
+
+// Design's answer (H-017, 2026-10-20): a notice that does not fit wraps; it is never cut and never gets an ellipsis, and it never widens the card.
+test('a notice that does not fit wraps inside the card: same width, nothing cut, the icon stays on the first line', async ({ page }) => {
+  const t = en.quantum.about
+  await openAbout(page, 'available', 'en')
+  const card = page.locator('.q-about-update-block')
+  const row = page.locator('.q-about-update-notice')
+  await settle(page)
+  await expect(label(card.getByRole('button'))).toHaveText(t.download)
+  await expect(row).toBeVisible()
+  const oneLine = { card: await box(card), row: await box(row) }
+
+  // Three times the longest sentence we ship: more than one card width of text.
+  await row.locator('span').evaluate((span, words) => {
+    span.textContent = words
+  }, [t.updateNoticeWindows, t.updateNoticeWindows, t.updateNoticeWindows].join(' '))
+
+  const wrapped = { card: await box(card), row: await box(row), text: await box(row.locator('span')), icon: await box(row.locator('svg')) }
+  expect(Math.abs(wrapped.card.width - oneLine.card.width), 'the card keeps its width').toBeLessThanOrEqual(0.5)
+  expect(wrapped.row.height, 'more than one line').toBeGreaterThan(oneLine.row.height * 2)
+  // Nothing is cut: the card grew by exactly what the row grew by, and the text ends inside the card.
+  expect(Math.abs(wrapped.card.height - oneLine.card.height - (wrapped.row.height - oneLine.row.height)), 'the card holds every line').toBeLessThanOrEqual(1)
+  expect(wrapped.text.x + wrapped.text.width).toBeLessThanOrEqual(wrapped.card.x + wrapped.card.width - 14 + 0.5)
+  expect(await row.locator('span').evaluate((span) => getComputedStyle(span).textOverflow), 'no ellipsis').toBe('clip')
+  // The icon stays beside the first line.
+  expect(wrapped.icon.y - wrapped.row.y, 'icon at the top of the row').toBeLessThanOrEqual(3)
+  expect(wrapped.icon.y + wrapped.icon.height, 'icon within the first line').toBeLessThanOrEqual(wrapped.row.y + oneLine.row.height + 0.5)
+})

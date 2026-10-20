@@ -40,3 +40,26 @@ describe('the notice row (canvas H-017) and the card’s column gap', () => {
     expect(margin).not.toMatch(/-\d+px/)
   })
 })
+
+describe('the notice row when it does not fit (design’s answer, H-017)', () => {
+  // It wraps: never cut, never an ellipsis (the end of the sentence is the part that matters), and it still takes no width of its own.
+  it('wraps, without a short last line where it can, and never clips', () => {
+    const notice = rule('.q-about-update-notice')
+
+    expect(notice).toMatch(/white-space:\s*normal/)
+    expect(notice).toMatch(/text-wrap:\s*pretty/)
+    expect(notice).not.toMatch(/nowrap|ellipsis|overflow/)
+  })
+
+  it('still takes no width of its own, so a long notice cannot widen the card', () => {
+    const notice = rule('.q-about-update-notice')
+
+    expect(notice).toMatch(/width:\s*0/)
+    expect(notice).toMatch(/min-width:\s*100%/)
+  })
+
+  it('keeps the icon beside the first line', () => {
+    expect(rule('.q-about-update-notice')).toMatch(/align-items:\s*flex-start/)
+    expect(rule('.q-about-update-notice svg')).toMatch(/margin-top:\s*2px/)
+  })
+})
