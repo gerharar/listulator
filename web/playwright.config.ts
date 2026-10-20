@@ -24,7 +24,9 @@ export default defineConfig({
     locale: 'en-US',
   },
   projects: [
-    { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
+    // Runs first: makes sure the server has a list, so Home shows (seed.setup.ts). The browser projects wait for it.
+    { name: 'seed', testMatch: /seed\.setup\.ts/ },
+    { name: 'chromium', dependencies: ['seed'], use: { ...devices['Desktop Chrome'] } },
     /**
      * Not a substitute for the real Tauri/WKWebView desktop shell, but a
      * genuine second engine (WebKit) rather than an assumption that
@@ -32,7 +34,7 @@ export default defineConfig({
      * spec skips itself outside Chromium (no cross-engine equivalent API);
      * everything else here runs for real under both.
      */
-    { name: 'webkit', use: { ...devices['Desktop Safari'] } },
+    { name: 'webkit', dependencies: ['seed'], use: { ...devices['Desktop Safari'] } },
   ],
   webServer: {
     command: 'npm run dev',
