@@ -1,0 +1,35 @@
+#!/bin/sh
+# Stops a push that would publish a private key or a secret (Phase 31, task 31.1a; docs/DECISIONS.md).
+#
+# The repository is public, and GitHub's own secret scanning knows the formats of providers, not a Tauri / minisign updater key. This
+# scans the lines that EVERY commit in the push adds (not only the final state: a key that a later commit removed is still published
+# with the history) and the names of the files it adds, with the same scanner CI runs (`npm run secrets:scan`).
+#
+# `.git/hooks/` isn't tracked, so this file is the source of truth; see CONTRIBUTING.md for the one-time install step. A push made with
+# `--no-verify` skips it; CI scans every push as well. It prints the rule, the file and the line, never the text.
+set -e
+
+root=$(git rev-parse --show-toplevel)
+zero=0000000000000000000000000000000000000000
+status=0
+
+# git gives one line per ref being pushed: <local ref> <local sha> <remote ref> <remote sha>
+while read -r local_ref local_sha remote_ref remote_sha; do
+  # Deleting a branch pushes no commit.
+  [ "$local_sha" = "$zero" ] && continue
+
+  if [ "$remote_sha" = "$zero" ]; then
+    # A new branch: every commit that is on no remote yet.
+    range="$local_sha --not --remotes"
+  else
+    range="$remote_sha..$local_sha"
+  fi
+
+  # shellcheck disable=SC2086 # the range is meant to split
+  if ! git log -p --no-color --no-ext-diff --no-textconv --format= $range | (cd "$root" && npx tsx server/src/tools/secretScan.ts patch); then
+    echo "Push of $local_ref refused: see above. Remove the key or secret from the history (not only the last commit) before pushing." >&2
+    status=1
+  fi
+done
+
+exit $status

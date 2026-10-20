@@ -25,7 +25,8 @@
     "updater:serve": "tsx server/src/tools/updaterServe.ts",
     "updater:manifest": "tsx server/src/tools/updaterTestManifest.ts",
     "updater:kit": "tsx server/src/tools/updaterTestKit.ts",
-    "release:sign": "tsx server/src/tools/releaseSign.ts"
+    "release:sign": "tsx server/src/tools/releaseSign.ts",
+    "secrets:scan": "tsx server/src/tools/secretScan.ts tree"
   },
   "engines": {
     "node": ">=20"

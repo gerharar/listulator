@@ -58,3 +58,12 @@ npm-debug.log*
 # tokens.json (in docs/, local) by web/scripts/generateTokens.ts, but it IS
 # committed (Phase 17): a clone or CI has no docs/ and builds from it. Never
 # hand-edit it; a test checks it matches the tokens wherever docs/ exists.
+
+# Private keys and certificates (Phase 31, task 31.1a): the updater key must never be in this public repo. The public half
+# (updater.key.pub) is not ignored: it is meant to be committed. server/src/secretLeak.guard.test.ts pins these lines.
+*.key
+*.pem
+*.p12
+*.pfx
+.listulator-updater*
+!*.key.pub

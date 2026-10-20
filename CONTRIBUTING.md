@@ -226,6 +226,22 @@ ln -sf ../../scripts/pre-commit .git/hooks/pre-commit
 points your local hook at it. No new dependency: it shells out to `tsx`,
 already used by the scripts above.
 
+## Catching a key or a secret before you push it
+
+This repository is public, and GitHub's secret scanning does not know a Tauri
+updater key. `scripts/pre-push` scans every commit in a push for private keys,
+tokens and key-file names, and refuses the push if it finds one (it prints the
+file, the line and the rule, never the text). Install it once per clone, like
+the pre-commit hook:
+
+```
+ln -sf ../../scripts/pre-push .git/hooks/pre-push
+```
+
+`npm run secrets:scan` runs the same scan on every tracked file, and CI runs it
+on every push. If it ever reports something real, do not just delete the line:
+the key is already in history; rotate it (see the release runbook).
+
 ## `lists/index.json`
 
 A flat manifest of every list in `lists/`, `{path, title, category}` per
