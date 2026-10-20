@@ -632,9 +632,8 @@ export const ingestionRoutes: FastifyPluginAsync<IngestionRoutesOptions> = async
       // otherwise pruning an import never sticks. Ticking the box ignores
       // them, which is both the undo for an accidental delete and the way out
       // if a shared title over-suppressed something.
-      const dismissed = request.body?.includeDismissed
-        ? []
-        : await findDismissals(db, user.id, listId)
+      const stored = await findDismissals(db, user.id, listId)
+      const dismissed = request.body?.includeDismissed ? [] : stored
       const dismissedRefs = new Set(dismissed.map((item) => item.externalRef).filter(Boolean))
       const dismissedTitles = new Set(dismissed.map((item) => item.titleKey))
 
@@ -652,7 +651,7 @@ export const ingestionRoutes: FastifyPluginAsync<IngestionRoutesOptions> = async
         newItems,
         upstreamCount: upstreamItems.length,
         existingCount: existing.length,
-        dismissedCount: (await findDismissals(db, user.id, listId)).length,
+        dismissedCount: stored.length,
       }
     },
   )
@@ -754,10 +753,6 @@ export const ingestionRoutes: FastifyPluginAsync<IngestionRoutesOptions> = async
       // removed while lists still reference it; fall back rather than crash.
       const fallbackMinutes = mediaTypes.get(list.mediaType)?.defaultDurationMinutes ?? 30
 
-      // Adding something back is the user changing their mind, so the record
-      // that they once deleted it has to go with it.
-      await clearDismissals(db, listId, request.body.items)
-
       // What was found by a check carries no length for a source whose lengths are looked up afterwards
       // (15.10): a film some list has already looked up gets it here, the rest the estimate and then the
       // runner (below).
@@ -778,6 +773,10 @@ export const ingestionRoutes: FastifyPluginAsync<IngestionRoutesOptions> = async
           listId,
           withKnownLengths.map((item) => ({ ...itemFromSource(item, item.timeToConsumeMinutes, fallbackMinutes), source, isNew: request.body.arrived === true })),
         )) ?? []
+
+      // Adding something back is the user changing their mind, so the record that they once deleted it has to go with it:
+      // once the items are in, so a failed import leaves the record, and the next check does not offer them again (BL-084).
+      await clearDismissals(db, listId, request.body.items)
 
       // Hand-typed items rarely carry years, so this mostly keeps the order
       // they were typed in; it is here so every import path seeds the same way.

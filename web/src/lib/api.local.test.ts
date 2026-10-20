@@ -46,6 +46,11 @@ vi.mock('@tauri-apps/plugin-sql', async () => {
         select: async (sql: string, params: unknown[] = []) => {
           checked('select', sql, params)
           await pause()
+          // An `insert … returning` reaches the plugin as a select.
+          if (failOnce?.(sql)) {
+            failOnce = null
+            throw new Error('boom')
+          }
           const rows = sqlite.prepare(positional(sql)).all(...params)
           bytesSelected += JSON.stringify(rows).length
           return rows
@@ -407,6 +412,32 @@ describe('the desktop builds a list at once and fills its lengths afterwards (15
       expect(found.newItems.map((item) => item.title)).toEqual(['Film 4'])
       expect(found.dismissedCount).toBe(1)
       expect(everything.newItems.map((item) => item.title).sort()).toEqual(['Film 2', 'Film 4'])
+    })
+
+    it('keeps the dismissal when an import fails part-way: the next check still does not offer the deleted film back (BL-084)', async () => {
+      const source = filmSource()
+      const { api, list } = await builtList(source)
+      const deleted = (await api.list(list.id)).items.find((item) => item.title === 'Film 2')!
+      await api.deleteItem(list.id, deleted.id)
+
+      failOnce = (sql) => /^insert into "list_items"/i.test(sql)
+      await expect(api.importItems(list.id, [{ title: 'Film 2', externalRef: 'film:2' }], 'import', true)).rejects.toBeDefined()
+      const found = await api.checkForUpdates(list.id)
+
+      expect(found.dismissedCount).toBe(1)
+      expect(found.newItems).toEqual([])
+    })
+
+    it('counts the dismissed films the same when the check is told to ignore them', async () => {
+      const source = filmSource()
+      const { api, list } = await builtList(source)
+      const deleted = (await api.list(list.id)).items.find((item) => item.title === 'Film 2')!
+      await api.deleteItem(list.id, deleted.id)
+
+      const everything = await api.checkForUpdates(list.id, true)
+
+      expect(everything.newItems.map((item) => item.title)).toEqual(['Film 2'])
+      expect(everything.dismissedCount).toBe(1)
     })
 
     it('adds a new film with the length another list already looked up, and nothing is left to look up', async () => {

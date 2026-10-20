@@ -547,10 +547,6 @@ export function createLocalApi(): ApiClient {
       const mediaType = (await getLocalMediaTypes()).find((entry) => entry.key === list.mediaType)
       const fallbackMinutes = mediaType?.defaultDurationMinutes ?? 30
 
-      // Changing your mind about a deletion — the record that you once
-      // deleted it has to go with it (matches ingestion/routes.ts).
-      await clearDismissals(database, listId, items)
-
       // What a check found carries no length for a source whose lengths are looked up afterwards (15.10): a
       // film some list has already looked up gets it here, the rest the estimate and then the runner.
       const withKnownLengths = withKnownRuntimes(
@@ -570,6 +566,9 @@ export function createLocalApi(): ApiClient {
           listId,
           withKnownLengths.map((item) => ({ ...itemFromSource(item, item.timeToConsumeMinutes, fallbackMinutes), source, isNew: arrived })),
         )) ?? []
+      // Changing your mind about a deletion — the record that you once deleted it has to go with it, once the items are in, so a
+      // failed import leaves it (matches ingestion/routes.ts, BL-084).
+      await clearDismissals(database, listId, items)
       await seedGroupOrder(database, listId)
 
       // Whatever is still without a length is looked up in the background.
@@ -1087,7 +1086,8 @@ export function createLocalApi(): ApiClient {
       // otherwise pruning an import never sticks. Ticking the box ignores
       // them, which is both the undo for an accidental delete and the way
       // out if a shared title over-suppressed something.
-      const dismissed = includeDismissed ? [] : await findDismissals(database, userId, listId)
+      const stored = await findDismissals(database, userId, listId)
+      const dismissed = includeDismissed ? [] : stored
       const dismissedRefs = new Set(dismissed.map((item) => item.externalRef).filter(Boolean))
       const dismissedTitles = new Set(dismissed.map((item) => item.titleKey))
 
@@ -1105,7 +1105,7 @@ export function createLocalApi(): ApiClient {
         newItems,
         upstreamCount: upstreamItems.length,
         existingCount: existing.length,
-        dismissedCount: (await findDismissals(database, userId, listId)).length,
+        dismissedCount: stored.length,
       }
     },
 

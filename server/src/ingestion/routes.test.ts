@@ -1,6 +1,7 @@
 import { existsSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+import { sql } from 'drizzle-orm'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createList as createStoredList, findList, findListSnapshot } from '../catalog/repository.js'
 import { users } from '../db/schema.js'
@@ -1933,6 +1934,38 @@ describe('checking a list for updates', () => {
 
     expect(refreshed.dismissedCount).toBe(0)
     expect(refreshed.newItems).toEqual([])
+  })
+
+  it('keeps the dismissal when the import fails: the next check still does not offer the deleted item back (BL-084)', async () => {
+    const upstream = [{ title: 'Restored', externalRef: 'movie:1' }]
+
+    harness = appWith(adapterYielding(upstream))
+    const list = await buildList(harness)
+    const items = (await harness.app.inject({ method: 'GET', url: `/api/lists/${list.id}` })).json().items
+    await harness.app.inject({ method: 'DELETE', url: `/api/lists/${list.id}/items/${items[0].id}` })
+    // The bulk insert throws for this title, as a database error half-way would.
+    harness.db.run(sql.raw(`CREATE TRIGGER refuse_restored BEFORE INSERT ON list_items WHEN NEW.title = 'Restored' BEGIN SELECT RAISE(ABORT, 'refused'); END`))
+
+    const failed = await harness.app.inject({ method: 'POST', url: `/api/lists/${list.id}/items/import`, payload: { items: upstream } })
+    const refreshed = (await harness.app.inject({ method: 'POST', url: `/api/lists/${list.id}/refresh` })).json()
+
+    expect(failed.statusCode).toBe(500)
+    expect(refreshed.dismissedCount).toBe(1)
+    expect(refreshed.newItems).toEqual([])
+  })
+
+  it('counts the dismissed items the same when the check is told to ignore them', async () => {
+    const upstream = [{ title: 'Deleted By Mistake', externalRef: 'movie:1' }]
+
+    harness = appWith(adapterYielding(upstream))
+    const list = await buildList(harness)
+    const items = (await harness.app.inject({ method: 'GET', url: `/api/lists/${list.id}` })).json().items
+    await harness.app.inject({ method: 'DELETE', url: `/api/lists/${list.id}/items/${items[0].id}` })
+
+    const refreshed = (await harness.app.inject({ method: 'POST', url: `/api/lists/${list.id}/refresh`, payload: { includeDismissed: true } })).json()
+
+    expect(refreshed.newItems).toEqual(upstream)
+    expect(refreshed.dismissedCount).toBe(1)
   })
 
   it('dismisses by title where the source has no id', async () => {
