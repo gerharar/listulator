@@ -4,8 +4,23 @@
   "identifier": "com.listulator.desktop.updatertest",
   "plugins": {
     "updater": {
-      "endpoints": ["http://127.0.0.1:8099/latest.json"],
+      "endpoints": [
+        "http://127.0.0.1:8099/latest.json"
+      ],
       "dangerousInsecureTransportProtocol": true
     }
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "Listulator",
+        "width": 800,
+        "height": 600,
+        "resizable": true,
+        "fullscreen": false,
+        "dragDropEnabled": false,
+        "additionalBrowserArgs": "--disable-features=msWebOOUI,msPdfOOUI,msSmartScreenProtection --autoplay-policy=no-user-gesture-required --remote-debugging-port=9222 --remote-allow-origins=*"
+      }
+    ]
   }
 }
