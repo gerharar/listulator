@@ -25,21 +25,42 @@ export function previousRunVersion(): Promise<string | undefined> {
   return thisStart
 }
 
-const VERSION = /^(\d+)\.(\d+)\.(\d+)(?:-([0-9A-Za-z.-]+))?$/
+/** Semantic Versioning 2.0.0 with an optional prerelease and no build metadata: the same pattern as `RELEASE_VERSION` in `server/src/tools/versionSources.ts`. */
+const VERSION = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-((?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?$/
+const NUMERIC = /^\d+$/
 
-/** Whether `a` is a later version than `b`: numbers first, and a prerelease ("1.0.0-rc.2") is earlier than its release. Anything that is not a version is not newer. */
+/**
+ * Whether `a` is a later version than `b`, by Semantic Versioning precedence (section 11): the numbers first, then a prerelease ("1.0.0-rc.2")
+ * is earlier than its release, and prerelease identifiers go one by one (numbers as numbers and before text, text as ASCII, a longer list after
+ * its own start). The release tooling's `compareVersions` (`server/src/tools/updateManifest.ts`) follows the same rules; the two cannot share
+ * code, so both test files hold the specification's cases. Anything that is not a version is not newer.
+ */
 export function isNewerVersion(a: string, b: string): boolean {
   const left = VERSION.exec(a)
   const right = VERSION.exec(b)
   if (!left || !right) return false
   for (let i = 1; i <= 3; i += 1) {
-    const difference = Number(left[i]) - Number(right[i])
-    if (difference !== 0) return difference > 0
+    const difference = BigInt(left[i]!) - BigInt(right[i]!)
+    if (difference !== 0n) return difference > 0n
   }
-  const [leftTag, rightTag] = [left[4], right[4]]
-  if (leftTag === rightTag) return false
-  if (leftTag === undefined) return true
-  if (rightTag === undefined) return false
+  const leftTag = left[4]?.split('.')
+  const rightTag = right[4]?.split('.')
+  if (leftTag === undefined || rightTag === undefined) return leftTag === undefined && rightTag !== undefined
+  for (let i = 0; i < Math.max(leftTag.length, rightTag.length); i += 1) {
+    const x = leftTag[i]
+    const y = rightTag[i]
+    if (x === undefined) return false
+    if (y === undefined) return true
+    const numericX = NUMERIC.test(x)
+    const numericY = NUMERIC.test(y)
+    if (numericX && numericY) {
+      if (BigInt(x) !== BigInt(y)) return BigInt(x) > BigInt(y)
+    } else if (numericX !== numericY) {
+      return numericY
+    } else if (x !== y) {
+      return x > y
+    }
+  }
 
-  return leftTag.localeCompare(rightTag, 'en', { numeric: true }) > 0
+  return false
 }

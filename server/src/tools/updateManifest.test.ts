@@ -272,6 +272,15 @@ describe('comparing versions (semantic versioning precedence)', () => {
     ['1.0.0-1', '1.0.0-rc', -1],
     ['1.0.0-rc', '1.0.0-rc.1', -1],
     ['1.0.0-rc.1', '1.0.0-rc.1', 0],
+    // The web app compares versions too (`web/src/lib/runVersion.ts`, `isNewerVersion`) and follows the same rules; its test holds these cases as well.
+    ['1.0.0-alpha.1', '1.0.0-alpha', 1],
+    ['1.0.0-alpha.beta', '1.0.0-alpha.1', 1],
+    ['1.0.0-beta', '1.0.0-alpha.beta', 1],
+    ['1.0.0-beta.11', '1.0.0-beta.2', 1],
+    ['1.0.0-alpha', '1.0.0-RC.1', 1],
+    ['1.0.0-alpha', '1.0.0-Alpha', 1],
+    ['1.0.0-alpha-1', '1.0.0-alpha.1', 1],
+    ['1.0.0-rc.01x', '1.0.0-rc.2', 1],
   ])('%s against %s is %i', (a, b, expected) => {
     expect(Math.sign(compareVersions(a, b))).toBe(expected)
   })

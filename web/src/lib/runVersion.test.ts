@@ -68,3 +68,44 @@ describe('isNewerVersion', () => {
     expect(isNewerVersion(a, b)).toBe(expected)
   })
 })
+
+// The release tooling compares versions too (`server/src/tools/updateManifest.ts`, `compareVersions`), and the two cannot share code (separate
+// workspaces). They follow the same rules instead, Semantic Versioning 2.0.0 section 11, so the app and the manifest check never disagree.
+describe('isNewerVersion follows Semantic Versioning precedence', () => {
+  const CHAIN = ['1.0.0-alpha', '1.0.0-alpha.1', '1.0.0-alpha.beta', '1.0.0-beta', '1.0.0-beta.2', '1.0.0-beta.11', '1.0.0-rc.1', '1.0.0'] as const
+
+  it('orders the specification’s own example chain, in every pair', () => {
+    for (const [later, laterVersion] of CHAIN.entries()) {
+      for (const [earlier, earlierVersion] of CHAIN.entries()) {
+        expect(isNewerVersion(laterVersion, earlierVersion), `${laterVersion} is newer than ${earlierVersion}`).toBe(later > earlier)
+      }
+    }
+  })
+
+  it.each([
+    // Identifiers are compared as ASCII text: capitals before lower case, "-" inside an identifier is part of it.
+    ['1.0.0-alpha', '1.0.0-RC.1', true],
+    ['1.0.0-alpha', '1.0.0-Alpha', true],
+    ['1.0.0-alpha-1', '1.0.0-alpha.1', true],
+    ['1.0.0-x-y', '1.0.0-x.y', true],
+    // An identifier with a letter is text, even when it starts with digits; a number is smaller than text.
+    ['1.0.0-rc.01x', '1.0.0-rc.2', true],
+    ['1.0.0-alpha', '1.0.0-1', true],
+    ['1.0.0-2', '1.0.0-1', true],
+    // A longer list of identifiers is later when the shorter one is its start.
+    ['1.0.0-a.b.c', '1.0.0-a.b', true],
+  ] as const)('%s is newer than %s: %s', (a, b, expected) => {
+    expect(isNewerVersion(a, b)).toBe(expected)
+    expect(isNewerVersion(b, a)).toBe(!expected)
+  })
+
+  it.each([
+    ['01.0.0', '0.9.0'],
+    ['1.0.0-rc..1', '1.0.0-rc'],
+    ['1.0.0-rc.', '1.0.0-rc'],
+    ['1.0.0-01', '1.0.0-0'],
+    ['1.0.0+build.5', '1.0.0-rc.1'],
+  ] as const)('does not call %s newer than %s: it is not a version', (a, b) => {
+    expect(isNewerVersion(a, b)).toBe(false)
+  })
+})
