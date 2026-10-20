@@ -13,7 +13,7 @@ import { useLiveRegion } from '../../components/quantum/LiveRegion/LiveRegion.js
 import { Tip } from '../../components/quantum/Tooltip/Tip.js'
 import { ABOUT_SOURCES, AUTHOR, LICENSING_URL, TMDB_NOTICE, type AboutSource } from '../../lib/dataSources.js'
 import tmdbLogo from './tmdb-long.svg'
-import { UpdateBlock, updateStatusText, updateVersionText } from './UpdateBlock.js'
+import { UpdateBlock, updateNoticeText, updateStatusText, updateVersionText } from './UpdateBlock.js'
 
 /**
  * The About layer (task 11.21; design handoff `docs/design/about-screen/`,
@@ -37,7 +37,10 @@ export function AboutScreen({ checker }: { checker?: AppUpdateChecker }) {
       announce(`${updateStatusText(update.state)} ${updateVersionText(APP_VERSION, update.state === 'available' ? update.next : undefined)}`)
     } else if (update.state === 'installError') {
       announce(`${updateStatusText(update.state)} ${updateVersionText(APP_VERSION, update.next)}`)
-    } else if (update.state === 'downloading' || update.state === 'installing' || update.state === 'restarting') {
+    } else if (update.state === 'downloading') {
+      // The notice (canvas H-017) is said once, here, after the first phase: the window is about to go, and the later phases repeat nothing.
+      announce(`${updateStatusText(update.state)} ${updateNoticeText()}`)
+    } else if (update.state === 'installing' || update.state === 'restarting') {
       announce(updateStatusText(update.state))
     }
   }, [update.state, update.next, announce])

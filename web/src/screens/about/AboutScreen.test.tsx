@@ -314,7 +314,8 @@ describe('checking for updates when About opens (task 13.3)', () => {
 
     expect(heard()).toEqual(['Downloading update…', `Version ${APP_VERSION} → 9.9.9`])
     expect((screen.getByRole('button', { name: 'Downloading…' }) as HTMLButtonElement).disabled).toBe(true)
-    await waitFor(() => expect(spoken()).toBe('Downloading update…'))
+    // The notice about the closing window is said once, with the first phase; jsdom's agent is not a Mac, so it is the Windows one.
+    await waitFor(() => expect(spoken()).toBe('Downloading update… The window closes for up to 15 seconds, then reopens by itself.'))
     act(() => reports[0]!('installing'))
     expect(heard()[0]).toBe('Installing update…')
     await waitFor(() => expect(spoken()).toBe('Installing update…'))
