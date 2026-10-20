@@ -79,15 +79,30 @@ function ruleOfLine(line: string): string | undefined {
   return undefined
 }
 
+/** A line that is nothing but base64: one row of a wrapped encoding (`base64` wraps at 76 characters, other tools at 64, 60 or less). */
+const BASE64_ROW = /^\s*[A-Za-z0-9+/]{8,}={0,2}\s*$/
+
 /** Every line of `text` that breaks a rule, with its 1-based number; never the text itself. */
 export function scanText(text: string): TextFinding[] {
   const found: TextFinding[] = []
-  text.split('\n').forEach((line, index) => {
+  const lines = text.split('\n')
+  lines.forEach((line, index) => {
     const rule = ruleOfLine(line)
     if (rule !== undefined) found.push({ rule, line: index + 1 })
   })
 
-  return found
+  // A key wrapped over several lines: join each run of base64-only rows and look at it as one.
+  for (let start = 0; start < lines.length; start += 1) {
+    if (!BASE64_ROW.test(lines[start]!)) continue
+    let end = start
+    while (end + 1 < lines.length && BASE64_ROW.test(lines[end + 1]!)) end += 1
+    if (end > start && !found.some((finding) => finding.line > start && finding.line <= end + 1) && base64SecretKey(lines.slice(start, end + 1).map((row) => row.trim()).join(''))) {
+      found.push({ rule: 'tauri-secret-key', line: start + 1 })
+    }
+    start = end
+  }
+
+  return found.sort((a, b) => a.line - b.line)
 }
 
 const KEY_EXTENSIONS = new Set(['.key', '.pem', '.p12', '.pfx'])

@@ -46,6 +46,17 @@ jobs:
     runs-on: windows-2025
     timeout-minutes: 90
     steps:
+      # Before anything else, and before the key exists: the two inputs are versions and nothing else. They go to native commands (npm is
+      # a batch file on Windows, whose argument parsing treats & | > % as syntax), so a text that is not a plain version never reaches one.
+      - name: The versions are versions
+        shell: pwsh
+        env:
+          VERSION: ${{ inputs.version }}
+          UPDATE_VERSION: ${{ inputs.update_version }}
+        run: |
+          if ($env:VERSION -notmatch '^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(-[0-9A-Za-z.-]+)?$') { throw 'version is not a version like 1.2.3 or 1.2.3-rc.1' }
+          if ($env:UPDATE_VERSION -notmatch '^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(-[0-9A-Za-z.-]+)?$') { throw 'update_version is not a version like 1.2.3 or 1.2.3-rc.1' }
+
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false

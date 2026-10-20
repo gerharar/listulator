@@ -38,6 +38,19 @@ describe('scanText', () => {
       expect(rulesOf(`TOKEN="${base64(base64(secretKeyBase64))}"`)).toEqual(['tauri-secret-key'])
     })
 
+    it('is found when the base64 is wrapped over several lines, at any width (the base64 command wraps at 76, other tools at 64, 60 or less)', () => {
+      for (const width of [76, 64, 60, 40, 32, 20]) {
+        const wrapped = secretKeyBase64.match(new RegExp(`.{1,${width}}`, 'g'))!.join('\n')
+
+        expect(scanText(`header\n${wrapped}\nfooter`), `width ${width}`).toEqual([{ rule: 'tauri-secret-key', line: 2 }])
+      }
+    })
+
+    it('does not take wrapped base64 of the PUBLIC key, or of ordinary data, for a key', () => {
+      expect(scanText(publicKeyBase64.match(/.{1,40}/g)!.join('\n'))).toEqual([])
+      expect(scanText(Buffer.from('just some ordinary words, long enough to wrap onto several lines of base64').toString('base64').match(/.{1,20}/g)!.join('\n'))).toEqual([])
+    })
+
     it('is not confused with the PUBLIC key, which is the same shape and is committed on purpose (tauri.conf.json)', () => {
       expect(scanText(`${PUBLIC_KEY_COMMENT}\n${KEY_BODY}\n`)).toEqual([])
       expect(scanText(`"pubkey": "${publicKeyBase64}"`)).toEqual([])

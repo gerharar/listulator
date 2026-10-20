@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import { makeKeyPair, signLikeTauri } from './minisignTesting.js'
-import { checkSignedInstaller, filesHoldingText, withRunPublicKey } from './updaterTestConfig.js'
+import { mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
+import { checkSignedInstaller, filesHoldingText, filesIn, keyTextProblem, pubkeyFileProblem, withRunPublicKey } from './updaterTestConfig.js'
 
 /**
  * Tests of the three checks the updater test workflow makes around its throw-away key (Phase 31, task 31.6, rules S1 to S4 and S7):
@@ -119,5 +122,67 @@ describe('filesHoldingText', () => {
   it('never matches on an empty text: an empty key file must not flag every file', () => {
     expect(filesHoldingText(files, '')).toEqual([])
     expect(filesHoldingText(files, '\n')).toEqual([])
+  })
+})
+
+describe('filesHoldingText in other forms', () => {
+  // A key file is base64 text itself, so it is a valid base64 string; its decoded bytes, its re-encoding and its UTF-16 form are the other shapes it can take.
+  const secret = Buffer.from('a stand-in for a key file, long enough to search for: 0123456789').toString('base64')
+  const latin1 = (bytes: Buffer) => bytes.toString('latin1')
+  const hold = (text: string) => filesHoldingText([{ path: 'f', text }], secret)
+
+  it('finds it encoded once more as base64', () => {
+    expect(hold(`x ${Buffer.from(secret).toString('base64')} y`)).toEqual(['f'])
+  })
+
+  it('finds its decoded bytes in a binary file', () => {
+    expect(hold(`MZ\u0000\u0001${latin1(Buffer.from(secret, 'base64'))}\u0002`)).toEqual(['f'])
+  })
+
+  it('finds it as UTF-16 text', () => {
+    expect(hold(`before${latin1(Buffer.from(secret, 'utf16le'))}after`)).toEqual(['f'])
+  })
+
+  it('does not look inside compressed data: a known limit, written down so nobody believes otherwise', () => {
+    // The installer's payload is LZMA-compressed. Nothing here can see through that; what keeps a key out of it is that no build step
+    // is given the key text, and the guard on the workflow (updaterTestProblems), not this search.
+    expect(hold(latin1(Buffer.from('\x1f\x8b\x08compressed bytes that no longer contain the text')))).toEqual([])
+  })
+})
+
+describe('keyTextProblem', () => {
+  it('accepts a key-sized text', () => {
+    expect(keyTextProblem('q'.repeat(300))).toBeUndefined()
+  })
+
+  it('refuses an empty or short key file: searching for it would find everything or nothing', () => {
+    expect(keyTextProblem('')).toMatch(/too short/)
+    expect(keyTextProblem('\n')).toMatch(/too short/)
+    expect(keyTextProblem('short')).toMatch(/too short/)
+  })
+})
+
+describe('pubkeyFileProblem', () => {
+  it('accepts a .pub file and refuses anything else, so a private key file cannot be the one embedded', () => {
+    expect(pubkeyFileProblem('/tmp/run/updater-test-run.key.pub')).toBeUndefined()
+    expect(pubkeyFileProblem('/tmp/run/updater-test-run.key')).toMatch(/\.pub/)
+    expect(pubkeyFileProblem('/tmp/run/pubkey.txt')).toMatch(/\.pub/)
+  })
+})
+
+describe('filesIn', () => {
+  it('lists the files under a folder, and does not follow a link back up (no endless walk)', () => {
+    const root = mkdtempSync(join(tmpdir(), 'filesin-'))
+    try {
+      mkdirSync(join(root, 'sub'))
+      writeFileSync(join(root, 'a.txt'), 'a')
+      writeFileSync(join(root, 'sub', 'b.txt'), 'b')
+      symlinkSync(root, join(root, 'sub', 'loop'))
+      symlinkSync(join(root, 'a.txt'), join(root, 'link.txt'))
+
+      expect(filesIn(root).map((path) => path.slice(root.length + 1)).sort()).toEqual(['a.txt', 'sub/b.txt'])
+    } finally {
+      rmSync(root, { recursive: true, force: true })
+    }
   })
 })

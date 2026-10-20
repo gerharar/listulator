@@ -1,4 +1,4 @@
-import { readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs'
+import { readdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { join, relative } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { verifyMinisign } from './minisignVerify.js'
@@ -75,12 +75,44 @@ export function checkSignedInstaller(input: SignedInstaller): string[] {
   return problems
 }
 
-/** The paths of the files whose text holds `text` (surrounding whitespace ignored); an empty text matches nothing. */
+/** The least a key file can be for a search for its text to mean anything (a real one is 348 characters). */
+const MIN_KEY_TEXT = 32
+
+/** Why a key file cannot be searched for; undefined when it can. An empty needle would match everything or nothing. */
+export function keyTextProblem(text: string): string | undefined {
+  return text.trim().length < MIN_KEY_TEXT ? 'the key file is empty or too short to search for' : undefined
+}
+
+/** The embedded key must be a PUBLIC key file: a private key file cannot be the one named. */
+export function pubkeyFileProblem(path: string): string | undefined {
+  return path.endsWith('.pub') ? undefined : 'the public key file must end in .pub (a private key file cannot be the one embedded)'
+}
+
+/**
+ * The paths of the files whose text holds `text` (surrounding whitespace ignored): as it is, encoded once more as base64, as the bytes it
+ * decodes to (a key file is itself base64) and as UTF-16. Files are read as latin1, so every byte is one character. It does NOT see through
+ * compressed data (an installer's payload is LZMA): what keeps a key out of that is that no build step is given its text, and the guard on
+ * the workflow, not this search. An empty text matches nothing.
+ */
 export function filesHoldingText(files: { path: string; text: string }[], text: string): string[] {
   const needle = text.trim()
   if (needle === '') return []
 
-  return files.filter((file) => file.text.includes(needle)).map((file) => file.path)
+  const forms = [needle, Buffer.from(needle).toString('base64'), Buffer.from(needle, 'utf16le').toString('latin1')]
+  const decoded = Buffer.from(needle, 'base64')
+  if (decoded.length >= 16 && decoded.toString('base64') === needle) forms.push(decoded.toString('latin1'))
+
+  return files.filter((file) => forms.some((form) => file.text.includes(form))).map((file) => file.path)
+}
+
+/** The files under `dir` (absolute paths), not following links: a link back up would never end, and a link out would read what is not ours. */
+export function filesIn(dir: string): string[] {
+  return readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
+    const path = join(dir, entry.name)
+    if (entry.isSymbolicLink()) return []
+
+    return entry.isDirectory() ? filesIn(path) : entry.isFile() ? [path] : []
+  })
 }
 
 // ---------------------------------------------------------------------------------------------------------------------------------
@@ -105,19 +137,14 @@ function realPublicKey(): string {
   return pubkey
 }
 
-function filesUnder(dir: string): string[] {
-  return readdirSync(dir).flatMap((name) => {
-    const path = join(dir, name)
-
-    return statSync(path).isDirectory() ? filesUnder(path) : [path]
-  })
-}
-
 function main(args: string[]): number {
   const [command, ...rest] = args
 
   if (command === 'config') {
-    const pubkey = readFileSync(option(rest, '--pubkey-file'), 'utf8')
+    const pubkeyFile = option(rest, '--pubkey-file')
+    const refused = pubkeyFileProblem(pubkeyFile)
+    if (refused !== undefined) throw new Error(refused)
+    const pubkey = readFileSync(pubkeyFile, 'utf8')
     const config = withRunPublicKey(JSON.parse(readFileSync(TEST_CONFIG, 'utf8')) as Json, pubkey, realPublicKey())
     writeFileSync(option(rest, '--out'), `${JSON.stringify(config, null, 2)}\n`)
     console.log(`The test app will trust the run's key ${keyIdOfPublicKey(pubkey.trim())} (the real key is ${keyIdOfPublicKey(realPublicKey())}).`)
@@ -147,10 +174,13 @@ function main(args: string[]): number {
 
   if (command === 'staging') {
     const dir = option(rest, '--dir')
-    const paths = filesUnder(dir).map((path) => relative(dir, path))
+    const keyText = readFileSync(option(rest, '--key-file'), 'latin1')
+    const unusable = keyTextProblem(keyText)
+    if (unusable !== undefined) throw new Error(unusable)
+    const paths = filesIn(dir).map((path) => relative(dir, path))
     const holding = filesHoldingText(
       paths.map((path) => ({ path, text: readFileSync(join(dir, path), 'latin1') })),
-      readFileSync(option(rest, '--key-file'), 'latin1'),
+      keyText,
     )
     const findings = scanFiles(dir, paths)
     if (holding.length > 0 || findings.length > 0) {
