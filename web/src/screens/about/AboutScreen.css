@@ -98,6 +98,27 @@
   font-variant-numeric: tabular-nums;
   color: var(--ink2);
 }
+/*
+ * The notice row (canvas H-017): a full-width row under the status column and the button, in the card's wrapping flex. It takes no
+ * width of its own (`width: 0`, then `min-width: 100%` to span the card), so the card's width is still set by the status, version and
+ * button stacks and a long notice cannot widen it. It is in the DOM only in the states that have an update to install.
+ */
+.q-about-update-notice {
+  flex: 0 0 100%;
+  width: 0;
+  min-width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  font: 400 12.5px/1.4 var(--font-sans);
+  color: var(--ink2);
+  white-space: nowrap;
+}
+.q-about-update-notice svg {
+  flex: none;
+  color: var(--ink3);
+}
 
 /*
  * Zero layout shift: every variant of a text shares one grid cell, the inactive ones only hidden, so the cell

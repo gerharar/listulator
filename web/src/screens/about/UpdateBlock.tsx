@@ -1,6 +1,8 @@
+import { RefreshCw } from 'lucide-react'
 import { Button } from '../../components/quantum/Button/Button.js'
 import { ExternalLink } from '../../components/quantum/ExternalLink/ExternalLink.js'
 import { HeaderPlate } from '../../components/quantum/HeaderPlate/HeaderPlate.js'
+import { quitPlatform } from '../../lib/appQuit.js'
 import type { UpdateCheckState, UpdatePhase } from '../../lib/appUpdate.js'
 import { CHANGELOG_URL } from '../../lib/dataSources.js'
 import { copy } from '../../locale/index.js'
@@ -22,7 +24,12 @@ export interface UpdateBlockProps {
   onCheck: () => void
   /** Download Update: hands off to the app's update flow. */
   onDownload: () => void
+  /** Which notice to give; the platform this window runs on when left out. */
+  platform?: UpdatePlatform
 }
+
+/** `mac` restarts quickly; every other desktop platform is Windows, whose installer closes the window for a while (H-017, BL-092). */
+export type UpdatePlatform = ReturnType<typeof quitPlatform>
 
 /** Every state, in the order the status lines are stacked. */
 const STATES = ['latest', 'checking', 'available', 'error', 'unavailable', 'installError', 'downloading', 'installing', 'restarting'] as const satisfies readonly UpdateBlockState[]
@@ -30,6 +37,22 @@ const STATES = ['latest', 'checking', 'available', 'error', 'unavailable', 'inst
 /** The update itself is running: after the press on Download Update, until the app is replaced. */
 function inProgress(state: UpdateBlockState): state is UpdatePhase {
   return state === 'downloading' || state === 'installing' || state === 'restarting'
+}
+
+/**
+ * Whether the notice row ("the window closes and reopens", canvas H-017) is in the block: from the offer on, through the update. The
+ * window is hidden during the install, so the notice has to be on screen before it; the states that have no update to install have no row at all
+ * (an empty band in the card looks bad, owner 2026-10-20).
+ */
+export function showsUpdateNotice(state: UpdateBlockState): boolean {
+  return state === 'available' || inProgress(state)
+}
+
+/** The notice for a platform: Windows closes the window for the installer's gap, macOS restarts at once. */
+export function updateNoticeText(platform: UpdatePlatform = quitPlatform(navigator.userAgent)): string {
+  const text = copy.quantum.about
+
+  return platform === 'mac' ? text.updateNoticeRestart : text.updateNoticeWindows
 }
 
 /** Which of the stacked button labels a state shows. */
@@ -89,7 +112,7 @@ function Stack<Key extends string>({ active, variants }: { active: Key; variants
  * The update-status block on the About screen (docs/design/about-updates, 1b): a compact card with the status,
  * the version and one action. Presentational: which state it is in, and what the actions do, come from outside.
  */
-export function UpdateBlock({ state, current, next, onCheck, onDownload }: UpdateBlockProps) {
+export function UpdateBlock({ state, current, next, onCheck, onDownload, platform }: UpdateBlockProps) {
   const text = copy.quantum.about
   // No action while a check or the update itself runs, or where there is no updater to ask.
   const disabled = state === 'checking' || state === 'unavailable' || inProgress(state)
@@ -147,6 +170,12 @@ export function UpdateBlock({ state, current, next, onCheck, onDownload }: Updat
           ]}
         />
       </Button>
+      {showsUpdateNotice(state) && (
+        <p className="q-about-update-notice">
+          <RefreshCw width={13} height={13} aria-hidden="true" />
+          <span>{updateNoticeText(platform)}</span>
+        </p>
+      )}
     </div>
   )
 }

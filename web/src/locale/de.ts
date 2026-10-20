@@ -304,6 +304,8 @@ export const de: Locale = {
       restarting: 'Neustart…',
       downloading: 'Lädt herunter…',
       installing: 'Installiert…',
+      updateNoticeWindows: 'Das Fenster ist bis zu 15 Sekunden weg und kommt von selbst wieder.',
+      updateNoticeRestart: 'Listulator startet von selbst neu.',
       installFailed: 'Update konnte nicht installiert werden',
       /** The link beside the version line, to the repository's CHANGELOG.md. */
       changelog: 'Änderungen',

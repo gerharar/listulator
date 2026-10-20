@@ -4,14 +4,14 @@ import { cleanup, fireEvent, render, screen, within } from '@testing-library/rea
 import { setActiveLanguage } from '../../locale/index.js'
 import { OverlayManagerProvider } from '../../components/quantum/overlay/OverlayManagerContext.js'
 import { hoverTooltip } from '../../components/quantum/Tooltip/hoverTooltip.js'
-import { UpdateBlock, type UpdateBlockState } from './UpdateBlock.js'
+import { UpdateBlock, showsUpdateNotice, updateNoticeText, type UpdateBlockState, type UpdatePlatform } from './UpdateBlock.js'
 
 afterEach(() => {
   cleanup()
   setActiveLanguage('en')
 })
 
-function renderBlock(state: UpdateBlockState, over: { next?: string; onCheck?: () => void; onDownload?: () => void } = {}) {
+function renderBlock(state: UpdateBlockState, over: { next?: string; onCheck?: () => void; onDownload?: () => void; platform?: UpdatePlatform } = {}) {
   const props = { onCheck: vi.fn(), onDownload: vi.fn(), current: '1.0.0', ...over }
   render(
     <OverlayManagerProvider>
@@ -236,5 +236,64 @@ describe('other languages', () => {
     expect(statusLine).toBe(line)
     expect(versionLine).toBe(version)
     expect(screen.getByRole('button', { name: button })).toBeTruthy()
+  })
+})
+
+describe('the notice row (canvas H-017): the window will close and reopen', () => {
+  const STATES: UpdateBlockState[] = ['latest', 'checking', 'available', 'error', 'unavailable', 'installError', 'downloading', 'installing', 'restarting']
+  const notice = () => document.querySelector('.q-about-update-notice')
+
+  it.each(STATES)('%s: is in the page exactly where an update is on offer or under way, and nowhere else', (state) => {
+    renderBlock(state, { next: '1.1.0', platform: 'other' })
+
+    const expected = ['available', 'downloading', 'installing', 'restarting'].includes(state)
+    expect(notice() !== null).toBe(expected)
+    expect(showsUpdateNotice(state)).toBe(expected)
+  })
+
+  it.each(['available', 'downloading', 'installing', 'restarting'] as const)('%s: says the same text, with the icon hidden from a reader', (state) => {
+    renderBlock(state, { next: '1.1.0', platform: 'other' })
+
+    expect(notice()!.textContent).toBe('The window closes for up to 15 seconds, then reopens by itself.')
+    expect(notice()!.querySelector('svg')!.getAttribute('aria-hidden')).toBe('true')
+  })
+
+  it('stays out of the status region, so the status line keeps being read alone', () => {
+    renderBlock('available', { next: '1.1.0', platform: 'other' })
+
+    expect(status().contains(notice())).toBe(false)
+    expect(within(status()).queryByText(/reopens by itself/)).toBeNull()
+  })
+
+  it('is not one of the stacked variants: it adds no hidden copy that could widen the card', () => {
+    renderBlock('available', { next: '1.1.0', platform: 'other' })
+
+    expect(notice()!.closest('.q-about-stack')).toBeNull()
+    expect(stacks()).toHaveLength(3)
+  })
+
+  it.each([
+    ['en', 'other', 'The window closes for up to 15 seconds, then reopens by itself.'],
+    ['en', 'mac', 'Listulator will restart by itself.'],
+    ['ru', 'other', 'Окно закроется на время до 15 секунд и откроется само.'],
+    ['ru', 'mac', 'Listulator перезапустится сам.'],
+    ['de', 'other', 'Das Fenster ist bis zu 15 Sekunden weg und kommt von selbst wieder.'],
+    ['de', 'mac', 'Listulator startet von selbst neu.'],
+  ] as const)('%s on %s: says design’s words', (language, platform, text) => {
+    setActiveLanguage(language)
+    renderBlock('available', { next: '1.1.0', platform })
+
+    expect(notice()!.textContent).toBe(text)
+    expect(updateNoticeText(platform)).toBe(text)
+    expect(text).not.toMatch(/[«»]/)
+  })
+
+  it('takes the platform from the window when none is given: macOS restarts, anything else is Windows', () => {
+    const agent = vi.spyOn(navigator, 'userAgent', 'get')
+    agent.mockReturnValue('Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko)')
+    expect(updateNoticeText()).toBe('Listulator will restart by itself.')
+    agent.mockReturnValue('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36')
+    expect(updateNoticeText()).toBe('The window closes for up to 15 seconds, then reopens by itself.')
+    agent.mockRestore()
   })
 })
