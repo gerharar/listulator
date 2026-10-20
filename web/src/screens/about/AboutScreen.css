@@ -110,7 +110,8 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  margin: 0;
+  /* The card's column gap (16px) is counted once more for a third item when the card sizes itself to its content; the negative margin takes it back, so the card is as wide with the row as without. */
+  margin: 0 -16px 0 0;
   font: 400 12.5px/1.4 var(--font-sans);
   color: var(--ink2);
   white-space: nowrap;
