@@ -326,6 +326,27 @@ describe('checking for updates when About opens (task 13.3)', () => {
     expect(check).toHaveBeenCalledTimes(1)
   })
 
+  it('says the notice the row shows: the platform is taken once, when About opens', async () => {
+    const agent = vi.spyOn(navigator, 'userAgent', 'get')
+    try {
+      agent.mockReturnValue('Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko)')
+      const { checker, answer } = controlledChecker(() => new Promise<void>(() => {}))
+      renderAbout(checker)
+      await act(async () => answer({ kind: 'available', version: '9.9.9' }))
+      const row = () => document.querySelector('.q-about-update-notice')?.textContent
+      expect(row()).toBe('Listulator will restart by itself.')
+
+      // Whatever the window reports later, the sentence read out and the sentence on screen are one.
+      agent.mockReturnValue('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36')
+      fireEvent.click(screen.getByRole('button', { name: 'Download Update' }))
+
+      await waitFor(() => expect(spoken()).toBe('Downloading update… Listulator will restart by itself.'))
+      expect(row()).toBe('Listulator will restart by itself.')
+    } finally {
+      agent.mockRestore()
+    }
+  })
+
   it('says Couldn’t install the update when the update fails, never "up to date", and Try Again checks again', async () => {
     vi.spyOn(console, 'error').mockImplementation(() => {})
     const { checker, answer, check } = controlledChecker(() => Promise.reject(new Error('bad signature')))

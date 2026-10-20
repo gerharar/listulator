@@ -2,6 +2,7 @@ import './AboutScreen.css'
 import { useEffect, useState, type MouseEvent } from 'react'
 import { X } from 'lucide-react'
 import { copy } from '../../locale/index.js'
+import { quitPlatform } from '../../lib/appQuit.js'
 import { appUpdateChecker, type AppUpdateChecker } from '../../lib/appUpdate.js'
 import { APP_VERSION } from '../../lib/appVersion.js'
 import { useUpdateCheck } from '../../lib/useUpdateCheck.js'
@@ -28,6 +29,8 @@ export function AboutScreen({ checker }: { checker?: AppUpdateChecker }) {
   // Made once per opening: a new checker on every render would start a new check on every render.
   const [used] = useState(() => checker ?? appUpdateChecker())
   const update = useUpdateCheck(used)
+  // Taken once too: the sentence read out and the row on screen must be one, whatever the window reports later.
+  const [platform] = useState(() => quitPlatform(navigator.userAgent))
 
   // Each answer is spoken once, with the version; "Checking…" and "no updater yet" are not answers. A phase of the
   // update itself is spoken as the status line alone; a failed install says which version it was. (The block's
@@ -39,11 +42,11 @@ export function AboutScreen({ checker }: { checker?: AppUpdateChecker }) {
       announce(`${updateStatusText(update.state)} ${updateVersionText(APP_VERSION, update.next)}`)
     } else if (update.state === 'downloading') {
       // The notice (canvas H-017) is said once, here, after the first phase: the window is about to go, and the later phases repeat nothing.
-      announce(`${updateStatusText(update.state)} ${updateNoticeText()}`)
+      announce(`${updateStatusText(update.state)} ${updateNoticeText(platform)}`)
     } else if (update.state === 'installing' || update.state === 'restarting') {
       announce(updateStatusText(update.state))
     }
-  }, [update.state, update.next, announce])
+  }, [update.state, update.next, announce, platform])
 
   return (
     <div className="q-about">
@@ -67,6 +70,7 @@ export function AboutScreen({ checker }: { checker?: AppUpdateChecker }) {
               {...(update.next === undefined ? {} : { next: update.next })}
               onCheck={() => void update.check()}
               onDownload={update.download}
+              platform={platform}
             />
             <p className="q-about-credits">
               <span>{AUTHOR.copyright}</span>
