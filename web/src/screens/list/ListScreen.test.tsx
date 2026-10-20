@@ -780,6 +780,23 @@ describe('ListScreen item actions (task 10.21)', () => {
       expect(document.querySelector('[data-row-id="g3"]')).not.toBeNull()
     })
 
+    it('a refused delete puts back that group only: another empty group deleted meanwhile stays gone (a whole-list snapshot would undo it)', async () => {
+      let refuse!: (cause: Error) => void
+      vi.mocked(api.deleteGroup)
+        .mockReturnValueOnce(new Promise((_resolve, reject) => (refuse = reject)))
+        .mockResolvedValueOnce({ group: { id: 'g4' } } as never)
+      await open({ ...withEmpty(), groups: [...withEmpty().groups, { id: 'g4', listId: 'L1', name: 'Season 4', orderIndex: 3 }] })
+
+      const [first, second] = screen.getAllByRole('button', { name: 'Delete this empty group' })
+      fireEvent.click(first!)
+      fireEvent.click(second!)
+      await act(async () => refuse(new Error('nope')))
+
+      expect(await screen.findByText('Could not delete group Season 3')).toBeTruthy()
+      expect(document.querySelector('[data-row-id="g3"]')).not.toBeNull()
+      expect(document.querySelector('[data-row-id="g4"]')).toBeNull()
+    })
+
     it('only an empty group offers it', async () => {
       await open(withEmpty())
 
@@ -823,6 +840,26 @@ describe('ListScreen item actions (task 10.21)', () => {
 
       expect(await screen.findByText('Alpha')).toBeTruthy()
       expect(api.restoreGroup).toHaveBeenCalledWith('L1', restore)
+    })
+
+    it('a refused delete puts the group and its items back, and keeps what changed meanwhile (a whole-list snapshot would undo it)', async () => {
+      let refuse!: (cause: Error) => void
+      vi.mocked(api.deleteGroup).mockReturnValueOnce(new Promise((_resolve, reject) => (refuse = reject)))
+      vi.mocked(api.setConsumed).mockResolvedValue({} as never)
+      await open(base())
+
+      fireEvent.click(screen.getByRole('button', { name: 'Delete group Season 1' }))
+      const pop = await waitFor(() => document.querySelector('.q-pop') as HTMLElement)
+      fireEvent.click(within(pop).getByRole('button', { name: 'Delete' }))
+      fireEvent.click(screen.getByText('Gamma'))
+      expect(screen.queryByText('Alpha')).toBeNull()
+      await act(async () => refuse(new Error('nope')))
+
+      expect(await screen.findByText('Could not delete group Season 1')).toBeTruthy()
+      expect(screen.getByText('Alpha')).toBeTruthy()
+      expect(screen.getByText('Beta')).toBeTruthy()
+      expect(document.querySelector('[data-row-id="g1"]')).not.toBeNull()
+      expect(screen.getByText('1/3 (33%)')).toBeTruthy()
     })
 
     it('mentions the done marks that go too', async () => {
@@ -880,6 +917,25 @@ describe('ListScreen item actions (task 10.21)', () => {
 
       expect(await screen.findByText('Couldn\'t delete Beta')).toBeTruthy()
       expect(screen.getByText('Beta')).toBeTruthy()
+    })
+
+    it('a refused delete puts back that row only, in its place: a delete made meanwhile stays (a whole-list snapshot would undo it)', async () => {
+      let refuse!: (cause: Error) => void
+      vi.mocked(api.deleteItem)
+        .mockReturnValueOnce(new Promise((_resolve, reject) => (refuse = reject)))
+        .mockResolvedValueOnce({ item: { id: 'c' } } as never)
+      await open(base())
+
+      fireEvent.click(screen.getByRole('button', { name: 'Delete Alpha' }))
+      fireEvent.click(screen.getByRole('button', { name: 'Delete Gamma' }))
+      await act(async () => refuse(new ApiError('nope', 500)))
+
+      expect(await screen.findByText('Couldn\'t delete Alpha')).toBeTruthy()
+      expect(screen.getByText('Alpha')).toBeTruthy()
+      expect(screen.getByText('Beta')).toBeTruthy()
+      expect(screen.queryByText('Gamma')).toBeNull()
+      const order = [...document.querySelectorAll('[data-row-id]')].map((row) => row.getAttribute('data-row-id'))
+      expect(order.indexOf('a')).toBeLessThan(order.indexOf('b'))
     })
 
     it('does not toggle the row it was pressed in', async () => {

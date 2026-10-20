@@ -69,6 +69,7 @@ import { ListMorePopover, type MoreMode, type PreviewState } from './ListMorePop
 import { buildSpine, listTotals } from './spine.js'
 import { dropPinEdge, type PinEdge } from './dropPin.js'
 import { buildRowModel, centreOn, offsetOf, revealScrollTop, scrollAfterChange, scrollAfterDrop, scrollKeepingUnit, shouldVirtualize, type VirtualizationMode } from './rowModel.js'
+import { putBack } from './rollback.js'
 import { DEFAULT_VIEWPORT, WindowedRows } from './WindowedRows.js'
 import { useRowMoves } from './useRowMoves.js'
 import { useRowHover } from './useRowHover.js'
@@ -709,7 +710,7 @@ function ListView({
   }
 
   async function removeItem(item: ListItem) {
-    const previous = items
+    const before = items
     setError(null)
     setPopover(null)
     setItems((current) => current.filter((entry) => entry.id !== item.id))
@@ -722,7 +723,8 @@ function ListView({
         onAction: () => void undoRemove(restore, item),
       })
     } catch {
-      setItems(previous)
+      // This row only (BL-109): a snapshot of the whole list taken at the click would put back rows that changed since.
+      setItems((current) => putBack(current, before, [item]))
       setError(actions.removeFailed(item.title))
     }
   }
@@ -742,7 +744,7 @@ function ListView({
 
   /** An empty group only (the server refuses otherwise): gone at once, Undo puts it back where it was. */
   async function removeGroup(group: ListGroup) {
-    const previous = groups
+    const before = groups
     setError(null)
     setGroups((current) => current.filter((entry) => entry.id !== group.id))
 
@@ -754,7 +756,7 @@ function ListView({
         onAction: () => void undoRemoveGroup(restore, group),
       })
     } catch {
-      setGroups(previous)
+      setGroups((current) => putBack(current, before, [group]))
       setError(actions.groupRemoveFailed(group.name))
     }
   }
@@ -806,8 +808,9 @@ function ListView({
 
   /** A group with items, after its confirmation: the group and its items go at once; Undo brings all back. */
   async function removeGroupWithItems(group: ListGroup) {
-    const previous = { items, groups }
-    const inside = items.filter((entry) => entry.group === group.name).length
+    const before = { items, groups }
+    const gone = items.filter((entry) => entry.group === group.name)
+    const inside = gone.length
     setGroupDelete(null)
     setError(null)
     setItems((current) => current.filter((entry) => entry.group !== group.name))
@@ -821,8 +824,8 @@ function ListView({
         onAction: () => void undoRemoveGroup(restore, group),
       })
     } catch {
-      setItems(previous.items)
-      setGroups(previous.groups)
+      setItems((current) => putBack(current, before.items, gone))
+      setGroups((current) => putBack(current, before.groups, [group]))
       setError(actions.groupRemoveFailed(group.name))
     }
   }
