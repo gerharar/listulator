@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
   DEFAULT_MAX_BYTES,
   getJson,
@@ -524,5 +524,66 @@ describe('a request with a credential asks not to be cached', () => {
     await getJson('https://api.example.test/x?api_key=SECRETKEY123456', { source: 'Example', fetchImpl })
 
     expect(inits.map((init) => init.cache)).toEqual(['no-store', 'no-store'])
+  })
+})
+
+/**
+ * BL-071: a browser's `fetch` can set no `User-Agent`, and the webview that lets JS try makes the request non-simple, so a
+ * host that answers no preflight (GitHub's raw files answer every OPTIONS with 403) is first refused, then reached by the retry.
+ */
+describe('the User-Agent of a request', () => {
+  afterEach(() => vi.unstubAllGlobals())
+
+  function recordingFetch() {
+    const inits: RequestInit[] = []
+    const fetchImpl = vi.fn(async (_url: string, init?: RequestInit) => {
+      inits.push(init ?? {})
+
+      return new Response('{}', { status: 200 })
+    })
+
+    return { fetchImpl, inits }
+  }
+
+  it('is sent by Node’s own fetch', async () => {
+    const { fetchImpl, inits } = recordingFetch()
+    vi.stubGlobal('fetch', fetchImpl)
+
+    await getJson('https://raw.example.test/lists/index.json', { source: 'Example' })
+
+    expect(inits).toHaveLength(1)
+    expect(inits[0]?.headers).toHaveProperty('user-agent')
+  })
+
+  it('is not sent by the browser’s own fetch, so the request stays simple and needs no preflight', async () => {
+    const { fetchImpl, inits } = recordingFetch()
+    vi.stubGlobal('window', {})
+    vi.stubGlobal('fetch', fetchImpl)
+
+    await getJson('https://raw.example.test/lists/index.json', { source: 'Example' })
+
+    expect(inits).toHaveLength(1)
+    expect(inits[0]?.headers).not.toHaveProperty('user-agent')
+  })
+
+  it('is not asked again without when the browser’s fetch fails: it was already without', async () => {
+    const fetchImpl = vi.fn(async () => {
+      throw new TypeError('Failed to fetch')
+    })
+    vi.stubGlobal('window', {})
+    vi.stubGlobal('fetch', fetchImpl)
+
+    await expect(getJson('https://raw.example.test/lists/index.json', { source: 'Example' })).rejects.toThrow('Could not reach Example.')
+
+    expect(fetchImpl).toHaveBeenCalledTimes(1)
+  })
+
+  it('is still sent by a fetch the caller passes in, in a browser too (the Tauri HTTP plugin sets it)', async () => {
+    const { fetchImpl, inits } = recordingFetch()
+    vi.stubGlobal('window', {})
+
+    await getJson('https://api.example.test/x', { source: 'Example', fetchImpl })
+
+    expect(inits[0]?.headers).toHaveProperty('user-agent')
   })
 })

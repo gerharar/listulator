@@ -216,21 +216,23 @@ async function request<T>(
     })
   }
 
+  // A browser's own `fetch` (the webview's, when no other is passed in) can set no `User-Agent`. Chromium drops the header, but the
+  // macOS webview lets JS set it, and that makes the request non-simple: a host that answers no preflight (GitHub's raw files answer
+  // every OPTIONS with 403) refuses it first, and only the retry below reaches it (BL-071). Node and the Tauri HTTP plugin, which
+  // are passed in or run outside a window, still send it: some upstreams refuse a request without one.
+  const sendsUserAgent = !('window' in globalThis && fetchImpl === globalThis.fetch)
+
   try {
     let response: Response
     try {
-      response = await attempt(true)
+      response = await attempt(sendsUserAgent)
     } catch (cause) {
-      // A browser's `fetch` refuses to let JS set `User-Agent` at all.
-      // Chromium silently drops the header; WebKit (the standalone app's
-      // macOS webview) throws synchronously instead, which otherwise looks
-      // identical to a dead network (task 5.7's smoke test caught this on
-      // Open Library, tested via a Chrome tab in task 5.3 and never seen
-      // there). Retry once without it — a no-op for Node and the Tauri HTTP
-      // plugin, which already succeeded on the first attempt. Not retried on
-      // a timeout: a slow upstream will be slow again, and doubling the wait
-      // teaches nothing.
+      // WebKit (the standalone app's macOS webview) used to throw synchronously on a `User-Agent` from JS, which otherwise looks
+      // identical to a dead network (task 5.7's smoke test caught this on Open Library). Retry once without it, for a fetch that
+      // was passed in. Not retried on a timeout: a slow upstream will be slow again, and doubling the wait teaches nothing; and
+      // not when the first attempt had none to drop.
       if (isAbort(cause)) throw new IngestionError(`Could not reach ${source} (timed out).`)
+      if (!sendsUserAgent) throw new IngestionError(`Could not reach ${source}.`)
 
       try {
         response = await attempt(false)
