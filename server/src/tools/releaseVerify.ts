@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto'
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+import { checkAttestations } from './attestationCheck.js'
 import { verifyMinisign } from './minisignVerify.js'
 import { CONFIG_PATH, REPO, createGhHost, nodeRunner, parseSums, type Runner } from './releaseSign.js'
 import { isRunDirectly } from './runDirectly.js'
@@ -165,32 +166,8 @@ export async function releaseVerify(options: ReleaseVerifyOptions, host: VerifyH
   if (commit !== undefined) {
     const dir = mkdtempSync(join(tmpdir(), 'release-verify-'))
     try {
-      const attested: string[] = []
-      for (const [name, data] of bytes) {
-        writeFileSync(join(dir, name), data)
-        if (await host.verifyAttestation(join(dir, name), tag, commit)) {
-          attested.push(name)
-          log(`${name}  built by this repository's release workflow on ${tag} (commit ${commit.slice(0, 12)})`)
-        } else fail(`${name}: no valid build attestation from this repository's release workflow on ${tag} (commit ${commit.slice(0, 12)})`)
-      }
-
-      if (previous === undefined) log('No earlier release: the negative control not run')
-      else {
-        let previousCommit: string | undefined
-        try {
-          previousCommit = await host.tagCommit(previous)
-        } catch (error) {
-          fail(`The commit of ${previous} could not be read (${error instanceof Error ? error.message : String(error)}): the negative control was not run`)
-        }
-        if (previousCommit === commit) fail(`${previous} points at the same commit as ${tag}: the negative control could not tell them apart`)
-        else if (previousCommit !== undefined) {
-          for (const name of attested) {
-            if (await host.verifyAttestation(join(dir, name), tag, previousCommit)) {
-              fail(`${name}: the attestation check accepts the previous tag's commit (${previous}) as well, so it proves nothing`)
-            } else log(`${name}  refused with the commit of ${previous}, as it must be`)
-          }
-        }
-      }
+      for (const [name, data] of bytes) writeFileSync(join(dir, name), data)
+      await checkAttestations(host, { dir, names: [...bytes.keys()], tag, commit, previous }, log, fail)
     } finally {
       rmSync(dir, { recursive: true, force: true })
     }
