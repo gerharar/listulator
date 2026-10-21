@@ -220,6 +220,8 @@ export interface RunOptions {
   inherit?: boolean
   env?: Record<string, string | undefined>
   cwd?: string
+  /** Written to the program's standard input, which is then closed: how a secret reaches a program without an argument or an environment variable. */
+  input?: string
 }
 
 export type Runner = (command: string, args: string[], options?: RunOptions) => Promise<{ code: number; stdout: string; stderr: string }>
@@ -227,11 +229,21 @@ export type Runner = (command: string, args: string[], options?: RunOptions) => 
 /** Runs a command without a shell: the arguments go to the program as they are. */
 export const nodeRunner: Runner = (command, args, options = {}) =>
   new Promise((resolvePromise, reject) => {
+    if (options.inherit && options.input !== undefined) {
+      reject(new Error('A command cannot be given input and the terminal both'))
+
+      return
+    }
     const child = spawn(command, args, {
-      stdio: options.inherit ? 'inherit' : ['ignore', 'pipe', 'pipe'],
+      stdio: options.inherit ? 'inherit' : [options.input === undefined ? 'ignore' : 'pipe', 'pipe', 'pipe'],
       ...(options.env === undefined ? {} : { env: options.env }),
       ...(options.cwd === undefined ? {} : { cwd: options.cwd }),
     })
+    if (options.input !== undefined) {
+      // A program that ends without reading its input is not an error of ours.
+      child.stdin?.on('error', () => undefined)
+      child.stdin?.end(options.input)
+    }
     let stdout = ''
     let stderr = ''
     child.stdout?.on('data', (chunk: Buffer) => (stdout += chunk.toString()))
@@ -240,7 +252,22 @@ export const nodeRunner: Runner = (command, args, options = {}) =>
     child.on('close', (code) => resolvePromise({ code: code ?? 1, stdout, stderr }))
   })
 
-export function createGhHost(run: Runner, repoRoot: string): ReleaseHost {
+/** The environment variables the Tauri signer reads its key or passphrase from, under its current and its older names. */
+const isSigningVariable = (name: string): boolean => name.startsWith('TAURI_SIGNING') || name.startsWith('TAURI_PRIVATE_KEY')
+
+/** Removes every such variable from `env` (default: this process's) and returns their NAMES. No program this one starts then inherits one. */
+export function scrubSigningEnvironment(env: Record<string, string | undefined> = process.env): string[] {
+  const names = Object.keys(env).filter(isSigningVariable)
+  for (const name of names) delete env[name]
+
+  return names
+}
+
+/**
+ * `passphrase`: the updater key's passphrase, when `release:ship` handed it over on a pipe (`--passphrase-stdin`). It is given to the
+ * signer's environment (the one variable the signer reads it from) and to nothing else; without it the signer asks on the terminal.
+ */
+export function createGhHost(run: Runner, repoRoot: string, passphrase?: string): ReleaseHost {
   const git = (args: string[]) => run('git', args, { cwd: repoRoot })
 
   return {
@@ -285,12 +312,14 @@ export function createGhHost(run: Runner, repoRoot: string): ReleaseHost {
     },
 
     async signFile(file, keyFile, version) {
-      // No updater KEY variable reaches the signer (its content or a path), so a stray one cannot be what signs: only the file named
-      // here does. The passphrase is never an argument (npm writes every argument to its debug log). It is the signer's own: asked for
-      // on the terminal this command is given, or, when `release:ship` runs this, already in the environment (the one variable the
-      // signer reads it from), so that a single prompt serves both files.
-      const env = Object.fromEntries(Object.entries(process.env).filter(([name]) => !name.startsWith('TAURI_SIGNING') || name === 'TAURI_SIGNING_PRIVATE_KEY_PASSWORD'))
-      const result = await run('npm', ['run', 'tauri', '-w', '@listulator/desktop', '--', 'signer', 'sign', '-f', keyFile, '--app-version', version, file], { inherit: true, env, cwd: repoRoot })
+      // The signer is started directly with node, not through npm: no `.npmrc`, no package script and no `node_modules/.bin` on PATH of
+      // the tagged tree stands between the passphrase and the signer. No updater KEY variable reaches it (its content or a path), so a
+      // stray one cannot be what signs: only the file named here does. The passphrase is never an argument (npm writes every argument
+      // to its debug log); it is only in the signer's own environment, or asked for on the terminal this command is given.
+      const env: Record<string, string | undefined> = Object.fromEntries(Object.entries(process.env).filter(([name]) => !isSigningVariable(name)))
+      if (passphrase !== undefined) env['TAURI_SIGNING_PRIVATE_KEY_PASSWORD'] = passphrase
+      const signer = join(repoRoot, 'node_modules', '@tauri-apps', 'cli', 'tauri.js')
+      const result = await run(process.execPath, [signer, 'signer', 'sign', '-f', keyFile, '--app-version', version, file], { inherit: true, env, cwd: repoRoot })
       if (result.code !== 0) throw new Error(`The Tauri signer failed to sign ${basename(file)} (exit ${result.code}): wrong passphrase or key file?`)
     },
 
@@ -312,6 +341,18 @@ export async function readPubkey(tag: string, run: Runner, repoRoot: string): Pr
   return { pubkey, source: `the tag ${tag}` }
 }
 
+/** The passphrase, from a pipe (`--passphrase-stdin`): all of it, without its line break. Never from a terminal, and never echoed in an error. */
+export async function readPassphrase(input: NodeJS.ReadableStream & { isTTY?: boolean }): Promise<string> {
+  if (input.isTTY === true) throw new Error('--passphrase-stdin reads a pipe, not a terminal: release:ship gives it, nobody types it here')
+  input.setEncoding('utf8')
+  let text = ''
+  for await (const chunk of input) text += String(chunk)
+  const passphrase = text.replace(/\r?\n$/, '')
+  if (passphrase === '') throw new Error('The passphrase on the pipe is empty')
+
+  return passphrase
+}
+
 export interface ReleaseSignArguments {
   tag: string
   dryRun: boolean
@@ -321,6 +362,8 @@ export interface ReleaseSignArguments {
   pubkeyFrom?: string
   /** A key rotation: the ID (upper case) of the new key, which the tag must carry. */
   newKeyId?: string
+  /** The passphrase comes on standard input, from `release:ship`. */
+  passphraseStdin?: boolean
 }
 
 /** The command line as a value, or a sentence saying what is wrong with it. There is no password option, on purpose. */
@@ -331,10 +374,12 @@ export function parseReleaseSignArguments(args: readonly string[]): ReleaseSignA
   let current: string | undefined
   let pubkeyFrom: string | undefined
   let newKeyId: string | undefined
+  let passphraseStdin = false
 
   for (let index = 0; index < args.length; index++) {
     const arg = args[index]!
     if (arg === '--dry-run') dryRun = true
+    else if (arg === '--passphrase-stdin') passphraseStdin = true
     else if (arg === '--key-file' || arg === '--current' || arg === '--pubkey-from' || arg === '--new-key-id') {
       const value = args[index + 1]
       if (value === undefined) return `${arg} needs a value`
@@ -343,11 +388,13 @@ export function parseReleaseSignArguments(args: readonly string[]): ReleaseSignA
       else if (arg === '--current') current = value
       else if (arg === '--pubkey-from') pubkeyFrom = value
       else newKeyId = value
-    } else if (arg.startsWith('-')) return `unknown option ${JSON.stringify(arg).slice(0, 30)} (the passphrase is asked for by the signer, never given here)`
+    } else if (arg.startsWith('-')) return `unknown option ${JSON.stringify(arg.split('=')[0]).slice(0, 30)} (the passphrase is asked for by the signer, never given here)`
     else if (tag === undefined) tag = arg
     else return 'only one tag can be signed at a time'
   }
   if (tag === undefined) return 'name the tag whose draft is to be signed (like v1.0.0)'
+  if (passphraseStdin && dryRun) return '--passphrase-stdin is for a real signing: a dry run asks for no passphrase'
+  if (passphraseStdin && keyFile === undefined) return '--passphrase-stdin needs --key-file: standard input is the passphrase, so nothing can ask for the path'
   if ((pubkeyFrom === undefined) !== (newKeyId === undefined)) return pubkeyFrom === undefined ? '--new-key-id goes with --pubkey-from (a key rotation)' : '--pubkey-from needs --new-key-id: the ID of the new key, from its .pub file'
   if (pubkeyFrom !== undefined && !(pubkeyFrom.startsWith('v') && RELEASE_VERSION.test(pubkeyFrom.slice(1)))) return `--pubkey-from needs a tag (like v1.0.0), not ${JSON.stringify(pubkeyFrom).slice(0, 40)}`
   if (newKeyId !== undefined && !/^[0-9A-Fa-f]{16}$/.test(newKeyId)) return '--new-key-id needs the 16 hexadecimal digits of the key ID'
@@ -359,13 +406,17 @@ export function parseReleaseSignArguments(args: readonly string[]): ReleaseSignA
     ...(current === undefined ? {} : { current }),
     ...(pubkeyFrom === undefined ? {} : { pubkeyFrom }),
     ...(newKeyId === undefined ? {} : { newKeyId: newKeyId.toUpperCase() }),
+    ...(passphraseStdin ? { passphraseStdin } : {}),
   }
 }
 
 if (isRunDirectly(import.meta.url)) {
+  // First of all: no updater key or passphrase variable of the shell is used, and no program started below inherits one.
+  const ignored = scrubSigningEnvironment()
+  if (ignored.length > 0) console.error(`Ignoring ${ignored.join(', ')} in the environment: the key is the file given with --key-file, and the passphrase is asked for by the signer`)
   const parsed = parseReleaseSignArguments(process.argv.slice(2))
   if (typeof parsed === 'string') {
-    console.error(`${parsed}\nUsage: npm run release:sign -- <tag> [--dry-run] [--key-file <path>] [--current <version>] [--pubkey-from <tag> --new-key-id <ID>]`)
+    console.error(`${parsed}\nUsage: npm run release:sign -- <tag> [--dry-run] [--key-file <path>] [--current <version>] [--pubkey-from <tag> --new-key-id <ID>] [--passphrase-stdin]`)
     process.exit(1)
   }
 
@@ -380,7 +431,8 @@ if (isRunDirectly(import.meta.url)) {
     console.log(`Public key read from ${source}${parsed.pubkeyFrom === undefined ? '' : ' (key rotation: signing for the apps that are installed)'}`)
     const rotation = parsed.newKeyId === undefined ? undefined : { newPubkey: (await readPubkey(parsed.tag, nodeRunner, REPO_ROOT)).pubkey, newKeyId: parsed.newKeyId }
 
-    const host = createGhHost(nodeRunner, REPO_ROOT)
+    const passphrase = parsed.passphraseStdin === true ? await readPassphrase(process.stdin) : undefined
+    const host = createGhHost(nodeRunner, REPO_ROOT, passphrase)
     const result = await releaseSign({ tag: parsed.tag, dryRun: parsed.dryRun, keyFile, pubkey, repoRoot: REPO_ROOT, current: parsed.current, rotation }, host, (line) => console.log(line))
     if (!result.dryRun) {
       const after = await host.viewRelease(parsed.tag)
