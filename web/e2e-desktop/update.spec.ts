@@ -93,12 +93,12 @@ test('the app takes the offered update, comes back as the new version, and loses
     await createFirstList(page, TITLE, ITEMS)
     await chooseGerman(page)
 
-    // The offer: the next version, no notice row yet.
+    // The offer: the next version, and with it the row that says the window will close for the installer.
     await openAbout(page)
     const status = page.locator('.q-about-update-text')
     await expect(status.locator('.q-about-stack > :not(.off)').first()).toHaveText(t.about.available, { timeout: 60_000 })
     await expect(status.locator('.q-about-version-text:visible')).toHaveText(`${t.about.version} ${FROM} → ${TO}`)
-    await expect(page.locator('.q-about-update-notice')).toHaveCount(0)
+    await expect(page.locator('.q-about-update-notice')).toHaveText(t.about.updateNoticeWindows)
 
     // From here the page is the old app's: mark it, and keep every sentence the live region is given.
     await page.evaluate(() => {
@@ -110,7 +110,7 @@ test('the app takes the offered update, comes back as the new version, and loses
     })
     await page.locator('.q-about-update-block').getByRole('button', { name: t.about.download, exact: true }).click()
 
-    // The notice is on screen and was said once, before the window goes.
+    // The row stays, and the live region says it once the download starts, before the window goes.
     await expect(page.locator('.q-about-update-notice')).toHaveText(t.about.updateNoticeWindows)
     const said = await page.evaluate(() => (window as unknown as { __announced: string[] }).__announced)
     expect(said.some((line) => line.includes(t.about.updateNoticeWindows)), `the live region said: ${JSON.stringify(said)}`).toBe(true)
