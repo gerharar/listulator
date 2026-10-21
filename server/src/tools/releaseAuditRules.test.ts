@@ -40,6 +40,10 @@ describe('files that must not be in a release', () => {
     ['the updater key by its dotted name', '.listulator-updater/key'],
     ['a node_modules folder', 'resources/node_modules/x/index.js'],
     ['a git folder', '.git/config'],
+    ['an npm credentials file', 'resources/.npmrc'],
+    ['a netrc credentials file', 'home/.netrc'],
+    ['an Apple API key', 'keys/AuthKey_ABC123.p8'],
+    ['a Java keystore', 'keys/release.jks'],
     ['a Windows path', 'resources\\.env'],
     ['upper case', 'DATA/LISTULATOR.SQLITE'],
   ])('flags %s', (_name, path) => {

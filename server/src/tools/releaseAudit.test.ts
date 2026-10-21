@@ -288,6 +288,72 @@ describe('what is wrong with the release’s files', () => {
   })
 })
 
+describe('when a stage cannot run, it does not pass for one that did', () => {
+  it('says the .env values were not looked for, instead of "found in 0 of 0 files", when no file was unpacked', async () => {
+    const r = await audit(world({ assets: [EXE] }), { envText: `API_KEY=${SECRET}\n` })
+
+    expect(r.log.join('\n')).not.toMatch(/\.env: .*found in/)
+    expect(r.notes.join('\n')).toMatch(/\.env values were not looked for.*no file was unpacked/i)
+  })
+
+  it('fails when the release cannot be read, skips the files, and still says what changed', async () => {
+    const f = fake(world())
+    f.host.viewRelease = async () => {
+      throw new Error('gh could not read the release v1.1.0')
+    }
+    const notes: string[] = []
+
+    const result = await releaseAudit({ tag: TAG }, f.host, () => undefined, (line) => notes.push(line))
+
+    expect(result.failures).toEqual(['The release: gh could not read the release v1.1.0'])
+    expect(f.calls).toEqual([])
+    expect(notes.join('\n')).toMatch(/Changes v1\.0\.2\.\.v1\.1\.0/)
+  })
+
+  it('fails when the download fails, and unpacks and mounts nothing', async () => {
+    const f = fake(world())
+    f.host.download = async () => {
+      throw new Error('network is down')
+    }
+
+    const result = await releaseAudit({ tag: TAG }, f.host, () => undefined, () => undefined)
+
+    expect(result.failures).toEqual(['The release: network is down'])
+    expect(f.calls).toEqual([])
+  })
+
+  it.each([
+    ['cannot be read', () => Promise.reject(new Error('git could not show the file'))],
+    ['has no identifier or minimum system', () => Promise.resolve({})],
+  ])('fails once when the tagged config %s, skips what depends on it, and still runs the rest', async (_name, tagConfig) => {
+    const w = world()
+    const f = fake(w)
+    f.host.tagConfig = tagConfig
+    let plistReads = 0
+    f.host.plist = async () => {
+      plistReads++
+
+      return w.plist
+    }
+    const log: string[] = []
+
+    const result = await releaseAudit({ tag: TAG }, f.host, (line) => log.push(line), () => undefined)
+
+    expect(result.failures).toHaveLength(1)
+    expect(result.failures[0]).toMatch(/^The tagged config:/)
+    expect(plistReads).toBe(0)
+    expect(log.join('\n')).toMatch(/codesign --verify --deep --strict passes/)
+  })
+
+  it.each(['../../../../etc/hosts', 'MacOS/../../x', '..', ''])('does not read a program named %j from the plist: that is not a plain file name', async (program) => {
+    const plist = { CFBundleIdentifier: 'com.listulator.desktop', CFBundleShortVersionString: VERSION, LSMinimumSystemVersion: '11.0', CFBundleExecutable: program }
+
+    const { result } = await audit(world({ plist }))
+
+    expect(result.failures).toEqual(['Info.plist: CFBundleExecutable is missing or is not a plain file name'])
+  })
+})
+
 describe('what is in the Windows installer', () => {
   it('fails a forbidden file, naming it', async () => {
     const { result } = await audit(world({ windows: { ...world().windows, '.env': 'x', 'data/app.sqlite': 'x' } }))

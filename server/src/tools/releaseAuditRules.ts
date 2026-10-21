@@ -11,10 +11,10 @@ import { join } from 'node:path'
 // ---------------------------------------------------------------------------------------------------------------------------------
 // Files that must not be in a release
 
-const FORBIDDEN_NAME = [/^\.env/i, /\.sqlite/i, /\.(db|map|key|pem|p12|pfx|keystore)$/i, /^id_(rsa|ed25519|ecdsa)/i, /^\.listulator-updater/i]
+const FORBIDDEN_NAME = [/^\.env/i, /^\.(npmrc|netrc)$/i, /\.sqlite/i, /\.(db|map|key|pem|p12|pfx|p8|jks|keystore)$/i, /^id_(rsa|ed25519|ecdsa)/i, /^\.listulator-updater/i]
 const FORBIDDEN_FOLDER = new Set(['lists', 'node_modules', '.git'])
 
-/** The paths (forward or back slashes) that are a secret, a database, a source map, a key, curated lists or a repository's own files. */
+/** The paths (forward or back slashes) that are a secret or a credentials file, a database, a source map, a key, curated lists or a repository's own files. */
 export function forbiddenPaths(paths: readonly string[]): string[] {
   return paths.filter((path) => {
     const parts = path.split(/[\\/]/).filter((part) => part !== '')

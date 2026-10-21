@@ -114,6 +114,35 @@ function appIn(dir: string): string {
   return join(dir, apps[0]!)
 }
 
+interface Say {
+  log: (line: string) => void
+  fail: (line: string) => void
+}
+
+/** The app in the disk image against what the tagged config says: the plist, the processor, the signature and the entitlements. */
+async function checkMacApp(host: AuditHost, app: string, expected: TauriExpectations & { version: string }, say: Say): Promise<void> {
+  const info = await host.plist(app)
+  const problems = plistProblems(info, { identifier: expected.identifier, version: expected.version, minimumSystemVersion: expected.minimumSystemVersion })
+  for (const problem of problems) say.fail(`Info.plist: ${problem}`)
+  if (problems.length === 0) say.log(`Info.plist: ${expected.identifier}, ${expected.version}, minimum macOS ${expected.minimumSystemVersion}, no usage descriptions`)
+
+  // The program's name comes from a file inside the download: only a plain file name is joined onto the app's folder.
+  const program = (info as { CFBundleExecutable?: unknown } | null)?.CFBundleExecutable
+  if (typeof program !== 'string' || program === '' || program === '.' || program === '..' || /[\\/]/.test(program)) say.fail('Info.plist: CFBundleExecutable is missing or is not a plain file name')
+  else {
+    const archs = machoArchs(readFileSync(join(app, 'Contents', 'MacOS', program)))
+    if (archs !== undefined && archs.length === 1 && archs[0] === 'arm64') say.log(`${program} is for arm64 only`)
+    else say.fail(`${program} is for ${archs === undefined ? 'an unknown processor' : archs.join(', ')}, not arm64 only`)
+  }
+
+  const findings = codesignFindings(await host.codesignDetails(app))
+  const signature = codesignProblems(findings, { identifier: expected.identifier, expectAdhoc: expected.adhoc })
+  for (const problem of signature) say.fail(problem)
+  if (signature.length === 0) say.log(`Signature: ${findings.adhoc ? 'ad hoc' : `team ${findings.team ?? 'none'}`}, flags ${findings.flags ?? 'none'}, as the tagged config says`)
+  if (hasEntitlements(await host.entitlements(app))) say.fail('The app has entitlements nobody decided on')
+  else say.log('The app has no entitlements')
+}
+
 export async function releaseAudit(options: ReleaseAuditOptions, host: AuditHost, log: (line: string) => void, note: (line: string) => void): Promise<ReleaseAuditResult> {
   const { tag } = options
   if (!isStableTag(tag)) throw new Error(`${JSON.stringify(tag).slice(0, 40)} is not v + a version (like v1.0.0)`)
@@ -248,27 +277,7 @@ export async function releaseAudit(options: ReleaseAuditOptions, host: AuditHost
         }
         if (dmgApp !== undefined && typeof config !== 'string') {
           const app = dmgApp
-          await guarded(dmgLabel, async () => {
-            const info = await host.plist(app)
-            const problems = plistProblems(info, { identifier: config.identifier, version, minimumSystemVersion: config.minimumSystemVersion })
-            for (const problem of problems) fail(`Info.plist: ${problem}`)
-            if (problems.length === 0) log(`Info.plist: ${config.identifier}, ${version}, minimum macOS ${config.minimumSystemVersion}, no usage descriptions`)
-
-            const program = (info as { CFBundleExecutable?: unknown } | null)?.CFBundleExecutable
-            if (typeof program !== 'string' || /[\\/]/.test(program) || program === '') fail('Info.plist: CFBundleExecutable is missing or is not a plain file name')
-            else {
-              const archs = machoArchs(readFileSync(join(app, 'Contents', 'MacOS', program)))
-              if (archs !== undefined && archs.length === 1 && archs[0] === 'arm64') log(`${program} is for arm64 only`)
-              else fail(`${program} is for ${archs === undefined ? 'an unknown processor' : archs.join(', ')}, not arm64 only`)
-            }
-
-            const findings = codesignFindings(await host.codesignDetails(app))
-            const signature = codesignProblems(findings, { identifier: config.identifier, expectAdhoc: config.adhoc })
-            for (const problem of signature) fail(problem)
-            if (signature.length === 0) log(`Signature: ${findings.adhoc ? 'ad hoc' : `team ${findings.team ?? 'none'}`}, flags ${findings.flags ?? 'none'}, as the tagged config says`)
-            if (hasEntitlements(await host.entitlements(app))) fail('The app has entitlements nobody decided on')
-            else log('The app has no entitlements')
-          })
+          await guarded(dmgLabel, () => checkMacApp(host, app, { ...config, version }, { log, fail }))
         }
       } finally {
         if (mounted) {
@@ -284,6 +293,7 @@ export async function releaseAudit(options: ReleaseAuditOptions, host: AuditHost
 
     if (options.envText === undefined) note('No .env here: the .env values were not looked for')
     else if (envEntries.length === 0) note('.env has no value of 8 or more characters to look for')
+    else if (scanned === 0) note('The .env values were not looked for: no file was unpacked')
     else log(`.env: ${envEntries.length} value${envEntries.length === 1 ? '' : 's'} of 8+ characters, found in ${withValues} of ${scanned} files`)
 
     // 5. What changed since the previous release.
