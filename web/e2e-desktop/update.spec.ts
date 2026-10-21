@@ -110,10 +110,12 @@ test('the app takes the offered update, comes back as the new version, and loses
     })
     await page.locator('.q-about-update-block').getByRole('button', { name: t.about.download, exact: true }).click()
 
-    // The row stays, and the live region says it once the download starts, before the window goes.
+    // The row stays, and the live region says it once the download starts, before the window goes. The region sets its text a frame after
+    // the press, so this waits for it (the row was on screen already; it proves nothing about the press).
     await expect(page.locator('.q-about-update-notice')).toHaveText(t.about.updateNoticeWindows)
-    const said = await page.evaluate(() => (window as unknown as { __announced: string[] }).__announced)
-    expect(said.some((line) => line.includes(t.about.updateNoticeWindows)), `the live region said: ${JSON.stringify(said)}`).toBe(true)
+    await expect
+      .poll(() => page.evaluate(() => (window as unknown as { __announced: string[] }).__announced.join(' | ')), { timeout: 15_000, message: 'what the live region said' })
+      .toContain(t.about.updateNoticeWindows)
   } catch (error) {
     console.log('old app, page text:', (await page.locator('body').innerText().catch(() => '(unreadable)')).slice(0, 600))
     throw error
