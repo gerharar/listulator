@@ -444,7 +444,25 @@ describe('the update path: what an app installed at the previous release does wi
   it('fails when the previous release asks another address than the feed this release is served on: its installed apps would never see it', async () => {
     const { result } = await verify(world({ endpoints: { [PREVIOUS]: ['https://example.invalid/latest.json'] } }), TAG)
 
-    expect(result.failures).toEqual([expect.stringMatching(/installed v1\.0\.2 asks https:\/\/example\.invalid\/latest\.json, not https:\/\/github\.com\/.*latest\.json.*never see v1\.1\.0/)])
+    expect(result.failures).toEqual([expect.stringMatching(/installed v1\.0\.2 asks https:\/\/example\.invalid\/latest\.json first, not https:\/\/github\.com\/.*latest\.json.*never see v1\.1\.0/)])
+  })
+
+  it('requires the feed to be the FIRST address an installed copy asks (Tauri tries them in order), and allows a fallback after it', async () => {
+    const wrongFirst = await verify(world({ endpoints: { [PREVIOUS]: ['https://example.invalid/latest.json', LATEST_MANIFEST_URL] } }), TAG)
+    const fallback = await verify(world({ endpoints: { [PREVIOUS]: [LATEST_MANIFEST_URL, 'https://example.invalid/latest.json'] } }), TAG)
+
+    expect(wrongFirst.result.failures).toEqual([expect.stringMatching(/installed v1\.0\.2 asks https:\/\/example\.invalid\/latest\.json first, not https:\/\/github\.com\/.*latest\.json/)])
+    expect(fallback.result.failures).toEqual([])
+  })
+
+  it('does not say all is well when it could not check both update files, and says how many it checked', async () => {
+    const w = world()
+    w.urls.set(downloadUrl(TAG, EXE), new Error('getaddrinfo ENOTFOUND github.com'))
+
+    const { result, log } = await verify(w, TAG)
+
+    expect(result.failures.some((line) => /update path could not be checked for all update files \(1 of 2\)/.test(line))).toBe(true)
+    expect(log.join('\n')).not.toMatch(/An installed .* accepts the signatures/)
   })
 
   it('fails when the previous release carries no address at all', async () => {

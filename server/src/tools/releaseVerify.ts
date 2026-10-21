@@ -167,7 +167,7 @@ export async function releaseVerify(options: ReleaseVerifyOptions, host: VerifyH
 
       return data === undefined || signature === undefined ? [] : [{ name, data, signature }]
     })
-    await checkUpdatePath(host, { tag, previous, feedUrl: manifestUrl, manifest, files: signed }, log, fail)
+    await checkUpdatePath(host, { tag, previous, feedUrl: manifestUrl, manifest, files: signed, expected: 2 }, log, fail)
   }
 
   // 4. The attestations, and the control that the check can say no.

@@ -27,11 +27,13 @@ export interface UpdatePathInput {
   manifest: unknown
   /** The update files the manifest signs, with the bytes that were downloaded. */
   files: readonly { name: string; data: Buffer; signature: string }[]
+  /** How many update files there should be (one for each platform): fewer is something that could not be checked. */
+  expected: number
 }
 
 /** Says what it found through `log` (everything passes, in one line) and `fail` (one sentence for each thing that does not). */
 export async function checkUpdatePath(host: UpdatePathHost, input: UpdatePathInput, log: (line: string) => void, fail: (line: string) => void): Promise<void> {
-  const { tag, previous, feedUrl, manifest, files } = input
+  const { tag, previous, feedUrl, manifest, files, expected } = input
   let problems = 0
   const bad = (line: string) => {
     problems++
@@ -41,8 +43,9 @@ export async function checkUpdatePath(host: UpdatePathHost, input: UpdatePathInp
   // 1. The address an installed copy of the previous release asks.
   try {
     const endpoints = await host.updaterEndpoints(previous)
+    // Tauri tries the addresses in order: the feed has to be the first (a fallback after it is fine).
     if (endpoints.length === 0) bad(`An installed ${previous} asks no address: it would never look for ${tag}`)
-    else if (!endpoints.includes(feedUrl)) bad(`An installed ${previous} asks ${endpoints.join(', ')}, not ${feedUrl}: it would never see ${tag}`)
+    else if (endpoints[0] !== feedUrl) bad(`An installed ${previous} asks ${endpoints[0]} first, not ${feedUrl}: it would ${endpoints.includes(feedUrl) ? 'be offered what that address says, not what this feed says, for' : 'never see'} ${tag}`)
   } catch (error) {
     bad(`The update address of ${previous} could not be read: ${reason(error)}`)
   }
@@ -71,6 +74,8 @@ export async function checkUpdatePath(host: UpdatePathHost, input: UpdatePathInp
     bad(`The updater public key of ${previous} is not a minisign public key, so what an installed copy accepts cannot be checked`)
     key = undefined
   }
+  // A manifest that is there but gave fewer update files than there are platforms is not an all-clear, whatever else passed.
+  if (manifest !== undefined && files.length < expected) bad(`The update path could not be checked for all update files (${files.length} of ${expected}): one is missing, or has no signature in latest.json`)
   if (key !== undefined) {
     for (const { name, data, signature } of files) {
       const verdict = verifyMinisign(key, signature, data)
@@ -78,5 +83,5 @@ export async function checkUpdatePath(host: UpdatePathHost, input: UpdatePathInp
     }
   }
 
-  if (problems === 0 && files.length > 0) log(`An installed ${previous} asks ${feedUrl}, is offered ${tag} and accepts the signatures of ${files.map((file) => file.name).join(' and ')}`)
+  if (problems === 0 && files.length === expected) log(`An installed ${previous} asks ${feedUrl}, is offered ${tag} and accepts the signatures of ${files.map((file) => file.name).join(' and ')}`)
 }
