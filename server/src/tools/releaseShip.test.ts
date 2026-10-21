@@ -1,10 +1,10 @@
 import { createHash } from 'node:crypto'
-import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, mkdtempSync, realpathSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
 import type { CiRun } from './ciCheck.js'
-import { TOOLS_PATHS, createShipHost, parseReleaseShipArguments, releaseShip, type ShipHost, type ShipIo } from './releaseShip.js'
+import { TOOLS_PATHS, createShipHost, parseReleaseShipArguments, releaseShip, visible, type ShipHost, type ShipIo } from './releaseShip.js'
 import type { Runner } from './releaseSign.js'
 
 /**
@@ -19,6 +19,7 @@ const TAG = 'v1.1.1'
 const VERSION = '1.1.1'
 const PREVIOUS = 'v1.1.0'
 const COMMIT = 'a'.repeat(40)
+const PREV_COMMIT = 'b'.repeat(40)
 const SECRET = 'Sh1p-Sentinel-Passphrase-77123'
 const BASE = '/tmp/ship-base'
 const WORK = `${BASE}/work`
@@ -29,7 +30,9 @@ const DMG = `Listulator_${VERSION}_aarch64.dmg`
 const TAR = 'Listulator.app.tar.gz'
 const SIGNED_DRAFT = [EXE, DMG, TAR, 'SHA256SUMS', `${EXE}.sig`, `${TAR}.sig`, 'latest.json']
 const DIFF = 'diff --git a/server/src/tools/x.ts b/server/src/tools/x.ts\n-old\n+new\n'
-const HASH = createHash('sha256').update(DIFF).digest('hex').slice(0, 16)
+/** What the owner names to say the diff was read: bound to BOTH commits, so the same text between other commits has another hash. */
+const hashOf = (previousCommit: string, commit: string, diff: string) => createHash('sha256').update(`${previousCommit}\n${commit}\n${diff}`).digest('hex').slice(0, 32)
+const HASH = hashOf(PREV_COMMIT, COMMIT, DIFF)
 
 const green = (over: Partial<CiRun> = {}): CiRun => ({ id: 9, status: 'completed', conclusion: 'success', createdAt: '2026-10-22T10:00:00Z', headSha: COMMIT, ...over })
 
@@ -38,7 +41,16 @@ interface World {
   remoteTag: string | undefined
   ci: CiRun[]
   diff: string
-  localTags: string[]
+  /** The tags of the published stable releases. */
+  published: string[]
+  /** Whether the previous release's commit is an ancestor of the tagged commit. */
+  ancestor: boolean
+  /** Files in the tagged tree that change how the tools run and cannot be read as a text diff. */
+  unsafe: string[]
+  /** The commit the worktree ends up at. */
+  worktreeHead: string
+  /** The previous release's tag is not in this clone. */
+  previousMissing: boolean
   addFails: boolean
   installFails: boolean
   dry: { code: number; output: string }
@@ -63,11 +75,15 @@ const world = (over: Partial<World> = {}): World => ({
   remoteTag: COMMIT,
   ci: [green()],
   diff: DIFF,
-  localTags: ['v1.0.2', PREVIOUS, TAG],
+  published: ['v1.0.2', PREVIOUS],
+  ancestor: true,
+  unsafe: [],
+  worktreeHead: COMMIT,
+  previousMissing: false,
   addFails: false,
   installFails: false,
   dry: { code: 0, output: 'Dry run: everything checks out.' },
-  sign: { code: 0, output: 'Uploaded the signatures.' },
+  sign: { code: 0, output: 'Uploaded Listulator_1.1.1_x64-setup.exe.sig, Listulator.app.tar.gz.sig, latest.json to the draft v1.1.1. Publishing it is yours to do on GitHub.' },
   assets: SIGNED_DRAFT,
   isDraft: true,
   publishFails: false,
@@ -114,15 +130,35 @@ function fake(w: World): Fake {
     },
     tagCommit: async (tag) => {
       rec('tagCommit', tag)
+      if (tag === PREVIOUS && w.previousMissing) throw new Error(`The tag ${tag} is not in this clone, even after fetching`)
 
-      return COMMIT
+      return tag === TAG ? COMMIT : PREV_COMMIT
     },
     remoteTagCommit: async (tag) => {
       rec('remoteTagCommit', tag)
 
       return w.remoteTag
     },
-    localTags: async () => w.localTags,
+    publishedTags: async () => {
+      rec('publishedTags')
+
+      return w.published
+    },
+    isAncestor: async (older, newer) => {
+      rec('isAncestor', older, newer)
+
+      return w.ancestor
+    },
+    unsafeEntries: async (commit) => {
+      rec('unsafeEntries', commit)
+
+      return w.unsafe
+    },
+    worktreeHead: async (dir) => {
+      rec('worktreeHead', dir)
+
+      return w.worktreeHead
+    },
     ciRuns: async (commit) => {
       rec('ciRuns', commit)
 
@@ -141,8 +177,8 @@ function fake(w: World): Fake {
     removeTempDir: async (dir) => {
       rec('removeTempDir', dir)
     },
-    addWorktree: async (dir, tag) => {
-      rec('addWorktree', dir, tag)
+    addWorktree: async (dir, commit) => {
+      rec('addWorktree', dir, commit)
       if (w.addFails) throw new Error('git worktree add failed: invalid reference')
     },
     removeWorktree: async (dir) => {
@@ -157,7 +193,11 @@ function fake(w: World): Fake {
       scripts.push({ script, args, passphrase })
       rec('runScript', dir, script, args)
       if (passphrase !== undefined) seen = passphrase
-      if (script === 'release:verify') return { code: w.verify[Math.min(verifyRuns++, w.verify.length - 1)]!, output: echo('ok    verified') }
+      if (script === 'release:verify') {
+        const code = w.verify[Math.min(verifyRuns++, w.verify.length - 1)]!
+
+        return { code, output: echo(code === 0 ? `ok    checked\n${TAG}: verified` : 'FAIL  something is wrong') }
+      }
       if (args.includes('--dry-run')) return { ...w.dry, output: echo(w.dry.output) }
 
       return { ...w.sign, output: echo(w.sign.output) }
@@ -235,18 +275,19 @@ describe('a release that is ready to ship', () => {
     const r = await ship(world(), { keyFile: KEY })
 
     expect(r.names()).toEqual([
-      'fetchTags', 'tagCommit', 'remoteTagCommit', 'ciRuns', 'toolsDiff',
-      'makeTempDir', 'addWorktree', 'install', 'runScript', // the dry run
+      'fetchTags', 'tagCommit', 'remoteTagCommit', 'ciRuns', 'unsafeEntries', // the tag, its CI, what cannot be reviewed
+      'publishedTags', 'tagCommit', 'isAncestor', 'toolsDiff', // the previous release and the tools diff
+      'makeTempDir', 'addWorktree', 'worktreeHead', 'install', 'runScript', // the worktree and the dry run
       'keyFileProblem', 'runScript', // the signing
-      'releaseAssets', 'publish', 'runScript', // the public check
+      'releaseAssets', 'runScript', 'publish', 'runScript', // the draft, checked again, then published and checked in public
       'removeWorktree', 'removeTempDir',
     ])
   })
 
-  it('works in a worktree at the tag, never in the owner’s working copy', async () => {
+  it('works in a worktree made from the tag’s COMMIT (not the tag name, which could move), never in the owner’s working copy', async () => {
     const r = await ship(world(), { keyFile: KEY })
 
-    expect(r.calls.find((call) => call.name === 'addWorktree')!.args).toEqual([WORK, TAG])
+    expect(r.calls.find((call) => call.name === 'addWorktree')!.args).toEqual([WORK, COMMIT])
     expect(r.calls.find((call) => call.name === 'install')!.args).toEqual([WORK])
     expect(r.calls.filter((call) => call.name === 'runScript').every((call) => call.args[0] === WORK)).toBe(true)
   })
@@ -255,7 +296,8 @@ describe('a release that is ready to ship', () => {
     const r = await ship(world(), { keyFile: KEY })
 
     expect(r.scripts[0]).toEqual({ script: 'release:sign', args: [TAG, '--dry-run'], passphrase: undefined })
-    expect(r.scripts[1]).toEqual({ script: 'release:sign', args: [TAG, '--key-file', KEY], passphrase: SECRET })
+    // The passphrase is a separate argument of the host: it reaches the tagged script on a pipe (--passphrase-stdin), in no argument.
+    expect(r.scripts[1]).toEqual({ script: 'release:sign', args: [TAG, '--key-file', KEY, '--passphrase-stdin'], passphrase: SECRET })
   })
 
   it('asks for the passphrase ONCE, after the dry run has passed, and hands it to ONE process only', async () => {
@@ -280,7 +322,7 @@ describe('a release that is ready to ship', () => {
 
     expect(r.asked.key).toBe(1)
     expect(r.calls.find((call) => call.name === 'keyFileProblem')!.args).toEqual(['/keys/other.key'])
-    expect(r.scripts[1]!.args).toEqual([TAG, '--key-file', '/keys/other.key'])
+    expect(r.scripts[1]!.args).toEqual([TAG, '--key-file', '/keys/other.key', '--passphrase-stdin'])
   })
 
   it('does not ask for the path when it was given', async () => {
@@ -342,16 +384,17 @@ describe('what it checks before it touches anything', () => {
   })
 
   it('stops when the hash named is not this diff’s, and says what this diff’s hash is', async () => {
-    const r = await ship(world(), { keyFile: KEY, toolsDiffReviewed: '0'.repeat(16) })
+    const r = await ship(world(), { keyFile: KEY, toolsDiffReviewed: '0'.repeat(32) })
 
     expect(r.result.failures[0]).toMatch(new RegExp(`not this diff's hash \\(${HASH}\\)`))
     expect(r.names()).not.toContain('makeTempDir')
   })
 
-  it('compares the tools between the two tags it names, from the previous release by version', async () => {
-    const r = await ship(world({ localTags: ['v1.0.2', 'v1.1.0', 'v1.1.0-rc.1', TAG, 'v1.1.2'] }), { keyFile: KEY })
+  it('compares the tools, by COMMIT, with the latest PUBLISHED release below this version: not a release candidate, not a newer one, not a tag that only exists here', async () => {
+    const r = await ship(world({ published: ['v1.0.2', 'v1.1.0', 'v1.1.0-rc.1', 'v1.1.2'] }), { keyFile: KEY })
 
-    expect(r.calls.find((call) => call.name === 'toolsDiff')!.args).toEqual([PREVIOUS, TAG])
+    expect(r.calls.find((call) => call.name === 'toolsDiff')!.args).toEqual([PREV_COMMIT, COMMIT])
+    expect(r.calls.filter((call) => call.name === 'tagCommit').map((call) => call.args[0])).toEqual([TAG, PREVIOUS])
   })
 
   it('goes on without a flag when the tools did not change, and says so', async () => {
@@ -362,11 +405,52 @@ describe('what it checks before it touches anything', () => {
   })
 
   it('has no tools diff for the first release, and says so', async () => {
-    const r = await ship(world({ localTags: [TAG] }), { keyFile: KEY, toolsDiffReviewed: undefined })
+    const r = await ship(world({ published: [] }), { keyFile: KEY, toolsDiffReviewed: undefined })
 
     expect(r.result.failures).toEqual([])
     expect(r.notes.join('\n')).toMatch(/No earlier release/)
     expect(r.names()).not.toContain('toolsDiff')
+  })
+
+  it('refuses a tagged tree with a file that changes how the tools run and cannot be read as a diff (a .npmrc, a symlink, a submodule)', async () => {
+    for (const unsafe of [['.npmrc'], ['server/src/tools/helper.ts (a symbolic link)'], ['apps/desktop (a submodule)']]) {
+      await refusesBeforeTheWorktree(world({ unsafe }), /cannot be reviewed as text.*(npmrc|symbolic link|submodule)/)
+    }
+  })
+
+  it('refuses a diff in which git shows a file as binary, because the reviewer could not read it', async () => {
+    const r = await ship(world({ diff: 'Binary files a/server/src/tools/x.ts and b/server/src/tools/x.ts differ\n' }), { keyFile: KEY, toolsDiffReviewed: undefined })
+
+    expect(r.result.failures).toEqual([expect.stringMatching(/binary.*cannot be reviewed/i)])
+    expect(r.names()).not.toContain('makeTempDir')
+  })
+
+  it('shows control and hidden characters of the diff as visible text and warns, and hashes the real bytes', async () => {
+    const hostileDiff = '+ \u001b[1A\u001b[2K+ looks fine\r+ harmless \u202e\n'
+    const r = await ship(world({ diff: hostileDiff }), { keyFile: KEY, toolsDiffReviewed: undefined })
+
+    const shown = r.notes.join('\n')
+    for (const raw of ['\u001b', '\r', '\u202e']) expect(shown.includes(raw)).toBe(false)
+    expect(shown).toContain('\\x1b[1A')
+    expect(shown).toContain('<U+202E>')
+    expect(shown).toMatch(/control or hidden characters/)
+    expect(r.result.failures[0]).toContain(hashOf(PREV_COMMIT, COMMIT, hostileDiff))
+  })
+
+  it('binds the hash to both commits: the same text between other commits has another hash, so a hash read elsewhere does not fit', async () => {
+    expect(hashOf(PREV_COMMIT, COMMIT, DIFF)).not.toBe(hashOf('c'.repeat(40), COMMIT, DIFF))
+    const r = await ship(world(), { keyFile: KEY, toolsDiffReviewed: hashOf('c'.repeat(40), COMMIT, DIFF) })
+
+    expect(r.result.failures[0]).toMatch(/not this diff's hash/)
+  })
+
+  it('stops when the previous release is not in this clone, and when it is not an ancestor of the tag', async () => {
+    const missing = await ship(world({ previousMissing: true }), { keyFile: KEY })
+    const unrelated = await ship(world({ ancestor: false }), { keyFile: KEY })
+
+    expect(missing.result.failures.some((line) => /not in this clone/.test(line))).toBe(true)
+    expect(unrelated.result.failures.some((line) => /not an ancestor/.test(line))).toBe(true)
+    for (const r of [missing, unrelated]) expect(r.names()).not.toContain('makeTempDir')
   })
 
   it('says every problem of the first group at once', async () => {
@@ -413,6 +497,15 @@ describe('the dry run and the key', () => {
     expect(r.asked.passphrase).toBe(0)
   })
 
+  it('stops when the worktree is not at the commit it was made for, before anything runs in it', async () => {
+    const r = await ship(world({ worktreeHead: 'c'.repeat(40) }), { keyFile: KEY })
+
+    expect(r.result.failures).toEqual([expect.stringMatching(/worktree is at cccccccccccc.*not aaaaaaaaaaaa/)])
+    expect(r.names()).not.toContain('install')
+    expect(r.scripts).toEqual([])
+    expect(r.names().at(-1)).toBe('removeTempDir')
+  })
+
   it('refuses an empty passphrase, signs nothing, and does not hand an empty one to anything', async () => {
     const r = await ship(world({ passphrase: '' }), { keyFile: KEY })
 
@@ -452,6 +545,34 @@ describe('signing and what comes after', () => {
     expect(r.asked.publish).toBe(0)
   })
 
+  it('checks the draft ONCE MORE right before asking: the tagged dry run again, so a file swapped after the signing is found', async () => {
+    const r = await ship(world(), { keyFile: KEY })
+
+    const dryRuns = r.scripts.filter((entry) => entry.args.includes('--dry-run'))
+    expect(dryRuns).toHaveLength(2)
+    const names = r.names()
+    expect(names.indexOf('releaseAssets')).toBeLessThan(names.lastIndexOf('runScript', names.indexOf('publish')))
+    expect(names.indexOf('publish')).toBeGreaterThan(names.indexOf('releaseAssets'))
+  })
+
+  it('does not ask whether to publish when that second check refuses', async () => {
+    const f = fake(world())
+    let dryRuns = 0
+    const original = f.host.runScript
+    f.host.runScript = async (dir, script, args, passphrase) => {
+      if (args.includes('--dry-run') && ++dryRuns === 2) return { code: 1, output: 'Listulator_1.1.1_aarch64.dmg does not match its checksum' }
+
+      return original(dir, script, args, passphrase)
+    }
+
+    const result = await releaseShip({ tag: TAG, keyFile: KEY, toolsDiffReviewed: HASH, dryRun: false, repoRoot: REPO, pause: async () => undefined }, f.host, f.io, () => undefined, () => undefined)
+
+    expect(result.failures).toEqual([expect.stringMatching(/draft changed after the signing.*not published/i)])
+    expect(f.asked.publish).toBe(0)
+    expect(f.names()).not.toContain('publish')
+    expect(result).toMatchObject({ signed: true, published: false })
+  })
+
   it('does not offer to publish a release that is not a draft any more', async () => {
     const r = await ship(world({ isDraft: false }), { keyFile: KEY })
 
@@ -484,6 +605,46 @@ describe('signing and what comes after', () => {
     expect(r.scripts.some((entry) => entry.script === 'release:verify')).toBe(false)
   })
 
+  it('does not take a tagged script that exits 0 and says nothing for success: the dry run must say it checked, or it may not have run at all', async () => {
+    const r = await ship(world({ dry: { code: 0, output: '' } }), { keyFile: KEY })
+
+    expect(r.result.failures).toEqual([expect.stringMatching(/dry run.*did not say it checked.*may not have run/i)])
+    expect(r.asked).toEqual({ key: 0, passphrase: 0, publish: 0 })
+    expect(r.scripts).toHaveLength(1)
+  })
+
+  it('does not take a signing that exits 0 without reporting an upload for a signing, and offers nothing', async () => {
+    const r = await ship(world({ sign: { code: 0, output: '' } }), { keyFile: KEY })
+
+    expect(r.result.failures).toEqual([expect.stringMatching(/did not report an upload.*look at the draft/i)])
+    expect(r.result.signed).toBe(false)
+    expect(r.names()).not.toContain('releaseAssets')
+    expect(r.asked.publish).toBe(0)
+  })
+
+  it('does not take the second check before the question for a pass when it says nothing', async () => {
+    const f = fake(world())
+    let dryRuns = 0
+    const original = f.host.runScript
+    f.host.runScript = async (dir, script, args, passphrase) => (args.includes('--dry-run') && ++dryRuns === 2 ? { code: 0, output: '' } : original(dir, script, args, passphrase))
+
+    const result = await releaseShip({ tag: TAG, keyFile: KEY, toolsDiffReviewed: HASH, dryRun: false, repoRoot: REPO, pause: async () => undefined }, f.host, f.io, () => undefined, () => undefined)
+
+    expect(result.failures).toEqual([expect.stringMatching(/did not say it checked/i)])
+    expect(f.asked.publish).toBe(0)
+  })
+
+  it('counts a public check that exits 0 but never says "verified" as a failed try', async () => {
+    const f = fake(world())
+    const original = f.host.runScript
+    f.host.runScript = async (dir, script, args, passphrase) => (script === 'release:verify' ? { code: 0, output: '' } : original(dir, script, args, passphrase))
+
+    const result = await releaseShip({ tag: TAG, keyFile: KEY, toolsDiffReviewed: HASH, dryRun: false, repoRoot: REPO, pause: async () => undefined }, f.host, f.io, () => undefined, () => undefined)
+
+    expect(result.failures).toEqual([expect.stringMatching(/IS published but the public check failed/)])
+    expect(result.verified).toBe(false)
+  })
+
   it('checks the public files again a few times (GitHub takes a moment), and passes when one try passes', async () => {
     const r = await ship(world({ verify: [1, 1, 0] }), { keyFile: KEY })
 
@@ -495,7 +656,7 @@ describe('signing and what comes after', () => {
   it('says loudly that the release IS published when the public check keeps failing', async () => {
     const r = await ship(world({ verify: [1] }), { keyFile: KEY })
 
-    expect(r.result.failures).toEqual([expect.stringMatching(/IS published.*public check failed/)])
+    expect(r.result.failures).toEqual([expect.stringMatching(/IS published.*public check failed.*gh release edit v1\.1\.1 --repo gerharar\/listulator --draft=true/)])
     expect(r.result).toMatchObject({ signed: true, published: true, verified: false })
     expect(r.scripts.filter((entry) => entry.script === 'release:verify')).toHaveLength(3)
   })
@@ -583,6 +744,20 @@ describe('the passphrase on every path (rule S5): a program that repeats it ever
     expect(failures.join('\n')).toContain('[passphrase]')
   })
 
+  it('also shows what a failure says without control characters: an error message from a program can carry an escape sequence too', async () => {
+    const f = fake(world())
+    f.host.releaseAssets = async () => {
+      throw new Error('gh failed \u001b[2K\u001b[1A+ everything is fine \u202e')
+    }
+
+    const result = await releaseShip({ tag: TAG, keyFile: KEY, toolsDiffReviewed: HASH, dryRun: false, repoRoot: REPO, pause: async () => undefined }, f.host, f.io, () => undefined, () => undefined)
+
+    const line = result.failures.join('\n')
+    for (const raw of ['\u001b', '\u202e']) expect(line.includes(raw)).toBe(false)
+    expect(line).toContain('\\x1b[2K')
+    expect(line).toContain('<U+202E>')
+  })
+
   it('does not keep the passphrase anywhere the result can reach', async () => {
     const r = await ship(world(), { keyFile: KEY })
 
@@ -607,7 +782,7 @@ describe('the command line', () => {
     ['two tags', ['v1.1.1', 'v1.1.0']],
     ['a name that is not a tag', ['main']],
     ['--key-file without a path', ['v1.1.1', '--key-file']],
-    ['a hash that is not 16 hex digits', ['v1.1.1', '--tools-diff-reviewed', 'abc']],
+    ['a hash that is not 32 hex digits', ['v1.1.1', '--tools-diff-reviewed', '0123456789abcdef']],
     ['an unknown option', ['v1.1.1', '--force']],
   ])('refuses %s, in words', (_name, args) => {
     expect(typeof parseReleaseShipArguments(args)).toBe('string')
@@ -618,7 +793,7 @@ describe('the real git, gh and npm commands, as they are run (no shell)', () => 
   interface RunCall {
     command: string
     args: string[]
-    options: { cwd?: string; env?: Record<string, string | undefined>; inherit?: boolean } | undefined
+    options: { cwd?: string; env?: Record<string, string | undefined>; inherit?: boolean; input?: string } | undefined
   }
 
   function recorder(answer: (call: RunCall) => { code: number; stdout?: string; stderr?: string } = () => ({ code: 0 })) {
@@ -658,23 +833,69 @@ describe('the real git, gh and npm commands, as they are run (no shell)', () => 
     expect(await host(recorder(() => ({ code: 0, stdout: '' })).runner).remoteTagCommit(TAG)).toBeUndefined()
   })
 
-  it('diffs exactly the tools that see the key, between two tags, in a form that is the same every time', async () => {
+  it('diffs exactly the files that decide what runs with the key, as TEXT and in a form that is the same every time', async () => {
     const { calls, runner } = recorder(() => ({ code: 0, stdout: DIFF }))
 
-    expect(await host(runner).toolsDiff(PREVIOUS, TAG)).toBe(DIFF)
-    expect(calls[0]!.args).toEqual(['diff', '--no-color', '--no-ext-diff', '--no-textconv', '--no-renames', PREVIOUS, TAG, '--', ...TOOLS_PATHS])
-    expect(TOOLS_PATHS).toEqual(['server/src/tools', 'package.json', 'package-lock.json', 'apps/desktop/package.json'])
+    expect(await host(runner).toolsDiff(PREV_COMMIT, COMMIT)).toBe(DIFF)
+    // --text: a .gitattributes `-diff` cannot turn the diff into "Binary files differ"; the fixed options keep the owner's git configuration out of it.
+    expect(calls[0]!.args).toEqual(['diff', '--no-color', '--no-ext-diff', '--no-textconv', '--no-renames', '--text', PREV_COMMIT, COMMIT, '--', ...TOOLS_PATHS])
+    expect(TOOLS_PATHS).toEqual(expect.arrayContaining(['server/src/tools', 'package.json', 'package-lock.json', 'apps/desktop/package.json', 'server/package.json', 'tsconfig.base.json', 'server/tsconfig.json', '.npmrc', '.gitattributes', '.github/workflows']))
   })
 
-  it('makes and removes a worktree at the tag, detached, and installs without running any package script', async () => {
+  it('lists the published stable releases from GitHub: the baseline of the diff is a release, not a tag that merely exists here', async () => {
+    const { calls, runner } = recorder(() => ({ code: 0, stdout: JSON.stringify([{ tagName: 'v1.1.0' }, { tagName: 'v1.0.2' }, { tagName: 'nightly' }]) }))
+
+    expect(await host(runner).publishedTags()).toEqual(['v1.1.0', 'v1.0.2'])
+    expect(calls[0]).toMatchObject({ command: 'gh', args: ['release', 'list', '--repo', 'gerharar/listulator', '--exclude-drafts', '--exclude-pre-releases', '--limit', '100', '--json', 'tagName'] })
+  })
+
+  it('asks git whether one commit is an ancestor of another, by exit code, and fails on any other answer', async () => {
+    const yes = recorder(() => ({ code: 0 }))
+    const no = recorder(() => ({ code: 1 }))
+
+    expect(await host(yes.runner).isAncestor(PREV_COMMIT, COMMIT)).toBe(true)
+    expect(await host(no.runner).isAncestor(PREV_COMMIT, COMMIT)).toBe(false)
+    expect(yes.calls[0]!.args).toEqual(['merge-base', '--is-ancestor', PREV_COMMIT, COMMIT])
+    await expect(host(recorder(() => ({ code: 128, stderr: 'fatal: bad object' })).runner).isAncestor(PREV_COMMIT, COMMIT)).rejects.toThrow(/bad object/)
+  })
+
+  it('finds what cannot be reviewed as text in a commit’s tree: a .npmrc anywhere, and a symlink or a submodule under the reviewed paths', async () => {
+    const tree = [
+      `100644 blob ${'1'.repeat(40)}\tpackage.json`,
+      `100644 blob ${'2'.repeat(40)}\t.npmrc`,
+      `100644 blob ${'3'.repeat(40)}\tweb/.npmrc`,
+      `120000 blob ${'4'.repeat(40)}\tserver/src/tools/helper.ts`,
+      `120000 blob ${'5'.repeat(40)}\tdocs/link-to-readme.md`,
+      `160000 commit ${'6'.repeat(40)}\tapps/desktop/vendor`,
+      `160000 commit ${'9'.repeat(40)}\tserver/src/tools/vendor`,
+      `160000 commit ${'7'.repeat(40)}\tthird_party/lib`,
+      `100644 blob ${'8'.repeat(40)}\tserver/src/tools/x.ts`,
+      '',
+    ].join('\n')
+    const { calls, runner } = recorder(() => ({ code: 0, stdout: tree }))
+
+    const found = await host(runner).unsafeEntries(COMMIT)
+
+    expect(calls[0]!.args).toEqual(['ls-tree', '-r', '--full-tree', COMMIT])
+    expect(found).toEqual(['.npmrc', 'web/.npmrc', 'server/src/tools/helper.ts (a symbolic link)', 'server/src/tools/vendor (a submodule)'])
+  })
+
+  it('reads the commit a worktree is at', async () => {
+    const { calls, runner } = recorder(() => ({ code: 0, stdout: `${COMMIT}\n` }))
+
+    expect(await host(runner).worktreeHead('/tmp/b/work')).toBe(COMMIT)
+    expect(calls[0]).toMatchObject({ command: 'git', args: ['rev-parse', 'HEAD'], options: { cwd: '/tmp/b/work' } })
+  })
+
+  it('makes and removes a worktree at the COMMIT, detached, and installs without running any package script', async () => {
     const { calls, runner } = recorder()
 
-    await host(runner).addWorktree('/tmp/b/work', TAG)
+    await host(runner).addWorktree('/tmp/b/work', COMMIT)
     await host(runner).install('/tmp/b/work')
     await host(runner).removeWorktree('/tmp/b/work')
 
     expect(calls.map((call) => [call.command, ...call.args])).toEqual([
-      ['git', 'worktree', 'add', '--detach', '/tmp/b/work', TAG],
+      ['git', 'worktree', 'add', '--detach', '/tmp/b/work', COMMIT],
       ['npm', 'ci', '--ignore-scripts'],
       ['git', 'worktree', 'remove', '--force', '/tmp/b/work'],
       ['git', 'worktree', 'prune'],
@@ -683,10 +904,10 @@ describe('the real git, gh and npm commands, as they are run (no shell)', () => 
   })
 
   describe('running a tagged script', () => {
-    const outer = { TAURI_SIGNING_PRIVATE_KEY: 'KEY-CONTENT', TAURI_SIGNING_PRIVATE_KEY_PATH: '/elsewhere.key', TAURI_SIGNING_PRIVATE_KEY_PASSWORD: 'SHELL-PASSWORD', KEEP_ME: 'yes' }
+    const OUTER = { TAURI_SIGNING_PRIVATE_KEY: 'KEY-CONTENT', TAURI_SIGNING_PRIVATE_KEY_PATH: '/elsewhere.key', TAURI_SIGNING_PRIVATE_KEY_PASSWORD: 'SHELL-PASSWORD', TAURI_PRIVATE_KEY: 'OLD-KEY', TAURI_PRIVATE_KEY_PASSWORD: 'OLD-PASSWORD', NODE_OPTIONS: '--require /owner/preload.js', KEEP_ME: 'yes' }
     const withOuterEnvironment = async (body: () => Promise<void>) => {
-      const before = Object.fromEntries(Object.keys(outer).map((name) => [name, process.env[name]]))
-      Object.assign(process.env, outer)
+      const before = Object.fromEntries(Object.keys(OUTER).map((name) => [name, process.env[name]]))
+      Object.assign(process.env, OUTER)
       try {
         await body()
       } finally {
@@ -696,62 +917,72 @@ describe('the real git, gh and npm commands, as they are run (no shell)', () => 
         }
       }
     }
+    const holdsNothingOfTheShell = (env: Record<string, string | undefined> | undefined) => {
+      expect(env).toBeDefined()
+      expect(Object.keys(env!).filter((name) => /^TAURI_(SIGNING|PRIVATE_KEY)|^NODE_OPTIONS$/.test(name))).toEqual([])
+      expect(JSON.stringify(env)).not.toMatch(/SHELL-PASSWORD|OLD-PASSWORD|KEY-CONTENT|OLD-KEY|preload\.js/)
+      expect(env!['KEEP_ME']).toBe('yes')
+    }
 
-    it('runs it with npm in the worktree, and reads what it printed', async () => {
+    it('runs the tagged script with node and tsx directly, in the worktree: no npm, so no .npmrc, no package script and no .bin on PATH of the tagged tree', async () => {
       const { calls, runner } = recorder(() => ({ code: 0, stdout: 'out\n', stderr: 'err\n' }))
 
       const result = await host(runner).runScript('/tmp/b/work', 'release:sign', [TAG, '--dry-run'])
+      await host(runner).runScript('/tmp/b/work', 'release:verify', [TAG])
 
-      expect(calls[0]).toMatchObject({ command: 'npm', args: ['run', '--silent', 'release:sign', '--', TAG, '--dry-run'], options: { cwd: '/tmp/b/work' } })
+      expect(calls[0]).toMatchObject({
+        command: process.execPath,
+        args: ['/tmp/b/work/node_modules/tsx/dist/cli.mjs', '/tmp/b/work/server/src/tools/releaseSign.ts', TAG, '--dry-run'],
+        options: { cwd: '/tmp/b/work' },
+      })
+      expect(calls[1]!.args).toEqual(['/tmp/b/work/node_modules/tsx/dist/cli.mjs', '/tmp/b/work/server/src/tools/releaseVerify.ts', TAG])
+      expect(calls.every((call) => call.command !== 'npm')).toBe(true)
       expect(result).toEqual({ code: 0, output: 'out\nerr\n' })
     })
 
-    it('gives the passphrase to the environment of THAT process only, as the one variable the signer reads, never as an argument', async () => {
+    it('hands the passphrase to the tagged script on a PIPE: in no argument and in no environment variable at all', async () => {
       const { calls, runner } = recorder()
       await withOuterEnvironment(async () => {
-        await host(runner).runScript('/tmp/b/work', 'release:sign', [TAG, '--key-file', KEY], SECRET)
+        await host(runner).runScript('/tmp/b/work', 'release:sign', [TAG, '--key-file', KEY, '--passphrase-stdin'], SECRET)
       })
 
-      const env = calls[0]!.options!.env!
-      expect(Object.keys(env).filter((name) => name.startsWith('TAURI_SIGNING'))).toEqual(['TAURI_SIGNING_PRIVATE_KEY_PASSWORD'])
-      expect(env['TAURI_SIGNING_PRIVATE_KEY_PASSWORD']).toBe(SECRET)
-      expect(env['KEEP_ME']).toBe('yes')
-      expect(JSON.stringify(calls[0]!.args)).not.toContain(SECRET)
+      const call = calls[0]!
+      expect(call.options?.input).toBe(`${SECRET}\n`)
+      expect(JSON.stringify(call.args)).not.toContain(SECRET)
+      expect(JSON.stringify(call.options?.env)).not.toContain(SECRET)
+      holdsNothingOfTheShell(call.options?.env)
     })
 
-    it('hands a process that is given no passphrase NONE: not the owner’s shell’s either, and no key variable ever', async () => {
+    it('gives a process that is handed no passphrase no input and no updater variable, the shell’s own included', async () => {
       const { calls, runner } = recorder()
       await withOuterEnvironment(async () => {
         await host(runner).runScript('/tmp/b/work', 'release:sign', [TAG, '--dry-run'])
         await host(runner).runScript('/tmp/b/work', 'release:verify', [TAG])
       })
 
-      for (const call of calls) expect(Object.keys(call.options!.env!).filter((name) => name.startsWith('TAURI_SIGNING'))).toEqual([])
+      for (const call of calls) {
+        expect(call.options?.input).toBeUndefined()
+        holdsNothingOfTheShell(call.options?.env)
+      }
     })
 
-    it('scrubs every updater variable of the owner’s shell from everything else it runs too (git, npm ci, gh): a process that inherits nothing cannot leak it', async () => {
+    it('scrubs every updater variable and NODE_OPTIONS of the owner’s shell from everything else it runs too (git, npm ci, gh)', async () => {
       const { calls, runner } = recorder((call) => (call.command === 'gh' && call.args[0] === 'run' ? { code: 0, stdout: '[]' } : { code: 0 }))
       await withOuterEnvironment(async () => {
         const h = host(runner)
         await h.fetchTags()
         await h.install('/tmp/b/work')
-        await h.addWorktree('/tmp/b/work', TAG)
+        await h.addWorktree('/tmp/b/work', COMMIT)
         await h.publish(TAG)
         await h.ciRuns(COMMIT)
         await h.releaseAssets(TAG).catch(() => undefined)
       })
 
       expect(calls.length).toBeGreaterThanOrEqual(5)
-      for (const call of calls) {
-        // An explicit environment, so nothing is inherited from the shell by default.
-        expect(call.options?.env).toBeDefined()
-        expect(Object.keys(call.options!.env!).filter((name) => name.startsWith('TAURI_SIGNING'))).toEqual([])
-        expect(JSON.stringify(call.options!.env)).not.toContain('SHELL-PASSWORD')
-        expect(call.options!.env!['KEEP_ME']).toBe('yes')
-      }
+      for (const call of calls) holdsNothingOfTheShell(call.options?.env)
     })
 
-    it('does not take the terminal: the process reads no input, so a prompt can never wait for one', async () => {
+    it('does not take the terminal: the process reads no input of the owner’s, so a prompt can never wait for one', async () => {
       const { calls, runner } = recorder()
 
       await host(runner).runScript('/tmp/b/work', 'release:sign', [TAG, '--dry-run'])
@@ -790,14 +1021,29 @@ describe('the real git, gh and npm commands, as they are run (no shell)', () => 
       // There is no way to read it: the host has no method that returns a file's content, only this question about its metadata.
     })
 
-    it('makes a temporary folder and removes it with what is in it', async () => {
+    it('makes a temporary folder by its REAL path (macOS’s temporary folder is reached through a symbolic link, and a script started through one silently does nothing) and removes it with what is in it', async () => {
       const h = host(recorder().runner)
       root = await h.makeTempDir()
       writeFileSync(join(root, 'x'), 'y')
 
+      expect(root).toBe(realpathSync(root))
       expect(existsSync(root)).toBe(true)
       await h.removeTempDir(root)
       expect(existsSync(root)).toBe(false)
     })
+  })
+})
+
+describe('control and hidden characters in text shown to the owner', () => {
+  it('shows a control character, an escape sequence, a carriage return and a bidi override as visible text', () => {
+    expect(visible('a\u001b[2Kb\rc\u202ed\u200be\u007f')).toEqual({ text: 'a\\x1b[2Kb\\rc<U+202E>d<U+200B>e\\x7f', replaced: true })
+  })
+
+  it('leaves ordinary text, line breaks, tabs and non-ASCII letters alone', () => {
+    expect(visible('plain\n\ttext ü€😀')).toEqual({ text: 'plain\n\ttext ü€😀', replaced: false })
+  })
+
+  it('shows the C1 controls too (a single byte that some terminals take for an escape)', () => {
+    expect(visible('x\u009by')).toEqual({ text: 'x\\x9by', replaced: true })
   })
 })
