@@ -107,7 +107,22 @@ const shiftDown = (id: string, key: 'ArrowDown' | 'ArrowUp') => {
 }
 const live = () => document.querySelector('.q-live')!.textContent
 const toast = () => document.querySelector('.q-toast') as HTMLElement | null
+/** The toast, once it is on screen: a drop shows it after its save has come back, not when the rows move. */
+const shownToast = () =>
+  waitFor(() => {
+    const found = toast()
+    expect(found).not.toBeNull()
+
+    return found!
+  })
 const posted = () => vi.mocked(api.restoreOrder).mock.calls.map((call) => call[1])
+
+/**
+ * A save that takes a while. A drop moves the rows at once and shows its toast only when the save has come back, so on a slow machine the rows
+ * are in place before the toast is (CI failed on this twice, BL-024): a test that reads the toast right after the rows moved must be able to
+ * lose that race every time to prove it does not depend on winning it.
+ */
+const slowSave = (ms = 150) => vi.mocked(api.restoreOrder).mockImplementation(() => new Promise((resolve) => setTimeout(() => resolve(undefined), ms)))
 
 describe('keyboard: Shift+↑↓', () => {
   it('moves a loose item as a block, past a whole group', async () => {
@@ -660,13 +675,15 @@ describe('no row is tinted by the pointer during or after an item drag (BL-105)'
 describe('dragging by the handle', () => {
   it('drops a loose item after a group, and offers Undo', async () => {
     await open()
+    slowSave()
 
     const gesture = await drag('a', 'gs', 'lower')
     gesture.release()
 
     await waitFor(() => expect(rowIds()).toEqual(['gs', 'g1', 'g2', 'g3', 'a', 'b']))
-    expect(toast()!.textContent).toMatch(/Item moved/)
-    expect(within(toast()!).getByRole('button', { name: 'Undo' })).toBeTruthy()
+    const shown = await shownToast()
+    expect(shown.textContent).toMatch(/Item moved/)
+    expect(within(shown).getByRole('button', { name: 'Undo' })).toBeTruthy()
   })
 
   it('shows the drop line where it would land, and dims the row it carries', async () => {
@@ -712,12 +729,13 @@ describe('dragging by the handle', () => {
 
   it('drops an item inside its own group, and says where', async () => {
     await open()
+    slowSave()
 
     const gesture = await drag('g1', 'g3', 'lower')
     gesture.release()
 
     await waitFor(() => expect(rowIds()).toEqual(['a', 'gs', 'g2', 'g3', 'g1', 'b']))
-    expect(toast()!.textContent).toMatch(/Item moved inside Season 1/)
+    expect((await shownToast()).textContent).toMatch(/Item moved inside Season 1/)
   })
 
   it('drags a whole group past a loose item', async () => {
@@ -742,11 +760,12 @@ describe('dragging by the handle', () => {
 
   it('Undo puts the rows back with the positions the drop replaced', async () => {
     await open()
+    slowSave()
     const gesture = await drag('a', 'gs', 'lower')
     gesture.release()
     await waitFor(() => expect(rowIds()).toEqual(['gs', 'g1', 'g2', 'g3', 'a', 'b']))
 
-    fireEvent.click(within(toast()!).getByRole('button', { name: 'Undo' }))
+    fireEvent.click(within(await shownToast()).getByRole('button', { name: 'Undo' }))
 
     await waitFor(() => expect(rowIds()).toEqual(['a', 'gs', 'g1', 'g2', 'g3', 'b']))
     expect(posted()).toHaveLength(2)
