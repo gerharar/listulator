@@ -332,6 +332,15 @@ function updaterTestProblems(workflow: Workflow): string[] {
     if (upload === undefined || index < upload.index) problems.push('runs the update test before the upload')
     if (index !== indexed.length - 1) problems.push('the update test is not the last step')
   }
+  // Nothing else reaches the same code under another name (npm exec, node on the Playwright config, a path), and the step carries nothing but
+  // its name, its shell and its two lines: no env (NODE_OPTIONS would run code in the one step that has the whole environment), no
+  // working-directory, no extra line before or after.
+  for (const { line, index } of lines) {
+    if (/desktopUpdateTestRun|playwright\.desktop|e2e-desktop/.test(line) && !testing.some((step) => step.index === index)) problems.push(`runs the update test's code outside the update test step: ${line.slice(0, 70)}`)
+  }
+  for (const { step, run } of testing) {
+    if (JSON.stringify(Object.keys(step).sort()) !== JSON.stringify(['name', 'run', 'shell']) || codeOf(run).length !== 2) problems.push('the update test step has more than its name, its shell and its two lines')
+  }
   const before = (pattern: RegExp) => lines.some(({ line, index }) => pattern.test(line) && (upload === undefined || index < upload.index))
   if (!before(/updater:test-config -- verify\b/)) problems.push('does not verify the signed installer before the upload')
   if (!before(/updater:test-config -- staging\b/)) problems.push('does not check the upload folder for the key before the upload')
@@ -1238,6 +1247,11 @@ describe('the updater test build', () => {
       ['the update test whose failure is ignored', (t) => t.replace('test:desktop-update -- updater-test-out\n          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }', 'test:desktop-update -- updater-test-out\n          exit 0'), /not followed by its exit-code check|forces a success/],
       ['the update test behind a condition', (t) => t.replace('        shell: pwsh\n        run: |\n          npm run test:desktop-update', '        if: false\n        shell: pwsh\n        run: |\n          npm run test:desktop-update'), /a step has an if: other than/],
       ['no update test at all', (t) => t.replace(TEST_STEP, ''), /runs the update test 0 times/],
+      // The security review's probes (2026-10-21, 31.7): the same code reached without the one literal, and a step that carries more than its two lines.
+      ['the update test run early through npm exec', (t) => t.replace('      - uses: actions/upload-artifact@', '      - name: Early\n        shell: pwsh\n        run: |\n          npm exec tsx server/src/tools/desktopUpdateTestRun.ts -- updater-test-out\n          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }\n      - uses: actions/upload-artifact@'), /update test|desktopUpdateTestRun/],
+      ['the Playwright config of the update test run early', (t) => t.replace('      - uses: actions/upload-artifact@', '      - name: Early\n        shell: pwsh\n        run: |\n          node node_modules/@playwright/test/cli.js test -c web/playwright.desktop.config.ts\n          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }\n      - uses: actions/upload-artifact@'), /update test|playwright\.desktop/],
+      ['the update test with an environment of its own', (t) => t.replace('        shell: pwsh\n        run: |\n          npm run test:desktop-update', '        env:\n          NODE_OPTIONS: --require x.js\n        shell: pwsh\n        run: |\n          npm run test:desktop-update'), /update test step has more than/],
+      ['the update test with a line more', (t) => t.replace('          npm run test:desktop-update -- updater-test-out\n', '          npm run test:desktop-update -- updater-test-out\n          Get-ChildItem\n'), /update test step has more than|not exactly/],
       ['a secret', (t) => t.replace('      - name: Install dependencies\n        run: npm ci --ignore-scripts', '      - name: Install dependencies\n        env:\n          K: ${{ secrets.KEY }}\n        run: npm ci --ignore-scripts'), /secret or the token/],
       ['a push trigger', (t) => t.replace('on:\n  workflow_dispatch:', 'on:\n  push:\n  workflow_dispatch:'), /not by hand only/],
     ]

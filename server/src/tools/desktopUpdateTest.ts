@@ -90,3 +90,13 @@ export function parseRunArguments(args: readonly string[]): { dir: string } | st
 
   return dir === undefined ? 'name the folder that holds the two test installers, latest.json and the update\'s .sig' : { dir }
 }
+
+/** The files the update server needs, by name: the manifest, the newer installer and its signature. The older installer is only run, and nothing else in the folder is served. */
+export function servedFiles(installers: { to: Installer }): string[] {
+  return ['latest.json', installers.to.file, `${installers.to.file}.sig`]
+}
+
+/** What is left of the workflow's throw-away key in a temp folder (the key and its public half). The test runs after the key is deleted; if it is not, the test does not run. */
+export function leftoverKeyFiles(names: string[]): string[] {
+  return names.filter((file) => /^updater-test-run\.key(\.pub)?$/.test(file))
+}

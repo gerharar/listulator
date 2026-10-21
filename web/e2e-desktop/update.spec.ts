@@ -1,4 +1,5 @@
 import { spawn, spawnSync } from 'node:child_process'
+import { join } from 'node:path'
 import { chromium, expect, test, type Browser, type Page } from '@playwright/test'
 import { chooseGerman, closeAbout, createFirstList, openAbout, t } from './steps.js'
 
@@ -68,8 +69,9 @@ async function attachToNewApp(waitMs: number): Promise<{ browser: Browser; page:
 
 /** Ends the programs that run from the TEST app's install folder, by their path: a real Listulator may share the file name. (`desktopUpdateTestRun.ts` has the same two lines.) */
 function stopApp(): void {
-  const script = "Get-Process | Where-Object { $_.Path -and $_.Path.StartsWith($env:DESKTOP_INSTALL_DIR + '\\') } | Stop-Process -Force"
-  spawnSync('powershell', ['-NoProfile', '-NonInteractive', '-Command', script], { stdio: 'ignore', env: { ...process.env, DESKTOP_INSTALL_DIR: INSTALL_DIR } })
+  const script = "Get-Process | Where-Object { $_.Path -and $_.Path.StartsWith($env:DESKTOP_INSTALL_DIR + '\\', 'OrdinalIgnoreCase') } | Stop-Process -Force"
+  const powershell = join(process.env['SystemRoot'] ?? 'C:\\Windows', 'System32', 'WindowsPowerShell', 'v1.0', 'powershell.exe')
+  spawnSync(powershell, ['-NoProfile', '-NonInteractive', '-Command', script], { stdio: 'ignore', env: { ...process.env, DESKTOP_INSTALL_DIR: INSTALL_DIR } })
 }
 
 async function portIsClosed(): Promise<boolean> {

@@ -1,3 +1,6 @@
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { run } from './desktopUpdateTestRun.js'
 
@@ -25,5 +28,27 @@ describe('run', () => {
 
     expect(code).toBe(1)
     expect(lines.join('\n')).toMatch(/folder/)
+  })
+
+  it("does not start while the workflow's throw-away key is still in the runner's temp folder: the test runs after the key is deleted", async () => {
+    const temp = mkdtempSync(join(tmpdir(), 'update-test-'))
+    try {
+      writeFileSync(join(temp, 'updater-test-run.key'), 'x')
+      const lines: string[] = []
+      const code = await run(['Z:\\no\\such\\folder'], { platform: 'win32', env: { RUNNER_TEMP: temp, LOCALAPPDATA: 'C:\\L', APPDATA: 'C:\\R' }, log: (line) => lines.push(line) })
+
+      expect(code).toBe(1)
+      expect(lines.join('\n')).toMatch(/key is still there/)
+    } finally {
+      rmSync(temp, { recursive: true, force: true })
+    }
+  })
+
+  it('does not start when something already answers on the debugging port: it could be any program, and the test would drive it', async () => {
+    const lines: string[] = []
+    const code = await run(['Z:\\no\\such\\folder'], { platform: 'win32', env: { LOCALAPPDATA: 'C:\\L', APPDATA: 'C:\\R' }, log: (line) => lines.push(line), portAnswers: async () => true })
+
+    expect(code).toBe(1)
+    expect(lines.join('\n')).toMatch(/already answers/)
   })
 })

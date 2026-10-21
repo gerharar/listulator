@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
-import { checkInstallerTrace, checkUpdateTrace, findAppExe, parseRunArguments, pickInstallers, testAppPaths } from './desktopUpdateTest.js'
+import { checkInstallerTrace, checkUpdateTrace, findAppExe, leftoverKeyFiles, parseRunArguments, pickInstallers, servedFiles, testAppPaths } from './desktopUpdateTest.js'
 
 /**
  * Tests of the parts of the Windows update test that need no Windows (Phase 31, task 31.7): which two installers a folder holds, where
@@ -122,5 +122,20 @@ describe('parseRunArguments', () => {
     ['an option it does not know', ['a', '--cut-after', '5'], /unknown option/],
   ])('says what is wrong with %s', (_label, args, message) => {
     expect(parseRunArguments(args)).toEqual(expect.stringMatching(message))
+  })
+})
+
+describe('servedFiles', () => {
+  it('is the manifest, the update and its signature, and nothing else in the folder: not the installer that is only run, not a stranger', () => {
+    const picked = pickInstallers([name('1.0.0-rc.1'), name('1.0.0-rc.2'), 'latest.json', 'passwords.txt'])
+
+    expect(servedFiles(picked)).toEqual(['latest.json', name('1.0.0-rc.2'), `${name('1.0.0-rc.2')}.sig`])
+  })
+})
+
+describe('leftoverKeyFiles', () => {
+  it("finds the run's key and its public half in a temp folder, and nothing that only looks near them", () => {
+    expect(leftoverKeyFiles(['updater-test-run.key', 'updater-test-run.key.pub', 'updater-test-run.conf.json', 'other.key', 'notes.txt'])).toEqual(['updater-test-run.key', 'updater-test-run.key.pub'])
+    expect(leftoverKeyFiles([])).toEqual([])
   })
 })

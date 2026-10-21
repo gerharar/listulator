@@ -1,9 +1,10 @@
 import { spawn, spawnSync } from 'node:child_process'
-import { existsSync, readdirSync, readFileSync, rmSync } from 'node:fs'
+import { copyFileSync, existsSync, mkdtempSync, readdirSync, readFileSync, rmSync } from 'node:fs'
+import { tmpdir } from 'node:os'
 import { createRequire } from 'node:module'
 import { join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { checkInstallerTrace, checkUpdateTrace, findAppExe, parseRunArguments, pickInstallers, testAppPaths } from './desktopUpdateTest.js'
+import { checkInstallerTrace, checkUpdateTrace, findAppExe, leftoverKeyFiles, parseRunArguments, pickInstallers, servedFiles, testAppPaths } from './desktopUpdateTest.js'
 import { isRunDirectly } from './runDirectly.js'
 import { DEFAULT_PORT, startUpdaterServer } from './updaterServe.js'
 
@@ -20,11 +21,22 @@ import { DEFAULT_PORT, startUpdaterServer } from './updaterServe.js'
 
 const REPO_ROOT = fileURLToPath(new URL('../../../', import.meta.url))
 
+/** The port the test build's window opens (tauri.updater-test.conf.json; the guard pins it). */
+const DEBUG_PORT = 9222
+
 export interface RunDeps {
   platform: NodeJS.Platform
   env: Record<string, string | undefined>
   log: (line: string) => void
+  /** Whether something answers on that loopback port; the real check by default. */
+  portAnswers?: (port: number) => Promise<boolean>
 }
+
+const somethingAnswers = (port: number): Promise<boolean> =>
+  fetch(`http://127.0.0.1:${port}/json/version`, { signal: AbortSignal.timeout(2_000) }).then(
+    () => true,
+    () => false,
+  )
 
 /**
  * Ends the programs that run from the TEST app's install folder, found by their path and by nothing else: a real Listulator may have the
@@ -32,8 +44,9 @@ export interface RunDeps {
  * `web/e2e-desktop/update.spec.ts` carries the same two lines.
  */
 function stopTestApp(installDir: string): void {
-  const script = "Get-Process | Where-Object { $_.Path -and $_.Path.StartsWith($env:DESKTOP_INSTALL_DIR + '\\') } | Stop-Process -Force"
-  spawnSync('powershell', ['-NoProfile', '-NonInteractive', '-Command', script], { stdio: 'ignore', env: { ...process.env, DESKTOP_INSTALL_DIR: installDir } })
+  const script = "Get-Process | Where-Object { $_.Path -and $_.Path.StartsWith($env:DESKTOP_INSTALL_DIR + '\\', 'OrdinalIgnoreCase') } | Stop-Process -Force"
+  const powershell = join(process.env['SystemRoot'] ?? 'C:\\Windows', 'System32', 'WindowsPowerShell', 'v1.0', 'powershell.exe')
+  spawnSync(powershell, ['-NoProfile', '-NonInteractive', '-Command', script], { stdio: 'ignore', env: { ...process.env, DESKTOP_INSTALL_DIR: installDir } })
 }
 
 const wait = (ms: number) => new Promise((done) => setTimeout(done, ms))
@@ -70,6 +83,26 @@ export async function run(args: readonly string[], deps: RunDeps): Promise<numbe
 
     return 1
   }
+  // The test runs after the workflow has deleted its key. If the key is still there, something is wrong with the order: do not run.
+  const runnerTemp = deps.env['RUNNER_TEMP']
+  if (runnerTemp !== undefined && runnerTemp !== '') {
+    let names: string[] = []
+    try {
+      names = readdirSync(runnerTemp)
+    } catch {
+      // no such folder: no key in it
+    }
+    if (leftoverKeyFiles(names).length > 0) {
+      log("The run's throw-away key is still there (in RUNNER_TEMP). The update test runs only after the key is deleted: stopping.")
+
+      return 1
+    }
+  }
+  if (await (deps.portAnswers ?? somethingAnswers)(DEBUG_PORT)) {
+    log(`Something already answers on 127.0.0.1:${DEBUG_PORT}, the app's debugging port. Close it first: the test would drive the wrong program.`)
+
+    return 1
+  }
   const dir = resolve(parsed.dir)
   let files: string[]
   try {
@@ -95,14 +128,33 @@ export async function run(args: readonly string[], deps: RunDeps): Promise<numbe
     return 1
   }
 
-  const server = await startUpdaterServer({ dir, log }, DEFAULT_PORT)
-  let exe = ''
+  // Only what the update needs is served, from a folder made for the purpose: the folder given may hold anything else.
+  const served = mkdtempSync(join(tmpdir(), 'listulator-update-test-'))
+  for (const file of servedFiles(installers)) copyFileSync(join(dir, file), join(served, file))
+  const server = await startUpdaterServer({ dir: served, log }, DEFAULT_PORT)
   let specExit = 1
+  let cleaned = false
+  // Stops the app first (the debugging port goes with it), then the server, then the install. Runs once, whether the test ended or was interrupted.
+  const stopEverything = async (): Promise<void> => {
+    if (cleaned) return
+    cleaned = true
+    stopTestApp(paths.installDir)
+    server.closeAllConnections()
+    await new Promise((done) => server.close(done))
+    await wait(2_000)
+    const uninstaller = join(paths.installDir, 'uninstall.exe')
+    if (existsSync(uninstaller)) spawnSync(uninstaller, ['/S'], { stdio: 'ignore' })
+  }
+  const interrupted = (): void => {
+    void stopEverything().then(() => process.exit(130))
+  }
+  process.once('SIGINT', interrupted)
+  process.once('SIGTERM', interrupted)
   try {
     log(`Installing ${installers.from.file} …`)
     const installed = spawnSync(join(dir, installers.from.file), ['/S'], { stdio: 'inherit' })
     if (installed.status !== 0) throw new Error(`the installer ended with ${String(installed.status)}`)
-    exe = join(paths.installDir, findAppExe(readdirSync(paths.installDir)))
+    const exe = join(paths.installDir, findAppExe(readdirSync(paths.installDir)))
     spawn(exe, [], { detached: true, stdio: 'ignore' }).unref()
 
     log(`Update test: ${installers.from.version} -> ${installers.to.version}`)
@@ -116,13 +168,10 @@ export async function run(args: readonly string[], deps: RunDeps): Promise<numbe
   } catch (error) {
     log(error instanceof Error ? error.message : String(error))
   } finally {
-    await new Promise((done) => server.close(done))
-    if (exe !== '') {
-      stopTestApp(paths.installDir)
-      await wait(2_000)
-      const uninstaller = join(paths.installDir, 'uninstall.exe')
-      if (existsSync(uninstaller)) spawnSync(uninstaller, ['/S'], { stdio: 'ignore' })
-    }
+    await stopEverything()
+    process.off('SIGINT', interrupted)
+    process.off('SIGTERM', interrupted)
+    rmSync(served, { recursive: true, force: true })
   }
 
   // The traces are read before the data is removed, and judged even when the spec failed: they say why.
@@ -134,7 +183,7 @@ export async function run(args: readonly string[], deps: RunDeps): Promise<numbe
 
   // The uninstaller copies itself and returns at once: give it a moment, then take away what is left of the TEST product.
   for (let tries = 0; tries < 30 && existsSync(join(paths.installDir, 'uninstall.exe')); tries++) await wait(1_000)
-  for (const path of [paths.installDir, paths.dataDir, paths.webviewDir]) rmSync(path, { recursive: true, force: true })
+  for (const path of [paths.installDir, paths.dataDir, paths.webviewDir]) rmSync(path, { recursive: true, force: true, maxRetries: 10, retryDelay: 500 })
 
   const ok = specExit === 0 && problems.length === 0
   log(ok ? 'The update test passed.' : 'The update test FAILED.')
