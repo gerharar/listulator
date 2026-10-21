@@ -68,6 +68,23 @@ describe.skipIf(!existsSync(RUNBOOK))('the release runbook', () => {
     expect(fallback).toContain('npm run release:sign')
   })
 
+  it('says who does every step of the routine: You, Claude or GitHub', () => {
+    const sections = ['## Before you start', '## Make a release', '## Still by hand']
+    const steps = sections.flatMap((heading) => {
+      const start = text.indexOf(heading)
+      const end = text.indexOf('\n## ', start + 1)
+
+      return start < 0 ? [heading] : text.slice(start, end < 0 ? undefined : end).split('\n').filter((line) => /^\d+\. /.test(line))
+    })
+
+    expect(steps.length).toBeGreaterThan(10)
+    expect(steps.filter((line) => !/^\d+\. \*\*(You|Claude|GitHub)\b/.test(line))).toEqual([])
+  })
+
+  it('has a legend for those names near the top', () => {
+    expect(text.slice(0, text.indexOf('## Before you start'))).toMatch(/\*\*You\*\*[\s\S]*\*\*Claude\*\*[\s\S]*\*\*GitHub\*\*/)
+  })
+
   it('says to look at the canary before a release, and what to do when GitHub has switched it off', () => {
     expect(text).toMatch(/canary/i)
     expect(text).toMatch(/60 days/)
