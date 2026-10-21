@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto'
 import { describe, expect, it } from 'vitest'
+import { makeKeyPair, signLikeTauri } from './minisignTesting.js'
 import { createCanaryHost, parseReleaseCanaryArguments, releaseCanary, type CanaryHost, type CanaryProcess } from './releaseCanary.js'
 import type { Runner } from './releaseSign.js'
 
@@ -19,6 +20,11 @@ const EXE = `${INSTALL_DIR}\\listulator-desktop.exe`
 const sha = (data: Buffer) => createHash('sha256').update(data).digest('hex')
 
 const installerBytes = Buffer.from('the previous installer'.repeat(50))
+const owner = makeKeyPair('738FF42772526511')
+const stranger = makeKeyPair('61BCBF5980E87475')
+/** The `latest.json` of a release, with the Windows installer's signature as the release pipeline and `release:sign` write it. */
+const manifestOf = (signature: string | undefined) => Buffer.from(JSON.stringify({ version: PREVIOUS_VERSION, pub_date: '2026-10-14T00:00:00Z', platforms: { 'windows-x86_64': { signature, url: 'https://x' }, 'darwin-aarch64': { signature: 'x', url: 'https://y' } } }))
+const signatureOf = (key: ReturnType<typeof makeKeyPair>, bytes: Buffer, file = INSTALLER, version = PREVIOUS_VERSION) => signLikeTauri(key.privateKey, key.keyIdBytes, bytes, `timestamp:1791992704\tfile:${file}\tversion:${version}`)
 const sumsOf = (name: string, data: Buffer) => `${sha(data)}  ${name}\n${'1'.repeat(64)}  Listulator_${PREVIOUS_VERSION}_aarch64.dmg\n${'2'.repeat(64)}  Listulator.app.tar.gz\n`
 
 const OPEN: CanaryProcess = { id: 4242, responding: true, hasWindow: true }
@@ -34,6 +40,10 @@ interface World {
   version: string | undefined
   /** What the app's processes look like at each look, one look per second; the last one repeats. */
   samples: CanaryProcess[][]
+  /** The `latest.json` of the previous release as GitHub serves it. */
+  manifest: Buffer
+  /** The updater key that release's config carries, or the error reading it fails with. */
+  configKey: string | Error
 }
 
 const world = (over: Partial<World> = {}): World => ({
@@ -45,6 +55,8 @@ const world = (over: Partial<World> = {}): World => ({
   exeThere: true,
   version: PREVIOUS_VERSION,
   samples: [[], [NO_WINDOW_YET], [OPEN]],
+  manifest: manifestOf(signatureOf(owner, installerBytes)),
+  configKey: owner.pubkey,
   ...over,
 })
 
@@ -79,7 +91,13 @@ function fake(w: World): Fake {
       calls.push('download')
       downloaded.push({ tag, names })
     },
-    fileBytes: async (path) => (path.endsWith('SHA256SUMS') ? Buffer.from(w.sums) : w.installerBytes),
+    fileBytes: async (path) => (path.endsWith('SHA256SUMS') ? Buffer.from(w.sums) : path.endsWith('latest.json') ? w.manifest : w.installerBytes),
+    pubkey: async () => {
+      calls.push('pubkey')
+      if (w.configKey instanceof Error) throw w.configKey
+
+      return w.configKey
+    },
     installDir: () => INSTALL_DIR,
     exists: (path) => (path === INSTALL_DIR ? installed : path === EXE ? installed && w.exeThere : false),
     runInstaller: async () => {
@@ -145,6 +163,7 @@ describe('a previous release that installs and runs', () => {
     const text = log.join('\n')
     expect(text).toMatch(/v1\.0\.2.*installed.*Listulator_1\.0\.2_x64-setup\.exe/)
     expect(text).toMatch(/sha256 .* matches SHA256SUMS/)
+    expect(text).toMatch(/signature verifies against the key of v1\.0\.2/)
     expect(text).toMatch(/says it is 1\.0\.2/)
     expect(text).toMatch(/answered for 10 s/)
   })
@@ -152,13 +171,13 @@ describe('a previous release that installs and runs', () => {
   it('takes the release BELOW the newest one by version, never a release candidate or the newest itself', async () => {
     const { downloaded } = await canary(world({ tags: ['v1.0.1', LATEST, 'v1.1.0-rc.1', 'v1.0.2', 'v0.9.0'], version: '1.0.2' }))
 
-    expect(downloaded).toEqual([{ tag: PREVIOUS, names: [INSTALLER, 'SHA256SUMS'] }])
+    expect(downloaded).toEqual([{ tag: PREVIOUS, names: [INSTALLER, 'SHA256SUMS', 'latest.json'] }])
   })
 
   it('does its steps in order, and ends with the app stopped, the program uninstalled and the folder removed', async () => {
     const { calls } = await canary(world())
 
-    expect(calls.filter((call) => call !== 'look')).toEqual(['publishedTags', 'makeTempDir', 'download', 'install', 'fileVersion', 'start', 'stop', 'uninstall', 'removeTempDir'])
+    expect(calls.filter((call) => call !== 'look')).toEqual(['publishedTags', 'makeTempDir', 'download', 'pubkey', 'install', 'fileVersion', 'start', 'stop', 'uninstall', 'removeTempDir'])
   })
 
   it('waits for the window, then watches the app for ten seconds, one look a second', async () => {
@@ -173,6 +192,39 @@ describe('a previous release that installs and runs', () => {
     const { result } = await canary(world({ version: '1.0.2.0' }))
 
     expect(result.failures).toEqual([])
+  })
+})
+
+describe('the installer must carry the OWNER’S signature before it is run (a checksum from the same release is not enough)', () => {
+  // Anyone who can write release assets can replace the installer and SHA256SUMS together. The key that signs the update files never leaves
+  // the owner's machine, so a signature of it over THIS file is what makes the program one the owner published.
+  it('checks the signature before it installs, against the key that release’s own config carries', async () => {
+    const { calls, result } = await canary(world())
+
+    expect(result.failures).toEqual([])
+    expect(calls.indexOf('pubkey')).toBeGreaterThan(calls.indexOf('download'))
+    expect(calls.indexOf('pubkey')).toBeLessThan(calls.indexOf('install'))
+  })
+
+  it.each([
+    ['an installer someone replaced after it was signed (the checksum list was replaced with it)', { installerBytes: Buffer.from('a replaced installer'), sums: sumsOf(INSTALLER, Buffer.from('a replaced installer')) }, /does not carry a signature of the key of v1\.0\.2/],
+    ['a signature made with another key', { manifest: manifestOf(signatureOf(stranger, installerBytes)) }, /does not carry a signature of the key of v1\.0\.2/],
+    ['a release whose config names another key than the one that signed', { configKey: stranger.pubkey }, /does not carry a signature of the key of v1\.0\.2/],
+    ['a signature over another file', { manifest: manifestOf(signatureOf(owner, installerBytes, 'Listulator.app.tar.gz')) }, /covers Listulator\.app\.tar\.gz.*not Listulator_1\.0\.2_x64-setup\.exe/],
+    ['a signature bound to another version', { manifest: manifestOf(signatureOf(owner, installerBytes, INSTALLER, '9.9.9')) }, /covers .* at version 9\.9\.9, not .* at 1\.0\.2/],
+    ['a latest.json that is not JSON', { manifest: Buffer.from('<html>Not Found</html>') }, /latest\.json of v1\.0\.2 is not JSON/],
+    ['a latest.json with no Windows signature', { manifest: manifestOf(undefined) }, /no signature for the Windows installer/],
+    ['a signature that is not a signature', { manifest: manifestOf('not base64 at all') }, /signature in latest\.json of v1\.0\.2/],
+    ['an updater key that cannot be read', { configKey: new Error('gh: HTTP 404') }, /public key of v1\.0\.2 could not be read.*404/],
+  ])('refuses %s, and installs nothing', async (_name, over, expected) => {
+    const { result, calls } = await canary(world(over))
+
+    expect(result.failures).toEqual([expect.stringMatching(expected)])
+    expect(calls).not.toContain('install')
+    expect(calls).not.toContain('start')
+    expect(calls).not.toContain('stop')
+    expect(calls).not.toContain('uninstall')
+    expect(calls.at(-1)).toBe('removeTempDir')
   })
 })
 
@@ -330,8 +382,8 @@ describe('the real commands, as they are run (no shell, no token for what does n
     expect(Object.keys(env!).filter((name) => /^(GH_|GITHUB_|ACTIONS_|RUNNER_|NODE_OPTIONS$)|TOKEN|SECRET/i.test(name))).toEqual([])
     expect(JSON.stringify(env)).not.toMatch(/ghs_|runtime-not-real|id-not-real|cache\.invalid|results\.invalid/)
   }
-  const host = (runner: Runner, over: { exists?: (path: string) => boolean; spawned?: { path: string; env: Record<string, string | undefined> }[] } = {}) =>
-    createCanaryHost({ run: runner, env: ENV, exists: over.exists ?? (() => true), spawnDetached: (path, env) => void over.spawned?.push({ path, env }), readFile: () => Buffer.from('bytes'), makeDir: () => 'C:\\temp\\canary', removeDir: () => undefined })
+  const host = (runner: Runner, over: { exists?: (path: string) => boolean; spawned?: { path: string; env: Record<string, string | undefined>; cwd: string }[] } = {}) =>
+    createCanaryHost({ run: runner, env: ENV, exists: over.exists ?? (() => true), spawnDetached: (path, env, cwd) => void over.spawned?.push({ path, env, cwd }), readFile: () => Buffer.from('bytes'), makeDir: () => 'C:\\temp\\canary', removeDir: () => undefined })
 
   it('puts the program where the NSIS installer puts it for the current user', () => {
     expect(host(recorder().runner).installDir()).toBe(INSTALL_DIR)
@@ -355,6 +407,8 @@ describe('the real commands, as they are run (no shell, no token for what does n
 
     expect(code).toBe(0)
     expect(calls[0]).toMatchObject({ command: 'C:\\temp\\canary\\setup.exe', args: ['/S'] })
+    // In the folder it was downloaded to, not in the checkout: nothing of the workspace is on its search path.
+    expect(calls[0]!.options?.cwd).toBe('C:\\temp\\canary')
     expect(calls[0]!.options?.env?.['LOCALAPPDATA']).toBe(ENV.LOCALAPPDATA)
     expectNoRunnerCredentials(calls[0]!.options?.env)
   })
@@ -394,17 +448,28 @@ describe('the real commands, as they are run (no shell, no token for what does n
     expect(calls[0]!.command).toBe(POWERSHELL)
     expect(calls[0]!.args.join(' ')).toMatch(/StartsWith\(\$env:CANARY_INSTALL_DIR/)
     expect(calls[0]!.args.join(' ')).not.toMatch(/taskkill|\/IM|Stop-Process -Name/)
-    expect(calls[1]).toMatchObject({ command: `${INSTALL_DIR}\\uninstall.exe`, args: ['/S'] })
+    // `_?=<folder>` last: without it an NSIS uninstaller copies itself away, starts the copy and ends at once, so nothing waits for the uninstall.
+    expect(calls[1]).toMatchObject({ command: `${INSTALL_DIR}\\uninstall.exe`, args: ['/S', `_?=${INSTALL_DIR}`] })
   })
 
   it('starts the program detached, with an environment that holds none of the runner’s credentials either: it is the published program, and it runs next to them', () => {
-    const spawned: { path: string; env: Record<string, string | undefined> }[] = []
+    const spawned: { path: string; env: Record<string, string | undefined>; cwd: string }[] = []
 
     host(recorder().runner, { spawned }).startApp(EXE)
 
     expect(spawned.map((entry) => entry.path)).toEqual([EXE])
     expectNoRunnerCredentials(spawned[0]!.env)
     expect(spawned[0]!.env['LOCALAPPDATA']).toBe(ENV.LOCALAPPDATA)
+    // From its own folder, not from the checkout.
+    expect(spawned[0]!.cwd).toBe(INSTALL_DIR)
+  })
+
+  it('reads the updater key of a release from its config on GitHub, as release:verify does', async () => {
+    const config = JSON.stringify({ plugins: { updater: { pubkey: owner.pubkey, endpoints: ['x'] } } })
+    const { calls, runner } = recorder(() => ({ code: 0, stdout: config }))
+
+    expect(await host(runner).pubkey(PREVIOUS)).toBe(owner.pubkey)
+    expect(calls[0]).toMatchObject({ command: 'gh', args: ['api', '-H', 'Accept: application/vnd.github.raw', `repos/gerharar/listulator/contents/apps/desktop/src-tauri/tauri.conf.json?ref=${PREVIOUS}`] })
   })
 
   it('keeps what Windows programs need (the system folders, the user’s folders, PATH) and nothing else of the environment', async () => {

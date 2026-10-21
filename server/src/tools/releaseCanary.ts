@@ -3,11 +3,12 @@ import { createHash } from 'node:crypto'
 import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, win32 } from 'node:path'
+import { verifyMinisign } from './minisignVerify.js'
 import { createGhHost, nodeRunner, parseSums, type Runner } from './releaseSign.js'
 import { createVerifyHost } from './releaseVerify.js'
 import { isRunDirectly } from './runDirectly.js'
 import { isStableTag, reason } from './toolText.js'
-import { compareVersions } from './updateManifest.js'
+import { compareVersions, parseSignature } from './updateManifest.js'
 
 /**
  * `npm run canary:install` (Phase 31, task 31.9): the smoke test of the daily canary, on a GitHub Windows runner. It takes the release
@@ -18,6 +19,10 @@ import { compareVersions } from './updateManifest.js'
  * What it cannot do is read About: the production app cannot be driven from outside (31.2: the debugging flag never reaches its
  * browser), and the previous release is a FIXED program, so the things that move are the runner, WebView2, GitHub and the feed. The feed is
  * judged by `release:verify` (its update-path stage); this judges the program on the runner.
+ *
+ * Before the installer is RUN it must carry the owner's signature: the one `latest.json` of that release holds for it, made with the
+ * updater key that never leaves the owner's machine, checked against the key that release's own config carries. A checksum from the same
+ * release is not enough: whoever can write release assets can replace the installer and `SHA256SUMS` together.
  *
  * It installs a program, so it runs only on a GitHub runner on Windows, and refuses when the program is already installed: it never
  * touches an install it did not make.
@@ -43,6 +48,8 @@ export interface CanaryHost {
   removeTempDir(dir: string): Promise<void>
   download(tag: string, names: string[], dir: string): Promise<void>
   fileBytes(path: string): Promise<Buffer>
+  /** `plugins.updater.pubkey` as written in a tag's config on GitHub. */
+  pubkey(tag: string): Promise<string>
   installDir(): string
   exists(path: string): boolean
   /** Runs the installer silently; its exit code. */
@@ -71,6 +78,30 @@ export interface ReleaseCanaryResult {
 
 /** The four-part file version of a Windows program (1.0.2.0) as the three-part version of the release (1.0.2). */
 const releaseVersionOf = (fileVersion: string): string => fileVersion.trim().replace(/^(\d+\.\d+\.\d+)\.0$/, '$1')
+
+/** Why the installer is not the owner's, or undefined when its signature verifies against the key that release carries. */
+async function installerSignatureProblem(host: CanaryHost, previous: string, installer: string, installerBytes: Buffer, manifestBytes: Buffer): Promise<string | undefined> {
+  let manifest: unknown
+  try {
+    manifest = JSON.parse(manifestBytes.toString('utf8'))
+  } catch {
+    return `latest.json of ${previous} is not JSON`
+  }
+  const signature = (manifest as { platforms?: Record<string, { signature?: unknown } | undefined> } | null)?.platforms?.['windows-x86_64']?.signature
+  if (typeof signature !== 'string') return `latest.json of ${previous} carries no signature for the Windows installer`
+  const parsed = parseSignature(signature)
+  if (typeof parsed === 'string') return `The signature in latest.json of ${previous} ${parsed}`
+  if (parsed.file !== installer || parsed.version !== previous.slice(1)) return `The signature in latest.json of ${previous} covers ${parsed.file} at version ${parsed.version}, not ${installer} at ${previous.slice(1)}`
+  let key: string
+  try {
+    key = await host.pubkey(previous)
+  } catch (error) {
+    return `The updater public key of ${previous} could not be read: ${reason(error)}`
+  }
+  const verdict = verifyMinisign(key, signature, installerBytes)
+
+  return verdict.ok ? undefined : `${installer} does not carry a signature of the key of ${previous}: ${verdict.reason}`
+}
 
 export async function releaseCanary(options: ReleaseCanaryOptions, host: CanaryHost, log: (line: string) => void): Promise<ReleaseCanaryResult> {
   if (options.platform !== 'win32' || !options.githubActions) {
@@ -108,7 +139,7 @@ export async function releaseCanary(options: ReleaseCanaryOptions, host: CanaryH
   let started = false
   try {
     // 1. The installer, as GitHub serves it, against the checksums of the same release.
-    await host.download(previous, [installer, 'SHA256SUMS'], dir)
+    await host.download(previous, [installer, 'SHA256SUMS', 'latest.json'], dir)
     const sums = parseSums((await host.fileBytes(win32.join(dir, 'SHA256SUMS'))).toString('utf8'))
     const wanted = sums?.get(installer)
     if (wanted === undefined) {
@@ -116,13 +147,23 @@ export async function releaseCanary(options: ReleaseCanaryOptions, host: CanaryH
 
       return { failures }
     }
-    const actual = createHash('sha256').update(await host.fileBytes(win32.join(dir, installer))).digest('hex')
+    const bytes = await host.fileBytes(win32.join(dir, installer))
+    const actual = createHash('sha256').update(bytes).digest('hex')
     if (actual !== wanted) {
       fail(`${installer} does not match its checksum in SHA256SUMS`)
 
       return { failures }
     }
     log(`${installer}  sha256 ${actual} matches SHA256SUMS`)
+
+    // 1b. And it must be the owner's: the checksum list came from the same place as the installer, the signature did not.
+    const problem = await installerSignatureProblem(host, previous, installer, bytes, await host.fileBytes(win32.join(dir, 'latest.json')))
+    if (problem !== undefined) {
+      fail(problem)
+
+      return { failures }
+    }
+    log(`${installer}  signature verifies against the key of ${previous} (the updater key, which never leaves the owner's machine)`)
 
     // 2. Installed silently, as a user would from the download.
     installed = true
@@ -198,7 +239,7 @@ export interface CanaryHostDeps {
   env: Record<string, string | undefined>
   exists: (path: string) => boolean
   /** Starts a program detached, with exactly this environment. */
-  spawnDetached: (path: string, env: Record<string, string | undefined>) => void
+  spawnDetached: (path: string, env: Record<string, string | undefined>, cwd: string) => void
   readFile: (path: string) => Buffer
   makeDir: () => string
   removeDir: (dir: string) => void
@@ -235,6 +276,7 @@ export function createCanaryHost(deps: CanaryHostDeps): CanaryHost {
     removeTempDir: async (dir) => deps.removeDir(dir),
     download: (tag, names, dir) => gh.download(tag, names, dir),
     fileBytes: async (path) => deps.readFile(path),
+    pubkey: (tag) => createVerifyHost(run).pubkey(tag),
 
     installDir() {
       const local = env['LOCALAPPDATA']
@@ -246,7 +288,8 @@ export function createCanaryHost(deps: CanaryHostDeps): CanaryHost {
     exists: (path) => deps.exists(path),
 
     async runInstaller(path) {
-      return (await run(path, ['/S'], { env: programEnvironment })).code
+      // In the folder it was downloaded to, not in the checkout: nothing of the workspace is on its search path.
+      return (await run(path, ['/S'], { env: programEnvironment, cwd: win32.dirname(path) })).code
     },
 
     async fileVersion(exe) {
@@ -256,7 +299,7 @@ export function createCanaryHost(deps: CanaryHostDeps): CanaryHost {
       return result.code === 0 && text !== '' ? text : undefined
     },
 
-    startApp: (exe) => deps.spawnDetached(exe, programEnvironment),
+    startApp: (exe) => deps.spawnDetached(exe, programEnvironment, win32.dirname(exe)),
 
     async processes(installDir) {
       const result = await ask(PROCESSES_SCRIPT, { CANARY_INSTALL_DIR: installDir })
@@ -272,7 +315,8 @@ export function createCanaryHost(deps: CanaryHostDeps): CanaryHost {
 
     async uninstall(installDir) {
       const uninstaller = win32.join(installDir, 'uninstall.exe')
-      if (deps.exists(uninstaller)) await run(uninstaller, ['/S'], { env: programEnvironment })
+      // `_?=<folder>` last: without it an NSIS uninstaller copies itself away, starts the copy and ends at once, and nothing waits for the uninstall.
+      if (deps.exists(uninstaller)) await run(uninstaller, ['/S', `_?=${installDir}`], { env: programEnvironment, cwd: installDir })
     },
 
     pause: (ms) => new Promise<void>((done) => setTimeout(done, ms)),
@@ -298,7 +342,7 @@ if (isRunDirectly(import.meta.url)) {
       run: nodeRunner,
       env: process.env,
       exists: existsSync,
-      spawnDetached: (path, env) => spawn(path, [], { detached: true, stdio: 'ignore', env }).unref(),
+      spawnDetached: (path, env, cwd) => spawn(path, [], { detached: true, stdio: 'ignore', env, cwd }).unref(),
       readFile: (path) => readFileSync(path),
       makeDir: () => mkdtempSync(join(tmpdir(), 'canary-')),
       removeDir: (dir) => rmSync(dir, { recursive: true, force: true }),
