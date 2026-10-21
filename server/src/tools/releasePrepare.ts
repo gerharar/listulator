@@ -88,13 +88,13 @@ const reason = (error: unknown): string => (error instanceof Error ? error.messa
 const short = (commit: string): string => commit.slice(0, 12)
 const escapeRegExp = (text: string): string => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 
-export interface StatusEntry {
+interface StatusEntry {
   path: string
   untracked: boolean
 }
 
 /** The files a `git status --porcelain` text names (a rename by its new name). */
-export function statusEntries(porcelain: string): StatusEntry[] {
+function statusEntries(porcelain: string): StatusEntry[] {
   return porcelain
     .split('\n')
     .filter((line) => line.length > 3)
@@ -213,10 +213,26 @@ export async function releasePrepare(options: ReleasePrepareOptions, host: Prepa
     return { failures, tagged: false, pushed: false }
   }
 
-  // 2. The writes. After each one only the files it owns may have changed; anything else, or a failure, puts everything back.
+  // 2. The writes. The tree was clean when the checks ran, but that was a while ago: look again right before the first write.
   const changedFiles = async () => statusEntries(await host.status()).filter((entry) => !entry.untracked).map((entry) => entry.path)
+  const late = statusEntries(await host.status())
+  if (late.length > 0) {
+    fail(`The working tree changed while the checks ran: ${late.slice(0, MAX_LISTED).map((entry) => entry.path).join(', ')}${late.length > MAX_LISTED ? ` and ${late.length - MAX_LISTED} more` : ''}`)
+
+    return { failures, tagged: false, pushed: false }
+  }
+
+  // After each write only the files it owns may have changed. A failure puts back what THIS tool may have changed and nothing else:
+  // a change in any other file can be the owner's own edit (the notices take a while), and `git checkout` would throw it away.
+  const ours = [...VERSION_FILES, NOTICES]
   const putBack = async () => {
-    const paths = await changedFiles()
+    let changed: string[]
+    try {
+      changed = await changedFiles()
+    } catch {
+      changed = ours // it cannot ask which files changed: put back every file it could have changed
+    }
+    const paths = changed.filter((path) => ours.includes(path))
     if (paths.length > 0) await host.restore(paths)
   }
   const stop = async (line: string): Promise<ReleasePrepareResult> => {
@@ -229,38 +245,52 @@ export async function releasePrepare(options: ReleasePrepareOptions, host: Prepa
 
     return { failures, tagged: false, pushed: false }
   }
+  const foreignNote = 'The version files were put back; any other changed file was left as it is (it may be your own edit)'
 
+  /** The version commit, or the sentence for what stopped it (the caller then puts the files back). */
+  const bump = async (): Promise<{ commit: string; files: number } | string> => {
+    note(`Running version:set ${version} ...`)
+    try {
+      await host.setVersion(version)
+    } catch (error) {
+      return `version:set failed: ${reason(error)}`
+    }
+    const afterVersion = await changedFiles()
+    if (afterVersion.length === 0) return 'version:set changed nothing: the version is already set, or it did not run'
+    const foreign = afterVersion.filter((path) => !VERSION_FILES.has(path))
+    if (foreign.length > 0) return `version:set changed a file that is not a version file: ${foreign.join(', ')}. ${foreignNote}`
+
+    note('Running npm run notices (this takes a while) ...')
+    try {
+      await host.generateNotices()
+    } catch (error) {
+      return `npm run notices failed: ${reason(error)}`
+    }
+    const afterNotices = await changedFiles()
+    if (afterNotices.includes(NOTICES)) {
+      for (const line of (await host.diff(NOTICES)).split('\n').slice(0, MAX_DIFF_LINES)) note(line)
+
+      return `${NOTICES} changed when it was regenerated, so the committed one is out of date (the diff is above): commit the regenerated file on its own, wait for CI, then run this again. What this tool changed was put back`
+    }
+    const unexpected = afterNotices.filter((path) => !VERSION_FILES.has(path))
+    if (unexpected.length > 0) return `npm run notices changed a file that is not a version file: ${unexpected.join(', ')}. ${foreignNote}`
+
+    try {
+      return { commit: await host.commit(afterNotices, `Version ${version}`, `npm run version:set -w @listulator/server -- ${version} (${afterNotices.length} files, version lines only).`), files: afterNotices.length }
+    } catch (error) {
+      return `The commit failed: ${reason(error)}`
+    }
+  }
+
+  let outcome: { commit: string; files: number } | string
   try {
-    await host.setVersion(version)
+    outcome = await bump()
   } catch (error) {
-    return stop(`version:set failed: ${reason(error)}`)
+    outcome = `Unexpected error while writing: ${reason(error)}`
   }
-  const afterVersion = await changedFiles()
-  if (afterVersion.length === 0) return stop('version:set changed nothing: the version is already set, or it did not run')
-  const foreign = afterVersion.filter((path) => !VERSION_FILES.has(path))
-  if (foreign.length > 0) return stop(`version:set changed a file that is not a version file: ${foreign.join(', ')}`)
-
-  try {
-    await host.generateNotices()
-  } catch (error) {
-    return stop(`npm run notices failed: ${reason(error)}`)
-  }
-  const afterNotices = await changedFiles()
-  if (afterNotices.includes(NOTICES)) {
-    for (const line of (await host.diff(NOTICES)).split('\n').slice(0, MAX_DIFF_LINES)) note(line)
-
-    return stop(`${NOTICES} changed when it was regenerated, so the committed one is out of date (the diff is above): commit the regenerated file on its own, wait for CI, then run this again. Everything was put back`)
-  }
-  const unexpected = afterNotices.filter((path) => !VERSION_FILES.has(path))
-  if (unexpected.length > 0) return stop(`npm run notices changed a file that is not a version file: ${unexpected.join(', ')}`)
-
-  let commit: string
-  try {
-    commit = await host.commit(afterNotices, `Version ${version}`, `npm run version:set -w @listulator/server -- ${version} (${afterNotices.length} files, version lines only).`)
-  } catch (error) {
-    return stop(`The commit failed: ${reason(error)}`)
-  }
-  log(`Committed ${short(commit)}: "Version ${version}", ${afterNotices.length} files, version lines only`)
+  if (typeof outcome === 'string') return stop(outcome)
+  const { commit } = outcome
+  log(`Committed ${short(commit)}: "Version ${version}", ${outcome.files} files, version lines only`)
 
   // 3. The tag and the push, only on the owner's go.
   if (!options.tag) {
@@ -278,8 +308,20 @@ export async function releasePrepare(options: ReleasePrepareOptions, host: Prepa
   try {
     await host.push(tag)
   } catch (error) {
-    await host.deleteLocalTag(tag).catch(() => undefined)
-    fail(`The push failed: ${reason(error)}. The commit ${short(commit)} is local and was not pushed, and the local tag was removed again`)
+    // An error does not say the server refused: look at origin before saying that anything is undone.
+    const landed = await host.tagExists(tag).then((exists) => exists.remote, () => undefined)
+    if (landed === true) {
+      fail(`The push reported an error (${reason(error)}), but ${tag} IS on origin: look at GitHub (the commit on main, the Release run) before doing anything else. The local tag was kept`)
+
+      return { failures, commit, tagged: true, pushed: true }
+    }
+    if (landed === undefined) {
+      fail(`The push failed (${reason(error)}) and origin could not be asked whether it arrived: look at GitHub before trying again. The commit ${short(commit)} and the tag ${tag} are local`)
+
+      return { failures, commit, tagged: true, pushed: false }
+    }
+    const removal = await host.deleteLocalTag(tag).then(() => undefined, (problem: unknown) => reason(problem))
+    fail(`The push failed: ${reason(error)}. The commit ${short(commit)} is local and was not pushed, and ${removal === undefined ? 'the local tag was removed again' : `the local tag could not be removed (${removal}): run git tag -d ${tag}`}`)
 
     return { failures, commit, tagged: false, pushed: false }
   }
@@ -368,7 +410,8 @@ export function createPrepareHost(run: Runner, repoRoot: string, read: (path: st
     async commit(paths, subject, body) {
       await must('git add', 'git', ['add', '--', ...paths])
       try {
-        await must('git commit', 'git', ['commit', '-m', subject, '-m', body])
+        // The pathspec makes it commit those files and nothing else, whatever else happens to be staged.
+        await must('git commit', 'git', ['commit', '-m', subject, '-m', body, '--', ...paths])
       } catch (error) {
         // A hook may have refused: take the files out of the index again, so putting them back is one checkout.
         await git(['reset', '-q', 'HEAD', '--', ...paths])

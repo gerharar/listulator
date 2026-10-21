@@ -49,6 +49,13 @@ interface World {
   pushFails: boolean
   commitFails: boolean
   restoreFails: boolean
+  deleteTagFails: boolean
+  /** The push reports an error although the server took it. */
+  pushLanded: boolean
+  /** What `git status` says from its second call on (something changed after the checks). */
+  statusLate?: string
+  /** `git status` fails once the version is set. */
+  statusFailsAfterVersion: boolean
   /** Extra files `npm run notices` rewrites besides the notices. */
   untracked: string[]
 }
@@ -72,6 +79,9 @@ function world(over: Partial<World> = {}): World {
     pushFails: false,
     commitFails: false,
     restoreFails: false,
+    deleteTagFails: false,
+    pushLanded: false,
+    statusFailsAfterVersion: false,
     untracked: [],
     ...over,
   }
@@ -87,7 +97,15 @@ interface Fake {
 function fake(w: World): Fake {
   const changed = new Set<string>()
   const calls: string[] = []
-  const status = () => [...w.status.split('\n').filter((line) => line !== ''), ...[...changed].map((path) => ` M ${path}`), ...w.untracked.map((path) => `?? ${path}`)].join('\n')
+  let statusCalls = 0
+  let versionSet = false
+  const status = () => {
+    statusCalls++
+    if (w.statusFailsAfterVersion && versionSet) throw new Error('git status boom')
+    const base = w.statusLate !== undefined && statusCalls >= 2 ? w.statusLate : w.status
+
+    return [...base.split('\n').filter((line) => line !== ''), ...[...changed].map((path) => ` M ${path}`), ...w.untracked.map((path) => `?? ${path}`)].join('\n')
+  }
   const host: PrepareHost = {
     branch: async () => w.branch,
     status: async () => status(),
@@ -107,6 +125,7 @@ function fake(w: World): Fake {
     tagExists: async (tag) => ({ local: w.localTags.includes(tag), remote: w.remoteTags.includes(tag) }),
     setVersion: async (version) => {
       calls.push(`setVersion ${version}`)
+      versionSet = true
       if (w.setVersionFails) {
         changed.add(VERSION_FILES[0]!)
         throw new Error('version:set failed halfway')
@@ -137,14 +156,18 @@ function fake(w: World): Fake {
     },
     deleteLocalTag: async (tag) => {
       calls.push(`deleteTag ${tag}`)
+      if (w.deleteTagFails) throw new Error('tag is locked')
     },
     push: async (tag) => {
       calls.push(`push ${tag}`)
-      if (w.pushFails) throw new Error('remote rejected the push')
+      if (w.pushFails) {
+        if (w.pushLanded) w.remoteTags = [...w.remoteTags, tag]
+        throw new Error('remote rejected the push')
+      }
     },
   }
 
-  return { host, calls, tree: status }
+  return { host, calls, tree: () => [...w.status.split('\n').filter((line) => line !== ''), ...[...changed].map((path) => ` M ${path}`)].join('\n') }
 }
 
 async function prepare(w: World, options: { version?: string; tag?: boolean; dryRun?: boolean } = {}) {
@@ -345,13 +368,38 @@ describe('a real run', () => {
     expect(result.commit).toBeUndefined()
   })
 
-  it('stops and restores when version:set changes a file that is not one of the version files', async () => {
-    const { result, calls } = await prepare(world({ versionChanges: [...VERSION_FILES, 'package-lock.json.orig', 'web/src/App.tsx'] }), { tag: true })
+  it('stops when version:set changes a file that is not a version file, puts back ONLY the version files and leaves the other alone', async () => {
+    const { result, calls, tree } = await prepare(world({ versionChanges: [...VERSION_FILES, 'web/src/App.tsx'] }), { tag: true })
 
     // It stops right after version:set, blaming version:set, before the notices tool runs on a tree that is already wrong.
-    expect(result.failures).toEqual([expect.stringMatching(/^version:set changed a file that is not a version file: .*web\/src\/App\.tsx/)])
-    expect(calls).toEqual([`setVersion ${VERSION}`, expect.stringMatching(/^restore /)])
-    expect(calls.some((call) => call.startsWith('commit') || call.startsWith('tag'))).toBe(false)
+    expect(result.failures).toEqual([expect.stringMatching(/^version:set changed a file that is not a version file: web\/src\/App\.tsx.*left as it is/)])
+    expect(calls).toEqual([`setVersion ${VERSION}`, `restore ${[...VERSION_FILES].sort().join(',')}`])
+    // A change this tool cannot attribute may be the owner's own edit: it is named, never discarded.
+    expect(tree()).toContain(' M web/src/App.tsx')
+  })
+
+  it('never discards a change of the owner’s: only the version files are put back, whatever else is in the tree', async () => {
+    const { result, calls, tree } = await prepare(world({ noticesChange: true, versionChanges: [...VERSION_FILES, 'docs/notes.md'] }), { tag: true })
+
+    expect(result.failures).toHaveLength(1)
+    expect(calls.filter((call) => call.startsWith('restore'))).toEqual([`restore ${[...VERSION_FILES].sort().join(',')}`])
+    expect(tree()).toContain(' M docs/notes.md')
+  })
+
+  it('refuses when something changed in the tree between the checks and the first write, and writes nothing', async () => {
+    const { result, calls } = await prepare(world({ statusLate: ' M web/src/App.tsx' }), { tag: true })
+
+    expect(result.failures).toEqual([expect.stringMatching(/changed while the checks ran.*web\/src\/App\.tsx/)])
+    expect(calls).toEqual([])
+  })
+
+  it('reports an unexpected error in the write phase as a failure and puts its own files back', async () => {
+    const { result, calls } = await prepare(world({ statusFailsAfterVersion: true }), { tag: true })
+
+    expect(result.failures.some((line) => /git status boom/.test(line))).toBe(true)
+    // It cannot ask which files changed, so it puts back every file it could have changed.
+    expect(calls.at(-1)).toBe(`restore ${[...VERSION_FILES, NOTICES].sort().join(',')}`)
+    expect(calls.some((call) => call.startsWith('commit') || call.startsWith('tag') || call.startsWith('push'))).toBe(false)
   })
 
   it('stops when version:set changes nothing', async () => {
@@ -374,14 +422,6 @@ describe('a real run', () => {
     expect(result.failures.some((line) => /notices.*licence texts could not be read/.test(line))).toBe(true)
     expect(calls.at(-1)).toBe(`restore ${[...VERSION_FILES].sort().join(',')}`)
     expect(calls.some((call) => call.startsWith('commit'))).toBe(false)
-  })
-
-  it('stops when a new untracked file appears, and does not delete it', async () => {
-    const { result, calls } = await prepare(world({ untracked: ['licences.tmp'] }), { tag: true })
-
-    // The untracked file is there before the run starts, so the tree is not clean: refused before anything is written.
-    expect(result.failures.some((line) => /licences\.tmp/.test(line))).toBe(true)
-    expect(calls).toEqual([])
   })
 
   it('when the commit is refused (a hook), puts the files back and tags and pushes nothing', async () => {
@@ -407,6 +447,44 @@ describe('a real run', () => {
     expect(result.failures.some((line) => /cccccccccccc/.test(line) && /local/i.test(line))).toBe(true)
     expect(calls.slice(-3)).toEqual([`tag ${TAG} | Listulator ${VERSION}`, `push ${TAG}`, `deleteTag ${TAG}`])
     expect(result).toMatchObject({ commit: 'c'.repeat(40), tagged: false, pushed: false })
+  })
+
+  it('when the push reports an error but the tag IS on origin, keeps the local tag and says to look at GitHub', async () => {
+    const { result, calls } = await prepare(world({ pushFails: true, pushLanded: true }), { tag: true })
+
+    expect(result.failures.some((line) => /on origin/.test(line) && /GitHub/.test(line))).toBe(true)
+    expect(calls.some((call) => call.startsWith('deleteTag'))).toBe(false)
+    expect(result).toMatchObject({ tagged: true, pushed: true })
+  })
+
+  it('when the push fails and origin cannot be asked whether it arrived, keeps the tag and does not claim it was not pushed', async () => {
+    const w = world({ pushFails: true })
+    const f = fake(w)
+    let asked = 0
+    f.host.tagExists = async () => {
+      if (asked++ === 0) return { local: false, remote: false }
+      throw new Error('network is down')
+    }
+
+    const result = await releasePrepare({ version: VERSION, tag: true, dryRun: false }, f.host, () => undefined)
+
+    expect(result.failures).toEqual([expect.stringMatching(/could not be asked whether it arrived.*look at GitHub/)])
+    expect(result.failures[0]).not.toMatch(/was not pushed/)
+    expect(f.calls.some((call) => call.startsWith('deleteTag'))).toBe(false)
+  })
+
+  it('does not say the local tag was removed when it could not be', async () => {
+    const { result } = await prepare(world({ pushFails: true, deleteTagFails: true }), { tag: true })
+
+    expect(result.failures.some((line) => /could not be removed.*tag is locked/.test(line) && /git tag -d v1\.1\.1/.test(line))).toBe(true)
+    expect(result.failures.some((line) => /was removed again/.test(line))).toBe(false)
+  })
+
+  it('says what it is running before the two slow steps', async () => {
+    const { log } = await prepare(world())
+
+    expect(log.join('\n')).toMatch(/Running version:set 1\.1\.1/)
+    expect(log.join('\n')).toMatch(/Running npm run notices/)
   })
 
   it('when the tag cannot be made: does not push', async () => {
@@ -542,7 +620,8 @@ describe('the real git, gh and npm commands, as they are run (no shell)', () => 
     const sha = await host(runner).commit(['a.json', 'b.toml'], 'Version 1.1.1', 'the body')
 
     expect(sha).toBe('c'.repeat(40))
-    expect(calls.map((call) => call.args)).toEqual([['add', '--', 'a.json', 'b.toml'], ['commit', '-m', 'Version 1.1.1', '-m', 'the body'], ['rev-parse', 'HEAD']])
+    // The pathspec makes it commit those files and nothing else, whatever else happens to be staged.
+    expect(calls.map((call) => call.args)).toEqual([['add', '--', 'a.json', 'b.toml'], ['commit', '-m', 'Version 1.1.1', '-m', 'the body', '--', 'a.json', 'b.toml'], ['rev-parse', 'HEAD']])
     expect(calls.flatMap((call) => call.args)).not.toContain('--no-verify')
     expect(calls.flatMap((call) => call.args)).not.toContain('-a')
   })
@@ -552,7 +631,7 @@ describe('the real git, gh and npm commands, as they are run (no shell)', () => 
 
     await expect(host(runner).commit(['a.json'], 'Version 1.1.1', 'body')).rejects.toThrow(/lint failed/)
 
-    expect(calls.map((call) => call.args)).toEqual([['add', '--', 'a.json'], ['commit', '-m', 'Version 1.1.1', '-m', 'body'], ['reset', '-q', 'HEAD', '--', 'a.json']])
+    expect(calls.map((call) => call.args)).toEqual([['add', '--', 'a.json'], ['commit', '-m', 'Version 1.1.1', '-m', 'body', '--', 'a.json'], ['reset', '-q', 'HEAD', '--', 'a.json']])
   })
 
   it('makes an annotated tag, deletes a local tag, and pushes the commit and the tag atomically', async () => {
