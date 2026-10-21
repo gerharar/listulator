@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto'
 import { existsSync, readFileSync } from 'node:fs'
-import { basename } from 'node:path'
+import { basename, dirname } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { makeKeyPair, signLikeTauri } from './minisignTesting.js'
 import type { Runner } from './releaseSign.js'
@@ -39,6 +39,8 @@ interface World {
   /** What each public address answers with, or the error it fails with. Filled by `world()` for TAG. */
   urls: Map<string, Buffer | Error>
   pubkey: string
+  /** The key read from the tagged config fails with this. */
+  pubkeyFails?: Error
   commits: Record<string, string | Error>
   /** Whether `gh attestation verify` passes for a file name, a tag and a commit. */
   attested: (name: string, tag: string, commit: string) => boolean
@@ -96,7 +98,7 @@ function world(over: Partial<World> = {}, served: Served = goodFiles(), tag = TA
 interface Fake {
   host: VerifyHost
   fetched: string[]
-  attestations: { name: string; tag: string; commit: string; onDisk: boolean }[]
+  attestations: { name: string; tag: string; commit: string; onDisk: boolean; dir: string }[]
 }
 
 function fake(w: World): Fake {
@@ -110,7 +112,11 @@ function fake(w: World): Fake {
       if (answer instanceof Error) throw answer
       return answer
     },
-    pubkey: async () => w.pubkey,
+    pubkey: async () => {
+      if (w.pubkeyFails !== undefined) throw w.pubkeyFails
+
+      return w.pubkey
+    },
     tagCommit: async (tag) => {
       const commit = w.commits[tag]
       if (commit === undefined) throw new Error(`no commit for ${tag}`)
@@ -119,7 +125,7 @@ function fake(w: World): Fake {
     },
     verifyAttestation: async (file, tag, commit) => {
       const name = basename(file)
-      out.attestations.push({ name, tag, commit, onDisk: existsSync(file) })
+      out.attestations.push({ name, tag, commit, onDisk: existsSync(file), dir: dirname(file) })
       // The file the attestation is checked on must be the bytes that were served, not a stand-in.
       const served = [...w.urls.entries()].find(([url]) => url.endsWith(`/${name}`) && url.includes('/download/'))?.[1]
       if (served instanceof Buffer && existsSync(file) && !readFileSync(file).equals(served)) return false
@@ -347,6 +353,52 @@ describe('what makes it fail, one line each', () => {
     expect(attestations).toEqual([])
   })
 
+  it('reports a manifest that is the JSON text null as a failure, not as a crash', async () => {
+    const w = world({}, { ...goodFiles(), manifest: Buffer.from('null') })
+
+    const { result } = await verify(w, TAG)
+
+    expect(result.failures.some((line) => /latest\.json: the manifest is not an object/.test(line))).toBe(true)
+  })
+
+  it('fails a latest.json that does not answer, and still checks the files and the attestations', async () => {
+    const w = world()
+    w.urls.set(LATEST_MANIFEST_URL, new Error('503 Service Unavailable'))
+
+    const { result, attestations } = await verify(w, TAG)
+
+    expect(result.failures).toHaveLength(1)
+    expect(result.failures[0]).toMatch(/latest\/download\/latest\.json.*503/)
+    expect(attestations.length).toBeGreaterThan(0)
+  })
+
+  it('fails when the public key of the tag cannot be read, once, and still checks everything else', async () => {
+    const { result, attestations } = await verify(world({ pubkeyFails: new Error('gh: HTTP 404') }), TAG)
+
+    expect(result.failures).toHaveLength(1)
+    expect(result.failures[0]).toMatch(/public key of v1\.1\.0 could not be read.*404/)
+    expect(attestations.length).toBeGreaterThan(0)
+  })
+
+  it('fails when the previous tag’s commit cannot be read, and says the control was not run', async () => {
+    const w = world({ commits: { [TAG]: COMMIT, [PREVIOUS]: new Error('gh: HTTP 404') } })
+
+    const { result, attestations } = await verify(w, TAG)
+
+    expect(result.failures.some((line) => line.includes(PREVIOUS) && /negative control was not run/.test(line))).toBe(true)
+    expect(attestations.every((entry) => entry.commit === COMMIT)).toBe(true)
+  })
+
+  it('removes the downloaded files when it is done, also when it fails', async () => {
+    for (const w of [world(), world({ attested: () => false })]) {
+      const { attestations } = await verify(w, TAG)
+      const dirs = new Set(attestations.map((entry) => entry.dir))
+
+      expect(dirs.size).toBe(1)
+      expect(existsSync([...dirs][0]!)).toBe(false)
+    }
+  })
+
   it('has every failure on one line', async () => {
     const w = world({ pubkey: other.pubkey, attested: () => true }, goodFiles({ signedVersion: '1.0.2' }))
 
@@ -471,6 +523,19 @@ describe('the real GitHub CLI and HTTPS calls, as they are made', () => {
 
     expect([...bytes]).toEqual([1, 2, 3])
     expect(seen).toEqual([downloadUrl(TAG, SUMS)])
+  })
+
+  it('gives every download a time limit, so a hung connection cannot hang a scheduled run', async () => {
+    let signal: AbortSignal | null | undefined
+    const fetcher = (async (_url: string, init?: RequestInit) => {
+      signal = init?.signal
+      return new Response(new Uint8Array([1]), { status: 200 })
+    }) as unknown as typeof fetch
+
+    await createVerifyHost(recorder().runner, fetcher).fetchBytes(downloadUrl(TAG, SUMS))
+
+    expect(signal).toBeInstanceOf(AbortSignal)
+    expect(signal!.aborted).toBe(false)
   })
 
   it('fails an address that answers with an error status, naming the status', async () => {

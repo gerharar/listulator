@@ -61,7 +61,15 @@ const oneLine = (text: string): string => text.replace(/\s+/g, ' ').trim().slice
 
 const downloadUrl = (tag: string, name: string): string => `${REPO_URL}/download/${tag}/${name}`
 
-const PLATFORMS: readonly PlatformKey[] = ['windows-x86_64', 'darwin-aarch64']
+/** The signature a platform's entry carries, if the manifest is shaped that way (`manifestProblems` says what is wrong when it is not). */
+function signatureOf(manifest: unknown, platform: PlatformKey): string | undefined {
+  const signature = (manifest as { platforms?: Record<string, { signature?: unknown } | undefined> } | null | undefined)?.platforms?.[platform]?.signature
+
+  return typeof signature === 'string' ? signature : undefined
+}
+
+/** A hung connection must not hang a scheduled run for hours; the largest file is about 17 MB. */
+const FETCH_TIMEOUT_MS = 180_000
 
 export async function releaseVerify(options: ReleaseVerifyOptions, host: VerifyHost, log: (line: string) => void): Promise<ReleaseVerifyResult> {
   const published = (await host.publishedTags()).filter(isTag).sort((a, b) => compareVersions(b.slice(1), a.slice(1)))
@@ -103,9 +111,8 @@ export async function releaseVerify(options: ReleaseVerifyOptions, host: VerifyH
   // 1. The manifest, as the app fetches it.
   const manifestUrl = tag === latest ? `${REPO_URL}/latest/download/latest.json` : downloadUrl(tag, 'latest.json')
   const manifestBytes = await get(manifestUrl)
-  let signatures: Partial<Record<PlatformKey, string>> = {}
+  let manifest: unknown
   if (manifestBytes !== undefined) {
-    let manifest: unknown
     try {
       manifest = JSON.parse(manifestBytes.toString('utf8'))
     } catch {
@@ -115,8 +122,6 @@ export async function releaseVerify(options: ReleaseVerifyOptions, host: VerifyH
       const problems = manifestProblems(manifest, { tag, ...(keyId === undefined ? {} : { keyId }) })
       for (const problem of problems) fail(`latest.json: ${problem}`)
       if (problems.length === 0) log(`latest.json  announces ${version}, this tag's download addresses and signatures for key ${keyId ?? 'unknown'}`)
-      const entries = (manifest as { platforms?: Record<string, { signature?: unknown } | undefined> }).platforms ?? {}
-      signatures = Object.fromEntries(PLATFORMS.flatMap((platform) => (typeof entries[platform]?.signature === 'string' ? [[platform, entries[platform]!.signature as string]] : [])))
     }
   }
 
@@ -142,7 +147,7 @@ export async function releaseVerify(options: ReleaseVerifyOptions, host: VerifyH
   if (pubkey !== undefined && keyId !== undefined) {
     for (const [platform, name] of [['windows-x86_64', exe], ['darwin-aarch64', archive]] as const) {
       const data = bytes.get(name)
-      const signature = signatures[platform]
+      const signature = signatureOf(manifest, platform)
       if (data === undefined || signature === undefined) continue
       const verdict = verifyMinisign(pubkey, signature, data)
       if (verdict.ok) log(`${name}  signature verifies against the key of ${tag} (${verdict.trustedComment.replace(/\t/g, ' ')})`)
@@ -215,7 +220,7 @@ export function createVerifyHost(run: Runner, fetcher: typeof fetch = fetch): Ve
 
     async fetchBytes(url) {
       if (!url.startsWith('https://')) throw new Error(`${url} is not an https address`)
-      const response = await fetcher(url)
+      const response = await fetcher(url, { signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) })
       if (!response.ok) throw new Error(`${response.status} ${response.statusText}`.trim())
 
       return Buffer.from(await response.arrayBuffer())
