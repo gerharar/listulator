@@ -321,6 +321,17 @@ function updaterTestProblems(workflow: Workflow): string[] {
 
   // The checks run before anything is uploaded, and the build uses the config that trusts the run's key.
   const upload = indexed.find(({ step }) => step.uses?.startsWith('actions/upload-artifact@'))
+  // The update test (31.7) runs once, as the very last thing: after the upload (a failing test must not cost the files) and after the key is
+  // deleted (the test installs and drives an app and runs packages from node_modules; none of it has any use for the key, so none of it gets
+  // the chance), on the folder the builds filled and no other.
+  const testing = indexed.filter(({ run }) => codeOf(run).some((line) => /\btest:desktop-update\b/.test(line)))
+  if (testing.length !== 1) problems.push(`runs the update test ${testing.length} times, not once`)
+  for (const { run, index } of testing) {
+    if (!codeOf(run).includes('npm run test:desktop-update -- updater-test-out')) problems.push('the update test is not exactly "npm run test:desktop-update -- updater-test-out"')
+    if (!deleting.some((step) => step.index < index)) problems.push('runs the update test before the key is deleted')
+    if (upload === undefined || index < upload.index) problems.push('runs the update test before the upload')
+    if (index !== indexed.length - 1) problems.push('the update test is not the last step')
+  }
   const before = (pattern: RegExp) => lines.some(({ line, index }) => pattern.test(line) && (upload === undefined || index < upload.index))
   if (!before(/updater:test-config -- verify\b/)) problems.push('does not verify the signed installer before the upload')
   if (!before(/updater:test-config -- staging\b/)) problems.push('does not check the upload folder for the key before the upload')
@@ -365,7 +376,7 @@ function updaterTestProblems(workflow: Workflow): string[] {
   for (const { run } of indexed) {
     const own = codeOf(run)
     own.forEach((line, at) => {
-      if (/^npm run (tauri|tauri:build|updater:|version:set)/.test(line) && at < own.length - 1 && own[at + 1] !== EXIT_CHECK) {
+      if (/^npm run (tauri|tauri:build|updater:|version:set|test:desktop-update)/.test(line) && at < own.length - 1 && own[at + 1] !== EXIT_CHECK) {
         problems.push(`a command is not followed by its exit-code check: ${line.slice(0, 60)}`)
       }
     })
@@ -1052,7 +1063,28 @@ describe('the updater test build', () => {
       endpoints: ['http://127.0.0.1:8099/latest.json'],
       dangerousInsecureTransportProtocol: true,
     })
-    expect(Object.keys(testConfig).sort()).toEqual(['$schema', 'identifier', 'plugins', 'productName'])
+    expect(Object.keys(testConfig).sort()).toEqual(['$schema', 'app', 'identifier', 'plugins', 'productName'])
+  })
+
+  // The update test drives the installed app through WebView2's debugging port (31.2: the environment variable is not honoured by this app, the
+  // window's own `additionalBrowserArgs` is). So the TEST build's window opens a port, and no shipped build may: a port that any local program
+  // can talk to is the app's whole page, its data and its updater.
+  describe('the debugging port of the update test', () => {
+    const PRODUCTION_ARGS = '--disable-features=msWebOOUI,msPdfOOUI,msSmartScreenProtection --autoplay-policy=no-user-gesture-required'
+    const windowsOf = (config: unknown) => (config as { app?: { windows?: Record<string, unknown>[] } }).app?.windows ?? []
+    const releaseWindow = windowsOf(JSON.parse(read('apps/desktop/src-tauri/tauri.conf.json')))[0]!
+
+    it('is the shipped window with one key added: the production browser arguments and the port, and nothing else changed', () => {
+      expect(windowsOf(testConfig)).toEqual([{ ...releaseWindow, additionalBrowserArgs: `${PRODUCTION_ARGS} --remote-debugging-port=9222 --remote-allow-origins=*` }])
+    })
+
+    it('opens the port on the test app only: no other config, workflow or the release config carries a debugging port', () => {
+      const others = readdirSync(join(ROOT, 'apps/desktop/src-tauri')).filter((name) => /^tauri.*\.json$/.test(name) && name !== 'tauri.updater-test.conf.json')
+      expect(others).toContain('tauri.conf.json')
+      for (const name of others) expect(read(`apps/desktop/src-tauri/${name}`), name).not.toMatch(/remote-debugging|remote-allow-origins/i)
+      for (const name of readdirSync(WORKFLOWS)) expect(readFileSync(join(WORKFLOWS, name), 'utf8'), name).not.toMatch(/remote-debugging|remote-allow-origins|WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS/i)
+      expect(read('apps/desktop/src-tauri/src/lib.rs')).not.toMatch(/remote-debugging|remote-allow-origins/i)
+    })
   })
 
   it('is not in the release config, whose only endpoint is GitHub’s latest download over https and which has no dangerous* key anywhere', () => {
@@ -1127,6 +1159,26 @@ describe('the updater test build', () => {
       expect(upload?.with?.['retention-days']).toBe(3)
     })
 
+    it('runs the update test once, last: after the upload, and after the key is deleted, so the test never has the key on its disk', () => {
+      const names = steps.map((step) => step.name ?? step.uses ?? '')
+      const at = (matching: RegExp) => steps.findIndex((step) => matching.test(`${step.run ?? ''} ${step.uses ?? ''}`))
+      const testing = steps.filter((step) => /\btest:desktop-update\b/.test(step.run ?? ''))
+
+      expect(testing).toHaveLength(1)
+      expect(at(/\btest:desktop-update\b/)).toBeGreaterThan(at(/upload-artifact/))
+      expect(at(/\btest:desktop-update\b/)).toBeGreaterThan(at(/Remove-Item/))
+      expect(testing[0]?.run?.split('\n').map((line) => line.trim())).toEqual(['npm run test:desktop-update -- updater-test-out', 'if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }', ''])
+      expect(names.at(-1)).toMatch(/update test/i)
+    })
+
+    // The last step of the real workflow, as the hostile cases below move, repeat and drop it.
+    const TEST_STEP =
+      '      - name: The update test (installs the older app, updates it the way a person does, checks it, removes it)\n' +
+      '        shell: pwsh\n' +
+      '        run: |\n' +
+      '          npm run test:desktop-update -- updater-test-out\n' +
+      '          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }\n'
+
     // Each change below breaks one rule of the throw-away key (S1 to S4); the real workflow, changed in that one place, must be refused.
     const hostile: [string, (t: string) => string, RegExp][] = [
       ['a key made without --ci', (t) => t.replace('signer generate --ci', 'signer generate'), /not made with --ci/],
@@ -1140,7 +1192,7 @@ describe('the updater test build', () => {
       ['signing with the key text on the command line', (t) => t.replace('-f $key', '-k $env:KEY'), /signs with something other than the key file|key text on the command line/],
       ['signing without a version', (t) => t.replace(' --app-version $env:UPDATE_VERSION', ''), /without --app-version/],
       ['a key that is not deleted when the run fails', (t) => t.replace('if: always()', 'if: success()'), /does not delete the key in a step that always runs/],
-      ['a key deleted before its last use', (t) => t.replace(/ - name: Delete the run's key[\s\S]*?\n(?=\s+- name:|$)/, ''), /does not delete the key|deletes the key before/],
+      ['a key deleted before its last use', (t) => t.replace(/ {6}- name: Delete the run's key[^\n]*\n(?: {8}[^\n]*\n)+/, ''), /does not delete the key|deletes the key before/],
       ['a value handed on through GITHUB_ENV', (t) => t.replace('exit $LASTEXITCODE }\n          Write-Output', 'exit $LASTEXITCODE }\n          "K=1" >> $env:GITHUB_ENV\n          Write-Output'), /outlives a step/],
       ['a value handed on through GITHUB_OUTPUT', (t) => t.replace('exit $LASTEXITCODE }\n          Write-Output', 'exit $LASTEXITCODE }\n          "k=1" >> $env:GITHUB_OUTPUT\n          Write-Output'), /outlives a step/],
       ['a trace of every command', (t) => t.replace('$key = Join-Path', 'Set-PSDebug -Trace 1\n          $key = Join-Path'), /tracing, a transcript or verbose/],
@@ -1179,6 +1231,13 @@ describe('the updater test build', () => {
       ['a .NET upload of a file', (t) => t.replace('exit $LASTEXITCODE }\n          Write-Output', "exit $LASTEXITCODE }\n          [Net.WebClient]::new().UploadFile('http://example.invalid', 'x')\n          Write-Output"), /network or upload command/],
       ['a first step that no longer checks the two versions', (t) => t.replace(/-notmatch/g, '-match'), /does not check the two versions first/],
       ['the version check moved after the checkout', (t) => t.replace(/ {6}- name: The versions are versions[\s\S]*?(?= {6}- uses: actions\/checkout)/, '').replace('      - name: Install dependencies', '      - name: The versions are versions\n        shell: pwsh\n        env:\n          VERSION: ${{ inputs.version }}\n          UPDATE_VERSION: ${{ inputs.update_version }}\n        run: |\n          if ($env:VERSION -notmatch "^x$" -or $env:UPDATE_VERSION -notmatch "^x$") { throw "no" }\n      - name: Install dependencies'), /does not check the two versions first/],
+      // The update test (31.7) may run only with the key gone and the files kept, on the one folder, once, and never skipped.
+      ['the update test before the key is deleted', (t) => t.replace(TEST_STEP, '').replace('      - uses: actions/upload-artifact@', `${TEST_STEP}      - uses: actions/upload-artifact@`), /before the key is deleted/],
+      ['the update test twice', (t) => `${t.replace(/\n*$/, '\n')}${TEST_STEP}`, /runs the update test 2 times/],
+      ['the update test aimed at another folder', (t) => t.replace('test:desktop-update -- updater-test-out', 'test:desktop-update -- .'), /update test is not exactly/],
+      ['the update test whose failure is ignored', (t) => t.replace('test:desktop-update -- updater-test-out\n          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }', 'test:desktop-update -- updater-test-out\n          exit 0'), /not followed by its exit-code check|forces a success/],
+      ['the update test behind a condition', (t) => t.replace('        shell: pwsh\n        run: |\n          npm run test:desktop-update', '        if: false\n        shell: pwsh\n        run: |\n          npm run test:desktop-update'), /a step has an if: other than/],
+      ['no update test at all', (t) => t.replace(TEST_STEP, ''), /runs the update test 0 times/],
       ['a secret', (t) => t.replace('      - name: Install dependencies\n        run: npm ci --ignore-scripts', '      - name: Install dependencies\n        env:\n          K: ${{ secrets.KEY }}\n        run: npm ci --ignore-scripts'), /secret or the token/],
       ['a push trigger', (t) => t.replace('on:\n  workflow_dispatch:', 'on:\n  push:\n  workflow_dispatch:'), /not by hand only/],
     ]

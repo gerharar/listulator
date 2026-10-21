@@ -16,8 +16,9 @@
 #   FAIL against the real one), and the upload folder is checked for the key's text and for anything key-shaped.
 # - The test app can only trust a key it was built with; a release pins the real one, so this key cannot make any real install accept an update.
 #
-# To use it: Actions -> "Updater test (Windows)" -> Run workflow with the two versions (the second newer), download the artifact, and serve it:
-# `npm run updater:serve -- <the unzipped folder>`. Nothing is signed by hand any more.
+# To use it: Actions -> "Updater test (Windows)" -> Run workflow with the two versions (the second newer). The run then tests the update itself
+# (its last step); the artifact is for the owner's own rounds: download it and serve it with `npm run updater:serve -- <the unzipped folder>`.
+# Nothing is signed by hand any more.
 
 name: Updater test (Windows)
 
@@ -180,3 +181,13 @@ jobs:
         shell: pwsh
         run: |
           Remove-Item (Join-Path $env:RUNNER_TEMP 'updater-test-run.key*') -Force -ErrorAction SilentlyContinue
+
+      # Last of all, with the key already gone: the test itself (Phase 31, task 31.7). It installs the older app on this runner, serves the
+      # folder the builds filled, drives the app through WebView2's debugging port (the test build's window opens it, no other build does),
+      # lets it take the update the way a person does, checks that nothing was lost and that the installer and the app's own trace say the
+      # update went through, then uninstalls. The same command runs on a Windows machine: `npm run test:desktop-update -- <the unzipped artifact>`.
+      - name: The update test (installs the older app, updates it the way a person does, checks it, removes it)
+        shell: pwsh
+        run: |
+          npm run test:desktop-update -- updater-test-out
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
