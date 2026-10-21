@@ -226,6 +226,10 @@ export function createVerifyHost(run: Runner, fetcher: typeof fetch = fetch): Ve
   }
 }
 
+/** The last line of a run that found nothing wrong, and the check `release:ship` makes of it: the sign that the script ran at all (see `dryRunReported` in releaseSign.ts). */
+export const verifiedLine = (tag: string): string => `${tag}: verified`
+export const verifiedReported = (output: string): boolean => /: verified\s*$/m.test(output)
+
 /** The command line as a value, or a sentence saying what is wrong with it. */
 export function parseReleaseVerifyArguments(args: readonly string[]): ReleaseVerifyOptions | string {
   if (args.length > 1) return 'only one tag can be checked at a time'
@@ -251,7 +255,7 @@ if (isRunDirectly(import.meta.url)) {
       console.error(`${result.tag}: ${result.failures.length} problem${result.failures.length === 1 ? '' : 's'}`)
       process.exit(1)
     }
-    console.log(`${result.tag}: verified`)
+    console.log(verifiedLine(result.tag))
   } catch (error) {
     console.error(error instanceof Error ? error.message : String(error))
     process.exit(1)

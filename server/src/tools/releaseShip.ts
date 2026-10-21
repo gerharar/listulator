@@ -5,8 +5,8 @@ import { isAbsolute, join, relative, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { ciVerdict, listCiRuns, type CiRun } from './ciCheck.js'
 import { askLine, readHiddenLine } from './hiddenPrompt.js'
-import { REPO, createGhHost, nodeRunner, type Runner, type RunOptions } from './releaseSign.js'
-import { createVerifyHost } from './releaseVerify.js'
+import { REPO, createGhHost, dryRunReported, nodeRunner, uploadReported, type Runner, type RunOptions } from './releaseSign.js'
+import { createVerifyHost, verifiedReported } from './releaseVerify.js'
 import { runChecked } from './runChecked.js'
 import { isStableTag, reason, short } from './toolText.js'
 import { isRunDirectly } from './runDirectly.js'
@@ -45,11 +45,6 @@ import { RELEASE_VERSION } from './versionSources.js'
 
 const REPO_ROOT = fileURLToPath(new URL('../../../', import.meta.url))
 const VERIFY_TRIES = 3
-// What each tagged tool prints when it did what it was asked to. An exit code of 0 is not enough: a script that did not run at all exits 0
-// too (it did, once, through a symbolic link), so each step needs its positive sign.
-const DRY_RUN_PASSED = /Dry run: everything checks out/
-const UPLOADED = /Uploaded .* to the draft/
-const VERIFIED = /: verified\s*$/m
 const VERIFY_WAIT_MS = 5000
 
 /**
@@ -186,22 +181,24 @@ export async function releaseShip(options: ReleaseShipOptions, host: ShipHost, i
   const fail = (line: string) => failures.push(visible(redact(line).replace(/\s+/g, ' ').trim().slice(0, 600)).text)
   const state = { signed: false, published: false, verified: false }
   const result = (): ReleaseShipResult => ({ failures, ...state })
+  /** Reports why it stops, and stops. */
+  const stop = (line: string): ReleaseShipResult => {
+    fail(line)
+
+    return result()
+  }
 
   // 1. The tag, and its CI.
   try {
     await host.fetchTags()
   } catch (error) {
-    fail(`The tags could not be fetched: ${reason(error)}`)
-
-    return result()
+    return stop(`The tags could not be fetched: ${reason(error)}`)
   }
   let commit: string
   try {
     commit = await host.tagCommit(tag)
   } catch (error) {
-    fail(reason(error))
-
-    return result()
+    return stop(reason(error))
   }
   try {
     const remote = await host.remoteTagCommit(tag)
@@ -241,21 +238,15 @@ export async function releaseShip(options: ReleaseShipOptions, host: ShipHost, i
     try {
       previousCommit = await host.tagCommit(previous)
     } catch (error) {
-      fail(reason(error))
-
-      return result()
+      return stop(reason(error))
     }
     if (!(await host.isAncestor(previousCommit, commit))) {
-      fail(`The previous release ${previous} (${short(previousCommit)}) is not an ancestor of ${tag}: the diff would not be what changed`)
-
-      return result()
+      return stop(`The previous release ${previous} (${short(previousCommit)}) is not an ancestor of ${tag}: the diff would not be what changed`)
     }
     const diff = await host.toolsDiff(previousCommit, commit)
     if (diff.trim() === '') say(`The tools that see the key are unchanged since ${previous}`)
     else if (/^Binary files /m.test(diff)) {
-      fail(`git shows a file of the reviewed paths as binary ("Binary files ... differ"), so the diff cannot be reviewed as text`)
-
-      return result()
+      return stop(`git shows a file of the reviewed paths as binary ("Binary files ... differ"), so the diff cannot be reviewed as text`)
     } else {
       // Bound to both commits, so the same text between other commits, or on another clone's tags, does not fit.
       const hash = createHash('sha256').update(`${previousCommit}\n${commit}\n${diff}`).digest('hex').slice(0, 32)
@@ -263,13 +254,12 @@ export async function releaseShip(options: ReleaseShipOptions, host: ShipHost, i
       else {
         show(diff)
         note(`Tools diff ${previous}..${tag}: hash ${hash}`)
-        fail(
+
+        return stop(
           options.toolsDiffReviewed === undefined
             ? `The tools that see the key changed since ${previous} (the diff is above, hash ${hash}). Read it; when it is as it should be, run this again with --tools-diff-reviewed ${hash}`
             : `--tools-diff-reviewed ${options.toolsDiffReviewed} is not this diff's hash (${hash}): the tools changed again since it was read, or it was mistyped`,
         )
-
-        return result()
       }
     }
   }
@@ -283,9 +273,7 @@ export async function releaseShip(options: ReleaseShipOptions, host: ShipHost, i
     added = true
     const head = await host.worktreeHead(dir)
     if (head !== commit) {
-      fail(`The worktree is at ${short(head)}, not ${short(commit)}: nothing was run in it`)
-
-      return result()
+      return stop(`The worktree is at ${short(head)}, not ${short(commit)}: nothing was run in it`)
     }
     note('Type nothing while this runs: the terminal keeps what you type, and the next question would read it.')
     note('Installing the tagged tools (npm ci --ignore-scripts) ...')
@@ -295,14 +283,10 @@ export async function releaseShip(options: ReleaseShipOptions, host: ShipHost, i
     const dry = await host.runScript(dir, 'release:sign', [tag, '--dry-run'])
     show(dry.output)
     if (dry.code !== 0) {
-      fail('release:sign --dry-run refused (see above): nothing was signed')
-
-      return result()
+      return stop('release:sign --dry-run refused (see above): nothing was signed')
     }
-    if (!DRY_RUN_PASSED.test(dry.output)) {
-      fail('The dry run of release:sign exited 0 but did not say it checked the draft (see above): it may not have run at all, so nothing was signed')
-
-      return result()
+    if (!dryRunReported(dry.output)) {
+      return stop('The dry run of release:sign exited 0 but did not say it checked the draft (see above): it may not have run at all, so nothing was signed')
     }
     if (options.dryRun) {
       note('Dry run: the tagged release:sign accepts this draft. A real run would now ask for the key file and the passphrase, sign, and ask whether to publish.')
@@ -314,45 +298,33 @@ export async function releaseShip(options: ReleaseShipOptions, host: ShipHost, i
     const keyFile = resolve((options.keyFile ?? (await io.askKeyFile())).trim())
     const [keyReal, repoReal, dirReal] = await Promise.all([host.realPath(keyFile), host.realPath(options.repoRoot), host.realPath(dir)])
     if (isInside(keyFile, options.repoRoot) || isInside(keyFile, dir) || isInside(keyReal, repoReal) || isInside(keyReal, dirReal)) {
-      fail(`The key file ${keyFile} is inside the repository: keep the key outside it, so it cannot be committed by accident`)
-
-      return result()
+      return stop(`The key file ${keyFile} is inside the repository: keep the key outside it, so it cannot be committed by accident`)
     }
     const problem = await host.keyFileProblem(keyFile)
     if (problem !== undefined) {
-      fail(problem)
-
-      return result()
+      return stop(problem)
     }
     let passphrase: string
     try {
       passphrase = await io.askPassphrase()
     } catch (error) {
-      fail(reason(error))
-
-      return result()
+      return stop(reason(error))
     }
     if (passphrase === '') {
-      fail('The passphrase is empty: nothing was signed')
-
-      return result()
+      return stop('The passphrase is empty: nothing was signed')
     }
     secret = passphrase
 
-    // 5. The signing: the passphrase goes into this one process's environment.
+    // 5. The signing: the passphrase is written to this one process's standard input (never an argument, in no environment variable).
     note('Signing ...')
     const signing = await host.runScript(dir, 'release:sign', [tag, '--key-file', keyFile, '--passphrase-stdin'], passphrase)
     passphrase = ''
     show(signing.output)
     if (signing.code !== 0) {
-      fail('release:sign failed (see above): the draft is as it was')
-
-      return result()
+      return stop('release:sign failed (see above): nothing was published; if it failed while uploading, the draft may hold some of the signatures, so look at the draft before signing again')
     }
-    if (!UPLOADED.test(signing.output)) {
-      fail('release:sign exited 0 but did not report an upload (see above): look at the draft before doing anything else')
-
-      return result()
+    if (!uploadReported(signing.output)) {
+      return stop('release:sign exited 0 but did not report an upload (see above): look at the draft before doing anything else')
     }
     state.signed = true
 
@@ -369,14 +341,10 @@ export async function releaseShip(options: ReleaseShipOptions, host: ShipHost, i
     const missing = expected.filter((name) => !view.assets.includes(name))
     const unexpected = view.assets.filter((name) => !expected.includes(name))
     if (missing.length > 0 || unexpected.length > 0) {
-      fail(`The draft does not hold exactly the signed release's files${missing.length > 0 ? `; missing: ${missing.join(', ')}` : ''}${unexpected.length > 0 ? `; unexpected: ${unexpected.join(', ')}` : ''}`)
-
-      return result()
+      return stop(`The draft does not hold exactly the signed release's files${missing.length > 0 ? `; missing: ${missing.join(', ')}` : ''}${unexpected.length > 0 ? `; unexpected: ${unexpected.join(', ')}` : ''}`)
     }
     if (!view.isDraft) {
-      fail(`The release ${tag} is not a draft any more: look at GitHub before doing anything else`)
-
-      return result()
+      return stop(`The release ${tag} is not a draft any more: look at GitHub before doing anything else`)
     }
     say(`The draft holds the ${expected.length} files of a signed release`)
 
@@ -392,22 +360,16 @@ export async function releaseShip(options: ReleaseShipOptions, host: ShipHost, i
     const again = await host.runScript(dir, 'release:sign', [tag, '--dry-run'])
     if (again.code !== 0) {
       show(again.output)
-      fail('The draft changed after the signing (see above): not published; the tagged release:sign --dry-run refuses it now')
-
-      return result()
+      return stop('The draft changed after the signing (see above): not published; the tagged release:sign --dry-run refuses it now')
     }
-    if (!DRY_RUN_PASSED.test(again.output)) {
+    if (!dryRunReported(again.output)) {
       show(again.output)
-      fail('The second dry run of release:sign exited 0 but did not say it checked the draft (see above): not published')
-
-      return result()
+      return stop('The second dry run of release:sign exited 0 but did not say it checked the draft (see above): not published')
     }
     try {
       await host.publish(tag)
     } catch (error) {
-      fail(`Publishing failed: ${reason(error)}. The signed draft is still a draft: nothing is public`)
-
-      return result()
+      return stop(`Publishing failed: ${reason(error)}. The signed draft is still a draft: nothing is public`)
     }
     state.published = true
     say(`${tag} is published`)
@@ -416,7 +378,7 @@ export async function releaseShip(options: ReleaseShipOptions, host: ShipHost, i
     for (let attempt = 1; attempt <= VERIFY_TRIES && !state.verified; attempt++) {
       const verify = await host.runScript(dir, 'release:verify', [tag])
       show(verify.output)
-      if (verify.code === 0 && VERIFIED.test(verify.output)) state.verified = true
+      if (verify.code === 0 && verifiedReported(verify.output)) state.verified = true
       else if (attempt < VERIFY_TRIES) await pause(VERIFY_WAIT_MS)
     }
     if (!state.verified) fail(`The release ${tag} IS published but the public check failed (release:verify, ${VERIFY_TRIES} tries, see above): look at it now. To take it back to a draft: gh release edit ${tag} --repo ${REPO} --draft=true`)
@@ -424,9 +386,7 @@ export async function releaseShip(options: ReleaseShipOptions, host: ShipHost, i
 
     return result()
   } catch (error) {
-    fail(`Stopped: ${reason(error)}`)
-
-    return result()
+    return stop(`Stopped: ${reason(error)}`)
   } finally {
     // 7. The worktree is always removed; the passphrase is forgotten only after the last line that could hold it.
     let removed = true

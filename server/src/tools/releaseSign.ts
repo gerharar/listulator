@@ -37,6 +37,15 @@ const RELEASE_WORKFLOW = `${REPO}/.github/workflows/release.yml`
 export const CONFIG_PATH = 'apps/desktop/src-tauri/tauri.conf.json'
 const REPO_ROOT = fileURLToPath(new URL('../../../', import.meta.url))
 
+/**
+ * How this tool says it did what it was asked to. `release:ship` reads these as the sign that the script ran at all: an exit code of 0 is
+ * not enough, a script that never ran exits 0 too (it did, through a symbolic link). They are recognised HERE, next to the lines they
+ * recognise, and tested against the tool's real output, so rewording a line cannot silently break the wrapper.
+ */
+const DRY_RUN_REPORT = 'Dry run: everything checks out'
+export const dryRunReported = (output: string): boolean => output.includes(DRY_RUN_REPORT)
+export const uploadReported = (output: string): boolean => /^Uploaded .* to the draft /m.test(output)
+
 /** What the script needs from GitHub, the signer and the disk, as intentions; `createGhHost` is the real one, the tests use a fake. */
 export interface TagState {
   /** The full commit the tag points at. */
@@ -181,7 +190,7 @@ export async function releaseSign(options: ReleaseSignOptions, host: ReleaseHost
     }
 
     if (dryRun) {
-      log(`Dry run: everything checks out. A real run would sign ${exe} and ${archive} with the updater key (ID ${keyId}), then upload ${exe}.sig, ${archive}.sig and latest.json to the draft ${tag}.`)
+      log(`${DRY_RUN_REPORT}. A real run would sign ${exe} and ${archive} with the updater key (ID ${keyId}), then upload ${exe}.sig, ${archive}.sig and latest.json to the draft ${tag}.`)
       return { dryRun: true, uploaded: [] }
     }
 

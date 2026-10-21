@@ -5,7 +5,7 @@ import { basename, join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { makeKeyPair, signLikeTauri } from './minisignTesting.js'
 import { PassThrough } from 'node:stream'
-import { createGhHost, nodeRunner, parseReleaseSignArguments, readPassphrase, readPubkey, releaseSign, scrubSigningEnvironment, type ReleaseHost, type Runner, type TagState } from './releaseSign.js'
+import { createGhHost, dryRunReported, nodeRunner, parseReleaseSignArguments, readPassphrase, readPubkey, releaseSign, scrubSigningEnvironment, uploadReported, type ReleaseHost, type Runner, type TagState } from './releaseSign.js'
 import { parseSignature } from './updateManifest.js'
 
 /** `text` as a regular expression that matches it literally (every special character escaped, the backslash too). */
@@ -542,6 +542,38 @@ describe('what must never appear', () => {
     const text = r.log.join('\n')
     expect(text).toContain('738FF42772526511')
     expect(text).toContain(sha(world().files[TAR]!))
+  })
+})
+
+describe('what release:ship reads as the sign that this script ran (an exit code of 0 is not enough: a script that did not run at all exits 0 too)', () => {
+  it('says "everything checks out" at the end of a dry run, and release:ship recognises that very line', async () => {
+    const r = await run(world(), { dryRun: true, keyFile: undefined })
+
+    expect(dryRunReported(r.log.join('\n'))).toBe(true)
+  })
+
+  it('reports the upload in the form release:ship recognises, after a real signing', async () => {
+    const r = await run(world())
+
+    expect(uploadReported(r.log.join('\n'))).toBe(true)
+    expect(dryRunReported(r.log.join('\n'))).toBe(false)
+  })
+
+  it('says neither when it stopped before: nothing checked out, nothing uploaded', async () => {
+    const dry = await run(world({ attested: () => false }), { dryRun: true, keyFile: undefined })
+    const real = await run(world({ attested: () => false }))
+
+    for (const r of [dry, real]) {
+      expect(dryRunReported(r.log.join('\n'))).toBe(false)
+      expect(uploadReported(r.log.join('\n'))).toBe(false)
+    }
+  })
+
+  it('does not take other text for either sign', () => {
+    expect(dryRunReported('')).toBe(false)
+    expect(dryRunReported('Everything checks out')).toBe(false)
+    expect(uploadReported('Uploaded x.sig')).toBe(false)
+    expect(uploadReported('The draft is ready to be uploaded to the draft v1.1.1')).toBe(false)
   })
 })
 

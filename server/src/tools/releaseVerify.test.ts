@@ -4,7 +4,7 @@ import { basename, dirname } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { makeKeyPair, signLikeTauri } from './minisignTesting.js'
 import type { Runner } from './releaseSign.js'
-import { createVerifyHost, parseReleaseVerifyArguments, releaseVerify, type VerifyHost } from './releaseVerify.js'
+import { createVerifyHost, parseReleaseVerifyArguments, releaseVerify, verifiedLine, verifiedReported, type VerifyHost } from './releaseVerify.js'
 import { serializeManifest } from './updateManifest.js'
 
 /**
@@ -426,6 +426,19 @@ describe('the first release, which has no earlier one', () => {
     const { result } = await verify(w, TAG)
 
     expect(result.failures.some((line) => /same commit/i.test(line))).toBe(true)
+  })
+})
+
+describe('what release:ship reads as the sign that this script ran', () => {
+  it('ends with a line that says the tag is verified, and release:ship recognises that very line, after the lines of the checks', () => {
+    expect(verifiedReported(`ok    latest.json  announces 1.1.0\n${verifiedLine(TAG)}\n`)).toBe(true)
+    expect(verifiedLine(TAG)).toBe('v1.1.0: verified')
+  })
+
+  it('does not take a failure, silence or other text for it', () => {
+    expect(verifiedReported('')).toBe(false)
+    expect(verifiedReported('FAIL  something\nv1.1.0: 1 problem\n')).toBe(false)
+    expect(verifiedReported('not verified yet')).toBe(false)
   })
 })
 
