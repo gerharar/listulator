@@ -25,6 +25,21 @@ export function unexpectedFiles(found: string[], expected: string[]): string[] {
   return [...extra, ...missing]
 }
 
+/** Whether gh's failure to download means the run uploaded no artifacts (the canary uploads none, on purpose), not that something went wrong. */
+export function hasNoArtifacts(message: string): boolean {
+  return message.includes('no valid artifacts found to download')
+}
+
+/** Downloads the run's artifacts; a run that has none is fine (its log is still scanned), any other failure is not. */
+function downloadArtifacts(runId: string, into: string): void {
+  try {
+    execFileSync('gh', ['run', 'download', runId, '-D', into], { encoding: 'utf8', stdio: ['ignore', 'ignore', 'pipe'] })
+  } catch (error) {
+    const stderr = error instanceof Error && 'stderr' in error ? String(error.stderr) : ''
+    if (!hasNoArtifacts(stderr)) throw error
+  }
+}
+
 function main(args: string[]): number {
   const runId = args[0]
   if (runId === undefined || !/^\d+$/.test(runId)) {
@@ -39,7 +54,7 @@ function main(args: string[]): number {
   try {
     const log = execFileSync('gh', ['run', 'view', runId, '--log'], { encoding: 'utf8', maxBuffer: 256 * 1024 * 1024 })
     writeFileSync(join(dir, 'run.log'), log)
-    execFileSync('gh', ['run', 'download', runId, '-D', join(dir, 'artifacts')], { stdio: 'ignore' })
+    downloadArtifacts(runId, join(dir, 'artifacts'))
 
     const files = filesIn(dir).map((path) => relative(dir, path))
     const artifacts = files.filter((path) => path.startsWith('artifacts'))

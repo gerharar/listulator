@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { unexpectedFiles } from './scanRun.js'
+import { hasNoArtifacts, unexpectedFiles } from './scanRun.js'
 
 describe('unexpectedFiles', () => {
   const expected = ['a_setup.exe', 'b_setup.exe', 'b_setup.exe.sig', 'latest.json']
@@ -20,5 +20,18 @@ describe('unexpectedFiles', () => {
 
   it('names both problems', () => {
     expect(unexpectedFiles(['a_setup.exe', 'other.bin'], ['a_setup.exe', 'latest.json'])).toEqual(['unexpected file: other.bin', 'missing file: latest.json'])
+  })
+})
+
+describe('hasNoArtifacts', () => {
+  it('knows the message gh prints for a run that uploaded nothing (the canary uploads nothing, on purpose)', () => {
+    expect(hasNoArtifacts('no valid artifacts found to download')).toBe(true)
+    expect(hasNoArtifacts('Command failed: gh run download 1\nno valid artifacts found to download\n')).toBe(true)
+  })
+
+  it('does not take any other failure for an empty run (a network error must not read as "nothing to scan")', () => {
+    expect(hasNoArtifacts('HTTP 502: Bad Gateway')).toBe(false)
+    expect(hasNoArtifacts('could not find any workflow run')).toBe(false)
+    expect(hasNoArtifacts('')).toBe(false)
   })
 })
