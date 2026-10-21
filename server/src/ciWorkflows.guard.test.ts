@@ -49,6 +49,16 @@ const CANARY_CRON = /^\d{1,2} \d{1,2} \* \* \*$/
 /** The only commands a canary job runs; the first has no token, the other two are the ones that hold the workflow's read-only token. */
 const CANARY_INSTALL = 'npm ci --ignore-scripts'
 const CANARY_TOKEN_COMMANDS = ['npm run release:verify', 'npm run canary:install']
+/**
+ * Everything a canary may say, by level. A key that is not on a list is a refusal: `env` at the workflow or job level reaches every step
+ * (a NODE_OPTIONS next to the token loads code into the step that holds it), `defaults`, `shell`, `working-directory` and `if` change what
+ * a step runs, a `container`, `services` or `strategy` change where, and an action other than the two named reads the workflow token by
+ * default. Each is a decision, so each has to change this test.
+ */
+const CANARY_WORKFLOW_KEYS = ['name', 'on', 'permissions', 'jobs']
+const CANARY_JOB_KEYS = ['runs-on', 'timeout-minutes', 'permissions', 'steps']
+const CANARY_STEP_KEYS = ['name', 'uses', 'with', 'run', 'env']
+const CANARY_ACTION_INPUTS: Record<string, string[]> = { 'actions/checkout': ['persist-credentials'], 'actions/setup-node': ['node-version-file'] }
 
 /**
  * `manual`: a test build, started by hand, read-only, no token (Phase 17). `release`: runs on a pushed `v*` tag, builds with read-only
@@ -262,7 +272,7 @@ function workflowProblems(workflow: Workflow, profile: Profile = 'manual'): stri
   }
   for (const { job, step } of steps) if (step['continue-on-error'] !== undefined) problems.push(`job ${job}: a step sets continue-on-error`)
 
-  if (profile === 'canary') problems.push(...canaryProblems(jobs, steps))
+  if (profile === 'canary') problems.push(...canaryProblems(workflow, jobs, steps))
   if (profile === 'release') problems.push(...releaseProblems(jobs, steps))
   if (profile === 'updaterTest') problems.push(...updaterTestProblems(workflow))
 
@@ -275,17 +285,30 @@ function workflowProblems(workflow: Workflow, profile: Profile = 'manual'): stri
  * the three commands it is for. The dependencies are installed WITHOUT their scripts, in a step that has no token, before the token-holding
  * step runs; and nothing is cached (a restored cache is code that the next step may run).
  */
-function canaryProblems(jobs: [string, Job][], steps: { job: string; step: Step }[]): string[] {
+function canaryProblems(workflow: Workflow, jobs: [string, Job][], steps: { job: string; step: Step }[]): string[] {
   const problems: string[] = []
+  for (const key of Object.keys(workflow)) if (!CANARY_WORKFLOW_KEYS.includes(key)) problems.push(`uses the workflow key ${key} (a canary says only ${CANARY_WORKFLOW_KEYS.join(', ')})`)
+  for (const [name, job] of jobs) {
+    for (const key of Object.keys(job)) if (!CANARY_JOB_KEYS.includes(key)) problems.push(`job ${name} uses the job key ${key} (a canary job says only ${CANARY_JOB_KEYS.join(', ')})`)
+  }
   for (const [name, job] of jobs) {
     if (/\bgithub\.token\b|\bGITHUB_TOKEN\b|\bGH_TOKEN\b/.test(JSON.stringify(job.env ?? {}))) problems.push(`job ${name} hands the token to every step (give it to the one step that calls GitHub)`)
   }
   for (const { job, step } of steps) {
     const run = step.run?.trim()
+    for (const key of Object.keys(step)) if (!CANARY_STEP_KEYS.includes(key)) problems.push(`job ${job}: uses the step key ${key} (a canary step says only ${CANARY_STEP_KEYS.join(', ')})`)
+    if (step.uses !== undefined) {
+      const action = step.uses.split('@')[0]!
+      const inputs = CANARY_ACTION_INPUTS[action]
+      if (inputs === undefined) problems.push(`job ${job}: uses an action other than checkout and setup-node (${action}): an action may read the workflow token by default`)
+      else if (JSON.stringify(Object.keys(step.with ?? {}).sort()) !== JSON.stringify(inputs)) problems.push(`job ${job}: ${action} takes with: only ${inputs.join(', ')}`)
+    }
     if (run !== undefined && run !== CANARY_INSTALL && !CANARY_TOKEN_COMMANDS.includes(run)) {
       problems.push(`job ${job}: runs ${JSON.stringify(run.slice(0, 60))}, which is not one of the canary's commands (${[CANARY_INSTALL, ...CANARY_TOKEN_COMMANDS].join(', ')})`)
     }
     const holdsToken = step.env !== undefined && Object.keys(step.env).some((key) => /^(GH_TOKEN|GITHUB_TOKEN)$/.test(key))
+    if (step.env !== undefined && !holdsToken) problems.push(`job ${job}: a step sets env (only the steps that call GitHub hold anything, and that is GH_TOKEN)`)
+    if (holdsToken && JSON.stringify(Object.keys(step.env ?? {})) !== '["GH_TOKEN"]') problems.push(`job ${job}: a step that holds the token may hold only GH_TOKEN, not ${Object.keys(step.env ?? {}).join(', ')}`)
     if (holdsToken && (run === undefined || !CANARY_TOKEN_COMMANDS.includes(run))) {
       problems.push(`job ${job}: a step holds the token but runs ${JSON.stringify(run?.slice(0, 60) ?? 'nothing')} (only ${CANARY_TOKEN_COMMANDS.join(' and ')} may)`)
     }
@@ -1065,6 +1088,24 @@ describe('the rules for a canary workflow, proven on hostile workflows', () => {
     ['a value pasted into a script', (t) => t.replace('run: npm ci --ignore-scripts', 'run: echo ${{ github.head_ref }}'), /contains \$\{\{/],
     ['a step that may fail quietly', (t) => t.replace('        run: npm run release:verify', '        continue-on-error: true\n        run: npm run release:verify'), /continue-on-error/],
     ['a job that may fail quietly (so the run is green when the canary is red)', (t) => t.replace('    timeout-minutes: 20\n    permissions:', '    timeout-minutes: 20\n    continue-on-error: true\n    permissions:'), /continue-on-error/],
+    ['code loaded into the token-holding command (NODE_OPTIONS next to the token)', (t) => t.replace('          GH_TOKEN: ${{ github.token }}\n        run: npm run release:verify', '          GH_TOKEN: ${{ github.token }}\n          NODE_OPTIONS: --require ./x.js\n        run: npm run release:verify'), /may hold only GH_TOKEN/],
+    ['another environment variable on a step that has no token', (t) => t.replace('      - name: Install\n        run: npm ci --ignore-scripts', '      - name: Install\n        env:\n          NODE_OPTIONS: --require ./x.js\n        run: npm ci --ignore-scripts'), /sets env/],
+    ['a shell chosen for a step', (t) => t.replace('        run: npm run release:verify', '        shell: bash -c "{0}; echo hi"\n        run: npm run release:verify'), /uses the step key shell/],
+    ['a working directory for a step', (t) => t.replace('        run: npm run release:verify', '        working-directory: web\n        run: npm run release:verify'), /uses the step key working-directory/],
+    ['a condition on a step', (t) => t.replace('        run: npm run release:verify', "        if: github.event_name == 'schedule'\n        run: npm run release:verify"), /uses the step key if/],
+    ['a step id', (t) => t.replace('      - name: Verify\n', '      - name: Verify\n        id: v\n'), /uses the step key id/],
+    ['an action that reads the workflow token by default (github-script)', (t) => t.replace('      - name: Verify', `      - uses: actions/github-script@${sha('e')} # v1\n        with:\n          script: x\n      - name: Verify`), /uses an action other than checkout and setup-node/],
+    ['the checkout of another ref', (t) => t.replace('          persist-credentials: false', '          persist-credentials: false\n          ref: refs/pull/1/head'), /with: only persist-credentials/],
+    ['the checkout of another repository', (t) => t.replace('          persist-credentials: false', '          persist-credentials: false\n          repository: someone/else'), /with: only persist-credentials/],
+    ['setup-node with a registry (it writes an .npmrc)', (t) => t.replace('          node-version-file: .node-version', '          node-version-file: .node-version\n          registry-url: https://example.com'), /with: only node-version-file/],
+    ['a workflow-level environment', (t) => t.replace('permissions:\n  contents: read\njobs', 'permissions:\n  contents: read\nenv:\n  NODE_OPTIONS: --require ./x.js\njobs'), /workflow key env/],
+    ['workflow-level defaults (a shell for every step)', (t) => t.replace('permissions:\n  contents: read\njobs', 'permissions:\n  contents: read\ndefaults:\n  run:\n    shell: bash\njobs'), /workflow key defaults/],
+    ['a concurrency group', (t) => t.replace('permissions:\n  contents: read\njobs', 'permissions:\n  contents: read\nconcurrency: x\njobs'), /workflow key concurrency/],
+    ['a job environment (every step of the job gets it)', (t) => t.replace('    timeout-minutes: 20\n    permissions:', '    timeout-minutes: 20\n    env:\n      NODE_OPTIONS: --require ./x.js\n    permissions:'), /job public-files uses the job key env/],
+    ['a container for a job', (t) => t.replace('    timeout-minutes: 20\n    permissions:', '    timeout-minutes: 20\n    container: node:22\n    permissions:'), /uses the job key container/],
+    ['a matrix', (t) => t.replace('    timeout-minutes: 20\n    permissions:', '    timeout-minutes: 20\n    strategy:\n      matrix:\n        x: [1]\n    permissions:'), /uses the job key strategy/],
+    ['a condition on a job', (t) => t.replace('    timeout-minutes: 20\n    permissions:', "    timeout-minutes: 20\n    if: github.actor == 'x'\n    permissions:"), /uses the job key if/],
+    ['a service container', (t) => t.replace('    timeout-minutes: 20\n    permissions:', '    timeout-minutes: 20\n    services:\n      x:\n        image: y\n    permissions:'), /uses the job key services/],
   ]
 
   it.each(hostile)('refuse %s', (_name, change, expected) => {
