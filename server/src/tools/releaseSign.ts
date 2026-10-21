@@ -1,6 +1,6 @@
 import { spawn } from 'node:child_process'
 import { createHash } from 'node:crypto'
-import { existsSync, mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdtempSync, readFileSync, realpathSync, rmSync, statSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { basename, join, relative, resolve, isAbsolute } from 'node:path'
 import { createInterface } from 'node:readline/promises'
@@ -87,8 +87,17 @@ export interface ReleaseSignResult {
 
 const sha256 = (data: Uint8Array): string => createHash('sha256').update(data).digest('hex')
 
+/** Where a path really leads (a symbolic link is followed); the path itself when it does not exist. */
+const realOrResolved = (path: string): string => {
+  try {
+    return realpathSync(path)
+  } catch {
+    return resolve(path)
+  }
+}
+
 const isInside = (child: string, parent: string): boolean => {
-  const path = relative(resolve(parent), resolve(child))
+  const path = relative(realOrResolved(parent), realOrResolved(child))
 
   return path !== '' && !path.startsWith('..') && !isAbsolute(path)
 }

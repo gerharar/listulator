@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto'
-import { existsSync, mkdirSync, mkdtempSync, realpathSync, rmSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, mkdtempSync, realpathSync, rmSync, symlinkSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
@@ -49,6 +49,10 @@ interface World {
   unsafe: string[]
   /** The commit the worktree ends up at. */
   worktreeHead: string
+  /** The reviewed paths in the owner's checkout that are not the tagged ones (or are uncommitted). */
+  checkoutDiffers: string[]
+  /** Where a path really leads (a symbolic link), by path. */
+  realPaths: Record<string, string>
   /** The previous release's tag is not in this clone. */
   previousMissing: boolean
   addFails: boolean
@@ -79,6 +83,8 @@ const world = (over: Partial<World> = {}): World => ({
   ancestor: true,
   unsafe: [],
   worktreeHead: COMMIT,
+  checkoutDiffers: [],
+  realPaths: {},
   previousMissing: false,
   addFails: false,
   installFails: false,
@@ -154,6 +160,12 @@ function fake(w: World): Fake {
 
       return w.unsafe
     },
+    checkoutDiffers: async (commit) => {
+      rec('checkoutDiffers', commit)
+
+      return w.checkoutDiffers
+    },
+    realPath: async (path) => w.realPaths[path] ?? path,
     worktreeHead: async (dir) => {
       rec('worktreeHead', dir)
 
@@ -275,7 +287,7 @@ describe('a release that is ready to ship', () => {
     const r = await ship(world(), { keyFile: KEY })
 
     expect(r.names()).toEqual([
-      'fetchTags', 'tagCommit', 'remoteTagCommit', 'ciRuns', 'unsafeEntries', // the tag, its CI, what cannot be reviewed
+      'fetchTags', 'tagCommit', 'remoteTagCommit', 'ciRuns', 'unsafeEntries', 'checkoutDiffers', // the tag, its CI, what cannot be reviewed, whether this program is the reviewed one
       'publishedTags', 'tagCommit', 'isAncestor', 'toolsDiff', // the previous release and the tools diff
       'makeTempDir', 'addWorktree', 'worktreeHead', 'install', 'runScript', // the worktree and the dry run
       'keyFileProblem', 'runScript', // the signing
@@ -361,6 +373,10 @@ describe('what it checks before it touches anything', () => {
     await refusesBeforeTheWorktree(world({ remoteTag: undefined }), /v1\.1\.1 is not on origin/)
   })
 
+  it('refuses to ask for the passphrase when the tools in the owner’s working copy are not the tagged ones: this program is the one that holds it', async () => {
+    await refusesBeforeTheWorktree(world({ checkoutDiffers: ['server/src/tools', 'package-lock.json (uncommitted)'] }), /tools in your working copy are not the tagged ones.*server\/src\/tools.*package-lock\.json \(uncommitted\).*git checkout v1\.1\.1/)
+  })
+
   it('refuses a tag that points elsewhere here than on origin (a stale or moved tag), naming both commits', async () => {
     await refusesBeforeTheWorktree(world({ remoteTag: 'b'.repeat(40) }), /aaaaaaaaaaaa here but at bbbbbbbbbbbb on origin/)
   })
@@ -413,8 +429,8 @@ describe('what it checks before it touches anything', () => {
   })
 
   it('refuses a tagged tree with a file that changes how the tools run and cannot be read as a diff (a .npmrc, a symlink, a submodule)', async () => {
-    for (const unsafe of [['.npmrc'], ['server/src/tools/helper.ts (a symbolic link)'], ['apps/desktop (a submodule)']]) {
-      await refusesBeforeTheWorktree(world({ unsafe }), /cannot be reviewed as text.*(npmrc|symbolic link|submodule)/)
+    for (const unsafe of [['.npmrc'], ['server/src/tools/helper.ts (a symbolic link)'], ['apps/desktop (a submodule)'], ['server/src/tools/releaseVerify.ts (missing in the tagged tree)']]) {
+      await refusesBeforeTheWorktree(world({ unsafe }), /cannot be reviewed as text.*(npmrc|symbolic link|submodule|missing)/)
     }
   })
 
@@ -433,7 +449,7 @@ describe('what it checks before it touches anything', () => {
     for (const raw of ['\u001b', '\r', '\u202e']) expect(shown.includes(raw)).toBe(false)
     expect(shown).toContain('\\x1b[1A')
     expect(shown).toContain('<U+202E>')
-    expect(shown).toMatch(/control or hidden characters/)
+    expect(shown).toMatch(/control, hidden or non-Latin characters/)
     expect(r.result.failures[0]).toContain(hashOf(PREV_COMMIT, COMMIT, hostileDiff))
   })
 
@@ -485,6 +501,16 @@ describe('the dry run and the key', () => {
     const inWork = await ship(world(), { keyFile: `${WORK}/updater.key` })
 
     for (const r of [inRepo, inWork]) {
+      expect(r.result.failures).toEqual([expect.stringMatching(/inside the repository/)])
+      expect(r.asked.passphrase).toBe(0)
+    }
+  })
+
+  it('refuses a key file whose REAL path is inside the repository (a symbolic link to it), and a repository reached through a link', async () => {
+    const viaLink = await ship(world({ realPaths: { '/keys/link.key': `${REPO}/hidden/updater.key` } }), { keyFile: '/keys/link.key' })
+    const repoViaLink = await ship(world({ realPaths: { [REPO]: '/real/repo', '/real-keys/k': '/real/repo/k' } }), { keyFile: '/real-keys/k' })
+
+    for (const r of [viaLink, repoViaLink]) {
       expect(r.result.failures).toEqual([expect.stringMatching(/inside the repository/)])
       expect(r.asked.passphrase).toBe(0)
     }
@@ -545,17 +571,22 @@ describe('signing and what comes after', () => {
     expect(r.asked.publish).toBe(0)
   })
 
-  it('checks the draft ONCE MORE right before asking: the tagged dry run again, so a file swapped after the signing is found', async () => {
+  it('checks the draft ONCE MORE after the “y” and right before publishing, so a file swapped while the owner was deciding is found', async () => {
     const r = await ship(world(), { keyFile: KEY })
 
     const dryRuns = r.scripts.filter((entry) => entry.args.includes('--dry-run'))
     expect(dryRuns).toHaveLength(2)
     const names = r.names()
-    expect(names.indexOf('releaseAssets')).toBeLessThan(names.lastIndexOf('runScript', names.indexOf('publish')))
-    expect(names.indexOf('publish')).toBeGreaterThan(names.indexOf('releaseAssets'))
+    expect(names.slice(names.indexOf('releaseAssets'), names.indexOf('publish') + 1)).toEqual(['releaseAssets', 'runScript', 'publish'])
   })
 
-  it('does not ask whether to publish when that second check refuses', async () => {
+  it('does not run that second check when nothing is going to be published', async () => {
+    const r = await ship(world({ publishAnswer: 'n' }), { keyFile: KEY })
+
+    expect(r.scripts.filter((entry) => entry.args.includes('--dry-run'))).toHaveLength(1)
+  })
+
+  it('does not publish when that second check refuses', async () => {
     const f = fake(world())
     let dryRuns = 0
     const original = f.host.runScript
@@ -568,7 +599,7 @@ describe('signing and what comes after', () => {
     const result = await releaseShip({ tag: TAG, keyFile: KEY, toolsDiffReviewed: HASH, dryRun: false, repoRoot: REPO, pause: async () => undefined }, f.host, f.io, () => undefined, () => undefined)
 
     expect(result.failures).toEqual([expect.stringMatching(/draft changed after the signing.*not published/i)])
-    expect(f.asked.publish).toBe(0)
+    expect(f.asked.publish).toBe(1)
     expect(f.names()).not.toContain('publish')
     expect(result).toMatchObject({ signed: true, published: false })
   })
@@ -622,7 +653,7 @@ describe('signing and what comes after', () => {
     expect(r.asked.publish).toBe(0)
   })
 
-  it('does not take the second check before the question for a pass when it says nothing', async () => {
+  it('does not take the second check for a pass when it says nothing', async () => {
     const f = fake(world())
     let dryRuns = 0
     const original = f.host.runScript
@@ -631,7 +662,8 @@ describe('signing and what comes after', () => {
     const result = await releaseShip({ tag: TAG, keyFile: KEY, toolsDiffReviewed: HASH, dryRun: false, repoRoot: REPO, pause: async () => undefined }, f.host, f.io, () => undefined, () => undefined)
 
     expect(result.failures).toEqual([expect.stringMatching(/did not say it checked/i)])
-    expect(f.asked.publish).toBe(0)
+    expect(f.asked.publish).toBe(1)
+    expect(f.names()).not.toContain('publish')
   })
 
   it('counts a public check that exits 0 but never says "verified" as a failed try', async () => {
@@ -859,25 +891,95 @@ describe('the real git, gh and npm commands, as they are run (no shell)', () => 
     await expect(host(recorder(() => ({ code: 128, stderr: 'fatal: bad object' })).runner).isAncestor(PREV_COMMIT, COMMIT)).rejects.toThrow(/bad object/)
   })
 
-  it('finds what cannot be reviewed as text in a commit’s tree: a .npmrc anywhere, and a symlink or a submodule under the reviewed paths', async () => {
-    const tree = [
-      `100644 blob ${'1'.repeat(40)}\tpackage.json`,
-      `100644 blob ${'2'.repeat(40)}\t.npmrc`,
-      `100644 blob ${'3'.repeat(40)}\tweb/.npmrc`,
-      `120000 blob ${'4'.repeat(40)}\tserver/src/tools/helper.ts`,
-      `120000 blob ${'5'.repeat(40)}\tdocs/link-to-readme.md`,
-      `160000 commit ${'6'.repeat(40)}\tapps/desktop/vendor`,
-      `160000 commit ${'9'.repeat(40)}\tserver/src/tools/vendor`,
-      `160000 commit ${'7'.repeat(40)}\tthird_party/lib`,
-      `100644 blob ${'8'.repeat(40)}\tserver/src/tools/x.ts`,
-      '',
-    ].join('\n')
-    const { calls, runner } = recorder(() => ({ code: 0, stdout: tree }))
+  describe('what in a commit’s tree cannot be reviewed as text, or is missing', () => {
+    const entry = (mode: string, path: string, sha = '1'.repeat(40)) => `${mode} ${mode === '160000' ? 'commit' : 'blob'} ${sha}\t${path}\0`
+    const scripts = [entry('100644', 'server/src/tools/releaseSign.ts'), entry('100644', 'server/src/tools/releaseVerify.ts')]
+    const treeOf = (...entries: string[]) => entries.join('')
 
-    const found = await host(runner).unsafeEntries(COMMIT)
+    it('reads the tree with NUL separators, so a path with a space or a line break is read as it is', async () => {
+      const { calls, runner } = recorder(() => ({ code: 0, stdout: treeOf(...scripts) }))
 
-    expect(calls[0]!.args).toEqual(['ls-tree', '-r', '--full-tree', COMMIT])
-    expect(found).toEqual(['.npmrc', 'web/.npmrc', 'server/src/tools/helper.ts (a symbolic link)', 'server/src/tools/vendor (a submodule)'])
+      await host(runner).unsafeEntries(COMMIT)
+
+      expect(calls[0]!.args).toEqual(['ls-tree', '-r', '-z', '--full-tree', COMMIT])
+    })
+
+    it('finds a .npmrc anywhere, also in a path with spaces or a line break', async () => {
+      const { runner } = recorder(() => ({ code: 0, stdout: treeOf(...scripts, entry('100644', '.npmrc'), entry('100644', 'web/.npmrc'), entry('100644', 'a folder/with space/.npmrc'), entry('100644', 'odd\nname/.npmrc')) }))
+
+      expect(await host(runner).unsafeEntries(COMMIT)).toEqual(['.npmrc', 'web/.npmrc', 'a folder/with space/.npmrc', 'odd\nname/.npmrc'])
+    })
+
+    it('finds a symlink or a submodule that IS a reviewed path, is UNDER one, or is an ANCESTOR of one (server/src, apps/desktop, .github), where the diff would show only deletions', async () => {
+      const tree = treeOf(
+        entry('120000', 'server/src/tools/helper.ts'),
+        entry('160000', 'server/src/tools/vendor'),
+        entry('120000', 'server/src'),
+        entry('160000', 'apps/desktop'),
+        entry('120000', '.github'),
+        entry('120000', 'server'),
+        entry('120000', 'package.json'),
+        entry('120000', 'docs/link-to-readme.md'),
+        entry('160000', 'third_party/lib'),
+        entry('100644', 'server/src/tools/x.ts'),
+      )
+      const { runner } = recorder(() => ({ code: 0, stdout: treeOf(...scripts) + tree }))
+
+      expect(await host(runner).unsafeEntries(COMMIT)).toEqual([
+        'server/src/tools/helper.ts (a symbolic link)',
+        'server/src/tools/vendor (a submodule)',
+        'server/src (a symbolic link)',
+        'apps/desktop (a submodule)',
+        '.github (a symbolic link)',
+        'server (a symbolic link)',
+        'package.json (a symbolic link)',
+      ])
+    })
+
+    it('requires the two scripts that run with the key to be there as regular files: missing, and not regular, are both found', async () => {
+      const missing = recorder(() => ({ code: 0, stdout: treeOf(entry('100644', 'server/src/tools/releaseSign.ts')) }))
+      const notRegular = recorder(() => ({ code: 0, stdout: treeOf(entry('100644', 'server/src/tools/releaseVerify.ts'), entry('100755', 'x'), entry('120000', 'server/src/tools/releaseSign.ts')) }))
+      const executable = recorder(() => ({ code: 0, stdout: treeOf(entry('100755', 'server/src/tools/releaseSign.ts'), entry('100755', 'server/src/tools/releaseVerify.ts')) }))
+
+      expect(await host(missing.runner).unsafeEntries(COMMIT)).toEqual(['server/src/tools/releaseVerify.ts (missing in the tagged tree)'])
+      expect(await host(notRegular.runner).unsafeEntries(COMMIT)).toEqual(['server/src/tools/releaseSign.ts (a symbolic link)', 'server/src/tools/releaseSign.ts (missing in the tagged tree)'])
+      expect(await host(executable.runner).unsafeEntries(COMMIT)).toEqual([])
+    })
+  })
+
+  describe('whether the owner’s working copy holds the reviewed tools', () => {
+    const answers = (over: { head?: Record<string, string>; tagged?: Record<string, string>; status?: string } = {}) =>
+      recorder((call) => {
+        if (call.args[0] === 'rev-parse') {
+          const spec = call.args.at(-1)!
+          const [rev, path] = [spec.slice(0, spec.indexOf(':')), spec.slice(spec.indexOf(':') + 1)]
+          const sha = (rev === 'HEAD' ? over.head : over.tagged)?.[path] ?? `${'e'.repeat(40)}`
+
+          return sha === '' ? { code: 1 } : { code: 0, stdout: `${sha}\n` }
+        }
+
+        return { code: 0, stdout: over.status ?? '' }
+      })
+
+    it('finds nothing when every reviewed path is the same object in HEAD and in the tag, and nothing is changed', async () => {
+      const { calls, runner } = answers()
+
+      expect(await host(runner).checkoutDiffers(COMMIT)).toEqual([])
+      // One look at HEAD and one at the tag for every reviewed path.
+      const specs = calls.filter((call) => call.args[0] === 'rev-parse').map((call) => call.args.at(-1))
+      expect(specs).toEqual(expect.arrayContaining([`HEAD:${TOOLS_PATHS[0]}`, `${COMMIT}:${TOOLS_PATHS[0]}`]))
+      expect(specs).toHaveLength(TOOLS_PATHS.length * 2)
+    })
+
+    it('finds a reviewed path whose object differs, one that exists on one side only, and one that is changed in the working tree or new', async () => {
+      const { runner } = answers({
+        head: { 'server/src/tools': '1'.repeat(40), '.npmrc': '2'.repeat(40) },
+        tagged: { 'server/src/tools': '3'.repeat(40), '.npmrc': '' },
+        status: ' M package-lock.json\n?? .gitattributes\n M web/src/App.tsx\n',
+      })
+
+      expect(await host(runner).checkoutDiffers(COMMIT)).toEqual(['server/src/tools', '.npmrc', 'package-lock.json (uncommitted)', '.gitattributes (uncommitted)'])
+    })
   })
 
   it('reads the commit a worktree is at', async () => {
@@ -904,7 +1006,7 @@ describe('the real git, gh and npm commands, as they are run (no shell)', () => 
   })
 
   describe('running a tagged script', () => {
-    const OUTER = { TAURI_SIGNING_PRIVATE_KEY: 'KEY-CONTENT', TAURI_SIGNING_PRIVATE_KEY_PATH: '/elsewhere.key', TAURI_SIGNING_PRIVATE_KEY_PASSWORD: 'SHELL-PASSWORD', TAURI_PRIVATE_KEY: 'OLD-KEY', TAURI_PRIVATE_KEY_PASSWORD: 'OLD-PASSWORD', NODE_OPTIONS: '--require /owner/preload.js', KEEP_ME: 'yes' }
+    const OUTER = { TAURI_SIGNING_PRIVATE_KEY: 'KEY-CONTENT', TAURI_SIGNING_PRIVATE_KEY_PATH: '/elsewhere.key', TAURI_SIGNING_PRIVATE_KEY_PASSWORD: 'SHELL-PASSWORD', TAURI_PRIVATE_KEY: 'OLD-KEY', TAURI_PRIVATE_KEY_PASSWORD: 'OLD-PASSWORD', NODE_OPTIONS: '--require /owner/preload.js', NODE_PATH: '/owner/modules', ESBUILD_BINARY_PATH: '/owner/esbuild', TSX_TSCONFIG_PATH: '/owner/tsconfig.json', NODE_TLS_REJECT_UNAUTHORIZED: '0', KEEP_ME: 'yes' }
     const withOuterEnvironment = async (body: () => Promise<void>) => {
       const before = Object.fromEntries(Object.keys(OUTER).map((name) => [name, process.env[name]]))
       Object.assign(process.env, OUTER)
@@ -919,8 +1021,8 @@ describe('the real git, gh and npm commands, as they are run (no shell)', () => 
     }
     const holdsNothingOfTheShell = (env: Record<string, string | undefined> | undefined) => {
       expect(env).toBeDefined()
-      expect(Object.keys(env!).filter((name) => /^TAURI_(SIGNING|PRIVATE_KEY)|^NODE_OPTIONS$/.test(name))).toEqual([])
-      expect(JSON.stringify(env)).not.toMatch(/SHELL-PASSWORD|OLD-PASSWORD|KEY-CONTENT|OLD-KEY|preload\.js/)
+      expect(Object.keys(env!).filter((name) => /^TAURI_(SIGNING|PRIVATE_KEY)|^(NODE_OPTIONS|NODE_PATH|ESBUILD_BINARY_PATH|NODE_TLS_REJECT_UNAUTHORIZED)$|^TSX_/.test(name))).toEqual([])
+      expect(JSON.stringify(env)).not.toMatch(/SHELL-PASSWORD|OLD-PASSWORD|KEY-CONTENT|OLD-KEY|preload\.js|\/owner\//)
       expect(env!['KEEP_ME']).toBe('yes')
     }
 
@@ -1021,6 +1123,17 @@ describe('the real git, gh and npm commands, as they are run (no shell)', () => 
       // There is no way to read it: the host has no method that returns a file's content, only this question about its metadata.
     })
 
+    it('says where a path really leads (a symbolic link is followed), and the path itself when it does not exist', async () => {
+      root = mkdtempSync(join(tmpdir(), 'ship-test-'))
+      mkdirSync(join(root, 'real'))
+      writeFileSync(join(root, 'real', 'k'), 'x')
+      symlinkSync(join(root, 'real'), join(root, 'link'))
+      const h = host(recorder().runner)
+
+      expect(await h.realPath(join(root, 'link', 'k'))).toBe(realpathSync(join(root, 'real', 'k')))
+      expect(await h.realPath(join(root, 'missing', 'k'))).toBe(join(root, 'missing', 'k'))
+    })
+
     it('makes a temporary folder by its REAL path (macOS’s temporary folder is reached through a symbolic link, and a script started through one silently does nothing) and removes it with what is in it', async () => {
       const h = host(recorder().runner)
       root = await h.makeTempDir()
@@ -1039,8 +1152,33 @@ describe('control and hidden characters in text shown to the owner', () => {
     expect(visible('a\u001b[2Kb\rc\u202ed\u200be\u007f')).toEqual({ text: 'a\\x1b[2Kb\\rc<U+202E>d<U+200B>e\\x7f', replaced: true })
   })
 
-  it('leaves ordinary text, line breaks, tabs and non-ASCII letters alone', () => {
-    expect(visible('plain\n\ttext ü€😀')).toEqual({ text: 'plain\n\ttext ü€😀', replaced: false })
+  it('leaves ordinary text, line breaks, tabs, Latin letters with accents and the usual typographic characters alone', () => {
+    const plain = 'plain\n\ttext ü é Å ß ’ “quoted” — – − … • → €'
+    expect(visible(plain)).toEqual({ text: plain, replaced: false })
+  })
+
+  it('shows lookalike letters of another script (Cyrillic, Greek) as code points: a reviewer cannot tell them from Latin ones', () => {
+    expect(visible('paypal')).toEqual({ text: 'paypal', replaced: false })
+    expect(visible('p\u0430yp\u0430l')).toEqual({ text: 'p<U+0430>yp<U+0430>l', replaced: true })
+    expect(visible('\u03bf\u041e')).toEqual({ text: '<U+03BF><U+041E>', replaced: true })
+  })
+
+  it.each([
+    ['a soft hyphen', '\u00ad'],
+    ['a non-breaking space', '\u00a0'],
+    ['a combining grapheme joiner', '\u034f'],
+    ['the Arabic letter mark', '\u061c'],
+    ['a Hangul filler', '\u3164'],
+    ['a Braille blank', '\u2800'],
+    ['a line separator', '\u2028'],
+    ['a variation selector', '\ufe0f'],
+    ['a tag character', '\u{e0041}'],
+    ['an emoji', '😀'],
+  ])('shows %s as a code point: anything not on the list of plain characters is made visible', (_name, character) => {
+    const shown = visible(`a${character}b`)
+
+    expect(shown.replaced).toBe(true)
+    expect(shown.text).toMatch(/^a<U\+[0-9A-F]{4,6}>b$/)
   })
 
   it('shows the C1 controls too (a single byte that some terminals take for an escape)', () => {

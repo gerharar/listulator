@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto'
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { basename, join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
@@ -387,6 +387,18 @@ describe('what makes it stop before anything is signed or uploaded', () => {
     const r = await run(world(), { keyFile: join(root, 'missing.key') })
 
     expect(r.error?.message).toMatch(/key file/)
+    expect(r.calls).toEqual([])
+  })
+
+  it('refuses a key file that is a symbolic link to a file inside the repository: it is judged by its real path', async () => {
+    const inside = join(repoRoot, 'updater.key')
+    writeFileSync(inside, CANARY)
+    const link = join(root, 'link-to-key')
+    symlinkSync(inside, link)
+
+    const r = await run(world(), { keyFile: link })
+
+    expect(r.error?.message).toMatch(/inside the repository/)
     expect(r.calls).toEqual([])
   })
 

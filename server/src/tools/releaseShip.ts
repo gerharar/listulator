@@ -80,8 +80,15 @@ export interface ShipHost {
   /** The tags of the published stable releases (drafts and pre-releases excluded). */
   publishedTags(): Promise<string[]>
   isAncestor(older: string, newer: string): Promise<boolean>
-  /** What in a commit's tree changes how the tools run and cannot be reviewed as a text diff: a `.npmrc`, a symbolic link or a submodule under the reviewed paths. */
+  /**
+   * What in a commit's tree changes how the tools run and cannot be reviewed as a text diff (a `.npmrc`; a symbolic link or a submodule
+   * that is, is under, or CONTAINS a reviewed path), and the scripts that run with the key if they are missing or not regular files.
+   */
   unsafeEntries(commit: string): Promise<string[]>
+  /** The reviewed paths of the owner's working copy that are not the tagged ones: another object in HEAD, or changed or new in the working tree. */
+  checkoutDiffers(commit: string): Promise<string[]>
+  /** Where a path really leads: a symbolic link is followed. The path itself when it does not exist. */
+  realPath(path: string): Promise<string>
   ciRuns(commit: string): Promise<CiRun[]>
   toolsDiff(from: string, to: string): Promise<string>
   makeTempDir(): Promise<string>
@@ -128,24 +135,25 @@ export interface ReleaseShipResult {
   verified: boolean
 }
 
-/** Text for the owner's screen: control characters, escape sequences, a carriage return and hidden or bidirectional characters can rewrite what is shown, so they are shown as what they are. */
+/** The characters that are shown as they are: ASCII, the Latin letters and symbols of Latin-1 and Latin Extended, and the usual typographic ones. */
+const PLAIN_EXTRA = new Set([0x2013, 0x2014, 0x2018, 0x2019, 0x201c, 0x201d, 0x2022, 0x2026, 0x20ac, 0x2190, 0x2191, 0x2192, 0x2193, 0x2212])
+const isPlain = (code: number): boolean => (code >= 0x20 && code <= 0x7e) || (code >= 0xa1 && code <= 0x24f && code !== 0xad) || PLAIN_EXTRA.has(code)
+
+/**
+ * Text for the owner's screen. Control characters, escape sequences and a carriage return can rewrite what is shown, and a hidden,
+ * bidirectional or LOOKALIKE character (a Cyrillic or Greek letter that is the same on the screen as a Latin one) can make code say
+ * something else than it reads as: so everything that is not on the short list of plain characters is shown as what it is. A list of
+ * what is allowed cannot be walked around by a character nobody thought of.
+ */
 export function visible(text: string): { text: string; replaced: boolean } {
   let replaced = false
   const shown = Array.from(text, (character) => {
     const code = character.codePointAt(0)!
-    if (character === '\n' || character === '\t') return character
-    if (code < 0x20 || (code >= 0x7f && code <= 0x9f)) {
-      replaced = true
+    if (character === '\n' || character === '\t' || isPlain(code)) return character
+    replaced = true
+    if (code < 0x20 || (code >= 0x7f && code <= 0x9f)) return character === '\r' ? '\\r' : `\\x${code.toString(16).padStart(2, '0')}`
 
-      return character === '\r' ? '\\r' : `\\x${code.toString(16).padStart(2, '0')}`
-    }
-    if ((code >= 0x200b && code <= 0x200f) || (code >= 0x202a && code <= 0x202e) || (code >= 0x2060 && code <= 0x2064) || (code >= 0x2066 && code <= 0x2069) || code === 0xfeff) {
-      replaced = true
-
-      return `<U+${code.toString(16).toUpperCase().padStart(4, '0')}>`
-    }
-
-    return character
+    return `<U+${code.toString(16).toUpperCase().padStart(4, '0')}>`
   })
 
   return { text: shown.join(''), replaced }
@@ -174,7 +182,7 @@ export async function releaseShip(options: ReleaseShipOptions, host: ShipHost, i
   const show = (text: string) => {
     const { text: safe, replaced } = visible(redact(text))
     for (const line of safe.split('\n')) if (line.trim() !== '') note(line)
-    if (replaced) note('The text above contained control or hidden characters; they are shown as \\x.. or <U+....>, so that they cannot rewrite the screen')
+    if (replaced) note('The text above contained control, hidden or non-Latin characters (a lookalike letter can change what code does); they are shown as \\x.. or <U+....>, so that they cannot rewrite the screen or pass for another letter')
   }
   const failures: string[] = []
   const fail = (line: string) => failures.push(visible(redact(line).replace(/\s+/g, ' ').trim().slice(0, 600)).text)
@@ -214,9 +222,16 @@ export async function releaseShip(options: ReleaseShipOptions, host: ShipHost, i
   }
   try {
     const unsafe = await host.unsafeEntries(commit)
-    if (unsafe.length > 0) fail(`The tagged tree has files that change how the tools run and cannot be reviewed as text: ${unsafe.join(', ')}`)
+    if (unsafe.length > 0) fail(`The tagged tree cannot be reviewed as text, or lacks what must run: ${unsafe.join(', ')}`)
   } catch (error) {
     fail(`The tagged tree could not be listed: ${reason(error)}`)
+  }
+  try {
+    // The program that asks for the passphrase is the one in the owner's working copy: it has to be the reviewed code too.
+    const differs = await host.checkoutDiffers(commit)
+    if (differs.length > 0) fail(`The tools in your working copy are not the tagged ones (${differs.join(', ')}): the program that asks for the passphrase must be the reviewed code. Run git checkout ${tag} and start this again`)
+  } catch (error) {
+    fail(`Your working copy could not be compared with the tag: ${reason(error)}`)
   }
   if (failures.length > 0) return result()
 
@@ -299,7 +314,8 @@ export async function releaseShip(options: ReleaseShipOptions, host: ShipHost, i
 
     // 4. The key file and the passphrase.
     const keyFile = resolve((options.keyFile ?? (await io.askKeyFile())).trim())
-    if (isInside(keyFile, options.repoRoot) || isInside(keyFile, dir)) {
+    const [keyReal, repoReal, dirReal] = await Promise.all([host.realPath(keyFile), host.realPath(options.repoRoot), host.realPath(dir)])
+    if (isInside(keyFile, options.repoRoot) || isInside(keyFile, dir) || isInside(keyReal, repoReal) || isInside(keyReal, dirReal)) {
       fail(`The key file ${keyFile} is inside the repository: keep the key outside it, so it cannot be committed by accident`)
 
       return result()
@@ -366,7 +382,15 @@ export async function releaseShip(options: ReleaseShipOptions, host: ShipHost, i
     }
     say(`The draft holds the ${expected.length} files of a signed release`)
 
-    // Checked once more right before the question: the tagged release:sign re-verifies the checksums and the attestations of the files.
+    const answer = (await io.askPublish(tag)).trim()
+    if (!/^y(es)?$/i.test(answer)) {
+      note(`Not published: the draft is signed. To publish: gh release edit ${tag} --repo ${REPO} --draft=false, then check the public files: npm run release:verify -- ${tag}`)
+
+      return result()
+    }
+
+    // Checked once more AFTER the answer and right before publishing, so a file swapped while the owner was deciding is found: the tagged
+    // release:sign re-verifies the checksums and the attestations of the files.
     const again = await host.runScript(dir, 'release:sign', [tag, '--dry-run'])
     if (again.code !== 0) {
       show(again.output)
@@ -377,13 +401,6 @@ export async function releaseShip(options: ReleaseShipOptions, host: ShipHost, i
     if (!DRY_RUN_PASSED.test(again.output)) {
       show(again.output)
       fail('The second dry run of release:sign exited 0 but did not say it checked the draft (see above): not published')
-
-      return result()
-    }
-
-    const answer = (await io.askPublish(tag)).trim()
-    if (!/^y(es)?$/i.test(answer)) {
-      note(`Not published: the draft is signed. To publish: gh release edit ${tag} --repo ${REPO} --draft=false, then check the public files: npm run release:verify -- ${tag}`)
 
       return result()
     }
@@ -433,12 +450,18 @@ export async function releaseShip(options: ReleaseShipOptions, host: ShipHost, i
 
 /**
  * The environment every process this tool starts gets: the owner's own, without an updater key or passphrase variable of their shell
- * (the signer's current and older names) and without NODE_OPTIONS, which would load code into every Node process. The passphrase is in
- * no environment: it goes to one process, on a pipe.
+ * (the signer's current and older names) and without the variables that make a Node program load other code than the tagged one
+ * (NODE_OPTIONS, NODE_PATH, ESBUILD_BINARY_PATH, TSX_*). The passphrase is in no environment: it goes to one process, on a pipe.
  */
 function scrubbedEnvironment(): Record<string, string | undefined> {
-  return Object.fromEntries(Object.entries(process.env).filter(([name]) => !/^TAURI_(SIGNING|PRIVATE_KEY)/.test(name) && name !== 'NODE_OPTIONS'))
+  return Object.fromEntries(Object.entries(process.env).filter(([name]) => !/^TAURI_(SIGNING|PRIVATE_KEY)|^TSX_/.test(name) && !LOADER_VARIABLES.has(name)))
 }
+
+/** Variables that make a Node program load or run other code than the tagged one: a preload, a module path, another esbuild, a weakened TLS check. */
+const LOADER_VARIABLES = new Set(['NODE_OPTIONS', 'NODE_PATH', 'ESBUILD_BINARY_PATH', 'NODE_TLS_REJECT_UNAUTHORIZED'])
+
+/** The scripts that run with the key: they must be in the tagged tree, as regular files. */
+const REQUIRED_SCRIPTS = ['server/src/tools/releaseSign.ts', 'server/src/tools/releaseVerify.ts']
 
 const isUnder = (path: string, folder: string): boolean => path === folder || path.startsWith(`${folder}/`)
 
@@ -482,19 +505,50 @@ export function createShipHost(rawRun: Runner, repoRoot: string): ShipHost {
     },
 
     async unsafeEntries(commit) {
-      const result = await exec('git ls-tree', 'git', ['ls-tree', '-r', '--full-tree', commit])
+      // -z: git does not quote a path with a space, a line break or odd characters, so every path is read as it is.
+      const result = await exec('git ls-tree', 'git', ['ls-tree', '-r', '-z', '--full-tree', commit])
       const found: string[] = []
-      for (const line of result.stdout.split('\n')) {
-        const [meta, path] = line.split('\t') as [string, string | undefined]
-        if (path === undefined) continue
-        const mode = meta.split(' ')[0]
-        const reviewed = TOOLS_PATHS.some((folder) => isUnder(path, folder))
+      const regular = new Set<string>()
+      for (const record of result.stdout.split('\0')) {
+        const tab = record.indexOf('\t')
+        if (tab < 0) continue
+        const mode = record.slice(0, record.indexOf(' '))
+        const path = record.slice(tab + 1)
+        if (mode === '100644' || mode === '100755') regular.add(path)
+        // A link that IS a reviewed path, is under one, or CONTAINS one (server/src, apps/desktop, .github) would show in the diff only as deletions.
+        const concerned = TOOLS_PATHS.some((folder) => isUnder(path, folder) || isUnder(folder, path))
         if (path === '.npmrc' || path.endsWith('/.npmrc')) found.push(path)
-        else if (mode === '120000' && reviewed) found.push(`${path} (a symbolic link)`)
-        else if (mode === '160000' && reviewed) found.push(`${path} (a submodule)`)
+        else if (mode === '120000' && concerned) found.push(`${path} (a symbolic link)`)
+        else if (mode === '160000' && concerned) found.push(`${path} (a submodule)`)
       }
+      for (const script of REQUIRED_SCRIPTS) if (!regular.has(script)) found.push(`${script} (missing in the tagged tree)`)
 
       return found
+    },
+
+    async checkoutDiffers(commit) {
+      const objectOf = async (revision: string, path: string) => {
+        const result = await run('git', ['rev-parse', '--verify', '--quiet', `${revision}:${path}`], { cwd: repoRoot })
+
+        return result.code === 0 ? result.stdout.trim() : ''
+      }
+      const differs: string[] = []
+      for (const path of TOOLS_PATHS) if ((await objectOf('HEAD', path)) !== (await objectOf(commit, path))) differs.push(path)
+      const status = await exec('git status', 'git', ['status', '--porcelain', '--untracked-files=all', '--', ...TOOLS_PATHS])
+      for (const line of status.stdout.split('\n')) {
+        const path = line.slice(3).replace(/^"|"$/g, '')
+        if (line.length > 3 && TOOLS_PATHS.some((folder) => isUnder(path, folder))) differs.push(`${path} (uncommitted)`)
+      }
+
+      return differs
+    },
+
+    async realPath(path) {
+      try {
+        return realpathSync(path)
+      } catch {
+        return resolve(path)
+      }
     },
 
     async ciRuns(commit) {
@@ -623,7 +677,7 @@ if (isRunDirectly(import.meta.url)) {
     }
     console.log(result.published ? `${parsed.tag}: signed, published and verified` : result.signed ? `${parsed.tag}: signed (not published)` : `${parsed.tag}: ready to sign (dry run)`)
   } catch (error) {
-    console.error(reason(error))
+    console.error(visible(reason(error)).text)
     process.exit(1)
   }
 }
