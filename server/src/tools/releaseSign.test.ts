@@ -508,7 +508,7 @@ describe('--dry-run', () => {
 })
 
 describe('what must never appear', () => {
-  it('never reads the key file: it hands the signer the path, and the passphrase is the signer’s own prompt', async () => {
+  it('never reads the key file: it hands the signer the path, and the passphrase is the signer’s own business', async () => {
     const r = await run(world())
 
     expect(r.error).toBeUndefined()
@@ -663,7 +663,7 @@ describe('the real commands (GitHub CLI and the Tauri signer), as they are run',
     })
   })
 
-  it('runs the Tauri signer with the key FILE, the version, a terminal of its own for the passphrase, and no secret from the environment', async () => {
+  it('runs the Tauri signer with the key FILE, the version and a terminal of its own, and from the environment only the passphrase: never a key', async () => {
     const { calls, runner } = recorder()
     const previous = { key: process.env['TAURI_SIGNING_PRIVATE_KEY'], path: process.env['TAURI_SIGNING_PRIVATE_KEY_PATH'], password: process.env['TAURI_SIGNING_PRIVATE_KEY_PASSWORD'] }
     process.env['TAURI_SIGNING_PRIVATE_KEY'] = 'KEY-IN-ENV'
@@ -685,8 +685,27 @@ describe('the real commands (GitHub CLI and the Tauri signer), as they are run',
     })
     expect(JSON.stringify(calls[0]!.args)).not.toMatch(/-p\b|--password|-k\b|--private-key\b/)
     const env = calls[0]!.options.env!
-    expect(Object.keys(env).filter((name) => name.startsWith('TAURI_SIGNING'))).toEqual([])
-    expect(JSON.stringify(env)).not.toMatch(/KEY-IN-ENV|PASSWORD-IN-ENV/)
+    // A key in the environment (its content or a path) could be what signs instead of the file named: those never reach the signer. The
+    // passphrase may: `release:ship` hands it over this way, so that one prompt serves both files; it is never an argument (npm writes
+    // every argument to its debug log, the environment it does not).
+    expect(Object.keys(env).filter((name) => name.startsWith('TAURI_SIGNING'))).toEqual(['TAURI_SIGNING_PRIVATE_KEY_PASSWORD'])
+    expect(env['TAURI_SIGNING_PRIVATE_KEY_PASSWORD']).toBe('PASSWORD-IN-ENV')
+    expect(JSON.stringify(env)).not.toMatch(/KEY-IN-ENV|\/elsewhere\.key/)
+    expect(JSON.stringify(calls[0]!.args)).not.toContain('PASSWORD-IN-ENV')
+  })
+
+  it('does not invent a passphrase: with none in the environment the signer asks on its terminal', async () => {
+    const { calls, runner } = recorder()
+    const previous = process.env['TAURI_SIGNING_PRIVATE_KEY_PASSWORD']
+    delete process.env['TAURI_SIGNING_PRIVATE_KEY_PASSWORD']
+    try {
+      await createGhHost(runner, repoRoot).signFile('/tmp/dir/x.exe', '/keys/updater.key', VERSION)
+    } finally {
+      if (previous !== undefined) process.env['TAURI_SIGNING_PRIVATE_KEY_PASSWORD'] = previous
+    }
+
+    expect(Object.keys(calls[0]!.options.env!).filter((name) => name.startsWith('TAURI_SIGNING'))).toEqual([])
+    expect(calls[0]!.options.inherit).toBe(true)
   })
 
   it('fails when the signer exits with an error', async () => {

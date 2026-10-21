@@ -23,7 +23,8 @@ import { RELEASE_VERSION } from './versionSources.js'
  *  3. Every file (installer, disk image, update archive) has a build attestation from THIS repository's release workflow on THIS tag
  *     and on the tag's commit.
  *  4. Only then are the two update files signed, with the Tauri signer, bound to the tag's version. The key file's path is handed to
- *     the signer; this script never reads the key and never sees the passphrase (the signer asks for it on the terminal itself).
+ *     the signer; this script never reads the key. The passphrase is the signer's: asked for on the terminal, or handed over in the
+ *     environment by `release:ship` (31.5); never an argument, never logged.
  *  5. Every signature is verified against the public key built into the app, the manifest is built and checked again
  *     (`updateManifest.ts`), and its signatures once more.
  *  6. Only then are the two signatures and `latest.json` uploaded to the draft. Publishing the Release stays a click on GitHub.
@@ -284,9 +285,11 @@ export function createGhHost(run: Runner, repoRoot: string): ReleaseHost {
     },
 
     async signFile(file, keyFile, version) {
-      // The environment is passed without any updater key variable, so a stray one cannot be what signs. The passphrase is never an
-      // argument and never in the environment: the signer asks for it on the terminal this command is given.
-      const env = Object.fromEntries(Object.entries(process.env).filter(([name]) => !name.startsWith('TAURI_SIGNING')))
+      // No updater KEY variable reaches the signer (its content or a path), so a stray one cannot be what signs: only the file named
+      // here does. The passphrase is never an argument (npm writes every argument to its debug log). It is the signer's own: asked for
+      // on the terminal this command is given, or, when `release:ship` runs this, already in the environment (the one variable the
+      // signer reads it from), so that a single prompt serves both files.
+      const env = Object.fromEntries(Object.entries(process.env).filter(([name]) => !name.startsWith('TAURI_SIGNING') || name === 'TAURI_SIGNING_PRIVATE_KEY_PASSWORD'))
       const result = await run('npm', ['run', 'tauri', '-w', '@listulator/desktop', '--', 'signer', 'sign', '-f', keyFile, '--app-version', version, file], { inherit: true, env, cwd: repoRoot })
       if (result.code !== 0) throw new Error(`The Tauri signer failed to sign ${basename(file)} (exit ${result.code}): wrong passphrase or key file?`)
     },
