@@ -92,8 +92,10 @@ function fake(w: World): Fake {
       downloaded.push({ tag, names })
     },
     fileBytes: async (path) => (path.endsWith('SHA256SUMS') ? Buffer.from(w.sums) : path.endsWith('latest.json') ? w.manifest : w.installerBytes),
-    pubkey: async () => {
+    pubkey: async (tag) => {
       calls.push('pubkey')
+      // Only the previous release's config is the one an installer of it was signed for: no other release's key is on offer.
+      if (tag !== PREVIOUS) throw new Error(`No updater key is known for ${tag}`)
       if (w.configKey instanceof Error) throw w.configKey
 
       return w.configKey
