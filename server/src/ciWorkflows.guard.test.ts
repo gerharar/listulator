@@ -41,14 +41,23 @@ const RELEASE_TRIGGER = JSON.stringify({ push: { tags: ['v*'] } })
 const CI_TRIGGER = JSON.stringify({ push: { branches: ['main'] }, workflow_dispatch: null })
 /** The longest a CI job may run: a hung job must end, and a run is billed in minutes. */
 const MAX_CI_MINUTES = 90
+/**
+ * The canary (Phase 31, task 31.9) runs once a day on a schedule and by hand, and on nothing else. The cron may be any daily time, so moving
+ * it is not a decision; an hourly or weekly one is.
+ */
+const CANARY_CRON = /^\d{1,2} \d{1,2} \* \* \*$/
+/** The only commands a canary job runs; the first has no token, the other two are the ones that hold the workflow's read-only token. */
+const CANARY_INSTALL = 'npm ci --ignore-scripts'
+const CANARY_TOKEN_COMMANDS = ['npm run release:verify', 'npm run canary:install']
 
 /**
  * `manual`: a test build, started by hand, read-only, no token (Phase 17). `release`: runs on a pushed `v*` tag, builds with read-only
  * permissions and no token, and one job, `publish`, may write to the repository to create a DRAFT Release (Phase 20, task 20.4). `ci`: runs on a
  * push to `main` and by hand, read-only, no token, no secret, uploads nothing (Phase 31, task 31.1). `updaterTest`: the manual rules, plus
- * the rules for the one workflow that makes a THROW-AWAY signing key for its run (Phase 31, task 31.6, rules S1 to S4 of the plan).
+ * the rules for the one workflow that makes a THROW-AWAY signing key for its run (Phase 31, task 31.6, rules S1 to S4 of the plan). `canary`: runs
+ * once a day and by hand, read-only, and holds the workflow's own read-only token for exactly two commands (Phase 31, task 31.9, rules S4 and S7).
  */
-type Profile = 'manual' | 'release' | 'ci' | 'updaterTest'
+type Profile = 'manual' | 'release' | 'ci' | 'canary' | 'updaterTest'
 /** The longest an artifact may live: a test build is unannounced, not a release (DECISIONS 2026-10-05). */
 const MAX_RETENTION_DAYS = 7
 
@@ -110,6 +119,16 @@ function workflowProblems(workflow: Workflow, profile: Profile = 'manual'): stri
   }
   if (profile === 'ci' && JSON.stringify(workflow.on) !== CI_TRIGGER) {
     problems.push(`is started by ${JSON.stringify(workflow.on)}, not only by a push to main and by hand (no input)`)
+  }
+
+  if (profile === 'canary') {
+    const on = (typeof workflow.on === 'object' && workflow.on !== null ? workflow.on : {}) as { schedule?: unknown; workflow_dispatch?: unknown }
+    const schedule = Array.isArray(on.schedule) ? (on.schedule as unknown[]) : []
+    const entry = schedule[0] as Record<string, unknown> | undefined
+    const oneDailyCron = schedule.length === 1 && entry !== undefined && JSON.stringify(Object.keys(entry)) === '["cron"]' && typeof entry['cron'] === 'string' && CANARY_CRON.test(entry['cron'])
+    if (JSON.stringify(Object.keys(on)) !== '["schedule","workflow_dispatch"]' || !oneDailyCron || on.workflow_dispatch !== null) {
+      problems.push(`is started by ${JSON.stringify(workflow.on)}, not only by one daily schedule and by hand (no input)`)
+    }
   }
 
   // Reads the repository and nothing more.
@@ -193,7 +212,7 @@ function workflowProblems(workflow: Workflow, profile: Profile = 'manual'): stri
   for (const [scope, value] of scopes) {
     for (const [key, text] of strings(value)) {
       const token = /\bgithub\.token\b|\bGITHUB_TOKEN\b/.test(text)
-      const handed = profile === 'release' && scope === 'publish' && key === 'GH_TOKEN' && text === '${{ github.token }}'
+      const handed = (profile === 'release' && scope === 'publish' && key === 'GH_TOKEN' && text === '${{ github.token }}') || (profile === 'canary' && scope !== '' && key === 'GH_TOKEN' && text === '${{ github.token }}')
       if (/\$\{\{[^}]*\bsecrets\b/.test(text) || (token && !handed)) {
         problems.push(`${key || 'a value'} reaches for a secret or the token: ${text.slice(0, 60)}`)
       }
@@ -216,9 +235,9 @@ function workflowProblems(workflow: Workflow, profile: Profile = 'manual'): stri
 
   // A CI run uploads nothing: the logs and the artifacts of a public repository can be read by anyone (Phase 31, rule S2), and a test run has
   // nothing to publish. A job also names its time limit, so a hung run ends.
-  if (profile === 'ci') {
+  if (profile === 'ci' || profile === 'canary') {
     for (const { job } of steps.filter(({ step }) => step.uses?.startsWith('actions/upload-artifact@'))) {
-      problems.push(`job ${job}: uploads an artifact (a CI run uploads nothing)`)
+      problems.push(`job ${job}: uploads an artifact (a ${profile === 'ci' ? 'CI' : 'canary'} run uploads nothing)`)
     }
     for (const [name, job] of jobs) {
       const minutes = job['timeout-minutes']
@@ -243,8 +262,35 @@ function workflowProblems(workflow: Workflow, profile: Profile = 'manual'): stri
   }
   for (const { job, step } of steps) if (step['continue-on-error'] !== undefined) problems.push(`job ${job}: a step sets continue-on-error`)
 
+  if (profile === 'canary') problems.push(...canaryProblems(jobs, steps))
   if (profile === 'release') problems.push(...releaseProblems(jobs, steps))
   if (profile === 'updaterTest') problems.push(...updaterTestProblems(workflow))
+
+  return problems
+}
+
+/**
+ * What only the canary must do (Phase 31, task 31.9). It reads from GitHub every day with the workflow's own read-only token, with nobody
+ * watching, so it is given nothing it does not need: the token goes to the two steps that call GitHub and to no other, and a job runs only
+ * the three commands it is for. The dependencies are installed WITHOUT their scripts, in a step that has no token, before the token-holding
+ * step runs; and nothing is cached (a restored cache is code that the next step may run).
+ */
+function canaryProblems(jobs: [string, Job][], steps: { job: string; step: Step }[]): string[] {
+  const problems: string[] = []
+  for (const [name, job] of jobs) {
+    if (/\bgithub\.token\b|\bGITHUB_TOKEN\b|\bGH_TOKEN\b/.test(JSON.stringify(job.env ?? {}))) problems.push(`job ${name} hands the token to every step (give it to the one step that calls GitHub)`)
+  }
+  for (const { job, step } of steps) {
+    const run = step.run?.trim()
+    if (run !== undefined && run !== CANARY_INSTALL && !CANARY_TOKEN_COMMANDS.includes(run)) {
+      problems.push(`job ${job}: runs ${JSON.stringify(run.slice(0, 60))}, which is not one of the canary's commands (${[CANARY_INSTALL, ...CANARY_TOKEN_COMMANDS].join(', ')})`)
+    }
+    const holdsToken = step.env !== undefined && Object.keys(step.env).some((key) => /^(GH_TOKEN|GITHUB_TOKEN)$/.test(key))
+    if (holdsToken && (run === undefined || !CANARY_TOKEN_COMMANDS.includes(run))) {
+      problems.push(`job ${job}: a step holds the token but runs ${JSON.stringify(run?.slice(0, 60) ?? 'nothing')} (only ${CANARY_TOKEN_COMMANDS.join(' and ')} may)`)
+    }
+    if (step.uses?.startsWith('actions/cache@') || step.with?.['cache'] !== undefined) problems.push(`job ${job}: uses a cache (a restored cache is code the token-holding step may run)`)
+  }
 
   return problems
 }
@@ -923,6 +969,149 @@ describe('the rules for a CI workflow, proven on hostile workflows', () => {
   })
 })
 
+const GOOD_CANARY = `
+name: Canary
+on:
+  schedule:
+    - cron: '17 5 * * *'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  public-files:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@${sha('a')} # v1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@${sha('c')} # v1
+        with:
+          node-version-file: .node-version
+      - name: Install
+        run: npm ci --ignore-scripts
+      - name: Verify
+        env:
+          GH_TOKEN: \${{ github.token }}
+        run: npm run release:verify
+  previous-release:
+    runs-on: windows-2025
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@${sha('a')} # v1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@${sha('c')} # v1
+        with:
+          node-version-file: .node-version
+      - name: Install
+        run: npm ci --ignore-scripts
+      - name: Install the previous release
+        env:
+          GH_TOKEN: \${{ github.token }}
+        run: npm run canary:install
+`
+
+/**
+ * The canary (Phase 31, task 31.9): runs once a day on a schedule and by hand, and holds the workflow's own READ-ONLY token for exactly two
+ * commands. It is the one workflow that runs unattended and reads from GitHub, so it is allowed nothing it does not need: no other trigger,
+ * no secret, no write, no artifact, no cache, and only the three commands it runs.
+ */
+describe('the rules for a canary workflow, proven on hostile workflows', () => {
+  it('accept a canary workflow that breaks none', () => {
+    expect(workflowProblems(parse(GOOD_CANARY), 'canary')).toEqual([])
+  })
+
+  const hostile: [string, (text: string) => string, RegExp][] = [
+    ['a push trigger', (t) => t.replace('  workflow_dispatch:', '  push:\n    branches: [main]\n  workflow_dispatch:'), /not only by one daily schedule/],
+    ['a pull request trigger (a stranger\'s change would run here with the token)', (t) => t.replace('  workflow_dispatch:', '  pull_request:\n  workflow_dispatch:'), /not only by one daily schedule/],
+    ['pull_request_target', (t) => t.replace('  workflow_dispatch:', '  pull_request_target:\n  workflow_dispatch:'), /not only by one daily schedule/],
+    ['workflow_run (chained to another workflow)', (t) => t.replace('  workflow_dispatch:', '  workflow_run:\n    workflows: [x]\n  workflow_dispatch:'), /not only by one daily schedule/],
+    ['no schedule', (t) => t.replace("  schedule:\n    - cron: '17 5 * * *'\n", ''), /not only by one daily schedule/],
+    ['two schedules', (t) => t.replace("    - cron: '17 5 * * *'", "    - cron: '17 5 * * *'\n    - cron: '47 17 * * *'"), /not only by one daily schedule/],
+    ['a schedule that runs every minute', (t) => t.replace("'17 5 * * *'", "'* * * * *'"), /not only by one daily schedule/],
+    ['a schedule that runs every five minutes', (t) => t.replace("'17 5 * * *'", "'*/5 * * * *'"), /not only by one daily schedule/],
+    ['a schedule that runs every hour', (t) => t.replace("'17 5 * * *'", "'17 * * * *'"), /not only by one daily schedule/],
+    ['a weekly schedule', (t) => t.replace("'17 5 * * *'", "'17 5 * * 1'"), /not only by one daily schedule/],
+    ['no button', (t) => t.replace('  workflow_dispatch:\n', ''), /not only by one daily schedule/],
+    ['a button with an input', (t) => t.replace('  workflow_dispatch:', '  workflow_dispatch:\n    inputs:\n      x:\n        type: string'), /not only by one daily schedule/],
+    ['write permission', (t) => t.replace('contents: read\njobs', 'contents: write\njobs'), /permissions: \{ contents: read \}/],
+    ['a job that widens its permissions', (t) => t.replace('    permissions:\n      contents: read', '    permissions:\n      contents: write'), /widens its permissions/],
+    ['an action named by tag', (t) => t.replace(`actions/checkout@${sha('a')} # v1`, 'actions/checkout@v4'), /not a GitHub-owned action pinned/],
+    ['a self-hosted runner', (t) => t.replace('windows-2025', 'self-hosted'), /not a GitHub-hosted runner/],
+    ['a moving runner image', (t) => t.replace('ubuntu-24.04', 'ubuntu-latest'), /names its image/],
+    ['a secret', (t) => t.replace('        run: npm ci --ignore-scripts', '        env:\n          T: ${{ secrets.T }}\n        run: npm ci --ignore-scripts'), /secret or the token/],
+    ['the token under another name', (t) => t.replace('GH_TOKEN: ${{ github.token }}', 'GITHUB_TOKEN: ${{ github.token }}'), /secret or the token/],
+    ['the token handed to every step of a job', (t) => t.replace('    timeout-minutes: 20\n    permissions:', '    timeout-minutes: 20\n    env:\n      GH_TOKEN: ${{ github.token }}\n    permissions:'), /hands the token to every step/],
+    ['the token at the workflow level', (t) => t.replace('permissions:\n  contents: read\njobs', 'permissions:\n  contents: read\nenv:\n  GH_TOKEN: ${{ github.token }}\njobs'), /secret or the token/],
+    ['the token on a step that runs something else', (t) => t.replace('        run: npm run canary:install', '        run: npm run test'), /holds the token.*npm run test/],
+    ['the token on the install step', (t) => t.replace('      - name: Install\n        run: npm ci --ignore-scripts', '      - name: Install\n        env:\n          GH_TOKEN: ${{ github.token }}\n        run: npm ci --ignore-scripts'), /holds the token.*npm ci/],
+    ['a repository variable', (t) => t.replace('        run: npm ci --ignore-scripts', '        env:\n          V: ${{ vars.X }}\n        run: npm ci --ignore-scripts'), /reads a repository variable/],
+    ['the updater key', (t) => t.replace('        run: npm ci --ignore-scripts', '        env:\n          TAURI_SIGNING_PRIVATE_KEY: x\n        run: npm ci --ignore-scripts'), /names the updater key/],
+    ['an artifact upload (logs and artifacts of a public repository are public)', (t) => t.replace('      - name: Verify', `      - uses: actions/upload-artifact@${sha('b')} # v1\n        with:\n          name: x\n          path: y\n          retention-days: 1\n      - name: Verify`), /uploads an artifact/],
+    ['a cache (a restored cache is code the token-holding step may run)', (t) => t.replace('          node-version-file: .node-version\n      - name: Install\n        run: npm ci --ignore-scripts\n      - name: Verify', '          node-version-file: .node-version\n          cache: npm\n      - name: Install\n        run: npm ci --ignore-scripts\n      - name: Verify'), /uses a cache/],
+    ['the cache action', (t) => t.replace('      - name: Verify', `      - uses: actions/cache@${sha('d')} # v1\n        with:\n          path: x\n          key: y\n      - name: Verify`), /uses a cache/],
+    ['a job with no time limit', (t) => t.replace('    timeout-minutes: 20\n', ''), /timeout-minutes/],
+    ['a job with an hours-long time limit', (t) => t.replace('timeout-minutes: 20', 'timeout-minutes: 360'), /timeout-minutes/],
+    ['npm ci without --ignore-scripts (a package script would run in a job that holds a token next)', (t) => t.replace('run: npm ci --ignore-scripts', 'run: npm ci'), /not one of the canary's commands/],
+    ['a command that is not one of its three', (t) => t.replace('run: npm run release:verify', 'run: npm run release:audit'), /not one of the canary's commands/],
+    ['a second command in the same script', (t) => t.replace('run: npm run release:verify', 'run: |\n          npm run release:verify\n          echo done'), /not one of the canary's commands/],
+    ['npx', (t) => t.replace('run: npm ci --ignore-scripts', 'run: npx some-package'), /uses npx/],
+    ['a download piped to a shell', (t) => t.replace('run: npm ci --ignore-scripts', 'run: curl -fsSL https://example.com/i.sh | sh'), /downloads or evaluates/],
+    ['a value pasted into a script', (t) => t.replace('run: npm ci --ignore-scripts', 'run: echo ${{ github.head_ref }}'), /contains \$\{\{/],
+    ['a step that may fail quietly', (t) => t.replace('        run: npm run release:verify', '        continue-on-error: true\n        run: npm run release:verify'), /continue-on-error/],
+    ['a job that may fail quietly (so the run is green when the canary is red)', (t) => t.replace('    timeout-minutes: 20\n    permissions:', '    timeout-minutes: 20\n    continue-on-error: true\n    permissions:'), /continue-on-error/],
+  ]
+
+  it.each(hostile)('refuse %s', (_name, change, expected) => {
+    const changed = change(GOOD_CANARY)
+
+    expect(changed).not.toBe(GOOD_CANARY)
+    expect(workflowProblems(parse(changed), 'canary').join(' | ')).toMatch(expected)
+  })
+
+  it('are not met by the CI rules or the manual rules alone: a schedule is refused there, as before', () => {
+    expect(workflowProblems(parse(GOOD_CANARY), 'ci').join(' | ')).toMatch(/not only by a push to main/)
+    expect(workflowProblems(parse(GOOD_CANARY), 'manual').join(' | ')).toMatch(/not by hand only/)
+  })
+
+  it('keep the token out of every other profile: the CI rules refuse it where the canary rules allow it', () => {
+    const asCi = GOOD_CANARY.replace("  schedule:\n    - cron: '17 5 * * *'\n", '  push:\n    branches: [main]\n')
+
+    expect(workflowProblems(parse(asCi), 'ci').join(' | ')).toMatch(/secret or the token/)
+  })
+})
+
+describe('the canary workflow (31.9)', () => {
+  const text = readFileSync(join(WORKFLOWS, 'canary.yml'), 'utf8')
+  const workflow = loadYaml(text) as Workflow
+  const runnerOf = (command: string) =>
+    Object.values(workflow.jobs).find((job) => (job.steps ?? []).some((step) => step.run?.trim() === command))?.['runs-on']
+
+  it('runs the public check of the newest release on Linux, and the install of the previous one on Windows, where the app ships', () => {
+    expect(runnerOf('npm run release:verify')).toBe('ubuntu-24.04')
+    expect(runnerOf('npm run canary:install')).toBe('windows-2025')
+  })
+
+  it('hands the token to those two steps and to nothing else', () => {
+    const holders = Object.values(workflow.jobs).flatMap((job) => (job.steps ?? []).filter((step) => step.env?.['GH_TOKEN'] !== undefined).map((step) => step.run?.trim()))
+
+    expect(holders.sort()).toEqual(['npm run canary:install', 'npm run release:verify'])
+  })
+
+  it('runs once a day, early, off the hour, so a red run is there when the day starts', () => {
+    const on = workflow.on as { schedule?: { cron: string }[] }
+
+    expect(on.schedule).toHaveLength(1)
+    expect(on.schedule![0]!.cron).toMatch(/^\d{1,2} ([0-9]|1[01]) \* \* \*$/)
+    expect(on.schedule![0]!.cron.startsWith('0 ')).toBe(false)
+  })
+})
+
 describe('the CI workflow (31.1)', () => {
   const text = readFileSync(join(WORKFLOWS, 'ci.yml'), 'utf8')
   const workflow = loadYaml(text) as Workflow
@@ -964,11 +1153,11 @@ describe('GitHub Actions workflows', () => {
     .map((name) => ({ name, workflow: loadYaml(readFileSync(join(WORKFLOWS, name), 'utf8')) as Workflow }))
 
   it('exist (an empty folder would make every rule below pass on nothing)', () => {
-    expect(workflows.map((entry) => entry.name)).toEqual(expect.arrayContaining(['ci.yml', 'desktop-windows.yml', 'release.yml']))
+    expect(workflows.map((entry) => entry.name)).toEqual(expect.arrayContaining(['canary.yml', 'ci.yml', 'desktop-windows.yml', 'release.yml']))
   })
 
-  // `release.yml` is judged by the release rules, `ci.yml` by the CI rules; any other workflow, including one added later, by the strict manual ones.
-  const profileOf = (name: string): Profile => (name === 'release.yml' ? 'release' : name === 'ci.yml' ? 'ci' : name === 'updater-test-windows.yml' ? 'updaterTest' : 'manual')
+  // `release.yml` is judged by the release rules, `ci.yml` by the CI rules, `canary.yml` by the canary rules; any other workflow, including one added later, by the strict manual ones.
+  const profileOf = (name: string): Profile => (name === 'release.yml' ? 'release' : name === 'ci.yml' ? 'ci' : name === 'canary.yml' ? 'canary' : name === 'updater-test-windows.yml' ? 'updaterTest' : 'manual')
   it.each(workflows)('$name breaks none of the rules', ({ name, workflow }) => {
     expect(workflowProblems(workflow, profileOf(name))).toEqual([])
   })

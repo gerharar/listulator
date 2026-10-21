@@ -1,0 +1,73 @@
+# The daily canary (Phase 31, task 31.9, docs/DECISIONS.md "Phase 31"): once a day, and by hand, it looks at what the owner's users see.
+#
+#   public-files      the newest published release, from the public addresses and from GitHub: the files and their checksums, both update
+#                     signatures against the key of that release, the build attestations (and that the check refuses the previous release's
+#                     commit), and the UPDATE PATH: an app installed at the release before it asks the feed it was built with, is offered this
+#                     release and accepts its signatures (`release:verify`, 31.4 and 31.9).
+#   previous-release  the release below it, from GitHub: its installer matches its checksums, installs silently on a current Windows runner,
+#                     says it is that version, opens a window that answers, and keeps answering (`canary:install`, 31.9). The production app
+#                     cannot be driven from outside (31.2), and a published release is a fixed program, so this is what can be seen of it.
+#
+# A red run is a notification: GitHub tells the person who last edited the cron line below (and whoever starts it by hand) when a run
+# fails, if their notification settings for Actions say so (Settings, Notifications, Actions). A public repository with no activity for
+# 60 days has its scheduled workflows switched off by GitHub: a push, or any release, switches them on again.
+#
+# It runs unattended and reads from GitHub, so server/src/ciWorkflows.guard.test.ts (the `canary` rules) allows it nothing it does not
+# need: this trigger and no other, read-only permissions, no secret, the workflow's own token for the two steps that call GitHub and for
+# nothing else, no artifact (the logs of a public repository are public), no cache, and only the three commands below. The log is scanned
+# for key shapes after the first run (npm run secrets:scan-run, rule S7).
+
+name: Canary
+
+on:
+  schedule:
+    - cron: '17 5 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  public-files:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .node-version
+
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+
+      - name: The newest release, as a user and an installed app see it
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: npm run release:verify
+
+  previous-release:
+    runs-on: windows-2025
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .node-version
+
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+
+      - name: The previous release installs, starts and keeps answering
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: npm run canary:install
