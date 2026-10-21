@@ -294,8 +294,6 @@ describe('the test cases for the Windows update test', () => {
   })
 
   it('checks nothing against a key when it is given none: the key of a run is not always at hand', () => {
-    const { pubkey: _pubkey, ...withoutKey } = winInput
-
-    expect(buildWindowsKitScenarios(withoutKey)).toHaveLength(7)
+    expect(buildWindowsKitScenarios({ exe: winInput.exe, installed: winInput.installed, pubDate: winInput.pubDate })).toHaveLength(7)
   })
 })
