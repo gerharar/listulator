@@ -1,7 +1,7 @@
-import { spawn, spawnSync } from 'node:child_process'
-import { join } from 'node:path'
-import { chromium, expect, test, type Browser, type Page } from '@playwright/test'
-import { chooseGerman, closeAbout, createFirstList, openAbout, t } from './steps.js'
+import { spawn } from 'node:child_process'
+import { expect, test } from '@playwright/test'
+import { APP_EXE, attach, attachToNewApp, FROM, INSTALL_DIR, ITEMS, portIsClosed, stopApp, TITLE, TO } from './app.js'
+import { closeAbout, openAbout, t, visibleStatus, visibleVersion } from './steps.js'
 
 /**
  * The Windows update test, positive path (Phase 31, task 31.7; docs/DECISIONS.md "Phase 31"): the installed test app is offered the next
@@ -12,75 +12,6 @@ import { chooseGerman, closeAbout, createFirstList, openAbout, t } from './steps
  * Not asserted: how long the window is gone, and whether the installer comes to the front. A runner has no user; those stay the owner's
  * rounds on a real desktop.
  */
-const PORT = 9222
-const APP_EXE = process.env['DESKTOP_APP_EXE'] ?? ''
-const INSTALL_DIR = process.env['DESKTOP_INSTALL_DIR'] ?? ''
-const FROM = process.env['DESKTOP_FROM'] ?? ''
-const TO = process.env['DESKTOP_TO'] ?? ''
-const TITLE = 'Update Test List'
-const ITEMS = ['Eins', 'Zwei', 'Drei'] as const
-
-/** The app's window, once its debugging port answers; null if nothing answers within the time. Each call connects afresh. */
-async function connect(waitMs: number): Promise<{ browser: Browser; page: Page } | null> {
-  const deadline = Date.now() + waitMs
-  while (Date.now() < deadline) {
-    try {
-      const answer = await fetch(`http://127.0.0.1:${PORT}/json/version`)
-      if (answer.ok) {
-        const browser = await chromium.connectOverCDP(`http://127.0.0.1:${PORT}`)
-        const page = browser.contexts().flatMap((context) => context.pages()).find((candidate) => !candidate.url().startsWith('devtools:'))
-        if (page !== undefined) {
-          await page.waitForLoadState('domcontentloaded')
-
-          return { browser, page }
-        }
-        await browser.close()
-      }
-    } catch {
-      // not up yet, or going down
-    }
-    await new Promise((resolve) => setTimeout(resolve, 500))
-  }
-
-  return null
-}
-
-async function attach(waitMs = 90_000): Promise<{ browser: Browser; page: Page }> {
-  const found = await connect(waitMs)
-  if (found === null) throw new Error(`the app's debugging port ${PORT} did not answer within ${waitMs / 1000} s`)
-
-  return found
-}
-
-/** The page of a NEW app process: the old page carries the marker the test put in it, a new one cannot. */
-async function attachToNewApp(waitMs: number): Promise<{ browser: Browser; page: Page }> {
-  const deadline = Date.now() + waitMs
-  while (Date.now() < deadline) {
-    const found = await connect(2_000)
-    if (found !== null) {
-      const old = await found.page.evaluate(() => (window as unknown as { __oldApp?: boolean }).__oldApp === true).catch(() => true)
-      if (!old) return found
-      await found.browser.close().catch(() => undefined)
-    }
-    await new Promise((resolve) => setTimeout(resolve, 1_000))
-  }
-  throw new Error(`no new app came up within ${waitMs / 1000} s`)
-}
-
-/** Ends the programs that run from the TEST app's install folder, by their path: a real Listulator may share the file name. (`desktopUpdateTestRun.ts` has the same two lines.) */
-function stopApp(): void {
-  const script = "Get-Process | Where-Object { $_.Path -and $_.Path.StartsWith($env:DESKTOP_INSTALL_DIR + '\\', 'OrdinalIgnoreCase') } | Stop-Process -Force"
-  const powershell = join(process.env['SystemRoot'] ?? 'C:\\Windows', 'System32', 'WindowsPowerShell', 'v1.0', 'powershell.exe')
-  spawnSync(powershell, ['-NoProfile', '-NonInteractive', '-Command', script], { stdio: 'ignore', env: { ...process.env, DESKTOP_INSTALL_DIR: INSTALL_DIR } })
-}
-
-async function portIsClosed(): Promise<boolean> {
-  return fetch(`http://127.0.0.1:${PORT}/json/version`).then(
-    () => false,
-    () => true,
-  )
-}
-
 test('the app takes the offered update, comes back as the new version, and loses nothing', async () => {
   expect(APP_EXE, 'DESKTOP_APP_EXE').not.toBe('')
   expect(INSTALL_DIR, 'DESKTOP_INSTALL_DIR').not.toBe('')
@@ -89,15 +20,11 @@ test('the app takes the offered update, comes back as the new version, and loses
 
   const { page } = await attach()
   try {
-    // A fresh install: make something worth keeping, in a language that is not the default.
-    await createFirstList(page, TITLE, ITEMS)
-    await chooseGerman(page)
-
+    // The app is as the earlier specs left it: the list from `prepare.spec.ts` on screen, the interface in German, the old version installed.
     // The offer: the next version, and with it the row that says the window will close for the installer.
     await openAbout(page)
-    const status = page.locator('.q-about-update-text')
-    await expect(status.locator('.q-about-stack > :not(.off)').first()).toHaveText(t.about.available, { timeout: 60_000 })
-    await expect(status.locator('.q-about-version-text:visible')).toHaveText(`${t.about.version} ${FROM} → ${TO}`)
+    await expect(visibleStatus(page)).toHaveText(t.about.available, { timeout: 60_000 })
+    await expect(visibleVersion(page)).toHaveText(`${t.about.version} ${FROM} → ${TO}`)
     await expect(page.locator('.q-about-update-notice')).toHaveText(t.about.updateNoticeWindows)
 
     // From here the page is the old app's: mark it, and keep every sentence the live region is given.
@@ -128,8 +55,8 @@ test('the app takes the offered update, comes back as the new version, and loses
     await expect(after.getByRole('heading', { name: t.home.title })).toBeVisible({ timeout: 30_000 })
 
     await openAbout(after)
-    await expect(after.locator('.q-about-update-text .q-about-stack > :not(.off)').first()).toHaveText(t.about.upToDate, { timeout: 60_000 })
-    await expect(after.locator('.q-about-version-text:visible')).toHaveText(`${t.about.version} ${TO}`)
+    await expect(visibleStatus(after)).toHaveText(t.about.upToDate, { timeout: 60_000 })
+    await expect(visibleVersion(after)).toHaveText(`${t.about.version} ${TO}`)
     await closeAbout(after)
 
     // The list, its items and the language (the labels are German) are as they were.

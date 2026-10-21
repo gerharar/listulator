@@ -44,3 +44,9 @@ export async function closeAbout(page: Page): Promise<void> {
   await page.locator('.q-about').getByRole('button', { name: t.about.closeLabel, exact: true }).click()
   await expect(page.locator('.q-about')).toHaveCount(0)
 }
+
+/** The status line the reader sees ("up to date", "an update is available", …): the stacked variants that are not hidden, the first of them. */
+export const visibleStatus = (page: Page) => page.locator('.q-about-update-text .q-about-stack > :not(.off)').first()
+
+/** The version line the reader sees ("Version 1.0.0-rc.1", or with an offer "Version 1.0.0-rc.1 → 1.0.0-rc.2"). */
+export const visibleVersion = (page: Page) => page.locator('.q-about-version-text:visible')

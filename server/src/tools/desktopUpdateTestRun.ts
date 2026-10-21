@@ -1,12 +1,14 @@
 import { spawn, spawnSync } from 'node:child_process'
-import { copyFileSync, existsSync, mkdtempSync, readdirSync, readFileSync, rmSync } from 'node:fs'
+import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs'
+import type { Server } from 'node:http'
 import { tmpdir } from 'node:os'
 import { createRequire } from 'node:module'
 import { join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { checkInstallerTrace, checkUpdateTrace, findAppExe, leftoverKeyFiles, parseRunArguments, pickInstallers, servedFiles, testAppPaths } from './desktopUpdateTest.js'
+import { checkInstallerTrace, checkUpdateTrace, compareInstall, embeddedPubkeys, findAppExe, leftoverKeyFiles, NEGATIVE_CASES, parseRunArguments, pickInstallers, servedFiles, testAppPaths, type FileState } from './desktopUpdateTest.js'
 import { isRunDirectly } from './runDirectly.js'
 import { DEFAULT_PORT, startUpdaterServer } from './updaterServe.js'
+import { buildWindowsKitScenarios } from './updaterTestKit.js'
 
 /**
  * `npm run test:desktop-update -- <folder>` (Phase 31, task 31.7; docs/DECISIONS.md "Phase 31"): the Windows update test, positive path,
@@ -70,6 +72,24 @@ function updateTraceOf(preferencesText: string | undefined): string | undefined 
   }
 }
 
+/** Every file under a folder with its size and time, by relative path: what `compareInstall` judges. */
+function snapshotInstall(dir: string): Record<string, FileState> {
+  const state: Record<string, FileState> = {}
+  const walk = (folder: string, prefix: string): void => {
+    for (const entry of readdirSync(folder, { withFileTypes: true })) {
+      const path = join(folder, entry.name)
+      if (entry.isDirectory()) walk(path, `${prefix}${entry.name}/`)
+      else {
+        const { size, mtimeMs } = statSync(path)
+        state[`${prefix}${entry.name}`] = { size, mtimeMs }
+      }
+    }
+  }
+  walk(dir, '')
+
+  return state
+}
+
 export async function run(args: readonly string[], deps: RunDeps): Promise<number> {
   const { log } = deps
   if (deps.platform !== 'win32') {
@@ -131,16 +151,31 @@ export async function run(args: readonly string[], deps: RunDeps): Promise<numbe
   // Only what the update needs is served, from a folder made for the purpose: the folder given may hold anything else.
   const served = mkdtempSync(join(tmpdir(), 'listulator-update-test-'))
   for (const file of servedFiles(installers)) copyFileSync(join(dir, file), join(served, file))
-  const server = await startUpdaterServer({ dir: served, log }, DEFAULT_PORT)
-  let specExit = 1
+  const cases = mkdtempSync(join(tmpdir(), 'listulator-update-cases-'))
+  const serverLines: string[] = []
+  const serverLog = (line: string): void => {
+    serverLines.push(line)
+    log(line)
+  }
+  let server: Server | undefined
+  const serve = async (folder: string, cutAfter?: number): Promise<void> => {
+    server = await startUpdaterServer({ dir: folder, ...(cutAfter === undefined ? {} : { cutAfter }), log: serverLog }, DEFAULT_PORT)
+  }
+  const stopServing = async (): Promise<void> => {
+    const stopping = server
+    server = undefined
+    if (stopping === undefined) return
+    stopping.closeAllConnections()
+    await new Promise((done) => stopping.close(done))
+  }
+  const failures: string[] = []
   let cleaned = false
   // Stops the app first (the debugging port goes with it), then the server, then the install. Runs once, whether the test ended or was interrupted.
   const stopEverything = async (): Promise<void> => {
     if (cleaned) return
     cleaned = true
     stopTestApp(paths.installDir)
-    server.closeAllConnections()
-    await new Promise((done) => server.close(done))
+    await stopServing()
     await wait(2_000)
     const uninstaller = join(paths.installDir, 'uninstall.exe')
     if (existsSync(uninstaller)) spawnSync(uninstaller, ['/S'], { stdio: 'ignore' })
@@ -159,24 +194,67 @@ export async function run(args: readonly string[], deps: RunDeps): Promise<numbe
 
     log(`Update test: ${installers.from.version} -> ${installers.to.version}`)
     const playwright = createRequire(import.meta.url).resolve('@playwright/test/cli')
+    const specEnv = { ...deps.env, DESKTOP_APP_EXE: exe, DESKTOP_INSTALL_DIR: paths.installDir, DESKTOP_FROM: installers.from.version, DESKTOP_TO: installers.to.version }
     // Awaited, not spawnSync: this process also serves the update, and a blocked event loop would never answer the app's check.
-    specExit = await new Promise<number>((done) => {
-      const child = spawn(process.execPath, [playwright, 'test', '-c', 'playwright.desktop.config.ts'], {
-        cwd: join(REPO_ROOT, 'web'),
-        stdio: 'inherit',
-        env: { ...deps.env, DESKTOP_APP_EXE: exe, DESKTOP_INSTALL_DIR: paths.installDir, DESKTOP_FROM: installers.from.version, DESKTOP_TO: installers.to.version },
+    const runSpec = (file: string, extra: Record<string, string> = {}): Promise<number> =>
+      new Promise<number>((done) => {
+        const child = spawn(process.execPath, [playwright, 'test', '-c', 'playwright.desktop.config.ts', file], { cwd: join(REPO_ROOT, 'web'), stdio: 'inherit', env: { ...specEnv, ...extra } })
+        child.once('error', () => done(1))
+        child.once('exit', (code) => done(code ?? 1))
       })
-      child.once('error', () => done(1))
-      child.once('exit', (code) => done(code ?? 1))
-    })
+
+    if ((await runSpec('prepare.spec.ts')) !== 0) {
+      failures.push('prepare: the app could not be given its list and language')
+    } else {
+      // The negative cases (31.8) run against the installed OLDER app, one folder each, before the real update changes it.
+      const key = embeddedPubkeys(readFileSync(exe))
+      const realKey = (JSON.parse(readFileSync(join(REPO_ROOT, 'apps/desktop/src-tauri/tauri.conf.json'), 'utf8')) as { plugins: { updater: { pubkey: string } } }).plugins.updater.pubkey
+      const pubkey = key.length === 1 && key[0] !== realKey ? key[0] : undefined
+      log(pubkey === undefined ? `The app's public key could not be read from its program (${key.length} found): the installer's signature is not checked first.` : "The installer's signature is checked against the key the app carries.")
+      const scenarios = buildWindowsKitScenarios({
+        exe: { name: installers.to.file, bytes: readFileSync(join(dir, installers.to.file)), signature: readFileSync(join(dir, `${installers.to.file}.sig`), 'utf8') },
+        installed: installers.from.version,
+        ...(pubkey === undefined ? {} : { pubkey }),
+        pubDate: `${new Date().toISOString().slice(0, 19)}Z`,
+      })
+      const before = snapshotInstall(paths.installDir)
+      for (const entry of NEGATIVE_CASES) {
+        if (entry.notApplicable !== undefined || entry.scenario === undefined) {
+          log(`NOT RUN ${entry.name}: ${entry.notApplicable ?? 'no folder'}`)
+          continue
+        }
+        const scenario = scenarios.find((candidate) => candidate.name === entry.scenario)
+        if (scenario === undefined) {
+          failures.push(`${entry.name}: the kit has no folder ${entry.scenario}`)
+          continue
+        }
+        const caseDir = join(cases, entry.name)
+        mkdirSync(caseDir)
+        for (const [file, content] of Object.entries(scenario.files)) writeFileSync(join(caseDir, file), content)
+        serverLines.length = 0
+        await serve(caseDir, entry.cutAfter)
+        log(`--- negative case ${entry.name}`)
+        const code = await runSpec('negative.spec.ts', { DESKTOP_CASE: entry.name })
+        await stopServing()
+        if (code !== 0) failures.push(`${entry.name}: the app did not say what the manual test expects`)
+        if (entry.cutAfter !== undefined && !serverLines.some((line) => line.includes(`cut after ${entry.cutAfter} bytes`))) failures.push(`${entry.name}: the server never cut a download`)
+      }
+      for (const difference of compareInstall(before, snapshotInstall(paths.installDir))) failures.push(`the installed app changed during the negative cases: ${difference}`)
+
+      // The real update, last: it changes the installed version.
+      await serve(served)
+      if ((await runSpec('update.spec.ts')) !== 0) failures.push('update: the app did not take the offered update')
+    }
   } catch (error) {
-    log(error instanceof Error ? error.message : String(error))
+    failures.push(error instanceof Error ? error.message : String(error))
   } finally {
     await stopEverything()
     process.off('SIGINT', interrupted)
     process.off('SIGTERM', interrupted)
     rmSync(served, { recursive: true, force: true })
+    rmSync(cases, { recursive: true, force: true })
   }
+  for (const failure of failures) log(`FAILED: ${failure}`)
 
   // The traces are read before the data is removed, and judged even when the spec failed: they say why.
   const problems = [
@@ -189,7 +267,7 @@ export async function run(args: readonly string[], deps: RunDeps): Promise<numbe
   for (let tries = 0; tries < 30 && existsSync(join(paths.installDir, 'uninstall.exe')); tries++) await wait(1_000)
   for (const path of [paths.installDir, paths.dataDir, paths.webviewDir]) rmSync(path, { recursive: true, force: true, maxRetries: 10, retryDelay: 500 })
 
-  const ok = specExit === 0 && problems.length === 0
+  const ok = failures.length === 0 && problems.length === 0
   log(ok ? 'The update test passed.' : 'The update test FAILED.')
 
   return ok ? 0 : 1
