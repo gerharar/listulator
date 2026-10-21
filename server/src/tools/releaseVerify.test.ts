@@ -168,7 +168,7 @@ describe('a published release that is as it should be', () => {
 
     expect(result).toEqual({ tag: TAG, failures: [] })
     expect(log.join('\n')).toMatch(/latest\.json/)
-    expect(log.join('\n')).toMatch(new RegExp(EXE.replace(/\./g, '\\.')))
+    expect(log.join('\n')).toContain(EXE)
   })
 
   it('checks the newest published release when no tag is named, by version and not by the order of the list', async () => {
@@ -431,7 +431,7 @@ describe('the update path: what an app installed at the previous release does wi
     const { result, log } = await verify(world(), TAG)
 
     expect(result.failures).toEqual([])
-    expect(log.join('\n')).toMatch(new RegExp(`An installed ${PREVIOUS.replace(/\./g, '\\.')} asks https://github\\.com/.*/latest/download/latest\\.json, is offered ${TAG.replace(/\./g, '\\.')} and accepts the signatures of ${EXE.replace(/\./g, '\\.')} and Listulator\\.app\\.tar\\.gz`))
+    expect(log.join('\n')).toContain(`An installed ${PREVIOUS} asks ${LATEST_MANIFEST_URL}, is offered ${TAG} and accepts the signatures of ${EXE} and ${TAR}`)
   })
 
   it('reads the endpoint and the key from the PREVIOUS release’s own config, not the tag’s', async () => {
