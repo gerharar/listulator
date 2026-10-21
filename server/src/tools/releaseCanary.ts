@@ -197,7 +197,8 @@ export interface CanaryHostDeps {
   run: Runner
   env: Record<string, string | undefined>
   exists: (path: string) => boolean
-  spawnDetached: (path: string) => void
+  /** Starts a program detached, with exactly this environment. */
+  spawnDetached: (path: string, env: Record<string, string | undefined>) => void
   readFile: (path: string) => Buffer
   makeDir: () => string
   removeDir: (dir: string) => void
@@ -209,12 +210,23 @@ const PROCESSES_SCRIPT =
   "$dir = $env:CANARY_INSTALL_DIR + '\\'; $found = @(Get-Process -ErrorAction SilentlyContinue | Where-Object { $_.Path -and $_.Path.StartsWith($dir, 'OrdinalIgnoreCase') } | ForEach-Object { [pscustomobject]@{ id = $_.Id; responding = [bool]$_.Responding; hasWindow = ($_.MainWindowHandle -ne 0) } }); ConvertTo-Json -InputObject $found -Compress"
 const STOP_SCRIPT = "Get-Process -ErrorAction SilentlyContinue | Where-Object { $_.Path -and $_.Path.StartsWith($env:CANARY_INSTALL_DIR + '\\', 'OrdinalIgnoreCase') } | Stop-Process -Force"
 
+/**
+ * What a Windows program needs of the environment: the system and user folders, PATH, the machine's and the user's names. A GitHub runner
+ * hands every step more (credentials that can write this repository's Actions cache and artifacts, the file that sets variables for later
+ * steps), and the installer, the app it installs and PowerShell have no use for any of it: an installer from a release is code the owner
+ * published, but the day a release is not, it must not be code that runs NEXT TO those credentials. A list of what is passed, not of what is
+ * withheld: a variable nobody thought of is withheld too. (Names are case-insensitive on Windows.)
+ */
+const PROGRAM_ENVIRONMENT = new Set(
+  ['ALLUSERSPROFILE', 'APPDATA', 'COMPUTERNAME', 'ComSpec', 'CommonProgramFiles', 'CommonProgramFiles(x86)', 'CommonProgramW6432', 'HOMEDRIVE', 'HOMEPATH', 'LOCALAPPDATA', 'NUMBER_OF_PROCESSORS', 'OS', 'PATH', 'PATHEXT', 'PROCESSOR_ARCHITECTURE', 'ProgramData', 'ProgramFiles', 'ProgramFiles(x86)', 'ProgramW6432', 'PUBLIC', 'SystemDrive', 'SystemRoot', 'TEMP', 'TMP', 'USERDOMAIN', 'USERNAME', 'USERPROFILE', 'windir'].map((name) => name.toLowerCase()),
+)
+
 export function createCanaryHost(deps: CanaryHostDeps): CanaryHost {
   const { run, env } = deps
-  // The token is for `gh` only: the installer and PowerShell never see it.
-  const withoutToken: Record<string, string | undefined> = Object.fromEntries(Object.entries(env).filter(([name]) => name !== 'GH_TOKEN' && name !== 'GITHUB_TOKEN'))
+  // The token is for `gh` only (it gets the whole environment, the token in it): everything else gets the list above.
+  const programEnvironment: Record<string, string | undefined> = Object.fromEntries(Object.entries(env).filter(([name]) => PROGRAM_ENVIRONMENT.has(name.toLowerCase())))
   const powershell = win32.join(env['SystemRoot'] ?? 'C:\\Windows', 'System32', 'WindowsPowerShell', 'v1.0', 'powershell.exe')
-  const ask = (script: string, extra: Record<string, string>) => run(powershell, ['-NoProfile', '-NonInteractive', '-Command', script], { env: { ...withoutToken, ...extra } })
+  const ask = (script: string, extra: Record<string, string>) => run(powershell, ['-NoProfile', '-NonInteractive', '-Command', script], { env: { ...programEnvironment, ...extra } })
   const gh = createGhHost(run, process.cwd())
 
   return {
@@ -234,7 +246,7 @@ export function createCanaryHost(deps: CanaryHostDeps): CanaryHost {
     exists: (path) => deps.exists(path),
 
     async runInstaller(path) {
-      return (await run(path, ['/S'], { env: withoutToken })).code
+      return (await run(path, ['/S'], { env: programEnvironment })).code
     },
 
     async fileVersion(exe) {
@@ -244,7 +256,7 @@ export function createCanaryHost(deps: CanaryHostDeps): CanaryHost {
       return result.code === 0 && text !== '' ? text : undefined
     },
 
-    startApp: (exe) => deps.spawnDetached(exe),
+    startApp: (exe) => deps.spawnDetached(exe, programEnvironment),
 
     async processes(installDir) {
       const result = await ask(PROCESSES_SCRIPT, { CANARY_INSTALL_DIR: installDir })
@@ -260,7 +272,7 @@ export function createCanaryHost(deps: CanaryHostDeps): CanaryHost {
 
     async uninstall(installDir) {
       const uninstaller = win32.join(installDir, 'uninstall.exe')
-      if (deps.exists(uninstaller)) await run(uninstaller, ['/S'], { env: withoutToken })
+      if (deps.exists(uninstaller)) await run(uninstaller, ['/S'], { env: programEnvironment })
     },
 
     pause: (ms) => new Promise<void>((done) => setTimeout(done, ms)),
@@ -286,7 +298,7 @@ if (isRunDirectly(import.meta.url)) {
       run: nodeRunner,
       env: process.env,
       exists: existsSync,
-      spawnDetached: (path) => spawn(path, [], { detached: true, stdio: 'ignore' }).unref(),
+      spawnDetached: (path, env) => spawn(path, [], { detached: true, stdio: 'ignore', env }).unref(),
       readFile: (path) => readFileSync(path),
       makeDir: () => mkdtempSync(join(tmpdir(), 'canary-')),
       removeDir: (dir) => rmSync(dir, { recursive: true, force: true }),

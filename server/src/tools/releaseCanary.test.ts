@@ -321,10 +321,17 @@ describe('the real commands, as they are run (no shell, no token for what does n
     return { calls, runner }
   }
 
-  const ENV = { LOCALAPPDATA: 'C:\\Users\\runneradmin\\AppData\\Local', SystemRoot: 'C:\\Windows', GH_TOKEN: 'ghs_not-a-real-token', KEEP_ME: 'yes' }
+  const RUNNER_CREDENTIALS = { GH_TOKEN: 'ghs_not-a-real-token', GITHUB_TOKEN: 'ghs_other', ACTIONS_RUNTIME_TOKEN: 'runtime-not-real', ACTIONS_RESULTS_URL: 'https://results.invalid/', ACTIONS_CACHE_URL: 'https://cache.invalid/', ACTIONS_ID_TOKEN_REQUEST_TOKEN: 'id-not-real', GITHUB_ENV: 'C:\\runner\\env', RUNNER_TEMP: 'C:\\runner\\tmp', NODE_OPTIONS: '--require x.js', SOME_SECRET: 'nope' }
+  const ENV = { LOCALAPPDATA: 'C:\\Users\\runneradmin\\AppData\\Local', APPDATA: 'C:\\Users\\runneradmin\\AppData\\Roaming', SystemRoot: 'C:\\Windows', PATH: 'C:\\Windows\\System32', TEMP: 'C:\\Temp', ...RUNNER_CREDENTIALS }
   const POWERSHELL = 'C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe'
-  const host = (runner: Runner, over: { exists?: (path: string) => boolean; spawned?: string[] } = {}) =>
-    createCanaryHost({ run: runner, env: ENV, exists: over.exists ?? (() => true), spawnDetached: (path) => void over.spawned?.push(path), readFile: () => Buffer.from('bytes'), makeDir: () => 'C:\\temp\\canary', removeDir: () => undefined })
+  /** The runner hands every step credentials that can write this repository's Actions cache and artifacts; a downloaded installer, an installed app and PowerShell have no use for them. */
+  const expectNoRunnerCredentials = (env: Record<string, string | undefined> | undefined) => {
+    expect(env).toBeDefined()
+    expect(Object.keys(env!).filter((name) => /^(GH_|GITHUB_|ACTIONS_|RUNNER_|NODE_OPTIONS$)|TOKEN|SECRET/i.test(name))).toEqual([])
+    expect(JSON.stringify(env)).not.toMatch(/ghs_|runtime-not-real|id-not-real|cache\.invalid|results\.invalid/)
+  }
+  const host = (runner: Runner, over: { exists?: (path: string) => boolean; spawned?: { path: string; env: Record<string, string | undefined> }[] } = {}) =>
+    createCanaryHost({ run: runner, env: ENV, exists: over.exists ?? (() => true), spawnDetached: (path, env) => void over.spawned?.push({ path, env }), readFile: () => Buffer.from('bytes'), makeDir: () => 'C:\\temp\\canary', removeDir: () => undefined })
 
   it('puts the program where the NSIS installer puts it for the current user', () => {
     expect(host(recorder().runner).installDir()).toBe(INSTALL_DIR)
@@ -341,18 +348,18 @@ describe('the real commands, as they are run (no shell, no token for what does n
     expect(download.calls[0]!.args).toEqual(['release', 'download', PREVIOUS, '--repo', 'gerharar/listulator', '--dir', 'C:\\temp\\canary', '--pattern', INSTALLER, '--pattern', 'SHA256SUMS'])
   })
 
-  it('runs the installer silently with nothing else, and hands it no token', async () => {
+  it('runs the installer silently with nothing else, and hands it nothing of the runner’s credentials', async () => {
     const { calls, runner } = recorder()
 
     const code = await host(runner).runInstaller('C:\\temp\\canary\\setup.exe')
 
     expect(code).toBe(0)
     expect(calls[0]).toMatchObject({ command: 'C:\\temp\\canary\\setup.exe', args: ['/S'] })
-    expect(JSON.stringify(calls[0]!.options?.env)).not.toContain('ghs_')
-    expect(calls[0]!.options?.env?.['KEEP_ME']).toBe('yes')
+    expect(calls[0]!.options?.env?.['LOCALAPPDATA']).toBe(ENV.LOCALAPPDATA)
+    expectNoRunnerCredentials(calls[0]!.options?.env)
   })
 
-  it('reads a program’s version and looks at its processes with the system’s own PowerShell by full path, the folder in the environment and not in the script, and no token', async () => {
+  it('reads a program’s version and looks at its processes with the system’s own PowerShell by full path, the folder in the environment and not in the script, and none of the runner’s credentials', async () => {
     const version = recorder(() => ({ code: 0, stdout: '1.0.2.0\r\n' }))
     const looks = recorder(() => ({ code: 0, stdout: JSON.stringify([{ id: 7, responding: true, hasWindow: false }]) }))
 
@@ -362,7 +369,7 @@ describe('the real commands, as they are run (no shell, no token for what does n
     for (const { calls } of [version, looks]) {
       expect(calls[0]!.command).toBe(POWERSHELL)
       expect(calls[0]!.args.slice(0, 3)).toEqual(['-NoProfile', '-NonInteractive', '-Command'])
-      expect(JSON.stringify(calls[0]!.options?.env)).not.toContain('ghs_')
+      expectNoRunnerCredentials(calls[0]!.options?.env)
     }
     expect(version.calls[0]!.options?.env?.['CANARY_FILE']).toBe(EXE)
     expect(looks.calls[0]!.options?.env?.['CANARY_INSTALL_DIR']).toBe(INSTALL_DIR)
@@ -390,11 +397,21 @@ describe('the real commands, as they are run (no shell, no token for what does n
     expect(calls[1]).toMatchObject({ command: `${INSTALL_DIR}\\uninstall.exe`, args: ['/S'] })
   })
 
-  it('starts the program detached', () => {
-    const spawned: string[] = []
+  it('starts the program detached, with an environment that holds none of the runner’s credentials either: it is the published program, and it runs next to them', () => {
+    const spawned: { path: string; env: Record<string, string | undefined> }[] = []
 
     host(recorder().runner, { spawned }).startApp(EXE)
 
-    expect(spawned).toEqual([EXE])
+    expect(spawned.map((entry) => entry.path)).toEqual([EXE])
+    expectNoRunnerCredentials(spawned[0]!.env)
+    expect(spawned[0]!.env['LOCALAPPDATA']).toBe(ENV.LOCALAPPDATA)
+  })
+
+  it('keeps what Windows programs need (the system folders, the user’s folders, PATH) and nothing else of the environment', async () => {
+    const { calls, runner } = recorder()
+
+    await host(runner).runInstaller('C:\\temp\\canary\\setup.exe')
+
+    expect(Object.keys(calls[0]!.options!.env!).sort()).toEqual(['APPDATA', 'LOCALAPPDATA', 'PATH', 'SystemRoot', 'TEMP'])
   })
 })
