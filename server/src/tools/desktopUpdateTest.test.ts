@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
-import { checkInstallerTrace, checkUpdateTrace, pickInstallers, testAppPaths } from './desktopUpdateTest.js'
+import { checkInstallerTrace, checkUpdateTrace, findAppExe, parseRunArguments, pickInstallers, testAppPaths } from './desktopUpdateTest.js'
 
 /**
  * Tests of the parts of the Windows update test that need no Windows (Phase 31, task 31.7): which two installers a folder holds, where
@@ -40,6 +40,7 @@ describe('testAppPaths', () => {
     expect(testAppPaths(env)).toEqual({
       installDir: 'C:\\Users\\tester\\AppData\\Local\\ListulatorUpdaterTest',
       dataDir: 'C:\\Users\\tester\\AppData\\Roaming\\com.listulator.desktop.updatertest',
+      webviewDir: 'C:\\Users\\tester\\AppData\\Local\\com.listulator.desktop.updatertest',
     })
   })
 
@@ -50,6 +51,7 @@ describe('testAppPaths', () => {
 
     expect(paths.installDir.endsWith(`\\${overlay.productName}`)).toBe(true)
     expect(paths.dataDir.endsWith(`\\${overlay.identifier}`)).toBe(true)
+    expect(paths.webviewDir.endsWith(`\\${overlay.identifier}`)).toBe(true)
     expect(overlay.productName).not.toBe(real.productName)
     expect(overlay.identifier).not.toBe(real.identifier)
   })
@@ -94,5 +96,31 @@ describe('checkUpdateTrace', () => {
     expect(checkUpdateTrace(trace('pressed', 'download-finished'))).toEqual([expect.stringMatching(/new-app-start/)])
     expect(checkUpdateTrace(undefined)).toEqual([expect.stringMatching(/updateTrace/)])
     expect(checkUpdateTrace('{not json')).toEqual([expect.stringMatching(/updateTrace/)])
+  })
+})
+
+describe('findAppExe', () => {
+  it('is the one program in the install folder that is not the uninstaller, whatever the case', () => {
+    expect(findAppExe(['uninstall.exe', 'listulator-desktop.exe', 'LICENSE', 'WebView2Loader.dll'])).toBe('listulator-desktop.exe')
+    expect(findAppExe(['Uninstall.EXE', 'APP.EXE'])).toBe('APP.EXE')
+  })
+
+  it('says so when there is none or more than one, rather than start the wrong program', () => {
+    expect(() => findAppExe(['uninstall.exe', 'LICENSE'])).toThrow(/one program/)
+    expect(() => findAppExe(['a.exe', 'b.exe', 'uninstall.exe'])).toThrow(/one program/)
+  })
+})
+
+describe('parseRunArguments', () => {
+  it('takes the folder of the installers and nothing else', () => {
+    expect(parseRunArguments(['C:\\out'])).toEqual({ dir: 'C:\\out' })
+  })
+
+  it.each([
+    ['no folder', [] as string[], /folder/],
+    ['two folders', ['a', 'b'], /one folder/],
+    ['an option it does not know', ['a', '--cut-after', '5'], /unknown option/],
+  ])('says what is wrong with %s', (_label, args, message) => {
+    expect(parseRunArguments(args)).toEqual(expect.stringMatching(message))
   })
 })
