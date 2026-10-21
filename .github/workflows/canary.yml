@@ -9,8 +9,9 @@
 #                     cannot be driven from outside (31.2), and a published release is a fixed program, so this is what can be seen of it.
 #
 # A red run is a notification: GitHub tells the person who last edited the cron line below (and whoever starts it by hand) when a run
-# fails, if their notification settings for Actions say so (Settings, Notifications, Actions). A public repository with no activity for
-# 60 days has its scheduled workflows switched off by GitHub: a push, or any release, switches them on again.
+# fails, if their notification settings for Actions say so (Settings, Notifications, Actions). GitHub switches the scheduled workflows of a
+# public repository off after 60 days with no activity (a push is activity), and a switched-off schedule sends NO notification: it has to be
+# enabled again by hand in the Actions tab. So a recent green run of this workflow is part of the release checklist (docs/release-runbook.md).
 #
 # It runs unattended and reads from GitHub, so server/src/ciWorkflows.guard.test.ts (the `canary` rules) allows it nothing it does not
 # need: this trigger and no other, read-only permissions, no secret, the workflow's own token for the two steps that call GitHub and for

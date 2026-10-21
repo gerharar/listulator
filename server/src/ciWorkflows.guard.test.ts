@@ -221,9 +221,11 @@ function workflowProblems(workflow: Workflow, profile: Profile = 'manual'): stri
   const scopes: [string, unknown][] = [['', rest], ...jobs.map(([name, job]): [string, unknown] => [name, job])]
   for (const [scope, value] of scopes) {
     for (const [key, text] of strings(value)) {
-      const token = /\bgithub\.token\b|\bGITHUB_TOKEN\b/.test(text)
+      // `github.token`, and the same token reached another way (`github['token']`): the whole context as text is refused by the exact-value rule.
+      const token = /\bgithub\.token\b|\bGITHUB_TOKEN\b|\bgithub\s*\[/.test(text)
       const handed = (profile === 'release' && scope === 'publish' && key === 'GH_TOKEN' && text === '${{ github.token }}') || (profile === 'canary' && scope !== '' && key === 'GH_TOKEN' && text === '${{ github.token }}')
-      if (/\$\{\{[^}]*\bsecrets\b/.test(text) || (token && !handed)) {
+      // [\s\S]*, not [^}]*: a `}` inside the expression (format('{0}', secrets.X)) must not hide what follows it.
+      if (/\$\{\{[\s\S]*\bsecrets\b/.test(text) || (token && !handed)) {
         problems.push(`${key || 'a value'} reaches for a secret or the token: ${text.slice(0, 60)}`)
       }
     }
@@ -232,7 +234,7 @@ function workflowProblems(workflow: Workflow, profile: Profile = 'manual'): stri
   // No repository variable either: the updater key (or anything else) is not read from `vars` (20.12a).
   for (const [scope, value] of scopes) {
     for (const [key, text] of strings(value)) {
-      if (/\$\{\{[^}]*\bvars\b/.test(text)) problems.push(`${scope || 'the workflow'}: ${key || 'a value'} reads a repository variable: ${text.slice(0, 60)}`)
+      if (/\$\{\{[\s\S]*\bvars\b/.test(text)) problems.push(`${scope || 'the workflow'}: ${key || 'a value'} reads a repository variable: ${text.slice(0, 60)}`)
     }
   }
 
@@ -308,6 +310,7 @@ function canaryProblems(workflow: Workflow, jobs: [string, Job][], steps: { job:
     }
     const holdsToken = step.env !== undefined && Object.keys(step.env).some((key) => /^(GH_TOKEN|GITHUB_TOKEN)$/.test(key))
     if (step.env !== undefined && !holdsToken) problems.push(`job ${job}: a step sets env (only the steps that call GitHub hold anything, and that is GH_TOKEN)`)
+    if (holdsToken && step.env?.['GH_TOKEN'] !== '${{ github.token }}') problems.push(`job ${job}: GH_TOKEN must be exactly \${{ github.token }}, the workflow's own read-only token (not ${JSON.stringify(step.env?.['GH_TOKEN'])?.slice(0, 40)})`)
     if (holdsToken && JSON.stringify(Object.keys(step.env ?? {})) !== '["GH_TOKEN"]') problems.push(`job ${job}: a step that holds the token may hold only GH_TOKEN, not ${Object.keys(step.env ?? {}).join(', ')}`)
     if (holdsToken && (run === undefined || !CANARY_TOKEN_COMMANDS.includes(run))) {
       problems.push(`job ${job}: a step holds the token but runs ${JSON.stringify(run?.slice(0, 60) ?? 'nothing')} (only ${CANARY_TOKEN_COMMANDS.join(' and ')} may)`)
@@ -978,6 +981,9 @@ describe('the rules for a CI workflow, proven on hostile workflows', () => {
     ['a value pasted into a script', (t) => t.replace('run: npm ci --ignore-scripts', 'run: echo ${{ github.head_ref }}'), /contains \$\{\{/],
     ['a step that may fail quietly', (t) => t.replace('        run: npm ci --ignore-scripts', '        continue-on-error: true\n        run: npm ci --ignore-scripts'), /continue-on-error/],
     ['a cargo test without --locked', (t) => t.replace('cargo test --locked', 'cargo test'), /not run with --locked/],
+    ['a secret hidden behind a } inside an expression', (t) => t.replace('        run: npm ci --ignore-scripts', "        env:\n          T: ${{ format('{0}', secrets.T) }}\n        run: npm ci --ignore-scripts"), /secret or the token/],
+    ['a variable hidden behind a } inside an expression', (t) => t.replace('        run: npm ci --ignore-scripts', "        env:\n          V: ${{ format('{0}', vars.X) }}\n        run: npm ci --ignore-scripts"), /reads a repository variable/],
+    ['the token spelled with brackets', (t) => t.replace('        run: npm ci --ignore-scripts', "        env:\n          T: ${{ github['token'] }}\n        run: npm ci --ignore-scripts"), /secret or the token/],
   ]
 
   it.each(hostile)('refuse %s', (_name, change, expected) => {
@@ -1106,6 +1112,11 @@ describe('the rules for a canary workflow, proven on hostile workflows', () => {
     ['a matrix', (t) => t.replace('    timeout-minutes: 20\n    permissions:', '    timeout-minutes: 20\n    strategy:\n      matrix:\n        x: [1]\n    permissions:'), /uses the job key strategy/],
     ['a condition on a job', (t) => t.replace('    timeout-minutes: 20\n    permissions:', "    timeout-minutes: 20\n    if: github.actor == 'x'\n    permissions:"), /uses the job key if/],
     ['a service container', (t) => t.replace('    timeout-minutes: 20\n    permissions:', '    timeout-minutes: 20\n    services:\n      x:\n        image: y\n    permissions:'), /uses the job key services/],
+    ['a secret hidden behind a } inside an expression', (t) => t.replace('GH_TOKEN: ${{ github.token }}', "GH_TOKEN: ${{ format('{0}', secrets.PAT) }}"), /secret or the token|GH_TOKEN must be exactly/],
+    ['a repository variable hidden behind a } inside an expression', (t) => t.replace('      - name: Verify\n', "      - name: ${{ format('{0}', vars.X) }}\n"), /reads a repository variable/],
+    ['the token spelled with brackets', (t) => t.replace('GH_TOKEN: ${{ github.token }}', "GH_TOKEN: ${{ github['token'] }}"), /secret or the token|GH_TOKEN must be exactly/],
+    ['the whole context as text', (t) => t.replace('GH_TOKEN: ${{ github.token }}', 'GH_TOKEN: ${{ toJSON(github) }}'), /GH_TOKEN must be exactly/],
+    ['a literal value in the token variable', (t) => t.replace('GH_TOKEN: ${{ github.token }}', 'GH_TOKEN: abc'), /GH_TOKEN must be exactly/],
   ]
 
   it.each(hostile)('refuse %s', (_name, change, expected) => {
@@ -1124,6 +1135,36 @@ describe('the rules for a canary workflow, proven on hostile workflows', () => {
     const asCi = GOOD_CANARY.replace("  schedule:\n    - cron: '17 5 * * *'\n", '  push:\n    branches: [main]\n')
 
     expect(workflowProblems(parse(asCi), 'ci').join(' | ')).toMatch(/secret or the token/)
+  })
+})
+
+/**
+ * What the canary's token-holding steps RUN is not in the workflow file: it is `package.json` and the tools. A hostile commit there could run
+ * code with the read-only token. These checks are a tripwire for drift, not a defence against a pusher (whoever can push can edit this test
+ * too): the real controls are that only the owner pushes, branch protection and two-factor sign-in. They make the quiet ways visible: an npm
+ * hook for either command, an `.npmrc`, and a package manager field that makes `setup-node` cache by itself.
+ */
+describe('what the canary runs (31.9)', () => {
+  const ROOT = join(import.meta.dirname, '../..')
+  const pkg = JSON.parse(readFileSync(join(ROOT, 'package.json'), 'utf8')) as { scripts: Record<string, string>; packageManager?: unknown; devEngines?: unknown }
+
+  it('runs the two commands as plain tsx lines on the tools, and nothing else', () => {
+    expect(pkg.scripts['release:verify']).toBe('tsx server/src/tools/releaseVerify.ts')
+    expect(pkg.scripts['canary:install']).toBe('tsx server/src/tools/releaseCanary.ts')
+  })
+
+  it.each(['release:verify', 'canary:install'])('has no npm hook before or after %s (npm runs pre and post scripts by name, with the token in the environment)', (command) => {
+    expect(pkg.scripts[`pre${command}`]).toBeUndefined()
+    expect(pkg.scripts[`post${command}`]).toBeUndefined()
+  })
+
+  it('has no .npmrc in the repository (script-shell and onload-script run code in every npm command)', () => {
+    expect(readdirSync(ROOT)).not.toContain('.npmrc')
+  })
+
+  it('names no package manager in package.json (setup-node would then restore and save an npm cache by itself, and the canary has no way to opt out)', () => {
+    expect(pkg.packageManager).toBeUndefined()
+    expect(pkg.devEngines).toBeUndefined()
   })
 })
 
