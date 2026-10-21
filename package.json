@@ -29,6 +29,7 @@
     "test:desktop-update": "tsx server/src/tools/desktopUpdateTestRun.ts",
     "release:sign": "tsx server/src/tools/releaseSign.ts",
     "release:verify": "tsx server/src/tools/releaseVerify.ts",
+    "release:audit": "tsx server/src/tools/releaseAudit.ts",
     "secrets:scan": "tsx server/src/tools/secretScan.ts tree",
     "secrets:scan-run": "tsx server/src/tools/scanRun.ts"
   },

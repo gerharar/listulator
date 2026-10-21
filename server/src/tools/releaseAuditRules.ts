@@ -235,11 +235,13 @@ export function diffSummary(numstat: string): DiffSummary {
 
 const count = (n: number, word: string): string => `${n.toLocaleString('en-US')} ${word}${n === 1 ? '' : 's'}`
 
-/** The summary in words: one line for the whole change, then one for each area. */
-export function formatDiffSummary(summary: DiffSummary): string[] {
-  const lines = (files: number, insertions: number, deletions: number) => `${count(files, 'file')}, +${insertions.toLocaleString('en-US')} −${deletions.toLocaleString('en-US')}`
+/** The summary in words: one line for the whole change, then one for each of the `maxAreas` biggest areas, and a count of the rest. */
+export function formatDiffSummary(summary: DiffSummary, maxAreas = Infinity): string[] {
+  const line = (files: number, insertions: number, deletions: number) => `${count(files, 'file')}, +${insertions.toLocaleString('en-US')} −${deletions.toLocaleString('en-US')}`
+  const shown = summary.areas.slice(0, maxAreas)
+  const rest = summary.areas.length - shown.length
 
-  return [lines(summary.files, summary.insertions, summary.deletions), ...summary.areas.map((area) => `  ${area.area}: ${lines(area.files, area.insertions, area.deletions)}`)]
+  return [line(summary.files, summary.insertions, summary.deletions), ...shown.map((area) => `  ${area.area}: ${line(area.files, area.insertions, area.deletions)}`), ...(rest > 0 ? [`  … and ${count(rest, 'more area')}`] : [])]
 }
 
 /** The paths whose change the owner has to read before signing: what runs with the key, and what decides what the app may do. */

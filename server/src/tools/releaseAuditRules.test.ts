@@ -294,6 +294,18 @@ describe('what changed since the last release', () => {
     ])
   })
 
+  it('lists at most the number of areas asked for and counts the rest', () => {
+    const many = Array.from({ length: 12 }, (_, index) => `${index + 1}\t0\tarea${index}/sub/file.ts`).join('\n')
+
+    const lines = formatDiffSummary(diffSummary(many), 3)
+
+    expect(lines).toHaveLength(5)
+    expect(lines[0]).toBe('12 files, +78 −0')
+    expect(lines[1]).toMatch(/area11\/sub: 1 file, \+12 −0/)
+    expect(lines[4]).toBe('  … and 9 more areas')
+    expect(formatDiffSummary(diffSummary(many))).toHaveLength(13)
+  })
+
   it('is empty for no change', () => {
     expect(diffSummary('')).toEqual({ files: 0, insertions: 0, deletions: 0, areas: [] })
   })
