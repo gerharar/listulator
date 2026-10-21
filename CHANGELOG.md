@@ -2,6 +2,16 @@
 
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and version numbers follow [Semantic Versioning](https://semver.org/).
 
+## [1.1.1] - 22 October 2026
+
+### Fixes
+- Update notice on **About** screen now warns Windows users that Listulator will close automatically during the update, disappearing for up to 15 seconds. This delay is caused by Windows Defender background checks
+- After the update, a one-time message will be displayed about Listulator being updated to a particular version
+- Installer-run Update window on Windows (heh) now should always come to the front without getting lost behind other windows
+- A stuck install or update no longer hangs forever -- the timeout is now 60 seconds. If this happens, just try again, it should work the next time
+- Minor UX bugs were fixed
+- Minor security issues were fixed
+
 ## [1.1.0] - 19 October 2026
 
 ### New Stuff
