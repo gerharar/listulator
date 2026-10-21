@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { createPrepareHost, parseReleasePrepareArguments, releasePrepare, type CiRun, type PrepareHost } from './releasePrepare.js'
+import type { CiRun } from './ciCheck.js'
+import { createPrepareHost, parseReleasePrepareArguments, releasePrepare, type PrepareHost } from './releasePrepare.js'
 import type { Runner } from './releaseSign.js'
 import { VERSION_SOURCES } from './versionSources.js'
 

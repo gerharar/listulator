@@ -24,6 +24,7 @@ import {
 } from './releaseAuditRules.js'
 import { CONFIG_PATH, createGhHost, nodeRunner, parseSums, type ReleaseHost, type Runner } from './releaseSign.js'
 import { isRunDirectly } from './runDirectly.js'
+import { runChecked } from './runChecked.js'
 import { assetName, compareVersions } from './updateManifest.js'
 import { RELEASE_VERSION } from './versionSources.js'
 
@@ -335,12 +336,7 @@ export async function releaseAudit(options: ReleaseAuditOptions, host: AuditHost
 export function createAuditHost(run: Runner, repoRoot: string): AuditHost {
   const git = (args: string[]) => run('git', args, { cwd: repoRoot })
   const gh = createGhHost(run, repoRoot)
-  const must = async (what: string, command: string, args: string[]) => {
-    const result = await run(command, args)
-    if (result.code !== 0) throw new Error(`${what} failed: ${(result.stderr || result.stdout).trim().slice(0, 200)}`)
-
-    return result
-  }
+  const must = (what: string, command: string, args: string[]) => runChecked(run, what, command, args)
 
   return {
     viewRelease: gh.viewRelease,

@@ -1,7 +1,9 @@
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { REPO, nodeRunner, type Runner } from './releaseSign.js'
+import { ciVerdict, listCiRuns, type CiRun } from './ciCheck.js'
+import { nodeRunner, type Runner } from './releaseSign.js'
+import { runChecked } from './runChecked.js'
 import { isRunDirectly } from './runDirectly.js'
 import { compareVersions } from './updateManifest.js'
 import { RELEASE_VERSION, VERSION_SOURCES } from './versionSources.js'
@@ -29,14 +31,6 @@ const NOTICES = 'THIRD-PARTY-NOTICES.txt'
 const VERSION_FILES: ReadonlySet<string> = new Set(VERSION_SOURCES.map((source) => source.file))
 const MAX_LISTED = 5
 const MAX_DIFF_LINES = 200
-
-export interface CiRun {
-  id: number
-  status: string
-  conclusion: string
-  createdAt: string
-  headSha: string
-}
 
 /** What the tool needs from git, GitHub, npm and the disk, as intentions; `createPrepareHost` is the real one, the tests use a fake. */
 export interface PrepareHost {
@@ -117,16 +111,6 @@ function changelogProblem(text: string, version: string): string | undefined {
   if (body.every((line) => line.trim() === '')) return `The CHANGELOG.md entry for ${version} is empty`
 
   return undefined
-}
-
-/** The verdict on the latest `ci.yml` run of `head`: a sentence for what is wrong, or the run when it is green. */
-function ciVerdict(runs: readonly CiRun[], head: string): { run: CiRun } | { problem: string } {
-  const latest = runs.filter((run) => run.headSha === head).sort((a, b) => (a.createdAt === b.createdAt ? b.id - a.id : a.createdAt < b.createdAt ? 1 : -1))[0]
-  if (latest === undefined) return { problem: `No ci.yml run on ${short(head)}: push it to main and wait for the run, or start one with gh workflow run ci.yml` }
-  if (latest.status !== 'completed') return { problem: `The latest ci.yml run on ${short(head)} (run ${latest.id}) is ${latest.status}: wait for it to finish` }
-  if (latest.conclusion !== 'success') return { problem: `The latest ci.yml run on ${short(head)} (run ${latest.id}) ended ${latest.conclusion}` }
-
-  return { run: latest }
 }
 
 export async function releasePrepare(options: ReleasePrepareOptions, host: PrepareHost, log: (line: string) => void, note: (line: string) => void = log): Promise<ReleasePrepareResult> {
@@ -336,12 +320,7 @@ export async function releasePrepare(options: ReleasePrepareOptions, host: Prepa
 /** The real calls, without a shell. `read` reads a text file; the tool has no way to write `CHANGELOG.md`. */
 export function createPrepareHost(run: Runner, repoRoot: string, read: (path: string) => string = (path) => readFileSync(path, 'utf8')): PrepareHost {
   const git = (args: string[]) => run('git', args, { cwd: repoRoot })
-  const must = async (what: string, command: string, args: string[]) => {
-    const result = await run(command, args, { cwd: repoRoot })
-    if (result.code !== 0) throw new Error(`${what} failed: ${(result.stderr || result.stdout).trim().slice(0, 300)}`)
-
-    return result
-  }
+  const must = (what: string, command: string, args: string[]) => runChecked(run, what, command, args, { cwd: repoRoot })
 
   return {
     async branch() {
@@ -365,15 +344,7 @@ export function createPrepareHost(run: Runner, repoRoot: string, read: (path: st
     },
 
     async ciRuns(commit) {
-      const result = await must('gh run list', 'gh', ['run', 'list', '--repo', REPO, '--workflow', 'ci.yml', '--commit', commit, '--json', 'databaseId,status,conclusion,createdAt,headSha', '--limit', '20'])
-
-      return (JSON.parse(result.stdout) as { databaseId: number; status: string; conclusion: string; createdAt: string; headSha: string }[]).map((run) => ({
-        id: run.databaseId,
-        status: run.status,
-        conclusion: run.conclusion,
-        createdAt: run.createdAt,
-        headSha: run.headSha,
-      }))
+      return listCiRuns(run, commit, repoRoot)
     },
 
     async changelog() {
