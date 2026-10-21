@@ -32,6 +32,7 @@
     "release:audit": "tsx server/src/tools/releaseAudit.ts",
     "release:prepare": "tsx server/src/tools/releasePrepare.ts",
     "release:ship": "tsx server/src/tools/releaseShip.ts",
+    "canary:install": "tsx server/src/tools/releaseCanary.ts",
     "secrets:scan": "tsx server/src/tools/secretScan.ts tree",
     "secrets:scan-run": "tsx server/src/tools/scanRun.ts"
   },
