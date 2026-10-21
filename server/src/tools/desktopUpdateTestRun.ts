@@ -159,12 +159,16 @@ export async function run(args: readonly string[], deps: RunDeps): Promise<numbe
 
     log(`Update test: ${installers.from.version} -> ${installers.to.version}`)
     const playwright = createRequire(import.meta.url).resolve('@playwright/test/cli')
-    const result = spawnSync(process.execPath, [playwright, 'test', '-c', 'playwright.desktop.config.ts'], {
-      cwd: join(REPO_ROOT, 'web'),
-      stdio: 'inherit',
-      env: { ...deps.env, DESKTOP_APP_EXE: exe, DESKTOP_INSTALL_DIR: paths.installDir, DESKTOP_FROM: installers.from.version, DESKTOP_TO: installers.to.version },
+    // Awaited, not spawnSync: this process also serves the update, and a blocked event loop would never answer the app's check.
+    specExit = await new Promise<number>((done) => {
+      const child = spawn(process.execPath, [playwright, 'test', '-c', 'playwright.desktop.config.ts'], {
+        cwd: join(REPO_ROOT, 'web'),
+        stdio: 'inherit',
+        env: { ...deps.env, DESKTOP_APP_EXE: exe, DESKTOP_INSTALL_DIR: paths.installDir, DESKTOP_FROM: installers.from.version, DESKTOP_TO: installers.to.version },
+      })
+      child.once('error', () => done(1))
+      child.once('exit', (code) => done(code ?? 1))
     })
-    specExit = result.status ?? 1
   } catch (error) {
     log(error instanceof Error ? error.message : String(error))
   } finally {

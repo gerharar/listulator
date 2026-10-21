@@ -1,4 +1,4 @@
-import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
@@ -50,5 +50,18 @@ describe('run', () => {
 
     expect(code).toBe(1)
     expect(lines.join('\n')).toMatch(/already answers/)
+  })
+})
+
+/**
+ * The first runner run (2026-10-21) hung on "Checking…": the update server lives in the runner's own process, and the spec was started with
+ * `spawnSync`, which blocks that process's event loop, so the server never answered. Whatever runs while the server is up must be awaited.
+ */
+describe('the process that serves the update', () => {
+  it('starts the spec without blocking its own event loop', () => {
+    const source = readFileSync(new URL('./desktopUpdateTestRun.ts', import.meta.url), 'utf8')
+
+    expect(source).not.toMatch(/spawnSync\(process\.execPath/)
+    expect(source).toMatch(/spawn\(process\.execPath/)
   })
 })
