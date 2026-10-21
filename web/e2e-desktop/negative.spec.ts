@@ -21,8 +21,8 @@ interface Expectation {
 const EXPECTED: Record<string, Expectation> = {
   'same-version': { says: [t.about.upToDate] },
   'lower-version': { says: [t.about.upToDate] },
-  // The manual test says "an error or up to date" and asks which: the first run tells, and this is then narrowed to that one sentence.
-  'other-os-windows': { says: [t.about.failed, t.about.upToDate] },
+  // The manual test says "an error or up to date" and asks which. The first run on a runner (2026-10-21) said the check failed: that is the sentence.
+  'other-os-windows': { says: [t.about.failed] },
   'wrong-version': { offers: '99.0.0' },
   tampered: { offers: TO },
   'wrong-key': { offers: TO },
