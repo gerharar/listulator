@@ -6,6 +6,7 @@ import { checkAttestations } from './attestationCheck.js'
 import { verifyMinisign } from './minisignVerify.js'
 import { CONFIG_PATH, REPO, createGhHost, nodeRunner, parseSums, type Runner } from './releaseSign.js'
 import { isRunDirectly } from './runDirectly.js'
+import { checkUpdatePath } from './updatePathCheck.js'
 import { assetName, compareVersions, keyIdOfPublicKey, manifestProblems, type PlatformKey } from './updateManifest.js'
 import { RELEASE_VERSION } from './versionSources.js'
 
@@ -39,6 +40,8 @@ export interface VerifyHost {
   fetchBytes(url: string): Promise<Buffer>
   /** `plugins.updater.pubkey` as written in the tagged config on GitHub. */
   pubkey(tag: string): Promise<string>
+  /** `plugins.updater.endpoints` as written in the tagged config on GitHub: the addresses an installed copy of that release asks. */
+  updaterEndpoints(tag: string): Promise<string[]>
   /** The full commit a tag points at on GitHub. */
   tagCommit(tag: string): Promise<string>
   /** Whether `file` has a build attestation from this repository's release workflow on `tag` and `commit`. */
@@ -156,6 +159,17 @@ export async function releaseVerify(options: ReleaseVerifyOptions, host: VerifyH
     }
   }
 
+  // 3b. The update path: what an app installed at the previous release does with this one. Only the newest release is served by the feed.
+  if (tag === latest && previous !== undefined) {
+    const signed = ([['windows-x86_64', exe], ['darwin-aarch64', archive]] as const).flatMap(([platform, name]) => {
+      const data = bytes.get(name)
+      const signature = signatureOf(manifest, platform)
+
+      return data === undefined || signature === undefined ? [] : [{ name, data, signature }]
+    })
+    await checkUpdatePath(host, { tag, previous, feedUrl: manifestUrl, manifest, files: signed }, log, fail)
+  }
+
   // 4. The attestations, and the control that the check can say no.
   let commit: string | undefined
   try {
@@ -186,6 +200,14 @@ export function createVerifyHost(run: Runner, fetcher: typeof fetch = fetch): Ve
   const checkTag = (tag: string) => {
     if (!isTag(tag)) throw new Error(`${JSON.stringify(tag).slice(0, 40)} is not v + a version`)
   }
+  /** `plugins.updater` of a tag's config, as GitHub has it (not the checked-out one). */
+  const readUpdaterConfig = async (tag: string): Promise<{ pubkey?: unknown; endpoints?: unknown }> => {
+    checkTag(tag)
+    const result = await run('gh', ['api', '-H', 'Accept: application/vnd.github.raw', `repos/${REPO}/contents/${CONFIG_PATH}?ref=${tag}`])
+    if (result.code !== 0) throw new Error(`gh could not read ${CONFIG_PATH} at ${tag}`)
+
+    return (JSON.parse(result.stdout) as { plugins?: { updater?: { pubkey?: unknown; endpoints?: unknown } } }).plugins?.updater ?? {}
+  }
 
   return {
     async publishedTags() {
@@ -204,13 +226,17 @@ export function createVerifyHost(run: Runner, fetcher: typeof fetch = fetch): Ve
     },
 
     async pubkey(tag) {
-      checkTag(tag)
-      const result = await run('gh', ['api', '-H', 'Accept: application/vnd.github.raw', `repos/${REPO}/contents/${CONFIG_PATH}?ref=${tag}`])
-      if (result.code !== 0) throw new Error(`gh could not read ${CONFIG_PATH} at ${tag}`)
-      const pubkey = (JSON.parse(result.stdout) as { plugins?: { updater?: { pubkey?: string } } }).plugins?.updater?.pubkey
+      const pubkey = (await readUpdaterConfig(tag)).pubkey
       if (typeof pubkey !== 'string') throw new Error(`No updater public key in ${CONFIG_PATH} at ${tag}`)
 
       return pubkey
+    },
+
+    async updaterEndpoints(tag) {
+      const endpoints = (await readUpdaterConfig(tag)).endpoints
+      if (!Array.isArray(endpoints) || endpoints.some((endpoint) => typeof endpoint !== 'string')) throw new Error(`No updater endpoints in ${CONFIG_PATH} at ${tag}`)
+
+      return endpoints as string[]
     },
 
     async tagCommit(tag) {

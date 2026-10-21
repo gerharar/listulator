@@ -39,8 +39,14 @@ interface World {
   /** What each public address answers with, or the error it fails with. Filled by `world()` for TAG. */
   urls: Map<string, Buffer | Error>
   pubkey: string
-  /** The key read from the tagged config fails with this. */
+  /** The key read from the tagged config fails with this (for the tag only: the previous release's key is read separately). */
   pubkeyFails?: Error
+  /** The key the PREVIOUS release's config carries (what an installed app of it trusts); the tag's key by default. */
+  previousPubkey?: string
+  /** Reading the PREVIOUS release's key fails with this. */
+  previousPubkeyFails?: Error
+  /** The update addresses each release's config carries, or the error reading them fails with. */
+  endpoints?: Record<string, string[] | Error>
   commits: Record<string, string | Error>
   /** Whether `gh attestation verify` passes for a file name, a tag and a commit. */
   attested: (name: string, tag: string, commit: string) => boolean
@@ -97,12 +103,14 @@ function world(over: Partial<World> = {}, served: Served = goodFiles(), tag = TA
 
 interface Fake {
   host: VerifyHost
+  keyReads: string[]
+  endpointReads: string[]
   fetched: string[]
   attestations: { name: string; tag: string; commit: string; onDisk: boolean; dir: string }[]
 }
 
 function fake(w: World): Fake {
-  const out: Fake = { fetched: [], attestations: [], host: undefined as unknown as VerifyHost }
+  const out: Fake = { keyReads: [], endpointReads: [], fetched: [], attestations: [], host: undefined as unknown as VerifyHost }
   out.host = {
     publishedTags: async () => w.tags,
     fetchBytes: async (url) => {
@@ -112,10 +120,19 @@ function fake(w: World): Fake {
       if (answer instanceof Error) throw answer
       return answer
     },
-    pubkey: async () => {
-      if (w.pubkeyFails !== undefined) throw w.pubkeyFails
+    pubkey: async (tag) => {
+      out.keyReads.push(tag)
+      if (w.pubkeyFails !== undefined && tag === TAG) throw w.pubkeyFails
+      if (w.previousPubkeyFails !== undefined && tag === PREVIOUS) throw w.previousPubkeyFails
 
-      return w.pubkey
+      return tag === PREVIOUS && w.previousPubkey !== undefined ? w.previousPubkey : w.pubkey
+    },
+    updaterEndpoints: async (tag) => {
+      out.endpointReads.push(tag)
+      const endpoints = w.endpoints?.[tag] ?? [LATEST_MANIFEST_URL]
+      if (endpoints instanceof Error) throw endpoints
+
+      return endpoints
     },
     tagCommit: async (tag) => {
       const commit = w.commits[tag]
@@ -406,6 +423,102 @@ describe('what makes it fail, one line each', () => {
 
     expect(result.failures.length).toBeGreaterThan(2)
     expect(result.failures.every((line) => !line.includes('\n'))).toBe(true)
+  })
+})
+
+describe('the update path: what an app installed at the previous release does with this release', () => {
+  it('asks the address that release carries, is offered this version, and accepts the signatures: all said in one line', async () => {
+    const { result, log } = await verify(world(), TAG)
+
+    expect(result.failures).toEqual([])
+    expect(log.join('\n')).toMatch(new RegExp(`An installed ${PREVIOUS.replace(/\./g, '\\.')} asks https://github\\.com/.*/latest/download/latest\\.json, is offered ${TAG.replace(/\./g, '\\.')} and accepts the signatures of ${EXE.replace(/\./g, '\\.')} and Listulator\\.app\\.tar\\.gz`))
+  })
+
+  it('reads the endpoint and the key from the PREVIOUS release’s own config, not the tag’s', async () => {
+    const { endpointReads, keyReads } = await verify(world(), TAG)
+
+    expect(endpointReads).toEqual([PREVIOUS])
+    expect(keyReads).toEqual([TAG, PREVIOUS])
+  })
+
+  it('fails when the previous release asks another address than the feed this release is served on: its installed apps would never see it', async () => {
+    const { result } = await verify(world({ endpoints: { [PREVIOUS]: ['https://example.invalid/latest.json'] } }), TAG)
+
+    expect(result.failures).toEqual([expect.stringMatching(/installed v1\.0\.2 asks https:\/\/example\.invalid\/latest\.json, not https:\/\/github\.com\/.*latest\.json.*never see v1\.1\.0/)])
+  })
+
+  it('fails when the previous release carries no address at all', async () => {
+    const { result } = await verify(world({ endpoints: { [PREVIOUS]: [] } }), TAG)
+
+    expect(result.failures).toEqual([expect.stringMatching(/installed v1\.0\.2 asks no address/)])
+  })
+
+  it('fails when the previous release’s endpoints cannot be read', async () => {
+    const { result } = await verify(world({ endpoints: { [PREVIOUS]: new Error('gh: HTTP 404') } }), TAG)
+
+    expect(result.failures).toEqual([expect.stringMatching(/update address of v1\.0\.2 could not be read.*404/)])
+  })
+
+  it('fails when the feed would not offer an installed previous release anything newer', async () => {
+    const { result } = await verify(world({}, goodFiles({ manifestTag: 'v1.0.1', signedVersion: '1.0.1' })), TAG)
+
+    expect(result.failures.some((line) => /installed v1\.0\.2 would not be offered v1\.1\.0.*announces 1\.0\.1/.test(line))).toBe(true)
+  })
+
+  it('does not count the SAME version as an offer: an installed copy is offered something newer, nothing else', async () => {
+    const { result } = await verify(world({}, goodFiles({ manifestTag: 'v1.0.2', signedVersion: '1.0.2' })), TAG)
+
+    expect(result.failures.some((line) => /installed v1\.0\.2 would not be offered v1\.1\.0.*announces 1\.0\.2/.test(line))).toBe(true)
+  })
+
+  it('fails a signature the PREVIOUS release’s key does not accept, even when this release’s own key does: that is the key an installed app trusts', async () => {
+    const { result } = await verify(world({ previousPubkey: other.pubkey }), TAG)
+
+    expect(result.failures).toHaveLength(2)
+    expect(result.failures.every((line) => /an installed v1\.0\.2 would reject this update/.test(line))).toBe(true)
+    expect(result.failures.some((line) => line.includes(EXE))).toBe(true)
+    expect(result.failures.some((line) => line.includes(TAR))).toBe(true)
+  })
+
+  it('fails when the previous release’s key cannot be read, or is not a minisign key', async () => {
+    const notAKey = await verify(world({ previousPubkey: Buffer.from('not a key').toString('base64') }), TAG)
+    const unreadable = await verify(world({ previousPubkeyFails: new Error('gh: HTTP 404') }), TAG)
+
+    expect(notAKey.result.failures).toEqual([expect.stringMatching(/public key of v1\.0\.2 is not a minisign public key/)])
+    expect(unreadable.result.failures).toEqual([expect.stringMatching(/public key of v1\.0\.2 could not be read.*404/)])
+  })
+
+  it('does not say all is well in the update path when anything in it failed', async () => {
+    const cases = [
+      world({ endpoints: { [PREVIOUS]: ['https://example.invalid/latest.json'] } }),
+      world({ previousPubkey: other.pubkey }),
+      world({ previousPubkeyFails: new Error('gh: HTTP 404') }),
+      world({ endpoints: { [PREVIOUS]: new Error('gh: HTTP 404') } }),
+    ]
+
+    for (const w of cases) {
+      const { log } = await verify(w, TAG)
+
+      expect(log.join('\n')).not.toMatch(/An installed .* accepts the signatures/)
+    }
+  })
+
+  it('is not run for an older release (the feed does not serve it), nor for the first release (nothing was installed before it)', async () => {
+    const older = await verify(world({}, goodFiles({ tag: PREVIOUS }), PREVIOUS), PREVIOUS)
+    const first = await verify(world({ tags: ['v1.0.0'], commits: { 'v1.0.0': COMMIT }, attested: (_n, _t, commit) => commit === COMMIT }, goodFiles({ tag: 'v1.0.0' }), 'v1.0.0'), 'v1.0.0')
+
+    expect(older.endpointReads).toEqual([])
+    expect(first.endpointReads).toEqual([])
+    expect(first.result.failures).toEqual([])
+  })
+
+  it('says nothing more when latest.json could not be read: that failure is the whole story', async () => {
+    const w = world()
+    w.urls.set(LATEST_MANIFEST_URL, new Error('503 Service Unavailable'))
+
+    const { result } = await verify(w, TAG)
+
+    expect(result.failures).toHaveLength(1)
   })
 })
 
