@@ -147,12 +147,19 @@ export async function releaseVerify(options: ReleaseVerifyOptions, host: VerifyH
     else fail(`${name} does not match its checksum in SHA256SUMS`)
   }
 
+  // The two files the updater downloads, with the bytes fetched and the signature `latest.json` holds for each. One that is missing, or has
+  // no signature, is already a failure above and is left out here.
+  const platformFiles = [['windows-x86_64', exe], ['darwin-aarch64', archive]] as const
+  const updateFiles = platformFiles.flatMap(([platform, name]) => {
+    const data = bytes.get(name)
+    const signature = signatureOf(manifest, platform)
+
+    return data === undefined || signature === undefined ? [] : [{ name, data, signature }]
+  })
+
   // 3. The signatures of the two update files against the tag's key.
   if (pubkey !== undefined && keyId !== undefined) {
-    for (const [platform, name] of [['windows-x86_64', exe], ['darwin-aarch64', archive]] as const) {
-      const data = bytes.get(name)
-      const signature = signatureOf(manifest, platform)
-      if (data === undefined || signature === undefined) continue
+    for (const { name, data, signature } of updateFiles) {
       const verdict = verifyMinisign(pubkey, signature, data)
       if (verdict.ok) log(`${name}  signature verifies against the key of ${tag} (${verdict.trustedComment.replace(/\t/g, ' ')})`)
       else fail(`${name}: ${verdict.reason}`)
@@ -161,13 +168,7 @@ export async function releaseVerify(options: ReleaseVerifyOptions, host: VerifyH
 
   // 3b. The update path: what an app installed at the previous release does with this one. Only the newest release is served by the feed.
   if (tag === latest && previous !== undefined) {
-    const signed = ([['windows-x86_64', exe], ['darwin-aarch64', archive]] as const).flatMap(([platform, name]) => {
-      const data = bytes.get(name)
-      const signature = signatureOf(manifest, platform)
-
-      return data === undefined || signature === undefined ? [] : [{ name, data, signature }]
-    })
-    await checkUpdatePath(host, { tag, previous, feedUrl: manifestUrl, manifest, files: signed, expected: 2 }, log, fail)
+    await checkUpdatePath(host, { tag, previous, feedUrl: manifestUrl, manifest, files: updateFiles, expected: platformFiles.length }, log, fail)
   }
 
   // 4. The attestations, and the control that the check can say no.

@@ -451,7 +451,7 @@ describe('the update path: what an app installed at the previous release does wi
     const wrongFirst = await verify(world({ endpoints: { [PREVIOUS]: ['https://example.invalid/latest.json', LATEST_MANIFEST_URL] } }), TAG)
     const fallback = await verify(world({ endpoints: { [PREVIOUS]: [LATEST_MANIFEST_URL, 'https://example.invalid/latest.json'] } }), TAG)
 
-    expect(wrongFirst.result.failures).toEqual([expect.stringMatching(/installed v1\.0\.2 asks https:\/\/example\.invalid\/latest\.json first, not https:\/\/github\.com\/.*latest\.json/)])
+    expect(wrongFirst.result.failures).toEqual([expect.stringMatching(/installed v1\.0\.2 asks https:\/\/example\.invalid\/latest\.json first, not https:\/\/github\.com\/.*latest\.json: it would be offered what that address says, not what this feed says, for v1\.1\.0/)])
     expect(fallback.result.failures).toEqual([])
   })
 

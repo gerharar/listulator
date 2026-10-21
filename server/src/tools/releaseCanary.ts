@@ -109,13 +109,17 @@ export async function releaseCanary(options: ReleaseCanaryOptions, host: CanaryH
   }
   const failures: string[] = []
   const fail = (line: string) => failures.push(line.replace(/\s+/g, ' ').trim().slice(0, 400))
+  /** Reports why it stops, and stops. */
+  const stop = (line: string): ReleaseCanaryResult => {
+    fail(line)
+
+    return { failures }
+  }
 
   const published = (await host.publishedTags()).filter(isStableTag).sort((a, b) => compareVersions(b.slice(1), a.slice(1)))
   const latest = published[0]
   if (latest === undefined) {
-    fail('There is no published release to check')
-
-    return { failures }
+    return stop('There is no published release to check')
   }
   const previous = published[1]
   if (previous === undefined) {
@@ -129,9 +133,7 @@ export async function releaseCanary(options: ReleaseCanaryOptions, host: CanaryH
   const exe = win32.join(installDir, APP_EXE)
 
   if (host.exists(installDir)) {
-    fail(`${PRODUCT} is already installed at ${installDir}: this canary never touches an install it did not make`)
-
-    return { failures }
+    return stop(`${PRODUCT} is already installed at ${installDir}: this canary never touches an install it did not make`)
   }
 
   const dir = await host.makeTempDir()
@@ -143,25 +145,19 @@ export async function releaseCanary(options: ReleaseCanaryOptions, host: CanaryH
     const sums = parseSums((await host.fileBytes(win32.join(dir, 'SHA256SUMS'))).toString('utf8'))
     const wanted = sums?.get(installer)
     if (wanted === undefined) {
-      fail(`SHA256SUMS does not list ${installer}`)
-
-      return { failures }
+      return stop(`SHA256SUMS does not list ${installer}`)
     }
     const bytes = await host.fileBytes(win32.join(dir, installer))
     const actual = createHash('sha256').update(bytes).digest('hex')
     if (actual !== wanted) {
-      fail(`${installer} does not match its checksum in SHA256SUMS`)
-
-      return { failures }
+      return stop(`${installer} does not match its checksum in SHA256SUMS`)
     }
     log(`${installer}  sha256 ${actual} matches SHA256SUMS`)
 
     // 1b. And it must be the owner's: the checksum list came from the same place as the installer, the signature did not.
     const problem = await installerSignatureProblem(host, previous, installer, bytes, await host.fileBytes(win32.join(dir, 'latest.json')))
     if (problem !== undefined) {
-      fail(problem)
-
-      return { failures }
+      return stop(problem)
     }
     log(`${installer}  signature verifies against the key of ${previous} (the updater key, which never leaves the owner's machine)`)
 
@@ -169,23 +165,17 @@ export async function releaseCanary(options: ReleaseCanaryOptions, host: CanaryH
     installed = true
     const code = await host.runInstaller(win32.join(dir, installer))
     if (code !== 0) {
-      fail(`The installer ended with ${code}`)
-
-      return { failures }
+      return stop(`The installer ended with ${code}`)
     }
     if (!host.exists(exe)) {
-      fail(`${APP_EXE} is not in ${installDir} after the installer ended`)
-
-      return { failures }
+      return stop(`${APP_EXE} is not in ${installDir} after the installer ended`)
     }
     log(`${PRODUCT} ${previous} installed from ${installer}`)
 
     // 3. It says what it is.
     const said = await host.fileVersion(exe)
     if (said === undefined || releaseVersionOf(said) !== version) {
-      fail(`The installed program carries version ${said ?? 'none'}, not ${version}`)
-
-      return { failures }
+      return stop(`The installed program carries version ${said ?? 'none'}, not ${version}`)
     }
     log(`The installed program says it is ${version}`)
 
@@ -198,31 +188,23 @@ export async function releaseCanary(options: ReleaseCanaryOptions, host: CanaryH
       if (!ready && second < START_TIMEOUT_S - 1) await host.pause(POLL_MS)
     }
     if (!ready) {
-      fail(`The app did not open a responding window within ${START_TIMEOUT_S} s`)
-
-      return { failures }
+      return stop(`The app did not open a responding window within ${START_TIMEOUT_S} s`)
     }
     for (let second = 1; second <= STAY_UP_S; second++) {
       await host.pause(POLL_MS)
       const running = await host.processes(installDir)
       if (running.length === 0) {
-        fail(`The app ended after ${second} s`)
-
-        return { failures }
+        return stop(`The app ended after ${second} s`)
       }
       if (!running.some((process) => process.responding)) {
-        fail(`The app stopped responding after ${second} s`)
-
-        return { failures }
+        return stop(`The app stopped responding after ${second} s`)
       }
     }
     log(`The app opened a window that answers, and answered for ${STAY_UP_S} s`)
 
     return { failures }
   } catch (error) {
-    fail(`Stopped: ${reason(error)}`)
-
-    return { failures }
+    return stop(`Stopped: ${reason(error)}`)
   } finally {
     // Whatever happened: the app is stopped first (so the uninstaller finds nothing running), then uninstalled, then the download goes.
     if (started || installed) await host.stopApp(installDir).catch(() => undefined)

@@ -45,7 +45,8 @@ export async function checkUpdatePath(host: UpdatePathHost, input: UpdatePathInp
     const endpoints = await host.updaterEndpoints(previous)
     // Tauri tries the addresses in order: the feed has to be the first (a fallback after it is fine).
     if (endpoints.length === 0) bad(`An installed ${previous} asks no address: it would never look for ${tag}`)
-    else if (endpoints[0] !== feedUrl) bad(`An installed ${previous} asks ${endpoints[0]} first, not ${feedUrl}: it would ${endpoints.includes(feedUrl) ? 'be offered what that address says, not what this feed says, for' : 'never see'} ${tag}`)
+    else if (endpoints[0] !== feedUrl && endpoints.includes(feedUrl)) bad(`An installed ${previous} asks ${endpoints[0]} first, not ${feedUrl}: it would be offered what that address says, not what this feed says, for ${tag}`)
+    else if (endpoints[0] !== feedUrl) bad(`An installed ${previous} asks ${endpoints[0]} first, not ${feedUrl}: it would never see ${tag}`)
   } catch (error) {
     bad(`The update address of ${previous} could not be read: ${reason(error)}`)
   }
