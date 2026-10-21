@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url'
 import { ciVerdict, listCiRuns, type CiRun } from './ciCheck.js'
 import { nodeRunner, type Runner } from './releaseSign.js'
 import { runChecked } from './runChecked.js'
+import { reason, short } from './toolText.js'
 import { isRunDirectly } from './runDirectly.js'
 import { compareVersions } from './updateManifest.js'
 import { RELEASE_VERSION, VERSION_SOURCES } from './versionSources.js'
@@ -78,8 +79,6 @@ export interface ReleasePrepareResult {
   pushed: boolean
 }
 
-const reason = (error: unknown): string => (error instanceof Error ? error.message : String(error))
-const short = (commit: string): string => commit.slice(0, 12)
 const escapeRegExp = (text: string): string => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 
 interface StatusEntry {

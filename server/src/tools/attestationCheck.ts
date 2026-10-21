@@ -1,4 +1,5 @@
 import { join } from 'node:path'
+import { reason } from './toolText.js'
 
 /**
  * The attestation check and its negative control, shared by `release:verify` (31.4, the public files) and `release:audit` (31.10,
@@ -23,8 +24,6 @@ export interface AttestationInput {
   /** The previous release's tag, if there is one; the first release has none and the control is skipped. */
   previous: string | undefined
 }
-
-const reason = (error: unknown): string => (error instanceof Error ? error.message : String(error))
 
 /**
  * Says what it found through `log` (a pass) and `fail` (a failure, one sentence). A file that fails the real check is not put to the

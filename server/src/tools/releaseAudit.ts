@@ -25,6 +25,7 @@ import {
 import { CONFIG_PATH, createGhHost, nodeRunner, parseSums, type ReleaseHost, type Runner } from './releaseSign.js'
 import { isRunDirectly } from './runDirectly.js'
 import { runChecked } from './runChecked.js'
+import { isStableTag, reason } from './toolText.js'
 import { assetName, compareVersions } from './updateManifest.js'
 import { RELEASE_VERSION } from './versionSources.js'
 
@@ -86,8 +87,6 @@ export interface ReleaseAuditResult {
   failures: string[]
 }
 
-const isStableTag = (value: string): boolean => value.startsWith('v') && !value.includes('-') && RELEASE_VERSION.test(value.slice(1))
-const reason = (error: unknown): string => (error instanceof Error ? error.message : String(error))
 const MAX_DIFFERENCES = 10
 const MAX_AREAS = 8
 

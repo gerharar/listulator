@@ -1,5 +1,6 @@
 import { REPO, type Runner } from './releaseSign.js'
 import { runChecked } from './runChecked.js'
+import { short } from './toolText.js'
 
 /**
  * The CI gate of a release, shared by `release:prepare` (31.3, HEAD before the version commit) and `release:ship` (31.5, the commit
@@ -13,8 +14,6 @@ export interface CiRun {
   createdAt: string
   headSha: string
 }
-
-const short = (commit: string): string => commit.slice(0, 12)
 
 /** The `ci.yml` runs of one commit, as GitHub lists them. */
 export async function listCiRuns(run: Runner, commit: string, cwd?: string): Promise<CiRun[]> {
