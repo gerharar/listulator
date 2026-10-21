@@ -4,7 +4,7 @@ import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { makeKeyPair, signLikeTauri } from './minisignTesting.js'
 import { verifyMinisign } from './minisignVerify.js'
-import { buildKitScenarios, parseKitArguments, writeKit, type KitInput } from './updaterTestKit.js'
+import { buildKitScenarios, buildWindowsKitScenarios, parseKitArguments, writeKit, type KitInput } from './updaterTestKit.js'
 
 /**
  * The folders for the updater's two-version test (20.13b): one folder per test case, each holding the files and the `latest.json`
@@ -231,5 +231,71 @@ describe('the command line', () => {
     ['--installed without a value', ['/in', '/out', '--installed']],
   ])('refuses %s, in words', (_name, args) => {
     expect(typeof parseKitArguments(args)).toBe('string')
+  })
+})
+
+/**
+ * The same cases for the Windows update test (Phase 31, task 31.8), where only the Windows installer exists and it is signed with a key
+ * made for the run: no macOS archive, no real key. The macOS entry of "the other system" is a stand-in nobody downloads.
+ */
+describe('the test cases for the Windows update test', () => {
+  const winInput = { exe: input().exe, installed: INSTALLED, pubkey: app.pubkey, pubDate: '2026-10-20T08:30:00Z' }
+  const win = (name: string, over: Partial<typeof winInput> = {}) => buildWindowsKitScenarios({ ...winInput, ...over }).find((entry) => entry.name === name)!
+  const entries = (name: string) => manifestOf(win(name)).platforms
+
+  it('has one folder per case that a Windows machine can run', () => {
+    expect(buildWindowsKitScenarios(winInput).map((entry) => entry.name)).toEqual(['ok', 'tampered', 'wrong-key', 'wrong-version', 'other-os-windows', 'same-version', 'lower-version'])
+  })
+
+  it('ok: the installer, its signature and a manifest that announces the signed version, at the local server', () => {
+    const entry = win('ok')
+
+    expect(Object.keys(entry.files).sort()).toEqual([EXE, `${EXE}.sig`, 'latest.json'].sort())
+    expect(manifestOf(entry).version).toBe(SIGNED)
+    expect(entries('ok')['windows-x86_64']!.url).toBe(`http://127.0.0.1:8099/${EXE}`)
+    expect(Object.keys(entries('ok'))).toEqual(['windows-x86_64'])
+  })
+
+  it('tampered: one byte of the installer changed after signing, everything else as in ok', () => {
+    const ok = win('ok')
+    const changed = Buffer.from(win('tampered').files[EXE]!)
+
+    expect(changed.length).toBe(exeBytes.length)
+    expect(changed.equals(exeBytes)).toBe(false)
+    expect(win('tampered').files['latest.json']).toEqual(ok.files['latest.json'])
+  })
+
+  it('wrong-key: a signature by another key that is right in every other way (same file, same version)', () => {
+    const entry = win('wrong-key')
+    const signature = manifestOf(entry).platforms['windows-x86_64']!.signature
+
+    expect(verifyMinisign(app.pubkey, signature, exeBytes)).toMatchObject({ ok: false })
+    expect(Buffer.from(signature, 'base64').toString()).toContain(`file:${EXE}\tversion:${SIGNED}`)
+    expect(entry.files[`${EXE}.sig`]).toBe(signature)
+  })
+
+  it('wrong-version: announces 99.0.0, so only the version the signature carries can refuse it', () => {
+    expect(manifestOf(win('wrong-version')).version).toBe('99.0.0')
+    expect(entries('wrong-version')['windows-x86_64']!.signature).toBe(entries('ok')['windows-x86_64']!.signature)
+  })
+
+  it('other-os-windows: a manifest with an entry for the other system only', () => {
+    expect(Object.keys(entries('other-os-windows'))).toEqual(['darwin-aarch64'])
+  })
+
+  it('same-version and lower-version: the update is not newer than the installed app', () => {
+    expect(manifestOf(win('same-version')).version).toBe(INSTALLED)
+    expect(manifestOf(win('lower-version')).version).toBe('0.0.1')
+  })
+
+  it('refuses an installer whose signature does not verify against the key it is checked with, or an update that is not newer', () => {
+    expect(() => buildWindowsKitScenarios({ ...winInput, pubkey: makeKeyPair('2222222222222222').pubkey })).toThrow()
+    expect(() => buildWindowsKitScenarios({ ...winInput, installed: SIGNED })).toThrow(/older/)
+  })
+
+  it('checks nothing against a key when it is given none: the key of a run is not always at hand', () => {
+    const { pubkey: _pubkey, ...withoutKey } = winInput
+
+    expect(buildWindowsKitScenarios(withoutKey)).toHaveLength(7)
   })
 })

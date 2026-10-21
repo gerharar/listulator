@@ -121,6 +121,60 @@ export function buildKitScenarios(input: KitInput): KitScenario[] {
   ]
 }
 
+export interface WindowsKitInput {
+  exe: KitFile
+  /** The version of the OLDER test build that is installed. */
+  installed: string
+  /** The public key the app trusts, when it is known: the installer's signature is then checked against it. A run's key is not always at hand. */
+  pubkey?: string
+  pubDate: string
+}
+
+/**
+ * The cases of the Windows update test (Phase 31, task 31.8): the same ones as above for a machine that has only the Windows installer,
+ * signed with the key of its run. There is no macOS archive and no real key; the macOS entry of "the other system" is a stand-in that
+ * no Windows app downloads. The other key (wrong-key) is made here, in memory, and signs nothing but this folder's installer.
+ */
+export function buildWindowsKitScenarios(input: WindowsKitInput): KitScenario[] {
+  if (!RELEASE_VERSION.test(input.installed)) throw new Error(`The installed version ${JSON.stringify(input.installed).slice(0, 40)} is not a version`)
+  const exe = { ...input.exe, signature: input.exe.signature.trim() }
+  if (input.pubkey !== undefined) {
+    const verdict = verifyMinisign(input.pubkey, exe.signature, exe.bytes)
+    if (!verdict.ok) throw new Error(`${exe.name}: ${verdict.reason}`)
+  }
+  const parsed = parseSignature(exe.signature)
+  if (typeof parsed === 'string') throw new Error(`${exe.name}: signature ${parsed}`)
+  if (parsed.file !== exe.name) throw new Error(`${exe.name}: its signature covers ${parsed.file}`)
+  const version = parsed.version
+  if (compareVersions(input.installed, version) >= 0) throw new Error(`The installed version ${input.installed} must be older than the signed version ${version}, or there is no update to test`)
+
+  const foreign = makeKeyPair('61BCBF5980E87475')
+  const sign = (name: string, bytes: Buffer) => signLikeTauri(foreign.privateKey, foreign.keyIdBytes, bytes, `timestamp:1791734534\tfile:${name}\tversion:${version}`)
+  const manifest = (announced: string, entries: { windows?: TestEntry; mac?: TestEntry }): string =>
+    `${JSON.stringify(buildTestManifest({ baseUrl: BASE_URL, version: announced, pubDate: input.pubDate, ...entries }).manifest, null, 2)}\n`
+  const real = { file: exe.name, signature: exe.signature }
+  const foreignSignature = sign(exe.name, exe.bytes)
+  const standIn = { name: 'ListulatorUpdaterTest.app.tar.gz', bytes: Buffer.from('a macOS archive that no Windows app downloads') }
+  const files = (): Record<string, Buffer | string> => ({ [exe.name]: exe.bytes, [`${exe.name}.sig`]: exe.signature })
+
+  return [
+    { name: 'ok', files: { ...files(), 'latest.json': manifest(version, { windows: real }) } },
+    { name: 'tampered', files: { ...files(), [exe.name]: tampered(exe.bytes), 'latest.json': manifest(version, { windows: real }) } },
+    {
+      name: 'wrong-key',
+      files: { ...files(), [`${exe.name}.sig`]: foreignSignature, 'latest.json': manifest(version, { windows: { file: exe.name, signature: foreignSignature } }) },
+    },
+    // Announces a version that was not the one signed, and a newer one so that only the signature's version can refuse it.
+    { name: 'wrong-version', files: { ...files(), 'latest.json': manifest('99.0.0', { windows: real }) } },
+    {
+      name: 'other-os-windows',
+      files: { [standIn.name]: standIn.bytes, 'latest.json': manifest(version, { mac: { file: standIn.name, signature: sign(standIn.name, standIn.bytes) } }) },
+    },
+    { name: 'same-version', files: { ...files(), 'latest.json': manifest(input.installed, { windows: real }) } },
+    { name: 'lower-version', files: { ...files(), 'latest.json': manifest('0.0.1', { windows: real }) } },
+  ]
+}
+
 export interface WriteKitOptions {
   inDir: string
   outDir: string

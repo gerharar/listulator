@@ -1,5 +1,5 @@
 import { win32 } from 'node:path'
-import { compareVersions } from './updateManifest.js'
+import { compareVersions, keyIdOfPublicKey } from './updateManifest.js'
 
 /**
  * The rules of the Windows update test (Phase 31, task 31.7; docs/DECISIONS.md "Phase 31"), apart from the driver that installs the
@@ -99,4 +99,54 @@ export function servedFiles(installers: { to: Installer }): string[] {
 /** What is left of the workflow's throw-away key in a temp folder (the key and its public half). The test runs after the key is deleted; if it is not, the test does not run. */
 export function leftoverKeyFiles(names: string[]): string[] {
   return names.filter((file) => /^updater-test-run\.key(\.pub)?$/.test(file))
+}
+
+export interface NegativeCase {
+  name: string
+  /** The folder of the kit to serve (`buildWindowsKitScenarios`); none for a case this machine cannot run. */
+  scenario?: string
+  /** The server drops the download after this many bytes (`updater:serve --cut-after`). */
+  cutAfter?: number
+  /** Why the case is not run here. */
+  notApplicable?: string
+}
+
+/** The negative cases of the manual test (docs/updater-test.md, Part 3), in its order. Each is run against the installed older app and must leave it as it was. */
+export const NEGATIVE_CASES: readonly NegativeCase[] = [
+  { name: 'same-version', scenario: 'same-version' },
+  { name: 'lower-version', scenario: 'lower-version' },
+  { name: 'other-os-windows', scenario: 'other-os-windows' },
+  { name: 'wrong-version', scenario: 'wrong-version' },
+  { name: 'tampered', scenario: 'tampered' },
+  { name: 'wrong-key', scenario: 'wrong-key' },
+  { name: 'cut-download', scenario: 'ok', cutAfter: 100000 },
+  { name: 'other-os-mac', notApplicable: 'the manifest with a macOS entry only is a macOS case: this is Windows (the owner runs it on the Mac)' },
+]
+
+export interface FileState {
+  size: number
+  mtimeMs: number
+}
+
+/** What differs between two listings of the install folder (path to size and time); empty when the app is as it was. */
+export function compareInstall(before: Record<string, FileState>, after: Record<string, FileState>): string[] {
+  const differences: string[] = []
+  for (const [path, state] of Object.entries(before)) {
+    const now = after[path]
+    if (now === undefined) differences.push(`${path} removed`)
+    else if (now.size !== state.size || now.mtimeMs !== state.mtimeMs) differences.push(`${path} changed`)
+  }
+  for (const path of Object.keys(after)) if (before[path] === undefined) differences.push(`${path} added`)
+
+  return differences
+}
+
+/** The minisign public keys a program carries as text (the updater plugin's key sits in the app's embedded config), each once. A caller that finds several does not guess. */
+export function embeddedPubkeys(program: Buffer): string[] {
+  const found = new Set<string>()
+  for (const match of program.toString('latin1').matchAll(/dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6[A-Za-z0-9+/]+={0,2}/g)) {
+    if (keyIdOfPublicKey(match[0]) !== undefined) found.add(match[0])
+  }
+
+  return [...found]
 }

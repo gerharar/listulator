@@ -1,7 +1,9 @@
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
-import { checkInstallerTrace, checkUpdateTrace, findAppExe, leftoverKeyFiles, parseRunArguments, pickInstallers, servedFiles, testAppPaths } from './desktopUpdateTest.js'
+import { makeKeyPair, signLikeTauri, type TestKeyPair } from './minisignTesting.js'
+import { buildWindowsKitScenarios } from './updaterTestKit.js'
+import { checkInstallerTrace, checkUpdateTrace, compareInstall, embeddedPubkeys, findAppExe, leftoverKeyFiles, NEGATIVE_CASES, parseRunArguments, pickInstallers, servedFiles, testAppPaths } from './desktopUpdateTest.js'
 
 /**
  * Tests of the parts of the Windows update test that need no Windows (Phase 31, task 31.7): which two installers a folder holds, where
@@ -137,5 +139,74 @@ describe('leftoverKeyFiles', () => {
   it("finds the run's key and its public half in a temp folder, and nothing that only looks near them", () => {
     expect(leftoverKeyFiles(['updater-test-run.key', 'updater-test-run.key.pub', 'updater-test-run.conf.json', 'other.key', 'notes.txt'])).toEqual(['updater-test-run.key', 'updater-test-run.key.pub'])
     expect(leftoverKeyFiles([])).toEqual([])
+  })
+})
+
+describe('NEGATIVE_CASES', () => {
+  it('are the seven cases of the manual test that a Windows machine can run, in the order the manual test runs them, and the one that it cannot', () => {
+    expect(NEGATIVE_CASES.map((entry) => entry.name)).toEqual(['same-version', 'lower-version', 'other-os-windows', 'wrong-version', 'tampered', 'wrong-key', 'cut-download', 'other-os-mac'])
+  })
+
+  it('each serves a folder the kit makes, and the interrupted download is the good update cut after 100000 bytes', () => {
+    const folders = buildWindowsKitScenarios({ exe: { name: name('1.0.0-rc.2'), bytes: Buffer.from('x'.repeat(50)), signature: signed() }, installed: '1.0.0-rc.1', pubDate: '2026-10-20T08:30:00Z' }).map((entry) => entry.name)
+
+    for (const entry of NEGATIVE_CASES.filter((candidate) => candidate.notApplicable === undefined)) expect(folders, entry.name).toContain(entry.scenario)
+    expect(NEGATIVE_CASES.find((entry) => entry.name === 'cut-download')).toMatchObject({ scenario: 'ok', cutAfter: 100000 })
+    expect(NEGATIVE_CASES.filter((entry) => entry.cutAfter !== undefined)).toHaveLength(1)
+  })
+
+  it('says why the macOS case is not run here, and has no folder to serve for it', () => {
+    const mac = NEGATIVE_CASES.find((entry) => entry.name === 'other-os-mac')!
+
+    expect(mac.scenario).toBeUndefined()
+    expect(mac.notApplicable).toMatch(/Windows/)
+  })
+})
+
+function signLikeTauriFor(key: TestKeyPair, file: string, version: string, bytes = Buffer.from('x'.repeat(50))): string {
+  return signLikeTauri(key.privateKey, key.keyIdBytes, bytes, `timestamp:1791734534\tfile:${file}\tversion:${version}`)
+}
+
+/** A signature for the installer of rc.2 that parses (the kit reads the file and version out of it). */
+function signed(): string {
+  return signLikeTauriFor(makeKeyPair('0123456789ABCDEF'), name('1.0.0-rc.2'), '1.0.0-rc.2')
+}
+
+describe('compareInstall', () => {
+  const before = { 'app.exe': { size: 10, mtimeMs: 1 }, 'res/a.txt': { size: 3, mtimeMs: 2 } }
+
+  it('finds nothing when nothing changed', () => {
+    expect(compareInstall(before, { ...before })).toEqual([])
+  })
+
+  it('names what was added, removed or changed', () => {
+    const after = { 'app.exe': { size: 11, mtimeMs: 1 }, 'new.dll': { size: 1, mtimeMs: 5 } }
+
+    expect(compareInstall(before, after).sort()).toEqual(['app.exe changed', 'new.dll added', 'res/a.txt removed'])
+  })
+
+  it('counts a changed time as a change, though not a changed size', () => {
+    expect(compareInstall(before, { ...before, 'app.exe': { size: 10, mtimeMs: 99 } })).toEqual(['app.exe changed'])
+  })
+})
+
+describe('embeddedPubkeys', () => {
+  const key = makeKeyPair('0123456789ABCDEF').pubkey
+  const other = makeKeyPair('FEDCBA9876543210').pubkey
+
+  it("finds the public key a program carries as text, once however often it is there, and nothing else", () => {
+    const program = Buffer.concat([Buffer.from([0, 1, 2, 255]), Buffer.from(`{"pubkey":"${key}"}`), Buffer.from([0, 0]), Buffer.from(key)])
+
+    expect(embeddedPubkeys(program)).toEqual([key])
+  })
+
+  it('finds two different keys as two, so a caller can refuse to guess', () => {
+    expect(embeddedPubkeys(Buffer.from(`${key} ${other}`)).sort()).toEqual([key, other].sort())
+  })
+
+  it('does not take the start of a key, or text that only begins like one', () => {
+    expect(embeddedPubkeys(Buffer.from(key.slice(0, 60)))).toEqual([])
+    expect(embeddedPubkeys(Buffer.from('dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA'))).toEqual([])
+    expect(embeddedPubkeys(Buffer.alloc(0))).toEqual([])
   })
 })
