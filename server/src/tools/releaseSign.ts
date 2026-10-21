@@ -31,9 +31,9 @@ import { RELEASE_VERSION } from './versionSources.js'
  * `--dry-run` does 1 to 3 and stops: no key, no signature, no upload. A run that stops anywhere leaves the draft as it was.
  */
 
-const REPO = 'gerharar/listulator'
+export const REPO = 'gerharar/listulator'
 const RELEASE_WORKFLOW = `${REPO}/.github/workflows/release.yml`
-const CONFIG_PATH = 'apps/desktop/src-tauri/tauri.conf.json'
+export const CONFIG_PATH = 'apps/desktop/src-tauri/tauri.conf.json'
 const REPO_ROOT = fileURLToPath(new URL('../../../', import.meta.url))
 
 /** What the script needs from GitHub, the signer and the disk, as intentions; `createGhHost` is the real one, the tests use a fake. */
@@ -93,7 +93,7 @@ const isInside = (child: string, parent: string): boolean => {
 }
 
 /** The lines of a `SHA256SUMS` file (`<hash>  <name>`) as a map; undefined if any line is not of that form. */
-function parseSums(text: string): Map<string, string> | undefined {
+export function parseSums(text: string): Map<string, string> | undefined {
   const sums = new Map<string, string>()
   for (const line of text.split('\n').filter((entry) => entry !== '')) {
     const match = /^([0-9a-f]{64}) [ *]([^/\\\s]+)$/.exec(line)
