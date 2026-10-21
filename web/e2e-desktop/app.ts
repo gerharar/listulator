@@ -80,3 +80,18 @@ export async function portIsClosed(): Promise<boolean> {
     () => true,
   )
 }
+
+/**
+ * What the machine looks like when the new app did not come up: the programs of the test app, any installer and WebView2, and what the
+ * updater left in the temp folder. Printed only on a failure, to read in the log (paths and times, nothing secret).
+ */
+export function describeMachine(): string {
+  const script = [
+    "Get-Process | Where-Object { $_.Path -and ($_.Path.StartsWith($env:DESKTOP_INSTALL_DIR + '\\', 'OrdinalIgnoreCase') -or $_.Name -match 'setup|ListulatorUpdaterTest|msedgewebview2') } | Select-Object Id, Name, @{n='Start';e={$_.StartTime.ToString('HH:mm:ss')}}, Path | Format-Table -AutoSize | Out-String -Width 300",
+    "Get-ChildItem $env:TEMP -Recurse -Depth 2 -Filter '*Listulator*' -ErrorAction SilentlyContinue | Select-Object FullName, Length, @{n='Written';e={$_.LastWriteTime.ToString('HH:mm:ss')}} | Format-Table -AutoSize | Out-String -Width 300",
+  ].join('; ')
+  const powershell = join(process.env['SystemRoot'] ?? 'C:\\Windows', 'System32', 'WindowsPowerShell', 'v1.0', 'powershell.exe')
+  const done = spawnSync(powershell, ['-NoProfile', '-NonInteractive', '-Command', script], { encoding: 'utf8', env: { ...process.env, DESKTOP_INSTALL_DIR: INSTALL_DIR } })
+
+  return `${done.stdout}${done.stderr}`.trim()
+}

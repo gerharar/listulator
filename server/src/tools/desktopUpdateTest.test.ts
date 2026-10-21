@@ -84,20 +84,34 @@ describe('checkInstallerTrace', () => {
 })
 
 describe('checkUpdateTrace', () => {
-  const trace = (...steps: string[]) => JSON.stringify({ entries: steps.map((step, index) => ({ t: index, step })) })
+  const entry = (step: string, index: number, over: { detail?: string; version?: string } = {}) => ({ t: index, step, ...over })
+  const trace = (...entries: ReturnType<typeof entry>[]) => JSON.stringify({ entries })
+  const update = { from: '1.0.0-rc.1', to: '1.0.0-rc.2' }
+  const good = (...more: ReturnType<typeof entry>[]) =>
+    trace(entry('pressed', 0, { version: update.from }), entry('download-finished', 1, { version: update.from }), entry('new-app-start', 2, { version: update.to, detail: `from ${update.from}` }), ...more)
 
-  it('accepts the trace of an update that went through', () => {
-    expect(checkUpdateTrace(trace('pressed', 'download-started', 'download-finished', 'new-app-start'))).toEqual([])
+  it('accepts the trace of an update that went through: the new version marks its first start as coming from the old one', () => {
+    expect(checkUpdateTrace(good(), update)).toEqual([])
   })
 
   it('fails on install-timed-out, wherever it sits', () => {
-    expect(checkUpdateTrace(trace('pressed', 'install-timed-out', 'new-app-start'))).toEqual([expect.stringMatching(/install-timed-out/)])
+    expect(checkUpdateTrace(good(entry('install-timed-out', 3)), update)).toEqual([expect.stringMatching(/install-timed-out/)])
   })
 
-  it('fails when the new app never marked its start, or the trace is missing or damaged', () => {
-    expect(checkUpdateTrace(trace('pressed', 'download-finished'))).toEqual([expect.stringMatching(/new-app-start/)])
-    expect(checkUpdateTrace(undefined)).toEqual([expect.stringMatching(/updateTrace/)])
-    expect(checkUpdateTrace('{not json')).toEqual([expect.stringMatching(/updateTrace/)])
+  it('does not take the first start of a fresh install for an update: that start comes from "unknown"', () => {
+    const fresh = trace(entry('new-app-start', 0, { version: update.from, detail: 'from unknown' }))
+
+    expect(checkUpdateTrace(fresh, update)).toEqual([expect.stringMatching(/new-app-start from 1\.0\.0-rc\.1 to 1\.0\.0-rc\.2/)])
+  })
+
+  it('does not take a start of another version, or from another version', () => {
+    expect(checkUpdateTrace(trace(entry('new-app-start', 0, { version: '9.9.9', detail: `from ${update.from}` })), update)).toHaveLength(1)
+    expect(checkUpdateTrace(trace(entry('new-app-start', 0, { version: update.to, detail: 'from 0.0.1' })), update)).toHaveLength(1)
+  })
+
+  it('fails when the trace is missing or damaged', () => {
+    expect(checkUpdateTrace(undefined, update)).toEqual([expect.stringMatching(/updateTrace/)])
+    expect(checkUpdateTrace('{not json', update)).toEqual([expect.stringMatching(/updateTrace/)])
   })
 })
 

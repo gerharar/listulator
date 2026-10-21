@@ -53,20 +53,26 @@ export function checkInstallerTrace(start: string | undefined, end: string | und
   return problems
 }
 
-/** What is wrong with the app's `updateTrace` (the JSON the update trace keeps in preferences.json) after an update; empty when it is right. */
-export function checkUpdateTrace(raw: string | undefined): string[] {
-  let steps: string[]
+/**
+ * What is wrong with the app's `updateTrace` (the JSON the update trace keeps in preferences.json) after the update from `update.from` to
+ * `update.to`; empty when it is right. The new version marks its first start as `new-app-start` coming `from <the old version>`: a fresh
+ * install marks its first start too (from "unknown"), so only that exact mark says the update happened.
+ */
+export function checkUpdateTrace(raw: string | undefined, update: { from: string; to: string }): string[] {
+  let entries: { step?: unknown; version?: unknown; detail?: unknown }[]
   try {
-    const parsed = JSON.parse(raw ?? '') as { entries?: { step?: unknown }[] }
+    const parsed = JSON.parse(raw ?? '') as { entries?: typeof entries }
     if (!Array.isArray(parsed.entries)) throw new Error('no entries')
-    steps = parsed.entries.map((entry) => String(entry.step))
+    entries = parsed.entries
   } catch {
     return ['updateTrace is missing or not readable in preferences.json']
   }
 
   const problems: string[] = []
-  if (steps.includes('install-timed-out')) problems.push('updateTrace has install-timed-out: the app gave up waiting for the installer')
-  if (!steps.includes('new-app-start')) problems.push('updateTrace has no new-app-start: the new version never marked its first start')
+  if (entries.some((entry) => entry.step === 'install-timed-out')) problems.push('updateTrace has install-timed-out: the app gave up waiting for the installer')
+  if (!entries.some((entry) => entry.step === 'new-app-start' && entry.version === update.to && entry.detail === `from ${update.from}`)) {
+    problems.push(`updateTrace has no new-app-start from ${update.from} to ${update.to}: the new version never marked its first start after the update`)
+  }
 
   return problems
 }

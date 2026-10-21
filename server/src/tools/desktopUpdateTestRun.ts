@@ -259,7 +259,7 @@ export async function run(args: readonly string[], deps: RunDeps): Promise<numbe
   // The traces are read before the data is removed, and judged even when the spec failed: they say why.
   const problems = [
     ...checkInstallerTrace(read(join(paths.dataDir, 'update-installer-trace.txt')), read(join(paths.dataDir, 'update-installer-trace-end.txt'))),
-    ...checkUpdateTrace(updateTraceOf(read(join(paths.dataDir, 'preferences.json')))),
+    ...checkUpdateTrace(updateTraceOf(read(join(paths.dataDir, 'preferences.json'))), { from: installers.from.version, to: installers.to.version }),
   ]
   for (const problem of problems) log(`TRACE: ${problem}`)
 

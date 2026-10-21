@@ -37,6 +37,8 @@ test(`negative case ${name}`, async () => {
 
   const { browser, page } = await attach()
   try {
+    // A case that failed before may have left About open; each case starts from the list screen.
+    if ((await page.locator('.q-about').count()) > 0) await closeAbout(page)
     await openAbout(page)
     if (expected!.offers !== undefined) {
       await expect(visibleStatus(page)).toHaveText(t.about.available, { timeout: 60_000 })

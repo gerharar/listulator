@@ -1,6 +1,6 @@
 import { spawn } from 'node:child_process'
 import { expect, test } from '@playwright/test'
-import { APP_EXE, attach, attachToNewApp, FROM, INSTALL_DIR, ITEMS, portIsClosed, stopApp, TITLE, TO } from './app.js'
+import { APP_EXE, attach, attachToNewApp, connect, describeMachine, FROM, INSTALL_DIR, ITEMS, portIsClosed, stopApp, TITLE, TO } from './app.js'
 import { closeAbout, openAbout, t, visibleStatus, visibleVersion } from './steps.js'
 
 /**
@@ -49,7 +49,14 @@ test('the app takes the offered update, comes back as the new version, and loses
   }
 
   // The window goes and the new app comes back by itself.
-  const { browser, page: after } = await attachToNewApp(240_000)
+  const found = await attachToNewApp(240_000).catch(async (error: unknown) => {
+    const left = await connect(3_000)
+    console.log('no new app. The window that answers on the port says:', left === null ? '(nothing answers)' : (await left.page.locator('body').innerText().catch(() => '(unreadable)')).slice(0, 500))
+    console.log(describeMachine())
+    await left?.browser.close().catch(() => undefined)
+    throw error
+  })
+  const { browser, page: after } = found
   try {
     await expect(after.getByText(t.about.updatedTo(TO))).toHaveCount(1, { timeout: 30_000 })
     await expect(after.getByRole('heading', { name: t.home.title })).toBeVisible({ timeout: 30_000 })
