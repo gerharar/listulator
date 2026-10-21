@@ -315,7 +315,7 @@ describe('checking for updates when About opens (task 13.3)', () => {
     expect(heard()).toEqual(['Downloading update…', `Version ${APP_VERSION} → 9.9.9`])
     expect((screen.getByRole('button', { name: 'Downloading…' }) as HTMLButtonElement).disabled).toBe(true)
     // The notice about the closing window is said once, with the first phase; jsdom's agent is not a Mac, so it is the Windows one.
-    await waitFor(() => expect(spoken()).toBe('Downloading update… The window closes for up to 15 seconds, then reopens by itself.'))
+    await waitFor(() => expect(spoken()).toBe('Downloading update… Listulator will close for up to 15 seconds, then reopen by itself.'))
     act(() => reports[0]!('installing'))
     expect(heard()[0]).toBe('Installing update…')
     await waitFor(() => expect(spoken()).toBe('Installing update…'))
@@ -355,8 +355,8 @@ describe('checking for updates when About opens (task 13.3)', () => {
 
     await act(async () => fireEvent.click(screen.getByRole('button', { name: 'Download Update' })))
 
-    expect(heard()).toEqual(['Close the app and try again', `Version ${APP_VERSION} → 9.9.9`])
-    await waitFor(() => expect(spoken()).toBe(`Close the app and try again Version ${APP_VERSION} → 9.9.9`))
+    expect(heard()).toEqual(['Close Listulator and try again', `Version ${APP_VERSION} → 9.9.9`])
+    await waitFor(() => expect(spoken()).toBe(`Close Listulator and try again Version ${APP_VERSION} → 9.9.9`))
   })
 
   it('says Couldn’t install the update when the update fails, never "up to date", and Try Again checks again', async () => {

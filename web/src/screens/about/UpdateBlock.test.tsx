@@ -36,7 +36,7 @@ describe('the update-status block, in English', () => {
     ['error', { status: "Couldn't check for updates", version: 'Version 1.0.0', button: 'Try Again', disabled: false }],
     ['unavailable', { status: 'Checking for updates is yet TBD', version: 'Version 1.0.0', button: 'Check For Updates', disabled: true }],
     ['installError', { status: "Couldn't install the update", version: 'Version 1.0.0 → 1.1.0', button: 'Try Again', disabled: false }],
-    ['installStuck', { status: 'Close the app and try again', version: 'Version 1.0.0 → 1.1.0', button: 'Try Again', disabled: false }],
+    ['installStuck', { status: 'Close Listulator and try again', version: 'Version 1.0.0 → 1.1.0', button: 'Try Again', disabled: false }],
     ['downloading', { status: 'Downloading update…', version: 'Version 1.0.0 → 1.1.0', button: 'Downloading…', disabled: true }],
     ['installing', { status: 'Installing update…', version: 'Version 1.0.0 → 1.1.0', button: 'Installing…', disabled: true }],
     ['restarting', { status: 'Restarting…', version: 'Version 1.0.0 → 1.1.0', button: 'Restarting…', disabled: true }],
@@ -103,7 +103,7 @@ describe('zero layout shift: every variant is in the page, only one is shown', (
       "Couldn't check for updates",
       'Checking for updates is yet TBD',
       "Couldn't install the update",
-      'Close the app and try again',
+      'Close Listulator and try again',
       'Downloading update…',
       'Installing update…',
       'Restarting…',
@@ -198,7 +198,7 @@ describe('the buttons', () => {
       ['ru', 'installing', 'Устанавливаем обновление…', 'Устанавливаем…'],
       ['ru', 'restarting', 'Перезапускаем…', 'Перезапускаем…'],
       ['ru', 'installError', 'Не шмог обновить Listulator', 'Повторить'],
-      ['ru', 'installStuck', 'Закройте приложение и попробуйте снова', 'Повторить'],
+      ['ru', 'installStuck', 'Закрой Listulator и попробуй снова', 'Повторить'],
     ] as const) {
       setActiveLanguage(language)
       renderBlock(state, { next: '1.1.0' })
@@ -258,7 +258,7 @@ describe('the notice row (canvas H-017): the window will close and reopen', () =
   it.each(['available', 'downloading', 'installing', 'restarting'] as const)('%s: says the same text, with the icon hidden from a reader', (state) => {
     renderBlock(state, { next: '1.1.0', platform: 'other' })
 
-    expect(notice()!.textContent).toBe('The window closes for up to 15 seconds, then reopens by itself.')
+    expect(notice()!.textContent).toBe('Listulator will close for up to 15 seconds, then reopen by itself.')
     expect(notice()!.querySelector('svg')!.getAttribute('aria-hidden')).toBe('true')
   })
 
@@ -277,9 +277,9 @@ describe('the notice row (canvas H-017): the window will close and reopen', () =
   })
 
   it.each([
-    ['en', 'other', 'The window closes for up to 15 seconds, then reopens by itself.'],
+    ['en', 'other', 'Listulator will close for up to 15 seconds, then reopen by itself.'],
     ['en', 'mac', 'Listulator will restart by itself.'],
-    ['ru', 'other', 'Окно закроется на время до 15 секунд и откроется само.'],
+    ['ru', 'other', 'Listulator закроется секунд на 10-15 и откроется сам.'],
     ['ru', 'mac', 'Listulator перезапустится сам.'],
     ['de', 'other', 'Das Fenster ist bis zu 15 Sekunden weg und kommt von selbst wieder.'],
     ['de', 'mac', 'Listulator startet von selbst neu.'],
@@ -297,7 +297,7 @@ describe('the notice row (canvas H-017): the window will close and reopen', () =
     agent.mockReturnValue('Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko)')
     expect(updateNoticeText()).toBe('Listulator will restart by itself.')
     agent.mockReturnValue('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36')
-    expect(updateNoticeText()).toBe('The window closes for up to 15 seconds, then reopens by itself.')
+    expect(updateNoticeText()).toBe('Listulator will close for up to 15 seconds, then reopen by itself.')
     agent.mockRestore()
   })
 })
