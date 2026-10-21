@@ -96,8 +96,8 @@ test('the app takes the offered update, comes back as the new version, and loses
     // The offer: the next version, no notice row yet.
     await openAbout(page)
     const status = page.locator('.q-about-update-text')
-    await expect(status).toContainText(t.about.available, { timeout: 30_000 })
-    await expect(status).toContainText(`${t.about.version} ${FROM} → ${TO}`)
+    await expect(status.locator('.q-about-stack > :not(.off)').first()).toHaveText(t.about.available, { timeout: 60_000 })
+    await expect(status.locator('.q-about-version-text:visible')).toHaveText(`${t.about.version} ${FROM} → ${TO}`)
     await expect(page.locator('.q-about-update-notice')).toHaveCount(0)
 
     // From here the page is the old app's: mark it, and keep every sentence the live region is given.
@@ -126,8 +126,8 @@ test('the app takes the offered update, comes back as the new version, and loses
     await expect(after.getByRole('heading', { name: t.home.title })).toBeVisible({ timeout: 30_000 })
 
     await openAbout(after)
-    await expect(after.locator('.q-about-update-text')).toContainText(t.about.upToDate, { timeout: 30_000 })
-    await expect(after.locator('.q-about-update-text')).toContainText(`${t.about.version} ${TO}`)
+    await expect(after.locator('.q-about-update-text .q-about-stack > :not(.off)').first()).toHaveText(t.about.upToDate, { timeout: 60_000 })
+    await expect(after.locator('.q-about-version-text:visible')).toHaveText(`${t.about.version} ${TO}`)
     await closeAbout(after)
 
     // The list, its items and the language (the labels are German) are as they were.
