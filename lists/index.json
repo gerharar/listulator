@@ -400,7 +400,15 @@
     "title": "House Of Cards TV series",
     "category": "tv",
     "itemCount": 73,
-    "description": "All episodes of the House Of Cards series",
+    "description": "All episodes of the House Of Cards TV series",
+    "status": "complete"
+  },
+  {
+    "path": "lists/tv/mad-men-tv.yaml",
+    "title": "Mad Men TV series",
+    "category": "tv",
+    "itemCount": 92,
+    "description": "All episodes of the Mad Men TV series",
     "status": "complete"
   },
   {
@@ -456,7 +464,7 @@
     "title": "This Is Us TV series",
     "category": "tv",
     "itemCount": 106,
-    "description": "All episodes of the This Is Us series",
+    "description": "All episodes of the This Is Us TV series",
     "status": "complete"
   },
   {
