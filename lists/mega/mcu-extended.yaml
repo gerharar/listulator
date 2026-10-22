@@ -1,0 +1,564 @@
+title: Marvel Cinematic Universe (MCU) franchise (extended; release order)
+description: "All releases in the Marvel Cinematic Universe (MCU) franchise made by Marvel Studios, in release order. Includes Agents Of S.H.I.E.L.D. (early seasons tie into the mainline MCU movies) and Netflix series (confirmed canonical). Does not include TV series and animated series not related to MCU (Inhumans, X-Men '97, etc). Seasons 1 and 2 of Agents of S.H.I.E.L.D. are split up to fit around the corresponding MCU movies in chronological viewing order"
+category: mega
+status: ongoing
+items:
+- { title: "Iron Man", year: 2008, minutes: 126, tags: [movie] }
+- { title: "The Incredible Hulk", year: 2008, minutes: 112, tags: [movie] }
+- { title: "Iron Man 2", year: 2010, minutes: 124, tags: [movie] }
+- { title: "Thor", year: 2011, minutes: 115, tags: [movie] }
+- { title: "Captain America: The First Avenger", year: 2011, minutes: 124, tags: [movie] }
+- { title: "The Consultant", year: 2011, minutes: 4, tags: [movie], notes: "Special" }
+- { title: "A Funny Thing Happened on the Way to Thor's Hammer", year: 2011, minutes: 4, tags: [movie], notes: "Special" }
+- { title: "The Avengers", year: 2012, minutes: 143, tags: [movie] }
+- { title: "Item 47", year: 2012, minutes: 12, tags: [movie], notes: "Special" }
+- { title: "Iron Man 3", year: 2013, minutes: 130, tags: [movie] }
+- { title: "Agent Carter", year: 2013, minutes: 15, tags: [movie], notes: "Special" }
+- { title: "S01E01 Pilot", year: 2013, minutes: 44, group: "Agents Of S.H.I.E.L.D.: Season 1", tags: [tv] }
+- { title: "S01E02 0-8-4", year: 2013, minutes: 41, group: "Agents Of S.H.I.E.L.D.: Season 1", tags: [tv] }
+- { title: "S01E03 The Asset", year: 2013, minutes: 43, group: "Agents Of S.H.I.E.L.D.: Season 1", tags: [tv] }
+- { title: "S01E04 Eye Spy", year: 2013, minutes: 42, group: "Agents Of S.H.I.E.L.D.: Season 1", tags: [tv] }
+- { title: "S01E05 Girl in the Flower Dress", year: 2013, minutes: 42, group: "Agents Of S.H.I.E.L.D.: Season 1", tags: [tv] }
+- { title: "S01E06 FZZT", year: 2013, minutes: 43, group: "Agents Of S.H.I.E.L.D.: Season 1", tags: [tv] }
+- { title: "Thor: The Dark World", year: 2013, minutes: 112, tags: [movie] }
+- { title: "S01E07 The Hub", year: 2013, minutes: 43, group: "Agents Of S.H.I.E.L.D.: Season 1", tags: [tv] }
+- { title: "S01E08 The Well", year: 2013, minutes: 42, group: "Agents Of S.H.I.E.L.D.: Season 1", tags: [tv] }
+- { title: "S01E09 Repairs", year: 2013, minutes: 43, group: "Agents Of S.H.I.E.L.D.: Season 1", tags: [tv] }
+- { title: "S01E10 The Bridge", year: 2013, minutes: 42, group: "Agents Of S.H.I.E.L.D.: Season 1", tags: [tv] }
+- { title: "S01E11 The Magical Place", year: 2014, minutes: 42, group: "Agents Of S.H.I.E.L.D.: Season 1", tags: [tv] }
+- { title: "S01E12 Seeds", year: 2014, minutes: 43, group: "Agents Of S.H.I.E.L.D.: Season 1", tags: [tv] }
+- { title: "S01E13 T.R.A.C.K.S.", year: 2014, minutes: 43, group: "Agents Of S.H.I.E.L.D.: Season 1", tags: [tv] }
+- { title: "S01E14 T.A.H.I.T.I.", year: 2014, minutes: 43, group: "Agents Of S.H.I.E.L.D.: Season 1", tags: [tv] }
+- { title: "S01E15 Yes Men", year: 2014, minutes: 43, group: "Agents Of S.H.I.E.L.D.: Season 1", tags: [tv] }
+- { title: "S01E16 End of the Beginning", year: 2014, minutes: 41, group: "Agents Of S.H.I.E.L.D.: Season 1", tags: [tv] }
+- { title: "All Hail The King", year: 2014, minutes: 14, tags: [movie], notes: "Special" }
+- { title: "Captain America: The Winter Soldier", year: 2014, minutes: 136, tags: [movie] }
+- { title: "S01E17 Turn, Turn, Turn", year: 2014, minutes: 43, group: "Agents Of S.H.I.E.L.D.: Season 1", tags: [tv] }
+- { title: "S01E18 Providence", year: 2014, minutes: 43, group: "Agents Of S.H.I.E.L.D.: Season 1", tags: [tv] }
+- { title: "S01E19 The Only Light in the Darkness", year: 2014, minutes: 43, group: "Agents Of S.H.I.E.L.D.: Season 1", tags: [tv] }
+- { title: "S01E20 Nothing Personal", year: 2014, minutes: 43, group: "Agents Of S.H.I.E.L.D.: Season 1", tags: [tv] }
+- { title: "S01E21 Ragtag", year: 2014, minutes: 43, group: "Agents Of S.H.I.E.L.D.: Season 1", tags: [tv] }
+- { title: "S01E22 Beginning of the End", year: 2014, minutes: 43, group: "Agents Of S.H.I.E.L.D.: Season 1", tags: [tv] }
+- { title: "Guardians of the Galaxy", year: 2014, minutes: 121, tags: [movie] }
+- { title: "S02E01 Shadows", year: 2014, minutes: 43, group: "Agents Of S.H.I.E.L.D.: Season 2", tags: [tv] }
+- { title: "S02E02 Heavy Is the Head", year: 2014, minutes: 43, group: "Agents Of S.H.I.E.L.D.: Season 2", tags: [tv] }
+- { title: "S02E03 Making Friends and Influencing People", year: 2014, minutes: 43, group: "Agents Of S.H.I.E.L.D.: Season 2", tags: [tv] }
+- { title: "S02E04 Face My Enemy", year: 2014, minutes: 42, group: "Agents Of S.H.I.E.L.D.: Season 2", tags: [tv] }
+- { title: "S02E05 A Hen in the Wolf House", year: 2014, minutes: 43, group: "Agents Of S.H.I.E.L.D.: Season 2", tags: [tv] }
+- { title: "S02E06 A Fractured House", year: 2014, minutes: 42, group: "Agents Of S.H.I.E.L.D.: Season 2", tags: [tv] }
+- { title: "S02E07 The Writing on the Wall", year: 2014, minutes: 43, group: "Agents Of S.H.I.E.L.D.: Season 2", tags: [tv] }
+- { title: "S02E08 The Things We Bury", year: 2014, minutes: 43, group: "Agents Of S.H.I.E.L.D.: Season 2", tags: [tv] }
+- { title: "S02E09 ...Ye Who Enter Here", year: 2014, minutes: 43, group: "Agents Of S.H.I.E.L.D.: Season 2", tags: [tv] }
+- { title: "S02E10 What They Become", year: 2014, minutes: 43, group: "Agents Of S.H.I.E.L.D.: Season 2", tags: [tv] }
+- { title: "S02E11 Aftershocks", year: 2015, minutes: 43, group: "Agents Of S.H.I.E.L.D.: Season 2", tags: [tv] }
+- { title: "S02E12 Who You Really Are", year: 2015, minutes: 42, group: "Agents Of S.H.I.E.L.D.: Season 2", tags: [tv] }
+- { title: "S02E13 One of Us", year: 2015, minutes: 43, group: "Agents Of S.H.I.E.L.D.: Season 2", tags: [tv] }
+- { title: "S02E14 Love in the Time of Hydra", year: 2015, minutes: 43, group: "Agents Of S.H.I.E.L.D.: Season 2", tags: [tv] }
+- { title: "S02E15 One Door Closes", year: 2015, minutes: 43, group: "Agents Of S.H.I.E.L.D.: Season 2", tags: [tv] }
+- { title: "S02E16 Afterlife", year: 2015, minutes: 43, group: "Agents Of S.H.I.E.L.D.: Season 2", tags: [tv] }
+- { title: "S02E17 Melinda", year: 2015, minutes: 43, group: "Agents Of S.H.I.E.L.D.: Season 2", tags: [tv] }
+- { title: "S02E18 The Frenemy of My Enemy", year: 2015, minutes: 43, group: "Agents Of S.H.I.E.L.D.: Season 2", tags: [tv] }
+- { title: "S02E19 The Dirty Half Dozen", year: 2015, minutes: 41, group: "Agents Of S.H.I.E.L.D.: Season 2", tags: [tv] }
+- { title: "S01E01 Now Is Not the End", year: 2015, minutes: 43, group: "Agent Carter: Season 1", tags: [tv] }
+- { title: "S01E02 Bridge and Tunnel", year: 2015, minutes: 41, group: "Agent Carter: Season 1", tags: [tv] }
+- { title: "S01E03 Time and Tide", year: 2015, minutes: 41, group: "Agent Carter: Season 1", tags: [tv] }
+- { title: "S01E04 The Blitzkrieg Button", year: 2015, minutes: 41, group: "Agent Carter: Season 1", tags: [tv] }
+- { title: "S01E05 The Iron Ceiling", year: 2015, minutes: 43, group: "Agent Carter: Season 1", tags: [tv] }
+- { title: "S01E06 A Sin to Err", year: 2015, minutes: 41, group: "Agent Carter: Season 1", tags: [tv] }
+- { title: "S01E07 SNAFU", year: 2015, minutes: 41, group: "Agent Carter: Season 1", tags: [tv] }
+- { title: "S01E08 Valediction", year: 2015, minutes: 43, group: "Agent Carter: Season 1", tags: [tv] }
+- { title: "S01E01 Into the Ring", year: 2015, minutes: 53, group: "Daredevil: Season 1", tags: [tv] }
+- { title: "S01E02 Cut Man", year: 2015, minutes: 52, group: "Daredevil: Season 1", tags: [tv] }
+- { title: "S01E03 Rabbit in a Snowstorm", year: 2015, minutes: 52, group: "Daredevil: Season 1", tags: [tv] }
+- { title: "S01E04 In the Blood", year: 2015, minutes: 52, group: "Daredevil: Season 1", tags: [tv] }
+- { title: "S01E05 World on Fire", year: 2015, minutes: 55, group: "Daredevil: Season 1", tags: [tv] }
+- { title: "S01E06 Condemned", year: 2015, minutes: 48, group: "Daredevil: Season 1", tags: [tv] }
+- { title: "S01E07 Stick", year: 2015, minutes: 50, group: "Daredevil: Season 1", tags: [tv] }
+- { title: "S01E08 Shadows in the Glass", year: 2015, minutes: 53, group: "Daredevil: Season 1", tags: [tv] }
+- { title: "S01E09 Speak of the Devil", year: 2015, minutes: 57, group: "Daredevil: Season 1", tags: [tv] }
+- { title: "S01E10 Nelson v. Murdock", year: 2015, minutes: 56, group: "Daredevil: Season 1", tags: [tv] }
+- { title: "S01E11 The Path of the Righteous", year: 2015, minutes: 58, group: "Daredevil: Season 1", tags: [tv] }
+- { title: "S01E12 The Ones We Leave Behind", year: 2015, minutes: 59, group: "Daredevil: Season 1", tags: [tv] }
+- { title: "S01E13 Daredevil", year: 2015, minutes: 55, group: "Daredevil: Season 1", tags: [tv] }
+- { title: "Avengers: Age of Ultron", year: 2015, minutes: 141, tags: [movie] }
+- { title: "S02E20 Scars", year: 2015, minutes: 43, group: "Agents Of S.H.I.E.L.D.: Season 2", tags: [tv] }
+- { title: "S02E21 S.O.S. Part One", year: 2015, minutes: 43, group: "Agents Of S.H.I.E.L.D.: Season 2", tags: [tv] }
+- { title: "S02E22 S.O.S. Part Two", year: 2015, minutes: 43, group: "Agents Of S.H.I.E.L.D.: Season 2", tags: [tv] }
+- { title: "S01E01 WHIH Newsfront Promo", year: 2015, minutes: 1, group: "WHIH Newsfront: Season 1", tags: [youtube] }
+- { title: "S01E02 WHIH Newsfront Top Stories", year: 2015, minutes: 1, group: "WHIH Newsfront: Season 1", tags: [youtube] }
+- { title: "S01E03 WHIH EXCLUSIVE: 2012 VistaCorp break-in security footage involving cyber-criminal Scott Lang", year: 2015, minutes: 2, group: "WHIH Newsfront: Season 1", tags: [youtube] }
+- { title: "S01E04 WIRED Insider Interviews Darren Cross, CEO of Pym Technologies", year: 2015, minutes: 3, group: "WHIH Newsfront: Season 1", tags: [youtube] }
+- { title: "S01E05 WHIH EXCLUSIVE: Scott Lang Interview", year: 2015, minutes: 3, group: "WHIH Newsfront: Season 1", tags: [youtube] }
+- { title: "Ant-Man", year: 2015, minutes: 117, tags: [movie] }
+- { title: "S03E01 Laws of Nature", year: 2015, minutes: 43, group: "Agents Of S.H.I.E.L.D.: Season 3", tags: [tv] }
+- { title: "S03E02 Purpose in the Machine", year: 2015, minutes: 43, group: "Agents Of S.H.I.E.L.D.: Season 3", tags: [tv] }
+- { title: "S03E03 A Wanted (Inhu)man", year: 2015, minutes: 41, group: "Agents Of S.H.I.E.L.D.: Season 3", tags: [tv] }
+- { title: "S03E04 Devils You Know", year: 2015, minutes: 43, group: "Agents Of S.H.I.E.L.D.: Season 3", tags: [tv] }
+- { title: "S03E05 4,722 Hours", year: 2015, minutes: 43, group: "Agents Of S.H.I.E.L.D.: Season 3", tags: [tv] }
+- { title: "S03E06 Among Us Hide...", year: 2015, minutes: 43, group: "Agents Of S.H.I.E.L.D.: Season 3", tags: [tv] }
+- { title: "S03E07 Chaos Theory", year: 2015, minutes: 43, group: "Agents Of S.H.I.E.L.D.: Season 3", tags: [tv] }
+- { title: "S03E08 Many Heads, One Tale", year: 2015, minutes: 43, group: "Agents Of S.H.I.E.L.D.: Season 3", tags: [tv] }
+- { title: "S03E09 Closure", year: 2015, minutes: 43, group: "Agents Of S.H.I.E.L.D.: Season 3", tags: [tv] }
+- { title: "S03E10 Maveth", year: 2015, minutes: 43, group: "Agents Of S.H.I.E.L.D.: Season 3", tags: [tv] }
+- { title: "S03E11 Bouncing Back", year: 2016, minutes: 43, group: "Agents Of S.H.I.E.L.D.: Season 3", tags: [tv] }
+- { title: "S03E12 The Inside Man", year: 2016, minutes: 43, group: "Agents Of S.H.I.E.L.D.: Season 3", tags: [tv] }
+- { title: "S03E13 Parting Shot", year: 2016, minutes: 43, group: "Agents Of S.H.I.E.L.D.: Season 3", tags: [tv] }
+- { title: "S03E14 Watchdogs", year: 2016, minutes: 42, group: "Agents Of S.H.I.E.L.D.: Season 3", tags: [tv] }
+- { title: "S03E15 Spacetime", year: 2016, minutes: 43, group: "Agents Of S.H.I.E.L.D.: Season 3", tags: [tv] }
+- { title: "S03E16 Paradise Lost", year: 2016, minutes: 43, group: "Agents Of S.H.I.E.L.D.: Season 3", tags: [tv] }
+- { title: "S03E17 The Team", year: 2016, minutes: 43, group: "Agents Of S.H.I.E.L.D.: Season 3", tags: [tv] }
+- { title: "S03E18 The Singularity", year: 2016, minutes: 43, group: "Agents Of S.H.I.E.L.D.: Season 3", tags: [tv] }
+- { title: "S03E19 Failed Experiments", year: 2016, minutes: 41, group: "Agents Of S.H.I.E.L.D.: Season 3", tags: [tv] }
+- { title: "S03E20 Emancipation", year: 2016, minutes: 43, group: "Agents Of S.H.I.E.L.D.: Season 3", tags: [tv] }
+- { title: "S03E21 Absolution", year: 2016, minutes: 43, group: "Agents Of S.H.I.E.L.D.: Season 3", tags: [tv] }
+- { title: "S03E22 Ascension", year: 2016, minutes: 43, group: "Agents Of S.H.I.E.L.D.: Season 3", tags: [tv] }
+- { title: "S01E01 AKA Ladies' Night", year: 2015, minutes: 52, group: "Jessica Jones: Season 1", tags: [tv] }
+- { title: "S01E02 AKA Crush Syndrome", year: 2015, minutes: 52, group: "Jessica Jones: Season 1", tags: [tv] }
+- { title: "S01E03 AKA It's Called Whiskey", year: 2015, minutes: 53, group: "Jessica Jones: Season 1", tags: [tv] }
+- { title: "S01E04 AKA 99 Friends", year: 2015, minutes: 48, group: "Jessica Jones: Season 1", tags: [tv] }
+- { title: "S01E05 AKA The Sandwich Saved Me", year: 2015, minutes: 49, group: "Jessica Jones: Season 1", tags: [tv] }
+- { title: "S01E06 AKA You're a Winner!", year: 2015, minutes: 53, group: "Jessica Jones: Season 1", tags: [tv] }
+- { title: "S01E07 AKA Top Shelf Perverts", year: 2015, minutes: 54, group: "Jessica Jones: Season 1", tags: [tv] }
+- { title: "S01E08 AKA WWJD?", year: 2015, minutes: 49, group: "Jessica Jones: Season 1", tags: [tv] }
+- { title: "S01E09 AKA Sin Bin", year: 2015, minutes: 55, group: "Jessica Jones: Season 1", tags: [tv] }
+- { title: "S01E10 AKA 1,000 Cuts", year: 2015, minutes: 46, group: "Jessica Jones: Season 1", tags: [tv] }
+- { title: "S01E11 AKA I've Got the Blues", year: 2015, minutes: 50, group: "Jessica Jones: Season 1", tags: [tv] }
+- { title: "S01E12 AKA Take a Bloody Number", year: 2015, minutes: 53, group: "Jessica Jones: Season 1", tags: [tv] }
+- { title: "S01E13 AKA Smile", year: 2015, minutes: 52, group: "Jessica Jones: Season 1", tags: [tv] }
+- { title: "S02E01 The Lady in the Lake", year: 2016, minutes: 42, group: "Agent Carter: Season 2", tags: [tv] }
+- { title: "S02E02 A View in the Dark", year: 2016, minutes: 43, group: "Agent Carter: Season 2", tags: [tv] }
+- { title: "S02E03 Better Angels", year: 2016, minutes: 43, group: "Agent Carter: Season 2", tags: [tv] }
+- { title: "S02E04 Smoke and Mirrors", year: 2016, minutes: 43, group: "Agent Carter: Season 2", tags: [tv] }
+- { title: "S02E05 The Atomic Job", year: 2016, minutes: 42, group: "Agent Carter: Season 2", tags: [tv] }
+- { title: "S02E06 Life of the Party", year: 2016, minutes: 43, group: "Agent Carter: Season 2", tags: [tv] }
+- { title: "S02E07 Monsters", year: 2016, minutes: 43, group: "Agent Carter: Season 2", tags: [tv] }
+- { title: "S02E08 The Edge of Mystery", year: 2016, minutes: 43, group: "Agent Carter: Season 2", tags: [tv] }
+- { title: "S02E09 A Little Song and Dance", year: 2016, minutes: 42, group: "Agent Carter: Season 2", tags: [tv] }
+- { title: "S02E10 Hollywood Ending", year: 2016, minutes: 41, group: "Agent Carter: Season 2", tags: [tv] }
+- { title: "S02E01 Bang", year: 2016, minutes: 48, group: "Daredevil: Season 2", tags: [tv] }
+- { title: "S02E02 Dogs to a Gunfight", year: 2016, minutes: 49, group: "Daredevil: Season 2", tags: [tv] }
+- { title: "S02E03 New York's Finest", year: 2016, minutes: 48, group: "Daredevil: Season 2", tags: [tv] }
+- { title: "S02E04 Penny and Dime", year: 2016, minutes: 60, group: "Daredevil: Season 2", tags: [tv] }
+- { title: "S02E05 Kinbaku", year: 2016, minutes: 55, group: "Daredevil: Season 2", tags: [tv] }
+- { title: "S02E06 Regrets Only", year: 2016, minutes: 55, group: "Daredevil: Season 2", tags: [tv] }
+- { title: "S02E07 Semper Fidelis", year: 2016, minutes: 56, group: "Daredevil: Season 2", tags: [tv] }
+- { title: "S02E08 Guilty as Sin", year: 2016, minutes: 54, group: "Daredevil: Season 2", tags: [tv] }
+- { title: "S02E09 Seven Minutes in Heaven", year: 2016, minutes: 59, group: "Daredevil: Season 2", tags: [tv] }
+- { title: "S02E10 The Man in the Box", year: 2016, minutes: 52, group: "Daredevil: Season 2", tags: [tv] }
+- { title: "S02E11 .380", year: 2016, minutes: 55, group: "Daredevil: Season 2", tags: [tv] }
+- { title: "S02E12 The Dark at the End of the Tunnel", year: 2016, minutes: 52, group: "Daredevil: Season 2", tags: [tv] }
+- { title: "S02E13 A Cold Day in Hell's Kitchen", year: 2016, minutes: 57, group: "Daredevil: Season 2", tags: [tv] }
+- { title: "Captain America: Civil War", year: 2016, minutes: 147, tags: [movie] }
+- { title: "S02E01 AVENGERS IMPACT: A WHIH Newsfront Special Report", year: 2016, minutes: 2, group: "WHIH Newsfront: Season 2", tags: [youtube] }
+- { title: "S02E02 WHIH Newsfront: The Cost of Saving the World", year: 2016, minutes: 2, group: "WHIH Newsfront: Season 2", tags: [youtube] }
+- { title: "S02E03 WHIH Newsfront: The Avengers and The White House", year: 2016, minutes: 3, group: "WHIH Newsfront: Season 2", tags: [youtube] }
+- { title: "S02E04 WHIH Newsfront Exclusive: President Ellis Discusses the Avengers", year: 2016, minutes: 3, group: "WHIH Newsfront: Season 2", tags: [youtube] }
+- { title: "S02E05 WHIH Breaking News: Attack in Lagos", year: 2016, minutes: 3, group: "WHIH Newsfront: Season 2", tags: [youtube] }
+- { title: "Team Thor", year: 2016, minutes: 4, tags: [movie], notes: "Special" }
+- { title: "S04E01 The Ghost", year: 2016, minutes: 43, group: "Agents Of S.H.I.E.L.D.: Season 4", tags: [tv] }
+- { title: "S04E02 Meet the New Boss", year: 2016, minutes: 43, group: "Agents Of S.H.I.E.L.D.: Season 4", tags: [tv] }
+- { title: "S04E03 Uprising", year: 2016, minutes: 43, group: "Agents Of S.H.I.E.L.D.: Season 4", tags: [tv] }
+- { title: "S04E04 Let Me Stand Next to Your Fire", year: 2016, minutes: 43, group: "Agents Of S.H.I.E.L.D.: Season 4", tags: [tv] }
+- { title: "S04E05 Lockup", year: 2016, minutes: 42, group: "Agents Of S.H.I.E.L.D.: Season 4", tags: [tv] }
+- { title: "S04E06 The Good Samaritan", year: 2016, minutes: 41, group: "Agents Of S.H.I.E.L.D.: Season 4", tags: [tv] }
+- { title: "S04E07 Deals with Our Devils", year: 2016, minutes: 43, group: "Agents Of S.H.I.E.L.D.: Season 4", tags: [tv] }
+- { title: "S04E08 The Laws of Inferno Dynamics", year: 2016, minutes: 42, group: "Agents Of S.H.I.E.L.D.: Season 4", tags: [tv] }
+- { title: "S04E09 Broken Promises", year: 2017, minutes: 43, group: "Agents Of S.H.I.E.L.D.: Season 4", tags: [tv] }
+- { title: "S04E10 The Patriot", year: 2017, minutes: 43, group: "Agents Of S.H.I.E.L.D.: Season 4", tags: [tv] }
+- { title: "S04E11 Wake Up", year: 2017, minutes: 43, group: "Agents Of S.H.I.E.L.D.: Season 4", tags: [tv] }
+- { title: "S04E12 Hot Potato Soup", year: 2017, minutes: 43, group: "Agents Of S.H.I.E.L.D.: Season 4", tags: [tv] }
+- { title: "S04E13 BOOM", year: 2017, minutes: 43, group: "Agents Of S.H.I.E.L.D.: Season 4", tags: [tv] }
+- { title: "S04E14 The Man Behind the Shield", year: 2017, minutes: 43, group: "Agents Of S.H.I.E.L.D.: Season 4", tags: [tv] }
+- { title: "S04E15 Self Control", year: 2017, minutes: 43, group: "Agents Of S.H.I.E.L.D.: Season 4", tags: [tv] }
+- { title: "S04E16 What If...", year: 2017, minutes: 43, group: "Agents Of S.H.I.E.L.D.: Season 4", tags: [tv] }
+- { title: "S04E17 Identity and Change", year: 2017, minutes: 43, group: "Agents Of S.H.I.E.L.D.: Season 4", tags: [tv] }
+- { title: "S04E18 No Regrets", year: 2017, minutes: 43, group: "Agents Of S.H.I.E.L.D.: Season 4", tags: [tv] }
+- { title: "S04E19 All the Madame's Men", year: 2017, minutes: 43, group: "Agents Of S.H.I.E.L.D.: Season 4", tags: [tv] }
+- { title: "S04E20 Farewell, Cruel World!", year: 2017, minutes: 41, group: "Agents Of S.H.I.E.L.D.: Season 4", tags: [tv] }
+- { title: "S04E21 The Return", year: 2017, minutes: 43, group: "Agents Of S.H.I.E.L.D.: Season 4", tags: [tv] }
+- { title: "S04E22 World's End", year: 2017, minutes: 43, group: "Agents Of S.H.I.E.L.D.: Season 4", tags: [tv] }
+- { title: "S01E01 Moment of Truth", year: 2016, minutes: 55, group: "Luke Cage: Season 1", tags: [tv] }
+- { title: "S01E02 Code of the Streets", year: 2016, minutes: 59, group: "Luke Cage: Season 1", tags: [tv] }
+- { title: "S01E03 Who's Gonna Take the Weight?", year: 2016, minutes: 57, group: "Luke Cage: Season 1", tags: [tv] }
+- { title: "S01E04 Step in the Arena", year: 2016, minutes: 53, group: "Luke Cage: Season 1", tags: [tv] }
+- { title: "S01E05 Just to Get a Rep", year: 2016, minutes: 52, group: "Luke Cage: Season 1", tags: [tv] }
+- { title: "S01E06 Suckas Need Bodyguards", year: 2016, minutes: 53, group: "Luke Cage: Season 1", tags: [tv] }
+- { title: "S01E07 Manifest", year: 2016, minutes: 52, group: "Luke Cage: Season 1", tags: [tv] }
+- { title: "S01E08 Blowin' Up the Spot", year: 2016, minutes: 49, group: "Luke Cage: Season 1", tags: [tv] }
+- { title: "S01E09 DWYCK", year: 2016, minutes: 66, group: "Luke Cage: Season 1", tags: [tv] }
+- { title: "S01E10 Take It Personal", year: 2016, minutes: 48, group: "Luke Cage: Season 1", tags: [tv] }
+- { title: "S01E11 Now You're Mine", year: 2016, minutes: 51, group: "Luke Cage: Season 1", tags: [tv] }
+- { title: "S01E12 Soliloquy of Chaos", year: 2016, minutes: 62, group: "Luke Cage: Season 1", tags: [tv] }
+- { title: "S01E13 You Know My Steez", year: 2016, minutes: 46, group: "Luke Cage: Season 1", tags: [tv] }
+- { title: "Doctor Strange", year: 2016, minutes: 115, tags: [movie] }
+- { title: "S01E01 Vendetta", year: 2016, minutes: 5, group: "Agents Of S.H.I.E.L.D.: Slingshot", tags: [tv] }
+- { title: "S01E02 John Hancock", year: 2016, minutes: 4, group: "Agents Of S.H.I.E.L.D.: Slingshot", tags: [tv] }
+- { title: "S01E03 Progress", year: 2016, minutes: 6, group: "Agents Of S.H.I.E.L.D.: Slingshot", tags: [tv] }
+- { title: "S01E04 Reunion", year: 2016, minutes: 5, group: "Agents Of S.H.I.E.L.D.: Slingshot", tags: [tv] }
+- { title: "S01E05 Deal Breaker", year: 2016, minutes: 4, group: "Agents Of S.H.I.E.L.D.: Slingshot", tags: [tv] }
+- { title: "S01E06 Justicia", year: 2016, minutes: 4, group: "Agents Of S.H.I.E.L.D.: Slingshot", tags: [tv] }
+- { title: "Team Thor: Part 2", year: 2017, minutes: 5, tags: [movie], notes: "Special" }
+- { title: "S01E01 Snow Gives Way", year: 2017, minutes: 56, group: "Iron Fist: Season 1", tags: [tv] }
+- { title: "S01E02 Shadow Hawk Takes Flight", year: 2017, minutes: 60, group: "Iron Fist: Season 1", tags: [tv] }
+- { title: "S01E03 Rolling Thunder Cannon Punch", year: 2017, minutes: 59, group: "Iron Fist: Season 1", tags: [tv] }
+- { title: "S01E04 Eight Diagram Dragon Palm", year: 2017, minutes: 53, group: "Iron Fist: Season 1", tags: [tv] }
+- { title: "S01E05 Under Leaf Pluck Lotus", year: 2017, minutes: 56, group: "Iron Fist: Season 1", tags: [tv] }
+- { title: "S01E06 Immortal Emerges from Cave", year: 2017, minutes: 52, group: "Iron Fist: Season 1", tags: [tv] }
+- { title: "S01E07 Felling Tree with Roots", year: 2017, minutes: 58, group: "Iron Fist: Season 1", tags: [tv] }
+- { title: "S01E08 The Blessing of Many Fractures", year: 2017, minutes: 54, group: "Iron Fist: Season 1", tags: [tv] }
+- { title: "S01E09 The Mistress of All Agonies", year: 2017, minutes: 54, group: "Iron Fist: Season 1", tags: [tv] }
+- { title: "S01E10 Black Tiger Steals Heart", year: 2017, minutes: 56, group: "Iron Fist: Season 1", tags: [tv] }
+- { title: "S01E11 Lead Horse Back to Stable", year: 2017, minutes: 52, group: "Iron Fist: Season 1", tags: [tv] }
+- { title: "S01E12 Bar the Big Boss", year: 2017, minutes: 49, group: "Iron Fist: Season 1", tags: [tv] }
+- { title: "S01E13 Dragon Plays with Fire", year: 2017, minutes: 53, group: "Iron Fist: Season 1", tags: [tv] }
+- { title: "Guardians of the Galaxy Vol. 2", year: 2017, minutes: 136, tags: [movie] }
+- { title: "Spider-Man: Homecoming", year: 2017, minutes: 133, tags: [movie] }
+- { title: "S01E01 The H Word", year: 2017, minutes: 51, group: "The Defenders", tags: [tv] }
+- { title: "S01E02 Mean Right Hook", year: 2017, minutes: 44, group: "The Defenders", tags: [tv] }
+- { title: "S01E03 Worst Behavior", year: 2017, minutes: 54, group: "The Defenders", tags: [tv] }
+- { title: "S01E04 Royal Dragon", year: 2017, minutes: 44, group: "The Defenders", tags: [tv] }
+- { title: "S01E05 Take Shelter", year: 2017, minutes: 50, group: "The Defenders", tags: [tv] }
+- { title: "S01E06 Ashes, Ashes", year: 2017, minutes: 50, group: "The Defenders", tags: [tv] }
+- { title: "S01E07 Fish in the Jailhouse", year: 2017, minutes: 45, group: "The Defenders", tags: [tv] }
+- { title: "S01E08 The Defenders", year: 2017, minutes: 55, group: "The Defenders", tags: [tv] }
+- { title: "Thor: Ragnarok", year: 2017, minutes: 130, tags: [movie] }
+- { title: "S01E01 3AM", year: 2017, minutes: 51, group: "The Punisher: Season 1", tags: [tv] }
+- { title: "S01E02 Two Dead Men", year: 2017, minutes: 56, group: "The Punisher: Season 1", tags: [tv] }
+- { title: "S01E03 Kandahar", year: 2017, minutes: 57, group: "The Punisher: Season 1", tags: [tv] }
+- { title: "S01E04 Resupply", year: 2017, minutes: 48, group: "The Punisher: Season 1", tags: [tv] }
+- { title: "S01E05 Gunner", year: 2017, minutes: 54, group: "The Punisher: Season 1", tags: [tv] }
+- { title: "S01E06 The Judas Goat", year: 2017, minutes: 54, group: "The Punisher: Season 1", tags: [tv] }
+- { title: "S01E07 Crosshairs", year: 2017, minutes: 48, group: "The Punisher: Season 1", tags: [tv] }
+- { title: "S01E08 Cold Steel", year: 2017, minutes: 52, group: "The Punisher: Season 1", tags: [tv] }
+- { title: "S01E09 Front Toward Enemy", year: 2017, minutes: 53, group: "The Punisher: Season 1", tags: [tv] }
+- { title: "S01E10 Virtue of the Vicious", year: 2017, minutes: 48, group: "The Punisher: Season 1", tags: [tv] }
+- { title: "S01E11 Danger Close", year: 2017, minutes: 51, group: "The Punisher: Season 1", tags: [tv] }
+- { title: "S01E12 Home", year: 2017, minutes: 50, group: "The Punisher: Season 1", tags: [tv] }
+- { title: "S01E13 Memento Mori", year: 2017, minutes: 54, group: "The Punisher: Season 1", tags: [tv] }
+- { title: "S05E01 Orientation, Part One", year: 2017, minutes: 43, group: "Agents Of S.H.I.E.L.D.: Season 5", tags: [tv] }
+- { title: "S05E02 Orientation, Part Two", year: 2017, minutes: 43, group: "Agents Of S.H.I.E.L.D.: Season 5", tags: [tv] }
+- { title: "S05E03 A Life Spent", year: 2017, minutes: 43, group: "Agents Of S.H.I.E.L.D.: Season 5", tags: [tv] }
+- { title: "S05E04 A Life Earned", year: 2017, minutes: 43, group: "Agents Of S.H.I.E.L.D.: Season 5", tags: [tv] }
+- { title: "S05E05 Rewind", year: 2017, minutes: 43, group: "Agents Of S.H.I.E.L.D.: Season 5", tags: [tv] }
+- { title: "S05E06 Fun & Games", year: 2018, minutes: 42, group: "Agents Of S.H.I.E.L.D.: Season 5", tags: [tv] }
+- { title: "S05E07 Together or Not at All", year: 2018, minutes: 41, group: "Agents Of S.H.I.E.L.D.: Season 5", tags: [tv] }
+- { title: "S05E08 The Last Day", year: 2018, minutes: 43, group: "Agents Of S.H.I.E.L.D.: Season 5", tags: [tv] }
+- { title: "S05E09 Best Laid Plans", year: 2018, minutes: 42, group: "Agents Of S.H.I.E.L.D.: Season 5", tags: [tv] }
+- { title: "S05E10 Past Life", year: 2018, minutes: 43, group: "Agents Of S.H.I.E.L.D.: Season 5", tags: [tv] }
+- { title: "S05E11 All the Comforts of Home", year: 2018, minutes: 43, group: "Agents Of S.H.I.E.L.D.: Season 5", tags: [tv] }
+- { title: "S05E12 The Real Deal", year: 2018, minutes: 43, group: "Agents Of S.H.I.E.L.D.: Season 5", tags: [tv] }
+- { title: "S05E13 Principia", year: 2018, minutes: 42, group: "Agents Of S.H.I.E.L.D.: Season 5", tags: [tv] }
+- { title: "S05E14 The Devil Complex", year: 2018, minutes: 42, group: "Agents Of S.H.I.E.L.D.: Season 5", tags: [tv] }
+- { title: "S05E15 Rise and Shine", year: 2018, minutes: 43, group: "Agents Of S.H.I.E.L.D.: Season 5", tags: [tv] }
+- { title: "S05E16 Inside Voices", year: 2018, minutes: 42, group: "Agents Of S.H.I.E.L.D.: Season 5", tags: [tv] }
+- { title: "S05E17 The Honeymoon", year: 2018, minutes: 42, group: "Agents Of S.H.I.E.L.D.: Season 5", tags: [tv] }
+- { title: "S05E18 All Roads Lead...", year: 2018, minutes: 41, group: "Agents Of S.H.I.E.L.D.: Season 5", tags: [tv] }
+- { title: "S05E19 Option Two", year: 2018, minutes: 42, group: "Agents Of S.H.I.E.L.D.: Season 5", tags: [tv] }
+- { title: "S05E20 The One Who Will Save Us All", year: 2018, minutes: 42, group: "Agents Of S.H.I.E.L.D.: Season 5", tags: [tv] }
+- { title: "S05E21 The Force of Gravity", year: 2018, minutes: 43, group: "Agents Of S.H.I.E.L.D.: Season 5", tags: [tv] }
+- { title: "S05E22 The End", year: 2018, minutes: 43, group: "Agents Of S.H.I.E.L.D.: Season 5", tags: [tv] }
+- { title: "Black Panther", year: 2018, minutes: 134, tags: [movie] }
+- { title: "Team Darryl", year: 2018, minutes: 6, tags: [movie], notes: "Special" }
+- { title: "S02E01 AKA Start at the Beginning", year: 2018, minutes: 53, group: "Jessica Jones: Season 2", tags: [tv] }
+- { title: "S02E02 AKA Freak Accident", year: 2018, minutes: 55, group: "Jessica Jones: Season 2", tags: [tv] }
+- { title: "S02E03 AKA Sole Survivor", year: 2018, minutes: 54, group: "Jessica Jones: Season 2", tags: [tv] }
+- { title: "S02E04 AKA God Help the Hobo", year: 2018, minutes: 49, group: "Jessica Jones: Season 2", tags: [tv] }
+- { title: "S02E05 AKA The Octopus", year: 2018, minutes: 52, group: "Jessica Jones: Season 2", tags: [tv] }
+- { title: "S02E06 AKA Facetime", year: 2018, minutes: 48, group: "Jessica Jones: Season 2", tags: [tv] }
+- { title: "S02E07 AKA I Want Your Cray Cray", year: 2018, minutes: 53, group: "Jessica Jones: Season 2", tags: [tv] }
+- { title: "S02E08 AKA Ain't We Got Fun", year: 2018, minutes: 49, group: "Jessica Jones: Season 2", tags: [tv] }
+- { title: "S02E09 AKA Shark in the Bathtub, Monster in the Bed", year: 2018, minutes: 49, group: "Jessica Jones: Season 2", tags: [tv] }
+- { title: "S02E10 AKA Pork Chop", year: 2018, minutes: 54, group: "Jessica Jones: Season 2", tags: [tv] }
+- { title: "S02E11 AKA Three Lives and Counting", year: 2018, minutes: 48, group: "Jessica Jones: Season 2", tags: [tv] }
+- { title: "S02E12 AKA Pray for My Patsy", year: 2018, minutes: 46, group: "Jessica Jones: Season 2", tags: [tv] }
+- { title: "S02E13 AKA Playland", year: 2018, minutes: 52, group: "Jessica Jones: Season 2", tags: [tv] }
+- { title: "Avengers: Infinity War", year: 2018, minutes: 149, tags: [movie] }
+- { title: "S02E01 Soul Brother #1", year: 2018, minutes: 56, group: "Luke Cage: Season 2", tags: [tv] }
+- { title: "S02E02 Straighten It Out", year: 2018, minutes: 55, group: "Luke Cage: Season 2", tags: [tv] }
+- { title: "S02E03 Wig Out", year: 2018, minutes: 60, group: "Luke Cage: Season 2", tags: [tv] }
+- { title: "S02E04 I Get Physical", year: 2018, minutes: 54, group: "Luke Cage: Season 2", tags: [tv] }
+- { title: "S02E05 All Souled Out", year: 2018, minutes: 57, group: "Luke Cage: Season 2", tags: [tv] }
+- { title: "S02E06 The Basement", year: 2018, minutes: 64, group: "Luke Cage: Season 2", tags: [tv] }
+- { title: "S02E07 On and On", year: 2018, minutes: 55, group: "Luke Cage: Season 2", tags: [tv] }
+- { title: "S02E08 If It Ain't Rough, It Ain't Right", year: 2018, minutes: 55, group: "Luke Cage: Season 2", tags: [tv] }
+- { title: "S02E09 For Pete's Sake", year: 2018, minutes: 59, group: "Luke Cage: Season 2", tags: [tv] }
+- { title: "S02E10 The Main Ingredient", year: 2018, minutes: 59, group: "Luke Cage: Season 2", tags: [tv] }
+- { title: "S02E11 The Creator", year: 2018, minutes: 56, group: "Luke Cage: Season 2", tags: [tv] }
+- { title: "S02E12 Can't Front on Me", year: 2018, minutes: 62, group: "Luke Cage: Season 2", tags: [tv] }
+- { title: "S02E13 They Reminisce Over You", year: 2018, minutes: 69, group: "Luke Cage: Season 2", tags: [tv] }
+- { title: "Ant-Man and the Wasp", year: 2018, minutes: 118, tags: [movie] }
+- { title: "S02E01 The Fury of Iron Fist", year: 2018, minutes: 56, group: "Iron Fist: Season 2", tags: [tv] }
+- { title: "S02E02 The City's Not for Burning", year: 2018, minutes: 52, group: "Iron Fist: Season 2", tags: [tv] }
+- { title: "S02E03 This Deadly Secret", year: 2018, minutes: 51, group: "Iron Fist: Season 2", tags: [tv] }
+- { title: "S02E04 Target: Iron Fist", year: 2018, minutes: 52, group: "Iron Fist: Season 2", tags: [tv] }
+- { title: "S02E05 Heart of the Dragon", year: 2018, minutes: 54, group: "Iron Fist: Season 2", tags: [tv] }
+- { title: "S02E06 The Dragon Dies at Dawn", year: 2018, minutes: 50, group: "Iron Fist: Season 2", tags: [tv] }
+- { title: "S02E07 Morning of the Mindstorm", year: 2018, minutes: 53, group: "Iron Fist: Season 2", tags: [tv] }
+- { title: "S02E08 Citadel on the Edge of Vengeance", year: 2018, minutes: 48, group: "Iron Fist: Season 2", tags: [tv] }
+- { title: "S02E09 War Without End", year: 2018, minutes: 49, group: "Iron Fist: Season 2", tags: [tv] }
+- { title: "S02E10 A Duel of Iron", year: 2018, minutes: 51, group: "Iron Fist: Season 2", tags: [tv] }
+- { title: "S03E01 Resurrection", year: 2018, minutes: 52, group: "Daredevil: Season 3", tags: [tv] }
+- { title: "S03E02 Please", year: 2018, minutes: 49, group: "Daredevil: Season 3", tags: [tv] }
+- { title: "S03E03 No Good Deed", year: 2018, minutes: 48, group: "Daredevil: Season 3", tags: [tv] }
+- { title: "S03E04 Blindsided", year: 2018, minutes: 53, group: "Daredevil: Season 3", tags: [tv] }
+- { title: "S03E05 The Perfect Game", year: 2018, minutes: 48, group: "Daredevil: Season 3", tags: [tv] }
+- { title: "S03E06 The Devil You Know", year: 2018, minutes: 53, group: "Daredevil: Season 3", tags: [tv] }
+- { title: "S03E07 Aftermath", year: 2018, minutes: 49, group: "Daredevil: Season 3", tags: [tv] }
+- { title: "S03E08 Upstairs/Downstairs", year: 2018, minutes: 49, group: "Daredevil: Season 3", tags: [tv] }
+- { title: "S03E09 Revelations", year: 2018, minutes: 53, group: "Daredevil: Season 3", tags: [tv] }
+- { title: "S03E10 Karen", year: 2018, minutes: 45, group: "Daredevil: Season 3", tags: [tv] }
+- { title: "S03E11 Reunion", year: 2018, minutes: 49, group: "Daredevil: Season 3", tags: [tv] }
+- { title: "S03E12 One Last Shot", year: 2018, minutes: 54, group: "Daredevil: Season 3", tags: [tv] }
+- { title: "S03E13 A New Napkin", year: 2018, minutes: 53, group: "Daredevil: Season 3", tags: [tv] }
+- { title: "S02E01 Roadhouse Blues", year: 2019, minutes: 52, group: "The Punisher: Season 2", tags: [tv] }
+- { title: "S02E02 Fight or Flight", year: 2019, minutes: 54, group: "The Punisher: Season 2", tags: [tv] }
+- { title: "S02E03 Trouble the Water", year: 2019, minutes: 50, group: "The Punisher: Season 2", tags: [tv] }
+- { title: "S02E04 Scar Tissue", year: 2019, minutes: 57, group: "The Punisher: Season 2", tags: [tv] }
+- { title: "S02E05 One-Eyed Jacks", year: 2019, minutes: 50, group: "The Punisher: Season 2", tags: [tv] }
+- { title: "S02E06 Nakazat", year: 2019, minutes: 56, group: "The Punisher: Season 2", tags: [tv] }
+- { title: "S02E07 One Bad Day", year: 2019, minutes: 51, group: "The Punisher: Season 2", tags: [tv] }
+- { title: "S02E08 My Brother's Keeper", year: 2019, minutes: 48, group: "The Punisher: Season 2", tags: [tv] }
+- { title: "S02E09 Flustercluck", year: 2019, minutes: 57, group: "The Punisher: Season 2", tags: [tv] }
+- { title: "S02E10 The Dark Hearts of Men", year: 2019, minutes: 46, group: "The Punisher: Season 2", tags: [tv] }
+- { title: "S02E11 The Abyss", year: 2019, minutes: 54, group: "The Punisher: Season 2", tags: [tv] }
+- { title: "S02E12 Collision Course", year: 2019, minutes: 49, group: "The Punisher: Season 2", tags: [tv] }
+- { title: "S02E13 The Whirlwind", year: 2019, minutes: 57, group: "The Punisher: Season 2", tags: [tv] }
+- { title: "Captain Marvel", year: 2019, minutes: 123, tags: [movie] }
+- { title: "Avengers: Endgame", year: 2019, minutes: 181, tags: [movie] }
+- { title: "S06E01 Missing Pieces", year: 2019, minutes: 42, group: "Agents Of S.H.I.E.L.D.: Season 6", tags: [tv] }
+- { title: "S06E02 Window of Opportunity", year: 2019, minutes: 43, group: "Agents Of S.H.I.E.L.D.: Season 6", tags: [tv] }
+- { title: "S06E03 Fear and Loathing on the Planet of Kitson", year: 2019, minutes: 43, group: "Agents Of S.H.I.E.L.D.: Season 6", tags: [tv] }
+- { title: "S06E04 Code Yellow", year: 2019, minutes: 41, group: "Agents Of S.H.I.E.L.D.: Season 6", tags: [tv] }
+- { title: "S06E05 The Other Thing", year: 2019, minutes: 43, group: "Agents Of S.H.I.E.L.D.: Season 6", tags: [tv] }
+- { title: "S06E06 Inescapable", year: 2019, minutes: 43, group: "Agents Of S.H.I.E.L.D.: Season 6", tags: [tv] }
+- { title: "S06E07 Toldja", year: 2019, minutes: 42, group: "Agents Of S.H.I.E.L.D.: Season 6", tags: [tv] }
+- { title: "S06E08 Collision Course (Part I)", year: 2019, minutes: 42, group: "Agents Of S.H.I.E.L.D.: Season 6", tags: [tv] }
+- { title: "S06E09 Collision Course (Part II)", year: 2019, minutes: 42, group: "Agents Of S.H.I.E.L.D.: Season 6", tags: [tv] }
+- { title: "S06E10 Leap", year: 2019, minutes: 42, group: "Agents Of S.H.I.E.L.D.: Season 6", tags: [tv] }
+- { title: "S06E11 From the Ashes", year: 2019, minutes: 43, group: "Agents Of S.H.I.E.L.D.: Season 6", tags: [tv] }
+- { title: "S06E12 The Sign", year: 2019, minutes: 42, group: "Agents Of S.H.I.E.L.D.: Season 6", tags: [tv] }
+- { title: "S06E13 New Life", year: 2019, minutes: 43, group: "Agents Of S.H.I.E.L.D.: Season 6", tags: [tv] }
+- { title: "S03E01 AKA The Perfect Burger", year: 2019, minutes: 51, group: "Jessica Jones: Season 3", tags: [tv] }
+- { title: "S03E02 AKA You're Welcome", year: 2019, minutes: 54, group: "Jessica Jones: Season 3", tags: [tv] }
+- { title: "S03E03 AKA I Have No Spleen", year: 2019, minutes: 55, group: "Jessica Jones: Season 3", tags: [tv] }
+- { title: "S03E04 AKA Customer Service Is Standing By", year: 2019, minutes: 45, group: "Jessica Jones: Season 3", tags: [tv] }
+- { title: "S03E05 AKA I Wish", year: 2019, minutes: 52, group: "Jessica Jones: Season 3", tags: [tv] }
+- { title: "S03E06 AKA Sorry Face", year: 2019, minutes: 53, group: "Jessica Jones: Season 3", tags: [tv] }
+- { title: "S03E07 AKA The Double Half-Wappinger", year: 2019, minutes: 50, group: "Jessica Jones: Season 3", tags: [tv] }
+- { title: "S03E08 AKA Camera Friendly", year: 2019, minutes: 43, group: "Jessica Jones: Season 3", tags: [tv] }
+- { title: "S03E09 AKA I Did Something Today", year: 2019, minutes: 51, group: "Jessica Jones: Season 3", tags: [tv] }
+- { title: "S03E10 AKA Hero Pants", year: 2019, minutes: 49, group: "Jessica Jones: Season 3", tags: [tv] }
+- { title: "S03E11 AKA Hellcat", year: 2019, minutes: 47, group: "Jessica Jones: Season 3", tags: [tv] }
+- { title: "S03E12 AKA A Lotta Worms", year: 2019, minutes: 48, group: "Jessica Jones: Season 3", tags: [tv] }
+- { title: "S03E13 AKA Everything", year: 2019, minutes: 50, group: "Jessica Jones: Season 3", tags: [tv] }
+- { title: "Spider-Man: Far From Home", year: 2019, minutes: 129, tags: [movie] }
+- { title: "Peter's To-Do List", year: 2019, minutes: 3, tags: [movie], notes: "Special" }
+- { title: "S01E01 Spider-Man Responsible for Death of Mysterio", year: 2019, minutes: 1, group: "The Daily Bugle: Season 1", tags: [youtube] }
+- { title: "S01E02 Amateur Footage from Tower Bridge Attack", year: 2019, minutes: 1, group: "The Daily Bugle: Season 1", tags: [youtube] }
+- { title: "S01E03 Spider-Man is an Evil Psychopath - Abusing Powers", year: 2019, minutes: 1, group: "The Daily Bugle: Season 1", tags: [youtube] }
+- { title: "S01E04 Bombshell Exclusive: Spider-Man Unmasked!", year: 2019, minutes: 1, group: "The Daily Bugle: Season 1", tags: [youtube] }
+- { title: "S01E05 Coney Island to Spider-Man: Bug Off, WEBHEAD!", year: 2019, minutes: 1, group: "The Daily Bugle: Season 1", tags: [youtube] }
+- { title: "S01E06 Prime Minister to President: Pay Up!", year: 2019, minutes: 1, group: "The Daily Bugle: Season 1", tags: [youtube] }
+- { title: "S07E01 The New Deal", year: 2020, minutes: 43, group: "Agents Of S.H.I.E.L.D.: Season 7", tags: [tv] }
+- { title: "S07E02 Know Your Onions", year: 2020, minutes: 42, group: "Agents Of S.H.I.E.L.D.: Season 7", tags: [tv] }
+- { title: "S07E03 Alien Commies from the Future!", year: 2020, minutes: 42, group: "Agents Of S.H.I.E.L.D.: Season 7", tags: [tv] }
+- { title: "S07E04 Out of the Past", year: 2020, minutes: 43, group: "Agents Of S.H.I.E.L.D.: Season 7", tags: [tv] }
+- { title: "S07E05 A Trout in the Milk", year: 2020, minutes: 42, group: "Agents Of S.H.I.E.L.D.: Season 7", tags: [tv] }
+- { title: "S07E06 Adapt or Die", year: 2020, minutes: 43, group: "Agents Of S.H.I.E.L.D.: Season 7", tags: [tv] }
+- { title: "S07E07 The Totally Excellent Adventures of Mack and The D", year: 2020, minutes: 43, group: "Agents Of S.H.I.E.L.D.: Season 7", tags: [tv] }
+- { title: "S07E08 After, Before", year: 2020, minutes: 42, group: "Agents Of S.H.I.E.L.D.: Season 7", tags: [tv] }
+- { title: "S07E09 As I Have Always Been", year: 2020, minutes: 43, group: "Agents Of S.H.I.E.L.D.: Season 7", tags: [tv] }
+- { title: "S07E10 Stolen", year: 2020, minutes: 41, group: "Agents Of S.H.I.E.L.D.: Season 7", tags: [tv] }
+- { title: "S07E11 Brand New Day", year: 2020, minutes: 43, group: "Agents Of S.H.I.E.L.D.: Season 7", tags: [tv] }
+- { title: "S07E12 The End Is at Hand", year: 2020, minutes: 43, group: "Agents Of S.H.I.E.L.D.: Season 7", tags: [tv] }
+- { title: "S07E13 What We're Fighting For", year: 2020, minutes: 43, group: "Agents Of S.H.I.E.L.D.: Season 7", tags: [tv] }
+- { title: "S01E01 Filmed Before a Live Studio Audience", year: 2021, minutes: 27, group: "WandaVision", tags: [tv] }
+- { title: "S01E02 Don't Touch That Dial", year: 2021, minutes: 34, group: "WandaVision", tags: [tv] }
+- { title: "S01E03 Now in Color", year: 2021, minutes: 30, group: "WandaVision", tags: [tv] }
+- { title: "S01E04 We Interrupt This Program", year: 2021, minutes: 33, group: "WandaVision", tags: [tv] }
+- { title: "S01E05 On a Very Special Episode...", year: 2021, minutes: 38, group: "WandaVision", tags: [tv] }
+- { title: "S01E06 All-New Halloween Spooktacular!", year: 2021, minutes: 35, group: "WandaVision", tags: [tv] }
+- { title: "S01E07 Breaking the Fourth Wall", year: 2021, minutes: 35, group: "WandaVision", tags: [tv] }
+- { title: "S01E08 Previously On", year: 2021, minutes: 43, group: "WandaVision", tags: [tv] }
+- { title: "S01E09 The Series Finale", year: 2021, minutes: 47, group: "WandaVision", tags: [tv] }
+- { title: "S01E01 New World Order", year: 2021, minutes: 47, group: "The Falcon And The Winter Soldier", tags: [tv] }
+- { title: "S01E02 The Star-Spangled Man", year: 2021, minutes: 47, group: "The Falcon And The Winter Soldier", tags: [tv] }
+- { title: "S01E03 Power Broker", year: 2021, minutes: 51, group: "The Falcon And The Winter Soldier", tags: [tv] }
+- { title: "S01E04 The Whole World Is Watching", year: 2021, minutes: 51, group: "The Falcon And The Winter Soldier", tags: [tv] }
+- { title: "S01E05 Truth", year: 2021, minutes: 57, group: "The Falcon And The Winter Soldier", tags: [tv] }
+- { title: "S01E06 One World, One People", year: 2021, minutes: 49, group: "The Falcon And The Winter Soldier", tags: [tv] }
+- { title: "S01E01 Glorious Purpose", year: 2021, minutes: 50, group: "Loki: Season 1", tags: [tv] }
+- { title: "S01E02 The Variant", year: 2021, minutes: 53, group: "Loki: Season 1", tags: [tv] }
+- { title: "S01E03 Lamentis", year: 2021, minutes: 41, group: "Loki: Season 1", tags: [tv] }
+- { title: "S01E04 The Nexus Event", year: 2021, minutes: 48, group: "Loki: Season 1", tags: [tv] }
+- { title: "S01E05 Journey Into Mystery", year: 2021, minutes: 49, group: "Loki: Season 1", tags: [tv] }
+- { title: "S01E06 For All Time. Always.", year: 2021, minutes: 45, group: "Loki: Season 1", tags: [tv] }
+- { title: "Black Widow", year: 2021, minutes: 134, tags: [movie] }
+- { title: "S01E01 What If… Captain Carter Were the First Avenger?", year: 2021, minutes: 31, group: "What If…?: Season 1", tags: [animation] }
+- { title: "S01E02 What If… T'Challa Became a Star-Lord?", year: 2021, minutes: 32, group: "What If…?: Season 1", tags: [animation] }
+- { title: "S01E03 What If… the World Lost Its Mightiest Heroes?", year: 2021, minutes: 30, group: "What If…?: Season 1", tags: [animation] }
+- { title: "S01E04 What If… Doctor Strange Lost His Heart Instead of His Hands?", year: 2021, minutes: 35, group: "What If…?: Season 1", tags: [animation] }
+- { title: "S01E05 What If… Zombies?!", year: 2021, minutes: 30, group: "What If…?: Season 1", tags: [animation] }
+- { title: "S01E06 What If… Killmonger Rescued Tony Stark?", year: 2021, minutes: 31, group: "What If…?: Season 1", tags: [animation] }
+- { title: "S01E07 What If… Thor Were an Only Child?", year: 2021, minutes: 33, group: "What If…?: Season 1", tags: [animation] }
+- { title: "S01E08 What If… Ultron Won?", year: 2021, minutes: 28, group: "What If…?: Season 1", tags: [animation] }
+- { title: "S01E09 What If… The Watcher Broke His Oath?", year: 2021, minutes: 33, group: "What If…?: Season 1", tags: [animation] }
+- { title: "Shang-Chi and the Legend of the Ten Rings", year: 2021, minutes: 132, tags: [movie] }
+- { title: "Eternals", year: 2021, minutes: 157, tags: [movie] }
+- { title: "S02E01 The Daily Bugle Joins TikTok", year: 2021, minutes: 1, group: "The Daily Bugle: Season 2", tags: [youtube] }
+- { title: "S02E02 Tell Us You Hate Spider-Man...", year: 2021, minutes: 1, group: "The Daily Bugle: Season 2", tags: [youtube] }
+- { title: "S02E03 Join Us as an Intern", year: 2021, minutes: 1, group: "The Daily Bugle: Season 2", tags: [youtube] }
+- { title: "S02E04 Lightning and Sand Storms in NYC?", year: 2021, minutes: 1, group: "The Daily Bugle: Season 2", tags: [youtube] }
+- { title: "S02E05 Do YOU Have What it Takes", year: 2021, minutes: 1, group: "The Daily Bugle: Season 2", tags: [youtube] }
+- { title: "S02E06 Burning Questions with Betty Brant - Guest: Coach Wilson", year: 2021, minutes: 1, group: "The Daily Bugle: Season 2", tags: [youtube] }
+- { title: "S02E07 Burning Questions with Betty Brant - Guest: Flash Thompson", year: 2021, minutes: 1, group: "The Daily Bugle: Season 2", tags: [youtube] }
+- { title: "S02E08 Burning Questions with Betty Brant - Guest: Ned Leeds", year: 2021, minutes: 1, group: "The Daily Bugle: Season 2", tags: [youtube] }
+- { title: "S02E09 Put a Finger Down: Daily Bugle Edition", year: 2021, minutes: 1, group: "The Daily Bugle: Season 2", tags: [youtube] }
+- { title: "S02E10 Breaking News! Peter Parker aka. Spider-Man has been Released!", year: 2021, minutes: 1, group: "The Daily Bugle: Season 2", tags: [youtube] }
+- { title: "S02E11 Burning Questions with Betty Brant - Guest: Peter Parker", year: 2021, minutes: 1, group: "The Daily Bugle: Season 2", tags: [youtube] }
+- { title: "S02E12 I was Definitely Hired for my Journalist Skills and No Other Reason, Right??", year: 2021, minutes: 1, group: "The Daily Bugle: Season 2", tags: [youtube] }
+- { title: "S02E13 Get Your Fix on Daily Bugle Supplements Today! #Sponsored", year: 2022, minutes: 1, group: "The Daily Bugle: Season 2", tags: [youtube] }
+- { title: "S02E14 Web of Lies!", year: 2022, minutes: 1, group: "The Daily Bugle: Season 2", tags: [youtube] }
+- { title: "S02E15 Sticky Street Job!", year: 2022, minutes: 1, group: "The Daily Bugle: Season 2", tags: [youtube] }
+- { title: "S02E16 Spider Sycophant Revealed", year: 2022, minutes: 2, group: "The Daily Bugle: Season 2", tags: [youtube] }
+- { title: "S02E17 Spider-Menace Tip Line", year: 2022, minutes: 1, group: "The Daily Bugle: Season 2", tags: [youtube] }
+- { title: "S02E18 Savies! The New Selfies", year: 2022, minutes: 1, group: "The Daily Bugle: Season 2", tags: [youtube] }
+- { title: "S02E19 Spider-Menace Strikes Again!", year: 2022, minutes: 1, group: "The Daily Bugle: Season 2", tags: [youtube] }
+- { title: "S01E01 Never Meet Your Heroes", year: 2021, minutes: 47, group: "Hawkeye", tags: [tv] }
+- { title: "S01E02 Hide and Seek", year: 2021, minutes: 49, group: "Hawkeye", tags: [tv] }
+- { title: "S01E03 Echoes", year: 2021, minutes: 42, group: "Hawkeye", tags: [tv] }
+- { title: "S01E04 Partners, Am I Right?", year: 2021, minutes: 39, group: "Hawkeye", tags: [tv] }
+- { title: "S01E05 Ronin", year: 2021, minutes: 43, group: "Hawkeye", tags: [tv] }
+- { title: "S01E06 So This Is Christmas?", year: 2021, minutes: 59, group: "Hawkeye", tags: [tv] }
+- { title: "Spider-Man: No Way Home", year: 2021, minutes: 148, tags: [movie] }
+- { title: "S01E01 The Goldfish Problem", year: 2022, minutes: 46, group: "Moon Knight", tags: [tv] }
+- { title: "S01E02 Summon the Suit", year: 2022, minutes: 51, group: "Moon Knight", tags: [tv] }
+- { title: "S01E03 The Friendly Type", year: 2022, minutes: 50, group: "Moon Knight", tags: [tv] }
+- { title: "S01E04 The Tomb", year: 2022, minutes: 51, group: "Moon Knight", tags: [tv] }
+- { title: "S01E05 Asylum", year: 2022, minutes: 47, group: "Moon Knight", tags: [tv] }
+- { title: "S01E06 Gods and Monsters", year: 2022, minutes: 42, group: "Moon Knight", tags: [tv] }
+- { title: "Doctor Strange in the Multiverse of Madness", year: 2022, minutes: 126, tags: [movie] }
+- { title: "S01E01 Generation Why", year: 2022, minutes: 47, group: "Ms. Marvel", tags: [tv] }
+- { title: "S01E02 Crushed", year: 2022, minutes: 49, group: "Ms. Marvel", tags: [tv] }
+- { title: "S01E03 Destined", year: 2022, minutes: 45, group: "Ms. Marvel", tags: [tv] }
+- { title: "S01E04 Seeing Red", year: 2022, minutes: 45, group: "Ms. Marvel", tags: [tv] }
+- { title: "S01E05 Time and Again", year: 2022, minutes: 38, group: "Ms. Marvel", tags: [tv] }
+- { title: "S01E06 No Normal", year: 2022, minutes: 47, group: "Ms. Marvel", tags: [tv] }
+- { title: "Thor: Love and Thunder", year: 2022, minutes: 119, tags: [movie] }
+- { title: "S01E01 Groot's First Steps", year: 2022, minutes: 4, group: "I Am Groot: Season 1", tags: [animation] }
+- { title: "S01E02 The Little Guy", year: 2022, minutes: 4, group: "I Am Groot: Season 1", tags: [animation] }
+- { title: "S01E03 Groot's Pursuit", year: 2022, minutes: 4, group: "I Am Groot: Season 1", tags: [animation] }
+- { title: "S01E04 Groot Takes a Bath", year: 2022, minutes: 4, group: "I Am Groot: Season 1", tags: [animation] }
+- { title: "S01E05 Magnum Opus", year: 2022, minutes: 4, group: "I Am Groot: Season 1", tags: [animation] }
+- { title: "S01E01 A Normal Amount of Rage", year: 2022, minutes: 35, group: "She-Hulk: Attorney at Law", tags: [tv] }
+- { title: "S01E02 Superhuman Law", year: 2022, minutes: 28, group: "She-Hulk: Attorney at Law", tags: [tv] }
+- { title: "S01E03 The People vs. Emil Blonsky", year: 2022, minutes: 32, group: "She-Hulk: Attorney at Law", tags: [tv] }
+- { title: "S01E04 Is This Not Real Magic?", year: 2022, minutes: 34, group: "She-Hulk: Attorney at Law", tags: [tv] }
+- { title: "S01E05 Mean, Green, and Straight Poured into These Jeans", year: 2022, minutes: 29, group: "She-Hulk: Attorney at Law", tags: [tv] }
+- { title: "S01E06 Just Jen", year: 2022, minutes: 29, group: "She-Hulk: Attorney at Law", tags: [tv] }
+- { title: "S01E07 The Retreat", year: 2022, minutes: 32, group: "She-Hulk: Attorney at Law", tags: [tv] }
+- { title: "S01E08 Ribbit and Rip it", year: 2022, minutes: 34, group: "She-Hulk: Attorney at Law", tags: [tv] }
+- { title: "S01E09 Whose Show Is This?", year: 2022, minutes: 32, group: "She-Hulk: Attorney at Law", tags: [tv] }
+- { title: "Werewolf by Night", year: 2022, minutes: 53, tags: [tv], notes: "Special" }
+- { title: "Black Panther: Wakanda Forever", year: 2022, minutes: 161, tags: [movie] }
+- { title: "The Guardians of the Galaxy Holiday Special", year: 2022, minutes: 42, tags: [tv], notes: "Special" }
+- { title: "Ant-Man and the Wasp: Quantumania", year: 2023, minutes: 125, tags: [movie] }
+- { title: "Guardians of the Galaxy Vol. 3", year: 2023, minutes: 150, tags: [movie] }
+- { title: "S01E01 Resurrection", year: 2023, minutes: 53, group: "Secret Invasion", tags: [tv] }
+- { title: "S01E02 Promises", year: 2023, minutes: 56, group: "Secret Invasion", tags: [tv] }
+- { title: "S01E03 Betrayed", year: 2023, minutes: 42, group: "Secret Invasion", tags: [tv] }
+- { title: "S01E04 Beloved", year: 2023, minutes: 36, group: "Secret Invasion", tags: [tv] }
+- { title: "S01E05 Harvest", year: 2023, minutes: 37, group: "Secret Invasion", tags: [tv] }
+- { title: "S01E06 Home", year: 2023, minutes: 36, group: "Secret Invasion", tags: [tv] }
+- { title: "S02E01 Are You My Groot?", year: 2023, minutes: 4, group: "I Am Groot: Season 2", tags: [animation] }
+- { title: "S02E02 Groot Noses Around", year: 2023, minutes: 4, group: "I Am Groot: Season 2", tags: [animation] }
+- { title: "S02E03 Groot's Snow Day", year: 2023, minutes: 4, group: "I Am Groot: Season 2", tags: [animation] }
+- { title: "S02E04 Groot's Sweet Treat", year: 2023, minutes: 4, group: "I Am Groot: Season 2", tags: [animation] }
+- { title: "S02E05 Groot and the Great Prophecy", year: 2023, minutes: 4, group: "I Am Groot: Season 2", tags: [animation] }
+- { title: "S02E01 Ouroboros", year: 2023, minutes: 45, group: "Loki: Season 2", tags: [tv] }
+- { title: "S02E02 Breaking Brad", year: 2023, minutes: 49, group: "Loki: Season 2", tags: [tv] }
+- { title: "S02E03 1893", year: 2023, minutes: 54, group: "Loki: Season 2", tags: [tv] }
+- { title: "S02E04 Heart of the TVA", year: 2023, minutes: 48, group: "Loki: Season 2", tags: [tv] }
+- { title: "S02E05 Science/Fiction", year: 2023, minutes: 45, group: "Loki: Season 2", tags: [tv] }
+- { title: "S02E06 Glorious Purpose", year: 2023, minutes: 56, group: "Loki: Season 2", tags: [tv] }
+- { title: "The Marvels", year: 2023, minutes: 105, tags: [movie] }
+- { title: "S02E01 What If… Nebula Joined the Nova Corps?", year: 2023, minutes: 29, group: "What If…?: Season 2", tags: [animation] }
+- { title: "S02E02 What If… Peter Quill Attacked Earth's Mightiest Heroes?", year: 2023, minutes: 30, group: "What If…?: Season 2", tags: [animation] }
+- { title: "S02E03 What If… Happy Hogan Saved Christmas?", year: 2023, minutes: 27, group: "What If…?: Season 2", tags: [animation] }
+- { title: "S02E04 What If… Iron Man Crashed Into the Grandmaster?", year: 2023, minutes: 32, group: "What If…?: Season 2", tags: [animation] }
+- { title: "S02E05 What If… Captain Carter Fought the Hydra Stomper?", year: 2023, minutes: 31, group: "What If…?: Season 2", tags: [animation] }
+- { title: "S02E06 What If… Kahhori Reshaped the World?", year: 2023, minutes: 32, group: "What If…?: Season 2", tags: [animation] }
+- { title: "S02E07 What If… Hela Found the Ten Rings?", year: 2023, minutes: 29, group: "What If…?: Season 2", tags: [animation] }
+- { title: "S02E08 What If… the Avengers Assembled in 1602?", year: 2023, minutes: 30, group: "What If…?: Season 2", tags: [animation] }
+- { title: "S02E09 What If… Strange Supreme Intervened?", year: 2023, minutes: 31, group: "What If…?: Season 2", tags: [animation] }
+- { title: "S01E01 Chafa", year: 2024, minutes: 49, group: "Echo", tags: [tv] }
+- { title: "S01E02 Lowak", year: 2024, minutes: 39, group: "Echo", tags: [tv] }
+- { title: "S01E03 Tuklo", year: 2024, minutes: 42, group: "Echo", tags: [tv] }
+- { title: "S01E04 Taloa", year: 2024, minutes: 38, group: "Echo", tags: [tv] }
+- { title: "S01E05 Maya", year: 2024, minutes: 35, group: "Echo", tags: [tv] }
+- { title: "Deadpool & Wolverine", year: 2024, minutes: 128, tags: [movie] }
+- { title: "S01E01 Seekest Thou The Road", year: 2024, minutes: 40, group: "Agatha All Along", tags: [tv] }
+- { title: "S01E02 Circle Sewn with Fate Unlock Thy Hidden Gate", year: 2024, minutes: 41, group: "Agatha All Along", tags: [tv] }
+- { title: "S01E03 Through Many Miles of Tricks and Trials", year: 2024, minutes: 37, group: "Agatha All Along", tags: [tv] }
+- { title: "S01E04 If I Can't Reach You Let My Song Teach You", year: 2024, minutes: 41, group: "Agatha All Along", tags: [tv] }
+- { title: "S01E05 Darkest Hour, Wake Thy Power", year: 2024, minutes: 30, group: "Agatha All Along", tags: [tv] }
+- { title: "S01E06 Familiar by Thy Side", year: 2024, minutes: 47, group: "Agatha All Along", tags: [tv] }
+- { title: "S01E07 Death's Hand in Mine", year: 2024, minutes: 35, group: "Agatha All Along", tags: [tv] }
+- { title: "S01E08 Follow Me My Friend to Glory at the End", year: 2024, minutes: 47, group: "Agatha All Along", tags: [tv] }
+- { title: "S01E09 Maiden Mother Crone", year: 2024, minutes: 39, group: "Agatha All Along", tags: [tv] }
+- { title: "S03E01 What If… the Hulk Fought the Mech Avengers?", year: 2024, minutes: 29, group: "What If…?: Season 3", tags: [animation] }
+- { title: "S03E02 What If… Agatha Went to Hollywood?", year: 2024, minutes: 28, group: "What If…?: Season 3", tags: [animation] }
+- { title: "S03E03 What If… the Red Guardian Stopped the Winter Soldier?", year: 2024, minutes: 30, group: "What If…?: Season 3", tags: [animation] }
+- { title: "S03E04 What If… Howard the Duck Got Hitched?", year: 2024, minutes: 30, group: "What If…?: Season 3", tags: [animation] }
+- { title: "S03E05 What If… the Emergence Destroyed the Earth?", year: 2024, minutes: 31, group: "What If…?: Season 3", tags: [animation] }
+- { title: "S03E06 What If… 1872?", year: 2024, minutes: 30, group: "What If…?: Season 3", tags: [animation] }
+- { title: "S03E07 What If… the Watcher Disappeared?", year: 2024, minutes: 25, group: "What If…?: Season 3", tags: [animation] }
+- { title: "S03E08 What If… What If?", year: 2024, minutes: 32, group: "What If…?: Season 3", tags: [animation] }
+- { title: "Captain America: Brave New World", year: 2025, minutes: 118, tags: [movie] }
+- { title: "S01E01 Heaven's Half Hour", year: 2025, minutes: 59, group: "Daredevil: Born Again: Season 1", tags: [tv] }
+- { title: "S01E02 Optics", year: 2025, minutes: 47, group: "Daredevil: Born Again: Season 1", tags: [tv] }
+- { title: "S01E03 The Hollow of His Hand", year: 2025, minutes: 44, group: "Daredevil: Born Again: Season 1", tags: [tv] }
+- { title: "S01E04 Sic Semper Systema", year: 2025, minutes: 52, group: "Daredevil: Born Again: Season 1", tags: [tv] }
+- { title: "S01E05 With Interest", year: 2025, minutes: 40, group: "Daredevil: Born Again: Season 1", tags: [tv] }
+- { title: "S01E06 Excessive Force", year: 2025, minutes: 42, group: "Daredevil: Born Again: Season 1", tags: [tv] }
+- { title: "S01E07 Art for Art's Sake", year: 2025, minutes: 40, group: "Daredevil: Born Again: Season 1", tags: [tv] }
+- { title: "S01E08 Isle of Joy", year: 2025, minutes: 49, group: "Daredevil: Born Again: Season 1", tags: [tv] }
+- { title: "S01E09 Straight to Hell", year: 2025, minutes: 57, group: "Daredevil: Born Again: Season 1", tags: [tv] }
+- { title: "Thunderbolts*", year: 2025, minutes: 127, tags: [movie] }
+- { title: "S01E01 Take Me Home", year: 2025, minutes: 41, group: "Ironheart", tags: [tv] }
+- { title: "S01E02 Will the Real Natalie Please Stand Up?", year: 2025, minutes: 48, group: "Ironheart", tags: [tv] }
+- { title: "S01E03 We in Danger, Girl", year: 2025, minutes: 53, group: "Ironheart", tags: [tv] }
+- { title: "S01E04 Bad Magic", year: 2025, minutes: 50, group: "Ironheart", tags: [tv] }
+- { title: "S01E05 Karma's a Glitch", year: 2025, minutes: 57, group: "Ironheart", tags: [tv] }
+- { title: "S01E06 The Past Is the Past", year: 2025, minutes: 40, group: "Ironheart", tags: [tv] }
+- { title: "The Fantastic Four: First Steps", year: 2025, minutes: 115, tags: [movie] }
+- { title: "S01E01 Into the Lion's Den", year: 2025, minutes: 30, group: "Eyes of Wakanda", tags: [animation] }
+- { title: "S01E02 Legends and Lies", year: 2025, minutes: 29, group: "Eyes of Wakanda", tags: [animation] }
+- { title: "S01E03 Lost and Found", year: 2025, minutes: 28, group: "Eyes of Wakanda", tags: [animation] }
+- { title: "S01E04 The Last Panther", year: 2025, minutes: 27, group: "Eyes of Wakanda", tags: [animation] }
+- { title: "S01E01 Episode 1", year: 2025, minutes: 35, group: "Marvel Zombies", tags: [animation] }
+- { title: "S01E02 Episode 2", year: 2025, minutes: 31, group: "Marvel Zombies", tags: [animation] }
+- { title: "S01E03 Episode 3", year: 2025, minutes: 30, group: "Marvel Zombies", tags: [animation] }
+- { title: "S01E04 Episode 4", year: 2025, minutes: 29, group: "Marvel Zombies", tags: [animation] }
+- { title: "S01E01 Matinee", year: 2026, minutes: 33, group: "Wonder Man", tags: [tv] }
+- { title: "S01E02 Self-Tape", year: 2026, minutes: 32, group: "Wonder Man", tags: [tv] }
+- { title: "S01E03 Pacoima", year: 2026, minutes: 32, group: "Wonder Man", tags: [tv] }
+- { title: "S01E04 Doorman", year: 2026, minutes: 30, group: "Wonder Man", tags: [tv] }
+- { title: "S01E05 Found Footage", year: 2026, minutes: 24, group: "Wonder Man", tags: [tv] }
+- { title: "S01E06 Callback", year: 2026, minutes: 34, group: "Wonder Man", tags: [tv] }
+- { title: "S01E07 Kathy Friedman", year: 2026, minutes: 33, group: "Wonder Man", tags: [tv] }
+- { title: "S01E08 Yucca Valley", year: 2026, minutes: 32, group: "Wonder Man", tags: [tv] }
+- { title: "S02E01 The Northern Star", year: 2026, minutes: 51, group: "Daredevil: Born Again: Season 2", tags: [tv] }
+- { title: "S02E02 Shoot the Moon", year: 2026, minutes: 46, group: "Daredevil: Born Again: Season 2", tags: [tv] }
+- { title: "S02E03 The Scales & The Sword", year: 2026, minutes: 47, group: "Daredevil: Born Again: Season 2", tags: [tv] }
+- { title: "S02E04 Gloves Off", year: 2026, minutes: 51, group: "Daredevil: Born Again: Season 2", tags: [tv] }
+- { title: "S02E05 The Grand Design", year: 2026, minutes: 50, group: "Daredevil: Born Again: Season 2", tags: [tv] }
+- { title: "S02E06 Requiem", year: 2026, minutes: 49, group: "Daredevil: Born Again: Season 2", tags: [tv] }
+- { title: "S02E07 The Hateful Darkness", year: 2026, minutes: 44, group: "Daredevil: Born Again: Season 2", tags: [tv] }
+- { title: "S02E08 The Southern Cross", year: 2026, minutes: 51, group: "Daredevil: Born Again: Season 2", tags: [tv] }
+- { title: "E03 The Punisher: One Last Kill", year: 2026, minutes: 60, tags: [tv], notes: "Special" }
+- { title: "Spider-Man: Brand New Day", year: 2026, minutes: 145, tags: [movie] }
+- { title: "S01E01 No Strings", year: 2026, minutes: 53, group: "VisionQuest: Season 1", tags: [tv] }
+- { title: "S01E02 Theseus", year: 2026, minutes: 45, group: "VisionQuest: Season 1", tags: [tv] }
+- { title: "S01E03 Reboot", year: 2026, minutes: 46, group: "VisionQuest: Season 1", tags: [tv] }
+- { title: "S01E04 Malware", year: 2026, minutes: 53, group: "VisionQuest: Season 1", tags: [tv] }

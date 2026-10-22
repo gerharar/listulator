@@ -1,0 +1,141 @@
+title: Agents Of S.H.I.E.L.D. TV series
+description: All episodes of the Agents Of S.H.I.E.L.D. TV series
+category: tv
+status: complete
+items:
+- { title: "S01E01 Pilot", year: 2013, minutes: 44, group: "Season 1" }
+- { title: "S01E02 0-8-4", year: 2013, minutes: 41, group: "Season 1" }
+- { title: "S01E03 The Asset", year: 2013, minutes: 43, group: "Season 1" }
+- { title: "S01E04 Eye Spy", year: 2013, minutes: 42, group: "Season 1" }
+- { title: "S01E05 Girl in the Flower Dress", year: 2013, minutes: 42, group: "Season 1" }
+- { title: "S01E06 FZZT", year: 2013, minutes: 43, group: "Season 1" }
+- { title: "S01E07 The Hub", year: 2013, minutes: 43, group: "Season 1" }
+- { title: "S01E08 The Well", year: 2013, minutes: 42, group: "Season 1" }
+- { title: "S01E09 Repairs", year: 2013, minutes: 43, group: "Season 1" }
+- { title: "S01E10 The Bridge", year: 2013, minutes: 42, group: "Season 1" }
+- { title: "S01E11 The Magical Place", year: 2014, minutes: 42, group: "Season 1" }
+- { title: "S01E12 Seeds", year: 2014, minutes: 43, group: "Season 1" }
+- { title: "S01E13 T.R.A.C.K.S.", year: 2014, minutes: 43, group: "Season 1" }
+- { title: "S01E14 T.A.H.I.T.I.", year: 2014, minutes: 43, group: "Season 1" }
+- { title: "S01E15 Yes Men", year: 2014, minutes: 43, group: "Season 1" }
+- { title: "S01E16 End of the Beginning", year: 2014, minutes: 41, group: "Season 1" }
+- { title: "S01E17 Turn, Turn, Turn", year: 2014, minutes: 43, group: "Season 1" }
+- { title: "S01E18 Providence", year: 2014, minutes: 43, group: "Season 1" }
+- { title: "S01E19 The Only Light in the Darkness", year: 2014, minutes: 43, group: "Season 1" }
+- { title: "S01E20 Nothing Personal", year: 2014, minutes: 43, group: "Season 1" }
+- { title: "S01E21 Ragtag", year: 2014, minutes: 43, group: "Season 1" }
+- { title: "S01E22 Beginning of the End", year: 2014, minutes: 43, group: "Season 1" }
+- { title: "S02E01 Shadows", year: 2014, minutes: 43, group: "Season 2" }
+- { title: "S02E02 Heavy Is the Head", year: 2014, minutes: 43, group: "Season 2" }
+- { title: "S02E03 Making Friends and Influencing People", year: 2014, minutes: 43, group: "Season 2" }
+- { title: "S02E04 Face My Enemy", year: 2014, minutes: 42, group: "Season 2" }
+- { title: "S02E05 A Hen in the Wolf House", year: 2014, minutes: 43, group: "Season 2" }
+- { title: "S02E06 A Fractured House", year: 2014, minutes: 42, group: "Season 2" }
+- { title: "S02E07 The Writing on the Wall", year: 2014, minutes: 43, group: "Season 2" }
+- { title: "S02E08 The Things We Bury", year: 2014, minutes: 43, group: "Season 2" }
+- { title: "S02E09 ...Ye Who Enter Here", year: 2014, minutes: 43, group: "Season 2" }
+- { title: "S02E10 What They Become", year: 2014, minutes: 43, group: "Season 2" }
+- { title: "S02E11 Aftershocks", year: 2015, minutes: 43, group: "Season 2" }
+- { title: "S02E12 Who You Really Are", year: 2015, minutes: 42, group: "Season 2" }
+- { title: "S02E13 One of Us", year: 2015, minutes: 43, group: "Season 2" }
+- { title: "S02E14 Love in the Time of Hydra", year: 2015, minutes: 43, group: "Season 2" }
+- { title: "S02E15 One Door Closes", year: 2015, minutes: 43, group: "Season 2" }
+- { title: "S02E16 Afterlife", year: 2015, minutes: 43, group: "Season 2" }
+- { title: "S02E17 Melinda", year: 2015, minutes: 43, group: "Season 2" }
+- { title: "S02E18 The Frenemy of My Enemy", year: 2015, minutes: 43, group: "Season 2" }
+- { title: "S02E19 The Dirty Half Dozen", year: 2015, minutes: 41, group: "Season 2" }
+- { title: "S02E20 Scars", year: 2015, minutes: 43, group: "Season 2" }
+- { title: "S02E21 S.O.S. Part One", year: 2015, minutes: 43, group: "Season 2" }
+- { title: "S02E22 S.O.S. Part Two", year: 2015, minutes: 43, group: "Season 2" }
+- { title: "S03E01 Laws of Nature", year: 2015, minutes: 43, group: "Season 3" }
+- { title: "S03E02 Purpose in the Machine", year: 2015, minutes: 43, group: "Season 3" }
+- { title: "S03E03 A Wanted (Inhu)man", year: 2015, minutes: 41, group: "Season 3" }
+- { title: "S03E04 Devils You Know", year: 2015, minutes: 43, group: "Season 3" }
+- { title: "S03E05 4,722 Hours", year: 2015, minutes: 43, group: "Season 3" }
+- { title: "S03E06 Among Us Hide...", year: 2015, minutes: 43, group: "Season 3" }
+- { title: "S03E07 Chaos Theory", year: 2015, minutes: 43, group: "Season 3" }
+- { title: "S03E08 Many Heads, One Tale", year: 2015, minutes: 43, group: "Season 3" }
+- { title: "S03E09 Closure", year: 2015, minutes: 43, group: "Season 3" }
+- { title: "S03E10 Maveth", year: 2015, minutes: 43, group: "Season 3" }
+- { title: "S03E11 Bouncing Back", year: 2016, minutes: 43, group: "Season 3" }
+- { title: "S03E12 The Inside Man", year: 2016, minutes: 43, group: "Season 3" }
+- { title: "S03E13 Parting Shot", year: 2016, minutes: 43, group: "Season 3" }
+- { title: "S03E14 Watchdogs", year: 2016, minutes: 42, group: "Season 3" }
+- { title: "S03E15 Spacetime", year: 2016, minutes: 43, group: "Season 3" }
+- { title: "S03E16 Paradise Lost", year: 2016, minutes: 43, group: "Season 3" }
+- { title: "S03E17 The Team", year: 2016, minutes: 43, group: "Season 3" }
+- { title: "S03E18 The Singularity", year: 2016, minutes: 43, group: "Season 3" }
+- { title: "S03E19 Failed Experiments", year: 2016, minutes: 41, group: "Season 3" }
+- { title: "S03E20 Emancipation", year: 2016, minutes: 43, group: "Season 3" }
+- { title: "S03E21 Absolution", year: 2016, minutes: 43, group: "Season 3" }
+- { title: "S03E22 Ascension", year: 2016, minutes: 43, group: "Season 3" }
+- { title: "S04E01 The Ghost", year: 2016, minutes: 43, group: "Season 4" }
+- { title: "S04E02 Meet the New Boss", year: 2016, minutes: 43, group: "Season 4" }
+- { title: "S04E03 Uprising", year: 2016, minutes: 43, group: "Season 4" }
+- { title: "S04E04 Let Me Stand Next to Your Fire", year: 2016, minutes: 43, group: "Season 4" }
+- { title: "S04E05 Lockup", year: 2016, minutes: 42, group: "Season 4" }
+- { title: "S04E06 The Good Samaritan", year: 2016, minutes: 41, group: "Season 4" }
+- { title: "S04E07 Deals with Our Devils", year: 2016, minutes: 43, group: "Season 4" }
+- { title: "S04E08 The Laws of Inferno Dynamics", year: 2016, minutes: 42, group: "Season 4" }
+- { title: "S04E09 Broken Promises", year: 2017, minutes: 43, group: "Season 4" }
+- { title: "S04E10 The Patriot", year: 2017, minutes: 43, group: "Season 4" }
+- { title: "S04E11 Wake Up", year: 2017, minutes: 43, group: "Season 4" }
+- { title: "S04E12 Hot Potato Soup", year: 2017, minutes: 43, group: "Season 4" }
+- { title: "S04E13 BOOM", year: 2017, minutes: 43, group: "Season 4" }
+- { title: "S04E14 The Man Behind the Shield", year: 2017, minutes: 43, group: "Season 4" }
+- { title: "S04E15 Self Control", year: 2017, minutes: 43, group: "Season 4" }
+- { title: "S04E16 What If...", year: 2017, minutes: 43, group: "Season 4" }
+- { title: "S04E17 Identity and Change", year: 2017, minutes: 43, group: "Season 4" }
+- { title: "S04E18 No Regrets", year: 2017, minutes: 43, group: "Season 4" }
+- { title: "S04E19 All the Madame's Men", year: 2017, minutes: 43, group: "Season 4" }
+- { title: "S04E20 Farewell, Cruel World!", year: 2017, minutes: 41, group: "Season 4" }
+- { title: "S04E21 The Return", year: 2017, minutes: 43, group: "Season 4" }
+- { title: "S04E22 World's End", year: 2017, minutes: 43, group: "Season 4" }
+- { title: "S05E01 Orientation, Part One", year: 2017, minutes: 43, group: "Season 5" }
+- { title: "S05E02 Orientation, Part Two", year: 2017, minutes: 43, group: "Season 5" }
+- { title: "S05E03 A Life Spent", year: 2017, minutes: 43, group: "Season 5" }
+- { title: "S05E04 A Life Earned", year: 2017, minutes: 43, group: "Season 5" }
+- { title: "S05E05 Rewind", year: 2017, minutes: 43, group: "Season 5" }
+- { title: "S05E06 Fun & Games", year: 2018, minutes: 42, group: "Season 5" }
+- { title: "S05E07 Together or Not at All", year: 2018, minutes: 41, group: "Season 5" }
+- { title: "S05E08 The Last Day", year: 2018, minutes: 43, group: "Season 5" }
+- { title: "S05E09 Best Laid Plans", year: 2018, minutes: 42, group: "Season 5" }
+- { title: "S05E10 Past Life", year: 2018, minutes: 43, group: "Season 5" }
+- { title: "S05E11 All the Comforts of Home", year: 2018, minutes: 43, group: "Season 5" }
+- { title: "S05E12 The Real Deal", year: 2018, minutes: 43, group: "Season 5" }
+- { title: "S05E13 Principia", year: 2018, minutes: 42, group: "Season 5" }
+- { title: "S05E14 The Devil Complex", year: 2018, minutes: 42, group: "Season 5" }
+- { title: "S05E15 Rise and Shine", year: 2018, minutes: 43, group: "Season 5" }
+- { title: "S05E16 Inside Voices", year: 2018, minutes: 42, group: "Season 5" }
+- { title: "S05E17 The Honeymoon", year: 2018, minutes: 42, group: "Season 5" }
+- { title: "S05E18 All Roads Lead...", year: 2018, minutes: 41, group: "Season 5" }
+- { title: "S05E19 Option Two", year: 2018, minutes: 42, group: "Season 5" }
+- { title: "S05E20 The One Who Will Save Us All", year: 2018, minutes: 42, group: "Season 5" }
+- { title: "S05E21 The Force of Gravity", year: 2018, minutes: 43, group: "Season 5" }
+- { title: "S05E22 The End", year: 2018, minutes: 43, group: "Season 5" }
+- { title: "S06E01 Missing Pieces", year: 2019, minutes: 42, group: "Season 6" }
+- { title: "S06E02 Window of Opportunity", year: 2019, minutes: 43, group: "Season 6" }
+- { title: "S06E03 Fear and Loathing on the Planet of Kitson", year: 2019, minutes: 43, group: "Season 6" }
+- { title: "S06E04 Code Yellow", year: 2019, minutes: 41, group: "Season 6" }
+- { title: "S06E05 The Other Thing", year: 2019, minutes: 43, group: "Season 6" }
+- { title: "S06E06 Inescapable", year: 2019, minutes: 43, group: "Season 6" }
+- { title: "S06E07 Toldja", year: 2019, minutes: 42, group: "Season 6" }
+- { title: "S06E08 Collision Course (Part I)", year: 2019, minutes: 42, group: "Season 6" }
+- { title: "S06E09 Collision Course (Part II)", year: 2019, minutes: 42, group: "Season 6" }
+- { title: "S06E10 Leap", year: 2019, minutes: 42, group: "Season 6" }
+- { title: "S06E11 From the Ashes", year: 2019, minutes: 43, group: "Season 6" }
+- { title: "S06E12 The Sign", year: 2019, minutes: 42, group: "Season 6" }
+- { title: "S06E13 New Life", year: 2019, minutes: 43, group: "Season 6" }
+- { title: "S07E01 The New Deal", year: 2020, minutes: 43, group: "Season 7" }
+- { title: "S07E02 Know Your Onions", year: 2020, minutes: 42, group: "Season 7" }
+- { title: "S07E03 Alien Commies from the Future!", year: 2020, minutes: 42, group: "Season 7" }
+- { title: "S07E04 Out of the Past", year: 2020, minutes: 43, group: "Season 7" }
+- { title: "S07E05 A Trout in the Milk", year: 2020, minutes: 42, group: "Season 7" }
+- { title: "S07E06 Adapt or Die", year: 2020, minutes: 43, group: "Season 7" }
+- { title: "S07E07 The Totally Excellent Adventures of Mack and The D", year: 2020, minutes: 43, group: "Season 7" }
+- { title: "S07E08 After, Before", year: 2020, minutes: 42, group: "Season 7" }
+- { title: "S07E09 As I Have Always Been", year: 2020, minutes: 43, group: "Season 7" }
+- { title: "S07E10 Stolen", year: 2020, minutes: 41, group: "Season 7" }
+- { title: "S07E11 Brand New Day", year: 2020, minutes: 43, group: "Season 7" }
+- { title: "S07E12 The End Is at Hand", year: 2020, minutes: 43, group: "Season 7" }
+- { title: "S07E13 What We're Fighting For", year: 2020, minutes: 43, group: "Season 7" }

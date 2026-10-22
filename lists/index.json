@@ -269,6 +269,14 @@
     "status": "complete"
   },
   {
+    "path": "lists/mega/downton-abbey-all.yaml",
+    "title": "Downton Abbey franchise (release order)",
+    "category": "mega",
+    "itemCount": 55,
+    "description": "All releases in the Downton Abbey franchise, in release order",
+    "status": "complete"
+  },
+  {
     "path": "lists/mega/firefly-serenity-all.yaml",
     "title": "Firefly / Serenity franchise (recommended order)",
     "category": "mega",
@@ -285,10 +293,12 @@
     "status": "ongoing"
   },
   {
-    "path": "lists/mega/marvel-cinematic-universe.yaml",
-    "title": "Marvel Cinematic Universe — Infinity Saga (Release Order)",
+    "path": "lists/mega/mcu-extended.yaml",
+    "title": "Marvel Cinematic Universe (MCU) franchise (extended; release order)",
     "category": "mega",
-    "itemCount": 23
+    "itemCount": 559,
+    "description": "All releases in the Marvel Cinematic Universe (MCU) franchise made by Marvel Studios, in release order. Includes Agents Of S.H.I.E.L.D. (early seasons tie into the mainline MCU movies) and Netflix series (confirmed canonical). Does not include TV series and animated series not related to MCU (Inhumans, X-Men '97, etc). Seasons 1 and 2 of Agents of S.H.I.E.L.D. are split up to fit around the corresponding MCU movies in chronological viewing order",
+    "status": "ongoing"
   },
   {
     "path": "lists/mega/peaky-blinders-all.yaml",
@@ -349,6 +359,14 @@
     "status": "complete"
   },
   {
+    "path": "lists/tv/agents-of-shield-tv.yaml",
+    "title": "Agents Of S.H.I.E.L.D. TV series",
+    "category": "tv",
+    "itemCount": 136,
+    "description": "All episodes of the Agents Of S.H.I.E.L.D. TV series",
+    "status": "complete"
+  },
+  {
     "path": "lists/tv/band-of-brothers-tv.yaml",
     "title": "Band Of Brothers TV miniseries",
     "category": "tv",
@@ -396,6 +414,14 @@
     "status": "ongoing"
   },
   {
+    "path": "lists/tv/house-md-tv.yaml",
+    "title": "House TV series",
+    "category": "tv",
+    "itemCount": 176,
+    "description": "All episodes of House TV series (a.k.a. House, M.D.)",
+    "status": "complete"
+  },
+  {
     "path": "lists/tv/house-of-cards-tv.yaml",
     "title": "House Of Cards TV series",
     "category": "tv",
@@ -410,6 +436,22 @@
     "itemCount": 92,
     "description": "All episodes of the Mad Men TV series",
     "status": "complete"
+  },
+  {
+    "path": "lists/tv/mad-men-tv.yaml",
+    "title": "Mad Men TV series",
+    "category": "tv",
+    "itemCount": 92,
+    "description": "All episodes of the Mad Men TV series",
+    "status": "complete"
+  },
+  {
+    "path": "lists/tv/mindhunter-tv.yaml",
+    "title": "Mindhunter TV series",
+    "category": "tv",
+    "itemCount": 19,
+    "description": "All episodes of the Mindhunter TV series",
+    "status": "ongoing"
   },
   {
     "path": "lists/tv/narcos-franchise-tv.yaml",

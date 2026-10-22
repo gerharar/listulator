@@ -1,0 +1,24 @@
+title: Mindhunter TV series
+description: All episodes of the Mindhunter TV series
+category: tv
+status: ongoing
+items:
+- { title: "S01E01 Episode 1", year: 2017, minutes: 60, group: Season 1 }
+- { title: "S01E02 Episode 2", year: 2017, minutes: 56, group: Season 1 }
+- { title: "S01E03 Episode 3", year: 2017, minutes: 46, group: Season 1 }
+- { title: "S01E04 Episode 4", year: 2017, minutes: 54, group: Season 1 }
+- { title: "S01E05 Episode 5", year: 2017, minutes: 42, group: Season 1 }
+- { title: "S01E06 Episode 6", year: 2017, minutes: 35, group: Season 1 }
+- { title: "S01E07 Episode 7", year: 2017, minutes: 53, group: Season 1 }
+- { title: "S01E08 Episode 8", year: 2017, minutes: 54, group: Season 1 }
+- { title: "S01E09 Episode 9", year: 2017, minutes: 49, group: Season 1 }
+- { title: "S01E10 Episode 10", year: 2017, minutes: 53, group: Season 1 }
+- { title: "S02E01 Episode 1", year: 2019, minutes: 49, group: Season 2 }
+- { title: "S02E02 Episode 2", year: 2019, minutes: 47, group: Season 2 }
+- { title: "S02E03 Episode 3", year: 2019, minutes: 61, group: Season 2 }
+- { title: "S02E04 Episode 4", year: 2019, minutes: 51, group: Season 2 }
+- { title: "S02E05 Episode 5", year: 2019, minutes: 72, group: Season 2 }
+- { title: "S02E06 Episode 6", year: 2019, minutes: 59, group: Season 2 }
+- { title: "S02E07 Episode 7", year: 2019, minutes: 59, group: Season 2 }
+- { title: "S02E08 Episode 8", year: 2019, minutes: 54, group: Season 2 }
+- { title: "S02E09 Episode 9", year: 2019, minutes: 74, group: Season 2 }
