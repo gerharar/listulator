@@ -438,14 +438,6 @@
     "status": "complete"
   },
   {
-    "path": "lists/tv/mad-men-tv.yaml",
-    "title": "Mad Men TV series",
-    "category": "tv",
-    "itemCount": 92,
-    "description": "All episodes of the Mad Men TV series",
-    "status": "complete"
-  },
-  {
     "path": "lists/tv/mindhunter-tv.yaml",
     "title": "Mindhunter TV series",
     "category": "tv",
