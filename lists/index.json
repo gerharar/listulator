@@ -452,6 +452,14 @@
     "status": "complete"
   },
   {
+    "path": "lists/tv/this-is-us-tv.yaml",
+    "title": "This Is Us TV series",
+    "category": "tv",
+    "itemCount": 106,
+    "description": "All episodes of the This Is Us series",
+    "status": "complete"
+  },
+  {
     "path": "lists/tv/true-detective-tv.yaml",
     "title": "True Detective TV series",
     "category": "tv",

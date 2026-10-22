@@ -1,0 +1,111 @@
+title: This Is Us TV series
+description: All episodes of the This Is Us series
+category: tv
+status: complete
+items:
+- { title: "S01E01 Pilot", year: 2016, minutes: 43, group: Season 1 }
+- { title: "S01E02 The Big Three", year: 2016, minutes: 43, group: Season 1 }
+- { title: "S01E03 Kyle", year: 2016, minutes: 43, group: Season 1 }
+- { title: "S01E04 The Pool", year: 2016, minutes: 43, group: Season 1 }
+- { title: "S01E05 The Game Plan", year: 2016, minutes: 41, group: Season 1 }
+- { title: "S01E06 Career Days", year: 2016, minutes: 43, group: Season 1 }
+- { title: "S01E07 The Best Washing Machine in the World", year: 2016, minutes: 42, group: Season 1 }
+- { title: "S01E08 Pilgrim Rick", year: 2016, minutes: 43, group: Season 1 }
+- { title: "S01E09 The Trip", year: 2016, minutes: 43, group: Season 1 }
+- { title: "S01E10 Last Christmas", year: 2016, minutes: 43, group: Season 1 }
+- { title: "S01E11 The Right Thing to Do", year: 2017, minutes: 42, group: Season 1 }
+- { title: "S01E12 The Big Day", year: 2017, minutes: 44, group: Season 1 }
+- { title: "S01E13 Three Sentences", year: 2017, minutes: 43, group: Season 1 }
+- { title: "S01E14 I Call Marriage", year: 2017, minutes: 43, group: Season 1 }
+- { title: "S01E15 Jack Pearson's Son", year: 2017, minutes: 42, group: Season 1 }
+- { title: "S01E16 Memphis", year: 2017, minutes: 43, group: Season 1 }
+- { title: "S01E17 What Now?", year: 2017, minutes: 43, group: Season 1 }
+- { title: "S01E18 Moonshadow", year: 2017, minutes: 42, group: Season 1 }
+- { title: "S02E01 A Father's Advice", year: 2017, minutes: 43, group: Season 2 }
+- { title: "S02E02 A Manny-Splendored Thing", year: 2017, minutes: 43, group: Season 2 }
+- { title: "S02E03 Deja Vu", year: 2017, minutes: 42, group: Season 2 }
+- { title: "S02E04 Still There", year: 2017, minutes: 43, group: Season 2 }
+- { title: "S02E05 Brothers", year: 2017, minutes: 43, group: Season 2 }
+- { title: "S02E06 The 20's", year: 2017, minutes: 43, group: Season 2 }
+- { title: "S02E07 The Most Disappointed Man", year: 2017, minutes: 43, group: Season 2 }
+- { title: "S02E08 Number One", year: 2017, minutes: 43, group: Season 2 }
+- { title: "S02E09 Number Two", year: 2017, minutes: 42, group: Season 2 }
+- { title: "S02E10 Number Three", year: 2017, minutes: 43, group: Season 2 }
+- { title: "S02E11 The Fifth Wheel", year: 2018, minutes: 42, group: Season 2 }
+- { title: "S02E12 Clooney", year: 2018, minutes: 43, group: Season 2 }
+- { title: "S02E13 That'll Be the Day", year: 2018, minutes: 43, group: Season 2 }
+- { title: "S02E14 Super Bowl Sunday", year: 2018, minutes: 46, group: Season 2 }
+- { title: "S02E15 The Car", year: 2018, minutes: 43, group: Season 2 }
+- { title: "S02E16 Vegas, Baby", year: 2018, minutes: 42, group: Season 2 }
+- { title: "S02E17 This Big, Amazing, Beautiful Life", year: 2018, minutes: 43, group: Season 2 }
+- { title: "S02E18 The Wedding", year: 2018, minutes: 42, group: Season 2 }
+- { title: "S03E01 Nine Bucks", year: 2018, minutes: 43, group: Season 3 }
+- { title: "S03E02 A Philadelphia Story", year: 2018, minutes: 43, group: Season 3 }
+- { title: "S03E03 Katie Girls", year: 2018, minutes: 43, group: Season 3 }
+- { title: "S03E04 Vietnam", year: 2018, minutes: 43, group: Season 3 }
+- { title: "S03E05 Toby", year: 2018, minutes: 43, group: Season 3 }
+- { title: "S03E06 Kamsahamnida", year: 2018, minutes: 43, group: Season 3 }
+- { title: "S03E07 Sometimes", year: 2018, minutes: 42, group: Season 3 }
+- { title: "S03E08 Six Thanksgivings", year: 2018, minutes: 43, group: Season 3 }
+- { title: "S03E09 The Beginning Is the End Is the Beginning", year: 2018, minutes: 43, group: Season 3 }
+- { title: "S03E10 The Last Seven Weeks", year: 2019, minutes: 43, group: Season 3 }
+- { title: "S03E11 Songbird Road (1)", year: 2019, minutes: 42, group: Season 3 }
+- { title: "S03E12 Songbird Road (2)", year: 2019, minutes: 43, group: Season 3 }
+- { title: "S03E13 Our Little Island Girl", year: 2019, minutes: 43, group: Season 3 }
+- { title: "S03E14 The Graduates", year: 2019, minutes: 43, group: Season 3 }
+- { title: "S03E15 The Waiting Room", year: 2019, minutes: 43, group: Season 3 }
+- { title: "S03E16 Don't Take My Sunshine Away", year: 2019, minutes: 43, group: Season 3 }
+- { title: "S03E17 R & B", year: 2019, minutes: 43, group: Season 3 }
+- { title: "S03E18 Her", year: 2019, minutes: 43, group: Season 3 }
+- { title: "S04E01 Strangers", year: 2019, minutes: 49, group: Season 4 }
+- { title: "S04E02 The Pool: Part Two", year: 2019, minutes: 42, group: Season 4 }
+- { title: "S04E03 Unhinged", year: 2019, minutes: 43, group: Season 4 }
+- { title: "S04E04 Flip a Coin", year: 2019, minutes: 43, group: Season 4 }
+- { title: "S04E05 Storybook Love", year: 2019, minutes: 42, group: Season 4 }
+- { title: "S04E06 The Club", year: 2019, minutes: 43, group: Season 4 }
+- { title: "S04E07 The Dinner and the Date", year: 2019, minutes: 43, group: Season 4 }
+- { title: "S04E08 Sorry", year: 2019, minutes: 43, group: Season 4 }
+- { title: "S04E09 So Long, Marianne", year: 2019, minutes: 43, group: Season 4 }
+- { title: "S04E10 Light and Shadows", year: 2020, minutes: 42, group: Season 4 }
+- { title: "S04E11 A Hell of a Week (1)", year: 2020, minutes: 43, group: Season 4 }
+- { title: "S04E12 A Hell of a Week (2)", year: 2020, minutes: 43, group: Season 4 }
+- { title: "S04E13 A Hell of a Week (3)", year: 2020, minutes: 43, group: Season 4 }
+- { title: "S04E14 The Cabin", year: 2020, minutes: 43, group: Season 4 }
+- { title: "S04E15 Clouds", year: 2020, minutes: 42, group: Season 4 }
+- { title: "S04E16 New York, New York, New York", year: 2020, minutes: 43, group: Season 4 }
+- { title: "S04E17 After the Fire", year: 2020, minutes: 43, group: Season 4 }
+- { title: "S04E18 Strangers: Part Two", year: 2020, minutes: 44, group: Season 4 }
+- { title: "S05E01 Forty (1)", year: 2020, minutes: 44, group: Season 5 }
+- { title: "S05E02 Forty (2)", year: 2020, minutes: 43, group: Season 5 }
+- { title: "S05E03 Changes", year: 2020, minutes: 43, group: Season 5 }
+- { title: "S05E04 Honestly", year: 2020, minutes: 43, group: Season 5 }
+- { title: "S05E05 A Long Road Home", year: 2021, minutes: 43, group: Season 5 }
+- { title: "S05E06 Birth Mother", year: 2021, minutes: 43, group: Season 5 }
+- { title: "S05E07 There", year: 2021, minutes: 42, group: Season 5 }
+- { title: "S05E08 In the Room", year: 2021, minutes: 43, group: Season 5 }
+- { title: "S05E09 The Ride", year: 2021, minutes: 43, group: Season 5 }
+- { title: "S05E10 I've Got This", year: 2021, minutes: 43, group: Season 5 }
+- { title: "S05E11 One Small Step...", year: 2021, minutes: 43, group: Season 5 }
+- { title: "S05E12 Both Things Can Be True", year: 2021, minutes: 43, group: Season 5 }
+- { title: "S05E13 Brotherly Love", year: 2021, minutes: 43, group: Season 5 }
+- { title: "S05E14 The Music and the Mirror", year: 2021, minutes: 43, group: Season 5 }
+- { title: "S05E15 Jerry 2.0", year: 2021, minutes: 43, group: Season 5 }
+- { title: "S05E16 The Adirondacks", year: 2021, minutes: 43, group: Season 5 }
+- { title: "S06E01 The Challenger", year: 2022, minutes: 44, group: Season 6 }
+- { title: "S06E02 One Giant Leap", year: 2022, minutes: 41, group: Season 6 }
+- { title: "S06E03 Four Fathers", year: 2022, minutes: 41, group: Season 6 }
+- { title: "S06E04 Don't Let Me Keep You", year: 2022, minutes: 41, group: Season 6 }
+- { title: "S06E05 Heart and Soul", year: 2022, minutes: 41, group: Season 6 }
+- { title: "S06E06 Our Little Island Girl: Part Two", year: 2022, minutes: 41, group: Season 6 }
+- { title: "S06E07 Taboo", year: 2022, minutes: 41, group: Season 6 }
+- { title: "S06E08 The Guitar Man", year: 2022, minutes: 41, group: Season 6 }
+- { title: "S06E09 The Hill", year: 2022, minutes: 41, group: Season 6 }
+- { title: "S06E10 Every Version of You", year: 2022, minutes: 41, group: Season 6 }
+- { title: "S06E11 Saturday in the Park", year: 2022, minutes: 41, group: Season 6 }
+- { title: "S06E12 Katoby", year: 2022, minutes: 41, group: Season 6 }
+- { title: "S06E13 The Day of the Wedding", year: 2022, minutes: 41, group: Season 6 }
+- { title: "S06E14 The Night Before the Wedding", year: 2022, minutes: 41, group: Season 6 }
+- { title: "S06E15 Miguel", year: 2022, minutes: 41, group: Season 6 }
+- { title: "S06E16 Family Meeting", year: 2022, minutes: 41, group: Season 6 }
+- { title: "S06E17 The Train", year: 2022, minutes: 43, group: Season 6 }
+- { title: "S06E18 Us", year: 2022, minutes: 41, group: Season 6 }
