@@ -14,51 +14,51 @@ items:
 - { title: "Item 47", year: 2012, minutes: 12, tags: [movie], notes: "Special" }
 - { title: "Iron Man 3", year: 2013, minutes: 130, tags: [movie] }
 - { title: "Agent Carter", year: 2013, minutes: 15, tags: [movie], notes: "Special" }
-- { title: "S01E01 Pilot", year: 2013, minutes: 44, group: "Agents Of S.H.I.E.L.D.: Season 1", tags: [tv] }
-- { title: "S01E02 0-8-4", year: 2013, minutes: 41, group: "Agents Of S.H.I.E.L.D.: Season 1", tags: [tv] }
-- { title: "S01E03 The Asset", year: 2013, minutes: 43, group: "Agents Of S.H.I.E.L.D.: Season 1", tags: [tv] }
-- { title: "S01E04 Eye Spy", year: 2013, minutes: 42, group: "Agents Of S.H.I.E.L.D.: Season 1", tags: [tv] }
-- { title: "S01E05 Girl in the Flower Dress", year: 2013, minutes: 42, group: "Agents Of S.H.I.E.L.D.: Season 1", tags: [tv] }
-- { title: "S01E06 FZZT", year: 2013, minutes: 43, group: "Agents Of S.H.I.E.L.D.: Season 1", tags: [tv] }
+- { title: "S01E01 Pilot", year: 2013, minutes: 44, group: "Agents Of S.H.I.E.L.D.: Season 1 (Part 1)", tags: [tv] }
+- { title: "S01E02 0-8-4", year: 2013, minutes: 41, group: "Agents Of S.H.I.E.L.D.: Season 1 (Part 1)", tags: [tv] }
+- { title: "S01E03 The Asset", year: 2013, minutes: 43, group: "Agents Of S.H.I.E.L.D.: Season 1 (Part 1)", tags: [tv] }
+- { title: "S01E04 Eye Spy", year: 2013, minutes: 42, group: "Agents Of S.H.I.E.L.D.: Season 1 (Part 1)", tags: [tv] }
+- { title: "S01E05 Girl in the Flower Dress", year: 2013, minutes: 42, group: "Agents Of S.H.I.E.L.D.: Season 1 (Part 1)", tags: [tv] }
+- { title: "S01E06 FZZT", year: 2013, minutes: 43, group: "Agents Of S.H.I.E.L.D.: Season 1 (Part 1)", tags: [tv] }
 - { title: "Thor: The Dark World", year: 2013, minutes: 112, tags: [movie] }
-- { title: "S01E07 The Hub", year: 2013, minutes: 43, group: "Agents Of S.H.I.E.L.D.: Season 1", tags: [tv] }
-- { title: "S01E08 The Well", year: 2013, minutes: 42, group: "Agents Of S.H.I.E.L.D.: Season 1", tags: [tv] }
-- { title: "S01E09 Repairs", year: 2013, minutes: 43, group: "Agents Of S.H.I.E.L.D.: Season 1", tags: [tv] }
-- { title: "S01E10 The Bridge", year: 2013, minutes: 42, group: "Agents Of S.H.I.E.L.D.: Season 1", tags: [tv] }
-- { title: "S01E11 The Magical Place", year: 2014, minutes: 42, group: "Agents Of S.H.I.E.L.D.: Season 1", tags: [tv] }
-- { title: "S01E12 Seeds", year: 2014, minutes: 43, group: "Agents Of S.H.I.E.L.D.: Season 1", tags: [tv] }
-- { title: "S01E13 T.R.A.C.K.S.", year: 2014, minutes: 43, group: "Agents Of S.H.I.E.L.D.: Season 1", tags: [tv] }
-- { title: "S01E14 T.A.H.I.T.I.", year: 2014, minutes: 43, group: "Agents Of S.H.I.E.L.D.: Season 1", tags: [tv] }
-- { title: "S01E15 Yes Men", year: 2014, minutes: 43, group: "Agents Of S.H.I.E.L.D.: Season 1", tags: [tv] }
-- { title: "S01E16 End of the Beginning", year: 2014, minutes: 41, group: "Agents Of S.H.I.E.L.D.: Season 1", tags: [tv] }
+- { title: "S01E07 The Hub", year: 2013, minutes: 43, group: "Agents Of S.H.I.E.L.D.: Season 1 (Part 2)", tags: [tv] }
+- { title: "S01E08 The Well", year: 2013, minutes: 42, group: "Agents Of S.H.I.E.L.D.: Season 1 (Part 2)", tags: [tv] }
+- { title: "S01E09 Repairs", year: 2013, minutes: 43, group: "Agents Of S.H.I.E.L.D.: Season 1 (Part 2)", tags: [tv] }
+- { title: "S01E10 The Bridge", year: 2013, minutes: 42, group: "Agents Of S.H.I.E.L.D.: Season 1 (Part 2)", tags: [tv] }
+- { title: "S01E11 The Magical Place", year: 2014, minutes: 42, group: "Agents Of S.H.I.E.L.D.: Season 1 (Part 2)", tags: [tv] }
+- { title: "S01E12 Seeds", year: 2014, minutes: 43, group: "Agents Of S.H.I.E.L.D.: Season 1 (Part 2)", tags: [tv] }
+- { title: "S01E13 T.R.A.C.K.S.", year: 2014, minutes: 43, group: "Agents Of S.H.I.E.L.D.: Season 1 (Part 2)", tags: [tv] }
+- { title: "S01E14 T.A.H.I.T.I.", year: 2014, minutes: 43, group: "Agents Of S.H.I.E.L.D.: Season 1 (Part 2)", tags: [tv] }
+- { title: "S01E15 Yes Men", year: 2014, minutes: 43, group: "Agents Of S.H.I.E.L.D.: Season 1 (Part 2)", tags: [tv] }
+- { title: "S01E16 End of the Beginning", year: 2014, minutes: 41, group: "Agents Of S.H.I.E.L.D.: Season 1 (Part 2)", tags: [tv] }
 - { title: "All Hail The King", year: 2014, minutes: 14, tags: [movie], notes: "Special" }
 - { title: "Captain America: The Winter Soldier", year: 2014, minutes: 136, tags: [movie] }
-- { title: "S01E17 Turn, Turn, Turn", year: 2014, minutes: 43, group: "Agents Of S.H.I.E.L.D.: Season 1", tags: [tv] }
-- { title: "S01E18 Providence", year: 2014, minutes: 43, group: "Agents Of S.H.I.E.L.D.: Season 1", tags: [tv] }
-- { title: "S01E19 The Only Light in the Darkness", year: 2014, minutes: 43, group: "Agents Of S.H.I.E.L.D.: Season 1", tags: [tv] }
-- { title: "S01E20 Nothing Personal", year: 2014, minutes: 43, group: "Agents Of S.H.I.E.L.D.: Season 1", tags: [tv] }
-- { title: "S01E21 Ragtag", year: 2014, minutes: 43, group: "Agents Of S.H.I.E.L.D.: Season 1", tags: [tv] }
-- { title: "S01E22 Beginning of the End", year: 2014, minutes: 43, group: "Agents Of S.H.I.E.L.D.: Season 1", tags: [tv] }
+- { title: "S01E17 Turn, Turn, Turn", year: 2014, minutes: 43, group: "Agents Of S.H.I.E.L.D.: Season 1 (Part 3)", tags: [tv] }
+- { title: "S01E18 Providence", year: 2014, minutes: 43, group: "Agents Of S.H.I.E.L.D.: Season 1 (Part 3)", tags: [tv] }
+- { title: "S01E19 The Only Light in the Darkness", year: 2014, minutes: 43, group: "Agents Of S.H.I.E.L.D.: Season 1 (Part 3)", tags: [tv] }
+- { title: "S01E20 Nothing Personal", year: 2014, minutes: 43, group: "Agents Of S.H.I.E.L.D.: Season 1 (Part 3)", tags: [tv] }
+- { title: "S01E21 Ragtag", year: 2014, minutes: 43, group: "Agents Of S.H.I.E.L.D.: Season 1 (Part 3)", tags: [tv] }
+- { title: "S01E22 Beginning of the End", year: 2014, minutes: 43, group: "Agents Of S.H.I.E.L.D.: Season 1 (Part 3)", tags: [tv] }
 - { title: "Guardians of the Galaxy", year: 2014, minutes: 121, tags: [movie] }
-- { title: "S02E01 Shadows", year: 2014, minutes: 43, group: "Agents Of S.H.I.E.L.D.: Season 2", tags: [tv] }
-- { title: "S02E02 Heavy Is the Head", year: 2014, minutes: 43, group: "Agents Of S.H.I.E.L.D.: Season 2", tags: [tv] }
-- { title: "S02E03 Making Friends and Influencing People", year: 2014, minutes: 43, group: "Agents Of S.H.I.E.L.D.: Season 2", tags: [tv] }
-- { title: "S02E04 Face My Enemy", year: 2014, minutes: 42, group: "Agents Of S.H.I.E.L.D.: Season 2", tags: [tv] }
-- { title: "S02E05 A Hen in the Wolf House", year: 2014, minutes: 43, group: "Agents Of S.H.I.E.L.D.: Season 2", tags: [tv] }
-- { title: "S02E06 A Fractured House", year: 2014, minutes: 42, group: "Agents Of S.H.I.E.L.D.: Season 2", tags: [tv] }
-- { title: "S02E07 The Writing on the Wall", year: 2014, minutes: 43, group: "Agents Of S.H.I.E.L.D.: Season 2", tags: [tv] }
-- { title: "S02E08 The Things We Bury", year: 2014, minutes: 43, group: "Agents Of S.H.I.E.L.D.: Season 2", tags: [tv] }
-- { title: "S02E09 ...Ye Who Enter Here", year: 2014, minutes: 43, group: "Agents Of S.H.I.E.L.D.: Season 2", tags: [tv] }
-- { title: "S02E10 What They Become", year: 2014, minutes: 43, group: "Agents Of S.H.I.E.L.D.: Season 2", tags: [tv] }
-- { title: "S02E11 Aftershocks", year: 2015, minutes: 43, group: "Agents Of S.H.I.E.L.D.: Season 2", tags: [tv] }
-- { title: "S02E12 Who You Really Are", year: 2015, minutes: 42, group: "Agents Of S.H.I.E.L.D.: Season 2", tags: [tv] }
-- { title: "S02E13 One of Us", year: 2015, minutes: 43, group: "Agents Of S.H.I.E.L.D.: Season 2", tags: [tv] }
-- { title: "S02E14 Love in the Time of Hydra", year: 2015, minutes: 43, group: "Agents Of S.H.I.E.L.D.: Season 2", tags: [tv] }
-- { title: "S02E15 One Door Closes", year: 2015, minutes: 43, group: "Agents Of S.H.I.E.L.D.: Season 2", tags: [tv] }
-- { title: "S02E16 Afterlife", year: 2015, minutes: 43, group: "Agents Of S.H.I.E.L.D.: Season 2", tags: [tv] }
-- { title: "S02E17 Melinda", year: 2015, minutes: 43, group: "Agents Of S.H.I.E.L.D.: Season 2", tags: [tv] }
-- { title: "S02E18 The Frenemy of My Enemy", year: 2015, minutes: 43, group: "Agents Of S.H.I.E.L.D.: Season 2", tags: [tv] }
-- { title: "S02E19 The Dirty Half Dozen", year: 2015, minutes: 41, group: "Agents Of S.H.I.E.L.D.: Season 2", tags: [tv] }
+- { title: "S02E01 Shadows", year: 2014, minutes: 43, group: "Agents Of S.H.I.E.L.D.: Season 2 (Part 1)", tags: [tv] }
+- { title: "S02E02 Heavy Is the Head", year: 2014, minutes: 43, group: "Agents Of S.H.I.E.L.D.: Season 2 (Part 1)", tags: [tv] }
+- { title: "S02E03 Making Friends and Influencing People", year: 2014, minutes: 43, group: "Agents Of S.H.I.E.L.D.: Season 2 (Part 1)", tags: [tv] }
+- { title: "S02E04 Face My Enemy", year: 2014, minutes: 42, group: "Agents Of S.H.I.E.L.D.: Season 2 (Part 1)", tags: [tv] }
+- { title: "S02E05 A Hen in the Wolf House", year: 2014, minutes: 43, group: "Agents Of S.H.I.E.L.D.: Season 2 (Part 1)", tags: [tv] }
+- { title: "S02E06 A Fractured House", year: 2014, minutes: 42, group: "Agents Of S.H.I.E.L.D.: Season 2 (Part 1)", tags: [tv] }
+- { title: "S02E07 The Writing on the Wall", year: 2014, minutes: 43, group: "Agents Of S.H.I.E.L.D.: Season 2 (Part 1)", tags: [tv] }
+- { title: "S02E08 The Things We Bury", year: 2014, minutes: 43, group: "Agents Of S.H.I.E.L.D.: Season 2 (Part 1)", tags: [tv] }
+- { title: "S02E09 ...Ye Who Enter Here", year: 2014, minutes: 43, group: "Agents Of S.H.I.E.L.D.: Season 2 (Part 1)", tags: [tv] }
+- { title: "S02E10 What They Become", year: 2014, minutes: 43, group: "Agents Of S.H.I.E.L.D.: Season 2 (Part 1)", tags: [tv] }
+- { title: "S02E11 Aftershocks", year: 2015, minutes: 43, group: "Agents Of S.H.I.E.L.D.: Season 2 (Part 1)", tags: [tv] }
+- { title: "S02E12 Who You Really Are", year: 2015, minutes: 42, group: "Agents Of S.H.I.E.L.D.: Season 2 (Part 1)", tags: [tv] }
+- { title: "S02E13 One of Us", year: 2015, minutes: 43, group: "Agents Of S.H.I.E.L.D.: Season 2 (Part 1)", tags: [tv] }
+- { title: "S02E14 Love in the Time of Hydra", year: 2015, minutes: 43, group: "Agents Of S.H.I.E.L.D.: Season 2 (Part 1)", tags: [tv] }
+- { title: "S02E15 One Door Closes", year: 2015, minutes: 43, group: "Agents Of S.H.I.E.L.D.: Season 2 (Part 1)", tags: [tv] }
+- { title: "S02E16 Afterlife", year: 2015, minutes: 43, group: "Agents Of S.H.I.E.L.D.: Season 2 (Part 1)", tags: [tv] }
+- { title: "S02E17 Melinda", year: 2015, minutes: 43, group: "Agents Of S.H.I.E.L.D.: Season 2 (Part 1)", tags: [tv] }
+- { title: "S02E18 The Frenemy of My Enemy", year: 2015, minutes: 43, group: "Agents Of S.H.I.E.L.D.: Season 2 (Part 1)", tags: [tv] }
+- { title: "S02E19 The Dirty Half Dozen", year: 2015, minutes: 41, group: "Agents Of S.H.I.E.L.D.: Season 2 (Part 1)", tags: [tv] }
 - { title: "S01E01 Now Is Not the End", year: 2015, minutes: 43, group: "Agent Carter: Season 1", tags: [tv] }
 - { title: "S01E02 Bridge and Tunnel", year: 2015, minutes: 41, group: "Agent Carter: Season 1", tags: [tv] }
 - { title: "S01E03 Time and Tide", year: 2015, minutes: 41, group: "Agent Carter: Season 1", tags: [tv] }
@@ -81,9 +81,9 @@ items:
 - { title: "S01E12 The Ones We Leave Behind", year: 2015, minutes: 59, group: "Daredevil: Season 1", tags: [tv] }
 - { title: "S01E13 Daredevil", year: 2015, minutes: 55, group: "Daredevil: Season 1", tags: [tv] }
 - { title: "Avengers: Age of Ultron", year: 2015, minutes: 141, tags: [movie] }
-- { title: "S02E20 Scars", year: 2015, minutes: 43, group: "Agents Of S.H.I.E.L.D.: Season 2", tags: [tv] }
-- { title: "S02E21 S.O.S. Part One", year: 2015, minutes: 43, group: "Agents Of S.H.I.E.L.D.: Season 2", tags: [tv] }
-- { title: "S02E22 S.O.S. Part Two", year: 2015, minutes: 43, group: "Agents Of S.H.I.E.L.D.: Season 2", tags: [tv] }
+- { title: "S02E20 Scars", year: 2015, minutes: 43, group: "Agents Of S.H.I.E.L.D.: Season 2 (Part 2)", tags: [tv] }
+- { title: "S02E21 S.O.S. Part One", year: 2015, minutes: 43, group: "Agents Of S.H.I.E.L.D.: Season 2 (Part 2)", tags: [tv] }
+- { title: "S02E22 S.O.S. Part Two", year: 2015, minutes: 43, group: "Agents Of S.H.I.E.L.D.: Season 2 (Part 2)", tags: [tv] }
 - { title: "S01E01 WHIH Newsfront Promo", year: 2015, minutes: 1, group: "WHIH Newsfront: Season 1", tags: [youtube] }
 - { title: "S01E02 WHIH Newsfront Top Stories", year: 2015, minutes: 1, group: "WHIH Newsfront: Season 1", tags: [youtube] }
 - { title: "S01E03 WHIH EXCLUSIVE: 2012 VistaCorp break-in security footage involving cyber-criminal Scott Lang", year: 2015, minutes: 2, group: "WHIH Newsfront: Season 1", tags: [youtube] }
