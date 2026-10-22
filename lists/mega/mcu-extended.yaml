@@ -556,7 +556,7 @@ items:
 - { title: "S02E06 Requiem", year: 2026, minutes: 49, group: "Daredevil: Born Again: Season 2", tags: [tv] }
 - { title: "S02E07 The Hateful Darkness", year: 2026, minutes: 44, group: "Daredevil: Born Again: Season 2", tags: [tv] }
 - { title: "S02E08 The Southern Cross", year: 2026, minutes: 51, group: "Daredevil: Born Again: Season 2", tags: [tv] }
-- { title: "E03 The Punisher: One Last Kill", year: 2026, minutes: 60, tags: [tv], notes: "Special" }
+- { title: "The Punisher: One Last Kill", year: 2026, minutes: 60, tags: [tv], notes: "Special" }
 - { title: "Spider-Man: Brand New Day", year: 2026, minutes: 145, tags: [movie] }
 - { title: "S01E01 No Strings", year: 2026, minutes: 53, group: "VisionQuest: Season 1", tags: [tv] }
 - { title: "S01E02 Theseus", year: 2026, minutes: 45, group: "VisionQuest: Season 1", tags: [tv] }
