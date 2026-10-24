@@ -353,13 +353,15 @@ items:
       'mega',
     ])
 
+    // The list is hand-curated and grows, so no exact item count: only what the format promises.
     it('parses the Marvel Cinematic Universe example', () => {
-      const parsed = parseCustomList(fixture('lists/mega/marvel-cinematic-universe.yaml'), realCategories)
+      const parsed = parseCustomList(fixture('lists/mega/mcu-extended.yaml'), realCategories)
 
       expect(parsed.category).toBe('mega')
-      expect(parsed.items).toHaveLength(23)
-      expect(parsed.items[0]).toEqual({ title: 'Iron Man', year: 2008, minutes: 126 })
+      expect(parsed.items.length).toBeGreaterThan(0)
+      expect(parsed.items[0]).toEqual({ title: 'Iron Man', year: 2008, minutes: 126, tags: ['movie'] })
       expect(parsed.items.every((item) => item.minutes !== undefined)).toBe(true)
+      expect(parsed.items.some((item) => item.group !== undefined)).toBe(true)
     })
 
     it('parses the Lord of the Rings example, with minutes omitted', () => {
@@ -399,7 +401,7 @@ const UNSAFE_PATHS: [string, string][] = [
 
 describe('isSafeCanonicalPath', () => {
   it('accepts a plain relative path', () => {
-    expect(isSafeCanonicalPath('lists/mega/marvel-cinematic-universe.yaml')).toBe(true)
+    expect(isSafeCanonicalPath('lists/mega/mcu-extended.yaml')).toBe(true)
   })
 
   it.each(UNSAFE_PATHS)('rejects %s', (_label, path) => {

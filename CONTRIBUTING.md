@@ -262,7 +262,7 @@ so a passing run is also a check that your new file is well-formed.
 
 ## Example files
 
-`lists/mega/marvel-cinematic-universe.yaml` and
+`lists/mega/mcu-extended.yaml` and
 `lists/book/lord-of-the-rings.yaml` are real starter lists, not
 placeholders — they double as fixtures for the parser's own tests. Use
 them as a model, or replace/extend them with more accurate or more
