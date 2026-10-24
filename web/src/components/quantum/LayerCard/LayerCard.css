@@ -37,6 +37,10 @@
 .q-layer.reach > .q-layer-body {
   overflow: visible;
 }
+/* Its border takes the width the rail is offset by (`--q-bw`, set by the app from the screen scale): both are the same whole device pixels. */
+.q-layer.reach {
+  border-width: var(--q-bw, 2px);
+}
 .q-layer.enter {
   animation:
     q-drumIn 380ms cubic-bezier(0.22, 0.7, 0.2, 1),

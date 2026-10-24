@@ -99,19 +99,20 @@ body.q-resizing * { cursor: col-resize !important; }
 /*
  * The rail outside the card (H-019): attached to the card's left edge, built by layout, not by measuring. It is a child of `.q-list-cols`
  * (the box the inside rail sits in), so it starts level with the inside rail: `top: -1px` lets its 2px top border lie over the
- * toolbar's 1px bottom line and continue it; `bottom: -2px` lays its bottom border exactly over the card's. The card is
+ * toolbar's 1px bottom line and continue it; `bottom` lays its bottom border exactly over the card's. The card is
  * `overflow: visible` (LayerCard `reach`) so it shows. No right border: the card's own left border is the line between them. The card's width does not change, and the rail takes none of the list body's room.
  */
 .q-rail.q-rail-out,
 .q-rail-stub.q-rail-out {
   position: absolute;
   top: -1px;
-  bottom: -2px;
-  /* Ends at the card's outer edge, so the card's own 2px border stays between the rail and the list: that is the vertical line. */
-  right: calc(100% + 2px);
+  /* The card's own border is the line between the rail and the list, so the rail ends at the card's outer edge and lies over its bottom border.
+     `--q-bw` is that border's width as the browser draws it (whole device pixels; a plain 2px is not that at a screen scale like 125%). */
+  bottom: calc(-1 * var(--q-bw, 2px));
+  right: calc(100% + var(--q-bw, 2px));
   z-index: 2;
   box-sizing: border-box;
   background: var(--card);
-  border: 2px solid var(--rule);
+  border: var(--q-bw, 2px) solid var(--rule);
   border-right: 0;
 }

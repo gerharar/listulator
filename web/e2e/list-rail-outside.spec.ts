@@ -1,4 +1,4 @@
-import { expect, test, type APIRequestContext, type Page } from '@playwright/test'
+import { chromium, expect, test, type APIRequestContext, type Page } from '@playwright/test'
 
 /**
  * The jump rail outside the card (H-019, task 32.1), measured in a real browser: with the room beside the card the rail leaves it and
@@ -176,3 +176,44 @@ test('with another layer on top, the covered list shows no outside rail', async 
     await page.request.delete(`/api/lists/${id}`)
   }
 })
+
+/**
+ * A screen scale that is not a whole number (Windows at 125%, 3440x1440): the browser draws a border as a whole number of device pixels, so the
+ * card's 2px border is 1.6px thick. A rail offset by a plain 2px then stands 0.4px (half a device pixel) past the card's edge: its bottom line
+ * lay a pixel lower, and a gap opened beside the card's line (the owner's screenshot, 2026-10-24). The page cannot be given such a scale by
+ * emulation (it does not change layout), so Chromium is started with the real flag, and only Chromium.
+ */
+for (const ratio of [1.25, 1.5625]) {
+  for (const folded of [false, true]) {
+    test(`at a screen scale of ${ratio} the ${folded ? 'folded strip' : 'rail'} ends on the card's bottom line and meets its border`, async ({ browserName, baseURL }) => {
+      test.skip(browserName !== 'chromium', 'the flag is Chromium’s')
+      const browser = await chromium.launch({ args: [`--force-device-scale-factor=${ratio}`] })
+      const context = await browser.newContext({ baseURL: baseURL!, viewport: { width: Math.round(3440 / ratio), height: 1000 }, deviceScaleFactor: ratio })
+      const page = await context.newPage()
+      const title = `e2e rail scale ${ratio} ${folded} ${Date.now()}`
+      const id = await makeGroupedList(page.request, title)
+
+      try {
+        await openList(page, title)
+        if (folded) {
+          await page.getByRole('button', { name: 'Collapse group jumper' }).click()
+          await page.locator('.q-rail-stub').waitFor()
+          await settled(page)
+        }
+        const edges = await page.evaluate((selector) => {
+          const r = (node: Element) => node.getBoundingClientRect()
+          const card = r(document.querySelector('.q-list')!.closest('.q-layer')!)
+          const part = r(document.querySelector(selector)!)
+
+          return { cardBottom: card.bottom, cardLeft: card.left, partBottom: part.bottom, partRight: part.right }
+        }, folded ? '.q-rail-stub' : '.q-rail')
+
+        expect(edges.partBottom).toBeCloseTo(edges.cardBottom, 1)
+        expect(edges.partRight).toBeCloseTo(edges.cardLeft, 1)
+      } finally {
+        await page.request.delete(`/api/lists/${id}`)
+        await browser.close()
+      }
+    })
+  }
+}

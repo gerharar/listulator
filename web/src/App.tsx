@@ -1,5 +1,5 @@
 import './App.css'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type CSSProperties } from 'react'
 import { api, type MediaType } from './lib/api.js'
 import { copy } from './locale/index.js'
 import { getPreferencesStore } from './lib/preferences/store.js'
@@ -22,7 +22,8 @@ import { DocumentTheme } from './components/quantum/DocumentTheme/DocumentTheme.
 import { AppHeader } from './components/quantum/AppHeader/AppHeader.js'
 import { LayerCard } from './components/quantum/LayerCard/LayerCard.js'
 import { RailPlacementProvider, useWindowRailPlacement } from './screens/list/RailPlacementContext.js'
-import { listCardWidth } from './screens/list/railPlacement.js'
+import { layerBorderWidth, listCardWidth } from './screens/list/railPlacement.js'
+import { useDevicePixelRatio } from './lib/useDevicePixelRatio.js'
 import { Home } from './components/quantum/Home/Home.js'
 import { CategoryPicker } from './components/quantum/CategoryPicker/CategoryPicker.js'
 import { LiveRegionProvider } from './components/quantum/LiveRegion/LiveRegion.js'
@@ -195,6 +196,7 @@ function AppShellBody({ skin, onSkinChange }: AppShellBodyProps) {
   const layerStack = useLayerStack()
   // Where the list's jump rail sits (H-019): one answer for the window, read by every list layer.
   const railWindow = useWindowRailPlacement()
+  const pixelRatio = useDevicePixelRatio()
   // `Home` is the only thing that fetches the registry (task 10.10) — the
   // still-hosted legacy screens (List detail, New list) need it too, so it
   // lives here and Home lifts it up once loaded. Empty until then; neither
@@ -248,12 +250,14 @@ function AppShellBody({ skin, onSkinChange }: AppShellBodyProps) {
           // Only then: inside, the card keeps clipping, so a layer taller than a short window still scrolls.
           const reach = layer.kind === 'list' && railWindow.placement === 'outside'
           const width = reach ? listCardWidth(railWindow.windowWidth) : null
+          // The card's border and the rail's offsets share one width, whole device pixels at any screen scale (`--q-bw`, see `layerBorderWidth`).
+          const border = reach ? { '--q-bw': `${layerBorderWidth(pixelRatio)}px` } : null
 
           return (
             <LayerCard
               key={layer.id}
               reach={reach}
-              style={{ top, transform, zIndex: 10 + fullIndex, ...(width !== null && { width }) }}
+              style={{ top, transform, zIndex: 10 + fullIndex, ...(width !== null && { width }), ...border } as CSSProperties}
               entering={layer.id === layerStack.enteringId}
               covered={!isTop}
               tabLabel={resolveTabLabel(layer.tabLabel)}

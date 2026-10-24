@@ -38,6 +38,18 @@ export function outsideRailWidth(stored: number, margin: number): number {
 }
 
 /**
+ * The width of the card's 2px border that the browser really draws, in CSS px. A border is drawn as a whole number of device pixels, rounded down
+ * (2px is 2 device pixels at 100% and 200%, but 1.6px at 125%), while a length is not: a rail offset by a plain 2px then stands half a device pixel
+ * past the card's edge and its line lies a pixel lower (the owner's Windows screen at 125%, 2026-10-24). The card and the rail both take this
+ * width, so the two edges are the same number. The extra thousandth of a device pixel keeps the browser's rounding down from taking a pixel off.
+ */
+export function layerBorderWidth(devicePixelRatio: number): number {
+  if (!(devicePixelRatio > 0)) return 2
+
+  return (Math.max(1, Math.floor(2 * devicePixelRatio)) + 0.001) / devicePixelRatio
+}
+
+/**
  * The card's width at a window that leaves it room to centre: 1px less when the
  * remainder is odd, so each margin is a whole pixel and the rail's border lies
  * exactly over the card's (owner's 800% check showed a 1px step). `null` while

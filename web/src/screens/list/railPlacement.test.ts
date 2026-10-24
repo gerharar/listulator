@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { cardMargin, listCardWidth, outsideRailWidth, railPlacement } from './railPlacement.js'
+import { cardMargin, layerBorderWidth, listCardWidth, outsideRailWidth, railPlacement } from './railPlacement.js'
 
 /** H-019: the jump rail sits inside the card or outside it, decided by the window and the card alone. */
 
@@ -68,5 +68,32 @@ describe('listCardWidth', () => {
   it('leaves a card narrower than 1080px alone', () => {
     expect(listCardWidth(1001)).toBe(null)
     expect(listCardWidth(1120)).toBe(1080)
+  })
+})
+
+describe('layerBorderWidth', () => {
+  it('is the 2px border at a screen scale that makes it whole device pixels', () => {
+    expect(layerBorderWidth(1)).toBeCloseTo(2, 2)
+    expect(layerBorderWidth(2)).toBeCloseTo(2, 2)
+    expect(layerBorderWidth(1.5)).toBeCloseTo(2, 2)
+  })
+
+  it('is the width the browser draws at 125% (1.6px = 2 device pixels), so an offset by it lands on the border’s edge', () => {
+    expect(layerBorderWidth(1.25)).toBeCloseTo(1.6, 2)
+    expect(layerBorderWidth(1.5625)).toBeCloseTo(1.92, 2)
+  })
+
+  it('is a whole number of device pixels, never fewer than one, and never rounds below it (the browser floors a border)', () => {
+    for (const ratio of [1, 1.1, 1.25, 1.5, 1.75, 2, 2.5, 3]) {
+      const device = layerBorderWidth(ratio) * ratio
+
+      expect(device).toBeGreaterThanOrEqual(Math.max(1, Math.floor(2 * ratio)))
+      expect(device).toBeLessThan(Math.max(1, Math.floor(2 * ratio)) + 0.05)
+    }
+  })
+
+  it('falls back to 2px for a ratio that is not a number above zero', () => {
+    expect(layerBorderWidth(0)).toBe(2)
+    expect(layerBorderWidth(Number.NaN)).toBe(2)
   })
 })
