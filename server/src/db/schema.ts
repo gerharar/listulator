@@ -125,6 +125,11 @@ export const lists = sqliteTable(
      * always has a date. Stamped at import; a refresh (12.2) moves it.
      */
     snapshotFetchedAt: integer('snapshot_fetched_at', { mode: 'timestamp_ms' }),
+    /**
+     * A list the first-run screen added for the reader to try (H-018, "Try A Sample List"): its page carries a band offering Remove Sample
+     * and Keep It. Keep It clears it; nothing else reads it. False for every list that existed before it was added.
+     */
+    isSample: integer('is_sample', { mode: 'boolean' }).notNull().default(false),
     createdAt: integer('created_at', { mode: 'timestamp_ms' })
       .notNull()
       .$defaultFn(() => new Date()),

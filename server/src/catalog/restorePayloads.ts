@@ -82,6 +82,8 @@ export interface ListPayload {
   arrivedDescription: string | null
   arrivedStatus: ListStatus | null
   snapshotFetchedAt?: string | null
+  /** Absent in a payload from before the sample mark: restored as not a sample. */
+  isSample?: boolean
   createdAt: string
   updatedAt: string
 }
@@ -197,6 +199,7 @@ export const toListPayload = (list: List): ListPayload => ({
   arrivedDescription: list.arrivedDescription,
   arrivedStatus: list.arrivedStatus,
   snapshotFetchedAt: list.snapshotFetchedAt?.toISOString() ?? null,
+  isSample: list.isSample,
   createdAt: list.createdAt.toISOString(),
   updatedAt: list.updatedAt.toISOString(),
 })

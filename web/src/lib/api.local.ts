@@ -160,6 +160,7 @@ function toMediaList(list: ListWithStats): MediaList {
     source: list.source,
     externalRef: list.externalRef,
     status: list.status,
+    isSample: list.isSample,
     createdAt: list.createdAt.toISOString(),
     updatedAt: list.updatedAt.toISOString(),
     stats: {

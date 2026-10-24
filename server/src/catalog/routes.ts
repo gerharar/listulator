@@ -98,6 +98,8 @@ function listBodyProperties(mediaTypes: MediaTypeRegistry) {
     // progress (that's the derived `stats.completionPercent`). Omit/null
     // means unknown — never a third enum value (schema.ts's `ListStatus`).
     status: { type: ['string', 'null'], enum: [...LIST_STATUSES, null] },
+    // The first-run sample list's mark (H-018): set when it is made, cleared by Keep It.
+    isSample: { type: 'boolean' },
   } as const
 }
 
@@ -168,6 +170,7 @@ export const catalogRoutes: FastifyPluginAsync<CatalogRoutesOptions> = async (
       source?: ListSource
       externalRef?: string | null
       status?: ListStatus | null
+      isSample?: boolean
     }
   }>(
     '/lists',
@@ -251,6 +254,7 @@ export const catalogRoutes: FastifyPluginAsync<CatalogRoutesOptions> = async (
       source?: ListSource
       externalRef?: string | null
       status?: ListStatus | null
+      isSample?: boolean
     }
   }>(
     '/lists/:listId',

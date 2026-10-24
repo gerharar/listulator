@@ -44,6 +44,8 @@ export interface MediaList {
   externalRef: string | null
   /** Production status of the thing the list is about. Null means unknown. */
   status: 'complete' | 'ongoing' | null
+  /** The first-run sample list (H-018): its page offers Remove Sample and Keep It. Absent means false. */
+  isSample?: boolean
   createdAt: string
   updatedAt: string
   stats: ListStats
@@ -283,10 +285,12 @@ export interface ApiClient {
     mediaType: string
     description?: string | null
     status?: 'complete' | 'ongoing' | null
+    /** The first-run screen's Try A Sample List makes its list with the mark (H-018). */
+    isSample?: boolean
   }) => Promise<MediaList>
   updateList: (
     id: string,
-    patch: { title?: string; description?: string | null; status?: 'complete' | 'ongoing' | null },
+    patch: { title?: string; description?: string | null; status?: 'complete' | 'ongoing' | null; isSample?: boolean },
   ) => Promise<MediaList>
   /** Acts at once, and hands back everything that went so Undo can restore it (D2). */
   deleteList: (id: string) => Promise<ListRestore>
@@ -485,11 +489,12 @@ export const fetchApi: ApiClient = {
     mediaType: string
     description?: string | null
     status?: 'complete' | 'ongoing' | null
+    isSample?: boolean
   }) => request<MediaList>('/lists', { method: 'POST', body: JSON.stringify(input) }),
 
   updateList: (
     id: string,
-    patch: { title?: string; description?: string | null; status?: 'complete' | 'ongoing' | null },
+    patch: { title?: string; description?: string | null; status?: 'complete' | 'ongoing' | null; isSample?: boolean },
   ) => request<MediaList>(`/lists/${id}`, { method: 'PATCH', body: JSON.stringify(patch) }),
 
   deleteList: async (id: string) =>

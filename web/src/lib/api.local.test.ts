@@ -649,6 +649,37 @@ describe('the desktop builds a list at once and fills its lengths afterwards (15
     })
   })
 
+  describe('the sample mark (H-018, 33.7)', () => {
+    it('is on a list made with it, shows in what the desktop returns, and Keep It clears it through updateList', async () => {
+      const { api, db, user, repository } = await start(filmSource())
+      const database = await db.createLocalDb()
+      const owner = (await user.getLocalCurrentUser(database)).id
+      const sample = await repository.createList(database, owner, { title: 'A sample', mediaType: 'movie', isSample: true })
+      const plain = await repository.createList(database, owner, { title: 'Mine', mediaType: 'movie' })
+
+      expect((await api.list(sample.id)).isSample).toBe(true)
+      expect((await api.list(plain.id)).isSample).toBe(false)
+      expect(Object.fromEntries((await api.lists()).map((entry) => [entry.title, entry.isSample]))).toEqual({ 'A sample': true, Mine: false })
+
+      const kept = await api.updateList(sample.id, { isSample: false })
+
+      expect(kept.isSample).toBe(false)
+      expect((await api.list(sample.id)).isSample).toBe(false)
+    })
+
+    it('comes back with the list when a delete is undone', async () => {
+      const { api, db, user, repository } = await start(filmSource())
+      const database = await db.createLocalDb()
+      const owner = (await user.getLocalCurrentUser(database)).id
+      const sample = await repository.createList(database, owner, { title: 'A sample', mediaType: 'movie', isSample: true })
+
+      const restore = await api.deleteList(sample.id)
+      await api.restoreList(restore)
+
+      expect((await api.list(sample.id)).isSample).toBe(true)
+    })
+  })
+
   describe('opening and listing lists', () => {
     async function builtEarlier(source: ReturnType<typeof filmSource>) {
       const started = await start(source)

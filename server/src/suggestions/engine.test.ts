@@ -44,6 +44,7 @@ function list({
     arrivedTitle: null,
     arrivedDescription: null,
     arrivedStatus: null,
+    isSample: false,
     snapshotFetchedAt: null,
     createdAt: created,
     updatedAt: created,

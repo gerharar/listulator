@@ -53,6 +53,8 @@ import { setItemPositions } from './orderIndex.js'
 
 export interface CreateListInput {
   title: string
+  /** The first-run screen's Try A Sample List makes its list with the mark (H-018). */
+  isSample?: boolean
   /** A longer free-text blurb alongside `title`. Null/omitted if not set. */
   description?: string | null
   mediaType: string
@@ -74,6 +76,8 @@ export interface CreateListInput {
 
 export interface UpdateListInput {
   title?: string
+  /** Keep It clears the sample mark (H-018); a sample is made with `CreateListInput.isSample`. */
+  isSample?: boolean
   description?: string | null
   mediaType?: string
   source?: ListSource
@@ -146,6 +150,7 @@ export async function createList(
       arrivedDescription: input.arrivedDescription ?? null,
       arrivedStatus: input.arrivedStatus ?? null,
       snapshotFetchedAt: input.snapshotFetchedAt ?? null,
+      isSample: input.isSample ?? false,
     })
     .returning()
     .get()

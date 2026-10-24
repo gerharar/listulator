@@ -1,0 +1,1 @@
+ALTER TABLE `lists` ADD `is_sample` integer DEFAULT false NOT NULL;
