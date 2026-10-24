@@ -12,6 +12,8 @@ export interface LayerCardProps {
   covered?: boolean
   /** 1400px max-width, for a list or preview layer — the default is 1080px. */
   wide?: boolean
+  /** Lets what a layer draws beside its card show (the list's jump rail, H-019); its header plate clips itself. */
+  reach?: boolean
   /** The LayerTab's label when covered. */
   tabLabel?: string
   /** The tab is a back *target* — jumps straight to this layer, however many are on top of it. */
@@ -34,13 +36,14 @@ export function LayerCard({
   children,
   covered = false,
   wide = false,
+  reach = false,
   tabLabel,
   onTabClick,
   onVeilClick,
   style,
   entering = false,
 }: LayerCardProps) {
-  const className = ['q-layer', covered && 'covered', wide && 'wide', entering && 'enter']
+  const className = ['q-layer', covered && 'covered', wide && 'wide', reach && 'reach', entering && 'enter']
     .filter(Boolean)
     .join(' ')
 

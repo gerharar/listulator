@@ -37,6 +37,14 @@ describe('LayerCard', () => {
     expect(document.querySelector('.q-veil')).not.toBeNull()
   })
 
+  it('lets what a layer draws beside its card show only when asked to (the list’s outside rail, H-019)', () => {
+    const { container, rerender } = render(<LayerCard>content</LayerCard>)
+    expect(container.querySelector('.q-layer')!.classList.contains('reach')).toBe(false)
+
+    rerender(<LayerCard reach>content</LayerCard>)
+    expect(container.querySelector('.q-layer')!.classList.contains('reach')).toBe(true)
+  })
+
   it('plays the drum-in animation only when entering', () => {
     const { container, rerender } = render(<LayerCard>content</LayerCard>)
     expect(container.querySelector('.q-layer')?.className).not.toMatch(/\benter\b/)

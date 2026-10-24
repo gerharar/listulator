@@ -65,6 +65,8 @@ import { ItemRow } from './ItemRow.js'
 import { ByHandMark, CuratedStar } from '../../components/quantum/Marks/Marks.js'
 import { listMark } from '../../lib/buckets.js'
 import { JumpRail, JumpRailStub, type RailEntry } from './JumpRail.js'
+import { cardMargin, outsideRailWidth } from './railPlacement.js'
+import { useRailPlacement } from './RailPlacementContext.js'
 import { ListMorePopover, type MoreMode, type PreviewState } from './ListMorePopover.js'
 import { buildSpine, listTotals } from './spine.js'
 import { dropPinEdge, type PinEdge } from './dropPin.js'
@@ -553,6 +555,11 @@ function ListView({
       ),
     [units],
   )
+
+  // Outside the card the rail belongs to the active layer alone: a covered layer's veil is inside the card and would not reach it (H-019).
+  const railWindow = useRailPlacement()
+  const railOutside = railWindow.placement === 'outside'
+  const showRail = railEntries.length > 1 && (active || !railOutside)
 
   function setRail(hidden: boolean) {
     setRailHidden(hidden)
@@ -1360,17 +1367,18 @@ function ListView({
       )}
 
       <div className={busy ? 'q-list-cols q-hold is-busy' : 'q-list-cols q-hold'} inert={busy} aria-busy={busy || undefined}>
-        {railEntries.length > 1 && !railHidden && (
+        {showRail && !railHidden && (
           <JumpRail
             entries={railEntries}
             onJump={jump}
             onHide={() => setRail(true)}
-            width={railWidth}
+            width={railOutside ? outsideRailWidth(railWidth, cardMargin(railWindow.windowWidth)) : railWidth}
             onResize={setRailWidth}
             onResizeEnd={(width) => void saveRailWidth(getPreferencesStore(), listId, width)}
+            placement={railWindow.placement}
           />
         )}
-        {railEntries.length > 1 && railHidden && <JumpRailStub onShow={() => setRail(false)} />}
+        {showRail && railHidden && <JumpRailStub onShow={() => setRail(false)} placement={railWindow.placement} />}
         <div
           className="q-list-body"
           ref={spine}

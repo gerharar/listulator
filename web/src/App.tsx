@@ -21,6 +21,8 @@ import { Atmosphere } from './components/quantum/Atmosphere/Atmosphere.js'
 import { DocumentTheme } from './components/quantum/DocumentTheme/DocumentTheme.js'
 import { AppHeader } from './components/quantum/AppHeader/AppHeader.js'
 import { LayerCard } from './components/quantum/LayerCard/LayerCard.js'
+import { RailPlacementProvider, useWindowRailPlacement } from './screens/list/RailPlacementContext.js'
+import { listCardWidth } from './screens/list/railPlacement.js'
 import { Home } from './components/quantum/Home/Home.js'
 import { CategoryPicker } from './components/quantum/CategoryPicker/CategoryPicker.js'
 import { LiveRegionProvider } from './components/quantum/LiveRegion/LiveRegion.js'
@@ -191,6 +193,8 @@ function AppShellBody({ skin, onSkinChange }: AppShellBodyProps) {
   // The first screen of a newer version says so (canvas H-017).
   useUpdatedToast()
   const layerStack = useLayerStack()
+  // Where the list's jump rail sits (H-019): one answer for the window, read by every list layer.
+  const railWindow = useWindowRailPlacement()
   // `Home` is the only thing that fetches the registry (task 10.10) — the
   // still-hosted legacy screens (List detail, New list) need it too, so it
   // lives here and Home lifts it up once loaded. Empty until then; neither
@@ -240,11 +244,15 @@ function AppShellBody({ skin, onSkinChange }: AppShellBodyProps) {
           // fixed-37px-step placeholder.
           const depth = layerStack.visible.length - 1 - index
           const { top, transform } = layerGeometry(layerStack.visible.length, depth)
+          // The list's rail may lie outside the card (H-019): the card then lets it show, and gives up the odd pixel so the margins are whole.
+          const reach = layer.kind === 'list'
+          const width = reach && railWindow.placement === 'outside' ? listCardWidth(railWindow.windowWidth) : null
 
           return (
             <LayerCard
               key={layer.id}
-              style={{ top, transform, zIndex: 10 + fullIndex }}
+              reach={reach}
+              style={{ top, transform, zIndex: 10 + fullIndex, ...(width !== null && { width }) }}
               entering={layer.id === layerStack.enteringId}
               covered={!isTop}
               tabLabel={resolveTabLabel(layer.tabLabel)}
@@ -260,7 +268,9 @@ function AppShellBody({ skin, onSkinChange }: AppShellBodyProps) {
               ) : layer.kind === 'category-picker' ? (
                 <CategoryPicker mediaTypes={mediaTypes} first={fullIndex === 0} />
               ) : (
-                <PathLayer path={layer.content} mediaTypes={mediaTypes} active={isTop} />
+                <RailPlacementProvider value={railWindow}>
+                  <PathLayer path={layer.content} mediaTypes={mediaTypes} active={isTop} />
+                </RailPlacementProvider>
               )}
             </LayerCard>
           )

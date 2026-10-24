@@ -3,6 +3,7 @@ import type { KeyboardEvent, PointerEvent } from 'react'
 import { copy } from '../../locale/index.js'
 import { clampRailWidth, RAIL_WIDTH_DEFAULT, RAIL_WIDTH_MAX, RAIL_WIDTH_MIN } from './collapse.js'
 import { Tip } from '../../components/quantum/Tooltip/Tip.js'
+import type { RailPlacement } from './railPlacement.js'
 
 export interface RailEntry {
   id: string
@@ -20,6 +21,8 @@ export interface JumpRailProps {
   onResize: (width: number) => void
   /** Once, when a resize settles: the width to remember. */
   onResizeEnd: (width: number) => void
+  /** Outside the card (H-019) it has no grip yet: the outer-edge grip is task 32.2. */
+  placement?: RailPlacement
 }
 
 const STEP = 16
@@ -32,7 +35,7 @@ const STEP = 16
  * 200px: long group names were cut off); arrow keys on the edge do the same,
  * and a double-click puts it back.
  */
-export function JumpRail({ entries, onJump, onHide, width, onResize, onResizeEnd }: JumpRailProps) {
+export function JumpRail({ entries, onJump, onHide, width, onResize, onResizeEnd, placement = 'inside' }: JumpRailProps) {
   const text = copy.quantum.list.rail
 
   function set(next: number) {
@@ -72,21 +75,23 @@ export function JumpRail({ entries, onJump, onHide, width, onResize, onResizeEnd
   }
 
   return (
-    <nav className="q-rail" aria-label={text.title} style={{ width }}>
-      <Tip
-        className="q-rail-grip"
-        role="separator"
-        aria-orientation="vertical"
-        aria-label={text.resize}
-        text={text.resize}
-        aria-valuenow={width}
-        aria-valuemin={RAIL_WIDTH_MIN}
-        aria-valuemax={RAIL_WIDTH_MAX}
-        tabIndex={0}
-        onPointerDown={startResize}
-        onKeyDown={onGripKey}
-        onDoubleClick={() => set(RAIL_WIDTH_DEFAULT)}
-      />
+    <nav className={placement === 'outside' ? 'q-rail q-rail-out' : 'q-rail'} data-placement={placement} aria-label={text.title} style={{ width }}>
+      {placement === 'inside' && (
+        <Tip
+          className="q-rail-grip"
+          role="separator"
+          aria-orientation="vertical"
+          aria-label={text.resize}
+          text={text.resize}
+          aria-valuenow={width}
+          aria-valuemin={RAIL_WIDTH_MIN}
+          aria-valuemax={RAIL_WIDTH_MAX}
+          tabIndex={0}
+          onPointerDown={startResize}
+          onKeyDown={onGripKey}
+          onDoubleClick={() => set(RAIL_WIDTH_DEFAULT)}
+        />
+      )}
       <div className="q-rail-scroll">
         <div className="q-rail-head">
           <span className="q-kicker">{text.title}</span>
@@ -124,12 +129,12 @@ export function JumpRail({ entries, onJump, onHide, width, onResize, onResizeEnd
  * The whole strip is the way back (owner); the » button is its keyboard stop,
  * and its click reaches the strip's handler.
  */
-export function JumpRailStub({ onShow }: { onShow: () => void }) {
+export function JumpRailStub({ onShow, placement = 'inside' }: { onShow: () => void; placement?: RailPlacement }) {
   const text = copy.quantum.list.rail
 
   return (
     // The tooltip is the strip's alone: a second one on the » button would open beside it.
-    <Tip as="div" className="q-rail-stub" text={text.show} onClick={onShow}>
+    <Tip as="div" className={placement === 'outside' ? 'q-rail-stub q-rail-out' : 'q-rail-stub'} data-placement={placement} text={text.show} onClick={onShow}>
       <button type="button" className="q-rail-toggle" aria-label={text.show}>
         »
       </button>

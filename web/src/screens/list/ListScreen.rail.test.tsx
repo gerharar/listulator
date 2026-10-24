@@ -7,6 +7,8 @@ import { LiveRegionProvider } from '../../components/quantum/LiveRegion/LiveRegi
 import { OverlayManagerProvider } from '../../components/quantum/overlay/OverlayManagerContext.js'
 import { ToastProvider } from '../../components/quantum/Toast/Toast.js'
 import { ListScreen } from './ListScreen.js'
+import { RailPlacementProvider } from './RailPlacementContext.js'
+import { railPlacement } from './railPlacement.js'
 
 /** The jump rail on the list screen (task 10.24): groups only, more than one, remembered per list. */
 
@@ -83,13 +85,27 @@ afterEach(() => {
   vi.resetAllMocks()
 })
 
-async function open(detail: MediaListDetail = list()) {
+async function open(detail: MediaListDetail = list(), where: { windowWidth: number; active?: boolean } | null = null) {
   vi.mocked(api.list).mockResolvedValue(detail)
+  const screenOfList = (
+    <ListScreen
+      listId="L1"
+      mediaTypes={TYPES}
+      pendingUpdates={createPendingUpdates({ get: async () => undefined, set: async () => {} })}
+      active={where?.active ?? true}
+    />
+  )
   render(
     <LiveRegionProvider>
       <ToastProvider>
         <OverlayManagerProvider>
-          <ListScreen listId="L1" mediaTypes={TYPES} pendingUpdates={createPendingUpdates({ get: async () => undefined, set: async () => {} })} />
+          {where ? (
+            <RailPlacementProvider value={{ placement: railPlacement(where.windowWidth, 'inside'), windowWidth: where.windowWidth }}>
+              {screenOfList}
+            </RailPlacementProvider>
+          ) : (
+            screenOfList
+          )}
         </OverlayManagerProvider>
       </ToastProvider>
     </LiveRegionProvider>,
@@ -236,5 +252,78 @@ describe('the jump rail', () => {
       await open()
       expect(width()).toBe('200px')
     })
+  })
+})
+
+describe('the jump rail outside the card (H-019)', () => {
+  const stub = () => document.querySelector('.q-rail-stub') as HTMLElement | null
+
+  it('stays inside in a window with no room beside the card', async () => {
+    await open(list(), { windowWidth: 1512 })
+
+    expect(rail()!.dataset['placement']).toBe('inside')
+    expect(rail()!.style.width).toBe('200px')
+  })
+
+  it('leaves the card in a window that has the room, still a child of the list body box it sits in inside', async () => {
+    await open(list(), { windowWidth: 1728 })
+
+    expect(rail()!.dataset['placement']).toBe('outside')
+    expect(rail()!.parentElement!.classList.contains('q-list-cols')).toBe(true)
+  })
+
+  it('keeps the reader’s width outside, capped at the margin minus 16px, and does not store the cap', async () => {
+    store.set('list:L1:railWidth', '480')
+    await open(list(), { windowWidth: 1552 })
+
+    expect(rail()!.style.width).toBe('200px')
+    expect(store.get('list:L1:railWidth')).toBe('480')
+
+    cleanup()
+    await open(list(), { windowWidth: 1920 })
+    expect(rail()!.style.width).toBe('384px')
+
+    cleanup()
+    await open(list(), { windowWidth: 1440 })
+    expect(rail()!.style.width).toBe('480px')
+  })
+
+  it('has no resize grip outside (it comes with the outer-edge grip, 32.2)', async () => {
+    await open(list(), { windowWidth: 1728 })
+
+    expect(within(rail()!).queryByRole('separator')).toBeNull()
+  })
+
+  it('folds to the stub outside as well, and shows again', async () => {
+    store.set('list:L1:rail', 'hidden')
+    await open(list(), { windowWidth: 1728 })
+
+    expect(rail()).toBeNull()
+    expect(stub()!.dataset['placement']).toBe('outside')
+    fireEvent.click(stub()!)
+    expect(rail()!.dataset['placement']).toBe('outside')
+  })
+
+  it('shows only on the active layer: a covered list has no rail or stub outside', async () => {
+    await open(list(), { windowWidth: 1728, active: false })
+    expect(rail()).toBeNull()
+
+    cleanup()
+    store.set('list:L1:rail', 'hidden')
+    await open(list(), { windowWidth: 1728, active: false })
+    expect(stub()).toBeNull()
+  })
+
+  it('keeps a covered list’s rail inside, where the veil covers it', async () => {
+    await open(list(), { windowWidth: 1440, active: false })
+
+    expect(rail()!.dataset['placement']).toBe('inside')
+  })
+
+  it('is not there for a flat list, in a wide window either', async () => {
+    await open(list({ groups: [], items: [item('x', 0, null), item('y', 1, null)] }), { windowWidth: 1728 })
+
+    expect(rail()).toBeNull()
+    expect(stub()).toBeNull()
   })
 })

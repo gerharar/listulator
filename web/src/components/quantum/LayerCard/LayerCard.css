@@ -33,6 +33,10 @@
 .q-layer.wide {
   max-width: 1400px;
 }
+.q-layer.reach,
+.q-layer.reach > .q-layer-body {
+  overflow: visible;
+}
 .q-layer.enter {
   animation:
     q-drumIn 380ms cubic-bezier(0.22, 0.7, 0.2, 1),
