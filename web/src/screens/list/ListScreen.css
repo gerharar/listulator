@@ -110,6 +110,8 @@
   flex-wrap: wrap;
   gap: 10px;
   padding: 13px 26px 11px;
+  /* The prototype's 1px line under the toolbar (H-019 relies on it: the outside rail's top border lies over it). */
+  border-bottom: 1px solid var(--line);
 }
 /* U4: both forms of each facet at their natural one-line width, measured and never seen. */
 .q-filterbar-ghost {

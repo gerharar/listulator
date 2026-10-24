@@ -102,6 +102,37 @@ test('the outside rail starts at the height the inside rail does', async ({ page
   }
 })
 
+test('the filter bar ends in a 1px line (the prototype\'s), and the outside rail\'s top border lies over it', async ({ page }) => {
+  const title = `e2e filterbar line ${Date.now()}`
+  const id = await makeGroupedList(page.request, title)
+
+  try {
+    await page.setViewportSize({ width: 1728, height: 900 })
+    await openList(page, title)
+    await expect(page.locator('.q-rail')).toHaveAttribute('data-placement', 'outside')
+    await settled(page)
+
+    const read = await page.evaluate(() => {
+      const bar = document.querySelector('.q-list .q-filterbar')!
+      const style = getComputedStyle(bar)
+      return {
+        width: style.borderBottomWidth,
+        style: style.borderBottomStyle,
+        barBottom: bar.getBoundingClientRect().bottom,
+        colsTop: document.querySelector('.q-list-cols')!.getBoundingClientRect().top,
+        railTop: document.querySelector('.q-rail')!.getBoundingClientRect().top,
+      }
+    })
+
+    expect([read.width, read.style]).toEqual(['1px', 'solid'])
+    // The line is the last pixel of the bar, right above the list body; the rail's 2px border starts on it.
+    expect(read.barBottom).toBeCloseTo(read.colsTop, 1)
+    expect(read.railTop).toBeCloseTo(read.barBottom - 1, 1)
+  } finally {
+    await page.request.delete(`/api/lists/${id}`)
+  }
+})
+
 test('the switch follows the window, with 16px of hysteresis', async ({ page }) => {
   const title = `e2e rail switch ${Date.now()}`
   const id = await makeGroupedList(page.request, title)
