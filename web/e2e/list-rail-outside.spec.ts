@@ -57,8 +57,10 @@ for (const width of [1728, 1729, 1920, 1921]) {
 
       const { rail, cols, body, card } = await boxes(page)
 
-      // The rail's right edge is the card's inner left edge; it starts 1px above the list (its border over the toolbar's line), ends at the card's bottom.
-      expect(rail.right).toBeCloseTo(cols.left, 1)
+      // The rail ends at the card's outer left edge, so the card's own 2px border stays between it and the list (the separator); it starts 1px above
+      // the list (its border over the toolbar's line) and ends at the card's bottom.
+      expect(rail.right).toBeCloseTo(card.left, 1)
+      expect(cols.left - card.left).toBeCloseTo(2, 1)
       expect(rail.top).toBeCloseTo(cols.top - 1, 1)
       expect(rail.bottom).toBeCloseTo(card.bottom, 1)
       // Whole pixels: the card is centred on a whole pixel, so no 1px step and no seam.
@@ -117,6 +119,27 @@ test('the switch follows the window, with 16px of hysteresis', async ({ page }) 
     expect(await placement()).toBe('outside')
     await page.setViewportSize({ width: 1519, height: 900 })
     await expect.poll(placement).toBe('inside')
+  } finally {
+    await page.request.delete(`/api/lists/${id}`)
+  }
+})
+
+test('the card’s own border is the vertical line between the outside rail and the list', async ({ page }) => {
+  await page.setViewportSize({ width: 1728, height: 900 })
+  const title = `e2e rail separator ${Date.now()}`
+  const id = await makeGroupedList(page.request, title)
+
+  try {
+    await openList(page, title)
+    // Just inside the card's left edge, beside the rail's middle: what is drawn there is the card's border, not the rail's ground.
+    const drawn = await page.evaluate(() => {
+      const card = document.querySelector('.q-list')!.closest('.q-layer')!
+      const rail = document.querySelector('.q-rail')!.getBoundingClientRect()
+      const hit = document.elementFromPoint(card.getBoundingClientRect().left + 1, (rail.top + rail.bottom) / 2)
+
+      return hit === card
+    })
+    expect(drawn).toBe(true)
   } finally {
     await page.request.delete(`/api/lists/${id}`)
   }

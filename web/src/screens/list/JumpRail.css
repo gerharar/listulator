@@ -100,15 +100,15 @@ body.q-resizing * { cursor: col-resize !important; }
  * The rail outside the card (H-019): attached to the card's left edge, built by layout, not by measuring. It is a child of `.q-list-cols`
  * (the box the inside rail sits in), so it starts level with the inside rail: `top: -1px` lets its 2px top border lie over the
  * toolbar's 1px bottom line and continue it; `bottom: -2px` lays its bottom border exactly over the card's. The card is
- * `overflow: visible` (LayerCard `reach`) so it shows, and its ground paints over the card's own left border, so the two are one surface.
- * No right border: it shares the card's edge. The card's width does not change, and the rail takes none of the list body's room.
+ * `overflow: visible` (LayerCard `reach`) so it shows. No right border: the card's own left border is the line between them. The card's width does not change, and the rail takes none of the list body's room.
  */
 .q-rail.q-rail-out,
 .q-rail-stub.q-rail-out {
   position: absolute;
   top: -1px;
   bottom: -2px;
-  right: 100%;
+  /* Ends at the card's outer edge, so the card's own 2px border stays between the rail and the list: that is the vertical line. */
+  right: calc(100% + 2px);
   z-index: 2;
   box-sizing: border-box;
   background: var(--card);
