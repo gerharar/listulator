@@ -1,7 +1,7 @@
 title: Mindhunter TV series
 description: All episodes of the Mindhunter TV series
 category: tv
-status: completed
+status: complete
 items:
 - { title: "S01E01 Episode 1", year: 2017, minutes: 60, group: Season 1 }
 - { title: "S01E02 Episode 2", year: 2017, minutes: 56, group: Season 1 }

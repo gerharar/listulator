@@ -1,6 +1,6 @@
 title: The Boys franchise (no comics)
 description: All releases in The Boys franchise; excludes comic book series
-category: tv
+category: mega
 status: ongoing
 items:
 - { title: "S01E01 The Name of the Game", year: 2019, minutes: 62, group: "The Boys: Season 1", tags: [tv] }
@@ -19,14 +19,14 @@ items:
 - { title: "S02E06 The Bloody Doors Off", year: 2020, minutes: 67, group: "The Boys: Season 2", tags: [tv] }
 - { title: "S02E07 Butcher, Baker, Candlestick Maker", year: 2020, minutes: 57, group: "The Boys: Season 2", tags: [tv] }
 - { title: "S02E08 What I Know", year: 2020, minutes: 70, group: "The Boys: Season 2", tags: [tv] }
-- { title: "S01E01 Laser Baby's Day Out", year: 2022, minutes: 14, group: The Boys Presents: Diabolical", tags: [animation] }
-- { title: "S01E02 An Animated Short Where Pissed-Off Supes Kill Their Parents", year: 2022, minutes: 13, group: The Boys Presents: Diabolical", tags: [animation] }
-- { title: "S01E03 I'm Your Pusher", year: 2022, minutes: 14, group: The Boys Presents: Diabolical", tags: [animation] }
-- { title: "S01E04 Boyd in 3D", year: 2022, minutes: 14, group: The Boys Presents: Diabolical", tags: [animation] }
-- { title: "S01E05 BFFs", year: 2022, minutes: 15, group: The Boys Presents: Diabolical", tags: [animation] }
-- { title: "S01E06 Nubian vs Nubian", year: 2022, minutes: 14, group: The Boys Presents: Diabolical", tags: [animation] }
-- { title: "S01E07 John and Sun-Hee", year: 2022, minutes: 14, group: The Boys Presents: Diabolical", tags: [animation] }
-- { title: "S01E08 One Plus One Equals Two", year: 2022, minutes: 14, group: The Boys Presents: Diabolical", tags: [animation] }
+- { title: "S01E01 Laser Baby's Day Out", year: 2022, minutes: 14, group: "The Boys Presents: Diabolical", tags: [animation] }
+- { title: "S01E02 An Animated Short Where Pissed-Off Supes Kill Their Parents", year: 2022, minutes: 13, group: "The Boys Presents: Diabolical", tags: [animation] }
+- { title: "S01E03 I'm Your Pusher", year: 2022, minutes: 14, group: "The Boys Presents: Diabolical", tags: [animation] }
+- { title: "S01E04 Boyd in 3D", year: 2022, minutes: 14, group: "The Boys Presents: Diabolical", tags: [animation] }
+- { title: "S01E05 BFFs", year: 2022, minutes: 15, group: "The Boys Presents: Diabolical", tags: [animation] }
+- { title: "S01E06 Nubian vs Nubian", year: 2022, minutes: 14, group: "The Boys Presents: Diabolical", tags: [animation] }
+- { title: "S01E07 John and Sun-Hee", year: 2022, minutes: 14, group: "The Boys Presents: Diabolical", tags: [animation] }
+- { title: "S01E08 One Plus One Equals Two", year: 2022, minutes: 14, group: "The Boys Presents: Diabolical", tags: [animation] }
 - { title: "S03E01 Payback", year: 2022, minutes: 63, group: "The Boys: Season 3", tags: [tv] }
 - { title: "S03E02 The Only Man in the Sky", year: 2022, minutes: 61, group: "The Boys: Season 3", tags: [tv] }
 - { title: "S03E03 Barbary Coast", year: 2022, minutes: 62, group: "The Boys: Season 3", tags: [tv] }

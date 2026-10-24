@@ -309,6 +309,22 @@
     "status": "ongoing"
   },
   {
+    "path": "lists/mega/the-boys-tv-all.yaml",
+    "title": "The Boys franchise (no comics)",
+    "category": "mega",
+    "itemCount": 64,
+    "description": "All releases in The Boys franchise; excludes comic book series",
+    "status": "ongoing"
+  },
+  {
+    "path": "lists/mega/twin-peaks-franchise.yaml",
+    "title": "Twin Peaks franchise (recommended order)",
+    "category": "mega",
+    "itemCount": 56,
+    "description": "All releases in the Twin Peaks franchise, in recommended order",
+    "status": "complete"
+  },
+  {
     "path": "lists/mma/ufc-all-events.yaml",
     "title": "All UFC Events",
     "category": "mma",
@@ -362,7 +378,7 @@
     "path": "lists/tv/agents-of-shield-tv.yaml",
     "title": "Agents Of S.H.I.E.L.D. TV series",
     "category": "tv",
-    "itemCount": 136,
+    "itemCount": 142,
     "description": "All episodes of the Agents Of S.H.I.E.L.D. TV series",
     "status": "complete"
   },
@@ -379,7 +395,7 @@
     "title": "Breaking Bad TV series",
     "category": "tv",
     "itemCount": 62,
-    "description": "All episodes of Breaking Bad TV series",
+    "description": "All episodes of the Breaking Bad TV series",
     "status": "complete"
   },
   {
@@ -387,7 +403,7 @@
     "title": "Chernobyl TV miniseries",
     "category": "tv",
     "itemCount": 5,
-    "description": "All episodes of Chernobyl TV miniseries",
+    "description": "All episodes of the Chernobyl TV miniseries",
     "status": "complete"
   },
   {
@@ -395,7 +411,7 @@
     "title": "Dekalog TV miniseries",
     "category": "tv",
     "itemCount": 10,
-    "description": "All episodes of Dekalog TV miniseries by Krzysztof Kieślowski",
+    "description": "All episodes of the Dekalog TV miniseries by Krzysztof Kieślowski",
     "status": "complete"
   },
   {
@@ -403,7 +419,7 @@
     "title": "Fargo TV series",
     "category": "tv",
     "itemCount": 51,
-    "description": "All episodes of Fargo TV series"
+    "description": "All episodes of the Fargo TV series"
   },
   {
     "path": "lists/tv/game-of-thrones-franchise-tv.yaml",
@@ -443,7 +459,15 @@
     "category": "tv",
     "itemCount": 19,
     "description": "All episodes of the Mindhunter TV series",
-    "status": "ongoing"
+    "status": "complete"
+  },
+  {
+    "path": "lists/tv/mr_robot_tv.yaml",
+    "title": "Mr. Robot TV series",
+    "category": "tv",
+    "itemCount": 45,
+    "description": "All episodes of the Mr. Robot TV series",
+    "status": "complete"
   },
   {
     "path": "lists/tv/narcos-franchise-tv.yaml",
@@ -454,11 +478,27 @@
     "status": "complete"
   },
   {
-    "path": "lists/tv/sopranos-tv.yaml",
-    "title": "The Sopranos TV series",
+    "path": "lists/tv/preacher-tv.yaml",
+    "title": "Preacher TV series",
     "category": "tv",
-    "itemCount": 86,
-    "description": "All episodes of The Sopranos TV series",
+    "itemCount": 43,
+    "description": "All episodes of the Preacher TV series",
+    "status": "complete"
+  },
+  {
+    "path": "lists/tv/schitts-creek-tv.yaml",
+    "title": "Schitt's Creek TV series",
+    "category": "tv",
+    "itemCount": 80,
+    "description": "All episodes of the Schitt's Creek TV series",
+    "status": "complete"
+  },
+  {
+    "path": "lists/tv/sons-of-anarchy-franchise-tv.yaml",
+    "title": "Sons Of Anarchy franchise (TV series only)",
+    "category": "tv",
+    "itemCount": 142,
+    "description": "All episodes of TV series from the Sons Of Anarchy franchise in chronological order; includes only TV series",
     "status": "complete"
   },
   {
@@ -478,11 +518,27 @@
     "status": "complete"
   },
   {
+    "path": "lists/tv/the-expanse-tv.yaml",
+    "title": "The Expanse TV series",
+    "category": "tv",
+    "itemCount": 67,
+    "description": "All episodes of The Expanse TV series, including The Expanse: One Ship webisodes",
+    "status": "complete"
+  },
+  {
     "path": "lists/tv/the-office-tv.yaml",
     "title": "The Office TV series",
     "category": "tv",
     "itemCount": 191,
     "description": "All episodes of The Office TV series",
+    "status": "complete"
+  },
+  {
+    "path": "lists/tv/the-sopranos-tv.yaml",
+    "title": "The Sopranos TV series",
+    "category": "tv",
+    "itemCount": 86,
+    "description": "All episodes of The Sopranos TV series",
     "status": "complete"
   },
   {
@@ -507,6 +563,14 @@
     "category": "tv",
     "itemCount": 30,
     "description": "All episodes of the True Detective TV anthology series",
+    "status": "ongoing"
+  },
+  {
+    "path": "lists/tv/yellowstone-franchise-tv.yaml",
+    "title": "Yellowstone franchise (series appearance order)",
+    "category": "tv",
+    "itemCount": 103,
+    "description": "All episodes of TV series from the Yellowstone franchise, in series appearance order",
     "status": "ongoing"
   },
   {
