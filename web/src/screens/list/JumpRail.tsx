@@ -1,7 +1,7 @@
 import './JumpRail.css'
 import { useEffect, useRef, useState, type KeyboardEvent, type PointerEvent } from 'react'
 import { copy } from '../../locale/index.js'
-import { RAIL_WIDTH_DEFAULT, RAIL_WIDTH_MAX, RAIL_WIDTH_MIN } from './collapse.js'
+import { RAIL_WIDTH_DEFAULT, RAIL_WIDTH_MAX, RAIL_WIDTH_MIN } from './railLimits.js'
 import { Tip } from '../../components/quantum/Tooltip/Tip.js'
 
 export interface RailEntry {

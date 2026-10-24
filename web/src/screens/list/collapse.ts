@@ -1,4 +1,5 @@
 import { listPreferenceKey, type PreferencesStore } from '../../lib/preferences/store.js'
+import { RAIL_WIDTH_DEFAULT, RAIL_WIDTH_MAX, RAIL_WIDTH_MIN } from './railLimits.js'
 
 /**
  * Which groups of a list are collapsed, and which row was last focused,
@@ -107,9 +108,6 @@ export async function saveRailHidden(store: PreferencesStore, listId: string, hi
 }
 
 const RAIL_WIDTH = 'railWidth'
-export const RAIL_WIDTH_DEFAULT = 200
-export const RAIL_WIDTH_MIN = 160
-export const RAIL_WIDTH_MAX = 480
 
 export function clampRailWidth(width: number): number {
   return Math.round(Math.min(RAIL_WIDTH_MAX, Math.max(RAIL_WIDTH_MIN, width)))

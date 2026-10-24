@@ -6,7 +6,7 @@
  * would throw a widened rail back inside.
  */
 
-import { RAIL_WIDTH_MIN } from './collapse.js'
+import { RAIL_WIDTH_MIN } from './railLimits.js'
 
 export type RailPlacement = 'inside' | 'outside'
 
