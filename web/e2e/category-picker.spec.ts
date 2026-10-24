@@ -37,6 +37,75 @@ test('New List opens the picker, driven by the live registry rather than the han
   await expect(page.locator('.q-tile.used .q-count-chip')).toHaveText('1')
 })
 
+test('the web build never shows “Free key needed”, and every tile keeps a 20px bottom row so the source names stay level (H-018)', async ({ page }) => {
+  await useHomeFixture(page)
+  await page.goto('/')
+  await page.getByRole('button', { name: 'New List' }).click()
+  await expect(page.getByRole('heading', { name: picker.title })).toBeVisible()
+  // The layer drums in with a transform; measure when it has stopped.
+  await page.waitForFunction(() => document.getAnimations().length === 0)
+
+  // Keys are the server's business here: there is no chip, whatever the registry says about a source.
+  await expect(page.locator('.q-key-chip')).toHaveCount(0)
+
+  const feet = await page.locator('.q-tile').evaluateAll((tiles) =>
+    tiles.map((tile) => {
+      const foot = tile.querySelector('.q-tile-foot')!.getBoundingClientRect()
+      const box = tile.getBoundingClientRect()
+      return { height: foot.height, fromBottom: Math.round(box.bottom - foot.bottom) }
+    }),
+  )
+  expect(feet.length).toBeGreaterThan(5)
+  for (const foot of feet) expect(foot.height).toBeGreaterThanOrEqual(20)
+  // Level: every tile's bottom row is the same distance from its tile's bottom edge (its padding and border).
+  expect(new Set(feet.map((foot) => foot.fromBottom)).size).toBe(1)
+})
+
+test('a “Free key needed” chip fits the tile’s bottom row: at its right, level with the source name, without making the row taller than the others (H-018)', async ({ page }) => {
+  await useHomeFixture(page)
+  await page.goto('/')
+  await page.getByRole('button', { name: 'New List' }).click()
+  await expect(page.getByRole('heading', { name: picker.title })).toBeVisible()
+
+  await page.waitForFunction(() => document.getAnimations().length === 0)
+
+  // The desktop app is what draws the chip; the CSS is the same everywhere, so put one in by hand and measure.
+  const read = await page.evaluate((label) => {
+    const tiles = [...document.querySelectorAll('.q-tile')]
+    const foot = tiles[0]!.querySelector('.q-tile-foot')!
+    const before = foot.getBoundingClientRect().height
+    const chip = document.createElement('span')
+    chip.className = 'q-key-chip'
+    chip.textContent = label
+    foot.appendChild(chip)
+    const box = foot.getBoundingClientRect()
+    const chipBox = chip.getBoundingClientRect()
+    const src = foot.querySelector('.q-tile-src')!.getBoundingClientRect()
+    const other = tiles[1]!.querySelector('.q-tile-foot')!.getBoundingClientRect().height
+    const style = getComputedStyle(chip)
+
+    return {
+      before,
+      after: box.height,
+      other,
+      chipRight: Math.round(box.right - chipBox.right),
+      chipHeight: chipBox.height,
+      centreGap: Math.abs(chipBox.top + chipBox.height / 2 - (src.top + src.height / 2)),
+      font: `${style.fontWeight} ${style.fontSize}`,
+      upper: style.textTransform,
+      border: style.borderTopWidth,
+    }
+  }, picker.keyNeeded)
+
+  expect(read.before).toBeGreaterThanOrEqual(20)
+  // The row grows by no more than the chip's half pixel over its 20px minimum.
+  expect(read.after - read.before).toBeLessThanOrEqual(1)
+  expect(Math.abs(read.after - read.other)).toBeLessThanOrEqual(1)
+  expect(read.chipRight).toBe(0)
+  expect(read.centreGap).toBeLessThanOrEqual(1)
+  expect([read.font, read.upper, read.border]).toEqual(['500 10.5px', 'uppercase', '1px'])
+})
+
 test('a tile’s source name and the count chip are in the mono font, as designed (the stylesheet named a token that does not exist)', async ({ page }) => {
   await useHomeFixture(page)
   await page.goto('/')

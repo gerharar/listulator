@@ -9,6 +9,8 @@ import { IconButton } from '../Button/Button.js'
 import { HeaderPlate } from '../HeaderPlate/HeaderPlate.js'
 import { useLayerStack } from '../layerStack/LayerStackContext.js'
 import { newListPath } from '../layerStack/layerPath.js'
+import { isDesktop } from '../../../lib/platform.js'
+import { keyNeeded } from './keyNeeded.js'
 
 export interface CategoryPickerProps {
   /** The live registry, lifted up from Home (task 10.10) — the tile grid is exactly this, A–Z by the name shown. */
@@ -53,6 +55,7 @@ export function CategoryPicker({ mediaTypes, first }: CategoryPickerProps) {
 
   const ordered = sortCategories(mediaTypes)
   const text = copy.quantum.categoryPicker
+  const desktop = isDesktop()
 
   return (
     <div className="q-picker">
@@ -99,7 +102,14 @@ export function CategoryPicker({ mediaTypes, first }: CategoryPickerProps) {
                     </Tip>
                   )}
                 </span>
-                <span className="q-tile-src">{sourceLabel(mediaType) ?? text.byHand}</span>
+                <span className="q-tile-foot">
+                  <span className="q-tile-src">{sourceLabel(mediaType) ?? text.byHand}</span>
+                  {keyNeeded(mediaType, desktop) && (
+                    <Tip className="q-key-chip" text={text.keyNeededTip(sourceLabel(mediaType) ?? '')} describe>
+                      {text.keyNeeded}
+                    </Tip>
+                  )}
+                </span>
               </button>
             )
           })}

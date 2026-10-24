@@ -85,9 +85,20 @@
   font: 600 18px/1.15 var(--font-sans);
   letter-spacing: -0.01em;
 }
+/* The bottom row: the source name at the left, the "Free key needed" chip at the right. It keeps the chip's height (20px) with or without it,
+   so the source names stay level across a row of tiles (H-018). */
+.q-tile-foot {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  min-height: 20px;
+  margin-top: auto;
+}
 .q-tile-src {
   position: relative;
-  margin-top: auto;
   font: 500 12px/1 var(--font-mono);
   letter-spacing: 0.06em;
   color: var(--ink3);
@@ -99,4 +110,17 @@
   font: 600 12px/1 var(--font-mono);
   font-variant-numeric: tabular-nums;
   color: var(--ink);
+}
+
+/* "Free key needed": over the tile's line art, so it has its own ground (H-018). */
+.q-key-chip {
+  flex: none;
+  padding: 4px 6px;
+  border: 1px solid var(--rule);
+  background: var(--card);
+  color: var(--ink);
+  font: 500 10.5px/1 var(--font-mono);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  white-space: nowrap;
 }

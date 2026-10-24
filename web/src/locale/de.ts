@@ -444,6 +444,8 @@ export const de: Locale = {
       firstRunSubline:
         'Jede Medienkategorie hat eine Hauptdatenquelle plus List Vault. Listen lassen sich auch importieren oder von Hand eingeben. Mega ist für medienübergreifende Franchises.',
       byHand: 'von Hand',
+      keyNeeded: 'Gratis-Schlüssel nötig',
+      keyNeededTip: (source: string): string => `Durchsucht jetzt List Vault; füge einen kostenlosen ${source}-Schlüssel hinzu, um auch ${source} zu durchsuchen`,
       countTitle: 'Bereits erfasste Listen in dieser Kategorie',
       closeLabel: 'Schließen',
     },

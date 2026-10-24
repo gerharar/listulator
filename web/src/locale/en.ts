@@ -504,6 +504,9 @@ export const en = {
       firstRunSubline: 'Each media category has a main data source plus List Vault. Lists can also be imported or entered manually. Mega is for cross-category franchises',
       /** A category whose registry entry has no search source. */
       byHand: 'by hand',
+      /** The chip on a tile whose source has no key yet (desktop app only), and what it says when pointed at. */
+      keyNeeded: 'Free key needed',
+      keyNeededTip: (source: string): string => `Searches List Vault now; add a free ${source} key to search ${source} too`,
       countTitle: 'Lists already tracked in this category',
       closeLabel: 'Close',
     },

@@ -191,3 +191,70 @@ describe('CategoryPicker', () => {
     expect(screen.getByTestId('stack').textContent).toBe('home:/')
   })
 })
+
+describe('the “Free key needed” chip (H-018, 33.1)', () => {
+  const KEYLESS: MediaType[] = [
+    mediaType({ key: 'movie', label: 'Movies', sortOrder: 10, searchAvailable: false }),
+    mediaType({ key: 'tv', label: 'TV Shows', sortOrder: 20, searchAvailable: true }),
+    mediaType({ key: 'mega', label: 'Mega', sortOrder: 50, sourceName: 'List Vault', searchAvailable: false, searchScope: 'library' }),
+    mediaType({ key: 'custom', label: 'Custom', sortOrder: 60, searchAvailable: false, sourceName: undefined as never }),
+  ]
+  const tile = (name: string) => screen.getByText(name, { selector: 'b' }).closest('.q-tile') as HTMLElement
+  const chip = (name: string) => tile(name).querySelector('.q-key-chip')
+
+  function renderPicker(registry: MediaType[], first = false) {
+    vi.mocked(api.lists).mockResolvedValue([])
+    render(
+      <LayerStackProvider home={{ id: 'home', kind: 'home', tabLabel: 'My Lists', content: '/' }}>
+        <CategoryPicker mediaTypes={registry} first={first} />
+      </LayerStackProvider>,
+    )
+  }
+
+  afterEach(() => {
+    delete (window as unknown as Record<string, unknown>)['__TAURI_INTERNALS__']
+  })
+
+  function inDesktop() {
+    ;(window as unknown as Record<string, unknown>)['__TAURI_INTERNALS__'] = {}
+  }
+
+  it('sits on a tile whose source has no key, says so in the words of the design, and explains itself as a description', () => {
+    inDesktop()
+    renderPicker(KEYLESS)
+
+    expect(chip('Movies')!.textContent).toBe('Free key needed')
+    expect(chip('Movies')!.getAttribute('aria-description')).toBe('Searches List Vault now; add a free TMDB key to search TMDB too')
+  })
+
+  it('is on no tile whose source can be searched, no Mega tile and no tile of a category searched by hand', () => {
+    inDesktop()
+    renderPicker(KEYLESS)
+
+    expect(chip('TV Series')).toBeNull()
+    expect(chip('Mega')).toBeNull()
+    expect(chip('Custom')).toBeNull()
+  })
+
+  it('shows on first run as it does on any other visit', () => {
+    inDesktop()
+    renderPicker(KEYLESS, true)
+
+    expect(chip('Movies')).not.toBeNull()
+  })
+
+  it('is never shown in the web build', () => {
+    renderPicker(KEYLESS)
+
+    expect(document.querySelector('.q-key-chip')).toBeNull()
+  })
+
+  it('keeps the tile’s bottom row at one height with or without the chip, so the source names stay level', () => {
+    inDesktop()
+    renderPicker(KEYLESS)
+
+    expect(tile('Movies').querySelector('.q-tile-foot')).not.toBeNull()
+    expect(tile('TV Series').querySelector('.q-tile-foot')).not.toBeNull()
+    expect(tile('TV Series').querySelector('.q-tile-src')!.textContent).toBe('TMDB')
+  })
+})
