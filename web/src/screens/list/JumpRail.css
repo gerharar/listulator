@@ -71,8 +71,10 @@
   cursor: pointer;
 }
 .q-rail-stub:hover { background: var(--fill); }
-.q-rail-stub:hover .q-rail-toggle { color: var(--ink); border-color: var(--rule); }
-.q-rail-stub .label {
+.q-rail-stub:hover .q-rail-toggle,
+.q-rail-fold:hover .q-rail-toggle { color: var(--ink); border-color: var(--rule); }
+.q-rail-stub .label,
+.q-rail-fold .label {
   writing-mode: vertical-rl;
   font: 500 10px/1 var(--font-mono);
   letter-spacing: 0.16em;
@@ -102,8 +104,7 @@ body.q-resizing * { cursor: col-resize !important; }
  * toolbar's 1px bottom line and continue it; `bottom` lays its bottom border exactly over the card's. The card is
  * `overflow: visible` (LayerCard `reach`) so it shows. No right border: the card's own left border is the line between them. The card's width does not change, and the rail takes none of the list body's room.
  */
-.q-rail.q-rail-out,
-.q-rail-stub.q-rail-out {
+.q-rail.q-rail-out {
   position: absolute;
   top: -1px;
   /* The card's own border is the line between the rail and the list, so the rail ends at the card's outer edge and lies over its bottom border.
@@ -116,3 +117,41 @@ body.q-resizing * { cursor: col-resize !important; }
   border: var(--q-bw, 2px) solid var(--rule);
   border-right: 0;
 }
+
+/* Outside, the grip is on the rail's outer (left) edge: a 6px strip inside the 2px border, a line on hover or focus (H-019). */
+.q-rail-grip.q-rail-grip-out {
+  left: 0;
+  right: auto;
+  width: 6px;
+}
+.q-rail-grip-out:hover,
+.q-rail-grip-out:focus-visible { background: linear-gradient(var(--line), var(--line)) left / 2px 100% no-repeat; }
+
+/*
+ * Folded outside the card the rail is the same element, narrowed to a 38px strip (H-019): its width animates, and only when it folds or
+ * unfolds (`is-folding`), never while it is dragged (`is-dragging`) and never when the window's cap moves it. The strip clips what the
+ * narrowing leaves over. A press anywhere on it unfolds it; the » inside is the keyboard's way in.
+ */
+.q-rail.q-rail-out { overflow: hidden; }
+.q-rail.q-rail-out.is-folding { transition: width 220ms cubic-bezier(0.22, 0.7, 0.2, 1); }
+.q-rail.q-rail-out.is-dragging { transition: none; }
+.q-rail-fold {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 0;
+  cursor: pointer;
+}
+.q-rail-fold:hover { background: var(--fill); }
+
+/* On showing, the rail is revealed from the card's edge outward: its left side is clipped away and the clip opens (H-019). */
+.q-rail.q-rail-out { animation: q-railReveal 260ms cubic-bezier(0.22, 0.7, 0.2, 1) 120ms backwards; }
+@keyframes q-railReveal {
+  from { clip-path: inset(0 0 0 100%); }
+  to { clip-path: inset(0); }
+}
+html[data-reduced] .q-rail.q-rail-out { animation: none; }
+html[data-reduced] .q-rail.q-rail-out.is-folding { transition: none; }

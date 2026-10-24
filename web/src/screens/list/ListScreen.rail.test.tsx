@@ -256,7 +256,8 @@ describe('the jump rail', () => {
 })
 
 describe('the jump rail outside the card (H-019)', () => {
-  const stub = () => document.querySelector('.q-rail-stub') as HTMLElement | null
+  const folded = () => document.querySelector('.q-rail.is-folded') as HTMLElement | null
+  const grip = () => within(rail()!).getByRole('separator', { name: 'Resize group jumper' })
 
   it('stays inside in a window with no room beside the card', async () => {
     await open(list(), { windowWidth: 1512 })
@@ -288,30 +289,113 @@ describe('the jump rail outside the card (H-019)', () => {
     expect(rail()!.style.width).toBe('480px')
   })
 
-  it('has no resize grip outside (it comes with the outer-edge grip, 32.2)', async () => {
+  it('has its resize grip on the outer edge, with the cap as its largest value', async () => {
     await open(list(), { windowWidth: 1728 })
 
-    expect(within(rail()!).queryByRole('separator')).toBeNull()
+    expect(grip().classList.contains('q-rail-grip-out')).toBe(true)
+    expect(grip().getAttribute('aria-valuenow')).toBe('200')
+    expect(grip().getAttribute('aria-valuemin')).toBe('160')
+    // Window 1728: margin 304, so 288 at most.
+    expect(grip().getAttribute('aria-valuemax')).toBe('288')
   })
 
-  it('folds to the stub outside as well, and shows again', async () => {
+  it('widens when its outer edge is dragged left and narrows when it is dragged right, within 160px and the cap, and remembers it', async () => {
+    await open(list(), { windowWidth: 1920 })
+
+    fireEvent.pointerDown(grip(), { button: 0, clientX: 400 })
+    fireEvent.pointerMove(window, { clientX: 350 })
+    expect(rail()!.style.width).toBe('250px')
+    fireEvent.pointerMove(window, { clientX: 0 })
+    expect(rail()!.style.width).toBe('384px')
+    fireEvent.pointerMove(window, { clientX: 900 })
+    expect(rail()!.style.width).toBe('160px')
+    fireEvent.pointerMove(window, { clientX: 320 })
+    fireEvent.pointerUp(window)
+
+    expect(rail()!.style.width).toBe('280px')
+    await waitFor(() => expect(store.get('list:L1:railWidth')).toBe('280'))
+  })
+
+  it('writes the width clamped to the cap, so what is shown is what is stored', async () => {
+    store.set('list:L1:railWidth', '480')
+    await open(list(), { windowWidth: 1552 })
+
+    fireEvent.keyDown(grip(), { key: 'ArrowLeft' })
+
+    expect(rail()!.style.width).toBe('200px')
+    await waitFor(() => expect(store.get('list:L1:railWidth')).toBe('200'))
+  })
+
+  it('is resized from the keyboard mirrored to the inside grip (← widens, → narrows, 16px), and a double-click puts it back to 200px', async () => {
+    await open(list(), { windowWidth: 1920 })
+
+    fireEvent.keyDown(grip(), { key: 'ArrowLeft' })
+    fireEvent.keyDown(grip(), { key: 'ArrowLeft' })
+    expect(rail()!.style.width).toBe('232px')
+    fireEvent.keyDown(grip(), { key: 'ArrowRight' })
+    expect(rail()!.style.width).toBe('216px')
+    await waitFor(() => expect(store.get('list:L1:railWidth')).toBe('216'))
+
+    fireEvent.doubleClick(grip())
+    expect(rail()!.style.width).toBe('200px')
+    await waitFor(() => expect(store.get('list:L1:railWidth')).toBe('200'))
+  })
+
+  it('gets its own width back when the window is wider again: the cap is not stored', async () => {
+    store.set('list:L1:railWidth', '350')
+    await open(list(), { windowWidth: 1552 })
+    expect(rail()!.style.width).toBe('200px')
+
+    cleanup()
+    await open(list(), { windowWidth: 1920 })
+    expect(rail()!.style.width).toBe('350px')
+  })
+
+  it('folds to a 38px strip outside as the same element, and shows again on a press anywhere on it', async () => {
+    store.set('list:L1:rail', 'hidden')
+    await open(list(), { windowWidth: 1728 })
+    const strip = folded()!
+
+    expect(strip.dataset['placement']).toBe('outside')
+    expect(strip.style.width).toBe('38px')
+    expect(document.querySelector('.q-rail-stub')).toBeNull()
+    fireEvent.click(strip.querySelector('.label')!)
+    expect(folded()).toBeNull()
+    // The element lives on, so its width can animate between the two.
+    expect(rail()).toBe(strip)
+    expect(strip.style.width).toBe('200px')
+    await waitFor(() => expect(store.get('list:L1:rail')).toBe('shown'))
+  })
+
+  it('folds from the rail with its « button, to the same element', async () => {
+    await open(list(), { windowWidth: 1728 })
+    const element = rail()!
+
+    fireEvent.click(within(element).getByRole('button', { name: 'Collapse group jumper' }))
+
+    expect(rail()).toBe(element)
+    expect(folded()).toBe(element)
+    expect(element.style.width).toBe('38px')
+    await waitFor(() => expect(store.get('list:L1:rail')).toBe('hidden'))
+  })
+
+  it('has no grip on the folded strip, and the » button is its keyboard stop', async () => {
     store.set('list:L1:rail', 'hidden')
     await open(list(), { windowWidth: 1728 })
 
-    expect(rail()).toBeNull()
-    expect(stub()!.dataset['placement']).toBe('outside')
-    fireEvent.click(stub()!)
-    expect(rail()!.dataset['placement']).toBe('outside')
+    expect(within(rail()!).queryByRole('separator')).toBeNull()
+    fireEvent.click(within(rail()!).getByRole('button', { name: 'Enlarge group jumper' }))
+    expect(folded()).toBeNull()
   })
 
-  it('shows only on the active layer: a covered list has no rail or stub outside', async () => {
+  it('shows only on the active layer: a covered list has no rail or strip outside', async () => {
     await open(list(), { windowWidth: 1728, active: false })
     expect(rail()).toBeNull()
 
     cleanup()
     store.set('list:L1:rail', 'hidden')
     await open(list(), { windowWidth: 1728, active: false })
-    expect(stub()).toBeNull()
+    expect(rail()).toBeNull()
   })
 
   it('keeps a covered list’s rail inside, where the veil covers it', async () => {
@@ -324,6 +408,5 @@ describe('the jump rail outside the card (H-019)', () => {
     await open(list({ groups: [], items: [item('x', 0, null), item('y', 1, null)] }), { windowWidth: 1728 })
 
     expect(rail()).toBeNull()
-    expect(stub()).toBeNull()
   })
 })

@@ -1,7 +1,7 @@
 import './JumpRail.css'
-import type { KeyboardEvent, PointerEvent } from 'react'
+import { useEffect, useRef, useState, type KeyboardEvent, type PointerEvent } from 'react'
 import { copy } from '../../locale/index.js'
-import { clampRailWidth, RAIL_WIDTH_DEFAULT, RAIL_WIDTH_MAX, RAIL_WIDTH_MIN } from './collapse.js'
+import { RAIL_WIDTH_DEFAULT, RAIL_WIDTH_MAX, RAIL_WIDTH_MIN } from './collapse.js'
 import { Tip } from '../../components/quantum/Tooltip/Tip.js'
 import type { RailPlacement } from './railPlacement.js'
 
@@ -21,25 +21,68 @@ export interface JumpRailProps {
   onResize: (width: number) => void
   /** Once, when a resize settles: the width to remember. */
   onResizeEnd: (width: number) => void
-  /** Outside the card (H-019) it has no grip yet: the outer-edge grip is task 32.2. */
+  /** Outside the card (H-019) the rail's grip is on its outer edge, and it folds in place to a strip instead of being swapped for `JumpRailStub`. */
   placement?: RailPlacement
+  /** Outside only: the rail is folded to its strip. */
+  folded?: boolean
+  /** Outside only: the strip is pressed. */
+  onShow?: () => void
+  /** Outside only: the widest the rail may be here (the window's room beside the card, less 16px); the cap is never stored. */
+  maxWidth?: number
 }
 
 const STEP = 16
+/** The folded strip outside the card (H-019); the one inside the card is still `JumpRailStub`'s 36px. */
+export const RAIL_FOLDED_WIDTH = 38
+/** How long the width animates when the rail folds or unfolds (`JumpRail.css`, plus a frame). */
+const FOLD_MS = 240
 
 /**
  * The jump rail (design: JumpRail, 200px): every group that has items, with
  * what is done in it and a tick once all of it is. A click opens the group
  * and brings it to the top. It never follows a filter: it is the map of the
- * whole list. Its right edge drags to widen it (F12, beyond the design's fixed
- * 200px: long group names were cut off); arrow keys on the edge do the same,
- * and a double-click puts it back.
+ * whole list. Its edge drags to widen it (F12, beyond the design's fixed
+ * 200px: long group names were cut off): the right edge inside the card, the
+ * left edge outside it, where dragging left widens. Arrow keys on the edge do
+ * the same (mirrored outside) and a double-click puts it back.
  */
-export function JumpRail({ entries, onJump, onHide, width, onResize, onResizeEnd, placement = 'inside' }: JumpRailProps) {
+export function JumpRail({
+  entries,
+  onJump,
+  onHide,
+  width,
+  onResize,
+  onResizeEnd,
+  placement = 'inside',
+  folded = false,
+  onShow,
+  maxWidth = RAIL_WIDTH_MAX,
+}: JumpRailProps) {
   const text = copy.quantum.list.rail
+  const outside = placement === 'outside'
+  const limit = outside ? Math.min(RAIL_WIDTH_MAX, maxWidth) : RAIL_WIDTH_MAX
+  // Dragging left widens it outside, right inside: the grip is on the other edge.
+  const direction = outside ? -1 : 1
+  const [dragging, setDragging] = useState(false)
+  const [folding, setFolding] = useState(false)
+  const lastFolded = useRef(folded)
+
+  // The width animates when the rail folds or unfolds, and only then: not on mount, not while it is dragged, not when the window's cap moves it.
+  useEffect(() => {
+    if (lastFolded.current === folded) return
+    lastFolded.current = folded
+    setFolding(true)
+    const timer = window.setTimeout(() => setFolding(false), FOLD_MS)
+
+    return () => window.clearTimeout(timer)
+  }, [folded])
+
+  function fit(next: number): number {
+    return Math.round(Math.min(limit, Math.max(RAIL_WIDTH_MIN, next)))
+  }
 
   function set(next: number) {
-    const clamped = clampRailWidth(next)
+    const clamped = fit(next)
     onResize(clamped)
     onResizeEnd(clamped)
   }
@@ -50,9 +93,10 @@ export function JumpRail({ entries, onJump, onHide, width, onResize, onResizeEnd
     const startX = event.clientX
     let current = width
     document.body.classList.add('q-resizing')
+    setDragging(true)
 
     const onMove = (moveEvent: globalThis.PointerEvent) => {
-      current = clampRailWidth(width + moveEvent.clientX - startX)
+      current = fit(width + (moveEvent.clientX - startX) * direction)
       onResize(current)
     }
     const onUp = () => {
@@ -60,6 +104,7 @@ export function JumpRail({ entries, onJump, onHide, width, onResize, onResizeEnd
       window.removeEventListener('pointerup', onUp)
       window.removeEventListener('pointercancel', onUp)
       document.body.classList.remove('q-resizing')
+      setDragging(false)
       onResizeEnd(current)
     }
     window.addEventListener('pointermove', onMove)
@@ -70,56 +115,70 @@ export function JumpRail({ entries, onJump, onHide, width, onResize, onResizeEnd
   function onGripKey(event: KeyboardEvent<HTMLSpanElement>) {
     if (event.key === 'ArrowRight' || event.key === 'ArrowLeft') {
       event.preventDefault()
-      set(width + (event.key === 'ArrowRight' ? STEP : -STEP))
+      set(width + (event.key === 'ArrowRight' ? STEP : -STEP) * direction)
     }
   }
 
-  return (
-    <nav className={placement === 'outside' ? 'q-rail q-rail-out' : 'q-rail'} data-placement={placement} aria-label={text.title} style={{ width }}>
-      {placement === 'inside' && (
-        <Tip
-          className="q-rail-grip"
-          role="separator"
-          aria-orientation="vertical"
-          aria-label={text.resize}
-          text={text.resize}
-          aria-valuenow={width}
-          aria-valuemin={RAIL_WIDTH_MIN}
-          aria-valuemax={RAIL_WIDTH_MAX}
-          tabIndex={0}
-          onPointerDown={startResize}
-          onKeyDown={onGripKey}
-          onDoubleClick={() => set(RAIL_WIDTH_DEFAULT)}
-        />
-      )}
-      <div className="q-rail-scroll">
-        <div className="q-rail-head">
-          <span className="q-kicker">{text.title}</span>
-          <Tip as="button" type="button" className="q-rail-toggle" aria-label={text.hide} text={text.hide} onClick={onHide}>
-            «
-          </Tip>
-        </div>
-        {entries.map((entry) => {
-          const complete = entry.total > 0 && entry.done === entry.total
+  const className = ['q-rail', outside && 'q-rail-out', outside && folded && 'is-folded', outside && folding && 'is-folding', dragging && 'is-dragging']
+    .filter(Boolean)
+    .join(' ')
 
-          return (
-            <button
-              key={entry.id}
-              type="button"
-              className={complete ? 'q-rail-entry complete' : 'q-rail-entry'}
-              onClick={() => onJump(entry)}
-            >
-              <span className="tick" aria-hidden="true">
-                {complete ? '✓' : ''}
-              </span>
-              <span className="name">{entry.name}</span>
-              <span className="count">
-                {entry.done}/{entry.total}
-              </span>
-            </button>
-          )
-        })}
-      </div>
+  return (
+    <nav className={className} data-placement={placement} aria-label={text.title} style={{ width: outside && folded ? RAIL_FOLDED_WIDTH : width }}>
+      {outside && folded ? (
+        // The whole strip is the way back (as `JumpRailStub`); the » inside is a real button for the keyboard, its click reaches the strip's handler.
+        <Tip as="div" className="q-rail-fold" text={text.show} onClick={onShow}>
+          <button type="button" className="q-rail-toggle" aria-label={text.show}>
+            »
+          </button>
+          <span className="label">{text.title}</span>
+        </Tip>
+      ) : (
+        <>
+          <Tip
+            className={outside ? 'q-rail-grip q-rail-grip-out' : 'q-rail-grip'}
+            role="separator"
+            aria-orientation="vertical"
+            aria-label={text.resize}
+            text={text.resize}
+            aria-valuenow={width}
+            aria-valuemin={RAIL_WIDTH_MIN}
+            aria-valuemax={limit}
+            tabIndex={0}
+            onPointerDown={startResize}
+            onKeyDown={onGripKey}
+            onDoubleClick={() => set(RAIL_WIDTH_DEFAULT)}
+          />
+          <div className="q-rail-scroll">
+            <div className="q-rail-head">
+              <span className="q-kicker">{text.title}</span>
+              <Tip as="button" type="button" className="q-rail-toggle" aria-label={text.hide} text={text.hide} onClick={onHide}>
+                «
+              </Tip>
+            </div>
+            {entries.map((entry) => {
+              const complete = entry.total > 0 && entry.done === entry.total
+
+              return (
+                <button
+                  key={entry.id}
+                  type="button"
+                  className={complete ? 'q-rail-entry complete' : 'q-rail-entry'}
+                  onClick={() => onJump(entry)}
+                >
+                  <span className="tick" aria-hidden="true">
+                    {complete ? '✓' : ''}
+                  </span>
+                  <span className="name">{entry.name}</span>
+                  <span className="count">
+                    {entry.done}/{entry.total}
+                  </span>
+                </button>
+              )
+            })}
+          </div>
+        </>
+      )}
     </nav>
   )
 }
@@ -129,12 +188,12 @@ export function JumpRail({ entries, onJump, onHide, width, onResize, onResizeEnd
  * The whole strip is the way back (owner); the » button is its keyboard stop,
  * and its click reaches the strip's handler.
  */
-export function JumpRailStub({ onShow, placement = 'inside' }: { onShow: () => void; placement?: RailPlacement }) {
+export function JumpRailStub({ onShow }: { onShow: () => void }) {
   const text = copy.quantum.list.rail
 
   return (
     // The tooltip is the strip's alone: a second one on the » button would open beside it.
-    <Tip as="div" className={placement === 'outside' ? 'q-rail-stub q-rail-out' : 'q-rail-stub'} data-placement={placement} text={text.show} onClick={onShow}>
+    <Tip as="div" className="q-rail-stub" data-placement="inside" text={text.show} onClick={onShow}>
       <button type="button" className="q-rail-toggle" aria-label={text.show}>
         »
       </button>

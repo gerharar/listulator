@@ -145,6 +145,92 @@ test('the card’s own border is the vertical line between the outside rail and 
   }
 })
 
+test('the rail folds to a 38px strip, animating its width over 220ms, and the grip is gone', async ({ page }) => {
+  await page.setViewportSize({ width: 1728, height: 900 })
+  const title = `e2e rail fold ${Date.now()}`
+  const id = await makeGroupedList(page.request, title)
+
+  try {
+    await openList(page, title)
+    const width = () => page.locator('.q-rail').evaluate((node) => node.getBoundingClientRect().width)
+    expect(await width()).toBeCloseTo(200, 0)
+
+    await page.getByRole('button', { name: 'Collapse group jumper' }).click()
+    // While it narrows it is animating a width over 220ms; afterwards it is 38px and attached to the card.
+    await expect(page.locator('.q-rail.is-folding')).toHaveCount(1)
+    expect(await page.locator('.q-rail').evaluate((node) => getComputedStyle(node).transitionDuration)).toBe('0.22s')
+    await settled(page)
+    expect(await width()).toBeCloseTo(38, 0)
+    await expect(page.getByRole('separator')).toHaveCount(0)
+    const { rail, card } = await boxes(page)
+    expect(rail.right).toBeCloseTo(card.left, 1)
+
+    // A press anywhere on the strip brings the rail back.
+    await page.locator('.q-rail .label').click()
+    await settled(page)
+    expect(await width()).toBeCloseTo(200, 0)
+  } finally {
+    await page.request.delete(`/api/lists/${id}`)
+  }
+})
+
+test('the rail is revealed from the card\'s edge when it shows, and not under reduced motion', async ({ page }) => {
+  await page.setViewportSize({ width: 1728, height: 900 })
+  const title = `e2e rail reveal ${Date.now()}`
+  const id = await makeGroupedList(page.request, title)
+
+  try {
+    await page.goto('/')
+    await page.locator('.q-home-row', { hasText: title }).click()
+    await page.waitForFunction(() => document.getAnimations().some((a) => (a as CSSAnimation).animationName === 'q-railReveal'), undefined, { polling: 'raf' })
+    await settled(page)
+
+    await page.emulateMedia({ reducedMotion: 'reduce' })
+    await page.reload()
+    await page.locator('.q-home-row', { hasText: title }).click()
+    await page.locator('.q-rail').waitFor()
+    expect(await page.locator('.q-rail').evaluate((node) => getComputedStyle(node).animationName)).toBe('none')
+    await page.getByRole('button', { name: 'Collapse group jumper' }).click()
+    expect(await page.locator('.q-rail').evaluate((node) => getComputedStyle(node).transitionDuration)).toBe('0s')
+  } finally {
+    await page.request.delete(`/api/lists/${id}`)
+  }
+})
+
+test('the grip is on the outer edge: dragging it left widens the rail, and the card does not move', async ({ page }) => {
+  await page.setViewportSize({ width: 1920, height: 900 })
+  const title = `e2e rail grip ${Date.now()}`
+  const id = await makeGroupedList(page.request, title)
+
+  try {
+    await openList(page, title)
+    const before = await boxes(page)
+    const grip = await page.getByRole('separator').evaluate((node) => {
+      const r = node.getBoundingClientRect()
+      return { left: r.left, width: r.width, top: r.top, height: r.height }
+    })
+    // Six pixels wide, just inside the rail's 2px left border.
+    expect(grip.width).toBeCloseTo(6, 0)
+    expect(grip.left - before.rail.left).toBeGreaterThanOrEqual(0)
+    expect(grip.left - before.rail.left).toBeLessThanOrEqual(2.5)
+
+    const x = grip.left + 3
+    const y = grip.top + grip.height / 2
+    await page.mouse.move(x, y)
+    await page.mouse.down()
+    await page.mouse.move(x - 60, y, { steps: 4 })
+    await page.mouse.up()
+    const after = await boxes(page)
+
+    expect(after.rail.width).toBeCloseTo(before.rail.width + 60, 0)
+    expect(after.rail.right).toBeCloseTo(before.rail.right, 1)
+    expect(after.card.left).toBeCloseTo(before.card.left, 1)
+    expect(after.cols.width).toBeCloseTo(before.cols.width, 1)
+  } finally {
+    await page.request.delete(`/api/lists/${id}`)
+  }
+})
+
 test('a press on the outside rail jumps to the group and does not close the layer', async ({ page }) => {
   await page.setViewportSize({ width: 1728, height: 900 })
   const title = `e2e rail press ${Date.now()}`
@@ -197,7 +283,7 @@ for (const ratio of [1.25, 1.5625]) {
         await openList(page, title)
         if (folded) {
           await page.getByRole('button', { name: 'Collapse group jumper' }).click()
-          await page.locator('.q-rail-stub').waitFor()
+          await page.locator('.q-rail.is-folded').waitFor()
           await settled(page)
         }
         const edges = await page.evaluate((selector) => {
@@ -206,7 +292,7 @@ for (const ratio of [1.25, 1.5625]) {
           const part = r(document.querySelector(selector)!)
 
           return { cardBottom: card.bottom, cardLeft: card.left, partBottom: part.bottom, partRight: part.right }
-        }, folded ? '.q-rail-stub' : '.q-rail')
+        }, '.q-rail')
 
         expect(edges.partBottom).toBeCloseTo(edges.cardBottom, 1)
         expect(edges.partRight).toBeCloseTo(edges.cardLeft, 1)

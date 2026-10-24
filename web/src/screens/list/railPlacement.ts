@@ -15,7 +15,8 @@ const STAGE_INSET = 20
 const OUT_AT = 216
 /** 16px of hysteresis, so a window dragged near the line does not flicker. */
 const IN_BELOW = 200
-const AIR = 16
+/** What the rail leaves free before the window's edge. */
+export const RAIL_AIR = 16
 
 function room(windowWidth: number): number {
   return windowWidth - 2 * STAGE_INSET
@@ -34,7 +35,7 @@ export function railPlacement(windowWidth: number, current: RailPlacement): Rail
 
 /** The stored width, capped so the rail keeps 16px of air before the window edge. The cap is never stored. */
 export function outsideRailWidth(stored: number, margin: number): number {
-  return Math.min(stored, margin - AIR)
+  return Math.min(stored, margin - RAIL_AIR)
 }
 
 /**

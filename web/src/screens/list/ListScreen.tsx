@@ -65,7 +65,7 @@ import { ItemRow } from './ItemRow.js'
 import { ByHandMark, CuratedStar } from '../../components/quantum/Marks/Marks.js'
 import { listMark } from '../../lib/buckets.js'
 import { JumpRail, JumpRailStub, type RailEntry } from './JumpRail.js'
-import { cardMargin, outsideRailWidth } from './railPlacement.js'
+import { cardMargin, outsideRailWidth, RAIL_AIR } from './railPlacement.js'
 import { useRailPlacement } from './RailPlacementContext.js'
 import { ListMorePopover, type MoreMode, type PreviewState } from './ListMorePopover.js'
 import { buildSpine, listTotals } from './spine.js'
@@ -559,6 +559,7 @@ function ListView({
   // Outside the card the rail belongs to the active layer alone: a covered layer's veil is inside the card and would not reach it (H-019).
   const railWindow = useRailPlacement()
   const railOutside = railWindow.placement === 'outside'
+  const railMargin = cardMargin(railWindow.windowWidth)
   const showRail = railEntries.length > 1 && (active || !railOutside)
 
   function setRail(hidden: boolean) {
@@ -1367,18 +1368,18 @@ function ListView({
       )}
 
       <div className={busy ? 'q-list-cols q-hold is-busy' : 'q-list-cols q-hold'} inert={busy} aria-busy={busy || undefined}>
-        {showRail && !railHidden && (
+        {showRail && (railOutside || !railHidden) && (
           <JumpRail
             entries={railEntries}
             onJump={jump}
             onHide={() => setRail(true)}
-            width={railOutside ? outsideRailWidth(railWidth, cardMargin(railWindow.windowWidth)) : railWidth}
+            width={railOutside ? outsideRailWidth(railWidth, railMargin) : railWidth}
             onResize={setRailWidth}
             onResizeEnd={(width) => void saveRailWidth(getPreferencesStore(), listId, width)}
-            placement={railWindow.placement}
+            {...(railOutside && { placement: 'outside' as const, maxWidth: railMargin - RAIL_AIR, folded: railHidden, onShow: () => setRail(false) })}
           />
         )}
-        {showRail && railHidden && <JumpRailStub onShow={() => setRail(false)} placement={railWindow.placement} />}
+        {showRail && !railOutside && railHidden && <JumpRailStub onShow={() => setRail(false)} />}
         <div
           className="q-list-body"
           ref={spine}
