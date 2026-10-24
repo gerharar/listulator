@@ -245,8 +245,9 @@ function AppShellBody({ skin, onSkinChange }: AppShellBodyProps) {
           const depth = layerStack.visible.length - 1 - index
           const { top, transform } = layerGeometry(layerStack.visible.length, depth)
           // The list's rail may lie outside the card (H-019): the card then lets it show, and gives up the odd pixel so the margins are whole.
-          const reach = layer.kind === 'list'
-          const width = reach && railWindow.placement === 'outside' ? listCardWidth(railWindow.windowWidth) : null
+          // Only then: inside, the card keeps clipping, so a layer taller than a short window still scrolls.
+          const reach = layer.kind === 'list' && railWindow.placement === 'outside'
+          const width = reach ? listCardWidth(railWindow.windowWidth) : null
 
           return (
             <LayerCard

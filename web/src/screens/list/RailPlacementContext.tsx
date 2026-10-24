@@ -26,6 +26,9 @@ export function useWindowRailPlacement(): RailPlacementState {
       setState((current) => {
         const placement = railPlacement(window.innerWidth, current.placement)
 
+        // Inside, nothing reads the width: leave the state alone, so dragging a narrow window redraws nothing.
+        if (placement === 'inside' && current.placement === 'inside') return current
+
         return placement === current.placement && window.innerWidth === current.windowWidth
           ? current
           : { placement, windowWidth: window.innerWidth }

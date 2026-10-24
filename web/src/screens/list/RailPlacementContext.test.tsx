@@ -41,6 +41,26 @@ describe('useWindowRailPlacement', () => {
     expect(result.current.placement).toBe('inside')
   })
 
+  it('does not change anything while it stays inside, so a window dragged narrow does not redraw the app on every pixel', () => {
+    window.innerWidth = 1440
+    const { result } = renderHook(() => useWindowRailPlacement())
+    const first = result.current
+
+    resizeTo(1400)
+    resizeTo(1300)
+
+    expect(result.current).toBe(first)
+  })
+
+  it('follows the width while it is outside: the card and the rail’s cap depend on it', () => {
+    window.innerWidth = 1728
+    const { result } = renderHook(() => useWindowRailPlacement())
+
+    resizeTo(1801)
+
+    expect(result.current).toEqual({ placement: 'outside', windowWidth: 1801 })
+  })
+
   it('stops listening when it unmounts', () => {
     window.innerWidth = 1440
     const { result, unmount } = renderHook(() => useWindowRailPlacement())
