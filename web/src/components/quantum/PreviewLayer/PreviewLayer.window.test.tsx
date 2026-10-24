@@ -136,12 +136,12 @@ describe('a long Preview draws a window (26.2)', () => {
 
   it('a group head that has the focus stays drawn when it is scrolled far away', async () => {
     const { scrollTo } = await mount(films(10_000, 100))
-    const head = screen.getByRole('button', { name: /Season 0/ })
+    const head = screen.getByRole('button', { name: 'Collapse Season 0' })
     act(() => head.focus())
 
     await scrollTo(300_000)
 
-    expect(screen.getByRole('button', { name: /Season 0/ })).toBe(head)
+    expect(screen.getByRole('button', { name: 'Collapse Season 0' })).toBe(head)
   })
 })
 

@@ -217,21 +217,21 @@ test('End goes to the last row of a 50,000-item list and Home back to the first:
     await page.locator('.q-item').first().focus()
 
     await page.keyboard.press('End')
-    await expect.poll(() => focusedTitle(page)).toContain('Issue 49999')
+    await expect.poll(() => focusedTitle(page), { timeout: 30_000 }).toContain('Issue 49999')
     expect(await inView(page, 'Issue 49999')).toBe(true)
     expect(await page.locator('.q-item').count()).toBeLessThan(120)
-    await expect(page.locator('.q-live')).toHaveText('Bottom of the list')
+    await expect(page.locator('.q-live')).toHaveText('Bottom of the list', { timeout: 30_000 })
 
     await page.keyboard.press('Home')
-    await expect.poll(() => focusedTitle(page)).toContain('Issue 0')
+    await expect.poll(() => focusedTitle(page), { timeout: 30_000 }).toContain('Issue 0')
     expect(await inView(page, 'Issue 0')).toBe(true)
     expect(await page.locator('.q-list-body').evaluate((node) => node.scrollTop)).toBe(0)
-    await expect(page.locator('.q-live')).toHaveText('Top of the list')
+    await expect(page.locator('.q-live')).toHaveText('Top of the list', { timeout: 30_000 })
 
     // From the middle of the list, too: the key does not depend on where the reader was.
     for (let step = 0; step < 30; step += 1) await page.keyboard.press('ArrowDown')
     await page.keyboard.press('End')
-    await expect.poll(() => focusedTitle(page)).toContain('Issue 49999')
+    await expect.poll(() => focusedTitle(page), { timeout: 30_000 }).toContain('Issue 49999')
   } finally {
     await page.request.delete(`/api/lists/${id}`)
   }

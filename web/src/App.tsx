@@ -175,6 +175,7 @@ export function PathLayer({ path, mediaTypes, active = true }: { path: string; m
         source={source}
         mediaType={mediaType}
         onBuilt={(listId) => layerStack.landOnList(untitledListLayer(listId))}
+        active={active}
       />
     )
   }
@@ -248,7 +249,7 @@ function AppShellBody({ skin, onSkinChange }: AppShellBodyProps) {
           const { top, transform } = layerGeometry(layerStack.visible.length, depth)
           // The list's rail may lie outside the card (H-019): the card then lets it show, and gives up the odd pixel so the margins are whole.
           // Only then: inside, the card keeps clipping, so a layer taller than a short window still scrolls.
-          const reach = layer.kind === 'list' && railWindow.placement === 'outside'
+          const reach = (layer.kind === 'list' || layer.kind === 'preview') && railWindow.placement === 'outside'
           const width = reach ? listCardWidth(railWindow.windowWidth) : null
           // The card's border and the rail's offsets share one width, whole device pixels at any screen scale (`--q-bw`, see `layerBorderWidth`).
           const border = reach ? { '--q-bw': `${layerBorderWidth(pixelRatio)}px` } : null

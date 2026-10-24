@@ -178,3 +178,37 @@ export async function saveAddTags(store: PreferencesStore, listId: string, tags:
     // As above.
   }
 }
+
+const PREVIEW_RAIL = 'preview:rail'
+const PREVIEW_RAIL_WIDTH = 'preview:railWidth'
+
+/** The Preview's jump rail has no list to belong to: whether it is folded and how wide it is are remembered once, for every Preview (H-019). */
+export async function loadPreviewRail(store: PreferencesStore): Promise<{ hidden: boolean; width: number }> {
+  try {
+    const stored = Number(await store.get(PREVIEW_RAIL_WIDTH))
+
+    return {
+      hidden: (await store.get(PREVIEW_RAIL)) === 'hidden',
+      width: Number.isFinite(stored) && stored > 0 ? clampRailWidth(stored) : RAIL_WIDTH_DEFAULT,
+    }
+  } catch {
+    return { hidden: false, width: RAIL_WIDTH_DEFAULT }
+  }
+}
+
+export async function savePreviewRailHidden(store: PreferencesStore, hidden: boolean): Promise<void> {
+  try {
+    await store.set(PREVIEW_RAIL, hidden ? 'hidden' : 'shown')
+  } catch {
+    // As above.
+  }
+}
+
+export async function savePreviewRailWidth(store: PreferencesStore, width: number): Promise<void> {
+  try {
+    await store.set(PREVIEW_RAIL_WIDTH, String(width))
+  } catch {
+    // As above.
+  }
+}
+

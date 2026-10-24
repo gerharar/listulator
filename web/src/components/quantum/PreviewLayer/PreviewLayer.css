@@ -139,3 +139,25 @@
   border-top: 2px solid var(--rule);
   color: var(--ink3);
 }
+
+/*
+ * Under the header: the rows with the jump rail beside them (H-019), and the footer. The box is the one the outside rail is a child of, so
+ * that it reaches down to the card's bottom beside the footer; inside the card the rail sits in the row of rail and rows, and the footer
+ * keeps its full width under both.
+ */
+.q-preview-lower {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+.q-preview-cols {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+}
+.q-preview-cols > .q-preview-body { min-width: 0; }
+/* Outside, the rail's top border is the header's bottom rule carried to the left, there being no toolbar between them. */
+.q-preview-lower > .q-rail.q-rail-out { top: calc(-1 * var(--q-bw, 2px)); }
+

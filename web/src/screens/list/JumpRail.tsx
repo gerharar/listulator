@@ -8,7 +8,8 @@ import type { RailPlacement } from './railPlacement.js'
 export interface RailEntry {
   id: string
   name: string
-  done: number
+  /** Absent in a Preview, which has nothing done: the entry then shows how many items the group has, and never a tick. */
+  done?: number
   total: number
 }
 
@@ -157,7 +158,7 @@ export function JumpRail({
               </Tip>
             </div>
             {entries.map((entry) => {
-              const complete = entry.total > 0 && entry.done === entry.total
+              const complete = entry.done !== undefined && entry.total > 0 && entry.done === entry.total
 
               return (
                 <button
@@ -170,9 +171,7 @@ export function JumpRail({
                     {complete ? '✓' : ''}
                   </span>
                   <span className="name">{entry.name}</span>
-                  <span className="count">
-                    {entry.done}/{entry.total}
-                  </span>
+                  <span className="count">{entry.done === undefined ? entry.total : `${entry.done}/${entry.total}`}</span>
                 </button>
               )
             })}

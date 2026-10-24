@@ -16,6 +16,8 @@ async function openList(page: Page, title: string) {
   await page.goto('/')
   await page.locator('.q-home-row', { hasText: title }).click()
   await page.locator('.q-item').first().waitFor()
+  // The layer drums in over 380ms, scaled: measure after that, never during it.
+  await page.waitForFunction(() => document.getAnimations().length === 0)
 }
 
 /** The row that has focus: an item, or a group's header (the first row of this list). */

@@ -12,7 +12,11 @@ import {
 import { loadVirtualization } from '../../../lib/listVirtualization.js'
 import { getPreferencesStore } from '../../../lib/preferences/store.js'
 import { copy, sourceLabel } from '../../../locale/index.js'
-import { buildRowModel, scrollAfterChange, shouldVirtualize, type VirtualizationMode } from '../../../screens/list/rowModel.js'
+import { buildRowModel, offsetOf, scrollAfterChange, shouldVirtualize, type VirtualizationMode } from '../../../screens/list/rowModel.js'
+import { loadPreviewRail, RAIL_WIDTH_DEFAULT, savePreviewRailHidden, savePreviewRailWidth } from '../../../screens/list/collapse.js'
+import { JumpRail, JumpRailStub, type RailEntry } from '../../../screens/list/JumpRail.js'
+import { cardMargin, outsideRailWidth, RAIL_AIR } from '../../../screens/list/railPlacement.js'
+import { useRailPlacement } from '../../../screens/list/RailPlacementContext.js'
 import { DEFAULT_VIEWPORT, WindowedRows } from '../../../screens/list/WindowedRows.js'
 import { Button, IconButton } from '../Button/Button.js'
 import { ErrorBlock } from '../ErrorBlock/ErrorBlock.js'
@@ -32,6 +36,8 @@ export interface PreviewLayerProps {
   mediaType: MediaType
   /** Called with the new list's id once Add list succeeds. */
   onBuilt: (listId: string) => void
+  /** False while another layer covers this one: its rail, outside the card, would show through the veil. */
+  active?: boolean
 }
 
 type Load =
@@ -57,7 +63,7 @@ async function readVirtualization(): Promise<VirtualizationMode> {
  * Add list sends the very request a result row sends (`createFromSourceInput`),
  * so the two make the same list.
  */
-export function PreviewLayer({ source, mediaType, onBuilt }: PreviewLayerProps) {
+export function PreviewLayer({ source, mediaType, onBuilt, active = true }: PreviewLayerProps) {
   const text = copy.quantum.preview
   const layerStack = useLayerStack()
 
@@ -66,6 +72,18 @@ export function PreviewLayer({ source, mediaType, onBuilt }: PreviewLayerProps) 
   const [collapsed, setCollapsed] = useState<ReadonlySet<string>>(new Set())
   const [adding, setAdding] = useState(false)
   const [addError, setAddError] = useState<string | null>(null)
+  // The jump rail's fold and width are remembered once for every Preview (it has no list of its own).
+  const [rail, setRail] = useState({ hidden: false, width: RAIL_WIDTH_DEFAULT })
+  const [jumpTo, setJumpTo] = useState<{ id: string; n: number } | null>(null)
+
+  useEffect(() => {
+    let current = true
+    void loadPreviewRail(getPreferencesStore()).then((remembered) => current && setRail(remembered))
+
+    return () => {
+      current = false
+    }
+  }, [])
 
   useEffect(() => {
     let current = true
@@ -115,6 +133,15 @@ export function PreviewLayer({ source, mediaType, onBuilt }: PreviewLayerProps) 
 
     return { itemAt, groupAt }
   }, [windowed, units, collapsed])
+  // The rail is the map of the whole Preview: every group, with how many items it has (there is nothing done to count).
+  const railEntries = useMemo<RailEntry[]>(
+    () => units.flatMap(({ unit }) => (unit.kind === 'group' && unit.group.count > 0 ? [{ id: unit.group.id, name: unit.group.name, total: unit.group.count }] : [])),
+    [units],
+  )
+  const railWindow = useRailPlacement()
+  const railOutside = railWindow.placement === 'outside'
+  const railMargin = cardMargin(railWindow.windowWidth)
+  const showRail = railEntries.length > 1 && (active || !railOutside)
   const placeId = useId()
   const summary = summarizePreview(items, mediaType.defaultDurationMinutes)
   // A category whose convention names platforms gets chips, as wide as the widest label (as on the list).
@@ -138,6 +165,35 @@ export function PreviewLayer({ source, mediaType, onBuilt }: PreviewLayerProps) 
     if (Math.abs(element.scrollTop - next) >= 1) element.scrollTop = next
     windowSync.current?.()
   }, [model, windowed])
+
+  function setRailHidden(hidden: boolean) {
+    setRail((current) => ({ ...current, hidden }))
+    void savePreviewRailHidden(getPreferencesStore(), hidden)
+  }
+
+  function jump(entry: RailEntry) {
+    setCollapsed((current) => {
+      if (!current.has(entry.name)) return current
+      const next = new Set(current)
+      next.delete(entry.name)
+
+      return next
+    })
+    setJumpTo((current) => ({ id: entry.id, n: (current?.n ?? 0) + 1 }))
+  }
+
+  // After the rows of an opened group exist: the group's head goes to the top. Declared after the effect that keeps the reader's place, so this one wins.
+  useLayoutEffect(() => {
+    if (!jumpTo) return
+    const element = body.current
+    const top = offsetOf(model, jumpTo.id)
+    if (element && top !== undefined) {
+      element.scrollTop = Math.round(top)
+      scrolledAt.current = element.scrollTop
+      windowSync.current?.()
+    }
+    setJumpTo(null)
+  }, [jumpTo])
 
   function toggle(label: string) {
     // Where the reader is now, before the rows change under them (the browser may clamp the position once they do).
@@ -203,6 +259,19 @@ export function PreviewLayer({ source, mediaType, onBuilt }: PreviewLayerProps) 
         </div>
       </div>
 
+      <div className="q-preview-lower">
+      <div className="q-preview-cols">
+        {showRail && !railOutside && !rail.hidden && (
+          <JumpRail
+            entries={railEntries}
+            onJump={jump}
+            onHide={() => setRailHidden(true)}
+            width={rail.width}
+            onResize={(width) => setRail((current) => ({ ...current, width }))}
+            onResizeEnd={(width) => void savePreviewRailWidth(getPreferencesStore(), width)}
+          />
+        )}
+        {showRail && !railOutside && rail.hidden && <JumpRailStub onShow={() => setRailHidden(false)} />}
       <div className="q-preview-body" ref={body}>
         {load.state === 'loading' && (
           <div className="q-preview-progress">
@@ -277,8 +346,24 @@ export function PreviewLayer({ source, mediaType, onBuilt }: PreviewLayerProps) 
           />
         )}
       </div>
+      </div>
+      {showRail && railOutside && (
+        <JumpRail
+          entries={railEntries}
+          onJump={jump}
+          onHide={() => setRailHidden(true)}
+          width={outsideRailWidth(rail.width, railMargin)}
+          maxWidth={railMargin - RAIL_AIR}
+          onResize={(width) => setRail((current) => ({ ...current, width }))}
+          onResizeEnd={(width) => void savePreviewRailWidth(getPreferencesStore(), width)}
+          placement="outside"
+          folded={rail.hidden}
+          onShow={() => setRailHidden(false)}
+        />
+      )}
 
       <p className="q-preview-footer t-small">{text.footer(provenance)}</p>
+      </div>
     </div>
   )
 }
