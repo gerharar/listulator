@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { useEffect, useState } from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import type { MediaList, MediaType } from '../../../lib/api.js'
 import type { KeySource } from '../../../lib/config/keyTest.js'
 import { api } from '../../../lib/api.js'
@@ -456,4 +456,55 @@ describe('the first-run picker when a list comes back (H-018, 33.8)', () => {
 
     await waitFor(() => expect(screen.getByTestId('stack').textContent).toBe('home:/'))
   })
+
+  it('still goes back to My Lists when something else changes the stack while it is checking', async () => {
+    let answer: (lists: MediaList[]) => void = () => {}
+    vi.mocked(api.lists).mockReturnValue(new Promise((resolve) => (answer = resolve)))
+    function Pusher() {
+      const { push } = useLayerStack()
+
+      return <button onClick={() => push({ id: 'preview', kind: 'preview', tabLabel: 'P', content: '/p' })}>open a layer</button>
+    }
+    render(
+      <LayerStackProvider home={{ id: 'home', kind: 'home', tabLabel: 'My Lists', content: '/' }}>
+        <FirstRunBase />
+        <CategoryPicker mediaTypes={[mediaType({ key: 'movie', label: 'Movies' })]} first />
+        <Pusher />
+        <StackReader />
+      </LayerStackProvider>,
+    )
+    await waitFor(() => expect(screen.getByTestId('stack').textContent).toBe('category-picker:/'))
+
+    notifyListsChanged()
+    await waitFor(() => expect(api.lists).toHaveBeenCalledTimes(1))
+    fireEvent.click(screen.getByText('open a layer'))
+    await waitFor(() => expect(screen.getByTestId('stack').textContent).toBe('category-picker:/,preview:/p'))
+    answer([listIn('movie', 'back')])
+
+    await waitFor(() => expect(screen.getByTestId('stack').textContent).toBe('home:/'))
+  })
+
+  it('does nothing when the check finishes after the picker has gone', async () => {
+    let answer: (lists: MediaList[]) => void = () => {}
+    vi.mocked(api.lists).mockReturnValue(new Promise((resolve) => (answer = resolve)))
+    function Both({ show }: { show: boolean }) {
+      return (
+        <LayerStackProvider home={{ id: 'home', kind: 'home', tabLabel: 'My Lists', content: '/' }}>
+          {show && <CategoryPicker mediaTypes={[mediaType({ key: 'movie', label: 'Movies' })]} first />}
+          <StackReader />
+        </LayerStackProvider>
+      )
+    }
+    const view = render(<Both show />)
+
+    notifyListsChanged()
+    await waitFor(() => expect(api.lists).toHaveBeenCalledTimes(1))
+    view.rerender(<Both show={false} />)
+    answer([listIn('movie', 'back')])
+    await act(async () => {})
+
+    expect(screen.getByTestId('stack').textContent).toBe('home:/')
+    expect(api.lists).toHaveBeenCalledTimes(1)
+  })
 })
+

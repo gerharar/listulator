@@ -1,6 +1,6 @@
 import { Tip } from '../Tooltip/Tip.js'
 import './CategoryPicker.css'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { X } from 'lucide-react'
 import { api, type MediaType } from '../../../lib/api.js'
 import { categoryLabel, copy, sortCategories, sourceLabel } from '../../../locale/index.js'
@@ -57,24 +57,27 @@ export function CategoryPicker({ mediaTypes, first }: CategoryPickerProps) {
   }, [first])
 
   // On a first run the picker is the base layer because there are no lists. When one comes back (the Undo of Remove Sample, or of a delete of
-  // the last list) My Lists is the base again (H-018).
+  // the last list) My Lists is the base again (H-018). Subscribed once for as long as this is a first-run picker: the stack changes under it
+  // (`layerStack` is a new object each time), and a check that is under way must not be dropped for that, so the latest `landOnHome` is held in a ref.
+  const landOnHome = useRef(layerStack.landOnHome)
+  landOnHome.current = layerStack.landOnHome
   useEffect(() => {
     if (!first) return
-    let current = true
+    let present = true
     const stop = subscribeListsChanged(() => {
       api
         .lists()
         .then((lists) => {
-          if (current && lists.length > 0) layerStack.landOnHome()
+          if (present && lists.length > 0) landOnHome.current()
         })
         .catch(() => {})
     })
 
     return () => {
-      current = false
+      present = false
       stop()
     }
-  }, [first, layerStack])
+  }, [first])
 
   const ordered = sortCategories(mediaTypes)
   const text = copy.quantum.categoryPicker
