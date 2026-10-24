@@ -1,9 +1,13 @@
 // @vitest-environment jsdom
-import { StrictMode, useEffect } from 'react'
+import { StrictMode, useEffect, useState } from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { ApiError, api, type ListSourceResult, type MediaType } from '../../../lib/api.js'
 import { LayerStackProvider, useLayerStack } from '../layerStack/LayerStackContext.js'
+import { LiveRegionProvider } from '../LiveRegion/LiveRegion.js'
+import { ToastProvider } from '../Toast/Toast.js'
+import { useRefetchOnRegistryChange } from '../../../lib/registryChanges.js'
+import { updateLocalSettings } from '../../../lib/config/localConfig.js'
 import { copy } from '../../../locale/index.js'
 import { SearchTab } from './SearchTab.js'
 
@@ -15,6 +19,10 @@ vi.mock('../../../lib/api.js', async (importOriginal) => ({
     expansion: vi.fn(),
   },
 }))
+
+// Saving a key (the key card) writes the desktop's settings and rebuilds its registry; here both are stand-ins.
+vi.mock('../../../lib/config/localConfig.js', () => ({ getLocalSettings: vi.fn(), updateLocalSettings: vi.fn(async () => {}) }))
+vi.mock('../../../lib/ingestion/localMediaTypes.js', () => ({ resetLocalMediaTypes: vi.fn() }))
 
 afterEach(() => {
   cleanup()
@@ -61,11 +69,15 @@ function renderTab(
 ) {
   const { strict, underneath, ...props } = seed
   const tree = (
-    <LayerStackProvider home={HOME}>
-      {underneath && <CreateLayerUnderneath />}
-      <SearchTab mediaType={type} onBuilt={onBuilt} {...props} />
-      <StackProbe />
-    </LayerStackProvider>
+    <LiveRegionProvider>
+      <ToastProvider>
+        <LayerStackProvider home={HOME}>
+          {underneath && <CreateLayerUnderneath />}
+          <SearchTab mediaType={type} onBuilt={onBuilt} {...props} />
+          <StackProbe />
+        </LayerStackProvider>
+      </ToastProvider>
+    </LiveRegionProvider>
   )
   render(strict ? <StrictMode>{tree}</StrictMode> : tree)
   return { onBuilt }
@@ -304,7 +316,7 @@ describe('SearchTab', () => {
     expect(screen.queryByRole('button', { name: 'Open Settings' })).toBeNull()
   })
 
-  it('on desktop points at Settings, and Open Settings opens the Settings layer', async () => {
+  it('on desktop the no-key error points at the key card above, and has no Open Settings button (H-018)', async () => {
     ;(window as unknown as Record<string, unknown>)['__TAURI_INTERNALS__'] = {}
     vi.mocked(api.searchSources).mockRejectedValue(
       new ApiError('Search is not available for TV Shows.', 409, 'search.unavailable'),
@@ -313,13 +325,11 @@ describe('SearchTab', () => {
 
     await search()
 
-    expect(await screen.findByText(/Add your API key in Settings/)).not.toBeNull()
-    const open = screen.getByRole('button', { name: 'Open Settings' }) as HTMLButtonElement
-    expect(open.disabled).toBe(false)
-
-    act(() => open.click())
-
-    expect(screen.getByTestId('stack').textContent).toBe(JSON.stringify([['home', '/'], ['settings', '']]))
+    // The headline is as before; the help is about the card, not about Settings.
+    expect(await screen.findByText('Nothing found in List Vault, and search in TMDB needs an API key to work')).not.toBeNull()
+    expect(screen.getByText(/Add the free key above to search TMDB as well/)).not.toBeNull()
+    expect(screen.queryByText(/Add your API key in Settings/)).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Open Settings' })).toBeNull()
   })
 
   describe('when the community library cannot be reached', () => {
@@ -1334,5 +1344,85 @@ describe('SearchTab', () => {
         expect(scrollIntoView).not.toHaveBeenCalled()
       })
     })
+  })
+})
+
+describe('the key card in Create → Search (H-018, 33.4)', () => {
+  const desktop = () => {
+    ;(window as unknown as Record<string, unknown>)['__TAURI_INTERNALS__'] = {}
+  }
+  const card = () => document.querySelector('.q-keycard')
+
+  it('stands above the field for a source without a key, with the design’s words, and the field reads Search List Vault', () => {
+    desktop()
+    renderTab(mediaType({ searchAvailable: false }))
+
+    expect(screen.getByText('Search in TMDB needs a free API key')).not.toBeNull()
+    expect(
+      screen.getByText('Until you add one, this search looks in List Vault only. The key stays on this computer; you can change it later in Settings.'),
+    ).not.toBeNull()
+    expect(screen.getByLabelText('Search List Vault')).not.toBeNull()
+    expect(screen.queryByLabelText('Search TMDB or List Vault')).toBeNull()
+    const field = screen.getByLabelText('Search List Vault')
+    expect(card()!.compareDocumentPosition(field) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+  })
+
+  it('asks for both IGDB fields, and names IGDB', () => {
+    desktop()
+    renderTab(mediaType({ key: 'game', label: 'Games', sourceName: 'IGDB', searchAvailable: false }))
+
+    expect(screen.getByText('Search in IGDB needs a free API key')).not.toBeNull()
+    expect(screen.getByPlaceholderText('Your Client ID')).not.toBeNull()
+    expect(screen.getByPlaceholderText('Your Client Secret')).not.toBeNull()
+  })
+
+  it('is not there for a source with a key, in the web build, for Mega, or for a source that takes no key', () => {
+    desktop()
+    renderTab(mediaType({ searchAvailable: true }))
+    expect(card()).toBeNull()
+    expect(screen.getByLabelText('Search TMDB or List Vault')).not.toBeNull()
+    cleanup()
+
+    renderTab(mediaType({ key: 'mega', label: 'Mega', sourceName: 'List Vault', searchAvailable: false, searchScope: 'library' }))
+    expect(card()).toBeNull()
+    expect(screen.getByLabelText('Search List Vault')).not.toBeNull()
+    cleanup()
+
+    renderTab(mediaType({ key: 'music', label: 'Music', sourceName: 'MusicBrainz', searchAvailable: false }))
+    expect(card()).toBeNull()
+    cleanup()
+
+    delete (window as unknown as Record<string, unknown>)['__TAURI_INTERNALS__']
+    renderTab(mediaType({ searchAvailable: false }))
+    expect(card()).toBeNull()
+    expect(screen.getByLabelText('Search TMDB or List Vault')).not.toBeNull()
+  })
+
+  it('goes, and the field reads Search TMDB or List Vault, as soon as the key is saved', async () => {
+    desktop()
+    const keyed = mediaType({ searchAvailable: true })
+    // What the app does when a key is saved: it asks the registry again and gives the tab the new answer.
+    function Create() {
+      const [type, setType] = useState(mediaType({ searchAvailable: false }))
+      useRefetchOnRegistryChange(async () => [keyed], (types) => setType(types[0]!))
+
+      return <SearchTab mediaType={type} onBuilt={vi.fn()} />
+    }
+    render(
+      <LiveRegionProvider>
+        <ToastProvider>
+          <LayerStackProvider home={HOME}>
+            <Create />
+          </LayerStackProvider>
+        </ToastProvider>
+      </LiveRegionProvider>,
+    )
+
+    fireEvent.change(screen.getByPlaceholderText('Your API key'), { target: { value: 'a-key' } })
+    fireEvent.submit(card() as HTMLFormElement)
+
+    await waitFor(() => expect(card()).toBeNull())
+    expect(updateLocalSettings).toHaveBeenCalledWith({ tmdbApiKey: 'a-key' })
+    expect(screen.getByLabelText('Search TMDB or List Vault')).not.toBeNull()
   })
 })

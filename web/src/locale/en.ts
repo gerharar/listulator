@@ -571,6 +571,14 @@ export const en = {
       importing: 'Building the list…',
       searching: 'Searching…',
       /** Search needs a key the user has not supplied — hard error (design: ErrorBlock, "no key"). */
+      /** The key card above the field (desktop, a source without a key; H-018). */
+      keyCard: {
+        title: (source: string): string => `Search in ${source} needs a free API key`,
+        body: 'Until you add one, this search looks in List Vault only. The key stays on this computer; you can change it later in Settings.',
+      },
+      /** The no-key error while the key card is on the screen: it points at the card, not at Settings. */
+      noKeyWithCard: (source: string): string =>
+        `Add the free key above to search ${source} as well. Until then you can add items by hand or rely on canonical lists from List Vault`,
       noKeyHeadline: (source: string): string => `Nothing found in List Vault, and search in ${source} needs an API key to work`,
       noKeyDesktop: (category: string): string =>
         `Add your API key in Settings to search the main data source for ${category}. Until then you can add items by hand or rely on canonical lists from List Vault`,

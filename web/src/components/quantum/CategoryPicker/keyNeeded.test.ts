@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { MediaType } from '../../../lib/api.js'
-import { keyNeeded, tmdbKeyNeeded } from './keyNeeded.js'
+import { keyNeeded, keySourceOf, tmdbKeyNeeded } from './keyNeeded.js'
 
 function type(overrides: Partial<MediaType>): MediaType {
   return { key: 'movie', label: 'Movies', sortOrder: 10, defaultDurationMinutes: 120, searchAvailable: false, previewable: true, sourceName: 'TMDB', ...overrides }
@@ -45,5 +45,21 @@ describe('tmdbKeyNeeded: the first-run callout is about TMDB alone', () => {
   it('is false when no category uses TMDB, and in the web build', () => {
     expect(tmdbKeyNeeded([igdb], true)).toBe(false)
     expect(tmdbKeyNeeded([type({})], false)).toBe(false)
+  })
+})
+
+describe('keySourceOf: which key a category’s source takes', () => {
+  it('maps the registry’s source names to the key sources Settings knows', () => {
+    expect(keySourceOf(type({ sourceName: 'TMDB' }))).toBe('tmdb')
+    expect(keySourceOf(type({ sourceName: 'IGDB' }))).toBe('igdb')
+    expect(keySourceOf(type({ sourceName: 'Comic Vine' }))).toBe('comicVine')
+    expect(keySourceOf(type({ sourceName: 'YouTube' }))).toBe('youtube')
+  })
+
+  it('is null for a source that takes no key, and for a category with none', () => {
+    expect(keySourceOf(type({ sourceName: 'Wikipedia' }))).toBeNull()
+    const byHand = type({})
+    delete byHand.sourceName
+    expect(keySourceOf(byHand)).toBeNull()
   })
 })

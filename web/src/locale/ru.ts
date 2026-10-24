@@ -509,6 +509,12 @@ export const ru: Locale = {
       librarySource: 'List Vault',
       importing: 'Строим список…',
       searching: 'Ищем…',
+      keyCard: {
+        title: (source: string): string => `Для поиска в ${source} нужен бесплатный API-ключ`,
+        body: 'Пока ты его не добавишь, этот поиск идёт только по List Vault. Ключ остаётся на этом компьютере; позже его можно изменить в настройках.',
+      },
+      noKeyWithCard: (source: string): string =>
+        `Добавь бесплатный ключ выше, чтобы искать и в ${source}. А пока элементы можно добавлять вручную или пользоваться каноническими списками из List Vault`,
       noKeyHeadline: (source: string): string => `В List Vault ничего не найдено, а для поиска в ${source} нужен API-ключ`,
       noKeyDesktop: (category: string): string => `Добавь API-ключ в настройках, чтобы искать в основном источнике данных категории ${category}. А пока элементы можно добавлять вручную или пользоваться каноническими списками из List Vault`,
       noKeyWeb: (category: string): string => `Для поиска в основном источнике данных категории ${category} нужен API-ключ в файле .env сервера. А пока элементы можно добавлять вручную или пользоваться каноническими списками из List Vault`,

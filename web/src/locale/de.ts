@@ -501,6 +501,12 @@ export const de: Locale = {
       librarySource: 'Community-Bibliothek',
       importing: 'Liste wird aufgebaut…',
       searching: 'Suche läuft…',
+      keyCard: {
+        title: (source: string): string => `Die Suche in ${source} braucht einen kostenlosen API-Schlüssel`,
+        body: 'Bis du einen hinzufügst, durchsucht diese Suche nur den List Vault. Der Schlüssel bleibt auf diesem Computer; du kannst ihn später in den Einstellungen ändern.',
+      },
+      noKeyWithCard: (source: string): string =>
+        `Füge oben den kostenlosen Schlüssel hinzu, um auch ${source} zu durchsuchen. Bis dahin kannst du Einträge von Hand hinzufügen oder auf kanonische Listen aus dem List Vault zurückgreifen`,
       noKeyHeadline: (source: string): string => `Im List Vault nichts gefunden, und die Suche in ${source} braucht einen API-Schlüssel`,
       noKeyDesktop: (category: string): string => `Trage deinen API-Schlüssel in den Einstellungen ein, um die Hauptdatenquelle für „${category}“ zu durchsuchen. Bis dahin kannst du Einträge von Hand hinzufügen oder auf kanonische Listen aus dem List Vault zurückgreifen`,
       noKeyWeb: (category: string): string => `Für die Suche in der Hauptdatenquelle für „${category}“ braucht es einen API-Schlüssel in der .env-Datei des Servers. Bis dahin kannst du Einträge von Hand hinzufügen oder auf kanonische Listen aus dem List Vault zurückgreifen`,

@@ -161,6 +161,24 @@ test('with no key and the library down, the block names both problems', async ({
   await expect(page.getByLabel(q.search.queryLabel('MusicBrainz'), { exact: true })).toBeVisible()
 })
 
+test('the web build never shows the key card: keys are the server’s, and the field keeps its label (H-018)', async ({ page }) => {
+  await page.route('**/api/media-types', async (route) => {
+    const response = await route.fetch()
+    const types = (await response.json()) as Array<{ key: string; searchAvailable: boolean }>
+    // Whatever the registry says about a source, the web build has no key to add here.
+    for (const type of types) if (type.key === 'movie') type.searchAvailable = false
+    await route.fulfill({ json: types })
+  })
+  await useHomeFixture(page)
+  await page.goto('/')
+  await page.getByRole('button', { name: q.home.newList }).click()
+  await page.locator('.q-tile', { hasText: 'Movies' }).click()
+  await expect(page.getByRole('heading', { name: q.createList.title('Movies') })).toBeVisible()
+
+  await expect(page.getByLabel(q.search.queryLabel('TMDB'), { exact: true })).toBeVisible()
+  await expect(page.locator('.q-keycard')).toHaveCount(0)
+})
+
 const LIST_JSON = {
   id: 'created-1',
   title: 'Cannibal Corpse Discography',

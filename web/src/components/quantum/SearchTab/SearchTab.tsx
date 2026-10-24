@@ -8,6 +8,8 @@ import {
   resolveInitialBookLanguage,
 } from '../../../lib/bookLanguage.js'
 import { isDesktop } from '../../../lib/platform.js'
+import { KeyCard } from '../KeyCard/KeyCard.js'
+import { keyNeeded, keySourceOf } from '../CategoryPicker/keyNeeded.js'
 import {
   createFromSourceInput,
   previewPath,
@@ -69,6 +71,8 @@ export function SearchTab({ mediaType, onBuilt, libraryCategory, initialQuery, i
   const text = copy.quantum.search
   const layerStack = useLayerStack()
   const source = sourceLabel(mediaType) ?? categoryLabel(mediaType)
+  // Desktop, a source that takes a key and has none: a key card stands above the field and the search looks in List Vault alone (H-018).
+  const keySource = keyNeeded(mediaType, isDesktop()) ? keySourceOf(mediaType) : null
 
   const [query, setQuery] = useState(initialQuery ?? '')
   const [results, setResults] = useState<ListSourceResult[] | null>(null)
@@ -129,6 +133,11 @@ export function SearchTab({ mediaType, onBuilt, libraryCategory, initialQuery, i
   function noKeyNotice(libraryDown = false): Notice {
     const category = categoryLabel(mediaType)
     const desktop = isDesktop()
+
+    // The card above is the way to add the key, so the error points at it and has no Open Settings button of its own.
+    if (keySource !== null && !libraryDown) {
+      return { kind: 'block', headline: text.noKeyHeadline(source), explanation: text.noKeyWithCard(source) }
+    }
 
     return {
       kind: 'block',
@@ -398,6 +407,11 @@ export function SearchTab({ mediaType, onBuilt, libraryCategory, initialQuery, i
 
   return (
     <div className="q-search">
+      {keySource !== null && (
+        <KeyCard source={keySource} title={text.keyCard.title(source)}>
+          {text.keyCard.body}
+        </KeyCard>
+      )}
       <form
         className="q-search-form"
         onSubmit={(event: FormEvent) => {
@@ -412,7 +426,7 @@ export function SearchTab({ mediaType, onBuilt, libraryCategory, initialQuery, i
             queryInput.current = element as HTMLInputElement | null
             queryChecks.ref(element)
           }}
-          label={mediaType.searchScope === 'library' ? text.libraryQueryLabel(source) : text.queryLabel(source)}
+          label={mediaType.searchScope === 'library' ? text.libraryQueryLabel(source) : keySource !== null ? text.libraryQueryLabel(text.librarySource) : text.queryLabel(source)}
           value={query}
           onChange={(event) => setQuery(event.target.value)}
           placeholder={

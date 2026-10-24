@@ -1,4 +1,12 @@
 import type { MediaType } from '../../../lib/api.js'
+import type { KeySource } from '../../../lib/config/keyTest.js'
+
+/** The registry's source names that take a key, and the key source Settings stores each under. Wikipedia, MusicBrainz, Open Library and the library take none. */
+const KEY_SOURCES: Readonly<Record<string, KeySource>> = { TMDB: 'tmdb', IGDB: 'igdb', 'Comic Vine': 'comicVine', YouTube: 'youtube' }
+
+export function keySourceOf(mediaType: MediaType): KeySource | null {
+  return (mediaType.sourceName !== undefined ? KEY_SOURCES[mediaType.sourceName] : undefined) ?? null
+}
 
 /**
  * Whether a free key would unlock the category's own source (H-018). Only in the desktop app, where the person using it adds their own keys; in
