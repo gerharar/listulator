@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import type { MediaList, MediaType } from '../../../lib/api.js'
+import type { KeySource } from '../../../lib/config/keyTest.js'
 import { api } from '../../../lib/api.js'
 import { LayerStackProvider, useLayerStack } from '../layerStack/LayerStackContext.js'
 import { LiveRegionProvider } from '../LiveRegion/LiveRegion.js'
@@ -27,15 +28,24 @@ afterEach(() => {
   vi.clearAllMocks()
 })
 
+/** The registry names the key a source takes; a fixture gets it from the source it names, as the real registry does. */
+const KEY_SOURCE_OF: Readonly<Record<string, KeySource>> = { TMDB: 'tmdb', IGDB: 'igdb', 'Comic Vine': 'comicVine', YouTube: 'youtube' }
+
+function withKeySource(type: MediaType): MediaType {
+  const keySource = type.sourceName ? KEY_SOURCE_OF[type.sourceName] : undefined
+
+  return keySource ? { ...type, keySource } : type
+}
+
 function mediaType(overrides: Partial<MediaType> & Pick<MediaType, 'key' | 'label'>): MediaType {
-  return {
+  return withKeySource({
     sortOrder: 10,
     defaultDurationMinutes: 30,
     searchAvailable: true,
     previewable: true,
     sourceName: 'TMDB',
     ...overrides,
-  }
+  })
 }
 
 const REGISTRY: MediaType[] = [
@@ -369,7 +379,8 @@ describe('the first-run subline and the TMDB callout (H-018, 33.3)', () => {
     fireEvent.change(screen.getByPlaceholderText('Your API key'), { target: { value: 'a-key' } })
     fireEvent.submit(document.querySelector('form')!)
 
-    await waitFor(() => expect(callout()).toBeNull())
+    // A save, a registry refetch and a render: more than the default second when the whole suite is running.
+    await waitFor(() => expect(callout()).toBeNull(), { timeout: 5000 })
     expect(updateLocalSettings).toHaveBeenCalledWith({ tmdbApiKey: 'a-key' })
     expect(chips()).toHaveLength(0)
     expect(screen.getByText('TMDB key saved. You can change it in Settings')).toBeTruthy()

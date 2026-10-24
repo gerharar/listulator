@@ -33,6 +33,7 @@ describe('GET /api/media-types', () => {
       searchAvailable: false,
       previewable: false,
       sourceName: 'TMDB',
+      keySource: 'tmdb',
       sourceCopyMaxDays: 180,
     })
   })

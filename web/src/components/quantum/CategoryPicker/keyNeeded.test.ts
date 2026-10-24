@@ -3,7 +3,7 @@ import type { MediaType } from '../../../lib/api.js'
 import { keyNeeded, keySourceOf, tmdbKeyNeeded } from './keyNeeded.js'
 
 function type(overrides: Partial<MediaType>): MediaType {
-  return { key: 'movie', label: 'Movies', sortOrder: 10, defaultDurationMinutes: 120, searchAvailable: false, previewable: true, sourceName: 'TMDB', ...overrides }
+  return { key: 'movie', label: 'Movies', sortOrder: 10, defaultDurationMinutes: 120, searchAvailable: false, previewable: true, sourceName: 'TMDB', keySource: 'tmdb', ...overrides }
 }
 
 describe('keyNeeded: a free key would unlock the category’s own source (H-018)', () => {
@@ -18,6 +18,7 @@ describe('keyNeeded: a free key would unlock the category’s own source (H-018)
   it('is false for a category searched by hand, which has no source to unlock', () => {
     const byHand = type({})
     delete byHand.sourceName
+    delete byHand.keySource
 
     expect(keyNeeded(byHand, true)).toBe(false)
   })
@@ -32,7 +33,7 @@ describe('keyNeeded: a free key would unlock the category’s own source (H-018)
 })
 
 describe('tmdbKeyNeeded: the first-run callout is about TMDB alone', () => {
-  const igdb = type({ key: 'game', label: 'Games', sourceName: 'IGDB' })
+  const igdb = type({ key: 'game', label: 'Games', sourceName: 'IGDB', keySource: 'igdb' })
 
   it('is true while any TMDB category cannot be searched, in the desktop app', () => {
     expect(tmdbKeyNeeded([type({}), igdb], true)).toBe(true)
@@ -48,18 +49,31 @@ describe('tmdbKeyNeeded: the first-run callout is about TMDB alone', () => {
   })
 })
 
-describe('keySourceOf: which key a category’s source takes', () => {
-  it('maps the registry’s source names to the key sources Settings knows', () => {
-    expect(keySourceOf(type({ sourceName: 'TMDB' }))).toBe('tmdb')
-    expect(keySourceOf(type({ sourceName: 'IGDB' }))).toBe('igdb')
-    expect(keySourceOf(type({ sourceName: 'Comic Vine' }))).toBe('comicVine')
-    expect(keySourceOf(type({ sourceName: 'YouTube' }))).toBe('youtube')
+describe('keySourceOf: which key a category’s source takes, as the registry says', () => {
+  it('reads the key source the registry names', () => {
+    expect(keySourceOf(type({ keySource: 'tmdb' }))).toBe('tmdb')
+    expect(keySourceOf(type({ sourceName: 'IGDB', keySource: 'igdb' }))).toBe('igdb')
+    expect(keySourceOf(type({ sourceName: 'Comic Vine', keySource: 'comicVine' }))).toBe('comicVine')
+    expect(keySourceOf(type({ sourceName: 'YouTube', keySource: 'youtube' }))).toBe('youtube')
   })
 
   it('is null for a source that takes no key, and for a category with none', () => {
-    expect(keySourceOf(type({ sourceName: 'Wikipedia' }))).toBeNull()
+    const wikipedia = type({ sourceName: 'Wikipedia' })
+    delete wikipedia.keySource
+    expect(keySourceOf(wikipedia)).toBeNull()
     const byHand = type({})
     delete byHand.sourceName
+    delete byHand.keySource
     expect(keySourceOf(byHand)).toBeNull()
+  })
+})
+
+describe('keyNeeded for a source that takes no key', () => {
+  it('is false even when its source cannot be searched for another reason (an outage): there is no key to add', () => {
+    const wikipedia = type({ sourceName: 'Wikipedia', searchAvailable: false })
+    delete wikipedia.keySource
+
+    expect(keyNeeded(wikipedia, true)).toBe(false)
+    expect(tmdbKeyNeeded([wikipedia], true)).toBe(false)
   })
 })

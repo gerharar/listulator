@@ -7,6 +7,7 @@ import type {
   OrderRestore,
 } from '../../../server/src/catalog/restorePayloads.js'
 import type { FacetConvention } from '../../../server/src/catalog/facets.js'
+import type { KeySource } from './config/keyTest.js'
 import type { LibraryEntry } from '../../../server/src/ingestion/customLists.js'
 import type { ItemSourceTags, ResetPreview, ResetResult } from '../../../server/src/catalog/reset.js'
 import type { SourceOptions } from '../../../server/src/ingestion/sourceRef.js'
@@ -122,6 +123,8 @@ export interface MediaType {
   previewable: boolean
   /** The search source's display name ("TMDB"); absent for a by-hand category. */
   sourceName?: string
+  /** The key that source takes (the id Settings stores it under); absent for a source that needs none. A free key is offered only where this is set. */
+  keySource?: KeySource
   /** Search offers only community-library lists (Mega); the name is `sourceLabel`'s. */
   searchScope?: 'library'
   /** Days a fetched list's stored source copy may age before it is refreshed or dropped; absent: no cap. */

@@ -316,3 +316,33 @@ describe('how long a source copy may be kept (task 12.1)', () => {
     expect(info['game']).not.toHaveProperty('sourceCopyMaxDays')
   })
 })
+
+describe('the key a category’s source takes (H-018 review)', () => {
+  const info = () =>
+    Object.fromEntries(
+      createMediaTypeRegistry()
+        .list()
+        .map((mediaType) => [mediaType.key, toMediaTypeInfo(mediaType)]),
+    )
+
+  it('is named by the registry for every source that takes one: TMDB, IGDB, Comic Vine and YouTube', () => {
+    const named = Object.fromEntries(Object.entries(info()).map(([key, entry]) => [key, entry.keySource]))
+
+    expect(named).toMatchObject({
+      movie: 'tmdb',
+      tv: 'tmdb',
+      animation: 'tmdb',
+      documentary: 'tmdb',
+      game: 'igdb',
+      comic: 'comicVine',
+      youtube: 'youtube',
+    })
+  })
+
+  it('is absent for a source that takes none, for Mega, and for a category searched by hand', () => {
+    const entries = info()
+
+    for (const key of ['wrestling', 'mma', 'book', 'music', 'mega']) expect(entries[key], key).not.toHaveProperty('keySource')
+  })
+})
+

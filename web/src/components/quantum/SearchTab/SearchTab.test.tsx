@@ -3,6 +3,7 @@ import { StrictMode, useEffect, useState } from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { ApiError, api, type ListSourceResult, type MediaType } from '../../../lib/api.js'
+import type { KeySource } from '../../../lib/config/keyTest.js'
 import { LayerStackProvider, useLayerStack } from '../layerStack/LayerStackContext.js'
 import { LiveRegionProvider } from '../LiveRegion/LiveRegion.js'
 import { ToastProvider } from '../Toast/Toast.js'
@@ -30,8 +31,17 @@ afterEach(() => {
   delete (window as unknown as Record<string, unknown>)['__TAURI_INTERNALS__']
 })
 
+/** The registry names the key a source takes; a fixture gets it from the source it names, as the real registry does. */
+const KEY_SOURCE_OF: Readonly<Record<string, KeySource>> = { TMDB: 'tmdb', IGDB: 'igdb', 'Comic Vine': 'comicVine', YouTube: 'youtube' }
+
+function withKeySource(type: MediaType): MediaType {
+  const keySource = type.sourceName ? KEY_SOURCE_OF[type.sourceName] : undefined
+
+  return keySource ? { ...type, keySource } : type
+}
+
 function mediaType(overrides: Partial<MediaType> = {}): MediaType {
-  return {
+  return withKeySource({
     key: 'tv',
     label: 'TV Shows',
     sortOrder: 20,
@@ -40,7 +50,7 @@ function mediaType(overrides: Partial<MediaType> = {}): MediaType {
     previewable: true,
     sourceName: 'TMDB',
     ...overrides,
-  }
+  })
 }
 
 const RESULTS: ListSourceResult[] = [
@@ -1421,7 +1431,7 @@ describe('the key card in Create → Search (H-018, 33.4)', () => {
     fireEvent.change(screen.getByPlaceholderText('Your API key'), { target: { value: 'a-key' } })
     fireEvent.submit(card() as HTMLFormElement)
 
-    await waitFor(() => expect(card()).toBeNull())
+    await waitFor(() => expect(card()).toBeNull(), { timeout: 5000 })
     expect(updateLocalSettings).toHaveBeenCalledWith({ tmdbApiKey: 'a-key' })
     expect(screen.getByLabelText('Search TMDB or List Vault')).not.toBeNull()
   })

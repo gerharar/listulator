@@ -150,6 +150,7 @@ export function createDefaultMediaTypes({
       defaultDurationMinutes: 120,
       adapter: movieSources,
       sourceName: 'TMDB',
+      keySource: 'tmdb',
       sourceCopyMaxDays: 180,
     },
     {
@@ -159,6 +160,7 @@ export function createDefaultMediaTypes({
       defaultDurationMinutes: 50,
       adapter: tmdbTv,
       sourceName: 'TMDB',
+      keySource: 'tmdb',
       sourceCopyMaxDays: 180,
     },
     // Episode-length. The category also holds animated features, which this
@@ -170,6 +172,7 @@ export function createDefaultMediaTypes({
       defaultDurationMinutes: 25,
       adapter: animationSources,
       sourceName: 'TMDB',
+      keySource: 'tmdb',
       sourceCopyMaxDays: 180,
       // A Ghost in the Shell film and its series share this list; Movie/TV tells them apart.
       facets: [{ key: 'type', label: 'Type', values: ['Movie', 'TV'] }],
@@ -183,6 +186,7 @@ export function createDefaultMediaTypes({
       defaultDurationMinutes: 90,
       adapter: documentarySources,
       sourceName: 'TMDB',
+      keySource: 'tmdb',
       sourceCopyMaxDays: 180,
     },
     {
@@ -209,6 +213,7 @@ export function createDefaultMediaTypes({
       defaultDurationMinutes: 600,
       adapter: igdb,
       sourceName: 'IGDB',
+      keySource: 'igdb',
       // A game can be different content on each platform, so tags carry platform codes.
       facets: [{ key: 'platform', label: 'Platform' }],
     },
@@ -221,6 +226,7 @@ export function createDefaultMediaTypes({
       defaultDurationMinutes: 15,
       adapter: comicVine,
       sourceName: 'Comic Vine',
+      keySource: 'comicVine',
     },
     {
       key: 'book',
@@ -267,6 +273,7 @@ export function createDefaultMediaTypes({
         credentials.youtube ?? (() => ({ apiKey: process.env['YOUTUBE_API_KEY'] })),
       ),
       sourceName: 'YouTube',
+      keySource: 'youtube',
       sourceCopyMaxDays: 30,
     },
     /**
@@ -502,6 +509,9 @@ export interface SearchAdapter {
   slugs?(refs: string[]): Promise<Map<string, string | null>>
 }
 
+/** The ids Settings stores an API key under (web `lib/config/keyTest.ts` `KeySource` is the same list). */
+export type KeySourceId = 'tmdb' | 'igdb' | 'comicVine' | 'youtube'
+
 export interface MediaType {
   key: string
   label: string
@@ -528,6 +538,12 @@ export interface MediaType {
    * no adapter is "by hand" and has none.
    */
   sourceName?: string
+  /**
+   * The key this category's source takes, when it takes one (`'tmdb'`, `'igdb'`, `'comicVine'`, `'youtube'`; the ids Settings stores them under).
+   * Absent for a source that needs none (Wikipedia, MusicBrainz, Open Library) and for a category searched by hand. The client offers a free key
+   * only where this is set (H-018).
+   */
+  keySource?: KeySourceId
   /**
    * Which of an item's `tags` mean Type/Medium, Language and Platform for
    * this category (facets.ts). Absent: the list gets a text filter and no
@@ -564,6 +580,8 @@ export interface MediaTypeInfo {
   /** Whether a preview-before-import can be fetched — the same gate as search. */
   previewable: boolean
   sourceName?: string
+  /** The key the source takes, when it takes one; see `MediaType.keySource`. */
+  keySource?: KeySourceId
   /** The category's facet convention; absent when it has none. */
   facets?: FacetConvention
   /** Present when search offers only community-library lists; the client names that source itself. */
@@ -586,6 +604,7 @@ export function toMediaTypeInfo({
   defaultDurationMinutes,
   adapter,
   sourceName,
+  keySource,
   facets,
   searchScope,
   sourceCopyMaxDays,
@@ -602,6 +621,7 @@ export function toMediaTypeInfo({
     searchAvailable: available,
     previewable: available,
     ...(adapter && sourceName && !searchScope ? { sourceName } : {}),
+    ...(adapter && keySource && !searchScope ? { keySource } : {}),
     ...(facets?.length ? { facets } : {}),
     ...(searchScope ? { searchScope } : {}),
     ...(sourceCopyMaxDays ? { sourceCopyMaxDays } : {}),
