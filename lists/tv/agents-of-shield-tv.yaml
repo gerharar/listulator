@@ -91,6 +91,12 @@ items:
 - { title: "S04E20 Farewell, Cruel World!", year: 2017, minutes: 41, group: "Season 4" }
 - { title: "S04E21 The Return", year: 2017, minutes: 43, group: "Season 4" }
 - { title: "S04E22 World's End", year: 2017, minutes: 43, group: "Season 4" }
+- { title: "S01E01 Vendetta", year: 2016, minutes: 5, group: "Agents Of S.H.I.E.L.D.: Slingshot" }
+- { title: "S01E02 John Hancock", year: 2016, minutes: 4, group: "Agents Of S.H.I.E.L.D.: Slingshot" }
+- { title: "S01E03 Progress", year: 2016, minutes: 6, group: "Agents Of S.H.I.E.L.D.: Slingshot" }
+- { title: "S01E04 Reunion", year: 2016, minutes: 5, group: "Agents Of S.H.I.E.L.D.: Slingshot" }
+- { title: "S01E05 Deal Breaker", year: 2016, minutes: 4, group: "Agents Of S.H.I.E.L.D.: Slingshot" }
+- { title: "S01E06 Justicia", year: 2016, minutes: 4, group: "Agents Of S.H.I.E.L.D.: Slingshot" }
 - { title: "S05E01 Orientation, Part One", year: 2017, minutes: 43, group: "Season 5" }
 - { title: "S05E02 Orientation, Part Two", year: 2017, minutes: 43, group: "Season 5" }
 - { title: "S05E03 A Life Spent", year: 2017, minutes: 43, group: "Season 5" }

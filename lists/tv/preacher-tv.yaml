@@ -1,0 +1,48 @@
+title: Preacher TV series
+description: All episodes of the Preacher TV series
+category: tv
+status: complete
+items:
+- { title: "S01E01 Pilot", year: 2016, minutes: 64, group: "Season 1" }
+- { title: "S01E02 See", year: 2016, minutes: 49, group: "Season 1" }
+- { title: "S01E03 The Possibilities", year: 2016, minutes: 42, group: "Season 1" }
+- { title: "S01E04 Monster Swamp", year: 2016, minutes: 43, group: "Season 1" }
+- { title: "S01E05 South Will Rise Again", year: 2016, minutes: 43, group: "Season 1" }
+- { title: "S01E06 Sundowner", year: 2016, minutes: 42, group: "Season 1" }
+- { title: "S01E07 He Gone", year: 2016, minutes: 44, group: "Season 1" }
+- { title: "S01E08 El Valero", year: 2016, minutes: 42, group: "Season 1" }
+- { title: "S01E09 Finish the Song", year: 2016, minutes: 48, group: "Season 1" }
+- { title: "S01E10 Call and Response", year: 2016, minutes: 54, group: "Season 1" }
+- { title: "S02E01 On the Road", year: 2017, minutes: 44, group: "Season 2" }
+- { title: "S02E02 Mumbai Sky Tower", year: 2017, minutes: 43, group: "Season 2" }
+- { title: "S02E03 Damsels", year: 2017, minutes: 45, group: "Season 2" }
+- { title: "S02E04 Viktor", year: 2017, minutes: 45, group: "Season 2" }
+- { title: "S02E05 Dallas", year: 2017, minutes: 41, group: "Season 2" }
+- { title: "S02E06 Sokosha", year: 2017, minutes: 45, group: "Season 2" }
+- { title: "S02E07 Pig", year: 2017, minutes: 44, group: "Season 2" }
+- { title: "S02E08 Holes", year: 2017, minutes: 44, group: "Season 2" }
+- { title: "S02E09 Puzzle Piece", year: 2017, minutes: 42, group: "Season 2" }
+- { title: "S02E10 Dirty Little Secret", year: 2017, minutes: 44, group: "Season 2" }
+- { title: "S02E11 Backdoors", year: 2017, minutes: 45, group: "Season 2" }
+- { title: "S02E12 On Your Knees", year: 2017, minutes: 46, group: "Season 2" }
+- { title: "S02E13 The End of the Road", year: 2017, minutes: 54, group: "Season 2" }
+- { title: "S03E01 Angelville", year: 2018, minutes: 42, group: "Season 3" }
+- { title: "S03E02 Sonsabitches", year: 2018, minutes: 44, group: "Season 3" }
+- { title: "S03E03 Gonna Hurt", year: 2018, minutes: 43, group: "Season 3" }
+- { title: "S03E04 The Tombs", year: 2018, minutes: 42, group: "Season 3" }
+- { title: "S03E05 The Coffin", year: 2018, minutes: 45, group: "Season 3" }
+- { title: "S03E06 Les Enfants du Sang", year: 2018, minutes: 42, group: "Season 3" }
+- { title: "S03E07 Hilter", year: 2018, minutes: 45, group: "Season 3" }
+- { title: "S03E08 The Tom/Brady", year: 2018, minutes: 42, group: "Season 3" }
+- { title: "S03E09 Schwanzkopf", year: 2018, minutes: 40, group: "Season 3" }
+- { title: "S03E10 The Light Above", year: 2018, minutes: 53, group: "Season 3" }
+- { title: "S04E01 Masada", year: 2019, minutes: 41, group: "Season 4" }
+- { title: "S04E02 Last Supper", year: 2019, minutes: 41, group: "Season 4" }
+- { title: "S04E03 Deviant", year: 2019, minutes: 43, group: "Season 4" }
+- { title: "S04E04 Search and Rescue", year: 2019, minutes: 43, group: "Season 4" }
+- { title: "S04E05 Bleak City", year: 2019, minutes: 44, group: "Season 4" }
+- { title: "S04E06 The Lost Apostle", year: 2019, minutes: 40, group: "Season 4" }
+- { title: "S04E07 Messiahs", year: 2019, minutes: 41, group: "Season 4" }
+- { title: "S04E08 Fear of the Lord", year: 2019, minutes: 42, group: "Season 4" }
+- { title: "S04E09 Overture", year: 2019, minutes: 45, group: "Season 4" }
+- { title: "S04E10 End of the World", year: 2019, minutes: 55, group: "Season 4" }
