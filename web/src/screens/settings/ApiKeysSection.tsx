@@ -2,10 +2,9 @@ import './ApiKeysSection.css'
 import { useEffect, useRef, useState, type CSSProperties } from 'react'
 import { Info } from 'lucide-react'
 import { copy } from '../../locale/index.js'
-import { getLocalSettings, updateLocalSettings, type LocalSettings } from '../../lib/config/localConfig.js'
+import { getLocalSettings, type LocalSettings } from '../../lib/config/localConfig.js'
+import { KEY_FIELDS, pasteSentence, saveAndReload } from '../../lib/config/keySources.js'
 import type { KeySource, KeyTestResult } from '../../lib/config/keyTest.js'
-import { resetLocalMediaTypes } from '../../lib/ingestion/localMediaTypes.js'
-import { notifyRegistryChanged } from '../../lib/registryChanges.js'
 import { testApiKey } from '../../lib/api.local.js'
 import { Button } from '../../components/quantum/Button/Button.js'
 import { MaskedKey } from '../../components/quantum/Field/Field.js'
@@ -16,14 +15,6 @@ import { Tip } from '../../components/quantum/Tooltip/Tip.js'
 import { useTooltip } from '../../components/quantum/Tooltip/useTooltip.js'
 import { keyGuideUrl } from '../../lib/guides.js'
 
-/** Which saved settings make up each source's key (IGDB needs an ID and a secret). */
-export const SOURCES: readonly { id: KeySource; fields: readonly (keyof LocalSettings)[] }[] = [
-  { id: 'tmdb', fields: ['tmdbApiKey'] },
-  { id: 'igdb', fields: ['igdbClientId', 'igdbClientSecret'] },
-  { id: 'comicVine', fields: ['comicVineApiKey'] },
-  { id: 'youtube', fields: ['youtubeApiKey'] },
-]
-
 type Status = 'untested' | 'testing' | KeyTestResult
 
 export interface ApiKeysSectionProps {
@@ -31,13 +22,6 @@ export interface ApiKeysSectionProps {
   /** Writes the changed fields where the desktop app keeps them, and makes the search sources read them again. */
   save?: (patch: Partial<LocalSettings>) => Promise<void>
   test?: (source: KeySource, values: LocalSettings) => Promise<KeyTestResult>
-}
-
-/** Saves the changed key fields, rebuilds the search sources from them, and tells the app to ask them again (16.5). */
-export async function saveAndReload(patch: Partial<LocalSettings>): Promise<void> {
-  await updateLocalSettings(patch)
-  resetLocalMediaTypes()
-  notifyRegistryChanged()
 }
 
 interface OpenPopover {
@@ -87,14 +71,7 @@ function KeyRow({ id, fields, values, current, onEdit, onInfo, onTest }: KeyRowP
   const source = text.sources[id]
   const empty = (field: keyof LocalSettings): boolean => (values[field] ?? '').trim() === ''
   const missing = fields.filter(empty)
-  const sentence =
-    fields.length === 1
-      ? text.pasteKey
-      : missing.length === fields.length
-        ? text.pasteBoth
-        : missing[0] === fields[0]
-          ? text.pasteClientId
-          : text.pasteClientSecret
+  const sentence = pasteSentence(fields, missing)
   const checks = useFieldValidation(
     Object.fromEntries(fields.map((field) => [field, { value: values[field] ?? '', problem: () => (empty(field) ? sentence : null) }])),
   )
@@ -200,7 +177,7 @@ export function ApiKeysSection({
     <section>
       <span className="q-kicker">{text.title}</span>
       <div className="q-key-rows" style={{ '--pill-chars': pillChars } as CSSProperties}>
-        {SOURCES.map(({ id, fields }) => (
+        {KEY_FIELDS.map(({ id, fields }) => (
           <KeyRow
             key={id}
             id={id}

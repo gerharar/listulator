@@ -4,7 +4,7 @@ import { copy } from '../../../locale/index.js'
 import type { LocalSettings } from '../../../lib/config/localConfig.js'
 import type { KeySource } from '../../../lib/config/keyTest.js'
 import { keyGuideUrl } from '../../../lib/guides.js'
-import { saveAndReload, SOURCES } from '../../../screens/settings/ApiKeysSection.js'
+import { KEY_FIELDS, pasteSentence, saveAndReload } from '../../../lib/config/keySources.js'
 import { Button } from '../Button/Button.js'
 import { ExternalLink } from '../ExternalLink/ExternalLink.js'
 import { MaskedKey } from '../Field/Field.js'
@@ -31,7 +31,7 @@ export interface KeyCardProps {
 export function KeyCard({ source, title, children, save = saveAndReload, onSaved }: KeyCardProps) {
   const text = copy.quantum.keyCard
   const keys = copy.quantum.settings.keys
-  const fields = SOURCES.find((candidate) => candidate.id === source)!.fields
+  const fields = KEY_FIELDS.find((candidate) => candidate.id === source)!.fields
   const [values, setValues] = useState<Partial<Record<keyof LocalSettings, string>>>({})
   const [saved, setSaved] = useState(false)
   const [failed, setFailed] = useState(false)
@@ -41,14 +41,7 @@ export function KeyCard({ source, title, children, save = saveAndReload, onSaved
   const empty = (field: keyof LocalSettings): boolean => (values[field] ?? '').trim() === ''
   const missing = fields.filter(empty)
   // One sentence for the card, under the row; every empty field points at it (as in Settings' row).
-  const sentence =
-    fields.length === 1
-      ? keys.pasteKey
-      : missing.length === fields.length
-        ? keys.pasteBoth
-        : missing[0] === fields[0]
-          ? keys.pasteClientId
-          : keys.pasteClientSecret
+  const sentence = pasteSentence(fields, missing)
   const checks = useFieldValidation(
     Object.fromEntries(fields.map((field) => [field, { value: values[field] ?? '', problem: () => (empty(field) ? sentence : null) }])),
   )
