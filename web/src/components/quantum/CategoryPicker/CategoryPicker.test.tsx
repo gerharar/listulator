@@ -14,6 +14,7 @@ import { CategoryPicker } from './CategoryPicker.js'
 vi.mock('../../../lib/api.js', () => ({
   api: {
     lists: vi.fn(),
+    libraryUntracked: vi.fn(async () => ({ entries: [], reachable: true })),
   },
 }))
 // Saving a key (the key card) writes the desktop's settings and rebuilds its registry; here both are stand-ins.
@@ -371,5 +372,38 @@ describe('the first-run subline and the TMDB callout (H-018, 33.3)', () => {
     expect(updateLocalSettings).toHaveBeenCalledWith({ tmdbApiKey: 'a-key' })
     expect(chips()).toHaveLength(0)
     expect(screen.getByText('TMDB key saved. You can change it in Settings')).toBeTruthy()
+  })
+})
+
+describe('the List Vault shelf on the picker (H-018, 33.6)', () => {
+  const REGISTRY_FOR_SHELF = [mediaType({ key: 'movie', label: 'Movies', searchAvailable: true })]
+
+  function renderIt(first: boolean) {
+    vi.mocked(api.lists).mockResolvedValue([])
+    vi.mocked(api.libraryUntracked).mockResolvedValue({
+      entries: [{ externalRef: 'canonical:lists/movie/a.yaml', title: 'A Movie List', category: 'movie', itemCount: 3 }],
+      reachable: true,
+    })
+    render(
+      <LayerStackProvider home={{ id: 'home', kind: 'home', tabLabel: 'My Lists', content: '/' }}>
+        <CategoryPicker mediaTypes={REGISTRY_FOR_SHELF} first={first} />
+      </LayerStackProvider>,
+    )
+  }
+
+  it('is under the tiles on a first run', async () => {
+    renderIt(true)
+
+    expect(await screen.findByText('A Movie List')).toBeTruthy()
+    const tiles = document.querySelector('.q-tiles')!
+    expect(tiles.compareDocumentPosition(document.querySelector('.q-vault')!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+  })
+
+  it('is not on a visit after the first run, and the library is not even asked', async () => {
+    renderIt(false)
+
+    await waitFor(() => expect(api.lists).toHaveBeenCalled())
+    expect(document.querySelector('.q-vault')).toBeNull()
+    expect(api.libraryUntracked).not.toHaveBeenCalled()
   })
 })

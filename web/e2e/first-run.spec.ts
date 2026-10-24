@@ -77,3 +77,46 @@ test('after the first-run creation, Home exists again with the new list pushed o
   const id = all.find((entry) => entry.title === title)?.id
   if (id) await page.request.delete(`/api/lists/${id}`)
 })
+
+/**
+ * The List Vault shelf (H-018, 33.6): on a first run, under the tiles, up to six library lists from different categories. A card opens
+ * the Preview the search rows open and builds nothing; the library is stubbed here (a live manifest has no business gating this suite).
+ */
+test('the first-run shelf shows six lists from six categories, and a card opens a Preview and creates no list', async ({ page }) => {
+  const created: string[] = []
+  const categories = ['movie', 'tv', 'game', 'book', 'music', 'comic', 'wrestling', 'mma']
+  const entries = categories.flatMap((category) =>
+    [1, 2].map((n) => ({ externalRef: `canonical:lists/${category}/shelf-${n}.yaml`, title: `Shelf ${category} ${n}`, category, itemCount: 12 })),
+  )
+  const items = Array.from({ length: 12 }, (_, index) => ({ title: `Entry ${index + 1}`, timeToConsumeMinutes: 30, year: 2000 }))
+
+  await page.route('**/api/lists', (route) => {
+    if (route.request().method() !== 'GET') created.push(route.request().method())
+
+    return route.request().method() === 'GET' ? route.fulfill({ json: [] }) : route.abort()
+  })
+  await page.route('**/api/lists/from-source', (route) => {
+    created.push('from-source')
+
+    return route.abort()
+  })
+  await page.route('**/api/library/untracked', (route) => route.fulfill({ json: { entries, reachable: true } }))
+  await page.route('**/api/media-types/*/expansion**', (route) => route.fulfill({ json: { itemCount: 12, status: 'complete', items } }))
+
+  await page.goto('/')
+  await expect(page.getByRole('heading', { name: q.categoryPicker.firstRunTitle })).toBeVisible({ timeout: 15_000 })
+  await expect(page.getByText(q.vaultShelf.label)).toBeVisible()
+  await expect(page.getByText(q.vaultShelf.line)).toBeVisible()
+
+  const cards = page.locator('.q-vault-card')
+  await expect(cards).toHaveCount(6)
+  const kinds = await cards.locator('.q-vault-meta').allTextContents()
+  expect(new Set(kinds.map((meta) => meta.split(' · ')[0])).size).toBe(6)
+  for (const meta of kinds) expect(meta).toMatch(/ · 12 items$/)
+
+  await cards.first().click()
+
+  await expect(page.locator('.q-preview-row')).toHaveCount(12)
+  await expect(page.getByRole('button', { name: q.preview.addButton })).toBeVisible()
+  expect(created).toEqual([])
+})

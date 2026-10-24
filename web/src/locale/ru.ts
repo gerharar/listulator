@@ -445,6 +445,12 @@ export const ru: Locale = {
     layerStack: {
       untitledListTab: 'Список',
     },
+    vaultShelf: {
+      label: 'Или начни с List Vault',
+      line: 'Канонические списки, которые может открыть любой, ключ не нужен. Посмотри один в предпросмотре; ничего не добавится, пока ты не нажмёшь Добавить Список.',
+      offline: 'Чтобы показать списки, List Vault нужен интернет.',
+      items: (n: number): string => items(n),
+    },
     keyCard: {
       saveKey: 'Сохранить ключ',
       how: 'Как получить бесплатный ключ',

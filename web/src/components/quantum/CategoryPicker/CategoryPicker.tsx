@@ -11,6 +11,7 @@ import { useLayerStack } from '../layerStack/LayerStackContext.js'
 import { newListPath } from '../layerStack/layerPath.js'
 import { isDesktop } from '../../../lib/platform.js'
 import { KeyCard } from '../KeyCard/KeyCard.js'
+import { VaultShelf } from '../VaultShelf/VaultShelf.js'
 import { keyNeeded, tmdbKeyNeeded } from './keyNeeded.js'
 
 export interface CategoryPickerProps {
@@ -122,6 +123,7 @@ export function CategoryPicker({ mediaTypes, first }: CategoryPickerProps) {
             )
           })}
         </div>
+        {first && <VaultShelf mediaTypes={mediaTypes} />}
       </div>
     </div>
   )

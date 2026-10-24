@@ -1,0 +1,53 @@
+/* The first-run shelf (H-018): label, one line, up to six cards. */
+.q-vault {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 22px;
+}
+.q-vault-label {
+  font: 500 11px/1 var(--font-mono);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink3);
+}
+.q-vault-line {
+  margin: 0;
+  font: 400 13.5px/1.45 var(--font-sans);
+  color: var(--ink2);
+}
+.q-vault-cards {
+  display: grid;
+  /* Six cards in three columns on the full-size card (1080px), two or one in narrower windows. */
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 12px;
+  margin-top: 4px;
+}
+.q-vault-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  padding: 14px 16px;
+  border: 1px solid var(--line);
+  background: var(--card);
+  color: var(--ink);
+  text-align: left;
+  cursor: pointer;
+  font-family: var(--font-sans);
+}
+.q-vault-card:hover {
+  border-color: var(--rule);
+  background: var(--hover);
+}
+.q-vault-card:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.q-vault-title {
+  font: 600 15px/1.3 var(--font-sans);
+}
+.q-vault-meta {
+  font: 500 12px/1 var(--font-mono);
+  color: var(--ink3);
+}
