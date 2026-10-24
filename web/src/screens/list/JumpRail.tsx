@@ -3,7 +3,6 @@ import { useEffect, useRef, useState, type KeyboardEvent, type PointerEvent } fr
 import { copy } from '../../locale/index.js'
 import { RAIL_WIDTH_DEFAULT, RAIL_WIDTH_MAX, RAIL_WIDTH_MIN } from './collapse.js'
 import { Tip } from '../../components/quantum/Tooltip/Tip.js'
-import type { RailPlacement } from './railPlacement.js'
 
 export interface RailEntry {
   id: string
@@ -13,7 +12,7 @@ export interface RailEntry {
   total: number
 }
 
-export interface JumpRailProps {
+interface JumpRailBase {
   entries: readonly RailEntry[]
   onJump: (entry: RailEntry) => void
   onHide: () => void
@@ -22,15 +21,28 @@ export interface JumpRailProps {
   onResize: (width: number) => void
   /** Once, when a resize settles: the width to remember. */
   onResizeEnd: (width: number) => void
-  /** Outside the card (H-019) the rail's grip is on its outer edge, and it folds in place to a strip instead of being swapped for `JumpRailStub`. */
-  placement?: RailPlacement
-  /** Outside only: the rail is folded to its strip. */
-  folded?: boolean
-  /** Outside only: the strip is pressed. */
-  onShow?: () => void
-  /** Outside only: the widest the rail may be here (the window's room beside the card, less 16px); the cap is never stored. */
-  maxWidth?: number
 }
+
+/** In the card: the grip is on the right edge, and a folded rail is swapped for `JumpRailStub`, so nothing here folds. */
+interface InsideRail {
+  placement?: 'inside'
+  folded?: never
+  onShow?: never
+  maxWidth?: never
+}
+
+/** Outside the card (H-019) the grip is on the outer edge and the rail folds in place to a strip; these go together or the strip cannot be unfolded. */
+interface OutsideRail {
+  placement: 'outside'
+  /** The rail is folded to its strip. */
+  folded: boolean
+  /** The strip is pressed. */
+  onShow: () => void
+  /** The widest the rail may be here (the window's room beside the card, less 16px); the cap is never stored. */
+  maxWidth: number
+}
+
+export type JumpRailProps = JumpRailBase & (InsideRail | OutsideRail)
 
 const STEP = 16
 /** The folded strip outside the card (H-019); the one inside the card is still `JumpRailStub`'s 36px. */
@@ -47,21 +59,13 @@ const FOLD_MS = 240
  * left edge outside it, where dragging left widens. Arrow keys on the edge do
  * the same (mirrored outside) and a double-click puts it back.
  */
-export function JumpRail({
-  entries,
-  onJump,
-  onHide,
-  width,
-  onResize,
-  onResizeEnd,
-  placement = 'inside',
-  folded = false,
-  onShow,
-  maxWidth = RAIL_WIDTH_MAX,
-}: JumpRailProps) {
+export function JumpRail(props: JumpRailProps) {
+  const { entries, onJump, onHide, width, onResize, onResizeEnd } = props
   const text = copy.quantum.list.rail
-  const outside = placement === 'outside'
-  const limit = outside ? Math.min(RAIL_WIDTH_MAX, maxWidth) : RAIL_WIDTH_MAX
+  const out = props.placement === 'outside' ? props : null
+  const outside = out !== null
+  const folded = out?.folded ?? false
+  const limit = out ? Math.min(RAIL_WIDTH_MAX, out.maxWidth) : RAIL_WIDTH_MAX
   // Dragging left widens it outside, right inside: the grip is on the other edge.
   const direction = outside ? -1 : 1
   const [dragging, setDragging] = useState(false)
@@ -125,10 +129,10 @@ export function JumpRail({
     .join(' ')
 
   return (
-    <nav className={className} data-placement={placement} aria-label={text.title} style={{ width: outside && folded ? RAIL_FOLDED_WIDTH : width }}>
+    <nav className={className} data-placement={outside ? 'outside' : 'inside'} aria-label={text.title} style={{ width: outside && folded ? RAIL_FOLDED_WIDTH : width }}>
       {outside && folded ? (
         // The whole strip is the way back (as `JumpRailStub`); the » inside is a real button for the keyboard, its click reaches the strip's handler.
-        <Tip as="div" className="q-rail-fold" text={text.show} onClick={onShow}>
+        <Tip as="div" className="q-rail-fold" text={text.show} onClick={out?.onShow}>
           <button type="button" className="q-rail-toggle" aria-label={text.show}>
             »
           </button>

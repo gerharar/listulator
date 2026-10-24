@@ -1314,6 +1314,19 @@ function ListView({
 
   const popoverItem = popover ? items.find((entry) => entry.id === popover.itemId) : undefined
 
+  // What the rail is given inside and outside the card; the outside rail's own props are added where it is drawn.
+  const railProps = {
+    entries: railEntries,
+    onJump: jump,
+    onHide: () => setRail(true),
+    width: shownRailWidth(railWidth, railWindow),
+    onResize: (width: number) => {
+      railWindow.release?.()
+      setRailWidth(width)
+    },
+    onResizeEnd: (width: number) => void saveRailWidth(getPreferencesStore(), listId, width),
+  }
+
   return (
     <div className="q-list">
       <div className="q-list-head">
@@ -1406,20 +1419,10 @@ function ListView({
       )}
 
       <div className={busy ? 'q-list-cols q-hold is-busy' : 'q-list-cols q-hold'} inert={busy} aria-busy={busy || undefined}>
-        {showRail && (railOutside || !railHidden) && (
-          <JumpRail
-            entries={railEntries}
-            onJump={jump}
-            onHide={() => setRail(true)}
-            width={shownRailWidth(railWidth, railWindow)}
-            onResize={(width) => {
-              railWindow.release?.()
-              setRailWidth(width)
-            }}
-            onResizeEnd={(width) => void saveRailWidth(getPreferencesStore(), listId, width)}
-            {...(railOutside && { placement: 'outside' as const, maxWidth: railMargin - RAIL_AIR, folded: railHidden, onShow: () => setRail(false) })}
-          />
+        {showRail && railOutside && (
+          <JumpRail {...railProps} placement="outside" maxWidth={railMargin - RAIL_AIR} folded={railHidden} onShow={() => setRail(false)} />
         )}
+        {showRail && !railOutside && !railHidden && <JumpRail {...railProps} />}
         {showRail && !railOutside && railHidden && <JumpRailStub onShow={() => setRail(false)} />}
         <div
           className="q-list-body"
