@@ -56,8 +56,13 @@
   flex: 1;
   min-height: 0;
   overflow-y: auto;
+  /* The screen moves the scroller itself (Home / End, a jump, a fold) and the window redraws the rows around it; the browser's own scroll
+     anchoring would move the view again when the spacers change height (the list's body says the same, BL-110). */
+  overflow-anchor: none;
   padding: 0 22px;
 }
+/* Home / End leave focus on the scroller (see `onBodyKeyDown`); it is not a control, so it draws no ring. */
+.q-preview-body:focus { outline: none; }
 /* A message (nothing to add, a preview or an add that failed) stands apart from the header, by the body's own side
    gutter: with no top padding it sat flush under it (owner, 2026-10-05, "lower, a separate element"). Rows keep
    starting at the top. */

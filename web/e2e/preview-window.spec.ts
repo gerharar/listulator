@@ -84,6 +84,25 @@ test.describe('a long Preview draws a window', () => {
     expect(await drawn(page)).toBeLessThan(100)
   })
 
+  test('End from a group head goes to the very bottom and Home back to the very top', async ({ page }) => {
+    await openPreview(page, 10_000, 100)
+    await page.getByRole('button', { name: 'Collapse Volume 0' }).focus()
+
+    await page.keyboard.press('End')
+    const last = page.locator('.q-preview-row', { hasText: 'Episode 9999' })
+    await expect(last).toBeVisible()
+    const [row, footer] = await Promise.all([last.boundingBox(), page.locator('.q-preview-footer').boundingBox()])
+    expect(row!.y + row!.height).toBeLessThanOrEqual(footer!.y + 1)
+    expect(await body(page).evaluate((element) => element.scrollTop + element.clientHeight)).toBeCloseTo(10_100 * ROW, 0)
+    await expect(page.locator('.q-live')).toHaveText('Bottom of the list')
+    expect(await drawn(page)).toBeLessThan(100)
+
+    await page.keyboard.press('Home')
+    await expect(page.locator('.q-preview-row', { hasText: /^Episode 0\b/ })).toBeVisible()
+    expect(await body(page).evaluate((element) => element.scrollTop)).toBe(0)
+    await expect(page.locator('.q-live')).toHaveText('Top of the list')
+  })
+
   test('folding a group in the middle keeps it where it is on the screen, and unfolding puts its rows back there', async ({ page }) => {
     await openPreview(page, 10_000, 100)
     const start = 50 * 101 * ROW

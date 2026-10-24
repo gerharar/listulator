@@ -4,6 +4,7 @@ import { cleanup, render, screen } from '@testing-library/react'
 import { api, type MediaType, type PreviewItem } from '../../../lib/api.js'
 import type { PreviewSource } from '../../../lib/preview.js'
 import { LayerStackProvider } from '../layerStack/LayerStackContext.js'
+import { LiveRegionProvider } from '../LiveRegion/LiveRegion.js'
 import { PreviewLayer } from './PreviewLayer.js'
 
 /**
@@ -42,9 +43,11 @@ async function renderMs(items: PreviewItem[]): Promise<number> {
   vi.mocked(api.preview).mockResolvedValue({ itemCount: items.length, items })
   const started = performance.now()
   render(
+    <LiveRegionProvider>
     <LayerStackProvider home={home}>
       <PreviewLayer source={SOURCE} mediaType={MOVIE} onBuilt={vi.fn()} />
-    </LayerStackProvider>,
+    </LayerStackProvider>
+</LiveRegionProvider>,
   )
   await screen.findByText(new RegExp(`^${items.length} items`))
 

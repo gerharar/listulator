@@ -4,6 +4,7 @@ import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testi
 import { api, type MediaType } from '../../../lib/api.js'
 import type { PreviewSource } from '../../../lib/preview.js'
 import { LayerStackProvider } from '../layerStack/LayerStackContext.js'
+import { LiveRegionProvider } from '../LiveRegion/LiveRegion.js'
 import { RailPlacementProvider } from '../../../screens/list/RailPlacementContext.js'
 import { railPlacement } from '../../../screens/list/railPlacement.js'
 import { PreviewLayer } from './PreviewLayer.js'
@@ -54,13 +55,15 @@ async function open(preview: unknown = GROUPED, where: { windowWidth: number; ac
   vi.mocked(api.preview).mockResolvedValue(preview as never)
   const layer = <PreviewLayer source={SOURCE} mediaType={TV} onBuilt={() => {}} {...(where?.active === false ? { active: false } : {})} />
   render(
+    <LiveRegionProvider>
     <LayerStackProvider home={home}>
       {where ? (
         <RailPlacementProvider value={{ placement: railPlacement(where.windowWidth, 'inside'), windowWidth: where.windowWidth }}>{layer}</RailPlacementProvider>
       ) : (
         layer
       )}
-    </LayerStackProvider>,
+    </LayerStackProvider>
+</LiveRegionProvider>,
   )
   await waitFor(() => expect(document.querySelector('.q-preview-row, .q-preview-group')).not.toBeNull())
   await act(async () => {})

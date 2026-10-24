@@ -4,6 +4,7 @@ import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { api, type MediaType, type PreviewItem } from '../../../lib/api.js'
 import type { PreviewSource } from '../../../lib/preview.js'
 import { LayerStackProvider } from '../layerStack/LayerStackContext.js'
+import { LiveRegionProvider } from '../LiveRegion/LiveRegion.js'
 import { PreviewLayer } from './PreviewLayer.js'
 
 /**
@@ -48,9 +49,11 @@ const films = (count: number, perGroup?: number): PreviewItem[] =>
 async function mount(items: PreviewItem[]) {
   vi.mocked(api.preview).mockResolvedValue({ itemCount: items.length, items })
   render(
-    <LayerStackProvider home={home}>
-      <PreviewLayer source={SOURCE} mediaType={MOVIE} onBuilt={vi.fn()} />
-    </LayerStackProvider>,
+    <LiveRegionProvider>
+      <LayerStackProvider home={home}>
+        <PreviewLayer source={SOURCE} mediaType={MOVIE} onBuilt={vi.fn()} />
+      </LayerStackProvider>
+    </LiveRegionProvider>,
   )
   await screen.findByText(new RegExp(`^${items.length} items ·`))
   const body = document.querySelector('.q-preview-body') as HTMLElement
@@ -192,3 +195,101 @@ describe('a windowed Preview tells a screen reader where each row is (26.3)', ()
     expect(place()).toEqual([])
   })
 })
+
+describe('Home and End in a long Preview (32.5b)', () => {
+  const live = () => document.querySelector('.q-live')!.textContent
+  // 10,000 items in groups of 100: a head is a row too.
+  const FULL = (10_000 + 100) * 40
+  const LAST = FULL - VIEWPORT
+
+  beforeEach(() => {
+    vi.spyOn(Element.prototype, 'scrollHeight', 'get').mockReturnValue(FULL)
+  })
+
+  /** A browser keeps a scroll position within the last screenful; jsdom does not. */
+  function clampScroll(body: HTMLElement) {
+    let top = 0
+    Object.defineProperty(body, 'scrollTop', { configurable: true, get: () => top, set: (value: number) => void (top = Math.max(0, Math.min(value, LAST))) })
+  }
+
+  it('End from a group head goes to the very bottom: the last row is drawn, and the live region says so', async () => {
+    const { body } = await mount(films(10_000, 100))
+    clampScroll(body)
+    const head = screen.getAllByRole('button', { name: /^Collapse Season/ })[0]!
+    head.focus()
+
+    await act(async () => {
+      fireEvent.keyDown(head, { key: 'End' })
+    })
+
+    expect(body.scrollTop).toBe(LAST)
+    expect(screen.getByText('Film 9999')).toBeTruthy()
+    expect(screen.queryByText('Film 0')).toBeNull()
+    await vi.waitFor(() => expect(live()).toBe('Bottom of the list'))
+  })
+
+  it('Home goes back to the very top, from far away', async () => {
+    const { body, scrollTo } = await mount(films(10_000, 100))
+    await scrollTo(200_000)
+    const head = screen.getAllByRole('button', { name: /^Collapse Season/ })[0]!
+
+    await act(async () => {
+      fireEvent.keyDown(head, { key: 'Home' })
+    })
+
+    expect(body.scrollTop).toBe(0)
+    expect(screen.getByText('Film 0')).toBeTruthy()
+    await vi.waitFor(() => expect(live()).toBe('Top of the list'))
+  })
+
+  it('moves focus to the rows’ own scroller, so a group head left at the other end is not the focused element (WebKit scrolls to it)', async () => {
+    const { body } = await mount(films(10_000, 100))
+    clampScroll(body)
+    const head = screen.getAllByRole('button', { name: /^Collapse Season/ })[0]!
+    head.focus()
+
+    await act(async () => {
+      fireEvent.keyDown(head, { key: 'End' })
+    })
+
+    expect(document.activeElement).toBe(body)
+    expect(body.tabIndex).toBe(-1)
+  })
+
+  it('takes over the key, so the browser does not scroll a second time', async () => {
+    await mount(films(10_000, 100))
+    const head = screen.getAllByRole('button', { name: /^Collapse Season/ })[0]!
+
+    const notPrevented = fireEvent.keyDown(head, { key: 'End' })
+
+    expect(notPrevented).toBe(false)
+  })
+
+  it('works on a short Preview that is not drawn as a window', async () => {
+    const { body } = await mount(films(20, 10))
+    clampScroll(body)
+    const head = screen.getAllByRole('button', { name: /^Collapse Season/ })[0]!
+
+    await act(async () => {
+      fireEvent.keyDown(head, { key: 'End' })
+    })
+
+    expect(body.scrollTop).toBe(LAST)
+  })
+
+  it('leaves a modifier and every other key alone', async () => {
+    const { body } = await mount(films(10_000, 100))
+    const head = screen.getAllByRole('button', { name: /^Collapse Season/ })[0]!
+
+    await act(async () => {
+      fireEvent.keyDown(head, { key: 'End', ctrlKey: true })
+      fireEvent.keyDown(head, { key: 'End', metaKey: true })
+      fireEvent.keyDown(head, { key: 'End', shiftKey: true })
+      fireEvent.keyDown(head, { key: 'PageDown' })
+    })
+
+    expect(body.scrollTop).toBe(0)
+    expect(live() ?? '').toBe('')
+  })
+})
+

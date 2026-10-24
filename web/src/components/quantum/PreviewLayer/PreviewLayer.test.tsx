@@ -4,6 +4,7 @@ import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/re
 import { api, ApiError, type MediaType } from '../../../lib/api.js'
 import { createFromSourceInput, type PreviewSource } from '../../../lib/preview.js'
 import { LayerStackProvider } from '../layerStack/LayerStackContext.js'
+import { LiveRegionProvider } from '../LiveRegion/LiveRegion.js'
 import { PreviewLayer } from './PreviewLayer.js'
 
 vi.mock('../../../lib/api.js', async () => {
@@ -46,9 +47,11 @@ const home = { id: 'home', kind: 'home', tabLabel: 'My Lists', content: '/' }
 
 function renderLayer(source: PreviewSource = SOURCE, onBuilt = vi.fn()) {
   render(
+    <LiveRegionProvider>
     <LayerStackProvider home={home}>
       <PreviewLayer source={source} mediaType={TV} onBuilt={onBuilt} />
-    </LayerStackProvider>,
+    </LayerStackProvider>
+</LiveRegionProvider>,
   )
   return onBuilt
 }
@@ -190,9 +193,11 @@ describe('PreviewLayer tag column (11.8)', () => {
       ],
     })
     render(
+      <LiveRegionProvider>
       <LayerStackProvider home={home}>
         <PreviewLayer source={{ ...SOURCE, mediaType: 'game' }} mediaType={GAMES} onBuilt={vi.fn()} />
-      </LayerStackProvider>,
+      </LayerStackProvider>
+</LiveRegionProvider>,
     )
 
     await waitFor(() => expect(screen.getByText('Halo')).toBeTruthy())

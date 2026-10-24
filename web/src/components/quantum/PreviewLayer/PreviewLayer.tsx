@@ -1,5 +1,5 @@
 import './PreviewLayer.css'
-import { Fragment, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { Fragment, useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react'
 import { X } from 'lucide-react'
 import { formatDuration } from '../../../formatDuration.js'
 import { api, type MediaType, type SourcePreview } from '../../../lib/api.js'
@@ -26,6 +26,8 @@ import { PreviewRow } from '../PreviewRow/PreviewRow.js'
 import { Spinner } from '../Spinner/Spinner.js'
 import { StatusChip } from '../StatusChip/StatusChip.js'
 import { useLayerStack } from '../layerStack/LayerStackContext.js'
+import { useLiveRegion } from '../LiveRegion/LiveRegion.js'
+import { endForKey, endScrollTop } from '../../../screens/list/listEnds.js'
 import { PREVIEW_HEIGHTS, previewUnits } from './previewRows.js'
 
 const CANONICAL_PREFIX = 'canonical:'
@@ -66,6 +68,7 @@ async function readVirtualization(): Promise<VirtualizationMode> {
 export function PreviewLayer({ source, mediaType, onBuilt, active = true }: PreviewLayerProps) {
   const text = copy.quantum.preview
   const layerStack = useLayerStack()
+  const { announce } = useLiveRegion()
 
   const [load, setLoad] = useState<Load>({ state: 'loading' })
   const [attempt, setAttempt] = useState(0)
@@ -195,6 +198,25 @@ export function PreviewLayer({ source, mediaType, onBuilt, active = true }: Prev
     setJumpTo(null)
   }, [jumpTo])
 
+  /**
+   * Home / End (H-019): the rows go to the very top or bottom at once, as on the list. The Preview's rows are read-only, so there is no row to
+   * move focus to; focus goes to the scroller itself. A group head that kept it would stay pinned at the other end, and WebKit then
+   * sometimes scrolls back to it as the rows are redrawn (seen in the e2e, about one run in forty under load).
+   */
+  function onBodyKeyDown(event: KeyboardEvent<HTMLDivElement>) {
+    const end = endForKey(event.key)
+    const element = body.current
+    if (end === null || !element || load.state !== 'done') return
+    if (event.ctrlKey || event.metaKey || event.altKey || event.shiftKey) return
+
+    event.preventDefault()
+    element.scrollTop = Math.round(endScrollTop(end, element.scrollHeight))
+    scrolledAt.current = element.scrollTop
+    windowSync.current?.()
+    element.focus({ preventScroll: true })
+    announce(end === 'top' ? copy.quantum.list.ends.top : copy.quantum.list.ends.bottom)
+  }
+
   function toggle(label: string) {
     // Where the reader is now, before the rows change under them (the browser may clamp the position once they do).
     scrolledAt.current = body.current?.scrollTop ?? 0
@@ -272,7 +294,7 @@ export function PreviewLayer({ source, mediaType, onBuilt, active = true }: Prev
           />
         )}
         {showRail && !railOutside && rail.hidden && <JumpRailStub onShow={() => setRailHidden(false)} />}
-      <div className="q-preview-body" ref={body}>
+      <div className="q-preview-body" ref={body} tabIndex={-1} onKeyDown={onBodyKeyDown}>
         {load.state === 'loading' && (
           <div className="q-preview-progress">
             <Spinner label={text.loading} />
