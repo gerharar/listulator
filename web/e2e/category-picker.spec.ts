@@ -37,6 +37,26 @@ test('New List opens the picker, driven by the live registry rather than the han
   await expect(page.locator('.q-tile.used .q-count-chip')).toHaveText('1')
 })
 
+test('a tile’s source name and the count chip are in the mono font, as designed (the stylesheet named a token that does not exist)', async ({ page }) => {
+  await useHomeFixture(page)
+  await page.goto('/')
+  await page.getByRole('button', { name: 'New List' }).click()
+  await expect(page.getByRole('heading', { name: picker.title })).toBeVisible()
+
+  const read = await page.evaluate(() => {
+    const look = (selector: string) => {
+      const style = getComputedStyle(document.querySelector(selector)!)
+      return { family: style.fontFamily, size: style.fontSize }
+    }
+    return { src: look('.q-tile-src'), count: look('.q-count-chip') }
+  })
+
+  expect(read.src.family).toContain('JetBrains Mono')
+  expect(read.src.size).toBe('12px')
+  expect(read.count.family).toContain('JetBrains Mono')
+  expect(read.count.size).toBe('12px')
+})
+
 test('picking a tile opens the Create layer for that category, Esc returns to the picker, and Close returns to Home', async ({
   page,
 }) => {
