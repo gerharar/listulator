@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { cardMargin, layerBorderWidth, listCardWidth, outsideRailWidth, railPlacement } from './railPlacement.js'
+import { cardMargin, carriedRailWidth, layerBorderWidth, listCardWidth, outsideRailWidth, railPlacement } from './railPlacement.js'
 
 /** H-019: the jump rail sits inside the card or outside it, decided by the window and the card alone. */
 
@@ -95,5 +95,26 @@ describe('layerBorderWidth', () => {
   it('falls back to 2px for a ratio that is not a number above zero', () => {
     expect(layerBorderWidth(0)).toBe(2)
     expect(layerBorderWidth(Number.NaN)).toBe(2)
+  })
+})
+
+describe('carriedRailWidth (a rail that moved inside as the window narrowed)', () => {
+  it('starts where the outside rail left off: at the switch the width is the same as the cap just before it', () => {
+    // At 1520 the margin is 200 (the last outside width), so the cap is 184 either way.
+    expect(carriedRailWidth(480, 1520)).toBe(outsideRailWidth(480, cardMargin(1520)))
+    expect(carriedRailWidth(480, 1520)).toBe(184)
+  })
+
+  it('keeps narrowing as the window narrows, down to the 160px minimum, and stays there', () => {
+    expect(carriedRailWidth(480, 1500)).toBe(174)
+    expect(carriedRailWidth(480, 1480)).toBe(164)
+    expect(carriedRailWidth(480, 1472)).toBe(160)
+    expect(carriedRailWidth(480, 1200)).toBe(160)
+    expect(carriedRailWidth(480, 600)).toBe(160)
+  })
+
+  it('never grows the reader’s own width: a narrower stored width stays', () => {
+    expect(carriedRailWidth(170, 1520)).toBe(170)
+    expect(carriedRailWidth(160, 1520)).toBe(160)
   })
 })

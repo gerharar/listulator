@@ -51,14 +51,14 @@ afterEach(() => {
   vi.resetAllMocks()
 })
 
-async function open(preview: unknown = GROUPED, where: { windowWidth: number; active?: boolean } | null = null) {
+async function open(preview: unknown = GROUPED, where: { windowWidth: number; active?: boolean; carried?: boolean } | null = null) {
   vi.mocked(api.preview).mockResolvedValue(preview as never)
   const layer = <PreviewLayer source={SOURCE} mediaType={TV} onBuilt={() => {}} {...(where?.active === false ? { active: false } : {})} />
   render(
     <LiveRegionProvider>
     <LayerStackProvider home={home}>
       {where ? (
-        <RailPlacementProvider value={{ placement: railPlacement(where.windowWidth, 'inside'), windowWidth: where.windowWidth }}>{layer}</RailPlacementProvider>
+        <RailPlacementProvider value={{ placement: railPlacement(where.windowWidth, 'inside'), windowWidth: where.windowWidth, ...(where.carried && { carried: true }) }}>{layer}</RailPlacementProvider>
       ) : (
         layer
       )}
@@ -134,6 +134,18 @@ describe('the jump rail on the Preview', () => {
     cleanup()
     await open()
     expect(rail()!.style.width).toBe('290px')
+  })
+})
+
+describe('the jump rail on the Preview carried inside', () => {
+  it('follows the window after it left the card, and shows the remembered width in a window that opened inside', async () => {
+    store.set('preview:railWidth', '324')
+    await open(GROUPED, { windowWidth: 1500, carried: true })
+    expect(rail()!.style.width).toBe('174px')
+
+    cleanup()
+    await open(GROUPED, { windowWidth: 1500 })
+    expect(rail()!.style.width).toBe('324px')
   })
 })
 

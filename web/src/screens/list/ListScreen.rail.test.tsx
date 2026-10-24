@@ -85,7 +85,7 @@ afterEach(() => {
   vi.resetAllMocks()
 })
 
-async function open(detail: MediaListDetail = list(), where: { windowWidth: number; active?: boolean } | null = null) {
+async function open(detail: MediaListDetail = list(), where: { windowWidth: number; active?: boolean; carried?: boolean; release?: () => void } | null = null) {
   vi.mocked(api.list).mockResolvedValue(detail)
   const screenOfList = (
     <ListScreen
@@ -100,7 +100,7 @@ async function open(detail: MediaListDetail = list(), where: { windowWidth: numb
       <ToastProvider>
         <OverlayManagerProvider>
           {where ? (
-            <RailPlacementProvider value={{ placement: railPlacement(where.windowWidth, 'inside'), windowWidth: where.windowWidth }}>
+            <RailPlacementProvider value={{ placement: railPlacement(where.windowWidth, 'inside'), windowWidth: where.windowWidth, ...(where.carried && { carried: true }), ...(where.release && { release: where.release }) }}>
               {screenOfList}
             </RailPlacementProvider>
           ) : (
@@ -252,6 +252,40 @@ describe('the jump rail', () => {
       await open()
       expect(width()).toBe('200px')
     })
+  })
+})
+
+describe('the jump rail carried inside (H-019)', () => {
+  const width = () => rail()!.style.width
+
+  it('follows the window inside after it left the card: 174px at 1500, whatever width was chosen', async () => {
+    store.set('list:L1:railWidth', '324')
+    await open(list(), { windowWidth: 1500, carried: true })
+
+    expect(rail()!.dataset['placement']).toBe('inside')
+    expect(width()).toBe('174px')
+    expect(store.get('list:L1:railWidth')).toBe('324')
+  })
+
+  it('shows the chosen width in a window that opened inside', async () => {
+    store.set('list:L1:railWidth', '324')
+    await open(list(), { windowWidth: 1500 })
+
+    expect(width()).toBe('324px')
+  })
+
+  it('can still be resized inside: dragging releases the carry and writes the width that was dragged to', async () => {
+    store.set('list:L1:railWidth', '324')
+    const release = vi.fn()
+    await open(list(), { windowWidth: 1500, carried: true, release })
+    const grip = within(rail()!).getByRole('separator', { name: 'Resize group jumper' })
+
+    fireEvent.pointerDown(grip, { button: 0, clientX: 174 })
+    fireEvent.pointerMove(window, { clientX: 274 })
+    fireEvent.pointerUp(window, { clientX: 274 })
+
+    expect(release).toHaveBeenCalled()
+    await waitFor(() => expect(store.get('list:L1:railWidth')).toBe('274'))
   })
 })
 

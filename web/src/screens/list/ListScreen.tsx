@@ -67,7 +67,7 @@ import { listMark } from '../../lib/buckets.js'
 import { JumpRail, JumpRailStub, type RailEntry } from './JumpRail.js'
 import { endForKey, endRow, endScrollTop, showEnds, type ListEnd } from './listEnds.js'
 import { useScrollEnds } from './useScrollEnds.js'
-import { cardMargin, outsideRailWidth, RAIL_AIR } from './railPlacement.js'
+import { cardMargin, RAIL_AIR, shownRailWidth } from './railPlacement.js'
 import { useRailPlacement } from './RailPlacementContext.js'
 import { ListMorePopover, type MoreMode, type PreviewState } from './ListMorePopover.js'
 import { buildSpine, listTotals } from './spine.js'
@@ -1411,8 +1411,11 @@ function ListView({
             entries={railEntries}
             onJump={jump}
             onHide={() => setRail(true)}
-            width={railOutside ? outsideRailWidth(railWidth, railMargin) : railWidth}
-            onResize={setRailWidth}
+            width={shownRailWidth(railWidth, railWindow)}
+            onResize={(width) => {
+              railWindow.release?.()
+              setRailWidth(width)
+            }}
             onResizeEnd={(width) => void saveRailWidth(getPreferencesStore(), listId, width)}
             {...(railOutside && { placement: 'outside' as const, maxWidth: railMargin - RAIL_AIR, folded: railHidden, onShow: () => setRail(false) })}
           />

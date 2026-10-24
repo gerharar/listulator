@@ -15,7 +15,7 @@ import { copy, sourceLabel } from '../../../locale/index.js'
 import { buildRowModel, offsetOf, scrollAfterChange, shouldVirtualize, type VirtualizationMode } from '../../../screens/list/rowModel.js'
 import { loadPreviewRail, RAIL_WIDTH_DEFAULT, savePreviewRailHidden, savePreviewRailWidth } from '../../../screens/list/collapse.js'
 import { JumpRail, JumpRailStub, type RailEntry } from '../../../screens/list/JumpRail.js'
-import { cardMargin, outsideRailWidth, RAIL_AIR } from '../../../screens/list/railPlacement.js'
+import { cardMargin, RAIL_AIR, shownRailWidth } from '../../../screens/list/railPlacement.js'
 import { useRailPlacement } from '../../../screens/list/RailPlacementContext.js'
 import { DEFAULT_VIEWPORT, WindowedRows } from '../../../screens/list/WindowedRows.js'
 import { Button, IconButton } from '../Button/Button.js'
@@ -288,8 +288,11 @@ export function PreviewLayer({ source, mediaType, onBuilt, active = true }: Prev
             entries={railEntries}
             onJump={jump}
             onHide={() => setRailHidden(true)}
-            width={rail.width}
-            onResize={(width) => setRail((current) => ({ ...current, width }))}
+            width={shownRailWidth(rail.width, railWindow)}
+            onResize={(width) => {
+              railWindow.release?.()
+              setRail((current) => ({ ...current, width }))
+            }}
             onResizeEnd={(width) => void savePreviewRailWidth(getPreferencesStore(), width)}
           />
         )}
@@ -374,7 +377,7 @@ export function PreviewLayer({ source, mediaType, onBuilt, active = true }: Prev
           entries={railEntries}
           onJump={jump}
           onHide={() => setRailHidden(true)}
-          width={outsideRailWidth(rail.width, railMargin)}
+          width={shownRailWidth(rail.width, railWindow)}
           maxWidth={railMargin - RAIL_AIR}
           onResize={(width) => setRail((current) => ({ ...current, width }))}
           onResizeEnd={(width) => void savePreviewRailWidth(getPreferencesStore(), width)}

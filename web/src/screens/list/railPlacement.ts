@@ -6,6 +6,8 @@
  * would throw a widened rail back inside.
  */
 
+import { RAIL_WIDTH_MIN } from './collapse.js'
+
 export type RailPlacement = 'inside' | 'outside'
 
 /** The card's width cap (`.q-layer`), and the stage's inset on each side (`.q-stage .q-layer`). */
@@ -36,6 +38,25 @@ export function railPlacement(windowWidth: number, current: RailPlacement): Rail
 /** The stored width, capped so the rail keeps 16px of air before the window edge. The cap is never stored. */
 export function outsideRailWidth(stored: number, margin: number): number {
   return Math.min(stored, margin - RAIL_AIR)
+}
+
+/**
+ * The rail's width inside, after the window narrowed through the switch (owner, 2026-10-24: it jumped wide again and stopped following the window).
+ * The outside cap (margin minus 16px) carries on as if the margin did: it is 184px at the switch and falls by half a pixel per pixel of window
+ * down to the 160px minimum. Pure in the window and the stored width, so it is the same just before and just after the switch. It is the shown
+ * width only: the reader's own width stays stored, comes back in a wider window, and is what the reader sets by resizing (which ends the carry).
+ */
+export function carriedRailWidth(stored: number, windowWidth: number): number {
+  const virtualMargin = (room(windowWidth) - CARD_MAX) / 2
+
+  return Math.min(stored, Math.max(RAIL_WIDTH_MIN, virtualMargin - RAIL_AIR))
+}
+
+/** The width the rail is drawn at: the stored one, capped outside by the margin, or following the window while it is carried inside. */
+export function shownRailWidth(stored: number, where: { placement: RailPlacement; windowWidth: number; carried?: boolean }): number {
+  if (where.placement === 'outside') return outsideRailWidth(stored, cardMargin(where.windowWidth))
+
+  return where.carried ? carriedRailWidth(stored, where.windowWidth) : stored
 }
 
 /**

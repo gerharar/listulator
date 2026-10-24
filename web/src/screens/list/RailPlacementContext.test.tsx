@@ -21,10 +21,10 @@ afterEach(() => {
 describe('useWindowRailPlacement', () => {
   it('starts from the window it opens in', () => {
     window.innerWidth = 1728
-    expect(renderHook(() => useWindowRailPlacement()).result.current).toEqual({ placement: 'outside', windowWidth: 1728 })
+    expect(renderHook(() => useWindowRailPlacement()).result.current).toEqual({ placement: 'outside', windowWidth: 1728, carried: false, release: expect.any(Function) })
 
     window.innerWidth = 1440
-    expect(renderHook(() => useWindowRailPlacement()).result.current).toEqual({ placement: 'inside', windowWidth: 1440 })
+    expect(renderHook(() => useWindowRailPlacement()).result.current).toEqual({ placement: 'inside', windowWidth: 1440, carried: false, release: expect.any(Function) })
   })
 
   it('switches when the window is resized across the line, and back with 16px of hysteresis', () => {
@@ -58,7 +58,7 @@ describe('useWindowRailPlacement', () => {
 
     resizeTo(1801)
 
-    expect(result.current).toEqual({ placement: 'outside', windowWidth: 1801 })
+    expect(result.current).toEqual({ placement: 'outside', windowWidth: 1801, carried: false, release: expect.any(Function) })
   })
 
   it('stops listening when it unmounts', () => {
@@ -67,5 +67,50 @@ describe('useWindowRailPlacement', () => {
     unmount()
     resizeTo(1920)
     expect(result.current.placement).toBe('inside')
+  })
+
+  describe('the rail carried inside (the width follows the window after it left the card)', () => {
+    it('is carried only when the window narrowed from outside to inside, and then follows the width', () => {
+      window.innerWidth = 1728
+      const { result } = renderHook(() => useWindowRailPlacement())
+
+      resizeTo(1519)
+      expect(result.current).toMatchObject({ placement: 'inside', carried: true, windowWidth: 1519 })
+      resizeTo(1400)
+      expect(result.current).toMatchObject({ placement: 'inside', carried: true, windowWidth: 1400 })
+    })
+
+    it('is not carried in a window that opened inside: the stored width is shown', () => {
+      window.innerWidth = 1440
+      const { result } = renderHook(() => useWindowRailPlacement())
+      const first = result.current
+
+      resizeTo(1300)
+
+      expect(result.current).toBe(first)
+      expect(result.current.carried).toBe(false)
+    })
+
+    it('ends when the reader resizes the rail (release), and stays ended while the window narrows', () => {
+      window.innerWidth = 1728
+      const { result } = renderHook(() => useWindowRailPlacement())
+      resizeTo(1500)
+
+      act(() => result.current.release())
+      expect(result.current.carried).toBe(false)
+      const released = result.current
+      resizeTo(1400)
+      expect(result.current).toBe(released)
+    })
+
+    it('ends when the window goes wide enough to put the rail outside again', () => {
+      window.innerWidth = 1728
+      const { result } = renderHook(() => useWindowRailPlacement())
+      resizeTo(1500)
+
+      resizeTo(1600)
+
+      expect(result.current).toMatchObject({ placement: 'outside', carried: false })
+    })
   })
 })

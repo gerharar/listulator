@@ -1,9 +1,16 @@
-import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
+import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { railPlacement, type RailPlacement } from './railPlacement.js'
 
 export interface RailPlacementState {
   placement: RailPlacement
   windowWidth: number
+  /**
+   * The rail came inside as the window narrowed, so its width follows the window (`carriedRailWidth`) until the reader resizes it or the window
+   * goes wide enough to put it outside again. A window that opened inside, or was narrowed inside, has no carry: the stored width is shown.
+   */
+  carried?: boolean
+  /** Ends the carry: the reader has set a width. */
+  release?: () => void
 }
 
 const INSIDE: RailPlacementState = { placement: 'inside', windowWidth: 0 }
@@ -15,23 +22,25 @@ const RailPlacementContext = createContext<RailPlacementState>(INSIDE)
  * the rule's hysteresis kept in state. One per window; the layers read it from
  * the context so every layer agrees.
  */
-export function useWindowRailPlacement(): RailPlacementState {
-  const [state, setState] = useState<RailPlacementState>(() => ({
+export function useWindowRailPlacement(): RailPlacementState & { carried: boolean; release: () => void } {
+  const [state, setState] = useState<{ placement: RailPlacement; windowWidth: number; carried: boolean }>(() => ({
     placement: railPlacement(window.innerWidth, 'inside'),
     windowWidth: window.innerWidth,
+    carried: false,
   }))
 
   useEffect(() => {
     const onResize = () =>
       setState((current) => {
         const placement = railPlacement(window.innerWidth, current.placement)
+        const carried = placement === 'inside' && (current.carried || current.placement === 'outside')
 
-        // Inside, nothing reads the width: leave the state alone, so dragging a narrow window redraws nothing.
-        if (placement === 'inside' && current.placement === 'inside') return current
+        // Inside with no carry nothing reads the width: leave the state alone, so dragging a narrow window redraws nothing.
+        if (placement === 'inside' && !carried) return current
 
-        return placement === current.placement && window.innerWidth === current.windowWidth
+        return placement === current.placement && carried === current.carried && window.innerWidth === current.windowWidth
           ? current
-          : { placement, windowWidth: window.innerWidth }
+          : { placement, windowWidth: window.innerWidth, carried }
       })
 
     window.addEventListener('resize', onResize)
@@ -39,7 +48,9 @@ export function useWindowRailPlacement(): RailPlacementState {
     return () => window.removeEventListener('resize', onResize)
   }, [])
 
-  return state
+  const release = useCallback(() => setState((current) => (current.carried ? { ...current, carried: false } : current)), [])
+
+  return useMemo(() => ({ ...state, release }), [state, release])
 }
 
 export function RailPlacementProvider({ value, children }: { value: RailPlacementState; children: ReactNode }) {

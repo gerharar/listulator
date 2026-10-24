@@ -176,6 +176,60 @@ test('the card’s own border is the vertical line between the outside rail and 
   }
 })
 
+test('narrowing the window carries the rail inside at the width it had, keeps narrowing it, and the inside grip still resizes it', async ({ page }) => {
+  const title = `e2e rail carried ${Date.now()}`
+  const id = await makeGroupedList(page.request, title)
+  const width = () => page.locator('.q-rail').evaluate((node) => node.getBoundingClientRect().width)
+  const size = async (w: number) => {
+    await page.setViewportSize({ width: w, height: 900 })
+    await settled(page)
+  }
+
+  try {
+    await page.setViewportSize({ width: 1920, height: 900 })
+    await openList(page, title)
+    await expect(page.locator('.q-rail')).toHaveAttribute('data-placement', 'outside')
+    // The reader widens it to 324px with the outer grip.
+    const grip = await page.getByRole('separator').evaluate((node) => {
+      const r = node.getBoundingClientRect()
+      return { x: r.left + 3, y: r.top + r.height / 2 }
+    })
+    await page.mouse.move(grip.x, grip.y)
+    await page.mouse.down()
+    await page.mouse.move(grip.x - 124, grip.y, { steps: 4 })
+    await page.mouse.up()
+    expect(await width()).toBeCloseTo(324, 0)
+
+    await size(1530)
+    await expect.poll(width).toBeCloseTo(189, 0)
+
+    await size(1519)
+    await expect(page.locator('.q-rail')).toHaveAttribute('data-placement', 'inside')
+    // Inside it has carried on from the width it had, not jumped back to 324px, and it keeps narrowing to the 160px minimum.
+    await expect.poll(width).toBeCloseTo(183.5, 0)
+    await size(1490)
+    await expect.poll(width).toBeCloseTo(169, 0)
+    await size(1300)
+    await expect.poll(width).toBe(160)
+
+    // The inside grip still resizes it, and the width then stays whatever the window does.
+    const inside = await page.getByRole('separator').evaluate((node) => {
+      const r = node.getBoundingClientRect()
+      return { x: r.left + r.width / 2, y: r.top + r.height / 2 }
+    })
+    await page.mouse.move(inside.x, inside.y)
+    await page.mouse.down()
+    await page.mouse.move(inside.x + 140, inside.y, { steps: 5 })
+    await page.mouse.up()
+    await expect.poll(width).toBeCloseTo(300, 0)
+    await size(1250)
+    await new Promise((resolve) => setTimeout(resolve, 300))
+    expect(await width()).toBeCloseTo(300, 0)
+  } finally {
+    await page.request.delete(`/api/lists/${id}`)
+  }
+})
+
 test('the rail folds to a 38px strip, animating its width over 220ms, and the grip is gone', async ({ page }) => {
   await page.setViewportSize({ width: 1728, height: 900 })
   const title = `e2e rail fold ${Date.now()}`
