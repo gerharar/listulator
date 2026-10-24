@@ -9,6 +9,7 @@ import { LiveRegionProvider } from '../LiveRegion/LiveRegion.js'
 import { ToastProvider } from '../Toast/Toast.js'
 import { useRefetchOnRegistryChange } from '../../../lib/registryChanges.js'
 import { updateLocalSettings } from '../../../lib/config/localConfig.js'
+import { notifyListsChanged } from '../../../lib/listsChanged.js'
 import { CategoryPicker } from './CategoryPicker.js'
 
 vi.mock('../../../lib/api.js', () => ({
@@ -405,5 +406,43 @@ describe('the List Vault shelf on the picker (H-018, 33.6)', () => {
     await waitFor(() => expect(api.lists).toHaveBeenCalled())
     expect(document.querySelector('.q-vault')).toBeNull()
     expect(api.libraryUntracked).not.toHaveBeenCalled()
+  })
+})
+
+describe('the first-run picker when a list comes back (H-018, 33.8)', () => {
+  const FIRST_RUN_PICKER = { id: 'category-picker', kind: 'category-picker', tabLabel: 'Pick', content: '/' }
+
+  /** The picker as the app has it on a first run: the base layer, Home replaced. */
+  function FirstRunBase() {
+    const { replaceTop } = useLayerStack()
+    useEffect(() => replaceTop(FIRST_RUN_PICKER), [])
+
+    return null
+  }
+
+  function renderBase() {
+    render(
+      <LayerStackProvider home={{ id: 'home', kind: 'home', tabLabel: 'My Lists', content: '/' }}>
+        <FirstRunBase />
+        <CategoryPicker mediaTypes={[mediaType({ key: 'movie', label: 'Movies' })]} first />
+        <StackReader />
+      </LayerStackProvider>,
+    )
+  }
+
+  it('goes back to My Lists when a list is restored (the Undo of Remove Sample), and not before', async () => {
+    vi.mocked(api.lists).mockResolvedValue([])
+    renderBase()
+    await waitFor(() => expect(screen.getByTestId('stack').textContent).toBe('category-picker:/'))
+
+    notifyListsChanged()
+    // A first-run picker does not read the lists on its own; the one call is the answer to the notice.
+    await waitFor(() => expect(api.lists).toHaveBeenCalledTimes(1))
+    expect(screen.getByTestId('stack').textContent).toBe('category-picker:/')
+
+    vi.mocked(api.lists).mockResolvedValue([listIn('movie', 'back')])
+    notifyListsChanged()
+
+    await waitFor(() => expect(screen.getByTestId('stack').textContent).toBe('home:/'))
   })
 })

@@ -503,6 +503,8 @@ export const en = {
       line: 'Canonical lists anyone can open, no key needed. Preview one; nothing is added until you choose Add This List.',
       offline: 'List Vault needs an internet connection to show its lists.',
       items: (n: number): string => `${n} ${selectPlural(n, 'en', { one: 'item', other: 'items' })}`,
+      trySample: 'Try A Sample List',
+      sampleFailed: 'The sample list could not be added. Try again',
     },
     keyCard: {
       saveKey: 'Save Key',
@@ -976,6 +978,14 @@ export const en = {
         resize: 'Resize group jumper',
       },
       /** Said by the live region when Home or End (or the split button) takes the reader to an end of the list (H-019). */
+      /** The band on a sample list (H-018): the first-run screen's Try A Sample List made this list. */
+      sample: {
+        text: 'This is a sample list. Tick, move and regroup freely, then remove it or keep it as your own.',
+        remove: 'Remove Sample',
+        keep: 'Keep It',
+        kept: (title: string): string => `Kept “${title}” as your own list`,
+        keepFailed: 'The list could not be kept. Try again',
+      },
       ends: {
         top: 'Top of the list',
         bottom: 'Bottom of the list',

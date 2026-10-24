@@ -55,6 +55,11 @@ export interface LayerStackContextValue {
    */
   landOnList: (list: LayerDescriptor<string>) => void
   /**
+   * Home alone: the first-run picker was the base layer because there were no lists, and one is back (the Undo of Remove Sample, say), so My
+   * Lists is the base again (H-018).
+   */
+  landOnHome: () => void
+  /**
    * Freezes the stack until released: while anything holds it, `push`, `pop`, `popToIndex`, `replaceTop` and `landOnList` change nothing. A whole-list
    * rewrite (Reset, Restore order and their Undo) holds it, because a screen that is left mid-run is drawn again with a toast whose Undo belongs to the
    * screen that is gone, and the list on screen is then not the one in the database.
@@ -130,6 +135,11 @@ export function LayerStackProvider({ home, children }: LayerStackProviderProps) 
     [home, markEntering],
   )
 
+  const landOnHome = useCallback(() => {
+    if (holds.current > 0) return
+    setStack([home])
+  }, [home])
+
   const holdNavigation = useCallback((run?: NavigationRun): NavigationHold => {
     holds.current += 1
     setNavigationHeld(true)
@@ -160,11 +170,12 @@ export function LayerStackProvider({ home, children }: LayerStackProviderProps) 
       popToIndex: popTo,
       replaceTop,
       landOnList,
+      landOnHome,
       holdNavigation,
       navigationHeld,
       navigationRun: runs[runs.length - 1] ?? null,
     }),
-    [stack, enteringId, push, pop, popTo, replaceTop, landOnList, holdNavigation, navigationHeld, runs],
+    [stack, enteringId, push, pop, popTo, replaceTop, landOnList, landOnHome, holdNavigation, navigationHeld, runs],
   )
 
   return <LayerStackReactContext.Provider value={value}>{children}</LayerStackReactContext.Provider>

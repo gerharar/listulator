@@ -275,6 +275,7 @@ function ListView({
   const moreText = text.moreMenu
   const orderText = text.orderMenu
   const endsText = text.ends
+  const sampleText = text.sample
   const { showToast, hideToast } = useToast()
   const { announce } = useLiveRegion()
   const [items, setItems] = useState<ListItem[]>(loaded.items)
@@ -298,6 +299,8 @@ function ListView({
     description: loaded.description,
     status: loaded.status,
   })
+  // The first-run screen's Try A Sample List made this list (H-018): its band offers Remove Sample and Keep It.
+  const [isSample, setIsSample] = useState(loaded.isSample === true)
   const [editingList, setEditingList] = useState<HTMLElement | null>(null)
   const [more, setMore] = useState<{ anchor: HTMLElement; mode: MoreMode } | null>(null)
   const [preview, setPreview] = useState<PreviewState>({ state: 'loading' })
@@ -1062,6 +1065,17 @@ function ListView({
     }
   }
 
+  /** Keep It: the list stays as the reader's own; only the mark and the band go, and nothing is navigated. */
+  async function keepSample() {
+    try {
+      await api.updateList(listId, { isSample: false })
+      setIsSample(false)
+      showToast({ text: sampleText.kept(meta.title) })
+    } catch {
+      showToast({ text: sampleText.keepFailed })
+    }
+  }
+
   async function undoDelete(restore: Parameters<typeof api.restoreList>[0], title: string) {
     try {
       await api.restoreList(restore)
@@ -1381,6 +1395,15 @@ function ListView({
           ends={showEnds(rowModel.total, scrollEnds.viewportHeight) ? { atTop: scrollEnds.atTop, atBottom: scrollEnds.atBottom, onGo: goToEnd } : null}
           note={filtering ? text.filter.shown(shownIds.size, items.length) : text.filter.total(items.length)}
         />
+
+        {isSample && (
+          // Remove Sample is the band's Dismiss: it deletes the list with the usual Undo; Keep It is its action (design-system/components/Banner).
+          <div className="q-sample-band">
+            <Banner onDismiss={() => void deleteThisList()} dismissLabel={sampleText.remove} action={{ label: sampleText.keep, onClick: () => void keepSample() }}>
+              {sampleText.text}
+            </Banner>
+          </div>
+        )}
 
         {pendingCount > 0 && (
           <Banner

@@ -441,6 +441,8 @@ export const de: Locale = {
       line: 'Kanonische Listen, die jeder öffnen kann, ganz ohne Schlüssel. Sieh dir eine in der Vorschau an; erst mit „Diese Liste hinzufügen“ wird etwas angelegt.',
       offline: 'Der List Vault braucht eine Internetverbindung, um seine Listen zu zeigen.',
       items: (n: number): string => `${n} ${selectPlural(n, 'de', { one: 'Eintrag', other: 'Einträge' })}`,
+      trySample: 'Beispielliste ausprobieren',
+      sampleFailed: 'Die Beispielliste konnte nicht hinzugefügt werden. Versuche es noch einmal',
     },
     keyCard: {
       saveKey: 'Schlüssel speichern',
@@ -864,6 +866,13 @@ export const de: Locale = {
         hide: 'Gruppen-Sprungleiste einklappen',
         show: 'Gruppen-Sprungleiste vergrößern',
         resize: 'Größe der Gruppen-Sprungleiste ändern',
+      },
+      sample: {
+        text: 'Das ist eine Beispielliste. Hake ab, verschiebe und gruppiere nach Belieben, dann entferne sie oder behalte sie als deine eigene.',
+        remove: 'Beispiel entfernen',
+        keep: 'Behalten',
+        kept: (title: string): string => `„${title}“ als deine eigene Liste behalten`,
+        keepFailed: 'Die Liste konnte nicht behalten werden. Versuche es noch einmal',
       },
       ends: {
         top: 'Anfang der Liste',

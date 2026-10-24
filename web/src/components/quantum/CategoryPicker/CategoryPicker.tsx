@@ -10,6 +10,7 @@ import { HeaderPlate } from '../HeaderPlate/HeaderPlate.js'
 import { useLayerStack } from '../layerStack/LayerStackContext.js'
 import { newListPath } from '../layerStack/layerPath.js'
 import { isDesktop } from '../../../lib/platform.js'
+import { subscribeListsChanged } from '../../../lib/listsChanged.js'
 import { KeyCard } from '../KeyCard/KeyCard.js'
 import { VaultShelf } from '../VaultShelf/VaultShelf.js'
 import { keyNeeded, tmdbKeyNeeded } from './keyNeeded.js'
@@ -54,6 +55,26 @@ export function CategoryPicker({ mediaTypes, first }: CategoryPickerProps) {
       cancelled = true
     }
   }, [first])
+
+  // On a first run the picker is the base layer because there are no lists. When one comes back (the Undo of Remove Sample, or of a delete of
+  // the last list) My Lists is the base again (H-018).
+  useEffect(() => {
+    if (!first) return
+    let current = true
+    const stop = subscribeListsChanged(() => {
+      api
+        .lists()
+        .then((lists) => {
+          if (current && lists.length > 0) layerStack.landOnHome()
+        })
+        .catch(() => {})
+    })
+
+    return () => {
+      current = false
+      stop()
+    }
+  }, [first, layerStack])
 
   const ordered = sortCategories(mediaTypes)
   const text = copy.quantum.categoryPicker

@@ -120,3 +120,91 @@ test('the first-run shelf shows six lists from six categories, and a card opens 
   await expect(page.getByRole('button', { name: q.preview.addButton })).toBeVisible()
   expect(created).toEqual([])
 })
+
+/**
+ * Try A Sample List (H-018, 33.8) through the whole round: First Run, add, band, Remove Sample (back to First Run), Undo (back to My Lists with
+ * the list), add again, Keep It. The library and the lists are a small fake server in this test: a real one would need an empty database and
+ * the network. What it proves is the app's own navigation and the calls it makes.
+ */
+test('Try A Sample List: add, Keep It keeps it with no change of screen; Remove Sample lands on First Run again, Undo brings the list back', async ({ page }) => {
+  const MCU = { externalRef: 'canonical:lists/mega/mcu-extended.yaml', title: 'Marvel Cinematic Universe', category: 'mega', itemCount: 3 }
+  const sampleItems = ['One', 'Two', 'Three'].map((title, index) => ({
+    id: `i${index}`,
+    listId: 'sample-e2e',
+    title,
+    orderIndex: index,
+    timeToConsumeMinutes: 120,
+    timeToConsumeIsEstimated: false,
+    consumedAt: null,
+    source: 'import',
+    year: null,
+    group: null,
+    tags: null,
+    notes: null,
+    yearUnk: 0,
+    isNew: false,
+  }))
+  let list: Record<string, unknown> | null = null
+  const calls: string[] = []
+  const stats = { totalItems: 3, consumedItems: 0, newItems: 0, completionPercent: 0, timeRemainingMinutes: 360, lastConsumedAt: null, runtimesPending: 0 }
+  const summary = () => (list ? { ...list, stats } : null)
+
+  await page.route('**/api/library/untracked', (route) => route.fulfill({ json: { entries: list ? [] : [MCU], reachable: true } }))
+  await page.route('**/api/lists', (route) => route.fulfill({ json: list ? [summary()] : [] }))
+  await page.route('**/api/lists/from-source', (route) => {
+    calls.push('from-source')
+    list = { id: 'sample-e2e', title: MCU.title, description: null, mediaType: 'mega', source: 'canonical', externalRef: MCU.externalRef, status: null, isSample: false, createdAt: '2026-10-25T00:00:00.000Z', updatedAt: '2026-10-25T00:00:00.000Z', canReset: true }
+
+    return route.fulfill({ status: 201, json: summary() })
+  })
+  await page.route('**/api/lists/restore', (route) => {
+    calls.push('restore')
+    list = (route.request().postDataJSON() as { list: Record<string, unknown> }).list
+
+    return route.fulfill({ status: 201, json: summary() })
+  })
+  await page.route('**/api/lists/sample-e2e', async (route) => {
+    const method = route.request().method()
+    if (method === 'PATCH') {
+      const patch = route.request().postDataJSON() as { isSample?: boolean }
+      calls.push(`patch ${JSON.stringify(patch)}`)
+      list = { ...list, ...patch }
+
+      return route.fulfill({ json: summary() })
+    }
+    if (method === 'DELETE') {
+      calls.push('delete')
+      const restore = { list, items: sampleItems, groups: [], snapshot: [], dismissals: [] }
+      list = null
+
+      return route.fulfill({ json: { restore } })
+    }
+
+    return route.fulfill({ json: { ...summary(), items: sampleItems, groups: [] } })
+  })
+
+  await page.goto('/')
+  await expect(page.getByRole('heading', { name: q.categoryPicker.firstRunTitle })).toBeVisible({ timeout: 15_000 })
+
+  // Add: the list opens, with Home under it, and the band is there.
+  await page.getByRole('button', { name: q.vaultShelf.trySample }).click()
+  await expect(page.getByRole('heading', { name: MCU.title })).toBeVisible()
+  expect(calls).toEqual(['from-source', 'patch {"isSample":true}'])
+  await expect(page.getByText(q.list.sample.text)).toBeVisible()
+
+  // Remove Sample: First Run again, and Undo brings the list back to My Lists.
+  await page.getByRole('button', { name: q.list.sample.remove }).click()
+  await expect(page.getByRole('heading', { name: q.categoryPicker.firstRunTitle })).toBeVisible({ timeout: 15_000 })
+  await page.getByRole('button', { name: q.list.itemActions.undo }).click()
+  await expect(page.getByRole('heading', { name: q.home.title })).toBeVisible({ timeout: 15_000 })
+  await expect(page.locator('.q-home-row', { hasText: MCU.title })).toBeVisible()
+  expect(calls).toContain('restore')
+
+  // Open it: it is still a sample (the mark came back with the list). Keep It: the band goes and nothing else changes.
+  await page.locator('.q-home-row', { hasText: MCU.title }).click()
+  await expect(page.getByText(q.list.sample.text)).toBeVisible()
+  await page.getByRole('button', { name: q.list.sample.keep }).click()
+  await expect(page.getByText(q.list.sample.text)).toBeHidden()
+  await expect(page.getByRole('heading', { name: MCU.title })).toBeVisible()
+  expect(calls.at(-1)).toBe('patch {"isSample":false}')
+})

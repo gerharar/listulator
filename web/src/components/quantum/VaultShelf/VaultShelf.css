@@ -5,6 +5,25 @@
   gap: 8px;
   margin-top: 22px;
 }
+.q-vault-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+}
+.q-vault-intro {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+.q-vault-sample { flex: none; }
+.q-vault-failed {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.4;
+  color: var(--ink);
+}
 .q-vault-label {
   font: 500 11px/1 var(--font-mono);
   letter-spacing: 0.1em;

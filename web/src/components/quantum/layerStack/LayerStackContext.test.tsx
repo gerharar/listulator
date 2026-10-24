@@ -11,7 +11,7 @@ function layer(id: string, kind = 'screen'): LayerDescriptor<string> {
 }
 
 function Demo() {
-  const { stack, visible, enteringId, push, pop, popToIndex, replaceTop, landOnList } = useLayerStack()
+  const { stack, visible, enteringId, push, pop, popToIndex, replaceTop, landOnList, landOnHome } = useLayerStack()
   return (
     <div>
       <span data-testid="stack">{stack.map((l) => l.id).join(',')}</span>
@@ -22,6 +22,7 @@ function Demo() {
       <button onClick={() => popToIndex(0)}>pop to home</button>
       <button onClick={() => replaceTop(layer('list-42'))}>replace top</button>
       <button onClick={() => landOnList(layer('list-7', 'list'))}>land on list</button>
+      <button onClick={() => landOnHome()}>land on home</button>
     </div>
   )
 }
@@ -145,5 +146,19 @@ describe('LayerStackProvider entering id', () => {
     act(() => screen.getByText('push list').click())
     act(() => screen.getByText('pop').click())
     expect(screen.getByTestId('entering').textContent).toBe('list')
+  })
+
+  it('landOnHome makes the stack Home alone, wherever it was: the first-run picker is over once a list exists again', () => {
+    render(
+      <LayerStackProvider home={layer('home')}>
+        <Demo />
+      </LayerStackProvider>,
+    )
+    act(() => screen.getByText('replace top').click())
+    expect(screen.getByTestId('stack').textContent).toBe('list-42')
+
+    act(() => screen.getByText('land on home').click())
+
+    expect(screen.getByTestId('stack').textContent).toBe('home')
   })
 })
