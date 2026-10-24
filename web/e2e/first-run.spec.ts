@@ -23,6 +23,12 @@ test('a fresh install with zero lists boots straight into the Category picker, w
   // of Home — so there is no close button, matching the design prototype's
   // `canClose:false`.
   await expect(page.getByRole('button', { name: q.categoryPicker.closeLabel })).toBeHidden()
+
+  // The first-run subline (H-018). The TMDB key callout and the chips are the desktop app's: in the web build keys are the server's
+  // business, so none of them is drawn here.
+  await expect(page.getByText(q.categoryPicker.firstRunSubline)).toBeVisible()
+  await expect(page.locator('.q-keycard')).toHaveCount(0)
+  await expect(page.locator('.q-key-chip')).toHaveCount(0)
 })
 
 /**

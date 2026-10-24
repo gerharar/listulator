@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { MediaType } from '../../../lib/api.js'
-import { keyNeeded } from './keyNeeded.js'
+import { keyNeeded, tmdbKeyNeeded } from './keyNeeded.js'
 
 function type(overrides: Partial<MediaType>): MediaType {
   return { key: 'movie', label: 'Movies', sortOrder: 10, defaultDurationMinutes: 120, searchAvailable: false, previewable: true, sourceName: 'TMDB', ...overrides }
@@ -28,5 +28,22 @@ describe('keyNeeded: a free key would unlock the category’s own source (H-018)
 
   it('is false in the web build, where keys are set in the server’s environment, not by the person using it', () => {
     expect(keyNeeded(type({}), false)).toBe(false)
+  })
+})
+
+describe('tmdbKeyNeeded: the first-run callout is about TMDB alone', () => {
+  const igdb = type({ key: 'game', label: 'Games', sourceName: 'IGDB' })
+
+  it('is true while any TMDB category cannot be searched, in the desktop app', () => {
+    expect(tmdbKeyNeeded([type({}), igdb], true)).toBe(true)
+  })
+
+  it('is false once every TMDB category can be searched, whatever another source lacks', () => {
+    expect(tmdbKeyNeeded([type({ searchAvailable: true }), igdb], true)).toBe(false)
+  })
+
+  it('is false when no category uses TMDB, and in the web build', () => {
+    expect(tmdbKeyNeeded([igdb], true)).toBe(false)
+    expect(tmdbKeyNeeded([type({})], false)).toBe(false)
   })
 })

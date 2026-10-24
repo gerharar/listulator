@@ -10,7 +10,8 @@ import { HeaderPlate } from '../HeaderPlate/HeaderPlate.js'
 import { useLayerStack } from '../layerStack/LayerStackContext.js'
 import { newListPath } from '../layerStack/layerPath.js'
 import { isDesktop } from '../../../lib/platform.js'
-import { keyNeeded } from './keyNeeded.js'
+import { KeyCard } from '../KeyCard/KeyCard.js'
+import { keyNeeded, tmdbKeyNeeded } from './keyNeeded.js'
 
 export interface CategoryPickerProps {
   /** The live registry, lifted up from Home (task 10.10) — the tile grid is exactly this, A–Z by the name shown. */
@@ -73,6 +74,13 @@ export function CategoryPicker({ mediaTypes, first }: CategoryPickerProps) {
       </div>
 
       <div className="q-picker-body">
+        {first && tmdbKeyNeeded(mediaTypes, desktop) && (
+          <div className="q-picker-callout">
+            <KeyCard source="tmdb" title={text.tmdbCallout.title}>
+              {text.tmdbCallout.body}
+            </KeyCard>
+          </div>
+        )}
         <div className="q-tiles">
           {ordered.map((mediaType) => {
             const count = counts.get(mediaType.key) ?? 0

@@ -508,7 +508,12 @@ export const en = {
       subline: 'Media categories supported by the app. Numbers show how many lists you have',
       /** First run only — nothing exists yet, so the picker is the base layer. */
       firstRunTitle: 'No Progress Tracked. Let\'s Start!',
-      firstRunSubline: 'Each media category has a main data source plus List Vault. Lists can also be imported or entered manually. Mega is for cross-category franchises',
+      firstRunSubline: 'Pick a category to start a list. Those marked Free key needed search List Vault until you add a free API key. Mega is for cross-category franchises',
+      /** First run only, desktop app, while TMDB has no key: the key card above the tiles (H-018). */
+      tmdbCallout: {
+        title: 'One free TMDB key unlocks four categories',
+        body: 'Movies, TV Series, Animation and Documentaries all search TMDB. Getting a key takes about two minutes. Music, Books, Pro Wrestling, MMA and Mega work right away.',
+      },
       /** A category whose registry entry has no search source. */
       byHand: 'by hand',
       /** The chip on a tile whose source has no key yet (desktop app only), and what it says when pointed at. */

@@ -1,10 +1,14 @@
 // @vitest-environment jsdom
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import type { MediaList, MediaType } from '../../../lib/api.js'
 import { api } from '../../../lib/api.js'
 import { LayerStackProvider, useLayerStack } from '../layerStack/LayerStackContext.js'
+import { LiveRegionProvider } from '../LiveRegion/LiveRegion.js'
+import { ToastProvider } from '../Toast/Toast.js'
+import { useRefetchOnRegistryChange } from '../../../lib/registryChanges.js'
+import { updateLocalSettings } from '../../../lib/config/localConfig.js'
 import { CategoryPicker } from './CategoryPicker.js'
 
 vi.mock('../../../lib/api.js', () => ({
@@ -12,6 +16,9 @@ vi.mock('../../../lib/api.js', () => ({
     lists: vi.fn(),
   },
 }))
+// Saving a key (the key card) writes the desktop's settings and rebuilds its registry; here both are stand-ins.
+vi.mock('../../../lib/config/localConfig.js', () => ({ getLocalSettings: vi.fn(), updateLocalSettings: vi.fn(async () => {}) }))
+vi.mock('../../../lib/ingestion/localMediaTypes.js', () => ({ resetLocalMediaTypes: vi.fn() }))
 
 afterEach(() => {
   cleanup()
@@ -205,9 +212,13 @@ describe('the “Free key needed” chip (H-018, 33.1)', () => {
   function renderPicker(registry: MediaType[], first = false) {
     vi.mocked(api.lists).mockResolvedValue([])
     render(
-      <LayerStackProvider home={{ id: 'home', kind: 'home', tabLabel: 'My Lists', content: '/' }}>
-        <CategoryPicker mediaTypes={registry} first={first} />
-      </LayerStackProvider>,
+      <LiveRegionProvider>
+        <ToastProvider>
+          <LayerStackProvider home={{ id: 'home', kind: 'home', tabLabel: 'My Lists', content: '/' }}>
+            <CategoryPicker mediaTypes={registry} first={first} />
+          </LayerStackProvider>
+        </ToastProvider>
+      </LiveRegionProvider>,
     )
   }
 
@@ -256,5 +267,109 @@ describe('the “Free key needed” chip (H-018, 33.1)', () => {
     expect(tile('Movies').querySelector('.q-tile-foot')).not.toBeNull()
     expect(tile('TV Series').querySelector('.q-tile-foot')).not.toBeNull()
     expect(tile('TV Series').querySelector('.q-tile-src')!.textContent).toBe('TMDB')
+  })
+})
+
+describe('the first-run subline and the TMDB callout (H-018, 33.3)', () => {
+  const TMDB_KEYLESS: MediaType[] = [
+    mediaType({ key: 'movie', label: 'Movies', sortOrder: 10, searchAvailable: false }),
+    mediaType({ key: 'tv', label: 'TV Shows', sortOrder: 20, searchAvailable: false }),
+    mediaType({ key: 'music', label: 'Music', sortOrder: 30, sourceName: 'MusicBrainz', searchAvailable: true }),
+  ]
+  const TMDB_KEYED = TMDB_KEYLESS.map((type) => (type.sourceName === 'TMDB' ? { ...type, searchAvailable: true } : type))
+  const chips = () => document.querySelectorAll('.q-key-chip')
+  const callout = () => document.querySelector('.q-keycard')
+
+  function renderFirstRun(registry: MediaType[], first = true) {
+    vi.mocked(api.lists).mockResolvedValue([])
+    render(
+      <LiveRegionProvider>
+        <ToastProvider>
+          <LayerStackProvider home={{ id: 'home', kind: 'home', tabLabel: 'My Lists', content: '/' }}>
+            <CategoryPicker mediaTypes={registry} first={first} />
+          </LayerStackProvider>
+        </ToastProvider>
+      </LiveRegionProvider>,
+    )
+  }
+
+  function inDesktop() {
+    ;(window as unknown as Record<string, unknown>)['__TAURI_INTERNALS__'] = {}
+  }
+
+  afterEach(() => {
+    delete (window as unknown as Record<string, unknown>)['__TAURI_INTERNALS__']
+  })
+
+  it('reads as the design says on a first run', () => {
+    renderFirstRun(TMDB_KEYLESS)
+
+    expect(screen.getByText('Pick a category to start a list. Those marked Free key needed search List Vault until you add a free API key. Mega is for cross-category franchises')).toBeTruthy()
+  })
+
+  it('shows the callout above the tiles on a first run in the desktop app while there is no TMDB key', () => {
+    inDesktop()
+    renderFirstRun(TMDB_KEYLESS)
+
+    expect(screen.getByText('One free TMDB key unlocks four categories')).toBeTruthy()
+    expect(
+      screen.getByText('Movies, TV Series, Animation and Documentaries all search TMDB. Getting a key takes about two minutes. Music, Books, Pro Wrestling, MMA and Mega work right away.'),
+    ).toBeTruthy()
+    expect(screen.getByPlaceholderText('Your API key')).toBeTruthy()
+    const tiles = document.querySelector('.q-tiles')!
+    expect(callout()!.compareDocumentPosition(tiles) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+  })
+
+  it('is not there on a visit after the first run, in the web build, or once TMDB has a key', () => {
+    inDesktop()
+    renderFirstRun(TMDB_KEYLESS, false)
+    expect(callout()).toBeNull()
+    cleanup()
+
+    renderFirstRun(TMDB_KEYED)
+    expect(callout()).toBeNull()
+    cleanup()
+
+    delete (window as unknown as Record<string, unknown>)['__TAURI_INTERNALS__']
+    renderFirstRun(TMDB_KEYLESS)
+    expect(callout()).toBeNull()
+  })
+
+  it('is not there for a key another source lacks: it is about TMDB', () => {
+    inDesktop()
+    renderFirstRun([...TMDB_KEYED, mediaType({ key: 'game', label: 'Video Games', sortOrder: 40, sourceName: 'IGDB', searchAvailable: false })])
+
+    expect(callout()).toBeNull()
+    expect(chips()).toHaveLength(1)
+  })
+
+  it('goes with the chips of the TMDB tiles, all at once, when the key is saved', async () => {
+    inDesktop()
+    // What the app does when a key is saved: it asks the registry again and hands the picker the new answer.
+    function App() {
+      const [registry, setRegistry] = useState(TMDB_KEYLESS)
+      useRefetchOnRegistryChange(async () => TMDB_KEYED, setRegistry)
+
+      return <CategoryPicker mediaTypes={registry} first />
+    }
+    vi.mocked(api.lists).mockResolvedValue([])
+    render(
+      <LiveRegionProvider>
+        <ToastProvider>
+          <LayerStackProvider home={{ id: 'home', kind: 'home', tabLabel: 'My Lists', content: '/' }}>
+            <App />
+          </LayerStackProvider>
+        </ToastProvider>
+      </LiveRegionProvider>,
+    )
+    expect(chips()).toHaveLength(2)
+
+    fireEvent.change(screen.getByPlaceholderText('Your API key'), { target: { value: 'a-key' } })
+    fireEvent.submit(document.querySelector('form')!)
+
+    await waitFor(() => expect(callout()).toBeNull())
+    expect(updateLocalSettings).toHaveBeenCalledWith({ tmdbApiKey: 'a-key' })
+    expect(chips()).toHaveLength(0)
+    expect(screen.getByText('TMDB key saved. You can change it in Settings')).toBeTruthy()
   })
 })

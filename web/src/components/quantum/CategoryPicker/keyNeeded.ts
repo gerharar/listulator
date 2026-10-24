@@ -9,3 +9,8 @@ import type { MediaType } from '../../../lib/api.js'
 export function keyNeeded(mediaType: MediaType, desktop: boolean): boolean {
   return desktop && Boolean(mediaType.sourceName) && mediaType.searchScope !== 'library' && !mediaType.searchAvailable
 }
+
+/** TMDB's key is the one the first-run callout is about: it unlocks Movies, TV Series, Animation and Documentaries together. */
+export function tmdbKeyNeeded(mediaTypes: readonly MediaType[], desktop: boolean): boolean {
+  return mediaTypes.some((mediaType) => mediaType.sourceName === 'TMDB' && keyNeeded(mediaType, desktop))
+}

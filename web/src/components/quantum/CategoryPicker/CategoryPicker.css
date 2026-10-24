@@ -47,6 +47,9 @@
   padding: 22px 26px;
 }
 
+/* The first-run key card above the tiles; the gap below it is the tiles' own gap. */
+.q-picker-callout { margin-bottom: 12px; }
+
 .q-tiles {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));

@@ -448,7 +448,11 @@ export const de: Locale = {
         'Vom Programm unterstützte Medienkategorien. Die Zahlen zeigen, wie viele Listen du hast.',
       firstRunTitle: 'Noch nichts erfasst. Fangen wir an!',
       firstRunSubline:
-        'Jede Medienkategorie hat eine Hauptdatenquelle plus List Vault. Listen lassen sich auch importieren oder von Hand eingeben. Mega ist für medienübergreifende Franchises.',
+        'Wähle eine Kategorie, um eine Liste anzulegen. Die mit „Gratis-Schlüssel nötig“ durchsuchen List Vault, bis du einen kostenlosen API-Schlüssel hinzufügst. Mega ist für medienübergreifende Franchises.',
+      tmdbCallout: {
+        title: 'Ein kostenloser TMDB-Schlüssel schaltet vier Kategorien frei',
+        body: 'Filme, Serien, Animation und Dokumentationen durchsuchen alle TMDB. Einen Schlüssel zu bekommen dauert etwa zwei Minuten. Musik, Bücher, Pro-Wrestling, MMA und Mega funktionieren sofort.',
+      },
       byHand: 'von Hand',
       keyNeeded: 'Gratis-Schlüssel nötig',
       keyNeededTip: (source: string): string => `Durchsucht jetzt List Vault; füge einen kostenlosen ${source}-Schlüssel hinzu, um auch ${source} zu durchsuchen`,
