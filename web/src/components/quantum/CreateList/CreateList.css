@@ -43,7 +43,7 @@
 }
 .q-create-sub {
   margin: 8px 0 0;
-  max-width: 640px;
+  /* No column cap (owner, 2026-10-25), as the list's own description: it runs as wide as the header allows, up to the close button. */
   font-size: 15px;
   line-height: 1.4;
   color: var(--ink2);
