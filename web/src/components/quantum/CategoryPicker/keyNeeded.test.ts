@@ -16,7 +16,8 @@ describe('keyNeeded: a free key would unlock the category’s own source (H-018)
   })
 
   it('is false for a category searched by hand, which has no source to unlock', () => {
-    const { sourceName: _sourceName, ...byHand } = type({})
+    const byHand = type({})
+    delete byHand.sourceName
 
     expect(keyNeeded(byHand, true)).toBe(false)
   })
