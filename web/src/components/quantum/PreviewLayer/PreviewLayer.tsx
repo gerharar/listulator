@@ -282,112 +282,112 @@ export function PreviewLayer({ source, mediaType, onBuilt, active = true }: Prev
       </div>
 
       <div className="q-preview-lower">
-      <div className="q-preview-cols">
-        {showRail && !railOutside && !rail.hidden && (
+        <div className="q-preview-cols">
+          {showRail && !railOutside && !rail.hidden && (
+            <JumpRail
+              entries={railEntries}
+              onJump={jump}
+              onHide={() => setRailHidden(true)}
+              width={shownRailWidth(rail.width, railWindow)}
+              onResize={(width) => {
+                railWindow.release?.()
+                setRail((current) => ({ ...current, width }))
+              }}
+              onResizeEnd={(width) => void savePreviewRailWidth(getPreferencesStore(), width)}
+            />
+          )}
+          {showRail && !railOutside && rail.hidden && <JumpRailStub onShow={() => setRailHidden(false)} />}
+          <div className="q-preview-body" ref={body} tabIndex={-1} onKeyDown={onBodyKeyDown}>
+            {load.state === 'loading' && (
+              <div className="q-preview-progress">
+                <Spinner label={text.loading} />
+                <span>{text.loading}</span>
+              </div>
+            )}
+            {load.state === 'error' && (
+              <ErrorBlock
+                headline={text.loadFailedHeadline}
+                explanation={load.message}
+                action={{ label: text.retry, onClick: () => setAttempt((count) => count + 1) }}
+              />
+            )}
+            {addError && (
+              <ErrorBlock headline={text.loadFailedHeadline} explanation={addError} />
+            )}
+            {load.state === 'done' && load.preview.items.length === 0 && (
+              <ErrorBlock headline={text.nothingToAdd} />
+            )}
+            {places && <p className="q-place">{text.place.note(places.itemAt.size)}</p>}
+            {load.state === 'done' && (
+              <WindowedRows
+                shown={units}
+                model={model}
+                enabled={windowed}
+                pinned={pinned}
+                scroller={body}
+                syncRef={windowSync}
+                renderItem={(entry) => (
+                  <PreviewRow
+                    key={entry.id}
+                    item={entry.item}
+                    grouped={entry.grouped}
+                    facets={mediaType.facets}
+                    platformWidthCh={platformWidthCh}
+                    place={places?.itemAt.has(entry.id) ? text.place.item(places.itemAt.get(entry.id)!, places.itemAt.size) : undefined}
+                  />
+                )}
+                renderGroup={({ unit }, members) => {
+                  if (unit.kind !== 'group') return null
+                  const isCollapsed = collapsed.has(unit.group.name)
+
+                  // A fragment, not a block: the Preview's markup is flat, a head and then its rows, as it always was.
+                  return (
+                    <Fragment key={unit.group.id}>
+                      <button
+                        type="button"
+                        className="q-preview-group"
+                        aria-expanded={!isCollapsed}
+                        aria-label={isCollapsed ? text.expandGroup(unit.group.name) : text.collapseGroup(unit.group.name)}
+                        onClick={() => toggle(unit.group.name)}
+                        onFocus={() => setFocused(unit.group.id)}
+                        aria-describedby={places ? `${placeId}${unit.group.id}` : undefined}
+                      >
+                        {/* One glyph, turned a quarter in CSS when folded: the list screen's group rows and the design's PreviewRow do the same. */}
+                        <span className="q-chev" aria-hidden="true">
+                          ▼
+                        </span>
+                        <span className="name">{unit.group.name}</span>
+                        <span className="count">{text.groupItems(unit.group.count)}</span>
+                        {places?.groupAt.has(unit.group.id) && (
+                          <span className="q-place" id={`${placeId}${unit.group.id}`}>
+                            {text.place.group(places.groupAt.get(unit.group.id)!, places.groupAt.size)}
+                          </span>
+                        )}
+                      </button>
+                      {members}
+                    </Fragment>
+                  )
+                }}
+              />
+            )}
+          </div>
+        </div>
+        {showRail && railOutside && (
           <JumpRail
             entries={railEntries}
             onJump={jump}
             onHide={() => setRailHidden(true)}
             width={shownRailWidth(rail.width, railWindow)}
-            onResize={(width) => {
-              railWindow.release?.()
-              setRail((current) => ({ ...current, width }))
-            }}
+            maxWidth={railMargin - RAIL_AIR}
+            onResize={(width) => setRail((current) => ({ ...current, width }))}
             onResizeEnd={(width) => void savePreviewRailWidth(getPreferencesStore(), width)}
+            placement="outside"
+            folded={rail.hidden}
+            onShow={() => setRailHidden(false)}
           />
         )}
-        {showRail && !railOutside && rail.hidden && <JumpRailStub onShow={() => setRailHidden(false)} />}
-      <div className="q-preview-body" ref={body} tabIndex={-1} onKeyDown={onBodyKeyDown}>
-        {load.state === 'loading' && (
-          <div className="q-preview-progress">
-            <Spinner label={text.loading} />
-            <span>{text.loading}</span>
-          </div>
-        )}
-        {load.state === 'error' && (
-          <ErrorBlock
-            headline={text.loadFailedHeadline}
-            explanation={load.message}
-            action={{ label: text.retry, onClick: () => setAttempt((count) => count + 1) }}
-          />
-        )}
-        {addError && (
-          <ErrorBlock headline={text.loadFailedHeadline} explanation={addError} />
-        )}
-        {load.state === 'done' && load.preview.items.length === 0 && (
-          <ErrorBlock headline={text.nothingToAdd} />
-        )}
-        {places && <p className="q-place">{text.place.note(places.itemAt.size)}</p>}
-        {load.state === 'done' && (
-          <WindowedRows
-            shown={units}
-            model={model}
-            enabled={windowed}
-            pinned={pinned}
-            scroller={body}
-            syncRef={windowSync}
-            renderItem={(entry) => (
-              <PreviewRow
-                key={entry.id}
-                item={entry.item}
-                grouped={entry.grouped}
-                facets={mediaType.facets}
-                platformWidthCh={platformWidthCh}
-                place={places?.itemAt.has(entry.id) ? text.place.item(places.itemAt.get(entry.id)!, places.itemAt.size) : undefined}
-              />
-            )}
-            renderGroup={({ unit }, members) => {
-              if (unit.kind !== 'group') return null
-              const isCollapsed = collapsed.has(unit.group.name)
 
-              // A fragment, not a block: the Preview's markup is flat, a head and then its rows, as it always was.
-              return (
-                <Fragment key={unit.group.id}>
-                  <button
-                    type="button"
-                    className="q-preview-group"
-                    aria-expanded={!isCollapsed}
-                    aria-label={isCollapsed ? text.expandGroup(unit.group.name) : text.collapseGroup(unit.group.name)}
-                    onClick={() => toggle(unit.group.name)}
-                    onFocus={() => setFocused(unit.group.id)}
-                    aria-describedby={places ? `${placeId}${unit.group.id}` : undefined}
-                  >
-                    {/* One glyph, turned a quarter in CSS when folded: the list screen's group rows and the design's PreviewRow do the same. */}
-                    <span className="q-chev" aria-hidden="true">
-                      ▼
-                    </span>
-                    <span className="name">{unit.group.name}</span>
-                    <span className="count">{text.groupItems(unit.group.count)}</span>
-                    {places?.groupAt.has(unit.group.id) && (
-                      <span className="q-place" id={`${placeId}${unit.group.id}`}>
-                        {text.place.group(places.groupAt.get(unit.group.id)!, places.groupAt.size)}
-                      </span>
-                    )}
-                  </button>
-                  {members}
-                </Fragment>
-              )
-            }}
-          />
-        )}
-      </div>
-      </div>
-      {showRail && railOutside && (
-        <JumpRail
-          entries={railEntries}
-          onJump={jump}
-          onHide={() => setRailHidden(true)}
-          width={shownRailWidth(rail.width, railWindow)}
-          maxWidth={railMargin - RAIL_AIR}
-          onResize={(width) => setRail((current) => ({ ...current, width }))}
-          onResizeEnd={(width) => void savePreviewRailWidth(getPreferencesStore(), width)}
-          placement="outside"
-          folded={rail.hidden}
-          onShow={() => setRailHidden(false)}
-        />
-      )}
-
-      <p className="q-preview-footer t-small">{text.footer(provenance)}</p>
+        <p className="q-preview-footer t-small">{text.footer(provenance)}</p>
       </div>
     </div>
   )
