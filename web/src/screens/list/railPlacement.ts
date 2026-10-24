@@ -52,6 +52,9 @@ export function carriedRailWidth(stored: number, windowWidth: number): number {
   return Math.min(stored, Math.max(RAIL_WIDTH_MIN, virtualMargin - RAIL_AIR))
 }
 
+/** At this window width, and below it, the carried rail is at its 160px minimum: a narrower window changes nothing that is drawn. */
+export const CARRY_FLOOR_WIDTH = 2 * (RAIL_WIDTH_MIN + RAIL_AIR) + CARD_MAX + 2 * STAGE_INSET
+
 /** The width the rail is drawn at: the stored one, capped outside by the margin, or following the window while it is carried inside. */
 export function shownRailWidth(stored: number, where: { placement: RailPlacement; windowWidth: number; carried?: boolean }): number {
   if (where.placement === 'outside') return outsideRailWidth(stored, cardMargin(where.windowWidth))

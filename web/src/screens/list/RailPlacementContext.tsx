@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
-import { railPlacement, type RailPlacement } from './railPlacement.js'
+import { CARRY_FLOOR_WIDTH, railPlacement, type RailPlacement } from './railPlacement.js'
 
 export interface RailPlacementState {
   placement: RailPlacement
@@ -35,8 +35,10 @@ export function useWindowRailPlacement(): RailPlacementState & { carried: boolea
         const placement = railPlacement(window.innerWidth, current.placement)
         const carried = placement === 'inside' && (current.carried || current.placement === 'outside')
 
-        // Inside with no carry nothing reads the width: leave the state alone, so dragging a narrow window redraws nothing.
+        // Inside with no carry nothing reads the width: leave the state alone, so dragging a narrow window redraws nothing. The same once a
+        // carried rail is at its minimum: a window narrower still (both widths at the floor or below) draws the same rail.
         if (placement === 'inside' && !carried) return current
+        if (carried && placement === current.placement && current.windowWidth <= CARRY_FLOOR_WIDTH && window.innerWidth <= CARRY_FLOOR_WIDTH) return current
 
         return placement === current.placement && carried === current.carried && window.innerWidth === current.windowWidth
           ? current

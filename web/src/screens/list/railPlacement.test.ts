@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { cardMargin, carriedRailWidth, layerBorderWidth, listCardWidth, outsideRailWidth, railPlacement } from './railPlacement.js'
+import { cardMargin, CARRY_FLOOR_WIDTH, carriedRailWidth, layerBorderWidth, listCardWidth, outsideRailWidth, railPlacement } from './railPlacement.js'
 
 /** H-019: the jump rail sits inside the card or outside it, decided by the window and the card alone. */
 
@@ -116,5 +116,13 @@ describe('carriedRailWidth (a rail that moved inside as the window narrowed)', (
   it('never grows the reader’s own width: a narrower stored width stays', () => {
     expect(carriedRailWidth(170, 1520)).toBe(170)
     expect(carriedRailWidth(160, 1520)).toBe(160)
+  })
+})
+
+describe('CARRY_FLOOR_WIDTH', () => {
+  it('is the window width at which the carried rail reaches its 160px minimum, and below it nothing changes', () => {
+    expect(carriedRailWidth(480, CARRY_FLOOR_WIDTH)).toBe(160)
+    expect(carriedRailWidth(480, CARRY_FLOOR_WIDTH + 2)).toBeGreaterThan(160)
+    expect(carriedRailWidth(480, CARRY_FLOOR_WIDTH - 200)).toBe(160)
   })
 })

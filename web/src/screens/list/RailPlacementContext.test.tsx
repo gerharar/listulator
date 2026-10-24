@@ -76,8 +76,26 @@ describe('useWindowRailPlacement', () => {
 
       resizeTo(1519)
       expect(result.current).toMatchObject({ placement: 'inside', carried: true, windowWidth: 1519 })
+      resizeTo(1480)
+      expect(result.current).toMatchObject({ placement: 'inside', carried: true, windowWidth: 1480 })
+    })
+
+    it('stops redrawing once the carried rail is at its minimum: a narrow window dragged narrower changes nothing', () => {
+      window.innerWidth = 1728
+      const { result } = renderHook(() => useWindowRailPlacement())
+      resizeTo(1500)
       resizeTo(1400)
+      // The step across the floor is the last one that is seen.
       expect(result.current).toMatchObject({ placement: 'inside', carried: true, windowWidth: 1400 })
+      const atFloor = result.current
+
+      resizeTo(1350)
+      resizeTo(1200)
+
+      expect(result.current).toBe(atFloor)
+
+      resizeTo(1500)
+      expect(result.current).toMatchObject({ carried: true, windowWidth: 1500 })
     })
 
     it('is not carried in a window that opened inside: the stored width is shown', () => {
