@@ -206,3 +206,34 @@ test('a long list that is opened again scrolls to the row it remembers, and that
     await page.request.delete(`/api/lists/${id}`)
   }
 })
+
+test('End goes to the last row of a 50,000-item list and Home back to the first: drawn, in view, with focus', async ({ page }) => {
+  test.setTimeout(180_000)
+  const title = `e2e list-keys ends ${Date.now()}`
+  const id = await makeList(page.request, title, 50_000)
+
+  try {
+    await openList(page, title)
+    await page.locator('.q-item').first().focus()
+
+    await page.keyboard.press('End')
+    await expect.poll(() => focusedTitle(page)).toContain('Issue 49999')
+    expect(await inView(page, 'Issue 49999')).toBe(true)
+    expect(await page.locator('.q-item').count()).toBeLessThan(120)
+    await expect(page.locator('.q-live')).toHaveText('Bottom of the list')
+
+    await page.keyboard.press('Home')
+    await expect.poll(() => focusedTitle(page)).toContain('Issue 0')
+    expect(await inView(page, 'Issue 0')).toBe(true)
+    expect(await page.locator('.q-list-body').evaluate((node) => node.scrollTop)).toBe(0)
+    await expect(page.locator('.q-live')).toHaveText('Top of the list')
+
+    // From the middle of the list, too: the key does not depend on where the reader was.
+    for (let step = 0; step < 30; step += 1) await page.keyboard.press('ArrowDown')
+    await page.keyboard.press('End')
+    await expect.poll(() => focusedTitle(page)).toContain('Issue 49999')
+  } finally {
+    await page.request.delete(`/api/lists/${id}`)
+  }
+})
+

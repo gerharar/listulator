@@ -228,3 +228,105 @@ describe('keyboard and focus across rows that are not drawn (25.3)', () => {
     expect(row('i0')).toBeNull()
   })
 })
+
+describe('Home and End (32.3)', () => {
+  const live = () => document.querySelector('.q-live')!.textContent
+  const FULL_HEIGHT = 5000 * 46
+
+  beforeEach(() => {
+    vi.spyOn(Element.prototype, 'scrollHeight', 'get').mockReturnValue(FULL_HEIGHT)
+  })
+
+  it('End goes to the last row of a long list: the scroller is at the bottom, the row is drawn and has focus, and the live region says so', async () => {
+    prefs.set('list:L1:focus', 'i10')
+    await open(5000)
+    row('i10')!.focus()
+    const body = document.querySelector('.q-list-body') as HTMLElement
+
+    await press(row('i10')!, 'End')
+
+    expect(body.scrollTop).toBe(FULL_HEIGHT)
+    expect(row('i4999')).not.toBeNull()
+    expect(active()).toBe('i4999')
+    await waitFor(() => expect(live()).toBe('Bottom of the list'))
+  })
+
+  it('Home goes back to the first row, from far away', async () => {
+    prefs.set('list:L1:focus', 'i3000')
+    await open(5000)
+    await scrollRows(3000 * 46)
+    row('i3000')!.focus()
+    const body = document.querySelector('.q-list-body') as HTMLElement
+
+    await press(row('i3000')!, 'Home')
+
+    expect(body.scrollTop).toBe(0)
+    // The list starts with the group, so its header is the first row.
+    expect(active()).toBe('g1')
+    await waitFor(() => expect(live()).toBe('Top of the list'))
+  })
+
+  it('does not scroll again when it focuses the row: it has already put the list there', async () => {
+    prefs.set('list:L1:focus', 'i10')
+    await open(5000)
+    row('i10')!.focus()
+    const focus = vi.spyOn(HTMLElement.prototype, 'focus')
+
+    await press(row('i10')!, 'End')
+
+    expect(focus.mock.contexts.at(-1)).toBe(row('i4999'))
+    expect(focus.mock.calls.at(-1)).toEqual([{ preventScroll: true }])
+  })
+
+  it('works on a short list that is not drawn as a window', async () => {
+    await open(20)
+    row('g1')!.focus()
+
+    await press(row('g1')!, 'End')
+    expect(active()).toBe('i19')
+
+    await press(row('i19')!, 'Home')
+    expect(active()).toBe('g1')
+  })
+
+  it('makes the row it lands on the one the list remembers', async () => {
+    prefs.set('list:L1:focus', 'i10')
+    await open(5000)
+    row('i10')!.focus()
+
+    await press(row('i10')!, 'End')
+
+    await waitFor(() => expect(prefs.get('list:L1:focus')).toBe('i4999'))
+  })
+
+  it('leaves Home and End alone in a text field inside a row, and with a modifier', async () => {
+    await open(20)
+    const header = row('g1')!
+    const field = document.createElement('input')
+    header.appendChild(field)
+    field.focus()
+
+    await press(field, 'End')
+    expect(document.activeElement).toBe(field)
+    expect(live() ?? '').toBe('')
+
+    header.focus()
+    await act(async () => {
+      fireEvent.keyDown(header, { key: 'End', ctrlKey: true })
+      fireEvent.keyDown(header, { key: 'End', shiftKey: true })
+      fireEvent.keyDown(header, { key: 'End', metaKey: true })
+    })
+    expect(active()).toBe('g1')
+    expect(live() ?? '').toBe('')
+  })
+
+  it('does nothing when focus is not on a row', async () => {
+    await open(20)
+    const body = document.querySelector('.q-list-body') as HTMLElement
+
+    await press(body, 'End')
+
+    expect(active()).toBeUndefined()
+    expect(live() ?? '').toBe('')
+  })
+})

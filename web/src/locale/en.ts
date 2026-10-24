@@ -945,6 +945,11 @@ export const en = {
         show: 'Enlarge group jumper',
         resize: 'Resize group jumper',
       },
+      /** Said by the live region when Home or End (or the split button) takes the reader to an end of the list (H-019). */
+      ends: {
+        top: 'Top of the list',
+        bottom: 'Bottom of the list',
+      },
       /**
        * A list drawn as a window (200 rows or more) names each row's place for a screen reader, as hidden text inside the row, and says before the
        * rows how it is drawn (Phase 25.6). Counted among the rows there are: items, and groups, not the items of a folded group.

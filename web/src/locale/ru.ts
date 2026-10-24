@@ -850,6 +850,10 @@ export const ru: Locale = {
         show: 'Распахнуть навигацию по группам',
         resize: 'Изменить размер навигации по группам',
       },
+      ends: {
+        top: 'Начало списка',
+        bottom: 'Конец списка',
+      },
       place: {
         item: (n: number, total: number): string => `${n} из ${total}`,
         group: (n: number, total: number): string => `Группа ${n} из ${total}`,

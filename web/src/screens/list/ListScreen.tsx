@@ -1,5 +1,5 @@
 import './ListScreen.css'
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent, type PointerEvent as ReactPointerEvent } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useMemo, useReducer, useRef, useState, type KeyboardEvent, type PointerEvent as ReactPointerEvent } from 'react'
 import { EllipsisVertical, RefreshCw, X } from 'lucide-react'
 import { ApiError, api, type ListGroup, type ListItem, type MediaListDetail, type MediaType } from '../../lib/api.js'
 import { downloadText } from '../../lib/downloadText.js'
@@ -65,6 +65,7 @@ import { ItemRow } from './ItemRow.js'
 import { ByHandMark, CuratedStar } from '../../components/quantum/Marks/Marks.js'
 import { listMark } from '../../lib/buckets.js'
 import { JumpRail, JumpRailStub, type RailEntry } from './JumpRail.js'
+import { endForKey, endRow, endScrollTop, type ListEnd } from './listEnds.js'
 import { cardMargin, outsideRailWidth, RAIL_AIR } from './railPlacement.js'
 import { useRailPlacement } from './RailPlacementContext.js'
 import { ListMorePopover, type MoreMode, type PreviewState } from './ListMorePopover.js'
@@ -273,6 +274,7 @@ function ListView({
   const editText = text.editPopover
   const moreText = text.moreMenu
   const orderText = text.orderMenu
+  const endsText = text.ends
   const { showToast, hideToast } = useToast()
   const { announce } = useLiveRegion()
   const [items, setItems] = useState<ListItem[]>(loaded.items)
@@ -1175,7 +1177,35 @@ function ListView({
     }
   }
 
+  /**
+   * Home / End (and, from the toolbar, the split button): the scroller goes to the very top or bottom at once, and the first or last row takes
+   * focus without scrolling again. In a list drawn as a window that row may not be drawn yet: it becomes the tab stop, which pins it, and is
+   * focused as soon as it has been drawn.
+   */
+  function goToEnd(end: ListEnd) {
+    const target = endRow(visible, end)
+    if (target === undefined) return
+    scrollBodyTo(endScrollTop(end, spine.current?.scrollHeight ?? 0))
+    focusWhenDrawn.current = target
+    keepScrollOnFocus.current = true
+    setFocusId(target)
+    // The row may already be the tab stop, which changes nothing: ask for a commit so the focus effect runs after the window has drawn.
+    forceDraw()
+    announce(end === 'top' ? endsText.top : endsText.bottom)
+  }
+
   function onKeyDown(event: KeyboardEvent<HTMLDivElement>) {
+    const end = endForKey(event.key)
+    if (end !== null) {
+      const target = event.target as HTMLElement
+      // A text field (a rename in a row's header) keeps its own Home and End, and so do the browser's and the system's shortcuts.
+      if (event.ctrlKey || event.metaKey || event.altKey || event.shiftKey || target.closest('input, textarea, select, [contenteditable="true"]')) return
+      if (!target.closest('[data-row-id]')) return
+      event.preventDefault()
+      goToEnd(end)
+      return
+    }
+
     if (event.key !== 'ArrowDown' && event.key !== 'ArrowUp') return
     const current = (event.target as HTMLElement).closest<HTMLElement>('[data-row-id]')
     if (!current) return
@@ -1207,11 +1237,16 @@ function ListView({
   // Focus the row an arrow key asked for as soon as it has been drawn. It is dropped after the first commit either way, so a row that
   // never comes (the list changed) cannot take focus later.
   const focusWhenDrawn = useRef<string | null>(null)
+  // Home / End have already put the list where they want it: their row is focused without scrolling to it again.
+  const keepScrollOnFocus = useRef(false)
+  const [, forceDraw] = useReducer((count: number) => count + 1, 0)
   useLayoutEffect(() => {
     const id = focusWhenDrawn.current
     if (id === null) return
     focusWhenDrawn.current = null
-    spine.current?.querySelector<HTMLElement>(`[data-row-id="${CSS.escape(id)}"]`)?.focus()
+    const keep = keepScrollOnFocus.current
+    keepScrollOnFocus.current = false
+    spine.current?.querySelector<HTMLElement>(`[data-row-id="${CSS.escape(id)}"]`)?.focus(keep ? { preventScroll: true } : undefined)
   })
 
   // A list that is opened again scrolls to the row it remembers, which is otherwise only its tab stop: centred, as far as the list allows.
