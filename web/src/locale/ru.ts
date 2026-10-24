@@ -445,6 +445,12 @@ export const ru: Locale = {
     layerStack: {
       untitledListTab: 'Список',
     },
+    keyCard: {
+      saveKey: 'Сохранить ключ',
+      how: 'Как получить бесплатный ключ',
+      saved: (source: string): string => `Ключ ${source} сохранён. Его можно изменить в настройках`,
+      saveFailed: 'Не удалось сохранить ключ. Попробуй ещё раз',
+    },
     categoryPicker: {
       title: 'Выбери Своего Бойца',
       subline:

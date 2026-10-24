@@ -17,7 +17,7 @@ import { useTooltip } from '../../components/quantum/Tooltip/useTooltip.js'
 import { keyGuideUrl } from '../../lib/guides.js'
 
 /** Which saved settings make up each source's key (IGDB needs an ID and a secret). */
-const SOURCES: readonly { id: KeySource; fields: readonly (keyof LocalSettings)[] }[] = [
+export const SOURCES: readonly { id: KeySource; fields: readonly (keyof LocalSettings)[] }[] = [
   { id: 'tmdb', fields: ['tmdbApiKey'] },
   { id: 'igdb', fields: ['igdbClientId', 'igdbClientSecret'] },
   { id: 'comicVine', fields: ['comicVineApiKey'] },

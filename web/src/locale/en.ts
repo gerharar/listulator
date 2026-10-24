@@ -496,6 +496,13 @@ export const en = {
       untitledListTab: 'List',
     },
     /** Home / My Lists (task 10.10), replacing the old hosted `Overview`. */
+    /** The key card (H-018): the same card on the first-run screen and in Create. Its title and body come from where it stands. */
+    keyCard: {
+      saveKey: 'Save Key',
+      how: 'How to get a free key',
+      saved: (source: string): string => `${source} key saved. You can change it in Settings`,
+      saveFailed: 'The key could not be saved. Try again',
+    },
     categoryPicker: {
       title: 'Choose Your Fighter',
       subline: 'Media categories supported by the app. Numbers show how many lists you have',

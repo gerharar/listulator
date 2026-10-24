@@ -436,6 +436,12 @@ export const de: Locale = {
     layerStack: {
       untitledListTab: 'Liste',
     },
+    keyCard: {
+      saveKey: 'Schlüssel speichern',
+      how: 'So bekommst du einen kostenlosen Schlüssel',
+      saved: (source: string): string => `${source}-Schlüssel gespeichert. Du kannst ihn in den Einstellungen ändern`,
+      saveFailed: 'Der Schlüssel konnte nicht gespeichert werden. Versuche es noch einmal',
+    },
     categoryPicker: {
       title: 'Wähle deinen Kämpfer',
       subline:
