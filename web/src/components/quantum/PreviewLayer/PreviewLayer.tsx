@@ -16,8 +16,7 @@ import { buildRowModel, offsetOf, scrollAfterChange, shouldVirtualize, type Virt
 import { loadPreviewRail, savePreviewRailHidden, savePreviewRailWidth } from '../../../screens/list/collapse.js'
 import { RAIL_WIDTH_DEFAULT } from '../../../screens/list/railLimits.js'
 import { JumpRail, JumpRailStub, type RailEntry } from '../../../screens/list/JumpRail.js'
-import { cardMargin, RAIL_AIR, shownRailWidth } from '../../../screens/list/railPlacement.js'
-import { useRailPlacement } from '../../../screens/list/RailPlacementContext.js'
+import { useRailLayout } from '../../../screens/list/useRailLayout.js'
 import { DEFAULT_VIEWPORT, WindowedRows } from '../../../screens/list/WindowedRows.js'
 import { Button, IconButton } from '../Button/Button.js'
 import { ErrorBlock } from '../ErrorBlock/ErrorBlock.js'
@@ -142,10 +141,7 @@ export function PreviewLayer({ source, mediaType, onBuilt, active = true }: Prev
     () => units.flatMap(({ unit }) => (unit.kind === 'group' && unit.group.count > 0 ? [{ id: unit.group.id, name: unit.group.name, total: unit.group.count }] : [])),
     [units],
   )
-  const railWindow = useRailPlacement()
-  const railOutside = railWindow.placement === 'outside'
-  const railMargin = cardMargin(railWindow.windowWidth)
-  const showRail = railEntries.length > 1 && (active || !railOutside)
+  const railLayout = useRailLayout(railEntries.length, active)
   const placeId = useId()
   const summary = summarizePreview(items, mediaType.defaultDurationMinutes)
   // A category whose convention names platforms gets chips, as wide as the widest label (as on the list).
@@ -284,20 +280,17 @@ export function PreviewLayer({ source, mediaType, onBuilt, active = true }: Prev
 
       <div className="q-preview-lower">
         <div className="q-preview-cols">
-          {showRail && !railOutside && !rail.hidden && (
+          {railLayout.show && !railLayout.outside && !rail.hidden && (
             <JumpRail
               entries={railEntries}
               onJump={jump}
               onHide={() => setRailHidden(true)}
-              width={shownRailWidth(rail.width, railWindow)}
-              onResize={(width) => {
-                railWindow.release?.()
-                setRail((current) => ({ ...current, width }))
-              }}
+              width={railLayout.shownWidth(rail.width)}
+              onResize={railLayout.resizing((width) => setRail((current) => ({ ...current, width })))}
               onResizeEnd={(width) => void savePreviewRailWidth(getPreferencesStore(), width)}
             />
           )}
-          {showRail && !railOutside && rail.hidden && <JumpRailStub onShow={() => setRailHidden(false)} />}
+          {railLayout.show && !railLayout.outside && rail.hidden && <JumpRailStub onShow={() => setRailHidden(false)} />}
           <div className="q-preview-body" ref={body} tabIndex={-1} onKeyDown={onBodyKeyDown}>
             {load.state === 'loading' && (
               <div className="q-preview-progress">
@@ -373,13 +366,13 @@ export function PreviewLayer({ source, mediaType, onBuilt, active = true }: Prev
             )}
           </div>
         </div>
-        {showRail && railOutside && (
+        {railLayout.show && railLayout.outside && (
           <JumpRail
             entries={railEntries}
             onJump={jump}
             onHide={() => setRailHidden(true)}
-            width={shownRailWidth(rail.width, railWindow)}
-            maxWidth={railMargin - RAIL_AIR}
+            width={railLayout.shownWidth(rail.width)}
+            maxWidth={railLayout.maxWidth}
             onResize={(width) => setRail((current) => ({ ...current, width }))}
             onResizeEnd={(width) => void savePreviewRailWidth(getPreferencesStore(), width)}
             placement="outside"
