@@ -844,6 +844,11 @@ export const de: Locale = {
       ends: {
         top: 'Anfang der Liste',
         bottom: 'Ende der Liste',
+        group: 'An ein Ende der Liste springen',
+        toTop: 'Zum Anfang der Liste scrollen',
+        toBottom: 'Zum Ende der Liste scrollen',
+        topTip: 'Nach oben (Pos1)',
+        bottomTip: 'Nach unten (Ende)',
       },
       place: {
         item: (n: number, total: number): string => `${n} von ${total}`,

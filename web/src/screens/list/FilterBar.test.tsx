@@ -42,6 +42,7 @@ function bar(over: Partial<FilterBarProps> = {}) {
     onSelect: vi.fn(),
     fold: null,
     hideDone: null,
+    ends: null,
     note: '8 items',
     ...over,
   }
@@ -263,3 +264,20 @@ describe('FilterBar', () => {
     expect(label.closest('[data-room]')?.getAttribute('data-room')).toBe('Expand')
   })
 })
+
+describe('the split Up / Down button in the bar (H-019)', () => {
+  it('comes last, after Hide Completed and Collapse, and only when it is given', () => {
+    bar({ fold: { collapse: true, onToggle: vi.fn() }, hideDone: { on: false, onToggle: vi.fn() }, ends: { atTop: true, atBottom: false, onGo: vi.fn() } })
+
+    const parts = [...document.querySelectorAll('.q-filterbar > *')]
+    expect(parts.at(-1)).toBe(screen.getByRole('group', { name: 'Jump to an end of the list' }))
+    expect(parts.at(-2)!.classList.contains('q-fold')).toBe(true)
+  })
+
+  it('is not drawn without it', () => {
+    bar()
+
+    expect(screen.queryByRole('group', { name: 'Jump to an end of the list' })).toBeNull()
+  })
+})
+

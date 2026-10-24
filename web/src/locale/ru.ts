@@ -853,6 +853,11 @@ export const ru: Locale = {
       ends: {
         top: 'Начало списка',
         bottom: 'Конец списка',
+        group: 'Перейти к краю списка',
+        toTop: 'Прокрутить в начало списка',
+        toBottom: 'Прокрутить в конец списка',
+        topTip: 'В начало (Home)',
+        bottomTip: 'В конец (End)',
       },
       place: {
         item: (n: number, total: number): string => `${n} из ${total}`,

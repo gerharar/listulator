@@ -1,0 +1,25 @@
+/* The split Up / Down button (H-019): 34x31px, the height of Collapse, split by a 1px line. */
+.q-ends {
+  flex: none;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  width: 34px;
+  height: 31px;
+  border: 1px solid var(--line);
+}
+.q-ends-half {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--ink2);
+  cursor: pointer;
+}
+.q-ends-half + .q-ends-half { border-top: 1px solid var(--line); }
+.q-ends-half:not(:disabled):hover { color: var(--ink); background: var(--hover); }
+.q-ends-half:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.q-ends-half:disabled { color: var(--ink3); opacity: 0.5; cursor: default; }

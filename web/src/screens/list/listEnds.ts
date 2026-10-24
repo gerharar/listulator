@@ -20,3 +20,14 @@ export function endRow<Row>(rows: readonly Row[], end: ListEnd): Row | undefined
 export function endScrollTop(end: ListEnd, scrollHeight: number): number {
   return end === 'top' ? 0 : scrollHeight
 }
+
+/** The split button is for a list taller than two screens of its scroll area; a shorter one is all in reach. */
+export function showEnds(rowsHeight: number, viewportHeight: number): boolean {
+  return viewportHeight > 0 && rowsHeight > 2 * viewportHeight
+}
+
+/** Which end the scroller is at. A pixel is forgiven: the browser rounds a scroll position. */
+export function atEnds(scrollTop: number, viewportHeight: number, scrollHeight: number): { atTop: boolean; atBottom: boolean } {
+  return { atTop: scrollTop < 1, atBottom: scrollTop + viewportHeight >= scrollHeight - 1 }
+}
+

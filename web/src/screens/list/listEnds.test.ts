@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { endForKey, endRow, endScrollTop } from './listEnds.js'
+import { atEnds, endForKey, endRow, endScrollTop, showEnds } from './listEnds.js'
 
 /** The two ends of a list (H-019): the keys that go there, the row that is there, and where the scroller must be. */
 
@@ -38,3 +38,35 @@ describe('endScrollTop', () => {
     expect(endScrollTop('bottom', 230_000)).toBe(230_000)
   })
 })
+
+describe('showEnds', () => {
+  it('is for a list taller than two screens of its scroll area, and not for one of exactly two', () => {
+    expect(showEnds(920, 460)).toBe(false)
+    expect(showEnds(921, 460)).toBe(true)
+    expect(showEnds(200, 460)).toBe(false)
+    expect(showEnds(230_000, 460)).toBe(true)
+  })
+
+  it('is never for a scroll area with no height yet', () => {
+    expect(showEnds(5_000, 0)).toBe(false)
+  })
+})
+
+describe('atEnds', () => {
+  it('is at the top at 0 and at the bottom when the last screenful is showing', () => {
+    expect(atEnds(0, 460, 2000)).toEqual({ atTop: true, atBottom: false })
+    expect(atEnds(500, 460, 2000)).toEqual({ atTop: false, atBottom: false })
+    expect(atEnds(1540, 460, 2000)).toEqual({ atTop: false, atBottom: true })
+  })
+
+  it('forgives a pixel: the browser rounds a scroll position', () => {
+    expect(atEnds(0.6, 460, 2000).atTop).toBe(true)
+    expect(atEnds(1539.4, 460, 2000).atBottom).toBe(true)
+    expect(atEnds(2, 460, 2000).atTop).toBe(false)
+  })
+
+  it('is at both ends when everything fits', () => {
+    expect(atEnds(0, 460, 300)).toEqual({ atTop: true, atBottom: true })
+  })
+})
+

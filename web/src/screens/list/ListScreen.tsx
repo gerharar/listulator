@@ -65,7 +65,8 @@ import { ItemRow } from './ItemRow.js'
 import { ByHandMark, CuratedStar } from '../../components/quantum/Marks/Marks.js'
 import { listMark } from '../../lib/buckets.js'
 import { JumpRail, JumpRailStub, type RailEntry } from './JumpRail.js'
-import { endForKey, endRow, endScrollTop, type ListEnd } from './listEnds.js'
+import { endForKey, endRow, endScrollTop, showEnds, type ListEnd } from './listEnds.js'
+import { useScrollEnds } from './useScrollEnds.js'
 import { cardMargin, outsideRailWidth, RAIL_AIR } from './railPlacement.js'
 import { useRailPlacement } from './RailPlacementContext.js'
 import { ListMorePopover, type MoreMode, type PreviewState } from './ListMorePopover.js'
@@ -581,6 +582,7 @@ function ListView({
   // Where the scroller is: the last scroll event, or where this screen put it. When the rows change the browser may already have moved it
   // (it clamps a position that is past the new end), so the position to keep is this one and not what the element says by then.
   const scrolledTo = useRef(0)
+  const scrollEnds = useScrollEnds(spine, rowModel)
   function scrollBodyTo(top: number) {
     const body = spine.current
     if (!body) return
@@ -1371,6 +1373,7 @@ function ListView({
           onSelect={selectFacet}
           fold={groupNames.length > 1 ? { collapse: anyOpen, onToggle: foldAll } : null}
           hideDone={{ on: filter.hideDone === true, onToggle: toggleHideDone }}
+          ends={showEnds(rowModel.total, scrollEnds.viewportHeight) ? { atTop: scrollEnds.atTop, atBottom: scrollEnds.atBottom, onGo: goToEnd } : null}
           note={filtering ? text.filter.shown(shownIds.size, items.length) : text.filter.total(items.length)}
         />
 

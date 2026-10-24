@@ -6,6 +6,7 @@ import { FacetToggle, type FacetOption } from '../../components/quantum/FacetTog
 import { FacetDropdown, facetsToCompact } from '../../components/quantum/FacetToggle/FacetDropdown.js'
 import { platformFullName } from '../../components/quantum/PlatformChip/PlatformChip.js'
 import { Tip } from '../../components/quantum/Tooltip/Tip.js'
+import { EndsButton, type EndsButtonProps } from './EndsButton.js'
 
 export interface FilterBarProps {
   text: string
@@ -20,6 +21,8 @@ export interface FilterBarProps {
   fold: { collapse: boolean; onToggle: () => void } | null
   /** Hide Completed (task 18.1): pressed while done items are hidden. */
   hideDone: { on: boolean; onToggle: () => void } | null
+  /** The split Up / Down button after the last button, for a list taller than two screens (H-019). */
+  ends: EndsButtonProps | null
   /** "8 items", or "3 of 8 shown" while filtering. */
   note: string
 }
@@ -64,7 +67,7 @@ function facetOptions(facet: FacetGroup): FacetOption[] {
  * first; widen the window and the chips come back. A hidden copy of each facet
  * in both forms is measured against the bar on every resize.
  */
-export function FilterBar({ text, onText, onClear, facets, selection, onSelect, fold, hideDone, note }: FilterBarProps) {
+export function FilterBar({ text, onText, onClear, facets, selection, onSelect, fold, hideDone, ends, note }: FilterBarProps) {
   const t = copy.quantum.list.filter
   const barRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
@@ -97,7 +100,7 @@ export function FilterBar({ text, onText, onClear, facets, selection, onSelect, 
     const observer = new ResizeObserver(measure)
     observer.observe(bar)
     return () => observer.disconnect()
-  }, [facets, selection, fold, hideDone, note])
+  }, [facets, selection, fold, hideDone, ends !== null, note])
 
   const facetProps = (facet: FacetGroup) => ({
     label: t.facetLabels[facet.label] ?? facet.label,
@@ -189,6 +192,7 @@ export function FilterBar({ text, onText, onClear, facets, selection, onSelect, 
           </span>
         </Tip>
       )}
+      {ends && <EndsButton {...ends} />}
 
       {/* Both forms of every facet at their natural width, for measuring only;
           only where there is layout to measure (not jsdom). */}

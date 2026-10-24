@@ -949,6 +949,12 @@ export const en = {
       ends: {
         top: 'Top of the list',
         bottom: 'Bottom of the list',
+        /** The split button in the toolbar: its group, its two halves, and their tooltips (the key is in the tooltip). */
+        group: 'Jump to an end of the list',
+        toTop: 'Scroll to the top of the list',
+        toBottom: 'Scroll to the bottom of the list',
+        topTip: 'To the top (Home)',
+        bottomTip: 'To the bottom (End)',
       },
       /**
        * A list drawn as a window (200 rows or more) names each row's place for a screen reader, as hidden text inside the row, and says before the
