@@ -103,6 +103,64 @@ async function installerSignatureProblem(host: CanaryHost, previous: string, ins
   return verdict.ok ? undefined : `${installer} does not carry a signature of the key of ${previous}: ${verdict.reason}`
 }
 
+/** What both smoke tests need of the machine and the program; the canary adds GitHub to it. */
+export type ProgramHost = Pick<CanaryHost, 'installDir' | 'exists' | 'runInstaller' | 'fileVersion' | 'startApp' | 'processes' | 'stopApp' | 'uninstall' | 'pause'>
+
+/** Why a smoke test must not go on, or undefined: it never touches an install it did not make. */
+export function alreadyInstalledProblem(host: Pick<ProgramHost, 'installDir' | 'exists'>): string | undefined {
+  const installDir = host.installDir()
+
+  return host.exists(installDir) ? `${PRODUCT} is already installed at ${installDir}: this check never touches an install it did not make` : undefined
+}
+
+/**
+ * What both smoke tests do with an installer: installs it silently, says what version the program is, starts it, waits for a window that
+ * answers and watches it keep answering. Then, whatever happened, stops the app (by its install path), uninstalls it. Every problem goes to
+ * `fail`, one sentence each; it stops at the first one on the way in, and an uninstall that fails is one more.
+ */
+export async function installAndWatch(host: ProgramHost, installer: string, version: string, log: (line: string) => void, fail: (line: string) => void): Promise<void> {
+  const installDir = host.installDir()
+  const exe = win32.join(installDir, APP_EXE)
+  let installed = false
+  let started = false
+  try {
+    // 1. Installed silently, as a user would from the download.
+    installed = true
+    const code = await host.runInstaller(installer)
+    if (code !== 0) return fail(`The installer ended with ${code}`)
+    if (!host.exists(exe)) return fail(`${APP_EXE} is not in ${installDir} after the installer ended`)
+    log(`${PRODUCT} v${version} installed from ${win32.basename(installer)}`)
+
+    // 2. It says what it is.
+    const said = await host.fileVersion(exe)
+    if (said === undefined || releaseVersionOf(said) !== version) return fail(`The installed program carries version ${said ?? 'none'}, not ${version}`)
+    log(`The installed program says it is ${version}`)
+
+    // 3. It starts, opens a window that answers, and keeps answering.
+    host.startApp(exe)
+    started = true
+    let ready = false
+    for (let second = 0; second < START_TIMEOUT_S && !ready; second++) {
+      ready = (await host.processes(installDir)).some((process) => process.hasWindow && process.responding)
+      if (!ready && second < START_TIMEOUT_S - 1) await host.pause(POLL_MS)
+    }
+    if (!ready) return fail(`The app did not open a responding window within ${START_TIMEOUT_S} s`)
+    for (let second = 1; second <= STAY_UP_S; second++) {
+      await host.pause(POLL_MS)
+      const running = await host.processes(installDir)
+      if (running.length === 0) return fail(`The app ended after ${second} s`)
+      if (!running.some((process) => process.responding)) return fail(`The app stopped responding after ${second} s`)
+    }
+    log(`The app opened a window that answers, and answered for ${STAY_UP_S} s`)
+  } catch (error) {
+    fail(`Stopped: ${reason(error)}`)
+  } finally {
+    // The app is stopped first (so the uninstaller finds nothing running), then uninstalled.
+    if (started || installed) await host.stopApp(installDir).catch(() => undefined)
+    if (installed) await host.uninstall(installDir).catch((error: unknown) => fail(`The uninstall failed: ${reason(error)}`))
+  }
+}
+
 export async function releaseCanary(options: ReleaseCanaryOptions, host: CanaryHost, log: (line: string) => void): Promise<ReleaseCanaryResult> {
   if (options.platform !== 'win32' || !options.githubActions) {
     throw new Error('canary:install installs a program: it runs only on a GitHub Windows runner, never on a machine of yours')
@@ -129,16 +187,12 @@ export async function releaseCanary(options: ReleaseCanaryOptions, host: CanaryH
   }
   const version = previous.slice(1)
   const installer = `Listulator_${version}_x64-setup.exe`
-  const installDir = host.installDir()
-  const exe = win32.join(installDir, APP_EXE)
-
-  if (host.exists(installDir)) {
-    return stop(`${PRODUCT} is already installed at ${installDir}: this canary never touches an install it did not make`)
+  const alreadyThere = alreadyInstalledProblem(host)
+  if (alreadyThere !== undefined) {
+    return stop(alreadyThere)
   }
 
   const dir = await host.makeTempDir()
-  let installed = false
-  let started = false
   try {
     // 1. The installer, as GitHub serves it, against the checksums of the same release.
     await host.download(previous, [installer, 'SHA256SUMS', 'latest.json'], dir)
@@ -161,54 +215,13 @@ export async function releaseCanary(options: ReleaseCanaryOptions, host: CanaryH
     }
     log(`${installer}  signature verifies against the key of ${previous} (the updater key, which never leaves the owner's machine)`)
 
-    // 2. Installed silently, as a user would from the download.
-    installed = true
-    const code = await host.runInstaller(win32.join(dir, installer))
-    if (code !== 0) {
-      return stop(`The installer ended with ${code}`)
-    }
-    if (!host.exists(exe)) {
-      return stop(`${APP_EXE} is not in ${installDir} after the installer ended`)
-    }
-    log(`${PRODUCT} ${previous} installed from ${installer}`)
-
-    // 3. It says what it is.
-    const said = await host.fileVersion(exe)
-    if (said === undefined || releaseVersionOf(said) !== version) {
-      return stop(`The installed program carries version ${said ?? 'none'}, not ${version}`)
-    }
-    log(`The installed program says it is ${version}`)
-
-    // 4. It starts, opens a window that answers, and keeps answering.
-    host.startApp(exe)
-    started = true
-    let ready = false
-    for (let second = 0; second < START_TIMEOUT_S && !ready; second++) {
-      ready = (await host.processes(installDir)).some((process) => process.hasWindow && process.responding)
-      if (!ready && second < START_TIMEOUT_S - 1) await host.pause(POLL_MS)
-    }
-    if (!ready) {
-      return stop(`The app did not open a responding window within ${START_TIMEOUT_S} s`)
-    }
-    for (let second = 1; second <= STAY_UP_S; second++) {
-      await host.pause(POLL_MS)
-      const running = await host.processes(installDir)
-      if (running.length === 0) {
-        return stop(`The app ended after ${second} s`)
-      }
-      if (!running.some((process) => process.responding)) {
-        return stop(`The app stopped responding after ${second} s`)
-      }
-    }
-    log(`The app opened a window that answers, and answered for ${STAY_UP_S} s`)
+    // 2 to 4. Installed, said, started, watched, stopped and uninstalled.
+    await installAndWatch(host, win32.join(dir, installer), version, log, fail)
 
     return { failures }
   } catch (error) {
     return stop(`Stopped: ${reason(error)}`)
   } finally {
-    // Whatever happened: the app is stopped first (so the uninstaller finds nothing running), then uninstalled, then the download goes.
-    if (started || installed) await host.stopApp(installDir).catch(() => undefined)
-    if (installed) await host.uninstall(installDir).catch((error: unknown) => fail(`The uninstall failed: ${reason(error)}`))
     await host.removeTempDir(dir).catch(() => undefined)
   }
 }
