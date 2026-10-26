@@ -5,7 +5,7 @@ import { basename, join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { makeKeyPair, signLikeTauri } from './minisignTesting.js'
 import { PassThrough } from 'node:stream'
-import { createGhHost, dryRunReported, nodeRunner, parseReleaseSignArguments, readPassphrase, readPubkey, releaseSign, scrubSigningEnvironment, uploadReported, type ReleaseHost, type Runner, type TagState } from './releaseSign.js'
+import { createGhHost, dryRunReported, nodeRunner, parseReleaseSignArguments, readDeclaredFrom, readPassphrase, readPubkey, releaseSign, scrubSigningEnvironment, uploadReported, type ReleaseHost, type Runner, type TagState } from './releaseSign.js'
 import { parseSignature } from './updateManifest.js'
 
 /** `text` as a regular expression that matches it literally (every special character escaped, the backslash too). */
@@ -269,15 +269,18 @@ describe('which commit it signs for (20.14: the tools run on the key machine, an
 
 describe('a key rotation: the new key must be one the owner named', () => {
   const newKey = makeKeyPair('0123456789ABCDEF')
-  const rotation = { newPubkey: newKey.pubkey, newKeyId: '0123456789ABCDEF' }
+  const FROM = 'v1.0.0'
+  const rotation = { newPubkey: newKey.pubkey, newKeyId: '0123456789ABCDEF', from: FROM }
+  /** The tag's own tree declares the bridge release, as the owner commits it with the release (BL-141). */
+  const declared = { declaredFrom: FROM }
 
   it('signs when the tag carries the key whose ID the owner named (any letter case)', async () => {
-    expect((await run(world(), { rotation })).error).toBeUndefined()
-    expect((await run(world(), { rotation: { ...rotation, newKeyId: '0123456789abcdef' } })).error).toBeUndefined()
+    expect((await run(world(), { rotation, ...declared })).error).toBeUndefined()
+    expect((await run(world(), { rotation: { ...rotation, newKeyId: '0123456789abcdef' }, ...declared })).error).toBeUndefined()
   })
 
   it('refuses a tag that carries another key than the one named, before it downloads or signs anything', async () => {
-    const r = await run(world(), { rotation: { newPubkey: other.pubkey, newKeyId: '0123456789ABCDEF' } })
+    const r = await run(world(), { rotation: { newPubkey: other.pubkey, newKeyId: '0123456789ABCDEF', from: FROM }, ...declared })
 
     expect(r.error?.message).toMatch(/61BCBF5980E87475/)
     expect(r.error?.message).toMatch(/0123456789ABCDEF/)
@@ -286,17 +289,45 @@ describe('a key rotation: the new key must be one the owner named', () => {
   })
 
   it('refuses a "rotation" to the key the apps already trust', async () => {
-    const r = await run(world(), { rotation: { newPubkey: app.pubkey, newKeyId: '738FF42772526511' } })
+    const r = await run(world(), { rotation: { newPubkey: app.pubkey, newKeyId: '738FF42772526511', from: FROM }, ...declared })
 
     expect(r.error?.message).toMatch(/same key/)
     expect(r.signCalls).toEqual([])
   })
 
   it('refuses a new key that is not a minisign public key', async () => {
-    const r = await run(world(), { rotation: { newPubkey: 'not a key', newKeyId: '0123456789ABCDEF' } })
+    const r = await run(world(), { rotation: { newPubkey: 'not a key', newKeyId: '0123456789ABCDEF', from: FROM }, ...declared })
 
     expect(r.error?.message).toMatch(/new public key/)
     expect(r.signCalls).toEqual([])
+  })
+  describe('the tag’s own tree declares the bridge release (BL-141), so the public check and the canary judge it by the same key', () => {
+    it('refuses a rotation whose tree declares nothing, before it downloads or signs anything', async () => {
+      const r = await run(world(), { rotation })
+
+      expect(r.error?.message).toMatch(/keyRotation\.json.*must declare/)
+      expect(r.error?.message).toContain(`"${TAG}": { "signedWithKeyOf": "${FROM}" }`)
+      expect(r.calls).not.toContain('download')
+      expect(r.signCalls).toEqual([])
+    })
+
+    it('refuses a rotation whose tree declares another older release than the one named', async () => {
+      const r = await run(world(), { rotation, declaredFrom: 'v0.9.0' })
+
+      expect(r.error?.message).toMatch(/declares v0\.9\.0/)
+      expect(r.signCalls).toEqual([])
+    })
+
+    it('refuses to sign with the tag’s own key a release its tree declares a bridge', async () => {
+      const r = await run(world(), { declaredFrom: FROM })
+
+      expect(r.error?.message).toMatch(/declared a bridge release.*v1\.0\.0.*--pubkey-from/)
+      expect(r.signCalls).toEqual([])
+    })
+
+    it('changes nothing for a release that is not a rotation', async () => {
+      expect((await run(world())).error).toBeUndefined()
+    })
   })
 })
 
@@ -937,5 +968,31 @@ describe('the passphrase on a pipe (--passphrase-stdin, given by release:ship)',
     expect(parseReleaseSignArguments(['v1.0.1', '--passphrase-stdin'])).toMatch(/--key-file/)
     expect(parseReleaseSignArguments(['v1.0.1', '--dry-run', '--passphrase-stdin'])).toMatch(/real signing/)
     expect(parseReleaseSignArguments(['v1.0.1', '--passphrase-stdin=hunter2'])).toMatch(/unknown option/)
+  })
+})
+
+describe('what the tagged tree declares about the tag (BL-141)', () => {
+  const answering = (code: number, stdout: string): Runner => async () => ({ code, stdout, stderr: '' })
+  const declare = JSON.stringify({ bridges: { [TAG]: { signedWithKeyOf: 'v1.0.0' } } })
+
+  it('reads the declaration with git show from the tagged tree, nowhere else', async () => {
+    const calls: { command: string; args: readonly string[] }[] = []
+    const runner: Runner = async (command, args) => {
+      calls.push({ command, args })
+
+      return { code: 0, stdout: declare, stderr: '' }
+    }
+
+    expect(await readDeclaredFrom(TAG, runner, '/repo')).toBe('v1.0.0')
+    expect(calls).toEqual([{ command: 'git', args: ['show', `${TAG}:server/src/tools/keyRotation.json`] }])
+  })
+
+  it('is nothing for a tree with no such file, or no entry for the tag', async () => {
+    expect(await readDeclaredFrom(TAG, answering(128, ''), '/repo')).toBeUndefined()
+    expect(await readDeclaredFrom(TAG, answering(0, JSON.stringify({ bridges: {} })), '/repo')).toBeUndefined()
+  })
+
+  it('stops, in words, on a file that is wrong', async () => {
+    await expect(readDeclaredFrom(TAG, answering(0, 'nope'), '/repo')).rejects.toThrow(/not JSON/)
   })
 })

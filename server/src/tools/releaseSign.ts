@@ -6,6 +6,7 @@ import { basename, join, relative, resolve, isAbsolute } from 'node:path'
 import { createInterface } from 'node:readline/promises'
 import { fileURLToPath } from 'node:url'
 import { verifyMinisign } from './minisignVerify.js'
+import { KEY_ROTATION_PATH, declaredSignerOf } from './keyRotation.js'
 import { isRunDirectly } from './runDirectly.js'
 import { assetName, buildManifest, keyIdOfPublicKey, manifestProblems, serializeManifest, type PlatformKey } from './updateManifest.js'
 import { RELEASE_VERSION } from './versionSources.js'
@@ -85,7 +86,9 @@ export interface ReleaseSignOptions {
    * A key rotation: `pubkey` is then the OLD key (what the installed apps trust and what signs), and the tag's own key is
    * `newPubkey`. The owner names the new key's ID, so a changed key in a commit nobody looked at cannot be signed through.
    */
-  rotation?: { newPubkey: string; newKeyId: string } | undefined
+  rotation?: { newPubkey: string; newKeyId: string; /** The older release whose key `pubkey` is (`--pubkey-from`). */ from: string } | undefined
+  /** The older release the tagged TREE declares the tag was signed with (`keyRotation.json`, BL-141), or undefined when it declares nothing for this tag. */
+  declaredFrom?: string | undefined
   now?: () => Date
 }
 
@@ -142,6 +145,18 @@ export async function releaseSign(options: ReleaseSignOptions, host: ReleaseHost
     if (newId === undefined) throw new Error('The new public key in the tagged config is not a minisign public key')
     if (newId === keyId) throw new Error(`This is no rotation: the tag carries the same key as the installed apps trust (ID ${keyId})`)
     if (newId !== options.rotation.newKeyId.toUpperCase()) throw new Error(`The tag carries the public key ID ${newId}, not ${options.rotation.newKeyId.toUpperCase()}, the one you named`)
+  }
+
+  // The bridge release is declared in its own tree (BL-141), so that the public check and the canary judge it by the same key as this signing.
+  // Both ways are refused: a rotation the tree does not declare, and a declared one signed as a normal release.
+  const declaration = `"bridges": { "${tag}": { "signedWithKeyOf": "<the older release>" } }`
+  if (options.rotation !== undefined && options.declaredFrom !== options.rotation.from) {
+    throw new Error(
+      `${KEY_ROTATION_PATH} of ${tag} must declare this bridge release (${declaration.replace('<the older release>', options.rotation.from)}), but it ${options.declaredFrom === undefined ? 'declares nothing for it' : `declares ${options.declaredFrom}`}: without it the public check and the daily canary would judge the release by its own new key. Commit it with the release, tag again, and start over`,
+    )
+  }
+  if (options.rotation === undefined && options.declaredFrom !== undefined) {
+    throw new Error(`${tag} is declared a bridge release in ${KEY_ROTATION_PATH} (signed with the key of ${options.declaredFrom}) but no --pubkey-from and --new-key-id were given: signing it with its own key would contradict the declaration`)
   }
 
   const state = await host.tagState(tag)
@@ -359,6 +374,15 @@ export async function readPubkey(tag: string, run: Runner, repoRoot: string): Pr
   return { pubkey, source: `the tag ${tag}` }
 }
 
+/** The bridge declaration of the tagged tree: what it says about the tag, or a thrown sentence when the file is wrong. A tree with no such file declares nothing. */
+export async function readDeclaredFrom(tag: string, run: Runner, repoRoot: string): Promise<string | undefined> {
+  const shown = await run('git', ['show', `${tag}:${KEY_ROTATION_PATH}`], { cwd: repoRoot })
+  const declared = declaredSignerOf(shown.code === 0 ? shown.stdout : undefined, tag)
+  if ('problem' in declared) throw new Error(declared.problem)
+
+  return declared.from
+}
+
 /** The passphrase, from a pipe (`--passphrase-stdin`): all of it, without its line break. Never from a terminal, and never echoed in an error. */
 export async function readPassphrase(input: NodeJS.ReadableStream & { isTTY?: boolean }): Promise<string> {
   if (input.isTTY === true) throw new Error('--passphrase-stdin reads a pipe, not a terminal: release:ship gives it, nobody types it here')
@@ -447,11 +471,12 @@ if (isRunDirectly(import.meta.url)) {
     }
     const { pubkey, source } = await readPubkey(parsed.pubkeyFrom ?? parsed.tag, nodeRunner, REPO_ROOT)
     console.log(`Public key read from ${source}${parsed.pubkeyFrom === undefined ? '' : ' (key rotation: signing for the apps that are installed)'}`)
-    const rotation = parsed.newKeyId === undefined ? undefined : { newPubkey: (await readPubkey(parsed.tag, nodeRunner, REPO_ROOT)).pubkey, newKeyId: parsed.newKeyId }
+    const rotation = parsed.newKeyId === undefined || parsed.pubkeyFrom === undefined ? undefined : { newPubkey: (await readPubkey(parsed.tag, nodeRunner, REPO_ROOT)).pubkey, newKeyId: parsed.newKeyId, from: parsed.pubkeyFrom }
+    const declaredFrom = await readDeclaredFrom(parsed.tag, nodeRunner, REPO_ROOT)
 
     const passphrase = parsed.passphraseStdin === true ? await readPassphrase(process.stdin) : undefined
     const host = createGhHost(nodeRunner, REPO_ROOT, passphrase)
-    const result = await releaseSign({ tag: parsed.tag, dryRun: parsed.dryRun, keyFile, pubkey, repoRoot: REPO_ROOT, current: parsed.current, rotation }, host, (line) => console.log(line))
+    const result = await releaseSign({ tag: parsed.tag, dryRun: parsed.dryRun, keyFile, pubkey, repoRoot: REPO_ROOT, current: parsed.current, rotation, declaredFrom }, host, (line) => console.log(line))
     if (!result.dryRun) {
       const after = await host.viewRelease(parsed.tag)
       console.log(`The draft now holds:\n${after.assets.map((name) => `  ${name}`).join('\n')}`)
