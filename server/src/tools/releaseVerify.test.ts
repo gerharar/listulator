@@ -560,6 +560,75 @@ describe('the first release, which has no earlier one', () => {
   })
 })
 
+describe('a bridge release of a key rotation (BL-122): signed with the OLD key, carrying the NEW one', () => {
+  // The installed apps trust the key of the release they are on; the bridge release is signed with that key and its config already carries the new
+  // key. The old key is NAMED (--pubkey-from), never guessed from the files: a release signed with the wrong key must still fail.
+  const bridge = (over: Partial<World> = {}) => world({ pubkey: other.pubkey, previousPubkey: app.pubkey, ...over }, goodFiles({ signer: app }))
+  const named = async (w: World, pubkeyFrom: string | null = PREVIOUS) => {
+    const f = fake(w)
+    const log: string[] = []
+    const result = await releaseVerify({ tag: TAG, ...(pubkeyFrom === null ? {} : { pubkeyFrom }) }, f.host, (line) => log.push(line))
+
+    return { ...f, result, log }
+  }
+
+  it('has no failures when the old key is named: the signatures, the manifest and the update path all follow it', async () => {
+    const { result, log } = await named(bridge())
+
+    expect(result).toEqual({ tag: TAG, failures: [] })
+    expect(log.join('\n')).toMatch(/key rotation.*v1\.0\.2/i)
+  })
+
+  it('fails when the old key is not named: the signatures are not the tag’s own key', async () => {
+    const { result } = await named(bridge(), null)
+
+    expect(result.failures.join(' | ')).toMatch(/signature|key/i)
+    expect(result.failures.length).toBeGreaterThan(0)
+  })
+
+  it('still fails a bridge release signed with a key that is neither the old one nor the new one', async () => {
+    const w = world({ pubkey: other.pubkey, previousPubkey: app.pubkey }, goodFiles({ signer: makeKeyPair('0123456789ABCDEF') }))
+
+    expect((await named(w)).result.failures.length).toBeGreaterThan(0)
+  })
+
+  it('fails when the release carries the same key as the one named: it is no rotation', async () => {
+    const { result } = await named(world({}, goodFiles({ signer: app })))
+
+    expect(result.failures.join(' | ')).toMatch(/no rotation/i)
+  })
+
+  it.each([
+    ['a release that is not published', { tags: [TAG, 'v1.0.1'] }, /v1\.0\.2 is not a published release/],
+    ['the release itself', { tags: [PREVIOUS, TAG] }, undefined],
+  ])('refuses to take the key of %s', async (_name, over, expected) => {
+    const w = bridge(over)
+    const pubkeyFrom = expected === undefined ? TAG : PREVIOUS
+    const { result } = await named(w, pubkeyFrom)
+
+    expect(result.failures).toHaveLength(1)
+    expect(result.failures[0]).toMatch(expected ?? /older/)
+  })
+
+  it('refuses a newer release than the one checked', async () => {
+    const { result } = await named(bridge({ tags: [PREVIOUS, TAG, 'v1.2.0'] }), 'v1.2.0')
+
+    expect(result.failures).toEqual([expect.stringMatching(/older/)])
+  })
+
+  it('fails in words when the named release’s key cannot be read', async () => {
+    const { result } = await named(bridge({ previousPubkeyFails: new Error('gh could not read the config') }))
+
+    expect(result.failures.join(' | ')).toMatch(/public key of v1\.0\.2 could not be read/)
+  })
+
+  it('reads the named release’s key and the tag’s own, and no other', async () => {
+    const { keyReads } = await named(bridge())
+
+    expect([...new Set(keyReads)].sort()).toEqual([PREVIOUS, TAG].sort())
+  })
+})
+
 describe('what release:ship reads as the sign that this script ran', () => {
   it('ends with a line that says the tag is verified, and release:ship recognises that very line, after the lines of the checks', () => {
     expect(verifiedReported(`ok    latest.json  announces 1.1.0\n${verifiedLine(TAG)}\n`)).toBe(true)
@@ -577,6 +646,21 @@ describe('the command line', () => {
   it('takes no tag (the latest) or one tag', () => {
     expect(parseReleaseVerifyArguments([])).toEqual({})
     expect(parseReleaseVerifyArguments(['v1.1.0'])).toEqual({ tag: 'v1.1.0' })
+  })
+
+  it('takes the key of an earlier release for a bridge release, named with --pubkey-from', () => {
+    expect(parseReleaseVerifyArguments(['v1.1.0', '--pubkey-from', 'v1.0.2'])).toEqual({ tag: 'v1.1.0', pubkeyFrom: 'v1.0.2' })
+    expect(parseReleaseVerifyArguments(['--pubkey-from', 'v1.0.2', 'v1.1.0'])).toEqual({ tag: 'v1.1.0', pubkeyFrom: 'v1.0.2' })
+    expect(parseReleaseVerifyArguments(['--pubkey-from', 'v1.0.2'])).toEqual({ pubkeyFrom: 'v1.0.2' })
+  })
+
+  it.each([
+    ['--pubkey-from with no value', ['v1.1.0', '--pubkey-from'], /needs a value/],
+    ['--pubkey-from that is not a tag', ['v1.1.0', '--pubkey-from', 'main'], /not a tag/],
+    ['--pubkey-from with a path in it', ['v1.1.0', '--pubkey-from', 'v1.0.2/../x'], /not a tag/],
+    ['--pubkey-from twice', ['--pubkey-from', 'v1.0.1', '--pubkey-from', 'v1.0.2'], /only once/],
+  ])('refuses %s, in words', (_name, args, expected) => {
+    expect(parseReleaseVerifyArguments(args)).toMatch(expected)
   })
 
   it.each([

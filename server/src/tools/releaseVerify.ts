@@ -11,7 +11,7 @@ import { assetName, compareVersions, keyIdOfPublicKey, manifestProblems, type Pl
 import { RELEASE_VERSION } from './versionSources.js'
 
 /**
- * `npm run release:verify -- [tag]` (Phase 31, task 31.4). A read-only check of a PUBLISHED release, as an installed app and a
+ * `npm run release:verify -- [tag] [--pubkey-from <tag>]` (Phase 31, task 31.4; the second option BL-122). A read-only check of a PUBLISHED release, as an installed app and a
  * user see it. It changes nothing and needs no key, so the owner, `release:ship` and the scheduled canary can all run it.
  * Without a tag it checks the newest published stable release. For that tag:
  *
@@ -32,6 +32,12 @@ import { RELEASE_VERSION } from './versionSources.js'
 
 const REPO_URL = `https://github.com/${REPO}/releases`
 
+/**
+ * A bridge release of a key rotation (BL-122) is signed with the key the installed apps already trust, the one of an OLDER release, while its own
+ * config already carries the new key. That older release is NAMED (`--pubkey-from`), never guessed from the files: the signatures, the manifest and
+ * the key ID are then judged against its key, and a release signed with any other key still fails.
+ */
+
 /** The public network and GitHub CLI calls the check needs, as intentions; `createVerifyHost` is the real one, the tests use a fake. */
 export interface VerifyHost {
   /** The tags of the published stable releases (drafts and pre-releases excluded), in any order. */
@@ -51,6 +57,8 @@ export interface VerifyHost {
 export interface ReleaseVerifyOptions {
   /** The tag to check (`v` + a version); by default the newest published stable release. */
   tag?: string
+  /** A bridge release of a key rotation: the OLDER published release whose key signed these files (the key the installed apps trust). */
+  pubkeyFrom?: string
 }
 
 export interface ReleaseVerifyResult {
@@ -84,6 +92,12 @@ export async function releaseVerify(options: ReleaseVerifyOptions, host: VerifyH
   if (!published.includes(tag)) return { tag, failures: [`${tag} is not a published release (a draft or a pre-release does not count)`] }
 
   const version = tag.slice(1)
+  const signerTag = options.pubkeyFrom ?? tag
+  if (options.pubkeyFrom !== undefined) {
+    if (!isTag(options.pubkeyFrom)) throw new Error(`${JSON.stringify(options.pubkeyFrom).slice(0, 40)} is not v + a version (like v1.0.0)`)
+    if (!published.includes(options.pubkeyFrom)) return { tag, failures: [`${options.pubkeyFrom} is not a published release (a draft or a pre-release does not count), so its key cannot be the one the installed apps trust`] }
+    if (compareVersions(options.pubkeyFrom.slice(1), version) >= 0) return { tag, failures: [`--pubkey-from names ${options.pubkeyFrom}, which is not older than ${tag}: a bridge release is signed with the key of an older release`] }
+  }
   const previous = published.find((candidate) => compareVersions(candidate.slice(1), version) < 0)
   const exe = assetName('windows-x86_64', version)
   const archive = assetName('darwin-aarch64', version)
@@ -102,15 +116,26 @@ export async function releaseVerify(options: ReleaseVerifyOptions, host: VerifyH
     }
   }
 
-  // The key the signatures have to verify against: the one in the tag's own config.
+  // The key the signatures have to verify against: the one in the tag's own config, or for a named bridge release the one of the older release.
   let pubkey: string | undefined
   try {
-    pubkey = await host.pubkey(tag)
+    pubkey = await host.pubkey(signerTag)
   } catch (error) {
-    fail(`The updater public key of ${tag} could not be read: ${error instanceof Error ? error.message : String(error)}`)
+    fail(`The updater public key of ${signerTag} could not be read: ${error instanceof Error ? error.message : String(error)}`)
   }
   const keyId = pubkey === undefined ? undefined : keyIdOfPublicKey(pubkey)
-  if (pubkey !== undefined && keyId === undefined) fail(`The updater public key in the config of ${tag} is not a minisign public key, so no signature can be checked`)
+  if (pubkey !== undefined && keyId === undefined) fail(`The updater public key in the config of ${signerTag} is not a minisign public key, so no signature can be checked`)
+  if (options.pubkeyFrom !== undefined && keyId !== undefined) {
+    // The release has to be a rotation: its own config carries ANOTHER key than the one that signed it.
+    try {
+      const ownId = keyIdOfPublicKey(await host.pubkey(tag))
+      if (ownId === undefined) fail(`The updater public key in the config of ${tag} is not a minisign public key`)
+      else if (ownId === keyId) fail(`${tag} carries the same updater key as ${options.pubkeyFrom} (${keyId}): this is no rotation, so --pubkey-from does not apply`)
+      else log(`Key rotation: ${tag} carries key ${ownId}; its files are checked against the key of ${options.pubkeyFrom} (${keyId}), the one the installed apps trust`)
+    } catch (error) {
+      fail(`The updater public key of ${tag} could not be read: ${error instanceof Error ? error.message : String(error)}`)
+    }
+  }
 
   // 1. The manifest, as the app fetches it.
   const manifestUrl = tag === latest ? `${REPO_URL}/latest/download/latest.json` : downloadUrl(tag, 'latest.json')
@@ -161,7 +186,7 @@ export async function releaseVerify(options: ReleaseVerifyOptions, host: VerifyH
   if (pubkey !== undefined && keyId !== undefined) {
     for (const { name, data, signature } of updateFiles) {
       const verdict = verifyMinisign(pubkey, signature, data)
-      if (verdict.ok) log(`${name}  signature verifies against the key of ${tag} (${verdict.trustedComment.replace(/\t/g, ' ')})`)
+      if (verdict.ok) log(`${name}  signature verifies against the key of ${signerTag} (${verdict.trustedComment.replace(/\t/g, ' ')})`)
       else fail(`${name}: ${verdict.reason}`)
     }
   }
@@ -259,19 +284,30 @@ export const verifiedReported = (output: string): boolean => /: verified\s*$/m.t
 
 /** The command line as a value, or a sentence saying what is wrong with it. */
 export function parseReleaseVerifyArguments(args: readonly string[]): ReleaseVerifyOptions | string {
-  if (args.length > 1) return 'only one tag can be checked at a time'
-  const tag = args[0]
-  if (tag === undefined) return {}
-  if (tag.startsWith('-')) return `unknown option ${JSON.stringify(tag).slice(0, 30)} (this tool takes a tag and nothing else)`
-  if (!isTag(tag)) return `${JSON.stringify(tag).slice(0, 40)} is not a tag (like v1.0.0)`
+  let tag: string | undefined
+  let pubkeyFrom: string | undefined
+  for (let index = 0; index < args.length; index++) {
+    const arg = args[index]!
+    if (arg === '--pubkey-from') {
+      if (pubkeyFrom !== undefined) return '--pubkey-from can be given only once'
+      const value = args[index + 1]
+      if (value === undefined) return '--pubkey-from needs a value (the older release whose key signed the files, like v1.0.2)'
+      if (!isTag(value)) return `--pubkey-from: ${JSON.stringify(value).slice(0, 40)} is not a tag (like v1.0.0)`
+      index++
+      pubkeyFrom = value
+    } else if (arg.startsWith('-')) return `unknown option ${JSON.stringify(arg).slice(0, 30)} (this tool takes a tag and --pubkey-from <tag>)`
+    else if (tag !== undefined) return 'only one tag can be checked at a time'
+    else if (!isTag(arg)) return `${JSON.stringify(arg).slice(0, 40)} is not a tag (like v1.0.0)`
+    else tag = arg
+  }
 
-  return { tag }
+  return { ...(tag === undefined ? {} : { tag }), ...(pubkeyFrom === undefined ? {} : { pubkeyFrom }) }
 }
 
 if (isRunDirectly(import.meta.url)) {
   const parsed = parseReleaseVerifyArguments(process.argv.slice(2))
   if (typeof parsed === 'string') {
-    console.error(`${parsed}\nUsage: npm run release:verify -- [<tag>]   (without a tag: the newest published release)`)
+    console.error(`${parsed}\nUsage: npm run release:verify -- [<tag>] [--pubkey-from <tag>]   (without a tag: the newest published release; --pubkey-from only for a bridge release of a key rotation)`)
     process.exit(1)
   }
 
