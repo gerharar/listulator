@@ -150,7 +150,8 @@ export function CategoryPicker({ mediaTypes, first, tmdbCallout = tmdbCalloutSet
             )
           })}
         </div>
-        {first && <VaultShelf mediaTypes={mediaTypes} />}
+        {/* One screen for the first run and New List (H-018, 2026-10-26): the shelf shows in both, the sample button only with no lists. */}
+        <VaultShelf mediaTypes={mediaTypes} sample={first} />
       </div>
     </div>
   )

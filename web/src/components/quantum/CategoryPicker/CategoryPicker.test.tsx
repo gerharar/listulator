@@ -407,15 +407,19 @@ describe('the first-run subline and the TMDB callout (H-018, 33.3)', () => {
   })
 })
 
-describe('the List Vault shelf on the picker (H-018, 33.6)', () => {
+describe('the List Vault shelf on the picker (H-018, 33.6; on New List too since 34.3)', () => {
   const REGISTRY_FOR_SHELF = [mediaType({ key: 'movie', label: 'Movies', searchAvailable: true })]
+  const ENTRIES = ['movie', 'tv', 'game', 'book', 'music', 'comic'].map((category) => ({
+    externalRef: `canonical:lists/${category}/a.yaml`,
+    title: `A ${category} list`,
+    category,
+    itemCount: 3,
+  }))
+  const sampleButton = () => screen.queryByRole('button', { name: 'Try A Sample List' })
 
-  function renderIt(first: boolean) {
-    vi.mocked(api.lists).mockResolvedValue([])
-    vi.mocked(api.libraryUntracked).mockResolvedValue({
-      entries: [{ externalRef: 'canonical:lists/movie/a.yaml', title: 'A Movie List', category: 'movie', itemCount: 3 }],
-      reachable: true,
-    })
+  function renderIt(first: boolean, lists: MediaList[] = []) {
+    vi.mocked(api.lists).mockResolvedValue(lists)
+    vi.mocked(api.libraryUntracked).mockResolvedValue({ entries: ENTRIES, reachable: true })
     render(
       <LayerStackProvider home={{ id: 'home', kind: 'home', tabLabel: 'My Lists', content: '/' }}>
         <CategoryPicker mediaTypes={REGISTRY_FOR_SHELF} first={first} />
@@ -423,20 +427,40 @@ describe('the List Vault shelf on the picker (H-018, 33.6)', () => {
     )
   }
 
-  it('is under the tiles on a first run', async () => {
+  it('is under the tiles on a first run, with Try A Sample List', async () => {
     renderIt(true)
 
-    expect(await screen.findByText('A Movie List')).toBeTruthy()
+    await waitFor(() => expect(document.querySelectorAll('.q-vault-card')).toHaveLength(3))
     const tiles = document.querySelector('.q-tiles')!
     expect(tiles.compareDocumentPosition(document.querySelector('.q-vault')!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(sampleButton()).toBeTruthy()
   })
 
-  it('is not on a visit after the first run, and the library is not even asked', async () => {
-    renderIt(false)
+  it('is under the tiles on New List, one screen with the first run: the heading, the close button and the counts of a visit, three cards, no Try A Sample List', async () => {
+    renderIt(false, [listIn('movie', 'm1'), listIn('movie', 'm2')])
 
-    await waitFor(() => expect(api.lists).toHaveBeenCalled())
-    expect(document.querySelector('.q-vault')).toBeNull()
-    expect(api.libraryUntracked).not.toHaveBeenCalled()
+    await waitFor(() => expect(document.querySelectorAll('.q-vault-card')).toHaveLength(3))
+    const tiles = document.querySelector('.q-tiles')!
+    expect(tiles.compareDocumentPosition(document.querySelector('.q-vault')!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(screen.getByRole('heading', { name: 'Choose Your Fighter' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Close' })).toBeTruthy()
+    await waitFor(() => expect(document.querySelector('.q-count-chip')!.textContent).toBe('2'))
+    expect(sampleButton()).toBeNull()
+  })
+
+  it('is picked again each time the screen opens', async () => {
+    const categoriesShown = async (random: number) => {
+      vi.spyOn(Math, 'random').mockReturnValue(random)
+      renderIt(false, [listIn('movie', 'm1')])
+      await waitFor(() => expect(document.querySelectorAll('.q-vault-card')).toHaveLength(3))
+      const titles = [...document.querySelectorAll('.q-vault-title')].map((node) => node.textContent)
+      cleanup()
+      vi.restoreAllMocks()
+
+      return titles
+    }
+
+    expect(await categoriesShown(0.01)).not.toEqual(await categoriesShown(0.99))
   })
 })
 

@@ -13,6 +13,8 @@ import { shelfPicks } from './shelfPicks.js'
 export interface VaultShelfProps {
   /** The registry, for the categories' names. */
   mediaTypes: readonly MediaType[]
+  /** Whether Try A Sample List shows: on a first run only (no lists); someone with lists has had the commitment-free try (H-018, 2026-10-26). */
+  sample: boolean
   /** Chooses the three; a test fixes it. */
   random?: () => number
 }
@@ -20,11 +22,11 @@ export interface VaultShelfProps {
 type Shelf = { phase: 'loading' } | { phase: 'offline' } | { phase: 'ready'; picks: LibraryEntry[]; entries: LibraryEntry[] }
 
 /**
- * "Or start from List Vault" (H-018): under the first-run tiles, up to three canonical lists a person can open without a key. A card opens the
- * Preview the search rows open and adds nothing: the list is only built by Add This List there. The three are picked once, when the library
- * has answered, and stay while the screen stays open. With no connection the shelf says so instead of showing cards.
+ * "Or start from List Vault" (H-018): under the tiles of the first run and, since 2026-10-26, of New List (one screen), up to three canonical lists a
+ * person can open without a key. A card opens the Preview the search rows open and adds nothing: the list is only built by Add This List there.
+ * The three are picked once, when the library has answered, and stay while the screen stays open. With no connection the shelf says so instead of showing cards.
  */
-export function VaultShelf({ mediaTypes, random = Math.random }: VaultShelfProps) {
+export function VaultShelf({ mediaTypes, sample, random = Math.random }: VaultShelfProps) {
   const text = copy.quantum.vaultShelf
   const layerStack = useLayerStack()
   const [shelf, setShelf] = useState<Shelf>({ phase: 'loading' })
@@ -102,11 +104,13 @@ export function VaultShelf({ mediaTypes, random = Math.random }: VaultShelfProps
           <span className="q-vault-label">{text.label}</span>
           <p className="q-vault-line">{shelf.phase === 'offline' ? text.offline : text.line}</p>
         </div>
-        <Button className="q-vault-sample" disabled={shelf.phase !== 'ready' || adding} onClick={() => void trySample()}>
-          {text.trySample}
-        </Button>
+        {sample && (
+          <Button className="q-vault-sample" disabled={shelf.phase !== 'ready' || adding} onClick={() => void trySample()}>
+            {text.trySample}
+          </Button>
+        )}
       </div>
-      {failed && (
+      {sample && failed && (
         <p className="q-vault-failed" role="alert">
           {text.sampleFailed}
         </p>

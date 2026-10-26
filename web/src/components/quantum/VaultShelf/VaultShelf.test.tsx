@@ -30,12 +30,12 @@ function StackReader() {
   return <span data-testid="stack">{stack.map((layer) => `${layer.kind}:${layer.content}`).join(',')}</span>
 }
 
-function mount(answer: { entries: LibraryEntry[]; reachable: boolean } | Error, random = () => 0.3) {
+function mount(answer: { entries: LibraryEntry[]; reachable: boolean } | Error, random = () => 0.3, sample = true) {
   if (answer instanceof Error) vi.mocked(api.libraryUntracked).mockRejectedValue(answer)
   else vi.mocked(api.libraryUntracked).mockResolvedValue(answer)
   const view = render(
     <LayerStackProvider home={{ id: 'home', kind: 'home', tabLabel: 'My Lists', content: '/' }}>
-      <VaultShelf mediaTypes={TYPES} random={random} />
+      <VaultShelf mediaTypes={TYPES} random={random} sample={sample} />
       <StackReader />
     </LayerStackProvider>,
   )
@@ -85,7 +85,7 @@ describe('VaultShelf', () => {
 
     view.rerender(
       <LayerStackProvider home={{ id: 'home', kind: 'home', tabLabel: 'My Lists', content: '/' }}>
-        <VaultShelf mediaTypes={TYPES} random={() => 0.99} />
+        <VaultShelf mediaTypes={TYPES} random={() => 0.99} sample />
         <StackReader />
       </LayerStackProvider>,
     )
@@ -123,6 +123,34 @@ describe('VaultShelf', () => {
     mount({ entries: [], reachable: true })
 
     await waitFor(() => expect(document.querySelector('.q-vault')).toBeNull())
+  })
+})
+
+describe('VaultShelf without the sample button (New List, 34.3)', () => {
+  it('has its label, its line and its cards, and no Try A Sample List', async () => {
+    mount({ entries: entries(['movie', 'tv', 'game', 'book']), reachable: true }, () => 0.3, false)
+
+    await waitFor(() => expect(cards()).toHaveLength(3))
+    expect(screen.getByText('Or start from List Vault')).toBeTruthy()
+    expect(screen.getByText('Canonical lists anyone can open, no key needed. Preview one; nothing is added until you choose Add This List.')).toBeTruthy()
+    expect(screen.queryByRole('button', { name: 'Try A Sample List' })).toBeNull()
+  })
+
+  it('still opens the Preview of a card and adds nothing', async () => {
+    mount({ entries: entries(['movie']), reachable: true }, () => 0.3, false)
+    await waitFor(() => expect(cards()).toHaveLength(1))
+
+    fireEvent.click(cards()[0]!)
+
+    expect(screen.getByTestId('stack').textContent).toContain('preview:')
+    expect(api.createFromSource).not.toHaveBeenCalled()
+  })
+
+  it('says it needs a connection when the library cannot be reached, with no button either', async () => {
+    mount({ entries: [], reachable: false }, () => 0.3, false)
+
+    await screen.findByText('List Vault needs an internet connection to show its lists.')
+    expect(screen.queryByRole('button', { name: 'Try A Sample List' })).toBeNull()
   })
 })
 

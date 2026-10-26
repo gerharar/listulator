@@ -37,6 +37,42 @@ test('New List opens the picker, driven by the live registry rather than the han
   await expect(page.locator('.q-tile.used .q-count-chip')).toHaveText('1')
 })
 
+/**
+ * First run and New List are one screen (H-018, revised 2026-10-26): with lists, New List keeps the heading, the close button and the counts, and
+ * also carries the List Vault shelf of three, but not Try A Sample List. The library is a fake answer (a real one needs the network); the lists come
+ * from the home fixture.
+ */
+test('New List carries the List Vault shelf of three, no Try A Sample List, and a card opens a Preview and adds nothing (H-018)', async ({ page }) => {
+  const categories = ['movie', 'tv', 'game', 'book', 'music', 'comic']
+  const entries = categories.map((category) => ({ externalRef: `canonical:lists/${category}/nl.yaml`, title: `NL ${category}`, category, itemCount: 4 }))
+  const items = Array.from({ length: 4 }, (_, index) => ({ title: `Entry ${index + 1}`, timeToConsumeMinutes: 30, year: 2000 }))
+  const writes: string[] = []
+
+  await useHomeFixture(page)
+  await page.route('**/api/library/untracked', (route) => route.fulfill({ json: { entries, reachable: true } }))
+  await page.route('**/api/media-types/*/expansion**', (route) => route.fulfill({ json: { itemCount: 4, status: 'complete', items } }))
+  await page.route('**/api/lists/from-source', (route) => {
+    writes.push('from-source')
+
+    return route.abort()
+  })
+  await page.goto('/')
+  await page.getByRole('button', { name: 'New List' }).click()
+
+  await expect(page.getByRole('heading', { name: picker.title })).toBeVisible()
+  await expect(page.getByRole('button', { name: picker.closeLabel })).toBeVisible()
+  await expect(page.getByText(en.quantum.vaultShelf.label)).toBeVisible()
+  const cards = page.locator('.q-vault-card')
+  await expect(cards).toHaveCount(3)
+  const kinds = await cards.locator('.q-vault-meta').allTextContents()
+  expect(new Set(kinds.map((meta) => meta.split(' · ')[0])).size).toBe(3)
+  await expect(page.getByRole('button', { name: en.quantum.vaultShelf.trySample })).toHaveCount(0)
+
+  await cards.first().click()
+  await expect(page.locator('.q-preview-row')).toHaveCount(4)
+  expect(writes).toEqual([])
+})
+
 test('the web build never shows “Free key needed”, and every tile keeps a 20px bottom row so the source names stay level (H-018)', async ({ page }) => {
   await useHomeFixture(page)
   await page.goto('/')

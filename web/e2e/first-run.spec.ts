@@ -199,6 +199,8 @@ test('Try A Sample List: add, Keep It keeps it with no change of screen; Remove 
   // Remove Sample: First Run again, and Undo brings the list back to My Lists.
   await page.getByRole('button', { name: q.list.sample.remove }).click()
   await expect(page.getByRole('heading', { name: q.categoryPicker.firstRunTitle })).toBeVisible({ timeout: 15_000 })
+  // With no lists left it is the first-run screen again, sample button included (H-018, 2026-10-26).
+  await expect(page.getByRole('button', { name: q.vaultShelf.trySample })).toBeVisible()
   await page.getByRole('button', { name: q.list.itemActions.undo }).click()
   await expect(page.getByRole('heading', { name: q.home.title })).toBeVisible({ timeout: 15_000 })
   await expect(page.locator('.q-home-row', { hasText: MCU.title })).toBeVisible()
