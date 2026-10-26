@@ -22,6 +22,20 @@ export function readSampleSetting(value: unknown): SampleSetting {
 /** The setting this build was made with. */
 export const sampleSetting: SampleSetting = readSampleSetting(onboarding)
 
+/**
+ * Whether the first-run TMDB key callout shows (`tmdbCallout` in `config/onboarding.json`). Hidden since the owner's usability test of 2026-10-26:
+ * testers read "One free TMDB key" as a key that unlocks everything, and it crowded the screen. The code, its styles and its strings stay behind
+ * this flag. Only a boolean `true` turns it on; a missing or malformed value means off, never an error.
+ */
+export function readTmdbCallout(value: unknown): boolean {
+  const named = typeof value === 'object' && value !== null && !Array.isArray(value) ? (value as Record<string, unknown>)['tmdbCallout'] : undefined
+
+  return named === true
+}
+
+/** The callout setting this build was made with. */
+export const tmdbCalloutSetting: boolean = readTmdbCallout(onboarding)
+
 /** The library entry the setting names, a random one when it names none that exists, nothing from an empty library. */
 export function pickSample(setting: SampleSetting, entries: readonly LibraryEntry[], random: () => number): LibraryEntry | null {
   if (entries.length === 0) return null

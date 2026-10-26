@@ -292,13 +292,14 @@ describe('the first-run subline and the TMDB callout (H-018, 33.3)', () => {
   const chips = () => document.querySelectorAll('.q-key-chip')
   const callout = () => document.querySelector('.q-keycard')
 
-  function renderFirstRun(registry: MediaType[], first = true) {
+  // The callout is hidden in the shipped config (2026-10-26); these tests turn the flag on, as `config/onboarding.json` can.
+  function renderFirstRun(registry: MediaType[], first = true, tmdbCallout = true) {
     vi.mocked(api.lists).mockResolvedValue([])
     render(
       <LiveRegionProvider>
         <ToastProvider>
           <LayerStackProvider home={{ id: 'home', kind: 'home', tabLabel: 'My Lists', content: '/' }}>
-            <CategoryPicker mediaTypes={registry} first={first} />
+            <CategoryPicker mediaTypes={registry} first={first} tmdbCallout={tmdbCallout} />
           </LayerStackProvider>
         </ToastProvider>
       </LiveRegionProvider>,
@@ -317,6 +318,25 @@ describe('the first-run subline and the TMDB callout (H-018, 33.3)', () => {
     renderFirstRun(TMDB_KEYLESS)
 
     expect(screen.getByText('Pick a category to start a list. Those marked Free key needed search List Vault until you add a free API key. Mega is for cross-category franchises')).toBeTruthy()
+  })
+
+  it('is hidden by default, even on a first run in the desktop app with no TMDB key; the chips and the subline stay (owner, 2026-10-26)', () => {
+    inDesktop()
+    vi.mocked(api.lists).mockResolvedValue([])
+    render(
+      <LiveRegionProvider>
+        <ToastProvider>
+          <LayerStackProvider home={{ id: 'home', kind: 'home', tabLabel: 'My Lists', content: '/' }}>
+            <CategoryPicker mediaTypes={TMDB_KEYLESS} first />
+          </LayerStackProvider>
+        </ToastProvider>
+      </LiveRegionProvider>,
+    )
+
+    expect(callout()).toBeNull()
+    expect(screen.queryByText('One free TMDB key unlocks four categories')).toBeNull()
+    expect(chips()).toHaveLength(2)
+    expect(screen.getByText(/Those marked Free key needed search List Vault/)).toBeTruthy()
   })
 
   it('shows the callout above the tiles on a first run in the desktop app while there is no TMDB key', () => {
@@ -362,7 +382,7 @@ describe('the first-run subline and the TMDB callout (H-018, 33.3)', () => {
       const [registry, setRegistry] = useState(TMDB_KEYLESS)
       useRefetchOnRegistryChange(async () => TMDB_KEYED, setRegistry)
 
-      return <CategoryPicker mediaTypes={registry} first />
+      return <CategoryPicker mediaTypes={registry} first tmdbCallout />
     }
     vi.mocked(api.lists).mockResolvedValue([])
     render(

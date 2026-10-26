@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
 import type { LibraryEntry } from '../../../server/src/ingestion/customLists.js'
-import { DEFAULT_SAMPLE_PATH, pickSample, readSampleSetting } from './onboardingConfig.js'
+import { DEFAULT_SAMPLE_PATH, pickSample, readSampleSetting, readTmdbCallout, tmdbCalloutSetting } from './onboardingConfig.js'
 
 /** The first-run sample list is named in `config/onboarding.json` (H-018; owner 2026-10-22 and 2026-10-24). */
 
@@ -27,6 +27,22 @@ describe('readSampleSetting', () => {
 
   it('names the extended MCU list as the default', () => {
     expect(DEFAULT_SAMPLE_PATH).toBe('lists/mega/mcu-extended.yaml')
+  })
+})
+
+describe('readTmdbCallout', () => {
+  it('is on only for a boolean true', () => {
+    expect(readTmdbCallout({ tmdbCallout: true })).toBe(true)
+  })
+
+  it('is off for false, for no value, and for anything that is not a boolean: never an error', () => {
+    for (const other of [{ tmdbCallout: false }, {}, null, undefined, 7, 'text', [], { tmdbCallout: 'true' }, { tmdbCallout: 1 }, { tmdbCallout: null }]) {
+      expect(readTmdbCallout(other)).toBe(false)
+    }
+  })
+
+  it('is off in the config this build was made with (owner, 2026-10-26: the callout is hidden)', () => {
+    expect(tmdbCalloutSetting).toBe(false)
   })
 })
 

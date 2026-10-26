@@ -13,6 +13,7 @@ import { isDesktop } from '../../../lib/platform.js'
 import { subscribeListsChanged } from '../../../lib/listsChanged.js'
 import { KeyCard } from '../KeyCard/KeyCard.js'
 import { VaultShelf } from '../VaultShelf/VaultShelf.js'
+import { tmdbCalloutSetting } from '../../../lib/onboardingConfig.js'
 import { keyNeeded, tmdbKeyNeeded } from './keyNeeded.js'
 
 export interface CategoryPickerProps {
@@ -20,6 +21,8 @@ export interface CategoryPickerProps {
   mediaTypes: readonly MediaType[]
   /** True when the picker is the base layer (nothing tracked yet): no close button, no counts, first-run headline. */
   first: boolean
+  /** Whether the first-run TMDB key callout may show: `config/onboarding.json`, off since 2026-10-26 (H-018). A test turns it on. */
+  tmdbCallout?: boolean
 }
 
 /**
@@ -30,7 +33,7 @@ export interface CategoryPickerProps {
  * registry has no search source — never the design handoff's own table,
  * which is stale where they disagree (Wrestling and MMA read Wikipedia).
  */
-export function CategoryPicker({ mediaTypes, first }: CategoryPickerProps) {
+export function CategoryPicker({ mediaTypes, first, tmdbCallout = tmdbCalloutSetting }: CategoryPickerProps) {
   const layerStack = useLayerStack()
   const [counts, setCounts] = useState<ReadonlyMap<string, number>>(new Map())
 
@@ -99,7 +102,7 @@ export function CategoryPicker({ mediaTypes, first }: CategoryPickerProps) {
       </div>
 
       <div className="q-picker-body">
-        {first && tmdbKeyNeeded(mediaTypes, desktop) && (
+        {first && tmdbCallout && tmdbKeyNeeded(mediaTypes, desktop) && (
           <div className="q-picker-callout">
             <KeyCard source="tmdb" title={text.tmdbCallout.title}>
               {text.tmdbCallout.body}

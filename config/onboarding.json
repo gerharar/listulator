@@ -1,3 +1,4 @@
 {
-  "sampleList": "lists/mega/mcu-extended.yaml"
+  "sampleList": "lists/mega/mcu-extended.yaml",
+  "tmdbCallout": false
 }
