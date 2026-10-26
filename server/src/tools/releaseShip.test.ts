@@ -254,6 +254,7 @@ interface RunOptions {
   keyFile?: string
   toolsDiffReviewed?: string | undefined
   dryRun?: boolean
+  rotation?: { pubkeyFrom: string; newKeyId: string }
 }
 
 async function ship(w: World, options: RunOptions = {}) {
@@ -262,7 +263,7 @@ async function ship(w: World, options: RunOptions = {}) {
   const notes: string[] = []
   const reviewed = 'toolsDiffReviewed' in options ? options.toolsDiffReviewed : HASH
   const result = await releaseShip(
-    { tag: options.tag ?? TAG, keyFile: options.keyFile, toolsDiffReviewed: reviewed, dryRun: options.dryRun ?? false, repoRoot: REPO, pause: async (ms) => void f.slept.push(ms) },
+    { tag: options.tag ?? TAG, keyFile: options.keyFile, toolsDiffReviewed: reviewed, dryRun: options.dryRun ?? false, ...(options.rotation === undefined ? {} : options.rotation), repoRoot: REPO, pause: async (ms) => void f.slept.push(ms) },
     f.host,
     f.io,
     (line) => log.push(line),
@@ -281,6 +282,47 @@ describe('the outputs these tests give the tagged tools are the ones the real to
     expect(dryRunReported(w.dry.output)).toBe(true)
     expect(uploadReported(w.sign.output)).toBe(true)
     expect(verifiedReported(`ok    checked\n${verifiedLine(TAG)}`)).toBe(true)
+  })
+})
+
+describe('a key rotation: the bridge release (BL-122)', () => {
+  // The bridge release is signed with the OLD key, which the installed apps trust, and carries the NEW key in its config. The two flags go
+  // to the tagged release:sign (which checks the tag carries exactly the new key) and to the public check; without them nothing changes.
+  const rotation = { pubkeyFrom: 'v1.1.0', newKeyId: '0123456789ABCDEF' }
+  const flags = ['--pubkey-from', 'v1.1.0', '--new-key-id', '0123456789ABCDEF']
+
+  it('passes the two flags to the dry run, the signing, the second dry run and the public check', async () => {
+    const r = await ship(world(), { keyFile: KEY, rotation })
+
+    expect(r.result).toEqual({ failures: [], signed: true, published: true, verified: true })
+    expect(r.scripts.map((entry) => [entry.script, entry.args])).toEqual([
+      ['release:sign', [TAG, '--dry-run', ...flags]],
+      ['release:sign', [TAG, '--key-file', KEY, '--passphrase-stdin', ...flags]],
+      ['release:sign', [TAG, '--dry-run', ...flags]],
+      // The public check takes the OLD key by name (--pubkey-from) and has no use for the new key's ID.
+      ['release:verify', [TAG, '--pubkey-from', 'v1.1.0']],
+    ])
+  })
+
+  it('still hands the passphrase to the one signing process and no other', async () => {
+    const r = await ship(world(), { keyFile: KEY, rotation })
+
+    expect(r.scripts.filter((entry) => entry.passphrase !== undefined)).toHaveLength(1)
+    expect(r.scripts.filter((entry) => entry.passphrase !== undefined)[0]!.args).toContain('--passphrase-stdin')
+  })
+
+  it('does not change a normal release: no flag reaches any script', async () => {
+    const r = await ship(world(), { keyFile: KEY })
+
+    expect(r.scripts.flatMap((entry) => entry.args).some((arg) => arg === '--pubkey-from' || arg === '--new-key-id')).toBe(false)
+  })
+
+  it('stops, and signs nothing, when the dry run of the tagged release:sign refuses the rotation', async () => {
+    const r = await ship(world({ dry: { code: 1, output: 'FAIL  This is no rotation: the tag carries the same key as the installed apps trust' } }), { keyFile: KEY, rotation })
+
+    expect(r.result.signed).toBe(false)
+    expect(r.asked.passphrase).toBe(0)
+    expect(r.result.failures.join('\n')).toMatch(/dry-run refused/)
   })
 })
 
@@ -808,6 +850,7 @@ describe('the passphrase on every path (rule S5): a program that repeats it ever
 describe('the command line', () => {
   it('takes a tag, and --key-file, --tools-diff-reviewed and --dry-run', () => {
     expect(parseReleaseShipArguments(['v1.1.1'])).toEqual({ tag: 'v1.1.1', dryRun: false })
+    expect(parseReleaseShipArguments(['v1.1.1', '--pubkey-from', 'v1.1.0', '--new-key-id', '0123456789abcdef'])).toEqual({ tag: 'v1.1.1', dryRun: false, pubkeyFrom: 'v1.1.0', newKeyId: '0123456789ABCDEF' })
     expect(parseReleaseShipArguments(['v1.1.1', '--key-file', '/keys/updater.key', '--tools-diff-reviewed', HASH, '--dry-run'])).toEqual({ tag: 'v1.1.1', keyFile: '/keys/updater.key', toolsDiffReviewed: HASH, dryRun: true })
   })
 
@@ -824,6 +867,13 @@ describe('the command line', () => {
     ['--key-file without a path', ['v1.1.1', '--key-file']],
     ['a hash that is not 32 hex digits', ['v1.1.1', '--tools-diff-reviewed', '0123456789abcdef']],
     ['an unknown option', ['v1.1.1', '--force']],
+    ['--pubkey-from without --new-key-id', ['v1.1.1', '--pubkey-from', 'v1.1.0']],
+    ['--new-key-id without --pubkey-from', ['v1.1.1', '--new-key-id', '0123456789ABCDEF']],
+    ['a key ID that is not 16 hex digits', ['v1.1.1', '--pubkey-from', 'v1.1.0', '--new-key-id', '0123']],
+    ['a --pubkey-from that is not a tag', ['v1.1.1', '--pubkey-from', 'main', '--new-key-id', '0123456789ABCDEF']],
+    ['a --pubkey-from with a path in it', ['v1.1.1', '--pubkey-from', 'v1.1.0/../x', '--new-key-id', '0123456789ABCDEF']],
+    ['--pubkey-from without a value', ['v1.1.1', '--pubkey-from']],
+    ['--pubkey-from twice', ['v1.1.1', '--pubkey-from', 'v1.0.0', '--pubkey-from', 'v1.1.0', '--new-key-id', '0123456789ABCDEF']],
   ])('refuses %s, in words', (_name, args) => {
     expect(typeof parseReleaseShipArguments(args)).toBe('string')
   })

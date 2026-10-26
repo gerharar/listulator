@@ -14,7 +14,7 @@ import { assetName, compareVersions } from './updateManifest.js'
 import { RELEASE_VERSION } from './versionSources.js'
 
 /**
- * `npm run release:ship -- <tag> [--key-file <path>] [--tools-diff-reviewed <hash>] [--dry-run]` (Phase 31, task 31.5): the signing of a
+ * `npm run release:ship -- <tag> [--key-file <path>] [--tools-diff-reviewed <hash>] [--pubkey-from <tag> --new-key-id <ID>] [--dry-run]` (Phase 31, task 31.5): the signing of a
  * draft Release, from the owner's side one command, one passphrase and one "y". It is a wrapper: the tagged `release:sign` does the
  * checks and the signing, in a temporary worktree at the tag, so the code that sees the key and the passphrase is the tagged code that
  * the owner (or the reviewer) read the diff of (SR-070), and the owner's working copy is never touched.
@@ -34,6 +34,11 @@ import { RELEASE_VERSION } from './versionSources.js'
  *     more. Then "Publish? (y/N)": anything but y or yes publishes nothing. After a publish the tagged `release:verify` checks the
  *     public files (a few tries: GitHub takes a moment).
  *  7. The worktree is always removed.
+ *
+ * A key rotation (BL-122): the bridge release is signed with the OLD key, the one the installed apps trust, while its config carries the NEW one.
+ * `--pubkey-from <tag> --new-key-id <ID>` name the older release whose key that is and the new key's ID; they are passed on, unchanged, to all
+ * three tagged `release:sign` runs (which refuse a tag that does not carry exactly that new key) and, as `--pubkey-from`, to the public
+ * `release:verify`. Without them nothing is passed and a normal release is exactly as before.
  *
  * The tagged tools are started with `node` and `tsx` directly, never through `npm run`: a `.npmrc` (`node-options`, `script-shell`), a
  * package script or a `node_modules/.bin` entry that shadows `gh` of a tagged tree would otherwise run with the passphrase at hand.
@@ -116,6 +121,9 @@ export interface ReleaseShipOptions {
   keyFile?: string | undefined
   /** The hash of the tools diff the owner (or the reviewer) has read. */
   toolsDiffReviewed?: string | undefined
+  /** A key rotation's bridge release: the older release whose key (the one the installed apps trust) signs it, and the ID of the new key the tag carries. Both or neither. */
+  pubkeyFrom?: string | undefined
+  newKeyId?: string | undefined
   dryRun: boolean
   /** The owner's working copy: a key file must not be inside it. */
   repoRoot: string
@@ -165,6 +173,10 @@ export async function releaseShip(options: ReleaseShipOptions, host: ShipHost, i
   const { tag } = options
   if (!tag.startsWith('v') || !RELEASE_VERSION.test(tag.slice(1))) throw new Error(`${JSON.stringify(tag).slice(0, 40)} is not v + a version (like v1.1.1)`)
   const version = tag.slice(1)
+  if ((options.pubkeyFrom === undefined) !== (options.newKeyId === undefined)) throw new Error('--pubkey-from and --new-key-id go together (a key rotation)')
+  // What the tagged scripts are told about a rotation; nothing at all for a normal release.
+  const rotationArgs = options.pubkeyFrom === undefined || options.newKeyId === undefined ? [] : ['--pubkey-from', options.pubkeyFrom, '--new-key-id', options.newKeyId]
+  const verifyArgs = options.pubkeyFrom === undefined ? [tag] : [tag, '--pubkey-from', options.pubkeyFrom]
   const pause = options.pause ?? ((ms: number) => new Promise<void>((done) => setTimeout(done, ms)))
 
   // The ONE place the passphrase is kept, and the ONE function every line passes through before it is shown or reported.
@@ -279,8 +291,9 @@ export async function releaseShip(options: ReleaseShipOptions, host: ShipHost, i
     note('Installing the tagged tools (npm ci --ignore-scripts) ...')
     await host.install(dir)
 
+    if (options.pubkeyFrom !== undefined) note(`Key rotation: ${tag} is signed with the key of ${options.pubkeyFrom} (the one the installed apps trust); the tag must carry the new key ${options.newKeyId}`)
     note('Running the tagged release:sign --dry-run ...')
-    const dry = await host.runScript(dir, 'release:sign', [tag, '--dry-run'])
+    const dry = await host.runScript(dir, 'release:sign', [tag, '--dry-run', ...rotationArgs])
     show(dry.output)
     if (dry.code !== 0) {
       return stop('release:sign --dry-run refused (see above): nothing was signed')
@@ -317,7 +330,7 @@ export async function releaseShip(options: ReleaseShipOptions, host: ShipHost, i
 
     // 5. The signing: the passphrase is written to this one process's standard input (never an argument, in no environment variable).
     note('Signing ...')
-    const signing = await host.runScript(dir, 'release:sign', [tag, '--key-file', keyFile, '--passphrase-stdin'], passphrase)
+    const signing = await host.runScript(dir, 'release:sign', [tag, '--key-file', keyFile, '--passphrase-stdin', ...rotationArgs], passphrase)
     passphrase = ''
     show(signing.output)
     if (signing.code !== 0) {
@@ -357,7 +370,7 @@ export async function releaseShip(options: ReleaseShipOptions, host: ShipHost, i
 
     // Checked once more AFTER the answer and right before publishing, so a file swapped while the owner was deciding is found: the tagged
     // release:sign re-verifies the checksums and the attestations of the files.
-    const again = await host.runScript(dir, 'release:sign', [tag, '--dry-run'])
+    const again = await host.runScript(dir, 'release:sign', [tag, '--dry-run', ...rotationArgs])
     if (again.code !== 0) {
       show(again.output)
       return stop('The draft changed after the signing (see above): not published; the tagged release:sign --dry-run refuses it now')
@@ -376,7 +389,7 @@ export async function releaseShip(options: ReleaseShipOptions, host: ShipHost, i
 
     // 6b. The public files, a few tries: GitHub takes a moment to serve a release that was just published.
     for (let attempt = 1; attempt <= VERIFY_TRIES && !state.verified; attempt++) {
-      const verify = await host.runScript(dir, 'release:verify', [tag])
+      const verify = await host.runScript(dir, 'release:verify', verifyArgs)
       show(verify.output)
       if (verify.code === 0 && verifiedReported(verify.output)) state.verified = true
       else if (attempt < VERIFY_TRIES) await pause(VERIFY_WAIT_MS)
@@ -578,6 +591,8 @@ export interface ReleaseShipArguments {
   tag: string
   keyFile?: string
   toolsDiffReviewed?: string
+  pubkeyFrom?: string
+  newKeyId?: string
   dryRun: boolean
 }
 
@@ -586,16 +601,22 @@ export function parseReleaseShipArguments(args: readonly string[]): ReleaseShipA
   let tag: string | undefined
   let keyFile: string | undefined
   let toolsDiffReviewed: string | undefined
+  let pubkeyFrom: string | undefined
+  let newKeyId: string | undefined
   let dryRun = false
   for (let index = 0; index < args.length; index++) {
     const arg = args[index]!
     if (arg === '--dry-run') dryRun = true
-    else if (arg === '--key-file' || arg === '--tools-diff-reviewed') {
+    else if (arg === '--key-file' || arg === '--tools-diff-reviewed' || arg === '--pubkey-from' || arg === '--new-key-id') {
       const value = args[index + 1]
       if (value === undefined) return `${arg} needs a value`
       index++
       if (arg === '--key-file') keyFile = value
-      else if (/^[0-9a-f]{32}$/.test(value)) toolsDiffReviewed = value
+      else if (arg === '--pubkey-from' || arg === '--new-key-id') {
+        if ((arg === '--pubkey-from' ? pubkeyFrom : newKeyId) !== undefined) return `${arg} can be given only once`
+        if (arg === '--pubkey-from') pubkeyFrom = value
+        else newKeyId = value
+      } else if (/^[0-9a-f]{32}$/.test(value)) toolsDiffReviewed = value
       else return '--tools-diff-reviewed needs the 32 hexadecimal digits the tools diff printed'
     } else if (/^-{1,2}(p|pass\w*)(=|$)/i.test(arg)) return `the passphrase is asked for in a hidden prompt, never given as an option (${JSON.stringify(arg.split('=')[0]).slice(0, 20)})`
     else if (arg.startsWith('-')) return `unknown option ${JSON.stringify(arg).slice(0, 30)}`
@@ -604,14 +625,24 @@ export function parseReleaseShipArguments(args: readonly string[]): ReleaseShipA
   }
   if (tag === undefined) return 'name the tag whose draft is to be signed (like v1.1.1)'
   if (!tag.startsWith('v') || !RELEASE_VERSION.test(tag.slice(1))) return `${JSON.stringify(tag).slice(0, 40)} is not a tag (like v1.1.1)`
+  if ((pubkeyFrom === undefined) !== (newKeyId === undefined)) return pubkeyFrom === undefined ? '--new-key-id goes with --pubkey-from (a key rotation)' : '--pubkey-from needs --new-key-id (a key rotation)'
+  if (pubkeyFrom !== undefined && !(pubkeyFrom.startsWith('v') && RELEASE_VERSION.test(pubkeyFrom.slice(1)))) return `--pubkey-from needs a tag (like v1.1.0), not ${JSON.stringify(pubkeyFrom).slice(0, 40)}`
+  if (newKeyId !== undefined && !/^[0-9A-Fa-f]{16}$/.test(newKeyId)) return '--new-key-id needs the 16 hexadecimal digits of the key ID'
 
-  return { tag, dryRun, ...(keyFile === undefined ? {} : { keyFile }), ...(toolsDiffReviewed === undefined ? {} : { toolsDiffReviewed }) }
+  return {
+    tag,
+    dryRun,
+    ...(keyFile === undefined ? {} : { keyFile }),
+    ...(toolsDiffReviewed === undefined ? {} : { toolsDiffReviewed }),
+    ...(pubkeyFrom === undefined ? {} : { pubkeyFrom }),
+    ...(newKeyId === undefined ? {} : { newKeyId: newKeyId.toUpperCase() }),
+  }
 }
 
 if (isRunDirectly(import.meta.url)) {
   const parsed = parseReleaseShipArguments(process.argv.slice(2))
   if (typeof parsed === 'string') {
-    console.error(`${parsed}\nUsage: npm run release:ship -- <tag> [--key-file <path>] [--tools-diff-reviewed <hash>] [--dry-run]`)
+    console.error(`${parsed}\nUsage: npm run release:ship -- <tag> [--key-file <path>] [--tools-diff-reviewed <hash>] [--pubkey-from <tag> --new-key-id <ID>] [--dry-run]`)
     process.exit(1)
   }
   if (!parsed.dryRun && process.stdin.isTTY !== true) {
