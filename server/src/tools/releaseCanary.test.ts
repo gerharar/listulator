@@ -44,6 +44,10 @@ interface World {
   manifest: Buffer
   /** The updater key that release's config carries, or the error reading it fails with. */
   configKey: string | Error
+  /** The text of the bridge declaration (`keyRotation.json`) in each tag's tree, or the error reading it fails with; a tag with no entry has no such file. */
+  rotation?: Record<string, string | Error>
+  /** The key of an OLDER release's config, which a declared bridge release names. */
+  olderKey?: { tag: string; key: string | Error }
 }
 
 const world = (over: Partial<World> = {}): World => ({
@@ -92,8 +96,20 @@ function fake(w: World): Fake {
       downloaded.push({ tag, names })
     },
     fileBytes: async (path) => (path.endsWith('SHA256SUMS') ? Buffer.from(w.sums) : path.endsWith('latest.json') ? w.manifest : w.installerBytes),
+    keyRotation: async (tag) => {
+      calls.push('keyRotation')
+      const text = w.rotation?.[tag]
+      if (text instanceof Error) throw text
+
+      return text
+    },
     pubkey: async (tag) => {
       calls.push('pubkey')
+      if (w.olderKey !== undefined && tag === w.olderKey.tag) {
+        if (w.olderKey.key instanceof Error) throw w.olderKey.key
+
+        return w.olderKey.key
+      }
       // Only the previous release's config is the one an installer of it was signed for: no other release's key is on offer.
       if (tag !== PREVIOUS) throw new Error(`No updater key is known for ${tag}`)
       if (w.configKey instanceof Error) throw w.configKey
@@ -179,7 +195,7 @@ describe('a previous release that installs and runs', () => {
   it('does its steps in order, and ends with the app stopped, the program uninstalled and the folder removed', async () => {
     const { calls } = await canary(world())
 
-    expect(calls.filter((call) => call !== 'look')).toEqual(['publishedTags', 'makeTempDir', 'download', 'pubkey', 'install', 'fileVersion', 'start', 'stop', 'uninstall', 'removeTempDir'])
+    expect(calls.filter((call) => call !== 'look')).toEqual(['publishedTags', 'makeTempDir', 'download', 'keyRotation', 'pubkey', 'install', 'fileVersion', 'start', 'stop', 'uninstall', 'removeTempDir'])
   })
 
   it('waits for the window, then watches the app for ten seconds, one look a second', async () => {
@@ -192,6 +208,53 @@ describe('a previous release that installs and runs', () => {
 
   it('accepts the four-part file version a Windows program carries (1.0.2.0 for 1.0.2)', async () => {
     const { result } = await canary(world({ version: '1.0.2.0' }))
+
+    expect(result.failures).toEqual([])
+  })
+})
+
+describe('a previous release that is a bridge of a key rotation (BL-141): signed with the older key, carrying the new one', () => {
+  // The bridge release's installer is signed with the key the OLDER release's apps trust; its own config already carries the new key. Its tree
+  // declares which older release that is, and the canary judges the installer against that key and no other.
+  const OLDER = 'v1.0.1'
+  const declare = (from = OLDER) => JSON.stringify({ bridges: { [PREVIOUS]: { signedWithKeyOf: from } } })
+  const bridge = (over: Partial<World> = {}) => world({ configKey: stranger.pubkey, olderKey: { tag: OLDER, key: owner.pubkey }, rotation: { [PREVIOUS]: declare() }, ...over })
+
+  it('installs and runs it when the installer carries the declared older key’s signature', async () => {
+    const { result, log, calls } = await canary(bridge())
+
+    expect(result.failures).toEqual([])
+    expect(log.join('\n')).toMatch(/signature verifies against the key of v1\.0\.1.*bridge/)
+    expect(calls.filter((call) => call === 'pubkey')).toHaveLength(1)
+  })
+
+  it('fails, and runs nothing, when the installer carries only the new key’s signature', async () => {
+    const { result, calls } = await canary(bridge({ manifest: manifestOf(signatureOf(stranger, installerBytes)) }))
+
+    expect(result.failures).toEqual([expect.stringMatching(/does not carry a signature of the key of v1\.0\.1/)])
+    expect(calls).not.toContain('install')
+  })
+
+  it('fails without the declaration: the older key is not guessed', async () => {
+    const { result, calls } = await canary(bridge({ rotation: {} }))
+
+    expect(result.failures).toEqual([expect.stringMatching(/does not carry a signature of the key of v1\.0\.2/)])
+    expect(calls).not.toContain('install')
+  })
+
+  it.each([
+    ['a declaration that is wrong', { rotation: { [PREVIOUS]: 'nope' } }, /not JSON/],
+    ['a declaration that cannot be read', { rotation: { [PREVIOUS]: new Error('gh could not read the file') } }, /could not be read.*gh could not read the file/],
+    ['a declared key that cannot be read', { olderKey: { tag: OLDER, key: new Error('no config') } }, /public key of v1\.0\.1 could not be read/],
+  ])('fails in words on %s, and installs nothing', async (_name, over, expected) => {
+    const { result, calls } = await canary(bridge(over as Partial<World>))
+
+    expect(result.failures.join(' | ')).toMatch(expected)
+    expect(calls).not.toContain('install')
+  })
+
+  it('leaves a release that is not declared exactly as it was: the entry of another bridge changes nothing', async () => {
+    const { result } = await canary(world({ rotation: { [PREVIOUS]: JSON.stringify({ bridges: { 'v1.0.9': { signedWithKeyOf: OLDER } } }) } }))
 
     expect(result.failures).toEqual([])
   })

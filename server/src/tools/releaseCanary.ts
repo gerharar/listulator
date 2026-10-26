@@ -3,6 +3,7 @@ import { createHash } from 'node:crypto'
 import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, win32 } from 'node:path'
+import { KEY_ROTATION_PATH, declaredSignerOf } from './keyRotation.js'
 import { verifyMinisign } from './minisignVerify.js'
 import { createGhHost, nodeRunner, parseSums, type Runner } from './releaseSign.js'
 import { createVerifyHost } from './releaseVerify.js'
@@ -50,6 +51,8 @@ export interface CanaryHost {
   fileBytes(path: string): Promise<Buffer>
   /** `plugins.updater.pubkey` as written in a tag's config on GitHub. */
   pubkey(tag: string): Promise<string>
+  /** The text of the bridge declaration (`keyRotation.json`) in a tag's tree on GitHub, or undefined when that tree has no such file. */
+  keyRotation(tag: string): Promise<string | undefined>
   installDir(): string
   exists(path: string): boolean
   /** Runs the installer silently; its exit code. */
@@ -90,8 +93,22 @@ const isVersionOf = (fileVersion: string, version: string): boolean => {
   return core === version ? releaseVersionOf(said) === version : said === version || said.startsWith(`${core}.`)
 }
 
-/** Why the installer is not the owner's, or undefined when its signature verifies against the key that release carries. */
-async function installerSignatureProblem(host: CanaryHost, previous: string, installer: string, installerBytes: Buffer, manifestBytes: Buffer): Promise<string | undefined> {
+/**
+ * The release whose key signed `previous`'s installer: its own, or for a bridge release of a key rotation the older one its tree declares (BL-141),
+ * or why that cannot be said. A declaration that is wrong or cannot be read is a problem and never guessed around.
+ */
+async function signerOf(host: CanaryHost, previous: string): Promise<{ signer: string } | { problem: string }> {
+  try {
+    const declared = declaredSignerOf(await host.keyRotation(previous), previous)
+
+    return 'problem' in declared ? declared : { signer: declared.from ?? previous }
+  } catch (error) {
+    return { problem: `${KEY_ROTATION_PATH} of ${previous} could not be read: ${reason(error)}` }
+  }
+}
+
+/** Why the installer is not the owner's, or undefined when its signature verifies against the key of `signer` (the release itself, or the older one a bridge release declares). */
+async function installerSignatureProblem(host: CanaryHost, previous: string, signer: string, installer: string, installerBytes: Buffer, manifestBytes: Buffer): Promise<string | undefined> {
   let manifest: unknown
   try {
     manifest = JSON.parse(manifestBytes.toString('utf8'))
@@ -105,13 +122,13 @@ async function installerSignatureProblem(host: CanaryHost, previous: string, ins
   if (parsed.file !== installer || parsed.version !== previous.slice(1)) return `The signature in latest.json of ${previous} covers ${parsed.file} at version ${parsed.version}, not ${installer} at ${previous.slice(1)}`
   let key: string
   try {
-    key = await host.pubkey(previous)
+    key = await host.pubkey(signer)
   } catch (error) {
-    return `The updater public key of ${previous} could not be read: ${reason(error)}`
+    return `The updater public key of ${signer} could not be read: ${reason(error)}`
   }
   const verdict = verifyMinisign(key, signature, installerBytes)
 
-  return verdict.ok ? undefined : `${installer} does not carry a signature of the key of ${previous}: ${verdict.reason}`
+  return verdict.ok ? undefined : `${installer} does not carry a signature of the key of ${signer}: ${verdict.reason}`
 }
 
 /** What both smoke tests need of the machine and the program; the canary adds GitHub to it. */
@@ -220,11 +237,15 @@ export async function releaseCanary(options: ReleaseCanaryOptions, host: CanaryH
     log(`${installer}  sha256 ${actual} matches SHA256SUMS`)
 
     // 1b. And it must be the owner's: the checksum list came from the same place as the installer, the signature did not.
-    const problem = await installerSignatureProblem(host, previous, installer, bytes, await host.fileBytes(win32.join(dir, 'latest.json')))
+    const signer = await signerOf(host, previous)
+    if ('problem' in signer) {
+      return stop(signer.problem)
+    }
+    const problem = await installerSignatureProblem(host, previous, signer.signer, installer, bytes, await host.fileBytes(win32.join(dir, 'latest.json')))
     if (problem !== undefined) {
       return stop(problem)
     }
-    log(`${installer}  signature verifies against the key of ${previous} (the updater key, which never leaves the owner's machine)`)
+    log(`${installer}  signature verifies against the key of ${signer.signer}${signer.signer === previous ? '' : ` (${previous} is a bridge release of a key rotation, declared in its own tree)`} (the updater key, which never leaves the owner's machine)`)
 
     // 2 to 4. Installed, said, started, watched, stopped and uninstalled.
     await installAndWatch(host, win32.join(dir, installer), version, log, fail)
@@ -335,6 +356,7 @@ export function createCanaryHost(deps: CanaryHostDeps): CanaryHost {
     download: (tag, names, dir) => gh.download(tag, names, dir),
     fileBytes: async (path) => deps.readFile(path),
     pubkey: (tag) => createVerifyHost(run).pubkey(tag),
+    keyRotation: (tag) => createVerifyHost(run).keyRotation(tag),
   }
 }
 
