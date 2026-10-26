@@ -50,6 +50,8 @@ interface World {
   commits: Record<string, string | Error>
   /** Whether `gh attestation verify` passes for a file name, a tag and a commit. */
   attested: (name: string, tag: string, commit: string) => boolean
+  /** The text of the bridge declaration (`server/src/tools/keyRotation.json`) in each tag's tree, or the error reading it fails with. A tag with no entry has no such file. */
+  rotation?: Record<string, string | Error>
 }
 
 interface Served {
@@ -104,13 +106,14 @@ function world(over: Partial<World> = {}, served: Served = goodFiles(), tag = TA
 interface Fake {
   host: VerifyHost
   keyReads: string[]
+  rotationReads: string[]
   endpointReads: string[]
   fetched: string[]
   attestations: { name: string; tag: string; commit: string; onDisk: boolean; dir: string }[]
 }
 
 function fake(w: World): Fake {
-  const out: Fake = { keyReads: [], endpointReads: [], fetched: [], attestations: [], host: undefined as unknown as VerifyHost }
+  const out: Fake = { keyReads: [], rotationReads: [], endpointReads: [], fetched: [], attestations: [], host: undefined as unknown as VerifyHost }
   out.host = {
     publishedTags: async () => w.tags,
     fetchBytes: async (url) => {
@@ -126,6 +129,13 @@ function fake(w: World): Fake {
       if (w.previousPubkeyFails !== undefined && tag === PREVIOUS) throw w.previousPubkeyFails
 
       return tag === PREVIOUS && w.previousPubkey !== undefined ? w.previousPubkey : w.pubkey
+    },
+    keyRotation: async (tag) => {
+      out.rotationReads.push(tag)
+      const text = w.rotation?.[tag]
+      if (text instanceof Error) throw text
+
+      return text
     },
     updaterEndpoints: async (tag) => {
       out.endpointReads.push(tag)
@@ -622,6 +632,48 @@ describe('a bridge release of a key rotation (BL-122): signed with the OLD key, 
     expect(result.failures.join(' | ')).toMatch(/public key of v1\.0\.2 could not be read/)
   })
 
+  describe('declared in the release’s own tree (BL-141), so nothing has to be named on the command line', () => {
+    const declare = (signedWithKeyOf: string, tag = TAG) => JSON.stringify({ bridges: { [tag]: { signedWithKeyOf } } })
+
+    it('judges the files against the declared older key, with no flag', async () => {
+      const { result, log, rotationReads } = await named(bridge({ rotation: { [TAG]: declare(PREVIOUS) } }), null)
+
+      expect(result).toEqual({ tag: TAG, failures: [] })
+      expect(log.join('\n')).toMatch(/key rotation.*v1\.0\.2/i)
+      expect(rotationReads).toEqual([TAG])
+    })
+
+    it('agrees with the same older release named on the command line', async () => {
+      expect((await named(bridge({ rotation: { [TAG]: declare(PREVIOUS) } }), PREVIOUS)).result.failures).toEqual([])
+    })
+
+    it('refuses a command line that names another release than the tree declares', async () => {
+      const { result } = await named(bridge({ tags: [PREVIOUS, TAG, 'v1.0.1'], rotation: { [TAG]: declare(PREVIOUS) } }), 'v1.0.1')
+
+      expect(result.failures).toEqual([expect.stringMatching(/declares v1\.0\.2.*v1\.0\.1/)])
+    })
+
+    it('fails, and guesses nothing, when the declaration is wrong or cannot be read', async () => {
+      const wrong = (await named(bridge({ rotation: { [TAG]: 'nope' } }), null)).result.failures.join(' | ')
+      const unreadable = (await named(bridge({ rotation: { [TAG]: new Error('gh could not read the file') } }), null)).result.failures.join(' | ')
+
+      expect(wrong).toMatch(/not JSON/)
+      expect(unreadable).toMatch(/could not be read.*gh could not read the file/)
+    })
+
+    it('fails when the declared older release is not published', async () => {
+      const { result } = await named(bridge({ tags: [TAG, 'v1.0.1'], rotation: { [TAG]: declare(PREVIOUS) } }), null)
+
+      expect(result.failures).toEqual([expect.stringMatching(/v1\.0\.2 is not a published release/)])
+    })
+
+    it('is nothing for a release the file does not name: the entry of another bridge changes nothing here', async () => {
+      const { result } = await named(world({ rotation: { [TAG]: declare('v1.0.1', 'v1.0.9') } }), null)
+
+      expect(result).toEqual({ tag: TAG, failures: [] })
+    })
+  })
+
   it('reads the named release’s key and the tag’s own, and no other', async () => {
     const { keyReads } = await named(bridge())
 
@@ -705,6 +757,18 @@ describe('the real GitHub CLI and HTTPS calls, as they are made', () => {
     const { runner } = recorder(() => ({ code: 1, stdout: '' }))
 
     await expect(createVerifyHost(runner, noFetch).publishedTags()).rejects.toThrow(/list/)
+  })
+
+  it('reads the bridge declaration from the tag on GitHub; a tree from before the file existed declares nothing, any other failure is an error', async () => {
+    const present = recorder(() => ({ code: 0, stdout: '{ "bridges": {} }' }))
+    expect(await createVerifyHost(present.runner, noFetch).keyRotation(TAG)).toBe('{ "bridges": {} }')
+    expect(present.calls[0]!.args).toEqual(['api', '-H', 'Accept: application/vnd.github.raw', `repos/gerharar/listulator/contents/server/src/tools/keyRotation.json?ref=${TAG}`])
+
+    const absent = recorder(() => ({ code: 1, stdout: '{"message":"Not Found","status":"404"}' }))
+    expect(await createVerifyHost(absent.runner, noFetch).keyRotation(TAG)).toBeUndefined()
+
+    const broken = recorder(() => ({ code: 1, stdout: '{"message":"Bad credentials","status":"401"}' }))
+    await expect(createVerifyHost(broken.runner, noFetch).keyRotation(TAG)).rejects.toThrow(/could not read.*keyRotation\.json/)
   })
 
   it('reads the public key from the tag on GitHub, not from whatever is checked out', async () => {

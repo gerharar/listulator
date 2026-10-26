@@ -3,6 +3,7 @@ import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { checkAttestations } from './attestationCheck.js'
+import { KEY_ROTATION_PATH, declaredSignerOf } from './keyRotation.js'
 import { verifyMinisign } from './minisignVerify.js'
 import { CONFIG_PATH, REPO, createGhHost, nodeRunner, parseSums, type Runner } from './releaseSign.js'
 import { isRunDirectly } from './runDirectly.js'
@@ -34,8 +35,9 @@ const REPO_URL = `https://github.com/${REPO}/releases`
 
 /**
  * A bridge release of a key rotation (BL-122) is signed with the key the installed apps already trust, the one of an OLDER release, while its own
- * config already carries the new key. That older release is NAMED (`--pubkey-from`), never guessed from the files: the signatures, the manifest and
- * the key ID are then judged against its key, and a release signed with any other key still fails.
+ * config already carries the new key. That older release is NAMED, never guessed from the files: by the release's own tree (`keyRotation.json`,
+ * committed with it, BL-141) or on the command line (`--pubkey-from`; the two must agree). The signatures, the manifest and the key ID are then
+ * judged against its key, and a release signed with any other key still fails.
  */
 
 /** The public network and GitHub CLI calls the check needs, as intentions; `createVerifyHost` is the real one, the tests use a fake. */
@@ -46,6 +48,8 @@ export interface VerifyHost {
   fetchBytes(url: string): Promise<Buffer>
   /** `plugins.updater.pubkey` as written in the tagged config on GitHub. */
   pubkey(tag: string): Promise<string>
+  /** The text of the bridge declaration (`keyRotation.json`) in a tag's tree on GitHub, or undefined when that tree has no such file. */
+  keyRotation(tag: string): Promise<string | undefined>
   /** `plugins.updater.endpoints` as written in the tagged config on GitHub: the addresses an installed copy of that release asks. */
   updaterEndpoints(tag: string): Promise<string[]>
   /** The full commit a tag points at on GitHub. */
@@ -92,11 +96,24 @@ export async function releaseVerify(options: ReleaseVerifyOptions, host: VerifyH
   if (!published.includes(tag)) return { tag, failures: [`${tag} is not a published release (a draft or a pre-release does not count)`] }
 
   const version = tag.slice(1)
-  const signerTag = options.pubkeyFrom ?? tag
-  if (options.pubkeyFrom !== undefined) {
-    if (!isTag(options.pubkeyFrom)) throw new Error(`${JSON.stringify(options.pubkeyFrom).slice(0, 40)} is not v + a version (like v1.0.0)`)
-    if (!published.includes(options.pubkeyFrom)) return { tag, failures: [`${options.pubkeyFrom} is not a published release (a draft or a pre-release does not count), so its key cannot be the one the installed apps trust`] }
-    if (compareVersions(options.pubkeyFrom.slice(1), version) >= 0) return { tag, failures: [`--pubkey-from names ${options.pubkeyFrom}, which is not older than ${tag}: a bridge release is signed with the key of an older release`] }
+  // What the tag's own tree says about it. A file that is wrong or cannot be read is a failure: nothing is guessed around it.
+  let declaredFrom: string | undefined
+  try {
+    const declared = declaredSignerOf(await host.keyRotation(tag), tag)
+    if ('problem' in declared) return { tag, failures: [declared.problem] }
+    declaredFrom = declared.from
+  } catch (error) {
+    return { tag, failures: [oneLine(`${KEY_ROTATION_PATH} of ${tag} could not be read: ${error instanceof Error ? error.message : String(error)}`)] }
+  }
+  if (options.pubkeyFrom !== undefined && declaredFrom !== undefined && options.pubkeyFrom !== declaredFrom) {
+    return { tag, failures: [`${tag} declares ${declaredFrom} as the release whose key signed it, but --pubkey-from names ${options.pubkeyFrom}`] }
+  }
+  const pubkeyFrom = options.pubkeyFrom ?? declaredFrom
+  const signerTag = pubkeyFrom ?? tag
+  if (pubkeyFrom !== undefined) {
+    if (!isTag(pubkeyFrom)) throw new Error(`${JSON.stringify(pubkeyFrom).slice(0, 40)} is not v + a version (like v1.0.0)`)
+    if (!published.includes(pubkeyFrom)) return { tag, failures: [`${pubkeyFrom} is not a published release (a draft or a pre-release does not count), so its key cannot be the one the installed apps trust`] }
+    if (compareVersions(pubkeyFrom.slice(1), version) >= 0) return { tag, failures: [`${declaredFrom === undefined ? '--pubkey-from' : KEY_ROTATION_PATH} names ${pubkeyFrom}, which is not older than ${tag}: a bridge release is signed with the key of an older release`] }
   }
   const previous = published.find((candidate) => compareVersions(candidate.slice(1), version) < 0)
   const exe = assetName('windows-x86_64', version)
@@ -125,13 +142,13 @@ export async function releaseVerify(options: ReleaseVerifyOptions, host: VerifyH
   }
   const keyId = pubkey === undefined ? undefined : keyIdOfPublicKey(pubkey)
   if (pubkey !== undefined && keyId === undefined) fail(`The updater public key in the config of ${signerTag} is not a minisign public key, so no signature can be checked`)
-  if (options.pubkeyFrom !== undefined && keyId !== undefined) {
+  if (pubkeyFrom !== undefined && keyId !== undefined) {
     // The release has to be a rotation: its own config carries ANOTHER key than the one that signed it.
     try {
       const ownId = keyIdOfPublicKey(await host.pubkey(tag))
       if (ownId === undefined) fail(`The updater public key in the config of ${tag} is not a minisign public key`)
-      else if (ownId === keyId) fail(`${tag} carries the same updater key as ${options.pubkeyFrom} (${keyId}): this is no rotation, so --pubkey-from does not apply`)
-      else log(`Key rotation: ${tag} carries key ${ownId}; its files are checked against the key of ${options.pubkeyFrom} (${keyId}), the one the installed apps trust`)
+      else if (ownId === keyId) fail(`${tag} carries the same updater key as ${pubkeyFrom} (${keyId}): this is no rotation, so ${declaredFrom === undefined ? '--pubkey-from' : KEY_ROTATION_PATH} does not apply`)
+      else log(`Key rotation: ${tag} carries key ${ownId}; its files are checked against the key of ${pubkeyFrom} (${keyId}), the one the installed apps trust${declaredFrom === undefined ? '' : ' (declared in the tag’s own tree)'}`)
     } catch (error) {
       fail(`The updater public key of ${tag} could not be read: ${error instanceof Error ? error.message : String(error)}`)
     }
@@ -256,6 +273,16 @@ export function createVerifyHost(run: Runner, fetcher: typeof fetch = fetch): Ve
       if (typeof pubkey !== 'string') throw new Error(`No updater public key in ${CONFIG_PATH} at ${tag}`)
 
       return pubkey
+    },
+
+    async keyRotation(tag) {
+      checkTag(tag)
+      const result = await run('gh', ['api', '-H', 'Accept: application/vnd.github.raw', `repos/${REPO}/contents/${KEY_ROTATION_PATH}?ref=${tag}`])
+      if (result.code === 0) return result.stdout
+      // A tree from before the file existed has none: that is "nothing declared", while any other failure is an error.
+      if (/\b404\b|Not Found/i.test(`${result.stderr}\n${result.stdout}`)) return undefined
+
+      throw new Error(`gh could not read ${KEY_ROTATION_PATH} at ${tag}: ${(result.stderr || result.stdout).trim().slice(0, 160)}`)
     },
 
     async updaterEndpoints(tag) {
