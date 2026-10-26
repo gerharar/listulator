@@ -22,7 +22,7 @@ export interface VaultShelfProps {
 type Shelf = { phase: 'loading' } | { phase: 'offline' } | { phase: 'ready'; picks: LibraryEntry[]; entries: LibraryEntry[] }
 
 /**
- * "Or start from List Vault" (H-018): under the tiles of the first run and, since 2026-10-26, of New List (one screen), up to three canonical lists a
+ * "Or browse List Vault" (H-018): under the tiles of the first run and, since 2026-10-26, of New List (one screen), up to three canonical lists a
  * person can open without a key. A card opens the Preview the search rows open and adds nothing: the list is only built by Add This List there.
  * The three are picked once, when the library has answered, and stay while the screen stays open. With no connection the shelf says so instead of showing cards.
  */

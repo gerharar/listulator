@@ -49,7 +49,7 @@ describe('VaultShelf', () => {
   it('has its label and its line, and no cards until the library has answered', () => {
     mount({ entries: entries(['movie']), reachable: true })
 
-    expect(screen.getByText('Or start from List Vault')).toBeTruthy()
+    expect(screen.getByText('Or browse List Vault')).toBeTruthy()
     expect(screen.getByText('Canonical lists anyone can open, no key needed. Preview one; nothing is added until you choose Add This List.')).toBeTruthy()
     expect(cards()).toHaveLength(0)
   })
@@ -109,7 +109,7 @@ describe('VaultShelf', () => {
     mount({ entries: [], reachable: false })
 
     expect(await screen.findByText('List Vault needs an internet connection to show its lists.')).toBeTruthy()
-    expect(screen.getByText('Or start from List Vault')).toBeTruthy()
+    expect(screen.getByText('Or browse List Vault')).toBeTruthy()
     expect(cards()).toHaveLength(0)
   })
 
@@ -131,7 +131,7 @@ describe('VaultShelf without the sample button (New List, 34.3)', () => {
     mount({ entries: entries(['movie', 'tv', 'game', 'book']), reachable: true }, () => 0.3, false)
 
     await waitFor(() => expect(cards()).toHaveLength(3))
-    expect(screen.getByText('Or start from List Vault')).toBeTruthy()
+    expect(screen.getByText('Or browse List Vault')).toBeTruthy()
     expect(screen.getByText('Canonical lists anyone can open, no key needed. Preview one; nothing is added until you choose Add This List.')).toBeTruthy()
     expect(screen.queryByRole('button', { name: 'Try A Sample List' })).toBeNull()
   })

@@ -499,7 +499,7 @@ export const en = {
     /** The key card (H-018): the same card on the first-run screen and in Create. Its title and body come from where it stands. */
     /** The first-run shelf of library lists (H-018). */
     vaultShelf: {
-      label: 'Or start from List Vault',
+      label: 'Or browse List Vault',
       line: 'Canonical lists anyone can open, no key needed. Preview one; nothing is added until you choose Add This List.',
       offline: 'List Vault needs an internet connection to show its lists.',
       items: (n: number): string => `${n} ${selectPlural(n, 'en', { one: 'item', other: 'items' })}`,

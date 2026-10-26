@@ -437,7 +437,7 @@ export const de: Locale = {
       untitledListTab: 'Liste',
     },
     vaultShelf: {
-      label: 'Oder starte mit dem List Vault',
+      label: 'Oder stöbere im List Vault',
       line: 'Kanonische Listen, die jeder öffnen kann, ganz ohne Schlüssel. Sieh dir eine in der Vorschau an; erst mit „Diese Liste hinzufügen“ wird etwas angelegt.',
       offline: 'Der List Vault braucht eine Internetverbindung, um seine Listen zu zeigen.',
       items: (n: number): string => `${n} ${selectPlural(n, 'de', { one: 'Eintrag', other: 'Einträge' })}`,
