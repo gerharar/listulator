@@ -401,7 +401,7 @@ describe('Home', () => {
 
 describe('Home updates (task 10.22c)', () => {
   const two = (id: string, title: string, over: Partial<MediaList> = {}) =>
-    list({ id, title, externalRef: `ref:${id}`, ...over })
+    list({ id, title, externalRef: `ref:${id}`, status: 'ongoing', ...over })
   const found = (n: number) => ({
     newItems: Array.from({ length: n }, (_, i) => ({ title: `New ${i}` })),
     upstreamCount: 10,
@@ -590,6 +590,19 @@ describe('Home updates (task 10.22c)', () => {
 
     it('checks every list that has a source, and no other', async () => {
       setupLists([two('a', 'Alpha'), list({ id: 'b', title: 'Bravo', externalRef: null }), two('c', 'Charlie')])
+      vi.mocked(api.checkForUpdates).mockResolvedValue(found(0))
+      const { pending } = await pendingWith()
+      renderHome(vi.fn(), pending)
+      await waitFor(() => expect(screen.getByText('Alpha')).not.toBeNull())
+
+      press()
+
+      await waitFor(() => expect(api.checkForUpdates).toHaveBeenCalledTimes(2))
+      expect(vi.mocked(api.checkForUpdates).mock.calls).toEqual([['a', false], ['c', false]])
+    })
+
+    it('leaves out a Complete list, whose source can add nothing (BL-130)', async () => {
+      setupLists([two('a', 'Alpha'), two('b', 'Bravo', { status: 'complete' }), two('c', 'Charlie', { status: null })])
       vi.mocked(api.checkForUpdates).mockResolvedValue(found(0))
       const { pending } = await pendingWith()
       renderHome(vi.fn(), pending)

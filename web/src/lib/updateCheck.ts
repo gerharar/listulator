@@ -30,7 +30,9 @@ export interface CheckSummary {
 }
 
 /**
- * Home's explicit check (owner ruling, 10.22c): every list that has a source, recording each finding the
+ * Home's explicit check (owner ruling, 10.22c): every list that has a source and is not Complete (BL-130:
+ * a Complete list can get no new items, so asking its source is wasted; only the List Status counts, never
+ * ticks; Ongoing and unknown are checked), recording each finding the
  * moment it arrives so its band can appear while the rest are still being looked at. A list it cannot reach
  * keeps whatever entry it had and is reported at the end. Returns `null` when a check is already running.
  *
@@ -52,7 +54,9 @@ export async function checkLists(lists: readonly MediaList[], { api, pending, so
   const failures: { index: number; failure: CheckSummary['failed'][number] }[] = []
   let remembering: unknown
 
-  const queue = lists.flatMap((list, index) => (list.externalRef ? [{ list, index, source: sourceOf?.(list) ?? '' }] : []))
+  const queue = lists.flatMap((list, index) =>
+    list.externalRef && list.status !== 'complete' ? [{ list, index, source: sourceOf?.(list) ?? '' }] : [],
+  )
   const busy = new Set<string>()
   const running = new Set<Promise<void>>()
 

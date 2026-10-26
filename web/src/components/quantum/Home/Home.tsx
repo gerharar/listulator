@@ -201,7 +201,7 @@ export function Home({ onMediaTypesLoaded, pendingUpdates }: HomeProps) {
     if (target) layerStack.push(listLayer(target))
   }
 
-  /** Home's explicit check: every list with a source, a band appearing as each is answered. */
+  /** Home's explicit check: every list with a source that is not Complete (BL-130), a band appearing as each is answered. */
   async function checkUpdatesNow() {
     try {
       // Lists of different sources are checked together (BL-054), never two of one: a community-library

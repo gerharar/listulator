@@ -9,8 +9,8 @@ const memory = (): PreferencesStore => {
   return { get: async (k) => data.get(k), set: async (k, v) => void data.set(k, v) }
 }
 
-const list = (id: string, externalRef: string | null = `ref:${id}`, title = `List ${id}`) =>
-  ({ id, title, externalRef }) as MediaList
+const list = (id: string, externalRef: string | null = `ref:${id}`, title = `List ${id}`, status: MediaList['status'] = null) =>
+  ({ id, title, externalRef, status }) as MediaList
 
 const found = (n: number) => ({
   newItems: Array.from({ length: n }, (_, i) => ({ title: `New ${i}` })),
@@ -33,6 +33,37 @@ describe('checkLists', () => {
     await checkLists([list('a'), list('b', null), list('c')], { api, pending })
 
     expect(api.checkForUpdates.mock.calls).toEqual([['a', false], ['c', false]])
+  })
+
+  it('leaves out a Complete list, and checks an Ongoing one and one with no status (BL-130)', async () => {
+    const pending = await setup()
+    const api = { checkForUpdates: vi.fn(async () => found(0)), importItems: vi.fn() }
+
+    const summary = await checkLists(
+      [list('done', 'ref:done', 'Done', 'complete'), list('going', 'ref:going', 'Going', 'ongoing'), list('unknown', 'ref:unknown', 'Unknown', null)],
+      { api, pending },
+    )
+
+    expect(api.checkForUpdates.mock.calls).toEqual([['going', false], ['unknown', false]])
+    expect(summary?.checked).toBe(2)
+  })
+
+  it('checks nothing when every list with a source is Complete (BL-130)', async () => {
+    const pending = await setup()
+    const api = { checkForUpdates: vi.fn(async () => found(0)), importItems: vi.fn() }
+
+    const summary = await checkLists([list('a', 'ref:a', 'A', 'complete')], { api, pending })
+
+    expect(api.checkForUpdates).not.toHaveBeenCalled()
+    expect(summary).toEqual({ checked: 0, found: 0, failed: [] })
+  })
+
+  it("still checks a Complete list on its own: checkList does not look at the status (BL-130)", async () => {
+    const pending = await setup()
+    const api = { checkForUpdates: vi.fn(async () => found(1)), importItems: vi.fn() }
+
+    expect(await checkList('done', { api, pending })).toBe(1)
+    expect(api.checkForUpdates).toHaveBeenCalledWith('done', false)
   })
 
   it('goes one list at a time, in order, for lists of one source', async () => {
