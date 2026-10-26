@@ -79,6 +79,17 @@ export interface ReleaseCanaryResult {
 /** The four-part file version of a Windows program (1.0.2.0) as the three-part version of the release (1.0.2). */
 const releaseVersionOf = (fileVersion: string): string => fileVersion.trim().replace(/^(\d+\.\d+\.\d+)\.0$/, '$1')
 
+/**
+ * Whether a program's file version is the release's. A stable release is exactly its three numbers (1.2.0 as 1.2.0.0). A pre-release (1.2.0-rc.1)
+ * is judged on its three numbers alone: how Windows writes the suffix into a file version is not something this has seen.
+ */
+const isVersionOf = (fileVersion: string, version: string): boolean => {
+  const said = fileVersion.trim()
+  const core = version.replace(/-.*$/, '')
+
+  return core === version ? releaseVersionOf(said) === version : said === version || said.startsWith(`${core}.`)
+}
+
 /** Why the installer is not the owner's, or undefined when its signature verifies against the key that release carries. */
 async function installerSignatureProblem(host: CanaryHost, previous: string, installer: string, installerBytes: Buffer, manifestBytes: Buffer): Promise<string | undefined> {
   let manifest: unknown
@@ -133,7 +144,7 @@ export async function installAndWatch(host: ProgramHost, installer: string, vers
 
     // 2. It says what it is.
     const said = await host.fileVersion(exe)
-    if (said === undefined || releaseVersionOf(said) !== version) return fail(`The installed program carries version ${said ?? 'none'}, not ${version}`)
+    if (said === undefined || !isVersionOf(said, version)) return fail(`The installed program carries version ${said ?? 'none'}, not ${version}`)
     log(`The installed program says it is ${version}`)
 
     // 3. It starts, opens a window that answers, and keeps answering.
@@ -257,22 +268,15 @@ const PROGRAM_ENVIRONMENT = new Set(
   ['ALLUSERSPROFILE', 'APPDATA', 'COMPUTERNAME', 'ComSpec', 'CommonProgramFiles', 'CommonProgramFiles(x86)', 'CommonProgramW6432', 'HOMEDRIVE', 'HOMEPATH', 'LOCALAPPDATA', 'NUMBER_OF_PROCESSORS', 'OS', 'PATH', 'PATHEXT', 'PROCESSOR_ARCHITECTURE', 'ProgramData', 'ProgramFiles', 'ProgramFiles(x86)', 'ProgramW6432', 'PUBLIC', 'SystemDrive', 'SystemRoot', 'TEMP', 'TMP', 'USERDOMAIN', 'USERNAME', 'USERPROFILE', 'windir'].map((name) => name.toLowerCase()),
 )
 
-export function createCanaryHost(deps: CanaryHostDeps): CanaryHost {
+/** The machine and the program (install, version, start, look, stop, uninstall), as the real Windows runner does them. */
+export function createProgramHost(deps: CanaryHostDeps): ProgramHost {
   const { run, env } = deps
-  // The token is for `gh` only (it gets the whole environment, the token in it): everything else gets the list above.
+  // Everything the installer, the app and PowerShell are given is this list, never the whole environment (and never the token).
   const programEnvironment: Record<string, string | undefined> = Object.fromEntries(Object.entries(env).filter(([name]) => PROGRAM_ENVIRONMENT.has(name.toLowerCase())))
   const powershell = win32.join(env['SystemRoot'] ?? 'C:\\Windows', 'System32', 'WindowsPowerShell', 'v1.0', 'powershell.exe')
   const ask = (script: string, extra: Record<string, string>) => run(powershell, ['-NoProfile', '-NonInteractive', '-Command', script], { env: { ...programEnvironment, ...extra } })
-  const gh = createGhHost(run, process.cwd())
 
   return {
-    publishedTags: () => createVerifyHost(run).publishedTags(),
-    makeTempDir: async () => deps.makeDir(),
-    removeTempDir: async (dir) => deps.removeDir(dir),
-    download: (tag, names, dir) => gh.download(tag, names, dir),
-    fileBytes: async (path) => deps.readFile(path),
-    pubkey: (tag) => createVerifyHost(run).pubkey(tag),
-
     installDir() {
       const local = env['LOCALAPPDATA']
       if (!local) throw new Error('LOCALAPPDATA is not set: this runs on Windows')
@@ -283,7 +287,7 @@ export function createCanaryHost(deps: CanaryHostDeps): CanaryHost {
     exists: (path) => deps.exists(path),
 
     async runInstaller(path) {
-      // In the folder it was downloaded to, not in the checkout: nothing of the workspace is on its search path.
+      // In the folder the installer is in, not in the checkout: nothing of the workspace is on its search path.
       return (await run(path, ['/S'], { env: programEnvironment, cwd: win32.dirname(path) })).code
     },
 
@@ -315,6 +319,22 @@ export function createCanaryHost(deps: CanaryHostDeps): CanaryHost {
     },
 
     pause: (ms) => new Promise<void>((done) => setTimeout(done, ms)),
+  }
+}
+
+export function createCanaryHost(deps: CanaryHostDeps): CanaryHost {
+  const { run } = deps
+  // The token is for `gh` only (it gets the whole environment, the token in it): the program gets the list above.
+  const gh = createGhHost(run, process.cwd())
+
+  return {
+    ...createProgramHost(deps),
+    publishedTags: () => createVerifyHost(run).publishedTags(),
+    makeTempDir: async () => deps.makeDir(),
+    removeTempDir: async (dir) => deps.removeDir(dir),
+    download: (tag, names, dir) => gh.download(tag, names, dir),
+    fileBytes: async (path) => deps.readFile(path),
+    pubkey: (tag) => createVerifyHost(run).pubkey(tag),
   }
 }
 
