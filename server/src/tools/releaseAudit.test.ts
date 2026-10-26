@@ -673,3 +673,69 @@ describe('the real programs, as they are run (no shell)', () => {
     expect(calls[1]!.args).toEqual(['-d', '--entitlements', ':-', '/tmp/x/Listulator.app'])
   })
 })
+
+describe('Ctrl-C in the middle of the audit (BL-126): it stops where it is and cleans up like any other end', () => {
+  /** An audit that is interrupted by `when`, which changes the fake host before the run. */
+  async function interrupted(w: World, when: (host: AuditHost, stop: () => void) => void) {
+    const f = fake(w)
+    const controller = new AbortController()
+    when(f.host, () => controller.abort())
+    const log: string[] = []
+    const result = await releaseAudit({ tag: TAG, signal: controller.signal }, f.host, (line) => log.push(line), () => undefined)
+
+    return { ...f, result, log }
+  }
+  const after = <K extends keyof AuditHost>(host: AuditHost, name: K, stop: () => void) => {
+    const original = host[name] as (...args: unknown[]) => Promise<unknown>
+    host[name] = (async (...args: unknown[]) => {
+      const value = await original(...args)
+      stop()
+
+      return value
+    }) as AuditHost[K]
+  }
+
+  it('stops before the next stage, says it was interrupted, and leaves no folder behind', async () => {
+    const r = await interrupted(world(), (host, stop) => after(host, 'download', stop))
+
+    expect(r.calls).toEqual([])
+    expect(r.result.failures).toEqual([expect.stringMatching(/Interrupted/)])
+    expect(r.dirs.every((path) => !existsSync(path))).toBe(true)
+  })
+
+  it('unmounts the disk image that is mounted when it comes, and removes both folders', async () => {
+    const r = await interrupted(world(), (host, stop) => after(host, 'mountDisk', stop))
+
+    expect(r.calls).toEqual(['unpack', 'extract', 'mount', 'unmount'])
+    expect(r.result.failures).toEqual([expect.stringMatching(/Interrupted/)])
+    expect(r.mountPoints.every((path) => !existsSync(path))).toBe(true)
+    expect(r.dirs.every((path) => !existsSync(path))).toBe(true)
+  })
+
+  it('tries to unmount when the attach itself was interrupted: it may have mounted just before it ended', async () => {
+    const r = await interrupted(world(), (host, stop) => {
+      host.mountDisk = async () => {
+        stop()
+        throw new Error('hdiutil: interrupted')
+      }
+    })
+
+    expect(r.calls).toContain('unmount')
+    expect(r.mountPoints).toEqual([])
+    expect(r.result.failures.join(' | ')).toMatch(/Interrupted/)
+  })
+
+  it('still says where the mess is when the disk image cannot be unmounted', async () => {
+    const r = await interrupted(world({ unmountFails: true }), (host, stop) => after(host, 'mountDisk', stop))
+
+    expect(r.result.failures.join(' | ')).toMatch(/Interrupted/)
+    expect(r.result.failures.join(' | ')).toMatch(/still mounted at/)
+    expect(r.dirs.every((path) => existsSync(path))).toBe(true)
+  })
+
+  it('does nothing different when no signal comes', async () => {
+    const { result } = await audit(world(), { envText: `API_KEY=${SECRET}\n` })
+
+    expect(result).toEqual({ tag: TAG, failures: [] })
+  })
+})

@@ -9,6 +9,7 @@ import { REPO, createGhHost, dryRunReported, nodeRunner, uploadReported, type Ru
 import { createVerifyHost, verifiedReported } from './releaseVerify.js'
 import { runChecked } from './runChecked.js'
 import { isStableTag, reason, short } from './toolText.js'
+import { interruptSignal } from './interrupt.js'
 import { isRunDirectly } from './runDirectly.js'
 import { assetName, compareVersions } from './updateManifest.js'
 import { RELEASE_VERSION } from './versionSources.js'
@@ -121,6 +122,11 @@ export interface ReleaseShipOptions {
   keyFile?: string | undefined
   /** The hash of the tools diff the owner (or the reviewer) has read. */
   toolsDiffReviewed?: string | undefined
+  /**
+   * Aborted by Ctrl-C (BL-126). Checked between the steps: the run takes no further one, forgets the passphrase, removes the worktree as it does
+   * at the end of any run, and never publishes. A draft that was already signed stays a signed draft, and the owner is told so.
+   */
+  signal?: AbortSignal | undefined
   /** A key rotation's bridge release: the older release whose key (the one the installed apps trust) signs it, and the ID of the new key the tag carries. Both or neither. */
   pubkeyFrom?: string | undefined
   newKeyId?: string | undefined
@@ -199,6 +205,15 @@ export async function releaseShip(options: ReleaseShipOptions, host: ShipHost, i
 
     return result()
   }
+  const interrupted = (): boolean => options.signal?.aborted === true
+  /** What Ctrl-C ends: said once, with what is left behind (a signed draft is not published). */
+  const interruption = (where: string): ReleaseShipResult => {
+    if (state.signed && !state.published) {
+      note(`Not published: the draft is signed. To publish: gh release edit ${tag} --repo ${REPO} --draft=false, then check the public files: npm run release:verify -- ${tag}${options.pubkeyFrom === undefined ? '' : ` --pubkey-from ${options.pubkeyFrom}`}`)
+    }
+
+    return stop(`Interrupted ${where}${state.signed && !state.published ? ': the draft is signed and NOT published' : state.published ? ': it IS published' : ': nothing was signed or published'}`)
+  }
 
   // 1. The tag, and its CI.
   try {
@@ -241,6 +256,7 @@ export async function releaseShip(options: ReleaseShipOptions, host: ShipHost, i
     fail(`Your working copy could not be compared with the tag: ${reason(error)}`)
   }
   if (failures.length > 0) return result()
+  if (interrupted()) return interruption('before anything was done')
 
   // 2. What runs with the key, and the hash of what changed in it since the previous PUBLISHED release.
   const previous = (await host.publishedTags()).filter((candidate) => isStableTag(candidate) && compareVersions(candidate.slice(1), version) < 0).sort((a, b) => compareVersions(b.slice(1), a.slice(1)))[0]
@@ -276,6 +292,8 @@ export async function releaseShip(options: ReleaseShipOptions, host: ShipHost, i
     }
   }
 
+  if (interrupted()) return interruption('while the tools diff was read')
+
   // 3 to 6. In a worktree at the tag's commit, which is always removed.
   const base = await host.makeTempDir()
   const dir = join(base, 'work')
@@ -290,11 +308,13 @@ export async function releaseShip(options: ReleaseShipOptions, host: ShipHost, i
     note('Type nothing while this runs: the terminal keeps what you type, and the next question would read it.')
     note('Installing the tagged tools (npm ci --ignore-scripts) ...')
     await host.install(dir)
+    if (interrupted()) return interruption('while the tagged tools were installed')
 
     if (options.pubkeyFrom !== undefined) note(`Key rotation: ${tag} is signed with the key of ${options.pubkeyFrom} (the one the installed apps trust); the tag must carry the new key ${options.newKeyId}`)
     note('Running the tagged release:sign --dry-run ...')
     const dry = await host.runScript(dir, 'release:sign', [tag, '--dry-run', ...rotationArgs])
     show(dry.output)
+    if (interrupted()) return interruption('during the dry run')
     if (dry.code !== 0) {
       return stop('release:sign --dry-run refused (see above): nothing was signed')
     }
@@ -309,11 +329,13 @@ export async function releaseShip(options: ReleaseShipOptions, host: ShipHost, i
 
     // 4. The key file and the passphrase.
     const keyFile = resolve((options.keyFile ?? (await io.askKeyFile())).trim())
+    if (interrupted()) return interruption('at the key file')
     const [keyReal, repoReal, dirReal] = await Promise.all([host.realPath(keyFile), host.realPath(options.repoRoot), host.realPath(dir)])
     if (isInside(keyFile, options.repoRoot) || isInside(keyFile, dir) || isInside(keyReal, repoReal) || isInside(keyReal, dirReal)) {
       return stop(`The key file ${keyFile} is inside the repository: keep the key outside it, so it cannot be committed by accident`)
     }
     const problem = await host.keyFileProblem(keyFile)
+    if (interrupted()) return interruption('before the passphrase was asked for')
     if (problem !== undefined) {
       return stop(problem)
     }
@@ -327,6 +349,12 @@ export async function releaseShip(options: ReleaseShipOptions, host: ShipHost, i
       return stop('The passphrase is empty: nothing was signed')
     }
     secret = passphrase
+    // Typed as Ctrl-C came: it signs nothing. The plain text is dropped now, the redaction (`secret`) stays for the lines the cleanup prints.
+    if (interrupted()) {
+      passphrase = ''
+
+      return interruption('as the passphrase was typed')
+    }
 
     // 5. The signing: the passphrase is written to this one process's standard input (never an argument, in no environment variable).
     note('Signing ...')
@@ -340,6 +368,7 @@ export async function releaseShip(options: ReleaseShipOptions, host: ShipHost, i
       return stop('release:sign exited 0 but did not report an upload (see above): look at the draft before doing anything else')
     }
     state.signed = true
+    if (interrupted()) return interruption('after the signing')
 
     // 6. What the draft holds now, and the question.
     const view = await host.releaseAssets(tag).catch((error: unknown) => {
@@ -362,6 +391,7 @@ export async function releaseShip(options: ReleaseShipOptions, host: ShipHost, i
     say(`The draft holds the ${expected.length} files of a signed release`)
 
     const answer = (await io.askPublish(tag)).trim()
+    if (interrupted()) return interruption('at the question whether to publish')
     if (!/^y(es)?$/i.test(answer)) {
       note(`Not published: the draft is signed. To publish: gh release edit ${tag} --repo ${REPO} --draft=false, then check the public files: npm run release:verify -- ${tag}`)
 
@@ -379,6 +409,8 @@ export async function releaseShip(options: ReleaseShipOptions, host: ShipHost, i
       show(again.output)
       return stop('The second dry run of release:sign exited 0 but did not say it checked the draft (see above): not published')
     }
+    // The last look before the only step that cannot be taken back: an interrupted run never publishes.
+    if (interrupted()) return interruption('after the second dry run')
     try {
       await host.publish(tag)
     } catch (error) {
@@ -651,15 +683,19 @@ if (isRunDirectly(import.meta.url)) {
   }
 
   const streams = { input: process.stdin, output: process.stdout }
+  // Ctrl-C ends the run where it is, with the worktree removed and nothing published (BL-126); a second one stops the process at once.
+  const interrupt = interruptSignal(process, (line) => console.error(line))
   const io: ShipIo = {
-    askKeyFile: () => askLine('Path of the updater key file: ', streams),
+    askKeyFile: () => askLine('Path of the updater key file: ', streams, interrupt.signal),
     askPassphrase: () => readHiddenLine('Updater key passphrase (what you type is not shown): ', streams),
-    askPublish: (tag) => askLine(`Publish ${tag} now? (y/N) `, streams),
+    askPublish: (tag) => askLine(`Publish ${tag} now? (y/N) `, streams, interrupt.signal),
   }
 
   try {
-    const result = await releaseShip({ ...parsed, repoRoot: REPO_ROOT }, createShipHost(nodeRunner, REPO_ROOT), io, (line) => console.log(`ok    ${line}`), (line) => console.log(line))
+    const result = await releaseShip({ ...parsed, repoRoot: REPO_ROOT, signal: interrupt.signal }, createShipHost(nodeRunner, REPO_ROOT), io, (line) => console.log(`ok    ${line}`), (line) => console.log(line))
+    interrupt.dispose()
     for (const failure of result.failures) console.error(`FAIL  ${failure}`)
+    if (interrupt.signal.aborted) process.exit(130)
     if (result.failures.length > 0) {
       console.error(`${parsed.tag}: ${result.failures.length} problem${result.failures.length === 1 ? '' : 's'}`)
       process.exit(1)

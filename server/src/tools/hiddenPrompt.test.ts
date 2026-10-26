@@ -164,4 +164,22 @@ describe('reading a visible answer (the key file’s path, yes or no)', () => {
 
     expect(await promise).toBe('')
   })
+
+  it('returns an empty answer, and stops listening, when Ctrl-C aborts the signal while it waits (BL-126)', async () => {
+    const input = new PassThrough()
+    const controller = new AbortController()
+    const promise = askLine('Publish v1.1.1 now? (y/N) ', { input, output: { write: () => true } }, controller.signal)
+
+    controller.abort()
+
+    expect(await promise).toBe('')
+    expect(input.listenerCount('data')).toBe(0)
+  })
+
+  it('answers at once, without waiting, when the signal is already aborted', async () => {
+    const controller = new AbortController()
+    controller.abort()
+
+    expect(await askLine('Path: ', { input: new PassThrough(), output: { write: () => true } }, controller.signal)).toBe('')
+  })
 })

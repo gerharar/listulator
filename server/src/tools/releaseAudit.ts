@@ -23,6 +23,7 @@ import {
   type Tree,
 } from './releaseAuditRules.js'
 import { CONFIG_PATH, createGhHost, nodeRunner, parseSums, type ReleaseHost, type Runner } from './releaseSign.js'
+import { interruptSignal } from './interrupt.js'
 import { isRunDirectly } from './runDirectly.js'
 import { runChecked } from './runChecked.js'
 import { isStableTag, reason } from './toolText.js'
@@ -79,6 +80,11 @@ export interface ReleaseAuditOptions {
   tag: string
   /** The text of the owner's `.env`; without it the values are not looked for (and the audit says so). */
   envText?: string | undefined
+  /**
+   * Aborted by Ctrl-C (BL-126): the audit takes no further step, and the cleanup it always runs (the disk image unmounted, both folders
+   * removed) is the end of it. It says it was interrupted, so a partial audit is never read as a clean one.
+   */
+  signal?: AbortSignal | undefined
 }
 
 export interface ReleaseAuditResult {
@@ -160,6 +166,7 @@ export async function releaseAudit(options: ReleaseAuditOptions, host: AuditHost
   const failures: string[] = []
   const fail = (line: string) => failures.push(line.replace(/\s+/g, ' ').trim().slice(0, 400))
   const guarded = async (what: string, step: () => Promise<void>) => {
+    if (options.signal?.aborted === true) return
     try {
       await step()
     } catch (error) {
@@ -249,7 +256,13 @@ export async function releaseAudit(options: ReleaseAuditOptions, host: AuditHost
         tarApp = appIn(dir)
       })
       await guarded('the disk image', async () => {
-        await host.mountDisk(join(work, dmg), mountPoint)
+        try {
+          await host.mountDisk(join(work, dmg), mountPoint)
+        } catch (error) {
+          // Ctrl-C ends `hdiutil attach` too, and it may have mounted the image a moment before: try to detach, and say nothing if there was nothing.
+          if (options.signal?.aborted === true) await host.unmountDisk(mountPoint).catch(() => undefined)
+          throw error
+        }
         mounted = true
         dmgApp = appIn(mountPoint)
         log(`The disk image holds: ${readdirSync(mountPoint).join(', ')}`)
@@ -324,6 +337,8 @@ export async function releaseAudit(options: ReleaseAuditOptions, host: AuditHost
       rmSync(work, { recursive: true, force: true })
     }
   }
+
+  if (options.signal?.aborted === true) fail('Interrupted: the audit was stopped before it finished, so what is not reported above was not checked')
 
   return { tag, failures }
 }
@@ -448,13 +463,16 @@ if (isRunDirectly(import.meta.url)) {
 
   try {
     const envPath = join(REPO_ROOT, '.env')
+    const interrupt = interruptSignal(process, (line) => console.error(line))
     const result = await releaseAudit(
-      { tag: parsed.tag, envText: existsSync(envPath) ? readFileSync(envPath, 'utf8') : undefined },
+      { tag: parsed.tag, envText: existsSync(envPath) ? readFileSync(envPath, 'utf8') : undefined, signal: interrupt.signal },
       createAuditHost(nodeRunner, REPO_ROOT),
       (line) => console.log(`ok    ${line}`),
       (line) => console.log(`note  ${line}`),
     )
+    interrupt.dispose()
     for (const failure of result.failures) console.error(`FAIL  ${failure}`)
+    if (interrupt.signal.aborted) process.exit(130)
     if (result.failures.length > 0) {
       console.error(`${result.tag}: ${result.failures.length} problem${result.failures.length === 1 ? '' : 's'}`)
       process.exit(1)

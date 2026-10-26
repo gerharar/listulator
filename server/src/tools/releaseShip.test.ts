@@ -285,6 +285,137 @@ describe('the outputs these tests give the tagged tools are the ones the real to
   })
 })
 
+describe('Ctrl-C in the middle of the shipping (BL-126): it stops where it is, forgets the passphrase and removes the worktree', () => {
+  /** A run that is interrupted by `when`, which changes the fake before the run and gets the function that is Ctrl-C. */
+  async function interrupted(w: World, when: (f: Fake, stop: () => void) => void, options: Partial<{ dryRun: boolean }> = {}) {
+    const f = fake(w)
+    const controller = new AbortController()
+    when(f, () => controller.abort())
+    const log: string[] = []
+    const notes: string[] = []
+    const result = await releaseShip(
+      { tag: TAG, keyFile: KEY, toolsDiffReviewed: HASH, dryRun: options.dryRun ?? false, repoRoot: REPO, signal: controller.signal, pause: async () => undefined },
+      f.host,
+      f.io,
+      (line) => log.push(line),
+      (line) => notes.push(line),
+    )
+
+    return { ...f, result, log, notes }
+  }
+  /** Ctrl-C arrives while the named host call runs, which still ends (the terminal ended the program it started too). */
+  const during = <K extends keyof ShipHost>(f: Fake, name: K, stop: () => void) => {
+    const original = f.host[name] as (...args: unknown[]) => Promise<unknown>
+    f.host[name] = (async (...args: unknown[]) => {
+      stop()
+
+      return original(...args)
+    }) as ShipHost[K]
+  }
+  const worktreeGone = (r: { names: () => string[] }) => expect(r.names().slice(-2)).toEqual(['removeWorktree', 'removeTempDir'])
+
+  it('stops during the install of the tagged tools: no dry run, no question, the worktree removed', async () => {
+    const r = await interrupted(world(), (f, stop) => during(f, 'install', stop))
+
+    expect(r.result.signed).toBe(false)
+    expect(r.result.failures.join(' | ')).toMatch(/Interrupted/)
+    expect(r.scripts).toEqual([])
+    expect(r.asked).toEqual({ key: 0, passphrase: 0, publish: 0 })
+    worktreeGone(r)
+  })
+
+  it('stops before the worktree is made when it comes while the tools diff is read', async () => {
+    const r = await interrupted(world(), (f, stop) => during(f, 'toolsDiff', stop))
+
+    expect(r.result.failures.join(' | ')).toMatch(/Interrupted/)
+    expect(r.names()).not.toContain('addWorktree')
+    expect(r.names()).not.toContain('makeTempDir')
+  })
+
+  it('does not ask for the passphrase when it comes after the dry run', async () => {
+    const r = await interrupted(world(), (f, stop) => during(f, 'keyFileProblem', stop))
+
+    expect(r.asked.passphrase).toBe(0)
+    expect(r.scripts.filter((entry) => entry.passphrase !== undefined)).toEqual([])
+    expect(r.result.failures.join(' | ')).toMatch(/Interrupted/)
+    worktreeGone(r)
+  })
+
+  it('does not sign with a passphrase that was typed as it came, and forgets it', async () => {
+    const r = await interrupted(world({ hostile: true }), (f, stop) => {
+      const original = f.io.askPassphrase
+      f.io.askPassphrase = async () => {
+        stop()
+
+        return original()
+      }
+    })
+
+    expect(r.scripts.filter((entry) => entry.passphrase !== undefined)).toEqual([])
+    expect(r.result.signed).toBe(false)
+    expect(JSON.stringify([r.log, r.notes, r.result])).not.toContain(SECRET)
+    worktreeGone(r)
+  })
+
+  it('stops after a signing that was under way, never asks to publish, and says the draft is signed and not published', async () => {
+    const r = await interrupted(world(), (f, stop) => {
+      const original = f.host.runScript
+      f.host.runScript = async (dir, script, args, passphrase) => {
+        const value = await original(dir, script, args, passphrase)
+        if (passphrase !== undefined) stop()
+
+        return value
+      }
+    })
+
+    expect(r.result).toMatchObject({ signed: true, published: false })
+    expect(r.asked.publish).toBe(0)
+    expect(r.names()).not.toContain('publish')
+    expect(r.notes.join('\n')).toMatch(/signed.*not published|NOT published/i)
+    expect(JSON.stringify([r.log, r.notes, r.result])).not.toContain(SECRET)
+    worktreeGone(r)
+  })
+
+  it('never publishes when the "y" and Ctrl-C arrive together', async () => {
+    const r = await interrupted(world({ publishAnswer: 'y' }), (f, stop) => {
+      const original = f.io.askPublish
+      f.io.askPublish = async (tag) => {
+        stop()
+
+        return original(tag)
+      }
+    })
+
+    expect(r.names()).not.toContain('publish')
+    expect(r.result).toMatchObject({ signed: true, published: false, verified: false })
+    expect(r.result.failures.join(' | ')).toMatch(/Interrupted/)
+    worktreeGone(r)
+  })
+
+  it('does not publish, and still removes the worktree, when it comes after the second dry run', async () => {
+    const r = await interrupted(world(), (f, stop) => {
+      const original = f.host.runScript
+      let dryRuns = 0
+      f.host.runScript = async (dir, script, args, passphrase) => {
+        const value = await original(dir, script, args, passphrase)
+        if (args.includes('--dry-run') && ++dryRuns === 2) stop()
+
+        return value
+      }
+    })
+
+    expect(r.names()).not.toContain('publish')
+    expect(r.result.published).toBe(false)
+    worktreeGone(r)
+  })
+
+  it('does nothing different when no signal comes', async () => {
+    const r = await ship(world(), { keyFile: KEY })
+
+    expect(r.result).toEqual({ failures: [], signed: true, published: true, verified: true })
+  })
+})
+
 describe('a key rotation: the bridge release (BL-122)', () => {
   // The bridge release is signed with the OLD key, which the installed apps trust, and carries the NEW key in its config. The two flags go
   // to the tagged release:sign (which checks the tag carries exactly the new key) and to the public check; without them nothing changes.

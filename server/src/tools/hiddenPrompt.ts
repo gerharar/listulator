@@ -91,20 +91,29 @@ export function readHiddenLine(question: string, { input, output }: PromptStream
   })
 }
 
-/** Reads one visible line (an answer the terminal shows as it is typed): the question, then the line without its line break. */
-export function askLine(question: string, { input, output }: { input: NodeJS.ReadableStream; output: PromptOutput }): Promise<string> {
+/**
+ * Reads one visible line (an answer the terminal shows as it is typed): the question, then the line without its line break. An aborted `signal`
+ * (Ctrl-C, BL-126) ends the wait with an empty answer, which every caller reads as "no": a prompt that never answers would hold the tool open
+ * with its cleanup undone.
+ */
+export function askLine(question: string, { input, output }: { input: NodeJS.ReadableStream; output: PromptOutput }, signal?: AbortSignal): Promise<string> {
+  if (signal?.aborted === true) return Promise.resolve('')
   const lines = createInterface({ input, terminal: false })
 
   return new Promise((resolve) => {
     let answered = false
+    const onAbort = () => lines.close()
     lines.once('line', (line) => {
       answered = true
+      signal?.removeEventListener('abort', onAbort)
       lines.close()
       resolve(line)
     })
     lines.once('close', () => {
+      signal?.removeEventListener('abort', onAbort)
       if (!answered) resolve('')
     })
+    signal?.addEventListener('abort', onAbort, { once: true })
     output.write(question)
   })
 }
