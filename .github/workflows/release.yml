@@ -12,6 +12,8 @@
 #   side branch or a typo cannot produce an installer.
 # - Only GitHub's own actions, each pinned by full commit SHA (the version in the comment beside it), on a numbered runner
 #   image (a moving `-latest` can change the operating system between two releases).
+# - The Windows build job installs the installer it built, starts it and watches it answer, as the step right before the upload, with no
+#   condition, folder or environment on it (BL-120).
 # - The toolchain is the one named in .node-version and rust-toolchain.toml, and the build runs with --locked (SR-041).
 # - The updater's key is never here (20.12a, SR-063). `tauri build` cannot bundle update files without a signing key, so each
 #   build job makes a throw-away key for itself in RUNNER_TEMP (not a secret, not the updater key) and uses it for that build only;
@@ -110,6 +112,14 @@ jobs:
         shell: pwsh
         run: |
           Get-ChildItem apps/desktop/src-tauri/target/release/bundle/nsis/*.exe | Get-FileHash -Algorithm SHA256 | Format-Table Hash, Path -AutoSize
+
+      # The installer is tried before it is uploaded (BL-120): installed silently, started, and judged on the version it says, a window that
+      # answers and ten seconds of answering, then stopped and uninstalled. A release whose installer does not install, or whose app does not
+      # start, stops here, before anything is attested or drafted. It is the file in place, the one uploaded next, so the bytes tried are the bytes
+      # that are attested and signed; nothing may sit between this step and the upload. It holds no token and no key, and the installer and the app
+      # are given only the system's own variables (releaseCanary.ts, createProgramHost).
+      - name: The installer installs, and the app starts and keeps answering
+        run: npm run release:install-check
 
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:

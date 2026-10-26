@@ -174,6 +174,8 @@ jobs:
         run: |
           $expected = "Listulator_$($env:TAG.Substring(1))_x64-setup.exe"
           if (@($installers).Count -ne 1 -or $installers[0].Name -ne $expected) { throw 'wrong installer' }
+      - name: The installer installs and starts
+        run: npm run release:install-check
       - uses: actions/upload-artifact@${sha('b')} # v1
         with:
           name: installer
@@ -321,6 +323,16 @@ describe('the rules for the release workflow, proven on hostile workflows', () =
     ['a publish job that does not refuse a signature file', (t) => t.replace("          if compgen -G '*.sig' > /dev/null; then exit 1; fi\n", ''), /does not refuse a signature file/],
     ['an artifact kept a month', (t) => t.replace('retention-days: 3', 'retention-days: 30'), /retention-days/],
     ['a build without --locked', (t) => t.replace('tauri.updater-artifacts.conf.json -- --locked', 'tauri.updater-artifacts.conf.json'), /not run with --locked/],
+    // BL-120: the installer the build made is installed and started before it is uploaded, and nothing touches it in between.
+    ['no install check of the installer in the Windows job', (t) => t.replace('      - name: The installer installs and starts\n        run: npm run release:install-check\n', ''), /never installs the installer it built/],
+    ['an install check that is skipped on the end of its line', (t) => t.replace('run: npm run release:install-check', 'run: npm run release:install-check || true'), /never installs the installer it built/],
+    ['an install check with arguments', (t) => t.replace('run: npm run release:install-check', 'run: npm run release:install-check -- --skip'), /never installs the installer it built/],
+    ['a step between the install check and the upload', (t) => t.replace('      - name: The installer installs and starts\n        run: npm run release:install-check\n', '      - name: The installer installs and starts\n        run: npm run release:install-check\n      - name: Touch the installer\n        run: echo changed\n'), /not the step right before the upload/],
+    ['an install check before the installer is built', (t) => t.replace('      - name: The installer installs and starts\n        run: npm run release:install-check\n', '').replace('      - name: Installer\n        shell: pwsh', '      - name: The installer installs and starts\n        run: npm run release:install-check\n      - name: Installer\n        shell: pwsh'), /before the installer is built/],
+    ['an install check that runs only sometimes', (t) => t.replace('run: npm run release:install-check', 'if: false\n        run: npm run release:install-check'), /says more than a name and a run/],
+    ['an install check in another folder', (t) => t.replace('run: npm run release:install-check', 'working-directory: apps\n        run: npm run release:install-check'), /says more than a name and a run/],
+    ['an install check with an environment', (t) => t.replace('run: npm run release:install-check', 'env:\n          NODE_OPTIONS: --require x.js\n        run: npm run release:install-check'), /says more than a name and a run/],
+    ['an install check in the macOS job', (t) => t.replace('      - name: Throw-away key\n        run: npm run tauri -w @listulator/desktop -- signer generate --ci -w "$RUNNER_TEMP/updater-throwaway.key"\n      - name: Installer\n        env:', '      - name: Throw-away key\n        run: npm run tauri -w @listulator/desktop -- signer generate --ci -w "$RUNNER_TEMP/updater-throwaway.key"\n      - run: npm run release:install-check\n      - name: Installer\n        env:'), /outside the Windows build job/],
   ]
 
   it.each(hostile)('refuse %s', (_name, change, expected) => {
@@ -462,6 +474,40 @@ describe('GitHub Actions workflows', () => {
   const profileOf = (name: string): Profile => (name === 'release.yml' ? 'release' : name === 'ci.yml' ? 'ci' : name === 'canary.yml' ? 'canary' : name === 'updater-test-windows.yml' ? 'updaterTest' : 'manual')
   it.each(workflows)('$name breaks none of the rules', ({ name, workflow }) => {
     expect(workflowProblems(workflow, profileOf(name))).toEqual([])
+  })
+})
+
+/**
+ * The Release run's Windows job installs the installer it built and starts it before the upload (BL-120). The workflow rules above hold the
+ * step to its place; these hold what it runs: one plain tsx line on the tool, with no npm hook that would run code next to it (npm runs `pre`
+ * and `post` scripts by name), no `.npmrc` and no package manager field that would change what an npm command does. The real workflow is also
+ * held to the rules above by the test that runs them on every file here.
+ */
+describe('what the release install check runs (BL-120)', () => {
+  const ROOT = join(import.meta.dirname, '../..')
+  const pkg = JSON.parse(readFileSync(join(ROOT, 'package.json'), 'utf8')) as { scripts: Record<string, string> }
+  const release = loadYaml(readFileSync(join(WORKFLOWS, 'release.yml'), 'utf8')) as Workflow
+
+  it('is a plain tsx line on the tool, and nothing else', () => {
+    expect(pkg.scripts['release:install-check']).toBe('tsx server/src/tools/releaseInstallCheck.ts')
+  })
+
+  it.each(['pre', 'post'])('has no npm %s hook for it (npm runs it by name, in the same step)', (when) => {
+    expect(pkg.scripts[`${when}release:install-check`]).toBeUndefined()
+  })
+
+  it('runs in the Windows build job of the Release run, right before the installer is uploaded, and in no other job or workflow', () => {
+    const runners = Object.entries(release.jobs).filter(([, job]) => (job.steps ?? []).some((step) => step.run?.trim() === 'npm run release:install-check'))
+    expect(runners.map(([name, job]) => [name, job['runs-on']])).toEqual([['build-windows', 'windows-2025']])
+
+    const steps = release.jobs['build-windows']!.steps ?? []
+    const at = steps.findIndex((step) => step.run?.trim() === 'npm run release:install-check')
+    expect(steps[at + 1]?.uses).toMatch(/^actions\/upload-artifact@/)
+    expect(Object.keys(steps[at]!).sort()).toEqual(['name', 'run'])
+
+    for (const name of readdirSync(WORKFLOWS).filter((file) => file !== 'release.yml')) {
+      expect(readFileSync(join(WORKFLOWS, name), 'utf8'), name).not.toMatch(/release:install-check/)
+    }
   })
 })
 

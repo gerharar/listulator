@@ -38,6 +38,8 @@ const MAX_CI_MINUTES = 90
  * it is not a decision; an hourly or weekly one is.
  */
 const CANARY_CRON = /^\d{1,2} \d{1,2} \* \* \*$/
+/** The Release run's Windows job tries the installer it built, as the last thing before it is uploaded (BL-120). */
+const INSTALL_CHECK = 'npm run release:install-check'
 /** The only commands a canary job runs; the first has no token, the other two are the ones that hold the workflow's read-only token. */
 const CANARY_INSTALL = 'npm ci --ignore-scripts'
 const CANARY_TOKEN_COMMANDS = ['npm run release:verify', 'npm run canary:install']
@@ -561,6 +563,26 @@ function releaseProblems(jobs: [string, Job][], steps: { job: string; step: Step
   const windowsRun = (windows?.steps ?? []).map((step) => step.run ?? '').join('\n')
   if (windows !== undefined && !(/_x64-setup\.exe/.test(windowsRun) && /\$env:TAG/.test(windowsRun) && /\.Name -ne \$expected/.test(windowsRun))) {
     problems.push("the Windows build job does not check that the installer's name carries the tag's version (Listulator_<version>_x64-setup.exe)")
+  }
+  // BL-120: the installer is installed and started before it is uploaded, so a release whose installer does not install, or whose app does not
+  // start, stops the run before any draft exists. The step is the last one before the upload, so nothing can change the file after it was tried
+  // (the bytes tried are the bytes uploaded, attested and signed). It says a name and the command and nothing else: no `if`, no folder, no env.
+  if (windows !== undefined) {
+    const own = windows.steps ?? []
+    const windowsName = jobs.find(([, job]) => job === windows)![0]
+    const at = own.findIndex((step) => step.run?.trim() === INSTALL_CHECK)
+    const upload = own.findIndex((step) => step.uses?.startsWith('actions/upload-artifact@'))
+    const building = own.findIndex((step) => /\btauri:build\b/.test(step.run ?? ''))
+    if (at === -1) problems.push(`job ${windowsName} never installs the installer it built (a step that runs exactly ${INSTALL_CHECK})`)
+    else {
+      if (upload === -1 || at !== upload - 1) problems.push(`job ${windowsName}: the install check is not the step right before the upload (nothing may change the installer after it was tried)`)
+      if (building === -1 || at < building) problems.push(`job ${windowsName}: the install check runs before the installer is built`)
+      const keys = Object.keys(own[at]!).filter((key) => key !== 'name' && key !== 'run')
+      if (keys.length > 0) problems.push(`job ${windowsName}: the install check step says more than a name and a run (${keys.join(', ')}): no condition, folder or environment may change what it does`)
+    }
+  }
+  for (const { job, run } of runs) {
+    if (run.includes('release:install-check') && job !== jobs.find(([, candidate]) => candidate === windows)?.[0]) problems.push(`job ${job}: runs the install check outside the Windows build job (it installs a program)`)
   }
   // The files that travel are checked as they are handed on: no signature among them, and the update archive is among them.
   const publishRun = (publish?.steps ?? []).map((step) => step.run ?? '').join('\n')
