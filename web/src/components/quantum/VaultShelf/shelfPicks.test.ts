@@ -16,20 +16,20 @@ function sequence(...numbers: number[]): () => number {
   return () => numbers[at++ % numbers.length]!
 }
 
-describe('shelfPicks: six random library lists, each from a different category (H-018, owner 2026-10-22)', () => {
-  it('picks six lists from six distinct categories out of many', () => {
+describe('shelfPicks: three random library lists, each from a different category (H-018, revised 2026-10-26; was six)', () => {
+  it('picks three lists from three distinct categories out of many', () => {
     const picks = shelfPicks(MANY, Math.random)
 
-    expect(picks).toHaveLength(6)
-    expect(new Set(picks.map((pick) => pick.category)).size).toBe(6)
+    expect(picks).toHaveLength(3)
+    expect(new Set(picks.map((pick) => pick.category)).size).toBe(3)
     for (const pick of picks) expect(MANY).toContain(pick)
   })
 
   it('picks fewer when the library has fewer categories, one list for each', () => {
-    const picks = shelfPicks(MANY.filter((e) => ['movie', 'tv', 'game'].includes(e.category)), Math.random)
+    const picks = shelfPicks(MANY.filter((e) => ['movie', 'tv'].includes(e.category)), Math.random)
 
-    expect(picks).toHaveLength(3)
-    expect(new Set(picks.map((pick) => pick.category))).toEqual(new Set(['movie', 'tv', 'game']))
+    expect(picks).toHaveLength(2)
+    expect(new Set(picks.map((pick) => pick.category))).toEqual(new Set(['movie', 'tv']))
   })
 
   it('takes the one list of a category that has only one', () => {

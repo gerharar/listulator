@@ -54,12 +54,12 @@ describe('VaultShelf', () => {
     expect(cards()).toHaveLength(0)
   })
 
-  it('shows six cards, each from a different category, with the category and the number of items', async () => {
+  it('shows three cards, each from a different category, with the category and the number of items', async () => {
     mount({ entries: entries(['movie', 'tv', 'game', 'book', 'music', 'comic', 'wrestling', 'mma']), reachable: true })
 
-    await waitFor(() => expect(cards()).toHaveLength(6))
+    await waitFor(() => expect(cards()).toHaveLength(3))
     const kinds = cards().map((card) => card.querySelector('.q-vault-meta')!.textContent!.split(' · ')[0])
-    expect(new Set(kinds).size).toBe(6)
+    expect(new Set(kinds).size).toBe(3)
     for (const card of cards()) expect(card.querySelector('.q-vault-meta')!.textContent).toMatch(/ · \d+ items$/)
   })
 
@@ -71,16 +71,16 @@ describe('VaultShelf', () => {
     expect(cards()[0]!.querySelector('.q-vault-meta')!.textContent).toBe('TV Series · 1 item')
   })
 
-  it('shows a card for each category when the library has fewer than six', async () => {
+  it('shows a card for each category when the library has fewer than three', async () => {
     mount({ entries: entries(['movie', 'tv']), reachable: true })
 
     await waitFor(() => expect(cards()).toHaveLength(2))
   })
 
-  it('keeps the same six while the screen stays open, whatever the random source would now say', async () => {
+  it('keeps the same three while the screen stays open, whatever the random source would now say', async () => {
     let calls = 0
     const view = mount({ entries: entries(['movie', 'tv', 'game', 'book', 'music', 'comic', 'wrestling', 'mma']), reachable: true }, () => (calls += 1) / 1000 + 0.1)
-    await waitFor(() => expect(cards()).toHaveLength(6))
+    await waitFor(() => expect(cards()).toHaveLength(3))
     const before = cards().map((card) => card.textContent)
 
     view.rerender(

@@ -79,10 +79,10 @@ test('after the first-run creation, Home exists again with the new list pushed o
 })
 
 /**
- * The List Vault shelf (H-018, 33.6): on a first run, under the tiles, up to six library lists from different categories. A card opens
+ * The List Vault shelf (H-018, 33.6): on a first run, under the tiles, up to three library lists from different categories. A card opens
  * the Preview the search rows open and builds nothing; the library is stubbed here (a live manifest has no business gating this suite).
  */
-test('the first-run shelf shows six lists from six categories, and a card opens a Preview and creates no list', async ({ page }) => {
+test('the first-run shelf shows three lists from three categories in one row, and a card opens a Preview and creates no list', async ({ page }) => {
   const created: string[] = []
   const categories = ['movie', 'tv', 'game', 'book', 'music', 'comic', 'wrestling', 'mma']
   const entries = categories.flatMap((category) =>
@@ -109,9 +109,13 @@ test('the first-run shelf shows six lists from six categories, and a card opens 
   await expect(page.getByText(q.vaultShelf.line)).toBeVisible()
 
   const cards = page.locator('.q-vault-card')
-  await expect(cards).toHaveCount(6)
+  await expect(cards).toHaveCount(3)
   const kinds = await cards.locator('.q-vault-meta').allTextContents()
-  expect(new Set(kinds.map((meta) => meta.split(' · ')[0])).size).toBe(6)
+  expect(new Set(kinds.map((meta) => meta.split(' · ')[0])).size).toBe(3)
+  // One row at the card's width (H-018, 2026-10-26): the three cards share a top edge. Measured once the screen has settled (layers drum in).
+  await page.waitForFunction(() => document.getAnimations().length === 0)
+  const tops = await cards.evaluateAll((nodes) => nodes.map((node) => Math.round(node.getBoundingClientRect().top)))
+  expect(new Set(tops).size).toBe(1)
   for (const meta of kinds) expect(meta).toMatch(/ · 12 items$/)
 
   await cards.first().click()

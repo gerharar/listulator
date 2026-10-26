@@ -1,4 +1,4 @@
-/* The first-run shelf (H-018): label, one line, up to six cards. */
+/* The List Vault shelf (H-018): label, one line, up to three cards. */
 .q-vault {
   display: flex;
   flex-direction: column;
@@ -37,7 +37,7 @@
 }
 .q-vault-cards {
   display: grid;
-  /* Six cards in three columns on the full-size card (1080px), two or one in narrower windows. */
+  /* Three cards in one row on the full-size card (1080px); in narrower windows they wrap to two columns, then one. */
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
   gap: 12px;
   margin-top: 4px;

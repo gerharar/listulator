@@ -13,15 +13,15 @@ import { shelfPicks } from './shelfPicks.js'
 export interface VaultShelfProps {
   /** The registry, for the categories' names. */
   mediaTypes: readonly MediaType[]
-  /** Chooses the six; a test fixes it. */
+  /** Chooses the three; a test fixes it. */
   random?: () => number
 }
 
 type Shelf = { phase: 'loading' } | { phase: 'offline' } | { phase: 'ready'; picks: LibraryEntry[]; entries: LibraryEntry[] }
 
 /**
- * "Or start from List Vault" (H-018): under the first-run tiles, up to six canonical lists a person can open without a key. A card opens the
- * Preview the search rows open and adds nothing: the list is only built by Add This List there. The six are picked once, when the library
+ * "Or start from List Vault" (H-018): under the first-run tiles, up to three canonical lists a person can open without a key. A card opens the
+ * Preview the search rows open and adds nothing: the list is only built by Add This List there. The three are picked once, when the library
  * has answered, and stay while the screen stays open. With no connection the shelf says so instead of showing cards.
  */
 export function VaultShelf({ mediaTypes, random = Math.random }: VaultShelfProps) {
