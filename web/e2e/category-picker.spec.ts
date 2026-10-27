@@ -61,7 +61,8 @@ test('New List carries the List Vault shelf of three, no Try A Sample List, and 
 
   await expect(page.getByRole('heading', { name: picker.title })).toBeVisible()
   await expect(page.getByRole('button', { name: picker.closeLabel })).toBeVisible()
-  await expect(page.getByText(en.quantum.vaultShelf.label)).toBeVisible()
+  // The label is the product name now, which other places show too: the shelf's own element.
+  await expect(page.locator('.q-vault-label')).toHaveText(en.quantum.vaultShelf.label)
   const cards = page.locator('.q-vault-card')
   await expect(cards).toHaveCount(3)
   const kinds = await cards.locator('.q-vault-meta').allTextContents()

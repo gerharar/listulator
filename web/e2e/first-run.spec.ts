@@ -105,7 +105,7 @@ test('the first-run shelf shows three lists from three categories in one row, an
 
   await page.goto('/')
   await expect(page.getByRole('heading', { name: q.categoryPicker.firstRunTitle })).toBeVisible({ timeout: 15_000 })
-  await expect(page.getByText(q.vaultShelf.label)).toBeVisible()
+  await expect(page.locator('.q-vault-label')).toHaveText(q.vaultShelf.label)
   await expect(page.getByText(q.vaultShelf.line)).toBeVisible()
 
   const cards = page.locator('.q-vault-card')

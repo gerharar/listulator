@@ -191,6 +191,7 @@ const SAME_AS_ENGLISH: Record<'ru' | 'de', readonly string[]> = {
     'quantum.vaultBrowser.columns.status',
     'quantum.vaultBrowser.tab',
     'quantum.vaultBrowser.title',
+    'quantum.vaultShelf.label',
     'quantum.settings.languages.en',
     'quantum.settings.languages.ru',
     'quantum.settings.languages.de',

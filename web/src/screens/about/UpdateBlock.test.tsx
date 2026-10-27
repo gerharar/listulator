@@ -193,7 +193,7 @@ describe('the buttons', () => {
       ['de', 'installing', 'Update wird installiert…', 'Installiert…'],
       ['de', 'restarting', 'Neustart…', 'Neustart…'],
       ['de', 'installError', 'Update konnte nicht installiert werden', 'Erneut versuchen'],
-      ['de', 'installStuck', 'App schließen und erneut versuchen', 'Erneut versuchen'],
+      ['de', 'installStuck', 'Listulator schließen und erneut versuchen', 'Erneut versuchen'],
       ['ru', 'downloading', 'Скачиваем обновление…', 'Скачиваем…'],
       ['ru', 'installing', 'Устанавливаем обновление…', 'Устанавливаем…'],
       ['ru', 'restarting', 'Перезапускаем…', 'Перезапускаем…'],
@@ -281,7 +281,7 @@ describe('the notice row (canvas H-017): the window will close and reopen', () =
     ['en', 'mac', 'Listulator will restart by itself.'],
     ['ru', 'other', 'Listulator закроется секунд на 10-15 и откроется сам.'],
     ['ru', 'mac', 'Listulator перезапустится сам.'],
-    ['de', 'other', 'Das Fenster ist bis zu 15 Sekunden weg und kommt von selbst wieder.'],
+    ['de', 'other', 'Listulator ist bis zu 15 Sekunden weg und kommt von selbst wieder.'],
     ['de', 'mac', 'Listulator startet von selbst neu.'],
   ] as const)('%s on %s: says design’s words', (language, platform, text) => {
     setActiveLanguage(language)
