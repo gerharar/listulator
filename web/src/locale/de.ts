@@ -438,8 +438,9 @@ export const de: Locale = {
     },
     vaultShelf: {
       label: 'Oder stöbere im List Vault',
-      line: 'Kanonische Listen, die jeder öffnen kann, ganz ohne Schlüssel. Sieh dir eine in der Vorschau an; erst mit „Diese Liste hinzufügen“ wird etwas angelegt.',
+      line: 'Kanonische Listen, die jeder öffnen kann, ganz ohne Schlüssel. Erst mit „Diese Liste hinzufügen“ wird etwas angelegt.',
       offline: 'Der List Vault braucht eine Internetverbindung, um seine Listen zu zeigen.',
+      needsConnectionTip: 'Braucht eine Internetverbindung',
       items: (n: number): string => `${n} ${selectPlural(n, 'de', { one: 'Eintrag', other: 'Einträge' })}`,
       browse: 'List Vault durchstöbern',
       browseTip: 'Alle Listen des List Vault, nach Kategorie',

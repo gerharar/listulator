@@ -112,7 +112,13 @@ export function VaultShelf({ mediaTypes, sample, random = Math.random }: VaultSh
             {text.browse}
           </Button>
           {sample && (
-            <Button className="q-vault-sample" disabled={shelf.phase !== 'ready' || shelf.entries.length === 0 || adding} onClick={() => void trySample()}>
+            <Button
+              className="q-vault-sample"
+              disabled={shelf.phase !== 'ready' || shelf.entries.length === 0 || adding}
+              // Offline, the line beside it says why; the button says it too, to a screen reader and on hover (design, H-018).
+              {...(shelf.phase === 'offline' ? { title: text.needsConnectionTip } : {})}
+              onClick={() => void trySample()}
+            >
               {text.trySample}
             </Button>
           )}

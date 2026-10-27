@@ -215,6 +215,19 @@ test('Try A Sample List: add, Keep It keeps it with no change of screen; Remove 
   expect(calls.at(-1)).toBe('patch {"isSample":false}')
 })
 
+test('offline, the disabled Try A Sample List says what it needs when hovered (design, H-018)', async ({ page }) => {
+  await page.route('**/api/lists', (route) => route.fulfill({ json: [] }))
+  await page.route('**/api/library/untracked', (route) => route.fulfill({ json: { entries: [], reachable: false } }))
+
+  await page.goto('/')
+
+  const sample = page.getByRole('button', { name: q.vaultShelf.trySample })
+  await expect(sample).toBeDisabled({ timeout: 15_000 })
+  await expect(page.getByText(q.vaultShelf.offline)).toBeVisible()
+  await sample.hover()
+  await expect(page.getByRole('tooltip')).toHaveText(q.vaultShelf.needsConnectionTip, { timeout: 2000 })
+})
+
 test('the first run offers Browse List Vault before Try A Sample List (H-020)', async ({ page }) => {
   await page.route('**/api/lists', (route) => route.fulfill({ json: [] }))
   await page.route('**/api/library/untracked', (route) => route.fulfill({ json: { entries: [{ externalRef: 'canonical:lists/movie/a.yaml', title: 'A', category: 'movie', itemCount: 4 }], reachable: true } }))

@@ -317,7 +317,7 @@ describe('the first-run subline and the TMDB callout (H-018, 33.3)', () => {
   it('reads as the design says on a first run', () => {
     renderFirstRun(TMDB_KEYLESS)
 
-    expect(screen.getByText('Pick a category to start a list. Those marked Free key needed search List Vault until you add a free API key. Mega is for cross-category franchises')).toBeTruthy()
+    expect(screen.getByText('Pick a category to start a list. Those marked Free key needed search List Vault until you add a free API key. Mega is for cross‑category franchises')).toBeTruthy()
   })
 
   it('is hidden by default, even on a first run in the desktop app with no TMDB key; the chips and the subline stay (owner, 2026-10-26)', () => {

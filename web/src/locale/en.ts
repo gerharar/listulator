@@ -500,8 +500,10 @@ export const en = {
     /** The first-run shelf of library lists (H-018). */
     vaultShelf: {
       label: 'Or browse List Vault',
-      line: 'Canonical lists anyone can open, no key needed. Preview one; nothing is added until you choose Add This List.',
+      line: 'Canonical lists anyone can open, no key needed. Nothing is added until you choose Add This List.',
       offline: 'List Vault needs an internet connection to show its lists.',
+      /** The tooltip of the disabled Try A Sample List while the library cannot be reached (design, H-018). */
+      needsConnectionTip: 'Needs an internet connection',
       items: (n: number): string => `${n} ${selectPlural(n, 'en', { one: 'item', other: 'items' })}`,
       browse: 'Browse List Vault',
       browseTip: 'All List Vault lists, by category',
@@ -541,7 +543,7 @@ export const en = {
       subline: 'Media categories supported by the app. Numbers show how many lists you have',
       /** First run only — nothing exists yet, so the picker is the base layer. */
       firstRunTitle: 'No Progress Tracked. Let\'s Start!',
-      firstRunSubline: 'Pick a category to start a list. Those marked Free key needed search List Vault until you add a free API key. Mega is for cross-category franchises',
+      firstRunSubline: 'Pick a category to start a list. Those marked Free key needed search List Vault until you add a free API key. Mega is for cross‑category franchises',
       /** First run only, desktop app, while TMDB has no key: the key card above the tiles (H-018). */
       tmdbCallout: {
         title: 'One free TMDB key unlocks four categories',

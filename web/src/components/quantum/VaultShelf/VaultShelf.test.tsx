@@ -50,7 +50,7 @@ describe('VaultShelf', () => {
     mount({ entries: entries(['movie']), reachable: true })
 
     expect(screen.getByText('Or browse List Vault')).toBeTruthy()
-    expect(screen.getByText('Canonical lists anyone can open, no key needed. Preview one; nothing is added until you choose Add This List.')).toBeTruthy()
+    expect(screen.getByText('Canonical lists anyone can open, no key needed. Nothing is added until you choose Add This List.')).toBeTruthy()
     expect(cards()).toHaveLength(0)
   })
 
@@ -113,6 +113,24 @@ describe('VaultShelf', () => {
     expect(cards()).toHaveLength(0)
   })
 
+  it('says why Try A Sample List is disabled while the library cannot be reached: it needs an internet connection (design, H-018)', async () => {
+    mount({ entries: [], reachable: false })
+    await screen.findByText('List Vault needs an internet connection to show its lists.')
+
+    const sample = screen.getByRole('button', { name: 'Try A Sample List' })
+
+    expect(sample.hasAttribute('disabled')).toBe(true)
+    expect(sample.getAttribute('aria-description')).toBe('Needs an internet connection')
+  })
+
+  it('gives Try A Sample List no such reason while the library is reachable, or still loading', async () => {
+    mount({ entries: entries(['movie']), reachable: true })
+    expect(screen.getByRole('button', { name: 'Try A Sample List' }).hasAttribute('aria-description')).toBe(false)
+    await waitFor(() => expect(cards()).toHaveLength(1))
+
+    expect(screen.getByRole('button', { name: 'Try A Sample List' }).hasAttribute('aria-description')).toBe(false)
+  })
+
   it('says the same when asking the library fails', async () => {
     mount(new Error('offline'))
 
@@ -135,7 +153,7 @@ describe('VaultShelf without the sample button (New List, 34.3)', () => {
 
     await waitFor(() => expect(cards()).toHaveLength(3))
     expect(screen.getByText('Or browse List Vault')).toBeTruthy()
-    expect(screen.getByText('Canonical lists anyone can open, no key needed. Preview one; nothing is added until you choose Add This List.')).toBeTruthy()
+    expect(screen.getByText('Canonical lists anyone can open, no key needed. Nothing is added until you choose Add This List.')).toBeTruthy()
     expect(screen.queryByRole('button', { name: 'Try A Sample List' })).toBeNull()
   })
 
