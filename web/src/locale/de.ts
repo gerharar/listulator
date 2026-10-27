@@ -891,8 +891,8 @@ export const de: Locale = {
         resize: 'Größe der Gruppen-Sprungleiste ändern',
       },
       sample: {
-        text: 'Das ist ein Beispiel einer echten Liste. Sieh sie dir an und behalte sie als deine eigene oder entferne sie.',
-        remove: 'Entfernen',
+        text: 'Das ist ein Beispiel einer echten Liste. Sieh sie dir an und behalte sie als deine eigene oder lösche sie.',
+        remove: 'Löschen',
         keep: 'Behalten',
         kept: (title: string): string => `„${title}“ als deine eigene Liste behalten`,
         keepFailed: 'Die Liste konnte nicht behalten werden. Versuche es noch einmal',
