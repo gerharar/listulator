@@ -32,7 +32,12 @@ import { compareVersions, parseSignature } from './updateManifest.js'
 const PRODUCT = 'Listulator'
 const APP_EXE = 'listulator-desktop.exe'
 const POLL_MS = 1000
-const START_TIMEOUT_S = 60
+/**
+ * How many times it looks for the app's window before it gives up. It was named `START_TIMEOUT_S` and read as seconds, but a look starts
+ * PowerShell (seconds on a runner), so 60 looks are minutes: measured 2026-10-27, a wait took 40 to 270 s (BL-128). Not changed yet (that
+ * would be raising a limit before knowing what is slow); the run now says at which look the window answered and how long that took.
+ */
+const MAX_LOOKS = 60
 const STAY_UP_S = 10
 
 /** What the canary sees of the app: one process that runs from the install folder. */
@@ -66,6 +71,8 @@ export interface CanaryHost {
   stopApp(installDir: string): Promise<void>
   uninstall(installDir: string): Promise<void>
   pause(ms: number): Promise<void>
+  /** The time now in milliseconds, to say how long the wait for the window took. */
+  now(): number
 }
 
 export interface ReleaseCanaryOptions {
@@ -132,7 +139,7 @@ async function installerSignatureProblem(host: CanaryHost, previous: string, sig
 }
 
 /** What both smoke tests need of the machine and the program; the canary adds GitHub to it. */
-export type ProgramHost = Pick<CanaryHost, 'installDir' | 'exists' | 'runInstaller' | 'fileVersion' | 'startApp' | 'processes' | 'stopApp' | 'uninstall' | 'pause'>
+export type ProgramHost = Pick<CanaryHost, 'installDir' | 'exists' | 'runInstaller' | 'fileVersion' | 'startApp' | 'processes' | 'stopApp' | 'uninstall' | 'pause' | 'now'>
 
 /** Why a smoke test must not go on, or undefined: it never touches an install it did not make. */
 export function alreadyInstalledProblem(host: Pick<ProgramHost, 'installDir' | 'exists'>): string | undefined {
@@ -167,12 +174,18 @@ export async function installAndWatch(host: ProgramHost, installer: string, vers
     // 3. It starts, opens a window that answers, and keeps answering.
     host.startApp(exe)
     started = true
+    const startedAt = host.now()
+    const seconds = () => Math.round((host.now() - startedAt) / 1000)
     let ready = false
-    for (let second = 0; second < START_TIMEOUT_S && !ready; second++) {
+    let looks = 0
+    while (looks < MAX_LOOKS && !ready) {
       ready = (await host.processes(installDir)).some((process) => process.hasWindow && process.responding)
-      if (!ready && second < START_TIMEOUT_S - 1) await host.pause(POLL_MS)
+      looks++
+      if (!ready && looks < MAX_LOOKS) await host.pause(POLL_MS)
     }
-    if (!ready) return fail(`The app did not open a responding window within ${START_TIMEOUT_S} s`)
+    if (!ready) return fail(`The app did not open a responding window in ${MAX_LOOKS} looks (${seconds()} s)`)
+    // Not a verdict: how close this was to the limit, which the logs of the daily canary never showed (BL-128).
+    log(`The app's window answered at look ${looks} of at most ${MAX_LOOKS}, ${seconds()} s after the start`)
     for (let second = 1; second <= STAY_UP_S; second++) {
       await host.pause(POLL_MS)
       const running = await host.processes(installDir)
@@ -340,6 +353,7 @@ export function createProgramHost(deps: CanaryHostDeps): ProgramHost {
     },
 
     pause: (ms) => new Promise<void>((done) => setTimeout(done, ms)),
+    now: () => Date.now(),
   }
 }
 

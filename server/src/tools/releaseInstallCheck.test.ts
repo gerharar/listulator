@@ -49,6 +49,8 @@ function fake(w: World) {
   const calls: string[] = []
   const installedFrom: string[] = []
   const pauses: number[] = []
+  /** The fake clock: only a pause moves it. */
+  let clock = 0
   let looks = 0
   let installed = w.alreadyInstalled
   const host: InstallCheckHost = {
@@ -90,7 +92,9 @@ function fake(w: World) {
     },
     pause: async (ms) => {
       pauses.push(ms)
+      clock += ms
     },
+    now: () => clock,
   }
 
   return { host, calls, installedFrom, pauses }
@@ -189,7 +193,7 @@ describe('what it refuses and what it reports', () => {
     ['an installer that leaves no program', { exeThere: false }, /listulator-desktop\.exe is not in .* after the installer ended/],
     ['a program that says it is another version', { version: '1.1.1.0' }, /carries version 1\.1\.1\.0, not 1\.2\.0/],
     ['a program that says nothing', { version: undefined }, /carries version none/],
-    ['an app that never opens a window', { samples: [[NO_WINDOW_YET]] }, /did not open a responding window within 60 s/],
+    ['an app that never opens a window', { samples: [[NO_WINDOW_YET]] }, /did not open a responding window in 60 looks \(\d+ s\)/],
     ['an app that ends after its window opened', { samples: [[OPEN], [OPEN], []] }, /app ended after 2 s/],
     ['an app that stops responding', { samples: [[OPEN], [{ ...OPEN, responding: false }]] }, /stopped responding after 1 s/],
   ])('fails on %s, and still stops and uninstalls what it installed', async (_name, over, expected) => {

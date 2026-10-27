@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto'
 import { describe, expect, it } from 'vitest'
 import { makeKeyPair, signLikeTauri } from './minisignTesting.js'
-import { createCanaryHost, parseReleaseCanaryArguments, releaseCanary, type CanaryHost, type CanaryProcess } from './releaseCanary.js'
+import { createCanaryHost, installAndWatch, parseReleaseCanaryArguments, releaseCanary, type CanaryHost, type CanaryProcess } from './releaseCanary.js'
 import type { Runner } from './releaseSign.js'
 
 /**
@@ -40,6 +40,8 @@ interface World {
   version: string | undefined
   /** What the app's processes look like at each look, one look per second; the last one repeats. */
   samples: CanaryProcess[][]
+  /** How long one look takes, in milliseconds (a real one starts PowerShell: seconds on a runner). Default 0. */
+  lookMs?: number
   /** The `latest.json` of the previous release as GitHub serves it. */
   manifest: Buffer
   /** The updater key that release's config carries, or the error reading it fails with. */
@@ -76,6 +78,8 @@ function fake(w: World): Fake {
   const downloaded: Fake['downloaded'] = []
   const pauses: number[] = []
   let looks = 0
+  /** The fake clock: only a look and a pause move it. */
+  let clock = 0
   let installed = w.alreadyInstalled
   const host: CanaryHost = {
     publishedTags: async () => {
@@ -134,6 +138,7 @@ function fake(w: World): Fake {
     },
     processes: async () => {
       calls.push('look')
+      clock += w.lookMs ?? 0
       const sample = w.samples[Math.min(looks++, w.samples.length - 1)]!
 
       return sample
@@ -146,7 +151,9 @@ function fake(w: World): Fake {
     },
     pause: async (ms) => {
       pauses.push(ms)
+      clock += ms
     },
+    now: () => clock,
   }
 
   return { host, calls, downloaded, pauses }
@@ -359,11 +366,21 @@ describe('what fails, and that it still cleans up', () => {
     expect(calls).not.toContain('start')
   })
 
-  it('fails when no window opens that answers within a minute, having looked once a second', async () => {
-    const { result, pauses } = await canary(world({ samples: [[]] }))
+  it('fails when no window opens that answers in 60 looks, and says how long the 60 looks took (BL-128: a look is not a second)', async () => {
+    const { result, pauses } = await canary(world({ samples: [[]], lookMs: 4000 }))
 
-    expect(result.failures).toEqual([expect.stringMatching(/did not open a responding window within 60 s/)])
+    // 60 looks of 4 s with 59 pauses of 1 s between them.
+    expect(result.failures).toEqual(['The app did not open a responding window in 60 looks (299 s)'])
     expect(pauses.length).toBeGreaterThanOrEqual(59)
+  })
+
+  it('says at which look the window answered and how long after the start, so a slow wait can be told from a near miss of the limit (BL-128)', async () => {
+    const lines: string[] = []
+    const f = fake(world({ samples: [[], [NO_WINDOW_YET], [OPEN]], lookMs: 4000 }))
+    await installAndWatch(f.host, 'C:\\tmp\\Listulator_1.0.1_x64-setup.exe', PREVIOUS_VERSION, (line) => lines.push(line), () => undefined)
+
+    // Three looks of 4 s and two pauses of 1 s: the window was seen 14 s after the start.
+    expect(lines).toContain('The app\'s window answered at look 3 of at most 60, 14 s after the start')
   })
 
   it('fails when the window opens but does not answer', async () => {
