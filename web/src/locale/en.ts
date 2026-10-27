@@ -1006,8 +1006,8 @@ export const en = {
       /** Said by the live region when Home or End (or the split button) takes the reader to an end of the list (H-019). */
       /** The band on a sample list (H-018): the first-run screen's Try A Sample List made this list. */
       sample: {
-        text: 'This is a sample of a real list. Check it out and keep it as your own or remove it.',
-        remove: 'Remove',
+        text: 'This is a sample of a real list. Check it out and keep it as your own or delete it.',
+        remove: 'Delete',
         keep: 'Keep It',
         kept: (title: string): string => `Kept “${title}” as your own list`,
         keepFailed: 'The list could not be kept. Try again',
