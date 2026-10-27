@@ -253,8 +253,8 @@ export const ru: Locale = {
       ongoing: 'Ещё Идёт',
     },
     marks: {
-      curated: 'Канонический список из List Vault (ведётся мясными мешками)',
-      byHand: 'Список создан вручную мясными мешками',
+      curated: 'Канонический список из List Vault (ведётся кожаными мешками)',
+      byHand: 'Список создан вручную кожаными мешками',
       manual: 'Элемент добавлен вручную',
       newCount: (n: number): string => `${n} NEW`,
       newItem: 'НОВОЕ',
@@ -373,7 +373,7 @@ export const ru: Locale = {
         },
         usedNote: (used: string): string => `Используется при поиске: ${used}`,
         missNote:
-          'Списки можно делать и без этих ключей, но только вручную или из List Vault, который ведут мясные мешки',
+          'Списки можно делать и без этих ключей, но только вручную или из List Vault, который ведут кожаные мешки',
         storedNote:
           'Ключи хранятся открытым текстом в папке данных приложения на этом компьютере и отправляются только тому сервису, которому принадлежат. Чтобы удалить ключи, удали данные приложения',
         sources: {
@@ -447,7 +447,7 @@ export const ru: Locale = {
     },
     vaultShelf: {
       label: 'List Vault',
-      line: 'Канонические ручные списки, доступные без API-ключей. От мясных мешков, для мясных мешков (c)',
+      line: 'Канонические ручные списки, доступные без API-ключей. От кожаных мешков, для кожаных мешков (c)',
       offline: 'Чтобы показать списки, List Vault нужен интернет.',
       needsConnectionTip: 'Нужно подключение к интернету',
       items: (n: number): string => items(n),
@@ -459,7 +459,7 @@ export const ru: Locale = {
     vaultBrowser: {
       tab: 'List Vault',
       title: 'List Vault',
-      subline: 'Список канонических ручных списков, доступных без API-ключей. От мясных мешков, для мясных мешков (c)',
+      subline: 'Список канонических ручных списков, доступных без API-ключей. От кожаных мешков, для кожаных мешков (c)',
       closeLabel: 'Закрыть List Vault',
       categoriesLabel: 'Категории',
       noListsTip: 'В этой категории пока нет списков List Vault',
@@ -534,7 +534,7 @@ export const ru: Locale = {
       previewUnavailable:
         'Этот источник слишком застенчив, чтобы показывать свои элементы. Просто добавьте его и потом удалите, если он не торт',
       curatedTitle: 'Канонический Список',
-      curatedProvenance: 'Источник: List Vault · Создан и поддерживается мясными мешками специально для Listulator',
+      curatedProvenance: 'Источник: List Vault · Создан и поддерживается кожаными мешками специально для Listulator',
       sourceProvenance: (source: string): string => `Источник: ${source}`,
       /** Where a curated-only category (Mega) searches: the tile footer and the Search tab. */
       librarySource: 'List Vault',
@@ -618,7 +618,7 @@ export const ru: Locale = {
         nothingLeft: (shelves: number): string =>
           `Ничего не осталось ${acrossShelves(shelves)}: ты уже отслеживаешь все канонические списки оттуда`,
         unreachable: 'Не удалось связаться с List Vault',
-        curatedTip: 'Канонический список, созданный и поддерживаемый мясными мешками',
+        curatedTip: 'Канонический список, созданный и поддерживаемый кожаными мешками',
       },
       justOneFix: {
         title: 'Быстрая Доза',
