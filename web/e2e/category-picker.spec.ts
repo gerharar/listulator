@@ -95,6 +95,9 @@ test('Browse List Vault opens the browser: a category column and an empty state,
   await expect(page.getByRole('heading', { level: 1, name: vault.title })).toBeVisible()
   await expect(page.getByText(vault.chooseTitle)).toBeVisible()
   await expect(page.getByText(vault.chooseLine(3, 2))).toBeVisible()
+  // The centred line keeps a short measure (design, H-021); the subline above has no cap.
+  await expect(page.locator('.q-vb-empty-line')).toHaveCSS('max-width', '440px')
+  await expect(page.locator('.q-vb-sub')).toHaveCSS('max-width', 'none')
   const column = page.getByRole('navigation', { name: vault.categoriesLabel })
   await expect(column.getByRole('button').first()).toBeVisible()
   // Every category the registry has, the ones with no lists disabled.
@@ -314,14 +317,14 @@ test('the browser works from the keyboard: arrows and Home/End in both panes, â†
       const el = document.activeElement as HTMLElement
       return el.matches('[data-vcat]') ? 'category' : el.classList.contains('q-vb-sort') ? 'header' : el.classList.contains('q-vb-row') ? 'row' : 'other'
     })
+  // One stop for the column (the selected category), the four sort headers, one stop for the rows (roving tabindex, design 2026-10-27).
   const seen: string[] = []
-  for (let step = 0; step < 40; step += 1) {
+  for (let step = 0; step < 6; step += 1) {
     await page.keyboard.press('Tab')
-    const here = await kind()
-    if (seen.at(-1) !== here) seen.push(here)
-    if (here === 'row') break
+    seen.push(await kind())
   }
-  expect(seen).toEqual(['category', 'header', 'row'])
+  expect(seen).toEqual(['category', 'header', 'header', 'header', 'header', 'row'])
+  await expect(column.getByRole('button', { name: /^Movies/ })).toHaveAttribute('tabindex', '0')
 })
 
 test('Browse List Vault says the library is out of reach, and Try Again fills the browser in place (H-020)', async ({ page }) => {

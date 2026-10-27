@@ -468,7 +468,7 @@ export const ru: Locale = {
       loading: 'Загрузка List Vault…',
       outTitle: 'List Vault недоступен',
       tryAgain: 'Повторить',
-      columns: { name: 'Название', status: 'Статус', items: 'Элем.', time: 'Время' },
+      columns: { name: 'Название', status: 'Статус', items: 'Кол-во', time: 'Время' },
       statusUnknown: 'Статус неизвестен',
       inMyLists: 'В моих списках',
       inMyListsTip: 'Ты уже отслеживаешь этот список',

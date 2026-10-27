@@ -420,16 +420,57 @@ describe('VaultBrowser', () => {
       expect(focused()).toBe(categoryButton('Movies'))
     })
 
-    it('puts the Tab order as ✕, the column, the header row, the rows', async () => {
+    /** What Tab can land on, in page order: a button with tabindex -1 is reached by the arrow keys only. */
+    const tabStops = (container: HTMLElement) =>
+      [...container.querySelectorAll('button')]
+        .filter((button) => button.tabIndex >= 0)
+        .map((button) =>
+          button.closest('.q-vb-head') ? 'close' : button.closest('.q-vb-column') ? 'category' : button.closest('.q-vb-headrow') ? 'header' : 'row',
+        )
+
+    it('puts the Tab order as ✕, the column (one stop), the four headers, the rows (one stop): a roving tabindex (design, 2026-10-27)', async () => {
       const view = mount({ entries: LIBRARY, reachable: true })
       await waitFor(() => expect(countOf('Movies')).toBe('2'))
       fireEvent.click(categoryButton('Movies'))
 
-      const order = [...view.container.querySelectorAll('button')].map((button) =>
-        button.closest('.q-vb-head') ? 'close' : button.closest('.q-vb-column') ? 'category' : button.closest('.q-vb-headrow') ? 'header' : 'row',
-      )
+      expect(tabStops(view.container)).toEqual(['close', 'category', 'header', 'header', 'header', 'header', 'row'])
+    })
 
-      expect(order).toEqual(['close', ...Array(TYPES.length).fill('category'), ...Array(4).fill('header'), 'row', 'row'])
+    it('makes the selected category the column\'s stop, and the first one with lists while none is selected', async () => {
+      mount({ entries: LIBRARY, reachable: true })
+      await waitFor(() => expect(countOf('Movies')).toBe('2'))
+      const stops = () => within(column()).getAllByRole('button').filter((button) => button.tabIndex >= 0).map((button) => button.querySelector('.q-vb-name')!.textContent)
+
+      expect(stops()).toEqual(['Books'])
+      fireEvent.click(categoryButton('Movies'))
+      expect(stops()).toEqual(['Movies'])
+    })
+
+    it('still gives the column a stop while the library loads and when it is out of reach, so the keyboard can reach it', async () => {
+      vi.mocked(api.library).mockReturnValue(new Promise(() => undefined))
+      const loading = mount({ entries: [], reachable: true })
+      expect(tabStops(loading.container)).toEqual(['close', 'category'])
+      cleanup()
+
+      const out = mount({ entries: [], reachable: false })
+      await waitFor(() => expect(screen.getByText('List Vault is out of reach')).toBeTruthy())
+      // The last stop is Try Again (the helper names anything outside the head, column and headers a row).
+      expect(tabStops(out.container)).toEqual(['close', 'category', 'row'])
+    })
+
+    it('makes the row last focused the table\'s stop, the first row after a category change', async () => {
+      await openMovies()
+      const stop = () => [...document.querySelectorAll<HTMLElement>('.q-vb-row')].filter((row) => row.tabIndex >= 0).map((row) => nameOf(row))
+      expect(stop()).toEqual(['movie 1'])
+
+      categoryButton('Movies').focus()
+      key(focused(), 'ArrowRight')
+      key(focused(), 'ArrowDown')
+      expect(stop()).toEqual(['movie 2'])
+
+      fireEvent.click(categoryButton('Books'))
+      fireEvent.click(categoryButton('Movies'))
+      expect(stop()).toEqual(['movie 1'])
     })
 
     it('names the table by its caption, and says why a category cannot be picked', async () => {

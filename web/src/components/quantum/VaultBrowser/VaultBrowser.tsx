@@ -49,6 +49,8 @@ export function VaultBrowser({ mediaTypes }: VaultBrowserProps) {
   const [selected, setSelected] = useState<string | null>(null)
   const [retrying, setRetrying] = useState(false)
   const [sort, setSort] = useState<BrowserSort>(DEFAULT_SORT)
+  /** The row last focused: the table's one tab stop (roving tabindex); the first row when it is not among the rows, as after a category change. */
+  const [lastRow, setLastRow] = useState<string | null>(null)
   const body = useRef<HTMLDivElement>(null)
   const captionId = useId()
 
@@ -86,10 +88,20 @@ export function VaultBrowser({ mediaTypes }: VaultBrowserProps) {
   const total = library.phase === 'ready' ? library.entries.length : 0
   const filled = [...counts.values()].filter((count) => count > 0).length
   const selectedType = ordered.find((type) => type.key === selected)
+  // The column's one tab stop: the selected category, else the first with lists, else the first (loading, or out of reach: it must still be reachable).
+  const firstPickable = library.phase === 'ready' ? ordered.find((type) => (counts.get(type.key) ?? 0) > 0) : undefined
+  const columnStop = (selectedType ?? firstPickable ?? ordered[0])?.key
   const rows = useMemo(
     () => (library.phase === 'ready' && selected !== null ? sortRows(library.entries.filter((entry) => entry.category === selected), sort) : []),
     [library, selected, sort],
   )
+  const rowStop = rows.some((entry) => entry.externalRef === lastRow) ? lastRow : rows[0]?.externalRef
+
+  /** Picks a category: a new table starts at its first row. */
+  function choose(key: string) {
+    if (key !== selected) setLastRow(null)
+    setSelected(key)
+  }
 
   /** A row opens the standard List Preview over the browser; Esc or ✕ comes back here with the category and the sort as they were. Nothing is added until Add This List. */
   function preview(entry: LibraryBrowserEntry) {
@@ -129,7 +141,7 @@ export function VaultBrowser({ mediaTypes }: VaultBrowserProps) {
     if (!to) return
     event.preventDefault()
     to.focus()
-    if (library.phase === 'ready' && to.dataset['vcat'] !== undefined) setSelected(to.dataset['vcat'])
+    if (library.phase === 'ready' && to.dataset['vcat'] !== undefined) choose(to.dataset['vcat'])
   }
 
   /** The rows: ↑/↓/Home/End move, ← goes back to the selected category; Enter opens the Preview (a button's own click). */
@@ -191,10 +203,12 @@ export function VaultBrowser({ mediaTypes }: VaultBrowserProps) {
                 data-vcat={type.key}
                 aria-current={picked ? 'true' : undefined}
                 aria-disabled={empty ? 'true' : undefined}
+                // One tab stop for the column; the arrow keys move between the others.
+                tabIndex={type.key === columnStop ? 0 : -1}
                 onClick={(event) => {
                   // Safari does not focus a button on a click, and the arrow keys need the focus here.
                   event.currentTarget.focus()
-                  if (library.phase === 'ready' && !empty) setSelected(type.key)
+                  if (library.phase === 'ready' && !empty) choose(type.key)
                 }}
               >
                 <span className="q-vb-name">{categoryLabel(type)}</span>
@@ -230,7 +244,15 @@ export function VaultBrowser({ mediaTypes }: VaultBrowserProps) {
                 })}
               </div>
               {rows.map((entry) => (
-                <button key={entry.externalRef} type="button" className="q-vb-row q-vb-grid" data-vrow="" onClick={() => preview(entry)}>
+                <button
+                  key={entry.externalRef}
+                  type="button"
+                  className="q-vb-row q-vb-grid"
+                  data-vrow=""
+                  tabIndex={entry.externalRef === rowStop ? 0 : -1}
+                  onFocus={() => setLastRow(entry.externalRef)}
+                  onClick={() => preview(entry)}
+                >
                   <span className="q-vb-nm">
                     <Tip as="span" className="q-vb-rowname" text={entry.title} whenClipped>
                       {entry.title}

@@ -623,3 +623,9 @@ describe('the Fuller lists in Mega hint strings (task 14.2)', () => {
   })
 })
 
+describe('the List Vault browser\'s column headers (design, 2026-10-27)', () => {
+  it('writes the Items header "Кол-во" in Russian (the standard table abbreviation, fits the 56px column) and "Anzahl" in German', () => {
+    expect(ru.quantum.vaultBrowser.columns.items).toBe('Кол-во')
+    expect(de.quantum.vaultBrowser.columns.items).toBe('Anzahl')
+  })
+})
