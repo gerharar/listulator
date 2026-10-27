@@ -309,4 +309,134 @@ describe('VaultBrowser', () => {
       expect(header('Time').getAttribute('aria-sort')).toBe('descending')
     })
   })
+
+  describe('the keyboard, as in a file manager (36.6)', () => {
+    const key = (element: Element, name: string) => fireEvent.keyDown(element, { key: name })
+    const focused = () => document.activeElement as HTMLElement
+    const nameOf = (element: Element | null) => element?.querySelector('.q-vb-name, .q-vb-rowname')?.textContent
+
+    /** Books 1, Movies 2; Games and TV Series have none (disabled). Opens with Movies selected and focused. */
+    async function openMovies() {
+      mount({ entries: LIBRARY, reachable: true })
+      await waitFor(() => expect(countOf('Movies')).toBe('2'))
+      categoryButton('Movies').focus()
+      fireEvent.click(categoryButton('Movies'))
+    }
+
+    it('moves through the column with the arrows and selects as it goes, skipping a category with no lists', async () => {
+      mount({ entries: LIBRARY, reachable: true })
+      await waitFor(() => expect(countOf('Movies')).toBe('2'))
+      categoryButton('Books').focus()
+
+      key(focused(), 'ArrowDown')
+
+      // Games (no lists) is passed over.
+      expect(nameOf(focused())).toBe('Movies')
+      expect(categoryButton('Movies').getAttribute('aria-current')).toBe('true')
+      key(focused(), 'ArrowUp')
+      expect(nameOf(focused())).toBe('Books')
+      expect(categoryButton('Books').getAttribute('aria-current')).toBe('true')
+      expect(categoryButton('Movies').getAttribute('aria-current')).toBeNull()
+    })
+
+    it('stops at the ends of the column rather than wrapping', async () => {
+      await openMovies()
+
+      key(focused(), 'ArrowDown')
+      expect(nameOf(focused())).toBe('Movies')
+      key(focused(), 'Home')
+      key(focused(), 'ArrowUp')
+      expect(nameOf(focused())).toBe('Books')
+    })
+
+    it('jumps to the first and the last category with lists on Home and End, and selects it', async () => {
+      await openMovies()
+
+      key(focused(), 'Home')
+      expect(nameOf(focused())).toBe('Books')
+      expect(categoryButton('Books').getAttribute('aria-current')).toBe('true')
+      key(focused(), 'End')
+      expect(nameOf(focused())).toBe('Movies')
+      expect(categoryButton('Movies').getAttribute('aria-current')).toBe('true')
+    })
+
+    it('keeps the page from scrolling on the keys it uses, and leaves the others alone', async () => {
+      await openMovies()
+
+      expect(fireEvent.keyDown(focused(), { key: 'ArrowUp' })).toBe(false)
+      expect(fireEvent.keyDown(focused(), { key: 'a' })).toBe(true)
+    })
+
+    it('does not select anything while the library is loading, or out of reach', () => {
+      vi.mocked(api.library).mockReturnValue(new Promise(() => undefined))
+      mount({ entries: [], reachable: true })
+      categoryButton('Books').focus()
+
+      key(focused(), 'ArrowDown')
+
+      expect(within(column()).getAllByRole('button').some((button) => button.getAttribute('aria-current') !== null)).toBe(false)
+    })
+
+    it('goes from the column to the first row with →, and nowhere when there is no table yet', async () => {
+      mount({ entries: LIBRARY, reachable: true })
+      await waitFor(() => expect(countOf('Movies')).toBe('2'))
+      categoryButton('Books').focus()
+      key(focused(), 'ArrowRight')
+      expect(focused()).toBe(categoryButton('Books'))
+
+      fireEvent.click(categoryButton('Movies'))
+      categoryButton('Movies').focus()
+      key(focused(), 'ArrowRight')
+
+      expect(nameOf(focused())).toBe('movie 1')
+      expect(focused().classList.contains('q-vb-row')).toBe(true)
+    })
+
+    it('moves between the rows with ↑ and ↓ and jumps with Home and End', async () => {
+      await openMovies()
+      categoryButton('Movies').focus()
+      key(focused(), 'ArrowRight')
+
+      key(focused(), 'ArrowDown')
+      expect(nameOf(focused())).toBe('movie 2')
+      key(focused(), 'ArrowDown')
+      expect(nameOf(focused())).toBe('movie 2')
+      key(focused(), 'ArrowUp')
+      expect(nameOf(focused())).toBe('movie 1')
+      key(focused(), 'End')
+      expect(nameOf(focused())).toBe('movie 2')
+      key(focused(), 'Home')
+      expect(nameOf(focused())).toBe('movie 1')
+    })
+
+    it('goes back to the selected category with ← from a row', async () => {
+      await openMovies()
+      categoryButton('Movies').focus()
+      key(focused(), 'ArrowRight')
+      expect(focused().classList.contains('q-vb-row')).toBe(true)
+
+      key(focused(), 'ArrowLeft')
+
+      expect(focused()).toBe(categoryButton('Movies'))
+    })
+
+    it('puts the Tab order as ✕, the column, the header row, the rows', async () => {
+      const view = mount({ entries: LIBRARY, reachable: true })
+      await waitFor(() => expect(countOf('Movies')).toBe('2'))
+      fireEvent.click(categoryButton('Movies'))
+
+      const order = [...view.container.querySelectorAll('button')].map((button) =>
+        button.closest('.q-vb-head') ? 'close' : button.closest('.q-vb-column') ? 'category' : button.closest('.q-vb-headrow') ? 'header' : 'row',
+      )
+
+      expect(order).toEqual(['close', ...Array(TYPES.length).fill('category'), ...Array(4).fill('header'), 'row', 'row'])
+    })
+
+    it('names the table by its caption, and says why a category cannot be picked', async () => {
+      await openMovies()
+
+      expect(screen.getByRole('group', { name: 'Movies · 2 lists' })).toBeTruthy()
+      expect(categoryButton('Games').getAttribute('aria-description')).toBe('No List Vault lists in this category yet')
+    })
+  })
 })

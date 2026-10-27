@@ -249,6 +249,81 @@ test('a list the person already has opens from its row as Open My List, which op
   expect(writes).toEqual([])
 })
 
+/**
+ * The browser from the keyboard, as in a file manager (H-020, 36.6): ↑/↓/Home/End move in either pane and the column selects as it moves,
+ * → crosses to the first row and ← back, Enter opens a row, and Tab goes ✕, column, header row, rows.
+ */
+test('the browser works from the keyboard: arrows and Home/End in both panes, → and ← between them, Enter opens, Tab goes ✕, column, headers, rows (H-020)', async ({ page, browserName }) => {
+  const entry = (category: string, n: number) => ({ externalRef: `canonical:lists/${category}/${n}.yaml`, title: `${category} list ${n}`, category, itemCount: n, tracked: false })
+  const library = [entry('movie', 1), entry('movie', 2), entry('movie', 3), entry('book', 1)]
+  const items = Array.from({ length: 4 }, (_, index) => ({ title: `Entry ${index + 1}`, timeToConsumeMinutes: 30, year: 2000 }))
+
+  await useHomeFixture(page)
+  await page.route('**/api/library/untracked', (route) => route.fulfill({ json: { entries: [library[0]], reachable: true } }))
+  await page.route('**/api/library', (route) => route.fulfill({ json: { entries: library, reachable: true } }))
+  await page.route('**/api/media-types/*/expansion**', (route) => route.fulfill({ json: { itemCount: 4, status: 'complete', items } }))
+  await page.goto('/')
+  await page.getByRole('button', { name: 'New List' }).click()
+  await page.getByRole('button', { name: en.quantum.vaultShelf.browse }).click()
+
+  const vault = en.quantum.vaultBrowser
+  const column = page.getByRole('navigation', { name: vault.categoriesLabel })
+  const active = () => page.evaluate(() => (document.activeElement as HTMLElement).textContent ?? '')
+  // The column: the first key press selects, skipping every category with no lists (all but Books and Movies).
+  await column.getByRole('button', { name: /^Books/ }).click()
+  await expect(column.getByRole('button', { name: /^Books/ })).toHaveAttribute('aria-current', 'true')
+  await page.keyboard.press('ArrowDown')
+  await expect(column.getByRole('button', { name: /^Movies/ })).toBeFocused()
+  await expect(column.getByRole('button', { name: /^Movies/ })).toHaveAttribute('aria-current', 'true')
+  await page.keyboard.press('ArrowUp')
+  await expect(column.getByRole('button', { name: /^Books/ })).toBeFocused()
+  await page.keyboard.press('End')
+  await expect(column.getByRole('button', { name: /^Movies/ })).toBeFocused()
+  await page.keyboard.press('Home')
+  await expect(column.getByRole('button', { name: /^Books/ })).toHaveAttribute('aria-current', 'true')
+  await page.keyboard.press('End')
+
+  // The rows: → crosses, ↑/↓/Home/End move, ← comes back to the selected category.
+  const rows = page.locator('.q-vb-row')
+  await page.keyboard.press('ArrowRight')
+  await expect(rows.first()).toBeFocused()
+  await page.keyboard.press('ArrowDown')
+  expect(await active()).toContain('movie list 2')
+  await page.keyboard.press('End')
+  expect(await active()).toContain('movie list 3')
+  await page.keyboard.press('Home')
+  expect(await active()).toContain('movie list 1')
+  await page.keyboard.press('ArrowLeft')
+  await expect(column.getByRole('button', { name: /^Movies/ })).toBeFocused()
+
+  // The names a screen reader gets: the table is a group named by its caption.
+  await expect(page.getByRole('group', { name: vault.caption('Movies', 3) })).toBeVisible()
+
+  // Enter on a row opens its Preview.
+  await page.keyboard.press('ArrowRight')
+  await page.keyboard.press('Enter')
+  await expect(page.getByRole('heading', { level: 1, name: /movie list 1/ })).toBeVisible()
+  await page.keyboard.press('Escape')
+
+  // Tab: ✕ first, then the column, then the header row, then the rows. Safari does not Tab onto buttons unless the system asks it to, so this
+  // part runs in Chromium; the order itself is the page's order, which the component test reads in every engine.
+  if (browserName !== 'chromium') return
+  await page.getByRole('button', { name: vault.closeLabel }).focus()
+  const kind = () =>
+    page.evaluate(() => {
+      const el = document.activeElement as HTMLElement
+      return el.matches('[data-vcat]') ? 'category' : el.classList.contains('q-vb-sort') ? 'header' : el.classList.contains('q-vb-row') ? 'row' : 'other'
+    })
+  const seen: string[] = []
+  for (let step = 0; step < 40; step += 1) {
+    await page.keyboard.press('Tab')
+    const here = await kind()
+    if (seen.at(-1) !== here) seen.push(here)
+    if (here === 'row') break
+  }
+  expect(seen).toEqual(['category', 'header', 'row'])
+})
+
 test('Browse List Vault says the library is out of reach, and Try Again fills the browser in place (H-020)', async ({ page }) => {
   let reachable = false
   const entries = [{ externalRef: 'canonical:lists/book/a.yaml', title: 'A', category: 'book', itemCount: 4, tracked: false }]

@@ -1,6 +1,6 @@
 import { Tip } from '../Tooltip/Tip.js'
 import './VaultBrowser.css'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useId, useMemo, useRef, useState, type KeyboardEvent } from 'react'
 import { Vault, X } from 'lucide-react'
 import type { LibraryBrowserEntry } from '../../../../../server/src/ingestion/customLists.js'
 import { api, type MediaType } from '../../../lib/api.js'
@@ -24,6 +24,17 @@ const COLUMNS: readonly { key: SortKey; number: boolean }[] = [
   { key: 'time', number: true },
 ]
 
+/** Where ↑/↓/Home/End take the focus among `items`, or nothing for another key. A move stops at the ends. */
+function moveTarget(key: string, items: readonly HTMLElement[], current: HTMLElement): HTMLElement | undefined {
+  const at = items.indexOf(current)
+  if (key === 'ArrowDown') return items[Math.min(items.length - 1, at + 1)]
+  if (key === 'ArrowUp') return items[Math.max(0, at - 1)]
+  if (key === 'Home') return items[0]
+  if (key === 'End') return items[items.length - 1]
+
+  return undefined
+}
+
 type Library = { phase: 'loading' } | { phase: 'out' } | { phase: 'ready'; entries: readonly LibraryBrowserEntry[] }
 
 /**
@@ -38,6 +49,8 @@ export function VaultBrowser({ mediaTypes }: VaultBrowserProps) {
   const [selected, setSelected] = useState<string | null>(null)
   const [retrying, setRetrying] = useState(false)
   const [sort, setSort] = useState<BrowserSort>(DEFAULT_SORT)
+  const body = useRef<HTMLDivElement>(null)
+  const captionId = useId()
 
   const load = useCallback((): Promise<void> => {
     return api
@@ -94,6 +107,51 @@ export function VaultBrowser({ mediaTypes }: VaultBrowserProps) {
     })
   }
 
+  /** What a key can reach in this layer: the categories, or the rows (not a category that cannot be picked). */
+  const reachable = (selector: string): HTMLElement[] =>
+    [...(body.current?.querySelectorAll<HTMLElement>(selector) ?? [])].filter((element) => element.getAttribute('aria-disabled') !== 'true')
+
+  /** The column as a file manager has it: ↑/↓/Home/End move and select, → crosses to the first row. */
+  function onColumnKey(event: KeyboardEvent<HTMLElement>) {
+    const target = event.target as HTMLElement
+    if (!target.matches('[data-vcat]')) return
+
+    if (event.key === 'ArrowRight') {
+      const first = reachable('[data-vrow]')[0]
+      if (first) {
+        event.preventDefault()
+        first.focus()
+      }
+      return
+    }
+
+    const to = moveTarget(event.key, reachable('[data-vcat]'), target)
+    if (!to) return
+    event.preventDefault()
+    to.focus()
+    if (library.phase === 'ready' && to.dataset['vcat'] !== undefined) setSelected(to.dataset['vcat'])
+  }
+
+  /** The rows: ↑/↓/Home/End move, ← goes back to the selected category; Enter opens the Preview (a button's own click). */
+  function onRowsKey(event: KeyboardEvent<HTMLElement>) {
+    const target = event.target as HTMLElement
+    if (!target.matches('[data-vrow]')) return
+
+    if (event.key === 'ArrowLeft') {
+      const category = body.current?.querySelector<HTMLElement>('[data-vcat][aria-current]')
+      if (category) {
+        event.preventDefault()
+        category.focus()
+      }
+      return
+    }
+
+    const to = moveTarget(event.key, reachable('[data-vrow]'), target)
+    if (!to) return
+    event.preventDefault()
+    to.focus()
+  }
+
   async function tryAgain() {
     setRetrying(true)
     await load()
@@ -113,8 +171,8 @@ export function VaultBrowser({ mediaTypes }: VaultBrowserProps) {
         </IconButton>
       </div>
 
-      <div className="q-vb-body">
-        <nav className="q-vb-column" aria-label={text.categoriesLabel}>
+      <div className="q-vb-body" ref={body}>
+        <nav className="q-vb-column" aria-label={text.categoriesLabel} onKeyDown={onColumnKey}>
           {ordered.map((type) => {
             const count = counts.get(type.key) ?? 0
             // Loading: not disabled, but nothing to pick yet. Out of reach, or no lists: disabled, and the column keeps its places.
@@ -128,9 +186,14 @@ export function VaultBrowser({ mediaTypes }: VaultBrowserProps) {
                 type="button"
                 className={picked ? 'q-vb-cat on' : empty ? 'q-vb-cat empty' : 'q-vb-cat'}
                 text={library.phase === 'ready' && empty ? text.noListsTip : undefined}
+                // A category that cannot be picked says why to a screen reader too.
+                describe
+                data-vcat={type.key}
                 aria-current={picked ? 'true' : undefined}
                 aria-disabled={empty ? 'true' : undefined}
-                onClick={() => {
+                onClick={(event) => {
+                  // Safari does not focus a button on a click, and the arrow keys need the focus here.
+                  event.currentTarget.focus()
                   if (library.phase === 'ready' && !empty) setSelected(type.key)
                 }}
               >
@@ -143,8 +206,8 @@ export function VaultBrowser({ mediaTypes }: VaultBrowserProps) {
 
         <div className="q-vb-pane">
           {selectedType ? (
-            <div className="q-vb-table">
-              <p className="q-vb-caption">{text.caption(categoryLabel(selectedType), counts.get(selectedType.key) ?? 0)}</p>
+            <div className="q-vb-table" role="group" aria-labelledby={captionId} onKeyDown={onRowsKey}>
+              <p className="q-vb-caption" id={captionId}>{text.caption(categoryLabel(selectedType), counts.get(selectedType.key) ?? 0)}</p>
               <div role="row" className="q-vb-grid q-vb-headrow">
                 {COLUMNS.map(({ key, number }) => {
                   const on = sort.key === key
@@ -167,7 +230,7 @@ export function VaultBrowser({ mediaTypes }: VaultBrowserProps) {
                 })}
               </div>
               {rows.map((entry) => (
-                <button key={entry.externalRef} type="button" className="q-vb-row q-vb-grid" onClick={() => preview(entry)}>
+                <button key={entry.externalRef} type="button" className="q-vb-row q-vb-grid" data-vrow="" onClick={() => preview(entry)}>
                   <span className="q-vb-nm">
                     <Tip as="span" className="q-vb-rowname" text={entry.title} whenClipped>
                       {entry.title}
