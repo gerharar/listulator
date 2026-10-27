@@ -53,9 +53,6 @@ export function VaultShelf({ mediaTypes, sample, random = Math.random }: VaultSh
     }
   }, [])
 
-  // The library is reachable and has nothing to offer: there is no shelf to draw.
-  if (shelf.phase === 'ready' && shelf.picks.length === 0) return null
-
   /**
    * Try A Sample List: one real library list, the one `config/onboarding.json` names, marked a sample and opened with Home under it. If a sample
    * already exists that one is opened instead. If only the marking fails the list is still there and still opens, just without the band.
@@ -115,7 +112,7 @@ export function VaultShelf({ mediaTypes, sample, random = Math.random }: VaultSh
             {text.browse}
           </Button>
           {sample && (
-            <Button className="q-vault-sample" disabled={shelf.phase !== 'ready' || adding} onClick={() => void trySample()}>
+            <Button className="q-vault-sample" disabled={shelf.phase !== 'ready' || shelf.entries.length === 0 || adding} onClick={() => void trySample()}>
               {text.trySample}
             </Button>
           )}
@@ -126,7 +123,7 @@ export function VaultShelf({ mediaTypes, sample, random = Math.random }: VaultSh
           {text.sampleFailed}
         </p>
       )}
-      {shelf.phase === 'ready' && (
+      {shelf.phase === 'ready' && shelf.picks.length > 0 && (
         <div className="q-vault-cards">
           {shelf.picks.map((entry) => (
             <button key={entry.externalRef} type="button" className="q-vault-card" onClick={() => open(entry)}>

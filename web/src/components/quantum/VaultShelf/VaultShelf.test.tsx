@@ -119,10 +119,13 @@ describe('VaultShelf', () => {
     expect(await screen.findByText('List Vault needs an internet connection to show its lists.')).toBeTruthy()
   })
 
-  it('is not drawn at all when the library is reachable but has nothing to offer', async () => {
+  it('keeps Browse List Vault, with no cards, when the library is reachable but every list is already tracked (H-020)', async () => {
     mount({ entries: [], reachable: true })
 
-    await waitFor(() => expect(document.querySelector('.q-vault')).toBeNull())
+    await waitFor(() => expect(vi.mocked(api.libraryUntracked)).toHaveBeenCalled())
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Try A Sample List' }).hasAttribute('disabled')).toBe(true))
+    expect(screen.getByRole('button', { name: 'Browse List Vault' }).hasAttribute('disabled')).toBe(false)
+    expect(cards()).toHaveLength(0)
   })
 })
 
