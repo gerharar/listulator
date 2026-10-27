@@ -63,6 +63,11 @@ export interface FacetDef {
    * Untagged button, and the tag editor ticks it beside the main pick.
    */
   flag?: boolean
+  /**
+   * A flag's name for the rest (Music's Recording: Live, and Studio for every item without it; H-023). It is an option of the facet, not a tag:
+   * with it the options cover every item, so all of them on is All. Without it a flag has its one option and no rest.
+   */
+  restLabel?: string
   /** Keep `values` in the written order; otherwise the buttons and the picker go A–Z by shown name. */
   keepOrder?: boolean
 }
@@ -72,9 +77,14 @@ export type FacetConvention = readonly FacetDef[]
 
 export const UNTAGGED = '__untagged'
 
+/** The key of a flag's rest option (Studio): the items that hold none of the flag's values. */
+export const REST = '__rest'
+
 export interface FacetOption {
   key: string
   label: string
+  /** A flag's rest option (Studio): no flag mark beside it, and last. */
+  rest?: true
 }
 
 export interface FacetGroup {
@@ -83,8 +93,10 @@ export interface FacetGroup {
   options: FacetOption[]
   /** Show the options in this order; false: A–Z by the name shown, which only the screen knows (its language). */
   keepOrder: boolean
-  /** A flag (Live): items without it hold none of the options, so every option on is not the same as All. */
+  /** A flag (Live): items without it hold none of the options, so every option on is not the same as All, unless `covers`. */
   flag?: boolean
+  /** The options cover every item (a flag with a rest option: Live and Studio), so all of them on is All. */
+  covers?: boolean
 }
 
 /** The selected option keys per facet. Nothing selected means nothing hidden. */
@@ -144,10 +156,15 @@ export function heldValues(tags: readonly string[] | null | undefined, def: Face
   return heldOptions({ tags }, def).flatMap((option) => values.find((value) => normal(value.tag) === option.key)?.tag ?? [])
 }
 
-/** The options an item holds for one facet: its values, or Untagged when none match (a flag has no Untagged). */
+/**
+ * The options an item holds for one facet: its values, or Untagged when none match. A flag has no Untagged: an item without it holds nothing,
+ * or the flag's rest option (Studio) when the facet names one.
+ */
 function optionsOf(item: Taggable, def: FacetDef): FacetOption[] {
   const held = heldOptions(item, def)
-  return held.length || def.flag ? held : [{ key: UNTAGGED, label: 'Untagged' }]
+  if (held.length) return held
+  if (def.flag) return def.restLabel ? [{ key: REST, label: def.restLabel, rest: true }] : []
+  return [{ key: UNTAGGED, label: 'Untagged' }]
 }
 
 /**
@@ -166,7 +183,7 @@ function deriveOne(items: readonly Taggable[], def: FacetDef): FacetGroup | null
     for (const option of optionsOf(item, def)) if (!seen.has(option.key)) seen.set(option.key, option)
   }
 
-  const tagged = [...seen.values()].filter((option) => option.key !== UNTAGGED)
+  const tagged = [...seen.values()].filter((option) => option.key !== UNTAGGED && option.key !== REST)
   // No tag means the facet has nothing to offer, so the bar stays without it.
   if (tagged.length === 0) return null
 
@@ -178,13 +195,15 @@ function deriveOne(items: readonly Taggable[], def: FacetDef): FacetGroup | null
     ordered = [...tagged].sort(comparePlatforms)
   }
 
-  const untagged = seen.get(UNTAGGED)
+  // Untagged, or a flag's rest, goes last.
+  const last = seen.get(UNTAGGED) ?? seen.get(REST)
   return {
     key: def.key,
     label: def.label,
-    options: untagged ? [...ordered, untagged] : ordered,
+    options: last ? [...ordered, last] : ordered,
     keepOrder: def.key === 'platform' || def.keepOrder === true,
     ...(def.flag ? { flag: true } : {}),
+    ...(def.flag && def.restLabel ? { covers: true } : {}),
   }
 }
 

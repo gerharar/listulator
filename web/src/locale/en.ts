@@ -1089,6 +1089,7 @@ export const en = {
           Single: 'Single',
           Mini: 'Mini',
           Live: 'Live',
+          Studio: 'Studio',
           Compilation: 'Compilation',
         } as Record<string, string | undefined>,
         collapseAll: 'Collapse',

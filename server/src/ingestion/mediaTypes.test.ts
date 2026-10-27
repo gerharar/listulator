@@ -346,3 +346,9 @@ describe('the key a category’s source takes (H-018 review)', () => {
   })
 })
 
+describe('Music’s Recording facet (H-023)', () => {
+  it('is a flag that names its rest Studio, so the filter reads Live or Studio', () => {
+    const music = createMediaTypeRegistry().get('music')!
+    expect(music.facets!.find((facet) => facet.key === 'extra')).toMatchObject({ flag: true, values: ['Live'], restLabel: 'Studio' })
+  })
+})

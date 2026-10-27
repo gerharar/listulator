@@ -63,7 +63,7 @@ describe('GET /api/media-types', () => {
           { tag: 'Compilation', label: 'Compilation', short: 'Comp', aliases: ['Comp'] },
         ],
       },
-      { key: 'extra', label: 'Recording', flag: true, values: ['Live'] },
+      { key: 'extra', label: 'Recording', flag: true, values: ['Live'], restLabel: 'Studio' },
     ])
     expect(byKey.get('animation')).toEqual([{ key: 'type', label: 'Type', values: ['Movie', 'TV'] }])
     // Mega's mediums are the other categories, by the key a list file writes; the label is for people.

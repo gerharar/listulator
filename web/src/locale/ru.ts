@@ -972,6 +972,7 @@ export const ru: Locale = {
           Single: 'Сингл',
           Mini: 'Мини',
           Live: 'Концерт',
+          Studio: 'Студия',
           Compilation: 'Сборник',
         },
         collapseAll: 'Свернуть',

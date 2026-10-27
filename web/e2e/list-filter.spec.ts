@@ -29,7 +29,7 @@ async function openList(page: Page, title: string) {
 }
 
 const facetBar = (page: Page) => page.locator('.q-filterbar')
-// The bar's own facets, not the hidden copy it measures (U4).
+// The bar's own facets (every one is a dropdown, H-023).
 const facets = (page: Page) => facetBar(page).locator(':scope > .q-facet')
 const rows = (page: Page) => page.locator('.q-item .title')
 
@@ -283,6 +283,38 @@ test('many platforms: the dropdown keeps the bar one row, and names the picks (U
     } finally {
       await page.request.delete(`/api/lists/${small}`)
     }
+  } finally {
+    await page.request.delete(`/api/lists/${id}`)
+  }
+})
+
+test('Music’s Recording is a Live or Studio dropdown: Studio hides the live records, both is All (H-023)', async ({ page }) => {
+  const title = `e2e list-filter recording ${Date.now()}`
+  const id = await makeList(page.request, title, 'music', [
+    { title: 'Prologue', timeToConsumeMinutes: 40, tags: ['Album'] },
+    { title: 'Live In Town', timeToConsumeMinutes: 70, tags: ['Album', 'Live'] },
+    { title: 'Short One', timeToConsumeMinutes: 20, tags: ['EP'] },
+  ])
+
+  try {
+    await openList(page, title)
+    const summary = facetBar(page).getByRole('button', { name: 'Recording: All' })
+    await summary.click()
+    const pop = page.getByRole('dialog')
+    await expect(pop.locator('.q-facet button')).toHaveText(['All', 'Live', 'Studio'])
+    await expect(pop.getByRole('button', { name: 'Studio', exact: true }).locator('.q-facet-mark')).toHaveCount(0)
+
+    await pop.getByRole('button', { name: 'Studio', exact: true }).click()
+    await expect(rows(page)).toHaveText(['Prologue', 'Short One'])
+    await expect(facetBar(page).getByRole('button', { name: 'Recording: Studio' })).toHaveAttribute('data-on', 'true')
+
+    await pop.getByRole('button', { name: 'Studio', exact: true }).click()
+    await pop.getByRole('button', { name: 'Live', exact: true }).click()
+    await expect(rows(page)).toHaveText(['Live In Town'])
+
+    await pop.getByRole('button', { name: 'Studio', exact: true }).click()
+    await expect(rows(page)).toHaveText(['Prologue', 'Live In Town', 'Short One'])
+    await expect(facetBar(page).getByRole('button', { name: 'Recording: All' })).toHaveAttribute('data-on', 'false')
   } finally {
     await page.request.delete(`/api/lists/${id}`)
   }

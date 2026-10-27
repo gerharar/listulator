@@ -963,6 +963,7 @@ export const de: Locale = {
           Single: 'Single',
           Mini: 'Mini',
           Live: 'Live',
+          Studio: 'Studio',
           Compilation: 'Compilation',
         },
         collapseAll: 'Einklappen',

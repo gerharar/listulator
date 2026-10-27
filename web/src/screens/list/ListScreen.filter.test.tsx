@@ -61,7 +61,7 @@ const TYPES: MediaType[] = [
         prevails: 'Compilation',
         values: ['Album', { tag: 'Mini', label: 'Mini', aliases: ['EP', 'Single'] }, { tag: 'Compilation', label: 'Compilation', short: 'Comp', aliases: ['Comp'] }],
       },
-      { key: 'extra', label: 'Recording', flag: true, values: ['Live'] },
+      { key: 'extra', label: 'Recording', flag: true, values: ['Live'], restLabel: 'Studio' },
     ],
   },
 ]
@@ -817,5 +817,18 @@ describe('a Music list (owner, 2026-09-27)', () => {
     expect(rowIds()).toEqual(['a', 'l'])
     fireEvent.click(facet('Live'))
     expect(rowIds()).toEqual(['l'])
+  })
+
+  it('hides the live records with Studio, shows only them with Live, and everything with both', async () => {
+    await open('music', music)
+
+    fireEvent.click(facet('Studio'))
+    expect(rowIds()).toEqual(['a', 'e', 'c'])
+    fireEvent.click(facet('Studio'))
+    fireEvent.click(facet('Live'))
+    expect(rowIds()).toEqual(['l'])
+    fireEvent.click(facet('Studio'))
+    expect(rowIds()).toEqual(['a', 'l', 'e', 'c'])
+    expect(within(bar()).getByRole('button', { name: 'Recording: All' })).toBeTruthy()
   })
 })

@@ -259,7 +259,7 @@ export function createDefaultMediaTypes({
             { tag: 'Compilation', label: 'Compilation', short: 'Comp', aliases: ['Comp'] },
           ],
         },
-        { key: 'extra', label: 'Recording', flag: true, values: ['Live'] },
+        { key: 'extra', label: 'Recording', flag: true, values: ['Live'], restLabel: 'Studio' },
       ],
     },
     // Lengths vary from three minutes to three hours, so this default is more

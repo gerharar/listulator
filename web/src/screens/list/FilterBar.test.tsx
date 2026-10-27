@@ -325,3 +325,48 @@ describe('the count note keeps a fixed slot (H-019, revision 2026-10-27)', () =>
     expect(screen.getByText('3 of 8 shown').style.minWidth).toBe('16ch')
   })
 })
+
+describe('Recording as Live or Studio (H-023)', () => {
+  const recording: FacetGroup = {
+    key: 'extra',
+    label: 'Recording',
+    options: [
+      { key: 'live', label: 'Live' },
+      { key: '__rest', label: 'Studio', rest: true },
+    ],
+    keepOrder: false,
+    flag: true,
+    covers: true,
+  }
+
+  it('is a dropdown whose popover has Live, with the chip’s dot, and Studio, without one', () => {
+    bar({ facets: [recording] })
+
+    const pop = openFacet('Recording')
+    expect(pop.getByRole('button', { name: 'Live' }).querySelector('.q-facet-mark')).not.toBeNull()
+    expect(pop.getByRole('button', { name: 'Studio' }).querySelector('.q-facet-mark')).toBeNull()
+  })
+
+  it('keeps Live before Studio, though the other facets go A to Z', () => {
+    bar({ facets: [recording] })
+
+    const names = openFacet('Recording').getAllByRole('button').map((button) => button.textContent)
+    expect(names).toEqual(['All', 'Live', 'Studio'])
+  })
+
+  it('goes back to All when both are picked', () => {
+    const props = bar({ facets: [recording], selection: { extra: new Set(['live']) } })
+
+    fireEvent.click(openFacet('Recording').getByRole('button', { name: 'Studio' }))
+
+    expect(props.onSelect).toHaveBeenCalledWith('extra', new Set())
+  })
+
+  it('still filters when a flag has no Studio to go with it: its one option on is not All', () => {
+    const props = bar({ facets: [{ ...recording, covers: false, options: [recording.options[0]!] }] })
+
+    fireEvent.click(openFacet('Recording').getByRole('button', { name: 'Live' }))
+
+    expect(props.onSelect).toHaveBeenCalledWith('extra', new Set(['live']))
+  })
+})

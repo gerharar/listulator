@@ -1,6 +1,6 @@
 import { useRef } from 'react'
 import { ChevronsDownUp, ChevronsUpDown, EyeOff, X } from 'lucide-react'
-import { UNTAGGED, type FacetGroup, type FacetKey, type FacetSelection } from '../../../../server/src/catalog/facets.js'
+import { REST, UNTAGGED, type FacetGroup, type FacetKey, type FacetSelection } from '../../../../server/src/catalog/facets.js'
 import { compareShown, copy } from '../../locale/index.js'
 import type { FacetOption } from '../../components/quantum/FacetToggle/FacetToggle.js'
 import { FacetDropdown } from '../../components/quantum/FacetToggle/FacetDropdown.js'
@@ -39,13 +39,13 @@ function facetOptions(facet: FacetGroup): FacetOption[] {
   const options = facet.options.map((option) => ({
     key: option.key,
     label: t.optionLabels[option.label] ?? option.label,
-    ...(facet.flag ? { mark: true } : {}),
+    ...(facet.flag && !option.rest ? { mark: true } : {}),
     ...(facet.key === 'platform' && platformFullName(option.label)
       ? { name: platformFullName(option.label)! }
       : {}),
   }))
   if (facet.keepOrder) return options
-  const last = (option: FacetOption) => (option.key === UNTAGGED ? 1 : 0)
+  const last = (option: FacetOption) => (option.key === UNTAGGED || option.key === REST ? 1 : 0)
   return options.sort((a, b) => last(a) - last(b) || compareShown(a.label, b.label))
 }
 
@@ -66,7 +66,7 @@ export function FilterBar({ text, onText, onClear, facets, selection, onSelect, 
     options: facetOptions(facet),
     selected: selection[facet.key] ?? new Set<string>(),
     onChange: (selected: ReadonlySet<string>) => onSelect(facet.key, selected),
-    coversAll: !facet.flag,
+    coversAll: !facet.flag || facet.covers === true,
   })
 
   return (

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
+  REST,
   UNTAGGED,
   deriveFacets,
   tagChip,
@@ -232,5 +233,64 @@ describe('a main value with aliases, a prevailing value, and a flag', () => {
     expect(tagChip(['English'], books)).toEqual({ label: 'English', flags: [] })
     expect(tagChip(null, MUSIC)).toBeUndefined()
     expect(tagChip([], MUSIC)).toBeUndefined()
+  })
+})
+
+/**
+ * A flag with a name for the rest (H-023): Music's Recording is Live or Studio. Studio is not a tag: it is every item holding none of the flag's
+ * values, so the two options cover the list and both on is the same as All.
+ */
+describe('a flag with a name for the rest', () => {
+  const RECORDING: FacetConvention = [
+    { key: 'type', label: 'Type', keepOrder: true, values: ['Album', 'EP'] },
+    { key: 'extra', label: 'Recording', flag: true, values: ['Live'], restLabel: 'Studio' },
+  ]
+  const recording = (items: ReturnType<typeof item>[]) => deriveFacets(items, RECORDING).find((facet) => facet.key === 'extra')
+
+  it('offers Live, then Studio, when the list has both', () => {
+    expect(recording([item('Album', 'Live'), item('EP')])!.options).toEqual([
+      { key: 'live', label: 'Live' },
+      { key: REST, label: 'Studio', rest: true },
+    ])
+  })
+
+  it('offers Live alone on a list of live records, and no facet on a list without any', () => {
+    expect(recording([item('Album', 'Live'), item('EP', 'Live')])!.options.map((option) => option.label)).toEqual(['Live'])
+    expect(recording([item('Album'), item('EP')])).toBeUndefined()
+  })
+
+  it('says its options cover every item, so all of them on is All', () => {
+    expect(recording([item('Album', 'Live'), item('EP')])!.covers).toBe(true)
+  })
+
+  it('shows only the live items for Live and only the others for Studio', () => {
+    const live = item('Album', 'Live')
+    const studio = item('EP')
+    const none = item()
+    expect(matchesFacets(live, RECORDING, { extra: new Set(['live']) })).toBe(true)
+    expect(matchesFacets(studio, RECORDING, { extra: new Set(['live']) })).toBe(false)
+    expect(matchesFacets(live, RECORDING, { extra: new Set([REST]) })).toBe(false)
+    expect(matchesFacets(studio, RECORDING, { extra: new Set([REST]) })).toBe(true)
+    expect(matchesFacets(none, RECORDING, { extra: new Set([REST]) })).toBe(true)
+  })
+
+  it('shows everything when both are picked', () => {
+    const both: FacetSelection = { extra: new Set(['live', REST]) }
+    for (const entry of [item('Album', 'Live'), item('EP'), item()]) expect(matchesFacets(entry, RECORDING, both)).toBe(true)
+  })
+
+  it('combines with the Type facet as before: Studio albums', () => {
+    const studioAlbums: FacetSelection = { type: new Set(['album']), extra: new Set([REST]) }
+    expect(matchesFacets(item('Album'), RECORDING, studioAlbums)).toBe(true)
+    expect(matchesFacets(item('Album', 'Live'), RECORDING, studioAlbums)).toBe(false)
+    expect(matchesFacets(item('EP'), RECORDING, studioAlbums)).toBe(false)
+  })
+
+  it('leaves a flag without a name for the rest as it was: one option, no Studio, not covering', () => {
+    const plain: FacetConvention = [{ key: 'extra', label: 'Recording', flag: true, values: ['Live'] }]
+    const group = deriveFacets([item('Live'), item('Album')], plain)[0]!
+    expect(group.options.map((option) => option.label)).toEqual(['Live'])
+    expect(group.covers).toBeFalsy()
+    expect(matchesFacets(item('Album'), plain, { extra: new Set(['live']) })).toBe(false)
   })
 })
