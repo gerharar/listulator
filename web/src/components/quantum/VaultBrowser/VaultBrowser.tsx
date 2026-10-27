@@ -88,9 +88,10 @@ export function VaultBrowser({ mediaTypes }: VaultBrowserProps) {
   const total = library.phase === 'ready' ? library.entries.length : 0
   const filled = [...counts.values()].filter((count) => count > 0).length
   const selectedType = ordered.find((type) => type.key === selected)
-  // The column's one tab stop: the selected category, else the first with lists, else the first (loading, or out of reach: it must still be reachable).
+  // The column's one tab stop: the selected category, else the first with lists. None while nothing can be picked (loading, out of reach, or no
+  // list at all): a stop that leads only to disabled items is a dead end on the way to the one control that works (design, 2026-10-27).
   const firstPickable = library.phase === 'ready' ? ordered.find((type) => (counts.get(type.key) ?? 0) > 0) : undefined
-  const columnStop = (selectedType ?? firstPickable ?? ordered[0])?.key
+  const columnStop = (selectedType ?? firstPickable)?.key
   const rows = useMemo(
     () => (library.phase === 'ready' && selected !== null ? sortRows(library.entries.filter((entry) => entry.category === selected), sort) : []),
     [library, selected, sort],
@@ -164,7 +165,17 @@ export function VaultBrowser({ mediaTypes }: VaultBrowserProps) {
     to.focus()
   }
 
+  // Set by Try Again: when the answer comes and the button is gone, the focus is nowhere, so it goes to the column's new stop.
+  const retried = useRef(false)
+  useEffect(() => {
+    if (library.phase !== 'ready' || !retried.current) return
+    retried.current = false
+    const active = document.activeElement
+    if (!active || active === document.body) body.current?.querySelector<HTMLElement>('[data-vcat][tabindex="0"]')?.focus()
+  }, [library])
+
   async function tryAgain() {
+    retried.current = true
     setRetrying(true)
     await load()
     setRetrying(false)
@@ -202,7 +213,7 @@ export function VaultBrowser({ mediaTypes }: VaultBrowserProps) {
                 describe
                 data-vcat={type.key}
                 aria-current={picked ? 'true' : undefined}
-                aria-disabled={empty ? 'true' : undefined}
+                aria-disabled={empty || library.phase === 'loading' ? 'true' : undefined}
                 // One tab stop for the column; the arrow keys move between the others.
                 tabIndex={type.key === columnStop ? 0 : -1}
                 onClick={(event) => {
@@ -290,14 +301,17 @@ export function VaultBrowser({ mediaTypes }: VaultBrowserProps) {
               <span className="q-vb-art" aria-hidden="true">
                 <Vault width={150} height={150} />
               </span>
-              <h2 className="q-vb-empty-title">{library.phase === 'out' ? text.outTitle : text.chooseTitle}</h2>
-              <p className="q-vb-empty-line">
-                {library.phase === 'loading'
-                  ? text.loading
-                  : library.phase === 'out'
-                    ? copy.quantum.vaultShelf.offline
-                    : text.chooseLine(total, filled)}
-              </p>
+              {/* A polite live region: Loading and out of reach are announced without a tab stop (design, 2026-10-27). */}
+              <div className="q-vb-message" role="status">
+                <h2 className="q-vb-empty-title">{library.phase === 'out' ? text.outTitle : text.chooseTitle}</h2>
+                <p className="q-vb-empty-line">
+                  {library.phase === 'loading'
+                    ? text.loading
+                    : library.phase === 'out'
+                      ? copy.quantum.vaultShelf.offline
+                      : text.chooseLine(total, filled)}
+                </p>
+              </div>
               {library.phase === 'out' && (
                 <Button disabled={retrying} onClick={() => void tryAgain()}>
                   {text.tryAgain}

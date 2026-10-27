@@ -195,6 +195,12 @@
 }
 .q-vb-art svg { stroke-width: var(--art-stroke); }
 .q-vb-art :is(path, rect, circle, line) { vector-effect: non-scaling-stroke; }
+.q-vb-message {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
 .q-vb-empty-title {
   margin: 0;
   font: 600 18px/1.2 var(--font-sans);

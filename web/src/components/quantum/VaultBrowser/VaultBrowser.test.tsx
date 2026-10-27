@@ -425,7 +425,7 @@ describe('VaultBrowser', () => {
       [...container.querySelectorAll('button')]
         .filter((button) => button.tabIndex >= 0)
         .map((button) =>
-          button.closest('.q-vb-head') ? 'close' : button.closest('.q-vb-column') ? 'category' : button.closest('.q-vb-headrow') ? 'header' : 'row',
+          button.closest('.q-vb-head') ? 'close' : button.closest('.q-vb-column') ? 'category' : button.closest('.q-vb-headrow') ? 'header' : button.closest('.q-vb-row') ? 'row' : 'other',
         )
 
     it('puts the Tab order as ✕, the column (one stop), the four headers, the rows (one stop): a roving tabindex (design, 2026-10-27)', async () => {
@@ -446,16 +446,89 @@ describe('VaultBrowser', () => {
       expect(stops()).toEqual(['Movies'])
     })
 
-    it('still gives the column a stop while the library loads and when it is out of reach, so the keyboard can reach it', async () => {
+    it('gives the column no stop while the library loads: ✕ alone, and every category is aria-disabled but still there to read (design, 2026-10-27)', () => {
       vi.mocked(api.library).mockReturnValue(new Promise(() => undefined))
-      const loading = mount({ entries: [], reachable: true })
-      expect(tabStops(loading.container)).toEqual(['close', 'category'])
+      const view = mount({ entries: [], reachable: true })
+
+      expect(tabStops(view.container)).toEqual(['close'])
+      for (const button of within(column()).getAllByRole('button')) {
+        expect(button.tabIndex).toBe(-1)
+        expect(button.getAttribute('aria-disabled')).toBe('true')
+      }
+    })
+
+    it('gives the column no stop when the library is out of reach either: ✕, then Try Again', async () => {
+      const view = mount({ entries: [], reachable: false })
+      await waitFor(() => expect(screen.getByText('List Vault is out of reach')).toBeTruthy())
+
+      expect(tabStops(view.container)).toEqual(['close', 'other'])
+      expect(screen.getByRole('button', { name: 'Try Again' }).closest('.q-vb-column')).toBeNull()
+    })
+
+    it('gives the column no stop when the library has no list at all', async () => {
+      const view = mount({ entries: [], reachable: true })
+      await waitFor(() => expect(screen.getByText('0 lists in 0 categories. Pick one on the left to see its lists.')).toBeTruthy())
+
+      expect(tabStops(view.container)).toEqual(['close'])
+    })
+
+    it('gives the stop back, on the first category with lists, when the library answers, and does not move the focus', async () => {
+      let answer!: (value: { entries: LibraryBrowserEntry[]; reachable: boolean }) => void
+      vi.mocked(api.library).mockReturnValue(new Promise((resolve) => (answer = resolve)))
+      // Rendered here, not by `mount`, which sets its own answer.
+      const view = render(
+        <LayerStackProvider home={{ id: 'home', kind: 'home', tabLabel: 'My Lists', content: '/' }}>
+          <VaultBrowser mediaTypes={TYPES} />
+        </LayerStackProvider>,
+      )
+      const close = screen.getByRole('button', { name: 'Close List Vault' })
+      close.focus()
+
+      answer({ entries: LIBRARY, reachable: true })
+      await waitFor(() => expect(countOf('Movies')).toBe('2'))
+
+      expect(tabStops(view.container)).toEqual(['close', 'category'])
+      expect(categoryButton('Books').tabIndex).toBe(0)
+      expect(document.activeElement).toBe(close)
+    })
+
+    it('says the loading and the out-of-reach messages in a polite live region, without a stop (design, 2026-10-27)', async () => {
+      vi.mocked(api.library).mockReturnValueOnce(new Promise(() => undefined))
+      mount({ entries: [], reachable: true })
+      expect(screen.getByRole('status').textContent).toContain('Loading List Vault…')
       cleanup()
 
-      const out = mount({ entries: [], reachable: false })
+      mount({ entries: [], reachable: false })
+      await waitFor(() => expect(screen.getByRole('status').textContent).toContain('List Vault is out of reach'))
+      expect(screen.getByRole('status').textContent).toContain('List Vault needs an internet connection to show its lists.')
+      expect(screen.getByRole('status').getAttribute('aria-live') ?? 'polite').toBe('polite')
+    })
+
+    it('moves the focus to the column\'s stop when Try Again succeeds and its button is gone', async () => {
+      mount({ entries: [], reachable: false })
       await waitFor(() => expect(screen.getByText('List Vault is out of reach')).toBeTruthy())
-      // The last stop is Try Again (the helper names anything outside the head, column and headers a row).
-      expect(tabStops(out.container)).toEqual(['close', 'category', 'row'])
+      vi.mocked(api.library).mockResolvedValue({ entries: LIBRARY, reachable: true })
+      const retry = screen.getByRole('button', { name: 'Try Again' })
+      retry.focus()
+
+      fireEvent.click(retry)
+
+      await waitFor(() => expect(countOf('Movies')).toBe('2'))
+      expect(document.activeElement).toBe(categoryButton('Books'))
+    })
+
+    it('leaves the focus where it is when Try Again fails', async () => {
+      mount({ entries: [], reachable: false })
+      await waitFor(() => expect(screen.getByText('List Vault is out of reach')).toBeTruthy())
+      const retry = screen.getByRole('button', { name: 'Try Again' })
+      retry.focus()
+
+      fireEvent.click(retry)
+
+      await waitFor(() => expect(vi.mocked(api.library)).toHaveBeenCalledTimes(2))
+      await waitFor(() => expect(retry.hasAttribute('disabled')).toBe(false))
+      expect(screen.getByText('List Vault is out of reach')).toBeTruthy()
+      expect(within(column()).getAllByRole('button').every((button) => button.tabIndex === -1)).toBe(true)
     })
 
     it('makes the row last focused the table\'s stop, the first row after a category change', async () => {

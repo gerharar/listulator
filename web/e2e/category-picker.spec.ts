@@ -340,11 +340,18 @@ test('Browse List Vault says the library is out of reach, and Try Again fills th
 
   const vault = en.quantum.vaultBrowser
   await expect(page.getByText(vault.outTitle)).toBeVisible()
+  // Nothing can be picked, so the column has no tab stop (design, 2026-10-27); the message is a live region.
+  await expect(page.locator('[data-vcat][tabindex="0"]')).toHaveCount(0)
+  await expect(page.locator('[data-vcat]').first()).toHaveAttribute('aria-disabled', 'true')
+  await expect(page.getByRole('status')).toContainText(vault.outTitle)
   reachable = true
   await page.getByRole('button', { name: vault.tryAgain }).click()
 
   await expect(page.getByText(vault.chooseTitle)).toBeVisible()
   await expect(page.getByText(vault.outTitle)).toBeHidden()
+  // The button is gone, so the focus goes to the column's stop (the first category with lists), in either engine.
+  await expect(page.getByRole('navigation', { name: vault.categoriesLabel }).getByRole('button', { name: /^Books/ })).toBeFocused()
+  await expect(page.locator('[data-vcat][tabindex="0"]')).toHaveCount(1)
 })
 
 test('the web build never shows “Free key needed”, and every tile keeps a 20px bottom row so the source names stay level (H-018)', async ({ page }) => {
