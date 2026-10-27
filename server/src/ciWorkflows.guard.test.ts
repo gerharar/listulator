@@ -621,7 +621,13 @@ describe('the updater test build', () => {
     const releaseWindow = windowsOf(JSON.parse(read('apps/desktop/src-tauri/tauri.conf.json')))[0]!
 
     it('is the shipped window with one key added: the production browser arguments and the port, and nothing else changed', () => {
-      expect(windowsOf(testConfig)).toEqual([{ ...releaseWindow, additionalBrowserArgs: `${PRODUCTION_ARGS} --remote-debugging-port=9222 --remote-allow-origins=*` }])
+      expect(windowsOf(testConfig)).toEqual([{ ...releaseWindow, additionalBrowserArgs: `${PRODUCTION_ARGS} --remote-debugging-port=9222` }])
+    })
+
+    // SR-083 (BL-129): the update test's driver is Node (Playwright's connectOverCDP), whose WebSocket sends no Origin header, so the browser has
+    // nothing to refuse and the flag only lets any web page in a browser on the same machine try the port during a run.
+    it('does not allow any origin to reach the port: no --remote-allow-origins at all (SR-083)', () => {
+      expect(JSON.stringify(testConfig)).not.toMatch(/remote-allow-origins/i)
     })
 
     it('opens the port on the test app only: no other config, workflow or the release config carries a debugging port', () => {
