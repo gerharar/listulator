@@ -941,8 +941,8 @@ export const ru: Locale = {
         clearTip: 'Показать элементы всех типов',
         hideOption: (name: string): string => `Скрыть: ${name}`,
         alsoShowOption: (name: string): string => `Фильтр: ${name}`,
-        facetPicks: (named: readonly string[], more: number): string =>
-          more > 0 ? `${named.join(', ')} +${more}` : named.join(', '),
+        facetPicks: (named: readonly string[]): string => named.join(', '),
+        facetSome: (n: number, total: number): string => `${n} из ${total}`,
         facetDropdownLabel: (facet: string, summary: string): string => `${facet}: ${summary}`,
         facetPickTip: 'Выбери типы для фильтра',
         facetCount: (facet: string, n: number): string => `${facet} · ${n}`,

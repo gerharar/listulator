@@ -56,6 +56,13 @@ function bar(over: Partial<FilterBarProps> = {}) {
   return props
 }
 
+/** A facet's popover, opened from its button (every value facet is a dropdown, H-023). */
+function openFacet(label: string) {
+  fireEvent.click(screen.getByRole('button', { name: new RegExp(`^${label}: `) }))
+
+  return within(screen.getByRole('dialog'))
+}
+
 describe('FilterBar', () => {
   it('always has the text field and the note', () => {
     bar()
@@ -115,11 +122,10 @@ describe('FilterBar', () => {
       expect(document.activeElement).toBe(input())
     })
 
-    it('sits in the field’s own wrapper, which is the part the bar measures, with the room for it always reserved', () => {
+    it('sits in the field’s own wrapper, with the room for it always reserved', () => {
       bar({ text: 'creed' })
 
       const wrapper = input().parentElement!
-      expect(wrapper.hasAttribute('data-bar-fixed')).toBe(true)
       expect(wrapper.contains(clear())).toBe(true)
       expect(wrapper.classList.contains('q-filter-field')).toBe(true)
       // The padding that keeps the text off the ✕ is the field's own, there with or without it (the css is read: jsdom has none).
@@ -139,24 +145,42 @@ describe('FilterBar', () => {
   it('shows no facet row for a category without facets', () => {
     bar()
     expect(screen.queryByText('Platform')).toBeNull()
-    expect(screen.queryByRole('button', { name: 'All' })).toBeNull()
+    expect(screen.queryByRole('button', { name: /All/ })).toBeNull()
   })
 
-  it('shows a facet row with All and one button per option', () => {
+  it('shows each facet as its label and one button, the options in its popover', () => {
     bar({ facets: [language] })
+
     expect(screen.getByText('Language')).toBeTruthy()
-    for (const name of ['All', 'EN', 'JA', '(unknown)']) expect(screen.getByRole('button', { name })).toBeTruthy()
+    expect(screen.queryByRole('button', { name: 'EN' })).toBeNull()
+    const pop = openFacet('Language')
+    for (const name of ['All', 'EN', 'JA', '(unknown)']) expect(pop.getByRole('button', { name })).toBeTruthy()
   })
 
-  it('always shows Platform as a dropdown, its chips in the popover (owner, 2026-10-05)', () => {
+  it('draws every value facet as a dropdown, never as chips, on any width (H-023)', () => {
     bar({ facets: [platform, language] })
 
+    expect(document.querySelectorAll('.q-filterbar > .q-facet-drop')).toHaveLength(2)
+    expect(document.querySelector('.q-filterbar .q-facet-seg')).toBeNull()
     expect(screen.queryByRole('button', { name: 'PS3' })).toBeNull()
-    expect(screen.getByRole('button', { name: 'EN' })).toBeTruthy()
-    fireEvent.click(screen.getByRole('button', { name: 'Platform: All' }))
+    expect(screen.queryByRole('button', { name: 'EN' })).toBeNull()
+    const pop = openFacet('Platform')
+    for (const name of ['All', 'PS3', 'PC', '(unknown)']) expect(pop.getByRole('button', { name })).toBeTruthy()
+  })
 
-    const pop = screen.getByRole('dialog')
-    for (const name of ['All', 'PS3', 'PC', '(unknown)']) expect(within(pop).getByRole('button', { name })).toBeTruthy()
+  it('says what is picked on the button: names for one or two, a count for more', () => {
+    const type: FacetGroup = {
+      key: 'type',
+      label: 'Medium',
+      options: ['Book', 'Game', 'TV', 'Movie'].map((label) => ({ key: label.toLowerCase(), label })),
+      keepOrder: true,
+    }
+    bar({ facets: [type], selection: { type: new Set(['book', 'tv']) } })
+    expect(screen.getByRole('button', { name: 'Category: Book, TV' }).textContent).toBe('Book, TV')
+    cleanup()
+
+    bar({ facets: [type], selection: { type: new Set(['book', 'game', 'tv']) } })
+    expect(screen.getByRole('button', { name: 'Category: Book, Game, TV' }).textContent).toBe('3 of 4')
   })
 
   it('puts a facet’s options A–Z by shown name, Untagged last, unless it keeps its own order (owner, 2026-09-27)', () => {
@@ -172,11 +196,13 @@ describe('FilterBar', () => {
       keepOrder: false,
     }
     bar({ facets: [medium] })
-    const names = () => screen.getAllByRole('button').map((button) => button.textContent).filter((name) => name !== 'All')
+    const names = () => within(screen.getByRole('dialog')).getAllByRole('button').map((button) => button.textContent).filter((name) => name !== 'All')
+    openFacet('Category')
     expect(names().slice(0, 4)).toEqual(['Book', 'Game', 'Movie', '(unknown)'])
 
     cleanup()
     bar({ facets: [{ ...medium, keepOrder: true }] })
+    openFacet('Category')
     expect(names().slice(0, 4)).toEqual(['Movie', '(unknown)', 'Game', 'Book'])
   })
 
@@ -184,31 +210,33 @@ describe('FilterBar', () => {
     const recording: FacetGroup = { key: 'extra', label: 'Recording', options: [{ key: 'live', label: 'Live' }], keepOrder: false, flag: true }
     bar({ facets: [language, recording] })
 
-    const live = screen.getByRole('button', { name: 'Live' })
+    const live = openFacet('Recording').getByRole('button', { name: 'Live' })
     expect(live.firstElementChild?.classList.contains('q-facet-mark')).toBe(true)
-    expect(screen.getByRole('button', { name: 'EN' }).querySelector('.q-facet-mark')).toBeNull()
+    cleanup()
+    bar({ facets: [language, recording] })
+    expect(openFacet('Language').getByRole('button', { name: 'EN' }).querySelector('.q-facet-mark')).toBeNull()
   })
 
   it('toggles an option additively and clears with All', () => {
     const props = bar({ facets: [language], selection: { language: new Set(['en']) } })
-    fireEvent.click(screen.getByRole('button', { name: 'JA' }))
+    const pop = openFacet('Language')
+    fireEvent.click(pop.getByRole('button', { name: 'JA' }))
     expect(props.onSelect).toHaveBeenCalledWith('language', new Set(['en', 'ja']))
-    fireEvent.click(screen.getByRole('button', { name: 'All' }))
+    fireEvent.click(pop.getByRole('button', { name: 'All' }))
     expect(props.onSelect).toHaveBeenLastCalledWith('language', new Set())
   })
 
   it('lights All instead when the last remaining option is picked (U1)', () => {
     const props = bar({ facets: [language], selection: { language: new Set(['en', 'ja']) } })
 
-    fireEvent.click(screen.getByRole('button', { name: '(unknown)' }))
+    fireEvent.click(openFacet('Language').getByRole('button', { name: '(unknown)' }))
 
     expect(props.onSelect).toHaveBeenCalledWith('language', new Set())
   })
 
   it('names a platform in full in its hint', async () => {
     bar({ facets: [platform] })
-    fireEvent.click(screen.getByRole('button', { name: 'Platform: All' }))
-    expect(await hoverTooltip(within(screen.getByRole('dialog')).getByRole('button', { name: 'PS3' }))).toContain(
+    expect(await hoverTooltip(openFacet('Platform').getByRole('button', { name: 'PS3' }))).toContain(
       'PlayStation 3',
     )
   })

@@ -255,7 +255,9 @@ test('many platforms: the dropdown keeps the bar one row, and names the picks (U
     await pop.getByRole('button', { name: 'WIN', exact: true }).click()
     await pop.getByRole('button', { name: 'PS4', exact: true }).click()
     await pop.getByRole('button', { name: 'X360', exact: true }).click()
-    await expect(facetBar(page).getByRole('button', { name: 'Platform: PS4, WIN, X360' })).toBeVisible()
+    // Three or more are counted on the button (H-023) and spelled out in its accessible name.
+    await expect(facetBar(page).getByRole('button', { name: 'Platform: PS4, WIN, X360' })).toHaveText('3 of 20')
+    expect((await facetBar(page).locator('.q-facet-summary').boundingBox())!.width).toBeLessThanOrEqual(180)
     const after = (await pop.boundingBox())!
     expect([after.x, after.y]).toEqual([before.x, before.y])
     await pop.getByRole('button', { name: 'X360', exact: true }).click()

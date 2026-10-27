@@ -157,12 +157,19 @@ const rowIds = () => Array.from(document.querySelectorAll('[data-row-id]')).map(
 const row = (id: string) => document.querySelector(`[data-row-id="${id}"]`) as HTMLElement
 const type = (value: string) => fireEvent.change(screen.getByPlaceholderText('Filter items…'), { target: { value } })
 const bar = () => document.querySelector('.q-filterbar') as HTMLElement
-/** A facet option: on the bar, or in the Platform dropdown's popover (always a dropdown, owner 2026-10-05), opened if need be. */
+/** A facet option, in the popover of whichever dropdown has it (every value facet is one, H-023), opened if need be. */
 const facet = (name: string) => {
-  const onBar = within(bar()).queryByRole('button', { name })
-  if (onBar) return onBar
-  if (!screen.queryByRole('dialog')) fireEvent.click(within(bar()).getByRole('button', { name: /^Platform: / }))
-  return within(screen.getByRole('dialog')).getByRole('button', { name })
+  const found = () => {
+    const dialog = screen.queryByRole('dialog')
+    return dialog ? within(dialog).queryByRole('button', { name }) : null
+  }
+  if (found()) return found()!
+  for (const summary of Array.from(bar().querySelectorAll<HTMLElement>('.q-facet-summary'))) {
+    fireEvent.click(summary)
+    if (found()) return found()!
+    fireEvent.click(summary)
+  }
+  throw new Error(`no facet option named ${name}`)
 }
 
 describe('the bar', () => {
@@ -170,7 +177,7 @@ describe('the bar', () => {
     await open()
 
     expect(within(bar()).getByText('6 items')).toBeTruthy()
-    // Platform is always a dropdown (owner, 2026-10-05); its chips are in the popover.
+    // Every value facet is a dropdown (H-023); its chips are in the popover.
     fireEvent.click(within(bar()).getByRole('button', { name: 'Platform: All' }))
     const labels = Array.from(screen.getByRole('dialog').querySelectorAll('.q-facet button')).map((button) => button.textContent)
     // Old tags (PC, NDS) read as today's codes (10.24c); the buttons run A to Z, then Untagged.
@@ -754,7 +761,8 @@ describe('Mega mediums', () => {
 
     expect(row('ac1').querySelector('.q-tag')!.textContent).toBe('Game')
     expect(row('ac2').querySelector('.q-tag')!.textContent).toBe('Movie')
-    expect(Array.from(bar().querySelectorAll('.q-facet button')).map((button) => button.textContent)).toEqual([
+    fireEvent.click(within(bar()).getByRole('button', { name: /^Category: / }))
+    expect(Array.from(screen.getByRole('dialog').querySelectorAll('.q-facet button')).map((button) => button.textContent)).toEqual([
       'All',
       'Game',
       'Movie',

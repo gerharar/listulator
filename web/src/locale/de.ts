@@ -932,8 +932,8 @@ export const de: Locale = {
         clearTip: 'Elemente aller Typen anzeigen',
         hideOption: (name: string): string => `${name} ausblenden`,
         alsoShowOption: (name: string): string => `Nach ${name} filtern`,
-        facetPicks: (named: readonly string[], more: number): string =>
-          more > 0 ? `${named.join(', ')} +${more}` : named.join(', '),
+        facetPicks: (named: readonly string[]): string => named.join(', '),
+        facetSome: (n: number, total: number): string => `${n} von ${total}`,
         facetDropdownLabel: (facet: string, summary: string): string => `${facet}: ${summary}`,
         facetPickTip: 'Typen zum Filtern wählen',
         facetCount: (facet: string, n: number): string => `${facet} · ${n}`,

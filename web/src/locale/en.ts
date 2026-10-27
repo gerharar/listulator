@@ -1056,7 +1056,9 @@ export const en = {
         alsoShowOption: (name: string): string => `Filter by ${name}`,
         /** A facet's kicker, by the label the registry gives it. */
         /** U4: a facet too wide for the bar becomes a dropdown naming its picks. */
-        facetPicks: (named: readonly string[], more: number): string => more > 0 ? `${named.join(', ')} +${more}` : named.join(', '),
+        facetPicks: (named: readonly string[]): string => named.join(', '),
+        /** A dropdown with three or more picks says how many of its options (H-023): "3 of 4". */
+        facetSome: (n: number, total: number): string => `${n} of ${total}`,
         facetDropdownLabel: (facet: string, summary: string): string => `${facet}: ${summary}`,
         facetPickTip: 'Choose types to filter by',
         facetCount: (facet: string, n: number): string => `${facet} · ${n}`,

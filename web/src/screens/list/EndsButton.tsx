@@ -21,7 +21,7 @@ export function EndsButton({ atTop, atBottom, inView, onGo }: EndsButtonProps) {
   const text = copy.quantum.list.ends
 
   return (
-    <Tip as="div" className="q-ends" role="group" aria-label={text.group} text={inView ? text.inView : undefined} describe data-bar-fixed="">
+    <Tip as="div" className="q-ends" role="group" aria-label={text.group} text={inView ? text.inView : undefined} describe>
       <Tip as="button" type="button" className="q-ends-half" aria-label={text.toTop} text={inView ? undefined : text.topTip} disabled={inView || atTop} onClick={() => onGo('top')}>
         <ArrowUp width={12} height={12} strokeWidth={2} aria-hidden="true" />
       </Tip>

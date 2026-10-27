@@ -56,9 +56,19 @@
   background: currentColor;
 }
 
-/* U4: a facet too wide for the bar's row, as one button naming its picks. */
+/* H-023: every value facet of the bar, as one button naming its picks: as wide as its words, up to 180px; the words
+   ellipsise before the chevron, which never shrinks. */
 .q-facet .q-facet-summary {
   gap: 6px;
+  max-width: 180px;
+}
+.q-facet-summary-text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.q-facet-summary svg {
+  flex: none;
 }
 .q-facet .q-facet-summary[data-on='true'] {
   background: var(--accent);
