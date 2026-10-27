@@ -196,8 +196,9 @@ test('Try A Sample List: add, Keep It keeps it with no change of screen; Remove 
   expect(calls).toEqual(['from-source', 'patch {"isSample":true}'])
   await expect(page.getByText(q.list.sample.text)).toBeVisible()
 
-  // Remove Sample: First Run again, and Undo brings the list back to My Lists.
-  await page.getByRole('button', { name: q.list.sample.remove }).click()
+  // The band's Delete: First Run again, and Undo brings the list back to My Lists.
+  // Exact: "Delete" is also a part of each row's "Delete <title>" button.
+  await page.getByRole('button', { name: q.list.sample.remove, exact: true }).click()
   await expect(page.getByRole('heading', { name: q.categoryPicker.firstRunTitle })).toBeVisible({ timeout: 15_000 })
   // With no lists left it is the first-run screen again, sample button included (H-018, 2026-10-26).
   await expect(page.getByRole('button', { name: q.vaultShelf.trySample })).toBeVisible()
