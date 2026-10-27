@@ -28,6 +28,9 @@ const CHANGELOG = `# Changelog
 `
 
 const green = (over: Partial<CiRun> = {}): CiRun => ({ id: 100, status: 'completed', conclusion: 'success', createdAt: '2026-10-21T13:59:51Z', headSha: HEAD, ...over })
+/** The clock of the fake host, and a canary run from that morning's 05:17 schedule. */
+const NOW = new Date('2026-10-22T09:00:00Z')
+const canaryGreen = (over: Partial<CiRun> = {}): CiRun => ({ id: 200, status: 'completed', conclusion: 'success', createdAt: '2026-10-22T05:20:00Z', headSha: 'f'.repeat(40), ...over })
 
 interface World {
   branch: string
@@ -36,6 +39,8 @@ interface World {
   head: string
   remoteMain: string | Error
   ciRuns: CiRun[] | Error
+  canaryRuns: CiRun[] | Error
+  now: Date
   changelog: string
   currentVersion: string
   localTags: string[]
@@ -68,6 +73,8 @@ function world(over: Partial<World> = {}): World {
     head: HEAD,
     remoteMain: HEAD,
     ciRuns: [green()],
+    canaryRuns: [canaryGreen()],
+    now: NOW,
     changelog: CHANGELOG,
     currentVersion: '1.1.0',
     localTags: ['v1.0.2', 'v1.1.0'],
@@ -121,6 +128,12 @@ function fake(w: World): Fake {
 
       return w.ciRuns
     },
+    canaryRuns: async () => {
+      if (w.canaryRuns instanceof Error) throw w.canaryRuns
+
+      return w.canaryRuns
+    },
+    now: () => w.now,
     changelog: async () => w.changelog,
     currentVersion: async () => w.currentVersion,
     tagExists: async (tag) => ({ local: w.localTags.includes(tag), remote: w.remoteTags.includes(tag) }),
@@ -199,6 +212,7 @@ describe('a main that is ready for a release', () => {
     expect(text).toMatch(/working tree is clean/)
     expect(text).toMatch(/aaaaaaaaaaaa.*origin\/main|origin\/main.*aaaaaaaaaaaa/)
     expect(text).toMatch(/ci\.yml.*run 100.*green|green.*run 100/i)
+    expect(text).toMatch(/canary.*run 200.*green/i)
     expect(text).toMatch(/CHANGELOG\.md has an entry for 1\.1\.1/)
     expect(text).toMatch(/v1\.1\.1 does not exist/)
   })
@@ -259,6 +273,42 @@ describe('what it refuses, and that a refusal changes nothing', () => {
 
   it('refuses a commit that no ci.yml run has been made for, and says how to get one', async () => {
     await refuses(world({ ciRuns: [] }), /no ci\.yml run.*aaaaaaaaaaaa/i)
+  })
+
+  describe('the canary (BL-127)', () => {
+    it('refuses a canary run that ended red, naming it', async () => {
+      await refuses(world({ canaryRuns: [canaryGreen({ conclusion: 'failure' })] }), /canary.*run 200.*failure/i)
+    })
+
+    it('refuses a canary run that is still going', async () => {
+      await refuses(world({ canaryRuns: [canaryGreen({ status: 'in_progress', conclusion: '' })] }), /canary.*run 200.*in_progress/i)
+    })
+
+    it('refuses when the canary has never run, and says how to start it', async () => {
+      await refuses(world({ canaryRuns: [] }), /no canary run.*gh workflow run canary\.yml/i)
+    })
+
+    it('refuses a green canary run over about 36 hours old and says the schedule may be switched off', async () => {
+      await refuses(world({ canaryRuns: [canaryGreen({ createdAt: '2026-10-20T05:20:00Z' })] }), /canary.*run 200.*hours old.*switched off.*60 days/i)
+    })
+
+    it('refuses when the canary\'s runs cannot be read, naming the cause', async () => {
+      await refuses(world({ canaryRuns: new Error('gh run list failed: not logged in') }), /canary.*could not be read.*not logged in/i)
+    })
+
+    it('runs every check even when the canary is red: one run says everything that is wrong', async () => {
+      const { result } = await prepare(world({ canaryRuns: [canaryGreen({ conclusion: 'failure' })], ciRuns: [] }))
+
+      expect(result.failures.some((line) => /canary/i.test(line))).toBe(true)
+      expect(result.failures.some((line) => /no ci\.yml run/i.test(line))).toBe(true)
+    })
+
+    it('refuses in a dry run too, and writes nothing', async () => {
+      const { result, calls } = await prepare(world({ canaryRuns: [canaryGreen({ conclusion: 'failure' })] }), { dryRun: true })
+
+      expect(result.failures.some((line) => /canary/i.test(line))).toBe(true)
+      expect(calls).toEqual([])
+    })
   })
 
   it.each([
@@ -573,6 +623,19 @@ describe('the real git, gh and npm commands, as they are run (no shell)', () => 
 
   it('says so when gh cannot list the runs', async () => {
     await expect(host(recorder(() => ({ code: 1, stderr: 'gh: not logged in' })).runner).ciRuns(HEAD)).rejects.toThrow(/not logged in/)
+  })
+
+  it('lists the canary.yml runs with no commit (BL-127), and says so when gh cannot', async () => {
+    const answer = JSON.stringify([{ databaseId: 9, status: 'completed', conclusion: 'success', createdAt: '2026-10-22T05:20:00Z', headSha: HEAD }])
+    const { calls, runner } = recorder(() => ({ code: 0, stdout: answer }))
+
+    expect(await host(runner).canaryRuns()).toEqual([{ id: 9, status: 'completed', conclusion: 'success', createdAt: '2026-10-22T05:20:00Z', headSha: HEAD }])
+    expect(calls[0]).toEqual({ command: 'gh', args: ['run', 'list', '--repo', 'gerharar/listulator', '--workflow', 'canary.yml', '--json', 'databaseId,status,conclusion,createdAt,headSha', '--limit', '20'] })
+    await expect(host(recorder(() => ({ code: 1, stderr: 'gh: not logged in' })).runner).canaryRuns()).rejects.toThrow(/not logged in/)
+  })
+
+  it('tells the time by the real clock', () => {
+    expect(Math.abs(host(recorder().runner).now().getTime() - Date.now())).toBeLessThan(5000)
   })
 
   it('reads CHANGELOG.md and the current version from the files, and never writes either', async () => {

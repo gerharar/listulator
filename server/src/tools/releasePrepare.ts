@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { ciVerdict, listCiRuns, type CiRun } from './ciCheck.js'
+import { canaryVerdict, ciVerdict, listCanaryRuns, listCiRuns, type CiRun } from './ciCheck.js'
 import { nodeRunner, type Runner } from './releaseSign.js'
 import { runChecked } from './runChecked.js'
 import { reason, short } from './toolText.js'
@@ -16,6 +16,7 @@ import { RELEASE_VERSION, VERSION_SOURCES } from './versionSources.js'
  *
  *  - the branch is `main`, the working tree is clean (untracked files count) and HEAD is the commit `origin/main` is at;
  *  - the latest `ci.yml` run on HEAD is green (CI only runs on pushed commits, so an unpushed HEAD has none);
+ *  - the newest `canary.yml` run is green and under about 36 hours old (BL-127; a silent GitHub switch-off of the schedule shows as an old run);
  *  - `CHANGELOG.md` has a `## [X.Y.Z]` entry with something under it (that file is the owner's: this tool only reads it);
  *  - X.Y.Z is newer than the version the app has now, and the tag `vX.Y.Z` exists neither here nor on origin.
  *
@@ -44,6 +45,10 @@ export interface PrepareHost {
   remoteMain(): Promise<string>
   /** The `ci.yml` runs of one commit. */
   ciRuns(commit: string): Promise<CiRun[]>
+  /** The runs of `canary.yml`, whatever commit. */
+  canaryRuns(): Promise<CiRun[]>
+  /** The time now, for how old the newest canary run is. */
+  now(): Date
   /** `CHANGELOG.md`. There is no way to write it: it is the owner's file. */
   changelog(): Promise<string>
   /** The version the root `package.json` has now. */
@@ -170,6 +175,20 @@ export async function releasePrepare(options: ReleasePrepareOptions, host: Prepa
       else fail(verdict.problem)
     })
   }
+
+  await check('the canary', async () => {
+    let runs: CiRun[]
+    try {
+      runs = await host.canaryRuns()
+    } catch (error) {
+      fail(`The canary's runs could not be read: ${reason(error)}`)
+
+      return
+    }
+    const verdict = canaryVerdict(runs, host.now())
+    if ('run' in verdict) log(`The newest canary run (run ${verdict.run.id}) is green and from ${verdict.run.createdAt}`)
+    else fail(verdict.problem)
+  })
 
   await check('CHANGELOG.md', async () => {
     const problem = changelogProblem(await host.changelog(), version)
@@ -344,6 +363,14 @@ export function createPrepareHost(run: Runner, repoRoot: string, read: (path: st
 
     async ciRuns(commit) {
       return listCiRuns(run, commit, repoRoot)
+    },
+
+    async canaryRuns() {
+      return listCanaryRuns(run, repoRoot)
+    },
+
+    now() {
+      return new Date()
     },
 
     async changelog() {
