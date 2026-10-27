@@ -11,6 +11,7 @@ import {
   findListItems,
   findListWithStats,
   findListExternalRefs,
+  findListIdsByExternalRef,
   type RuntimeStatsOptions,
 } from '../catalog/repository.js'
 import { sendApiError } from '../apiErrors.js'
@@ -678,7 +679,7 @@ export const ingestionRoutes: FastifyPluginAsync<IngestionRoutesOptions> = async
       throw error
     }
 
-    const tracked = new Set(await findListExternalRefs(db, user.id))
+    const tracked = await findListIdsByExternalRef(db, user.id)
 
     return { entries: libraryEntries(manifest, tracked, new Set(mediaTypes.keys())), reachable: true }
   })

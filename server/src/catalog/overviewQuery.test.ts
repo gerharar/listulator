@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { users } from '../db/schema.js'
 import { createTestApp, type TestApp } from '../testing/harness.js'
 import { createListItems, itemFromFile } from './bulkItems.js'
-import { createList, findListExternalRefs, findListsWithStats, findListWithStats } from './repository.js'
+import { createList, findListExternalRefs, findListIdsByExternalRef, findListsWithStats, findListWithStats } from './repository.js'
 
 /**
  * The lists overview and the single-list read must not read a list's stored file (BL-075, found measuring big lists, spike S2). The
@@ -86,5 +86,19 @@ describe('the lists overview and the single-list read, with big stored files and
     await createList(db(), userId, { title: 'From a connector', mediaType: 'movie', source: 'api', externalRef: 'tmdb:collection:1' })
 
     expect((await findListExternalRefs(db(), userId)).sort()).toEqual(['canonical:lists/movie/a.yaml', 'tmdb:collection:1'])
+  })
+
+  it('maps each library reference to the list that carries it, the first one when the person has it twice (H-020)', async () => {
+    const first = await createList(db(), userId, { title: 'First copy', mediaType: 'movie', source: 'canonical', externalRef: 'canonical:lists/movie/a.yaml' })
+    await createList(db(), userId, { title: 'Second copy', mediaType: 'movie', source: 'canonical', externalRef: 'canonical:lists/movie/a.yaml' })
+    const other = await createList(db(), userId, { title: 'Other', mediaType: 'movie', source: 'canonical', externalRef: 'canonical:lists/movie/b.yaml' })
+    await createList(db(), userId, { title: 'By hand', mediaType: 'movie' })
+
+    expect(await findListIdsByExternalRef(db(), userId)).toEqual(
+      new Map([
+        ['canonical:lists/movie/a.yaml', first.id],
+        ['canonical:lists/movie/b.yaml', other.id],
+      ]),
+    )
   })
 })

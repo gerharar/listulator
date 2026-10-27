@@ -532,7 +532,7 @@ describe('libraryEntries', () => {
   ]
 
   it('flags a list the person already has as tracked, by ref, and keeps it in', () => {
-    const entries = libraryEntries(manifest, new Set(['canonical:lists/book/lotr.yaml']), new Set(['mega', 'book']))
+    const entries = libraryEntries(manifest, new Map([['canonical:lists/book/lotr.yaml', 'list-7']]), new Set(['mega', 'book']))
 
     expect(entries.map((entry) => [entry.externalRef, entry.tracked])).toEqual([
       ['canonical:lists/mega/mcu.yaml', false],
@@ -541,13 +541,13 @@ describe('libraryEntries', () => {
   })
 
   it('leaves out a list of a category the app does not know', () => {
-    const entries = libraryEntries(manifest, new Set(), new Set(['book']))
+    const entries = libraryEntries(manifest, new Map(), new Set(['book']))
 
     expect(entries.map((entry) => entry.category)).toEqual(['book'])
   })
 
   it('mirrors what the browser shows, and leaves out what the index did not say', () => {
-    const [mcu, lotr, ufc] = libraryEntries(manifest, new Set(), new Set(['mega', 'book', 'mma']))
+    const [mcu, lotr, ufc] = libraryEntries(manifest, new Map(), new Set(['mega', 'book', 'mma']))
 
     expect(mcu).toEqual({
       externalRef: 'canonical:lists/mega/mcu.yaml',
@@ -565,12 +565,19 @@ describe('libraryEntries', () => {
     expect(ufc).not.toHaveProperty('totalMinutes')
   })
 
+  it('carries the id of the person\'s list on a tracked entry, and none on the others (H-020, Open My List)', () => {
+    const entries = libraryEntries(manifest, new Map([['canonical:lists/book/lotr.yaml', 'list-7']]), new Set(['mega', 'book']))
+
+    expect(entries.map((entry) => entry.trackedListId)).toEqual([undefined, 'list-7'])
+    expect(entries[0]).not.toHaveProperty('trackedListId')
+  })
+
   it('is what untrackedLibraryEntries is, with the tracked ones kept', () => {
-    const tracked = new Set(['canonical:lists/mega/mcu.yaml'])
+    const tracked = new Map([['canonical:lists/mega/mcu.yaml', 'list-1']])
     const known = new Set(['mega', 'book'])
 
     expect(libraryEntries(manifest, tracked, known).filter((entry) => !entry.tracked).map((entry) => entry.externalRef)).toEqual(
-      untrackedLibraryEntries(manifest, tracked, known).map((entry) => entry.externalRef),
+      untrackedLibraryEntries(manifest, new Set(tracked.keys()), known).map((entry) => entry.externalRef),
     )
   })
 })

@@ -2538,18 +2538,18 @@ describe('GET /api/library (H-020, 36.2)', () => {
     mockManifest()
     await harness.app.ready()
     const userId = harness.db.select().from(users).get()!.id
-    await createStoredList(harness.db, userId, {
+    const mine = await createStoredList(harness.db, userId, {
       title: 'Renamed by the user',
       mediaType: 'mega',
       source: 'canonical',
       externalRef: 'canonical:lists/mega/mcu.yaml',
     })
 
-    const entries = (await get()).json().entries as { externalRef: string; tracked: boolean }[]
+    const entries = (await get()).json().entries as { externalRef: string; tracked: boolean; trackedListId?: string }[]
 
-    expect(entries.map((entry) => [entry.externalRef, entry.tracked])).toEqual([
-      ['canonical:lists/mega/mcu.yaml', true],
-      ['canonical:lists/book/lotr.yaml', false],
+    expect(entries.map((entry) => [entry.externalRef, entry.tracked, entry.trackedListId])).toEqual([
+      ['canonical:lists/mega/mcu.yaml', true, mine.id],
+      ['canonical:lists/book/lotr.yaml', false, undefined],
     ])
   })
 

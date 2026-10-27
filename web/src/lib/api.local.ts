@@ -21,6 +21,7 @@ import {
   findList,
   findListItems,
   findListWithStats,
+  findListIdsByExternalRef,
   findListsWithStats,
   markListSeen,
   reorderListItems,
@@ -1165,9 +1166,7 @@ export function createLocalApi(): ApiClient {
       }
 
       const [database, userId] = [await getDb(), await getUserId()]
-      const tracked = new Set(
-        (await findListsWithStats(database, userId)).flatMap((list) => (list.externalRef ? [list.externalRef] : [])),
-      )
+      const tracked = await findListIdsByExternalRef(database, userId)
       const known = new Set((await getLocalMediaTypes()).map((entry) => entry.key))
 
       return { entries: libraryEntries(manifest, tracked, known), reachable: true }

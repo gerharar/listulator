@@ -622,6 +622,8 @@ export interface LibraryBrowserEntry {
   minutesEstimated?: boolean
   /** The person already has this list (a `canonical:` ref one of their lists carries). */
   tracked: boolean
+  /** The id of that list (the first, if they have it twice), for Open My List. Present exactly when `tracked`. */
+  trackedListId?: string
 }
 
 /**
@@ -630,13 +632,15 @@ export interface LibraryBrowserEntry {
  */
 export function libraryEntries(
   manifest: readonly CanonicalListEntry[],
-  trackedRefs: ReadonlySet<string>,
+  /** The person's lists that came from the library: each `canonical:` ref to the id of the list that carries it. */
+  trackedLists: ReadonlyMap<string, string>,
   validCategories: ReadonlySet<string>,
 ): LibraryBrowserEntry[] {
   return manifest
     .filter((entry) => validCategories.has(entry.category))
     .map((entry) => {
       const externalRef = canonicalExternalRef(entry.path)
+      const trackedListId = trackedLists.get(externalRef)
 
       return {
         externalRef,
@@ -646,7 +650,8 @@ export function libraryEntries(
         ...(entry.itemCount !== undefined ? { itemCount: entry.itemCount } : {}),
         ...(entry.totalMinutes !== undefined ? { totalMinutes: entry.totalMinutes } : {}),
         ...(entry.minutesEstimated !== undefined ? { minutesEstimated: entry.minutesEstimated } : {}),
-        tracked: trackedRefs.has(externalRef),
+        tracked: trackedListId !== undefined,
+        ...(trackedListId !== undefined ? { trackedListId } : {}),
       }
     })
 }

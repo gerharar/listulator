@@ -1006,13 +1006,13 @@ describe('the whole library for the browser, on the desktop (H-020, 36.2)', () =
     const { local, db, user, repository } = await freshModules()
     const database = await db.createLocalDb()
     const owner = (await user.getLocalCurrentUser(database)).id
-    await repository.createList(database, owner, { title: 'Renamed by me', mediaType: 'movie', source: 'canonical', externalRef: 'canonical:lists/movie/a.yaml' })
+    const mine = await repository.createList(database, owner, { title: 'Renamed by me', mediaType: 'movie', source: 'canonical', externalRef: 'canonical:lists/movie/a.yaml' })
 
     const { entries } = await local.createLocalApi().library()
 
-    expect(entries.map((entry) => [entry.externalRef, entry.tracked])).toEqual([
-      ['canonical:lists/movie/a.yaml', true],
-      ['canonical:lists/movie/b.yaml', false],
+    expect(entries.map((entry) => [entry.externalRef, entry.tracked, entry.trackedListId])).toEqual([
+      ['canonical:lists/movie/a.yaml', true, mine.id],
+      ['canonical:lists/movie/b.yaml', false, undefined],
     ])
   })
 
