@@ -499,14 +499,14 @@ export const en = {
     /** The key card (H-018): the same card on the first-run screen and in Create. Its title and body come from where it stands. */
     /** The first-run shelf of library lists (H-018). */
     vaultShelf: {
-      label: 'Or browse List Vault',
-      line: 'Canonical lists anyone can open, no key needed. Nothing is added until you choose Add This List.',
+      label: 'List Vault',
+      line: 'Canonical hand-made lists available without API keys. By meatbags, for meatbags (c)',
       offline: 'List Vault needs an internet connection to show its lists.',
       /** The tooltip of the disabled Try A Sample List while the library cannot be reached (design, H-018). */
       needsConnectionTip: 'Needs an internet connection',
       items: (n: number): string => `${n} ${selectPlural(n, 'en', { one: 'item', other: 'items' })}`,
       browse: 'Browse List Vault',
-      browseTip: 'All List Vault lists, by category',
+      browseTip: 'Browse all List Vault lists, sorted by category',
       trySample: 'Try A Sample List',
       sampleFailed: 'The sample list could not be added. Try again',
     },
@@ -514,18 +514,18 @@ export const en = {
     vaultBrowser: {
       tab: 'List Vault',
       title: 'List Vault',
-      subline: 'Canonical lists anyone can open, no key needed. Nothing is added until you choose Add This List.',
+      subline: 'Browse canonical hand-made lists available without API keys. Made by meatbags, for meatbags (c)',
       closeLabel: 'Close List Vault',
       categoriesLabel: 'Categories',
       noListsTip: 'No List Vault lists in this category yet',
-      chooseTitle: 'Choose a category',
+      chooseTitle: 'Categories are to your left, bro',
       chooseLine: (lists: number, categories: number): string =>
-        `${lists} ${selectPlural(lists, 'en', { one: 'list', other: 'lists' })} in ${categories} ${selectPlural(categories, 'en', { one: 'category', other: 'categories' })}. Pick one on the left to see its lists.`,
+        `${lists} ${selectPlural(lists, 'en', { one: 'list', other: 'lists' })} in ${categories} ${selectPlural(categories, 'en', { one: 'category', other: 'categories' })}`,
       loading: 'Loading List Vault…',
       outTitle: 'List Vault is out of reach',
       tryAgain: 'Try Again',
       columns: { name: 'Name', status: 'Status', items: 'Items', time: 'Time' },
-      statusUnknown: 'Status unknown',
+      statusUnknown: 'Only Schrödinger knows',
       inMyLists: 'In My Lists',
       inMyListsTip: 'You already track this list',
       timeEstimatedTip: "Some items have no runtime yet; their media type's usual length is counted",
@@ -533,8 +533,8 @@ export const en = {
         `${category} · ${lists} ${selectPlural(lists, 'en', { one: 'list', other: 'lists' })}`,
     },
     keyCard: {
-      saveKey: 'Save Key',
-      how: 'How to get a free key',
+      saveKey: 'Save',
+      how: 'How to get your free key',
       saved: (source: string): string => `${source} key saved. You can change it in Settings`,
       saveFailed: 'The key could not be saved. Try again',
     },
@@ -543,7 +543,7 @@ export const en = {
       subline: 'Media categories supported by the app. Numbers show how many lists you have',
       /** First run only — nothing exists yet, so the picker is the base layer. */
       firstRunTitle: 'No Progress Tracked. Let\'s Start!',
-      firstRunSubline: 'Pick a category to start a list. Those marked Free key needed search List Vault until you add a free API key. Mega is for cross‑category franchises',
+      firstRunSubline: "Pick a category to start a list. Some categories use external services that require a free API key to search. You can create lists by hand or look for lists from the List Vault, a collection of hand-crafted canonical lists available without API keys. Mega is for cross-media franchises",
       /** First run only, desktop app, while TMDB has no key: the key card above the tiles (H-018). */
       tmdbCallout: {
         title: 'One free TMDB key unlocks four categories',
@@ -553,7 +553,7 @@ export const en = {
       byHand: 'by hand',
       /** The chip on a tile whose source has no key yet (desktop app only), and what it says when pointed at. */
       keyNeeded: 'Free key needed',
-      keyNeededTip: (source: string): string => `Searches List Vault now; add a free ${source} key to search ${source} too`,
+      keyNeededTip: (source: string): string => `Add a free ${source} key to search in ${source} database`,
       countTitle: 'Lists already tracked in this category',
       closeLabel: 'Close',
     },
@@ -608,15 +608,15 @@ export const en = {
       /** Search needs a key the user has not supplied — hard error (design: ErrorBlock, "no key"). */
       /** The key card above the field (desktop, a source without a key; H-018). */
       keyCard: {
-        title: (source: string): string => `Search in ${source} needs a free API key`,
-        body: 'Until you add one, this search looks in List Vault only. The key stays on this computer; you can change it later in Settings.',
+        title: (source: string): string => `Search in ${source} database needs a free API key`,
+        body: 'Getting one is useful, it allows you to find most things from this category. Without a key, this search looks in List Vault only',
       },
       /** The no-key error while the key card is on the screen: it points at the card, not at Settings. */
       noKeyWithCard: (source: string): string =>
-        `Add the free key above to search ${source} as well. Until then you can add items by hand or rely on canonical lists from List Vault`,
+        `Add your free API key above to search in ${source} database, which is the main data source for this category. Until then, add items by hand or rely on canonical lists from List Vault`,
       noKeyHeadline: (source: string): string => `Nothing found in List Vault, and search in ${source} needs an API key to work`,
       noKeyDesktop: (category: string): string =>
-        `Add your API key in Settings to search the main data source for ${category}. Until then you can add items by hand or rely on canonical lists from List Vault`,
+        `Add your API key in Settings to search the main data source for ${category}. Until then, add items by hand or rely on canonical lists from List Vault`,
       /** There is no keys section on the web (C7) — keys are the server's, in its `.env`. */
       noKeyWeb: (category: string): string =>
         `Searching the main data source for ${category} needs an API key in the server's .env file. Until then you can add items by hand or rely on canonical lists from List Vault`,
@@ -1006,8 +1006,8 @@ export const en = {
       /** Said by the live region when Home or End (or the split button) takes the reader to an end of the list (H-019). */
       /** The band on a sample list (H-018): the first-run screen's Try A Sample List made this list. */
       sample: {
-        text: 'This is a sample list. Tick, move and regroup freely, then remove it or keep it as your own.',
-        remove: 'Remove Sample',
+        text: 'This is a sample of a real list. Check it out and keep it as your own or remove it.',
+        remove: 'Remove',
         keep: 'Keep It',
         kept: (title: string): string => `Kept “${title}” as your own list`,
         keepFailed: 'The list could not be kept. Try again',
@@ -1019,8 +1019,8 @@ export const en = {
         group: 'Jump to an end of the list',
         toTop: 'Scroll to the top of the list',
         toBottom: 'Scroll to the bottom of the list',
-        topTip: 'To the top (Home)',
-        bottomTip: 'To the bottom (End)',
+        topTip: 'Go to the top (also: Home key)',
+        bottomTip: 'Go to the bottom (also: End key)',
       },
       /**
        * A list drawn as a window (200 rows or more) names each row's place for a screen reader, as hidden text inside the row, and says before the
