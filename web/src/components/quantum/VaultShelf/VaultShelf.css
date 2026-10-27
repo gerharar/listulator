@@ -40,6 +40,9 @@
   margin: 0;
   font: 400 13.5px/1.45 var(--font-sans);
   color: var(--ink2);
+  /* Wraps only when longer than its box, with no one-word last line; a word that does not fit breaks rather than overlap the buttons (H-021). */
+  text-wrap: pretty;
+  overflow-wrap: anywhere;
 }
 .q-vault-cards {
   display: grid;

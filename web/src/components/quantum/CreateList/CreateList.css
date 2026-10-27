@@ -34,6 +34,11 @@
   padding-bottom: 20px;
 }
 
+.q-create-titles {
+  /* A flex child beside the close button: without this it cannot be narrower than its longest run (H-021). */
+  min-width: 0;
+}
+
 .q-create-title {
   margin: 0;
   font-weight: 700;
@@ -47,6 +52,9 @@
   font-size: 15px;
   line-height: 1.4;
   color: var(--ink2);
+  /* Wraps only when longer than its box, with no one-word last line; a word that does not fit breaks rather than overlap the buttons (H-021). */
+  text-wrap: pretty;
+  overflow-wrap: anywhere;
 }
 
 .q-create-body {

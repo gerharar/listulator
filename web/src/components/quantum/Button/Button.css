@@ -65,6 +65,8 @@
 .q-icon-btn {
   display: grid;
   place-items: center;
+  /* A fixed-size control: long text beside it in a header must not squeeze it (H-021). */
+  flex: none;
   width: 40px;
   height: 36px;
   padding: 0;

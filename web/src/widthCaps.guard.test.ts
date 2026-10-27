@@ -99,3 +99,41 @@ describe('the caps that size a container stay, exactly (H-021)', () => {
     expect(maxWidthsOf(source, selector)).toEqual([width])
   })
 })
+
+/** Whether any rule of the selector declares `property: value`. */
+const declares = (source: string, selector: string, property: string, value: RegExp): boolean =>
+  declarationsOf(source, selector).some((block) => new RegExp(`(?:^|[;\\s])${property}\\s*:\\s*${value.source}\\s*(?:;|$)`).test(block.trim()))
+
+describe('how that text wraps (H-021: it wraps only when it is longer than its box, and no one-word last line)', () => {
+  /** The text boxes of the entry, plus the browser's centred line that keeps its measure. */
+  const PRETTY: readonly (readonly [string, string])[] = [...NO_CAP, ['components/quantum/VaultBrowser/VaultBrowser.css', '.q-vb-empty-line']]
+
+  it.each(PRETTY)('%s: %s wraps with text-wrap: pretty', (file, selector) => {
+    expect(declares(css(file), selector, 'text-wrap', /pretty/), `${selector} in ${file}`).toBe(true)
+  })
+
+  // An unbreakable run (a long address in a description) would otherwise sit over the header's buttons: the entry's own test is that no header
+  // text overlaps or pushes them, and `min-width: 0` alone does not stop a word from overflowing its box (an engineering addition, owner 2026-10-27).
+  it.each(NO_CAP)('%s: %s breaks a word that does not fit (overflow-wrap: anywhere)', (file, selector) => {
+    expect(declares(css(file), selector, 'overflow-wrap', /anywhere/), `${selector} in ${file}`).toBe(true)
+  })
+
+  // The text box is a flex child beside the header's buttons: without min-width: 0 it cannot be narrower than its longest run.
+  const TITLE_BOXES: readonly (readonly [string, string])[] = [
+    ['screens/list/ListScreen.css', '.q-list-titles'],
+    ['components/quantum/CreateList/CreateList.css', '.q-create-titles'],
+    ['components/quantum/CategoryPicker/CategoryPicker.css', '.q-picker-titles'],
+    ['components/quantum/VaultBrowser/VaultBrowser.css', '.q-vb-titles'],
+    ['components/quantum/VaultShelf/VaultShelf.css', '.q-vault-intro'],
+  ]
+
+  it.each(TITLE_BOXES)('%s: %s can be narrower than its text (min-width: 0)', (file, selector) => {
+    expect(declares(css(file), selector, 'min-width', /0(?:px)?/), `${selector} in ${file}`).toBe(true)
+  })
+
+  // Long text beside it takes the whole row, and a flex item shrinks by default: the ✕ was squeezed from 40px to 25px (found measuring it in a browser).
+  it('keeps the icon button its size when text beside it is long (flex: none)', () => {
+    expect(declares(css('components/quantum/Button/Button.css'), '.q-icon-btn', 'flex', /none/)).toBe(true)
+  })
+})
+
