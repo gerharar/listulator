@@ -459,6 +459,11 @@ export const de: Locale = {
       loading: 'List Vault wird geladen…',
       outTitle: 'Der List Vault ist nicht erreichbar',
       tryAgain: 'Erneut versuchen',
+      columns: { name: 'Name', status: 'Status', items: 'Anzahl', time: 'Dauer' },
+      statusUnknown: 'Status unbekannt',
+      inMyLists: 'In meinen Listen',
+      inMyListsTip: 'Du verfolgst diese Liste bereits',
+      timeEstimatedTip: 'Einigen Einträgen fehlt noch die Laufzeit; es wird die übliche Länge ihrer Kategorie gezählt',
       caption: (category: string, listCount: number): string => `${category} · ${lists(listCount)}`,
     },
     keyCard: {

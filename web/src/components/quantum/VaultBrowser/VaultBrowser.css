@@ -94,9 +94,88 @@
   padding: 18px 22px;
 }
 .q-vb-caption {
-  margin: 0;
-  font: 400 12px/1.3 var(--font-mono);
+  margin: 0 0 14px 14px;
+  font: 500 12px/1 var(--font-mono);
   color: var(--ink3);
+}
+
+/* Name takes the slack; Status, Items and Time are fixed (56px holds the 50,000-item cap). */
+.q-vb-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 96px 56px 64px;
+  align-items: center;
+  column-gap: 20px;
+}
+.q-vb-headrow {
+  padding: 0 14px 10px;
+  border-bottom: 1px solid var(--line);
+}
+.q-vb-colhead { display: flex; justify-content: flex-start; }
+.q-vb-colhead.number { justify-content: flex-end; }
+.q-vb-sort {
+  display: flex;
+  align-items: center;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  font: 500 11px/1 var(--font-mono);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink3);
+  cursor: pointer;
+}
+.q-vb-sort:hover, .q-vb-sort.on { color: var(--ink); }
+/* A number column's header ends exactly on its numbers' right edge: the arrow goes on the label's left, takes no room when the column is not sorted, and the label's trailing letter-spacing is cancelled. */
+.q-vb-colhead.number .q-vb-sort { flex-direction: row-reverse; }
+.q-vb-colhead.number .q-vb-collabel { margin-right: -0.12em; }
+.q-vb-arrow { font-size: 9px; }
+.q-vb-arrow:empty { display: none; }
+.q-vb-colhead.number .q-vb-arrow { margin-right: 5px; }
+.q-vb-colhead:not(.number) .q-vb-arrow { margin-left: 5px; }
+
+.q-vb-row {
+  width: 100%;
+  padding: 11px 14px;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  background: transparent;
+  color: var(--ink);
+  text-align: left;
+  cursor: pointer;
+  font-family: var(--font-sans);
+}
+.q-vb-row:hover { background: var(--hover); }
+.q-vb-nm {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+/* The name ellipsises before the In My Lists chip does. */
+.q-vb-rowname {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font: 600 14.5px/1.3 var(--font-sans);
+}
+.q-vb-mine {
+  flex: none;
+  padding: 2px 5px;
+  border: 1px solid var(--line);
+  font: 600 9.5px/1 var(--font-mono);
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--ink2);
+}
+.q-vb-status { display: flex; }
+.q-vb-status .q-status.short { margin-top: 0; }
+.q-vb-unknown { font: 500 12px/1 var(--font-mono); color: var(--ink3); }
+.q-vb-items, .q-vb-time {
+  text-align: right;
+  font: 500 13px/1 var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  color: var(--ink2);
 }
 
 .q-vb-empty {

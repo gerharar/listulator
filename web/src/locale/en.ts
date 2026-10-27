@@ -522,6 +522,11 @@ export const en = {
       loading: 'Loading List Vault…',
       outTitle: 'List Vault is out of reach',
       tryAgain: 'Try Again',
+      columns: { name: 'Name', status: 'Status', items: 'Items', time: 'Time' },
+      statusUnknown: 'Status unknown',
+      inMyLists: 'In My Lists',
+      inMyListsTip: 'You already track this list',
+      timeEstimatedTip: "Some items have no runtime yet; their media type's usual length is counted",
       caption: (category: string, lists: number): string =>
         `${category} · ${lists} ${selectPlural(lists, 'en', { one: 'list', other: 'lists' })}`,
     },

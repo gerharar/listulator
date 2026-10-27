@@ -186,6 +186,8 @@ const SAME_AS_ENGLISH: Record<'ru' | 'de', readonly string[]> = {
     'sourceSearch.includeSingle',
     'sourceSearch.includeCompilation',
     'quantum.settings.themeQuantum',
+    'quantum.vaultBrowser.columns.name',
+    'quantum.vaultBrowser.columns.status',
     'quantum.vaultBrowser.tab',
     'quantum.vaultBrowser.title',
     'quantum.settings.languages.en',

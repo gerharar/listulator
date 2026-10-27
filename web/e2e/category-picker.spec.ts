@@ -110,6 +110,66 @@ test('Browse List Vault opens the browser: a category column and an empty state,
   await expect(page.getByRole('heading', { name: picker.title })).toBeVisible()
 })
 
+/**
+ * The table of a category (H-020, 36.4), measured after the layer has stopped moving: a number column's header ends on its numbers' right edge,
+ * the 56px Items cell holds 50,000 and the 64px Time cell the longest list, and the name ellipsises before the In My Lists chip.
+ */
+test('the browser table keeps its columns: headers end on the numbers, 50,000 items and a 2,271 h list fit, the name gives way before the chip (H-020)', async ({ page }) => {
+  const long = 'A very long list name that cannot possibly fit in the name column of the table at this width, '.repeat(3)
+  const big = { externalRef: 'canonical:lists/movie/big.yaml', title: long, category: 'movie', itemCount: 50_000, totalMinutes: 5_999_940, minutesEstimated: true, status: 'ongoing', tracked: true }
+  const ufc = { externalRef: 'canonical:lists/movie/ufc.yaml', title: 'All UFC Events', category: 'movie', itemCount: 757, totalMinutes: 136_260, minutesEstimated: true, tracked: false }
+
+  await useHomeFixture(page)
+  await page.route('**/api/library/untracked', (route) => route.fulfill({ json: { entries: [ufc], reachable: true } }))
+  await page.route('**/api/library', (route) => route.fulfill({ json: { entries: [big, ufc], reachable: true } }))
+  await page.goto('/')
+  await page.getByRole('button', { name: 'New List' }).click()
+  await page.getByRole('button', { name: en.quantum.vaultShelf.browse }).click()
+  await page.getByRole('navigation', { name: en.quantum.vaultBrowser.categoriesLabel }).getByRole('button', { name: /^Movies/ }).click()
+  await page.waitForFunction(() => document.getAnimations().length === 0)
+
+  const rows = page.locator('.q-vb-row')
+  await expect(rows).toHaveCount(2)
+  // The heading keeps its size beside the rows' own styles (a shared class name once shrank it to the rows' 14.5px).
+  await expect(page.getByRole('heading', { level: 1, name: en.quantum.vaultBrowser.title })).toHaveCSS('font-size', '24px')
+
+  // Each number header ends where its numbers end, sorted or not.
+  const edges = async () =>
+    page.evaluate(() => {
+      const right = (el: Element | null) => Math.round(el!.getBoundingClientRect().right)
+      const rowEl = document.querySelector('.q-vb-row')!
+      return {
+        itemsHeader: right(document.querySelector('.q-vb-colhead:nth-child(3) .q-vb-collabel')),
+        itemsCell: right(rowEl.querySelector('.q-vb-items')),
+        timeHeader: right(document.querySelector('.q-vb-colhead:nth-child(4) .q-vb-collabel')),
+        timeCell: right(rowEl.querySelector('.q-vb-time')),
+      }
+    })
+  const unsorted = await edges()
+  expect(Math.abs(unsorted.itemsHeader - unsorted.itemsCell)).toBeLessThanOrEqual(1)
+  expect(Math.abs(unsorted.timeHeader - unsorted.timeCell)).toBeLessThanOrEqual(1)
+  await page.getByRole('columnheader', { name: en.quantum.vaultBrowser.columns.items }).getByRole('button').click()
+  const sorted = await edges()
+  expect(Math.abs(sorted.itemsHeader - sorted.itemsCell)).toBeLessThanOrEqual(1)
+
+  // The cells hold the biggest numbers the library can have.
+  const fits = await page.evaluate(() =>
+    [...document.querySelectorAll('.q-vb-items, .q-vb-time')].map((cell) => ({ text: cell.textContent, over: cell.scrollWidth > cell.clientWidth })),
+  )
+  expect(fits.map((cell) => cell.text)).toContain('50000')
+  expect(fits.map((cell) => cell.text)).toContain('≈99999h')
+  for (const cell of fits) expect(cell.over, cell.text ?? '').toBe(false)
+
+  // The long name is cut with an ellipsis; the chip is whole and stays inside the row.
+  const cut = await page.evaluate(() => {
+    const title = [...document.querySelectorAll('.q-vb-rowname')].find((el) => el.scrollWidth > el.clientWidth)
+    const chip = document.querySelector('.q-vb-mine')!.getBoundingClientRect()
+    const nameCell = document.querySelector('.q-vb-nm')!.getBoundingClientRect()
+    return { clipped: Boolean(title), chipInside: chip.right <= nameCell.right + 0.5 && chip.width > 40 }
+  })
+  expect(cut).toEqual({ clipped: true, chipInside: true })
+})
+
 test('Browse List Vault says the library is out of reach, and Try Again fills the browser in place (H-020)', async ({ page }) => {
   let reachable = false
   const entries = [{ externalRef: 'canonical:lists/book/a.yaml', title: 'A', category: 'book', itemCount: 4, tracked: false }]

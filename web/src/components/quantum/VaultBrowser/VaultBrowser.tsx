@@ -8,11 +8,20 @@ import { categoryLabel, copy, sortCategories } from '../../../locale/index.js'
 import { Button, IconButton } from '../Button/Button.js'
 import { HeaderPlate } from '../HeaderPlate/HeaderPlate.js'
 import { useLayerStack } from '../layerStack/LayerStackContext.js'
+import { StatusChip, statusChipData } from '../StatusChip/StatusChip.js'
+import { browserTime, DEFAULT_SORT, nextSort, sortRows, type BrowserSort, type SortKey } from './browserRows.js'
 
 export interface VaultBrowserProps {
   /** The registry: the column lists every category in it, never a fixed set. */
   mediaTypes: readonly MediaType[]
 }
+
+const COLUMNS: readonly { key: SortKey; number: boolean }[] = [
+  { key: 'name', number: false },
+  { key: 'status', number: false },
+  { key: 'items', number: true },
+  { key: 'time', number: true },
+]
 
 type Library = { phase: 'loading' } | { phase: 'out' } | { phase: 'ready'; entries: readonly LibraryBrowserEntry[] }
 
@@ -27,6 +36,7 @@ export function VaultBrowser({ mediaTypes }: VaultBrowserProps) {
   const [library, setLibrary] = useState<Library>({ phase: 'loading' })
   const [selected, setSelected] = useState<string | null>(null)
   const [retrying, setRetrying] = useState(false)
+  const [sort, setSort] = useState<BrowserSort>(DEFAULT_SORT)
 
   const load = useCallback((): Promise<void> => {
     return api
@@ -62,6 +72,10 @@ export function VaultBrowser({ mediaTypes }: VaultBrowserProps) {
   const total = library.phase === 'ready' ? library.entries.length : 0
   const filled = [...counts.values()].filter((count) => count > 0).length
   const selectedType = ordered.find((type) => type.key === selected)
+  const rows = useMemo(
+    () => (library.phase === 'ready' && selected !== null ? sortRows(library.entries.filter((entry) => entry.category === selected), sort) : []),
+    [library, selected, sort],
+  )
 
   async function tryAgain() {
     setRetrying(true)
@@ -112,7 +126,63 @@ export function VaultBrowser({ mediaTypes }: VaultBrowserProps) {
 
         <div className="q-vb-pane">
           {selectedType ? (
-            <p className="q-vb-caption">{text.caption(categoryLabel(selectedType), counts.get(selectedType.key) ?? 0)}</p>
+            <div className="q-vb-table">
+              <p className="q-vb-caption">{text.caption(categoryLabel(selectedType), counts.get(selectedType.key) ?? 0)}</p>
+              <div role="row" className="q-vb-grid q-vb-headrow">
+                {COLUMNS.map(({ key, number }) => {
+                  const on = sort.key === key
+
+                  return (
+                    <span
+                      key={key}
+                      role="columnheader"
+                      aria-sort={on ? (sort.dir === 1 ? 'ascending' : 'descending') : 'none'}
+                      className={number ? 'q-vb-colhead number' : 'q-vb-colhead'}
+                    >
+                      <button type="button" className={on ? 'q-vb-sort on' : 'q-vb-sort'} onClick={() => setSort(nextSort(sort, key))}>
+                        <span className="q-vb-collabel">{text.columns[key]}</span>
+                        <span className="q-vb-arrow" aria-hidden="true">
+                          {on ? (sort.dir === 1 ? '▲' : '▼') : ''}
+                        </span>
+                      </button>
+                    </span>
+                  )
+                })}
+              </div>
+              {rows.map((entry) => (
+                <button key={entry.externalRef} type="button" className="q-vb-row q-vb-grid">
+                  <span className="q-vb-nm">
+                    <Tip as="span" className="q-vb-rowname" text={entry.title} whenClipped>
+                      {entry.title}
+                    </Tip>
+                    {entry.tracked && (
+                      <Tip className="q-vb-mine" text={text.inMyListsTip}>
+                        {text.inMyLists}
+                      </Tip>
+                    )}
+                  </span>
+                  <span className="q-vb-status">
+                    {statusChipData(entry.status ?? null) ? (
+                      <Tip text={statusChipData(entry.status ?? null)?.tip}>
+                        <StatusChip status={entry.status ?? null} short />
+                      </Tip>
+                    ) : (
+                      <Tip className="q-vb-unknown" text={text.statusUnknown}>
+                        —
+                      </Tip>
+                    )}
+                  </span>
+                  <span className="q-vb-items">{entry.itemCount ?? '—'}</span>
+                  {entry.totalMinutes === undefined ? (
+                    <span className="q-vb-time">—</span>
+                  ) : (
+                    <Tip className="q-vb-time" text={entry.minutesEstimated ? text.timeEstimatedTip : undefined}>
+                      {`${entry.minutesEstimated ? '≈' : ''}${browserTime(entry.totalMinutes)}`}
+                    </Tip>
+                  )}
+                </button>
+              ))}
+            </div>
           ) : (
             <div className="q-vb-empty">
               <span className="q-vb-art" aria-hidden="true">

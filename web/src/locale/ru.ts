@@ -468,6 +468,11 @@ export const ru: Locale = {
       loading: 'Загрузка List Vault…',
       outTitle: 'List Vault недоступен',
       tryAgain: 'Повторить',
+      columns: { name: 'Название', status: 'Статус', items: 'Элем.', time: 'Время' },
+      statusUnknown: 'Статус неизвестен',
+      inMyLists: 'В моих списках',
+      inMyListsTip: 'Ты уже отслеживаешь этот список',
+      timeEstimatedTip: 'У некоторых элементов ещё нет длительности; учтена обычная длительность их категории',
       caption: (category: string, listCount: number): string => `${category} · ${lists(listCount)}`,
     },
     keyCard: {
