@@ -2,6 +2,36 @@
 
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and version numbers follow [Semantic Versioning](https://semver.org/).
 
+
+## [1.2.0] - 27 October 2026
+
+### New Stuff
+
+- New onboarding & list-adding experience has arrived for the first-run and **New List** screens:
+  - First-run screen explanations have been improved for clarity
+  - A *List Vault* shelf is now shown below the category tiles, offering three random canonical lists from the List Vault in three random categories
+  - You can now actually browse the List Vault! Use **Browse List Vault** button on the **New List** screen to discover the whole List Vault library. It's self-explanatory, with sortable columns (title, items, time) and a separate *In My Lists* tag for lists you're already tracking
+  - FYI: List Vault is regularly getting new lists, and accessing them does not require updating Listulator itself
+  - **Try A Sample List** button on the first-run screen opens a big canonical list that shows a new user how the lists work. You can **Keep It** or **Delete** it (with Undo available, of course)
+  - Category tiles now show *Free Key Needed* if a category needs an API key to access its main data source and it hasn't been provided yet
+  - Categories without API keys now show a field for pasting the key, with a link to a guide that explains how to get the key
+- List navigation got some new toys:
+  - **Jump To** element now resides outside the card when the app window has enough room. And the **Preview** screen has it too!
+  - A split **Up/Down** button was added to the toolbar for long lists so that you can quickly jump to the top or bottom of the list
+  - Right-click now makes an item active, so you can use your keyboard's *Up* and *Down* arrow keys for navigating a list, or *Shift+Up* and *Shift+Down* for moving the active item higher or lower in the list  
+  - *Home* and *End* on your keyboard will take you to the start or the end of a list (note: the focus needs to be on the list items in order for these keys to work)
+
+### Improvements
+
+- Descriptions and hints now occupy more real estate (previously unused) on the right side of various windows and fields. Very long words will break instead of overflowing
+- Update check button on **My Lists** page now skips lists with *Complete* status
+
+### Fixes
+
+- In the rare case of deleting a large group going wrong for some reason, the list no longer freezes
+- Minor security issues were fixed
+
+
 ## [1.1.1] - 22 October 2026
 
 ### Fixes
