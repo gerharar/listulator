@@ -330,7 +330,8 @@ export async function findListExternalRefs(db: PortableDatabase, userId: string)
 
 /**
  * Each library reference one of the person's lists carries, mapped to that list's id: the List Vault browser flags a list as
- * tracked and opens it from the id. A person who has the same list twice gets the first one made (the order of `findLists`).
+ * tracked and opens it from the id. A person who has the same list twice gets the first one made (the order of `findLists`: by
+ * `createdAt`, which is to the millisecond, so two made in the same one go by id).
  */
 export async function findListIdsByExternalRef(db: PortableDatabase, userId: string): Promise<Map<string, string>> {
   const rows = await db

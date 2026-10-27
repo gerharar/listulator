@@ -90,6 +90,8 @@ describe('the lists overview and the single-list read, with big stored files and
 
   it('maps each library reference to the list that carries it, the first one when the person has it twice (H-020)', async () => {
     const first = await createList(db(), userId, { title: 'First copy', mediaType: 'movie', source: 'canonical', externalRef: 'canonical:lists/movie/a.yaml' })
+    // Made a moment later, as two lists of a person always are: a tie in the same millisecond would be broken by the id.
+    await new Promise((resolve) => setTimeout(resolve, 5))
     await createList(db(), userId, { title: 'Second copy', mediaType: 'movie', source: 'canonical', externalRef: 'canonical:lists/movie/a.yaml' })
     const other = await createList(db(), userId, { title: 'Other', mediaType: 'movie', source: 'canonical', externalRef: 'canonical:lists/movie/b.yaml' })
     await createList(db(), userId, { title: 'By hand', mediaType: 'movie' })
