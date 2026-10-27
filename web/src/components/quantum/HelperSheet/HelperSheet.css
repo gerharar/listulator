@@ -76,4 +76,5 @@
 .q-reel-meta { margin-top: 7px; font: 500 13px/1 var(--font-mono); color: var(--ink2); }
 .q-reel-desc { margin: 10px 0 0; font-size: 13px; line-height: 1.5; color: var(--ink2); }
 .q-reel .q-pick-actions { margin-top: 16px; }
-.q-reel-note { margin-top: 14px; max-width: 620px; font-size: 12.5px; }
+/* No column cap (design, H-021): the note runs to the sheet's padding. */
+.q-reel-note { margin-top: 14px; font-size: 12.5px; }
