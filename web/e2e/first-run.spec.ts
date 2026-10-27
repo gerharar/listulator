@@ -214,3 +214,16 @@ test('Try A Sample List: add, Keep It keeps it with no change of screen; Remove 
   await expect(page.getByRole('heading', { name: MCU.title })).toBeVisible()
   expect(calls.at(-1)).toBe('patch {"isSample":false}')
 })
+
+test('the first run offers Browse List Vault before Try A Sample List (H-020)', async ({ page }) => {
+  await page.route('**/api/lists', (route) => route.fulfill({ json: [] }))
+  await page.route('**/api/library/untracked', (route) => route.fulfill({ json: { entries: [{ externalRef: 'canonical:lists/movie/a.yaml', title: 'A', category: 'movie', itemCount: 4 }], reachable: true } }))
+
+  await page.goto('/')
+
+  const browse = page.getByRole('button', { name: q.vaultShelf.browse })
+  await expect(browse).toBeVisible({ timeout: 15_000 })
+  const sample = page.getByRole('button', { name: q.vaultShelf.trySample })
+  const [browseBox, sampleBox] = [await browse.boundingBox(), await sample.boundingBox()]
+  expect(browseBox!.x).toBeLessThan(sampleBox!.x)
+})

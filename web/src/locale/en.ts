@@ -503,8 +503,27 @@ export const en = {
       line: 'Canonical lists anyone can open, no key needed. Preview one; nothing is added until you choose Add This List.',
       offline: 'List Vault needs an internet connection to show its lists.',
       items: (n: number): string => `${n} ${selectPlural(n, 'en', { one: 'item', other: 'items' })}`,
+      browse: 'Browse List Vault',
+      browseTip: 'All List Vault lists, by category',
       trySample: 'Try A Sample List',
       sampleFailed: 'The sample list could not be added. Try again',
+    },
+    /** The List Vault browser (H-020): a category column beside the lists of the one picked. */
+    vaultBrowser: {
+      tab: 'List Vault',
+      title: 'List Vault',
+      subline: 'Canonical lists anyone can open, no key needed. Nothing is added until you choose Add This List.',
+      closeLabel: 'Close List Vault',
+      categoriesLabel: 'Categories',
+      noListsTip: 'No List Vault lists in this category yet',
+      chooseTitle: 'Choose a category',
+      chooseLine: (lists: number, categories: number): string =>
+        `${lists} ${selectPlural(lists, 'en', { one: 'list', other: 'lists' })} in ${categories} ${selectPlural(categories, 'en', { one: 'category', other: 'categories' })}. Pick one on the left to see its lists.`,
+      loading: 'Loading List Vault…',
+      outTitle: 'List Vault is out of reach',
+      tryAgain: 'Try Again',
+      caption: (category: string, lists: number): string =>
+        `${category} · ${lists} ${selectPlural(lists, 'en', { one: 'list', other: 'lists' })}`,
     },
     keyCard: {
       saveKey: 'Save Key',

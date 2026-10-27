@@ -1,0 +1,128 @@
+/* The List Vault browser (H-020): a header like Choose Your Fighter's, a 220px category column and a pane. */
+.q-vb {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  height: 100%;
+}
+
+.q-vb-head {
+  position: relative;
+  flex: none;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 22px 26px;
+  background: var(--fill);
+  border-bottom: 2px solid var(--rule);
+}
+.q-vb-head > :not(.q-plate) {
+  position: relative;
+}
+/* No max width (owner, 2026-10-26): the block takes the plate's width beside the ✕ and wraps only when the text is longer. */
+.q-vb-title {
+  margin: 0;
+  font-weight: 700;
+  font-size: 24px;
+  line-height: 1.02;
+  letter-spacing: -0.022em;
+}
+.q-vb-sub {
+  margin: 8px 0 0;
+  font-size: 15px;
+  line-height: 1.4;
+  color: var(--ink2);
+  text-wrap: pretty;
+}
+
+.q-vb-body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+}
+
+.q-vb-column {
+  flex: none;
+  width: 220px;
+  overflow-y: auto;
+  border-right: 1px solid var(--line);
+}
+.q-vb-cat {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  padding: 10px 16px;
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  text-align: left;
+  cursor: pointer;
+  font: 400 14px/1.3 var(--font-sans);
+}
+.q-vb-cat:hover { background: var(--hover); }
+.q-vb-cat.on {
+  background: var(--fill);
+  font-weight: 600;
+  box-shadow: inset 3px 0 0 var(--accent);
+}
+.q-vb-cat.empty {
+  color: var(--ink3);
+  cursor: default;
+}
+.q-vb-cat.empty:hover { background: transparent; }
+.q-vb-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.q-vb-count {
+  flex: none;
+  font: 400 12px/1 var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  color: var(--ink3);
+}
+.q-vb-cat.on .q-vb-count { color: var(--ink); }
+
+.q-vb-pane {
+  flex: 1;
+  min-width: 0;
+  overflow-y: auto;
+  padding: 18px 22px;
+}
+.q-vb-caption {
+  margin: 0;
+  font: 400 12px/1.3 var(--font-mono);
+  color: var(--ink3);
+}
+
+.q-vb-empty {
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  text-align: center;
+}
+/* Drawn like the category tiles' art: the same stroke, ink at the art's opacity. */
+.q-vb-art {
+  display: block;
+  color: var(--ink);
+  opacity: var(--o-art);
+}
+.q-vb-art svg { stroke-width: var(--art-stroke); }
+.q-vb-art :is(path, rect, circle, line) { vector-effect: non-scaling-stroke; }
+.q-vb-empty-title {
+  margin: 0;
+  font: 600 18px/1.2 var(--font-sans);
+}
+.q-vb-empty-line {
+  margin: 0;
+  font: 400 14px/1.45 var(--font-sans);
+  color: var(--ink2);
+  text-wrap: pretty;
+}

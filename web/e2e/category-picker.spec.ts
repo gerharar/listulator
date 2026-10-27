@@ -73,6 +73,63 @@ test('New List carries the List Vault shelf of three, no Try A Sample List, and 
   expect(writes).toEqual([])
 })
 
+/**
+ * Browse List Vault (H-020, 36.3): the button on the shelf opens the browser, which opens with nothing selected, lets a category be picked and
+ * closes with Esc back to the picker. The library is a fake answer (a real one needs the network).
+ */
+test('Browse List Vault opens the browser: a category column and an empty state, a pick is marked, Esc returns to New List (H-020)', async ({ page }) => {
+  const entry = (category: string, n: number) => ({ externalRef: `canonical:lists/${category}/${n}.yaml`, title: `${category} ${n}`, category, itemCount: 4, tracked: false })
+  const library = [entry('movie', 1), entry('movie', 2), entry('book', 1)]
+
+  await useHomeFixture(page)
+  // The shelf (and so the button) is drawn when the library has something to offer.
+  await page.route('**/api/library/untracked', (route) => route.fulfill({ json: { entries: [library[0]], reachable: true } }))
+  await page.route('**/api/library', (route) => route.fulfill({ json: { entries: library, reachable: true } }))
+  await page.goto('/')
+  await page.getByRole('button', { name: 'New List' }).click()
+  await expect(page.getByRole('heading', { name: picker.title })).toBeVisible()
+
+  await page.getByRole('button', { name: en.quantum.vaultShelf.browse }).click()
+
+  const vault = en.quantum.vaultBrowser
+  await expect(page.getByRole('heading', { level: 1, name: vault.title })).toBeVisible()
+  await expect(page.getByText(vault.chooseTitle)).toBeVisible()
+  await expect(page.getByText(vault.chooseLine(3, 2))).toBeVisible()
+  const column = page.getByRole('navigation', { name: vault.categoriesLabel })
+  await expect(column.getByRole('button').first()).toBeVisible()
+  // Every category the registry has, the ones with no lists disabled.
+  expect(await column.getByRole('button').count()).toBeGreaterThan(8)
+  await expect(column.locator('[aria-disabled="true"]').first()).toBeVisible()
+
+  await column.getByRole('button', { name: /^Movies/ }).click()
+  await expect(column.getByRole('button', { name: /^Movies/ })).toHaveAttribute('aria-current', 'true')
+  await expect(page.locator('.q-vb-caption')).toHaveText(vault.caption('Movies', 2))
+
+  await page.keyboard.press('Escape')
+  await expect(page.getByRole('heading', { level: 1, name: vault.title })).toBeHidden()
+  await expect(page.getByRole('heading', { name: picker.title })).toBeVisible()
+})
+
+test('Browse List Vault says the library is out of reach, and Try Again fills the browser in place (H-020)', async ({ page }) => {
+  let reachable = false
+  const entries = [{ externalRef: 'canonical:lists/book/a.yaml', title: 'A', category: 'book', itemCount: 4, tracked: false }]
+
+  await useHomeFixture(page)
+  await page.route('**/api/library/untracked', (route) => route.fulfill({ json: { entries: [], reachable: false } }))
+  await page.route('**/api/library', (route) => route.fulfill({ json: reachable ? { entries, reachable: true } : { entries: [], reachable: false } }))
+  await page.goto('/')
+  await page.getByRole('button', { name: 'New List' }).click()
+  await page.getByRole('button', { name: en.quantum.vaultShelf.browse }).click()
+
+  const vault = en.quantum.vaultBrowser
+  await expect(page.getByText(vault.outTitle)).toBeVisible()
+  reachable = true
+  await page.getByRole('button', { name: vault.tryAgain }).click()
+
+  await expect(page.getByText(vault.chooseTitle)).toBeVisible()
+  await expect(page.getByText(vault.outTitle)).toBeHidden()
+})
+
 test('the web build never shows “Free key needed”, and every tile keeps a 20px bottom row so the source names stay level (H-018)', async ({ page }) => {
   await useHomeFixture(page)
   await page.goto('/')

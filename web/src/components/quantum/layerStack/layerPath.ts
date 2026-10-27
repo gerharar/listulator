@@ -1,7 +1,7 @@
 /**
  * What a layer's `content` string names. A layer's content is a path-shaped
  * string (D1: no URLs, the shape is only a convenient encoding): the shell
- * reads it to decide which screen a `list`, `new-list` or `preview` layer draws.
+ * reads it to decide which screen a `list`, `new-list`, `preview` or `vault` layer draws.
  */
 export type LayerTarget =
   | { kind: 'home' }
@@ -15,6 +15,11 @@ export type LayerTarget =
       openRef: string | undefined
     }
   | { kind: 'preview'; params: URLSearchParams }
+  /** The List Vault browser (H-020). */
+  | { kind: 'vault' }
+
+/** The path of the List Vault browser layer; read before `LIST_PATH`, which would take "vault" for a list id. */
+export const VAULT_PATH = '/lists/vault'
 
 const LIST_PATH = /^\/lists\/([^/?]+)$/
 
@@ -34,6 +39,10 @@ export function parseLayerPath(path: string): LayerTarget {
       query: params.get('q') || undefined,
       openRef: params.get('open') || undefined,
     }
+  }
+
+  if (pathname === VAULT_PATH) {
+    return { kind: 'vault' }
   }
 
   if (pathname === '/lists/preview') {

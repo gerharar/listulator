@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { newListPath, parseLayerPath } from './layerPath.js'
+import { newListPath, parseLayerPath, VAULT_PATH } from './layerPath.js'
 
 describe('parseLayerPath', () => {
   it('the root path is Home', () => {
@@ -24,6 +24,11 @@ describe('parseLayerPath', () => {
 
     expect(target.kind).toBe('preview')
     expect(target.kind === 'preview' && target.params.get('externalRef')).toBe('tmdb:1')
+  })
+
+  it('/lists/vault is the List Vault browser, not a list called "vault" (H-020)', () => {
+    expect(parseLayerPath(VAULT_PATH)).toEqual({ kind: 'vault' })
+    expect(VAULT_PATH).toBe('/lists/vault')
   })
 
   it('an unrecognised path falls back to Home rather than throwing', () => {

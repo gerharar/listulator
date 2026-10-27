@@ -16,6 +16,7 @@ import { AboutScreen } from './screens/about/AboutScreen.js'
 import { ListScreen } from './screens/list/ListScreen.js'
 import { CreateList } from './components/quantum/CreateList/CreateList.js'
 import { PreviewLayer } from './components/quantum/PreviewLayer/PreviewLayer.js'
+import { VaultBrowser } from './components/quantum/VaultBrowser/VaultBrowser.js'
 import { parsePreviewPath } from './lib/preview.js'
 import { Atmosphere } from './components/quantum/Atmosphere/Atmosphere.js'
 import { DocumentTheme } from './components/quantum/DocumentTheme/DocumentTheme.js'
@@ -162,6 +163,10 @@ export function PathLayer({ path, mediaTypes, active = true }: { path: string; m
         {...(target.openRef ? { initialOpen: target.openRef } : {})}
       />
     )
+  }
+
+  if (target.kind === 'vault') {
+    return <VaultBrowser mediaTypes={mediaTypes} />
   }
 
   if (target.kind === 'preview') {

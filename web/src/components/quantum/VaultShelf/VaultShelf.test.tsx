@@ -6,7 +6,7 @@ import { api, type MediaType } from '../../../lib/api.js'
 import { LayerStackProvider, useLayerStack } from '../layerStack/LayerStackContext.js'
 import { VaultShelf } from './VaultShelf.js'
 
-vi.mock('../../../lib/api.js', () => ({ api: { libraryUntracked: vi.fn(), createFromSource: vi.fn(), lists: vi.fn(), updateList: vi.fn() } }))
+vi.mock('../../../lib/api.js', () => ({ api: { libraryUntracked: vi.fn(), library: vi.fn(), createFromSource: vi.fn(), lists: vi.fn(), updateList: vi.fn() } }))
 
 afterEach(() => {
   cleanup()
@@ -241,5 +241,40 @@ describe('Try A Sample List (33.8)', () => {
     finish({ id: 'sample-1', title: 'x' } as never)
 
     await waitFor(() => expect(api.createFromSource).toHaveBeenCalledTimes(1))
+  })
+})
+
+describe('Browse List Vault (H-020, 36.3)', () => {
+  const browse = () => screen.getByRole('button', { name: 'Browse List Vault' })
+
+  it('is a button before Try A Sample List where that shows', async () => {
+    mount({ entries: entries(['movie']), reachable: true })
+
+    const names = screen.getAllByRole('button').map((button) => button.textContent)
+    expect(names.indexOf('Browse List Vault')).toBeGreaterThanOrEqual(0)
+    expect(names.indexOf('Browse List Vault')).toBeLessThan(names.indexOf('Try A Sample List'))
+    await waitFor(() => expect(cards()).toHaveLength(1))
+  })
+
+  it('is there without the sample button too, on New List', async () => {
+    mount({ entries: entries(['movie']), reachable: true }, () => 0.3, false)
+
+    expect(browse()).toBeTruthy()
+    expect(screen.queryByRole('button', { name: 'Try A Sample List' })).toBeNull()
+    await waitFor(() => expect(cards()).toHaveLength(1))
+  })
+
+  it('says what it opens', () => {
+    mount({ entries: [], reachable: true })
+
+    expect(browse().getAttribute('aria-description')).toBe('All List Vault lists, by category')
+  })
+
+  it('opens the browser layer, whether or not the library has answered', () => {
+    mount(new Error('offline'))
+
+    fireEvent.click(browse())
+
+    expect(screen.getByTestId('stack').textContent).toBe('home:/,vault:/lists/vault')
   })
 })

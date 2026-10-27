@@ -17,6 +17,12 @@
   gap: 8px;
   min-width: 0;
 }
+.q-vault-actions {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
 .q-vault-sample { flex: none; }
 .q-vault-failed {
   margin: 0;

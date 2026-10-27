@@ -6,6 +6,7 @@ import { previewPath } from '../../../lib/preview.js'
 import { pickSample, sampleSetting } from '../../../lib/onboardingConfig.js'
 import { Button } from '../Button/Button.js'
 import { untitledListLayer } from '../layerStack/listLayer.js'
+import { VAULT_PATH } from '../layerStack/layerPath.js'
 import { categoryLabel, copy } from '../../../locale/index.js'
 import { useLayerStack } from '../layerStack/LayerStackContext.js'
 import { shelfPicks } from './shelfPicks.js'
@@ -91,6 +92,10 @@ export function VaultShelf({ mediaTypes, sample, random = Math.random }: VaultSh
     })
   }
 
+  function browse() {
+    layerStack.push({ id: 'vault-browser', kind: 'vault', tabLabel: () => copy.quantum.vaultBrowser.tab, content: VAULT_PATH })
+  }
+
   const nameOf = (key: string): string => {
     const type = mediaTypes.find((candidate) => candidate.key === key)
 
@@ -104,11 +109,17 @@ export function VaultShelf({ mediaTypes, sample, random = Math.random }: VaultSh
           <span className="q-vault-label">{text.label}</span>
           <p className="q-vault-line">{shelf.phase === 'offline' ? text.offline : text.line}</p>
         </div>
-        {sample && (
-          <Button className="q-vault-sample" disabled={shelf.phase !== 'ready' || adding} onClick={() => void trySample()}>
-            {text.trySample}
+        <div className="q-vault-actions">
+          {/* Enabled before the library answers and when it cannot be reached: the browser has its own loading and Try Again. */}
+          <Button title={text.browseTip} onClick={browse}>
+            {text.browse}
           </Button>
-        )}
+          {sample && (
+            <Button className="q-vault-sample" disabled={shelf.phase !== 'ready' || adding} onClick={() => void trySample()}>
+              {text.trySample}
+            </Button>
+          )}
+        </div>
       </div>
       {sample && failed && (
         <p className="q-vault-failed" role="alert">
