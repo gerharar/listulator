@@ -27,16 +27,20 @@ My main tools for building Listulator are Claude Code, Claude Design, and my own
 If you need a Senior Product Manager that can built stuff 0-to-1 using LLMs, or just want to talk about agentic product building, ping me on [LinkedIn](https://www.linkedin.com/in/akugaevskiy). With that out of the way, let's get back to the app, shall we?
 
 
-## The buttons, ~~Mason~~ Andy! What do they mean?
+## How does Listulator work?
 
-When the paradox of choice has you in its merciless grip, call upon the power of the helper buttons:
+- When you install and run Listulator, you'll be greeted by a screen that invites you to create your first list and track your progress in it
+- There are several ways to create a list: use search, enter a list by hand, browse List Vault for canonical lists, or import an existing list from somewhere [in YAML format](CONTRIBUTING.md)
+	- If you're thinking what I think you're thinking, check the [*What is the List Vault* question](#list-vault) in the Q&A section below
+- There are 12 media categories to choose from, see [below](#categories) for the whole list
+- Each category has a main data source for searching. Some data sources require a free API key for searching in them
+	- For example, TMDB API key is required to search the TMDB database in Movies, TV Series, Documentaries, and Animation categories
+- Getting an API key is a bit annoying, but I've got [guides](#api-keys) to help you out. Adding a key is only needed once, but it's very helpful in the long run for quickly making lists. I **strongly** advise you to get keys for the categories you're interested in (if they require keys)
+- Searching in all categories also searches the List Vault. If you want to browse all lists from the List Vault, check under the categories on the New List screen
+- After you create your first list, tick off items as you go through them by clicking anywhere on an item outside of its buttons
+- Once you add a list, it's yours, and you can do anything you want with it: add items, rename them, delete them, reorder them, and so on. 
+- If a list contains something that's still ongoing, don't forget to check it for updates from time to time ("washer" button in the top right corner of a list window)
 
-| Button | When To Use |
-|---|---|
-| **I'm Tired, Boss** | Tired of grinding a list? This finds a different one favouring other categories and long-neglected lists |
-| **Finalizer** |  Your inner completionist demands to finish a list? This finds you items that bring you closer to the finish |
-| **Just One Fix** | Want to get a quick dopamine hit? This finds you the shortest item on your lists that you can complete |
-| **Surprise Me** | Curious what others might be enjoying? Choose a media category and spin to win a curated list suggestion! |
 
 ## Categories
 
@@ -56,8 +60,6 @@ Listulator has 11 media categories and one Mega category for cross-media franchi
 | Pro Wrestling | WWE, AEW, TNA, ROH | Wikipedia |
 | TV Shows | A show and its episodes, specials included | TMDB |
 | YouTube | A playlist, or every upload from a channel | YouTube |
-
-Every list can also be typed in by hand. Alternatively, you can create a YAML file and import it in the app -- check [CONTRIBUTING.md](CONTRIBUTING.md) for YAML structure details
 
 
 ## Installation
@@ -126,6 +128,7 @@ If someone **really** needs this and is willing to share their PodChaser API key
 A: The app collects no usage telemetry -- I see no reason to collect usage data that wouldn't inform any meaningful decisions. Everything stays on your computer; see [Your local data](#your-local-data) for data location and removal.
 </details>
 
+<a name="list-vault"></a>
 <details>
 <summary><strong>Q: What is the List Vault?</strong></summary>
 
@@ -156,7 +159,6 @@ A: Read [SECURITY.md](SECURITY.md) for the submission procedure. I obviously don
 A: Sure, list contributions are always welcome. Refer to [CONTRIBUTING.md](CONTRIBUTING.md) for details. I'd suggest to get in touch first, though -- I might be working on the same list already. If you're planning to plow through a particular category, let me know! It'll help me focus on other categories that need more love.
 
 </details>
-
 
 <details>
 <summary><strong>Q: Ctrl+F doesn't find stuff in a very long list. What the?</strong></summary>
