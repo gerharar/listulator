@@ -29,7 +29,7 @@ If you need a Senior Product Manager that can built stuff 0-to-1 using LLMs, or 
 
 ## How does Listulator work?
 
-- When you install and run Listulator, you'll be greeted by a screen that invites you to create your first list and track your progress in it
+- When you [install](https://github.com/gerharar/listulator/releases) and run Listulator, you'll be greeted by a screen that invites you to create your first list and track your progress in it
 - There are several ways to create a list: use search, enter a list by hand, browse List Vault for canonical lists, or import an existing list from somewhere [in YAML format](CONTRIBUTING.md)
 	- If you're thinking what I think you're thinking, check the [*What is the List Vault* question](#list-vault) in the Q&A section below
 - There are 12 media categories to choose from, see [below](#categories) for the whole list
