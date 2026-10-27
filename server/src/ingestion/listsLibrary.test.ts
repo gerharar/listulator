@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
-import { generateListsIndex } from '../tools/generateListsIndex.js'
+import { defaultMinutesByCategory, generateListsIndex } from '../tools/generateListsIndex.js'
 import { createMediaTypeRegistry } from './mediaTypes.js'
 
 /**
@@ -18,7 +18,7 @@ import { createMediaTypeRegistry } from './mediaTypes.js'
 
 const REPO_ROOT = fileURLToPath(new URL('../../../', import.meta.url))
 const LISTS_DIR = `${REPO_ROOT}lists`
-const VALID_CATEGORIES = new Set(createMediaTypeRegistry().keys())
+const DEFAULT_MINUTES = defaultMinutesByCategory(createMediaTypeRegistry())
 
 /**
  * Copies every git-tracked `lists/**\/*.yaml` file into a clean temp
@@ -59,11 +59,11 @@ describe('the committed lists/ library', () => {
   it('every tracked file parses cleanly through the real parser', () => {
     // generateListsIndex re-parses every file and throws, naming the
     // offending one, on the first that doesn't validate.
-    expect(() => generateListsIndex(dir, VALID_CATEGORIES)).not.toThrow()
+    expect(() => generateListsIndex(dir, DEFAULT_MINUTES)).not.toThrow()
   })
 
   it('lists/index.json matches what the tracked files produce — no drift', () => {
-    const generated = generateListsIndex(dir, VALID_CATEGORIES)
+    const generated = generateListsIndex(dir, DEFAULT_MINUTES)
     const committed = JSON.parse(readFileSync(`${LISTS_DIR}/index.json`, 'utf8')) as unknown
 
     expect(generated).toEqual(committed)

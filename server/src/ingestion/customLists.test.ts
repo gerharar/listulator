@@ -496,6 +496,23 @@ describe('fetchCanonicalManifest', () => {
     }
   })
 
+  it('carries the optional total time and its estimated flag through, and an index without them still validates', async () => {
+    const withTime = [{ path: 'lists/mega/mcu.yaml', title: 'MCU', category: 'mega', itemCount: 23, totalMinutes: 3_000, minutesEstimated: true }]
+    const without = [{ path: 'lists/mega/mcu.yaml', title: 'MCU', category: 'mega', itemCount: 23 }]
+
+    expect(await fetchCanonicalManifest(respondWith(withTime))).toEqual(withTime)
+    expect(await fetchCanonicalManifest(respondWith(without))).toEqual(without)
+  })
+
+  it('rejects a total time that is not a whole number of zero or more, and an estimated flag that is not a boolean', async () => {
+    const bad = [{ totalMinutes: -1 }, { totalMinutes: 2.5 }, { totalMinutes: '90' }, { totalMinutes: null }, { minutesEstimated: 'yes' }, { minutesEstimated: 1 }, { minutesEstimated: null }]
+    for (const extra of bad) {
+      await expect(
+        fetchCanonicalManifest(respondWith([{ path: 'x.yaml', title: 'X', category: 'movie', ...extra }])),
+      ).rejects.toThrow(IngestionError)
+    }
+  })
+
   it('rejects an entry whose status is not complete or ongoing', async () => {
     await expect(
       fetchCanonicalManifest(
@@ -913,12 +930,16 @@ describe('the library fetch is bounded', () => {
       ['a title with a tag character', entry(1, { title: 'Fa\u{E0041}ke' })],
       ['an item count that is not a whole number', entry(1, { itemCount: 1.5 })],
       ['an item count beyond what a list may hold', entry(1, { itemCount: 50_001 })],
+      ['a total time that is not a whole number', entry(1, { totalMinutes: 1.5 })],
+      ['a total time below zero', entry(1, { totalMinutes: -1 })],
+      ['a total time beyond what a list may hold (50,000 items of 99,999 minutes)', entry(1, { totalMinutes: 50_000 * 99_999 + 1 })],
+      ['an estimated flag that is not a boolean', entry(1, { minutesEstimated: 'true' })],
     ])('refuses an entry with %s', async (_name, bad) => {
       await expect(fetchCanonicalManifest(manifestOf([entry(0), bad]))).rejects.toThrow(malformed)
     })
 
     it('accepts an entry at the limits', async () => {
-      const edge = entry(1, { title: 'x'.repeat(255), description: 'd\nd'.repeat(300).slice(0, 1000), itemCount: 50_000, category: 'c'.repeat(64) })
+      const edge = entry(1, { title: 'x'.repeat(255), description: 'd\nd'.repeat(300).slice(0, 1000), itemCount: 50_000, category: 'c'.repeat(64), totalMinutes: 50_000 * 99_999, minutesEstimated: false })
 
       expect(await fetchCanonicalManifest(manifestOf([edge]))).toEqual([edge])
     })

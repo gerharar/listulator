@@ -1,7 +1,8 @@
 import { readdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { parseCustomList, type CanonicalListEntry } from '../ingestion/customLists.js'
-import { createMediaTypeRegistry } from '../ingestion/mediaTypes.js'
+import { validMinutes } from '../catalog/limits.js'
+import { createMediaTypeRegistry, type MediaTypeRegistry } from '../ingestion/mediaTypes.js'
 import { isRunDirectly } from './runDirectly.js'
 
 /**
@@ -32,7 +33,33 @@ function findYamlFiles(dir: string, base = dir): string[] {
   return found
 }
 
-export function generateListsIndex(listsDir: string, validCategories: ReadonlySet<string>): CanonicalListEntry[] {
+/** Each category's default item length in minutes: what the app counts for an item with no runtime of its own. */
+export function defaultMinutesByCategory(registry: MediaTypeRegistry): ReadonlyMap<string, number> {
+  return new Map(registry.list().map((type) => [type.key, type.defaultDurationMinutes]))
+}
+
+/**
+ * A list's length: each item's `minutes` where `validMinutes` accepts it, otherwise the category's default, and the list is
+ * flagged as estimated if any item took the default. The same rule `itemFromFile` applies when the list is added, so the
+ * index promises the time the person will see after adding it.
+ */
+export function listTime(
+  items: readonly { minutes?: number | undefined }[],
+  defaultMinutes: number,
+): { totalMinutes: number; minutesEstimated: boolean } {
+  let totalMinutes = 0
+  let minutesEstimated = false
+  for (const item of items) {
+    const known = validMinutes(item.minutes)
+    totalMinutes += known ?? defaultMinutes
+    if (known === undefined) minutesEstimated = true
+  }
+
+  return { totalMinutes, minutesEstimated }
+}
+
+export function generateListsIndex(listsDir: string, defaultMinutes: ReadonlyMap<string, number>): CanonicalListEntry[] {
+  const validCategories: ReadonlySet<string> = new Set(defaultMinutes.keys())
   const entries = findYamlFiles(listsDir)
     .sort()
     .map((relativePath): CanonicalListEntry => {
@@ -49,6 +76,8 @@ export function generateListsIndex(listsDir: string, validCategories: ReadonlySe
         title: parsed.title,
         category: parsed.category,
         itemCount: parsed.items.length,
+        // The parser accepted the category, so the map has it.
+        ...listTime(parsed.items, defaultMinutes.get(parsed.category) as number),
         ...(parsed.description !== undefined ? { description: parsed.description } : {}),
         ...(parsed.status !== undefined ? { status: parsed.status } : {}),
       }
@@ -58,8 +87,7 @@ export function generateListsIndex(listsDir: string, validCategories: ReadonlySe
 }
 
 function main(): void {
-  const validCategories = new Set(createMediaTypeRegistry().keys())
-  const entries = generateListsIndex(LISTS_DIR, validCategories)
+  const entries = generateListsIndex(LISTS_DIR, defaultMinutesByCategory(createMediaTypeRegistry()))
   writeFileSync(INDEX_PATH, `${JSON.stringify(entries, null, 2)}\n`)
   console.log(`Wrote ${entries.length} entries to lists/index.json`)
 }

@@ -4,6 +4,8 @@
     "title": "BoJack Horseman animated TV series",
     "category": "animation",
     "itemCount": 77,
+    "totalMinutes": 1993,
+    "minutesEstimated": false,
     "description": "All episodes of BoJack Horseman animated TV series, including Christmas Special",
     "status": "complete"
   },
@@ -12,6 +14,8 @@
     "title": "Gravity Falls animated TV series (release order)",
     "category": "animation",
     "itemCount": 114,
+    "totalMinutes": 1187,
+    "minutesEstimated": false,
     "description": "All episodes of Gravity Falls animated TV series, including shorts, roughly in release order; excludes comic books and video games",
     "status": "complete"
   },
@@ -20,6 +24,8 @@
     "title": "Rick And Morty animated TV series (chronological)",
     "category": "animation",
     "itemCount": 170,
+    "totalMinutes": 2624,
+    "minutesEstimated": false,
     "description": "All episodes of Rick And Morty animated TV series, including spin-offs, in chronological order; excludes comic books and video games",
     "status": "ongoing"
   },
@@ -28,6 +34,8 @@
     "title": "South Park animated TV series (release order)",
     "category": "animation",
     "itemCount": 341,
+    "totalMinutes": 7824,
+    "minutesEstimated": false,
     "description": "All episodes of South Park animated TV series, including specials and the full-length film, roughly in release order; excludes shorts, sketches, and video games",
     "status": "ongoing"
   },
@@ -36,6 +44,8 @@
     "title": "Studio Ghibli feature films",
     "category": "animation",
     "itemCount": 25,
+    "totalMinutes": 2640,
+    "minutesEstimated": false,
     "description": "All Studio Ghibli (Hayao Miyazaki) feature films, including TV movies; excludes shorts, TV series, commercials, documentaries, and related works",
     "status": "ongoing"
   },
@@ -44,6 +54,8 @@
     "title": "A Song Of Fire And Ice books (grouped)",
     "category": "book",
     "itemCount": 17,
+    "totalMinutes": 9960,
+    "minutesEstimated": false,
     "description": "All books in A Song Of Fire And Ice franchise, grouped by series",
     "status": "ongoing"
   },
@@ -52,6 +64,8 @@
     "title": "Harry Potter books (grouped)",
     "category": "book",
     "itemCount": 13,
+    "totalMinutes": 4170,
+    "minutesEstimated": false,
     "description": "All books in the Wizarding World (Harry Potter) franchise, grouped by series",
     "status": "complete"
   },
@@ -59,13 +73,17 @@
     "path": "lists/book/lord-of-the-rings.yaml",
     "title": "The Lord of the Rings",
     "category": "book",
-    "itemCount": 3
+    "itemCount": 3,
+    "totalMinutes": 720,
+    "minutesEstimated": true
   },
   {
     "path": "lists/comic/100-bullets-comic.yaml",
     "title": "100 Bullets comic book series (Vertigo / DC)",
     "category": "comic",
     "itemCount": 111,
+    "totalMinutes": 2775,
+    "minutesEstimated": false,
     "description": "Complete reading order for the 100 Bullets comic book series",
     "status": "ongoing"
   },
@@ -74,6 +92,8 @@
     "title": "Age Of Apocalypse comic book event (Marvel)",
     "category": "comic",
     "itemCount": 103,
+    "totalMinutes": 2575,
+    "minutesEstimated": false,
     "description": "Complete reading order for the Age Of Apocalypse comic book event, including related pre- and post-event comics",
     "status": "complete"
   },
@@ -82,6 +102,8 @@
     "title": "Mike Carey's Lucifer comic book series (Vertigo / DC)",
     "category": "comic",
     "itemCount": 79,
+    "totalMinutes": 1975,
+    "minutesEstimated": false,
     "description": "Complete reading order for Mike Carey's Lucifer comic book series run",
     "status": "complete"
   },
@@ -90,6 +112,8 @@
     "title": "Ex Machina comic book series (Wildstorm / DC)",
     "category": "comic",
     "itemCount": 55,
+    "totalMinutes": 1375,
+    "minutesEstimated": false,
     "description": "Complete reading order for the Ex Machina comic book series by Brian K. Vaughan",
     "status": "complete"
   },
@@ -98,6 +122,8 @@
     "title": "Fables comic book series (DC / Vertigo; recommended order)",
     "category": "comic",
     "itemCount": 303,
+    "totalMinutes": 7575,
+    "minutesEstimated": false,
     "description": "Complete reading order for the Fables comic book series, in chronological order except for The Wolf Among Us; excludes prose stories and art/reference books",
     "status": "complete"
   },
@@ -106,6 +132,8 @@
     "title": "Invincible comic book series (Image; release order)",
     "category": "comic",
     "itemCount": 246,
+    "totalMinutes": 6150,
+    "minutesEstimated": false,
     "description": "Complete reading order for the Invincible comic book series by Robert Kirkman, in release order",
     "status": "complete"
   },
@@ -114,6 +142,8 @@
     "title": "Jack Kirby's The Fourth World comic book series (DC)",
     "category": "comic",
     "itemCount": 57,
+    "totalMinutes": 1460,
+    "minutesEstimated": false,
     "description": "Complete reading order for The Fourth World comic book metaseries by Jack Kirby",
     "status": "complete"
   },
@@ -122,6 +152,8 @@
     "title": "Planetary comic books series (Wildstorm / DC)",
     "category": "comic",
     "itemCount": 31,
+    "totalMinutes": 775,
+    "minutesEstimated": false,
     "description": "Complete reading order for the Planetary comic book series by Warren Ellis and John Cassaday",
     "status": "complete"
   },
@@ -130,6 +162,8 @@
     "title": "Preacher comic book series (Vertigo / DC)",
     "category": "comic",
     "itemCount": 75,
+    "totalMinutes": 1900,
+    "minutesEstimated": false,
     "description": "Complete reading order for the Preacher comic book series by Garth Ennis and Steve Dillon",
     "status": "complete"
   },
@@ -138,6 +172,8 @@
     "title": "The Boys comic book series (Wildstorm / DC / Dynamite)",
     "category": "comic",
     "itemCount": 98,
+    "totalMinutes": 2450,
+    "minutesEstimated": false,
     "description": "Complete reading order for The Boys comic books series by Garth Ennis and Darick Robertson",
     "status": "complete"
   },
@@ -146,6 +182,8 @@
     "title": "Neil Gaiman's The Sandman comic book series (Vol 2, Vertigo / DC)",
     "category": "comic",
     "itemCount": 97,
+    "totalMinutes": 2425,
+    "minutesEstimated": false,
     "description": "Complete reading order for Neil Gaiman's The Sandman comic book series (Vol 2)",
     "status": "complete"
   },
@@ -154,6 +192,8 @@
     "title": "Transmetropolital comic book series (Vertigo / DC)",
     "category": "comic",
     "itemCount": 64,
+    "totalMinutes": 1600,
+    "minutesEstimated": false,
     "description": "Complete reading order for Transmetropolitan comic book series by Warren Ellis and Darick Robertson",
     "status": "complete"
   },
@@ -162,6 +202,8 @@
     "title": "The Walking Dead comic book series (Image; recommended order)",
     "category": "comic",
     "itemCount": 200,
+    "totalMinutes": 5000,
+    "minutesEstimated": false,
     "description": "Complete reading order for The Walking Dead comic book series by Robert Kirkman, in mostly chronological order",
     "status": "complete"
   },
@@ -170,6 +212,8 @@
     "title": "Uber comic book series (Avatar)",
     "category": "comic",
     "itemCount": 47,
+    "totalMinutes": 1175,
+    "minutesEstimated": false,
     "description": "Reading order for Uber (also spelled as Über) comic book series by Kieron Gillen",
     "status": "ongoing"
   },
@@ -178,6 +222,8 @@
     "title": "Original Watchmen comic book series (DC)",
     "category": "comic",
     "itemCount": 12,
+    "totalMinutes": 300,
+    "minutesEstimated": false,
     "description": "Complete reading order for the original Watchmen comic book series by Alan Moore and Dave Gibbons",
     "status": "complete"
   },
@@ -186,6 +232,8 @@
     "title": "Watchmen comic book series: original and prequels (DC; release order)",
     "category": "comic",
     "itemCount": 49,
+    "totalMinutes": 1225,
+    "minutesEstimated": false,
     "description": "Complete reading order for the original and the prequel Watchmen comic book series, in release date order; excludes sequels",
     "status": "complete"
   },
@@ -194,6 +242,8 @@
     "title": "Dark Side Of The Cage documentary series",
     "category": "documentary",
     "itemCount": 15,
+    "totalMinutes": 660,
+    "minutesEstimated": false,
     "description": "All episodes of the Dark Side Of The Cage documentary series",
     "status": "ongoing"
   },
@@ -202,6 +252,8 @@
     "title": "Dark Side Of The Ring documentary series",
     "category": "documentary",
     "itemCount": 86,
+    "totalMinutes": 3791,
+    "minutesEstimated": false,
     "description": "All episodes of the Dark Side Of The Ring documentary series, including aftershows & talk shows",
     "status": "ongoing"
   },
@@ -210,6 +262,8 @@
     "title": "The World At War documentary series",
     "category": "documentary",
     "itemCount": 34,
+    "totalMinutes": 1945,
+    "minutesEstimated": false,
     "description": "All episodes of The World At War documentary series, including specials",
     "status": "complete"
   },
@@ -218,6 +272,8 @@
     "title": "Assassin's Creed franchise games (grouped)",
     "category": "game",
     "itemCount": 29,
+    "totalMinutes": 25800,
+    "minutesEstimated": true,
     "description": "All games in the Assassin's Creed franchise, grouped by type; excludes fully unplayable games",
     "status": "ongoing"
   },
@@ -226,6 +282,8 @@
     "title": "Spy Hunter franchise games",
     "category": "game",
     "itemCount": 10,
+    "totalMinutes": 1980,
+    "minutesEstimated": false,
     "description": "All games in the Spy Hunter franchise; excludes compilation appearances"
   },
   {
@@ -233,6 +291,8 @@
     "title": "Black Mirror franchise (release order)",
     "category": "mega",
     "itemCount": 41,
+    "totalMinutes": 2140,
+    "minutesEstimated": false,
     "description": "All releases in the Black Mirror franchise, in release order",
     "status": "ongoing"
   },
@@ -241,6 +301,8 @@
     "title": "Breaking Bad franchise (release order)",
     "category": "mega",
     "itemCount": 197,
+    "totalMinutes": 6566,
+    "minutesEstimated": false,
     "description": "All releases in the Breaking Bad franchise, in recommended order roughly following release order; excludes video games as they're unplayable now",
     "status": "complete"
   },
@@ -249,6 +311,8 @@
     "title": "Breaking Bad franchise (main releases; recommended order)",
     "category": "mega",
     "itemCount": 126,
+    "totalMinutes": 6306,
+    "minutesEstimated": false,
     "description": "Main releases in the Breaking Bad franchise, in recommended viewing order roughly following release order",
     "status": "complete"
   },
@@ -257,6 +321,8 @@
     "title": "Deadwood franchise (release order)",
     "category": "mega",
     "itemCount": 37,
+    "totalMinutes": 2003,
+    "minutesEstimated": false,
     "description": "All releases in the Deadwood franchise, including the movie",
     "status": "complete"
   },
@@ -265,6 +331,8 @@
     "title": "Dekalog collection",
     "category": "mega",
     "itemCount": 12,
+    "totalMinutes": 736,
+    "minutesEstimated": false,
     "description": "All episodes of the Dekalog TV miniseries and both feature films by Krzysztof Kieślowski",
     "status": "complete"
   },
@@ -273,6 +341,8 @@
     "title": "Downton Abbey franchise (release order)",
     "category": "mega",
     "itemCount": 55,
+    "totalMinutes": 3431,
+    "minutesEstimated": false,
     "description": "All releases in the Downton Abbey franchise, in release order",
     "status": "complete"
   },
@@ -281,6 +351,8 @@
     "title": "Firefly / Serenity franchise (recommended order)",
     "category": "mega",
     "itemCount": 136,
+    "totalMinutes": 6611,
+    "minutesEstimated": false,
     "description": "All releases in the Firefly / Serenity franchise, recommended order (TV series first, then roughly chronological)",
     "status": "ongoing"
   },
@@ -289,6 +361,8 @@
     "title": "Ice Age franchise (no video games; grouped by media)",
     "category": "mega",
     "itemCount": 23,
+    "totalMinutes": 653,
+    "minutesEstimated": false,
     "description": "All releases in the Ice Age franchise, grouped by media type; excludes video games",
     "status": "ongoing"
   },
@@ -297,6 +371,8 @@
     "title": "Marvel Cinematic Universe (MCU) franchise (extended; release order)",
     "category": "mega",
     "itemCount": 559,
+    "totalMinutes": 26087,
+    "minutesEstimated": false,
     "description": "All releases in the Marvel Cinematic Universe (MCU) franchise made by Marvel Studios, in release order. Includes Agents Of S.H.I.E.L.D. (early seasons tie into the mainline MCU movies) and Netflix series (confirmed canonical). Does not include TV series and animated series not related to MCU (Inhumans, X-Men '97, etc). Seasons 1 and 2 of Agents of S.H.I.E.L.D. are split up to fit around the corresponding MCU movies in chronological viewing order",
     "status": "ongoing"
   },
@@ -305,6 +381,8 @@
     "title": "Peaky Blinders franchise (release order)",
     "category": "mega",
     "itemCount": 39,
+    "totalMinutes": 2878,
+    "minutesEstimated": false,
     "description": "All releases in the Peaky Blinders franchise, including games, in release order",
     "status": "ongoing"
   },
@@ -313,6 +391,8 @@
     "title": "The Boys franchise (no comics)",
     "category": "mega",
     "itemCount": 64,
+    "totalMinutes": 3423,
+    "minutesEstimated": false,
     "description": "All releases in The Boys franchise; excludes comic book series",
     "status": "ongoing"
   },
@@ -321,6 +401,8 @@
     "title": "Twin Peaks franchise (recommended order)",
     "category": "mega",
     "itemCount": 56,
+    "totalMinutes": 3478,
+    "minutesEstimated": true,
     "description": "All releases in the Twin Peaks franchise, in recommended order",
     "status": "complete"
   },
@@ -328,25 +410,33 @@
     "path": "lists/mma/ufc-all-events.yaml",
     "title": "All UFC Events",
     "category": "mma",
-    "itemCount": 757
+    "itemCount": 757,
+    "totalMinutes": 136260,
+    "minutesEstimated": true
   },
   {
     "path": "lists/mma/ufc-fight-night-events.yaml",
     "title": "All UFC Fight Night Events",
     "category": "mma",
-    "itemCount": 257
+    "itemCount": 257,
+    "totalMinutes": 46260,
+    "minutesEstimated": true
   },
   {
     "path": "lists/mma/ufc-numbered-events.yaml",
     "title": "All Numbered UFC Events",
     "category": "mma",
-    "itemCount": 331
+    "itemCount": 331,
+    "totalMinutes": 59580,
+    "minutesEstimated": true
   },
   {
     "path": "lists/movie/jackie-chan-acting-roles.yaml",
     "title": "Jackie Chan live-action starring roles",
     "category": "movie",
     "itemCount": 87,
+    "totalMinutes": 9194,
+    "minutesEstimated": false,
     "description": "All live-action movies where Jackie Chan plays a leading or prominent role",
     "status": "ongoing"
   },
@@ -355,6 +445,8 @@
     "title": "James Bond movies",
     "category": "movie",
     "itemCount": 27,
+    "totalMinutes": 3468,
+    "minutesEstimated": false,
     "description": "All movies in the James Bond franchise, including non-canon (non-EON) entries",
     "status": "ongoing"
   },
@@ -363,6 +455,8 @@
     "title": "Mission: Impossible movies",
     "category": "movie",
     "itemCount": 8,
+    "totalMinutes": 1104,
+    "minutesEstimated": false,
     "description": "All movies in the Mission: Impossible franchise",
     "status": "complete"
   },
@@ -371,6 +465,8 @@
     "title": "ISIS discography",
     "category": "music",
     "itemCount": 23,
+    "totalMinutes": 964,
+    "minutesEstimated": false,
     "description": "Complete ISIS discography; excludes demos and compilation appearances",
     "status": "complete"
   },
@@ -379,6 +475,8 @@
     "title": "Agents Of S.H.I.E.L.D. TV series",
     "category": "tv",
     "itemCount": 142,
+    "totalMinutes": 5826,
+    "minutesEstimated": false,
     "description": "All episodes of the Agents Of S.H.I.E.L.D. TV series",
     "status": "complete"
   },
@@ -387,6 +485,8 @@
     "title": "Band Of Brothers TV miniseries",
     "category": "tv",
     "itemCount": 10,
+    "totalMinutes": 625,
+    "minutesEstimated": false,
     "description": "All episodes of the Band Of Brothers TV miniseries",
     "status": "complete"
   },
@@ -395,6 +495,8 @@
     "title": "Breaking Bad TV series",
     "category": "tv",
     "itemCount": 62,
+    "totalMinutes": 2940,
+    "minutesEstimated": false,
     "description": "All episodes of the Breaking Bad TV series",
     "status": "complete"
   },
@@ -403,6 +505,8 @@
     "title": "Chernobyl TV miniseries",
     "category": "tv",
     "itemCount": 5,
+    "totalMinutes": 323,
+    "minutesEstimated": false,
     "description": "All episodes of the Chernobyl TV miniseries",
     "status": "complete"
   },
@@ -411,6 +515,8 @@
     "title": "Dekalog TV miniseries",
     "category": "tv",
     "itemCount": 10,
+    "totalMinutes": 565,
+    "minutesEstimated": false,
     "description": "All episodes of the Dekalog TV miniseries by Krzysztof Kieślowski",
     "status": "complete"
   },
@@ -419,6 +525,8 @@
     "title": "Fargo TV series",
     "category": "tv",
     "itemCount": 51,
+    "totalMinutes": 2652,
+    "minutesEstimated": false,
     "description": "All episodes of the Fargo TV series"
   },
   {
@@ -426,6 +534,8 @@
     "title": "Game Of Thrones franchise TV series (release order)",
     "category": "tv",
     "itemCount": 105,
+    "totalMinutes": 5914,
+    "minutesEstimated": false,
     "description": "All episodes of TV series from the Game Of Thrones franchise, in release order",
     "status": "ongoing"
   },
@@ -434,6 +544,8 @@
     "title": "House TV series",
     "category": "tv",
     "itemCount": 176,
+    "totalMinutes": 7965,
+    "minutesEstimated": false,
     "description": "All episodes of House TV series (a.k.a. House, M.D.)",
     "status": "complete"
   },
@@ -442,6 +554,8 @@
     "title": "House Of Cards TV series",
     "category": "tv",
     "itemCount": 73,
+    "totalMinutes": 3752,
+    "minutesEstimated": false,
     "description": "All episodes of the House Of Cards TV series",
     "status": "complete"
   },
@@ -450,6 +564,8 @@
     "title": "Mad Men TV series",
     "category": "tv",
     "itemCount": 92,
+    "totalMinutes": 4605,
+    "minutesEstimated": false,
     "description": "All episodes of the Mad Men TV series",
     "status": "complete"
   },
@@ -458,6 +574,8 @@
     "title": "Mindhunter TV series",
     "category": "tv",
     "itemCount": 19,
+    "totalMinutes": 1028,
+    "minutesEstimated": false,
     "description": "All episodes of the Mindhunter TV series",
     "status": "complete"
   },
@@ -466,6 +584,8 @@
     "title": "Mr. Robot TV series",
     "category": "tv",
     "itemCount": 45,
+    "totalMinutes": 2235,
+    "minutesEstimated": false,
     "description": "All episodes of the Mr. Robot TV series",
     "status": "complete"
   },
@@ -474,6 +594,8 @@
     "title": "Narcos franchise TV series (release order)",
     "category": "tv",
     "itemCount": 60,
+    "totalMinutes": 3310,
+    "minutesEstimated": false,
     "description": "All episodes of TV series from the Narcos franchise, in release order",
     "status": "complete"
   },
@@ -482,6 +604,8 @@
     "title": "Preacher TV series",
     "category": "tv",
     "itemCount": 43,
+    "totalMinutes": 1926,
+    "minutesEstimated": false,
     "description": "All episodes of the Preacher TV series",
     "status": "complete"
   },
@@ -490,6 +614,8 @@
     "title": "Schitt's Creek TV series",
     "category": "tv",
     "itemCount": 80,
+    "totalMinutes": 1768,
+    "minutesEstimated": false,
     "description": "All episodes of the Schitt's Creek TV series",
     "status": "complete"
   },
@@ -498,6 +624,8 @@
     "title": "Sons Of Anarchy franchise (TV series only)",
     "category": "tv",
     "itemCount": 142,
+    "totalMinutes": 7406,
+    "minutesEstimated": false,
     "description": "All episodes of TV series from the Sons Of Anarchy franchise in chronological order; includes only TV series",
     "status": "complete"
   },
@@ -506,6 +634,8 @@
     "title": "Succession TV series",
     "category": "tv",
     "itemCount": 39,
+    "totalMinutes": 2390,
+    "minutesEstimated": false,
     "description": "All episodes of the Succession TV series",
     "status": "complete"
   },
@@ -514,6 +644,8 @@
     "title": "The Crown TV series",
     "category": "tv",
     "itemCount": 60,
+    "totalMinutes": 3281,
+    "minutesEstimated": false,
     "description": "All episodes of The Crown TV series",
     "status": "complete"
   },
@@ -522,6 +654,8 @@
     "title": "The Expanse TV series",
     "category": "tv",
     "itemCount": 67,
+    "totalMinutes": 2849,
+    "minutesEstimated": false,
     "description": "All episodes of The Expanse TV series, including The Expanse: One Ship webisodes",
     "status": "complete"
   },
@@ -530,6 +664,8 @@
     "title": "The Office TV series",
     "category": "tv",
     "itemCount": 191,
+    "totalMinutes": 4688,
+    "minutesEstimated": false,
     "description": "All episodes of The Office TV series",
     "status": "complete"
   },
@@ -538,6 +674,8 @@
     "title": "The Sopranos TV series",
     "category": "tv",
     "itemCount": 86,
+    "totalMinutes": 4684,
+    "minutesEstimated": false,
     "description": "All episodes of The Sopranos TV series",
     "status": "complete"
   },
@@ -546,6 +684,8 @@
     "title": "The Wire TV series",
     "category": "tv",
     "itemCount": 60,
+    "totalMinutes": 3516,
+    "minutesEstimated": false,
     "description": "All episodes of The Wire TV series",
     "status": "complete"
   },
@@ -554,6 +694,8 @@
     "title": "This Is Us TV series",
     "category": "tv",
     "itemCount": 106,
+    "totalMinutes": 4521,
+    "minutesEstimated": false,
     "description": "All episodes of the This Is Us TV series",
     "status": "complete"
   },
@@ -562,6 +704,8 @@
     "title": "True Detective TV series",
     "category": "tv",
     "itemCount": 30,
+    "totalMinutes": 1825,
+    "minutesEstimated": false,
     "description": "All episodes of the True Detective TV anthology series",
     "status": "ongoing"
   },
@@ -570,6 +714,8 @@
     "title": "Yellowstone franchise (series appearance order)",
     "category": "tv",
     "itemCount": 103,
+    "totalMinutes": 5286,
+    "minutesEstimated": false,
     "description": "All episodes of TV series from the Yellowstone franchise, in series appearance order",
     "status": "ongoing"
   },
@@ -578,6 +724,8 @@
     "title": "AEW PPVs",
     "category": "wrestling",
     "itemCount": 51,
+    "totalMinutes": 9180,
+    "minutesEstimated": true,
     "description": "All AEW (All Elite Wrestling) Pay-Per-Views",
     "status": "ongoing"
   },
@@ -586,6 +734,8 @@
     "title": "Clash Of The Champions collection",
     "category": "wrestling",
     "itemCount": 36,
+    "totalMinutes": 6480,
+    "minutesEstimated": true,
     "description": "All \"Clash Of The Champions\" specials by JCP/NWA/WCW",
     "status": "complete"
   },
@@ -594,6 +744,8 @@
     "title": "ECW PPVs",
     "category": "wrestling",
     "itemCount": 25,
+    "totalMinutes": 3584,
+    "minutesEstimated": false,
     "description": "All ECW (Extreme Championship Wrestling) Pay-Per-Views",
     "status": "complete"
   },
@@ -602,6 +754,8 @@
     "title": "WCW PPVs",
     "category": "wrestling",
     "itemCount": 101,
+    "totalMinutes": 18180,
+    "minutesEstimated": true,
     "description": "All WCW (World Championship Wrestling) Pay-Per-Views",
     "status": "complete"
   },
@@ -610,6 +764,8 @@
     "title": "WWE (ex-WWF) PPVs",
     "category": "wrestling",
     "itemCount": 483,
+    "totalMinutes": 79470,
+    "minutesEstimated": false,
     "description": "All WWE (ex-WWF) Pay-Per-Views, PLEs, and specials; NXT & AAA events are excluded",
     "status": "ongoing"
   },
@@ -618,6 +774,8 @@
     "title": "WWE (ex-WWF) WrestleMania PPVs",
     "category": "wrestling",
     "itemCount": 49,
+    "totalMinutes": 11004,
+    "minutesEstimated": false,
     "description": "All WWE (formerly WWF) WrestleMania Pay-Per-Views and PLEs",
     "status": "ongoing"
   }

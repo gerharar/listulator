@@ -382,6 +382,10 @@ export interface CanonicalListEntry {
   status?: 'complete' | 'ongoing'
   /** How many items the list file holds, so a picker can say so without fetching it. Absent in an older index. */
   itemCount?: number
+  /** The list's length in whole minutes (the sum of its items, a default counted for one with no runtime). Absent in an older index. */
+  totalMinutes?: number
+  /** True when any item had no valid runtime and counted its category's default. Absent in an older index. */
+  minutesEstimated?: boolean
 }
 
 /**
@@ -418,7 +422,13 @@ function isCanonicalListEntry(value: unknown): value is CanonicalListEntry {
       (typeof value['itemCount'] === 'number' &&
         Number.isInteger(value['itemCount']) &&
         value['itemCount'] >= 0 &&
-        value['itemCount'] <= MAX_LIST_ITEMS))
+        value['itemCount'] <= MAX_LIST_ITEMS)) &&
+    (value['totalMinutes'] === undefined ||
+      (typeof value['totalMinutes'] === 'number' &&
+        Number.isInteger(value['totalMinutes']) &&
+        value['totalMinutes'] >= 0 &&
+        value['totalMinutes'] <= MAX_LIST_ITEMS * MINUTES_RANGE[1])) &&
+    (value['minutesEstimated'] === undefined || typeof value['minutesEstimated'] === 'boolean')
   )
 }
 
