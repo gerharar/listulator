@@ -21,9 +21,12 @@ export function endScrollTop(end: ListEnd, scrollHeight: number): number {
   return end === 'top' ? 0 : scrollHeight
 }
 
-/** The split button is for a list taller than two screens of its scroll area; a shorter one is all in reach. */
-export function showEnds(rowsHeight: number, viewportHeight: number): boolean {
-  return viewportHeight > 0 && rowsHeight > 2 * viewportHeight
+/**
+ * The split button is always in the toolbar (H-019, revision 2026-10-27: nothing there may change width with the list's content); while the
+ * rows fit in the scroll area both halves are disabled. Before the area is measured nothing can be scrolled either.
+ */
+export function wholeListInView(rowsHeight: number, viewportHeight: number): boolean {
+  return viewportHeight <= 0 || rowsHeight <= viewportHeight
 }
 
 /** Which end the scroller is at. A pixel is forgiven: the browser rounds a scroll position. */

@@ -905,6 +905,7 @@ export const de: Locale = {
         toBottom: 'Zum Ende der Liste scrollen',
         topTip: 'Nach oben (auch: Pos1-Taste)',
         bottomTip: 'Nach unten (auch: Ende-Taste)',
+        inView: 'Die ganze Liste ist zu sehen',
       },
       place: {
         item: (n: number, total: number): string => `${n} von ${total}`,

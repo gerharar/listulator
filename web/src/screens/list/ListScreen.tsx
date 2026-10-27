@@ -65,7 +65,7 @@ import { ItemRow } from './ItemRow.js'
 import { ByHandMark, CuratedStar } from '../../components/quantum/Marks/Marks.js'
 import { listMark } from '../../lib/buckets.js'
 import { JumpRail, JumpRailStub, type RailEntry } from './JumpRail.js'
-import { endForKey, endRow, endScrollTop, showEnds, type ListEnd } from './listEnds.js'
+import { endForKey, endRow, endScrollTop, wholeListInView, type ListEnd } from './listEnds.js'
 import { useScrollEnds } from './useScrollEnds.js'
 import { useRailLayout } from './useRailLayout.js'
 import { ListMorePopover, type MoreMode, type PreviewState } from './ListMorePopover.js'
@@ -1392,8 +1392,9 @@ function ListView({
           onSelect={selectFacet}
           fold={groupNames.length > 1 ? { collapse: anyOpen, onToggle: foldAll } : null}
           hideDone={{ on: filter.hideDone === true, onToggle: toggleHideDone }}
-          ends={showEnds(rowModel.total, scrollEnds.viewportHeight) ? { atTop: scrollEnds.atTop, atBottom: scrollEnds.atBottom, onGo: goToEnd } : null}
+          ends={{ atTop: scrollEnds.atTop, atBottom: scrollEnds.atBottom, inView: wholeListInView(rowModel.total, scrollEnds.viewportHeight), onGo: goToEnd }}
           note={filtering ? text.filter.shown(shownIds.size, items.length) : text.filter.total(items.length)}
+          noteRoom={[text.filter.shown(items.length, items.length), text.filter.total(items.length)].reduce((a, b) => (b.length > a.length ? b : a))}
         />
 
         {isSample && (

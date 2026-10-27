@@ -25,6 +25,8 @@ export interface FilterBarProps {
   ends: EndsButtonProps | null
   /** "8 items", or "3 of 8 shown" while filtering. */
   note: string
+  /** The longest form the note takes for this list ("598 of 598 shown"): the note's slot is as many characters wide, so it moves nothing (H-019). */
+  noteRoom: string
 }
 
 /**
@@ -67,7 +69,7 @@ function facetOptions(facet: FacetGroup): FacetOption[] {
  * first; widen the window and the chips come back. A hidden copy of each facet
  * in both forms is measured against the bar on every resize.
  */
-export function FilterBar({ text, onText, onClear, facets, selection, onSelect, fold, hideDone, ends, note }: FilterBarProps) {
+export function FilterBar({ text, onText, onClear, facets, selection, onSelect, fold, hideDone, ends, note, noteRoom }: FilterBarProps) {
   const t = copy.quantum.list.filter
   const barRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
@@ -153,7 +155,7 @@ export function FilterBar({ text, onText, onClear, facets, selection, onSelect, 
         ),
       )}
       {/* Before the buttons, which keep to the right edge: a count that changes length moves nothing (owner, 2026-10-05). */}
-      <span className="q-filter-note" data-bar-fixed="">
+      <span className="q-filter-note" data-bar-fixed="" style={{ minWidth: `${noteRoom.length}ch` }}>
         {note}
       </span>
       {hideDone && (

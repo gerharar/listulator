@@ -44,6 +44,7 @@ function bar(over: Partial<FilterBarProps> = {}) {
     hideDone: null,
     ends: null,
     note: '8 items',
+    noteRoom: '8 of 8 shown',
     ...over,
   }
   render(
@@ -267,7 +268,7 @@ describe('FilterBar', () => {
 
 describe('the split Up / Down button in the bar (H-019)', () => {
   it('comes last, after Hide Completed and Collapse, and only when it is given', () => {
-    bar({ fold: { collapse: true, onToggle: vi.fn() }, hideDone: { on: false, onToggle: vi.fn() }, ends: { atTop: true, atBottom: false, onGo: vi.fn() } })
+    bar({ fold: { collapse: true, onToggle: vi.fn() }, hideDone: { on: false, onToggle: vi.fn() }, ends: { atTop: true, atBottom: false, inView: false, onGo: vi.fn() } })
 
     const parts = [...document.querySelectorAll('.q-filterbar > *')]
     expect(parts.at(-1)).toBe(screen.getByRole('group', { name: 'Jump to an end of the list' }))
@@ -281,3 +282,18 @@ describe('the split Up / Down button in the bar (H-019)', () => {
   })
 })
 
+describe('the count note keeps a fixed slot (H-019, revision 2026-10-27)', () => {
+  it('is as wide, in characters, as the longest form it takes, and right-aligned by its stylesheet', () => {
+    bar({ note: '8 items', noteRoom: '598 of 598 shown' })
+
+    expect(screen.getByText('8 items').style.minWidth).toBe('16ch')
+  })
+
+  it('does not change when the note does', () => {
+    const props = bar({ note: '8 items', noteRoom: '598 of 598 shown' })
+    cleanup()
+    bar({ ...props, note: '3 of 8 shown', noteRoom: '598 of 598 shown' })
+
+    expect(screen.getByText('3 of 8 shown').style.minWidth).toBe('16ch')
+  })
+})

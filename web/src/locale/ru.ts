@@ -914,6 +914,7 @@ export const ru: Locale = {
         toBottom: 'Отмотать на конец списка',
         topTip: 'Отмотать на начало (также: кнопка Home)',
         bottomTip: 'Отмотать на конец (также: кнопка End)',
+        inView: 'Весь список виден',
       },
       place: {
         item: (n: number, total: number): string => `${n} из ${total}`,

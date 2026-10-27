@@ -1021,6 +1021,8 @@ export const en = {
         toBottom: 'Scroll to the bottom of the list',
         topTip: 'Go to the top (also: Home key)',
         bottomTip: 'Go to the bottom (also: End key)',
+        /** On the whole button while every row fits in the view and both halves are disabled (H-019, revision 2026-10-27). */
+        inView: 'The whole list is in view',
       },
       /**
        * A list drawn as a window (200 rows or more) names each row's place for a screen reader, as hidden text inside the row, and says before the

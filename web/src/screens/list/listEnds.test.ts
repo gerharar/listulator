@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { atEnds, endForKey, endRow, endScrollTop, showEnds } from './listEnds.js'
+import { atEnds, endForKey, endRow, endScrollTop, wholeListInView } from './listEnds.js'
 
 /** The two ends of a list (H-019): the keys that go there, the row that is there, and where the scroller must be. */
 
@@ -39,16 +39,16 @@ describe('endScrollTop', () => {
   })
 })
 
-describe('showEnds', () => {
-  it('is for a list taller than two screens of its scroll area, and not for one of exactly two', () => {
-    expect(showEnds(920, 460)).toBe(false)
-    expect(showEnds(921, 460)).toBe(true)
-    expect(showEnds(200, 460)).toBe(false)
-    expect(showEnds(230_000, 460)).toBe(true)
+describe('wholeListInView', () => {
+  it('is true while the rows fit in the scroll area, exactly filling it included', () => {
+    expect(wholeListInView(200, 460)).toBe(true)
+    expect(wholeListInView(460, 460)).toBe(true)
+    expect(wholeListInView(461, 460)).toBe(false)
+    expect(wholeListInView(230_000, 460)).toBe(false)
   })
 
-  it('is never for a scroll area with no height yet', () => {
-    expect(showEnds(5_000, 0)).toBe(false)
+  it('is true for a scroll area with no height yet: nothing can be scrolled before it is measured', () => {
+    expect(wholeListInView(5_000, 0)).toBe(true)
   })
 })
 

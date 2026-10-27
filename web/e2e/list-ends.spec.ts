@@ -66,30 +66,70 @@ test('is as tall as Collapse, right after it, and its halves go to the two ends'
   }
 })
 
-test('a short list has no split button', async ({ page }) => {
+test('a short list has the button too, both halves disabled, and says the whole list is in view', async ({ page }) => {
   const title = `e2e list-ends short ${Date.now()}`
   const id = await makeList(page.request, title, 8)
 
   try {
+    await page.setViewportSize({ width: 1300, height: 1100 })
     await openList(page, title)
-    await expect(page.locator('.q-fold')).toBeVisible()
-    await expect(page.getByRole('group', { name: 'Jump to an end of the list' })).toHaveCount(0)
+    const ends = page.getByRole('group', { name: 'Jump to an end of the list' })
+    await expect(ends).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Scroll to the top of the list' })).toBeDisabled()
+    await expect(page.getByRole('button', { name: 'Scroll to the bottom of the list' })).toBeDisabled()
+
+    await ends.hover()
+    await expect(page.getByRole('tooltip')).toHaveText('The whole list is in view')
   } finally {
     await page.request.delete(`/api/lists/${id}`)
   }
 })
 
-test('a window that is shortened shows the button on a list that no longer fits in two screens', async ({ page }) => {
+test('a window that is shortened brings the button alive on a list that no longer fits the view', async ({ page }) => {
   const title = `e2e list-ends resize ${Date.now()}`
-  const id = await makeList(page.request, title, 30)
+  const id = await makeList(page.request, title, 8)
 
   try {
     await page.setViewportSize({ width: 1300, height: 1100 })
     await openList(page, title)
-    await expect(page.getByRole('group', { name: 'Jump to an end of the list' })).toHaveCount(0)
+    const down = page.getByRole('button', { name: 'Scroll to the bottom of the list' })
+    await expect(down).toBeDisabled()
 
-    await page.setViewportSize({ width: 1300, height: 600 })
-    await expect(page.getByRole('group', { name: 'Jump to an end of the list' })).toBeVisible()
+    await page.setViewportSize({ width: 1300, height: 500 })
+    await expect(down).toBeEnabled()
+  } finally {
+    await page.request.delete(`/api/lists/${id}`)
+  }
+})
+
+test('nothing in the toolbar moves when Hide Completed or a filter changes the list, and the count has a fixed slot', async ({ page }) => {
+  const title = `e2e list-ends steady ${Date.now()}`
+  const id = await makeList(page.request, title, 30)
+
+  try {
+    const detail = await (await page.request.get(`/api/lists/${id}`)).json()
+    for (const item of detail.items.slice(0, 20)) {
+      await page.request.put(`/api/lists/${id}/items/${item.id}/consumed`, { data: { consumed: true } })
+    }
+    await openList(page, title)
+
+    const parts = () =>
+      page.evaluate(() =>
+        ['.q-filter-field', '.q-filter-note', '.q-hide-done', '.q-fold', '.q-ends'].map((selector) => {
+          const box = document.querySelector(selector)!.getBoundingClientRect()
+
+          return [selector, Math.round(box.left * 10) / 10, Math.round(box.width * 10) / 10]
+        }),
+      )
+    const before = await parts()
+
+    await page.getByRole('button', { name: 'Hide Completed' }).click()
+    await expect(page.locator('.q-filter-note')).toContainText('shown')
+    expect(await parts()).toEqual(before)
+
+    await page.getByRole('textbox', { name: 'Filter items' }).fill('Issue 2')
+    await expect(page.locator('.q-filter-note')).not.toHaveText('30 items')
+    expect(await parts()).toEqual(before)
   } finally {
     await page.request.delete(`/api/lists/${id}`)
   }

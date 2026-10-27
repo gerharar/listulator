@@ -196,6 +196,8 @@
 .q-filter-note {
   flex: none;
   margin-left: auto;
+  /* A slot as wide as the longest form (the inline min-width, in ch: mono, so exact), the text at its right edge. */
+  text-align: right;
   font: 500 12px/1 var(--font-mono);
   color: var(--ink3);
 }

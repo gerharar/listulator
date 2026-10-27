@@ -6,11 +6,12 @@ import { createPendingUpdates } from '../../lib/pendingUpdates.js'
 import { LiveRegionProvider } from '../../components/quantum/LiveRegion/LiveRegion.js'
 import { OverlayManagerProvider } from '../../components/quantum/overlay/OverlayManagerContext.js'
 import { ToastProvider } from '../../components/quantum/Toast/Toast.js'
+import { en } from '../../locale/en.js'
 import { ListScreen } from './ListScreen.js'
 
 /**
- * The split Up / Down button in the toolbar (H-019, 32.4): shown on a list taller than two screens, a half disabled at its end, and each half
- * takes the reader to that end like Home and End do. jsdom has no layout: the scroller's heights are stubbed and its position set by hand.
+ * The split Up / Down button in the toolbar (H-019, 32.4): always there (revision 2026-10-27), both halves disabled while the whole list is in
+ * view, a half disabled at its end, and each half takes the reader to that end like Home and End do. jsdom has no layout: the scroller's heights are stubbed and its position set by hand.
  */
 const prefs = new Map<string, string>()
 vi.mock('../../lib/preferences/store.js', () => ({
@@ -111,7 +112,7 @@ async function scrollTo(top: number) {
 }
 
 describe('the split Up / Down button (32.4)', () => {
-  it('is the last thing in the toolbar of a list taller than two screens, after Hide Completed on a list with one group', async () => {
+  it('is the last thing in the toolbar, after Hide Completed on a list with one group', async () => {
     await open(5000)
 
     expect(group()).not.toBeNull()
@@ -120,10 +121,23 @@ describe('the split Up / Down button (32.4)', () => {
     expect(group()!.previousElementSibling!.classList.contains('q-hide-done')).toBe(true)
   })
 
-  it('is not there on a short list', async () => {
-    await open(10)
+  it('is there on a short list too, both halves disabled, and says the whole list is in view', async () => {
+    // Five items and a group's header at 46px are 276px: inside the 460px view.
+    await open(5)
 
-    expect(group()).toBeNull()
+    expect(group()).not.toBeNull()
+    expect(up().disabled).toBe(true)
+    expect(down().disabled).toBe(true)
+    expect(group()!.getAttribute('aria-description')).toBe(en.quantum.list.ends.inView)
+  })
+
+  it('comes alive as soon as the rows no longer fit in the view, not only past two screens', async () => {
+    // 15 items and a group's header at 46px are about 740px: more than the 460px view, less than two of them.
+    await open(15)
+
+    expect(up().disabled).toBe(true)
+    expect(down().disabled).toBe(false)
+    expect(group()!.getAttribute('aria-description')).toBeNull()
   })
 
   it('has its Up half disabled at the top, and both halves live in between', async () => {
@@ -176,5 +190,13 @@ describe('the split Up / Down button (32.4)', () => {
     await waitFor(() => expect(document.querySelector('.q-live')!.textContent).toBe('Top of the list'))
     await scrollTo(0)
     expect(up().disabled).toBe(true)
+  })
+
+  it('keeps the count note in a slot as wide as its longest form, whatever it says now', async () => {
+    await open(5000)
+
+    const note = document.querySelector<HTMLElement>('.q-filter-note')!
+    expect(note.textContent).toBe('5000 items')
+    expect(note.style.minWidth).toBe(`${'5000 of 5000 shown'.length}ch`)
   })
 })
