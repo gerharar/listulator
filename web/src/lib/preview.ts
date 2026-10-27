@@ -6,6 +6,8 @@ export interface PreviewSource {
   externalRef: string
   title: string
   options: SourceOptions
+  /** The id of the person's own list when this source is one they already track (the List Vault browser): the Preview opens it instead of adding a copy. */
+  trackedListId?: string
 }
 
 const PREVIEW_PATH = '/lists/preview'
@@ -18,8 +20,9 @@ const FLAGS = [
 ] as const
 
 /** The Preview layer's own path — a layer's content is a string (see `LayerStackContext`). */
-export function previewPath({ mediaType, externalRef, title, options }: PreviewSource): string {
+export function previewPath({ mediaType, externalRef, title, options, trackedListId }: PreviewSource): string {
   const params = new URLSearchParams({ mediaType, externalRef, title })
+  if (trackedListId) params.set('trackedListId', trackedListId)
   if (options.language) params.set('language', options.language)
   for (const key of FLAGS) {
     const value = options[key]
@@ -42,7 +45,9 @@ export function parsePreviewPath(params: URLSearchParams): PreviewSource | null 
     if (value !== null) options[key] = value === 'true'
   }
 
-  return { mediaType, externalRef, title: params.get('title') ?? '', options }
+  const trackedListId = params.get('trackedListId')
+
+  return { mediaType, externalRef, title: params.get('title') ?? '', options, ...(trackedListId ? { trackedListId } : {}) }
 }
 
 /** The one place the Add-list request is built, so a row and a Preview cannot differ. */

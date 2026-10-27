@@ -45,6 +45,25 @@ describe('previewPath / parsePreviewPath', () => {
     expect(parsePreviewPath(new URL(path, 'http://x').searchParams)?.options).toEqual({})
   })
 
+  it('carries the id of the person\'s own list when the source is one they already track (H-020, Open My List)', () => {
+    const path = previewPath({ mediaType: 'tv', externalRef: 'canonical:lists/tv/a.yaml', title: 'T', options: {}, trackedListId: 'list-7' })
+
+    expect(parsePreviewPath(new URL(path, 'http://x').searchParams)).toEqual({
+      mediaType: 'tv',
+      externalRef: 'canonical:lists/tv/a.yaml',
+      title: 'T',
+      options: {},
+      trackedListId: 'list-7',
+    })
+  })
+
+  it('has no tracked list id on an ordinary source, and none in its path', () => {
+    const path = previewPath({ mediaType: 'tv', externalRef: 'show:1', title: 'T', options: {} })
+
+    expect(path).not.toContain('trackedListId')
+    expect(parsePreviewPath(new URL(path, 'http://x').searchParams)).not.toHaveProperty('trackedListId')
+  })
+
   it('returns nothing when the source is missing', () => {
     expect(parsePreviewPath(new URLSearchParams('title=x'))).toBeNull()
   })

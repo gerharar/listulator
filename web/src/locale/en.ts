@@ -1125,6 +1125,8 @@ export const en = {
       /** Count and total runtime; `≈` when some runtimes are the category's default. */
       summary: (count: number, duration: string, estimated: boolean): string => `${count} ${selectPlural(count, 'en', { one: 'item', other: 'items' })} · ${estimated ? '≈' : ''}${duration}`,
       addButton: 'Add This List',
+      /** The primary button in place of Add This List when the person already has the list (H-020). */
+      openMyList: 'Open My List',
       adding: 'Building the list…',
       nothingToAdd: 'Nothing to add: this list is empty like a billionaire\'s conscience',
       loadFailedHeadline: "Can't preview this list",

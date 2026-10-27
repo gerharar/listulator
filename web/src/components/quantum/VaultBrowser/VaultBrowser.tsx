@@ -9,6 +9,7 @@ import { Button, IconButton } from '../Button/Button.js'
 import { HeaderPlate } from '../HeaderPlate/HeaderPlate.js'
 import { useLayerStack } from '../layerStack/LayerStackContext.js'
 import { StatusChip, statusChipData } from '../StatusChip/StatusChip.js'
+import { previewPath } from '../../../lib/preview.js'
 import { browserTime, DEFAULT_SORT, nextSort, sortRows, type BrowserSort, type SortKey } from './browserRows.js'
 
 export interface VaultBrowserProps {
@@ -76,6 +77,22 @@ export function VaultBrowser({ mediaTypes }: VaultBrowserProps) {
     () => (library.phase === 'ready' && selected !== null ? sortRows(library.entries.filter((entry) => entry.category === selected), sort) : []),
     [library, selected, sort],
   )
+
+  /** A row opens the standard List Preview over the browser; Esc or ✕ comes back here with the category and the sort as they were. Nothing is added until Add This List. */
+  function preview(entry: LibraryBrowserEntry) {
+    layerStack.push({
+      id: `preview-${entry.externalRef}`,
+      kind: 'preview',
+      tabLabel: () => copy.quantum.search.previewTab(entry.title),
+      content: previewPath({
+        mediaType: entry.category,
+        externalRef: entry.externalRef,
+        title: entry.title,
+        options: {},
+        ...(entry.trackedListId !== undefined ? { trackedListId: entry.trackedListId } : {}),
+      }),
+    })
+  }
 
   async function tryAgain() {
     setRetrying(true)
@@ -150,7 +167,7 @@ export function VaultBrowser({ mediaTypes }: VaultBrowserProps) {
                 })}
               </div>
               {rows.map((entry) => (
-                <button key={entry.externalRef} type="button" className="q-vb-row q-vb-grid">
+                <button key={entry.externalRef} type="button" className="q-vb-row q-vb-grid" onClick={() => preview(entry)}>
                   <span className="q-vb-nm">
                     <Tip as="span" className="q-vb-rowname" text={entry.title} whenClipped>
                       {entry.title}

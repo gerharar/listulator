@@ -998,6 +998,7 @@ export const de: Locale = {
       summary: (count: number, duration: string, estimated: boolean): string =>
         `${entries(count)} · ${estimated ? '≈' : ''}${duration}`,
       addButton: 'Diese Liste hinzufügen',
+      openMyList: 'Meine Liste öffnen',
       adding: 'Liste wird aufgebaut…',
       nothingToAdd: 'Nichts hinzuzufügen: Diese Liste ist leer wie das Gewissen eines Milliardärs',
       loadFailedHeadline: 'Für diese Liste gibt es keine Vorschau',

@@ -42,6 +42,13 @@ function StackReader() {
   return <span data-testid="stack">{stack.map((layer) => layer.kind).join(',')}</span>
 }
 
+/** The layers' paths, to see what a row pushed. */
+function PathReader() {
+  const { stack } = useLayerStack()
+
+  return <span data-testid="paths">{stack.map((layer) => layer.content).join(' | ')}</span>
+}
+
 function mount(answer: { entries: LibraryBrowserEntry[]; reachable: boolean } | Error) {
   if (answer instanceof Error) vi.mocked(api.library).mockRejectedValue(answer)
   else vi.mocked(api.library).mockResolvedValue(answer)
@@ -50,6 +57,7 @@ function mount(answer: { entries: LibraryBrowserEntry[]; reachable: boolean } | 
     <LayerStackProvider home={{ id: 'home', kind: 'home', tabLabel: 'My Lists', content: '/' }}>
       <VaultBrowser mediaTypes={TYPES} />
       <StackReader />
+      <PathReader />
     </LayerStackProvider>,
   )
 }
@@ -262,6 +270,34 @@ describe('VaultBrowser', () => {
 
       expect(rowsOf().map((row) => cell(row, 'rowname').textContent)).toEqual(['movie 1', 'movie 2'])
       expect(header('Status').textContent).toBe('Status▲')
+    })
+
+    it('opens the List Preview of a row on a click, with the list\'s own source and no options', async () => {
+      await open()
+
+      fireEvent.click(rowsOf()[1]!)
+
+      expect(screen.getByTestId('stack').textContent).toBe('home,preview')
+      const preview = new URL(screen.getByTestId('paths').textContent!.split(' | ')[1]!, 'http://x')
+      expect(preview.pathname).toBe('/lists/preview')
+      expect(Object.fromEntries(preview.searchParams)).toEqual({ mediaType: 'movie', externalRef: 'canonical:lists/movie/2.yaml', title: 'movie 2' })
+    })
+
+    it('hands the Preview the id of a list the person already tracks, and only for that one', async () => {
+      mount({ entries: [entry('movie', 1, true, { trackedListId: 'list-7' }), entry('movie', 2)], reachable: true })
+      await waitFor(() => expect(countOf('Movies')).toBe('2'))
+      fireEvent.click(categoryButton('Movies'))
+
+      fireEvent.click(rowsOf()[0]!)
+
+      expect(new URL(screen.getByTestId('paths').textContent!.split(' | ')[1]!, 'http://x').searchParams.get('trackedListId')).toBe('list-7')
+      cleanup()
+      mount({ entries: [entry('movie', 2)], reachable: true })
+      await waitFor(() => expect(countOf('Movies')).toBe('1'))
+      fireEvent.click(categoryButton('Movies'))
+      fireEvent.click(rowsOf()[0]!)
+
+      expect(new URL(screen.getByTestId('paths').textContent!.split(' | ')[1]!, 'http://x').searchParams.has('trackedListId')).toBe(false)
     })
 
     it('keeps the sort when another category is picked', async () => {

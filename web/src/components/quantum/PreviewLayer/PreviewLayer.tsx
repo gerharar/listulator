@@ -26,6 +26,7 @@ import { PreviewRow } from '../PreviewRow/PreviewRow.js'
 import { Spinner } from '../Spinner/Spinner.js'
 import { StatusChip } from '../StatusChip/StatusChip.js'
 import { useLayerStack } from '../layerStack/LayerStackContext.js'
+import { untitledListLayer } from '../layerStack/listLayer.js'
 import { useLiveRegion } from '../LiveRegion/LiveRegion.js'
 import { endForKey, endScrollTop } from '../../../screens/list/listEnds.js'
 import { PREVIEW_HEIGHTS, previewUnits } from './previewRows.js'
@@ -262,15 +263,22 @@ export function PreviewLayer({ source, mediaType, onBuilt, active = true }: Prev
             )}
           </div>
           <div className="q-preview-actions">
-            <Button
-              variant="primary"
-              disabled={!canAdd}
-              busy={adding}
-              busyLabel={text.adding}
-              onClick={() => void add()}
-            >
-              {text.addButton}
-            </Button>
+            {source.trackedListId ? (
+              // A list the person already has (the List Vault browser): open it on top of this, never add a second copy.
+              <Button variant="primary" onClick={() => layerStack.push(untitledListLayer(source.trackedListId!))}>
+                {text.openMyList}
+              </Button>
+            ) : (
+              <Button
+                variant="primary"
+                disabled={!canAdd}
+                busy={adding}
+                busyLabel={text.adding}
+                onClick={() => void add()}
+              >
+                {text.addButton}
+              </Button>
+            )}
             <IconButton label={text.closeLabel} onClick={() => layerStack.pop()}>
               <X width={17} height={17} strokeWidth={1.9} aria-hidden="true" />
             </IconButton>

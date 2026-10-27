@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test'
 import { en } from '../src/locale/en.js'
-import { useHomeFixture } from './fixtures.js'
+import { FIXTURE_LIST_ID, useHomeFixture } from './fixtures.js'
 
 const picker = en.quantum.categoryPicker
 const createList = en.quantum.createList
@@ -168,6 +168,85 @@ test('the browser table keeps its columns: headers end on the numbers, 50,000 it
     return { clipped: Boolean(title), chipInside: chip.right <= nameCell.right + 0.5 && chip.width > 40 }
   })
   expect(cut).toEqual({ clipped: true, chipInside: true })
+})
+
+/**
+ * A row opens the standard List Preview (H-020, 36.5): Esc comes back with the category and the sort as they were, nothing is added before Add This List,
+ * and a list the person already has opens as Open My List instead.
+ */
+test('a row opens the List Preview, Esc returns to the same category and sort, and nothing is added before Add This List (H-020)', async ({ page }) => {
+  const entry = (n: number, extra: object = {}) => ({ externalRef: `canonical:lists/movie/${n}.yaml`, title: `Movie list ${n}`, category: 'movie', itemCount: 4 * n, tracked: false, ...extra })
+  const items = Array.from({ length: 4 }, (_, index) => ({ title: `Entry ${index + 1}`, timeToConsumeMinutes: 30, year: 2000 }))
+  const writes: string[] = []
+
+  await useHomeFixture(page)
+  await page.route('**/api/library/untracked', (route) => route.fulfill({ json: { entries: [entry(1)], reachable: true } }))
+  await page.route('**/api/library', (route) => route.fulfill({ json: { entries: [entry(1), entry(2), entry(3)], reachable: true } }))
+  await page.route('**/api/media-types/*/expansion**', (route) => route.fulfill({ json: { itemCount: 4, status: 'complete', items } }))
+  await page.route('**/api/lists/from-source', (route) => {
+    writes.push('from-source')
+
+    return route.abort()
+  })
+  await page.goto('/')
+  await page.getByRole('button', { name: 'New List' }).click()
+  await page.getByRole('button', { name: en.quantum.vaultShelf.browse }).click()
+  const vault = en.quantum.vaultBrowser
+  await page.getByRole('navigation', { name: vault.categoriesLabel }).getByRole('button', { name: /^Movies/ }).click()
+  await page.getByRole('columnheader', { name: vault.columns.items }).getByRole('button').click()
+  await expect(page.locator('.q-vb-rowname').first()).toHaveText('Movie list 3')
+
+  await page.locator('.q-vb-row', { hasText: 'Movie list 2' }).click()
+
+  await expect(page.getByRole('heading', { level: 1, name: /Movie list 2/ })).toBeVisible()
+  await expect(page.locator('.q-preview-row')).toHaveCount(4)
+  expect(writes).toEqual([])
+
+  await page.keyboard.press('Escape')
+
+  await expect(page.getByRole('heading', { level: 1, name: vault.title })).toBeVisible()
+  await expect(page.getByRole('navigation', { name: vault.categoriesLabel }).getByRole('button', { name: /^Movies/ })).toHaveAttribute('aria-current', 'true')
+  await expect(page.getByRole('columnheader', { name: vault.columns.items })).toHaveAttribute('aria-sort', 'descending')
+  await expect(page.locator('.q-vb-rowname').first()).toHaveText('Movie list 3')
+  expect(writes).toEqual([])
+
+  // Enter on a focused row opens it too, and Add This List from here is the first and only write.
+  await page.locator('.q-vb-row', { hasText: 'Movie list 1' }).focus()
+  await page.keyboard.press('Enter')
+  await page.getByRole('button', { name: en.quantum.preview.addButton }).click()
+
+  await expect.poll(() => writes).toEqual(['from-source'])
+})
+
+test('a list the person already has opens from its row as Open My List, which opens that list and adds no copy (H-020)', async ({ page }) => {
+  const mine = { externalRef: 'canonical:lists/movie/mine.yaml', title: 'Already mine', category: 'movie', itemCount: 4, tracked: true, trackedListId: FIXTURE_LIST_ID }
+  const items = Array.from({ length: 4 }, (_, index) => ({ title: `Entry ${index + 1}`, timeToConsumeMinutes: 30, year: 2000 }))
+  const writes: string[] = []
+
+  await useHomeFixture(page)
+  await page.route('**/api/library/untracked', (route) => route.fulfill({ json: { entries: [], reachable: true } }))
+  await page.route('**/api/library', (route) => route.fulfill({ json: { entries: [mine], reachable: true } }))
+  await page.route('**/api/media-types/*/expansion**', (route) => route.fulfill({ json: { itemCount: 4, status: 'complete', items } }))
+  await page.route('**/api/lists/from-source', (route) => {
+    writes.push('from-source')
+
+    return route.abort()
+  })
+  await page.goto('/')
+  await page.getByRole('button', { name: 'New List' }).click()
+  // Every library list is already tracked: the shelf has no cards, and the button is still there.
+  await page.getByRole('button', { name: en.quantum.vaultShelf.browse }).click()
+  const vault = en.quantum.vaultBrowser
+  await page.getByRole('navigation', { name: vault.categoriesLabel }).getByRole('button', { name: /^Movies/ }).click()
+  await expect(page.locator('.q-vb-mine')).toHaveText(en.quantum.vaultBrowser.inMyLists)
+
+  await page.locator('.q-vb-row').click()
+  await expect(page.getByRole('button', { name: en.quantum.preview.addButton })).toHaveCount(0)
+  const opened = page.waitForRequest((request) => request.url().endsWith(`/api/lists/${FIXTURE_LIST_ID}`))
+  await page.getByRole('button', { name: en.quantum.preview.openMyList }).click()
+
+  await opened
+  expect(writes).toEqual([])
 })
 
 test('Browse List Vault says the library is out of reach, and Try Again fills the browser in place (H-020)', async ({ page }) => {

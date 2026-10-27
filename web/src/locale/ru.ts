@@ -1007,6 +1007,7 @@ export const ru: Locale = {
       summary: (count: number, duration: string, estimated: boolean): string =>
         `${items(count)} · ${estimated ? '≈' : ''}${duration}`,
       addButton: 'Добавить Список',
+      openMyList: 'Открыть Мой Список',
       adding: 'Строим список…',
       nothingToAdd: 'Добавлять нечего: этот список пуст, как совесть миллиардера',
       loadFailedHeadline: 'Не удаётся поглядеть список',

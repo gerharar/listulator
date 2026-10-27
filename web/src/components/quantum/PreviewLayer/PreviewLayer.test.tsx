@@ -3,7 +3,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { api, ApiError, type MediaType } from '../../../lib/api.js'
 import { createFromSourceInput, type PreviewSource } from '../../../lib/preview.js'
-import { LayerStackProvider } from '../layerStack/LayerStackContext.js'
+import { LayerStackProvider, useLayerStack } from '../layerStack/LayerStackContext.js'
 import { LiveRegionProvider } from '../LiveRegion/LiveRegion.js'
 import { PreviewLayer } from './PreviewLayer.js'
 
@@ -208,3 +208,50 @@ describe('PreviewLayer tag column (11.8)', () => {
   })
 })
 
+describe('a list the person already tracks (H-020, Open My List)', () => {
+  const TRACKED: PreviewSource = { ...SOURCE, externalRef: 'canonical:lists/tv/loki.yaml', trackedListId: 'list-7' }
+
+  function StackReader() {
+    const { stack } = useLayerStack()
+
+    return <span data-testid="stack">{stack.map((layer) => `${layer.kind}:${layer.content}`).join(',')}</span>
+  }
+
+  function renderTracked() {
+    render(
+      <LiveRegionProvider>
+        <LayerStackProvider home={home}>
+          <PreviewLayer source={TRACKED} mediaType={TV} onBuilt={vi.fn()} />
+          <StackReader />
+        </LayerStackProvider>
+      </LiveRegionProvider>,
+    )
+  }
+
+  it('says Open My List where Add This List would be, and does not offer to add a second copy', async () => {
+    vi.mocked(api.preview).mockResolvedValue(EXPANSION)
+    renderTracked()
+    await screen.findByText('3 items · ≈2h 17m')
+
+    expect(screen.getByRole('button', { name: 'Open My List' })).toBeTruthy()
+    expect(screen.queryByRole('button', { name: 'Add This List' })).toBeNull()
+  })
+
+  it('opens the person\'s list on top, and adds nothing', async () => {
+    vi.mocked(api.preview).mockResolvedValue(EXPANSION)
+    renderTracked()
+    await screen.findByText('3 items · ≈2h 17m')
+
+    fireEvent.click(screen.getByRole('button', { name: 'Open My List' }))
+
+    expect(screen.getByTestId('stack').textContent).toBe('home:/,list:/lists/list-7')
+    expect(api.createFromSource).not.toHaveBeenCalled()
+  })
+
+  it('opens before the items have been listed: it needs only the list\'s id', () => {
+    vi.mocked(api.preview).mockReturnValue(new Promise(() => undefined))
+    renderTracked()
+
+    expect(screen.getByRole('button', { name: 'Open My List' }).hasAttribute('disabled')).toBe(false)
+  })
+})
