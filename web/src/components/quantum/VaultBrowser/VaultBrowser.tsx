@@ -222,7 +222,9 @@ export function VaultBrowser({ mediaTypes }: VaultBrowserProps) {
                   if (library.phase === 'ready' && !empty) choose(type.key)
                 }}
               >
-                <span className="q-vb-name">{categoryLabel(type)}</span>
+                <span className="q-vb-name" data-name={categoryLabel(type)}>
+                  {categoryLabel(type)}
+                </span>
                 <span className="q-vb-count">{library.phase === 'ready' ? count : library.phase === 'out' ? '—' : ''}</span>
               </Tip>
             )

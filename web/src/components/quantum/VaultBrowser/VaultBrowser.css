@@ -50,17 +50,21 @@
 
 .q-vb-column {
   flex: none;
-  width: 220px;
+  /* As wide as its longest row (owner, 2026-10-27; it was 220px): from every row, so selecting never changes it; past 300px the name ellipsises, the count never. */
+  width: max-content;
+  min-width: 160px;
+  max-width: 300px;
   overflow-y: auto;
   border-right: 1px solid var(--line);
 }
 .q-vb-cat {
   display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 12px;
+  align-items: center;
+  /* The count follows the name (8px), it is not pushed to the column's edge. */
+  justify-content: flex-start;
+  gap: 8px;
   width: 100%;
-  padding: 10px 16px;
+  padding: 9px 20px 9px 17px;
   border: 0;
   background: transparent;
   color: var(--ink);
@@ -85,13 +89,32 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+/* Reserves the width of the bold name (the selected row's), so selecting a category never makes the column wider. */
+.q-vb-name::after {
+  content: attr(data-name);
+  content: attr(data-name) / "";
+  display: block;
+  height: 0;
+  overflow: hidden;
+  visibility: hidden;
+  font-weight: 600;
+}
+/* A small version of the tiles' count chip. */
 .q-vb-count {
   flex: none;
-  font: 400 12px/1 var(--font-mono);
+  padding: 3px 6px;
+  border: 1px solid var(--line);
+  font: 600 11px/1 var(--font-mono);
   font-variant-numeric: tabular-nums;
-  color: var(--ink3);
+  color: var(--ink2);
 }
-.q-vb-cat.on .q-vb-count { color: var(--ink); }
+.q-vb-cat.empty .q-vb-count { color: var(--ink3); }
+.q-vb-cat.on .q-vb-count { border-color: var(--rule); color: var(--ink); }
+/* While the library loads there is no number yet: room for one, nothing drawn, so the column does not jump when the counts arrive. */
+.q-vb-count:empty {
+  min-width: 26px;
+  visibility: hidden;
+}
 
 .q-vb-pane {
   flex: 1;

@@ -77,6 +77,8 @@ const KEPT: readonly (readonly [string, string, string])[] = [
   ['components/quantum/LayerCard/LayerCard.css', '.q-layer', '1080px'],
   ['components/quantum/LayerCard/LayerCard.css', '.q-layer.wide', '1400px'],
   ['components/quantum/AppErrorBoundary/AppErrorBoundary.css', '.q-crash .q-error-block', '480px'],
+  // The List Vault browser's category column: as wide as its longest row, but never past this (owner, 2026-10-27; the name ellipsises, the count never).
+  ['components/quantum/VaultBrowser/VaultBrowser.css', '.q-vb-column', '300px'],
   // The one line of text that keeps a short measure: centred text needs one.
   ['components/quantum/VaultBrowser/VaultBrowser.css', '.q-vb-empty-line', '440px'],
 ]
