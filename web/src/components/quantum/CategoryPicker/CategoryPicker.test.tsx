@@ -404,7 +404,8 @@ describe('the first-run subline and the TMDB callout (H-018, 33.3)', () => {
     await waitFor(() => expect(callout()).toBeNull(), { timeout: 5000 })
     expect(updateLocalSettings).toHaveBeenCalledWith({ tmdbApiKey: 'a-key' })
     expect(chips()).toHaveLength(0)
-    expect(screen.getByText('TMDB key saved. You can change it in Settings')).toBeTruthy()
+    // Said in the toast and, a frame later, in the live region: one of them or both, depending on how busy the machine is.
+    expect(screen.getAllByText('TMDB key saved. You can change it in Settings').length).toBeGreaterThan(0)
   })
 })
 

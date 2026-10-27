@@ -94,7 +94,8 @@ describe('KeyCard', () => {
 
     await waitFor(() => expect(onSaved).toHaveBeenCalledTimes(1))
     expect(save).toHaveBeenCalledWith({ tmdbApiKey: 'secret-token-123' })
-    expect(screen.getByText('TMDB key saved. You can change it in Settings')).toBeTruthy()
+    // Said in the toast and, a frame later, in the live region: one of them or both, depending on how busy the machine is.
+    expect(screen.getAllByText('TMDB key saved. You can change it in Settings').length).toBeGreaterThan(0)
     expect(document.body.textContent).not.toContain('secret-token-123')
     expect(document.querySelector('form')).toBeNull()
   })
@@ -107,7 +108,8 @@ describe('KeyCard', () => {
     fireEvent.submit(form())
 
     await waitFor(() => expect(save).toHaveBeenCalledWith({ igdbClientId: 'an-id', igdbClientSecret: 'a-secret' }))
-    expect(screen.getByText('IGDB key saved. You can change it in Settings')).toBeTruthy()
+    // Said in the toast and, a frame later, in the live region: one of them or both, depending on how busy the machine is.
+    expect(screen.getAllByText('IGDB key saved. You can change it in Settings').length).toBeGreaterThan(0)
   })
 
   it('stays, with what was typed, and says so when saving fails', async () => {
