@@ -8,7 +8,7 @@ import type {
 } from '../../../server/src/catalog/restorePayloads.js'
 import type { FacetConvention } from '../../../server/src/catalog/facets.js'
 import type { KeySource } from './config/keyTest.js'
-import type { LibraryEntry } from '../../../server/src/ingestion/customLists.js'
+import type { LibraryBrowserEntry, LibraryEntry } from '../../../server/src/ingestion/customLists.js'
 import type { ItemSourceTags, ResetPreview, ResetResult } from '../../../server/src/catalog/reset.js'
 import type { SourceOptions } from '../../../server/src/ingestion/sourceRef.js'
 import type { VirtualizationMode } from '../../../server/src/catalog/listVirtualization.js'
@@ -326,6 +326,8 @@ export interface ApiClient {
   justOneFix: () => Promise<{ picks: SuggestionPick[] }>
   /** Surprise Me (10.29): the community-library lists you do not track yet; `reachable` is false when the library could not be fetched. */
   libraryUntracked: () => Promise<{ entries: LibraryEntry[]; reachable: boolean }>
+  /** The List Vault browser (H-020): every library list the app can add, the ones you have flagged `tracked`; `reachable` is false when the library could not be fetched. */
+  library: () => Promise<{ entries: LibraryBrowserEntry[]; reachable: boolean }>
   searchSources: (
     mediaType: string,
     query: string,
@@ -549,6 +551,7 @@ export const fetchApi: ApiClient = {
   justOneFix: () => request<{ picks: SuggestionPick[] }>('/suggestions/just-one-fix'),
 
   libraryUntracked: () => request<{ entries: LibraryEntry[]; reachable: boolean }>('/library/untracked'),
+  library: () => request<{ entries: LibraryBrowserEntry[]; reachable: boolean }>('/library'),
 
   searchSources: (
     mediaType: string,

@@ -58,6 +58,7 @@ import {
   parseCustomList,
   requireItems,
   fetchCanonicalManifest,
+  libraryEntries,
   untrackedLibraryEntries,
 } from '../../../server/src/ingestion/customLists.js'
 import { IngestionError } from '../../../server/src/ingestion/http.js'
@@ -1151,6 +1152,25 @@ export function createLocalApi(): ApiClient {
       const known = new Set((await getLocalMediaTypes()).map((entry) => entry.key))
 
       return { entries: untrackedLibraryEntries(manifest, tracked, known), reachable: true }
+    },
+
+    library: async () => {
+      // Mirrors server/src/ingestion/routes.ts's GET /library.
+      let manifest
+      try {
+        manifest = await fetchCanonicalManifest()
+      } catch (error) {
+        if (error instanceof IngestionError) return { entries: [], reachable: false }
+        throw error
+      }
+
+      const [database, userId] = [await getDb(), await getUserId()]
+      const tracked = new Set(
+        (await findListsWithStats(database, userId)).flatMap((list) => (list.externalRef ? [list.externalRef] : [])),
+      )
+      const known = new Set((await getLocalMediaTypes()).map((entry) => entry.key))
+
+      return { entries: libraryEntries(manifest, tracked, known), reachable: true }
     },
 
     finalizer: async () => {

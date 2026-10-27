@@ -23,6 +23,7 @@ import {
   isSafeCanonicalPath,
   parseCustomList,
   requireItems,
+  libraryEntries,
   untrackedLibraryEntries,
   type ParsedCustomList,
 } from './customLists.js'
@@ -661,6 +662,26 @@ export const ingestionRoutes: FastifyPluginAsync<IngestionRoutesOptions> = async
    * so it needs the whole registry, not just the categories in use.
    */
   app.get('/media-types', async () => mediaTypes.list().map(toMediaTypeInfo))
+
+  /**
+   * The List Vault browser (H-020): every community-library list the app can add, the ones the user already has flagged
+   * `tracked`. An unreachable library is reported as such, never as "empty".
+   */
+  app.get('/library', async (request) => {
+    const user = getCurrentUser(request)
+
+    let manifest
+    try {
+      manifest = await fetchCanonicalManifest()
+    } catch (error) {
+      if (error instanceof IngestionError) return { entries: [], reachable: false }
+      throw error
+    }
+
+    const tracked = new Set(await findListExternalRefs(db, user.id))
+
+    return { entries: libraryEntries(manifest, tracked, new Set(mediaTypes.keys())), reachable: true }
+  })
 
   /**
    * Surprise Me (10.29): the community-library lists you could add and do not

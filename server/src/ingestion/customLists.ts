@@ -610,3 +610,43 @@ export function untrackedLibraryEntries(
     }))
 }
 
+/** A library list as the List Vault browser shows it (H-020): what the index says about it, and whether the person has it. */
+export interface LibraryBrowserEntry {
+  externalRef: string
+  title: string
+  category: string
+  status?: 'complete' | 'ongoing'
+  itemCount?: number
+  /** Whole minutes, as the index gave them; absent when an older index has none. */
+  totalMinutes?: number
+  minutesEstimated?: boolean
+  /** The person already has this list (a `canonical:` ref one of their lists carries). */
+  tracked: boolean
+}
+
+/**
+ * Every community-library list of a category the app knows, for the browser: unlike `untrackedLibraryEntries`, a list the
+ * person already tracks stays in, flagged `tracked`, so the browser can show it and the category counts add up to the library.
+ */
+export function libraryEntries(
+  manifest: readonly CanonicalListEntry[],
+  trackedRefs: ReadonlySet<string>,
+  validCategories: ReadonlySet<string>,
+): LibraryBrowserEntry[] {
+  return manifest
+    .filter((entry) => validCategories.has(entry.category))
+    .map((entry) => {
+      const externalRef = canonicalExternalRef(entry.path)
+
+      return {
+        externalRef,
+        title: entry.title,
+        category: entry.category,
+        ...(entry.status !== undefined ? { status: entry.status } : {}),
+        ...(entry.itemCount !== undefined ? { itemCount: entry.itemCount } : {}),
+        ...(entry.totalMinutes !== undefined ? { totalMinutes: entry.totalMinutes } : {}),
+        ...(entry.minutesEstimated !== undefined ? { minutesEstimated: entry.minutesEstimated } : {}),
+        tracked: trackedRefs.has(externalRef),
+      }
+    })
+}

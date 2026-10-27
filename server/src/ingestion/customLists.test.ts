@@ -9,12 +9,14 @@ import {
   fetchCanonicalList,
   fetchCanonicalManifest,
   isSafeCanonicalPath,
+  libraryEntries,
   LIBRARY_FILE_MAX_BYTES,
   LIBRARY_MANIFEST_MAX_BYTES,
   LIBRARY_MANIFEST_MAX_ENTRIES,
   parseCustomList,
   searchCanonicalLists,
   searchLibrary,
+  untrackedLibraryEntries,
 } from './customLists.js'
 import { IngestionError, type FetchLike } from './http.js'
 
@@ -519,6 +521,57 @@ describe('fetchCanonicalManifest', () => {
         respondWith([{ path: 'x.yaml', title: 'X', category: 'movie', status: 'finished' }]),
       ),
     ).rejects.toThrow(IngestionError)
+  })
+})
+
+describe('libraryEntries', () => {
+  const manifest = [
+    { path: 'lists/mega/mcu.yaml', title: 'MCU', category: 'mega', description: 'Every film.', status: 'complete' as const, itemCount: 23, totalMinutes: 3_000, minutesEstimated: true },
+    { path: 'lists/book/lotr.yaml', title: 'LOTR', category: 'book', itemCount: 3, totalMinutes: 900, minutesEstimated: false },
+    { path: 'lists/mma/ufc.yaml', title: 'All UFC Events', category: 'mma', itemCount: 757 },
+  ]
+
+  it('flags a list the person already has as tracked, by ref, and keeps it in', () => {
+    const entries = libraryEntries(manifest, new Set(['canonical:lists/book/lotr.yaml']), new Set(['mega', 'book']))
+
+    expect(entries.map((entry) => [entry.externalRef, entry.tracked])).toEqual([
+      ['canonical:lists/mega/mcu.yaml', false],
+      ['canonical:lists/book/lotr.yaml', true],
+    ])
+  })
+
+  it('leaves out a list of a category the app does not know', () => {
+    const entries = libraryEntries(manifest, new Set(), new Set(['book']))
+
+    expect(entries.map((entry) => entry.category)).toEqual(['book'])
+  })
+
+  it('mirrors what the browser shows, and leaves out what the index did not say', () => {
+    const [mcu, lotr, ufc] = libraryEntries(manifest, new Set(), new Set(['mega', 'book', 'mma']))
+
+    expect(mcu).toEqual({
+      externalRef: 'canonical:lists/mega/mcu.yaml',
+      title: 'MCU',
+      category: 'mega',
+      status: 'complete',
+      itemCount: 23,
+      totalMinutes: 3_000,
+      minutesEstimated: true,
+      tracked: false,
+    })
+    expect(lotr).toEqual({ externalRef: 'canonical:lists/book/lotr.yaml', title: 'LOTR', category: 'book', itemCount: 3, totalMinutes: 900, minutesEstimated: false, tracked: false })
+    // An older index has no time: the keys are absent, not undefined.
+    expect(ufc).toEqual({ externalRef: 'canonical:lists/mma/ufc.yaml', title: 'All UFC Events', category: 'mma', itemCount: 757, tracked: false })
+    expect(ufc).not.toHaveProperty('totalMinutes')
+  })
+
+  it('is what untrackedLibraryEntries is, with the tracked ones kept', () => {
+    const tracked = new Set(['canonical:lists/mega/mcu.yaml'])
+    const known = new Set(['mega', 'book'])
+
+    expect(libraryEntries(manifest, tracked, known).filter((entry) => !entry.tracked).map((entry) => entry.externalRef)).toEqual(
+      untrackedLibraryEntries(manifest, tracked, known).map((entry) => entry.externalRef),
+    )
   })
 })
 

@@ -956,3 +956,70 @@ describe('the desktop refuses a hostile list file before anything is made', () =
   })
 })
 
+/**
+ * H-020, 36.2: the desktop's `library()` gives the same answer as the server's `GET /library` for the same index and the same lists
+ * (`server/src/ingestion/routes.test.ts` holds the other half).
+ */
+describe('the whole library for the browser, on the desktop (H-020, 36.2)', () => {
+  const MANIFEST_URL = 'https://raw.githubusercontent.com/gerharar/listulator/main/lists/index.json'
+  const MANIFEST = [
+    { path: 'lists/movie/a.yaml', title: 'A film list', category: 'movie', description: 'Every film.', status: 'complete', itemCount: 23, totalMinutes: 3_000, minutesEstimated: true },
+    { path: 'lists/movie/b.yaml', title: 'Another', category: 'movie', itemCount: 3 },
+    { path: 'lists/mma/ufc.yaml', title: 'All UFC Events', category: 'mma', itemCount: 757 },
+  ]
+
+  function mockManifest(body: unknown = MANIFEST, status = 200) {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (url: string) => {
+        if (url !== MANIFEST_URL) throw new Error(`unexpected fetch: ${url}`)
+        return new Response(JSON.stringify(body), { status })
+      }),
+    )
+  }
+
+  beforeEach(() => {
+    sqlite = new BetterSqlite3(':memory:')
+    registryHolder.current = [movieType(filmSource().adapter)]
+  })
+
+  afterEach(() => {
+    vi.unstubAllGlobals()
+    sqlite.close()
+  })
+
+  it('lists every library list of a category the app knows, with the time the index gave', async () => {
+    mockManifest()
+    const { local } = await freshModules()
+
+    expect(await local.createLocalApi().library()).toEqual({
+      reachable: true,
+      entries: [
+        { externalRef: 'canonical:lists/movie/a.yaml', title: 'A film list', category: 'movie', status: 'complete', itemCount: 23, totalMinutes: 3_000, minutesEstimated: true, tracked: false },
+        { externalRef: 'canonical:lists/movie/b.yaml', title: 'Another', category: 'movie', itemCount: 3, tracked: false },
+      ],
+    })
+  })
+
+  it('keeps a canonical list the person already tracks, flagged, identified by its ref', async () => {
+    mockManifest()
+    const { local, db, user, repository } = await freshModules()
+    const database = await db.createLocalDb()
+    const owner = (await user.getLocalCurrentUser(database)).id
+    await repository.createList(database, owner, { title: 'Renamed by me', mediaType: 'movie', source: 'canonical', externalRef: 'canonical:lists/movie/a.yaml' })
+
+    const { entries } = await local.createLocalApi().library()
+
+    expect(entries.map((entry) => [entry.externalRef, entry.tracked])).toEqual([
+      ['canonical:lists/movie/a.yaml', true],
+      ['canonical:lists/movie/b.yaml', false],
+    ])
+  })
+
+  it('says the library could not be reached, rather than that there is nothing', async () => {
+    mockManifest('404: Not Found', 404)
+    const { local } = await freshModules()
+
+    expect(await local.createLocalApi().library()).toEqual({ entries: [], reachable: false })
+  })
+})

@@ -2476,6 +2476,90 @@ describe('GET /api/library/untracked (task 10.29)', () => {
 })
 
 
+describe('GET /api/library (H-020, 36.2)', () => {
+  let harness: TestApp
+
+  const MANIFEST_URL = 'https://raw.githubusercontent.com/gerharar/listulator/main/lists/index.json'
+  const MANIFEST = [
+    { path: 'lists/mega/mcu.yaml', title: 'MCU', category: 'mega', description: 'Every film.', status: 'complete', itemCount: 23, totalMinutes: 3_000, minutesEstimated: true },
+    { path: 'lists/book/lotr.yaml', title: 'The Lord of the Rings', category: 'book', itemCount: 3 },
+    { path: 'lists/mma/ufc.yaml', title: 'All UFC Events', category: 'mma', itemCount: 757 },
+  ]
+
+  function mockManifest(body: unknown = MANIFEST, status = 200) {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (url: string) => {
+        if (url !== MANIFEST_URL) throw new Error(`unexpected fetch: ${url}`)
+        return new Response(JSON.stringify(body), { status })
+      }),
+    )
+  }
+
+  beforeEach(() => {
+    harness = createTestApp({
+      // No mma category: a library entry the app cannot add is never listed.
+      mediaTypes: createMediaTypeRegistry([
+        { key: 'mega', label: 'Mega', sortOrder: 10, defaultDurationMinutes: 120 },
+        { key: 'book', label: 'Books', sortOrder: 20, defaultDurationMinutes: 240 },
+      ]),
+    })
+  })
+
+  afterEach(async () => {
+    await harness.cleanup()
+    vi.unstubAllGlobals()
+  })
+
+  const get = () => harness.app.inject({ method: 'GET', url: '/api/library' })
+
+  it('lists every library list the app can add, with the time the index gave', async () => {
+    mockManifest()
+
+    const body = (await get()).json()
+
+    expect(body.reachable).toBe(true)
+    expect(body.entries).toEqual([
+      {
+        externalRef: 'canonical:lists/mega/mcu.yaml',
+        title: 'MCU',
+        category: 'mega',
+        status: 'complete',
+        itemCount: 23,
+        totalMinutes: 3_000,
+        minutesEstimated: true,
+        tracked: false,
+      },
+      { externalRef: 'canonical:lists/book/lotr.yaml', title: 'The Lord of the Rings', category: 'book', itemCount: 3, tracked: false },
+    ])
+  })
+
+  it('keeps a canonical list the user already tracks, flagged, identified by its ref', async () => {
+    mockManifest()
+    await harness.app.ready()
+    const userId = harness.db.select().from(users).get()!.id
+    await createStoredList(harness.db, userId, {
+      title: 'Renamed by the user',
+      mediaType: 'mega',
+      source: 'canonical',
+      externalRef: 'canonical:lists/mega/mcu.yaml',
+    })
+
+    const entries = (await get()).json().entries as { externalRef: string; tracked: boolean }[]
+
+    expect(entries.map((entry) => [entry.externalRef, entry.tracked])).toEqual([
+      ['canonical:lists/mega/mcu.yaml', true],
+      ['canonical:lists/book/lotr.yaml', false],
+    ])
+  })
+
+  it('says the library could not be reached, rather than that there is nothing', async () => {
+    mockManifest('404: Not Found', 404)
+
+    expect((await get()).json()).toEqual({ entries: [], reachable: false })
+  })
+})
+
 /**
  * A hostile list file is refused whole and nothing is made (security review, Phase 19, SR-019). `minutes: .nan` used to end as a
  * 500 carrying the database's own error; `.inf` and negative numbers were stored and broke the list's totals.
