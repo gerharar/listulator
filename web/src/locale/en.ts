@@ -1044,7 +1044,7 @@ export const en = {
         /** In front of a group's progress while a text or facet filter leaves only some of its rows (H-010). */
         groupMatched: (n: number): string => `${n} shown`,
         /** Hide Completed (task 18.1): the button, its hint while on, and the line when nothing is left. */
-        hideDone: 'Hide Completed',
+        hideDone: 'Hide Done',
         hideDoneTip: 'Show done items again',
         allDone: 'Everything in this list is done',
         nothing: (text: string): string => (text.trim() ? `Nothing matches “${text.trim()}”` : 'Nothing matches this filter'),
