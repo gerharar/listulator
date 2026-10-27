@@ -5,6 +5,7 @@ import type { LibraryBrowserEntry } from '../../../../../server/src/ingestion/cu
 import { api, type MediaType } from '../../../lib/api.js'
 import { LayerStackProvider, useLayerStack } from '../layerStack/LayerStackContext.js'
 import { VaultBrowser } from './VaultBrowser.js'
+import { en } from '../../../locale/en.js'
 
 vi.mock('../../../lib/api.js', () => ({ api: { library: vi.fn() } }))
 
@@ -71,7 +72,7 @@ describe('VaultBrowser', () => {
     mount({ entries: LIBRARY, reachable: true })
 
     expect(screen.getByRole('heading', { level: 1, name: 'List Vault' })).toBeTruthy()
-    expect(screen.getByText('Canonical lists anyone can open, no key needed. Nothing is added until you choose Add This List.')).toBeTruthy()
+    expect(screen.getByText(en.quantum.vaultBrowser.subline)).toBeTruthy()
     await waitFor(() => expect(countOf('Movies')).toBe('2'))
   })
 
@@ -86,8 +87,8 @@ describe('VaultBrowser', () => {
   it('opens on the empty state: no category selected, no rows, the library counted', async () => {
     mount({ entries: LIBRARY, reachable: true })
 
-    await waitFor(() => expect(screen.getByText('Choose a category')).toBeTruthy())
-    expect(screen.getByText('3 lists in 2 categories. Pick one on the left to see its lists.')).toBeTruthy()
+    await waitFor(() => expect(screen.getByText(en.quantum.vaultBrowser.chooseTitle)).toBeTruthy())
+    expect(screen.getByText(en.quantum.vaultBrowser.chooseLine(3, 2))).toBeTruthy()
     expect(within(column()).getAllByRole('button').some((button) => button.getAttribute('aria-current') !== null)).toBe(false)
     expect(document.querySelector('.q-vb-caption')).toBeNull()
     expect(document.querySelector('.q-vb-art')).not.toBeNull()
@@ -96,7 +97,7 @@ describe('VaultBrowser', () => {
   it('says "1 list in 1 category" for one', async () => {
     mount({ entries: [entry('book', 1)], reachable: true })
 
-    await waitFor(() => expect(screen.getByText('1 list in 1 category. Pick one on the left to see its lists.')).toBeTruthy())
+    await waitFor(() => expect(screen.getByText(en.quantum.vaultBrowser.chooseLine(1, 1))).toBeTruthy())
   })
 
   it('selects a category on a click: marked with aria-current, the caption in the pane, the empty state gone', async () => {
@@ -108,7 +109,7 @@ describe('VaultBrowser', () => {
     expect(categoryButton('Movies').getAttribute('aria-current')).toBe('true')
     expect(categoryButton('Books').getAttribute('aria-current')).toBeNull()
     expect(document.querySelector('.q-vb-caption')!.textContent).toBe('Movies · 2 lists')
-    expect(screen.queryByText('Choose a category')).toBeNull()
+    expect(screen.queryByText(en.quantum.vaultBrowser.chooseTitle)).toBeNull()
   })
 
   it('cannot select a category with no lists: it is disabled and stays disabled', async () => {
@@ -119,7 +120,7 @@ describe('VaultBrowser', () => {
 
     expect(categoryButton('Games').getAttribute('aria-disabled')).toBe('true')
     expect(categoryButton('Games').getAttribute('aria-current')).toBeNull()
-    expect(screen.getByText('Choose a category')).toBeTruthy()
+    expect(screen.getByText(en.quantum.vaultBrowser.chooseTitle)).toBeTruthy()
   })
 
   it('shows every category with no count, and the loading line, until the library has answered; nothing can be picked yet', () => {
@@ -161,7 +162,7 @@ describe('VaultBrowser', () => {
       fireEvent.click(screen.getByRole('button', { name: 'Try Again' }))
 
       await waitFor(() => expect(countOf('Movies')).toBe('2'))
-      expect(screen.getByText('Choose a category')).toBeTruthy()
+      expect(screen.getByText(en.quantum.vaultBrowser.chooseTitle)).toBeTruthy()
       expect(screen.queryByText('List Vault is out of reach')).toBeNull()
       expect(vi.mocked(api.library)).toHaveBeenCalledTimes(2)
     })
@@ -467,7 +468,7 @@ describe('VaultBrowser', () => {
 
     it('gives the column no stop when the library has no list at all', async () => {
       const view = mount({ entries: [], reachable: true })
-      await waitFor(() => expect(screen.getByText('0 lists in 0 categories. Pick one on the left to see its lists.')).toBeTruthy())
+      await waitFor(() => expect(screen.getByText(en.quantum.vaultBrowser.chooseLine(0, 0))).toBeTruthy())
 
       expect(tabStops(view.container)).toEqual(['close'])
     })

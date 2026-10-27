@@ -12,6 +12,7 @@ import { useRefetchOnRegistryChange } from '../../../lib/registryChanges.js'
 import { updateLocalSettings } from '../../../lib/config/localConfig.js'
 import { notifyListsChanged } from '../../../lib/listsChanged.js'
 import { CategoryPicker } from './CategoryPicker.js'
+import { en } from '../../../locale/en.js'
 
 vi.mock('../../../lib/api.js', () => ({
   api: {
@@ -247,7 +248,7 @@ describe('the “Free key needed” chip (H-018, 33.1)', () => {
     renderPicker(KEYLESS)
 
     expect(chip('Movies')!.textContent).toBe('Free key needed')
-    expect(chip('Movies')!.getAttribute('aria-description')).toBe('Searches List Vault now; add a free TMDB key to search TMDB too')
+    expect(chip('Movies')!.getAttribute('aria-description')).toBe(en.quantum.categoryPicker.keyNeededTip('TMDB'))
   })
 
   it('is on no tile whose source can be searched, no Mega tile and no tile of a category searched by hand', () => {
@@ -317,7 +318,7 @@ describe('the first-run subline and the TMDB callout (H-018, 33.3)', () => {
   it('reads as the design says on a first run', () => {
     renderFirstRun(TMDB_KEYLESS)
 
-    expect(screen.getByText('Pick a category to start a list. Those marked Free key needed search List Vault until you add a free API key. Mega is for cross‑category franchises')).toBeTruthy()
+    expect(screen.getByText(en.quantum.categoryPicker.firstRunSubline)).toBeTruthy()
   })
 
   it('is hidden by default, even on a first run in the desktop app with no TMDB key; the chips and the subline stay (owner, 2026-10-26)', () => {
@@ -336,7 +337,7 @@ describe('the first-run subline and the TMDB callout (H-018, 33.3)', () => {
     expect(callout()).toBeNull()
     expect(screen.queryByText('One free TMDB key unlocks four categories')).toBeNull()
     expect(chips()).toHaveLength(2)
-    expect(screen.getByText(/Those marked Free key needed search List Vault/)).toBeTruthy()
+    expect(screen.getByText(en.quantum.categoryPicker.firstRunSubline)).toBeTruthy()
   })
 
   it('shows the callout above the tiles on a first run in the desktop app while there is no TMDB key', () => {

@@ -6,6 +6,7 @@ import { keyGuideUrl } from '../../../lib/guides.js'
 import { LiveRegionProvider } from '../LiveRegion/LiveRegion.js'
 import { ToastProvider } from '../Toast/Toast.js'
 import { KeyCard } from './KeyCard.js'
+import { en } from '../../../locale/en.js'
 
 /** The key card (H-018, 33.2): one component for the first-run callout and the Create → Search card. */
 
@@ -38,8 +39,8 @@ describe('KeyCard', () => {
     expect(screen.getByText('One free TMDB key unlocks four categories')).toBeTruthy()
     expect(screen.getByText('Getting a key takes about two minutes.')).toBeTruthy()
     expect(keyField().type).toBe('password')
-    expect(screen.getByRole('button', { name: 'Save Key' })).toBeTruthy()
-    const link = screen.getByRole('link', { name: /How to get a free key/ })
+    expect(screen.getByRole('button', { name: en.quantum.keyCard.saveKey })).toBeTruthy()
+    const link = screen.getByRole('link', { name: new RegExp(en.quantum.keyCard.how) })
     expect(link.getAttribute('href')).toBe(keyGuideUrl('tmdb'))
   })
 
@@ -48,7 +49,7 @@ describe('KeyCard', () => {
 
     expect(screen.getByPlaceholderText('Your Client ID')).toBeTruthy()
     expect(screen.getByPlaceholderText('Your Client Secret')).toBeTruthy()
-    expect(screen.getByRole('link', { name: /How to get a free key/ }).getAttribute('href')).toBe(keyGuideUrl('igdb'))
+    expect(screen.getByRole('link', { name: new RegExp(en.quantum.keyCard.how) }).getAttribute('href')).toBe(keyGuideUrl('igdb'))
   })
 
   it('saves nothing when the field is empty: it is marked, says what is missing and has the cursor', () => {

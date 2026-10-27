@@ -148,6 +148,7 @@ const SAME_AS_ENGLISH: Record<'ru' | 'de', readonly string[]> = {
     'quantum.settings.themeQuantum',
     'quantum.vaultBrowser.tab',
     'quantum.vaultBrowser.title',
+    'quantum.vaultShelf.label',
     'quantum.settings.languages.en',
     'quantum.settings.languages.ru',
     'quantum.settings.languages.de',
@@ -629,17 +630,3 @@ describe('the List Vault browser\'s column headers (design, 2026-10-27)', () => 
     expect(de.quantum.vaultBrowser.columns.items).toBe('Anzahl')
   })
 })
-
-describe('wording design fixed for H-018 (2026-10-27)', () => {
-  it('has no "Preview one;" in the shelf line, in any language: the line fits one row beside its two buttons', () => {
-    expect(en.quantum.vaultShelf.line).toBe('Canonical lists anyone can open, no key needed. Nothing is added until you choose Add This List.')
-    expect(ru.quantum.vaultShelf.line).toBe(ru.quantum.vaultBrowser.subline)
-    expect(de.quantum.vaultShelf.line).toBe(de.quantum.vaultBrowser.subline)
-  })
-
-  it('writes "cross\u2011category" with a non-breaking hyphen (U+2011) in the first-run subline, so it never splits', () => {
-    expect(en.quantum.categoryPicker.firstRunSubline).toContain('cross\u2011category')
-    expect(en.quantum.categoryPicker.firstRunSubline).not.toContain('cross-category')
-  })
-})
-

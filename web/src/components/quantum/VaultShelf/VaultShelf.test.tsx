@@ -5,6 +5,7 @@ import type { LibraryEntry } from '../../../../../server/src/ingestion/customLis
 import { api, type MediaType } from '../../../lib/api.js'
 import { LayerStackProvider, useLayerStack } from '../layerStack/LayerStackContext.js'
 import { VaultShelf } from './VaultShelf.js'
+import { en } from '../../../locale/en.js'
 
 vi.mock('../../../lib/api.js', () => ({ api: { libraryUntracked: vi.fn(), library: vi.fn(), createFromSource: vi.fn(), lists: vi.fn(), updateList: vi.fn() } }))
 
@@ -49,8 +50,8 @@ describe('VaultShelf', () => {
   it('has its label and its line, and no cards until the library has answered', () => {
     mount({ entries: entries(['movie']), reachable: true })
 
-    expect(screen.getByText('Or browse List Vault')).toBeTruthy()
-    expect(screen.getByText('Canonical lists anyone can open, no key needed. Nothing is added until you choose Add This List.')).toBeTruthy()
+    expect(screen.getByText(en.quantum.vaultShelf.label)).toBeTruthy()
+    expect(screen.getByText(en.quantum.vaultShelf.line)).toBeTruthy()
     expect(cards()).toHaveLength(0)
   })
 
@@ -109,7 +110,7 @@ describe('VaultShelf', () => {
     mount({ entries: [], reachable: false })
 
     expect(await screen.findByText('List Vault needs an internet connection to show its lists.')).toBeTruthy()
-    expect(screen.getByText('Or browse List Vault')).toBeTruthy()
+    expect(screen.getByText(en.quantum.vaultShelf.label)).toBeTruthy()
     expect(cards()).toHaveLength(0)
   })
 
@@ -152,8 +153,8 @@ describe('VaultShelf without the sample button (New List, 34.3)', () => {
     mount({ entries: entries(['movie', 'tv', 'game', 'book']), reachable: true }, () => 0.3, false)
 
     await waitFor(() => expect(cards()).toHaveLength(3))
-    expect(screen.getByText('Or browse List Vault')).toBeTruthy()
-    expect(screen.getByText('Canonical lists anyone can open, no key needed. Nothing is added until you choose Add This List.')).toBeTruthy()
+    expect(screen.getByText(en.quantum.vaultShelf.label)).toBeTruthy()
+    expect(screen.getByText(en.quantum.vaultShelf.line)).toBeTruthy()
     expect(screen.queryByRole('button', { name: 'Try A Sample List' })).toBeNull()
   })
 
@@ -288,7 +289,7 @@ describe('Browse List Vault (H-020, 36.3)', () => {
   it('says what it opens', () => {
     mount({ entries: [], reachable: true })
 
-    expect(browse().getAttribute('aria-description')).toBe('All List Vault lists, by category')
+    expect(browse().getAttribute('aria-description')).toBe(en.quantum.vaultShelf.browseTip)
   })
 
   it('opens the browser layer, whether or not the library has answered', () => {

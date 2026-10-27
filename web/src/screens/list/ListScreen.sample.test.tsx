@@ -8,6 +8,7 @@ import { LiveRegionProvider } from '../../components/quantum/LiveRegion/LiveRegi
 import { OverlayManagerProvider } from '../../components/quantum/overlay/OverlayManagerContext.js'
 import { ToastProvider } from '../../components/quantum/Toast/Toast.js'
 import { ListScreen } from './ListScreen.js'
+import { en } from '../../locale/en.js'
 
 /** The band on a sample list (H-018, 33.8): Remove Sample and Keep It, only on a list that is a sample. */
 
@@ -91,8 +92,8 @@ describe('the sample band', () => {
   it('shows the sentence of the design with Remove Sample and Keep It, under the toolbar and above the rows', async () => {
     await open()
 
-    expect(band()!.textContent).toContain('This is a sample list. Tick, move and regroup freely, then remove it or keep it as your own.')
-    expect(screen.getByRole('button', { name: 'Remove Sample' })).toBeTruthy()
+    expect(band()!.textContent).toContain(en.quantum.list.sample.text)
+    expect(screen.getByRole('button', { name: en.quantum.list.sample.remove })).toBeTruthy()
     expect(screen.getByRole('button', { name: 'Keep It' })).toBeTruthy()
     const toolbar = document.querySelector('.q-filterbar')!
     const rows = document.querySelector('.q-list-cols')!
@@ -134,7 +135,7 @@ describe('the sample band', () => {
     vi.mocked(api.deleteList).mockResolvedValue(restore)
     const { onLeave } = await open()
 
-    fireEvent.click(screen.getByRole('button', { name: 'Remove Sample' }))
+    fireEvent.click(screen.getByRole('button', { name: en.quantum.list.sample.remove }))
 
     await waitFor(() => expect(onLeave).toHaveBeenCalled())
     expect(api.deleteList).toHaveBeenCalledWith('L1')
@@ -148,7 +149,7 @@ describe('the sample band', () => {
     const heard = vi.fn()
     const stop = subscribeListsChanged(heard)
     await open()
-    fireEvent.click(screen.getByRole('button', { name: 'Remove Sample' }))
+    fireEvent.click(screen.getByRole('button', { name: en.quantum.list.sample.remove }))
 
     fireEvent.click(await screen.findByRole('button', { name: 'Undo' }))
 

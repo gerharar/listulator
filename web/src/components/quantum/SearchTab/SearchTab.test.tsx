@@ -11,6 +11,7 @@ import { useRefetchOnRegistryChange } from '../../../lib/registryChanges.js'
 import { updateLocalSettings } from '../../../lib/config/localConfig.js'
 import { copy } from '../../../locale/index.js'
 import { SearchTab } from './SearchTab.js'
+import { en } from '../../../locale/en.js'
 
 vi.mock('../../../lib/api.js', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../../../lib/api.js')>()),
@@ -337,7 +338,7 @@ describe('SearchTab', () => {
 
     // The headline is as before; the help is about the card, not about Settings.
     expect(await screen.findByText('Nothing found in List Vault, and search in TMDB needs an API key to work')).not.toBeNull()
-    expect(screen.getByText(/Add the free key above to search TMDB as well/)).not.toBeNull()
+    expect(screen.getByText(en.quantum.search.noKeyWithCard('TMDB'))).not.toBeNull()
     expect(screen.queryByText(/Add your API key in Settings/)).toBeNull()
     expect(screen.queryByRole('button', { name: 'Open Settings' })).toBeNull()
   })
@@ -1367,9 +1368,9 @@ describe('the key card in Create → Search (H-018, 33.4)', () => {
     desktop()
     renderTab(mediaType({ searchAvailable: false }))
 
-    expect(screen.getByText('Search in TMDB needs a free API key')).not.toBeNull()
+    expect(screen.getByText(en.quantum.search.keyCard.title('TMDB'))).not.toBeNull()
     expect(
-      screen.getByText('Until you add one, this search looks in List Vault only. The key stays on this computer; you can change it later in Settings.'),
+      screen.getByText(en.quantum.search.keyCard.body),
     ).not.toBeNull()
     expect(screen.getByLabelText('Search List Vault')).not.toBeNull()
     expect(screen.queryByLabelText('Search TMDB or List Vault')).toBeNull()
@@ -1381,7 +1382,7 @@ describe('the key card in Create → Search (H-018, 33.4)', () => {
     desktop()
     renderTab(mediaType({ key: 'game', label: 'Games', sourceName: 'IGDB', searchAvailable: false }))
 
-    expect(screen.getByText('Search in IGDB needs a free API key')).not.toBeNull()
+    expect(screen.getByText(en.quantum.search.keyCard.title('IGDB'))).not.toBeNull()
     expect(screen.getByPlaceholderText('Your Client ID')).not.toBeNull()
     expect(screen.getByPlaceholderText('Your Client Secret')).not.toBeNull()
   })
