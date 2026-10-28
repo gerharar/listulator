@@ -6,17 +6,31 @@ This is the technical companion to [README.md](README.md), which is written by a
 
 Listulator is a **progress tracker for media franchises and pseudo-serialized media**. A *list* (a film series, a game franchise, a band's discography, a YouTube channel, a wrestling promotion's events, a cross-media universe) holds *items*; you tick items off, watch each list's completion climb, and use four helper buttons to decide what to pick up next. Lists come from search in a connector (TMDB, IGDB, MusicBrainz, …), from the curated **List Vault** in `lists/`, from a YAML file, or from your own typing.
 
-The product ships as a **desktop app** (Windows x64, macOS Apple silicon) that keeps the library and the API keys on the user's computer. The same code also runs as a **self-hostable server plus web app**; that route works but is not a supported way to use Listulator (see [SECURITY.md](SECURITY.md)).
+The product ships as a **desktop app** (Windows x64, macOS Apple silicon) that keeps the library and the API keys on the user's computer. The same code also runs as a **self-hostable server plus web app**, but that is not a supported way to use Listulator (see [Supported and unsupported](#supported-and-unsupported)).
 
 | | |
 |---|---|
-| Version | `1.0.0` (first public release; the version is written once in the root `package.json` and set everywhere with `npm run version:set -w @listulator/server -- <version>`) |
-| Desktop targets | Windows x64 (NSIS installer, per-user install); macOS 11+ on Apple silicon (`.dmg`, ad-hoc sealed). No Intel Mac, no Linux build |
+| Version | `1.2.1` (written once in the root `package.json` and set everywhere by `npm run release:prepare`, which calls `version:set`; the file list is in `server/src/tools/versionSources.ts`) |
+| Supported | **The desktop app only**: Windows x64 (NSIS installer, per-user install) and macOS 11+ on Apple silicon (`.dmg`, ad-hoc sealed), installed from the Releases page. Everything else is [unsupported](#supported-and-unsupported) |
 | Code signing | None at the OS level (Windows unsigned, macOS ad-hoc). Updates are signed with a separate key, see [Updates](#updates-desktop-app) |
 | Languages in the UI | English, German, Russian (`web/src/locale/`) |
-| Users | Single user only. `SINGLE_USER_MODE=true` is the only supported value; multi-tenancy is scaffolded in the schema (`user_id` on every table) and not switched on |
+| Users | Single user only. `SINGLE_USER_MODE=true` is the only value that works; multi-tenancy is scaffolded in the schema (`user_id` on every table) and not switched on |
 | Telemetry | None |
 | Licence | [PolyForm Noncommercial 1.0.0](LICENSE) (source-available, noncommercial use); the lists in `lists/` are [CC BY 4.0](lists/LICENSE); data fetched from the services stays under their own terms, see [NOTICE.md](NOTICE.md) |
+
+## Supported and unsupported
+
+**Only the desktop app is supported**: the Windows x64 installer and the macOS Apple-silicon disk image from the [Releases page](https://github.com/gerharar/listulator/releases), updated through the app's own updater. Bug reports, fixes and the [security policy](SECURITY.md) cover that and nothing else.
+
+Everything else is **technically possible but currently unsupported**. The code does not forbid it, and some of it is exercised by the test suites, but nobody promises that it works, is documented, is reviewed for security, or gets fixed:
+
+- the **self-hosted server** (Fastify + SQLite) and the **web app** in a browser, including the PWA install on a phone (see [Installing the web build on a phone](#installing-the-web-build-on-a-phone));
+- exposing the server beyond loopback (`HOST`, `ALLOWED_HOSTS`): there is no login, no TLS and no rate limiting;
+- **Linux**, **Intel Macs** and ARM Windows: no installer is built or tested for them (Tauri could target them);
+- **multiple users** (`SINGLE_USER_MODE=false` answers 501);
+- **your own builds** of the desktop app (see [Building the desktop app](#building-the-desktop-app)): they work, but are not covered by the release checks and cannot be signed with the maintainer's updater key.
+
+Where a section below describes one of these (the server's configuration, the web build), it is there for people who want to try it anyway.
 
 ## Stack
 
@@ -31,7 +45,7 @@ The product ships as a **desktop app** (Windows x64, macOS Apple silicon) that k
 | Lint, format | ESLint 10 + typescript-eslint, Prettier. Named exports only (enforced by ESLint) |
 | Toolchains | Node `26.12.1` ([`.node-version`](.node-version)), Rust `1.98.1` ([`rust-toolchain.toml`](rust-toolchain.toml)). Both are exact on purpose: a build of the same commit must not change because a toolchain moved. `package.json` allows Node >= 20 to run the code |
 | Workspaces | npm workspaces: `server`, `web`, `apps/desktop` |
-| CI | GitHub Actions in [`.github/workflows/`](.github/workflows): the release pipeline and two hand-started Windows builds |
+| CI | GitHub Actions in [`.github/workflows/`](.github/workflows): `ci.yml` (every push to `main`), `canary.yml` (daily), `release.yml` (a `v*` tag) and two hand-started Windows builds |
 
 No Docker and no separate database server are involved: the server is one Node process and one SQLite file.
 
@@ -44,7 +58,7 @@ No Docker and no separate database server are involved: the server is one Node p
 │   ├── src/ingestion/         search, preview, custom-list parsing, list library; adapters/ holds one adapter per connector
 │   ├── src/suggestions/       the ranking engine and the strategy loader
 │   ├── src/db/                schema.ts (the portable source of truth), client, migrate
-│   ├── src/tools/             repository tools: list generators/validators, notices, version setter, updater/release tooling
+│   ├── src/tools/             repository tools: list generators/validators, notices, version setter, release tooling (prepare, audit, ship, verify, canary, install check)
 │   └── drizzle/               generated SQL migrations (NNNN_name.sql); the desktop app applies the same files itself
 ├── web/                       @listulator/web — React app (used by both the web build and the desktop shell)
 │   ├── src/screens/, components/, routes/   UI
@@ -62,7 +76,7 @@ No Docker and no separate database server are involved: the server is one Node p
 ├── config/platforms.csv       game platform names used by the Games facet
 ├── guides/                    how to get each API key (with screenshots)
 ├── scripts/pre-commit         validates staged list files through the app's real parser
-├── .github/workflows/         release.yml, desktop-windows.yml, updater-test-windows.yml
+├── .github/workflows/         ci.yml, canary.yml, release.yml, desktop-windows.yml, updater-test-windows.yml
 ├── .env.example               every server setting and API key, commented
 ├── CHANGELOG.md, CONTRIBUTING.md, SECURITY.md, NOTICE.md, THIRD-PARTY-NOTICES.txt, LICENSE
 └── README.md, README-AI.md
@@ -146,10 +160,11 @@ Each release lists `SHA256SUMS` next to the installers.
 
 ## Updates (desktop app)
 
-- The app checks for an update **only** when the About screen opens or the user presses Check; there is no background polling, and nothing installs without a press.
+- The app checks for an update **only** when the About screen opens or the user presses Check; there is no background polling, and nothing installs without a press (Download Update).
 - It reads `https://github.com/gerharar/listulator/releases/latest/download/latest.json`, so only a *published stable* release is ever offered (drafts and pre-releases are ignored by GitHub's `latest`).
 - An update is installed only if it carries a minisign signature made with the maintainer's updater key, whose public half is built into the app (`plugins.updater.pubkey` in [`tauri.conf.json`](apps/desktop/src-tauri/tauri.conf.json)); the signed version must match the announced one (`requireSignedVersion`), and the same or an older version is never offered. The private key is held offline by the maintainer and is never available to CI.
-- On Windows the installer is the update file (run with `/UPDATE`, the data folder is kept); on macOS the app archive replaces the app, then the app restarts.
+- On Windows the installer is the update file (run with `/UPDATE`, the data folder is kept). The app closes while the installer replaces it, which can take up to about 15 seconds (Windows Defender's first look at a new installer); the About screen says so before the press. An install that has not finished after 60 seconds is reported as stuck, with Try Again. On macOS the app archive replaces the app, then the app restarts.
+- After an update the app shows a one-time message with the version it was updated to.
 - A check contacts github.com (the plugin's user agent is `tauri-plugin-updater/<version>`); that is the only network use that is not a library, connector or link action.
 - The updater is called through three admitted shapes only (`plugin:updater|check`, `plugin:updater|download_and_install`, the app's own `relaunch`); see `web/src/lib/tauriUpdater.ts` and the hook.
 
@@ -214,15 +229,20 @@ npm run tauri:build -w @listulator/desktop -- -- --locked   # release bundles fo
 
 ## Release pipeline (maintainers)
 
-1. `npm run version:set -w @listulator/server -- 1.2.3`, commit, push to `main`.
-2. Push an annotated tag `v1.2.3` (only the maintainer may create `v*` tags; the tag must equal `v` + the version in `package.json`, and its commit must be on `main`).
-3. [`release.yml`](.github/workflows/release.yml) builds on pinned runners (Windows x64 NSIS, macOS arm64 `.app` + `.dmg` + update archive), audits the bundles (contents, minimum macOS, identifier, version, architecture, seal), attests every file with GitHub build provenance, and creates a **draft** Release holding the installers, `Listulator.app.tar.gz` and `SHA256SUMS`. CI holds no updater key: each build job makes its own throw-away key only to let the bundler run, and the signatures it makes are never uploaded.
-4. On the maintainer's own machine, `npm run release:sign -- v1.2.3 --key-file <key>` (from a clean checkout of the tag) re-checks the draft (checksums, attestations bound to the workflow, tag and commit), signs the Windows installer and the macOS archive with the offline updater key, verifies the signatures against the key built into the app, builds and re-validates `latest.json`, and uploads the two `.sig` files and `latest.json` to the draft.
-5. The maintainer reviews the draft (seven files: installer, its `.sig`, `.dmg`, archive, its `.sig`, `latest.json`, `SHA256SUMS`) and publishes it.
+A release is a few commands, each checking the one before it. The updater key stays on the maintainer's machine; only the maintainer runs the signing step, and the tool never opens the key file itself (the Tauri signer asks for the passphrase once).
+
+1. **Before:** `ci.yml` is green on the commit and the newest `canary.yml` run is green and under about 36 hours old. `npm run release:prepare -- 1.2.3 --dry-run` checks everything and changes nothing (on `main`, clean, in sync, CI green, a `## [1.2.3]` entry in `CHANGELOG.md`, the version is newer, the tag is free).
+2. **Tag:** `npm run release:prepare -- 1.2.3 --tag` sets the version, regenerates `THIRD-PARTY-NOTICES.txt` (it stops if that changes the file), commits "Version 1.2.3", makes the annotated tag `v1.2.3` and pushes both in one push. Only the maintainer may create `v*` tags; the tag must equal `v` + the version in `package.json`, and its commit must be on `main`.
+3. **Build:** [`release.yml`](.github/workflows/release.yml) builds on pinned runners (Windows x64 NSIS, macOS arm64 `.app` + `.dmg` + update archive). The Windows job installs the installer it just built, starts it and watches it answer (`release:install-check`); if that fails nothing is attested or drafted. It then audits the bundles (contents, minimum macOS, identifier, version, architecture, seal), attests every file with GitHub build provenance, and creates a **draft** Release holding the installers, `Listulator.app.tar.gz` and `SHA256SUMS`. CI holds no updater key: each build job makes its own throw-away key only to let the bundler run, and the signatures it makes are never uploaded.
+4. **Audit:** `npm run release:audit -- v1.2.3` (macOS) re-checks the draft: checksums, attestations bound to the workflow, tag and commit, the unpacked bundles, and what changed since the previous release.
+5. **Sign and publish:** `npm run release:ship -- v1.2.3 --dry-run` prints the diff of everything that runs with the key since the previous release, with a hash. After the maintainer has read it, `release:ship ... --key-file <key> --tools-diff-reviewed <hash>` (in a terminal that can ask for the passphrase) signs the Windows installer and the macOS archive, verifies the signatures against the key built into the app, builds and re-validates `latest.json`, uploads the two `.sig` files and `latest.json` to the draft, checks that it holds exactly seven files (installer, its `.sig`, `.dmg`, archive, its `.sig`, `latest.json`, `SHA256SUMS`) and asks "Publish? (y/N)". The release notes are written by hand before the `y`: the workflow only puts a placeholder in the draft.
+6. **After:** `release:ship` runs `npm run release:verify -- v1.2.3` itself (public files, checksums, signatures, attestations, and that an installed previous version is offered this one); it can be run again at any time. The next morning `canary.yml` (05:17 UTC) installs the previous release on a Windows runner and starts it. The macOS update and what a person sees on Windows are checked by hand.
+
+`release:sign` is the signing step inside `release:ship` and can still be run on its own.
 
 ## Configuration (server)
 
-Everything has a working default. To change something, copy `.env.example` to `.env` in the repository root; `.env` is gitignored and an exported shell variable always wins.
+The server is unsupported (see [above](#supported-and-unsupported)); this section is for trying it anyway. Everything has a working default. To change something, copy `.env.example` to `.env` in the repository root; `.env` is gitignored and an exported shell variable always wins.
 
 ```bash
 cp .env.example .env
@@ -234,7 +254,7 @@ cp .env.example .env
 | `ALLOWED_HOSTS` | (none) | Extra host names the server answers to when `HOST` is not loopback; not a login |
 | `DATABASE_PATH` | `data/listulator.sqlite` | The SQLite file |
 | `LIST_VIRTUALIZATION` | `auto` | `off` (also `false`, `0`, `no`) draws every row of every list instead of a window of the long ones; the browser's `localStorage` key and the desktop's `preferences.json` key `listVirtualization` do the same, and `off` from any of them wins. See `guides/long-lists.md` |
-| `SINGLE_USER_MODE` | `true` | The only supported value; `false` makes every request answer 501 |
+| `SINGLE_USER_MODE` | `true` | The only value that works; `false` makes every request answer 501 |
 | `STRATEGIES_DIR` | `config/strategies` | Where the suggestion strategies are read from |
 | `LISTS_DROP_DIR` | `server/list_customs/` | Drop folder for custom-list files (`POST /api/lists/scan-folder`) |
 | `TMDB_API_KEY`, `IGDB_CLIENT_ID`, `IGDB_CLIENT_SECRET`, `COMIC_VINE_API_KEY`, `YOUTUBE_API_KEY` | (none) | API keys, below |
@@ -281,7 +301,7 @@ The self-hosted server reads its keys from environment variables, not from this 
 
 ## Installing the web build on a phone
 
-The web build is a PWA and installs to a home screen, but **only over HTTPS**: browsers register a service worker on a secure origin only (`localhost` is the single exception), so `http://192.168.x.x:5173` shows the app but will not offer to install it. Put it behind a reverse proxy with a certificate, or use something like Tailscale. The phone layout has not been checked on real hardware, and this is not a supported way to use Listulator.
+The web build is a PWA and installs to a home screen, but **only over HTTPS**: browsers register a service worker on a secure origin only (`localhost` is the single exception), so `http://192.168.x.x:5173` shows the app but will not offer to install it. Put it behind a reverse proxy with a certificate, or use something like Tailscale. The phone layout has not been checked on real hardware, and this is unsupported (see [above](#supported-and-unsupported)).
 
 ## Security
 
