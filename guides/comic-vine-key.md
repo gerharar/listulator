@@ -1,18 +1,18 @@
 # Get a Comic Vine key
 
 - **Used for:** searching comics
-- **Site:** [Comic Vine (comicvine.gamespot.com)](https://comicvine.gamespot.com/api)
+- **Site:** [Comic Vine (comicvine.gamespot.com)](https://comicvine.gamespot.com)
 - **Last checked:** 28 Oct 2026
 
 ## 1. Create a GameSpot account and go to API page
 
-Comic Vine uses GameSpot accounts. Create one, sign in, and either follow [the link](https://comicvine.gamespot.com/api) or hit API in the website footer:
+Comic Vine uses GameSpot accounts. Create one, sign in, and either follow [this link](https://comicvine.gamespot.com/api) or hit **API** in the website footer:
 
 ![Comic Vine - API page](images/comic-vine-01.png)
 
 ## 2. Copy the API key
 
-Your key is printed at the top of the page:
+Your key is printed at the top of the page, copy it:
 
 ![Comic Vine - API key](images/comic-vine-02.png)
 
