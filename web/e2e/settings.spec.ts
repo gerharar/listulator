@@ -19,6 +19,9 @@ const openSettings = async (page: Page) => {
   await expect(page.getByRole('heading', { name: q.settings.title })).toBeVisible()
 }
 
+/** The layer drums in over 380ms: a hover or a measurement made before it has settled lands on a row that is still moving. */
+const settled = (page: Page) => page.waitForFunction(() => document.getAnimations().length === 0)
+
 const closeSettings = (page: Page) => page.getByRole('button', { name: q.settings.closeLabel, exact: true }).click()
 
 /** Pushes a layer and reports the entrance animation it plays. */
@@ -135,6 +138,7 @@ test('a pre-Phase-10 install opens in one of the four dark skins and keeps it ac
 test('the Mark open and closed groups row has its tooltip on hover, and the other Screen boxes have none (H-022, 38.8b)', async ({ page }) => {
   await openHome(page)
   await openSettings(page)
+  await settled(page)
 
   await page.locator('label.q-settings-check', { hasText: q.settings.markOpenGroups }).hover()
   await expect(page.getByRole('tooltip')).toHaveText(q.settings.markOpenGroupsTip)
@@ -159,3 +163,31 @@ test('the same tooltip shows when Tab reaches the box (H-022, 38.8b)', async ({ 
   await expect(box).toBeFocused()
   await expect(page.getByRole('tooltip')).toHaveText(q.settings.markOpenGroupsTip)
 })
+
+test('the tooltip sits over the box and its words, not over the empty rest of a row that spans the section (H-022, 38.8b)', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 })
+  await openHome(page)
+  await openSettings(page)
+  await settled(page)
+  const row = page.locator('label.q-settings-check', { hasText: q.settings.markOpenGroups })
+
+  await row.hover()
+  await expect(page.getByRole('tooltip')).toBeVisible()
+  const tip = (await page.getByRole('tooltip').boundingBox())!
+  const row$ = (await row.boundingBox())!
+  // What the row holds: the box and the words, as the browser lays them out.
+  const content = await row.evaluate((node) => {
+    const range = document.createRange()
+    range.selectNodeContents(node)
+    const rect = range.getBoundingClientRect()
+
+    return { left: rect.left, right: rect.right }
+  })
+
+  // The row is as wide as what is in it (a few pixels of play), so a tooltip centred on the row is centred on the box and its words.
+  expect(row$.width).toBeLessThan(content.right - content.left + 8)
+  const centre = tip.x + tip.width / 2
+  expect(centre).toBeGreaterThanOrEqual(content.left)
+  expect(centre).toBeLessThanOrEqual(content.right)
+})
+

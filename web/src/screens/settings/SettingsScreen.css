@@ -61,6 +61,8 @@
 .q-settings-check {
   margin-top: 11px;
   display: flex;
+  /* As wide as the box and its words, not the whole section: a tooltip on the row is centred on the row (H-022). */
+  width: fit-content;
   align-items: center;
   gap: 8px;
   font-size: 14px;
