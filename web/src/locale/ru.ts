@@ -344,8 +344,8 @@ export const ru: Locale = {
       fullscreen: 'Полноэкранный режим',
       reduceMotion: 'Минимизировать анимацию',
       /** A draft from the canvas wording, for the owner to edit (H-022). */
-      markOpenGroups: 'Отмечать открытые и закрытые группы',
-      markOpenGroupsTip: 'Добавляет короткую линию рядом со стрелкой каждой группы: под ▶, когда группа закрыта, и слева от ▼, когда она открыта',
+      markOpenGroups: 'Прокачать стрелки групп',
+      markOpenGroupsTip: 'Добавляет визуальную подсказку рядом со стрелкой каждой группы, чтобы было быстрее понятно, расхлопнута группа или захлопнута',
       language: 'Язык интерфейса',
       languages: {
         en: 'English',

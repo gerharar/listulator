@@ -8,12 +8,13 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 ### Improvements
 
 - **Up/Down** button is now always shown to avoid UI jumping around when user hides done items
-- Moved additional filters to dropdowns, reducing visual clutter
-- Added an optional visual aid to group triangles for quickly distinguishing collapsed and open groups. It's off by default, enable by adding a *"markOpenGroups": true* line to preferences.json at *%APPDATA%\com.listulator.desktop* (add comma at the end of the line if it's not the latest line before the closing *'}'*)
+- Moved additional filters to dropdowns, reducing visual clutter. *Music* category's *Recording* filter was expanded to **Live** / **Studio** and moved to a separate dropdown
+- A new option in **Settings** > **Screen** adds visual aid beside each group's arrow indicator to help you understand faster if a group is expanded or collapsed
 
 ### Fixes
 
-- Listulator now vacuums stale data in preferences.json and sqlite database at start
+- Listulator now cleans up after deleted lists at start
+- Minor UI/UX fixes
 - Minor localization updates
 - Minor security issues fixed
 

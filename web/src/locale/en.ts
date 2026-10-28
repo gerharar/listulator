@@ -387,8 +387,8 @@ export const en = {
       fullscreen: 'Fullscreen',
       reduceMotion: 'Reduce animation motion',
       /** The group triangle's line (H-022): the canvas's wording (owner, 2026-10-28). The tooltip's words are the canvas's too. */
-      markOpenGroups: 'Mark open and closed groups',
-      markOpenGroupsTip: "Adds a short line beside each group's arrow: under ▶ when the group is closed, to the left of ▼ when it is open",
+      markOpenGroups: 'Enhance group arrows',
+      markOpenGroupsTip: "Adds a visual aid beside each group's arrow indicator to help you understand faster if a group is expanded or collapsed",
       language: 'Interface Language',
       languages: {
         en: 'English',
