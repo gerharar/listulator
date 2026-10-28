@@ -10,6 +10,7 @@ import { ProgressSentence } from '../../components/quantum/ProgressSentence/Prog
 import { yearSpanLabel, type GroupBlock } from './spine.js'
 import { Tip } from '../../components/quantum/Tooltip/Tip.js'
 import { guardRename } from './renameGuard.js'
+import { GroupTriangle } from '../../components/quantum/GroupTriangle/GroupTriangle.js'
 
 export interface GroupRowProps {
   block: GroupBlock
@@ -154,9 +155,7 @@ export function GroupRow({
           ⣿
         </Tip>
       )}
-      <span className="q-chev" aria-hidden="true">
-        ▼
-      </span>
+      <GroupTriangle />
       <span className={editing ? 'name editing' : 'name'}>
         {editing ? (
           <input

@@ -6,6 +6,7 @@ import { createFromSourceInput, type PreviewSource } from '../../../lib/preview.
 import { LayerStackProvider, useLayerStack } from '../layerStack/LayerStackContext.js'
 import { LiveRegionProvider } from '../LiveRegion/LiveRegion.js'
 import { PreviewLayer } from './PreviewLayer.js'
+import { GroupLineProvider } from '../GroupTriangle/GroupTriangle.js'
 
 vi.mock('../../../lib/api.js', async () => {
   class MockApiError extends Error {
@@ -127,6 +128,24 @@ describe('PreviewLayer', () => {
 
     expect(screen.getByRole('button', { name: 'Expand Season 1' }).getAttribute('aria-expanded')).toBe('false')
     expect(glyph()).toBe('▼')
+  })
+
+  it('draws the triangle and its line on the group head while `markOpenGroups` is on (H-022)', async () => {
+    vi.mocked(api.preview).mockResolvedValue(EXPANSION)
+    render(
+      <GroupLineProvider on>
+        <LiveRegionProvider>
+          <LayerStackProvider home={home}>
+            <PreviewLayer source={SOURCE} mediaType={TV} onBuilt={vi.fn()} />
+          </LayerStackProvider>
+        </LiveRegionProvider>
+      </GroupLineProvider>,
+    )
+    await screen.findByText('Glorious Purpose')
+
+    expect(document.querySelector('.q-preview-group .q-chev')).toBeNull()
+    expect(document.querySelectorAll('.q-preview-group .q-chev-line svg.q-chev-tri')).toHaveLength(1)
+    expect(document.querySelectorAll('.q-preview-group .q-chev-rule')).toHaveLength(1)
   })
 
   it('adds the list with exactly the request a result row sends, then opens it', async () => {

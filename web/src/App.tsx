@@ -6,6 +6,8 @@ import { getPreferencesStore } from './lib/preferences/store.js'
 import { resolveSkin, setSkin as persistSkin, type Skin } from './lib/preferences/skin.js'
 import { resolveLanguage, type Language } from './lib/preferences/language.js'
 import { resolveReducedMotionSetting } from './lib/preferences/motion.js'
+import { resolveMarkOpenGroups } from './lib/preferences/groupLine.js'
+import { GroupLineProvider } from './components/quantum/GroupTriangle/GroupTriangle.js'
 import { MotionProvider } from './components/quantum/Motion/MotionContext.js'
 import { useUpdatedToast } from './lib/useUpdatedToast.js'
 import { useFullscreenKey } from './lib/windowFullscreen.js'
@@ -53,6 +55,8 @@ interface BootState {
   language: Language
   /** `undefined` until the user has ticked or unticked the box: the system setting decides then. */
   reducedSetting: boolean | undefined
+  /** H-022: the preference `markOpenGroups`, off unless clearly on. */
+  markOpenGroups: boolean
 }
 
 /** The header's Quit/Exit (task 16.2b): the desktop window, or none in the browser build. */
@@ -78,9 +82,10 @@ export function App() {
       resolveSkin(store),
       resolveLanguage(store),
       resolveReducedMotionSetting(store),
+      resolveMarkOpenGroups(store),
     ])
-      .then(([skin, language, reducedSetting]) =>
-        setBoot({ skin, language, reducedSetting }),
+      .then(([skin, language, reducedSetting, markOpenGroups]) =>
+        setBoot({ skin, language, reducedSetting, markOpenGroups }),
       )
       .catch((cause: unknown) =>
         setError(cause instanceof Error ? cause.message : copy.app.unknownError),
@@ -116,9 +121,11 @@ function QuantumShell({ initial }: { initial: BootState }) {
           <ToastProvider>
             <OverlayManagerProvider>
               <LanguageProvider initialLanguage={initial.language}>
-                <LayerStackProvider home={homeLayer()}>
-                  <AppShellBody skin={skin} onSkinChange={handleSkinChange} />
-                </LayerStackProvider>
+                <GroupLineProvider on={initial.markOpenGroups}>
+                  <LayerStackProvider home={homeLayer()}>
+                    <AppShellBody skin={skin} onSkinChange={handleSkinChange} />
+                  </LayerStackProvider>
+                </GroupLineProvider>
               </LanguageProvider>
             </OverlayManagerProvider>
           </ToastProvider>

@@ -30,6 +30,7 @@ import { untitledListLayer } from '../layerStack/listLayer.js'
 import { useLiveRegion } from '../LiveRegion/LiveRegion.js'
 import { endForKey, endScrollTop } from '../../../screens/list/listEnds.js'
 import { PREVIEW_HEIGHTS, previewUnits } from './previewRows.js'
+import { GroupTriangle } from '../GroupTriangle/GroupTriangle.js'
 
 const CANONICAL_PREFIX = 'canonical:'
 
@@ -354,10 +355,8 @@ export function PreviewLayer({ source, mediaType, onBuilt, active = true }: Prev
                         onFocus={() => setFocused(unit.group.id)}
                         aria-describedby={places ? `${placeId}${unit.group.id}` : undefined}
                       >
-                        {/* One glyph, turned a quarter in CSS when folded: the list screen's group rows and the design's PreviewRow do the same. */}
-                        <span className="q-chev" aria-hidden="true">
-                          ▼
-                        </span>
+                        {/* One glyph, turned a quarter in CSS when folded: the list screen's group rows and the design's PreviewRow do the same (H-022: or the drawn triangle and its line). */}
+                        <GroupTriangle />
                         <span className="name">{unit.group.name}</span>
                         <span className="count">{text.groupItems(unit.group.count)}</span>
                         {places?.groupAt.has(unit.group.id) && (

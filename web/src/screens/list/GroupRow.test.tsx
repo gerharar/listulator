@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import type { GroupBlock } from './spine.js'
 import { GroupRow } from './GroupRow.js'
+import { GroupLineProvider } from '../../components/quantum/GroupTriangle/GroupTriangle.js'
 import { hoverTooltip } from '../../components/quantum/Tooltip/hoverTooltip.js'
 import { ApiError } from '../../lib/api.js'
 
@@ -89,6 +90,18 @@ describe('GroupRow', () => {
     renderRow()
 
     expect(document.querySelector('.q-chev')!.textContent!.trim()).toBe('▼')
+  })
+
+  it('draws the triangle and its line instead of the glyph while `markOpenGroups` is on (H-022)', () => {
+    render(
+      <GroupLineProvider on>
+        <GroupRow block={BLOCK} collapsed={false} focusable={false} onToggle={vi.fn()} onFocus={vi.fn()} />
+      </GroupLineProvider>,
+    )
+
+    expect(document.querySelector('.q-chev')).toBeNull()
+    expect(document.querySelector('.q-group .q-chev-line svg.q-chev-tri')).not.toBeNull()
+    expect(document.querySelector('.q-group .q-chev-rule')).not.toBeNull()
   })
 
   it('says "All done" instead of the time left when every item is done', () => {
