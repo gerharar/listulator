@@ -1,6 +1,6 @@
 {
   "name": "listulator",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "private": true,
   "description": "A self-hostable completionist tracker for serialized media — finish the whole list.",
   "license": "PolyForm-Noncommercial-1.0.0",
