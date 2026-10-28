@@ -3,6 +3,21 @@
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and version numbers follow [Semantic Versioning](https://semver.org/).
 
 
+## [1.2.1] - 28 October 2026
+
+### Improvements
+
+- **Up/Down** button is now always shown to avoid UI jumping around when user hides done items
+- Moved additional filters to dropdowns, reducing visual clutter
+- Added an optional visual aid to group triangles for quickly distinguishing collapsed and open groups. It's off by default, enable by adding a *"markOpenGroups": true* line to preferences.json at *%APPDATA%\com.listulator.desktop* (add comma at the end of the line if it's not the latest line before the closing *'}'*)
+
+### Fixes
+
+- Listulator now vacuums stale data in preferences.json and sqlite database at start
+- Minor localization updates
+- Minor security issues fixed
+
+
 ## [1.2.0] - 27 October 2026
 
 ### New Stuff
