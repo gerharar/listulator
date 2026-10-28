@@ -1,7 +1,7 @@
 # Get a TMDB API key
 
 - **Used for:** searching movies, TV, animation, and documentaries in The Movie Database
-- **Site:** [The Movie Database](https://www.themoviedb.org)
+- **Site:** [The Movie Database (www.themoviedb.org)](https://www.themoviedb.org)
 - **Last checked:** 28 Oct 2026
 
 A personal key is free and is approved on the spot.
