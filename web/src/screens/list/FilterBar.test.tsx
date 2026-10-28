@@ -4,6 +4,7 @@ import { join } from 'node:path'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react'
 import type { FacetGroup } from '../../../../server/src/catalog/facets.js'
+import { en } from '../../locale/en.js'
 import { FilterBar, type FilterBarProps } from './FilterBar.js'
 import { hoverTooltip } from '../../components/quantum/Tooltip/hoverTooltip.js'
 import { OverlayManagerProvider } from '../../components/quantum/overlay/OverlayManagerContext.js'
@@ -257,7 +258,7 @@ describe('FilterBar', () => {
     const onToggle = vi.fn()
     bar({ hideDone: { on: false, onToggle } })
 
-    const button = screen.getByRole('button', { name: 'Hide Completed' })
+    const button = screen.getByRole('button', { name: en.quantum.list.filter.hideDone })
     expect(button.getAttribute('aria-pressed')).toBe('false')
     fireEvent.click(button)
     expect(onToggle).toHaveBeenCalledOnce()
@@ -266,7 +267,7 @@ describe('FilterBar', () => {
   it('shows Hide Completed pressed, with a hint that a click brings the done items back', async () => {
     bar({ hideDone: { on: true, onToggle: vi.fn() } })
 
-    const button = screen.getByRole('button', { name: 'Hide Completed' })
+    const button = screen.getByRole('button', { name: en.quantum.list.filter.hideDone })
     expect(button.getAttribute('aria-pressed')).toBe('true')
     expect(await hoverTooltip(button)).toContain('Show done items again')
   })
@@ -275,14 +276,14 @@ describe('FilterBar', () => {
     bar({ hideDone: { on: false, onToggle: vi.fn() }, fold: { collapse: true, onToggle: vi.fn() } })
 
     const names = screen.getAllByRole('button').map((button) => button.textContent)
-    expect(names.slice(-2)).toEqual(['Hide Completed', 'Collapse'])
+    expect(names.slice(-2)).toEqual([en.quantum.list.filter.hideDone, 'Collapse'])
   })
 
   it('puts the note before Hide Completed and fold-all, which keep to the right edge (owner, 2026-10-05)', () => {
     bar({ hideDone: { on: false, onToggle: vi.fn() }, fold: { collapse: true, onToggle: vi.fn() } })
 
     const note = screen.getByText('8 items')
-    const hide = screen.getByRole('button', { name: 'Hide Completed' })
+    const hide = screen.getByRole('button', { name: en.quantum.list.filter.hideDone })
     expect(note.compareDocumentPosition(hide) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
   })
 

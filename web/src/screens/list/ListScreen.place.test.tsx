@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { api, type ListGroup, type ListItem, type MediaListDetail, type MediaType } from '../../lib/api.js'
 import { createPendingUpdates } from '../../lib/pendingUpdates.js'
+import { en } from '../../locale/en.js'
 import { LiveRegionProvider } from '../../components/quantum/LiveRegion/LiveRegion.js'
 import { OverlayManagerProvider } from '../../components/quantum/overlay/OverlayManagerContext.js'
 import { ToastProvider } from '../../components/quantum/Toast/Toast.js'
@@ -206,7 +207,7 @@ describe('Hide Completed keeps the reader in the list that is left (25.4)', () =
     expect(drawn('Film 1250')).toBe(true)
 
     await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: /Hide Completed/ }))
+      fireEvent.click(screen.getByRole('button', { name: en.quantum.list.filter.hideDone }))
     })
 
     // Groups 0 to 9 (all done) are gone: ten blocks above the reader.
@@ -216,7 +217,7 @@ describe('Hide Completed keeps the reader in the list that is left (25.4)', () =
     expect(row('g12')).not.toBeNull()
 
     await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: /Hide Completed|Show done items again/ }))
+      fireEvent.click(screen.getByRole('button', { name: new RegExp(`${en.quantum.list.filter.hideDone}|${en.quantum.list.filter.hideDoneTip}`) }))
     })
 
     expect(body().scrollTop).toBe(12 * GROUP + 47 + 50 * 46)

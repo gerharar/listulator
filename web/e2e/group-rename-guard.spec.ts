@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test'
+import { q } from './fixtures.js'
 
 /**
  * H-013 in a real browser, in both engines: a click away from a group's name field only ends the rename (it saves, or keeps the field open when the
@@ -19,7 +20,7 @@ test('a click away from a group rename only ends the rename', async ({ page }) =
     },
   })
   const groupNames = async () => (((await (await page.request.get(`/api/lists/${list.id}`)).json()).groups as { name: string }[]).map((group) => group.name)).sort()
-  const hideDone = page.getByRole('button', { name: 'Hide Completed' })
+  const hideDone = page.getByRole('button', { name: q.list.filter.hideDone })
   const editor = page.getByLabel('Group name', { exact: true })
   const pencil = (name: string) => page.getByRole('button', { name: `Rename group ${name}`, exact: true })
 

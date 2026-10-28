@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { api, type ListGroup, type ListItem, type MediaListDetail, type MediaType } from '../../lib/api.js'
 import { createPendingUpdates } from '../../lib/pendingUpdates.js'
+import { en } from '../../locale/en.js'
 import { LiveRegionProvider } from '../../components/quantum/LiveRegion/LiveRegion.js'
 import { OverlayManagerProvider, useEscLadder } from '../../components/quantum/overlay/OverlayManagerContext.js'
 import { ToastProvider } from '../../components/quantum/Toast/Toast.js'
@@ -359,7 +360,7 @@ describe('clearing the text (H-008)', () => {
       detail.items.find((entry) => entry.id === 'ac3')!.consumedAt = '2026-01-01'
     })
     fireEvent.click(facet('X360'))
-    act(() => within(bar()).getByRole('button', { name: 'Hide Completed' }).click())
+    act(() => within(bar()).getByRole('button', { name: en.quantum.list.filter.hideDone }).click())
     type('assassin')
     expect(rowIds()).toEqual(['gm', 'ac1', 'ac2'])
 
@@ -367,7 +368,7 @@ describe('clearing the text (H-008)', () => {
 
     // The platform and Hide Completed still apply: ac1 and ac2 have X360, ac3 is done and hidden.
     expect(rowIds()).toEqual(['gm', 'ac1', 'ac2'])
-    expect(within(bar()).getByRole('button', { name: 'Hide Completed' }).getAttribute('aria-pressed')).toBe('true')
+    expect(within(bar()).getByRole('button', { name: en.quantum.list.filter.hideDone }).getAttribute('aria-pressed')).toBe('true')
     expect(within(bar()).getByRole('button', { name: /^Platform: X360/ })).toBeTruthy()
   })
 
@@ -376,7 +377,7 @@ describe('clearing the text (H-008)', () => {
       detail.items.find((entry) => entry.id === 'ac3')!.consumedAt = '2026-01-01'
     })
     fireEvent.click(facet('X360'))
-    act(() => within(bar()).getByRole('button', { name: 'Hide Completed' }).click())
+    act(() => within(bar()).getByRole('button', { name: en.quantum.list.filter.hideDone }).click())
     type('assassin')
 
     // The Platform popover that picked X360 is still open: Esc closes it first, then clears the text.
@@ -387,7 +388,7 @@ describe('clearing the text (H-008)', () => {
     expect(field().value).toBe('')
     expect(rowIds()).toEqual(['gm', 'ac1', 'ac2'])
     await waitFor(() => expect(document.querySelector('.q-live')!.textContent).toBe('Filter cleared'))
-    expect(within(bar()).getByRole('button', { name: 'Hide Completed' }).getAttribute('aria-pressed')).toBe('true')
+    expect(within(bar()).getByRole('button', { name: en.quantum.list.filter.hideDone }).getAttribute('aria-pressed')).toBe('true')
   })
 
   it('Esc in an empty field clears nothing and announces nothing: the list layer is popped, as before', async () => {
@@ -473,7 +474,7 @@ describe('Hide Completed (18.1)', () => {
   const doneOf = (...ids: string[]) => (detail: MediaListDetail) => {
     for (const entry of detail.items) if (ids.includes(entry.id)) entry.consumedAt = '2026-01-01'
   }
-  const hideDone = () => within(bar()).getByRole('button', { name: 'Hide Completed' })
+  const hideDone = () => within(bar()).getByRole('button', { name: en.quantum.list.filter.hideDone })
 
   it('hides the done items and any group left empty, and counts as filtering', async () => {
     await open('game', doneOf('ch', 'bl', 'ac1'))

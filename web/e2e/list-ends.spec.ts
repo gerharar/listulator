@@ -1,4 +1,5 @@
 import { expect, test, type APIRequestContext, type Page } from '@playwright/test'
+import { q } from './fixtures.js'
 
 /**
  * The split Up / Down button in the list's toolbar (H-019, task 32.4), in a real browser: it is as tall as Collapse and sits right after it,
@@ -123,7 +124,7 @@ test('nothing in the toolbar moves when Hide Completed or a filter changes the l
       )
     const before = await parts()
 
-    await page.getByRole('button', { name: 'Hide Completed' }).click()
+    await page.getByRole('button', { name: q.list.filter.hideDone }).click()
     await expect(page.locator('.q-filter-note')).toContainText('shown')
     expect(await parts()).toEqual(before)
 
