@@ -2,7 +2,7 @@
 
 - **Used for:** searching comics
 - **Site:** [Comic Vine (comicvine.gamespot.com)](https://comicvine.gamespot.com/api)
-**Last checked:** 28 Oct 2026
+- **Last checked:** 28 Oct 2026
 
 ## 1. Create a GameSpot account and sign in
 
