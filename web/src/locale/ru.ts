@@ -345,6 +345,7 @@ export const ru: Locale = {
       reduceMotion: 'Минимизировать анимацию',
       /** A draft from the canvas wording, for the owner to edit (H-022). */
       markOpenGroups: 'Отмечать открытые и закрытые группы',
+      markOpenGroupsTip: 'Добавляет короткую линию рядом со стрелкой каждой группы: под ▶, когда группа закрыта, и слева от ▼, когда она открыта',
       language: 'Язык интерфейса',
       languages: {
         en: 'English',

@@ -207,3 +207,53 @@ describe('Tip (11.20): the same tooltip on any element', () => {
   })
 })
 
+describe('Tip on a label (38.8b, H-022): a checkbox row with a tooltip', () => {
+  it('draws a label, shows its text on hover, and leaves the box inside as the control', async () => {
+    render(
+      <Tip as="label" text="About the box">
+        <input type="checkbox" />
+        The box
+      </Tip>,
+    )
+    const label = screen.getByText('The box')
+    expect(label.tagName).toBe('LABEL')
+    expect(screen.getByRole('checkbox', { name: 'The box' })).toBeTruthy()
+
+    fireEvent.pointerEnter(label, { pointerType: 'mouse' })
+    await wait(TOOLTIP_DELAY_MS + 50)
+
+    expect(tooltip()?.textContent).toBe('About the box')
+  })
+
+  it('shows it when the box inside takes keyboard focus: the label asks its control, which is the focused element', async () => {
+    render(
+      <Tip as="label" text="About the box">
+        <input type="checkbox" />
+        The box
+      </Tip>,
+    )
+    const box = screen.getByRole('checkbox') as HTMLInputElement
+    // jsdom cannot tell keyboard focus from a mouse press's; a real browser says :focus-visible of the box, never of its label.
+    const matches = box.matches.bind(box)
+    box.matches = (selector: string) => selector === ':focus-visible' || matches(selector)
+
+    act(() => box.focus())
+    await wait(TOOLTIP_DELAY_MS + 50)
+
+    expect(tooltip()?.textContent).toBe('About the box')
+  })
+
+  it('stays quiet when the box took focus from a mouse press, as the other Tips do', async () => {
+    render(
+      <Tip as="label" text="About the box">
+        <input type="checkbox" />
+        The box
+      </Tip>,
+    )
+
+    act(() => screen.getByRole('checkbox').focus())
+    await wait(TOOLTIP_DELAY_MS + 50)
+
+    expect(tooltip()).toBeNull()
+  })
+})

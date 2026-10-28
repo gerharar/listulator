@@ -131,3 +131,31 @@ test('a pre-Phase-10 install opens in one of the four dark skins and keeps it ac
   await page.reload()
   await expect(page.locator('html')).toHaveAttribute('data-theme', skin!)
 })
+
+test('the Mark open and closed groups row has its tooltip on hover, and the other Screen boxes have none (H-022, 38.8b)', async ({ page }) => {
+  await openHome(page)
+  await openSettings(page)
+
+  await page.locator('label.q-settings-check', { hasText: q.settings.markOpenGroups }).hover()
+  await expect(page.getByRole('tooltip')).toHaveText(q.settings.markOpenGroupsTip)
+
+  await page.getByRole('checkbox', { name: q.settings.reduceMotion }).hover()
+  await expect(page.getByRole('tooltip')).toHaveCount(0)
+})
+
+test('the same tooltip shows when Tab reaches the box (H-022, 38.8b)', async ({ page, browserName }) => {
+  // WebKit's default is that Tab skips checkboxes (a system setting), so only Chromium can walk to it.
+  test.skip(browserName !== 'chromium', 'Tab does not reach a checkbox in WebKit by default')
+  await openHome(page)
+  await openSettings(page)
+  const box = page.getByRole('checkbox', { name: q.settings.markOpenGroups })
+
+  await page.mouse.move(0, 0)
+  for (let step = 0; step < 40; step += 1) {
+    if (await box.evaluate((node) => node === document.activeElement)) break
+    await page.keyboard.press('Tab')
+  }
+
+  await expect(box).toBeFocused()
+  await expect(page.getByRole('tooltip')).toHaveText(q.settings.markOpenGroupsTip)
+})

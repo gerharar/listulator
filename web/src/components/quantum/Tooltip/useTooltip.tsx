@@ -71,10 +71,15 @@ function showsFor(element: HTMLElement, whenClipped: boolean | undefined): boole
   return !whenClipped || element.scrollWidth > element.clientWidth
 }
 
-/** Keyboard focus, not the focus a mouse press leaves behind. Where the browser cannot say, count it. */
+/**
+ * Keyboard focus, not the focus a mouse press leaves behind. Where the browser cannot say, count it. A label (a checkbox row with a tooltip,
+ * H-022) is never the focused element itself: its control is, so that is the one asked.
+ */
 function focusIsVisible(element: HTMLElement): boolean {
   try {
-    return element.matches(':focus-visible')
+    const focused = element instanceof HTMLLabelElement ? (element.control ?? element) : element
+
+    return focused.matches(':focus-visible')
   } catch {
     return true
   }

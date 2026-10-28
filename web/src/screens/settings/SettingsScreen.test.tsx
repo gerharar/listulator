@@ -5,6 +5,7 @@ import { act, cleanup, render, screen, waitFor } from '@testing-library/react'
 import type { PreferencesStore } from '../../lib/preferences/store.js'
 import { SKINS } from '../../lib/preferences/skin.js'
 import { setActiveLanguage } from '../../locale/index.js'
+import { hoverTooltip } from '../../components/quantum/Tooltip/hoverTooltip.js'
 import { LanguageProvider } from '../../locale/LanguageProvider.js'
 import { LayerStackProvider, useLayerStack } from '../../components/quantum/layerStack/LayerStackContext.js'
 import { LiveRegionProvider } from '../../components/quantum/LiveRegion/LiveRegion.js'
@@ -315,6 +316,31 @@ describe('SettingsScreen: Mark open and closed groups (H-022)', () => {
 
     expect(translated).not.toBe(label)
     expect(screen.getByRole('checkbox', { name: translated })).toBeTruthy()
+  })
+
+  it('says what the line does when the row is hovered (the canvas wording), and the other Screen boxes keep quiet', async () => {
+    renderSettings()
+
+    expect(await hoverTooltip(box().closest('label')!)).toBe(en.quantum.settings.markOpenGroupsTip)
+    expect(await hoverTooltip(screen.getByRole('checkbox', { name: en.quantum.settings.reduceMotion }).closest('label')!)).toBeNull()
+  })
+
+  it('gives a screen reader the same words as the box’s description, and the name stays the label', () => {
+    renderSettings()
+
+    expect(box().getAttribute('aria-description')).toBe(en.quantum.settings.markOpenGroupsTip)
+    expect(screen.getByRole('checkbox', { name: label })).toBeTruthy()
+  })
+
+  it.each([
+    ['Русский', ru.quantum.settings.markOpenGroups, ru.quantum.settings.markOpenGroupsTip],
+    ['Deutsch', de.quantum.settings.markOpenGroups, de.quantum.settings.markOpenGroupsTip],
+  ])('has its tooltip in %s too', async (language, translatedLabel, translatedTip) => {
+    renderSettings()
+    act(() => screen.getByRole('button', { name: language }).click())
+
+    expect(translatedTip).not.toBe(en.quantum.settings.markOpenGroupsTip)
+    expect(await hoverTooltip(screen.getByRole('checkbox', { name: translatedLabel }).closest('label')!)).toBe(translatedTip)
   })
 })
 

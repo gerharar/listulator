@@ -336,6 +336,7 @@ export const de: Locale = {
       reduceMotion: 'Weniger Animationen',
       /** A draft from the canvas wording; German follows the owner's Russian (H-022). */
       markOpenGroups: 'Offene und geschlossene Gruppen markieren',
+      markOpenGroupsTip: 'Fügt neben dem Pfeil jeder Gruppe eine kurze Linie hinzu: unter ▶, wenn die Gruppe geschlossen ist, links von ▼, wenn sie geöffnet ist',
       language: 'Sprache der Oberfläche',
       languages: {
         en: 'English',

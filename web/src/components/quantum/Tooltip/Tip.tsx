@@ -1,7 +1,7 @@
 import { createElement, type ButtonHTMLAttributes, type ReactNode } from 'react'
 import { useTooltip } from './useTooltip.js'
 
-type TipTag = 'span' | 'div' | 'b' | 'button'
+type TipTag = 'span' | 'div' | 'b' | 'button' | 'label'
 
 export interface TipProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   /** The element to draw. */

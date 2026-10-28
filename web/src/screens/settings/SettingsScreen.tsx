@@ -13,6 +13,7 @@ import { useLayerStack } from '../../components/quantum/layerStack/LayerStackCon
 import { useLiveRegion } from '../../components/quantum/LiveRegion/LiveRegion.js'
 import { useMotion } from '../../components/quantum/Motion/MotionContext.js'
 import { useGroupLineSetting } from '../../components/quantum/GroupTriangle/GroupTriangle.js'
+import { Tip } from '../../components/quantum/Tooltip/Tip.js'
 import { useWindowFullscreen } from '../../lib/windowFullscreen.js'
 import { SkinSwatch } from '../../components/quantum/SkinSwatch/SkinSwatch.js'
 import { ToggleChip } from '../../components/quantum/ToggleChip/ToggleChip.js'
@@ -100,10 +101,15 @@ export function SettingsScreen({ skin, onSkinChange, store }: SettingsScreenProp
               {text.reduceMotion}
             </label>
             {/* H-022, on every platform (owner, 2026-10-28): the line beside each group's arrow, applied at once. */}
-            <label className="q-settings-check">
-              <input type="checkbox" checked={groupLine.on} onChange={(event) => groupLine.setOn(event.target.checked)} />
+            <Tip as="label" className="q-settings-check" text={text.markOpenGroupsTip}>
+              <input
+                type="checkbox"
+                aria-description={text.markOpenGroupsTip}
+                checked={groupLine.on}
+                onChange={(event) => groupLine.setOn(event.target.checked)}
+              />
               {text.markOpenGroups}
-            </label>
+            </Tip>
           </section>
 
           <section>
