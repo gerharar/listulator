@@ -1,4 +1,5 @@
 import { expect, test, type APIRequestContext, type Page } from '@playwright/test'
+import { expectSixPixels, marks, settled } from './groupLineMarks.js'
 
 /**
  * The group triangle's line (canvas H-022), in a real browser, with the preference `markOpenGroups` switched on the way a web user does it:
@@ -20,52 +21,11 @@ async function makeList(request: APIRequestContext, title: string) {
 
 const markOn = (page: Page) => page.addInitScript(() => localStorage.setItem('markOpenGroups', 'true'))
 
-async function settled(page: Page) {
-  await page.waitForFunction(() => document.getAnimations().length === 0)
-}
-
 async function openList(page: Page, title: string) {
   await page.goto('/')
   await page.locator('.q-home-row', { hasText: title }).click()
   await page.locator('.q-group').first().waitFor()
   await settled(page)
-}
-
-interface Mark {
-  open: boolean
-  tri: { left: number; right: number; top: number; bottom: number }
-  rule: { left: number; right: number; top: number; bottom: number; width: number; height: number }
-}
-
-/** Every head's drawing and line, read in one evaluation so they belong to the same frame. */
-const marks = (page: Page, head: string): Promise<Mark[]> =>
-  page.evaluate((selector) => {
-    const box = (node: Element) => {
-      const r = node.getBoundingClientRect()
-      return { left: r.left, right: r.right, top: r.top, bottom: r.bottom, width: r.width, height: r.height }
-    }
-
-    return [...document.querySelectorAll(selector)].map((node) => ({
-      open: node.getAttribute('aria-expanded') === 'true',
-      tri: box(node.querySelector('.q-chev-tri')!),
-      rule: box(node.querySelector('.q-chev-rule')!),
-    }))
-  }, head)
-
-/** Open: the line stands left of the triangle's ink, 1 x 14. Shut: it lies under it, 14 x 1. Both 6px off the ink, centred on it. */
-function expectSixPixels(found: Mark[], opens: boolean[]) {
-  expect(found.map((mark) => mark.open)).toEqual(opens)
-  for (const { open, tri, rule } of found) {
-    if (open) {
-      expect(tri.left - rule.right, 'open: line to ink').toBeCloseTo(6, 1)
-      expect([rule.width, rule.height]).toEqual([1, 14])
-      expect((rule.top + rule.bottom) / 2).toBeCloseTo((tri.top + tri.bottom) / 2, 1)
-    } else {
-      expect(rule.top - tri.bottom, 'shut: line to ink').toBeCloseTo(6, 1)
-      expect([rule.width, rule.height]).toEqual([14, 1])
-      expect((rule.left + rule.right) / 2).toBeCloseTo((tri.left + tri.right) / 2, 1)
-    }
-  }
 }
 
 test('off by default: a group head is the glyph, no drawing, no line', async ({ page }) => {
