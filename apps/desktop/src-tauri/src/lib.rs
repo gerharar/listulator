@@ -5,6 +5,7 @@ mod close_hold;
 mod fullscreen;
 mod isolation_csp;
 mod navigation;
+mod vacuum;
 mod window_fit;
 mod window_save;
 
@@ -254,6 +255,16 @@ pub fn run() {
             .level(log::LevelFilter::Info)
             .build(),
         )?;
+      }
+      // BL-151: a database that is mostly the free pages of deleted lists is rewritten. Here, in `setup`, because the page cannot reach
+      // the database until `setup` returns (vacuum.rs says why); it never stops the start.
+      #[cfg(desktop)]
+      if let Some(dir) = config_dir(app.handle()) {
+        match vacuum::reclaim(&dir.join(vacuum::DATABASE_FILE)) {
+          vacuum::Outcome::Vacuumed { before, after } => log::info!("database vacuumed: {before} -> {after} bytes"),
+          vacuum::Outcome::Skipped(reason) => log::warn!("database not vacuumed: {reason}"),
+          vacuum::Outcome::NotWorthIt => {}
+        }
       }
       Ok(())
     })
