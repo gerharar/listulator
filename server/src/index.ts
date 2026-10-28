@@ -2,12 +2,22 @@ import { buildApp } from './app.js'
 import { maintainSourceCopies, startSourceCopySchedule } from './catalog/sourceCopySchedule.js'
 import { loadConfig, loadEnvFile } from './config.js'
 import { createDatabase, runMigrations } from './db/client.js'
+import { reclaimFreeSpace } from './db/reclaimSpace.js'
 import { createMediaTypeRegistry } from './ingestion/mediaTypes.js'
 
 // Before anything reads process.env.
 loadEnvFile()
 
 const config = loadConfig()
+
+// A database that is mostly the free pages of deleted lists is rewritten before the app opens it (BL-151). Never stops the start.
+const reclaimed = reclaimFreeSpace(config.databasePath)
+if (reclaimed.vacuumed) {
+  console.log(`database vacuumed: ${(reclaimed.bytesBefore / 1048576).toFixed(1)} MB -> ${(reclaimed.bytesAfter / 1048576).toFixed(1)} MB`)
+} else if (reclaimed.error) {
+  console.warn(`database not vacuumed: ${reclaimed.error}`)
+}
+
 const { db } = createDatabase(config.databasePath)
 
 // Idempotent, and keeps the self-host story to "start it and go".
