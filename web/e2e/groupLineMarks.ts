@@ -44,3 +44,58 @@ export function expectSixPixels(found: Mark[], opens: boolean[]) {
     }
   }
 }
+
+/**
+ * How many pixel rows of the screen each shut group head's line covers, read from the rendered pixels (a screenshot at the page's own scale), not from
+ * the layout: the layout says "1px" at every scale, the screen says 1 or 2 rows (BL-153, Windows at 125%). A row counts when it is at least half as
+ * bright as the line's brightest row, so a faint edge of anti-aliasing is not mistaken for thickness. Heads are the first `count` `.q-group` in view.
+ */
+export async function lineRowsPerHead(page: Page, count: number): Promise<number[]> {
+  const heads = await page.evaluate(
+    (n) => [...document.querySelectorAll('.q-group')].slice(0, n).map((group) => {
+      const r = group.querySelector('.q-chev-rule')!.getBoundingClientRect()
+
+      return { x: r.left, y: r.top, w: r.width }
+    }),
+    count,
+  )
+  const shot = (await page.screenshot()).toString('base64')
+  const scale = await page.evaluate(() => window.devicePixelRatio)
+  const probe = await page.context().newPage()
+  try {
+    return await probe.evaluate(
+      async ({ shot, heads, scale }) => {
+        const img = new Image()
+        img.src = `data:image/png;base64,${shot}`
+        await img.decode()
+        const canvas = document.createElement('canvas')
+        canvas.width = img.width
+        canvas.height = img.height
+        const ctx = canvas.getContext('2d')!
+        ctx.drawImage(img, 0, 0)
+
+        return heads.map((head) => {
+          const x0 = Math.round((head.x + 3) * scale)
+          const x1 = Math.round((head.x + head.w - 3) * scale)
+          const yMid = Math.round(head.y * scale)
+          const luminance: number[] = []
+          for (let y = yMid - 4; y <= yMid + 5; y += 1) {
+            let sum = 0
+            for (let x = x0; x <= x1; x += 1) {
+              const data = ctx.getImageData(x, y, 1, 1).data
+              sum += ((data[0] ?? 0) + (data[1] ?? 0) + (data[2] ?? 0)) / 3
+            }
+            luminance.push(sum / (x1 - x0 + 1))
+          }
+          const floor = Math.min(...luminance)
+          const peak = Math.max(...luminance)
+
+          return luminance.filter((value) => (value - floor) / Math.max(1, peak - floor) >= 0.5).length
+        })
+      },
+      { shot, heads, scale },
+    )
+  } finally {
+    await probe.close()
+  }
+}

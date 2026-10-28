@@ -2,8 +2,9 @@
  * H-022, with the `markOpenGroups` preference on: the group triangle as a drawing and a 1px line (canvas, measured 6.0px in both states).
  * A 20 x 20 box; the 14 x 12 drawing at 3px 4px turns -90deg about the box's centre (its own centre, 7px 6px) when the head is shut, 140ms ease.
  * Open, ink is x 3 to 17, y 4 to 16; shut, x 4 to 16, y 3 to 17. The line is 14px long, square ended, `currentColor` (ink2) and follows by
- * moving, not turning: open it stands left of the triangle (left -4px, 1 x 14), shut it lies under it (top 23px, 14 x 1, just outside the box,
- * which does not clip). Reduced motion: no transition. The list screen's head is `.q-group`, the Preview's `.q-preview-group`.
+ * moving, not turning: open it stands left of the triangle (right edge at -3px, 14 tall), shut it lies under it (top 23px, 14 wide, just outside
+ * the box, which does not clip). Its thickness is `--group-line` (GroupTriangle.tsx: 1px, or a whole number of device pixels at a fractional
+ * screen scale, BL-153). Reduced motion: no transition. The list screen's head is `.q-group`, the Preview's `.q-preview-group`.
  */
 .q-chev-line {
   position: relative;
@@ -23,9 +24,10 @@
 }
 .q-chev-rule {
   position: absolute;
-  left: -4px;
+  /* The right edge stays at -3px whatever the thickness, so the gap to the ink is 6px. */
+  left: calc(-3px - var(--group-line, 1px));
   top: 3px;
-  width: 1px;
+  width: var(--group-line, 1px);
   height: 14px;
   background: currentColor;
   transition: left 140ms ease, top 140ms ease, width 140ms ease, height 140ms ease;
@@ -39,7 +41,7 @@
   left: 3px;
   top: 23px;
   width: 14px;
-  height: 1px;
+  height: var(--group-line, 1px);
 }
 [data-reduced] .q-chev-tri,
 [data-reduced] .q-chev-rule {
