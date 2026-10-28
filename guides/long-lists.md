@@ -34,26 +34,6 @@ The app keeps its preferences in a file called `preferences.json`. **Quit Listul
 
 To turn it back on, delete that line (or write `"auto"`). The words `off`, `false`, `0` and `no` all mean off, in any case; anything else, or no line at all, means on.
 
-## Turn it off, in the browser (the self-hosted web app)
-
-Open Listulator in the browser, open the developer console (F12, then Console), and type:
-
-```
-localStorage.setItem('listVirtualization', 'off')
-```
-
-Then reload the page. To turn it back on: `localStorage.removeItem('listVirtualization')`. The setting belongs to that browser and that address (for example `http://localhost:5173` and `http://192.168.1.20:5173` are two different places).
-
-## Turn it off for everyone, on the server (self-hosting)
-
-If you run the server yourself, put this in your `.env` file (or in the `environment:` of your Docker setup), then restart the server:
-
-```
-LIST_VIRTUALIZATION=off
-```
-
-It applies to everyone who opens that server in a browser. The accepted values are `auto` (the default) and `off` (also `false`, `0` and `no`); anything else stops the server at start with a message that names the setting. If the server says off, or the browser's own setting says off, the list is drawn whole: neither can force it back on. The desktop app has no server and only reads its own `preferences.json`.
-
 ## If it was a problem
 
 If turning it off fixed something, please [tell us what you saw](https://github.com/gerharar/listulator/issues): the system, the app version (the About button at the top of the app), roughly how many rows the list has, and what went wrong. The mode is a safety net, and that report is what it is for.
