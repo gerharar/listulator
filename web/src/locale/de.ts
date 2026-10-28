@@ -334,9 +334,9 @@ export const de: Locale = {
       screen: 'Bildschirm',
       fullscreen: 'Vollbild',
       reduceMotion: 'Weniger Animationen',
-      /** A draft from the canvas wording; German follows the owner's Russian (H-022). */
-      markOpenGroups: 'Offene und geschlossene Gruppen markieren',
-      markOpenGroupsTip: 'Fügt neben dem Pfeil jeder Gruppe eine kurze Linie hinzu: unter ▶, wenn die Gruppe geschlossen ist, links von ▼, wenn sie geöffnet ist',
+      /** Follows the owner's English (2026-10-28, "Enhance group arrows"); a draft for him to check (H-022). */
+      markOpenGroups: 'Gruppenpfeile hervorheben',
+      markOpenGroupsTip: 'Fügt neben dem Pfeil jeder Gruppe eine visuelle Hilfe hinzu, damit du schneller erkennst, ob eine Gruppe ein- oder ausgeklappt ist',
       language: 'Sprache der Oberfläche',
       languages: {
         en: 'English',
