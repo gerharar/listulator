@@ -26,8 +26,9 @@ pub const MIN_FREE_BYTES: u64 = 8 * 1024 * 1024;
 /// ...and at least one page in this many of the file is free (a quarter).
 pub const MIN_FREE_SHARE_DENOMINATOR: u64 = 4;
 
-/// How long to wait for another process that holds the file.
-const BUSY: Duration = Duration::from_millis(2000);
+/// How long to wait for another process that holds the file. Short: this runs in `setup`, before the window is shown, and giving up costs
+/// nothing (the next start tries again).
+const BUSY: Duration = Duration::from_millis(250);
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum Outcome {
@@ -67,7 +68,8 @@ fn reclaim_waiting(path: &Path, busy: Duration) -> Outcome {
 }
 
 async fn run(path: &Path, busy: Duration) -> Result<bool, sqlx::Error> {
-  // Never creates a file; the plugin's own default (WAL, foreign keys on) is the one the app uses, so nothing is changed by looking.
+  // Never creates a file. Connecting with sqlx's defaults (WAL, foreign keys on) is how the SQL plugin opens it too, and the app's database is
+  // WAL already (the plugin made it so), so connecting here changes nothing.
   let mut connection = SqliteConnectOptions::new().filename(path).create_if_missing(false).busy_timeout(busy).connect().await?;
   let outcome = vacuum_if_worth_it(&mut connection).await;
   // A close that fails changes nothing that was done.
@@ -76,7 +78,7 @@ async fn run(path: &Path, busy: Duration) -> Result<bool, sqlx::Error> {
   outcome
 }
 
-async fn pragma(connection: &mut SqliteConnection, name: &str) -> Result<u64, sqlx::Error> {
+async fn pragma(connection: &mut SqliteConnection, name: &'static str) -> Result<u64, sqlx::Error> {
   let value: i64 = sqlx::query(&format!("PRAGMA {name}")).fetch_one(&mut *connection).await?.try_get(0)?;
 
   Ok(u64::try_from(value).unwrap_or(0))
@@ -237,6 +239,30 @@ mod tests {
 
     assert!(matches!(reclaim(&scratch.file()), Outcome::Skipped(_)));
     assert_eq!(std::fs::read(scratch.file()).unwrap(), before);
+  }
+
+  #[test]
+  fn the_wait_for_a_held_file_is_short_because_it_blocks_the_first_window() {
+    let scratch = Scratch::new("short-wait");
+    make(&scratch.file(), true);
+    let mut holder = tauri::async_runtime::block_on(async {
+      let mut holder = open(&scratch.file()).await;
+      sqlx::query("BEGIN EXCLUSIVE").execute(&mut holder).await.unwrap();
+
+      holder
+    });
+
+    let started = std::time::Instant::now();
+    let outcome = reclaim(&scratch.file());
+    let waited = started.elapsed();
+
+    tauri::async_runtime::block_on(async {
+      sqlx::query("ROLLBACK").execute(&mut holder).await.unwrap();
+      let _ = holder.close().await;
+    });
+    assert!(matches!(outcome, Outcome::Skipped(_)), "got {outcome:?}");
+    // It runs in `setup`, before the window is shown: a second app instance holding the file must not leave a blank window for seconds.
+    assert!(waited < Duration::from_millis(1000), "waited {waited:?}");
   }
 
   #[test]
