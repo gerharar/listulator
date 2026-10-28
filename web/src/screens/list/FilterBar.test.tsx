@@ -371,3 +371,16 @@ describe('Recording as Live or Studio (H-023)', () => {
     expect(props.onSelect).toHaveBeenCalledWith('extra', new Set(['live']))
   })
 })
+
+/** BL-152 / SR-119: an option's label is text from a list file; one named like an inherited object member is shown as written. */
+describe('FilterBar with hostile tags', () => {
+  it.each(['__proto__', 'constructor', 'toString'])('shows an option labelled %s as it is, and the dropdown still opens', (label) => {
+    const language: FacetGroup = { key: 'language', label: 'Language', options: [{ key: 'en', label: 'EN' }, { key: label.toLowerCase(), label }], keepOrder: false }
+    bar({ facets: [language] })
+
+    const popover = openFacet('Language')
+
+    expect(popover.getByRole('button', { name: label })).toBeTruthy()
+  })
+})
+

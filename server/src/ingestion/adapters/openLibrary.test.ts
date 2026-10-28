@@ -3,7 +3,7 @@ import { MAX_CONNECTOR_ITEMS } from '../../catalog/limits.js'
 import { ListTooLargeError } from '../expandSource.js'
 import { IngestionError, type FetchLike } from '../http.js'
 import type { RateLimiter } from '../rateLimiter.js'
-import { createOpenLibraryAdapter } from './openLibrary.js'
+import { createOpenLibraryAdapter, languageTagLabel } from './openLibrary.js'
 
 const noWait = vi.fn<(ms: number) => Promise<void>>(async () => {})
 
@@ -583,3 +583,16 @@ describe('Open Library adapter', () => {
     })
   })
 })
+
+/** BL-152 / SR-119: the code is text from the API; one named like an inherited object member is just an unknown code. */
+describe('languageTagLabel', () => {
+  it('names a known code, writes an unknown one in capitals, and says Unknown for the unknown marker', () => {
+    expect(languageTagLabel('rus')).toBe('Russian')
+    expect(languageTagLabel('xyz')).toBe('XYZ')
+  })
+
+  it.each(['constructor', '__proto__', 'toString'])('treats %s as an unknown code, not as a function or an object', (code) => {
+    expect(languageTagLabel(code)).toBe(code.toUpperCase())
+  })
+})
+

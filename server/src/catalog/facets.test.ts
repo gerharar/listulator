@@ -294,3 +294,14 @@ describe('a flag with a name for the rest', () => {
     expect(matchesFacets(item('Album'), plain, { extra: new Set(['live']) })).toBe(false)
   })
 })
+
+describe('hostile tags (BL-152, SR-119)', () => {
+  it('a platform tag named like an inherited object member is one more unknown platform', () => {
+    expect(options(platform, [item('constructor'), item('__proto__'), item('PS5')], 'platform')).toEqual(expect.arrayContaining(['CONSTRUCTOR', '__PROTO__', 'PS5']))
+  })
+
+  it('a book language tag named like one is an option with its own name', () => {
+    expect(options(books, [item('__proto__'), item('constructor'), item('English')], 'language')).toEqual(expect.arrayContaining(['__proto__', 'constructor', 'English']))
+  })
+})
+

@@ -56,3 +56,13 @@ describe('reading a tag', () => {
     expect(platformName('Some Console')).toBeNull()
   })
 })
+
+/** BL-152 / SR-119: a tag in a list file is text anyone can write; one named like an inherited object member must read as an unknown code. */
+describe('a tag named like an inherited object member', () => {
+  it.each(['constructor', '__proto__', 'CONSTRUCTOR', '  __Proto__  '])('%j is an unknown platform, not an error', (tag) => {
+    expect(platformKey(tag)).toBe(tag.trim().toLowerCase())
+    expect(platformCode(tag)).toBe(tag.trim().toUpperCase())
+    expect(platformName(tag)).toBeNull()
+  })
+})
+

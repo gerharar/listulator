@@ -1,6 +1,7 @@
 import { useRef } from 'react'
 import { ChevronsDownUp, ChevronsUpDown, EyeOff, X } from 'lucide-react'
 import { REST, UNTAGGED, type FacetGroup, type FacetKey, type FacetSelection } from '../../../../server/src/catalog/facets.js'
+import { own } from '../../../../server/src/catalog/own.js'
 import { compareShown, copy } from '../../locale/index.js'
 import type { FacetOption } from '../../components/quantum/FacetToggle/FacetToggle.js'
 import { FacetDropdown } from '../../components/quantum/FacetToggle/FacetDropdown.js'
@@ -38,7 +39,7 @@ function facetOptions(facet: FacetGroup): FacetOption[] {
   const t = copy.quantum.list.filter
   const options = facet.options.map((option) => ({
     key: option.key,
-    label: t.optionLabels[option.label] ?? option.label,
+    label: own(t.optionLabels, option.label) ?? option.label,
     ...(facet.flag && !option.rest ? { mark: true } : {}),
     ...(facet.key === 'platform' && platformFullName(option.label)
       ? { name: platformFullName(option.label)! }

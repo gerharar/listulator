@@ -1,4 +1,5 @@
 import { IGDB_PLATFORM_CODES, PLATFORM_TABLE } from './platforms.generated.js'
+import { own } from './own.js'
 
 /**
  * Platform shortcodes as they appear in a list item's `tags`, in filter order
@@ -124,19 +125,19 @@ export const LEGACY_PLATFORM_TAGS: Readonly<Record<string, string>> = {
 /** A tag as the key it counts under: lower-cased, and an old code read as today's. */
 export function platformKey(tag: string): string {
   const key = tag.trim().toLowerCase()
-  const legacy = LEGACY_PLATFORM_TAGS[key]
+  const legacy = own(LEGACY_PLATFORM_TAGS, key)
   return legacy ? legacy.toLowerCase() : key
 }
 
 /** A tag as it is shown: the code as the table writes it, or an unknown tag in capitals. */
 export function platformCode(tag: string): string {
   const key = platformKey(tag)
-  return CODES[key] ?? tag.trim().toUpperCase()
+  return own(CODES, key) ?? tag.trim().toUpperCase()
 }
 
 /** A tag's full name, or null for a code the table does not know. */
 export function platformName(tag: string): string | null {
-  return PLATFORMS[platformKey(tag)] ?? null
+  return own(PLATFORMS, platformKey(tag)) ?? null
 }
 
 /** The code for an IGDB platform id; undefined for one the table does not list. */

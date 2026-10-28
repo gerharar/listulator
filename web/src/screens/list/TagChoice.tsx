@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useId, useRef, useState, type CSSProperties } from 'react'
 import { Check, ChevronDown } from 'lucide-react'
 import { compareShown, copy } from '../../locale/index.js'
+import { own } from '../../../../server/src/catalog/own.js'
 import { useDismissOnPress } from './dismissOnPress.js'
 import { aboveField, opensUp } from './dropDirection.js'
 import type { Choice, TagField } from './tagFields.js'
@@ -23,7 +24,7 @@ export interface TagChoiceProps {
  */
 export function TagChoice({ field, current, onChange }: TagChoiceProps) {
   const text = copy.quantum.list.tags
-  const shownName = (label: string) => copy.quantum.list.filter.optionLabels[label] ?? label
+  const shownName = (label: string) => own(copy.quantum.list.filter.optionLabels, label) ?? label
   const listId = useId()
   const [open, setOpen] = useState(false)
   // Below, or — at the foot of a long list — just above the field.

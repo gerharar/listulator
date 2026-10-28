@@ -1,4 +1,5 @@
 import { MAX_CONNECTOR_ITEMS } from '../../catalog/limits.js'
+import { own } from '../../catalog/own.js'
 import { dedupeByTitle } from '../dedupe.js'
 import { ListTooLargeError } from '../expandSource.js'
 import { delay, getJson, withRetries, type FetchLike } from '../http.js'
@@ -132,9 +133,10 @@ const LANGUAGE_LABELS: Record<string, string> = {
   kor: 'Korean',
 }
 
-function languageTagLabel(code: string): string {
+/** A language code as the tag shows it: its name, or the code in capitals when the table does not know it (any text the API sends). */
+export function languageTagLabel(code: string): string {
   if (code === UNKNOWN) return 'Unknown'
-  return LANGUAGE_LABELS[code] ?? code.toUpperCase()
+  return own(LANGUAGE_LABELS, code) ?? code.toUpperCase()
 }
 
 /**
