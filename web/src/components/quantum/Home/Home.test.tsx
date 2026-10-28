@@ -9,6 +9,7 @@ import { ToastProvider } from '../Toast/Toast.js'
 import { LayerStackProvider, useLayerStack } from '../layerStack/LayerStackContext.js'
 import { notifyListsChanged } from '../../../lib/listsChanged.js'
 import { createPendingUpdates, type PendingUpdates } from '../../../lib/pendingUpdates.js'
+import { resetForgetDeletedListsOnce } from '../../../lib/preferences/forgetLists.js'
 import type { PreferencesStore } from '../../../lib/preferences/store.js'
 import { Home } from './Home.js'
 
@@ -18,6 +19,8 @@ vi.mock('../../../lib/preferences/store.js', () => ({
   getPreferencesStore: () => ({
     get: async (key: string) => preferences.get(key),
     set: async (key: string, value: string) => void preferences.set(key, value),
+    keys: async () => [...preferences.keys()],
+    delete: async (key: string) => void preferences.delete(key),
   }),
   listPreferenceKey: (listId: string, key: string) => `list:${listId}:${key}`,
 }))
@@ -934,5 +937,51 @@ describe('Home updates (task 10.22c)', () => {
 
       expect(api.lists).toHaveBeenCalledTimes(1)
     })
+  })
+})
+
+describe('Home forgets what the app remembered about lists that are gone (BL-150)', () => {
+  beforeEach(() => {
+    resetForgetDeletedListsOnce()
+    preferences.set('skin', 'dark')
+    preferences.set('list:list-1:collapsed', '["A"]')
+    preferences.set('list:gone:collapsed', '["A","B"]')
+    preferences.set('list:gone:focus', 'row-9')
+  })
+  afterEach(() => preferences.clear())
+
+  it('removes the keys of a list that is not there after the first good read, and keeps every other key', async () => {
+    vi.mocked(api.mediaTypes).mockResolvedValue(MEDIA_TYPES)
+    vi.mocked(api.lists).mockResolvedValue([list()])
+
+    renderHome()
+
+    await waitFor(() => expect(preferences.has('list:gone:collapsed')).toBe(false))
+    expect([...preferences.keys()].sort()).toEqual(['list:list-1:collapsed', 'skin'])
+  })
+
+  it('removes nothing when the lists cannot be read', async () => {
+    vi.mocked(api.mediaTypes).mockRejectedValue(new Error('down'))
+    vi.mocked(api.lists).mockRejectedValue(new Error('down'))
+
+    renderHome()
+
+    await screen.findByText(/Couldn.t load/)
+    expect(preferences.has('list:gone:collapsed')).toBe(true)
+    expect(preferences.has('list:list-1:collapsed')).toBe(true)
+  })
+
+  it('sweeps once per start: a list deleted later keeps its state until the next start, for the Undo', async () => {
+    vi.mocked(api.mediaTypes).mockResolvedValue(MEDIA_TYPES)
+    vi.mocked(api.lists).mockResolvedValue([list(), list({ id: 'list-2', title: 'Second' })])
+    preferences.set('list:list-2:collapsed', '["A"]')
+    renderHome()
+    await waitFor(() => expect(preferences.has('list:gone:collapsed')).toBe(false))
+
+    vi.mocked(api.lists).mockResolvedValue([list()])
+    act(() => notifyListsChanged())
+    await waitFor(() => expect(screen.queryByText('Second')).toBeNull())
+
+    expect(preferences.has('list:list-2:collapsed')).toBe(true)
   })
 })

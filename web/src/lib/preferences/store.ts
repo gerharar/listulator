@@ -14,6 +14,10 @@ export interface PreferencesStore {
   set(key: string, value: string): Promise<void>
   /** Writes what is pending to disk now (the desktop store autosaves a moment after a `set`). Absent where there is nothing to flush. */
   flush?(): Promise<void>
+  /** Every key held (BL-150: the sweep that forgets deleted lists' keys). Absent on a store that cannot list them. */
+  keys?(): Promise<string[]>
+  /** Removes a key; one that is not there is not an error. Absent on a store that cannot. */
+  delete?(key: string): Promise<void>
 }
 
 /**
@@ -36,6 +40,20 @@ function createWebPreferencesStore(): PreferencesStore {
         localStorage.setItem(key, value)
       } catch {
         // Not being able to remember the choice is not worth breaking anything for.
+      }
+    },
+    async keys() {
+      try {
+        return Array.from({ length: localStorage.length }, (_, index) => localStorage.key(index)).filter((key): key is string => key !== null)
+      } catch {
+        return []
+      }
+    },
+    async delete(key) {
+      try {
+        localStorage.removeItem(key)
+      } catch {
+        // Tidying is never worth breaking anything for.
       }
     },
   }
@@ -64,6 +82,14 @@ function createDesktopPreferencesStore(): PreferencesStore {
     async flush() {
       const store = await getDesktopStore()
       await store.save()
+    },
+    async keys() {
+      const store = await getDesktopStore()
+      return await store.keys()
+    },
+    async delete(key) {
+      const store = await getDesktopStore()
+      await store.delete(key)
     },
   }
 }

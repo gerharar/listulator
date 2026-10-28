@@ -17,6 +17,7 @@ import { subscribeListsChanged } from '../../../lib/listsChanged.js'
 import { usePolling } from '../../../lib/usePolling.js'
 import { previewPath } from '../../../lib/preview.js'
 import { getPreferencesStore } from '../../../lib/preferences/store.js'
+import { forgetDeletedListsOnce } from '../../../lib/preferences/forgetLists.js'
 import { FinalizerSheet } from '../HelperSheet/FinalizerSheet.js'
 import { JustOneFixSheet } from '../HelperSheet/JustOneFixSheet.js'
 import { SurpriseSheet } from '../HelperSheet/SurpriseSheet.js'
@@ -134,6 +135,8 @@ export function Home({ onMediaTypesLoaded, pendingUpdates }: HomeProps) {
         onMediaTypesLoaded(fetchedTypes)
         // A list that is gone takes its pending update with it.
         void pending.prune(fetchedLists.map((entry) => entry.id))
+        // What the app remembered per list (shut groups, last row, rail) goes too, once per start (BL-150).
+        void forgetDeletedListsOnce(getPreferencesStore(), fetchedLists.map((entry) => entry.id))
 
         if (fetchedLists.length === 0) {
           // First run: the Category picker *is* the base layer (matches the
