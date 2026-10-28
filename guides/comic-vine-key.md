@@ -4,18 +4,18 @@
 - **Site:** [Comic Vine (comicvine.gamespot.com)](https://comicvine.gamespot.com/api)
 - **Last checked:** 28 Oct 2026
 
-## 1. Create a GameSpot account and sign in
+## 1. Create a GameSpot account and go to API page
 
-Comic Vine uses GameSpot accounts. Create one if you do not have it, and sign in.
+Comic Vine uses GameSpot accounts. Create one, sign in, and either follow [the link](https://comicvine.gamespot.com/api) or hit API in the website footer:
 
-<!-- TODO screenshot: images/comic-vine-1-sign-in.png — the sign-in -->
+![Comic Vine - API page](images/comic-vine-01.png)
 
-## 2. Open the API page
+## 2. Copy the API key
 
-Open [comicvine.gamespot.com/api](https://comicvine.gamespot.com/api). Your key is printed at the top of the page.
+Your key is printed at the top of the page:
 
-<!-- TODO screenshot: images/comic-vine-2-key.png — the API page with the key; hide the key -->
+![Comic Vine - API key](images/comic-vine-02.png)
 
 ## 3. Copy the key into Listulator
 
-Open **Settings → API keys** in Listulator, paste it into the Comic Vine row and press **Test**. The pill should say **Working**.
+Go to **Settings** in Listulator, paste the key into the *Comic Vine* row and press **Test**. The app should say **Working**. Enjoy searching Comic Vine in Listulator!
