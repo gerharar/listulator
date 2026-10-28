@@ -121,7 +121,7 @@ function QuantumShell({ initial }: { initial: BootState }) {
           <ToastProvider>
             <OverlayManagerProvider>
               <LanguageProvider initialLanguage={initial.language}>
-                <GroupLineProvider on={initial.markOpenGroups}>
+                <GroupLineProvider on={initial.markOpenGroups} store={store}>
                   <LayerStackProvider home={homeLayer()}>
                     <AppShellBody skin={skin} onSkinChange={handleSkinChange} />
                   </LayerStackProvider>

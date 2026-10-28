@@ -1,9 +1,10 @@
 import type { PreferencesStore } from './store.js'
 
 /**
- * Canvas H-022: a 1px line beside the group triangle that says open or shut. Not a Settings switch (owner, 2026-10-27, "a config-file
- * option"): the key `markOpenGroups` in the desktop's `preferences.json`, or the same key in the browser's `localStorage`. Off by default,
- * and off is today's glyph exactly.
+ * Canvas H-022: a 1px line beside the group triangle that says open or shut. The key `markOpenGroups` in the desktop's `preferences.json`,
+ * or the same key in the browser's `localStorage`: the Settings → Screen checkbox "Mark open and closed groups" reads and writes it (owner,
+ * 2026-10-28, through design; before that it was a hand-edited key only, 2026-10-27), and a hand edit still works. Off by default, and off
+ * is today's glyph exactly.
  */
 export const GROUP_LINE_KEY = 'markOpenGroups'
 
@@ -23,3 +24,17 @@ export async function resolveMarkOpenGroups(store: PreferencesStore): Promise<bo
     return false
   }
 }
+
+/**
+ * The checkbox's write: the text `true` or `false`, as the browser's storage holds it and as `resolveMarkOpenGroups` reads it (a JSON boolean
+ * written by hand into `preferences.json` is read as well, and replaced by the text on the first change). A store that cannot write is a quiet
+ * no-op: the setting then lasts until the app is closed, as with the other Screen settings.
+ */
+export async function setMarkOpenGroups(store: PreferencesStore, on: boolean): Promise<void> {
+  try {
+    await store.set(GROUP_LINE_KEY, String(on))
+  } catch {
+    // Not remembering the choice is not worth breaking Settings for.
+  }
+}
+

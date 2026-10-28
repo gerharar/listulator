@@ -334,6 +334,8 @@ export const de: Locale = {
       screen: 'Bildschirm',
       fullscreen: 'Vollbild',
       reduceMotion: 'Weniger Animationen',
+      /** A draft from the canvas wording; German follows the owner's Russian (H-022). */
+      markOpenGroups: 'Offene und geschlossene Gruppen markieren',
       language: 'Sprache der Oberfläche',
       languages: {
         en: 'English',

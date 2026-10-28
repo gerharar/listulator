@@ -12,6 +12,7 @@ import { HeaderPlate } from '../../components/quantum/HeaderPlate/HeaderPlate.js
 import { useLayerStack } from '../../components/quantum/layerStack/LayerStackContext.js'
 import { useLiveRegion } from '../../components/quantum/LiveRegion/LiveRegion.js'
 import { useMotion } from '../../components/quantum/Motion/MotionContext.js'
+import { useGroupLineSetting } from '../../components/quantum/GroupTriangle/GroupTriangle.js'
 import { useWindowFullscreen } from '../../lib/windowFullscreen.js'
 import { SkinSwatch } from '../../components/quantum/SkinSwatch/SkinSwatch.js'
 import { ToggleChip } from '../../components/quantum/ToggleChip/ToggleChip.js'
@@ -34,6 +35,7 @@ export function SettingsScreen({ skin, onSkinChange, store }: SettingsScreenProp
   const { announce } = useLiveRegion()
   const { language, setLanguage } = useLanguage()
   const { reduced, setReducedMotion } = useMotion()
+  const groupLine = useGroupLineSetting()
   const fullscreen = useWindowFullscreen()
   const text = copy.quantum.settings
 
@@ -96,6 +98,11 @@ export function SettingsScreen({ skin, onSkinChange, store }: SettingsScreenProp
             <label className="q-settings-check">
               <input type="checkbox" checked={reduced} onChange={(event) => setReducedMotion(event.target.checked)} />
               {text.reduceMotion}
+            </label>
+            {/* H-022, on every platform (owner, 2026-10-28): the line beside each group's arrow, applied at once. */}
+            <label className="q-settings-check">
+              <input type="checkbox" checked={groupLine.on} onChange={(event) => groupLine.setOn(event.target.checked)} />
+              {text.markOpenGroups}
             </label>
           </section>
 

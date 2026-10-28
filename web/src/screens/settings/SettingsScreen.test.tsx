@@ -10,6 +10,10 @@ import { LayerStackProvider, useLayerStack } from '../../components/quantum/laye
 import { LiveRegionProvider } from '../../components/quantum/LiveRegion/LiveRegion.js'
 import { OverlayManagerProvider } from '../../components/quantum/overlay/OverlayManagerContext.js'
 import { MotionProvider } from '../../components/quantum/Motion/MotionContext.js'
+import { GroupLineProvider, GroupTriangle } from '../../components/quantum/GroupTriangle/GroupTriangle.js'
+import { de } from '../../locale/de.js'
+import { en } from '../../locale/en.js'
+import { ru } from '../../locale/ru.js'
 import { SettingsScreen } from './SettingsScreen.js'
 
 const tauriWindow = vi.hoisted(() => ({
@@ -61,18 +65,24 @@ function StackReader() {
   return <span data-testid="stack">{stack.map((layer) => layer.kind).join(',')}</span>
 }
 
-function renderSettings(options: { skin?: 'dark-blue' | 'light-bone'; reducedSetting?: boolean } = {}) {
+function renderSettings(options: { skin?: 'dark-blue' | 'light-bone'; reducedSetting?: boolean; markOpenGroups?: boolean } = {}) {
   const onSkinChange = vi.fn()
   const view = render(
     <LiveRegionProvider>
       <OverlayManagerProvider>
         <MotionProvider initialReducedSetting={options.reducedSetting} store={store}>
-          <LanguageProvider>
-            <LayerStackProvider home={{ id: 'home', kind: 'home', tabLabel: 'Home', content: '/' }}>
-              <StackReader />
-              <SettingsScreen skin={options.skin ?? 'dark-blue'} onSkinChange={onSkinChange} store={store} />
-            </LayerStackProvider>
-          </LanguageProvider>
+          <GroupLineProvider on={options.markOpenGroups ?? false} store={store}>
+            <LanguageProvider>
+              <LayerStackProvider home={{ id: 'home', kind: 'home', tabLabel: 'Home', content: '/' }}>
+                <StackReader />
+                {/* A group head's triangle, as a list's would be: it must follow the checkbox at once. */}
+                <div data-testid="a-group-head">
+                  <GroupTriangle />
+                </div>
+                <SettingsScreen skin={options.skin ?? 'dark-blue'} onSkinChange={onSkinChange} store={store} />
+              </LayerStackProvider>
+            </LanguageProvider>
+          </GroupLineProvider>
         </MotionProvider>
       </OverlayManagerProvider>
     </LiveRegionProvider>,
@@ -256,3 +266,55 @@ describe('SettingsScreen', () => {
     expect(screen.getByTestId('stack').textContent).toBe('home')
   })
 })
+
+/** H-022 as a setting (canvas, owner 2026-10-28): Settings → Screen, after Fullscreen and Reduce animation motion, on every platform. */
+describe('SettingsScreen: Mark open and closed groups (H-022)', () => {
+  const label = en.quantum.settings.markOpenGroups
+  const box = () => screen.getByRole('checkbox', { name: label }) as HTMLInputElement
+  const head = () => screen.getByTestId('a-group-head')
+
+  it('is the box after Reduce animation motion, in a browser too, and unticked by default', () => {
+    renderSettings()
+
+    const boxes = screen.getAllByRole('checkbox').map((entry) => entry.closest('label')?.textContent)
+    expect(boxes).toEqual([en.quantum.settings.reduceMotion, label])
+    expect(box().checked).toBe(false)
+    expect(head().querySelector('.q-chev')).not.toBeNull()
+  })
+
+  it('starts ticked when the setting is on, and the group heads draw the line', () => {
+    renderSettings({ markOpenGroups: true })
+
+    expect(box().checked).toBe(true)
+    expect(head().querySelector('.q-chev-line')).not.toBeNull()
+  })
+
+  it('ticking turns the lines on at once and persists a yes; unticking turns them off and persists a no', async () => {
+    renderSettings()
+
+    act(() => box().click())
+
+    expect(box().checked).toBe(true)
+    expect(head().querySelector('.q-chev-line')).not.toBeNull()
+    await waitFor(() => expect(store.data.get('markOpenGroups')).toBe('true'))
+
+    act(() => box().click())
+
+    expect(box().checked).toBe(false)
+    expect(head().querySelector('.q-chev')).not.toBeNull()
+    await waitFor(() => expect(store.data.get('markOpenGroups')).toBe('false'))
+  })
+
+  it.each([
+    ['Русский', ru.quantum.settings.markOpenGroups],
+    ['Deutsch', de.quantum.settings.markOpenGroups],
+  ])('is named in %s in its own words', (language, translated) => {
+    renderSettings()
+
+    act(() => screen.getByRole('button', { name: language }).click())
+
+    expect(translated).not.toBe(label)
+    expect(screen.getByRole('checkbox', { name: translated })).toBeTruthy()
+  })
+})
+

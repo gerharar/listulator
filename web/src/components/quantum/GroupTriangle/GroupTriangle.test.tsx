@@ -1,7 +1,8 @@
 // @vitest-environment jsdom
-import { afterEach, describe, expect, it } from 'vitest'
-import { cleanup, render } from '@testing-library/react'
-import { GroupLineProvider, GroupTriangle } from './GroupTriangle.js'
+import { afterEach, describe, expect, it, vi } from 'vitest'
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import type { PreferencesStore } from '../../../lib/preferences/store.js'
+import { GroupLineProvider, GroupTriangle, useGroupLineSetting } from './GroupTriangle.js'
 
 afterEach(cleanup)
 
@@ -48,3 +49,69 @@ describe('GroupTriangle', () => {
     expect(container.querySelector('svg')).toBeNull()
   })
 })
+
+/** H-022 as a Settings checkbox: the provider keeps the state, so a change draws every group head at once. */
+describe('GroupLineProvider as a setting', () => {
+  function Switch() {
+    const { on, setOn } = useGroupLineSetting()
+
+    return (
+      <button type="button" onClick={() => setOn(!on)}>
+        {on ? 'on' : 'off'}
+      </button>
+    )
+  }
+
+  function fakeStore() {
+    const data = new Map<string, string>()
+    const store: PreferencesStore = { get: async (key) => data.get(key), set: vi.fn(async (key: string, value: string) => void data.set(key, value)) }
+
+    return { data, store }
+  }
+
+  it('starts from `on`, and setOn redraws the triangle at once and persists the choice under markOpenGroups', async () => {
+    const { data, store } = fakeStore()
+    const { container } = render(
+      <GroupLineProvider on={false} store={store}>
+        <Switch />
+        <GroupTriangle />
+      </GroupLineProvider>,
+    )
+    expect(container.querySelector('.q-chev')).not.toBeNull()
+    expect(container.querySelector('.q-chev-line')).toBeNull()
+
+    fireEvent.click(screen.getByRole('button', { name: 'off' }))
+
+    expect(container.querySelector('.q-chev-line')).not.toBeNull()
+    expect(container.querySelector('.q-chev')).toBeNull()
+    await waitFor(() => expect(data.get('markOpenGroups')).toBe('true'))
+
+    fireEvent.click(screen.getByRole('button', { name: 'on' }))
+
+    expect(container.querySelector('.q-chev')).not.toBeNull()
+    await waitFor(() => expect(data.get('markOpenGroups')).toBe('false'))
+  })
+
+  it('works without a store (a test, or a component alone): the state changes, nothing is written', () => {
+    const { container } = render(
+      <GroupLineProvider on>
+        <Switch />
+        <GroupTriangle />
+      </GroupLineProvider>,
+    )
+    expect(container.querySelector('.q-chev-line')).not.toBeNull()
+
+    fireEvent.click(screen.getByRole('button', { name: 'on' }))
+
+    expect(container.querySelector('.q-chev')).not.toBeNull()
+  })
+
+  it('outside any provider: off, and a setOn that does nothing', () => {
+    render(<Switch />)
+
+    fireEvent.click(screen.getByRole('button', { name: 'off' }))
+
+    expect(screen.getByRole('button', { name: 'off' })).toBeTruthy()
+  })
+})
+

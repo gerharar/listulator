@@ -343,6 +343,8 @@ export const ru: Locale = {
       screen: 'Экран',
       fullscreen: 'Полноэкранный режим',
       reduceMotion: 'Минимизировать анимацию',
+      /** A draft from the canvas wording, for the owner to edit (H-022). */
+      markOpenGroups: 'Отмечать открытые и закрытые группы',
       language: 'Язык интерфейса',
       languages: {
         en: 'English',

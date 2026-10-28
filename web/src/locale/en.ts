@@ -386,6 +386,8 @@ export const en = {
       /** Desktop only (17.7): the window's own state, so it shows full screen however it was entered. */
       fullscreen: 'Fullscreen',
       reduceMotion: 'Reduce animation motion',
+      /** The group triangle's line (H-022): the canvas's wording (owner, 2026-10-28). The tooltip is 38.8b. */
+      markOpenGroups: 'Mark open and closed groups',
       language: 'Interface Language',
       languages: {
         en: 'English',

@@ -1,11 +1,40 @@
-import { createContext, useContext, type ReactNode } from 'react'
+import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from 'react'
+import type { PreferencesStore } from '../../../lib/preferences/store.js'
+import { setMarkOpenGroups } from '../../../lib/preferences/groupLine.js'
 import './GroupTriangle.css'
 
-const GroupLineContext = createContext(false)
+interface GroupLineValue {
+  on: boolean
+  setOn: (on: boolean) => void
+}
 
-/** Whether the `markOpenGroups` preference is on (App reads it at boot); off for anything not under a provider. */
-export function GroupLineProvider({ on, children }: { on: boolean; children: ReactNode }) {
-  return <GroupLineContext.Provider value={on}>{children}</GroupLineContext.Provider>
+/** Outside a provider (a component alone in a test): off, and nothing to switch. */
+const STANDALONE: GroupLineValue = { on: false, setOn: () => {} }
+
+const GroupLineContext = createContext<GroupLineValue>(STANDALONE)
+
+/**
+ * Whether the `markOpenGroups` preference is on, and the switch for it (H-022). `on` is the value App read at start; the state lives here, as
+ * `MotionProvider` keeps Reduce animation motion, so the Settings checkbox redraws every group head at once, in a list and in the Preview.
+ * With a `store` a change is also written; without one (a test) it only changes.
+ */
+export function GroupLineProvider({ on, store, children }: { on: boolean; store?: PreferencesStore; children: ReactNode }) {
+  const [current, setCurrent] = useState(on)
+  const setOn = useCallback(
+    (next: boolean) => {
+      setCurrent(next)
+      if (store) void setMarkOpenGroups(store, next)
+    },
+    [store],
+  )
+  const value = useMemo<GroupLineValue>(() => ({ on: current, setOn }), [current, setOn])
+
+  return <GroupLineContext.Provider value={value}>{children}</GroupLineContext.Provider>
+}
+
+/** The setting and its switch: the Settings checkbox uses both, the drawing only reads `on`. */
+export function useGroupLineSetting(): GroupLineValue {
+  return useContext(GroupLineContext)
 }
 
 /**
@@ -15,7 +44,7 @@ export function GroupLineProvider({ on, children }: { on: boolean; children: Rea
  * edges that differ by font and platform, so the line could not sit a fixed distance from it; the drawing's edges are whole pixels.
  */
 export function GroupTriangle() {
-  const line = useContext(GroupLineContext)
+  const { on: line } = useGroupLineSetting()
   if (!line) {
     return (
       <span className="q-chev" aria-hidden="true">
