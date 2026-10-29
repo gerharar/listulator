@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os'
 import { createRequire } from 'node:module'
 import { join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { checkInstallerTrace, checkUpdateTrace, compareInstall, embeddedPubkeys, findAppExe, leftoverKeyFiles, NEGATIVE_CASES, parseRunArguments, pickInstallers, servedFiles, testAppPaths, type FileState } from './desktopUpdateTest.js'
+import { checkInstallerTrace, checkUpdateTrace, compareInstall, describeInstallerTrace, describeUpdateTrace, embeddedPubkeys, findAppExe, leftoverKeyFiles, NEGATIVE_CASES, parseRunArguments, pickInstallers, servedFiles, testAppPaths, type FileState } from './desktopUpdateTest.js'
 import { isRunDirectly } from './runDirectly.js'
 import { DEFAULT_PORT, startUpdaterServer } from './updaterServe.js'
 import { buildWindowsKitScenarios } from './updaterTestKit.js'
@@ -257,11 +257,17 @@ export async function run(args: readonly string[], deps: RunDeps): Promise<numbe
   for (const failure of failures) log(`FAILED: ${failure}`)
 
   // The traces are read before the data is removed, and judged even when the spec failed: they say why.
-  const problems = [
-    ...checkInstallerTrace(read(join(paths.dataDir, 'update-installer-trace.txt')), read(join(paths.dataDir, 'update-installer-trace-end.txt'))),
-    ...checkUpdateTrace(updateTraceOf(read(join(paths.dataDir, 'preferences.json'))), { from: installers.from.version, to: installers.to.version }),
-  ]
+  const installerStart = read(join(paths.dataDir, 'update-installer-trace.txt'))
+  const installerEnd = read(join(paths.dataDir, 'update-installer-trace-end.txt'))
+  const updateTrace = updateTraceOf(read(join(paths.dataDir, 'preferences.json')))
+  const problems = [...checkInstallerTrace(installerStart, installerEnd), ...checkUpdateTrace(updateTrace, { from: installers.from.version, to: installers.to.version })]
   for (const problem of problems) log(`TRACE: ${problem}`)
+
+  // What the update left, for whoever reads the log (BL-154): the old app's marks, the new app's, and the installer's two files. Only the
+  // fields `describeUpdateTrace` and `describeInstallerTrace` allow: the log of a public repository is public. It judges nothing.
+  for (const line of describeUpdateTrace(updateTrace)) log(`TRACE-DUMP: ${line}`)
+  for (const line of describeInstallerTrace(installerStart)) log(`INSTALLER-TRACE: ${line}`)
+  for (const line of describeInstallerTrace(installerEnd)) log(`INSTALLER-TRACE-END: ${line}`)
 
   // The uninstaller copies itself and returns at once: give it a moment, then take away what is left of the TEST product.
   for (let tries = 0; tries < 30 && existsSync(join(paths.installDir, 'uninstall.exe')); tries++) await wait(1_000)

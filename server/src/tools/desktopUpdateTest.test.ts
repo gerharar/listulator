@@ -3,7 +3,7 @@ import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
 import { makeKeyPair, signLikeTauri, type TestKeyPair } from './minisignTesting.js'
 import { buildWindowsKitScenarios } from './updaterTestKit.js'
-import { checkInstallerTrace, checkUpdateTrace, compareInstall, embeddedPubkeys, findAppExe, leftoverKeyFiles, NEGATIVE_CASES, parseRunArguments, pickInstallers, servedFiles, testAppPaths } from './desktopUpdateTest.js'
+import { checkInstallerTrace, checkUpdateTrace, compareInstall, describeInstallerTrace, describeUpdateTrace, embeddedPubkeys, findAppExe, leftoverKeyFiles, NEGATIVE_CASES, parseRunArguments, pickInstallers, servedFiles, testAppPaths } from './desktopUpdateTest.js'
 
 /**
  * Tests of the parts of the Windows update test that need no Windows (Phase 31, task 31.7): which two installers a folder holds, where
@@ -112,6 +112,94 @@ describe('checkUpdateTrace', () => {
   it('fails when the trace is missing or damaged', () => {
     expect(checkUpdateTrace(undefined, update)).toEqual([expect.stringMatching(/updateTrace/)])
     expect(checkUpdateTrace('{not json', update)).toEqual([expect.stringMatching(/updateTrace/)])
+  })
+})
+
+describe('describeUpdateTrace (BL-154: what a controlled update leaves, in the public CI log)', () => {
+  // The shape a Windows update leaves: the old app is ended during the download, so there is a `download-90%` and never a `download-finished`.
+  const windows = JSON.stringify({
+    entries: [
+      { t: 1_000_000, step: 'pressed', version: '1.0.0-rc.1', detail: '1.0.0-rc.2' },
+      { t: 1_000_250, step: 'download-started', version: '1.0.0-rc.1', detail: '7268132' },
+      { t: 1_001_900, step: 'download-90%', version: '1.0.0-rc.1' },
+      { t: 1_009_400, step: 'new-app-start', version: '1.0.0-rc.2', detail: 'from 1.0.0-rc.1' },
+      { t: 1_012_100, step: 'new-app-first-paint', version: '1.0.0-rc.2' },
+    ],
+  })
+
+  it('lists each mark in order with its version and the milliseconds since the first and since the one before', () => {
+    expect(describeUpdateTrace(windows)).toEqual([
+      '+0 ms (+0) pressed 1.0.0-rc.1',
+      '+250 ms (+250) download-started 1.0.0-rc.1',
+      '+1900 ms (+1650) download-90% 1.0.0-rc.1',
+      '+9400 ms (+7500) new-app-start 1.0.0-rc.2 from 1.0.0-rc.1',
+      '+12100 ms (+2700) new-app-first-paint 1.0.0-rc.2',
+    ])
+  })
+
+  it('says so, in one line, when the trace is missing, damaged or has no marks, and never throws', () => {
+    expect(describeUpdateTrace(undefined)).toEqual(['updateTrace is missing or not readable'])
+    expect(describeUpdateTrace('{not json')).toEqual(['updateTrace is missing or not readable'])
+    expect(describeUpdateTrace('{"entries":"x"}')).toEqual(['updateTrace is missing or not readable'])
+    expect(describeUpdateTrace('{"entries":[]}')).toEqual(['updateTrace has no marks'])
+  })
+
+  it('prints nothing but the step, the version, the time and new-app-start’s “from <version>”: the log is public', () => {
+    const lines = describeUpdateTrace(
+      JSON.stringify({
+        entries: [
+          { t: 5, step: 'pressed', version: '1.0.0', detail: 'C:\\Users\\Someone\\Secret list', title: 'My private list' },
+          { t: 9, step: 'new-app-start', version: '1.0.0', detail: 'from C:\\Users\\Someone', path: 'D:\\x' },
+        ],
+      }),
+    )
+
+    expect(lines.join('\n')).not.toMatch(/Someone|Secret|private|D:/)
+    expect(lines).toEqual(['+0 ms (+0) pressed 1.0.0', '+4 ms (+4) new-app-start 1.0.0'])
+  })
+
+  it('drops a mark whose step, version or time is not what the app writes, and keeps the others', () => {
+    const lines = describeUpdateTrace(
+      JSON.stringify({
+        entries: [
+          { t: 1, step: 'pressed', version: '1.0.0' },
+          { t: 'soon', step: 'download-started', version: '1.0.0' },
+          { t: 3, step: 'a long step with spaces and a <script>', version: '1.0.0' },
+          { t: 4, step: 'download-90%', version: 'x'.repeat(80) },
+          null,
+          { t: 6, step: 'new-app-start', version: '1.0.1', detail: 'from 1.0.0' },
+        ],
+      }),
+    )
+
+    expect(lines).toEqual(['+0 ms (+0) pressed 1.0.0', '+3 ms (+3) download-90%', '+5 ms (+2) new-app-start 1.0.1 from 1.0.0'])
+  })
+
+  it('shows at most 40 marks', () => {
+    const many = JSON.stringify({ entries: Array.from({ length: 60 }, (_, i) => ({ t: i, step: 'pressed', version: '1.0.0' })) })
+
+    expect(describeUpdateTrace(many)).toHaveLength(40)
+  })
+})
+
+describe('describeInstallerTrace', () => {
+  it('keeps the plain lines the installer’s hooks write, without the empty ones', () => {
+    const text = 'hook=preinstall passive=1 update=1 hwnd=0\r\ninstaller-process-start 1761662286517\r\n\r\nwindow-calls topmost=1 notopmost=1 setforeground=0 is-foreground=no\r\n'
+
+    expect(describeInstallerTrace(text)).toEqual([
+      'hook=preinstall passive=1 update=1 hwnd=0',
+      'installer-process-start 1761662286517',
+      'window-calls topmost=1 notopmost=1 setforeground=0 is-foreground=no',
+    ])
+  })
+
+  it('says so when the file is missing, and drops a line with anything but plain words, numbers and = . _ -', () => {
+    expect(describeInstallerTrace(undefined)).toEqual(['(missing)'])
+    expect(describeInstallerTrace('ok 1\nC:\\Users\\Someone\\file\nfine=2')).toEqual(['ok 1', 'fine=2'])
+  })
+
+  it('shows at most 20 lines', () => {
+    expect(describeInstallerTrace(Array.from({ length: 50 }, (_, i) => `line ${i}`).join('\n'))).toHaveLength(20)
   })
 })
 

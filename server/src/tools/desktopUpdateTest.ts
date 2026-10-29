@@ -77,6 +77,61 @@ export function checkUpdateTrace(raw: string | undefined, update: { from: string
   return problems
 }
 
+const MAX_TRACE_MARKS = 40
+const MAX_INSTALLER_LINES = 20
+const STEP = /^[A-Za-z0-9%-]{1,40}$/
+const VERSION = /^[0-9A-Za-z.+-]{1,32}$/
+const FROM_DETAIL = /^from [0-9A-Za-z.+-]{1,32}$/
+const HOOK_LINE = /^[A-Za-z0-9 =._-]{1,200}$/
+
+/**
+ * The app's `updateTrace` as lines for the CI log (BL-154): each mark in order with its version, the milliseconds since the first mark and
+ * since the one before, and, for `new-app-start` only, which version it came from. Logs of this public repository are public, so nothing
+ * else of the entry is printed (the marks of the download carry a size or a version, a future one could carry a path) and a mark whose step,
+ * version or time is not what the app writes is dropped. Never throws: an unreadable trace is one line saying so.
+ */
+export function describeUpdateTrace(raw: string | undefined): string[] {
+  let entries: unknown[]
+  try {
+    const parsed = JSON.parse(raw ?? '') as { entries?: unknown } | null
+    if (!Array.isArray(parsed?.entries)) throw new Error('no entries')
+    entries = parsed.entries
+  } catch {
+    return ['updateTrace is missing or not readable']
+  }
+  if (entries.length === 0) return ['updateTrace has no marks']
+
+  const lines: string[] = []
+  let first: number | undefined
+  let before: number | undefined
+  for (const candidate of entries) {
+    if (lines.length >= MAX_TRACE_MARKS) break
+    if (typeof candidate !== 'object' || candidate === null) continue
+    const { t, step, version, detail } = candidate as { t?: unknown; step?: unknown; version?: unknown; detail?: unknown }
+    if (typeof t !== 'number' || !Number.isFinite(t) || typeof step !== 'string' || !STEP.test(step)) continue
+
+    first ??= t
+    const text = [`+${Math.round(t - first)} ms (+${Math.round(t - (before ?? t))})`, step]
+    if (typeof version === 'string' && VERSION.test(version)) text.push(version)
+    if (step === 'new-app-start' && typeof detail === 'string' && FROM_DETAIL.test(detail)) text.push(detail)
+    lines.push(text.join(' '))
+    before = t
+  }
+
+  return lines.length > 0 ? lines : ['updateTrace has no readable marks']
+}
+
+/** One of the installer hooks' trace files as lines for the CI log: the plain lines the hooks write (words, numbers and = . _ -), at most 20. */
+export function describeInstallerTrace(text: string | undefined): string[] {
+  if (text === undefined) return ['(missing)']
+
+  return text
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter((line) => HOOK_LINE.test(line))
+    .slice(0, MAX_INSTALLER_LINES)
+}
+
 /** The app's program among the files of its install folder: the one `.exe` that is not the uninstaller. */
 export function findAppExe(files: string[]): string {
   const programs = files.filter((file) => /\.exe$/i.test(file) && !/^uninstall/i.test(file))
