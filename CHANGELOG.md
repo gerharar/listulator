@@ -9,6 +9,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 - Filter now also searches for group names
 - Fixed an issue with app update process not responding sometimes
+- Minor security fixes, as usual
 
 
 ## [1.2.1] - 28 October 2026
