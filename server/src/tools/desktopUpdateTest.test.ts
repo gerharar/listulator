@@ -123,34 +123,25 @@ describe('checkUpdateTrace', () => {
       expect(checkUpdateTrace(good(), update)).toEqual([])
     })
 
-    it.each([['pressed'], ['download-started'], ['download-90%']])('fails when the old app never marked %s before the new version started', (step) => {
-      const marks = oldApp(0).filter((mark) => mark.step !== step)
-
-      expect(checkUpdateTrace(trace(...marks, start), update)).toEqual([expect.stringContaining(step)])
+    it('accepts an update whose later marks were lost: the old app is ended right after the download and its last writes can lose that race', () => {
+      // Run 40905902133 (a passing controlled update): the final press has `pressed` and nothing after it. Asking for more makes a good update fail.
+      expect(checkUpdateTrace(trace(entry('pressed', 0, from), start), update)).toEqual([])
+      expect(checkUpdateTrace(trace(entry('pressed', 0, from), entry('download-started', 1, from), start), update)).toEqual([])
     })
 
-    it('says which marks are missing, all of them when the old app marked nothing', () => {
-      const problems = checkUpdateTrace(trace(start), update)
+    it('fails when the old app never marked pressed before the new version started: that mark is written seconds before the end', () => {
+      const marks = oldApp(0).filter((mark) => mark.step !== 'pressed')
 
-      expect(problems).toHaveLength(3)
-      expect(problems.join(' ')).toMatch(/pressed.*download-started.*download-90%/)
+      expect(checkUpdateTrace(trace(...marks, start), update)).toEqual([expect.stringContaining('pressed')])
+      expect(checkUpdateTrace(trace(start), update)).toEqual([expect.stringContaining('pressed')])
     })
 
-    it('does not take the marks of an earlier press for the update’s: the negative cases leave their own', () => {
-      const earlier = [...oldApp(0), entry('pressed', 10, from), entry('download-started', 11, from)]
-
-      expect(checkUpdateTrace(trace(...earlier, start), update)).toEqual([expect.stringContaining('download-90%')])
+    it('does not take a press of another version, or one written after the new version started', () => {
+      expect(checkUpdateTrace(trace(entry('pressed', 0, { version: '9.9.9' }), start), update)).toHaveLength(1)
+      expect(checkUpdateTrace(trace(start, entry('pressed', 100, from)), update)).toHaveLength(1)
     })
 
-    it('does not take marks of another version, or marks written after the new version started', () => {
-      const other = oldApp(0).map((mark) => ({ ...mark, version: '9.9.9' }))
-      const late = oldApp(100)
-
-      expect(checkUpdateTrace(trace(...other, start), update)).toHaveLength(3)
-      expect(checkUpdateTrace(trace(start, ...late), update)).toHaveLength(3)
-    })
-
-    it('judges only the marks when the new version never started: that is the one problem worth reading', () => {
+    it('judges only the press when the new version never started: that is the one problem worth reading', () => {
       expect(checkUpdateTrace(trace(...oldApp(0)), update)).toEqual([expect.stringMatching(/new-app-start/)])
     })
   })

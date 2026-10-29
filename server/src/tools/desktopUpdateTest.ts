@@ -77,24 +77,15 @@ export function checkUpdateTrace(raw: string | undefined, update: { from: string
     return problems
   }
 
-  // The old app's own marks (BL-154): three controlled Windows updates kept them all, so a missing one is a loss the real updates show too.
-  // `download-finished` is not asked for: the app is ended during the download, and it was there in 2 of 3 runs. The earlier presses of the
-  // negative cases leave marks of their own, so only what follows the LAST `pressed` of the old version before the new start is the update's.
-  const before = entries.slice(0, startAt)
-  const pressedAt = before.map((entry) => entry.step === 'pressed' && entry.version === update.from).lastIndexOf(true)
-  const ofUpdate = pressedAt < 0 ? before : before.slice(pressedAt)
-  if (pressedAt < 0) problems.push(`updateTrace has no pressed from ${update.from} before the new version's first start: the old app's marks of the update were lost`)
-  for (const step of OLD_APP_MARKS) {
-    if (!ofUpdate.some((entry) => entry.step === step && entry.version === update.from)) {
-      problems.push(`updateTrace has no ${step} from ${update.from} between the press and the new version's first start: the old app's mark was lost`)
-    }
-  }
+  // The old app's own mark (BL-154): `pressed` is written when the button is pressed, seconds before the app is ended, so a missing one is a
+  // loss the real updates show too. Nothing after it is asked for: the old app is ended right after the download, the marks go through the
+  // store plugin and its flush, and the last ones lose that race now and then (run 40905902133: a passing update with `pressed` and nothing
+  // after it; `download-finished` was missing in 1 of 3 runs before that). Asking for them would fail good updates.
+  const pressed = entries.slice(0, startAt).some((entry) => entry.step === 'pressed' && entry.version === update.from)
+  if (!pressed) problems.push(`updateTrace has no pressed from ${update.from} before the new version's first start: the old app's mark of the update was lost`)
 
   return problems
 }
-
-/** What the old app writes between the press and its end, and a controlled update always kept (`download-finished` may not get written). */
-const OLD_APP_MARKS = ['download-started', 'download-90%']
 
 const MAX_TRACE_MARKS = 40
 const MAX_INSTALLER_LINES = 20
