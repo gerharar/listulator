@@ -263,7 +263,7 @@ SOFTWARE.
 @tauri-apps/plugin-http 2.6.0 (MIT)
 @tauri-apps/plugin-opener 2.5.5 (MIT)
 @tauri-apps/plugin-sql 2.4.1 (MIT)
-@tauri-apps/plugin-store 2.4.4 (MIT)
+@tauri-apps/plugin-store 2.4.5 (MIT)
 
 SPDXVersion: SPDX-2.1
 DataLicense: CC0-1.0
@@ -10459,7 +10459,7 @@ tauri-plugin-http 2.6.0 (MIT)
 tauri-plugin-log 2.9.1 (MIT)
 tauri-plugin-opener 2.5.5 (MIT)
 tauri-plugin-sql 2.4.1 (MIT)
-tauri-plugin-store 2.4.4 (MIT)
+tauri-plugin-store 2.4.5 (MIT)
 tauri-plugin-updater 2.14.0 (MIT)
 tauri-plugin-window-state 2.4.1 (MIT)
 tauri-runtime 2.12.1 (MIT)
