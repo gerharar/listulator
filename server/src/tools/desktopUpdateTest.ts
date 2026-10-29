@@ -70,12 +70,31 @@ export function checkUpdateTrace(raw: string | undefined, update: { from: string
 
   const problems: string[] = []
   if (entries.some((entry) => entry.step === 'install-timed-out')) problems.push('updateTrace has install-timed-out: the app gave up waiting for the installer')
-  if (!entries.some((entry) => entry.step === 'new-app-start' && entry.version === update.to && entry.detail === `from ${update.from}`)) {
+  const startAt = entries.findIndex((entry) => entry.step === 'new-app-start' && entry.version === update.to && entry.detail === `from ${update.from}`)
+  if (startAt < 0) {
     problems.push(`updateTrace has no new-app-start from ${update.from} to ${update.to}: the new version never marked its first start after the update`)
+
+    return problems
+  }
+
+  // The old app's own marks (BL-154): three controlled Windows updates kept them all, so a missing one is a loss the real updates show too.
+  // `download-finished` is not asked for: the app is ended during the download, and it was there in 2 of 3 runs. The earlier presses of the
+  // negative cases leave marks of their own, so only what follows the LAST `pressed` of the old version before the new start is the update's.
+  const before = entries.slice(0, startAt)
+  const pressedAt = before.map((entry) => entry.step === 'pressed' && entry.version === update.from).lastIndexOf(true)
+  const ofUpdate = pressedAt < 0 ? before : before.slice(pressedAt)
+  if (pressedAt < 0) problems.push(`updateTrace has no pressed from ${update.from} before the new version's first start: the old app's marks of the update were lost`)
+  for (const step of OLD_APP_MARKS) {
+    if (!ofUpdate.some((entry) => entry.step === step && entry.version === update.from)) {
+      problems.push(`updateTrace has no ${step} from ${update.from} between the press and the new version's first start: the old app's mark was lost`)
+    }
   }
 
   return problems
 }
+
+/** What the old app writes between the press and its end, and a controlled update always kept (`download-finished` may not get written). */
+const OLD_APP_MARKS = ['download-started', 'download-90%']
 
 const MAX_TRACE_MARKS = 40
 const MAX_INSTALLER_LINES = 20

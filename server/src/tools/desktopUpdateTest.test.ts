@@ -87,8 +87,11 @@ describe('checkUpdateTrace', () => {
   const entry = (step: string, index: number, over: { detail?: string; version?: string } = {}) => ({ t: index, step, ...over })
   const trace = (...entries: ReturnType<typeof entry>[]) => JSON.stringify({ entries })
   const update = { from: '1.0.0-rc.1', to: '1.0.0-rc.2' }
-  const good = (...more: ReturnType<typeof entry>[]) =>
-    trace(entry('pressed', 0, { version: update.from }), entry('download-finished', 1, { version: update.from }), entry('new-app-start', 2, { version: update.to, detail: `from ${update.from}` }), ...more)
+  const from = { version: update.from }
+  const start = entry('new-app-start', 90, { version: update.to, detail: `from ${update.from}` })
+  // What a Windows update leaves (BL-154, three controlled runs): the old app is ended during the download, so `download-finished` may or may not be there.
+  const oldApp = (at: number) => [entry('pressed', at, from), entry('download-started', at + 1, from), entry('download-90%', at + 2, from)]
+  const good = (...more: ReturnType<typeof entry>[]) => trace(...oldApp(0), start, ...more)
 
   it('accepts the trace of an update that went through: the new version marks its first start as coming from the old one', () => {
     expect(checkUpdateTrace(good(), update)).toEqual([])
@@ -112,6 +115,44 @@ describe('checkUpdateTrace', () => {
   it('fails when the trace is missing or damaged', () => {
     expect(checkUpdateTrace(undefined, update)).toEqual([expect.stringMatching(/updateTrace/)])
     expect(checkUpdateTrace('{not json', update)).toEqual([expect.stringMatching(/updateTrace/)])
+  })
+
+  describe('the old app’s own marks of the update (BL-154)', () => {
+    it('accepts a trace with download-finished too, and one without: the old app may be ended before it writes it', () => {
+      expect(checkUpdateTrace(trace(...oldApp(0), entry('download-finished', 3, from), start), update)).toEqual([])
+      expect(checkUpdateTrace(good(), update)).toEqual([])
+    })
+
+    it.each([['pressed'], ['download-started'], ['download-90%']])('fails when the old app never marked %s before the new version started', (step) => {
+      const marks = oldApp(0).filter((mark) => mark.step !== step)
+
+      expect(checkUpdateTrace(trace(...marks, start), update)).toEqual([expect.stringContaining(step)])
+    })
+
+    it('says which marks are missing, all of them when the old app marked nothing', () => {
+      const problems = checkUpdateTrace(trace(start), update)
+
+      expect(problems).toHaveLength(3)
+      expect(problems.join(' ')).toMatch(/pressed.*download-started.*download-90%/)
+    })
+
+    it('does not take the marks of an earlier press for the update’s: the negative cases leave their own', () => {
+      const earlier = [...oldApp(0), entry('pressed', 10, from), entry('download-started', 11, from)]
+
+      expect(checkUpdateTrace(trace(...earlier, start), update)).toEqual([expect.stringContaining('download-90%')])
+    })
+
+    it('does not take marks of another version, or marks written after the new version started', () => {
+      const other = oldApp(0).map((mark) => ({ ...mark, version: '9.9.9' }))
+      const late = oldApp(100)
+
+      expect(checkUpdateTrace(trace(...other, start), update)).toHaveLength(3)
+      expect(checkUpdateTrace(trace(start, ...late), update)).toHaveLength(3)
+    })
+
+    it('judges only the marks when the new version never started: that is the one problem worth reading', () => {
+      expect(checkUpdateTrace(trace(...oldApp(0)), update)).toEqual([expect.stringMatching(/new-app-start/)])
+    })
   })
 })
 
