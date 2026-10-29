@@ -22,7 +22,7 @@ const APP = "$app = Get-Process | Where-Object { $_.Path -and $_.Path.StartsWith
 const events = (log: string): string =>
   `Get-WinEvent -FilterHashtable @{ LogName = '${log}'; StartTime = (Get-Date).AddMinutes(-5) } -MaxEvents 10 -ErrorAction Stop | Select-Object @{n='Time';e={$_.TimeCreated.ToString('HH:mm:ss')}}, Id, LevelDisplayName, @{n='Message';e={ $m = [string]$_.Message; $m = $m -replace '\\s+', ' '; $m.Substring(0, [Math]::Min(300, $m.Length)) }} | Format-List`
 
-/** Debugging Tools for Windows, where the runner image has them. */
+/** Debugging Tools for Windows, where the runner image has them. The debugger is given one folder of symbols, the one the runner kept (`DESKTOP_SYMBOLS`), and nothing is fetched. */
 const CDB_PATHS = ["C:\\Program Files (x86)\\Windows Kits\\10\\Debuggers\\x64\\cdb.exe", 'C:\\Program Files\\Windows Kits\\10\\Debuggers\\x64\\cdb.exe']
 
 export const HANG_DUMP_SECTIONS: readonly HangDumpSection[] = [
@@ -52,7 +52,7 @@ export const HANG_DUMP_SECTIONS: readonly HangDumpSection[] = [
   {
     label: 'stacks of the app (cdb)',
     max: 400,
-    body: `${APP}; $cdb = @(${CDB_PATHS.map((path) => `'${path}'`).join(', ')}) | Where-Object { Test-Path $_ } | Select-Object -First 1; if (-not $app) { 'no process of the test app' } elseif (-not $cdb) { 'cdb.exe is not on this machine' } else { & $cdb -pv -p $app.Id -c '~*k 14;q' }`,
+    body: `${APP}; $cdb = @(${CDB_PATHS.map((path) => `'${path}'`).join(', ')}) | Where-Object { Test-Path $_ } | Select-Object -First 1; $syms = if ($env:DESKTOP_SYMBOLS) { $env:DESKTOP_SYMBOLS } else { 'C:\\Windows\\Temp' }; if (-not $app) { 'no process of the test app' } elseif (-not $cdb) { 'cdb.exe is not on this machine' } else { & $cdb -pv -p $app.Id -y $syms -c '~*k 14;q' }`,
   },
 ]
 

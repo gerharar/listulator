@@ -34,10 +34,11 @@ function problemsOf(text: string): string[] {
   if (/\.Kill\(|\.Dispose\(|Invoke-Expression|\biex\b|DownloadFile|DownloadString|WebClient|Net\.Http/i.test(text)) problems.push('a call that changes, downloads or runs text')
   if (/>/.test(text)) problems.push('a redirection')
   const variables = new Set([...text.matchAll(/\$env:(\w+)/gi)].map((match) => match[1]!.toUpperCase()))
-  if ([...variables].some((name) => name !== 'DESKTOP_INSTALL_DIR')) problems.push('an environment variable other than DESKTOP_INSTALL_DIR')
+  if ([...variables].some((name) => name !== 'DESKTOP_INSTALL_DIR' && name !== 'DESKTOP_SYMBOLS')) problems.push('an environment variable other than DESKTOP_INSTALL_DIR and DESKTOP_SYMBOLS')
+  if (/srv\*|https?:|\\\\[a-z0-9.-]+\\|_NT_SYMBOL_PATH|symsrv|\.sympath/i.test(text)) problems.push('a symbol server or a network path: symbols come from the folder the runner kept, nothing is fetched')
   if (/CommandLine|Environment|\.Modules|MainModule/i.test(text)) problems.push('command lines or modules')
   const calls = text.match(/&\s*\$cdb\b[^\n]*/g) ?? []
-  if (calls.length > 1 || calls.some((call) => !/-pv\s+-p\s+\$app\.Id\s+-c\s+'~\*k 14;q'/.test(call))) problems.push('the debugger is called other than once, attached without control, to list stacks')
+  if (calls.length > 1 || calls.some((call) => !/-pv\s+-p\s+\$app\.Id\s+-y\s+\$syms\s+-c\s+'~\*k 14;q'/.test(call))) problems.push('the debugger is called other than once, attached without control, to list stacks')
   if (/\.dump|-z\s|-pd\b|-pb\b|-c\s+'[^']*(\.kill|\.detach|g;|!heap)/i.test(text)) problems.push('a debugger command that dumps memory or controls the app')
 
   return problems
@@ -58,13 +59,21 @@ describe('the hang dump script (read-only)', () => {
     ['a command line', `${script}\nGet-CimInstance Win32_Process | Select-Object CommandLine`, /command lines/],
     ['a memory dump through the debugger', script.replace("'~*k 14;q'", "'.dump /ma x.dmp;q'"), /debugger/],
     ['an invasive attach', script.replace('-pv -p', '-p'), /debugger/],
-    ['a second debugger call', `${script}\n& $cdb -pv -p $app.Id -c '~*k 14;q'`, /debugger/],
+    ['a second debugger call', `${script}\n& $cdb -pv -p $app.Id -y $syms -c '~*k 14;q'`, /debugger/],
+    ['a symbol server', script.replace('-y $syms', '-y srv*C:\\sym*https://msdl.microsoft.com/download/symbols'), /symbol server|debugger/],
+    ['a symbol path from the network', script.replace('-y $syms', '-y \\\\host\\share'), /symbol server|debugger/],
+    ['the symbol path set for the whole machine', `${script}\n$env:_NT_SYMBOL_PATH = 'x'`, /symbol server|environment variable/],
   ])('catches %s', (_label, mutated, expected) => {
     expect(problemsOf(mutated).join(' | ')).toMatch(expected)
   })
 })
 
 describe('the hang dump sections', () => {
+  it('gives the debugger the folder of symbols the runner kept (DESKTOP_SYMBOLS), and a folder with none when the runner kept nothing', () => {
+    expect(script).toMatch(/\$syms = if \(\$env:DESKTOP_SYMBOLS\) \{ \$env:DESKTOP_SYMBOLS \} else \{ 'C:\\Windows\\Temp' \}/)
+    expect(script).toMatch(/-y \$syms -c '~\*k 14;q'/)
+  })
+
   it('has balanced braces, brackets, parentheses and quotes: no PowerShell is at hand to parse it, so typos are caught here', () => {
     const count = (pattern: RegExp) => (script.match(pattern) ?? []).length
 

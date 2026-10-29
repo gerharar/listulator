@@ -419,6 +419,14 @@ function updaterTestProblems(workflow: Workflow): string[] {
     if (!exactly) problems.push('the repeats step is not exactly one Set-Content of the checked repeats into updater-test-out/repeats.txt, with only REPEATS in its env')
     if (upload === undefined || index < upload.index || deleting.some((step) => step.index < index)) problems.push("writes the repeats file outside the window between the upload and the key's deletion")
   }
+  // The older app's debugging symbols (BL-116) are kept by two lines of the FIRST build step, before the update's build overwrites them, and
+  // go nowhere: no other line names the folder, and the upload lists none of it (its exact names are checked below).
+  const SYMBOL_LINES = ['New-Item -ItemType Directory -Force -Path updater-test-symbols | Out-Null', 'Copy-Item apps/desktop/src-tauri/target/release/*.pdb updater-test-symbols']
+  const firstBuildStep = indexed.find(({ run }) => codeOf(run).some((line) => /^npm run tauri:build\b/.test(line)))
+  const symbolLines = lines.filter(({ line }) => /updater-test-symbols/.test(line))
+  if (JSON.stringify(symbolLines.map(({ line }) => line)) !== JSON.stringify(SYMBOL_LINES) || symbolLines.some(({ index }) => index !== firstBuildStep?.index)) {
+    problems.push('the symbols folder is touched other than by its two lines in the first build step')
+  }
   const before = (pattern: RegExp) => lines.some(({ line, index }) => pattern.test(line) && (upload === undefined || index < upload.index))
   if (!before(/updater:test-config -- verify\b/)) problems.push('does not verify the signed installer before the upload')
   if (!before(/updater:test-config -- staging\b/)) problems.push('does not check the upload folder for the key before the upload')

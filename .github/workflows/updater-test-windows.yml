@@ -123,6 +123,10 @@ jobs:
           if (-not (Test-Path $built)) { throw "No $name was built" }
           New-Item -ItemType Directory -Force -Path updater-test-out | Out-Null
           Copy-Item $built updater-test-out
+          # The debugging symbols of this app, kept before the update's build overwrites them (BL-116): the update test hands the folder to the
+          # debugger when the update hangs, so the stacks name the functions. Never uploaded; the folder is not the artifact's.
+          New-Item -ItemType Directory -Force -Path updater-test-symbols | Out-Null
+          Copy-Item apps/desktop/src-tauri/target/release/*.pdb updater-test-symbols
 
       - name: Build the update
         shell: pwsh

@@ -692,6 +692,21 @@ describe('the updater test build', () => {
       expect(steps[0]?.run).toContain("$env:REPEATS -notmatch '^([1-9]|1[0-9]|20)$'")
     })
 
+    it('keeps the older app’s debugging symbols for the debugger before the update’s build overwrites them: two lines in the first build step, uploaded nowhere', () => {
+      const building = steps.filter((step) => /\btauri:build\b/.test(step.run ?? ''))
+      const keeping = steps.filter((step) => /updater-test-symbols/.test(step.run ?? ''))
+      const code = (step: (typeof steps)[number] | undefined) => (step?.run ?? '').split('\n').map((line) => line.trim()).filter((line) => line !== '')
+
+      expect(building).toHaveLength(2)
+      expect(keeping).toEqual([building[0]])
+      expect(code(building[0]).filter((line) => /updater-test-symbols/.test(line))).toEqual([
+        'New-Item -ItemType Directory -Force -Path updater-test-symbols | Out-Null',
+        'Copy-Item apps/desktop/src-tauri/target/release/*.pdb updater-test-symbols',
+      ])
+      // Named nowhere else in the file: not in the upload, not in a comment that a later edit could turn into a line.
+      expect(text.match(/updater-test-symbols/g)).toHaveLength(2)
+    })
+
     it('leaves the checked repeats in the folder the update test reads, from one step that carries nothing else, between the upload and the key’s deletion', () => {
       const writing = steps.filter((step) => /repeats\.txt/.test(step.run ?? ''))
       const at = (matching: RegExp) => steps.findIndex((step) => matching.test(`${step.run ?? ''} ${step.uses ?? ''}`))
@@ -829,6 +844,10 @@ describe('the updater test build', () => {
       ['the repeats step with a line more', (t) => t.replace('-Value $env:REPEATS -NoNewline', '-Value $env:REPEATS -NoNewline\n          Get-ChildItem'), /repeats step is not exactly/],
       ['the repeats step with an environment of its own', (t) => t.replace('          REPEATS: ${{ inputs.repeats }}\n        run: |\n          Set-Content', '          REPEATS: ${{ inputs.repeats }}\n          NODE_OPTIONS: --require x.js\n        run: |\n          Set-Content'), /repeats step is not exactly/],
       ['the repeats file written elsewhere', (t) => t.replace('-Path updater-test-out/repeats.txt', '-Path repeats.txt'), /repeats step is not exactly/],
+      ['the symbols folder uploaded', (t) => t.replace('updater-test-out/latest.json', 'updater-test-symbols/listulator_desktop.pdb'), /not an exact file name|symbols folder/],
+      ['a line more on the symbols folder', (t) => t.replace('Copy-Item apps/desktop/src-tauri/target/release/*.pdb updater-test-symbols', 'Copy-Item apps/desktop/src-tauri/target/release/*.pdb updater-test-symbols\n          Get-ChildItem updater-test-symbols'), /symbols folder/],
+      ['the symbols folder filled from somewhere else', (t) => t.replace('Copy-Item apps/desktop/src-tauri/target/release/*.pdb updater-test-symbols', 'Copy-Item $env:RUNNER_TEMP updater-test-symbols'), /symbols folder|outside the allowed commands/],
+      ['the symbols kept by the update’s build instead (too late: it has overwritten them)', (t) => { const two = "          New-Item -ItemType Directory -Force -Path updater-test-symbols | Out-Null\n          Copy-Item apps/desktop/src-tauri/target/release/*.pdb updater-test-symbols\n"; return t.replace(two, '').replace("          if (-not (Test-Path $built)) { throw \"No $name was built\" }\n          Copy-Item $built updater-test-out\n\n      # On Windows", `          if (-not (Test-Path $built)) { throw "No $name was built" }\n          Copy-Item $built updater-test-out\n${two}\n      # On Windows`) }, /symbols folder/],
       ['the repeats file written before the upload', (t) => { const step = t.match(/ {6}- name: How many updates[\s\S]*?(?= {6}- name: Delete the run's key)/)![0]; return t.replace(step, '').replace('      - uses: actions/upload-artifact@', `${step}      - uses: actions/upload-artifact@`) }, /repeats file outside/],
     ]
 

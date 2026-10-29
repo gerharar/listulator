@@ -222,7 +222,16 @@ async function runOnce(folder: string, deps: RunDeps, updateOnly: boolean): Prom
 
     log(`Update test: ${installers.from.version} -> ${installers.to.version}`)
     const playwright = createRequire(import.meta.url).resolve('@playwright/test/cli')
-    const specEnv = { ...deps.env, DESKTOP_APP_EXE: exe, DESKTOP_INSTALL_DIR: paths.installDir, DESKTOP_FROM: installers.from.version, DESKTOP_TO: installers.to.version }
+    // The symbols of the app that is installed (the workflow kept them), for the debugger when the update hangs; empty when there are none.
+    const symbols = join(REPO_ROOT, 'updater-test-symbols')
+    const specEnv = {
+      ...deps.env,
+      DESKTOP_APP_EXE: exe,
+      DESKTOP_INSTALL_DIR: paths.installDir,
+      DESKTOP_FROM: installers.from.version,
+      DESKTOP_TO: installers.to.version,
+      DESKTOP_SYMBOLS: existsSync(symbols) ? symbols : '',
+    }
     // Awaited, not spawnSync: this process also serves the update, and a blocked event loop would never answer the app's check.
     const runSpec = (file: string, extra: Record<string, string> = {}): Promise<number> =>
       new Promise<number>((done) => {
