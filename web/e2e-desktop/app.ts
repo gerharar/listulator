@@ -1,6 +1,7 @@
 import { spawnSync } from 'node:child_process'
 import { join } from 'node:path'
 import { chromium, type Browser, type Page } from '@playwright/test'
+import { hangDumpScript } from '../../server/src/tools/hangDump.js'
 
 /**
  * Reaching the installed test app from a spec (Phase 31, tasks 31.7 and 31.8): through WebView2's debugging port, which the test build's
@@ -93,5 +94,22 @@ export function describeMachine(): string {
   const powershell = join(process.env['SystemRoot'] ?? 'C:\\Windows', 'System32', 'WindowsPowerShell', 'v1.0', 'powershell.exe')
   const done = spawnSync(powershell, ['-NoProfile', '-NonInteractive', '-Command', script], { encoding: 'utf8', env: { ...process.env, DESKTOP_INSTALL_DIR: INSTALL_DIR } })
 
-  return `${done.stdout}${done.stderr}`.trim()
+  return `${done.stdout}${done.stderr}`.trim() + '\n\n' + describeHang(powershell)
+}
+
+/**
+ * What Windows knows about the stuck machine (BL-116, Phase 41.2): the app's threads, windows, new programs, recent events and, where the
+ * image has `cdb.exe`, the app's stacks. `server/src/tools/hangDump.ts` is the read-only script (`hangDump.guard.test.ts` pins that). It goes in
+ * encoded so no quoting of the Windows command line can change it, and it is cut off after 150 s so a debugger that does not return cannot hold the run.
+ */
+function describeHang(powershell: string): string {
+  const encoded = Buffer.from(hangDumpScript(), 'utf16le').toString('base64')
+  const done = spawnSync(powershell, ['-NoProfile', '-NonInteractive', '-EncodedCommand', encoded], {
+    encoding: 'utf8',
+    timeout: 150_000,
+    env: { ...process.env, DESKTOP_INSTALL_DIR: INSTALL_DIR },
+  })
+  const cutOff = done.error === undefined ? '' : `\n(the dump was cut off: ${done.error.message.slice(0, 120)})`
+
+  return `HANG DUMP\n${done.stdout ?? ''}${done.stderr ?? ''}`.trim() + cutOff
 }
