@@ -1,34 +1,50 @@
 # Get an IGDB key
 
-**Used for:** searching video games.
-**Site:** [dev.twitch.tv](https://dev.twitch.tv)
-**Last checked:** _not yet written up_
+- **Used for:** searching video games
+- **Site:** [The Internet Game Database](https://www.igdb.com)
+- **Last checked:** 30 Oct 2026
 
-IGDB runs on Twitch's sign-in, so the key is a **Client ID** and a **Client Secret** from a Twitch application. Both go into Listulator.
+**Note**: IGDB runs on Twitch's authentication, so while the database you'll be searching is IGDB, the key is created in Twitch developer console
 
-## 1. Make a Twitch account with two-factor sign-in
+## 1. Make a Twitch account and enable two-factor authentication
 
-Create a Twitch account and turn on **Two-Factor Authentication** (Twitch will not let you create an application without it).
+Create a Twitch account if you don't have it and go to **Settings**:
 
-<!-- TODO screenshot: images/igdb-1-two-factor.png — Twitch security settings with 2FA on -->
+![Twitch - Settings](images/igdb-01.png)
+
+Open **Security and Privacy**, add your phone number and **Set Up Two-Factor Authentication** (Twitch will not let you create an application without it)
+
+![Twitch - 2FA](images/igdb-02.png)
 
 ## 2. Register an application
 
-Open the [Twitch Developer Portal](https://dev.twitch.tv/console) → **Applications** → **Register Your Application**:
+Open the [Twitch Developer Portal](https://dev.twitch.tv/console), go to **Applications** and hit **Register Your Application**:
 
-- **Name:** anything
+![Twitch Dev Console - Apps](images/igdb-03.png)
+
+Provide application details in the form:
+
+![Twitch Dev Console - App Registration](images/igdb-04.png)
+
+- **Name:** *anything (should be something unique)*
 - **OAuth Redirect URLs:** `http://localhost`
 - **Category:** Application Integration
 - **Client type:** Confidential
 
-<!-- TODO screenshot: images/igdb-2-register-app.png — the registration form, filled in -->
+## 3. Generate a Client Secret
 
-## 3. Generate a secret
+Click **Manage** next to your application: 
 
-Click **Manage** next to your application, then **New Secret**.
+![Twitch Dev Console - Apps](images/igdb-05.png)
 
-<!-- TODO screenshot: images/igdb-3-new-secret.png — the Manage page with the Client ID and New Secret button; hide the secret -->
+Note your Client ID at the bottom:
+
+![Twitch Dev Console - Client ID](images/igdb-06.png)
+
+Hit **New Secret** under your Client ID:
+
+![Twitch Dev Console - Client Secret](images/igdb-06.png)
 
 ## 4. Copy both into Listulator
 
-Copy the **Client ID** and the **Client Secret**, open **Settings → API keys** in Listulator, paste both into the IGDB row and press **Test**. The pill should say **Working**.
+You're almost done. Go to **Settings** in Listulator, paste both *Client ID* and *Client Secret* into the *IGDB* row and press **Test**. The app should say **Working**. Enjoy searching IGDB in Listulator!
