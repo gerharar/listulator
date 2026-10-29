@@ -159,16 +159,90 @@ export function findAppExe(files: string[]): string {
   return programs[0]!
 }
 
+export interface RunArguments {
+  dir: string
+  /** Skip the negative cases: only the real update runs (set for many updates in a row, BL-116). */
+  updateOnly: boolean
+  /** How many updates to try, when the command line says so; the folder's `repeats.txt` says otherwise (`parseRepeats`). */
+  repeats?: number
+}
+
+/** The most updates one run may try in a row (the workflow validates the same range before anything else). */
+export const MAX_REPEATS = 20
+const REPEATS = /^(?:[1-9]|1[0-9]|20)$/
+const REPEATS_SENTENCE = `repeats must be a whole number from 1 to ${MAX_REPEATS}`
+
 /** The command line as a value, or a sentence saying what is wrong with it. */
-export function parseRunArguments(args: readonly string[]): { dir: string } | string {
+export function parseRunArguments(args: readonly string[]): RunArguments | string {
   let dir: string | undefined
-  for (const arg of args) {
-    if (arg.startsWith('-')) return `unknown option ${JSON.stringify(arg).slice(0, 30)}`
-    if (dir !== undefined) return 'only one folder can be given'
-    dir = arg
+  let updateOnly = false
+  let repeats: number | undefined
+  for (let at = 0; at < args.length; at += 1) {
+    const arg = args[at]!
+    if (arg === '--update-only') {
+      updateOnly = true
+    } else if (arg === '--repeats') {
+      const value = args[at + 1]
+      if (value === undefined || !REPEATS.test(value)) return `--repeats needs a value: ${REPEATS_SENTENCE}`
+      repeats = Number(value)
+      at += 1
+    } else if (arg.startsWith('-')) {
+      return `unknown option ${JSON.stringify(arg).slice(0, 30)}`
+    } else {
+      if (dir !== undefined) return 'only one folder can be given'
+      dir = arg
+    }
   }
 
-  return dir === undefined ? 'name the folder that holds the two test installers, latest.json and the update\'s .sig' : { dir }
+  return dir === undefined ? 'name the folder that holds the two test installers, latest.json and the update\'s .sig' : { dir, updateOnly, ...(repeats === undefined ? {} : { repeats }) }
+}
+
+/** The number in the folder's `repeats.txt` (the workflow leaves its checked input there): one when there is no file; a sentence when it is not 1 to 20. */
+export function parseRepeats(text: string | undefined): number | string {
+  if (text === undefined) return 1
+  const trimmed = text.trim()
+
+  return REPEATS.test(trimmed) ? Number(trimmed) : `repeats.txt must hold a whole number from 1 to ${MAX_REPEATS}`
+}
+
+export type UpdateOutcome = 'passed' | 'hung' | 'failed'
+
+/** How long a run keeps starting updates: a hang costs about 7 minutes, and the workflow's job ends after 90 with the build's 10 inside. */
+const REPEAT_BUDGET_MS = 60 * 60_000
+
+/**
+ * Many updates in a row for one build (BL-116): each one is `once(n)`, in order, whatever happened to the one before. Prints
+ * `UPDATE n of N: ...` for each and a total; returns 0 only when every update passed. No new update starts after the budget is used.
+ */
+export async function runRepeated(
+  count: number,
+  once: (n: number) => Promise<UpdateOutcome>,
+  log: (line: string) => void,
+  now: () => number = Date.now,
+  budgetMs: number = REPEAT_BUDGET_MS,
+): Promise<number> {
+  const started = now()
+  const tally = { passed: 0, hung: 0, failed: 0, skipped: 0 }
+  const word = { passed: 'passed', hung: 'HUNG', failed: 'FAILED' } as const
+  for (let n = 1; n <= count; n += 1) {
+    if (now() - started >= budgetMs) {
+      tally.skipped += 1
+      log(`UPDATE ${n} of ${count}: not started (the time budget is used)`)
+      continue
+    }
+    let outcome: UpdateOutcome
+    try {
+      outcome = await once(n)
+    } catch (error) {
+      log(`UPDATE ${n} of ${count} stopped with: ${(error instanceof Error ? error.message : String(error)).slice(0, 200)}`)
+      outcome = 'failed'
+    }
+    tally[outcome] += 1
+    log(`UPDATE ${n} of ${count}: ${word[outcome]}`)
+  }
+  log(`UPDATES: ${tally.passed} passed, ${tally.hung} hung, ${tally.failed} failed, ${tally.skipped} not started, of ${count}`)
+
+  return tally.passed === count ? 0 : 1
 }
 
 /** The files the update server needs, by name: the manifest, the newer installer and its signature. The older installer is only run, and nothing else in the folder is served. */

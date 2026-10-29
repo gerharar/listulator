@@ -3,7 +3,7 @@ import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
 import { makeKeyPair, signLikeTauri, type TestKeyPair } from './minisignTesting.js'
 import { buildWindowsKitScenarios } from './updaterTestKit.js'
-import { checkInstallerTrace, checkUpdateTrace, compareInstall, describeInstallerTrace, describeUpdateTrace, embeddedPubkeys, findAppExe, leftoverKeyFiles, NEGATIVE_CASES, parseRunArguments, pickInstallers, servedFiles, testAppPaths } from './desktopUpdateTest.js'
+import { checkInstallerTrace, checkUpdateTrace, compareInstall, describeInstallerTrace, describeUpdateTrace, embeddedPubkeys, findAppExe, leftoverKeyFiles, NEGATIVE_CASES, parseRepeats, parseRunArguments, runRepeated, pickInstallers, servedFiles, testAppPaths } from './desktopUpdateTest.js'
 
 /**
  * Tests of the parts of the Windows update test that need no Windows (Phase 31, task 31.7): which two installers a folder holds, where
@@ -257,8 +257,23 @@ describe('findAppExe', () => {
 })
 
 describe('parseRunArguments', () => {
-  it('takes the folder of the installers and nothing else', () => {
-    expect(parseRunArguments(['C:\\out'])).toEqual({ dir: 'C:\\out' })
+  it('takes the folder of the installers and, by default, nothing else', () => {
+    expect(parseRunArguments(['C:\\out'])).toEqual({ dir: 'C:\\out', updateOnly: false })
+  })
+
+  it('takes --update-only (no negative cases) and --repeats <n>, in any place', () => {
+    expect(parseRunArguments(['C:\\out', '--update-only'])).toEqual({ dir: 'C:\\out', updateOnly: true })
+    expect(parseRunArguments(['--repeats', '7', 'C:\\out'])).toEqual({ dir: 'C:\\out', updateOnly: false, repeats: 7 })
+    expect(parseRunArguments(['C:\\out', '--update-only', '--repeats', '20'])).toEqual({ dir: 'C:\\out', updateOnly: true, repeats: 20 })
+  })
+
+  it.each([['0'], ['21'], ['-1'], ['2.5'], ['ten'], ['1e1'], [' 3'], ['']])('refuses --repeats %j: a whole number from 1 to 20', (value) => {
+    expect(parseRunArguments(['C:\\out', '--repeats', value])).toEqual(expect.stringMatching(/repeats/))
+  })
+
+  it('refuses --repeats without a value, and a value that is another option', () => {
+    expect(parseRunArguments(['C:\\out', '--repeats'])).toEqual(expect.stringMatching(/repeats/))
+    expect(parseRunArguments(['C:\\out', '--repeats', '--update-only'])).toEqual(expect.stringMatching(/repeats/))
   })
 
   it.each([
@@ -267,6 +282,72 @@ describe('parseRunArguments', () => {
     ['an option it does not know', ['a', '--cut-after', '5'], /unknown option/],
   ])('says what is wrong with %s', (_label, args, message) => {
     expect(parseRunArguments(args)).toEqual(expect.stringMatching(message))
+  })
+})
+
+describe('parseRepeats (the number the workflow leaves in the folder)', () => {
+  it('is one when there is no file, and the number in it otherwise, spaces and a final line break allowed', () => {
+    expect(parseRepeats(undefined)).toBe(1)
+    expect(parseRepeats('1')).toBe(1)
+    expect(parseRepeats('10\r\n')).toBe(10)
+    expect(parseRepeats('  20 ')).toBe(20)
+  })
+
+  it.each([[''], ['0'], ['21'], ['3 4'], ['3\n4'], ['abc'], ['1; exit 0'], ['١٢'], ['-5']])('refuses %j with a sentence, never a number', (text) => {
+    expect(parseRepeats(text)).toEqual(expect.stringMatching(/1 to 20/))
+  })
+})
+
+describe('runRepeated (many updates for one build, BL-116)', () => {
+  const lines = () => {
+    const out: string[] = []
+    return { out, log: (line: string) => out.push(line) }
+  }
+
+  it('runs every update after the one before, whatever happens to it, and is good only when all passed', async () => {
+    const { out, log } = lines()
+    const asked: number[] = []
+    const outcomes = ['passed', 'hung', 'failed', 'passed'] as const
+
+    const code = await runRepeated(4, async (n) => (asked.push(n), outcomes[n - 1]!), log)
+
+    expect(asked).toEqual([1, 2, 3, 4])
+    expect(code).toBe(1)
+    expect(out).toEqual([
+      'UPDATE 1 of 4: passed',
+      'UPDATE 2 of 4: HUNG',
+      'UPDATE 3 of 4: FAILED',
+      'UPDATE 4 of 4: passed',
+      'UPDATES: 2 passed, 1 hung, 1 failed, 0 not started, of 4',
+    ])
+  })
+
+  it('returns 0 when every update passed', async () => {
+    const { out, log } = lines()
+
+    expect(await runRepeated(3, async () => 'passed', log)).toBe(0)
+    expect(out.at(-1)).toBe('UPDATES: 3 passed, 0 hung, 0 failed, 0 not started, of 3')
+  })
+
+  it('stops starting updates when the time budget is used, and says which were not started', async () => {
+    const { out, log } = lines()
+    let clock = 0
+    const asked: number[] = []
+
+    const code = await runRepeated(5, async (n) => (asked.push(n), (clock += 20 * 60_000), 'passed'), log, () => clock, 45 * 60_000)
+
+    expect(asked).toEqual([1, 2, 3])
+    expect(code).toBe(1)
+    expect(out.slice(-3)).toEqual(['UPDATE 4 of 5: not started (the time budget is used)', 'UPDATE 5 of 5: not started (the time budget is used)', 'UPDATES: 3 passed, 0 hung, 0 failed, 2 not started, of 5'])
+  })
+
+  it('counts an update whose run threw as failed and goes on', async () => {
+    const { out, log } = lines()
+
+    const code = await runRepeated(2, async (n) => (n === 1 ? Promise.reject(new Error('boom')) : 'passed'), log)
+
+    expect(code).toBe(1)
+    expect(out.slice(0, 3)).toEqual([expect.stringContaining('boom'), 'UPDATE 1 of 2: FAILED', 'UPDATE 2 of 2: passed'])
   })
 })
 

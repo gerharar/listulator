@@ -407,6 +407,18 @@ function updaterTestProblems(workflow: Workflow): string[] {
   for (const { step, run } of testing) {
     if (JSON.stringify(Object.keys(step).sort()) !== JSON.stringify(['name', 'run', 'shell']) || codeOf(run).length !== 2) problems.push('the update test step has more than its name, its shell and its two lines')
   }
+  // The checked repeats reach the test as data, in one file of the folder it reads, written by one step that carries nothing else, after the upload
+  // (the file is not uploaded) and before the key goes: the update test's own step keeps its two lines and no environment.
+  const writingRepeats = indexed.filter(({ run }) => /repeats\.txt/.test(run))
+  if (writingRepeats.length !== 1) problems.push(`writes the repeats file in ${writingRepeats.length} steps, not one`)
+  for (const { step, run, index } of writingRepeats) {
+    const exactly =
+      JSON.stringify(Object.keys(step).sort()) === JSON.stringify(['env', 'name', 'run', 'shell']) &&
+      JSON.stringify(step.env) === JSON.stringify({ REPEATS: '${{ inputs.repeats }}' }) &&
+      JSON.stringify(codeOf(run)) === JSON.stringify(['Set-Content -Path updater-test-out/repeats.txt -Value $env:REPEATS -NoNewline'])
+    if (!exactly) problems.push('the repeats step is not exactly one Set-Content of the checked repeats into updater-test-out/repeats.txt, with only REPEATS in its env')
+    if (upload === undefined || index < upload.index || deleting.some((step) => step.index < index)) problems.push("writes the repeats file outside the window between the upload and the key's deletion")
+  }
   const before = (pattern: RegExp) => lines.some(({ line, index }) => pattern.test(line) && (upload === undefined || index < upload.index))
   if (!before(/updater:test-config -- verify\b/)) problems.push('does not verify the signed installer before the upload')
   if (!before(/updater:test-config -- staging\b/)) problems.push('does not check the upload folder for the key before the upload')
@@ -480,6 +492,10 @@ function updaterTestProblems(workflow: Workflow): string[] {
     !/\bthrow\b/.test(firstRun)
   ) {
     problems.push('does not check the two versions first (before the checkout and before the key)')
+  }
+  // The number of updates to try (BL-116) is checked in that same first step, as a whole number from 1 to 20, before anything uses it.
+  if (first?.env?.['REPEATS'] !== '${{ inputs.repeats }}' || !/\$env:REPEATS\s+-notmatch\s+'\^\(\[1-9\]\|1\[0-9\]\|20\)\$'/.test(firstRun) || !/\bthrow\b/.test(firstRun)) {
+    problems.push('does not check the repeats first (a whole number from 1 to 20, before the checkout and before the key)')
   }
 
   // One artifact, an exact list of names: the two installers, the update's signature and the manifest. Nothing the key could ride along in.

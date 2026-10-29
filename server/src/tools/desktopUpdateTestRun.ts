@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os'
 import { createRequire } from 'node:module'
 import { join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { checkInstallerTrace, checkUpdateTrace, compareInstall, describeInstallerTrace, describeUpdateTrace, embeddedPubkeys, findAppExe, leftoverKeyFiles, NEGATIVE_CASES, parseRunArguments, pickInstallers, servedFiles, testAppPaths, type FileState } from './desktopUpdateTest.js'
+import { checkInstallerTrace, checkUpdateTrace, compareInstall, describeInstallerTrace, describeUpdateTrace, embeddedPubkeys, findAppExe, leftoverKeyFiles, NEGATIVE_CASES, parseRepeats, parseRunArguments, pickInstallers, runRepeated, servedFiles, testAppPaths, type FileState, type UpdateOutcome } from './desktopUpdateTest.js'
 import { isRunDirectly } from './runDirectly.js'
 import { DEFAULT_PORT, startUpdaterServer } from './updaterServe.js'
 import { buildWindowsKitScenarios } from './updaterTestKit.js'
@@ -99,10 +99,36 @@ export async function run(args: readonly string[], deps: RunDeps): Promise<numbe
   }
   const parsed = parseRunArguments(args)
   if (typeof parsed === 'string') {
-    log(`${parsed}\nUsage: npm run test:desktop-update -- <folder>`)
+    log(`${parsed}\nUsage: npm run test:desktop-update -- <folder> [--update-only] [--repeats <1 to 20>]`)
 
     return 1
   }
+  // How many updates: the command line, else the number the workflow left in the folder (it checked its input first; this checks it again), else one.
+  const repeats = parsed.repeats ?? parseRepeats(read(join(resolve(parsed.dir), 'repeats.txt')))
+  if (typeof repeats === 'string') {
+    log(repeats)
+
+    return 1
+  }
+  if (repeats === 1) return (await runOnce(parsed.dir, deps, parsed.updateOnly)) === 'passed' ? 0 : 1
+
+  // Many updates for one build (BL-116): only the real update each time, one after the other, each on a machine the one before cleaned.
+  log(`Many updates: ${repeats} in a row, the real update only.`)
+
+  return runRepeated(
+    repeats,
+    (n) => {
+      log(`--- update ${n} of ${repeats}`)
+
+      return runOnce(parsed.dir, deps, true)
+    },
+    log,
+  )
+}
+
+/** One run of the update test on a clean machine: install the older app, (the negative cases,) the real update, the traces, clean up. */
+async function runOnce(folder: string, deps: RunDeps, updateOnly: boolean): Promise<UpdateOutcome> {
+  const { log } = deps
   // The test runs after the workflow has deleted its key. If the key is still there, something is wrong with the order: do not run.
   const runnerTemp = deps.env['RUNNER_TEMP']
   if (runnerTemp !== undefined && runnerTemp !== '') {
@@ -115,29 +141,29 @@ export async function run(args: readonly string[], deps: RunDeps): Promise<numbe
     if (leftoverKeyFiles(names).length > 0) {
       log("The run's throw-away key is still there (in RUNNER_TEMP). The update test runs only after the key is deleted: stopping.")
 
-      return 1
+      return 'failed'
     }
   }
   if (await (deps.portAnswers ?? somethingAnswers)(DEBUG_PORT)) {
     log(`Something already answers on 127.0.0.1:${DEBUG_PORT}, the app's debugging port. Close it first: the test would drive the wrong program.`)
 
-    return 1
+    return 'failed'
   }
-  const dir = resolve(parsed.dir)
+  const dir = resolve(folder)
   let files: string[]
   try {
     files = readdirSync(dir)
   } catch {
     log(`${dir} is not a folder`)
 
-    return 1
+    return 'failed'
   }
   const installers = pickInstallers(files)
   for (const needed of ['latest.json', `${installers.to.file}.sig`]) {
     if (!files.includes(needed)) {
       log(`${dir} has no ${needed}`)
 
-      return 1
+      return 'failed'
     }
   }
   const paths = testAppPaths(deps.env)
@@ -145,7 +171,7 @@ export async function run(args: readonly string[], deps: RunDeps): Promise<numbe
   if (there.length > 0) {
     log(`The test app is already on this machine (${there.join(', ')}). Uninstall "ListulatorUpdaterTest" and delete those folders first: this test never reuses or removes what it did not make.`)
 
-    return 1
+    return 'failed'
   }
 
   // Only what the update needs is served, from a folder made for the purpose: the folder given may hold anything else.
@@ -207,39 +233,42 @@ export async function run(args: readonly string[], deps: RunDeps): Promise<numbe
       failures.push('prepare: the app could not be given its list and language')
     } else {
       // The negative cases (31.8) run against the installed OLDER app, one folder each, before the real update changes it.
-      const key = embeddedPubkeys(readFileSync(exe))
-      const realKey = (JSON.parse(readFileSync(join(REPO_ROOT, 'apps/desktop/src-tauri/tauri.conf.json'), 'utf8')) as { plugins: { updater: { pubkey: string } } }).plugins.updater.pubkey
-      const pubkey = key.length === 1 && key[0] !== realKey ? key[0] : undefined
-      log(pubkey === undefined ? `The app's public key could not be read from its program (${key.length} found): the installer's signature is not checked first.` : "The installer's signature is checked against the key the app carries.")
-      const scenarios = buildWindowsKitScenarios({
-        exe: { name: installers.to.file, bytes: readFileSync(join(dir, installers.to.file)), signature: readFileSync(join(dir, `${installers.to.file}.sig`), 'utf8') },
-        installed: installers.from.version,
-        ...(pubkey === undefined ? {} : { pubkey }),
-        pubDate: `${new Date().toISOString().slice(0, 19)}Z`,
-      })
-      const before = snapshotInstall(paths.installDir)
-      for (const entry of NEGATIVE_CASES) {
-        if (entry.notApplicable !== undefined || entry.scenario === undefined) {
-          log(`NOT RUN ${entry.name}: ${entry.notApplicable ?? 'no folder'}`)
-          continue
+      // Not when many updates are tried in a row: they were run once already, and each repeat is only the real update.
+      if (!updateOnly) {
+        const key = embeddedPubkeys(readFileSync(exe))
+        const realKey = (JSON.parse(readFileSync(join(REPO_ROOT, 'apps/desktop/src-tauri/tauri.conf.json'), 'utf8')) as { plugins: { updater: { pubkey: string } } }).plugins.updater.pubkey
+        const pubkey = key.length === 1 && key[0] !== realKey ? key[0] : undefined
+        log(pubkey === undefined ? `The app's public key could not be read from its program (${key.length} found): the installer's signature is not checked first.` : "The installer's signature is checked against the key the app carries.")
+        const scenarios = buildWindowsKitScenarios({
+          exe: { name: installers.to.file, bytes: readFileSync(join(dir, installers.to.file)), signature: readFileSync(join(dir, `${installers.to.file}.sig`), 'utf8') },
+          installed: installers.from.version,
+          ...(pubkey === undefined ? {} : { pubkey }),
+          pubDate: `${new Date().toISOString().slice(0, 19)}Z`,
+        })
+        const before = snapshotInstall(paths.installDir)
+        for (const entry of NEGATIVE_CASES) {
+          if (entry.notApplicable !== undefined || entry.scenario === undefined) {
+            log(`NOT RUN ${entry.name}: ${entry.notApplicable ?? 'no folder'}`)
+            continue
+          }
+          const scenario = scenarios.find((candidate) => candidate.name === entry.scenario)
+          if (scenario === undefined) {
+            failures.push(`${entry.name}: the kit has no folder ${entry.scenario}`)
+            continue
+          }
+          const caseDir = join(cases, entry.name)
+          mkdirSync(caseDir)
+          for (const [file, content] of Object.entries(scenario.files)) writeFileSync(join(caseDir, file), content)
+          serverLines.length = 0
+          await serve(caseDir, entry.cutAfter)
+          log(`--- negative case ${entry.name}`)
+          const code = await runSpec('negative.spec.ts', { DESKTOP_CASE: entry.name })
+          await stopServing()
+          if (code !== 0) failures.push(`${entry.name}: the app did not say what the manual test expects`)
+          if (entry.cutAfter !== undefined && !serverLines.some((line) => line.includes(`cut after ${entry.cutAfter} bytes`))) failures.push(`${entry.name}: the server never cut a download`)
         }
-        const scenario = scenarios.find((candidate) => candidate.name === entry.scenario)
-        if (scenario === undefined) {
-          failures.push(`${entry.name}: the kit has no folder ${entry.scenario}`)
-          continue
-        }
-        const caseDir = join(cases, entry.name)
-        mkdirSync(caseDir)
-        for (const [file, content] of Object.entries(scenario.files)) writeFileSync(join(caseDir, file), content)
-        serverLines.length = 0
-        await serve(caseDir, entry.cutAfter)
-        log(`--- negative case ${entry.name}`)
-        const code = await runSpec('negative.spec.ts', { DESKTOP_CASE: entry.name })
-        await stopServing()
-        if (code !== 0) failures.push(`${entry.name}: the app did not say what the manual test expects`)
-        if (entry.cutAfter !== undefined && !serverLines.some((line) => line.includes(`cut after ${entry.cutAfter} bytes`))) failures.push(`${entry.name}: the server never cut a download`)
+        for (const difference of compareInstall(before, snapshotInstall(paths.installDir))) failures.push(`the installed app changed during the negative cases: ${difference}`)
       }
-      for (const difference of compareInstall(before, snapshotInstall(paths.installDir))) failures.push(`the installed app changed during the negative cases: ${difference}`)
 
       // The real update, last: it changes the installed version.
       await serve(served)
@@ -275,8 +304,10 @@ export async function run(args: readonly string[], deps: RunDeps): Promise<numbe
 
   const ok = failures.length === 0 && problems.length === 0
   log(ok ? 'The update test passed.' : 'The update test FAILED.')
+  // The hang of BL-116: the update itself failed and the installer never ran (its first trace file was never written).
+  const hung = failures.some((failure) => failure.startsWith('update: ')) && installerStart === undefined
 
-  return ok ? 0 : 1
+  return ok ? 'passed' : hung ? 'hung' : 'failed'
 }
 
 if (isRunDirectly(import.meta.url)) {

@@ -33,6 +33,11 @@ on:
         description: "The update that app is offered, e.g. 1.0.0-rc.2 (it must be newer)"
         type: string
         required: true
+      repeats:
+        description: "How many times the update test tries the update, one after the other on this build: 1 to 20 (BL-116: the update hangs now and then; many tries show it)"
+        type: string
+        required: false
+        default: "1"
 
 permissions:
   contents: read
@@ -47,16 +52,19 @@ jobs:
     runs-on: windows-2025
     timeout-minutes: 90
     steps:
-      # Before anything else, and before the key exists: the two inputs are versions and nothing else. They go to native commands (npm is
-      # a batch file on Windows, whose argument parsing treats & | > % as syntax), so a text that is not a plain version never reaches one.
+      # Before anything else, and before the key exists: the two inputs are versions and nothing else, and the third is a whole number from 1
+      # to 20. They go to native commands (npm is a batch file on Windows, whose argument parsing treats & | > % as syntax), so a text that is
+      # not a plain version, or not that number, never reaches one.
       - name: The versions are versions
         shell: pwsh
         env:
           VERSION: ${{ inputs.version }}
           UPDATE_VERSION: ${{ inputs.update_version }}
+          REPEATS: ${{ inputs.repeats }}
         run: |
           if ($env:VERSION -notmatch '^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(-[0-9A-Za-z.-]+)?$') { throw 'version is not a version like 1.2.3 or 1.2.3-rc.1' }
           if ($env:UPDATE_VERSION -notmatch '^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(-[0-9A-Za-z.-]+)?$') { throw 'update_version is not a version like 1.2.3 or 1.2.3-rc.1' }
+          if ($env:REPEATS -notmatch '^([1-9]|1[0-9]|20)$') { throw 'repeats is not a whole number from 1 to 20' }
 
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -174,6 +182,15 @@ jobs:
             updater-test-out/latest.json
           if-no-files-found: error
           retention-days: 3
+
+      # How many times the update test tries the update (BL-116). The number was checked in the first step; it goes to the test as data, one
+      # file in the folder the test reads, so the test's own step stays exactly as it was (no environment, no argument).
+      - name: How many updates the update test tries (the checked input, left in the folder)
+        shell: pwsh
+        env:
+          REPEATS: ${{ inputs.repeats }}
+        run: |
+          Set-Content -Path updater-test-out/repeats.txt -Value $env:REPEATS -NoNewline
 
       # Whatever happened above, the key goes (the runner is thrown away too; this does not rely on that).
       - name: Delete the run's key

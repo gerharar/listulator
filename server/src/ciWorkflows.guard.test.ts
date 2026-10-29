@@ -669,7 +669,14 @@ describe('the updater test build', () => {
 
     it('is started by hand with two required inputs: the app to install and the update it is offered', () => {
       expect(workflow.on).toEqual({
-        workflow_dispatch: { inputs: { version: expect.objectContaining({ type: 'string', required: true }), update_version: expect.objectContaining({ type: 'string', required: true }) } },
+        workflow_dispatch: {
+          inputs: {
+            version: expect.objectContaining({ type: 'string', required: true }),
+            update_version: expect.objectContaining({ type: 'string', required: true }),
+            // How many updates one build is tried with (BL-116); one unless the person says otherwise.
+            repeats: expect.objectContaining({ type: 'string', required: false, default: '1' }),
+          },
+        },
       })
     })
 
@@ -678,6 +685,23 @@ describe('the updater test build', () => {
 
       expect(setting.map((step) => step.env?.['VERSION'])).toEqual(['${{ inputs.version }}', '${{ inputs.update_version }}'])
       for (const step of setting) expect(step.run).toContain('$env:VERSION')
+    })
+
+    it('checks the repeats first, with the versions: a whole number from 1 to 20 and nothing else, handed over env', () => {
+      expect(steps[0]?.env?.['REPEATS']).toBe('${{ inputs.repeats }}')
+      expect(steps[0]?.run).toContain("$env:REPEATS -notmatch '^([1-9]|1[0-9]|20)$'")
+    })
+
+    it('leaves the checked repeats in the folder the update test reads, from one step that carries nothing else, between the upload and the key’s deletion', () => {
+      const writing = steps.filter((step) => /repeats\.txt/.test(step.run ?? ''))
+      const at = (matching: RegExp) => steps.findIndex((step) => matching.test(`${step.run ?? ''} ${step.uses ?? ''}`))
+
+      expect(writing).toHaveLength(1)
+      expect(Object.keys(writing[0] ?? {}).sort()).toEqual(['env', 'name', 'run', 'shell'])
+      expect(writing[0]?.env).toEqual({ REPEATS: '${{ inputs.repeats }}' })
+      expect(writing[0]?.run?.split('\n').map((line) => line.trim()).filter((line) => line !== '')).toEqual(['Set-Content -Path updater-test-out/repeats.txt -Value $env:REPEATS -NoNewline'])
+      expect(at(/repeats\.txt/)).toBeGreaterThan(at(/upload-artifact/))
+      expect(at(/repeats\.txt/)).toBeLessThan(at(/Remove-Item/))
     })
 
     it('builds the two apps of one test at the same time as other tests, but never the same pair twice: its concurrency group names both versions', () => {
@@ -797,6 +821,15 @@ describe('the updater test build', () => {
       ['the update test with a line more', (t) => t.replace('          npm run test:desktop-update -- updater-test-out\n', '          npm run test:desktop-update -- updater-test-out\n          Get-ChildItem\n'), /update test step has more than|not exactly/],
       ['a secret', (t) => t.replace('      - name: Install dependencies\n        run: npm ci --ignore-scripts', '      - name: Install dependencies\n        env:\n          K: ${{ secrets.KEY }}\n        run: npm ci --ignore-scripts'), /secret or the token/],
       ['a push trigger', (t) => t.replace('on:\n  workflow_dispatch:', 'on:\n  push:\n  workflow_dispatch:'), /not by hand only/],
+      // Many updates for one build (BL-116): the number is checked first, travels as data in one file, and the update test's step stays as it was.
+      ['a repeats input that is not checked first', (t) => t.replace("-notmatch '^([1-9]|1[0-9]|20)$'", "-match 'x'"), /does not check the repeats first/],
+      ['the repeats pasted into a script', (t) => t.replace('-Value $env:REPEATS', '-Value ${{ inputs.repeats }}'), /contains \$\{\{/],
+      ['the repeats on the update test line', (t) => t.replace('test:desktop-update -- updater-test-out', 'test:desktop-update -- updater-test-out --repeats 20'), /update test is not exactly/],
+      ['the repeats file written by a second step', (t) => t.replace("      - name: Delete the run's key", "      - name: Again\n        shell: pwsh\n        run: |\n          Set-Content -Path updater-test-out/repeats.txt -Value 5\n      - name: Delete the run's key"), /repeats file in 2 steps/],
+      ['the repeats step with a line more', (t) => t.replace('-Value $env:REPEATS -NoNewline', '-Value $env:REPEATS -NoNewline\n          Get-ChildItem'), /repeats step is not exactly/],
+      ['the repeats step with an environment of its own', (t) => t.replace('          REPEATS: ${{ inputs.repeats }}\n        run: |\n          Set-Content', '          REPEATS: ${{ inputs.repeats }}\n          NODE_OPTIONS: --require x.js\n        run: |\n          Set-Content'), /repeats step is not exactly/],
+      ['the repeats file written elsewhere', (t) => t.replace('-Path updater-test-out/repeats.txt', '-Path repeats.txt'), /repeats step is not exactly/],
+      ['the repeats file written before the upload', (t) => { const step = t.match(/ {6}- name: How many updates[\s\S]*?(?= {6}- name: Delete the run's key)/)![0]; return t.replace(step, '').replace('      - uses: actions/upload-artifact@', `${step}      - uses: actions/upload-artifact@`) }, /repeats file outside/],
     ]
 
     it.each(hostile)('refuses %s', (_name, change, expected) => {
