@@ -50,7 +50,7 @@ export function noteOnlyMatch(item: ListItem, text: string): 'curator' | 'mine' 
 }
 
 /**
- * The ids of the items that pass: the title, the curator's note or the user's own note contains the text, every facet with a selection agrees, and under Hide
+ * The ids of the items that pass: the title, the group's name, the curator's note or the user's own note contains the text, every facet with a selection agrees, and under Hide
  * Completed the item is not done. `keep` are items ticked done during this visit: they stay where they are, so a tick
  * (or a misclick) never makes a row vanish under the pointer (owner, 2026-10-05).
  */
@@ -61,12 +61,27 @@ export function shownItemIds(
   keep: ReadonlySet<string> = new Set(),
 ): Set<string> {
   const needle = filter.text.trim().toLowerCase()
+  // A group name is lower-cased once, not once per row: a long list has few groups and many rows.
+  const groupHasNeedle = new Map<string, boolean>()
+  const inGroupName = (group: string | null | undefined) => {
+    if (!group) return false
+    let found = groupHasNeedle.get(group)
+    if (found === undefined) {
+      found = group.toLowerCase().includes(needle)
+      groupHasNeedle.set(group, found)
+    }
+
+    return found
+  }
 
   return new Set(
     items
       .filter(
         (entry) =>
-          (needle === '' || entry.title.toLowerCase().includes(needle) || noteOnlyMatch(entry, needle) !== null) &&
+          (needle === '' ||
+            entry.title.toLowerCase().includes(needle) ||
+            inGroupName(entry.group) ||
+            noteOnlyMatch(entry, needle) !== null) &&
           matchesFacets(entry, convention, filter.facets) &&
           (!filter.hideDone || entry.consumedAt === null || keep.has(entry.id)),
       )

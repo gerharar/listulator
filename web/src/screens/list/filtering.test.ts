@@ -127,6 +127,69 @@ describe('the filter searches notes too (H-003)', () => {
   })
 })
 
+describe('the filter searches a row’s group name too (owner, 2026-10-29)', () => {
+  const grouped = (id: string, title: string, group: string | null, consumedAt: string | null = null): ListItem =>
+    ({ ...item(id, title, null, consumedAt), group, notes: null, userNote: null }) as ListItem
+  const episodes = [
+    grouped('1', 'S01E01 Snow Gives Way', 'Iron Fist: Season 1'),
+    grouped('2', 'S01E02 Shadow Hawk Takes Flight', 'Iron Fist: Season 1', 'x'),
+    grouped('3', 'S02E01 The Fury of Iron Fist', 'Iron Fist: Season 2'),
+    grouped('4', 'S01E01 The H Word', 'The Defenders'),
+    grouped('5', 'Iron Fist: the movie that is not', null),
+    grouped('6', 'Loose film', null),
+  ]
+  const shown = (filter: ListFilter, rows: readonly ListItem[] = episodes, convention: FacetConvention | undefined = undefined) => [
+    ...shownItemIds(rows, convention, filter),
+  ]
+
+  it('shows every row of a group whose name has the text, though no title does', () => {
+    expect(shown({ text: 'iron fist', facets: {} })).toEqual(['1', '2', '3', '5'])
+  })
+
+  it('ignores case and surrounding spaces, as for a title', () => {
+    expect(shown({ text: '  SEASON 1 ', facets: {} })).toEqual(['1', '2'])
+  })
+
+  it('leaves out the rows of other groups and the loose rows with no group', () => {
+    expect(shown({ text: 'defenders', facets: {} })).toEqual(['4'])
+    expect(shown({ text: 'loose', facets: {} })).toEqual(['6'])
+  })
+
+  it('treats a group name with pattern characters as the characters they are', () => {
+    const rows = [grouped('1', 'One', 'Vol. (1) [x]'), grouped('2', 'Two', 'Vol 2')]
+
+    expect(shown({ text: '(1) [x]', facets: {} }, rows)).toEqual(['1'])
+    expect(shown({ text: 'vol.', facets: {} }, rows)).toEqual(['1'])
+    expect(shown({ text: '.*', facets: {} }, rows)).toEqual([])
+  })
+
+  it('copes with a row whose group is missing', () => {
+    const rows = [{ ...item('1', 'Plain row') }, grouped('2', 'Kept', 'Kept group')]
+
+    expect(shown({ text: 'group', facets: {} }, rows)).toEqual(['2'])
+  })
+
+  it('still needs the facets and Hide Completed to agree with a group-name match', () => {
+    const tagged = episodes.map((entry) => (entry.id === '1' ? { ...entry, tags: ['PS3'] } : entry)) as ListItem[]
+
+    expect(shown({ text: 'season 1', facets: { platform: new Set(['ps3']) } }, tagged, games)).toEqual(['1'])
+    expect(shown({ text: 'season 1', facets: {}, hideDone: true })).toEqual(['1'])
+  })
+
+  it('leaves no “N shown” on a group the text matches whole, and counts the rest as before', () => {
+    const season1 = episodes.filter((entry) => entry.group === 'Iron Fist: Season 1')
+    const matching = new Set(shown({ text: 'season 1', facets: {} }))
+    const partial = episodes.filter((entry) => entry.group === 'Iron Fist: Season 2').concat(grouped('7', 'Other', 'Iron Fist: Season 2'))
+
+    expect(matchedCount(season1, matching)).toBeUndefined()
+    expect(matchedCount(partial, new Set(shown({ text: 'fury', facets: {} }, partial)))).toBe(1)
+  })
+
+  it('does not change which note lights the ⓘ', () => {
+    expect(noteOnlyMatch(episodes[0]!, 'iron fist')).toBeNull()
+  })
+})
+
 describe('noteOnlyMatch: which note lights the ⓘ', () => {
   const row = (title: string, notes: string | null, userNote: string | null) => ({ title, notes, userNote }) as ListItem
 
