@@ -133,6 +133,47 @@ test('the text filter narrows a group’s rows and shows its own count in front 
   }
 })
 
+test('the text filter also finds a row by its group’s name, and opens a folded group (owner, 2026-10-29)', async ({ page }) => {
+  const title = `e2e list-filter group name ${Date.now()}`
+  // The season 1 titles never say "Iron Fist": only their group does. The Defenders group is named otherwise and has one title that does.
+  const id = await makeList(page.request, title, 'movie', [
+    { title: 'Prologue', timeToConsumeMinutes: 60 },
+    { title: 'S01E01 Snow Gives Way', timeToConsumeMinutes: 56, group: 'Iron Fist: Season 1' },
+    { title: 'S01E02 Shadow Hawk Takes Flight', timeToConsumeMinutes: 60, group: 'Iron Fist: Season 1' },
+    { title: 'S01E03 Rolling Thunder Cannon Punch', timeToConsumeMinutes: 59, group: 'Iron Fist: Season 1' },
+    { title: 'S01E01 The H Word', timeToConsumeMinutes: 51, group: 'The Defenders' },
+    { title: 'S01E02 Iron Fist cameo', timeToConsumeMinutes: 44, group: 'The Defenders' },
+  ])
+
+  try {
+    await page.goto('/')
+    await page.locator('.q-home-row', { hasText: title }).click()
+    await expect(page.locator('.q-item', { hasText: 'Prologue' })).toBeVisible()
+    // Fold every group: the matching one has to open by itself.
+    await facetBar(page).getByRole('button', { name: q.list.filter.collapseAll }).click()
+    await expect(page.getByText('S01E01 Snow Gives Way')).toHaveCount(0)
+
+    await page.getByPlaceholder('Filter items…').fill('iron fist')
+
+    await expect(rows(page)).toHaveText(['S01E01 Snow Gives Way', 'S01E02 Shadow Hawk Takes Flight', 'S01E03 Rolling Thunder Cannon Punch', 'S01E02 Iron Fist cameo'])
+    // The group the text names shows all its rows, so it says nothing about "shown"; the other keeps its filter count.
+    await expect(page.locator('.q-group', { hasText: 'Iron Fist: Season 1' })).not.toContainText(/\d+ shown/)
+    await expect(page.locator('.q-group', { hasText: 'The Defenders' })).toContainText(/1 shown\s*·\s*0\/2 \(0%\)/)
+
+    // A longer phrase narrows to the one group; a word no group or title has finds nothing.
+    await page.getByPlaceholder('Filter items…').fill('Season 1')
+    await expect(rows(page)).toHaveText(['S01E01 Snow Gives Way', 'S01E02 Shadow Hawk Takes Flight', 'S01E03 Rolling Thunder Cannon Punch'])
+    await page.getByPlaceholder('Filter items…').fill('zzz')
+    await expect(page.getByText(q.list.filter.nothing('zzz'))).toBeVisible()
+
+    // Clearing the text brings the whole list back, the groups as they were folded: only the loose row is in view.
+    await page.getByPlaceholder('Filter items…').fill('')
+    await expect(rows(page)).toHaveText(['Prologue'])
+  } finally {
+    await page.request.delete(`/api/lists/${id}`)
+  }
+})
+
 test('a category with no convention gets the text field and no facets', async ({ page }) => {
   const title = `e2e list-filter tv ${Date.now()}`
   const id = await makeList(page.request, title, 'tv', GAMES)
