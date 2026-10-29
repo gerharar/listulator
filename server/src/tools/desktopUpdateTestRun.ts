@@ -112,15 +112,17 @@ export async function run(args: readonly string[], deps: RunDeps): Promise<numbe
   }
   if (repeats === 1) return (await runOnce(parsed.dir, deps, parsed.updateOnly)) === 'passed' ? 0 : 1
 
-  // Many updates for one build (BL-116): only the real update each time, one after the other, each on a machine the one before cleaned.
-  log(`Many updates: ${repeats} in a row, the real update only.`)
+  // Many updates for one build (BL-116): one after the other, each on a machine the one before cleaned, each a full run (the negative cases
+  // first, as in a single run) unless --update-only says otherwise: ten updates without the negative cases all passed, and the hangs seen so
+  // far came after them (BL-116, 2026-10-29).
+  log(`Many updates: ${repeats} in a row${parsed.updateOnly ? ', the real update only' : ', each with the negative cases first'}.`)
 
   return runRepeated(
     repeats,
     (n) => {
       log(`--- update ${n} of ${repeats}`)
 
-      return runOnce(parsed.dir, deps, true)
+      return runOnce(parsed.dir, deps, parsed.updateOnly)
     },
     log,
   )
@@ -233,7 +235,7 @@ async function runOnce(folder: string, deps: RunDeps, updateOnly: boolean): Prom
       failures.push('prepare: the app could not be given its list and language')
     } else {
       // The negative cases (31.8) run against the installed OLDER app, one folder each, before the real update changes it.
-      // Not when many updates are tried in a row: they were run once already, and each repeat is only the real update.
+      // Not with --update-only: then only the real update runs.
       if (!updateOnly) {
         const key = embeddedPubkeys(readFileSync(exe))
         const realKey = (JSON.parse(readFileSync(join(REPO_ROOT, 'apps/desktop/src-tauri/tauri.conf.json'), 'utf8')) as { plugins: { updater: { pubkey: string } } }).plugins.updater.pubkey
