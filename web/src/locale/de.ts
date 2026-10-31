@@ -336,6 +336,9 @@ export const de: Locale = {
       /** Follows the owner's English (2026-10-28, "Enhance group arrows"); a draft for him to check (H-022). */
       markOpenGroups: 'Gruppenpfeile hervorheben',
       markOpenGroupsTip: 'Fügt neben dem Pfeil jeder Gruppe eine visuelle Hilfe hinzu, damit du schneller erkennst, ob eine Gruppe ein- oder ausgeklappt ist',
+      /** A draft after the canvas wording (H-024); de has no native review. */
+      showTimeLeft: 'Verbleibende Zeit in „Meine Listen“ anzeigen',
+      showTimeLeftTip: 'Die verbleibende Zeit ist oft geschätzt oder wird noch ermittelt; ausgeschaltet erscheint sie, wenn du auf den Fortschritt einer Liste zeigst',
       language: 'Sprache der Oberfläche',
       languages: {
         en: 'English',

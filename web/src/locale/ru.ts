@@ -345,6 +345,9 @@ export const ru: Locale = {
       /** A draft from the canvas wording, for the owner to edit (H-022). */
       markOpenGroups: 'Прокачать стрелки групп',
       markOpenGroupsTip: 'Добавляет визуальную подсказку рядом со стрелкой каждой группы, чтобы было быстрее понятно, расхлопнута группа или захлопнута',
+      /** A draft after the canvas wording (H-024), for the owner to edit. */
+      showTimeLeft: 'Показывать оставшееся время в Моих Списках',
+      showTimeLeftTip: 'Оставшееся время часто приблизительное или ещё определяется; если опция выключена, оно показывается при наведении на прогресс списка',
       language: 'Язык интерфейса',
       languages: {
         en: 'English',

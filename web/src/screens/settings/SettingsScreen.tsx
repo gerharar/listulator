@@ -13,6 +13,7 @@ import { useLayerStack } from '../../components/quantum/layerStack/LayerStackCon
 import { useLiveRegion } from '../../components/quantum/LiveRegion/LiveRegion.js'
 import { useMotion } from '../../components/quantum/Motion/MotionContext.js'
 import { useGroupLineSetting } from '../../components/quantum/GroupTriangle/GroupTriangle.js'
+import { useTimeLeftSetting } from '../../components/quantum/Home/TimeLeftSetting.js'
 import { Tip } from '../../components/quantum/Tooltip/Tip.js'
 import { useWindowFullscreen } from '../../lib/windowFullscreen.js'
 import { SkinSwatch } from '../../components/quantum/SkinSwatch/SkinSwatch.js'
@@ -37,6 +38,7 @@ export function SettingsScreen({ skin, onSkinChange, store }: SettingsScreenProp
   const { language, setLanguage } = useLanguage()
   const { reduced, setReducedMotion } = useMotion()
   const groupLine = useGroupLineSetting()
+  const timeLeft = useTimeLeftSetting()
   const fullscreen = useWindowFullscreen()
   const text = copy.quantum.settings
 
@@ -109,6 +111,16 @@ export function SettingsScreen({ skin, onSkinChange, store }: SettingsScreenProp
                 onChange={(event) => groupLine.setOn(event.target.checked)}
               />
               {text.markOpenGroups}
+            </Tip>
+            {/* H-024 (canvas, owner 2026-10-31): the time left on My Lists, off unless asked for; applied at once. */}
+            <Tip as="label" className="q-settings-check" text={text.showTimeLeftTip}>
+              <input
+                type="checkbox"
+                aria-description={text.showTimeLeftTip}
+                checked={timeLeft.on}
+                onChange={(event) => timeLeft.setOn(event.target.checked)}
+              />
+              {text.showTimeLeft}
             </Tip>
           </section>
 

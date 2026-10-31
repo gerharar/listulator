@@ -12,6 +12,7 @@ import { LiveRegionProvider } from '../../components/quantum/LiveRegion/LiveRegi
 import { OverlayManagerProvider } from '../../components/quantum/overlay/OverlayManagerContext.js'
 import { MotionProvider } from '../../components/quantum/Motion/MotionContext.js'
 import { GroupLineProvider, GroupTriangle } from '../../components/quantum/GroupTriangle/GroupTriangle.js'
+import { TimeLeftProvider } from '../../components/quantum/Home/TimeLeftSetting.js'
 import { de } from '../../locale/de.js'
 import { en } from '../../locale/en.js'
 import { ru } from '../../locale/ru.js'
@@ -66,23 +67,25 @@ function StackReader() {
   return <span data-testid="stack">{stack.map((layer) => layer.kind).join(',')}</span>
 }
 
-function renderSettings(options: { skin?: 'dark-blue' | 'light-bone'; reducedSetting?: boolean; markOpenGroups?: boolean } = {}) {
+function renderSettings(options: { skin?: 'dark-blue' | 'light-bone'; reducedSetting?: boolean; markOpenGroups?: boolean; showTimeLeft?: boolean } = {}) {
   const onSkinChange = vi.fn()
   const view = render(
     <LiveRegionProvider>
       <OverlayManagerProvider>
         <MotionProvider initialReducedSetting={options.reducedSetting} store={store}>
           <GroupLineProvider on={options.markOpenGroups ?? false} store={store}>
-            <LanguageProvider>
-              <LayerStackProvider home={{ id: 'home', kind: 'home', tabLabel: 'Home', content: '/' }}>
-                <StackReader />
-                {/* A group head's triangle, as a list's would be: it must follow the checkbox at once. */}
-                <div data-testid="a-group-head">
-                  <GroupTriangle />
-                </div>
-                <SettingsScreen skin={options.skin ?? 'dark-blue'} onSkinChange={onSkinChange} store={store} />
-              </LayerStackProvider>
-            </LanguageProvider>
+            <TimeLeftProvider on={options.showTimeLeft ?? false} store={store}>
+              <LanguageProvider>
+                <LayerStackProvider home={{ id: 'home', kind: 'home', tabLabel: 'Home', content: '/' }}>
+                  <StackReader />
+                  {/* A group head's triangle, as a list's would be: it must follow the checkbox at once. */}
+                  <div data-testid="a-group-head">
+                    <GroupTriangle />
+                  </div>
+                  <SettingsScreen skin={options.skin ?? 'dark-blue'} onSkinChange={onSkinChange} store={store} />
+                </LayerStackProvider>
+              </LanguageProvider>
+            </TimeLeftProvider>
           </GroupLineProvider>
         </MotionProvider>
       </OverlayManagerProvider>
@@ -278,7 +281,7 @@ describe('SettingsScreen: Mark open and closed groups (H-022)', () => {
     renderSettings()
 
     const boxes = screen.getAllByRole('checkbox').map((entry) => entry.closest('label')?.textContent)
-    expect(boxes).toEqual([en.quantum.settings.reduceMotion, label])
+    expect(boxes).toEqual([en.quantum.settings.reduceMotion, label, en.quantum.settings.showTimeLeft])
     expect(box().checked).toBe(false)
     expect(head().querySelector('.q-chev')).not.toBeNull()
   })
@@ -344,3 +347,61 @@ describe('SettingsScreen: Mark open and closed groups (H-022)', () => {
   })
 })
 
+/** H-024 (canvas, owner 2026-10-31): Settings → Screen, after "Enhance group arrows". Its effect on My Lists is task 44.4's. */
+describe('SettingsScreen: Show time left in My Lists (H-024)', () => {
+  const label = en.quantum.settings.showTimeLeft
+  const box = () => screen.getByRole('checkbox', { name: label }) as HTMLInputElement
+
+  it('is worded as the canvas has it', () => {
+    expect(label).toBe('Show time left in My Lists')
+    expect(en.quantum.settings.showTimeLeftTip).toBe(
+      "Time left is often estimated or still being looked up; off, it shows when you point at a list's progress",
+    )
+  })
+
+  it('is the last box of Screen, after Enhance group arrows, in a browser too, and unticked by default', () => {
+    renderSettings()
+
+    const boxes = screen.getAllByRole('checkbox').map((entry) => entry.closest('label')?.textContent)
+    expect(boxes.at(-1)).toBe(label)
+    expect(boxes.at(-2)).toBe(en.quantum.settings.markOpenGroups)
+    expect(box().checked).toBe(false)
+  })
+
+  it('starts ticked when the setting is on', () => {
+    renderSettings({ showTimeLeft: true })
+
+    expect(box().checked).toBe(true)
+  })
+
+  it('ticking persists a yes and unticking a no, under the key showTimeLeft', async () => {
+    renderSettings()
+
+    act(() => box().click())
+    expect(box().checked).toBe(true)
+    await waitFor(() => expect(store.data.get('showTimeLeft')).toBe('true'))
+
+    act(() => box().click())
+    expect(box().checked).toBe(false)
+    await waitFor(() => expect(store.data.get('showTimeLeft')).toBe('false'))
+  })
+
+  it('says why on hover, and as the box’s description for a screen reader, the name staying the label', async () => {
+    renderSettings()
+
+    expect(await hoverTooltip(box().closest('label')!)).toBe(en.quantum.settings.showTimeLeftTip)
+    expect(box().getAttribute('aria-description')).toBe(en.quantum.settings.showTimeLeftTip)
+  })
+
+  it.each([
+    ['Русский', ru.quantum.settings.showTimeLeft, ru.quantum.settings.showTimeLeftTip],
+    ['Deutsch', de.quantum.settings.showTimeLeft, de.quantum.settings.showTimeLeftTip],
+  ])('is named and explained in %s in its own words', async (language, translatedLabel, translatedTip) => {
+    renderSettings()
+    act(() => screen.getByRole('button', { name: language }).click())
+
+    expect(translatedLabel).not.toBe(label)
+    expect(translatedTip).not.toBe(en.quantum.settings.showTimeLeftTip)
+    expect(await hoverTooltip(screen.getByRole('checkbox', { name: translatedLabel }).closest('label')!)).toBe(translatedTip)
+  })
+})

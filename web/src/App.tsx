@@ -7,7 +7,9 @@ import { resolveSkin, setSkin as persistSkin, type Skin } from './lib/preference
 import { resolveLanguage, type Language } from './lib/preferences/language.js'
 import { resolveReducedMotionSetting } from './lib/preferences/motion.js'
 import { resolveMarkOpenGroups } from './lib/preferences/groupLine.js'
+import { resolveShowTimeLeft } from './lib/preferences/timeLeft.js'
 import { GroupLineProvider } from './components/quantum/GroupTriangle/GroupTriangle.js'
+import { TimeLeftProvider } from './components/quantum/Home/TimeLeftSetting.js'
 import { MotionProvider } from './components/quantum/Motion/MotionContext.js'
 import { useUpdatedToast } from './lib/useUpdatedToast.js'
 import { useFullscreenKey } from './lib/windowFullscreen.js'
@@ -57,6 +59,8 @@ interface BootState {
   reducedSetting: boolean | undefined
   /** H-022: the preference `markOpenGroups`, off unless clearly on. */
   markOpenGroups: boolean
+  /** H-024: the preference `showTimeLeft`, off unless clearly on. */
+  showTimeLeft: boolean
 }
 
 /** The header's Quit/Exit (task 16.2b): the desktop window, or none in the browser build. */
@@ -83,9 +87,10 @@ export function App() {
       resolveLanguage(store),
       resolveReducedMotionSetting(store),
       resolveMarkOpenGroups(store),
+      resolveShowTimeLeft(store),
     ])
-      .then(([skin, language, reducedSetting, markOpenGroups]) =>
-        setBoot({ skin, language, reducedSetting, markOpenGroups }),
+      .then(([skin, language, reducedSetting, markOpenGroups, showTimeLeft]) =>
+        setBoot({ skin, language, reducedSetting, markOpenGroups, showTimeLeft }),
       )
       .catch((cause: unknown) =>
         setError(cause instanceof Error ? cause.message : copy.app.unknownError),
@@ -122,9 +127,11 @@ function QuantumShell({ initial }: { initial: BootState }) {
             <OverlayManagerProvider>
               <LanguageProvider initialLanguage={initial.language}>
                 <GroupLineProvider on={initial.markOpenGroups} store={store}>
-                  <LayerStackProvider home={homeLayer()}>
-                    <AppShellBody skin={skin} onSkinChange={handleSkinChange} />
-                  </LayerStackProvider>
+                  <TimeLeftProvider on={initial.showTimeLeft} store={store}>
+                    <LayerStackProvider home={homeLayer()}>
+                      <AppShellBody skin={skin} onSkinChange={handleSkinChange} />
+                    </LayerStackProvider>
+                  </TimeLeftProvider>
                 </GroupLineProvider>
               </LanguageProvider>
             </OverlayManagerProvider>
