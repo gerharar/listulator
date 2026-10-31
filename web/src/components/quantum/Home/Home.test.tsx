@@ -13,6 +13,7 @@ import { createPendingUpdates, type PendingUpdates } from '../../../lib/pendingU
 import { resetForgetDeletedListsOnce } from '../../../lib/preferences/forgetLists.js'
 import type { PreferencesStore } from '../../../lib/preferences/store.js'
 import { Home } from './Home.js'
+import { TimeLeftProvider, useTimeLeftSetting } from './TimeLeftSetting.js'
 
 const preferences = new Map<string, string>()
 
@@ -98,7 +99,20 @@ async function pendingWith(entries: Record<string, number> = {}, store = memoryS
   return { pending, store }
 }
 
-function renderHome(onMediaTypesLoaded = vi.fn(), pending?: PendingUpdates) {
+/** A button that flips the Settings box, as the Settings screen's checkbox does. */
+function TimeLeftToggle() {
+  const { on, setOn } = useTimeLeftSetting()
+
+  return (
+    <button type="button" data-testid="toggle-time" onClick={() => setOn(!on)}>
+      {on ? 'time on' : 'time off'}
+    </button>
+  )
+}
+
+function renderHome(onMediaTypesLoaded = vi.fn(), pending?: PendingUpdates, timeLeft?: { on: boolean }) {
+  const home = <Home onMediaTypesLoaded={onMediaTypesLoaded} {...(pending ? { pendingUpdates: pending } : {})} />
+
   return render(
     <LiveRegionProvider>
       <ToastProvider>
@@ -106,7 +120,14 @@ function renderHome(onMediaTypesLoaded = vi.fn(), pending?: PendingUpdates) {
           <LayerStackProvider home={{ id: 'home', kind: 'home', tabLabel: 'My Lists', content: '/' }}>
             <StackReader />
             <StackContent />
-            <Home onMediaTypesLoaded={onMediaTypesLoaded} {...(pending ? { pendingUpdates: pending } : {})} />
+            {timeLeft ? (
+              <TimeLeftProvider on={timeLeft.on}>
+                <TimeLeftToggle />
+                {home}
+              </TimeLeftProvider>
+            ) : (
+              home
+            )}
           </LayerStackProvider>
         </OverlayManagerProvider>
       </ToastProvider>
@@ -127,6 +148,62 @@ describe('Home', () => {
     const visible = (pattern: RegExp) => screen.queryAllByText(pattern).filter((node) => !node.classList.contains('q-home-sr'))
     expect(visible(/left/)).toHaveLength(0)
     expect(visible(/All Done/)).toHaveLength(0)
+  })
+
+  describe('with Show time left in My Lists (H-024; owner 2026-10-31)', () => {
+    const lists = () => [list(), list({ id: 'list-2', title: 'Done One', stats: { ...list().stats, totalItems: 3, consumedItems: 3, timeRemainingMinutes: 0 } })]
+    const cells = () => [...document.querySelectorAll('.q-home-row > .q-left')].map((node) => node.textContent)
+
+    it('brings the column back, one cell per list, and the total in the summary line', async () => {
+      vi.mocked(api.mediaTypes).mockResolvedValue(MEDIA_TYPES)
+      vi.mocked(api.lists).mockResolvedValue(lists())
+
+      renderHome(vi.fn(), undefined, { on: true })
+
+      await waitFor(() => expect(screen.getByText('Breaking Bad')).not.toBeNull())
+      expect(cells()).toEqual(['15h left', '✓ All Done'])
+      expect(document.querySelector('.q-home-summary')?.textContent).toBe('2 lists · 43 of 65 items done · 15h left')
+      expect(document.querySelector('.q-home-body')?.classList.contains('with-time')).toBe(true)
+    })
+
+    it('is exactly the screen without a time column when it is off', async () => {
+      vi.mocked(api.mediaTypes).mockResolvedValue(MEDIA_TYPES)
+      vi.mocked(api.lists).mockResolvedValue(lists())
+
+      renderHome(vi.fn(), undefined, { on: false })
+
+      await waitFor(() => expect(screen.getByText('Breaking Bad')).not.toBeNull())
+      expect(cells()).toEqual([])
+      expect(document.querySelector('.q-home-summary')?.textContent).toBe('2 lists · 43 of 65 items done')
+      expect(document.querySelector('.q-home-body')?.classList.contains('with-time')).toBe(false)
+    })
+
+    it('follows the box at once, both ways, with no new read of the lists', async () => {
+      vi.mocked(api.mediaTypes).mockResolvedValue(MEDIA_TYPES)
+      vi.mocked(api.lists).mockResolvedValue(lists())
+      renderHome(vi.fn(), undefined, { on: false })
+      await waitFor(() => expect(screen.getByText('Breaking Bad')).not.toBeNull())
+      const reads = vi.mocked(api.lists).mock.calls.length
+
+      act(() => screen.getByTestId('toggle-time').click())
+      expect(cells()).toEqual(['15h left', '✓ All Done'])
+      expect(document.querySelector('.q-home-summary')?.textContent).toContain('15h left')
+
+      act(() => screen.getByTestId('toggle-time').click())
+      expect(cells()).toEqual([])
+      expect(document.querySelector('.q-home-summary')?.textContent).toBe('2 lists · 43 of 65 items done')
+      expect(vi.mocked(api.lists).mock.calls.length).toBe(reads)
+    })
+
+    it('has no total in the summary when nothing is left, only the count', async () => {
+      vi.mocked(api.mediaTypes).mockResolvedValue(MEDIA_TYPES)
+      vi.mocked(api.lists).mockResolvedValue([lists()[1]!])
+
+      renderHome(vi.fn(), undefined, { on: true })
+
+      await waitFor(() => expect(screen.getByText('Done One')).not.toBeNull())
+      expect(document.querySelector('.q-home-summary')?.textContent).toBe('1 list · 3 of 3 items done')
+    })
   })
 
   it("shows a real list's row with its counts, status mark, and curated star", async () => {

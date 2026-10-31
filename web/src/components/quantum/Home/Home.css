@@ -133,6 +133,10 @@
     column-gap: 16px;
     align-content: start;
   }
+  /* With Settings → Screen → Show time left in My Lists on, a fifth column holds each list's time. */
+  .q-home-body.with-time {
+    grid-template-columns: minmax(0, 1fr) auto auto auto auto;
+  }
   .q-bucket {
     grid-column: 1 / -1;
     grid-template-columns: subgrid;

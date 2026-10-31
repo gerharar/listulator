@@ -2,6 +2,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { HomeRow } from './HomeRow.js'
+import { TimeLeftProvider } from '../Home/TimeLeftSetting.js'
 import { hoverTooltip } from '../Tooltip/hoverTooltip.js'
 
 afterEach(cleanup)
@@ -286,6 +287,62 @@ describe('HomeRow', () => {
       cleanup()
       render(row())
       expect(screen.queryByText(/NEW/)).toBeNull()
+    })
+  })
+
+  /** The setting "Show time left in My Lists" (H-024, owner 2026-10-31): the column comes back, and the tooltip it would repeat is off. */
+  describe('with Show time left in My Lists on', () => {
+    const props = { title: 'Pixar', description: null, mark: null, status: null, onOpen: vi.fn() } as const
+    const withTime = (node: React.ReactElement) => render(<TimeLeftProvider on>{node}</TimeLeftProvider>)
+    const time = () => document.querySelector('.q-home-row > .q-left') as HTMLElement | null
+
+    it('draws the time left as a cell of its own, after the cluster', () => {
+      withTime(<HomeRow {...props} done={3} total={10} minutesLeft={35 * 60} />)
+
+      expect(time()?.textContent).toBe('35h left')
+      expect(document.querySelector('.q-home-cluster')?.nextElementSibling).toBe(time())
+      expect(time()?.classList.contains('all-done')).toBe(false)
+    })
+
+    it('marks an estimate, and says on hover of the time how many lengths are still being looked up', async () => {
+      withTime(<HomeRow {...props} done={0} total={100} minutesLeft={12000} runtimesPending={40} />)
+
+      expect(time()?.textContent).toBe('≈200h left')
+      expect(await hoverTooltip(time()!)).toBe('Looking up runtimes: 40 still to go')
+    })
+
+    it('reads ✓ All Done on a finished list and ✓ Done (for now) on one still going, as the all-done chip', () => {
+      withTime(<HomeRow {...props} done={4} total={4} minutesLeft={0} />)
+      expect(time()?.textContent).toBe('✓ All Done')
+      expect(time()?.classList.contains('all-done')).toBe(true)
+
+      cleanup()
+      withTime(<HomeRow {...props} status="ongoing" done={4} total={4} minutesLeft={0} />)
+      expect(time()?.textContent).toBe('✓ Done (for now)')
+    })
+
+    it('has no time cell on an empty list', () => {
+      withTime(<HomeRow {...props} done={0} total={0} minutesLeft={0} />)
+
+      expect(time()).toBeNull()
+    })
+
+    it('has no tooltip on the cluster, on hover or on keyboard focus: it would repeat the column', async () => {
+      withTime(<HomeRow {...props} done={3} total={10} minutesLeft={35 * 60} />)
+      const button = screen.getByRole('button')
+      const matches = button.matches.bind(button)
+      button.matches = (selector: string) => selector === ':focus-visible' || matches(selector)
+
+      expect(await hoverTooltip(document.querySelector('.q-home-cluster') as HTMLElement)).toBeNull()
+      act(() => button.focus())
+      expect(screen.queryByRole('tooltip')).toBeNull()
+    })
+
+    it('has no screen-reader suffix: the column is read as it is, once', () => {
+      withTime(<HomeRow {...props} done={3} total={10} minutesLeft={35 * 60} />)
+
+      expect(document.querySelector('.q-home-sr')).toBeNull()
+      expect(screen.getByRole('button').textContent?.match(/35h left/g)).toHaveLength(1)
     })
   })
 })

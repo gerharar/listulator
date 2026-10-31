@@ -39,7 +39,17 @@ describe('My Lists is one grid whose rows are subgrids (H-024)', () => {
     expect(grid).toMatch(/\.q-home-cluster\s*\{[^}]*grid-column:\s*3\s*\/\s*span\s*2\s*;[^}]*grid-template-columns:\s*subgrid\s*;/)
   })
 
-  it('has no fixed width on the count or the time any more (it was 112px and 114px)', () => {
-    expect(row).not.toMatch(/112px|114px/)
+  it('has no fixed width on the count any more (it was 112px), and none on the time where the grid is used', () => {
+    expect(row).not.toMatch(/112px/)
+  })
+
+  it('adds a fifth, auto column for the time left when the setting is on, and puts each row’s time in it, 24px after the count (16 + 8)', () => {
+    expect(grid).toMatch(/\.q-home-body\.with-time\s*\{[^}]*grid-template-columns:\s*minmax\(0,\s*1fr\)\s+auto\s+auto\s+auto\s+auto\s*;/)
+    expect(grid).toMatch(/\.q-home-row\s+\.q-left\s*\{[^}]*grid-column:\s*5\s*;[^}]*justify-self:\s*end\s*;[^}]*margin-left:\s*8px\s*;/)
+  })
+
+  it('keeps no fixed width on the time column where the grid is used (the flex fallback keeps its 114px)', () => {
+    expect(subgridBlock(row)).not.toMatch(/114px/)
+    expect(subgridBlock(row)).toMatch(/\.q-left\s*\{[^}]*min-width:\s*0\s*;/)
   })
 })

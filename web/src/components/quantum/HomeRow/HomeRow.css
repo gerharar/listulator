@@ -58,6 +58,16 @@
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
+/*
+ * The time left, when Settings asks for it (H-024): a cell after the count, 24px from it (the 16px gap and 8px more), right-aligned. In the flex
+ * fallback the columns are each row's own, so it keeps the width the column had before, which a longer translation grows rather than clips.
+ */
+.q-home-row .q-left {
+  flex: none;
+  margin-left: 8px;
+  min-width: 114px;
+  text-align: right;
+}
 /* The row's time for a screen reader, at the end of its name: the standard sr-only clip. */
 .q-home-sr {
   position: absolute;
@@ -96,6 +106,13 @@
   }
   .q-home-bar {
     justify-self: end;
+  }
+  .q-home-row .q-left {
+    grid-column: 5;
+    justify-self: end;
+    margin-left: 8px;
+    /* A grid column is as wide as its widest cell, not a fixed width. */
+    min-width: 0;
   }
   /* The column gap is 16px; pulled back 8px it is one 13px character, as "41% (25/60)" reads. */
   .q-home-count {
