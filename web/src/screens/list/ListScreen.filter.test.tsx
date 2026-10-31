@@ -219,7 +219,7 @@ describe('filtering', () => {
 
     // The group's progress is the whole group's, unchanged.
     expect(within(row('gm')).queryByText(/shown/)).toBeNull()
-    expect(within(row('gm')).getByText(/^0\/3 \(0%\)$/)).toBeTruthy()
+    expect(within(row('gm')).getByText(/^0\/3$/)).toBeTruthy()
     expect(within(row('gm')).queryByText('2 of 3')).toBeNull()
   })
 
@@ -477,7 +477,7 @@ describe('Hide Completed (18.1)', () => {
     expect(within(bar()).getByText('3 of 6 shown')).toBeTruthy()
     // Hide Completed removes the done count's rows, but the group's own progress already says them: its header does not change (H-010).
     expect(within(row('gm')).queryByText(/shown/)).toBeNull()
-    expect(within(row('gm')).getByText(/^1\/3 \(33%\)$/)).toBeTruthy()
+    expect(within(row('gm')).getByText(/^1\/3$/)).toBeTruthy()
 
     act(() => hideDone().click())
 
@@ -505,7 +505,7 @@ describe('Hide Completed (18.1)', () => {
 
     expect(rowIds()).toEqual(['gm', 'ac2'])
     expect(within(row('gm')).queryByText(/shown/)).toBeNull()
-    expect(within(row('gm')).getByText(/^1\/3 \(33%\)$/)).toBeTruthy()
+    expect(within(row('gm')).getByText(/^1\/3$/)).toBeTruthy()
   })
 
   it('leaves an item ticked while it is on where it is, until it is switched again', async () => {

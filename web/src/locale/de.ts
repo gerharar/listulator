@@ -224,15 +224,10 @@ export const de: Locale = {
     },
     meter: {
       label: (done: number, total: number): string => `${done} von ${total} erledigt`,
-      noteCapped: (cap: number, perCell: number): string => `${cap} Zellen ≈ je ${perCell} Einträge`,
-      noteUncapped: 'Eine Zelle = ein Eintrag',
-      explainHint: 'So funktionieren die Zellen der Fortschrittsanzeige',
-      detailCapped: (cap: number, perCell: number): string => `Der Balken endet bei ${cap} Zellen, also steht jede Zelle für etwa ${perCell} Einträge.`,
-      detailUncapped: 'Jede Zelle ist ein Eintrag dieser Liste. Gefüllte Zelle = erledigt.',
     },
     progress: {
-      count: (done: number, total: number, percent: number): string =>
-        total ? `${done}/${total} (${percent} %)` : `${done}/${total}`,
+      /** The count alone; the percentage sits beside the bar (H-024). */
+      count: (done: number, total: number): string => `${done}/${total}`,
       left: (duration: string): string => `noch ${duration}`,
       leftApprox: (duration: string): string => `noch ≈${duration}`,
       runtimesPendingTip: (count: number): string => `Laufzeiten werden gesucht: noch ${count}`,

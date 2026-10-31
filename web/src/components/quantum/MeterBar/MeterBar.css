@@ -38,3 +38,18 @@
     var(--goldDeep)
   );
 }
+
+/* The percentage right after the bar (H-024): the gap to the bar is the sentence's own 8px. */
+.q-pct {
+  flex: none;
+  width: 4ch;
+  text-align: right;
+  font-family: var(--font-mono);
+  font-weight: 600;
+  line-height: 1;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+.q-pct.full {
+  color: var(--gold);
+}

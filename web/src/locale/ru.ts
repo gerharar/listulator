@@ -233,15 +233,10 @@ export const ru: Locale = {
     },
     meter: {
       label: (done: number, total: number): string => `${done} из ${total} готово`,
-      noteCapped: (cap: number, perCell: number): string => `${cap} ячеек по ≈ ${perCell} элементов в каждой`,
-      noteUncapped: 'Одна ячейка -- один элемент',
-      explainHint: 'Как работают ячейки полосы прогресса',
-      detailCapped: (cap: number, perCell: number): string => `Полоса ограничена ${cap} ячейками, поэтому каждая ячейка символизирует примерно ${perCell} элементов`,
-      detailUncapped: 'Каждая ячейка -- один элемент списка. Закрашенная ячейка = завершено',
     },
     progress: {
-      count: (done: number, total: number, percent: number): string =>
-        total ? `${done}/${total} (${percent}%)` : `${done}/${total}`,
+      /** The count alone; the percentage sits beside the bar (H-024). */
+      count: (done: number, total: number): string => `${done}/${total}`,
       left: (duration: string): string => `осталось ${duration}`,
       leftApprox: (duration: string): string => `осталось ≈${duration}`,
       runtimesPendingTip: (count: number): string => `Ищем длительность: осталось ${count}`,

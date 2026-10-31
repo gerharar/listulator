@@ -2,9 +2,9 @@ import { describe, expect, it } from 'vitest'
 import { formatProgress } from './ProgressSentence.js'
 
 describe('formatProgress', () => {
-  it("matches the design system's own worked example: 16/38 (42%) · 14h 43m left", () => {
+  it("matches the design system's own worked example, the count alone (H-024: the % sits beside the bar): 16/38 · 14h 43m left", () => {
     expect(formatProgress(16, 38, 14 * 60 + 43, null)).toEqual({
-      count: '16/38 (42%)',
+      count: '16/38',
       allDone: false,
       left: '14h 43m left',
     })
@@ -12,7 +12,7 @@ describe('formatProgress', () => {
 
   it('reads "✓ All Done" when finished and status is unknown', () => {
     expect(formatProgress(22, 22, 0, null)).toEqual({
-      count: '22/22 (100%)',
+      count: '22/22',
       allDone: true,
       left: '✓ All Done',
     })
@@ -20,7 +20,7 @@ describe('formatProgress', () => {
 
   it('reads "✓ All Done" when finished and the source is marked Complete', () => {
     expect(formatProgress(22, 22, 0, 'complete')).toEqual({
-      count: '22/22 (100%)',
+      count: '22/22',
       allDone: true,
       left: '✓ All Done',
     })
@@ -28,7 +28,7 @@ describe('formatProgress', () => {
 
   it('reads "✓ Done (for now)" when finished but the source is marked Ongoing — it is not a lie about the series', () => {
     expect(formatProgress(301, 301, 0, 'ongoing')).toEqual({
-      count: '301/301 (100%)',
+      count: '301/301',
       allDone: true,
       left: '✓ Done (for now)',
     })
@@ -42,9 +42,9 @@ describe('formatProgress', () => {
     })
   })
 
-  it('rounds the percentage to the nearest whole number', () => {
+  it('keeps the percentage out of the count (H-024)', () => {
     expect(formatProgress(1, 3, 60, null)).toEqual({
-      count: '1/3 (33%)',
+      count: '1/3',
       allDone: false,
       left: '1h left',
     })
@@ -53,7 +53,7 @@ describe('formatProgress', () => {
   describe('while lengths are still being looked up (15.7)', () => {
     it('marks the time left as approximate, since part of it is the category\'s estimate', () => {
       expect(formatProgress(16, 38, 14 * 60 + 43, null, 12)).toEqual({
-        count: '16/38 (42%)',
+        count: '16/38',
         allDone: false,
         left: '≈14h 43m left',
       })

@@ -121,7 +121,8 @@ describe('Home', () => {
     renderHome()
 
     await waitFor(() => expect(screen.getByText('Breaking Bad')).not.toBeNull())
-    expect(screen.getByText('40/62 (65%)')).not.toBeNull()
+    expect(screen.getByText('40/62')).not.toBeNull()
+    expect(screen.getAllByText('64%').length).toBeGreaterThan(0)
     expect(document.querySelector('.q-star')).not.toBeNull()
     expect(document.querySelector('.q-status-mark')).not.toBeNull()
   })

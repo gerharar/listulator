@@ -1,5 +1,4 @@
 import { expect, test, type APIRequestContext } from '@playwright/test'
-import { q } from './fixtures.js'
 
 /**
  * The list layer (task 10.20) against the real dev server: what a Mega list
@@ -55,12 +54,13 @@ for (const [mediaType, arrives] of [
 
       // Open Season 1 (a no-op on the list that arrived open, so click only if closed).
       if (arrives === 'collapsed') await groups.first().click()
-      await expect(page.getByText('0/3 (0%)').first()).toBeVisible()
+      await expect(page.getByText('0/3', { exact: true }).first()).toBeVisible()
 
       await page.getByText('Episode 1').click()
 
       // The header sentence moved without waiting for a reload.
-      await expect(page.getByText('1/3 (33%)').first()).toBeVisible()
+      await expect(page.getByText('1/3', { exact: true }).first()).toBeVisible()
+      await expect(page.locator('.q-progress.header .q-pct')).toHaveText('33%')
       await expect(page.getByText('2h left').first()).toBeVisible()
 
       const saved = await (await page.request.get(`/api/lists/${id}`)).json()
@@ -71,8 +71,8 @@ for (const [mediaType, arrives] of [
   })
 }
 
-test('the header meter bar hints that a click explains the cells, and shows the explanation', async ({ page }) => {
-  const title = `e2e list-screen explain ${Date.now()}`
+test('the header bar is 20 cells with the percentage beside it, and is no button (H-024)', async ({ page }) => {
+  const title = `e2e list-screen bar ${Date.now()}`
   const id = await makeList(page.request, 'tv', title)
 
   try {
@@ -80,17 +80,20 @@ test('the header meter bar hints that a click explains the cells, and shows the 
     await page.getByRole('button', { name: new RegExp(title) }).click()
     await expect(page.getByRole('heading', { name: new RegExp(title) })).toBeVisible()
 
-    const button = page.getByRole('button', { name: q.meter.explainHint })
-    await expect(button).toBeVisible()
-    await button.click()
+    const bar = page.locator('.q-progress.header .q-meter')
+    await expect(bar).toHaveAttribute('role', 'img')
+    await expect(bar).toHaveAttribute('style', /--n:\s*20\b/)
+    await expect(page.locator('.q-progress.header .q-pct')).toHaveText('0%')
 
-    const explain = page.getByRole('dialog', { name: q.meter.explainHint })
-    await expect(explain).toContainText(q.meter.noteUncapped)
-    await expect(explain).toContainText(q.meter.detailUncapped)
+    // It explains nothing and is not a control: no button, no dialog on a click, not in the tab order.
+    await expect(page.locator('.q-progress.header button')).toHaveCount(0)
+    await bar.click()
+    await expect(page.getByRole('dialog')).toHaveCount(0)
 
-    // Esc closes it, like every other popover.
-    await page.keyboard.press('Escape')
-    await expect(explain).toBeHidden()
+    // Ticking one of three items lights floor(1/3 × 20) = 6 cells and reads 33%.
+    await page.getByText('Episode 1').click()
+    await expect(page.locator('.q-progress.header .q-pct')).toHaveText('33%')
+    await expect(bar).toHaveAttribute('style', /--f:\s*6\b/)
   } finally {
     await page.request.delete(`/api/lists/${id}`)
   }

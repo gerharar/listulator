@@ -254,19 +254,12 @@ export const en = {
       reload: 'Reload',
     },
     meter: {
-      /** MeterBar's `role="img"` label — never the cap, the real numbers. */
+      /** MeterBar's `role="img"` label: the real numbers. */
       label: (done: number, total: number): string => `${done} of ${total} done`,
-      noteCapped: (cap: number, perCell: number): string => `${cap} cells ≈ ${perCell} items each`,
-      noteUncapped: 'One cell = one item',
-      /** The header bar only (U6, owner 2026-09-27): a button's title/aria-label, hinting that a click explains it. */
-      explainHint: 'How progress bar cells work',
-      detailCapped: (cap: number, perCell: number): string =>
-        `The bar caps at ${cap} cells, so each cell stands for about ${perCell} items`,
-      detailUncapped: 'Each cell is one item in this list. Filled cell = done',
     },
     progress: {
-      count: (done: number, total: number, percent: number): string =>
-        total ? `${done}/${total} (${percent}%)` : `${done}/${total}`,
+      /** The count alone; the percentage sits beside the bar (H-024). */
+      count: (done: number, total: number): string => `${done}/${total}`,
       left: (duration: string): string => `${duration} left`,
       /** Part of the time is the category's estimate: lengths are still being looked up (15.7). */
       leftApprox: (duration: string): string => `≈${duration} left`,

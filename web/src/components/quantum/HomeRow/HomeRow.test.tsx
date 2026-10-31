@@ -22,7 +22,8 @@ describe('HomeRow', () => {
     )
 
     expect(screen.getByText('Breaking Bad')).not.toBeNull()
-    expect(screen.getByText('3/10 (30%)')).not.toBeNull()
+    expect(screen.getByText('3/10')).not.toBeNull()
+    expect(screen.getAllByText('30%').length).toBeGreaterThan(0)
   })
 
   it('the whole row is one button that opens the list', () => {

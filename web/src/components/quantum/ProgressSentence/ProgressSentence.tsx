@@ -1,16 +1,14 @@
 import { Tip } from '../Tooltip/Tip.js'
 import './ProgressSentence.css'
-import { useState } from 'react'
 import { formatDuration } from '../../../formatDuration.js'
 import { copy } from '../../../locale/index.js'
-import { MeterBar, meterCellNote, meterCellsPerItem, METER_CELL_CAP } from '../MeterBar/MeterBar.js'
-import { Popover } from '../Popover/Popover.js'
+import { MeterBar, PercentLabel } from '../MeterBar/MeterBar.js'
 import type { PickedStatus } from '../StatusPicker/StatusPicker.js'
 
 const SENTENCE_SIZES = {
-  header: { count: 15, time: 14 },
-  row: { count: 13, time: 13 },
-  group: { count: 12, time: 12 },
+  header: { count: 15, time: 14, percent: 15 },
+  row: { count: 13, time: 13, percent: 13 },
+  group: { count: 12, time: 12, percent: 12 },
 } as const
 
 export type ProgressSentenceSize = keyof typeof SENTENCE_SIZES
@@ -23,7 +21,8 @@ export interface ProgressSummary {
 }
 
 /**
- * One progress sentence everywhere: `16/38 (42%) · 14h 43m left` (on a My Lists row without the dot). Finished,
+ * One progress sentence everywhere: bar, `42%`, `16/38`, `14h 43m left` (H-024: the percentage sits beside the bar and the
+ * count is the count alone; the header and group heads put a dot between each, a My Lists row does not). Finished,
  * the time field becomes `✓ All done`, or `✓ Done for now` on a list
  * flagged Ongoing — "All done" would be a lie on a series still running:
  * every item you have is watched, but the list itself is not finished
@@ -39,8 +38,7 @@ export function formatProgress(
   runtimesPending = 0,
 ): ProgressSummary {
   const allDone = total > 0 && done === total
-  const percent = total ? Math.round((done / total) * 100) : 0
-  const count = copy.quantum.progress.count(done, total, percent)
+  const count = copy.quantum.progress.count(done, total)
 
   const left = !total
     ? null
@@ -75,49 +73,18 @@ export function ProgressSentence({
 }: ProgressSentenceProps) {
   const { count, allDone, left } = formatProgress(done, total, minutesLeft, status, runtimesPending)
   const sizes = SENTENCE_SIZES[size]
-  const text = copy.quantum.meter
-  // Only the header bar is a click hint — a button explaining the cells (U6, owner:
-  // matches the prototype). The row and group bars are the plain span they've always been.
-  const [explainAnchor, setExplainAnchor] = useState<HTMLButtonElement | null>(null)
 
   return (
     <div className={size === 'header' ? 'q-progress header' : 'q-progress'}>
-      {size === 'header' ? (
-        <>
-          <Tip
-            as="button"
-            type="button"
-            className="q-meter-explain"
-            aria-label={text.explainHint}
-            text={meterCellNote(total)}
-            describe
-            onClick={(event) => setExplainAnchor((was) => (was ? null : event.currentTarget))}
-          >
-            <MeterBar done={done} total={total} big tooltip={false} />
-          </Tip>
-          <Popover
-            open={explainAnchor !== null}
-            anchorEl={explainAnchor}
-            onDismiss={() => setExplainAnchor(null)}
-            width={300}
-            side="below"
-            label={text.explainHint}
-          >
-            <span className="q-kicker">{meterCellNote(total)}</span>
-            <span className="q-pop-note">
-              {total > METER_CELL_CAP ? text.detailCapped(METER_CELL_CAP, meterCellsPerItem(total)) : text.detailUncapped}
-            </span>
-          </Popover>
-        </>
-      ) : (
-        <MeterBar done={done} total={total} />
-      )}
+      <MeterBar done={done} total={total} big={size === 'header'} />
+      <PercentLabel done={done} total={total} px={sizes.percent} />
+      {/* The prototype's My Lists row has no dots; its header and group rows keep one between each fact. */}
+      {size !== 'row' && <span className="q-sep">·</span>}
       <span className="q-count" style={{ fontSize: sizes.count }}>
         {count}
       </span>
       {left !== null && (
         <>
-          {/* The prototype's My Lists row is the count and the time with nothing between; its header and group rows keep the dot. */}
           {size !== 'row' && <span className="q-sep">·</span>}
           <Tip
             className={allDone ? 'q-left all-done' : 'q-left'}

@@ -15,54 +15,36 @@ function renderSentence(size: 'header' | 'row' | 'group' = 'header', total = 38)
 }
 
 /**
- * The header meter bar is the one place the design gives a click hint (prototype:
- * a button titled "How progress bar cells work", opening what a cell stands for). The
- * row and group bars stay plain — the prototype never makes them a button.
+ * H-024 (owner, 2026-10-31): with 20 cells always and the percentage beside them there is nothing to explain, so
+ * the header bar is a plain bar again: no button, no popover, not in the tab order.
  */
-describe('the header meter bar hints that it opens an explanation (owner: matches the prototype)', () => {
-  const button = () => screen.getByRole('button', { name: 'How progress bar cells work' })
+describe('the header meter bar is a plain bar (H-024: its click-for-help popover is gone)', () => {
+  it.each(['header', 'row', 'group'] as const)('is no button at %s size, and is not in the tab order', (size) => {
+    renderSentence(size)
 
-  it('is a button, not just a bar, only at header size', () => {
-    renderSentence('header')
-    expect(button()).toBeTruthy()
-
-    cleanup()
-    renderSentence('row')
-    expect(screen.queryByRole('button', { name: 'How progress bar cells work' })).toBeNull()
-
-    cleanup()
-    renderSentence('group')
-    expect(screen.queryByRole('button', { name: 'How progress bar cells work' })).toBeNull()
+    expect(screen.queryByRole('button')).toBeNull()
+    expect(document.querySelector('.q-meter-explain')).toBeNull()
+    expect(document.querySelector('[tabindex]')).toBeNull()
   })
 
-  it('opens on click, with the short note first and the long one under it, and closes on a second click', () => {
+  it('still names itself for a screen reader with the real numbers', () => {
     renderSentence('header')
-    fireEvent.click(button())
 
-    const pop = screen.getByRole('dialog', { name: 'How progress bar cells work' })
-    expect(pop.textContent).toContain('20 cells ≈ 2 items each')
-    expect(pop.textContent).toContain(
-      'The bar caps at 20 cells, so each cell stands for about 2 items',
-    )
-
-    fireEvent.click(button())
-    expect(screen.queryByRole('dialog', { name: 'How progress bar cells work' })).toBeNull()
+    expect(screen.getByRole('img', { name: '16 of 38 done' })).toBeTruthy()
   })
 
-  it('says it plainly under the cap: one cell is one item', () => {
-    renderSentence('header', 12)
-    fireEvent.click(button())
+  it('opens nothing when the bar is clicked', () => {
+    renderSentence('header')
+    fireEvent.click(screen.getByRole('img', { name: '16 of 38 done' }))
 
-    const pop = screen.getByRole('dialog', { name: 'How progress bar cells work' })
-    expect(pop.textContent).toContain('One cell = one item')
-    expect(pop.textContent).toContain('Each cell is one item in this list. Filled cell = done')
+    expect(screen.queryByRole('dialog')).toBeNull()
   })
 
-  it('closes on a click away', () => {
+  it('has no hint or explanation text left for the cells', () => {
     renderSentence('header')
-    fireEvent.click(button())
-    fireEvent.click(document.querySelector('.q-catcher')!)
 
-    expect(screen.queryByRole('dialog', { name: 'How progress bar cells work' })).toBeNull()
+    expect(screen.queryByLabelText('How progress bar cells work')).toBeNull()
+    expect(document.body.textContent).not.toContain('One cell = one item')
+    expect(document.body.textContent).not.toMatch(/cells ≈/)
   })
 })

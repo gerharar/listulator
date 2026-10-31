@@ -40,7 +40,8 @@ describe('GroupRow', () => {
     expect(screen.getByText('Season 1')).toBeTruthy()
     expect(screen.getByText('(2021–2023)')).toBeTruthy()
     expect(await hoverTooltip(screen.getByText('(2021–2023)'))).toBe('Release years in this group')
-    expect(screen.getByText('2/6 (33%)')).toBeTruthy()
+    expect(screen.getByText('2/6')).toBeTruthy()
+    expect(screen.getAllByText('33%').length).toBeGreaterThan(0)
     expect(screen.getByText('3h 20m left')).toBeTruthy()
   })
 
@@ -48,7 +49,8 @@ describe('GroupRow', () => {
     renderRow()
 
     expect(screen.queryByText(/shown/)).toBeNull()
-    expect(screen.getByText('2/6 (33%)')).toBeTruthy()
+    expect(screen.getByText('2/6')).toBeTruthy()
+    expect(screen.getAllByText('33%').length).toBeGreaterThan(0)
     expect(screen.getByText('3h 20m left')).toBeTruthy()
     expect(document.querySelector('.q-lead')).toBeNull()
   })

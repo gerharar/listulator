@@ -10,7 +10,6 @@ import { subscribeListsChanged } from '../../lib/listsChanged.js'
 import { createPendingUpdates, type PendingUpdates } from '../../lib/pendingUpdates.js'
 import { LayerStackProvider, useLayerStack } from '../../components/quantum/layerStack/LayerStackContext.js'
 import { ListScreen } from './ListScreen.js'
-import { hoverTooltip } from '../../components/quantum/Tooltip/hoverTooltip.js'
 
 const store = new Map<string, string>()
 
@@ -256,7 +255,8 @@ describe('ListScreen header', () => {
     expect(screen.getByRole('heading', { name: /^Loki/ })).toBeTruthy()
     expect(screen.getByText('Ongoing')).toBeTruthy()
     expect(screen.getByText('The trickster')).toBeTruthy()
-    expect(screen.getByText('1/3 (33%)')).toBeTruthy()
+    expect(screen.getByText('1/3')).toBeTruthy()
+    expect(screen.getAllByText('33%').length).toBeGreaterThan(0)
     expect(screen.getByText('2h left')).toBeTruthy()
   })
 
@@ -287,10 +287,14 @@ describe('ListScreen header', () => {
     expect(screen.getByText('✓ Done (for now)')).toBeTruthy()
   })
 
-  it('explains the cell bar on hover: one cell per item, or a block of items past 20', async () => {
+  it('draws the header bar as 20 cells with the percentage beside it, and nothing to explain on hover (H-024)', async () => {
     await open(detail({ items: [item(), item()] }))
 
-    expect(await hoverTooltip(document.querySelector('.q-meter')!)).toMatch(/One cell = one item/)
+    const bar = document.querySelector('.q-meter') as HTMLElement
+    expect(bar.style.getPropertyValue('--n')).toBe('20')
+    expect(bar.nextElementSibling?.textContent).toBe('0%')
+    expect(bar.closest('button')).toBeNull()
+    expect(bar.getAttribute('aria-label')).toBe('0 of 2 done')
   })
 })
 
@@ -442,11 +446,13 @@ describe('ListScreen done state', () => {
   it('updates the header sentence at once, before the server has answered', async () => {
     vi.mocked(api.setConsumed).mockReturnValue(new Promise(() => {}))
     await open(detail({ items: [item({ title: 'a' }), item({ title: 'b' })] }))
-    expect(screen.getByText('0/2 (0%)')).toBeTruthy()
+    expect(screen.getByText('0/2')).toBeTruthy()
+    expect(screen.getAllByText('0%').length).toBeGreaterThan(0)
 
     fireEvent.click(screen.getByText('a'))
 
-    expect(screen.getByText('1/2 (50%)')).toBeTruthy()
+    expect(screen.getByText('1/2')).toBeTruthy()
+    expect(screen.getAllByText('50%').length).toBeGreaterThan(0)
     expect(api.setConsumed).toHaveBeenCalledWith('L1', expect.any(String), true)
   })
 
@@ -456,7 +462,8 @@ describe('ListScreen done state', () => {
 
     fireEvent.click(screen.getByText('a'))
 
-    expect(screen.getByText('0/1 (0%)')).toBeTruthy()
+    expect(screen.getByText('0/1')).toBeTruthy()
+    expect(screen.getAllByText('0%').length).toBeGreaterThan(0)
     expect(api.setConsumed).toHaveBeenCalledWith('L1', expect.any(String), false)
   })
 
@@ -467,7 +474,8 @@ describe('ListScreen done state', () => {
     fireEvent.click(screen.getByText('a'))
 
     expect(await screen.findByText('Couldn\'t save this change')).toBeTruthy()
-    expect(screen.getByText('0/1 (0%)')).toBeTruthy()
+    expect(screen.getByText('0/1')).toBeTruthy()
+    expect(screen.getAllByText('0%').length).toBeGreaterThan(0)
   })
 
   it('a refused tick rolls back that item only: another tick made meanwhile keeps its place (a whole-list snapshot would undo it)', async () => {
@@ -479,11 +487,13 @@ describe('ListScreen done state', () => {
 
     fireEvent.click(screen.getByText('a'))
     fireEvent.click(screen.getByText('b'))
-    expect(screen.getByText('2/2 (100%)')).toBeTruthy()
+    expect(screen.getByText('2/2')).toBeTruthy()
+    expect(screen.getAllByText('100%').length).toBeGreaterThan(0)
     await act(async () => refuse(new ApiError('nope', 500)))
 
     expect(await screen.findByText('Couldn\'t save this change')).toBeTruthy()
-    expect(screen.getByText('1/2 (50%)')).toBeTruthy()
+    expect(screen.getByText('1/2')).toBeTruthy()
+    expect(screen.getAllByText('50%').length).toBeGreaterThan(0)
   })
 
   it('updates a group’s own progress too', async () => {
@@ -859,7 +869,8 @@ describe('ListScreen item actions (task 10.21)', () => {
       expect(screen.getByText('Alpha')).toBeTruthy()
       expect(screen.getByText('Beta')).toBeTruthy()
       expect(document.querySelector('[data-row-id="g1"]')).not.toBeNull()
-      expect(screen.getByText('1/3 (33%)')).toBeTruthy()
+      expect(screen.getByText('1/3')).toBeTruthy()
+      expect(screen.getAllByText('33%').length).toBeGreaterThan(0)
     })
 
     it('mentions the done marks that go too', async () => {
@@ -902,11 +913,13 @@ describe('ListScreen item actions (task 10.21)', () => {
     it('updates the header as the item goes', async () => {
       vi.mocked(api.deleteItem).mockReturnValue(new Promise(() => {}))
       await open(base())
-      expect(screen.getByText('0/3 (0%)')).toBeTruthy()
+      expect(screen.getByText('0/3')).toBeTruthy()
+      expect(screen.getAllByText('0%').length).toBeGreaterThan(0)
 
       fireEvent.click(screen.getByRole('button', { name: 'Delete Beta' }))
 
-      expect(screen.getByText('0/2 (0%)')).toBeTruthy()
+      expect(screen.getByText('0/2')).toBeTruthy()
+      expect(screen.getAllByText('0%').length).toBeGreaterThan(0)
     })
 
     it('puts the row back and says so when the server refuses', async () => {
