@@ -176,6 +176,96 @@ test('the text filter also finds a row by its group’s name, and opens a folded
   }
 })
 
+/**
+ * BL-156 (owner, 2026-10-31): typed text opens every group with a match, and the reader can still fold and open them by their heads (click, Enter), and with
+ * Collapse / Expand, which act on the groups the text shows. None of it is saved: clearing the text, or a reload, shows the saved layout.
+ */
+const head = (page: Page, name: string) => page.locator('.q-group', { hasText: name })
+
+test('while text is typed a group head folds and opens its group, by click and by Enter, and Collapse / Expand act on the groups shown (BL-156)', async ({ page }) => {
+  const title = `e2e list-filter folds ${Date.now()}`
+  const id = await makeList(page.request, title, 'game', GAMES)
+
+  try {
+    await openList(page, title)
+    await page.getByPlaceholder('Filter items…').fill('l')
+    // 'l' shows Prologue, Revelations (Main) and Chronicles and Bloodlines (Handhelds).
+    await expect(rows(page)).toHaveText(['Prologue', 'Revelations', 'Altaïr’s Chronicles', 'Bloodlines'])
+
+    // A click on Main's head shuts it, and Handhelds' head and rows stay.
+    await head(page, 'Main').click()
+    await expect(rows(page)).toHaveText(['Prologue', 'Altaïr’s Chronicles', 'Bloodlines'])
+    await expect(head(page, 'Main')).toHaveAttribute('aria-expanded', 'false')
+    await expect(head(page, 'Handhelds')).toHaveAttribute('aria-expanded', 'true')
+    await head(page, 'Main').click()
+    await expect(rows(page)).toHaveText(['Prologue', 'Revelations', 'Altaïr’s Chronicles', 'Bloodlines'])
+
+    // Enter on a focused head does the same.
+    await head(page, 'Handhelds').focus()
+    await page.keyboard.press('Enter')
+    await expect(rows(page)).toHaveText(['Prologue', 'Revelations'])
+    await page.keyboard.press('Enter')
+    await expect(rows(page)).toHaveText(['Prologue', 'Revelations', 'Altaïr’s Chronicles', 'Bloodlines'])
+
+    // Collapse shuts every group the text shows, Expand opens them; the heads stay.
+    await facetBar(page).getByRole('button', { name: q.list.filter.collapseAll }).click()
+    await expect(rows(page)).toHaveText(['Prologue'])
+    await expect(page.locator('.q-group')).toHaveCount(2)
+    await facetBar(page).getByRole('button', { name: q.list.filter.expandAll }).click()
+    await expect(rows(page)).toHaveText(['Prologue', 'Revelations', 'Altaïr’s Chronicles', 'Bloodlines'])
+
+    // The reader's fold lasts through editing the text, and goes when it is cleared.
+    await head(page, 'Main').click()
+    // 'lo' shows Prologue and Bloodlines: Main is out of the result, and its fold is still there when it comes back.
+    await page.getByPlaceholder('Filter items…').fill('lo')
+    await expect(rows(page)).toHaveText(['Prologue', 'Bloodlines'])
+    await page.getByPlaceholder('Filter items…').fill('l')
+    await expect(rows(page)).toHaveText(['Prologue', 'Altaïr’s Chronicles', 'Bloodlines'])
+    await page.getByPlaceholder('Filter items…').fill('')
+    await expect(rows(page)).toHaveText(['Prologue', 'Assassin’s Creed', 'Assassin’s Creed II', 'Revelations', 'Altaïr’s Chronicles', 'Bloodlines'])
+    // Typing again starts from the rule: a group with a match is open.
+    await page.getByPlaceholder('Filter items…').fill('l')
+    await expect(rows(page)).toHaveText(['Prologue', 'Revelations', 'Altaïr’s Chronicles', 'Bloodlines'])
+
+    // Nothing was saved: after a reload every group is open, as the list was.
+    await openList(page, title)
+    await expect(rows(page)).toHaveCount(6)
+  } finally {
+    await page.request.delete(`/api/lists/${id}`)
+  }
+})
+
+test('what the reader folds while text is typed leaves the saved folds alone: clearing the text, or a reload, shows the saved layout (BL-156)', async ({ page }) => {
+  const title = `e2e list-filter saved folds ${Date.now()}`
+  const id = await makeList(page.request, title, 'game', GAMES)
+
+  try {
+    await openList(page, title)
+    // Saved: Main folded (no text typed).
+    await head(page, 'Main').click()
+    await expect(rows(page)).toHaveText(['Prologue', 'Altaïr’s Chronicles', 'Bloodlines'])
+
+    // Text opens Main by itself; the reader folds Handhelds and uses Collapse then Expand meanwhile.
+    await page.getByPlaceholder('Filter items…').fill('l')
+    await expect(rows(page)).toHaveText(['Prologue', 'Revelations', 'Altaïr’s Chronicles', 'Bloodlines'])
+    await head(page, 'Handhelds').click()
+    await facetBar(page).getByRole('button', { name: q.list.filter.collapseAll }).click()
+    await facetBar(page).getByRole('button', { name: q.list.filter.expandAll }).click()
+    await head(page, 'Handhelds').click()
+    await expect(rows(page)).toHaveText(['Prologue', 'Revelations'])
+
+    // Cleared: Main is folded again, as saved; Handhelds is open, as saved.
+    await page.getByPlaceholder('Filter items…').fill('')
+    await expect(rows(page)).toHaveText(['Prologue', 'Altaïr’s Chronicles', 'Bloodlines'])
+
+    // And a reload agrees: the saved layout is what the earlier click on Main made, nothing else.
+    await openList(page, title)
+    await expect(rows(page)).toHaveText(['Prologue', 'Altaïr’s Chronicles', 'Bloodlines'])
+  } finally {
+    await page.request.delete(`/api/lists/${id}`)
+  }
+})
+
 test('a category with no convention gets the text field and no facets', async ({ page }) => {
   const title = `e2e list-filter tv ${Date.now()}`
   const id = await makeList(page.request, title, 'tv', GAMES)
