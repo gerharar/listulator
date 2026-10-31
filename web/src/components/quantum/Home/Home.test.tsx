@@ -6,6 +6,7 @@ import { api } from '../../../lib/api.js'
 import { LiveRegionProvider } from '../LiveRegion/LiveRegion.js'
 import { OverlayManagerProvider } from '../overlay/OverlayManagerContext.js'
 import { ToastProvider } from '../Toast/Toast.js'
+import { hoverTooltip } from '../Tooltip/hoverTooltip.js'
 import { LayerStackProvider, useLayerStack } from '../layerStack/LayerStackContext.js'
 import { notifyListsChanged } from '../../../lib/listsChanged.js'
 import { createPendingUpdates, type PendingUpdates } from '../../../lib/pendingUpdates.js'
@@ -114,6 +115,20 @@ function renderHome(onMediaTypesLoaded = vi.fn(), pending?: PendingUpdates) {
 }
 
 describe('Home', () => {
+  it('shows no time left anywhere on the screen: not on the rows, not in the summary line (H-024)', async () => {
+    vi.mocked(api.mediaTypes).mockResolvedValue(MEDIA_TYPES)
+    vi.mocked(api.lists).mockResolvedValue([list(), list({ id: 'list-2', title: 'Done One', stats: { ...list().stats, totalItems: 3, consumedItems: 3, timeRemainingMinutes: 0 } })])
+
+    renderHome()
+
+    await waitFor(() => expect(screen.getByText('Breaking Bad')).not.toBeNull())
+    expect(document.querySelector('.q-home-summary')?.textContent).toBe('2 lists · 43 of 65 items done')
+    // The row's name ends with the time for a screen reader (visually hidden); the visible text has none.
+    const visible = (pattern: RegExp) => screen.queryAllByText(pattern).filter((node) => !node.classList.contains('q-home-sr'))
+    expect(visible(/left/)).toHaveLength(0)
+    expect(visible(/All Done/)).toHaveLength(0)
+  })
+
   it("shows a real list's row with its counts, status mark, and curated star", async () => {
     vi.mocked(api.mediaTypes).mockResolvedValue(MEDIA_TYPES)
     vi.mocked(api.lists).mockResolvedValue([list()])
@@ -121,7 +136,7 @@ describe('Home', () => {
     renderHome()
 
     await waitFor(() => expect(screen.getByText('Breaking Bad')).not.toBeNull())
-    expect(screen.getByText('40/62')).not.toBeNull()
+    expect(screen.getByText('(40/62)')).not.toBeNull()
     expect(screen.getAllByText('64%').length).toBeGreaterThan(0)
     expect(document.querySelector('.q-star')).not.toBeNull()
     expect(document.querySelector('.q-status-mark')).not.toBeNull()
@@ -912,16 +927,20 @@ describe('Home updates (task 10.22c)', () => {
 
       renderHome()
 
-      await until(() => expect(screen.getByText('≈200h left')).not.toBeNull())
+      // The time is in the tooltip of the row's bar, percentage and count (H-024), not on the row.
+      const tip = async () => hoverTooltip(document.querySelector('.q-home-cluster')!)
+      await until(() => expect(document.querySelector('.q-home-cluster')).not.toBeNull())
+      expect(await tip()).toBe('≈200h left · Looking up runtimes: 60 still to go')
       expect(api.lists).toHaveBeenCalledTimes(1)
 
       await act(async () => void vi.advanceTimersByTime(3000))
       await until(() => expect(api.lists).toHaveBeenCalledTimes(2))
-      expect(screen.getByText('≈200h left')).not.toBeNull()
+      expect(await tip()).toBe('≈200h left · Looking up runtimes: 20 still to go')
 
       await act(async () => void vi.advanceTimersByTime(3000))
-      await until(() => expect(screen.getByText('200h left')).not.toBeNull())
-      expect(api.lists).toHaveBeenCalledTimes(3)
+      await until(() => expect(api.lists).toHaveBeenCalledTimes(3))
+      await act(async () => undefined)
+      expect(await tip()).toBe('200h left')
 
       await act(async () => void vi.advanceTimersByTime(30_000))
       expect(api.lists).toHaveBeenCalledTimes(3)

@@ -228,6 +228,10 @@ export const de: Locale = {
     progress: {
       /** The count alone; the percentage sits beside the bar (H-024). */
       count: (done: number, total: number): string => `${done}/${total}`,
+      /** A My Lists row's count, in parentheses after the percentage: `41% (25/60)` (H-024). */
+      homeCount: (done: number, total: number): string => `(${done}/${total})`,
+      /** What the time-left tooltip says on a list with no items (H-024). */
+      emptyList: 'Leere Liste',
       left: (duration: string): string => `noch ${duration}`,
       leftApprox: (duration: string): string => `noch ≈${duration}`,
       runtimesPendingTip: (count: number): string => `Laufzeiten werden gesucht: noch ${count}`,

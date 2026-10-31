@@ -1,8 +1,14 @@
 /*
  * design-system/components/HomeRow, ported from bundle.css
- * (design-system/components/bundle.css lines ~155-160).
+ * (design-system/components/bundle.css lines ~155-160), reworked for canvas H-024 (owner, 2026-10-31).
+ *
+ * Where the browser has `subgrid`, My Lists is ONE grid (Home.css) and each row is a subgrid of it, so every row's columns are as
+ * wide as the widest cell on the screen: title · NEW · bar and % · count. Where it has not (a system WebKit older than 2022,
+ * which macOS 11 can still run), the row keeps the flex layout below: the columns are then each row's own, which is what the
+ * screen was before, and nothing is broken.
  */
 .q-home-row {
+  position: relative;
   width: 100%;
   display: flex;
   align-items: center;
@@ -34,19 +40,66 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-/* The prototype's row is a flex row with a 16px gap between the cells, the count and the time (no dot between the last two). */
-.q-home-row .q-progress {
-  gap: 16px;
-}
-.q-home-row .q-count {
-  width: 112px;
-  text-align: right;
-  /* The prototype gives the row's count no colour of its own, so it reads in the main text colour, as the list header's does. */
-  color: var(--ink);
-}
-.q-home-row .q-left {
-  /* 114px is the design's column; a longer translation ("noch 1 Std. 30 Min.") grows it rather than being clipped. */
-  min-width: 114px;
+/* The cluster: bar and percentage, then the count in parentheses. The time left is its tooltip, not a column. */
+.q-home-cluster {
   flex: none;
-  text-align: right;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.q-home-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.q-home-count {
+  font: 500 13px/1 var(--font-mono);
+  color: var(--ink2);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+/* The row's time for a screen reader, at the end of its name: the standard sr-only clip. */
+.q-home-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+  margin: -1px;
+  padding: 0;
+}
+
+@supports (grid-template-columns: subgrid) {
+  .q-home-row {
+    grid-column: 1 / -1;
+    grid-template-columns: subgrid;
+    display: grid;
+    align-items: center;
+  }
+  .q-home-row .name {
+    grid-column: 1;
+  }
+  .q-home-row .q-new {
+    grid-column: 2;
+    justify-self: end;
+  }
+  /* Bar and percentage in the third column, the count in the fourth: the cluster is a subgrid of the row's two. */
+  .q-home-cluster {
+    grid-column: 3 / span 2;
+    grid-template-columns: subgrid;
+    display: grid;
+    align-items: center;
+    /* The screen's 16px, not the flex fallback's 8px above. */
+    column-gap: 16px;
+  }
+  .q-home-bar {
+    justify-self: end;
+  }
+  /* The column gap is 16px; pulled back 8px it is one 13px character, as "41% (25/60)" reads. */
+  .q-home-count {
+    justify-self: start;
+    margin-left: -8px;
+  }
 }

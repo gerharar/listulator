@@ -6,7 +6,7 @@ import { ProgressSentence } from './ProgressSentence.js'
 
 afterEach(cleanup)
 
-function renderSentence(size: 'header' | 'row' | 'group' = 'header', total = 38) {
+function renderSentence(size: 'header' | 'group' = 'header', total = 38) {
   render(
     <OverlayManagerProvider>
       <ProgressSentence done={16} total={total} minutesLeft={883} status={null} size={size} />
@@ -19,7 +19,7 @@ function renderSentence(size: 'header' | 'row' | 'group' = 'header', total = 38)
  * the header bar is a plain bar again: no button, no popover, not in the tab order.
  */
 describe('the header meter bar is a plain bar (H-024: its click-for-help popover is gone)', () => {
-  it.each(['header', 'row', 'group'] as const)('is no button at %s size, and is not in the tab order', (size) => {
+  it.each(['header', 'group'] as const)('is no button at %s size, and is not in the tab order', (size) => {
     renderSentence(size)
 
     expect(screen.queryByRole('button')).toBeNull()

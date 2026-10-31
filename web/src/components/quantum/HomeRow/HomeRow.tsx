@@ -1,8 +1,12 @@
 import { Tip } from '../Tooltip/Tip.js'
 import './HomeRow.css'
+import { useRef, type FocusEventHandler, type PointerEventHandler } from 'react'
+import { copy } from '../../../locale/index.js'
 import { ByHandMark, CuratedStar, NewBadge } from '../Marks/Marks.js'
 import { StatusMark } from '../StatusChip/StatusChip.js'
-import { ProgressSentence } from '../ProgressSentence/ProgressSentence.js'
+import { MeterBar, PercentLabel } from '../MeterBar/MeterBar.js'
+import { formatProgress } from '../ProgressSentence/ProgressSentence.js'
+import { useTooltip } from '../Tooltip/useTooltip.js'
 import type { PickedStatus } from '../StatusPicker/StatusPicker.js'
 
 export interface HomeRowProps {
@@ -22,8 +26,12 @@ export interface HomeRowProps {
 }
 
 /**
- * One list on My Lists, on one line (design-system/components/HomeRow):
- * marks, name, status, the cell bar, the count, and time left.
+ * One list on My Lists, on one line (design-system/components/HomeRow; canvas H-024): marks, name, status, the NEW badge,
+ * then the cluster `bar · 41% · (25/60)`. The row is a subgrid of the screen's one grid, so each column is as wide as its widest
+ * cell on the screen; the cluster is the second level of it (its bar and percentage, and its count).
+ *
+ * No time left is drawn (it can be estimated, partial or missing, and everything else here is exact): it is the tooltip of the
+ * cluster, on a pointer hover or on keyboard focus of the row, and the row's accessible name ends with it.
  */
 export function HomeRow({
   title,
@@ -37,23 +45,37 @@ export function HomeRow({
   runtimesPending,
   onOpen,
 }: HomeRowProps) {
+  const cluster = useRef<HTMLSpanElement>(null)
+  const { left } = formatProgress(done, total, minutesLeft, status, runtimesPending ?? 0)
+  // `✓ All Done` reads as `All Done` here: the tick is the column's glyph, and a tooltip has no column.
+  const time = left === null ? copy.quantum.progress.emptyList : left.replace(/^✓\s*/, '')
+  const tip = useTooltip(
+    runtimesPending && left !== null && done < total ? `${time} · ${copy.quantum.progress.runtimesPendingTip(runtimesPending)}` : time,
+    { placement: 'top-end', mono: true, anchorTo: () => cluster.current },
+  )
+
+  // The pointer's tooltip belongs to the cluster, the keyboard's to the row (a button the cluster is not): each handler goes where it is meant.
+  const { onFocus, onPointerEnter } = tip.props<{ onFocus?: FocusEventHandler<HTMLElement>; onPointerEnter?: PointerEventHandler<HTMLElement> }>({})
+
   return (
-    <button type="button" className="q-home-row" onClick={onOpen}>
+    <button type="button" className="q-home-row" onClick={onOpen} onFocus={onFocus}>
       <Tip className="name" text={description ?? undefined}>
         {mark === 'curated' && <CuratedStar />}
         {mark === 'byHand' && <ByHandMark />}
         <span className="title">{title}</span>
         <StatusMark status={status} />
-        {newCount ? <NewBadge count={newCount} /> : null}
       </Tip>
-      <ProgressSentence
-        done={done}
-        total={total}
-        minutesLeft={minutesLeft}
-        status={status}
-        size="row"
-        {...(runtimesPending ? { runtimesPending } : {})}
-      />
+      {newCount ? <NewBadge count={newCount} /> : null}
+      <span ref={cluster} className="q-home-cluster" onPointerEnter={onPointerEnter}>
+        <span className="q-home-bar">
+          <MeterBar done={done} total={total} />
+          <PercentLabel done={done} total={total} px={13} />
+        </span>
+        <span className="q-home-count">{copy.quantum.progress.homeCount(done, total)}</span>
+      </span>
+      {/* The tooltip is for the pointer; a screen reader hears the time as the end of the row's name. */}
+      {left !== null && <span className="q-home-sr">{`, ${time}`}</span>}
+      {tip.node}
     </button>
   )
 }

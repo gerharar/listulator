@@ -260,6 +260,10 @@ export const en = {
     progress: {
       /** The count alone; the percentage sits beside the bar (H-024). */
       count: (done: number, total: number): string => `${done}/${total}`,
+      /** A My Lists row's count, in parentheses after the percentage: `41% (25/60)` (H-024). */
+      homeCount: (done: number, total: number): string => `(${done}/${total})`,
+      /** What the time-left tooltip says on a list with no items (H-024). */
+      emptyList: 'Empty list',
       left: (duration: string): string => `${duration} left`,
       /** Part of the time is the category's estimate: lengths are still being looked up (15.7). */
       leftApprox: (duration: string): string => `≈${duration} left`,
@@ -1188,7 +1192,7 @@ export const en = {
       retry: 'Retry',
       listCount: (n: number): string =>
         `${n} ${selectPlural(n, 'en', { one: 'list', other: 'lists' })}`,
-      /** The mono summary line under the title — `null` time means an empty account, nothing left to say about time. */
+      /** The mono summary line under the title — `null` time says nothing about time: My Lists shows none unless Settings → Screen asks for it (H-024). */
       summary: (listCount: string, done: number, total: number, timeLeft: string | null): string =>
         timeLeft
           ? `${listCount} · ${done} of ${total} items done · ${timeLeft} left`

@@ -119,3 +119,26 @@
 [data-reduced] .q-spin {
   animation: none;
 }
+
+/*
+ * H-024 (owner, 2026-10-31): My Lists is one grid whose rows are subgrids, so the bar and percentage and the count are true columns,
+ * each as wide as its widest cell on the screen (the total width flexes with the data), 16px apart. Title fills; the NEW badge and
+ * the bar and percentage are right-aligned, the count left-aligned. Without `subgrid` (HomeRow.css explains) the rows keep their flex
+ * layout and none of this applies.
+ */
+@supports (grid-template-columns: subgrid) {
+  .q-home-body {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto auto auto;
+    column-gap: 16px;
+    align-content: start;
+  }
+  .q-bucket {
+    grid-column: 1 / -1;
+    grid-template-columns: subgrid;
+    display: grid;
+  }
+  .q-kicker-bar {
+    grid-column: 1 / -1;
+  }
+}

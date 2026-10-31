@@ -16,7 +16,7 @@ const wait = async (ms: number) => act(async () => void (await vi.advanceTimersB
 function renderSentence(runtimesPending?: number) {
   render(
     <OverlayManagerProvider>
-      <ProgressSentence done={16} total={38} minutesLeft={883} status={null} size="row" {...(runtimesPending === undefined ? {} : { runtimesPending })} />
+      <ProgressSentence done={16} total={38} minutesLeft={883} status={null} size="group" {...(runtimesPending === undefined ? {} : { runtimesPending })} />
     </OverlayManagerProvider>,
   )
 }

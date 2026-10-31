@@ -1,12 +1,15 @@
 import './Tooltip.css'
 import { useCallback, useEffect, useId, useState, type FocusEvent, type PointerEvent, type ReactNode } from 'react'
-import { autoUpdate, flip, FloatingPortal, offset, shift, useFloating } from '@floating-ui/react'
+import { autoUpdate, flip, FloatingPortal, offset, shift, useFloating, type Placement } from '@floating-ui/react'
 
 /** Half a second of a mouse hover (owner's ruling, 11.19; the native wait is several seconds): long enough not to flicker while passing over, far quicker than native. */
 export const TOOLTIP_DELAY_MS = 500
 
 interface Active {
+  /** What the tooltip is drawn against, and what it describes. */
   anchor: HTMLElement
+  /** The element the pointer or the focus is on, which ends the tooltip when it leaves: the anchor itself, unless `anchorTo` says otherwise. */
+  source: HTMLElement
   /** A mouse waits `TOOLTIP_DELAY_MS`; keyboard focus shows it at once. */
   by: 'hover' | 'focus'
 }
@@ -32,7 +35,20 @@ export interface TooltipHandle {
  * Cheap to have on every button of a long list: an idle button holds one `useState` and two handlers.
  * The positioning machinery exists only for the one tooltip that is showing.
  */
-export function useTooltip(text: string | undefined, options: { whenClipped?: boolean } = {}): TooltipHandle {
+export interface TooltipOptions {
+  whenClipped?: boolean
+  /** Where it sits against its anchor; above and centred unless said (`top-end` lines the right edges up). */
+  placement?: Placement
+  /** Mono type, for a tooltip that is a number or a time (H-024). */
+  mono?: boolean
+  /**
+   * Draw the tooltip against another element than the one the pointer or focus is on: My Lists' row is the one button, but its time
+   * hangs off the bar, percentage and count (H-024). The tooltip still ends when the pointer or focus leaves the element it started on.
+   */
+  anchorTo?: () => HTMLElement | null
+}
+
+export function useTooltip(text: string | undefined, options: TooltipOptions = {}): TooltipHandle {
   const [active, setActive] = useState<Active | null>(null)
   const enabled = text !== undefined && text !== ''
   const close = useCallback(() => {
@@ -52,17 +68,17 @@ export function useTooltip(text: string | undefined, options: { whenClipped?: bo
         ;(own.onPointerEnter as ((e: PointerEvent<HTMLElement>) => void) | undefined)?.(event)
         // A touch also sends a pointer-enter; it must not raise a tooltip nobody can dismiss.
         if (enabled && event.pointerType !== 'touch' && showsFor(event.currentTarget, options.whenClipped)) {
-          activate({ anchor: event.currentTarget, by: 'hover' })
+          activate({ anchor: options.anchorTo?.() ?? event.currentTarget, source: event.currentTarget, by: 'hover' })
         }
       },
       onFocus: (event: FocusEvent<HTMLElement>) => {
         ;(own.onFocus as ((e: FocusEvent<HTMLElement>) => void) | undefined)?.(event)
         if (enabled && focusIsVisible(event.currentTarget) && showsFor(event.currentTarget, options.whenClipped)) {
-          activate({ anchor: event.currentTarget, by: 'focus' })
+          activate({ anchor: options.anchorTo?.() ?? event.currentTarget, source: event.currentTarget, by: 'focus' })
         }
       },
     }),
-    node: active && enabled ? <TooltipLayer key={active.by} active={active} text={text} onClose={close} /> : null,
+    node: active && enabled ? <TooltipLayer key={active.by} active={active} text={text} options={options} onClose={close} /> : null,
   }
 }
 
@@ -85,31 +101,31 @@ function focusIsVisible(element: HTMLElement): boolean {
   }
 }
 
-function TooltipLayer({ active, text, onClose }: { active: Active; text: string; onClose: () => void }) {
+function TooltipLayer({ active, text, options, onClose }: { active: Active; text: string; options: TooltipOptions; onClose: () => void }) {
   const id = useId()
   const [shown, setShown] = useState(active.by === 'focus')
   const { refs, floatingStyles, isPositioned } = useFloating({
     open: shown,
     elements: { reference: active.anchor },
-    placement: 'top',
+    placement: options.placement ?? 'top',
     middleware: [offset(8), flip(), shift({ padding: 8 })],
     whileElementsMounted: autoUpdate,
   })
 
   useEffect(() => {
-    const { anchor, by } = active
+    const { source, by } = active
     const timer = by === 'hover' ? setTimeout(() => setShown(true), TOOLTIP_DELAY_MS) : undefined
     const onKey = (event: KeyboardEvent) => {
       if (event.key === 'Escape') onClose()
     }
-    anchor.addEventListener(by === 'hover' ? 'pointerleave' : 'blur', onClose)
-    anchor.addEventListener('pointerdown', onClose)
+    source.addEventListener(by === 'hover' ? 'pointerleave' : 'blur', onClose)
+    source.addEventListener('pointerdown', onClose)
     document.addEventListener('keydown', onKey)
 
     return () => {
       clearTimeout(timer)
-      anchor.removeEventListener(by === 'hover' ? 'pointerleave' : 'blur', onClose)
-      anchor.removeEventListener('pointerdown', onClose)
+      source.removeEventListener(by === 'hover' ? 'pointerleave' : 'blur', onClose)
+      source.removeEventListener('pointerdown', onClose)
       document.removeEventListener('keydown', onKey)
     }
   }, [active, onClose])
@@ -135,7 +151,7 @@ function TooltipLayer({ active, text, onClose }: { active: Active; text: string;
         ref={refs.setFloating}
         id={id}
         role="tooltip"
-        className="q-tooltip"
+        className={options.mono ? 'q-tooltip mono' : 'q-tooltip'}
         style={{ ...floatingStyles, opacity: isPositioned ? 1 : 0 }}
       >
         {text}

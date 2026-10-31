@@ -7,7 +7,6 @@ import type { PickedStatus } from '../StatusPicker/StatusPicker.js'
 
 const SENTENCE_SIZES = {
   header: { count: 15, time: 14, percent: 15 },
-  row: { count: 13, time: 13, percent: 13 },
   group: { count: 12, time: 12, percent: 12 },
 } as const
 
@@ -22,7 +21,7 @@ export interface ProgressSummary {
 
 /**
  * One progress sentence everywhere: bar, `42%`, `16/38`, `14h 43m left` (H-024: the percentage sits beside the bar and the
- * count is the count alone; the header and group heads put a dot between each, a My Lists row does not). Finished,
+ * count is the count alone, a dot between each; My Lists draws its own cluster, `HomeRow`). Finished,
  * the time field becomes `✓ All done`, or `✓ Done for now` on a list
  * flagged Ongoing — "All done" would be a lie on a series still running:
  * every item you have is watched, but the list itself is not finished
@@ -68,7 +67,7 @@ export function ProgressSentence({
   total,
   minutesLeft,
   status,
-  size = 'row',
+  size = 'group',
   runtimesPending = 0,
 }: ProgressSentenceProps) {
   const { count, allDone, left } = formatProgress(done, total, minutesLeft, status, runtimesPending)
@@ -78,14 +77,13 @@ export function ProgressSentence({
     <div className={size === 'header' ? 'q-progress header' : 'q-progress'}>
       <MeterBar done={done} total={total} big={size === 'header'} />
       <PercentLabel done={done} total={total} px={sizes.percent} />
-      {/* The prototype's My Lists row has no dots; its header and group rows keep one between each fact. */}
-      {size !== 'row' && <span className="q-sep">·</span>}
+      <span className="q-sep">·</span>
       <span className="q-count" style={{ fontSize: sizes.count }}>
         {count}
       </span>
       {left !== null && (
         <>
-          {size !== 'row' && <span className="q-sep">·</span>}
+          <span className="q-sep">·</span>
           <Tip
             className={allDone ? 'q-left all-done' : 'q-left'}
             style={{ fontSize: allDone ? Math.max(11, sizes.time - 2) : sizes.time }}

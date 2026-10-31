@@ -3,7 +3,6 @@ import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from
 import { RefreshCw } from 'lucide-react'
 import { api, type MediaList, type MediaType } from '../../../lib/api.js'
 import { buildBuckets, findOrphanedLists, listMark } from '../../../lib/buckets.js'
-import { formatDuration } from '../../../formatDuration.js'
 import { categoryLabel, copy } from '../../../locale/index.js'
 import { Button, IconButton } from '../Button/Button.js'
 import { HeaderPlate } from '../HeaderPlate/HeaderPlate.js'
@@ -283,9 +282,8 @@ export function Home({ onMediaTypesLoaded, pendingUpdates }: HomeProps) {
     (sum, entry) => ({
       done: sum.done + entry.stats.consumedItems,
       total: sum.total + entry.stats.totalItems,
-      left: sum.left + entry.stats.timeRemainingMinutes,
     }),
-    { done: 0, total: 0, left: 0 },
+    { done: 0, total: 0 },
   )
 
   function openList(list: MediaList) {
@@ -308,7 +306,7 @@ export function Home({ onMediaTypesLoaded, pendingUpdates }: HomeProps) {
           copy.quantum.home.listCount(lists.length),
           totals.done,
           totals.total,
-          totals.left > 0 ? formatDuration(totals.left) : null,
+          null,
         )}
         onNew={() => layerStack.push(categoryPickerLayer())}
       />

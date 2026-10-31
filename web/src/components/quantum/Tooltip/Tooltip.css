@@ -14,3 +14,11 @@
   overflow-wrap: anywhere;
   pointer-events: none;
 }
+
+/* A number or a time (H-024: My Lists' time left): mono, one line, as the design draws it. */
+.q-tooltip.mono {
+  padding: 6px 9px;
+  font: 500 12px/1.2 var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}

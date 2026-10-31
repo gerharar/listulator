@@ -43,8 +43,9 @@ test('the rename pencil sits right after the group name and its year span, and t
     // Without one: within 12px of the name's.
     const noYear = await gaps('Extras')
     expect(Math.abs(noYear.gap)).toBeLessThanOrEqual(12)
-    // The progress is still at the right edge, far from the pencil.
-    expect(withYear.progressLeft - withYear.pencilRight).toBeGreaterThan(100)
+    // The progress is still at the right edge, with free space between it and the pencil. (The bar is always 20 cells wide, H-024, so in this
+    // 1000px window that space is about 50px, not the 100px it was while a short list drew a short bar.)
+    expect(withYear.progressLeft - withYear.pencilRight).toBeGreaterThan(24)
     expect(withYear.rowRight - withYear.progressRight).toBeLessThan(80)
 
     // A very long name is cut with an ellipsis and the pencil still follows it, inside the row.
@@ -55,7 +56,8 @@ test('the rename pencil sits right after the group name and its year span, and t
     // Renaming: the field takes the free width again.
     await page.getByRole('button', { name: 'Rename group Season 1', exact: true }).click()
     const field = await page.getByLabel('Group name', { exact: true }).boundingBox()
-    expect(field!.width).toBeGreaterThan(300)
+    // About 230px here, not the 300px+ it was before the bar was always 20 cells wide (H-024): still a usable field.
+    expect(field!.width).toBeGreaterThan(150)
   } finally {
     await page.request.delete(`/api/lists/${list.id}`)
   }

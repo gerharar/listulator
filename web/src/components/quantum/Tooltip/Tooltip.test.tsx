@@ -3,7 +3,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { Button, IconButton } from '../Button/Button.js'
 import { Tip } from './Tip.js'
-import { TOOLTIP_DELAY_MS } from './useTooltip.js'
+import { TOOLTIP_DELAY_MS, useTooltip } from './useTooltip.js'
+import { useRef, type FocusEventHandler, type PointerEventHandler } from 'react'
 
 beforeEach(() => vi.useFakeTimers())
 afterEach(() => {
@@ -254,6 +255,65 @@ describe('Tip on a label (38.8b, H-022): a checkbox row with a tooltip', () => {
     act(() => screen.getByRole('checkbox').focus())
     await wait(TOOLTIP_DELAY_MS + 50)
 
+    expect(tooltip()).toBeNull()
+  })
+})
+
+describe('a tooltip drawn against another element than the one the pointer or focus is on (H-024: My Lists’ time)', () => {
+  function Cluster() {
+    const anchor = useRef<HTMLSpanElement>(null)
+    const tip = useTooltip('35h left', { mono: true, placement: 'top-end', anchorTo: () => anchor.current })
+    const { onFocus, onPointerEnter } = tip.props<{ onFocus?: FocusEventHandler<HTMLElement>; onPointerEnter?: PointerEventHandler<HTMLElement> }>({})
+
+    return (
+      <button type="button" onFocus={onFocus}>
+        <span data-testid="title">Title</span>
+        <span data-testid="anchor" ref={anchor} onPointerEnter={onPointerEnter}>
+          41%
+        </span>
+        {tip.node}
+      </button>
+    )
+  }
+
+  it('is set in mono type, and describes the anchor, not the element hovered', async () => {
+    render(<Cluster />)
+    const anchor = screen.getByTestId('anchor')
+
+    fireEvent.pointerEnter(anchor, { pointerType: 'mouse' })
+    await wait(TOOLTIP_DELAY_MS + 50)
+
+    expect(tooltip()?.classList.contains('mono')).toBe(true)
+    expect(anchor.getAttribute('aria-describedby')).toBe(tooltip()!.id)
+    expect(screen.getByRole('button').hasAttribute('aria-describedby')).toBe(false)
+  })
+
+  it('ends when the pointer leaves the element it started on', async () => {
+    render(<Cluster />)
+    const anchor = screen.getByTestId('anchor')
+
+    fireEvent.pointerEnter(anchor, { pointerType: 'mouse' })
+    await wait(TOOLTIP_DELAY_MS + 50)
+    fireEvent.pointerLeave(anchor)
+    await wait(20)
+
+    expect(tooltip()).toBeNull()
+  })
+
+  it('on keyboard focus of the button, draws against the anchor at once and ends on blur of the button', async () => {
+    render(<Cluster />)
+    const button = screen.getByRole('button')
+    // jsdom cannot tell keyboard focus from a mouse press's (what it says depends on the tests that ran before); say it is the keyboard's.
+    const matches = button.matches.bind(button)
+    button.matches = (selector: string) => selector === ':focus-visible' || matches(selector)
+
+    act(() => button.focus())
+    await wait(TOOLTIP_DELAY_MS + 50)
+    expect(tooltip()?.textContent).toBe('35h left')
+    expect(screen.getByTestId('anchor').getAttribute('aria-describedby')).toBe(tooltip()!.id)
+
+    act(() => button.blur())
+    await wait(20)
     expect(tooltip()).toBeNull()
   })
 })

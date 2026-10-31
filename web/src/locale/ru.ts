@@ -237,6 +237,10 @@ export const ru: Locale = {
     progress: {
       /** The count alone; the percentage sits beside the bar (H-024). */
       count: (done: number, total: number): string => `${done}/${total}`,
+      /** A My Lists row's count, in parentheses after the percentage: `41% (25/60)` (H-024). */
+      homeCount: (done: number, total: number): string => `(${done}/${total})`,
+      /** What the time-left tooltip says on a list with no items (H-024). */
+      emptyList: 'Пустой список',
       left: (duration: string): string => `осталось ${duration}`,
       leftApprox: (duration: string): string => `осталось ≈${duration}`,
       runtimesPendingTip: (count: number): string => `Ищем длительность: осталось ${count}`,
