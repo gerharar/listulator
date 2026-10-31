@@ -684,6 +684,75 @@ describe('folding a group while text is typed (BL-156)', () => {
   })
 })
 
+/** BL-156, task 45.2: Collapse / Expand under typed text act on the groups the text shows, in memory, and leave the saved folds alone. */
+describe('Collapse and Expand while text is typed (BL-156)', () => {
+  const key = 'list:L1:collapsed'
+  const settle = () => act(async () => {})
+  const fold = (name: 'Collapse' | 'Expand') => within(bar()).getByRole('button', { name })
+
+  it('folds the groups the text shows, then opens them, and the button follows', async () => {
+    await open()
+    await settle()
+    const saved = store.get(key)
+    type('l')
+    expect(rowIds()).toEqual(['p', 'gm', 'ac3', 'gh', 'ch', 'bl'])
+
+    fireEvent.click(fold('Collapse'))
+    expect(rowIds()).toEqual(['p', 'gm', 'gh'])
+    fireEvent.click(fold('Expand'))
+    expect(rowIds()).toEqual(['p', 'gm', 'ac3', 'gh', 'ch', 'bl'])
+    await settle()
+
+    expect(store.get(key)).toBe(saved)
+  })
+
+  it('judges the button on what is shown: saved folds the text has opened read Collapse, and folding them saves nothing', async () => {
+    store.set(key, JSON.stringify(['Main', 'Handhelds']))
+    await open()
+    expect(within(bar()).getByRole('button', { name: 'Expand' })).toBeTruthy()
+
+    type('l')
+    expect(rowIds()).toEqual(['p', 'gm', 'ac3', 'gh', 'ch', 'bl'])
+    fireEvent.click(fold('Collapse'))
+    expect(rowIds()).toEqual(['p', 'gm', 'gh'])
+    await settle()
+
+    expect(store.get(key)).toBe(JSON.stringify(['Main', 'Handhelds']))
+  })
+
+  it('reads Collapse while any shown group is open, so a fold by hand and then the button finish the job', async () => {
+    await open()
+    type('l')
+    fireEvent.click(row('gm'))
+    expect(rowIds()).toEqual(['p', 'gm', 'gh', 'ch', 'bl'])
+
+    fireEvent.click(fold('Collapse'))
+    expect(rowIds()).toEqual(['p', 'gm', 'gh'])
+    expect(within(bar()).getByRole('button', { name: 'Expand' })).toBeTruthy()
+  })
+
+  it('acts only on the groups the text shows, and clearing the text returns the saved layout, whatever was done', async () => {
+    await open()
+    type('chron')
+    expect(rowIds()).toEqual(['gh', 'ch'])
+
+    fireEvent.click(fold('Collapse'))
+    expect(rowIds()).toEqual(['gh'])
+
+    type('')
+    expect(rowIds()).toEqual(['p', 'gm', 'ac1', 'ac2', 'ac3', 'gh', 'ch', 'bl'])
+  })
+
+  it('still folds every group and saves it with no text typed, as before', async () => {
+    await open()
+
+    fireEvent.click(fold('Collapse'))
+
+    await waitFor(() => expect(store.get(key)).toBe(JSON.stringify(['Main', 'Handhelds'])))
+    expect(rowIds()).toEqual(['p', 'gm', 'gh'])
+  })
+})
+
 describe('fold all', () => {
   it('collapses every group while any is open, and remembers it', async () => {
     await open()

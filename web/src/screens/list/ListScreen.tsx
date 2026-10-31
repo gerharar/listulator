@@ -573,8 +573,11 @@ function ListView({
     void saveCollapsed(getPreferencesStore(), listId, next)
   }
 
-  /** Collapse all / Expand all: judged on what the reader has open, not on what a filter shows. */
-  const anyOpen = groupNames.some((name) => !collapsed.has(name))
+  /**
+   * Collapse all / Expand all: judged on what the reader has open, not on what a facet filter shows. While text is typed it is the other way round
+   * (BL-156): the groups the text shows are the list in front of the reader, and the saved folds are not theirs to change from a result.
+   */
+  const anyOpen = typed ? [...openByText].some((name) => !shut.has(name)) : groupNames.some((name) => !collapsed.has(name))
 
   // The rail is the map of the whole list: every group with items, however the filter narrows the spine.
   const railEntries = useMemo<RailEntry[]>(
@@ -677,6 +680,16 @@ function ListView({
   })
 
   function foldAll() {
+    if (typed) {
+      setTextFolds((current) => {
+        const next = new Map(current)
+        for (const name of openByText) next.set(name, anyOpen)
+
+        return next
+      })
+
+      return
+    }
     const next = anyOpen ? new Set(groupNames) : new Set<string>()
     setCollapsed(next)
     void saveCollapsed(getPreferencesStore(), listId, next)
