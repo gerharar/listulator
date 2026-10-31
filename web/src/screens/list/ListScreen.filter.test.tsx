@@ -576,6 +576,114 @@ describe('Hide Completed (18.1)', () => {
   })
 })
 
+/**
+ * BL-156 (owner, 2026-10-31): typed text opens a folded group that has a match, and the reader can still fold and open it. A fold the reader makes
+ * while text is typed lasts, in memory, until the text is cleared (through any editing of it), and is never stored: the saved layout is what clearing the
+ * text returns to. Before, a click only edited the stored set, which the forced-open groups ignored: nothing on screen changed, and the saved folds did.
+ */
+describe('folding a group while text is typed (BL-156)', () => {
+  const key = 'list:L1:collapsed'
+  const settle = () => act(async () => {})
+  // 'l' shows Prologue, Revelations (Main) and Chronicles and Bloodlines (Handhelds).
+  const ALL_FOR_L = ['p', 'gm', 'ac3', 'gh', 'ch', 'bl']
+
+  it('shuts a group the text shows when its head is clicked, and opens it again', async () => {
+    await open()
+    type('l')
+    expect(rowIds()).toEqual(ALL_FOR_L)
+
+    fireEvent.click(row('gm'))
+    expect(rowIds()).toEqual(['p', 'gm', 'gh', 'ch', 'bl'])
+    expect(row('gm').getAttribute('aria-expanded')).toBe('false')
+
+    fireEvent.click(row('gm'))
+    expect(rowIds()).toEqual(ALL_FOR_L)
+    expect(row('gm').getAttribute('aria-expanded')).toBe('true')
+  })
+
+  it('does the same for Enter and for Space on the head', async () => {
+    await open()
+    type('l')
+
+    fireEvent.keyDown(row('gh'), { key: 'Enter' })
+    expect(rowIds()).toEqual(['p', 'gm', 'ac3', 'gh'])
+
+    fireEvent.keyDown(row('gh'), { key: ' ' })
+    expect(rowIds()).toEqual(ALL_FOR_L)
+  })
+
+  it('folds and opens a group that is saved as folded and was opened by the text, leaving the saved folds as they were', async () => {
+    store.set(key, JSON.stringify(['Main']))
+    await open()
+    type('l')
+    expect(rowIds()).toContain('ac3')
+
+    fireEvent.click(row('gm'))
+    expect(rowIds()).not.toContain('ac3')
+    fireEvent.click(row('gm'))
+    expect(rowIds()).toContain('ac3')
+    await settle()
+
+    expect(store.get(key)).toBe(JSON.stringify(['Main']))
+  })
+
+  it('writes nothing to the saved folds, and clearing the text returns to the saved layout', async () => {
+    await open()
+    await settle()
+    const saved = store.get(key)
+    type('l')
+
+    fireEvent.click(row('gm'))
+    fireEvent.click(row('gh'))
+    await settle()
+    expect(rowIds()).toEqual(['p', 'gm', 'gh'])
+    expect(store.get(key)).toBe(saved)
+
+    type('')
+    expect(rowIds()).toEqual(['p', 'gm', 'ac1', 'ac2', 'ac3', 'gh', 'ch', 'bl'])
+  })
+
+  it('keeps the reader’s fold while the text changes, and drops it when the text is cleared', async () => {
+    await open()
+    type('r')
+    expect(rowIds()).toEqual(['p', 'gm', 'ac1', 'ac2', 'ac3', 'gh', 'ch'])
+    fireEvent.click(row('gm'))
+    expect(rowIds()).toEqual(['p', 'gm', 'gh', 'ch'])
+
+    type('re')
+    expect(rowIds()).toEqual(['gm'])
+    type('r')
+    expect(rowIds()).toEqual(['p', 'gm', 'gh', 'ch'])
+
+    type('')
+    expect(rowIds()).toEqual(['p', 'gm', 'ac1', 'ac2', 'ac3', 'gh', 'ch', 'bl'])
+    // Typing again starts from the rule: a group with a match is open.
+    type('r')
+    expect(rowIds()).toEqual(['p', 'gm', 'ac1', 'ac2', 'ac3', 'gh', 'ch'])
+  })
+
+  it('still folds a group by its head with no text typed, and saves it, as before', async () => {
+    await open()
+
+    fireEvent.click(row('gm'))
+    expect(rowIds()).toEqual(['p', 'gm', 'gh', 'ch', 'bl'])
+    await waitFor(() => expect(store.get(key)).toBe(JSON.stringify(['Main'])))
+
+    fireEvent.click(row('gm'))
+    await waitFor(() => expect(store.get(key)).toBe(JSON.stringify([])))
+  })
+
+  it('still folds and saves with only a platform chosen: facets open nothing, so nothing is forced', async () => {
+    await open()
+    fireEvent.click(facet('PSP'))
+    expect(rowIds()).toContain('bl')
+
+    fireEvent.click(row('gh'))
+    expect(rowIds()).not.toContain('bl')
+    await waitFor(() => expect(store.get(key)).toBe(JSON.stringify(['Handhelds'])))
+  })
+})
+
 describe('fold all', () => {
   it('collapses every group while any is open, and remembers it', async () => {
     await open()

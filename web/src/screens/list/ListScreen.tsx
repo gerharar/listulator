@@ -236,6 +236,9 @@ interface ListViewProps {
 
 /** How long a row stays washed after it was added, moved or restored (design: row pulse). */
 const PULSE_MS = 1900
+
+/** The reader's folds while text is typed (BL-156): none. A single empty map, so that "none" is the same value on every render. */
+const NO_FOLDS: ReadonlyMap<string, boolean> = new Map()
 /** How often a list reads itself again while some of its lengths are still being looked up (15.7). */
 const RUNTIME_POLL_MS = 3000
 
@@ -355,6 +358,15 @@ function ListView({
   // remembered per list (18.2).
   const [filter, setFilter] = useState<ListFilter>({ ...NO_FILTER, hideDone: initialHideDone })
   const filtering = isFiltering(filter)
+  // BL-156: while text is typed, every group with a match opens by itself (`openByText`), whatever was saved. A fold the READER makes meanwhile
+  // is held here, by group name (true: shut, false: open), in memory only: clearing the text drops it and the saved folds are what is left.
+  // It outlives editing the text (typing more, backspacing), or each keystroke would reopen what they folded.
+  const typed = filter.text.trim() !== ''
+  const [textFolds, setTextFolds] = useState<ReadonlyMap<string, boolean>>(NO_FOLDS)
+  useEffect(() => {
+    if (!typed) setTextFolds(NO_FOLDS)
+  }, [typed])
+  const readerFolds = typed ? textFolds : NO_FOLDS
   // The ✕ and Esc clear the typed text and nothing else (H-008): the facets and Hide Completed stay.
   const clearFilterText = () => {
     setFilter((current) => ({ ...current, text: '' }))
@@ -423,10 +435,14 @@ function ListView({
   )
   const shut = useMemo<ReadonlySet<string>>(() => {
     const names = new Set([...collapsed].filter((name) => !openByText.has(name)))
+    for (const [name, folded] of readerFolds) {
+      if (folded) names.add(name)
+      else names.delete(name)
+    }
     if (carriedGroup !== undefined) names.add(carriedGroup)
 
     return names
-  }, [carriedGroup, collapsed, openByText])
+  }, [carriedGroup, collapsed, openByText, readerFolds])
 
   // The group a carried block would land beside as a whole (H-009): its header is tinted, and its rows if it has any drawn. A collapsed or
   // empty group is a target like any other (H-016): the line and the same ground. Only the key matters, so the tint is worked out again when
@@ -528,6 +544,14 @@ function ListView({
   }
 
   function openGroup(name: string) {
+    // A group the reader shut while text is typed is opened too (the rail's jump, an item added to it): it is what they are being taken to.
+    setTextFolds((current) => {
+      if (current.get(name) !== true) return current
+      const next = new Map(current)
+      next.delete(name)
+
+      return next
+    })
     if (!collapsed.has(name)) return
     const next = new Set(collapsed)
     next.delete(name)
@@ -536,6 +560,13 @@ function ListView({
   }
 
   function toggleGroup(name: string) {
+    // While text is typed the head flips what is SHOWN, in memory; the saved folds are not the reader's to change from a result (BL-156).
+    if (typed) {
+      const shutNow = shut.has(name)
+      setTextFolds((current) => new Map(current).set(name, !shutNow))
+
+      return
+    }
     const next = new Set(collapsed)
     if (!next.delete(name)) next.add(name)
     setCollapsed(next)
@@ -768,6 +799,14 @@ function ListView({
 
   /** Carries a folded group's fold across its rename (the folds are remembered by name). */
   function renameFold(from: string, to: string) {
+    setTextFolds((current) => {
+      if (!current.has(from)) return current
+      const next = new Map(current)
+      next.set(to, next.get(from)!)
+      next.delete(from)
+
+      return next
+    })
     if (!collapsed.has(from)) return
     const next = new Set(collapsed)
     next.delete(from)

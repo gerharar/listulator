@@ -156,6 +156,18 @@ describe('the jump rail', () => {
     expect(store.get('list:L1:collapsed')).toBe(JSON.stringify([]))
   })
 
+  it('opens a group the reader shut while text is typed, as it does a saved fold (BL-156)', async () => {
+    await open()
+    fireEvent.change(screen.getByPlaceholderText('Filter items…'), { target: { value: 'season' } })
+    expect(rowIds()).toContain('b1')
+    fireEvent.click(document.querySelector('[data-row-id="g2"]')!)
+    expect(rowIds()).not.toContain('b1')
+
+    fireEvent.click(within(rail()!).getByRole('button', { name: /Season 2/ }))
+
+    await waitFor(() => expect(rowIds()).toContain('b1'))
+  })
+
   it('hides to a narrow stub, remembers that, and shows again', async () => {
     await open()
 

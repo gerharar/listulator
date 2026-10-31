@@ -721,6 +721,22 @@ describe('ListScreen item actions (task 10.21)', () => {
       await waitFor(() => expect(api.renameGroup).toHaveBeenLastCalledWith('L1', 'g1', 'Season 1'))
     })
 
+    it('keeps a group the reader folded while text is typed folded through its rename (BL-156)', async () => {
+      vi.mocked(api.renameGroup).mockResolvedValue(renamed)
+      await open(base())
+      fireEvent.change(screen.getByPlaceholderText('Filter items…'), { target: { value: 'a' } })
+      expect(screen.getByText('Alpha')).toBeTruthy()
+      fireEvent.click(document.querySelector('[data-row-id="g1"]')!)
+      expect(screen.queryByText('Alpha')).toBeNull()
+      vi.mocked(api.list).mockResolvedValue(afterRename())
+
+      rename('Series One')
+
+      await waitFor(() => expect(document.querySelector('[data-row-id="g1"] b')!.textContent).toBe('Series One'))
+      expect(screen.queryByText('Alpha')).toBeNull()
+      expect(screen.getByText('Gamma')).toBeTruthy()
+    })
+
     it('keeps a folded group folded through its rename', async () => {
       vi.mocked(api.renameGroup).mockResolvedValue(renamed)
       await open(base())
