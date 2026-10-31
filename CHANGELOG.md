@@ -2,6 +2,20 @@
 
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and version numbers follow [Semantic Versioning](https://semver.org/).
 
+## [1.3.0] - 01 November 2026
+
+### New Stuff
+
+- New option in **Settings** called **Show time left in My Lists** does what it says on the tin
+	- The option is off by default: time left is no longer shown on **My Lists** out of the box
+	- When the option is off, a tooltip can show you approximate time left when you hover your mouse over the progress bar or item counter
+
+### Improvements
+
+- Groups can now be collapsed and expanded if there's text in the filter
+- Progress bar size was equalized and now reflects a rough approximation of completion percentage regardless of the number of items in a list
+- Minor cosmetic improvements related to changes above
+
 
 ## [1.2.2] - 30 October 2026
 
