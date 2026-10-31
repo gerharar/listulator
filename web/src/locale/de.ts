@@ -924,7 +924,6 @@ export const de: Locale = {
         cleared: 'Filter geleert',
         total: (n: number): string => entries(n),
         shown: (shown: number, total: number): string => `${shown} von ${total} angezeigt`,
-        groupMatched: (n: number): string => `${n} angezeigt`,
         /** Hide Completed (task 18.1): the button, its hint while on, and the line when nothing is left. */
         hideDone: 'Erledigte ausblenden',
         hideDoneTip: 'Erledigte wieder anzeigen',

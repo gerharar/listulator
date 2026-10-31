@@ -1046,8 +1046,6 @@ export const en = {
         cleared: 'Filter cleared',
         total: (n: number): string => `${n} ${selectPlural(n, 'en', { one: 'item', other: 'items' })}`,
         shown: (shown: number, total: number): string => `${shown} of ${total} shown`,
-        /** In front of a group's progress while a text or facet filter leaves only some of its rows (H-010). */
-        groupMatched: (n: number): string => `${n} shown`,
         /** Hide Completed (task 18.1): the button, its hint while on, and the line when nothing is left. */
         hideDone: 'Hide Done',
         hideDoneTip: 'Show done items again',

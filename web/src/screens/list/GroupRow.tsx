@@ -34,9 +34,6 @@ export interface GroupRowProps {
   onDelete?: () => void
   /** A group with items: its trash button asks first (a confirmation anchored to it), owner 2026-09-27. */
   onDeleteWithItems?: (anchor: HTMLElement) => void
-  /** While a filter is on: how many of the group's items match, in place of its progress. */
-  /** While a matching filter (text, a facet) leaves only some of the group's rows: how many. The progress itself is always the whole group's (H-010). */
-  matched?: number
   /**
    * Gives the group a pencil that turns its name into an editor (11.18). Resolves when the rename is
    * saved and rejects when it is refused, which leaves the editor open with what was typed.
@@ -64,7 +61,6 @@ export function GroupRow({
   pulse = false,
   onDelete,
   onDeleteWithItems,
-  matched,
   onRename,
 }: GroupRowProps) {
   const span = yearSpanLabel(block.yearSpan)
@@ -240,7 +236,6 @@ export function GroupRow({
         minutesLeft={block.minutesLeft}
         status={null}
         size="group"
-        lead={matched !== undefined ? copy.quantum.list.filter.groupMatched(matched) : undefined}
       />
       {block.items.length > 0 && onDeleteWithItems && (
         <IconButton

@@ -52,7 +52,7 @@ import { linkBackSource } from '../../lib/dataSources.js'
 import { refreshAfterDays } from '../../../../server/src/catalog/sourceCopyLimits.js'
 import { EditListPopover } from './EditListPopover.js'
 import { FilterBar } from './FilterBar.js'
-import { NO_FILTER, isFiltering, isMatchFiltering, matchedCount, noteOnlyMatch, shownItemIds, type ListFilter } from './filtering.js'
+import { NO_FILTER, isFiltering, noteOnlyMatch, shownItemIds, type ListFilter } from './filtering.js'
 import { GroupRow } from './GroupRow.js'
 import { ConfirmPopover } from '../../components/quantum/ConfirmPopover/ConfirmPopover.js'
 import { invertPatch, type ItemPatch } from './itemActions.js'
@@ -387,12 +387,6 @@ function ListView({
     [items, mediaType, filter, doneThisVisit],
   )
   // What stays on the spine: a loose item that matches, and a group with a matching item (its items narrowed).
-  // The rows a matching filter leaves, with Hide Completed left out of it: a group's header says "N shown" from this, so Hide Completed never
-  // changes a group's header (H-010).
-  const matchedIds = useMemo(
-    () => (isMatchFiltering(filter) ? shownItemIds(items, mediaType?.facets, { ...filter, hideDone: false }) : null),
-    [items, mediaType, filter],
-  )
   const shownUnits = useMemo(
     () =>
       units.flatMap((unit) => {
@@ -1490,7 +1484,6 @@ function ListView({
                         : null
                     }
                     pulse={pulseIds.has(unit.group.id)}
-                    matched={matchedIds ? matchedCount(unit.items, matchedIds) : undefined}
                   />
                   {rows}
                   {/* An open group's "after" line is at its bottom edge, under its last row (H-009); a shut or empty group's is under its header. */}

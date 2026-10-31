@@ -112,7 +112,7 @@ test('Hide Completed hides done items, keeps one ticked meanwhile, moves nothing
   }
 })
 
-test('the text filter narrows a group’s rows and shows its own count in front of its unchanged progress', async ({ page }) => {
+test('the text filter narrows a group’s rows and leaves its progress unchanged, with no count in front', async ({ page }) => {
   const title = `e2e list-filter text ${Date.now()}`
   const id = await makeList(page.request, title, 'game', GAMES)
 
@@ -121,8 +121,9 @@ test('the text filter narrows a group’s rows and shows its own count in front 
     await page.getByPlaceholder('Filter items…').fill('assassin')
 
     await expect(rows(page)).toHaveText(['Assassin’s Creed', 'Assassin’s Creed II'])
-    // The group keeps its whole progress; the filter adds "2 shown ·" in front of it (H-010).
-    await expect(page.locator('.q-group', { hasText: 'Main' })).toContainText(/2 shown\s*·\s*0\/3 \(0%\)/)
+    // The group keeps its whole progress and says nothing about how many rows the filter leaves (H-010; the "n shown" was dropped, owner 2026-10-31).
+    await expect(page.locator('.q-group', { hasText: 'Main' })).toContainText(/0\/3 \(0%\)/)
+    await expect(page.locator('.q-group', { hasText: 'Main' })).not.toContainText(/\d+ shown/)
     await expect(page.locator('.q-group', { hasText: 'Handhelds' })).toHaveCount(0)
     await page.screenshot({ path: 'test-results/filter-bar-text.png' })
 
@@ -156,9 +157,10 @@ test('the text filter also finds a row by its group’s name, and opens a folded
     await page.getByPlaceholder('Filter items…').fill('iron fist')
 
     await expect(rows(page)).toHaveText(['S01E01 Snow Gives Way', 'S01E02 Shadow Hawk Takes Flight', 'S01E03 Rolling Thunder Cannon Punch', 'S01E02 Iron Fist cameo'])
-    // The group the text names shows all its rows, so it says nothing about "shown"; the other keeps its filter count.
+    // No group head says "shown": the named group shows all its rows, the other keeps its whole progress.
     await expect(page.locator('.q-group', { hasText: 'Iron Fist: Season 1' })).not.toContainText(/\d+ shown/)
-    await expect(page.locator('.q-group', { hasText: 'The Defenders' })).toContainText(/1 shown\s*·\s*0\/2 \(0%\)/)
+    await expect(page.locator('.q-group', { hasText: 'The Defenders' })).not.toContainText(/\d+ shown/)
+    await expect(page.locator('.q-group', { hasText: 'The Defenders' })).toContainText(/0\/2 \(0%\)/)
 
     // A longer phrase narrows to the one group; a word no group or title has finds nothing.
     await page.getByPlaceholder('Filter items…').fill('Season 1')

@@ -44,21 +44,13 @@ describe('GroupRow', () => {
     expect(screen.getByText('3h 20m left')).toBeTruthy()
   })
 
-  it('adds a muted count in front of its progress when a filter shows only some of its rows (H-010)', () => {
-    renderRow(BLOCK, { matched: 4 })
-
-    expect(screen.getByText('4 shown')).toBeTruthy()
-    expect(screen.getByText('2/6 (33%)')).toBeTruthy()
-    expect(screen.getByText('3h 20m left')).toBeTruthy()
-    const lead = screen.getByText('4 shown')
-    expect(lead.nextElementSibling!.textContent).toBe('·')
-    expect(lead.nextElementSibling!.nextElementSibling!.textContent).toBe('2/6 (33%)')
-  })
-
-  it('shows no count when nothing is filtered away', () => {
+  it('adds no “n shown” in front of its progress, whatever a filter leaves of its rows (owner, 2026-10-31; H-010 kept the progress, dropped the count)', () => {
     renderRow()
 
     expect(screen.queryByText(/shown/)).toBeNull()
+    expect(screen.getByText('2/6 (33%)')).toBeTruthy()
+    expect(screen.getByText('3h 20m left')).toBeTruthy()
+    expect(document.querySelector('.q-lead')).toBeNull()
   })
 
   it('puts the rename pencil right after the name, then the free space, then the progress (H-011)', () => {

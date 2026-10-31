@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { FacetConvention } from '../../../../server/src/catalog/facets.js'
 import type { ListItem } from '../../lib/api.js'
-import { NO_FILTER, isFiltering, isMatchFiltering, matchedCount, noteOnlyMatch, shownItemIds, type ListFilter } from './filtering.js'
+import { NO_FILTER, isFiltering, noteOnlyMatch, shownItemIds, type ListFilter } from './filtering.js'
 
 const item = (id: string, title: string, tags: string[] | null = null, consumedAt: string | null = null): ListItem =>
   ({ id, title, tags, consumedAt }) as ListItem
@@ -176,15 +176,6 @@ describe('the filter searches a row’s group name too (owner, 2026-10-29)', () 
     expect(shown({ text: 'season 1', facets: {}, hideDone: true })).toEqual(['1'])
   })
 
-  it('leaves no “N shown” on a group the text matches whole, and counts the rest as before', () => {
-    const season1 = episodes.filter((entry) => entry.group === 'Iron Fist: Season 1')
-    const matching = new Set(shown({ text: 'season 1', facets: {} }))
-    const partial = episodes.filter((entry) => entry.group === 'Iron Fist: Season 2').concat(grouped('7', 'Other', 'Iron Fist: Season 2'))
-
-    expect(matchedCount(season1, matching)).toBeUndefined()
-    expect(matchedCount(partial, new Set(shown({ text: 'fury', facets: {} }, partial)))).toBe(1)
-  })
-
   it('does not change which note lights the ⓘ', () => {
     expect(noteOnlyMatch(episodes[0]!, 'iron fist')).toBeNull()
   })
@@ -230,28 +221,5 @@ describe('the typed text is matched as typed, not as a pattern', () => {
     expect(shown('[draft]')).toEqual(['2'])
     expect(shown('.*')).toEqual([])
     expect(shown('(')).toEqual(['1'])
-  })
-})
-
-
-describe('what a group header says under a filter (H-010)', () => {
-  const row = (id: string): ListItem => ({ id, title: id }) as ListItem
-
-  it('Hide Completed is not a matching filter; text and a facet are', () => {
-    expect(isMatchFiltering(NO_FILTER)).toBe(false)
-    expect(isMatchFiltering({ ...NO_FILTER, hideDone: true })).toBe(false)
-    expect(isMatchFiltering({ ...NO_FILTER, text: ' a ' })).toBe(true)
-    expect(isMatchFiltering({ ...NO_FILTER, text: '  ' })).toBe(false)
-    expect(isMatchFiltering({ ...NO_FILTER, facets: { platform: new Set(['PC']) } })).toBe(true)
-    expect(isMatchFiltering({ ...NO_FILTER, facets: { platform: new Set() } })).toBe(false)
-  })
-
-  it('counts the group\'s rows a filter leaves, and says nothing when it leaves them all', () => {
-    const items = [row('a'), row('b'), row('c'), row('d')]
-
-    expect(matchedCount(items, new Set(['a', 'c', 'x']))).toBe(2)
-    expect(matchedCount(items, new Set())).toBe(0)
-    expect(matchedCount(items, new Set(['a', 'b', 'c', 'd']))).toBeUndefined()
-    expect(matchedCount([], new Set(['a']))).toBeUndefined()
   })
 })

@@ -933,7 +933,6 @@ export const ru: Locale = {
         cleared: 'Фильтр очищен',
         total: (n: number): string => items(n),
         shown: (shown: number, total: number): string => `показано ${shown} из ${total}`,
-        groupMatched: (n: number): string => `показано ${n}`,
         /** Hide Completed (task 18.1): the button, its hint while on, and the line when nothing is left. */
         hideDone: 'Скрыть завершённое',
         hideDoneTip: 'Снова показать завершённое',

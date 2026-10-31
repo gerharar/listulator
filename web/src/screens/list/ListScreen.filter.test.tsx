@@ -213,23 +213,14 @@ describe('filtering', () => {
     expect(within(bar()).getByText('2 of 6 shown')).toBeTruthy()
   })
 
-  it('a group keeps its own progress under a filter, and a filter that hides some of its rows adds a muted count in front (H-010)', async () => {
+  it('a group keeps its own progress under a filter and says nothing about how many of its rows the filter leaves (H-010; the count was dropped, owner 2026-10-31)', async () => {
     await open()
     type('assassin')
 
-    // The group's progress is the whole group's, unchanged; the count says how many of its rows the filter leaves.
-    expect(within(row('gm')).getByText('2 shown')).toBeTruthy()
-    expect(within(row('gm')).getByText(/^0\/3 \(0%\)$/)).toBeTruthy()
-    expect(within(row('gm')).queryByText('2 of 3')).toBeNull()
-  })
-
-  it('a filter that keeps every row of a group adds no count (H-010)', async () => {
-    await open()
-
-    type('a')
-
+    // The group's progress is the whole group's, unchanged.
     expect(within(row('gm')).queryByText(/shown/)).toBeNull()
     expect(within(row('gm')).getByText(/^0\/3 \(0%\)$/)).toBeTruthy()
+    expect(within(row('gm')).queryByText('2 of 3')).toBeNull()
   })
 
   it('opens a collapsed group that has a match, without remembering that it did', async () => {
@@ -505,15 +496,15 @@ describe('Hide Completed (18.1)', () => {
     expect(headers()[1]).toBeNull()
   })
 
-  it('with a matching filter too, the count is the filter\'s alone: Hide Completed does not change it (H-010)', async () => {
+  it('with a matching filter too, Hide Completed leaves the group header with its progress alone (H-010)', async () => {
     await open('game', doneOf('ac1'))
     type('assassin')
-    expect(within(row('gm')).getByText('2 shown')).toBeTruthy()
+    expect(within(row('gm')).queryByText(/shown/)).toBeNull()
 
     act(() => hideDone().click())
 
     expect(rowIds()).toEqual(['gm', 'ac2'])
-    expect(within(row('gm')).getByText('2 shown')).toBeTruthy()
+    expect(within(row('gm')).queryByText(/shown/)).toBeNull()
     expect(within(row('gm')).getByText(/^1\/3 \(33%\)$/)).toBeTruthy()
   })
 
