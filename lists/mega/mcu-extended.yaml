@@ -562,3 +562,7 @@ items:
 - { title: "S01E02 Theseus", year: 2026, minutes: 45, group: "VisionQuest: Season 1", tags: [tv] }
 - { title: "S01E03 Reboot", year: 2026, minutes: 46, group: "VisionQuest: Season 1", tags: [tv] }
 - { title: "S01E04 Malware", year: 2026, minutes: 53, group: "VisionQuest: Season 1", tags: [tv] }
+- { title: "S01E05 Firewall", year: 2026, minutes: 46, group: "VisionQuest: Season 1", tags: [tv] }
+- { title: "S01E06 Deadlock", year: 2026, minutes: 54, group: "VisionQuest: Season 1", tags: [tv] }
+# - { title: "S01E07 Immolation", year: 2026, minutes: 53, group: "VisionQuest: Season 1", tags: [tv] }
+# - { title: "S01E08 Forever", year: 2026, minutes: 53, group: "VisionQuest: Season 1", tags: [tv] }
