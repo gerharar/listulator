@@ -196,6 +196,36 @@ describe('the box on a group head', () => {
   })
 })
 
+describe('a bulk save that fails (review finding 3: the call is not all-or-nothing)', () => {
+  it('reads the list again, so what the server did apply shows as it is', async () => {
+    await open()
+    // The call failed part way: Again (b2) was marked on the server before it did.
+    const partly = list()
+    partly.items.find((entry) => entry.id === 'b2')!.consumedAt = DONE_AT
+    vi.mocked(api.setConsumedMany).mockRejectedValue(new Error('down'))
+
+    vi.mocked(api.list).mockResolvedValue(partly)
+    fireEvent.click(groupBox('g2'))
+
+    await waitFor(() => expect(screen.getByText(en.quantum.list.saveFailed)).toBeTruthy())
+    await waitFor(() => expect(itemBox('b2').getAttribute('aria-checked')).toBe('true'))
+    expect(state('g2')).toBe('true')
+  })
+
+  it('keeps the rows put back, and says so, when the list cannot be read again either', async () => {
+    await open()
+    vi.mocked(api.setConsumedMany).mockRejectedValue(new Error('down'))
+    vi.mocked(api.list).mockRejectedValue(new Error('down'))
+
+    fireEvent.click(groupBox('g2'))
+
+    await waitFor(() => expect(screen.getByText(en.quantum.list.saveFailed)).toBeTruthy())
+    await act(async () => {})
+    expect(state('g2')).toBe('mixed')
+    expect(itemBox('b2').getAttribute('aria-checked')).toBe('false')
+  })
+})
+
 describe('what the box says and offers (46.3)', () => {
   const text = en.quantum.list.itemActions
   const changed = (...ids: string[]) => ({ restore: { items: ids.map((id) => ({ id, consumedAt: null })) } })

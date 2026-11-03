@@ -730,8 +730,8 @@ function ListView({
 
   /**
    * The box on a group head (H-026): every shown item of the group done or not done, in one call. The rows change at once; a failed save
-   * puts back only the items it changed (a snapshot taken at the click would put back rows that changed since). The toast counts what the
-   * server says changed, and its Undo hands that back.
+   * puts back only the items it changed (a snapshot taken at the click would put back rows that changed since), then reads the list again.
+   * The toast counts what the server says changed, and its Undo hands that back.
    */
   async function setShownDone(shown: readonly ListItem[], done: boolean) {
     const changing = new Map(shown.filter((entry) => (entry.consumedAt === null) === done).map((entry) => [entry.id, entry.consumedAt]))
@@ -754,6 +754,9 @@ function ListView({
     } catch {
       setItems((current) => current.map((entry) => (changing.has(entry.id) ? { ...entry, consumedAt: changing.get(entry.id) ?? null } : entry)))
       setError(copy.quantum.list.saveFailed)
+      // The call is not all-or-nothing (the desktop has no transactions): some items may have been changed before it failed, so the screen
+      // reads the server's own state. If that cannot be read either, the rows put back above stay.
+      await refresh().catch(() => undefined)
     }
   }
 
