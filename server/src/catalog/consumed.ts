@@ -2,6 +2,7 @@ import { and, eq, inArray, isNotNull, isNull, sql } from 'drizzle-orm'
 import type { PortableDatabase } from '../db/client.js'
 import { listItems } from '../db/schema.js'
 import { withListLock } from './listLock.js'
+import { batches } from './orderIndex.js'
 import { findList } from './repository.js'
 import type { ConsumedRestore } from './restorePayloads.js'
 
@@ -17,13 +18,17 @@ import type { ConsumedRestore } from './restorePayloads.js'
  * Imported by the server's routes and by the desktop's `api.local.ts` alike; nothing here reads a Node builtin.
  */
 
-/** SQLite caps the variables in one statement; ids go in batches well under it. */
-const BATCH = 500
+/**
+ * An Undo payload with a date that is not a date. Refused whole, before anything is written: `NaN` is stored as NULL, so the item
+ * would have lost its done state without a word. It is a 400 over HTTP (Fastify sends an error's `statusCode`).
+ */
+export class InvalidConsumedRestoreError extends Error {
+  readonly statusCode = 400
 
-function batches<T>(rows: readonly T[]): T[][] {
-  const result: T[][] = []
-  for (let start = 0; start < rows.length; start += BATCH) result.push(rows.slice(start, start + BATCH))
-  return result
+  constructor() {
+    super('The Undo has a date that is not a date.')
+    this.name = 'InvalidConsumedRestoreError'
+  }
 }
 
 export function setItemsConsumed(
@@ -91,9 +96,10 @@ async function restoreConsumedNow(
 ): Promise<boolean> {
   if (!(await findList(db, userId, listId))) return false
 
-  // Those that were open need no dates: one statement per batch. Those that were done each have a date of their own.
+  // Those that were open need no dates: one statement per batch. Those that were done each have a date of their own, checked first.
   const open = items.filter((entry) => entry.consumedAt === null)
   const done = items.flatMap((entry) => (entry.consumedAt === null ? [] : [{ id: entry.id, at: new Date(entry.consumedAt).getTime() }]))
+  if (done.some((entry) => !Number.isFinite(entry.at))) throw new InvalidConsumedRestoreError()
 
   for (const batch of batches(open)) {
     await db

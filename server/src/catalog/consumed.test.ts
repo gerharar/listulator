@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { users } from '../db/schema.js'
 import { createTestApp, type TestApp } from '../testing/harness.js'
 import { createListItems } from './bulkItems.js'
-import { restoreConsumed, setItemsConsumed } from './consumed.js'
+import { InvalidConsumedRestoreError, restoreConsumed, setItemsConsumed } from './consumed.js'
 import { createList, createListItem, findListItems, setListItemConsumed } from './repository.js'
 
 /**
@@ -202,6 +202,20 @@ describe('marking many items done or not done', () => {
       expect((await findListItems(harness.db, ownerId, other))![0]!.consumedAt).toEqual(longAgo)
     })
 
+    it('refuses a date that is not a date, whole, and writes nothing (it would have cleared the item\'s done date)', async () => {
+      const [a, b] = [await addItem('A'), await addItem('B')]
+      await setListItemConsumed(harness.db, ownerId, listId, a.id, true, longAgo)
+      await setListItemConsumed(harness.db, ownerId, listId, b.id, true, longAgo)
+
+      await expect(
+        restoreConsumed(harness.db, ownerId, listId, { items: [{ id: a.id, consumedAt: null }, { id: b.id, consumedAt: 'garbage' }] }),
+      ).rejects.toBeInstanceOf(InvalidConsumedRestoreError)
+
+      // Not even the valid entry before it was applied.
+      expect((await row(a.id)).consumedAt).toEqual(longAgo)
+      expect((await row(b.id)).consumedAt).toEqual(longAgo)
+    })
+
     it('is false for a list that is not the user\'s, and writes nothing', async () => {
       const a = await addItem('A')
       await setListItemConsumed(harness.db, ownerId, listId, a.id, true, longAgo)
@@ -257,6 +271,35 @@ describe('marking many items done or not done', () => {
     ])('refuses an Undo body with %s', async (_label, body) => {
       expect((await send('PUT', `/lists/${listId}/consumed/restore`, body)).statusCode).toBe(400)
     })
+
+    it('answers 400 to an Undo with a date that is not a date, and the item keeps its done date', async () => {
+      const a = await addItem('A')
+      await setListItemConsumed(harness.db, ownerId, listId, a.id, true, longAgo)
+
+      const undone = await send('PUT', `/lists/${listId}/consumed/restore`, { items: [{ id: a.id, consumedAt: 'garbage' }] })
+
+      expect(undone.statusCode).toBe(400)
+      expect((await row(a.id)).consumedAt).toEqual(longAgo)
+    })
+
+    const ids = (count: number) => Array.from({ length: count }, (_, index) => `00000000-0000-0000-0000-${String(index).padStart(12, '0')}`)
+
+    it('takes 100,000 ids and refuses 100,001, as the order route does', async () => {
+      expect((await send('PUT', `/lists/${listId}/consumed`, { itemIds: ids(100_000), consumed: true })).statusCode).toBe(200)
+      expect((await send('PUT', `/lists/${listId}/consumed`, { itemIds: ids(100_001), consumed: true })).statusCode).toBe(400)
+    }, 60_000)
+
+    it('refuses an Undo of more than 100,000 items', async () => {
+      const items = ids(100_001).map((id) => ({ id, consumedAt: null }))
+
+      expect((await send('PUT', `/lists/${listId}/consumed/restore`, { items })).statusCode).toBe(400)
+    }, 60_000)
+
+    it('refuses a body of ids past 8 MB before it is read (the ids are about 40 bytes each, not whole items)', async () => {
+      const marked = await send('PUT', `/lists/${listId}/consumed`, { itemIds: ids(250_000), consumed: true })
+
+      expect(marked.statusCode).toBe(413)
+    }, 60_000)
 
     it('takes the ids of a 50,000-item group in one request body', async () => {
       const ids = Array.from({ length: 50_000 }, (_, index) => `00000000-0000-0000-0000-${String(index).padStart(12, '0')}`)

@@ -142,6 +142,8 @@ export const consumedRestoreSchema = {
   properties: {
     items: {
       type: 'array',
+      // As the order route's ids: no real limit on a list's length, only a guard against a wrong request.
+      maxItems: 100_000,
       items: {
         type: 'object',
         required: ['id', 'consumedAt'],

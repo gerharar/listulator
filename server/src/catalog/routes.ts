@@ -794,14 +794,15 @@ export const catalogRoutes: FastifyPluginAsync<CatalogRoutesOptions> = async (
   app.put<{ Params: ListParams; Body: { itemIds: string[]; consumed: boolean } }>(
     '/lists/:listId/consumed',
     {
-      bodyLimit: 64 * 1024 * 1024,
+      // Ids only, about 40 bytes each, so 8 MB is the 100,000 below (as the order route).
+      bodyLimit: 8 * 1024 * 1024,
       schema: {
         body: {
           type: 'object',
           required: ['itemIds', 'consumed'],
           additionalProperties: false,
           properties: {
-            itemIds: { type: 'array', items: { type: 'string', minLength: 1, maxLength: 100 } },
+            itemIds: { type: 'array', items: { type: 'string', minLength: 1, maxLength: 100 }, maxItems: 100_000 },
             consumed: { type: 'boolean' },
           },
         },
@@ -819,7 +820,8 @@ export const catalogRoutes: FastifyPluginAsync<CatalogRoutesOptions> = async (
   app.put<{ Params: ListParams; Body: ConsumedRestore }>(
     '/lists/:listId/consumed/restore',
     {
-      bodyLimit: 64 * 1024 * 1024,
+      // An id and a date each, about 80 bytes, so 16 MB is the 100,000 of the schema.
+      bodyLimit: 16 * 1024 * 1024,
       schema: { body: consumedRestoreSchema },
     },
     async (request, reply) => {

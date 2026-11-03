@@ -17,7 +17,8 @@ export interface Position {
 /** Three bound values a row (the `WHEN`, the `THEN`, the `IN`): far under SQLite's limit. */
 const BATCH = 500
 
-function batches<T>(rows: readonly T[]): T[][] {
+/** Rows in batches of 500, for any statement that takes a list of ids or rows (also the bulk done / not done, H-026). */
+export function batches<T>(rows: readonly T[]): T[][] {
   const result: T[][] = []
   for (let start = 0; start < rows.length; start += BATCH) result.push(rows.slice(start, start + BATCH))
   return result
