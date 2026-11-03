@@ -70,6 +70,30 @@ for (const skin of ['dark-orange', 'light-bone']) {
   })
 }
 
+test('in forced-colors mode (Windows High Contrast) the dash is still drawn, in the colour of the box border', async ({ page, browserName }) => {
+  // Only Chromium can emulate it here; the rule is plain CSS (`@media (forced-colors: active)`).
+  test.skip(browserName !== 'chromium', 'forced-colors emulation is Chromium only')
+  const title = `e2e group-done forced ${Date.now()}`
+  const id = await makeList(page.request, title)
+
+  try {
+    await page.emulateMedia({ forcedColors: 'active' })
+    await openList(page, title)
+    await itemBox(page, 'Alpha').click()
+    await expect(groupBox(page, 'Season 1')).toHaveAttribute('aria-checked', 'mixed')
+
+    // The system colours are the user's: the box's border is drawn in the one that shows on the page, so the dash must be that one too
+    // (it was the page's own colour, so a white bar on a white page and an empty-looking box).
+    const colours = await groupBox(page, 'Season 1')
+      .locator('> span')
+      .evaluate((node) => ({ dash: getComputedStyle(node, '::after').backgroundColor, border: getComputedStyle(node).borderTopColor }))
+
+    expect(colours.dash).toBe(colours.border)
+  } finally {
+    await page.request.delete(`/api/lists/${id}`)
+  }
+})
+
 test('a click on the box marks the whole group done, and again not done, without folding it; Season 2 is untouched', async ({ page }) => {
   const title = `e2e group-done click ${Date.now()}`
   const id = await makeList(page.request, title)

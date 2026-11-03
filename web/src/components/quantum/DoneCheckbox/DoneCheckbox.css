@@ -37,6 +37,14 @@
   height: 3px;
   background: var(--ink);
 }
+/* Windows High Contrast (forced colors) throws the page's colours away and a bar drawn as a background took the page's own, so the dash was white on a
+   white page and the box looked empty. The system's text colour is the one the box's border and the tick are drawn in. */
+@media (forced-colors: active) {
+  .q-done[aria-checked='mixed'] > span::after {
+    forced-color-adjust: none;
+    background: CanvasText;
+  }
+}
 /* The box on a group head: 28 x 26, drawn the same 19px box; its 10px left margin takes back the head's gap so it lines up with the item boxes below. */
 .q-done.q-group-done {
   width: 28px;
