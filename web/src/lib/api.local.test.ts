@@ -628,6 +628,28 @@ describe('the desktop builds a list at once and fills its lengths afterwards (15
       expect(undone.find((entry) => entry.id === three!.id)!.consumedAt).toBeNull()
     })
 
+    it('marks items not done and Undo gives each its own done date back', async () => {
+      const { api, db, user, repository } = await start(filmSource())
+      const list = await api.createFromFile({ yaml })
+      const database = await db.createLocalDb()
+      const owner = (await user.getLocalCurrentUser(database)).id
+      const [one, two, three] = (await api.list(list.id)).items
+      await repository.setListItemConsumed(database, owner, list.id, one!.id, true, new Date('2025-03-04T05:06:07.089Z'))
+      await repository.setListItemConsumed(database, owner, list.id, two!.id, true, new Date('2026-01-02T03:04:05.006Z'))
+
+      const { restore } = await api.setConsumedMany(list.id, [one!.id, two!.id, three!.id], false)
+
+      expect((await api.list(list.id)).items.every((entry) => entry.consumedAt === null)).toBe(true)
+      expect(restore.items).toHaveLength(2)
+
+      await api.restoreConsumed(list.id, restore)
+
+      const items = (await api.list(list.id)).items
+      expect(items.find((entry) => entry.id === one!.id)!.consumedAt).toBe('2025-03-04T05:06:07.089Z')
+      expect(items.find((entry) => entry.id === two!.id)!.consumedAt).toBe('2026-01-02T03:04:05.006Z')
+      expect(items.find((entry) => entry.id === three!.id)!.consumedAt).toBeNull()
+    })
+
     it('says not found for a list that is not there, for both calls', async () => {
       const { api } = await start(filmSource())
 
