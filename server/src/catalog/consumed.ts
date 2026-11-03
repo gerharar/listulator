@@ -19,8 +19,9 @@ import type { ConsumedRestore } from './restorePayloads.js'
  */
 
 /**
- * An Undo payload with a date that is not a date. Refused whole, before anything is written: `NaN` is stored as NULL, so the item
- * would have lost its done state without a word. It is a 400 over HTTP (Fastify sends an error's `statusCode`).
+ * An Undo payload with a date that is not an ISO date this module wrote. Refused whole, before anything is written: `NaN` is stored as
+ * NULL (the item would have lost its done state without a word) and a loose string such as `5` is a date in 2001. It is a 400 over HTTP
+ * (Fastify sends an error's `statusCode`).
  */
 export class InvalidConsumedRestoreError extends Error {
   readonly statusCode = 400
@@ -96,10 +97,17 @@ async function restoreConsumedNow(
 ): Promise<boolean> {
   if (!(await findList(db, userId, listId))) return false
 
-  // Those that were open need no dates: one statement per batch. Those that were done each have a date of their own, checked first.
+  // Those that were open need no dates: one statement per batch. Those that were done each have a date of their own, checked first: only the
+  // ISO strings this module hands out (`toISOString`) are dates. `new Date('5')` and `new Date('2025')` are valid dates to JavaScript.
   const open = items.filter((entry) => entry.consumedAt === null)
-  const done = items.flatMap((entry) => (entry.consumedAt === null ? [] : [{ id: entry.id, at: new Date(entry.consumedAt).getTime() }]))
-  if (done.some((entry) => !Number.isFinite(entry.at))) throw new InvalidConsumedRestoreError()
+  const done: { id: string; at: number }[] = []
+  for (const entry of items) {
+    if (entry.consumedAt === null) continue
+
+    const at = Date.parse(entry.consumedAt)
+    if (!Number.isFinite(at) || new Date(at).toISOString() !== entry.consumedAt) throw new InvalidConsumedRestoreError()
+    done.push({ id: entry.id, at })
+  }
 
   for (const batch of batches(open)) {
     await db

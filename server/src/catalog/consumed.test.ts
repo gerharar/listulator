@@ -216,6 +216,24 @@ describe('marking many items done or not done', () => {
       expect((await row(b.id)).consumedAt).toEqual(longAgo)
     })
 
+    it.each([
+      ['a bare number, which JavaScript reads as a year 2001 date', '5'],
+      ['a month number', '12'],
+      ['a year only', '2025'],
+      ['a date without a time', '2025-01-01'],
+      ['a time without milliseconds', '2026-01-02T03:04:05Z'],
+      ['an offset instead of Z', '2026-01-02T03:04:05.006+00:00'],
+    ])('refuses %s: only the ISO strings the server writes are dates', async (_label, consumedAt) => {
+      const a = await addItem('A')
+      await setListItemConsumed(harness.db, ownerId, listId, a.id, true, longAgo)
+
+      await expect(restoreConsumed(harness.db, ownerId, listId, { items: [{ id: a.id, consumedAt }] })).rejects.toBeInstanceOf(
+        InvalidConsumedRestoreError,
+      )
+
+      expect((await row(a.id)).consumedAt).toEqual(longAgo)
+    })
+
     it('is false for a list that is not the user\'s, and writes nothing', async () => {
       const a = await addItem('A')
       await setListItemConsumed(harness.db, ownerId, listId, a.id, true, longAgo)

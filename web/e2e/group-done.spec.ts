@@ -71,8 +71,9 @@ for (const skin of ['dark-orange', 'light-bone']) {
 }
 
 test('in forced-colors mode (Windows High Contrast) the dash is still drawn, in the colour of the box border', async ({ page, browserName }) => {
-  // Only Chromium can emulate it here; the rule is plain CSS (`@media (forced-colors: active)`).
-  test.skip(browserName !== 'chromium', 'forced-colors emulation is Chromium only')
+  // The rule is plain CSS (`@media (forced-colors: active)`). WebKit reports the query as true under emulation but does not force the colours (its
+  // border stays the author's), so there is nothing to compare there; Chromium, the desktop's WebView2 engine, does force them.
+  test.skip(browserName !== 'chromium', 'WebKit reports forced-colors under emulation but does not force the colours')
   const title = `e2e group-done forced ${Date.now()}`
   const id = await makeList(page.request, title)
 
