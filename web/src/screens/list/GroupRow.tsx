@@ -3,7 +3,7 @@ import './Spine.css'
 import { useEffect, useId, useRef, useState, type KeyboardEvent, type PointerEvent } from 'react'
 import { Pencil, Trash2 } from 'lucide-react'
 import { IconButton } from '../../components/quantum/Button/Button.js'
-import { ApiError } from '../../lib/api.js'
+import { ApiError, type ListItem } from '../../lib/api.js'
 import { copy } from '../../locale/index.js'
 import { FieldMessage } from '../../components/quantum/Field/FieldMessage.js'
 import { ProgressSentence } from '../../components/quantum/ProgressSentence/ProgressSentence.js'
@@ -11,6 +11,7 @@ import { yearSpanLabel, type GroupBlock } from './spine.js'
 import { Tip } from '../../components/quantum/Tooltip/Tip.js'
 import { guardRename } from './renameGuard.js'
 import { GroupTriangle } from '../../components/quantum/GroupTriangle/GroupTriangle.js'
+import { DoneCheckbox } from '../../components/quantum/DoneCheckbox/DoneCheckbox.js'
 
 export interface GroupRowProps {
   block: GroupBlock
@@ -19,6 +20,10 @@ export interface GroupRowProps {
   focusable: boolean
   onToggle: (name: string) => void
   onFocus: (groupId: string) => void
+  /** The items the filters show in this group (all of them with no filter): what the box reads and acts on (H-026). */
+  shown?: readonly ListItem[]
+  /** The box after the triangle marks every shown item done or not done (H-026). Absent: no box. */
+  onSetDone?: (done: boolean) => void
   /** A drag starts here: the handle's own pointer-down (10.23). Only a group with items has a handle. */
   onHandlePointerDown?: (event: PointerEvent) => void
   dragging?: boolean
@@ -53,6 +58,8 @@ export function GroupRow({
   focusable,
   onToggle,
   onFocus,
+  shown = [],
+  onSetDone,
   onHandlePointerDown,
   dragging = false,
   dropLine = null,
@@ -152,6 +159,14 @@ export function GroupRow({
         </Tip>
       )}
       <GroupTriangle />
+      {onSetDone && shown.length > 0 && (
+        <DoneCheckbox
+          className="q-group-done"
+          isolate
+          checked={doneState(shown)}
+          onChange={onSetDone}
+        />
+      )}
       <span className={editing ? 'name editing' : 'name'}>
         {editing ? (
           <input
@@ -259,4 +274,11 @@ export function GroupRow({
       {place && <span className="q-place">{place}</span>}
     </div>
   )
+}
+
+/** Empty when none of the shown items is done, a dash when some are, a tick when all are. */
+function doneState(shown: readonly ListItem[]): boolean | 'mixed' {
+  const done = shown.filter((entry) => entry.consumedAt !== null).length
+  if (done === 0) return false
+  return done === shown.length ? true : 'mixed'
 }

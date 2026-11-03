@@ -415,7 +415,8 @@ describe('ListScreen spine', () => {
   it('remembers what you opened and closed, per list', async () => {
     await open(detail({ ...grouped(), mediaType: 'mega' }))
 
-    fireEvent.click(within(spineBody()).getByRole('button', { name: /^Season 1/ }))
+    // The head's own name now starts with its box's label (H-026), so it is clicked by the group's name, as a reader does.
+    fireEvent.click(within(spineBody()).getByText('Season 1'))
     expect(screen.getByText('e1')).toBeTruthy()
     await waitFor(() => expect(JSON.parse(store.get('list:L1:collapsed')!)).toEqual(['Season 2']))
 

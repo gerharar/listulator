@@ -728,6 +728,26 @@ function ListView({
     }
   }
 
+  /**
+   * The box on a group head (H-026): every shown item of the group done or not done, in one call. The rows change at once; a failed save
+   * puts back only the items it changed (a snapshot taken at the click would put back rows that changed since).
+   */
+  async function setShownDone(shown: readonly ListItem[], done: boolean) {
+    const changing = new Map(shown.filter((entry) => (entry.consumedAt === null) === done).map((entry) => [entry.id, entry.consumedAt]))
+    if (changing.size === 0) return
+
+    setError(null)
+    const at = new Date().toISOString()
+    setItems((current) => current.map((entry) => (changing.has(entry.id) ? { ...entry, consumedAt: done ? at : null } : entry)))
+
+    try {
+      await api.setConsumedMany(listId, shown.map((entry) => entry.id), done)
+    } catch {
+      setItems((current) => current.map((entry) => (changing.has(entry.id) ? { ...entry, consumedAt: changing.get(entry.id) ?? null } : entry)))
+      setError(copy.quantum.list.saveFailed)
+    }
+  }
+
   async function addItem(input: NewItemInput) {
     const known = input.minutes !== null
     const group = input.group === '' ? null : input.group
@@ -1523,6 +1543,8 @@ function ListView({
                     focusable={tabStop === unit.group.id}
                     onToggle={toggleGroup}
                     onFocus={remember}
+                    shown={members}
+                    onSetDone={(done) => void setShownDone(members, done)}
                     onHandlePointerDown={(event) => moves.startDrag(event, unit.group.id)}
                     onDelete={() => void removeGroup(unit.group)}
                     onRename={(name) => renameGroup(unit.group, name)}

@@ -23,3 +23,23 @@
 .q-done[aria-checked='true'] > span {
   background: var(--accent);
 }
+/* H-026: "some are done" is a bar drawn in the box, not a character. 9 x 3px, 4px from the box's inner left and 7px from its inner top, in
+   the 17px interior (19px less the 1px border): whole pixels on every side, so it cannot sit half a pixel off (a 2px bar could not centre). */
+.q-done[aria-checked='mixed'] > span {
+  position: relative;
+}
+.q-done[aria-checked='mixed'] > span::after {
+  content: '';
+  position: absolute;
+  left: 4px;
+  top: 7px;
+  width: 9px;
+  height: 3px;
+  background: var(--ink);
+}
+/* The box on a group head: 28 x 26, drawn the same 19px box; its 10px left margin takes back the head's gap so it lines up with the item boxes below. */
+.q-done.q-group-done {
+  width: 28px;
+  height: 26px;
+  margin-left: -10px;
+}

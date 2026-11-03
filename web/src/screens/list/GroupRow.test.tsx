@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import type { ListItem } from '../../lib/api.js'
 import type { GroupBlock } from './spine.js'
 import { GroupRow } from './GroupRow.js'
 import { GroupLineProvider } from '../../components/quantum/GroupTriangle/GroupTriangle.js'
@@ -32,6 +33,95 @@ function renderRow(block: GroupBlock = BLOCK, overrides: Partial<Parameters<type
   render(<GroupRow {...props} />)
   return props
 }
+
+/** A shown item, done or not (H-026). */
+const shownItem = (id: string, done: boolean): ListItem => ({
+  id,
+  listId: 'L',
+  title: `Episode ${id}`,
+  orderIndex: 0,
+  timeToConsumeMinutes: 30,
+  timeToConsumeIsEstimated: false,
+  consumedAt: done ? '2026-01-02T03:04:05.006Z' : null,
+  source: 'import',
+  year: null,
+  group: 'Season 1',
+  tags: null,
+  notes: null,
+  yearUnk: 0,
+  isNew: false,
+})
+
+describe('GroupRow, the box that marks the whole group (H-026)', () => {
+  const open = [shownItem('a', false), shownItem('b', false)]
+  const part = [shownItem('a', true), shownItem('b', false)]
+  const all = [shownItem('a', true), shownItem('b', true)]
+
+  it('has no box without a handler, and none when no item is shown', () => {
+    renderRow(BLOCK, { shown: open })
+    expect(screen.queryByRole('checkbox')).toBeNull()
+
+    cleanup()
+    renderRow(BLOCK, { shown: [], onSetDone: vi.fn() })
+    expect(screen.queryByRole('checkbox')).toBeNull()
+  })
+
+  it('sits right after the triangle and before the name', () => {
+    renderRow(BLOCK, { shown: open, onSetDone: vi.fn() })
+
+    const parts = Array.from(document.querySelector('.q-group')!.children)
+    const triangle = parts.findIndex((node) => node.classList.contains('q-chev'))
+    const box = parts.findIndex((node) => node.getAttribute('role') === 'checkbox')
+    const name = parts.findIndex((node) => node.classList.contains('name'))
+
+    expect(triangle).toBeGreaterThanOrEqual(0)
+    expect(box).toBe(triangle + 1)
+    expect(name).toBe(box + 1)
+  })
+
+  it.each([
+    ['empty when none of the shown items is done', open, 'false', ''],
+    ['a dash when some are (drawn, so no text in the box)', part, 'mixed', ''],
+    ['a tick when all are', all, 'true', '✓'],
+  ] as const)('is %s', (_label, shown, aria, text) => {
+    renderRow(BLOCK, { shown, onSetDone: vi.fn() })
+
+    const box = screen.getByRole('checkbox')
+    expect(box.getAttribute('aria-checked')).toBe(aria)
+    expect(box.textContent).toBe(text)
+  })
+
+  it.each([
+    ['empty', open, true],
+    ['a dash', part, true],
+    ['a tick', all, false],
+  ] as const)('a click on %s asks for %s and does not fold the group', (_label, shown, wanted) => {
+    const { onToggle, onSetDone } = renderRow(BLOCK, { shown, onSetDone: vi.fn() })
+
+    fireEvent.click(screen.getByRole('checkbox'))
+
+    expect(onSetDone).toHaveBeenCalledWith(wanted)
+    expect(onToggle).not.toHaveBeenCalled()
+  })
+
+  it('Enter and Space on the box do not fold the group; the rest of the head still does', () => {
+    const { onToggle } = renderRow(BLOCK, { shown: open, onSetDone: vi.fn() })
+
+    fireEvent.keyDown(screen.getByRole('checkbox'), { key: 'Enter' })
+    fireEvent.keyDown(screen.getByRole('checkbox'), { key: ' ' })
+    expect(onToggle).not.toHaveBeenCalled()
+
+    fireEvent.click(screen.getByText('Season 1'))
+    expect(onToggle).toHaveBeenCalledWith('Season 1')
+  })
+
+  it('is a tab stop of its own, like an item\'s box', () => {
+    renderRow(BLOCK, { shown: open, onSetDone: vi.fn() })
+
+    expect(screen.getByRole('checkbox').tagName).toBe('BUTTON')
+    expect(screen.getByRole('checkbox').getAttribute('tabindex')).toBeNull()
+  })
+})
 
 describe('GroupRow', () => {
   it('shows its name, its year span and its own progress', async () => {

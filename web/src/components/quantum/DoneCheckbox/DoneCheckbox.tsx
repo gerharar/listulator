@@ -1,3 +1,4 @@
+import type { KeyboardEvent, MouseEvent } from 'react'
 import './DoneCheckbox.css'
 import { copy } from '../../../locale/index.js'
 
@@ -8,24 +9,44 @@ import { copy } from '../../../locale/index.js'
  *
  * Toggling the whole row is the caller's concern (ItemRow, not yet
  * built) — this component only renders the box itself.
+ *
+ * `'mixed'` is the group head's "some are done" (H-026): a dash drawn by the stylesheet, never a
+ * character (a glyph sits at a different height in every font). A click on it asks for done.
  */
 export interface DoneCheckboxProps {
-  checked: boolean
+  checked: boolean | 'mixed'
   onChange: (checked: boolean) => void
   label?: string
+  /** Extra class, e.g. `q-group-done` for the box on a group head. */
+  className?: string
+  /**
+   * The row around the box acts on a click and on Enter / Space (a group head folds). An isolated box keeps those from it, as the
+   * pencil and the trash on a head do; arrows still reach the list, which walks its rows.
+   */
+  isolate?: boolean
 }
 
-export function DoneCheckbox({ checked, onChange, label = copy.quantum.common.toggleDone }: DoneCheckboxProps) {
+export function DoneCheckbox({ checked, onChange, label = copy.quantum.common.toggleDone, className, isolate = false }: DoneCheckboxProps) {
   return (
     <button
       type="button"
-      className="q-done"
+      className={className ? `q-done ${className}` : 'q-done'}
       role="checkbox"
       aria-checked={checked}
       aria-label={label}
-      onClick={() => onChange(!checked)}
+      onClick={(event: MouseEvent) => {
+        if (isolate) event.stopPropagation()
+        onChange(checked !== true)
+      }}
+      onKeyDown={
+        isolate
+          ? (event: KeyboardEvent) => {
+              if (event.key === 'Enter' || event.key === ' ') event.stopPropagation()
+            }
+          : undefined
+      }
     >
-      <span>{checked ? '✓' : ''}</span>
+      <span>{checked === true ? '✓' : ''}</span>
     </button>
   )
 }
