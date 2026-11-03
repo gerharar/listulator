@@ -8,6 +8,7 @@ import type { MediaTypeRegistry } from '../ingestion/mediaTypes.js'
 import { enrichPrefixesByMediaType } from './runtimeFill.js'
 import { withRuntimePending } from './runtimes.js'
 import { withLinks } from './itemLinks.js'
+import { restoreConsumed, setItemsConsumed } from './consumed.js'
 import { withListLock } from './listLock.js'
 import { InvalidYearError } from './years.js'
 import {
@@ -64,6 +65,7 @@ import type {
   ItemRestore,
   ItemSetRestore,
   ListRestore,
+  ConsumedRestore,
   OrderRestore,
 } from './restorePayloads.js'
 import {
@@ -71,6 +73,7 @@ import {
   groupPayloadSchema,
   itemPayloadSchema,
   listFieldsPayloadSchema,
+  consumedRestoreSchema,
   orderRestoreSchema,
   listPayloadSchema,
   snapshotPayloadSchema,
@@ -784,6 +787,46 @@ export const catalogRoutes: FastifyPluginAsync<CatalogRoutesOptions> = async (
       if (!updated) return reply.callNotFound()
 
       return updated
+    },
+  )
+
+  // Mark many items done or not done (H-026): only the ones that differ change; hands back what each was, for Undo.
+  app.put<{ Params: ListParams; Body: { itemIds: string[]; consumed: boolean } }>(
+    '/lists/:listId/consumed',
+    {
+      bodyLimit: 64 * 1024 * 1024,
+      schema: {
+        body: {
+          type: 'object',
+          required: ['itemIds', 'consumed'],
+          additionalProperties: false,
+          properties: {
+            itemIds: { type: 'array', items: { type: 'string', minLength: 1, maxLength: 100 } },
+            consumed: { type: 'boolean' },
+          },
+        },
+      },
+    },
+    async (request, reply) => {
+      const user = getCurrentUser(request)
+      const restore = await setItemsConsumed(db, user.id, request.params.listId, request.body.itemIds, request.body.consumed)
+      if (!restore) return reply.callNotFound()
+
+      return { restore }
+    },
+  )
+
+  app.put<{ Params: ListParams; Body: ConsumedRestore }>(
+    '/lists/:listId/consumed/restore',
+    {
+      bodyLimit: 64 * 1024 * 1024,
+      schema: { body: consumedRestoreSchema },
+    },
+    async (request, reply) => {
+      const user = getCurrentUser(request)
+      if (!(await restoreConsumed(db, user.id, request.params.listId, request.body))) return reply.callNotFound()
+
+      return { restored: true }
     },
   )
 }

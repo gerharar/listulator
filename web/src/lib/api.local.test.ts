@@ -603,6 +603,39 @@ describe('the desktop builds a list at once and fills its lengths afterwards (15
     })
   })
 
+  describe('marking many items done or not done (H-026, 46.1)', () => {
+    const yaml = 'title: Show\ncategory: movie\nitems:\n  - { title: One }\n  - { title: Two }\n  - { title: Three }\n'
+
+    it('changes only the items that differ, hands back what each was, and Undo puts it back', async () => {
+      const { api } = await start(filmSource())
+      const list = await api.createFromFile({ yaml })
+      const [one, two, three] = (await api.list(list.id)).items
+      await api.setConsumed(list.id, one!.id, true)
+      const doneAt = (await api.list(list.id)).items.find((entry) => entry.id === one!.id)!.consumedAt
+
+      const { restore } = await api.setConsumedMany(list.id, [one!.id, two!.id, three!.id], true)
+
+      expect(restore.items.map((entry) => entry.id).sort()).toEqual([two!.id, three!.id].sort())
+      const after = (await api.list(list.id)).items
+      expect(after.every((entry) => entry.consumedAt !== null)).toBe(true)
+      expect(after.find((entry) => entry.id === one!.id)!.consumedAt).toBe(doneAt)
+
+      await api.restoreConsumed(list.id, restore)
+
+      const undone = (await api.list(list.id)).items
+      expect(undone.find((entry) => entry.id === one!.id)!.consumedAt).toBe(doneAt)
+      expect(undone.find((entry) => entry.id === two!.id)!.consumedAt).toBeNull()
+      expect(undone.find((entry) => entry.id === three!.id)!.consumedAt).toBeNull()
+    })
+
+    it('says not found for a list that is not there, for both calls', async () => {
+      const { api } = await start(filmSource())
+
+      await expect(api.setConsumedMany('nope', [], true)).rejects.toMatchObject({ status: 404 })
+      await expect(api.restoreConsumed('nope', { items: [] })).rejects.toMatchObject({ status: 404 })
+    })
+  })
+
   describe('what the Reset question reads (BL-104)', () => {
     it('carries only what it counts with: under half of what opening the list carries (the stored file it re-reads is the rest)', async () => {
       const { api } = await start(filmSource())

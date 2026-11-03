@@ -138,6 +138,11 @@ export interface OrderRestore {
   groups: { id: string; orderIndex: number }[]
 }
 
+/** What each item was before a bulk mark done / not done, for the items that changed — what its Undo puts back (H-026). */
+export interface ConsumedRestore {
+  items: { id: string; consumedAt: string | null }[]
+}
+
 export const toItemPayload = (item: ListItem): ItemPayload => ({
   id: item.id,
   title: item.title,

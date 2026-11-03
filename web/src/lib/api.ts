@@ -1,5 +1,6 @@
 import { copy, errorMessage } from '../locale/index.js'
 import type {
+  ConsumedRestore,
   GroupRestore,
   ItemRestore,
   ItemSetRestore,
@@ -164,6 +165,7 @@ export interface CurrentUser {
 }
 
 export type {
+  ConsumedRestore,
   GroupRestore,
   ItemRestore,
   ItemSourceTags,
@@ -414,6 +416,10 @@ export interface ApiClient {
   /** Reset everything: back to the source. Hands back the payload for Undo (`restoreItems`) and whether to run Check for updates next. */
   resetList: (listId: string) => Promise<ResetResult>
   setConsumed: (listId: string, itemId: string, consumed: boolean) => Promise<ListItem>
+  /** Mark many items done or not done (H-026): only the items that differ change; hands back what each was, for `restoreConsumed`. */
+  setConsumedMany: (listId: string, itemIds: readonly string[], consumed: boolean) => Promise<{ restore: ConsumedRestore }>
+  /** Undo of `setConsumedMany`: each item back as it was, done date included. */
+  restoreConsumed: (listId: string, restore: ConsumedRestore) => Promise<void>
   addItem: (
     listId: string,
     input: {
@@ -654,6 +660,19 @@ export const fetchApi: ApiClient = {
       method: 'PUT',
       body: JSON.stringify({ consumed }),
     }),
+
+  setConsumedMany: (listId: string, itemIds: readonly string[], consumed: boolean) =>
+    request<{ restore: ConsumedRestore }>(`/lists/${listId}/consumed`, {
+      method: 'PUT',
+      body: JSON.stringify({ itemIds, consumed }),
+    }),
+
+  restoreConsumed: async (listId: string, restore: ConsumedRestore) => {
+    await request<unknown>(`/lists/${listId}/consumed/restore`, {
+      method: 'PUT',
+      body: JSON.stringify(restore),
+    })
+  },
 
   addItem: (
     listId: string,

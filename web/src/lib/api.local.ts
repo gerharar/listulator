@@ -79,6 +79,7 @@ import {
 } from '../../../server/src/catalog/reset.js'
 import { withListLock } from '../../../server/src/catalog/listLock.js'
 import { restoreOrder } from '../../../server/src/catalog/restore.js'
+import { restoreConsumed, setItemsConsumed } from '../../../server/src/catalog/consumed.js'
 import { rank, type Suggestion } from '../../../server/src/suggestions/engine.js'
 import { loadRankingInputs } from '../../../server/src/suggestions/rankingInputs.js'
 import { copy, errorMessage } from '../locale/index.js'
@@ -674,6 +675,18 @@ export function createLocalApi(): ApiClient {
       const updated = await setListItemConsumed(database, userId, listId, itemId, consumed)
       if (!updated) throw notFound()
       return toListItem(updated)
+    },
+
+    setConsumedMany: async (listId, itemIds, consumed) => {
+      const [database, userId] = [await getDb(), await getUserId()]
+      const restore = await setItemsConsumed(database, userId, listId, itemIds, consumed)
+      if (!restore) throw notFound()
+      return { restore }
+    },
+
+    restoreConsumed: async (listId, restore) => {
+      const [database, userId] = [await getDb(), await getUserId()]
+      if (!(await restoreConsumed(database, userId, listId, restore))) throw notFound()
     },
 
     addItem: async (listId, input) => {

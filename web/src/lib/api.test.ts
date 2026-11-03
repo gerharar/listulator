@@ -357,6 +357,24 @@ describe('undo calls (task 10.19a)', () => {
     )
   })
 
+  it('setConsumedMany puts the ids and the flag and hands back what Undo needs; restoreConsumed puts it back', async () => {
+    const restore = { items: [{ id: 'i1', consumedAt: null }, { id: 'i2', consumedAt: '2025-03-04T05:06:07.089Z' }] }
+    let fetchMock = stubFetch({ restore })
+
+    expect(await api.setConsumedMany('L1', ['i1', 'i2'], true)).toEqual({ restore })
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/lists/L1/consumed',
+      expect.objectContaining({ method: 'PUT', body: JSON.stringify({ itemIds: ['i1', 'i2'], consumed: true }) }),
+    )
+
+    fetchMock = stubFetch({ restored: true })
+    await api.restoreConsumed('L1', restore)
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/lists/L1/consumed/restore',
+      expect.objectContaining({ method: 'PUT', body: JSON.stringify(restore) }),
+    )
+  })
+
   it('resetPreview reads what a Reset would do; resetList does it and returns the payload for Undo', async () => {
     const preview = { removed: 2, restored: 1, doneCleared: 3, notesCleared: 0, followUpCheck: true }
     let fetchMock = stubFetch(preview)

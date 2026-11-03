@@ -134,3 +134,20 @@ export const orderRestoreSchema = {
     groups: { type: 'array', items: orderEntrySchema },
   },
 } as const
+
+export const consumedRestoreSchema = {
+  type: 'object',
+  required: ['items'],
+  additionalProperties: false,
+  properties: {
+    items: {
+      type: 'array',
+      items: {
+        type: 'object',
+        required: ['id', 'consumedAt'],
+        additionalProperties: false,
+        properties: { id: { type: 'string', minLength: 1, maxLength: 100 }, consumedAt: nullableString },
+      },
+    },
+  },
+} as const
