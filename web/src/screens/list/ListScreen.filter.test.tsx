@@ -24,7 +24,7 @@ vi.mock('../../lib/preferences/store.js', () => ({
 
 vi.mock('../../lib/api.js', () => ({
   ApiError: class extends Error {},
-  api: { list: vi.fn(), restoreOrder: vi.fn(), resetOrder: vi.fn(), setConsumed: vi.fn(), itemSource: vi.fn() },
+  api: { list: vi.fn(), restoreOrder: vi.fn(), resetOrder: vi.fn(), setConsumed: vi.fn(), setConsumedMany: vi.fn(), restoreConsumed: vi.fn(), itemSource: vi.fn() },
 }))
 
 const TYPES: MediaType[] = [
@@ -117,6 +117,7 @@ beforeEach(() => {
   vi.mocked(api.list).mockResolvedValue(list())
   vi.mocked(api.restoreOrder).mockResolvedValue(undefined)
   vi.mocked(api.itemSource).mockResolvedValue({ sourced: false, tags: null })
+  vi.mocked(api.setConsumedMany).mockResolvedValue({ restore: { items: [] } })
 })
 afterEach(() => {
   cleanup()
@@ -999,5 +1000,80 @@ describe('a Music list (owner, 2026-09-27)', () => {
     fireEvent.click(facet('Studio'))
     expect(rowIds()).toEqual(['a', 'l', 'e', 'c'])
     expect(within(bar()).getByRole('button', { name: 'Recording: All' })).toBeTruthy()
+  })
+})
+
+describe('the box on a group head under a filter (H-026, 46.4)', () => {
+  const doneOf = (...ids: string[]) => (detail: MediaListDetail) => {
+    for (const entry of detail.items) if (ids.includes(entry.id)) entry.consumedAt = '2026-01-01'
+  }
+  const hideDone = () => within(bar()).getByRole('button', { name: en.quantum.list.filter.hideDone })
+  const box = (groupId: string) => within(row(groupId)).getByRole('checkbox')
+  const itemBox = (id: string) => within(row(id)).getByRole('checkbox')
+  const text = en.quantum.list.itemActions
+
+  it('with a facet on, reads and changes only the shown items; the rest are untouched when the facet is cleared', async () => {
+    await open()
+    fireEvent.click(facet('PSP'))
+    // Handhelds shows Bloodlines only.
+    expect(rowIds()).toEqual(['gh', 'bl'])
+    expect(box('gh').getAttribute('aria-label')).toBe(text.groupBoxMark('Handhelds', 1, true))
+
+    fireEvent.click(box('gh'))
+
+    expect(api.setConsumedMany).toHaveBeenCalledWith('L1', ['bl'], true)
+    expect(box('gh').getAttribute('aria-checked')).toBe('true')
+
+    fireEvent.click(facet('All'))
+    expect(itemBox('bl').getAttribute('aria-checked')).toBe('true')
+    expect(itemBox('ch').getAttribute('aria-checked')).toBe('false')
+    expect(box('gh').getAttribute('aria-checked')).toBe('mixed')
+  })
+
+  it('with text typed, acts on the matching items, also in a group the text opened, and leaves the saved folds as they were', async () => {
+    store.set('list:L1:collapsed', JSON.stringify(['Handhelds']))
+    await open()
+    expect(row('gh').getAttribute('aria-expanded')).toBe('false')
+
+    type('bloodlines')
+    expect(row('gh').getAttribute('aria-expanded')).toBe('true')
+    fireEvent.click(box('gh'))
+
+    expect(api.setConsumedMany).toHaveBeenCalledWith('L1', ['bl'], true)
+    expect(store.get('list:L1:collapsed')).toBe(JSON.stringify(['Handhelds']))
+
+    type('')
+    expect(row('gh').getAttribute('aria-expanded')).toBe('false')
+  })
+
+  it('with Hide Completed on, reads only the items still shown, and what it marks stays in view until the filter is switched again', async () => {
+    await open('game', doneOf('ac1'))
+    act(() => hideDone().click())
+    // Main keeps Revelations and AC II: the done one is out of the box's reading.
+    expect(rowIds()).toContain('ac2')
+    expect(rowIds()).not.toContain('ac1')
+    expect(box('gm').getAttribute('aria-checked')).toBe('false')
+    expect(box('gm').getAttribute('aria-label')).toBe(text.groupBoxMark('Main', 2, true))
+
+    fireEvent.click(box('gm'))
+
+    expect(api.setConsumedMany).toHaveBeenCalledWith('L1', ['ac2', 'ac3'], true)
+    expect(rowIds()).toEqual(expect.arrayContaining(['gm', 'ac2', 'ac3']))
+    expect(box('gm').getAttribute('aria-checked')).toBe('true')
+
+    act(() => hideDone().click())
+    act(() => hideDone().click())
+
+    // Switched again: the whole group is done, so it is out of a list that hides what is done.
+    expect(rowIds()).not.toContain('gm')
+  })
+
+  it('a group whose every item the filter hides has no box to click', async () => {
+    await open()
+
+    fireEvent.click(facet('PSP'))
+
+    expect(rowIds()).not.toContain('gm')
+    expect(document.querySelectorAll('.q-group [role="checkbox"]')).toHaveLength(1)
   })
 })
