@@ -22,6 +22,8 @@ export interface GroupRowProps {
   onFocus: (groupId: string) => void
   /** The items the filters show in this group (all of them with no filter): what the box reads and acts on (H-026). */
   shown?: readonly ListItem[]
+  /** A filter is on, so the box's name says "shown" (H-026). */
+  filtered?: boolean
   /** The box after the triangle marks every shown item done or not done (H-026). Absent: no box. */
   onSetDone?: (done: boolean) => void
   /** A drag starts here: the handle's own pointer-down (10.23). Only a group with items has a handle. */
@@ -59,6 +61,7 @@ export function GroupRow({
   onToggle,
   onFocus,
   shown = [],
+  filtered = false,
   onSetDone,
   onHandlePointerDown,
   dragging = false,
@@ -159,14 +162,7 @@ export function GroupRow({
         </Tip>
       )}
       <GroupTriangle />
-      {onSetDone && shown.length > 0 && (
-        <DoneCheckbox
-          className="q-group-done"
-          isolate
-          checked={doneState(shown)}
-          onChange={onSetDone}
-        />
-      )}
+      {onSetDone && shown.length > 0 && <GroupBox name={block.group.name} shown={shown} filtered={filtered} onSetDone={onSetDone} />}
       <span className={editing ? 'name editing' : 'name'}>
         {editing ? (
           <input
@@ -274,6 +270,15 @@ export function GroupRow({
       {place && <span className="q-place">{place}</span>}
     </div>
   )
+}
+
+/** The box on a group head: named, and given a tooltip, for what a click does (mark every shown item done, or unmark them). */
+function GroupBox({ name, shown, filtered, onSetDone }: { name: string; shown: readonly ListItem[]; filtered: boolean; onSetDone: (done: boolean) => void }) {
+  const text = copy.quantum.list.itemActions
+  const state = doneState(shown)
+  const label = state === true ? text.groupBoxUnmark(name, shown.length, filtered) : text.groupBoxMark(name, shown.length, filtered)
+
+  return <DoneCheckbox className="q-group-done" isolate checked={state} onChange={onSetDone} label={label} tip={label} />
 }
 
 /** Empty when none of the shown items is done, a dash when some are, a tick when all are. */

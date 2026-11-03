@@ -832,6 +832,14 @@ export const en = {
         groupDeleteNote: (n: number, done: number): string => `${n} ${selectPlural(n, 'en', { one: 'item', other: 'items' })}${done > 0 ? `, ${done} done,` : ''} in this group will be deleted as well`,
         groupDeleteConfirm: 'Delete',
         groupRemovedWithItems: (name: string, n: number): string => `Deleted group ${name} with ${n} ${selectPlural(n, 'en', { one: 'item', other: 'items' })}`,
+        /** The box on a group head that marks the shown items done or not done (H-026): the toast, its Undo, and the box's name and tooltip. `shown`: a filter is on. */
+        groupMarkedDone: (n: number, shown: boolean): string => `Marked ${n} ${shown ? 'shown ' : ''}${selectPlural(n, 'en', { one: 'item', other: 'items' })} done`,
+        groupMarkedNotDone: (n: number, shown: boolean): string => `Marked ${n} ${shown ? 'shown ' : ''}${selectPlural(n, 'en', { one: 'item', other: 'items' })} not done`,
+        groupMarkUndone: (n: number): string => `Put back ${n} ${selectPlural(n, 'en', { one: 'item', other: 'items' })}`,
+        groupBoxMark: (name: string, n: number, shown: boolean): string =>
+          n === 1 ? `Mark the ${shown ? 'shown ' : ''}item in ${name} done` : `Mark all ${n} ${shown ? 'shown ' : ''}items in ${name} done`,
+        groupBoxUnmark: (name: string, n: number, shown: boolean): string =>
+          n === 1 ? `Unmark the ${shown ? 'shown ' : ''}item in ${name}` : `Unmark all ${n} ${shown ? 'shown ' : ''}items in ${name}`,
         edit: (title: string): string => `Edit ${title}`,
         /** The ↗ on a row (H-002): its page at the source; `source` is a name (TMDB), the same in every language. */
         openOnSource: (title: string, source: string): string => `Open ${title} on ${source}`,

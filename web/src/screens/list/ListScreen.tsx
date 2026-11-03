@@ -730,7 +730,8 @@ function ListView({
 
   /**
    * The box on a group head (H-026): every shown item of the group done or not done, in one call. The rows change at once; a failed save
-   * puts back only the items it changed (a snapshot taken at the click would put back rows that changed since).
+   * puts back only the items it changed (a snapshot taken at the click would put back rows that changed since). The toast counts what the
+   * server says changed, and its Undo hands that back.
    */
   async function setShownDone(shown: readonly ListItem[], done: boolean) {
     const changing = new Map(shown.filter((entry) => (entry.consumedAt === null) === done).map((entry) => [entry.id, entry.consumedAt]))
@@ -741,10 +742,30 @@ function ListView({
     setItems((current) => current.map((entry) => (changing.has(entry.id) ? { ...entry, consumedAt: done ? at : null } : entry)))
 
     try {
-      await api.setConsumedMany(listId, shown.map((entry) => entry.id), done)
+      const { restore } = await api.setConsumedMany(listId, shown.map((entry) => entry.id), done)
+      if (restore.items.length === 0) return
+
+      const count = restore.items.length
+      showToast({
+        text: done ? actions.groupMarkedDone(count, filtering) : actions.groupMarkedNotDone(count, filtering),
+        actionLabel: actions.undo,
+        onAction: () => void undoShownDone(restore),
+      })
     } catch {
       setItems((current) => current.map((entry) => (changing.has(entry.id) ? { ...entry, consumedAt: changing.get(entry.id) ?? null } : entry)))
       setError(copy.quantum.list.saveFailed)
+    }
+  }
+
+  /** Each item back as the bulk mark found it, its done date included: put on the rows from what the call handed back, not read again. */
+  async function undoShownDone(restore: Parameters<typeof api.restoreConsumed>[1]) {
+    try {
+      await api.restoreConsumed(listId, restore)
+      const before = new Map(restore.items.map((entry) => [entry.id, entry.consumedAt]))
+      setItems((current) => current.map((entry) => (before.has(entry.id) ? { ...entry, consumedAt: before.get(entry.id) ?? null } : entry)))
+      showToast({ text: actions.groupMarkUndone(restore.items.length) })
+    } catch {
+      setError(actions.undoFailed)
     }
   }
 
@@ -1544,6 +1565,7 @@ function ListView({
                     onToggle={toggleGroup}
                     onFocus={remember}
                     shown={members}
+                    filtered={filtering}
                     onSetDone={(done) => void setShownDone(members, done)}
                     onHandlePointerDown={(event) => moves.startDrag(event, unit.group.id)}
                     onDelete={() => void removeGroup(unit.group)}

@@ -1,6 +1,7 @@
 import type { KeyboardEvent, MouseEvent } from 'react'
 import './DoneCheckbox.css'
 import { copy } from '../../../locale/index.js'
+import { Tip } from '../Tooltip/Tip.js'
 
 /**
  * design-system/components/DoneCheckbox — the 19×19 box that marks an
@@ -24,29 +25,34 @@ export interface DoneCheckboxProps {
    * pencil and the trash on a head do; arrows still reach the list, which walks its rows.
    */
   isolate?: boolean
+  /** The app's tooltip on the box (the group head's, which says what a click does). Item boxes have none: a row has thousands. */
+  tip?: string
 }
 
-export function DoneCheckbox({ checked, onChange, label = copy.quantum.common.toggleDone, className, isolate = false }: DoneCheckboxProps) {
-  return (
-    <button
-      type="button"
-      className={className ? `q-done ${className}` : 'q-done'}
-      role="checkbox"
-      aria-checked={checked}
-      aria-label={label}
-      onClick={(event: MouseEvent) => {
-        if (isolate) event.stopPropagation()
-        onChange(checked !== true)
-      }}
-      onKeyDown={
-        isolate
-          ? (event: KeyboardEvent) => {
-              if (event.key === 'Enter' || event.key === ' ') event.stopPropagation()
-            }
-          : undefined
-      }
-    >
-      <span>{checked === true ? '✓' : ''}</span>
-    </button>
+export function DoneCheckbox({ checked, onChange, label = copy.quantum.common.toggleDone, className, isolate = false, tip }: DoneCheckboxProps) {
+  const props = {
+    type: 'button' as const,
+    className: className ? `q-done ${className}` : 'q-done',
+    role: 'checkbox',
+    'aria-checked': checked,
+    'aria-label': label,
+    onClick: (event: MouseEvent) => {
+      if (isolate) event.stopPropagation()
+      onChange(checked !== true)
+    },
+    onKeyDown: isolate
+      ? (event: KeyboardEvent) => {
+          if (event.key === 'Enter' || event.key === ' ') event.stopPropagation()
+        }
+      : undefined,
+  }
+  const box = <span>{checked === true ? '✓' : ''}</span>
+
+  return tip === undefined ? (
+    <button {...props}>{box}</button>
+  ) : (
+    <Tip as="button" text={tip} {...props}>
+      {box}
+    </Tip>
   )
 }

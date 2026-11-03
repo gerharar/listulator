@@ -18,6 +18,9 @@ import type { Locale } from './en.js'
  */
 const items = (n: number): string =>
   `${n} ${selectPlural(n, 'ru', { one: 'элемент', few: 'элемента', many: 'элементов', other: 'элемента' })}`
+/** "3 показанных элемента" -- the adjective agrees with the count too. */
+const shownItems = (n: number): string =>
+  `${n} ${selectPlural(n, 'ru', { one: 'показанный элемент', few: 'показанных элемента', many: 'показанных элементов', other: 'показанных элемента' })}`
 const lists = (n: number): string =>
   `${n} ${selectPlural(n, 'ru', { one: 'список', few: 'списка', many: 'списков', other: 'списка' })}`
 const candidates = (n: number): string =>
@@ -735,6 +738,11 @@ export const ru: Locale = {
           `Вместе с группой будут удалены: ${items(n)}${done > 0 ? `, из них завершено -- ${done}` : ''}`,
         groupDeleteConfirm: 'Удалить',
         groupRemovedWithItems: (name: string, n: number): string => `Группа ${name} удалена вместе с элементами: ${n}`,
+        groupMarkedDone: (n: number, shown: boolean): string => `Отмечено завершёнными: ${shown ? shownItems(n) : items(n)}`,
+        groupMarkedNotDone: (n: number, shown: boolean): string => `Отметка завершённости снята: ${shown ? shownItems(n) : items(n)}`,
+        groupMarkUndone: (n: number): string => `Отметки возвращены: ${items(n)}`,
+        groupBoxMark: (name: string, n: number, shown: boolean): string => `Отметить завершёнными: ${shown ? shownItems(n) : items(n)} в группе ${name}`,
+        groupBoxUnmark: (name: string, n: number, shown: boolean): string => `Снять отметку завершённости: ${shown ? shownItems(n) : items(n)} в группе ${name}`,
         edit: (title: string): string => `Изменить: ${title}`,
         openOnSource: (title: string, source: string): string => `Открыть на ${source}: ${title}`,
         openOnSourceTip: (source: string): string => `Открыть на ${source}`,

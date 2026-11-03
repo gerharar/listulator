@@ -16,6 +16,11 @@ import type { Locale } from './en.js'
  */
 const entries = (n: number): string =>
   `${n} ${selectPlural(n, 'de', { one: 'Eintrag', other: 'Einträge' })}`
+const shownEntries = (n: number): string =>
+  `${n} ${selectPlural(n, 'de', { one: 'angezeigter Eintrag', other: 'angezeigte Einträge' })}`
+/** "alle 12 Einträge", "der angezeigte Eintrag": the whole group's items, in the nominative so no case has to be chosen. */
+const everyEntry = (n: number, shown: boolean): string =>
+  n === 1 ? (shown ? 'der angezeigte Eintrag' : 'der Eintrag') : `alle ${n} ${shown ? 'angezeigten Einträge' : 'Einträge'}`
 const lists = (n: number): string =>
   `${n} ${selectPlural(n, 'de', { one: 'Liste', other: 'Listen' })}`
 const candidates = (n: number): string =>
@@ -727,6 +732,11 @@ export const de: Locale = {
           `${entries(n)}${done > 0 ? `, davon ${done} erledigt,` : ''} in dieser Gruppe ${n === 1 ? 'wird' : 'werden'} ebenfalls gelöscht`,
         groupDeleteConfirm: 'Löschen',
         groupRemovedWithItems: (name: string, n: number): string => `Gruppe ${name} und ${entries(n)} entfernt`,
+        groupMarkedDone: (n: number, shown: boolean): string => `Als erledigt markiert: ${shown ? shownEntries(n) : entries(n)}`,
+        groupMarkedNotDone: (n: number, shown: boolean): string => `Als nicht erledigt markiert: ${shown ? shownEntries(n) : entries(n)}`,
+        groupMarkUndone: (n: number): string => `Zurückgesetzt: ${entries(n)}`,
+        groupBoxMark: (name: string, n: number, shown: boolean): string => `Als erledigt markieren: ${everyEntry(n, shown)} in ${name}`,
+        groupBoxUnmark: (name: string, n: number, shown: boolean): string => `Erledigt-Markierung aufheben: ${everyEntry(n, shown)} in ${name}`,
         edit: (title: string): string => `${title} bearbeiten`,
         openOnSource: (title: string, source: string): string => `${title} auf ${source} öffnen`,
         openOnSourceTip: (source: string): string => `Auf ${source} öffnen`,

@@ -8,6 +8,7 @@ import { LiveRegionProvider } from '../../components/quantum/LiveRegion/LiveRegi
 import { OverlayManagerProvider } from '../../components/quantum/overlay/OverlayManagerContext.js'
 import { ToastProvider } from '../../components/quantum/Toast/Toast.js'
 import { ListScreen } from './ListScreen.js'
+import { hoverTooltip } from '../../components/quantum/Tooltip/hoverTooltip.js'
 
 /** The box on a group head that marks the shown items done or not done (H-026, task 46.2). */
 
@@ -192,5 +193,114 @@ describe('the box on a group head', () => {
     expect(state('g2')).toBe('mixed')
     expect(itemBox('b1').getAttribute('aria-checked')).toBe('true')
     expect(itemBox('b2').getAttribute('aria-checked')).toBe('false')
+  })
+})
+
+describe('what the box says and offers (46.3)', () => {
+  const text = en.quantum.list.itemActions
+  const changed = (...ids: string[]) => ({ restore: { items: ids.map((id) => ({ id, consumedAt: null })) } })
+
+  it('is named, and has a tooltip, for what a click would do: mark all, or unmark all', async () => {
+    await open()
+
+    expect(groupBox('g1').getAttribute('aria-label')).toBe(text.groupBoxMark('Season 1', 3, false))
+    expect(groupBox('g2').getAttribute('aria-label')).toBe(text.groupBoxMark('Season 2', 2, false))
+    expect(await hoverTooltip(groupBox('g1'))).toBe(text.groupBoxMark('Season 1', 3, false))
+
+    fireEvent.click(groupBox('g1'))
+
+    expect(groupBox('g1').getAttribute('aria-label')).toBe(text.groupBoxUnmark('Season 1', 3, false))
+    expect(await hoverTooltip(groupBox('g1'))).toBe(text.groupBoxUnmark('Season 1', 3, false))
+  })
+
+  it('says "shown" in its name when a filter leaves some of the group', async () => {
+    await open()
+
+    fireEvent.change(screen.getByPlaceholderText('Filter items…'), { target: { value: 'Pilot' } })
+
+    expect(groupBox('g1').getAttribute('aria-label')).toBe(text.groupBoxMark('Season 1', 1, true))
+  })
+
+  it('shows a toast with Undo, and the live region says it, with the count of the items that changed', async () => {
+    vi.mocked(api.setConsumedMany).mockResolvedValue(changed('b2'))
+    await open()
+
+    fireEvent.click(groupBox('g2'))
+
+    // Season 2 had one done already: only one item changed.
+    expect(await screen.findByText(text.groupMarkedDone(1, false))).toBeTruthy()
+    expect(screen.getByRole('button', { name: text.undo })).toBeTruthy()
+    await waitFor(() => expect(document.querySelector('.q-live')!.textContent).toBe(text.groupMarkedDone(1, false)))
+  })
+
+  it('says "not done" for a tick, and "shown" under a filter', async () => {
+    vi.mocked(api.setConsumedMany).mockResolvedValueOnce(changed('a1', 'a2', 'a3')).mockResolvedValueOnce(changed('a1'))
+    await open()
+    fireEvent.click(groupBox('g1'))
+    expect(await screen.findByText(text.groupMarkedDone(3, false))).toBeTruthy()
+
+    fireEvent.change(screen.getByPlaceholderText('Filter items…'), { target: { value: 'Pilot' } })
+    fireEvent.click(groupBox('g1'))
+
+    expect(await screen.findByText(text.groupMarkedNotDone(1, true))).toBeTruthy()
+  })
+
+  it('Undo puts the items back, says so, and the box follows', async () => {
+    vi.mocked(api.setConsumedMany).mockResolvedValue({ restore: { items: [{ id: 'a1', consumedAt: null }, { id: 'a2', consumedAt: null }, { id: 'a3', consumedAt: null }] } })
+    vi.mocked(api.restoreConsumed).mockResolvedValue(undefined)
+    await open()
+    fireEvent.click(groupBox('g1'))
+    expect(state('g1')).toBe('true')
+
+    fireEvent.click(await screen.findByRole('button', { name: text.undo }))
+
+    await waitFor(() => expect(state('g1')).toBe('false'))
+    expect(api.restoreConsumed).toHaveBeenCalledWith('L1', { items: [{ id: 'a1', consumedAt: null }, { id: 'a2', consumedAt: null }, { id: 'a3', consumedAt: null }] })
+    expect(await screen.findByText(text.groupMarkUndone(3))).toBeTruthy()
+    await waitFor(() => expect(document.querySelector('.q-live')!.textContent).toBe(text.groupMarkUndone(3)))
+  })
+
+  it('Undo of marking not done puts the done dates back on the rows', async () => {
+    vi.mocked(api.restoreConsumed).mockResolvedValue(undefined)
+    vi.mocked(api.setConsumedMany).mockResolvedValue({ restore: { items: [{ id: 'b1', consumedAt: DONE_AT }] } })
+    await open()
+    // Season 2 is a dash; a first click marks it all done, a second not done.
+    fireEvent.click(groupBox('g2'))
+    fireEvent.click(groupBox('g2'))
+    expect(state('g2')).toBe('false')
+
+    fireEvent.click(await screen.findByRole('button', { name: text.undo }))
+
+    await waitFor(() => expect(itemBox('b1').getAttribute('aria-checked')).toBe('true'))
+    expect(itemBox('b2').getAttribute('aria-checked')).toBe('false')
+    expect(state('g2')).toBe('mixed')
+  })
+
+  it('says the Undo failed, and puts nothing back on the screen, when it is refused', async () => {
+    vi.mocked(api.setConsumedMany).mockResolvedValue(changed('a1', 'a2', 'a3'))
+    vi.mocked(api.restoreConsumed).mockRejectedValue(new Error('down'))
+    await open()
+    fireEvent.click(groupBox('g1'))
+
+    fireEvent.click(await screen.findByRole('button', { name: text.undo }))
+
+    await waitFor(() => expect(screen.getByText(text.undoFailed)).toBeTruthy())
+    expect(state('g1')).toBe('true')
+  })
+
+  it('shows no toast when nothing changed, and none when the save fails', async () => {
+    vi.mocked(api.setConsumedMany).mockResolvedValueOnce(changed())
+    await open()
+
+    fireEvent.click(groupBox('g1'))
+    await act(async () => {})
+    expect(screen.queryByRole('button', { name: text.undo })).toBeNull()
+
+    cleanup()
+    vi.mocked(api.setConsumedMany).mockRejectedValue(new Error('down'))
+    await open()
+    fireEvent.click(groupBox('g1'))
+    await waitFor(() => expect(screen.getByText(en.quantum.list.saveFailed)).toBeTruthy())
+    expect(screen.queryByRole('button', { name: text.undo })).toBeNull()
   })
 })

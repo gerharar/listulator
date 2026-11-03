@@ -342,6 +342,59 @@ describe('plural forms', () => {
   })
 })
 
+describe('the box on a group head (H-026)', () => {
+  const en_ = en.quantum.list.itemActions
+  const ru_ = ru.quantum.list.itemActions
+  const de_ = de.quantum.list.itemActions
+
+  it('English says what the canvas says, and "shown" before "items" under a filter', () => {
+    expect(en_.groupMarkedDone(12, false)).toBe('Marked 12 items done')
+    expect(en_.groupMarkedDone(1, false)).toBe('Marked 1 item done')
+    expect(en_.groupMarkedDone(8, true)).toBe('Marked 8 shown items done')
+    expect(en_.groupMarkedDone(1, true)).toBe('Marked 1 shown item done')
+    expect(en_.groupMarkedNotDone(13, false)).toBe('Marked 13 items not done')
+    expect(en_.groupMarkedNotDone(8, true)).toBe('Marked 8 shown items not done')
+    expect(en_.groupBoxMark('Season 3', 12, false)).toBe('Mark all 12 items in Season 3 done')
+    expect(en_.groupBoxUnmark('Season 1', 13, false)).toBe('Unmark all 13 items in Season 1')
+    expect(en_.groupBoxMark('Season 3', 8, true)).toBe('Mark all 8 shown items in Season 3 done')
+    expect(en_.groupBoxMark('Season 3', 1, true)).toBe('Mark the shown item in Season 3 done')
+    expect(en_.groupBoxUnmark('Season 1', 1, true)).toBe('Unmark the shown item in Season 1')
+    expect(en_.groupBoxMark('Season 3', 1, false)).toBe('Mark the item in Season 3 done')
+    expect(en_.groupMarkUndone(3)).toBe('Put back 3 items')
+    expect(en_.groupMarkUndone(1)).toBe('Put back 1 item')
+  })
+
+  it('Russian takes all four plural forms, with the adjective agreeing, and no « »', () => {
+    expect(ru_.groupMarkedDone(1, false)).toBe('Отмечено завершёнными: 1 элемент')
+    expect(ru_.groupMarkedDone(2, false)).toBe('Отмечено завершёнными: 2 элемента')
+    expect(ru_.groupMarkedDone(5, false)).toBe('Отмечено завершёнными: 5 элементов')
+    expect(ru_.groupMarkedDone(21, false)).toBe('Отмечено завершёнными: 21 элемент')
+    expect(ru_.groupMarkedDone(1, true)).toBe('Отмечено завершёнными: 1 показанный элемент')
+    expect(ru_.groupMarkedDone(3, true)).toBe('Отмечено завершёнными: 3 показанных элемента')
+    expect(ru_.groupMarkedDone(8, true)).toBe('Отмечено завершёнными: 8 показанных элементов')
+    expect(ru_.groupMarkedNotDone(22, false)).toBe('Отметка завершённости снята: 22 элемента')
+    expect(ru_.groupMarkUndone(12)).toBe('Отметки возвращены: 12 элементов')
+    expect(ru_.groupBoxMark('Сезон 3', 12, false)).toBe('Отметить завершёнными: 12 элементов в группе Сезон 3')
+    expect(ru_.groupBoxUnmark('Сезон 1', 1, true)).toBe('Снять отметку завершённости: 1 показанный элемент в группе Сезон 1')
+    for (const text of [ru_.groupMarkedDone(3, true), ru_.groupBoxMark('X', 5, false), ru_.groupBoxUnmark('X', 2, true), ru_.groupMarkUndone(2)]) {
+      expect(text).not.toMatch(/[«»]/)
+    }
+  })
+
+  it('German takes one / other, and the adjective agrees', () => {
+    expect(de_.groupMarkedDone(1, false)).toBe('Als erledigt markiert: 1 Eintrag')
+    expect(de_.groupMarkedDone(12, false)).toBe('Als erledigt markiert: 12 Einträge')
+    expect(de_.groupMarkedDone(1, true)).toBe('Als erledigt markiert: 1 angezeigter Eintrag')
+    expect(de_.groupMarkedDone(8, true)).toBe('Als erledigt markiert: 8 angezeigte Einträge')
+    expect(de_.groupMarkedNotDone(3, false)).toBe('Als nicht erledigt markiert: 3 Einträge')
+    expect(de_.groupMarkUndone(2)).toBe('Zurückgesetzt: 2 Einträge')
+    expect(de_.groupBoxMark('Staffel 3', 12, false)).toBe('Als erledigt markieren: alle 12 Einträge in Staffel 3')
+    expect(de_.groupBoxMark('Staffel 3', 1, true)).toBe('Als erledigt markieren: der angezeigte Eintrag in Staffel 3')
+    expect(de_.groupBoxUnmark('Staffel 1', 8, true)).toBe('Erledigt-Markierung aufheben: alle 8 angezeigten Einträge in Staffel 1')
+    expect(de_.groupBoxUnmark('Staffel 1', 1, false)).toBe('Erledigt-Markierung aufheben: der Eintrag in Staffel 1')
+  })
+})
+
 describe('the "more matches" block of the Search tab', () => {
   it('English: "{shown} of {total} results", with a plus while the total is a lower bound', () => {
     const more = en.quantum.search.more
