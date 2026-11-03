@@ -1,5 +1,6 @@
 import { expect, test, type APIRequestContext, type Page } from '@playwright/test'
 import { settled } from './groupLineMarks.js'
+import { q } from './fixtures.js'
 
 /**
  * The box on a group head that marks the shown items done or not done (canvas H-026), in a real browser: where it sits against the item
@@ -108,6 +109,13 @@ test('Space on the focused box marks the group and does not fold it; a click on 
     await expect(groupBox(page, 'Season 2')).toHaveAttribute('aria-checked', 'true')
     await expect(page.locator('.q-group', { hasText: 'Season 2' })).toHaveAttribute('aria-expanded', 'true')
 
+    // The head itself still folds on Enter.
+    await page.locator('.q-group', { hasText: 'Season 2' }).focus()
+    await page.keyboard.press('Enter')
+    await expect(page.locator('.q-group', { hasText: 'Season 2' })).toHaveAttribute('aria-expanded', 'false')
+    await page.keyboard.press('Enter')
+    await expect(page.locator('.q-group', { hasText: 'Season 2' })).toHaveAttribute('aria-expanded', 'true')
+
     await page.locator('.q-group', { hasText: 'Season 1' }).getByText('Season 1').click()
     await expect(page.locator('.q-group', { hasText: 'Season 1' })).toHaveAttribute('aria-expanded', 'false')
     await groupBox(page, 'Season 1').click()
@@ -115,5 +123,83 @@ test('Space on the focused box marks the group and does not fold it; a click on 
     await expect(page.locator('.q-group', { hasText: 'Season 1' })).toHaveAttribute('aria-expanded', 'false')
   } finally {
     await page.request.delete(`/api/lists/${id}`)
+  }
+})
+
+const toast = (page: Page) => page.locator('.q-toast')
+
+test('the toast says how many items changed and Undo puts the group back as it was, a dash again', async ({ page }) => {
+  const title = `e2e group-done undo ${Date.now()}`
+  const id = await makeList(page.request, title)
+
+  try {
+    await openList(page, title)
+    await itemBox(page, 'Alpha').click()
+    await expect(groupBox(page, 'Season 1')).toHaveAttribute('aria-checked', 'mixed')
+
+    await groupBox(page, 'Season 1').click()
+
+    // Alpha was done already: two items changed, not three.
+    await expect(toast(page)).toContainText(q.list.itemActions.groupMarkedDone(2, false))
+    await expect(groupBox(page, 'Season 1')).toHaveAttribute('aria-checked', 'true')
+
+    await toast(page).getByRole('button', { name: q.list.itemActions.undo }).click()
+
+    await expect(groupBox(page, 'Season 1')).toHaveAttribute('aria-checked', 'mixed')
+    await expect(itemBox(page, 'Alpha')).toHaveAttribute('aria-checked', 'true')
+    await expect(itemBox(page, 'Beta')).toHaveAttribute('aria-checked', 'false')
+    await expect(itemBox(page, 'Gamma')).toHaveAttribute('aria-checked', 'false')
+    await expect(toast(page)).toContainText(q.list.itemActions.groupMarkUndone(2))
+
+    // The server agrees after a reload.
+    await page.reload()
+    await openList(page, title)
+    await expect(groupBox(page, 'Season 1')).toHaveAttribute('aria-checked', 'mixed')
+  } finally {
+    await page.request.delete(`/api/lists/${id}`)
+  }
+})
+
+test('with a facet on, the box marks only the shown items; the hidden ones are as they were when the facet is cleared, and after a reload', async ({ page }) => {
+  const title = `e2e group-done facet ${Date.now()}`
+  const list = await (await page.request.post('/api/lists', { data: { title, mediaType: 'game' } })).json()
+  await page.request.post(`/api/lists/${list.id}/items/import`, {
+    data: {
+      source: 'manual',
+      items: [
+        { title: 'Altaïr’s Chronicles', timeToConsumeMinutes: 360, group: 'Handhelds', tags: ['NDS'] },
+        { title: 'Bloodlines', timeToConsumeMinutes: 360, group: 'Handhelds', tags: ['PSP'] },
+        { title: 'Revelations', timeToConsumeMinutes: 900, group: 'Main', tags: ['PS3', 'X360'] },
+      ],
+    },
+  })
+
+  try {
+    await openList(page, title)
+    await page.locator('.q-filterbar').getByRole('button', { name: 'Platform: All' }).click()
+    await page.getByRole('dialog').getByRole('button', { name: 'PSP', exact: true }).click()
+    await expect(page.locator('.q-item .title')).toHaveText(['Bloodlines'])
+    // The picker's popover has to go first: its catcher takes the next click.
+    await page.keyboard.press('Escape')
+    await expect(page.getByRole('dialog')).toHaveCount(0)
+
+    await groupBox(page, 'Handhelds').click()
+
+    await expect(toast(page)).toContainText(q.list.itemActions.groupMarkedDone(1, true))
+    await expect(groupBox(page, 'Handhelds')).toHaveAttribute('aria-checked', 'true')
+
+    await page.locator('.q-filterbar').getByRole('button', { name: 'Platform: PSP' }).click()
+    await page.getByRole('dialog').getByRole('button', { name: 'All', exact: true }).click()
+    await page.keyboard.press('Escape')
+    await expect(itemBox(page, 'Bloodlines')).toHaveAttribute('aria-checked', 'true')
+    await expect(itemBox(page, 'Altaïr’s Chronicles')).toHaveAttribute('aria-checked', 'false')
+    await expect(groupBox(page, 'Handhelds')).toHaveAttribute('aria-checked', 'mixed')
+
+    await page.reload()
+    await openList(page, title)
+    await expect(itemBox(page, 'Altaïr’s Chronicles')).toHaveAttribute('aria-checked', 'false')
+    await expect(groupBox(page, 'Handhelds')).toHaveAttribute('aria-checked', 'mixed')
+  } finally {
+    await page.request.delete(`/api/lists/${list.id}`)
   }
 })
