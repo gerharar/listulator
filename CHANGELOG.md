@@ -2,7 +2,7 @@
 
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and version numbers follow [Semantic Versioning](https://semver.org/).
 
-# [1.4.0] - 04 November 2026
+## [1.4.0] - 04 November 2026
 
 ### New Stuff
 
