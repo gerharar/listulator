@@ -1,5 +1,5 @@
 import './ListScreen.css'
-import { useCallback, useEffect, useLayoutEffect, useMemo, useReducer, useRef, useState, type KeyboardEvent, type PointerEvent as ReactPointerEvent } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useMemo, useReducer, useRef, useState, type CSSProperties, type KeyboardEvent, type PointerEvent as ReactPointerEvent } from 'react'
 import { EllipsisVertical, RefreshCw, X } from 'lucide-react'
 import { ApiError, api, type ListGroup, type ListItem, type MediaListDetail, type MediaType } from '../../lib/api.js'
 import { downloadText } from '../../lib/downloadText.js'
@@ -19,7 +19,7 @@ import { IconButton } from '../../components/quantum/Button/Button.js'
 import { ErrorBlock } from '../../components/quantum/ErrorBlock/ErrorBlock.js'
 import { ErrorStrip } from '../../components/quantum/ErrorStrip/ErrorStrip.js'
 import { HeaderPlate } from '../../components/quantum/HeaderPlate/HeaderPlate.js'
-import { ProgressSentence } from '../../components/quantum/ProgressSentence/ProgressSentence.js'
+import { groupColumnChars, ProgressSentence } from '../../components/quantum/ProgressSentence/ProgressSentence.js'
 import { useLiveRegion } from '../../components/quantum/LiveRegion/LiveRegion.js'
 import { useNavigationHold, type NavigationRun } from '../../components/quantum/layerStack/LayerStackContext.js'
 import { useEscStep } from '../../components/quantum/overlay/OverlayManagerContext.js'
@@ -331,6 +331,16 @@ function ListView({
   const totals = listTotals(items)
   const newCount = items.filter((entry) => entry.isNew).length
   const units = useMemo(() => buildSpine(items, groups), [items, groups])
+  // The width every group head gives its count and time left, so their bars start in one column (BL-160): from the widest group at its
+  // longest, over all groups, shown or not, so a filter, a fold or a tick never moves a bar.
+  const headColumns = useMemo(() => {
+    const figures = units.flatMap((unit) =>
+      unit.kind === 'group' ? [{ total: unit.total, totalMinutes: unit.items.reduce((sum, item) => sum + item.timeToConsumeMinutes, 0) }] : [],
+    )
+    const { count, left } = groupColumnChars(figures)
+
+    return { '--q-count-ch': count, '--q-left-ch': left } as CSSProperties
+  }, [units])
   // From every item, not the filtered ones: filtering must not make the hands come and go.
   const mixedSources = useMemo(
     () => items.some((entry) => entry.source === 'manual') && items.some((entry) => entry.source !== 'manual'),
@@ -1533,6 +1543,7 @@ function ListView({
         {railLayout.show && !railLayout.outside && railHidden && <JumpRailStub onShow={() => setRail(false)} />}
         <div
           className="q-list-body"
+          style={headColumns}
           ref={spine}
           onKeyDown={onKeyDown}
           onBlur={moves.onBlur}

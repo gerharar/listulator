@@ -31,3 +31,21 @@
   letter-spacing: 0.1em;
   text-transform: uppercase;
 }
+/*
+ * A group head's count and time left (BL-160): fields of the width the list screen worked out for the widest of its groups
+ * (`--q-count-ch`, `--q-left-ch`, set on the list body), so every head's bar starts in one column. Right-aligned, so each
+ * sentence still ends at the same edge it always did. The slot has the font of its text, which makes `ch` exact; with no
+ * variable set (anywhere else) they are no wider than their text.
+ */
+.q-slot {
+  flex: none;
+  text-align: right;
+  font-family: var(--font-mono);
+  white-space: nowrap;
+}
+.q-slot.count {
+  min-width: calc(var(--q-count-ch, 0) * 1ch);
+}
+.q-slot.time {
+  min-width: calc(var(--q-left-ch, 0) * 1ch);
+}

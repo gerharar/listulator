@@ -52,6 +52,50 @@ export function formatProgress(
   return { count, allDone, left }
 }
 
+/** What the list screen knows of a group, to size the columns its heads share. */
+export interface GroupFigures {
+  total: number
+  /** Every item's minutes, done or not: the most the time left can ever read. */
+  totalMinutes: number
+}
+
+/**
+ * The finished state is set at 11px with 0.1em of spacing against the time's 12px, so a character is about 1.07 as wide;
+ * a tenth more, so it never outgrows a column sized in 12px characters.
+ */
+const FINISHED_WIDTH_PER_CHAR = 11 / 10
+
+/**
+ * The longest the time left can read while items are ticked off from `totalMinutes` down to nothing. A figure of 10h passes
+ * through 9h 59m, which is longer, so the column is sized by that and not by the figure it starts at.
+ */
+function longestTimeLeft(totalMinutes: number): number {
+  const candidates = [totalMinutes]
+  const hours = Math.floor((totalMinutes - 59) / 60)
+  if (hours >= 1) candidates.push(hours * 60 + 59)
+
+  return Math.max(...candidates.map((minutes) => copy.quantum.progress.left(formatDuration(minutes)).length))
+}
+
+/**
+ * How many characters the count and the time left each take, at their widest, over every group of a list (BL-160). The
+ * heads are right-aligned, so their bars start in one column only when these two fields are the same width on every head.
+ * Sized by what each group can read at its longest, not by what it reads now, so ticking an item never moves a bar.
+ */
+export function groupColumnChars(groups: readonly GroupFigures[]): { count: number; left: number } {
+  let count = 0
+  let left = 0
+
+  for (const { total, totalMinutes } of groups) {
+    count = Math.max(count, copy.quantum.progress.count(total, total).length)
+    if (total > 0) {
+      left = Math.max(left, longestTimeLeft(totalMinutes), Math.ceil(copy.quantum.progress.allDone.length * FINISHED_WIDTH_PER_CHAR))
+    }
+  }
+
+  return { count, left }
+}
+
 export interface ProgressSentenceProps {
   done: number
   total: number
@@ -73,25 +117,52 @@ export function ProgressSentence({
   const { count, allDone, left } = formatProgress(done, total, minutesLeft, status, runtimesPending)
   const sizes = SENTENCE_SIZES[size]
 
+  // A group head's count and time sit in slots the list screen sizes for every head at once (BL-160); the header's do not.
+  const slotted = size === 'group'
+  const countText = (
+    <span className="q-count" style={{ fontSize: sizes.count }}>
+      {count}
+    </span>
+  )
+  const leftText = left !== null && (
+    <Tip
+      className={allDone ? 'q-left all-done' : 'q-left'}
+      style={{ fontSize: allDone ? Math.max(11, sizes.time - 2) : sizes.time }}
+      text={!allDone && runtimesPending > 0 ? copy.quantum.progress.runtimesPendingTip(runtimesPending) : undefined}
+    >
+      {left}
+    </Tip>
+  )
+
   return (
     <div className={size === 'header' ? 'q-progress header' : 'q-progress'}>
       <MeterBar done={done} total={total} big={size === 'header'} />
       <PercentLabel done={done} total={total} px={sizes.percent} />
       <span className="q-sep">·</span>
-      <span className="q-count" style={{ fontSize: sizes.count }}>
-        {count}
-      </span>
-      {left !== null && (
+      {slotted ? (
+        <span className="q-slot count" style={{ fontSize: sizes.count }}>
+          {countText}
+        </span>
+      ) : (
+        countText
+      )}
+      {slotted ? (
         <>
-          <span className="q-sep">·</span>
-          <Tip
-            className={allDone ? 'q-left all-done' : 'q-left'}
-            style={{ fontSize: allDone ? Math.max(11, sizes.time - 2) : sizes.time }}
-            text={!allDone && runtimesPending > 0 ? copy.quantum.progress.runtimesPendingTip(runtimesPending) : undefined}
-          >
-            {left}
-          </Tip>
+          {/* A group with no items has no time, but keeps the dot's room and the slot's width: its bar must start where the others do. */}
+          <span className="q-sep" style={left === null ? { visibility: 'hidden' } : undefined}>
+            ·
+          </span>
+          <span className="q-slot time" style={{ fontSize: sizes.time }}>
+            {leftText}
+          </span>
         </>
+      ) : (
+        left !== null && (
+          <>
+            <span className="q-sep">·</span>
+            {leftText}
+          </>
+        )
       )}
     </div>
   )

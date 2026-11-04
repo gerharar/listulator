@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { formatProgress } from './ProgressSentence.js'
+import { formatProgress, groupColumnChars } from './ProgressSentence.js'
 
 describe('formatProgress', () => {
   it("matches the design system's own worked example, the count alone (H-024: the % sits beside the bar): 16/38 · 14h 43m left", () => {
@@ -71,5 +71,35 @@ describe('formatProgress', () => {
     it('does not give an empty list a time', () => {
       expect(formatProgress(0, 0, 0, null, 3).left).toBeNull()
     })
+  })
+})
+
+describe('groupColumnChars (BL-160: the group heads\' bars start in one column)', () => {
+  it('is nothing for a list without groups', () => {
+    expect(groupColumnChars([])).toEqual({ count: 0, left: 0 })
+  })
+
+  it('sizes the count by the widest group at its longest, "38/38": marking items never changes it', () => {
+    expect(groupColumnChars([{ total: 38, totalMinutes: 60 }]).count).toBe(5)
+    expect(groupColumnChars([{ total: 38, totalMinutes: 60 }, { total: 120, totalMinutes: 60 }]).count).toBe(7)
+  })
+
+  it('sizes the time by the longest it can read while items are ticked off: 14h 43m can pass through 13h 59m, both 12 characters', () => {
+    expect(groupColumnChars([{ total: 38, totalMinutes: 14 * 60 + 43 }]).left).toBe('13h 59m left'.length)
+  })
+
+  it('counts a tidy 10h as the 9h 59m it passes through on the way down', () => {
+    expect(groupColumnChars([{ total: 4, totalMinutes: 600 }]).left).toBe('9h 59m left'.length)
+  })
+
+  it('keeps room for the finished state, which is drawn smaller but spaced wider than the time', () => {
+    const { left } = groupColumnChars([{ total: 2, totalMinutes: 20 }])
+
+    expect(left).toBeGreaterThanOrEqual(Math.ceil(('✓ All Done'.length * 11) / 10))
+  })
+
+  it('gives a group with no items a count but no time, and the widest group still decides', () => {
+    expect(groupColumnChars([{ total: 0, totalMinutes: 0 }])).toEqual({ count: 3, left: 0 })
+    expect(groupColumnChars([{ total: 0, totalMinutes: 0 }, { total: 9, totalMinutes: 5 }]).count).toBe(3)
   })
 })
