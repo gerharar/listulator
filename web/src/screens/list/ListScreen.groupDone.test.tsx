@@ -226,6 +226,13 @@ describe('a bulk save that fails (review finding 3: the call is not all-or-nothi
   })
 })
 
+/**
+ * The toast's own text. A sentence like "Put back 3 items" is also spoken through the live region, which fills it in on the next animation frame
+ * (`LiveRegion`): `findByText` found one element before the frame and two after it, so it failed on a slow CI runner and not here (CI, 2026-11-04).
+ */
+const toastSays = (message: string) =>
+  waitFor(() => expect([...document.querySelectorAll('.q-toast')].map((toast) => toast.textContent).join(' ')).toContain(message))
+
 describe('what the box says and offers (46.3)', () => {
   const text = en.quantum.list.itemActions
   const changed = (...ids: string[]) => ({ restore: { items: ids.map((id) => ({ id, consumedAt: null })) } })
@@ -258,7 +265,7 @@ describe('what the box says and offers (46.3)', () => {
     fireEvent.click(groupBox('g2'))
 
     // Season 2 had one done already: only one item changed.
-    expect(await screen.findByText(text.groupMarkedDone(1, false))).toBeTruthy()
+    await toastSays(text.groupMarkedDone(1, false))
     expect(screen.getByRole('button', { name: text.undo })).toBeTruthy()
     await waitFor(() => expect(document.querySelector('.q-live')!.textContent).toBe(text.groupMarkedDone(1, false)))
   })
@@ -267,12 +274,12 @@ describe('what the box says and offers (46.3)', () => {
     vi.mocked(api.setConsumedMany).mockResolvedValueOnce(changed('a1', 'a2', 'a3')).mockResolvedValueOnce(changed('a1'))
     await open()
     fireEvent.click(groupBox('g1'))
-    expect(await screen.findByText(text.groupMarkedDone(3, false))).toBeTruthy()
+    await toastSays(text.groupMarkedDone(3, false))
 
     fireEvent.change(screen.getByPlaceholderText('Filter items…'), { target: { value: 'Pilot' } })
     fireEvent.click(groupBox('g1'))
 
-    expect(await screen.findByText(text.groupMarkedNotDone(1, true))).toBeTruthy()
+    await toastSays(text.groupMarkedNotDone(1, true))
   })
 
   it('Undo puts the items back, says so, and the box follows', async () => {
@@ -286,7 +293,7 @@ describe('what the box says and offers (46.3)', () => {
 
     await waitFor(() => expect(state('g1')).toBe('false'))
     expect(api.restoreConsumed).toHaveBeenCalledWith('L1', { items: [{ id: 'a1', consumedAt: null }, { id: 'a2', consumedAt: null }, { id: 'a3', consumedAt: null }] })
-    expect(await screen.findByText(text.groupMarkUndone(3))).toBeTruthy()
+    await toastSays(text.groupMarkUndone(3))
     await waitFor(() => expect(document.querySelector('.q-live')!.textContent).toBe(text.groupMarkUndone(3)))
   })
 
