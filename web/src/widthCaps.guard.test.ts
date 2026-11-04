@@ -110,8 +110,9 @@ describe('how that text wraps (H-021: it wraps only when it is longer than its b
   /** The text boxes of the entry, plus the browser's centred line that keeps its measure. */
   const PRETTY: readonly (readonly [string, string])[] = [...NO_CAP, ['components/quantum/VaultBrowser/VaultBrowser.css', '.q-vb-empty-line']]
 
+  // Through `--q-text-wrap`, which WebKit alone turns to `wrap` (BL-161, textWrap.guard.test.ts): `pretty` is still the value everywhere else.
   it.each(PRETTY)('%s: %s wraps with text-wrap: pretty', (file, selector) => {
-    expect(declares(css(file), selector, 'text-wrap', /pretty/), `${selector} in ${file}`).toBe(true)
+    expect(declares(css(file), selector, 'text-wrap', /var\(--q-text-wrap, pretty\)/), `${selector} in ${file}`).toBe(true)
   })
 
   // An unbreakable run (a long address in a description) would otherwise sit over the header's buttons: the entry's own test is that no header

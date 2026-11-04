@@ -120,7 +120,7 @@
   font: 400 12.5px/1.4 var(--font-sans);
   color: var(--ink2);
   white-space: normal;
-  text-wrap: pretty;
+  text-wrap: var(--q-text-wrap, pretty);
 }
 .q-about-update-notice svg {
   flex: none;
@@ -240,7 +240,7 @@
   font-size: 14px;
   line-height: 1.4;
   color: var(--ink2);
-  text-wrap: pretty;
+  text-wrap: var(--q-text-wrap, pretty);
 }
 
 /* TMDB: the whole row is the toggle. */

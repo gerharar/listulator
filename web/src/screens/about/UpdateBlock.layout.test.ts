@@ -47,7 +47,7 @@ describe('the notice row when it does not fit (design’s answer, H-017)', () =>
     const notice = rule('.q-about-update-notice')
 
     expect(notice).toMatch(/white-space:\s*normal/)
-    expect(notice).toMatch(/text-wrap:\s*pretty/)
+    expect(notice).toMatch(/text-wrap:\s*var\(--q-text-wrap, pretty\)/) // pretty, except in WebKit (BL-161)
     expect(notice).not.toMatch(/nowrap|ellipsis|overflow/)
   })
 

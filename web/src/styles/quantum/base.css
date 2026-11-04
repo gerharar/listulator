@@ -38,6 +38,15 @@ html[data-theme^="light"] {
   color-scheme: light;
 }
 
+/* Every `text-wrap: pretty` (H-021: no one-word last line) reads this, so one rule can take it away from WebKit: there it ends every line of a long text
+   50 to 60 px short of its box (BL-161, the Mac app; Chromium, so Windows, is fine). `hanging-punctuation` is how WebKit tells itself apart: only WebKit has it.
+   If Chromium ever gets it, or WebKit mends `pretty`, this needs another look (DECISIONS 2026-11-04). */
+@supports (hanging-punctuation: first) {
+  html {
+    --q-text-wrap: wrap;
+  }
+}
+
 body {
   font-family: var(--font-sans);
   /* Tabular figures keep counts, percentages and durations from jittering as they change. */

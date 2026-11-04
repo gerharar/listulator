@@ -37,7 +37,7 @@
   font-size: 15px;
   line-height: 1.4;
   color: var(--ink2);
-  text-wrap: pretty;
+  text-wrap: var(--q-text-wrap, pretty);
   /* A word that does not fit breaks rather than overlap the ✕ (H-021). */
   overflow-wrap: anywhere;
 }
@@ -240,5 +240,5 @@
   margin: 0;
   font: 400 14px/1.45 var(--font-sans);
   color: var(--ink2);
-  text-wrap: pretty;
+  text-wrap: var(--q-text-wrap, pretty);
 }

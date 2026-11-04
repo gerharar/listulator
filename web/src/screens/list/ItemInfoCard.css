@@ -19,7 +19,7 @@
   color: var(--ink);
   white-space: pre-line;
   overflow-wrap: anywhere;
-  text-wrap: pretty;
+  text-wrap: var(--q-text-wrap, pretty);
 }
 .q-info hr {
   margin: 2px 0;

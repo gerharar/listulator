@@ -44,7 +44,7 @@
   line-height: 1.4;
   color: var(--ink2);
   /* Wraps only when longer than its box, with no one-word last line; a word that does not fit breaks rather than overlap the buttons (H-021). */
-  text-wrap: pretty;
+  text-wrap: var(--q-text-wrap, pretty);
   overflow-wrap: anywhere;
 }
 

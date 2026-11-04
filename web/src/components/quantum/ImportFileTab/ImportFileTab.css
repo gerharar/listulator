@@ -40,5 +40,5 @@
 .q-import-footer {
   margin: 0;
   color: var(--ink3);
-  text-wrap: pretty;
+  text-wrap: var(--q-text-wrap, pretty);
 }
