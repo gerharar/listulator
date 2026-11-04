@@ -2,6 +2,20 @@
 
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and version numbers follow [Semantic Versioning](https://semver.org/).
 
+# [1.4.0] - 04 November 2026
+
+### New Stuff
+
+- Every group now has a box on its header that marks all group items as done (and unmarks them if they're all done already)
+	- If you have a filter on, the box only touches the items shown, not the whole group
+	- If you clicked the box accidentally, Undo will put everything back exactly as it was
+
+### Fixes
+
+- Progress bars on group headers on List pages now line up nicely
+- List descriptions can now creep closer to the right window border on Mac
+
+
 ## [1.3.0] - 01 November 2026
 
 ### New Stuff
