@@ -26,11 +26,32 @@ describe('expanded search result', () => {
     expect(band).toBe(paddingLeft + chevron + gap)
   })
 
-  it('the chevron is a filled triangle at the design’s 11px in a 12px column', () => {
+  /**
+   * Canvas H-027: the arrow is the row-fold triangle (an 8 x 8 box, ink 8 x 7 at its top) centred in the 12px column the glyph had, so no text moves (design's
+   * answer of 2026-11-06, reading A: the title and the open block stay at 30px). Vertically its middle is the title's cap middle: the column and the text
+   * block are both on the baseline, the column's bottom on it, lifted by 0.5cap - 4.5px open (ink y 0 to 7) and 0.5cap - 4px shut (turned, ink 8 tall).
+   * Written in em, with Inter's cap height 0.7275em, never the cap unit: Safari lacks it before 17.2 and the app runs on macOS 11 and later.
+   */
+  it('the arrow is a 12px column holding the drawing, with no font of its own', () => {
     const chevron = rule('.q-result .chev')
 
-    expect(chevron).toMatch(/font-size:\s*11px/)
     expect(chevron).toMatch(/width:\s*12px/)
+    expect(chevron).toMatch(/justify-content:\s*center/)
+    expect(chevron).not.toMatch(/font-size:\s*11px/)
+  })
+
+  it('the column and the text block are on the baseline together; the count column stays centred', () => {
+    expect(rule('.q-result .chev')).toMatch(/align-self:\s*baseline/)
+    expect(rule('.q-result .main')).toMatch(/align-self:\s*baseline/)
+    expect(rule('.q-result .n')).not.toMatch(/align-self:\s*baseline/)
+    expect(rule('.q-result')).toMatch(/align-items:\s*center/)
+  })
+
+  it('lifts the shut arrow by 0.5cap - 4px and the open one by 0.5cap - 4.5px, in em of the title’s 15px', () => {
+    expect(rule('.q-result .chev')).toMatch(/font-size:\s*15px/)
+    expect(rule('.q-result .chev')).toMatch(/top:\s*calc\(4px - 0\.36375em\)/)
+    expect(rule(".q-result[aria-expanded='true'] .chev")).toMatch(/top:\s*calc\(4\.5px - 0\.36375em\)/)
+    expect(css.replace(/\/\*[\s\S]*?\*\//g, '')).not.toMatch(/\b\d*\.?\d+cap\b/)
   })
 
   it('the details block shows the pointer, like the row it belongs to', () => {

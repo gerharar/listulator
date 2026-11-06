@@ -69,13 +69,17 @@ describe('the row, folded', () => {
     expect(container.querySelector('.q-hint .meta')?.textContent).not.toBe(MAIN.description)
   })
 
-  it('draws the folded ▶ and, open, the ▼, like every result row', () => {
+  it('draws the row-fold triangle, right folded and down open, like every result row (canvas H-027)', () => {
     const { container, rerender, props } = renderRow()
-    expect(container.querySelector('.chev')?.textContent).toBe('▶')
+    const svg = container.querySelector('.chev svg') as SVGElement
+    expect(container.querySelector('.chev')?.textContent).toBe('')
+    expect([svg.getAttribute('width'), svg.getAttribute('height')]).toEqual(['8', '8'])
+    expect(svg.style.transform).toBe('rotate(-90deg)')
 
     rerender(<CrossHintRow {...props} expanded />)
 
-    expect(container.querySelector('.chev')?.textContent).toBe('▼')
+    expect(container.querySelector('.chev svg')).toBe(svg)
+    expect(svg.style.transform).toBe('')
   })
 
   it('puts the curated star, then the Mega category icon, then the title, when every list is canonical', () => {

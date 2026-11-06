@@ -1,4 +1,5 @@
 import './SearchResultRow.css'
+import { Triangle } from '../Triangle/Triangle.js'
 import type { KeyboardEvent, MouseEvent } from 'react'
 import { copy } from '../../../locale/index.js'
 import type { ExpansionState } from '../SearchTab/useSourceExpansions.js'
@@ -81,9 +82,9 @@ export function SearchResultRow({
         onClick={onToggle}
         onKeyDown={onKeyDown}
       >
-        {/* The design's filled triangles (▼ open, ▶ folded); a 12px Lucide chevron drew a thin 6 x 3 px mark. */}
+        {/* The row-fold triangle (canvas H-027): right folded, turned down open; one drawing, no text glyph. */}
         <span className="chev" aria-hidden="true">
-          {expanded ? '▼' : '▶'}
+          <Triangle kind="row" direction={expanded ? 'down' : 'right'} />
         </span>
         <span className="main">
           <span className="line1">

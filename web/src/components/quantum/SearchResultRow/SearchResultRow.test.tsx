@@ -43,17 +43,20 @@ describe('SearchResultRow', () => {
     expect(screen.getByRole('button', { name: /Star Wars: Main Saga/ }).getAttribute('aria-expanded')).toBe('true')
   })
 
-  it('draws the design’s filled triangles, ▶ folded and ▼ open, not a thin icon', () => {
+  it('draws the row-fold triangle (canvas H-027): pointing right folded, down open, one element turned, no text glyph', () => {
     const { container, rerender, props } = renderRow()
     const chevron = () => container.querySelector('.chev')!
+    const svg = chevron().querySelector('svg')!
 
-    expect(chevron().textContent).toBe('▶')
-    expect(chevron().querySelector('svg')).toBeNull()
+    expect(chevron().textContent).toBe('')
+    expect([svg.getAttribute('width'), svg.getAttribute('height')]).toEqual(['8', '8'])
+    expect(svg.querySelector('path')!.getAttribute('d')).toBe('M0 0H8L4 7Z')
+    expect(svg.style.transform).toBe('rotate(-90deg)')
 
     rerender(<SearchResultRow {...props} expanded />)
 
-    expect(chevron().textContent).toBe('▼')
-    expect(chevron().querySelector('svg')).toBeNull()
+    expect(chevron().querySelector('svg')).toBe(svg)
+    expect(svg.style.transform).toBe('')
   })
 
   it('toggles from a click and from Enter or Space, as a button would', () => {

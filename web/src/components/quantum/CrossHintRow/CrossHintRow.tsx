@@ -1,4 +1,5 @@
 import './CrossHintRow.css'
+import { Triangle } from '../Triangle/Triangle.js'
 import '../SearchResultRow/SearchResultRow.css'
 import type { KeyboardEvent, MouseEvent } from 'react'
 import { Layers } from 'lucide-react'
@@ -59,7 +60,7 @@ export function CrossHintRow({ lists, categoryLabel, expanded, onToggle, onOpen 
         onKeyDown={onKeyDown}
       >
         <span className="chev" aria-hidden="true">
-          {expanded ? '▼' : '▶'}
+          <Triangle kind="row" direction={expanded ? 'down' : 'right'} />
         </span>
         <span className="main">
           <span className="line1">
