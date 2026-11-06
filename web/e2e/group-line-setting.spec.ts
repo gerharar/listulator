@@ -5,7 +5,7 @@ import { expectSixPixels, marks, settled } from './groupLineMarks.js'
 /**
  * The group triangle's line as a setting (canvas H-022, owner 2026-10-28, 38.8), in a real browser: Settings → Screen has the box "Mark open and
  * closed groups"; ticking it draws the line on every group head of the lists and the Preview that are already open, at once, with no reload,
- * 6px from the ink as `group-line.spec.ts` measures it; unticking returns today's glyph; the choice survives a restart (a reload here; the desktop
+ * 6px from the ink as `group-line.spec.ts` measures it; unticking takes the line away and leaves the triangle (H-027: it is drawn either way); the choice survives a restart (a reload here; the desktop
  * keeps it in `preferences.json`). Real writes on the dev server, removed in a `finally`.
  */
 async function makeList(request: APIRequestContext, title: string, groups = 2, perGroup = 3) {
@@ -40,10 +40,11 @@ async function closeSettings(page: Page) {
   await settled(page)
 }
 
-const glyphs = (page: Page, head: string) => page.locator(`${head} .q-chev`)
-const lines = (page: Page, head: string) => page.locator(`${head} .q-chev-line`)
+/** H-027: the triangle is drawn with the setting off too; the setting adds only the line. */
+const glyphs = (page: Page, head: string) => page.locator(`${head} .q-chev svg.q-chev-tri`)
+const lines = (page: Page, head: string) => page.locator(`${head} .q-chev-rule`)
 
-test('ticking the box in Settings draws the line on the open list at once, and unticking returns the glyph', async ({ page }) => {
+test('ticking the box in Settings adds the line on the open list at once, and unticking takes it away', async ({ page }) => {
   const title = `e2e group-line-setting list ${Date.now()}`
   const id = await makeList(page.request, title)
 
@@ -164,7 +165,7 @@ test('on a long list the heads in view follow the box, and so do the ones scroll
     await settled(page)
     const atEnd = await marks(page, '.q-group')
     expect(atEnd.length).toBeGreaterThan(0)
-    expect(await glyphs(page, '.q-group').count()).toBe(0)
+    expect(await lines(page, '.q-group').count()).toBe(atEnd.length)
     expectSixPixels(atEnd, atEnd.map((mark) => mark.open))
   } finally {
     await page.request.delete(`/api/lists/${id}`)

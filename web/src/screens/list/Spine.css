@@ -42,8 +42,6 @@
 .q-group.is-target { background: linear-gradient(var(--hover), var(--hover)) var(--card); }
 .q-group.complete::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: var(--ink2); }
 .q-group .q-handle { height: 26px; }
-.q-chev { flex: none; width: 20px; text-align: center; font: 500 15px/1 var(--font-sans); color: var(--ink2); transition: transform 140ms ease; }
-.q-group[aria-expanded=false] .q-chev { transform: rotate(-90deg); }
 .q-group .name { flex: 0 1 auto; min-width: 0; display: flex; align-items: baseline; gap: 7px; }
 .q-group .name.editing { flex: 1; }
 .q-group-fill { flex: 1; min-width: 0; }

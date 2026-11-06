@@ -28,14 +28,15 @@ async function openList(page: Page, title: string) {
   await settled(page)
 }
 
-test('off by default: a group head is the glyph, no drawing, no line', async ({ page }) => {
+test('off by default: a group head is the drawn triangle, no line', async ({ page }) => {
   const title = `e2e group-line off ${Date.now()}`
   const id = await makeList(page.request, title)
 
   try {
     await openList(page, title)
-    await expect(page.locator('.q-group .q-chev')).toHaveText(['▼', '▼'])
-    await expect(page.locator('.q-chev-line, .q-chev-tri, .q-chev-rule')).toHaveCount(0)
+    await expect(page.locator('.q-group .q-chev')).toHaveText(['', ''])
+    await expect(page.locator('.q-group .q-chev svg.q-chev-tri')).toHaveCount(2)
+    await expect(page.locator('.q-chev-rule')).toHaveCount(0)
   } finally {
     await page.request.delete(`/api/lists/${id}`)
   }
@@ -48,7 +49,7 @@ test('on: the line is 6px from the ink, left of ▼ open and under ▶ shut, aft
   try {
     await markOn(page)
     await openList(page, title)
-    await expect(page.locator('.q-group .q-chev')).toHaveCount(0)
+    await expect(page.locator('.q-group .q-chev-rule')).toHaveCount(2)
     expectSixPixels(await marks(page, '.q-group'), [true, true])
 
     await page.locator('.q-group', { hasText: 'Season 1' }).click()
@@ -114,7 +115,7 @@ test('the Preview’s group heads have the same line, open and shut', async ({ p
   await page.locator('.q-preview-group').first().waitFor()
   await settled(page)
 
-  await expect(page.locator('.q-preview-group .q-chev')).toHaveCount(0)
+  await expect(page.locator('.q-preview-group .q-chev-rule')).toHaveCount(2)
   expectSixPixels(await marks(page, '.q-preview-group'), [true, true])
 
   await page.locator('.q-preview-group', { hasText: 'Volume 0' }).click()

@@ -6,36 +6,40 @@ import { GroupLineProvider, GroupTriangle, groupLineThickness, useGroupLineSetti
 
 afterEach(cleanup)
 
-/** Canvas H-022: the group triangle as a drawn shape with a 1px line, behind the `markOpenGroups` preference. */
+/**
+ * Canvas H-022 and H-027: the group triangle is always the drawn 14 x 12 shape in a 20 x 20 box (never a text glyph: our fonts have no ▼, so each OS
+ * drew it from a different system font). The `markOpenGroups` preference adds only the 1px line beside it.
+ */
 describe('GroupTriangle', () => {
-  it('is today\'s glyph exactly while the preference is off (the default): one ▼ in `.q-chev`, no drawing, no line', () => {
+  function expectDrawn(container: HTMLElement) {
+    const box = container.querySelector('.q-chev')!
+    expect(box.tagName).toBe('SPAN')
+    expect(box.getAttribute('aria-hidden')).toBe('true')
+    expect(box.textContent).toBe('')
+    const svg = box.querySelector('svg.q-chev-tri')!
+    expect(svg.getAttribute('width')).toBe('14')
+    expect(svg.getAttribute('height')).toBe('12')
+    expect(svg.querySelector('path')!.getAttribute('d')).toBe('M0 0H14L7 12Z')
+    expect(svg.querySelector('path')!.getAttribute('fill')).toBe('currentColor')
+    expect(container.querySelector('.q-chev-line')).toBeNull()
+  }
+
+  it('draws the 14 x 12 triangle and no glyph while the preference is off (the default), with no line', () => {
     const { container } = render(<GroupTriangle />)
 
-    const chev = container.querySelector('.q-chev')!
-    expect(chev.tagName).toBe('SPAN')
-    expect(chev.textContent).toBe('▼')
-    expect(chev.getAttribute('aria-hidden')).toBe('true')
-    expect(container.querySelector('svg')).toBeNull()
+    expectDrawn(container)
     expect(container.querySelector('.q-chev-rule')).toBeNull()
   })
 
-  it('draws the 14 x 12 triangle and the line, and no glyph, when the preference is on', () => {
+  it('draws the same triangle in the same box when the preference is on, and adds the line', () => {
     const { container } = render(
       <GroupLineProvider on>
         <GroupTriangle />
       </GroupLineProvider>,
     )
 
-    const root = container.querySelector('.q-chev-line')!
-    expect(root.getAttribute('aria-hidden')).toBe('true')
-    expect(root.textContent).toBe('')
-    expect(container.querySelector('.q-chev')).toBeNull()
-    const svg = root.querySelector('svg.q-chev-tri')!
-    expect(svg.getAttribute('width')).toBe('14')
-    expect(svg.getAttribute('height')).toBe('12')
-    expect(svg.querySelector('path')!.getAttribute('d')).toBe('M0 0H14L7 12Z')
-    expect(svg.querySelector('path')!.getAttribute('fill')).toBe('currentColor')
-    expect(root.querySelector('.q-chev-rule')).not.toBeNull()
+    expectDrawn(container)
+    expect(container.querySelector('.q-chev-rule')).not.toBeNull()
   })
 
   it('is off for a provider that says off', () => {
@@ -45,8 +49,8 @@ describe('GroupTriangle', () => {
       </GroupLineProvider>,
     )
 
-    expect(container.querySelector('.q-chev')!.textContent).toBe('▼')
-    expect(container.querySelector('svg')).toBeNull()
+    expectDrawn(container)
+    expect(container.querySelector('.q-chev-rule')).toBeNull()
   })
 })
 
@@ -69,7 +73,7 @@ describe('GroupLineProvider as a setting', () => {
     return { data, store }
   }
 
-  it('starts from `on`, and setOn redraws the triangle at once and persists the choice under markOpenGroups', async () => {
+  it('starts from `on`, and setOn adds or removes only the line at once, keeping the same triangle, and persists the choice under markOpenGroups', async () => {
     const { data, store } = fakeStore()
     const { container } = render(
       <GroupLineProvider on={false} store={store}>
@@ -77,18 +81,20 @@ describe('GroupLineProvider as a setting', () => {
         <GroupTriangle />
       </GroupLineProvider>,
     )
-    expect(container.querySelector('.q-chev')).not.toBeNull()
-    expect(container.querySelector('.q-chev-line')).toBeNull()
+    const triangle = container.querySelector('svg.q-chev-tri')
+    expect(triangle).not.toBeNull()
+    expect(container.querySelector('.q-chev-rule')).toBeNull()
 
     fireEvent.click(screen.getByRole('button', { name: 'off' }))
 
-    expect(container.querySelector('.q-chev-line')).not.toBeNull()
-    expect(container.querySelector('.q-chev')).toBeNull()
+    expect(container.querySelector('.q-chev-rule')).not.toBeNull()
+    expect(container.querySelector('svg.q-chev-tri')).toBe(triangle)
     await waitFor(() => expect(data.get('markOpenGroups')).toBe('true'))
 
     fireEvent.click(screen.getByRole('button', { name: 'on' }))
 
-    expect(container.querySelector('.q-chev')).not.toBeNull()
+    expect(container.querySelector('.q-chev-rule')).toBeNull()
+    expect(container.querySelector('svg.q-chev-tri')).toBe(triangle)
     await waitFor(() => expect(data.get('markOpenGroups')).toBe('false'))
   })
 
@@ -99,11 +105,11 @@ describe('GroupLineProvider as a setting', () => {
         <GroupTriangle />
       </GroupLineProvider>,
     )
-    expect(container.querySelector('.q-chev-line')).not.toBeNull()
+    expect(container.querySelector('.q-chev-rule')).not.toBeNull()
 
     fireEvent.click(screen.getByRole('button', { name: 'on' }))
 
-    expect(container.querySelector('.q-chev')).not.toBeNull()
+    expect(container.querySelector('.q-chev-rule')).toBeNull()
   })
 
   it('outside any provider: off, and a setOn that does nothing', () => {
@@ -148,7 +154,7 @@ describe('groupLineThickness', () => {
 
 describe('the line follows the screen scale', () => {
   afterEach(() => vi.unstubAllGlobals())
-  const line = (container: HTMLElement) => container.querySelector<HTMLElement>('.q-chev-line')!
+  const line = (container: HTMLElement) => container.querySelector<HTMLElement>('.q-chev')!
 
   it('hands the thickness to every drawn head as --group-line, from the screen scale read when it is drawn', () => {
     vi.stubGlobal('devicePixelRatio', 1.25)

@@ -116,21 +116,24 @@ describe('PreviewLayer', () => {
     expect(counts).toEqual(['2 items', '1 item'])
   })
 
-  it('draws the group toggle with the list screen’s full-size ▼, open and folded alike (folding turns it, in CSS)', async () => {
+  it('draws the group toggle as the list screen’s 14 x 12 triangle, open and folded alike (folding turns it, in CSS)', async () => {
     vi.mocked(api.preview).mockResolvedValue(EXPANSION)
     renderLayer()
     await screen.findByText('Glorious Purpose')
-    const glyph = () => document.querySelector('.q-preview-group .q-chev')!.textContent
+    const triangle = () => document.querySelector('.q-preview-group .q-chev')!
+    const drawn = triangle().querySelector('svg.q-chev-tri')
 
-    expect(glyph()).toBe('▼')
+    expect(triangle().textContent).toBe('')
+    expect([drawn?.getAttribute('width'), drawn?.getAttribute('height')]).toEqual(['14', '12'])
 
     fireEvent.click(screen.getByRole('button', { name: 'Collapse Season 1' }))
 
     expect(screen.getByRole('button', { name: 'Expand Season 1' }).getAttribute('aria-expanded')).toBe('false')
-    expect(glyph()).toBe('▼')
+    expect(triangle().textContent).toBe('')
+    expect(triangle().querySelector('svg.q-chev-tri')).toBe(drawn)
   })
 
-  it('draws the triangle and its line on the group head while `markOpenGroups` is on (H-022)', async () => {
+  it('adds the line to the group head’s triangle while `markOpenGroups` is on (H-022)', async () => {
     vi.mocked(api.preview).mockResolvedValue(EXPANSION)
     render(
       <GroupLineProvider on>
@@ -143,8 +146,7 @@ describe('PreviewLayer', () => {
     )
     await screen.findByText('Glorious Purpose')
 
-    expect(document.querySelector('.q-preview-group .q-chev')).toBeNull()
-    expect(document.querySelectorAll('.q-preview-group .q-chev-line svg.q-chev-tri')).toHaveLength(1)
+    expect(document.querySelectorAll('.q-preview-group .q-chev svg.q-chev-tri')).toHaveLength(1)
     expect(document.querySelectorAll('.q-preview-group .q-chev-rule')).toHaveLength(1)
   })
 

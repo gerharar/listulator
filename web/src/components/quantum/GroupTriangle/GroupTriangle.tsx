@@ -1,4 +1,5 @@
 import { createContext, useCallback, useContext, useMemo, useState, type CSSProperties, type ReactNode } from 'react'
+import { Triangle } from '../Triangle/Triangle.js'
 import { useDevicePixelRatio } from '../../../lib/useDevicePixelRatio.js'
 import type { PreferencesStore } from '../../../lib/preferences/store.js'
 import { setMarkOpenGroups } from '../../../lib/preferences/groupLine.js'
@@ -54,27 +55,17 @@ export function useGroupLineSetting(): GroupLineValue {
 }
 
 /**
- * The triangle at the start of a group head, in a list and in the Preview (canvas H-022). Off (the default) it is the font glyph `.q-chev`
- * as it always was, turned a quarter by its own stylesheets. On, it is a 14 x 12 drawing with a 1px line beside it, both set by the head's
- * `aria-expanded`: a shut group shows ▶ over a line, an open one a line left of ▼, each exactly 6px from the ink. A font glyph has fractional
- * edges that differ by font and platform, so the line could not sit a fixed distance from it; the drawing's edges are whole pixels.
+ * The triangle at the start of a group head, in a list and in the Preview (canvas H-022, H-027): always the drawn 14 x 12 shape in a 20 x 20 box, never
+ * a text glyph (our fonts have no ▼, so each OS drew it from a different system font). The head's `aria-expanded` turns it a quarter when shut, in CSS.
+ * With the `markOpenGroups` preference on, the same box also holds a 1px line, exactly 6px from the ink; off, the preference adds nothing else.
  */
 export function GroupTriangle() {
   const { on: line, thickness } = useGroupLineSetting()
-  if (!line) {
-    return (
-      <span className="q-chev" aria-hidden="true">
-        ▼
-      </span>
-    )
-  }
 
   return (
-    <span className="q-chev-line" aria-hidden="true" style={{ '--group-line': `${thickness}px` } as CSSProperties}>
-      <svg className="q-chev-tri" width="14" height="12" viewBox="0 0 14 12" focusable="false">
-        <path d="M0 0H14L7 12Z" fill="currentColor" />
-      </svg>
-      <span className="q-chev-rule" />
+    <span className="q-chev" aria-hidden="true" style={{ '--group-line': `${thickness}px` } as CSSProperties}>
+      <Triangle kind="section" className="q-chev-tri" />
+      {line && <span className="q-chev-rule" />}
     </span>
   )
 }

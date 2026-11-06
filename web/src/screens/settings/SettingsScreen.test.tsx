@@ -283,14 +283,15 @@ describe('SettingsScreen: Mark open and closed groups (H-022)', () => {
     const boxes = screen.getAllByRole('checkbox').map((entry) => entry.closest('label')?.textContent)
     expect(boxes).toEqual([en.quantum.settings.reduceMotion, label, en.quantum.settings.showTimeLeft])
     expect(box().checked).toBe(false)
-    expect(head().querySelector('.q-chev')).not.toBeNull()
+    expect(head().querySelector('.q-chev svg.q-chev-tri')).not.toBeNull()
+    expect(head().querySelector('.q-chev-rule')).toBeNull()
   })
 
   it('starts ticked when the setting is on, and the group heads draw the line', () => {
     renderSettings({ markOpenGroups: true })
 
     expect(box().checked).toBe(true)
-    expect(head().querySelector('.q-chev-line')).not.toBeNull()
+    expect(head().querySelector('.q-chev-rule')).not.toBeNull()
   })
 
   it('ticking turns the lines on at once and persists a yes; unticking turns them off and persists a no', async () => {
@@ -299,13 +300,14 @@ describe('SettingsScreen: Mark open and closed groups (H-022)', () => {
     act(() => box().click())
 
     expect(box().checked).toBe(true)
-    expect(head().querySelector('.q-chev-line')).not.toBeNull()
+    expect(head().querySelector('.q-chev-rule')).not.toBeNull()
     await waitFor(() => expect(store.data.get('markOpenGroups')).toBe('true'))
 
     act(() => box().click())
 
     expect(box().checked).toBe(false)
-    expect(head().querySelector('.q-chev')).not.toBeNull()
+    expect(head().querySelector('.q-chev svg.q-chev-tri')).not.toBeNull()
+    expect(head().querySelector('.q-chev-rule')).toBeNull()
     await waitFor(() => expect(store.data.get('markOpenGroups')).toBe('false'))
   })
 

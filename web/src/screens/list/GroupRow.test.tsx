@@ -170,21 +170,24 @@ describe('GroupRow', () => {
     expect(document.querySelector('.q-group-fill')).toBeNull()
   })
 
-  it('has the prototype’s full-size chevron, not the small one (F11)', () => {
+  it('draws the 14 x 12 triangle (canvas H-027), not a text glyph, with the setting off', () => {
     renderRow()
 
-    expect(document.querySelector('.q-chev')!.textContent!.trim()).toBe('▼')
+    expect(document.querySelector('.q-chev')!.textContent).toBe('')
+    const svg = document.querySelector('.q-group .q-chev svg.q-chev-tri')!
+    expect([svg.getAttribute('width'), svg.getAttribute('height')]).toEqual(['14', '12'])
+    expect(document.querySelector('.q-group .q-chev-rule')).toBeNull()
   })
 
-  it('draws the triangle and its line instead of the glyph while `markOpenGroups` is on (H-022)', () => {
+  it('adds the line to the same triangle while `markOpenGroups` is on (H-022)', () => {
     render(
       <GroupLineProvider on>
         <GroupRow block={BLOCK} collapsed={false} focusable={false} onToggle={vi.fn()} onFocus={vi.fn()} />
       </GroupLineProvider>,
     )
 
-    expect(document.querySelector('.q-chev')).toBeNull()
-    expect(document.querySelector('.q-group .q-chev-line svg.q-chev-tri')).not.toBeNull()
+    expect(document.querySelector('.q-chev')!.textContent).toBe('')
+    expect(document.querySelector('.q-group .q-chev svg.q-chev-tri')).not.toBeNull()
     expect(document.querySelector('.q-group .q-chev-rule')).not.toBeNull()
   })
 
