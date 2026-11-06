@@ -52,5 +52,6 @@ test('its ink’s middle is within 0.5px of the label’s cap middle, open and s
   await expect(page.locator('.q-about-toggle')).toHaveAttribute('aria-expanded', 'false')
   await expect(page.locator('.q-about-attribution')).toHaveCount(0)
   await page.waitForFunction(() => document.getAnimations().length === 0)
-  expect(Math.abs((await readInk(page, spec)).delta), 'shut').toBeLessThanOrEqual(0.5)
+  // Shut, 0.65 (design's answer of 2026-11-06): the same 4.5px lift in both states, so the box does not move when the arrow turns.
+  expect(Math.abs((await readInk(page, spec)).delta), 'shut').toBeLessThanOrEqual(0.65)
 })

@@ -47,10 +47,11 @@ describe('expanded search result', () => {
     expect(rule('.q-result')).toMatch(/align-items:\s*center/)
   })
 
-  it('lifts the shut arrow by 0.5cap - 4px and the open one by 0.5cap - 4.5px, in em of the title’s 15px', () => {
+  it('lifts the arrow by 0.5cap - 4.5px in both states (the box does not move when it turns), in em of the title’s 15px', () => {
     expect(rule('.q-result .chev')).toMatch(/font-size:\s*15px/)
-    expect(rule('.q-result .chev')).toMatch(/top:\s*calc\(4px - 0\.36375em\)/)
-    expect(rule(".q-result[aria-expanded='true'] .chev")).toMatch(/top:\s*calc\(4\.5px - 0\.36375em\)/)
+    expect(rule('.q-result .chev')).toMatch(/top:\s*calc\(4\.5px - 0\.36375em\)/)
+    expect(rule(".q-result[aria-expanded='true'] .chev")).toMatch(/color:\s*var\(--ink\)/)
+    expect(rule(".q-result[aria-expanded='true'] .chev")).not.toMatch(/top:/)
     expect(css.replace(/\/\*[\s\S]*?\*\//g, '')).not.toMatch(/\b\d*\.?\d+cap\b/)
   })
 

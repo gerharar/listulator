@@ -11,9 +11,9 @@
   background: var(--hover);
 }
 /* The row-fold triangle (Triangle.tsx, canvas H-027) centred in the 12px column the glyph had, so the title stays at 30px. The column and the text block are
-   on the baseline together (the count column stays centred), the column's bottom on it, and lifted so the ink's middle is the title's cap middle:
-   0.5cap - 4px shut (turned right, the ink 8 tall), 0.5cap - 4.5px open (turned down, ink y 0 to 7 of the 8 x 8 box). In em of the title's 15px,
-   Inter's cap height being 0.7275em; never the cap unit, which Safari lacks before 17.2 (DECISIONS 2026-11-06). */
+   on the baseline together (the count column stays centred), the column's bottom on it, and lifted by 0.5cap - 4.5px in BOTH states so the box does not move
+   when the arrow turns (design's answer of 2026-11-06: one number cannot be within 0.5px shut in both engines, so the shut arrow's tolerance is 0.65). In em of
+   the title's 15px, Inter's cap height being 0.7275em; never the cap unit, which Safari lacks before 17.2 (DECISIONS 2026-11-06). */
 .q-result .chev {
   flex: none;
   display: flex;
@@ -21,7 +21,7 @@
   align-self: baseline;
   width: 12px;
   position: relative;
-  top: calc(4px - 0.36375em);
+  top: calc(4.5px - 0.36375em);
   font-size: 15px;
   color: var(--ink3);
 }
@@ -31,7 +31,6 @@
   background: var(--hover);
 }
 .q-result[aria-expanded='true'] .chev {
-  top: calc(4.5px - 0.36375em);
   color: var(--ink);
 }
 .q-result .main {

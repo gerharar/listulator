@@ -24,9 +24,9 @@ describe('the TMDB row’s arrow stylesheet', () => {
     expect(column).not.toMatch(/rotate/)
   })
 
-  it('lifts the open arrow by 0.5cap - 4.5px and the shut one by 0.5cap - 4px, in em (0.36375em is half of Inter’s 0.7275)', () => {
-    expect(rule('.q-about-chevron')).toMatch(/top:\s*calc\(4px - 0\.36375em\)/)
-    expect(rule('.q-about-tmdb.open .q-about-chevron')).toMatch(/top:\s*calc\(4\.5px - 0\.36375em\)/)
+  it('lifts the arrow by 0.5cap - 4.5px in both states, so the box does not move when it turns, in em (0.36375em is half of Inter’s 0.7275)', () => {
+    expect(rule('.q-about-chevron')).toMatch(/top:\s*calc\(4\.5px - 0\.36375em\)/)
+    expect(rule('.q-about-tmdb.open .q-about-chevron')).toBe('')
     expect(css.replace(/\/\*[\s\S]*?\*\//g, '')).not.toMatch(/\b\d*\.?\d+cap\b/)
   })
 
