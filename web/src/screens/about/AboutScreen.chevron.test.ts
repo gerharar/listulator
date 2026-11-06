@@ -3,34 +3,35 @@ import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 
 /**
- * The TMDB row's expand arrow was the small ▸ (about 3 px) while the search results draw a ▶ about twice that
- * (owner report, 2026-10-01: "should be the same size as this control on search list results"). The two are one
- * control, so they share a size; jsdom cannot lay anything out, so this reads both stylesheets.
+ * The TMDB row's arrow (canvas H-027): the row-fold triangle, centred in a 12px column (the glyph's old column, so no text moves), its middle on the
+ * middle of the label's cap height. The label is Inter, whose cap height is 0.7275em; the offset is written in em, never the `cap` unit, which
+ * Safari lacks before 17.2 while the app runs on macOS 11 and later (DECISIONS 2026-11-06). The triangle sits in a flex row aligned on the baseline,
+ * with its box's bottom on it, so it is lifted by (cap height - ink height) / 2 plus the box's spare pixel: open (turned down, ink y 0 to 7 of 8)
+ * `0.5cap - 4.5px`, shut (turned right, ink 8 tall) `0.5cap - 4px`. jsdom cannot lay anything out, so this reads the CSS.
  */
-const read = (...path: string[]) => readFileSync(join(import.meta.dirname, ...path), 'utf8')
-const about = read('AboutScreen.css')
-const search = read('..', '..', 'components', 'quantum', 'SearchResultRow', 'SearchResultRow.css')
-
-const rule = (css: string, selector: string): string => {
+const css = readFileSync(join(import.meta.dirname, 'AboutScreen.css'), 'utf8')
+const rule = (selector: string): string => {
   const escaped = selector.replace(/[.[\]()]/g, '\\$&')
   return new RegExp(`(?:^|\\}|\\*\\/)\\s*${escaped}\\s*\\{([^}]*)\\}`).exec(css)?.[1] ?? ''
 }
-const declared = (block: string, property: string): string | undefined =>
-  new RegExp(`(?:^|[;\\s])${property}:\\s*([^;]+);`).exec(block)?.[1]?.trim()
 
-describe('the TMDB row’s arrow and the search result row’s arrow', () => {
-  const aboutArrow = rule(about, '.q-about-chevron')
-  const searchArrow = rule(search, '.q-result .chev')
+describe('the TMDB row’s arrow stylesheet', () => {
+  it('keeps the 12px column the glyph had, and holds no font of its own', () => {
+    const column = rule('.q-about-chevron')
 
-  it('are the same size', () => {
-    expect(declared(aboutArrow, 'font-size')).toBe('11px')
-    expect(declared(aboutArrow, 'font-size')).toBe(declared(searchArrow, 'font-size'))
+    expect(column).toMatch(/width:\s*12px/)
+    expect(column).not.toMatch(/font-size:\s*11px/)
+    expect(column).not.toMatch(/rotate/)
   })
 
-  it('sit in the same 12px column, centred, so the glyph is drawn the same way', () => {
-    expect(declared(aboutArrow, 'width')).toBe('12px')
-    expect(declared(aboutArrow, 'width')).toBe(declared(searchArrow, 'width'))
-    expect(declared(aboutArrow, 'text-align')).toBe('center')
-    expect(declared(aboutArrow, 'line-height')).toBe(declared(searchArrow, 'line-height'))
+  it('lifts the open arrow by 0.5cap - 4.5px and the shut one by 0.5cap - 4px, in em (0.36375em is half of Inter’s 0.7275)', () => {
+    expect(rule('.q-about-chevron')).toMatch(/top:\s*calc\(4px - 0\.36375em\)/)
+    expect(rule('.q-about-tmdb.open .q-about-chevron')).toMatch(/top:\s*calc\(4\.5px - 0\.36375em\)/)
+    expect(css.replace(/\/\*[\s\S]*?\*\//g, '')).not.toMatch(/\b\d*\.?\d+cap\b/)
+  })
+
+  it('turns the triangle in 160ms, and not at all when the system asks for less motion', () => {
+    expect(rule('.q-about-chevron .q-triangle')).toMatch(/transition:\s*transform 160ms/)
+    expect(css).toMatch(/\[data-reduced\] \.q-about-chevron \.q-triangle\s*\{[^}]*transition:\s*none/)
   })
 })

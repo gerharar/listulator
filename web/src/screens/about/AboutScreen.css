@@ -267,19 +267,25 @@
 }
 
 .q-about-chevron {
-  /* The search results' expand arrow (SearchResultRow.css `.q-result .chev`): 11px in a 12px column. */
+  /* The row-fold triangle (Triangle.tsx, canvas H-027), centred in the 12px column the ▶ glyph had, so no text moves. The toggle is an inline flex row
+     aligned on the baseline; this column's bottom sits on it and is lifted so the ink's middle is the label's cap middle: 0.5cap - 4px shut (turned right,
+     the ink 8 tall), 0.5cap - 4.5px open (turned down, ink y 0 to 7 of the 8 x 8 box). Written in em, never the `cap` unit: Inter's cap height is 0.7275em,
+     and Safari lacks `cap` before 17.2 while the app runs on macOS 11 and later (DECISIONS 2026-11-06). */
   flex: none;
+  display: flex;
+  justify-content: center;
   width: 12px;
-  text-align: center;
-  font-size: 11px;
-  line-height: 1;
+  position: relative;
+  top: calc(4px - 0.36375em);
   color: var(--ink3);
-  transition: transform 160ms ease;
 }
 .q-about-tmdb.open .q-about-chevron {
-  transform: rotate(90deg);
+  top: calc(4.5px - 0.36375em);
 }
-[data-reduced] .q-about-chevron {
+.q-about-chevron .q-triangle {
+  transition: transform 160ms ease;
+}
+[data-reduced] .q-about-chevron .q-triangle {
   transition: none;
 }
 

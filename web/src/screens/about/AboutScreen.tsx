@@ -14,6 +14,7 @@ import { useLiveRegion } from '../../components/quantum/LiveRegion/LiveRegion.js
 import { Tip } from '../../components/quantum/Tooltip/Tip.js'
 import { ABOUT_SOURCES, AUTHOR, LICENSING_URL, TMDB_NOTICE, type AboutSource } from '../../lib/dataSources.js'
 import tmdbLogo from './tmdb-long.svg'
+import { Triangle } from '../../components/quantum/Triangle/Triangle.js'
 import { UpdateBlock, updateNoticeText, updateStatusText, updateVersionText } from './UpdateBlock.js'
 
 /**
@@ -143,9 +144,9 @@ function TmdbRow({ source }: { source: AboutSource }) {
         aria-expanded={open}
         text={open ? text.hideAttribution : text.showAttribution}
       >
-        {/* The same ▶ as the search results' expand arrow, turned a quarter when open (a ▸ here drew a 3 px mark). */}
+        {/* The row-fold triangle (canvas H-027): down while the notice is open, turned right when it is shut. */}
         <span className="q-about-chevron" aria-hidden="true">
-          ▶
+          <Triangle kind="row" direction={open ? 'down' : 'right'} />
         </span>
         {source.name}
       </Tip>

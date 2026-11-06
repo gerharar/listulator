@@ -176,13 +176,34 @@ describe('AboutScreen', () => {
     })
   })
 
-  describe('the TMDB row’s expand arrow', () => {
-    it('is the same ▶ the search results use, not the small ▸', () => {
+  describe('the TMDB row’s expand arrow (canvas H-027)', () => {
+    const arrow = () => document.querySelector('.q-about-chevron')!
+
+    it('is the drawn row-fold triangle in its 8 x 8 box, not a text glyph, hidden from assistive technology', () => {
       renderAbout()
 
-      const chevron = document.querySelector('.q-about-chevron')!
-      expect(chevron.textContent!.trim()).toBe('▶')
-      expect(chevron.getAttribute('aria-hidden')).toBe('true')
+      expect(arrow().textContent).toBe('')
+      expect(arrow().getAttribute('aria-hidden')).toBe('true')
+      const svg = arrow().querySelector('svg')!
+      expect([svg.getAttribute('width'), svg.getAttribute('height')]).toEqual(['8', '8'])
+      expect(svg.querySelector('path')!.getAttribute('d')).toBe('M0 0H8L4 7Z')
+    })
+
+    it('points down while the notice is open (from the start) and right when it is shut: one element turned', () => {
+      renderAbout()
+      const toggle = screen.getByRole('button', { name: /TMDB/ })
+      const svg = arrow().querySelector('svg')!
+      expect(svg.style.transform).toBe('')
+
+      fireEvent.click(toggle)
+
+      expect(toggle.getAttribute('aria-expanded')).toBe('false')
+      expect(arrow().querySelector('svg')).toBe(svg)
+      expect(svg.style.transform).toBe('rotate(-90deg)')
+
+      fireEvent.click(toggle)
+
+      expect(svg.style.transform).toBe('')
     })
   })
 
@@ -191,7 +212,7 @@ describe('AboutScreen', () => {
       renderAbout()
       const rows = screen.getAllByRole('listitem')
 
-      expect(rows.map((row) => row.querySelector('.q-about-source-name')?.textContent?.replace('▶', '').trim())).toEqual([
+      expect(rows.map((row) => row.querySelector('.q-about-source-name')?.textContent?.trim())).toEqual([
         'IGDB',
         'MusicBrainz',
         'Open Library',
