@@ -131,7 +131,7 @@ export interface InkSpec {
   row: string
   /** The triangle, inside the row. */
   triangle: string
-  /** The text beside it, inside the row: its first letter is the ruler. */
+  /** The text beside it, inside the row (`:self` when the row's own text is the label): its first letter is the ruler. */
   text: string
   /** Inside the row, an element whose own text is skipped (the triangle's box, when it has some). */
   skip?: string
@@ -153,7 +153,7 @@ export async function readInk(page: Page, spec: InkSpec): Promise<InkReading> {
     (node, s) => {
       const origin = node.getBoundingClientRect()
       const tri = node.querySelector(s.triangle)!.getBoundingClientRect()
-      const holder = node.querySelector(s.text)!
+      const holder = s.text === ':self' ? node : node.querySelector(s.text)!
       const skip = s.skip ? node.querySelector(s.skip) : null
       const walker = document.createTreeWalker(holder, NodeFilter.SHOW_TEXT)
       let text: Text | null = null

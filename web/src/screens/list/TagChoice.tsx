@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useId, useRef, useState, type CSSProperties } from 'react'
-import { Check, ChevronDown } from 'lucide-react'
+import { Check } from 'lucide-react'
+import { Triangle } from '../../components/quantum/Triangle/Triangle.js'
 import { compareShown, copy } from '../../locale/index.js'
 import { own } from '../../../../server/src/catalog/own.js'
 import { useDismissOnPress } from './dismissOnPress.js'
@@ -107,7 +108,7 @@ export function TagChoice({ field, current, onChange }: TagChoiceProps) {
         onBlur={() => setOpen(false)}
       >
         <span className={picked.length > 0 ? 'q-tagchoice-value' : 'q-tagchoice-value empty'}>{shown}</span>
-        <ChevronDown width={14} height={14} strokeWidth={2} aria-hidden="true" />
+        <Triangle kind="picker" />
       </button>
       {open && (
         <ul

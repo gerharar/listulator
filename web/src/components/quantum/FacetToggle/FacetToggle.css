@@ -69,6 +69,10 @@
 }
 .q-facet-summary svg {
   flex: none;
+  color: var(--ink3);
+}
+.q-facet .q-facet-summary[data-on='true'] svg {
+  color: inherit;
 }
 .q-facet .q-facet-summary[data-on='true'] {
   background: var(--accent);

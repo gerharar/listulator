@@ -85,6 +85,18 @@ describe('opening', () => {
 })
 
 describe('the list picker', () => {
+  /** Canvas H-027 (2026-11-06): "I'm tired of going through" ends in the 6 x 5 picker triangle, 9px after the label, not a stroked chevron. */
+  it('ends in the picker triangle', async () => {
+    renderSheet()
+    await screen.findByText('Next in x')
+
+    const triangle = document.querySelector('.q-tired-target svg')
+    expect(triangle).not.toBeNull()
+    expect([triangle!.getAttribute('width'), triangle!.getAttribute('height')]).toEqual(['6', '5'])
+    expect(triangle!.getAttribute('class')).toContain('q-triangle')
+    expect(triangle!.querySelector('path')!.getAttribute('d')).toBe('M0 0H6L3 5Z')
+  })
+
   it('offers every list, marks the current one, and asks again for the one chosen', async () => {
     renderSheet()
     await screen.findByText('Next in x')

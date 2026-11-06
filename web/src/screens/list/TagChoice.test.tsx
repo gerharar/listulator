@@ -16,6 +16,19 @@ const field: Extract<TagField, { kind: 'choice' }> = {
   flagDefs: [],
 }
 
+/** Canvas H-027 (2026-11-06): the tag choice ends in the 6 x 5 picker triangle, not a stroked chevron. */
+describe('TagChoice’s arrow', () => {
+  it('is the picker triangle', () => {
+    const { container } = render(<TagChoice field={field} current={{ main: 'Album', flags: [] }} onChange={vi.fn()} />)
+
+    const triangle = container.querySelector('.q-tagchoice svg')
+    expect(triangle).not.toBeNull()
+    expect([triangle!.getAttribute('width'), triangle!.getAttribute('height')]).toEqual(['6', '5'])
+    expect(triangle!.getAttribute('class')).toContain('q-triangle')
+    expect(triangle!.querySelector('path')!.getAttribute('d')).toBe('M0 0H6L3 5Z')
+  })
+})
+
 /** BL-152 / SR-119: the pick can be a tag a list file wrote; one named like an inherited object member is shown as written. */
 describe('TagChoice with a hostile tag', () => {
   it.each(['__proto__', 'constructor', 'toString'])('shows %s as the pick instead of failing', (tag) => {

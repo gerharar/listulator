@@ -1,6 +1,6 @@
 import './HelperSheet.css'
 import { useEffect, useState } from 'react'
-import { ChevronDown } from 'lucide-react'
+import { Triangle } from '../Triangle/Triangle.js'
 import { api, type MediaList, type MediaType } from '../../../lib/api.js'
 import { copy } from '../../../locale/index.js'
 import { Popover } from '../Popover/Popover.js'
@@ -75,7 +75,7 @@ function OpenSheet({ onClose, lists, initialTarget, onOpenList, mediaTypes }: Ti
         }}
       >
         {targetList?.title ?? t.pickList}
-        <ChevronDown width={14} height={14} strokeWidth={2} aria-hidden="true" />
+        <Triangle kind="picker" />
       </Tip>
     </>
   )

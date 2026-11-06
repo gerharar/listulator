@@ -41,6 +41,16 @@ const platformButton = () => screen.getByRole('button', { name: /^Default platfo
 const panel = () => screen.getByRole('dialog', { name: 'Choose platforms' })
 
 describe('AddItemForm — the next item’s platforms (U5)', () => {
+  it('ends in the picker triangle (canvas H-027), not a stroked chevron', () => {
+    renderForm()
+
+    const triangle = platformButton().querySelector('svg.q-add-plat-caret')
+    expect(triangle).not.toBeNull()
+    expect([triangle!.getAttribute('width'), triangle!.getAttribute('height')]).toEqual(['6', '5'])
+    expect(triangle!.getAttribute('class')).toContain('q-triangle')
+    expect(triangle!.querySelector('path')!.getAttribute('d')).toBe('M0 0H6L3 5Z')
+  })
+
   it('starts on the list’s remembered platforms, or None', () => {
     renderForm()
     expect(platformButton().textContent).toContain('None')

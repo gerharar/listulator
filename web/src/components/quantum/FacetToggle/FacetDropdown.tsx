@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { ChevronDown } from 'lucide-react'
+import { Triangle } from '../Triangle/Triangle.js'
 import { copy } from '../../../locale/index.js'
 import { Popover } from '../Popover/Popover.js'
 import { FacetToggle, type FacetOption } from './FacetToggle.js'
@@ -59,7 +59,7 @@ export function FacetDropdown({
         onClick={(event) => setAnchor(anchor ? null : event.currentTarget)}
       >
         <span className="q-facet-summary-text">{summary}</span>
-        <ChevronDown width={13} height={13} strokeWidth={2} aria-hidden="true" />
+        <Triangle kind="picker" />
       </Tip>
       <Popover open={anchor !== null} anchorEl={anchor} onDismiss={() => setAnchor(null)} width={360} side="below">
         <div className="q-pop-head">

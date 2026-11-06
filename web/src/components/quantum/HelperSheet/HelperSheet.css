@@ -17,6 +17,7 @@
   cursor: pointer;
 }
 .q-tired-target:hover { border-color: var(--rule); }
+.q-tired-target svg { color: var(--ink3); }
 
 .q-tired-picker { display: flex; flex-direction: column; gap: 8px; }
 .q-tired-picker .head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }

@@ -115,4 +115,15 @@ describe('FacetDropdown’s width (H-023)', () => {
     expect(summaryButton().querySelector('.q-facet-summary-text')!.textContent).toBe('PS4')
     expect(summaryButton().querySelector('svg')).not.toBeNull()
   })
+
+  /** Canvas H-027 (2026-11-06): the facet dropdowns' stroked chevron is the 6 x 5 picker triangle. */
+  it('shows the picker triangle, not a stroked chevron', () => {
+    renderDropdown(new Set(['ps4']))
+
+    const triangle = summaryButton().querySelector('svg')
+    expect(triangle).not.toBeNull()
+    expect([triangle!.getAttribute('width'), triangle!.getAttribute('height')]).toEqual(['6', '5'])
+    expect(triangle!.getAttribute('class')).toContain('q-triangle')
+    expect(triangle!.querySelector('path')!.getAttribute('d')).toBe('M0 0H6L3 5Z')
+  })
 })

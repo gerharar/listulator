@@ -3,7 +3,7 @@ import { durationTextProblem, parseDurationText } from '../../../../server/src/c
 import { filterYearInput, parseYearText, yearTextProblem } from '../../../../server/src/catalog/years.js'
 import './AddItemForm.css'
 import { useRef, useState, type FormEvent } from 'react'
-import { ChevronDown } from 'lucide-react'
+import { Triangle } from '../../components/quantum/Triangle/Triangle.js'
 import { copy } from '../../locale/index.js'
 import { Button } from '../../components/quantum/Button/Button.js'
 import { ErrorStrip } from '../../components/quantum/ErrorStrip/ErrorStrip.js'
@@ -225,7 +225,7 @@ export function AddItemForm({
               <span className={tags.length > 0 ? 'q-add-plat-value' : 'q-add-plat-value empty'}>
                 {tags.length > 0 ? tags.join(' · ') : tagText.none}
               </span>
-              <ChevronDown className="q-add-plat-caret" width={14} height={14} strokeWidth={2} aria-hidden="true" />
+              <Triangle kind="picker" className="q-add-plat-caret" />
             </Tip>
           </div>
         )}
