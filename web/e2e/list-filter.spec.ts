@@ -300,10 +300,12 @@ test('the platform chip opens a popover at least 240px wide with each full name 
       expect(box.height).toBeLessThan(line * 1.5)
     }
     await page.screenshot({ path: 'test-results/platform-popover.png' })
-    // The tail's fill sits exactly inside its outline (the fill is placed inside the
-    // tail, whose 9px top border it must climb back over), wherever the tail points.
+    // The tail's fill sits exactly inside its outline, wherever the tail points: both are paths of one
+    // drawing (popoverTail.ts), not two boxes that can land a device pixel apart.
     const tail = page.locator('.q-pop-tail')
-    expect(await tail.evaluate((el) => getComputedStyle(el, '::before').top)).toBe('-9px')
+    await expect(tail.locator('svg path')).toHaveCount(2)
+    await expect(tail.locator('.q-pop-tail-rim')).toHaveCount(1)
+    await expect(tail.locator('.q-pop-tail-fill')).toHaveCount(1)
     await expect(row).not.toHaveClass(/is-done/)
 
     await page.keyboard.press('Escape')

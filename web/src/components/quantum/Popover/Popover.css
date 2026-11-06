@@ -51,76 +51,45 @@
   width: 360px;
 }
 
-/* Two stacked triangles — `rule` behind, `card` in front, offset 1px so the back one reads as a 1px rim. */
-.q-pop-tail,
-.q-pop-tail::before {
-  position: absolute;
-  width: 0;
-  height: 0;
-  border-top: 9px solid transparent;
-  border-bottom: 9px solid transparent;
-}
+/* The tail is one SVG (popoverTail.ts): the `rule` triangle for the outline and the `card` one 1px further in, in one coordinate system.
+   It was two CSS triangles whose positions snapped to device pixels differently, and on a 125% display one slanted side lost its rim. The
+   span is the box floating-ui measures (9 x 18, or 18 x 9 above and below) and moves with --tail-y / --tail-x. */
 .q-pop-tail {
+  position: absolute;
+  display: block;
+  width: 9px;
+  height: 18px;
   top: var(--tail-y, 8px);
   left: -9px;
-  border-right: 9px solid var(--rule);
 }
-.q-pop-tail::before {
-  content: '';
-  /* Placed inside the tail, below its 9px top border: climb back over it so the
-     fill lines up with the outline (sharing top: var(--tail-y) set it 9px + the
-     tail's offset low, two triangles out of step). */
-  top: -9px;
-  left: 1px;
-  border-right: 9px solid var(--card);
+.q-pop-tail > svg {
+  display: block;
+  overflow: visible;
+}
+.q-pop-tail-rim {
+  fill: var(--rule);
+}
+.q-pop-tail-fill {
+  fill: var(--card);
 }
 .q-pop-tail.right {
   left: auto;
   right: -9px;
-  border-right: 0;
-  border-left: 9px solid var(--rule);
 }
-.q-pop-tail.right::before {
-  left: auto;
-  right: 1px;
-  border-right: 0;
-  border-left: 9px solid var(--card);
-}
-/* side="below": the tail on the top edge pointing up (or, flipped above, on the
-   bottom edge pointing down); --tail-x from the arrow middleware centres it on
-   the anchor. The fill again climbs 1px over the card's border. */
+/* side="below": the tail on the top edge pointing up (or, flipped above, on the bottom edge pointing down); --tail-x from the arrow
+   middleware centres it on the anchor. */
 .q-pop-tail.up,
-.q-pop-tail.up::before,
-.q-pop-tail.down,
-.q-pop-tail.down::before {
-  border-left: 9px solid transparent;
-  border-right: 9px solid transparent;
+.q-pop-tail.down {
+  width: 18px;
+  height: 9px;
+  left: var(--tail-x, 12px);
 }
 .q-pop-tail.up {
   top: -9px;
-  left: var(--tail-x, 12px);
-  border-top: 0;
-  border-bottom: 9px solid var(--rule);
-}
-.q-pop-tail.up::before {
-  top: 1px;
-  left: -9px;
-  border-top: 0;
-  border-bottom: 9px solid var(--card);
 }
 .q-pop-tail.down {
   top: auto;
   bottom: -9px;
-  left: var(--tail-x, 12px);
-  border-bottom: 0;
-  border-top: 9px solid var(--rule);
-}
-.q-pop-tail.down::before {
-  top: auto;
-  bottom: 1px;
-  left: -9px;
-  border-bottom: 0;
-  border-top: 9px solid var(--card);
 }
 
 .q-pop-head {

@@ -11,6 +11,7 @@ import {
 } from '@floating-ui/react'
 import { useId, useRef, type CSSProperties, type ReactNode } from 'react'
 import { useOverlayRegistration } from '../overlay/OverlayManagerContext.js'
+import { tailGeometry, type TailKind } from './popoverTail.js'
 
 /**
  * The six widths the design system names: skin menu, list actions, API key/order, list edit/item info, reset, item edit;
@@ -96,13 +97,14 @@ export function Popover({ open, anchorEl, onDismiss, onEscape, width, side = 'be
 
   if (!open) return null
 
-  const tailClass = placement.startsWith('left')
-    ? 'q-pop-tail right'
+  const tailKind: TailKind = placement.startsWith('left')
+    ? 'right'
     : placement.startsWith('bottom')
-      ? 'q-pop-tail up'
+      ? 'up'
       : placement.startsWith('top')
-        ? 'q-pop-tail down'
-        : 'q-pop-tail'
+        ? 'down'
+        : 'left'
+  const tail = tailGeometry(tailKind)
   const tailY = middlewareData.arrow?.y ?? 0
   const tailX = middlewareData.arrow?.x ?? 0
 
@@ -124,7 +126,12 @@ export function Popover({ open, anchorEl, onDismiss, onEscape, width, side = 'be
         role="dialog"
         aria-label={label}
       >
-        <span ref={arrowRef} className={tailClass} />
+        <span ref={arrowRef} className={tailKind === 'left' ? 'q-pop-tail' : `q-pop-tail ${tailKind}`}>
+          <svg width={tail.width} height={tail.height} aria-hidden="true" focusable="false">
+            <path className="q-pop-tail-rim" d={tail.rim} />
+            <path className="q-pop-tail-fill" d={tail.fill} />
+          </svg>
+        </span>
         <div className="q-pop-scroll">{children}</div>
       </div>
     </FloatingPortal>
