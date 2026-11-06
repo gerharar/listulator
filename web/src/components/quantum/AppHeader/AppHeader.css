@@ -36,6 +36,11 @@
 .q-skin-caret {
   flex: none;
   color: var(--ink3);
+  /* Not centred: centring put its top 29px down, a fraction of a device pixel at 125%, 150% and 175% display scales, and the top row
+     (the widest) was painted partly. 28px (the header's 14px padding, the button's 1px border, this margin) is whole at all of them;
+     skin-caret.spec.ts holds it. Change the header's padding or the button's border and this number changes with them. */
+  align-self: flex-start;
+  margin-top: 13px;
 }
 
 .q-pop-menu {
