@@ -245,7 +245,12 @@ describe('VaultBrowser', () => {
 
       expect(header('Name').getAttribute('aria-sort')).toBe('ascending')
       expect(header('Items').getAttribute('aria-sort')).toBe('none')
-      expect(header('Name').textContent).toContain('▲')
+      // Canvas H-027: the picker triangle, drawn, ascending is it turned half a turn; no text glyph in the header.
+      const arrow = header('Name').querySelector('.q-vb-arrow svg')!
+      expect([arrow.getAttribute('width'), arrow.getAttribute('height')]).toEqual(['6', '5'])
+      expect((arrow as SVGElement).style.transform).toBe('rotate(180deg)')
+      expect(header('Name').textContent).not.toMatch(/[▲▼]/)
+      expect(header('Items').querySelector('.q-vb-arrow')).toBeNull()
     })
 
     it('sorts by a header: Items largest first, then reversed', async () => {
@@ -256,12 +261,17 @@ describe('VaultBrowser', () => {
       expect(header('Items').getAttribute('aria-sort')).toBe('descending')
       // Drawn on the label's left by the CSS (a number column's header ends on its numbers' edge; measured in Playwright).
       expect(header('Items').classList.contains('number')).toBe(true)
-      expect(header('Items').querySelector('.q-vb-arrow')!.textContent).toBe('▼')
+      const arrow = header('Items').querySelector('.q-vb-arrow svg') as SVGElement
+      expect(arrow.style.transform).toBe('')
       expect(header('Name').getAttribute('aria-sort')).toBe('none')
+      expect(header('Name').querySelector('.q-vb-arrow')).toBeNull()
 
       fireEvent.click(within(header('Items')).getByRole('button'))
       expect(rowsOf().map((row) => cell(row, 'rowname').textContent)).toEqual(['movie 2', 'movie 1'])
       expect(header('Items').getAttribute('aria-sort')).toBe('ascending')
+      // The same drawing, turned.
+      expect(header('Items').querySelector('.q-vb-arrow svg')).toBe(arrow)
+      expect(arrow.style.transform).toBe('rotate(180deg)')
     })
 
     it('sorts Status complete first, and the arrow of a text column is on the right', async () => {
@@ -270,7 +280,10 @@ describe('VaultBrowser', () => {
       fireEvent.click(within(header('Status')).getByRole('button'))
 
       expect(rowsOf().map((row) => cell(row, 'rowname').textContent)).toEqual(['movie 1', 'movie 2'])
-      expect(header('Status').textContent).toBe('Status▲')
+      expect(header('Status').textContent).toBe('Status')
+      const label = header('Status').querySelector('.q-vb-collabel')!
+      const arrow = header('Status').querySelector('.q-vb-arrow svg')!
+      expect(label.compareDocumentPosition(arrow) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
     })
 
     it('opens the List Preview of a row on a click, with the list\'s own source and no options', async () => {

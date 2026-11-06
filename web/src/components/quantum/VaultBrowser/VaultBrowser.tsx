@@ -9,6 +9,7 @@ import { Button, IconButton } from '../Button/Button.js'
 import { HeaderPlate } from '../HeaderPlate/HeaderPlate.js'
 import { useLayerStack } from '../layerStack/LayerStackContext.js'
 import { StatusChip, statusChipData } from '../StatusChip/StatusChip.js'
+import { Triangle } from '../Triangle/Triangle.js'
 import { previewPath } from '../../../lib/preview.js'
 import { browserTime, DEFAULT_SORT, nextSort, sortRows, type BrowserSort, type SortKey } from './browserRows.js'
 
@@ -248,9 +249,12 @@ export function VaultBrowser({ mediaTypes }: VaultBrowserProps) {
                     >
                       <button type="button" className={on ? 'q-vb-sort on' : 'q-vb-sort'} onClick={() => setSort(nextSort(sort, key))}>
                         <span className="q-vb-collabel">{text.columns[key]}</span>
-                        <span className="q-vb-arrow" aria-hidden="true">
-                          {on ? (sort.dir === 1 ? '▲' : '▼') : ''}
-                        </span>
+                        {/* The picker triangle (canvas H-027): ascending is it turned half a turn. Drawn only on the sorted column, so an unsorted one takes no room. */}
+                        {on && (
+                          <span className="q-vb-arrow" aria-hidden="true">
+                            <Triangle kind="picker" direction={sort.dir === 1 ? 'up' : 'down'} />
+                          </span>
+                        )}
                       </button>
                     </span>
                   )

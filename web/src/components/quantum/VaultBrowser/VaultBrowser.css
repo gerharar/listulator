@@ -157,8 +157,8 @@
 /* A number column's header ends exactly on its numbers' right edge: the arrow goes on the label's left, takes no room when the column is not sorted, and the label's trailing letter-spacing is cancelled. */
 .q-vb-colhead.number .q-vb-sort { flex-direction: row-reverse; }
 .q-vb-colhead.number .q-vb-collabel { margin-right: -0.12em; }
-.q-vb-arrow { font-size: 9px; }
-.q-vb-arrow:empty { display: none; }
+/* The sort arrow is the 6 x 5 picker triangle (Triangle.tsx, canvas H-027) in the label's colour, drawn only on the sorted column, so it takes no room otherwise. */
+.q-vb-arrow { display: flex; }
 .q-vb-colhead.number .q-vb-arrow { margin-right: 5px; }
 .q-vb-colhead:not(.number) .q-vb-arrow { margin-left: 5px; }
 
