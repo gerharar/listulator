@@ -111,9 +111,7 @@ for (const setting of ['off', 'on'] as const) {
       expect(open.chev).toEqual([20, 20])
       expect(open.text).toBe('')
       expect(open.tri).toEqual([3, 4, 14, 12])
-      // 1px, not 0.5: the Preview's name is 14px in a 40px row that lays out at 38.6px, and Chromium rounds its baseline a pixel off where WebKit does not
-      // (measured 2026-11-06: Chromium +1, WebKit 0; the list head, 15px, is within 0.5 in both). A question for design in HANDOFF-STATUS; DECISIONS 2026-11-06.
-      expect(Math.abs((await readInk(page, { row: '.q-preview-group', triangle: '.q-chev-tri', text: '.name' })).delta)).toBeLessThanOrEqual(1)
+      expect(Math.abs((await readInk(page, { row: '.q-preview-group', triangle: '.q-chev-tri', text: '.name' })).delta)).toBeLessThanOrEqual(0.5)
     })
   })
 }

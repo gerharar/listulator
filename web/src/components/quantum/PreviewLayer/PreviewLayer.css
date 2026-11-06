@@ -92,9 +92,13 @@
   text-align: left;
   cursor: pointer;
 }
+/* The group's name is the list head's (Spine.css `.q-group .name b`): 600 15px/1.15, .01em (canvas H-027, design's answer of 2026-11-06; it was 14px, a build
+   difference). Set here, not on the button, so the count keeps its own type. The row stays 40px (10px above and below the 20px triangle box): the windowing counts on it. */
 .q-preview-group .name {
   flex: 1;
   min-width: 0;
+  font: 600 15px/1.15 var(--font-sans);
+  letter-spacing: .01em;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
