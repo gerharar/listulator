@@ -1,0 +1,5 @@
+/* The one triangle (canvas H-027, Triangle.tsx). A block, so no line box adds a strut under it; never shrinks in a flex row. */
+.q-triangle {
+  display: block;
+  flex: none;
+}

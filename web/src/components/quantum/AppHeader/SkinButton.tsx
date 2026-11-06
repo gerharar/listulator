@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react'
 import { Popover } from '../Popover/Popover.js'
 import { SkinSwatch } from '../SkinSwatch/SkinSwatch.js'
+import { Triangle } from '../Triangle/Triangle.js'
 import { useLiveRegion } from '../LiveRegion/LiveRegion.js'
 import { copy } from '../../../locale/index.js'
 import { SKINS, type Skin } from '../../../lib/preferences/skin.js'
@@ -37,9 +38,7 @@ export function SkinButton({ skin, onSkinChange }: SkinButtonProps) {
         onClick={() => setOpen((o) => !o)}
       >
         <SkinSwatch skin={skin} />
-        <svg className="q-skin-caret" width="8" height="6" viewBox="0 0 8 6" aria-hidden="true" focusable="false">
-          <path d="M0 0H8L4 6Z" fill="currentColor" />
-        </svg>
+        <Triangle kind="picker" className="q-skin-caret" />
       </button>
       <Popover
         open={open}

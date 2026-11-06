@@ -32,15 +32,10 @@
   border-color: var(--rule);
   background: var(--hover);
 }
-/* A drawing, not the ▼ glyph: the mono font has none, so a system font drew it (hollow on Windows). */
+/* The picker triangle of canvas H-027 (6 x 5, Triangle.tsx), centred by the button, which centres its children. Design's answer of 2026-11-06 withdrew the
+   whole-device-pixel top this used to be pinned to (a margin-top and align-self), so it follows the button if the header's padding or border change. */
 .q-skin-caret {
-  flex: none;
   color: var(--ink3);
-  /* Not centred: centring put its top 29px down, a fraction of a device pixel at 125%, 150% and 175% display scales, and the top row
-     (the widest) was painted partly. 28px (the header's 14px padding, the button's 1px border, this margin) is whole at all of them;
-     skin-caret.spec.ts holds it. Change the header's padding or the button's border and this number changes with them. */
-  align-self: flex-start;
-  margin-top: 13px;
 }
 
 .q-pop-menu {
