@@ -32,8 +32,9 @@
   border-color: var(--rule);
   background: var(--hover);
 }
-.q-skin-btn > small {
-  font: 400 9px/1 var(--font-mono);
+/* A drawing, not the ▼ glyph: the mono font has none, so a system font drew it (hollow on Windows). */
+.q-skin-caret {
+  flex: none;
   color: var(--ink3);
 }
 

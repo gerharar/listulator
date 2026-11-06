@@ -37,7 +37,9 @@ export function SkinButton({ skin, onSkinChange }: SkinButtonProps) {
         onClick={() => setOpen((o) => !o)}
       >
         <SkinSwatch skin={skin} />
-        <small>▼</small>
+        <svg className="q-skin-caret" width="8" height="6" viewBox="0 0 8 6" aria-hidden="true" focusable="false">
+          <path d="M0 0H8L4 6Z" fill="currentColor" />
+        </svg>
       </button>
       <Popover
         open={open}
