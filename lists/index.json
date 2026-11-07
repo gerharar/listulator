@@ -20,6 +20,26 @@
     "status": "complete"
   },
   {
+    "path": "lists/animation/ice-age-watch.yaml",
+    "title": "Ice Age franchise (watch order)",
+    "category": "animation",
+    "itemCount": 23,
+    "totalMinutes": 653,
+    "minutesEstimated": false,
+    "description": "All releases in the Ice Age franchise, in release order; excludes video games",
+    "status": "ongoing"
+  },
+  {
+    "path": "lists/animation/invincible-tv.yaml",
+    "title": "Invincible animated TV series",
+    "category": "animation",
+    "itemCount": 33,
+    "totalMinutes": 1632,
+    "minutesEstimated": false,
+    "description": "All episodes of the Invincible animated TV series, including Atom Eve Special",
+    "status": "ongoing"
+  },
+  {
     "path": "lists/animation/rick-and-morty-tv-full.yaml",
     "title": "Rick And Morty animated TV series (chronological)",
     "category": "animation",
@@ -303,7 +323,7 @@
     "itemCount": 197,
     "totalMinutes": 6566,
     "minutesEstimated": false,
-    "description": "All releases in the Breaking Bad franchise, in recommended order roughly following release order; excludes video games as they're unplayable now",
+    "description": "All releases in the Breaking Bad franchise, in recommended order roughly following release order; excludes video games as they're delisted and unplayable",
     "status": "complete"
   },
   {
@@ -337,6 +357,16 @@
     "status": "complete"
   },
   {
+    "path": "lists/mega/dexter-all.yaml",
+    "title": "Dexter franchise",
+    "category": "mega",
+    "itemCount": 170,
+    "totalMinutes": 9384,
+    "minutesEstimated": false,
+    "description": "All releases in the Dexter franchise, roughly in appearance order; excludes video games as they're delisted",
+    "status": "ongoing"
+  },
+  {
     "path": "lists/mega/downton-abbey-all.yaml",
     "title": "Downton Abbey franchise (release order)",
     "category": "mega",
@@ -357,13 +387,13 @@
     "status": "ongoing"
   },
   {
-    "path": "lists/mega/ice-age-watch.yaml",
-    "title": "Ice Age franchise (no video games; grouped by media)",
+    "path": "lists/mega/invincible-all.yaml",
+    "title": "Invincible franchise (release order)",
     "category": "mega",
-    "itemCount": 23,
-    "totalMinutes": 653,
-    "minutesEstimated": false,
-    "description": "All releases in the Ice Age franchise, grouped by media type; excludes video games",
+    "itemCount": 282,
+    "totalMinutes": 8562,
+    "minutesEstimated": true,
+    "description": "All releases in the Invincible franchise, including related comic books, in release order",
     "status": "ongoing"
   },
   {
@@ -387,11 +417,31 @@
     "status": "ongoing"
   },
   {
+    "path": "lists/mega/preacher-all.yaml",
+    "title": "Preacher franchise (release order)",
+    "category": "mega",
+    "itemCount": 118,
+    "totalMinutes": 3826,
+    "minutesEstimated": false,
+    "description": "All releases in the Preacher franchise, in release order",
+    "status": "complete"
+  },
+  {
+    "path": "lists/mega/the-boys-all.yaml",
+    "title": "The Boys franchise (release order)",
+    "category": "mega",
+    "itemCount": 164,
+    "totalMinutes": 5879,
+    "minutesEstimated": false,
+    "description": "All releases in The Boys franchise, including comic book series, roughly following release order",
+    "status": "ongoing"
+  },
+  {
     "path": "lists/mega/the-boys-tv-all.yaml",
     "title": "The Boys franchise (no comics)",
     "category": "mega",
-    "itemCount": 64,
-    "totalMinutes": 3423,
+    "itemCount": 66,
+    "totalMinutes": 3429,
     "minutesEstimated": false,
     "description": "All releases in The Boys franchise; excludes comic book series",
     "status": "ongoing"
@@ -519,6 +569,16 @@
     "minutesEstimated": false,
     "description": "All episodes of the Dekalog TV miniseries by Krzysztof Kieślowski",
     "status": "complete"
+  },
+  {
+    "path": "lists/tv/dexter-tv.yaml",
+    "title": "Dexter franchise (TV series)",
+    "category": "tv",
+    "itemCount": 128,
+    "totalMinutes": 6681,
+    "minutesEstimated": false,
+    "description": "All episodes of TV series from the Dexter franchise, in series appearance order",
+    "status": "ongoing"
   },
   {
     "path": "lists/tv/fargo-tv.yaml",
