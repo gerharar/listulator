@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it } from 'vitest'
-import { cardMargin, carriedRailWidth, CARRY_FLOOR_WIDTH, carryFloorWidth, listCardWidth, QUANTUM_GEOMETRY, railGeometry, railPlacement, shownRailWidth } from './railPlacement.js'
+import { appWidth, cardMargin, carriedRailWidth, CARRY_FLOOR_WIDTH, carryFloorWidth, listCardWidth, QUANTUM_GEOMETRY, railGeometry, railPlacement, shownRailWidth } from './railPlacement.js'
 
 /**
  * The rail's rule reads the card's cap and the stage's side gap from the page (Phase 48.4): the same tokens the CSS draws the card with
@@ -13,6 +13,7 @@ const EXZED = { cardMax: 1620, inset: 96 }
 afterEach(() => {
   html.style.removeProperty('--layer-max-list')
   html.style.removeProperty('--stage-gap')
+  html.style.removeProperty('--app-max')
 })
 
 describe('railGeometry', () => {
@@ -86,5 +87,32 @@ describe('with no geometry given, the rule reads the page', () => {
     expect(railPlacement(2000, 'inside')).toBe('inside')
     expect(railPlacement(2244, 'inside')).toBe('outside')
     expect(listCardWidth(2244)).toBe(1620)
+  })
+})
+
+describe('appWidth: the width the app is laid out in', () => {
+  it('is the window’s where the page sets no cap on the app, as in Quantum (--app-max: none, or nothing)', () => {
+    expect(appWidth(3440)).toBe(3440)
+
+    html.style.setProperty('--app-max', 'none')
+    expect(appWidth(3440)).toBe(3440)
+  })
+
+  it('stops at the cap the page sets, as eX-Zed does at 2560: the shell is centred beyond it, so the rail’s rule must not see more', () => {
+    html.style.setProperty('--app-max', '2560px')
+
+    expect(appWidth(1440)).toBe(1440)
+    expect(appWidth(2560)).toBe(2560)
+    expect(appWidth(3440)).toBe(2560)
+    expect(appWidth(3840)).toBe(2560)
+  })
+
+  it('gives a rail the same margin at 3440 and 3840 as at 2560: 374px, so a rail up to 358px wide', () => {
+    html.style.setProperty('--app-max', '2560px')
+
+    for (const window of [2560, 3440, 3840]) {
+      expect(cardMargin(appWidth(window), EXZED), `at ${window}`).toBe(374)
+      expect(railPlacement(appWidth(window), 'inside', EXZED), `at ${window}`).toBe('outside')
+    }
   })
 })

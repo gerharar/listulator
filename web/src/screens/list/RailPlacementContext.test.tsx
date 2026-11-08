@@ -16,6 +16,9 @@ function resizeTo(width: number) {
 
 afterEach(() => {
   window.innerWidth = original
+  document.documentElement.style.removeProperty('--app-max')
+  document.documentElement.style.removeProperty('--layer-max-list')
+  document.documentElement.style.removeProperty('--stage-gap')
 })
 
 describe('useWindowRailPlacement', () => {
@@ -130,5 +133,49 @@ describe('useWindowRailPlacement', () => {
 
       expect(result.current).toMatchObject({ placement: 'outside', carried: false })
     })
+  })
+})
+
+describe('useWindowRailPlacement with a cap on the app (eX-Zed: 2560px)', () => {
+  const exzed = () => {
+    const html = document.documentElement
+    html.style.setProperty('--app-max', '2560px')
+    html.style.setProperty('--layer-max-list', '1620px')
+    html.style.setProperty('--stage-gap', '96px')
+  }
+
+  it('holds the capped width, not the window’s, from the first render and across a resize', () => {
+    exzed()
+    window.innerWidth = 3440
+    const { result } = renderHook(() => useWindowRailPlacement())
+
+    expect(result.current).toEqual({ placement: 'outside', windowWidth: 2560, carried: false, release: expect.any(Function) })
+
+    resizeTo(3840)
+    expect(result.current.windowWidth).toBe(2560)
+    resizeTo(2400)
+    expect(result.current.windowWidth).toBe(2400)
+  })
+
+  it('goes outside at 2244 and back inside below 2212, as it does with no cap, and does not change when the window moves beyond the cap', () => {
+    exzed()
+    window.innerWidth = 2000
+    const { result } = renderHook(() => useWindowRailPlacement())
+    expect(result.current.placement).toBe('inside')
+
+    resizeTo(2243)
+    expect(result.current.placement).toBe('inside')
+    resizeTo(2244)
+    expect(result.current.placement).toBe('outside')
+    resizeTo(2212)
+    expect(result.current.placement).toBe('outside')
+    resizeTo(2211)
+    expect(result.current.placement).toBe('inside')
+
+    resizeTo(2560)
+    const before = result.current
+    resizeTo(3000)
+    resizeTo(3440)
+    expect(result.current).toBe(before)
   })
 })

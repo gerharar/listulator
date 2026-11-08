@@ -29,6 +29,15 @@ export function railGeometry(): RailGeometry {
   return { cardMax: tokenPx('--layer-max-list', QUANTUM_GEOMETRY.cardMax), inset: tokenPx('--stage-gap', QUANTUM_GEOMETRY.inset) }
 }
 
+/**
+ * The width the app is laid out in (Phase 48.5): the window's, up to the cap the page sets on the app (`--app-max`: none in Quantum, 2560px in eX-Zed).
+ * Beyond the cap the shell is centred and the stage shows around it, so the rail's rule must see this width and never the browser window's: a 3440px
+ * window has the margin of a 2560px one. Not an eX-Zed special case: the same rule on the width the app really has.
+ */
+export function appWidth(windowWidth: number): number {
+  return Math.min(windowWidth, tokenPx('--app-max', Infinity))
+}
+
 /** The default 200px rail plus 16px of air. */
 const OUT_AT = 216
 /** 16px of hysteresis, so a window dragged near the line does not flicker. */

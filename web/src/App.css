@@ -8,8 +8,11 @@
  * and the peek `transform` are per-layer inline styles from
  * `layerGeometry.ts`, cascaded and animated as of task 10.9c.
  */
+/* The screen stops growing at the theme's cap (--app-max: none in Quantum, 2560px in eX-Zed) and is centred; the page shows around it. */
 .q-shell {
   position: relative;
+  max-width: var(--app-max);
+  margin-inline: auto;
   height: 100dvh;
   display: flex;
   flex-direction: column;

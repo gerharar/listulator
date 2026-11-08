@@ -291,3 +291,79 @@ for (const theme of ['exzed', 'quantum'] as const) {
     }
   })
 }
+
+/**
+ * The cap on the app (48.5, design X-002 and X-006). eX-Zed's screen (the header and the stage with its layers) stops growing at 2560px and is centred;
+ * beyond it the page shows the stage's ground, where X-006 draws the Spectrum border. Quantum has no cap. The jump rail's rule reads the app's capped
+ * width, not the browser window's: at 3440 and 3840 the rail has the margin it has at 2560 (374px, so a rail up to 358px wide, the resize handle's
+ * `aria-valuemax`), outside as it is there; with Quantum the outside rail behaves as before (outside, its handle at the rail’s own 480px most).
+ */
+const shellBox = (page: Page) => page.locator('.q-shell').evaluate((el) => ({ left: el.getBoundingClientRect().left, width: el.getBoundingClientRect().width }))
+
+for (const width of [1440, 1920, 2560, 3440, 3840]) {
+  test(`with the theme exzed, at ${width}px the app is at most 2560px wide and centred; Quantum has no cap`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 900 })
+    await boot(page, 'exzed')
+    await page.goto('/')
+    await page.locator('.q-home-row').first().waitFor()
+    const capped = Math.min(width, 2560)
+    expect(await shellBox(page)).toEqual({ left: (width - capped) / 2, width: capped })
+
+    await boot(page, 'quantum')
+    await page.reload()
+    await page.locator('.q-home-row').first().waitFor()
+    expect(await shellBox(page)).toEqual({ left: 0, width })
+  })
+}
+
+const valueMax = (page: Page) => page.locator('.q-rail [role="separator"]').first().getAttribute('aria-valuemax')
+
+for (const width of [2560, 3440, 3840]) {
+  test(`with the theme exzed, at ${width}px the jump rail is outside with the margin of 2560: 358px at most; with Quantum it is outside by the window's own width`, async ({ page }) => {
+    const title = `e2e cap rail ${width} ${Date.now()}`
+    const id = await makeList(page.request, title)
+
+    try {
+      await page.setViewportSize({ width, height: 900 })
+      await boot(page, 'exzed')
+      await openList(page, title)
+      await expect(page.locator('.q-rail')).toHaveAttribute('data-placement', 'outside')
+      expect(await valueMax(page)).toBe('358')
+      // The list's card is centred in the capped screen, which is centred in the window.
+      expect(await layerWidth(page)).toBe(1620)
+      expect(await layerLeft(page)).toBe((width - 1620) / 2)
+
+      await boot(page, 'quantum')
+      await page.reload()
+      await page.locator('.q-home-row', { hasText: title }).click()
+      await page.locator('.q-item').first().waitFor()
+      await expect(page.locator('.q-rail')).toHaveAttribute('data-placement', 'outside')
+      // Quantum’s margin there is 720px and more, far past the rail’s own 480px most: the handle’s limit is that most.
+      expect(await valueMax(page)).toBe('480')
+    } finally {
+      await page.request.delete(`/api/lists/${id}`)
+    }
+  })
+}
+
+test('with the theme exzed, a window resized past the cap keeps the rail as it was at 2560: outside, 358px at most, the card where it was', async ({ page }) => {
+  const title = `e2e cap resize ${Date.now()}`
+  const id = await makeList(page.request, title)
+
+  try {
+    await page.setViewportSize({ width: 2560, height: 900 })
+    await boot(page, 'exzed')
+    await openList(page, title)
+    await expect(page.locator('.q-rail')).toHaveAttribute('data-placement', 'outside')
+    expect(await valueMax(page)).toBe('358')
+
+    for (const width of [3440, 3840, 2900]) {
+      await page.setViewportSize({ width, height: 900 })
+      await expect(page.locator('.q-rail')).toHaveAttribute('data-placement', 'outside')
+      expect(await valueMax(page), `at ${width}`).toBe('358')
+      expect(await layerWidth(page), `at ${width}`).toBe(1620)
+    }
+  } finally {
+    await page.request.delete(`/api/lists/${id}`)
+  }
+})

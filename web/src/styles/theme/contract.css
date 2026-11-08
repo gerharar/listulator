@@ -53,4 +53,7 @@ html {
   --peek-scale-2: 0.921;
   --peek-inset-1: 0px;
   --peek-inset-2: 0px;
+
+  /* The cap on the app's width (48.5): the shell stops growing there and is centred. Quantum has none. */
+  --app-max: none;
 }

@@ -127,3 +127,18 @@ describe('size tokens: the peek cascade of the covered layers (design, answer 4)
     expect(exzed).not.toMatch(/@keyframes q-tabIn-pos[^@]*opacity/)
   })
 })
+
+describe('size tokens: the cap on the app (design, X-002 and X-006)', () => {
+  it('the shell stops at --app-max and is centred, so the stage shows around it; Quantum has none, and eX-Zed 2560px', () => {
+    const app = read('App.css')
+
+    expect(declared(app, '.q-shell', 'max-width')).toBe('var(--app-max)')
+    expect(declared(app, '.q-shell', 'margin-inline')).toBe('auto')
+    expect(definitions('--app-max', ['styles/quantum/tokens.css', 'styles/theme/contract.css']).map(plain)).toEqual(['none'])
+    expect(new RegExp('--app-max\\s*:\\s*([^;]+);').exec(read('styles/theme/exzed.css'))?.[1]?.trim()).toBe('2560px')
+  })
+
+  it('beyond the cap the page shows the stage’s ground (the role --stage, which eX-Zed’s skins give in X-003), falling back to the page’s own until then', () => {
+    expect(plain(declared(read('styles/theme/exzed.css'), 'html.theme-exzed body', 'background')!)).toBe('var(--stage,var(--bg))')
+  })
+})

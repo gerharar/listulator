@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
-import { carryFloorWidth, railPlacement, type RailPlacement } from './railPlacement.js'
+import { appWidth, carryFloorWidth, railPlacement, type RailPlacement } from './railPlacement.js'
 
 export interface RailPlacementState {
   placement: RailPlacement
@@ -24,26 +24,28 @@ const RailPlacementContext = createContext<RailPlacementState>(INSIDE)
  */
 export function useWindowRailPlacement(): RailPlacementState & { carried: boolean; release: () => void } {
   const [state, setState] = useState<{ placement: RailPlacement; windowWidth: number; carried: boolean }>(() => ({
-    placement: railPlacement(window.innerWidth, 'inside'),
-    windowWidth: window.innerWidth,
+    placement: railPlacement(appWidth(window.innerWidth), 'inside'),
+    windowWidth: appWidth(window.innerWidth),
     carried: false,
   }))
 
   useEffect(() => {
     const onResize = () =>
       setState((current) => {
-        const placement = railPlacement(window.innerWidth, current.placement)
+        // The app's width: the window's up to the cap a theme sets on the app (appWidth).
+        const width = appWidth(window.innerWidth)
+        const placement = railPlacement(width, current.placement)
         const floor = carryFloorWidth()
         const carried = placement === 'inside' && (current.carried || current.placement === 'outside')
 
         // Inside with no carry nothing reads the width: leave the state alone, so dragging a narrow window redraws nothing. The same once a
         // carried rail is at its minimum: a window narrower still (both widths at the floor or below) draws the same rail.
         if (placement === 'inside' && !carried) return current
-        if (carried && placement === current.placement && current.windowWidth <= floor && window.innerWidth <= floor) return current
+        if (carried && placement === current.placement && current.windowWidth <= floor && width <= floor) return current
 
-        return placement === current.placement && carried === current.carried && window.innerWidth === current.windowWidth
+        return placement === current.placement && carried === current.carried && width === current.windowWidth
           ? current
-          : { placement, windowWidth: window.innerWidth, carried }
+          : { placement, windowWidth: width, carried }
       })
 
     window.addEventListener('resize', onResize)

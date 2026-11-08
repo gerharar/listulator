@@ -15,6 +15,8 @@ html.theme-exzed {
 html.theme-exzed body {
   /* Quantum's base asks for anti-aliased text; a pixel font is drawn on the grid (WebKit on macOS; other engines ignore it). */
   -webkit-font-smoothing: none;
+  /* Beyond the cap on the app (48.5, below) the page shows the stage's ground: the role `--stage` (eX-Zed's skins give it in X-003), meanwhile Quantum's. */
+  background: var(--stage, var(--bg));
 }
 
 html.theme-exzed img {
@@ -126,4 +128,15 @@ html.theme-exzed:not([data-reduced]) .q-layer.enter {
 }
 html.theme-exzed:not([data-reduced]) .q-layer-tab {
   animation: q-tabIn-pos 260ms ease-out;
+}
+
+/*
+ * The cap on the app (48.5, design X-002 and X-006): the screen (the header and the stage with its layers) stops growing at 2560px and is centred; beyond
+ * it the page shows the stage's ground, where the Spectrum border is drawn (X-006: loading stripes, and a Settings choice for plain black). The role
+ * `--stage` is eX-Zed's skins' (X-003); until it exists the page keeps Quantum's own ground. Width only: a taller window shows more of the stage. The rail's
+ * rule reads this cap too (railPlacement.ts `appWidth`), so a 3440 or 3840 window has the margin of a 2560 one. Not changed: `tauri.conf.json`, whose
+ * window is as large as the person makes it.
+ */
+html.theme-exzed {
+  --app-max: 2560px;
 }
