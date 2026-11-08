@@ -5,6 +5,7 @@ import type { PreferencesStore } from '../../../lib/preferences/store.js'
 import { MotionProvider } from '../Motion/MotionContext.js'
 import type { Theme } from '../../../lib/preferences/theme.js'
 import { applyThemeClass, DocumentTheme } from './DocumentTheme.js'
+import { useTheme } from './ThemeContext.js'
 
 const html = document.documentElement
 
@@ -111,6 +112,32 @@ describe('DocumentTheme', () => {
 
       expect(html.classList.contains('theme-exzed')).toBe(false)
       expect(html.classList.contains('keep-me')).toBe(true)
+    })
+  })
+
+  describe('the theme for components', () => {
+    function Probe() {
+      return <span>{useTheme()}</span>
+    }
+    const probe = (theme?: Theme) =>
+      render(
+        <MotionProvider initialReducedSetting={false} store={store}>
+          <DocumentTheme skin="dark-blue" theme={theme}>
+            <Probe />
+          </DocumentTheme>
+        </MotionProvider>,
+      ).container.textContent
+
+    it('gives the components below it the theme it was given, Quantum by default', () => {
+      expect(probe('exzed')).toBe('exzed')
+      cleanup()
+      expect(probe('quantum')).toBe('quantum')
+      cleanup()
+      expect(probe()).toBe('quantum')
+    })
+
+    it('is Quantum outside a DocumentTheme', () => {
+      expect(render(<Probe />).container.textContent).toBe('quantum')
     })
   })
 

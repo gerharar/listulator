@@ -23,7 +23,7 @@ import { CreateList } from './components/quantum/CreateList/CreateList.js'
 import { PreviewLayer } from './components/quantum/PreviewLayer/PreviewLayer.js'
 import { VaultBrowser } from './components/quantum/VaultBrowser/VaultBrowser.js'
 import { parsePreviewPath } from './lib/preview.js'
-import { Atmosphere } from './components/quantum/Atmosphere/Atmosphere.js'
+import { ThemeBackdrop } from './components/quantum/ThemeBackdrop/ThemeBackdrop.js'
 import { applyThemeClass, DocumentTheme } from './components/quantum/DocumentTheme/DocumentTheme.js'
 import { AppHeader } from './components/quantum/AppHeader/AppHeader.js'
 import { LayerCard } from './components/quantum/LayerCard/LayerCard.js'
@@ -127,7 +127,7 @@ function QuantumShell({ initial }: { initial: BootState }) {
       store={store}
     >
       <DocumentTheme skin={skin} theme={initial.theme}>
-        <Atmosphere />
+        <ThemeBackdrop />
         <LiveRegionProvider>
           <ToastProvider>
             <OverlayManagerProvider>

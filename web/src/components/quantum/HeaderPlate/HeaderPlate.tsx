@@ -1,6 +1,7 @@
 import './HeaderPlate.css'
 import type { CSSProperties } from 'react'
 import type { Skin } from '../../../lib/preferences/skin.js'
+import { useTheme } from '../DocumentTheme/ThemeContext.js'
 
 export type PlateSide = 'left' | 'right'
 export type PlateVariant = 1 | 2 | 3 | 4 | 5
@@ -108,6 +109,9 @@ export interface HeaderPlateProps {
  * `data-theme` — this component only carries `data-side`/`data-marks`/`--sd`.
  */
 export function HeaderPlate({ side, seed, marks = false, wash = false }: HeaderPlateProps) {
+  // The plates are Quantum's drawing: eX-Zed's headers are plain (its borders and skin art come from X-006 / X-007), so none is rendered.
+  if (useTheme() === 'exzed') return null
+
   const className = ['q-plate', wash && 'q-wash'].filter(Boolean).join(' ')
 
   return (

@@ -1,6 +1,7 @@
 import { useLayoutEffect, type ReactNode } from 'react'
 import type { Theme } from '../../../lib/preferences/theme.js'
 import { useMotion } from '../Motion/MotionContext.js'
+import { ThemeContext } from './ThemeContext.js'
 
 export interface DocumentThemeProps {
   /** The active skin — becomes `data-theme`, which every generated token block keys off. */
@@ -53,5 +54,5 @@ export function DocumentTheme({ skin, theme = 'quantum', children }: DocumentThe
     [],
   )
 
-  return <>{children}</>
+  return <ThemeContext.Provider value={theme}>{children}</ThemeContext.Provider>
 }

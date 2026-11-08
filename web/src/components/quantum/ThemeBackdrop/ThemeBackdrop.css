@@ -1,0 +1,14 @@
+/*
+ * eX-Zed's art slots (Phase 48.6): empty, named places behind the shell for X-006's skin art. The wrapper is where `.q-atmo` is (fixed, under the
+ * shell, click-through); the slots are absolute with nothing in them, so they take no space until X-006 sizes and fills them.
+ */
+.q-backdrop {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  overflow: hidden;
+}
+.q-backdrop > [data-slot] {
+  position: absolute;
+}
