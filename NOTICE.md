@@ -44,3 +44,11 @@ between you and them.
 
 This application uses TMDB and the TMDB APIs but is not endorsed, certified,
 or otherwise approved by TMDB.
+
+## 4. Bundled fonts
+
+The eX-Zed theme sets its text in **ZX Spectrum Unicode** (version 001.000, `web/src/styles/theme/fonts/ZXSpectrum.ttf`) by Jorge Ferrer Garcia
+(JFSebastian), released under [The Unlicense](https://unlicense.org) (public domain):
+https://github.com/jfsebastian/zx-spectrum-unicode-font. It is based on the Spectrum True Type font by Darko Stanicic.
+
+The fonts of the default theme, Inter and JetBrains Mono, are listed with their licence texts in `THIRD-PARTY-NOTICES.txt`.
