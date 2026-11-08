@@ -37,6 +37,9 @@ html {
      20px that was written twice, in the stage's CSS and in the rail's rule (railPlacement.ts, which now reads both). */
   --layer-max-list: 1080px;
   --stage-gap: 20px;
+  /* Where the gap starts to shrink (--layer-min, an input to the gap and not a width on the layer) and what it shrinks to. Quantum has neither: 0 and the gap. */
+  --layer-min: 0px;
+  --stage-gap-min: 20px;
 
   /* The covered layer's tab (48.4): its height, which layerGeometry.ts also reads, since each layer behind rises by it. */
   --tab-h: 34px;

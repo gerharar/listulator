@@ -57,25 +57,27 @@ describe('eX-Zed’s sizes: rows and controls', () => {
 })
 
 describe('size tokens: the width of a layer and the stage’s side gap', () => {
-  const WIDTHS = { '--stage-gap': '20px', '--layer-max-list': '1080px' } as const
-  const EXZED_WIDTHS = { '--stage-gap': '96px', '--layer-max': '1620px', '--layer-max-wide': '2100px', '--layer-max-list': '2100px' } as const
+  const WIDTHS = { '--stage-gap': '20px', '--stage-gap-min': '20px', '--layer-min': '0px', '--layer-max-list': '1080px' } as const
+  // Design, answers 3 and 7: every layer is elastic from 1080px to 1620px (a list and a Preview too); the gap shrinks from 96px to 24px first.
+  const EXZED_WIDTHS = { '--stage-gap': '96px', '--stage-gap-min': '24px', '--layer-min': '1080px', '--layer-max': '1620px', '--layer-max-wide': '1620px', '--layer-max-list': '1620px' } as const
   const px = (value: string) => Number.parseFloat(value)
   const quantum = (token: string) => definitions(token, ['styles/quantum/tokens.css', 'styles/theme/contract.css'])
   const exzed = read('styles/theme/exzed.css')
   const exzedValue = (token: string) => new RegExp(`${token}\\s*:\\s*([^;]+);`).exec(exzed)?.[1]?.trim()
 
-  it('the stage keeps each layer its gap from the window’s sides through --stage-gap', () => {
+  it('the stage keeps each layer its gap from the window’s sides: --stage-gap, shrinking to --stage-gap-min once the window is narrower than the layer’s minimum and its gaps (no min-width on the layer)', () => {
     const app = read('App.css')
 
-    expect(declared(app, '.q-stage .q-layer', 'left')).toBe('var(--stage-gap)')
-    expect(declared(app, '.q-stage .q-layer', 'right')).toBe('var(--stage-gap)')
+    expect(plain(declared(app, '.q-stage .q-layer', '--q-gap')!)).toBe('max(var(--stage-gap-min),min(var(--stage-gap),calc((100% - var(--layer-min)) / 2)))')
+    expect(plain(declared(app, '.q-stage .q-layer', 'left')!)).toBe('calc(var(--q-gap) + var(--peek-inset,0px))')
+    expect(plain(declared(app, '.q-stage .q-layer', 'right')!)).toBe('calc(var(--q-gap) + var(--peek-inset,0px))')
   })
 
   it.each(Object.entries(WIDTHS))('Quantum’s %s is exactly the value it replaced', (token, literal) => {
     expect(quantum(token).map(plain)).toEqual([literal])
   })
 
-  it.each(Object.entries(EXZED_WIDTHS))('eX-Zed sets %s to %s (1.5 x the cap; at least 96px of background each side)', (token, size) => {
+  it.each(Object.entries(EXZED_WIDTHS))('eX-Zed sets %s to %s (elastic 1080 to 1620 for every layer; 96px of background each side, 24px at the least)', (token, size) => {
     expect(exzedValue(token), token).toBe(size)
   })
 

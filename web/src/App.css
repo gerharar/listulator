@@ -24,7 +24,11 @@
 
 .q-stage .q-layer {
   position: absolute;
-  left: var(--stage-gap);
-  right: var(--stage-gap);
+  /* The gap to the window's sides: --stage-gap, shrinking towards --stage-gap-min once the window is narrower than the layer's minimum (--layer-min) and
+     its two gaps, so the layer keeps its minimum for as long as that can be had and only then shrinks with the window. Quantum: a fixed 20px (its
+     minimum is 0 and its two gaps are equal). A layer two back is inset further (--peek-inset, set by App from the theme). No min-width on the layer. */
+  --q-gap: max(var(--stage-gap-min), min(var(--stage-gap), calc((100% - var(--layer-min)) / 2)));
+  left: calc(var(--q-gap) + var(--peek-inset, 0px));
+  right: calc(var(--q-gap) + var(--peek-inset, 0px));
   bottom: 20px;
 }

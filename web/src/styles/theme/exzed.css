@@ -67,17 +67,20 @@ html.theme-exzed {
 }
 
 /*
- * Widths (48.4). 1.5 x each of Quantum's caps, because the ZX font is about 1.5 x wider, and at least 96px of background each side: a plain layer
- * (My Lists, Choose Your Fighter, Settings, About) 1620px, a list or a Preview 2100px, and below those the window minus 2 x 96. `--stage-gap` is that
- * 96px, read by the stage's CSS and by the rail's rule alike, which stays as it is: with this card and gap it puts the rail outside from 2724px
- * (2100 + 2 x 96 + 2 x 216). Design wants the rail never outside in eX-Zed, which the 2560 cap (48.5) gives, since the rule then sees a window
- * of at most 2560. `--layer-max-wide` (a layer that asks for `wide`; none does) follows design's 2100 too.
+ * Widths (48.4, design's answers 3 and 7): every layer, a list and a Preview too, is elastic between 1080px and 1620px (1620 shows 99% of the List Vault's
+ * titles whole; wider only adds a gap), the window minus 2 x 96 between them; the gap shrinks from 96px to a 24px floor first, so a layer stays 1080px
+ * down to a 1128px window and below that is the window minus 48 and shrinks with it, as in Quantum. `--layer-min` is the input that makes the gap
+ * shrink, not a width on the layer. `--stage-gap` is read by the stage's CSS and by the rail's rule alike, which stays as it is: with this card and gap it
+ * puts the rail outside from 2244px (1620 + 2 x 96 + 2 x 216) and back inside below 2212. `--layer-max-wide` (a layer that asks for `wide`; none does,
+ * BL-165) follows the same cap.
  */
 html.theme-exzed {
   --stage-gap: 96px;
+  --stage-gap-min: 24px;
+  --layer-min: 1080px;
   --layer-max: 1620px;
-  --layer-max-wide: 2100px;
-  --layer-max-list: 2100px;
+  --layer-max-wide: 1620px;
+  --layer-max-list: 1620px;
 }
 
 /*
