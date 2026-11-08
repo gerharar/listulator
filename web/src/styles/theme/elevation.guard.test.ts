@@ -69,13 +69,12 @@ describe('eX-Zed’s elevation', () => {
     for (const entry of entries) expect(entry, token).toMatch(/^(none|0 0 0 \d+px var\(.+\))$/)
   })
 
-  it('gives windows the three rings design draws outside the 4px border (paper, frame, paper), and popovers, menus and toasts the one paper ring', () => {
+  it('gives a full layer the three rings design draws outside the 4px border (paper, frame, paper), and everything that opens over a layer (popovers, menus, toasts, the helper sheet) the one paper ring (design, answer 5)', () => {
     const paper = 'var(--paper,var(--card))'
     const frame = 'var(--frame,var(--rule))'
 
-    expect(plain(value('--e-sheet')!)).toBe(`0 0 0 4px ${paper},0 0 0 8px ${frame},0 0 0 12px ${paper}`)
     expect(plain(value('--e-layer-rest')!)).toBe(`0 0 0 4px ${paper},0 0 0 8px ${frame},0 0 0 12px ${paper}`)
-    for (const token of ['--e-pop', '--e-toast']) expect(plain(value(token)!), token).toBe(`0 0 0 4px ${paper}`)
+    for (const token of ['--e-pop', '--e-toast', '--e-sheet']) expect(plain(value(token)!), token).toBe(`0 0 0 4px ${paper}`)
   })
 
   it('has no shadow at all for the tooltip (2px border, no ring) and for a covered layer (a tab with a border)', () => {

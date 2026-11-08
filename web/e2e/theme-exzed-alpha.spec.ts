@@ -7,8 +7,8 @@ import { q } from './fixtures.js'
  * hooks: Quantum's colour tokens (`--hover`, `--line`, …) are themselves rgba until X-003 brings eX-Zed's solid colours, so "no alpha anywhere"
  * belongs to X-004's test. Real writes on the dev server, removed in a `finally`.
  */
-const QUANTUM = { disabled: '0.45', dragging: '0.4', soft: '0.5', filter: 'brightness(1.12)', filterTab: 'brightness(1.1)' } as const
-const EXZED = { disabled: '1', dragging: '1', soft: '1', filter: 'none', filterTab: 'none' } as const
+const QUANTUM = { disabled: '0.45', dragging: '0.4', soft: '0.5', busy: '0.45', filter: 'brightness(1.12)', filterTab: 'brightness(1.1)' } as const
+const EXZED = { disabled: '1', dragging: '1', soft: '1', busy: '1', filter: 'none', filterTab: 'none' } as const
 const THEMES = { exzed: EXZED, quantum: QUANTUM } as const
 
 async function makeList(request: APIRequestContext, title: string) {
@@ -102,6 +102,18 @@ for (const [theme, expected] of Object.entries(THEMES)) {
       } finally {
         await page.request.delete(`/api/lists/${id}`)
       }
+    })
+
+    test('a list while it works: the fade is the page’s, none in eX-Zed (design, answer 6)', async ({ page }) => {
+      await boot(page, theme)
+      await page.goto('/')
+      await page.locator('.q-home-row').first().waitFor()
+      // The list holds its toolbar and rows while a whole-list run works (`.q-hold.is-busy`, dimmed after a 300ms wait); the rule, on an element of its own.
+      await page.evaluate(() => {
+        document.body.insertAdjacentHTML('beforeend', '<div class="q-hold" id="zz-busy">rows</div>')
+        document.getElementById('zz-busy')!.classList.add('is-busy')
+      })
+      await expect.poll(() => style(page, '#zz-busy', 'opacity')).toBe(expected.busy)
     })
 
     test('the covered layer’s veil', async ({ page }) => {

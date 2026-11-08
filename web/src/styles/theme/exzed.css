@@ -22,17 +22,17 @@ html.theme-exzed img {
 }
 
 /*
- * Elevation becomes frames (48.2): no shadow, no blur. A window (a layer, the helper sheet) has design's double frame: a 4px `frame-hi` border,
- * then rings of 4px `paper`, `frame`, `paper`, which are the three entries below; the border is the element's own and arrives with the border
- * area (48.5) and the per-component work (X-007). A popover, a menu, the dropdown list, the platform panel and a toast have the single frame: a
- * 2px `frame-hi` border and one 4px `paper` ring. The tooltip is a 2px border with no ring, and a covered layer is a tab drawn with its border
+ * Elevation becomes frames (48.2): no shadow, no blur. A full layer has design's double frame: a 4px `frame-hi` border, then rings of 4px `paper`,
+ * `frame`, `paper`, which are the three entries below; the border is the element's own and arrives with the border area (48.5) and the
+ * per-component work (X-007). Everything that opens over a layer has the single frame (design, answer 5; the helper sheet was a window here until
+ * 48.4c): a popover, a menu, the dropdown list, the platform panel, a toast and the sheet have a 2px `frame-hi` border and one 4px `paper` ring. The tooltip is a 2px border with no ring, and a covered layer is a tab drawn with its border
  * only (the Window card), so both are none. Ring colours are the roles eX-Zed's skins give (X-003); until they exist each falls back to the
  * Quantum role nearest to it, so the theme class can be tried on any Quantum skin.
  */
 html.theme-exzed {
   --e-pop: 0 0 0 4px var(--paper, var(--card));
   --e-toast: 0 0 0 4px var(--paper, var(--card));
-  --e-sheet: 0 0 0 4px var(--paper, var(--card)), 0 0 0 8px var(--frame, var(--rule)), 0 0 0 12px var(--paper, var(--card));
+  --e-sheet: 0 0 0 4px var(--paper, var(--card));
   --e-layer-rest: 0 0 0 4px var(--paper, var(--card)), 0 0 0 8px var(--frame, var(--rule)), 0 0 0 12px var(--paper, var(--card));
   --e-layer-covered: none;
   --e-tooltip: none;
@@ -41,13 +41,15 @@ html.theme-exzed {
 /*
  * No fade (48.3): everything is drawn at full strength. A disabled or dragged thing is told apart by a shape (a dotted outline, a dithered icon:
  * X-007's per-component work), a covered layer is drawn at normal brightness (no veil; the layer still takes the click that goes back), and a
- * hover is an accent fill instead of a brighter button. This only makes the fade impossible to come back through the hooks: Quantum's colour
+ * hover is an accent fill instead of a brighter button. A list held while a whole-list run works is not faded either (`--o-busy`, 48.4c, design's
+ * answer 6); its scrim, its inert rows, the `progress` cursor and the spinner are X-007's. This only makes the fade impossible to come back through the hooks: Quantum's colour
  * tokens (`--hover`, `--line`, ...) are rgba until X-003 gives the theme solid ones, so "no alpha anywhere" is X-004's test, not this one's.
  */
 html.theme-exzed {
   --o-disabled: 1;
   --o-dragging: 1;
   --o-disabled-soft: 1;
+  --o-busy: 1;
   --veil: transparent;
   --hover-filter: none;
   --hover-filter-tab: none;

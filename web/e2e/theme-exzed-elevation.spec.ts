@@ -1,9 +1,9 @@
 import { expect, test, type APIRequestContext, type Page } from '@playwright/test'
 
 /**
- * eX-Zed's elevation (Phase 48.2), computed in both engines: with the theme on, windows (a layer, the helper sheet) are three 4px rings
- * outside their border (paper, frame, paper), popovers, menus, the dropdown list, the platform panel and the toast are one 4px paper ring, the
- * tooltip and a covered layer have no shadow, and nothing on a settled screen has a blurred shadow. The ring colours are role names (`--paper`,
+ * eX-Zed's elevation (Phase 48.2, the sheet as design's answer 5 has it), computed in both engines: with the theme on, a full layer is three 4px rings
+ * outside its border (paper, frame, paper); everything that opens over a layer (popovers, menus, the dropdown list, the platform panel, the toast and
+ * the helper sheet) is one 4px paper ring; the tooltip and a covered layer have no shadow, and nothing on a settled screen has a blurred shadow. The ring colours are role names (`--paper`,
  * `--frame`) with Quantum fallbacks until X-003 brings eX-Zed's skins. Real writes on the dev server, removed in a `finally`.
  */
 async function makeList(request: APIRequestContext, title: string, category = 'movie') {
@@ -157,13 +157,13 @@ test.describe('with the theme exzed', () => {
     }
   })
 
-  test('the helper sheet is a window: three rings, no blur', async ({ page }) => {
+  test('the helper sheet is the single frame, like everything that opens over a layer: one ring, no blur', async ({ page }) => {
     await boot(page, 'exzed')
     await page.goto('/')
     await page.getByRole('button', { name: 'Surprise Me' }).click()
     await page.locator('.q-sheet').waitFor()
 
-    expect(rings(await shadowOf(page, '.q-sheet'))).toEqual([4, 8, 12])
+    expect(rings(await shadowOf(page, '.q-sheet'))).toEqual([4])
     await noBlur(page)
   })
 })

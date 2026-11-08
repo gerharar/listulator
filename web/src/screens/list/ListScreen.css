@@ -68,7 +68,7 @@
    that is quicker never flickers, and no timer is needed. */
 .q-hold { flex: none; transition: opacity 160ms linear; }
 .q-list-cols.q-hold { flex: 1; }
-.q-hold.is-busy { opacity: .45; transition-delay: 300ms; }
+.q-hold.is-busy { opacity: var(--o-busy); transition-delay: 300ms; }
 
 .q-list-error {
   flex: none;
