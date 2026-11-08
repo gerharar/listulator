@@ -4,6 +4,7 @@ import { api, type MediaType } from './lib/api.js'
 import { copy } from './locale/index.js'
 import { getPreferencesStore } from './lib/preferences/store.js'
 import { resolveSkin, setSkin as persistSkin, type Skin } from './lib/preferences/skin.js'
+import { resolveTheme, type Theme } from './lib/preferences/theme.js'
 import { resolveLanguage, type Language } from './lib/preferences/language.js'
 import { resolveReducedMotionSetting } from './lib/preferences/motion.js'
 import { resolveMarkOpenGroups } from './lib/preferences/groupLine.js'
@@ -54,6 +55,8 @@ function homeLayer(): LayerDescriptor<string> {
 
 interface BootState {
   skin: Skin
+  /** The theme (Phase 48): read once at boot; nothing in the app changes it yet. */
+  theme: Theme
   language: Language
   /** `undefined` until the user has ticked or unticked the box: the system setting decides then. */
   reducedSetting: boolean | undefined
@@ -84,13 +87,14 @@ export function App() {
     const store = getPreferencesStore()
     Promise.all([
       resolveSkin(store),
+      resolveTheme(store),
       resolveLanguage(store),
       resolveReducedMotionSetting(store),
       resolveMarkOpenGroups(store),
       resolveShowTimeLeft(store),
     ])
-      .then(([skin, language, reducedSetting, markOpenGroups, showTimeLeft]) =>
-        setBoot({ skin, language, reducedSetting, markOpenGroups, showTimeLeft }),
+      .then(([skin, theme, language, reducedSetting, markOpenGroups, showTimeLeft]) =>
+        setBoot({ skin, theme, language, reducedSetting, markOpenGroups, showTimeLeft }),
       )
       .catch((cause: unknown) =>
         setError(cause instanceof Error ? cause.message : copy.app.unknownError),
@@ -120,7 +124,7 @@ function QuantumShell({ initial }: { initial: BootState }) {
       initialReducedSetting={initial.reducedSetting}
       store={store}
     >
-      <DocumentTheme skin={skin}>
+      <DocumentTheme skin={skin} theme={initial.theme}>
         <Atmosphere />
         <LiveRegionProvider>
           <ToastProvider>

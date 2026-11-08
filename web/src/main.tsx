@@ -19,6 +19,10 @@ import '@fontsource/jetbrains-mono/600.css'
 // exist until `tokens:generate` has run (task 10.3, D9).
 import './styles/quantum/tokens.css'
 import './styles/quantum/base.css'
+// The theme contract and eX-Zed's values for it (Phase 48): inert unless `html` carries `theme-exzed`.
+import './styles/theme/fonts.css'
+import './styles/theme/contract.css'
+import './styles/theme/exzed.css'
 import { App } from './App.js'
 import { startLocalRuntimeFill, startLocalSourceCopySchedule } from './lib/api.local.js'
 import { installContextMenuGuard } from './lib/contextMenu.js'

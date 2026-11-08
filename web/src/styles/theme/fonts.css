@@ -1,0 +1,15 @@
+/*
+ * The fonts a theme brings. Quantum's (Inter, JetBrains Mono) come from @fontsource in main.tsx; this is the only place an @font-face is
+ * written by hand (fontToken.guard.test.ts). A browser fetches the file only when text is set in the family, so Quantum never loads it.
+ *
+ * ZX Spectrum Unicode 001.000, Jorge Ferrer Garcia (JFSebastian), The Unlicense, https://github.com/jfsebastian/zx-spectrum-unicode-font,
+ * build/ZXSpectrum.ttf at commit 67e9c4d40d8a77ffcecf3c7eef6fde8ba977ce7f (sha256 9cdd5e10…7750812f02). Based on Darko Stanicic's
+ * Spectrum True Type font. Named in NOTICE.md.
+ */
+@font-face {
+  font-family: 'ZX Spectrum';
+  src: url('./fonts/ZXSpectrum.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}

@@ -1,0 +1,22 @@
+/*
+ * eX-Zed, the second theme (ZX Spectrum look): its values for the contract in contract.css, under `html.theme-exzed` (set by
+ * DocumentTheme from the stored `theme` preference). Nothing here applies to Quantum. Skins and colours arrive with X-003.
+ *
+ * `html.theme-exzed` outranks the `html` rule that holds Quantum's tokens, so the order of the files does not matter.
+ */
+html.theme-exzed {
+  /* One family for every role: the font has a single weight and no italic. Components keep asking for --font-sans / --font-mono. */
+  --font-sans: 'ZX Spectrum', ui-monospace, monospace;
+  --font-mono: 'ZX Spectrum', ui-monospace, monospace;
+  /* A font with no bold or italic must stay without: otherwise the browser smears the glyphs to fake them. */
+  font-synthesis: none;
+}
+
+html.theme-exzed body {
+  /* Quantum's base asks for anti-aliased text; a pixel font is drawn on the grid (WebKit on macOS; other engines ignore it). */
+  -webkit-font-smoothing: none;
+}
+
+html.theme-exzed img {
+  image-rendering: pixelated;
+}

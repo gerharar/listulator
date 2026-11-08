@@ -1,0 +1,11 @@
+/*
+ * The theme contract (Phase 48, X-002): what Quantum's CSS reads from a custom property instead of writing as a literal, so that a second
+ * theme can replace the value and nothing else. This file holds Quantum's value of every such hook, on `html`, where the generated
+ * `styles/quantum/tokens.css` keeps its own. Hand-written: tokens.css is generated from design's file and is never edited.
+ *
+ * The rule each hook follows: the Quantum value is the literal it replaced, character for character, so a Quantum screen is the same
+ * before and after (the identity tool, web/e2e-tools, shows it); `html.theme-exzed` in exzed.css gives the other theme's value.
+ *
+ * The font role needs no entry: `--font-sans` and `--font-mono` are already tokens (tokens.css) and exzed.css replaces both.
+ * The hooks for elevation, alpha, sizes and widths arrive with their tasks (48.2 onward) and are added below.
+ */
