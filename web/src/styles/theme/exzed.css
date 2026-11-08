@@ -79,3 +79,12 @@ html.theme-exzed {
   --layer-max-wide: 2100px;
   --layer-max-list: 2100px;
 }
+
+/*
+ * The covered layer's tab (48.4): 48px (the Window card). The cascade rises by the tab and its 3px (layerGeometry.ts), so a taller tab is not clipped.
+ * Not done here, because design's text leaves it open: that a layer two back is inset 32px each side (relative to what, and instead of the scale
+ * Quantum recedes by), and the entry animation, whose `from` is still Quantum's (X-007).
+ */
+html.theme-exzed {
+  --tab-h: 48px;
+}

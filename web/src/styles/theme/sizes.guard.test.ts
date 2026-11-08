@@ -88,3 +88,11 @@ describe('size tokens: the width of a layer and the stage’s side gap', () => {
     expect(QUANTUM_GEOMETRY.cardMax).toBe(px(quantum('--layer-max')[0]!))
   })
 })
+
+describe('size tokens: the covered layer’s tab', () => {
+  it('the tab’s height is --tab-h, 34px in Quantum and 48px in eX-Zed (the Window card)', () => {
+    expect(declared(read('components/quantum/LayerCard/LayerCard.css'), '.q-layer-tab', 'height')).toBe('var(--tab-h)')
+    expect(definitions('--tab-h', ['styles/quantum/tokens.css', 'styles/theme/contract.css']).map(plain)).toEqual(['34px'])
+    expect(new RegExp('--tab-h\\s*:\\s*([^;]+);').exec(read('styles/theme/exzed.css'))?.[1]?.trim()).toBe('48px')
+  })
+})

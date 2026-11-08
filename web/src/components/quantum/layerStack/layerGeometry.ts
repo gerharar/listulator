@@ -1,3 +1,4 @@
+import { tokenPx } from '../../../lib/themeSizes.js'
 import { PEEK_DEPTH } from './layerStack.js'
 
 /**
@@ -21,14 +22,20 @@ import { PEEK_DEPTH } from './layerStack.js'
  * same real tab, just without the recede/animation this task adds.
  */
 const STAGE_TOP_PX = 15
-const DRUM_RISE_PX = [0, 37, 74] as const
 const DRUM_SCALE = [1, 0.959, 0.921] as const
 
-const DEEPEST_RISE_PX = DRUM_RISE_PX[DRUM_RISE_PX.length - 1] ?? 0
 const DEEPEST_SCALE = DRUM_SCALE[DRUM_SCALE.length - 1] ?? 1
 
+/**
+ * What a step back rises by (Phase 48.4): the covered layer's tab, which is the page's `--tab-h` tall (34px in Quantum, 48px in eX-Zed), and the
+ * 3px it needs besides (a 2px offset from the layer's top and a 1px border). In Quantum that is the 37px, and so the 74px two back, quoted above; a
+ * taller tab rises further, or the layer in front would cover it. The cascade's scale below, and what eX-Zed does instead of it, are X-007's.
+ */
+const TAB_CLEARANCE_PX = 3
+const QUANTUM_TAB_PX = 34
+
 function drumRise(step: number): number {
-  return DRUM_RISE_PX[step] ?? DEEPEST_RISE_PX
+  return Math.min(step, PEEK_DEPTH) * (tokenPx('--tab-h', QUANTUM_TAB_PX) + TAB_CLEARANCE_PX)
 }
 
 function drumScale(step: number): number {

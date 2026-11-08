@@ -177,3 +177,39 @@ test('with the theme exzed, the jump rail goes outside at 2724px and not at 2723
     await page.request.delete(`/api/lists/${id}`)
   }
 })
+
+/**
+ * The covered layer's tab (48.4): 34px in Quantum and 48px in eX-Zed, and in both the layer in front leaves it whole: its bottom is no lower than
+ * the front layer's top, one step back and two. (Scale and inset of the cascade are not this task's.)
+ */
+for (const theme of ['exzed', 'quantum'] as const) {
+  test(`with the theme ${theme}, a covered layer's tab is ${theme === 'exzed' ? 48 : 34}px and nothing in front of it clips it, one layer back and two`, async ({ page }) => {
+    const title = `e2e tab ${theme} ${Date.now()}`
+    const id = await makeList(page.request, title)
+
+    try {
+      await boot(page, theme)
+      await openList(page, title)
+      // Home is one back; the Preview of a New List's search would be two, so open Settings over the list: list -> Settings, Home two back.
+      await page.getByRole('button', { name: 'Settings' }).click()
+      await page.locator('.q-layer:not(.covered)').first().waitFor()
+      const rects = await page.evaluate(() => {
+        const layers = Array.from(document.querySelectorAll('.q-layer'))
+        return layers.map((layer) => {
+          const tab = layer.querySelector('.q-layer-tab')
+          return { top: layer.getBoundingClientRect().top, tab: tab ? { height: parseFloat(getComputedStyle(tab).height), bottom: tab.getBoundingClientRect().bottom } : null }
+        })
+      })
+      // Bottom-most (front) layer is last in the DOM; the covered layers are before it, deepest first.
+      expect(rects.length).toBe(3)
+      const [deepest, middle, front] = rects as [(typeof rects)[number], (typeof rects)[number], (typeof rects)[number]]
+      const height = theme === 'exzed' ? 48 : 34
+      expect(deepest.tab!.height).toBe(height)
+      expect(middle.tab!.height).toBe(height)
+      expect(middle.tab!.bottom, 'the front layer does not cover the middle tab').toBeLessThanOrEqual(front.top + 1)
+      expect(deepest.tab!.bottom, 'the middle layer does not cover the deepest tab').toBeLessThanOrEqual(middle.top + 1)
+    } finally {
+      await page.request.delete(`/api/lists/${id}`)
+    }
+  })
+}
