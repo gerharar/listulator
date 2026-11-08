@@ -367,3 +367,48 @@ test('with the theme exzed, a window resized past the cap keeps the rail as it w
     await page.request.delete(`/api/lists/${id}`)
   }
 })
+
+/**
+ * The header aligned to the window (48.5, design X-005). The bar spans the screen (the capped one: at 3440 and 3840 it is 2560 wide and centred) and its
+ * content spans the window's width: the logo's left edge and the last button's right edge (Quit on the desktop, About in a browser, which has no Quit)
+ * are the window's outer border edges, at every width: where the gap is 96px, where it shrinks, below 1128 and where the cap leaves more. Quantum's
+ * header keeps its 26px.
+ */
+const edges = (page: Page) =>
+  page.evaluate(() => {
+    const rect = (selector: string) => document.querySelector(selector)!.getBoundingClientRect()
+    const layer = document.querySelector('.q-layer:not(.covered)')!.getBoundingClientRect()
+    const last = document.querySelector('.q-appheader .tools')!.lastElementChild!.getBoundingClientRect()
+    const bar = rect('.q-appheader')
+    const shell = rect('.q-shell')
+
+    return { logo: rect('.q-wordmark').left, last: last.right, layerLeft: layer.left, layerRight: layer.right, bar: { left: bar.left, right: bar.right }, shell: { left: shell.left, right: shell.right } }
+  })
+
+for (const width of [800, 1000, 1128, 1200, 1272, 1440, 1920, 2560, 3440, 3840]) {
+  test(`with the theme exzed, at ${width}px the logo and the last button stand on the window's outer edges and the bar spans the screen`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 900 })
+    await boot(page, 'exzed')
+    await page.goto('/')
+    await page.locator('.q-home-row').first().waitFor()
+    const seen = await edges(page)
+
+    expect(seen.logo).toBe(seen.layerLeft)
+    expect(seen.last).toBe(seen.layerRight)
+    expect(seen.bar).toEqual(seen.shell)
+  })
+}
+
+test('with the theme quantum, the header keeps its 26px at any width', async ({ page }) => {
+  for (const width of [1440, 3440]) {
+    await page.setViewportSize({ width, height: 900 })
+    await boot(page, 'quantum')
+    await page.goto('/')
+    await page.locator('.q-home-row').first().waitFor()
+    const seen = await edges(page)
+
+    expect(seen.logo, `at ${width}`).toBe(26)
+    expect(seen.last, `at ${width}`).toBe(width - 26)
+    expect(seen.bar).toEqual({ left: 0, right: width })
+  }
+})

@@ -56,4 +56,7 @@ html {
 
   /* The cap on the app's width (48.5): the shell stops growing there and is centred. Quantum has none. */
   --app-max: none;
+
+  /* The header's side padding (48.5): the bar spans the screen and its content stands this far in. Quantum's fixed 26px. */
+  --header-gutter: 26px;
 }

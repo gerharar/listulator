@@ -140,3 +140,14 @@ html.theme-exzed:not([data-reduced]) .q-layer-tab {
 html.theme-exzed {
   --app-max: 2560px;
 }
+
+/*
+ * The header aligned to the window (48.5, design X-005): the black bar spans the (capped) screen, and its content stands exactly where the window does, so
+ * the logo's left edge and the last button's right edge are the window's outer border edges. The gutter is the window's own: the gap the stage keeps each
+ * layer from the sides (App.css: --stage-gap, shrinking to --stage-gap-min once the window is narrower than --layer-min and its gaps), or half of what the cap
+ * leaves, whichever is more (the window is centred beyond its cap). Every eX-Zed layer has the same gap and cap, so the header lines up with whichever is open.
+ * The percentages are the header's containing block's width, as the stage's are.
+ */
+html.theme-exzed {
+  --header-gutter: max(max(var(--stage-gap-min), min(var(--stage-gap), calc((100% - var(--layer-min)) / 2))), calc((100% - var(--layer-max)) / 2));
+}

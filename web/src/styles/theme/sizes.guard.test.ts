@@ -142,3 +142,20 @@ describe('size tokens: the cap on the app (design, X-002 and X-006)', () => {
     expect(plain(declared(read('styles/theme/exzed.css'), 'html.theme-exzed body', 'background')!)).toBe('var(--stage,var(--bg))')
   })
 })
+
+describe('size tokens: the header aligned to the window (design, X-005)', () => {
+  const header = () => read('components/quantum/AppHeader/AppHeader.css')
+  const exzedGutter = () => new RegExp('--header-gutter\\s*:\\s*([^;]+);').exec(read('styles/theme/exzed.css'))?.[1]?.trim()
+
+  it('the bar keeps its 14px above and below and takes its sides from --header-gutter, 26px in Quantum', () => {
+    expect(plain(declared(header(), '.q-appheader', 'padding')!)).toBe('14px var(--header-gutter)')
+    expect(definitions('--header-gutter', ['styles/quantum/tokens.css', 'styles/theme/contract.css']).map(plain)).toEqual(['26px'])
+  })
+
+  it('eX-Zed’s gutter is the window’s own gap and cap, so the logo and the last button stand on the window’s outer edges', () => {
+    // The same gap the stage keeps each layer (App.css), or half of what the cap leaves, whichever is more: the window is centred beyond its cap.
+    expect(plain(exzedGutter()!)).toBe(
+      'max(max(var(--stage-gap-min),min(var(--stage-gap),calc((100% - var(--layer-min)) / 2))),calc((100% - var(--layer-max)) / 2))',
+    )
+  })
+})
