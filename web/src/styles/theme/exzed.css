@@ -91,3 +91,37 @@ html.theme-exzed {
 html.theme-exzed {
   --tab-h: 48px;
 }
+
+/*
+ * The covered layers' cascade (48.4c, design's answer 4), as the Preview board draws it: each step back 40px higher (the tab tops 40 and 80px above the
+ * window; the window's 12px of rings covers the lower part of a 48px tab, leaving 28px for its label), scale 1 always (a scale would put pixels between
+ * pixels), one back exactly as wide as the window in front and two back 32px narrower on each side, which replaces Quantum's recede. This replaces the
+ * 48.4 rule (rise = tab + 3), which design did not want: "build it as the board, not with a clearance rule".
+ */
+html.theme-exzed {
+  --peek-rise: 40px;
+  --peek-scale-1: 1;
+  --peek-scale-2: 1;
+  --peek-inset-1: 0px;
+  --peek-inset-2: 32px;
+}
+
+/*
+ * The layer's motion is the app's, position only (answer 4c): the entry drops in from the position one back at scale 1 (q-drumIn reads --peek-rise and
+ * --peek-scale-1), without Quantum's animated blurred shadow (a blur would be a shadow in a theme that has none), and the covered tab slides in without
+ * its fade. Under reduced motion the rules of LayerCard.css that cut the animation apply, as in Quantum.
+ */
+html.theme-exzed:not([data-reduced]) .q-layer.enter {
+  animation: q-drumIn 380ms cubic-bezier(0.22, 0.7, 0.2, 1);
+}
+@keyframes q-tabIn-pos {
+  from {
+    transform: translateY(8px);
+  }
+  to {
+    transform: none;
+  }
+}
+html.theme-exzed:not([data-reduced]) .q-layer-tab {
+  animation: q-tabIn-pos 260ms ease-out;
+}

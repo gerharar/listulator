@@ -16,10 +16,10 @@ async function makeList(request: APIRequestContext, title: string, rows = 3) {
   return (await made.json()).id as string
 }
 
-async function boot(page: Page, theme: string) {
+async function boot(page: Page, theme: string, reducedMotion = 'true') {
   await page.addInitScript((entries) => {
     for (const [key, value] of entries) localStorage.setItem(key, value)
-  }, Object.entries({ theme, skin: 'dark-orange', reducedMotion: 'true' }))
+  }, Object.entries({ theme, skin: 'dark-orange', reducedMotion }))
 }
 
 async function openList(page: Page, title: string) {
@@ -200,35 +200,92 @@ test('with the theme exzed, the jump rail goes outside at 2244px, holds down to 
 })
 
 /**
- * The covered layer's tab (48.4): 34px in Quantum and 48px in eX-Zed, and in both the layer in front leaves it whole: its bottom is no lower than
- * the front layer's top, one step back and two. (Scale and inset of the cascade are not this task's.)
+ * The covered layers' cascade (48.4, as design drew it in answer 4). A list opened, then Settings over it: Home is two back, the list one back. eX-Zed:
+ * every tab 48px, each step back 40px higher (tab tops 40 and 80px above the window), scale 1, the layer one back exactly as wide as the window in front
+ * and the one two back 32px narrower on each side. Quantum: 37 and 74px, receding to .959 and .921, no inset. The entry animation is the app's
+ * (position only in eX-Zed: scale 1, no blurred shadow, no fade in the tab); the tool runs with reduced motion, so it is read here with motion on.
  */
 for (const theme of ['exzed', 'quantum'] as const) {
-  test(`with the theme ${theme}, a covered layer's tab is ${theme === 'exzed' ? 48 : 34}px and nothing in front of it clips it, one layer back and two`, async ({ page }) => {
-    const title = `e2e tab ${theme} ${Date.now()}`
+  test(`with the theme ${theme}, three stacked layers rise, recede and inset as the ${theme === 'exzed' ? 'board draws' : 'app always has'}`, async ({ page }) => {
+    const title = `e2e cascade ${theme} ${Date.now()}`
     const id = await makeList(page.request, title)
 
     try {
+      await page.setViewportSize({ width: 1920, height: 900 })
       await boot(page, theme)
       await openList(page, title)
-      // Home is one back; the Preview of a New List's search would be two, so open Settings over the list: list -> Settings, Home two back.
       await page.getByRole('button', { name: 'Settings' }).click()
       await page.locator('.q-layer:not(.covered)').first().waitFor()
-      const rects = await page.evaluate(() => {
-        const layers = Array.from(document.querySelectorAll('.q-layer'))
-        return layers.map((layer) => {
+      const layers = await page.evaluate(() =>
+        Array.from(document.querySelectorAll('.q-layer')).map((layer) => {
+          const rect = layer.getBoundingClientRect()
           const tab = layer.querySelector('.q-layer-tab')
-          return { top: layer.getBoundingClientRect().top, tab: tab ? { height: parseFloat(getComputedStyle(tab).height), bottom: tab.getBoundingClientRect().bottom } : null }
+
+          return { top: rect.top, left: rect.left, width: rect.width, tab: tab ? parseFloat(getComputedStyle(tab).height) : null }
+        }),
+      )
+      // The DOM holds the deepest layer first and the front one last.
+      expect(layers.length).toBe(3)
+      const [deepest, middle, front] = layers as [(typeof layers)[number], (typeof layers)[number], (typeof layers)[number]]
+
+      if (theme === 'exzed') {
+        expect([deepest.tab, middle.tab]).toEqual([48, 48])
+        expect(front.top - middle.top).toBe(40)
+        expect(front.top - deepest.top).toBe(80)
+        expect(middle.width).toBe(front.width)
+        expect(middle.left).toBe(front.left)
+        expect(deepest.width).toBe(front.width - 64)
+        expect(deepest.left).toBe(front.left + 32)
+      } else {
+        expect([deepest.tab, middle.tab]).toEqual([34, 34])
+        expect(front.top - middle.top).toBe(37)
+        expect(front.top - deepest.top).toBe(74)
+        expect(middle.width).toBeCloseTo(front.width * 0.959, 0)
+        expect(deepest.width).toBeCloseTo(front.width * 0.921, 0)
+      }
+    } finally {
+      await page.request.delete(`/api/lists/${id}`)
+    }
+  })
+
+  test(`with the theme ${theme}, a layer enters from the position one back${theme === 'exzed' ? ' at scale 1, with no shadow animation and a position-only tab' : ' receding, with its shadow animating'}`, async ({ page }) => {
+    const title = `e2e entry ${theme} ${Date.now()}`
+    const id = await makeList(page.request, title)
+
+    try {
+      await boot(page, theme, 'false')
+      await page.goto('/')
+      await page.locator('.q-home-row', { hasText: title }).waitFor()
+      const entry = await page.evaluate(async () => {
+        document.querySelector<HTMLElement>('.q-home-row')!.click()
+        const entering = await new Promise<Element>((resolve) => {
+          const timer = setInterval(() => {
+            const found = document.querySelector('.q-layer.enter')
+            if (found) {
+              clearInterval(timer)
+              resolve(found)
+            }
+          }, 2)
         })
+        const running = entering.getAnimations()
+        const drum = running.find((animation) => (animation as CSSAnimation).animationName === 'q-drumIn')!
+        // Held at its first frame: where the entering layer starts.
+        drum.pause()
+        drum.currentTime = 0
+
+        return { names: running.map((animation) => (animation as CSSAnimation).animationName), first: getComputedStyle(entering).transform }
       })
-      // Bottom-most (front) layer is last in the DOM; the covered layers are before it, deepest first.
-      expect(rects.length).toBe(3)
-      const [deepest, middle, front] = rects as [(typeof rects)[number], (typeof rects)[number], (typeof rects)[number]]
-      const height = theme === 'exzed' ? 48 : 34
-      expect(deepest.tab!.height).toBe(height)
-      expect(middle.tab!.height).toBe(height)
-      expect(middle.tab!.bottom, 'the front layer does not cover the middle tab').toBeLessThanOrEqual(front.top + 1)
-      expect(deepest.tab!.bottom, 'the middle layer does not cover the deepest tab').toBeLessThanOrEqual(middle.top + 1)
+      const tabAnimation = await page.locator('.q-layer-tab').first().evaluate((tab) => getComputedStyle(tab).animationName)
+
+      if (theme === 'exzed') {
+        expect(entry.names).toEqual(['q-drumIn'])
+        expect(entry.first).toBe('matrix(1, 0, 0, 1, 0, -40)')
+        expect(tabAnimation).toBe('q-tabIn-pos')
+      } else {
+        expect(entry.names).toEqual(['q-drumIn', 'q-drumShadow'])
+        expect(entry.first).toBe('matrix(0.959, 0, 0, 0.959, 0, -37)')
+        expect(tabAnimation).toBe('q-tabIn')
+      }
     } finally {
       await page.request.delete(`/api/lists/${id}`)
     }

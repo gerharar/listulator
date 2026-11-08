@@ -43,4 +43,12 @@ html {
 
   /* The covered layer's tab (48.4): its height, which layerGeometry.ts also reads, since each layer behind rises by it. */
   --tab-h: 34px;
+
+  /* The peek cascade of the covered layers (48.4c): what each step back rises by, the scale it recedes to and how far it is inset on each side. layerGeometry.ts
+     reads them, and so does the entering layer's first frame (`q-drumIn`). Quantum recedes by scale and insets nothing. */
+  --peek-rise: 37px;
+  --peek-scale-1: 0.959;
+  --peek-scale-2: 0.921;
+  --peek-inset-1: 0px;
+  --peek-inset-2: 0px;
 }

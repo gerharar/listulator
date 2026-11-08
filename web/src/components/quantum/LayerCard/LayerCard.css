@@ -17,7 +17,7 @@
   display: flex;
   flex-direction: column;
   /* The cap is --layer-max; a list or a Preview names its own (App sets --layer-cap to --layer-max-list), which is the same number in Quantum. */
-  max-width: var(--layer-cap, var(--layer-max));
+  max-width: calc(var(--layer-cap, var(--layer-max)) - 2 * var(--peek-inset, 0px));
   margin: 0 auto;
   background: var(--card);
   border: 2px solid var(--rule);
@@ -103,15 +103,13 @@
 }
 
 /*
- * `from` must equal `layerGeometry.ts`'s `DRUM_RISE_PX[1]`/`DRUM_SCALE[1]`
- * — the entering (depth 0) card should visually continue from exactly
- * where a depth-1 covered card sits, not some other position. Keep the
- * two in sync by hand; there's no single source shared between CSS and
- * JS here.
+ * `from` is where a depth-1 covered card sits: the entering (depth 0) card should visually continue from exactly there, not from some other position.
+ * Since Phase 48.4c the two read the same numbers, the page's `--peek-rise` and `--peek-scale-1` (`layerGeometry.ts` reads them too), so they cannot be
+ * out of step by hand any more; Quantum's are the 37px and .959 this keyframe used to spell out.
  */
 @keyframes q-drumIn {
   from {
-    transform: translateY(-37px) scale(0.959);
+    transform: translateY(calc(-1 * var(--peek-rise))) scale(var(--peek-scale-1));
   }
   to {
     transform: none;

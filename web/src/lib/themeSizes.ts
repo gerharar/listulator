@@ -16,3 +16,12 @@ export function tokenPx(name: string, fallback: number): number {
 
   return match ? Number(match[1]) : fallback
 }
+
+/** A unitless number token (a scale), the same way: a plain number on `<html>`, `0.959` or `.5` or `1`, else the fallback. */
+export function tokenNumber(name: string, fallback: number): number {
+  if (typeof document === 'undefined') return fallback
+  const root = document.documentElement
+  const raw = (getComputedStyle(root).getPropertyValue(name) || root.style.getPropertyValue(name)).trim()
+
+  return /^-?(\d+\.?\d*|\.\d+)$/.test(raw) ? Number(raw) : fallback
+}

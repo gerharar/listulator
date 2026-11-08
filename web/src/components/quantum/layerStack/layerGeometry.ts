@@ -1,4 +1,4 @@
-import { tokenPx } from '../../../lib/themeSizes.js'
+import { tokenNumber, tokenPx } from '../../../lib/themeSizes.js'
 import { PEEK_DEPTH } from './layerStack.js'
 
 /**
@@ -22,24 +22,34 @@ import { PEEK_DEPTH } from './layerStack.js'
  * same real tab, just without the recede/animation this task adds.
  */
 const STAGE_TOP_PX = 15
-const DRUM_SCALE = [1, 0.959, 0.921] as const
-
-const DEEPEST_SCALE = DRUM_SCALE[DRUM_SCALE.length - 1] ?? 1
 
 /**
- * What a step back rises by (Phase 48.4): the covered layer's tab, which is the page's `--tab-h` tall (34px in Quantum, 48px in eX-Zed), and the
- * 3px it needs besides (a 2px offset from the layer's top and a 1px border). In Quantum that is the 37px, and so the 74px two back, quoted above; a
- * taller tab rises further, or the layer in front would cover it. The cascade's scale below, and what eX-Zed does instead of it, are X-007's.
+ * The cascade's numbers are the page's (Phase 48.4c, design's answer 4): what a step back rises by (`--peek-rise`: the 37px above, so 74px two back,
+ * in Quantum; 40px in eX-Zed, where the board puts the tab tops 40 and 80px above the window), the scale each step recedes to (`--peek-scale-1` and
+ * `-2`: .959 and .921 in Quantum, 1 in eX-Zed, which must not put pixels between pixels) and how far a layer is inset on each side (`--peek-inset-1`
+ * and `-2`: none in Quantum, 0 and 32px in eX-Zed, where the inset replaces the recede). There is no clearance rule, as there was in 48.4 (the rise as the
+ * tab's height plus 3px): the board decides what is visible, and the window's rings cover the lower part of a 48px tab by design.
  */
-const TAB_CLEARANCE_PX = 3
-const QUANTUM_TAB_PX = 34
+const QUANTUM = { rise: 37, scale: [1, 0.959, 0.921] as const, inset: [0, 0, 0] as const }
 
 function drumRise(step: number): number {
-  return Math.min(step, PEEK_DEPTH) * (tokenPx('--tab-h', QUANTUM_TAB_PX) + TAB_CLEARANCE_PX)
+  return Math.min(step, PEEK_DEPTH) * tokenPx('--peek-rise', QUANTUM.rise)
 }
 
 function drumScale(step: number): number {
-  return DRUM_SCALE[step] ?? DEEPEST_SCALE
+  const deepest = Math.min(step, PEEK_DEPTH)
+  if (deepest === 0) return 1
+
+  return tokenNumber(`--peek-scale-${deepest}`, QUANTUM.scale[deepest] ?? 1)
+}
+
+/** How far a layer this many steps back is inset on each side; `undefined` for none, so a theme without an inset adds nothing to the layer. */
+function drumInset(step: number): number | undefined {
+  const deepest = Math.min(step, PEEK_DEPTH)
+  if (deepest === 0) return undefined
+  const inset = tokenPx(`--peek-inset-${deepest}`, QUANTUM.inset[deepest] ?? 0)
+
+  return inset > 0 ? inset : undefined
 }
 
 export interface LayerGeometry {
@@ -47,6 +57,8 @@ export interface LayerGeometry {
   top: number
   /** `undefined` for the active layer (depth 0) — nothing to rise or recede from. */
   transform: string | undefined
+  /** Pixels of inset on each side (`--peek-inset`, which the stage's CSS reads); `undefined` when there is none. */
+  inset?: number | undefined
 }
 
 /**
@@ -57,8 +69,11 @@ export interface LayerGeometry {
  */
 export function layerGeometry(visibleCount: number, depth: number): LayerGeometry {
   const baselineStep = Math.min(visibleCount - 1, PEEK_DEPTH)
+  const inset = drumInset(depth)
+
   return {
     top: STAGE_TOP_PX + drumRise(baselineStep),
     transform: depth === 0 ? undefined : `translateY(-${drumRise(depth)}px) scale(${drumScale(depth)})`,
+    ...(inset !== undefined && { inset }),
   }
 }

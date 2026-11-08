@@ -271,7 +271,7 @@ function AppShellBody({ skin, onSkinChange }: AppShellBodyProps) {
           // the drum carousel's real peek cascade (task 10.9c), not 10.9's
           // fixed-37px-step placeholder.
           const depth = layerStack.visible.length - 1 - index
-          const { top, transform } = layerGeometry(layerStack.visible.length, depth)
+          const { top, transform, inset } = layerGeometry(layerStack.visible.length, depth)
           // The list's rail may lie outside the card (H-019): the card then lets it show, and gives up the odd pixel so the margins are whole.
           // Only then: inside, the card keeps clipping, so a layer taller than a short window still scrolls.
           const reach = (layer.kind === 'list' || layer.kind === 'preview') && railWindow.placement === 'outside'
@@ -285,7 +285,7 @@ function AppShellBody({ skin, onSkinChange }: AppShellBodyProps) {
             <LayerCard
               key={layer.id}
               reach={reach}
-              style={{ top, transform, zIndex: 10 + fullIndex, ...(width !== null && { width }), ...cap, ...border } as CSSProperties}
+              style={{ top, transform, zIndex: 10 + fullIndex, ...(width !== null && { width }), ...cap, ...(inset !== undefined && { '--peek-inset': `${inset}px` }), ...border } as CSSProperties}
               entering={layer.id === layerStack.enteringId}
               covered={!isTop}
               tabLabel={resolveTabLabel(layer.tabLabel)}

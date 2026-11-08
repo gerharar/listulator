@@ -98,3 +98,32 @@ describe('size tokens: the covered layer’s tab', () => {
     expect(new RegExp('--tab-h\\s*:\\s*([^;]+);').exec(read('styles/theme/exzed.css'))?.[1]?.trim()).toBe('48px')
   })
 })
+
+describe('size tokens: the peek cascade of the covered layers (design, answer 4)', () => {
+  const QUANTUM_PEEK = { '--peek-rise': '37px', '--peek-scale-1': '.959', '--peek-scale-2': '.921', '--peek-inset-1': '0px', '--peek-inset-2': '0px' } as const
+  const EXZED_PEEK = { '--peek-rise': '40px', '--peek-scale-1': '1', '--peek-scale-2': '1', '--peek-inset-1': '0px', '--peek-inset-2': '32px' } as const
+  const exzed = read('styles/theme/exzed.css')
+  const exzedValue = (token: string) => new RegExp(`${token}\\s*:\\s*([^;]+);`).exec(exzed)?.[1]?.trim()
+
+  it.each(Object.entries(QUANTUM_PEEK))('Quantum’s %s is exactly the value it replaced', (token, literal) => {
+    expect(definitions(token, ['styles/quantum/tokens.css', 'styles/theme/contract.css']).map(plain)).toEqual([literal])
+  })
+
+  it.each(Object.entries(EXZED_PEEK))('eX-Zed sets %s to %s (the board: tab tops 40 and 80px up, scale 1, two back 32px in)', (token, value) => {
+    expect(exzedValue(token), token).toBe(value)
+  })
+
+  it('the entering layer starts where the layer one back is, from the page’s own rise and scale (so a theme’s motion matches its cascade)', () => {
+    const css = read('components/quantum/LayerCard/LayerCard.css')
+    const from = /@keyframes q-drumIn\s*{\s*from\s*{([^}]*)}/.exec(css)?.[1] ?? ''
+
+    expect(plain(from)).toContain('transform: translateY(calc(-1 * var(--peek-rise))) scale(var(--peek-scale-1))')
+  })
+
+  it('eX-Zed’s layer motion is position only: no blurred shadow in the entry and no fade in the tab', () => {
+    expect(exzed).toMatch(/html\.theme-exzed:not\(\[data-reduced\]\) \.q-layer\.enter\s*{\s*animation:\s*q-drumIn [^;]+;\s*}/)
+    expect(exzed).not.toMatch(/\.q-layer\.enter[^}]*q-drumShadow/)
+    expect(exzed).toMatch(/@keyframes q-tabIn-pos\s*{[^}]*translateY\(8px\)[^}]*}[^}]*}/)
+    expect(exzed).not.toMatch(/@keyframes q-tabIn-pos[^@]*opacity/)
+  })
+})

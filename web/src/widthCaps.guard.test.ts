@@ -75,7 +75,7 @@ const KEPT: readonly (readonly [string, string, string])[] = [
   ['screens/settings/SettingsScreen.css', '.q-settings-sections', '880px'],
   ['screens/about/AboutScreen.css', '.q-about-column', '760px'],
   // The two layer caps are tokens since Phase 48.4 (a theme sets its own); what stays pinned is that they are read, and below that what they are in Quantum.
-  ['components/quantum/LayerCard/LayerCard.css', '.q-layer', 'var(--layer-cap, var(--layer-max))'],
+  ['components/quantum/LayerCard/LayerCard.css', '.q-layer', 'calc(var(--layer-cap, var(--layer-max)) - 2 * var(--peek-inset, 0px))'],
   ['components/quantum/LayerCard/LayerCard.css', '.q-layer.wide', 'var(--layer-max-wide)'],
   ['components/quantum/AppErrorBoundary/AppErrorBoundary.css', '.q-crash .q-error-block', '480px'],
   // The List Vault browser's category column: as wide as its longest row, but never past this (owner, 2026-10-27; the name ellipsises, the count never).
