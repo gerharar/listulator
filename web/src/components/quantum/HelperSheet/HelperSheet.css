@@ -53,7 +53,7 @@
 
 /* Surprise Me (10.29): shelf chips, the six dials and the landed list. */
 .q-shelves { margin: 10px 0 0; display: flex; flex-wrap: wrap; gap: 6px; }
-.q-shelves .q-chip.none { opacity: 0.5; }
+.q-shelves .q-chip.none { opacity: var(--o-disabled-soft); }
 .q-reel { margin-top: 20px; border: 2px solid var(--rule); padding: 18px 19px; }
 .q-reel-head { display: flex; align-items: center; gap: 10px; }
 .q-dials { display: flex; gap: 3px; }

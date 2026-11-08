@@ -30,6 +30,6 @@
   color: var(--accentInk);
 }
 .q-chip:disabled {
-  opacity: 0.45;
+  opacity: var(--o-disabled);
   cursor: default;
 }

@@ -98,7 +98,7 @@
   inset: 0;
   z-index: 5;
   cursor: pointer;
-  background: color-mix(in srgb, var(--bg) 94%, transparent);
+  background: var(--veil);
 }
 
 /*

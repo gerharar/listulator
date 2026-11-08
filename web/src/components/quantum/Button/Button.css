@@ -57,7 +57,7 @@
   filter: brightness(1.12);
 }
 .q-btn:disabled {
-  opacity: 0.45;
+  opacity: var(--o-disabled);
   cursor: default;
   filter: none;
 }
@@ -107,7 +107,7 @@
   color: var(--ink);
 }
 .q-icon-btn:disabled {
-  opacity: 0.45;
+  opacity: var(--o-disabled);
   cursor: default;
 }
 .q-icon-btn svg {

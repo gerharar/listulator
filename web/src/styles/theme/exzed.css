@@ -37,3 +37,16 @@ html.theme-exzed {
   --e-layer-covered: none;
   --e-tooltip: none;
 }
+
+/*
+ * No fade (48.3): everything is drawn at full strength. A disabled or dragged thing is told apart by a shape (a dotted outline, a dithered icon:
+ * X-007's per-component work), a covered layer is drawn at normal brightness (no veil; the layer still takes the click that goes back), and a
+ * hover is an accent fill instead of a brighter button. This only makes the fade impossible to come back through the hooks: Quantum's colour
+ * tokens (`--hover`, `--line`, ...) are rgba until X-003 gives the theme solid ones, so "no alpha anywhere" is X-004's test, not this one's.
+ */
+html.theme-exzed {
+  --o-disabled: 1;
+  --o-dragging: 1;
+  --o-disabled-soft: 1;
+  --veil: transparent;
+}
