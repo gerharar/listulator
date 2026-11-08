@@ -27,7 +27,7 @@ export default defineConfig({
   test: {
     // `*.perf.test.ts` are the by-hand performance runs (`vitest.perf.config.ts`), not part of the suite.
     // `e2e-desktop/` is the Windows update test's Playwright specs (31.7), driven by `npm run test:desktop-update`.
-    exclude: [...defaultExclude, 'e2e/**', 'e2e-desktop/**', '**/*.perf.test.ts'],
+    exclude: [...defaultExclude, 'e2e/**', 'e2e-desktop/**', 'e2e-tools/**', '**/*.perf.test.ts'],
   },
   plugins: [
     react(),

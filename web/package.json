@@ -12,6 +12,7 @@
     "preview": "vite preview",
     "test": "vitest run",
     "test:e2e": "playwright test",
+    "identity": "playwright test -c e2e-tools/playwright.identity.config.ts",
     "playwright:install": "playwright install --with-deps chromium webkit",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },

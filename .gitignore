@@ -67,3 +67,7 @@ npm-debug.log*
 *.pfx
 .listulator-updater*
 !*.key.pub
+
+# The identity tool's captures (web/e2e-tools, Phase 48.0): platform- and machine-specific screenshots and dumps, taken by hand to compare a
+# change against the commit before it. The tool itself is committed; its baselines never are.
+/web/e2e-tools/baselines/
