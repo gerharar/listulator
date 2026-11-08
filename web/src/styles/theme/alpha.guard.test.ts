@@ -5,7 +5,7 @@ import { declared, definitions, plain, read } from './cssGuard.js'
  * Alpha is a hook (Phase 48.3, X-002): the fades a Quantum screen draws (disabled, dragging, the covered layer's veil, the hover brightening) are
  * read from tokens, so a theme without transparency can replace each with a solid look. A token's Quantum value is the literal it replaced
  * (pinned from 1.4.0, `b475e5d`); the identity tool shows the pixels, this shows why they cannot drift. The list's busy fade (`.q-hold.is-busy`, 0.45)
- * joined them in 48.4c (design, answer 6: eX-Zed does not fade a busy list). Not hooked, on purpose: the category art's `--o-art`, which 48.6 takes.
+ * joined them in 48.4c (design, answer 6: eX-Zed does not fade a busy list). Not hooked, on purpose: the category art's `--o-art`, which is X-006's (the art is not here yet).
  */
 const QUANTUM = {
   '--o-disabled': '.45',

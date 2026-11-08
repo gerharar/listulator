@@ -1,5 +1,5 @@
-import { readFileSync } from 'node:fs'
-import { join } from 'node:path'
+import { readdirSync, readFileSync } from 'node:fs'
+import { join, relative, sep } from 'node:path'
 
 /**
  * What the theme guards (elevation, alpha) share: reading a stylesheet under `web/src` without its comments, and reading one declaration out of
@@ -48,4 +48,89 @@ export function topLevel(value: string): string[] {
     }
   }
   return [...parts, value.slice(start)]
+}
+
+export interface Declaration {
+  /** The selector (or at-rule header) of the rule the declaration is in, whitespace collapsed. */
+  selector: string
+  property: string
+  value: string
+  /** Inside a `@keyframes`, whatever its step is called. */
+  keyframes: boolean
+}
+
+/**
+ * Every declaration in a stylesheet, with its rule's selector, in order. Comments are skipped, and so are the `;`, `{` and `}` inside parentheses
+ * and quotes (a `url('x;y')`). Not a CSS parser: enough to say which rule a property is in and whether a keyframes holds it.
+ */
+export function declarations(css: string): Declaration[] {
+  const found: Declaration[] = []
+  const stack: string[] = []
+  let buffer = ''
+  let depth = 0
+  let quote = ''
+
+  const emit = () => {
+    const colon = buffer.indexOf(':')
+    if (colon > 0 && stack.length > 0) {
+      const name = buffer.slice(0, colon).trim()
+      found.push({
+        selector: stack[stack.length - 1]!,
+        property: name.startsWith('--') ? name : name.toLowerCase(),
+        value: buffer.slice(colon + 1).trim(),
+        keyframes: stack.some((header) => /^@(?:-\w+-)?keyframes\b/.test(header)),
+      })
+    }
+    buffer = ''
+  }
+
+  for (const char of css.replace(/\/\*[\s\S]*?\*\//g, '')) {
+    if (quote) {
+      if (char === quote) quote = ''
+      buffer += char
+    } else if (char === '"' || char === "'") {
+      quote = char
+      buffer += char
+    } else if (char === '(') {
+      depth++
+      buffer += char
+    } else if (char === ')') {
+      depth--
+      buffer += char
+    } else if (depth > 0) {
+      buffer += char
+    } else if (char === '{') {
+      stack.push(buffer.trim().replace(/\s+/g, ' '))
+      buffer = ''
+    } else if (char === '}') {
+      emit()
+      stack.pop()
+    } else if (char === ';') {
+      emit()
+    } else {
+      buffer += char
+    }
+  }
+  return found
+}
+
+/** Every value each custom property is given in a stylesheet, in every block that sets it. */
+export function customProperties(css: string): Map<string, string[]> {
+  const found = new Map<string, string[]>()
+  for (const d of declarations(css)) {
+    if (!d.property.startsWith('--')) continue
+    found.set(d.property, [...(found.get(d.property) ?? []), d.value])
+  }
+  return found
+}
+
+/** Every stylesheet under `web/src`, as a path relative to it with forward slashes, in a fixed order. */
+export function stylesheets(): string[] {
+  const walk = (dir: string): string[] =>
+    readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
+      const path = join(dir, entry.name)
+      if (entry.isDirectory()) return entry.name === 'node_modules' ? [] : walk(path)
+      return entry.name.endsWith('.css') ? [relative(SRC, path).split(sep).join('/')] : []
+    })
+  return walk(SRC).sort()
 }
