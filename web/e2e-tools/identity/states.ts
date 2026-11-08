@@ -253,4 +253,33 @@ export const STATES: readonly IdentityState[] = [
       await page.locator('.q-item', { hasText: 'Saga Three' }).hover()
     },
   },
+  {
+    // TabStrip: the selected tab's hover is its own brightness (1.1, the others 1.12).
+    id: 'hover-tab',
+    keepPointer: true,
+    setup: async (page) => {
+      await newList(page, 'Movies')
+      await page.getByRole('tab', { name: q.createList.handTab }).click()
+      await page.getByRole('tab', { name: q.createList.handTab }).hover()
+    },
+  },
+  {
+    id: 'hover-status',
+    keepPointer: true,
+    setup: async (page) => {
+      await newList(page, 'Movies')
+      await page.getByRole('tab', { name: q.createList.handTab }).click()
+      await page.locator('.q-status-picker button').last().hover()
+    },
+  },
+  {
+    id: 'hover-danger',
+    keepPointer: true,
+    setup: async (page) => {
+      await openList(page, SEED.saga)
+      await page.getByRole('button', { name: 'More', exact: true }).click()
+      await page.getByRole('button', { name: 'Delete List' }).click()
+      await page.locator('.q-btn.danger').hover()
+    },
+  },
 ]

@@ -1,6 +1,5 @@
-import { readFileSync } from 'node:fs'
-import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
+import { declared, definitions, plain, read, topLevel } from './cssGuard.js'
 
 /**
  * Elevation is a hook (Phase 48.2, X-002): every shadow a Quantum overlay draws is read from a token, so a theme can replace it with a frame.
@@ -9,26 +8,6 @@ import { describe, expect, it } from 'vitest'
  * literals (`q-drumShadow`) are deliberately left as they were: the tool samples settled screens and cannot see them, and eX-Zed replaces its own
  * motion in X-007.
  */
-const SRC = join(import.meta.dirname, '..', '..')
-const read = (path: string) => readFileSync(join(SRC, path), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '')
-
-/** One shadow value in a form that does not depend on how it was typed: no extra spaces, no leading zero before a point. */
-const plain = (value: string) =>
-  value
-    .replace(/\s+/g, ' ')
-    .replace(/\s*,\s*/g, ',')
-    .replace(/\(\s+/g, '(')
-    .replace(/\s+\)/g, ')')
-    .replace(/\b0\./g, '.')
-    .replace(/(\.\d*[1-9])0+\b/g, '$1')
-    .trim()
-
-/** The `property` declared by the rule whose selector is exactly `selector`, as written. */
-function declared(css: string, selector: string, property: string): string | undefined {
-  const escaped = selector.replace(/[.[\]()]/g, '\\$&')
-  const rule = new RegExp(`(?:^|})\\s*${escaped}\\s*{([^}]*)}`).exec(css)
-  return new RegExp(`(?:^|[;\\s])${property}\\s*:\\s*([^;]+);`).exec(rule?.[1] ?? '')?.[1]?.trim()
-}
 
 /** What 1.4.0 wrote as a literal in each place, now read through the token. */
 const QUANTUM = {
@@ -52,26 +31,7 @@ const USES: readonly { file: string; selector: string; token: keyof typeof QUANT
 ]
 
 /** Quantum's own values: the generated tokens, and the contract file for the one token design's file does not have (the tooltip's). */
-const quantumValue = (token: string) =>
-  [read('styles/quantum/tokens.css'), read('styles/theme/contract.css')]
-    .map((css) => new RegExp(`(?:^|[;{\\s])${token}\\s*:\\s*([^;]+);`).exec(css)?.[1])
-    .filter((value): value is string => value !== undefined)
-
-/** Splits on the commas outside any parentheses: `var(--a,var(--b))` is one piece. */
-function topLevel(value: string): string[] {
-  const parts: string[] = []
-  let depth = 0
-  let start = 0
-  for (let at = 0; at < value.length; at++) {
-    if (value[at] === '(') depth++
-    else if (value[at] === ')') depth--
-    else if (value[at] === ',' && depth === 0) {
-      parts.push(value.slice(start, at))
-      start = at + 1
-    }
-  }
-  return [...parts, value.slice(start)]
-}
+const quantumValue = (token: string) => definitions(token, ['styles/quantum/tokens.css', 'styles/theme/contract.css'])
 
 describe('elevation tokens', () => {
   it.each(USES)('$selector in $file draws its shadow from $token, not from a literal', ({ file, selector, token }) => {
