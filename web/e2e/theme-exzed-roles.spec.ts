@@ -46,12 +46,16 @@ test.describe('with the theme exzed', () => {
     })
   }
 
-  test('an eX-Zed page with no skin of its own yet is the default skin (Lode)', async ({ page }) => {
+  test('an eX-Zed page is Lode by default: the app sets exzed-1d, and the bare theme-exzed block gives the same roles with no skin attribute at all', async ({ page }) => {
     await boot(page, 'exzed')
-    // Quantum’s skin key is on `<html>` (the skin preference is 49.2’s): no `exzed-…` block matches, the bare `theme-exzed` default does.
-    expect(await page.evaluate(() => document.documentElement.getAttribute('data-theme'))).toBe('dark-orange')
+    // 49.2: with no exzedSkin stored the app puts `exzed-1d` on `<html>` (never a Quantum key).
+    expect(await page.evaluate(() => document.documentElement.getAttribute('data-theme'))).toBe('exzed-1d')
     expect((await roles(page, 'html')).acc).toBe('#ffff00')
-    expect((await roles(page, 'html')).paper).toBe('#000000')
+
+    // The generated default block (`html.theme-exzed`) covers the moment before a skin is set: take the attribute away and the roles are Lode's.
+    await page.evaluate(() => document.documentElement.removeAttribute('data-theme'))
+    const bare = await roles(page, 'html')
+    expect([bare.acc, bare.paper]).toEqual(['#ffff00', '#000000'])
   })
 
   test('an element that carries its own skin draws that skin, whatever the page’s (the swatch)', async ({ page }) => {

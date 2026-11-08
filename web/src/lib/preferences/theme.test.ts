@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 import type { PreferencesStore } from './store.js'
-import { isTheme, resolveTheme, THEMES } from './theme.js'
+import { isTheme, resolveTheme, setTheme, THEMES } from './theme.js'
 
 function fakeStore(initial: Record<string, string> = {}): PreferencesStore {
   const data = new Map(Object.entries(initial))
@@ -47,6 +47,27 @@ describe('resolveTheme', () => {
     expect(await resolveTheme(store)).toBe('quantum')
     expect(store.get).toHaveBeenCalledTimes(1)
     expect(store.get).toHaveBeenCalledWith('theme')
+  })
+})
+
+describe('setTheme', () => {
+  it.each(THEMES)('writes %s under the key `theme` and resolveTheme reads it back', async (theme) => {
+    const store = fakeStore()
+
+    await setTheme(store, theme)
+
+    expect(store.set).toHaveBeenCalledTimes(1)
+    expect(store.set).toHaveBeenCalledWith('theme', theme)
+    expect(await resolveTheme(store)).toBe(theme)
+  })
+
+  it('writes the theme and nothing else: neither skin is touched', async () => {
+    const store = fakeStore({ skin: 'dark-green', exzedSkin: 'exzed-1c' })
+
+    await setTheme(store, 'exzed')
+
+    expect(await store.get('skin')).toBe('dark-green')
+    expect(await store.get('exzedSkin')).toBe('exzed-1c')
   })
 })
 

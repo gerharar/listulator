@@ -2,8 +2,8 @@ import type { PreferencesStore } from './store.js'
 
 /**
  * The app's themes: Quantum, and eX-Zed (the ZX Spectrum look, Phase 48). A theme is the drawing; a skin (`skin.ts`) is a colour set inside it.
- * Only `resolveTheme` exists: there is no control and nothing writes the key until X-003 adds the choice, so today a stored `exzed` can only
- * come from a test or from someone editing their own preferences.
+ * `setTheme` writes the choice (X-003); until Settings offers it (49.8) a stored `exzed` can only come from a test or from someone editing their own
+ * preferences.
  */
 export const THEMES = ['quantum', 'exzed'] as const
 
@@ -24,4 +24,8 @@ export async function resolveTheme(store: PreferencesStore): Promise<Theme> {
   } catch {
     return 'quantum'
   }
+}
+
+export async function setTheme(store: PreferencesStore, theme: Theme): Promise<void> {
+  await store.set(THEME_KEY, theme)
 }

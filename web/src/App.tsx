@@ -5,6 +5,9 @@ import { copy } from './locale/index.js'
 import { getPreferencesStore } from './lib/preferences/store.js'
 import { resolveSkin, setSkin as persistSkin, type Skin } from './lib/preferences/skin.js'
 import { resolveTheme, type Theme } from './lib/preferences/theme.js'
+import { resolveExzedSkin } from './lib/preferences/exzedSkin.js'
+import { activeSkin } from './lib/preferences/activeSkin.js'
+import type { ExzedSkin } from './lib/preferences/exzedSkins.js'
 import { resolveLanguage, type Language } from './lib/preferences/language.js'
 import { resolveReducedMotionSetting } from './lib/preferences/motion.js'
 import { resolveMarkOpenGroups } from './lib/preferences/groupLine.js'
@@ -55,6 +58,8 @@ function homeLayer(): LayerDescriptor<string> {
 
 interface BootState {
   skin: Skin
+  /** eX-Zed's own skin (X-003), read at boot beside Quantum's: the page carries the active theme's (`activeSkin`). */
+  exzedSkin: ExzedSkin
   /** The theme (Phase 48): read once at boot; nothing in the app changes it yet. */
   theme: Theme
   language: Language
@@ -87,16 +92,17 @@ export function App() {
     const store = getPreferencesStore()
     Promise.all([
       resolveSkin(store),
+      resolveExzedSkin(store),
       resolveTheme(store),
       resolveLanguage(store),
       resolveReducedMotionSetting(store),
       resolveMarkOpenGroups(store),
       resolveShowTimeLeft(store),
     ])
-      .then(([skin, theme, language, reducedSetting, markOpenGroups, showTimeLeft]) => {
+      .then(([skin, exzedSkin, theme, language, reducedSetting, markOpenGroups, showTimeLeft]) => {
         // Before the first render of the shell: its sizes are read from the page as it lays out (themeSizes.ts).
         applyThemeClass(theme)
-        setBoot({ skin, theme, language, reducedSetting, markOpenGroups, showTimeLeft })
+        setBoot({ skin, exzedSkin, theme, language, reducedSetting, markOpenGroups, showTimeLeft })
       })
       .catch((cause: unknown) =>
         setError(cause instanceof Error ? cause.message : copy.app.unknownError),
@@ -126,7 +132,7 @@ function QuantumShell({ initial }: { initial: BootState }) {
       initialReducedSetting={initial.reducedSetting}
       store={store}
     >
-      <DocumentTheme skin={skin} theme={initial.theme}>
+      <DocumentTheme skin={activeSkin(initial.theme, { quantum: skin, exzed: initial.exzedSkin })} theme={initial.theme}>
         <ThemeBackdrop />
         <LiveRegionProvider>
           <ToastProvider>
