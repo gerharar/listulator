@@ -20,3 +20,20 @@ html.theme-exzed body {
 html.theme-exzed img {
   image-rendering: pixelated;
 }
+
+/*
+ * Elevation becomes frames (48.2): no shadow, no blur. A window (a layer, the helper sheet) has design's double frame: a 4px `frame-hi` border,
+ * then rings of 4px `paper`, `frame`, `paper`, which are the three entries below; the border is the element's own and arrives with the border
+ * area (48.5) and the per-component work (X-007). A popover, a menu, the dropdown list, the platform panel and a toast have the single frame: a
+ * 2px `frame-hi` border and one 4px `paper` ring. The tooltip is a 2px border with no ring, and a covered layer is a tab drawn with its border
+ * only (the Window card), so both are none. Ring colours are the roles eX-Zed's skins give (X-003); until they exist each falls back to the
+ * Quantum role nearest to it, so the theme class can be tried on any Quantum skin.
+ */
+html.theme-exzed {
+  --e-pop: 0 0 0 4px var(--paper, var(--card));
+  --e-toast: 0 0 0 4px var(--paper, var(--card));
+  --e-sheet: 0 0 0 4px var(--paper, var(--card)), 0 0 0 8px var(--frame, var(--rule)), 0 0 0 12px var(--paper, var(--card));
+  --e-layer-rest: 0 0 0 4px var(--paper, var(--card)), 0 0 0 8px var(--frame, var(--rule)), 0 0 0 12px var(--paper, var(--card));
+  --e-layer-covered: none;
+  --e-tooltip: none;
+}

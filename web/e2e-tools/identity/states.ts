@@ -209,6 +209,16 @@ export const STATES: readonly IdentityState[] = [
     },
   },
   {
+    // The panel beside an item's Edit window (PlatformPanel); the add row's picker above is an ordinary popover.
+    id: 'item-platform-panel',
+    setup: async (page) => {
+      await openList(page, SEED.games)
+      await page.getByRole('button', { name: 'Edit Game Alpha' }).click()
+      await page.locator('.q-platfield').click()
+      await page.locator('.q-platpanel').waitFor()
+    },
+  },
+  {
     id: 'dragging-row',
     keepPointer: true,
     setup: async (page) => {

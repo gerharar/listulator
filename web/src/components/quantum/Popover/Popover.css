@@ -13,7 +13,7 @@
   padding: 14px;
   background: var(--card);
   border: 1px solid var(--rule);
-  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.18);
+  box-shadow: var(--e-pop);
 }
 /* The content sits here so it can scroll without clipping the tail (outside .q-pop's box). It scrolls only
    once Popover has capped the card to the screen (data-capped): otherwise overflow stays visible, and a

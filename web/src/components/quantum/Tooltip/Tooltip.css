@@ -9,7 +9,7 @@
   background: var(--card);
   color: var(--ink);
   border: 1px solid var(--rule);
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.2);
+  box-shadow: var(--e-tooltip);
   font: 400 12px/1.4 var(--font-sans);
   overflow-wrap: anywhere;
   pointer-events: none;

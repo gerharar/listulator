@@ -7,5 +7,11 @@
  * before and after (the identity tool, web/e2e-tools, shows it); `html.theme-exzed` in exzed.css gives the other theme's value.
  *
  * The font role needs no entry: `--font-sans` and `--font-mono` are already tokens (tokens.css) and exzed.css replaces both.
- * The hooks for elevation, alpha, sizes and widths arrive with their tasks (48.2 onward) and are added below.
+ * The hooks for alpha, sizes and widths arrive with their tasks (48.3 onward) and are added below.
  */
+
+html {
+  /* Elevation (48.2). The overlays read --e-pop, --e-toast, --e-sheet, --e-layer-rest and --e-layer-covered, which design's tokens already hold with
+     Quantum's values (generated into tokens.css); the tooltip's is the one design's file does not have. */
+  --e-tooltip: 0 4px 14px rgba(0, 0, 0, 0.2);
+}

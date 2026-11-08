@@ -21,9 +21,7 @@
   background: var(--card);
   border: 2px solid var(--rule);
   overflow: hidden;
-  box-shadow:
-    0 20px 48px rgba(0, 0, 0, 0.22),
-    0 3px 10px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--e-layer-rest);
   color: var(--ink);
   transform-origin: 50% 0%;
   transition:
@@ -47,7 +45,7 @@
     q-drumShadow 380ms cubic-bezier(0.22, 0.7, 0.2, 1);
 }
 .q-layer.covered {
-  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--e-layer-covered);
 }
 
 .q-layer-head {

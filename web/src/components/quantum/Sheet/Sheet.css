@@ -9,7 +9,7 @@
   max-width: 640px;
   background: var(--card);
   border: 2px solid var(--rule);
-  box-shadow: 0 16px 28px rgba(0, 0, 0, 0.14);
+  box-shadow: var(--e-sheet);
 }
 
 .q-sheet-head {
