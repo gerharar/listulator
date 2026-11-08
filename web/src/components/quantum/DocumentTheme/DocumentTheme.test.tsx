@@ -4,7 +4,7 @@ import { cleanup, render } from '@testing-library/react'
 import type { PreferencesStore } from '../../../lib/preferences/store.js'
 import { MotionProvider } from '../Motion/MotionContext.js'
 import type { Theme } from '../../../lib/preferences/theme.js'
-import { DocumentTheme } from './DocumentTheme.js'
+import { applyThemeClass, DocumentTheme } from './DocumentTheme.js'
 
 const html = document.documentElement
 
@@ -109,6 +109,19 @@ describe('DocumentTheme', () => {
 
       unmount()
 
+      expect(html.classList.contains('theme-exzed')).toBe(false)
+      expect(html.classList.contains('keep-me')).toBe(true)
+    })
+  })
+
+  describe('applyThemeClass', () => {
+    it('puts the class on and takes it off, before and without any render, and leaves the other classes', () => {
+      html.classList.add('keep-me')
+
+      applyThemeClass('exzed')
+      expect(html.classList.contains('theme-exzed')).toBe(true)
+
+      applyThemeClass('quantum')
       expect(html.classList.contains('theme-exzed')).toBe(false)
       expect(html.classList.contains('keep-me')).toBe(true)
     })

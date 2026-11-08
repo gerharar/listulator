@@ -1,6 +1,7 @@
 import type { ListItem } from '../../lib/api.js'
 import type { SpineUnit } from './spine.js'
 import type { VirtualizationMode } from '../../../../server/src/catalog/listVirtualization.js'
+import { tokenPx } from '../../lib/themeSizes.js'
 
 /**
  * The list screen's rows as a linear model, and which of them to draw (Phase 25, BACKLOG BL-074): a list of thousands draws only the
@@ -9,7 +10,10 @@ import type { VirtualizationMode } from '../../../../server/src/catalog/listVirt
  * markup the screen has always had) when virtualization is off, the list is short, or there is no viewport to measure.
  */
 
-/** An item row is 46px (`.q-item`, `Spine.css`); a group header is 47px as rendered. Both are checked against the real page in the e2e. */
+/**
+ * Quantum's rows: an item is 46px (`.q-item`, `Spine.css`), a group header 47px as rendered. They are the fallbacks of the page's own `--row-h` and
+ * `--group-h` (`listHeights`), which a theme sets, and what the tests of the model count in. Checked against the real page in the e2e.
+ */
 export const ITEM_HEIGHT = 46
 export const GROUP_HEIGHT = 47
 
@@ -19,7 +23,10 @@ export interface RowHeights {
   groupHeight: number
 }
 
-export const LIST_HEIGHTS: RowHeights = { itemHeight: ITEM_HEIGHT, groupHeight: GROUP_HEIGHT }
+/** The list's own row heights, as the page draws them now: read when a model is built, so a theme's rows and the model's cannot disagree. */
+export function listHeights(): RowHeights {
+  return { itemHeight: tokenPx('--row-h', ITEM_HEIGHT), groupHeight: tokenPx('--group-h', GROUP_HEIGHT) }
+}
 
 /** From this many rows on, the list is drawn as a window (owner, 2026-10-15; WebKit takes about 0.3 ms a row to redraw, so 200 rows stay under 70 ms). */
 export const VIRTUALIZE_FROM = 200
@@ -66,7 +73,7 @@ export interface RowModel extends RowHeights {
   rowUnit: Map<string, number>
 }
 
-export function buildRowModel<Item extends { id: string }, Unit extends RowUnit<Item>>(shown: readonly ShownUnit<Item, Unit>[], isShut: (groupName: string) => boolean, heights: RowHeights = LIST_HEIGHTS): RowModel {
+export function buildRowModel<Item extends { id: string }, Unit extends RowUnit<Item>>(shown: readonly ShownUnit<Item, Unit>[], isShut: (groupName: string) => boolean, heights: RowHeights = listHeights()): RowModel {
   const { itemHeight, groupHeight } = heights
   const units: ModelUnit[] = []
   const rowTops = new Map<string, number>()
@@ -207,14 +214,14 @@ function boxOf(model: RowModel, key: string): { top: number; height: number } | 
  * an item one row. Without it a drop on a pinned bottom line, whose real line is far below the view, would vanish.
  */
 export const KEEP_GROUP = 140
-export const KEEP_ITEM = ITEM_HEIGHT
+export const keepItem = (): number => listHeights().itemHeight
 
 /**
  * Where the reader should be after something was dropped, so that it lands where the pointer let go (H-009), and is never outside the visible
  * list (H-014). The line is on the edge of the target's box in the model the drop was made in (a carried group shut, the others as they were): its
  * top for "before", its bottom for "after". On screen it is where it is, except that it is never above the list's top edge (a group whose header
  * is stuck at the top has its line there) and never so low that the moved thing is hidden: below `viewportHeight` less `KEEP_GROUP` (a group) or
- * `KEEP_ITEM` (an item) it is held there, which is where a drop on a pinned bottom line lands. A group target is its whole box (the header is
+ * `keepItem()` (an item) it is held there, which is where a drop on a pinned bottom line lands. A group target is its whole box (the header is
  * only where its top is, not where it sticks); an item target, loose or inside a group, is its own row. After the move re-lays the list, the
  * moved thing's own top (a group's box, not its sticky header; an item's row) is put on that screen position; nothing is rounded to a row, so
  * a short move shifts the view by the row that moved, as the prototype does. `undefined` when the moved thing or its target is not in both models.
@@ -234,7 +241,7 @@ export function scrollAfterDrop(
 
   const unit = after.units[after.rowUnit.get(key)!]!
   const isGroup = unit.kind === 'group' && unit.key === key
-  const lowest = Math.max(0, viewportHeight - (isGroup ? KEEP_GROUP : KEEP_ITEM))
+  const lowest = Math.max(0, viewportHeight - (isGroup ? KEEP_GROUP : keepItem()))
   const lineOnScreen = Math.min(lowest, Math.max(0, (pos === 'after' ? target.top + target.height : target.top) - scrollTop))
 
   return Math.max(0, moved.top - lineOnScreen)

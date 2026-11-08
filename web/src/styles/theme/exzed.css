@@ -52,3 +52,16 @@ html.theme-exzed {
   --hover-filter: none;
   --hover-filter-tab: none;
 }
+
+/*
+ * Sizes (48.4), from design's tokens.json: every row of a list is 32px (`row-h`: an item, a group header) and every control 40px (`control-h`:
+ * buttons, icon buttons). What does not fit inside a 32px row yet (the done box, the handle, the row buttons, a group's small buttons) is noted,
+ * not fixed, here: X-007 draws those parts. Fields, chips and menu rows read no token yet and are X-007's too.
+ */
+html.theme-exzed {
+  --row-h: 32px;
+  --group-h: 32px;
+  --control-h: 40px;
+  --control-h-icon: 40px;
+  --control-h-list: 40px;
+}

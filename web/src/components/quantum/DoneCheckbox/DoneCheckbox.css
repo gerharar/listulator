@@ -2,7 +2,7 @@
 .q-done {
   flex: none;
   width: 36px;
-  height: 46px;
+  height: var(--row-h);
   display: grid;
   place-items: center;
   border: 0;

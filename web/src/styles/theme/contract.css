@@ -23,4 +23,12 @@ html {
   /* What a hovered button brightens by; the selected tab's hover has always been a step lower. */
   --hover-filter: brightness(1.12);
   --hover-filter-tab: brightness(1.1);
+
+  /* Sizes (48.4). --row-h (46px) is in tokens.css with Quantum's value and the rows now read it; a group's header is a pixel taller than a row
+     (its border). The rest are the ones design's file does not have. The text buttons have no height of their own in Quantum (the padding and the
+     text make it), so their token is `auto`, the initial value; the icon buttons are 36px and the list header's 34px. */
+  --group-h: 47px;
+  --control-h: auto;
+  --control-h-icon: 36px;
+  --control-h-list: 34px;
 }

@@ -24,7 +24,7 @@ import { PreviewLayer } from './components/quantum/PreviewLayer/PreviewLayer.js'
 import { VaultBrowser } from './components/quantum/VaultBrowser/VaultBrowser.js'
 import { parsePreviewPath } from './lib/preview.js'
 import { Atmosphere } from './components/quantum/Atmosphere/Atmosphere.js'
-import { DocumentTheme } from './components/quantum/DocumentTheme/DocumentTheme.js'
+import { applyThemeClass, DocumentTheme } from './components/quantum/DocumentTheme/DocumentTheme.js'
 import { AppHeader } from './components/quantum/AppHeader/AppHeader.js'
 import { LayerCard } from './components/quantum/LayerCard/LayerCard.js'
 import { RailPlacementProvider, useWindowRailPlacement } from './screens/list/RailPlacementContext.js'
@@ -93,9 +93,11 @@ export function App() {
       resolveMarkOpenGroups(store),
       resolveShowTimeLeft(store),
     ])
-      .then(([skin, theme, language, reducedSetting, markOpenGroups, showTimeLeft]) =>
-        setBoot({ skin, theme, language, reducedSetting, markOpenGroups, showTimeLeft }),
-      )
+      .then(([skin, theme, language, reducedSetting, markOpenGroups, showTimeLeft]) => {
+        // Before the first render of the shell: its sizes are read from the page as it lays out (themeSizes.ts).
+        applyThemeClass(theme)
+        setBoot({ skin, theme, language, reducedSetting, markOpenGroups, showTimeLeft })
+      })
       .catch((cause: unknown) =>
         setError(cause instanceof Error ? cause.message : copy.app.unknownError),
       )

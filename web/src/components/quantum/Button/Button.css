@@ -4,6 +4,8 @@
   align-items: center;
   gap: 7px;
   padding: 9px 15px;
+  /* `auto` in Quantum: the height the padding and the text make. A theme with a fixed control sets --control-h. */
+  height: var(--control-h);
   border: 1px solid var(--rule);
   background: transparent;
   color: var(--ink);
@@ -68,7 +70,7 @@
   /* A fixed-size control: long text beside it in a header must not squeeze it (H-021). */
   flex: none;
   width: 40px;
-  height: 36px;
+  height: var(--control-h-icon);
   padding: 0;
   border: 1px solid var(--line);
   background: transparent;
@@ -83,11 +85,11 @@
 }
 .q-icon-btn.sq {
   width: 36px;
-  height: 36px;
+  height: var(--control-h-icon);
 }
 .q-icon-btn.list {
   width: 36px;
-  height: 34px;
+  height: var(--control-h-list);
 }
 .q-icon-btn.rail {
   width: 28px;
@@ -98,7 +100,7 @@
 }
 .q-icon-btn.row {
   width: 28px;
-  height: 46px;
+  height: var(--row-h);
   border: 0;
   color: var(--ink3);
 }

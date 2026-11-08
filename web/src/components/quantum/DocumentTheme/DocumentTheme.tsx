@@ -14,6 +14,15 @@ export interface DocumentThemeProps {
 const THEME_CLASS = 'theme-exzed'
 
 /**
+ * Puts the theme's class on `<html>` (and takes the other's off). `App` calls it as soon as the stored theme is read, before the first render: what is
+ * laid out in TypeScript from the theme's sizes (the list's row model, the rail's margins) reads them while it renders, and a class that arrived in an
+ * effect after that would leave it laid out for Quantum.
+ */
+export function applyThemeClass(theme: Theme): void {
+  document.documentElement.classList.toggle(THEME_CLASS, theme === 'exzed')
+}
+
+/**
  * Writes the look onto `<html>` (task 10.32): `data-theme` for the skin, the theme class and `data-reduced` when animation is cut.
  * The tokens are scoped to `html`, so a popover portaled to `body`
  * resolves `var(--card)` like everything else — the trap the old `.q-root`
@@ -32,7 +41,7 @@ export function DocumentTheme({ skin, theme = 'quantum', children }: DocumentThe
 
   // Only the class this component owns: others on <html> (a test's, a browser extension's) are not its to touch.
   useLayoutEffect(() => {
-    document.documentElement.classList.toggle(THEME_CLASS, theme === 'exzed')
+    applyThemeClass(theme)
   }, [theme])
 
   useLayoutEffect(
