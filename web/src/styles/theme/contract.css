@@ -31,4 +31,10 @@ html {
   --control-h: auto;
   --control-h-icon: 36px;
   --control-h-list: 34px;
+
+  /* Widths (48.4). --layer-max (1080px) and --layer-max-wide (1400px) are in tokens.css; the layers read them. Quantum's list and Preview are 1080px like
+     every layer (the `wide` layer exists and no layer uses it), so their own cap is a token of its own: eX-Zed's is wider. The stage's side gap is the
+     20px that was written twice, in the stage's CSS and in the rail's rule (railPlacement.ts, which now reads both). */
+  --layer-max-list: 1080px;
+  --stage-gap: 20px;
 }

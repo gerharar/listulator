@@ -74,8 +74,9 @@ const KEPT: readonly (readonly [string, string, string])[] = [
   ['components/quantum/ImportFileTab/ImportFileTab.css', '.q-import', '640px'],
   ['screens/settings/SettingsScreen.css', '.q-settings-sections', '880px'],
   ['screens/about/AboutScreen.css', '.q-about-column', '760px'],
-  ['components/quantum/LayerCard/LayerCard.css', '.q-layer', '1080px'],
-  ['components/quantum/LayerCard/LayerCard.css', '.q-layer.wide', '1400px'],
+  // The two layer caps are tokens since Phase 48.4 (a theme sets its own); what stays pinned is that they are read, and below that what they are in Quantum.
+  ['components/quantum/LayerCard/LayerCard.css', '.q-layer', 'var(--layer-cap, var(--layer-max))'],
+  ['components/quantum/LayerCard/LayerCard.css', '.q-layer.wide', 'var(--layer-max-wide)'],
   ['components/quantum/AppErrorBoundary/AppErrorBoundary.css', '.q-crash .q-error-block', '480px'],
   // The List Vault browser's category column: as wide as its longest row, but never past this (owner, 2026-10-27; the name ellipsises, the count never).
   ['components/quantum/VaultBrowser/VaultBrowser.css', '.q-vb-column', '300px'],
@@ -90,6 +91,18 @@ describe('text inside a card runs to the edge of its box (H-021)', () => {
     // It must exist, or a rename would pass by finding nothing.
     expect(declarationsOf(source, selector), `${selector} is not in ${file}`).not.toHaveLength(0)
     expect(maxWidthsOf(source, selector).filter((value) => value !== 'none'), `${selector} in ${file}`).toEqual([])
+  })
+})
+
+describe('the layer caps, as Quantum has them (H-021, and the tokens of Phase 48.4)', () => {
+  const token = (name: string) => new RegExp(`(?:^|[;{\\s])${name}\\s*:\\s*([^;]+);`).exec(css('styles/quantum/tokens.css') + css('styles/theme/contract.css'))?.[1]?.trim()
+
+  it.each([
+    ['--layer-max', '1080px'],
+    ['--layer-max-wide', '1400px'],
+    ['--layer-max-list', '1080px'],
+  ])('%s is still %s', (name, value) => {
+    expect(token(name)).toBe(value)
   })
 })
 

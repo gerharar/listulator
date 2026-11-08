@@ -24,7 +24,7 @@
 
 .q-stage .q-layer {
   position: absolute;
-  left: 20px;
-  right: 20px;
+  left: var(--stage-gap);
+  right: var(--stage-gap);
   bottom: 20px;
 }

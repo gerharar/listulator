@@ -65,3 +65,17 @@ html.theme-exzed {
   --control-h-icon: 40px;
   --control-h-list: 40px;
 }
+
+/*
+ * Widths (48.4). 1.5 x each of Quantum's caps, because the ZX font is about 1.5 x wider, and at least 96px of background each side: a plain layer
+ * (My Lists, Choose Your Fighter, Settings, About) 1620px, a list or a Preview 2100px, and below those the window minus 2 x 96. `--stage-gap` is that
+ * 96px, read by the stage's CSS and by the rail's rule alike, which stays as it is: with this card and gap it puts the rail outside from 2724px
+ * (2100 + 2 x 96 + 2 x 216). Design wants the rail never outside in eX-Zed, which the 2560 cap (48.5) gives, since the rule then sees a window
+ * of at most 2560. `--layer-max-wide` (a layer that asks for `wide`; none does) follows design's 2100 too.
+ */
+html.theme-exzed {
+  --stage-gap: 96px;
+  --layer-max: 1620px;
+  --layer-max-wide: 2100px;
+  --layer-max-list: 2100px;
+}

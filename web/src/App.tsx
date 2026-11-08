@@ -278,12 +278,14 @@ function AppShellBody({ skin, onSkinChange }: AppShellBodyProps) {
           const width = reach ? listCardWidth(railWindow.windowWidth) : null
           // The card's border and the rail's offsets share one width, whole device pixels at any screen scale (`--q-bw`, see `layerBorderWidth`).
           const border = reach ? { '--q-bw': `${layerBorderWidth(pixelRatio)}px` } : null
+          // A list and a Preview have their own cap (the same 1080px in Quantum, wider in a theme with a wider font): the rail's rule reads it too.
+          const cap = layer.kind === 'list' || layer.kind === 'preview' ? { '--layer-cap': 'var(--layer-max-list)' } : null
 
           return (
             <LayerCard
               key={layer.id}
               reach={reach}
-              style={{ top, transform, zIndex: 10 + fullIndex, ...(width !== null && { width }), ...border } as CSSProperties}
+              style={{ top, transform, zIndex: 10 + fullIndex, ...(width !== null && { width }), ...cap, ...border } as CSSProperties}
               entering={layer.id === layerStack.enteringId}
               covered={!isTop}
               tabLabel={resolveTabLabel(layer.tabLabel)}

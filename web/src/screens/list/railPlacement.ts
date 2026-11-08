@@ -4,15 +4,31 @@
  * the card never changes width. The rule reads the window and the card only,
  * never the rail's width: the rail is resizable, and a rule tied to its width
  * would throw a widened rail back inside.
+ *
+ * The card and the stage's gap are the page's own numbers (Phase 48.4): the list card's cap (`--layer-max-list`) and the stage's side gap
+ * (`--stage-gap`), which the CSS draws the card with, so a theme with a wider card or gap changes the rule with it and the two cannot disagree.
+ * Every function takes the geometry as its last argument, read from the page when it is not given; the tests give it.
  */
 
+import { tokenPx } from '../../lib/themeSizes.js'
 import { RAIL_WIDTH_MIN } from './railLimits.js'
 
 export type RailPlacement = 'inside' | 'outside'
 
-/** The card's width cap (`.q-layer`), and the stage's inset on each side (`.q-stage .q-layer`). */
-const CARD_MAX = 1080
-const STAGE_INSET = 20
+/** The card's width cap, and the stage's inset on each side of the window. */
+export interface RailGeometry {
+  cardMax: number
+  inset: number
+}
+
+/** Quantum's: the fallbacks of the tokens `--layer-max-list` and `--stage-gap` (`styles/theme/contract.css`, which a test holds equal to these). */
+export const QUANTUM_GEOMETRY: RailGeometry = { cardMax: 1080, inset: 20 }
+
+/** The card and the gap as the page has them now. */
+export function railGeometry(): RailGeometry {
+  return { cardMax: tokenPx('--layer-max-list', QUANTUM_GEOMETRY.cardMax), inset: tokenPx('--stage-gap', QUANTUM_GEOMETRY.inset) }
+}
+
 /** The default 200px rail plus 16px of air. */
 const OUT_AT = 216
 /** 16px of hysteresis, so a window dragged near the line does not flicker. */
@@ -20,17 +36,17 @@ const IN_BELOW = 200
 /** What the rail leaves free before the window's edge. */
 export const RAIL_AIR = 16
 
-function room(windowWidth: number): number {
-  return windowWidth - 2 * STAGE_INSET
+function room(windowWidth: number, geometry: RailGeometry): number {
+  return windowWidth - 2 * geometry.inset
 }
 
 /** The room beside the card on each side: the window minus its inset, minus the card, halved. */
-export function cardMargin(windowWidth: number): number {
-  return Math.max(0, (room(windowWidth) - Math.min(CARD_MAX, room(windowWidth))) / 2)
+export function cardMargin(windowWidth: number, geometry: RailGeometry = railGeometry()): number {
+  return Math.max(0, (room(windowWidth, geometry) - Math.min(geometry.cardMax, room(windowWidth, geometry))) / 2)
 }
 
-export function railPlacement(windowWidth: number, current: RailPlacement): RailPlacement {
-  const margin = cardMargin(windowWidth)
+export function railPlacement(windowWidth: number, current: RailPlacement, geometry: RailGeometry = railGeometry()): RailPlacement {
+  const margin = cardMargin(windowWidth, geometry)
 
   return margin >= OUT_AT || (current === 'outside' && margin >= IN_BELOW) ? 'outside' : 'inside'
 }
@@ -46,20 +62,29 @@ export function outsideRailWidth(stored: number, margin: number): number {
  * down to the 160px minimum. Pure in the window and the stored width, so it is the same just before and just after the switch. It is the shown
  * width only: the reader's own width stays stored, comes back in a wider window, and is what the reader sets by resizing (which ends the carry).
  */
-export function carriedRailWidth(stored: number, windowWidth: number): number {
-  const virtualMargin = (room(windowWidth) - CARD_MAX) / 2
+export function carriedRailWidth(stored: number, windowWidth: number, geometry: RailGeometry = railGeometry()): number {
+  const virtualMargin = (room(windowWidth, geometry) - geometry.cardMax) / 2
 
   return Math.min(stored, Math.max(RAIL_WIDTH_MIN, virtualMargin - RAIL_AIR))
 }
 
 /** At this window width, and below it, the carried rail is at its 160px minimum: a narrower window changes nothing that is drawn. */
-export const CARRY_FLOOR_WIDTH = 2 * (RAIL_WIDTH_MIN + RAIL_AIR) + CARD_MAX + 2 * STAGE_INSET
+export function carryFloorWidth(geometry: RailGeometry = railGeometry()): number {
+  return 2 * (RAIL_WIDTH_MIN + RAIL_AIR) + geometry.cardMax + 2 * geometry.inset
+}
+
+/** The same for Quantum's card and gap. */
+export const CARRY_FLOOR_WIDTH = carryFloorWidth(QUANTUM_GEOMETRY)
 
 /** The width the rail is drawn at: the stored one, capped outside by the margin, or following the window while it is carried inside. */
-export function shownRailWidth(stored: number, where: { placement: RailPlacement; windowWidth: number; carried?: boolean }): number {
-  if (where.placement === 'outside') return outsideRailWidth(stored, cardMargin(where.windowWidth))
+export function shownRailWidth(
+  stored: number,
+  where: { placement: RailPlacement; windowWidth: number; carried?: boolean },
+  geometry: RailGeometry = railGeometry(),
+): number {
+  if (where.placement === 'outside') return outsideRailWidth(stored, cardMargin(where.windowWidth, geometry))
 
-  return where.carried ? carriedRailWidth(stored, where.windowWidth) : stored
+  return where.carried ? carriedRailWidth(stored, where.windowWidth, geometry) : stored
 }
 
 /**
@@ -80,8 +105,9 @@ export function layerBorderWidth(devicePixelRatio: number): number {
  * exactly over the card's (owner's 800% check showed a 1px step). `null` while
  * the card fills the window and its own CSS sizes it.
  */
-export function listCardWidth(windowWidth: number): number | null {
-  if (room(windowWidth) < CARD_MAX) return null
+export function listCardWidth(windowWidth: number, geometry: RailGeometry = railGeometry()): number | null {
+  const { cardMax } = geometry
+  if (room(windowWidth, geometry) < cardMax) return null
 
-  return (room(windowWidth) - CARD_MAX) % 2 === 0 ? CARD_MAX : CARD_MAX - 1
+  return (room(windowWidth, geometry) - cardMax) % 2 === 0 ? cardMax : cardMax - 1
 }

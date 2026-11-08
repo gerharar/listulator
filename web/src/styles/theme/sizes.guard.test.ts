@@ -55,3 +55,36 @@ describe('eX-Zed’s sizes: rows and controls', () => {
     expect(value(token), token).toBe(size)
   })
 })
+
+describe('size tokens: the width of a layer and the stage’s side gap', () => {
+  const WIDTHS = { '--stage-gap': '20px', '--layer-max-list': '1080px' } as const
+  const EXZED_WIDTHS = { '--stage-gap': '96px', '--layer-max': '1620px', '--layer-max-wide': '2100px', '--layer-max-list': '2100px' } as const
+  const px = (value: string) => Number.parseFloat(value)
+  const quantum = (token: string) => definitions(token, ['styles/quantum/tokens.css', 'styles/theme/contract.css'])
+  const exzed = read('styles/theme/exzed.css')
+  const exzedValue = (token: string) => new RegExp(`${token}\\s*:\\s*([^;]+);`).exec(exzed)?.[1]?.trim()
+
+  it('the stage keeps each layer its gap from the window’s sides through --stage-gap', () => {
+    const app = read('App.css')
+
+    expect(declared(app, '.q-stage .q-layer', 'left')).toBe('var(--stage-gap)')
+    expect(declared(app, '.q-stage .q-layer', 'right')).toBe('var(--stage-gap)')
+  })
+
+  it.each(Object.entries(WIDTHS))('Quantum’s %s is exactly the value it replaced', (token, literal) => {
+    expect(quantum(token).map(plain)).toEqual([literal])
+  })
+
+  it.each(Object.entries(EXZED_WIDTHS))('eX-Zed sets %s to %s (1.5 x the cap; at least 96px of background each side)', (token, size) => {
+    expect(exzedValue(token), token).toBe(size)
+  })
+
+  it('the rail’s rule in TypeScript and the CSS cannot disagree about Quantum’s card and gap: one set of numbers', async () => {
+    const { QUANTUM_GEOMETRY } = await import('../../screens/list/railPlacement.js')
+
+    expect(QUANTUM_GEOMETRY.cardMax).toBe(px(quantum('--layer-max-list')[0]!))
+    expect(QUANTUM_GEOMETRY.inset).toBe(px(quantum('--stage-gap')[0]!))
+    // The list's card is the cap of the list layer, and the plain layer's cap is the same number in Quantum.
+    expect(QUANTUM_GEOMETRY.cardMax).toBe(px(quantum('--layer-max')[0]!))
+  })
+})
