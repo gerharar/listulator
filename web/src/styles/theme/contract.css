@@ -20,4 +20,7 @@ html {
   --o-disabled-soft: 0.5;
   /* The veil over a covered layer. */
   --veil: color-mix(in srgb, var(--bg) 94%, transparent);
+  /* What a hovered button brightens by; the selected tab's hover has always been a step lower. */
+  --hover-filter: brightness(1.12);
+  --hover-filter-tab: brightness(1.1);
 }

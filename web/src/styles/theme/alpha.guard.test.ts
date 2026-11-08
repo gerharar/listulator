@@ -12,6 +12,8 @@ const QUANTUM = {
   '--o-dragging': '.4',
   '--o-disabled-soft': '.5',
   '--veil': 'color-mix(in srgb,var(--bg) 94%,transparent)',
+  '--hover-filter': 'brightness(1.12)',
+  '--hover-filter-tab': 'brightness(1.1)',
 } as const
 
 const USES: readonly { file: string; selector: string; property: string; token: keyof typeof QUANTUM }[] = [
@@ -22,6 +24,11 @@ const USES: readonly { file: string; selector: string; property: string; token: 
   { file: 'screens/list/EndsButton.css', selector: '.q-ends-half:disabled', property: 'opacity', token: '--o-disabled-soft' },
   { file: 'components/quantum/HelperSheet/HelperSheet.css', selector: '.q-shelves .q-chip.none', property: 'opacity', token: '--o-disabled-soft' },
   { file: 'components/quantum/LayerCard/LayerCard.css', selector: '.q-veil', property: 'background', token: '--veil' },
+  { file: 'components/quantum/Button/Button.css', selector: '.q-btn.primary:where(:not(:disabled)):hover', property: 'filter', token: '--hover-filter' },
+  { file: 'components/quantum/Button/Button.css', selector: '.q-btn.danger:where(:not(:disabled)):hover', property: 'filter', token: '--hover-filter' },
+  { file: 'components/quantum/StatusPicker/StatusPicker.css', selector: '.q-status-picker button:hover', property: 'filter', token: '--hover-filter' },
+  { file: 'components/quantum/FacetToggle/FacetToggle.css', selector: '.q-facet button:hover', property: 'filter', token: '--hover-filter' },
+  { file: 'components/quantum/TabStrip/TabStrip.css', selector: ".q-tabs button[aria-selected='true']:hover", property: 'filter', token: '--hover-filter-tab' },
 ]
 
 describe('alpha tokens', () => {
@@ -36,6 +43,9 @@ describe('alpha tokens', () => {
     expect(plain(values[0]!)).toBe(literal)
   })
 
+  it('a disabled button keeps its own `filter: none`, so a disabled primary never brightens', () => {
+    expect(declared(read('components/quantum/Button/Button.css'), '.q-btn:disabled', 'filter')).toBe('none')
+  })
 })
 
 describe('eX-Zed’s alpha', () => {
@@ -46,8 +56,9 @@ describe('eX-Zed’s alpha', () => {
     expect(value(token), token).toBeDefined()
   })
 
-  it('draws everything at full strength: opacity 1, no veil', () => {
+  it('draws everything at full strength: opacity 1, no veil, no hover filter', () => {
     for (const token of ['--o-disabled', '--o-dragging', '--o-disabled-soft']) expect(value(token), token).toBe('1')
     expect(value('--veil')).toBe('transparent')
+    for (const token of ['--hover-filter', '--hover-filter-tab']) expect(value(token), token).toBe('none')
   })
 })

@@ -49,4 +49,6 @@ html.theme-exzed {
   --o-dragging: 1;
   --o-disabled-soft: 1;
   --veil: transparent;
+  --hover-filter: none;
+  --hover-filter-tab: none;
 }

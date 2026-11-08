@@ -23,7 +23,7 @@
   font-size: 14px;
 }
 .q-btn.primary:where(:not(:disabled)):hover {
-  filter: brightness(1.12);
+  filter: var(--hover-filter);
   background: var(--accent);
 }
 .q-btn.primary.sm {
@@ -54,7 +54,7 @@
   padding: 9px 14px;
 }
 .q-btn.danger:where(:not(:disabled)):hover {
-  filter: brightness(1.12);
+  filter: var(--hover-filter);
 }
 .q-btn:disabled {
   opacity: var(--o-disabled);

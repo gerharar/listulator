@@ -1,13 +1,14 @@
 import { expect, test, type APIRequestContext, type Page } from '@playwright/test'
+import { q } from './fixtures.js'
 
 /**
  * Alpha (Phase 48.3), computed in both engines and both themes: what fades in Quantum is drawn at full strength in eX-Zed (disabled and dragging
- * opacity 1, no veil on a covered layer), and Quantum keeps its exact values. This asserts only the properties the task
+ * opacity 1, no veil on a covered layer, no hover brightening), and Quantum keeps its exact values. This asserts only the properties the task
  * hooks: Quantum's colour tokens (`--hover`, `--line`, …) are themselves rgba until X-003 brings eX-Zed's solid colours, so "no alpha anywhere"
  * belongs to X-004's test. Real writes on the dev server, removed in a `finally`.
  */
-const QUANTUM = { disabled: '0.45', dragging: '0.4', soft: '0.5' } as const
-const EXZED = { disabled: '1', dragging: '1', soft: '1' } as const
+const QUANTUM = { disabled: '0.45', dragging: '0.4', soft: '0.5', filter: 'brightness(1.12)', filterTab: 'brightness(1.1)' } as const
+const EXZED = { disabled: '1', dragging: '1', soft: '1', filter: 'none', filterTab: 'none' } as const
 const THEMES = { exzed: EXZED, quantum: QUANTUM } as const
 
 async function makeList(request: APIRequestContext, title: string) {
@@ -119,5 +120,37 @@ for (const [theme, expected] of Object.entries(THEMES)) {
       }
     })
 
+    test('the hover brightening of a primary button, the selected tab, a status button, a danger button and a facet button', async ({ page }) => {
+      const title = `e2e alpha hover ${theme} ${Date.now()}`
+      const id = await makeList(page.request, title)
+
+      try {
+        await boot(page, theme)
+        await page.goto('/')
+        await page.locator('.q-home-row').first().waitFor()
+        await page.getByRole('button', { name: 'New List' }).hover()
+        await expect.poll(() => style(page, '.q-btn.primary:hover', 'filter')).toBe(expected.filter)
+
+        await page.getByRole('button', { name: 'New List' }).click()
+        await page.locator('.q-tile', { hasText: /^Movies/ }).click()
+        await page.getByRole('tab', { name: q.createList.handTab }).click()
+        await page.getByRole('tab', { name: q.createList.handTab }).hover()
+        await expect.poll(() => style(page, ".q-tabs button[aria-selected='true']:hover", 'filter')).toBe(expected.filterTab)
+        await page.locator('.q-status-picker button').last().hover()
+        await expect.poll(() => style(page, '.q-status-picker button:hover', 'filter')).toBe(expected.filter)
+
+        await page.evaluate(() => document.body.insertAdjacentHTML('beforeend', '<div class="q-facet"><button id="zz-facet">facet</button></div>'))
+        await page.locator('#zz-facet').hover()
+        await expect.poll(() => style(page, '#zz-facet:hover', 'filter')).toBe(expected.filter)
+
+        await openList(page, title)
+        await page.getByRole('button', { name: 'More', exact: true }).click()
+        await page.getByRole('button', { name: 'Delete List' }).click()
+        await page.locator('.q-btn.danger').hover()
+        await expect.poll(() => style(page, '.q-btn.danger:hover', 'filter')).toBe(expected.filter)
+      } finally {
+        await page.request.delete(`/api/lists/${id}`)
+      }
+    })
   })
 }

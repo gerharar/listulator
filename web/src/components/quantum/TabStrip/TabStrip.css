@@ -25,5 +25,5 @@
   box-shadow: none;
 }
 .q-tabs button[aria-selected='true']:hover {
-  filter: brightness(1.1);
+  filter: var(--hover-filter-tab);
 }
