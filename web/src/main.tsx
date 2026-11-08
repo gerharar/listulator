@@ -22,6 +22,8 @@ import './styles/quantum/base.css'
 // The theme contract and eX-Zed's values for it (Phase 48): inert unless `html` carries `theme-exzed`.
 import './styles/theme/fonts.css'
 import './styles/theme/contract.css'
+// eX-Zed's colour roles per skin (Phase 49, generated from design's tokens): `--zx-*`, scoped to the six `exzed-…` skin keys.
+import './styles/theme/exzed-tokens.css'
 import './styles/theme/exzed.css'
 import { App } from './App.js'
 import { startLocalRuntimeFill, startLocalSourceCopySchedule } from './lib/api.local.js'

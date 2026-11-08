@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "tokens:generate": "tsx scripts/generateTokens.ts",
+    "tokens:generate": "tsx scripts/generateTokens.ts && tsx scripts/generateExzedTokens.ts",
     "predev": "npm run tokens:generate",
     "prebuild": "npm run tokens:generate",
     "dev": "vite",
