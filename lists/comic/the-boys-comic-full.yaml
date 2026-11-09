@@ -33,12 +33,12 @@ items:
 - { title: "The Boys #28", year: 2009, minutes: 25 }
 - { title: "The Boys #29", year: 2009, minutes: 25 }
 - { title: "The Boys #30", year: 2009, minutes: 25 }
-- { title: "The Boys: Herogasm #1", year: 2009, minutes: 25 }
-- { title: "The Boys: Herogasm #2", year: 2009, minutes: 25 }
-- { title: "The Boys: Herogasm #3", year: 2009, minutes: 25 }
-- { title: "The Boys: Herogasm #4", year: 2009, minutes: 25 }
-- { title: "The Boys: Herogasm #5", year: 2009, minutes: 25 }
-- { title: "The Boys: Herogasm #6", year: 2009, minutes: 25 }
+- { title: "The Boys: Herogasm #1", year: 2009, minutes: 25, group: "The Boys: Herogasm" }
+- { title: "The Boys: Herogasm #2", year: 2009, minutes: 25, group: "The Boys: Herogasm" }
+- { title: "The Boys: Herogasm #3", year: 2009, minutes: 25, group: "The Boys: Herogasm" }
+- { title: "The Boys: Herogasm #4", year: 2009, minutes: 25, group: "The Boys: Herogasm" }
+- { title: "The Boys: Herogasm #5", year: 2009, minutes: 25, group: "The Boys: Herogasm" }
+- { title: "The Boys: Herogasm #6", year: 2009, minutes: 25, group: "The Boys: Herogasm" }
 - { title: "The Boys #31", year: 2009, minutes: 25 }
 - { title: "The Boys #32", year: 2009, minutes: 25 }
 - { title: "The Boys #33", year: 2009, minutes: 25 }
@@ -56,12 +56,12 @@ items:
 - { title: "The Boys #45", year: 2010, minutes: 25 }
 - { title: "The Boys #46", year: 2010, minutes: 25 }
 - { title: "The Boys #47", year: 2010, minutes: 25 }
-- { title: "The Boys: Highland Laddie #1", year: 2010, minutes: 25 }
-- { title: "The Boys: Highland Laddie #2", year: 2010, minutes: 25 }
-- { title: "The Boys: Highland Laddie #3", year: 2010, minutes: 25 }
-- { title: "The Boys: Highland Laddie #4", year: 2010, minutes: 25 }
-- { title: "The Boys: Highland Laddie #5", year: 2010, minutes: 25 }
-- { title: "The Boys: Highland Laddie #6", year: 2011, minutes: 25 }
+- { title: "The Boys: Highland Laddie #1", year: 2010, minutes: 25, group: "The Boys: Highland Laddie" }
+- { title: "The Boys: Highland Laddie #2", year: 2010, minutes: 25, group: "The Boys: Highland Laddie" }
+- { title: "The Boys: Highland Laddie #3", year: 2010, minutes: 25, group: "The Boys: Highland Laddie" }
+- { title: "The Boys: Highland Laddie #4", year: 2010, minutes: 25, group: "The Boys: Highland Laddie" }
+- { title: "The Boys: Highland Laddie #5", year: 2010, minutes: 25, group: "The Boys: Highland Laddie" }
+- { title: "The Boys: Highland Laddie #6", year: 2011, minutes: 25, group: "The Boys: Highland Laddie" }
 - { title: "The Boys #48", year: 2010, minutes: 25 }
 - { title: "The Boys #49", year: 2010, minutes: 25 }
 - { title: "The Boys #50", year: 2011, minutes: 25 }
@@ -74,12 +74,12 @@ items:
 - { title: "The Boys #57", year: 2011, minutes: 25 }
 - { title: "The Boys #58", year: 2011, minutes: 25 }
 - { title: "The Boys #59", year: 2011, minutes: 25 }
-- { title: "The Boys: Butcher, Baker, Candlestickmaker #1", year: 2011, minutes: 25 }
-- { title: "The Boys: Butcher, Baker, Candlestickmaker #2", year: 2011, minutes: 25 }
-- { title: "The Boys: Butcher, Baker, Candlestickmaker #3", year: 2011, minutes: 25 }
-- { title: "The Boys: Butcher, Baker, Candlestickmaker #4", year: 2011, minutes: 25 }
-- { title: "The Boys: Butcher, Baker, Candlestickmaker #5", year: 2011, minutes: 25 }
-- { title: "The Boys: Butcher, Baker, Candlestickmaker #6", year: 2011, minutes: 25 }
+- { title: "The Boys: Butcher, Baker, Candlestickmaker #1", year: 2011, minutes: 25, group: "The Boys: Butcher, Baker, Candlestickmaker" }
+- { title: "The Boys: Butcher, Baker, Candlestickmaker #2", year: 2011, minutes: 25, group: "The Boys: Butcher, Baker, Candlestickmaker" }minutes: 25 }
+- { title: "The Boys: Butcher, Baker, Candlestickmaker #3", year: 2011, minutes: 25, group: "The Boys: Butcher, Baker, Candlestickmaker" }
+- { title: "The Boys: Butcher, Baker, Candlestickmaker #4", year: 2011, minutes: 25, group: "The Boys: Butcher, Baker, Candlestickmaker" }
+- { title: "The Boys: Butcher, Baker, Candlestickmaker #5", year: 2011, minutes: 25, group: "The Boys: Butcher, Baker, Candlestickmaker" }
+- { title: "The Boys: Butcher, Baker, Candlestickmaker #6", year: 2011, minutes: 25, group: "The Boys: Butcher, Baker, Candlestickmaker" }
 - { title: "The Boys #60", year: 2011, minutes: 25 }
 - { title: "The Boys #61", year: 2011, minutes: 25 }
 - { title: "The Boys #62", year: 2012, minutes: 25 }
@@ -93,11 +93,11 @@ items:
 - { title: "The Boys #70", year: 2012, minutes: 25 }
 - { title: "The Boys #71", year: 2012, minutes: 25 }
 - { title: "The Boys #72", year: 2012, minutes: 25 }
-- { title: "The Boys: Dear Becky #1", year: 2020, minutes: 25 }
-- { title: "The Boys: Dear Becky #2", year: 2020, minutes: 25 }
-- { title: "The Boys: Dear Becky #3", year: 2020, minutes: 25 }
-- { title: "The Boys: Dear Becky #4", year: 2020, minutes: 25 }
-- { title: "The Boys: Dear Becky #5", year: 2020, minutes: 25 }
-- { title: "The Boys: Dear Becky #6", year: 2020, minutes: 25 }
-- { title: "The Boys: Dear Becky #7", year: 2020, minutes: 25 }
-- { title: "The Boys: Dear Becky #8", year: 2020, minutes: 25 }
+- { title: "The Boys: Dear Becky #1", year: 2020, minutes: 25, group: "The Boys: Dear Becky" }
+- { title: "The Boys: Dear Becky #2", year: 2020, minutes: 25, group: "The Boys: Dear Becky" }
+- { title: "The Boys: Dear Becky #3", year: 2020, minutes: 25, group: "The Boys: Dear Becky" }
+- { title: "The Boys: Dear Becky #4", year: 2020, minutes: 25, group: "The Boys: Dear Becky" }
+- { title: "The Boys: Dear Becky #5", year: 2020, minutes: 25, group: "The Boys: Dear Becky" }
+- { title: "The Boys: Dear Becky #6", year: 2020, minutes: 25, group: "The Boys: Dear Becky" }
+- { title: "The Boys: Dear Becky #7", year: 2020, minutes: 25, group: "The Boys: Dear Becky" }
+- { title: "The Boys: Dear Becky #8", year: 2020, minutes: 25, group: "The Boys: Dear Becky" }

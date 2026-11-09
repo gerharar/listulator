@@ -1,5 +1,5 @@
 title: Neil Gaiman's The Sandman comic book series (Vol 2, Vertigo / DC)
-description: Complete reading order for Neil Gaiman's The Sandman comic book series (Vol 2)
+description: Complete reading order for Neil Gaiman's The Sandman comic book series (Vol 2), in recommended order (chronological)
 category: comic
 status: complete
 items:
@@ -38,12 +38,12 @@ items:
 - { title: "Sandman #35", year: 1991, minutes: 25 }
 - { title: "Sandman #36", year: 1992, minutes: 25 }
 - { title: "Sandman #37", year: 1992, minutes: 25 }
-- { title: "Death: The High Cost of Living #1", year: 1993, minutes: 25 }
-- { title: "Death: The High Cost of Living #2", year: 1993, minutes: 25 }
-- { title: "Death: The High Cost of Living #3", year: 1993, minutes: 25 }
-- { title: "Death: The Time of Your Life #1", year: 1996, minutes: 25 }
-- { title: "Death: The Time of Your Life #2", year: 1996, minutes: 25 }
-- { title: "Death: The Time of Your Life #3", year: 1996, minutes: 25 }
+- { title: "Death: The High Cost of Living #1", year: 1993, minutes: 25, group: "Death: The High Cost of Living" }
+- { title: "Death: The High Cost of Living #2", year: 1993, minutes: 25, group: "Death: The High Cost of Living" }
+- { title: "Death: The High Cost of Living #3", year: 1993, minutes: 25, group: "Death: The High Cost of Living" }
+- { title: "Death: The Time of Your Life #1", year: 1996, minutes: 25, group: "Death: The Time of Your Life" }
+- { title: "Death: The Time of Your Life #2", year: 1996, minutes: 25, group: "Death: The Time of Your Life" }
+- { title: "Death: The Time of Your Life #3", year: 1996, minutes: 25, group: "Death: The Time of Your Life" }
 - { title: "Sandman #29", year: 1991, minutes: 25 }
 - { title: "Sandman #30", year: 1991, minutes: 25 }
 - { title: "Sandman #31", year: 1991, minutes: 25 }
@@ -90,13 +90,13 @@ items:
 - { title: "Sandman #74", year: 1996, minutes: 25 }
 - { title: "Sandman #75", year: 1996, minutes: 25 }
 - { title: "Sandman: Endless Nights", year: 2003, minutes: 25 }
-- { title: "Sandman: The Dream Hunters Vol 2 #1", year: 2009, minutes: 25 }
-- { title: "Sandman: The Dream Hunters Vol 2 #2", year: 2009, minutes: 25 }
-- { title: "Sandman: The Dream Hunters Vol 2 #3", year: 2009, minutes: 25 }
-- { title: "Sandman: The Dream Hunters Vol 2 #4", year: 2009, minutes: 25 }
-- { title: "Sandman: Overture #1", year: 2013, minutes: 25 }
-- { title: "Sandman: Overture #2", year: 2014, minutes: 25 }
-- { title: "Sandman: Overture #3", year: 2014, minutes: 25 }
-- { title: "Sandman: Overture #4", year: 2015, minutes: 25 }
-- { title: "Sandman: Overture #5", year: 2015, minutes: 25 }
-- { title: "Sandman: Overture #6", year: 2015, minutes: 25 }
+- { title: "Sandman: The Dream Hunters #1", year: 2009, minutes: 25, group: "Sandman: The Dream Hunters" }
+- { title: "Sandman: The Dream Hunters #2", year: 2009, minutes: 25, group: "Sandman: The Dream Hunters" }
+- { title: "Sandman: The Dream Hunters #3", year: 2009, minutes: 25, group: "Sandman: The Dream Hunters" }
+- { title: "Sandman: The Dream Hunters #4", year: 2009, minutes: 25, group: "Sandman: The Dream Hunters" }
+- { title: "Sandman: Overture #1", year: 2013, minutes: 25, group: "Sandman: Overture" }
+- { title: "Sandman: Overture #2", year: 2014, minutes: 25, group: "Sandman: Overture" }
+- { title: "Sandman: Overture #3", year: 2014, minutes: 25, group: "Sandman: Overture" }
+- { title: "Sandman: Overture #4", year: 2015, minutes: 25, group: "Sandman: Overture" }
+- { title: "Sandman: Overture #5", year: 2015, minutes: 25, group: "Sandman: Overture" }
+- { title: "Sandman: Overture #6", year: 2015, minutes: 25, group: "Sandman: Overture" }

@@ -15,40 +15,40 @@ items:
 - { title: "Watchmen #10", year: 1987, minutes: 25 }
 - { title: "Watchmen #11", year: 1987, minutes: 25 }
 - { title: "Watchmen #12", year: 1987, minutes: 25 }
-- { title: "Before Watchmen: Minutemen #1", year: 2012, minutes: 25 }
-- { title: "Before Watchmen: Minutemen #2", year: 2012, minutes: 25 }
-- { title: "Before Watchmen: Minutemen #3", year: 2012, minutes: 25 }
-- { title: "Before Watchmen: Minutemen #4", year: 2012, minutes: 25 }
-- { title: "Before Watchmen: Minutemen #5", year: 2012, minutes: 25 }
-- { title: "Before Watchmen: Minutemen #6", year: 2013, minutes: 25 }
+- { title: "Before Watchmen: Minutemen #1", year: 2012, minutes: 25, group: "Before Watchmen: Minutemen" }
+- { title: "Before Watchmen: Minutemen #2", year: 2012, minutes: 25, group: "Before Watchmen: Minutemen" }
+- { title: "Before Watchmen: Minutemen #3", year: 2012, minutes: 25, group: "Before Watchmen: Minutemen" }
+- { title: "Before Watchmen: Minutemen #4", year: 2012, minutes: 25, group: "Before Watchmen: Minutemen" }
+- { title: "Before Watchmen: Minutemen #5", year: 2012, minutes: 25, group: "Before Watchmen: Minutemen" }
+- { title: "Before Watchmen: Minutemen #6", year: 2013, minutes: 25, group: "Before Watchmen: Minutemen" }
 - { title: "Before Watchmen: Dollar Bill", year: 2013, minutes: 25 }
-- { title: "Before Watchmen: Ozymandias #1", year: 2012, minutes: 25 }
-- { title: "Before Watchmen: Ozymandias #2", year: 2012, minutes: 25 }
-- { title: "Before Watchmen: Ozymandias #3", year: 2012, minutes: 25 }
-- { title: "Before Watchmen: Ozymandias #4", year: 2012, minutes: 25 }
-- { title: "Before Watchmen: Ozymandias #5", year: 2013, minutes: 25 }
-- { title: "Before Watchmen: Ozymandias #6", year: 2013, minutes: 25 }
-- { title: "Before Watchmen: Comedian #1", year: 2012, minutes: 25 }
-- { title: "Before Watchmen: Comedian #2", year: 2012, minutes: 25 }
-- { title: "Before Watchmen: Comedian #3", year: 2012, minutes: 25 }
-- { title: "Before Watchmen: Comedian #4", year: 2012, minutes: 25 }
-- { title: "Before Watchmen: Comedian #5", year: 2013, minutes: 25 }
-- { title: "Before Watchmen: Comedian #6", year: 2013, minutes: 25 }
-- { title: "Before Watchmen: Silk Spectre #1", year: 2012, minutes: 25 }
-- { title: "Before Watchmen: Silk Spectre #2", year: 2012, minutes: 25 }
-- { title: "Before Watchmen: Silk Spectre #3", year: 2012, minutes: 25 }
-- { title: "Before Watchmen: Silk Spectre #4", year: 2012, minutes: 25 }
-- { title: "Before Watchmen: Nite Owl #1", year: 2012, minutes: 25 }
-- { title: "Before Watchmen: Nite Owl #2", year: 2012, minutes: 25 }
-- { title: "Before Watchmen: Nite Owl #3", year: 2012, minutes: 25 }
-- { title: "Before Watchmen: Nite Owl #4", year: 2012, minutes: 25 }
-- { title: "Before Watchmen: Rorschach #1", year: 2012, minutes: 25 }
-- { title: "Before Watchmen: Rorschach #2", year: 2012, minutes: 25 }
-- { title: "Before Watchmen: Rorschach #3", year: 2012, minutes: 25 }
-- { title: "Before Watchmen: Rorschach #4", year: 2013, minutes: 25 }
-- { title: "Before Watchmen: Moloch #1", year: 2012, minutes: 25 }
-- { title: "Before Watchmen: Moloch #2", year: 2012, minutes: 25 }
-- { title: "Before Watchmen: Doctor Manhattan #1", year: 2012, minutes: 25 }
-- { title: "Before Watchmen: Doctor Manhattan #2", year: 2012, minutes: 25 }
-- { title: "Before Watchmen: Doctor Manhattan #3", year: 2013, minutes: 25 }
-- { title: "Before Watchmen: Doctor Manhattan #4", year: 2013, minutes: 25 }
+- { title: "Before Watchmen: Ozymandias #1", year: 2012, minutes: 25, group: "Before Watchmen: Ozymandias" }
+- { title: "Before Watchmen: Ozymandias #2", year: 2012, minutes: 25, group: "Before Watchmen: Ozymandias" }
+- { title: "Before Watchmen: Ozymandias #3", year: 2012, minutes: 25, group: "Before Watchmen: Ozymandias" }
+- { title: "Before Watchmen: Ozymandias #4", year: 2012, minutes: 25, group: "Before Watchmen: Ozymandias" }
+- { title: "Before Watchmen: Ozymandias #5", year: 2013, minutes: 25, group: "Before Watchmen: Ozymandias" }
+- { title: "Before Watchmen: Ozymandias #6", year: 2013, minutes: 25, group: "Before Watchmen: Ozymandias" }
+- { title: "Before Watchmen: Comedian #1", year: 2012, minutes: 25, group: "Before Watchmen: Comedian" }
+- { title: "Before Watchmen: Comedian #2", year: 2012, minutes: 25, group: "Before Watchmen: Comedian" }
+- { title: "Before Watchmen: Comedian #3", year: 2012, minutes: 25, group: "Before Watchmen: Comedian" }
+- { title: "Before Watchmen: Comedian #4", year: 2012, minutes: 25, group: "Before Watchmen: Comedian" }
+- { title: "Before Watchmen: Comedian #5", year: 2013, minutes: 25, group: "Before Watchmen: Comedian" }
+- { title: "Before Watchmen: Comedian #6", year: 2013, minutes: 25, group: "Before Watchmen: Comedian" }
+- { title: "Before Watchmen: Silk Spectre #1", year: 2012, minutes: 25, group: "Before Watchmen: Silk Spectre" }
+- { title: "Before Watchmen: Silk Spectre #2", year: 2012, minutes: 25, group: "Before Watchmen: Silk Spectre" }
+- { title: "Before Watchmen: Silk Spectre #3", year: 2012, minutes: 25, group: "Before Watchmen: Silk Spectre" }
+- { title: "Before Watchmen: Silk Spectre #4", year: 2012, minutes: 25, group: "Before Watchmen: Silk Spectre" }
+- { title: "Before Watchmen: Nite Owl #1", year: 2012, minutes: 25, group: "Before Watchmen: Nite Owl" }
+- { title: "Before Watchmen: Nite Owl #2", year: 2012, minutes: 25, group: "Before Watchmen: Nite Owl" }
+- { title: "Before Watchmen: Nite Owl #3", year: 2012, minutes: 25, group: "Before Watchmen: Nite Owl" }
+- { title: "Before Watchmen: Nite Owl #4", year: 2012, minutes: 25, group: "Before Watchmen: Nite Owl" }
+- { title: "Before Watchmen: Rorschach #1", year: 2012, minutes: 25, group: "Before Watchmen: Rorschach" }
+- { title: "Before Watchmen: Rorschach #2", year: 2012, minutes: 25, group: "Before Watchmen: Rorschach" }
+- { title: "Before Watchmen: Rorschach #3", year: 2012, minutes: 25, group: "Before Watchmen: Rorschach" }
+- { title: "Before Watchmen: Rorschach #4", year: 2013, minutes: 25, group: "Before Watchmen: Rorschach" }
+- { title: "Before Watchmen: Moloch #1", year: 2012, minutes: 25, group: "Before Watchmen: Moloch" }
+- { title: "Before Watchmen: Moloch #2", year: 2012, minutes: 25, group: "Before Watchmen: Moloch" }
+- { title: "Before Watchmen: Doctor Manhattan #1", year: 2012, minutes: 25, group: "Before Watchmen: Doctor Manhattan" }
+- { title: "Before Watchmen: Doctor Manhattan #2", year: 2012, minutes: 25, group: "Before Watchmen: Doctor Manhattan" }
+- { title: "Before Watchmen: Doctor Manhattan #3", year: 2013, minutes: 25, group: "Before Watchmen: Doctor Manhattan" }
+- { title: "Before Watchmen: Doctor Manhattan #4", year: 2013, minutes: 25, group: "Before Watchmen: Doctor Manhattan" }

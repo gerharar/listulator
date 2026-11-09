@@ -94,9 +94,11 @@ items:
 - { title: "S01E11 On Thin Ice", year: 2026, minutes: 43, group: "Marshals: Season 1" }
 - { title: "S01E12 The Devil at Home", year: 2026, minutes: 43, group: "Marshals: Season 1" }
 - { title: "S01E13 Wolves at the Door", year: 2026, minutes: 43, group: "Marshals: Season 1" }
-- { title: "S02E01 All Hat No Cattle", year: 2026, minutes: 43, group: "Marshals: Season 2" }
-- { title: "S02E02 End of Watch", year: 2026, minutes: 44, group: "Marshals: Season 2" }
-- { title: "S02E03 Falling Sky", year: 2026, minutes: 43, group: "Marshals: Season 2" }
+- { title: "S02E01 All Hat No Cattle", year: 2026, minutes: 41, group: "Marshals: Season 2" }
+- { title: "S02E02 End of Watch", year: 2026, minutes: 40, group: "Marshals: Season 2" }
+- { title: "S02E03 Falling Sky", year: 2026, minutes: 40, group: "Marshals: Season 2" }
+- { title: "S02E04 Blast Radius", year: 2026, minutes: 38, group: "Marshals: Season 2" }
+- { title: "S02E05 Secret Weapon", year: 2026, minutes: 43, group: "Marshals: Season 2" }
 - { title: "S01E01 The Untold Want", year: 2026, minutes: 56, group: "Dutton Ranch: Season 1" }
 - { title: "S01E02 Earn Another Day", year: 2026, minutes: 47, group: "Dutton Ranch: Season 1" }
 - { title: "S01E03 Act of God Business", year: 2026, minutes: 49, group: "Dutton Ranch: Season 1" }

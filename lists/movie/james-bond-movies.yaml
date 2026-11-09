@@ -8,7 +8,7 @@ items:
 - { title: "Goldfinger", year: 1964, minutes: 109 }
 - { title: "Thunderball", year: 1965, minutes: 130 }
 - { title: "You Only Live Twice", year: 1967, minutes: 116 }
-- { title: "Casino Royale", year: 1967, minutes: 131, tags: [non-canon] }
+- { title: "Casino Royale", year: 1967, minutes: 131, notes: "Non-canon" }
 - { title: "On Her Majesty's Secret Service", year: 1969, minutes: 142 }
 - { title: "Diamonds Are Forever", year: 1971, minutes: 119 }
 - { title: "Live and Let Die", year: 1973, minutes: 121 }
@@ -17,7 +17,7 @@ items:
 - { title: "Moonraker", year: 1979, minutes: 126 }
 - { title: "For Your Eyes Only", year: 1981, minutes: 127 }
 - { title: "Octopussy", year: 1983, minutes: 131 }
-- { title: "Never Say Never Again", year: 1983, minutes: 134, tags: [non-canon] }
+- { title: "Never Say Never Again", year: 1983, minutes: 134, notes: "Non-canon" }
 - { title: "A View to a Kill", year: 1985, minutes: 131 }
 - { title: "The Living Daylights", year: 1987, minutes: 130 }
 - { title: "Licence to Kill", year: 1989, minutes: 133 }
