@@ -23,3 +23,17 @@
 .q-hex.sm {
   --d: 16px;
 }
+
+/*
+ * eX-Zed's swatch (design X-003, bundle.css `.zx-swatch`): the top half the skin's paper, the bottom half its colour, a 2px rim of the text colour. The roles
+ * are read from the swatch's own `data-theme` (the nested `html [data-theme='exzed-…']` blocks of exzed-tokens.css), so it draws the skin it names.
+ */
+.q-zx-swatch {
+  flex: none;
+  display: block;
+  box-sizing: border-box;
+  width: 16px;
+  height: 16px;
+  border: 2px solid currentColor;
+  background: linear-gradient(var(--zx-paper) 0 50%, var(--zx-skin) 50%);
+}

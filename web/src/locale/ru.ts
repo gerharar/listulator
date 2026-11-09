@@ -341,6 +341,8 @@ export const ru: Locale = {
       closeLabel: 'Закрыть',
       theme: 'Тема',
       themeQuantum: 'Quantum',
+      themeExzed: 'eX-Zed',
+      themeChanged: (label: string): string => `Тему заменили: ${label}`,
       skin: 'Шкура',
       screen: 'Экран',
       fullscreen: 'Полноэкранный режим',

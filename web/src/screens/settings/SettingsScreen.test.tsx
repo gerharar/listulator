@@ -4,6 +4,8 @@ import { useEffect } from 'react'
 import { act, cleanup, render, screen, waitFor } from '@testing-library/react'
 import type { PreferencesStore } from '../../lib/preferences/store.js'
 import { SKINS } from '../../lib/preferences/skin.js'
+import { EXZED_SKINS, type ExzedSkin } from '../../lib/preferences/exzedSkins.js'
+import type { Theme } from '../../lib/preferences/theme.js'
 import { setActiveLanguage } from '../../locale/index.js'
 import { hoverTooltip } from '../../components/quantum/Tooltip/hoverTooltip.js'
 import { LanguageProvider } from '../../locale/LanguageProvider.js'
@@ -67,8 +69,12 @@ function StackReader() {
   return <span data-testid="stack">{stack.map((layer) => layer.kind).join(',')}</span>
 }
 
-function renderSettings(options: { skin?: 'dark-blue' | 'light-bone'; reducedSetting?: boolean; markOpenGroups?: boolean; showTimeLeft?: boolean } = {}) {
+function renderSettings(
+  options: { skin?: 'dark-blue' | 'light-bone'; theme?: Theme; exzedSkin?: ExzedSkin; reducedSetting?: boolean; markOpenGroups?: boolean; showTimeLeft?: boolean } = {},
+) {
   const onSkinChange = vi.fn()
+  const onThemeChange = vi.fn()
+  const onExzedSkinChange = vi.fn()
   const view = render(
     <LiveRegionProvider>
       <OverlayManagerProvider>
@@ -82,7 +88,15 @@ function renderSettings(options: { skin?: 'dark-blue' | 'light-bone'; reducedSet
                   <div data-testid="a-group-head">
                     <GroupTriangle />
                   </div>
-                  <SettingsScreen skin={options.skin ?? 'dark-blue'} onSkinChange={onSkinChange} store={store} />
+                  <SettingsScreen
+                    skin={options.skin ?? 'dark-blue'}
+                    onSkinChange={onSkinChange}
+                    theme={options.theme ?? 'quantum'}
+                    onThemeChange={onThemeChange}
+                    exzedSkin={options.exzedSkin ?? 'exzed-1d'}
+                    onExzedSkinChange={onExzedSkinChange}
+                    store={store}
+                  />
                 </LayerStackProvider>
               </LanguageProvider>
             </TimeLeftProvider>
@@ -91,17 +105,50 @@ function renderSettings(options: { skin?: 'dark-blue' | 'light-bone'; reducedSet
       </OverlayManagerProvider>
     </LiveRegionProvider>,
   )
-  return { ...view, onSkinChange }
+  return { ...view, onSkinChange, onThemeChange, onExzedSkinChange }
 }
 
 const pressed = (name: string) => screen.getByRole('button', { name }).getAttribute('aria-pressed')
 
 describe('SettingsScreen', () => {
-  it('shows the Quantum theme as the only one, lit', () => {
+  it('offers the two themes, Quantum lit while it is the theme and eX-Zed not', () => {
     renderSettings()
 
     expect(pressed('Quantum')).toBe('true')
+    expect(pressed('eX-Zed')).toBe('false')
     expect(screen.queryByRole('button', { name: 'Modernist' })).toBeNull()
+  })
+
+  it('lights eX-Zed instead when it is the theme', () => {
+    renderSettings({ theme: 'exzed' })
+
+    expect(pressed('eX-Zed')).toBe('true')
+    expect(pressed('Quantum')).toBe('false')
+  })
+
+  it('picking eX-Zed switches the theme and announces it; picking the theme that is already lit does nothing', async () => {
+    const { onThemeChange, container } = renderSettings()
+
+    act(() => screen.getByRole('button', { name: 'Quantum' }).click())
+    expect(onThemeChange).not.toHaveBeenCalled()
+
+    act(() => screen.getByRole('button', { name: 'eX-Zed' }).click())
+
+    expect(onThemeChange).toHaveBeenCalledExactlyOnceWith('exzed')
+    await waitFor(() => {
+      expect(container.querySelector('.q-live')?.textContent).toBe('Switched to the eX-Zed theme')
+    })
+  })
+
+  it('picking Quantum from eX-Zed switches back and announces it', async () => {
+    const { onThemeChange, container } = renderSettings({ theme: 'exzed' })
+
+    act(() => screen.getByRole('button', { name: 'Quantum' }).click())
+
+    expect(onThemeChange).toHaveBeenCalledExactlyOnceWith('quantum')
+    await waitFor(() => {
+      expect(container.querySelector('.q-live')?.textContent).toBe('Switched to the Quantum theme')
+    })
   })
 
   it('lists the five skins and lights the current one', () => {
@@ -132,6 +179,56 @@ describe('SettingsScreen', () => {
     await waitFor(() => {
       expect(container.querySelector('.q-live')?.textContent).toBe('Switched to the Romans skin')
     })
+  })
+
+  it('under Quantum shows no eX-Zed skin: the SKIN row is the five Quantum skins only', () => {
+    renderSettings()
+
+    for (const name of ['Lode', 'Focal', 'Glemt', 'Xen', 'Kui', 'Lotus']) expect(screen.queryByRole('button', { name })).toBeNull()
+  })
+
+  it('under eX-Zed lists its six skins by name, without the number, and none of Quantum’s', () => {
+    renderSettings({ theme: 'exzed', exzedSkin: 'exzed-1c' })
+
+    for (const name of ['Lode', 'Focal', 'Glemt', 'Xen', 'Kui', 'Lotus']) expect(screen.getByRole('button', { name })).not.toBeNull()
+    expect(pressed('Xen')).toBe('true')
+    expect(pressed('Lode')).toBe('false')
+    for (const name of ['Destiny', 'Jupiter', 'Deluge', 'Romans', 'Jouhou']) expect(screen.queryByRole('button', { name })).toBeNull()
+    expect(document.querySelectorAll('.q-chip.skin')).toHaveLength(6)
+  })
+
+  it('marks each eX-Zed skin with its own half-bucket swatch (the skin’s key, so the page draws that skin, not the active one), and no hexagon', () => {
+    const { container } = renderSettings({ theme: 'exzed' })
+
+    const swatches = [...container.querySelectorAll('.q-chip.skin .q-zx-swatch')]
+    expect(swatches.map((swatch) => swatch.getAttribute('data-theme'))).toEqual([...EXZED_SKINS])
+    expect(container.querySelector('.q-chip.skin .q-hex')).toBeNull()
+  })
+
+  it('picking an eX-Zed skin applies it to eX-Zed’s own key and announces it; Quantum’s skin handler is not called', async () => {
+    const { onExzedSkinChange, onSkinChange, container } = renderSettings({ theme: 'exzed' })
+
+    act(() => screen.getByRole('button', { name: 'Lotus' }).click())
+
+    expect(onExzedSkinChange).toHaveBeenCalledExactlyOnceWith('exzed-1l')
+    expect(onSkinChange).not.toHaveBeenCalled()
+    await waitFor(() => {
+      expect(container.querySelector('.q-live')?.textContent).toBe('Switched to the Lotus skin')
+    })
+  })
+
+  it('announces a theme switch in Russian and German, with the theme’s name as it is, and no « »', async () => {
+    const russian = renderSettings()
+    act(() => screen.getByRole('button', { name: 'Русский' }).click())
+    act(() => screen.getByRole('button', { name: 'eX-Zed' }).click())
+    await waitFor(() => expect(russian.container.querySelector('.q-live')?.textContent).toBe('Тему заменили: eX-Zed'))
+    cleanup()
+
+    const german = renderSettings()
+    act(() => screen.getByRole('button', { name: 'Deutsch' }).click())
+    act(() => screen.getByRole('button', { name: 'eX-Zed' }).click())
+    await waitFor(() => expect(german.container.querySelector('.q-live')?.textContent).toBe('Thema gewechselt: eX-Zed.'))
+    expect(ru.quantum.settings.themeChanged('x')).not.toMatch(/[«»]/)
   })
 
   it('offers no choice of motion style, only Reduce motion (Fast push removed, F14)', () => {
@@ -257,7 +354,7 @@ describe('SettingsScreen', () => {
             <LayerStackProvider home={{ id: 'home', kind: 'home', tabLabel: 'Home', content: '/' }}>
               <PushSettings />
               <StackReader />
-              <SettingsScreen skin="dark-blue" onSkinChange={vi.fn()} store={store} />
+              <SettingsScreen skin="dark-blue" onSkinChange={vi.fn()} theme="quantum" onThemeChange={vi.fn()} exzedSkin="exzed-1d" onExzedSkinChange={vi.fn()} store={store} />
             </LayerStackProvider>
           </LanguageProvider>
         </MotionProvider>

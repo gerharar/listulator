@@ -377,6 +377,8 @@ export const en = {
       closeLabel: 'Close',
       theme: 'Theme',
       themeQuantum: 'Quantum',
+      themeExzed: 'eX-Zed',
+      themeChanged: (label: string): string => `Switched to the ${label} theme`,
       skin: 'Skin',
       /** The group with full screen and reduced motion (owner, 2026-10-05: was "Motion"). */
       screen: 'Screen',

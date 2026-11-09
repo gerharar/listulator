@@ -4,8 +4,8 @@ import { api, type MediaType } from './lib/api.js'
 import { copy } from './locale/index.js'
 import { getPreferencesStore } from './lib/preferences/store.js'
 import { resolveSkin, setSkin as persistSkin, type Skin } from './lib/preferences/skin.js'
-import { isTheme, resolveTheme, setTheme as persistTheme, type Theme } from './lib/preferences/theme.js'
-import { resolveExzedSkin } from './lib/preferences/exzedSkin.js'
+import { resolveTheme, setTheme as persistTheme, type Theme } from './lib/preferences/theme.js'
+import { resolveExzedSkin, setExzedSkin as persistExzedSkin } from './lib/preferences/exzedSkin.js'
 import { activeSkin } from './lib/preferences/activeSkin.js'
 import type { ExzedSkin } from './lib/preferences/exzedSkins.js'
 import { resolveLanguage, type Language } from './lib/preferences/language.js'
@@ -71,9 +71,6 @@ interface BootState {
   showTimeLeft: boolean
 }
 
-/** The window event the e2e switches the theme with, until Settings has the control (49.7; 49.8 removes it). Its `detail` is a theme. */
-export const THEME_EVENT = 'listulator:set-theme'
-
 /** The header's Quit/Exit (task 16.2b): the desktop window, or none in the browser build. */
 const appQuit = getAppQuit()
 
@@ -123,6 +120,8 @@ function QuantumShell({ initial }: { initial: BootState }) {
   const [skin, setSkinState] = useState<Skin>(initial.skin)
   // The theme is live (49.7): switching it redraws every open layer and keeps what they hold. Settings gets its control in 49.8.
   const [theme, setThemeState] = useState<Theme>(initial.theme)
+  // eX-Zed's own skin (X-003): a second preference beside Quantum's, so each theme comes back with its last skin.
+  const [exzedSkin, setExzedSkinState] = useState<ExzedSkin>(initial.exzedSkin)
   const store = getPreferencesStore()
   // F11 toggles full screen in the desktop app, wherever focus is (17.7); nothing in the browser.
   useFullscreenKey()
@@ -130,6 +129,11 @@ function QuantumShell({ initial }: { initial: BootState }) {
   function handleSkinChange(next: Skin): void {
     setSkinState(next)
     void persistSkin(store, next)
+  }
+
+  function handleExzedSkinChange(next: ExzedSkin): void {
+    setExzedSkinState(next)
+    void persistExzedSkin(store, next)
   }
 
   function handleThemeChange(next: Theme): void {
@@ -143,23 +147,12 @@ function QuantumShell({ initial }: { initial: BootState }) {
       .catch(() => undefined)
   }
 
-  // Temporary (49.7), until Settings has the THEME control (49.8 removes this): the e2e switches the theme by an event on the window.
-  useEffect(() => {
-    const onSetTheme = (event: Event) => {
-      const next: unknown = (event as CustomEvent<unknown>).detail
-      if (isTheme(next)) handleThemeChange(next)
-    }
-    window.addEventListener(THEME_EVENT, onSetTheme)
-
-    return () => window.removeEventListener(THEME_EVENT, onSetTheme)
-  })
-
   return (
     <MotionProvider
       initialReducedSetting={initial.reducedSetting}
       store={store}
     >
-      <DocumentTheme skin={activeSkin(theme, { quantum: skin, exzed: initial.exzedSkin })} theme={theme}>
+      <DocumentTheme skin={activeSkin(theme, { quantum: skin, exzed: exzedSkin })} theme={theme}>
         <ThemeBackdrop />
         <LiveRegionProvider>
           <ToastProvider>
@@ -168,7 +161,14 @@ function QuantumShell({ initial }: { initial: BootState }) {
                 <GroupLineProvider on={initial.markOpenGroups} store={store}>
                   <TimeLeftProvider on={initial.showTimeLeft} store={store}>
                     <LayerStackProvider home={homeLayer()}>
-                      <AppShellBody skin={skin} onSkinChange={handleSkinChange} />
+                      <AppShellBody
+                        skin={skin}
+                        onSkinChange={handleSkinChange}
+                        exzedSkin={exzedSkin}
+                        onExzedSkinChange={handleExzedSkinChange}
+                        theme={theme}
+                        onThemeChange={handleThemeChange}
+                      />
                     </LayerStackProvider>
                   </TimeLeftProvider>
                 </GroupLineProvider>
@@ -244,9 +244,13 @@ export function PathLayer({ path, mediaTypes, active = true }: { path: string; m
 interface AppShellBodyProps {
   skin: Skin
   onSkinChange: (skin: Skin) => void
+  exzedSkin: ExzedSkin
+  onExzedSkinChange: (skin: ExzedSkin) => void
+  theme: Theme
+  onThemeChange: (theme: Theme) => void
 }
 
-function AppShellBody({ skin, onSkinChange }: AppShellBodyProps) {
+function AppShellBody({ skin, onSkinChange, exzedSkin, onExzedSkinChange, theme, onThemeChange }: AppShellBodyProps) {
   // Subscribes the whole shell (header, Home) to the language, so a switch in
   // Settings re-renders them live rather than at the next unrelated render.
   useLanguage()
@@ -328,7 +332,7 @@ function AppShellBody({ skin, onSkinChange }: AppShellBodyProps) {
               {layer.kind === 'home' ? (
                 <Home onMediaTypesLoaded={setMediaTypes} />
               ) : layer.kind === 'settings' ? (
-                <SettingsScreen skin={skin} onSkinChange={onSkinChange} />
+                <SettingsScreen skin={skin} onSkinChange={onSkinChange} exzedSkin={exzedSkin} onExzedSkinChange={onExzedSkinChange} theme={theme} onThemeChange={onThemeChange} />
               ) : layer.kind === 'about' ? (
                 <AboutScreen />
               ) : layer.kind === 'category-picker' ? (

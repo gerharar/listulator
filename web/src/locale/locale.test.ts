@@ -146,6 +146,7 @@ const SAME_AS_ENGLISH: Record<'ru' | 'de', readonly string[]> = {
   ru: [
     'categories.youtube.handTitlePlaceholder',
     'quantum.settings.themeQuantum',
+    'quantum.settings.themeExzed',
     'quantum.vaultBrowser.tab',
     'quantum.vaultBrowser.title',
     'quantum.vaultShelf.label',
@@ -187,6 +188,7 @@ const SAME_AS_ENGLISH: Record<'ru' | 'de', readonly string[]> = {
     'sourceSearch.includeSingle',
     'sourceSearch.includeCompilation',
     'quantum.settings.themeQuantum',
+    'quantum.settings.themeExzed',
     'quantum.vaultBrowser.columns.name',
     'quantum.vaultBrowser.columns.status',
     'quantum.vaultBrowser.tab',

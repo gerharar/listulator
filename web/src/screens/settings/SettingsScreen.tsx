@@ -7,6 +7,8 @@ import { copy } from '../../locale/index.js'
 import { getPreferencesStore, type PreferencesStore } from '../../lib/preferences/store.js'
 import { LANGUAGES, setLanguage as persistLanguage, type Language } from '../../lib/preferences/language.js'
 import { SKINS, type Skin } from '../../lib/preferences/skin.js'
+import { THEMES, type Theme } from '../../lib/preferences/theme.js'
+import { EXZED_SKINS, EXZED_SKIN_NAMES, type ExzedSkin } from '../../lib/preferences/exzedSkins.js'
 import { IconButton } from '../../components/quantum/Button/Button.js'
 import { HeaderPlate } from '../../components/quantum/HeaderPlate/HeaderPlate.js'
 import { useLayerStack } from '../../components/quantum/layerStack/LayerStackContext.js'
@@ -16,23 +18,28 @@ import { useGroupLineSetting } from '../../components/quantum/GroupTriangle/Grou
 import { useTimeLeftSetting } from '../../components/quantum/Home/TimeLeftSetting.js'
 import { Tip } from '../../components/quantum/Tooltip/Tip.js'
 import { useWindowFullscreen } from '../../lib/windowFullscreen.js'
-import { SkinSwatch } from '../../components/quantum/SkinSwatch/SkinSwatch.js'
+import { ExzedSkinSwatch, SkinSwatch } from '../../components/quantum/SkinSwatch/SkinSwatch.js'
 import { ToggleChip } from '../../components/quantum/ToggleChip/ToggleChip.js'
 
 export interface SettingsScreenProps {
+  /** Quantum's skin, and eX-Zed's own (they are two preferences: switching theme restores each theme's last skin). */
   skin: Skin
   onSkinChange: (skin: Skin) => void
+  exzedSkin: ExzedSkin
+  onExzedSkinChange: (skin: ExzedSkin) => void
+  /** The theme in force, and the shell's switch (49.7): applied at once and stored there; this announces it. */
+  theme: Theme
+  onThemeChange: (theme: Theme) => void
   /** Where the language is remembered; the skin and reduced motion are persisted by their owners. */
   store?: PreferencesStore
 }
 
 /**
  * The Settings layer (task 10.30; prototype `isSettings`, plate left seed 5).
- * Theme is Quantum only and lit — the prototype's other themes are not part of
- * this app — and there is no atmosphere control (Q4). The API keys section is
- * desktop only (task 10.31).
+ * THEME has two choices, Quantum and eX-Zed (49.8); SKIN shows the skins of the theme in force: Quantum's five with the hexagon, eX-Zed's six with the
+ * half-bucket swatch (design X-003). There is no atmosphere control (Q4). The API keys section is desktop only (task 10.31).
  */
-export function SettingsScreen({ skin, onSkinChange, store }: SettingsScreenProps) {
+export function SettingsScreen({ skin, onSkinChange, exzedSkin, onExzedSkinChange, theme, onThemeChange, store }: SettingsScreenProps) {
   const layerStack = useLayerStack()
   const { announce } = useLiveRegion()
   const { language, setLanguage } = useLanguage()
@@ -45,6 +52,21 @@ export function SettingsScreen({ skin, onSkinChange, store }: SettingsScreenProp
   function pickSkin(next: Skin): void {
     onSkinChange(next)
     announce(copy.quantum.skin.changed(copy.quantum.skin.labels[next]))
+  }
+
+  function pickExzedSkin(next: ExzedSkin): void {
+    onExzedSkinChange(next)
+    announce(copy.quantum.skin.changed(EXZED_SKIN_NAMES[next]))
+  }
+
+  // The names of the themes are names: not translated.
+  const themeNames: Record<Theme, string> = { quantum: text.themeQuantum, exzed: text.themeExzed }
+
+  function pickTheme(next: Theme): void {
+    // The lit one is not a switch: nothing to apply, and nothing to announce.
+    if (next === theme) return
+    onThemeChange(next)
+    announce(text.themeChanged(themeNames[next]))
   }
 
   function pickLanguage(next: Language): void {
@@ -67,21 +89,30 @@ export function SettingsScreen({ skin, onSkinChange, store }: SettingsScreenProp
           <section>
             <span className="q-kicker">{text.theme}</span>
             <div className="q-settings-row">
-              <ToggleChip variant="choice" pressed>
-                {text.themeQuantum}
-              </ToggleChip>
+              {THEMES.map((id) => (
+                <ToggleChip key={id} variant="choice" pressed={id === theme} onClick={() => pickTheme(id)}>
+                  {themeNames[id]}
+                </ToggleChip>
+              ))}
             </div>
           </section>
 
           <section>
             <span className="q-kicker">{text.skin}</span>
             <div className="q-settings-row">
-              {SKINS.map((id) => (
-                <ToggleChip key={id} variant="choice" className="skin" pressed={id === skin} onClick={() => pickSkin(id)}>
-                  <SkinSwatch skin={id} small />
-                  {copy.quantum.skin.labels[id]}
-                </ToggleChip>
-              ))}
+              {theme === 'exzed'
+                ? EXZED_SKINS.map((id) => (
+                    <ToggleChip key={id} variant="choice" className="skin" pressed={id === exzedSkin} onClick={() => pickExzedSkin(id)}>
+                      <ExzedSkinSwatch skin={id} />
+                      {EXZED_SKIN_NAMES[id]}
+                    </ToggleChip>
+                  ))
+                : SKINS.map((id) => (
+                    <ToggleChip key={id} variant="choice" className="skin" pressed={id === skin} onClick={() => pickSkin(id)}>
+                      <SkinSwatch skin={id} small />
+                      {copy.quantum.skin.labels[id]}
+                    </ToggleChip>
+                  ))}
             </div>
           </section>
 

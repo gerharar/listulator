@@ -18,3 +18,16 @@ export const EXZED_SKIN_OF_DESIGN_ID = {
   kui: 'exzed-1e',
   lotus: 'exzed-1l',
 } as const satisfies Record<string, ExzedSkin>
+
+/**
+ * The names the user sees (design X-003), without the number. Not translated: they are names, like Quantum's skins in `copy.quantum.skin.labels` are not
+ * localised word for word either, and design's boards show them as written.
+ */
+export const EXZED_SKIN_NAMES = {
+  'exzed-1d': 'Lode',
+  'exzed-1a': 'Focal',
+  'exzed-1b': 'Glemt',
+  'exzed-1c': 'Xen',
+  'exzed-1e': 'Kui',
+  'exzed-1l': 'Lotus',
+} as const satisfies Record<ExzedSkin, string>

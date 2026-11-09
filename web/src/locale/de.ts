@@ -334,6 +334,8 @@ export const de: Locale = {
       closeLabel: 'Schließen',
       theme: 'Design',
       themeQuantum: 'Quantum',
+      themeExzed: 'eX-Zed',
+      themeChanged: (label: string): string => `Thema gewechselt: ${label}.`,
       skin: 'Farbschema',
       screen: 'Bildschirm',
       fullscreen: 'Vollbild',

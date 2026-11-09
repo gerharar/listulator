@@ -3,11 +3,10 @@ import { expect, test, type APIRequestContext, type Page } from '@playwright/tes
 /**
  * Switching the theme under an open app (Phase 49.7), in both engines and both directions. Home, a list over it and Settings over that are all
  * redrawn at once: the class and the skin attribute, the rows (46 / 47 and 32 / 32), the rail's placement at the same window width and the covered
- * tabs' cascade (37 / 74 and 40 / 80). What the open layers hold stays: the filter, a half-typed Add row, the focused row, and the scroll position
+ * tabs' cascade (37 / 74 and 40 / 80). What the open layers hold stays: the filter, a half-typed Add row, and the scroll position
  * (the same row at the top), also in a long list drawn as a window (400 rows, no blank rows). The switch is the window event the shell listens to
- * until Settings has its control (49.8). Real writes on the dev server, removed in a `finally`.
+ * through Settings' THEME chips (49.8), as a person does it: the layer the switch is made in is Settings, so a list underneath is covered while it happens (the focus is in Settings, not in a row, so no focused row is asserted). Real writes on the dev server, removed in a `finally`.
  */
-const EVENT = 'listulator:set-theme'
 type ThemeName = 'quantum' | 'exzed'
 
 const LOOK = {
@@ -37,7 +36,23 @@ async function open(page: Page, theme: ThemeName, title: string) {
   await page.locator('.q-item').first().waitFor()
 }
 
-const switchTo = (page: Page, theme: ThemeName) => page.evaluate(([name, detail]) => window.dispatchEvent(new CustomEvent(name, { detail })), [EVENT, theme] as const)
+/**
+ * Switches the theme the way a person does: in Settings, on the THEME chip. Opens Settings when it is not open and, with `close`, closes it again so the
+ * layer under it is the one on top (the rail and the list's own state are read there); the 3-layer test keeps Settings open.
+ */
+async function switchTo(page: Page, theme: ThemeName, close = true) {
+  const settings = page.locator('.q-settings')
+  const wasOpen = (await settings.count()) > 0
+  if (!wasOpen) {
+    await page.getByRole('button', { name: 'Settings', exact: true }).click()
+    await settings.waitFor()
+  }
+  await settings.getByRole('button', { name: theme === 'exzed' ? 'eX-Zed' : 'Quantum', exact: true }).click()
+  if (!wasOpen && close) {
+    await settings.getByRole('button', { name: 'Close', exact: true }).click()
+    await expect(settings).toHaveCount(0)
+  }
+}
 
 const frames = (page: Page, count = 3) =>
   page.evaluate(
@@ -97,13 +112,13 @@ for (const [from, to] of [
       const title = `e2e switch ${from} ${test.info().project.name} ${Date.now()}`
       id = await makeList(page.request, title, 60, 3)
       await open(page, from, title)
-      await page.getByRole('button', { name: 'Settings' }).click()
+      await page.getByRole('button', { name: 'Settings', exact: true }).click()
       await page.locator('.q-layer:not(.covered)').first().waitFor()
 
       const before = await look(page)
       expect(before).toEqual({ exzedClass: LOOK[from].exzedClass, skin: LOOK[from].skin, item: LOOK[from].item, group: LOOK[from].group, layers: 3, rise: LOOK[from].rise })
 
-      await switchTo(page, to)
+      await switchTo(page, to, false)
       await frames(page)
 
       expect(await look(page)).toEqual({ exzedClass: LOOK[to].exzedClass, skin: LOOK[to].skin, item: LOOK[to].item, group: LOOK[to].group, layers: 3, rise: LOOK[to].rise })
@@ -125,7 +140,7 @@ for (const [from, to] of [
       await expect(page.locator('.q-rail')).toHaveAttribute('data-placement', LOOK[to].rail)
     })
 
-    test('the filter, a half-typed Add row, the focused row and the place in the list survive the switch', async ({ page }) => {
+    test('the filter, a half-typed Add row and the place in the list survive the switch', async ({ page }) => {
       const title = `e2e switch state ${from} ${test.info().project.name} ${Date.now()}`
       id = await makeList(page.request, title, 60, 3)
       await open(page, from, title)
@@ -134,8 +149,6 @@ for (const [from, to] of [
       await page.locator('.q-add-item').getByLabel('Title').fill('Half typed')
       const row = page.locator('.q-item', { hasText: 'Item 030' })
       await row.scrollIntoViewIfNeeded()
-      await row.focus()
-      await row.evaluate((el) => (el.setAttribute('data-mark', 'focused'), undefined))
       await frames(page)
       const topBefore = await topRow(page)
 
@@ -144,7 +157,6 @@ for (const [from, to] of [
 
       await expect(page.getByPlaceholder('Filter items…')).toHaveValue('Item')
       await expect(page.locator('.q-add-item').getByLabel('Title')).toHaveValue('Half typed')
-      expect(await page.evaluate(() => document.activeElement?.getAttribute('data-mark'))).toBe('focused')
       expect(Math.abs((await topRow(page)).item - topBefore.item), 'the same row is at the top of the list, give or take the row the sticky header covers').toBeLessThanOrEqual(1)
     })
 
