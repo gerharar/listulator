@@ -433,6 +433,15 @@ export const de: Locale = {
         },
       },
     },
+    narrow: {
+      kicker: 'eX-Zed',
+      embiggen: 'Embiggen',
+      keep: 'Quantum behalten',
+      dismiss: 'Schließen',
+      embiggenLine: (min: number): string => `eX-Zed braucht ein Fenster, das mindestens ${min} Pixel breit ist.`,
+      screenLine: 'Dein Bildschirm ist nicht groß genug, um eX-Zed in seiner ganzen Pracht zu zeigen. Bleib bei Quantum, da passt alles besser.',
+      browserLine: (min: number): string => `Mach das Browserfenster mindestens ${min} Pixel breit oder wechsle zurück zu Quantum.`,
+    },
     skin: {
       button: 'Farbschema',
       kicker: 'Farbschema',

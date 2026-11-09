@@ -1,11 +1,17 @@
 import './App.css'
-import { useEffect, useRef, useState, type CSSProperties } from 'react'
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import { api, type MediaType } from './lib/api.js'
 import { copy } from './locale/index.js'
 import { getPreferencesStore } from './lib/preferences/store.js'
 import { resolveSkin, setSkin as persistSkin, type Skin } from './lib/preferences/skin.js'
 import { effectiveTheme, resolveTheme, setTheme as persistTheme, type Theme } from './lib/preferences/theme.js'
 import { finePointer, subscribeFinePointer } from './lib/finePointer.js'
+import { isDesktop } from './lib/platform.js'
+import { narrowWindowMin, type NarrowMode } from './lib/narrowWindow.js'
+import { useNarrowWindowNotice } from './lib/useNarrowWindowNotice.js'
+import { maximizeWindow } from './lib/windowMaximize.js'
+import { useInnerWidth } from './lib/useInnerWidth.js'
+import { NarrowWindowBanner, NarrowWindowPopover } from './components/quantum/NarrowWindowNotice/NarrowWindowNotice.js'
 import { resolveExzedSkin, setExzedSkin as persistExzedSkin } from './lib/preferences/exzedSkin.js'
 import { activeSkin } from './lib/preferences/activeSkin.js'
 import type { ExzedSkin } from './lib/preferences/exzedSkins.js'
@@ -140,6 +146,12 @@ function QuantumShell({ initial }: { initial: BootState }) {
   // eX-Zed's own skin (X-003): a second preference beside Quantum's, so each theme comes back with its last skin.
   const [exzedSkin, setExzedSkinState] = useState<ExzedSkin>(initial.exzedSkin)
   const store = getPreferencesStore()
+
+  // eX-Zed needs a window of a minimum width (49.12). Narrower, with eX-Zed drawn: a banner (the app started so) or, when the person has just switched to it, a
+  // popover on the chip. Never blocking, nothing stored. The minimum is read from the theme's own tokens once it is the theme drawn; the width is the layers'.
+  const width = useInnerWidth()
+  const needed = useMemo(() => (shown === 'exzed' ? narrowWindowMin() : 0), [shown])
+  const notice = useNarrowWindowNotice({ exzed: shown === 'exzed', width, min: needed, desktop: isDesktop(), screenWidth: screen.availWidth, maximize: maximizeWindow })
   // F11 toggles full screen in the desktop app, wherever focus is (17.7); nothing in the browser.
   useFullscreenKey()
 
@@ -153,8 +165,10 @@ function QuantumShell({ initial }: { initial: BootState }) {
     void persistExzedSkin(store, next)
   }
 
-  function handleThemeChange(next: Theme): void {
+  function handleThemeChange(next: Theme, anchor?: HTMLElement): void {
     if (next === theme) return
+    // A fresh switch to eX-Zed is a fresh question: the popover opens on the chip again, whatever was dismissed before.
+    notice.opened(next === 'exzed' && anchor ? anchor : null)
     // The class goes on <html> first, as at boot: what is laid out from the page's sizes (the row model, the rail's placement, the layers' cascade) reads
     // them while it renders, and DocumentTheme's own effect runs only after its children have rendered. Written at once, so a quit right after keeps it.
     applyThemeClass(effectiveTheme(next, fine))
@@ -186,6 +200,16 @@ function QuantumShell({ initial }: { initial: BootState }) {
                         theme={shown}
                         canChooseTheme={fine}
                         onThemeChange={handleThemeChange}
+                        narrow={{
+                          mode: notice.mode,
+                          min: needed,
+                          banner: notice.banner,
+                          popover: notice.popover,
+                          anchor: notice.anchor,
+                          onEmbiggen: notice.embiggen,
+                          onKeep: () => handleThemeChange('quantum'),
+                          onDismiss: notice.dismiss,
+                        }}
                       />
                     </LayerStackProvider>
                   </TimeLeftProvider>
@@ -259,7 +283,20 @@ export function PathLayer({ path, mediaTypes, active = true }: { path: string; m
   return null
 }
 
+/** What the narrow-window warning needs from the shell (49.12). */
+interface NarrowNotice {
+  mode: NarrowMode
+  min: number
+  banner: boolean
+  popover: boolean
+  anchor: HTMLElement | null
+  onEmbiggen: () => void
+  onKeep: () => void
+  onDismiss: () => void
+}
+
 interface AppShellBodyProps {
+  narrow: NarrowNotice
   skin: Skin
   onSkinChange: (skin: Skin) => void
   exzedSkin: ExzedSkin
@@ -270,7 +307,7 @@ interface AppShellBodyProps {
   onThemeChange: (theme: Theme) => void
 }
 
-function AppShellBody({ skin, onSkinChange, exzedSkin, onExzedSkinChange, theme, canChooseTheme, onThemeChange }: AppShellBodyProps) {
+function AppShellBody({ skin, onSkinChange, exzedSkin, onExzedSkinChange, theme, canChooseTheme, onThemeChange, narrow }: AppShellBodyProps) {
   // Subscribes the whole shell (header, Home) to the language, so a switch in
   // Settings re-renders them live rather than at the next unrelated render.
   useLanguage()
@@ -318,6 +355,8 @@ function AppShellBody({ skin, onSkinChange, exzedSkin, onExzedSkinChange, theme,
   return (
     <div className="q-shell">
       <AppHeader skin={skin} onSkinChange={onSkinChange} exzedSkin={exzedSkin} onExzedSkinChange={onExzedSkinChange} onSettings={openSettings} onAbout={openAbout} quit={appQuit} run={layerStack.navigationRun ?? undefined} />
+      {narrow.banner && <NarrowWindowBanner mode={narrow.mode} min={narrow.min} onEmbiggen={narrow.onEmbiggen} onKeep={narrow.onKeep} onDismiss={narrow.onDismiss} />}
+      <NarrowWindowPopover open={narrow.popover} anchorEl={narrow.anchor} mode={narrow.mode} min={narrow.min} onEmbiggen={narrow.onEmbiggen} onKeep={narrow.onKeep} onDismiss={narrow.onDismiss} />
       <div className="q-stage">
         {layerStack.visible.map((layer, index) => {
           const isTop = index === layerStack.visible.length - 1

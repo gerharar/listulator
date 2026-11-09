@@ -440,6 +440,15 @@ export const ru: Locale = {
         },
       },
     },
+    narrow: {
+      kicker: 'eX-Zed',
+      embiggen: 'Embiggen',
+      keep: 'Оставить Quantum',
+      dismiss: 'Закрыть',
+      embiggenLine: (min: number): string => `Для eX-Zed нужно окно шириной не меньше ${min} пикселей.`,
+      screenLine: 'Ваш экран недостаточно велик, чтобы показать eX-Zed во всей красе. Оставайтесь на Quantum: на нём всё помещается лучше.',
+      browserLine: (min: number): string => `Растяните окно браузера минимум до ${min} пикселей в ширину или вернитесь на Quantum.`,
+    },
     skin: {
       button: 'Шкура',
       kicker: 'Шкура',

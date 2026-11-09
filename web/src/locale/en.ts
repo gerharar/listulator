@@ -479,6 +479,16 @@ export const en = {
         },
       },
     },
+    /** The warning that eX-Zed needs a wider window (Phase 49.12): a banner at start, a popover on the THEME chip when switching. "Embiggen" is the owner's own label. */
+    narrow: {
+      kicker: 'eX-Zed',
+      embiggen: 'Embiggen',
+      keep: 'Keep Quantum',
+      dismiss: 'Dismiss',
+      embiggenLine: (min: number): string => `eX-Zed needs a window at least ${min}px wide.`,
+      screenLine: "Your screen isn't big enough to show eX-Zed in all its glory. Stick to Quantum, it fits better.",
+      browserLine: (min: number): string => `Make the browser window at least ${min}px wide, or switch back to Quantum.`,
+    },
     skin: {
       button: 'Skin',
       kicker: 'Skin',
