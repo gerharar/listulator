@@ -30,6 +30,21 @@ const TEXT_PAIRS = [
   ['chip-ink', 'danger'],
 ] as const
 
+/**
+ * The status colours drawn as a foreground on `paper` (49.6b, found by the owner on Lotus at Checkpoint C): the star and the info mark (`Marks.css`),
+ * the chip labels and borders (`StatusChip.css`: `info`, and `ok` for the Complete chip), the complete bar (`MeterBar.css`), the destructive button's
+ * border and the Delete List label (`danger`), and `warn` for the day something uses it. 3:1 is the floor for a mark or an icon; a label in these
+ * colours would need 4.5:1, and the pairs fail or pass on the same skins either way. Until X-007 draws chips as filled grounds with `chip-ink` text
+ * (the pairs of `TEXT_PAIRS`), these are the pairs the app really shows.
+ */
+const MARK_PAIRS = [
+  ['info', 'paper'],
+  ['ok', 'paper'],
+  ['warn', 'paper'],
+  ['danger', 'paper'],
+  ['star', 'paper'],
+] as const
+
 const BORDER_PAIRS = [
   ['frame', 'paper'],
   ['frame', 'stage'],
@@ -48,6 +63,9 @@ interface Allowed {
   why: string
 }
 
+const LOTUS_MARKS =
+  'The status colour is a bright Spectrum colour on Lotus’s grey paper `#d7d7d7`, where the app draws it today as a mark, a chip label or border (Marks.css, StatusChip.css, MeterBar.css, the danger button). Seen by the owner at Checkpoint C (cyan and green “barely visible”). Reported to design in docs/design/HANDOFF-STATUS.md, “X-013 · addendum” (2026-11-09); X-007 draws chips as filled grounds with `chip-ink` text, which may settle it; revisit when design answers.'
+
 const ALLOWED: readonly Allowed[] = [
   {
     skin: 'exzed-1d',
@@ -56,6 +74,11 @@ const ALLOWED: readonly Allowed[] = [
     ratio: 4,
     why: 'White on pure red, the text on the skin block (the skin button and swatch label) of Lode: 4.00:1, under the 4.5:1 of normal text. Reported to design in docs/design/HANDOFF-STATUS.md, “X-013 · contrast of the six skins” (2026-11-09); revisit when design answers.',
   },
+  { skin: 'exzed-1l', foreground: 'info', background: 'paper', ratio: 1.15, why: `Cyan. ${LOTUS_MARKS}` },
+  { skin: 'exzed-1l', foreground: 'ok', background: 'paper', ratio: 1.05, why: `Green (the Complete chip and bar). ${LOTUS_MARKS}` },
+  { skin: 'exzed-1l', foreground: 'warn', background: 'paper', ratio: 2.18, why: `Magenta (nothing draws it yet). ${LOTUS_MARKS}` },
+  { skin: 'exzed-1l', foreground: 'danger', background: 'paper', ratio: 2.78, why: `Red (the destructive button and the Delete List label). ${LOTUS_MARKS}` },
+  { skin: 'exzed-1l', foreground: 'star', background: 'paper', ratio: 1.34, why: `Yellow (the curated star). ${LOTUS_MARKS}` },
 ]
 
 const css = declarations(read('styles/theme/exzed-tokens.css'))
@@ -116,15 +139,19 @@ describe('contrast per skin', () => {
     it.each(BORDER_PAIRS)(`border: %s on %s is at least ${BORDER}:1, or is allow-listed`, (foreground, background) => {
       expect(measured(skin, foreground, background) >= BORDER || allowed(skin, foreground, background) !== undefined, `${foreground} on ${background}: ${measured(skin, foreground, background).toFixed(2)}`).toBe(true)
     })
+
+    it.each(MARK_PAIRS)(`mark: %s on %s is at least ${BORDER}:1, or is allow-listed`, (foreground, background) => {
+      expect(measured(skin, foreground, background) >= BORDER || allowed(skin, foreground, background) !== undefined, `${foreground} on ${background}: ${measured(skin, foreground, background).toFixed(2)}`).toBe(true)
+    })
   })
 
   describe('the allow-list', () => {
     it.each(ALLOWED)('$skin $foreground on $background is a pair this guard checks, still under its minimum, at the recorded ratio', (entry) => {
       const isText = TEXT_PAIRS.some(([f, b]) => f === entry.foreground && b === entry.background)
-      const isBorder = BORDER_PAIRS.some(([f, b]) => f === entry.foreground && b === entry.background)
+      const isBorder = [...BORDER_PAIRS, ...MARK_PAIRS].some(([f, b]) => f === entry.foreground && b === entry.background)
       const ratio = measured(entry.skin, entry.foreground, entry.background)
 
-      expect(isText || isBorder, 'a pair in TEXT_PAIRS or BORDER_PAIRS').toBe(true)
+      expect(isText || isBorder, 'a pair in TEXT_PAIRS, BORDER_PAIRS or MARK_PAIRS').toBe(true)
       expect(ratio, 'it passes now: remove it from ALLOWED').toBeLessThan(isText ? TEXT : BORDER)
       expect(Number(ratio.toFixed(2)), 'its ratio changed: re-read it and update ALLOWED and the report').toBe(entry.ratio)
     })
