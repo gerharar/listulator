@@ -28,7 +28,8 @@
   overflow-y: auto;
 }
 .q-pop.w220 {
-  width: 220px;
+  /* The skin menu's width, which a theme sets (--skin-menu-w: 220px in Quantum, 288px in eX-Zed): the only popover that asks for 220. */
+  width: var(--skin-menu-w);
 }
 .q-pop.w240 {
   width: 240px;

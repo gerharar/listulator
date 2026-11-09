@@ -160,3 +160,28 @@ html.theme-exzed {
 html.theme-exzed {
   --header-gutter: max(max(var(--stage-gap-min), min(var(--stage-gap), calc((100% - var(--layer-min)) / 2))), calc((100% - var(--layer-max)) / 2));
 }
+
+/*
+ * The header's skin button and menu (49.9, design X-003: the Header and Menu cards). The menu is 288px (`--skin-menu-w`, a token: Quantum's is 220px). The
+ * bar's ground is the skin's `hdr` (the Lotus header is light), the button's swatch is the half-bucket with the header's ground on top and the skin's colour
+ * below, in a 2px rim of the header's text colour, and the skin that is in force is the `acc` block of the menu. Hover and lit states of the button itself (the
+ * `acc` fill, and with it the rim turning `acc-ink`) are X-007's drawing of the header's buttons.
+ */
+html.theme-exzed {
+  --skin-menu-w: 288px;
+}
+
+html.theme-exzed .q-appheader {
+  background: var(--zx-hdr);
+}
+
+html.theme-exzed .q-skin-btn .q-zx-swatch {
+  border-color: var(--zx-hdr-ink);
+  background: linear-gradient(var(--zx-hdr) 0 50%, var(--zx-skin) 50%);
+}
+
+html.theme-exzed .q-pop-menu button[aria-current=true] {
+  background: var(--zx-acc);
+  border-color: var(--zx-acc);
+  color: var(--zx-acc-ink);
+}

@@ -59,4 +59,7 @@ html {
 
   /* The header's side padding (48.5): the bar spans the screen and its content stands this far in. Quantum's fixed 26px. */
   --header-gutter: 26px;
+
+  /* The width of the header's skin menu (49.9): Quantum's 220px, the width it always had. */
+  --skin-menu-w: 220px;
 }

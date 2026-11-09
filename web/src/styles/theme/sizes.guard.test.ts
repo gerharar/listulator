@@ -159,3 +159,14 @@ describe('size tokens: the header aligned to the window (design, X-005)', () => 
     )
   })
 })
+
+describe('size tokens: the skin menu (Phase 49.9, design X-003: 220px in Quantum, 288px in eX-Zed)', () => {
+  it('the popover of the skin menu reads its width from --skin-menu-w, so a theme sets it', () => {
+    expect(declared(read('components/quantum/Popover/Popover.css'), '.q-pop.w220', 'width')).toBe('var(--skin-menu-w)')
+  })
+
+  it('is Quantum’s 220px, the width it was, and eX-Zed’s 288px', () => {
+    expect(definitions('--skin-menu-w', ['styles/quantum/tokens.css', 'styles/theme/contract.css']).map(plain)).toEqual(['220px'])
+    expect(new RegExp('--skin-menu-w\\s*:\\s*([^;]+);').exec(read('styles/theme/exzed.css'))?.[1]?.trim()).toBe('288px')
+  })
+})

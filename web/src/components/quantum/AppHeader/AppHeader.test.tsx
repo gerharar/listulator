@@ -31,7 +31,7 @@ describe('AppHeader while a whole-list run goes on (H-015)', () => {
     const onAbout = vi.fn()
     const view = (kind?: 'reset' | 'order' | 'undo') => (
       <Providers>
-        <AppHeader skin="dark-orange" onSkinChange={vi.fn()} onSettings={onSettings} onAbout={onAbout} run={kind ? { kind, listName: 'Loki' } : undefined} />
+        <AppHeader skin="dark-orange" onSkinChange={vi.fn()} exzedSkin="exzed-1d" onExzedSkinChange={vi.fn()} onSettings={onSettings} onAbout={onAbout} run={kind ? { kind, listName: 'Loki' } : undefined} />
       </Providers>
     )
     const { rerender } = render(view('reset'))
@@ -62,7 +62,7 @@ describe('AppHeader', () => {
     const onSettings = vi.fn()
     render(
       <Providers>
-        <AppHeader skin="dark-orange" onSkinChange={vi.fn()} onSettings={onSettings} onAbout={vi.fn()} />
+        <AppHeader skin="dark-orange" onSkinChange={vi.fn()} exzedSkin="exzed-1d" onExzedSkinChange={vi.fn()} onSettings={onSettings} onAbout={vi.fn()} />
       </Providers>,
     )
 
@@ -79,7 +79,7 @@ describe('AppHeader', () => {
     const onAbout = vi.fn()
     render(
       <Providers>
-        <AppHeader skin="dark-orange" onSkinChange={vi.fn()} onSettings={vi.fn()} onAbout={onAbout} />
+        <AppHeader skin="dark-orange" onSkinChange={vi.fn()} exzedSkin="exzed-1d" onExzedSkinChange={vi.fn()} onSettings={vi.fn()} onAbout={onAbout} />
       </Providers>,
     )
 
@@ -96,7 +96,7 @@ describe('AppHeader', () => {
     const onSkinChange = vi.fn()
     const { container } = render(
       <Providers>
-        <AppHeader skin="dark-orange" onSkinChange={onSkinChange} onSettings={vi.fn()} onAbout={vi.fn()} />
+        <AppHeader skin="dark-orange" onSkinChange={onSkinChange} exzedSkin="exzed-1d" onExzedSkinChange={vi.fn()} onSettings={vi.fn()} onAbout={vi.fn()} />
       </Providers>,
     )
 
@@ -119,7 +119,7 @@ describe('AppHeader', () => {
       const run = running ? ({ kind: 'reset', listName: 'Loki' } as const) : undefined
       render(
         <Providers>
-          <AppHeader skin="dark-orange" onSkinChange={vi.fn()} onSettings={vi.fn()} onAbout={vi.fn()} quit={quit} run={run} />
+          <AppHeader skin="dark-orange" onSkinChange={vi.fn()} exzedSkin="exzed-1d" onExzedSkinChange={vi.fn()} onSettings={vi.fn()} onAbout={vi.fn()} quit={quit} run={run} />
         </Providers>,
       )
     }
@@ -193,7 +193,7 @@ describe('AppHeader', () => {
       const mount = (extra: ReturnType<typeof held>, run: typeof RUN | undefined, quit = vi.fn(() => Promise.resolve())) => {
         const view = (r: typeof RUN | undefined) => (
           <Providers>
-            <AppHeader skin="dark-orange" onSkinChange={vi.fn()} onSettings={vi.fn()} onAbout={vi.fn()} quit={{ platform: 'mac', quit, ...extra }} run={r} />
+            <AppHeader skin="dark-orange" onSkinChange={vi.fn()} exzedSkin="exzed-1d" onExzedSkinChange={vi.fn()} onSettings={vi.fn()} onAbout={vi.fn()} quit={{ platform: 'mac', quit, ...extra }} run={r} />
           </Providers>
         )
         const rendered = render(view(run))
@@ -329,7 +329,7 @@ describe('AppHeader', () => {
   it('marks the current skin with aria-current in the menu', () => {
     render(
       <Providers>
-        <AppHeader skin="dark-blue" onSkinChange={vi.fn()} onSettings={vi.fn()} onAbout={vi.fn()} />
+        <AppHeader skin="dark-blue" onSkinChange={vi.fn()} exzedSkin="exzed-1d" onExzedSkinChange={vi.fn()} onSettings={vi.fn()} onAbout={vi.fn()} />
       </Providers>,
     )
 
