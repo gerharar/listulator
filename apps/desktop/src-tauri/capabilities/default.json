@@ -10,6 +10,7 @@
     "core:event:allow-unlisten",
     "core:window:allow-set-fullscreen",
     "core:window:allow-is-fullscreen",
+    "core:window:allow-maximize",
     "core:window:allow-close",
     "sql:allow-load",
     "sql:allow-execute",

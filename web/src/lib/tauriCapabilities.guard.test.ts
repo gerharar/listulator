@@ -89,6 +89,9 @@ describe('the desktop capability, as the security review left it', () => {
       'core:event:allow-unlisten',
       'core:window:allow-set-fullscreen',
       'core:window:allow-is-fullscreen',
+      // Maximise, for the narrow-window warning's button (Phase 49.11, owner's confirmation 2026-11-08): the one thing it can do to the window. No size, no
+      // position, no centre, no un-maximise: a page that is injected cannot move or resize the window beyond filling the screen.
+      'core:window:allow-maximize',
       'core:window:allow-close',
       'sql:allow-load',
       'sql:allow-execute',
