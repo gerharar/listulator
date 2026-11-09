@@ -23,7 +23,7 @@ if (label === undefined || !/^[\w.-]+$/.test(label)) throw new Error('Set IDENTI
 const seeded = new Set<string>(Object.values(SEED))
 
 /** What the app is told is the same on every run: the clock, the library, the dates of the lists. */
-async function steady(page: Page, skin: string, seed: Readonly<Record<string, string>>) {
+async function steady(page: Page, skin: string, skinKey: string, seed: Readonly<Record<string, string>>) {
   await page.addInitScript(
     (entries) => {
       try {
@@ -32,7 +32,7 @@ async function steady(page: Page, skin: string, seed: Readonly<Record<string, st
         // A page that cannot store preferences is not what is being measured.
       }
     },
-    Object.entries({ ...seed, skin, reducedMotion: 'true' }),
+    Object.entries({ ...seed, [skinKey]: skin, reducedMotion: 'true' }),
   )
   await page.clock.setFixedTime(new Date("2026-01-15T12:00:00Z"))
   // Not reachable from here and not what is measured: the community library is only read by Surprise Me and the Vault.
@@ -145,7 +145,7 @@ for (const [themeName, theme] of themes) {
     for (const state of STATES.filter((candidate: IdentityState) => onlyState === undefined || candidate.id === onlyState)) {
       test(`${themeName} / ${skin} / ${state.id}`, async ({ page, browserName }) => {
         if (state.viewport !== undefined) await page.setViewportSize(state.viewport)
-        await steady(page, skin, theme.seed)
+        await steady(page, skin, theme.skinKey, theme.seed)
         const undo = await state.setup(page)
         try {
           if (state.keepPointer !== true) await page.mouse.move(0, 0)

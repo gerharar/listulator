@@ -17,6 +17,11 @@ IDENTITY_MODE=capture IDENTITY_BASELINE=b475e5d npm run identity
 IDENTITY_MODE=compare IDENTITY_BASELINE=b475e5d npm run identity
 ```
 
+Two baselines matter for eX-Zed (Phase 49): `x003`, the Quantum screens as they are with the theme built (compare Quantum against it with
+`IDENTITY_THEME=quantum`), and `exzed-x003`, eX-Zed's own 26 screens x 6 skins x 2 engines, which the later eX-Zed phases (X-006, X-007) compare
+against so each shows only its intended differences (`IDENTITY_MODE=compare IDENTITY_BASELINE=exzed-x003 IDENTITY_THEME=exzed npm run identity`).
+A compare straight after a capture is zero, for both.
+
 Narrow it with `IDENTITY_THEME=quantum`, `IDENTITY_STATE=list`, `--project=chromium`, `-g "dark-orange"`. Run `compare` straight after a `capture` once:
 that is the check that the baseline is repeatable.
 
@@ -31,7 +36,9 @@ one that only changes pixels (a gradient, an image) shows in the screenshot only
 
 ## Adding a theme, a skin or a screen
 
-- A theme or a skin: an entry in `identity/themes.ts` (its skin keys and the preferences that select it). No state and no capture code changes.
+- A theme or a skin: an entry in `identity/themes.ts`: its skin keys, the preferences that select it (`seed`) and the preference its skin is stored under
+  (`skinKey`: Quantum's `skin`, eX-Zed's `exzedSkin`). No state and no capture code changes. `identityThemes.guard.test.ts` (in `npm test`) keeps eX-Zed's
+  list equal to the app's six skins.
 - A screen: an entry in `identity/states.ts`. One list for every theme, so a new screen is added once. A state only reads; one that has to write
   (a toast, a drag) makes a list of its own with `ownList` and removes it.
 - Routine for a new theme: capture every existing theme at the commit before, add the theme, compare every existing theme (zero difference), then
