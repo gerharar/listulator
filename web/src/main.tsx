@@ -25,6 +25,8 @@ import './styles/theme/contract.css'
 // eX-Zed's colour roles per skin (Phase 49, generated from design's tokens): `--zx-*`, scoped to the six `exzed-…` skin keys.
 import './styles/theme/exzed-tokens.css'
 import './styles/theme/exzed.css'
+// eX-Zed's solid value for each of Quantum's colour tokens (49.3), after tokens.css so it wins at equal specificity.
+import './styles/theme/exzed-colours.css'
 import { App } from './App.js'
 import { startLocalRuntimeFill, startLocalSourceCopySchedule } from './lib/api.local.js'
 import { installContextMenuGuard } from './lib/contextMenu.js'

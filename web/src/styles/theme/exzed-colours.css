@@ -1,0 +1,56 @@
+/*
+ * eX-Zed’s colours (49.3, X-003): each of Quantum’s 32 colour tokens gets a solid role of the active skin (`--zx-…`, exzed-tokens.css), so every
+ * screen draws in the Spectrum colours with no component edited. The table is docs/design/exzed-colour-mapping.md (design’s answers of 2026-11-08);
+ * colours.guard.test.ts pins it. Several tokens share a role on purpose: eX-Zed has no washes (`fill`, `field`, `done` are `paper` for good; `hover` and
+ * `pulseTint` until X-007 draws inverse video and FLASH), the gold family is the Complete green (`ok`), and the Quantum-only art takes any solid role.
+ *
+ * `html.theme-exzed` comes after tokens.css and has the specificity of its `html[data-theme=…]` blocks, so it wins by order; an eX-Zed skin key matches
+ * none of them. A value here is only ever `var(--zx-…)`: no literal and no alpha.
+ */
+html.theme-exzed {
+  --bg: var(--zx-stage);
+  --card: var(--zx-paper);
+  --ink: var(--zx-ink);
+  --ink2: var(--zx-ink2);
+  --ink3: var(--zx-ink2);
+  --line: var(--zx-frame);
+  --rule: var(--zx-frame);
+  --fill: var(--zx-paper);
+  --field: var(--zx-paper);
+  --hover: var(--zx-paper);
+  --done: var(--zx-paper);
+  --barEmpty: var(--zx-prog-dim);
+  --accent: var(--zx-acc);
+  --accentInk: var(--zx-acc-ink);
+  --pulseTint: var(--zx-paper);
+  --info: var(--zx-info);
+  --statusGold: var(--zx-ok);
+  --star: var(--zx-star);
+  --goldDeep: var(--zx-ok);
+  --gold: var(--zx-ok);
+  --goldLite: var(--zx-ok);
+  --danger: var(--zx-danger);
+  --warn: var(--zx-warn);
+  --ok: var(--zx-ok);
+  --sec: var(--zx-skin);
+  --deep: var(--zx-prog-dim);
+  --cyan: var(--zx-info);
+  --washA: var(--zx-stage);
+  --washB: var(--zx-stage);
+  --washC: var(--zx-stage);
+  --scrim: var(--zx-stage);
+  --headSub: var(--zx-ink);
+}
+
+/*
+ * The native scrollbar and form controls take their colours from `color-scheme`. base.css follows the skin by its name (`dark*`, `light*`) and knows nothing
+ * of eX-Zed’s keys, which would leave the system’s scheme in force: dark for the theme (also a hand-set theme with no skin yet, which is Lode), light for
+ * Lotus alone.
+ */
+html.theme-exzed {
+  color-scheme: dark;
+}
+
+html.theme-exzed[data-theme='exzed-1l'] {
+  color-scheme: light;
+}
