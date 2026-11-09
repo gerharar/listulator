@@ -18,7 +18,7 @@ export function getWindowMaximize(): WindowMaximize | undefined {
 }
 
 /**
- * Fills the screen with the window. `true` when it did; `false` where there is no desktop window or the window refused, and never a throw: the warning that
+ * Fills the screen with the window. `true` when it did; `false` where there is no desktop window or the window refused (with a console warning), and never a throw: the warning that
  * asked simply stays, and the person can switch back. `control` is for tests; by default the app’s own window.
  */
 export async function maximizeWindow(control: WindowMaximize | undefined = getWindowMaximize()): Promise<boolean> {
@@ -27,7 +27,10 @@ export async function maximizeWindow(control: WindowMaximize | undefined = getWi
     await control.maximize()
 
     return true
-  } catch {
+  } catch (error) {
+    // Not silent: a button that does nothing must leave a reason (the isolation hook logs its own refusals; a missing permission is reported here).
+    console.warn('[listulator] could not maximise the window:', error)
+
     return false
   }
 }

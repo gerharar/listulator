@@ -72,6 +72,7 @@ describe('what the app sends passes untouched', () => {
     ['window is_fullscreen', message('plugin:window|is_fullscreen', { label: 'main' })],
     ['window set_fullscreen', message('plugin:window|set_fullscreen', { label: 'main', value: true })],
     ['window set_fullscreen back', message('plugin:window|set_fullscreen', { label: 'main', value: false })],
+    ['window maximize (the narrow-window warning’s Embiggen, 49.12)', message('plugin:window|maximize', { label: 'main' })],
     ['window close', message('plugin:window|close', { label: 'main' })],
     ['event listen, the window being resized', message('plugin:event|listen', { event: 'tauri://resize', target: { kind: 'Window', label: 'main' }, handler: 12 })],
     ['event unlisten', message('plugin:event|unlisten', { event: 'tauri://resize', eventId: 5 })],
@@ -152,8 +153,9 @@ describe('only what the app sends (SR-062: the approval is not bound to the comm
       ['an extra key', { label: 'main', extra: 1 }],
       ['a database beside the label', { label: 'main', db: DATABASE }],
       ['a path beside the label', { label: 'main', path: '/tmp/x' }],
-    ])('refuses is_fullscreen and close with %s', (_name, payload) => {
+    ])('refuses is_fullscreen, maximize and close with %s', (_name, payload) => {
       expect(isRefused(message('plugin:window|is_fullscreen', payload))).toBe(true)
+      expect(isRefused(message('plugin:window|maximize', payload))).toBe(true)
       expect(isRefused(message('plugin:window|close', payload))).toBe(true)
     })
 
@@ -235,6 +237,7 @@ describe('only what the app sends (SR-062: the approval is not bound to the comm
       'plugin:http|fetch_cancel_body': { payload: { rid: 7 }, shape: 'rid' },
       'plugin:opener|open_url': { payload: { url: 'https://github.com/gerharar/listulator' }, shape: 'url' },
       'plugin:window|is_fullscreen': { payload: { label: 'main' }, shape: 'label' },
+      'plugin:window|maximize': { payload: { label: 'main' }, shape: 'label' },
       'plugin:window|close': { payload: { label: 'main' }, shape: 'label' },
       'plugin:window|set_fullscreen': { payload: { label: 'main', value: true }, shape: 'label-value' },
       'plugin:event|listen': { payload: { event: 'tauri://resize', target: { kind: 'Window', label: 'main' }, handler: 12 }, shape: 'listen' },
@@ -258,7 +261,7 @@ describe('only what the app sends (SR-062: the approval is not bound to the comm
     const names = Object.keys(examples)
 
     it('has an example for every command the hook knows', () => {
-      expect(names.length).toBe(33)
+      expect(names.length).toBe(34)
     })
 
     it('passes each example under its own command', () => {

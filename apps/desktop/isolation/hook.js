@@ -420,6 +420,8 @@
     'plugin:opener|open_url': openUrlProblem,
     'plugin:window|is_fullscreen': windowLabelProblem,
     'plugin:window|close': windowLabelProblem,
+    // Maximise, for the narrow-window warning's button (49.12): the main window only, nothing else in the payload. The permission (`core:window:allow-maximize`) is the other half.
+    'plugin:window|maximize': windowLabelProblem,
     'plugin:window|set_fullscreen': setFullscreenProblem,
     'plugin:event|listen': listenProblem,
     'plugin:event|unlisten': unlistenProblem,

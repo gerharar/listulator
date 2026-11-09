@@ -17,8 +17,14 @@ describe('maximizeWindow', () => {
 
   it('says it did not when the window refuses, and never throws: the warning stays, and the person can switch back', async () => {
     const control: WindowMaximize = { maximize: vi.fn(async () => Promise.reject(new Error('not allowed'))) }
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
 
     expect(await maximizeWindow(control)).toBe(false)
+
+    // Never silent: a button that does nothing has to leave a reason in the console (the isolation hook\u2019s refusal says its own; this says the call failed).
+    expect(warn).toHaveBeenCalledTimes(1)
+    expect(String(warn.mock.calls[0]?.join(' '))).toContain('not allowed')
+    warn.mockRestore()
   })
 
   it('does nothing where there is no desktop window (the browser build): false, and no error', async () => {
@@ -32,3 +38,4 @@ describe('getWindowMaximize', () => {
     expect(getWindowMaximize()).toBeUndefined()
   })
 })
+
