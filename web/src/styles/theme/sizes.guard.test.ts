@@ -170,3 +170,13 @@ describe('size tokens: the skin menu (Phase 49.9, design X-003: 220px in Quantum
     expect(new RegExp('--skin-menu-w\\s*:\\s*([^;]+);').exec(read('styles/theme/exzed.css'))?.[1]?.trim()).toBe('288px')
   })
 })
+
+describe('size tokens: the kind tag’s column (Phase 49, found at Checkpoint D; design’s Tag card: as wide as the longest tag in the list)', () => {
+  it('stays Quantum’s fixed 58px in its own stylesheet', () => {
+    expect(declared(read('components/quantum/Marks/Marks.css'), '.q-tag.kind', 'width')).toBe('58px')
+  })
+
+  it('is, under eX-Zed, the longest label’s characters times the font’s advance and its tracking, plus the padding and the border', () => {
+    expect(plain(declared(read('styles/theme/exzed.css'), 'html.theme-exzed .q-tag.kind', 'width')!)).toBe('calc(var(--kind-ch) * (1ch + .02em) + 18px)')
+  })
+})

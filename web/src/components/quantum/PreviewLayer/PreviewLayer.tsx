@@ -1,5 +1,5 @@
 import './PreviewLayer.css'
-import { Fragment, useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react'
+import { Fragment, useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent } from 'react'
 import { X } from 'lucide-react'
 import { formatDuration } from '../../../formatDuration.js'
 import { api, type MediaType, type SourcePreview } from '../../../lib/api.js'
@@ -12,6 +12,8 @@ import {
 import { loadVirtualization } from '../../../lib/listVirtualization.js'
 import { getPreferencesStore } from '../../../lib/preferences/store.js'
 import { copy, sourceLabel } from '../../../locale/index.js'
+import { useTheme } from '../DocumentTheme/ThemeContext.js'
+import { kindColumnChars } from '../Marks/kindColumn.js'
 import { buildRowModel, offsetOf, scrollAfterChange, shouldVirtualize, type VirtualizationMode } from '../../../screens/list/rowModel.js'
 import { loadPreviewRail, savePreviewRailHidden, savePreviewRailWidth } from '../../../screens/list/collapse.js'
 import { RAIL_WIDTH_DEFAULT } from '../../../screens/list/railLimits.js'
@@ -146,6 +148,9 @@ export function PreviewLayer({ source, mediaType, onBuilt, active = true }: Prev
   const railLayout = useRailLayout(railEntries.length, active)
   const placeId = useId()
   const summary = summarizePreview(items, mediaType.defaultDurationMinutes)
+  // Under eX-Zed the kind tags are as wide as the longest in the Preview (design's Tag card); Quantum draws them at a fixed 58px and is not asked.
+  const theme = useTheme()
+  const kindChars = useMemo(() => (theme === 'exzed' ? kindColumnChars(items, mediaType.facets) : undefined), [theme, items, mediaType])
   // A category whose convention names platforms gets chips, as wide as the widest label (as on the list).
   const platformWidthCh = useMemo(
     () =>
@@ -300,7 +305,7 @@ export function PreviewLayer({ source, mediaType, onBuilt, active = true }: Prev
             />
           )}
           {railLayout.show && !railLayout.outside && rail.hidden && <JumpRailStub onShow={() => setRailHidden(false)} />}
-          <div className="q-preview-body" ref={body} tabIndex={-1} onKeyDown={onBodyKeyDown}>
+          <div className="q-preview-body" ref={body} tabIndex={-1} onKeyDown={onBodyKeyDown} style={kindChars === undefined ? undefined : ({ '--kind-ch': kindChars } as CSSProperties)}>
             {load.state === 'loading' && (
               <div className="q-preview-progress">
                 <Spinner label={text.loading} />

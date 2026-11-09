@@ -63,6 +63,8 @@ import { tagField } from './tagFields.js'
 import { ItemInfoCard } from './ItemInfoCard.js'
 import { ItemRow } from './ItemRow.js'
 import { ByHandMark, CuratedStar } from '../../components/quantum/Marks/Marks.js'
+import { kindColumnChars } from '../../components/quantum/Marks/kindColumn.js'
+import { useTheme } from '../../components/quantum/DocumentTheme/ThemeContext.js'
 import { listMark } from '../../lib/buckets.js'
 import { JumpRail, JumpRailStub, type RailEntry } from './JumpRail.js'
 import { endForKey, endRow, endScrollTop, wholeListInView, type ListEnd } from './listEnds.js'
@@ -1401,6 +1403,10 @@ function ListView({
     [anyTags, addTagLabel, onRowAddTag],
   )
 
+  // Under eX-Zed the kind tags are as wide as the longest in the list (design's Tag card); Quantum draws them at a fixed 58px and is not asked.
+  const theme = useTheme()
+  const kindChars = useMemo(() => (theme === 'exzed' ? kindColumnChars(items, mediaType?.facets) : undefined), [theme, items, mediaType])
+
   const itemRow = (entry: ListItem, grouped: boolean) => (
     <ItemRow
       key={entry.id}
@@ -1548,7 +1554,8 @@ function ListView({
         {railLayout.show && !railLayout.outside && railHidden && <JumpRailStub onShow={() => setRail(false)} />}
         <div
           className="q-list-body"
-          style={headColumns}
+          // The column widths the rows below read: the group heads' (BL-160) and, under eX-Zed, the kind tags' (`--kind-ch`, inherited by every tag, the add-tag button too).
+          style={kindChars === undefined ? headColumns : ({ ...headColumns, '--kind-ch': kindChars } as CSSProperties)}
           ref={spine}
           onKeyDown={onKeyDown}
           onBlur={moves.onBlur}

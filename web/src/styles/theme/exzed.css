@@ -185,3 +185,14 @@ html.theme-exzed .q-pop-menu button[aria-current=true] {
   border-color: var(--zx-acc);
   color: var(--zx-acc-ink);
 }
+
+/*
+ * The kind tag in a list row (Phase 49, found at Checkpoint D). Quantum draws it at a fixed 58px, sized for a small mono font; eX-Zed's font is one em wide a
+ * character, so a label such as ENGLISH left its box on both sides. Design's Tag card: every tag in a list is as wide as the longest tag present. The list
+ * gives its longest label's characters as `--kind-ch` on its body (`kindColumnChars`, only under this theme; inherited, so the add-tag button is the same width),
+ * each character is 1ch plus the tracking, and the box adds its padding (8px a side) and border (1px a side). With no count the declaration is invalid and the
+ * tag is its natural width.
+ */
+html.theme-exzed .q-tag.kind {
+  width: calc(var(--kind-ch) * (1ch + 0.02em) + 18px);
+}
