@@ -28,6 +28,8 @@ const USES: readonly { file: string; selector: string; token: keyof typeof QUANT
   { file: 'components/quantum/Button/Button.css', selector: '.q-icon-btn', token: '--control-h-icon' },
   { file: 'components/quantum/Button/Button.css', selector: '.q-icon-btn.sq', token: '--control-h-icon' },
   { file: 'components/quantum/Button/Button.css', selector: '.q-icon-btn.list', token: '--control-h-list' },
+  // The header\'s skin button stands beside the icon buttons and is as tall as they are (found by the owner at 49.12: a literal 36px was 4px short under eX-Zed).
+  { file: 'components/quantum/AppHeader/AppHeader.css', selector: '.q-skin-btn', token: '--control-h-icon' },
 ]
 
 describe('size tokens: rows and controls', () => {

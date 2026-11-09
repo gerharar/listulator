@@ -121,6 +121,19 @@ test.describe('with the theme exzed', () => {
   })
 })
 
+test.describe('the skin button beside the header\u2019s icon buttons', () => {
+  // Found by the owner at 49.12: the skin button\u2019s height was a literal 36px, 4px short of the 40px icon buttons beside it under eX-Zed.
+  for (const [theme, height] of [['quantum', 36], ['exzed', 40]] as const) {
+    test(`is as tall as they are under ${theme}: ${height}px`, async ({ page }) => {
+      await open(page, { theme })
+
+      const heights = await page.evaluate(() => ['.q-skin-btn', '.q-appheader .tools .q-icon-btn'].map((selector) => document.querySelector<HTMLElement>(selector)!.getBoundingClientRect().height))
+
+      expect(heights).toEqual([height, height])
+    })
+  }
+})
+
 test.describe('with the theme quantum', () => {
   test('the menu is still 220px with the five skins and the hexagon', async ({ page }) => {
     await open(page, { theme: 'quantum', skin: 'dark-green' })

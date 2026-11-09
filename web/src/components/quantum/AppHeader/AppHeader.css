@@ -19,7 +19,8 @@
 
 .q-skin-btn {
   width: 52px;
-  height: 36px;
+  /* As tall as the icon buttons beside it (--control-h-icon: 36px in Quantum, 40px in eX-Zed). */
+  height: var(--control-h-icon);
   padding: 0 8px;
   display: flex;
   align-items: center;
