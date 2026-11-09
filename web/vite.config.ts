@@ -82,7 +82,9 @@ export default defineConfig({
          */
         navigateFallback: '/index.html',
         navigateFallbackDenylist: [/^\/api\//],
-        globPatterns: ['**/*.{js,css,html,woff2}'],
+        // The Spectrum font (`.ttf`, 94 KB) is in the shell since eX-Zed can be chosen (49.13): an offline start in eX-Zed draws in it from the first start. Quantum's
+        // users download it with the install too; the alternative, a runtime cache, would leave a first offline start in eX-Zed without it.
+        globPatterns: ['**/*.{js,css,html,woff2,ttf}'],
       },
       devOptions: {
         // Off in dev: a service worker caching a hot-reloading build is a

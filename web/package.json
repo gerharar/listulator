@@ -14,7 +14,8 @@
     "test:e2e": "playwright test",
     "identity": "playwright test -c e2e-tools/playwright.identity.config.ts",
     "playwright:install": "playwright install --with-deps chromium webkit",
-    "typecheck": "tsc -p tsconfig.json --noEmit"
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test:pwa": "playwright test -c playwright.pwa.config.ts"
   },
   "dependencies": {
     "@floating-ui/react": "0.27.20",
