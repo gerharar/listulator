@@ -107,7 +107,7 @@ items:
 - { title: "Stranger Things: Kamchatka #1", year: 2022, minutes: 25, group: "Stranger Things: Kamchatka", tags: [comic] }
 - { title: "Stranger Things: Kamchatka #2", year: 2022, minutes: 25, group: "Stranger Things: Kamchatka", tags: [comic] }
 - { title: "Stranger Things: Kamchatka #3", year: 2022, minutes: 25, group: "Stranger Things: Kamchatka", tags: [comic] }
-- { title: "Stranger Things: Kamchatka #4", year: 2022, minutes: 25, group: "Stranger Things: Kamchatka", tags: [comic] }minutes: 25, tags: [comic] }
+- { title: "Stranger Things: Kamchatka #4", year: 2022, minutes: 25, group: "Stranger Things: Kamchatka", tags: [comic] }
 - { title: "Free Comic Book Day 2022: Stranger Things/Resident Alien (Creature Feature)", year: 2022, minutes: 25, tags: [comic] }
 - { title: "Stranger Things: Summer Special", year: 2022, minutes: 25, tags: [comic] }
 - { title: "Stranger Things: Tales from Hawkins #1", year: 2023, minutes: 25, group: "Stranger Things: Tales from Hawkins", tags: [comic] }
@@ -134,6 +134,6 @@ items:
 - { title: "Stranger Things: The Game", year: 2017, minutes: 180, tags: [game] }
 - { title: "Stranger Things: The VR Experience", year: 2017, minutes: 15, notes: "Delisted", tags: [game] }
 - { title: "Stranger Things 3: The Game", year: 2019, minutes: 360, tags: [game] }
-- { title: "Stranger Things: Puzzle Tales", year: 2021, minutes: 0, notes: "Delisted and unplayable", tags: [game] }
+- { title: "Stranger Things: Puzzle Tales", year: 2021, notes: "Delisted and unplayable", tags: [game] }
 - { title: "Stranger Things VR", year: 2024, minutes: 240, tags: [game] }
 - { title: "Stranger Things: Catalyst", year: 2025, minutes: 45, notes: "Location-based VR; requires a Sandbox VR venue", tags: [game] }

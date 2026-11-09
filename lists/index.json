@@ -53,8 +53,8 @@
     "path": "lists/animation/south-park-tv.yaml",
     "title": "South Park animated TV series (release order)",
     "category": "animation",
-    "itemCount": 341,
-    "totalMinutes": 7824,
+    "itemCount": 343,
+    "totalMinutes": 7865,
     "minutesEstimated": false,
     "description": "All episodes of South Park animated TV series, including specials and the full-length film, roughly in release order; excludes shorts, sketches, and video games",
     "status": "ongoing"
@@ -101,8 +101,8 @@
     "path": "lists/comic/100-bullets-comic.yaml",
     "title": "100 Bullets comic book series (Vertigo / DC)",
     "category": "comic",
-    "itemCount": 111,
-    "totalMinutes": 2775,
+    "itemCount": 112,
+    "totalMinutes": 2800,
     "minutesEstimated": false,
     "description": "Complete reading order for the 100 Bullets comic book series",
     "status": "ongoing"
@@ -125,6 +125,16 @@
     "totalMinutes": 1975,
     "minutesEstimated": false,
     "description": "Complete reading order for Mike Carey's Lucifer comic book series run",
+    "status": "complete"
+  },
+  {
+    "path": "lists/comic/crossed-comic.yaml",
+    "title": "Crossed comic book series (Avatar)",
+    "category": "comic",
+    "itemCount": 260,
+    "totalMinutes": 5075,
+    "minutesEstimated": false,
+    "description": "Complete reading order for the Crossed comic book series by Garth Ennis and Jacen Burrows, in release order",
     "status": "complete"
   },
   {
@@ -204,7 +214,7 @@
     "itemCount": 97,
     "totalMinutes": 2425,
     "minutesEstimated": false,
-    "description": "Complete reading order for Neil Gaiman's The Sandman comic book series (Vol 2)",
+    "description": "Complete reading order for Neil Gaiman's The Sandman comic book series (Vol 2), in recommended order (chronological)",
     "status": "complete"
   },
   {
@@ -261,8 +271,8 @@
     "path": "lists/documentary/dsotc-tv.yaml",
     "title": "Dark Side Of The Cage documentary series",
     "category": "documentary",
-    "itemCount": 15,
-    "totalMinutes": 660,
+    "itemCount": 18,
+    "totalMinutes": 792,
     "minutesEstimated": false,
     "description": "All episodes of the Dark Side Of The Cage documentary series",
     "status": "ongoing"
@@ -400,8 +410,8 @@
     "path": "lists/mega/mcu-extended.yaml",
     "title": "Marvel Cinematic Universe (MCU) franchise (extended; release order)",
     "category": "mega",
-    "itemCount": 561,
-    "totalMinutes": 26187,
+    "itemCount": 562,
+    "totalMinutes": 26252,
     "minutesEstimated": false,
     "description": "All releases in the Marvel Cinematic Universe (MCU) franchise made by Marvel Studios, in release order. Includes Agents Of S.H.I.E.L.D. (early seasons tie into the mainline MCU movies) and Netflix series (confirmed canonical). Does not include TV series and animated series not related to MCU (Inhumans, X-Men '97, etc). Seasons 1 and 2 of Agents of S.H.I.E.L.D. are split up to fit around the corresponding MCU movies in chronological viewing order",
     "status": "ongoing"
@@ -425,6 +435,26 @@
     "minutesEstimated": false,
     "description": "All releases in the Preacher franchise, in release order",
     "status": "complete"
+  },
+  {
+    "path": "lists/mega/stranger-things-all.yaml",
+    "title": "Stranger Things franchise (recommended order)",
+    "category": "mega",
+    "itemCount": 134,
+    "totalMinutes": 10431,
+    "minutesEstimated": true,
+    "description": "All releases in the Stranger Things franchise, in recommended order (grouped by media)",
+    "status": "ongoing"
+  },
+  {
+    "path": "lists/mega/stranger-things-watchlist.yaml",
+    "title": "Stranger Things watchlist (release order)",
+    "category": "mega",
+    "itemCount": 60,
+    "totalMinutes": 3235,
+    "minutesEstimated": false,
+    "description": "All releases to watch in the Stranger Things TV series, in release order; excluses books, comics, and video games",
+    "status": "ongoing"
   },
   {
     "path": "lists/mega/the-boys-all.yaml",
@@ -773,8 +803,8 @@
     "path": "lists/tv/yellowstone-franchise-tv.yaml",
     "title": "Yellowstone franchise (series appearance order)",
     "category": "tv",
-    "itemCount": 103,
-    "totalMinutes": 5286,
+    "itemCount": 105,
+    "totalMinutes": 5358,
     "minutesEstimated": false,
     "description": "All episodes of TV series from the Yellowstone franchise, in series appearance order",
     "status": "ongoing"
