@@ -97,6 +97,16 @@ html.theme-exzed {
 }
 
 /*
+ * The covered layer's tab is a solid `paper` strip with a 4px `frame` border and an `ink2` label, no ring (49.4, design's answer 10; BL-166). Its ground and
+ * label are already those roles through the mapping (`--fill` and `--ink2`, exzed-colours.css), so nothing shows through it and the covered layer's own
+ * heading under it is hidden; they are not set again here so the tab keeps Quantum's hover hook (`--hover`, `paper` until X-007 draws the hover).
+ * Quantum's border (1px `line` under the tab, none elsewhere) is replaced on all four sides.
+ */
+html.theme-exzed .q-layer-tab {
+  border: 4px solid var(--zx-frame);
+}
+
+/*
  * The covered layers' cascade (48.4c, design's answer 4), as the Preview board draws it: each step back 40px higher (the tab tops 40 and 80px above the
  * window; the window's 12px of rings covers the lower part of a 48px tab, leaving 28px for its label), scale 1 always (a scale would put pixels between
  * pixels), one back exactly as wide as the window in front and two back 32px narrower on each side, which replaces Quantum's recede. This replaces the
