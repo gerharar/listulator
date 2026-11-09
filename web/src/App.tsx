@@ -1,10 +1,11 @@
 import './App.css'
-import { useEffect, useState, type CSSProperties } from 'react'
+import { useEffect, useRef, useState, type CSSProperties } from 'react'
 import { api, type MediaType } from './lib/api.js'
 import { copy } from './locale/index.js'
 import { getPreferencesStore } from './lib/preferences/store.js'
 import { resolveSkin, setSkin as persistSkin, type Skin } from './lib/preferences/skin.js'
-import { resolveTheme, setTheme as persistTheme, type Theme } from './lib/preferences/theme.js'
+import { effectiveTheme, resolveTheme, setTheme as persistTheme, type Theme } from './lib/preferences/theme.js'
+import { finePointer, subscribeFinePointer } from './lib/finePointer.js'
 import { resolveExzedSkin, setExzedSkin as persistExzedSkin } from './lib/preferences/exzedSkin.js'
 import { activeSkin } from './lib/preferences/activeSkin.js'
 import type { ExzedSkin } from './lib/preferences/exzedSkins.js'
@@ -100,8 +101,9 @@ export function App() {
       resolveShowTimeLeft(store),
     ])
       .then(([skin, exzedSkin, theme, language, reducedSetting, markOpenGroups, showTimeLeft]) => {
-        // Before the first render of the shell: its sizes are read from the page as it lays out (themeSizes.ts).
-        applyThemeClass(theme)
+        // Before the first render of the shell: its sizes are read from the page as it lays out (themeSizes.ts). On a touch-only device the stored eX-Zed is not
+        // drawn (49.10) and is left as it is.
+        applyThemeClass(effectiveTheme(theme, finePointer()))
         setBoot({ skin, exzedSkin, theme, language, reducedSetting, markOpenGroups, showTimeLeft })
       })
       .catch((cause: unknown) =>
@@ -118,8 +120,23 @@ export function App() {
 
 function QuantumShell({ initial }: { initial: BootState }) {
   const [skin, setSkinState] = useState<Skin>(initial.skin)
-  // The theme is live (49.7): switching it redraws every open layer and keeps what they hold. Settings gets its control in 49.8.
+  // The stored theme, live (49.7): switching it redraws every open layer and keeps what they hold. What is drawn is `shown`: eX-Zed only where the device has a
+  // fine pointer that can hover (49.10, design's answer 8); on a touch-only device the stored choice is left as it is, for a desktop that shares it.
   const [theme, setThemeState] = useState<Theme>(initial.theme)
+  const [fine, setFine] = useState(finePointer)
+  const shown = effectiveTheme(theme, fine)
+  const storedTheme = useRef(theme)
+  storedTheme.current = theme
+  // A mouse plugged into a tablet, or taken off it, while the app runs: the class first, as in a switch (the layers read the page's sizes as they render), then
+  // the state. Nothing is written: the preference did not change.
+  useEffect(
+    () =>
+      subscribeFinePointer((next) => {
+        applyThemeClass(effectiveTheme(storedTheme.current, next))
+        setFine(next)
+      }),
+    [],
+  )
   // eX-Zed's own skin (X-003): a second preference beside Quantum's, so each theme comes back with its last skin.
   const [exzedSkin, setExzedSkinState] = useState<ExzedSkin>(initial.exzedSkin)
   const store = getPreferencesStore()
@@ -140,7 +157,7 @@ function QuantumShell({ initial }: { initial: BootState }) {
     if (next === theme) return
     // The class goes on <html> first, as at boot: what is laid out from the page's sizes (the row model, the rail's placement, the layers' cascade) reads
     // them while it renders, and DocumentTheme's own effect runs only after its children have rendered. Written at once, so a quit right after keeps it.
-    applyThemeClass(next)
+    applyThemeClass(effectiveTheme(next, fine))
     setThemeState(next)
     void persistTheme(store, next)
       .then(() => store.flush?.())
@@ -152,7 +169,7 @@ function QuantumShell({ initial }: { initial: BootState }) {
       initialReducedSetting={initial.reducedSetting}
       store={store}
     >
-      <DocumentTheme skin={activeSkin(theme, { quantum: skin, exzed: exzedSkin })} theme={theme}>
+      <DocumentTheme skin={activeSkin(shown, { quantum: skin, exzed: exzedSkin })} theme={shown}>
         <ThemeBackdrop />
         <LiveRegionProvider>
           <ToastProvider>
@@ -166,7 +183,8 @@ function QuantumShell({ initial }: { initial: BootState }) {
                         onSkinChange={handleSkinChange}
                         exzedSkin={exzedSkin}
                         onExzedSkinChange={handleExzedSkinChange}
-                        theme={theme}
+                        theme={shown}
+                        canChooseTheme={fine}
                         onThemeChange={handleThemeChange}
                       />
                     </LayerStackProvider>
@@ -247,10 +265,12 @@ interface AppShellBodyProps {
   exzedSkin: ExzedSkin
   onExzedSkinChange: (skin: ExzedSkin) => void
   theme: Theme
+  /** False on a touch-only device: Settings does not offer the THEME choice there (49.10). */
+  canChooseTheme: boolean
   onThemeChange: (theme: Theme) => void
 }
 
-function AppShellBody({ skin, onSkinChange, exzedSkin, onExzedSkinChange, theme, onThemeChange }: AppShellBodyProps) {
+function AppShellBody({ skin, onSkinChange, exzedSkin, onExzedSkinChange, theme, canChooseTheme, onThemeChange }: AppShellBodyProps) {
   // Subscribes the whole shell (header, Home) to the language, so a switch in
   // Settings re-renders them live rather than at the next unrelated render.
   useLanguage()
@@ -332,7 +352,7 @@ function AppShellBody({ skin, onSkinChange, exzedSkin, onExzedSkinChange, theme,
               {layer.kind === 'home' ? (
                 <Home onMediaTypesLoaded={setMediaTypes} />
               ) : layer.kind === 'settings' ? (
-                <SettingsScreen skin={skin} onSkinChange={onSkinChange} exzedSkin={exzedSkin} onExzedSkinChange={onExzedSkinChange} theme={theme} onThemeChange={onThemeChange} />
+                <SettingsScreen skin={skin} onSkinChange={onSkinChange} exzedSkin={exzedSkin} onExzedSkinChange={onExzedSkinChange} theme={theme} canChooseTheme={canChooseTheme} onThemeChange={onThemeChange} />
               ) : layer.kind === 'about' ? (
                 <AboutScreen />
               ) : layer.kind === 'category-picker' ? (

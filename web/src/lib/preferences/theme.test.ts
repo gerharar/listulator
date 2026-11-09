@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 import type { PreferencesStore } from './store.js'
-import { isTheme, resolveTheme, setTheme, THEMES } from './theme.js'
+import { effectiveTheme, isTheme, resolveTheme, setTheme, THEMES } from './theme.js'
 
 function fakeStore(initial: Record<string, string> = {}): PreferencesStore {
   const data = new Map(Object.entries(initial))
@@ -78,5 +78,17 @@ describe('isTheme', () => {
     expect(isTheme('exzed')).toBe(true)
     expect(isTheme('dark-orange')).toBe(false)
     expect(isTheme(undefined)).toBe(false)
+  })
+})
+
+describe('effectiveTheme', () => {
+  // eX-Zed is a desktop theme (design, answer 8): the stored theme holds where the device has a fine pointer that can hover; a touch-only device is Quantum,
+  // and what is stored is only read, never rewritten, because the preference may be shared with a desktop.
+  it.each(THEMES)('is the stored %s where the device has a fine pointer', (theme) => {
+    expect(effectiveTheme(theme, true)).toBe(theme)
+  })
+
+  it.each(THEMES)('is Quantum on a touch-only device, whatever is stored (%s)', (theme) => {
+    expect(effectiveTheme(theme, false)).toBe('quantum')
   })
 })

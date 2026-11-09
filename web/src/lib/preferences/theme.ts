@@ -29,3 +29,11 @@ export async function resolveTheme(store: PreferencesStore): Promise<Theme> {
 export async function setTheme(store: PreferencesStore, theme: Theme): Promise<void> {
   await store.set(THEME_KEY, theme)
 }
+
+/**
+ * The theme the app is drawn in: the stored one where the device has a fine pointer that can hover, Quantum on a touch-only device (design, answer 8: eX-Zed is a
+ * desktop theme). What is stored is only read here and never rewritten, because the preference may be shared with a desktop that does have the pointer.
+ */
+export function effectiveTheme(stored: Theme, finePointer: boolean): Theme {
+  return finePointer ? stored : 'quantum'
+}

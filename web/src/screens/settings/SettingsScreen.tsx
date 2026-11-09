@@ -30,6 +30,8 @@ export interface SettingsScreenProps {
   /** The theme in force, and the shell's switch (49.7): applied at once and stored there; this announces it. */
   theme: Theme
   onThemeChange: (theme: Theme) => void
+  /** False on a touch-only device (49.10): eX-Zed is not offered there, so the THEME row is not drawn and Quantum's skin row stays. */
+  canChooseTheme: boolean
   /** Where the language is remembered; the skin and reduced motion are persisted by their owners. */
   store?: PreferencesStore
 }
@@ -39,7 +41,7 @@ export interface SettingsScreenProps {
  * THEME has two choices, Quantum and eX-Zed (49.8); SKIN shows the skins of the theme in force: Quantum's five with the hexagon, eX-Zed's six with the
  * half-bucket swatch (design X-003). There is no atmosphere control (Q4). The API keys section is desktop only (task 10.31).
  */
-export function SettingsScreen({ skin, onSkinChange, exzedSkin, onExzedSkinChange, theme, onThemeChange, store }: SettingsScreenProps) {
+export function SettingsScreen({ skin, onSkinChange, exzedSkin, onExzedSkinChange, theme, onThemeChange, canChooseTheme, store }: SettingsScreenProps) {
   const layerStack = useLayerStack()
   const { announce } = useLiveRegion()
   const { language, setLanguage } = useLanguage()
@@ -86,16 +88,18 @@ export function SettingsScreen({ skin, onSkinChange, exzedSkin, onExzedSkinChang
 
       <div className="q-settings-body">
         <div className="q-settings-sections">
-          <section>
-            <span className="q-kicker">{text.theme}</span>
-            <div className="q-settings-row">
-              {THEMES.map((id) => (
-                <ToggleChip key={id} variant="choice" pressed={id === theme} onClick={() => pickTheme(id)}>
-                  {themeNames[id]}
-                </ToggleChip>
-              ))}
-            </div>
-          </section>
+          {canChooseTheme && (
+            <section>
+              <span className="q-kicker">{text.theme}</span>
+              <div className="q-settings-row">
+                {THEMES.map((id) => (
+                  <ToggleChip key={id} variant="choice" pressed={id === theme} onClick={() => pickTheme(id)}>
+                    {themeNames[id]}
+                  </ToggleChip>
+                ))}
+              </div>
+            </section>
+          )}
 
           <section>
             <span className="q-kicker">{text.skin}</span>

@@ -70,7 +70,7 @@ function StackReader() {
 }
 
 function renderSettings(
-  options: { skin?: 'dark-blue' | 'light-bone'; theme?: Theme; exzedSkin?: ExzedSkin; reducedSetting?: boolean; markOpenGroups?: boolean; showTimeLeft?: boolean } = {},
+  options: { skin?: 'dark-blue' | 'light-bone'; theme?: Theme; canChooseTheme?: boolean; exzedSkin?: ExzedSkin; reducedSetting?: boolean; markOpenGroups?: boolean; showTimeLeft?: boolean } = {},
 ) {
   const onSkinChange = vi.fn()
   const onThemeChange = vi.fn()
@@ -92,6 +92,7 @@ function renderSettings(
                     skin={options.skin ?? 'dark-blue'}
                     onSkinChange={onSkinChange}
                     theme={options.theme ?? 'quantum'}
+                    canChooseTheme={options.canChooseTheme ?? true}
                     onThemeChange={onThemeChange}
                     exzedSkin={options.exzedSkin ?? 'exzed-1d'}
                     onExzedSkinChange={onExzedSkinChange}
@@ -179,6 +180,22 @@ describe('SettingsScreen', () => {
     await waitFor(() => {
       expect(container.querySelector('.q-live')?.textContent).toBe('Switched to the Romans skin')
     })
+  })
+
+  it('on a touch-only device offers no THEME choice at all, and the SKIN row is Quantum\u2019s five', () => {
+    renderSettings({ canChooseTheme: false })
+
+    expect(screen.queryByText('Theme')).toBeNull()
+    expect(screen.queryByRole('button', { name: 'eX-Zed' })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Quantum' })).toBeNull()
+    for (const name of ['Destiny', 'Jupiter', 'Deluge', 'Romans', 'Jouhou']) expect(screen.getByRole('button', { name })).not.toBeNull()
+  })
+
+  it('where a fine pointer is there, shows the THEME row with its kicker', () => {
+    renderSettings({ canChooseTheme: true })
+
+    expect(screen.getByText('Theme')).not.toBeNull()
+    expect(screen.getByRole('button', { name: 'eX-Zed' })).not.toBeNull()
   })
 
   it('under Quantum shows no eX-Zed skin: the SKIN row is the five Quantum skins only', () => {
@@ -354,7 +371,7 @@ describe('SettingsScreen', () => {
             <LayerStackProvider home={{ id: 'home', kind: 'home', tabLabel: 'Home', content: '/' }}>
               <PushSettings />
               <StackReader />
-              <SettingsScreen skin="dark-blue" onSkinChange={vi.fn()} theme="quantum" onThemeChange={vi.fn()} exzedSkin="exzed-1d" onExzedSkinChange={vi.fn()} store={store} />
+              <SettingsScreen skin="dark-blue" onSkinChange={vi.fn()} theme="quantum" canChooseTheme onThemeChange={vi.fn()} exzedSkin="exzed-1d" onExzedSkinChange={vi.fn()} store={store} />
             </LayerStackProvider>
           </LanguageProvider>
         </MotionProvider>
