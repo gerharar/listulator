@@ -72,7 +72,8 @@ import { useRailLayout } from './useRailLayout.js'
 import { ListMorePopover, type MoreMode, type PreviewState } from './ListMorePopover.js'
 import { buildSpine, listTotals } from './spine.js'
 import { dropPinEdge, type PinEdge } from './dropPin.js'
-import { buildRowModel, centreOn, offsetOf, revealScrollTop, scrollAfterChange, scrollAfterDrop, scrollKeepingUnit, shouldVirtualize, type VirtualizationMode } from './rowModel.js'
+import { useListHeights } from './useListHeights.js'
+import { buildRowModel, centreOn, offsetOf, revealScrollTop, scrollAfterChange, scrollAfterDrop, scrollAfterResize, scrollKeepingUnit, shouldVirtualize, type VirtualizationMode } from './rowModel.js'
 import { putBack } from './rollback.js'
 import { DEFAULT_VIEWPORT, WindowedRows } from './WindowedRows.js'
 import { useRowMoves } from './useRowMoves.js'
@@ -471,7 +472,9 @@ function ListView({
   // The rows as pixels, and which of them to draw (Phase 25): a long list draws a window, short ones everything; `off` (the app's
   // preference or the server's setting, read before the first frame, 25.7) draws every row of any list.
   const virtualization = initialVirtualization
-  const rowModel = useMemo(() => buildRowModel(shownUnits, (name) => shut.has(name)), [shownUnits, shut])
+  // The rows' heights are the page's and follow the theme: a theme switched under this open list rebuilds the model, and the effect below keeps the reader's place.
+  const heights = useListHeights()
+  const rowModel = useMemo(() => buildRowModel(shownUnits, (name) => shut.has(name), heights), [shownUnits, shut, heights])
   const windowed = shouldVirtualize(rowModel.rowTops.size, virtualization)
   // Where each drawn row is, for a screen reader (Phase 25.6, option A): only on a list drawn as a window, which shows a fraction of its rows.
   // Counted among the rows there are (items, and groups; not the items of a folded group), in the order they are walked.
@@ -656,7 +659,9 @@ function ListView({
     const kept =
       landed ??
       (carrying !== wasCarrying && carriedKey.current !== null ? scrollKeepingUnit(before, rowModel, carriedKey.current, scrolledTo.current) : undefined)
-    const next = kept ?? scrollAfterChange(before, rowModel, scrolledTo.current, viewportHeight)
+    // The rows changed height (a theme switched under this open list): the reader keeps their row, not the pixel offset into its group.
+    const resized = before.itemHeight !== rowModel.itemHeight || before.groupHeight !== rowModel.groupHeight
+    const next = kept ?? (resized ? scrollAfterResize(before, rowModel, scrolledTo.current) : undefined) ?? scrollAfterChange(before, rowModel, scrolledTo.current, viewportHeight)
     if (next !== scrolledTo.current) scrollBodyTo(next)
   }, [rowModel, moves.draggingUnit])
 

@@ -4,7 +4,7 @@ import { api, type MediaType } from './lib/api.js'
 import { copy } from './locale/index.js'
 import { getPreferencesStore } from './lib/preferences/store.js'
 import { resolveSkin, setSkin as persistSkin, type Skin } from './lib/preferences/skin.js'
-import { resolveTheme, type Theme } from './lib/preferences/theme.js'
+import { isTheme, resolveTheme, setTheme as persistTheme, type Theme } from './lib/preferences/theme.js'
 import { resolveExzedSkin } from './lib/preferences/exzedSkin.js'
 import { activeSkin } from './lib/preferences/activeSkin.js'
 import type { ExzedSkin } from './lib/preferences/exzedSkins.js'
@@ -60,7 +60,7 @@ interface BootState {
   skin: Skin
   /** eX-Zed's own skin (X-003), read at boot beside Quantum's: the page carries the active theme's (`activeSkin`). */
   exzedSkin: ExzedSkin
-  /** The theme (Phase 48): read once at boot; nothing in the app changes it yet. */
+  /** The theme (Phase 48), as stored at boot: the shell holds the live one in state (49.7). */
   theme: Theme
   language: Language
   /** `undefined` until the user has ticked or unticked the box: the system setting decides then. */
@@ -70,6 +70,9 @@ interface BootState {
   /** H-024: the preference `showTimeLeft`, off unless clearly on. */
   showTimeLeft: boolean
 }
+
+/** The window event the e2e switches the theme with, until Settings has the control (49.7; 49.8 removes it). Its `detail` is a theme. */
+export const THEME_EVENT = 'listulator:set-theme'
 
 /** The header's Quit/Exit (task 16.2b): the desktop window, or none in the browser build. */
 const appQuit = getAppQuit()
@@ -118,6 +121,8 @@ export function App() {
 
 function QuantumShell({ initial }: { initial: BootState }) {
   const [skin, setSkinState] = useState<Skin>(initial.skin)
+  // The theme is live (49.7): switching it redraws every open layer and keeps what they hold. Settings gets its control in 49.8.
+  const [theme, setThemeState] = useState<Theme>(initial.theme)
   const store = getPreferencesStore()
   // F11 toggles full screen in the desktop app, wherever focus is (17.7); nothing in the browser.
   useFullscreenKey()
@@ -127,12 +132,34 @@ function QuantumShell({ initial }: { initial: BootState }) {
     void persistSkin(store, next)
   }
 
+  function handleThemeChange(next: Theme): void {
+    if (next === theme) return
+    // The class goes on <html> first, as at boot: what is laid out from the page's sizes (the row model, the rail's placement, the layers' cascade) reads
+    // them while it renders, and DocumentTheme's own effect runs only after its children have rendered. Written at once, so a quit right after keeps it.
+    applyThemeClass(next)
+    setThemeState(next)
+    void persistTheme(store, next)
+      .then(() => store.flush?.())
+      .catch(() => undefined)
+  }
+
+  // Temporary (49.7), until Settings has the THEME control (49.8 removes this): the e2e switches the theme by an event on the window.
+  useEffect(() => {
+    const onSetTheme = (event: Event) => {
+      const next: unknown = (event as CustomEvent<unknown>).detail
+      if (isTheme(next)) handleThemeChange(next)
+    }
+    window.addEventListener(THEME_EVENT, onSetTheme)
+
+    return () => window.removeEventListener(THEME_EVENT, onSetTheme)
+  })
+
   return (
     <MotionProvider
       initialReducedSetting={initial.reducedSetting}
       store={store}
     >
-      <DocumentTheme skin={activeSkin(initial.theme, { quantum: skin, exzed: initial.exzedSkin })} theme={initial.theme}>
+      <DocumentTheme skin={activeSkin(theme, { quantum: skin, exzed: initial.exzedSkin })} theme={theme}>
         <ThemeBackdrop />
         <LiveRegionProvider>
           <ToastProvider>

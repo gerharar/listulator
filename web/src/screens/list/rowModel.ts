@@ -185,6 +185,30 @@ export function scrollAfterChange(before: RowModel, after: RowModel, scrollTop: 
 }
 
 /**
+ * Where the reader should be after the rows changed *height* (a theme switched under an open list: 46px rows to 32px, Phase 49.7), so that they keep
+ * their row. `scrollAfterChange` anchors on the unit at the top, which for a long group is the whole group, and would keep the pixel offset into it: 2,000px
+ * into a group of 100 rows is row 43 at 46px and row 62 at 32px. The anchor here is the row at the top (the first whose bottom is below the scroll
+ * position, in the order the model lists them), and the same fraction of it stays scrolled away. Past the last row (on the Add row) the reader keeps their
+ * distance from the end. `undefined` when the row is not in the new model, so the caller's own rule decides.
+ */
+export function scrollAfterResize(before: RowModel, after: RowModel, scrollTop: number): number | undefined {
+  if (scrollTop >= before.total) return Math.max(0, scrollTop - before.total + after.total)
+
+  for (const [key, top] of before.rowTops) {
+    const height = before.rowHeights.get(key)!
+    if (top + height <= scrollTop) continue
+
+    const next = after.rowTops.get(key)
+    const nextHeight = after.rowHeights.get(key)
+    if (next === undefined || nextHeight === undefined) return undefined
+
+    return next + Math.min(nextHeight - 1, Math.round(((scrollTop - top) * nextHeight) / height))
+  }
+
+  return undefined
+}
+
+/**
  * Where the reader should be so that one unit stays where it is on the screen when the rows change around it: a group is picked up and
  * folds, or put down and it opens again. The unit keeps its distance below the top of the view; a header that was stuck at the
  * top (the view was inside its group) stays at the top; never above the top of the list. `undefined` when the unit is not in both models.

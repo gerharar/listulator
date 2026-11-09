@@ -1,6 +1,9 @@
 // @vitest-environment jsdom
+import type { ReactNode } from 'react'
 import { afterEach, describe, expect, it } from 'vitest'
 import { act, renderHook } from '@testing-library/react'
+import { ThemeContext } from '../../components/quantum/DocumentTheme/ThemeContext.js'
+import type { Theme } from '../../lib/preferences/theme.js'
 import { useWindowRailPlacement } from './RailPlacementContext.js'
 
 /** The window's rail placement follows the window on resize only, with the rule's hysteresis. */
@@ -177,5 +180,80 @@ describe('useWindowRailPlacement with a cap on the app (eX-Zed: 2560px)', () => 
     resizeTo(3000)
     resizeTo(3440)
     expect(result.current).toBe(before)
+  })
+})
+
+describe('useWindowRailPlacement when the theme changes (Phase 49.7)', () => {
+  // The placement is state, worked out from the page's card and gap when the window opens or resizes. A theme changes those under an open window, so it
+  // is worked out again: 1800px is outside for Quantum (1080px card, 20px gap) and inside for eX-Zed (1620px card, 96px gap: outside only from 2244).
+  let theme: Theme = 'quantum'
+  const wrapper = ({ children }: { children: ReactNode }) => <ThemeContext.Provider value={theme}>{children}</ThemeContext.Provider>
+  const html = document.documentElement
+  const exzedTokens = () => {
+    html.style.setProperty('--app-max', '2560px')
+    html.style.setProperty('--layer-max-list', '1620px')
+    html.style.setProperty('--stage-gap', '96px')
+  }
+  const quantumTokens = () => {
+    for (const name of ['--app-max', '--layer-max-list', '--stage-gap']) html.style.removeProperty(name)
+  }
+  const switchTo = (next: Theme, rerender: () => void) => {
+    act(() => {
+      // As the shell does: the page's tokens first, then the state that re-renders.
+      if (next === 'exzed') exzedTokens()
+      else quantumTokens()
+      theme = next
+      rerender()
+    })
+  }
+
+  afterEach(() => {
+    theme = 'quantum'
+  })
+
+  it('goes inside, with the rail carried, when eX-Zed’s wider card and gap leave no room beside the card at the same window width', () => {
+    window.innerWidth = 1800
+    const { result, rerender } = renderHook(() => useWindowRailPlacement(), { wrapper })
+    expect(result.current).toMatchObject({ placement: 'outside', windowWidth: 1800, carried: false })
+
+    switchTo('exzed', rerender)
+
+    expect(result.current).toMatchObject({ placement: 'inside', windowWidth: 1800, carried: true })
+  })
+
+  it('and back outside, with nothing carried, when Quantum’s narrower card leaves the room again', () => {
+    exzedTokens()
+    theme = 'exzed'
+    window.innerWidth = 1800
+    const { result, rerender } = renderHook(() => useWindowRailPlacement(), { wrapper })
+    expect(result.current).toMatchObject({ placement: 'inside', carried: false })
+
+    switchTo('quantum', rerender)
+
+    expect(result.current).toMatchObject({ placement: 'outside', windowWidth: 1800, carried: false })
+  })
+
+  it('takes the app’s width from the new theme’s cap: a 3000px window is 2560px of app in eX-Zed and the window’s own in Quantum', () => {
+    window.innerWidth = 3000
+    const { result, rerender } = renderHook(() => useWindowRailPlacement(), { wrapper })
+    expect(result.current.windowWidth).toBe(3000)
+
+    switchTo('exzed', rerender)
+    expect(result.current.windowWidth).toBe(2560)
+
+    switchTo('quantum', rerender)
+    expect(result.current.windowWidth).toBe(3000)
+  })
+
+  it('changes nothing when the theme stays the same, or when the switch leaves the placement as it was inside', () => {
+    window.innerWidth = 1440
+    const { result, rerender } = renderHook(() => useWindowRailPlacement(), { wrapper })
+    const first = result.current
+
+    act(() => rerender())
+    expect(result.current).toBe(first)
+
+    switchTo('exzed', rerender)
+    expect(result.current).toMatchObject({ placement: 'inside', carried: false })
   })
 })
