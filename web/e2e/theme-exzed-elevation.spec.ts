@@ -3,8 +3,8 @@ import { expect, test, type APIRequestContext, type Page } from '@playwright/tes
 /**
  * eX-Zed's elevation (Phase 48.2, the sheet as design's answer 5 has it), computed in both engines: with the theme on, a full layer is three 4px rings
  * outside its border (paper, frame, paper); everything that opens over a layer (popovers, menus, the dropdown list, the platform panel, the toast and
- * the helper sheet) is one 4px paper ring; the tooltip and a covered layer have no shadow, and nothing on a settled screen has a blurred shadow. The ring colours are role names (`--paper`,
- * `--frame`) with Quantum fallbacks until X-003 brings eX-Zed's skins. Real writes on the dev server, removed in a `finally`.
+ * the helper sheet) is one 4px paper ring; the tooltip and a covered layer have no shadow, and nothing on a settled screen has a blurred shadow. The ring colours are the skin's roles (`--zx-paper`,
+ * `--zx-frame`), with no Quantum colour behind them (49.5): in each of the six skins too. Real writes on the dev server, removed in a `finally`.
  */
 async function makeList(request: APIRequestContext, title: string, category = 'movie') {
   const rows = ['One', 'Two', 'Three'].map((name) => `  - { title: "Item ${name}", minutes: 30, group: "Season 1" }`)
@@ -13,10 +13,10 @@ async function makeList(request: APIRequestContext, title: string, category = 'm
   return (await made.json()).id as string
 }
 
-async function boot(page: Page, theme: string) {
+async function boot(page: Page, theme: string, extra: Record<string, string> = {}) {
   await page.addInitScript((entries) => {
     for (const [key, value] of entries) localStorage.setItem(key, value)
-  }, Object.entries({ theme, skin: 'dark-orange', reducedMotion: 'true' }))
+  }, Object.entries({ theme, skin: 'dark-orange', reducedMotion: 'true', ...extra }))
   await page.route('**/api/library/untracked', (route) => route.fulfill({ json: { entries: [], reachable: true } }))
 }
 
@@ -82,7 +82,7 @@ test.describe('with the theme exzed', () => {
     }
   })
 
-  test('the rings take the colours the theme’s skin gives its roles, `--paper` and `--frame`', async ({ page }) => {
+  test('the rings and the page ground take the colours the skin gives its roles, `--zx-paper`, `--zx-frame` and `--zx-stage`', async ({ page }) => {
     const title = `e2e exzed roles ${Date.now()}`
     const id = await makeList(page.request, title)
 
@@ -90,12 +90,14 @@ test.describe('with the theme exzed', () => {
       await boot(page, 'exzed')
       await openList(page, title)
       await page.evaluate(() => {
-        document.documentElement.style.setProperty('--paper', 'rgb(1, 2, 3)')
-        document.documentElement.style.setProperty('--frame', 'rgb(4, 5, 6)')
+        document.documentElement.style.setProperty('--zx-paper', 'rgb(1, 2, 3)')
+        document.documentElement.style.setProperty('--zx-frame', 'rgb(4, 5, 6)')
+        document.documentElement.style.setProperty('--zx-stage', 'rgb(7, 8, 9)')
       })
 
       const layer = await shadowOf(page, '.q-layer:not(.covered)')
       expect(layer.map((ring) => ring.color)).toEqual(['rgb(1, 2, 3)', 'rgb(4, 5, 6)', 'rgb(1, 2, 3)'])
+      expect(await page.evaluate(() => getComputedStyle(document.body).backgroundColor), 'the ground beyond the cap').toBe('rgb(7, 8, 9)')
     } finally {
       await page.request.delete(`/api/lists/${id}`)
     }
@@ -167,6 +169,38 @@ test.describe('with the theme exzed', () => {
     await noBlur(page)
   })
 })
+
+/** paper, frame and stage per skin, from design's tokens (`exzed-tokens.css`). */
+const SKIN_ROLES = {
+  'exzed-1d': { paper: 'rgb(0, 0, 0)', frame: 'rgb(215, 215, 0)', stage: 'rgb(0, 0, 0)' },
+  'exzed-1a': { paper: 'rgb(0, 0, 0)', frame: 'rgb(215, 215, 215)', stage: 'rgb(0, 0, 0)' },
+  'exzed-1b': { paper: 'rgb(0, 0, 0)', frame: 'rgb(215, 215, 215)', stage: 'rgb(0, 0, 0)' },
+  'exzed-1c': { paper: 'rgb(0, 0, 0)', frame: 'rgb(215, 215, 215)', stage: 'rgb(0, 0, 0)' },
+  'exzed-1e': { paper: 'rgb(0, 0, 0)', frame: 'rgb(215, 215, 215)', stage: 'rgb(0, 0, 0)' },
+  'exzed-1l': { paper: 'rgb(215, 215, 215)', frame: 'rgb(0, 0, 0)', stage: 'rgb(215, 215, 215)' },
+} as const
+
+for (const [key, want] of Object.entries(SKIN_ROLES)) {
+  test(`in the skin ${key}, a layer's rings, the ⋯ menu's ring and the page ground beyond the 2560px cap are the skin's paper, frame and stage`, async ({ page }) => {
+    const title = `e2e exzed skin ${key} ${test.info().project.name} ${Date.now()}`
+    const id = await makeList(page.request, title)
+
+    try {
+      // Wider than the cap, so the page shows its own ground around the screen.
+      await page.setViewportSize({ width: 3000, height: 900 })
+      await boot(page, 'exzed', { exzedSkin: key })
+      await openList(page, title)
+
+      expect((await shadowOf(page, '.q-layer:not(.covered)')).map((ring) => ring.color)).toEqual([want.paper, want.frame, want.paper])
+      expect(await page.evaluate(() => getComputedStyle(document.body).backgroundColor), 'the ground beyond the cap').toBe(want.stage)
+      await page.getByRole('button', { name: 'More', exact: true }).click()
+      await page.locator('.q-pop').first().waitFor()
+      expect((await shadowOf(page, '.q-pop')).map((ring) => ring.color)).toEqual([want.paper])
+    } finally {
+      await page.request.delete(`/api/lists/${id}`)
+    }
+  })
+}
 
 test('without the theme, Quantum keeps its blurred shadows: a layer, a menu and a tooltip', async ({ page }) => {
   const title = `e2e quantum shadows ${Date.now()}`

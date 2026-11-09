@@ -1,7 +1,7 @@
 import { existsSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
-import { declarations, read } from './cssGuard.js'
+import { declarations, read, stylesheets } from './cssGuard.js'
 
 /**
  * eX-Zed's colours (Phase 49.3, X-003). Components keep reading Quantum's colour names (`--card`, `--ink`, `--accent`...); under `html.theme-exzed`
@@ -10,7 +10,8 @@ import { declarations, read } from './cssGuard.js'
  *  1. every Quantum colour token is mapped, none twice, none left out when design's file gains one;
  *  2. each maps to exactly the role the table names, and that role exists in every skin;
  *  3. nothing in the file is an rgba or a literal: a mapping is `var(--zx-<role>)`, so a skin cannot draw a translucent colour;
- *  4. `color-scheme` is dark for the five dark skins and light for Lotus (`exzed-1l`), which `base.css` cannot know (it keys on `dark*` / `light*`).
+ *  4. no theme stylesheet falls back from a role to a Quantum colour (`var(--paper, var(--card))`): a role is read as `var(--zx-<role>)` and nothing else (49.5);
+ *  5. `color-scheme` is dark for the five dark skins and light for Lotus (`exzed-1l`), which `base.css` cannot know (it keys on `dark*` / `light*`).
  */
 const MAPPING = {
   bg: 'stage',
@@ -91,6 +92,18 @@ describe('eX-Zed’s colour mapping', () => {
   it('holds no colour of its own: no hex, no rgb, no hsl, no color-mix, no alpha', () => {
     expect(colours).not.toMatch(/#[0-9a-f]{3,8}\b|\b(?:rgba?|hsla?|color-mix)\(|\balpha\b/i)
     for (const d of mapped) expect(d.value, d.property).toMatch(/^var\(--zx-[a-z0-9-]+\)$/)
+  })
+})
+
+describe('the theme’s stylesheets', () => {
+  const theme = stylesheets().filter((path) => path.startsWith('styles/theme/'))
+
+  it('are read: the generated roles, the contract, the colours and the rest of eX-Zed', () => {
+    expect(theme).toEqual(expect.arrayContaining(['styles/theme/exzed-tokens.css', 'styles/theme/exzed-colours.css', 'styles/theme/exzed.css', 'styles/theme/contract.css']))
+  })
+
+  it.each(theme)('%s reads no custom property with a fallback, so no role falls back to a Quantum colour', (path) => {
+    expect(read(path).match(/var\(\s*--[\w-]+\s*,[^;}]*/g) ?? []).toEqual([])
   })
 })
 

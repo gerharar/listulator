@@ -15,8 +15,8 @@ html.theme-exzed {
 html.theme-exzed body {
   /* Quantum's base asks for anti-aliased text; a pixel font is drawn on the grid (WebKit on macOS; other engines ignore it). */
   -webkit-font-smoothing: none;
-  /* Beyond the cap on the app (48.5, below) the page shows the stage's ground: the role `--stage` (eX-Zed's skins give it in X-003), meanwhile Quantum's. */
-  background: var(--stage, var(--bg));
+  /* Beyond the cap on the app (48.5, below) the page shows the stage's ground: the skin's role `--zx-stage`. */
+  background: var(--zx-stage);
 }
 
 html.theme-exzed img {
@@ -28,14 +28,13 @@ html.theme-exzed img {
  * `frame`, `paper`, which are the three entries below; the border is the element's own and arrives with the border area (48.5) and the
  * per-component work (X-007). Everything that opens over a layer has the single frame (design, answer 5; the helper sheet was a window here until
  * 48.4c): a popover, a menu, the dropdown list, the platform panel, a toast and the sheet have a 2px `frame-hi` border and one 4px `paper` ring. The tooltip is a 2px border with no ring, and a covered layer is a tab drawn with its border
- * only (the Window card), so both are none. Ring colours are the roles eX-Zed's skins give (X-003); until they exist each falls back to the
- * Quantum role nearest to it, so the theme class can be tried on any Quantum skin.
+ * only (the Window card), so both are none. Ring colours are the roles of eX-Zed's skins (`--zx-paper`, `--zx-frame`), with no Quantum colour behind them (49.5).
  */
 html.theme-exzed {
-  --e-pop: 0 0 0 4px var(--paper, var(--card));
-  --e-toast: 0 0 0 4px var(--paper, var(--card));
-  --e-sheet: 0 0 0 4px var(--paper, var(--card));
-  --e-layer-rest: 0 0 0 4px var(--paper, var(--card)), 0 0 0 8px var(--frame, var(--rule)), 0 0 0 12px var(--paper, var(--card));
+  --e-pop: 0 0 0 4px var(--zx-paper);
+  --e-toast: 0 0 0 4px var(--zx-paper);
+  --e-sheet: 0 0 0 4px var(--zx-paper);
+  --e-layer-rest: 0 0 0 4px var(--zx-paper), 0 0 0 8px var(--zx-frame), 0 0 0 12px var(--zx-paper);
   --e-layer-covered: none;
   --e-tooltip: none;
 }
@@ -143,7 +142,7 @@ html.theme-exzed:not([data-reduced]) .q-layer-tab {
 /*
  * The cap on the app (48.5, design X-002 and X-006): the screen (the header and the stage with its layers) stops growing at 2560px and is centred; beyond
  * it the page shows the stage's ground, where the Spectrum border is drawn (X-006: loading stripes, and a Settings choice for plain black). The role
- * `--stage` is eX-Zed's skins' (X-003); until it exists the page keeps Quantum's own ground. Width only: a taller window shows more of the stage. The rail's
+ * `--zx-stage` is the skin's (49.5). Width only: a taller window shows more of the stage. The rail's
  * rule reads this cap too (railPlacement.ts `appWidth`), so a 3440 or 3840 window has the margin of a 2560 one. Not changed: `tauri.conf.json`, whose
  * window is as large as the person makes it.
  */

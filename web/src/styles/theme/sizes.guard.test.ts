@@ -138,8 +138,8 @@ describe('size tokens: the cap on the app (design, X-002 and X-006)', () => {
     expect(new RegExp('--app-max\\s*:\\s*([^;]+);').exec(read('styles/theme/exzed.css'))?.[1]?.trim()).toBe('2560px')
   })
 
-  it('beyond the cap the page shows the stage’s ground (the role --stage, which eX-Zed’s skins give in X-003), falling back to the page’s own until then', () => {
-    expect(plain(declared(read('styles/theme/exzed.css'), 'html.theme-exzed body', 'background')!)).toBe('var(--stage,var(--bg))')
+  it('beyond the cap the page shows the stage’s ground: the skin’s role --zx-stage, with no Quantum colour behind it (49.5)', () => {
+    expect(plain(declared(read('styles/theme/exzed.css'), 'html.theme-exzed body', 'background')!)).toBe('var(--zx-stage)')
   })
 })
 
