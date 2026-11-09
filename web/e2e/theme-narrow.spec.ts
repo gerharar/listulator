@@ -29,8 +29,10 @@ const popover = (page: Page) => page.getByRole('dialog', { name: 'eX-Zed' })
 const stored = (page: Page, key: string) => page.evaluate((name) => localStorage.getItem(name), key)
 const isExzed = (page: Page) => page.evaluate(() => document.documentElement.classList.contains('theme-exzed'))
 
-async function switchToExzed(page: Page) {
-  await page.getByRole('button', { name: 'Settings', exact: true }).click()
+const SETTINGS: Record<string, string> = { en: 'Settings', ru: 'Настройки', de: 'Einstellungen' }
+
+async function switchToExzed(page: Page, language = 'en') {
+  await page.getByRole('button', { name: SETTINGS[language]!, exact: true }).click()
   await page.locator('.q-settings').waitFor()
   await page.locator('.q-settings').getByRole('button', { name: 'eX-Zed', exact: true }).click()
 }
@@ -159,6 +161,61 @@ test.describe('switching to eX-Zed', () => {
 
     await expect(popover(page)).toHaveCount(0)
   })
+})
+
+/**
+ * The desktop adds a third button, Embiggen, which a browser never shows, so the browser build cannot draw it: the test adds one of the same kind to the row, as the
+ * desktop’s notice does (found by the owner on the Mac: three buttons in the Spectrum font are wider than the 360px card, and Dismiss left it on the left). In every language,
+ * because the labels differ in length, no button may leave its container.
+ */
+test.describe('with the third button the desktop adds (Embiggen)', () => {
+  for (const language of ['en', 'ru', 'de']) {
+    test(`the popover keeps all three buttons inside its card (${language})`, async ({ page }) => {
+      await open(page, { theme: 'quantum', language }, 1127)
+      await switchToExzed(page, language)
+      const card = page.getByRole('dialog', { name: 'eX-Zed' })
+      await card.waitFor()
+      await card.locator('.q-pop-actions').evaluate((row) => {
+        const button = document.createElement('button')
+        button.className = 'q-btn primary'
+        button.textContent = 'Embiggen'
+        row.append(button)
+      })
+
+      const boxes = await card.evaluate((element) => {
+        const outer = element.getBoundingClientRect()
+
+        return Array.from(element.querySelectorAll('.q-pop-actions button')).map((button) => {
+          const box = button.getBoundingClientRect()
+          return { label: button.textContent, outside: Math.max(outer.left - box.left, box.right - outer.right, 0) }
+        })
+      })
+
+      expect(boxes).toHaveLength(3)
+      for (const box of boxes) expect(box.outside, `${box.label} sticks out of the card by`).toBe(0)
+    })
+
+    test(`the banner keeps all three buttons inside the window (${language})`, async ({ page }) => {
+      await open(page, { theme: 'exzed', language }, 1127)
+      await page.locator('.q-banner .q-banner-actions').first().waitFor()
+      await page.locator('.q-banner .q-banner-actions').first().evaluate((row) => {
+        const button = document.createElement('button')
+        button.className = 'q-btn secondary sm'
+        button.textContent = 'Embiggen'
+        row.prepend(button)
+      })
+
+      const outside = await page.evaluate(() => {
+        const actions = document.querySelector('.q-banner .q-banner-actions')!
+        const last = actions.getBoundingClientRect()
+        const first = actions.querySelector('button')!.getBoundingClientRect()
+
+        return { right: Math.max(last.right - window.innerWidth, 0), left: Math.max(-first.left, 0), page: document.documentElement.scrollWidth - window.innerWidth }
+      })
+
+      expect(outside).toEqual({ right: 0, left: 0, page: 0 })
+    })
+  }
 })
 
 test.describe('where it is never shown', () => {

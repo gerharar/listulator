@@ -196,3 +196,12 @@ html.theme-exzed .q-pop-menu button[aria-current=true] {
 html.theme-exzed .q-tag.kind {
   width: calc(var(--kind-ch) * (1ch + 0.02em) + 18px);
 }
+
+/*
+ * The buttons of a popover wrap onto the next line instead of leaving the card (found by the owner on the Mac at 49.12: the narrow-window popover has three, and in
+ * this font they are wider than its 360px card, so Dismiss stood outside it). Quantum's row never wraps because its buttons fit; the Spectrum font is as wide as it is tall. Each line
+ * stays right-aligned, the primary last, as the design's Popover card has it. eX-Zed's own popover widths and drawing are X-007's.
+ */
+html.theme-exzed .q-pop-actions {
+  flex-wrap: wrap;
+}
