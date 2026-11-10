@@ -477,6 +477,16 @@
     "status": "ongoing"
   },
   {
+    "path": "lists/mega/the-mandalorian-watchlist.yaml",
+    "title": "The Mandalorian franchise",
+    "category": "mega",
+    "itemCount": 25,
+    "totalMinutes": 1092,
+    "minutesEstimated": false,
+    "description": "All releases in the Mandalorian franchise, including the movie",
+    "status": "complete"
+  },
+  {
     "path": "lists/mega/twin-peaks-franchise.yaml",
     "title": "Twin Peaks franchise (recommended order)",
     "category": "mega",
@@ -561,6 +571,16 @@
     "status": "complete"
   },
   {
+    "path": "lists/tv/andor-tv.yaml",
+    "title": "Andor TV series",
+    "category": "tv",
+    "itemCount": 24,
+    "totalMinutes": 1141,
+    "minutesEstimated": false,
+    "description": "All episodes of the Andor TV series",
+    "status": "complete"
+  },
+  {
     "path": "lists/tv/band-of-brothers-tv.yaml",
     "title": "Band Of Brothers TV miniseries",
     "category": "tv",
@@ -568,6 +588,16 @@
     "totalMinutes": 625,
     "minutesEstimated": false,
     "description": "All episodes of the Band Of Brothers TV miniseries",
+    "status": "complete"
+  },
+  {
+    "path": "lists/tv/boardwalk-empire-tv.yaml",
+    "title": "Boardwalk Empire TV series",
+    "category": "tv",
+    "itemCount": 56,
+    "totalMinutes": 3158,
+    "minutesEstimated": false,
+    "description": "All episodes of the Boardwalk Empire TV series",
     "status": "complete"
   },
   {
@@ -588,6 +618,16 @@
     "totalMinutes": 323,
     "minutesEstimated": false,
     "description": "All episodes of the Chernobyl TV miniseries",
+    "status": "complete"
+  },
+  {
+    "path": "lists/tv/dark-tv.yaml",
+    "title": "Dark TV series",
+    "category": "tv",
+    "itemCount": 26,
+    "totalMinutes": 1449,
+    "minutesEstimated": false,
+    "description": "All episodes of the Dark TV series",
     "status": "complete"
   },
   {
@@ -690,6 +730,16 @@
     "status": "complete"
   },
   {
+    "path": "lists/tv/pluribus-tv.yaml",
+    "title": "Pluribus TV series",
+    "category": "tv",
+    "itemCount": 9,
+    "totalMinutes": 445,
+    "minutesEstimated": false,
+    "description": "All episodes of the Pluribus TV series",
+    "status": "ongoing"
+  },
+  {
     "path": "lists/tv/preacher-tv.yaml",
     "title": "Preacher TV series",
     "category": "tv",
@@ -697,6 +747,16 @@
     "totalMinutes": 1926,
     "minutesEstimated": false,
     "description": "All episodes of the Preacher TV series",
+    "status": "complete"
+  },
+  {
+    "path": "lists/tv/rome-tv.yaml",
+    "title": "Rome TV series",
+    "category": "tv",
+    "itemCount": 22,
+    "totalMinutes": 1185,
+    "minutesEstimated": false,
+    "description": "All episodes of the Rome TV series",
     "status": "complete"
   },
   {
@@ -708,6 +768,26 @@
     "minutesEstimated": false,
     "description": "All episodes of the Schitt's Creek TV series",
     "status": "complete"
+  },
+  {
+    "path": "lists/tv/shogun-tv.yaml",
+    "title": "Shōgun TV series",
+    "category": "tv",
+    "itemCount": 10,
+    "totalMinutes": 585,
+    "minutesEstimated": false,
+    "description": "All episodes of the Shōgun TV series",
+    "status": "ongoing"
+  },
+  {
+    "path": "lists/tv/silo-tv.yaml",
+    "title": "Silo TV series",
+    "category": "tv",
+    "itemCount": 30,
+    "totalMinutes": 1536,
+    "minutesEstimated": false,
+    "description": "All episodes of the Silo TV series",
+    "status": "ongoing"
   },
   {
     "path": "lists/tv/sons-of-anarchy-franchise-tv.yaml",
@@ -757,6 +837,16 @@
     "totalMinutes": 4688,
     "minutesEstimated": false,
     "description": "All episodes of The Office TV series",
+    "status": "complete"
+  },
+  {
+    "path": "lists/tv/the-penguin-tv.yaml",
+    "title": "The Penguin TV miniseries",
+    "category": "tv",
+    "itemCount": 8,
+    "totalMinutes": 459,
+    "minutesEstimated": false,
+    "description": "All episodes of The Penguin TV miniseries",
     "status": "complete"
   },
   {

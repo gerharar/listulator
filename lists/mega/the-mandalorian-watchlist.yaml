@@ -1,0 +1,30 @@
+title: The Mandalorian franchise
+description: All releases in the Mandalorian franchise, including the movie
+category: mega
+status: complete
+items:
+- { title: "S01E01 Chapter 1: The Mandalorian", year: 2019, minutes: 39, group: "The Mandalorian: Season 1", tags: [tv] }
+- { title: "S01E02 Chapter 2: The Child", year: 2019, minutes: 31, group: "The Mandalorian: Season 1", tags: [tv] }
+- { title: "S01E03 Chapter 3: The Sin", year: 2019, minutes: 35, group: "The Mandalorian: Season 1", tags: [tv] }
+- { title: "S01E04 Chapter 4: Sanctuary", year: 2019, minutes: 39, group: "The Mandalorian: Season 1", tags: [tv] }
+- { title: "S01E05 Chapter 5: The Gunslinger", year: 2019, minutes: 33, group: "The Mandalorian: Season 1", tags: [tv] }
+- { title: "S01E06 Chapter 6: The Prisoner", year: 2019, minutes: 41, group: "The Mandalorian: Season 1", tags: [tv] }
+- { title: "S01E07 Chapter 7: The Reckoning", year: 2019, minutes: 38, group: "The Mandalorian: Season 1", tags: [tv] }
+- { title: "S01E08 Chapter 8: Redemption", year: 2019, minutes: 46, group: "The Mandalorian: Season 1", tags: [tv] }
+- { title: "S02E01 Chapter 9: The Marshal", year: 2020, minutes: 52, group: "The Mandalorian: Season 2", tags: [tv] }
+- { title: "S02E02 Chapter 10: The Passenger", year: 2020, minutes: 40, group: "The Mandalorian: Season 2", tags: [tv] }
+- { title: "S02E03 Chapter 11: The Heiress", year: 2020, minutes: 33, group: "The Mandalorian: Season 2", tags: [tv] }
+- { title: "S02E04 Chapter 12: The Siege", year: 2020, minutes: 37, group: "The Mandalorian: Season 2", tags: [tv] }
+- { title: "S02E05 Chapter 13: The Jedi", year: 2020, minutes: 45, group: "The Mandalorian: Season 2", tags: [tv] }
+- { title: "S02E06 Chapter 14: The Tragedy", year: 2020, minutes: 32, group: "The Mandalorian: Season 2", tags: [tv] }
+- { title: "S02E07 Chapter 15: The Believer", year: 2020, minutes: 36, group: "The Mandalorian: Season 2", tags: [tv] }
+- { title: "S02E08 Chapter 16: The Rescue", year: 2020, minutes: 44, group: "The Mandalorian: Season 2", tags: [tv] }
+- { title: "S03E01 Chapter 17: The Apostate", year: 2023, minutes: 35, group: "The Mandalorian: Season 3", tags: [tv] }
+- { title: "S03E02 Chapter 18: The Mines of Mandalore", year: 2023, minutes: 42, group: "The Mandalorian: Season 3", tags: [tv] }
+- { title: "S03E03 Chapter 19: The Convert", year: 2023, minutes: 56, group: "The Mandalorian: Season 3", tags: [tv] }
+- { title: "S03E04 Chapter 20: The Foundling", year: 2023, minutes: 31, group: "The Mandalorian: Season 3", tags: [tv] }
+- { title: "S03E05 Chapter 21: The Pirate", year: 2023, minutes: 41, group: "The Mandalorian: Season 3", tags: [tv] }
+- { title: "S03E06 Chapter 22: Guns for Hire", year: 2023, minutes: 44, group: "The Mandalorian: Season 3", tags: [tv] }
+- { title: "S03E07 Chapter 23: The Spies", year: 2023, minutes: 51, group: "The Mandalorian: Season 3", tags: [tv] }
+- { title: "S03E08 Chapter 24: The Return", year: 2023, minutes: 39, group: "The Mandalorian: Season 3", tags: [tv] }
+- { title: "Star Wars: The Mandalorian and Grogu", year: 2026, minutes: 132, tags: [movie] }

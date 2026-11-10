@@ -1,0 +1,13 @@
+title: The Penguin TV miniseries
+description: All episodes of The Penguin TV miniseries
+category: tv
+status: complete
+items:
+- { title: "S01E01 After Hours", year: 2024, minutes: 66 }
+- { title: "S01E02 Inside Man", year: 2024, minutes: 56 }
+- { title: "S01E03 Bliss", year: 2024, minutes: 59 }
+- { title: "S01E04 Cent'Anni", year: 2024, minutes: 58 }
+- { title: "S01E05 Homecoming", year: 2024, minutes: 54 }
+- { title: "S01E06 Gold Summit", year: 2024, minutes: 52 }
+- { title: "S01E07 Top Hat", year: 2024, minutes: 46 }
+- { title: "S01E08 A Great or Little Thing", year: 2024, minutes: 68 }

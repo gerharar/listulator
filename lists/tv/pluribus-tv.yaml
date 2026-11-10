@@ -1,0 +1,14 @@
+title: Pluribus TV series
+description: All episodes of the Pluribus TV series
+category: tv
+status: ongoing
+items:
+- { title: "S01E01 We Is Us", year: 2025, minutes: 56, group: "Season 1" }
+- { title: "S01E02 Pirate Lady", year: 2025, minutes: 62, group: "Season 1" }
+- { title: "S01E03 Grenade", year: 2025, minutes: 43, group: "Season 1" }
+- { title: "S01E04 Please, Carol", year: 2025, minutes: 45, group: "Season 1" }
+- { title: "S01E05 Got Milk", year: 2025, minutes: 46, group: "Season 1" }
+- { title: "S01E06 HDP", year: 2025, minutes: 49, group: "Season 1" }
+- { title: "S01E07 The Gap", year: 2025, minutes: 45, group: "Season 1" }
+- { title: "S01E08 Charm Offensive", year: 2025, minutes: 42, group: "Season 1" }
+- { title: "S01E09 La Chica o El Mundo", year: 2025, minutes: 57, group: "Season 1" }
