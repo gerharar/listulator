@@ -20,17 +20,21 @@ import { PEEK_DEPTH } from './layerStack.js'
  * it; they happen to match 10.9's pre-drum linear placeholder (`index * 37`)
  * for exactly that reason — that placeholder was already tuned against the
  * same real tab, just without the recede/animation this task adds.
- */
-const STAGE_TOP_PX = 15
-
-/**
+ *
  * The cascade's numbers are the page's (Phase 48.4c, design's answer 4): what a step back rises by (`--peek-rise`: the 37px above, so 74px two back,
  * in Quantum; 40px in eX-Zed, where the board puts the tab tops 40 and 80px above the window), the scale each step recedes to (`--peek-scale-1` and
  * `-2`: .959 and .921 in Quantum, 1 in eX-Zed, which must not put pixels between pixels) and how far a layer is inset on each side (`--peek-inset-1`
  * and `-2`: none in Quantum, 0 and 32px in eX-Zed, where the inset replaces the recede). There is no clearance rule, as there was in 48.4 (the rise as the
  * tab's height plus 3px): the board decides what is visible, and the window's rings cover the lower part of a 48px tab by design.
  */
-const QUANTUM = { rise: 37, scale: [1, 0.959, 0.921] as const, inset: [0, 0, 0] as const }
+const QUANTUM = { top: 15, rise: 37, scale: [1, 0.959, 0.921] as const, inset: [0, 0, 0] as const }
+
+/** Where the front layer starts under the header: alone, or with layers covered behind it (the stage's offsets, 50.1a), plus the ledge's shift. */
+function stageTop(visibleCount: number): number {
+  const base = visibleCount > 1 ? tokenPx('--stage-top-stacked', QUANTUM.top) : tokenPx('--stage-top', QUANTUM.top)
+
+  return base + tokenPx('--ledge-shift', 0)
+}
 
 function drumRise(step: number): number {
   return Math.min(step, PEEK_DEPTH) * tokenPx('--peek-rise', QUANTUM.rise)
@@ -72,7 +76,7 @@ export function layerGeometry(visibleCount: number, depth: number): LayerGeometr
   const inset = drumInset(depth)
 
   return {
-    top: STAGE_TOP_PX + drumRise(baselineStep),
+    top: stageTop(visibleCount) + drumRise(baselineStep),
     transform: depth === 0 ? undefined : `translateY(-${drumRise(depth)}px) scale(${drumScale(depth)})`,
     ...(inset !== undefined && { inset }),
   }

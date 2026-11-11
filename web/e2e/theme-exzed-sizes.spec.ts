@@ -412,3 +412,42 @@ test('with the theme quantum, the header keeps its 26px at any width', async ({ 
     expect(seen.bar).toEqual({ left: 0, right: width })
   }
 })
+
+/**
+ * The stage's offsets under eX-Zed (Phase 50.1a, design's answer to the 50.0 measurements: the boards win, for eX-Zed only). A 64px header; a lone window's border
+ * box at 108 and 24px above the bottom of the screen; over one covered layer the covered layer at 96 and the window at 136, over two 96, 136 and 176 (each step back
+ * 40px, the first step 28 because a lone window's ring starts at 96). The covered layer's own tab is drawn 4px inside it until X-007 draws the window and its tab (its
+ * 2px border and the tab's 2px offset), so it is the layer's top, not the tab's, that is measured. At 1440 and 2560, where the width is the screen's minus 192 and the
+ * cap, in both engines. The tool's own Quantum baseline is the identity compare against `x003`, which is zero.
+ */
+for (const [width, height] of [[1440, 900], [2560, 1600]] as const) {
+  test(`with the theme exzed at ${width}x${height}, the header is 64px and the windows stand at 108, 136 and 176 with 24px under them`, async ({ page }) => {
+    await page.setViewportSize({ width, height })
+    await boot(page, 'exzed')
+    await page.goto('/')
+    await page.locator('.q-home-row').first().waitFor()
+    const boxes = () =>
+      page.evaluate(() => ({
+        header: document.querySelector('.q-appheader')!.getBoundingClientRect().height,
+        layers: Array.from(document.querySelectorAll('.q-layer')).map((layer) => {
+          const rect = layer.getBoundingClientRect()
+
+          return { top: rect.top, bottom: rect.bottom }
+        }),
+      }))
+
+    const alone = await boxes()
+    expect(alone.header).toBe(64)
+    expect(alone.layers).toEqual([{ top: 108, bottom: height - 24 }])
+
+    await page.getByRole('button', { name: 'New List', exact: true }).first().click()
+    await page.locator('.q-picker').waitFor()
+    await expect.poll(async () => (await boxes()).layers.map((layer) => layer.top)).toEqual([96, 136])
+    expect((await boxes()).layers.map((layer) => layer.bottom)).toEqual([height - 24 - 40, height - 24])
+
+    await page.getByRole('button', { name: 'Settings' }).click()
+    await page.locator('.q-settings').waitFor()
+    await expect.poll(async () => (await boxes()).layers.map((layer) => layer.top)).toEqual([96, 136, 176])
+    expect((await boxes()).layers[2]!.bottom).toBe(height - 24)
+  })
+}

@@ -10,7 +10,7 @@ import { layerGeometry } from './layerGeometry.js'
  * 32px narrower each side, which replaces the recede). There is no clearance rule: the rise is the board's, not the tab's height plus something.
  */
 const html = document.documentElement
-const TOKENS = ['--peek-rise', '--peek-scale-1', '--peek-scale-2', '--peek-inset-1', '--peek-inset-2', '--tab-h']
+const TOKENS = ['--peek-rise', '--peek-scale-1', '--peek-scale-2', '--peek-inset-1', '--peek-inset-2', '--tab-h', '--stage-top', '--stage-top-stacked', '--ledge-shift']
 
 afterEach(() => TOKENS.forEach((name) => html.style.removeProperty(name)))
 
@@ -20,6 +20,10 @@ const exzed = () => {
   html.style.setProperty('--peek-scale-2', '1')
   html.style.setProperty('--peek-inset-1', '0px')
   html.style.setProperty('--peek-inset-2', '32px')
+  // Phase 50.1a: a lone window's border box is at 108 (the stage starts under the 64px header: 44), and with a layer covered the first thing on the stage is
+  // the tab at 96 (32 under the header), the front window 40 below it for each layer back.
+  html.style.setProperty('--stage-top', '44px')
+  html.style.setProperty('--stage-top-stacked', '32px')
 }
 
 describe('layerGeometry with the page’s numbers', () => {
@@ -38,11 +42,30 @@ describe('layerGeometry with the page’s numbers', () => {
   it('rises 40 and 80px, at scale 1, for eX-Zed: the tab tops of the board', () => {
     exzed()
 
-    expect(layerGeometry(1, 0)).toEqual({ top: 15, transform: undefined })
-    expect(layerGeometry(2, 0)).toEqual({ top: 15 + 40, transform: undefined })
+    expect(layerGeometry(1, 0)).toEqual({ top: 44, transform: undefined })
+    expect(layerGeometry(2, 0)).toEqual({ top: 32 + 40, transform: undefined })
     expect(layerGeometry(2, 1).transform).toBe('translateY(-40px) scale(1)')
-    expect(layerGeometry(3, 0).top).toBe(15 + 80)
+    expect(layerGeometry(3, 0).top).toBe(32 + 80)
     expect(layerGeometry(3, 2).transform).toBe('translateY(-80px) scale(1)')
+  })
+
+  it('puts the windows where the board does: 108 alone, 136 over one covered layer, 176 over two (the header is 64px, so the stage’s tops are 44, 72 and 112)', () => {
+    exzed()
+
+    expect([layerGeometry(1, 0).top, layerGeometry(2, 0).top, layerGeometry(3, 0).top].map((top) => 64 + top)).toEqual([108, 136, 176])
+    // The covered layers are the front one's top less 40 and 80: the tab tops of the board, 96 and 136 over two.
+    expect([64 + layerGeometry(2, 0).top - 40, 64 + layerGeometry(3, 0).top - 80, 64 + layerGeometry(3, 0).top - 40]).toEqual([96, 96, 136])
+  })
+
+  it('adds the ledge shift to every top: Kui’s separator is 24px taller and everything below it starts 24px lower', () => {
+    exzed()
+    html.style.setProperty('--ledge-shift', '24px')
+
+    expect([layerGeometry(1, 0).top, layerGeometry(2, 0).top, layerGeometry(3, 0).top]).toEqual([44 + 24, 72 + 24, 112 + 24])
+  })
+
+  it('is 15px for a lone layer and 15 + 37 for a covered one in Quantum, which has no ledge', () => {
+    expect([layerGeometry(1, 0).top, layerGeometry(2, 0).top, layerGeometry(3, 0).top]).toEqual([15, 52, 89])
   })
 
   it('insets only the layer two back, by 32px a side, for eX-Zed; the active layer and the one back have none', () => {

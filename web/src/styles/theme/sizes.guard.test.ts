@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { declared, definitions, plain, read } from './cssGuard.js'
 
@@ -127,6 +129,45 @@ describe('size tokens: the peek cascade of the covered layers (design, answer 4)
     expect(exzed).not.toMatch(/\.q-layer\.enter[^}]*q-drumShadow/)
     expect(exzed).toMatch(/@keyframes q-tabIn-pos\s*{[^}]*translateY\(8px\)[^}]*}[^}]*}/)
     expect(exzed).not.toMatch(/@keyframes q-tabIn-pos[^@]*opacity/)
+  })
+})
+
+describe('size tokens: the stage’s offsets (Phase 50.1a, design’s answer to the 50.0 measurements: the boards win for eX-Zed)', () => {
+  // Quantum: the literals these replaced (STAGE_TOP_PX 15, `bottom: 20px`, a header as tall as its content). eX-Zed: header 64; a lone window's border box at 108
+  // (44 under the header), a window over covered layers 96 + 40n (32 + 40n under the header), 24px above the bottom; the ledge shift 0 until Kui (50.4).
+  const QUANTUM_STAGE = { '--stage-top': '15px', '--stage-top-stacked': '15px', '--stage-bottom': '20px', '--ledge-shift': '0px', '--header-h': 'auto' } as const
+  const EXZED_STAGE = { '--stage-top': '44px', '--stage-top-stacked': '32px', '--stage-bottom': '24px', '--header-h': '64px' } as const
+  const exzed = read('styles/theme/exzed.css')
+  const exzedValue = (token: string) => new RegExp(`${token}\\s*:\\s*([^;]+);`).exec(exzed)?.[1]?.trim()
+
+  it.each(Object.entries(QUANTUM_STAGE))('Quantum’s %s is exactly the value it replaced', (token, literal) => {
+    expect(definitions(token, ['styles/quantum/tokens.css', 'styles/theme/contract.css']).map(plain)).toEqual([literal])
+  })
+
+  it.each(Object.entries(EXZED_STAGE))('eX-Zed sets %s to %s (the board)', (token, value) => {
+    expect(exzedValue(token), token).toBe(value)
+  })
+
+  it('eX-Zed sets the ledge shift to 0 (the contract wants every token replaced); Kui’s skin sets 24px in 50.4', () => {
+    expect(exzedValue('--ledge-shift')).toBe('0px')
+  })
+
+  it('the layers stand on the bottom gap token, and the header’s height is its own token', () => {
+    expect(declared(read('App.css'), '.q-stage .q-layer', 'bottom')).toBe('var(--stage-bottom)')
+    expect(declared(read('components/quantum/AppHeader/AppHeader.css'), '.q-appheader', 'height')).toBe('var(--header-h)')
+  })
+
+  it('the layers’ top is read from the page, no literal is left in TypeScript', () => {
+    const source = readFileSync(join(import.meta.dirname, '..', '..', 'components', 'quantum', 'layerStack', 'layerGeometry.ts'), 'utf8')
+
+    expect(source).not.toMatch(/STAGE_TOP_PX\s*=/)
+    expect(source).toMatch(/tokenPx\('--stage-top'/)
+    expect(source).toMatch(/tokenPx\('--stage-top-stacked'/)
+    expect(source).toMatch(/tokenPx\('--ledge-shift'/)
+  })
+
+  it('eX-Zed’s header has no rule under it (the separator art is what sits there) and is as tall as its token', () => {
+    expect(exzed).toMatch(/html\.theme-exzed \.q-appheader\s*{[^}]*border-bottom:\s*0;/)
   })
 })
 

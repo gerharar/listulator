@@ -8,6 +8,8 @@
   gap: 16px;
   /* The sides are --header-gutter: 26px in Quantum; eX-Zed puts the logo and the last button on the window's outer edges. */
   padding: 14px var(--header-gutter);
+  /* Quantum's bar is as tall as its content (auto); eX-Zed's is the board's 64px. */
+  height: var(--header-h);
   border-bottom: 2px solid var(--rule);
   background: var(--card);
 }

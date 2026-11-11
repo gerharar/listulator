@@ -46,6 +46,18 @@ html {
   /* The covered layer's tab (48.4): its height, which layerGeometry.ts also reads, since each layer behind rises by it. */
   --tab-h: 34px;
 
+  /* The stage's offsets (50.1a). How far under the header the front layer starts: alone, and with layers covered behind it (the first covered layer's tab is
+     what stands at the top then, the front layer a rise below it). layerGeometry.ts reads both, so the layer's top is the page's number, not a literal in
+     TypeScript. Quantum has one number for both: 15px, from which a covered layer rises by --peek-rise. */
+  --stage-top: 15px;
+  --stage-top-stacked: 15px;
+  /* The gap between the layers' bottoms and the screen's (the stage's `bottom`), and the header's height: Quantum's is what its content makes it. */
+  --stage-bottom: 20px;
+  --header-h: auto;
+  /* How much lower everything under the header's separator starts, added to every top by layerGeometry.ts: a skin whose separator is taller than the
+     16px sets it (Kui's is 40px, so 24, in 50.4). Quantum has no separator. */
+  --ledge-shift: 0px;
+
   /* The peek cascade of the covered layers (48.4c): what each step back rises by, the scale it recedes to and how far it is inset on each side. layerGeometry.ts
      reads them, and so does the entering layer's first frame (`q-drumIn`). Quantum recedes by scale and insets nothing. */
   --peek-rise: 37px;
