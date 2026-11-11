@@ -586,3 +586,43 @@ describe('CategoryPicker: the bottom scene (X-006, eX-Zed only)', () => {
     expect(document.querySelector('.q-picker-body')?.lastElementChild?.classList.contains('q-vault')).toBe(true)
   })
 })
+
+describe('CategoryPicker: the category banners (X-006, eX-Zed only)', () => {
+  const mocked = () => vi.mocked(api.lists).mockResolvedValue([])
+  it('each tile draws its banner in place of the line art under eX-Zed: the art named for its key, at two screen pixels to an art pixel', async () => {
+    mocked()
+    renderPicker(REGISTRY, { theme: 'exzed' })
+    await waitFor(() => expect(tiles()).toHaveLength(3))
+
+    for (const tile of tiles()) {
+      expect(tile.querySelector('.q-category-art'), 'no line art under eX-Zed').toBeNull()
+      expect(tile.querySelectorAll('.q-catbanner'), 'one banner').toHaveLength(1)
+    }
+    const wrestling = tiles().find((tile) => within(tile).queryByText('Pro Wrestling'))!
+    const banner = wrestling.querySelector<HTMLElement>('.q-catbanner')!
+    expect(banner.dataset.art, 'Pro Wrestling’s tile has its own ring-only file').toBe('pro-wrestling-tile')
+    expect(banner.style.getPropertyValue('--banner-w')).toBe('302px')
+    expect(banner.style.getPropertyValue('--banner-h')).toBe('108px')
+    expect(banner.style.getPropertyValue('--banner-x')).toBe('50%')
+  })
+
+  it('a registry key with no art draws no banner and no empty box, and the tile still renders', async () => {
+    mocked()
+    renderPicker([...REGISTRY, mediaType({ key: 'podcast', label: 'Podcasts', sortOrder: 110, sourceName: undefined })], { theme: 'exzed' })
+    await waitFor(() => expect(tiles()).toHaveLength(4))
+
+    const podcast = tiles().find((tile) => within(tile).queryByText('Podcasts'))!
+    expect(podcast.querySelector('.q-catbanner')).toBeNull()
+    expect(podcast.querySelector('.q-category-art')).toBeNull()
+    expect(within(podcast).getByText('Podcasts')).not.toBeNull()
+  })
+
+  it('Quantum keeps its line art in the tiles and draws no banner', async () => {
+    mocked()
+    renderPicker(REGISTRY, { theme: 'quantum' })
+    await waitFor(() => expect(tiles()).toHaveLength(3))
+
+    expect(document.querySelector('.q-catbanner')).toBeNull()
+    for (const tile of tiles()) expect(tile.querySelector('.q-category-art')).not.toBeNull()
+  })
+})

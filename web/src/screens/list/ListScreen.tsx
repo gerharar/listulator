@@ -19,6 +19,7 @@ import { IconButton } from '../../components/quantum/Button/Button.js'
 import { ErrorBlock } from '../../components/quantum/ErrorBlock/ErrorBlock.js'
 import { ErrorStrip } from '../../components/quantum/ErrorStrip/ErrorStrip.js'
 import { HeaderPlate } from '../../components/quantum/HeaderPlate/HeaderPlate.js'
+import { CategoryBanner } from '../../components/quantum/art/CategoryBanner.js'
 import { groupColumnChars, ProgressSentence } from '../../components/quantum/ProgressSentence/ProgressSentence.js'
 import { useLiveRegion } from '../../components/quantum/LiveRegion/LiveRegion.js'
 import { useNavigationHold, type NavigationRun } from '../../components/quantum/layerStack/LayerStackContext.js'
@@ -1449,6 +1450,8 @@ function ListView({
     <div className="q-list">
       <div className="q-list-head">
         <HeaderPlate side="right" seed={1} marks />
+        {/* X-006, eX-Zed only: the category's banner at the header's bottom right, behind the header's own content. */}
+        {theme === 'exzed' && <CategoryBanner registryKey={loaded.mediaType} where="header" />}
         <div className="q-list-top">
           <div className="q-list-titles">
             <p className="q-kicker">{mediaType ? categoryLabel(mediaType) : loaded.mediaType}</p>

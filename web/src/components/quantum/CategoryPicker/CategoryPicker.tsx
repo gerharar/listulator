@@ -5,6 +5,7 @@ import { X } from 'lucide-react'
 import { api, type MediaType } from '../../../lib/api.js'
 import { categoryLabel, copy, sortCategories, sourceLabel } from '../../../locale/index.js'
 import { CategoryArt } from '../art/CategoryArt.js'
+import { CategoryBanner } from '../art/CategoryBanner.js'
 import { IconButton } from '../Button/Button.js'
 import { HeaderPlate } from '../HeaderPlate/HeaderPlate.js'
 import { useLayerStack } from '../layerStack/LayerStackContext.js'
@@ -132,7 +133,8 @@ export function CategoryPicker({ mediaTypes, first, tmdbCallout = tmdbCalloutSet
                   })
                 }
               >
-                <CategoryArt registryKey={mediaType.key} />
+                {/* Quantum's line art in the corner; eX-Zed's banner (X-006), a registry key with none draws nothing. */}
+                {theme === 'exzed' ? <CategoryBanner registryKey={mediaType.key} where="tile" /> : <CategoryArt registryKey={mediaType.key} />}
                 <span className="q-tile-name">
                   <b>{categoryLabel(mediaType)}</b>
                   {count > 0 && (

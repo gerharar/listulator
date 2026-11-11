@@ -312,3 +312,102 @@ html.theme-exzed .q-scene-art[data-scene='landscape']::before {
   mask: url('./art/fantasy-landscape.png') 0 0 / 100% 100% no-repeat;
   image-rendering: pixelated;
 }
+
+/*
+ * The category banners (X-006, 50.9): the Category art files as masks filled with the skin's progress colour, at two screen pixels to an art pixel (the sizes are the README's, in
+ * `categoryBanners.ts`, passed as `--banner-w` and `--banner-h`). Under eX-Zed only (the elements are not rendered in Quantum), and each file is asked for only where a banner
+ * names it. In the list header the banner is `right: 24px; bottom: 0` inside a clip box that fills the header, behind its content, never wider than the header less 24px: a narrow
+ * header crops it from the left (the mask is anchored to its right edge). In a Choose Your Fighter tile it fills the tile, anchored to its bottom at `--banner-x` (50% or 100%, per
+ * category), so the tile crops it; on hover the tile is the accent and the art follows it in the accent's ink (the board's rule).
+ */
+html.theme-exzed .q-catbanner {
+  --banner-x: 100%;
+  background: var(--zx-prog-dim);
+  image-rendering: pixelated;
+  pointer-events: none;
+}
+html.theme-exzed .q-list-head > .q-catbanner-clip {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+html.theme-exzed .q-catbanner[data-where='header'] {
+  position: absolute;
+  right: 24px;
+  bottom: 0;
+  width: var(--banner-w);
+  height: var(--banner-h);
+  max-width: calc(100% - 24px);
+}
+html.theme-exzed .q-catbanner[data-where='tile'] {
+  position: absolute;
+  inset: 0;
+}
+html.theme-exzed .q-tile:hover {
+  background: var(--zx-acc);
+  border-color: var(--zx-acc);
+  color: var(--zx-acc-ink);
+}
+html.theme-exzed .q-tile:hover .q-catbanner {
+  background: var(--zx-acc-ink);
+}
+html.theme-exzed .q-tile:hover .q-tile-src,
+html.theme-exzed .q-tile:hover .q-count-chip {
+  color: var(--zx-acc-ink);
+}
+html.theme-exzed .q-tile:hover .q-count-chip {
+  border-color: var(--zx-acc-ink);
+}
+html.theme-exzed .q-catbanner[data-art='movies'] {
+  -webkit-mask: url('./art/movies.png') var(--banner-x) 100% / var(--banner-w) var(--banner-h) no-repeat;
+  mask: url('./art/movies.png') var(--banner-x) 100% / var(--banner-w) var(--banner-h) no-repeat;
+}
+html.theme-exzed .q-catbanner[data-art='tv-series'] {
+  -webkit-mask: url('./art/tv-series.png') var(--banner-x) 100% / var(--banner-w) var(--banner-h) no-repeat;
+  mask: url('./art/tv-series.png') var(--banner-x) 100% / var(--banner-w) var(--banner-h) no-repeat;
+}
+html.theme-exzed .q-catbanner[data-art='animation'] {
+  -webkit-mask: url('./art/animation.png') var(--banner-x) 100% / var(--banner-w) var(--banner-h) no-repeat;
+  mask: url('./art/animation.png') var(--banner-x) 100% / var(--banner-w) var(--banner-h) no-repeat;
+}
+html.theme-exzed .q-catbanner[data-art='documentaries'] {
+  -webkit-mask: url('./art/documentaries.png') var(--banner-x) 100% / var(--banner-w) var(--banner-h) no-repeat;
+  mask: url('./art/documentaries.png') var(--banner-x) 100% / var(--banner-w) var(--banner-h) no-repeat;
+}
+html.theme-exzed .q-catbanner[data-art='pro-wrestling'] {
+  -webkit-mask: url('./art/pro-wrestling.png') var(--banner-x) 100% / var(--banner-w) var(--banner-h) no-repeat;
+  mask: url('./art/pro-wrestling.png') var(--banner-x) 100% / var(--banner-w) var(--banner-h) no-repeat;
+}
+html.theme-exzed .q-catbanner[data-art='pro-wrestling-tile'] {
+  -webkit-mask: url('./art/pro-wrestling-tile.png') var(--banner-x) 100% / var(--banner-w) var(--banner-h) no-repeat;
+  mask: url('./art/pro-wrestling-tile.png') var(--banner-x) 100% / var(--banner-w) var(--banner-h) no-repeat;
+}
+html.theme-exzed .q-catbanner[data-art='mma'] {
+  -webkit-mask: url('./art/mma.png') var(--banner-x) 100% / var(--banner-w) var(--banner-h) no-repeat;
+  mask: url('./art/mma.png') var(--banner-x) 100% / var(--banner-w) var(--banner-h) no-repeat;
+}
+html.theme-exzed .q-catbanner[data-art='games'] {
+  -webkit-mask: url('./art/games.png') var(--banner-x) 100% / var(--banner-w) var(--banner-h) no-repeat;
+  mask: url('./art/games.png') var(--banner-x) 100% / var(--banner-w) var(--banner-h) no-repeat;
+}
+html.theme-exzed .q-catbanner[data-art='comics'] {
+  -webkit-mask: url('./art/comics.png') var(--banner-x) 100% / var(--banner-w) var(--banner-h) no-repeat;
+  mask: url('./art/comics.png') var(--banner-x) 100% / var(--banner-w) var(--banner-h) no-repeat;
+}
+html.theme-exzed .q-catbanner[data-art='books'] {
+  -webkit-mask: url('./art/books.png') var(--banner-x) 100% / var(--banner-w) var(--banner-h) no-repeat;
+  mask: url('./art/books.png') var(--banner-x) 100% / var(--banner-w) var(--banner-h) no-repeat;
+}
+html.theme-exzed .q-catbanner[data-art='music'] {
+  -webkit-mask: url('./art/music.png') var(--banner-x) 100% / var(--banner-w) var(--banner-h) no-repeat;
+  mask: url('./art/music.png') var(--banner-x) 100% / var(--banner-w) var(--banner-h) no-repeat;
+}
+html.theme-exzed .q-catbanner[data-art='youtube'] {
+  -webkit-mask: url('./art/youtube.png') var(--banner-x) 100% / var(--banner-w) var(--banner-h) no-repeat;
+  mask: url('./art/youtube.png') var(--banner-x) 100% / var(--banner-w) var(--banner-h) no-repeat;
+}
+html.theme-exzed .q-catbanner[data-art='mega'] {
+  -webkit-mask: url('./art/mega.png') var(--banner-x) 100% / var(--banner-w) var(--banner-h) no-repeat;
+  mask: url('./art/mega.png') var(--banner-x) 100% / var(--banner-w) var(--banner-h) no-repeat;
+}

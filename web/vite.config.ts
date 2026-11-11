@@ -19,6 +19,11 @@ export default defineConfig({
   define: {
     __APP_VERSION__: JSON.stringify(appVersion),
   },
+  build: {
+    // eX-Zed's art (X-006) is asked for only where a rule names it, and never by a Quantum user. Vite's default inlines a file under 4 KB into the stylesheet as a data URI, which
+    // every user would then download: the category banners are 1 to 3 KB each. So no picture in the art folder is inlined; the build leaves each a file of its own.
+    assetsInlineLimit: (file) => (file.includes('/styles/theme/art/') ? false : undefined),
+  },
   // Excludes `e2e/` on top of vitest's own defaults, not instead of them —
   // an `include` override here once silently dropped `scripts/`'s own test
   // file from every run (caught by a file-count regression, task 10.9b).

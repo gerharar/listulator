@@ -3,6 +3,7 @@ import { existsSync, readdirSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { EXZED_SKINS } from '../../lib/preferences/exzedSkins.js'
+import { CATEGORY_BANNERS } from '../../components/quantum/art/categoryBanners.js'
 import { read } from './cssGuard.js'
 
 /**
@@ -39,6 +40,20 @@ const CHECKSUMS: Record<string, string> = {
   // Choose Your Fighter's bottom scene (50.8): the picker's, not a skin's.
   '80s-desk.png': '5ede34e19c1ae40f464fb91ae4e00bfbf9d04bf10f87c68791b823b59a057ded',
   'fantasy-landscape.png': '8764d06d8affafa944eaa60c125a7712928509d6e815cc44559c8ab6064a46f4',
+  // The category banners (50.9): the list header's and the picker's tiles', not a skin's.
+  'movies.png': '2582b9bbc0de7b2e1cd70f419b1c7a0218d60d8b8e8cfeab5a5f229acf92a524',
+  'tv-series.png': '6aa5772764ee3a8696adab44848c959dca1fb0db89d47f53d1bd638a9aa5935e',
+  'animation.png': '75d54e9e6df152fe3b617f3d9bb286281b9a2f6af301a3702a4fbec4a2bd8c47',
+  'documentaries.png': 'fe29341538b38a14bb2ce93ee10c88a26d63e642c30281e9f8a1d80174e2cbc7',
+  'pro-wrestling.png': 'd2f93427f61c1f7a0a3b784f8e7fe14b70fbb79e703ac139908deacd24203f84',
+  'pro-wrestling-tile.png': 'afa70fa7ab298353212bd365718302086ccb90adb362e445ed299491413ab282',
+  'mma.png': '1a745e68f9bb3107138f68ef389962e15a1a6bdf3eadc13e21a0c2b14621d8ba',
+  'games.png': 'ada2d35e5a6d22fe8c550daa8d02d54662bcf9bedc985f8987e2631a216fb466',
+  'comics.png': '9e79311b88306e30ea84cef03351bab0db72d2874cf4b191579d2d4caaded8b2',
+  'books.png': '069435f1d023a4b670112bf2fb3356126b01e974b957b7048c0459e250f53e9f',
+  'music.png': 'e0197b6173b9a0d5b515a3d432cb7ba89ac651be5c2a58ee3541b9ec509632bf',
+  'youtube.png': 'd6c6031e243a5faca9144ec4ced68cc39ad50a2362fdb4e9d30e69aa85bf505f',
+  'mega.png': '136d029b9b24fccc158243e33df2a0e2a06f1df0cdd6a4d1ff200cbe1d6e0b0f',
 }
 
 /** The files each built skin's rules name, and no others (the side stripes are the two stone skins' alike). */
@@ -188,6 +203,34 @@ describe('the skin art', () => {
     expect(css).toMatch(/\.q-scene-art\[data-scene='desk'\]::after\s*{[^}]*left:\s*0;[^}]*right:\s*0;[^}]*bottom:\s*18px;[^}]*height:\s*9px;[^}]*background:\s*var\(--zx-prog-dim\);/)
     expect(css).not.toMatch(/\.q-scene-art\[data-scene='landscape'\]::after/)
     for (const skin of BUILT) expect(rulesFor(skin).join('\n'), skin).not.toMatch(/80s-desk|fantasy-landscape/)
+  })
+
+  it('the category banners: each is a mask filled with the skin’s progress colour at two screen px to an art pixel, named by one rule per file and asked for by no skin’s rules', () => {
+    const files = [...new Set(Object.values(CATEGORY_BANNERS).flatMap((set) => [set.header.file, set.tile.file]))]
+
+    expect(files).toHaveLength(13)
+    for (const file of files) {
+      expect(css, file).toMatch(new RegExp(`\\.q-catbanner\\[data-art='${file}'\\]\\s*{\\s*-webkit-mask:\\s*url\\('\\./art/${file}\\.png'\\) var\\(--banner-x\\) 100% / var\\(--banner-w\\) var\\(--banner-h\\) no-repeat;\\s*mask:\\s*url\\('\\./art/${file}\\.png'\\) var\\(--banner-x\\) 100% / var\\(--banner-w\\) var\\(--banner-h\\) no-repeat;`))
+    }
+    expect(css).toMatch(/\.q-catbanner\s*{\s*--banner-x:\s*100%;\s*background:\s*var\(--zx-prog-dim\);\s*image-rendering:\s*pixelated;/)
+    for (const skin of BUILT) expect(rulesFor(skin).join('\n'), skin).not.toMatch(/\.q-catbanner|movies|tv-series|pro-wrestling/)
+  })
+
+  it('the list header’s banner: 24px from the header’s right edge, on its bottom, never wider than the header less 24px, in a clip box over the whole header', () => {
+    expect(css).toMatch(/\.q-list-head > \.q-catbanner-clip\s*{\s*position:\s*absolute;\s*inset:\s*0;\s*overflow:\s*hidden;/)
+    expect(css).toMatch(/\.q-catbanner\[data-where='header'\]\s*{\s*position:\s*absolute;\s*right:\s*24px;\s*bottom:\s*0;\s*width:\s*var\(--banner-w\);\s*height:\s*var\(--banner-h\);\s*max-width:\s*calc\(100% - 24px\);/)
+  })
+
+  it('a tile’s banner fills the tile; on hover the tile is the accent and the art is its ink', () => {
+    expect(css).toMatch(/\.q-catbanner\[data-where='tile'\]\s*{\s*position:\s*absolute;\s*inset:\s*0;\s*}/)
+    expect(css).toMatch(/\.q-tile:hover\s*{\s*background:\s*var\(--zx-acc\);\s*border-color:\s*var\(--zx-acc\);\s*color:\s*var\(--zx-acc-ink\);\s*}/)
+    expect(css).toMatch(/\.q-tile:hover \.q-catbanner\s*{\s*background:\s*var\(--zx-acc-ink\);\s*}/)
+  })
+
+  it('the build never inlines a picture of the art folder into the stylesheet (a data URI every Quantum user would download): the banners are 1 to 3 KB, under Vite’s 4 KB default', () => {
+    const config = readFileSync(join(import.meta.dirname, '../../../vite.config.ts'), 'utf8')
+
+    expect(config).toMatch(/assetsInlineLimit:\s*\(file\)\s*=>\s*\(file\.includes\('\/styles\/theme\/art\/'\)\s*\?\s*false\s*:\s*undefined\)/)
   })
 
   it('the layers stand in design’s order: the ground, the stripes over it, the strip under the header over them', () => {
