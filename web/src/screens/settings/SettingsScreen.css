@@ -83,4 +83,10 @@
   color: var(--ink);
   border-color: var(--accent);
 }
+/* eX-Zed has no outline-only "current": its frame and accent are two yellows (Lode), two whites (Glemt) or one black (Lotus). The current skin is lit the way
+ * the THEME and language chips are (design's ToggleChip: an `acc` block with `acc-ink` text), the swatch's rim following the text colour. */
+html.theme-exzed .q-chip.choice.skin[aria-pressed='true'] {
+  background: var(--accent);
+  color: var(--accentInk);
+}
 
