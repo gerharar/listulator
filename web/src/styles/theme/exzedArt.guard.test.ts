@@ -14,8 +14,8 @@ import { read } from './cssGuard.js'
 const ART = join(import.meta.dirname, 'art')
 const css = read('styles/theme/exzed-art.css')
 
-const BUILT: readonly string[] = ['exzed-1d', 'exzed-1a', 'exzed-1b', 'exzed-1c', 'exzed-1e']
-const PENDING: readonly string[] = ['exzed-1l']
+const BUILT: readonly string[] = ['exzed-1d', 'exzed-1a', 'exzed-1b', 'exzed-1c', 'exzed-1e', 'exzed-1l']
+const PENDING: readonly string[] = []
 
 /** The sha256 of each committed file (the design system's, `1794405214-5c6f`; the geometry doc's table). */
 const CHECKSUMS: Record<string, string> = {
@@ -43,6 +43,8 @@ const FILES: Record<string, readonly string[]> = {
   'exzed-1b': ['grey-stones-separator.png', 'grey-stones-wall.png', 'side-stripes.png'],
   'exzed-1c': ['space-left.png', 'space-parapet.png', 'space-right.png', 'star-tile.png'],
   'exzed-1e': ['island-cornice.png', 'island-shore-left.png', 'island-shore-right.png', 'island-waves.png', 'star-tile.png'],
+  // Lotus has no art: plain paper, and a status line that is text.
+  'exzed-1l': [],
 }
 
 const rulesFor = (skin: string) => [...css.matchAll(new RegExp(`html\\[data-theme='${skin}'\\][^{]*{[^}]*}`, 'g'))].map((match) => match[0])
@@ -57,8 +59,8 @@ describe('the skin art', () => {
     expect(rulesFor(skin).length).toBeGreaterThan(0)
   })
 
-  it.each(PENDING)('%s has none yet', (skin) => {
-    expect(rulesFor(skin)).toEqual([])
+  it('no skin is pending any more: every one has its rules', () => {
+    expect(PENDING).toEqual([])
   })
 
   it('every picture a rule names is a committed file with the design system’s checksum', () => {
@@ -126,6 +128,28 @@ describe('the skin art', () => {
   it('Kui alone sets the ledge shift, 24px: everything under its taller separator starts that much lower (50.1a added it to every top)', () => {
     expect(css).toMatch(/html\[data-theme='exzed-1e'\]\s*{\s*--ledge-shift:\s*24px;\s*}/)
     for (const skin of ['exzed-1d', 'exzed-1a', 'exzed-1b', 'exzed-1c', 'exzed-1l']) expect(rulesFor(skin).join('\n'), skin).not.toMatch(/--ledge-shift/)
+  })
+
+  it('Lotus draws no picture: no background image under its key, and the ground is the plain paper of its role', () => {
+    const rules = rulesFor('exzed-1l').join('\n')
+
+    expect(rules).not.toMatch(/url\(/)
+    expect(rules).not.toMatch(/\[data-slot='window'\]/)
+  })
+
+  it('Lotus’s window ends 44px above the bottom of the screen, which the status line fills; the other skins keep 24px', () => {
+    expect(css).toMatch(/html\[data-theme='exzed-1l'\]\s*{\s*--stage-bottom:\s*44px;\s*}/)
+    for (const skin of ['exzed-1d', 'exzed-1a', 'exzed-1b', 'exzed-1c', 'exzed-1e']) expect(rulesFor(skin).join('\n'), skin).not.toMatch(/--stage-bottom/)
+  })
+
+  it('Lotus’s status line is text in the bottom slot: `0 OK, 0:1`, then a 16px gap and an inverse K, 12px up, from the window’s left edge, in 16px type', () => {
+    const rules = rulesFor('exzed-1l').join('\n')
+
+    expect(rules).toMatch(/\[data-slot='bottom'\]\s*{\s*bottom:\s*0;\s*height:\s*44px;\s*}/)
+    expect(rules).toMatch(/\[data-slot='bottom'\]::before\s*{[^}]*content:\s*'0 OK, 0:1';[^}]*left:\s*var\(--header-gutter\);[^}]*bottom:\s*12px;[^}]*font-size:\s*16px;[^}]*line-height:\s*16px;/)
+    expect(rules).toMatch(/\[data-slot='bottom'\]::after\s*{[^}]*content:\s*'K';[^}]*left:\s*calc\(var\(--header-gutter\) \+ 160px\);[^}]*bottom:\s*12px;[^}]*background:\s*var\(--zx-ink\);[^}]*color:\s*var\(--zx-paper\)/)
+    // The text is the Spectrum's own report line, not copy: no word of it is translated, and none of it is in the DOM (the backdrop is aria-hidden besides).
+    expect(css.match(/content:\s*'0 OK, 0:1'/g)).toHaveLength(1)
   })
 
   it('the layers stand in design’s order: the ground, the stripes over it, the strip under the header over them', () => {

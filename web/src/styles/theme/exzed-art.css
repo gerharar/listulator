@@ -180,3 +180,39 @@ html[data-theme='exzed-1e'] .q-backdrop > [data-slot='sides']::after {
   height: 1400px;
   background: url('./art/island-shore-right.png') 0 0 / 352px 1400px no-repeat;
 }
+
+/*
+ * 1L Lotus (X-006, X-011): no art. The stage is plain paper (normal white, the role `--zx-stage`, mapped in 49.3) and nothing is drawn on it but the Spectrum's own report line, on the
+ * bottom of the screen: `0 OK, 0:1`, then a 16px gap and a `K` in inverse video (the ink as the cell, the paper as the letter), the report line a Spectrum showed with a program
+ * loaded, 12px up from the bottom and starting at the window's left edge. Its text is the Spectrum's and not copy, so nothing here is translated. The window ends 44px above
+ * the bottom of the screen (`--stage-bottom`; 24px in the other skins) and the line fills the gap. Both are the `bottom` slot's pseudo-elements: no DOM, so nothing for a
+ * screen reader or the keyboard to reach (the backdrop is `aria-hidden` besides), and no layout height. The K is 160px from the window's edge because the text is 9 characters
+ * of the font's fixed 16px pitch (144px) and the gap is 16px.
+ */
+html[data-theme='exzed-1l'] {
+  --stage-bottom: 44px;
+}
+html[data-theme='exzed-1l'] .q-backdrop > [data-slot='bottom'] {
+  bottom: 0;
+  height: 44px;
+}
+html[data-theme='exzed-1l'] .q-backdrop > [data-slot='bottom']::before {
+  content: '0 OK, 0:1';
+  position: absolute;
+  left: var(--header-gutter);
+  bottom: 12px;
+  font-size: 16px;
+  line-height: 16px;
+  white-space: pre;
+  color: var(--zx-ink);
+}
+html[data-theme='exzed-1l'] .q-backdrop > [data-slot='bottom']::after {
+  content: 'K';
+  position: absolute;
+  left: calc(var(--header-gutter) + 160px);
+  bottom: 12px;
+  font-size: 16px;
+  line-height: 16px;
+  background: var(--zx-ink);
+  color: var(--zx-paper);
+}

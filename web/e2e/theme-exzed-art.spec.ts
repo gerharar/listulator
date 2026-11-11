@@ -41,8 +41,8 @@ function sample(layer: Layer, px: number, py: number): [number, number, number, 
 }
 
 /** What the page shows at a position: the layers from the bottom up, each over what is under it, on the stage's black. */
-function expectedAt(layers: readonly Layer[], px: number, py: number): { colour: Colour; touchedBy: Set<Layer> } {
-  let colour: Colour = [0, 0, 0]
+function expectedAt(layers: readonly Layer[], px: number, py: number, ground: Colour = [0, 0, 0]): { colour: Colour; touchedBy: Set<Layer> } {
+  let colour: Colour = ground
   const touchedBy = new Set<Layer>()
   for (const layer of layers) {
     const pixel = sample(layer, px, py)
@@ -62,10 +62,11 @@ async function boot(page: Page, stored: Record<string, string>, width: number, h
   }, Object.entries({ skin: 'dark-orange', reducedMotion: 'true', ...stored }))
 }
 
-async function open(page: Page) {
+async function open(page: Page, art = true) {
   await page.goto('/')
   await page.locator('.q-home-row').first().waitFor()
   await page.evaluate(() => document.fonts.ready)
+  if (!art) return
   // The pictures are CSS backgrounds: wait for the ground's to be decoded before a screenshot reads it.
   await expect
     .poll(() =>
@@ -86,7 +87,7 @@ async function open(page: Page) {
  * How many device pixels of `clip` (page coordinates) differ from the expected picture, and which layers the clip really shows. A screenshot has `devicePixelRatio`
  * device pixels to a CSS pixel (WebKit's runs at 2) and the art is drawn pixelated, so each CSS pixel of a picture must be a whole square of its colour.
  */
-async function compare(page: Page, layers: readonly Layer[], clip: { x: number; y: number; width: number; height: number }) {
+async function compare(page: Page, layers: readonly Layer[], clip: { x: number; y: number; width: number; height: number }, ground: Colour = [0, 0, 0]) {
   const ratio = await page.evaluate(() => window.devicePixelRatio)
   const seen = decodePng(await page.screenshot({ clip }))
   expect([seen.width, seen.height], 'the screenshot is the clip at the device ratio').toEqual([clip.width * ratio, clip.height * ratio])
@@ -94,7 +95,7 @@ async function compare(page: Page, layers: readonly Layer[], clip: { x: number; 
   const shown = new Set<Layer>()
   for (let y = 0; y < clip.height; y++) {
     for (let x = 0; x < clip.width; x++) {
-      const { colour, touchedBy } = expectedAt(layers, clip.x + x, clip.y + y)
+      const { colour, touchedBy } = expectedAt(layers, clip.x + x, clip.y + y, ground)
       touchedBy.forEach((layer) => shown.add(layer))
       for (let dy = 0; dy < ratio; dy++) {
         for (let dx = 0; dx < ratio; dx++) {
@@ -414,6 +415,134 @@ test('Kui: a list lays out the same as in Lode, 24px lower and 24px shorter (row
   }
 })
 
+/** A screenshot's pixels by CSS position: `at(x, y)` is the colour of the CSS pixel, which is `ratio` device pixels square (the art and the type are pixelated). */
+async function shot(page: Page, clip: { x: number; y: number; width: number; height: number }) {
+  const ratio = await page.evaluate(() => window.devicePixelRatio)
+  const seen = decodePng(await page.screenshot({ clip }))
+  const at = (x: number, y: number): Colour => {
+    const i = ((Math.floor((y - clip.y) * ratio) + Math.floor(ratio / 2)) * seen.width + Math.floor((x - clip.x) * ratio) + Math.floor(ratio / 2)) * 4
+
+    return [seen.data[i]!, seen.data[i + 1]!, seen.data[i + 2]!]
+  }
+
+  return { at, ratio }
+}
+
+const same = (a: Colour, b: Colour) => a[0] === b[0] && a[1] === b[1] && a[2] === b[2]
+const PAPER: Colour = [215, 215, 215]
+const INK: Colour = [0, 0, 0]
+
+for (const [width, height] of SCREENS) {
+  test(`Lotus at ${width}x${height}: plain paper beside the window, the status line in its place, and the window ends 44px above the bottom`, async ({ page }) => {
+    await boot(page, { theme: 'exzed', exzedSkin: 'exzed-1l' }, width, height)
+    await open(page, false)
+    const at = await places(page, width, height)
+    const edge = at.boxLeft + at.boxWidth
+
+    // No art: the ground is the paper of the skin (normal white, #d7d7d7) at the left and at the right of the window, from under the strip to the bottom of the screen.
+    const gapLeft = { x: at.boxLeft, y: 100, width: Math.min(at.layerLeft - 16 - at.boxLeft, 300), height: height - 100 }
+    const gapRight = { x: Math.max(at.layerRight + 16, edge - 300), y: 100, width: Math.min(edge - at.layerRight - 16, 300), height: height - 100 }
+    expect((await compare(page, [], gapLeft, PAPER)).different, 'ground pixels that are not plain paper, left').toBe(0)
+    expect((await compare(page, [], gapRight, PAPER)).different, 'ground pixels that are not plain paper, right').toBe(0)
+
+    // The status line: 16px high, its top at 28px above the bottom (12px up from it), its left at the window's left edge. The text is 9 characters of 16px, then a 16px gap
+    // and the K in a 16px cell of ink: its left edge at the window's left edge + 160.
+    const lineTop = height - 28
+    const view = await shot(page, { x: at.layerLeft - 8, y: lineTop - 8, width: 200, height: 32 })
+    const row = (y: number, from: number, to: number) => Array.from({ length: to - from }, (_, n) => view.at(from + n, y))
+    const column = (x: number, from: number, to: number) => Array.from({ length: to - from }, (_, n) => view.at(x, from + n))
+    const kLeft = at.layerLeft + 160
+    expect(column(kLeft - 1, lineTop, lineTop + 16).every((pixel) => same(pixel, PAPER)), 'paper just left of the K').toBe(true)
+    expect(column(kLeft + 16, lineTop, lineTop + 16).every((pixel) => same(pixel, PAPER)), 'paper just right of the K').toBe(true)
+    expect(row(lineTop - 1, at.layerLeft - 8, at.layerLeft + 190).every((pixel) => same(pixel, PAPER)), 'paper above the line').toBe(true)
+    expect(row(lineTop + 16, at.layerLeft - 8, at.layerLeft + 190).every((pixel) => same(pixel, PAPER)), 'paper under the line').toBe(true)
+    // The K is the cell of ink with the letter cut out in paper: its edge pixels in ink, and both colours inside.
+    const cell = Array.from({ length: 16 }, (_, y) => row(lineTop + y, kLeft, kLeft + 16)).flat()
+    const ink = cell.filter((pixel) => same(pixel, INK)).length
+    const paper = cell.filter((pixel) => same(pixel, PAPER)).length
+    expect(ink, 'the K cell is mostly ink').toBeGreaterThan(256 / 2)
+    expect(paper, 'with the letter in paper').toBeGreaterThan(8)
+    expect(same(view.at(kLeft, lineTop), INK) && same(view.at(kLeft + 15, lineTop + 15), INK), 'the cell’s corners are ink').toBe(true)
+    // The text: ink on paper inside 144px from the window's left edge, and the 16px gap before the K is paper.
+    const text = Array.from({ length: 16 }, (_, y) => row(lineTop + y, at.layerLeft, at.layerLeft + 144)).flat()
+    expect(text.filter((pixel) => same(pixel, INK)).length, 'the report line has ink in it').toBeGreaterThan(60)
+    expect(Array.from({ length: 16 }, (_, y) => row(lineTop + y, at.layerLeft + 144, kLeft)).flat().every((pixel) => same(pixel, PAPER)), 'the gap before the K is paper').toBe(true)
+
+    // The line itself, glyph for glyph: the same text drawn as real elements at the places it should stand (its left edge at the window's, 16px high at 28px above the bottom,
+    // the K's cell 160px along), on paper over the generated one, must be the same picture, device pixel by device pixel. A line a pixel off in any direction is not.
+    const strip = { x: at.layerLeft, y: lineTop, width: 190, height: 16 }
+    const generated = decodePng(await page.screenshot({ clip: strip }))
+    await page.evaluate(
+      ([left, top]) => {
+        const style = 'position:fixed;z-index:99999;font-size:16px;line-height:16px;white-space:pre;margin:0;padding:0;'
+        const cover = document.createElement('div')
+        cover.style.cssText = `${style}left:${left}px;top:${top}px;width:190px;height:16px;background:#d7d7d7;color:#000;font-family:inherit`
+        const text = document.createElement('span')
+        text.textContent = '0 OK, 0:1'
+        const k = document.createElement('span')
+        k.textContent = 'K'
+        k.style.cssText = 'position:absolute;left:160px;top:0;background:#000;color:#d7d7d7'
+        cover.append(text, k)
+        document.body.append(cover)
+      },
+      [at.layerLeft, lineTop],
+    )
+    const drawn = decodePng(await page.screenshot({ clip: strip }))
+    let apart = 0
+    for (let n = 0; n < generated.data.length; n++) if (generated.data[n] !== drawn.data[n]) apart++
+    expect(apart, 'bytes of the generated line that differ from the real elements at the right places').toBe(0)
+
+    // The window ends 44px above the bottom (the line fills the gap); the header and the window's top are as in the other skins.
+    const layout = await page.evaluate(() => ({ header: document.querySelector('.q-appheader')!.getBoundingClientRect().height, layer: document.querySelector('.q-layer')!.getBoundingClientRect().toJSON() }))
+    expect([layout.header, layout.layer.top, layout.layer.bottom]).toEqual([64, 108, height - 44])
+  })
+}
+
+test('Lotus: the bottom slot is the 44px under the window, the line is generated text in the Spectrum’s type, and it is in no other skin', async ({ page }) => {
+  const line = async (key: string) => {
+    await boot(page, { theme: 'exzed', exzedSkin: key }, 3440, 1440)
+    await open(page, key !== 'exzed-1l')
+
+    return page.evaluate(() => {
+      const slot = document.querySelector('.q-backdrop > [data-slot="bottom"]')!
+      const before = getComputedStyle(slot, '::before')
+      const after = getComputedStyle(slot, '::after')
+
+      return { box: slot.getBoundingClientRect().toJSON(), before: before.content, after: after.content, font: before.fontFamily, size: before.fontSize, kInk: after.backgroundColor, kText: after.color }
+    })
+  }
+
+  const lotus = await line('exzed-1l')
+  expect([lotus.box.left, lotus.box.top, lotus.box.width, lotus.box.height]).toEqual([440, 1440 - 44, 2560, 44])
+  expect([lotus.before, lotus.after]).toEqual(['"0 OK, 0:1"', '"K"'])
+  expect(lotus.font).toContain('ZX Spectrum')
+  expect(lotus.size).toBe('16px')
+  // Inverse video: the cell is the ink (black) and the letter the paper (normal white).
+  expect([lotus.kInk, lotus.kText]).toEqual(['rgb(0, 0, 0)', 'rgb(215, 215, 215)'])
+
+  for (const key of ['exzed-1d', 'exzed-1a', 'exzed-1b', 'exzed-1c', 'exzed-1e']) {
+    const other = await line(key)
+    expect([other.before, other.after], `${key} has no status line`).not.toContain('"0 OK, 0:1"')
+    expect(other.after, `${key} has no K`).not.toBe('"K"')
+  }
+})
+
+test('Lotus: the line is not in the page for a screen reader and cannot be reached with the keyboard', async ({ page }) => {
+  await boot(page, { theme: 'exzed', exzedSkin: 'exzed-1l' }, 1440, 900)
+  await open(page, false)
+
+  expect(await page.getByText('0 OK', { exact: false }).count(), 'no element holds it').toBe(0)
+  expect(await page.evaluate(() => document.body.innerText.includes('0 OK')), 'it is not in the page’s text').toBe(false)
+  expect(await page.locator('.q-backdrop').getAttribute('aria-hidden'), 'the backdrop is hidden from assistive technology').toBe('true')
+  // Tab through the page: focus never lands in the backdrop.
+  let inBackdrop = false
+  for (let n = 0; n < 12; n++) {
+    await page.keyboard.press('Tab')
+    inBackdrop ||= await page.evaluate(() => !!document.activeElement?.closest('.q-backdrop'))
+  }
+  expect(inBackdrop).toBe(false)
+})
+
 test('Lode: the art slots are where the board has them, and the window and header have not moved', async ({ page }) => {
   await boot(page, { theme: 'exzed', exzedSkin: 'exzed-1d' }, 3440, 1440)
   await open(page)
@@ -462,7 +591,7 @@ test('Focal and Glemt: the strip under the header is 16px, the side art is the a
   }
 })
 
-test('only the active skin’s pictures are requested: each skin asks for its own files, Quantum for none', async ({ page }) => {
+test('only the active skin’s pictures are requested: each skin asks for its own files, Lotus and Quantum for none', async ({ page }) => {
   // The art files a page asks for, in a page of its own so one skin's requests never count for another's.
   const requested = async (stored: Record<string, string>) => {
     const fresh = await page.context().newPage()
@@ -483,5 +612,6 @@ test('only the active skin’s pictures are requested: each skin asks for its ow
   expect(await requested({ theme: 'exzed', exzedSkin: 'exzed-1b' })).toEqual(['grey-stones-separator.png', 'grey-stones-wall.png', 'side-stripes.png'])
   expect(await requested({ theme: 'exzed', exzedSkin: 'exzed-1c' })).toEqual(['space-left.png', 'space-parapet.png', 'space-right.png', 'star-tile.png'])
   expect(await requested({ theme: 'exzed', exzedSkin: 'exzed-1e' })).toEqual(['island-cornice.png', 'island-shore-left.png', 'island-shore-right.png', 'island-waves.png', 'star-tile.png'])
+  expect(await requested({ theme: 'exzed', exzedSkin: 'exzed-1l' }), 'Lotus has no art').toEqual([])
   expect(await requested({ theme: 'quantum' })).toEqual([])
 })
