@@ -15,6 +15,8 @@ import { KeyCard } from '../KeyCard/KeyCard.js'
 import { VaultShelf } from '../VaultShelf/VaultShelf.js'
 import { tmdbCalloutSetting } from '../../../lib/onboardingConfig.js'
 import { keyNeeded, tmdbKeyNeeded } from './keyNeeded.js'
+import { BottomScene } from './BottomScene.js'
+import { useTheme } from '../DocumentTheme/ThemeContext.js'
 
 export interface CategoryPickerProps {
   /** The live registry, lifted up from Home (task 10.10) — the tile grid is exactly this, A–Z by the name shown. */
@@ -82,6 +84,7 @@ export function CategoryPicker({ mediaTypes, first, tmdbCallout = tmdbCalloutSet
     }
   }, [first])
 
+  const theme = useTheme()
   const ordered = sortCategories(mediaTypes)
   const text = copy.quantum.categoryPicker
   const desktop = isDesktop()
@@ -152,6 +155,8 @@ export function CategoryPicker({ mediaTypes, first, tmdbCallout = tmdbCalloutSet
         </div>
         {/* One screen for the first run and New List (H-018, 2026-10-26): the shelf shows in both, the sample button only with no lists. */}
         <VaultShelf mediaTypes={mediaTypes} sample={first} />
+        {/* X-006, eX-Zed only: the bottom scene, the last thing in the scroll area; on the window's bottom edge when there is room, else under the shelf. */}
+        {theme === 'exzed' && <BottomScene />}
       </div>
     </div>
   )

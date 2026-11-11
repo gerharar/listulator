@@ -12,6 +12,8 @@ import { useRefetchOnRegistryChange } from '../../../lib/registryChanges.js'
 import { updateLocalSettings } from '../../../lib/config/localConfig.js'
 import { notifyListsChanged } from '../../../lib/listsChanged.js'
 import { CategoryPicker } from './CategoryPicker.js'
+import { ThemeContext } from '../DocumentTheme/ThemeContext.js'
+import type { Theme } from '../../../lib/preferences/theme.js'
 import { en } from '../../../locale/en.js'
 
 vi.mock('../../../lib/api.js', () => ({
@@ -82,15 +84,17 @@ function SeedPickerLayer() {
   return null
 }
 
-function renderPicker(mediaTypes: MediaType[], { first = false } = {}) {
+function renderPicker(mediaTypes: MediaType[], { first = false, theme = 'quantum' as Theme } = {}) {
   const home = { id: 'home', kind: 'home', tabLabel: 'My Lists', content: '/' }
 
   return render(
-    <LayerStackProvider home={home}>
-      <StackReader />
-      {!first && <SeedPickerLayer />}
-      <CategoryPicker mediaTypes={mediaTypes} first={first} />
-    </LayerStackProvider>,
+    <ThemeContext.Provider value={theme}>
+      <LayerStackProvider home={home}>
+        <StackReader />
+        {!first && <SeedPickerLayer />}
+        <CategoryPicker mediaTypes={mediaTypes} first={first} />
+      </LayerStackProvider>
+    </ThemeContext.Provider>,
   )
 }
 
@@ -554,3 +558,31 @@ describe('the first-run picker when a list comes back (H-018, 33.8)', () => {
   })
 })
 
+
+describe('CategoryPicker: the bottom scene (X-006, eX-Zed only)', () => {
+  const mocked = () => vi.mocked(api.lists).mockResolvedValue([])
+
+  it.each([
+    ['after My Lists', false],
+    ['on a first run', true],
+  ])('is the last thing in the picker’s own scroll area, under the List Vault shelf, under eX-Zed (%s)', async (_label, first) => {
+    mocked()
+    renderPicker(REGISTRY, { first, theme: 'exzed' })
+    await waitFor(() => expect(tiles()).toHaveLength(3))
+
+    const body = document.querySelector('.q-picker-body')!
+    expect(body.lastElementChild?.classList.contains('q-scene')).toBe(true)
+    expect(body.querySelectorAll('.q-scene')).toHaveLength(1)
+    expect(body.querySelector('.q-vault')).not.toBeNull()
+    expect(body.lastElementChild?.previousElementSibling?.classList.contains('q-vault')).toBe(true)
+  })
+
+  it('is not drawn in Quantum: the picker’s boxes are exactly as they were', async () => {
+    mocked()
+    renderPicker(REGISTRY, { theme: 'quantum' })
+    await waitFor(() => expect(tiles()).toHaveLength(3))
+
+    expect(document.querySelector('.q-scene')).toBeNull()
+    expect(document.querySelector('.q-picker-body')?.lastElementChild?.classList.contains('q-vault')).toBe(true)
+  })
+})

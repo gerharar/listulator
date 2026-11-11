@@ -636,7 +636,7 @@ test('Lode: the art slots are where the board has them, and the window and heade
   // The ground fills the app's 2560px box, centred on the 3440px screen; the cornice is 16px high at the header's bottom edge; the slots of the other skins' art are empty.
   expect(seen.slots['window']).toEqual({ left: 440, top: 0, width: 2560, height: 1440 })
   expect(seen.slots['header']).toEqual({ left: 440, top: 64, width: 2560, height: 16 })
-  for (const name of ['bottom', 'sides', 'scene']) expect(seen.slots[name]!.height, `${name} takes no height`).toBe(0)
+  for (const name of ['bottom', 'sides']) expect(seen.slots[name]!.height, `${name} takes no height`).toBe(0)
   expect(seen.rendering).toBe('pixelated')
   expect([seen.header, seen.window]).toEqual([64, 108])
 })

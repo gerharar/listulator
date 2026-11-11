@@ -4,13 +4,13 @@ import { useTheme } from '../DocumentTheme/ThemeContext.js'
 
 /**
  * The places eX-Zed's skin art goes (X-006 fills them; Phase 48.6 only names them): the ground behind the window, the separator under the header,
- * the strip at the bottom of the screen, the art at the window's sides and the bottom scene of Choose Your Fighter.
+ * the strip at the bottom of the screen and the art at the window's sides. (A fifth slot, the bottom scene of Choose Your Fighter, was named here in 48.6 and left in
+ * 50.8: that scene is not behind the shell but the last thing in the picker's own scroll area, `BottomScene`.)
  */
-export const SLOTS = ['window', 'header', 'bottom', 'sides', 'scene'] as const
+export const SLOTS = ['window', 'header', 'bottom', 'sides'] as const
 
 /**
- * What is drawn behind the app shell. Quantum: the `Atmosphere` field, exactly as before. eX-Zed: the five slots, empty (no art asset is added by
- * this task), and no Atmosphere, whose washes, rings and alpha are Quantum's look. The slots take no space: the wrapper is fixed and click-through
+ * What is drawn behind the app shell. Quantum: the `Atmosphere` field, exactly as before. eX-Zed: the four slots, empty of content (their art is CSS backgrounds, `exzed-art.css`), and no Atmosphere, whose washes, rings and alpha are Quantum's look. The slots take no space: the wrapper is fixed and click-through
  * and each slot is absolute with no content.
  */
 export function ThemeBackdrop() {

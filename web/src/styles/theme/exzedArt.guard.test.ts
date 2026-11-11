@@ -36,6 +36,9 @@ const CHECKSUMS: Record<string, string> = {
   'island-waves.png': 'a2145dfff7e3f238375fbd5426129d3a3b820e443a327e1a7e8828f023bd0f4d',
   // The Spectrum border beyond the app (50.6): not a skin's picture, the five dark skins' alike.
   'border-stripes.png': '483dee562bc8cb1f8365b57edcf4e83c8c6d1f8babea632daf4f4b44fff62904',
+  // Choose Your Fighter's bottom scene (50.8): the picker's, not a skin's.
+  '80s-desk.png': '5ede34e19c1ae40f464fb91ae4e00bfbf9d04bf10f87c68791b823b59a057ded',
+  'fantasy-landscape.png': '8764d06d8affafa944eaa60c125a7712928509d6e815cc44559c8ab6064a46f4',
 }
 
 /** The files each built skin's rules name, and no others (the side stripes are the two stone skins' alike). */
@@ -172,6 +175,19 @@ describe('the skin art', () => {
     expect(css).toMatch(/html\.theme-exzed \.q-backdrop > \[data-slot='window'\]\s*{\s*background-color:\s*var\(--zx-stage\);\s*}/)
     // After every skin's rule, whose `background` shorthand would otherwise reset it to transparent.
     expect(css.lastIndexOf("[data-slot='window'] {\n  background-color: var(--zx-stage);")).toBeGreaterThan(css.lastIndexOf("html[data-theme='exzed-1l']"))
+  })
+
+  it('the picker’s bottom scene: a mask of the desk or the landscape at 3 screen px to an art pixel, filled with the skin’s progress colour, in no skin’s rules', () => {
+    // 553x135 and 583x122 art pixels, times 3.
+    expect(css).toMatch(/\.q-scene-art\[data-scene='desk'\]\s*{[^}]*height:\s*405px;/)
+    expect(css).toMatch(/\.q-scene-art\[data-scene='landscape'\]\s*{[^}]*height:\s*366px;/)
+    expect(css).toMatch(/\.q-scene-art\[data-scene='desk'\]::before\s*{[^}]*width:\s*1659px;[^}]*height:\s*405px;[^}]*background:\s*var\(--zx-prog-dim\);[^}]*mask:\s*url\('\.\/art\/80s-desk\.png'\) 0 0 \/ 100% 100% no-repeat;/)
+    expect(css).toMatch(/\.q-scene-art\[data-scene='landscape'\]::before\s*{[^}]*width:\s*1749px;[^}]*height:\s*366px;[^}]*background:\s*var\(--zx-prog-dim\);[^}]*mask:\s*url\('\.\/art\/fantasy-landscape\.png'\) 0 0 \/ 100% 100% no-repeat;/)
+    expect(css).toMatch(/-webkit-mask:\s*url\('\.\/art\/80s-desk\.png'\)/)
+    // The desk's edge line runs the full width, 18px up and 9px high; the landscape has none.
+    expect(css).toMatch(/\.q-scene-art\[data-scene='desk'\]::after\s*{[^}]*left:\s*0;[^}]*right:\s*0;[^}]*bottom:\s*18px;[^}]*height:\s*9px;[^}]*background:\s*var\(--zx-prog-dim\);/)
+    expect(css).not.toMatch(/\.q-scene-art\[data-scene='landscape'\]::after/)
+    for (const skin of BUILT) expect(rulesFor(skin).join('\n'), skin).not.toMatch(/80s-desk|fantasy-landscape/)
   })
 
   it('the layers stand in design’s order: the ground, the stripes over it, the strip under the header over them', () => {

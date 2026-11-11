@@ -2,9 +2,9 @@ import { expect, test, type APIRequestContext, type Page } from '@playwright/tes
 
 /**
  * The art slots (Phase 48.6), in both engines and both themes: Quantum keeps its fixed background field (`.q-atmo`) and a plate on every header;
- * eX-Zed has neither, and has the five named slots instead, empty of content (the skin's art is their background: the ground and the header strip under Lode, 50.1). Real write on the dev server, removed in a `finally`.
+ * eX-Zed has neither, and has the four named slots instead, empty of content (the skin's art is their background: the ground and the header strip under Lode, 50.1). Real write on the dev server, removed in a `finally`.
  */
-const SLOTS = ['window', 'header', 'bottom', 'sides', 'scene']
+const SLOTS = ['window', 'header', 'bottom', 'sides']
 
 async function makeList(request: APIRequestContext, title: string) {
   const rows = ['One', 'Two', 'Three'].map((name) => `  - { title: "Item ${name}", minutes: 30, group: "Season 1" }`)
@@ -86,7 +86,7 @@ for (const theme of ['quantum', 'exzed'] as const) {
       }
     })
 
-    test('the slots: five, in order, empty, taking no space (eX-Zed only)', async ({ page }) => {
+    test('the slots: four, in order, empty of content (eX-Zed only)', async ({ page }) => {
       await boot(page, theme)
       await page.goto('/')
       await page.locator('.q-home-row').first().waitFor()

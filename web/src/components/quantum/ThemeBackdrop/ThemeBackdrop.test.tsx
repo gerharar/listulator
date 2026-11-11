@@ -25,13 +25,13 @@ describe('ThemeBackdrop', () => {
     expect([...container.querySelector('.q-atmo')!.children].map((el) => el.className)).toEqual(['wash', 'fine', 'coarse', 'hatch', 'ring1', 'ring2', 'ruler'])
   })
 
-  it('is five named, empty slots in eX-Zed, and no Atmosphere', () => {
+  it('is four named, empty slots in eX-Zed, and no Atmosphere (the bottom scene is the picker’s own, 50.8)', () => {
     const { container } = inTheme('exzed', <ThemeBackdrop />)
 
     expect(container.querySelector('.q-atmo')).toBeNull()
     const slots = [...container.querySelectorAll('.q-backdrop > [data-slot]')]
-    expect(slots.map((el) => el.getAttribute('data-slot'))).toEqual(['window', 'header', 'bottom', 'sides', 'scene'])
-    expect(SLOTS).toEqual(['window', 'header', 'bottom', 'sides', 'scene'])
+    expect(slots.map((el) => el.getAttribute('data-slot'))).toEqual(['window', 'header', 'bottom', 'sides'])
+    expect(SLOTS).toEqual(['window', 'header', 'bottom', 'sides'])
     for (const slot of slots) expect(slot.childNodes, slot.getAttribute('data-slot') ?? '').toHaveLength(0)
   })
 

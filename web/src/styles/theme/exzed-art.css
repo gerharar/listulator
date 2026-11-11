@@ -41,7 +41,7 @@ html.theme-exzed .q-backdrop > [data-slot='window'] {
 }
 
 /* From the bottom up, as design's boards stand: the ground, the strip along the bottom, the side art (over the ground, under the window and its rings), the strip under
-   the header over all of them, the bottom scene. */
+   the header over all of them. */
 html.theme-exzed .q-backdrop > [data-slot='bottom'] {
   z-index: 1;
 }
@@ -53,9 +53,6 @@ html.theme-exzed .q-backdrop > [data-slot='sides'] {
 html.theme-exzed .q-backdrop > [data-slot='header'] {
   top: var(--header-h);
   z-index: 3;
-}
-html.theme-exzed .q-backdrop > [data-slot='scene'] {
-  z-index: 4;
 }
 
 /* 1d Lode: red bricks, and the cornice under the header. */
@@ -249,4 +246,69 @@ html[data-theme='exzed-1l'] .q-backdrop {
    resets the colour to transparent. */
 html.theme-exzed .q-backdrop > [data-slot='window'] {
   background-color: var(--zx-stage);
+}
+
+/*
+ * Choose Your Fighter's bottom scene (X-006; the screen is also New List and the first run's): a picture of an 80s desk or a fantasy landscape, one of them picked each time the
+ * screen opens (`BottomScene`), the last thing in the picker's own scroll area, **under eX-Zed only**. It is a mask, so the black in the file is only its shape, filled with the
+ * skin's progress colour, at 3 screen px to an art pixel (the one exception to 2px, for big pictures): the desk 553x135 art pixels = 1659x405, the landscape 583x122 = 1749x366.
+ * The scroll area becomes a column so the scene's top margin can be `auto`: **on the window's bottom edge when there is room, else 24px under the List Vault shelf** (the scene
+ * box's own top padding), scrolling with the rest and never hidden. The box runs the scroll area's full width (the area's own 26px side padding is taken back), and the picture is
+ * centred in it and cropped evenly at both ends in a window narrower than it; the desk's edge line runs the full width, 18px up and 9px high. The picture's half pixel (an odd
+ * width is centred on its middle) is the engine's to snap.
+ */
+html.theme-exzed .q-picker-body {
+  display: flex;
+  flex-direction: column;
+  padding-bottom: 0;
+}
+html.theme-exzed .q-scene {
+  flex: none;
+  margin: auto -26px 0;
+  padding-top: 24px;
+}
+html.theme-exzed .q-scene-art {
+  position: relative;
+  overflow: hidden;
+}
+html.theme-exzed .q-scene-art[data-scene='desk'] {
+  height: 405px;
+}
+html.theme-exzed .q-scene-art[data-scene='landscape'] {
+  height: 366px;
+}
+html.theme-exzed .q-scene-art[data-scene='desk']::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  margin-left: -829.5px;
+  width: 1659px;
+  height: 405px;
+  background: var(--zx-prog-dim);
+  -webkit-mask: url('./art/80s-desk.png') 0 0 / 100% 100% no-repeat;
+  mask: url('./art/80s-desk.png') 0 0 / 100% 100% no-repeat;
+  image-rendering: pixelated;
+}
+html.theme-exzed .q-scene-art[data-scene='desk']::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 18px;
+  height: 9px;
+  background: var(--zx-prog-dim);
+}
+html.theme-exzed .q-scene-art[data-scene='landscape']::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  margin-left: -874.5px;
+  width: 1749px;
+  height: 366px;
+  background: var(--zx-prog-dim);
+  -webkit-mask: url('./art/fantasy-landscape.png') 0 0 / 100% 100% no-repeat;
+  mask: url('./art/fantasy-landscape.png') 0 0 / 100% 100% no-repeat;
+  image-rendering: pixelated;
 }

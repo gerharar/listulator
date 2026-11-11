@@ -35,6 +35,9 @@ async function steady(page: Page, skin: string, skinKey: string, seed: Readonly<
     Object.entries({ ...seed, [skinKey]: skin, reducedMotion: 'true' }),
   )
   await page.clock.setFixedTime(new Date("2026-01-15T12:00:00Z"))
+  // eX-Zed's Choose Your Fighter picks one of two bottom scenes at random each time it opens (50.8): fixed, so a capture and a compare draw the same one (the desk). Only for eX-Zed,
+  // so Quantum's baseline, which uses no randomness on any screen it captures, is exactly what it was.
+  if (seed['theme'] === 'exzed') await page.addInitScript(() => (Math.random = () => 0.1))
   // Not reachable from here and not what is measured: the community library is only read by Surprise Me and the Vault.
   await page.route('**/api/library/untracked', (route) => route.fulfill({ json: { entries: [], reachable: true } }))
   // Home lists the identity lists and whatever this test wrote itself, never what a parallel test is writing; the dates are fixed, not the day it was made.
