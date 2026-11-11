@@ -57,7 +57,7 @@ describe('layerGeometry with the page’s numbers', () => {
     expect([64 + layerGeometry(2, 0).top - 40, 64 + layerGeometry(3, 0).top - 80, 64 + layerGeometry(3, 0).top - 40]).toEqual([96, 96, 136])
   })
 
-  it('adds the ledge shift to every top: Kui’s separator is 24px taller and everything below it starts 24px lower', () => {
+  it('adds the ledge shift to every top: Ikigai’s separator is 24px taller and everything below it starts 24px lower', () => {
     exzed()
     html.style.setProperty('--ledge-shift', '24px')
 

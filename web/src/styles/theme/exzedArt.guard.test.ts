@@ -115,7 +115,7 @@ describe('the skin art', () => {
     expect(rules).not.toMatch(/\[data-slot='header'\]/)
   })
 
-  it('Kui: the stars, the 40px hills-and-clouds under the header (16px and the ledge shift), the waves along the bottom, the castle and the columns 16px clear of the window', () => {
+  it('Ikigai: the stars, the 40px hills-and-clouds under the header (16px and the ledge shift), the waves along the bottom, the castle and the columns 16px clear of the window', () => {
     const rules = rulesFor('exzed-1e').join('\n')
 
     expect(rules).toMatch(/star-tile\.png'\) 0 0 \/ 510px 510px repeat/)
@@ -125,7 +125,7 @@ describe('the skin art', () => {
     expect(rules).toMatch(/left:\s*calc\(100% - var\(--header-gutter\) \+ 16px\);\s*bottom:\s*28px[^}]*island-shore-right\.png'\) 0 0 \/ 352px 1400px no-repeat/)
   })
 
-  it('Kui alone sets the ledge shift, 24px: everything under its taller separator starts that much lower (50.1a added it to every top)', () => {
+  it('Ikigai alone sets the ledge shift, 24px: everything under its taller separator starts that much lower (50.1a added it to every top)', () => {
     expect(css).toMatch(/html\[data-theme='exzed-1e'\]\s*{\s*--ledge-shift:\s*24px;\s*}/)
     for (const skin of ['exzed-1d', 'exzed-1a', 'exzed-1b', 'exzed-1c', 'exzed-1l']) expect(rulesFor(skin).join('\n'), skin).not.toMatch(/--ledge-shift/)
   })

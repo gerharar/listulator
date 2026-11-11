@@ -12,7 +12,7 @@ const SKINS = [
   { key: 'exzed-1a', name: 'Focal', hdr: 'rgb(0, 0, 0)', hdrInk: 'rgb(255, 255, 255)', skin: 'rgb(0, 0, 255)', acc: 'rgb(255, 255, 0)', accInk: 'rgb(0, 0, 0)' },
   { key: 'exzed-1b', name: 'Glemt', hdr: 'rgb(0, 0, 0)', hdrInk: 'rgb(255, 255, 255)', skin: 'rgb(255, 255, 255)', acc: 'rgb(255, 255, 255)', accInk: 'rgb(0, 0, 0)' },
   { key: 'exzed-1c', name: 'Xen', hdr: 'rgb(0, 0, 0)', hdrInk: 'rgb(255, 255, 255)', skin: 'rgb(0, 255, 0)', acc: 'rgb(255, 255, 0)', accInk: 'rgb(0, 0, 0)' },
-  { key: 'exzed-1e', name: 'Kui', hdr: 'rgb(0, 0, 0)', hdrInk: 'rgb(255, 255, 255)', skin: 'rgb(0, 255, 255)', acc: 'rgb(255, 255, 0)', accInk: 'rgb(0, 0, 0)' },
+  { key: 'exzed-1e', name: 'Ikigai', hdr: 'rgb(0, 0, 0)', hdrInk: 'rgb(255, 255, 255)', skin: 'rgb(0, 255, 255)', acc: 'rgb(255, 255, 0)', accInk: 'rgb(0, 0, 0)' },
   { key: 'exzed-1l', name: 'Lotus', hdr: 'rgb(215, 215, 215)', hdrInk: 'rgb(0, 0, 0)', skin: 'rgb(0, 0, 215)', acc: 'rgb(0, 0, 0)', accInk: 'rgb(215, 215, 215)' },
 ] as const
 

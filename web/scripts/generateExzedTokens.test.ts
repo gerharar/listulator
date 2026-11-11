@@ -114,6 +114,7 @@ describe('the skin keys', () => {
       glemt: 'exzed-1b',
       xen: 'exzed-1c',
       kui: 'exzed-1e',
+      ikigai: 'exzed-1e',
       lotus: 'exzed-1l',
     })
   })

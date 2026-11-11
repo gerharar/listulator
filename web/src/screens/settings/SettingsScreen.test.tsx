@@ -201,13 +201,13 @@ describe('SettingsScreen', () => {
   it('under Quantum shows no eX-Zed skin: the SKIN row is the five Quantum skins only', () => {
     renderSettings()
 
-    for (const name of ['Lode', 'Focal', 'Glemt', 'Xen', 'Kui', 'Lotus']) expect(screen.queryByRole('button', { name })).toBeNull()
+    for (const name of ['Lode', 'Focal', 'Glemt', 'Xen', 'Ikigai', 'Lotus']) expect(screen.queryByRole('button', { name })).toBeNull()
   })
 
   it('under eX-Zed lists its six skins by name, without the number, and none of Quantum’s', () => {
     renderSettings({ theme: 'exzed', exzedSkin: 'exzed-1c' })
 
-    for (const name of ['Lode', 'Focal', 'Glemt', 'Xen', 'Kui', 'Lotus']) expect(screen.getByRole('button', { name })).not.toBeNull()
+    for (const name of ['Lode', 'Focal', 'Glemt', 'Xen', 'Ikigai', 'Lotus']) expect(screen.getByRole('button', { name })).not.toBeNull()
     expect(pressed('Xen')).toBe('true')
     expect(pressed('Lode')).toBe('false')
     for (const name of ['Destiny', 'Jupiter', 'Deluge', 'Romans', 'Jouhou']) expect(screen.queryByRole('button', { name })).toBeNull()

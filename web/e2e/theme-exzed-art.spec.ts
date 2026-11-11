@@ -268,7 +268,7 @@ test('Xen: the strip never covers what stands over it: where the window overlaps
 })
 
 for (const [width, height] of SCREENS) {
-  test(`Kui at ${width}x${height}: the stars, the hills-and-clouds, the waves and the castle and columns on them, pixel for pixel`, async ({ page }) => {
+  test(`Ikigai at ${width}x${height}: the stars, the hills-and-clouds, the waves and the castle and columns on them, pixel for pixel`, async ({ page }) => {
     await boot(page, { theme: 'exzed', exzedSkin: 'exzed-1e' }, width, height)
     await open(page)
     const at = await places(page, width, height)
@@ -307,7 +307,7 @@ const tops = (page: Page) =>
     layers: Array.from(document.querySelectorAll('.q-layer')).map((layer) => layer.getBoundingClientRect().top),
   }))
 
-test('Kui: the window starts 24px lower, over one layer and two, under a strip that ends at 104 and touches nothing', async ({ page }) => {
+test('Ikigai: the window starts 24px lower, over one layer and two, under a strip that ends at 104 and touches nothing', async ({ page }) => {
   await boot(page, { theme: 'exzed', exzedSkin: 'exzed-1e' }, 1440, 900)
   await open(page)
 
@@ -331,10 +331,10 @@ test('Kui: the window starts 24px lower, over one layer and two, under a strip t
  * The layers' tops are read from the page as the shell renders, and the skin that sets the shift is written on `<html>` in an effect after that render, so a skin that
  * arrives that way leaves the layers where the last one put them (found in 50.4's spike). Written before the render now, at boot, on a switch of skin, on a switch of theme.
  */
-test('Kui: the first render already has the window at 132, and a switch of skin or theme moves it at once', async ({ page }) => {
+test('Ikigai: the first render already has the window at 132, and a switch of skin or theme moves it at once', async ({ page }) => {
   await boot(page, { theme: 'exzed', exzedSkin: 'exzed-1e' }, 1440, 900)
   // The layer's own `top` the first time it is in the page: the value the shell computed while it rendered, before any later render could correct it (the layer has a
-  // 300ms transition on `top`, so a corrected value would slide in from the stale one, 24px, at every start in Kui).
+  // 300ms transition on `top`, so a corrected value would slide in from the stale one, 24px, at every start in Ikigai).
   await page.addInitScript(() => {
     const record = () => {
       const layer = document.querySelector<HTMLElement>('.q-layer')
@@ -348,26 +348,26 @@ test('Kui: the first render already has the window at 132, and a switch of skin 
   await page.goto('/')
   await page.locator('.q-home-row').first().waitFor()
   expect(await page.evaluate(() => (window as unknown as { __firstTop?: string }).__firstTop), 'the first top the layer had, 44 + 24').toBe('68px')
-  expect((await tops(page)).layers, 'at boot, with Kui stored').toEqual([132])
+  expect((await tops(page)).layers, 'at boot, with Ikigai stored').toEqual([132])
 
-  // Kui to Lode and back, from Settings, without a reload: the window follows the skin's shift each time.
+  // Ikigai to Lode and back, from Settings, without a reload: the window follows the skin's shift each time.
   await page.getByRole('button', { name: 'Settings' }).click()
   await page.locator('.q-settings').waitFor()
   await expect.poll(async () => (await tops(page)).layers).toEqual([120, 160])
   await page.locator('.q-settings').getByRole('button', { name: 'Lode', exact: true }).click()
   await expect.poll(async () => (await tops(page)).layers, 'Lode: no shift').toEqual([96, 136])
-  await page.locator('.q-settings').getByRole('button', { name: 'Kui', exact: true }).click()
-  await expect.poll(async () => (await tops(page)).layers, 'Kui again').toEqual([120, 160])
+  await page.locator('.q-settings').getByRole('button', { name: 'Ikigai', exact: true }).click()
+  await expect.poll(async () => (await tops(page)).layers, 'Ikigai again').toEqual([120, 160])
 
-  // Quantum to eX-Zed with Kui as its stored skin: the class goes on first, and the skin with it.
+  // Quantum to eX-Zed with Ikigai as its stored skin: the class goes on first, and the skin with it.
   await page.locator('.q-settings').getByRole('button', { name: 'Quantum', exact: true }).click()
   await page.locator('.q-settings').getByRole('button', { name: 'eX-Zed', exact: true }).click()
-  await expect.poll(async () => (await tops(page)).layers, 'eX-Zed again, with Kui').toEqual([120, 160])
+  await expect.poll(async () => (await tops(page)).layers, 'eX-Zed again, with Ikigai').toEqual([120, 160])
 })
 
-test('Kui: a list lays out the same as in Lode, 24px lower and 24px shorter (rows, scroll area, rail)', async ({ page }) => {
+test('Ikigai: a list lays out the same as in Lode, 24px lower and 24px shorter (rows, scroll area, rail)', async ({ page }) => {
   const rows = Array.from({ length: 40 }, (_, n) => `  - { title: "Item ${String(n + 1).padStart(3, '0')}", minutes: 30, group: "Season ${Math.floor(n / 10) + 1}" }`)
-  const title = `e2e kui list ${Date.now()}`
+  const title = `e2e ikigai list ${Date.now()}`
   const made = await page.request.post('/api/lists/from-file', { data: { yaml: `title: ${title}\ncategory: movie\nitems:\n${rows.join('\n')}\n` } })
   expect(made.status()).toBe(201)
   const id = (await made.json()).id as string
@@ -402,14 +402,14 @@ test('Kui: a list lays out the same as in Lode, 24px lower and 24px shorter (row
     }
 
     const lode = await geometry('exzed-1d')
-    const kui = await geometry('exzed-1e')
+    const ikigai = await geometry('exzed-1e')
 
-    expect(kui.layerTop - lode.layerTop, 'the window starts 24px lower').toBe(24)
-    expect(kui.layerBottom, 'and ends where it did').toBe(lode.layerBottom)
-    expect(lode.bodyHeight - kui.bodyHeight, 'the scroll area is 24px shorter').toBe(24)
-    expect([kui.bodyTop, kui.firstRow, kui.railTop], 'everything inside is where it was in the window').toEqual([lode.bodyTop, lode.firstRow, lode.railTop])
-    expect(lode.railHeight! - kui.railHeight!, 'the rail is 24px shorter with the window').toBe(24)
-    expect(kui.clipped, 'no row is cut at the scroll area’s edge').toBeLessThanOrEqual(lode.clipped + 2)
+    expect(ikigai.layerTop - lode.layerTop, 'the window starts 24px lower').toBe(24)
+    expect(ikigai.layerBottom, 'and ends where it did').toBe(lode.layerBottom)
+    expect(lode.bodyHeight - ikigai.bodyHeight, 'the scroll area is 24px shorter').toBe(24)
+    expect([ikigai.bodyTop, ikigai.firstRow, ikigai.railTop], 'everything inside is where it was in the window').toEqual([lode.bodyTop, lode.firstRow, lode.railTop])
+    expect(lode.railHeight! - ikigai.railHeight!, 'the rail is 24px shorter with the window').toBe(24)
+    expect(ikigai.clipped, 'no row is cut at the scroll area’s edge').toBeLessThanOrEqual(lode.clipped + 2)
   } finally {
     await page.request.delete(`/api/lists/${id}`)
   }

@@ -126,8 +126,8 @@ export function App() {
 
 /**
  * The class and the skin on `<html>`, written before the state that makes the render which reads them (the layers' tops, the row model, the rail: all laid out from the
- * page's tokens as they render, and `DocumentTheme`'s own effect writes the same things only after). A skin can move the layers (Kui's ledge shift, 50.4), so the skin goes
- * with the class: without it a start in Kui lays the window out for the last skin and slides it 24px into place.
+ * page's tokens as they render, and `DocumentTheme`'s own effect writes the same things only after). A skin can move the layers (Ikigai's ledge shift, 50.4), so the skin goes
+ * with the class: without it a start in Ikigai lays the window out for the last skin and slides it 24px into place.
  */
 function applyLook(drawn: Theme, quantum: Skin, exzed: ExzedSkin): void {
   applyThemeClass(drawn)

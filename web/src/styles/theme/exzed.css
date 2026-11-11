@@ -115,7 +115,7 @@ html.theme-exzed .q-layer-tab {
  * The stage's offsets (50.1a, design's answer to the 50.0 measurements: the boards win, for eX-Zed only). Under a 64px header and a 16px separator the first
  * thing on the stage starts at 96: a lone window's outer ring (its border box at 108, so 44 under the header), or, with layers covered behind it, the first
  * tab (the front window's border box at 96 + 40n, so 32 + 40n under the header: 136 over one, 176 over two). The first step is 28px and not 40 because a
- * lone window's ring starts at 96. The window ends 24px above the bottom of the screen. Kui's `--ledge-shift` (50.4) is added to every top.
+ * lone window's ring starts at 96. The window ends 24px above the bottom of the screen. Ikigai's `--ledge-shift` (50.4) is added to every top.
  */
 html.theme-exzed {
   --header-h: 64px;

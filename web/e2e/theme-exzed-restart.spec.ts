@@ -11,7 +11,7 @@ const SKINS = [
   { key: 'exzed-1a', name: 'Focal', paper: '#000000' },
   { key: 'exzed-1b', name: 'Glemt', paper: '#000000' },
   { key: 'exzed-1c', name: 'Xen', paper: '#000000' },
-  { key: 'exzed-1e', name: 'Kui', paper: '#000000' },
+  { key: 'exzed-1e', name: 'Ikigai', paper: '#000000' },
   { key: 'exzed-1l', name: 'Lotus', paper: '#d7d7d7' },
 ] as const
 
@@ -91,7 +91,7 @@ test('a skin chosen after an unknown key replaces it, and that survives a restar
   await open(page, { theme: 'exzed', exzedSkin: 'exzed-9z' })
 
   await page.getByRole('button', { name: 'Skin', exact: true }).click()
-  await page.locator('.q-pop .q-pop-menu').getByRole('button', { name: 'Kui', exact: true }).click()
+  await page.locator('.q-pop .q-pop-menu').getByRole('button', { name: 'Ikigai', exact: true }).click()
   await restart(page)
 
   expect((await look(page)).now).toBe('exzed-1e')

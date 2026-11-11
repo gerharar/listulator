@@ -25,7 +25,7 @@ export function applyThemeClass(theme: Theme): void {
 
 /**
  * Puts the skin's key on `<html>` as `data-theme`, as `applyThemeClass` does the class, and for the same reason: what is read from the page's tokens while the shell
- * renders (the layers' tops, which a skin's separator can move: Kui's ledge shift, 50.4) must already be the skin's, and `DocumentTheme`'s effect writes the attribute only
+ * renders (the layers' tops, which a skin's separator can move: Ikigai's ledge shift, 50.4) must already be the skin's, and `DocumentTheme`'s effect writes the attribute only
  * after that render. Called first, in the handlers and at boot, before the state that makes the render.
  */
 export function applyDocumentSkin(skin: string): void {

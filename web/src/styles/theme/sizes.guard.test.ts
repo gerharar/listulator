@@ -134,7 +134,7 @@ describe('size tokens: the peek cascade of the covered layers (design, answer 4)
 
 describe('size tokens: the stage’s offsets (Phase 50.1a, design’s answer to the 50.0 measurements: the boards win for eX-Zed)', () => {
   // Quantum: the literals these replaced (STAGE_TOP_PX 15, `bottom: 20px`, a header as tall as its content). eX-Zed: header 64; a lone window's border box at 108
-  // (44 under the header), a window over covered layers 96 + 40n (32 + 40n under the header), 24px above the bottom; the ledge shift 0 until Kui (50.4).
+  // (44 under the header), a window over covered layers 96 + 40n (32 + 40n under the header), 24px above the bottom; the ledge shift 0 until Ikigai (50.4).
   const QUANTUM_STAGE = { '--stage-top': '15px', '--stage-top-stacked': '15px', '--stage-bottom': '20px', '--ledge-shift': '0px', '--header-h': 'auto' } as const
   const EXZED_STAGE = { '--stage-top': '44px', '--stage-top-stacked': '32px', '--stage-bottom': '24px', '--header-h': '64px' } as const
   const exzed = read('styles/theme/exzed.css')
@@ -148,7 +148,7 @@ describe('size tokens: the stage’s offsets (Phase 50.1a, design’s answer to 
     expect(exzedValue(token), token).toBe(value)
   })
 
-  it('eX-Zed sets the ledge shift to 0 (the contract wants every token replaced); Kui’s skin sets 24px in 50.4', () => {
+  it('eX-Zed sets the ledge shift to 0 (the contract wants every token replaced); Ikigai’s skin sets 24px in 50.4', () => {
     expect(exzedValue('--ledge-shift')).toBe('0px')
   })
 

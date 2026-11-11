@@ -102,7 +102,7 @@ describe('the skin button and its menu follow the theme', () => {
 
     const menu = screen.getByRole('dialog')
     const rows = within(menu).getAllByRole('button')
-    expect(rows.map((row) => row.textContent)).toEqual(['Lode', 'Focal', 'Glemt', 'Xen', 'Kui', 'Lotus'])
+    expect(rows.map((row) => row.textContent)).toEqual(['Lode', 'Focal', 'Glemt', 'Xen', 'Ikigai', 'Lotus'])
     expect(rows.map((row) => row.querySelector('.q-zx-swatch')?.getAttribute('data-theme'))).toEqual([...EXZED_SKINS])
     expect(rows.map((row) => row.getAttribute('aria-current'))).toEqual(['false', 'false', 'false', 'true', 'false', 'false'])
     expect(within(menu).getByText('Skin')).not.toBeNull()

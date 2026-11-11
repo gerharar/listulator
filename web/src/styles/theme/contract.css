@@ -55,7 +55,7 @@ html {
   --stage-bottom: 20px;
   --header-h: auto;
   /* How much lower everything under the header's separator starts, added to every top by layerGeometry.ts: a skin whose separator is taller than the
-     16px sets it (Kui's is 40px, so 24, in 50.4). Quantum has no separator. */
+     16px sets it (Ikigai's is 40px, so 24, in 50.4). Quantum has no separator. */
   --ledge-shift: 0px;
 
   /* The peek cascade of the covered layers (48.4c): what each step back rises by, the scale it recedes to and how far it is inset on each side. layerGeometry.ts

@@ -2,14 +2,14 @@ import { expect, test, type APIRequestContext, type Page } from '@playwright/tes
 
 /**
  * Settings → THEME and SKIN (Phase 49.8), in both engines. Two THEME chips with the lit one pressed; the SKIN row is Quantum's five skins under Quantum and
- * eX-Zed's six (Lode, Focal, Glemt, Xen, Kui, Lotus, each with its half-bucket swatch) under eX-Zed. A choice applies at once and is stored: theme under
+ * eX-Zed's six (Lode, Focal, Glemt, Xen, Ikigai, Lotus, each with its half-bucket swatch) under eX-Zed. A choice applies at once and is stored: theme under
  * `theme`, eX-Zed's skin under `exzedSkin`, Quantum's under `skin`, three keys that never touch one another, so switching back finds each theme as it was.
  * An unknown stored `exzedSkin` starts as Lode and is left in storage. A skin switched in eX-Zed redraws the open layers without losing a filter, an
  * open Add row or the scroll. The labels read in Russian and German. Real writes on the dev server, removed in a `finally`.
  */
-const EXZED_NAMES = ['Lode', 'Focal', 'Glemt', 'Xen', 'Kui', 'Lotus'] as const
+const EXZED_NAMES = ['Lode', 'Focal', 'Glemt', 'Xen', 'Ikigai', 'Lotus'] as const
 const QUANTUM_NAMES = ['Destiny', 'Jupiter', 'Deluge', 'Romans', 'Jouhou'] as const
-const KEYS = { Lode: 'exzed-1d', Focal: 'exzed-1a', Glemt: 'exzed-1b', Xen: 'exzed-1c', Kui: 'exzed-1e', Lotus: 'exzed-1l' } as const
+const KEYS = { Lode: 'exzed-1d', Focal: 'exzed-1a', Glemt: 'exzed-1b', Xen: 'exzed-1c', Ikigai: 'exzed-1e', Lotus: 'exzed-1l' } as const
 
 /** Opens the app once with these preferences: they are written on the first load only, so a reload shows what the app stored itself. */
 async function open(page: Page, stored: Record<string, string>) {

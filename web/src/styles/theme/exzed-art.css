@@ -137,7 +137,7 @@ html[data-theme='exzed-1c'] .q-backdrop > [data-slot='sides']::after {
 }
 
 /*
- * 1e Kui: the star field, the 40px hills-and-clouds under the header, the waves along the bottom (28px) and, standing on them, the castle ruin and the columns (1:1, 1400px
+ * 1e Ikigai: the star field, the 40px hills-and-clouds under the header, the waves along the bottom (28px) and, standing on them, the castle ruin and the columns (1:1, 1400px
  * high, 28px up, 16px clear of the window's border box, as Xen's outposts are). This is the one skin whose separator is taller than 16px, so it alone sets the ledge shift:
  * **everything under the strip starts 24px lower** (`--ledge-shift`, added to every layer's top by layerGeometry.ts, 50.1a; the header bar stays 64px and the strip runs
  * 64 to 104, over nothing: the first covered layer starts at 120). The strip's height is 16px and that shift.
