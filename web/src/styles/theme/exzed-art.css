@@ -1,0 +1,32 @@
+/*
+ * eX-Zed's skin art (Phase 50, X-006). The pictures are the art slots of ThemeBackdrop (`.q-backdrop`, fixed under the shell, click-through), drawn as CSS
+ * backgrounds so the browser asks only for the files of the skin in force: a skin's rules are under its own `data-theme`, and the other skins' `url()`s never match.
+ * They cover the app's screen, which stops growing at `--app-max` (2560px) and is centred, so on a wider screen the art starts where the app does (the Spectrum
+ * border is what shows beyond it, 50.6). Every picture is drawn at its own pixel size, `pixelated` (docs/design/exzed-art-geometry.md, sections 1, 2 and 9).
+ * exzedArt.guard.test.ts pins which skins are built and the checksum of every file.
+ */
+html.theme-exzed .q-backdrop > [data-slot] {
+  left: calc((100% - min(100%, var(--app-max))) / 2);
+  width: min(100%, var(--app-max));
+  image-rendering: pixelated;
+}
+
+/* The ground behind the window runs the screen's full height, under the header. */
+html.theme-exzed .q-backdrop > [data-slot='window'] {
+  top: 0;
+  bottom: 0;
+}
+
+/* The strip under the header (the separator, the "ledge"): it starts where the header ends, and each skin that has one gives it its height. */
+html.theme-exzed .q-backdrop > [data-slot='header'] {
+  top: var(--header-h);
+}
+
+/* 1d Lode: red bricks, and the cornice under the header. */
+html[data-theme='exzed-1d'] .q-backdrop > [data-slot='window'] {
+  background: url('./art/red-bricks-wall.png') 0 0 / 240px 84px repeat;
+}
+html[data-theme='exzed-1d'] .q-backdrop > [data-slot='header'] {
+  height: 16px;
+  background: url('./art/red-bricks-cornice.png') 0 0 / 64px 16px repeat-x;
+}

@@ -2,7 +2,7 @@ import { expect, test, type APIRequestContext, type Page } from '@playwright/tes
 
 /**
  * The art slots (Phase 48.6), in both engines and both themes: Quantum keeps its fixed background field (`.q-atmo`) and a plate on every header;
- * eX-Zed has neither, and has the five named slots instead, empty and taking no space. Real write on the dev server, removed in a `finally`.
+ * eX-Zed has neither, and has the five named slots instead, empty of content (the skin's art is their background: the ground and the header strip under Lode, 50.1). Real write on the dev server, removed in a `finally`.
  */
 const SLOTS = ['window', 'header', 'bottom', 'sides', 'scene']
 
@@ -103,9 +103,12 @@ for (const theme of ['quantum', 'exzed'] as const) {
         return
       }
       expect(slots.map((s) => s.slot)).toEqual(SLOTS)
+      // Empty of children always (the art is a CSS background). Lode, the default skin, fills the ground and the strip under the header (50.1); the rest of the slots
+      // take no height until their skin's art is built.
       for (const slot of slots) {
         expect(slot.children, `${slot.slot} is empty`).toBe(0)
-        expect([slot.width, slot.height], `${slot.slot} takes no space`).toEqual([0, 0])
+        if (slot.slot === 'window' || slot.slot === 'header') expect(slot.width, `${slot.slot} has Lode's art`).toBeGreaterThan(0)
+        else expect(slot.height, `${slot.slot} takes no height`).toBe(0)
       }
       // The wrapper does not catch the pointer, and the app is still clickable through it.
       expect(await page.evaluate(() => getComputedStyle(document.querySelector('.q-backdrop')!).pointerEvents)).toBe('none')
