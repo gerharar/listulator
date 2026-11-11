@@ -14,8 +14,8 @@ import { read } from './cssGuard.js'
 const ART = join(import.meta.dirname, 'art')
 const css = read('styles/theme/exzed-art.css')
 
-const BUILT: readonly string[] = ['exzed-1d', 'exzed-1a', 'exzed-1b', 'exzed-1c']
-const PENDING: readonly string[] = ['exzed-1e', 'exzed-1l']
+const BUILT: readonly string[] = ['exzed-1d', 'exzed-1a', 'exzed-1b', 'exzed-1c', 'exzed-1e']
+const PENDING: readonly string[] = ['exzed-1l']
 
 /** The sha256 of each committed file (the design system's, `1794405214-5c6f`; the geometry doc's table). */
 const CHECKSUMS: Record<string, string> = {
@@ -30,6 +30,10 @@ const CHECKSUMS: Record<string, string> = {
   'space-left.png': '568ea30ab75d05e3f0b6e96fad2e7b0d076529bfbcdc9abecccb6fa91bd48b09',
   'space-right.png': '6d03c7820a7a6fd8ce1687929cf52ed7991343b5a309deaa4f631415de925d52',
   'space-parapet.png': '9db6134a9c433f7fe50d2f9cfdf74bed5938819fa3d31868a3259647c1e25d9b',
+  'island-shore-left.png': '2fe3cc62b9fc759ea53866c80272e7c3111aa2abad79ca5a15e3db048b2d3cad',
+  'island-shore-right.png': 'de13ded20f5a1b3797cd36315994dcd65b8c8d6a6c26f94d5d25c8fd9af0dd76',
+  'island-cornice.png': '8d45ece53bbb4dc0a67a79e5a7a1f52cbcbddf9b280b84699c487f2554b40ec2',
+  'island-waves.png': 'a2145dfff7e3f238375fbd5426129d3a3b820e443a327e1a7e8828f023bd0f4d',
 }
 
 /** The files each built skin's rules name, and no others (the side stripes are the two stone skins' alike). */
@@ -38,6 +42,7 @@ const FILES: Record<string, readonly string[]> = {
   'exzed-1a': ['blue-stones-separator.png', 'blue-stones-wall.png', 'side-stripes.png'],
   'exzed-1b': ['grey-stones-separator.png', 'grey-stones-wall.png', 'side-stripes.png'],
   'exzed-1c': ['space-left.png', 'space-parapet.png', 'space-right.png', 'star-tile.png'],
+  'exzed-1e': ['island-cornice.png', 'island-shore-left.png', 'island-shore-right.png', 'island-waves.png', 'star-tile.png'],
 }
 
 const rulesFor = (skin: string) => [...css.matchAll(new RegExp(`html\\[data-theme='${skin}'\\][^{]*{[^}]*}`, 'g'))].map((match) => match[0])
@@ -106,6 +111,21 @@ describe('the skin art', () => {
     expect(rules).toMatch(/left:\s*calc\(100% - var\(--header-gutter\) \+ 16px\);\s*bottom:\s*28px[^}]*space-right\.png'\) 0 0 \/ 320px 1400px no-repeat/)
     // No strip under the header for Xen.
     expect(rules).not.toMatch(/\[data-slot='header'\]/)
+  })
+
+  it('Kui: the stars, the 40px hills-and-clouds under the header (16px and the ledge shift), the waves along the bottom, the castle and the columns 16px clear of the window', () => {
+    const rules = rulesFor('exzed-1e').join('\n')
+
+    expect(rules).toMatch(/star-tile\.png'\) 0 0 \/ 510px 510px repeat/)
+    expect(rules).toMatch(/\[data-slot='header'\]\s*{\s*height:\s*calc\(16px \+ var\(--ledge-shift\)\);\s*background:\s*url\('\.\/art\/island-cornice\.png'\) 0 0 \/ 380px 40px repeat-x/)
+    expect(rules).toMatch(/\[data-slot='bottom'\]\s*{\s*bottom:\s*0;\s*height:\s*28px;\s*background:\s*url\('\.\/art\/island-waves\.png'\) 0 0 \/ 444px 28px repeat-x/)
+    expect(rules).toMatch(/left:\s*calc\(var\(--header-gutter\) - 16px - 332px\);\s*bottom:\s*28px[^}]*island-shore-left\.png'\) 0 0 \/ 332px 1400px no-repeat/)
+    expect(rules).toMatch(/left:\s*calc\(100% - var\(--header-gutter\) \+ 16px\);\s*bottom:\s*28px[^}]*island-shore-right\.png'\) 0 0 \/ 352px 1400px no-repeat/)
+  })
+
+  it('Kui alone sets the ledge shift, 24px: everything under its taller separator starts that much lower (50.1a added it to every top)', () => {
+    expect(css).toMatch(/html\[data-theme='exzed-1e'\]\s*{\s*--ledge-shift:\s*24px;\s*}/)
+    for (const skin of ['exzed-1d', 'exzed-1a', 'exzed-1b', 'exzed-1c', 'exzed-1l']) expect(rulesFor(skin).join('\n'), skin).not.toMatch(/--ledge-shift/)
   })
 
   it('the layers stand in design’s order: the ground, the stripes over it, the strip under the header over them', () => {

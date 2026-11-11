@@ -34,7 +34,7 @@ import { PreviewLayer } from './components/quantum/PreviewLayer/PreviewLayer.js'
 import { VaultBrowser } from './components/quantum/VaultBrowser/VaultBrowser.js'
 import { parsePreviewPath } from './lib/preview.js'
 import { ThemeBackdrop } from './components/quantum/ThemeBackdrop/ThemeBackdrop.js'
-import { applyThemeClass, DocumentTheme } from './components/quantum/DocumentTheme/DocumentTheme.js'
+import { applyDocumentSkin, applyThemeClass, DocumentTheme } from './components/quantum/DocumentTheme/DocumentTheme.js'
 import { AppHeader } from './components/quantum/AppHeader/AppHeader.js'
 import { LayerCard } from './components/quantum/LayerCard/LayerCard.js'
 import { RailPlacementProvider, useWindowRailPlacement } from './screens/list/RailPlacementContext.js'
@@ -109,7 +109,7 @@ export function App() {
       .then(([skin, exzedSkin, theme, language, reducedSetting, markOpenGroups, showTimeLeft]) => {
         // Before the first render of the shell: its sizes are read from the page as it lays out (themeSizes.ts). On a touch-only device the stored eX-Zed is not
         // drawn (49.10) and is left as it is.
-        applyThemeClass(effectiveTheme(theme, finePointer()))
+        applyLook(effectiveTheme(theme, finePointer()), skin, exzedSkin)
         setBoot({ skin, exzedSkin, theme, language, reducedSetting, markOpenGroups, showTimeLeft })
       })
       .catch((cause: unknown) =>
@@ -124,6 +124,16 @@ export function App() {
   return <QuantumShell initial={boot} />
 }
 
+/**
+ * The class and the skin on `<html>`, written before the state that makes the render which reads them (the layers' tops, the row model, the rail: all laid out from the
+ * page's tokens as they render, and `DocumentTheme`'s own effect writes the same things only after). A skin can move the layers (Kui's ledge shift, 50.4), so the skin goes
+ * with the class: without it a start in Kui lays the window out for the last skin and slides it 24px into place.
+ */
+function applyLook(drawn: Theme, quantum: Skin, exzed: ExzedSkin): void {
+  applyThemeClass(drawn)
+  applyDocumentSkin(activeSkin(drawn, { quantum, exzed }))
+}
+
 function QuantumShell({ initial }: { initial: BootState }) {
   const [skin, setSkinState] = useState<Skin>(initial.skin)
   // The stored theme, live (49.7): switching it redraws every open layer and keeps what they hold. What is drawn is `shown`: eX-Zed only where the device has a
@@ -133,18 +143,21 @@ function QuantumShell({ initial }: { initial: BootState }) {
   const shown = effectiveTheme(theme, fine)
   const storedTheme = useRef(theme)
   storedTheme.current = theme
-  // A mouse plugged into a tablet, or taken off it, while the app runs: the class first, as in a switch (the layers read the page's sizes as they render), then
-  // the state. Nothing is written: the preference did not change.
+  // eX-Zed's own skin (X-003): a second preference beside Quantum's, so each theme comes back with its last skin.
+  const [exzedSkin, setExzedSkinState] = useState<ExzedSkin>(initial.exzedSkin)
+  // The skins as of the last render, for the pointer subscription below, which outlives any one render.
+  const skins = useRef({ quantum: skin, exzed: exzedSkin })
+  skins.current = { quantum: skin, exzed: exzedSkin }
+  // A mouse plugged into a tablet, or taken off it, while the app runs: the class and the skin first, as in a switch (the layers read the page's sizes as they render),
+  // then the state. Nothing is written: the preference did not change.
   useEffect(
     () =>
       subscribeFinePointer((next) => {
-        applyThemeClass(effectiveTheme(storedTheme.current, next))
+        applyLook(effectiveTheme(storedTheme.current, next), skins.current.quantum, skins.current.exzed)
         setFine(next)
       }),
     [],
   )
-  // eX-Zed's own skin (X-003): a second preference beside Quantum's, so each theme comes back with its last skin.
-  const [exzedSkin, setExzedSkinState] = useState<ExzedSkin>(initial.exzedSkin)
   const store = getPreferencesStore()
 
   // eX-Zed needs a window of a minimum width (49.12). Narrower, with eX-Zed drawn: a banner (the app started so) or, when the person has just switched to it, a
@@ -156,11 +169,13 @@ function QuantumShell({ initial }: { initial: BootState }) {
   useFullscreenKey()
 
   function handleSkinChange(next: Skin): void {
+    applyLook(shown, next, exzedSkin)
     setSkinState(next)
     void persistSkin(store, next)
   }
 
   function handleExzedSkinChange(next: ExzedSkin): void {
+    applyLook(shown, skin, next)
     setExzedSkinState(next)
     void persistExzedSkin(store, next)
   }
@@ -171,7 +186,7 @@ function QuantumShell({ initial }: { initial: BootState }) {
     notice.opened(next === 'exzed' && anchor ? anchor : null)
     // The class goes on <html> first, as at boot: what is laid out from the page's sizes (the row model, the rail's placement, the layers' cascade) reads
     // them while it renders, and DocumentTheme's own effect runs only after its children have rendered. Written at once, so a quit right after keeps it.
-    applyThemeClass(effectiveTheme(next, fine))
+    applyLook(effectiveTheme(next, fine), skin, exzedSkin)
     setThemeState(next)
     void persistTheme(store, next)
       .then(() => store.flush?.())

@@ -4,7 +4,7 @@ import { cleanup, render } from '@testing-library/react'
 import type { PreferencesStore } from '../../../lib/preferences/store.js'
 import { MotionProvider } from '../Motion/MotionContext.js'
 import type { Theme } from '../../../lib/preferences/theme.js'
-import { applyThemeClass, DocumentTheme } from './DocumentTheme.js'
+import { applyDocumentSkin, applyThemeClass, DocumentTheme } from './DocumentTheme.js'
 import { useTheme } from './ThemeContext.js'
 
 const html = document.documentElement
@@ -152,5 +152,17 @@ describe('DocumentTheme', () => {
       expect(html.classList.contains('theme-exzed')).toBe(false)
       expect(html.classList.contains('keep-me')).toBe(true)
     })
+  })
+})
+
+describe('applyDocumentSkin', () => {
+  it('puts the skin’s key on <html> as data-theme at once, before any render, and leaves the class and the other attributes alone', () => {
+    html.classList.add('keep-me', 'theme-exzed')
+    html.setAttribute('data-reduced', '')
+
+    applyDocumentSkin('exzed-1e')
+
+    expect(html.getAttribute('data-theme')).toBe('exzed-1e')
+    expect([html.classList.contains('keep-me'), html.classList.contains('theme-exzed'), html.hasAttribute('data-reduced')]).toEqual([true, true, true])
   })
 })

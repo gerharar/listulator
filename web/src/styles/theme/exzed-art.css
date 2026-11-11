@@ -135,3 +135,48 @@ html[data-theme='exzed-1c'] .q-backdrop > [data-slot='sides']::after {
   height: 1400px;
   background: url('./art/space-right.png') 0 0 / 320px 1400px no-repeat;
 }
+
+/*
+ * 1e Kui: the star field, the 40px hills-and-clouds under the header, the waves along the bottom (28px) and, standing on them, the castle ruin and the columns (1:1, 1400px
+ * high, 28px up, 16px clear of the window's border box, as Xen's outposts are). This is the one skin whose separator is taller than 16px, so it alone sets the ledge shift:
+ * **everything under the strip starts 24px lower** (`--ledge-shift`, added to every layer's top by layerGeometry.ts, 50.1a; the header bar stays 64px and the strip runs
+ * 64 to 104, over nothing: the first covered layer starts at 120). The strip's height is 16px and that shift.
+ */
+html[data-theme='exzed-1e'] {
+  --ledge-shift: 24px;
+}
+html[data-theme='exzed-1e'] .q-backdrop > [data-slot='window'] {
+  background: url('./art/star-tile.png') 0 0 / 510px 510px repeat;
+}
+html[data-theme='exzed-1e'] .q-backdrop > [data-slot='header'] {
+  height: calc(16px + var(--ledge-shift));
+  background: url('./art/island-cornice.png') 0 0 / 380px 40px repeat-x;
+}
+html[data-theme='exzed-1e'] .q-backdrop > [data-slot='bottom'] {
+  bottom: 0;
+  height: 28px;
+  background: url('./art/island-waves.png') 0 0 / 444px 28px repeat-x;
+}
+html[data-theme='exzed-1e'] .q-backdrop > [data-slot='sides'] {
+  top: 0;
+  bottom: 0;
+  overflow: hidden;
+}
+html[data-theme='exzed-1e'] .q-backdrop > [data-slot='sides']::before {
+  content: '';
+  position: absolute;
+  left: calc(var(--header-gutter) - 16px - 332px);
+  bottom: 28px;
+  width: 332px;
+  height: 1400px;
+  background: url('./art/island-shore-left.png') 0 0 / 332px 1400px no-repeat;
+}
+html[data-theme='exzed-1e'] .q-backdrop > [data-slot='sides']::after {
+  content: '';
+  position: absolute;
+  left: calc(100% - var(--header-gutter) + 16px);
+  bottom: 28px;
+  width: 352px;
+  height: 1400px;
+  background: url('./art/island-shore-right.png') 0 0 / 352px 1400px no-repeat;
+}

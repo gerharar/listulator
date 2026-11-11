@@ -266,6 +266,154 @@ test('Xen: the strip never covers what stands over it: where the window overlaps
   expect([seen.data[0], seen.data[1], seen.data[2]]).toEqual(layer.colour)
 })
 
+for (const [width, height] of SCREENS) {
+  test(`Kui at ${width}x${height}: the stars, the hills-and-clouds, the waves and the castle and columns on them, pixel for pixel`, async ({ page }) => {
+    await boot(page, { theme: 'exzed', exzedSkin: 'exzed-1e' }, width, height)
+    await open(page)
+    const at = await places(page, width, height)
+    const box = { left: at.boxLeft, top: 0, right: at.boxLeft + at.boxWidth, bottom: height }
+    const stars: Layer = { image: png('star-tile'), x: at.boxLeft, y: 0, repeatX: true, repeatY: true, clip: box }
+    const waves: Layer = { image: png('island-waves'), x: at.boxLeft, y: height - 28, repeatX: true, repeatY: false, clip: { ...box, top: height - 28 } }
+    // The castle ruin ends 16px left of the window's border box, the columns start 16px right of it, both 28px up, at 1:1 (the files are already scaled), over the stars.
+    const castle: Layer = { image: png('island-shore-left'), x: at.layerLeft - 16 - 332, y: height - 28 - 1400, repeatX: false, repeatY: false, clip: box }
+    const columns: Layer = { image: png('island-shore-right'), x: at.layerRight + 16, y: height - 28 - 1400, repeatX: false, repeatY: false, clip: box }
+    // The strip under the header is 40px (64 to 104): the 16px of the others and the 24px of the ledge shift.
+    const hills: Layer = { image: png('island-cornice'), x: at.boxLeft, y: 64, repeatX: true, repeatY: false, clip: { ...box, top: 64, bottom: 104 } }
+    const layers = [stars, waves, castle, columns, hills]
+    const edge = at.boxLeft + at.boxWidth
+    const bottom = Math.max(110, height - 800)
+    const gapLeft = { x: at.boxLeft, width: Math.min(at.layerLeft - 16 - at.boxLeft, 300) }
+    const gapRight = { x: Math.max(at.layerRight + 16, edge - 300), width: Math.min(edge - at.layerRight - 16, 300) }
+
+    for (const [name, gap, layer] of [['left', gapLeft, castle], ['right', gapRight, columns]] as const) {
+      const seen = await compare(page, layers, { ...gap, y: bottom, height: height - bottom })
+      expect(seen.different, `pixels that differ, ${name}, from the bottom`).toBe(0)
+      expect(seen.shown.has(layer), `the ${name} shore is in the clip`).toBe(true)
+      expect(seen.shown.has(waves), `the waves are in the ${name} clip`).toBe(true)
+      expect((await compare(page, layers, { ...gap, y: 110, height: 300 })).different, `pixels that differ, ${name}, near the top`).toBe(0)
+    }
+    // The hills-and-clouds: more than one 380px tile of them at each end of the strip.
+    expect((await compare(page, layers, { x: at.boxLeft, y: 64, width: 400, height: 40 })).different, 'hills at the left end').toBe(0)
+    expect((await compare(page, layers, { x: edge - 400, y: 64, width: 400, height: 40 })).different, 'hills at the right end').toBe(0)
+  })
+}
+
+/** Where the header, the strip under it and every layer are, as the page has them. */
+const tops = (page: Page) =>
+  page.evaluate(() => ({
+    header: document.querySelector('.q-appheader')!.getBoundingClientRect().height,
+    strip: document.querySelector('.q-backdrop > [data-slot="header"]')!.getBoundingClientRect().toJSON(),
+    layers: Array.from(document.querySelectorAll('.q-layer')).map((layer) => layer.getBoundingClientRect().top),
+  }))
+
+test('Kui: the window starts 24px lower, over one layer and two, under a strip that ends at 104 and touches nothing', async ({ page }) => {
+  await boot(page, { theme: 'exzed', exzedSkin: 'exzed-1e' }, 1440, 900)
+  await open(page)
+
+  // The header bar is as tall as ever; the strip under it is 40px (64 to 104); everything below starts 24px lower than in the other skins (132, 160 and 200 are
+  // 108, 136 and 176 and 24; the covered layers' own tops, 120 and 160, are 96 and 136 and 24: the first is below the strip, which ends at 104).
+  const alone = await tops(page)
+  expect([alone.header, alone.strip.top, alone.strip.height, alone.layers]).toEqual([64, 64, 40, [132]])
+
+  await page.getByRole('button', { name: 'New List', exact: true }).first().click()
+  await page.locator('.q-picker').waitFor()
+  await expect.poll(async () => (await tops(page)).layers).toEqual([120, 160])
+
+  await page.getByRole('button', { name: 'Settings' }).click()
+  await page.locator('.q-settings').waitFor()
+  await expect.poll(async () => (await tops(page)).layers).toEqual([120, 160, 200])
+  const stacked = await tops(page)
+  expect(stacked.strip.top + stacked.strip.height, 'the strip ends above the first covered layer').toBeLessThanOrEqual(stacked.layers[0]!)
+})
+
+/**
+ * The layers' tops are read from the page as the shell renders, and the skin that sets the shift is written on `<html>` in an effect after that render, so a skin that
+ * arrives that way leaves the layers where the last one put them (found in 50.4's spike). Written before the render now, at boot, on a switch of skin, on a switch of theme.
+ */
+test('Kui: the first render already has the window at 132, and a switch of skin or theme moves it at once', async ({ page }) => {
+  await boot(page, { theme: 'exzed', exzedSkin: 'exzed-1e' }, 1440, 900)
+  // The layer's own `top` the first time it is in the page: the value the shell computed while it rendered, before any later render could correct it (the layer has a
+  // 300ms transition on `top`, so a corrected value would slide in from the stale one, 24px, at every start in Kui).
+  await page.addInitScript(() => {
+    const record = () => {
+      const layer = document.querySelector<HTMLElement>('.q-layer')
+      if (!layer) return
+      Object.assign(window, { __firstTop: layer.style.top })
+      observer.disconnect()
+    }
+    const observer = new MutationObserver(record)
+    observer.observe(document, { childList: true, subtree: true })
+  })
+  await page.goto('/')
+  await page.locator('.q-home-row').first().waitFor()
+  expect(await page.evaluate(() => (window as unknown as { __firstTop?: string }).__firstTop), 'the first top the layer had, 44 + 24').toBe('68px')
+  expect((await tops(page)).layers, 'at boot, with Kui stored').toEqual([132])
+
+  // Kui to Lode and back, from Settings, without a reload: the window follows the skin's shift each time.
+  await page.getByRole('button', { name: 'Settings' }).click()
+  await page.locator('.q-settings').waitFor()
+  await expect.poll(async () => (await tops(page)).layers).toEqual([120, 160])
+  await page.locator('.q-settings').getByRole('button', { name: 'Lode', exact: true }).click()
+  await expect.poll(async () => (await tops(page)).layers, 'Lode: no shift').toEqual([96, 136])
+  await page.locator('.q-settings').getByRole('button', { name: 'Kui', exact: true }).click()
+  await expect.poll(async () => (await tops(page)).layers, 'Kui again').toEqual([120, 160])
+
+  // Quantum to eX-Zed with Kui as its stored skin: the class goes on first, and the skin with it.
+  await page.locator('.q-settings').getByRole('button', { name: 'Quantum', exact: true }).click()
+  await page.locator('.q-settings').getByRole('button', { name: 'eX-Zed', exact: true }).click()
+  await expect.poll(async () => (await tops(page)).layers, 'eX-Zed again, with Kui').toEqual([120, 160])
+})
+
+test('Kui: a list lays out the same as in Lode, 24px lower and 24px shorter (rows, scroll area, rail)', async ({ page }) => {
+  const rows = Array.from({ length: 40 }, (_, n) => `  - { title: "Item ${String(n + 1).padStart(3, '0')}", minutes: 30, group: "Season ${Math.floor(n / 10) + 1}" }`)
+  const title = `e2e kui list ${Date.now()}`
+  const made = await page.request.post('/api/lists/from-file', { data: { yaml: `title: ${title}\ncategory: movie\nitems:\n${rows.join('\n')}\n` } })
+  expect(made.status()).toBe(201)
+  const id = (await made.json()).id as string
+
+  try {
+    const geometry = async (skin: string) => {
+      await boot(page, { theme: 'exzed', exzedSkin: skin }, 1920, 900)
+      await page.goto('/')
+      await page.locator('.q-home-row', { hasText: title }).click()
+      await page.locator('.q-item').first().waitFor()
+      await page.evaluate(() => document.fonts.ready)
+
+      return page.evaluate(() => {
+        const rect = (selector: string) => document.querySelector(selector)!.getBoundingClientRect()
+        const layer = rect('.q-layer')
+        const body = rect('.q-layer-body')
+        const rail = document.querySelector('.q-rail')?.getBoundingClientRect()
+        const rowsShown = [...document.querySelectorAll('.q-item')].map((row) => row.getBoundingClientRect()).filter((row) => row.bottom > body.top && row.top < body.bottom)
+
+        return {
+          layerTop: layer.top,
+          layerBottom: layer.bottom,
+          bodyTop: body.top - layer.top,
+          bodyHeight: body.height,
+          firstRow: rect('.q-item').top - layer.top,
+          railTop: rail ? rail.top - layer.top : null,
+          railHeight: rail ? rail.height : null,
+          // A row the scroll area clips at its bottom edge, or one that sits over its top edge.
+          clipped: rowsShown.filter((row) => row.top < body.top - 0.5 || row.bottom > body.bottom + 0.5).length,
+        }
+      })
+    }
+
+    const lode = await geometry('exzed-1d')
+    const kui = await geometry('exzed-1e')
+
+    expect(kui.layerTop - lode.layerTop, 'the window starts 24px lower').toBe(24)
+    expect(kui.layerBottom, 'and ends where it did').toBe(lode.layerBottom)
+    expect(lode.bodyHeight - kui.bodyHeight, 'the scroll area is 24px shorter').toBe(24)
+    expect([kui.bodyTop, kui.firstRow, kui.railTop], 'everything inside is where it was in the window').toEqual([lode.bodyTop, lode.firstRow, lode.railTop])
+    expect(lode.railHeight! - kui.railHeight!, 'the rail is 24px shorter with the window').toBe(24)
+    expect(kui.clipped, 'no row is cut at the scroll area’s edge').toBeLessThanOrEqual(lode.clipped + 2)
+  } finally {
+    await page.request.delete(`/api/lists/${id}`)
+  }
+})
+
 test('Lode: the art slots are where the board has them, and the window and header have not moved', async ({ page }) => {
   await boot(page, { theme: 'exzed', exzedSkin: 'exzed-1d' }, 3440, 1440)
   await open(page)
@@ -334,5 +482,6 @@ test('only the active skin’s pictures are requested: each skin asks for its ow
   expect(await requested({ theme: 'exzed', exzedSkin: 'exzed-1a' })).toEqual(['blue-stones-separator.png', 'blue-stones-wall.png', 'side-stripes.png'])
   expect(await requested({ theme: 'exzed', exzedSkin: 'exzed-1b' })).toEqual(['grey-stones-separator.png', 'grey-stones-wall.png', 'side-stripes.png'])
   expect(await requested({ theme: 'exzed', exzedSkin: 'exzed-1c' })).toEqual(['space-left.png', 'space-parapet.png', 'space-right.png', 'star-tile.png'])
+  expect(await requested({ theme: 'exzed', exzedSkin: 'exzed-1e' })).toEqual(['island-cornice.png', 'island-shore-left.png', 'island-shore-right.png', 'island-waves.png', 'star-tile.png'])
   expect(await requested({ theme: 'quantum' })).toEqual([])
 })
