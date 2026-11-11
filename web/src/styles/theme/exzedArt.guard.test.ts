@@ -34,6 +34,8 @@ const CHECKSUMS: Record<string, string> = {
   'island-shore-right.png': 'de13ded20f5a1b3797cd36315994dcd65b8c8d6a6c26f94d5d25c8fd9af0dd76',
   'island-cornice.png': '8d45ece53bbb4dc0a67a79e5a7a1f52cbcbddf9b280b84699c487f2554b40ec2',
   'island-waves.png': 'a2145dfff7e3f238375fbd5426129d3a3b820e443a327e1a7e8828f023bd0f4d',
+  // The Spectrum border beyond the app (50.6): not a skin's picture, the five dark skins' alike.
+  'border-stripes.png': '483dee562bc8cb1f8365b57edcf4e83c8c6d1f8babea632daf4f4b44fff62904',
 }
 
 /** The files each built skin's rules name, and no others (the side stripes are the two stone skins' alike). */
@@ -150,6 +152,26 @@ describe('the skin art', () => {
     expect(rules).toMatch(/\[data-slot='bottom'\]::after\s*{[^}]*content:\s*'K';[^}]*left:\s*calc\(var\(--header-gutter\) \+ 160px\);[^}]*bottom:\s*12px;[^}]*background:\s*var\(--zx-ink\);[^}]*color:\s*var\(--zx-paper\)/)
     // The text is the Spectrum's own report line, not copy: no word of it is translated, and none of it is in the DOM (the backdrop is aria-hidden besides).
     expect(css.match(/content:\s*'0 OK, 0:1'/g)).toHaveLength(1)
+  })
+
+  it('the Spectrum border: the stripes tile at its own size behind the app, only on a screen wider than the app (2560px), and nothing of it in a skin’s own rules', () => {
+    expect(css).toMatch(/@media \(min-width: 2561px\)\s*{\s*html\.theme-exzed \.q-backdrop\s*{\s*background-image:\s*url\('\.\/art\/border-stripes\.png'\);\s*background-size:\s*8px 1440px;\s*background-repeat:\s*repeat;/)
+    // The ground under it is the stage's own colour (plain black in the dark skins), so no picture means a plain ground.
+    expect(css).toMatch(/html\.theme-exzed \.q-backdrop\s*{\s*background-color:\s*var\(--zx-stage\);[^}]*}/)
+    for (const skin of BUILT) expect(rulesFor(skin).join('\n'), skin).not.toMatch(/border-stripes/)
+  })
+
+  it('Lotus’s border is plain bright white whatever the setting says; the other skins’ goes plain with it off (`data-border="off"` on <html>, set by 50.7)', () => {
+    expect(css).toMatch(/html\[data-theme='exzed-1l'\] \.q-backdrop\s*{\s*background-color:\s*#ffffff;\s*background-image:\s*none;\s*}/)
+    expect(css).toMatch(/html\.theme-exzed\[data-border='off'\] \.q-backdrop\s*{\s*background-image:\s*none;\s*}/)
+    // Lotus's rule comes after the picture's, and the off rule only removes the picture, so Lotus's white is never lost.
+    expect(css.indexOf("html[data-theme='exzed-1l'] .q-backdrop {")).toBeGreaterThan(css.indexOf('border-stripes.png'))
+  })
+
+  it('the app’s box is opaque over the border: the ground slot paints the stage’s colour under its picture', () => {
+    expect(css).toMatch(/html\.theme-exzed \.q-backdrop > \[data-slot='window'\]\s*{\s*background-color:\s*var\(--zx-stage\);\s*}/)
+    // After every skin's rule, whose `background` shorthand would otherwise reset it to transparent.
+    expect(css.lastIndexOf("[data-slot='window'] {\n  background-color: var(--zx-stage);")).toBeGreaterThan(css.lastIndexOf("html[data-theme='exzed-1l']"))
   })
 
   it('the layers stand in design’s order: the ground, the stripes over it, the strip under the header over them', () => {

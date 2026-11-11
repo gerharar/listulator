@@ -11,6 +11,28 @@ html.theme-exzed .q-backdrop > [data-slot] {
   image-rendering: pixelated;
 }
 
+/*
+ * The Spectrum border (X-006): where the app stops growing (`--app-max`, 2560px) and is centred, the screen around it shows static tape-loading stripes: an 8x1440 tile of normal
+ * yellow and normal blue bars, repeated from the screen's top left at its own size, in the five dark skins, and plain bright white in Lotus (below). The ground is the backdrop
+ * itself, which fills the screen under the shell; the app's box is drawn over it (the ground slot is opaque), so nothing of the border shows over the app and there is no line
+ * between them, and on a screen no wider than the app there is nothing to see, so the picture is not even asked for. With the setting off (`data-border="off"` on `<html>`,
+ * 50.7) the stripes go and the ground is the stage's colour, plain black in the dark skins; Lotus is white either way.
+ */
+html.theme-exzed .q-backdrop {
+  background-color: var(--zx-stage);
+  image-rendering: pixelated;
+}
+@media (min-width: 2561px) {
+  html.theme-exzed .q-backdrop {
+    background-image: url('./art/border-stripes.png');
+    background-size: 8px 1440px;
+    background-repeat: repeat;
+  }
+}
+html.theme-exzed[data-border='off'] .q-backdrop {
+  background-image: none;
+}
+
 /* The ground behind the window runs the screen's full height, under the header. */
 html.theme-exzed .q-backdrop > [data-slot='window'] {
   top: 0;
@@ -215,4 +237,16 @@ html[data-theme='exzed-1l'] .q-backdrop > [data-slot='bottom']::after {
   line-height: 16px;
   background: var(--zx-ink);
   color: var(--zx-paper);
+}
+
+/* 1L Lotus's border is plain bright white (the Spectrum's own border colour), picture or no picture, setting or no setting: after the stripes' rule, so it is the one that wins. */
+html[data-theme='exzed-1l'] .q-backdrop {
+  background-color: #ffffff;
+  background-image: none;
+}
+
+/* The app's box is opaque over the border: the ground slot paints the stage's colour under whatever its skin draws on it. After every skin's rule, whose `background` shorthand
+   resets the colour to transparent. */
+html.theme-exzed .q-backdrop > [data-slot='window'] {
+  background-color: var(--zx-stage);
 }

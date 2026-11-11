@@ -543,6 +543,80 @@ test('Lotus: the line is not in the page for a screen reader and cannot be reach
   expect(inBackdrop).toBe(false)
 })
 
+/**
+ * The Spectrum border beyond 2560px (50.6, X-006): where the app stops growing and is centred, the screen shows static tape-loading stripes in the five dark skins (an 8x1440
+ * tile of normal yellow and normal blue bars, repeated from the screen's top left at its own size) and plain bright white in Lotus; none of it at 2560px and under, none of it
+ * over the app's box, and a setting (50.7) that turns it plain black, which is `data-border="off"` on `<html>`.
+ */
+const SKIN_KEYS = ['exzed-1d', 'exzed-1a', 'exzed-1b', 'exzed-1c', 'exzed-1e'] as const
+const WHITE: Colour = [255, 255, 255]
+
+for (const [width, height] of [[3440, 1440], [3840, 2160]] as const) {
+  for (const key of [...SKIN_KEYS, 'exzed-1l'] as const) {
+    test(`the border at ${width}x${height} in ${key}: ${key === 'exzed-1l' ? 'plain bright white' : 'the stripes, repeated, with no line against the app'}`, async ({ page }) => {
+      await boot(page, { theme: 'exzed', exzedSkin: key }, width, height)
+      await open(page, key !== 'exzed-1l')
+      const left = (width - 2560) / 2
+      const right = left + 2560
+      const stripes: Layer = { image: png('border-stripes'), x: 0, y: 0, repeatX: true, repeatY: true, clip: { left: 0, top: 0, right: width, bottom: height } }
+      const layers = key === 'exzed-1l' ? [] : [stripes]
+      const ground = key === 'exzed-1l' ? WHITE : ([0, 0, 0] as Colour)
+
+      // Each side of the app, the whole height of the screen (the header's rows and past the tile's own 1440), out to the app's very edge: so a line, a gap or a stretched tile there
+      // fails. On a 2160 screen the tile is repeated (the seam at 1440 is inside the clip).
+      for (const [name, x] of [['left', 0], ['right', right]] as const) {
+        const seen = await compare(page, layers, { x, y: 0, width: left, height }, ground)
+        expect(seen.different, `${name} border pixels that differ`).toBe(0)
+        if (key !== 'exzed-1l') expect(seen.shown.has(stripes), `the ${name} clip shows the stripes`).toBe(true)
+      }
+      // Nothing scrolls sideways.
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true)
+    })
+  }
+}
+
+test('the border does not paint over the app: Lotus’s paper is inside the box, the border white outside it', async ({ page }) => {
+  await boot(page, { theme: 'exzed', exzedSkin: 'exzed-1l' }, 3440, 1440)
+  await open(page, false)
+  const seen = await shot(page, { x: 430, y: 700, width: 30, height: 1 })
+
+  expect([seen.at(439, 700), seen.at(440, 700)], 'white up to the app’s edge, paper from it').toEqual([WHITE, PAPER])
+  expect([seen.at(430, 700), seen.at(459, 700)]).toEqual([WHITE, PAPER])
+})
+
+test('the border is for a screen wider than the app only: none at 2560px, none requested, and a window made wider asks for it', async ({ page }) => {
+  const border = (stored: Record<string, string>, width: number) => async () => {
+    const fresh = await page.context().newPage()
+    const urls: string[] = []
+    fresh.on('request', (request) => urls.push(request.url()))
+    await boot(fresh, stored, width, 1000)
+    await fresh.goto('/')
+    await fresh.locator('.q-home-row').first().waitFor()
+    await fresh.waitForLoadState('networkidle')
+    const image = await fresh.evaluate(() => getComputedStyle(document.querySelector('.q-backdrop')!).backgroundImage)
+    await fresh.close()
+
+    return { image, asked: urls.some((url) => url.includes('border-stripes')) }
+  }
+
+  expect(await border({ theme: 'exzed', exzedSkin: 'exzed-1d' }, 2560)(), 'at 2560px').toEqual({ image: 'none', asked: false })
+  expect(await border({ theme: 'exzed', exzedSkin: 'exzed-1d' }, 1440)(), 'at 1440px').toEqual({ image: 'none', asked: false })
+  const wide = await border({ theme: 'exzed', exzedSkin: 'exzed-1d' }, 2600)()
+  expect([wide.image.includes('border-stripes'), wide.asked], 'at 2600px').toEqual([true, true])
+  expect(await border({ theme: 'exzed', exzedSkin: 'exzed-1l' }, 2600)(), 'Lotus has no picture there either').toEqual({ image: 'none', asked: false })
+})
+
+test('with data-border="off" on <html> the border is plain black in the dark skins and stays white in Lotus', async ({ page }) => {
+  for (const [key, expected] of [['exzed-1d', [0, 0, 0]], ['exzed-1c', [0, 0, 0]], ['exzed-1l', WHITE]] as const) {
+    await boot(page, { theme: 'exzed', exzedSkin: key }, 3440, 1440)
+    await open(page, key !== 'exzed-1l')
+    await page.evaluate(() => document.documentElement.setAttribute('data-border', 'off'))
+    const seen = await compare(page, [], { x: 0, y: 0, width: 440, height: 1440 }, expected as Colour)
+
+    expect(seen.different, `${key}: border pixels that are not plain`).toBe(0)
+  }
+})
+
 test('Lode: the art slots are where the board has them, and the window and header have not moved', async ({ page }) => {
   await boot(page, { theme: 'exzed', exzedSkin: 'exzed-1d' }, 3440, 1440)
   await open(page)
