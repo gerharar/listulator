@@ -181,6 +181,91 @@ for (const [skin, key, wallName, separatorName] of [
   }
 }
 
+for (const [width, height] of SCREENS) {
+  test(`Xen at ${width}x${height}: the star field, the ground strip and the outpost columns on it, pixel for pixel`, async ({ page }) => {
+    await boot(page, { theme: 'exzed', exzedSkin: 'exzed-1c' }, width, height)
+    await open(page)
+    const at = await places(page, width, height)
+    const box = { left: at.boxLeft, top: 0, right: at.boxLeft + at.boxWidth, bottom: height }
+    const columns = png('space-left')
+    const stars: Layer = { image: png('star-tile'), x: at.boxLeft, y: 0, repeatX: true, repeatY: true, clip: box }
+    const strip: Layer = { image: png('space-parapet'), x: at.boxLeft, y: height - 28, repeatX: true, repeatY: false, clip: { ...box, top: height - 28 } }
+    // The two columns stand on the strip (28px up, at 1:1) with their inner edges 16px from the window's border box: the left one ends 16px left of it, the right one starts
+    // 16px right of it. They are over the star field and under the window.
+    const left: Layer = { image: columns, x: at.layerLeft - 16 - 320, y: height - 28 - 1400, repeatX: false, repeatY: false, clip: box }
+    const right: Layer = { image: png('space-right'), x: at.layerRight + 16, y: height - 28 - 1400, repeatX: false, repeatY: false, clip: box }
+    const layers = [stars, strip, left, right]
+    const edge = at.boxLeft + at.boxWidth
+
+    // The ground left of the window (clear of its ring), from the screen's bottom up through the strip and the column's foot; and again from near the top, where on a tall
+    // screen the column's head is (it is 1400px high and stands on the bottom: a taller screen shows more sky above it, never more column). Then the same on the right,
+    // out at the app's edge where a star tile that is a pixel off has drifted.
+    const bottom = Math.max(100, height - 800)
+    const gap = (x: number, w: number, y: number, h: number) => ({ x, y, width: w, height: h })
+    const clips = [
+      ['left, bottom', gap(at.boxLeft, Math.min(at.layerLeft - 16 - at.boxLeft, 300), bottom, height - bottom), left],
+      ['left, top', gap(at.boxLeft, Math.min(at.layerLeft - 16 - at.boxLeft, 300), 100, 300), left],
+      ['right, bottom', gap(Math.max(at.layerRight + 16, edge - 300), Math.min(edge - at.layerRight - 16, 300), bottom, height - bottom), right],
+      ['right, top', gap(Math.max(at.layerRight + 16, edge - 300), Math.min(edge - at.layerRight - 16, 300), 100, 300), right],
+    ] as const
+    for (const [name, clip, column] of clips) {
+      const seen = await compare(page, layers, clip)
+      expect(seen.different, `pixels that differ, ${name}`).toBe(0)
+      if (name.endsWith('bottom')) {
+        expect(seen.shown.has(column), `the column is in the ${name} clip`).toBe(true)
+        expect(seen.shown.has(strip), `the strip is in the ${name} clip`).toBe(true)
+      }
+    }
+  })
+}
+
+test('Xen: the strip is 28px high at the bottom of the app’s box, the columns’ box is the whole box, there is no strip under the header, and the window has not moved', async ({ page }) => {
+  await boot(page, { theme: 'exzed', exzedSkin: 'exzed-1c' }, 3440, 1440)
+  await open(page)
+  const seen = await page.evaluate(() => {
+    const box = (slot: string) => document.querySelector(`.q-backdrop > [data-slot="${slot}"]`)!.getBoundingClientRect().toJSON()
+    const sides = document.querySelector('.q-backdrop > [data-slot="sides"]')!
+
+    return {
+      window: box('window'),
+      bottom: box('bottom'),
+      header: box('header'),
+      sides: box('sides'),
+      overflow: getComputedStyle(sides).overflow,
+      children: sides.childNodes.length,
+      layout: [document.querySelector('.q-appheader')!.getBoundingClientRect().height, document.querySelector('.q-layer')!.getBoundingClientRect().top],
+    }
+  })
+
+  expect([seen.window.left, seen.window.top, seen.window.width, seen.window.height]).toEqual([440, 0, 2560, 1440])
+  expect([seen.bottom.left, seen.bottom.top, seen.bottom.width, seen.bottom.height]).toEqual([440, 1440 - 28, 2560, 28])
+  expect(seen.header.height, 'no strip under the header').toBe(0)
+  expect([seen.sides.left, seen.sides.top, seen.sides.width, seen.sides.height]).toEqual([440, 0, 2560, 1440])
+  expect([seen.overflow, seen.children]).toEqual(['hidden', 0])
+  expect(seen.layout).toEqual([64, 108])
+})
+
+test('Xen: the strip never covers what stands over it: where the window overlaps it the window’s own ground is what shows', async ({ page }) => {
+  await boot(page, { theme: 'exzed', exzedSkin: 'exzed-1c' }, 1440, 900)
+  await open(page)
+  // The window ends 24px above the bottom of the screen and the strip is 28px high, so the window's last 4px lie over the strip (the board has the same). A pixel just inside
+  // the window's bottom edge, in its padding, must be the window's own background, not the strip's picture.
+  const layer = await page.evaluate(() => {
+    const rect = document.querySelector('.q-layer')!.getBoundingClientRect()
+    const colour = /rgba?\((\d+), (\d+), (\d+)/.exec(getComputedStyle(document.querySelector('.q-layer')!).backgroundColor)!
+
+    return { x: Math.round(rect.left + 40), bottom: rect.bottom, colour: [Number(colour[1]), Number(colour[2]), Number(colour[3])] }
+  })
+  const strip = png('space-parapet')
+  const y = 900 - 27
+  const under = [0, 1, 2].map((channel) => strip.data[((y - (900 - 28)) * strip.width + (layer.x % strip.width)) * 4 + channel]!)
+  expect(under, 'the strip’s own pixel there differs from the window’s ground, or this proves nothing').not.toEqual(layer.colour)
+  expect(layer.bottom, 'the window overlaps the strip').toBe(876)
+
+  const seen = decodePng(await page.screenshot({ clip: { x: layer.x, y, width: 1, height: 1 } }))
+  expect([seen.data[0], seen.data[1], seen.data[2]]).toEqual(layer.colour)
+})
+
 test('Lode: the art slots are where the board has them, and the window and header have not moved', async ({ page }) => {
   await boot(page, { theme: 'exzed', exzedSkin: 'exzed-1d' }, 3440, 1440)
   await open(page)
@@ -229,7 +314,7 @@ test('Focal and Glemt: the strip under the header is 16px, the side art is the a
   }
 })
 
-test('only the active skin’s pictures are requested: each skin asks for its own files, Xen and Quantum for none', async ({ page }) => {
+test('only the active skin’s pictures are requested: each skin asks for its own files, Quantum for none', async ({ page }) => {
   // The art files a page asks for, in a page of its own so one skin's requests never count for another's.
   const requested = async (stored: Record<string, string>) => {
     const fresh = await page.context().newPage()
@@ -248,6 +333,6 @@ test('only the active skin’s pictures are requested: each skin asks for its ow
   expect(await requested({ theme: 'exzed', exzedSkin: 'exzed-1d' })).toEqual(['red-bricks-cornice.png', 'red-bricks-wall.png'])
   expect(await requested({ theme: 'exzed', exzedSkin: 'exzed-1a' })).toEqual(['blue-stones-separator.png', 'blue-stones-wall.png', 'side-stripes.png'])
   expect(await requested({ theme: 'exzed', exzedSkin: 'exzed-1b' })).toEqual(['grey-stones-separator.png', 'grey-stones-wall.png', 'side-stripes.png'])
-  expect(await requested({ theme: 'exzed', exzedSkin: 'exzed-1c' })).toEqual([])
+  expect(await requested({ theme: 'exzed', exzedSkin: 'exzed-1c' })).toEqual(['space-left.png', 'space-parapet.png', 'space-right.png', 'star-tile.png'])
   expect(await requested({ theme: 'quantum' })).toEqual([])
 })

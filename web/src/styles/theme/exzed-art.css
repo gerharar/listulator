@@ -96,3 +96,42 @@ html[data-theme='exzed-1b'] .q-backdrop > [data-slot='sides']::after {
   height: 2304px;
   background: url('./art/side-stripes.png') 0 0 / 2304px 2304px no-repeat;
 }
+
+/*
+ * 1c Xen: the star field behind the window, the ground strip along the bottom of the screen (28px, the `bottom` slot) and the outpost columns standing on it, one each side of
+ * the window, 28px up, at 1:1 (the files are already scaled; design's answer of 2026-11-11), their inner edges 16px clear of the window's border box (a 12px ring and 4px
+ * more): the left one ends at the window's left edge less 16px, the right one starts at its right edge plus 16px. They are 1400px high and bottom-anchored, so a taller screen
+ * shows more sky above them and never more column; the slot is the app's box and clips what runs past its sides. No strip under the header in this skin. The columns are the
+ * slot's own pseudo-elements, as the stripes of 1a and 1b are (the window's left edge is `--header-gutter`, its right edge `100% - --header-gutter`).
+ */
+html[data-theme='exzed-1c'] .q-backdrop > [data-slot='window'] {
+  background: url('./art/star-tile.png') 0 0 / 510px 510px repeat;
+}
+html[data-theme='exzed-1c'] .q-backdrop > [data-slot='bottom'] {
+  bottom: 0;
+  height: 28px;
+  background: url('./art/space-parapet.png') 0 0 / 48px 28px repeat-x;
+}
+html[data-theme='exzed-1c'] .q-backdrop > [data-slot='sides'] {
+  top: 0;
+  bottom: 0;
+  overflow: hidden;
+}
+html[data-theme='exzed-1c'] .q-backdrop > [data-slot='sides']::before {
+  content: '';
+  position: absolute;
+  left: calc(var(--header-gutter) - 16px - 320px);
+  bottom: 28px;
+  width: 320px;
+  height: 1400px;
+  background: url('./art/space-left.png') 0 0 / 320px 1400px no-repeat;
+}
+html[data-theme='exzed-1c'] .q-backdrop > [data-slot='sides']::after {
+  content: '';
+  position: absolute;
+  left: calc(100% - var(--header-gutter) + 16px);
+  bottom: 28px;
+  width: 320px;
+  height: 1400px;
+  background: url('./art/space-right.png') 0 0 / 320px 1400px no-repeat;
+}

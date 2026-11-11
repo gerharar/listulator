@@ -14,8 +14,8 @@ import { read } from './cssGuard.js'
 const ART = join(import.meta.dirname, 'art')
 const css = read('styles/theme/exzed-art.css')
 
-const BUILT: readonly string[] = ['exzed-1d', 'exzed-1a', 'exzed-1b']
-const PENDING: readonly string[] = ['exzed-1c', 'exzed-1e', 'exzed-1l']
+const BUILT: readonly string[] = ['exzed-1d', 'exzed-1a', 'exzed-1b', 'exzed-1c']
+const PENDING: readonly string[] = ['exzed-1e', 'exzed-1l']
 
 /** The sha256 of each committed file (the design system's, `1794405214-5c6f`; the geometry doc's table). */
 const CHECKSUMS: Record<string, string> = {
@@ -26,6 +26,10 @@ const CHECKSUMS: Record<string, string> = {
   'grey-stones-wall.png': '28c72433a0973a3281876689842702c14ae65cb80da879c36ef8680b554883d7',
   'grey-stones-separator.png': 'ba465841378928e93f0dee2993e25966c5dda97f4c949edcef06a19813585012',
   'side-stripes.png': '3f84960812faaf381a3bb952814a5efd6474cf961a9323626e8a770acaebf909',
+  'star-tile.png': 'f7ae1278c261e40b2e742f28f1373830951e476d71b39b713df1e2f6d5d91833',
+  'space-left.png': '568ea30ab75d05e3f0b6e96fad2e7b0d076529bfbcdc9abecccb6fa91bd48b09',
+  'space-right.png': '6d03c7820a7a6fd8ce1687929cf52ed7991343b5a309deaa4f631415de925d52',
+  'space-parapet.png': '9db6134a9c433f7fe50d2f9cfdf74bed5938819fa3d31868a3259647c1e25d9b',
 }
 
 /** The files each built skin's rules name, and no others (the side stripes are the two stone skins' alike). */
@@ -33,6 +37,7 @@ const FILES: Record<string, readonly string[]> = {
   'exzed-1d': ['red-bricks-cornice.png', 'red-bricks-wall.png'],
   'exzed-1a': ['blue-stones-separator.png', 'blue-stones-wall.png', 'side-stripes.png'],
   'exzed-1b': ['grey-stones-separator.png', 'grey-stones-wall.png', 'side-stripes.png'],
+  'exzed-1c': ['space-left.png', 'space-parapet.png', 'space-right.png', 'star-tile.png'],
 }
 
 const rulesFor = (skin: string) => [...css.matchAll(new RegExp(`html\\[data-theme='${skin}'\\][^{]*{[^}]*}`, 'g'))].map((match) => match[0])
@@ -90,6 +95,17 @@ describe('the skin art', () => {
       expect(rules, skin).toMatch(/left:\s*calc\(var\(--header-gutter\) \+ 128px - 2304px\);\s*bottom:\s*-1824px/)
       expect(rules, skin).toMatch(/left:\s*calc\(100% - var\(--header-gutter\) - 200px\);\s*top:\s*-1860px/)
     }
+  })
+
+  it('Xen: the star field at 510px, the ground strip 28px high along the bottom, and the outpost columns standing on it, 28px up, 16px clear of the window', () => {
+    const rules = rulesFor('exzed-1c').join('\n')
+
+    expect(rules).toMatch(/star-tile\.png'\) 0 0 \/ 510px 510px repeat/)
+    expect(rules).toMatch(/\[data-slot='bottom'\]\s*{\s*bottom:\s*0;\s*height:\s*28px;\s*background:\s*url\('\.\/art\/space-parapet\.png'\) 0 0 \/ 48px 28px repeat-x/)
+    expect(rules).toMatch(/left:\s*calc\(var\(--header-gutter\) - 16px - 320px\);\s*bottom:\s*28px[^}]*space-left\.png'\) 0 0 \/ 320px 1400px no-repeat/)
+    expect(rules).toMatch(/left:\s*calc\(100% - var\(--header-gutter\) \+ 16px\);\s*bottom:\s*28px[^}]*space-right\.png'\) 0 0 \/ 320px 1400px no-repeat/)
+    // No strip under the header for Xen.
+    expect(rules).not.toMatch(/\[data-slot='header'\]/)
   })
 
   it('the layers stand in design’s order: the ground, the stripes over it, the strip under the header over them', () => {
