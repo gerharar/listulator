@@ -16,6 +16,7 @@ import { useLiveRegion } from '../../components/quantum/LiveRegion/LiveRegion.js
 import { useMotion } from '../../components/quantum/Motion/MotionContext.js'
 import { useGroupLineSetting } from '../../components/quantum/GroupTriangle/GroupTriangle.js'
 import { useTimeLeftSetting } from '../../components/quantum/Home/TimeLeftSetting.js'
+import { useSpectrumBorder } from '../../components/quantum/DocumentTheme/SpectrumBorderSetting.js'
 import { Tip } from '../../components/quantum/Tooltip/Tip.js'
 import { useWindowFullscreen } from '../../lib/windowFullscreen.js'
 import { ExzedSkinSwatch, SkinSwatch } from '../../components/quantum/SkinSwatch/SkinSwatch.js'
@@ -49,6 +50,7 @@ export function SettingsScreen({ skin, onSkinChange, exzedSkin, onExzedSkinChang
   const { reduced, setReducedMotion } = useMotion()
   const groupLine = useGroupLineSetting()
   const timeLeft = useTimeLeftSetting()
+  const spectrumBorder = useSpectrumBorder()
   const fullscreen = useWindowFullscreen()
   const text = copy.quantum.settings
 
@@ -158,6 +160,18 @@ export function SettingsScreen({ skin, onSkinChange, exzedSkin, onExzedSkinChang
               />
               {text.showTimeLeft}
             </Tip>
+            {/* X-006, eX-Zed only: the stripes around the app on a screen wider than 2560px, on unless turned off; applied at once. Last in Screen. */}
+            {theme === 'exzed' && (
+              <Tip as="label" className="q-settings-check" text={text.spectrumBorderTip}>
+                <input
+                  type="checkbox"
+                  aria-description={text.spectrumBorderTip}
+                  checked={spectrumBorder.on}
+                  onChange={(event) => spectrumBorder.setOn(event.target.checked)}
+                />
+                {text.spectrumBorder}
+              </Tip>
+            )}
           </section>
 
           <section>

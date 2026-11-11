@@ -353,6 +353,9 @@ export const ru: Locale = {
       /** A draft after the canvas wording (H-024), for the owner to edit. */
       showTimeLeft: 'Показывать оставшееся время в Моих Списках',
       showTimeLeftTip: 'Оставшееся время часто приблизительное или ещё определяется; если опция выключена, оно показывается при наведении на прогресс списка',
+      /** Claude's draft after the owner's English and design's tooltip (X-006), for him to read; no « ». */
+      spectrumBorder: 'Показывать рамку Spectrum',
+      spectrumBorderTip: 'Шире 2560 пикселей приложение перестаёт расти; вокруг него остаются тусклые полосы, как при загрузке с ленты. Выключено: просто чёрный фон',
       language: 'Язык интерфейса',
       languages: {
         en: 'English',

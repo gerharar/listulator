@@ -13,6 +13,8 @@ import { maximizeWindow } from './lib/windowMaximize.js'
 import { useInnerWidth } from './lib/useInnerWidth.js'
 import { NarrowWindowBanner, NarrowWindowPopover } from './components/quantum/NarrowWindowNotice/NarrowWindowNotice.js'
 import { resolveExzedSkin, setExzedSkin as persistExzedSkin } from './lib/preferences/exzedSkin.js'
+import { resolveSpectrumBorder } from './lib/preferences/spectrumBorder.js'
+import { SpectrumBorderProvider } from './components/quantum/DocumentTheme/SpectrumBorderSetting.js'
 import { activeSkin } from './lib/preferences/activeSkin.js'
 import type { ExzedSkin } from './lib/preferences/exzedSkins.js'
 import { resolveLanguage, type Language } from './lib/preferences/language.js'
@@ -67,6 +69,8 @@ interface BootState {
   skin: Skin
   /** eX-Zed's own skin (X-003), read at boot beside Quantum's: the page carries the active theme's (`activeSkin`). */
   exzedSkin: ExzedSkin
+  /** Whether eX-Zed draws the Spectrum border (X-006), as stored: on unless a clear no. */
+  spectrumBorder: boolean
   /** The theme (Phase 48), as stored at boot: the shell holds the live one in state (49.7). */
   theme: Theme
   language: Language
@@ -105,12 +109,13 @@ export function App() {
       resolveReducedMotionSetting(store),
       resolveMarkOpenGroups(store),
       resolveShowTimeLeft(store),
+      resolveSpectrumBorder(store),
     ])
-      .then(([skin, exzedSkin, theme, language, reducedSetting, markOpenGroups, showTimeLeft]) => {
+      .then(([skin, exzedSkin, theme, language, reducedSetting, markOpenGroups, showTimeLeft, spectrumBorder]) => {
         // Before the first render of the shell: its sizes are read from the page as it lays out (themeSizes.ts). On a touch-only device the stored eX-Zed is not
         // drawn (49.10) and is left as it is.
         applyLook(effectiveTheme(theme, finePointer()), skin, exzedSkin)
-        setBoot({ skin, exzedSkin, theme, language, reducedSetting, markOpenGroups, showTimeLeft })
+        setBoot({ skin, exzedSkin, spectrumBorder, theme, language, reducedSetting, markOpenGroups, showTimeLeft })
       })
       .catch((cause: unknown) =>
         setError(cause instanceof Error ? cause.message : copy.app.unknownError),
@@ -206,6 +211,7 @@ function QuantumShell({ initial }: { initial: BootState }) {
               <LanguageProvider initialLanguage={initial.language}>
                 <GroupLineProvider on={initial.markOpenGroups} store={store}>
                   <TimeLeftProvider on={initial.showTimeLeft} store={store}>
+                    <SpectrumBorderProvider on={initial.spectrumBorder} store={store}>
                     <LayerStackProvider home={homeLayer()}>
                       <AppShellBody
                         skin={skin}
@@ -227,6 +233,7 @@ function QuantumShell({ initial }: { initial: BootState }) {
                         }}
                       />
                     </LayerStackProvider>
+                    </SpectrumBorderProvider>
                   </TimeLeftProvider>
                 </GroupLineProvider>
               </LanguageProvider>

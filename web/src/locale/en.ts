@@ -391,6 +391,9 @@ export const en = {
       /** The canvas's words (H-024, owner 2026-10-31). */
       showTimeLeft: 'Show time left in My Lists',
       showTimeLeftTip: "Time left is often estimated or still being looked up; off, it shows when you point at a list's progress",
+      /** eX-Zed only (X-006). The label is the owner's (2026-11-11); the tooltip is design's proposal (the owner may change it). */
+      spectrumBorder: 'Show Spectrum border',
+      spectrumBorderTip: 'Above 2560px the app stops growing; the space around it shows dim tape-loading stripes. Off: plain black.',
       language: 'Interface Language',
       languages: {
         en: 'English',

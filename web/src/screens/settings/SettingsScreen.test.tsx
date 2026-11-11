@@ -14,6 +14,7 @@ import { LiveRegionProvider } from '../../components/quantum/LiveRegion/LiveRegi
 import { OverlayManagerProvider } from '../../components/quantum/overlay/OverlayManagerContext.js'
 import { MotionProvider } from '../../components/quantum/Motion/MotionContext.js'
 import { GroupLineProvider, GroupTriangle } from '../../components/quantum/GroupTriangle/GroupTriangle.js'
+import { SpectrumBorderProvider } from '../../components/quantum/DocumentTheme/SpectrumBorderSetting.js'
 import { TimeLeftProvider } from '../../components/quantum/Home/TimeLeftSetting.js'
 import { de } from '../../locale/de.js'
 import { en } from '../../locale/en.js'
@@ -70,7 +71,7 @@ function StackReader() {
 }
 
 function renderSettings(
-  options: { skin?: 'dark-blue' | 'light-bone'; theme?: Theme; canChooseTheme?: boolean; exzedSkin?: ExzedSkin; reducedSetting?: boolean; markOpenGroups?: boolean; showTimeLeft?: boolean } = {},
+  options: { skin?: 'dark-blue' | 'light-bone'; theme?: Theme; canChooseTheme?: boolean; exzedSkin?: ExzedSkin; reducedSetting?: boolean; markOpenGroups?: boolean; showTimeLeft?: boolean; spectrumBorder?: boolean } = {},
 ) {
   const onSkinChange = vi.fn()
   const onThemeChange = vi.fn()
@@ -81,6 +82,7 @@ function renderSettings(
         <MotionProvider initialReducedSetting={options.reducedSetting} store={store}>
           <GroupLineProvider on={options.markOpenGroups ?? false} store={store}>
             <TimeLeftProvider on={options.showTimeLeft ?? false} store={store}>
+              <SpectrumBorderProvider on={options.spectrumBorder ?? true} store={store}>
               <LanguageProvider>
                 <LayerStackProvider home={{ id: 'home', kind: 'home', tabLabel: 'Home', content: '/' }}>
                   <StackReader />
@@ -100,6 +102,7 @@ function renderSettings(
                   />
                 </LayerStackProvider>
               </LanguageProvider>
+              </SpectrumBorderProvider>
             </TimeLeftProvider>
           </GroupLineProvider>
         </MotionProvider>
@@ -518,6 +521,78 @@ describe('SettingsScreen: Show time left in My Lists (H-024)', () => {
 
     expect(translatedLabel).not.toBe(label)
     expect(translatedTip).not.toBe(en.quantum.settings.showTimeLeftTip)
+    expect(await hoverTooltip(screen.getByRole('checkbox', { name: translatedLabel }).closest('label')!)).toBe(translatedTip)
+  })
+})
+
+describe('SettingsScreen: Show Spectrum border (X-006, eX-Zed only)', () => {
+  const label = en.quantum.settings.spectrumBorder
+  const box = () => screen.getByRole('checkbox', { name: label }) as HTMLInputElement
+
+  afterEach(() => document.documentElement.removeAttribute('data-border'))
+
+  it('is last in Screen, after Show time left in My Lists, under eX-Zed', () => {
+    renderSettings({ theme: 'exzed' })
+
+    const boxes = screen.getAllByRole('checkbox').map((entry) => entry.closest('label')?.textContent)
+    expect(boxes.at(-1)).toBe(label)
+    expect(boxes.at(-2)).toBe(en.quantum.settings.showTimeLeft)
+    expect(label).toBe('Show Spectrum border')
+  })
+
+  it('is not there under Quantum, nor on a touch-only device (which draws Quantum): the Screen group is as it was', () => {
+    renderSettings({ theme: 'quantum' })
+
+    expect(screen.queryByRole('checkbox', { name: label })).toBeNull()
+    expect(screen.getAllByRole('checkbox').map((entry) => entry.closest('label')?.textContent).at(-1)).toBe(en.quantum.settings.showTimeLeft)
+  })
+
+  it('is checked by default, and the page has no data-border while it is', () => {
+    renderSettings({ theme: 'exzed' })
+
+    expect(box().checked).toBe(true)
+    expect(document.documentElement.hasAttribute('data-border')).toBe(false)
+  })
+
+  it('turns the border off and on at once: data-border on <html> follows, and the choice is stored', async () => {
+    renderSettings({ theme: 'exzed' })
+
+    act(() => box().click())
+    expect(box().checked).toBe(false)
+    expect(document.documentElement.getAttribute('data-border')).toBe('off')
+    await waitFor(() => expect(store.data.get('spectrumBorder')).toBe('false'))
+
+    act(() => box().click())
+    expect(box().checked).toBe(true)
+    expect(document.documentElement.hasAttribute('data-border')).toBe(false)
+    await waitFor(() => expect(store.data.get('spectrumBorder')).toBe('true'))
+  })
+
+  it('starts unchecked, with the page already plain, when the stored choice is off', () => {
+    renderSettings({ theme: 'exzed', spectrumBorder: false })
+
+    expect(box().checked).toBe(false)
+    expect(document.documentElement.getAttribute('data-border')).toBe('off')
+  })
+
+  it('says what it does on hover (the wording is a proposal: design’s), and as the box’s description for a screen reader', async () => {
+    renderSettings({ theme: 'exzed' })
+
+    expect(await hoverTooltip(box().closest('label')!)).toBe(en.quantum.settings.spectrumBorderTip)
+    expect(box().getAttribute('aria-description')).toBe(en.quantum.settings.spectrumBorderTip)
+    expect(en.quantum.settings.spectrumBorderTip).toBe('Above 2560px the app stops growing; the space around it shows dim tape-loading stripes. Off: plain black.')
+  })
+
+  it.each([
+    ['Русский', ru.quantum.settings.spectrumBorder, ru.quantum.settings.spectrumBorderTip],
+    ['Deutsch', de.quantum.settings.spectrumBorder, de.quantum.settings.spectrumBorderTip],
+  ])('is named and explained in %s in its own words (a draft for the owner to read; no « » in Russian)', async (language, translatedLabel, translatedTip) => {
+    renderSettings({ theme: 'exzed' })
+    act(() => screen.getByRole('button', { name: language }).click())
+
+    expect(translatedLabel).not.toBe(label)
+    expect(translatedTip).not.toBe(en.quantum.settings.spectrumBorderTip)
+    expect(`${translatedLabel}${translatedTip}`).not.toMatch(/[«»]/)
     expect(await hoverTooltip(screen.getByRole('checkbox', { name: translatedLabel }).closest('label')!)).toBe(translatedTip)
   })
 })

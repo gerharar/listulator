@@ -346,6 +346,9 @@ export const de: Locale = {
       /** A draft after the canvas wording (H-024); de has no native review. */
       showTimeLeft: 'Verbleibende Zeit in „Meine Listen“ anzeigen',
       showTimeLeftTip: 'Die verbleibende Zeit ist oft geschätzt oder wird noch ermittelt; ausgeschaltet erscheint sie, wenn du auf den Fortschritt einer Liste zeigst',
+      /** A draft after the owner's English and design's tooltip (X-006); de has no native review. */
+      spectrumBorder: 'Spectrum-Rand anzeigen',
+      spectrumBorderTip: 'Über 2560 Pixel wächst die App nicht weiter; um sie herum erscheinen gedimmte Ladestreifen wie beim Laden vom Band. Ausgeschaltet: einfach schwarz',
       language: 'Sprache der Oberfläche',
       languages: {
         en: 'English',
