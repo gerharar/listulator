@@ -15,11 +15,25 @@ html.theme-exzed .q-backdrop > [data-slot] {
 html.theme-exzed .q-backdrop > [data-slot='window'] {
   top: 0;
   bottom: 0;
+  z-index: 0;
+}
+
+/* From the bottom up, as design's boards stand: the ground, the strip along the bottom, the side art (over the ground, under the window and its rings), the strip under
+   the header over all of them, the bottom scene. */
+html.theme-exzed .q-backdrop > [data-slot='bottom'] {
+  z-index: 1;
+}
+html.theme-exzed .q-backdrop > [data-slot='sides'] {
+  z-index: 2;
 }
 
 /* The strip under the header (the separator, the "ledge"): it starts where the header ends, and each skin that has one gives it its height. */
 html.theme-exzed .q-backdrop > [data-slot='header'] {
   top: var(--header-h);
+  z-index: 3;
+}
+html.theme-exzed .q-backdrop > [data-slot='scene'] {
+  z-index: 4;
 }
 
 /* 1d Lode: red bricks, and the cornice under the header. */
@@ -29,4 +43,56 @@ html[data-theme='exzed-1d'] .q-backdrop > [data-slot='window'] {
 html[data-theme='exzed-1d'] .q-backdrop > [data-slot='header'] {
   height: 16px;
   background: url('./art/red-bricks-cornice.png') 0 0 / 64px 16px repeat-x;
+}
+
+/* 1a Focal: blue stones (2-colour), the dither fade under the header, and the side stripes. */
+html[data-theme='exzed-1a'] .q-backdrop > [data-slot='window'] {
+  background: url('./art/blue-stones-wall.png') 0 0 / 2004px 1542px repeat;
+}
+html[data-theme='exzed-1a'] .q-backdrop > [data-slot='header'] {
+  height: 16px;
+  background: url('./art/blue-stones-separator.png') 0 0 / 8px 16px repeat-x;
+}
+
+/* 1b Glemt: grey stones (2-colour) and the dither fade under the header (its rail and cornice are spare: design's answer of 2026-11-11), and the side stripes. */
+html[data-theme='exzed-1b'] .q-backdrop > [data-slot='window'] {
+  background: url('./art/grey-stones-wall.png') 0 0 / 2004px 1542px repeat;
+}
+html[data-theme='exzed-1b'] .q-backdrop > [data-slot='header'] {
+  height: 16px;
+  background: url('./art/grey-stones-separator.png') 0 0 / 8px 16px repeat-x;
+}
+
+/*
+ * The side stripes of Focal and Glemt (X-006, design's answer of 2026-11-11): one long 45 degree four-band line on a 2304px transparent square, shown at 1:1, the same file on
+ * both sides, and tied to the window's border box, which is the header's own gutter from the app's edge (`--header-gutter`, the window's left; its right is the same from the
+ * far edge). The left one comes out 128px inside the window's left edge, its bottom 1824px under the screen's bottom, and runs down and left; the right one 200px inside the
+ * window's right edge, its top 1860px above the screen's top, and runs up and right. The slot is the app's box and clips both (`overflow: hidden`). They are the slot's own
+ * pseudo-elements, so the slot holds no DOM.
+ */
+html[data-theme='exzed-1a'] .q-backdrop > [data-slot='sides'],
+html[data-theme='exzed-1b'] .q-backdrop > [data-slot='sides'] {
+  top: 0;
+  bottom: 0;
+  overflow: hidden;
+}
+html[data-theme='exzed-1a'] .q-backdrop > [data-slot='sides']::before,
+html[data-theme='exzed-1b'] .q-backdrop > [data-slot='sides']::before {
+  content: '';
+  position: absolute;
+  left: calc(var(--header-gutter) + 128px - 2304px);
+  bottom: -1824px;
+  width: 2304px;
+  height: 2304px;
+  background: url('./art/side-stripes.png') 0 0 / 2304px 2304px no-repeat;
+}
+html[data-theme='exzed-1a'] .q-backdrop > [data-slot='sides']::after,
+html[data-theme='exzed-1b'] .q-backdrop > [data-slot='sides']::after {
+  content: '';
+  position: absolute;
+  left: calc(100% - var(--header-gutter) - 200px);
+  top: -1860px;
+  width: 2304px;
+  height: 2304px;
+  background: url('./art/side-stripes.png') 0 0 / 2304px 2304px no-repeat;
 }
