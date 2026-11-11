@@ -40,6 +40,8 @@ const CHECKSUMS: Record<string, string> = {
   // Choose Your Fighter's bottom scene (50.8): the picker's, not a skin's.
   '80s-desk.png': '5ede34e19c1ae40f464fb91ae4e00bfbf9d04bf10f87c68791b823b59a057ded',
   'fantasy-landscape.png': '8764d06d8affafa944eaa60c125a7712928509d6e815cc44559c8ab6064a46f4',
+  // The vault door (50.10): the List Vault's empty pane, not a skin's.
+  'vault-door.png': '7549826d513f1e99f4f75369eda9e954381db07e7d4ef17d62abedf535e6cfc3',
   // The category banners (50.9): the list header's and the picker's tiles', not a skin's.
   'movies.png': '2582b9bbc0de7b2e1cd70f419b1c7a0218d60d8b8e8cfeab5a5f229acf92a524',
   'tv-series.png': '6aa5772764ee3a8696adab44848c959dca1fb0db89d47f53d1bd638a9aa5935e',
@@ -225,6 +227,12 @@ describe('the skin art', () => {
     expect(css).toMatch(/\.q-catbanner\[data-where='tile'\]\s*{\s*position:\s*absolute;\s*inset:\s*0;\s*}/)
     expect(css).toMatch(/\.q-tile:hover\s*{\s*background:\s*var\(--zx-acc\);\s*border-color:\s*var\(--zx-acc\);\s*color:\s*var\(--zx-acc-ink\);\s*}/)
     expect(css).toMatch(/\.q-tile:hover \.q-catbanner\s*{\s*background:\s*var\(--zx-acc-ink\);\s*}/)
+  })
+
+  it('the vault door: a mask of the file at 3 screen px to an art pixel (306x300), in the progress colour, 16px above the words, in no skin’s rules', () => {
+    expect(css).toMatch(/\.q-vb-door\s*{\s*flex:\s*none;\s*display:\s*block;\s*width:\s*306px;\s*height:\s*300px;\s*background:\s*var\(--zx-prog-dim\);\s*-webkit-mask:\s*url\('\.\/art\/vault-door\.png'\) 0 0 \/ 306px 300px no-repeat;\s*mask:\s*url\('\.\/art\/vault-door\.png'\) 0 0 \/ 306px 300px no-repeat;\s*image-rendering:\s*pixelated;/)
+    expect(css).toMatch(/\.q-vb-empty\s*{\s*gap:\s*16px;\s*}/)
+    for (const skin of BUILT) expect(rulesFor(skin).join('\n'), skin).not.toMatch(/vault-door|q-vb/)
   })
 
   it('the build never inlines a picture of the art folder into the stylesheet (a data URI every Quantum user would download): the banners are 1 to 3 KB, under Vite’s 4 KB default', () => {

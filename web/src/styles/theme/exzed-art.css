@@ -411,3 +411,22 @@ html.theme-exzed .q-catbanner[data-art='mega'] {
   -webkit-mask: url('./art/mega.png') var(--banner-x) 100% / var(--banner-w) var(--banner-h) no-repeat;
   mask: url('./art/mega.png') var(--banner-x) 100% / var(--banner-w) var(--banner-h) no-repeat;
 }
+
+/*
+ * The vault door (X-006, 50.10): in the List Vault's empty pane (loading, out of reach, nothing picked) eX-Zed draws the door, a raster mask in the skin's progress colour, 102x100
+ * art pixels at 3 screen px each (306x300), centred with 16px between it and the words, in place of Quantum's line drawing (`.q-vb-art`, not rendered under eX-Zed). The file is
+ * asked for only while the pane shows it.
+ */
+html.theme-exzed .q-vb-empty {
+  gap: 16px;
+}
+html.theme-exzed .q-vb-door {
+  flex: none;
+  display: block;
+  width: 306px;
+  height: 300px;
+  background: var(--zx-prog-dim);
+  -webkit-mask: url('./art/vault-door.png') 0 0 / 306px 300px no-repeat;
+  mask: url('./art/vault-door.png') 0 0 / 306px 300px no-repeat;
+  image-rendering: pixelated;
+}

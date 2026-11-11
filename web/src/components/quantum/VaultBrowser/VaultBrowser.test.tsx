@@ -6,6 +6,8 @@ import { api, type MediaType } from '../../../lib/api.js'
 import { LayerStackProvider, useLayerStack } from '../layerStack/LayerStackContext.js'
 import { VaultBrowser } from './VaultBrowser.js'
 import { en } from '../../../locale/en.js'
+import { ThemeContext } from '../DocumentTheme/ThemeContext.js'
+import type { Theme } from '../../../lib/preferences/theme.js'
 
 vi.mock('../../../lib/api.js', () => ({ api: { library: vi.fn() } }))
 
@@ -50,16 +52,19 @@ function PathReader() {
   return <span data-testid="paths">{stack.map((layer) => layer.content).join(' | ')}</span>
 }
 
-function mount(answer: { entries: LibraryBrowserEntry[]; reachable: boolean } | Error) {
-  if (answer instanceof Error) vi.mocked(api.library).mockRejectedValue(answer)
+function mount(answer: { entries: LibraryBrowserEntry[]; reachable: boolean } | Error | 'never', theme: Theme = 'quantum') {
+  if (answer === 'never') vi.mocked(api.library).mockReturnValue(new Promise(() => {}))
+  else if (answer instanceof Error) vi.mocked(api.library).mockRejectedValue(answer)
   else vi.mocked(api.library).mockResolvedValue(answer)
 
   return render(
-    <LayerStackProvider home={{ id: 'home', kind: 'home', tabLabel: 'My Lists', content: '/' }}>
-      <VaultBrowser mediaTypes={TYPES} />
-      <StackReader />
-      <PathReader />
-    </LayerStackProvider>,
+    <ThemeContext.Provider value={theme}>
+      <LayerStackProvider home={{ id: 'home', kind: 'home', tabLabel: 'My Lists', content: '/' }}>
+        <VaultBrowser mediaTypes={TYPES} />
+        <StackReader />
+        <PathReader />
+      </LayerStackProvider>
+    </ThemeContext.Provider>,
   )
 }
 
@@ -566,5 +571,43 @@ describe('VaultBrowser', () => {
       expect(screen.getByRole('group', { name: 'Movies · 2 lists' })).toBeTruthy()
       expect(categoryButton('Games').getAttribute('aria-description')).toBe('No List Vault lists in this category yet')
     })
+  })
+})
+
+describe('VaultBrowser: the vault door (X-006, eX-Zed only)', () => {
+  const door = () => document.querySelector('.q-vb-door')
+  const art = () => document.querySelector('.q-vb-art')
+
+  it.each([
+    ['loading', 'never' as const, undefined],
+    ['out of reach', { entries: [], reachable: false }, en.quantum.vaultBrowser.outTitle],
+    ['nothing picked', { entries: LIBRARY, reachable: true }, en.quantum.vaultBrowser.chooseTitle],
+  ])('draws the door in place of the line drawing in the empty pane, %s, with the words and the live region as they were', async (_name, answer, title) => {
+    mount(answer, 'exzed')
+    if (title) await waitFor(() => expect(screen.getByText(title)).toBeTruthy())
+
+    expect(door()).not.toBeNull()
+    expect(door()?.getAttribute('aria-hidden')).toBe('true')
+    expect(art(), 'the line drawing is Quantum’s').toBeNull()
+    const status = screen.getByRole('status')
+    expect(status.textContent?.length).toBeGreaterThan(0)
+    expect(door()?.nextElementSibling).toBe(status)
+    expect(status.contains(door())).toBe(false)
+  })
+
+  it('keeps Quantum’s own drawing and no door', async () => {
+    mount({ entries: LIBRARY, reachable: true }, 'quantum')
+    await waitFor(() => expect(screen.getByText(en.quantum.vaultBrowser.chooseTitle)).toBeTruthy())
+
+    expect(art()).not.toBeNull()
+    expect(door()).toBeNull()
+  })
+
+  it('is gone once a category is chosen (the empty pane is gone)', async () => {
+    mount({ entries: LIBRARY, reachable: true }, 'exzed')
+    await waitFor(() => expect(countOf('Movies')).toBe('2'))
+    fireEvent.click(categoryButton('Movies'))
+
+    expect(door()).toBeNull()
   })
 })

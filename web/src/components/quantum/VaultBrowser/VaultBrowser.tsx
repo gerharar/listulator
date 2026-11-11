@@ -10,6 +10,7 @@ import { HeaderPlate } from '../HeaderPlate/HeaderPlate.js'
 import { useLayerStack } from '../layerStack/LayerStackContext.js'
 import { StatusChip, statusChipData } from '../StatusChip/StatusChip.js'
 import { Triangle } from '../Triangle/Triangle.js'
+import { useTheme } from '../DocumentTheme/ThemeContext.js'
 import { previewPath } from '../../../lib/preview.js'
 import { browserTime, DEFAULT_SORT, nextSort, sortRows, type BrowserSort, type SortKey } from './browserRows.js'
 
@@ -46,6 +47,7 @@ type Library = { phase: 'loading' } | { phase: 'out' } | { phase: 'ready'; entri
 export function VaultBrowser({ mediaTypes }: VaultBrowserProps) {
   const text = copy.quantum.vaultBrowser
   const layerStack = useLayerStack()
+  const theme = useTheme()
   const [library, setLibrary] = useState<Library>({ phase: 'loading' })
   const [selected, setSelected] = useState<string | null>(null)
   const [retrying, setRetrying] = useState(false)
@@ -304,9 +306,14 @@ export function VaultBrowser({ mediaTypes }: VaultBrowserProps) {
             </div>
           ) : (
             <div className="q-vb-empty">
-              <span className="q-vb-art" aria-hidden="true">
-                <Vault width={150} height={150} />
-              </span>
+              {/* X-006: eX-Zed's door (a raster mask the stylesheet draws) in place of Quantum's line drawing. */}
+              {theme === 'exzed' ? (
+                <span className="q-vb-door" aria-hidden="true" />
+              ) : (
+                <span className="q-vb-art" aria-hidden="true">
+                  <Vault width={150} height={150} />
+                </span>
+              )}
               {/* A polite live region: Loading and out of reach are announced without a tab stop (design, 2026-10-27). */}
               <div className="q-vb-message" role="status">
                 <h2 className="q-vb-empty-title">{library.phase === 'out' ? text.outTitle : text.chooseTitle}</h2>
