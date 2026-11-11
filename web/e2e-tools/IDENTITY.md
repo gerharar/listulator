@@ -22,6 +22,8 @@ Two baselines matter for eX-Zed (Phase 49): `x003`, the Quantum screens as they 
 against so each shows only its intended differences (`IDENTITY_MODE=compare IDENTITY_BASELINE=exzed-x003 IDENTITY_THEME=exzed npm run identity`).
 A compare straight after a capture is zero, for both.
 
+`exzed-x003` was captured at 49.14 and is **stale on purpose while X-006 is built** (the art, the Spectrum border, its Settings row, the picker's scene, the category banners and the vault door each change eX-Zed's states: its compare fails every one of them on the dump and some on pixels, by design). It is re-captured once, **after the owner has looked** (Checkpoint F of Phase 50), and a compare straight after that capture passes in full; X-007 then compares against the new one. Quantum's `x003` is never re-captured for this.
+
 Narrow it with `IDENTITY_THEME=quantum`, `IDENTITY_STATE=list`, `--project=chromium`, `-g "dark-orange"`. Run `compare` straight after a `capture` once:
 that is the check that the baseline is repeatable.
 
