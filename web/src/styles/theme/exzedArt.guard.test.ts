@@ -181,10 +181,11 @@ describe('the skin art', () => {
     for (const skin of BUILT) expect(rulesFor(skin).join('\n'), skin).not.toMatch(/border-stripes/)
   })
 
-  it('Lotus’s border is plain bright white whatever the setting says; the other skins’ goes plain with it off (`data-border="off"` on <html>, set by 50.7)', () => {
-    expect(css).toMatch(/html\[data-theme='exzed-1l'\] \.q-backdrop\s*{\s*background-color:\s*#ffffff;\s*background-image:\s*none;\s*}/)
+  it('Lotus has no border: the paper runs to the screen’s edges, the stripes never drawn, setting or no setting; the other skins’ stripes go plain with it off (`data-border="off"` on <html>, set by 50.7)', () => {
+    expect(css).not.toMatch(/html\[data-theme='exzed-1l'\] \.q-backdrop\s*{[^}]*#ffffff/)
+    expect(css).toMatch(/html\[data-theme='exzed-1l'\] \.q-backdrop\s*{\s*background-image:\s*none;\s*}/)
     expect(css).toMatch(/html\.theme-exzed\[data-border='off'\] \.q-backdrop\s*{\s*background-image:\s*none;\s*}/)
-    // Lotus's rule comes after the picture's, and the off rule only removes the picture, so Lotus's white is never lost.
+    // Lotus's rule comes after the picture's, so the stripes are never lost to it.
     expect(css.indexOf("html[data-theme='exzed-1l'] .q-backdrop {")).toBeGreaterThan(css.indexOf('border-stripes.png'))
   })
 

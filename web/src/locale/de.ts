@@ -349,6 +349,7 @@ export const de: Locale = {
       /** A draft after the owner's English and design's tooltip (X-006); de has no native review. */
       spectrumBorder: 'Spectrum-Rand anzeigen',
       spectrumBorderTip: 'Über 2560 Pixel wächst die App nicht weiter; um sie herum erscheinen gedimmte Ladestreifen wie beim Laden vom Band. Ausgeschaltet: einfach schwarz',
+      spectrumBorderLotusTip: 'Lotus hat keinen Rand: das Papier reicht bis zum Bildschirmrand.',
       language: 'Sprache der Oberfläche',
       languages: {
         en: 'English',

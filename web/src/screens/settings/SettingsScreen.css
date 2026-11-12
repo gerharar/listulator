@@ -69,6 +69,13 @@
   color: var(--ink2);
 }
 
+/* eX-Zed (50.13): a disabled row is told apart by a shape, never faded (design: "no fill and a dotted outline"). The Show Spectrum border row on Lotus. */
+html.theme-exzed .q-settings-check[data-disabled] {
+  outline: 2px dotted currentColor;
+  outline-offset: 4px;
+  cursor: default;
+}
+
 .q-chip.choice.skin {
   display: flex;
   align-items: center;

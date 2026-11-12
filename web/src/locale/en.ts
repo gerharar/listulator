@@ -394,6 +394,8 @@ export const en = {
       /** eX-Zed only (X-006). The label is the owner's (2026-11-11); the tooltip is design's proposal (the owner may change it). */
       spectrumBorder: 'Show Spectrum border',
       spectrumBorderTip: 'Above 2560px the app stops growing; the space around it shows dim tape-loading stripes. Off: plain black.',
+      /** Design answer 12 (2026-11-12): on Lotus the switch is disabled, and this is its tooltip. */
+      spectrumBorderLotusTip: "Lotus has no border: its paper runs to the screen's edges.",
       language: 'Interface Language',
       languages: {
         en: 'English',

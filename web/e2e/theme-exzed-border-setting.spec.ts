@@ -6,7 +6,7 @@ import { decodePng } from './pngPixels.js'
 
 /**
  * Settings → Screen → Show Spectrum border (50.7, X-006), in both engines. eX-Zed only, last in the group, on by default; turning it off puts `data-border="off"` on `<html>` at
- * once (the stripes around the app go and the ground is plain black; Lotus stays white), it is remembered, and a stored "off" is on the page before the first frame. It is
+ * once (the stripes around the app go and the ground is plain black; Lotus has no border at all, the paper runs on), it is remembered, and a stored "off" is on the page before the first frame. It is
  * not there under Quantum. The words are in the locale (the tooltip is design's proposal; the Russian and German are drafts for the owner to read).
  */
 const LABEL = en.quantum.settings.spectrumBorder
@@ -75,13 +75,35 @@ test('unticked, it takes the stripes away at once and leaves the ground plain bl
   expect(await stored(page)).toBe('true')
 })
 
-test('in Lotus the border is white ticked and unticked', async ({ page }) => {
+test('in Lotus there is no border: the paper runs to both edges of the screen, ticked or unticked, and the switch is disabled with its reason (50.13, design answer 12)', async ({ page }) => {
   await boot(page, { exzedSkin: 'exzed-1l' })
   await openSettings(page)
-  expect(await colours(page)).toEqual(['255,255,255'])
+  const paper = await page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--zx-stage').trim())
+  const rgb = (hex: string) => [parseInt(hex.slice(1, 3), 16), parseInt(hex.slice(3, 5), 16), parseInt(hex.slice(5, 7), 16)].join(',')
+  expect(await colours(page), 'the left of the screen is the paper').toEqual([rgb(paper)])
+  expect(await image(page)).toBe('none')
 
-  await box(page).uncheck()
-  expect(await colours(page), 'still plain bright white').toEqual(['255,255,255'])
+  // The right side too, and no line between the app's box and the paper beside it: a column inside the box and one outside, in a band with nothing drawn on it.
+  const right = decodePng(await page.screenshot({ clip: { x: 3000, y: 100, width: 440, height: 600 } }))
+  const distinct = new Set<string>()
+  for (let at = 0; at < right.data.length; at += 4) distinct.add(`${right.data[at]},${right.data[at + 1]},${right.data[at + 2]}`)
+  expect([...distinct], 'the right of the screen is the paper').toEqual([rgb(paper)])
+
+  await expect(box(page)).toBeDisabled()
+  await box(page).hover({ force: true })
+  await expect(page.getByRole('tooltip')).toHaveText(en.quantum.settings.spectrumBorderLotusTip)
+})
+
+test('on Lotus the stored choice is kept: a stored "off" still shows unticked, and the dark skins have it again when the skin changes', async ({ page }) => {
+  await boot(page, { exzedSkin: 'exzed-1l', spectrumBorder: 'false' })
+  await openSettings(page)
+  await expect(box(page)).toBeDisabled()
+  await expect(box(page)).not.toBeChecked()
+  expect(await stored(page)).toBe('false')
+  await page.getByRole('button', { name: 'Lode' }).click()
+  await expect(box(page), 'the dark skins have the switch again, as it was left').toBeEnabled()
+  await expect(box(page)).not.toBeChecked()
+  expect(await attribute(page)).toBe('off')
 })
 
 test('it is remembered both ways across a restart, and a stored "off" is on the page before the first frame', async ({ page }) => {

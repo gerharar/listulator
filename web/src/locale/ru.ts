@@ -356,6 +356,7 @@ export const ru: Locale = {
       /** Claude's draft after the owner's English and design's tooltip (X-006), for him to read; no « ». */
       spectrumBorder: 'Показывать рамку Spectrum',
       spectrumBorderTip: 'Шире 2560 пикселей приложение перестаёт расти; вокруг него остаются тусклые полосы, как при загрузке с ленты. Выключено: просто чёрный фон',
+      spectrumBorderLotusTip: 'У Lotus нет рамки: бумага тянется до краёв экрана.',
       language: 'Язык интерфейса',
       languages: {
         en: 'English',

@@ -583,6 +583,29 @@ describe('SettingsScreen: Show Spectrum border (X-006, eX-Zed only)', () => {
     expect(en.quantum.settings.spectrumBorderTip).toBe('Above 2560px the app stops growing; the space around it shows dim tape-loading stripes. Off: plain black.')
   })
 
+  it('on Lotus the switch is disabled (the stored choice kept, shown as it is) and says why; on the other five skins it is enabled with the usual tooltip (50.13, design answer 12)', async () => {
+    const { unmount } = renderSettings({ theme: 'exzed', exzedSkin: 'exzed-1l', spectrumBorder: false })
+    expect(box().disabled).toBe(true)
+    expect(box().checked, 'the stored value is kept').toBe(false)
+    expect(box().getAttribute('aria-description')).toBe(en.quantum.settings.spectrumBorderLotusTip)
+    expect(await hoverTooltip(box().closest('label')!)).toBe(en.quantum.settings.spectrumBorderLotusTip)
+    expect(en.quantum.settings.spectrumBorderLotusTip).toBe("Lotus has no border: its paper runs to the screen's edges.")
+    unmount()
+
+    for (const skin of EXZED_SKINS.filter((id) => id !== 'exzed-1l')) {
+      const view = renderSettings({ theme: 'exzed', exzedSkin: skin })
+      expect(box().disabled, skin).toBe(false)
+      expect(box().getAttribute('aria-description'), skin).toBe(en.quantum.settings.spectrumBorderTip)
+      view.unmount()
+    }
+  })
+
+  it('the Lotus tooltip is translated in its own words (drafts for the owner to read; no « » in Russian)', () => {
+    expect(ru.quantum.settings.spectrumBorderLotusTip).not.toBe(en.quantum.settings.spectrumBorderLotusTip)
+    expect(de.quantum.settings.spectrumBorderLotusTip).not.toBe(en.quantum.settings.spectrumBorderLotusTip)
+    expect(ru.quantum.settings.spectrumBorderLotusTip).not.toMatch(/[«»]/)
+  })
+
   it.each([
     ['Русский', ru.quantum.settings.spectrumBorder, ru.quantum.settings.spectrumBorderTip],
     ['Deutsch', de.quantum.settings.spectrumBorder, de.quantum.settings.spectrumBorderTip],
