@@ -13,7 +13,7 @@ const SKINS = ['exzed-1d', 'exzed-1a', 'exzed-1b', 'exzed-1c', 'exzed-1e', 'exze
 const SUMMARY = {
   id: 'L1',
   title: 'A title long enough to wrap onto a second line in a narrow header, because it keeps going on past the banner',
-  description: 'A subline that is long enough to wrap onto a second line when the column is only so wide, and then a little more so that the second line is shorter than the first.',
+  description: 'A subline that is long enough to wrap onto a second line when the column is only so wide, and then a little more so that the second line is shorter than the first.' as string | null,
   mediaType: 'movie',
   source: 'manual',
   externalRef: null,
