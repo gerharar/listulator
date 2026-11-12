@@ -2,6 +2,7 @@ import { NAME_MAX_LENGTH } from '../../../../server/src/catalog/limits.js'
 import './GroupCombobox.css'
 import { useCallback, useId, useRef, useState, type CSSProperties, type KeyboardEvent } from 'react'
 import { copy } from '../../locale/index.js'
+import { useTheme } from '../../components/quantum/DocumentTheme/ThemeContext.js'
 import { useDismissOnPress } from './dismissOnPress.js'
 import { aboveField, opensUp } from './dropDirection.js'
 
@@ -36,6 +37,7 @@ export function GroupCombobox({
   small = false,
 }: GroupComboboxProps) {
   const text = copy.quantum.list
+  const theme = useTheme()
   const listId = useId()
   const [open, setOpen] = useState(false)
   const [active, setActive] = useState(-1)
@@ -72,6 +74,10 @@ export function GroupCombobox({
       ? [{ key: 'new', text: text.createGroup(typed), value: typed }]
       : []),
   ]
+
+  // eX-Zed (D13, design 2026-11-12): a typed field has no current option until what is typed is exactly one (a group, or nothing for "No group"): only then the listbox marks it with the
+  // pointer. Quantum draws no such mark, so the class is not set there.
+  const isCurrent = (option: Option) => theme === 'exzed' && option.key !== 'new' && option.value === value
 
   function pick(option: Option) {
     onChange(option.value)
@@ -139,7 +145,7 @@ export function GroupCombobox({
               key={option.key}
               role="option"
               aria-selected={index === active}
-              className={index === active ? 'active' : undefined}
+              className={[index === active ? 'active' : '', isCurrent(option) ? 'current' : ''].filter(Boolean).join(' ') || undefined}
               // Before the input's blur, or the list would close under the click.
               onMouseDown={(event) => event.preventDefault()}
               onClick={() => pick(option)}

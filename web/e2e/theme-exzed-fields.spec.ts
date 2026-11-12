@@ -182,6 +182,16 @@ for (const skin of SKINS) {
       const pop = page.locator('.q-pop').first()
       const inputs = pop.locator('input.q-input')
       expect(await inputs.count()).toBeGreaterThan(1)
+      // The edit popover's Year holds a placeholder of ten characters: it must fit its box.
+      const fits = await pop.locator('.q-edit-year').evaluate((el) => {
+        const input = el as HTMLInputElement
+        const style = getComputedStyle(input)
+        const ctx = document.createElement('canvas').getContext('2d')!
+        ctx.font = style.font
+
+        return { text: ctx.measureText(input.placeholder).width, inner: input.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight) }
+      })
+      expect(fits.text, `the Year placeholder (${fits.text}px) fits the ${fits.inner}px inside the field`).toBeLessThanOrEqual(fits.inner)
       await readField(page, inputs.first(), r, 'an item edit field', { placeholder: false })
       await readField(page, pop.locator('textarea.q-input').first(), r, 'the note', { multi: true })
     } finally {

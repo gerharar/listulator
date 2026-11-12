@@ -78,6 +78,12 @@ html.theme-exzed .q-chip:disabled {
   color: var(--zx-ink2);
 }
 
+/* D10 (design, 2026-11-12): a Hold My Beer shelf with candidates has its label in `ink`; one with none keeps the chip at rest in `ink2` (bright = content, normal = nothing there).
+   It stays a chip: clickable, hover and picked as usual, and no dotted outline (that means disabled). */
+html.theme-exzed .q-shelves .q-chip:not(.none):not([aria-pressed='true']):where(:not(:disabled)):not(:hover) {
+  color: var(--zx-ink);
+}
+
 /* Tabs. */
 html.theme-exzed .q-tabs {
   gap: 8px;

@@ -36,6 +36,6 @@ describe('eX-Zed’s fields and listboxes', () => {
 
   it('has no shadow of its own, no alpha, radius, opacity, filter or literal colour, and only the Field card’s sizes', () => {
     expect(css).not.toMatch(/box-shadow|border-radius|opacity\s*:|[;{\s]filter\s*:|rgba?\(|hsla?\(|color-mix|#[0-9a-f]{3,8}\b/i)
-    for (const [, size] of css.matchAll(/(\d+)px/g)) expect(['0', '2', '4', '8', '10', '12', '16', '24', '32', '36', '40', '64', '88']).toContain(size)
+    for (const [, size] of css.matchAll(/(\d+)px/g)) expect(['0', '2', '4', '8', '10', '12', '16', '24', '32', '36', '40', '64', '88', '34', '46', '72', '184', '212']).toContain(size)
   })
 })

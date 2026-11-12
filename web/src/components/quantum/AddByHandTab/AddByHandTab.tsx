@@ -8,6 +8,7 @@ import { categoryHandHints, copy, joinSentences } from '../../../locale/index.js
 import { Button } from '../Button/Button.js'
 import { ErrorStrip } from '../ErrorStrip/ErrorStrip.js'
 import { Field, FieldTextArea } from '../Field/Field.js'
+import { useTheme } from '../DocumentTheme/ThemeContext.js'
 import { useFieldValidation } from '../Field/useFieldValidation.js'
 import { StatusPicker, type PickedStatus } from '../StatusPicker/StatusPicker.js'
 
@@ -34,6 +35,7 @@ const NAMES = { spellCheck: false, autoCorrect: 'off', autoCapitalize: 'off' } a
  */
 export function AddByHandTab({ mediaType, onBuilt }: AddByHandTabProps) {
   const text = copy.quantum.addByHand
+  const theme = useTheme()
   // This category's own examples (11.16); a category nobody wrote for gets the neutral ones.
   const hints = categoryHandHints(mediaType)
 
@@ -101,7 +103,7 @@ export function AddByHandTab({ mediaType, onBuilt }: AddByHandTabProps) {
         value={description}
         onChange={(event) => setDescription(event.target.value)}
         placeholder={text.descriptionPlaceholder}
-        rows={2}
+        rows={theme === 'exzed' ? 3 : 2}
         disabled={saving}
       />
       <div>

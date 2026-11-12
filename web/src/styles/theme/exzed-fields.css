@@ -43,6 +43,10 @@ html.theme-exzed textarea.q-input {
   padding: 8px;
   resize: none;
 }
+/* D12: a multi-line field is its lines x 24 + 16 inside its border; the note grows to eight lines and then scrolls. */
+html.theme-exzed .q-edit-note {
+  max-height: 212px;
+}
 html.theme-exzed .q-input[readonly] {
   background: var(--zx-paper);
   color: var(--zx-ink2);
@@ -69,6 +73,61 @@ html.theme-exzed .q-input.key[aria-invalid='true'] {
 }
 html.theme-exzed textarea.q-input[aria-invalid='true'] {
   padding: 8px;
+}
+
+/* D14 (design, 2026-11-12): the refusal icon (an 8x8 bar and dot) at the invalid field's right end, in `ink`; the border alone would not show on Lotus, where `frame` and `ink` are both
+   black. Drawn on the field's label (the sentence is a sibling outside it), vertically in the middle of a one-line field and at the foot of a multi-line one; a masked key's sits left
+   of its eye. */
+html.theme-exzed .q-field {
+  position: relative;
+}
+html.theme-exzed .q-field:has(> .q-input[aria-invalid='true'])::after,
+html.theme-exzed .q-key:has(> .q-input[aria-invalid='true'])::after {
+  content: '';
+  position: absolute;
+  right: 10px;
+  bottom: 12px;
+  width: 16px;
+  height: 16px;
+  background: var(--zx-ink);
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8' shape-rendering='crispEdges'%3E%3Cpath d='M3 0h2v5H3zM3 6h2v2H3z'/%3E%3C/svg%3E") 0 0 / 100% 100% no-repeat;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8' shape-rendering='crispEdges'%3E%3Cpath d='M3 0h2v5H3zM3 6h2v2H3z'/%3E%3C/svg%3E") 0 0 / 100% 100% no-repeat;
+  pointer-events: none;
+}
+html.theme-exzed .q-field:has(> textarea.q-input[aria-invalid='true'])::after {
+  bottom: 8px;
+}
+html.theme-exzed .q-key:has(> .q-input[aria-invalid='true'])::after {
+  top: 12px;
+  right: 46px;
+  bottom: auto;
+}
+html.theme-exzed .q-input[aria-invalid='true'] {
+  padding-right: 34px;
+}
+html.theme-exzed .q-input.key[aria-invalid='true'] {
+  padding-right: 72px;
+}
+/* The sentence under the field: the same icon before it in `ink2`, in place of the stock alert icon. */
+html.theme-exzed .q-field-msg {
+  align-items: center;
+  gap: 8px;
+  margin-top: 0;
+  color: var(--zx-ink2);
+  font-size: 16px;
+  line-height: 24px;
+}
+html.theme-exzed .q-field-msg svg {
+  display: none;
+}
+html.theme-exzed .q-field-msg::before {
+  content: '';
+  flex: none;
+  width: 16px;
+  height: 16px;
+  background: var(--zx-ink2);
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8' shape-rendering='crispEdges'%3E%3Cpath d='M3 0h2v5H3zM3 6h2v2H3z'/%3E%3C/svg%3E") 0 0 / 100% 100% no-repeat;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8' shape-rendering='crispEdges'%3E%3Cpath d='M3 0h2v5H3zM3 6h2v2H3z'/%3E%3C/svg%3E") 0 0 / 100% 100% no-repeat;
 }
 
 /* Focus and open: the border turns `acc`, with no outline. */
@@ -169,14 +228,16 @@ html.theme-exzed .q-combo-list li.q-tagchoice-flag-first {
   border-top: 2px solid var(--zx-frame);
   padding-top: 0;
 }
-/* The Type/Medium list: a 16px slot before each value, the ▶ pointer in it for a picked one. */
-html.theme-exzed .q-combo:has(.q-tagchoice) .q-combo-list li:not(.q-tagchoice-flag)::before {
+/* The Type/Medium list: a 16px slot before each value, the ▶ pointer in it for a picked one. The Group list (D13, design 2026-11-12) is a typed field: its pointer marks the option the
+   typed value matches exactly (`.current`, set by the component under eX-Zed), and nothing else. */
+html.theme-exzed .q-combo .q-combo-list li:not(.q-tagchoice-flag)::before {
   content: '';
   flex: none;
   width: 16px;
   height: 16px;
 }
-html.theme-exzed .q-combo:has(.q-tagchoice) .q-combo-list li.active:not(.q-tagchoice-flag)::before {
+html.theme-exzed .q-combo:has(.q-tagchoice) .q-combo-list li.active:not(.q-tagchoice-flag)::before,
+html.theme-exzed .q-combo .q-combo-list li.current::before {
   background: currentColor;
   -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8' shape-rendering='crispEdges'%3E%3Cpath d='M2 0h1v8H2zM3 1h1v6H3zM4 2h1v4H4zM5 3h1v2H5z'/%3E%3C/svg%3E") 0 0 / 100% 100% no-repeat;
   mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8' shape-rendering='crispEdges'%3E%3Cpath d='M2 0h1v8H2zM3 1h1v6H3zM4 2h1v4H4zM5 3h1v2H5z'/%3E%3C/svg%3E") 0 0 / 100% 100% no-repeat;
@@ -185,6 +246,11 @@ html.theme-exzed .q-combo:has(.q-tagchoice) .q-combo-list li.active:not(.q-tagch
 /* The add row's Year (72px in Quantum's 14px type) cannot hold its own placeholder at 16px; four 16px characters need 84px. */
 html.theme-exzed .q-add-item-year {
   width: 88px;
+}
+
+/* The edit popover's Year (96px in Quantum's 14px type) cannot hold its placeholder, "1994, 19??", at 16px: ten characters need 180px. */
+html.theme-exzed .q-edit-year {
+  width: 184px;
 }
 
 /* The buttons beside fields: as tall as they are (Quantum worked their height out from its padding). */

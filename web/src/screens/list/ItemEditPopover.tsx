@@ -6,6 +6,7 @@ import './ItemEditPopover.css'
 import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState, type KeyboardEvent } from 'react'
 import type { ItemSourceTags, ListItem } from '../../lib/api.js'
 import { copy } from '../../locale/index.js'
+import { useTheme } from '../../components/quantum/DocumentTheme/ThemeContext.js'
 import { Button } from '../../components/quantum/Button/Button.js'
 import { Field, FieldTextArea } from '../../components/quantum/Field/Field.js'
 import { useFieldValidation } from '../../components/quantum/Field/useFieldValidation.js'
@@ -82,6 +83,7 @@ export function ItemEditPopover({
   focusNote = false,
   loadSource,
 }: ItemEditPopoverProps) {
+  const theme = useTheme()
   const text = copy.quantum.list.itemActions
   const tagText = copy.quantum.list.tags
   const [title, setTitle] = useState(item.title)
@@ -184,7 +186,7 @@ export function ItemEditPopover({
     const field = noteRef.current
     if (!field) return
     field.style.height = 'auto'
-    field.style.height = `${field.scrollHeight + 2}px`
+    field.style.height = `${field.scrollHeight + (field.offsetHeight - field.clientHeight)}px`
   }, [note])
 
   // Enter saves, Esc cancels. In the note Enter is a new line and Ctrl or ⌘ with Enter saves; not on a button, not in the
@@ -295,7 +297,7 @@ export function ItemEditPopover({
             label={text.editNote}
             value={note}
             onChange={(event) => setNote(event.target.value)}
-            rows={4}
+            rows={theme === 'exzed' ? 2 : 4}
             maxLength={USER_NOTE_MAX_LENGTH}
             placeholder={quitPlatform(navigator.userAgent) === 'mac' ? text.notePlaceholderCmd : text.notePlaceholderCtrl}
             autoFocus={focusNote && !panelOpen}

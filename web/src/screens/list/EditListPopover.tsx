@@ -2,6 +2,7 @@ import { NAME_MAX_LENGTH } from '../../../../server/src/catalog/limits.js'
 import './ItemEditPopover.css'
 import { useState, type KeyboardEvent } from 'react'
 import { copy } from '../../locale/index.js'
+import { useTheme } from '../../components/quantum/DocumentTheme/ThemeContext.js'
 import { Button } from '../../components/quantum/Button/Button.js'
 import { Field, FieldTextArea } from '../../components/quantum/Field/Field.js'
 import { useFieldValidation } from '../../components/quantum/Field/useFieldValidation.js'
@@ -31,6 +32,7 @@ export interface EditListPopoverProps {
  */
 export function EditListPopover({ list, itemCount, anchorEl, onCommit, onDiscard }: EditListPopoverProps) {
   const text = copy.quantum.list.editPopover
+  const theme = useTheme()
   const [title, setTitle] = useState(list.title)
   const [description, setDescription] = useState(list.description ?? '')
   const [status, setStatus] = useState(list.status)
@@ -85,7 +87,7 @@ export function EditListPopover({ list, itemCount, anchorEl, onCommit, onDiscard
           label={text.description}
           value={description}
           onChange={(event) => setDescription(event.target.value)}
-          rows={4}
+          rows={theme === 'exzed' ? 3 : 4}
           placeholder={text.descriptionPlaceholder}
         />
         <div className="q-field">

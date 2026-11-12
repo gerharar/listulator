@@ -1,8 +1,9 @@
 import { Tip } from '../Tooltip/Tip.js'
-import { useId, useState, type InputHTMLAttributes, type ReactNode, type Ref, type TextareaHTMLAttributes } from 'react'
+import { useCallback, useId, useLayoutEffect, useRef, useState, type InputHTMLAttributes, type ReactNode, type Ref, type TextareaHTMLAttributes } from 'react'
 import { Eye, EyeOff } from 'lucide-react'
 import './Field.css'
 import { copy } from '../../../locale/index.js'
+import { useTheme } from '../DocumentTheme/ThemeContext.js'
 
 /** design-system/components/Field — a text input, always under a visible kicker label. */
 export interface FieldProps extends Omit<InputHTMLAttributes<HTMLInputElement>, 'size'> {
@@ -33,9 +34,28 @@ export interface FieldTextAreaProps extends TextareaHTMLAttributes<HTMLTextAreaE
   meta?: ReactNode
 }
 
-export function FieldTextArea({ label, code, className, meta, id, ...rest }: FieldTextAreaProps) {
+export function FieldTextArea({ label, code, className, meta, id, ref, ...rest }: FieldTextAreaProps) {
   const own = useId()
   const inputId = id ?? own
+  const theme = useTheme()
+  const field = useRef<HTMLTextAreaElement | null>(null)
+  const bind = useCallback(
+    (node: HTMLTextAreaElement | null) => {
+      field.current = node
+      if (typeof ref === 'function') ref(node)
+      else if (ref) ref.current = node
+    },
+    [ref],
+  )
+  // eX-Zed (D12, design 2026-11-12): a short multi-line field (the item note's 2 lines, the list description's 3) is as tall as its content, lines x 24 + 16 inside its border, and grows
+  // with what is typed (a stylesheet's max-height stops it). The tall boxes (Items, the YAML) keep their rows. Quantum's boxes are the browser's own, as they were.
+  const grows = theme === 'exzed' && !code && (rest.rows ?? 2) <= 3
+  useLayoutEffect(() => {
+    const node = field.current
+    if (!node || !grows) return
+    node.style.height = 'auto'
+    node.style.height = `${node.scrollHeight + (node.offsetHeight - node.clientHeight)}px`
+  }, [grows, rest.value])
   if (meta !== undefined) {
     return (
       <div className="q-field">
@@ -45,7 +65,7 @@ export function FieldTextArea({ label, code, className, meta, id, ...rest }: Fie
           </label>
           {meta}
         </div>
-        <textarea id={inputId} className={['q-input', code ? 'code' : '', className].filter(Boolean).join(' ')} {...rest} />
+        <textarea id={inputId} ref={bind} className={['q-input', code ? 'code' : '', className].filter(Boolean).join(' ')} {...rest} />
       </div>
     )
   }
@@ -53,7 +73,7 @@ export function FieldTextArea({ label, code, className, meta, id, ...rest }: Fie
   return (
     <label className="q-field">
       <span className="q-kicker">{label}</span>
-      <textarea id={id} className={['q-input', code ? 'code' : '', className].filter(Boolean).join(' ')} {...rest} />
+      <textarea id={id} ref={bind} className={['q-input', code ? 'code' : '', className].filter(Boolean).join(' ')} {...rest} />
     </label>
   )
 }
