@@ -8,10 +8,12 @@ import { APP_VERSION } from '../../lib/appVersion.js'
 import { useUpdateCheck } from '../../lib/useUpdateCheck.js'
 import { IconButton } from '../../components/quantum/Button/Button.js'
 import { ExternalLink } from '../../components/quantum/ExternalLink/ExternalLink.js'
+import { useTheme } from '../../components/quantum/DocumentTheme/ThemeContext.js'
 import { HeaderPlate } from '../../components/quantum/HeaderPlate/HeaderPlate.js'
 import { useLayerStack } from '../../components/quantum/layerStack/LayerStackContext.js'
 import { useLiveRegion } from '../../components/quantum/LiveRegion/LiveRegion.js'
 import { Tip } from '../../components/quantum/Tooltip/Tip.js'
+import { Wordmark } from '../../components/quantum/Wordmark/Wordmark.js'
 import { ABOUT_SOURCES, AUTHOR, LICENSING_URL, TMDB_NOTICE, type AboutSource } from '../../lib/dataSources.js'
 import tmdbLogo from './tmdb-long.svg'
 import { Triangle } from '../../components/quantum/Triangle/Triangle.js'
@@ -26,6 +28,7 @@ import { UpdateBlock, updateNoticeText, updateStatusText, updateVersionText } fr
 export function AboutScreen({ checker }: { checker?: AppUpdateChecker }) {
   const layerStack = useLayerStack()
   const { announce } = useLiveRegion()
+  const theme = useTheme()
   const text = copy.quantum.about
   // Made once per opening: a new checker on every render would start a new check on every render.
   const [used] = useState(() => checker ?? appUpdateChecker())
@@ -63,7 +66,8 @@ export function AboutScreen({ checker }: { checker?: AppUpdateChecker }) {
         <div className="q-about-column">
           <section className="q-about-identity">
             <div className="q-about-nameline">
-              <span className="q-about-name">Listulator</span>
+              {/* eX-Zed: the name is the LIST|ULATOR lockup at 32px, as the board draws it (51.1b); Quantum keeps its plain name. */}
+              {theme === 'exzed' ? <Wordmark size="lg" /> : <span className="q-about-name">Listulator</span>}
             </div>
             <UpdateBlock
               state={update.state}

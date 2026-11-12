@@ -1,0 +1,115 @@
+/*
+ * eX-Zed's titles, window heads and wordmarks (Phase 51, 51.1b, X-007; design's X-004, the Window and Header cards, `bundle.css`). A screen title (My Lists, Choose Your Fighter,
+ * New List, List Vault, Settings, About: the six the boards draw) is 32px with the three-band gradient clipped to the letters: `t1` to 30% of the line, `t2` to 62%, `t3` below.
+ * A list's name, a sheet's title and the Preview's title are 24px plain `ink` (the lists' are already drawn in the list header; the sheet's here); the header's wordmark is 24px
+ * and the About's 32px, LIST on a `skin` block. Nothing is bold. A window head is the card's: 24px gutters (24 above, 16 below) and a 2px `frame` rule 24px in from each side,
+ * the head's own `::after` (the New List head has its tab strip's rule instead: 51.3). Everything is under `html.theme-exzed`; Quantum is as it was.
+ * exzedTitles.guard.test.ts pins it.
+ */
+html.theme-exzed .q-home-title,
+html.theme-exzed .q-picker-title,
+html.theme-exzed .q-create-title,
+html.theme-exzed .q-vb-title,
+html.theme-exzed .q-settings-title,
+html.theme-exzed .q-about-title {
+  margin: 0;
+  font-weight: 400;
+  font-size: 32px;
+  line-height: 32px;
+  letter-spacing: 0;
+  background: linear-gradient(var(--zx-t1) 0 30%, var(--zx-t2) 30% 62%, var(--zx-t3) 62%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  align-self: flex-start;
+}
+
+/* The head: gutters and the inset rule (the Quantum rule, a full-width border, is taken off). */
+html.theme-exzed .q-home-head,
+html.theme-exzed .q-picker-head,
+html.theme-exzed .q-vb-head,
+html.theme-exzed .q-settings-head,
+html.theme-exzed .q-about-head {
+  padding: 24px 24px 16px;
+  border-bottom: 0;
+  gap: 24px;
+}
+html.theme-exzed .q-picker-head,
+html.theme-exzed .q-vb-head,
+html.theme-exzed .q-settings-head,
+html.theme-exzed .q-about-head {
+  align-items: flex-start;
+}
+html.theme-exzed .q-home-head::after,
+html.theme-exzed .q-picker-head::after,
+html.theme-exzed .q-vb-head::after,
+html.theme-exzed .q-settings-head::after,
+html.theme-exzed .q-about-head::after {
+  content: '';
+  position: absolute;
+  left: 24px;
+  right: 24px;
+  bottom: 0;
+  height: 2px;
+  background: var(--zx-frame);
+}
+
+/* New List: the same gutters above the title; its tab strip draws the rule (51.3). */
+html.theme-exzed .q-create-head {
+  padding: 24px 24px 0;
+}
+html.theme-exzed .q-create-top {
+  padding-bottom: 16px;
+}
+
+/* A list's name is 24px plain `ink` (the Window card: `.zx-list-name`); the Preview's title, 24px on a 32px line as its board draws it. */
+html.theme-exzed .q-list-title {
+  font-weight: 400;
+  font-size: 24px;
+  line-height: 24px;
+  letter-spacing: 0;
+  color: var(--zx-ink);
+}
+html.theme-exzed .q-preview-title {
+  font-weight: 400;
+  font-size: 24px;
+  line-height: 32px;
+  letter-spacing: 0;
+  color: var(--zx-ink);
+}
+
+/* A sheet's title is 24px plain `ink` (design, D5). */
+html.theme-exzed .q-sheet-title {
+  font-weight: 400;
+  font-size: 24px;
+  line-height: 24px;
+  letter-spacing: 0;
+  color: var(--zx-ink);
+}
+
+/* The wordmark: LIST on a `skin` block, ULATOR in `ink`; 24px in the header, 32px (`lg`) in About. */
+html.theme-exzed .q-wordmark {
+  font-weight: 400;
+  font-size: 24px;
+  line-height: 24px;
+  letter-spacing: 0;
+}
+html.theme-exzed .q-wordmark > b {
+  font-weight: 400;
+  padding: 8px 4px 8px 8px;
+  background: var(--zx-skin);
+  color: var(--zx-skin-ink);
+}
+html.theme-exzed .q-wordmark > span {
+  padding: 8px 0 8px 4px;
+}
+html.theme-exzed .q-wordmark.lg {
+  font-size: 32px;
+  line-height: 32px;
+}
+html.theme-exzed .q-wordmark.lg > b {
+  padding: 8px 8px 8px 16px;
+}
+html.theme-exzed .q-wordmark.lg > span {
+  padding: 8px 0 8px 8px;
+}
