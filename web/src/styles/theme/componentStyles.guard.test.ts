@@ -32,13 +32,6 @@ const ALLOWED: readonly Allowed[] = [
     value: 'inset 3px 0 0 var(--accent)',
     why: 'A hard-edged inset stripe in a colour token: no blur, no alpha. X-007 draws the selected row as inverse video and removes it.',
   },
-  {
-    file: 'components/quantum/TabStrip/TabStrip.css',
-    selector: '.q-tabs button:hover',
-    property: 'box-shadow',
-    value: 'inset 0 -3px 0 var(--line)',
-    why: 'A hard-edged inset underline in a colour token: no blur, no alpha. X-007 draws the tab hover as the highlight and removes it.',
-  },
 ]
 
 const files = stylesheets().filter((path) => !NOT_SWEPT.includes(path) && !QUANTUM_ONLY.includes(path))

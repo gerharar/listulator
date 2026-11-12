@@ -33,6 +33,8 @@ import './styles/theme/exzed-components.css'
 import './styles/theme/exzed-titles.css'
 // eX-Zed's buttons, the roles and the states (51.2a, X-007).
 import './styles/theme/exzed-buttons.css'
+// eX-Zed's toggle chips, tabs and facet toggles (51.3, X-007).
+import './styles/theme/exzed-chips.css'
 // eX-Zed's skin art (Phase 50): each skin's pictures under its own `data-theme`, so only the active skin's files are requested.
 import './styles/theme/exzed-art.css'
 import { App } from './App.js'

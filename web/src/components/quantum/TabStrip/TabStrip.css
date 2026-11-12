@@ -17,7 +17,11 @@
 .q-tabs button:hover {
   background: var(--fill);
   color: var(--ink);
-  box-shadow: inset 0 -3px 0 var(--line);
+  /* The hover underline: the bottom 3px in `--line`, drawn as a background, so the sweep for shadows has nothing to allow (51.3). */
+  background-image: linear-gradient(var(--line), var(--line));
+  background-size: 100% 3px;
+  background-position: left bottom;
+  background-repeat: no-repeat;
 }
 .q-tabs button[aria-selected='true'] {
   background: var(--accent);

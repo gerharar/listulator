@@ -1,0 +1,113 @@
+/*
+ * eX-Zed's toggle chips, tabs and facet toggles (Phase 51, 51.3, X-007; design's ToggleChip and Tabs cards and `bundle.css`), drawn on Quantum's own classes, so no call site changes:
+ *  - a chip (`.q-chip`: Settings' Theme and language chips, the helper sheets' chips; the Status picker's buttons; the filter popover's All and options) is a 40px box: 2px `frame`
+ *    border, `ink2`, 16px type, padding `0 12px`, 8px between its parts; hover (unpicked) is the `acc-dim` block with `acc-ink`; picked (`aria-pressed`) is the `acc` block with
+ *    `acc-ink`; chips wrap onto a second line with 8px gaps. **The joined segmented bar is retired**: the filter popover's options (`.q-facet-seg`) are chips with 8px between them;
+ *  - the skin chip keeps its half-bucket swatch (49.8) and is the same chip, picked = the `acc` block (the rule in SettingsScreen.css);
+ *  - a tab (`.q-tabs button`, New List's strip) is the same box without its bottom border, 8px from the next; the active tab is the `acc` block, hover on an inactive one `acc-dim`; the
+ *    strip's rule and the head's own rule under it are Quantum's (the `frame` here); the hover underline Quantum draws is not drawn;
+ *  - a disabled chip is the dotted 2px `ink2` outline (`--zx-dotted`) with no hover, as a disabled button is (51.2a).
+ * A hover rule keeps `:where(:not(:disabled))` (the disabled-hover guard). Quantum is as it was: every rule is under `html.theme-exzed`.
+ */
+html.theme-exzed .q-chip,
+html.theme-exzed .q-status-picker button,
+html.theme-exzed .q-facet button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 8px;
+  height: 40px;
+  margin: 0;
+  padding: 0 12px;
+  border: 2px solid var(--zx-frame);
+  background: transparent;
+  color: var(--zx-ink2);
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 16px;
+  letter-spacing: 0;
+}
+html.theme-exzed .q-chip.choice.skin {
+  padding: 0 12px;
+  border-color: var(--zx-frame);
+  color: var(--zx-ink2);
+}
+
+html.theme-exzed .q-chip:where(:not(:disabled)):hover,
+html.theme-exzed .q-status-picker button:where(:not(:disabled)):hover,
+html.theme-exzed .q-facet button:where(:not(:disabled)):hover {
+  background: var(--zx-dim-bg);
+  border-color: var(--zx-dim-bg);
+  color: var(--zx-dim-ink);
+}
+html.theme-exzed .q-chip.choice.skin:not([aria-pressed='true']):where(:not(:disabled)):hover {
+  background: var(--zx-dim-bg);
+  border-color: var(--zx-dim-bg);
+  color: var(--zx-dim-ink);
+}
+
+/* Picked: after the hover rules, so a picked chip under the pointer stays picked. */
+html.theme-exzed .q-chip[aria-pressed='true'],
+html.theme-exzed .q-status-picker button[aria-pressed='true'],
+html.theme-exzed .q-facet button[aria-pressed='true'],
+html.theme-exzed .q-facet .q-facet-summary[data-on='true'] {
+  background: var(--zx-hl-bg);
+  border-color: var(--zx-hl-bg);
+  color: var(--zx-hl-ink);
+}
+
+/* Chips wrap with 8px between them (Quantum's rows kept 6 and 7). */
+html.theme-exzed .q-status-picker,
+html.theme-exzed .q-shelves {
+  gap: 8px;
+}
+
+/* The joined bar is retired: the options are chips 8px apart, the line's own padding and the -1px overlaps gone. */
+html.theme-exzed .q-facet-seg {
+  gap: 8px;
+  padding: 0;
+}
+html.theme-exzed .q-facet-summary svg {
+  color: inherit;
+}
+
+html.theme-exzed .q-chip:disabled {
+  background: var(--zx-dotted);
+  background-origin: border-box;
+  border-color: transparent;
+  color: var(--zx-ink2);
+}
+
+/* Tabs. */
+html.theme-exzed .q-tabs {
+  gap: 8px;
+  border-bottom-color: var(--zx-frame);
+}
+html.theme-exzed .q-tabs button {
+  display: inline-flex;
+  align-items: center;
+  height: 40px;
+  padding: 0 16px;
+  border: 2px solid var(--zx-frame);
+  border-bottom: 0;
+  background: transparent;
+  color: var(--zx-ink2);
+  box-shadow: none;
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 16px;
+  letter-spacing: 0;
+}
+html.theme-exzed .q-tabs button:where(:not(:disabled)):hover {
+  background: var(--zx-dim-bg);
+  border-color: var(--zx-dim-bg);
+  border-bottom: 0;
+  color: var(--zx-dim-ink);
+}
+html.theme-exzed .q-tabs button[aria-selected='true'],
+html.theme-exzed .q-tabs button[aria-selected='true']:where(:not(:disabled)):hover {
+  background: var(--zx-hl-bg);
+  border-color: var(--zx-hl-bg);
+  border-bottom: 0;
+  color: var(--zx-hl-ink);
+}
