@@ -202,3 +202,36 @@ html.theme-exzed .q-vault-actions .q-btn:not(.primary):not(.danger)::before,
 html.theme-exzed .q-vault-actions .q-btn:not(.primary):not(.danger)::after {
   content: none;
 }
+
+/*
+ * Popover widths (51.2c, found by the owner at Checkpoint G1: the bracketed buttons at 16px did not fit the popovers' Quantum widths: [Don't Save] filled the popover, Copy To
+ * Clipboard ran out of the export one). The Popover card names the widths: 240 the list menu, 400 Quit, 480 item notes, 560 item edit, list edit, delete, reorder and reset, 640
+ * export (the skin menu's 288 is its own hook, 49.9). A width is a class of the popover (`w300` ...) that several popovers share, so each is found by what it holds: a popover with
+ * an actions row (a confirm, Reorder, Reset, Delete List, Delete group, the narrow-window notice), an edit actions row (list edit, item edit), the export answers, the item's notes.
+ * The rest (the filter dropdown, the platform card, the key notes, the helper picker) keep their own. Nothing is wider than the window, and an actions row wraps rather than overflows.
+ * The edge-to-edge menu rows, the padding, the gap and the tail are still 51.9's.
+ */
+html.theme-exzed .q-pop {
+  max-width: calc(100vw - 32px);
+}
+html.theme-exzed .q-pop.w300:has(.q-pop-actions) {
+  width: 400px;
+}
+html.theme-exzed .q-pop.w320:has(.q-pop-actions),
+html.theme-exzed .q-pop.w320:has(.q-edit-actions),
+html.theme-exzed .q-pop.w360:has(.q-edit-actions) {
+  width: 560px;
+}
+html.theme-exzed .q-pop.w360:has(.q-pop-actions) {
+  width: 480px;
+}
+html.theme-exzed .q-pop.w320:has(.q-info) {
+  width: 480px;
+}
+html.theme-exzed .q-pop.w320:has(.q-pop-note + .q-pop-menu:not(.q-pop-q ~ .q-pop-menu)) {
+  width: 640px;
+}
+html.theme-exzed .q-pop-actions,
+html.theme-exzed .q-edit-actions {
+  flex-wrap: wrap;
+}

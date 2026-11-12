@@ -430,6 +430,33 @@ html.theme-exzed .q-catbanner[data-where='tile'] {
   position: absolute;
   inset: 0;
 }
+/*
+ * The tiles' grid (found by the owner at Checkpoint G1: "Documentaries" ran out of its card). Design's Pick-Category board is a grid of fixed-height tiles, 4 to a row below 2000px (160px
+ * high) and more from 2000px (184px); Quantum auto-fills 220px tiles, which are 5 narrow ones at 1440. A tile here is at least 250px, as many as fit: 4 at a 1440px screen, 5 in the
+ * 1620px window of a wide one, 3 at the narrowest window; a name that does not fit with its count chip wraps (the chip goes under it) and a long word breaks, so no label is
+ * ever cut off, in any language. The tile is the board's fixed height, so the art's crop from the bottom (50.9) is the same in every tile.
+ */
+html.theme-exzed .q-tiles {
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  grid-auto-rows: 160px;
+  gap: 16px;
+}
+@media (min-width: 2000px) {
+  html.theme-exzed .q-tiles {
+    grid-auto-rows: 184px;
+  }
+}
+html.theme-exzed .q-tile {
+  min-height: 0;
+}
+html.theme-exzed .q-tile-name {
+  flex-wrap: wrap;
+  row-gap: 4px;
+}
+html.theme-exzed .q-tile-name b {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
 html.theme-exzed .q-tile:hover {
   background: var(--zx-acc);
   border-color: var(--zx-acc);
