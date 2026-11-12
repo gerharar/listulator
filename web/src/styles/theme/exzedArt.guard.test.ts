@@ -4,6 +4,7 @@ import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { EXZED_SKINS } from '../../lib/preferences/exzedSkins.js'
 import { CATEGORY_BANNERS } from '../../components/quantum/art/categoryBanners.js'
+import { decodePng } from '../../../e2e/pngPixels.js'
 import { read } from './cssGuard.js'
 
 /**
@@ -24,7 +25,8 @@ const CHECKSUMS: Record<string, string> = {
   'red-bricks-cornice.png': 'b1e453e0984bc24c5cc422c431da0b9aac87c85bdf9f3897ce592c52da536c44',
   'blue-stones-wall.png': 'b0a320d958729fbe3d2973670844d4cd328a17f1f5089c8bb2f01daa08175d18',
   'blue-stones-separator.png': '00a3d5520ab2b999d01e118979aaae74f728107b0e44f3454cdc343f2df4025a',
-  'grey-stones-wall.png': '28c72433a0973a3281876689842702c14ae65cb80da879c36ef8680b554883d7',
+  // Rebuilt by design on 2026-11-12 (design system `1794491700-cd51`) from the blue wall's stone mask, so Glemt's is Focal's drawing: it was 28c72433…83d7 (its shape differed, about 4 to 5px shifted).
+  'grey-stones-wall.png': '84d941d2a9a7eef8c4f35a818ec2d52aebca1345a9e98fb0cc4ed473a017c063',
   'grey-stones-separator.png': 'ba465841378928e93f0dee2993e25966c5dda97f4c949edcef06a19813585012',
   'side-stripes.png': '3f84960812faaf381a3bb952814a5efd6474cf961a9323626e8a770acaebf909',
   'star-tile.png': 'f7ae1278c261e40b2e742f28f1373830951e476d71b39b713df1e2f6d5d91833',
@@ -97,6 +99,18 @@ describe('the skin art', () => {
       expect(existsSync(file), `${name} exists`).toBe(true)
       expect(createHash('sha256').update(readFileSync(file)).digest('hex'), `${name} is the design system’s file`).toBe(CHECKSUMS[name])
     }
+  })
+
+  it('Glemt’s wall is the same drawing as Focal’s, in another colour: the same size, and every pixel stone in one is stone in the other (design, 2026-11-12)', () => {
+    const blue = decodePng(readFileSync(join(ART, 'blue-stones-wall.png')))
+    const grey = decodePng(readFileSync(join(ART, 'grey-stones-wall.png')))
+    const stone = (picture: typeof blue, at: number) => picture.data[at * 4]! + picture.data[at * 4 + 1]! + picture.data[at * 4 + 2]! > 0
+
+    expect([grey.width, grey.height]).toEqual([blue.width, blue.height])
+    let different = 0
+    for (let at = 0; at < blue.width * blue.height; at++) if (stone(blue, at) !== stone(grey, at)) different++
+
+    expect(different, 'pixels that are stone in one wall and black in the other').toBe(0)
   })
 
   it('every committed picture is used by a rule: no orphan', () => {
