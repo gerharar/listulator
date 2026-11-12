@@ -1,0 +1,44 @@
+/*
+ * eX-Zed's component foundation (Phase 51, 51.1, X-007): the shared pieces every component of the theme draws with, so each family task (buttons, chips, fields, rows,
+ * popovers ...) reads one definition instead of repeating a colour pair or a pattern. Everything is under `html.theme-exzed` and a value is only ever a role of the skin
+ * (`--zx-…`): no literal colour, no alpha, no shadow, no radius, no opacity, no filter (design, X-004). exzedComponents.guard.test.ts pins all of it.
+ *
+ * The highlight is eX-Zed's hover, lit and picked state (X-007, "inverse video"): the `acc` block with `acc-ink` content; the dim highlight is an inactive tab or chip's
+ * hover (`acc-dim`). They are properties, not rules: a component says `background: var(--zx-hl-bg); color: var(--zx-hl-ink)` in its own state rule.
+ *
+ * The three backgrounds are design's `bundle.css`: the dotted 2px outline of a disabled button (four edges of 2px dots on a 4px period, in `ink2`), the 2px checkerboard of the
+ * scrim (black pixels over what is behind, never solid) and the category head's 4px dither rule (`lab` over `paper`). The bar's own dither is X-008's.
+ *
+ * Type, by design (X-004, X-007): sizes are 16 (body), 24 (list names, sheet titles) and 32 (screen titles and the About wordmark) and nothing else; a popover's heading is a
+ * 16px `lab` kicker; there is no bold and no letter-spacing. Each component sets its own size in its family task (X-002, option B); this file only takes the weight and the
+ * spacing off the root, so a component that asks for neither inherits neither.
+ */
+html.theme-exzed {
+  --zx-hl-bg: var(--zx-acc);
+  --zx-hl-ink: var(--zx-acc-ink);
+  --zx-dim-bg: var(--zx-acc-dim);
+  --zx-dim-ink: var(--zx-acc-ink);
+  --zx-dotted: repeating-linear-gradient(90deg, var(--zx-ink2) 0 2px, transparent 2px 4px) 0 0 / 100% 2px no-repeat, repeating-linear-gradient(90deg, var(--zx-ink2) 0 2px, transparent 2px 4px) 0 100% / 100% 2px no-repeat, repeating-linear-gradient(var(--zx-ink2) 0 2px, transparent 2px 4px) 0 0 / 2px 100% no-repeat, repeating-linear-gradient(var(--zx-ink2) 0 2px, transparent 2px 4px) 100% 0 / 2px 100% no-repeat;
+  --zx-scrim: repeating-conic-gradient(var(--zx-chip-ink) 0 25%, transparent 0 50%) 0 0 / 4px 4px;
+  --zx-dither-lab: repeating-conic-gradient(var(--zx-lab) 0 25%, var(--zx-paper) 0 50%) 0 0 / 4px 4px;
+  font-weight: 400;
+  letter-spacing: 0;
+}
+
+/* A kicker is a label in `lab` capitals (the Field card; the Row card's category head), the strong ones too. */
+html.theme-exzed .q-kicker {
+  color: var(--zx-lab);
+  text-transform: uppercase;
+}
+
+/*
+ * A disabled control shows `not-allowed` (the Button card). A busy one (`aria-busy`) keeps the cursor its own rule gives it (`progress`). One selector per element, so the guard
+ * can read each as under `html.theme-exzed`; each outranks a component's own `:disabled { cursor: default }`.
+ */
+html.theme-exzed button:disabled:not([aria-busy='true']),
+html.theme-exzed input:disabled:not([aria-busy='true']),
+html.theme-exzed select:disabled:not([aria-busy='true']),
+html.theme-exzed textarea:disabled:not([aria-busy='true']),
+html.theme-exzed [aria-disabled='true']:not([aria-busy='true']) {
+  cursor: not-allowed;
+}

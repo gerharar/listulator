@@ -27,6 +27,8 @@ import './styles/theme/exzed-tokens.css'
 import './styles/theme/exzed.css'
 // eX-Zed's solid value for each of Quantum's colour tokens (49.3), after tokens.css so it wins at equal specificity.
 import './styles/theme/exzed-colours.css'
+// eX-Zed's component foundation (51.1, X-007): the highlight, the dotted outline, the scrim and the dither, kickers, the disabled cursor.
+import './styles/theme/exzed-components.css'
 // eX-Zed's skin art (Phase 50): each skin's pictures under its own `data-theme`, so only the active skin's files are requested.
 import './styles/theme/exzed-art.css'
 import { App } from './App.js'
