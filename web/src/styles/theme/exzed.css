@@ -236,3 +236,18 @@ html.theme-exzed .q-settings-sections {
 html.theme-exzed .q-key-head {
   width: 168px;
 }
+/* 51.2a: `[Test]` is a bracketed button now (about 130px at 16px), so the field is 320px (IGDB's two, 156px each), the one width in every language. How? is the Link card, as the
+   Settings board draws it: no brackets, no box, a dotted 2px underline, the pixel arrow after it; hover is the highlight. */
+html.theme-exzed .q-key-fields {
+  width: 320px;
+}
+html.theme-exzed .q-key-row > a.q-btn.quiet {
+  height: auto;
+  padding: 0 0 4px;
+  border: 0;
+  background: repeating-linear-gradient(90deg, currentColor 0 2px, transparent 2px 4px) 0 100% / 100% 2px no-repeat;
+}
+html.theme-exzed .q-key-row > a.q-btn.quiet::before,
+html.theme-exzed .q-key-row > a.q-btn.quiet::after {
+  content: none;
+}

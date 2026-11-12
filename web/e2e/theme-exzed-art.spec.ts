@@ -261,7 +261,11 @@ test('Xen: the strip never covers what stands over it: where the window overlaps
     const rect = document.querySelector('.q-layer')!.getBoundingClientRect()
     const colour = /rgba?\((\d+), (\d+), (\d+)/.exec(getComputedStyle(document.querySelector('.q-layer')!).backgroundColor)!
 
-    return { x: Math.round(rect.left + 40), bottom: rect.bottom, colour: [Number(colour[1]), Number(colour[2]), Number(colour[3])] }
+    // A pixel where nothing but the window itself is (a button or a line of text may stand near its bottom edge): the first such place along the band, from 40px in.
+    let x = Math.round(rect.left + 40)
+    while (x < rect.right - 8 && document.elementFromPoint(x, 873) !== document.querySelector('.q-layer')) x += 4
+
+    return { x, bottom: rect.bottom, colour: [Number(colour[1]), Number(colour[2]), Number(colour[3])] }
   })
   const strip = png('space-parapet')
   const y = 900 - 27

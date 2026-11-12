@@ -133,7 +133,7 @@ test.describe('disabled, busy and lit', () => {
         const button = T(page, `d${n}`)
         const css = await style(button, ['background-color', 'background-image', 'color', 'cursor', 'opacity'])
         expect(css['background-color'], `role${roles[n]}: no fill`).toBe('rgba(0, 0, 0, 0)')
-        expect(css['background-image'].match(/repeating-linear-gradient/g)?.length, `role${roles[n]}: four dotted edges`).toBe(4)
+        expect(css['background-image']!.match(/repeating-linear-gradient/g)?.length, `role${roles[n]}: four dotted edges`).toBe(4)
         expect([css.color, css.cursor, css.opacity]).toEqual([rgb(await token(page, '--zx-ink2')), 'not-allowed', '1'])
 
         // The pixels: along the top edge 2px on, 2px off (from the left), two rows deep, then the paper; the same down the left edge.

@@ -35,13 +35,6 @@ type Screen = keyof typeof SCREENS
 const token = (page: Page, name: string) => page.evaluate((n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim().toLowerCase(), name)
 const rgbOf = (hex: string): [number, number, number] => [parseInt(hex.slice(1, 3), 16), parseInt(hex.slice(3, 5), 16), parseInt(hex.slice(5, 7), 16)]
 
-async function openScreen(page: Page, screen: Screen) {
-  await boot(page)
-  await SCREENS[screen].open(page)
-  await page.locator(SCREENS[screen].title).first().waitFor()
-  await page.evaluate(() => document.fonts.ready)
-}
-
 /** How many pixels of each `colours` entry the element's box shows in the rows between `from` and `to` (fractions of its height), read in device pixels. */
 async function count(page: Page, locator: Locator, from: number, to: number, colours: [number, number, number][]) {
   const box = (await locator.boundingBox())!
@@ -100,7 +93,7 @@ test.describe('the six screen titles', () => {
         expect(style.spacing === 'normal' || style.spacing === '0px').toBe(true)
 
         // Read in pixels: the top rows show `t1`, the middle `t2`, the bottom `t3` (a band's colour is absent from the others unless the skin gives two bands one colour).
-        const [t1, t2, t3] = await Promise.all(['--zx-t1', '--zx-t2', '--zx-t3'].map(async (name) => rgbOf(await token(page, name))))
+        const [t1, t2, t3] = (await Promise.all(['--zx-t1', '--zx-t2', '--zx-t3'].map(async (name) => rgbOf(await token(page, name))))) as [[number, number, number], [number, number, number], [number, number, number]]
         const same = (a: number[], b: number[]) => a[0] === b[0] && a[1] === b[1] && a[2] === b[2]
         const top = await count(page, title, 0, 0.26, [t1, t2, t3])
         const middle = await count(page, title, 0.36, 0.58, [t1, t2, t3])
