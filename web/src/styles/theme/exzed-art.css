@@ -359,6 +359,24 @@ html.theme-exzed .q-tile:hover .q-count-chip {
 html.theme-exzed .q-tile:hover .q-count-chip {
   border-color: var(--zx-acc-ink);
 }
+/* The text groups sit on a plate of the paper (the board's `.lab`), so the words never sit on the banner; the plate hugs its words (the name's row is not the tile's width). */
+html.theme-exzed .q-tile-name,
+html.theme-exzed .q-tile-src {
+  background: var(--zx-paper);
+  padding: 2px 4px 2px 2px;
+}
+html.theme-exzed .q-tile-name {
+  width: auto;
+}
+html.theme-exzed .q-tile:hover .q-tile-name,
+html.theme-exzed .q-tile:hover .q-tile-src,
+html.theme-exzed .q-tile:hover .q-key-chip {
+  background: var(--zx-acc);
+  color: var(--zx-acc-ink);
+}
+html.theme-exzed .q-tile:hover .q-key-chip {
+  border-color: var(--zx-acc-ink);
+}
 html.theme-exzed .q-catbanner[data-art='movies'] {
   -webkit-mask: url('./art/movies.png') var(--banner-x) 100% / var(--banner-w) var(--banner-h) no-repeat;
   mask: url('./art/movies.png') var(--banner-x) 100% / var(--banner-w) var(--banner-h) no-repeat;
