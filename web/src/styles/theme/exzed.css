@@ -225,6 +225,23 @@ html.theme-exzed .q-pop-actions {
 }
 
 /*
+ * About's Data sources (51.2d, found by the owner at Checkpoint G1: "MusicBrainz" and "Wikipedia" ran into the description beside them, "Open Library" and "Comic Vine" broke in
+ * two). Quantum's 120px name column was measured in its font, which this one is about 2.1 times as wide as: the widest name ("Open Library", about 180px) sits on one line in a 200px
+ * column, the same in every row, so the descriptions stay in one column. The narrow layer's two-column form keeps the same name column. e2e/theme-exzed-about-sources.spec.ts.
+ */
+html.theme-exzed .q-about-source {
+  grid-template-columns: minmax(0, 200px) minmax(0, 1fr) auto;
+}
+html.theme-exzed .q-about-source-name {
+  white-space: nowrap;
+}
+@container (max-width: 560px) {
+  html.theme-exzed .q-about-source {
+    grid-template-columns: minmax(0, 200px) minmax(0, 1fr);
+  }
+}
+
+/*
  * The API-key rows (found by the owner on the Mac, 2026-11-11: in Russian the status pill fell to a line of its own with free space beside it, and "Comic Vine" broke in two).
  * Quantum's 880px column and 112px name block were measured in its font; this one is about 2.1 times as wide. The column is the layer's own width (it is the window, 1080 to
  * 1620px, that is elastic), and the name block holds the widest name and its info button on one line, as wide in every row so the fields stay in a column. The 400px field

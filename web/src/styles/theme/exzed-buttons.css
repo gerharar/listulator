@@ -127,8 +127,8 @@ html.theme-exzed .q-icon-btn:disabled svg {
  * Quantum's DOM and classes are as they were:
  *  - the ⋯ menu's rows (a `.q-pop-menu` right after the popover's kicker) are MENU ITEMS: 40px, `ink`, left, full width, no brackets, hover = the highlight; the Delete List row is
  *    not red (the label was in the danger colour in Quantum: red is the final confirm only);
- *  - the export answers (a `.q-pop-menu` after a note, with no question before it): Download File is the PRIMARY and Copy To Clipboard the bracketed one, the primary last (at the right);
- *  - the Reorder answers (a `.q-pop-menu` after the question) are CHOICES: a 2px `frame` box, `ink`, full width, left, hover = the highlight;
+ *  - the export and Reorder answers (a `.q-pop-menu` after a note) are CHOICES, one under the other: a 2px `frame` box, `ink`, full width, left, hover = the highlight (the owner, at
+ *    Checkpoint G1: export is built as Reorder is, two like buttons stacked, not the board's primary and bracketed pair in a row);
  *  - the Need-help helpers (Home) and the Vault shelf's two buttons are GHOST buttons (no brackets, no box); the helpers are 24px high with `0 8px` of padding, a 2px `frame`
  *    separator between them (the previous button's `::after`, outside its hover box); the open one is lit by Quantum's own `.on` rule, whose accent is `acc` here.
  * Specificity: the rest looks stay below the generic hover rule, so the hover wins; the bracket removals tie with the generic ones and come after them.
@@ -137,40 +137,20 @@ html.theme-exzed .q-kicker + .q-pop-menu {
   gap: 0;
 }
 html.theme-exzed .q-kicker + .q-pop-menu .q-btn,
-html.theme-exzed .q-pop-q ~ .q-pop-menu .q-btn {
+html.theme-exzed .q-pop-note + .q-pop-menu .q-btn {
   width: 100%;
   justify-content: flex-start;
   text-align: left;
   color: var(--zx-ink);
 }
-html.theme-exzed .q-pop-q ~ .q-pop-menu .q-btn {
+html.theme-exzed .q-pop-note + .q-pop-menu .q-btn {
   border-color: var(--zx-frame);
 }
 html.theme-exzed .q-kicker + .q-pop-menu .q-btn::before,
 html.theme-exzed .q-kicker + .q-pop-menu .q-btn::after,
-html.theme-exzed .q-pop-q ~ .q-pop-menu .q-btn::before,
-html.theme-exzed .q-pop-q ~ .q-pop-menu .q-btn::after {
+html.theme-exzed .q-pop-note + .q-pop-menu .q-btn::before,
+html.theme-exzed .q-pop-note + .q-pop-menu .q-btn::after {
   content: none;
-}
-
-html.theme-exzed .q-pop-note + .q-pop-menu:not(.q-pop-q ~ .q-pop-menu) {
-  flex-direction: row-reverse;
-  justify-content: flex-start;
-  gap: 8px;
-}
-html.theme-exzed .q-pop-note + .q-pop-menu:not(.q-pop-q ~ .q-pop-menu) .q-btn:first-child {
-  background: var(--zx-acc);
-  border-color: var(--zx-acc);
-  color: var(--zx-acc-ink);
-}
-html.theme-exzed .q-pop-note + .q-pop-menu:not(.q-pop-q ~ .q-pop-menu) .q-btn:first-child::before,
-html.theme-exzed .q-pop-note + .q-pop-menu:not(.q-pop-q ~ .q-pop-menu) .q-btn:first-child::after {
-  content: none;
-}
-html.theme-exzed .q-pop-note + .q-pop-menu:not(.q-pop-q ~ .q-pop-menu) .q-btn:first-child:where(:not(:disabled)):hover {
-  background: var(--zx-pri-hv);
-  border-color: var(--zx-pri-hv-line);
-  color: var(--zx-pri-hv-ink);
 }
 
 html.theme-exzed .q-help-row {
@@ -205,9 +185,9 @@ html.theme-exzed .q-vault-actions .q-btn:not(.primary):not(.danger)::after {
 
 /*
  * Popover widths (51.2c, found by the owner at Checkpoint G1: the bracketed buttons at 16px did not fit the popovers' Quantum widths: [Don't Save] filled the popover, Copy To
- * Clipboard ran out of the export one). The Popover card names the widths: 240 the list menu, 400 Quit, 480 item notes, 560 item edit, list edit, delete, reorder and reset, 640
- * export (the skin menu's 288 is its own hook, 49.9). A width is a class of the popover (`w300` ...) that several popovers share, so each is found by what it holds: a popover with
- * an actions row (a confirm, Reorder, Reset, Delete List, Delete group, the narrow-window notice), an edit actions row (list edit, item edit), the export answers, the item's notes.
+ * Clipboard ran out of the export one). The Popover card names the widths: 240 the list menu, 400 Quit, 480 item notes, 560 item edit, list edit, delete, reorder, export
+ * and reset (export is built as Reorder is, 560; the board's 640 held a row of two) (the skin menu's 288 is its own hook, 49.9). A width is a class of the popover (`w300` ...) that several popovers share, so each is found by what it holds: a popover with
+ * an actions row (a confirm, Reorder, Reset, Delete List, Delete group, the narrow-window notice), an edit actions row (list edit, item edit), the export and Reorder answers, the item's notes.
  * The rest (the filter dropdown, the platform card, the key notes, the helper picker) keep their own. Nothing is wider than the window, and an actions row wraps rather than overflows.
  * The edge-to-edge menu rows, the padding, the gap and the tail are still 51.9's.
  */
@@ -228,8 +208,8 @@ html.theme-exzed .q-pop.w360:has(.q-pop-actions) {
 html.theme-exzed .q-pop.w320:has(.q-info) {
   width: 480px;
 }
-html.theme-exzed .q-pop.w320:has(.q-pop-note + .q-pop-menu:not(.q-pop-q ~ .q-pop-menu)) {
-  width: 640px;
+html.theme-exzed .q-pop.w320:has(.q-pop-note + .q-pop-menu) {
+  width: 560px;
 }
 html.theme-exzed .q-pop-actions,
 html.theme-exzed .q-edit-actions {

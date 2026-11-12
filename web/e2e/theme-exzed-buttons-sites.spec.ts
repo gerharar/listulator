@@ -2,8 +2,8 @@ import { expect, test, type Locator, type Page } from '@playwright/test'
 
 /**
  * eX-Zed's buttons at their call sites (51.2b, X-007; design's answers D1, D2, D3, D4 and the map's classification), on the real screens, in both engines and all six skins:
- * the ⋯ menu's rows are **menu items** (40px, `ink`, left, no brackets, hover = the highlight; the Delete List row is not red), Download File in the export popover is the
- * **primary** and Copy the bracketed one, the Reorder answers are **choices** (a 2px `frame` box, full width), the Need-help helpers and the Vault shelf's two buttons are
+ * the ⋯ menu's rows are **menu items** (40px, `ink`, left, no brackets, hover = the highlight; the Delete List row is not red), the export and Reorder answers are
+ * **choices**, one under the other (a 2px `frame` box, full width), the Need-help helpers and the Vault shelf's two buttons are
  * **ghost buttons** (no brackets; the helpers 24px high with a separator between them and the open one lit), the ⋯ and Quit buttons are lit while their popover is open,
  * and **red is the final confirm of Delete List and Delete group only**. Quit's confirm is a primary (a unit test of the header: it needs the desktop app's quit).
  */
@@ -78,24 +78,28 @@ test.describe('the ⋯ menu, its export and reorder answers', () => {
       }
     })
 
-    test(`${skin}: Download File is the primary and Copy the bracketed one, the primary last; Reorder's answers are choices`, async ({ page }) => {
+    test(`${skin}: export's answers are choices, one under the other, as Reorder's are`, async ({ page }) => {
       const list = await makeList(page)
       try {
         await boot(page, { skin })
         await openList(page, list.title)
         await more(page).click()
         await item(page, 'Export List').click()
-        const [acc, accInk, frame, ink, hv, hvInk] = await Promise.all(['--zx-acc', '--zx-acc-ink', '--zx-frame', '--zx-ink', '--zx-pri-hv', '--zx-pri-hv-ink'].map((n) => token(page, n)))
+        const [acc, accInk, frame, ink] = await Promise.all(['--zx-acc', '--zx-acc-ink', '--zx-frame', '--zx-ink'].map((n) => token(page, n)))
 
         const download = item(page, 'Download File')
         const copy = item(page, 'Copy To Clipboard')
-        expect(await style(download, ['background-color', 'color', 'height'])).toMatchObject({ 'background-color': rgb(acc!), color: rgb(accInk!), height: '40px' })
-        noBrackets(await pseudo(download, '::before'))
-        expect(await pseudo(copy, '::before')).toMatch(/\[/)
+        for (const [name, btn] of [['Download File', download], ['Copy To Clipboard', copy]] as const) {
+          const css = await style(btn, ['border-top-width', 'border-top-color', 'color', 'background-color', 'height', 'text-align'])
+          expect(css, name).toMatchObject({ 'border-top-width': '2px', 'border-top-color': rgb(frame!), color: rgb(ink!), height: '40px', 'text-align': 'left' })
+          expect(css['background-color'], `${name} is not a primary`).not.toBe(rgb(acc!))
+          noBrackets(await pseudo(btn, '::before'))
+        }
         const [d, c] = [(await download.boundingBox())!, (await copy.boundingBox())!]
-        expect(d.x, 'the primary is last, at the right').toBeGreaterThan(c.x)
-        await download.hover()
-        expect(await style(download, ['background-color', 'color'])).toMatchObject({ 'background-color': rgb(hv!), color: rgb(hvInk!) })
+        expect([d.x, d.width], 'the two are as wide as each other and one under the other').toEqual([c.x, c.width])
+        expect(c.y, 'Copy under Download').toBeGreaterThan(d.y + d.height - 1)
+        await copy.hover()
+        expect(await style(copy, ['background-color', 'color'])).toMatchObject({ 'background-color': rgb(acc!), color: rgb(accInk!) })
         await page.mouse.move(0, 0)
 
         // Back to the menu (the popover is still open on the export answer: dismiss, reopen) and on to Reorder.

@@ -2,7 +2,7 @@ import { expect, test, type Page } from '@playwright/test'
 
 /**
  * The popovers' widths and the buttons in them (51.2c, X-007; found by the owner at Checkpoint G1: with the bracketed buttons at 16px, [Don't Save] filled its popover and Copy To
- * Clipboard ran out of the export one). The Popover card's widths (240 the list menu, 560 list edit, item edit, delete, reorder and reset, 640 export) and, in every popover
+ * Clipboard ran out of the export one). The Popover card's widths (240 the list menu, 560 list edit, item edit, delete, reorder, export and reset) and, in every popover
  * opened here, in both engines and all six skins, **every button, chip and field lies inside the popover's content box**.
  */
 const SKINS = ['exzed-1d', 'exzed-1a', 'exzed-1b', 'exzed-1c', 'exzed-1e', 'exzed-1l'] as const
@@ -63,7 +63,7 @@ const placed = async (page: Page) => {
 }
 
 for (const skin of SKINS) {
-  test(`${skin}: the list menu is 240px and its answers are 640 (export) and 560 (list edit, reorder, delete) wide, every button inside its popover`, async ({ page }) => {
+  test(`${skin}: the list menu is 240px and its answers are 560 (list edit, export, reorder, delete) wide, every button inside its popover`, async ({ page }) => {
     const list = await makeList(page)
     try {
       await boot(page, skin)
@@ -77,7 +77,7 @@ for (const skin of SKINS) {
       expect([seen[0]!.width, seen[0]!.out], 'list menu').toEqual([240, []])
       await closeAll(page)
 
-      for (const [name, width] of [['Edit List', 560], ['Export List', 640], ['Reorder List', 560], ['Delete List', 560]] as const) {
+      for (const [name, width] of [['Edit List', 560], ['Export List', 560], ['Reorder List', 560], ['Delete List', 560]] as const) {
         await more(page).click()
         await page.locator('.q-pop .q-btn', { hasText: name }).click()
         await page.locator('.q-pop').first().waitFor()
