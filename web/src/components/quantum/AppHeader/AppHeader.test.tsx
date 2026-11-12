@@ -2,6 +2,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { act, cleanup, render, screen, waitFor, within } from '@testing-library/react'
 import type { ReactNode } from 'react'
+import { ThemeContext } from '../DocumentTheme/ThemeContext.js'
 import { AppHeader } from './AppHeader.js'
 import type { AppQuit } from '../../../lib/appQuit.js'
 import { LiveRegionProvider } from '../LiveRegion/LiveRegion.js'
@@ -156,6 +157,40 @@ describe('AppHeader', () => {
 
       expect(screen.queryByRole('dialog')).toBeNull()
       expect(quit).not.toHaveBeenCalled()
+    })
+
+    it('while a run goes on the confirm is the danger button in Quantum and a primary in eX-Zed (design, D4: Quit is never red)', () => {
+      const confirmOf = (theme: 'quantum' | 'exzed') => {
+        const quit = { platform: 'mac' as const, quit: vi.fn(() => Promise.resolve()), ...held() }
+        const view = render(
+          <Providers>
+            <ThemeContext.Provider value={theme}>
+              <AppHeader skin="dark-orange" onSkinChange={vi.fn()} exzedSkin="exzed-1d" onExzedSkinChange={vi.fn()} onSettings={vi.fn()} onAbout={vi.fn()} quit={quit} run={{ kind: 'reset', listName: 'Loki' }} />
+            </ThemeContext.Provider>
+          </Providers>,
+        )
+        act(() => screen.getByRole('button', { name: 'Quit' }).click())
+        const confirm = within(screen.getByRole('dialog')).getByRole('button', { name: 'Quit anyway' })
+        const classes = confirm.className
+        view.unmount()
+
+        return classes
+      }
+
+      expect(confirmOf('quantum')).toContain('danger')
+      const exzed = confirmOf('exzed')
+      expect(exzed).not.toContain('danger')
+      expect(exzed).toContain('primary')
+    })
+
+    it('the Quit button says whether its question is open, so an opener that is lit can be told from one at rest', () => {
+      renderWith({ platform: 'mac', quit: vi.fn(() => Promise.resolve()), ...held() })
+
+      const opener = () => screen.getAllByRole('button', { name: 'Quit' })[0]!
+
+      expect(opener().getAttribute('aria-expanded')).toBe('false')
+      act(() => opener().click())
+      expect(opener().getAttribute('aria-expanded')).toBe('true')
     })
 
     it('warns while a whole-list run goes on, in design\'s words and naming the list; Keep waiting leaves the app running (H-015)', () => {

@@ -44,8 +44,8 @@ describe('eX-Zed’s buttons', () => {
     expect(css).toMatch(/\.q-btn\[aria-busy='true'\]\s*{\s*cursor:\s*progress;\s*}/)
   })
 
-  it('uses no shadow, alpha, radius, opacity, filter or literal colour, and only the Button card’s sizes', () => {
+  it('uses no shadow, alpha, radius, opacity, filter or literal colour, and only the Button card’s sizes (and the helpers’ 24px and their 10px separator gap)', () => {
     expect(css).not.toMatch(/box-shadow|text-shadow|border-radius|opacity|filter|rgba?\(|hsla?\(|color-mix|#[0-9a-f]{3,8}\b/i)
-    for (const [, size] of css.matchAll(/(\d+)px/g)) expect(['0', '2', '4', '8', '16', '32', '40', '48']).toContain(size)
+    for (const [, size] of css.matchAll(/(\d+)px/g)) expect(['0', '2', '4', '8', '10', '16', '24', '32', '40', '48']).toContain(size)
   })
 })

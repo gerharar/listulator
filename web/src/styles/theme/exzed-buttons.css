@@ -121,3 +121,84 @@ html.theme-exzed .q-icon-btn:disabled svg {
   -webkit-mask: var(--zx-icon-dither);
   mask: var(--zx-icon-dither);
 }
+
+/*
+ * The call sites (51.2b): the roles above fall on Quantum's own classes, and a few places have a role of their own, which these rules find from the structure that is already there, so
+ * Quantum's DOM and classes are as they were:
+ *  - the ⋯ menu's rows (a `.q-pop-menu` right after the popover's kicker) are MENU ITEMS: 40px, `ink`, left, full width, no brackets, hover = the highlight; the Delete List row is
+ *    not red (the label was in the danger colour in Quantum: red is the final confirm only);
+ *  - the export answers (a `.q-pop-menu` after a note, with no question before it): Download File is the PRIMARY and Copy To Clipboard the bracketed one, the primary last (at the right);
+ *  - the Reorder answers (a `.q-pop-menu` after the question) are CHOICES: a 2px `frame` box, `ink`, full width, left, hover = the highlight;
+ *  - the Need-help helpers (Home) and the Vault shelf's two buttons are GHOST buttons (no brackets, no box); the helpers are 24px high with `0 8px` of padding, a 2px `frame`
+ *    separator between them (the previous button's `::after`, outside its hover box); the open one is lit by Quantum's own `.on` rule, whose accent is `acc` here.
+ * Specificity: the rest looks stay below the generic hover rule, so the hover wins; the bracket removals tie with the generic ones and come after them.
+ */
+html.theme-exzed .q-kicker + .q-pop-menu {
+  gap: 0;
+}
+html.theme-exzed .q-kicker + .q-pop-menu .q-btn,
+html.theme-exzed .q-pop-q ~ .q-pop-menu .q-btn {
+  width: 100%;
+  justify-content: flex-start;
+  text-align: left;
+  color: var(--zx-ink);
+}
+html.theme-exzed .q-pop-q ~ .q-pop-menu .q-btn {
+  border-color: var(--zx-frame);
+}
+html.theme-exzed .q-kicker + .q-pop-menu .q-btn::before,
+html.theme-exzed .q-kicker + .q-pop-menu .q-btn::after,
+html.theme-exzed .q-pop-q ~ .q-pop-menu .q-btn::before,
+html.theme-exzed .q-pop-q ~ .q-pop-menu .q-btn::after {
+  content: none;
+}
+
+html.theme-exzed .q-pop-note + .q-pop-menu:not(.q-pop-q ~ .q-pop-menu) {
+  flex-direction: row-reverse;
+  justify-content: flex-start;
+  gap: 8px;
+}
+html.theme-exzed .q-pop-note + .q-pop-menu:not(.q-pop-q ~ .q-pop-menu) .q-btn:first-child {
+  background: var(--zx-acc);
+  border-color: var(--zx-acc);
+  color: var(--zx-acc-ink);
+}
+html.theme-exzed .q-pop-note + .q-pop-menu:not(.q-pop-q ~ .q-pop-menu) .q-btn:first-child::before,
+html.theme-exzed .q-pop-note + .q-pop-menu:not(.q-pop-q ~ .q-pop-menu) .q-btn:first-child::after {
+  content: none;
+}
+html.theme-exzed .q-pop-note + .q-pop-menu:not(.q-pop-q ~ .q-pop-menu) .q-btn:first-child:where(:not(:disabled)):hover {
+  background: var(--zx-pri-hv);
+  border-color: var(--zx-pri-hv-line);
+  color: var(--zx-pri-hv-ink);
+}
+
+html.theme-exzed .q-help-row {
+  gap: 8px;
+}
+html.theme-exzed .q-help-row .q-btn.quiet {
+  position: relative;
+  height: 24px;
+  padding: 0 8px;
+}
+html.theme-exzed .q-help-row .q-btn.quiet:not(:last-child) {
+  margin-right: 10px;
+}
+html.theme-exzed .q-help-row .q-btn.quiet::before,
+html.theme-exzed .q-help-row .q-btn.quiet::after {
+  content: none;
+}
+html.theme-exzed .q-help-row .q-btn.quiet:not(:last-child)::after {
+  content: '';
+  position: absolute;
+  top: 4px;
+  right: -10px;
+  width: 2px;
+  height: 16px;
+  background: var(--zx-frame);
+}
+
+html.theme-exzed .q-vault-actions .q-btn:not(.primary):not(.danger)::before,
+html.theme-exzed .q-vault-actions .q-btn:not(.primary):not(.danger)::after {
+  content: none;
+}

@@ -409,7 +409,8 @@ describe('ListScreen spine', () => {
 
     expect(screen.queryByText('e1')).toBeNull()
     expect(within(spineBody()).getByText('Season 1')).toBeTruthy()
-    expect(screen.getAllByRole('button', { expanded: false })).toHaveLength(2)
+    // The group heads' own buttons: the ⋯ in the header says it is closed too now (51.2b), so the count is the spine's.
+    expect(within(spineBody()).getAllByRole('button', { expanded: false })).toHaveLength(2)
   })
 
   it('remembers what you opened and closed, per list', async () => {

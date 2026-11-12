@@ -1494,7 +1494,7 @@ function ListView({
                 </span>
               </IconButton>
             )}
-            <IconButton size="list" label={text.more} {...(busy ? { title: copy.quantum.hold.wait[busyKind] } : {})} disabled={busy} onClick={(event) => setMore({ anchor: event.currentTarget, mode: 'menu' })}>
+            <IconButton size="list" label={text.more} aria-expanded={more !== null} {...(busy ? { title: copy.quantum.hold.wait[busyKind] } : {})} disabled={busy} onClick={(event) => setMore({ anchor: event.currentTarget, mode: 'menu' })}>
               <EllipsisVertical width={17} height={17} strokeWidth={1.9} aria-hidden="true" />
             </IconButton>
             <IconButton size="list" label={text.close} {...(busy ? { title: copy.quantum.hold.wait[busyKind] } : {})} disabled={busy} onClick={() => onClose?.()}>
