@@ -1,0 +1,195 @@
+/*
+ * eX-Zed's fields and listboxes (Phase 51, 51.4, X-007; design's Field card, the Popover board and `bundle.css`), drawn on Quantum's own classes:
+ *  - a field (`.q-input`, with its `sm`, `key` and `code` sizes; the filter bar's `.q-filter-input`; the dropdown fields that are buttons: Platform, Type/Medium) is a 40px box: 2px `frame`
+ *    border on `paper`, text `ink`, the placeholder `ink2`, padding `0 8px`, 16px type; its label above it is the kicker, 8px off. A multi-line field (`textarea.q-input`) grows from
+ *    64px with 24px leading and 8px padding and has no grip. A read-only field is the same box with `ink2` text;
+ *  - focus, and an open dropdown field, turn the border `acc`, with no outline (the field's own focus: the foundation's ring is for everything else);
+ *  - an invalid field keeps Quantum's rule (the border in `ink`, never red) in the 2px border it already has;
+ *  - a dropdown field's chevron flips up while its menu is open: the Group field draws the card's pixel chevron (a mask), the Type/Medium and facet dropdowns turn their triangle;
+ *  - the listbox that drops from a field (`.q-combo-list`) is exactly field-wide, a 2px `frame-hi` border and the 4px `paper` ring (the `--e-pop` token), 4px from the field, 40px
+ *    options; hover, and the keyboard's pick in the Group list, are the highlight; in the Type/Medium list the picked options carry the ▶ pointer and keep their text;
+ *  - the buttons beside fields (the add row's Add, a key row's Test, the Search tab's Search) are 40px, level with them.
+ * Quantum is as it was: every rule is under `html.theme-exzed`.
+ */
+html.theme-exzed .q-field {
+  gap: 8px;
+}
+html.theme-exzed .q-combo-label {
+  position: relative;
+  gap: 8px;
+}
+
+html.theme-exzed .q-input,
+html.theme-exzed .q-filter-input {
+  box-sizing: border-box;
+  height: 40px;
+  padding: 0 8px;
+  border: 2px solid var(--zx-frame);
+  background: var(--zx-paper);
+  color: var(--zx-ink);
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 24px;
+  letter-spacing: 0;
+}
+html.theme-exzed .q-input::placeholder,
+html.theme-exzed .q-filter-input::placeholder {
+  color: var(--zx-ink2);
+  font-size: 16px;
+}
+html.theme-exzed textarea.q-input {
+  height: auto;
+  min-height: 64px;
+  padding: 8px;
+  resize: none;
+}
+html.theme-exzed .q-input[readonly] {
+  background: var(--zx-paper);
+  color: var(--zx-ink2);
+}
+html.theme-exzed .q-input.key {
+  padding: 0 40px 0 8px;
+}
+html.theme-exzed .q-filter-input {
+  padding: 0 40px 0 8px;
+}
+html.theme-exzed .q-combo-label .q-input {
+  padding-right: 32px;
+}
+
+/* Invalid (Quantum: a 2px `ink` border, never red): the same 2px border, in `ink`; the padding is the field's own. */
+html.theme-exzed .q-input[aria-invalid='true'] {
+  border-color: var(--zx-ink);
+}
+html.theme-exzed .q-input.sm[aria-invalid='true'] {
+  padding: 0 8px;
+}
+html.theme-exzed .q-input.key[aria-invalid='true'] {
+  padding: 0 40px 0 8px;
+}
+html.theme-exzed textarea.q-input[aria-invalid='true'] {
+  padding: 8px;
+}
+
+/* Focus and open: the border turns `acc`, with no outline. */
+html.theme-exzed .q-input:focus,
+html.theme-exzed .q-input:focus-visible,
+html.theme-exzed .q-filter-input:focus,
+html.theme-exzed .q-filter-input:focus-visible,
+html.theme-exzed .q-input.open,
+html.theme-exzed .q-input[aria-expanded='true'] {
+  outline: none;
+  border-color: var(--zx-acc);
+}
+
+/* The reveal button inside a key field and the ✕ inside the filter field: inside the 2px border. */
+html.theme-exzed .q-key button,
+html.theme-exzed .q-filter-clear {
+  top: 2px;
+  right: 2px;
+  bottom: 2px;
+  width: 36px;
+  color: var(--zx-ink2);
+}
+html.theme-exzed .q-key button:hover,
+html.theme-exzed .q-filter-clear:hover {
+  color: var(--zx-ink);
+}
+
+/* The dropdown fields that are buttons: their value in the field's type. */
+html.theme-exzed .q-platfield-value,
+html.theme-exzed .q-add-plat-value {
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 24px;
+  letter-spacing: 0;
+}
+html.theme-exzed .q-platfield-value.empty,
+html.theme-exzed .q-tagchoice-value.empty,
+html.theme-exzed .q-add-plat-value.empty {
+  font-size: 16px;
+  color: var(--zx-ink2);
+}
+html.theme-exzed .q-platfield-caret,
+html.theme-exzed .q-add-plat-caret,
+html.theme-exzed .q-tagchoice svg {
+  color: var(--zx-ink2);
+}
+
+/* The chevron flips up while the menu is open. */
+html.theme-exzed .q-tagchoice[aria-expanded='true'] .q-triangle,
+html.theme-exzed .q-facet-summary[aria-expanded='true'] .q-triangle {
+  transform: rotate(180deg);
+}
+html.theme-exzed .q-combo-label::after {
+  content: '';
+  position: absolute;
+  right: 10px;
+  bottom: 12px;
+  width: 16px;
+  height: 16px;
+  background: var(--zx-ink2);
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8' shape-rendering='crispEdges'%3E%3Cpath d='M1 3h1v1H1zM2 4h1v1H2zM3 5h2v1H3zM5 4h1v1H5zM6 3h1v1H6z'/%3E%3C/svg%3E") 0 0 / 100% 100% no-repeat;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8' shape-rendering='crispEdges'%3E%3Cpath d='M1 3h1v1H1zM2 4h1v1H2zM3 5h2v1H3zM5 4h1v1H5zM6 3h1v1H6z'/%3E%3C/svg%3E") 0 0 / 100% 100% no-repeat;
+  pointer-events: none;
+}
+html.theme-exzed .q-combo-label:has(input[aria-expanded='true'])::after {
+  transform: scaleY(-1);
+}
+
+/* The listbox. */
+html.theme-exzed .q-combo-list {
+  margin: 4px 0 0;
+  padding: 4px 0;
+  border: 2px solid var(--zx-frame-hi);
+  background: var(--zx-paper);
+  color: var(--zx-ink);
+}
+html.theme-exzed .q-combo-list.up {
+  margin: 0 0 2px;
+}
+html.theme-exzed .q-combo-list li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 0 8px;
+  background: transparent;
+  color: var(--zx-ink);
+  font-size: 16px;
+  line-height: 24px;
+}
+html.theme-exzed .q-combo-list li:hover,
+html.theme-exzed .q-combo:not(:has(.q-tagchoice)) .q-combo-list li.active {
+  background: var(--zx-hl-bg);
+  color: var(--zx-hl-ink);
+}
+html.theme-exzed .q-combo-list li.q-tagchoice-flag-first {
+  margin-top: 4px;
+  border-top: 2px solid var(--zx-frame);
+  padding-top: 0;
+}
+/* The Type/Medium list: a 16px slot before each value, the ▶ pointer in it for a picked one. */
+html.theme-exzed .q-combo:has(.q-tagchoice) .q-combo-list li:not(.q-tagchoice-flag)::before {
+  content: '';
+  flex: none;
+  width: 16px;
+  height: 16px;
+}
+html.theme-exzed .q-combo:has(.q-tagchoice) .q-combo-list li.active:not(.q-tagchoice-flag)::before {
+  background: currentColor;
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8' shape-rendering='crispEdges'%3E%3Cpath d='M2 0h1v8H2zM3 1h1v6H3zM4 2h1v4H4zM5 3h1v2H5z'/%3E%3C/svg%3E") 0 0 / 100% 100% no-repeat;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8' shape-rendering='crispEdges'%3E%3Cpath d='M2 0h1v8H2zM3 1h1v6H3zM4 2h1v4H4zM5 3h1v2H5z'/%3E%3C/svg%3E") 0 0 / 100% 100% no-repeat;
+}
+
+/* The add row's Year (72px in Quantum's 14px type) cannot hold its own placeholder at 16px; four 16px characters need 84px. */
+html.theme-exzed .q-add-item-year {
+  width: 88px;
+}
+
+/* The buttons beside fields: as tall as they are (Quantum worked their height out from its padding). */
+html.theme-exzed .q-add-item-row > .q-btn,
+html.theme-exzed .q-key-row > .q-btn,
+html.theme-exzed .q-search-form > .q-btn {
+  height: 40px;
+}

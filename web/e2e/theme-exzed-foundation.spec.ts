@@ -121,11 +121,12 @@ test.describe('the foundation’s properties and rules', () => {
 test.describe('the focus ring', () => {
   /** Where an element deliberately departs from the ring, and whose task draws it (the test fails when an exception stops being needed). */
   const EXCEPTIONS = {
-    'input.q-filter-input': { offset: '1px', why: 'a field: its focus is the border turning `acc` (51.4)' },
+    'input.q-filter-input': { outline: 'none', why: 'a field: its focus is the border turning `acc` (51.4)' },
+    'input.q-input': { outline: 'none', why: 'a field: its focus is the border turning `acc` (51.4)' },
     'span.q-rail-grip': { outline: 'none', why: 'the rail’s own resize handle draws its focus (51.8, X-010)' },
   } as const
 
-  test('every element a keyboard reaches on Home and in a list has the 2px `acc` outline, 2px off (a group row 2px in); the exceptions are the filter input and the rail grip', async ({ page }) => {
+  test('every element a keyboard reaches on Home and in a list has the 2px `acc` outline, 2px off (a group row 2px in); the exceptions are the fields (the filter input and the add row’s) and the rail grip', async ({ page }) => {
     test.setTimeout(240_000)
     const title = `Focus ring ${test.info().project.name} ${Date.now()}`
     const id = await makeList(page, title)
@@ -171,7 +172,7 @@ test.describe('the focus ring', () => {
       await page.request.delete(`/api/lists/${id}`)
     }
     // The exceptions are still real: a deviation nobody needs any more is removed from the list, not left behind.
-    expect([...seenException].sort(), 'both exceptions were reached and still depart from the ring').toEqual(['input.q-filter-input', 'span.q-rail-grip'])
+    expect([...seenException].sort(), 'every exception was reached and still departs from the ring').toEqual(['input.q-filter-input', 'input.q-input', 'span.q-rail-grip'])
   })
 })
 
