@@ -6,7 +6,7 @@
  * The highlight is eX-Zed's hover, lit and picked state (X-007, "inverse video"): the `acc` block with `acc-ink` content; the dim highlight is an inactive tab or chip's
  * hover (`acc-dim`). They are properties, not rules: a component says `background: var(--zx-hl-bg); color: var(--zx-hl-ink)` in its own state rule.
  *
- * The three backgrounds are design's `bundle.css`: the dotted 2px outline of a disabled button (four edges of 2px dots on a 4px period, in `ink2`), the 2px checkerboard of the
+ * The backgrounds are design's `bundle.css` (the icon dither is its "every other pixel", as a mask): the dotted 2px outline of a disabled button (four edges of 2px dots on a 4px period, in `ink2`), the 2px checkerboard of the
  * scrim (black pixels over what is behind, never solid) and the category head's 4px dither rule (`lab` over `paper`). The bar's own dither is X-008's.
  *
  * Type, by design (X-004, X-007): sizes are 16 (body), 24 (list names, sheet titles) and 32 (screen titles and the About wordmark) and nothing else; a popover's heading is a
@@ -20,6 +20,8 @@ html.theme-exzed {
   --zx-dim-ink: var(--zx-acc-ink);
   --zx-dotted: repeating-linear-gradient(90deg, var(--zx-ink2) 0 2px, transparent 2px 4px) 0 0 / 100% 2px no-repeat, repeating-linear-gradient(90deg, var(--zx-ink2) 0 2px, transparent 2px 4px) 0 100% / 100% 2px no-repeat, repeating-linear-gradient(var(--zx-ink2) 0 2px, transparent 2px 4px) 0 0 / 2px 100% no-repeat, repeating-linear-gradient(var(--zx-ink2) 0 2px, transparent 2px 4px) 100% 0 / 2px 100% no-repeat;
   --zx-scrim: repeating-conic-gradient(var(--zx-chip-ink) 0 25%, transparent 0 50%) 0 0 / 4px 4px;
+  /* A disabled icon: every other 2px cell of the icon kept, starting with its own top left. */
+  --zx-icon-dither: repeating-conic-gradient(transparent 0 25%, var(--zx-chip-ink) 0 50%) 0 0 / 4px 4px;
   --zx-dither-lab: repeating-conic-gradient(var(--zx-lab) 0 25%, var(--zx-paper) 0 50%) 0 0 / 4px 4px;
   font-weight: 400;
   letter-spacing: 0;

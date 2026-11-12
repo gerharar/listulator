@@ -1,0 +1,123 @@
+/*
+ * eX-Zed's buttons (Phase 51, 51.2a, X-007; design's Button card and `bundle.css`): the roles and their states, drawn on Quantum's own classes, so no call site changes here (the
+ * exceptions that need one, 51.2b: menu rows, choices, ghosts, Quit's confirm, the openers' `aria-expanded`). One shape, a 40px block with a 2px border, 16px type, no bold:
+ *  - primary (`.primary`): the `acc` block with `acc-ink`; hover swaps to `pri-hv` (yellow and white trade places; blue on Lotus);
+ *  - the bracketed secondary (the default button, `.quiet` and `.ghost`): no border at rest, `ink2`, `[Label]`; the brackets are CSS content with an empty alternative text, so
+ *    the label in the DOM and the locales is the whole accessible name; padding 16px and the 2px border put the "[" 18px in; hover is the highlight (`acc` block, `acc-ink`);
+ *  - danger (`.danger`): the `danger` block with `chip-ink`; hover swaps to `pri-hv`;
+ *  - disabled: no fill, the dotted 2px `ink2` outline (`--zx-dotted`, at the box's outer edge), `ink2` text, `not-allowed` (51.1), no hover; a disabled ICON has no outline, its icon
+ *    is a checkerboard of 2px cells (`--zx-icon-dither` as a mask) in `ink2`; busy (`aria-busy`) keeps the role's own look and shows the progress cursor;
+ *  - lit: an opener whose popover is open (`aria-expanded="true"`, or `.is-lit`) takes the hover look itself;
+ *  - icon buttons: 40x40, 48x40 in the header (`hdr-ink2` at rest), 32x32 borderless in a row; `ink2`; hover and lit = the highlight. The jump rail's own (`.rail`) are 51.8's.
+ * A hover rule keeps `:where(:not(:disabled))` (the disabled-hover guard). Quantum is as it was: every rule is under `html.theme-exzed`.
+ */
+/* The ground an icon button rests on: none, unless a place gives it a cell (the list header's, 50.15). */
+html.theme-exzed {
+  --zx-cell: transparent;
+}
+
+html.theme-exzed .q-btn {
+  gap: 8px;
+  padding: 0 16px;
+  border: 2px solid transparent;
+  background: transparent;
+  color: var(--zx-ink2);
+  font-weight: 400;
+  font-size: 16px;
+  line-height: 16px;
+  letter-spacing: 0;
+}
+
+/* Primary. */
+html.theme-exzed .q-btn.primary,
+html.theme-exzed .q-btn.primary.sm {
+  padding: 0 16px;
+  background: var(--zx-acc);
+  border-color: var(--zx-acc);
+  color: var(--zx-acc-ink);
+  font-size: 16px;
+}
+html.theme-exzed .q-btn.primary:where(:not(:disabled)):hover,
+html.theme-exzed .q-btn.primary[aria-expanded='true'] {
+  background: var(--zx-pri-hv);
+  border-color: var(--zx-pri-hv-line);
+  color: var(--zx-pri-hv-ink);
+}
+
+/* The bracketed secondary: the default button, `quiet` and `ghost` (a ghost is a toolbar action on the window: the call sites that are one are 51.2b's). */
+html.theme-exzed .q-btn.ghost,
+html.theme-exzed .q-btn.quiet {
+  padding: 0 16px;
+}
+html.theme-exzed .q-btn:not(.primary):not(.danger)::before {
+  content: '[';
+  content: '[' / '';
+}
+html.theme-exzed .q-btn:not(.primary):not(.danger)::after {
+  content: ']';
+  content: ']' / '';
+}
+html.theme-exzed .q-btn:not(.primary):not(.danger):where(:not(:disabled)):hover,
+html.theme-exzed .q-btn:not(.primary):not(.danger)[aria-expanded='true'],
+html.theme-exzed .q-btn:not(.primary):not(.danger).is-lit {
+  background: var(--zx-hl-bg);
+  border-color: var(--zx-hl-bg);
+  color: var(--zx-hl-ink);
+}
+
+/* Danger: only the final confirm of a delete that takes work with it (the call sites: 51.2b). */
+html.theme-exzed .q-btn.danger {
+  padding: 0 16px;
+  background: var(--zx-danger);
+  border-color: var(--zx-danger);
+  color: var(--zx-chip-ink);
+}
+html.theme-exzed .q-btn.danger:where(:not(:disabled)):hover,
+html.theme-exzed .q-btn.danger[aria-expanded='true'] {
+  background: var(--zx-pri-hv);
+  border-color: var(--zx-pri-hv-line);
+  color: var(--zx-pri-hv-ink);
+}
+
+/* Disabled: a shape, never a fade: no fill and the dotted outline at the box's outer edge, `ink2`. Busy keeps the role's own look and shows the progress cursor. */
+html.theme-exzed .q-btn:disabled:not([aria-busy='true']) {
+  background: var(--zx-dotted);
+  background-origin: border-box;
+  border-color: transparent;
+  color: var(--zx-ink2);
+}
+html.theme-exzed .q-btn[aria-busy='true'] {
+  cursor: progress;
+}
+
+/* Icon buttons. */
+html.theme-exzed .q-icon-btn:not(.rail) {
+  width: 40px;
+  height: 40px;
+  border: 2px solid transparent;
+  background: var(--zx-cell);
+  color: var(--zx-ink2);
+}
+html.theme-exzed .q-icon-btn.row {
+  width: 32px;
+  height: 32px;
+  border: 0;
+}
+html.theme-exzed .q-appheader .q-icon-btn {
+  width: 48px;
+  color: var(--zx-hdr-ink2);
+}
+html.theme-exzed .q-icon-btn:not(.rail):where(:not(:disabled)):hover,
+html.theme-exzed .q-icon-btn:not(.rail)[aria-expanded='true'],
+html.theme-exzed .q-icon-btn:not(.rail).is-lit {
+  background: var(--zx-hl-bg);
+  color: var(--zx-hl-ink);
+}
+html.theme-exzed .q-icon-btn:disabled:not([aria-busy='true']) {
+  background: transparent;
+  color: var(--zx-ink2);
+}
+html.theme-exzed .q-icon-btn:disabled svg {
+  -webkit-mask: var(--zx-icon-dither);
+  mask: var(--zx-icon-dither);
+}

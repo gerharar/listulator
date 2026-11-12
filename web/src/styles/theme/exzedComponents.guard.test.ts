@@ -39,6 +39,8 @@ describe('eX-Zed’s component foundation', () => {
     const dotted = /--zx-dotted:([^;]+);/.exec(css)?.[1] ?? ''
     expect(dotted.match(/repeating-linear-gradient\(/g)?.length, 'four edges').toBe(4)
     expect(dotted.match(/var\(--zx-ink2\) 0 2px,\s*transparent 2px 4px/g)?.length).toBe(4)
+    // The icon dither: every other 2px cell of a disabled icon, from its own top left (a mask: `chip-ink` is only its opacity).
+    expect(css).toMatch(/--zx-icon-dither:\s*repeating-conic-gradient\(transparent 0 25%,\s*var\(--zx-chip-ink\) 0 50%\) 0 0\s*\/\s*4px 4px;/)
     // The scrim: a 2px checkerboard of black pixels over transparent; the head rule: `lab` over `paper`.
     expect(css).toMatch(/--zx-scrim:\s*repeating-conic-gradient\(var\(--zx-chip-ink\) 0 25%,\s*transparent 0 50%\) 0 0\s*\/\s*4px 4px;/)
     expect(css).toMatch(/--zx-dither-lab:\s*repeating-conic-gradient\(var\(--zx-lab\) 0 25%,\s*var\(--zx-paper\) 0 50%\) 0 0\s*\/\s*4px 4px;/)

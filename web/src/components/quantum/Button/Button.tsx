@@ -47,6 +47,8 @@ export function Button({
         type="button"
         className={classes}
         disabled={disabled || busy}
+        // A busy control says so (the Button card); the attribute is only there while it is busy, and theme.css reads it to keep the primary's fill.
+        {...(busy ? { 'aria-busy': true } : {})}
         {...(title ? { 'aria-description': title } : {})}
         {...tip.props(rest)}
       >

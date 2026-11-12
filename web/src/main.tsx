@@ -31,6 +31,8 @@ import './styles/theme/exzed-colours.css'
 import './styles/theme/exzed-components.css'
 // eX-Zed's screen titles, window heads and wordmarks (51.1b, X-007).
 import './styles/theme/exzed-titles.css'
+// eX-Zed's buttons, the roles and the states (51.2a, X-007).
+import './styles/theme/exzed-buttons.css'
 // eX-Zed's skin art (Phase 50): each skin's pictures under its own `data-theme`, so only the active skin's files are requested.
 import './styles/theme/exzed-art.css'
 import { App } from './App.js'
