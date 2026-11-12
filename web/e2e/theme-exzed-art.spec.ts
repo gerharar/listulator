@@ -195,7 +195,10 @@ for (const [width, height] of SCREENS) {
     // 16px right of it. They are over the star field and under the window.
     const left: Layer = { image: columns, x: at.layerLeft - 16 - 320, y: height - 28 - 1400, repeatX: false, repeatY: false, clip: box }
     const right: Layer = { image: png('space-right'), x: at.layerRight + 16, y: height - 28 - 1400, repeatX: false, repeatY: false, clip: box }
-    const layers = [stars, strip, left, right]
+    // The bridge tiles (50.14): the rubble ground, 80x30, repeated from the outer edge of each outpost out to the app's box edge, 28px up, over the stars, under the outposts.
+    const bridgeLeft: Layer = { image: png('space-ground-left'), x: at.layerLeft - 16 - 320 - 80, y: height - 28 - 30, repeatX: true, repeatY: false, clip: { left: at.boxLeft, top: height - 28 - 30, right: at.layerLeft - 16 - 320, bottom: height - 28 } }
+    const bridgeRight: Layer = { image: png('space-ground-right'), x: at.layerRight + 16 + 320, y: height - 28 - 30, repeatX: true, repeatY: false, clip: { left: at.layerRight + 16 + 320, top: height - 28 - 30, right: at.boxLeft + at.boxWidth, bottom: height - 28 } }
+    const layers = [stars, strip, bridgeLeft, bridgeRight, left, right]
     const edge = at.boxLeft + at.boxWidth
 
     // The ground left of the window (clear of its ring), from the screen's bottom up through the strip and the column's foot; and again from near the top, where on a tall
@@ -212,6 +215,9 @@ for (const [width, height] of SCREENS) {
     for (const [name, clip, column] of clips) {
       const seen = await compare(page, layers, clip)
       expect(seen.different, `pixels that differ, ${name}`).toBe(0)
+      // Where there is a gap between the outpost and the box's edge (a screen wider than 2292px) the ground is drawn in it; where there is none, nothing of it is.
+      const bridge = name.startsWith('left') ? bridgeLeft : bridgeRight
+      if (name.endsWith('bottom')) expect(seen.shown.has(bridge), `the ${name} bridge ground is drawn exactly where there is a gap`).toBe(width >= 2560)
       if (name.endsWith('bottom')) {
         expect(seen.shown.has(column), `the column is in the ${name} clip`).toBe(true)
         expect(seen.shown.has(strip), `the strip is in the ${name} clip`).toBe(true)
@@ -280,7 +286,11 @@ for (const [width, height] of SCREENS) {
     const columns: Layer = { image: png('island-shore-right'), x: at.layerRight + 16, y: height - 28 - 1400, repeatX: false, repeatY: false, clip: box }
     // The strip under the header is 40px (64 to 104): the 16px of the others and the 24px of the ledge shift.
     const hills: Layer = { image: png('island-cornice'), x: at.boxLeft, y: 64, repeatX: true, repeatY: false, clip: { ...box, top: 64, bottom: 104 } }
-    const layers = [stars, waves, castle, columns, hills]
+    // The bridge tiles (50.14): the shores' sea (and on the right its sand), 96x132, repeated from the outer edge of each shore out to the app's box edge, 28px up, over the stars,
+    // under the shores.
+    const seaLeft: Layer = { image: png('island-sea-left'), x: at.layerLeft - 16 - 332 - 96, y: height - 28 - 132, repeatX: true, repeatY: false, clip: { left: at.boxLeft, top: height - 28 - 132, right: at.layerLeft - 16 - 332, bottom: height - 28 } }
+    const seaRight: Layer = { image: png('island-sea-right'), x: at.layerRight + 16 + 352, y: height - 28 - 132, repeatX: true, repeatY: false, clip: { left: at.layerRight + 16 + 352, top: height - 28 - 132, right: at.boxLeft + at.boxWidth, bottom: height - 28 } }
+    const layers = [stars, waves, seaLeft, seaRight, castle, columns, hills]
     const edge = at.boxLeft + at.boxWidth
     const bottom = Math.max(110, height - 800)
     const gapLeft = { x: at.boxLeft, width: Math.min(at.layerLeft - 16 - at.boxLeft, 300) }
@@ -291,6 +301,7 @@ for (const [width, height] of SCREENS) {
       expect(seen.different, `pixels that differ, ${name}, from the bottom`).toBe(0)
       expect(seen.shown.has(layer), `the ${name} shore is in the clip`).toBe(true)
       expect(seen.shown.has(waves), `the waves are in the ${name} clip`).toBe(true)
+      expect(seen.shown.has(name === 'left' ? seaLeft : seaRight), `the ${name} sea is drawn exactly where there is a gap`).toBe(width >= 2560)
       expect((await compare(page, layers, { ...gap, y: 110, height: 300 })).different, `pixels that differ, ${name}, near the top`).toBe(0)
     }
     // The hills-and-clouds: more than one 380px tile of them at each end of the strip.
@@ -687,4 +698,26 @@ test('only the active skin’s pictures are requested: each skin asks for its ow
   expect(await requested({ theme: 'exzed', exzedSkin: 'exzed-1e' })).toEqual(['island-cornice.png', 'island-shore-left.png', 'island-shore-right.png', 'island-waves.png', 'star-tile.png'])
   expect(await requested({ theme: 'exzed', exzedSkin: 'exzed-1l' }), 'Lotus has no art').toEqual([])
   expect(await requested({ theme: 'quantum' })).toEqual([])
+})
+
+test('the bridge tiles are asked for only on a screen wide enough to have a gap beside the side art, and then only in their own skin (50.14)', async ({ page }) => {
+  const requestedAt = async (stored: Record<string, string>, width: number) => {
+    const fresh = await page.context().newPage()
+    const urls: string[] = []
+    fresh.on('request', (request) => urls.push(request.url()))
+    await boot(fresh, stored, width, 900)
+    await fresh.goto('/')
+    await fresh.locator('.q-home-row').first().waitFor()
+    await fresh.waitForLoadState('networkidle')
+    await fresh.close()
+
+    return urls.filter((url) => /(space-ground|island-sea)-/.test(url)).map((url) => /\/art\/([^/?]+?)(?:\?.*)?$/.exec(url)![1]!).sort()
+  }
+
+  expect(await requestedAt({ theme: 'exzed', exzedSkin: 'exzed-1c' }, 1440), 'Xen at 1440').toEqual([])
+  expect(await requestedAt({ theme: 'exzed', exzedSkin: 'exzed-1c' }, 2560), 'Xen at 2560').toEqual(['space-ground-left.png', 'space-ground-right.png'])
+  expect(await requestedAt({ theme: 'exzed', exzedSkin: 'exzed-1e' }, 1440), 'Ikigai at 1440').toEqual([])
+  expect(await requestedAt({ theme: 'exzed', exzedSkin: 'exzed-1e' }, 2560), 'Ikigai at 2560').toEqual(['island-sea-left.png', 'island-sea-right.png'])
+  expect(await requestedAt({ theme: 'exzed', exzedSkin: 'exzed-1d' }, 3440), 'Lode, wide').toEqual([])
+  expect(await requestedAt({ theme: 'exzed', exzedSkin: 'exzed-1l' }, 3440), 'Lotus, wide').toEqual([])
 })

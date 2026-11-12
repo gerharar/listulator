@@ -156,6 +156,35 @@ html[data-theme='exzed-1c'] .q-backdrop > [data-slot='sides']::after {
 }
 
 /*
+ * The bridge tiles (50.14, design's answer 11 of 2026-11-12): the window is 1620px, not the boards' 1872px, so the side art, which hugs the window, stops short of the app's box
+ * edge on a wide screen and left bare sky at ground level. Each tile (the outer columns of the art plus their mirror, so every join is seamless) repeats along the ground from
+ * the side art's outer edge out to the box edge, 28px up like the art: the rubble ground for Xen, `space-ground-left` / `-right`, 80x30. They are the `bottom` slot's own
+ * pseudo-elements (under the side art, which is a slot above it; over the star field; the slot holds no DOM). The left one is anchored on its right edge and the right one on
+ * its left, so the tile next to the art is whole and its edge column is the art's own; the tile at the box edge is cut. Asked for only on a screen wide enough to have a gap
+ * (the window's gutter is more than the art and its 16px clearance: 2 x (320 + 16) + 1620 = 2292px).
+ */
+@media (min-width: 2293px) {
+  html[data-theme='exzed-1c'] .q-backdrop > [data-slot='bottom']::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    bottom: 28px;
+    width: max(0px, calc(var(--header-gutter) - 16px - 320px));
+    height: 30px;
+    background: url('./art/space-ground-left.png') right bottom / 80px 30px repeat-x;
+  }
+  html[data-theme='exzed-1c'] .q-backdrop > [data-slot='bottom']::after {
+    content: '';
+    position: absolute;
+    right: 0;
+    bottom: 28px;
+    width: max(0px, calc(var(--header-gutter) - 16px - 320px));
+    height: 30px;
+    background: url('./art/space-ground-right.png') left bottom / 80px 30px repeat-x;
+  }
+}
+
+/*
  * 1e Ikigai: the star field, the 40px hills-and-clouds under the header, the waves along the bottom (28px) and, standing on them, the castle ruin and the columns (1:1, 1400px
  * high, 28px up, 16px clear of the window's border box, as Xen's outposts are). This is the one skin whose separator is taller than 16px, so it alone sets the ledge shift:
  * **everything under the strip starts 24px lower** (`--ledge-shift`, added to every layer's top by layerGeometry.ts, 50.1a; the header bar stays 64px and the strip runs
@@ -198,6 +227,29 @@ html[data-theme='exzed-1e'] .q-backdrop > [data-slot='sides']::after {
   width: 352px;
   height: 1400px;
   background: url('./art/island-shore-right.png') 0 0 / 352px 1400px no-repeat;
+}
+
+/* The bridge tiles for Ikigai (50.14, as Xen's above): the shores' sea, `island-sea-left` and the sea and sand of `island-sea-right`, 96x132, from each shore's outer edge (332 and
+   352 wide) out to the box edge. A gap exists from 2 x (332 + 16) + 1620 = 2316px (left); the right one's from 2356px, and its box is empty until then. */
+@media (min-width: 2317px) {
+  html[data-theme='exzed-1e'] .q-backdrop > [data-slot='bottom']::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    bottom: 28px;
+    width: max(0px, calc(var(--header-gutter) - 16px - 332px));
+    height: 132px;
+    background: url('./art/island-sea-left.png') right bottom / 96px 132px repeat-x;
+  }
+  html[data-theme='exzed-1e'] .q-backdrop > [data-slot='bottom']::after {
+    content: '';
+    position: absolute;
+    right: 0;
+    bottom: 28px;
+    width: max(0px, calc(var(--header-gutter) - 16px - 352px));
+    height: 132px;
+    background: url('./art/island-sea-right.png') left bottom / 96px 132px repeat-x;
+  }
 }
 
 /*

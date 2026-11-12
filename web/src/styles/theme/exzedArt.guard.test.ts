@@ -31,6 +31,11 @@ const CHECKSUMS: Record<string, string> = {
   'space-left.png': '568ea30ab75d05e3f0b6e96fad2e7b0d076529bfbcdc9abecccb6fa91bd48b09',
   'space-right.png': '6d03c7820a7a6fd8ce1687929cf52ed7991343b5a309deaa4f631415de925d52',
   'space-parapet.png': '9db6134a9c433f7fe50d2f9cfdf74bed5938819fa3d31868a3259647c1e25d9b',
+  // The bridge tiles (50.14, design's answer 11 of 2026-11-12, design system `1794480646-542f`): the ground and the sea out to the app's box edge.
+  'space-ground-left.png': '8a3a7f4f3023485707581ea9534d3bf52c02f88a6c5d0d7c5f7e29bfa3317dfc',
+  'space-ground-right.png': 'e6260dbd636d6fff80efa25ea660101c7d930d1c527e415a1f80beaa7f590713',
+  'island-sea-left.png': '32a931f4f21fafcd901741610afba4e5c96c2d1a30f19a08ff7c21b3f99f76bd',
+  'island-sea-right.png': '7886b333b8558dc72e93999aeb5465e79898b08ddadbfe65a580469a1a5ad73a',
   'island-shore-left.png': '2fe3cc62b9fc759ea53866c80272e7c3111aa2abad79ca5a15e3db048b2d3cad',
   'island-shore-right.png': 'de13ded20f5a1b3797cd36315994dcd65b8c8d6a6c26f94d5d25c8fd9af0dd76',
   'island-cornice.png': '8d45ece53bbb4dc0a67a79e5a7a1f52cbcbddf9b280b84699c487f2554b40ec2',
@@ -63,8 +68,8 @@ const FILES: Record<string, readonly string[]> = {
   'exzed-1d': ['red-bricks-cornice.png', 'red-bricks-wall.png'],
   'exzed-1a': ['blue-stones-separator.png', 'blue-stones-wall.png', 'side-stripes.png'],
   'exzed-1b': ['grey-stones-separator.png', 'grey-stones-wall.png', 'side-stripes.png'],
-  'exzed-1c': ['space-left.png', 'space-parapet.png', 'space-right.png', 'star-tile.png'],
-  'exzed-1e': ['island-cornice.png', 'island-shore-left.png', 'island-shore-right.png', 'island-waves.png', 'star-tile.png'],
+  'exzed-1c': ['space-ground-left.png', 'space-ground-right.png', 'space-left.png', 'space-parapet.png', 'space-right.png', 'star-tile.png'],
+  'exzed-1e': ['island-cornice.png', 'island-sea-left.png', 'island-sea-right.png', 'island-shore-left.png', 'island-shore-right.png', 'island-waves.png', 'star-tile.png'],
   // Lotus has no art: plain paper, and a status line that is text.
   'exzed-1l': [],
 }
@@ -179,6 +184,21 @@ describe('the skin art', () => {
     // The ground under it is the stage's own colour (plain black in the dark skins), so no picture means a plain ground.
     expect(css).toMatch(/html\.theme-exzed \.q-backdrop\s*{\s*background-color:\s*var\(--zx-stage\);[^}]*}/)
     for (const skin of BUILT) expect(rulesFor(skin).join('\n'), skin).not.toMatch(/border-stripes/)
+  })
+
+  it('the bridge tiles (50.14) close the gap between the side art and the app’s box edge: repeat-x, 28px up, flush against the side art’s outer edge, in the bottom slot (under the side art, over the stars), only on a screen wide enough to have a gap', () => {
+    const xen = rulesFor('exzed-1c').join('\n')
+    const ikigai = rulesFor('exzed-1e').join('\n')
+
+    for (const [rules, side, w, h, art] of [[xen, 'left', 80, 30, 'space-ground-left'], [xen, 'right', 80, 30, 'space-ground-right'], [ikigai, 'left', 96, 132, 'island-sea-left'], [ikigai, 'right', 96, 132, 'island-sea-right']] as const) {
+      const pattern = new RegExp(`url\\('\\./art/${art}\\.png'\\) ${side === 'left' ? 'right' : 'left'} bottom / ${w}px ${h}px repeat-x`)
+      expect(rules, `${art}: ${w}x${h}, repeat-x, anchored against the side art`).toMatch(pattern)
+    }
+    expect(css).toMatch(/@media \(min-width: 2293px\)/)
+    expect(css).toMatch(/@media \(min-width: 2317px\)/)
+    expect(xen).toMatch(/\[data-slot='bottom'\]::before/)
+    expect(ikigai).toMatch(/\[data-slot='bottom'\]::after/)
+    expect(xen + ikigai).toMatch(/bottom:\s*28px/)
   })
 
   it('Lotus has no border: the paper runs to the screen’s edges, the stripes never drawn, setting or no setting; the other skins’ stripes go plain with it off (`data-border="off"` on <html>, set by 50.7)', () => {
