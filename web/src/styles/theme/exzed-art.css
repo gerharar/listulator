@@ -392,6 +392,40 @@ html.theme-exzed .q-catbanner[data-where='header'] {
   height: var(--banner-h);
   max-width: calc(100% - 24px);
 }
+/*
+ * The paper cells over the banner (50.15, design's answer 10 of 2026-11-12): the banner stays where it is, and everything drawn over it gets a cell of `paper`, the Spectrum's
+ * attribute rule (as bars, marks and chips do): on Glemt the banner (`prog-dim`) and the icons (`ink2`) are the same colour, and white words over it are unreadable in several
+ * skins; a clearance rule would make the banner jump with the title's length. The three buttons rest on a solid 40x40 ground (the board's size: the control is 36 wide in Quantum, 40 here; its hover is the
+ * control's own, which is the paper too until X-007 draws the accent fill, and must then win over this). The kicker, the title (its marks and chip with it), the subline and the progress line's parts
+ * paint `paper` behind their own words only: a run of words is an inline box with `box-decoration-break: clone`, so each wrapped line is its own cell and the banner shows around
+ * and between them. The bar has 2px of paper around it (the board's button padding). The fill of the banner is not the cell's business: a finished list's four bands (X-008) go
+ * under the same cells.
+ */
+html.theme-exzed .q-list-head .q-list-actions .q-icon-btn.list {
+  width: 40px;
+  background: var(--zx-paper);
+}
+html.theme-exzed .q-list-head .q-list-titles .q-kicker,
+html.theme-exzed .q-list-head .q-list-titles .q-progress.header {
+  align-self: flex-start;
+}
+html.theme-exzed .q-list-head .q-list-titles .q-kicker {
+  background: var(--zx-paper);
+}
+html.theme-exzed .q-list-head .q-run {
+  background: var(--zx-paper);
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+}
+html.theme-exzed .q-list-head .q-progress.header .q-pct,
+html.theme-exzed .q-list-head .q-progress.header .q-sep,
+html.theme-exzed .q-list-head .q-progress.header .q-count,
+html.theme-exzed .q-list-head .q-progress.header .q-left {
+  background: var(--zx-paper);
+}
+html.theme-exzed .q-list-head .q-progress.header .q-meter {
+  outline: 2px solid var(--zx-paper);
+}
 html.theme-exzed .q-catbanner[data-where='tile'] {
   position: absolute;
   inset: 0;

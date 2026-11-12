@@ -1458,10 +1458,17 @@ function ListView({
             <h1 className="q-list-title">
               {mark === 'curated' && <CuratedStar large />}
               {mark === 'byHand' && <ByHandMark large />}
-              {meta.title}
+              {/* eX-Zed (50.15): the title's words sit on paper over the banner, each wrapped line its own cell, so they are inline runs in a box of their own. */}
+              {theme === 'exzed' ? (
+                <span className="q-run-box">
+                  <span className="q-run">{meta.title}</span>
+                </span>
+              ) : (
+                meta.title
+              )}
               <StatusChip status={meta.status} />
             </h1>
-            {meta.description && <p className="q-list-description">{meta.description}</p>}
+            {meta.description && <p className="q-list-description">{theme === 'exzed' ? <span className="q-run">{meta.description}</span> : meta.description}</p>}
             <ProgressSentence
               done={totals.done}
               total={totals.total}
