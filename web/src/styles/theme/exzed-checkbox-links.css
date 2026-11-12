@@ -1,0 +1,132 @@
+/*
+ * eX-Zed's checkbox and links (Phase 51, 51.5, X-007; design's Checkbox and Link cards, answers D6 and 13), drawn on Quantum's own classes:
+ *  - the done box (`.q-done > span`, on an item and on a group head) is 16px with a 2px `frame` border on `paper`, a 2px `chip-ink` cell outside it (an outline, so it takes no room) and
+ *    the card's 6x6 pixel tick (2px cells, a mask) in `ink`; "some are done" on a group head is a drawn dash, 8x2 in `ink`, centred, no fill (D6). The tick is never the accent;
+ *  - a done item's title is `ink2` with a 2px line through it, never also lighter (the row's hover, pointer and 32px are 51.7's);
+ *  - Settings' checkboxes stay the native `<input type="checkbox">` (keyboard, label, state) and the same box is drawn on it (`appearance: none`, the tick a pseudo-element): the label is
+ *    `ink`, 16px from the box, the whole line (8px of padding) takes the highlight on hover. **Disabled** (Show Spectrum border on Lotus, answer 13): the box keeps its size and place, its
+ *    border the dotted `ink2` line of a disabled button (no cell round it, or the dots would read as a solid line), its tick (the stored value) `ink2`, the label `ink2`, `not-allowed`,
+ *    no hover, no outline round the row;
+ *  - a link (the About credits and source hosts, the key card's, the list's link back, How? in Settings) is the surrounding colour with a dotted 2px underline 4px below the text, the
+ *    highlight on hover; an external link ends with the pixel ↗, 16px, 2px below the baseline (the glyph in the DOM is hidden, the icon is a mask).
+ * Quantum is as it was: every rule is under `html.theme-exzed`.
+ */
+html.theme-exzed .q-done > span {
+  position: relative;
+  box-sizing: border-box;
+  width: 16px;
+  height: 16px;
+  border: 2px solid var(--zx-frame);
+  background: var(--zx-paper);
+  outline: 2px solid var(--zx-chip-ink);
+  outline-offset: 0;
+  font-size: 0;
+}
+html.theme-exzed .q-done[aria-checked='true'] > span {
+  background: var(--zx-paper);
+}
+html.theme-exzed .q-done[aria-checked='true'] > span::after,
+html.theme-exzed .q-settings-check input:checked::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--zx-ink);
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 6 6' shape-rendering='crispEdges'%3E%3Cpath d='M5 0h1v1H5zM4 1h1v1H4zM3 2h1v1H3zM0 2h1v1H0zM1 3h1v1H1zM2 3h1v1H2z'/%3E%3C/svg%3E") 0 0 / 100% 100% no-repeat;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 6 6' shape-rendering='crispEdges'%3E%3Cpath d='M5 0h1v1H5zM4 1h1v1H4zM3 2h1v1H3zM0 2h1v1H0zM1 3h1v1H1zM2 3h1v1H2z'/%3E%3C/svg%3E") 0 0 / 100% 100% no-repeat;
+}
+html.theme-exzed .q-done[aria-checked='mixed'] > span::after {
+  left: 2px;
+  top: 5px;
+  width: 8px;
+  height: 2px;
+  background: var(--zx-ink);
+}
+html.theme-exzed .q-item.is-done .title {
+  color: var(--zx-ink2);
+  text-decoration: line-through;
+  text-decoration-thickness: 2px;
+}
+
+/* Settings' checkboxes. */
+html.theme-exzed .q-settings-check {
+  margin: 4px 0 0 -8px;
+  padding: 8px;
+  gap: 16px;
+  color: var(--zx-ink);
+  font-size: 16px;
+}
+html.theme-exzed .q-settings-check input[type='checkbox'] {
+  -webkit-appearance: none;
+  appearance: none;
+  position: relative;
+  flex: none;
+  box-sizing: border-box;
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  border: 2px solid var(--zx-frame);
+  background: var(--zx-paper);
+  outline: 2px solid var(--zx-chip-ink);
+  outline-offset: 0;
+  cursor: pointer;
+}
+html.theme-exzed .q-settings-check input[type='checkbox']:focus-visible {
+  outline: 2px solid var(--zx-acc);
+  outline-offset: 2px;
+}
+html.theme-exzed .q-settings-check:where(:not(:has(input:disabled))):hover {
+  background: var(--zx-hl-bg);
+  color: var(--zx-hl-ink);
+}
+html.theme-exzed .q-settings-check:has(input:disabled) {
+  color: var(--zx-ink2);
+  cursor: not-allowed;
+  outline: none;
+}
+html.theme-exzed .q-settings-check input[type='checkbox']:disabled {
+  border-color: transparent;
+  background: var(--zx-dotted), var(--zx-paper);
+  background-origin: border-box;
+  outline: none;
+  cursor: not-allowed;
+}
+html.theme-exzed .q-settings-check input:disabled:checked::after {
+  background: var(--zx-ink2);
+}
+
+/* Links. */
+html.theme-exzed .q-about-credit-link,
+html.theme-exzed .q-about-link,
+html.theme-exzed .q-keycard-link,
+html.theme-exzed .q-list-linkback a,
+html.theme-exzed .q-key-row > a.q-btn.quiet {
+  padding-bottom: 4px;
+  background: repeating-linear-gradient(90deg, currentColor 0 2px, transparent 2px 4px) 0 100% / 100% 2px no-repeat;
+  color: inherit;
+  text-decoration: none;
+  white-space: nowrap;
+}
+html.theme-exzed .q-about-credit-link:hover,
+html.theme-exzed .q-about-link:hover,
+html.theme-exzed .q-keycard-link:hover,
+html.theme-exzed .q-list-linkback a:hover,
+html.theme-exzed .q-key-row > a.q-btn.quiet:where(:not(:disabled)):hover {
+  background: var(--zx-hl-bg);
+  color: var(--zx-hl-ink);
+}
+html.theme-exzed .q-about-credit-link > span[aria-hidden='true'],
+html.theme-exzed .q-about-link > span[aria-hidden='true'],
+html.theme-exzed .q-keycard-link > span[aria-hidden='true'],
+html.theme-exzed .q-list-linkback a > span[aria-hidden='true'],
+html.theme-exzed .q-key-row > a.q-btn.quiet > span[aria-hidden='true'] {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  margin-left: 4px;
+  vertical-align: -2px;
+  background: currentColor;
+  color: inherit;
+  font-size: 0;
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8' shape-rendering='crispEdges'%3E%3Cpath d='M3 0h5v1H3zM7 1h1v4H7zM6 1h1v1H6zM5 2h1v1H5zM4 3h1v1H4zM3 4h1v1H3zM2 5h1v1H2zM1 6h1v1H1z'/%3E%3C/svg%3E") 0 0 / 100% 100% no-repeat;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8' shape-rendering='crispEdges'%3E%3Cpath d='M3 0h5v1H3zM7 1h1v4H7zM6 1h1v1H6zM5 2h1v1H5zM4 3h1v1H4zM3 4h1v1H3zM2 5h1v1H2zM1 6h1v1H1z'/%3E%3C/svg%3E") 0 0 / 100% 100% no-repeat;
+}
