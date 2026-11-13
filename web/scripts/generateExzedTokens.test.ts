@@ -175,8 +175,8 @@ describe('the committed exzed-tokens.css', () => {
   ])
   const roles = customProperties(read('styles/theme/exzed-tokens.css'))
 
-  it('has the thirty roles, each with one value in each of the six skins', () => {
-    expect(roles.size).toBe(30)
+  it('has the thirty-one roles, each with one value in each of the six skins', () => {
+    expect(roles.size).toBe(31)
     for (const [role, values] of roles) expect(values, role).toHaveLength(6)
   })
 

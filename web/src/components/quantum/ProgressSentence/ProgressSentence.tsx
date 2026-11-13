@@ -4,6 +4,7 @@ import { formatDuration } from '../../../formatDuration.js'
 import { copy } from '../../../locale/index.js'
 import { MeterBar, PercentLabel } from '../MeterBar/MeterBar.js'
 import type { PickedStatus } from '../StatusPicker/StatusPicker.js'
+import { LeftText } from './LeftText.js'
 
 const SENTENCE_SIZES = {
   header: { count: 15, time: 14, percent: 15 },
@@ -130,7 +131,7 @@ export function ProgressSentence({
       style={{ fontSize: allDone ? Math.max(11, sizes.time - 2) : sizes.time }}
       text={!allDone && runtimesPending > 0 ? copy.quantum.progress.runtimesPendingTip(runtimesPending) : undefined}
     >
-      {left}
+      <LeftText text={left} />
     </Tip>
   )
 

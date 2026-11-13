@@ -29,6 +29,7 @@ html.theme-exzed, html[data-theme="exzed-1d"], html [data-theme="exzed-1d"] {
   --zx-warn: #ff00ff;
   --zx-danger: #ff0000;
   --zx-star: #ffff00;
+  --zx-hand: #d7d7d7;
   --zx-chip-ink: #000000;
 }
 html[data-theme="exzed-1a"], html [data-theme="exzed-1a"] {
@@ -61,6 +62,7 @@ html[data-theme="exzed-1a"], html [data-theme="exzed-1a"] {
   --zx-warn: #ff00ff;
   --zx-danger: #ff0000;
   --zx-star: #ffff00;
+  --zx-hand: #d7d7d7;
   --zx-chip-ink: #000000;
 }
 html[data-theme="exzed-1b"], html [data-theme="exzed-1b"] {
@@ -93,6 +95,7 @@ html[data-theme="exzed-1b"], html [data-theme="exzed-1b"] {
   --zx-warn: #ff00ff;
   --zx-danger: #ff0000;
   --zx-star: #ffff00;
+  --zx-hand: #d7d7d7;
   --zx-chip-ink: #000000;
 }
 html[data-theme="exzed-1c"], html [data-theme="exzed-1c"] {
@@ -125,6 +128,7 @@ html[data-theme="exzed-1c"], html [data-theme="exzed-1c"] {
   --zx-warn: #ff00ff;
   --zx-danger: #ff0000;
   --zx-star: #ffff00;
+  --zx-hand: #d7d7d7;
   --zx-chip-ink: #000000;
 }
 html[data-theme="exzed-1e"], html [data-theme="exzed-1e"] {
@@ -157,6 +161,7 @@ html[data-theme="exzed-1e"], html [data-theme="exzed-1e"] {
   --zx-warn: #ff00ff;
   --zx-danger: #ff0000;
   --zx-star: #ffff00;
+  --zx-hand: #d7d7d7;
   --zx-chip-ink: #000000;
 }
 html[data-theme="exzed-1l"], html [data-theme="exzed-1l"] {
@@ -189,5 +194,6 @@ html[data-theme="exzed-1l"], html [data-theme="exzed-1l"] {
   --zx-warn: #ff00ff;
   --zx-danger: #ff0000;
   --zx-star: #ffff00;
+  --zx-hand: #d7d7d7;
   --zx-chip-ink: #000000;
 }

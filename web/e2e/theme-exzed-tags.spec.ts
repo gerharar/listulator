@@ -14,6 +14,8 @@ const ICONS = {
   complete: 'M0 0h8v1H0zM0 1h1v1H0zM7 1h1v1H7zM0 2h8v1H0zM1 3h1v3H1zM6 3h1v3H6zM3 4h2v1H3zM1 6h6v1H1z',
   ongoing: 'M1 0h2v4H1zM1 5h2v1H1zM5 2h2v4H5zM5 7h2v1H5z',
   hand: 'M1 1h1v3H1zM3 0h1v4H3zM5 1h1v3H5zM7 3h1v2H7zM1 4h6v3H1zM2 7h4v1H2z',
+  add: 'M3 0h2v3H3zM0 3h8v2H0zM3 5h2v3H3z',
+  done: 'M7 1h1v1H7zM6 2h1v1H6zM5 3h1v1H5zM4 4h1v1H4zM0 4h1v1H0zM1 5h1v1H1zM3 5h1v1H3zM2 6h1v1H2z',
 } as const
 type IconName = keyof typeof ICONS
 type Rgb = [number, number, number]
@@ -56,7 +58,7 @@ const item = (n: number, extra: Record<string, unknown>) => ({
   isNew: false,
   ...extra,
 })
-const ITEMS = [item(1, { tags: ['PS3'], isNew: true }), item(2, { tags: ['X360'] }), item(3, { tags: ['PS3', 'X360'] }), item(4, { tags: ['PS4'] })]
+const ITEMS = [item(1, { tags: ['PS3'], isNew: true }), item(2, { tags: ['X360'] }), item(3, { tags: ['PS3', 'X360'] }), item(4, { tags: ['PS4'] }), item(5, { tags: null })]
 /** Home's two lists: a curated complete one, and a by-hand ongoing one with three new items. */
 const HOME = [
   { ...SUMMARY, id: 'L1', title: 'Curated and complete', status: 'complete' },
@@ -88,7 +90,7 @@ const css = (c: Rgb) => `rgb(${c.join(', ')})`
 const style = (locator: Locator, props: string[]) => locator.evaluate((element, names) => Object.fromEntries(names.map((name) => [name, getComputedStyle(element).getPropertyValue(name)])), props)
 
 async function roles(page: Page) {
-  const names = ['paper', 'ink', 'ink2', 'frame', 'chip-ink', 'info', 'ok', 'warn', 'star', 'acc', 'acc-ink'] as const
+  const names = ['paper', 'ink', 'ink2', 'frame', 'chip-ink', 'info', 'ok', 'warn', 'star', 'hand', 'acc', 'acc-ink'] as const
   const found = await Promise.all(names.map((n) => token(page, `--zx-${n}`)))
 
   return Object.fromEntries(names.map((n, i) => [n, rgbOf(found[i]!)])) as Record<(typeof names)[number], Rgb>
@@ -157,7 +159,7 @@ for (const skin of SKINS) {
 
     await readMark(page, curated.locator('.q-star'), 'star', r.star, r, 'the curated star')
     await readMark(page, curated.locator('.q-status-mark'), 'complete', r.ok, r, 'the complete mark')
-    await readMark(page, byHand.locator('.q-byhand'), 'hand', r.ink2, r, 'the by-hand mark')
+    await readMark(page, byHand.locator('.q-byhand'), 'hand', r.hand, r, 'the by-hand mark (the fixed `hand` colour, answer D18)')
     await readMark(page, byHand.locator('.q-status-mark'), 'ongoing', r.info, r, 'the ongoing mark')
     await readTag(page, byHand.locator('.q-new'), r.info, r, '3 NEW')
   })
@@ -202,6 +204,31 @@ for (const skin of SKINS) {
       expect((await chip.boundingBox())!.width, `platform tag ${n}: five characters and 8px`).toBeCloseTo(5 * ch + 8, 0)
     }
 
+    // The add-tag chip an untagged row shows (answer D17): the medium tag's box, the column's width, the `add` pixel icon centred in `ink2`; hover is the highlight.
+    const add = page.locator('.q-item .q-plat.q-tag-add')
+    await expect(add).toHaveCount(1)
+    expect(await style(add, ['height', 'border-top-width', 'border-top-style', 'border-top-color', 'background-color', 'color'])).toMatchObject({
+      height: '20px',
+      'border-top-width': '2px',
+      'border-top-style': 'solid',
+      'border-top-color': css(r.ink2),
+      'background-color': 'rgba(0, 0, 0, 0)',
+      color: css(r.ink2),
+    })
+    await page.mouse.move(0, 0)
+    const box = (await add.boundingBox())!
+    expect(box.width, 'the column’s width').toBeCloseTo(5 * ch + 8, 0)
+    const shot = await shoot(page, box, 0)
+    const left = (box.width - 16) / 2
+    const filled = cells(ICONS.add)
+    for (let y = 0; y < 8; y++) {
+      for (let x = 0; x < 8; x++) {
+        if (filled.has(`${x},${y}`)) expect(at(shot.pixels, shot.scale, left + x * 2 + 1, 2 + y * 2 + 1), `the add icon: cell ${x},${y} in ink2`).toEqual(r.ink2)
+      }
+    }
+    await add.hover()
+    expect(await style(add, ['background-color', 'color'])).toEqual({ 'background-color': css(r.acc), color: css(r['acc-ink']) })
+
     // Hovering a platform tag (a button: it opens the platform list) is the highlight.
     await chips.first().hover()
     expect(await style(chips.first(), ['background-color', 'color', 'border-top-color'])).toEqual({
@@ -209,6 +236,72 @@ for (const skin of SKINS) {
       color: css(r['acc-ink']),
       'border-top-color': css(r.acc),
     })
+  })
+}
+
+for (const skin of SKINS) {
+  test(`${skin}: ALL DONE is the done pixel icon then the words, both ink2, with no tick glyph in the text (answer D19)`, async ({ page }) => {
+    await boot(page, skin, [SUMMARY])
+    const finished = ITEMS.map((entry) => ({ ...entry, consumedAt: '2026-01-02T00:00:00Z' }))
+    await page.route('**/api/lists/L1', (route) => route.fulfill({ json: { ...SUMMARY, status: 'complete', stats: { ...SUMMARY.stats, consumedItems: 5, totalItems: 5 }, items: finished, groups: [] } }))
+    await page.locator('.q-home-row').first().click()
+    await page.locator('.q-item').first().waitFor()
+    await page.evaluate(() => document.fonts.ready)
+    const r = await roles(page)
+    const left = page.locator('.q-list-head .q-left.all-done')
+    await expect(left).toHaveCount(1)
+    expect(await left.evaluate((el) => (el as HTMLElement).innerText), 'the words, in capitals, without the glyph the font lacks').toBe('ALL DONE')
+    expect((await style(left, ['color'])).color).toBe(css(r.ink2))
+
+    const icon = left.locator('.q-done-icon')
+    await expect(icon).toHaveCount(1)
+    await page.mouse.move(0, 0)
+    const b = (await icon.boundingBox())!
+    expect([b.width, b.height], 'the icon is 16px').toEqual([16, 16])
+    const { pixels, scale } = await shoot(page, b, 0)
+    for (const key of cells(ICONS.done)) {
+      const [x, y] = key.split(',').map(Number) as [number, number]
+      expect(at(pixels, scale, x * 2 + 1, y * 2 + 1), `the done icon: cell ${key} in ink2`).toEqual(r.ink2)
+    }
+    const text = await left.evaluate((el) => {
+      const range = document.createRange()
+      range.selectNodeContents([...el.childNodes].find((node) => node.nodeType === Node.TEXT_NODE)!)
+
+      return range.getBoundingClientRect().left
+    })
+    expect(text - (b.x + b.width), 'the words start 8px after the icon').toBeCloseTo(8, 0)
+  })
+
+  test(`${skin}: the Music Live flag is a 4x4 square in the highlight colour, centred on the text line, 8px from the text (answer D20)`, async ({ page }) => {
+    const music = { ...SUMMARY, mediaType: 'music' }
+    await boot(page, skin, [music])
+    await page.route('**/api/lists/L1', (route) => route.fulfill({ json: { ...music, items: [item(1, { tags: ['Album', 'Live'] }), item(2, { tags: ['Album'] })], groups: [] } }))
+    await page.locator('.q-home-row').first().click()
+    await page.locator('.q-item').first().waitFor()
+    await page.evaluate(() => document.fonts.ready)
+    const r = await roles(page)
+    const dot = page.locator('.q-item .q-tag-mark')
+    await expect(dot).toHaveCount(1)
+    expect(await style(dot, ['width', 'height', 'border-top-left-radius', 'border-bottom-right-radius', 'margin-left', 'background-color'])).toEqual({
+      width: '4px',
+      height: '4px',
+      'border-top-left-radius': '0px',
+      'border-bottom-right-radius': '0px',
+      'margin-left': '8px',
+      'background-color': css(r.acc),
+    })
+    // Centred on the 16px text line of its tag: the dot's middle is the label's middle.
+    const placed = await dot.evaluate((el) => {
+      const tag = el.parentElement!
+      const label = document.createRange()
+      label.selectNodeContents([...tag.childNodes].find((node) => node.nodeType === Node.TEXT_NODE)!)
+      const text = label.getBoundingClientRect()
+      const mark = el.getBoundingClientRect()
+
+      return { middle: Math.abs(mark.top + mark.height / 2 - (text.top + text.height / 2)), gap: mark.left - text.right }
+    })
+    expect(placed.middle, 'centred on the text line').toBeLessThanOrEqual(1)
+    expect(placed.gap, '8px from the text').toBeCloseTo(8, 0)
   })
 }
 

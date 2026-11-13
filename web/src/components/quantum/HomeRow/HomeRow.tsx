@@ -4,6 +4,7 @@ import { useRef, type FocusEventHandler, type PointerEventHandler } from 'react'
 import { copy } from '../../../locale/index.js'
 import { ByHandMark, CuratedStar, NewBadge } from '../Marks/Marks.js'
 import { StatusMark } from '../StatusChip/StatusChip.js'
+import { LeftText } from '../ProgressSentence/LeftText.js'
 import { MeterBar, PercentLabel } from '../MeterBar/MeterBar.js'
 import { formatProgress } from '../ProgressSentence/ProgressSentence.js'
 import { useTooltip } from '../Tooltip/useTooltip.js'
@@ -81,7 +82,7 @@ export function HomeRow({
           style={{ fontSize: allDone ? 11 : 13 }}
           text={!allDone && runtimesPending ? copy.quantum.progress.runtimesPendingTip(runtimesPending) : undefined}
         >
-          {left}
+          <LeftText text={left} />
         </Tip>
       )}
       {/* The tooltip is for the pointer; a screen reader hears the time as the end of the row's name (unless the column says it). */}

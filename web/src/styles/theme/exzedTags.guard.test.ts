@@ -36,8 +36,8 @@ describe('eX-Zed’s tags, marks and chips', () => {
   })
 
   it('has no shadow, alpha, radius, opacity, filter or literal colour, and only the cards’ sizes', () => {
-    expect(css).not.toMatch(/box-shadow|border-radius|opacity\s*:|[;{\s]filter\s*:|rgba?\(|hsla?\(|color-mix|#[0-9a-f]{3,8}\b/i)
-    for (const [, size] of css.matchAll(/(\d+)px/g)) expect(['0', '2', '6', '8', '16', '20']).toContain(size)
+    expect(css).not.toMatch(/box-shadow|border-radius\s*:\s*[^0;\s]|opacity\s*:|[;{\s]filter\s*:|rgba?\(|hsla?\(|color-mix|#[0-9a-f]{3,8}\b/i)
+    for (const [, size] of css.matchAll(/(\d+)px/g)) expect(['0', '2', '4', '6', '8', '16', '20']).toContain(size)
   })
 
   it('draws a status tag as a 20px block of its colour with chip-ink text and a 2px chip-ink outline for the ring (never a shadow)', () => {
@@ -62,7 +62,7 @@ describe('eX-Zed’s tags, marks and chips', () => {
     expect(mark).toMatch(/width:\s*16px;[^}]*height:\s*16px;/)
     expect(mark).toMatch(/background:\s*var\(--zx-chip-ink\);[^}]*outline:\s*2px solid var\(--zx-chip-ink\);/)
     expect(body('html.theme-exzed .q-star > svg')).toMatch(/display:\s*none;/)
-    expect(body('html.theme-exzed .q-byhand')).toMatch(/--mark:\s*var\(--zx-ink2\);/)
+    expect(body('html.theme-exzed .q-byhand')).toMatch(/--mark:\s*var\(--zx-hand\);/)
     expect(body('html.theme-exzed .q-status-mark')).toMatch(/--mark:\s*var\(--zx-ok\);/)
     expect(body('html.theme-exzed .q-status-mark.ongoing')).toMatch(/--mark:\s*var\(--zx-info\);/)
   })
@@ -78,6 +78,13 @@ describe('eX-Zed’s tags, marks and chips', () => {
     expect(body('html.theme-exzed .q-count-chip')).toMatch(/height:\s*20px;[^}]*border:\s*2px solid var\(--zx-frame\);[^}]*background:\s*transparent;/)
     expect(body('html.theme-exzed .q-key-chip')).toMatch(/background:\s*var\(--zx-paper\);/)
     expect(body('html.theme-exzed .q-tile-foot')).toMatch(/flex-direction:\s*column-reverse;[^}]*gap:\s*6px;/)
+  })
+
+  it('draws the add chip’s icon, the done icon before ALL DONE and the Live flag as design’s answers D17, D19 and D20 say', () => {
+    expect(body('html.theme-exzed button.q-tag-add.q-tag-add::before')).toMatch(/width:\s*16px;[^}]*height:\s*16px;[^}]*background:\s*currentColor;[^}]*mask:\s*url/)
+    expect(body('html.theme-exzed button.q-tag-add.q-tag-add > svg')).toMatch(/display:\s*none;/)
+    expect(body('html.theme-exzed .q-left .q-done-icon')).toMatch(/width:\s*16px;[^}]*height:\s*16px;[^}]*margin-right:\s*8px;[^}]*background:\s*currentColor;/)
+    expect(body('html.theme-exzed .q-tag-mark')).toMatch(/width:\s*4px;\s*height:\s*4px;\s*margin-left:\s*8px;\s*border-radius:\s*0;/)
   })
 
   it('leaves the kind tag’s old width rule out of exzed.css (moved here)', () => {

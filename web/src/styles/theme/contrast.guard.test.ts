@@ -45,14 +45,14 @@ const MARK_PAIRS = [
 ] as const
 
 /**
- * The marks of 51.6 (design's Mark card: "a coloured 8x8 icon in a black attribute cell", on Lotus too): the curated star, the complete and ongoing marks and the added-by-hand hand are drawn
+ * The marks of 51.6 (design's Mark card: "a coloured 8x8 icon in a black attribute cell", on Lotus too): the curated star, the complete and ongoing marks and the added-by-hand hand (the fixed `hand` role, answer D18: Lotus's `ink2` blue was 1.98:1 on the cell) are drawn
  * in their colour on `chip-ink`, never on `paper`. 3:1 is the floor for a mark.
  */
 const CELL_MARK_PAIRS = [
   ['star', 'chip-ink'],
   ['ok', 'chip-ink'],
   ['info', 'chip-ink'],
-  ['ink2', 'chip-ink'],
+  ['hand', 'chip-ink'],
 ] as const
 
 const BORDER_PAIRS = [
@@ -88,13 +88,7 @@ const ALLOWED: readonly Allowed[] = [
   { skin: 'exzed-1l', foreground: 'ok', background: 'paper', ratio: 1.05, why: `Green (the Complete chip and bar). ${LOTUS_MARKS}` },
   { skin: 'exzed-1l', foreground: 'warn', background: 'paper', ratio: 2.18, why: `Magenta (nothing draws it yet). ${LOTUS_MARKS}` },
   { skin: 'exzed-1l', foreground: 'danger', background: 'paper', ratio: 2.78, why: `Red (the destructive button and the Delete List label). ${LOTUS_MARKS}` },
-  {
-    skin: 'exzed-1l',
-    foreground: 'ink2',
-    background: 'chip-ink',
-    ratio: 1.98,
-    why: 'The added-by-hand hand is `ink2` on its black cell (design’s Mark card), and on Lotus `ink2` is normal blue `#0000d7`: 1.98:1, under the 3:1 of a mark. The card says the cell stays black on Lotus (“the marks are attribute cells, not ink”). Reported to design in docs/design/HANDOFF-STATUS.md, “X-007 · Tags, marks and chips (51.6)” (2026-11-13); revisit when design answers.',
-  },
+
 ]
 
 const css = declarations(read('styles/theme/exzed-tokens.css'))

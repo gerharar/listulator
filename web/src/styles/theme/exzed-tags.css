@@ -9,6 +9,7 @@
  *    hover is the highlight; the add chip an untagged row shows is the same box;
  *  - the count chip and "free key needed" on a tile are the board's: 20px, `0 2px`, a 2px `frame` border, no fill on the count chip (the name's plate is behind it) and the paper on the key chip (it floats over the art), the border the highlight's ink on hover; the
  *    key chip stands above the source line (the board's column, 6px between), so the source gets the tile's whole width (the map's overflow row);
+ *  - the add-tag chip carries the `add` pixel icon (D17), "all done" the `done` icon before its words (D19), the Music Live flag is a 4x4 square (D20);
  *  - Settings' key states and List Vault's "In My Lists" are tags too: Working `ok`, Rejected, Offline and Failed `warn`, Untested, Testing and In My Lists the outline.
  * Quantum is as it was: every rule is under `html.theme-exzed`.
  */
@@ -108,7 +109,7 @@ html.theme-exzed .q-star {
 }
 html.theme-exzed .q-byhand,
 html.theme-exzed .q-manual {
-  --mark: var(--zx-ink2);
+  --mark: var(--zx-hand);
   --icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8' shape-rendering='crispEdges'%3E%3Cpath d='M1 1h1v3H1zM3 0h1v4H3zM5 1h1v3H5zM7 3h1v2H7zM1 4h6v3H1zM2 7h4v1H2z'/%3E%3C/svg%3E");
 }
 html.theme-exzed .q-status-mark {
@@ -156,11 +157,49 @@ html.theme-exzed button.q-tag-add.q-tag-add {
   background: transparent;
   color: var(--zx-ink2);
 }
+/* The add chip an untagged row shows (answer D17): the same box, the `add` pixel icon (a mask in the text colour, so the hover's ink follows) in place of the stock `+`. */
+html.theme-exzed button.q-tag-add.q-tag-add > svg {
+  display: none;
+}
+html.theme-exzed button.q-tag-add.q-tag-add::before {
+  content: '';
+  display: block;
+  flex: none;
+  width: 16px;
+  height: 16px;
+  background: currentColor;
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8' shape-rendering='crispEdges'%3E%3Cpath d='M3 0h2v3H3zM0 3h8v2H0zM3 5h2v3H3z'/%3E%3C/svg%3E") 0 0 / 100% 100% no-repeat;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8' shape-rendering='crispEdges'%3E%3Cpath d='M3 0h2v3H3zM0 3h8v2H0zM3 5h2v3H3z'/%3E%3C/svg%3E") 0 0 / 100% 100% no-repeat;
+}
 html.theme-exzed .q-plat:where(:not(:disabled):not(.readonly)):hover,
 html.theme-exzed button.q-tag-add.q-tag-add:where(:not(:disabled)):hover {
   background: var(--zx-hl-bg);
   border-color: var(--zx-hl-bg);
   color: var(--zx-hl-ink);
+}
+
+/* "All done" (answer D19): the `done` pixel icon, then the words, both `ink2`, where the time left would be. The copy's tick glyph is not in the font, so the components draw the icon (theme-gated, `LeftText`) and the words follow it 8px away; no bold, no tracking. */
+html.theme-exzed .q-left .q-done-icon {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  margin-right: 8px;
+  vertical-align: middle;
+  background: currentColor;
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8' shape-rendering='crispEdges'%3E%3Cpath d='M7 1h1v1H7zM6 2h1v1H6zM5 3h1v1H5zM4 4h1v1H4zM0 4h1v1H0zM1 5h1v1H1zM3 5h1v1H3zM2 6h1v1H2z'/%3E%3C/svg%3E") 0 0 / 100% 100% no-repeat;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8' shape-rendering='crispEdges'%3E%3Cpath d='M7 1h1v1H7zM6 2h1v1H6zM5 3h1v1H5zM4 4h1v1H4zM0 4h1v1H0zM1 5h1v1H1zM3 5h1v1H3zM2 6h1v1H2z'/%3E%3C/svg%3E") 0 0 / 100% 100% no-repeat;
+}
+html.theme-exzed .q-left.all-done {
+  font-weight: 400;
+  letter-spacing: 0;
+}
+
+/* The Music "Live" flag (answer D20): a 4x4 square, one 2x2 pixel block of the grid, in the colour Quantum's dot has (the highlight), centred on the 16px text line by its tag's flex, 8px from the text; square, never round. */
+html.theme-exzed .q-tag-mark {
+  width: 4px;
+  height: 4px;
+  margin-left: 8px;
+  border-radius: 0;
 }
 
 /* Choose Your Fighter: the count chip and "free key needed", the board's 20px boxes on the tile's plate; the key chip above the source line. */
