@@ -1,0 +1,40 @@
+/*
+ * eX-Zed's About rows (Phase 51, 51.8, X-007; design's About board), drawn on Quantum's own classes: the data sources are flat rows, at least 40px high with 16px between their parts and no rule between them or
+ * under the list; the name is `ink` and its description `ink2`, 16px regular (the description on 24px leading where it wraps); the TMDB row, which folds, takes the highlight on hover while it is shut. Their
+ * column widths are 51.2d's. Quantum is as it was: every rule is under `html.theme-exzed`.
+ */
+html.theme-exzed .q-about-sources {
+  border-bottom: 0;
+}
+html.theme-exzed .q-about-source {
+  min-height: 40px;
+  align-items: center;
+  column-gap: 16px;
+  padding: 8px 16px;
+  border-top: 0;
+}
+html.theme-exzed .q-about-source-name {
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 16px;
+  letter-spacing: 0;
+  color: var(--zx-ink);
+}
+html.theme-exzed .q-about-source-powers {
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 24px;
+  letter-spacing: 0;
+  color: var(--zx-ink2);
+}
+html.theme-exzed .q-about-tmdb.open {
+  background: transparent;
+}
+html.theme-exzed .q-about-tmdb:not(.open):hover {
+  background: var(--zx-hl-bg);
+  color: var(--zx-hl-ink);
+}
+html.theme-exzed .q-about-tmdb:not(.open):hover .q-about-source-name,
+html.theme-exzed .q-about-tmdb:not(.open):hover .q-about-source-powers {
+  color: var(--zx-hl-ink);
+}
