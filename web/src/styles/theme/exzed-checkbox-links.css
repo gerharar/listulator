@@ -94,7 +94,25 @@ html.theme-exzed .q-settings-check input:disabled:checked::after {
   background: var(--zx-ink2);
 }
 
-/* Links. */
+/*
+ * Links. A text link is one box, its words and its ↗ together: `inline-block` (Quantum's `inline-flex` ignored the ↗'s `vertical-align`, and a plain inline link's box is only as tall as its text, so the ↗
+ * hung below it and the highlight stopped short, black ink on a black page; found by the owner at Checkpoint G2), 16px regular in the Spectrum font (Quantum's 12.5px and 500 had been left on
+ * it), the ↗ 2px below the baseline inside the 4px of padding under the text.
+ */
+html.theme-exzed .q-about-credit-link,
+html.theme-exzed .q-about-link,
+html.theme-exzed .q-keycard-link,
+html.theme-exzed .q-list-linkback a {
+  display: inline-block;
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 16px;
+  letter-spacing: 0;
+}
+/* A source's link sits in a grid cell: as wide as its words, not the column. */
+html.theme-exzed .q-about-link {
+  justify-self: start;
+}
 html.theme-exzed .q-about-credit-link,
 html.theme-exzed .q-about-link,
 html.theme-exzed .q-keycard-link,

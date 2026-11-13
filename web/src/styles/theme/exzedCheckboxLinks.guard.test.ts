@@ -35,6 +35,14 @@ describe('eX-Zed’s checkbox and links', () => {
     expect(css).toMatch(/\.q-item\.is-done \.title\s*{[^}]*color:\s*var\(--zx-ink2\);[^}]*text-decoration-thickness:\s*2px;/)
   })
 
+  it('a text link is one inline-block box, 16px regular, so its ↗ is under the highlight (found at Checkpoint G2: Quantum’s 12.5px and 500 had been left on it)', () => {
+    const rule = rules().find(([list]) => list.includes('.q-keycard-link') && list.includes('.q-list-linkback a') && !list.includes(':hover') && !list.includes('aria-hidden'))
+    expect(rule, 'the text links’ own rule').toBeDefined()
+    expect(rule![0]).toContain('html.theme-exzed .q-about-link')
+    expect(rule![1]).toMatch(/display:\s*inline-block;\s*font-size:\s*16px;\s*font-weight:\s*400;\s*line-height:\s*16px;/)
+    expect(css).toMatch(/html\.theme-exzed \.q-about-link\s*{\s*justify-self:\s*start;/)
+  })
+
   it('a hover that highlights a setting’s line excludes a disabled one', () => {
     for (const [selector] of rules().filter(([list]) => list.includes('.q-settings-check') && list.includes(':hover'))) expect(selector).toContain(':where(:not(:has(input:disabled)))')
   })

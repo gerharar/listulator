@@ -197,8 +197,19 @@ for (const skin of SKINS) {
       for (const [x, y] of ARROW) expect(at(pixels, scale, x * 2 + 1, y * 2 + 1), `${selector}: ↗ cell ${x},${y} in the link's colour`).toEqual(want)
       for (const [x, y] of [[0, 0], [0, 7], [1, 0], [2, 1]] as const) expect(at(pixels, scale, x * 2 + 1, y * 2 + 1), `${selector}: ↗ cell ${x},${y} is empty`).not.toEqual(want)
 
+      // The text is the Spectrum font at its body size (16px, no weight: found by the owner at Checkpoint G2, where Quantum's 12.5px and 500 had been left on it), and the ↗ stays inside the link's box,
+      // so the highlight is under all of it (it had hung below the box, black ink on a black page).
+      expect(await style(link, ['font-size', 'font-weight']), `${selector}: 16px, regular`).toEqual({ 'font-size': '16px', 'font-weight': '400' })
+      const box = (await link.boundingBox())!
+      expect(ib.y, `${selector}: the ↗ starts inside the link's box`).toBeGreaterThanOrEqual(box.y)
+      expect(ib.y + ib.height, `${selector}: the ↗ ends inside the link's box`).toBeLessThanOrEqual(box.y + box.height)
+      expect(ib.x + ib.width, `${selector}: the ↗ ends inside the link's box, to the right`).toBeLessThanOrEqual(box.x + box.width)
+
       await link.hover()
       expect(await style(link, ['background-color', 'color']), `${selector}: hover is the highlight`).toEqual({ 'background-color': css(r.acc), color: css(r.accInk) })
+      const lit = await shoot(page, ib, 0)
+      expect(at(lit.pixels, lit.scale, 0.5, 14.5), `${selector}: the highlight is under the ↗'s empty corner`).toEqual(rbg(r.acc))
+      for (const [x, y] of ARROW) expect(at(lit.pixels, lit.scale, x * 2 + 1, y * 2 + 1), `${selector}: ↗ cell ${x},${y} in the highlight's ink`).toEqual(rbg(r.accInk))
       await page.mouse.move(0, 0)
     }
   })
