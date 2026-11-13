@@ -531,12 +531,14 @@ describe('SettingsScreen: Show Spectrum border (X-006, eX-Zed only)', () => {
 
   afterEach(() => document.documentElement.removeAttribute('data-border'))
 
-  it('is last in Screen, after Show time left in My Lists, under eX-Zed', () => {
+  it('is the first checkbox of the page under eX-Zed, in Theme under the chips (design’s answer 15 of 2026-11-13), and Screen ends with Show time left in My Lists', () => {
     renderSettings({ theme: 'exzed' })
 
     const boxes = screen.getAllByRole('checkbox').map((entry) => entry.closest('label')?.textContent)
-    expect(boxes.at(-1)).toBe(label)
-    expect(boxes.at(-2)).toBe(en.quantum.settings.showTimeLeft)
+    expect(boxes[0]).toBe(label)
+    expect(boxes.at(-1)).toBe(en.quantum.settings.showTimeLeft)
+    expect(box().closest('section')?.querySelector('.q-kicker')?.textContent).toBe(en.quantum.settings.theme)
+    expect(box().closest('label')?.previousElementSibling?.classList.contains('q-settings-row'), 'directly after the chips').toBe(true)
     expect(label).toBe('Show Spectrum border')
   })
 

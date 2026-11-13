@@ -5,7 +5,7 @@ import { ru } from '../src/locale/ru.js'
 import { decodePng } from './pngPixels.js'
 
 /**
- * Settings → Screen → Show Spectrum border (50.7, X-006), in both engines. eX-Zed only, last in the group, on by default; turning it off puts `data-border="off"` on `<html>` at
+ * Settings → Theme → Show Spectrum border (50.7, X-006; moved from Screen to Theme by design's answer 15 of 2026-11-13), in both engines. eX-Zed only, directly under the theme chips, on by default; turning it off puts `data-border="off"` on `<html>` at
  * once (the stripes around the app go and the ground is plain black; Lotus has no border at all, the paper runs on), it is remembered, and a stored "off" is on the page before the first frame. It is
  * not there under Quantum. The words are in the locale (the tooltip is design's proposal; the Russian and German are drafts for the owner to read).
  */
@@ -45,13 +45,20 @@ async function colours(page: Page) {
   return [...distinct].sort()
 }
 
-test('the checkbox is the last of Screen under eX-Zed, ticked, and the page has no data-border', async ({ page }) => {
+test('the checkbox is directly under the theme chips (16px below them), no longer in Screen, ticked, and the page has no data-border', async ({ page }) => {
   await boot(page, {})
   await openSettings(page)
 
-  const screenBoxes = await page.locator('.q-settings section', { has: page.getByText(en.quantum.settings.screen, { exact: true }) }).locator('label.q-settings-check').allTextContents()
-  expect(screenBoxes.at(-1)).toBe(LABEL)
-  expect(screenBoxes.at(-2)).toBe(en.quantum.settings.showTimeLeft)
+  const theme = page.locator('.q-settings section', { has: page.getByText(en.quantum.settings.theme, { exact: true }) })
+  const screen = page.locator('.q-settings section', { has: page.getByText(en.quantum.settings.screen, { exact: true }) })
+  expect(await theme.locator('label.q-settings-check').allTextContents(), 'the Theme section holds it, alone').toEqual([LABEL])
+  expect(await screen.locator('label.q-settings-check').allTextContents(), 'Screen keeps only the app’s own options').not.toContain(LABEL)
+  expect((await screen.locator('label.q-settings-check').allTextContents()).at(-1)).toBe(en.quantum.settings.showTimeLeft)
+
+  // Directly under the chips: the label's box starts 16px below the chips' row (the board's section gap).
+  const chips = (await theme.locator('.q-settings-row').boundingBox())!
+  const label = (await theme.locator('label.q-settings-check').boundingBox())!
+  expect(label.y - (chips.y + chips.height), 'the checkbox is 16px below the chips').toBeCloseTo(16, 0)
   await expect(box(page)).toBeChecked()
   expect(await attribute(page)).toBeNull()
   expect(await image(page)).toContain('border-stripes')

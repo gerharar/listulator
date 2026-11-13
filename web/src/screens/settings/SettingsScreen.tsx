@@ -101,6 +101,20 @@ export function SettingsScreen({ skin, onSkinChange, exzedSkin, onExzedSkinChang
                   </ToggleChip>
                 ))}
               </div>
+              {/* X-006, eX-Zed only: the stripes around the app on a screen wider than 2560px, on unless turned off; applied at once. Under the theme chips (design's answer 15 of 2026-11-13: a theme's own options live under Theme; it was last in Screen). On Lotus (50.13, design
+                  answer 12) there is no border at all, so the switch is disabled, keeps the stored choice for the other skins and says why. */}
+              {theme === 'exzed' && (
+                <Tip as="label" className="q-settings-check" data-disabled={exzedSkin === 'exzed-1l' ? '' : undefined} text={exzedSkin === 'exzed-1l' ? text.spectrumBorderLotusTip : text.spectrumBorderTip}>
+                  <input
+                    type="checkbox"
+                    aria-description={exzedSkin === 'exzed-1l' ? text.spectrumBorderLotusTip : text.spectrumBorderTip}
+                    checked={spectrumBorder.on}
+                    disabled={exzedSkin === 'exzed-1l'}
+                    onChange={(event) => spectrumBorder.setOn(event.target.checked)}
+                  />
+                  {text.spectrumBorder}
+                </Tip>
+              )}
             </section>
           )}
 
@@ -160,20 +174,6 @@ export function SettingsScreen({ skin, onSkinChange, exzedSkin, onExzedSkinChang
               />
               {text.showTimeLeft}
             </Tip>
-            {/* X-006, eX-Zed only: the stripes around the app on a screen wider than 2560px, on unless turned off; applied at once. Last in Screen. On Lotus (50.13, design
-                answer 12) there is no border at all, so the switch is disabled, keeps the stored choice for the other skins and says why. */}
-            {theme === 'exzed' && (
-              <Tip as="label" className="q-settings-check" data-disabled={exzedSkin === 'exzed-1l' ? '' : undefined} text={exzedSkin === 'exzed-1l' ? text.spectrumBorderLotusTip : text.spectrumBorderTip}>
-                <input
-                  type="checkbox"
-                  aria-description={exzedSkin === 'exzed-1l' ? text.spectrumBorderLotusTip : text.spectrumBorderTip}
-                  checked={spectrumBorder.on}
-                  disabled={exzedSkin === 'exzed-1l'}
-                  onChange={(event) => spectrumBorder.setOn(event.target.checked)}
-                />
-                {text.spectrumBorder}
-              </Tip>
-            )}
           </section>
 
           <section>

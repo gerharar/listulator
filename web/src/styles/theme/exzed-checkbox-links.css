@@ -154,3 +154,8 @@ html.theme-exzed .q-key-row > a.q-btn.quiet > span[aria-hidden='true'] {
   -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8' shape-rendering='crispEdges'%3E%3Cpath d='M3 0h5v1H3zM7 1h1v4H7zM6 1h1v1H6zM5 2h1v1H5zM4 3h1v1H4zM3 4h1v1H3zM2 5h1v1H2zM1 6h1v1H1z'/%3E%3C/svg%3E") 0 0 / 100% 100% no-repeat;
   mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8' shape-rendering='crispEdges'%3E%3Cpath d='M3 0h5v1H3zM7 1h1v4H7zM6 1h1v1H6zM5 2h1v1H5zM4 3h1v1H4zM3 4h1v1H3zM2 5h1v1H2zM1 6h1v1H1z'/%3E%3C/svg%3E") 0 0 / 100% 100% no-repeat;
 }
+
+/* A checkbox that follows the chips of its section (Theme → Show Spectrum border, design's answer 15): the board's 16px below the chips. */
+html.theme-exzed .q-settings-row + .q-settings-check {
+  margin-top: 16px;
+}

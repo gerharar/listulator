@@ -131,7 +131,8 @@ for (const skin of SKINS) {
     await page.evaluate(() => document.fonts.ready)
     const r = await roles(page)
 
-    const reduce = page.locator('label.q-settings-check input').first()
+    // By its words: Show Spectrum border is the first checkbox on the page since it moved under Theme (design's answer 15).
+    const reduce = page.locator('label.q-settings-check', { hasText: 'Reduce animation motion' }).locator('input')
     expect(await reduce.evaluate((el) => (el as HTMLInputElement).type), 'still the native input').toBe('checkbox')
     expect(await reduce.isChecked(), 'Reduce animation motion is on in this run').toBe(true)
     await readBox(page, reduce, r, 'Reduce animation motion (checked)', 'tick')
@@ -139,7 +140,7 @@ for (const skin of SKINS) {
     await readBox(page, unchecked, r, 'an unchecked setting', 'none')
 
     // The label is ink, and the whole line takes the highlight on hover.
-    const label = page.locator('label.q-settings-check').first()
+    const label = page.locator('label.q-settings-check', { hasText: 'Reduce animation motion' })
     await page.mouse.move(0, 0)
     expect((await style(label, ['color', 'gap', 'padding-left']))).toEqual({ color: css('#' + r.ink.map((n) => n.toString(16).padStart(2, '0')).join('')), gap: '16px', 'padding-left': '8px' })
     await label.hover()
