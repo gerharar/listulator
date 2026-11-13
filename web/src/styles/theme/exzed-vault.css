@@ -1,0 +1,132 @@
+/*
+ * eX-Zed's List Vault rows (Phase 51, 51.8, X-007; design's Row card and the Vault board), drawn on Quantum's own classes:
+ *  - the category column is ruled by a 2px `frame` line on its right with 8px above its first row (its width stays Quantum's "as wide as its longest row", H-020); a category is a 32px row
+ *    (16px sides, 8px between its name and its count) in 16px `ink` with a plain count (no chip), the highlight on hover; **the picked one is the highlight itself** (`acc` fill, `acc-ink`; no stripe, no
+ *    bold, so the name needs no hidden bold twin to reserve its width); an empty category is `ink2` and takes nothing;
+ *  - the pane's caption is `lab` capitals; its head row is ruled by 2px of `frame`, its sort buttons 32px high in `lab` (the sorted one `ink`) with the highlight on hover, over a grid of name, status,
+ *    items and time (128, 80 and 80px, 16px between, 8px at the sides); a row is 32px, flat, 16px: the name `ink`, the numbers `ink2`, right-aligned, the highlight on hover.
+ * The row's status tag and "In My Lists" are the tags of 51.6. Quantum is as it was: every rule is under `html.theme-exzed`.
+ */
+html.theme-exzed .q-vb-column {
+  padding: 8px 0;
+  border-right: 2px solid var(--zx-frame);
+}
+html.theme-exzed .q-vb-cat {
+  height: 32px;
+  gap: 8px;
+  padding: 0 16px;
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 16px;
+  letter-spacing: 0;
+  color: var(--zx-ink);
+}
+html.theme-exzed .q-vb-cat:not(.empty):hover {
+  background: var(--zx-hl-bg);
+  color: var(--zx-hl-ink);
+}
+html.theme-exzed .q-vb-cat.on,
+html.theme-exzed .q-vb-cat.on:hover {
+  background: var(--zx-hl-bg);
+  color: var(--zx-hl-ink);
+  font-weight: 400;
+  box-shadow: none;
+}
+html.theme-exzed .q-vb-cat.empty,
+html.theme-exzed .q-vb-cat.empty:hover {
+  background: transparent;
+  color: var(--zx-ink2);
+}
+html.theme-exzed .q-vb-name::after {
+  display: none;
+}
+html.theme-exzed .q-vb-count,
+html.theme-exzed .q-vb-cat.empty .q-vb-count,
+html.theme-exzed .q-vb-cat.on .q-vb-count {
+  padding: 0;
+  border: 0;
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 16px;
+  letter-spacing: 0;
+  color: inherit;
+}
+
+html.theme-exzed .q-vb-pane {
+  padding: 16px 24px 0;
+}
+html.theme-exzed .q-vb-caption {
+  margin: 0 8px 8px;
+  font-size: 16px;
+  line-height: 16px;
+  letter-spacing: 0;
+  text-transform: uppercase;
+  color: var(--zx-lab);
+}
+html.theme-exzed .q-vb-grid {
+  grid-template-columns: minmax(0, 1fr) 128px 80px 80px;
+  column-gap: 16px;
+}
+html.theme-exzed .q-vb-headrow {
+  padding: 0 8px;
+  border-bottom: 2px solid var(--zx-frame);
+}
+html.theme-exzed .q-vb-sort {
+  height: 32px;
+  margin: 0 -8px;
+  padding: 0 8px;
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 16px;
+  letter-spacing: 0;
+  color: var(--zx-lab);
+}
+html.theme-exzed .q-vb-sort.on {
+  color: var(--zx-ink);
+}
+html.theme-exzed .q-vb-sort:where(:not(:disabled)):hover {
+  background: var(--zx-hl-bg);
+  color: var(--zx-hl-ink);
+}
+html.theme-exzed .q-vb-colhead.number .q-vb-collabel {
+  margin-right: 0;
+}
+
+html.theme-exzed .q-vb-row {
+  height: 32px;
+  padding: 0 8px;
+  border-bottom: 0;
+  font-size: 16px;
+  color: var(--zx-ink);
+}
+html.theme-exzed .q-vb-row:where(:not(:disabled)):hover {
+  background: var(--zx-hl-bg);
+  color: var(--zx-hl-ink);
+}
+html.theme-exzed .q-vb-row:where(:not(:disabled)):hover .q-vb-items,
+html.theme-exzed .q-vb-row:where(:not(:disabled)):hover .q-vb-time,
+html.theme-exzed .q-vb-row:where(:not(:disabled)):hover .q-vb-unknown,
+html.theme-exzed .q-vb-row:where(:not(:disabled)):hover .q-vb-mine {
+  color: var(--zx-hl-ink);
+}
+html.theme-exzed .q-vb-row:where(:not(:disabled)):hover .q-vb-mine {
+  border-color: var(--zx-hl-ink);
+}
+html.theme-exzed .q-vb-nm {
+  gap: 16px;
+}
+html.theme-exzed .q-vb-rowname {
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 16px;
+  letter-spacing: 0;
+}
+html.theme-exzed .q-vb-items,
+html.theme-exzed .q-vb-time,
+html.theme-exzed .q-vb-unknown {
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 16px;
+  letter-spacing: 0;
+  color: var(--zx-ink2);
+}
