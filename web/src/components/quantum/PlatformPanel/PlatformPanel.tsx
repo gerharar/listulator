@@ -1,6 +1,7 @@
 import { Tip } from '../Tooltip/Tip.js'
 import './PlatformPanel.css'
 import { useState } from 'react'
+import { useTheme } from '../DocumentTheme/ThemeContext.js'
 import { FloatingPortal, autoUpdate, flip, offset, shift, size, useFloating } from '@floating-ui/react'
 import { platformName } from '../../../../../server/src/catalog/platforms.js'
 import type { ItemSourceTags } from '../../../lib/api.js'
@@ -47,12 +48,14 @@ export function PlatformPanel({ reference, ...picker }: PlatformPanelProps) {
 }
 
 function PositionedPanel({ reference, ...picker }: PlatformPanelProps & { reference: HTMLElement }) {
+  // Under eX-Zed the panel is joined to the Edit window (the Popover card: one shared frame, one 2px divider): it overlaps the popover's 2px border instead of standing 8px off.
+  const joined = useTheme() === 'exzed'
   const { refs, floatingStyles, isPositioned } = useFloating({
     open: true,
     placement: 'right-start',
     elements: { reference },
     middleware: [
-      offset(8),
+      offset(joined ? -2 : 8),
       flip({ fallbackPlacements: ['left-start', 'right-end', 'left-end'] }),
       shift({ padding: 8 }),
       size({

@@ -9,9 +9,10 @@ import {
   size,
   useFloating,
 } from '@floating-ui/react'
-import { useId, useRef, type CSSProperties, type ReactNode } from 'react'
+import { useEffect, useId, useRef, type CSSProperties, type ReactNode } from 'react'
 import { useOverlayRegistration } from '../overlay/OverlayManagerContext.js'
-import { tailGeometry, type TailKind } from './popoverTail.js'
+import { useTheme } from '../DocumentTheme/ThemeContext.js'
+import { staircaseGeometry, tailGeometry, type TailKind } from './popoverTail.js'
 
 /**
  * The six widths the design system names: skin menu, list actions, API key/order, list edit/item info, reset, item edit;
@@ -59,15 +60,18 @@ export interface PopoverProps {
 export function Popover({ open, anchorEl, onDismiss, onEscape, width, side = 'beside', label, children }: PopoverProps) {
   const id = useId()
   const arrowRef = useRef<HTMLSpanElement>(null)
+  // Under eX-Zed the popover's edge is 8px from the opener (the card: the staircase tail's tip then touches it); Quantum's is 12.
+  const exzed = useTheme() === 'exzed'
 
   const { refs, floatingStyles, placement, middlewareData, isPositioned } = useFloating({
     open,
-    placement: side === 'below' ? 'bottom-start' : 'right-start',
+    // eX-Zed (the Popover card and the boards): every popover is below its opener, centred on it (the tail is), and above it when there is no room below.
+    placement: exzed ? 'bottom' : side === 'below' ? 'bottom-start' : 'right-start',
     elements: { reference: anchorEl },
     middleware: [
-      offset(12),
+      offset(exzed ? 8 : 12),
       flip({
-        fallbackPlacements: side === 'below' ? ['top-start'] : ['left-start', 'right-end', 'left-end'],
+        fallbackPlacements: exzed ? ['top'] : side === 'below' ? ['top-start'] : ['left-start', 'right-end', 'left-end'],
       }),
       shift({ padding: 8 }),
       // Taller than the room left (a short window, a long picker): stop at the screen's edge and
@@ -88,12 +92,23 @@ export function Popover({ open, anchorEl, onDismiss, onEscape, width, side = 'be
           }
         },
       }),
-      arrow({ element: arrowRef }),
+      // The staircase is 16px wide: keep it 8px clear of the card's corners when the card is shifted to stay on screen.
+      arrow({ element: arrowRef, padding: exzed ? 8 : 0 }),
     ],
     whileElementsMounted: autoUpdate,
   })
 
   useOverlayRegistration('popover', id, open, onEscape ?? onDismiss)
+
+  // Under eX-Zed the button that opened a popover is lit while it is open (the Popover card), by its `aria-expanded`. Most openers set it themselves; one that does not (a row's ✎, a
+  // group's bin) gets it from here for as long as the popover is open, and gives it back when it closes. Quantum's buttons are as they were.
+  useEffect(() => {
+    if (!exzed || !open || !anchorEl || anchorEl.hasAttribute('aria-expanded')) return
+
+    anchorEl.setAttribute('aria-expanded', 'true')
+
+    return () => anchorEl.removeAttribute('aria-expanded')
+  }, [exzed, open, anchorEl])
 
   if (!open) return null
 
@@ -105,6 +120,7 @@ export function Popover({ open, anchorEl, onDismiss, onEscape, width, side = 'be
         ? 'down'
         : 'left'
   const tail = tailGeometry(tailKind)
+  const staircase = exzed ? staircaseGeometry(tailKind) : null
   const tailY = middlewareData.arrow?.y ?? 0
   const tailX = middlewareData.arrow?.x ?? 0
 
@@ -127,10 +143,17 @@ export function Popover({ open, anchorEl, onDismiss, onEscape, width, side = 'be
         aria-label={label}
       >
         <span ref={arrowRef} className={tailKind === 'left' ? 'q-pop-tail' : `q-pop-tail ${tailKind}`}>
-          <svg width={tail.width} height={tail.height} aria-hidden="true" focusable="false">
-            <path className="q-pop-tail-rim" d={tail.rim} />
-            <path className="q-pop-tail-fill" d={tail.fill} />
-          </svg>
+          {staircase ? (
+            <svg width={staircase.width} height={staircase.height} viewBox={staircase.viewBox} shapeRendering="crispEdges" aria-hidden="true" focusable="false">
+              <path className="q-pop-tail-rim" d={staircase.rim} />
+              <path className="q-pop-tail-fill" d={staircase.fill} />
+            </svg>
+          ) : (
+            <svg width={tail.width} height={tail.height} aria-hidden="true" focusable="false">
+              <path className="q-pop-tail-rim" d={tail.rim} />
+              <path className="q-pop-tail-fill" d={tail.fill} />
+            </svg>
+          )}
         </span>
         <div className="q-pop-scroll">{children}</div>
       </div>

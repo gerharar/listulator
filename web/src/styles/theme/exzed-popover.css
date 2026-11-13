@@ -1,0 +1,104 @@
+/*
+ * eX-Zed's popovers (Phase 51, 51.9, X-007; design's Popover and Menu cards), drawn on Quantum's own classes: a `paper` box with a 2px `frame-hi` border and the 4px `paper` ring (`--e-pop`, 49.5),
+ * 16px of padding and 16px between its parts, 24px leading; the tail is the card's 8x5 hollow staircase at 2px (16x10; 10x16 on a side), in the border's colour, its last row lying on the border row so
+ * the fill breaks the border into one outline, its tip 8px from the button that opened the popover (`Popover` offsets 8px under this theme; the button is lit while it is open, 51.2). The widths are
+ * 51.2c's. Quantum is as it was: every rule is under `html.theme-exzed`.
+ */
+html.theme-exzed .q-pop {
+  padding: 16px;
+  border: 2px solid var(--zx-frame-hi);
+  background: var(--zx-paper);
+  color: var(--zx-ink);
+  line-height: 24px;
+}
+html.theme-exzed .q-pop-scroll {
+  gap: 16px;
+}
+html.theme-exzed .q-pop-q {
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 24px;
+  letter-spacing: 0;
+  color: var(--zx-ink);
+}
+html.theme-exzed .q-pop-note {
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 24px;
+  letter-spacing: 0;
+  color: var(--zx-ink2);
+}
+
+/* The tail: the staircase's own box (its base row is the border row, so the box ends at the padding edge); `--tail-x` and `--tail-y` are set inline by `Popover` from the arrow middleware (no fallback: they are always there). */
+html.theme-exzed .q-pop-tail {
+  width: 10px;
+  height: 16px;
+  top: var(--tail-y);
+  left: -10px;
+}
+html.theme-exzed .q-pop-tail.right {
+  left: auto;
+  right: -10px;
+}
+html.theme-exzed .q-pop-tail.up,
+html.theme-exzed .q-pop-tail.down {
+  width: 16px;
+  height: 10px;
+  left: var(--tail-x);
+}
+html.theme-exzed .q-pop-tail.up {
+  top: -10px;
+}
+html.theme-exzed .q-pop-tail.down {
+  top: auto;
+  bottom: -10px;
+}
+html.theme-exzed .q-pop-tail-rim {
+  fill: var(--zx-frame-hi);
+}
+html.theme-exzed .q-pop-tail-fill {
+  fill: var(--zx-paper);
+}
+
+/*
+ * The skin button, an opener like the icon buttons (the board's `.zx-skin-btn`): as wide as its swatch and caret (12px at the left, 8px at the right, 8px between), 2px of transparent border, `hdr-ink2`
+ * at rest; hover and the lit state while its menu is open take the highlight (`acc` fill, `acc-ink`, the swatch's rim too).
+ */
+html.theme-exzed .q-skin-btn {
+  width: auto;
+  gap: 8px;
+  padding: 0 8px 0 12px;
+  border: 2px solid transparent;
+  color: var(--zx-hdr-ink2);
+}
+html.theme-exzed .q-skin-btn:where(:not(:disabled)):hover,
+html.theme-exzed .q-skin-btn[aria-expanded='true'] {
+  background: var(--zx-hl-bg);
+  border-color: var(--zx-hl-bg);
+  color: var(--zx-hl-ink);
+}
+html.theme-exzed .q-skin-btn:where(:not(:disabled)):hover .q-zx-swatch,
+html.theme-exzed .q-skin-btn[aria-expanded='true'] .q-zx-swatch {
+  border-color: var(--zx-hl-ink);
+}
+
+/*
+ * The second layer (the Popover card: "a side panel joined to the popover (one shared frame, one 2px divider)"): the Platform panel is the same kind of box (2px `frame-hi`, 16px padding, the 4px
+ * `paper` ring), 400px wide, and `PlatformPanel` places it overlapping the popover's 2px border (`offset(-2)`), so the two frames meet in one 2px line, from the same top.
+ */
+html.theme-exzed .q-platpanel {
+  width: 400px;
+  gap: 12px;
+  padding: 16px;
+  border: 2px solid var(--zx-frame-hi);
+  background: var(--zx-paper);
+  color: var(--zx-ink);
+  line-height: 24px;
+}
+
+/* A row's or a group head's button whose popover is open (`Popover` marks it `aria-expanded` while open, under this theme): lit, the highlight block with its icon in `acc-ink`. */
+html.theme-exzed .q-item .q-icon-btn.row[aria-expanded='true'],
+html.theme-exzed .q-group .q-icon-btn.row[aria-expanded='true'] {
+  background: var(--zx-hl-bg);
+  color: var(--zx-hl-ink);
+}
