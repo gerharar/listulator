@@ -103,8 +103,9 @@ function at(pixels: Pixels, scale: number, x: number, y: number): Rgb {
   return [pixels.data[i]!, pixels.data[i + 1]!, pixels.data[i + 2]!]
 }
 async function shoot(page: Page, box: { x: number; y: number; width: number; height: number }, pad: number) {
-  // A box on a fractional position is painted on the nearest whole pixel.
-  const clip = { x: Math.round(box.x - pad), y: Math.round(box.y - pad), width: Math.round(box.width + pad * 2), height: Math.round(box.height + pad * 2) }
+  // A box on a fractional position is painted on the nearest whole pixel; a half pixel goes up in Chromium and down in WebKit.
+  const snap = (value: number) => (test.info().project.name === 'webkit' ? Math.ceil(value - 0.5) : Math.round(value))
+  const clip = { x: snap(box.x - pad), y: snap(box.y - pad), width: Math.round(box.width + pad * 2), height: Math.round(box.height + pad * 2) }
   const pixels = decodePng(await page.screenshot({ clip }))
 
   return { pixels, scale: pixels.width / clip.width }
