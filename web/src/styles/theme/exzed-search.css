@@ -1,0 +1,112 @@
+/*
+ * eX-Zed's search results (Phase 51, 51.8, X-007; design's Row card and the New List board), drawn on Quantum's own classes: a result is a flat two-line row (the name over its detail, 8px apart) with
+ * 8px of padding round it, 16px between its parts, the board's chevron (the row-fold triangle's place, the drawing replaced) and its count in a 200px column on the right (the number, then a dim
+ * ITEMS); hover fills it with the highlight and turns its text `acc-ink`; open, its details sit 32px in under a 2px `frame` rule on their left, 16px text on 24px leading, with no tint of the row and
+ * no rule between. Quantum is as it was: every rule is under `html.theme-exzed`.
+ */
+html.theme-exzed .q-result {
+  align-items: center;
+  gap: 16px;
+  padding: 8px 16px 8px 8px;
+  border-bottom: 0;
+  color: var(--zx-ink);
+}
+html.theme-exzed .q-result[aria-expanded='true'] {
+  border-bottom: 0;
+  background: transparent;
+}
+html.theme-exzed .q-result:where(:not(:disabled)):hover {
+  background: var(--zx-hl-bg);
+  color: var(--zx-hl-ink);
+}
+html.theme-exzed .q-result:where(:not(:disabled)):hover .meta,
+html.theme-exzed .q-result:where(:not(:disabled)):hover .n .q-kicker {
+  color: var(--zx-hl-ink);
+}
+/* The chevron: 16px, in the row's ink, the stock drawing hidden. */
+html.theme-exzed .q-result .chev {
+  align-self: center;
+  position: static;
+  width: 16px;
+  height: 16px;
+  font-size: 0;
+  color: inherit;
+}
+html.theme-exzed .q-result .chev > * {
+  display: none;
+}
+html.theme-exzed .q-result .chev::before {
+  content: '';
+  display: block;
+  width: 16px;
+  height: 16px;
+  background: currentColor;
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8' shape-rendering='crispEdges'%3E%3Cpath d='M2 1h1v1H2zM3 2h1v1H3zM4 3h1v2H4zM3 5h1v1H3zM2 6h1v1H2z'/%3E%3C/svg%3E") 0 0 / 100% 100% no-repeat;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8' shape-rendering='crispEdges'%3E%3Cpath d='M2 1h1v1H2zM3 2h1v1H3zM4 3h1v2H4zM3 5h1v1H3zM2 6h1v1H2z'/%3E%3C/svg%3E") 0 0 / 100% 100% no-repeat;
+}
+html.theme-exzed .q-result[aria-expanded='true'] .chev::before {
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8' shape-rendering='crispEdges'%3E%3Cpath d='M1 2h1v1H1zM2 3h1v1H2zM3 4h2v1H3zM5 3h1v1H5zM6 2h1v1H6z'/%3E%3C/svg%3E") 0 0 / 100% 100% no-repeat;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8' shape-rendering='crispEdges'%3E%3Cpath d='M1 2h1v1H1zM2 3h1v1H2zM3 4h2v1H3zM5 3h1v1H5zM6 2h1v1H6z'/%3E%3C/svg%3E") 0 0 / 100% 100% no-repeat;
+}
+html.theme-exzed .q-result .main {
+  align-self: center;
+}
+html.theme-exzed .q-result .line1 {
+  gap: 8px;
+}
+html.theme-exzed .q-result .title {
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 16px;
+  letter-spacing: 0;
+}
+html.theme-exzed .q-result .meta {
+  margin-top: 8px;
+  font-size: 16px;
+  line-height: 16px;
+  letter-spacing: 0;
+  color: var(--zx-ink2);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+html.theme-exzed .q-result .n {
+  width: 200px;
+  justify-content: flex-end;
+  gap: 8px;
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 16px;
+  letter-spacing: 0;
+}
+html.theme-exzed .q-result .n .q-kicker {
+  font-size: 16px;
+  line-height: 16px;
+  letter-spacing: 0;
+  color: var(--zx-ink2);
+}
+
+html.theme-exzed .q-result-more {
+  gap: 12px;
+  margin: 0 0 8px 32px;
+  padding: 8px 16px 16px;
+  border-bottom: 0;
+  border-left: 2px solid var(--zx-frame);
+  background: transparent;
+  line-height: 24px;
+}
+html.theme-exzed .q-result-more .desc {
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 24px;
+  letter-spacing: 0;
+  color: var(--zx-ink);
+}
+html.theme-exzed .q-result-more .prov,
+html.theme-exzed .q-result-more .unavailable {
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 24px;
+  letter-spacing: 0;
+  color: var(--zx-ink2);
+}
