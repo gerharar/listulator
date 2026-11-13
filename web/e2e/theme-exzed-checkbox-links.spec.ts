@@ -197,13 +197,15 @@ for (const skin of SKINS) {
       for (const [x, y] of ARROW) expect(at(pixels, scale, x * 2 + 1, y * 2 + 1), `${selector}: ↗ cell ${x},${y} in the link's colour`).toEqual(want)
       for (const [x, y] of [[0, 0], [0, 7], [1, 0], [2, 1]] as const) expect(at(pixels, scale, x * 2 + 1, y * 2 + 1), `${selector}: ↗ cell ${x},${y} is empty`).not.toEqual(want)
 
-      // The text is the Spectrum font at its body size (16px, no weight: found by the owner at Checkpoint G2, where Quantum's 12.5px and 500 had been left on it), and the ↗ stays inside the link's box,
-      // so the highlight is under all of it (it had hung below the box, black ink on a black page).
-      expect(await style(link, ['font-size', 'font-weight']), `${selector}: 16px, regular`).toEqual({ 'font-size': '16px', 'font-weight': '400' })
+      // The words are the sentence's own size and weight (found by the owner at Checkpoint G2: Quantum's 12.5px and 500 had been left on the link, then a fixed 16px was a different size from
+      // its 12 to 14px sentence), and the ↗ stays inside the link's box, so the highlight is under all of it (it had hung below the box, black ink on a black page).
+      const sentence = await link.evaluate((el) => ({ own: [getComputedStyle(el).fontSize, getComputedStyle(el).fontWeight], around: [getComputedStyle(el.parentElement!).fontSize, getComputedStyle(el.parentElement!).fontWeight] }))
+      expect(sentence.own, `${selector}: the sentence's size and weight`).toEqual(sentence.around)
       const box = (await link.boundingBox())!
-      expect(ib.y, `${selector}: the ↗ starts inside the link's box`).toBeGreaterThanOrEqual(box.y)
-      expect(ib.y + ib.height, `${selector}: the ↗ ends inside the link's box`).toBeLessThanOrEqual(box.y + box.height)
-      expect(ib.x + ib.width, `${selector}: the ↗ ends inside the link's box, to the right`).toBeLessThanOrEqual(box.x + box.width)
+      // 2px of room above and to the right of it (one grid pixel): its top and right bars would otherwise sit on the highlight's edge, black on a black page, and only the diagonal would show.
+      expect(ib.y, `${selector}: the ↗ starts 2px inside the link's box`).toBeGreaterThanOrEqual(box.y + 2 - 0.01)
+      expect(ib.y + ib.height, `${selector}: the ↗ ends inside the link's box`).toBeLessThanOrEqual(box.y + box.height + 0.01)
+      expect(ib.x + ib.width, `${selector}: the ↗ ends 2px inside the link's box, to the right`).toBeLessThanOrEqual(box.x + box.width - 2 + 0.01)
 
       await link.hover()
       expect(await style(link, ['background-color', 'color']), `${selector}: hover is the highlight`).toEqual({ 'background-color': css(r.acc), color: css(r.accInk) })

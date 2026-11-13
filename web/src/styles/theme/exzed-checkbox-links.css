@@ -96,17 +96,20 @@ html.theme-exzed .q-settings-check input:disabled:checked::after {
 
 /*
  * Links. A text link is one box, its words and its ↗ together: `inline-block` (Quantum's `inline-flex` ignored the ↗'s `vertical-align`, and a plain inline link's box is only as tall as its text, so the ↗
- * hung below it and the highlight stopped short, black ink on a black page; found by the owner at Checkpoint G2), 16px regular in the Spectrum font (Quantum's 12.5px and 500 had been left on
- * it), the ↗ 2px below the baseline inside the 4px of padding under the text.
+ * hung below it and the highlight stopped short, black ink on a black page; found by the owner at Checkpoint G2), the words the size and weight of the sentence they stand in (Quantum's own
+ * 12.5px and 500 had been left on them, then a fixed 16px was a different size from the 12 to 14px sentences around it: those take 16px in their own tasks, and the link follows), the ↗ 2px
+ * below the baseline inside the 4px of padding under the text, and 2px of the highlight above and to the right of it (its top and right bars are black: on the highlight's very edge they merged with the page).
  */
 html.theme-exzed .q-about-credit-link,
 html.theme-exzed .q-about-link,
 html.theme-exzed .q-keycard-link,
 html.theme-exzed .q-list-linkback a {
   display: inline-block;
-  font-size: 16px;
-  font-weight: 400;
-  line-height: 16px;
+  padding-top: 2px;
+  padding-right: 2px;
+  font-size: inherit;
+  font-weight: inherit;
+  line-height: inherit;
   letter-spacing: 0;
 }
 /* A source's link sits in a grid cell: as wide as its words, not the column. */
@@ -142,6 +145,9 @@ html.theme-exzed .q-key-row > a.q-btn.quiet > span[aria-hidden='true'] {
   height: 16px;
   margin-left: 4px;
   vertical-align: -2px;
+  /* The glyph inside is kept for the DOM and hidden: clipped, so the box's baseline is its bottom edge (an inline-block with a line box of its own sits on the middle of it) and the 2px below the baseline are the card's. */
+  overflow: hidden;
+  line-height: 0;
   background: currentColor;
   color: inherit;
   font-size: 0;
