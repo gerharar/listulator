@@ -1,0 +1,108 @@
+/*
+ * eX-Zed's jump rail rows (Phase 51, 51.8, X-007; design's Row card and the List board), drawn on Quantum's own classes: the rail is ruled by 2px of `frame` on its right; its head is the kicker (`lab`
+ * capitals, 16px) over a 32px borderless collapse button drawn as the board's pixel icon (the `«` glyph hidden); an entry is a 32px row, 8px at the sides and between its parts, 16px `ink` (a done group is
+ * not dimmed: its tick says it), its tick the `done` pixel icon in `ink2` (the ✓ glyph is not in the font), its count `ink2`; hover fills it with the highlight and turns it `acc-ink`; keyboard focus shows
+ * the ▶ pointer in the 16px column at the row's left. The folded stub and the resize grip are not drawn here. Quantum is as it was: every rule is under `html.theme-exzed`.
+ */
+html.theme-exzed .q-rail {
+  border-right: 2px solid var(--zx-frame);
+}
+html.theme-exzed .q-rail-scroll {
+  padding: 8px 0;
+}
+html.theme-exzed .q-rail-head {
+  gap: 8px;
+  padding: 0 8px 8px 16px;
+}
+html.theme-exzed .q-rail-head .q-kicker {
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 16px;
+  letter-spacing: 0;
+}
+html.theme-exzed .q-rail-head .q-rail-toggle {
+  width: 32px;
+  height: 32px;
+  border: 0;
+  color: var(--zx-ink2);
+  font-size: 0;
+}
+html.theme-exzed .q-rail-head .q-rail-toggle {
+  position: relative;
+}
+/* Placed, not centred by the grid: the button holds a tooltip node beside it, which would share the grid's rows. */
+html.theme-exzed .q-rail-head .q-rail-toggle::before {
+  content: '';
+  position: absolute;
+  left: 8px;
+  top: 8px;
+  width: 16px;
+  height: 16px;
+  background: currentColor;
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8' shape-rendering='crispEdges'%3E%3Cpath d='M3 1h1v1H3zM2 2h1v1H2zM1 3h1v2H1zM2 5h1v1H2zM3 6h1v1H3zM6 1h1v1H6zM5 2h1v1H5zM4 3h1v2H4zM5 5h1v1H5zM6 6h1v1H6z'/%3E%3C/svg%3E") 0 0 / 100% 100% no-repeat;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8' shape-rendering='crispEdges'%3E%3Cpath d='M3 1h1v1H3zM2 2h1v1H2zM1 3h1v2H1zM2 5h1v1H2zM3 6h1v1H3zM6 1h1v1H6zM5 2h1v1H5zM4 3h1v2H4zM5 5h1v1H5zM6 6h1v1H6z'/%3E%3C/svg%3E") 0 0 / 100% 100% no-repeat;
+}
+html.theme-exzed .q-rail-head .q-rail-toggle:where(:not(:disabled)):hover {
+  background: var(--zx-hl-bg);
+  color: var(--zx-hl-ink);
+}
+
+html.theme-exzed .q-rail-entry {
+  position: relative;
+  height: 32px;
+  gap: 8px;
+  padding: 0 8px 0 32px;
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 16px;
+  letter-spacing: 0;
+  color: var(--zx-ink);
+}
+html.theme-exzed .q-rail-entry.complete {
+  color: var(--zx-ink);
+}
+html.theme-exzed .q-rail-entry::before {
+  content: '';
+  position: absolute;
+  left: 8px;
+  top: 8px;
+  width: 16px;
+  height: 16px;
+  visibility: hidden;
+  background: currentColor;
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8' shape-rendering='crispEdges'%3E%3Cpath d='M2 0h1v8H2zM3 1h1v6H3zM4 2h1v4H4zM5 3h1v2H5z'/%3E%3C/svg%3E") 0 0 / 100% 100% no-repeat;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8' shape-rendering='crispEdges'%3E%3Cpath d='M2 0h1v8H2zM3 1h1v6H3zM4 2h1v4H4zM5 3h1v2H5z'/%3E%3C/svg%3E") 0 0 / 100% 100% no-repeat;
+}
+html.theme-exzed .q-rail-entry:focus-visible::before {
+  visibility: visible;
+}
+html.theme-exzed .q-rail-entry .tick {
+  width: 16px;
+  height: 16px;
+  font-size: 0;
+  color: var(--zx-ink2);
+}
+html.theme-exzed .q-rail-entry.complete .tick::before {
+  content: '';
+  display: block;
+  width: 16px;
+  height: 16px;
+  background: currentColor;
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8' shape-rendering='crispEdges'%3E%3Cpath d='M7 1h1v1H7zM6 2h1v1H6zM5 3h1v1H5zM4 4h1v1H4zM0 4h1v1H0zM1 5h1v1H1zM3 5h1v1H3zM2 6h1v1H2z'/%3E%3C/svg%3E") 0 0 / 100% 100% no-repeat;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8' shape-rendering='crispEdges'%3E%3Cpath d='M7 1h1v1H7zM6 2h1v1H6zM5 3h1v1H5zM4 4h1v1H4zM0 4h1v1H0zM1 5h1v1H1zM3 5h1v1H3zM2 6h1v1H2z'/%3E%3C/svg%3E") 0 0 / 100% 100% no-repeat;
+}
+html.theme-exzed .q-rail-entry .count {
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 16px;
+  letter-spacing: 0;
+  color: var(--zx-ink2);
+}
+html.theme-exzed .q-rail-entry:where(:not(:disabled)):hover {
+  background: var(--zx-hl-bg);
+  color: var(--zx-hl-ink);
+}
+html.theme-exzed .q-rail-entry:where(:not(:disabled)):hover .tick,
+html.theme-exzed .q-rail-entry:where(:not(:disabled)):hover .count {
+  color: var(--zx-hl-ink);
+}
