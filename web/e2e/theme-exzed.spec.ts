@@ -69,7 +69,9 @@ test('with the stored theme exzed, every kind of text is ZX Spectrum, nothing is
     // The browser fetched the file because text uses it, and it is a font the engine accepts.
     const loaded = await page.evaluate(async () => (await document.fonts.load('16px "ZX Spectrum"')).map((face) => face.status))
     expect(loaded).toEqual(['loaded'])
-    expect(fontRequests, 'the font file was requested').toHaveLength(1)
+    // The regular face for the text, and the italic for the add row's placeholders (D21a): each fetched once, the second only because such text is on the screen.
+    expect(fontRequests.filter((url) => !/Italic/.test(url)), 'the font file was requested').toHaveLength(1)
+    expect(fontRequests.filter((url) => /Italic/.test(url)), 'the italic face was requested for the placeholders').toHaveLength(1)
   } finally {
     await page.request.delete(`/api/lists/${id}`)
   }

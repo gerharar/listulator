@@ -1,0 +1,27 @@
+/*
+ * eX-Zed's helper text (Phase 51, X-007; design's answer D21a, found by the owner at Checkpoint G2): everything Quantum sets in italics is a helper, a stand-in rather than content, and under eX-Zed
+ * it is the `helper` style: the ZX Spectrum Italic face (fonts.css), 16px, regular weight, `ink2`. Quantum's italics are every placeholder (`base.css`, `Field.css`), the empty values "No group",
+ * "None" and "Not set" (`AddItemForm.css`, `ItemEditPopover.css`) and the platform card's note (`PlatformCard.css`; not drawn by any screen today). They had lost the slant (the font has none and
+ * the browser may not make one), so they read as real text; the colour of each was Quantum's own role, which is `ink2` here for every one of them (`ink3` and `ink2` draw the same, X-002 answer 3).
+ * Quantum is as it was: every rule is under `html.theme-exzed`.
+ */
+html.theme-exzed input::placeholder,
+html.theme-exzed textarea::placeholder,
+html.theme-exzed .q-input::placeholder {
+  font-style: italic;
+  font-size: 16px;
+  font-weight: 400;
+  letter-spacing: 0;
+  color: var(--zx-ink2);
+}
+html.theme-exzed .q-platfield-value.empty,
+html.theme-exzed .q-tagchoice-value.empty,
+html.theme-exzed .q-add-plat-value.empty,
+html.theme-exzed .q-platcard-note {
+  font-style: italic;
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 16px;
+  letter-spacing: 0;
+  color: var(--zx-ink2);
+}

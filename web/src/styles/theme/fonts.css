@@ -13,3 +13,15 @@
   font-style: normal;
   font-display: swap;
 }
+/*
+ * The italic of the same family (design's answer D21a, 2026-11-13): the regular font with every glyph sheared in whole pixels (rows shifted right 1px from the third row up and 2px from the sixth),
+ * made for eX-Zed from the file above, so the same notice covers it. It is what Quantum's italics become under eX-Zed (placeholders and empty values, the `helper` style); the browser may not make
+ * an italic of its own (`font-synthesis: none`, exzed.css), which would be a slant that is not on the pixel grid.
+ */
+@font-face {
+  font-family: 'ZX Spectrum';
+  src: url('./fonts/ZXSpectrum-Italic.ttf') format('truetype');
+  font-weight: 400;
+  font-style: italic;
+  font-display: swap;
+}

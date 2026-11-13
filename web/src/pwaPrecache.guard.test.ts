@@ -25,10 +25,11 @@ describe('the PWA’s precache patterns (vite.config.ts)', () => {
 describe('the built service worker (dist/sw.js, after `npm run build`)', () => {
   const worker = join(ROOT, 'dist', 'sw.js')
 
-  it.skipIf(!existsSync(worker))('precaches the Spectrum font exactly once', () => {
+  it.skipIf(!existsSync(worker))('precaches the Spectrum font, and its italic (D21a), exactly once each', () => {
     const manifest = [...readFileSync(worker, 'utf8').matchAll(/\{url:"([^"]+)"/g)].map((match) => match[1]!)
 
-    expect(manifest.filter((url) => /^assets\/ZXSpectrum-[\w-]+\.ttf$/.test(url))).toHaveLength(1)
+    expect(manifest.filter((url) => /^assets\/ZXSpectrum-Italic-[\w-]+\.ttf$/.test(url))).toHaveLength(1)
+    expect(manifest.filter((url) => /^assets\/ZXSpectrum-(?!Italic)[\w-]+\.ttf$/.test(url))).toHaveLength(1)
   })
 })
 

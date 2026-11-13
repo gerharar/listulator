@@ -11,6 +11,7 @@ const family = (page: Page) =>
   page.evaluate(async () => {
     await document.fonts.ready
     await document.fonts.load('16px "ZX Spectrum"').catch(() => [])
+    await document.fonts.load('italic 16px "ZX Spectrum"').catch(() => [])
 
     return [...document.fonts].filter((face) => face.family.replace(/["']/g, '') === 'ZX Spectrum').map((face) => face.status)
   })
@@ -24,7 +25,7 @@ async function install(page: Page) {
   await page.waitForFunction(() => navigator.serviceWorker.controller !== null)
 }
 
-test('the install holds the Spectrum font in its precache, though Quantum never asks for it', async ({ page }) => {
+test('the install holds the Spectrum font and its italic in its precache, though Quantum never asks for it', async ({ page }) => {
   await install(page)
 
   expect(await page.evaluate(() => performance.getEntriesByType('resource').some((entry) => entry.name.includes('ZXSpectrum'))), 'Quantum never asks for the font').toBe(false)
@@ -37,7 +38,8 @@ test('the install holds the Spectrum font in its precache, though Quantum never 
     return found
   })
 
-  expect(held).toHaveLength(1)
+  // The regular face and its italic (D21a, the helper style): two files, each held once.
+  expect(held).toHaveLength(2)
 })
 
 test('an offline start in eX-Zed draws in the Spectrum font, which the install already holds', async ({ page, context, browserName }) => {
@@ -49,5 +51,5 @@ test('an offline start in eX-Zed draws in the Spectrum font, which the install a
   await page.reload()
   await page.waitForFunction(() => document.documentElement.classList.contains('theme-exzed'))
 
-  expect(await family(page)).toEqual(['loaded'])
+  expect(await family(page)).toEqual(['loaded', 'loaded'])
 })
