@@ -5,6 +5,7 @@ import { copy } from '../../../locale/index.js'
 import { MeterBar, PercentLabel } from '../MeterBar/MeterBar.js'
 import type { PickedStatus } from '../StatusPicker/StatusPicker.js'
 import { LeftText } from './LeftText.js'
+import { useTheme } from '../DocumentTheme/ThemeContext.js'
 
 const SENTENCE_SIZES = {
   header: { count: 15, time: 14, percent: 15 },
@@ -12,6 +13,9 @@ const SENTENCE_SIZES = {
 } as const
 
 export type ProgressSentenceSize = keyof typeof SENTENCE_SIZES
+
+/** The Spectrum font has one body size (design, X-004), so under eX-Zed every part of the sentence is it, whatever the place (51.7). */
+const SPECTRUM_SIZES = { count: 16, time: 16, percent: 16 } as const
 
 export interface ProgressSummary {
   count: string
@@ -116,7 +120,8 @@ export function ProgressSentence({
   runtimesPending = 0,
 }: ProgressSentenceProps) {
   const { count, allDone, left } = formatProgress(done, total, minutesLeft, status, runtimesPending)
-  const sizes = SENTENCE_SIZES[size]
+  const exzed = useTheme() === 'exzed'
+  const sizes = exzed ? SPECTRUM_SIZES : SENTENCE_SIZES[size]
 
   // A group head's count and time sit in slots the list screen sizes for every head at once (BL-160); the header's do not.
   const slotted = size === 'group'
@@ -128,7 +133,7 @@ export function ProgressSentence({
   const leftText = left !== null && (
     <Tip
       className={allDone ? 'q-left all-done' : 'q-left'}
-      style={{ fontSize: allDone ? Math.max(11, sizes.time - 2) : sizes.time }}
+      style={{ fontSize: allDone && !exzed ? Math.max(11, sizes.time - 2) : sizes.time }}
       text={!allDone && runtimesPending > 0 ? copy.quantum.progress.runtimesPendingTip(runtimesPending) : undefined}
     >
       <LeftText text={left} />

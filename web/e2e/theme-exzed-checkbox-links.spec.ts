@@ -55,8 +55,10 @@ async function shoot(page: Page, box: { x: number; y: number; width: number; hei
 /** Reads a 16px done box and its 2px cell: the ring, the border, the 12px inside (paper, and the tick or dash where drawn). */
 async function readBox(page: Page, box: Locator, r: Roles, label: string, mark: 'none' | 'tick' | 'dash') {
   await page.mouse.move(0, 0)
-  const b = (await box.boundingBox())!
-  expect([b.width, b.height], `${label}: 16px`).toEqual([16, 16])
+  const raw = (await box.boundingBox())!
+  expect([raw.width, raw.height], `${label}: 16px`).toEqual([16, 16])
+  // A box below a header of fractional height (the list rows, 51.7) is painted on the nearest whole pixel: read where it is painted.
+  const b = { ...raw, x: Math.round(raw.x), y: Math.round(raw.y) }
   const { pixels, scale } = await shoot(page, b, 2)
   const p = (x: number, y: number) => at(pixels, scale, x, y)
   // The clip starts 2px outside the box: its ring is pixels 0-1, the border 2-3, the inside 4-15.

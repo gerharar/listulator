@@ -1,0 +1,237 @@
+/*
+ * eX-Zed's list rows (Phase 51, 51.7, X-007; design's Row card and the List board), drawn on Quantum's own classes:
+ *  - every row is 32px and flat: an item has no rule, a group head has a 2px `frame` one under it (opaque `paper`, as the head is sticky); the pointer's column is 16px at the row's left (an item is
+ *    indented 24px more inside a group, as on the board); the title, the year and the runtime are 16px regular (`ink`, `ink2`, `ink2`), a group's name plain `ink`;
+ *  - the drag handle, the ⓘ, the ✎, the bin and the ↗ are the Icons board's drawings (masks in the text colour, the lucide icons inside hidden), the three buttons 32x32 and borderless, `ink2` at rest;
+ *  - hover fills the whole row with the highlight (`acc`) and turns everything in it `acc-ink`; the button under the pointer is a block of `acc-ink` with its icon in `acc` (the lit button's rule);
+ *  - keyboard focus shows the ▶ pointer at the row's left (the focus outline stays, inset);
+ *  - a group's chevron is the board's: right when the group is shut, down when it is open, in the row's colour (the `markOpenGroups` line is not drawn: the card has none).
+ * A busy list is not faded (`--o-busy` is 1) and is `inert`, so its rows keep their colour and stop responding. The row pulse is 51.10's and 51.11's (step animations).
+ * Quantum is as it was: every rule is under `html.theme-exzed`.
+ */
+html.theme-exzed .q-item {
+  height: 32px;
+  padding: 0 8px 0 32px;
+  border-bottom: 0;
+  color: var(--zx-ink);
+}
+html.theme-exzed .q-item.in-group {
+  padding-left: 56px;
+}
+html.theme-exzed .q-group {
+  height: 32px;
+  gap: 8px;
+  padding: 0 24px 0 32px;
+  border-bottom: 2px solid var(--zx-frame);
+  background: var(--zx-paper);
+  color: var(--zx-ink);
+}
+html.theme-exzed .q-group.complete {
+  color: var(--zx-ink);
+}
+
+/* The focus pointer: a 16px column at the row's left, drawn only while the row has keyboard focus. */
+html.theme-exzed .q-item::before,
+html.theme-exzed .q-group::before {
+  content: '';
+  position: absolute;
+  left: 8px;
+  top: 8px;
+  width: 16px;
+  height: 16px;
+  visibility: hidden;
+  background: currentColor;
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8' shape-rendering='crispEdges'%3E%3Cpath d='M2 0h1v8H2zM3 1h1v6H3zM4 2h1v4H4zM5 3h1v2H5z'/%3E%3C/svg%3E") 0 0 / 100% 100% no-repeat;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8' shape-rendering='crispEdges'%3E%3Cpath d='M2 0h1v8H2zM3 1h1v6H3zM4 2h1v4H4zM5 3h1v2H5z'/%3E%3C/svg%3E") 0 0 / 100% 100% no-repeat;
+}
+html.theme-exzed .q-item:focus-visible::before,
+html.theme-exzed .q-group:focus-visible::before {
+  visibility: visible;
+}
+
+/* Text. */
+html.theme-exzed .q-item .title {
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 16px;
+  letter-spacing: 0;
+}
+html.theme-exzed .q-year {
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 16px;
+  letter-spacing: 0;
+  color: var(--zx-ink2);
+}
+html.theme-exzed .q-mins,
+html.theme-exzed .q-mins.pending {
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 16px;
+  letter-spacing: 0;
+  color: var(--zx-ink2);
+}
+html.theme-exzed .q-group .name b {
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 16px;
+  letter-spacing: 0;
+}
+html.theme-exzed .q-item .tt,
+html.theme-exzed .q-group .name {
+  gap: 8px;
+}
+html.theme-exzed .q-item .body {
+  gap: 0;
+}
+html.theme-exzed .q-item > .q-new {
+  margin-left: 8px;
+}
+
+/* The drag handle: 24px wide, its 16px drawing centred, `ink2` at rest. */
+html.theme-exzed .q-handle {
+  width: 24px;
+  height: 32px;
+  color: var(--zx-ink2);
+  font-size: 0;
+  letter-spacing: 0;
+}
+html.theme-exzed .q-group .q-handle {
+  height: 32px;
+}
+html.theme-exzed .q-handle {
+  position: relative;
+}
+/* Placed, not centred by the grid: the handle holds a tooltip node beside it, which would share the grid's rows. */
+html.theme-exzed .q-handle::before {
+  content: '';
+  position: absolute;
+  left: 4px;
+  top: 8px;
+  width: 16px;
+  height: 16px;
+  background: currentColor;
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8' shape-rendering='crispEdges'%3E%3Cpath d='M2 0h1v1H2zM5 0h1v1H5zM2 2h1v1H2zM5 2h1v1H5zM2 4h1v1H2zM5 4h1v1H5zM2 6h1v1H2zM5 6h1v1H5z'/%3E%3C/svg%3E") 0 0 / 100% 100% no-repeat;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8' shape-rendering='crispEdges'%3E%3Cpath d='M2 0h1v1H2zM5 0h1v1H5zM2 2h1v1H2zM5 2h1v1H5zM2 4h1v1H2zM5 4h1v1H5zM2 6h1v1H2zM5 6h1v1H5z'/%3E%3C/svg%3E") 0 0 / 100% 100% no-repeat;
+}
+
+/* The row buttons: 32x32, borderless, `ink2`, the board's drawing in place of the stock icon. */
+html.theme-exzed .q-item .q-icon-btn.row,
+html.theme-exzed .q-group .q-icon-btn.row {
+  width: 32px;
+  height: 32px;
+  margin: 0;
+  border: 0;
+  color: var(--zx-ink2);
+}
+html.theme-exzed .q-item .q-icon-btn.row > svg,
+html.theme-exzed .q-group .q-icon-btn.row > svg {
+  display: none;
+}
+html.theme-exzed .q-item .q-icon-btn.row::before,
+html.theme-exzed .q-group .q-icon-btn.row::before {
+  content: '';
+  display: block;
+  width: 16px;
+  height: 16px;
+  background: currentColor;
+  -webkit-mask: var(--icon) 0 0 / 100% 100% no-repeat;
+  mask: var(--icon) 0 0 / 100% 100% no-repeat;
+}
+html.theme-exzed .q-item .q-icon-btn.row.info {
+  --icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8' shape-rendering='crispEdges'%3E%3Cpath d='M2 0h4v1H2zM1 1h1v1H1zM6 1h1v1H6zM0 2h1v4H0zM7 2h1v4H7zM1 6h1v1H1zM6 6h1v1H6zM2 7h4v1H2zM3 2h2v1H3zM3 4h2v2H3z'/%3E%3C/svg%3E");
+}
+html.theme-exzed .q-item .q-icon-btn.row.edit,
+html.theme-exzed .q-group .q-icon-btn.row.edit {
+  --icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8' shape-rendering='crispEdges'%3E%3Cpath d='M6 0h1v1H6zM5 1h1v1H5zM7 1h1v1H7zM4 2h1v1H4zM6 2h1v1H6zM3 3h1v1H3zM5 3h1v1H5zM2 4h1v1H2zM4 4h1v1H4zM1 5h1v1H1zM3 5h1v1H3zM0 6h1v2H0zM2 6h1v1H2zM1 7h1v1H1z'/%3E%3C/svg%3E");
+}
+html.theme-exzed .q-item .q-icon-btn.row.remove,
+html.theme-exzed .q-group .q-icon-btn.row.remove {
+  --icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8' shape-rendering='crispEdges'%3E%3Cpath d='M3 0h2v1H3zM0 1h8v1H0zM1 2h1v5H1zM6 2h1v5H6zM2 7h4v1H2zM3 3h1v3H3zM4 3h1v3H4z'/%3E%3C/svg%3E");
+}
+html.theme-exzed .q-item .q-icon-btn.row.link {
+  --icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8' shape-rendering='crispEdges'%3E%3Cpath d='M3 0h5v1H3zM7 1h1v4H7zM6 1h1v1H6zM5 2h1v1H5zM4 3h1v1H4zM3 4h1v1H3zM2 5h1v1H2zM1 6h1v1H1z'/%3E%3C/svg%3E");
+}
+html.theme-exzed .q-item .q-icon-btn.row.remove {
+  margin-left: 8px;
+}
+html.theme-exzed .q-group .q-group-remove {
+  margin-right: -8px;
+}
+/* A note that matches the filter lights its ⓘ in the highlight's own colour on a black cell, as marks are: the row is shown for its note. */
+html.theme-exzed .q-item .q-icon-btn.row.info.lit {
+  color: var(--zx-acc);
+}
+
+/* Hover: the whole row is the highlight and everything in it `acc-ink`; the button under the pointer is an `acc-ink` block with its icon in `acc`. */
+html.theme-exzed .q-item[data-pointer],
+html.theme-exzed .q-item.is-hover,
+html.theme-exzed .q-group[data-pointer] {
+  background: var(--zx-hl-bg);
+  color: var(--zx-hl-ink);
+}
+html.theme-exzed .q-item[data-pointer] .title,
+html.theme-exzed .q-item.is-hover .title,
+html.theme-exzed .q-item.is-done[data-pointer] .title,
+html.theme-exzed .q-item[data-pointer] .q-year,
+html.theme-exzed .q-item[data-pointer] .q-mins,
+html.theme-exzed .q-item[data-pointer] .q-mins.pending,
+html.theme-exzed .q-item[data-pointer] .q-handle,
+html.theme-exzed .q-item[data-pointer] .q-icon-btn.row,
+html.theme-exzed .q-item[data-pointer] .q-icon-btn.row.info.lit,
+html.theme-exzed .q-item[data-pointer] .q-tag,
+html.theme-exzed .q-item[data-pointer] .q-plat,
+html.theme-exzed .q-group[data-pointer] .q-year,
+html.theme-exzed .q-group[data-pointer] .q-handle,
+html.theme-exzed .q-group[data-pointer] .q-icon-btn.row,
+html.theme-exzed .q-group[data-pointer] .q-left,
+html.theme-exzed .q-group[data-pointer] .q-count,
+html.theme-exzed .q-group[data-pointer] .q-pct,
+html.theme-exzed .q-group[data-pointer] .q-sep {
+  color: var(--zx-hl-ink);
+}
+html.theme-exzed .q-item[data-pointer] .q-tag,
+html.theme-exzed .q-item[data-pointer] .q-plat {
+  border-color: var(--zx-hl-ink);
+}
+html.theme-exzed .q-item[data-pointer] .q-icon-btn.row:where(:not(:disabled)):hover,
+html.theme-exzed .q-group[data-pointer] .q-icon-btn.row:where(:not(:disabled)):hover,
+html.theme-exzed .q-item[data-pointer] .q-plat:where(:not(:disabled):not(.readonly)):hover,
+html.theme-exzed .q-item[data-pointer] button.q-tag-add.q-tag-add:where(:not(:disabled)):hover {
+  background: var(--zx-hl-ink);
+  color: var(--zx-hl-bg);
+}
+
+/* A group's chevron: the board's, in the row's colour, 16px (the card has no line beside it). */
+html.theme-exzed .q-chev {
+  width: 16px;
+  height: 16px;
+  color: inherit;
+}
+html.theme-exzed .q-chev > .q-chev-tri,
+html.theme-exzed .q-chev > .q-chev-rule {
+  display: none;
+}
+html.theme-exzed .q-chev::before {
+  content: '';
+  display: block;
+  width: 16px;
+  height: 16px;
+  background: currentColor;
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8' shape-rendering='crispEdges'%3E%3Cpath d='M1 2h1v1H1zM2 3h1v1H2zM3 4h2v1H3zM5 3h1v1H5zM6 2h1v1H6z'/%3E%3C/svg%3E") 0 0 / 100% 100% no-repeat;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8' shape-rendering='crispEdges'%3E%3Cpath d='M1 2h1v1H1zM2 3h1v1H2zM3 4h2v1H3zM5 3h1v1H5zM6 2h1v1H6z'/%3E%3C/svg%3E") 0 0 / 100% 100% no-repeat;
+}
+html.theme-exzed .q-group[aria-expanded='false'] .q-chev::before,
+html.theme-exzed .q-preview-group[aria-expanded='false'] .q-chev::before {
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8' shape-rendering='crispEdges'%3E%3Cpath d='M2 1h1v1H2zM3 2h1v1H3zM4 3h1v2H4zM3 5h1v1H3zM2 6h1v1H2z'/%3E%3C/svg%3E") 0 0 / 100% 100% no-repeat;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8' shape-rendering='crispEdges'%3E%3Cpath d='M2 1h1v1H2zM3 2h1v1H3zM4 3h1v2H4zM3 5h1v1H3zM2 6h1v1H2z'/%3E%3C/svg%3E") 0 0 / 100% 100% no-repeat;
+}
+
+/* The list's empty states ("nothing here", "nothing matches", "all done"): wrapped text, 16px on 24px leading, `ink2`, on the window's 24px gutter. */
+html.theme-exzed .q-list-empty {
+  margin: 16px 24px;
+  font-size: 16px;
+  line-height: 24px;
+  letter-spacing: 0;
+  color: var(--zx-ink2);
+}

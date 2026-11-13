@@ -103,7 +103,8 @@ function at(pixels: Pixels, scale: number, x: number, y: number): Rgb {
   return [pixels.data[i]!, pixels.data[i + 1]!, pixels.data[i + 2]!]
 }
 async function shoot(page: Page, box: { x: number; y: number; width: number; height: number }, pad: number) {
-  const clip = { x: box.x - pad, y: box.y - pad, width: box.width + pad * 2, height: box.height + pad * 2 }
+  // A box on a fractional position is painted on the nearest whole pixel.
+  const clip = { x: Math.round(box.x - pad), y: Math.round(box.y - pad), width: Math.round(box.width + pad * 2), height: Math.round(box.height + pad * 2) }
   const pixels = decodePng(await page.screenshot({ clip }))
 
   return { pixels, scale: pixels.width / clip.width }
@@ -227,14 +228,15 @@ for (const skin of SKINS) {
       }
     }
     await add.hover()
-    expect(await style(add, ['background-color', 'color'])).toEqual({ 'background-color': css(r.acc), color: css(r['acc-ink']) })
+    expect(await style(add, ['background-color', 'color'])).toEqual({ 'background-color': css(r['acc-ink']), color: css(r.acc) })
 
-    // Hovering a platform tag (a button: it opens the platform list) is the highlight.
+    // Hovering a platform tag (a button: it opens the platform list) lights the row (the highlight, everything in it `acc-ink`, 51.7), and the tag under the pointer is the row's lit-button
+    // rule: an `acc-ink` block with its text in `acc` (an `acc` tag on an `acc` row would vanish).
     await chips.first().hover()
     expect(await style(chips.first(), ['background-color', 'color', 'border-top-color'])).toEqual({
-      'background-color': css(r.acc),
-      color: css(r['acc-ink']),
-      'border-top-color': css(r.acc),
+      'background-color': css(r['acc-ink']),
+      color: css(r.acc),
+      'border-top-color': css(r['acc-ink']),
     })
   })
 }

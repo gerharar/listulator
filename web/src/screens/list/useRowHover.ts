@@ -30,7 +30,7 @@ export function useRowHover(container: RefObject<HTMLElement | null>, suspended:
       last = null
       set(null)
     }
-    const rowAt = (target: EventTarget | null) => (target instanceof Element ? target.closest('.q-item') : null)
+    const rowAt = (target: EventTarget | null) => (target instanceof Element ? target.closest('.q-item, .q-group') : null)
 
     // Carrying an item: nothing is tinted, and what the pointer passes over is not either.
     if (suspended) {
