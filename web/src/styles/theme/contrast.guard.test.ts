@@ -31,7 +31,7 @@ const TEXT_PAIRS = [
 ] as const
 
 /**
- * The status colours drawn as a foreground on `paper` (49.6b, found by the owner on Lotus at Checkpoint C): the star and the info mark (`Marks.css`),
+ * The status colours drawn as a foreground on `paper` (49.6b, found by the owner on Lotus at Checkpoint C): the info mark (`Marks.css`),
  * the chip labels and borders (`StatusChip.css`: `info`, and `ok` for the Complete chip), the complete bar (`MeterBar.css`), the destructive button's
  * border and the Delete List label (`danger`), and `warn` for the day something uses it. 3:1 is the floor for a mark or an icon; a label in these
  * colours would need 4.5:1, and the pairs fail or pass on the same skins either way. Until X-007 draws chips as filled grounds with `chip-ink` text
@@ -42,7 +42,17 @@ const MARK_PAIRS = [
   ['ok', 'paper'],
   ['warn', 'paper'],
   ['danger', 'paper'],
-  ['star', 'paper'],
+] as const
+
+/**
+ * The marks of 51.6 (design's Mark card: "a coloured 8x8 icon in a black attribute cell", on Lotus too): the curated star, the complete and ongoing marks and the added-by-hand hand are drawn
+ * in their colour on `chip-ink`, never on `paper`. 3:1 is the floor for a mark.
+ */
+const CELL_MARK_PAIRS = [
+  ['star', 'chip-ink'],
+  ['ok', 'chip-ink'],
+  ['info', 'chip-ink'],
+  ['ink2', 'chip-ink'],
 ] as const
 
 const BORDER_PAIRS = [
@@ -78,7 +88,13 @@ const ALLOWED: readonly Allowed[] = [
   { skin: 'exzed-1l', foreground: 'ok', background: 'paper', ratio: 1.05, why: `Green (the Complete chip and bar). ${LOTUS_MARKS}` },
   { skin: 'exzed-1l', foreground: 'warn', background: 'paper', ratio: 2.18, why: `Magenta (nothing draws it yet). ${LOTUS_MARKS}` },
   { skin: 'exzed-1l', foreground: 'danger', background: 'paper', ratio: 2.78, why: `Red (the destructive button and the Delete List label). ${LOTUS_MARKS}` },
-  { skin: 'exzed-1l', foreground: 'star', background: 'paper', ratio: 1.34, why: `Yellow (the curated star). ${LOTUS_MARKS}` },
+  {
+    skin: 'exzed-1l',
+    foreground: 'ink2',
+    background: 'chip-ink',
+    ratio: 1.98,
+    why: 'The added-by-hand hand is `ink2` on its black cell (design’s Mark card), and on Lotus `ink2` is normal blue `#0000d7`: 1.98:1, under the 3:1 of a mark. The card says the cell stays black on Lotus (“the marks are attribute cells, not ink”). Reported to design in docs/design/HANDOFF-STATUS.md, “X-007 · Tags, marks and chips (51.6)” (2026-11-13); revisit when design answers.',
+  },
 ]
 
 const css = declarations(read('styles/theme/exzed-tokens.css'))
@@ -140,7 +156,7 @@ describe('contrast per skin', () => {
       expect(measured(skin, foreground, background) >= BORDER || allowed(skin, foreground, background) !== undefined, `${foreground} on ${background}: ${measured(skin, foreground, background).toFixed(2)}`).toBe(true)
     })
 
-    it.each(MARK_PAIRS)(`mark: %s on %s is at least ${BORDER}:1, or is allow-listed`, (foreground, background) => {
+    it.each([...MARK_PAIRS, ...CELL_MARK_PAIRS])(`mark: %s on %s is at least ${BORDER}:1, or is allow-listed`, (foreground, background) => {
       expect(measured(skin, foreground, background) >= BORDER || allowed(skin, foreground, background) !== undefined, `${foreground} on ${background}: ${measured(skin, foreground, background).toFixed(2)}`).toBe(true)
     })
   })
@@ -148,10 +164,10 @@ describe('contrast per skin', () => {
   describe('the allow-list', () => {
     it.each(ALLOWED)('$skin $foreground on $background is a pair this guard checks, still under its minimum, at the recorded ratio', (entry) => {
       const isText = TEXT_PAIRS.some(([f, b]) => f === entry.foreground && b === entry.background)
-      const isBorder = [...BORDER_PAIRS, ...MARK_PAIRS].some(([f, b]) => f === entry.foreground && b === entry.background)
+      const isBorder = [...BORDER_PAIRS, ...MARK_PAIRS, ...CELL_MARK_PAIRS].some(([f, b]) => f === entry.foreground && b === entry.background)
       const ratio = measured(entry.skin, entry.foreground, entry.background)
 
-      expect(isText || isBorder, 'a pair in TEXT_PAIRS, BORDER_PAIRS or MARK_PAIRS').toBe(true)
+      expect(isText || isBorder, 'a pair in TEXT_PAIRS, BORDER_PAIRS, MARK_PAIRS or CELL_MARK_PAIRS').toBe(true)
       expect(ratio, 'it passes now: remove it from ALLOWED').toBeLessThan(isText ? TEXT : BORDER)
       expect(Number(ratio.toFixed(2)), 'its ratio changed: re-read it and update ALLOWED and the report').toBe(entry.ratio)
     })

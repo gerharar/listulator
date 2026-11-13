@@ -57,10 +57,10 @@ test.describe('the kind tag in a list row', () => {
       expect(tag.right, `${tag.label}: room right of the text`).toBeGreaterThanOrEqual(0)
     }
     expect(new Set(found.map((tag) => tag.width)).size, 'one width for every tag').toBe(1)
-    // The longest label, Compilation, has the least room: 8px of padding and a 1px border each side, a little over the tracking.
+    // The longest label, Compilation, has the least room: the Tag card's 2px of padding and 2px border each side (51.6), and no tracking.
     const longest = found.find((tag) => tag.label === 'Compilation')!
-    expect(longest.left).toBeGreaterThanOrEqual(8)
-    expect(longest.left).toBeLessThan(12)
+    expect(longest.left).toBeGreaterThanOrEqual(4)
+    expect(longest.left).toBeLessThan(6)
   })
 
   test('under Quantum the tag is still a fixed 58px', async ({ page }) => {

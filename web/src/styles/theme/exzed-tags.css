@@ -1,0 +1,191 @@
+/*
+ * eX-Zed's tags, marks and chips (Phase 51, 51.6, X-007; design's Tag and Mark cards, the Choose Your Fighter board, answer 4), drawn on Quantum's own classes:
+ *  - a status tag (`.q-status` Complete and Ongoing, `.q-new`) is a 20px block of its fixed Spectrum colour (`ok` for Complete, `info` for Ongoing and NEW) with `chip-ink` text and a 2px
+ *    `chip-ink` ring outside it (an outline, so it takes no room), 16px capitals, `0 2px` of padding inside its 2px border, in every skin; a tag and a mark keep 2px each side outside their box, so the ring does not eat the gap to the words beside it;
+ *  - a mark (the curated star, the by-hand and added-by-hand hand, the complete and ongoing marks on My Lists) is the Icons board's 8x8 drawing in its colour (`star`, `ink2`, `ok`, `info`) on a 16px
+ *    `chip-ink` cell with the same 2px ring, on Lotus too (an attribute cell is black, not ink); the drawing is a mask on a pseudo-element and the stock icon in the DOM is hidden;
+ *  - the medium tag (`.q-tag`, in a list row and in Preview) and the platform chip (`.q-plat`) are the Tag card's `medium`: a 20px box with a 2px `ink2` outline, no fill, centred text; a column
+ *    is as wide as the longest (the list gives its characters as `--kind-ch` and `--plat-ch`; each is that many advances plus the 8px of padding and border). A platform chip is a button, so its
+ *    hover is the highlight; the add chip an untagged row shows is the same box;
+ *  - the count chip and "free key needed" on a tile are the board's: 20px, `0 2px`, a 2px `frame` border, no fill on the count chip (the name's plate is behind it) and the paper on the key chip (it floats over the art), the border the highlight's ink on hover; the
+ *    key chip stands above the source line (the board's column, 6px between), so the source gets the tile's whole width (the map's overflow row);
+ *  - Settings' key states and List Vault's "In My Lists" are tags too: Working `ok`, Rejected, Offline and Failed `warn`, Untested, Testing and In My Lists the outline.
+ * Quantum is as it was: every rule is under `html.theme-exzed`.
+ */
+html.theme-exzed .q-status,
+html.theme-exzed .q-new {
+  --tag: var(--zx-info);
+  box-sizing: border-box;
+  align-items: center;
+  height: 20px;
+  margin: 0 2px;
+  padding: 0 2px;
+  border: 2px solid var(--tag);
+  background: var(--tag);
+  outline: 2px solid var(--zx-chip-ink);
+  outline-offset: 0;
+  color: var(--zx-chip-ink);
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 16px;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+html.theme-exzed .q-status:not(.ongoing) {
+  --tag: var(--zx-ok);
+}
+
+/* Settings' key states: every one is as wide as the longest label (the app's `--pill-chars`); Untested and Testing are the outline, Working `ok`, the rest `warn`. */
+html.theme-exzed .q-key-pill {
+  box-sizing: border-box;
+  width: calc(var(--pill-chars) * 1ch + 8px);
+  height: 20px;
+  padding: 0 2px;
+  border: 2px solid var(--zx-ink2);
+  background: transparent;
+  color: var(--zx-ink2);
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 16px;
+  letter-spacing: 0;
+}
+html.theme-exzed .q-key-pill.working,
+html.theme-exzed .q-key-pill.rejected,
+html.theme-exzed .q-key-pill.failed,
+html.theme-exzed .q-key-pill.unreachable {
+  border-color: var(--tag);
+  background: var(--tag);
+  outline: 2px solid var(--zx-chip-ink);
+  outline-offset: 0;
+  color: var(--zx-chip-ink);
+}
+html.theme-exzed .q-key-pill.working {
+  --tag: var(--zx-ok);
+}
+html.theme-exzed .q-key-pill.rejected,
+html.theme-exzed .q-key-pill.failed,
+html.theme-exzed .q-key-pill.unreachable {
+  --tag: var(--zx-warn);
+}
+
+/* A mark: the board's 8x8 drawing, 16px, in its colour on a black cell with a 2px ring. */
+html.theme-exzed .q-star,
+html.theme-exzed .q-byhand,
+html.theme-exzed .q-manual,
+html.theme-exzed .q-status-mark {
+  --mark: var(--zx-star);
+  position: relative;
+  box-sizing: border-box;
+  flex: none;
+  width: 16px;
+  height: 16px;
+  margin: 0 2px;
+  padding: 0;
+  border: 0;
+  background: var(--zx-chip-ink);
+  outline: 2px solid var(--zx-chip-ink);
+  outline-offset: 0;
+}
+html.theme-exzed .q-star > svg,
+html.theme-exzed .q-byhand > svg,
+html.theme-exzed .q-manual > svg,
+html.theme-exzed .q-status-mark > svg {
+  display: none;
+}
+html.theme-exzed .q-star::before,
+html.theme-exzed .q-byhand::before,
+html.theme-exzed .q-manual::before,
+html.theme-exzed .q-status-mark::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--mark);
+  -webkit-mask: var(--icon) 0 0 / 100% 100% no-repeat;
+  mask: var(--icon) 0 0 / 100% 100% no-repeat;
+}
+html.theme-exzed .q-star {
+  --icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8' shape-rendering='crispEdges'%3E%3Cpath d='M3 0h2v2H3zM0 2h8v1H0zM1 3h6v1H1zM2 4h4v1H2zM1 5h6v1H1zM1 6h2v1H1zM5 6h2v1H5z'/%3E%3C/svg%3E");
+}
+html.theme-exzed .q-byhand,
+html.theme-exzed .q-manual {
+  --mark: var(--zx-ink2);
+  --icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8' shape-rendering='crispEdges'%3E%3Cpath d='M1 1h1v3H1zM3 0h1v4H3zM5 1h1v3H5zM7 3h1v2H7zM1 4h6v3H1zM2 7h4v1H2z'/%3E%3C/svg%3E");
+}
+html.theme-exzed .q-status-mark {
+  --mark: var(--zx-ok);
+  --icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8' shape-rendering='crispEdges'%3E%3Cpath d='M0 0h8v1H0zM0 1h1v1H0zM7 1h1v1H7zM0 2h8v1H0zM1 3h1v3H1zM6 3h1v3H6zM3 4h2v1H3zM1 6h6v1H1z'/%3E%3C/svg%3E");
+}
+html.theme-exzed .q-status-mark.ongoing {
+  --mark: var(--zx-info);
+  --icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8' shape-rendering='crispEdges'%3E%3Cpath d='M1 0h2v4H1zM1 5h2v1H1zM5 2h2v4H5zM5 7h2v1H5z'/%3E%3C/svg%3E");
+}
+
+/* The medium tag and the platform chip: the Tag card's `medium`, a 2px `ink2` outline on nothing, centred. */
+html.theme-exzed .q-tag,
+html.theme-exzed .q-plat,
+html.theme-exzed .q-plat-gap,
+html.theme-exzed .q-vb-mine {
+  box-sizing: border-box;
+  align-items: center;
+  justify-content: center;
+  height: 20px;
+  padding: 0 2px;
+  border: 2px solid var(--zx-ink2);
+  background: transparent;
+  color: var(--zx-ink2);
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 16px;
+  letter-spacing: 0;
+}
+html.theme-exzed .q-tag.kind {
+  width: calc(var(--kind-ch) * 1ch + 8px);
+}
+/* The column's characters come from the row (`--plat-ch`, an inline style); without one a chip is five (the widest built-in code), declared here rather than as a fallback. */
+html.theme-exzed .q-plat,
+html.theme-exzed .q-plat-gap {
+  --plat-ch: 5;
+  width: calc(var(--plat-ch) * 1ch + 8px);
+}
+html.theme-exzed .q-plat-gap {
+  border: 0;
+}
+html.theme-exzed button.q-tag-add.q-tag-add {
+  padding: 0 2px;
+  border: 2px solid var(--zx-ink2);
+  background: transparent;
+  color: var(--zx-ink2);
+}
+html.theme-exzed .q-plat:where(:not(:disabled):not(.readonly)):hover,
+html.theme-exzed button.q-tag-add.q-tag-add:where(:not(:disabled)):hover {
+  background: var(--zx-hl-bg);
+  border-color: var(--zx-hl-bg);
+  color: var(--zx-hl-ink);
+}
+
+/* Choose Your Fighter: the count chip and "free key needed", the board's 20px boxes on the tile's plate; the key chip above the source line. */
+html.theme-exzed .q-count-chip,
+html.theme-exzed .q-key-chip {
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  height: 20px;
+  padding: 0 2px;
+  border: 2px solid var(--zx-frame);
+  background: transparent;
+  color: var(--zx-ink);
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 16px;
+  letter-spacing: 0;
+}
+/* The key chip floats over the tile's art, so it is a plate of paper like the source line (the board's `.lab cnt`); the count chip sits on the name's plate. */
+html.theme-exzed .q-key-chip {
+  background: var(--zx-paper);
+}
+html.theme-exzed .q-tile-foot {
+  flex-direction: column-reverse;
+  align-items: flex-start;
+  justify-content: flex-start;
+  gap: 6px;
+}

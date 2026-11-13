@@ -219,7 +219,7 @@ describe('size tokens: the kind tag’s column (Phase 49, found at Checkpoint D;
     expect(declared(read('components/quantum/Marks/Marks.css'), '.q-tag.kind', 'width')).toBe('58px')
   })
 
-  it('is, under eX-Zed, the longest label’s characters times the font’s advance and its tracking, plus the padding and the border', () => {
-    expect(plain(declared(read('styles/theme/exzed.css'), 'html.theme-exzed .q-tag.kind', 'width')!)).toBe('calc(var(--kind-ch) * (1ch + .02em) + 18px)')
+  it('is, under eX-Zed, the longest label’s characters times the font’s advance (it has no tracking), plus the Tag card’s 2px of padding and 2px border each side', () => {
+    expect(plain(declared(read('styles/theme/exzed-tags.css'), 'html.theme-exzed .q-tag.kind', 'width')!)).toBe('calc(var(--kind-ch) * 1ch + 8px)')
   })
 })
