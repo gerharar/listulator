@@ -32,8 +32,8 @@ const item = (n: number, group: string, done: boolean) => ({
 })
 const ITEMS = [item(1, 'Season 1', true), item(2, 'Season 1', true), item(3, 'Season 2', false), item(4, 'Season 2', false), item(5, 'Season 3', false), item(6, 'Season 3', false), item(7, 'Season 4', false), item(8, 'Season 4', false)]
 
-async function open(page: Page, skin: string) {
-  await page.setViewportSize({ width: 1440, height: 1000 })
+async function open(page: Page, skin: string, width = 1440) {
+  await page.setViewportSize({ width, height: 1000 })
   await page.route('**/api/library/untracked', (route) => route.fulfill({ json: { entries: [], reachable: true } }))
   await page.route('**/api/lists', (route) => route.fulfill({ json: [SUMMARY] }))
   await page.route('**/api/lists/L1', (route) => route.fulfill({ json: { ...SUMMARY, items: ITEMS, groups: [] } }))
@@ -128,3 +128,87 @@ for (const skin of SKINS) {
     await readIcon(page, eb.x + 8, eb.y + 8, POINTER, ink!, 'the focus pointer')
   })
 }
+
+const EXPAND = 'M1 1h1v1H1zM2 2h1v1H2zM3 3h1v2H3zM2 5h1v1H2zM1 6h1v1H1zM4 1h1v1H4zM5 2h1v1H5zM6 3h1v2H6zM5 5h1v1H5zM4 6h1v1H4z'
+
+/** A rectangle given on the page, every pixel of it `colour`. */
+async function readRect(page: Page, x: number, y: number, width: number, height: number, colour: Rgb, label: string) {
+  const pixels = decodePng(await page.screenshot({ clip: { x: Math.round(x), y: Math.round(y), width, height } }))
+  const scale = pixels.width / width
+  for (let py = 0; py < height; py++) for (let px = 0; px < width; px++) expect(at(pixels, scale, px, py), `${label}: pixel ${px},${py}`).toEqual(colour)
+}
+
+/** The jump rail's folded stub and its grip (design D27): a 40px strip with the expand icon over JUMP TO upright in lab; the grip is the rail's own 2px rule, turning acc on hover and while dragging. */
+for (const skin of SKINS) {
+  test(`${skin}: the folded rail is a 40px strip with the expand icon over JUMP TO stacked upright in lab, a 2px frame rule on its right, and the highlight on hover`, async ({ page }) => {
+    await open(page, skin)
+    const [ink2, lab, frame, acc, accInk] = (await Promise.all(['--zx-ink2', '--zx-lab', '--zx-frame', '--zx-acc', '--zx-acc-ink'].map((n) => token(page, n)))).map((hex) => rgbOf(hex)) as Rgb[]
+    await page.locator('.q-rail-head .q-rail-toggle').click()
+    const stub = page.locator('.q-rail-stub')
+    await expect(stub).toHaveCount(1)
+    await page.mouse.move(0, 0)
+
+    expect(await style(stub, ['width', 'border-right-width', 'border-right-style', 'border-right-color', 'flex-direction', 'row-gap', 'color'])).toEqual({
+      width: '40px',
+      'border-right-width': '2px',
+      'border-right-style': 'solid',
+      'border-right-color': css(frame!),
+      'flex-direction': 'column',
+      'row-gap': '16px',
+      color: css(ink2!),
+    })
+    const button = stub.locator('.q-rail-toggle')
+    const bb = await box(button)
+    expect([bb.width, bb.height], 'the icon button is the 16px drawing').toEqual([16, 16])
+    await readIcon(page, bb.x, bb.y, EXPAND, ink2!, 'the expand icon')
+    expect(await style(stub.locator('.label'), ['writing-mode', 'text-orientation', 'color', 'font-size', 'letter-spacing'])).toEqual({ 'writing-mode': 'vertical-rl', 'text-orientation': 'upright', color: css(lab!), 'font-size': '16px', 'letter-spacing': 'normal' })
+
+    await stub.hover({ position: { x: 20, y: 200 } })
+    expect(await style(stub, ['background-color', 'color'])).toEqual({ 'background-color': css(acc!), color: css(accInk!) })
+    expect((await style(stub.locator('.label'), ['color'])).color).toBe(css(accInk!))
+    await readIcon(page, bb.x, bb.y, EXPAND, accInk!, 'the expand icon on the lit strip')
+  })
+
+  test(`${skin}: the grip is the rail's own 2px right rule with a 6px hit area, col-resize, turning acc on hover and while dragging`, async ({ page }) => {
+    await open(page, skin)
+    const [frame, acc] = (await Promise.all(['--zx-frame', '--zx-acc'].map((n) => token(page, n)))).map((hex) => rgbOf(hex)) as Rgb[]
+    await page.mouse.move(0, 0)
+    const rail = page.locator('.q-rail').first()
+    const grip = rail.locator('.q-rail-grip')
+    expect(await style(grip, ['width', 'cursor'])).toEqual({ width: '6px', cursor: 'col-resize' })
+    // The rail's right edge, measured each time: dragging the grip widens the rail.
+    const edge = async (colour: Rgb, label: string) => {
+      const r = await box(rail)
+      await readRect(page, r.x + r.width - 2, r.y + 100, 2, 8, colour, label)
+    }
+    const r = await box(rail)
+    await edge(frame!, 'at rest the rule is the frame colour')
+    await grip.hover()
+    await edge(acc!, 'on hover the rule is the highlight')
+    await page.mouse.down()
+    await page.mouse.move(r.x + r.width + 40, r.y + 200)
+    await edge(acc!, 'while dragging it stays the highlight')
+    await page.mouse.up()
+    await page.mouse.move(0, 0)
+  })
+}
+
+test('exzed-1d: outside the window the rail folds to the same 40px strip, and its grip is the rail’s outer edge with the same rule', async ({ page }) => {
+  await open(page, 'exzed-1d', 2600)
+  const [frame, acc] = (await Promise.all(['--zx-frame', '--zx-acc'].map((n) => token(page, n)))).map((hex) => rgbOf(hex)) as Rgb[]
+  const rail = page.locator('.q-rail.q-rail-out')
+  await expect(rail).toHaveCount(1)
+  await page.mouse.move(0, 0)
+  const grip = rail.locator('.q-rail-grip')
+  expect(await style(grip, ['width', 'cursor'])).toEqual({ width: '6px', cursor: 'col-resize' })
+  const r = await box(rail)
+  const border = await rail.evaluate((el) => parseFloat(getComputedStyle(el).borderLeftWidth))
+  await readRect(page, r.x, r.y + 100, border, 8, frame!, 'at rest the outer edge is the frame colour')
+  await grip.hover()
+  await readRect(page, r.x, r.y + 100, border, 8, acc!, 'on hover the outer edge is the highlight')
+  await page.mouse.move(0, 0)
+
+  await rail.locator('.q-rail-head .q-rail-toggle').click()
+  await expect.poll(async () => (await box(rail)).width).toBe(40)
+  await expect(rail.locator('.q-rail-fold .q-rail-toggle')).toHaveCount(1)
+})

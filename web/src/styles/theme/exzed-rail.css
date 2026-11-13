@@ -2,7 +2,7 @@
  * eX-Zed's jump rail rows (Phase 51, 51.8, X-007; design's Row card and the List board), drawn on Quantum's own classes: the rail is ruled by 2px of `frame` on its right; its head is the kicker (`lab`
  * capitals, 16px) over a 32px borderless collapse button drawn as the board's pixel icon (the `«` glyph hidden); an entry is a 32px row, 8px at the sides and between its parts, 16px `ink` (a done group is
  * not dimmed: its tick says it), its tick the `done` pixel icon in `ink2` (the ✓ glyph is not in the font), its count `ink2`; hover fills it with the highlight and turns it `acc-ink`; keyboard focus shows
- * the ▶ pointer in the 16px column at the row's left. The folded stub and the resize grip are not drawn here. Quantum is as it was: every rule is under `html.theme-exzed`.
+ * the ▶ pointer in the 16px column at the row's left. The folded stub and the grip are design's D27 (below). Quantum is as it was: every rule is under `html.theme-exzed`.
  */
 html.theme-exzed .q-rail {
   border-right: 2px solid var(--zx-frame);
@@ -105,4 +105,81 @@ html.theme-exzed .q-rail-entry:where(:not(:disabled)):hover {
 html.theme-exzed .q-rail-entry:where(:not(:disabled)):hover .tick,
 html.theme-exzed .q-rail-entry:where(:not(:disabled)):hover .count {
   color: var(--zx-hl-ink);
+}
+
+/*
+ * The folded rail and the grip (design's answer D27): the stub (inside the window) and the folded outside rail are a 40px strip, the `expand-rail` icon (the stock `»` hidden) at the top over `JUMP TO`
+ * stacked upright in `lab`, `ink2` at rest; the whole strip is one button, so it takes the highlight on hover (the icon and the label `acc-ink`); the inside stub has the 2px `frame` rule on its right
+ * (the outside one has the card's own edge). The grip is the rail's own 2px rule with a 6px hit area and the `col-resize` cursor: the rule turns `acc` on hover, on keyboard focus and while dragging;
+ * inside it is the right rule, outside (X-010) the outer left edge, the same look.
+ */
+html.theme-exzed .q-rail-stub,
+html.theme-exzed .q-rail-fold {
+  width: 40px;
+  gap: 16px;
+  padding: 12px 0;
+  color: var(--zx-ink2);
+}
+html.theme-exzed .q-rail-stub {
+  border-right: 2px solid var(--zx-frame);
+}
+html.theme-exzed .q-rail-stub:hover,
+html.theme-exzed .q-rail-fold:hover {
+  background: var(--zx-hl-bg);
+  color: var(--zx-hl-ink);
+}
+html.theme-exzed .q-rail-stub .q-rail-toggle,
+html.theme-exzed .q-rail-fold .q-rail-toggle,
+html.theme-exzed .q-rail-stub:hover .q-rail-toggle,
+html.theme-exzed .q-rail-fold:hover .q-rail-toggle {
+  width: 16px;
+  height: 16px;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font-size: 0;
+}
+html.theme-exzed .q-rail-stub .q-rail-toggle::before,
+html.theme-exzed .q-rail-fold .q-rail-toggle::before {
+  content: '';
+  display: block;
+  width: 16px;
+  height: 16px;
+  background: currentColor;
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8' shape-rendering='crispEdges'%3E%3Cpath d='M1 1h1v1H1zM2 2h1v1H2zM3 3h1v2H3zM2 5h1v1H2zM1 6h1v1H1zM4 1h1v1H4zM5 2h1v1H5zM6 3h1v2H6zM5 5h1v1H5zM4 6h1v1H4z'/%3E%3C/svg%3E") 0 0 / 100% 100% no-repeat;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8' shape-rendering='crispEdges'%3E%3Cpath d='M1 1h1v1H1zM2 2h1v1H2zM3 3h1v2H3zM2 5h1v1H2zM1 6h1v1H1zM4 1h1v1H4zM5 2h1v1H5zM6 3h1v2H6zM5 5h1v1H5zM4 6h1v1H4z'/%3E%3C/svg%3E") 0 0 / 100% 100% no-repeat;
+}
+html.theme-exzed .q-rail-stub .label,
+html.theme-exzed .q-rail-fold .label {
+  text-orientation: upright;
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 16px;
+  letter-spacing: 0;
+  color: var(--zx-lab);
+}
+html.theme-exzed .q-rail-stub:hover .label,
+html.theme-exzed .q-rail-fold:hover .label {
+  color: var(--zx-hl-ink);
+}
+
+html.theme-exzed .q-rail:not(.q-rail-out) .q-rail-grip {
+  right: -2px;
+  width: 6px;
+}
+html.theme-exzed .q-rail:not(.q-rail-out) .q-rail-grip:hover,
+html.theme-exzed .q-rail:not(.q-rail-out) .q-rail-grip:focus-visible,
+html.theme-exzed body.q-resizing .q-rail:not(.q-rail-out) .q-rail-grip {
+  background: linear-gradient(var(--zx-acc), var(--zx-acc)) right / 2px 100% no-repeat;
+}
+/* Outside the window the rail clips what lies beyond its padding box, so its outer edge is its own left border: that border turns `acc` (the grip keeps Quantum's 6px hit strip inside it). */
+html.theme-exzed .q-rail-grip-out:hover,
+html.theme-exzed .q-rail-grip-out:focus-visible,
+html.theme-exzed body.q-resizing .q-rail-grip-out {
+  background: none;
+}
+html.theme-exzed .q-rail.q-rail-out:has(> .q-rail-grip:hover),
+html.theme-exzed .q-rail.q-rail-out:has(> .q-rail-grip:focus-visible),
+html.theme-exzed body.q-resizing .q-rail.q-rail-out {
+  border-color: var(--zx-acc);
 }

@@ -3,6 +3,7 @@ import { useEffect, useRef, useState, type KeyboardEvent, type PointerEvent } fr
 import { copy } from '../../locale/index.js'
 import { RAIL_WIDTH_DEFAULT, RAIL_WIDTH_MAX, RAIL_WIDTH_MIN } from './railLimits.js'
 import { Tip } from '../../components/quantum/Tooltip/Tip.js'
+import { useTheme } from '../../components/quantum/DocumentTheme/ThemeContext.js'
 
 export interface RailEntry {
   id: string
@@ -47,6 +48,8 @@ export type JumpRailProps = JumpRailBase & (InsideRail | OutsideRail)
 const STEP = 16
 /** The folded strip outside the card (H-019); the one inside the card is still `JumpRailStub`'s 36px. */
 export const RAIL_FOLDED_WIDTH = 38
+/** Under eX-Zed the folded strip is design's 40px (D27). */
+export const SPECTRUM_RAIL_FOLDED_WIDTH = 40
 /** How long the width animates when the rail folds or unfolds (`JumpRail.css`, plus a frame). */
 const FOLD_MS = 240
 
@@ -128,8 +131,10 @@ export function JumpRail(props: JumpRailProps) {
     .filter(Boolean)
     .join(' ')
 
+  const exzed = useTheme() === 'exzed'
+
   return (
-    <nav className={className} data-placement={outside ? 'outside' : 'inside'} aria-label={text.title} style={{ width: outside && folded ? RAIL_FOLDED_WIDTH : width }}>
+    <nav className={className} data-placement={outside ? 'outside' : 'inside'} aria-label={text.title} style={{ width: outside && folded ? (exzed ? SPECTRUM_RAIL_FOLDED_WIDTH : RAIL_FOLDED_WIDTH) : width }}>
       {outside && folded ? (
         // The whole strip is the way back (as `JumpRailStub`); the » inside is a real button for the keyboard, its click reaches the strip's handler.
         <Tip as="div" className="q-rail-fold" text={text.show} onClick={out?.onShow}>

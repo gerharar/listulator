@@ -6,7 +6,7 @@ import { read } from './cssGuard.js'
 /**
  * The stylesheets of 51.8 (X-007), the screens' rows other than the list's: My Lists, the Preview, the search results, the List Vault, the jump rail and About's data sources. Each is a file main.tsx
  * imports; every selector is under `html.theme-exzed`; they draw in the skin's roles only (no literal colour, alpha, radius, opacity, filter or shadow) and in the Row card's sizes; a hover on a
- * control excludes a disabled one (the Vault's empty category takes none).
+ * control excludes a disabled one (the Vault's empty category takes none, and the rail's folded strip and grip and About's TMDB row are not disableable).
  */
 const FILES = ['home', 'preview', 'search', 'vault', 'rail', 'about-rows'] as const
 
@@ -32,7 +32,7 @@ describe.each(FILES)('exzed-%s.css (51.8)', (name) => {
 
   it('every hover rule excludes a disabled control', () => {
     for (const selector of rules.flatMap(([list]) => list.split(',').map((s) => s.trim()))) {
-      if (selector.includes(':hover') && !selector.includes('.q-about-tmdb') && !selector.includes('.q-vb-cat')) expect(selector, selector).toContain(':where(:not(:disabled')
+      if (selector.includes(':hover') && !selector.includes('.q-about-tmdb') && !selector.includes('.q-vb-cat') && !/\.q-rail-(stub|fold|grip)/.test(selector)) expect(selector, selector).toContain(':where(:not(:disabled')
     }
   })
 })
