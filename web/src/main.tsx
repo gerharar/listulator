@@ -47,6 +47,8 @@ import './styles/theme/exzed-helpers.css'
 import './styles/theme/exzed-rows.css'
 // eX-Zed's My Lists (51.8, X-007).
 import './styles/theme/exzed-home.css'
+// eX-Zed's Preview rows (51.8, X-007).
+import './styles/theme/exzed-preview.css'
 // eX-Zed's skin art (Phase 50): each skin's pictures under its own `data-theme`, so only the active skin's files are requested.
 import './styles/theme/exzed-art.css'
 import { App } from './App.js'

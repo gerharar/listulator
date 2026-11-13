@@ -31,7 +31,7 @@ import { useLayerStack } from '../layerStack/LayerStackContext.js'
 import { untitledListLayer } from '../layerStack/listLayer.js'
 import { useLiveRegion } from '../LiveRegion/LiveRegion.js'
 import { endForKey, endScrollTop } from '../../../screens/list/listEnds.js'
-import { PREVIEW_HEIGHTS, previewUnits } from './previewRows.js'
+import { PREVIEW_HEIGHTS, SPECTRUM_PREVIEW_HEIGHTS, previewUnits } from './previewRows.js'
 import { GroupTriangle } from '../GroupTriangle/GroupTriangle.js'
 
 const CANONICAL_PREFIX = 'canonical:'
@@ -116,7 +116,8 @@ export function PreviewLayer({ source, mediaType, onBuilt, active = true }: Prev
   const items = load.state === 'done' ? load.preview.items : []
   const rows = useMemo(() => groupPreviewRows(items), [items])
   const units = useMemo(() => previewUnits(rows), [rows])
-  const model = useMemo(() => buildRowModel(units, (label) => collapsed.has(label), PREVIEW_HEIGHTS), [units, collapsed])
+  const theme = useTheme()
+  const model = useMemo(() => buildRowModel(units, (label) => collapsed.has(label), theme === 'exzed' ? SPECTRUM_PREVIEW_HEIGHTS : PREVIEW_HEIGHTS), [units, collapsed, theme])
   // A long Preview draws only the rows near the view (Phase 26.2); under 200 rows, or with the switch off, every row, as it always did.
   const windowed = load.state === 'done' && shouldVirtualize(model.rowTops.size, load.virtualization)
   const body = useRef<HTMLDivElement>(null)
@@ -149,7 +150,6 @@ export function PreviewLayer({ source, mediaType, onBuilt, active = true }: Prev
   const placeId = useId()
   const summary = summarizePreview(items, mediaType.defaultDurationMinutes)
   // Under eX-Zed the kind tags are as wide as the longest in the Preview (design's Tag card); Quantum draws them at a fixed 58px and is not asked.
-  const theme = useTheme()
   const kindChars = useMemo(() => (theme === 'exzed' ? kindColumnChars(items, mediaType.facets) : undefined), [theme, items, mediaType])
   // A category whose convention names platforms gets chips, as wide as the widest label (as on the list).
   const platformWidthCh = useMemo(

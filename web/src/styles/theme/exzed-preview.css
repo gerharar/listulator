@@ -1,0 +1,67 @@
+/*
+ * eX-Zed's Preview rows (Phase 51, 51.8, X-007; design's Row card and the Preview board), drawn on Quantum's own classes: every row is 32px and flat (an item row is not interactive and takes no
+ * hover), indented 24px more inside a group, 16px apart; the title `ink`, the year and the runtime `ink2`, all 16px regular; the runtime column 96px, right-aligned. A group head is 32px with the 2px
+ * `frame` rule under it on `paper`, a chevron (the rows' drawing, `exzed-rows.css`), the name plain `ink` and the count `ink2`; it is a button, so hover fills it with the highlight. The windowing
+ * counts 32px rows under this theme (`PreviewLayer` picks `SPECTRUM_PREVIEW_HEIGHTS`). Quantum is as it was: every rule is under `html.theme-exzed`.
+ */
+html.theme-exzed .q-preview-row {
+  height: 32px;
+  gap: 16px;
+  padding: 0 24px 0 8px;
+  border-bottom: 0;
+}
+html.theme-exzed .q-preview-row.in-group {
+  padding-left: 32px;
+}
+html.theme-exzed .q-preview-row .title {
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 16px;
+  letter-spacing: 0;
+}
+html.theme-exzed .q-preview-row .tt {
+  gap: 8px;
+}
+html.theme-exzed .q-preview-row .mins,
+html.theme-exzed .q-preview-row .mins.none {
+  width: 96px;
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 16px;
+  letter-spacing: 0;
+  text-align: right;
+  white-space: nowrap;
+  color: var(--zx-ink2);
+}
+
+html.theme-exzed .q-preview-group {
+  height: 32px;
+  gap: 8px;
+  padding: 0 24px 0 8px;
+  border-bottom: 2px solid var(--zx-frame);
+  background: var(--zx-paper);
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 16px;
+  color: var(--zx-ink);
+}
+html.theme-exzed .q-preview-group .name {
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 16px;
+  letter-spacing: 0;
+}
+html.theme-exzed .q-preview-group .count {
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 16px;
+  letter-spacing: 0;
+  color: var(--zx-ink2);
+}
+html.theme-exzed .q-preview-group:where(:not(:disabled)):hover {
+  background: var(--zx-hl-bg);
+  color: var(--zx-hl-ink);
+}
+html.theme-exzed .q-preview-group:where(:not(:disabled)):hover .count {
+  color: var(--zx-hl-ink);
+}

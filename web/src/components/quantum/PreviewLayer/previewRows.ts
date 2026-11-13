@@ -5,6 +5,9 @@ import type { RowHeights, ShownUnit } from '../../../screens/list/rowModel.js'
 /** The Preview's rows are 40px, a group head as well (`.q-preview-row`, `.q-preview-group`); checked against the real page in the e2e. */
 export const PREVIEW_HEIGHTS: RowHeights = { itemHeight: 40, groupHeight: 40 }
 
+/** Under eX-Zed every row is 32px (design's `row-h`), a group head too: the windowing counts these (`exzed-preview.css`). */
+export const SPECTRUM_PREVIEW_HEIGHTS: RowHeights = { itemHeight: 32, groupHeight: 32 }
+
 /** A Preview row for the row model: keyed by its place in the rows, so a row keeps its key whatever is drawn around it. */
 export interface PreviewEntry {
   id: string
