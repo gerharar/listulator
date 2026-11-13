@@ -5,6 +5,7 @@ import { copy } from '../../../locale/index.js'
 import { ByHandMark, CuratedStar, NewBadge } from '../Marks/Marks.js'
 import { StatusMark } from '../StatusChip/StatusChip.js'
 import { LeftText } from '../ProgressSentence/LeftText.js'
+import { useTheme } from '../DocumentTheme/ThemeContext.js'
 import { MeterBar, PercentLabel } from '../MeterBar/MeterBar.js'
 import { formatProgress } from '../ProgressSentence/ProgressSentence.js'
 import { useTooltip } from '../Tooltip/useTooltip.js'
@@ -51,6 +52,8 @@ export function HomeRow({
 }: HomeRowProps) {
   const cluster = useRef<HTMLSpanElement>(null)
   const { on: showTime } = useTimeLeftSetting()
+  // The Spectrum font has one body size (16px, design X-004): its percentage and time left are not the 11 to 13px Quantum sets inline.
+  const exzed = useTheme() === 'exzed'
   const { left, allDone } = formatProgress(done, total, minutesLeft, status, runtimesPending ?? 0)
   // `✓ All Done` reads as `All Done` here: the tick is the column's glyph, and a tooltip has no column.
   const time = left === null ? copy.quantum.progress.emptyList : left.replace(/^✓\s*/, '')
@@ -72,14 +75,14 @@ export function HomeRow({
       <span ref={cluster} className="q-home-cluster" onPointerEnter={onPointerEnter}>
         <span className="q-home-bar">
           <MeterBar done={done} total={total} />
-          <PercentLabel done={done} total={total} px={13} />
+          <PercentLabel done={done} total={total} px={exzed ? 16 : 13} />
         </span>
         <span className="q-home-count">{copy.quantum.progress.homeCount(done, total)}</span>
       </span>
       {showTime && left !== null && (
         <Tip
           className={allDone ? 'q-left all-done' : 'q-left'}
-          style={{ fontSize: allDone ? 11 : 13 }}
+          style={{ fontSize: exzed ? 16 : allDone ? 11 : 13 }}
           text={!allDone && runtimesPending ? copy.quantum.progress.runtimesPendingTip(runtimesPending) : undefined}
         >
           <LeftText text={left} />

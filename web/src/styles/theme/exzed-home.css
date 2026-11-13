@@ -1,0 +1,83 @@
+/*
+ * eX-Zed's My Lists (Phase 51, 51.8, X-007; design's Row card and the Home board), drawn on Quantum's own classes:
+ *  - a category head (`.q-kicker-bar`) is the name in `lab` capitals (the kicker, 51.1) followed by a 4px dither rule to the end of the line: a 2px checkerboard of `frame` over `paper`, 16px after the
+ *    name, vertically centred on it (the board's; `bundle.css` draws the rule in `lab`, which the owner's rule "the prototype is the authority" sets aside: asked of design in the status file);
+ *  - a list's row is 32px and flat (no rule), 16px text, a 16px pointer column at its left: hover fills it with the highlight and turns its text `acc-ink` (the marks and the NEW tag carry their own black
+ *    cells, 51.6); keyboard focus shows the ▶ pointer. The bar and the percentage's drawing stay X-008's (their text is 16px: `HomeRow` picks the size by theme).
+ * Quantum is as it was: every rule is under `html.theme-exzed`.
+ */
+html.theme-exzed .q-bucket {
+  margin-top: 16px;
+}
+html.theme-exzed .q-kicker-bar {
+  align-items: center;
+  justify-content: flex-start;
+  gap: 16px;
+  padding-bottom: 8px;
+  border-bottom: 0;
+}
+html.theme-exzed .q-kicker-bar .q-kicker {
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 16px;
+  letter-spacing: 0;
+}
+html.theme-exzed .q-kicker-bar::after {
+  content: '';
+  flex: 1;
+  height: 4px;
+  background: repeating-conic-gradient(var(--zx-frame) 0 25%, var(--zx-paper) 0 50%) 0 0 / 4px 4px;
+}
+
+html.theme-exzed .q-home-row {
+  height: 32px;
+  gap: 16px;
+  padding: 0 8px 0 40px;
+  border-bottom: 0;
+  color: var(--zx-ink);
+}
+html.theme-exzed .q-home-row::before {
+  content: '';
+  position: absolute;
+  left: 8px;
+  top: 8px;
+  width: 16px;
+  height: 16px;
+  visibility: hidden;
+  background: currentColor;
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8' shape-rendering='crispEdges'%3E%3Cpath d='M2 0h1v8H2zM3 1h1v6H3zM4 2h1v4H4zM5 3h1v2H5z'/%3E%3C/svg%3E") 0 0 / 100% 100% no-repeat;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8' shape-rendering='crispEdges'%3E%3Cpath d='M2 0h1v8H2zM3 1h1v6H3zM4 2h1v4H4zM5 3h1v2H5z'/%3E%3C/svg%3E") 0 0 / 100% 100% no-repeat;
+}
+html.theme-exzed .q-home-row:focus-visible::before {
+  visibility: visible;
+}
+html.theme-exzed .q-home-row .title {
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 16px;
+  letter-spacing: 0;
+}
+html.theme-exzed .q-home-row .name {
+  gap: 8px;
+}
+html.theme-exzed .q-home-count {
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 16px;
+  letter-spacing: 0;
+  color: var(--zx-ink2);
+}
+html.theme-exzed .q-home-row .q-pct {
+  font-size: 16px;
+  font-weight: 400;
+  letter-spacing: 0;
+}
+html.theme-exzed .q-home-row:where(:not(:disabled)):hover {
+  background: var(--zx-hl-bg);
+  color: var(--zx-hl-ink);
+}
+html.theme-exzed .q-home-row:where(:not(:disabled)):hover .q-home-count,
+html.theme-exzed .q-home-row:where(:not(:disabled)):hover .q-pct,
+html.theme-exzed .q-home-row:where(:not(:disabled)):hover .q-left {
+  color: var(--zx-hl-ink);
+}
