@@ -65,7 +65,7 @@ const ITEMS = [
   item(4, { isNew: true }),
 ]
 
-async function open(page: Page, skin: string) {
+async function open(page: Page, skin: string, extra: Record<string, string> = {}) {
   await page.setViewportSize({ width: 1440, height: 1000 })
   await page.route('**/api/library/untracked', (route) => route.fulfill({ json: { entries: [], reachable: true } }))
   await page.route('**/api/lists', (route) => route.fulfill({ json: [SUMMARY] }))
@@ -78,7 +78,7 @@ async function open(page: Page, skin: string) {
       return
     }
     for (const [key, value] of entries as [string, string][]) localStorage.setItem(key, value)
-  }, Object.entries({ skin: 'dark-orange', reducedMotion: 'true', theme: 'exzed', exzedSkin: skin }))
+  }, Object.entries({ skin: 'dark-orange', reducedMotion: 'true', theme: 'exzed', exzedSkin: skin, ...extra }))
   await page.goto('/')
   await page.locator('.q-home-row').first().click()
   await page.locator('.q-item').first().waitFor()
@@ -91,7 +91,7 @@ const css = (c: Rgb) => `rgb(${c.join(', ')})`
 const style = (locator: Locator, props: string[]) => locator.evaluate((element, names) => Object.fromEntries(names.map((name) => [name, getComputedStyle(element).getPropertyValue(name)])), props)
 
 async function roles(page: Page) {
-  const names = ['paper', 'ink', 'ink2', 'frame', 'acc', 'acc-ink'] as const
+  const names = ['paper', 'ink', 'ink2', 'frame', 'acc', 'acc-dim', 'acc-ink'] as const
   const found = await Promise.all(names.map((n) => token(page, `--zx-${n}`)))
 
   return Object.fromEntries(names.map((n, i) => [n, rgbOf(found[i]!)])) as Record<(typeof names)[number], Rgb>
@@ -113,6 +113,14 @@ async function readIcon(page: Page, left: number, top: number, name: IconName, c
     const [x, y] = key.split(',').map(Number) as [number, number]
     expect(at(pixels, scale, x * 2 + 0.5, y * 2 + 0.5), `${label}: ${name} cell ${key}`).toEqual(colour)
   }
+}
+
+/** A rectangle given on the page, every pixel of it `colour` (a line of the board's, 2px wide or high). */
+async function readRect(page: Page, x: number, y: number, width: number, height: number, colour: Rgb, label: string) {
+  const clip = { x: Math.round(x), y: Math.round(y), width, height }
+  const pixels = decodePng(await page.screenshot({ clip }))
+  const scale = pixels.width / width
+  for (let py = 0; py < height; py++) for (let px = 0; px < width; px++) expect(at(pixels, scale, px, py), `${label}: pixel ${px},${py}`).toEqual(colour)
 }
 
 const row = (page: Page, title: string) => page.locator('.q-item', { hasText: title })
@@ -223,5 +231,43 @@ for (const skin of SKINS) {
     const noted = await box(row(page, 'Item 1').locator('.q-icon-btn.info'))
     const lone = await box(row(page, 'Item 3').locator('.q-icon-btn.edit'))
     expect(Math.abs(noted.x - lone.x), 'the lone ✎ is in the ⓘ’s place').toBeLessThanOrEqual(1)
+  })
+
+  test(`${skin}: "Enhance group arrows" draws its line as the board says: 2px, 16px long, 6px from the chevron, ink2, left of it when open and under it when shut, with no animation (design D24)`, async ({ page }) => {
+    await open(page, skin, { markOpenGroups: 'true' })
+    const r = await roles(page)
+    const group = page.locator('.q-group').first()
+    const chevron = group.locator('.q-chev')
+    await page.mouse.move(0, 0)
+    const rule = group.locator('.q-chev-rule')
+    await expect(rule).toHaveCount(1)
+    expect((await style(rule, ['transition-duration']))['transition-duration'], 'no animation').toBe('0s')
+
+    // Open (the chevron points down): a vertical line, its right edge 6px left of the ink, which starts 2px in from the 16px box.
+    const openBox = await box(chevron)
+    await readRect(page, openBox.x - 6, openBox.y, 2, 16, r.ink2, 'the open group’s line')
+    // Shut (it points right): a horizontal line under the ink, 6px below its last row (14px down the box).
+    await group.click()
+    await expect(group).toHaveAttribute('aria-expanded', 'false')
+    await page.mouse.move(0, 0)
+    const shutBox = await box(chevron)
+    await readRect(page, shutBox.x, shutBox.y + 20, 16, 2, r.ink2, 'the shut group’s line')
+  })
+
+  test(`${skin}: a group head being dropped onto fills with acc-dim and its text and icons are acc-ink; never the bright highlight of a hover (design D23)`, async ({ page }) => {
+    await open(page, skin)
+    const r = await roles(page)
+    await page.mouse.move(0, 0)
+    const group = page.locator('.q-group').first()
+    // The class Quantum's drop target has (H-016), put on the head as the list does while an item is carried over it.
+    await group.evaluate((element) => element.classList.add('is-target'))
+    expect((await style(group, ['background-color', 'color']))).toEqual({ 'background-color': css(r['acc-dim']), color: css(r['acc-ink']) })
+    for (const selector of ['b', '.q-year', '.q-left']) expect((await style(group.locator(selector).first(), ['color'])).color, `${selector} is acc-ink`).toBe(css(r['acc-ink']))
+    const handle = await box(group.locator('.q-handle'))
+    await readIcon(page, handle.x + 4, handle.y + handle.height / 2 - 8, 'handle', r['acc-ink'], 'the handle on a drop target')
+    const cb = await box(group.locator('.q-chev'))
+    await readIcon(page, cb.x, cb.y, 'open', r['acc-ink'], 'the chevron on a drop target')
+    const edit = await box(group.locator('.q-icon-btn.edit'))
+    await readIcon(page, edit.x + 8, edit.y + 8, 'edit', r['acc-ink'], 'the rename ✎ on a drop target')
   })
 }

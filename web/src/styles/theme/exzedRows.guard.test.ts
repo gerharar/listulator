@@ -36,7 +36,7 @@ describe('eX-Zed’s list rows', () => {
 
   it('has no shadow, alpha, radius, opacity, filter or literal colour, and only the Row card’s sizes', () => {
     expect(css).not.toMatch(/box-shadow|border-radius|opacity\s*:|[;{\s]filter\s*:|rgba?\(|hsla?\(|color-mix|#[0-9a-f]{3,8}\b/i)
-    for (const [, size] of css.matchAll(/(\d+)px/g)) expect(['0', '2', '4', '8', '16', '24', '32', '56']).toContain(size)
+    for (const [, size] of css.matchAll(/(\d+)px/g)) expect(['0', '2', '4', '6', '8', '16', '20', '24', '32', '56']).toContain(size)
   })
 
   it('draws a row as 32px and flat, a group head 32px with the 2px frame rule on an opaque paper', () => {
@@ -63,6 +63,12 @@ describe('eX-Zed’s list rows', () => {
     expect(body('html.theme-exzed .q-item:focus-visible::before')).toMatch(/visibility:\s*visible;/)
     expect(body('html.theme-exzed .q-chev::before')).toMatch(/background:\s*currentColor;[^}]*mask:\s*url/)
     expect(css).toMatch(/\.q-group\[aria-expanded='false'\] \.q-chev::before/)
+  })
+
+  it('draws the group line of the "Enhance group arrows" setting (D24) and the drop target’s dim highlight (D23)', () => {
+    expect(body('html.theme-exzed .q-chev > .q-chev-rule')).toMatch(/display:\s*block;\s*left:\s*-6px;\s*top:\s*0;\s*width:\s*2px;\s*height:\s*16px;\s*background:\s*var\(--zx-ink2\);\s*transition:\s*none;/)
+    expect(body("html.theme-exzed .q-group[aria-expanded='false'] .q-chev > .q-chev-rule")).toMatch(/left:\s*0;\s*top:\s*20px;\s*width:\s*16px;\s*height:\s*2px;/)
+    expect(body('html.theme-exzed .q-group.is-target')).toMatch(/background:\s*var\(--zx-dim-bg\);\s*color:\s*var\(--zx-dim-ink\);/)
   })
 
   it('a row button is 32x32 and borderless', () => {

@@ -208,9 +208,32 @@ html.theme-exzed .q-chev {
   height: 16px;
   color: inherit;
 }
-html.theme-exzed .q-chev > .q-chev-tri,
-html.theme-exzed .q-chev > .q-chev-rule {
+html.theme-exzed .q-chev > .q-chev-tri {
   display: none;
+}
+/*
+ * "Enhance group arrows" (H-022, design's answer D24, X-012): the setting stays and works. The line is 2px (one grid pixel) and 16px long, 6px from the chevron's ink, `ink2`, with no
+ * animation: open, it stands to the left of the chevron (its right edge 6px from the ink, which starts 2px in); shut, it lies under the ink (which ends 14px down the 16px box).
+ */
+html.theme-exzed .q-chev > .q-chev-rule {
+  display: block;
+  left: -6px;
+  top: 0;
+  width: 2px;
+  height: 16px;
+  background: var(--zx-ink2);
+  transition: none;
+}
+html.theme-exzed .q-group[aria-expanded='false'] .q-chev > .q-chev-rule,
+html.theme-exzed .q-preview-group[aria-expanded='false'] .q-chev > .q-chev-rule {
+  left: 0;
+  top: 20px;
+  width: 16px;
+  height: 2px;
+}
+html.theme-exzed .q-group[data-pointer] .q-chev > .q-chev-rule,
+html.theme-exzed .q-group.is-target .q-chev > .q-chev-rule {
+  background: var(--zx-hl-ink);
 }
 html.theme-exzed .q-chev::before {
   content: '';
@@ -234,4 +257,22 @@ html.theme-exzed .q-list-empty {
   line-height: 24px;
   letter-spacing: 0;
   color: var(--zx-ink2);
+}
+
+/*
+ * A drop target (H-016, design's answer D23): a collapsed or empty group head being dragged onto fills with the dim highlight (`acc-dim`) and its text and icons are `acc-ink`: "lands here",
+ * never the bright highlight of a hover. Only where Quantum tints the head (`.is-target`); everywhere else the `acc` drop line alone. No dotted outline (that means disabled).
+ */
+html.theme-exzed .q-group.is-target {
+  background: var(--zx-dim-bg);
+  color: var(--zx-dim-ink);
+}
+html.theme-exzed .q-group.is-target .q-year,
+html.theme-exzed .q-group.is-target .q-handle,
+html.theme-exzed .q-group.is-target .q-icon-btn.row,
+html.theme-exzed .q-group.is-target .q-left,
+html.theme-exzed .q-group.is-target .q-count,
+html.theme-exzed .q-group.is-target .q-pct,
+html.theme-exzed .q-group.is-target .q-sep {
+  color: var(--zx-dim-ink);
 }
