@@ -51,6 +51,11 @@ describe('eX-Zed’s motion', () => {
     expect(body('html.theme-exzed .q-list:has(.q-hold.is-busy)')).toMatch(/cursor:\s*progress;/)
   })
 
+  it('turns the refresh icon in four quarter turns in 800ms, and not under reduced motion', () => {
+    expect(body('html.theme-exzed:not([data-reduced]) .q-spin')).toMatch(/animation:\s*q-spin 800ms steps\(4\) infinite;/)
+    expect(body('html.theme-exzed:not([data-reduced]) .q-check-btn .q-spin')).toMatch(/animation:\s*q-spin 800ms steps\(4\) infinite;/)
+  })
+
   it('turns Quantum’s pulse animation off', () => {
     expect(body('html.theme-exzed .q-item.pulse')).toMatch(/animation:\s*none;/)
     expect(body('html.theme-exzed .q-group.pulse')).toMatch(/animation:\s*none;/)

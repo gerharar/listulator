@@ -73,6 +73,57 @@ async function holdSearch(page: Page) {
   return release
 }
 
+/** A list a check can run on (it has a source reference and is not complete), and the check held back until `release()`, so the refresh icon can be looked at while it turns. */
+async function holdCheck(page: Page) {
+  const list = {
+    description: null,
+    createdAt: '2026-01-01T00:00:00Z',
+    updatedAt: '2026-01-01T00:00:00Z',
+    id: 'R1',
+    title: 'Refresh Saga',
+    mediaType: 'movie',
+    source: 'api',
+    externalRef: 'tmdb:1',
+    status: 'ongoing',
+    stats: { totalItems: 2, consumedItems: 0, newItems: 0, completionPercent: 0, timeRemainingMinutes: 100, lastConsumedAt: null },
+  }
+  let release: () => void = () => undefined
+  const gate = new Promise<void>((resolve) => (release = resolve))
+  await page.route('**/api/library/untracked', (route) => route.fulfill({ json: { entries: [], reachable: true } }))
+  await page.route('**/api/lists', (route) => route.fulfill({ json: [list] }))
+  await page.route('**/api/lists/R1', (route) => route.fulfill({ json: { ...list, items: [], groups: [] } }))
+  await page.route('**/api/lists/R1/refresh', async (route) => {
+    await gate
+    await route.fulfill({ json: { newItems: [], upstreamCount: 0, existingCount: 0, dismissedCount: 0 } })
+  })
+
+  return release
+}
+
+/** The icon's turn at each of these moments of its animation, as degrees (rounded: a quarter turn's matrix has 1e-16 where a zero is). */
+async function turnsAt(page: Page, selector: string, times: number[]) {
+  const out: number[] = []
+  for (const t of times) {
+    out.push(
+      await page.evaluate(
+        ([sel, at]) => {
+          const el = document.querySelector(sel as string)!
+          for (const a of document.getAnimations()) {
+            if ((a.effect as KeyframeEffect | null)?.target !== el) continue
+            a.pause()
+            a.currentTime = at as number
+          }
+          const m = new DOMMatrix(getComputedStyle(el).transform === 'none' ? undefined : getComputedStyle(el).transform)
+          return (Math.round((Math.atan2(m.b, m.a) * 180) / Math.PI) + 360) % 360
+        },
+        [selector, t] as const,
+      ),
+    )
+  }
+
+  return out
+}
+
 for (const skin of SKINS) {
   test.describe(`with the theme exzed, skin ${skin}`, () => {
     test.beforeEach(async ({ page }) => {
@@ -137,6 +188,56 @@ for (const skin of SKINS) {
         const scale = pixels.width / 24
         near(at(pixels, scale, 12, 2), r.ink, 'the head')
         near(at(pixels, scale, 2, 12), r.ink2, 'the cell behind the head, to the left')
+      } finally {
+        release()
+      }
+    })
+
+    test('the refresh icon turns in quarter turns while a check runs: four steps in 800ms, 90 degrees a step, on Home and on the list; the ring of the spinner never turns', async ({ page }) => {
+      await seed(page, skin, { reducedMotion: 'false' })
+      const release = await holdCheck(page)
+      try {
+        await page.goto('/')
+        await page.locator('.q-home-row').first().waitFor()
+        await page.getByRole('button', { name: 'Check for updates' }).click()
+        const icon = page.locator('.q-home .q-spin')
+        await icon.waitFor()
+        expect(await style(icon, ['animation-name', 'animation-duration', 'animation-iteration-count'])).toEqual({ 'animation-name': 'q-spin', 'animation-duration': '0.8s', 'animation-iteration-count': 'infinite' })
+        expect(await icon.evaluate((el) => getComputedStyle(el).animationTimingFunction)).toMatch(/^steps\(4/)
+        // Each step is 200ms: 0, 90, 180, 270 degrees, then round again; a quarter turn puts every pixel back on the grid.
+        expect(await turnsAt(page, '.q-home .q-spin', [100, 300, 500, 700])).toEqual([0, 90, 180, 270])
+      } finally {
+        release()
+      }
+    })
+
+    test('the refresh icon on the list turns the same way', async ({ page }) => {
+      await seed(page, skin, { reducedMotion: 'false' })
+      const release = await holdCheck(page)
+      try {
+        await page.goto('/')
+        await page.locator('.q-home-row').first().click()
+        await page.locator('.q-check-btn').waitFor()
+        await page.locator('.q-check-btn').click()
+        const icon = page.locator('.q-check-btn .q-spin')
+        await icon.waitFor()
+        expect(await icon.evaluate((el) => [getComputedStyle(el).animationDuration, getComputedStyle(el).animationTimingFunction.slice(0, 7)])).toEqual(['0.8s', 'steps(4'])
+        expect(await turnsAt(page, '.q-check-btn .q-spin', [100, 300, 500, 700])).toEqual([0, 90, 180, 270])
+      } finally {
+        release()
+      }
+    })
+
+    test('under reduced motion the refresh icon stands still while a check runs', async ({ page }) => {
+      await seed(page, skin, { reducedMotion: 'true' })
+      const release = await holdCheck(page)
+      try {
+        await page.goto('/')
+        await page.locator('.q-home-row').first().waitFor()
+        await page.getByRole('button', { name: 'Check for updates' }).click()
+        const icon = page.locator('.q-home .q-spin')
+        await icon.waitFor()
+        expect((await style(icon, ['animation-name', 'transform']))).toEqual({ 'animation-name': 'none', transform: 'none' })
       } finally {
         release()
       }

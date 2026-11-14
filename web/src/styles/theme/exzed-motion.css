@@ -3,6 +3,7 @@
  * has neither (every animation is `steps(1)` or `steps(8)`), and reduced motion stops what moves.
  *  - the spinner: eight 2x2-unit cells on a 12-unit ring shown at 24px (so 4px cells; `Spinner` draws the svg under this theme only). A head in `ink`, the two cells behind it in `ink2`, the rest in
  *    `frame`; the head moves one cell every 100ms, 800ms for the ring, as eight `steps(1)` colour animations, cell `n` starting `n` steps late. Under reduced motion it stands still;
+ *  - the refresh icon that turns while a check runs: four quarter turns in 800ms (D33), still under reduced motion;
  *  - a list that runs a whole-list action (`.q-hold.is-busy`, 28.3): not faded (`--o-busy` is 1, 48.4c), its rows are `inert` and the pointer over them is `progress`; the body takes the scrim
  *    (51.1's 2px checkerboard of `chip-ink`, never solid) after 300ms and loses it at once, so a run that is quicker never shows it;
  *  - the row pulse (after an add, a move, a restore): the Spectrum's FLASH. `ListScreen` marks the pulsing row `data-flash` while it is lit (320ms on, 320ms off, three times; steady for 2s
@@ -66,6 +67,13 @@ html.theme-exzed:not([data-reduced]) .q-spinner rect:nth-child(8) {
   37.5% {
     fill: var(--zx-frame);
   }
+}
+
+/* The refresh icon (Home's and the list's) turns while a check runs, in quarter turns (design's D33): four steps in 800ms, 90 degrees each, which puts every pixel back on the grid, so nothing blurs. It stays an
+   icon (not swapped for the spinner) and stands still under reduced motion. Quantum's `q-spin` keyframes are the turn; the stepping is the timing. */
+html.theme-exzed:not([data-reduced]) .q-spin,
+html.theme-exzed:not([data-reduced]) .q-check-btn .q-spin {
+  animation: q-spin 800ms steps(4) infinite;
 }
 
 /* The busy list: the scrim over the body, its delay on the busy state only. */
