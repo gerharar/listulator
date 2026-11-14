@@ -59,6 +59,8 @@ import './styles/theme/exzed-rail.css'
 import './styles/theme/exzed-about-rows.css'
 // eX-Zed's popovers (51.9, X-007).
 import './styles/theme/exzed-popover.css'
+// eX-Zed's notices: toast, banner, error strip and block, refusal (51.10, X-007).
+import './styles/theme/exzed-notices.css'
 // eX-Zed's skin art (Phase 50): each skin's pictures under its own `data-theme`, so only the active skin's files are requested.
 import './styles/theme/exzed-art.css'
 import { App } from './App.js'

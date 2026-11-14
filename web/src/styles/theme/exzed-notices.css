@@ -1,0 +1,139 @@
+/*
+ * eX-Zed's notices (Phase 51, 51.10, X-007; design's Toast and Banner cards), drawn on Quantum's own classes: no call site changes. None of them is red (red means destroy), and none has a fill of its own.
+ *  - the toast: one line at the top centre, a 2px `frame-hi` border and the 4px `paper` ring (`--e-toast`, 49.5), 16px `ink` on 24px lines, 16px between the sentence and its one bracketed action (a 40px
+ *    button, so 4px of padding, 16px on the left; as high as that button, 52px, with or without it); it comes in with one FLASH step (320ms, inverse video, `steps(1)`) and goes with no animation at
+ *    all; under reduced motion it has no flash either. The durations are Quantum's, 3s and 5s with Undo (DECISIONS 2026-11-14): the owner shortened the card's 3.2s and 8s;
+ *  - the Banner (an update band, a sample list's, the narrow-window notice): a 2px `info-line` border (blue on Lotus), no fill, the sentence `ink2` with its name `ink`, 16px; its buttons are the card's
+ *    `sm` ones, 24px high with 8px of padding, 8px apart, so the banner is 32px high;
+ *  - the error strip: a 2px `frame` border, 56px at least, one sentence in `ink`, [Retry] and [Dismiss] 40px high;
+ *  - the error block: a 2px `frame` border, 16px of padding and 8px between its parts: the headline in `ink`, the explanation in `ink2`, at most one action, 24px lines;
+ *  - the refusal (Import's sentence under its box, a taken group name under the head): the ! icon before one sentence in `ink2`, 8px apart; the field's own (51.4) is the same.
+ * Quantum is as it was: every rule is under `html.theme-exzed`.
+ */
+html.theme-exzed .q-toast {
+  gap: 16px;
+  min-height: 52px;
+  padding: 4px 4px 4px 16px;
+  border: 2px solid var(--zx-frame-hi);
+  background: var(--zx-paper);
+  color: var(--zx-ink);
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 24px;
+}
+html.theme-exzed .q-toast:not(:has(.q-btn)) {
+  padding-right: 16px;
+}
+html.theme-exzed .q-toast.fixed {
+  animation: zx-toast-flash 320ms steps(1) 1;
+}
+html.theme-exzed .q-toast.fixed .q-btn {
+  animation: zx-toast-flash-ink 320ms steps(1) 1;
+}
+html.theme-exzed[data-reduced] .q-toast.fixed,
+html.theme-exzed[data-reduced] .q-toast.fixed .q-btn {
+  animation: none;
+}
+@keyframes zx-toast-flash {
+  0% {
+    background-color: var(--zx-acc);
+    color: var(--zx-acc-ink);
+  }
+}
+@keyframes zx-toast-flash-ink {
+  0% {
+    color: var(--zx-acc-ink);
+  }
+}
+
+html.theme-exzed .q-banner {
+  gap: 16px;
+  padding: 2px 2px 2px 16px;
+  border: 2px solid var(--zx-info-line);
+  background: transparent;
+  color: var(--zx-ink2);
+  font-size: 16px;
+  line-height: 24px;
+}
+html.theme-exzed .q-banner b {
+  font-weight: 400;
+  color: var(--zx-ink);
+}
+html.theme-exzed .q-banner-actions {
+  gap: 8px;
+}
+html.theme-exzed .q-banner .q-btn {
+  height: 24px;
+  padding: 0 8px;
+}
+
+html.theme-exzed .q-error-strip {
+  gap: 8px;
+  padding: 0 8px 0 16px;
+  border: 2px solid var(--zx-frame);
+  background: transparent;
+  color: var(--zx-ink);
+  font-size: 16px;
+  line-height: 24px;
+}
+html.theme-exzed .q-error-strip > span {
+  margin-right: 8px;
+}
+
+html.theme-exzed .q-error-block {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 16px;
+  border: 2px solid var(--zx-frame);
+  background: transparent;
+  color: var(--zx-ink);
+  font-size: 16px;
+  line-height: 24px;
+}
+html.theme-exzed .q-error-block b {
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 24px;
+  color: var(--zx-ink);
+}
+html.theme-exzed .q-error-block p {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 24px;
+  color: var(--zx-ink2);
+}
+html.theme-exzed .q-error-block .q-btn {
+  margin-top: 0;
+}
+
+/* The refusal: the card's ! icon (an 8x8 bar and dot, 16px) in the sentence's colour. */
+html.theme-exzed .q-import-refusal {
+  gap: 8px;
+  color: var(--zx-ink2);
+  font-size: 16px;
+  line-height: 24px;
+}
+html.theme-exzed .q-import-refusal svg {
+  display: none;
+}
+html.theme-exzed .q-import-refusal::before {
+  content: '';
+  flex: none;
+  width: 16px;
+  height: 16px;
+  background: var(--zx-ink2);
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8' shape-rendering='crispEdges'%3E%3Cpath d='M3 0h2v5H3zM3 6h2v2H3z'/%3E%3C/svg%3E") 0 0 / 100% 100% no-repeat;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8' shape-rendering='crispEdges'%3E%3Cpath d='M3 0h2v5H3zM3 6h2v2H3z'/%3E%3C/svg%3E") 0 0 / 100% 100% no-repeat;
+}
+/* A taken group name, over the rows under the head: the sentence is the field's own refusal (51.4), in a box of its own. */
+html.theme-exzed .q-group-msg {
+  padding: 8px;
+  border: 2px solid var(--zx-frame);
+  background: var(--zx-paper);
+  color: var(--zx-ink2);
+  font-size: 16px;
+  line-height: 24px;
+}
