@@ -215,7 +215,7 @@ export function ItemEditPopover({
   const platformValue = platforms.length > 0 ? platforms.join(' · ') : tagText.notSet
 
   return (
-    <Popover open anchorEl={anchorEl} onDismiss={dismiss} onEscape={escape} width={360}>
+    <Popover open anchorEl={anchorEl} onDismiss={dismiss} onEscape={escape} width={360} from="row">
       <div className="q-edit" onKeyDown={saveOnEnter} ref={bindEdit}>
         <Field
           label={text.editTitle}

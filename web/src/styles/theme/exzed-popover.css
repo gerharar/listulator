@@ -33,7 +33,7 @@ html.theme-exzed .q-pop-note {
 html.theme-exzed .q-pop-tail {
   width: 10px;
   height: 16px;
-  top: var(--tail-y);
+  top: calc(var(--tail-y) - 2px);
   left: -10px;
 }
 html.theme-exzed .q-pop-tail.right {
@@ -44,7 +44,7 @@ html.theme-exzed .q-pop-tail.up,
 html.theme-exzed .q-pop-tail.down {
   width: 16px;
   height: 10px;
-  left: var(--tail-x);
+  left: calc(var(--tail-x) - 2px);
 }
 html.theme-exzed .q-pop-tail.up {
   top: -10px;

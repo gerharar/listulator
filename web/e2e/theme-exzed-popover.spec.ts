@@ -114,6 +114,76 @@ for (const skin of SKINS) {
   })
 }
 
+/** A real list with a group, a note and an item to edit: the row's own buttons (✎, ⓘ, a group's bin) are what the popovers open from. */
+async function openRealList(page: Page, skin: string, width: number) {
+  await page.setViewportSize({ width, height: 900 })
+  const title = `e2e popover ${skin} ${test.info().project.name} ${Date.now()}-${Math.random().toString(36).slice(2, 6)}`
+  const yaml = `title: ${title}\ncategory: movie\nitems:\n  - { title: Alpha, group: One, notes: "A note" }\n  - { title: Beta, group: Two }\n`
+  const created = await page.request.post('/api/lists/from-file', { data: { yaml } })
+  expect(created.ok()).toBe(true)
+  const id = (await created.json()).id as string
+  await page.addInitScript((entries) => {
+    try {
+      if (sessionStorage.getItem('__seeded')) return
+      sessionStorage.setItem('__seeded', '1')
+    } catch {
+      return
+    }
+    for (const [key, value] of entries as [string, string][]) localStorage.setItem(key, value)
+  }, Object.entries({ skin: 'dark-orange', reducedMotion: 'true', theme: 'exzed', exzedSkin: skin }))
+  await page.goto('/')
+  await page.locator('.q-home-row', { hasText: title }).click()
+  await page.locator('.q-item').first().waitFor()
+  await page.evaluate(() => document.fonts.ready)
+
+  return id
+}
+
+/** Turns the tail's up-pointing cells a quarter, as the drawing does: `left` transposes them, `right` mirrors that. */
+function turned(path: string, kind: 'left' | 'right') {
+  const out = new Set<string>()
+  for (const key of cells(path)) {
+    const [x, y] = key.split(',').map(Number) as [number, number]
+    out.add(kind === 'left' ? `${y},${x}` : `${4 - y},${x}`)
+  }
+
+  return out
+}
+
+/** A popover from a button in a row: beside it, 8px away, the tail a 5x8 staircase (10x16) on the side that faces the button, centred on it. */
+async function checkBeside(page: Page, opener: Locator, label: string, wanted: 'right' | 'left' | 'either') {
+  const [frameHi, paper, acc] = (await Promise.all(['--zx-frame-hi', '--zx-paper', '--zx-acc'].map((n) => token(page, n)))).map((hex) => rgbOf(hex)) as [Rgb, Rgb, Rgb]
+  const pop = page.locator('.q-pop')
+  await expect(pop, label).toHaveCount(1)
+  await page.waitForFunction(() => document.querySelector('.q-pop') && getComputedStyle(document.querySelector('.q-pop')!).opacity === '1')
+  await page.mouse.move(0, 0)
+  const o = await box(opener)
+  const p = await box(pop)
+  const want = wanted === 'either' ? (p.x > o.x ? 'right' : 'left') : wanted
+  if (want === 'right') expect(p.x - (o.x + o.width), `${label}: 8px to the right of the button`).toBe(8)
+  else expect(o.x - (p.x + p.width), `${label}: 8px to the left of the button`).toBe(8)
+  expect(p.y <= o.y + o.height / 2 && p.y + p.height >= o.y + o.height / 2, `${label}: level with the button, not under it`).toBe(true)
+  expect((await style(opener, ['background-color']))['background-color'], `${label}: the opener is lit`).toBe(css(acc))
+
+  const kind = want === 'right' ? 'left' : 'right'
+  const tail = page.locator('.q-pop-tail')
+  const t = await box(tail)
+  expect([t.width, t.height], `${label}: the tail is 10x16`).toEqual([10, 16])
+  expect(Math.abs(t.y + t.height / 2 - (o.y + o.height / 2)), `${label}: centred on the button`).toBeLessThanOrEqual(1)
+  if (kind === 'left') expect(Math.round(t.x + t.width), `${label}: its base column is the left border column`).toBe(Math.round(p.x + 2))
+  else expect(Math.round(t.x), `${label}: its base column is the right border column`).toBe(Math.round(p.x + p.width - 2))
+  const pixels = decodePng(await page.screenshot({ clip: { x: Math.round(t.x), y: Math.round(t.y), width: 10, height: 16 } }))
+  const scale = pixels.width / 10
+  for (const key of turned(RIM, kind)) {
+    const [x, y] = key.split(',').map(Number) as [number, number]
+    expect(at(pixels, scale, x * 2 + 0.5, y * 2 + 0.5), `${label}: tail rim cell ${key}`).toEqual(frameHi)
+  }
+  for (const key of turned(FILL, kind)) {
+    const [x, y] = key.split(',').map(Number) as [number, number]
+    expect(at(pixels, scale, x * 2 + 0.5, y * 2 + 0.5), `${label}: tail fill cell ${key}`).toEqual(paper)
+  }
+}
+
 /** A game list: its items have a Platform field, whose panel joins the Edit window. */
 async function openGameList(page: Page, skin: string, height = 900) {
   await page.setViewportSize({ width: 1440, height })
@@ -161,29 +231,46 @@ for (const skin of SKINS) {
     expect(await style(last, ['background-color', 'color'])).toEqual({ 'background-color': css(acc), color: css(accInk) })
   })
 
-  test(`${skin}: a popover with no room below opens above, its tail the staircase turned down with its base on the bottom border`, async ({ page }) => {
-    await openGameList(page, skin, 560)
-    const [frameHi, paper] = (await Promise.all(['--zx-frame-hi', '--zx-paper'].map((n) => token(page, n)))).map((hex) => rgbOf(hex)) as [Rgb, Rgb]
-    await page.locator('.q-item', { hasText: 'Item 2' }).locator('.q-icon-btn.edit').click()
-    const pop = page.locator('.q-pop')
-    await expect(pop).toHaveCount(1)
-    await page.waitForFunction(() => document.querySelector('.q-pop') && getComputedStyle(document.querySelector('.q-pop')!).opacity === '1')
-    await page.mouse.move(0, 0)
-    const tail = page.locator('.q-pop-tail')
-    await expect(tail).toHaveClass(/\bdown\b/)
-    const p = await box(pop)
-    const t = await box(tail)
-    const opener = await box(page.locator('.q-item', { hasText: 'Item 2' }).locator('.q-icon-btn.edit'))
-    expect(opener.y - (p.y + p.height), 'the popover is 8px above the button').toBe(8)
-    expect([t.width, t.height]).toEqual([16, 10])
-    expect(Math.round(t.y), 'its base row is the bottom border row').toBe(Math.round(p.y + p.height - 2))
-    const pixels = decodePng(await page.screenshot({ clip: { x: Math.round(t.x), y: Math.round(t.y), width: 16, height: 10 } }))
-    const scale = pixels.width / 16
-    // Turned down: the tip is the bottom row's two cells (cells y 4), the base the top row (y 0): rim at both ends, the fill between.
-    expect(at(pixels, scale, 6.5, 8.5), 'the tip').toEqual(frameHi)
-    expect(at(pixels, scale, 8.5, 8.5), 'the tip').toEqual(frameHi)
-    expect(at(pixels, scale, 0.5, 0.5), 'the base, left end: rim').toEqual(frameHi)
-    expect(at(pixels, scale, 8, 1.5), 'the base, middle: the fill breaks the border').toEqual(paper)
+  test(`${skin}: a row's ✎ opens its Edit window beside the row: to the right with the tail pointing left when there is room, flipping to the left with the tail pointing right when there is not (D29)`, async ({ page }) => {
+    const id = await openRealList(page, skin, 2400)
+    try {
+      const edit = page.locator('.q-item', { hasText: 'Alpha' }).locator('.q-icon-btn.edit')
+      await edit.click()
+      await checkBeside(page, edit, 'the Edit window with room', 'right')
+      await page.keyboard.press('Escape')
+      await expect(page.locator('.q-pop')).toHaveCount(0)
+
+      await page.setViewportSize({ width: 1440, height: 900 })
+      await edit.click()
+      await checkBeside(page, edit, 'the Edit window at 1440', 'either')
+    } finally {
+      await page.request.delete(`/api/lists/${id}`)
+    }
+  })
+
+  test(`${skin}: an item's ⓘ notes card and a group's bin open beside their buttons too, and a list's own ⋯ menu stays below (D29)`, async ({ page }) => {
+    const id = await openRealList(page, skin, 2400)
+    try {
+      const info = page.locator('.q-item', { hasText: 'Alpha' }).locator('.q-icon-btn.info')
+      await info.click()
+      await checkBeside(page, info, 'the notes card', 'either')
+      await page.keyboard.press('Escape')
+      await expect(page.locator('.q-pop')).toHaveCount(0)
+
+      // A group's bin is at the window's right edge, so at 1440 the popover has no room there and flips to the left, its tail pointing right.
+      await page.setViewportSize({ width: 1440, height: 900 })
+      const bin = page.locator('.q-group .q-group-remove').first()
+      await bin.click()
+      await checkBeside(page, bin, 'the group bin, flipped', 'left')
+      await page.locator('.q-catcher').click({ position: { x: 2, y: 2 } })
+      await expect(page.locator('.q-pop')).toHaveCount(0)
+
+      const more = page.getByRole('button', { name: 'More', exact: true })
+      await more.click()
+      await checkPopover(page, more, 'the list menu, from the list’s header')
+    } finally {
+      await page.request.delete(`/api/lists/${id}`)
+    }
   })
 
   test(`${skin}: the Platform panel joins the Edit window: one 2px divider where their frames meet, side by side from the same top`, async ({ page }) => {

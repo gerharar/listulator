@@ -24,6 +24,8 @@ export interface ConfirmPopoverProps {
   danger?: boolean
   /** The keep button takes focus when the question opens: for a question that is safest answered by doing nothing (the Quit question during a run, H-015). */
   focusKeep?: boolean
+  /** A question from a button in a row (a group's bin): eX-Zed opens it beside the row (D29). */
+  from?: 'row'
 }
 
 /**
@@ -47,9 +49,10 @@ export function ConfirmPopover({
   confirmLabel,
   danger = false,
   focusKeep = false,
+  from,
 }: ConfirmPopoverProps) {
   return (
-    <Popover open={open} anchorEl={anchorEl} onDismiss={onDismiss} width={width}>
+    <Popover open={open} anchorEl={anchorEl} onDismiss={onDismiss} width={width} {...(from ? { from } : {})}>
       <div className="q-pop-head">
         <span className="q-kicker">{kicker}</span>
         {cost !== undefined && (

@@ -1737,7 +1737,7 @@ function ListView({
         />
       )}
       {popover?.kind === 'info' && popoverItem && (
-        <Popover open anchorEl={popover.anchor} onDismiss={() => setPopover(null)} width={320}>
+        <Popover open anchorEl={popover.anchor} onDismiss={() => setPopover(null)} width={320} from="row">
           <ItemInfoCard
             item={popoverItem}
             onEditNote={() => setPopover({ kind: 'edit', itemId: popoverItem.id, anchor: popover.anchor, focusNote: true })}
@@ -1753,6 +1753,7 @@ function ListView({
               anchorEl={groupDelete.anchor}
               onDismiss={() => setGroupDelete(null)}
               width={320}
+              from="row"
               kicker={actions.groupDeleteKicker}
               cost={moreText.itemCount(inside.length)}
               question={actions.groupDeleteQuestion(groupDelete.group.name)}
@@ -1765,7 +1766,7 @@ function ListView({
           )
         })()}
       {popover?.kind === 'platform' && popoverItem && (
-        <Popover open anchorEl={popover.anchor} onDismiss={() => setPopover(null)} width="fit">
+        <Popover open anchorEl={popover.anchor} onDismiss={() => setPopover(null)} width="fit" from="row">
           <PlatformCard
             tags={popoverItem.tags ?? []}
             itemTitle={popoverItem.title}

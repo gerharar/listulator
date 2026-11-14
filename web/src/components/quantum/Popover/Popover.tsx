@@ -41,6 +41,11 @@ export interface PopoverProps {
    * dropdown names its picks), so the popover does not move along with it.
    */
   side?: 'beside' | 'below'
+  /**
+   * Where under eX-Zed it opens (the Popover card, D29): from a button in a row (an item's ✎ and ⓘ, a group's bin) `row` puts it beside the row, as the app opens it, so it never covers the rows
+   * under it; from anywhere else (the header, a list's header, a field) it is below its opener. Quantum places by `side` and does not read this.
+   */
+  from?: 'row'
   /** The dialog's accessible name, when its content does not give one. */
   label?: string
   children: ReactNode
@@ -57,21 +62,22 @@ export interface PopoverProps {
  * concern — this component only re-renders whatever `children` it's given
  * for a stable `open`/`anchorEl`, so the tail never moves between them.
  */
-export function Popover({ open, anchorEl, onDismiss, onEscape, width, side = 'beside', label, children }: PopoverProps) {
+export function Popover({ open, anchorEl, onDismiss, onEscape, width, side = 'beside', from, label, children }: PopoverProps) {
   const id = useId()
   const arrowRef = useRef<HTMLSpanElement>(null)
   // Under eX-Zed the popover's edge is 8px from the opener (the card: the staircase tail's tip then touches it); Quantum's is 12.
   const exzed = useTheme() === 'exzed'
+  const exzedBeside = exzed && from === 'row'
 
   const { refs, floatingStyles, placement, middlewareData, isPositioned } = useFloating({
     open,
-    // eX-Zed (the Popover card and the boards): every popover is below its opener, centred on it (the tail is), and above it when there is no room below.
-    placement: exzed ? 'bottom' : side === 'below' ? 'bottom-start' : 'right-start',
+    // eX-Zed (the Popover card, D29): below its opener, centred on it (the tail is), and above it when there is no room below; from a button in a row, beside it as Quantum does.
+    placement: exzedBeside ? 'right-start' : exzed ? 'bottom' : side === 'below' ? 'bottom-start' : 'right-start',
     elements: { reference: anchorEl },
     middleware: [
       offset(exzed ? 8 : 12),
       flip({
-        fallbackPlacements: exzed ? ['top'] : side === 'below' ? ['top-start'] : ['left-start', 'right-end', 'left-end'],
+        fallbackPlacements: exzedBeside ? ['left-start', 'right-end', 'left-end'] : exzed ? ['top'] : side === 'below' ? ['top-start'] : ['left-start', 'right-end', 'left-end'],
       }),
       shift({ padding: 8 }),
       // Taller than the room left (a short window, a long picker): stop at the screen's edge and
