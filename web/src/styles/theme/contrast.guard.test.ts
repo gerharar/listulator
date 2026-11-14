@@ -131,6 +131,18 @@ describe('the WCAG contrast ratio', () => {
   })
 })
 
+describe('secondary text (design’s D38, the owner’s choice)', () => {
+  it('is told from primary text by 3:1 at least in the five dark skins, and reads on paper at 4.5:1 or more everywhere (3.2:1 and 6.6:1 for the grey)', () => {
+    for (const skin of SKINS) {
+      expect(measured(skin, 'ink2', 'paper'), `${skin}: ink2 on paper`).toBeGreaterThanOrEqual(TEXT)
+      if (skin !== 'exzed-1l') {
+        expect(measured(skin, 'ink2', 'ink'), `${skin}: ink2 against ink`).toBeGreaterThanOrEqual(3)
+        expect(measured(skin, 'ink2', 'paper').toFixed(1), skin).toBe('6.6')
+      }
+    }
+  })
+})
+
 describe('the skins’ colours', () => {
   it('are read: six skins, each with every role a solid #rrggbb', () => {
     expect(SKINS).toEqual(['exzed-1d', 'exzed-1a', 'exzed-1b', 'exzed-1c', 'exzed-1e', 'exzed-1l'])

@@ -65,9 +65,9 @@ describe('eX-Zed’s helper text', () => {
 describe('the italic face', () => {
   const file = join(SRC, 'styles', 'theme', 'fonts', 'ZXSpectrum-Italic.ttf')
 
-  it('is the file design made: 81,644 bytes, sha256 53d68b1e…8825361', () => {
-    expect(statSync(file).size).toBe(81_644)
-    expect(createHash('sha256').update(readFileSync(file)).digest('hex')).toBe('53d68b1e48f533b497c09124901bb2740c79a7e5b7c61c10bfc599bd88825361')
+  it('is the file design made after Code Name: Viper (D39, 2026-11-14): 85,052 bytes, sha256 fe8fca4d…f171be', () => {
+    expect(statSync(file).size).toBe(85_052)
+    expect(createHash('sha256').update(readFileSync(file)).digest('hex')).toBe('fe8fca4d5d0a8d37b39841e1de536196641e31b1cae9514b157916d928f171be')
   })
 
   it('is declared in fonts.css as the italic of the same family, regular weight, beside the regular face', () => {
@@ -78,7 +78,10 @@ describe('the italic face', () => {
     expect(italic).toMatch(/font-weight:\s*400;\s*font-style:\s*italic;/)
   })
 
-  it('is named in NOTICE.md beside the regular face', () => {
-    expect(readFileSync(join(SRC, '..', '..', 'NOTICE.md'), 'utf8')).toContain('web/src/styles/theme/fonts/ZXSpectrum-Italic.ttf')
+  it('is named in NOTICE.md beside the regular face, and said to be drawn after Code Name: Viper, no longer a sheared regular', () => {
+    const notice = readFileSync(join(SRC, '..', '..', 'NOTICE.md'), 'utf8')
+    expect(notice).toContain('web/src/styles/theme/fonts/ZXSpectrum-Italic.ttf')
+    expect(notice).toContain('Code Name: Viper')
+    expect(notice).not.toMatch(/sheared/)
   })
 })

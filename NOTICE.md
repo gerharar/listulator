@@ -49,7 +49,7 @@ or otherwise approved by TMDB.
 
 The eX-Zed theme sets its text in **ZX Spectrum Unicode** (version 001.000, `web/src/styles/theme/fonts/ZXSpectrum.ttf`) by Jorge Ferrer Garcia
 (JFSebastian), released under [The Unlicense](https://unlicense.org) (public domain):
-https://github.com/jfsebastian/zx-spectrum-unicode-font. It is based on the Spectrum True Type font by Darko Stanicic. The italic of the same family (`web/src/styles/theme/fonts/ZXSpectrum-Italic.ttf`) is that font with every glyph sheared in whole pixels,
-made for eX-Zed from the same file, and is covered by the same notice.
+https://github.com/jfsebastian/zx-spectrum-unicode-font. It is based on the Spectrum True Type font by Darko Stanicic. The italic of the same family (`web/src/styles/theme/fonts/ZXSpectrum-Italic.ttf`) was drawn for eX-Zed after the slanted 8x8 face of *Code Name: Viper* (Capcom, 1990), with
+the Russian letters drawn in its style and the regular face slanted the same way for the few glyphs it has not (ß, some punctuation).
 
 The fonts of the default theme, Inter and JetBrains Mono, are listed with their licence texts in `THIRD-PARTY-NOTICES.txt`.

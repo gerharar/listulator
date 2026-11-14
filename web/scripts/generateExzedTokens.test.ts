@@ -214,13 +214,21 @@ describe('the committed exzed-tokens.css', () => {
     for (const [role, values] of roles) expect(values, role).toHaveLength(6)
   })
 
-  it('draws every role from the Spectrum colours or from another role: no hex outside it, no alpha', () => {
+  /** The one colour outside the Spectrum, by the owner's choice (2026-11-14, design's D38): secondary text in the five dark skins, 3.2:1 from `ink` (normal white was 1.4:1, so every text looked the same). */
+  const OUTSIDE = new Map([['--zx-ink2', '#909090']])
+
+  it('draws every role from the Spectrum colours or from another role: no hex outside it (but the dark skins’ secondary grey), no alpha', () => {
     const outside: string[] = []
     for (const [role, values] of roles) {
-      for (const value of values) if (!SPECTRUM.has(value) && !/^var\(--zx-[\w-]+\)$/.test(value)) outside.push(`${role}: ${value}`)
+      for (const value of values) if (!SPECTRUM.has(value) && value !== OUTSIDE.get(role) && !/^var\(--zx-[\w-]+\)$/.test(value)) outside.push(`${role}: ${value}`)
     }
 
     expect(outside).toEqual([])
+  })
+
+  it('has the grey in `ink2` of the five dark skins and nowhere else: Lotus keeps its blue', () => {
+    expect(roles.get('--zx-ink2')).toEqual(['#909090', '#909090', '#909090', '#909090', '#909090', '#0000d7'])
+    for (const [role, values] of roles) if (role !== '--zx-ink2') expect(values, role).not.toContain('#909090')
   })
 
   it('resolves design’s aliases: the title gradient’s middle band is the accent, except on Lotus, where it is bright blue', () => {
