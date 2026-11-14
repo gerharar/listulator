@@ -54,9 +54,6 @@ html.theme-exzed .q-sheet-head > div {
   gap: 8px;
   line-height: 24px;
 }
-html.theme-exzed .q-sheet-title {
-  line-height: 32px;
-}
 html.theme-exzed .q-sheet-explain {
   margin-top: 0;
   font-size: 16px;

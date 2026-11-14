@@ -42,7 +42,7 @@ describe('eX-Zed’s titles', () => {
   })
 
   it('draws a list’s name, the Preview’s title and a sheet’s title at 24px plain `ink`, no gradient', () => {
-    for (const [selector, line] of [['.q-list-title', '24px'], ['.q-preview-title', '32px'], ['.q-sheet-title', '24px']] as const) {
+    for (const [selector, line] of [['.q-list-title', '24px'], ['.q-preview-title', '32px'], ['.q-sheet-title', '32px']] as const) {
       const rule = body(`html.theme-exzed ${selector}`)
       expect(rule, selector).toMatch(/font-size:\s*24px;/)
       expect(rule, selector).toMatch(new RegExp(`line-height:\\s*${line};`))
