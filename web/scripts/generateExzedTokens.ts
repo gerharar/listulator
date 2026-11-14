@@ -70,9 +70,18 @@ export const EXZED_TOKENS_JSON_PATH = fileURLToPath(new URL('../../docs/design/c
 /** Committed: a clone or CI builds from it; where the handoff exists, it is regenerated each build. */
 export const EXZED_OUTPUT_PATH = fileURLToPath(new URL('../src/styles/theme/exzed-tokens.css', import.meta.url))
 
+/** The roles the committed file has and these tokens do not: a `docs/` pulled before design added them (the `hand` role), which would regenerate an older file over the committed one. */
+function rolesLacking(tokens: ExzedTokens, output: string): string[] {
+  if (!existsSync(output)) return []
+  const wanted = new Set(tokens.color.tokens.map((role) => role.name))
+  const committed = new Set([...readFileSync(output, 'utf8').matchAll(new RegExp(`^\\s+${PREFIX}([\\w-]+):`, 'gm'))].map((match) => match[1]!))
+
+  return [...committed].filter((name) => !wanted.has(name))
+}
+
 /**
  * Writes `exzed-tokens.css` from the design tokens when they are there; keeps the committed file when they are not; fails, naming both files, when
- * neither is there.
+ * neither is there; refuses, saying to pull the docs, when the tokens lack a role the committed file has.
  */
 export function writeExzedTokens({
   input = EXZED_TOKENS_JSON_PATH,
@@ -88,6 +97,12 @@ export function writeExzedTokens({
   }
 
   const tokens = JSON.parse(readFileSync(input, 'utf8')) as ExzedTokens
+  const lacking = rolesLacking(tokens, output)
+  if (lacking.length > 0) {
+    throw new Error(
+      `Your local docs/ is behind: ${input} lacks the colour role${lacking.length > 1 ? 's' : ''} ${lacking.join(', ')} that the committed ${output} has, so regenerating would drop ${lacking.length > 1 ? 'them' : 'it'}. Run "git -C docs pull" and try again.`,
+    )
+  }
   mkdirSync(dirname(output), { recursive: true })
   writeFileSync(output, `${generateExzedTokenCss(tokens)}\n`)
   log(`Wrote ${output}`)

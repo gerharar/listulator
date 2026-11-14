@@ -1,0 +1,2 @@
+# The generated eX-Zed colour roles are written with LF by scripts/generateExzedTokens.ts; a checkout must read them the same way, or a Windows clone with autocrlf sees the file changed.
+web/src/styles/theme/exzed-tokens.css text eol=lf

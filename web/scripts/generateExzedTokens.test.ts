@@ -152,12 +152,46 @@ describe('writeExzedTokens', () => {
     expect(logged.join(' ')).toMatch(/kept/i)
   })
 
+  it('refuses to regenerate from design tokens that lack a role the committed CSS has (a stale local docs/), saying to pull, and leaves the CSS as it was', () => {
+    const input = join(dir, 'tokens.json')
+    const output = join(dir, 'exzed-tokens.css')
+    const committed = `${generateExzedTokenCss(fixture())}\n`
+    writeFileSync(output, committed)
+    const stale = fixture()
+    stale.color.tokens = stale.color.tokens.filter((role) => role.name !== 'ok' && role.name !== 'info-line')
+    writeFileSync(input, JSON.stringify(stale))
+
+    expect(() => writeExzedTokens({ input, output, log })).toThrow(/git -C docs pull/)
+    expect(() => writeExzedTokens({ input, output, log })).toThrow(/ok.*info-line|info-line.*ok/)
+    expect(readFileSync(output, 'utf8')).toBe(committed)
+  })
+
+  it('regenerates when the design tokens have every committed role and more (a newer docs/)', () => {
+    const input = join(dir, 'tokens.json')
+    const output = join(dir, 'exzed-tokens.css')
+    writeFileSync(output, `${generateExzedTokenCss(fixture())}\n`)
+    const newer = fixture()
+    newer.color.tokens.push({ name: 'hand', value: '#d7d7d7' })
+    writeFileSync(input, JSON.stringify(newer))
+
+    expect(writeExzedTokens({ input, output, log })).toBe('generated')
+    expect(readFileSync(output, 'utf8')).toBe(`${generateExzedTokenCss(newer)}\n`)
+  })
+
   it('fails, naming both files, when neither is there', () => {
     const input = join(dir, 'absent.json')
     const output = join(dir, 'exzed-tokens.css')
 
     expect(() => writeExzedTokens({ input, output, log })).toThrow(new RegExp(`${input}[\\s\\S]*${output}|${output}[\\s\\S]*${input}`))
     expect(existsSync(output)).toBe(false)
+  })
+})
+
+describe('.gitattributes', () => {
+  it('pins the generated exzed-tokens.css to LF, so a Windows checkout with autocrlf does not see it changed by the next regeneration', () => {
+    const attributes = readFileSync(join(import.meta.dirname, '..', '..', '.gitattributes'), 'utf8')
+
+    expect(attributes.split(/\r?\n/)).toContain('web/src/styles/theme/exzed-tokens.css text eol=lf')
   })
 })
 
