@@ -17,6 +17,7 @@ const BORDER = 3
 const TEXT_PAIRS = [
   ['ink', 'paper'],
   ['ink2', 'paper'],
+  ['ctl', 'paper'],
   ['lab', 'paper'],
   ['hdr-ink', 'hdr'],
   ['hdr-ink2', 'hdr'],

@@ -24,7 +24,7 @@ html.theme-exzed .q-rail-head .q-rail-toggle {
   width: 32px;
   height: 32px;
   border: 0;
-  color: var(--zx-ink2);
+  color: var(--zx-ctl);
   font-size: 0;
 }
 html.theme-exzed .q-rail-head .q-rail-toggle {
@@ -118,7 +118,7 @@ html.theme-exzed .q-rail-fold {
   width: 40px;
   gap: 16px;
   padding: 12px 0;
-  color: var(--zx-ink2);
+  color: var(--zx-ctl);
 }
 html.theme-exzed .q-rail-stub {
   border-right: 2px solid var(--zx-frame);

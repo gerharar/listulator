@@ -4,6 +4,7 @@ html.theme-exzed, html[data-theme="exzed-1d"], html [data-theme="exzed-1d"] {
   --zx-stage: #000000;
   --zx-ink: #ffffff;
   --zx-ink2: #909090;
+  --zx-ctl: #d7d7d7;
   --zx-lab: #00d7d7;
   --zx-hdr: #000000;
   --zx-hdr-ink: #ffffff;
@@ -37,6 +38,7 @@ html[data-theme="exzed-1a"], html [data-theme="exzed-1a"] {
   --zx-stage: #000000;
   --zx-ink: #ffffff;
   --zx-ink2: #909090;
+  --zx-ctl: #d7d7d7;
   --zx-lab: #00d7d7;
   --zx-hdr: #000000;
   --zx-hdr-ink: #ffffff;
@@ -70,6 +72,7 @@ html[data-theme="exzed-1b"], html [data-theme="exzed-1b"] {
   --zx-stage: #000000;
   --zx-ink: #ffffff;
   --zx-ink2: #909090;
+  --zx-ctl: #d7d7d7;
   --zx-lab: #00d7d7;
   --zx-hdr: #000000;
   --zx-hdr-ink: #ffffff;
@@ -103,6 +106,7 @@ html[data-theme="exzed-1c"], html [data-theme="exzed-1c"] {
   --zx-stage: #000000;
   --zx-ink: #ffffff;
   --zx-ink2: #909090;
+  --zx-ctl: #d7d7d7;
   --zx-lab: #00d7d7;
   --zx-hdr: #000000;
   --zx-hdr-ink: #ffffff;
@@ -136,6 +140,7 @@ html[data-theme="exzed-1e"], html [data-theme="exzed-1e"] {
   --zx-stage: #000000;
   --zx-ink: #ffffff;
   --zx-ink2: #909090;
+  --zx-ctl: #d7d7d7;
   --zx-lab: #00d7d7;
   --zx-hdr: #000000;
   --zx-hdr-ink: #ffffff;
@@ -169,6 +174,7 @@ html[data-theme="exzed-1l"], html [data-theme="exzed-1l"] {
   --zx-stage: #d7d7d7;
   --zx-ink: #000000;
   --zx-ink2: #0000d7;
+  --zx-ctl: #0000d7;
   --zx-lab: #0000d7;
   --zx-hdr: #d7d7d7;
   --zx-hdr-ink: #000000;

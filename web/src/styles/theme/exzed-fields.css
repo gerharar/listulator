@@ -148,7 +148,7 @@ html.theme-exzed .q-filter-clear {
   right: 2px;
   bottom: 2px;
   width: 36px;
-  color: var(--zx-ink2);
+  color: var(--zx-ctl);
 }
 html.theme-exzed .q-key button:hover,
 html.theme-exzed .q-filter-clear:hover {
@@ -172,7 +172,7 @@ html.theme-exzed .q-add-plat-value.empty {
 html.theme-exzed .q-platfield-caret,
 html.theme-exzed .q-add-plat-caret,
 html.theme-exzed .q-tagchoice svg {
-  color: var(--zx-ink2);
+  color: var(--zx-ctl);
 }
 
 /* The chevron flips up while the menu is open. */

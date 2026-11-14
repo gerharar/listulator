@@ -73,3 +73,13 @@ html.theme-exzed .q-reel:has(.q-digit.ticking) .q-reel-name > span {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+/*
+ * Controls are not secondary text (design's D47, the owner, 2026-11-15): `ctl`, not `ink2`, at rest. Quantum draws these with `--ink2`, which eX-Zed maps to the grey; Hide Done and Fold All (the toolbar's ghost
+ * buttons) and About's disclosure chevron are the ones no eX-Zed rule had taken yet. Their hover and pressed looks are the rules above and exzed-chips.css, which are more specific.
+ */
+html.theme-exzed .q-hide-done,
+html.theme-exzed .q-fold,
+html.theme-exzed .q-about-chevron {
+  color: var(--zx-ctl);
+}

@@ -65,9 +65,9 @@ function quantumColourTokens(): string[] {
 }
 
 describe('eX-Zed’s colour mapping', () => {
-  it('is read: 32 Quantum colour tokens, 31 roles', () => {
+  it('is read: 32 Quantum colour tokens, 32 roles', () => {
     expect(Object.keys(MAPPING)).toHaveLength(32)
-    expect(roles.size).toBe(31)
+    expect(roles.size).toBe(32)
     expect(mapped.length).toBeGreaterThan(0)
   })
 

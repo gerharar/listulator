@@ -102,6 +102,26 @@ describe('the sweep’s rules', () => {
     expect(sweepDump(dumpOf({ path: '>div::before', style: { content: '""', 'font-size': '14px' } }))).toEqual([])
   })
 
+  describe('a live control is never in the secondary grey (design’s D47: controls are `ctl`, only text and disabled controls are `ink2`)', () => {
+    const GREY = 'rgb(144, 144, 144)'
+    const live = { cursor: 'pointer' }
+    const found = (element: Parameters<typeof dumpOf>[0]) => sweepDump(dumpOf({ rect: BOX, ...element })).map((v) => v.rule)
+
+    it('names a button whose own text is the grey, and an icon or a pseudo-element inside a button that is', () => {
+      expect(found({ path: '>div:0>button.q-chip:1', text: 'Hide Done', style: { ...live, color: GREY } })).toEqual(['control'])
+      expect(found({ path: '>div:0>button.q-icon-btn:1>svg:0', style: { ...live, color: GREY } })).toEqual(['control'])
+      expect(found({ path: '>div:0>button.q-icon-btn.row:1::before', style: { ...live, content: '""', 'background-color': GREY } })).toEqual(['control'])
+    })
+
+    it('lets a control in its own colour pass, a disabled one (not-allowed) in the grey, and text that only informs, even inside a clickable row', () => {
+      expect(found({ path: '>div:0>button.q-chip:1', text: 'Hide Done', style: { ...live, color: 'rgb(215, 215, 215)' } })).toEqual([])
+      expect(found({ path: '>div:0>button.q-chip:1', text: 'Hide Done', style: { cursor: 'not-allowed', color: GREY } })).toEqual([])
+      expect(found({ path: '>div:0>p.q-pop-note:1', text: 'A hint', style: { color: GREY } })).toEqual([])
+      expect(found({ path: '>div:0>a.q-link:1', text: 'Docs', style: { ...live, color: GREY } }), 'a link takes its sentence’s colour').toEqual([])
+      expect(found({ path: '>div:0>button.q-result:1>span.meta:0', text: '2 items', style: { ...live, color: GREY } })).toEqual([])
+    })
+  })
+
   it('reports each as one line by the element’s own class, counted', () => {
     const lines = summarise(sweepDump(dumpOf(...[0, 1, 2].map((n) => ({ path: `>div.q-x:0>span.q-tile-src:${n}`, text: 'x', rect: BOX, style: { 'font-size': '12px' } })))))
     expect(lines).toEqual(['3 x size: span.q-tile-src (font-size 12px)'])

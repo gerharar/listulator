@@ -21,7 +21,7 @@ html.theme-exzed .q-btn {
   padding: 0 16px;
   border: 2px solid transparent;
   background: transparent;
-  color: var(--zx-ink2);
+  color: var(--zx-ctl);
   font-weight: 400;
   font-size: 16px;
   line-height: 16px;
@@ -96,7 +96,7 @@ html.theme-exzed .q-icon-btn:not(.rail) {
   height: 40px;
   border: 2px solid transparent;
   background: var(--zx-cell);
-  color: var(--zx-ink2);
+  color: var(--zx-ctl);
 }
 html.theme-exzed .q-icon-btn.row {
   width: 32px;

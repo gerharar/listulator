@@ -209,8 +209,8 @@ describe('the committed exzed-tokens.css', () => {
   ])
   const roles = customProperties(read('styles/theme/exzed-tokens.css'))
 
-  it('has the thirty-one roles, each with one value in each of the six skins', () => {
-    expect(roles.size).toBe(31)
+  it('has the thirty-two roles, each with one value in each of the six skins', () => {
+    expect(roles.size).toBe(32)
     for (const [role, values] of roles) expect(values, role).toHaveLength(6)
   })
 
@@ -224,6 +224,10 @@ describe('the committed exzed-tokens.css', () => {
     }
 
     expect(outside).toEqual([])
+  })
+
+  it('has `ctl`, the colour of a control at rest (design’s D47): what `ink2` was, normal white in the five dark skins, Lotus’s blue', () => {
+    expect(roles.get('--zx-ctl')).toEqual(['#d7d7d7', '#d7d7d7', '#d7d7d7', '#d7d7d7', '#d7d7d7', '#0000d7'])
   })
 
   it('has the grey in `ink2` of the five dark skins and nowhere else: Lotus keeps its blue', () => {

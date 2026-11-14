@@ -9,12 +9,15 @@ import type { PageDump } from './dump.js'
  *  - **no alpha and no fade:** `opacity` 1 everywhere, no colour (text, background, border, outline, fill, stroke or inside a gradient) with a partial alpha (a fully transparent one is
  *    "no colour", not a blend);
  *  - **type that sits on the pixel grid:** every element that draws text sets it at 16, 24 or 32px, at weight 400, with no letter-spacing, so a glyph's stem is a whole number of device pixels at 100%
- *    and at 200% (the font is an 8px grid: 2px a pixel at 16px). Text that is not drawn (a hidden glyph at 0px, a visually hidden live region) is not looked at.
+ *    and at 200% (the font is an 8px grid: 2px a pixel at 16px). Text that is not drawn (a hidden glyph at 0px, a visually hidden live region) is not looked at;
+ *  - **a live control is never the secondary grey** (design's D47, 2026-11-15): in the dark skins `ink2` is `#909090`, for text that only informs and for disabled controls; a control that reacts to
+ *    the pointer is `ctl`. Read as a button (pointer cursor: a disabled one has `not-allowed`; a link is the colour of its sentence, design's Link card) whose own text, or whose icon or pseudo-element, is that grey. Lotus's `ink2` is its blue, the colour of
+ *    `ctl`, so it cannot be told apart there and is not looked at.
  */
 export interface Violation {
   /** The element, as the identity tool names it. */
   path: string
-  rule: 'radius' | 'shadow' | 'filter' | 'opacity' | 'alpha' | 'size' | 'weight' | 'spacing'
+  rule: 'radius' | 'shadow' | 'filter' | 'opacity' | 'alpha' | 'size' | 'weight' | 'spacing' | 'control'
   detail: string
 }
 
@@ -22,6 +25,22 @@ const RADII = ['border-top-left-radius', 'border-top-right-radius', 'border-bott
 const COLOURS = ['color', 'background-color', 'border-top-color', 'border-right-color', 'border-bottom-color', 'border-left-color', 'outline-color', 'fill', 'stroke'] as const
 const SIZES = new Set(['16px', '24px', '32px'])
 const RING = /^rgb\(\d+, \d+, \d+\) 0px 0px 0px \d+px$/
+const INK2_OF_THE_DARK_SKINS = 'rgb(144, 144, 144)'
+
+/** The tag of a path's segment: `button.q-chip:2` is `button`. */
+const tagOf = (segment: string): string => /^([a-z][a-z0-9-]*)/.exec(segment)?.[1] ?? ''
+
+/** Whether this element is a button's own text, or an icon or pseudo-element drawn inside a control, as its path says (a clickable row's other text is not the control's). */
+function controlPart(path: string, text: string | undefined): boolean {
+  const pseudo = /::\w+$/.test(path)
+  const segments = path.replace(/::\w+$/, '').split('>').filter((segment) => segment !== '')
+  const tags = segments.map(tagOf)
+  const own = tags[tags.length - 1]!
+  if (own === 'button') return text !== undefined || pseudo
+  const inside = tags.slice(0, -1).includes('button')
+
+  return inside && (pseudo || own === 'svg' || own === 'path')
+}
 
 /** Every `rgba(r, g, b, a)` in a value whose alpha is neither 0 (nothing) nor 1 (the colour). */
 function partialAlpha(value: string): string[] {
@@ -49,6 +68,10 @@ export function sweepDump(dump: PageDump): Violation[] {
     const add = (rule: Violation['rule'], detail: string) => found.push({ path: element.path, rule, detail })
 
     for (const corner of RADII) if (get(corner) !== '0px') add('radius', `${corner} ${get(corner)}`)
+
+    if (get('cursor') === 'pointer' && controlPart(element.path, element.text)) {
+      for (const name of ['color', 'background-color'] as const) if (get(name) === INK2_OF_THE_DARK_SKINS) add('control', `${name} ${get(name)}`)
+    }
 
     const shadow = get('box-shadow')
     if (shadow !== 'none' && !shadow.split(/,\s*(?=rgb)/).every((ring) => RING.test(ring.trim()))) add('shadow', `box-shadow ${shadow}`)

@@ -2,13 +2,13 @@ import { expect, test, type APIRequestContext, type Page } from '@playwright/tes
 
 /**
  * eX-Zed's covered-layer tab (Phase 49.4, design's answer 10; BL-166), in both engines: with a list opened over Home and Settings over the list, each
- * covered layer shows a tab that is the skin's `paper`, solid (the covered layer's own heading and kicker do not show through it), its label `ink2`, a
+ * covered layer shows a tab that is the skin's `paper`, solid (the covered layer's own heading and kicker do not show through it), its label `ctl`, a
  * 4px `frame` border and no ring. Read as computed styles and as pixels of a screenshot of the tab's visible strip: the first four rows are the frame, then
  * the inside is one flat paper colour apart from the label. Quantum's tab is not touched (the identity tool). Real writes on the dev server, removed in a `finally`.
  */
 const SKINS = {
-  'exzed-1d': { paper: [0, 0, 0], frame: [215, 215, 0], ink2: 'rgb(144, 144, 144)' },
-  'exzed-1l': { paper: [215, 215, 215], frame: [0, 0, 0], ink2: 'rgb(0, 0, 215)' },
+  'exzed-1d': { paper: [0, 0, 0], frame: [215, 215, 0], ctl: 'rgb(215, 215, 215)' },
+  'exzed-1l': { paper: [215, 215, 215], frame: [0, 0, 0], ctl: 'rgb(0, 0, 215)' },
 } as const
 
 async function makeList(request: APIRequestContext, title: string) {
@@ -67,7 +67,7 @@ for (const [skin, want] of Object.entries(SKINS)) {
       await page.request.delete(`/api/lists/${id}`)
     })
 
-    test('each covered tab is paper, its label ink2, its border 4px frame, with no ring', async ({ page }) => {
+    test('each covered tab is paper, its label ctl, its border 4px frame, with no ring', async ({ page }) => {
       const paper = `rgb(${want.paper.join(', ')})`
       const frame = `rgb(${want.frame.join(', ')})`
 
@@ -80,7 +80,7 @@ for (const [skin, want] of Object.entries(SKINS)) {
 
         expect(style, `tab ${at}`).toEqual({
           background: paper,
-          color: want.ink2,
+          color: want.ctl,
           top: `4px solid ${frame}`,
           right: `4px solid ${frame}`,
           bottom: `4px solid ${frame}`,

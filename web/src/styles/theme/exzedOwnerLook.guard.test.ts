@@ -60,6 +60,12 @@ describe('eX-Zed’s fixes from the owner’s first look', () => {
     expect(css).not.toMatch(/exzed-1[abcde]/)
   })
 
+  it('draws a control at rest in `ctl`, not the secondary grey (design’s D47): Hide Done, Fold All, About’s chevron', () => {
+    expect(body('html.theme-exzed .q-hide-done')).toMatch(/color:\s*var\(--zx-ctl\);/)
+    expect(body('html.theme-exzed .q-fold')).toMatch(/color:\s*var\(--zx-ctl\);/)
+    expect(body('html.theme-exzed .q-about-chevron')).toMatch(/color:\s*var\(--zx-ctl\);/)
+  })
+
   it('gives a tile’s source line the category colour on Lotus alone, and not under the pointer', () => {
     expect(body("html.theme-exzed[data-theme='exzed-1l'] .q-tile:not(:hover) .q-tile-src")).toMatch(/color:\s*var\(--zx-ink\);/)
   })
