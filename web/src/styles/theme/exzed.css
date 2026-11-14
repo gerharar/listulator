@@ -34,6 +34,7 @@ html.theme-exzed {
   --e-pop: 0 0 0 4px var(--zx-paper);
   --e-toast: 0 0 0 4px var(--zx-paper);
   --e-sheet: 0 0 0 4px var(--zx-paper);
+  --e-vb-sel: none;
   --e-layer-rest: 0 0 0 4px var(--zx-paper), 0 0 0 8px var(--zx-frame), 0 0 0 12px var(--zx-paper);
   --e-layer-covered: none;
   --e-tooltip: none;

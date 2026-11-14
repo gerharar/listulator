@@ -1,0 +1,85 @@
+/*
+ * eX-Zed's type, swept (Phase 51, 51.12, X-007; design's X-004): the sizes the family tasks left in Quantum's hands, found by the sweep (`e2e-tools/identity/sweep.ts`, read over every screen of the identity set in
+ * six skins and both engines). The rule is the theme's: every piece of text is 16px, 24px or 32px, at weight 400, with no letter-spacing, so a glyph is the font's own 8px grid at 2px a pixel and its stems are a whole
+ * number of device pixels at 100% and at 200%. Here:
+ *  - the kicker is 16px `lab` capitals on a 16px line wherever it stands (the family tasks that own a place set its own spacing; the label is `lab` since 51.1);
+ *  - prose, hints, notes and counts are 16px on 24px lines in the colour Quantum gave them (the roles map `ink2` and `ink3` to the skin's `ink2`, 49.3);
+ *  - the rest of a row's labels (percentage, count, time left, the filter bar's) lose their weight and keep their size;
+ *  - a tile's name and source, a covered layer's tab label and a tooltip are 16px; a Vault empty state's headline is 24px;
+ *  - `b` and `strong` are not bold under this theme: emphasis is a colour (`ink` against `ink2`), never weight.
+ * No line is set that a family task already set. Quantum is as it was: every rule is under `html.theme-exzed`.
+ */
+html.theme-exzed b,
+html.theme-exzed strong {
+  font-weight: 400;
+}
+
+html.theme-exzed .q-kicker,
+html.theme-exzed .q-vault-label,
+html.theme-exzed .q-platpanel-kicker,
+html.theme-exzed .q-platpanel-section {
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 16px;
+  letter-spacing: 0;
+}
+
+html.theme-exzed .q-home-summary,
+html.theme-exzed .q-list-description,
+html.theme-exzed .q-picker-sub,
+html.theme-exzed .q-vault-line,
+html.theme-exzed .q-vb-sub,
+html.theme-exzed .q-vb-empty-line,
+html.theme-exzed .t-small,
+html.theme-exzed .q-import-footer,
+html.theme-exzed .q-preview-footer,
+html.theme-exzed .q-preview-summary,
+html.theme-exzed .q-filter-note,
+html.theme-exzed .q-platpanel-note,
+html.theme-exzed .q-platpanel-code,
+html.theme-exzed .q-platpanel-name,
+html.theme-exzed .q-platpanel-title,
+html.theme-exzed .q-about-link,
+html.theme-exzed .q-about-sep,
+html.theme-exzed .q-about-credit-link,
+html.theme-exzed .q-about-version-text,
+html.theme-exzed .q-about-stack span,
+html.theme-exzed .q-about-attribution p,
+html.theme-exzed .q-about-credits,
+html.theme-exzed .q-about-credits > span {
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 24px;
+  letter-spacing: 0;
+}
+
+html.theme-exzed .q-sep,
+html.theme-exzed .q-hide-done,
+html.theme-exzed .q-fold .q-steady > span,
+html.theme-exzed .q-platfield-caret,
+html.theme-exzed .q-tooltip {
+  font-size: 16px;
+  font-weight: 400;
+  letter-spacing: 0;
+}
+
+html.theme-exzed .q-pct,
+html.theme-exzed .q-count,
+html.theme-exzed .q-left {
+  font-weight: 400;
+}
+
+html.theme-exzed .q-tile-name b,
+html.theme-exzed .q-tile-src,
+html.theme-exzed .q-layer-tab > span {
+  font-size: 16px;
+  font-weight: 400;
+  letter-spacing: 0;
+}
+
+html.theme-exzed .q-vb-empty-title {
+  font-size: 24px;
+  font-weight: 400;
+  line-height: 32px;
+  letter-spacing: 0;
+}

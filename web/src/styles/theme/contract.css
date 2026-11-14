@@ -14,6 +14,8 @@ html {
   /* Elevation (48.2). The overlays read --e-pop, --e-toast, --e-sheet, --e-layer-rest and --e-layer-covered, which design's tokens already hold with
      Quantum's values (generated into tokens.css); the tooltip's is the one design's file does not have. */
   --e-tooltip: 0 4px 14px rgba(0, 0, 0, 0.2);
+  /* The List Vault's selected category row: a hard 3px stripe in the accent (51.12: the last of the guard's allowances, now a token like the rest). eX-Zed draws the row as inverse video instead. */
+  --e-vb-sel: inset 3px 0 0 var(--accent);
 
   /* Alpha (48.3). --o-disabled (.45) and --o-dragging (.4) are in tokens.css with Quantum's values and the components now read them; these are the
      ones design's file does not have. The soft fade is the .5 of a disabled ends button and of a shelf chip with nothing in it. */

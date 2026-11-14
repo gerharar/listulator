@@ -65,6 +65,8 @@ import './styles/theme/exzed-notices.css'
 import './styles/theme/exzed-motion.css'
 // eX-Zed's helper sheets (51.11, X-007).
 import './styles/theme/exzed-sheets.css'
+// eX-Zed's type, swept: 16, 24 or 32px at weight 400 everywhere (51.12, X-007).
+import './styles/theme/exzed-type.css'
 // eX-Zed's skin art (Phase 50): each skin's pictures under its own `data-theme`, so only the active skin's files are requested.
 import './styles/theme/exzed-art.css'
 import { App } from './App.js'

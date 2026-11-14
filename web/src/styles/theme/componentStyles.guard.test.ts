@@ -24,15 +24,8 @@ interface Allowed {
   why: string
 }
 
-const ALLOWED: readonly Allowed[] = [
-  {
-    file: 'components/quantum/VaultBrowser/VaultBrowser.css',
-    selector: '.q-vb-cat.on',
-    property: 'box-shadow',
-    value: 'inset 3px 0 0 var(--accent)',
-    why: 'A hard-edged inset stripe in a colour token: no blur, no alpha. X-007 draws the selected row as inverse video and removes it.',
-  },
-]
+/** None: the Vault's selected-row stripe, the last entry, is the `--e-vb-sel` token now (51.12), and the tab strip's went with 51.3. A new entry is a new decision, with its reason and the task that takes it. */
+const ALLOWED: readonly Allowed[] = []
 
 const files = stylesheets().filter((path) => !NOT_SWEPT.includes(path) && !QUANTUM_ONLY.includes(path))
 

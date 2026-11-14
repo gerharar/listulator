@@ -76,7 +76,7 @@
 .q-vb-cat.on {
   background: var(--fill);
   font-weight: 600;
-  box-shadow: inset 3px 0 0 var(--accent);
+  box-shadow: var(--e-vb-sel);
 }
 .q-vb-cat.empty {
   color: var(--ink3);
