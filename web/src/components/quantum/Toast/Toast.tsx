@@ -9,7 +9,9 @@ import {
   type ReactNode,
 } from 'react'
 import { Button } from '../Button/Button.js'
+import { useTheme } from '../DocumentTheme/ThemeContext.js'
 import { useLiveRegion } from '../LiveRegion/LiveRegion.js'
+import { Spinner } from '../Spinner/Spinner.js'
 
 export interface ToastOptions {
   text: string
@@ -51,6 +53,7 @@ const ToastReactContext = createContext<ToastContextValue | null>(null)
 export function ToastProvider({ children }: { children: ReactNode }) {
   const [toast, setToast] = useState<ToastOptions | null>(null)
   const { announce } = useLiveRegion()
+  const exzed = useTheme() === 'exzed'
   const timerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
 
   const showToast = useCallback(
@@ -74,6 +77,8 @@ export function ToastProvider({ children }: { children: ReactNode }) {
       {children}
       {toast && (
         <div className="q-toast fixed">
+          {/* eX-Zed draws the waiting message with its spinner (X-002, answer 6). */}
+          {exzed && toast.sticky && <Spinner label={toast.text} decorative />}
           <span>{toast.text}</span>
           {!toast.sticky && toast.actionLabel && toast.onAction && (
             <Button

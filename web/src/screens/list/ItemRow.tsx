@@ -31,6 +31,8 @@ export interface ItemRowProps {
   onRemove: (item: ListItem, anchor: HTMLElement) => void
   /** Just added, moved or restored: wash the row so the eye can find where it went. */
   pulse: boolean
+  /** eX-Zed's flash: the row is lit, as under the pointer, at this step of its pulse. */
+  flash?: boolean
   /** A drag starts here: the handle's own pointer-down (10.23). */
   onHandlePointerDown?: (event: PointerEvent, item: ListItem) => void
   /** This is the row being dragged. */
@@ -105,6 +107,7 @@ function ItemRowView({
   onEdit,
   onRemove,
   pulse,
+  flash = false,
   onHandlePointerDown,
   dragging = false,
   place,
@@ -147,6 +150,7 @@ function ItemRowView({
         .filter(Boolean)
         .join(' ')}
       data-row-id={item.id}
+      data-flash={flash ? '' : undefined}
       data-drag-key={item.id}
       tabIndex={focusable ? 0 : -1}
       onClick={() => onToggle(item)}

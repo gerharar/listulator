@@ -1,0 +1,96 @@
+/*
+ * eX-Zed's spinner, busy list and row pulse (Phase 51, 51.11, X-007; design's Spinner, Sheet and Row cards, X-002 answer 6), drawn on Quantum's own classes. Nothing here fades or eases: the Spectrum
+ * has neither (every animation is `steps(1)` or `steps(8)`), and reduced motion stops what moves.
+ *  - the spinner: eight 2x2-unit cells on a 12-unit ring shown at 24px (so 4px cells; `Spinner` draws the svg under this theme only). A head in `ink`, the two cells behind it in `ink2`, the rest in
+ *    `frame`; the head moves one cell every 100ms, 800ms for the ring, as eight `steps(1)` colour animations, cell `n` starting `n` steps late. Under reduced motion it stands still;
+ *  - a list that runs a whole-list action (`.q-hold.is-busy`, 28.3): not faded (`--o-busy` is 1, 48.4c), its rows are `inert` and the pointer over them is `progress`; the body takes the scrim
+ *    (51.1's 2px checkerboard of `chip-ink`, never solid) after 300ms and loses it at once, so a run that is quicker never shows it;
+ *  - the row pulse (after an add, a move, a restore): the Spectrum's FLASH. `ListScreen` marks the pulsing row `data-flash` while it is lit (320ms on, 320ms off, three times; steady for 2s
+ *    under reduced motion), and `exzed-rows.css` draws a lit row exactly as a hovered one, so Quantum's own pulse animation is off here.
+ * Quantum is as it was: every rule is under `html.theme-exzed`.
+ */
+html.theme-exzed .q-spinner {
+  width: 24px;
+  height: 24px;
+  border: 0;
+  border-radius: 0;
+  animation: none;
+}
+html.theme-exzed .q-spinner svg {
+  display: block;
+  width: 24px;
+  height: 24px;
+}
+/* Still: the head at the top and the two cells behind it (the west and north-west ones). */
+html.theme-exzed .q-spinner rect {
+  fill: var(--zx-frame);
+}
+html.theme-exzed .q-spinner rect:nth-child(1) {
+  fill: var(--zx-ink);
+}
+html.theme-exzed .q-spinner rect:nth-child(7),
+html.theme-exzed .q-spinner rect:nth-child(8) {
+  fill: var(--zx-ink2);
+}
+html.theme-exzed:not([data-reduced]) .q-spinner rect {
+  animation: zx-spinner 800ms steps(1) infinite;
+}
+html.theme-exzed:not([data-reduced]) .q-spinner rect:nth-child(2) {
+  animation-delay: -700ms;
+}
+html.theme-exzed:not([data-reduced]) .q-spinner rect:nth-child(3) {
+  animation-delay: -600ms;
+}
+html.theme-exzed:not([data-reduced]) .q-spinner rect:nth-child(4) {
+  animation-delay: -500ms;
+}
+html.theme-exzed:not([data-reduced]) .q-spinner rect:nth-child(5) {
+  animation-delay: -400ms;
+}
+html.theme-exzed:not([data-reduced]) .q-spinner rect:nth-child(6) {
+  animation-delay: -300ms;
+}
+html.theme-exzed:not([data-reduced]) .q-spinner rect:nth-child(7) {
+  animation-delay: -200ms;
+}
+html.theme-exzed:not([data-reduced]) .q-spinner rect:nth-child(8) {
+  animation-delay: -100ms;
+}
+@keyframes zx-spinner {
+  0% {
+    fill: var(--zx-ink);
+  }
+  12.5% {
+    fill: var(--zx-ink2);
+  }
+  37.5% {
+    fill: var(--zx-frame);
+  }
+}
+
+/* The busy list: the scrim over the body, its delay on the busy state only. */
+html.theme-exzed .q-list-cols.q-hold::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: var(--zx-scrim);
+  visibility: hidden;
+  pointer-events: none;
+}
+html.theme-exzed .q-list-cols.q-hold.is-busy::after {
+  visibility: visible;
+  transition-delay: 300ms;
+}
+/* The held parts are `inert`, so the pointer over them is over the screen that holds them. */
+html.theme-exzed .q-list:has(.q-hold.is-busy) {
+  cursor: progress;
+}
+
+/* The pulse is the flash `exzed-rows.css` draws; Quantum's wash and its inset bar are off. */
+html.theme-exzed .q-item.pulse,
+html.theme-exzed .q-group.pulse {
+  animation: none;
+}

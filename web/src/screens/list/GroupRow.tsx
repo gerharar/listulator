@@ -37,6 +37,8 @@ export interface GroupRowProps {
   place?: string
   /** Just moved or restored. */
   pulse?: boolean
+  /** eX-Zed's flash: the head is lit, as under the pointer, at this step of its pulse. */
+  flash?: boolean
   /** Deletes the group. Offered only while it holds no items (prototype: "🗑 empty"). */
   onDelete?: () => void
   /** A group with items: its trash button asks first (a confirmation anchored to it), owner 2026-09-27. */
@@ -69,6 +71,7 @@ export function GroupRow({
   target = false,
   place,
   pulse = false,
+  flash = false,
   onDelete,
   onDeleteWithItems,
   onRename,
@@ -143,6 +146,7 @@ export function GroupRow({
       role="button"
       aria-expanded={!collapsed}
       data-row-id={block.group.id}
+      data-flash={flash ? '' : undefined}
       data-drag-key={block.group.id}
       tabIndex={focusable ? 0 : -1}
       onClick={() => onToggle(block.group.name)}

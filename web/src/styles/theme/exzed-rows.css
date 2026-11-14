@@ -165,33 +165,54 @@ html.theme-exzed .q-item .q-icon-btn.row.info.lit {
 
 /* Hover: the whole row is the highlight and everything in it `acc-ink`; the button under the pointer is an `acc-ink` block with its icon in `acc`. */
 html.theme-exzed .q-item[data-pointer],
+html.theme-exzed .q-item[data-flash],
 html.theme-exzed .q-item.is-hover,
-html.theme-exzed .q-group[data-pointer] {
+html.theme-exzed .q-group[data-pointer],
+html.theme-exzed .q-group[data-flash] {
   background: var(--zx-hl-bg);
   color: var(--zx-hl-ink);
 }
 html.theme-exzed .q-item[data-pointer] .title,
+html.theme-exzed .q-item[data-flash] .title,
 html.theme-exzed .q-item.is-hover .title,
 html.theme-exzed .q-item.is-done[data-pointer] .title,
+html.theme-exzed .q-item.is-done[data-flash] .title,
 html.theme-exzed .q-item[data-pointer] .q-year,
+html.theme-exzed .q-item[data-flash] .q-year,
 html.theme-exzed .q-item[data-pointer] .q-mins,
+html.theme-exzed .q-item[data-flash] .q-mins,
 html.theme-exzed .q-item[data-pointer] .q-mins.pending,
+html.theme-exzed .q-item[data-flash] .q-mins.pending,
 html.theme-exzed .q-item[data-pointer] .q-handle,
+html.theme-exzed .q-item[data-flash] .q-handle,
 html.theme-exzed .q-item[data-pointer] .q-icon-btn.row,
+html.theme-exzed .q-item[data-flash] .q-icon-btn.row,
 html.theme-exzed .q-item[data-pointer] .q-icon-btn.row.info.lit,
+html.theme-exzed .q-item[data-flash] .q-icon-btn.row.info.lit,
 html.theme-exzed .q-item[data-pointer] .q-tag,
+html.theme-exzed .q-item[data-flash] .q-tag,
 html.theme-exzed .q-item[data-pointer] .q-plat,
+html.theme-exzed .q-item[data-flash] .q-plat,
 html.theme-exzed .q-group[data-pointer] .q-year,
+html.theme-exzed .q-group[data-flash] .q-year,
 html.theme-exzed .q-group[data-pointer] .q-handle,
+html.theme-exzed .q-group[data-flash] .q-handle,
 html.theme-exzed .q-group[data-pointer] .q-icon-btn.row,
+html.theme-exzed .q-group[data-flash] .q-icon-btn.row,
 html.theme-exzed .q-group[data-pointer] .q-left,
+html.theme-exzed .q-group[data-flash] .q-left,
 html.theme-exzed .q-group[data-pointer] .q-count,
+html.theme-exzed .q-group[data-flash] .q-count,
 html.theme-exzed .q-group[data-pointer] .q-pct,
-html.theme-exzed .q-group[data-pointer] .q-sep {
+html.theme-exzed .q-group[data-flash] .q-pct,
+html.theme-exzed .q-group[data-pointer] .q-sep,
+html.theme-exzed .q-group[data-flash] .q-sep {
   color: var(--zx-hl-ink);
 }
 html.theme-exzed .q-item[data-pointer] .q-tag,
-html.theme-exzed .q-item[data-pointer] .q-plat {
+html.theme-exzed .q-item[data-flash] .q-tag,
+html.theme-exzed .q-item[data-pointer] .q-plat,
+html.theme-exzed .q-item[data-flash] .q-plat {
   border-color: var(--zx-hl-ink);
 }
 html.theme-exzed .q-item[data-pointer] .q-icon-btn.row:where(:not(:disabled)):hover,
@@ -232,6 +253,7 @@ html.theme-exzed .q-preview-group[aria-expanded='false'] .q-chev > .q-chev-rule 
   height: 2px;
 }
 html.theme-exzed .q-group[data-pointer] .q-chev > .q-chev-rule,
+html.theme-exzed .q-group[data-flash] .q-chev > .q-chev-rule,
 html.theme-exzed .q-group.is-target .q-chev > .q-chev-rule {
   background: var(--zx-hl-ink);
 }

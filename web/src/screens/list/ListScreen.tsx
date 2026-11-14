@@ -66,6 +66,7 @@ import { ItemRow } from './ItemRow.js'
 import { ByHandMark, CuratedStar } from '../../components/quantum/Marks/Marks.js'
 import { kindColumnChars } from '../../components/quantum/Marks/kindColumn.js'
 import { useTheme } from '../../components/quantum/DocumentTheme/ThemeContext.js'
+import { useReducedMotion } from '../../components/quantum/Motion/MotionContext.js'
 import { listMark } from '../../lib/buckets.js'
 import { JumpRail, JumpRailStub, type RailEntry } from './JumpRail.js'
 import { endForKey, endRow, endScrollTop, wholeListInView, type ListEnd } from './listEnds.js'
@@ -240,6 +241,13 @@ interface ListViewProps {
 
 /** How long a row stays washed after it was added, moved or restored (design: row pulse). */
 const PULSE_MS = 1900
+/**
+ * eX-Zed's pulse is the Spectrum's FLASH (design's Row card): the row takes the hover look three times, 320ms a step, so 1.92s, and is over at 2s; under reduced
+ * motion it is lit steadily for the same 2s.
+ */
+const FLASH_STEP_MS = 320
+const FLASH_PULSE_MS = 2000
+const FLASH_TOGGLES = 5
 
 /** The reader's folds while text is typed (BL-156): none. A single empty map, so that "none" is the same value on every render. */
 const NO_FOLDS: ReadonlyMap<string, boolean> = new Map()
@@ -297,6 +305,10 @@ function ListView({
   const [popover, setPopover] = useState<OpenPopover | null>(null)
   const [groupDelete, setGroupDelete] = useState<{ group: ListGroup; anchor: HTMLElement } | null>(null)
   const [pulseIds, setPulseIds] = useState<ReadonlySet<string>>(new Set())
+  // eX-Zed only: whether the pulsing rows are lit at this moment of their flash.
+  const [flashLit, setFlashLit] = useState(false)
+  const theme = useTheme()
+  const reducedMotion = useReducedMotion()
   // What an explicit check found for this list and nobody has applied or dismissed (persisted).
   const pendingCount = usePendingMap(pending)[listId]?.count ?? 0
   const [checking, setChecking] = useState(false)
@@ -321,11 +333,18 @@ function ListView({
   const busyNow = useRef(false)
   const holdNavigation = useNavigationHold()
   const pulseTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
+  const flashTimers = useRef<ReturnType<typeof setTimeout>[]>([])
   // A row the screen should scroll to once it is in the list (an added or restored one), until its pulse is over.
   const revealId = useRef<string | null>(null)
   const spine = useRef<HTMLDivElement>(null)
 
-  useEffect(() => () => clearTimeout(pulseTimer.current), [])
+  useEffect(
+    () => () => {
+      clearTimeout(pulseTimer.current)
+      flashTimers.current.forEach(clearTimeout)
+    },
+    [],
+  )
 
   const mediaType = mediaTypes.find((entry) => entry.key === loaded.mediaType)
   const mark = listMark(loaded)
@@ -354,14 +373,30 @@ function ListView({
   // U5: the category's tag field, and every tag the list carries (the Platform panel's "In this list").
   const tagEditor = useMemo(() => tagField(mediaType?.facets), [mediaType])
   const listTags = useMemo(() => items.flatMap((entry) => entry.tags ?? []), [items])
-  const pulseRows = useCallback((ids: readonly string[]) => {
-    clearTimeout(pulseTimer.current)
-    setPulseIds(new Set(ids))
-    pulseTimer.current = setTimeout(() => {
-      revealId.current = null
-      setPulseIds(new Set())
-    }, PULSE_MS)
-  }, [])
+  const pulseRows = useCallback(
+    (ids: readonly string[]) => {
+      clearTimeout(pulseTimer.current)
+      flashTimers.current.forEach(clearTimeout)
+      setPulseIds(new Set(ids))
+      const exzed = theme === 'exzed'
+      if (exzed) {
+        setFlashLit(true)
+        // Lit at once, then off, on, off, on, off a step apart; reduced motion keeps it lit.
+        flashTimers.current = reducedMotion
+          ? []
+          : Array.from({ length: FLASH_TOGGLES }, (_, n) => setTimeout(() => setFlashLit(n % 2 === 1), (n + 1) * FLASH_STEP_MS))
+      }
+      pulseTimer.current = setTimeout(
+        () => {
+          revealId.current = null
+          setPulseIds(new Set())
+          setFlashLit(false)
+        },
+        exzed ? FLASH_PULSE_MS : PULSE_MS,
+      )
+    },
+    [theme, reducedMotion],
+  )
   const pulse = (itemId: string) => pulseRows([itemId])
   // An added or restored row is also scrolled to if it is not in view (25.4); a row that was only edited or renamed is where the reader is.
   const reveal = (itemId: string) => {
@@ -1405,7 +1440,6 @@ function ListView({
   )
 
   // Under eX-Zed the kind tags are as wide as the longest in the list (design's Tag card); Quantum draws them at a fixed 58px and is not asked.
-  const theme = useTheme()
   const kindChars = useMemo(() => (theme === 'exzed' ? kindColumnChars(items, mediaType?.facets) : undefined), [theme, items, mediaType])
 
   const itemRow = (entry: ListItem, grouped: boolean) => (
@@ -1418,6 +1452,7 @@ function ListView({
       noteMatch={noteOnlyMatch(entry, filter.text)}
       minutesWidth={minutesWidth}
       pulse={pulseIds.has(entry.id)}
+      flash={flashLit && pulseIds.has(entry.id)}
       onHandlePointerDown={onRowHandle}
       dragging={moves.dragKey === entry.id}
       place={places && places.itemAt.has(entry.id) ? text.place.item(places.itemAt.get(entry.id)!, places.itemAt.size) : undefined}
@@ -1616,6 +1651,7 @@ function ListView({
                         : null
                     }
                     pulse={pulseIds.has(unit.group.id)}
+                    flash={flashLit && pulseIds.has(unit.group.id)}
                   />
                   {rows}
                   {/* An open group's "after" line is at its bottom edge, under its last row (H-009); a shut or empty group's is under its header. */}
