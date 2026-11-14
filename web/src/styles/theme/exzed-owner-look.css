@@ -1,0 +1,49 @@
+/*
+ * What the owner found at his first look at eX-Zed (Phase 51.13, docs/tasks/owner-look-51-findings.md), drawn on Quantum's own classes: no call site changes. Quantum draws a hover as `--hover`, which eX-Zed
+ * maps to the paper, so a control that eX-Zed has not drawn itself has no hover at all; the rules here give those the hover of the family they belong to.
+ *  - the skin button's caret follows the button (Quantum fixed it to `ink3`, so it was grey on the yellow of a lit button);
+ *  - Hide Done and Fold All are chips: hover is the dim block (`acc-dim`), picked (Hide Done, pressed) the `acc` block, as in exzed-chips.css;
+ *  - the I'm Tired Boss list options and the Choose Your Fighter example cards take the highlight (`acc` block, `acc-ink`) under the pointer, as a menu row does;
+ *  - Lotus' accent is black, the colour of its frame, so a focused field showed no change: its border turns the primary's blue (`pri-hv-line`), which Lotus already uses for its secondary text;
+ *  - Lotus' secondary text is blue (art colour), so a tile's source line, which is secondary in the other skins, took the blue: it is the category's `ink` there, as the name beside it is.
+ * Quantum is as it was: every rule is under `html.theme-exzed`.
+ */
+html.theme-exzed .q-skin-caret {
+  color: inherit;
+}
+
+html.theme-exzed .q-hide-done:where(:not(:disabled)):hover,
+html.theme-exzed .q-fold:where(:not(:disabled)):hover {
+  background: var(--zx-dim-bg);
+  border-color: var(--zx-dim-bg);
+  color: var(--zx-dim-ink);
+}
+html.theme-exzed .q-hide-done[aria-pressed='true'],
+html.theme-exzed .q-hide-done[aria-pressed='true']:where(:not(:disabled)):hover {
+  background: var(--zx-hl-bg);
+  border-color: var(--zx-hl-bg);
+  color: var(--zx-hl-ink);
+}
+
+html.theme-exzed .q-tired-picker .option:where(:not(:disabled)):hover,
+html.theme-exzed .q-vault-card:where(:not(:disabled)):hover {
+  background: var(--zx-hl-bg);
+  border-color: var(--zx-hl-bg);
+  color: var(--zx-hl-ink);
+}
+html.theme-exzed .q-vault-card:where(:not(:disabled)):hover .q-vault-meta {
+  color: var(--zx-hl-ink);
+}
+
+html.theme-exzed[data-theme='exzed-1l'] .q-input:focus,
+html.theme-exzed[data-theme='exzed-1l'] .q-input:focus-visible,
+html.theme-exzed[data-theme='exzed-1l'] .q-filter-input:focus,
+html.theme-exzed[data-theme='exzed-1l'] .q-filter-input:focus-visible,
+html.theme-exzed[data-theme='exzed-1l'] .q-input.open,
+html.theme-exzed[data-theme='exzed-1l'] .q-input[aria-expanded='true'] {
+  border-color: var(--zx-pri-hv-line);
+}
+
+html.theme-exzed[data-theme='exzed-1l'] .q-tile:not(:hover) .q-tile-src {
+  color: var(--zx-ink);
+}

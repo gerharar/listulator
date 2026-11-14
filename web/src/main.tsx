@@ -69,6 +69,8 @@ import './styles/theme/exzed-sheets.css'
 import './styles/theme/exzed-type.css'
 // eX-Zed's skin art (Phase 50): each skin's pictures under its own `data-theme`, so only the active skin's files are requested.
 import './styles/theme/exzed-art.css'
+// What the owner found at his first look (51.13, X-007): hovers eX-Zed had not drawn, a caret, Lotus' focus and a source line.
+import './styles/theme/exzed-owner-look.css'
 import { App } from './App.js'
 import { startLocalRuntimeFill, startLocalSourceCopySchedule } from './lib/api.local.js'
 import { installContextMenuGuard } from './lib/contextMenu.js'
