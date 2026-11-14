@@ -7,7 +7,7 @@ import { expect, test, type APIRequestContext, type Page } from '@playwright/tes
  * the inside is one flat paper colour apart from the label. Quantum's tab is not touched (the identity tool). Real writes on the dev server, removed in a `finally`.
  */
 const SKINS = {
-  'exzed-1d': { paper: [0, 0, 0], frame: [215, 215, 0], ink2: 'rgb(215, 215, 215)' },
+  'exzed-1d': { paper: [0, 0, 0], frame: [215, 215, 0], ink2: 'rgb(144, 144, 144)' },
   'exzed-1l': { paper: [215, 215, 215], frame: [0, 0, 0], ink2: 'rgb(0, 0, 215)' },
 } as const
 
