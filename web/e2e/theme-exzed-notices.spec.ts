@@ -194,6 +194,8 @@ for (const skin of SKINS) {
         'padding-right': '2px',
         gap: '16px',
       })
+      // On Home the board sets it 24px in from the window and 8px under the rule above it.
+      expect(await style(banner, ['margin-top', 'margin-left', 'margin-right', 'margin-bottom'])).toEqual({ 'margin-top': '8px', 'margin-left': '24px', 'margin-right': '24px', 'margin-bottom': '0px' })
       expect(await style(banner.locator('b'), ['color', 'font-weight', 'font-size'])).toEqual({ color: css(r.ink), 'font-weight': '400', 'font-size': '16px' })
       const buttons = banner.locator('.q-btn')
       await expect(buttons).toHaveCount(2)

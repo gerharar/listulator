@@ -1,0 +1,229 @@
+/*
+ * eX-Zed's helper sheets (Phase 51, 51.11, X-007; design's Sheet card and the Home-Helpers board), drawn on Quantum's own classes. A sheet hangs under the NEED HELP? row, 24px in from the window, 800px
+ * wide (the window's width less 24px each side when it is narrower), 16px under the row's rule, in the single frame: a 2px `frame-hi` border and the 4px `paper` ring (`--e-sheet`, 49.5). The lists under the row
+ * are behind the scrim: the anchor's `::before` is 51.1's 2px checkerboard of `chip-ink`, never solid, from the row's rule down the room the sheet has (`--help-room`, which Home measures; 420px until it has).
+ *  - the head: 16px of padding (24px on the left), the 24px title on 32px lines in `ink` and the explanation in `ink2` 8px under it, the close button 40px with the card's pixel ✕ in place of the ✕ glyph,
+ *    all over a 2px `frame` rule; the wash plate is Quantum's and is not rendered under this theme;
+ *  - the bar under the head (I'm Tired, Boss): 12px and 24px of padding, a 2px `frame` rule, no fill, the lead in `ink2` and the list button a 40px `frame` box with the caret;
+ *  - the body: 16px 24px 24px, 8px between its parts on 24px lines; a pick is the kicker in `lab`, the item at 24px, its line in `ink`, the why in `ink2`, then the actions 16px under it (the primary and a
+ *    bracketed secondary 8px apart); the box Quantum draws round a pick is not drawn;
+ *  - Hold My Beer: the shelf chips are the board's 32px (`ink` for a shelf with lists, 51.3's D10) and the six dials are 40x56 boxes in 32px type, a `frame` border, `ink2`; the last three, once it has settled,
+ *    are the `acc` block. The dials do not shake (no animation).
+ * The Home banner and the help row's rule hang over the same area, drawn from the board here too. Quantum is as it was: every rule is under `html.theme-exzed`.
+ */
+html.theme-exzed .q-help-row {
+  margin: 0 24px;
+  padding: 8px 0;
+  border-bottom: 2px solid var(--zx-frame);
+}
+html.theme-exzed .q-home > .q-banner {
+  margin: 8px 24px 0;
+}
+
+html.theme-exzed .q-help-anchor {
+  --help-room: 420px;
+}
+html.theme-exzed .q-help-anchor::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: var(--help-room);
+  background: var(--zx-scrim);
+}
+html.theme-exzed .q-help-anchor .q-sheet {
+  top: 16px;
+  left: 24px;
+  right: auto;
+  width: 800px;
+  max-width: calc(100% - 48px);
+  border: 2px solid var(--zx-frame-hi);
+  background: var(--zx-paper);
+  color: var(--zx-ink);
+}
+
+html.theme-exzed .q-sheet-head {
+  gap: 16px;
+  padding: 16px 16px 16px 24px;
+  border-bottom: 2px solid var(--zx-frame);
+}
+html.theme-exzed .q-sheet-head > div {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  line-height: 24px;
+}
+html.theme-exzed .q-sheet-title {
+  line-height: 32px;
+}
+html.theme-exzed .q-sheet-explain {
+  margin-top: 0;
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 24px;
+  letter-spacing: 0;
+  color: var(--zx-ink2);
+}
+html.theme-exzed .q-sheet-head .q-icon-btn {
+  place-content: center;
+  font-size: 0;
+}
+html.theme-exzed .q-sheet-head .q-icon-btn::before {
+  content: '';
+  display: block;
+  width: 16px;
+  height: 16px;
+  background: currentColor;
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8' shape-rendering='crispEdges'%3E%3Cpath d='M0 0h2v1H0zM6 0h2v1H6zM1 1h2v1H1zM5 1h2v1H5zM2 2h4v1H2zM3 3h2v2H3zM2 5h4v1H2zM1 6h2v1H1zM5 6h2v1H5zM0 7h2v1H0zM6 7h2v1H6z'/%3E%3C/svg%3E") 0 0 / 100% 100% no-repeat;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8' shape-rendering='crispEdges'%3E%3Cpath d='M0 0h2v1H0zM6 0h2v1H6zM1 1h2v1H1zM5 1h2v1H5zM2 2h4v1H2zM3 3h2v2H3zM2 5h4v1H2zM1 6h2v1H1zM5 6h2v1H5zM0 7h2v1H0zM6 7h2v1H6z'/%3E%3C/svg%3E") 0 0 / 100% 100% no-repeat;
+}
+
+html.theme-exzed .q-sheet-bar {
+  gap: 8px;
+  padding: 12px 24px;
+  border-bottom: 2px solid var(--zx-frame);
+  background: transparent;
+  font-size: 16px;
+  line-height: 24px;
+}
+html.theme-exzed .q-tired-lead {
+  color: var(--zx-ink2);
+}
+html.theme-exzed .q-tired-target {
+  gap: 8px;
+  height: 40px;
+  padding: 0 8px;
+  border: 2px solid var(--zx-frame);
+  background: transparent;
+  color: var(--zx-ink);
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 16px;
+}
+html.theme-exzed .q-tired-target:where(:not(:disabled)):hover {
+  background: var(--zx-hl-bg);
+  border-color: var(--zx-hl-bg);
+  color: var(--zx-hl-ink);
+}
+html.theme-exzed .q-tired-target svg {
+  color: inherit;
+}
+
+html.theme-exzed .q-sheet-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px 24px 24px;
+  line-height: 24px;
+}
+html.theme-exzed .q-pick {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 0;
+  border: 0;
+}
+html.theme-exzed .q-pick .q-kicker,
+html.theme-exzed .q-sheet-body > .q-kicker {
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 24px;
+  letter-spacing: 0;
+}
+html.theme-exzed .q-pick-item {
+  margin-top: 0;
+  font-size: 24px;
+  font-weight: 400;
+  line-height: 32px;
+  letter-spacing: 0;
+  color: var(--zx-ink);
+}
+html.theme-exzed .q-pick-list {
+  margin-top: 0;
+  font-size: 16px;
+  line-height: 24px;
+  color: var(--zx-ink);
+}
+html.theme-exzed .q-pick-why {
+  margin-top: 0;
+  font-size: 16px;
+  line-height: 24px;
+  color: var(--zx-ink2);
+}
+html.theme-exzed .q-pick-actions {
+  gap: 8px;
+  margin-top: 8px;
+}
+html.theme-exzed .q-helper-note,
+html.theme-exzed .q-helper-progress {
+  font-size: 16px;
+  line-height: 24px;
+  color: var(--zx-ink2);
+}
+html.theme-exzed .q-helper-progress {
+  gap: 8px;
+}
+
+html.theme-exzed .q-shelves {
+  gap: 8px;
+  margin: 0;
+}
+html.theme-exzed .q-shelves .q-chip {
+  height: 32px;
+  padding: 0 8px;
+}
+html.theme-exzed .q-reel {
+  margin-top: 8px;
+  padding: 0;
+  border: 0;
+}
+html.theme-exzed .q-reel-head {
+  gap: 24px;
+  margin-top: 8px;
+}
+html.theme-exzed .q-dials {
+  gap: 4px;
+}
+html.theme-exzed .q-digit {
+  width: 40px;
+  height: 56px;
+  border: 2px solid var(--zx-frame);
+  background: transparent;
+  color: var(--zx-ink2);
+  font-size: 32px;
+  font-weight: 400;
+  line-height: 32px;
+}
+html.theme-exzed .q-digit.on {
+  border-color: var(--zx-acc);
+  background: var(--zx-acc);
+  color: var(--zx-acc-ink);
+}
+html.theme-exzed .q-digit.ticking {
+  animation: none;
+}
+html.theme-exzed .q-reel-result {
+  gap: 8px;
+  margin-top: 8px;
+  min-height: 0;
+}
+html.theme-exzed .q-reel-name {
+  gap: 8px;
+  font-size: 24px;
+  font-weight: 400;
+  line-height: 32px;
+  letter-spacing: 0;
+  color: var(--zx-ink);
+}
+html.theme-exzed .q-reel-meta,
+html.theme-exzed .q-reel-desc {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 24px;
+  color: var(--zx-ink2);
+}
+html.theme-exzed .q-reel .q-pick-actions {
+  margin-top: 8px;
+}
