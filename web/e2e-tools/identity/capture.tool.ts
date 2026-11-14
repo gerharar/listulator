@@ -1,7 +1,8 @@
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { expect, test, type Page } from '@playwright/test'
 import { diffDumps } from './diff.js'
+import { summarise, sweepDump } from './sweep.js'
 import { dumpPage, type PageDump } from './dump.js'
 import { SEED, STATES, ownedIds, type IdentityState } from './states.js'
 import { THEMES } from './themes.js'
@@ -9,7 +10,8 @@ import { THEMES } from './themes.js'
 /**
  * One test per (theme, skin, state) in each engine. `IDENTITY_MODE=capture` writes the screenshot and the dump of the page under
  * baselines/<IDENTITY_BASELINE>/<theme>/<skin>/<engine>/; `compare` takes the same capture afresh and fails on every difference from the
- * baseline of that name. `IDENTITY_THEME` limits it to one theme (default: every theme in themes.ts), `IDENTITY_STATE` to one state.
+ * baseline of that name. `IDENTITY_THEME` limits it to one theme (default: every theme in themes.ts), `IDENTITY_STATE` to one state. `sweep` (51.12) takes no baseline: it reads
+ * each page's dump against eX-Zed's rules (`sweep.ts`: no radius, no shadow but the rings, no alpha, type on the pixel grid) and fails on any violation.
  */
 const mode = process.env['IDENTITY_MODE']
 const label = process.env['IDENTITY_BASELINE']
@@ -17,8 +19,8 @@ const only = process.env['IDENTITY_THEME']
 const onlyState = process.env['IDENTITY_STATE']
 const root = new URL('../baselines/', import.meta.url).pathname
 
-if (mode !== 'capture' && mode !== 'compare') throw new Error('Set IDENTITY_MODE to capture or compare.')
-if (label === undefined || !/^[\w.-]+$/.test(label)) throw new Error('Set IDENTITY_BASELINE to a name for this capture, e.g. the commit it was taken at.')
+if (mode !== 'capture' && mode !== 'compare' && mode !== 'sweep') throw new Error('Set IDENTITY_MODE to capture, compare or sweep.')
+if (mode !== 'sweep' && (label === undefined || !/^[\w.-]+$/.test(label))) throw new Error('Set IDENTITY_BASELINE to a name for this capture, e.g. the commit it was taken at.')
 
 const seeded = new Set<string>(Object.values(SEED))
 
@@ -155,6 +157,15 @@ for (const [themeName, theme] of themes) {
           await settle(page)
           const picture = await page.screenshot({ caret: 'hide', animations: 'allow' })
           const dump = await dumpPage(page)
+
+          if (mode === 'sweep') {
+            const violations = sweepDump(dump)
+            const report = summarise(violations)
+            // A full list for reading across skins and engines: `IDENTITY_SWEEP_OUT=<file>` gets one JSON line per state.
+            if (process.env['IDENTITY_SWEEP_OUT'] !== undefined) appendFileSync(process.env['IDENTITY_SWEEP_OUT'], `${JSON.stringify({ skin, engine: browserName, state: state.id, report, found: violations.map((v) => [v.rule, v.detail, v.path]) })}\n`)
+            expect(report.length === 0 ? 'clean' : `${violations.length} violations\n${report.slice(0, 25).join('\n')}${report.length > 25 ? '\n…' : ''}`).toBe('clean')
+            return
+          }
 
           const place = (base: string) => join(root, base, themeName, skin, browserName)
           const files = (base: string) => ({ png: join(place(base), `${state.id}.png`), json: join(place(base), `${state.id}.json`) })
