@@ -81,8 +81,9 @@ describe('the built service worker holds the art rule and no picture (dist/sw.js
 })
 
 /**
- * A size guard for the art folder: no single picture over 256 KiB. The two stone walls (185 and 218 KB, one-bit, drawn 1:1) are the largest and fit; a bigger one is a decision,
- * not an accident. The limit is **my proposal** (2026-11-11), for the owner to name or change; a lossless, pixel-identical recompress is his call and is never done silently.
+ * A size guard for the art folder: no single picture over 256 KiB. The two stone walls (about 187 and 181 KiB, one-bit, drawn 1:1) are the largest and fit; a bigger one is a decision,
+ * not an accident. The art is fetched and cached the first time a skin is used, not precached, so a picture's size is what a skin's first use costs. **The limit is the owner's:** proposed
+ * 2026-11-11, kept by him 2026-11-14 ("it's ok to keep this limit"); a lossless, pixel-identical recompress is his call and is never done silently.
  */
 const ART_LIMIT_BYTES = 256 * 1024
 
