@@ -10,7 +10,7 @@ The product ships as a **desktop app** (Windows x64, macOS Apple silicon) that k
 
 | | |
 |---|---|
-| Version | `1.2.1` (written once in the root `package.json` and set everywhere by `npm run release:prepare`, which calls `version:set`; the file list is in `server/src/tools/versionSources.ts`) |
+| Version | Written once in the root `package.json` and set everywhere by `npm run release:prepare`, which calls `version:set`; the file list is in `server/src/tools/versionSources.ts`. This file carries no number, so it cannot go stale |
 | Supported | **The desktop app only**: Windows x64 (NSIS installer, per-user install) and macOS 11+ on Apple silicon (`.dmg`, ad-hoc sealed), installed from the Releases page. Everything else is [unsupported](#supported-and-unsupported) |
 | Code signing | None at the OS level (Windows unsigned, macOS ad-hoc). Updates are signed with a separate key, see [Updates](#updates-desktop-app) |
 | Languages in the UI | English, German, Russian (`web/src/locale/`) |
