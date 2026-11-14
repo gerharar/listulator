@@ -232,6 +232,8 @@ for (const skin of SKINS) {
     await page.locator('.q-home-row').first().click()
     await page.locator('.q-item').first().waitFor()
     expect(await drawn(page.locator('.q-check-btn'), 'the list’s refresh')).toBe('refresh')
+    expect(await drawn(page.getByRole('button', { name: 'More', exact: true }), 'the list’s more')).toBe('more')
+    expect(await drawn(page.getByRole('button', { name: 'Close', exact: true }), 'the list’s close')).toBe('close')
   })
 }
 

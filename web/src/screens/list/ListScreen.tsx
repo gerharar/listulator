@@ -1531,10 +1531,10 @@ function ListView({
               </IconButton>
             )}
             <IconButton size="list" label={text.more} aria-expanded={more !== null} {...(busy ? { title: copy.quantum.hold.wait[busyKind] } : {})} disabled={busy} onClick={(event) => setMore({ anchor: event.currentTarget, mode: 'menu' })}>
-              <EllipsisVertical width={17} height={17} strokeWidth={1.9} aria-hidden="true" />
+              <ThemedIcon name="more" fallback={<EllipsisVertical width={17} height={17} strokeWidth={1.9} aria-hidden="true" />} />
             </IconButton>
             <IconButton size="list" label={text.close} {...(busy ? { title: copy.quantum.hold.wait[busyKind] } : {})} disabled={busy} onClick={() => onClose?.()}>
-              <X width={16} height={16} strokeWidth={1.9} aria-hidden="true" />
+              <ThemedIcon name="close" fallback={<X width={16} height={16} strokeWidth={1.9} aria-hidden="true" />} />
             </IconButton>
           </div>
         </div>
