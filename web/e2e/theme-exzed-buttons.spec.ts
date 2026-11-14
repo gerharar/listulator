@@ -78,17 +78,17 @@ test.describe('the roles', () => {
       expect(await style(T(page, 'danger'), ['background-color', 'color'])).toMatchObject({ 'background-color': rgb(hv!), color: rgb(hvInk!) })
     })
 
-    test(`${skin}: the bracketed secondary (default, quiet, ghost) is \`[Label]\` with no border in \`ink2\`, hover is the highlight, and the name is the label`, async ({ page }) => {
+    test(`${skin}: the bracketed secondary (default, quiet, ghost) is \`[Label]\` with no border in \`ctl\`, hover is the highlight, and the name is the label`, async ({ page }) => {
       await boot(page, { skin })
       await inject(page, ['', ' quiet', ' ghost'].map((kind, n) => `<button class="q-btn${kind}" data-t="b${n}">Cancel</button>`).join(''))
-      const [acc, accInk, ink2] = await Promise.all(['--zx-acc', '--zx-acc-ink', '--zx-ink2'].map((n) => token(page, n)))
+      const [acc, accInk, ctl] = await Promise.all(['--zx-acc', '--zx-acc-ink', '--zx-ctl'].map((n) => token(page, n)))
       for (let n = 0; n < 3; n++) {
         const button = T(page, `b${n}`)
         expect(await style(button, ['background-color', 'border-top-color', 'border-top-width', 'color', 'height', 'padding-left', 'font-size'])).toMatchObject({
           'background-color': 'rgba(0, 0, 0, 0)',
           'border-top-color': 'rgba(0, 0, 0, 0)',
           'border-top-width': '2px',
-          color: rgb(ink2!),
+          color: rgb(ctl!),
           height: '40px',
           'padding-left': '16px',
           'font-size': '16px',
@@ -107,12 +107,12 @@ test.describe('the roles', () => {
     test(`${skin}: the "[" cell starts 18px in (16px of padding and the 2px border), and no ink is nearer the edge`, async ({ page }) => {
       await boot(page, { skin })
       await inject(page, '<button class="q-btn quiet" data-t="b" style="width:160px">Cancel</button>')
-      const ink2 = rgbArray(await token(page, '--zx-ink2'))
+      const ctl = rgbArray(await token(page, '--zx-ctl'))
       const paper = rgbArray(await token(page, '--zx-paper'))
       const px = await pixels(page, T(page, 'b'))
       let first = Infinity
       for (let x = 0; x < px.width; x++) {
-        for (let y = 0; y < px.height; y++) if (same(px.at(x, y), ink2)) first = Math.min(first, x)
+        for (let y = 0; y < px.height; y++) if (same(px.at(x, y), ctl)) first = Math.min(first, x)
       }
       expect(first, 'the first ink column of the label').toBeGreaterThanOrEqual(18)
       expect(first, '... and inside the first glyph cell (the bar is drawn in its right half), not a stray').toBeLessThan(34)
@@ -212,17 +212,17 @@ test.describe('disabled, busy and lit', () => {
 
 test.describe('icon buttons', () => {
   for (const skin of SKINS) {
-    test(`${skin}: 40x40, 48x40 in the header, 32x32 borderless in a row; \`ink2\` at rest, the highlight on hover`, async ({ page }) => {
+    test(`${skin}: 40x40, 48x40 in the header, 32x32 borderless in a row; \`ctl\` at rest, the highlight on hover`, async ({ page }) => {
       await boot(page, { skin })
       await inject(
         page,
         ['', ' sq', ' list', ' rail', ' row'].map((kind, n) => `<button class="q-icon-btn${kind}" data-t="i${n}" aria-label="x${n}"><svg width="16" height="16"><rect width="8" height="8"/></svg></button>`).join(''),
       )
-      const [acc, accInk, ink2] = await Promise.all(['--zx-acc', '--zx-acc-ink', '--zx-ink2'].map((n) => token(page, n)))
+      const [acc, accInk, ctl] = await Promise.all(['--zx-acc', '--zx-acc-ink', '--zx-ctl'].map((n) => token(page, n)))
       for (const [n, size] of [[0, [40, 40]], [1, [40, 40]], [2, [40, 40]], [4, [32, 32]]] as const) {
         const box = (await T(page, `i${n}`).boundingBox())!
         expect([box.width, box.height], `icon button ${n}`).toEqual(size)
-        expect((await style(T(page, `i${n}`), ['color'])).color, `icon button ${n}: ink2`).toBe(rgb(ink2!))
+        expect((await style(T(page, `i${n}`), ['color'])).color, `icon button ${n}: ctl`).toBe(rgb(ctl!))
         await T(page, `i${n}`).hover()
         expect(await style(T(page, `i${n}`), ['background-color', 'color']), `icon button ${n}: hover`).toMatchObject({ 'background-color': rgb(acc!), color: rgb(accInk!) })
         await page.mouse.move(0, 0)

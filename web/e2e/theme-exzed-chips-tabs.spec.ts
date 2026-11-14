@@ -3,7 +3,7 @@ import { q } from './fixtures.js'
 
 /**
  * eX-Zed's toggle chips, tabs and facet toggles (51.3, X-007; design's ToggleChip and Tabs cards), on the real screens, in both engines and all six skins: **a chip is a 40px box with a 2px
- * `frame` border, `ink2` at rest; hover (unpicked) is the `acc-dim` block with `acc-ink`; picked is the `acc` block with `acc-ink`; chips wrap with 8px gaps** (the joined segmented bar is
+ * `frame` border, `ctl` at rest; hover (unpicked) is the `acc-dim` block with `acc-ink`; picked is the `acc` block with `acc-ink`; chips wrap with 8px gaps** (the joined segmented bar is
  * retired: the filter popover's options are chips like the rest). Read on Settings (Theme, Skin, Interface language), the Create layer's status chips, and the Games filter popover; **a tab
  * is the same 40px box without its bottom border, 8px apart, the active one the `acc` block, hover on an inactive one `acc-dim`, no hover underline**.
  */
@@ -28,10 +28,10 @@ const style = (locator: Locator, props: string[]) => locator.evaluate((element, 
 const SIDES = ['border-top-width', 'border-right-width', 'border-bottom-width', 'border-left-width', 'border-top-color', 'border-right-color', 'border-bottom-color', 'border-left-color']
 
 async function roles(page: Page) {
-  const [frame, ink2, acc, accDim, accInk] = await Promise.all(['--zx-frame', '--zx-ink2', '--zx-acc', '--zx-acc-dim', '--zx-acc-ink'].map((n) => token(page, n)))
+  const [frame, ctl, acc, accDim, accInk] = await Promise.all(['--zx-frame', '--zx-ctl', '--zx-acc', '--zx-acc-dim', '--zx-acc-ink'].map((n) => token(page, n)))
   const clear = 'rgba(0, 0, 0, 0)'
 
-  return { frame: rgb(frame!), ink2: rgb(ink2!), acc: rgb(acc!), accDim: rgb(accDim!), accInk: rgb(accInk!), clear }
+  return { frame: rgb(frame!), ctl: rgb(ctl!), acc: rgb(acc!), accDim: rgb(accDim!), accInk: rgb(accInk!), clear }
 }
 
 type Roles = Awaited<ReturnType<typeof roles>>
@@ -45,7 +45,7 @@ async function readChips(page: Page, unpicked: Locator, picked: Locator, r: Role
   for (const side of ['top', 'right', 'bottom', 'left']) {
     expect([rest[`border-${side}-width`], rest[`border-${side}-color`]], `${label}: ${side} border at rest`).toEqual(['2px', r.frame])
   }
-  expect([rest.color, rest['background-color'], rest['box-shadow'], rest['font-size'], rest['font-weight']], `${label} at rest`).toEqual([r.ink2, r.clear, 'none', '16px', '400'])
+  expect([rest.color, rest['background-color'], rest['box-shadow'], rest['font-size'], rest['font-weight']], `${label} at rest`).toEqual([r.ctl, r.clear, 'none', '16px', '400'])
 
   await unpicked.hover()
   const hover = await style(unpicked, ['color', 'background-color', 'border-top-color', 'border-left-color'])
@@ -101,7 +101,7 @@ for (const skin of SKINS) {
     const rest = await style(inactive, [...SIDES, 'color', 'background-color'])
     for (const side of ['top', 'right', 'left']) expect([rest[`border-${side}-width`], rest[`border-${side}-color`]], `inactive tab ${side}`).toEqual(['2px', r.frame])
     expect(rest['border-bottom-width'], 'no bottom border').toBe('0px')
-    expect([rest.color, rest['background-color']], 'inactive tab at rest').toEqual([r.ink2, r.clear])
+    expect([rest.color, rest['background-color']], 'inactive tab at rest').toEqual([r.ctl, r.clear])
     expect(await style(page.locator('.q-tabs'), ['column-gap'])).toEqual({ 'column-gap': '8px' })
 
     await inactive.hover()

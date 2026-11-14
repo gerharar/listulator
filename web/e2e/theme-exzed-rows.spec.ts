@@ -91,7 +91,7 @@ const css = (c: Rgb) => `rgb(${c.join(', ')})`
 const style = (locator: Locator, props: string[]) => locator.evaluate((element, names) => Object.fromEntries(names.map((name) => [name, getComputedStyle(element).getPropertyValue(name)])), props)
 
 async function roles(page: Page) {
-  const names = ['paper', 'ink', 'ink2', 'frame', 'acc', 'acc-dim', 'acc-ink'] as const
+  const names = ['paper', 'ink', 'ink2', 'ctl', 'frame', 'acc', 'acc-dim', 'acc-ink'] as const
   const found = await Promise.all(names.map((n) => token(page, `--zx-${n}`)))
 
   return Object.fromEntries(names.map((n, i) => [n, rgbOf(found[i]!)])) as Record<(typeof names)[number], Rgb>
@@ -127,7 +127,7 @@ const row = (page: Page, title: string) => page.locator('.q-item', { hasText: ti
 const box = async (locator: Locator) => (await locator.boundingBox())!
 
 for (const skin of SKINS) {
-  test(`${skin}: at rest the rows are flat 32px lines, the handle and the three row buttons are the board's pixel icons in ink2, the group has its 2px frame rule and a plain name after its chevron`, async ({ page }) => {
+  test(`${skin}: at rest the rows are flat 32px lines, the handle and the three row buttons are the board's pixel icons in ctl, the group has its 2px frame rule and a plain name after its chevron`, async ({ page }) => {
     await open(page, skin)
     const r = await roles(page)
     await page.mouse.move(0, 0)
@@ -153,12 +153,12 @@ for (const skin of SKINS) {
 
     // The drag handle: its 16px drawing centred in 24px. The three buttons: 32x32, no border, the drawing centred.
     const handle = await box(noted.locator('.q-handle'))
-    await readIcon(page, handle.x + 4, handle.y + handle.height / 2 - 8, 'handle', r.ink2, 'the drag handle')
+    await readIcon(page, handle.x + 4, handle.y + handle.height / 2 - 8, 'handle', r.ctl, 'the drag handle')
     for (const [name, selector] of [['info', '.q-icon-btn.info'], ['edit', '.q-icon-btn.edit'], ['remove', '.q-icon-btn.remove']] as const) {
       const button = noted.locator(selector)
       expect(await style(button, ['width', 'height', 'border-top-width']), `the ${name} button: 32x32, borderless`).toEqual({ width: '32px', height: '32px', 'border-top-width': '0px' })
       const b = await box(button)
-      await readIcon(page, b.x + 8, b.y + 8, name, r.ink2, `the ${name} button`)
+      await readIcon(page, b.x + 8, b.y + 8, name, r.ctl, `the ${name} button`)
     }
 
     // The group head: the chevron is open (down) while the group is open, in the row's ink, in the pointer's column to the right of the handle.

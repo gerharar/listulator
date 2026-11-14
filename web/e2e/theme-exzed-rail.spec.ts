@@ -80,18 +80,18 @@ const box = async (locator: Locator) => (await locator.boundingBox())!
 for (const skin of SKINS) {
   test(`${skin}: the rail's head, entries, done tick and collapse button are the board's; hover is the highlight; keyboard focus shows the pointer`, async ({ page }) => {
     await open(page, skin)
-    const [ink, ink2, lab, frame, acc, accInk] = (await Promise.all(['--zx-ink', '--zx-ink2', '--zx-lab', '--zx-frame', '--zx-acc', '--zx-acc-ink'].map((n) => token(page, n)))).map((hex) => rgbOf(hex)) as Rgb[]
+    const [ink, ink2, lab, frame, acc, accInk, ctl] = (await Promise.all(['--zx-ink', '--zx-ink2', '--zx-lab', '--zx-frame', '--zx-acc', '--zx-acc-ink', '--zx-ctl'].map((n) => token(page, n)))).map((hex) => rgbOf(hex)) as Rgb[]
     await page.mouse.move(0, 0)
 
     const rail = page.locator('.q-rail').first()
     expect(await style(rail, ['border-right-width', 'border-right-style', 'border-right-color'])).toEqual({ 'border-right-width': '2px', 'border-right-style': 'solid', 'border-right-color': css(frame!) })
     expect(await style(rail.locator('.q-rail-head .q-kicker'), ['color', 'font-size', 'text-transform'])).toEqual({ color: css(lab!), 'font-size': '16px', 'text-transform': 'uppercase' })
 
-    // The collapse button: 32x32, borderless, the board's drawing in ink2.
+    // The collapse button: 32x32, borderless, the board's drawing in ctl.
     const toggle = rail.locator('.q-rail-head .q-rail-toggle')
     expect(await style(toggle, ['width', 'height', 'border-top-width'])).toEqual({ width: '32px', height: '32px', 'border-top-width': '0px' })
     const tb = await box(toggle)
-    await readIcon(page, tb.x + 8, tb.y + 8, COLLAPSE, ink2!, 'the collapse button')
+    await readIcon(page, tb.x + 8, tb.y + 8, COLLAPSE, ctl!, 'the collapse button')
 
     // An entry: 32px, 16px ink on a plain row; its count ink2.
     const done = page.locator('.q-rail-entry', { hasText: 'Season 1' })
@@ -142,7 +142,7 @@ async function readRect(page: Page, x: number, y: number, width: number, height:
 for (const skin of SKINS) {
   test(`${skin}: the folded rail is a 40px strip with the expand icon over JUMP TO stacked upright in lab, a 2px frame rule on its right, and the highlight on hover`, async ({ page }) => {
     await open(page, skin)
-    const [ink2, lab, frame, acc, accInk] = (await Promise.all(['--zx-ink2', '--zx-lab', '--zx-frame', '--zx-acc', '--zx-acc-ink'].map((n) => token(page, n)))).map((hex) => rgbOf(hex)) as Rgb[]
+    const [ctl, lab, frame, acc, accInk] = (await Promise.all(['--zx-ctl', '--zx-lab', '--zx-frame', '--zx-acc', '--zx-acc-ink'].map((n) => token(page, n)))).map((hex) => rgbOf(hex)) as Rgb[]
     await page.locator('.q-rail-head .q-rail-toggle').click()
     const stub = page.locator('.q-rail-stub')
     await expect(stub).toHaveCount(1)
@@ -155,12 +155,12 @@ for (const skin of SKINS) {
       'border-right-color': css(frame!),
       'flex-direction': 'column',
       'row-gap': '16px',
-      color: css(ink2!),
+      color: css(ctl!),
     })
     const button = stub.locator('.q-rail-toggle')
     const bb = await box(button)
     expect([bb.width, bb.height], 'the icon button is the 16px drawing').toEqual([16, 16])
-    await readIcon(page, bb.x, bb.y, EXPAND, ink2!, 'the expand icon')
+    await readIcon(page, bb.x, bb.y, EXPAND, ctl!, 'the expand icon')
     expect(await style(stub.locator('.label'), ['writing-mode', 'text-orientation', 'color', 'font-size', 'letter-spacing'])).toEqual({ 'writing-mode': 'vertical-rl', 'text-orientation': 'upright', color: css(lab!), 'font-size': '16px', 'letter-spacing': 'normal' })
 
     await stub.hover({ position: { x: 20, y: 200 } })

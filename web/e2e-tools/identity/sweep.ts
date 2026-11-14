@@ -32,6 +32,8 @@ const tagOf = (segment: string): string => /^([a-z][a-z0-9-]*)/.exec(segment)?.[
 
 /** Whether this element is a button's own text, or an icon or pseudo-element drawn inside a control, as its path says (a clickable row's other text is not the control's). */
 function controlPart(path: string, text: string | undefined): boolean {
+  // A Hold My Beer shelf with no lists is dimmed as a disabled control is (D10, kept under D47): it stays `ink2` beside a shelf in `ink`.
+  if (/\.none\b/.test(path)) return false
   const pseudo = /::\w+$/.test(path)
   const segments = path.replace(/::\w+$/, '').split('>').filter((segment) => segment !== '')
   const tags = segments.map(tagOf)

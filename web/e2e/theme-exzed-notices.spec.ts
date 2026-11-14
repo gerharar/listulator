@@ -19,7 +19,7 @@ const css = (c: Rgb) => `rgb(${c.join(', ')})`
 const box = async (locator: Locator) => (await locator.boundingBox())!
 
 async function roles(page: Page) {
-  const names = ['paper', 'ink', 'ink2', 'frame', 'frame-hi', 'info-line', 'acc', 'acc-ink'] as const
+  const names = ['paper', 'ink', 'ink2', 'ctl', 'frame', 'frame-hi', 'info-line', 'acc', 'acc-ink'] as const
   const found = await Promise.all(names.map((n) => token(page, `--zx-${n}`)))
 
   return Object.fromEntries(names.map((n, i) => [n, rgbOf(found[i]!)])) as Record<(typeof names)[number], Rgb>
@@ -104,7 +104,7 @@ for (const skin of SKINS) {
         const b = await box(toast)
         expect(Math.abs(b.x + b.width / 2 - 720), 'centred on the window').toBeLessThanOrEqual(1)
         const undo = toast.getByRole('button', { name: q.list.itemActions.undo })
-        expect((await style(undo, ['height', 'padding-left', 'color'])), 'a 40px bracketed secondary').toEqual({ height: '40px', 'padding-left': '16px', color: css(r.ink2) })
+        expect((await style(undo, ['height', 'padding-left', 'color'])), 'a 40px bracketed secondary').toEqual({ height: '40px', 'padding-left': '16px', color: css(r.ctl) })
         expect(await undo.evaluate((el) => getComputedStyle(el, '::before').content)).toContain('[')
 
         // No animation out, and the timing is Quantum's: there 250ms+4.5s after it came, gone 0.6s later: about 5s.
@@ -200,7 +200,7 @@ for (const skin of SKINS) {
       const buttons = banner.locator('.q-btn')
       await expect(buttons).toHaveCount(2)
       for (const at of [0, 1]) {
-        expect(await style(buttons.nth(at), ['height', 'padding-left', 'padding-right', 'font-size', 'color']), `button ${at}`).toEqual({ height: '24px', 'padding-left': '8px', 'padding-right': '8px', 'font-size': '16px', color: css(r.ink2) })
+        expect(await style(buttons.nth(at), ['height', 'padding-left', 'padding-right', 'font-size', 'color']), `button ${at}`).toEqual({ height: '24px', 'padding-left': '8px', 'padding-right': '8px', 'font-size': '16px', color: css(r.ctl) })
         expect(await buttons.nth(at).evaluate((el) => getComputedStyle(el, '::before').content)).toContain('[')
       }
       const [first, second] = [await box(buttons.nth(0)), await box(buttons.nth(1))]
@@ -251,7 +251,7 @@ for (const skin of SKINS) {
       const retry = strip.getByRole('button', { name: q.search.retry })
       const dismiss = strip.getByRole('button', { name: q.search.dismiss })
       for (const button of [retry, dismiss]) {
-        expect(await style(button, ['height', 'color'])).toEqual({ height: '40px', color: css(r.ink2) })
+        expect(await style(button, ['height', 'color'])).toEqual({ height: '40px', color: css(r.ctl) })
         expect(await button.evaluate((el) => getComputedStyle(el, '::before').content)).toContain('[')
       }
       const [a, b] = [await box(retry), await box(dismiss)]
@@ -300,7 +300,7 @@ for (const skin of SKINS) {
       await expect(retry).toBeVisible({ timeout: 15_000 })
       const block = page.locator('.q-error-block')
       const r = await roles(page)
-      expect(await style(retry, ['height', 'margin-top', 'color'])).toEqual({ height: '40px', 'margin-top': '0px', color: css(r.ink2) })
+      expect(await style(retry, ['height', 'margin-top', 'color'])).toEqual({ height: '40px', 'margin-top': '0px', color: css(r.ctl) })
       const [bb, rb] = [await box(block), await box(retry)]
       expect(rb.x - bb.x, '16px padding and the 2px border: the button’s box starts 18px in').toBe(18)
     })

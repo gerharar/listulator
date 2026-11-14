@@ -117,6 +117,7 @@ describe('the sweep’s rules', () => {
       expect(found({ path: '>div:0>button.q-chip:1', text: 'Hide Done', style: { ...live, color: 'rgb(215, 215, 215)' } })).toEqual([])
       expect(found({ path: '>div:0>button.q-chip:1', text: 'Hide Done', style: { cursor: 'not-allowed', color: GREY } })).toEqual([])
       expect(found({ path: '>div:0>p.q-pop-note:1', text: 'A hint', style: { color: GREY } })).toEqual([])
+      expect(found({ path: '>div:0>button.q-chip.none:1', text: 'Mega', style: { ...live, color: GREY } }), 'a shelf with no lists is dimmed (D10)').toEqual([])
       expect(found({ path: '>div:0>a.q-link:1', text: 'Docs', style: { ...live, color: GREY } }), 'a link takes its sentence’s colour').toEqual([])
       expect(found({ path: '>div:0>button.q-result:1>span.meta:0', text: '2 items', style: { ...live, color: GREY } })).toEqual([])
     })

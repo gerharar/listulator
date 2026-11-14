@@ -35,7 +35,7 @@ const css = (c: Rgb) => `rgb(${c.join(', ')})`
 const box = async (locator: Locator) => (await locator.boundingBox())!
 
 async function roles(page: Page) {
-  const names = ['paper', 'ink', 'ink2', 'lab', 'frame', 'frame-hi', 'chip-ink', 'acc', 'acc-ink', 'info-line'] as const
+  const names = ['paper', 'ink', 'ink2', 'ctl', 'lab', 'frame', 'frame-hi', 'chip-ink', 'acc', 'acc-ink', 'info-line'] as const
   const found = await Promise.all(names.map((n) => token(page, `--zx-${n}`)))
 
   return Object.fromEntries(names.map((n, i) => [n, rgbOf(found[i]!)])) as Record<(typeof names)[number], Rgb>
@@ -188,8 +188,8 @@ for (const skin of SKINS) {
       for (let y = 0; y < 8; y++) {
         for (let x = 0; x < 8; x++) {
           const got = at(pixels, scale, x * 2 + 0.5, y * 2 + 0.5)
-          if (filled.has(`${x},${y}`)) near(got, r.ink2, `the ✕, cell ${x},${y}`)
-          else expect(got, `outside the ✕, cell ${x},${y}`).not.toEqual(r.ink2)
+          if (filled.has(`${x},${y}`)) near(got, r.ctl, `the ✕, cell ${x},${y}`)
+          else expect(got, `outside the ✕, cell ${x},${y}`).not.toEqual(r.ctl)
         }
       }
     })
@@ -209,7 +209,7 @@ for (const skin of SKINS) {
       const open = actions.getByRole('button', { name: 'Open List' })
       const notThat = actions.getByRole('button', { name: 'Not That' })
       expect(await style(open, ['height', 'background-color', 'color'])).toEqual({ height: '40px', 'background-color': css(r.acc), color: css(r['acc-ink']) })
-      expect(await style(notThat, ['height', 'color', 'background-color'])).toEqual({ height: '40px', color: css(r.ink2), 'background-color': 'rgba(0, 0, 0, 0)' })
+      expect(await style(notThat, ['height', 'color', 'background-color'])).toEqual({ height: '40px', color: css(r.ctl), 'background-color': 'rgba(0, 0, 0, 0)' })
       expect(await notThat.evaluate((el) => getComputedStyle(el, '::before').content)).toContain('[')
       const [o, n] = [await box(open), await box(notThat)]
       expect(n.x - (o.x + o.width), '8px apart').toBe(8)

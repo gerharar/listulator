@@ -83,6 +83,10 @@ html.theme-exzed .q-chip:disabled {
 html.theme-exzed .q-shelves .q-chip:not(.none):not([aria-pressed='true']):where(:not(:disabled)):not(:hover) {
   color: var(--zx-ink);
 }
+/* D47 (controls at rest are `ctl`) leaves D10 as it was: a shelf with none is dimmed as a disabled control is, `ink2`, so it still reads as nothing there beside a shelf in `ink`. */
+html.theme-exzed .q-shelves .q-chip.none:not([aria-pressed='true']):where(:not(:disabled)):not(:hover) {
+  color: var(--zx-ink2);
+}
 
 /* Tabs. */
 html.theme-exzed .q-tabs {
