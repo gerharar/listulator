@@ -207,3 +207,39 @@ test('Surprise Me: the sheet keeps its height while the dials spin, whatever the
   }
   expect(heights.size, `the result's height while spinning: ${[...heights].join(', ')}`).toBe(1)
 })
+
+for (const skin of SKINS) {
+  test(`${skin}: the header's Settings and About and the refresh buttons are design's pixel icons, on whole pixels`, async ({ page }) => {
+    await open(page, skin)
+    await page.route('**/api/lists', (route) => route.fulfill({ json: [{ ...summary('L1', 'One'), externalRef: 'canonical:lists/movie/a.yaml' }, summary('L2', 'Two')] }))
+    await page.route('**/api/lists/L1', (route) => route.fulfill({ json: { ...summary('L1', 'One'), externalRef: 'canonical:lists/movie/a.yaml', items: [item(1), item(2)], groups: [] } }))
+    await page.reload()
+    await page.locator('.q-home-row').first().waitFor()
+    const drawn = async (button: Locator, name: string) => {
+      const svg = button.locator('svg[data-pixel-icon]')
+      await expect(svg, `${name}: a pixel icon, not Quantum's line icon`).toHaveCount(1)
+      const box = (await svg.boundingBox())!
+      expect([box.width, box.height], `${name}: 16px`).toEqual([16, 16])
+      expect([box.x % 1, box.y % 1], `${name}: on whole pixels`).toEqual([0, 0])
+
+      return svg.getAttribute('data-pixel-icon')
+    }
+
+    expect(await drawn(page.getByRole('button', { name: 'Settings' }), 'Settings')).toBe('settings')
+    expect(await drawn(page.getByRole('button', { name: 'About' }), 'About')).toBe('about')
+    expect(await drawn(page.getByRole('button', { name: 'Check For Updates' }), 'Home’s refresh')).toBe('refresh')
+
+    await page.locator('.q-home-row').first().click()
+    await page.locator('.q-item').first().waitFor()
+    expect(await drawn(page.locator('.q-check-btn'), 'the list’s refresh')).toBe('refresh')
+  })
+}
+
+test('Quantum keeps its own line icons in the header and on the refresh buttons', async ({ page }) => {
+  await open(page, 'exzed-1d')
+  await page.evaluate(() => localStorage.setItem('theme', 'quantum'))
+  await page.reload()
+  await page.locator('.q-home-row').first().waitFor()
+  await expect(page.locator('svg[data-pixel-icon]')).toHaveCount(0)
+  await expect(page.getByRole('button', { name: 'Settings' }).locator('svg')).toHaveCount(1)
+})

@@ -16,6 +16,7 @@ import { loadVirtualization } from '../../lib/listVirtualization.js'
 import { categoryLabel, copy, joinSentences } from '../../locale/index.js'
 import { Banner } from '../../components/quantum/Banner/Banner.js'
 import { IconButton } from '../../components/quantum/Button/Button.js'
+import { ThemedIcon } from '../../components/quantum/PixelIcon/PixelIcon.js'
 import { ErrorBlock } from '../../components/quantum/ErrorBlock/ErrorBlock.js'
 import { ErrorStrip } from '../../components/quantum/ErrorStrip/ErrorStrip.js'
 import { HeaderPlate } from '../../components/quantum/HeaderPlate/HeaderPlate.js'
@@ -1525,7 +1526,7 @@ function ListView({
                 onClick={() => void checkForUpdates()}
               >
                 <span className={checking ? 'q-spin' : undefined} style={{ display: 'flex' }}>
-                  <RefreshCw width={16} height={16} strokeWidth={1.9} aria-hidden="true" />
+                  <ThemedIcon name="refresh" fallback={<RefreshCw width={16} height={16} strokeWidth={1.9} aria-hidden="true" />} />
                 </span>
               </IconButton>
             )}

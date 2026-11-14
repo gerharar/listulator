@@ -6,6 +6,7 @@ import { formatDuration } from '../../../formatDuration.js'
 import { buildBuckets, findOrphanedLists, listMark } from '../../../lib/buckets.js'
 import { categoryLabel, copy } from '../../../locale/index.js'
 import { Button, IconButton } from '../Button/Button.js'
+import { ThemedIcon } from '../PixelIcon/PixelIcon.js'
 import { HeaderPlate } from '../HeaderPlate/HeaderPlate.js'
 import { HomeRow } from '../HomeRow/HomeRow.js'
 import { useTimeLeftSetting } from './TimeLeftSetting.js'
@@ -456,12 +457,10 @@ function HomeHeader({ summary, checking, onCheckUpdates, onNew }: HomeHeaderProp
             onClick={onCheckUpdates}
             disabled={checking}
           >
-            <RefreshCw
-              width={17}
-              height={17}
-              strokeWidth={1.9}
-              aria-hidden="true"
-              className={checking ? 'q-spin' : undefined}
+            <ThemedIcon
+              name="refresh"
+              {...(checking ? { className: 'q-spin' } : {})}
+              fallback={<RefreshCw width={17} height={17} strokeWidth={1.9} aria-hidden="true" className={checking ? 'q-spin' : undefined} />}
             />
           </IconButton>
           <Button variant="primary" onClick={onNew}>
