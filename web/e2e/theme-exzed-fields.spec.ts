@@ -27,9 +27,11 @@ const rgb = (hex: string) => `rgb(${parseInt(hex.slice(1, 3), 16)}, ${parseInt(h
 const style = (locator: Locator, props: string[]) => locator.evaluate((element, names) => Object.fromEntries(names.map((name) => [name, getComputedStyle(element).getPropertyValue(name)])), props)
 
 async function roles(page: Page) {
-  const [frame, frameHi, ink, ink2, acc, accInk, paper] = await Promise.all(['--zx-frame', '--zx-frame-hi', '--zx-ink', '--zx-ink2', '--zx-acc', '--zx-acc-ink', '--zx-paper'].map((n) => token(page, n)))
+  const [frame, frameHi, ink, ink2, acc, accInk, paper, line] = await Promise.all(['--zx-frame', '--zx-frame-hi', '--zx-ink', '--zx-ink2', '--zx-acc', '--zx-acc-ink', '--zx-paper', '--zx-pri-hv-line'].map((n) => token(page, n)))
+  // A focused field's border is `acc`; on Lotus, whose accent is its frame's own black, it is the primary's blue (51.13).
+  const lotus = (await page.evaluate(() => document.documentElement.getAttribute('data-theme'))) === 'exzed-1l'
 
-  return { frame: rgb(frame!), frameHi: rgb(frameHi!), ink: rgb(ink!), ink2: rgb(ink2!), acc: rgb(acc!), accInk: rgb(accInk!), paper: rgb(paper!) }
+  return { frame: rgb(frame!), frameHi: rgb(frameHi!), ink: rgb(ink!), ink2: rgb(ink2!), acc: rgb(acc!), accInk: rgb(accInk!), paper: rgb(paper!), focus: rgb(lotus ? line! : acc!) }
 }
 type Roles = Awaited<ReturnType<typeof roles>>
 
@@ -58,7 +60,7 @@ async function readField(page: Page, field: Locator, r: Roles, label: string, { 
   }
 
   await field.focus()
-  expect(await style(field, ['border-top-color', 'border-bottom-color', 'outline-style']), `${label}: focus`).toEqual({ 'border-top-color': r.acc, 'border-bottom-color': r.acc, 'outline-style': 'none' })
+  expect(await style(field, ['border-top-color', 'border-bottom-color', 'outline-style']), `${label}: focus`).toEqual({ 'border-top-color': r.focus, 'border-bottom-color': r.focus, 'outline-style': 'none' })
   await field.evaluate((el) => (el as HTMLElement).blur())
 }
 
