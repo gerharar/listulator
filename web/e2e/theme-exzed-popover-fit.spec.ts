@@ -63,7 +63,7 @@ const placed = async (page: Page) => {
 }
 
 for (const skin of SKINS) {
-  test(`${skin}: the list menu is 240px and its answers are 560 (list edit, export, reorder, delete) wide, every button inside its popover`, async ({ page }) => {
+  test(`${skin}: the list menu is at least 240px and its answers are 560 (list edit, export, reorder, delete) wide, every button inside its popover`, async ({ page }) => {
     const list = await makeList(page)
     try {
       await boot(page, skin)
@@ -74,7 +74,8 @@ for (const skin of SKINS) {
       await more(page).click()
       await placed(page)
       let seen = await popovers(page)
-      expect([seen[0]!.width, seen[0]!.out], 'list menu').toEqual([240, []])
+      expect(seen[0]!.width, 'list menu: the card’s 240px, wider when a row needs it (51.13)').toBeGreaterThanOrEqual(240)
+      expect(seen[0]!.out, 'list menu').toEqual([])
       await closeAll(page)
 
       for (const [name, width] of [['Edit List', 560], ['Export List', 560], ['Reorder List', 560], ['Delete List', 560]] as const) {

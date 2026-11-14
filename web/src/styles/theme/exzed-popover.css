@@ -84,10 +84,10 @@ html.theme-exzed .q-skin-btn[aria-expanded='true'] .q-zx-swatch {
 
 /*
  * The second layer (the Popover card: "a side panel joined to the popover (one shared frame, one 2px divider)"): the Platform panel is the same kind of box (2px `frame-hi`, 16px padding, the 4px
- * `paper` ring), 400px wide, and `PlatformPanel` places it overlapping the popover's 2px border (`offset(-2)`), so the two frames meet in one 2px line, from the same top.
+ * `paper` ring), 560px wide (400 on the card; the owner found a platform name cut off there, 51.13), and `PlatformPanel` places it overlapping the popover's 2px border (`offset(-2)`), so the two frames meet in one 2px line, from the same top.
  */
 html.theme-exzed .q-platpanel {
-  width: 400px;
+  width: 560px;
   gap: 12px;
   padding: 16px;
   border: 2px solid var(--zx-frame-hi);

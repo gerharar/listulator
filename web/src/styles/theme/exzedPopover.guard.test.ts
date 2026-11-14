@@ -29,7 +29,7 @@ describe('eX-Zed’s popovers', () => {
 
   it('has no shadow, alpha, radius, opacity, filter or literal colour of its own, and only the card’s sizes', () => {
     expect(css).not.toMatch(/box-shadow|border-radius|opacity\s*:|[;{\s]filter\s*:|rgba?\(|hsla?\(|color-mix|#[0-9a-f]{3,8}\b/i)
-    for (const [, size] of css.matchAll(/(\d+)px/g)) expect(['0', '2', '8', '10', '12', '16', '24', '400']).toContain(size)
+    for (const [, size] of css.matchAll(/(\d+)px/g)) expect(['0', '2', '8', '10', '12', '16', '24', '560']).toContain(size)
   })
 
   it('draws the box (2px frame-hi border, 16px padding, 24px leading) and the staircase tail in the border’s colour with paper inside', () => {
@@ -46,7 +46,7 @@ describe('eX-Zed’s popovers', () => {
     expect(css).toMatch(/\.q-skin-btn\[aria-expanded='true'\] \.q-zx-swatch\s*{\s*border-color:\s*var\(--zx-hl-ink\);/)
   })
 
-  it('joins the Platform panel: a 400px box with the same frame', () => {
-    expect(body('html.theme-exzed .q-platpanel')).toMatch(/width:\s*400px;[^}]*padding:\s*16px;\s*border:\s*2px solid var\(--zx-frame-hi\);\s*background:\s*var\(--zx-paper\);/)
+  it('joins the Platform panel: a 560px box with the same frame', () => {
+    expect(body('html.theme-exzed .q-platpanel')).toMatch(/width:\s*560px;[^}]*padding:\s*16px;\s*border:\s*2px solid var\(--zx-frame-hi\);\s*background:\s*var\(--zx-paper\);/)
   })
 })

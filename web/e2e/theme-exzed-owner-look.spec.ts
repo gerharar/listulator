@@ -14,7 +14,7 @@ const LIBRARY = [
   { externalRef: 'canonical:lists/movie/b.yaml', title: 'Vault Two', category: 'movie', itemCount: 6 },
 ]
 
-async function open(page: Page, skin: string, width = 1440) {
+async function open(page: Page, skin: string, width = 1440, extra: Record<string, string> = {}) {
   await page.setViewportSize({ width, height: 900 })
   await page.route('**/api/library/untracked', (route) => route.fulfill({ json: { entries: LIBRARY, reachable: true } }))
   await page.route('**/api/lists', (route) => route.fulfill({ json: [summary('L1', 'One'), summary('L2', 'Two')] }))
@@ -27,7 +27,7 @@ async function open(page: Page, skin: string, width = 1440) {
       return
     }
     for (const [key, value] of entries as [string, string][]) localStorage.setItem(key, value)
-  }, Object.entries({ skin: 'dark-orange', reducedMotion: 'true', theme: 'exzed', exzedSkin: skin }))
+  }, Object.entries({ skin: 'dark-orange', reducedMotion: 'true', theme: 'exzed', exzedSkin: skin, ...extra }))
   await page.goto('/')
   await page.locator('.q-home-row').first().waitFor()
   await page.evaluate(() => document.fonts.ready)
@@ -121,4 +121,89 @@ test('Lotus: a tile names its source in the category colour (ink), not the art b
   await page.mouse.move(0, 0)
   expect((await style(source, ['color'])).color).toBe(rgbOf(await token(page, '--zx-ink')))
   expect((await style(page.locator('.q-tile-name b').first(), ['color'])).color, 'the same as the name beside it').toBe((await style(source, ['color'])).color)
+})
+
+/** The list screen, with a group and a game list (its items have a Platform field). */
+async function openGameList(page: Page, skin: string, width = 1440) {
+  await open(page, skin, width)
+  await page.route('**/api/lists/L1', (route) => route.fulfill({ json: { ...summary('L1', 'One'), mediaType: 'game', items: [item(1, 'Group A'), item(2, 'Group B'), item(3)], groups: [{ id: 'g1', listId: 'L1', name: 'Group A', orderIndex: 0 }, { id: 'g2', listId: 'L1', name: 'Group B', orderIndex: 1 }] } }))
+  await page.route('**/api/lists', (route) => route.fulfill({ json: [{ ...summary('L1', 'One'), mediaType: 'game' }, summary('L2', 'Two')] }))
+  await page.reload()
+  await page.locator('.q-home-row').first().click()
+  await page.locator('.q-item').first().waitFor()
+  await page.evaluate(() => document.fonts.ready)
+}
+
+for (const skin of SKINS) {
+  test(`${skin}: the toast is one line when the sentence fits the window, even in a small one`, async ({ page }) => {
+    await open(page, skin, 640)
+    await page.evaluate(() => document.body.insertAdjacentHTML('beforeend', '<div class="q-toast fixed" role="status" id="probe"><span>Item added manually</span></div>'))
+    const toast = page.locator('#probe')
+    await page.mouse.move(0, 0)
+    const box = (await toast.boundingBox())!
+    const line = (await page.locator('#probe span').boundingBox())!
+    expect(line.height, 'the sentence is on one 24px line').toBe(24)
+    expect(box.height, 'so the toast is the card’s 52px').toBe(52)
+  })
+
+  test(`${skin}: the list menu is wide enough for every row's label, Reorder List included`, async ({ page }) => {
+    await openList(page, skin)
+    await page.getByRole('button', { name: 'More', exact: true }).click()
+    await page.locator('.q-pop .q-btn').first().waitFor()
+    await page.waitForFunction(() => getComputedStyle(document.querySelector('.q-pop')!).opacity === '1')
+    const clipped = await page.locator('.q-pop .q-pop-menu .q-btn').evaluateAll((buttons) => buttons.filter((b) => b.scrollWidth > b.clientWidth).map((b) => b.textContent))
+    expect(clipped, 'no row’s text runs past its highlight').toEqual([])
+    expect((await page.locator('.q-pop').boundingBox())!.width, 'never narrower than the card’s 240px').toBeGreaterThanOrEqual(240)
+  })
+
+  test(`${skin}: a group's bin is in the same column as an item's`, async ({ page }) => {
+    await openList(page, skin)
+    const group = (await page.locator('.q-group .q-group-remove').first().boundingBox())!
+    const row = (await page.locator('.q-item .q-icon-btn.row.remove').first().boundingBox())!
+    expect(group.x + group.width, 'right edges meet').toBe(row.x + row.width)
+  })
+
+  test(`${skin}: the Platform card is wide enough to read a platform on one line`, async ({ page }) => {
+    await openGameList(page, skin)
+    await page.locator('.q-item', { hasText: 'Item 1' }).locator('.q-icon-btn.edit').click()
+    await page.locator('.q-platfield').click()
+    await page.waitForFunction(() => document.querySelector('.q-platpanel') && getComputedStyle(document.querySelector('.q-platpanel')!).opacity === '1')
+    const list = page.locator('.q-platpanel-list')
+    const over = await list.evaluate((e) => e.scrollWidth - e.clientWidth)
+    expect(over, 'the list does not scroll sideways').toBeLessThanOrEqual(0)
+    const wrapped = await page.locator('.q-platpanel-row .q-platpanel-name').evaluateAll((names) =>
+      names.filter((n) => !n.querySelector('.q-platpanel-sub') && n.getBoundingClientRect().height > 24).map((n) => n.textContent),
+    )
+    expect(wrapped, 'no platform name wraps').toEqual([])
+  })
+
+  test(`${skin}: the small-window notice is readable: it has the paper under it, not the art`, async ({ page }) => {
+    await open(page, skin, 900)
+    const banner = page.locator('.q-banner')
+    await banner.waitFor()
+    expect((await style(banner, ['background-color']))['background-color']).toBe(rgbOf(await token(page, '--zx-paper')))
+    const header = (await page.locator('.q-appheader').boundingBox())!
+    const box = (await banner.boundingBox())!
+    expect(box.y, 'under the header, not behind it').toBeGreaterThanOrEqual(header.y + header.height - 1)
+    const text = (await page.locator('.q-banner > span').boundingBox())!
+    expect(text.y + text.height, 'the sentence is inside the banner').toBeLessThanOrEqual(box.y + box.height)
+  })
+}
+
+test('Surprise Me: the sheet keeps its height while the dials spin, whatever the length of the names that go by', async ({ page }) => {
+  const long = (n: number) => `A very long list name number ${n} that cannot fit on one line of a sheet because it keeps on going and going and going`
+  await open(page, 'exzed-1d', 1440, { reducedMotion: 'false' })
+  await page.route('**/api/library/untracked', (route) =>
+    route.fulfill({ json: { entries: [1, 2, 3, 4, 5, 6].map((n) => ({ externalRef: `canonical:lists/movie/${n}.yaml`, title: n % 2 ? long(n) : `Short ${n}`, category: 'movie', itemCount: 5 })), reachable: true } }),
+  )
+  await page.getByRole('button', { name: 'Surprise Me' }).click()
+  await page.getByRole('button', { name: 'Spin To Win!' }).click()
+  const heights = new Set<number>()
+  const started = Date.now()
+  while (Date.now() - started < 1800) {
+    if ((await page.locator('.q-digit.ticking').count()) === 0) break
+    heights.add(Math.round((await page.locator('.q-reel-result').boundingBox())!.height))
+    await page.waitForTimeout(40)
+  }
+  expect(heights.size, `the result's height while spinning: ${[...heights].join(', ')}`).toBe(1)
 })

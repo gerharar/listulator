@@ -168,7 +168,7 @@ for (const skin of SKINS) {
       }
     })
 
-    test('the Banner: a 2px info-line border, no fill, 16px text with the name in ink, and bracketed 24px buttons 8px apart', async ({ page }) => {
+    test('the Banner: a 2px info-line border on the paper, 16px text with the name in ink, and bracketed 24px buttons 8px apart', async ({ page }) => {
       await seed(page, skin)
       await useHomeFixture(page)
       await page.route('**/api/library/untracked', (route) => route.fulfill({ json: { entries: [], reachable: true } }))
@@ -186,7 +186,7 @@ for (const skin of SKINS) {
         'border-top-color': css(r['info-line']),
         'border-bottom-width': '2px',
         'border-bottom-color': css(r['info-line']),
-        'background-color': 'rgba(0, 0, 0, 0)',
+        'background-color': css(r.paper),
         color: css(r.ink2),
         'font-size': '16px',
         'padding-left': '16px',
@@ -219,7 +219,7 @@ for (const skin of SKINS) {
       const banner = page.locator('.q-banner[role="status"]')
       await expect(banner).toBeVisible()
       const r = await roles(page)
-      expect((await style(banner, ['border-top-width', 'border-top-color', 'background-color']))).toEqual({ 'border-top-width': '2px', 'border-top-color': css(r['info-line']), 'background-color': 'rgba(0, 0, 0, 0)' })
+      expect((await style(banner, ['border-top-width', 'border-top-color', 'background-color']))).toEqual({ 'border-top-width': '2px', 'border-top-color': css(r['info-line']), 'background-color': css(r.paper) })
       for (const button of await banner.locator('.q-btn').all()) expect((await style(button, ['height']))['height']).toBe('24px')
     })
 

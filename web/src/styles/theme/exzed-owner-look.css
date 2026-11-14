@@ -47,3 +47,29 @@ html.theme-exzed[data-theme='exzed-1l'] .q-input[aria-expanded='true'] {
 html.theme-exzed[data-theme='exzed-1l'] .q-tile:not(:hover) .q-tile-src {
   color: var(--zx-ink);
 }
+
+/*
+ * Layout (51.13):
+ *  - the toast is one line: it is `fixed` at `left: 50%`, so its shrink-to-fit width was at most half the window and a short sentence wrapped in a small one; it is as wide as its sentence, to the window less 16px each side;
+ *  - the list menu (the ⋯ popover, 240px on the card) is as wide as its longest row: "Reorder List" was 8px wider than the row and ran past its highlight; never narrower than the card's 240px;
+ *  - Surprise Me: while the dials spin a name goes by on one line (cut with an ellipsis), so a long title no longer makes the sheet taller and shorter again, which moved the window up and down.
+ */
+html.theme-exzed .q-toast.fixed {
+  width: max-content;
+  max-width: min(620px, calc(100vw - 32px));
+}
+
+html.theme-exzed .q-pop.w240:has(.q-kicker + .q-pop-menu) {
+  width: max-content;
+  min-width: 240px;
+}
+
+html.theme-exzed .q-reel:has(.q-digit.ticking) .q-reel-name {
+  min-width: 0;
+}
+html.theme-exzed .q-reel:has(.q-digit.ticking) .q-reel-name > span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

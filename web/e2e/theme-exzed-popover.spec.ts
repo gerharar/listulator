@@ -110,7 +110,7 @@ for (const skin of SKINS) {
     const more = page.getByRole('button', { name: 'More', exact: true })
     await more.click()
     await checkPopover(page, more, 'the list menu')
-    expect((await style(page.locator('.q-pop'), ['width'])).width, 'the list menu is 240px').toBe('240px')
+    expect(parseFloat((await style(page.locator('.q-pop'), ['width'])).width ?? '0'), 'the list menu is the card’s 240px, wider when a row needs it (51.13)').toBeGreaterThanOrEqual(240)
   })
 }
 
@@ -285,7 +285,7 @@ for (const skin of SKINS) {
     await page.mouse.move(0, 0)
     const p = await box(page.locator('.q-pop'))
     const q = await box(panel)
-    expect(await style(panel, ['border-top-width', 'border-top-color', 'padding-left', 'width']), 'the panel is a frame of its own kind').toMatchObject({ 'border-top-width': '2px', 'border-top-color': css(frameHi), 'padding-left': '16px', width: '400px' })
+    expect(await style(panel, ['border-top-width', 'border-top-color', 'padding-left', 'width']), 'the panel is a frame of its own kind').toMatchObject({ 'border-top-width': '2px', 'border-top-color': css(frameHi), 'padding-left': '16px', width: '560px' })
     const sideBySide = Math.abs(q.x - (p.x + p.width - 2)) <= 1 || Math.abs(q.x + q.width - (p.x + 2)) <= 1
     expect(sideBySide, 'the panel overlaps the popover’s border by 2px: one divider').toBe(true)
     expect(Math.abs(q.y - p.y), 'they start at the same top').toBeLessThanOrEqual(1)

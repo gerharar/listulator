@@ -155,8 +155,9 @@ html.theme-exzed .q-item .q-icon-btn.row.link {
 html.theme-exzed .q-item .q-icon-btn.row.remove {
   margin-left: 8px;
 }
-html.theme-exzed .q-group .q-group-remove {
-  margin-right: -8px;
+/* The bin is in the item's column: the group's 24px of padding less 16px puts it 8px from the edge, as an item's is (owner, 51.13). The row-button rule above (`margin: 0`) is more specific, so this names `.q-icon-btn.row` too. */
+html.theme-exzed .q-group .q-icon-btn.row.q-group-remove {
+  margin-right: -16px;
 }
 /* A note that matches the filter lights its ⓘ in the highlight's own colour on a black cell, as marks are: the row is shown for its note. */
 html.theme-exzed .q-item .q-icon-btn.row.info.lit {

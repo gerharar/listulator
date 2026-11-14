@@ -63,4 +63,16 @@ describe('eX-Zed’s fixes from the owner’s first look', () => {
   it('gives a tile’s source line the category colour on Lotus alone, and not under the pointer', () => {
     expect(body("html.theme-exzed[data-theme='exzed-1l'] .q-tile:not(:hover) .q-tile-src")).toMatch(/color:\s*var\(--zx-ink\);/)
   })
+
+  it('makes the toast as wide as its sentence, to the window less 16px a side, so a short sentence is one line', () => {
+    expect(body('html.theme-exzed .q-toast.fixed')).toMatch(/width:\s*max-content;\s*max-width:\s*min\(620px, calc\(100vw - 32px\)\);/)
+  })
+
+  it('makes the list menu as wide as its longest row, never under the card’s 240px', () => {
+    expect(body('html.theme-exzed .q-pop.w240:has(.q-kicker + .q-pop-menu)')).toMatch(/width:\s*max-content;\s*min-width:\s*240px;/)
+  })
+
+  it('keeps a name on one line, cut with an ellipsis, while Surprise Me’s dials spin', () => {
+    expect(body('html.theme-exzed .q-reel:has(.q-digit.ticking) .q-reel-name > span')).toMatch(/overflow:\s*hidden;\s*text-overflow:\s*ellipsis;\s*white-space:\s*nowrap;/)
+  })
 })

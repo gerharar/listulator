@@ -47,8 +47,8 @@ describe('eX-Zed’s notices', () => {
     expect(css).toMatch(/@keyframes zx-toast-flash\s*{\s*0%\s*{\s*background-color:\s*var\(--zx-acc\);\s*color:\s*var\(--zx-acc-ink\);/)
   })
 
-  it('draws the Banner with an info-line border and no fill, and its buttons the card’s 24px', () => {
-    expect(body('html.theme-exzed .q-banner')).toMatch(/padding:\s*2px 2px 2px 16px;\s*border:\s*2px solid var\(--zx-info-line\);\s*background:\s*transparent;/)
+  it('draws the Banner with an info-line border on the paper (it sits over the skin’s art, 51.13), and its buttons the card’s 24px', () => {
+    expect(body('html.theme-exzed .q-banner')).toMatch(/padding:\s*2px 2px 2px 16px;\s*border:\s*2px solid var\(--zx-info-line\);\s*background:\s*var\(--zx-paper\);/)
     expect(body('html.theme-exzed .q-banner .q-btn')).toMatch(/height:\s*24px;\s*padding:\s*0 8px;/)
     expect(body('html.theme-exzed .q-banner-actions')).toMatch(/gap:\s*8px;/)
   })
