@@ -2,6 +2,20 @@
 
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and version numbers follow [Semantic Versioning](https://semver.org/).
 
+## [1.4.1] - 15 November 2026
+
+### Improvements
+
+- Listulator now makes a backup of all lists the first time it starts after an update (before the new version touches anything)
+	- If the lists ever fail to load, the error now says where the safety copies are, and links to the [restoration guide](guides/restore-a-backup.md)
+	- For reference, the latest three database backups are stored in the *backups* folder inside the app's data folder
+	- Only the lists are backed up, not preferences or API keys
+
+### Fixes
+
+- Security fixes
+
+
 ## [1.4.0] - 04 November 2026
 
 ### New Stuff
