@@ -1075,6 +1075,11 @@ export const ru: Locale = {
       checkForUpdates: 'Проверить обновления',
       checkingUpdates: 'Проверяем обновления…',
       loadFailed: 'Не удалось загрузить твои списки',
+      backupsNote: (folder: string): { before: string; link: string; after: string } => ({
+        before: `Listulator хранит копию твоих списков, сделанную перед каждым обновлением, в папке резервных копий: ${folder}. Как вернуть копию, объясняет инструкция "`,
+        link: 'Restoring a backup',
+        after: '" (она на английском).',
+      }),
       retry: 'Повторить',
       listCount: (n: number): string => lists(n),
       summary: (listCount: string, done: number, total: number, timeLeft: string | null): string =>

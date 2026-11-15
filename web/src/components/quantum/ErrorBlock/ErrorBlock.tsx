@@ -1,4 +1,5 @@
 import './ErrorBlock.css'
+import type { ReactNode } from 'react'
 import { Button } from '../Button/Button.js'
 
 export interface ErrorBlockAction {
@@ -14,7 +15,7 @@ export interface ErrorBlockProps {
   /** Left out (or empty) for a headline that says it all: no paragraph is drawn, so no margin is left under it. */
   explanation?: string
   /** A second paragraph under the explanation, in the same type (the failed start's pointer to the backups folder, 52.3). Left out, none is drawn. */
-  note?: string
+  note?: ReactNode
   /** At most one — design-system/components/ErrorStrip. */
   action?: ErrorBlockAction
 }

@@ -11,6 +11,9 @@ import { HomeRow } from '../HomeRow/HomeRow.js'
 import { useTimeLeftSetting } from './TimeLeftSetting.js'
 import { Banner } from '../Banner/Banner.js'
 import { ErrorBlock } from '../ErrorBlock/ErrorBlock.js'
+import { ExternalLink } from '../ExternalLink/ExternalLink.js'
+import { getBackupsInfo, type BackupsInfo } from '../../../lib/backupsInfo.js'
+import { restoreBackupGuideUrl } from '../../../lib/guides.js'
 import { useToast } from '../Toast/Toast.js'
 import { useLayerStack } from '../layerStack/LayerStackContext.js'
 import { loadLastOpened } from '../../../lib/lastOpened.js'
@@ -58,6 +61,19 @@ export interface HomeProps {
   onMediaTypesLoaded: (mediaTypes: MediaType[]) => void
 }
 
+/** The pointer to the backups folder under the failed-start message, with the guide's title as the link (task 52.3). */
+function BackupsNote({ folder }: { folder: string }) {
+  const { before, link, after } = copy.quantum.home.backupsNote(folder)
+
+  return (
+    <>
+      {before}
+      <ExternalLink href={restoreBackupGuideUrl()}>{link}</ExternalLink>
+      {after}
+    </>
+  )
+}
+
 /**
  * My Lists (design-system, task 10.10) — replaces the old hosted `Overview`.
  * A real Quantum screen, not routed: it talks to `useLayerStack()` directly
@@ -74,6 +90,8 @@ export function Home({ onMediaTypesLoaded, pendingUpdates }: HomeProps) {
   const [lists, setLists] = useState<MediaList[]>([])
   const [mediaTypes, setMediaTypes] = useState<MediaType[]>([])
   const [error, setError] = useState<string | null>(null)
+  // The desktop app's copies of the database, asked for only when the lists would not load (task 52.3).
+  const [backups, setBackups] = useState<BackupsInfo | null>(null)
   const [retryToken, setRetryToken] = useState(0)
   // The open helper sheet, if any; it starts on the list opened last.
   const [helper, setHelper] = useState<
@@ -162,8 +180,13 @@ export function Home({ onMediaTypesLoaded, pendingUpdates }: HomeProps) {
         // "degrade quietly" call already made for the update check below.
         // Only a first-ever failure gets the real ErrorBlock.
         if (hasLoadedRef.current) return
-        setError(cause instanceof Error ? cause.message : copy.quantum.home.loadFailed)
-        setPhase('error')
+        // Asked before the error is drawn, so the pointer to the backups folder is there from the first frame (it never rejects).
+        void getBackupsInfo().then((info) => {
+          if (cancelled) return
+          setBackups(info)
+          setError(cause instanceof Error ? cause.message : copy.quantum.home.loadFailed)
+          setPhase('error')
+        })
       })
 
     return () => {
@@ -273,6 +296,7 @@ export function Home({ onMediaTypesLoaded, pendingUpdates }: HomeProps) {
           <ErrorBlock
             headline={copy.quantum.home.loadFailed}
             explanation={error ?? copy.quantum.home.loadFailed}
+            note={backups ? <BackupsNote folder={backups.folder} /> : undefined}
             action={{ label: copy.quantum.home.retry, onClick: () => setRetryToken((n) => n + 1) }}
           />
         </div>
