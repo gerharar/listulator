@@ -9,7 +9,7 @@ import { describe, expect, it } from 'vitest'
  */
 const css = readFileSync(join(import.meta.dirname, 'VaultBrowser.css'), 'utf8')
 const rule = (selector: string): string => {
-  const escaped = selector.replace(/[.[\]()]/g, '\\$&')
+  const escaped = selector.replace(/[\\.[\]()]/g, '\\$&')
   return new RegExp(`(?:^|\\}|\\*\\/)\\s*${escaped}\\s*\\{([^}]*)\\}`).exec(css)?.[1] ?? ''
 }
 
