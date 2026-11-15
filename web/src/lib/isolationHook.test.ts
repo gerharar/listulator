@@ -263,7 +263,7 @@ describe('only what the app sends (SR-062: the approval is not bound to the comm
     const names = Object.keys(examples)
 
     it('has an example for every command the hook knows', () => {
-      expect(names.length).toBe(34)
+      expect(names.length).toBe(35)
     })
 
     it('passes each example under its own command', () => {
