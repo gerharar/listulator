@@ -22,6 +22,19 @@ describe('ErrorBlock', () => {
     expect(blank.querySelector('p')).toBeNull()
   })
 
+  it('draws a note as a paragraph of its own under the explanation, in the same type', () => {
+    const { container } = render(<ErrorBlock headline="Broken" explanation="Something failed." note="A copy is in the backups folder." />)
+
+    const paragraphs = [...container.querySelectorAll('p')].map((p) => p.textContent)
+    expect(paragraphs).toEqual(['Something failed.', 'A copy is in the backups folder.'])
+  })
+
+  it('draws no note paragraph when there is none', () => {
+    const { container } = render(<ErrorBlock headline="Broken" explanation="Something failed." />)
+
+    expect(container.querySelectorAll('p')).toHaveLength(1)
+  })
+
   it('renders no action when none is given', () => {
     render(<ErrorBlock headline="Broken" explanation="Something failed." />)
 
