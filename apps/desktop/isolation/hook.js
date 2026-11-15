@@ -430,6 +430,8 @@
     relaunch: noPayload,
     // The app's own command (`hold_close` in lib.rs, close_hold.rs): a whole-list run holds the window's own ways of closing; it takes a flag.
     hold_close: heldProblem,
+    // The app's own command (`backups_info` in lib.rs, backup.rs): the failed-load state asks whether a copy of the database exists, and where; it takes nothing.
+    backups_info: noPayload,
   }
   // Anything not in the table is refused, whatever plugin it is of and however it is spelled: the native side matches a
   // command name exactly, and this hook approves a payload only for the command it has checked it against.

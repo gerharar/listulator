@@ -162,6 +162,21 @@ fn utc_stamp(seconds: u64) -> String {
   format!("{year:04}{month:02}{day:02}-{:02}{:02}{:02}", of_day / 3_600, of_day % 3_600 / 60, of_day % 60)
 }
 
+/// What the page is told when the lists will not load (52.3): where the copies are, and how many of ours there are.
+#[derive(Debug, PartialEq, Eq, serde::Serialize)]
+pub struct Info {
+  pub folder: String,
+  pub count: usize,
+}
+
+/// The copies of ours in `dir`'s backups folder, or `None` when there are none (the page says nothing then). Read-only.
+pub fn existing(dir: &Path) -> Option<Info> {
+  let folder = dir.join(BACKUP_FOLDER);
+  let count = std::fs::read_dir(&folder).ok()?.flatten().filter(|entry| stamp_of(&entry.file_name().to_string_lossy()).is_some()).count();
+
+  (count > 0).then(|| Info { folder: folder.to_string_lossy().into_owned(), count })
+}
+
 #[cfg(test)]
 mod tests {
   use super::*;
@@ -454,5 +469,40 @@ mod tests {
     assert_eq!(std::fs::read(scratch.database()).unwrap(), before);
     assert!(scratch.backup_names().is_empty(), "no copy, and no half-made one: {:?}", scratch.backup_names());
     assert!(!scratch.marker().exists());
+  }
+
+  #[test]
+  fn there_is_nothing_to_tell_before_a_first_copy() {
+    let scratch = Scratch::new("info-none");
+    assert_eq!(existing(&scratch.0), None, "no folder");
+
+    std::fs::create_dir_all(scratch.backups()).unwrap();
+    for name in ["listulator-pre-backfill-tags-20260918-164419.sqlite", "listulator-before-notes.txt", "listulator-before-1.4.0-20231101-000000.sqlite.partial"] {
+      std::fs::write(scratch.backups().join(name), "not ours").unwrap();
+    }
+    assert_eq!(existing(&scratch.0), None, "a folder of other files, or of a copy half-made");
+  }
+
+  #[test]
+  fn it_tells_the_folder_and_how_many_copies_of_ours_there_are() {
+    let scratch = Scratch::new("info-some");
+    make(&scratch.database(), 3, 30);
+    back_up_at(&scratch.0, "1.4.0", NOW);
+    back_up_at(&scratch.0, "1.4.1", NOW + DAY);
+    std::fs::write(scratch.backups().join("listulator-pre-backfill-tags-20260918-164419.sqlite"), "by hand").unwrap();
+
+    assert_eq!(existing(&scratch.0), Some(Info { folder: scratch.backups().to_string_lossy().into_owned(), count: 2 }));
+  }
+
+  #[test]
+  fn telling_changes_nothing() {
+    let scratch = Scratch::new("info-readonly");
+    make(&scratch.database(), 3, 30);
+    back_up_at(&scratch.0, "1.4.0", NOW);
+    let before = scratch.backup_names();
+
+    existing(&scratch.0);
+
+    assert_eq!(scratch.backup_names(), before);
   }
 }

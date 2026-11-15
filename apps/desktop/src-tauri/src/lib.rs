@@ -125,6 +125,15 @@ fn hold_close(held: bool) {
   close_hold::hold(held);
 }
 
+/// The page asks, when the lists will not load, whether a copy of the database exists and where (52.3, `backup.rs`). Takes nothing and
+/// only reads: it gives back a folder and a count, never a way to open, read or delete a copy. `None` says nothing to show.
+#[tauri::command]
+fn backups_info(app: tauri::AppHandle) -> Option<backup::Info> {
+  use tauri::Manager;
+
+  app.path().app_config_dir().ok().and_then(|dir| backup::existing(&dir))
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
   // The page's CSP must allow this build's own isolation frame, whose scheme is made at compile time: see `isolation_csp`.
@@ -202,7 +211,7 @@ pub fn run() {
   });
 
   builder
-    .invoke_handler(tauri::generate_handler![relaunch, hold_close])
+    .invoke_handler(tauri::generate_handler![relaunch, hold_close, backups_info])
     // Keeps the window on the app's own page: nothing else may be navigated to (SR-015, navigation.rs).
     .plugin(navigation::guard(isolation_scheme))
     .plugin(tauri_plugin_sql::Builder::default().build())

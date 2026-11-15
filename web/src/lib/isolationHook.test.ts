@@ -92,6 +92,7 @@ describe('what the app sends passes untouched', () => {
     ['relaunch (the app\u2019s own command: macOS restarts after an update)', message('relaunch', {})],
     ['hold_close on (the app\u2019s own command: a whole-list run holds the window\u2019s close, H-015)', message('hold_close', { held: true })],
     ['hold_close off', message('hold_close', { held: false })],
+    ['backups_info (the app\u2019s own command: the failed-load state asks whether a copy of the database exists, 52.3)', message('backups_info', {})],
   ])('the updater: %s', (_name, sent) => {
     expect(passes(sent)).toBe(true)
   })
@@ -240,11 +241,12 @@ describe('only what the app sends (SR-062: the approval is not bound to the comm
       'plugin:event|listen': { payload: { event: 'tauri://resize', target: { kind: 'Window', label: 'main' }, handler: 12 }, shape: 'listen' },
       'plugin:event|unlisten': { payload: { event: 'tauri://resize', eventId: 5 }, shape: 'unlisten' },
       'plugin:webview|internal_toggle_devtools': { payload: {}, shape: 'empty' },
-      // `{}` is the whole payload of three commands (the inspector's toggle, the updater's check and our relaunch), so they are one shape here.
+      // `{}` is the whole payload of four commands (the inspector's toggle, the updater's check, our relaunch and our backups_info), so they are one shape here.
       'plugin:updater|check': { payload: {}, shape: 'empty' },
       'plugin:updater|download_and_install': { payload: { onEvent: '__CHANNEL__:12', rid: 3 }, shape: 'channel-rid' },
       relaunch: { payload: {}, shape: 'empty' },
       hold_close: { payload: { held: true }, shape: 'held' },
+      backups_info: { payload: {}, shape: 'empty' },
     }
     // Shapes that another shape's payload also satisfies: the optional keys. `store|load` takes `path` alone as `get_store`
     // does; `reload` takes `rid` alone as the rid-only commands do (a reload payload that sets `ignoreDefaults` does not
@@ -258,7 +260,7 @@ describe('only what the app sends (SR-062: the approval is not bound to the comm
     const names = Object.keys(examples)
 
     it('has an example for every command the hook knows', () => {
-      expect(names.length).toBe(33)
+      expect(names.length).toBe(34)
     })
 
     it('passes each example under its own command', () => {
@@ -381,6 +383,19 @@ describe('the updater (SR-063 to SR-067; task 20.10b: only the calls the client 
     })
 
     it.each(['Relaunch', 'RELAUNCH', ' relaunch', 'relaunch ', 'relaunch\u0000', 'plugin:app|relaunch', 'plugin:process|restart', 'plugin:process|exit', 'restart', 'exit'])(
+      'refuses the look-alike or neighbour %j, even with an empty payload',
+      (cmd) => {
+        expect(isRefused(message(cmd, {}))).toBe(true)
+      },
+    )
+  })
+
+  describe('backups_info (52.3)', () => {
+    it.each([{ folder: 'backups' }, { path: '/tmp' }, { rid: 3 }, { label: 'main' }, null, undefined, [], 'now', 0])('refuses the payload %j', (payload) => {
+      expect(isRefused(message('backups_info', payload))).toBe(true)
+    })
+
+    it.each(['Backups_info', 'BACKUPS_INFO', ' backups_info', 'backups_info ', 'backups_info\u0000', 'plugin:fs|read_dir', 'plugin:fs|exists', 'backups-info', 'backupsInfo', 'backups'])(
       'refuses the look-alike or neighbour %j, even with an empty payload',
       (cmd) => {
         expect(isRefused(message(cmd, {}))).toBe(true)

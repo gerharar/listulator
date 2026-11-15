@@ -300,11 +300,11 @@ describe('the updater, as the design left it (task 20.10a; docs/security-review.
     expect(cargo).not.toMatch(/tauri-plugin-process/)
   })
 
-  it('registers the plugin and the relaunch command on the app', () => {
+  it('registers the plugin and the app\u2019s own commands (relaunch, hold_close, backups_info)', () => {
     const lib = code('lib.rs')
 
     expect(lib).toMatch(/\.plugin\(tauri_plugin_updater::Builder::new\(\)\.build\(\)\)/)
-    expect(lib).toMatch(/\.invoke_handler\(tauri::generate_handler!\[relaunch, hold_close\]\)/)
+    expect(lib).toMatch(/\.invoke_handler\(tauri::generate_handler!\[relaunch, hold_close, backups_info\]\)/)
   })
 
   it('relaunches through the exit events, so the window and full-screen state are saved first (`restart()` skips them on the main thread)', () => {
@@ -316,14 +316,26 @@ describe('the updater, as the design left it (task 20.10a; docs/security-review.
     expect(/fn relaunch\(([^)]*)\)/.exec(code('lib.rs'))?.[1]?.trim()).toBe('app: tauri::AppHandle')
   })
 
+  it('tells the page whether a copy of the database exists, and where, from a command that takes nothing and only reads (52.3)', () => {
+    const lib = code('lib.rs')
+    const body = /fn backups_info\([^)]*\)[^{]*\{([\s\S]*?)\n\}/.exec(lib)?.[1] ?? ''
+
+    // Nothing the page sends can reach it: the only parameter is the app handle Tauri supplies.
+    expect(/fn backups_info\(([^)]*)\)/.exec(lib)?.[1]?.trim()).toBe('app: tauri::AppHandle')
+    expect(body).toContain('backup::existing(')
+    expect(body).not.toMatch(/remove|write|rename|create|copy|back_up/)
+    // The answer is a folder and a count; the page is given no way to read, open or delete a copy.
+    expect(code('backup.rs')).toMatch(/pub struct Info \{\s*pub folder: String,\s*pub count: usize,\s*\}/)
+  })
+
   it('saves the window state a moment after every move and resize, with no command of the page’s own (BL-088: the Windows updater ends the app without the exit events that save it)', () => {
     const lib = code('lib.rs')
 
     expect(lib).toMatch(/^mod window_save;$/m)
     expect(/tauri::WindowEvent::Resized\(_\) => \{([\s\S]*?)\n {4}\}/.exec(lib)?.[1]).toContain('save_window_state_soon(')
     expect(/tauri::WindowEvent::Moved\(_\) => \{([\s\S]*?)\n {4}\}/.exec(lib)?.[1]).toContain('save_window_state_soon(')
-    // The page cannot ask for it: the two commands are `relaunch` and `hold_close` (H-015), and the save is not one.
-    expect(lib).toMatch(/generate_handler!\[relaunch, hold_close\]/)
+    // The page cannot ask for it: the commands are `relaunch`, `hold_close` (H-015) and `backups_info` (52.3), and the save is not one.
+    expect(lib).toMatch(/generate_handler!\[relaunch, hold_close, backups_info\]/)
     expect(/fn save_window_state_soon\(([^)]*)\)/.exec(lib)?.[1]?.trim()).toBe('app: &tauri::AppHandle')
     expect(lib).not.toMatch(/#\[tauri::command\]\s*(?:async\s+)?fn save_window_state/)
   })
@@ -392,7 +404,7 @@ describe('the updater, as the design left it (task 20.10a; docs/security-review.
       const registered = (/generate_handler!\[([^\]]*)\]/.exec(code('lib.rs'))?.[1] ?? '').split(',').map((name) => name.trim()).filter(Boolean)
 
       expect(own.sort()).toEqual(registered.sort())
-      expect(registered).toEqual(['hold_close', 'relaunch'])
+      expect(registered).toEqual(['backups_info', 'hold_close', 'relaunch'])
     })
   })
 
