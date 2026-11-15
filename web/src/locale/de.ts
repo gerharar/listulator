@@ -1083,6 +1083,11 @@ export const de: Locale = {
       checkForUpdates: 'Nach Updates suchen',
       checkingUpdates: 'Suche nach Updates…',
       loadFailed: 'Deine Listen konnten nicht geladen werden',
+      backupsNote: (folder: string): { before: string; link: string; after: string } => ({
+        before: `Listulator bewahrt vor jedem Update eine Kopie deiner Listen im Backup-Ordner auf: ${folder}. Die Anleitung "`,
+        link: 'Restoring a backup',
+        after: '" (auf Englisch) erklärt, wie du eine Kopie zurückspielst.',
+      }),
       retry: 'Erneut versuchen',
       listCount: (n: number): string => lists(n),
       summary: (listCount: string, done: number, total: number, timeLeft: string | null): string =>

@@ -22,10 +22,10 @@ items:
 - { title: "Preacher #17", year: 1996, minutes: 25 }
 - { title: "Preacher #18", year: 1996, minutes: 25 }
 - { title: "Preacher #19", year: 1996, minutes: 25 }
-- { title: "Preacher Special: Saint of Killers #1", year: 1996, minutes: 25 }
-- { title: "Preacher Special: Saint of Killers #2", year: 1996, minutes: 25 }
-- { title: "Preacher Special: Saint of Killers #3", year: 1996, minutes: 25 }
-- { title: "Preacher Special: Saint of Killers #4", year: 1996, minutes: 25 }
+- { title: "Preacher Special: Saint of Killers #1", year: 1996, minutes: 25, group: "Preacher Special: Saint of Killers" }
+- { title: "Preacher Special: Saint of Killers #2", year: 1996, minutes: 25, group: "Preacher Special: Saint of Killers" }
+- { title: "Preacher Special: Saint of Killers #3", year: 1996, minutes: 25, group: "Preacher Special: Saint of Killers" }
+- { title: "Preacher Special: Saint of Killers #4", year: 1996, minutes: 25, group: "Preacher Special: Saint of Killers" }
 - { title: "Preacher #20", year: 1996, minutes: 25 }
 - { title: "Preacher Special: The Story of You-Know-Who", year: 1996, minutes: 30 }
 - { title: "Preacher #21", year: 1997, minutes: 25 }

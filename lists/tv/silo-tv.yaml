@@ -1,0 +1,35 @@
+title: Silo TV series
+description: All episodes of the Silo TV series
+category: tv
+status: ongoing
+items:
+- { title: "S01E01 Freedom Day", year: 2023, minutes: 59, group: "Season 1" }
+- { title: "S01E02 Holston's Pick", year: 2023, minutes: 47, group: "Season 1" }
+- { title: "S01E03 Machines", year: 2023, minutes: 62, group: "Season 1" }
+- { title: "S01E04 Truth", year: 2023, minutes: 45, group: "Season 1" }
+- { title: "S01E05 The Janitor's Boy", year: 2023, minutes: 50, group: "Season 1" }
+- { title: "S01E06 The Relic", year: 2023, minutes: 50, group: "Season 1" }
+- { title: "S01E07 The Flamekeepers", year: 2023, minutes: 47, group: "Season 1" }
+- { title: "S01E08 Hanna", year: 2023, minutes: 43, group: "Season 1" }
+- { title: "S01E09 The Getaway", year: 2023, minutes: 43, group: "Season 1" }
+- { title: "S01E10 Outside", year: 2023, minutes: 44, group: "Season 1" }
+- { title: "S02E01 The Engineer", year: 2024, minutes: 45, group: "Season 2" }
+- { title: "S02E02 Order", year: 2024, minutes: 41, group: "Season 2" }
+- { title: "S02E03 Solo", year: 2024, minutes: 54, group: "Season 2" }
+- { title: "S02E04 The Harmonium", year: 2024, minutes: 55, group: "Season 2" }
+- { title: "S02E05 Descent", year: 2024, minutes: 49, group: "Season 2" }
+- { title: "S02E06 Barricades", year: 2024, minutes: 43, group: "Season 2" }
+- { title: "S02E07 The Dive", year: 2024, minutes: 51, group: "Season 2" }
+- { title: "S02E08 The Book of Quinn", year: 2025, minutes: 48, group: "Season 2" }
+- { title: "S02E09 The Safeguard", year: 2025, minutes: 60, group: "Season 2" }
+- { title: "S02E10 Into the Fire", year: 2025, minutes: 59, group: "Season 2" }
+- { title: "S03E01 Who Are You?", year: 2026, minutes: 52, group: "Season 3" }
+- { title: "S03E02 It's All Good", year: 2026, minutes: 52, group: "Season 3" }
+- { title: "S03E03 A Dark Web", year: 2026, minutes: 49, group: "Season 3" }
+- { title: "S03E04 Whatever You Do, Don't Go Home", year: 2026, minutes: 48, group: "Season 3" }
+- { title: "S03E05 Memory", year: 2026, minutes: 53, group: "Season 3" }
+- { title: "S03E06 The Drive", year: 2026, minutes: 54, group: "Season 3" }
+- { title: "S03E07 Radio", year: 2026, minutes: 55, group: "Season 3" }
+- { title: "S03E08 Gray Goo", year: 2026, minutes: 56, group: "Season 3" }
+- { title: "S03E09 Farewell", year: 2026, minutes: 62, group: "Season 3" }
+- { title: "S03E10 Troy", year: 2026, minutes: 60, group: "Season 3" }

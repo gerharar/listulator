@@ -1217,6 +1217,12 @@ export const en = {
       checkForUpdates: 'Check for updates',
       checkingUpdates: 'Checking for updates…',
       loadFailed: 'Couldn\'t load your lists',
+      /** Under the failed-start message, only when the desktop app has a copy of the database (task 52.3): the owner's sentence, with the guide's title as the link. */
+      backupsNote: (folder: string): { before: string; link: string; after: string } => ({
+        before: `Listulator keeps a copy of your lists from before each update, in the backups folder: ${folder}. The guide "`,
+        link: 'Restoring a backup',
+        after: '" explains how to put one back.',
+      }),
       retry: 'Retry',
       listCount: (n: number): string =>
         `${n} ${selectPlural(n, 'en', { one: 'list', other: 'lists' })}`,

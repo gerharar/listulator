@@ -8293,8 +8293,8 @@ THE SOFTWARE.
 ------------------------------------------------------------------------------
 
 quinn 0.11.11 (MIT)
-quinn-proto 0.11.17 (MIT)
-quinn-udp 0.5.15 (MIT)
+quinn-proto 0.11.19 (MIT)
+quinn-udp 0.5.16 (MIT)
 
 Copyright (c) 2018 The quinn Developers
 

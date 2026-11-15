@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import type { MediaList, MediaType } from '../../../lib/api.js'
 import { api } from '../../../lib/api.js'
+import { getBackupsInfo } from '../../../lib/backupsInfo.js'
 import { LiveRegionProvider } from '../LiveRegion/LiveRegion.js'
 import { OverlayManagerProvider } from '../overlay/OverlayManagerContext.js'
 import { ToastProvider } from '../Toast/Toast.js'
@@ -26,6 +27,8 @@ vi.mock('../../../lib/preferences/store.js', () => ({
   }),
   listPreferenceKey: (listId: string, key: string) => `list:${listId}:${key}`,
 }))
+
+vi.mock('../../../lib/backupsInfo.js', () => ({ getBackupsInfo: vi.fn().mockResolvedValue(null) }))
 
 vi.mock('../../../lib/api.js', () => ({
   api: {
@@ -292,6 +295,46 @@ describe('Home', () => {
     )
     expect(screen.getByTestId('stack').textContent).toBe('home:home')
     expect(screen.getByRole('button', { name: 'Retry' })).not.toBeNull()
+  })
+
+  describe('the pointer to the backups folder when the lists will not load (task 52.3)', () => {
+    const SENTENCE =
+      'Listulator keeps a copy of your lists from before each update, in the backups folder: /data/backups. The guide "Restoring a backup" explains how to put one back.'
+
+    it('says where the copies are and links the guide, the owner\u2019s sentence, when there is a copy', async () => {
+      vi.mocked(api.mediaTypes).mockRejectedValue(new Error('no such table: lists'))
+      vi.mocked(api.lists).mockRejectedValue(new Error('no such table: lists'))
+      vi.mocked(getBackupsInfo).mockResolvedValueOnce({ folder: '/data/backups', count: 2 })
+
+      renderHome()
+
+      const note = await screen.findByText((_, element) => element?.tagName === 'P' && element.textContent === SENTENCE)
+      expect(note).not.toBeNull()
+      expect(screen.getByText('no such table: lists')).not.toBeNull()
+      const link = screen.getByRole('link', { name: 'Restoring a backup' })
+      expect(link.getAttribute('href')).toBe('https://github.com/gerharar/listulator/blob/main/guides/restore-a-backup.md')
+    })
+
+    it('says nothing about it when there is no copy', async () => {
+      vi.mocked(api.mediaTypes).mockRejectedValue(new Error('down'))
+      vi.mocked(api.lists).mockRejectedValue(new Error('down'))
+
+      renderHome()
+
+      await waitFor(() => expect(screen.getByRole('button', { name: 'Retry' })).not.toBeNull())
+      expect(screen.queryByRole('link', { name: 'Restoring a backup' })).toBeNull()
+      expect(screen.queryByText(/backups folder/)).toBeNull()
+    })
+
+    it('does not look for a copy when the lists load', async () => {
+      vi.mocked(api.mediaTypes).mockResolvedValue(MEDIA_TYPES)
+      vi.mocked(api.lists).mockResolvedValue([list()])
+
+      renderHome()
+
+      await waitFor(() => expect(screen.getByText('Breaking Bad')).not.toBeNull())
+      expect(getBackupsInfo).not.toHaveBeenCalled()
+    })
   })
 
   it('retries the fetch when Retry is clicked', async () => {
