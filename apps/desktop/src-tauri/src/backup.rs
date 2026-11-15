@@ -66,8 +66,9 @@ fn back_up_at(dir: &Path, version: &str, now: u64) -> Outcome {
 
   match database.try_exists() {
     // A first install: nothing to keep yet. Decided by the file's existence, never by the marker's (a database with no marker is the 1.4.0 upgrade).
+    // The config folder may not exist yet (the SQL plugin makes it when the page first connects, after `setup`), so it is made here.
     Ok(false) => {
-      return match std::fs::write(&marker, version) {
+      return match std::fs::create_dir_all(dir).and_then(|()| std::fs::write(&marker, version)) {
         Ok(()) => Outcome::FirstInstall,
         Err(error) => Outcome::Skipped(format!("marker not written: {error}")),
       }
@@ -276,6 +277,21 @@ mod tests {
     assert_eq!(std::fs::read_to_string(scratch.marker()).unwrap(), "1.4.1");
     assert!(!scratch.backups().exists(), "a first install has nothing to keep");
     assert!(!scratch.database().exists(), "and the database is not created");
+  }
+
+  #[test]
+  fn a_first_install_makes_the_config_folder_for_the_marker() {
+    // On a real first install the app's config folder does not exist yet when `setup` runs: the SQL plugin makes it later, when the page connects.
+    let scratch = Scratch::new("no-config-folder");
+    let config = scratch.0.join("com.listulator.desktop");
+
+    assert_eq!(back_up_at(&config, "1.4.1", NOW), Outcome::FirstInstall);
+
+    assert_eq!(std::fs::read_to_string(config.join(MARKER_FILE)).unwrap(), "1.4.1");
+    // And the start that follows, with the database now there, finds the marker level: no copy of a brand-new empty database.
+    make(&config.join(DATABASE_FILE), 0, 0);
+    assert_eq!(back_up_at(&config, "1.4.1", NOW + 60), Outcome::Unchanged);
+    assert!(!config.join(BACKUP_FOLDER).exists());
   }
 
   #[test]
