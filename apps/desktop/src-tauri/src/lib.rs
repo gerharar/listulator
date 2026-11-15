@@ -1,6 +1,7 @@
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Mutex;
 
+mod backup;
 mod close_hold;
 mod fullscreen;
 mod isolation_csp;
@@ -255,6 +256,17 @@ pub fn run() {
             .level(log::LevelFilter::Info)
             .build(),
         )?;
+      }
+      // Phase 52: the first start of a new version keeps a copy of the database as the last one left it, before anything can migrate it.
+      // First, so the copy is of that file and not of a vacuumed one; never stops the start (backup.rs).
+      #[cfg(desktop)]
+      if let Some(dir) = config_dir(app.handle()) {
+        match backup::back_up(&dir, &app.package_info().version.to_string()) {
+          backup::Outcome::BackedUp { name, pruned } => log::info!("database copied to backups/{name}, {pruned} older removed"),
+          backup::Outcome::FirstInstall => log::info!("first start: no database to copy yet"),
+          backup::Outcome::Skipped(reason) => log::warn!("database not copied: {reason}"),
+          backup::Outcome::Unchanged => {}
+        }
       }
       // BL-151: a database that is mostly the free pages of deleted lists is rewritten. Here, in `setup`, because the page cannot reach
       // the database until `setup` returns (vacuum.rs says why); it never stops the start.
