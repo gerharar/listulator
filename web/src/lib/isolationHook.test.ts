@@ -29,12 +29,27 @@ const passes = (sent: IpcMessage): boolean => {
 const sql = (cmd: 'select' | 'execute', query: unknown, values: unknown = [], db: unknown = DATABASE) =>
   message(`plugin:sql|${cmd}`, { db, query, values })
 
+// `sql_batch` (53.1, 53.2): the app's own command that runs a list of statements in one transaction. The limits are the native side's
+// (`Limits::DEFAULT` in `sql_batch.rs`; `sqlBatchLimits.guard.test.ts` keeps the two equal).
+const BATCH_MAX_STATEMENTS = 2_000
+const BATCH_MAX_BYTES = 64 * 1024 * 1024
+const batch = (statements: unknown, rest: Record<string, unknown> = {}, db: unknown = DATABASE) => message('sql_batch', { db, statements, ...rest })
+const stmt = (query: unknown = 'SELECT 1', values?: unknown) => (values === undefined ? { query } : { query, values })
+/** A copy of the list with one place empty (a hole, which is not an `undefined` element: `in` and `forEach` skip it). */
+const withHole = <T>(list: T[], at: number): T[] => {
+  const copy = [...list]
+  Reflect.deleteProperty(copy, at)
+
+  return copy
+}
+
 describe('what the app sends passes untouched', () => {
   it.each([
     ['sql load', message('plugin:sql|load', { db: DATABASE })],
     ['sql select', sql('select', 'SELECT id, title FROM lists WHERE user_id = $1', ['u'])],
     ['sql execute', sql('execute', 'INSERT INTO __local_migrations (tag, applied_at) VALUES ($1, $2)', ['0001', 1])],
     ['pragma foreign_keys', sql('execute', 'PRAGMA foreign_keys = ON')],
+    ['sql_batch (the app\u2019s own command: a whole rewrite in one transaction)', batch([stmt('DELETE FROM list_items WHERE list_id = $1', ['l1']), stmt('INSERT INTO list_items (id, list_id, title) VALUES ($1, $2, $3)', ['i', 'l1', 'T'])])],
     ['store load, settings', message('plugin:store|load', { path: 'settings.json', options: { autoSave: true } })],
     ['store load, preferences', message('plugin:store|load', { path: 'preferences.json', options: { autoSave: true } })],
     ['store load, no options', message('plugin:store|load', { path: 'settings.json' })],
@@ -124,6 +139,10 @@ describe('only what the app sends (SR-062: the approval is not bound to the comm
     'plugin:nothing|here',
     'plugin:sql|close',
     'plugin:sql|get_migrations',
+    'plugin:sql|sql_batch',
+    'sql_batch ',
+    'SQL_BATCH',
+    'sql-batch',
     'plugin:store|close',
     'plugin:http|fetch_something_new',
     'plugin:opener|reveal_item_in_dir',
@@ -215,6 +234,7 @@ describe('only what the app sends (SR-062: the approval is not bound to the comm
       'plugin:sql|load': { payload: { db: DATABASE }, shape: 'db' },
       'plugin:sql|select': { payload: { db: DATABASE, query: 'SELECT 1', values: [] }, shape: 'statement' },
       'plugin:sql|execute': { payload: { db: DATABASE, query: 'SELECT 1', values: [] }, shape: 'statement' },
+      sql_batch: { payload: { db: DATABASE, statements: [{ query: 'SELECT 1', values: [] }] }, shape: 'batch' },
       'plugin:store|load': { payload: { path: 'settings.json', options: { autoSave: true } }, shape: 'store-load' },
       'plugin:store|get_store': { payload: { path: 'settings.json' }, shape: 'path' },
       'plugin:store|get': { payload: { rid: 7, key: 'k' }, shape: 'rid-key' },
@@ -260,7 +280,7 @@ describe('only what the app sends (SR-062: the approval is not bound to the comm
     const names = Object.keys(examples)
 
     it('has an example for every command the hook knows', () => {
-      expect(names.length).toBe(34)
+      expect(names.length).toBe(35)
     })
 
     it('passes each example under its own command', () => {
@@ -523,6 +543,21 @@ describe('the SQL text (SR-002; probe P3b: ATTACH reaches any database file)', (
     ['pragma journal_mode', 'PRAGMA journal_mode = OFF'],
     ['pragma data_version', 'PRAGMA data_version'],
     ['pragma foreign_keys with a second pragma', 'PRAGMA foreign_keys = ON; PRAGMA writable_schema = ON'],
+    // Enforcement can be switched off on a pooled connection and stays off there (measured, 53.0): the app sends only the exact ON.
+    ['pragma foreign_keys off', 'PRAGMA foreign_keys = OFF'],
+    ['pragma foreign_keys off, lower case, no spaces', 'pragma foreign_keys=off'],
+    ['pragma foreign_keys zero', 'PRAGMA foreign_keys = 0'],
+    ['pragma foreign_keys one (only the word ON is what the app sends)', 'PRAGMA foreign_keys = 1'],
+    ['pragma foreign_keys false', 'PRAGMA foreign_keys = false'],
+    ['pragma foreign_keys as text', "PRAGMA foreign_keys = 'off'"],
+    ['pragma foreign_keys with no value', 'PRAGMA foreign_keys'],
+    ['pragma foreign_keys with a schema name', 'PRAGMA main.foreign_keys = OFF'],
+    ['pragma foreign_keys quoted', 'PRAGMA "foreign_keys" = OFF'],
+    ['pragma foreign_keys ON, then more', 'PRAGMA foreign_keys = ON ON'],
+    ['pragma foreign_keys ON, then off', 'PRAGMA foreign_keys = ON OFF'],
+    ['pragma defer_foreign_keys', 'PRAGMA defer_foreign_keys = ON'],
+    ['pragma foreign_key_check', 'PRAGMA foreign_key_check'],
+    ['a pragma after another word', 'EXPLAIN PRAGMA foreign_keys = OFF'],
     ['a second statement of any kind', 'SELECT 1; SELECT 2'],
     ['a second statement after a comment', 'SELECT 1; /* x */ DROP TABLE lists'],
     ['an unterminated string that might hide the rest', "SELECT 'abc; ATTACH '/tmp/x' AS x"],
@@ -694,6 +729,209 @@ describe('the SQL text (SR-002; probe P3b: ATTACH reaches any database file)', (
       'pragma foreign_keys=on',
     ]) {
       expect(passes(sql('execute', query)), query).toBe(true)
+    }
+  })
+})
+
+describe('sql_batch (53.2: the app’s own command, the whole list in one transaction)', () => {
+  const refused = (sent: IpcMessage): void => expect(isRefused(sent)).toBe(true)
+
+  describe('what the app sends passes untouched', () => {
+    it.each([
+      ['one statement', batch([stmt('SELECT 1')])],
+      ['a statement with no values key (the native side defaults it)', batch([{ query: 'SELECT 1' }])],
+      ['values of every kind Drizzle sends: text, whole and fractional numbers, null', batch([stmt('INSERT INTO t (a, b, c, d) VALUES ($1, $2, $3, $4)', ['a', 1, 1.5, null])])],
+      ['the foreign-keys option on', batch([stmt('DROP TABLE t')], { foreignKeysOff: true })],
+      ['the foreign-keys option off', batch([stmt('SELECT 1')], { foreignKeysOff: false })],
+      ['the option unset (the page may send every key, the unset ones as undefined)', batch([stmt('SELECT 1')], { foreignKeysOff: undefined })],
+      ['two hundred statements, a 50,000-item rewrite', batch(Array.from({ length: 200 }, (_, n) => stmt(`INSERT INTO t VALUES ($1, $2)`, [`id-${n}`, n])))],
+      ['the most statements one call may hold', batch(Array.from({ length: BATCH_MAX_STATEMENTS }, () => stmt()))],
+      ['a statement that returns rows', batch([stmt('INSERT INTO t (a) VALUES ($1) RETURNING a, b', ['x'])])],
+      ['the exact ON of the pragma the app sends', batch([stmt('PRAGMA foreign_keys = ON')])],
+    ])('%s', (_name, sent) => {
+      expect(passes(sent)).toBe(true)
+    })
+
+    it('lets every statement of the app’s own migrations through as one batch', () => {
+      const dir = join(import.meta.dirname, '../../../server/drizzle')
+      const statements = readdirSync(dir)
+        .filter((name) => name.endsWith('.sql'))
+        .flatMap((name) =>
+          readFileSync(join(dir, name), 'utf8')
+            .split('--> statement-breakpoint')
+            .map((statement) => statement.trim())
+            .filter(Boolean),
+        )
+
+      expect(statements.length).toBeGreaterThan(30)
+      expect(passes(batch(statements.map((query) => stmt(query))))).toBe(true)
+    })
+  })
+
+  describe('only that shape', () => {
+    it.each([
+      ['another database', batch([stmt()], {}, 'sqlite:/tmp/other.sqlite')],
+      ['no database', message('sql_batch', { statements: [stmt()] })],
+      ['an extra key beside the statements', batch([stmt()], { extra: 1 })],
+      ['a second list under another name', batch([stmt()], { queries: [stmt()] })],
+      ['no statements', message('sql_batch', { db: DATABASE })],
+      ['no payload', message('sql_batch', null)],
+      ['a payload that is an array', message('sql_batch', [DATABASE, [stmt()]])],
+      ['a payload that is bytes', message('sql_batch', new Uint8Array([1, 2, 3]))],
+      ['a __proto__ key', message('sql_batch', { ['__proto__']: 1, db: DATABASE, statements: [stmt()] })],
+      ['the foreign-keys option as text', batch([stmt()], { foreignKeysOff: 'true' })],
+      ['the foreign-keys option as a number', batch([stmt()], { foreignKeysOff: 1 })],
+      ['the foreign-keys option as an object', batch([stmt()], { foreignKeysOff: {} })],
+    ])('refuses %s', (_name, sent) => refused(sent))
+
+    it.each([
+      ['a string', 'SELECT 1'],
+      ['an object that only has a length', { length: 1, 0: stmt() }],
+      ['a typed array', new Uint8Array(3)],
+      ['a Set', new Set([stmt()])],
+      ['a number', 3],
+      ['null', null],
+      ['an empty list (there is nothing to do; the caller says so itself)', []],
+      ['one statement more than a call may hold', Array.from({ length: BATCH_MAX_STATEMENTS + 1 }, () => stmt())],
+      ['a list that says it is a billion long (it is never walked)', new Array(1_000_000_000)],
+      ['a list with a hole in it', withHole([stmt(), stmt(), stmt()], 1)],
+      ['a list of text', ['SELECT 1']],
+      ['a list with a null in it', [stmt(), null]],
+      ['a list with a list in it', [[stmt()]]],
+    ])('refuses statements that are %s', (_name, statements) => refused(batch(statements)))
+
+    it.each([
+      ['an extra key', { query: 'SELECT 1', values: [], extra: 1 }],
+      ['no query', { values: [] }],
+      ['a query that is not text', { query: 5, values: [] }],
+      ['a query that is a list', { query: ['SELECT 1'], values: [] }],
+      ['values that are text', { query: 'SELECT 1', values: 'x' }],
+      ['values that are an object', { query: 'SELECT 1', values: { 0: 1, length: 1 } }],
+      ['values that are bytes', { query: 'SELECT 1', values: new Uint8Array(2) }],
+    ])('refuses a statement with %s', (_name, statement) => refused(batch([stmt(), statement])))
+  })
+
+  describe('the values (the app sends only text, numbers and null; the native side would bind more, the hook lets none of it through)', () => {
+    it.each([
+      ['undefined', undefined],
+      ['true', true],
+      ['false', false],
+      ['an object', { a: 1 }],
+      ['a list', [1, 2]],
+      ['a nested list', [[1]]],
+      ['NaN', Number.NaN],
+      ['Infinity', Number.POSITIVE_INFINITY],
+      ['minus Infinity', Number.NEGATIVE_INFINITY],
+      ['a BigInt', 10n],
+      ['a function', () => 1],
+      ['a symbol', Symbol('x')],
+      ['a date', new Date(0)],
+      ['bytes', new Uint8Array(2)],
+    ])('refuses %s as a value', (_name, value) => {
+      refused(batch([stmt('SELECT $1', [value])]))
+      refused(batch([stmt(), stmt('SELECT $1, $2', ['ok', value])]))
+    })
+
+    it('refuses a list of values with a hole in it', () => {
+      refused(batch([stmt('SELECT $1, $2, $3', withHole(['a', 'b', 'c'], 1))]))
+    })
+
+    it('never walks a list of values that says it is a billion long', () => {
+      const started = Date.now()
+      refused(batch([stmt('SELECT 1', new Array(1_000_000_000))]))
+      expect(Date.now() - started).toBeLessThan(1000)
+    })
+  })
+
+  describe('the SQL of every statement, wherever it stands in the list', () => {
+    const hostile: [string, string][] = [
+      ['attach', "ATTACH DATABASE '/tmp/x.sqlite' AS x"],
+      ['detach', 'DETACH DATABASE x'],
+      ['vacuum into', "VACUUM INTO '/tmp/copy.sqlite'"],
+      ['load_extension', "SELECT load_extension('/tmp/evil.dylib')"],
+      ['begin (the command opens the transaction itself)', 'BEGIN'],
+      ['begin immediate', 'BEGIN IMMEDIATE'],
+      ['commit', 'COMMIT'],
+      ['end', 'END'],
+      ['rollback', 'ROLLBACK'],
+      ['savepoint', 'SAVEPOINT a'],
+      ['release', 'RELEASE a'],
+      ['a second statement in the text', 'SELECT 1; SELECT 2'],
+      ['a second statement that attaches', "SELECT 1; ATTACH '/tmp/x.sqlite' AS x"],
+      ['a pragma that switches enforcement off', 'PRAGMA foreign_keys = OFF'],
+      ['a pragma that switches it off, lower case', 'pragma foreign_keys=0'],
+      ['a pragma that writes the schema', 'PRAGMA writable_schema = ON'],
+      ['a pragma that checks (the native side does that itself)', 'PRAGMA foreign_key_check'],
+      ['an empty statement', ''],
+      ['a NUL', 'SELECT 1\u0000'],
+      ['an unterminated string that might hide the rest', "SELECT 'abc; ATTACH '/tmp/x' AS x"],
+    ]
+    const good = () => stmt('INSERT INTO t (a) VALUES ($1)', ['x'])
+
+    it.each(hostile)('refuses %s first, in the middle and last of five', (_name, query) => {
+      refused(batch([stmt(query), good(), good(), good(), good()]))
+      refused(batch([good(), good(), stmt(query), good(), good()]))
+      refused(batch([good(), good(), good(), good(), stmt(query)]))
+    })
+
+    it('still checks the last statement of the most a call may hold', () => {
+      const last = Array.from({ length: BATCH_MAX_STATEMENTS }, () => good())
+      last[BATCH_MAX_STATEMENTS - 1] = stmt("ATTACH '/tmp/x.sqlite' AS x")
+
+      refused(batch(last))
+    })
+
+    it('refuses a hostile statement under the foreign-keys option too', () => {
+      refused(batch([stmt('DROP TABLE t'), stmt("ATTACH '/tmp/x.sqlite' AS x")], { foreignKeysOff: true }))
+      refused(batch([stmt('PRAGMA foreign_keys = OFF')], { foreignKeysOff: true }))
+    })
+  })
+
+  describe('the size of one call (the text of every statement and every value: text by its length, a number as 20, null as 4)', () => {
+    it('lets a call of exactly the most through', () => {
+      const query = 'SELECT $1'
+
+      expect(passes(batch([stmt(query, ['x'.repeat(BATCH_MAX_BYTES - query.length)])]))).toBe(true)
+    })
+
+    it('refuses a call one byte over', () => {
+      const query = 'SELECT $1'
+
+      refused(batch([stmt(query, ['x'.repeat(BATCH_MAX_BYTES - query.length + 1)])]))
+    })
+
+    it('adds the statements up, not one by one', () => {
+      const third = Math.floor(BATCH_MAX_BYTES / 3) + 1
+      const big = () => stmt('SELECT $1', ['x'.repeat(third)])
+
+      expect(passes(batch([big(), big()]))).toBe(true)
+      refused(batch([big(), big(), big()]))
+    })
+
+    it('counts a number as 20 and null as 4, so a long list of small values cannot slip past', () => {
+      const numbers = Math.floor(BATCH_MAX_BYTES / 20)
+      refused(batch([stmt('SELECT 1', new Array<number>(numbers + 1).fill(1))]))
+      const nulls = Math.floor(BATCH_MAX_BYTES / 4)
+      refused(batch([stmt('SELECT 1', new Array<null>(nulls + 1).fill(null))]))
+    })
+  })
+
+  it('says which command and which statement it refused, never what the statement held', () => {
+    warnings.length = 0
+    refused(batch([stmt(), stmt("SELECT 'a-very-secret-title'; ATTACH '/tmp/very-secret-file' AS x")]))
+
+    const logged = warnings.join('\n')
+    expect(logged).toContain('sql_batch')
+    expect(logged).toContain('statement 1')
+    expect(logged).not.toContain('very-secret')
+  })
+
+  it('never throws, whatever it is given', () => {
+    const cyclic: Record<string, unknown> = { db: DATABASE }
+    cyclic['statements'] = [cyclic]
+
+    for (const payload of [cyclic, { db: DATABASE, statements: [{ query: 'SELECT 1', values: [cyclic] }] }, { db: DATABASE, statements: new Proxy([], {}) }]) {
+      expect(() => hook(message('sql_batch', payload))).not.toThrow()
     }
   })
 })

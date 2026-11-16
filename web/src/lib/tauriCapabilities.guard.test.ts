@@ -302,11 +302,11 @@ describe('the updater, as the design left it (task 20.10a; docs/security-review.
     expect(cargo).not.toMatch(/tauri-plugin-process/)
   })
 
-  it('registers the plugin and the app\u2019s own commands (relaunch, hold_close, backups_info)', () => {
+  it('registers the plugin and the app\u2019s own commands (relaunch, hold_close, backups_info, sql_batch)', () => {
     const lib = code('lib.rs')
 
     expect(lib).toMatch(/\.plugin\(tauri_plugin_updater::Builder::new\(\)\.build\(\)\)/)
-    expect(lib).toMatch(/\.invoke_handler\(tauri::generate_handler!\[relaunch, hold_close, backups_info\]\)/)
+    expect(lib).toMatch(/\.invoke_handler\(tauri::generate_handler!\[relaunch, hold_close, backups_info, sql_batch::sql_batch\]\)/)
   })
 
   it('relaunches through the exit events, so the window and full-screen state are saved first (`restart()` skips them on the main thread)', () => {
@@ -330,14 +330,25 @@ describe('the updater, as the design left it (task 20.10a; docs/security-review.
     expect(code('backup.rs')).toMatch(/pub struct Info \{\s*pub folder: String,\s*pub count: usize,\s*\}/)
   })
 
+  it('runs a list of statements in one transaction from a command that takes only the database, the statements and one option, and nothing of the window or the app (53.1, 53.2)', () => {
+    const rust = code('sql_batch.rs')
+    const parameters = /pub async fn sql_batch\(([\s\S]*?)\)\s*->/.exec(rust)?.[1]?.replace(/\s+/g, ' ').trim()
+
+    // `State` is what Tauri supplies; the page sends `db`, `statements` and `foreignKeysOff`, and the hook admits exactly those keys.
+    expect(parameters).toBe("instances: State<'_, DbInstances>, db: String, statements: Vec<Statement>, foreign_keys_off: Option<bool>,")
+    expect(rust).toMatch(/run\(&pool, &statements, foreign_keys_off\.unwrap_or\(false\), &Limits::DEFAULT\)/)
+    // A statement is its text and its values, nothing else (a field added here would reach the SQL without the hook having looked at it).
+    expect(/pub struct Statement \{([\s\S]*?)\n\}/.exec(rust)?.[1]?.replace(/#\[serde\(default\)\]/g, '').replace(/\s+/g, ' ').trim()).toBe('pub query: String, pub values: Vec<Value>,')
+  })
+
   it('saves the window state a moment after every move and resize, with no command of the page’s own (BL-088: the Windows updater ends the app without the exit events that save it)', () => {
     const lib = code('lib.rs')
 
     expect(lib).toMatch(/^mod window_save;$/m)
     expect(/tauri::WindowEvent::Resized\(_\) => \{([\s\S]*?)\n {4}\}/.exec(lib)?.[1]).toContain('save_window_state_soon(')
     expect(/tauri::WindowEvent::Moved\(_\) => \{([\s\S]*?)\n {4}\}/.exec(lib)?.[1]).toContain('save_window_state_soon(')
-    // The page cannot ask for it: the commands are `relaunch`, `hold_close` (H-015) and `backups_info` (52.3), and the save is not one.
-    expect(lib).toMatch(/generate_handler!\[relaunch, hold_close, backups_info\]/)
+    // The page cannot ask for it: the commands are `relaunch`, `hold_close` (H-015), `backups_info` (52.3) and `sql_batch` (53.2), and the save is not one.
+    expect(lib).toMatch(/generate_handler!\[relaunch, hold_close, backups_info, sql_batch::sql_batch\]/)
     expect(/fn save_window_state_soon\(([^)]*)\)/.exec(lib)?.[1]?.trim()).toBe('app: &tauri::AppHandle')
     expect(lib).not.toMatch(/#\[tauri::command\]\s*(?:async\s+)?fn save_window_state/)
   })
@@ -403,10 +414,11 @@ describe('the updater, as the design left it (task 20.10a; docs/security-review.
 
     it('has a hook entry for every command the app registers itself, and a registered command for every such entry', () => {
       const own = [...table.matchAll(/^ {4}([a-z_]+): /gm)].map((match) => match[1])
-      const registered = (/generate_handler!\[([^\]]*)\]/.exec(code('lib.rs'))?.[1] ?? '').split(',').map((name) => name.trim()).filter(Boolean)
+// A command that lives in a module is registered by its path (`sql_batch::sql_batch`); the hook knows it by its name.
+      const registered = (/generate_handler!\[([^\]]*)\]/.exec(code('lib.rs'))?.[1] ?? '').split(',').map((name) => name.trim().split('::').pop() ?? '').filter(Boolean)
 
       expect(own.sort()).toEqual(registered.sort())
-      expect(registered).toEqual(['backups_info', 'hold_close', 'relaunch'])
+      expect(registered).toEqual(['backups_info', 'hold_close', 'relaunch', 'sql_batch'])
     })
   })
 

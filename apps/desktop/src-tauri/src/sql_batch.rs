@@ -20,8 +20,9 @@
 //! It runs on a connection of its own, opened with enforcement off and closed after, so no pooled connection ever has the setting
 //! changed, whatever happens; `PRAGMA foreign_key_check` must find nothing before the commit.
 //!
-//! Not registered as a command yet: the page can reach only what `isolation/hook.js` lists, and 53.2 adds this one (exact shape, caps)
-//! together with its entry in `generate_handler!` and the guard tests that pin that list.
+//! The page reaches it only through `isolation/hook.js`, which admits the exact shape `{ db, statements: [{ query, values? }],
+//! foreignKeysOff? }` and the same caps (53.2), and refuses every statement the one-statement commands refuse. `lib.rs` registers it;
+//! `tauriCapabilities.guard.test.ts` pins that list and `sqlBatchLimits.guard.test.ts` keeps the caps equal on both sides.
 
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -251,8 +252,7 @@ fn value_of(row: &SqliteRow, index: usize) -> Result<Value, String> {
   })
 }
 
-/// The command the page will call (registered in 53.2): the plugin's pool for `db`, then `run`.
-#[allow(dead_code)]
+/// The command the page calls: the plugin's pool for `db`, then `run`.
 #[tauri::command]
 pub async fn sql_batch(
   instances: State<'_, DbInstances>,

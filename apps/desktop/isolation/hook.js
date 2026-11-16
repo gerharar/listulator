@@ -2,8 +2,9 @@
 // review spike S1"). Tauri runs this in a sandboxed iframe that sees every request the window sends through `invoke`,
 // before it is encrypted. A request that passes is exactly what the app itself sends: open the app's own database, read
 // and write its two settings files, ask the HTTP plugin for a plain request, open a link in the browser, the window's own
-// few calls, and the updater's check and install with the app's own relaunch (task 20.10b, SR-066). Everything else is
-// refused, whatever plugin it is of (SR-062).
+// few calls, the updater's check and install with the app's own relaunch (task 20.10b, SR-066), and the app's own native
+// commands (a whole rewrite of the database in one transaction: `sql_batch`, Phase 53). Everything else is refused, whatever
+// plugin it is of (SR-062).
 //
 // What this does NOT do (SR-062, DECISIONS "Security review 19.14"): Tauri encrypts the payload but sends the command name
 // in the clear and does not tie the two together, and the page forwards the frame's answer. So a script that handles that
@@ -65,13 +66,21 @@
 
   var ALLOWED_FIRST_WORDS = ['select', 'insert', 'update', 'delete', 'create', 'drop', 'alter', 'with', 'pragma']
   // Words that reach outside the app's own database (ATTACH a file, VACUUM INTO a path, an extension, a tokenizer
-  // function that takes a pointer) or change how SQLite treats it (PRAGMA, but for foreign_keys).
+  // function that takes a pointer) or change how SQLite treats it (PRAGMA, but for the one `foreign_keys = ON` below).
   var FORBIDDEN_WORDS = ['attach', 'detach', 'vacuum', 'load_extension', 'fts3_tokenizer']
   var WORD = /[A-Za-z_\u0080-\uffff][A-Za-z0-9_$\u0080-\uffff]*/y
   var NUMBER = /[0-9][0-9.]*/y
   var PARAMETER = /\$[0-9]+(?![A-Za-z0-9_$\u0080-\uffff(:])/y
   var PUNCTUATION = '(),.*=<>!+-/%|&~?'
   var UNSAFE_TEXT = /[^\t\n\f\r\u0020-\u007e\u0080-\uffff]/
+
+  // The one pragma the app sends is `PRAGMA foreign_keys = ON` (`localDb.ts`, at open; sqlx turns it on in every pooled connection
+  // already). Switching it OFF from the page would stay on one pooled connection and nothing would say so (measured, 53.0: one `OFF`
+  // reached 1 of 10 connections), so no other form is allowed: not OFF, not 0, not a read, not another pragma. The native `sql_batch`
+  // changes enforcement itself, on a connection of its own, when a migration rebuilds a table (53.1).
+  function isForeignKeysOn(tokens) {
+    return tokens.length === 3 && tokens[0] === 'pragma' && tokens[1] === 'foreign_keys' && tokens[2] === 'on'
+  }
 
   /**
    * One statement, of a kind the app sends, with no forbidden word outside a string, a quoted name or a comment. The text is
@@ -165,7 +174,7 @@
     if (ALLOWED_FIRST_WORDS.indexOf(tokens[0]) < 0) return 'kind of statement'
     for (var i = 0; i < tokens.length; i++) {
       if (FORBIDDEN_WORDS.indexOf(tokens[i]) >= 0) return 'forbidden word'
-      if (tokens[i] === 'pragma' && (i > 0 || tokens[1] !== 'foreign_keys')) return 'forbidden word'
+      if (tokens[i] === 'pragma' && !isForeignKeysOn(tokens)) return 'forbidden word'
     }
     return null
   }
@@ -177,6 +186,62 @@
       sqlProblem(payload.query) ||
       (unset(payload.values) || Array.isArray(payload.values) ? null : 'values')
     )
+  }
+
+  // ---- the app's own batch command (53.1, 53.2) ----
+
+  // `sql_batch` (sql_batch.rs) runs a list of statements in one transaction, so a rewrite that stops half-way leaves nothing. The same
+  // limits are checked again on the native side (`Limits::DEFAULT`); `sqlBatchLimits.guard.test.ts` keeps the two equal.
+  var BATCH_MAX_STATEMENTS = 2000
+  var BATCH_MAX_BYTES = 64 * 1024 * 1024
+
+  // What a value counts for in the size of a call: text by its length, a number as 20, null as 4 (a lower bound of the JSON that
+  // carries it). A value of any other kind is not one the app sends (Drizzle gives text, numbers and null; a true or a list is
+  // bound by the native side as JSON text, which nothing wants): -1, and the call is refused.
+  function batchValueSize(value) {
+    if (value === null) return 4
+    if (typeof value === 'string') return value.length
+    if (typeof value === 'number' && isFinite(value)) return 20
+    return -1
+  }
+
+  /**
+   * `{ db, statements: [{ query, values? }], foreignKeysOff? }`: the app's database, one to 2,000 statements, each with the SQL
+   * text `sqlProblem` allows for one statement (so no `BEGIN`, `COMMIT`, `ATTACH`, `VACUUM`, no second statement, no pragma but the
+   * exact ON) and values of the kinds above, the whole call within 64 MiB. Every statement is read, the last of 2,000 included, and
+   * nothing is walked past the point where the call is already too large or a value is not one the app sends (a list that says it
+   * is a billion long stops at its first hole). The reason names the place of the statement, never what it held.
+   */
+  function batchProblem(payload) {
+    var problem = keysProblem(payload, ['db', 'statements', 'foreignKeysOff'], ['db', 'statements']) || databaseProblem(payload.db)
+    if (problem) return problem
+    if (!unset(payload.foreignKeysOff) && typeof payload.foreignKeysOff !== 'boolean') return 'foreign keys option'
+
+    var statements = payload.statements
+    if (!Array.isArray(statements) || statements.length < 1 || statements.length > BATCH_MAX_STATEMENTS) return 'statements'
+
+    var bytes = 0
+    for (var i = 0; i < statements.length; i++) {
+      var statement = statements[i]
+      if (!isObject(statement)) return 'statement ' + i + ': not an object'
+      problem = keysProblem(statement, ['query', 'values'], ['query']) || sqlProblem(statement.query)
+      if (problem) return 'statement ' + i + ': ' + problem
+      bytes += statement.query.length
+
+      var values = statement.values
+      if (values !== undefined) {
+        if (!Array.isArray(values)) return 'statement ' + i + ': values'
+        for (var j = 0; j < values.length; j++) {
+          var size = batchValueSize(values[j])
+          if (size < 0) return 'statement ' + i + ': a value of a kind the app does not send'
+          bytes += size
+          if (bytes > BATCH_MAX_BYTES) return 'call too large'
+        }
+      }
+      if (bytes > BATCH_MAX_BYTES) return 'call too large'
+    }
+
+    return null
   }
 
   // ---- the two settings stores ----
@@ -432,6 +497,8 @@
     hold_close: heldProblem,
     // The app's own command (`backups_info` in lib.rs, backup.rs): the failed-load state asks whether a copy of the database exists, and where; it takes nothing.
     backups_info: noPayload,
+    // The app's own command (`sql_batch` in sql_batch.rs, registered in lib.rs): a whole list of statements in one transaction (Phase 53).
+    sql_batch: batchProblem,
   }
   // Anything not in the table is refused, whatever plugin it is of and however it is spelled: the native side matches a
   // command name exactly, and this hook approves a payload only for the command it has checked it against.

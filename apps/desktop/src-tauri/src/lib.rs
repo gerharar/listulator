@@ -218,7 +218,7 @@ pub fn run() {
   });
 
   builder
-    .invoke_handler(tauri::generate_handler![relaunch, hold_close, backups_info])
+    .invoke_handler(tauri::generate_handler![relaunch, hold_close, backups_info, sql_batch::sql_batch])
     // Keeps the window on the app's own page: nothing else may be navigated to (SR-015, navigation.rs).
     .plugin(navigation::guard(isolation_scheme))
     .plugin(tauri_plugin_sql::Builder::default().build())
