@@ -11,7 +11,7 @@ import {
   type ListGroup,
   type ListItem,
 } from '../db/schema.js'
-import { ensureListGroup, GroupNameError } from './groups.js'
+import { ensureListGroup, GroupNameError, groupsOf, missingGroups } from './groups.js'
 import { findList } from './repository.js'
 import { validYearPair } from './years.js'
 import {
@@ -34,7 +34,8 @@ export type {
   ListRestore,
   OrderRestore,
 } from './restorePayloads.js'
-import { setGroupPositions, setItemPositions } from './orderIndex.js'
+import { batches, setGroupPositions, setItemPositions } from './orderIndex.js'
+import { runAtomically } from '../db/atomic.js'
 
 /**
  * The other half of Undo (D2, task 10.19a): put back what a destructive call
@@ -85,21 +86,6 @@ const dismissalRow = (listId: string, row: DismissalPayload) => ({
   titleKey: row.titleKey,
   createdAt: new Date(row.createdAt),
 })
-
-/** A group for every label the items carry, in the order the labels first appear. */
-async function ensureGroupsFor(
-  db: PortableDatabase,
-  listId: string,
-  items: readonly ItemPayload[],
-): Promise<void> {
-  const seen = new Set<string>()
-  for (const item of [...items].sort((a, b) => a.orderIndex - b.orderIndex)) {
-    if (item.group && !seen.has(item.group)) {
-      seen.add(item.group)
-      await ensureListGroup(db, listId, item.group)
-    }
-  }
-}
 
 export async function restoreListItem(
   db: PortableDatabase,
@@ -284,10 +270,9 @@ export function restoreItemSet(
 }
 
 /**
- * `restoreItemSet` without waiting its turn: for a Reset that already holds the list and puts it back after a failure. A restore that fails
- * part-way (the desktop's plugin calls can fail one by one, and there is no transaction to roll back, 28.4) is tried once more: it deletes
- * every item and re-inserts the captured rows with their ids, so running it again from any partial state ends with the whole set. A second
- * failure is the caller's to report; the list is then whatever the failure left.
+ * `restoreItemSet` without waiting its turn. All or nothing (Phase 53, 53.5a): the list's items and dismissals (and its groups, when the
+ * payload has them) are replaced in ONE transaction, so a restore that fails or is cut short leaves the list exactly as it was and there is
+ * nothing to retry (it used to be tried a second time, because the desktop could leave it half done).
  */
 export async function restoreItemSetNow(
   db: PortableDatabase,
@@ -295,11 +280,7 @@ export async function restoreItemSetNow(
   listId: string,
   set: ItemSetRestore,
 ): Promise<ListItem[] | undefined> {
-  try {
-    return await restoreItemSetOnce(db, userId, listId, set)
-  } catch {
-    return await restoreItemSetOnce(db, userId, listId, set)
-  }
+  return await restoreItemSetOnce(db, userId, listId, set)
 }
 
 async function restoreItemSetOnce(
@@ -310,48 +291,36 @@ async function restoreItemSetOnce(
 ): Promise<ListItem[] | undefined> {
   if (!(await findList(db, userId, listId))) return undefined
 
-  await db.delete(listItems).where(eq(listItems.listId, listId)).run()
-  await db.delete(dismissedItems).where(eq(dismissedItems.listId, listId)).run()
+  // Read before anything is written: the groups that stand now, for a payload that carries none of its own (an older Undo).
+  const standing = groups ? [] : await groupsOf(db, listId)
 
-  await insertInBatches(items, async (batch) => {
-    await db.insert(listItems).values(batch.map((item) => itemRow(listId, item))).run()
-  })
-  await insertInBatches(dismissals, async (batch) => {
-    await db
-      .insert(dismissedItems)
-      .values(batch.map((row) => dismissalRow(listId, row)))
-      .run()
-  })
-  if (groups) {
-    // The group rows exactly as they were: ids, order and any empty ones.
-    await db.delete(listGroups).where(eq(listGroups.listId, listId)).run()
-    await insertInBatches(groups, async (batch) => {
-      await db
-        .insert(listGroups)
-        .values(
-          batch.map((group) => ({
-            id: group.id,
-            listId,
-            name: group.name,
-            orderIndex: group.orderIndex,
-            createdAt: new Date(group.createdAt),
-            updatedAt: new Date(group.updatedAt),
-          })),
-        )
-        .run()
-    })
-  } else {
-    await ensureGroupsFor(db, listId, items)
-  }
+  await runAtomically(db, [
+    db.delete(listItems).where(eq(listItems.listId, listId)),
+    db.delete(dismissedItems).where(eq(dismissedItems.listId, listId)),
+    ...batches(items).map((batch) => db.insert(listItems).values(batch.map((item) => itemRow(listId, item)))),
+    ...batches(dismissals).map((batch) => db.insert(dismissedItems).values(batch.map((row) => dismissalRow(listId, row)))),
+    ...(groups
+      ? [
+          // The group rows exactly as they were: ids, order and any empty ones.
+          db.delete(listGroups).where(eq(listGroups.listId, listId)),
+          ...batches(groups).map((batch) =>
+            db.insert(listGroups).values(
+              batch.map((group) => ({
+                id: group.id,
+                listId,
+                name: group.name,
+                orderIndex: group.orderIndex,
+                createdAt: new Date(group.createdAt),
+                updatedAt: new Date(group.updatedAt),
+              })),
+            ),
+          ),
+        ]
+      : missingGroups(standing, items).map((group) => db.insert(listGroups).values({ listId, name: group.name, orderIndex: group.orderIndex }))),
+    ...(list ? [db.update(lists).set({ title: list.title, description: list.description, status: list.status }).where(eq(lists.id, listId))] : []),
+  ])
 
-  if (list) {
-    await db
-      .update(lists)
-      .set({ title: list.title, description: list.description, status: list.status })
-      .where(eq(lists.id, listId))
-      .run()
-  }
-
+  // After the commit: what the list holds now is the answer.
   return await db.select().from(listItems).where(eq(listItems.listId, listId)).all()
 }
 

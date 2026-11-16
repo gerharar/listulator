@@ -270,23 +270,62 @@ export async function reorderListGroups(
  */
 export async function seedGroupOrder(db: PortableDatabase, listId: string): Promise<void> {
   const groups = await groupsOf(db, listId)
-  // By the same key as Sort by release date, so a group with only `199?` in it is placed as late as 1999 (H-005).
-  const earliest = new Map<string, number>()
   const dated = await db
-    .select({ name: listItems.group, year: listItems.year, yearUnk: listItems.yearUnk })
+    .select({ group: listItems.group, year: listItems.year, yearUnk: listItems.yearUnk })
     .from(listItems)
     .where(and(eq(listItems.listId, listId), isNotNull(listItems.group), isNotNull(listItems.year)))
     .all()
-  for (const row of dated) {
-    const key = yearSortKey(row)
-    if (key < (earliest.get(row.name!) ?? Infinity)) earliest.set(row.name!, key)
+
+  await setGroupPositions(db, listId, seedGroupPositions(groups, dated))
+}
+
+/**
+ * The groups a set of items needs that a list does not have yet, worked out from what is given instead of read (what `ensureListGroup` finds
+ * or makes, item by item, in the order the labels first appear): a label the list already spells, in any case, is not made again, and a
+ * new group goes after the last one, named as its label trimmed.
+ */
+export function missingGroups(
+  existing: readonly { name: string; orderIndex: number }[],
+  items: readonly { group: string | null; orderIndex: number }[],
+): { name: string; orderIndex: number }[] {
+  const names = existing.map((group) => group.name)
+  let next = existing.reduce((top, group) => Math.max(top, group.orderIndex), -1) + 1
+  const made: { name: string; orderIndex: number }[] = []
+  const seen = new Set<string>()
+
+  for (const item of [...items].sort((a, b) => a.orderIndex - b.orderIndex)) {
+    if (!item.group || seen.has(item.group)) continue
+    seen.add(item.group)
+    if (names.some((name) => sameName(name, item.group!))) continue
+
+    const name = item.group.trim()
+    names.push(name)
+    made.push({ name, orderIndex: next++ })
   }
 
-  const sorted = [...groups].sort(
-    (a, b) => (earliest.get(a.name) ?? Infinity) - (earliest.get(b.name) ?? Infinity),
-  )
+  return made
+}
 
-  await setGroupPositions(db, listId, movedOnly(sorted))
+/**
+ * Where `seedGroupOrder` puts the groups, worked out from what is given instead of read: `groups` in the order they stand (by position,
+ * then id) and the items that carry a group and a year. A rewrite that has just planned its groups and items has both in memory and can
+ * ask for the positions before anything is written (Phase 53: no read between the writes of one transaction).
+ */
+export function seedGroupPositions(
+  groups: readonly { id: string; name: string; orderIndex: number }[],
+  items: readonly { group: string | null; year: number | null; yearUnk: number | null }[],
+): { id: string; orderIndex: number }[] {
+  // By the same key as Sort by release date, so a group with only `199?` in it is placed as late as 1999 (H-005).
+  const earliest = new Map<string, number>()
+  for (const row of items) {
+    if (row.group === null || row.year === null) continue
+    const key = yearSortKey({ year: row.year, yearUnk: row.yearUnk ?? 0 })
+    if (key < (earliest.get(row.group) ?? Infinity)) earliest.set(row.group, key)
+  }
+
+  const sorted = [...groups].sort((a, b) => (earliest.get(a.name) ?? Infinity) - (earliest.get(b.name) ?? Infinity))
+
+  return movedOnly(sorted)
 }
 
 /**

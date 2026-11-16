@@ -384,6 +384,17 @@ export async function updateList(
     .get()
 }
 
+/**
+ * `updateList`'s statement, NOT run: for a rewrite that has already read the list and knows it is the user's, and that runs all its
+ * statements in one transaction (`runAtomically`, Phase 53).
+ */
+export function updateListStatement(db: PortableDatabase, userId: string, listId: string, patch: UpdateListInput) {
+  return db
+    .update(lists)
+    .set({ ...patch, updatedAt: new Date() })
+    .where(and(eq(lists.id, listId), eq(lists.userId, userId)))
+}
+
 /** Items go with it — the foreign key cascades (client.ts enables them). */
 /**
  * Deletes a list and hands back everything that went with it — its items,

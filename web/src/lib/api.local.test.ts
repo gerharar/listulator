@@ -36,6 +36,7 @@ vi.mock('@tauri-apps/plugin-sql', async () => {
       load: vi.fn(async () => ({
         execute: async (sql: string, params: unknown[] = []) => {
           checked('execute', sql, params)
+          batchSpy.pluginWrites += 1
           await pause()
           if (failOnce?.(sql)) {
             failOnce = null
@@ -45,6 +46,7 @@ vi.mock('@tauri-apps/plugin-sql', async () => {
         },
         select: async (sql: string, params: unknown[] = []) => {
           checked('select', sql, params)
+          if (/^\s*(insert|update|delete)\b/i.test(sql)) batchSpy.pluginWrites += 1
           await pause()
           // An `insert … returning` reaches the plugin as a select.
           if (failOnce?.(sql)) {
@@ -60,11 +62,20 @@ vi.mock('@tauri-apps/plugin-sql', async () => {
   }
 })
 
-// The migrations are one call of the native `sql_batch` each (53.4): a real SQLite behind it, after the isolation hook has looked at it.
+// The migrations (53.4) and the whole-list rewrites (53.5) are calls of the native `sql_batch`: a real SQLite behind it, after the isolation hook
+// has looked at it. `calls` counts them; `options` can make the process die in the middle of the next one (a stand-in for a kill).
+const batchSpy = vi.hoisted(() => ({ calls: 0, pluginWrites: 0, options: {} as { dieAfterStatements?: number } }))
 vi.mock('@tauri-apps/api/core', async () => {
   const { nativeInvoke } = await import('./db/sqlBatch.testing.js')
+  const run = nativeInvoke(() => sqlite, () => batchSpy.options)
 
-  return { invoke: nativeInvoke(() => sqlite) }
+  return {
+    invoke: async (command: string, args?: unknown) => {
+      if (command === 'sql_batch') batchSpy.calls += 1
+
+      return await run(command, args)
+    },
+  }
 })
 
 const registryHolder = vi.hoisted(() => ({ current: [] as readonly MediaType[] }))
@@ -590,23 +601,66 @@ describe('the desktop builds a list at once and fills its lengths afterwards (15
       expect(seen.items.map((entry) => entry.id)).toEqual((await api.list(list.id)).items.map((entry) => entry.id))
     })
 
-    it('an Undo whose first attempt fails part-way is tried once more and ends with the whole set', async () => {
-      const { api } = await start(filmSource())
-      const list = await api.createFromFile({ yaml })
-      const before = await api.list(list.id)
-      await api.addItem(list.id, { title: 'By hand', timeToConsumeMinutes: 5 })
-      const messy = await api.list(list.id)
-      const reset = await api.resetList(list.id)
-      expect((await api.list(list.id)).items).toHaveLength(60)
-      expect(messy.items).toHaveLength(61)
+    // Since 53.5a a Reset and its Undo are one call of the native `sql_batch` each: all of it or none of it (the old test here made the
+    // plugin's insert fail once and watched the Undo be tried again; that path does not exist any more).
+    describe('all or nothing (53.5a)', () => {
+      afterEach(() => {
+        batchSpy.options = {}
+      })
 
-      // The restore's first insert into the items fails, after it has emptied the list.
-      failOnce = (sql) => /^insert into "list_items"/i.test(sql)
-      await api.restoreItems(list.id, reset.restore)
+      const open = async () => {
+        const { api } = await start(filmSource())
+        const list = await api.createFromFile({ yaml })
+        await api.addItem(list.id, { title: 'By hand', timeToConsumeMinutes: 5 })
+        batchSpy.calls = 0
+        batchSpy.pluginWrites = 0
 
-      const after = await api.list(list.id)
-      expect(after.items.map((entry) => [entry.id, entry.title, entry.orderIndex])).toEqual(messy.items.map((entry) => [entry.id, entry.title, entry.orderIndex]))
-      expect(before.items).toHaveLength(60)
+        return { api, list }
+      }
+
+      it('a Reset is ONE call of the native command and writes nothing through the plugin\u2019s one-statement commands', async () => {
+        const { api, list } = await open()
+
+        await api.resetList(list.id)
+
+        expect(batchSpy.calls).toBe(1)
+        expect(batchSpy.pluginWrites).toBe(0)
+        expect((await api.list(list.id)).items).toHaveLength(60)
+      })
+
+      it('a Reset whose process dies in the middle of the call leaves the list exactly as it was', async () => {
+        const { api, list } = await open()
+        const before = await api.list(list.id)
+
+        // The Reset of this list is six statements: three deletes, the groups, the items, the list's own fields.
+        for (const dieAfterStatements of [1, 3, 5]) {
+          batchSpy.options = { dieAfterStatements }
+          await expect(api.resetList(list.id)).rejects.toBeDefined()
+          batchSpy.options = {}
+
+          expect(await api.list(list.id), `died after ${dieAfterStatements} statements`).toEqual(before)
+        }
+      })
+
+      it('an Undo is one call too, and one that dies in the middle leaves the list as the Reset made it', async () => {
+        const { api, list } = await open()
+        const messy = await api.list(list.id)
+        const reset = await api.resetList(list.id)
+        const afterReset = await api.list(list.id)
+        batchSpy.calls = 0
+
+        batchSpy.options = { dieAfterStatements: 4 }
+        await expect(api.restoreItems(list.id, reset.restore)).rejects.toBeDefined()
+        batchSpy.options = {}
+        expect(await api.list(list.id)).toEqual(afterReset)
+
+        await api.restoreItems(list.id, reset.restore)
+
+        expect(batchSpy.calls).toBe(2)
+        expect((await api.list(list.id)).items.map((entry) => [entry.id, entry.title, entry.orderIndex])).toEqual(
+          messy.items.map((entry) => [entry.id, entry.title, entry.orderIndex]),
+        )
+      })
     })
   })
 

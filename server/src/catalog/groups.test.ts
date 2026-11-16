@@ -9,9 +9,11 @@ import {
   GroupNameError,
   GroupNotEmptyError,
   GroupReorderMismatchError,
+  missingGroups,
   renameListGroup,
   reorderListGroups,
   seedGroupOrder,
+  seedGroupPositions,
 } from './groups.js'
 import { createList, createListItem, findListItems } from './repository.js'
 
@@ -327,5 +329,67 @@ describe('list groups', () => {
 
     expect(harness.db.select().from(listGroups).orderBy(asc(listGroups.orderIndex)).all()).toEqual([])
     expect(harness.db.select().from(listItems).all()).toEqual([])
+  })
+})
+
+/** The two pure helpers a rewrite uses instead of reading the groups back after it wrote them (53.5a). */
+describe('missingGroups: what an Undo of a payload with no groups of its own has to add', () => {
+  const item = (group: string | null, orderIndex: number) => ({ group, orderIndex })
+
+  it('adds a group for each new label, after the last one, in the order the labels first appear by position', () => {
+    expect(missingGroups([{ name: 'A', orderIndex: 4 }], [item('C', 2), item('B', 0), item('C', 1), item(null, 3)])).toEqual([
+      { name: 'B', orderIndex: 5 },
+      { name: 'C', orderIndex: 6 },
+    ])
+  })
+
+  it('does not add a group the list already has, in any case or with spaces round it', () => {
+    expect(missingGroups([{ name: 'Season 1', orderIndex: 0 }], [item('season 1', 0), item(' SEASON 1 ', 1)])).toEqual([])
+  })
+
+  it('makes a group once when two labels are the same name in different case, and names it as the label trimmed', () => {
+    expect(missingGroups([], [item('  New ', 0), item('new', 1), item('NEW', 2)])).toEqual([{ name: 'New', orderIndex: 0 }])
+  })
+
+  it('has nothing to add for items with no group, or an empty one', () => {
+    expect(missingGroups([{ name: 'A', orderIndex: 0 }], [item(null, 0), item('', 1)])).toEqual([])
+  })
+})
+
+describe('seedGroupPositions: where the groups go, worked out in memory', () => {
+  const group = (id: string, name: string, orderIndex: number) => ({ id, name, orderIndex })
+
+  it('orders the groups by the earliest year among their items, groups with no year last, ties as they stood', () => {
+    const groups = [group('g0', 'Late', 0), group('g1', 'None', 1), group('g2', 'Early', 2), group('g3', 'Tie', 3)]
+    const items = [
+      { group: 'Late', year: 2010, yearUnk: 0 },
+      { group: 'Early', year: 1990, yearUnk: 0 },
+      { group: 'Early', year: 2020, yearUnk: 0 },
+      { group: 'Tie', year: 2010, yearUnk: 0 },
+      { group: 'None', year: null, yearUnk: 0 },
+      { group: null, year: 1900, yearUnk: 0 },
+    ]
+
+    expect(seedGroupPositions(groups, items)).toEqual([
+      { id: 'g2', orderIndex: 0 },
+      { id: 'g0', orderIndex: 1 },
+      { id: 'g3', orderIndex: 2 },
+      { id: 'g1', orderIndex: 3 },
+    ])
+  })
+
+  it('treats a year with unknown digits as late as the last year it could be (H-005)', () => {
+    const groups = [group('a', 'Nineties', 0), group('b', 'Exact 1999', 1)]
+    const items = [
+      { group: 'Nineties', year: 1990, yearUnk: 1 },
+      { group: 'Exact 1999', year: 1999, yearUnk: 0 },
+    ]
+
+    // 199? counts as 1999.1, so the exact 1999 goes first and both groups move.
+    expect(seedGroupPositions(groups, items).map((move) => move.id)).toEqual(['b', 'a'])
+  })
+
+  it('moves only the groups that are not already where they belong', () => {
+    expect(seedGroupPositions([group('a', 'A', 0), group('b', 'B', 1)], [{ group: 'A', year: 1990, yearUnk: 0 }, { group: 'B', year: 2000, yearUnk: 0 }])).toEqual([])
   })
 })

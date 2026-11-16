@@ -36,29 +36,40 @@ export function movedOnly(rows: readonly Position[]): Position[] {
   return rows.flatMap((row, index) => (row.orderIndex === index ? [] : [{ id: row.id, orderIndex: index }]))
 }
 
-/** Moves a list's items to the positions given; rows of another list are never touched. `touch` also stamps `updated_at`. */
+/**
+ * The statements that move a list's items to the positions given, one per batch, NOT run: a whole rewrite builds its list of statements
+ * and runs it in one transaction (`runAtomically`, Phase 53). Rows of another list are never touched. `touch` also stamps `updated_at`.
+ */
+export function itemPositionStatements(db: PortableDatabase, listId: string, positions: readonly Position[], { touch }: { touch?: Date } = {}) {
+  return batches(positions).map((batch) =>
+    db
+      .update(listItems)
+      .set({ orderIndex: positionCase(listItems.id, batch), ...(touch ? { updatedAt: touch } : {}) })
+      .where(and(eq(listItems.listId, listId), inArray(listItems.id, batch.map((row) => row.id)))),
+  )
+}
+
+/** As `itemPositionStatements`, for a list's groups. */
+export function groupPositionStatements(db: PortableDatabase, listId: string, positions: readonly Position[]) {
+  return batches(positions).map((batch) =>
+    db
+      .update(listGroups)
+      .set({ orderIndex: positionCase(listGroups.id, batch) })
+      .where(and(eq(listGroups.listId, listId), inArray(listGroups.id, batch.map((row) => row.id)))),
+  )
+}
+
+/** Moves a list's items to the positions given, statement by statement. */
 export async function setItemPositions(
   db: PortableDatabase,
   listId: string,
   positions: readonly Position[],
-  { touch }: { touch?: Date } = {},
+  options: { touch?: Date } = {},
 ): Promise<void> {
-  for (const batch of batches(positions)) {
-    await db
-      .update(listItems)
-      .set({ orderIndex: positionCase(listItems.id, batch), ...(touch ? { updatedAt: touch } : {}) })
-      .where(and(eq(listItems.listId, listId), inArray(listItems.id, batch.map((row) => row.id))))
-      .run()
-  }
+  for (const statement of itemPositionStatements(db, listId, positions, options)) await statement.run()
 }
 
 /** As `setItemPositions`, for a list's groups. */
 export async function setGroupPositions(db: PortableDatabase, listId: string, positions: readonly Position[]): Promise<void> {
-  for (const batch of batches(positions)) {
-    await db
-      .update(listGroups)
-      .set({ orderIndex: positionCase(listGroups.id, batch) })
-      .where(and(eq(listGroups.listId, listId), inArray(listGroups.id, batch.map((row) => row.id))))
-      .run()
-  }
+  for (const statement of groupPositionStatements(db, listId, positions)) await statement.run()
 }
