@@ -290,12 +290,13 @@ describe('refreshSourceCopy', () => {
     }
   })
 
-  it('never leaves old and new rows side by side when a write fails part-way, and a repeat finishes the job', async () => {
+  it('keeps the old copy whole, with its old date, when a write fails, and a repeat then replaces it', async () => {
     const list = await fetchList()
     upstream = { items: [{ title: 'New one', externalRef: 'n1' }, { title: 'New two', externalRef: 'n2' }] }
     const userBefore = await userOwned(list.id)
+    const copyBefore = await snapshotRows(list)
 
-    // The desktop driver has no transactions, so a failure can land between any two writes.
+    // A refresh is one transaction (53.5d): a failure on a write leaves nothing of it. (Before, the old rows were already gone: an empty copy.)
     const db = harness.db
     const failing = new Proxy(db, {
       get(target, property) {
@@ -310,7 +311,8 @@ describe('refreshSourceCopy', () => {
 
     await expect(refreshSourceCopy(failing, list, deps(), REFRESHED)).rejects.toThrow('disk full')
 
-    expect(await findListSnapshot(db, userId, list.id)).toEqual([])
+    expect(await snapshotRows(list)).toEqual(copyBefore)
+    expect((await findList(db, userId, list.id))!.snapshotFetchedAt).toEqual(FETCHED)
     expect(await userOwned(list.id)).toEqual(userBefore)
 
     await refreshSourceCopy(db, list, deps(), REFRESHED)

@@ -1,5 +1,5 @@
 import { withListLock } from './listLock.js'
-import { and, eq, gte, sql } from 'drizzle-orm'
+import { and, eq, gte, inArray, sql } from 'drizzle-orm'
 import type { PortableDatabase } from '../db/client.js'
 import {
   dismissedItems,
@@ -48,15 +48,6 @@ import { runAtomically } from '../db/atomic.js'
 
 /** A list with this id already exists: restoring would overwrite someone's data. */
 export class ListExistsError extends Error {}
-
-/** SQLite caps the variables in one statement; batches stay well under it. */
-const BATCH = 500
-
-async function insertInBatches<T>(rows: T[], insert: (batch: T[]) => Promise<void>): Promise<void> {
-  for (let start = 0; start < rows.length; start += BATCH) {
-    await insert(rows.slice(start, start + BATCH))
-  }
-}
 
 const itemRow = (listId: string, item: ItemPayload) => ({
   id: item.id,
@@ -129,50 +120,46 @@ export async function restoreListGroup(
 ): Promise<ListGroup | undefined> {
   if (!(await findList(db, userId, listId))) return undefined
 
-  const restored = await restoreGroupRow(db, listId, group)
-
-  // A group deleted with its items: they come back as they were (ids, positions, ticks).
+  // Everything is read before the first write (53.5d): the groups that stand, and the items already there (a group deleted with its items:
+  // they come back as they were, ids, positions and ticks; `list_items` is not touched by the group row's own statements).
+  const groups = await db.select().from(listGroups).where(eq(listGroups.listId, listId)).all()
+  const existing = groups.find((entry) => entry.id === group.id)
+  if (!existing && groups.some((entry) => entry.name.trim().toLowerCase() === group.name.trim().toLowerCase())) {
+    throw new GroupNameError('duplicate')
+  }
   const present = new Set(
     (await db.select({ id: listItems.id }).from(listItems).where(eq(listItems.listId, listId)).all()).map((row) => row.id),
   )
   const missing = items.filter((item) => !present.has(item.id))
-  await insertInBatches(missing, async (batch) => {
-    await db.insert(listItems).values(batch.map((item) => itemRow(listId, item))).run()
-  })
-  for (const id of dismissalIds) {
-    await db.delete(dismissedItems).where(and(eq(dismissedItems.id, id), eq(dismissedItems.listId, listId))).run()
-  }
 
-  return restored
-}
+  // ONE transaction: the group row (everything at or after its old position moves down one to make room), its items, and the forgetting of
+  // the dismissals that deleting them made (in batches of 500 ids: one statement each would pass the desktop's cap of 2,000 per call).
+  const results = await runAtomically(db, [
+    ...(existing
+      ? []
+      : [
+          db
+            .update(listGroups)
+            .set({ orderIndex: sql`${listGroups.orderIndex} + 1` })
+            .where(and(eq(listGroups.listId, listId), gte(listGroups.orderIndex, group.orderIndex))),
+          db
+            .insert(listGroups)
+            .values({
+              id: group.id,
+              listId,
+              name: group.name,
+              orderIndex: group.orderIndex,
+              createdAt: new Date(group.createdAt),
+              updatedAt: new Date(group.updatedAt),
+            })
+            .returning(),
+        ]),
+    ...batches(missing).map((batch) => db.insert(listItems).values(batch.map((item) => itemRow(listId, item)))),
+    ...batches(dismissalIds).map((batch) => db.delete(dismissedItems).where(and(inArray(dismissedItems.id, batch), eq(dismissedItems.listId, listId)))),
+  ])
 
-async function restoreGroupRow(db: PortableDatabase, listId: string, group: GroupRestore['group']): Promise<ListGroup> {
-  const groups = await db.select().from(listGroups).where(eq(listGroups.listId, listId)).all()
-  const existing = groups.find((entry) => entry.id === group.id)
-  if (existing) return existing
-  if (groups.some((entry) => entry.name.trim().toLowerCase() === group.name.trim().toLowerCase())) {
-    throw new GroupNameError('duplicate')
-  }
-
-  // Everything at or after its old position moves down one to make room.
-  await db
-    .update(listGroups)
-    .set({ orderIndex: sql`${listGroups.orderIndex} + 1` })
-    .where(and(eq(listGroups.listId, listId), gte(listGroups.orderIndex, group.orderIndex)))
-    .run()
-
-  return await db
-    .insert(listGroups)
-    .values({
-      id: group.id,
-      listId,
-      name: group.name,
-      orderIndex: group.orderIndex,
-      createdAt: new Date(group.createdAt),
-      updatedAt: new Date(group.updatedAt),
-    })
-    .returning()
-    .get()
+  // Without an existing row the list's first two statements are the shift and the insert, whose row is the answer.
+  return existing ?? (results as unknown as ListGroup[][])[1]![0]!
 }
 
 export async function restoreList(
@@ -185,27 +172,24 @@ export async function restoreList(
   const taken = await db.select({ id: lists.id }).from(lists).where(eq(lists.id, list.id)).get()
   if (taken) throw new ListExistsError('a list with this id already exists')
 
-  const restored = await db
-    .insert(lists)
-    .values({
-      ...list,
-      userId,
-      // Absent in a payload written before 12.1; null then, which is how a list with no known copy date reads.
-      snapshotFetchedAt: list.snapshotFetchedAt ? new Date(list.snapshotFetchedAt) : null,
-      isSample: list.isSample ?? false,
-      createdAt: new Date(list.createdAt),
-      updatedAt: new Date(list.updatedAt),
-    })
-    .returning()
-    .get()
-
-  await insertInBatches(items, async (batch) => {
-    await db.insert(listItems).values(batch.map((item) => itemRow(list.id, item))).run()
-  })
-  await insertInBatches(groups, async (batch) => {
-    await db
-      .insert(listGroups)
-      .values(
+  // The list and everything that was in it come back in ONE transaction (53.5d): a list that is restored is whole, and one whose restore
+  // fails or is cut short is not there at all, so there is no half-restored list to find. The list's own row is the answer.
+  const results = await runAtomically(db, [
+    db
+      .insert(lists)
+      .values({
+        ...list,
+        userId,
+        // Absent in a payload written before 12.1; null then, which is how a list with no known copy date reads.
+        snapshotFetchedAt: list.snapshotFetchedAt ? new Date(list.snapshotFetchedAt) : null,
+        isSample: list.isSample ?? false,
+        createdAt: new Date(list.createdAt),
+        updatedAt: new Date(list.updatedAt),
+      })
+      .returning(),
+    ...batches(items).map((batch) => db.insert(listItems).values(batch.map((item) => itemRow(list.id, item)))),
+    ...batches(groups).map((batch) =>
+      db.insert(listGroups).values(
         batch.map((group) => ({
           id: group.id,
           listId: list.id,
@@ -214,23 +198,13 @@ export async function restoreList(
           createdAt: new Date(group.createdAt),
           updatedAt: new Date(group.updatedAt),
         })),
-      )
-      .run()
-  })
-  await insertInBatches(snapshot, async (batch) => {
-    await db
-      .insert(listSnapshots)
-      .values(batch.map((row) => ({ ...row, listId: list.id })))
-      .run()
-  })
-  await insertInBatches(dismissals, async (batch) => {
-    await db
-      .insert(dismissedItems)
-      .values(batch.map((row) => dismissalRow(list.id, row)))
-      .run()
-  })
+      ),
+    ),
+    ...batches(snapshot).map((batch) => db.insert(listSnapshots).values(batch.map((row) => ({ ...row, listId: list.id })))),
+    ...batches(dismissals).map((batch) => db.insert(dismissedItems).values(batch.map((row) => dismissalRow(list.id, row)))),
+  ])
 
-  return restored
+  return (results[0] as List[])[0]!
 }
 
 /** A list's items and dismissals exactly as they stand — taken before something replaces them. */

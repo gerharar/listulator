@@ -5,10 +5,13 @@ import type { AppDatabase } from '../db/client.js'
 import { dismissedItems, listItems, users } from '../db/schema.js'
 import { createTestApp, type TestApp } from '../testing/harness.js'
 import { createListItems, createListWithItems, itemFromSource } from './bulkItems.js'
+import { restoreConsumed, setItemsConsumed } from './consumed.js'
+import { createMediaTypeRegistry } from '../ingestion/mediaTypes.js'
+import { dropSourceCopy, refreshSourceCopy } from './sourceCopy.js'
 import { resetToSource, sortChronologically } from './reset.js'
-import { createList as createStoredList, findListItems, reorderListItems } from './repository.js'
-import { restoreItemSet, restoreOrder } from './restore.js'
-import { findListGroups, reorderListGroups } from './groups.js'
+import { createList as createStoredList, deleteList, findList, findListItems, reorderListItems } from './repository.js'
+import { restoreItemSet, restoreList, restoreListGroup, restoreOrder } from './restore.js'
+import { deleteListGroup, findListGroups, renameListGroup, reorderListGroups } from './groups.js'
 
 /**
  * Phase 53, task 53.5a: Reset to the source and its Undo are all or nothing. A process that dies in the middle of either leaves the list
@@ -40,6 +43,7 @@ function snapshot(db: AppDatabase, listId: string) {
     items: all('SELECT * FROM list_items WHERE list_id = ? ORDER BY id'),
     groups: all('SELECT * FROM list_groups WHERE list_id = ? ORDER BY id'),
     dismissals: all('SELECT * FROM dismissed_items WHERE list_id = ? ORDER BY id'),
+    snapshots: all('SELECT * FROM list_snapshots WHERE list_id = ? ORDER BY id'),
   }
 }
 
@@ -295,9 +299,10 @@ async function killedAtEveryWrite(make: () => Promise<{ listId: string; run: () 
   const total = meter.writes()
   meter.revive()
   await harness.cleanup()
-  expect(total).toBeGreaterThanOrEqual(3)
+  expect(total).toBeGreaterThanOrEqual(2)
 
-  for (const allowed of [...new Set([0, 1, 2, Math.floor(total / 2), total - 1])]) {
+  // Every write count the operation really has, but never one past its last write (nothing would fail there).
+  for (const allowed of [...new Set([0, 1, 2, Math.floor(total / 2), total - 1])].filter((n) => n < total)) {
     harness = createTestApp()
     const { listId, run } = await make()
     const before = snapshot(harness.db, listId)
@@ -358,5 +363,153 @@ describe('Moving things around, killed at any write (53.5c)', () => {
 
     expect(snapshot(harness.db, listId).items).toEqual(original.items)
     expect(snapshot(harness.db, listId).groups).toEqual(original.groups)
+  })
+})
+
+/** 1,100 items in one group ("Big": three batches of dismissals) and 30 in two more, so a group's deletion shifts the others. */
+async function aListWithABigGroup(bigSize = 1100): Promise<string> {
+  const { db } = harness
+  await db.insert(users).values({ id: USER, isDefaultLocalUser: false })
+  const list = await createStoredList(db, USER, { title: 'Grouped', mediaType: 'game' })
+  const item = (title: string, group: string, n: number) => ({ title, timeToConsumeMinutes: 10, timeToConsumeIsEstimated: false, group, year: 1990 + (n % 30), externalRef: `x:${title}` })
+  await createListItems(
+    db,
+    USER,
+    list.id,
+    [
+      ...Array.from({ length: 15 }, (_, n) => item(`First ${n}`, 'First', n)),
+      ...Array.from({ length: bigSize }, (_, n) => item(`Big ${n}`, 'Big', n)),
+      ...Array.from({ length: 15 }, (_, n) => item(`Last ${n}`, 'Last', n)),
+    ],
+    { seedGroupOrder: true },
+  )
+
+  return list.id
+}
+
+const groupNamed = async (listId: string, name: string) => (await findListGroups(harness.db, USER, listId))!.find((group) => group.name === name)!
+
+describe('Group operations, killed at any write (53.5d)', () => {
+  it('renaming a group leaves the group and its items as they were', async () => {
+    await killedAtEveryWrite(async () => {
+      const listId = await aListWithABigGroup(40)
+      const group = await groupNamed(listId, 'Big')
+
+      return { listId, run: () => renameListGroup(harness.db, USER, listId, group.id, 'Renamed') }
+    })
+  })
+
+  it('deleting a group with its items (and the record that they were not wanted) leaves everything as it was', async () => {
+    const writes = await killedAtEveryWrite(async () => {
+      const listId = await aListWithABigGroup()
+      const group = await groupNamed(listId, 'Big')
+
+      return { listId, run: () => deleteListGroup(harness.db, USER, listId, group.id, { withItems: true }) }
+    })
+    expect(writes).toBeGreaterThanOrEqual(5)
+  })
+
+  it('Undo of a group deletion leaves the list as the deletion made it', async () => {
+    await killedAtEveryWrite(async () => {
+      const listId = await aListWithABigGroup()
+      const group = await groupNamed(listId, 'Big')
+      const restore = (await deleteListGroup(harness.db, USER, listId, group.id, { withItems: true }))!
+
+      return { listId, run: () => restoreListGroup(harness.db, USER, listId, restore) }
+    })
+  })
+
+  it('Undo of the deletion of a group of 2,100 items is a handful of statements, not one per dismissal (the desktop refuses a call over 2,000)', async () => {
+    const listId = await aListWithABigGroup(2100)
+    const group = await groupNamed(listId, 'Big')
+    const before = snapshot(harness.db, listId)
+    const restore = (await deleteListGroup(harness.db, USER, listId, group.id, { withItems: true }))!
+    expect(restore.dismissalIds).toHaveLength(2100)
+
+    const meter = dieAfterWrites(harness.db, Number.POSITIVE_INFINITY)
+    await restoreListGroup(harness.db, USER, listId, restore)
+    const writes = meter.writes()
+    meter.revive()
+
+    expect(writes).toBeLessThanOrEqual(15)
+    const after = snapshot(harness.db, listId)
+    expect(after.dismissals).toEqual(before.dismissals)
+    expect(after.items).toEqual(before.items)
+    expect(after.groups).toEqual(before.groups)
+  })
+
+  it('marking many items done, and the Undo of it, leave the items as they were', async () => {
+    await killedAtEveryWrite(async () => {
+      const listId = await aBigList()
+      const ids = (await findListItems(harness.db, USER, listId))!.map((item) => item.id)
+
+      return { listId, run: () => setItemsConsumed(harness.db, USER, listId, ids, true) }
+    })
+    await killedAtEveryWrite(async () => {
+      const listId = await aBigList()
+      const ids = (await findListItems(harness.db, USER, listId))!.map((item) => item.id)
+      // Half of them were open (one statement per batch), half were done on a day of their own (a CASE per batch).
+      const restore = { items: ids.map((id, n) => ({ id, consumedAt: n < 600 ? null : new Date(1_700_000_000_000 + n * 1000).toISOString() })) }
+
+      return { listId, run: () => restoreConsumed(harness.db, USER, listId, restore) }
+    })
+  })
+})
+
+/** A list fetched from a source, with a copy of it: 600 snapshot rows in three inserts. Gives its id. */
+async function aFetchedList(): Promise<string> {
+  await harness.db.insert(users).values({ id: USER, isDefaultLocalUser: false })
+  const made = await createListWithItems(harness.db, USER, newList, asItems(), { snapshot: true })
+
+  return made.id
+}
+
+const fakeSource = createMediaTypeRegistry([
+  {
+    key: 'game',
+    label: 'Game',
+    sortOrder: 1,
+    defaultDurationMinutes: 600,
+    sourceName: 'Fake',
+    sourceCopyMaxDays: 30,
+    adapter: {
+      isAvailable: () => true,
+      search: async () => [],
+      expand: async () => ({ items: Array.from({ length: 600 }, (_, n) => ({ title: `Fresh ${n}`, externalRef: `f:${n}`, timeToConsumeMinutes: 20 })), status: 'ongoing' }),
+    },
+  },
+]).list()
+
+describe('The stored source copy, killed at any write (53.5d)', () => {
+  it('refreshing the copy leaves the old copy and the list as they were', async () => {
+    await killedAtEveryWrite(async () => {
+      const listId = await aFetchedList()
+      const list = (await findList(harness.db, USER, listId))!
+
+      return { listId, run: () => refreshSourceCopy(harness.db, list, { mediaTypes: fakeSource }) }
+    })
+  })
+
+  it('dropping the copy leaves the copy and the list as they were', async () => {
+    await killedAtEveryWrite(async () => {
+      const listId = await aFetchedList()
+      const list = (await findList(harness.db, USER, listId))!
+
+      return { listId, run: () => dropSourceCopy(harness.db, list) }
+    })
+  })
+})
+
+describe('Undo of deleting a list, killed at any write (53.5d)', () => {
+  it('leaves no list, item, group, snapshot row or dismissal behind', async () => {
+    const writes = await killedAtEveryWrite(async () => {
+      const listId = await aFetchedList()
+      await harness.db.insert(dismissedItems).values([{ listId, titleKey: 'gone one' }, { listId, titleKey: 'gone two', externalRef: 'x:2' }])
+      const restore = (await deleteList(harness.db, USER, listId))!
+      expect(totals(harness.db)).toEqual({ lists: 0, items: 0, groups: 0, snapshots: 0, dismissals: 0 })
+
+      return { listId, run: () => restoreList(harness.db, USER, restore) }
+    })
+    expect(writes).toBeGreaterThanOrEqual(5)
   })
 })

@@ -693,6 +693,65 @@ describe('the desktop builds a list at once and fills its lengths afterwards (15
         expect(await order()).not.toEqual(before)
       })
 
+      it('renaming, deleting and restoring a group, marking done and its Undo, and restoring a deleted list are each ONE call, and one that dies in the middle changes nothing (53.5d)', async () => {
+        const big = `title: Big\ncategory: movie\nitems:\n${Array.from({ length: 1200 }, (_, n) => `  - { title: "Item ${n}", year: ${1950 + ((n * 37) % 70)}, group: "G${n % 6}" }`).join('\n')}\n`
+        const { api } = await start(filmSource())
+        const list = await api.createFromFile({ yaml: big })
+        const everything = async () => {
+          const detail = await api.list(list.id).catch(() => undefined)
+          if (!detail) return 'no such list'
+
+          return JSON.stringify([detail.items.map((entry) => [entry.id, entry.group, entry.orderIndex, entry.consumedAt]), detail.groups.map((group) => [group.id, group.name, group.orderIndex])])
+        }
+        const before = await everything()
+        const one = async (what: string, run: () => Promise<unknown>) => {
+          batchSpy.calls = 0
+          batchSpy.pluginWrites = 0
+          await run()
+          expect(batchSpy.calls, `${what}: one call of the native command`).toBe(1)
+          expect(batchSpy.pluginWrites, `${what}: no write through the plugin`).toBe(0)
+        }
+        const killed = async (what: string, run: () => Promise<unknown>, expected: string) => {
+          batchSpy.options = { dieAfterStatements: 1 }
+          await expect(run(), what).rejects.toBeDefined()
+          batchSpy.options = {}
+          expect(await everything(), `${what}: nothing changed`).toBe(expected)
+        }
+        const groups = (await api.list(list.id)).groups
+        const target = groups[2]!
+
+        await killed('a rename', () => api.renameGroup(list.id, target.id, 'Renamed'), before)
+        await one('a rename', () => api.renameGroup(list.id, target.id, 'Renamed'))
+        await api.renameGroup(list.id, target.id, target.name)
+        expect(await everything()).toBe(before)
+
+        await killed('a group deletion', () => api.deleteGroup(list.id, target.id, { withItems: true }), before)
+        let restore!: Awaited<ReturnType<typeof api.deleteGroup>>
+        await one('a group deletion', async () => {
+          restore = await api.deleteGroup(list.id, target.id, { withItems: true })
+        })
+        expect((await api.list(list.id)).items).toHaveLength(1000)
+        await killed('the Undo of a group deletion', () => api.restoreGroup(list.id, restore), await everything())
+        await one('the Undo of a group deletion', () => api.restoreGroup(list.id, restore))
+        expect(await everything()).toBe(before)
+
+        const ids = (await api.list(list.id)).items.map((entry) => entry.id)
+        let marked!: Awaited<ReturnType<typeof api.setConsumedMany>>
+        await killed('marking done', () => api.setConsumedMany(list.id, ids, true), before)
+        await one('marking done', async () => {
+          marked = await api.setConsumedMany(list.id, ids, true)
+        })
+        const done = await everything()
+        await killed('the Undo of marking done', () => api.restoreConsumed(list.id, marked.restore), done)
+        await one('the Undo of marking done', () => api.restoreConsumed(list.id, marked.restore))
+        expect(await everything()).toBe(before)
+
+        const gone = await api.deleteList(list.id)
+        await killed('the Undo of deleting a list', () => api.restoreList(gone), 'no such list')
+        await one('the Undo of deleting a list', () => api.restoreList(gone))
+        expect(await everything()).toBe(before)
+      })
+
       it('a Reset whose process dies in the middle of the call leaves the list exactly as it was', async () => {
         const { api, list } = await open()
         const before = await api.list(list.id)

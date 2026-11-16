@@ -3,7 +3,7 @@ import { runAtomically } from '../db/atomic.js'
 import type { PortableDatabase } from '../db/client.js'
 import { dismissalTitleKey, dismissedItems, listGroups, listItems, lists, type ListGroup } from '../db/schema.js'
 import { toGroupPayload, toItemPayload, type GroupRestore } from './restorePayloads.js'
-import { groupPositionStatements, itemPositionStatements, movedOnly, setGroupPositions } from './orderIndex.js'
+import { batches, groupPositionStatements, itemPositionStatements, movedOnly, setGroupPositions } from './orderIndex.js'
 import { yearSortKey } from './years.js'
 
 /**
@@ -129,29 +129,17 @@ export async function renameListGroup(
     throw new GroupNameError('duplicate')
   }
 
-  // Items first, the group row last: the desktop driver has no reliable
-  // transaction (docs/DECISIONS.md, 10.16), and this order leaves a failure
-  // between the two as "items already relabelled", which a re-run finishes.
-  await db
-    .update(listItems)
-    .set({ group: trimmed, updatedAt: new Date() })
-    .where(and(eq(listItems.listId, listId), eq(listItems.group, group.name)))
-    .run()
+  // The items' label and the group row change in ONE transaction (53.5d): a rename that fails or is cut short changes neither.
+  const results = await runAtomically(db, [
+    db
+      .update(listItems)
+      .set({ group: trimmed, updatedAt: new Date() })
+      .where(and(eq(listItems.listId, listId), eq(listItems.group, group.name))),
+    db.update(listGroups).set({ name: trimmed, updatedAt: new Date() }).where(eq(listGroups.id, groupId)).returning(),
+  ])
 
-  return await db
-    .update(listGroups)
-    .set({ name: trimmed, updatedAt: new Date() })
-    .where(eq(listGroups.id, groupId))
-    .returning()
-    .get()
+  return (results[1] as ListGroup[])[0]
 }
-
-async function renumberGroups(db: PortableDatabase, listId: string): Promise<void> {
-  await setGroupPositions(db, listId, movedOnly(await groupsOf(db, listId)))
-}
-
-/** Dismissal rows per insert: well under SQLite's limit on bound values (`restore.ts` batches the same way). */
-const DISMISSAL_BATCH = 500
 
 /**
  * Deletes a group. One with items is refused unless `withItems` says to take
@@ -169,7 +157,8 @@ export async function deleteListGroup(
 ): Promise<GroupRestore | undefined> {
   if (!(await ownsList(db, userId, listId))) return undefined
 
-  const group = (await groupsOf(db, listId)).find((entry) => entry.id === groupId)
+  const groups = await groupsOf(db, listId)
+  const group = groups.find((entry) => entry.id === groupId)
   if (!group) return undefined
 
   const inside = await db
@@ -179,29 +168,25 @@ export async function deleteListGroup(
     .all()
   if (inside.length > 0 && !withItems) throw new GroupNotEmptyError('a group with items cannot be deleted')
 
-  const dismissalIds: string[] = []
-  if (inside.length > 0) {
-    await db.delete(listItems).where(and(eq(listItems.listId, listId), eq(listItems.group, group.name))).run()
-    // In batches: one dismissal per item, and one statement for thousands of them is past SQLite's limit on bound
-    // values, failing here with the items already gone and no Undo handed back.
-    for (let start = 0; start < inside.length; start += DISMISSAL_BATCH) {
-      const dismissals = await db
-        .insert(dismissedItems)
-        .values(
-          inside.slice(start, start + DISMISSAL_BATCH).map((item) => ({
-            listId,
-            titleKey: dismissalTitleKey(item.title),
-            ...(item.externalRef ? { externalRef: item.externalRef } : {}),
-          })),
-        )
-        .returning({ id: dismissedItems.id })
-        .all()
-      dismissalIds.push(...dismissals.map((dismissal) => dismissal.id))
-    }
-  }
+  // Everything is worked out before the first write (53.5d): the dismissals' ids are made here, so the Undo's `dismissalIds` come from the
+  // plan and not from what an insert answers (class (b)), and the groups after this one are renumbered from the list read above, minus
+  // this one, not read again after the delete (class (c)).
+  const dismissals = inside.map((item) => ({
+    id: crypto.randomUUID(),
+    listId,
+    titleKey: dismissalTitleKey(item.title),
+    ...(item.externalRef ? { externalRef: item.externalRef } : {}),
+  }))
+  const dismissalIds = dismissals.map((dismissal) => dismissal.id)
 
-  await db.delete(listGroups).where(eq(listGroups.id, groupId)).run()
-  await renumberGroups(db, listId)
+  // One transaction: the items, the record that they were not wanted, the group and the others' positions go together or not at all.
+  // The dismissals go in batches: one statement for thousands of them is past SQLite's limit on bound values.
+  await runAtomically(db, [
+    ...(inside.length > 0 ? [db.delete(listItems).where(and(eq(listItems.listId, listId), eq(listItems.group, group.name)))] : []),
+    ...batches(dismissals).map((batch) => db.insert(dismissedItems).values(batch)),
+    db.delete(listGroups).where(eq(listGroups.id, groupId)),
+    ...groupPositionStatements(db, listId, movedOnly(groups.filter((entry) => entry.id !== groupId))),
+  ])
 
   return inside.length > 0
     ? { group: toGroupPayload(group), items: inside.map(toItemPayload), dismissalIds }

@@ -1,4 +1,5 @@
 import { eq } from 'drizzle-orm'
+import { runAtomically } from '../db/atomic.js'
 import type { PortableDatabase } from '../db/client.js'
 import { lists, type List } from '../db/schema.js'
 import { expandSource } from '../ingestion/expandSource.js'
@@ -6,8 +7,8 @@ import type { MediaType, MediaTypeCandidate } from '../ingestion/mediaTypes.js'
 import { normalizeItemTags } from './facets.js'
 import { knownRuntimes, withKnownRuntimes } from './runtimes.js'
 import {
-  createListSnapshot,
-  deleteListSnapshot,
+  deleteSnapshotStatement,
+  snapshotStatements,
   type CreateListSnapshotItemInput,
 } from './repository.js'
 
@@ -87,14 +88,14 @@ function snapshotRowsFor(
  * That is what a Reset from the live source already gave such a list, so making
  * the copy changes nothing about what Reset does.
  *
- * Not one transaction, because the desktop driver has none (docs/DECISIONS.md,
- * 10.16, 10.18). Everything that can fail on the network happens first, and
- * nothing is written if it does. The writes then run in an order where a
- * failure between any two leaves a state the app already handles: old rows
- * are deleted before the new ones go in, so a failure mid-way leaves an empty
- * copy (Reset refuses, and 12.3 fetches live) and never old and new together;
- * the date moves last, so a half-finished refresh still looks due and a
- * repeat finishes it.
+ * One transaction (Phase 53, 53.5d). Everything that can fail on the network
+ * happens first, and nothing is written if it does. The old rows going, the
+ * new ones coming in and the date moving are then ONE list of statements: a
+ * failure or a process that dies leaves the old copy, whole, with its old
+ * date, and never an empty copy, or old and new together.
+ * (Before 53.5d the desktop had no transaction, and the order of the writes
+ * was chosen so that a failure between two left a state the app handled: an
+ * empty copy that Reset refused and 12.3 fetched live.)
  */
 export async function refreshSourceCopy(
   db: PortableDatabase,
@@ -143,13 +144,14 @@ export async function refreshSourceCopy(
           arrivedStatus: expansion.status ?? list.status,
         }
 
-  await deleteListSnapshot(db, list.id)
-  await createListSnapshot(db, list.id, rows)
-  await db
-    .update(lists)
-    .set({ ...arrived, snapshotFetchedAt: now })
-    .where(eq(lists.id, list.id))
-    .run()
+  await runAtomically(db, [
+    deleteSnapshotStatement(db, list.id),
+    ...snapshotStatements(db, list.id, rows),
+    db
+      .update(lists)
+      .set({ ...arrived, snapshotFetchedAt: now })
+      .where(eq(lists.id, list.id)),
+  ])
 
   return { items: rows.length }
 }
@@ -162,12 +164,13 @@ export async function refreshSourceCopy(
  * one state (task 12.3).
  */
 export async function dropSourceCopy(db: PortableDatabase, list: List): Promise<void> {
-  await deleteListSnapshot(db, list.id)
-  await db
-    .update(lists)
-    .set({ arrivedTitle: null, arrivedDescription: null, arrivedStatus: null, snapshotFetchedAt: null })
-    .where(eq(lists.id, list.id))
-    .run()
+  await runAtomically(db, [
+    deleteSnapshotStatement(db, list.id),
+    db
+      .update(lists)
+      .set({ arrivedTitle: null, arrivedDescription: null, arrivedStatus: null, snapshotFetchedAt: null })
+      .where(eq(lists.id, list.id)),
+  ])
 }
 
 const DAY_MS = 24 * 60 * 60 * 1000
