@@ -87,7 +87,7 @@
    * read the way SQLite reads it, and anything this reader is unsure of is refused: an unterminated quote could hide the
    * rest of the text from this check but not from SQLite, and a control character (a NUL ends the text for SQLite) the same.
    */
-  function sqlProblem(query) {
+  function sqlProblem(query, inBatch) {
     if (typeof query !== 'string') return 'query is not text'
     if (UNSAFE_TEXT.test(query)) return 'control character in query'
 
@@ -174,7 +174,8 @@
     if (ALLOWED_FIRST_WORDS.indexOf(tokens[0]) < 0) return 'kind of statement'
     for (var i = 0; i < tokens.length; i++) {
       if (FORBIDDEN_WORDS.indexOf(tokens[i]) >= 0) return 'forbidden word'
-      if (tokens[i] === 'pragma' && !isForeignKeysOn(tokens)) return 'forbidden word'
+      // In a batch no pragma at all: `sql_batch` decides about foreign keys itself, and the native side refuses a pragma there too.
+      if (tokens[i] === 'pragma' && (inBatch || !isForeignKeysOn(tokens))) return 'forbidden word'
     }
     return null
   }
@@ -224,7 +225,7 @@
     for (var i = 0; i < statements.length; i++) {
       var statement = statements[i]
       if (!isObject(statement)) return 'statement ' + i + ': not an object'
-      problem = keysProblem(statement, ['query', 'values'], ['query']) || sqlProblem(statement.query)
+      problem = keysProblem(statement, ['query', 'values'], ['query']) || sqlProblem(statement.query, true)
       if (problem) return 'statement ' + i + ': ' + problem
       bytes += statement.query.length
 

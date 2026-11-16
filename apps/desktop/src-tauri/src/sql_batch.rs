@@ -58,6 +58,95 @@ impl Limits {
   }
 }
 
+/// What the native side refuses of a statement's TEXT, whatever the hook already did: the second lock on the same door (docs/DECISIONS.md,
+/// "Security pass of Phase 53"). The hook is the strict one; this one only has to be sure of the few things that would break the call:
+/// a statement of a kind that is not a plain read or write (`BEGIN`, `COMMIT`, `END`, `ROLLBACK`, `SAVEPOINT`, `RELEASE` would end or
+/// nest the transaction in the middle of the list and quietly undo the atomicity; `ATTACH`, `DETACH`, `VACUUM`, `PRAGMA`, `REINDEX`,
+/// `ANALYZE` and `EXPLAIN` reach outside the one database or change how it behaves), a control character, an unterminated quote or
+/// comment, and a second statement hidden in one text (`SELECT 1; COMMIT`: SQLite runs them all). Whatever it is not sure of it refuses.
+fn text_problem(query: &str) -> Option<&'static str> {
+  // The characters SQLite and the hook agree are text: printable ASCII, tab, newline, form feed, carriage return, and anything above ASCII.
+  // A NUL ends the text for SQLite, and any other control character is something this reader would only guess at.
+  if query.chars().any(|c| (c < ' ' && !matches!(c, '\t' | '\n' | '\x0c' | '\r')) || c == '\x7f') {
+    return Some("a control character");
+  }
+
+  let bytes = query.as_bytes();
+  let mut at = match skip_blank(bytes, 0) {
+    Ok(at) => at,
+    Err(problem) => return Some(problem),
+  };
+  let first = at;
+  while at < bytes.len() && bytes[at].is_ascii_alphabetic() {
+    at += 1;
+  }
+  if !PLAIN_STATEMENTS.contains(&query[first..at].to_ascii_lowercase().as_str()) {
+    return Some("a kind of statement the batch does not run");
+  }
+
+  // The rest: a `;` outside quotes and comments may only be followed by blanks and comments.
+  while at < bytes.len() {
+    match bytes[at] {
+      quote @ (b'\'' | b'"' | b'`') => {
+        // A quote inside is doubled; a backslash is nothing special to SQLite.
+        at += 1;
+        loop {
+          match bytes[at..].iter().position(|&b| b == quote) {
+            None => return Some("an unterminated quote"),
+            Some(end) if bytes.get(at + end + 1) == Some(&quote) => at += end + 2,
+            Some(end) => {
+              at += end + 1;
+              break;
+            }
+          }
+        }
+      }
+      b'[' => match bytes[at..].iter().position(|&b| b == b']') {
+        None => return Some("an unterminated name"),
+        Some(end) => at += end + 1,
+      },
+      b'-' | b'/' => match skip_blank(bytes, at) {
+        Ok(next) if next > at => at = next,
+        Ok(_) => at += 1,
+        Err(problem) => return Some(problem),
+      },
+      b';' => {
+        return match skip_blank(bytes, at + 1) {
+          Ok(next) if next == bytes.len() => None,
+          Ok(_) => Some("more than one statement"),
+          Err(problem) => Some(problem),
+        };
+      }
+      _ => at += 1,
+    }
+  }
+
+  None
+}
+
+/// What the batch runs: a plain read or write, or a change of the schema. Not a pragma: the command itself decides about foreign keys.
+const PLAIN_STATEMENTS: [&str; 8] = ["select", "insert", "update", "delete", "create", "drop", "alter", "with"];
+
+/// The place after the blanks and comments that start at `from` (none: `from`). An unterminated block comment is a problem.
+fn skip_blank(bytes: &[u8], from: usize) -> Result<usize, &'static str> {
+  let mut at = from;
+  while at < bytes.len() {
+    match bytes[at] {
+      b' ' | b'\t' | b'\n' | 0x0c | b'\r' => at += 1,
+      b'-' if bytes.get(at + 1) == Some(&b'-') => {
+        at = bytes[at..].iter().position(|&b| b == b'\n').map_or(bytes.len(), |end| at + end + 1);
+      }
+      b'/' if bytes.get(at + 1) == Some(&b'*') => match bytes[at + 2..].windows(2).position(|pair| pair == b"*/") {
+        None => return Err("an unterminated comment"),
+        Some(end) => at += 2 + end + 2,
+      },
+      _ => break,
+    }
+  }
+
+  Ok(at)
+}
+
 /// One statement and the values for its `$1`, `$2`, ... (the shape of the plugin's `execute` and `select`).
 #[derive(Deserialize)]
 pub struct Statement {
@@ -112,6 +201,11 @@ impl BatchError {
 /// Runs `statements` in one transaction and gives each one's result, or changes nothing and says why.
 pub async fn run(pool: &SqlitePool, statements: &[Statement], foreign_keys_off: bool, limits: &Limits) -> Result<Vec<StatementResult>, BatchError> {
   limits.check(statements)?;
+  for (index, statement) in statements.iter().enumerate() {
+    if let Some(problem) = text_problem(&statement.query) {
+      return Err(BatchError::at(index, format!("refused before anything ran: {problem}")));
+    }
+  }
   if statements.is_empty() {
     return Ok(Vec::new());
   }
@@ -701,6 +795,73 @@ mod tests {
       assert_eq!(plugin_select(&webview, "SELECT count(*) FROM items", &[]), Ok(vec![vec![json!(2)]]), "the children stayed");
     }
 
+  }
+
+  #[test]
+  fn refuses_text_that_would_end_or_nest_the_transaction_or_reach_outside_the_database() {
+    for query in [
+      "BEGIN", "BEGIN IMMEDIATE", "COMMIT", "commit", "END", "END TRANSACTION", "ROLLBACK", "SAVEPOINT a", "RELEASE a",
+      "ATTACH DATABASE '/tmp/x.sqlite' AS x", "DETACH x", "VACUUM", "VACUUM INTO '/tmp/copy.sqlite'",
+      "PRAGMA foreign_keys = OFF", "PRAGMA foreign_keys = ON", "PRAGMA writable_schema = ON", "REINDEX", "ANALYZE", "EXPLAIN SELECT 1",
+      "-- a comment first\nCOMMIT", "/* a comment first */ ATTACH '/tmp/x' AS x", "   \n\t COMMIT",
+      "", "   ", "-- only a comment", ";", "(SELECT 1)",
+    ] {
+      assert!(text_problem(query).is_some(), "{query:?} should be refused");
+    }
+  }
+
+  #[test]
+  fn refuses_a_second_statement_hidden_in_one_text_and_text_it_cannot_read() {
+    for query in [
+      "SELECT 1; COMMIT", "SELECT 1;COMMIT", "SELECT 1; SELECT 2", "SELECT 1; -- x\nSELECT 2", "SELECT 1; /* x */ DROP TABLE lists",
+      "INSERT INTO lists VALUES ('a', 'b'); ATTACH '/tmp/x' AS x", "SELECT ';' ; COMMIT", "SELECT 'it''s' ; ROLLBACK",
+      "SELECT 1\u{0}; COMMIT", "SELECT 1\u{1}", "SELECT 1\u{7f}", "SELECT 1\u{1b}[0m",
+      "SELECT 'unterminated", "SELECT \"unterminated", "SELECT [unterminated", "SELECT `unterminated", "SELECT 1 /* unterminated",
+    ] {
+      assert!(text_problem(query).is_some(), "{query:?} should be refused");
+    }
+  }
+
+  #[test]
+  fn lets_the_statements_the_app_sends_through() {
+    for query in [
+      "SELECT 1", "select * from \"lists\" where \"id\" = $1", "INSERT INTO t (a) VALUES ($1) RETURNING a, b",
+      "update \"lists\" set \"title\" = $1 where \"id\" = $2", "DELETE FROM list_items WHERE list_id = $1",
+      "CREATE TABLE `x` (`id` text PRIMARY KEY NOT NULL)", "CREATE UNIQUE INDEX i ON x (id)", "DROP TABLE `x`", "ALTER TABLE `x` ADD `y` text",
+      "WITH t AS (SELECT 1) SELECT * FROM t", "  \n SELECT 1", "-- Backfill (D3)\n/* more */\nINSERT INTO t SELECT 1",
+      "SELECT 1;", "SELECT 1 ;  \n", "SELECT 1; -- done", "SELECT 1; /* done */",
+      "SELECT ';', \"a;b\", [c;d], `e;f` FROM t", "SELECT 'it''s; fine'", "SELECT 1 -- ; COMMIT", "SELECT 1 /* ; COMMIT */",
+      "SELECT x'0a', 'ünïcode;' FROM t",
+    ] {
+      assert_eq!(text_problem(query), None, "{query:?} should pass");
+    }
+  }
+
+  #[test]
+  fn refuses_the_whole_call_before_anything_runs_and_names_the_statement() {
+    let scratch = Scratch::new("text");
+    block(async {
+      let pool = open(&scratch.file()).await;
+      fixture(&pool).await;
+
+      for hostile in ["COMMIT", "SELECT 1; COMMIT", "ATTACH 'x' AS y", "PRAGMA foreign_keys = OFF"] {
+        let error = run(
+          &pool,
+          &[sql("INSERT INTO lists VALUES ('a', 'A')", vec![]), sql("INSERT INTO lists VALUES ('b', 'B')", vec![]), sql(hostile, vec![])],
+          false,
+          &Limits::DEFAULT,
+        )
+        .await
+        .unwrap_err();
+
+        assert_eq!(error.statement, Some(2), "{hostile}");
+        assert!(error.message.contains("refused before anything ran"), "{}", error.message);
+        assert_eq!(count(&pool, "lists").await, 0, "{hostile}: the statements before it must not have run");
+      }
+      // Under the foreign-keys option too.
+      let error = run(&pool, &[sql("COMMIT", vec![])], true, &Limits::DEFAULT).await.unwrap_err();
+      assert_eq!(error.statement, Some(0));
+    });
   }
 
   #[test]

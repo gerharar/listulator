@@ -747,7 +747,6 @@ describe('sql_batch (53.2: the app’s own command, the whole list in one transa
       ['two hundred statements, a 50,000-item rewrite', batch(Array.from({ length: 200 }, (_, n) => stmt(`INSERT INTO t VALUES ($1, $2)`, [`id-${n}`, n])))],
       ['the most statements one call may hold', batch(Array.from({ length: BATCH_MAX_STATEMENTS }, () => stmt()))],
       ['a statement that returns rows', batch([stmt('INSERT INTO t (a) VALUES ($1) RETURNING a, b', ['x'])])],
-      ['the exact ON of the pragma the app sends', batch([stmt('PRAGMA foreign_keys = ON')])],
     ])('%s', (_name, sent) => {
       expect(passes(sent)).toBe(true)
     })
@@ -862,6 +861,7 @@ describe('sql_batch (53.2: the app’s own command, the whole list in one transa
       ['a pragma that switches it off, lower case', 'pragma foreign_keys=0'],
       ['a pragma that writes the schema', 'PRAGMA writable_schema = ON'],
       ['a pragma that checks (the native side does that itself)', 'PRAGMA foreign_key_check'],
+      ['the one pragma the one-statement commands allow (the batch decides about foreign keys itself, and the native side refuses it too)', 'PRAGMA foreign_keys = ON'],
       ['an empty statement', ''],
       ['a NUL', 'SELECT 1\u0000'],
       ['an unterminated string that might hide the rest', "SELECT 'abc; ATTACH '/tmp/x' AS x"],
