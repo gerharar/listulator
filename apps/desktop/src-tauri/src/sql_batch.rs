@@ -278,10 +278,6 @@ mod tests {
   use sqlx::sqlite::{SqliteConnectOptions, SqliteJournalMode, SqlitePoolOptions};
   use std::path::{Path, PathBuf};
   use std::time::{Duration, Instant};
-  use tauri::ipc::{CallbackFn, InvokeBody};
-  use tauri::test::MockRuntime;
-  use tauri::webview::InvokeRequest;
-  use tauri::{Manager, WebviewWindow};
 
   /// A folder of its own for one test, removed after.
   struct Scratch(PathBuf);
@@ -549,146 +545,162 @@ mod tests {
     });
   }
 
-  const DB: &str = "sqlite:listulator.sqlite";
+  /// The tests that run the SQL plugin's own commands next to `sql_batch` in a mock app (53.1). Not built on Windows: building an app, even a
+  /// mock one, pulls in the menu code (`muda`), which imports `SetWindowSubclass` from `comctl32.dll` by name, and that name exists only in
+  /// version 6, which a program gets from a manifest. `tauri-build` puts one in the app's own binary and not in the library's test program, so
+  /// there the program stopped at start (`STATUS_ENTRYPOINT_NOT_FOUND`, found by the first CI run of `phase-53`, 2026-11-16) and no test ran at
+  /// all. What these tests compare (what binds, what comes back, the command's name over IPC) does not depend on the system; the other tests of
+  /// this file, which do not build an app, run on Windows too.
+  #[cfg(not(windows))]
+  mod through_the_app {
+    use super::*;
+    use tauri::ipc::{CallbackFn, InvokeBody};
+    use tauri::test::MockRuntime;
+    use tauri::webview::InvokeRequest;
+    use tauri::{Manager, WebviewWindow};
 
-  /// An app with the real SQL plugin and `sql_batch`, both on `pool`, built from the app's own configuration (its capability file is what
-  /// lets the plugin's commands through; a bare mock context refuses them) (the plugin's `DbInstances` is filled by hand: its `load` would make a
-  /// folder under the user's config directory).
-  fn mock_app(pool: SqlitePool) -> (tauri::App<MockRuntime>, WebviewWindow<MockRuntime>) {
-    let instances = DbInstances::default();
-    block(async { instances.0.write().await.insert(DB.to_string(), DbPool::Sqlite(pool)) });
-    let app = tauri::test::mock_builder()
-      .manage(instances)
-      .plugin(tauri_plugin_sql::Builder::default().build())
-      .invoke_handler(tauri::generate_handler![sql_batch])
-      .build(crate::app_context::<MockRuntime>())
-      .unwrap();
-    let webview = app
-      .get_webview_window("main")
-      .unwrap_or_else(|| tauri::WebviewWindowBuilder::new(&app, "main", Default::default()).build().unwrap());
+    const DB: &str = "sqlite:listulator.sqlite";
 
-    (app, webview)
-  }
+    /// An app with the real SQL plugin and `sql_batch`, both on `pool`, built from the app's own configuration (its capability file is what
+    /// lets the plugin's commands through; a bare mock context refuses them) (the plugin's `DbInstances` is filled by hand: its `load` would make a
+    /// folder under the user's config directory).
+    fn mock_app(pool: SqlitePool) -> (tauri::App<MockRuntime>, WebviewWindow<MockRuntime>) {
+      let instances = DbInstances::default();
+      block(async { instances.0.write().await.insert(DB.to_string(), DbPool::Sqlite(pool)) });
+      let app = tauri::test::mock_builder()
+        .manage(instances)
+        .plugin(tauri_plugin_sql::Builder::default().build())
+        .invoke_handler(tauri::generate_handler![sql_batch])
+        .build(crate::app_context::<MockRuntime>())
+        .unwrap();
+      let webview = app
+        .get_webview_window("main")
+        .unwrap_or_else(|| tauri::WebviewWindowBuilder::new(&app, "main", Default::default()).build().unwrap());
 
-  fn invoke(webview: &WebviewWindow<MockRuntime>, cmd: &str, body: Value) -> Result<Value, Value> {
-    let url = if cfg!(any(windows, target_os = "android")) { "http://tauri.localhost" } else { "tauri://localhost" };
-    let request = InvokeRequest {
-      cmd: cmd.into(),
-      callback: CallbackFn(0),
-      error: CallbackFn(1),
-      url: url.parse().unwrap(),
-      body: InvokeBody::Json(body),
-      headers: Default::default(),
-      invoke_key: tauri::test::INVOKE_KEY.to_string(),
-    };
+      (app, webview)
+    }
 
-    tauri::test::get_ipc_response(webview, request).map(|response| response.deserialize::<Value>().unwrap())
-  }
+    fn invoke(webview: &WebviewWindow<MockRuntime>, cmd: &str, body: Value) -> Result<Value, Value> {
+      let url = if cfg!(any(windows, target_os = "android")) { "http://tauri.localhost" } else { "tauri://localhost" };
+      let request = InvokeRequest {
+        cmd: cmd.into(),
+        callback: CallbackFn(0),
+        error: CallbackFn(1),
+        url: url.parse().unwrap(),
+        body: InvokeBody::Json(body),
+        headers: Default::default(),
+        invoke_key: tauri::test::INVOKE_KEY.to_string(),
+      };
 
-  /// The plugin's `execute`, and its `select` as the page reads it (an object per row; the column names here are one letter, in order).
-  fn plugin_execute(webview: &WebviewWindow<MockRuntime>, query: &str, values: &[Value]) -> Result<Value, Value> {
-    invoke(webview, "plugin:sql|execute", json!({ "db": DB, "query": query, "values": values }))
-  }
+      tauri::test::get_ipc_response(webview, request).map(|response| response.deserialize::<Value>().unwrap())
+    }
 
-  fn plugin_select(webview: &WebviewWindow<MockRuntime>, query: &str, values: &[Value]) -> Result<Vec<Vec<Value>>, Value> {
-    let rows = invoke(webview, "plugin:sql|select", json!({ "db": DB, "query": query, "values": values }))?;
+    /// The plugin's `execute`, and its `select` as the page reads it (an object per row; the column names here are one letter, in order).
+    fn plugin_execute(webview: &WebviewWindow<MockRuntime>, query: &str, values: &[Value]) -> Result<Value, Value> {
+      invoke(webview, "plugin:sql|execute", json!({ "db": DB, "query": query, "values": values }))
+    }
 
-    Ok(rows.as_array().unwrap().iter().map(|row| row.as_object().unwrap().values().cloned().collect()).collect())
-  }
+    fn plugin_select(webview: &WebviewWindow<MockRuntime>, query: &str, values: &[Value]) -> Result<Vec<Vec<Value>>, Value> {
+      let rows = invoke(webview, "plugin:sql|select", json!({ "db": DB, "query": query, "values": values }))?;
 
-  fn batch_one(webview: &WebviewWindow<MockRuntime>, query: &str, values: &[Value]) -> Result<Vec<Vec<Value>>, Value> {
-    let results = invoke(webview, "sql_batch", json!({ "db": DB, "statements": [{ "query": query, "values": values }] }))?;
+      Ok(rows.as_array().unwrap().iter().map(|row| row.as_object().unwrap().values().cloned().collect()).collect())
+    }
 
-    Ok(results[0]["rows"].as_array().unwrap().iter().map(|row| row.as_array().unwrap().clone()).collect())
-  }
+    fn batch_one(webview: &WebviewWindow<MockRuntime>, query: &str, values: &[Value]) -> Result<Vec<Vec<Value>>, Value> {
+      let results = invoke(webview, "sql_batch", json!({ "db": DB, "statements": [{ "query": query, "values": values }] }))?;
 
-  #[test]
-  fn matches_the_sql_plugin_value_for_value() {
-    let scratch = Scratch::new("parity");
-    let pool = block(open(&scratch.file()));
-    let (_app, webview) = mock_app(pool);
+      Ok(results[0]["rows"].as_array().unwrap().iter().map(|row| row.as_array().unwrap().clone()).collect())
+    }
 
-    // Every declared type the app's tables use (`integer`, `text`; Drizzle writes nothing else) and the others SQLite and the plugin know,
-    // each with every kind of value a page can send. The row goes in once through the plugin and once through `sql_batch`; what lands in
-    // the table must be the same (binding), and each way of reading the two rows must give the same values (decoding).
-    let declared = ["INTEGER", "REAL", "TEXT", "BLOB", "BOOLEAN", "NUMERIC", ""];
-    let bound = [
-      json!(null), json!(0), json!(7), json!(-3), json!(1.5), json!(1e300), json!(9007199254740992_i64), json!("x'y"), json!(""), json!("7"),
-      json!(true), json!(false), json!([1, 2]), json!({ "a": 1 }),
-    ];
-    let mut compared = 0;
-    for (table, (kind, value)) in declared.iter().flat_map(|kind| bound.iter().map(move |value| (kind, value))).enumerate() {
-      plugin_execute(&webview, &format!("CREATE TABLE t{table} (a {kind})"), &[]).unwrap();
-      let insert = format!("INSERT INTO t{table} (a) VALUES ($1)");
-      plugin_execute(&webview, &insert, std::slice::from_ref(value)).unwrap();
-      batch_one(&webview, &insert, std::slice::from_ref(value)).unwrap();
+    #[test]
+    fn matches_the_sql_plugin_value_for_value() {
+      let scratch = Scratch::new("parity");
+      let pool = block(open(&scratch.file()));
+      let (_app, webview) = mock_app(pool);
 
-      let read = format!("SELECT a FROM t{table} ORDER BY rowid");
-      let by_plugin = plugin_select(&webview, &read, &[]);
-      let by_batch = batch_one(&webview, &read, &[]);
-      let what = format!("declared {kind:?}, bound {value}");
-      assert_eq!(by_plugin.is_ok(), by_batch.is_ok(), "{what}: one reads it, the other refuses: {by_plugin:?} / {by_batch:?}");
-      if let (Ok(by_plugin), Ok(by_batch)) = (by_plugin, by_batch) {
-        assert_eq!(by_plugin.len(), 2, "{what}");
-        assert_eq!(by_plugin[0], by_plugin[1], "{what}: the two ways of binding stored different things");
-        assert_eq!(by_batch, by_plugin, "{what}: the two ways of reading gave different values");
-        compared += 1;
+      // Every declared type the app's tables use (`integer`, `text`; Drizzle writes nothing else) and the others SQLite and the plugin know,
+      // each with every kind of value a page can send. The row goes in once through the plugin and once through `sql_batch`; what lands in
+      // the table must be the same (binding), and each way of reading the two rows must give the same values (decoding).
+      let declared = ["INTEGER", "REAL", "TEXT", "BLOB", "BOOLEAN", "NUMERIC", ""];
+      let bound = [
+        json!(null), json!(0), json!(7), json!(-3), json!(1.5), json!(1e300), json!(9007199254740992_i64), json!("x'y"), json!(""), json!("7"),
+        json!(true), json!(false), json!([1, 2]), json!({ "a": 1 }),
+      ];
+      let mut compared = 0;
+      for (table, (kind, value)) in declared.iter().flat_map(|kind| bound.iter().map(move |value| (kind, value))).enumerate() {
+        plugin_execute(&webview, &format!("CREATE TABLE t{table} (a {kind})"), &[]).unwrap();
+        let insert = format!("INSERT INTO t{table} (a) VALUES ($1)");
+        plugin_execute(&webview, &insert, std::slice::from_ref(value)).unwrap();
+        batch_one(&webview, &insert, std::slice::from_ref(value)).unwrap();
+
+        let read = format!("SELECT a FROM t{table} ORDER BY rowid");
+        let by_plugin = plugin_select(&webview, &read, &[]);
+        let by_batch = batch_one(&webview, &read, &[]);
+        let what = format!("declared {kind:?}, bound {value}");
+        assert_eq!(by_plugin.is_ok(), by_batch.is_ok(), "{what}: one reads it, the other refuses: {by_plugin:?} / {by_batch:?}");
+        if let (Ok(by_plugin), Ok(by_batch)) = (by_plugin, by_batch) {
+          assert_eq!(by_plugin.len(), 2, "{what}");
+          assert_eq!(by_plugin[0], by_plugin[1], "{what}: the two ways of binding stored different things");
+          assert_eq!(by_batch, by_plugin, "{what}: the two ways of reading gave different values");
+          compared += 1;
+        }
+      }
+      assert_eq!(compared, declared.len() * bound.len(), "a case where both sides refused was not compared");
+
+      // A real blob (no way to send one as a JSON value, so it is in the SQL text) and values with no declared type: expressions.
+      plugin_execute(&webview, "CREATE TABLE blobs (a BLOB)", &[]).unwrap();
+      plugin_execute(&webview, "INSERT INTO blobs VALUES (x'00ff10')", &[]).unwrap();
+      for query in [
+        "SELECT a FROM blobs",
+        "SELECT 1 AS a, 1.5 AS b, 'x' AS c, NULL AS d, x'01' AS e, 2 > 1 AS f, length('abc') AS g, 7.0 AS h, -0.0 AS i",
+        "INSERT INTO blobs VALUES (x'0a') RETURNING a",
+        "SELECT 1 WHERE 0",
+      ] {
+        assert_eq!(batch_one(&webview, query, &[]), plugin_select(&webview, query, &[]), "{query}");
       }
     }
-    assert_eq!(compared, declared.len() * bound.len(), "a case where both sides refused was not compared");
 
-    // A real blob (no way to send one as a JSON value, so it is in the SQL text) and values with no declared type: expressions.
-    plugin_execute(&webview, "CREATE TABLE blobs (a BLOB)", &[]).unwrap();
-    plugin_execute(&webview, "INSERT INTO blobs VALUES (x'00ff10')", &[]).unwrap();
-    for query in [
-      "SELECT a FROM blobs",
-      "SELECT 1 AS a, 1.5 AS b, 'x' AS c, NULL AS d, x'01' AS e, 2 > 1 AS f, length('abc') AS g, 7.0 AS h, -0.0 AS i",
-      "INSERT INTO blobs VALUES (x'0a') RETURNING a",
-      "SELECT 1 WHERE 0",
-    ] {
-      assert_eq!(batch_one(&webview, query, &[]), plugin_select(&webview, query, &[]), "{query}");
+    #[test]
+    fn the_command_answers_over_ipc_in_the_shape_the_bridge_reads() {
+      let scratch = Scratch::new("ipc");
+      let pool = block(open(&scratch.file()));
+      block(fixture(&pool));
+      let (_app, webview) = mock_app(pool);
+
+      let ok = invoke(
+        &webview,
+        "sql_batch",
+        json!({ "db": DB, "statements": [
+          { "query": "INSERT INTO lists VALUES ($1, 'L') RETURNING id", "values": ["l1"] },
+          { "query": "SELECT count(*) FROM lists" },
+        ] }),
+      );
+      assert_eq!(ok, Ok(json!([{ "rows": [["l1"]], "rowsAffected": 1 }, { "rows": [[1]], "rowsAffected": 1 }])));
+
+      let failed = invoke(&webview, "sql_batch", json!({ "db": DB, "statements": [{ "query": "DELETE FROM lists" }, { "query": "INSERT INTO nope VALUES (1)" }] }));
+      assert_eq!(failed.as_ref().unwrap_err()["statement"], json!(1));
+      assert!(failed.unwrap_err()["message"].as_str().unwrap().contains("no such table: nope"));
+      assert_eq!(plugin_select(&webview, "SELECT count(*) FROM lists", &[]), Ok(vec![vec![json!(1)]]), "the delete before the failure was undone");
+
+      let not_loaded = invoke(&webview, "sql_batch", json!({ "db": "sqlite:other.sqlite", "statements": [{ "query": "SELECT 1" }] }));
+      assert_eq!(not_loaded.as_ref().unwrap_err()["statement"], json!(null));
+      assert!(not_loaded.unwrap_err()["message"].as_str().unwrap().contains("database not loaded"));
     }
-  }
 
-  #[test]
-  fn the_command_answers_over_ipc_in_the_shape_the_bridge_reads() {
-    let scratch = Scratch::new("ipc");
-    let pool = block(open(&scratch.file()));
-    block(fixture(&pool));
-    let (_app, webview) = mock_app(pool);
+    #[test]
+    fn the_foreign_keys_option_is_honoured_over_ipc_under_its_camel_case_name() {
+      let scratch = Scratch::new("ipc-fk");
+      let pool = block(open(&scratch.file()));
+      block(parent_with_two_children(&pool));
+      let (_app, webview) = mock_app(pool);
+      let rebuild: Vec<Value> = rebuild_lists().iter().map(|s| json!({ "query": s.query })).collect();
 
-    let ok = invoke(
-      &webview,
-      "sql_batch",
-      json!({ "db": DB, "statements": [
-        { "query": "INSERT INTO lists VALUES ($1, 'L') RETURNING id", "values": ["l1"] },
-        { "query": "SELECT count(*) FROM lists" },
-      ] }),
-    );
-    assert_eq!(ok, Ok(json!([{ "rows": [["l1"]], "rowsAffected": 1 }, { "rows": [[1]], "rowsAffected": 1 }])));
+      let done = invoke(&webview, "sql_batch", json!({ "db": DB, "statements": rebuild, "foreignKeysOff": true }));
 
-    let failed = invoke(&webview, "sql_batch", json!({ "db": DB, "statements": [{ "query": "DELETE FROM lists" }, { "query": "INSERT INTO nope VALUES (1)" }] }));
-    assert_eq!(failed.as_ref().unwrap_err()["statement"], json!(1));
-    assert!(failed.unwrap_err()["message"].as_str().unwrap().contains("no such table: nope"));
-    assert_eq!(plugin_select(&webview, "SELECT count(*) FROM lists", &[]), Ok(vec![vec![json!(1)]]), "the delete before the failure was undone");
+      assert!(done.is_ok(), "{done:?}");
+      assert_eq!(plugin_select(&webview, "SELECT count(*) FROM items", &[]), Ok(vec![vec![json!(2)]]), "the children stayed");
+    }
 
-    let not_loaded = invoke(&webview, "sql_batch", json!({ "db": "sqlite:other.sqlite", "statements": [{ "query": "SELECT 1" }] }));
-    assert_eq!(not_loaded.as_ref().unwrap_err()["statement"], json!(null));
-    assert!(not_loaded.unwrap_err()["message"].as_str().unwrap().contains("database not loaded"));
-  }
-
-  #[test]
-  fn the_foreign_keys_option_is_honoured_over_ipc_under_its_camel_case_name() {
-    let scratch = Scratch::new("ipc-fk");
-    let pool = block(open(&scratch.file()));
-    block(parent_with_two_children(&pool));
-    let (_app, webview) = mock_app(pool);
-    let rebuild: Vec<Value> = rebuild_lists().iter().map(|s| json!({ "query": s.query })).collect();
-
-    let done = invoke(&webview, "sql_batch", json!({ "db": DB, "statements": rebuild, "foreignKeysOff": true }));
-
-    assert!(done.is_ok(), "{done:?}");
-    assert_eq!(plugin_select(&webview, "SELECT count(*) FROM items", &[]), Ok(vec![vec![json!(2)]]), "the children stayed");
   }
 
   #[test]
