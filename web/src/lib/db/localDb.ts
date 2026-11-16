@@ -1,3 +1,4 @@
+import { invoke } from '@tauri-apps/api/core'
 import Database from '@tauri-apps/plugin-sql'
 import { drizzle } from 'drizzle-orm/sqlite-proxy'
 // Cross-workspace on purpose: the schema is the shared, portable source of
@@ -5,6 +6,7 @@ import { drizzle } from 'drizzle-orm/sqlite-proxy'
 // app reads the same table definitions the self-hosted server does, rather
 // than keeping a second copy that could drift.
 import * as schema from '../../../../server/src/db/schema.js'
+import { AtomicBatchError } from '../../../../server/src/db/atomic.js'
 
 /**
  * Local SQLite storage for the standalone desktop/mobile app, via Tauri's
@@ -122,13 +124,55 @@ async function runLocalMigrations(connection: Database): Promise<void> {
   }
 }
 
+/** What the native `sql_batch` answers for one statement (`sql_batch.rs`, `StatementResult`): rows as arrays in column order. */
+interface NativeBatchResult {
+  rows: unknown[][]
+  rowsAffected: number
+}
+
+/** What it rejects with (`BatchError`): the place of the failing statement, or null when the call itself could not run. */
+interface NativeBatchFailure {
+  statement: number | null
+  message: string
+}
+
+const isNativeFailure = (cause: unknown): cause is NativeBatchFailure =>
+  typeof cause === 'object' && cause !== null && typeof (cause as NativeBatchFailure).message === 'string' && 'statement' in cause
+
+/**
+ * Runs a list of statements in ONE transaction through the app's own command `sql_batch` (Phase 53): all of it or none of it. The
+ * statements are `{ query, values }` as the SQL plugin takes them; `foreignKeysOff` is for a migration that rebuilds a table (the command
+ * runs it on a connection of its own, with enforcement off, and checks the foreign keys before it commits). The isolation hook checks the
+ * call before it leaves the page: one to 2,000 statements, at most 64 MiB, values that are text, numbers or null. A failure rejects
+ * with an `AtomicBatchError` that says which statement.
+ */
+export async function runSqlBatch(
+  statements: { query: string; values?: unknown[] }[],
+  { foreignKeysOff = false }: { foreignKeysOff?: boolean } = {},
+): Promise<NativeBatchResult[]> {
+  try {
+    return await invoke<NativeBatchResult[]>('sql_batch', {
+      db: DATABASE,
+      statements,
+      ...(foreignKeysOff ? { foreignKeysOff: true } : {}),
+    })
+  } catch (cause) {
+    if (isNativeFailure(cause)) throw new AtomicBatchError(cause.statement ?? undefined, cause.message)
+
+    throw new AtomicBatchError(undefined, cause instanceof Error ? cause.message : String(cause), { cause })
+  }
+}
+
 export type LocalDatabase = ReturnType<typeof drizzle<typeof schema>>
+
+/** The one database file, in the app's config folder: the only name the isolation hook lets the page open. */
+const DATABASE = 'sqlite:listulator.sqlite'
 
 let connection: Database | undefined
 
 async function getConnection(): Promise<Database> {
   if (!connection) {
-    const opened = await Database.load('sqlite:listulator.sqlite')
+    const opened = await Database.load(DATABASE)
     // Off by default in SQLite, same as the server's own connection
     // (db/client.ts) — deleteList's cascade to list_items depends on it.
     await opened.execute('PRAGMA foreign_keys = ON')
@@ -177,6 +221,13 @@ async function openLocalDb(): Promise<LocalDatabase> {
       // truthy). The cast documents that mismatch; it isn't a workaround
       // for our own code being wrong.
       return { rows: (method === 'get' ? rows[0] : rows) as unknown[] }
+    },
+    // `db.batch(list)` (`runAtomically`, server/src/db/atomic.ts): the whole list in one call to the native command, one transaction. The
+    // answer is the shape of the callback above, per statement: `rows` as arrays, for a `get` the one row.
+    async (batch) => {
+      const results = await runSqlBatch(batch.map(({ sql, params }) => ({ query: sql, values: params })))
+
+      return results.map(({ rows }, index) => ({ rows: (batch[index]!.method === 'get' ? rows[0] : rows) as unknown[] }))
     },
     { schema },
   )
