@@ -75,15 +75,14 @@ html.theme-exzed {
  * titles whole; wider only adds a gap), the window minus 2 x 96 between them; the gap shrinks from 96px to a 24px floor first, so a layer stays 1080px
  * down to a 1128px window and below that is the window minus 48 and shrinks with it, as in Quantum. `--layer-min` is the input that makes the gap
  * shrink, not a width on the layer. `--stage-gap` is read by the stage's CSS and by the rail's rule alike, which stays as it is: with this card and gap it
- * puts the rail outside from 2244px (1620 + 2 x 96 + 2 x 216) and back inside below 2212. `--layer-max-wide` (a layer that asks for `wide`; none does,
- * BL-165) follows the same cap.
+ * puts the rail outside from 2244px (1620 + 2 x 96 + 2 x 216) and back inside below 2212. (The `wide` layer and its `--layer-max-wide` token
+ * are gone, BL-165, 2026-11-16: no layer asked for them.)
  */
 html.theme-exzed {
   --stage-gap: 96px;
   --stage-gap-min: 24px;
   --layer-min: 1080px;
   --layer-max: 1620px;
-  --layer-max-wide: 1620px;
   --layer-max-list: 1620px;
 }
 

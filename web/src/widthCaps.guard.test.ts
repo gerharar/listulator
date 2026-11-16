@@ -76,7 +76,6 @@ const KEPT: readonly (readonly [string, string, string])[] = [
   ['screens/about/AboutScreen.css', '.q-about-column', '760px'],
   // The two layer caps are tokens since Phase 48.4 (a theme sets its own); what stays pinned is that they are read, and below that what they are in Quantum.
   ['components/quantum/LayerCard/LayerCard.css', '.q-layer', 'calc(var(--layer-cap, var(--layer-max)) - 2 * var(--peek-inset, 0px))'],
-  ['components/quantum/LayerCard/LayerCard.css', '.q-layer.wide', 'var(--layer-max-wide)'],
   ['components/quantum/AppErrorBoundary/AppErrorBoundary.css', '.q-crash .q-error-block', '480px'],
   // The List Vault browser's category column: as wide as its longest row, but never past this (owner, 2026-10-27; the name ellipsises, the count never).
   ['components/quantum/VaultBrowser/VaultBrowser.css', '.q-vb-column', '300px'],
@@ -99,10 +98,19 @@ describe('the layer caps, as Quantum has them (H-021, and the tokens of Phase 48
 
   it.each([
     ['--layer-max', '1080px'],
-    ['--layer-max-wide', '1400px'],
     ['--layer-max-list', '1080px'],
   ])('%s is still %s', (name, value) => {
     expect(token(name)).toBe(value)
+  })
+})
+
+describe('no layer is "wide" any more (BL-165: the design tokens of 2026-11-16 have no --layer-max-wide)', () => {
+  it('the layer card has no wide prop or rule, and no stylesheet or token mentions the wide cap', () => {
+    expect(css('components/quantum/LayerCard/LayerCard.css')).not.toMatch(/\.q-layer\.wide|layer-max-wide/)
+    expect(css('components/quantum/LayerCard/LayerCard.tsx')).not.toMatch(/\bwide\b/)
+    for (const file of ['styles/quantum/tokens.css', 'styles/theme/contract.css', 'styles/theme/exzed.css']) {
+      expect(css(file), file).not.toMatch(/--layer-max-wide\s*:/)
+    }
   })
 })
 

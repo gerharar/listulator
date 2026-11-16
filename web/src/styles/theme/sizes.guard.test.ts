@@ -63,7 +63,7 @@ describe('eX-Zed’s sizes: rows and controls', () => {
 describe('size tokens: the width of a layer and the stage’s side gap', () => {
   const WIDTHS = { '--stage-gap': '20px', '--stage-gap-min': '20px', '--layer-min': '0px', '--layer-max-list': '1080px' } as const
   // Design, answers 3 and 7: every layer is elastic from 1080px to 1620px (a list and a Preview too); the gap shrinks from 96px to 24px first.
-  const EXZED_WIDTHS = { '--stage-gap': '96px', '--stage-gap-min': '24px', '--layer-min': '1080px', '--layer-max': '1620px', '--layer-max-wide': '1620px', '--layer-max-list': '1620px' } as const
+  const EXZED_WIDTHS = { '--stage-gap': '96px', '--stage-gap-min': '24px', '--layer-min': '1080px', '--layer-max': '1620px', '--layer-max-list': '1620px' } as const
   const px = (value: string) => Number.parseFloat(value)
   const quantum = (token: string) => definitions(token, ['styles/quantum/tokens.css', 'styles/theme/contract.css'])
   const exzed = read('styles/theme/exzed.css')

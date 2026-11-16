@@ -11,9 +11,8 @@
  */
 
 html {
-  /* Elevation (48.2). The overlays read --e-pop, --e-toast, --e-sheet, --e-layer-rest and --e-layer-covered, which design's tokens already hold with
-     Quantum's values (generated into tokens.css); the tooltip's is the one design's file does not have. */
-  --e-tooltip: 0 4px 14px rgba(0, 0, 0, 0.2);
+  /* Elevation (48.2). The overlays read --e-pop, --e-toast, --e-sheet, --e-layer-rest, --e-layer-covered and, since design's file of 2026-11-16, --e-tooltip
+     and --e-layer-enter too: they are all generated into tokens.css with Quantum's values. */
   /* The List Vault's selected category row: a hard 3px stripe in the accent (51.12: the last of the guard's allowances, now a token like the rest). eX-Zed draws the row as inverse video instead. */
   --e-vb-sel: inset 3px 0 0 var(--accent);
 
@@ -36,8 +35,8 @@ html {
   --control-h-icon: 36px;
   --control-h-list: 34px;
 
-  /* Widths (48.4). --layer-max (1080px) and --layer-max-wide (1400px) are in tokens.css; the layers read them. Quantum's list and Preview are 1080px like
-     every layer (the `wide` layer exists and no layer uses it), so their own cap is a token of its own: eX-Zed's is wider. The stage's side gap is the
+  /* Widths (48.4). --layer-max (1080px) is in tokens.css; the layers read it. Quantum's list and Preview are 1080px like
+     every layer (the unused `wide` layer and its token are gone, BL-165), so their own cap is a token of its own: eX-Zed's is wider. The stage's side gap is the
      20px that was written twice, in the stage's CSS and in the rail's rule (railPlacement.ts, which now reads both). */
   --layer-max-list: 1080px;
   --stage-gap: 20px;

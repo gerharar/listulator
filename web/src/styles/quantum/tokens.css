@@ -166,7 +166,7 @@ html[data-theme="light-bone"], html [data-theme="light-bone"] {
   --washA: #faf6ee;
   --washB: #f5f0e6;
   --washC: #eee6d8;
-  --scrim: rgba(245,240,230,0.72);
+  --scrim: rgba(34,31,25,0.10);
   --headSub: var(--ink);
 }
 html {
@@ -185,6 +185,8 @@ html {
   --e-sheet: 0 16px 28px rgba(0,0,0,.14);
   --e-layer-rest: 0 20px 48px rgba(0,0,0,.22), 0 3px 10px rgba(0,0,0,.10);
   --e-layer-covered: 0 8px 18px rgba(0,0,0,.10);
+  --e-layer-enter: 0 26px 30px -18px rgba(0,0,0,.34), 0 3px 10px rgba(0,0,0,.12);
+  --e-tooltip: 0 4px 14px rgba(0,0,0,.2);
   --row-h: 46px;
   --preview-row-h: 40px;
   --box: 19px;
@@ -200,21 +202,25 @@ html {
   --pop-plat: 240px;
   --pop-key: 300px;
   --pop-md: 320px;
+  --pop-reset: 340px;
   --pop-lg: 360px;
   --layer-max: 1080px;
-  --layer-max-wide: 1400px;
   --tile-min-h: 126px;
   --art-stroke: 4.8px;
   --progress-h: 11px;
   --sheet-max: 640px;
   --z-layer: 10;
   --z-header: 60;
+  --z-scrim: 89;
   --z-sheet: 90;
   --z-catcher: 119;
   --z-pop: 120;
+  --z-pop-side: 121;
   --z-toast: 125;
+  --z-combobox: 130;
+  --z-tooltip: 200;
   --ease: cubic-bezier(.22,.7,.2,1);
-  --d-shuffle: 340ms;
+  --d-scrim: 140ms;
   --d-drum: 380ms;
   --d-layer-shift: 300ms;
   --d-pulse-hold: 400ms;
@@ -222,6 +228,7 @@ html {
   --d-toast: 3000ms;
   --d-toast-action: 5000ms;
   --d-spinner-delay: 400ms;
+  --d-tooltip: 500ms;
   --o-disabled: 0.45;
   --o-dragging: 0.4;
   --o-art: 0.17;
