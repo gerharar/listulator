@@ -33,6 +33,13 @@ vi.mock('@tauri-apps/plugin-sql', async () => {
   }
 })
 
+// The migrations are one call of the native `sql_batch` each (53.4).
+vi.mock('@tauri-apps/api/core', async () => {
+  const { nativeInvoke } = await import('./db/sqlBatch.testing.js')
+
+  return { invoke: nativeInvoke(() => sqlite) }
+})
+
 const registryHolder = vi.hoisted(() => ({ current: [] as readonly unknown[] }))
 vi.mock('./ingestion/localMediaTypes.js', () => ({
   getLocalMediaTypes: async () => registryHolder.current,

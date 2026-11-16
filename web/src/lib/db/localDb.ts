@@ -63,17 +63,20 @@ export function alreadyApplied(statement: string, error: unknown): boolean {
  * Own tracking table, deliberately not Drizzle's `__drizzle_migrations` name
  * — that name implies Drizzle's migrator wrote it, and it did not.
  *
- * A migration file is applied statement by statement and its tag is recorded last. A transaction would make that atomic
- * but is not available: the isolation hook refuses `BEGIN` and a second statement in one call, and the plugin's pool may
- * give each call another connection. So a process killed in the middle used to leave the schema half changed with the tag
- * missing, and every start then ran the same statements again and failed ("duplicate column name") for ever (BL-082).
- * Progress is therefore recorded as rows of the same table: `<tag>#start` before the first statement, `<tag>#<n>` after
- * statement n, and the plain tag when all are done (the progress rows are then removed). On a start that finds `#start`
- * without the tag, the statements with a row are skipped, and the next one, the only one that may have run without its
- * row being written, is allowed to answer "already done" (`alreadyApplied`). Every other failure stops the start, and so
- * does any failure on a first attempt.
+ * Since Phase 53 (53.4) a migration file and its tag row are ONE call of the native `sql_batch`: all the file's statements and the
+ * `INSERT` of its tag run in one transaction. A process killed in the middle, or a statement that fails, leaves the schema as it was and
+ * the tag absent, and the next start runs the file again from its first statement. (A file that rebuilds a table runs with foreign keys
+ * off on a connection of its own, and the two `PRAGMA foreign_keys` lines drizzle-kit writes around it are taken out: see
+ * `applyMigration`.)
+ *
+ * Before that a file was applied statement by statement and its tag recorded last, because a transaction was not available (the hook
+ * refused `BEGIN` and the plugin's pool may give each call another connection). A process killed in the middle used to leave the schema
+ * half changed with the tag missing, and every start then ran the same statements again and failed ("duplicate column name") for ever
+ * (BL-082). Progress was therefore recorded as rows of the same table: `<tag>#start` before the first statement, `<tag>#<n>` after
+ * statement n, and the plain tag when all were done (the progress rows were then removed). **A database an older build left in that state
+ * is still finished that way** (`finishCutShortMigration`), and this code and `alreadyApplied` stay for one release (BL-174).
  */
-async function runLocalMigrations(connection: Database): Promise<void> {
+export async function runLocalMigrations(connection: Database, migrations: { tag: string; sql: string }[] = orderedMigrations()): Promise<void> {
   await connection.execute(
     'CREATE TABLE IF NOT EXISTS __local_migrations (tag text PRIMARY KEY NOT NULL, applied_at integer NOT NULL)',
   )
@@ -84,15 +87,10 @@ async function runLocalMigrations(connection: Database): Promise<void> {
     ),
   )
 
-  const record = (tag: string) =>
-    connection.execute('INSERT INTO __local_migrations (tag, applied_at) VALUES ($1, $2)', [tag, Date.now()])
-  const forgetProgress = (tag: string) =>
-    connection.execute('DELETE FROM __local_migrations WHERE tag LIKE $1', [`${tag}#%`])
-
-  for (const { tag, sql } of orderedMigrations()) {
+  for (const { tag, sql } of migrations) {
     if (recorded.has(tag)) {
-      // Done, but the process may have died before it cleared its progress rows.
-      if (recorded.has(`${tag}#start`)) await forgetProgress(tag)
+      // Done, but an older build may have died before it cleared its progress rows.
+      if (recorded.has(`${tag}#start`)) await forgetProgress(connection, tag)
       continue
     }
 
@@ -101,27 +99,63 @@ async function runLocalMigrations(connection: Database): Promise<void> {
       .map((statement) => statement.trim())
       .filter(Boolean)
 
-    const resuming = recorded.has(`${tag}#start`)
-    let next = 0
-    while (next < statements.length && recorded.has(`${tag}#${next}`)) next += 1
+    if (recorded.has(`${tag}#start`)) await finishCutShortMigration(connection, tag, statements, recorded)
+    else await applyMigration(tag, statements)
+  }
+}
 
-    if (!resuming) await record(`${tag}#start`)
+const withoutComments = (statement: string) => statement.replace(/--[^\n]*(\n|$)/g, ' ').replace(/\/\*[\s\S]*?\*\//g, ' ').trim()
 
-    for (let index = next; index < statements.length; index += 1) {
-      const statement = statements[index]!
+/** drizzle-kit's own lines around a table rebuild: `PRAGMA foreign_keys=OFF;` first and `PRAGMA foreign_keys=ON;` last. */
+const isForeignKeysPragma = (statement: string) => /^PRAGMA\s+foreign_keys\b/i.test(withoutComments(statement))
 
-      try {
-        await connection.execute(statement)
-      } catch (error) {
-        if (!(resuming && index === next && alreadyApplied(statement, error))) throw error
-      }
+const recordTag = (connection: Database, tag: string) =>
+  connection.execute('INSERT INTO __local_migrations (tag, applied_at) VALUES ($1, $2)', [tag, Date.now()])
 
-      await record(`${tag}#${index}`)
+const forgetProgress = (connection: Database, tag: string) =>
+  connection.execute('DELETE FROM __local_migrations WHERE tag LIKE $1', [`${tag}#%`])
+
+/**
+ * One migration file, its tag row last, in one transaction. A file that holds `PRAGMA foreign_keys` is a table rebuild (drizzle-kit
+ * writes it so): those lines are taken out (the hook refuses the OFF, and inside a transaction the pragma does nothing) and the batch is
+ * asked to run with enforcement off, which the native command does on a connection of its own and checks (`PRAGMA foreign_key_check`)
+ * before it commits, so a rebuild can drop and rename the parent without deleting its children.
+ */
+async function applyMigration(tag: string, statements: string[]): Promise<void> {
+  const body = statements.filter((statement) => !isForeignKeysPragma(statement))
+
+  await runSqlBatch(
+    [
+      ...body.map((query) => ({ query })),
+      { query: 'INSERT INTO __local_migrations (tag, applied_at) VALUES ($1, $2)', values: [tag, Date.now()] },
+    ],
+    { foreignKeysOff: body.length < statements.length },
+  )
+}
+
+/**
+ * A migration an older build began (its `<tag>#start` row is there) and did not finish: the statements with a row are skipped, and the
+ * next one, the only one that may have run without its row being written, is allowed to answer "already done" (`alreadyApplied`). Every
+ * other failure stops the start. Unchanged since BL-082; it only ever meets databases an older build left, and goes one release after 53.4.
+ */
+async function finishCutShortMigration(connection: Database, tag: string, statements: string[], recorded: Set<string>): Promise<void> {
+  let next = 0
+  while (next < statements.length && recorded.has(`${tag}#${next}`)) next += 1
+
+  for (let index = next; index < statements.length; index += 1) {
+    const statement = statements[index]!
+
+    try {
+      await connection.execute(statement)
+    } catch (error) {
+      if (!(index === next && alreadyApplied(statement, error))) throw error
     }
 
-    await record(tag)
-    await forgetProgress(tag)
+    await recordTag(connection, `${tag}#${index}`)
   }
+
+  await recordTag(connection, tag)
+  await forgetProgress(connection, tag)
 }
 
 /** What the native `sql_batch` answers for one statement (`sql_batch.rs`, `StatementResult`): rows as arrays in column order. */

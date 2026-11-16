@@ -73,8 +73,11 @@ const desktop: Driver = {
     native.run = nativeSqlBatch(desktopSqlite)
     vi.resetModules()
     const { createLocalDb } = await import('./localDb.js')
+    const db = await createLocalDb()
+    // Opening ran the migrations through the same command: what is counted is what the test does.
+    native.calls = 0
 
-    return await createLocalDb()
+    return db
   },
 }
 

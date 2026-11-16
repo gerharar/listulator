@@ -60,6 +60,13 @@ vi.mock('@tauri-apps/plugin-sql', async () => {
   }
 })
 
+// The migrations are one call of the native `sql_batch` each (53.4): a real SQLite behind it, after the isolation hook has looked at it.
+vi.mock('@tauri-apps/api/core', async () => {
+  const { nativeInvoke } = await import('./db/sqlBatch.testing.js')
+
+  return { invoke: nativeInvoke(() => sqlite) }
+})
+
 const registryHolder = vi.hoisted(() => ({ current: [] as readonly MediaType[] }))
 vi.mock('./ingestion/localMediaTypes.js', () => ({
   getLocalMediaTypes: async () => registryHolder.current,
