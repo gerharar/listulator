@@ -3,15 +3,22 @@ import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
 
 /**
- * No migration may rebuild a table until the desktop applies a migration in one transaction (Phase 53, task 53.4).
+ * No migration may rebuild a table yet. Phase 52 (task 52.2) put this guard up and Phase 53 (task 53.4) kept it, on purpose.
  *
- * On the desktop `runLocalMigrations` (web/src/lib/db/localDb.ts) applies a migration statement by statement, each its own commit,
- * with progress rows. A table rebuild (create a new table, copy, `DROP TABLE` the old, `RENAME TO`) is several such commits, and one
- * that stops half-way leaves the library in a state the next start cannot open. With foreign keys on, dropping a parent table also
- * deletes its children. All of the migrations so far only add things. Phase 52 backs the file up before a new version migrates it
- * (backup.rs); this guard is the other half, and 53.4 lifts it, in the same change that makes the desktop's migrations atomic.
+ * What 53.4 made safe: the DESKTOP. `runLocalMigrations` (web/src/lib/db/localDb.ts) now applies a migration file and its tag row in one
+ * transaction (the native `sql_batch`), and a file that rebuilds a table (drizzle-kit writes `PRAGMA foreign_keys=OFF;` ... `DROP TABLE`,
+ * `RENAME TO` ... `PRAGMA foreign_keys=ON;`) runs with foreign keys off on a connection of its own and is checked before it commits, so a
+ * half-done rebuild cannot be left behind and the children of the dropped parent are not deleted. (Tested there with a fixture; no real
+ * migration rebuilds anything.)
  *
- * docs/tasks/plan.md: Phase 52 (task 52.2) and Phase 53 (task 53.4).
+ * What it did not: the SERVER. `runMigrations` (server/src/db/client.ts) is drizzle's own migrator for better-sqlite3, which runs every
+ * pending file inside one transaction, where `PRAGMA foreign_keys=OFF` does nothing: a rebuild there would still delete the children of a
+ * dropped parent, in the self-hosted server's file and in the dev database the end-to-end tests use. The server is unsupported, but its
+ * tests and the owner's dev database run these files, so the guard stays until the first rebuild is actually needed. Lifting it then means
+ * making the server's runner turn enforcement off before its transaction and run `PRAGMA foreign_key_check` before it commits, and
+ * allowing a rebuild only in a file that carries drizzle-kit's `PRAGMA foreign_keys` lines (the marker the desktop's runner looks for).
+ *
+ * All of the migrations so far only add things. docs/tasks/plan.md: Phase 52 (task 52.2) and Phase 53 (task 53.4).
  */
 const FORBIDDEN: { name: string; pattern: RegExp }[] = [
   { name: 'DROP TABLE', pattern: /\bDROP\s+TABLE\b/i },
@@ -28,10 +35,10 @@ function forbiddenIn(sql: string): string[] {
 
 function explain(file: string, found: string[]): string {
   return (
-    `${file} uses ${found.join(', ')}. On the desktop a migration is applied statement by statement, each its own commit, so a table ` +
-    `rebuild is several commits and one that stops half-way loses data; with foreign keys on, dropping a parent table deletes its ` +
-    `children. Do not rebuild a table until Phase 53 makes the desktop's migrations atomic: docs/tasks/plan.md, Phase 52 (task 52.2) ` +
-    `explains this guard and task 53.4 lifts it.`
+    `${file} uses ${found.join(', ')}. The desktop applies a migration in one transaction and runs a table rebuild with foreign keys off ` +
+    `(Phase 53, task 53.4), but the server's migrator runs every pending file in one transaction where that pragma does nothing, so a ` +
+    `rebuild there still deletes the children of the dropped parent. Make the server's runner turn enforcement off before its transaction ` +
+    `and check the foreign keys before it commits, then relax this guard: docs/tasks/plan.md, Phase 53 (task 53.4), and docs/DECISIONS.md "53.4 built".`
   )
 }
 
@@ -90,9 +97,10 @@ describe('the rule itself', () => {
     const message = explain('0099_rebuild.sql', ['DROP TABLE'])
 
     expect(message).toContain('0099_rebuild.sql')
-    expect(message).toContain('statement by statement')
+    expect(message).toContain("server's migrator")
     expect(message).toContain('foreign keys')
-    expect(message).toContain('Phase 52')
+    expect(message).toContain('Phase 53')
     expect(message).toContain('53.4')
+    expect(message).toContain('DECISIONS')
   })
 })

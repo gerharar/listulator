@@ -1,3 +1,4 @@
+import { invoke } from '@tauri-apps/api/core'
 import Database from '@tauri-apps/plugin-sql'
 import { drizzle } from 'drizzle-orm/sqlite-proxy'
 // Cross-workspace on purpose: the schema is the shared, portable source of
@@ -5,6 +6,8 @@ import { drizzle } from 'drizzle-orm/sqlite-proxy'
 // app reads the same table definitions the self-hosted server does, rather
 // than keeping a second copy that could drift.
 import * as schema from '../../../../server/src/db/schema.js'
+import { AtomicBatchError } from '../../../../server/src/db/atomic.js'
+import { retryWhenBusy } from '../../../../server/src/db/busy.js'
 
 /**
  * Local SQLite storage for the standalone desktop/mobile app, via Tauri's
@@ -61,17 +64,20 @@ export function alreadyApplied(statement: string, error: unknown): boolean {
  * Own tracking table, deliberately not Drizzle's `__drizzle_migrations` name
  * — that name implies Drizzle's migrator wrote it, and it did not.
  *
- * A migration file is applied statement by statement and its tag is recorded last. A transaction would make that atomic
- * but is not available: the isolation hook refuses `BEGIN` and a second statement in one call, and the plugin's pool may
- * give each call another connection. So a process killed in the middle used to leave the schema half changed with the tag
- * missing, and every start then ran the same statements again and failed ("duplicate column name") for ever (BL-082).
- * Progress is therefore recorded as rows of the same table: `<tag>#start` before the first statement, `<tag>#<n>` after
- * statement n, and the plain tag when all are done (the progress rows are then removed). On a start that finds `#start`
- * without the tag, the statements with a row are skipped, and the next one, the only one that may have run without its
- * row being written, is allowed to answer "already done" (`alreadyApplied`). Every other failure stops the start, and so
- * does any failure on a first attempt.
+ * Since Phase 53 (53.4) a migration file and its tag row are ONE call of the native `sql_batch`: all the file's statements and the
+ * `INSERT` of its tag run in one transaction. A process killed in the middle, or a statement that fails, leaves the schema as it was and
+ * the tag absent, and the next start runs the file again from its first statement. (A file that rebuilds a table runs with foreign keys
+ * off on a connection of its own, and the two `PRAGMA foreign_keys` lines drizzle-kit writes around it are taken out: see
+ * `applyMigration`.)
+ *
+ * Before that a file was applied statement by statement and its tag recorded last, because a transaction was not available (the hook
+ * refused `BEGIN` and the plugin's pool may give each call another connection). A process killed in the middle used to leave the schema
+ * half changed with the tag missing, and every start then ran the same statements again and failed ("duplicate column name") for ever
+ * (BL-082). Progress was therefore recorded as rows of the same table: `<tag>#start` before the first statement, `<tag>#<n>` after
+ * statement n, and the plain tag when all were done (the progress rows were then removed). **A database an older build left in that state
+ * is still finished that way** (`finishCutShortMigration`), and this code and `alreadyApplied` stay for one release (BL-174).
  */
-async function runLocalMigrations(connection: Database): Promise<void> {
+export async function runLocalMigrations(connection: Database, migrations: { tag: string; sql: string }[] = orderedMigrations()): Promise<void> {
   await connection.execute(
     'CREATE TABLE IF NOT EXISTS __local_migrations (tag text PRIMARY KEY NOT NULL, applied_at integer NOT NULL)',
   )
@@ -82,15 +88,10 @@ async function runLocalMigrations(connection: Database): Promise<void> {
     ),
   )
 
-  const record = (tag: string) =>
-    connection.execute('INSERT INTO __local_migrations (tag, applied_at) VALUES ($1, $2)', [tag, Date.now()])
-  const forgetProgress = (tag: string) =>
-    connection.execute('DELETE FROM __local_migrations WHERE tag LIKE $1', [`${tag}#%`])
-
-  for (const { tag, sql } of orderedMigrations()) {
+  for (const { tag, sql } of migrations) {
     if (recorded.has(tag)) {
-      // Done, but the process may have died before it cleared its progress rows.
-      if (recorded.has(`${tag}#start`)) await forgetProgress(tag)
+      // Done, but an older build may have died before it cleared its progress rows.
+      if (recorded.has(`${tag}#start`)) await forgetProgress(connection, tag)
       continue
     }
 
@@ -99,36 +100,114 @@ async function runLocalMigrations(connection: Database): Promise<void> {
       .map((statement) => statement.trim())
       .filter(Boolean)
 
-    const resuming = recorded.has(`${tag}#start`)
-    let next = 0
-    while (next < statements.length && recorded.has(`${tag}#${next}`)) next += 1
+    if (recorded.has(`${tag}#start`)) await finishCutShortMigration(connection, tag, statements, recorded)
+    else await applyMigration(tag, statements)
+  }
+}
 
-    if (!resuming) await record(`${tag}#start`)
+const withoutComments = (statement: string) => statement.replace(/--[^\n]*(\n|$)/g, ' ').replace(/\/\*[\s\S]*?\*\//g, ' ').trim()
 
-    for (let index = next; index < statements.length; index += 1) {
-      const statement = statements[index]!
+/** drizzle-kit's own lines around a table rebuild: `PRAGMA foreign_keys=OFF;` first and `PRAGMA foreign_keys=ON;` last. */
+const isForeignKeysPragma = (statement: string) => /^PRAGMA\s+foreign_keys\b/i.test(withoutComments(statement))
 
-      try {
-        await connection.execute(statement)
-      } catch (error) {
-        if (!(resuming && index === next && alreadyApplied(statement, error))) throw error
-      }
+const recordTag = (connection: Database, tag: string) =>
+  connection.execute('INSERT INTO __local_migrations (tag, applied_at) VALUES ($1, $2)', [tag, Date.now()])
 
-      await record(`${tag}#${index}`)
+const forgetProgress = (connection: Database, tag: string) =>
+  connection.execute('DELETE FROM __local_migrations WHERE tag LIKE $1', [`${tag}#%`])
+
+/**
+ * One migration file, its tag row last, in one transaction. A file that holds `PRAGMA foreign_keys` is a table rebuild (drizzle-kit
+ * writes it so): those lines are taken out (the hook refuses the OFF, and inside a transaction the pragma does nothing) and the batch is
+ * asked to run with enforcement off, which the native command does on a connection of its own and checks (`PRAGMA foreign_key_check`)
+ * before it commits, so a rebuild can drop and rename the parent without deleting its children.
+ */
+async function applyMigration(tag: string, statements: string[]): Promise<void> {
+  const body = statements.filter((statement) => !isForeignKeysPragma(statement))
+
+  await runSqlBatch(
+    [
+      ...body.map((query) => ({ query })),
+      { query: 'INSERT INTO __local_migrations (tag, applied_at) VALUES ($1, $2)', values: [tag, Date.now()] },
+    ],
+    { foreignKeysOff: body.length < statements.length },
+  )
+}
+
+/**
+ * A migration an older build began (its `<tag>#start` row is there) and did not finish: the statements with a row are skipped, and the
+ * next one, the only one that may have run without its row being written, is allowed to answer "already done" (`alreadyApplied`). Every
+ * other failure stops the start. Unchanged since BL-082; it only ever meets databases an older build left, and goes one release after 53.4.
+ */
+async function finishCutShortMigration(connection: Database, tag: string, statements: string[], recorded: Set<string>): Promise<void> {
+  let next = 0
+  while (next < statements.length && recorded.has(`${tag}#${next}`)) next += 1
+
+  for (let index = next; index < statements.length; index += 1) {
+    const statement = statements[index]!
+
+    try {
+      await connection.execute(statement)
+    } catch (error) {
+      if (!(index === next && alreadyApplied(statement, error))) throw error
     }
 
-    await record(tag)
-    await forgetProgress(tag)
+    await recordTag(connection, `${tag}#${index}`)
+  }
+
+  await recordTag(connection, tag)
+  await forgetProgress(connection, tag)
+}
+
+/** What the native `sql_batch` answers for one statement (`sql_batch.rs`, `StatementResult`): rows as arrays in column order. */
+interface NativeBatchResult {
+  rows: unknown[][]
+  rowsAffected: number
+}
+
+/** What it rejects with (`BatchError`): the place of the failing statement, or null when the call itself could not run. */
+interface NativeBatchFailure {
+  statement: number | null
+  message: string
+}
+
+const isNativeFailure = (cause: unknown): cause is NativeBatchFailure =>
+  typeof cause === 'object' && cause !== null && typeof (cause as NativeBatchFailure).message === 'string' && 'statement' in cause
+
+/**
+ * Runs a list of statements in ONE transaction through the app's own command `sql_batch` (Phase 53): all of it or none of it. The
+ * statements are `{ query, values }` as the SQL plugin takes them; `foreignKeysOff` is for a migration that rebuilds a table (the command
+ * runs it on a connection of its own, with enforcement off, and checks the foreign keys before it commits). The isolation hook checks the
+ * call before it leaves the page: one to 2,000 statements, at most 64 MiB, values that are text, numbers or null. A failure rejects
+ * with an `AtomicBatchError` that says which statement.
+ */
+export async function runSqlBatch(
+  statements: { query: string; values?: unknown[] }[],
+  { foreignKeysOff = false }: { foreignKeysOff?: boolean } = {},
+): Promise<NativeBatchResult[]> {
+  try {
+    return await invoke<NativeBatchResult[]>('sql_batch', {
+      db: DATABASE,
+      statements,
+      ...(foreignKeysOff ? { foreignKeysOff: true } : {}),
+    })
+  } catch (cause) {
+    if (isNativeFailure(cause)) throw new AtomicBatchError(cause.statement ?? undefined, cause.message)
+
+    throw new AtomicBatchError(undefined, cause instanceof Error ? cause.message : String(cause), { cause })
   }
 }
 
 export type LocalDatabase = ReturnType<typeof drizzle<typeof schema>>
 
+/** The one database file, in the app's config folder: the only name the isolation hook lets the page open. */
+const DATABASE = 'sqlite:listulator.sqlite'
+
 let connection: Database | undefined
 
 async function getConnection(): Promise<Database> {
   if (!connection) {
-    const opened = await Database.load('sqlite:listulator.sqlite')
+    const opened = await Database.load(DATABASE)
     // Off by default in SQLite, same as the server's own connection
     // (db/client.ts) — deleteList's cascade to list_items depends on it.
     await opened.execute('PRAGMA foreign_keys = ON')
@@ -161,12 +240,16 @@ async function openLocalDb(): Promise<LocalDatabase> {
 
   return drizzle<typeof schema>(
     async (sql, params, method) => {
+      // A write that finds the file locked by a long rewrite (a Reset or an import holds the write lock for about 4 s per 50,000 inserts, and
+      // the plugin's connections wait 5 s) is asked again a few times: the background writers (the runtime fill, the source-copy schedule)
+      // would otherwise give up on a list for the rest of the session. A write refused for the lock changed nothing, so this is safe. A
+      // whole batch is NOT asked again here (`runSqlBatch`): a Reset or an import says that it failed.
       if (method === 'run') {
-        await sqlite.execute(sql, params)
+        await retryWhenBusy(() => sqlite.execute(sql, params))
         return { rows: [] }
       }
 
-      const rows = (await sqlite.select<Record<string, unknown>[]>(sql, params)).map((row) =>
+      const rows = (await retryWhenBusy(() => sqlite.select<Record<string, unknown>[]>(sql, params))).map((row) =>
         Object.values(row),
       )
 
@@ -177,6 +260,13 @@ async function openLocalDb(): Promise<LocalDatabase> {
       // truthy). The cast documents that mismatch; it isn't a workaround
       // for our own code being wrong.
       return { rows: (method === 'get' ? rows[0] : rows) as unknown[] }
+    },
+    // `db.batch(list)` (`runAtomically`, server/src/db/atomic.ts): the whole list in one call to the native command, one transaction. The
+    // answer is the shape of the callback above, per statement: `rows` as arrays, for a `get` the one row.
+    async (batch) => {
+      const results = await runSqlBatch(batch.map(({ sql, params }) => ({ query: sql, values: params })))
+
+      return results.map(({ rows }, index) => ({ rows: (batch[index]!.method === 'get' ? rows[0] : rows) as unknown[] }))
     },
     { schema },
   )

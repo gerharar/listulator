@@ -1,4 +1,5 @@
 import { eq } from 'drizzle-orm'
+import { runAtomically } from '../db/atomic.js'
 import type { PortableDatabase } from '../db/client.js'
 import {
   dismissalTitleKey,
@@ -21,18 +22,18 @@ import { knownRuntimes } from './runtimes.js'
 import type { ExpansionCache } from '../ingestion/expansionCache.js'
 import { IngestionError, type FetchLike } from '../ingestion/http.js'
 import type { ListExpansion, MediaType } from '../ingestion/mediaTypes.js'
-import { findListGroups, seedGroupOrder } from './groups.js'
-import { createListItems, itemFromSource } from './bulkItems.js'
+import { findListGroups, seedGroupPositions } from './groups.js'
+import { itemFromSource, itemWriteStatements, planItemWrites } from './bulkItems.js'
 import {
   findList,
   findListItems,
   findListSnapshot,
-  updateList,
+  updateListStatement,
 } from './repository.js'
-import { movedOnly, setGroupPositions, setItemPositions } from './orderIndex.js'
+import { groupPositionStatements, itemPositionStatements, movedOnly } from './orderIndex.js'
 import { yearSortKey } from './years.js'
 import { withListLock } from './listLock.js'
-import { captureItemSet, restoreItemSetNow } from './restore.js'
+import { captureItemSet } from './restore.js'
 import type { ItemSetRestore, OrderRestore } from './restorePayloads.js'
 
 /**
@@ -220,8 +221,6 @@ async function reorderBy(
       .sort((a, b) => keyOf(a.member) - keyOf(b.member) || a.position - b.position)
       .map((entry) => entry.member),
   )
-  await setItemPositions(db, listId, movedOnly(sortedItems))
-
   // Group rows follow the blocks; a group with no items yet stays after them, as it was.
   const rank = new Map(
     ordered.filter((unit) => unit.group !== null).map((unit, index) => [unit.group!, index] as const),
@@ -230,7 +229,12 @@ async function reorderBy(
     (a, b) =>
       (rank.get(a.name) ?? NO_YEAR) - (rank.get(b.name) ?? NO_YEAR) || a.orderIndex - b.orderIndex,
   )
-  await setGroupPositions(db, listId, movedOnly(sequence))
+
+  // All the batches of the move, the items' and the groups', in ONE transaction (53.5c): the order is the one it was or the one asked for.
+  await runAtomically(db, [
+    ...itemPositionStatements(db, listId, movedOnly(sortedItems)),
+    ...groupPositionStatements(db, listId, movedOnly(sequence)),
+  ])
 
   return restore
 }
@@ -539,29 +543,36 @@ async function resetToSourceNow(
   const fallbackMinutes =
     deps.mediaTypes.find((entry) => entry.key === list.mediaType)?.defaultDurationMinutes ?? 30
 
-  try {
-    await db.delete(listItems).where(eq(listItems.listId, listId)).run()
-    await db.delete(dismissedItems).where(eq(dismissedItems.listId, listId)).run()
-    await db.delete(listGroups).where(eq(listGroups.listId, listId)).run()
+  // Everything is read and worked out; now ONE transaction (Phase 53, 53.5a): the list is emptied and rebuilt as the import builds it, with
+  // the groups ordered and the list's own fields set, or nothing of it happens. The new rows are planned against an empty list (they are
+  // what is left once the three deletes have run), the group order is worked out from that plan in memory instead of being read back, and the
+  // item inserts ask for no rows back (a Reset of 50,000 items has no use for them and they would cross the IPC). A failure, or a process
+  // that dies, leaves the list exactly as it was, so the capture is only what Undo needs, never a repair.
+  const plan = planItemWrites(
+    listId,
+    [],
+    [],
+    target.items.map((item) => itemFromSource(item, item.minutes, fallbackMinutes)),
+  )
+  const writes = itemWriteStatements(db, plan, { returning: false })
+  const groupOrder = seedGroupPositions(
+    plan.newGroups,
+    plan.rows.map((row) => ({ group: row.group ?? null, year: row.year ?? null, yearUnk: row.yearUnk ?? null })),
+  )
 
-    // One bulk insert, as the import makes it (task 15.9b); a failure is caught below and the capture restored.
-    await createListItems(
-      db,
-      userId,
-      listId,
-      target.items.map((item) => itemFromSource(item, item.minutes, fallbackMinutes)),
-    )
-
-    await seedGroupOrder(db, listId)
-    await updateList(db, userId, listId, {
+  await runAtomically(db, [
+    db.delete(listItems).where(eq(listItems.listId, listId)),
+    db.delete(dismissedItems).where(eq(dismissedItems.listId, listId)),
+    db.delete(listGroups).where(eq(listGroups.listId, listId)),
+    ...writes.groups,
+    ...writes.items,
+    ...groupPositionStatements(db, listId, groupOrder),
+    updateListStatement(db, userId, listId, {
       title: target.title,
       description: target.description,
       status: target.status,
-    })
-  } catch (cause) {
-    await restoreItemSetNow(db, userId, listId, restore)
-    throw cause
-  }
+    }),
+  ])
 
   return { counts, followUpCheck: wantsFollowUp(list), restore }
 }

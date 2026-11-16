@@ -311,10 +311,10 @@ export const en = {
         other: { action: 'Exit', question: 'Exit Listulator?' },
         note: "Everything you've saved stays",
         cancel: 'Cancel',
-        /** While a whole-list run (Reset, Restore order, an Undo) goes on: leaving now leaves that list half-done. Design's words (H-015). */
+        /** While a whole-list run (Reset, Restore order, an Undo) goes on: leaving now cancels it and the list stays as it was (since 53.5 every rewrite is all-or-nothing; it used to leave the list half-done). Design's words (H-015), the note changed by the owner 2026-11-16. */
         running: {
           question: { mac: (name: string) => `Quit while “${name}” is being rewritten?`, other: (name: string) => `Exit while “${name}” is being rewritten?` },
-          note: 'Quitting now leaves it half-done. It needs juuuust a few more seconds.',
+          note: 'Quitting now cancels it, and the list stays as it was. It needs juuuust a few more seconds.',
           keep: 'Keep waiting',
           confirm: { mac: 'Quit anyway', other: 'Exit anyway' },
         },

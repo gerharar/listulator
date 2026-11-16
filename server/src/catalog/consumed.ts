@@ -1,5 +1,6 @@
 import { and, eq, inArray, isNotNull, isNull, sql } from 'drizzle-orm'
 import type { PortableDatabase } from '../db/client.js'
+import { runAtomically } from '../db/atomic.js'
 import { listItems } from '../db/schema.js'
 import { withListLock } from './listLock.js'
 import { batches } from './orderIndex.js'
@@ -11,9 +12,8 @@ import type { ConsumedRestore } from './restorePayloads.js'
  *
  * Only the items that are not already in the wanted state change: an item that is done keeps its date and
  * its updated time when "done" is asked again, and the result lists exactly the items that changed, each with
- * what it was — that is both the toast's count and what Undo puts back. Read first, written after, in
- * batches under the list's turn; the desktop has no transactions, so this is not all-or-nothing (a failure
- * part way leaves some items changed, and the client puts back the ones it touched).
+ * what it was — that is both the toast's count and what Undo puts back. Read first, written after, under the list's
+ * turn; all the batches are ONE transaction (Phase 53, 53.5d), so a failure or a process that dies leaves every item as it was.
  *
  * Imported by the server's routes and by the desktop's `api.local.ts` alike; nothing here reads a Node builtin.
  */
@@ -66,13 +66,16 @@ async function setItemsConsumedNow(
     )
   }
 
-  for (const batch of batches(changed)) {
-    await db
-      .update(listItems)
-      .set({ consumedAt: consumed ? now : null, updatedAt: now })
-      .where(and(eq(listItems.listId, listId), inArray(listItems.id, batch.map((entry) => entry.id)), differs))
-      .run()
-  }
+  // All the batches in ONE transaction (53.5d): the items change together or none does.
+  await runAtomically(
+    db,
+    batches(changed).map((batch) =>
+      db
+        .update(listItems)
+        .set({ consumedAt: consumed ? now : null, updatedAt: now })
+        .where(and(eq(listItems.listId, listId), inArray(listItems.id, batch.map((entry) => entry.id)), differs)),
+    ),
+  )
 
   return { items: changed.map((entry) => ({ id: entry.id, consumedAt: entry.consumedAt?.toISOString() ?? null })) }
 }
@@ -109,26 +112,26 @@ async function restoreConsumedNow(
     done.push({ id: entry.id, at })
   }
 
-  for (const batch of batches(open)) {
-    await db
-      .update(listItems)
-      .set({ consumedAt: null, updatedAt: now })
-      .where(and(eq(listItems.listId, listId), inArray(listItems.id, batch.map((entry) => entry.id))))
-      .run()
-  }
+  // All the batches in ONE transaction (53.5d): everything goes back as it was, or nothing does.
+  await runAtomically(db, [
+    ...batches(open).map((batch) =>
+      db
+        .update(listItems)
+        .set({ consumedAt: null, updatedAt: now })
+        .where(and(eq(listItems.listId, listId), inArray(listItems.id, batch.map((entry) => entry.id)))),
+    ),
+    ...batches(done).map((batch) => {
+      const dates = sql`case ${listItems.id} ${sql.join(
+        batch.map((entry) => sql`when ${entry.id} then ${entry.at}`),
+        sql` `,
+      )} end`
 
-  for (const batch of batches(done)) {
-    const dates = sql`case ${listItems.id} ${sql.join(
-      batch.map((entry) => sql`when ${entry.id} then ${entry.at}`),
-      sql` `,
-    )} end`
-
-    await db
-      .update(listItems)
-      .set({ consumedAt: dates, updatedAt: now })
-      .where(and(eq(listItems.listId, listId), inArray(listItems.id, batch.map((entry) => entry.id))))
-      .run()
-  }
+      return db
+        .update(listItems)
+        .set({ consumedAt: dates, updatedAt: now })
+        .where(and(eq(listItems.listId, listId), inArray(listItems.id, batch.map((entry) => entry.id))))
+    }),
+  ])
 
   return true
 }

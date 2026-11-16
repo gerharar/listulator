@@ -2,7 +2,8 @@ import { eq } from 'drizzle-orm'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { listGroups, listItems, lists, users } from '../db/schema.js'
 import { createTestApp, type TestApp } from '../testing/harness.js'
-import { createListItems, discardList, itemFromFile, itemFromSource } from './bulkItems.js'
+import { createListItems, createListWithItems, itemFromFile, itemFromSource } from './bulkItems.js'
+import { findListGroups } from './groups.js'
 import {
   createList,
   createListItem,
@@ -253,23 +254,34 @@ describe('bulk item insert (15.9b)', () => {
       expect(after.groups).toEqual(before.groups)
     })
 
-    it('lets a create path remove the list it just made, so a failed import leaves nothing', async () => {
-      const list = await newList('half-made')
+    it('a create whose items cannot be stored leaves no list at all, nothing to remove afterwards (53.5b)', async () => {
+      await expect(
+        createListWithItems(db(), userId, { title: 'half-made', mediaType: 'movie', source: 'api' }, poisoned(700), { snapshot: true }),
+      ).rejects.toThrow()
 
-      await expect(createListItems(db(), userId, list.id, poisoned(700))).rejects.toThrow()
-      await discardList(db(), userId, list.id)
-
-      expect(db().select().from(lists).where(eq(lists.id, list.id)).all()).toEqual([])
+      expect(db().select().from(lists).all().map((row) => row.title)).not.toContain('half-made')
       expect(db().select().from(listItems).all()).toEqual([])
+      expect(db().select().from(listGroups).all()).toEqual([])
     })
 
-    it('discardList removes only the user’s own list, and says nothing when there is none', async () => {
-      const list = await newList()
+    it('a create that works makes the list, its items and groups, and its snapshot together', async () => {
+      const made = await createListWithItems(
+        db(),
+        userId,
+        { title: 'whole', mediaType: 'movie', source: 'api' },
+        [item('a', 'G0', { year: 2001 }), item('b', 'G1', { year: 1999 }), item('c', null)],
+        { snapshot: true },
+      )
 
-      await discardList(db(), strangerId, list.id)
-      expect(db().select().from(lists).where(eq(lists.id, list.id)).all()).toHaveLength(1)
-
-      await discardList(db(), userId, 'no-such-list')
+      expect(made.title).toBe('whole')
+      expect((await findListItems(db(), userId, made.id))!.map((row) => [row.title, row.group, row.orderIndex])).toEqual([
+        ['a', 'G0', 0],
+        ['b', 'G1', 1],
+        ['c', null, 2],
+      ])
+      // G1 holds the earlier year, so its group comes first (the import's group order).
+      expect((await findListGroups(db(), userId, made.id))!.map((group) => group.name)).toEqual(['G1', 'G0'])
+      expect(await findListSnapshot(db(), userId, made.id)).toHaveLength(3)
     })
   })
 })

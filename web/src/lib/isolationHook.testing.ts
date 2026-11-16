@@ -44,3 +44,22 @@ export function sqlThroughHook(): (command: 'select' | 'execute', query: string,
     if (hook(sent) !== sent) throw new Error(`the isolation hook refused the app's own statement: ${query}`)
   }
 }
+
+/**
+ * The same for `sql_batch` (53.1, 53.2): every batch the app builds goes through the hook's `batchProblem` first, as in the built app, and a
+ * refusal throws. The hook admits only text, finite numbers and null as values; a conversion that sends anything else (a `Date` that a raw
+ * `sql` template interpolated, a `true`) fails in its own test instead of in the built app.
+ */
+export function sqlBatchThroughHook(): (statements: { query: string; values?: unknown[] }[], foreignKeysOff?: boolean) => void {
+  const { hook } = loadIsolationHook()
+
+  return (statements, foreignKeysOff) => {
+    const sent: IpcMessage = {
+      cmd: 'sql_batch',
+      callback: 1,
+      error: 2,
+      payload: { db: DATABASE, statements, ...(foreignKeysOff === undefined ? {} : { foreignKeysOff }) },
+    }
+    if (hook(sent) !== sent) throw new Error(`the isolation hook refused a batch the app built (it begins: ${statements[0]?.query.slice(0, 100)})`)
+  }
+}

@@ -1,8 +1,9 @@
 import { and, asc, eq, gte, isNotNull, max, sql } from 'drizzle-orm'
+import { runAtomically } from '../db/atomic.js'
 import type { PortableDatabase } from '../db/client.js'
 import { dismissalTitleKey, dismissedItems, listGroups, listItems, lists, type ListGroup } from '../db/schema.js'
 import { toGroupPayload, toItemPayload, type GroupRestore } from './restorePayloads.js'
-import { movedOnly, setGroupPositions, setItemPositions } from './orderIndex.js'
+import { batches, groupPositionStatements, itemPositionStatements, movedOnly, setGroupPositions } from './orderIndex.js'
 import { yearSortKey } from './years.js'
 
 /**
@@ -128,29 +129,17 @@ export async function renameListGroup(
     throw new GroupNameError('duplicate')
   }
 
-  // Items first, the group row last: the desktop driver has no reliable
-  // transaction (docs/DECISIONS.md, 10.16), and this order leaves a failure
-  // between the two as "items already relabelled", which a re-run finishes.
-  await db
-    .update(listItems)
-    .set({ group: trimmed, updatedAt: new Date() })
-    .where(and(eq(listItems.listId, listId), eq(listItems.group, group.name)))
-    .run()
+  // The items' label and the group row change in ONE transaction (53.5d): a rename that fails or is cut short changes neither.
+  const results = await runAtomically(db, [
+    db
+      .update(listItems)
+      .set({ group: trimmed, updatedAt: new Date() })
+      .where(and(eq(listItems.listId, listId), eq(listItems.group, group.name))),
+    db.update(listGroups).set({ name: trimmed, updatedAt: new Date() }).where(eq(listGroups.id, groupId)).returning(),
+  ])
 
-  return await db
-    .update(listGroups)
-    .set({ name: trimmed, updatedAt: new Date() })
-    .where(eq(listGroups.id, groupId))
-    .returning()
-    .get()
+  return (results[1] as ListGroup[])[0]
 }
-
-async function renumberGroups(db: PortableDatabase, listId: string): Promise<void> {
-  await setGroupPositions(db, listId, movedOnly(await groupsOf(db, listId)))
-}
-
-/** Dismissal rows per insert: well under SQLite's limit on bound values (`restore.ts` batches the same way). */
-const DISMISSAL_BATCH = 500
 
 /**
  * Deletes a group. One with items is refused unless `withItems` says to take
@@ -168,7 +157,8 @@ export async function deleteListGroup(
 ): Promise<GroupRestore | undefined> {
   if (!(await ownsList(db, userId, listId))) return undefined
 
-  const group = (await groupsOf(db, listId)).find((entry) => entry.id === groupId)
+  const groups = await groupsOf(db, listId)
+  const group = groups.find((entry) => entry.id === groupId)
   if (!group) return undefined
 
   const inside = await db
@@ -178,29 +168,25 @@ export async function deleteListGroup(
     .all()
   if (inside.length > 0 && !withItems) throw new GroupNotEmptyError('a group with items cannot be deleted')
 
-  const dismissalIds: string[] = []
-  if (inside.length > 0) {
-    await db.delete(listItems).where(and(eq(listItems.listId, listId), eq(listItems.group, group.name))).run()
-    // In batches: one dismissal per item, and one statement for thousands of them is past SQLite's limit on bound
-    // values, failing here with the items already gone and no Undo handed back.
-    for (let start = 0; start < inside.length; start += DISMISSAL_BATCH) {
-      const dismissals = await db
-        .insert(dismissedItems)
-        .values(
-          inside.slice(start, start + DISMISSAL_BATCH).map((item) => ({
-            listId,
-            titleKey: dismissalTitleKey(item.title),
-            ...(item.externalRef ? { externalRef: item.externalRef } : {}),
-          })),
-        )
-        .returning({ id: dismissedItems.id })
-        .all()
-      dismissalIds.push(...dismissals.map((dismissal) => dismissal.id))
-    }
-  }
+  // Everything is worked out before the first write (53.5d): the dismissals' ids are made here, so the Undo's `dismissalIds` come from the
+  // plan and not from what an insert answers (class (b)), and the groups after this one are renumbered from the list read above, minus
+  // this one, not read again after the delete (class (c)).
+  const dismissals = inside.map((item) => ({
+    id: crypto.randomUUID(),
+    listId,
+    titleKey: dismissalTitleKey(item.title),
+    ...(item.externalRef ? { externalRef: item.externalRef } : {}),
+  }))
+  const dismissalIds = dismissals.map((dismissal) => dismissal.id)
 
-  await db.delete(listGroups).where(eq(listGroups.id, groupId)).run()
-  await renumberGroups(db, listId)
+  // One transaction: the items, the record that they were not wanted, the group and the others' positions go together or not at all.
+  // The dismissals go in batches: one statement for thousands of them is past SQLite's limit on bound values.
+  await runAtomically(db, [
+    ...(inside.length > 0 ? [db.delete(listItems).where(and(eq(listItems.listId, listId), eq(listItems.group, group.name)))] : []),
+    ...batches(dismissals).map((batch) => db.insert(dismissedItems).values(batch)),
+    db.delete(listGroups).where(eq(listGroups.id, groupId)),
+    ...groupPositionStatements(db, listId, movedOnly(groups.filter((entry) => entry.id !== groupId))),
+  ])
 
   return inside.length > 0
     ? { group: toGroupPayload(group), items: inside.map(toItemPayload), dismissalIds }
@@ -230,8 +216,8 @@ export async function reorderListGroups(
     throw new GroupReorderMismatchError("groupIds must be exactly this list's groups, each once")
   }
 
-  await setGroupPositions(db, listId, groupIds.map((id, index) => ({ id, orderIndex: index })))
-
+  // What the items need is read BEFORE anything is written (it does not depend on the group rows' positions), so the whole move is one
+  // list of statements, run in ONE transaction (53.5c).
   const rankByName = new Map(
     groupIds.map((id, index) => [groups.find((group) => group.id === id)!.name, index] as const),
   )
@@ -251,15 +237,19 @@ export async function reorderListGroups(
       a.orderIndex - b.orderIndex,
   )
 
-  await setItemPositions(
-    db,
-    listId,
-    sequence
-      .map((item, position) => ({ id: item.id, from: item.orderIndex, orderIndex: slots[position]! }))
-      .filter((move) => move.from !== move.orderIndex),
-    { touch: new Date() },
-  )
+  await runAtomically(db, [
+    ...groupPositionStatements(db, listId, groupIds.map((id, index) => ({ id, orderIndex: index }))),
+    ...itemPositionStatements(
+      db,
+      listId,
+      sequence
+        .map((item, position) => ({ id: item.id, from: item.orderIndex, orderIndex: slots[position]! }))
+        .filter((move) => move.from !== move.orderIndex),
+      { touch: new Date() },
+    ),
+  ])
 
+  // The answer is read after the commit.
   return await groupsOf(db, listId)
 }
 
@@ -270,23 +260,62 @@ export async function reorderListGroups(
  */
 export async function seedGroupOrder(db: PortableDatabase, listId: string): Promise<void> {
   const groups = await groupsOf(db, listId)
-  // By the same key as Sort by release date, so a group with only `199?` in it is placed as late as 1999 (H-005).
-  const earliest = new Map<string, number>()
   const dated = await db
-    .select({ name: listItems.group, year: listItems.year, yearUnk: listItems.yearUnk })
+    .select({ group: listItems.group, year: listItems.year, yearUnk: listItems.yearUnk })
     .from(listItems)
     .where(and(eq(listItems.listId, listId), isNotNull(listItems.group), isNotNull(listItems.year)))
     .all()
-  for (const row of dated) {
-    const key = yearSortKey(row)
-    if (key < (earliest.get(row.name!) ?? Infinity)) earliest.set(row.name!, key)
+
+  await setGroupPositions(db, listId, seedGroupPositions(groups, dated))
+}
+
+/**
+ * The groups a set of items needs that a list does not have yet, worked out from what is given instead of read (what `ensureListGroup` finds
+ * or makes, item by item, in the order the labels first appear): a label the list already spells, in any case, is not made again, and a
+ * new group goes after the last one, named as its label trimmed.
+ */
+export function missingGroups(
+  existing: readonly { name: string; orderIndex: number }[],
+  items: readonly { group: string | null; orderIndex: number }[],
+): { name: string; orderIndex: number }[] {
+  const names = existing.map((group) => group.name)
+  let next = existing.reduce((top, group) => Math.max(top, group.orderIndex), -1) + 1
+  const made: { name: string; orderIndex: number }[] = []
+  const seen = new Set<string>()
+
+  for (const item of [...items].sort((a, b) => a.orderIndex - b.orderIndex)) {
+    if (!item.group || seen.has(item.group)) continue
+    seen.add(item.group)
+    if (names.some((name) => sameName(name, item.group!))) continue
+
+    const name = item.group.trim()
+    names.push(name)
+    made.push({ name, orderIndex: next++ })
   }
 
-  const sorted = [...groups].sort(
-    (a, b) => (earliest.get(a.name) ?? Infinity) - (earliest.get(b.name) ?? Infinity),
-  )
+  return made
+}
 
-  await setGroupPositions(db, listId, movedOnly(sorted))
+/**
+ * Where `seedGroupOrder` puts the groups, worked out from what is given instead of read: `groups` in the order they stand (by position,
+ * then id) and the items that carry a group and a year. A rewrite that has just planned its groups and items has both in memory and can
+ * ask for the positions before anything is written (Phase 53: no read between the writes of one transaction).
+ */
+export function seedGroupPositions(
+  groups: readonly { id: string; name: string; orderIndex: number }[],
+  items: readonly { group: string | null; year: number | null; yearUnk: number | null }[],
+): { id: string; orderIndex: number }[] {
+  // By the same key as Sort by release date, so a group with only `199?` in it is placed as late as 1999 (H-005).
+  const earliest = new Map<string, number>()
+  for (const row of items) {
+    if (row.group === null || row.year === null) continue
+    const key = yearSortKey({ year: row.year, yearUnk: row.yearUnk ?? 0 })
+    if (key < (earliest.get(row.group) ?? Infinity)) earliest.set(row.group, key)
+  }
+
+  const sorted = [...groups].sort((a, b) => (earliest.get(a.name) ?? Infinity) - (earliest.get(b.name) ?? Infinity))
+
+  return movedOnly(sorted)
 }
 
 /**
