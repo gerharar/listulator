@@ -1086,7 +1086,7 @@ export const en = {
         /** A dropdown with three or more picks says how many of its options (H-023): "3 of 4". */
         facetSome: (n: number, total: number): string => `${n} of ${total}`,
         facetDropdownLabel: (facet: string, summary: string): string => `${facet}: ${summary}`,
-        facetPickTip: 'Choose types to filter by',
+        facetPickTip: 'Choose what to show',
         facetCount: (facet: string, n: number): string => `${facet} · ${n}`,
         facetLabels: {
           Type: 'Type',

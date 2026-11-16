@@ -971,7 +971,7 @@ export const ru: Locale = {
         facetPicks: (named: readonly string[]): string => named.join(', '),
         facetSome: (n: number, total: number): string => `${n} из ${total}`,
         facetDropdownLabel: (facet: string, summary: string): string => `${facet}: ${summary}`,
-        facetPickTip: 'Выбери типы для фильтра',
+        facetPickTip: 'Выбери что показывать',
         facetCount: (facet: string, n: number): string => `${facet} · ${n}`,
         facetLabels: {
           Type: 'Тип',
