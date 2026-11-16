@@ -1,11 +1,20 @@
-import { and, between, eq, inArray, sql } from 'drizzle-orm'
+import { and, between, eq, sql } from 'drizzle-orm'
+import { runAtomically } from '../db/atomic.js'
 import type { PortableDatabase } from '../db/client.js'
-import { listGroups, listItems, lists, type ListItem } from '../db/schema.js'
+import { listGroups, listItems, type List, type ListItem } from '../db/schema.js'
 import { normalizeItemTags } from './facets.js'
-import { groupsOf } from './groups.js'
+import { groupsOf, seedGroupPositions } from './groups.js'
+import { groupPositionStatements } from './orderIndex.js'
 import { validMinutes } from './limits.js'
 import { validYearPair } from './years.js'
-import { findList, type CreateListItemInput } from './repository.js'
+import {
+  clearDismissalsStatement,
+  createListStatement,
+  findList,
+  snapshotStatements,
+  type CreateListInput,
+  type CreateListItemInput,
+} from './repository.js'
 
 /**
  * Adding many items to a list in a handful of statements (task 15.9b), where
@@ -263,27 +272,37 @@ export function itemWriteStatements(db: PortableDatabase, plan: ItemWritePlan, {
   return { groups, shifts, items }
 }
 
+/** What a caller of `createListItems` may ask for in the same transaction. */
+export interface AddItemsOptions {
+  /** Order the list's groups by the earliest year among their items, as an import does (`seedGroupOrder`), counting the items just added. */
+  seedGroupOrder?: boolean
+  /** Forget that these items were once deleted (BL-084): adding them back is the user changing their mind. */
+  clearDismissalsFor?: { title: string; externalRef?: string | undefined }[]
+}
+
+const byPositionThenId = (a: { orderIndex: number; id: string }, b: { orderIndex: number; id: string }) =>
+  a.orderIndex - b.orderIndex || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0)
+
 /**
  * Adds `inputs` to the list, in order, as `createListItem` would one by one.
  * Returns the new rows in the order given, with the positions they ended at;
  * `undefined` when the list is not the user's or not there.
  *
- * Not atomic yet (a caller that needs all-or-nothing plans with `planItemWrites` and runs the
- * statements in one `runAtomically`, as Reset does), so a failure part-way cleans up after itself: the rows
- * and groups this call made are removed and the error goes on. Rows already in the list may be left
- * with gaps in their order numbers, which nothing depends on being contiguous.
+ * All or nothing (Phase 53, 53.5b): what the list holds is read first, the call is planned in memory (`planItemWrites`), and the groups,
+ * the shifts of the rows already there, the new rows and whatever `options` asks for run as ONE `runAtomically` list. A failure, or a
+ * process that dies, leaves the list exactly as it was; there is no clean-up to run.
  */
 export async function createListItems(
   db: PortableDatabase,
   userId: string,
   listId: string,
   inputs: readonly BulkItemInput[],
+  options: AddItemsOptions = {},
 ): Promise<ListItem[] | undefined> {
   if (!(await findList(db, userId, listId))) return undefined
-  if (inputs.length === 0) return []
 
   const existing = await db
-    .select({ orderIndex: listItems.orderIndex, group: listItems.group })
+    .select({ orderIndex: listItems.orderIndex, group: listItems.group, year: listItems.year, yearUnk: listItems.yearUnk })
     .from(listItems)
     .where(eq(listItems.listId, listId))
     .all()
@@ -291,39 +310,83 @@ export async function createListItems(
 
   const plan = planItemWrites(listId, existing, groups, inputs)
   const writes = itemWriteStatements(db, plan, { returning: true })
+  const clearing = options.clearDismissalsFor ? clearDismissalsStatement(db, listId, options.clearDismissalsFor) : undefined
+  const positions = options.seedGroupOrder
+    ? seedGroupPositions(
+        [...groups.map((group) => ({ id: group.id, name: group.name, orderIndex: group.orderIndex })), ...plan.newGroups].sort(byPositionThenId),
+        [
+          ...existing.map((row) => ({ group: row.group, year: row.year, yearUnk: row.yearUnk })),
+          ...plan.rows.map((row) => ({ group: row.group ?? null, year: row.year ?? null, yearUnk: row.yearUnk ?? null })),
+        ],
+      )
+    : []
 
-  try {
-    for (const statement of writes.groups) await statement.run()
-    for (const statement of writes.shifts) await statement.run()
+  const results = (await runAtomically(db, [
+    ...writes.groups,
+    ...writes.shifts,
+    ...writes.items,
+    ...(clearing ? [clearing] : []),
+    ...groupPositionStatements(db, listId, positions),
+  ])) as unknown[]
 
-    const created = new Map<string, ListItem>()
-    for (const statement of writes.items) {
-      for (const row of await statement.all()) created.set(row.id, row)
-    }
-
-    return plan.rows.map((row) => created.get(row.id)!)
-  } catch (error) {
-    // Best effort, and never in place of the error that got us here.
-    try {
-      for (const batch of chunksOf(plan.rows.map((row) => row.id))) await db.delete(listItems).where(inArray(listItems.id, batch)).run()
-      for (const batch of chunksOf(plan.newGroups.map((group) => group.id))) await db.delete(listGroups).where(inArray(listGroups.id, batch)).run()
-    } catch {
-      // The original failure is the one to report.
-    }
-
-    throw error
+  const first = writes.groups.length + writes.shifts.length
+  const created = new Map<string, ListItem>()
+  for (const rows of results.slice(first, first + writes.items.length) as ListItem[][]) {
+    for (const row of rows) created.set(row.id, row)
   }
+
+  return plan.rows.map((row) => created.get(row.id)!)
 }
 
 /**
- * Removes a list the caller has just made and could not fill, with everything
- * under it, so a failed import leaves nothing behind. Best effort: it never
- * throws, since it runs while another error is on its way to the user.
+ * Makes a list and everything that arrives with it, in ONE transaction (Phase 53, 53.5b): the list, its groups and items in the order a
+ * source or a file gave them, optionally the arrived-state snapshot of those items (D4: what a connector's list is reset to), and the
+ * groups ordered by year. All of it or none of it: an import never leaves a half-made list behind, and there is no `discardList` to
+ * call. Everything is planned in memory first (nothing is read back: the snapshot is the planned rows as they will stand, the group order
+ * is worked out from the plan). The list is read once it has been committed.
  */
-export async function discardList(db: PortableDatabase, userId: string, listId: string): Promise<void> {
-  try {
-    await db.delete(lists).where(and(eq(lists.id, listId), eq(lists.userId, userId))).run()
-  } catch {
-    // Nothing more can be done from here.
-  }
+export async function createListWithItems(
+  db: PortableDatabase,
+  userId: string,
+  input: CreateListInput,
+  inputs: readonly BulkItemInput[],
+  { snapshot }: { snapshot: boolean },
+): Promise<List> {
+  const listId = crypto.randomUUID()
+  const plan = planItemWrites(listId, [], [], inputs)
+  const writes = itemWriteStatements(db, plan, { returning: false })
+  const arrived = [...plan.rows].sort((a, b) => a.orderIndex - b.orderIndex)
+
+  await runAtomically(db, [
+    createListStatement(db, userId, input, listId),
+    ...writes.groups,
+    ...writes.items,
+    ...(snapshot
+      ? snapshotStatements(
+          db,
+          listId,
+          arrived.map((row) => ({
+            title: row.title,
+            timeToConsumeMinutes: row.timeToConsumeMinutes,
+            timeToConsumeIsEstimated: row.timeToConsumeIsEstimated ?? true,
+            orderIndex: row.orderIndex,
+            externalRef: row.externalRef ?? null,
+            year: row.year ?? null,
+            group: row.group ?? null,
+            tags: row.tags ?? null,
+            notes: row.notes ?? null,
+          })),
+        )
+      : []),
+    ...groupPositionStatements(
+      db,
+      listId,
+      seedGroupPositions(
+        plan.newGroups,
+        plan.rows.map((row) => ({ group: row.group ?? null, year: row.year ?? null, yearUnk: row.yearUnk ?? null })),
+      ),
+    ),
+  ])
+
+  return (await findList(db, userId, listId))!
 }

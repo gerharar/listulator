@@ -438,8 +438,11 @@ describe('the desktop builds a list at once and fills its lengths afterwards (15
       const deleted = (await api.list(list.id)).items.find((item) => item.title === 'Film 2')!
       await api.deleteItem(list.id, deleted.id)
 
-      failOnce = (sql) => /^insert into "list_items"/i.test(sql)
+      // Since 53.5b the import is ONE call of the native command: the item insert, then the forgetting of the dismissal. The process dies
+      // after the first of them, so the item was inserted when it died: the dismissal must still be there, because both are undone.
+      batchSpy.options = { dieAfterStatements: 1 }
       await expect(api.importItems(list.id, [{ title: 'Film 2', externalRef: 'film:2' }], 'import', true)).rejects.toBeDefined()
+      batchSpy.options = {}
       const found = await api.checkForUpdates(list.id)
 
       expect(found.dismissedCount).toBe(1)
@@ -626,6 +629,29 @@ describe('the desktop builds a list at once and fills its lengths afterwards (15
         expect(batchSpy.calls).toBe(1)
         expect(batchSpy.pluginWrites).toBe(0)
         expect((await api.list(list.id)).items).toHaveLength(60)
+      })
+
+      it('importing a file is ONE call of the native command, and one that dies in the middle leaves no list at all', async () => {
+        const { api } = await start(filmSource())
+        await api.lists() // the first call makes the default local user: not part of the import
+        batchSpy.calls = 0
+        batchSpy.pluginWrites = 0
+
+        const made = await api.createFromFile({ yaml })
+
+        expect(batchSpy.calls).toBe(1)
+        expect(batchSpy.pluginWrites).toBe(0)
+        expect((await api.list(made.id)).items).toHaveLength(60)
+        await api.deleteList(made.id)
+
+        // The call is three statements (the list, its three groups, its items; no year, so no group to move): the process dies after 1 and after 2.
+        for (const dieAfterStatements of [1, 2]) {
+          batchSpy.options = { dieAfterStatements }
+          await expect(api.createFromFile({ yaml }), `died after ${dieAfterStatements} statements`).rejects.toBeDefined()
+          batchSpy.options = {}
+
+          expect(await api.lists(), `died after ${dieAfterStatements} statements`).toEqual([])
+        }
       })
 
       it('a Reset whose process dies in the middle of the call leaves the list exactly as it was', async () => {

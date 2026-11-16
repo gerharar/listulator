@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import type { AppDatabase } from '../db/client.js'
 import { dismissedItems, listItems, users } from '../db/schema.js'
 import { createTestApp, type TestApp } from '../testing/harness.js'
-import { createListItems } from './bulkItems.js'
+import { createListItems, createListWithItems, itemFromSource } from './bulkItems.js'
 import { resetToSource } from './reset.js'
 import { createList as createStoredList } from './repository.js'
 import { restoreItemSet } from './restore.js'
@@ -168,5 +168,91 @@ describe('Undo of a Reset, killed at any write', () => {
     expect(restored.items).toEqual(original.items)
     expect(restored.groups).toEqual(original.groups)
     expect(restored.dismissals).toEqual(original.dismissals)
+  })
+})
+
+/** Everything a list leaves in the database, counted over all lists: after a create that was killed it must all be zero. */
+function totals(db: AppDatabase) {
+  const count = (table: string) => (client(db).prepare(`SELECT count(*) AS n FROM ${table}`).get() as { n: number }).n
+
+  return { lists: count('lists'), items: count('list_items'), groups: count('list_groups'), snapshots: count('list_snapshots'), dismissals: count('dismissed_items') }
+}
+
+/** 600 candidates in six groups with years, as a source or a file would give them. */
+const candidates = Array.from({ length: 600 }, (_, n) => ({
+  title: `Candidate ${n}`,
+  year: 1990 + (n % 30),
+  group: `Arc ${n % 6}`,
+  externalRef: `c:${n}`,
+}))
+const asItems = () => candidates.map((candidate) => itemFromSource(candidate, 25, 30))
+const newList = { title: 'Imported', mediaType: 'game', source: 'api' as const, externalRef: 'franchise:1', arrivedTitle: 'Imported', snapshotFetchedAt: new Date(1_700_000_000_000) }
+
+describe('Creating a list (from a source or a file), killed at any write', () => {
+  it('leaves no list, item, group or snapshot behind, wherever the process dies', async () => {
+    await harness.db.insert(users).values({ id: USER, isDefaultLocalUser: false })
+    const meter = dieAfterWrites(harness.db, Number.POSITIVE_INFINITY)
+    const made = await createListWithItems(harness.db, USER, newList, asItems(), { snapshot: true })
+    const total = meter.writes()
+    meter.revive()
+    expect(made.title).toBe('Imported')
+    expect(totals(harness.db)).toEqual({ lists: 1, items: 600, groups: 6, snapshots: 600, dismissals: 0 })
+    expect(total).toBeGreaterThanOrEqual(8)
+    await harness.cleanup()
+
+    for (const allowed of [0, 1, 2, 3, Math.floor(total / 2), total - 2, total - 1]) {
+      harness = createTestApp()
+      await harness.db.insert(users).values({ id: USER, isDefaultLocalUser: false })
+
+      const death = dieAfterWrites(harness.db, allowed)
+      await expect(createListWithItems(harness.db, USER, newList, asItems(), { snapshot: true }), `killed after ${allowed} of ${total} writes`).rejects.toThrow()
+      death.revive()
+
+      expect(totals(harness.db), `killed after ${allowed} of ${total} writes`).toEqual({ lists: 0, items: 0, groups: 0, snapshots: 0, dismissals: 0 })
+      await harness.cleanup()
+    }
+    harness = createTestApp()
+  })
+
+  it('makes the list a source gives: its rows, its snapshot as the items stand, its groups in year order', async () => {
+    await harness.db.insert(users).values({ id: USER, isDefaultLocalUser: false })
+
+    const made = await createListWithItems(harness.db, USER, newList, asItems(), { snapshot: false })
+
+    expect(totals(harness.db)).toEqual({ lists: 1, items: 600, groups: 6, snapshots: 0, dismissals: 0 })
+    const groups = client(harness.db).prepare('SELECT name, order_index FROM list_groups WHERE list_id = ? ORDER BY order_index').all(made.id) as { name: string; order_index: number }[]
+    expect(groups.map((group) => group.order_index)).toEqual([0, 1, 2, 3, 4, 5])
+    // Arc 0 holds 1990, Arc 1 holds 1991 ...: already in year order, so nothing moved.
+    expect(groups.map((group) => group.name)).toEqual(['Arc 0', 'Arc 1', 'Arc 2', 'Arc 3', 'Arc 4', 'Arc 5'])
+  })
+})
+
+describe('Adding items to a list, killed at any write', () => {
+  it('leaves the list exactly as it was, its dismissals included, wherever the process dies', async () => {
+    const run = (listId: string) =>
+      createListItems(harness.db, USER, listId, asItems(), { seedGroupOrder: true, clearDismissalsFor: [{ title: 'Gone One' }, { title: 'Candidate 3', externalRef: 'c:3' }] })
+
+    const counting = await aList()
+    const meter = dieAfterWrites(harness.db, Number.POSITIVE_INFINITY)
+    await run(counting)
+    const total = meter.writes()
+    meter.revive()
+    expect(total).toBeGreaterThanOrEqual(6)
+    expect((snapshot(harness.db, counting).dismissals as unknown[]).length).toBe(1)
+    await harness.cleanup()
+
+    for (const allowed of [0, 1, 2, Math.floor(total / 2), total - 2, total - 1]) {
+      harness = createTestApp()
+      const listId = await aList()
+      const before = snapshot(harness.db, listId)
+
+      const death = dieAfterWrites(harness.db, allowed)
+      await expect(run(listId), `killed after ${allowed} of ${total} writes`).rejects.toThrow()
+      death.revive()
+
+      expect(snapshot(harness.db, listId), `killed after ${allowed} of ${total} writes`).toEqual(before)
+      await harness.cleanup()
+    }
+    harness = createTestApp()
   })
 })
