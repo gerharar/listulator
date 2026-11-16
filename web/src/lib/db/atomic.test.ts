@@ -182,6 +182,19 @@ describe.each([server, desktop])('runAtomically on $name', ({ open }) => {
   })
 })
 
+describe('a failure outside the statements', () => {
+  it('is an AtomicBatchError too: a busy file or a commit that fails never reaches the caller as a bare driver error', async () => {
+    // better-sqlite3 runs BEGIN and COMMIT outside the function it is given: this is the database refusing at either of them.
+    const busy = { transaction: () => { throw new Error('database is locked') } } as unknown as PortableDatabase
+
+    const error = await runAtomically(busy, [{} as never]).catch((cause: unknown) => cause)
+
+    expect((error as Error).name).toBe('AtomicBatchError')
+    expect((error as AtomicBatchError).statement).toBeUndefined()
+    expect((error as Error).message).toMatch(/database is locked/)
+  })
+})
+
 describe('the isolation hook sees every batch the desktop sends', () => {
   it('refuses a value of a kind the app never sends, here a Date that a raw sql template interpolated', async () => {
     const db = await desktop.open()

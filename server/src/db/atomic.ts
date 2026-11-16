@@ -85,23 +85,28 @@ async function onDesktop(db: Batching, statements: readonly AtomicStatement[]): 
 }
 
 function onServer(db: SyncTransactional, statements: readonly AtomicStatement[]): unknown[] {
-  // `immediate`: the write lock is taken at the start, so the call either has it or fails at once, as the native command does.
-  return db.transaction(
-    () => {
-      let at = 0
-      try {
-        return statements.map((statement, index) => {
-          at = index
+  try {
+    // `immediate`: the write lock is taken at the start, so the call either has it or fails at once, as the native command does.
+    return db.transaction(
+      () => {
+        let at = 0
+        try {
+          return statements.map((statement, index) => {
+            at = index
 
-          return runNow(statement)
-        })
-      } catch (cause) {
-        // better-sqlite3 rolls the transaction back as the error leaves it.
-        throw new AtomicBatchError(at, detailOf(cause), { cause })
-      }
-    },
-    { behavior: 'immediate' },
-  )
+            return runNow(statement)
+          })
+        } catch (cause) {
+          // better-sqlite3 rolls the transaction back as the error leaves it.
+          throw new AtomicBatchError(at, detailOf(cause), { cause })
+        }
+      },
+      { behavior: 'immediate' },
+    )
+  } catch (cause) {
+    // The driver runs BEGIN and COMMIT outside the function above: a busy file or a commit that fails ends up here, not there.
+    throw isAtomicBatchError(cause) ? cause : new AtomicBatchError(undefined, detailOf(cause), { cause })
+  }
 }
 
 function runNow(statement: AtomicStatement): unknown {
