@@ -1,5 +1,6 @@
 import { eq } from 'drizzle-orm'
 import { runAtomically } from '../db/atomic.js'
+import { retryWhenBusy } from '../db/busy.js'
 import type { PortableDatabase } from '../db/client.js'
 import { lists, type List } from '../db/schema.js'
 import { expandSource } from '../ingestion/expandSource.js'
@@ -144,14 +145,18 @@ export async function refreshSourceCopy(
           arrivedStatus: expansion.status ?? list.status,
         }
 
-  await runAtomically(db, [
-    deleteSnapshotStatement(db, list.id),
-    ...snapshotStatements(db, list.id, rows),
-    db
-      .update(lists)
-      .set({ ...arrived, snapshotFetchedAt: now })
-      .where(eq(lists.id, list.id)),
-  ])
+  // A refresh runs in the background, and a Reset or an import of any list can hold the write lock for about 4 s per 50,000 inserts: a
+  // refresh that finds the file locked is asked again (`retryWhenBusy`), the whole transaction, never a part of it.
+  await retryWhenBusy(() =>
+    runAtomically(db, [
+      deleteSnapshotStatement(db, list.id),
+      ...snapshotStatements(db, list.id, rows),
+      db
+        .update(lists)
+        .set({ ...arrived, snapshotFetchedAt: now })
+        .where(eq(lists.id, list.id)),
+    ]),
+  )
 
   return { items: rows.length }
 }
@@ -164,13 +169,15 @@ export async function refreshSourceCopy(
  * one state (task 12.3).
  */
 export async function dropSourceCopy(db: PortableDatabase, list: List): Promise<void> {
-  await runAtomically(db, [
-    deleteSnapshotStatement(db, list.id),
-    db
-      .update(lists)
-      .set({ arrivedTitle: null, arrivedDescription: null, arrivedStatus: null, snapshotFetchedAt: null })
-      .where(eq(lists.id, list.id)),
-  ])
+  await retryWhenBusy(() =>
+    runAtomically(db, [
+      deleteSnapshotStatement(db, list.id),
+      db
+        .update(lists)
+        .set({ arrivedTitle: null, arrivedDescription: null, arrivedStatus: null, snapshotFetchedAt: null })
+        .where(eq(lists.id, list.id)),
+    ]),
+  )
 }
 
 const DAY_MS = 24 * 60 * 60 * 1000

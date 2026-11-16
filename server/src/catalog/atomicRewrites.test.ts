@@ -1,6 +1,6 @@
 import type BetterSqlite3 from 'better-sqlite3'
 import { eq } from 'drizzle-orm'
-import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { AppDatabase } from '../db/client.js'
 import { dismissedItems, listItems, users } from '../db/schema.js'
 import { createTestApp, type TestApp } from '../testing/harness.js'
@@ -511,5 +511,77 @@ describe('Undo of deleting a list, killed at any write (53.5d)', () => {
       return { listId, run: () => restoreList(harness.db, USER, restore) }
     })
     expect(writes).toBeGreaterThanOrEqual(5)
+  })
+})
+
+/** The next `times` writes find the file locked, as another connection's long rewrite leaves it; after that it is free. */
+function lockedFor(db: AppDatabase, times: number) {
+  const connection = client(db)
+  const real = connection.prepare.bind(connection)
+  let left = times
+  let refused = 0
+  connection.prepare = ((query: string) => {
+    const statement = real(query)
+    const read = /^\s*(select|with)\b/i.test(query) && !/\breturning\b/i.test(query)
+    const control = /^\s*(begin|commit|rollback|savepoint|release)\b/i.test(query)
+    if (read || control || left === 0) return statement
+    left -= 1
+    refused += 1
+    throw Object.assign(new Error('database is locked'), { code: 'SQLITE_BUSY' })
+  }) as typeof connection.prepare
+
+  return { refused: () => refused, revive: () => void (connection.prepare = real) }
+}
+
+describe('The source copy meets the write lock (the background writers, Phase 53)', () => {
+  afterEach(() => vi.useRealTimers())
+
+  const titles = async (listId: string) => (client(harness.db).prepare('SELECT title FROM list_snapshots WHERE list_id = ? ORDER BY order_index').all(listId) as { title: string }[]).map((row) => row.title)
+
+  it('a refresh that finds the file locked asks again, and the copy is replaced as if it had not been', async () => {
+    const listId = await aFetchedList()
+    const list = (await findList(harness.db, USER, listId))!
+    vi.useFakeTimers()
+    const lock = lockedFor(harness.db, 2)
+
+    const refresh = refreshSourceCopy(harness.db, list, { mediaTypes: fakeSource })
+    await vi.advanceTimersByTimeAsync(5000)
+    await refresh
+    lock.revive()
+
+    expect(lock.refused()).toBe(2)
+    expect((await titles(listId))[0]).toBe('Fresh 0')
+    expect(await titles(listId)).toHaveLength(600)
+  })
+
+  it('a drop that finds the file locked asks again, and the copy is dropped', async () => {
+    const listId = await aFetchedList()
+    const list = (await findList(harness.db, USER, listId))!
+    vi.useFakeTimers()
+    const lock = lockedFor(harness.db, 1)
+
+    const drop = dropSourceCopy(harness.db, list)
+    await vi.advanceTimersByTimeAsync(5000)
+    await drop
+    lock.revive()
+
+    expect(lock.refused()).toBe(1)
+    expect(await titles(listId)).toEqual([])
+  })
+
+  it('a lock that does not lift fails the refresh with the old copy whole', async () => {
+    const listId = await aFetchedList()
+    const list = (await findList(harness.db, USER, listId))!
+    const before = snapshot(harness.db, listId)
+    vi.useFakeTimers()
+    const lock = lockedFor(harness.db, 1000)
+
+    const refresh = expect(refreshSourceCopy(harness.db, list, { mediaTypes: fakeSource })).rejects.toThrow(/database is locked/)
+    await vi.advanceTimersByTimeAsync(20_000)
+    await refresh
+    lock.revive()
+
+    expect(lock.refused()).toBe(4)
+    expect(snapshot(harness.db, listId)).toEqual(before)
   })
 })

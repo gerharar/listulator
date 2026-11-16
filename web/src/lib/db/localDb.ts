@@ -7,6 +7,7 @@ import { drizzle } from 'drizzle-orm/sqlite-proxy'
 // than keeping a second copy that could drift.
 import * as schema from '../../../../server/src/db/schema.js'
 import { AtomicBatchError } from '../../../../server/src/db/atomic.js'
+import { retryWhenBusy } from '../../../../server/src/db/busy.js'
 
 /**
  * Local SQLite storage for the standalone desktop/mobile app, via Tauri's
@@ -239,12 +240,16 @@ async function openLocalDb(): Promise<LocalDatabase> {
 
   return drizzle<typeof schema>(
     async (sql, params, method) => {
+      // A write that finds the file locked by a long rewrite (a Reset or an import holds the write lock for about 4 s per 50,000 inserts, and
+      // the plugin's connections wait 5 s) is asked again a few times: the background writers (the runtime fill, the source-copy schedule)
+      // would otherwise give up on a list for the rest of the session. A write refused for the lock changed nothing, so this is safe. A
+      // whole batch is NOT asked again here (`runSqlBatch`): a Reset or an import says that it failed.
       if (method === 'run') {
-        await sqlite.execute(sql, params)
+        await retryWhenBusy(() => sqlite.execute(sql, params))
         return { rows: [] }
       }
 
-      const rows = (await sqlite.select<Record<string, unknown>[]>(sql, params)).map((row) =>
+      const rows = (await retryWhenBusy(() => sqlite.select<Record<string, unknown>[]>(sql, params))).map((row) =>
         Object.values(row),
       )
 

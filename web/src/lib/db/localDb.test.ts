@@ -32,6 +32,8 @@ const batch = {
   count: 0,
   sent: [] as { statements: { query: string; values?: unknown[] }[]; foreignKeysOff?: boolean }[],
   died: { executedBeforeDeath: -1 },
+  /** The next this many calls fail as the command does when another writer holds the file for longer than its wait (the plugin's 5 s). */
+  locked: 0,
 }
 
 const fakeConnection = {
@@ -66,6 +68,10 @@ vi.mock('@tauri-apps/api/core', async () => {
       const call = args as (typeof batch.sent)[number]
       batch.sent.push(call)
       batch.count += 1
+      if (batch.locked > 0) {
+        batch.locked -= 1
+        throw { statement: null, message: 'error returned from database: (code: 5) database is locked' }
+      }
       const dying = batch.at === batch.count
       if (dying && batch.mode === 'before') throw new Error('simulated crash')
       const inside = dying && batch.mode === 'inside' ? { dieAfterStatements: Math.max(1, Math.floor(call.statements.length / 2)), stats: batch.died } : {}
@@ -86,7 +92,7 @@ describe('createLocalDb', () => {
   beforeEach(async () => {
     sqlite = new BetterSqlite3(':memory:')
     loads = 0
-    Object.assign(batch, { at: 0, mode: 'after', count: 0, sent: [], died: { executedBeforeDeath: -1 } })
+    Object.assign(batch, { at: 0, mode: 'after', count: 0, sent: [], died: { executedBeforeDeath: -1 }, locked: 0 })
     hookAllows.check = (await import('../isolationHook.testing.js')).sqlThroughHook()
   })
 
@@ -139,6 +145,85 @@ describe('createLocalDb', () => {
    * statement by statement with progress rows (BL-082: a half-changed schema failed for ever with "duplicate column name"). Every call the
    * process can die at is tried, before it runs, in the middle of it and after it committed, on an install that has data.
    */
+  describe('a write that finds the file locked by a long rewrite (the background writers, Phase 53)', () => {
+    const LOCKED = 'error returned from database: (code: 5) database is locked'
+
+    afterEach(() => {
+      vi.useRealTimers()
+      vi.restoreAllMocks()
+    })
+
+    /** The database, opened with real timers; the waits of the retries then run on a clock the test moves. */
+    async function opened() {
+      const { createLocalDb } = await freshModule()
+      const db = await createLocalDb()
+      const { users } = await import('../../../../server/src/db/schema.js')
+      vi.useFakeTimers()
+
+      return { db, users }
+    }
+
+    it('asks again after the lock, and the write goes through', async () => {
+      const { db, users } = await opened()
+      const execute = vi.spyOn(fakeConnection, 'execute')
+      execute.mockRejectedValueOnce(LOCKED).mockRejectedValueOnce(LOCKED)
+
+      const write = db.insert(users).values({ id: 'u1', isDefaultLocalUser: false }).run()
+      await vi.advanceTimersByTimeAsync(3000)
+      await write
+
+      expect(execute).toHaveBeenCalledTimes(3)
+      expect(sqlite.prepare('SELECT id FROM users').all()).toEqual([{ id: 'u1' }])
+    })
+
+    it('does the same for a write that answers with rows (RETURNING goes through the plugin as a select)', async () => {
+      const { db, users } = await opened()
+      const select = vi.spyOn(fakeConnection, 'select')
+      select.mockRejectedValueOnce(LOCKED)
+
+      // A Drizzle builder runs when it is awaited, so it is awaited here, and the clock moves after.
+      const write = (async () => await db.insert(users).values({ id: 'u1', isDefaultLocalUser: false }).returning({ id: users.id }))()
+      await vi.advanceTimersByTimeAsync(3000)
+
+      expect(await write).toEqual([{ id: 'u1' }])
+      expect(select).toHaveBeenCalledTimes(2)
+    })
+
+    it('gives up after three more tries, with the lock error', async () => {
+      const { db, users } = await opened()
+      const execute = vi.spyOn(fakeConnection, 'execute').mockRejectedValue(LOCKED)
+
+      const write = expect(db.insert(users).values({ id: 'u1', isDefaultLocalUser: false }).run()).rejects.toMatchObject({ cause: LOCKED })
+      await vi.advanceTimersByTimeAsync(10_000)
+      await write
+
+      expect(execute).toHaveBeenCalledTimes(4)
+    })
+
+    it('does not ask again after any other failure', async () => {
+      const { db, users } = await opened()
+      sqlite.prepare("INSERT INTO users (id, is_default_local_user, created_at) VALUES ('u1', 0, 0)").run()
+      const execute = vi.spyOn(fakeConnection, 'execute')
+
+      const write = expect(db.insert(users).values({ id: 'u1', isDefaultLocalUser: false }).run()).rejects.toMatchObject({ cause: { message: expect.stringMatching(/UNIQUE/) } })
+      await vi.advanceTimersByTimeAsync(10_000)
+      await write
+
+      expect(execute).toHaveBeenCalledTimes(1)
+    })
+
+    it('does NOT ask again for a whole batch (a Reset or an import fails and says so; it is never sent again behind the user\'s back)', async () => {
+      const { db, users } = await opened()
+      const { runAtomically } = await import('../../../../server/src/db/atomic.js')
+      batch.locked = 1
+      batch.count = 0
+
+      await expect(runAtomically(db, [db.insert(users).values({ id: 'u1', isDefaultLocalUser: false })])).rejects.toThrow(/database is locked/)
+
+      expect(batch.count).toBe(1)
+    })
+  })
+
   describe('an upgrade cut short by a crash (BL-082, atomic since 53.4)', () => {
     const dir = join(import.meta.dirname, '../../../../server/drizzle')
     const files = readdirSync(dir).filter((name) => name.endsWith('.sql')).sort()
