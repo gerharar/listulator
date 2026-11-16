@@ -5,9 +5,10 @@ import type { AppDatabase } from '../db/client.js'
 import { dismissedItems, listItems, users } from '../db/schema.js'
 import { createTestApp, type TestApp } from '../testing/harness.js'
 import { createListItems, createListWithItems, itemFromSource } from './bulkItems.js'
-import { resetToSource } from './reset.js'
-import { createList as createStoredList } from './repository.js'
-import { restoreItemSet } from './restore.js'
+import { resetToSource, sortChronologically } from './reset.js'
+import { createList as createStoredList, findListItems, reorderListItems } from './repository.js'
+import { restoreItemSet, restoreOrder } from './restore.js'
+import { findListGroups, reorderListGroups } from './groups.js'
 
 /**
  * Phase 53, task 53.5a: Reset to the source and its Undo are all or nothing. A process that dies in the middle of either leaves the list
@@ -254,5 +255,108 @@ describe('Adding items to a list, killed at any write', () => {
       await harness.cleanup()
     }
     harness = createTestApp()
+  })
+})
+
+/**
+ * 1,200 items in six groups with years in no useful order: more than two batches of 500 positions, so a move is several statements.
+ * Returns the list's id.
+ */
+async function aBigList(): Promise<string> {
+  const { db } = harness
+  await db.insert(users).values({ id: USER, isDefaultLocalUser: false })
+  const list = await createStoredList(db, USER, { title: 'Big', mediaType: 'game' })
+  await createListItems(
+    db,
+    USER,
+    list.id,
+    Array.from({ length: 1200 }, (_, n) => ({
+      title: `Item ${n}`,
+      timeToConsumeMinutes: 10,
+      timeToConsumeIsEstimated: false,
+      group: `G${n % 6}`,
+      year: 1950 + ((n * 37) % 70),
+    })),
+  )
+
+  return list.id
+}
+
+/**
+ * Runs `make` on a fresh database once to count the writes its operation makes, then on a fresh database for each of several kill points:
+ * every write after the Nth fails, and the list must be exactly as `make` left it.
+ */
+async function killedAtEveryWrite(make: () => Promise<{ listId: string; run: () => Promise<unknown> }>): Promise<number> {
+  await harness.cleanup()
+  harness = createTestApp()
+  const counting = await make()
+  const meter = dieAfterWrites(harness.db, Number.POSITIVE_INFINITY)
+  await counting.run()
+  const total = meter.writes()
+  meter.revive()
+  await harness.cleanup()
+  expect(total).toBeGreaterThanOrEqual(3)
+
+  for (const allowed of [...new Set([0, 1, 2, Math.floor(total / 2), total - 1])]) {
+    harness = createTestApp()
+    const { listId, run } = await make()
+    const before = snapshot(harness.db, listId)
+
+    const death = dieAfterWrites(harness.db, allowed)
+    await expect(run(), `killed after ${allowed} of ${total} writes`).rejects.toThrow()
+    death.revive()
+
+    expect(snapshot(harness.db, listId), `killed after ${allowed} of ${total} writes`).toEqual(before)
+    await harness.cleanup()
+  }
+  harness = createTestApp()
+
+  return total
+}
+
+describe('Moving things around, killed at any write (53.5c)', () => {
+  it('Sort chronologically leaves the order exactly as it was', async () => {
+    await killedAtEveryWrite(async () => {
+      const listId = await aBigList()
+
+      return { listId, run: () => sortChronologically(harness.db, USER, listId) }
+    })
+  })
+
+  it('a whole reorder by ids leaves the order exactly as it was', async () => {
+    await killedAtEveryWrite(async () => {
+      const listId = await aBigList()
+      const ids = (await findListItems(harness.db, USER, listId))!.map((item) => item.id).reverse()
+
+      return { listId, run: () => reorderListItems(harness.db, USER, listId, ids) }
+    })
+  })
+
+  it('a reorder of the groups (the groups and their items move together) leaves everything as it was', async () => {
+    await killedAtEveryWrite(async () => {
+      const listId = await aBigList()
+      const ids = (await findListGroups(harness.db, USER, listId))!.map((group) => group.id).reverse()
+
+      return { listId, run: () => reorderListGroups(harness.db, USER, listId, ids) }
+    })
+  })
+
+  it('Undo of a sort (restore order) leaves the list as the sort made it, and a restore that is not killed puts the order back', async () => {
+    await killedAtEveryWrite(async () => {
+      const listId = await aBigList()
+      const restore = (await sortChronologically(harness.db, USER, listId))!
+
+      return { listId, run: () => restoreOrder(harness.db, USER, listId, restore) }
+    })
+
+    const listId = await aBigList()
+    const original = snapshot(harness.db, listId)
+    const restore = (await sortChronologically(harness.db, USER, listId))!
+    expect(snapshot(harness.db, listId).items).not.toEqual(original.items)
+
+    await restoreOrder(harness.db, USER, listId, restore)
+
+    expect(snapshot(harness.db, listId).items).toEqual(original.items)
+    expect(snapshot(harness.db, listId).groups).toEqual(original.groups)
   })
 })

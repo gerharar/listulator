@@ -30,7 +30,7 @@ import {
   findListSnapshot,
   updateListStatement,
 } from './repository.js'
-import { groupPositionStatements, movedOnly, setGroupPositions, setItemPositions } from './orderIndex.js'
+import { groupPositionStatements, itemPositionStatements, movedOnly } from './orderIndex.js'
 import { yearSortKey } from './years.js'
 import { withListLock } from './listLock.js'
 import { captureItemSet } from './restore.js'
@@ -221,8 +221,6 @@ async function reorderBy(
       .sort((a, b) => keyOf(a.member) - keyOf(b.member) || a.position - b.position)
       .map((entry) => entry.member),
   )
-  await setItemPositions(db, listId, movedOnly(sortedItems))
-
   // Group rows follow the blocks; a group with no items yet stays after them, as it was.
   const rank = new Map(
     ordered.filter((unit) => unit.group !== null).map((unit, index) => [unit.group!, index] as const),
@@ -231,7 +229,12 @@ async function reorderBy(
     (a, b) =>
       (rank.get(a.name) ?? NO_YEAR) - (rank.get(b.name) ?? NO_YEAR) || a.orderIndex - b.orderIndex,
   )
-  await setGroupPositions(db, listId, movedOnly(sequence))
+
+  // All the batches of the move, the items' and the groups', in ONE transaction (53.5c): the order is the one it was or the one asked for.
+  await runAtomically(db, [
+    ...itemPositionStatements(db, listId, movedOnly(sortedItems)),
+    ...groupPositionStatements(db, listId, movedOnly(sequence)),
+  ])
 
   return restore
 }

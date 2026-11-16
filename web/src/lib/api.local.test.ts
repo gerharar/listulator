@@ -654,6 +654,45 @@ describe('the desktop builds a list at once and fills its lengths afterwards (15
         }
       })
 
+      it('sorting, undoing a sort and reordering are each ONE call, and one that dies in the middle leaves the order as it was (53.5c)', async () => {
+        // 1,200 items: more than two batches of 500 positions, so each move is several statements.
+        const big = `title: Big\ncategory: movie\nitems:\n${Array.from({ length: 1200 }, (_, n) => `  - { title: "Item ${n}", year: ${1950 + ((n * 37) % 70)}, group: "G${n % 6}" }`).join('\n')}\n`
+        const { api } = await start(filmSource())
+        const list = await api.createFromFile({ yaml: big })
+        const order = async () => (await api.list(list.id)).items.map((entry) => [entry.id, entry.orderIndex])
+        const before = await order()
+        batchSpy.calls = 0
+        batchSpy.pluginWrites = 0
+
+        const sorted = await api.sortList(list.id)
+
+        expect(batchSpy.calls).toBe(1)
+        expect(batchSpy.pluginWrites).toBe(0)
+        const afterSort = await order()
+        expect(afterSort).not.toEqual(before)
+
+        batchSpy.options = { dieAfterStatements: 2 }
+        await expect(api.restoreOrder(list.id, sorted.restore)).rejects.toBeDefined()
+        batchSpy.options = {}
+        expect(await order()).toEqual(afterSort)
+
+        batchSpy.calls = 0
+        await api.restoreOrder(list.id, sorted.restore)
+        expect(batchSpy.calls).toBe(1)
+        expect(await order()).toEqual(before)
+
+        // A whole reorder by ids: one call, and the same under a kill.
+        const reversed = before.map(([id]) => id as string).reverse()
+        batchSpy.options = { dieAfterStatements: 1 }
+        await expect(api.reorderItems(list.id, reversed)).rejects.toBeDefined()
+        batchSpy.options = {}
+        expect(await order()).toEqual(before)
+        batchSpy.calls = 0
+        await api.reorderItems(list.id, reversed)
+        expect(batchSpy.calls).toBe(1)
+        expect(await order()).not.toEqual(before)
+      })
+
       it('a Reset whose process dies in the middle of the call leaves the list exactly as it was', async () => {
         const { api, list } = await open()
         const before = await api.list(list.id)

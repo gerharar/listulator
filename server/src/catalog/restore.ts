@@ -34,7 +34,7 @@ export type {
   ListRestore,
   OrderRestore,
 } from './restorePayloads.js'
-import { batches, setGroupPositions, setItemPositions } from './orderIndex.js'
+import { batches, groupPositionStatements, itemPositionStatements } from './orderIndex.js'
 import { runAtomically } from '../db/atomic.js'
 
 /**
@@ -333,8 +333,8 @@ export async function restoreOrder(
 ): Promise<boolean> {
   if (!(await findList(db, userId, listId))) return false
 
-  await setItemPositions(db, listId, items)
-  await setGroupPositions(db, listId, groups)
+  // The items' and the groups' positions in ONE transaction (53.5c): the order is the one it was or the one it is.
+  await runAtomically(db, [...itemPositionStatements(db, listId, items), ...groupPositionStatements(db, listId, groups)])
 
   return true
 }

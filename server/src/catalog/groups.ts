@@ -1,8 +1,9 @@
 import { and, asc, eq, gte, isNotNull, max, sql } from 'drizzle-orm'
+import { runAtomically } from '../db/atomic.js'
 import type { PortableDatabase } from '../db/client.js'
 import { dismissalTitleKey, dismissedItems, listGroups, listItems, lists, type ListGroup } from '../db/schema.js'
 import { toGroupPayload, toItemPayload, type GroupRestore } from './restorePayloads.js'
-import { movedOnly, setGroupPositions, setItemPositions } from './orderIndex.js'
+import { groupPositionStatements, itemPositionStatements, movedOnly, setGroupPositions } from './orderIndex.js'
 import { yearSortKey } from './years.js'
 
 /**
@@ -230,8 +231,8 @@ export async function reorderListGroups(
     throw new GroupReorderMismatchError("groupIds must be exactly this list's groups, each once")
   }
 
-  await setGroupPositions(db, listId, groupIds.map((id, index) => ({ id, orderIndex: index })))
-
+  // What the items need is read BEFORE anything is written (it does not depend on the group rows' positions), so the whole move is one
+  // list of statements, run in ONE transaction (53.5c).
   const rankByName = new Map(
     groupIds.map((id, index) => [groups.find((group) => group.id === id)!.name, index] as const),
   )
@@ -251,15 +252,19 @@ export async function reorderListGroups(
       a.orderIndex - b.orderIndex,
   )
 
-  await setItemPositions(
-    db,
-    listId,
-    sequence
-      .map((item, position) => ({ id: item.id, from: item.orderIndex, orderIndex: slots[position]! }))
-      .filter((move) => move.from !== move.orderIndex),
-    { touch: new Date() },
-  )
+  await runAtomically(db, [
+    ...groupPositionStatements(db, listId, groupIds.map((id, index) => ({ id, orderIndex: index }))),
+    ...itemPositionStatements(
+      db,
+      listId,
+      sequence
+        .map((item, position) => ({ id: item.id, from: item.orderIndex, orderIndex: slots[position]! }))
+        .filter((move) => move.from !== move.orderIndex),
+      { touch: new Date() },
+    ),
+  ])
 
+  // The answer is read after the commit.
   return await groupsOf(db, listId)
 }
 

@@ -31,7 +31,8 @@ import {
   type ListSource,
   type ListStatus,
 } from '../db/schema.js'
-import { setItemPositions } from './orderIndex.js'
+import { runAtomically } from '../db/atomic.js'
+import { itemPositionStatements } from './orderIndex.js'
 
 /**
  * Data access for lists and their items.
@@ -483,12 +484,8 @@ export async function reorderListItems(
     throw new ReorderMismatchError("itemIds must be exactly this list's current items, each once")
   }
 
-  await setItemPositions(
-    db,
-    listId,
-    itemIds.map((id, index) => ({ id, orderIndex: index })),
-    { touch: new Date() },
-  )
+  // All the batches of the move in ONE transaction (53.5c); the answer below is read after it.
+  await runAtomically(db, itemPositionStatements(db, listId, itemIds.map((id, index) => ({ id, orderIndex: index })), { touch: new Date() }))
 
   return findListItems(db, userId, listId)
 }
