@@ -280,7 +280,7 @@ export const de: Locale = {
         cancel: 'Abbrechen',
         running: {
           question: { mac: (name: string) => `Beenden, während „${name}“ umgeschrieben wird?`, other: (name: string) => `Beenden, während „${name}“ umgeschrieben wird?` },
-          note: 'Beendest du jetzt, bleibt sie halb fertig. Es dauert nur noch ein paar Sekunden.',
+          note: 'Beendest du jetzt, wird das abgebrochen, und die Liste bleibt, wie sie war. Es dauert nur noch ein paar Sekunden.',
           keep: 'Weiter warten',
           confirm: { mac: 'Trotzdem beenden', other: 'Trotzdem beenden' },
         },

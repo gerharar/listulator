@@ -19,7 +19,7 @@ export interface AppHeaderProps {
   quit?: AppQuit | undefined
   /**
    * A whole-list run (Reset, Restore order, an Undo) is going on (H-015): Settings and About, which would open a layer, are disabled and say what
-   * they wait for, and Quit asks first, naming the list, because the list is half-done until the run ends.
+   * they wait for, and Quit asks first, naming the list, because quitting cancels the run (the list stays as it was: every rewrite is all-or-nothing since 53.5).
    */
   run?: NavigationRun | undefined
 }
