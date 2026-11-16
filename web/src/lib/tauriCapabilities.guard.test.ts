@@ -199,7 +199,9 @@ describe('the isolation hook is switched on, as the security review left it (SR-
     expect(config.app.security.csp).not.toHaveProperty('child-src')
 
     const lib = read('src/lib.rs').replace(/^\s*\/\/.*$/gm, '')
-    expect(lib).toMatch(/let mut context = tauri::generate_context!\(\);/)
+    // The compiled-in context comes from one helper (`generate_context!` may be used once per crate; the tests of `sql_batch.rs` take it from there too).
+    expect(lib).toMatch(/fn app_context<R: tauri::Runtime>\(\) -> tauri::Context<R> \{\s*tauri::generate_context!\(\)\s*\}/)
+    expect(lib).toMatch(/let mut context = app_context::<tauri::Wry>\(\);/)
     expect(lib).toMatch(/isolation_csp::allow_isolation_frame\(&mut context\)/)
     expect(lib).toMatch(/\.build\(context\)/)
     expect(lib.indexOf('allow_isolation_frame')).toBeLessThan(lib.indexOf('.build(context)'))
