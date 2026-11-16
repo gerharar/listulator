@@ -128,8 +128,14 @@ pub async fn run(pool: &SqlitePool, statements: &[Statement], foreign_keys_off: 
   }
 
   let mut connection = pool.acquire().await.map_err(BatchError::outside)?;
+  let outcome = in_transaction(&mut connection, statements, false).await;
+  if outcome.is_err() {
+    // The rollback was asked for already; if it could not be done, this connection would go back to the pool still holding the write
+    // lock. A connection that is closed instead gives the lock up, whatever state it was in (and a failed batch is rare enough to pay for it).
+    connection.close_on_drop();
+  }
 
-  in_transaction(&mut connection, statements, false).await
+  outcome
 }
 
 /// `BEGIN IMMEDIATE` (the write lock is taken now, not at the first write, so the call either has it or fails at once), each statement in
@@ -629,7 +635,7 @@ mod tests {
         compared += 1;
       }
     }
-    assert!(compared > 50, "only {compared} cases were compared");
+    assert_eq!(compared, declared.len() * bound.len(), "a case where both sides refused was not compared");
 
     // A real blob (no way to send one as a JSON value, so it is in the SQL text) and values with no declared type: expressions.
     plugin_execute(&webview, "CREATE TABLE blobs (a BLOB)", &[]).unwrap();
@@ -669,6 +675,20 @@ mod tests {
     let not_loaded = invoke(&webview, "sql_batch", json!({ "db": "sqlite:other.sqlite", "statements": [{ "query": "SELECT 1" }] }));
     assert_eq!(not_loaded.as_ref().unwrap_err()["statement"], json!(null));
     assert!(not_loaded.unwrap_err()["message"].as_str().unwrap().contains("database not loaded"));
+  }
+
+  #[test]
+  fn the_foreign_keys_option_is_honoured_over_ipc_under_its_camel_case_name() {
+    let scratch = Scratch::new("ipc-fk");
+    let pool = block(open(&scratch.file()));
+    block(parent_with_two_children(&pool));
+    let (_app, webview) = mock_app(pool);
+    let rebuild: Vec<Value> = rebuild_lists().iter().map(|s| json!({ "query": s.query })).collect();
+
+    let done = invoke(&webview, "sql_batch", json!({ "db": DB, "statements": rebuild, "foreignKeysOff": true }));
+
+    assert!(done.is_ok(), "{done:?}");
+    assert_eq!(plugin_select(&webview, "SELECT count(*) FROM items", &[]), Ok(vec![vec![json!(2)]]), "the children stayed");
   }
 
   #[test]
