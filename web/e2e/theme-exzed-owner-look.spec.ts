@@ -177,6 +177,47 @@ for (const skin of SKINS) {
     expect(wrapped, 'no platform name wraps').toEqual([])
   })
 
+  // The owner's focused look, 2026-11-16 (docs/tasks/owner-look-51b-findings.md): finding 6 was fixed on the toast in 51.13, but "Item added manually" is the TOOLTIP of the hand mark.
+  test(`${skin}: the hand mark's tooltip says "Item added manually" on one line`, async ({ page }) => {
+    await openGameList(page, skin)
+    await page.route('**/api/lists/L1', (route) => route.fulfill({ json: { ...summary('L1', 'One'), mediaType: 'game', items: [{ ...item(1, 'Group A'), source: 'manual' }, item(2, 'Group B'), item(3)], groups: [{ id: 'g1', listId: 'L1', name: 'Group A', orderIndex: 0 }, { id: 'g2', listId: 'L1', name: 'Group B', orderIndex: 1 }], snapshot: [] } }))
+    await page.reload()
+    await page.locator('.q-home-row').first().click()
+    await page.locator('.q-item').first().waitFor()
+    await page.evaluate(() => document.fonts.ready)
+    await page.locator('.q-manual').first().hover()
+    const tip = page.locator('.q-tooltip')
+    await tip.waitFor()
+    await expect(tip).toHaveText('Item added manually')
+    const lines = await tip.evaluate((element) => {
+      const range = document.createRange()
+      range.selectNodeContents(element)
+      return new Set([...range.getClientRects()].map((rect) => Math.round(rect.top))).size
+    })
+    expect(lines, 'the sentence is on one line').toBe(1)
+    const box = (await tip.boundingBox())!
+    expect(box.x + box.width, 'inside the window').toBeLessThanOrEqual(1440)
+  })
+
+  for (const width of [1440, 1128]) {
+    test(`${skin}: the add form's Platform list does not scroll sideways and no platform name wraps, in a window ${width}px wide`, async ({ page }) => {
+      await openGameList(page, skin, width)
+      await page.locator('.q-add-item .q-add-plat').scrollIntoViewIfNeeded()
+      await page.locator('.q-add-item .q-add-plat').click()
+      await page.locator('.q-platpanel-list').waitFor()
+      await page.waitForFunction(() => getComputedStyle(document.querySelector('.q-pop')!).opacity === '1')
+      const over = await page.locator('.q-platpanel-list').evaluate((e) => e.scrollWidth - e.clientWidth)
+      expect(over, 'the list does not scroll sideways').toBeLessThanOrEqual(0)
+      const wrapped = await page.locator('.q-platpanel-row .q-platpanel-name').evaluateAll((names) =>
+        names.filter((n) => !n.querySelector('.q-platpanel-sub') && n.getBoundingClientRect().height > 24).map((n) => n.textContent),
+      )
+      expect(wrapped, 'no platform name wraps').toEqual([])
+      const pop = (await page.locator('.q-pop').boundingBox())!
+      expect(pop.x, 'inside the window, left').toBeGreaterThanOrEqual(0)
+      expect(pop.x + pop.width, 'inside the window, right').toBeLessThanOrEqual(width)
+    })
+  }
+
   test(`${skin}: the small-window notice is readable: it has the paper under it, not the art`, async ({ page }) => {
     await open(page, skin, 900)
     const banner = page.locator('.q-banner')

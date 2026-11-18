@@ -6,6 +6,7 @@ mod close_hold;
 mod fullscreen;
 mod isolation_csp;
 mod navigation;
+mod sql_batch;
 mod vacuum;
 mod window_fit;
 mod window_save;
@@ -134,10 +135,16 @@ fn backups_info(app: tauri::AppHandle) -> Option<backup::Info> {
   app.path().app_config_dir().ok().and_then(|dir| backup::existing(&dir))
 }
 
+/// The app's configuration and permissions, compiled in. `generate_context!` can be used once per crate, so the tests that run the SQL
+/// plugin's own commands in a mock app (`sql_batch.rs`) take the context from here too, with the capability file that lets them through.
+fn app_context<R: tauri::Runtime>() -> tauri::Context<R> {
+  tauri::generate_context!()
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
   // The page's CSP must allow this build's own isolation frame, whose scheme is made at compile time: see `isolation_csp`.
-  let mut context = tauri::generate_context!();
+  let mut context = app_context::<tauri::Wry>();
   let isolation_scheme = isolation_csp::allow_isolation_frame(&mut context);
 
   let builder = tauri::Builder::default();
@@ -211,7 +218,7 @@ pub fn run() {
   });
 
   builder
-    .invoke_handler(tauri::generate_handler![relaunch, hold_close, backups_info])
+    .invoke_handler(tauri::generate_handler![relaunch, hold_close, backups_info, sql_batch::sql_batch])
     // Keeps the window on the app's own page: nothing else may be navigated to (SR-015, navigation.rs).
     .plugin(navigation::guard(isolation_scheme))
     .plugin(tauri_plugin_sql::Builder::default().build())

@@ -1,11 +1,20 @@
-import { and, between, eq, inArray, sql } from 'drizzle-orm'
+import { and, between, eq, sql } from 'drizzle-orm'
+import { runAtomically } from '../db/atomic.js'
 import type { PortableDatabase } from '../db/client.js'
-import { listGroups, listItems, lists, type ListItem } from '../db/schema.js'
+import { listGroups, listItems, type List, type ListItem } from '../db/schema.js'
 import { normalizeItemTags } from './facets.js'
-import { groupsOf } from './groups.js'
+import { groupsOf, seedGroupPositions } from './groups.js'
+import { groupPositionStatements } from './orderIndex.js'
 import { validMinutes } from './limits.js'
 import { validYearPair } from './years.js'
-import { findList, type CreateListItemInput } from './repository.js'
+import {
+  clearDismissalsStatement,
+  createListStatement,
+  findList,
+  snapshotStatements,
+  type CreateListInput,
+  type CreateListItemInput,
+} from './repository.js'
 
 /**
  * Adding many items to a list in a handful of statements (task 15.9b), where
@@ -116,32 +125,32 @@ interface Run {
   by: number
 }
 
+/** A row `createListItems` will insert, with the id it will carry (made here, so a clean-up and a result can name it before it exists). */
+export type PlannedItemRow = typeof listItems.$inferInsert & { id: string }
+
+/** What adding items to a list comes to, worked out in memory before anything is written. */
+export interface ItemWritePlan {
+  listId: string
+  /** The groups the call makes, in order, with the ids they will carry. */
+  newGroups: { id: string; name: string; orderIndex: number }[]
+  /** The rows already there that move down, as runs of equal shift, in the order they must be written (highest first, so a run never lands on one still to move). */
+  shifts: Run[]
+  /** The new rows, in the order given, with the positions they end at. */
+  rows: PlannedItemRow[]
+}
+
 /**
- * Adds `inputs` to the list, in order, as `createListItem` would one by one.
- * Returns the new rows in the order given, with the positions they ended at;
- * `undefined` when the list is not the user's or not there.
- *
- * Not atomic (the desktop driver has no reliable transaction, DECISIONS 10.16),
- * so a failure part-way cleans up after itself: the rows and groups this call
- * made are removed and the error goes on. Rows already in the list may be left
- * with gaps in their order numbers, which nothing depends on being contiguous.
+ * Where `inputs` go in a list that holds `existing` rows and `groups`, as `createListItem` would one by one, worked out without a
+ * database: the group made once and spelled as the list spells it, every item straight after its group's last item (or at the end
+ * of the list), with everything after it moved down. A rewrite that empties the list first plans against no rows and no groups.
+ * Group and item ids are made here.
  */
-export async function createListItems(
-  db: PortableDatabase,
-  userId: string,
+export function planItemWrites(
   listId: string,
+  existing: readonly { orderIndex: number; group: string | null }[],
+  groups: readonly { name: string; orderIndex: number }[],
   inputs: readonly BulkItemInput[],
-): Promise<ListItem[] | undefined> {
-  if (!(await findList(db, userId, listId))) return undefined
-  if (inputs.length === 0) return []
-
-  const existing = await db
-    .select({ orderIndex: listItems.orderIndex, group: listItems.group })
-    .from(listItems)
-    .where(eq(listItems.listId, listId))
-    .all()
-  const groups = await groupsOf(db, listId)
-
+): ItemWritePlan {
   // Group names by their trimmed, lower-cased spelling: the first the list has wins, as `ensureListGroup` finds it.
   const byKey = new Map<string, string>()
   for (const group of groups) {
@@ -149,7 +158,7 @@ export async function createListItems(
     if (!byKey.has(key)) byKey.set(key, group.name)
   }
   let nextGroupOrder = groups.reduce((top, group) => Math.max(top, group.orderIndex), -1) + 1
-  const madeGroups: { name: string; orderIndex: number }[] = []
+  const newGroups: ItemWritePlan['newGroups'] = []
 
   // The list as `placeNewItem` would see it item by item, kept in memory: each row's order number,
   // the highest in each group and in the whole list.
@@ -171,7 +180,7 @@ export async function createListItems(
       if (group === null) {
         group = label
         byKey.set(key, label)
-        madeGroups.push({ name: label, orderIndex: nextGroupOrder++ })
+        newGroups.push({ id: crypto.randomUUID(), name: label, orderIndex: nextGroupOrder++ })
       }
     }
 
@@ -207,81 +216,177 @@ export async function createListItems(
     else runs.push({ from: originalOrders[index]!, to: originalOrders[index]!, by })
   }
 
-  const insertedGroupIds: string[] = []
-  const insertedItemIds: string[] = []
+  const rows = placed.map(({ input, group, slot }): PlannedItemRow => ({
+    id: crypto.randomUUID(),
+    listId,
+    title: input.title,
+    orderIndex: orders[slot]!,
+    timeToConsumeMinutes: input.timeToConsumeMinutes,
+    timeToConsumeIsEstimated: input.timeToConsumeIsEstimated ?? true,
+    externalRef: input.externalRef ?? null,
+    source: input.source ?? 'import',
+    year: input.year ?? null,
+    yearUnk: input.yearUnk ?? 0,
+    group,
+    tags: normalizeItemTags(input.tags),
+    notes: input.notes ?? null,
+    isNew: input.isNew ?? false,
+  }))
 
-  try {
-    for (const batch of chunksOf(madeGroups)) {
-      const rows = await db
-        .insert(listGroups)
-        .values(batch.map((group) => ({ listId, name: group.name, orderIndex: group.orderIndex })))
-        .returning({ id: listGroups.id })
-        .all()
-      insertedGroupIds.push(...rows.map((row) => row.id))
-    }
+  return { listId, newGroups, shifts: runs.reverse(), rows }
+}
 
-    for (const run of runs.reverse()) {
-      await db
-        .update(listItems)
-        .set({ orderIndex: sql`${listItems.orderIndex} + ${run.by}` })
-        .where(and(eq(listItems.listId, listId), between(listItems.orderIndex, run.from, run.to)))
-        .run()
-    }
-
-    const created = new Map<string, ListItem>()
-    const ids = placed.map(() => crypto.randomUUID())
-
-    for (const batch of chunksOf(placed.map((entry, index) => ({ entry, id: ids[index]! })))) {
-      insertedItemIds.push(...batch.map(({ id }) => id))
-
-      const rows = await db
-        .insert(listItems)
-        .values(
-          batch.map(({ entry: { input, group, slot }, id }) => ({
-            id,
-            listId,
-            title: input.title,
-            orderIndex: orders[slot]!,
-            timeToConsumeMinutes: input.timeToConsumeMinutes,
-            timeToConsumeIsEstimated: input.timeToConsumeIsEstimated ?? true,
-            externalRef: input.externalRef ?? null,
-            source: input.source ?? 'import',
-            year: input.year ?? null,
-            yearUnk: input.yearUnk ?? 0,
-            group,
-            tags: normalizeItemTags(input.tags),
-            notes: input.notes ?? null,
-            isNew: input.isNew ?? false,
-          })),
-        )
-        .returning()
-        .all()
-      for (const row of rows) created.set(row.id, row)
-    }
-
-    return ids.map((id) => created.get(id)!)
-  } catch (error) {
-    // Best effort, and never in place of the error that got us here.
-    try {
-      for (const batch of chunksOf(insertedItemIds)) await db.delete(listItems).where(inArray(listItems.id, batch)).run()
-      for (const batch of chunksOf(insertedGroupIds)) await db.delete(listGroups).where(inArray(listGroups.id, batch)).run()
-    } catch {
-      // The original failure is the one to report.
-    }
-
-    throw error
-  }
+const insertGroups = (db: PortableDatabase, listId: string, groups: ItemWritePlan['newGroups']) =>
+  db.insert(listGroups).values(groups.map((group) => ({ id: group.id, listId, name: group.name, orderIndex: group.orderIndex })))
+const shiftRun = (db: PortableDatabase, listId: string, run: Run) =>
+  db
+    .update(listItems)
+    .set({ orderIndex: sql`${listItems.orderIndex} + ${run.by}` })
+    .where(and(eq(listItems.listId, listId), between(listItems.orderIndex, run.from, run.to)))
+const insertItems = (db: PortableDatabase, rows: PlannedItemRow[]) => db.insert(listItems).values(rows)
+type PlainInsert = ReturnType<typeof insertItems>
+const insertItemsReturning = (db: PortableDatabase, rows: PlannedItemRow[]) => insertItems(db, rows).returning()
+type ReturningInsert = ReturnType<typeof insertItemsReturning>
+interface WriteStatements<Item> {
+  groups: ReturnType<typeof insertGroups>[]
+  shifts: ReturnType<typeof shiftRun>[]
+  items: Item[]
 }
 
 /**
- * Removes a list the caller has just made and could not fill, with everything
- * under it, so a failed import leaves nothing behind. Best effort: it never
- * throws, since it runs while another error is on its way to the user.
+ * The statements that carry out a plan, NOT run: the groups, the shifts of the rows already there, the new rows. With `returning` the
+ * item inserts hand back the rows they wrote (what `createListItems` returns); without it they hand back nothing (a Reset of 50,000
+ * items has no use for them, and they would cross the IPC).
  */
-export async function discardList(db: PortableDatabase, userId: string, listId: string): Promise<void> {
-  try {
-    await db.delete(lists).where(and(eq(lists.id, listId), eq(lists.userId, userId))).run()
-  } catch {
-    // Nothing more can be done from here.
+export function itemWriteStatements(db: PortableDatabase, plan: ItemWritePlan, options: { returning: true }): WriteStatements<ReturningInsert>
+export function itemWriteStatements(db: PortableDatabase, plan: ItemWritePlan, options: { returning: false }): WriteStatements<PlainInsert>
+export function itemWriteStatements(db: PortableDatabase, plan: ItemWritePlan, options: { returning: true }): WriteStatements<ReturningInsert>
+export function itemWriteStatements(db: PortableDatabase, plan: ItemWritePlan, options: { returning: false }): WriteStatements<PlainInsert>
+export function itemWriteStatements(db: PortableDatabase, plan: ItemWritePlan, { returning }: { returning: boolean }): WriteStatements<PlainInsert | ReturningInsert> {
+  const groups = chunksOf(plan.newGroups).map((batch) => insertGroups(db, plan.listId, batch))
+  const shifts = plan.shifts.map((run) => shiftRun(db, plan.listId, run))
+  const items = chunksOf(plan.rows).map((batch) => {
+    return returning ? insertItemsReturning(db, batch) : insertItems(db, batch)
+  })
+
+  return { groups, shifts, items }
+}
+
+/** What a caller of `createListItems` may ask for in the same transaction. */
+export interface AddItemsOptions {
+  /** Order the list's groups by the earliest year among their items, as an import does (`seedGroupOrder`), counting the items just added. */
+  seedGroupOrder?: boolean
+  /** Forget that these items were once deleted (BL-084): adding them back is the user changing their mind. */
+  clearDismissalsFor?: { title: string; externalRef?: string | undefined }[]
+}
+
+const byPositionThenId = (a: { orderIndex: number; id: string }, b: { orderIndex: number; id: string }) =>
+  a.orderIndex - b.orderIndex || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0)
+
+/**
+ * Adds `inputs` to the list, in order, as `createListItem` would one by one.
+ * Returns the new rows in the order given, with the positions they ended at;
+ * `undefined` when the list is not the user's or not there.
+ *
+ * All or nothing (Phase 53, 53.5b): what the list holds is read first, the call is planned in memory (`planItemWrites`), and the groups,
+ * the shifts of the rows already there, the new rows and whatever `options` asks for run as ONE `runAtomically` list. A failure, or a
+ * process that dies, leaves the list exactly as it was; there is no clean-up to run.
+ */
+export async function createListItems(
+  db: PortableDatabase,
+  userId: string,
+  listId: string,
+  inputs: readonly BulkItemInput[],
+  options: AddItemsOptions = {},
+): Promise<ListItem[] | undefined> {
+  if (!(await findList(db, userId, listId))) return undefined
+
+  const existing = await db
+    .select({ orderIndex: listItems.orderIndex, group: listItems.group, year: listItems.year, yearUnk: listItems.yearUnk })
+    .from(listItems)
+    .where(eq(listItems.listId, listId))
+    .all()
+  const groups = await groupsOf(db, listId)
+
+  const plan = planItemWrites(listId, existing, groups, inputs)
+  const writes = itemWriteStatements(db, plan, { returning: true })
+  const clearing = options.clearDismissalsFor ? clearDismissalsStatement(db, listId, options.clearDismissalsFor) : undefined
+  const positions = options.seedGroupOrder
+    ? seedGroupPositions(
+        [...groups.map((group) => ({ id: group.id, name: group.name, orderIndex: group.orderIndex })), ...plan.newGroups].sort(byPositionThenId),
+        [
+          ...existing.map((row) => ({ group: row.group, year: row.year, yearUnk: row.yearUnk })),
+          ...plan.rows.map((row) => ({ group: row.group ?? null, year: row.year ?? null, yearUnk: row.yearUnk ?? null })),
+        ],
+      )
+    : []
+
+  const results = (await runAtomically(db, [
+    ...writes.groups,
+    ...writes.shifts,
+    ...writes.items,
+    ...(clearing ? [clearing] : []),
+    ...groupPositionStatements(db, listId, positions),
+  ])) as unknown[]
+
+  const first = writes.groups.length + writes.shifts.length
+  const created = new Map<string, ListItem>()
+  for (const rows of results.slice(first, first + writes.items.length) as ListItem[][]) {
+    for (const row of rows) created.set(row.id, row)
   }
+
+  return plan.rows.map((row) => created.get(row.id)!)
+}
+
+/**
+ * Makes a list and everything that arrives with it, in ONE transaction (Phase 53, 53.5b): the list, its groups and items in the order a
+ * source or a file gave them, optionally the arrived-state snapshot of those items (D4: what a connector's list is reset to), and the
+ * groups ordered by year. All of it or none of it: an import never leaves a half-made list behind, and there is no `discardList` to
+ * call. Everything is planned in memory first (nothing is read back: the snapshot is the planned rows as they will stand, the group order
+ * is worked out from the plan). The list is read once it has been committed.
+ */
+export async function createListWithItems(
+  db: PortableDatabase,
+  userId: string,
+  input: CreateListInput,
+  inputs: readonly BulkItemInput[],
+  { snapshot }: { snapshot: boolean },
+): Promise<List> {
+  const listId = crypto.randomUUID()
+  const plan = planItemWrites(listId, [], [], inputs)
+  const writes = itemWriteStatements(db, plan, { returning: false })
+  const arrived = [...plan.rows].sort((a, b) => a.orderIndex - b.orderIndex)
+
+  await runAtomically(db, [
+    createListStatement(db, userId, input, listId),
+    ...writes.groups,
+    ...writes.items,
+    ...(snapshot
+      ? snapshotStatements(
+          db,
+          listId,
+          arrived.map((row) => ({
+            title: row.title,
+            timeToConsumeMinutes: row.timeToConsumeMinutes,
+            timeToConsumeIsEstimated: row.timeToConsumeIsEstimated ?? true,
+            orderIndex: row.orderIndex,
+            externalRef: row.externalRef ?? null,
+            year: row.year ?? null,
+            group: row.group ?? null,
+            tags: row.tags ?? null,
+            notes: row.notes ?? null,
+          })),
+        )
+      : []),
+    ...groupPositionStatements(
+      db,
+      listId,
+      seedGroupPositions(
+        plan.newGroups,
+        plan.rows.map((row) => ({ group: row.group ?? null, year: row.year ?? null, yearUnk: row.yearUnk ?? null })),
+      ),
+    ),
+  ])
+
+  return (await findList(db, userId, listId))!
 }

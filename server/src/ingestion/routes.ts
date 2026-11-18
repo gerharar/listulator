@@ -3,9 +3,6 @@ import { dismissalTitleKey, type ItemSource } from '../db/schema.js'
 import { getCurrentUser } from '../auth/currentUser.js'
 import { MAX_ITEM_TAGS } from '../catalog/facets.js'
 import {
-  clearDismissals,
-  createList,
-  createListSnapshot,
   findDismissals,
   findList,
   findListItems,
@@ -28,11 +25,10 @@ import {
   untrackedLibraryEntries,
   type ParsedCustomList,
 } from './customLists.js'
-import { createListItems, discardList, itemFromFile, itemFromSource } from '../catalog/bulkItems.js'
+import { createListItems, createListWithItems, itemFromFile, itemFromSource } from '../catalog/bulkItems.js'
 import { LIST_FILE_MAX_CHARS, MAX_CONNECTOR_ITEMS } from '../catalog/limits.js'
 import { knownRuntimes, withKnownRuntimes } from '../catalog/runtimes.js'
 import { enrichPrefixesByMediaType } from '../catalog/runtimeFill.js'
-import { seedGroupOrder } from '../catalog/groups.js'
 import { expansionCacheKey, createExpansionCache } from './expansionCache.js'
 import { IngestionError } from './http.js'
 import { listsDropDir as defaultListsDropDir, scanListsDropFolder } from './listsDropFolder.js'
@@ -99,35 +95,25 @@ export const ingestionRoutes: FastifyPluginAsync<IngestionRoutesOptions> = async
   ) {
     const mediaType = mediaTypes.get(parsed.category)!
 
-    const list = await createList(db, user.id, {
-      title: parsed.title,
-      description: parsed.description ?? null,
-      mediaType: parsed.category,
-      source,
-      ...(externalRef ? { externalRef } : {}),
-      status: parsed.status ?? null,
-      // `canonical`/`file` need no arrived_* or snapshot (D4) — re-parsing
-      // the source YAML already gives these back. Only `sourceYaml` is
-      // ever passed here, and only for `source: 'file'`.
-      ...(sourceYaml !== undefined ? { sourceYaml } : {}),
-    })
-
-    // One bulk insert, and a failure removes the list just made (see the from-source route above).
-    try {
-      await createListItems(
-        db,
-        user.id,
-        list.id,
-        parsed.items.map((item) => itemFromFile(item, mediaType.defaultDurationMinutes)),
-      )
-
-      await seedGroupOrder(db, list.id)
-    } catch (error) {
-      await discardList(db, user.id, list.id)
-      throw error
-    }
-
-    return list
+    // The list and everything in it in ONE transaction (53.5b): an import never leaves a half-made list behind.
+    return await createListWithItems(
+      db,
+      user.id,
+      {
+        title: parsed.title,
+        description: parsed.description ?? null,
+        mediaType: parsed.category,
+        source,
+        ...(externalRef ? { externalRef } : {}),
+        status: parsed.status ?? null,
+        // `canonical`/`file` need no arrived_* or snapshot (D4) — re-parsing
+        // the source YAML already gives these back. Only `sourceYaml` is
+        // ever passed here, and only for `source: 'file'`.
+        ...(sourceYaml !== undefined ? { sourceYaml } : {}),
+      },
+      parsed.items.map((item) => itemFromFile(item, mediaType.defaultDurationMinutes)),
+      { snapshot: false },
+    )
   }
 
   // Upstream being down or rate-limiting is not a bug in this app, and the
@@ -414,43 +400,29 @@ export const ingestionRoutes: FastifyPluginAsync<IngestionRoutesOptions> = async
         return sendApiError(reply, 422, 'list.sourceTooLarge', { title, count: candidates.length, max: MAX_CONNECTOR_ITEMS })
       }
 
-      const list = await createList(db, user.id, {
-        title,
-        mediaType: key,
-        source: 'api',
-        externalRef: adapterRef,
-        // No adapter sets a description. Status is set only where the
-        // adapter has an honest signal for it (BL-013); arrived_* mirrors the
-        // real columns, so 10.18's Reset restores exactly what arrived (D4).
-        status: status ?? null,
-        arrivedTitle: title,
-        arrivedDescription: null,
-        arrivedStatus: status ?? null,
-        snapshotFetchedAt: new Date(),
-      })
-
-      // One bulk insert, not a create per item (task 15.9b: a big list is thousands of queries one by
-      // one). If any of it fails the list just made is removed and the failure reaches the user, so an
-      // import never leaves a half-made list behind.
-      try {
-        await createListItems(
-          db,
-          user.id,
-          list.id,
-          candidates.map((candidate) => itemFromSource(candidate, candidate.timeToConsumeMinutes, mediaType.defaultDurationMinutes)),
-        )
-
-        // The arrived-state snapshot (D4), written here and refreshed later (Phase 12) — built from the
-        // items just created, not re-derived from `candidates`, so it can
-        // never drift from what's actually in `list_items`.
-        const createdItems = await findListItems(db, user.id, list.id)
-        await createListSnapshot(db, list.id, createdItems ?? [])
-
-        await seedGroupOrder(db, list.id)
-      } catch (error) {
-        await discardList(db, user.id, list.id)
-        throw error
-      }
+      // The list, its items, the arrived-state snapshot (D4, built from the items as they will stand, so it can never drift from
+      // `list_items`: a refresh replaces it later, Phase 12) and the group order in ONE transaction (53.5b, was a create per
+      // item and then a clean-up): an import never leaves a half-made list behind, and a failure reaches the user.
+      const list = await createListWithItems(
+        db,
+        user.id,
+        {
+          title,
+          mediaType: key,
+          source: 'api',
+          externalRef: adapterRef,
+          // No adapter sets a description. Status is set only where the
+          // adapter has an honest signal for it (BL-013); arrived_* mirrors the
+          // real columns, so 10.18's Reset restores exactly what arrived (D4).
+          status: status ?? null,
+          arrivedTitle: title,
+          arrivedDescription: null,
+          arrivedStatus: status ?? null,
+          snapshotFetchedAt: new Date(),
+        },
+        candidates.map((candidate) => itemFromSource(candidate, candidate.timeToConsumeMinutes, mediaType.defaultDurationMinutes)),
+        { snapshot: true },
+      )
 
       // The list exists now; another add of this source should see upstream
       // as it is then, not this answer.
@@ -787,22 +759,18 @@ export const ingestionRoutes: FastifyPluginAsync<IngestionRoutesOptions> = async
         ),
       )
 
-      // One bulk insert (task 15.9b); it removes what it made if it fails part-way.
+      // One bulk insert (task 15.9b), in ONE transaction with what goes with it (53.5b). Adding something back is the user changing
+      // their mind, so the record that they once deleted it goes with it, in the same transaction as the items: a failed import keeps
+      // the record and adds nothing, and the next check does not offer them again (BL-084). Hand-typed items rarely carry years, so the
+      // group order mostly keeps the order they were typed in; it is done here so every import path seeds the same way.
       const created =
         (await createListItems(
           db,
           user.id,
           listId,
           withKnownLengths.map((item) => ({ ...itemFromSource(item, item.timeToConsumeMinutes, fallbackMinutes), source, isNew: request.body.arrived === true })),
+          { seedGroupOrder: true, clearDismissalsFor: request.body.items },
         )) ?? []
-
-      // Adding something back is the user changing their mind, so the record that they once deleted it has to go with it:
-      // once the items are in, so a failed import leaves the record, and the next check does not offer them again (BL-084).
-      await clearDismissals(db, listId, request.body.items)
-
-      // Hand-typed items rarely carry years, so this mostly keeps the order
-      // they were typed in; it is here so every import path seeds the same way.
-      await seedGroupOrder(db, listId)
 
       // Whatever is still without a length is looked up in the background, after the reply.
       if (enrichPrefixesByMediaType(mediaTypes.list()).has(list.mediaType)) startRuntimeFill(listId)

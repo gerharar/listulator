@@ -47,3 +47,8 @@ tauri-plugin-window-state = "2"
 # reach is unchanged; Windows differs only in the text of the error when `ShellExecuteW` refuses to start the installer.
 tauri-plugin-updater = "~2.14.0"
 
+
+[dev-dependencies]
+# Only for the tests of `sql_batch.rs`: a mock app that runs the SQL plugin's own commands, so the batch command can be compared with
+# them value for value (53.1). The feature adds no crate; it only compiles `tauri::test`.
+tauri = { version = "2.12.1", features = ["isolation", "test"] }

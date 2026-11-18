@@ -59,6 +59,20 @@ html.theme-exzed .q-toast.fixed {
   max-width: min(620px, calc(100vw - 32px));
 }
 
+/*
+ * The owner's focused look (2026-11-16, docs/tasks/owner-look-51b-findings.md), two defects the first pass of 51.13 missed:
+ *  - the tooltip ("Item added manually" is the hand mark's tooltip, not the toast) is as wide as its sentence: Quantum caps it at 320px, and in the wide Spectrum face at 16px that sentence needs 322px, so it wrapped by 2px. Never wider than 480px or the window; a longer sentence still wraps at the cap;
+ *  - the add form's Platform picker is a plain popover (`.q-pop.w320`, 284px of list), not the Edit window's side panel that 51.13 widened: the list scrolled sideways by 47px and Nintendo Switch, PlayStation 4 and 5 and Web Browser wrapped. It is 480px, so the list is 444px (a platform name cut at 364px on the card, 51.13).
+ */
+html.theme-exzed .q-tooltip {
+  width: max-content;
+  max-width: min(480px, calc(100vw - 16px));
+}
+
+html.theme-exzed .q-pop.w320:has(> .q-pop-scroll > .q-platpanel-head) {
+  width: 480px;
+}
+
 html.theme-exzed .q-pop.w240:has(.q-kicker + .q-pop-menu) {
   width: max-content;
   min-width: 240px;

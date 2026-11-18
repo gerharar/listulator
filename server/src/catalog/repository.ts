@@ -31,7 +31,8 @@ import {
   type ListSource,
   type ListStatus,
 } from '../db/schema.js'
-import { setItemPositions } from './orderIndex.js'
+import { runAtomically } from '../db/atomic.js'
+import { itemPositionStatements } from './orderIndex.js'
 
 /**
  * Data access for lists and their items.
@@ -130,14 +131,15 @@ export interface UpdateListItemInput {
   userNote?: string | null
 }
 
-export async function createList(
-  db: PortableDatabase,
-  userId: string,
-  input: CreateListInput,
-): Promise<List> {
-  return await db
+/**
+ * The statement that makes a list, NOT run: a create that fills the list in the same transaction (`createListWithItems`, Phase 53) names
+ * the id itself, so the rows that belong to it can be planned before it exists.
+ */
+export function createListStatement(db: PortableDatabase, userId: string, input: CreateListInput, id?: string) {
+  return db
     .insert(lists)
     .values({
+      ...(id !== undefined ? { id } : {}),
       userId,
       title: input.title,
       description: input.description ?? null,
@@ -152,8 +154,14 @@ export async function createList(
       snapshotFetchedAt: input.snapshotFetchedAt ?? null,
       isSample: input.isSample ?? false,
     })
-    .returning()
-    .get()
+}
+
+export async function createList(
+  db: PortableDatabase,
+  userId: string,
+  input: CreateListInput,
+): Promise<List> {
+  return await createListStatement(db, userId, input).returning().get()
 }
 
 /**
@@ -384,6 +392,17 @@ export async function updateList(
     .get()
 }
 
+/**
+ * `updateList`'s statement, NOT run: for a rewrite that has already read the list and knows it is the user's, and that runs all its
+ * statements in one transaction (`runAtomically`, Phase 53).
+ */
+export function updateListStatement(db: PortableDatabase, userId: string, listId: string, patch: UpdateListInput) {
+  return db
+    .update(lists)
+    .set({ ...patch, updatedAt: new Date() })
+    .where(and(eq(lists.id, listId), eq(lists.userId, userId)))
+}
+
 /** Items go with it — the foreign key cascades (client.ts enables them). */
 /**
  * Deletes a list and hands back everything that went with it — its items,
@@ -465,12 +484,8 @@ export async function reorderListItems(
     throw new ReorderMismatchError("itemIds must be exactly this list's current items, each once")
   }
 
-  await setItemPositions(
-    db,
-    listId,
-    itemIds.map((id, index) => ({ id, orderIndex: index })),
-    { touch: new Date() },
-  )
+  // All the batches of the move in ONE transaction (53.5c); the answer below is read after it.
+  await runAtomically(db, itemPositionStatements(db, listId, itemIds.map((id, index) => ({ id, orderIndex: index })), { touch: new Date() }))
 
   return findListItems(db, userId, listId)
 }
@@ -645,12 +660,21 @@ export async function clearDismissals(
   listId: string,
   items: { title: string; externalRef?: string | undefined }[],
 ): Promise<void> {
-  if (items.length === 0) return
+  await clearDismissalsStatement(db, listId, items)?.run()
+}
+
+/** `clearDismissals`' statement, NOT run; none when there is nothing to forget. */
+export function clearDismissalsStatement(
+  db: PortableDatabase,
+  listId: string,
+  items: { title: string; externalRef?: string | undefined }[],
+) {
+  if (items.length === 0) return undefined
 
   const titleKeys = items.map((item) => dismissalTitleKey(item.title))
   const refs = items.map((item) => item.externalRef).filter((ref): ref is string => Boolean(ref))
 
-  await db
+  return db
     .delete(dismissedItems)
     .where(
       and(
@@ -661,7 +685,6 @@ export async function clearDismissals(
         ),
       ),
     )
-    .run()
 }
 
 export interface CreateListSnapshotItemInput {
@@ -696,10 +719,15 @@ export async function createListSnapshot(
   listId: string,
   items: CreateListSnapshotItemInput[],
 ): Promise<void> {
+  for (const statement of snapshotStatements(db, listId, items)) await statement.run()
+}
+
+/** `createListSnapshot`'s statements, NOT run: one insert per `SNAPSHOT_CHUNK` rows. */
+export function snapshotStatements(db: PortableDatabase, listId: string, items: readonly CreateListSnapshotItemInput[]) {
+  const statements = []
   for (let start = 0; start < items.length; start += SNAPSHOT_CHUNK) {
-    await db
-      .insert(listSnapshots)
-      .values(
+    statements.push(
+      db.insert(listSnapshots).values(
         items.slice(start, start + SNAPSHOT_CHUNK).map((item) => ({
           listId,
           title: item.title,
@@ -712,14 +740,16 @@ export async function createListSnapshot(
           tags: item.tags ?? null,
           notes: item.notes ?? null,
         })),
-      )
-      .run()
+      ),
+    )
   }
+
+  return statements
 }
 
-/** Removes a list's arrived-state snapshot rows (the source copy's items); the list and its own items are untouched. */
-export async function deleteListSnapshot(db: PortableDatabase, listId: string): Promise<void> {
-  await db.delete(listSnapshots).where(eq(listSnapshots.listId, listId)).run()
+/** Removes a list's arrived-state snapshot rows (the source copy's items): the statement, NOT run. The list and its own items are untouched. */
+export function deleteSnapshotStatement(db: PortableDatabase, listId: string) {
+  return db.delete(listSnapshots).where(eq(listSnapshots.listId, listId))
 }
 
 /** The arrived-state snapshot for one list, in its original order. Empty for any list without one. */

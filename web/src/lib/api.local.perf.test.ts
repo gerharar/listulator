@@ -33,6 +33,13 @@ vi.mock('@tauri-apps/plugin-sql', async () => {
   }
 })
 
+// The migrations are one call of the native `sql_batch` each (53.4).
+vi.mock('@tauri-apps/api/core', async () => {
+  const { nativeInvoke } = await import('./db/sqlBatch.testing.js')
+
+  return { invoke: nativeInvoke(() => sqlite) }
+})
+
 const registryHolder = vi.hoisted(() => ({ current: [] as readonly unknown[] }))
 vi.mock('./ingestion/localMediaTypes.js', () => ({
   getLocalMediaTypes: async () => registryHolder.current,
@@ -78,9 +85,20 @@ describe('the desktop data path at 30,000 and 50,000 items (25.8)', () => {
       const [, undoMs] = await timed(() => api.restoreItems(list.id, reset.restore))
       const [again, listAgainMs] = await timed(() => api.list(list.id))
       const listMB = Math.round((JSON.stringify(detail).length / 1048576) * 10) / 10
+      // 53.5c: Sort chronologically, its Undo (the restore of positions), and a whole reorder by ids.
+      const [sorted, sortMs] = await timed(() => api.sortList(list.id))
+      const [, sortUndoMs] = await timed(() => api.restoreOrder(list.id, sorted.restore))
+      const [, reorderMs] = await timed(() => api.reorderItems(list.id, again.items.map((entry) => entry.id).reverse()))
+      // 53.5d: mark everything done and undo it, delete one group with its items and undo it, delete the whole list and undo it.
+      const [marked, markMs] = await timed(() => api.setConsumedMany(list.id, again.items.map((entry) => entry.id), true))
+      const [, markUndoMs] = await timed(() => api.restoreConsumed(list.id, marked.restore))
+      const [groupGone, groupDeleteMs] = await timed(() => api.deleteGroup(list.id, again.groups[0]!.id, { withItems: true }))
+      const [, groupUndoMs] = await timed(() => api.restoreGroup(list.id, groupGone))
+      const [listGone, listDeleteMs] = await timed(() => api.deleteList(list.id))
+      const [, listUndoMs] = await timed(() => api.restoreList(listGone))
 
       process.stdout.write(
-        `PERF-DESKTOP|${count}|import ${importMs} ms|open (list) ${listMs} ms / ${listMB} MB|reset preview ${previewMs} ms|reset ${resetMs} ms (undo payload ${payloadMB} MB)|undo ${undoMs} ms|list after ${listAgainMs} ms\n`,
+        `PERF-DESKTOP|${count}|import ${importMs} ms|open (list) ${listMs} ms / ${listMB} MB|reset preview ${previewMs} ms|reset ${resetMs} ms (undo payload ${payloadMB} MB)|undo ${undoMs} ms|list after ${listAgainMs} ms|sort ${sortMs} ms|undo sort ${sortUndoMs} ms|reorder ${reorderMs} ms|mark all ${markMs} ms|undo mark ${markUndoMs} ms|delete group ${groupDeleteMs} ms|undo group ${groupUndoMs} ms|delete list ${listDeleteMs} ms|undo list ${listUndoMs} ms\n`,
       )
       expect(detail.items).toHaveLength(count)
       expect(again.items).toHaveLength(count)

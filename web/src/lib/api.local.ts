@@ -11,10 +11,8 @@
 // bundled-asset counterpart to `STRATEGIES_DIR` (task 5.8); `engine.ts`'s
 // `rank` itself is unchanged and unforked.
 import {
-  clearDismissals,
   createList as repoCreateList,
   createListItem,
-  createListSnapshot,
   deleteList as repoDeleteList,
   deleteListItem,
   findDismissals,
@@ -32,7 +30,7 @@ import {
   type ListWithStats,
   type RuntimeStatsOptions,
 } from '../../../server/src/catalog/repository.js'
-import { createListItems, discardList, itemFromFile, itemFromSource } from '../../../server/src/catalog/bulkItems.js'
+import { createListItems, createListWithItems, itemFromFile, itemFromSource } from '../../../server/src/catalog/bulkItems.js'
 import { InvalidMinutesError } from '../../../server/src/catalog/durations.js'
 import { InvalidNoteError } from '../../../server/src/catalog/userNotes.js'
 import { MAX_CONNECTOR_ITEMS } from '../../../server/src/catalog/limits.js'
@@ -116,7 +114,6 @@ import {
   GroupReorderMismatchError,
   renameListGroup,
   reorderListGroups,
-  seedGroupOrder,
 } from '../../../server/src/catalog/groups.js'
 import {
   createExpansionCache,
@@ -562,18 +559,17 @@ export function createLocalApi(): ApiClient {
         ),
       )
 
-      // One bulk insert (task 15.9b); it removes what it made if it fails part-way.
+      // One bulk insert (task 15.9b), in ONE call of the native command with what goes with it (53.5b; matches ingestion/routes.ts).
+      // Changing your mind about a deletion: the record that you once deleted it goes in the same transaction, so a failed import
+      // leaves it (BL-084).
       const created: SchemaListItem[] =
         (await createListItems(
           database,
           userId,
           listId,
           withKnownLengths.map((item) => ({ ...itemFromSource(item, item.timeToConsumeMinutes, fallbackMinutes), source, isNew: arrived })),
+          { seedGroupOrder: true, clearDismissalsFor: items },
         )) ?? []
-      // Changing your mind about a deletion — the record that you once deleted it has to go with it, once the items are in, so a
-      // failed import leaves it (matches ingestion/routes.ts, BL-084).
-      await clearDismissals(database, listId, items)
-      await seedGroupOrder(database, listId)
 
       // Whatever is still without a length is looked up in the background.
       if (enrichPrefixesByMediaType(await getLocalMediaTypes()).has(list.mediaType)) startRuntimeFill(listId)
@@ -875,28 +871,21 @@ export function createLocalApi(): ApiClient {
 
         const parsedMediaType = mediaTypes.find((entry) => entry.key === parsed.category)!
 
-        const list = await repoCreateList(database, userId, {
-          title: parsed.title,
-          description: parsed.description ?? null,
-          mediaType: parsed.category,
-          source: 'canonical',
-          externalRef,
-          status: parsed.status ?? null,
-        })
-
-        // One bulk insert, and a failure removes the list just made (mirrors ingestion/routes.ts, 15.9b).
-        try {
-          await createListItems(
-            database,
-            userId,
-            list.id,
-            parsed.items.map((item) => itemFromFile(item, parsedMediaType.defaultDurationMinutes)),
-          )
-          await seedGroupOrder(database, list.id)
-        } catch (error) {
-          await discardList(database, userId, list.id)
-          throw error
-        }
+        // The list and everything in it in ONE call of the native command (53.5b): an import never leaves a half-made list behind.
+        const list = await createListWithItems(
+          database,
+          userId,
+          {
+            title: parsed.title,
+            description: parsed.description ?? null,
+            mediaType: parsed.category,
+            source: 'canonical',
+            externalRef,
+            status: parsed.status ?? null,
+          },
+          parsed.items.map((item) => itemFromFile(item, parsedMediaType.defaultDurationMinutes)),
+          { snapshot: false },
+        )
 
         const withStats = await findListWithStats(database, userId, list.id, await runtimeStats())
         return toMediaList(withStats!)
@@ -942,40 +931,27 @@ export function createLocalApi(): ApiClient {
       }
       if (candidates.length > MAX_CONNECTOR_ITEMS) throw tooLarge({ title, count: candidates.length, max: MAX_CONNECTOR_ITEMS })
 
-      const list = await repoCreateList(database, userId, {
-        title,
-        mediaType: key,
-        source: 'api',
-        externalRef: adapterRef,
-        // Mirrors server/src/ingestion/routes.ts: status only where the
-        // adapter has an honest signal (BL-013); arrived_* mirrors it (D4).
-        status: status ?? null,
-        arrivedTitle: title,
-        arrivedDescription: null,
-        arrivedStatus: status ?? null,
-        snapshotFetchedAt: new Date(),
-      })
-
-      // One bulk insert, and a failure removes the list just made, so an import never leaves a
-      // half-made list (mirrors ingestion/routes.ts, 15.9b).
-      try {
-        await createListItems(
-          database,
-          userId,
-          list.id,
-          candidates.map((candidate) => itemFromSource(candidate, candidate.timeToConsumeMinutes, mediaType.defaultDurationMinutes)),
-        )
-
-        // The arrived-state snapshot (D4), written here and refreshed later (Phase 12) — built from the
-        // items just created, not re-derived from `candidates`, so it can
-        // never drift from what's actually in list_items.
-        const createdItems = await findListItems(database, userId, list.id)
-        await createListSnapshot(database, list.id, createdItems ?? [])
-        await seedGroupOrder(database, list.id)
-      } catch (error) {
-        await discardList(database, userId, list.id)
-        throw error
-      }
+      // The list, its items, the arrived-state snapshot (D4: built from the items as they will stand, so it can never drift from
+      // list_items) and the group order in ONE call of the native command (53.5b, mirrors ingestion/routes.ts).
+      const list = await createListWithItems(
+        database,
+        userId,
+        {
+          title,
+          mediaType: key,
+          source: 'api',
+          externalRef: adapterRef,
+          // Mirrors server/src/ingestion/routes.ts: status only where the
+          // adapter has an honest signal (BL-013); arrived_* mirrors it (D4).
+          status: status ?? null,
+          arrivedTitle: title,
+          arrivedDescription: null,
+          arrivedStatus: status ?? null,
+          snapshotFetchedAt: new Date(),
+        },
+        candidates.map((candidate) => itemFromSource(candidate, candidate.timeToConsumeMinutes, mediaType.defaultDurationMinutes)),
+        { snapshot: true },
+      )
 
       // The list exists now; another add of this source should see upstream then.
       expansions.evict(cacheKey)
@@ -1007,28 +983,21 @@ export function createLocalApi(): ApiClient {
 
       const mediaType = mediaTypes.find((entry) => entry.key === parsed.category)!
 
-      const list = await repoCreateList(database, userId, {
-        title: parsed.title,
-        description: parsed.description ?? null,
-        mediaType: parsed.category,
-        source: 'file',
-        status: parsed.status ?? null,
-        sourceYaml: yaml,
-      })
-
-      // One bulk insert, and a failure removes the list just made (mirrors ingestion/routes.ts, 15.9b).
-      try {
-        await createListItems(
-          database,
-          userId,
-          list.id,
-          parsed.items.map((item) => itemFromFile(item, mediaType.defaultDurationMinutes)),
-        )
-        await seedGroupOrder(database, list.id)
-      } catch (error) {
-        await discardList(database, userId, list.id)
-        throw error
-      }
+      // The list and everything in it in ONE call of the native command (53.5b).
+      const list = await createListWithItems(
+        database,
+        userId,
+        {
+          title: parsed.title,
+          description: parsed.description ?? null,
+          mediaType: parsed.category,
+          source: 'file',
+          status: parsed.status ?? null,
+          sourceYaml: yaml,
+        },
+        parsed.items.map((item) => itemFromFile(item, mediaType.defaultDurationMinutes)),
+        { snapshot: false },
+      )
 
       const withStats = await findListWithStats(database, userId, list.id, await runtimeStats())
       return toMediaList(withStats!)
