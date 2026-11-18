@@ -43,7 +43,7 @@ Where a section below describes one of these (the server's configuration, the we
 | Desktop storage | Real SQLite through `tauri-plugin-sql`, bridged to Drizzle's `sqlite-proxy` driver, so the server's repository code runs unmodified in the webview |
 | Tests | [Vitest](https://vitest.dev/) 4 (server, web, tools), Testing Library + jsdom (components), Playwright (`web/e2e`), `cargo test` (Rust) |
 | Lint, format | ESLint 10 + typescript-eslint, Prettier. Named exports only (enforced by ESLint) |
-| Toolchains | Node `26.12.1` ([`.node-version`](.node-version)), Rust `1.98.1` ([`rust-toolchain.toml`](rust-toolchain.toml)). Both are exact on purpose: a build of the same commit must not change because a toolchain moved. `package.json` allows Node >= 20 to run the code |
+| Toolchains | Node `26.13.1` ([`.node-version`](.node-version)), Rust `1.98.1` ([`rust-toolchain.toml`](rust-toolchain.toml)). Both are exact on purpose: a build of the same commit must not change because a toolchain moved. `package.json` allows Node >= 20 to run the code |
 | Workspaces | npm workspaces: `server`, `web`, `apps/desktop` |
 | CI | GitHub Actions in [`.github/workflows/`](.github/workflows): `ci.yml` (every push to `main`), `canary.yml` (daily), `release.yml` (a `v*` tag) and two hand-started Windows builds |
 
@@ -170,7 +170,7 @@ Each release lists `SHA256SUMS` next to the installers.
 
 ## Development
 
-Prerequisites: Node `26.12.1` (use the version in `.node-version`; a version manager such as `nvm`, `fnm` or `volta` reads it) and npm 11.
+Prerequisites: Node `26.13.1` (use the version in `.node-version`; a version manager such as `nvm`, `fnm` or `volta` reads it) and npm 11.
 
 ```bash
 npm install            # use `npm ci --ignore-scripts` for a clean, script-free install

@@ -22,3 +22,8 @@ const KEY_GUIDES: Record<KeySource, string> = {
 export function keyGuideUrl(source: KeySource): string {
   return `${GUIDES_URL}${KEY_GUIDES[source]}`
 }
+
+/** The guide to finding and restoring a backup of the database, linked from the desktop's failed-start screen (task 52.3). */
+export function restoreBackupGuideUrl(): string {
+  return `${GUIDES_URL}restore-a-backup.md`
+}

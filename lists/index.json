@@ -20,6 +20,26 @@
     "status": "complete"
   },
   {
+    "path": "lists/animation/ice-age-watch.yaml",
+    "title": "Ice Age franchise (watch order)",
+    "category": "animation",
+    "itemCount": 23,
+    "totalMinutes": 653,
+    "minutesEstimated": false,
+    "description": "All releases in the Ice Age franchise, in release order; excludes video games",
+    "status": "ongoing"
+  },
+  {
+    "path": "lists/animation/invincible-tv.yaml",
+    "title": "Invincible animated TV series",
+    "category": "animation",
+    "itemCount": 33,
+    "totalMinutes": 1632,
+    "minutesEstimated": false,
+    "description": "All episodes of the Invincible animated TV series, including Atom Eve Special",
+    "status": "ongoing"
+  },
+  {
     "path": "lists/animation/rick-and-morty-tv-full.yaml",
     "title": "Rick And Morty animated TV series (chronological)",
     "category": "animation",
@@ -33,8 +53,8 @@
     "path": "lists/animation/south-park-tv.yaml",
     "title": "South Park animated TV series (release order)",
     "category": "animation",
-    "itemCount": 341,
-    "totalMinutes": 7824,
+    "itemCount": 343,
+    "totalMinutes": 7865,
     "minutesEstimated": false,
     "description": "All episodes of South Park animated TV series, including specials and the full-length film, roughly in release order; excludes shorts, sketches, and video games",
     "status": "ongoing"
@@ -81,8 +101,8 @@
     "path": "lists/comic/100-bullets-comic.yaml",
     "title": "100 Bullets comic book series (Vertigo / DC)",
     "category": "comic",
-    "itemCount": 111,
-    "totalMinutes": 2775,
+    "itemCount": 112,
+    "totalMinutes": 2800,
     "minutesEstimated": false,
     "description": "Complete reading order for the 100 Bullets comic book series",
     "status": "ongoing"
@@ -105,6 +125,16 @@
     "totalMinutes": 1975,
     "minutesEstimated": false,
     "description": "Complete reading order for Mike Carey's Lucifer comic book series run",
+    "status": "complete"
+  },
+  {
+    "path": "lists/comic/crossed-comic.yaml",
+    "title": "Crossed comic book series (Avatar)",
+    "category": "comic",
+    "itemCount": 260,
+    "totalMinutes": 5075,
+    "minutesEstimated": false,
+    "description": "Complete reading order for the Crossed comic book series by Garth Ennis and Jacen Burrows, in release order",
     "status": "complete"
   },
   {
@@ -184,7 +214,7 @@
     "itemCount": 97,
     "totalMinutes": 2425,
     "minutesEstimated": false,
-    "description": "Complete reading order for Neil Gaiman's The Sandman comic book series (Vol 2)",
+    "description": "Complete reading order for Neil Gaiman's The Sandman comic book series (Vol 2), in recommended order (chronological)",
     "status": "complete"
   },
   {
@@ -241,8 +271,8 @@
     "path": "lists/documentary/dsotc-tv.yaml",
     "title": "Dark Side Of The Cage documentary series",
     "category": "documentary",
-    "itemCount": 15,
-    "totalMinutes": 660,
+    "itemCount": 18,
+    "totalMinutes": 792,
     "minutesEstimated": false,
     "description": "All episodes of the Dark Side Of The Cage documentary series",
     "status": "ongoing"
@@ -303,7 +333,7 @@
     "itemCount": 197,
     "totalMinutes": 6566,
     "minutesEstimated": false,
-    "description": "All releases in the Breaking Bad franchise, in recommended order roughly following release order; excludes video games as they're unplayable now",
+    "description": "All releases in the Breaking Bad franchise, in recommended order roughly following release order; excludes video games as they're delisted and unplayable",
     "status": "complete"
   },
   {
@@ -337,6 +367,16 @@
     "status": "complete"
   },
   {
+    "path": "lists/mega/dexter-all.yaml",
+    "title": "Dexter franchise",
+    "category": "mega",
+    "itemCount": 170,
+    "totalMinutes": 9384,
+    "minutesEstimated": false,
+    "description": "All releases in the Dexter franchise, roughly in appearance order; excludes video games as they're delisted",
+    "status": "ongoing"
+  },
+  {
     "path": "lists/mega/downton-abbey-all.yaml",
     "title": "Downton Abbey franchise (release order)",
     "category": "mega",
@@ -357,21 +397,21 @@
     "status": "ongoing"
   },
   {
-    "path": "lists/mega/ice-age-watch.yaml",
-    "title": "Ice Age franchise (no video games; grouped by media)",
+    "path": "lists/mega/invincible-all.yaml",
+    "title": "Invincible franchise (release order)",
     "category": "mega",
-    "itemCount": 23,
-    "totalMinutes": 653,
-    "minutesEstimated": false,
-    "description": "All releases in the Ice Age franchise, grouped by media type; excludes video games",
+    "itemCount": 282,
+    "totalMinutes": 8562,
+    "minutesEstimated": true,
+    "description": "All releases in the Invincible franchise, including related comic books, in release order",
     "status": "ongoing"
   },
   {
     "path": "lists/mega/mcu-extended.yaml",
     "title": "Marvel Cinematic Universe (MCU) franchise (extended; release order)",
     "category": "mega",
-    "itemCount": 561,
-    "totalMinutes": 26187,
+    "itemCount": 563,
+    "totalMinutes": 26323,
     "minutesEstimated": false,
     "description": "All releases in the Marvel Cinematic Universe (MCU) franchise made by Marvel Studios, in release order. Includes Agents Of S.H.I.E.L.D. (early seasons tie into the mainline MCU movies) and Netflix series (confirmed canonical). Does not include TV series and animated series not related to MCU (Inhumans, X-Men '97, etc). Seasons 1 and 2 of Agents of S.H.I.E.L.D. are split up to fit around the corresponding MCU movies in chronological viewing order",
     "status": "ongoing"
@@ -387,14 +427,64 @@
     "status": "ongoing"
   },
   {
+    "path": "lists/mega/preacher-all.yaml",
+    "title": "Preacher franchise (release order)",
+    "category": "mega",
+    "itemCount": 118,
+    "totalMinutes": 3826,
+    "minutesEstimated": false,
+    "description": "All releases in the Preacher franchise, in release order",
+    "status": "complete"
+  },
+  {
+    "path": "lists/mega/stranger-things-all.yaml",
+    "title": "Stranger Things franchise (recommended order)",
+    "category": "mega",
+    "itemCount": 134,
+    "totalMinutes": 10431,
+    "minutesEstimated": true,
+    "description": "All releases in the Stranger Things franchise, in recommended order (grouped by media)",
+    "status": "ongoing"
+  },
+  {
+    "path": "lists/mega/stranger-things-watchlist.yaml",
+    "title": "Stranger Things watchlist (release order)",
+    "category": "mega",
+    "itemCount": 60,
+    "totalMinutes": 3235,
+    "minutesEstimated": false,
+    "description": "All releases to watch in the Stranger Things TV series, in release order; excluses books, comics, and video games",
+    "status": "ongoing"
+  },
+  {
+    "path": "lists/mega/the-boys-all.yaml",
+    "title": "The Boys franchise (release order)",
+    "category": "mega",
+    "itemCount": 164,
+    "totalMinutes": 5879,
+    "minutesEstimated": false,
+    "description": "All releases in The Boys franchise, including comic book series, roughly following release order",
+    "status": "ongoing"
+  },
+  {
     "path": "lists/mega/the-boys-tv-all.yaml",
     "title": "The Boys franchise (no comics)",
     "category": "mega",
-    "itemCount": 64,
-    "totalMinutes": 3423,
+    "itemCount": 66,
+    "totalMinutes": 3429,
     "minutesEstimated": false,
     "description": "All releases in The Boys franchise; excludes comic book series",
     "status": "ongoing"
+  },
+  {
+    "path": "lists/mega/the-mandalorian-watchlist.yaml",
+    "title": "The Mandalorian franchise",
+    "category": "mega",
+    "itemCount": 25,
+    "totalMinutes": 1092,
+    "minutesEstimated": false,
+    "description": "All releases in the Mandalorian franchise, including the movie",
+    "status": "complete"
   },
   {
     "path": "lists/mega/twin-peaks-franchise.yaml",
@@ -481,6 +571,16 @@
     "status": "complete"
   },
   {
+    "path": "lists/tv/andor-tv.yaml",
+    "title": "Andor TV series",
+    "category": "tv",
+    "itemCount": 24,
+    "totalMinutes": 1141,
+    "minutesEstimated": false,
+    "description": "All episodes of the Andor TV series",
+    "status": "complete"
+  },
+  {
     "path": "lists/tv/band-of-brothers-tv.yaml",
     "title": "Band Of Brothers TV miniseries",
     "category": "tv",
@@ -488,6 +588,16 @@
     "totalMinutes": 625,
     "minutesEstimated": false,
     "description": "All episodes of the Band Of Brothers TV miniseries",
+    "status": "complete"
+  },
+  {
+    "path": "lists/tv/boardwalk-empire-tv.yaml",
+    "title": "Boardwalk Empire TV series",
+    "category": "tv",
+    "itemCount": 56,
+    "totalMinutes": 3158,
+    "minutesEstimated": false,
+    "description": "All episodes of the Boardwalk Empire TV series",
     "status": "complete"
   },
   {
@@ -511,6 +621,16 @@
     "status": "complete"
   },
   {
+    "path": "lists/tv/dark-tv.yaml",
+    "title": "Dark TV series",
+    "category": "tv",
+    "itemCount": 26,
+    "totalMinutes": 1449,
+    "minutesEstimated": false,
+    "description": "All episodes of the Dark TV series",
+    "status": "complete"
+  },
+  {
     "path": "lists/tv/dekalog-tv.yaml",
     "title": "Dekalog TV miniseries",
     "category": "tv",
@@ -519,6 +639,16 @@
     "minutesEstimated": false,
     "description": "All episodes of the Dekalog TV miniseries by Krzysztof Kieślowski",
     "status": "complete"
+  },
+  {
+    "path": "lists/tv/dexter-tv.yaml",
+    "title": "Dexter franchise (TV series)",
+    "category": "tv",
+    "itemCount": 128,
+    "totalMinutes": 6681,
+    "minutesEstimated": false,
+    "description": "All episodes of TV series from the Dexter franchise, in series appearance order",
+    "status": "ongoing"
   },
   {
     "path": "lists/tv/fargo-tv.yaml",
@@ -600,6 +730,16 @@
     "status": "complete"
   },
   {
+    "path": "lists/tv/pluribus-tv.yaml",
+    "title": "Pluribus TV series",
+    "category": "tv",
+    "itemCount": 9,
+    "totalMinutes": 445,
+    "minutesEstimated": false,
+    "description": "All episodes of the Pluribus TV series",
+    "status": "ongoing"
+  },
+  {
     "path": "lists/tv/preacher-tv.yaml",
     "title": "Preacher TV series",
     "category": "tv",
@@ -607,6 +747,16 @@
     "totalMinutes": 1926,
     "minutesEstimated": false,
     "description": "All episodes of the Preacher TV series",
+    "status": "complete"
+  },
+  {
+    "path": "lists/tv/rome-tv.yaml",
+    "title": "Rome TV series",
+    "category": "tv",
+    "itemCount": 22,
+    "totalMinutes": 1185,
+    "minutesEstimated": false,
+    "description": "All episodes of the Rome TV series",
     "status": "complete"
   },
   {
@@ -618,6 +768,26 @@
     "minutesEstimated": false,
     "description": "All episodes of the Schitt's Creek TV series",
     "status": "complete"
+  },
+  {
+    "path": "lists/tv/shogun-tv.yaml",
+    "title": "Shōgun TV series",
+    "category": "tv",
+    "itemCount": 10,
+    "totalMinutes": 585,
+    "minutesEstimated": false,
+    "description": "All episodes of the Shōgun TV series",
+    "status": "ongoing"
+  },
+  {
+    "path": "lists/tv/silo-tv.yaml",
+    "title": "Silo TV series",
+    "category": "tv",
+    "itemCount": 30,
+    "totalMinutes": 1536,
+    "minutesEstimated": false,
+    "description": "All episodes of the Silo TV series",
+    "status": "ongoing"
   },
   {
     "path": "lists/tv/sons-of-anarchy-franchise-tv.yaml",
@@ -670,6 +840,16 @@
     "status": "complete"
   },
   {
+    "path": "lists/tv/the-penguin-tv.yaml",
+    "title": "The Penguin TV miniseries",
+    "category": "tv",
+    "itemCount": 8,
+    "totalMinutes": 459,
+    "minutesEstimated": false,
+    "description": "All episodes of The Penguin TV miniseries",
+    "status": "complete"
+  },
+  {
     "path": "lists/tv/the-sopranos-tv.yaml",
     "title": "The Sopranos TV series",
     "category": "tv",
@@ -713,8 +893,8 @@
     "path": "lists/tv/yellowstone-franchise-tv.yaml",
     "title": "Yellowstone franchise (series appearance order)",
     "category": "tv",
-    "itemCount": 103,
-    "totalMinutes": 5286,
+    "itemCount": 105,
+    "totalMinutes": 5358,
     "minutesEstimated": false,
     "description": "All episodes of TV series from the Yellowstone franchise, in series appearance order",
     "status": "ongoing"

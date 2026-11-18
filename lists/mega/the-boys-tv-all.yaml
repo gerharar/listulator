@@ -11,6 +11,8 @@ items:
 - { title: "S01E06 The Innocents", year: 2019, minutes: 62, group: "The Boys: Season 1", tags: [tv] }
 - { title: "S01E07 The Self-Preservation Society", year: 2019, minutes: 59, group: "The Boys: Season 1", tags: [tv] }
 - { title: "S01E08 You Found Me", year: 2019, minutes: 69, group: "The Boys: Season 1", tags: [tv] }
+- { title: "Mr. Butcher", year: 2019, minutes: 1, tags: [movie], notes: "A short promotional film posted on Twitter" }
+- { title: "BUTCHER: A Short Film", year: 2020, minutes: 5, tags: [movie], notes: "A short promotional film posted on Twitter" }
 - { title: "S02E01 The Big Ride", year: 2020, minutes: 65, group: "The Boys: Season 2", tags: [tv] }
 - { title: "S02E02 Proper Preparation and Planning", year: 2020, minutes: 62, group: "The Boys: Season 2", tags: [tv] }
 - { title: "S02E03 Over the Hill with the Swords of a Thousand Men", year: 2020, minutes: 61, group: "The Boys: Season 2", tags: [tv] }
