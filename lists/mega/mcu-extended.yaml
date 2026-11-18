@@ -353,12 +353,12 @@ items:
 - { title: "S03E13 AKA Everything", year: 2019, minutes: 50, group: "Jessica Jones: Season 3", tags: [tv] }
 - { title: "Spider-Man: Far From Home", year: 2019, minutes: 129, tags: [movie] }
 - { title: "Peter's To-Do List", year: 2019, minutes: 3, tags: [movie], notes: "Special" }
-- { title: "S01E01 Spider-Man Responsible for Death of Mysterio", year: 2019, minutes: 1, group: "The Daily Bugle: Season 1", tags: [youtube] }
-- { title: "S01E02 Amateur Footage from Tower Bridge Attack", year: 2019, minutes: 1, group: "The Daily Bugle: Season 1", tags: [youtube] }
-- { title: "S01E03 Spider-Man is an Evil Psychopath - Abusing Powers", year: 2019, minutes: 1, group: "The Daily Bugle: Season 1", tags: [youtube] }
-- { title: "S01E04 Bombshell Exclusive: Spider-Man Unmasked!", year: 2019, minutes: 1, group: "The Daily Bugle: Season 1", tags: [youtube] }
-- { title: "S01E05 Coney Island to Spider-Man: Bug Off, WEBHEAD!", year: 2019, minutes: 1, group: "The Daily Bugle: Season 1", tags: [youtube] }
-- { title: "S01E06 Prime Minister to President: Pay Up!", year: 2019, minutes: 1, group: "The Daily Bugle: Season 1", tags: [youtube] }
+- { title: "S01E01 EXCLUSIVE Mysterio Final Moments Full Story Credit The Daily Bugle J. Jonah Jameson", year: 2019, minutes: 1, group: "The Daily Bugle: Season 1", tags: [youtube] }
+- { title: "S01E02 TheDailyBugle.net: EXCLUSIVE Footage From Tower Bridge Attack", year: 2019, minutes: 1, group: "The Daily Bugle: Season 1", tags: [youtube] }
+- { title: "S01E03 TheDailyBugle.net EXCLUSIVE! Spider-Man is a Menace!", year: 2019, minutes: 1, group: "The Daily Bugle: Season 1", tags: [youtube] }
+- { title: "S01E04 TheDailyBugle.net: EXCLUSIVE Spider-Man Unmasked Full Story Credit The Daily Bugle J. Jonah Jameson", year: 2019, minutes: 1, group: "The Daily Bugle: Season 1", tags: [youtube] }
+- { title: "S01E05 TheDailyBugle.net: EXCLUSIVE Coney Island re-opened years after devastating crash", year: 2019, minutes: 1, group: "The Daily Bugle: Season 1", tags: [youtube] }
+- { title: "S01E06 TheDailyBugle.net: EXCLUSIVE London Attack - Tower Bridge Bill Blues", year: 2019, minutes: 1, group: "The Daily Bugle: Season 1", tags: [youtube] }
 - { title: "S07E01 The New Deal", year: 2020, minutes: 43, group: "Agents Of S.H.I.E.L.D.: Season 7", tags: [tv] }
 - { title: "S07E02 Know Your Onions", year: 2020, minutes: 42, group: "Agents Of S.H.I.E.L.D.: Season 7", tags: [tv] }
 - { title: "S07E03 Alien Commies from the Future!", year: 2020, minutes: 42, group: "Agents Of S.H.I.E.L.D.: Season 7", tags: [tv] }
@@ -405,25 +405,25 @@ items:
 - { title: "S01E09 What If… The Watcher Broke His Oath?", year: 2021, minutes: 33, group: "What If…?: Season 1", tags: [animation] }
 - { title: "Shang-Chi and the Legend of the Ten Rings", year: 2021, minutes: 132, tags: [movie] }
 - { title: "Eternals", year: 2021, minutes: 157, tags: [movie] }
-- { title: "S02E01 The Daily Bugle Joins TikTok", year: 2021, minutes: 1, group: "The Daily Bugle: Season 2", tags: [youtube] }
-- { title: "S02E02 Tell Us You Hate Spider-Man...", year: 2021, minutes: 1, group: "The Daily Bugle: Season 2", tags: [youtube] }
-- { title: "S02E03 Join Us as an Intern", year: 2021, minutes: 1, group: "The Daily Bugle: Season 2", tags: [youtube] }
-- { title: "S02E04 Lightning and Sand Storms in NYC?", year: 2021, minutes: 1, group: "The Daily Bugle: Season 2", tags: [youtube] }
-- { title: "S02E05 Do YOU Have What it Takes", year: 2021, minutes: 1, group: "The Daily Bugle: Season 2", tags: [youtube] }
-- { title: "S02E06 Burning Questions with Betty Brant - Guest: Coach Wilson", year: 2021, minutes: 1, group: "The Daily Bugle: Season 2", tags: [youtube] }
-- { title: "S02E07 Burning Questions with Betty Brant - Guest: Flash Thompson", year: 2021, minutes: 1, group: "The Daily Bugle: Season 2", tags: [youtube] }
-- { title: "S02E08 Burning Questions with Betty Brant - Guest: Ned Leeds", year: 2021, minutes: 1, group: "The Daily Bugle: Season 2", tags: [youtube] }
-- { title: "S02E09 Put a Finger Down: Daily Bugle Edition", year: 2021, minutes: 1, group: "The Daily Bugle: Season 2", tags: [youtube] }
-- { title: "S02E10 Breaking News! Peter Parker aka. Spider-Man has been Released!", year: 2021, minutes: 1, group: "The Daily Bugle: Season 2", tags: [youtube] }
-- { title: "S02E11 Burning Questions with Betty Brant - Guest: Peter Parker", year: 2021, minutes: 1, group: "The Daily Bugle: Season 2", tags: [youtube] }
-- { title: "S02E12 I was Definitely Hired for my Journalist Skills and No Other Reason, Right??", year: 2021, minutes: 1, group: "The Daily Bugle: Season 2", tags: [youtube] }
-- { title: "S02E13 Get Your Fix on Daily Bugle Supplements Today! #Sponsored", year: 2022, minutes: 1, group: "The Daily Bugle: Season 2", tags: [youtube] }
-- { title: "S02E14 Web of Lies!", year: 2022, minutes: 1, group: "The Daily Bugle: Season 2", tags: [youtube] }
-- { title: "S02E15 Sticky Street Job!", year: 2022, minutes: 1, group: "The Daily Bugle: Season 2", tags: [youtube] }
-- { title: "S02E16 Spider Sycophant Revealed", year: 2022, minutes: 2, group: "The Daily Bugle: Season 2", tags: [youtube] }
-- { title: "S02E17 Spider-Menace Tip Line", year: 2022, minutes: 1, group: "The Daily Bugle: Season 2", tags: [youtube] }
-- { title: "S02E18 Savies! The New Selfies", year: 2022, minutes: 1, group: "The Daily Bugle: Season 2", tags: [youtube] }
-- { title: "S02E19 Spider-Menace Strikes Again!", year: 2022, minutes: 1, group: "The Daily Bugle: Season 2", tags: [youtube] }
+- { title: "S02E01 Hi TikTok! Welcome to The Daily Bugle! Follow us for breaking news on Spider-Man you can't get anywhere else", year: 2021, minutes: 1, group: "The Daily Bugle: Season 2", tags: [youtube] }
+- { title: "S02E02 Tell us you hate Spider-Man without telling us... (even if you don't actually hate him)", year: 2021, minutes: 1, group: "The Daily Bugle: Season 2", tags: [youtube] }
+- { title: "S02E03 Join us as an intern of The Daily Bugle, no experience required! Get our reporter pack from our in bio", year: 2021, minutes: 1, group: "The Daily Bugle: Season 2", tags: [youtube] }
+- { title: "S02E04 Lightning and sand storms in NYC? Find out who's behind it all in our latest report!", year: 2021, minutes: 1, group: "The Daily Bugle: Season 2", tags: [youtube] }
+- { title: "S02E05 Do YOU have what it takes to become a reporter for The Daily Bugle? Duet this and show us if you can handle this #Teleprompter Challenge!", year: 2021, minutes: 1, group: "The Daily Bugle: Season 2", tags: [youtube] }
+- { title: "S02E06 Daily Bugle Exclusive: a chat with one of Peter Parker's teachers, Coach Wilson", year: 2021, minutes: 1, group: "The Daily Bugle: Season 2", tags: [youtube] }
+- { title: 'S02E07 Daily Bugle Exclusive: meet author Eugene "Flash" Thompson — the creator of the name "Spider-Man"', year: 2021, minutes: 1, group: "The Daily Bugle: Season 2", tags: [youtube] }
+- { title: "S02E08 Daily Bugle Exclusive: a sit-down with Peter Parker's best friend, Ned Leeds", year: 2021, minutes: 1, group: "The Daily Bugle: Season 2", tags: [youtube] }
+- { title: "S02E09 Join us and play Put A Finger Down: Daily Bugle Edition!", year: 2021, minutes: 1, group: "The Daily Bugle: Season 2", tags: [youtube] }
+- { title: "S02E10 Breaking News! Peter Parker aka. Spider-Man has been released!", year: 2021, minutes: 1, group: "The Daily Bugle: Season 2", tags: [youtube] }
+- { title: "S02E11 A Daily Bugle exclusive sit-down with Spider-Menace himself, Peter Parker", year: 2021, minutes: 1, group: "The Daily Bugle: Season 2", tags: [youtube] }
+- { title: "S02E12 I was definitely hired for my journalist skills and no other reason, right??", year: 2021, minutes: 1, group: "The Daily Bugle: Season 2", tags: [youtube] }
+- { title: "S02E13 Get your fix on Daily Bugle Supplements today! #Sponsored", year: 2022, minutes: 1, group: "The Daily Bugle: Season 2", tags: [youtube] }
+- { title: "S02E14 TheDailyBugle.net: EXCLUSIVE – Web of Lies!", year: 2022, minutes: 1, group: "The Daily Bugle: Season 2", tags: [youtube] }
+- { title: "S02E15 TheDailyBugle.net: EXCLUSIVE – Sticky Street Job", year: 2022, minutes: 1, group: "The Daily Bugle: Season 2", tags: [youtube] }
+- { title: "S02E16 TheDailyBugle.net: EXCLUSIVE – Spider-Sycophant", year: 2022, minutes: 2, group: "The Daily Bugle: Season 2", tags: [youtube] }
+- { title: "S02E17 TheDailyBugle.net – Spider-Menace Tip Line", year: 2022, minutes: 1, group: "The Daily Bugle: Season 2", tags: [youtube] }
+- { title: "S02E18 TheDailyBugle.net: EXCLUSIVE – \"Savies\" A New Menace Emerges", year: 2022, minutes: 1, group: "The Daily Bugle: Season 2", tags: [youtube] }
+- { title: "S02E19 TheDailyBugle.net: EXCLUSIVE – The Spider-Menace Strikes Again!", year: 2022, minutes: 1, group: "The Daily Bugle: Season 2", tags: [youtube] }
 - { title: "S01E01 Never Meet Your Heroes", year: 2021, minutes: 47, group: "Hawkeye", tags: [tv] }
 - { title: "S01E02 Hide and Seek", year: 2021, minutes: 49, group: "Hawkeye", tags: [tv] }
 - { title: "S01E03 Echoes", year: 2021, minutes: 42, group: "Hawkeye", tags: [tv] }
