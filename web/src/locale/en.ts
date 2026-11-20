@@ -989,7 +989,6 @@ export const en = {
         reorderQuestion: 'Reorder this list?',
         reorderHint:
           '- Groups are moved by their earliest item. Each group is reordered inside too',
-        reorderNote: '- This one-time action does not block manual reordering later',
         cancel: 'Cancel',
         sortNow: 'Sort By Release Date',
         restoreSourceOrder: 'Restore Source Order',

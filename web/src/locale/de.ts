@@ -879,8 +879,6 @@ export const de: Locale = {
         reorderQuestion: 'Liste neu ordnen?',
         reorderHint:
           'Gruppen werden als Blöcke nach ihrem frühesten Eintrag verschoben. Auch innerhalb jeder Gruppe wird neu geordnet',
-        reorderNote:
-          'Diese einmalige Aktion verhindert späteres manuelles Umsortieren nicht.',
         cancel: 'Abbrechen',
         sortNow: 'Nach Erscheinungsdatum sortieren',
         restoreSourceOrder: 'Reihenfolge der Quelle wiederherstellen',
