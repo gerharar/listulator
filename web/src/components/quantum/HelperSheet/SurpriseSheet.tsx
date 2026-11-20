@@ -12,7 +12,7 @@ import { Spinner } from '../Spinner/Spinner.js'
 import { StatusChip } from '../StatusChip/StatusChip.js'
 import { ToggleChip } from '../ToggleChip/ToggleChip.js'
 import { useToast } from '../Toast/Toast.js'
-import { candidatePool, digitsFor, randomDigits, SPIN_MS, spinDelay } from './discover.js'
+import { candidatePool, digitsFor, pickedShelves, randomDigits, SPIN_MS, spinDelay } from './discover.js'
 import { Tip } from '../Tooltip/Tip.js'
 
 export interface SurpriseSheetProps {
@@ -80,7 +80,9 @@ function OpenSheet({ onClose, mediaTypes, onTake, random = Math.random }: Surpri
   }, [load])
 
   const entries = library.phase === 'ready' ? library.entries : []
-  const pool = useMemo(() => candidatePool(entries, shelves), [entries, shelves])
+  // What is picked is what is still on the shelves: a picked shelf that has emptied is no longer picked.
+  const picked = useMemo(() => pickedShelves(entries, shelves), [entries, shelves])
+  const pool = useMemo(() => candidatePool(entries, picked), [entries, picked])
   // Not memoised: the order follows the language, and this is a dozen entries.
   const shelfNames = sortCategories(mediaTypes)
 
@@ -95,7 +97,7 @@ function OpenSheet({ onClose, mediaTypes, onTake, random = Math.random }: Surpri
     setDials(IDLE)
     setShelves((current) => {
       if (key === null) return new Set()
-      const next = new Set(current)
+      const next = pickedShelves(entries, current)
       if (!next.delete(key)) next.add(key)
 
       return next
@@ -104,7 +106,7 @@ function OpenSheet({ onClose, mediaTypes, onTake, random = Math.random }: Surpri
 
   function spin() {
     if (pool.length === 0) {
-      showToast({ text: text.nothingLeft(shelves.size) })
+      showToast({ text: text.nothingLeft(picked.size) })
       return
     }
 
@@ -162,7 +164,7 @@ function OpenSheet({ onClose, mediaTypes, onTake, random = Math.random }: Surpri
           <div className="q-kicker">{text.category}</div>
           <div className="q-shelves">
             <ToggleChip
-              pressed={shelves.size === 0}
+              pressed={picked.size === 0}
               title={text.anyTitle(entries.length)}
               onClick={() => toggleShelf(null)}
             >
@@ -172,12 +174,16 @@ function OpenSheet({ onClose, mediaTypes, onTake, random = Math.random }: Surpri
               const n = count(type.key)
 
               return (
+                // A shelf with nothing in it is a disabled chip (design, 2026-11-20): `aria-disabled`, not `disabled`, so it stays in the tab order and keeps its tooltip.
                 <ToggleChip
                   key={type.key}
-                  pressed={shelves.has(type.key)}
+                  pressed={picked.has(type.key)}
                   className={n === 0 ? 'none' : undefined}
+                  aria-disabled={n === 0 ? true : undefined}
                   title={n > 0 ? text.shelfTitle(n) : text.nothingHere}
-                  onClick={() => toggleShelf(type.key)}
+                  onClick={() => {
+                    if (n > 0) toggleShelf(type.key)
+                  }}
                 >
                   {categoryLabel(type)}
                 </ToggleChip>
@@ -209,7 +215,7 @@ function OpenSheet({ onClose, mediaTypes, onTake, random = Math.random }: Surpri
                 )}
                 <span>
                   {dials.name ||
-                    (pool.length > 0 ? text.pool(pool.length, shelves.size) : text.nothingHere)}
+                    (pool.length > 0 ? text.pool(pool.length, picked.size) : text.nothingHere)}
                 </span>
                 {settled && result?.status && <StatusChip status={result.status} />}
               </div>

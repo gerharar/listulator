@@ -17,8 +17,8 @@ html {
   --e-vb-sel: inset 3px 0 0 var(--accent);
 
   /* Alpha (48.3). --o-disabled (.45) and --o-dragging (.4) are in tokens.css with Quantum's values and the components now read them; these are the
-     ones design's file does not have. The soft fade is now the .5 of a shelf chip with nothing in it alone: the ends button's disabled halves joined --o-disabled in 56.6 (H-019, design's "one disabled opacity"). */
-  --o-disabled-soft: 0.5;
+     ones design's file does not have. There is one disabled fade, --o-disabled: the ends button's halves joined it in 56.6 (H-019) and the empty shelf chip in 56.8 (design,
+     2026-11-20), so the soft .5 these two had is gone. */
   /* What a list fades to while a whole-list run holds it (.q-hold.is-busy, 48.4c). */
   --o-busy: 0.45;
   /* The veil over a covered layer. */

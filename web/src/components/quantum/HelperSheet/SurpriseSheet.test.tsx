@@ -124,15 +124,43 @@ describe('the shelves', () => {
     expect(screen.getByText('4 candidates across all categories')).toBeTruthy()
   })
 
-  it('say when nothing is left on a shelf, and dim it', async () => {
+  it('say when nothing is left on a shelf: a disabled chip, with its tooltip, still in the tab order (design, 2026-11-20)', async () => {
     renderSheet()
     await ready()
 
     expect(await hoverTooltip(chip('TV Series'))).toBe('Nothing left here: you are tracking everything')
     expect(chip('TV Series').className).toContain('none')
+    expect(chip('TV Series').getAttribute('aria-disabled')).toBe('true')
+    // A `disabled` attribute would drop it from the tab order and from the tooltip's reach.
+    expect(chip('TV Series').hasAttribute('disabled')).toBe(false)
+    expect(chip('TV Series').tabIndex).toBe(0)
     expect(await hoverTooltip(chip('Books'))).toBe('2 candidates in this category')
+    expect(chip('Books').hasAttribute('aria-disabled')).toBe(false)
+  })
+
+  it('cannot be picked: a click, which Space and Enter make on a button, changes nothing', async () => {
+    renderSheet()
+    await ready()
+    const before = screen.getByText('4 candidates across all categories')
+
     fireEvent.click(chip('TV Series'))
-    expect(screen.getByText('Nothing left here: you are tracking everything')).toBeTruthy()
+
+    expect(chip('TV Series').getAttribute('aria-pressed')).toBe('false')
+    expect(chip('Any').getAttribute('aria-pressed')).toBe('true')
+    expect(screen.getByText('4 candidates across all categories')).toBe(before)
+  })
+
+  it('shows its tooltip when focus reaches it by keyboard, too', async () => {
+    renderSheet()
+    await ready()
+
+    // jsdom cannot tell keyboard focus from a mouse press's; a real browser says :focus-visible of a chip the Tab key reached (the e2e walks there).
+    const el = chip('TV Series')
+    const matches = el.matches.bind(el)
+    el.matches = (selector: string) => selector === ':focus-visible' || matches(selector)
+    act(() => el.focus())
+
+    expect((await screen.findByRole('tooltip')).textContent).toBe('Nothing left here: you are tracking everything')
   })
 })
 
@@ -225,14 +253,14 @@ describe('spinning', () => {
     expect(screen.queryByText('Spin to win!')).toBeNull()
   })
 
-  it('says there is nothing to spin when nothing is left on the shelves, instead of spinning', async () => {
+  it('says there is nothing to spin when the whole library is tracked, instead of spinning (an empty shelf can no longer be picked to get here)', async () => {
+    vi.mocked(api.libraryUntracked).mockResolvedValue({ entries: [], reachable: true })
     renderSheet()
     await ready()
 
-    fireEvent.click(chip('TV Series'))
     fireEvent.click(screen.getByRole('button', { name: 'Spin To Win!' }))
 
-    expect(await screen.findByText('Nothing left in this category: you already track every canonical list there')).toBeTruthy()
+    expect(await screen.findByText('Nothing left across every category: you already track every canonical list there')).toBeTruthy()
     expect(screen.queryByText('Spinning…')).toBeNull()
   })
 

@@ -53,7 +53,9 @@
 
 /* Surprise Me (10.29): shelf chips, the six dials and the landed list. */
 .q-shelves { margin: 10px 0 0; display: flex; flex-wrap: wrap; gap: 6px; }
-.q-shelves .q-chip.none { opacity: var(--o-disabled-soft); }
+.q-shelves .q-chip.none { opacity: var(--o-disabled); cursor: default; }
+/* A disabled chip has no hover look; eX-Zed's own chips are drawn in exzed-chips.css. */
+html:not(.theme-exzed) .q-shelves .q-chip.none:where(:not(:disabled)):hover { border-color: var(--line); color: var(--ink2); }
 .q-reel { margin-top: 20px; border: 2px solid var(--rule); padding: 18px 19px; }
 .q-reel-head { display: flex; align-items: center; gap: 10px; }
 .q-dials { display: flex; gap: 3px; }

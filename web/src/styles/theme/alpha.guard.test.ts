@@ -10,7 +10,6 @@ import { declared, definitions, plain, read } from './cssGuard.js'
 const QUANTUM = {
   '--o-disabled': '.45',
   '--o-dragging': '.4',
-  '--o-disabled-soft': '.5',
   '--o-busy': '.45',
   '--veil': 'color-mix(in srgb,var(--bg) 94%,transparent)',
   '--hover-filter': 'brightness(1.12)',
@@ -23,7 +22,7 @@ const USES: readonly { file: string; selector: string; property: string; token: 
   { file: 'components/quantum/ToggleChip/ToggleChip.css', selector: '.q-chip:disabled', property: 'opacity', token: '--o-disabled' },
   { file: 'screens/list/Spine.css', selector: '.q-item.dragging, .q-group.dragging', property: 'opacity', token: '--o-dragging' },
   { file: 'screens/list/EndsButton.css', selector: '.q-ends-half:disabled', property: 'opacity', token: '--o-disabled' },
-  { file: 'components/quantum/HelperSheet/HelperSheet.css', selector: '.q-shelves .q-chip.none', property: 'opacity', token: '--o-disabled-soft' },
+  { file: 'components/quantum/HelperSheet/HelperSheet.css', selector: '.q-shelves .q-chip.none', property: 'opacity', token: '--o-disabled' },
   { file: 'screens/list/ListScreen.css', selector: '.q-hold.is-busy', property: 'opacity', token: '--o-busy' },
   { file: 'components/quantum/LayerCard/LayerCard.css', selector: '.q-veil', property: 'background', token: '--veil' },
   { file: 'components/quantum/Button/Button.css', selector: '.q-btn.primary:where(:not(:disabled)):hover', property: 'filter', token: '--hover-filter' },
@@ -59,7 +58,7 @@ describe('eX-Zed’s alpha', () => {
   })
 
   it('draws everything at full strength: opacity 1, no veil, no hover filter', () => {
-    for (const token of ['--o-disabled', '--o-dragging', '--o-disabled-soft', '--o-busy']) expect(value(token), token).toBe('1')
+    for (const token of ['--o-disabled', '--o-dragging', '--o-busy']) expect(value(token), token).toBe('1')
     expect(value('--veil')).toBe('transparent')
     for (const token of ['--hover-filter', '--hover-filter-tab']) expect(value(token), token).toBe('none')
   })

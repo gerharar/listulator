@@ -7,8 +7,8 @@ import { q } from './fixtures.js'
  * hooks: Quantum's colour tokens (`--hover`, `--line`, …) are themselves rgba until X-003 brings eX-Zed's solid colours, so "no alpha anywhere"
  * belongs to X-004's test. Real writes on the dev server, removed in a `finally`.
  */
-const QUANTUM = { disabled: '0.45', dragging: '0.4', soft: '0.5', busy: '0.45', filter: 'brightness(1.12)', filterTab: 'brightness(1.1)' } as const
-const EXZED = { disabled: '1', dragging: '1', soft: '1', busy: '1', filter: 'none', filterTab: 'none' } as const
+const QUANTUM = { disabled: '0.45', dragging: '0.4', busy: '0.45', filter: 'brightness(1.12)', filterTab: 'brightness(1.1)' } as const
+const EXZED = { disabled: '1', dragging: '1', busy: '1', filter: 'none', filterTab: 'none' } as const
 const THEMES = { exzed: EXZED, quantum: QUANTUM } as const
 
 async function makeList(request: APIRequestContext, title: string) {
@@ -47,7 +47,7 @@ function alphaOf(color: string): number {
 
 for (const [theme, expected] of Object.entries(THEMES)) {
   test.describe(`with the theme ${theme}`, () => {
-    test('a disabled button, chip, icon button and ends button (one disabled fade, H-019), and the disabled-soft shelf chip', async ({ page }) => {
+    test('a disabled button, chip, icon button and ends button (one disabled fade, H-019), and the empty shelf chip (one disabled fade, design 2026-11-20)', async ({ page }) => {
       const title = `e2e alpha disabled ${theme} ${Date.now()}`
       const id = await makeList(page.request, title)
 
@@ -74,7 +74,7 @@ for (const [theme, expected] of Object.entries(THEMES)) {
         await page.getByRole('button', { name: 'Surprise Me' }).click()
         await page.locator('.q-sheet').waitFor()
         // A category with nothing in it (the stubbed library holds one book) is dimmed.
-        await expect.poll(() => style(page, '.q-shelves .q-chip.none', 'opacity')).toBe(expected.soft)
+        await expect.poll(() => style(page, '.q-shelves .q-chip.none', 'opacity')).toBe(expected.disabled)
       } finally {
         await page.request.delete(`/api/lists/${id}`)
       }

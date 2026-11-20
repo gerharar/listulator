@@ -12,6 +12,14 @@ export function spinDelay(progress: number): number {
  * The library lists in play: all of them, or those on any picked shelf. Shelves
  * are a facet, not a radio: none picked means the whole library.
  */
+/**
+ * The picked shelves that still have something in them (design, 2026-11-20): one that has emptied (its last candidate is tracked now) is unpicked at once, so the pool
+ * never stalls on it, and with none left picked it is Any, as with nothing picked.
+ */
+export function pickedShelves(entries: readonly LibraryEntry[], shelves: ReadonlySet<string>): Set<string> {
+  return new Set([...shelves].filter((key) => entries.some((entry) => entry.category === key)))
+}
+
 export function candidatePool(entries: readonly LibraryEntry[], shelves: ReadonlySet<string>): LibraryEntry[] {
   return entries.filter((entry) => shelves.size === 0 || shelves.has(entry.category))
 }

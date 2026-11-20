@@ -27,6 +27,36 @@ async function stubLibrary(page: Page, reachable = true) {
 const surprise = (page: Page) => page.getByRole('button', { name: 'Surprise Me' })
 const sheet = (page: Page) => page.locator('.q-sheet')
 
+test('a shelf with nothing in it is a disabled chip: .45, aria-disabled, in the tab order with its tooltip, and neither a click, Enter nor Space picks it (design, 2026-11-20)', async ({ page, browserName }) => {
+  await stubLibrary(page)
+  await page.goto('/')
+  await surprise(page).click()
+  await expect(sheet(page)).toContainText(surpriseCopy.title)
+  const empty = page.locator('.q-shelves .q-chip.none').first()
+  await expect(empty).toHaveAttribute('aria-disabled', 'true')
+  await expect(empty).not.toHaveAttribute('disabled', /.*/)
+  expect(await empty.evaluate((node) => getComputedStyle(node).opacity)).toBe('0.45')
+
+  // Playwright waits for an `aria-disabled` control to become enabled; a person can press this one, so the press is forced.
+  await empty.click({ force: true })
+  await expect(empty).toHaveAttribute('aria-pressed', 'false')
+  await expect(page.locator('.q-shelves .q-chip', { hasText: 'Any' })).toHaveAttribute('aria-pressed', 'true')
+
+  // The keyboard: focus lands on it (it is not skipped, as a `disabled` button would be), shows its tooltip at once, and Enter and Space do nothing.
+  await empty.focus()
+  await page.keyboard.press('Enter')
+  await page.keyboard.press('Space')
+  await expect(empty).toHaveAttribute('aria-pressed', 'false')
+  if (browserName === 'chromium') {
+    // Tab onto it from the chip before it: keyboard focus, so the tooltip is at once.
+    await page.mouse.move(0, 0)
+    await empty.evaluate((node) => (node.previousElementSibling as HTMLElement).focus())
+    await page.keyboard.press('Tab')
+    await expect(empty).toBeFocused()
+    await expect(page.getByRole('tooltip')).toHaveText(surpriseCopy.nothingHere)
+  }
+})
+
 test('spins the dials, lands on a library list with its details, and This One opens its preview', async ({ page }) => {
   await stubLibrary(page)
   await page.goto('/')

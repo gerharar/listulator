@@ -57,14 +57,14 @@ async function openItemEdit(page: Page, listTitle: string) {
 }
 
 for (const skin of SKINS) {
-  test(`${skin}: D10 a shelf with candidates is ink, one with none is ink2 at rest, still a chip (hover acc-dim, picked acc), not dotted`, async ({ page }) => {
+  test(`${skin}: D10 a shelf with candidates is ink, one with none is ink2 at rest, still a chip to the eye (hover acc-dim, not dotted) but disabled since 2026-11-20: a click picks nothing`, async ({ page }) => {
     await boot(page, skin)
     await page.route('**/api/library/untracked', (route) => route.fulfill({ json: { entries: ENTRIES, reachable: true } }))
     await page.goto('/')
     await page.getByRole('button', { name: 'Surprise Me' }).click()
     await page.locator('.q-shelves .q-chip').first().waitFor()
     await page.evaluate(() => document.fonts.ready)
-    const [ink, ink2, accDim, acc, accInk] = await Promise.all(['--zx-ink', '--zx-ink2', '--zx-acc-dim', '--zx-acc', '--zx-acc-ink'].map((n) => token(page, n)))
+    const [ink, ink2, accDim, accInk] = await Promise.all(['--zx-ink', '--zx-ink2', '--zx-acc-dim', '--zx-acc-ink'].map((n) => token(page, n)))
 
     const books = page.locator('.q-shelves .q-chip', { hasText: 'Books' })
     const none = page.locator('.q-shelves .q-chip.none').first()
@@ -76,8 +76,12 @@ for (const skin of SKINS) {
     await none.hover()
     expect(await style(none, ['background-color', 'color']), 'a shelf with none still takes the hover').toEqual({ 'background-color': css(accDim!), color: css(accInk!) })
     await page.mouse.move(0, 0)
-    await none.click()
-    expect(await style(none, ['background-color', 'color']), 'and can be picked').toEqual({ 'background-color': css(acc!), color: css(accInk!) })
+    // Design's rule of 2026-11-20, the same in every theme (`DESIGN.md` section 2: behaviour is not a theme's): a shelf with none is a disabled chip, `aria-disabled`, and cannot be picked.
+    await expect(none).toHaveAttribute('aria-disabled', 'true')
+    await none.click({ force: true })
+    await expect(none).toHaveAttribute('aria-pressed', 'false')
+    await page.mouse.move(0, 0)
+    expect(await style(none, ['background-color', 'color']), 'and a click picks nothing').toEqual({ 'background-color': 'rgba(0, 0, 0, 0)', color: css(ink2!) })
   })
 
   test(`${skin}: D12 the item note is 2 lines (64px inside its border) and the list description 3 lines (88px), both growing with what is typed`, async ({ page }) => {

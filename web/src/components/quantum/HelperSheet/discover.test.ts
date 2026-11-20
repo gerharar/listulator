@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { LibraryEntry } from '../../../../../server/src/ingestion/customLists.js'
-import { candidatePool, digitsFor, spinDelay, SPIN_MS } from './discover.js'
+import { candidatePool, digitsFor, pickedShelves, spinDelay, SPIN_MS } from './discover.js'
 
 const entry = (title: string, category: string): LibraryEntry => ({ externalRef: `canonical:${title}`, title, category })
 const ENTRIES = [entry('A', 'book'), entry('B', 'mega'), entry('C', 'book'), entry('D', 'mma')]
@@ -17,6 +17,19 @@ describe('candidatePool', () => {
 
   it('is empty when nothing is left on the picked shelves', () => {
     expect(candidatePool(ENTRIES, new Set(['tv']))).toEqual([])
+  })
+})
+
+describe('pickedShelves (H-019 follow-up, design 2026-11-20)', () => {
+  it('keeps every picked shelf that still has something in it', () => {
+    expect([...pickedShelves(ENTRIES, new Set(['book', 'mma']))]).toEqual(['book', 'mma'])
+  })
+
+  it('drops a picked shelf that has emptied, at once, so the pool never stalls on it', () => {
+    expect([...pickedShelves(ENTRIES, new Set(['tv', 'book']))]).toEqual(['book'])
+    // Nothing left picked is Any: the whole library.
+    expect(pickedShelves(ENTRIES, new Set(['tv'])).size).toBe(0)
+    expect(candidatePool(ENTRIES, pickedShelves(ENTRIES, new Set(['tv']))).map((e) => e.title)).toEqual(['A', 'B', 'C', 'D'])
   })
 })
 
