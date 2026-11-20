@@ -83,6 +83,8 @@ export function GroupRow({
   // A name another group has is refused where it was typed, in the API's own words (H-006), not in a toast or the strip.
   const [nameError, setNameError] = useState<string | null>(null)
   const nameErrorId = useId()
+  const nameId = useId()
+  const progressId = useId()
   const saving = useRef(false)
   const editor = useRef<HTMLInputElement>(null)
 
@@ -144,6 +146,9 @@ export function GroupRow({
         .filter(Boolean)
         .join(' ')}
       role="button"
+      // A button is named from what it holds, which would lead with the box's “Mark all 12 items in … done”, then the years, and run on into the pencil and bin: its name is its
+      // group's name and its progress (H-026, design 2026-11-16). While the name is typed there is no name element, and the field is what the head holds.
+      aria-labelledby={editing ? undefined : `${nameId} ${progressId}`}
       aria-expanded={!collapsed}
       data-row-id={block.group.id}
       data-flash={flash ? '' : undefined}
@@ -200,7 +205,7 @@ export function GroupRow({
           />
         ) : (
           <>
-            <Tip as="b" text={block.group.name} whenClipped>
+            <Tip as="b" id={nameId} text={block.group.name} whenClipped>
               {block.group.name}
             </Tip>
             {span && (
@@ -246,6 +251,7 @@ export function GroupRow({
         </Tip>
       )}
       <ProgressSentence
+        id={progressId}
         done={block.done}
         total={block.total}
         minutesLeft={block.minutesLeft}

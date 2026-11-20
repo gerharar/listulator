@@ -109,6 +109,8 @@ export interface ProgressSentenceProps {
   size?: ProgressSentenceSize
   /** How many items' lengths are still being looked up (15.7): the time left is then approximate, with a tooltip saying so. */
   runtimesPending?: number
+  /** For a group head, whose name is made of its name and this sentence (an `aria-labelledby`). */
+  id?: string
 }
 
 export function ProgressSentence({
@@ -118,6 +120,7 @@ export function ProgressSentence({
   status,
   size = 'group',
   runtimesPending = 0,
+  id,
 }: ProgressSentenceProps) {
   const { count, allDone, left } = formatProgress(done, total, minutesLeft, status, runtimesPending)
   const exzed = useTheme() === 'exzed'
@@ -141,7 +144,7 @@ export function ProgressSentence({
   )
 
   return (
-    <div className={size === 'header' ? 'q-progress header' : 'q-progress'}>
+    <div id={id} className={size === 'header' ? 'q-progress header' : 'q-progress'}>
       <MeterBar done={done} total={total} big={size === 'header'} />
       <PercentLabel done={done} total={total} px={sizes.percent} />
       <span className="q-sep">·</span>

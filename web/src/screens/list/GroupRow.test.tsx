@@ -57,6 +57,36 @@ describe('GroupRow, the box that marks the whole group (H-026)', () => {
   const part = [shownItem('a', true), shownItem('b', false)]
   const all = [shownItem('a', true), shownItem('b', true)]
 
+  /** H-026's follow-up (design, 2026-11-16): the head is a button, so what names it must not be the box's long label. */
+  describe('the head’s accessible name', () => {
+    const head = () => document.querySelector('.q-group') as HTMLElement
+
+    it('is the group’s name and its progress only: not the box’s “Mark all … done”, the years, nor the pencil and bin', () => {
+      renderRow(BLOCK, { onSetDone: vi.fn(), shown: open, onRename: vi.fn(), onDeleteWithItems: vi.fn() })
+
+      // The group's name, then the progress as it reads (the bar's “2 of 6 done”, the percentage, the count, the time left); no “Mark all …”, no “(2021–2023)”.
+      const name = screen.getByRole('button', { name: /^Season 1 2 of 6 done.*33%.*2\/6.*3h 20m left$/ })
+
+      expect(name).toBe(head())
+      expect(head().getAttribute('aria-labelledby')?.split(' ')).toHaveLength(2)
+    })
+
+    it('leaves the box its own name, and the pencil and bin theirs', () => {
+      renderRow({ ...BLOCK, items: open }, { onSetDone: vi.fn(), shown: open, onRename: vi.fn(), onDeleteWithItems: vi.fn() })
+
+      expect(screen.getByRole('checkbox', { name: 'Mark all 2 items in Season 1 done' })).toBeTruthy()
+      expect(screen.getByRole('button', { name: 'Rename group Season 1' })).toBeTruthy()
+      expect(screen.getByRole('button', { name: 'Delete group Season 1' })).toBeTruthy()
+    })
+
+    it('has no such name while the name is being edited: the field is what it holds then', () => {
+      renderRow(BLOCK, { onRename: vi.fn() })
+      fireEvent.click(screen.getByRole('button', { name: 'Rename group Season 1' }))
+
+      expect(head().hasAttribute('aria-labelledby')).toBe(false)
+    })
+  })
+
   it('has no box without a handler, and none when no item is shown', () => {
     renderRow(BLOCK, { shown: open })
     expect(screen.queryByRole('checkbox')).toBeNull()
