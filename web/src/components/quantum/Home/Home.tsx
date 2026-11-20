@@ -388,6 +388,8 @@ export function Home({ onMediaTypesLoaded, pendingUpdates }: HomeProps) {
       </div>
       {helper && (
         <div className="q-help-anchor" ref={anchorRef} style={{ '--help-room': room === undefined ? undefined : `${room}px` } as CSSProperties}>
+          {/* H-028: the veil over the list under the help row. First in the anchor, so it is under the sheet; it stays while one sheet replaces another (no new fade). */}
+          <div className="q-scrim" aria-hidden="true" />
           {helper.kind === 'tired' ? (
             <TiredBossSheet
               open

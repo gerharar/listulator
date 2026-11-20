@@ -912,6 +912,40 @@ describe('Home updates (task 10.22c)', () => {
       expect(document.querySelectorAll('.q-sheet')).toHaveLength(1)
     })
 
+    it('draws the scrim (H-028) in the anchor, before the sheet and hidden from a screen reader, only while a sheet is open', async () => {
+      preferences.set('lastOpenedList', 'list-1')
+      await ready()
+      expect(document.querySelector('.q-scrim')).toBeNull()
+
+      fireEvent.click(finalizer())
+      await screen.findByText('Finish Him!')
+
+      const scrim = document.querySelector('.q-help-anchor > .q-scrim')!
+      expect(scrim).not.toBeNull()
+      expect(scrim.getAttribute('aria-hidden')).toBe('true')
+      expect(scrim.nextElementSibling?.classList.contains('q-sheet')).toBe(true)
+      expect(document.querySelectorAll('.q-scrim')).toHaveLength(1)
+
+      fireEvent.click(finalizer())
+      await waitFor(() => expect(screen.queryByText('Finish Him!')).toBeNull())
+      expect(document.querySelector('.q-scrim')).toBeNull()
+    })
+
+    it('keeps the very same scrim while one sheet replaces another, so its fade is not run again (H-028)', async () => {
+      preferences.set('lastOpenedList', 'list-1')
+      await ready()
+
+      fireEvent.click(tired())
+      await screen.findByText('And Now For Something Completely Different')
+      const before = document.querySelector('.q-scrim')
+      expect(before).not.toBeNull()
+
+      fireEvent.click(finalizer())
+      await screen.findByText('Finish Him!')
+
+      expect(document.querySelector('.q-scrim')).toBe(before)
+    })
+
     it('Open The List opens that list’s layer and closes the sheet', async () => {
       await ready()
       fireEvent.click(finalizer())

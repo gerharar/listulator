@@ -23,6 +23,10 @@ html.theme-exzed .q-home > .q-banner {
 html.theme-exzed .q-help-anchor {
   --help-room: 420px;
 }
+/* Quantum's scrim element (H-028) is not drawn: the checkerboard below is eX-Zed's, already built, on the same box. */
+html.theme-exzed .q-scrim {
+  display: none;
+}
 html.theme-exzed .q-help-anchor::before {
   content: '';
   position: absolute;
