@@ -103,7 +103,6 @@ export function ListMorePopover({
           {head(text.reorderKicker)}
           <span className="q-pop-q">{text.reorderQuestion}</span>
           <span className="q-pop-note">{text.reorderHint}</span>
-          <span className="q-pop-note">{text.reorderNote}</span>
           {/* A hand-made list has no source order to go back to, as it has nothing to Reset to. */}
           {source !== 'manual' && canReset && <span className="q-pop-note">{text.restoreHint}</span>}
           <div className="q-pop-menu">

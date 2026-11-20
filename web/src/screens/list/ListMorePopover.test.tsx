@@ -111,12 +111,15 @@ describe('ListMorePopover', () => {
   })
 
   describe('reorder', () => {
-    it('asks first, says what sorting does and that it is one-off, and only then sorts', () => {
+    it('asks first, says what sorting does, and only then sorts; it no longer adds that the action is one-time (the owner, 2026-11-20)', () => {
       const { onSortNow, onResetOrder, onDismiss } = renderPopover({ mode: 'reorder', source: 'canonical' })
 
       expect(screen.getByText('Reorder this list?')).toBeTruthy()
       expect(screen.getByText(/Groups are moved by their earliest item/)).toBeTruthy()
-      expect(screen.getByText(/does not block manual reordering later/)).toBeTruthy()
+      expect(screen.queryByText(/one-time action/)).toBeNull()
+      expect(screen.queryByText(/does not block manual reordering later/)).toBeNull()
+      // What is said under the question: what sorting does, and where Restore goes back to. Nothing else.
+      expect(document.querySelectorAll('.q-pop-note')).toHaveLength(2)
       expect(onSortNow).not.toHaveBeenCalled()
 
       fireEvent.click(button('Cancel'))
