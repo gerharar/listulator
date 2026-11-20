@@ -847,6 +847,16 @@ describe('ListScreen item actions (task 10.21)', () => {
       expect(screen.getByText('Alpha')).toBeTruthy()
     })
 
+    it('the final confirm is the danger button, and Keep is not (H-029: red stays on the delete confirms)', async () => {
+      await open(base())
+
+      fireEvent.click(screen.getByRole('button', { name: 'Delete group Season 1' }))
+
+      const pop = await waitFor(() => document.querySelector('.q-pop') as HTMLElement)
+      expect(within(pop).getByRole('button', { name: 'Delete' }).className.split(' ')).toContain('danger')
+      expect(within(pop).getByRole('button', { name: 'Keep' }).className.split(' ')).not.toContain('danger')
+    })
+
     it('deletes the group and its items on confirm, and Undo brings them all back', async () => {
       const restore = { group: { id: 'g1' }, items: [{ id: 'a' }, { id: 'b' }], dismissalIds: ['d1', 'd2'] }
       vi.mocked(api.deleteGroup).mockResolvedValue(restore as never)

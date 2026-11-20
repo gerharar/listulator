@@ -3,7 +3,6 @@ import { useEffect, useRef, useState } from 'react'
 import { Info, Power, Settings } from 'lucide-react'
 import { IconButton } from '../Button/Button.js'
 import { ConfirmPopover } from '../ConfirmPopover/ConfirmPopover.js'
-import { useTheme } from '../DocumentTheme/ThemeContext.js'
 import { ThemedIcon } from '../PixelIcon/PixelIcon.js'
 import { Wordmark } from '../Wordmark/Wordmark.js'
 import { SkinButton } from './SkinButton.js'
@@ -65,7 +64,6 @@ function QuitButton({ quit, run }: { quit: AppQuit; run: NavigationRun | undefin
   const [anchor, setAnchor] = useState<HTMLElement | null>(null)
   const button = useRef<HTMLButtonElement>(null)
   const running = run !== undefined
-  const theme = useTheme()
   // Set once the person chose Quit anyway: the run goes on while the window closes, and the renewal must not take the close back.
   const quitting = useRef(false)
 
@@ -113,8 +111,7 @@ function QuitButton({ quit, run }: { quit: AppQuit; run: NavigationRun | undefin
         kicker={words.action}
         question={run ? text.running.question[quit.platform](run.listName) : words.question}
         note={run ? text.running.note : text.note}
-        // Red is only the final confirm of a delete that takes work with it (design, D4): under eX-Zed Quit is never red, even while a run goes on.
-        danger={running && theme !== 'exzed'}
+        // Quit is never red, even while a run goes on: red is only the final confirm of a delete (H-029, design D4).
         focusKeep={running}
         onKeep={() => setAnchor(null)}
         keepLabel={run ? text.running.keep : text.cancel}

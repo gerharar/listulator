@@ -83,9 +83,8 @@ export function ListMorePopover({
             <Button onClick={() => onMode('export')}>{text.export}</Button>
             <Button onClick={() => onMode('reorder')}>{text.reorder}</Button>
             {source !== 'manual' && canReset && <Button onClick={() => onMode('reset')}>{text.reset}</Button>}
-            <Button className="warn" onClick={() => onMode('delete')}>
-              {text.delete}
-            </Button>
+            {/* Drawn like every other row: red is only the final confirm of a delete (H-029). */}
+            <Button onClick={() => onMode('delete')}>{text.delete}</Button>
           </div>
         </>
       )}

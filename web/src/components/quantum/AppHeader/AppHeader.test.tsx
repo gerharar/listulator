@@ -159,7 +159,7 @@ describe('AppHeader', () => {
       expect(quit).not.toHaveBeenCalled()
     })
 
-    it('while a run goes on the confirm is the danger button in Quantum and a primary in eX-Zed (design, D4: Quit is never red)', () => {
+    it('while a run goes on the confirm is the primary button in both themes: Quit is never red (design, H-029 and D4)', () => {
       const confirmOf = (theme: 'quantum' | 'exzed') => {
         const quit = { platform: 'mac' as const, quit: vi.fn(() => Promise.resolve()), ...held() }
         const view = render(
@@ -177,10 +177,11 @@ describe('AppHeader', () => {
         return classes
       }
 
-      expect(confirmOf('quantum')).toContain('danger')
-      const exzed = confirmOf('exzed')
-      expect(exzed).not.toContain('danger')
-      expect(exzed).toContain('primary')
+      for (const theme of ['quantum', 'exzed'] as const) {
+        const classes = confirmOf(theme).split(' ')
+        expect(classes, theme).not.toContain('danger')
+        expect(classes, theme).toContain('primary')
+      }
     })
 
     it('the Quit button says whether its question is open, so an opener that is lit can be told from one at rest', () => {

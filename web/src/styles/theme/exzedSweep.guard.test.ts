@@ -138,11 +138,11 @@ describe('red is for the Delete confirms alone', () => {
     for (const reader of readers) expect(reader, reader).toMatch(/\.q-btn\.danger\b/)
   })
 
-  it('is read in the app’s own stylesheets, through Quantum’s `--danger`, by the danger button and the ⋯ menu’s Delete row only', () => {
+  it('is read in the app’s own stylesheets, through Quantum’s `--danger`, by the danger button alone (H-029: no menu row is red)', () => {
     const readers = stylesheets()
       .filter((path) => !path.startsWith('styles/'))
       .flatMap((path) => declarations(read(path)).filter((d) => /var\(--danger/.test(d.value)).map((d) => `${path}: ${d.selector}`))
-    expect(readers.sort()).toEqual(['components/quantum/Button/Button.css: .q-btn.danger', 'components/quantum/Button/Button.css: .q-btn.danger', 'screens/list/ListMorePopover.css: .q-pop-menu .q-btn.warn'].sort())
+    expect(readers.sort()).toEqual(['components/quantum/Button/Button.css: .q-btn.danger', 'components/quantum/Button/Button.css: .q-btn.danger'])
   })
 
   it('draws the menu’s Delete row in ink under eX-Zed, not in the danger colour', () => {

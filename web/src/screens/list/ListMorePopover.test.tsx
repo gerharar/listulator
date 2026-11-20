@@ -71,6 +71,14 @@ describe('ListMorePopover', () => {
       ])
     })
 
+    it('draws every row alike: none is red, Delete List included (H-029: red is only the final confirm of a delete)', () => {
+      renderPopover()
+
+      for (const row of screen.getAllByRole('button').filter((b) => b.textContent !== 'anchor')) {
+        expect(row.className, row.textContent ?? '').not.toMatch(/danger|warn/)
+      }
+    })
+
     it('has no Reset on a hand-made list: it has no arrived state to return to', () => {
       renderPopover({ source: 'manual' })
 
@@ -221,6 +229,13 @@ describe('ListMorePopover', () => {
 
       expect(screen.getByText('Delete “Loki”?')).toBeTruthy()
       expect(screen.getByText('7 items (3 done) will be gone like a turd in the wind')).toBeTruthy()
+    })
+
+    it('the final confirm is the danger button, the one place red stays (H-029)', () => {
+      renderPopover({ mode: 'delete' })
+
+      expect(button('Delete List').className.split(' ')).toContain('danger')
+      expect(button('Keep List').className.split(' ')).not.toContain('danger')
     })
 
     it('says so for a single item, and for an empty list', () => {
