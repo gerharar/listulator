@@ -73,5 +73,7 @@ describe('eX-Zed’s list rows', () => {
 
   it('a row button is 32x32 and borderless', () => {
     expect(body('html.theme-exzed .q-item .q-icon-btn.row')).toMatch(/width:\s*32px;\s*height:\s*32px;[^}]*border:\s*0;/)
+    // Two row buttons side by side (ⓘ and ✎, ✎ and ↗) are 8px apart: a hovered block would otherwise touch the next one (the owner, Checkpoint I).
+    expect(body('html.theme-exzed .q-item .body .q-icon-btn.row ~ .q-icon-btn.row')).toMatch(/margin-left:\s*8px;/)
   })
 })
