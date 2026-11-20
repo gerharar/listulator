@@ -170,8 +170,6 @@ export function ImportFileTab({ mediaTypes, mediaTypeKey, onBuilt }: ImportFileT
           {...checks.props('yaml')}
         />
       )}
-      {checks.message('yaml')}
-
       {/* Prototype: the hint on the left, Import on the right, one row; a refusal under it. */}
       <div className="q-import-actions">
         <p className="q-import-footer t-small">{text.footer}</p>
@@ -184,6 +182,9 @@ export function ImportFileTab({ mediaTypes, mediaTypeKey, onBuilt }: ImportFileT
           {text.import}
         </Button>
       </div>
+
+      {/* The empty box's sentence is drawn where a refusal is: under the Import row, not between the box and it (the owner, Checkpoint I). The box still points at it (`aria-describedby`). */}
+      {checks.message('yaml')}
 
       <ConfirmPopover
         open={elsewhere !== null}

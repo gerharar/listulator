@@ -56,6 +56,17 @@ describe('ImportFileTab', () => {
     const sentence = copy.quantum.importFile.emptyRequired
     const alerts = () => screen.queryAllByRole('alert').map((alert) => alert.textContent)
 
+    it('says it under the Import row, in the place a refusal is drawn (the owner, Checkpoint I)', () => {
+      renderTab()
+      fireEvent.click(importButton())
+
+      const message = screen.getByRole('alert')
+      const actions = document.querySelector('.q-import-actions')!
+      // After the row with the hint and Import, not between the box and it.
+      expect(actions.compareDocumentPosition(message) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+      expect(message.parentElement).toBe(actions.parentElement)
+    })
+
     it('does not disable Import for an empty box', () => {
       renderTab()
 
