@@ -47,12 +47,13 @@ test.describe('with the theme exzed', () => {
     })
   }
 
-  test('with no exzedSkin stored the page is Lode, and nothing is written', async ({ page }) => {
+  test('with no exzedSkin stored the page is one of the six, drawn from the first frame, and the pick is stored (H-030)', async ({ page }) => {
     const seen = await open(page, { theme: 'exzed', skin: 'dark-green' })
 
-    expect(seen.now).toBe('exzed-1d')
-    expect(new Set(seen.history)).toEqual(new Set(['exzed-1d']))
-    expect(seen.exzedSkin).toBeNull()
+    expect(EXZED_KEYS).toContain(seen.now)
+    // One value, never a Quantum key and never a second eX-Zed one, not even for a frame.
+    expect(new Set(seen.history)).toEqual(new Set([seen.now]))
+    expect(seen.exzedSkin).toBe(seen.now)
   })
 
   test('an unknown stored key is Lode and is left in storage as it was', async ({ page }) => {

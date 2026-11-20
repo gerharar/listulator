@@ -26,7 +26,12 @@ for (const scale of [1, 1.25, 1.5, 1.75, 2]) {
 
     try {
       const page = await context.newPage()
-      await page.addInitScript(() => localStorage.setItem('markOpenGroups', 'true'))
+      // A dark skin is pinned: the rows are counted as the ones "at least half as bright as the line's brightest", which is a bright line on a dark ground; Jouhou, which a first launch
+      // can draw since H-030, has a dark line on a light one, and the count would be the ground's rows (it read 9). Not a skin test.
+      await page.addInitScript(() => {
+        localStorage.setItem('markOpenGroups', 'true')
+        localStorage.setItem('skin', 'dark-orange')
+      })
       await page.goto('/')
       await page.locator('.q-home-row', { hasText: title }).click()
       await page.locator('.q-group').first().waitFor()

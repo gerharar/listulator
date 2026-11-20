@@ -117,8 +117,9 @@ test.describe('with the theme exzed', () => {
     })
   }
 
-  test('a hand-set theme with no skin stored is Lode: dark, with the stage, ink and accent of the first skin', async ({ page }) => {
-    await boot(page, { theme: 'exzed' })
+  test('a hand-set theme with a skin that is not one of the six stored is Lode: dark, with the stage, ink and accent of the first skin', async ({ page }) => {
+    // (With nothing stored the app now draws one of the six at random, H-030; an unknown key is what still falls back to Lode.)
+    await boot(page, { theme: 'exzed', exzedSkin: 'exzed-9z' })
     const [stage, ink, accent] = await colourOf(page, ['var(--bg)', 'var(--ink)', 'var(--accent)'])
 
     expect([stage, ink, accent]).toEqual([rgb('#000000'), rgb('#ffffff'), rgb('#ffff00')])
