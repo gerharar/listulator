@@ -23,8 +23,9 @@ describe('the sheet scrim (H-028), Quantum', () => {
     expect(scrim['height']).toBe('calc(var(--help-room, 420px) + 18px)')
   })
 
-  it('takes no pointer events, so a click on the shaded list goes where it went before', () => {
-    expect(scrim['pointer-events']).toBe('none')
+  it('takes the pointer (the owner, Checkpoint I): a press on the shaded list does not fall through to the row under it', () => {
+    // Design's entry said `pointer-events: none`; the owner's rule is the opposite, so the default (`auto`) stands and nothing turns it off.
+    expect(scrim['pointer-events']).not.toBe('none')
   })
 
   it('sits at 89, one under the sheet’s 90, inside the anchor that holds both', () => {

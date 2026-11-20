@@ -73,7 +73,8 @@
 /*
  * The scrim behind a helper sheet (H-028): from the help row's bottom edge (its 1px `line` stays above) to the card's inner bottom edge, across the anchor's full width, which is the
  * card's inner width. `--help-room` is measured to the card's bottom less the sheet's drop, so room plus the 18px drop reaches it, and the card clips what is past. Flat `scrim`
- * colour (the skin's `bg` at .72, Jouhou's `ink` at .10). It takes no pointer events: a click on the shaded list closes the sheet as it did, and rows and the wheel work under it.
+ * colour (the skin's `bg` at .72, Jouhou's `ink` at .10). It takes the pointer (the owner, Checkpoint I; design's entry said none): a press on the shaded list closes the sheet (the sheet's outside-press handler)
+ * and goes no further, so it does not also open the list under it; rows show no hover under it.
  * Its z (89) is one under the sheet's (90), inside the anchor that holds both. It fades in as a sheet opens and not when another replaces it, since it stays; no fade under reduced motion.
  */
 .q-scrim {
@@ -84,7 +85,6 @@
   height: calc(var(--help-room, 420px) + 18px);
   z-index: var(--z-scrim);
   background: var(--scrim);
-  pointer-events: none;
   animation: q-scrim-in var(--d-scrim) linear;
 }
 @keyframes q-scrim-in {

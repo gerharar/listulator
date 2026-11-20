@@ -30,7 +30,7 @@ describe('eX-Zed’s helper sheets', () => {
 
   it('has no shadow, alpha, radius, opacity, filter or literal colour of its own, and only the cards’ sizes', () => {
     expect(css).not.toMatch(/box-shadow|border-radius|rgba?\(|hsla?\(|color-mix|#[0-9a-f]{3,8}\b|opacity\s*:|[;{\s]filter\s*:/i)
-    for (const [, size] of css.matchAll(/(\d+)px/g)) expect(['0', '2', '4', '8', '12', '16', '24', '32', '40', '48', '56', '420', '800']).toContain(size)
+    for (const [, size] of css.matchAll(/(\d+)px/g)) expect(['0', '2', '4', '8', '12', '16', '18', '24', '32', '40', '48', '56', '420', '800']).toContain(size)
   })
 
   it('hangs the sheet 24px in and 16px under the row, 800px wide, in the single frame', () => {
@@ -38,7 +38,8 @@ describe('eX-Zed’s helper sheets', () => {
   })
 
   it('puts the scrim token under the sheet, over the lists, down the room the sheet has, with its own default for that room', () => {
-    expect(body('html.theme-exzed .q-help-anchor::before')).toMatch(/position:\s*absolute;\s*top:\s*0;\s*left:\s*0;\s*width:\s*100%;\s*height:\s*var\(--help-room\);\s*background:\s*var\(--zx-scrim\);/)
+    // The room is measured to the card's bottom less the sheet's 18px drop (Home), so the veil is that room and the drop: it reaches the card's inner bottom, the last line included (the owner, Checkpoint I).
+    expect(body('html.theme-exzed .q-help-anchor::before')).toMatch(/position:\s*absolute;\s*top:\s*0;\s*left:\s*0;\s*width:\s*100%;\s*height:\s*calc\(var\(--help-room\) \+ 18px\);\s*background:\s*var\(--zx-scrim\);/)
     expect(body('html.theme-exzed .q-help-anchor')).toMatch(/--help-room:\s*420px;/)
   })
 

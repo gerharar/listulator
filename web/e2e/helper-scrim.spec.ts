@@ -65,7 +65,7 @@ test('starts at the help row’s bottom edge and ends at the card’s inner bott
   expect(veil.y, 'below the app header').toBeGreaterThanOrEqual(appHeader.y + appHeader.height - 0.5)
 })
 
-test('is under the sheet and the list’s popover, takes no clicks, and a click on the shaded list closes the sheet', async ({ page }) => {
+test('is under the sheet and the list’s popover, and a click on the shaded list closes the sheet', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 })
   await open(page, { reducedMotion: 'true' })
   await openSheet(page)
@@ -74,7 +74,7 @@ test('is under the sheet and the list’s popover, takes no clicks, and a click 
     const z = (selector: string) => Number(getComputedStyle(document.querySelector(selector)!).zIndex)
     return { scrim: z('.q-scrim'), sheet: z('.q-sheet'), anchor: z('.q-help-anchor'), events: getComputedStyle(document.querySelector('.q-scrim')!).pointerEvents, hidden: document.querySelector('.q-scrim')!.getAttribute('aria-hidden') }
   })
-  expect(layers).toEqual({ scrim: 89, sheet: 90, anchor: 90, events: 'none', hidden: 'true' })
+  expect(layers).toEqual({ scrim: 89, sheet: 90, anchor: 90, events: 'auto', hidden: 'true' })
 
   const veil = await box(scrim(page))
   // The strip beside the rows is the card's own colour under the veil: a click there is "outside" the sheet.
@@ -82,6 +82,29 @@ test('is under the sheet and the list’s popover, takes no clicks, and a click 
 
   await expect(sheet(page)).toHaveCount(0)
   await expect(scrim(page)).toHaveCount(0)
+})
+
+/** The owner, Checkpoint I (2026-11-20), over design's "no pointer events": a press on the shaded list closes the sheet and goes no further, so it does not also open the list under it. */
+test('a click on a shaded list row closes the sheet and does not open that list', async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 })
+  await open(page, { reducedMotion: 'true' })
+  await openSheet(page)
+  const row = page.locator('.q-home-row').first()
+  const [veil, at, over] = [await box(scrim(page)), await box(row), await box(sheet(page))]
+  // The row is under the veil: it is the thing a press could fall through to. Its left part is under the sheet itself, so the press is to the right of the sheet, on the row and the veil alone.
+  expect(at.y).toBeGreaterThanOrEqual(veil.y)
+  expect(at.y + at.height).toBeLessThanOrEqual(veil.y + veil.height)
+  const x = over.x + over.width + 40
+  expect(x, 'the row reaches past the sheet').toBeLessThan(at.x + at.width)
+
+  await page.mouse.click(x, at.y + at.height / 2)
+
+  await expect(sheet(page)).toHaveCount(0)
+  await expect(scrim(page)).toHaveCount(0)
+  // Given the click time to arrive where it would have (a list opens as a second layer): there is still only Home.
+  await page.waitForTimeout(700)
+  await expect(page.locator('.q-layer')).toHaveCount(1)
+  await expect(row).toBeVisible()
 })
 
 test('a helper button while a sheet is open replaces the sheet and keeps the scrim: the same element, not faded in again', async ({ page }) => {

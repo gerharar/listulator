@@ -138,8 +138,9 @@ for (const skin of SKINS) {
       const a = await box(anchor)
       const home = await box(page.locator('.q-home'))
       expect(parseFloat(scrim.width), 'as wide as the window').toBe(home.width)
-      expect(scrim.height, 'down to the window’s bottom: the room the sheet has').toBe(scrim.room.trim())
-      void a
+      // Down to the window's inner bottom, the last line of the list included: the room (measured less the sheet's 18px drop) and that drop (the owner, Checkpoint I).
+      expect(parseFloat(scrim.height)).toBe(parseFloat(scrim.room) + 18)
+      expect(a.y + parseFloat(scrim.height), 'the card’s inner bottom').toBeCloseTo(home.y + home.height, 0)
 
       // Where it can be told from what is behind it (the lists' empty paper at the foot of the window; Lotus's paper is not black): two colours in 2px cells.
       if (JSON.stringify(r.paper) !== JSON.stringify(r['chip-ink'])) {
