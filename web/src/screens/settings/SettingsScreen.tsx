@@ -17,6 +17,7 @@ import { useMotion } from '../../components/quantum/Motion/MotionContext.js'
 import { useGroupLineSetting } from '../../components/quantum/GroupTriangle/GroupTriangle.js'
 import { useTimeLeftSetting } from '../../components/quantum/Home/TimeLeftSetting.js'
 import { useSpectrumBorder } from '../../components/quantum/DocumentTheme/SpectrumBorderSetting.js'
+import { HelpButton } from '../../components/quantum/HelpButton/HelpButton.js'
 import { Tip } from '../../components/quantum/Tooltip/Tip.js'
 import { useWindowFullscreen } from '../../lib/windowFullscreen.js'
 import { ExzedSkinSwatch, SkinSwatch } from '../../components/quantum/SkinSwatch/SkinSwatch.js'
@@ -154,26 +155,32 @@ export function SettingsScreen({ skin, onSkinChange, exzedSkin, onExzedSkinChang
               <input type="checkbox" checked={reduced} onChange={(event) => setReducedMotion(event.target.checked)} />
               {text.reduceMotion}
             </label>
-            {/* H-022, on every platform (owner, 2026-10-28): the line beside each group's arrow, applied at once. */}
-            <Tip as="label" className="q-settings-check" text={text.markOpenGroupsTip}>
-              <input
-                type="checkbox"
-                aria-description={text.markOpenGroupsTip}
-                checked={groupLine.on}
-                onChange={(event) => groupLine.setOn(event.target.checked)}
-              />
-              {text.markOpenGroups}
-            </Tip>
+            {/* H-022, on every platform (owner, 2026-10-28): the line beside each group's arrow, applied at once. The explanation is behind its (?) (H-031), not a tooltip on the label. */}
+            <div className="q-settings-line">
+              <label className="q-settings-check">
+                <input
+                  type="checkbox"
+                  aria-description={text.markOpenGroupsTip}
+                  checked={groupLine.on}
+                  onChange={(event) => groupLine.setOn(event.target.checked)}
+                />
+                {text.markOpenGroups}
+              </label>
+              <HelpButton label={text.markOpenGroups} text={text.markOpenGroupsTip} />
+            </div>
             {/* H-024 (canvas, owner 2026-10-31): the time left on My Lists, off unless asked for; applied at once. */}
-            <Tip as="label" className="q-settings-check" text={text.showTimeLeftTip}>
-              <input
-                type="checkbox"
-                aria-description={text.showTimeLeftTip}
-                checked={timeLeft.on}
-                onChange={(event) => timeLeft.setOn(event.target.checked)}
-              />
-              {text.showTimeLeft}
-            </Tip>
+            <div className="q-settings-line">
+              <label className="q-settings-check">
+                <input
+                  type="checkbox"
+                  aria-description={text.showTimeLeftTip}
+                  checked={timeLeft.on}
+                  onChange={(event) => timeLeft.setOn(event.target.checked)}
+                />
+                {text.showTimeLeft}
+              </label>
+              <HelpButton label={text.showTimeLeft} text={text.showTimeLeftTip} />
+            </div>
           </section>
 
           <section>

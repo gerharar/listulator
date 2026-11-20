@@ -1,0 +1,32 @@
+/* The (?) after a setting (H-031): 20x20, a 14px icon in `ink3`, `ink` on hover, while its popover is open and on focus (the focus ring is every control's). */
+.q-help {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--ink3);
+  cursor: pointer;
+}
+.q-help:hover,
+.q-help[aria-expanded='true'],
+.q-help:focus-visible {
+  color: var(--ink);
+}
+
+/* Its popover is the API-key marks' (300px): the label in 600 / 14px, then the explanation in 12.5px `ink`. */
+.q-help-pop {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--ink);
+}
+.q-help-pop strong {
+  font-size: 14px;
+  font-weight: 600;
+}

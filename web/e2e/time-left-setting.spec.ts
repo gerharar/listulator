@@ -26,13 +26,17 @@ test('the box is the last of Screen, after Enhance group arrows, and unticked by
   expect(labels.at(-2)).toBe(q.settings.markOpenGroups)
 })
 
-test('its row says why on hover, in the canvas’s words', async ({ page }) => {
+test('its label has no tooltip; its (?) says why on a click, in the canvas’s words (H-031)', async ({ page }) => {
   await openSettings(page)
   await page.waitForFunction(() => document.getAnimations().length === 0)
 
   await page.locator('label.q-settings-check', { hasText: q.settings.showTimeLeft }).hover()
+  await page.waitForTimeout(800)
+  await expect(page.getByRole('tooltip')).toHaveCount(0)
 
-  await expect(page.getByRole('tooltip')).toHaveText(q.settings.showTimeLeftTip)
+  await page.getByRole('button', { name: q.settings.aboutLabel(q.settings.showTimeLeft), exact: true }).click()
+
+  await expect(page.getByRole('dialog')).toContainText(q.settings.showTimeLeftTip)
 })
 
 test('ticking it survives a restart, and so does unticking it', async ({ page }) => {

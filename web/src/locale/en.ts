@@ -388,6 +388,8 @@ export const en = {
       /** The group triangle's line (H-022): the canvas's wording (owner, 2026-10-28). The tooltip's words are the canvas's too. */
       markOpenGroups: 'Enhance group arrows',
       markOpenGroupsTip: "Adds a visual aid beside each group's arrow indicator to help you understand faster if a group is expanded or collapsed",
+      /** H-031: the name of a setting's (?) for a screen reader and on hover (owner, 2026-11-16): "About <label>", the pattern for any later setting. */
+      aboutLabel: (label: string): string => `About ${label}`,
       /** The canvas's words (H-024, owner 2026-10-31). */
       showTimeLeft: 'Show time left in My Lists',
       showTimeLeftTip: "Time left is often estimated or still being looked up; off, it shows when you point at a list's progress",

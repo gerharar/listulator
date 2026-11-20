@@ -58,6 +58,18 @@
   gap: 6px;
 }
 
+/* A setting with an explanation (H-031): its box and words, then its (?) 4px after them. The margin is the line's, so the boxes keep one rhythm. */
+.q-settings-line {
+  margin-top: 11px;
+  display: flex;
+  width: fit-content;
+  align-items: center;
+  gap: 4px;
+}
+.q-settings-line > .q-settings-check {
+  margin-top: 0;
+}
+
 .q-settings-check {
   margin-top: 11px;
   display: flex;

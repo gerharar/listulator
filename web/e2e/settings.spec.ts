@@ -135,19 +135,46 @@ test('a pre-Phase-10 install opens in one of the five skins, Jouhou included, an
   await expect(page.locator('html')).toHaveAttribute('data-theme', skin!)
 })
 
-test('the Mark open and closed groups row has its tooltip on hover, and the other Screen boxes have none (H-022, 38.8b)', async ({ page }) => {
+const helpOf = (page: Page, label: string) => page.getByRole('button', { name: q.settings.aboutLabel(label), exact: true })
+
+test('Enhance group arrows has no tooltip on its label, and the other Screen boxes have no (?) (H-031)', async ({ page }) => {
   await openHome(page)
   await openSettings(page)
   await settled(page)
 
   await page.locator('label.q-settings-check', { hasText: q.settings.markOpenGroups }).hover()
-  await expect(page.getByRole('tooltip')).toHaveText(q.settings.markOpenGroupsTip)
-
-  await page.getByRole('checkbox', { name: q.settings.reduceMotion }).hover()
+  // The tooltip's delay is half a second: wait it out, so "none" means none and not "not yet".
+  await page.waitForTimeout(800)
   await expect(page.getByRole('tooltip')).toHaveCount(0)
+
+  await expect(page.getByRole('button', { name: /^About / })).toHaveCount(2)
+  await expect(helpOf(page, q.settings.markOpenGroups)).toBeVisible()
+  await expect(helpOf(page, q.settings.showTimeLeft)).toBeVisible()
 })
 
-test('the same tooltip shows when Tab reaches the box (H-022, 38.8b)', async ({ page, browserName }) => {
+test('its (?) shows only its name on hover, opens the label and the explanation on a click, and Esc closes it with focus back on the (?) (H-031)', async ({ page }) => {
+  await openHome(page)
+  await openSettings(page)
+  await settled(page)
+  const help = helpOf(page, q.settings.markOpenGroups)
+
+  await help.hover()
+  await expect(page.getByRole('tooltip')).toHaveText(q.settings.aboutLabel(q.settings.markOpenGroups))
+  await expect(page.getByRole('dialog')).toHaveCount(0)
+
+  await help.click()
+  const dialog = page.getByRole('dialog')
+  await expect(dialog).toBeVisible()
+  await expect(dialog.locator('strong')).toHaveText(q.settings.markOpenGroups)
+  await expect(dialog).toContainText(q.settings.markOpenGroupsTip)
+  await expect(help).toHaveAttribute('aria-expanded', 'true')
+
+  await page.keyboard.press('Escape')
+  await expect(dialog).toHaveCount(0)
+  await expect(help).toBeFocused()
+})
+
+test('Tab reaches the box and then its (?), and Enter opens it (H-031)', async ({ page, browserName }) => {
   // WebKit's default is that Tab skips checkboxes (a system setting), so only Chromium can walk to it.
   test.skip(browserName !== 'chromium', 'Tab does not reach a checkbox in WebKit by default')
   await openHome(page)
@@ -159,35 +186,31 @@ test('the same tooltip shows when Tab reaches the box (H-022, 38.8b)', async ({ 
     if (await box.evaluate((node) => node === document.activeElement)) break
     await page.keyboard.press('Tab')
   }
-
   await expect(box).toBeFocused()
-  await expect(page.getByRole('tooltip')).toHaveText(q.settings.markOpenGroupsTip)
+
+  await page.keyboard.press('Tab')
+  await expect(helpOf(page, q.settings.markOpenGroups)).toBeFocused()
+  await page.keyboard.press('Enter')
+  await expect(page.getByRole('dialog')).toContainText(q.settings.markOpenGroupsTip)
 })
 
-test('the tooltip sits over the box and its words, not over the empty rest of a row that spans the section (H-022, 38.8b)', async ({ page }) => {
+test('the (?) is a 20px button 4px after the label’s words (H-031)', async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 })
   await openHome(page)
   await openSettings(page)
   await settled(page)
   const row = page.locator('label.q-settings-check', { hasText: q.settings.markOpenGroups })
-
-  await row.hover()
-  await expect(page.getByRole('tooltip')).toBeVisible()
-  const tip = (await page.getByRole('tooltip').boundingBox())!
-  const row$ = (await row.boundingBox())!
-  // What the row holds: the box and the words, as the browser lays them out.
+  const help = (await helpOf(page, q.settings.markOpenGroups).boundingBox())!
   const content = await row.evaluate((node) => {
     const range = document.createRange()
     range.selectNodeContents(node)
     const rect = range.getBoundingClientRect()
 
-    return { left: rect.left, right: rect.right }
+    return { right: rect.right }
   })
 
-  // The row is as wide as what is in it (a few pixels of play), so a tooltip centred on the row is centred on the box and its words.
-  expect(row$.width).toBeLessThan(content.right - content.left + 8)
-  const centre = tip.x + tip.width / 2
-  expect(centre).toBeGreaterThanOrEqual(content.left)
-  expect(centre).toBeLessThanOrEqual(content.right)
+  expect([help.width, help.height]).toEqual([20, 20])
+  expect(help.x - content.right).toBeGreaterThanOrEqual(3)
+  expect(help.x - content.right).toBeLessThanOrEqual(5)
 })
 

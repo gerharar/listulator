@@ -70,6 +70,12 @@ function StackReader() {
   return <span data-testid="stack">{stack.map((layer) => layer.kind).join(',')}</span>
 }
 
+/** The (?) that follows a setting's checkbox: its next focusable sibling in the same line (H-031). */
+function helpAfter(checkbox: HTMLElement): HTMLElement {
+  const line = checkbox.closest('label')!.parentElement!
+  return line.querySelector('button')!
+}
+
 function renderSettings(
   options: { skin?: 'dark-blue' | 'light-bone'; theme?: Theme; canChooseTheme?: boolean; exzedSkin?: ExzedSkin; reducedSetting?: boolean; markOpenGroups?: boolean; showTimeLeft?: boolean; spectrumBorder?: boolean } = {},
 ) {
@@ -440,11 +446,23 @@ describe('SettingsScreen: Mark open and closed groups (H-022)', () => {
     expect(screen.getByRole('checkbox', { name: translated })).toBeTruthy()
   })
 
-  it('says what the line does when the row is hovered (the canvas wording), and the other Screen boxes keep quiet', async () => {
+  it('has no hover tooltip on its label any more: the explanation is behind its (?) (H-031)', async () => {
     renderSettings()
 
-    expect(await hoverTooltip(box().closest('label')!)).toBe(en.quantum.settings.markOpenGroupsTip)
-    expect(await hoverTooltip(screen.getByRole('checkbox', { name: en.quantum.settings.reduceMotion }).closest('label')!)).toBeNull()
+    expect(await hoverTooltip(box().closest('label')!)).toBeNull()
+  })
+
+  it('has a (?) right after its box in Tab order, named About <label>, which opens the label and the canvas wording on a click (H-031)', () => {
+    renderSettings()
+
+    expect(helpAfter(box()).getAttribute('aria-label')).toBe(`About ${label}`)
+    expect(screen.queryByRole('dialog')).toBeNull()
+
+    act(() => helpAfter(box()).click())
+
+    const dialog = screen.getByRole('dialog')
+    expect(dialog.querySelector('strong')?.textContent).toBe(label)
+    expect(dialog.textContent).toContain(en.quantum.settings.markOpenGroupsTip)
   })
 
   it('gives a screen reader the same words as the box’s description, and the name stays the label', () => {
@@ -455,14 +473,20 @@ describe('SettingsScreen: Mark open and closed groups (H-022)', () => {
   })
 
   it.each([
-    ['Русский', ru.quantum.settings.markOpenGroups, ru.quantum.settings.markOpenGroupsTip],
-    ['Deutsch', de.quantum.settings.markOpenGroups, de.quantum.settings.markOpenGroupsTip],
-  ])('has its tooltip in %s too', async (language, translatedLabel, translatedTip) => {
+    ['Русский', ru.quantum.settings.markOpenGroups, ru.quantum.settings.markOpenGroupsTip, ru.quantum.settings.aboutLabel],
+    ['Deutsch', de.quantum.settings.markOpenGroups, de.quantum.settings.markOpenGroupsTip, de.quantum.settings.aboutLabel],
+  ])('has its (?) in %s too, named and explained in its own words', (language, translatedLabel, translatedTip, about) => {
     renderSettings()
     act(() => screen.getByRole('button', { name: language }).click())
 
     expect(translatedTip).not.toBe(en.quantum.settings.markOpenGroupsTip)
-    expect(await hoverTooltip(screen.getByRole('checkbox', { name: translatedLabel }).closest('label')!)).toBe(translatedTip)
+    const checkbox = screen.getByRole('checkbox', { name: translatedLabel })
+    expect(helpAfter(checkbox).getAttribute('aria-label')).toBe(about(translatedLabel))
+    expect(about(translatedLabel)).not.toBe(`About ${translatedLabel}`)
+
+    act(() => helpAfter(checkbox).click())
+
+    expect(screen.getByRole('dialog').textContent).toContain(translatedTip)
   })
 })
 
@@ -505,23 +529,51 @@ describe('SettingsScreen: Show time left in My Lists (H-024)', () => {
     await waitFor(() => expect(store.data.get('showTimeLeft')).toBe('false'))
   })
 
-  it('says why on hover, and as the box’s description for a screen reader, the name staying the label', async () => {
+  it('has no hover tooltip on its label; its (?) comes right after the box and opens the label and the canvas wording, and the box keeps the words as its description (H-031)', async () => {
     renderSettings()
 
-    expect(await hoverTooltip(box().closest('label')!)).toBe(en.quantum.settings.showTimeLeftTip)
+    expect(await hoverTooltip(box().closest('label')!)).toBeNull()
     expect(box().getAttribute('aria-description')).toBe(en.quantum.settings.showTimeLeftTip)
+    expect(helpAfter(box()).getAttribute('aria-label')).toBe(`About ${label}`)
+
+    act(() => helpAfter(box()).click())
+
+    const dialog = screen.getByRole('dialog')
+    expect(dialog.querySelector('strong')?.textContent).toBe(label)
+    expect(dialog.textContent).toContain(en.quantum.settings.showTimeLeftTip)
   })
 
   it.each([
-    ['Русский', ru.quantum.settings.showTimeLeft, ru.quantum.settings.showTimeLeftTip],
-    ['Deutsch', de.quantum.settings.showTimeLeft, de.quantum.settings.showTimeLeftTip],
-  ])('is named and explained in %s in its own words', async (language, translatedLabel, translatedTip) => {
+    ['Русский', ru.quantum.settings.showTimeLeft, ru.quantum.settings.showTimeLeftTip, ru.quantum.settings.aboutLabel],
+    ['Deutsch', de.quantum.settings.showTimeLeft, de.quantum.settings.showTimeLeftTip, de.quantum.settings.aboutLabel],
+  ])('is named and explained in %s in its own words, behind its (?)', (language, translatedLabel, translatedTip, about) => {
     renderSettings()
     act(() => screen.getByRole('button', { name: language }).click())
 
     expect(translatedLabel).not.toBe(label)
     expect(translatedTip).not.toBe(en.quantum.settings.showTimeLeftTip)
-    expect(await hoverTooltip(screen.getByRole('checkbox', { name: translatedLabel }).closest('label')!)).toBe(translatedTip)
+    const checkbox = screen.getByRole('checkbox', { name: translatedLabel })
+    expect(helpAfter(checkbox).getAttribute('aria-label')).toBe(about(translatedLabel))
+
+    act(() => helpAfter(checkbox).click())
+
+    expect(screen.getByRole('dialog').textContent).toContain(translatedTip)
+  })
+})
+
+/** H-031: the other Screen boxes have nothing to explain, so no (?); the one on Spectrum border (eX-Zed, THEME) is not in this entry. */
+describe('SettingsScreen: which options have a (?) (H-031)', () => {
+  it('only Enhance group arrows and Show time left in My Lists do, and Tab reaches each right after its box', () => {
+    renderSettings()
+
+    const names = screen.getAllByRole('button', { name: /^About / }).map((button) => button.getAttribute('aria-label'))
+    expect(names).toEqual([`About ${en.quantum.settings.markOpenGroups}`, `About ${en.quantum.settings.showTimeLeft}`])
+
+    const order = Array.from(document.querySelectorAll<HTMLElement>('input[type="checkbox"], button')).filter((el) => el.closest('.q-settings-sections'))
+    for (const name of [en.quantum.settings.markOpenGroups, en.quantum.settings.showTimeLeft]) {
+      const at = order.findIndex((el) => el.matches('input') && el.closest('label')?.textContent === name)
+      expect(order[at + 1]?.getAttribute('aria-label'), name).toBe(`About ${name}`)
+    }
   })
 })
 
