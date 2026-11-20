@@ -1,6 +1,6 @@
 import './AppHeader.css'
 import { useEffect, useRef, useState } from 'react'
-import { Info, Power, Settings } from 'lucide-react'
+import { CircleHelp, Power, Settings } from 'lucide-react'
 import { IconButton } from '../Button/Button.js'
 import { ConfirmPopover } from '../ConfirmPopover/ConfirmPopover.js'
 import { ThemedIcon } from '../PixelIcon/PixelIcon.js'
@@ -46,7 +46,7 @@ export function AppHeader({ skin, onSkinChange, exzedSkin, onExzedSkinChange, on
           <ThemedIcon name="settings" fallback={<Settings width={17} height={17} strokeWidth={1.9} aria-hidden="true" />} />
         </IconButton>
         <IconButton label={copy.quantum.appHeader.about} onClick={onAbout} {...wait}>
-          <ThemedIcon name="about" fallback={<Info width={17} height={17} strokeWidth={1.8} aria-hidden="true" />} />
+          <ThemedIcon name="about" fallback={<CircleHelp width={17} height={17} strokeWidth={1.8} aria-hidden="true" />} />
         </IconButton>
         {quit && <QuitButton quit={quit} run={run} />}
       </div>

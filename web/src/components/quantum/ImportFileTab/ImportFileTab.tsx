@@ -1,6 +1,6 @@
 import './ImportFileTab.css'
 import { useRef, useState, type ChangeEvent, type ClipboardEvent } from 'react'
-import { Info } from 'lucide-react'
+import { CircleAlert } from 'lucide-react'
 import { load } from 'js-yaml'
 import { api, type MediaType } from '../../../lib/api.js'
 import { categoryLabel, copy } from '../../../locale/index.js'
@@ -212,7 +212,7 @@ export function ImportFileTab({ mediaTypes, mediaTypeKey, onBuilt }: ImportFileT
 
       {refusal && (
         <p className="q-import-refusal" role="status">
-          <Info width={15} height={15} aria-hidden="true" />
+          <CircleAlert width={15} height={15} strokeWidth={1.8} aria-hidden="true" />
           {refusal}
         </p>
       )}

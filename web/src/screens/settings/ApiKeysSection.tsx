@@ -1,6 +1,6 @@
 import './ApiKeysSection.css'
 import { useEffect, useRef, useState, type CSSProperties } from 'react'
-import { Info } from 'lucide-react'
+import { CircleHelp } from 'lucide-react'
 import { copy } from '../../locale/index.js'
 import { getLocalSettings, type LocalSettings } from '../../lib/config/localConfig.js'
 import { KEY_FIELDS, pasteSentence, saveAndReload } from '../../lib/config/keySources.js'
@@ -91,7 +91,7 @@ function KeyRow({ id, fields, values, current, onEdit, onInfo, onTest }: KeyRowP
           text={text.infoLabel}
           onClick={(event) => onInfo(event.currentTarget)}
         >
-          <Info size={14} strokeWidth={1.8} aria-hidden="true" />
+          <CircleHelp size={14} strokeWidth={1.8} aria-hidden="true" />
         </Tip>
       </div>
       <div className="q-key-fields">

@@ -93,6 +93,19 @@ describe('AppHeader', () => {
     expect(onAbout).toHaveBeenCalledOnce()
   })
 
+  it('draws About as a (?), a 17px circle-help, not an (i) (H-031: (?) is about the app)', () => {
+    render(
+      <Providers>
+        <AppHeader skin="dark-orange" onSkinChange={vi.fn()} exzedSkin="exzed-1d" onExzedSkinChange={vi.fn()} onSettings={vi.fn()} onAbout={vi.fn()} />
+      </Providers>,
+    )
+
+    const icon = screen.getByRole('button', { name: 'About' }).querySelector('svg')!
+    expect(icon.getAttribute('class')).toMatch(/lucide-circle-(help|question-mark)/)
+    expect(icon.getAttribute('class')).not.toMatch(/lucide-info/)
+    expect([icon.getAttribute('width'), icon.getAttribute('height')]).toEqual(['17', '17'])
+  })
+
   it('opens the skin menu, picks a skin, and announces it in the live region', async () => {
     const onSkinChange = vi.fn()
     const { container } = render(

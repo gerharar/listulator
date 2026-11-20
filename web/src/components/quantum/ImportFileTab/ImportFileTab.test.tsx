@@ -264,6 +264,23 @@ describe('ImportFileTab', () => {
     expect(screen.queryByText(/Syntax error/)).toBeNull()
   })
 
+  it('a refusal starts with a (!): a 15px circle-alert, stroke 1.8, hidden from a screen reader, before the sentence; never an (i) (H-031)', async () => {
+    vi.mocked(api.createFromFile).mockRejectedValue(new Error('No items found, list cannot be imported.'))
+    renderTab()
+
+    fireEvent.change(box(), { target: { value: 'x' } })
+    fireEvent.click(importButton())
+    const sentence = await screen.findByText(/No items found/)
+
+    const line = sentence.closest('.q-import-refusal')!
+    const icon = line.firstElementChild!
+    expect(icon.tagName.toLowerCase()).toBe('svg')
+    expect(icon.getAttribute('class')).toMatch(/lucide-circle-alert/)
+    expect(icon.getAttribute('class')).not.toMatch(/lucide-info/)
+    expect([icon.getAttribute('width'), icon.getAttribute('height'), icon.getAttribute('stroke-width'), icon.getAttribute('aria-hidden')]).toEqual(['15', '15', '1.8', 'true'])
+    expect(line.querySelectorAll('button')).toHaveLength(0)
+  })
+
   it('clears a refusal when another file is picked', async () => {
     vi.mocked(api.createFromFile).mockRejectedValue(new Error('No items found, list cannot be imported.'))
     renderTab()

@@ -236,6 +236,20 @@ describe('ApiKeysSection', () => {
     expect(within(tmdb).getByRole('status').textContent).toBe('Untested')
   })
 
+  it('the four marks beside the keys are (?), not (i): circle-help, still named What this key is used for (H-031)', async () => {
+    setup()
+    await ready()
+
+    const marks = screen.getAllByRole('button', { name: 'What this key is used for' })
+    expect(marks).toHaveLength(4)
+    for (const mark of marks) {
+      const icon = mark.querySelector('svg')!
+      expect(icon.getAttribute('class')).toMatch(/lucide-circle-(help|question-mark)/)
+      expect(icon.getAttribute('class')).not.toMatch(/lucide-info/)
+      expect([icon.getAttribute('width'), icon.getAttribute('stroke-width')]).toEqual(['14', '1.8'])
+    }
+  })
+
   it('the ⓘ says what the key is for', async () => {
     setup()
     await ready()
