@@ -877,6 +877,8 @@ export const ru: Locale = {
         reset: 'Сбросить Список',
         delete: 'Удалить Список',
         exportKicker: 'Экспорт Списка',
+        /** A draft for the owner to review (H-032): the question's form follows the Reorder one, in capitals as it is. */
+        exportTitle: 'Экспортировать Список?',
         exportNote:
           'Сохранить текущий список в формате YAML. Прогресс не сохраняется. Подходит для создания канонических списков и для спискообмена',
         download: 'Скачать Файл',

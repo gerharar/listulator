@@ -869,6 +869,8 @@ export const de: Locale = {
         reset: 'Liste zurücksetzen',
         delete: 'Liste löschen',
         exportKicker: 'Liste exportieren',
+        /** A draft (H-032): as "Diese Liste in ihren … zurücksetzen?" is asked; de has no native review. */
+        exportTitle: 'Diese Liste exportieren?',
         exportNote:
           'Speichere diese Liste im YAML-Format. Der Fortschritt ist nicht enthalten. Nützlich für Vorschläge kanonischer Listen und zum Teilen von Listen.',
         download: 'Datei herunterladen',

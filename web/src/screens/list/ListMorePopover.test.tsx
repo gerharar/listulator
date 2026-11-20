@@ -98,6 +98,18 @@ describe('ListMorePopover', () => {
   })
 
   describe('export', () => {
+    it('shows its head, then its title, then the note and both buttons, as the other modes do (H-032)', () => {
+      renderPopover({ mode: 'export' })
+
+      const body = document.querySelector('.q-pop-scroll')!
+      const order = Array.from(body.children).map((child) => `${child.className.split(' ')[0]}: ${child.textContent}`)
+      expect(order[0]).toMatch(/^q-pop-head: Export List/)
+      expect(order[1]).toBe('q-pop-q: Export this list?')
+      expect(order[2]).toMatch(/^q-pop-note: .*progress is not included/i)
+      expect(order[3]).toBe('q-pop-menu: Download FileCopy To Clipboard')
+      expect(order).toHaveLength(4)
+    })
+
     it('says what a file holds, and offers Download and Copy', () => {
       const { onDownload, onCopy } = renderPopover({ mode: 'export' })
 
@@ -260,6 +272,18 @@ describe('ListMorePopover', () => {
       fireEvent.click(button('Delete List'))
       expect(onDelete).toHaveBeenCalledTimes(1)
     })
+  })
+
+  it('every mode of the menu but Edit List has a title line under its head, drawn alike (H-032)', () => {
+    for (const mode of ['export', 'reorder', 'reset', 'delete'] as const) {
+      renderPopover({ mode })
+
+      const body = document.querySelector('.q-pop-scroll')!
+      expect(body.children[0]!.className, mode).toContain('q-pop-head')
+      expect(body.children[1]!.className, mode).toBe('q-pop-q')
+      expect(body.children[1]!.textContent, mode).toMatch(/\?$/)
+      cleanup()
+    }
   })
 
   it('shows how many items the list has on the popover’s head row, in every mode', () => {

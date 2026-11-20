@@ -91,6 +91,7 @@ export function ListMorePopover({
       {mode === 'export' && (
         <>
           {head(text.exportKicker)}
+          <span className="q-pop-q">{text.exportTitle}</span>
           <span className="q-pop-note">{text.exportNote}</span>
           <div className="q-pop-menu">
             <Button onClick={onDownload}>{text.download}</Button>

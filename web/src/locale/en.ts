@@ -979,6 +979,8 @@ export const en = {
         reset: 'Reset List',
         delete: 'Delete List',
         exportKicker: 'Export List',
+        /** H-032 (the owner's copy, 2026-11-20): the title line every mode of this menu but Edit List has. */
+        exportTitle: 'Export this list?',
         exportNote:
           'Save this list in YAML format. Progress is not included. Useful for canonical list submissions and list sharing',
         download: 'Download File',

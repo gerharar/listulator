@@ -47,3 +47,41 @@ test('edit the list, then export it', async ({ page, context, browserName }) => 
     await page.request.delete(`/api/lists/${id}`)
   }
 })
+
+/**
+ * H-032 (the owner, 2026-11-20): Export List has a title line like the other modes, "Export this list?", 600 / 15px / 1.3 in `ink`, between its head and its note, in the
+ * place and style of Reorder's question.
+ */
+test('Export List has its title line, in the style and place of Reorder’s question', async ({ page }) => {
+  const title = `e2e export title ${Date.now()}`
+  const created = await page.request.post('/api/lists', { data: { title, mediaType: 'tv' } })
+  const id = (await created.json()).id
+
+  try {
+    await page.goto('/')
+    await page.locator('.q-home-row', { hasText: title }).click()
+    await page.getByRole('button', { name: 'More' }).click()
+    const pop = page.locator('.q-pop')
+    const lookOf = async (question: string) => {
+      const line = pop.locator('.q-pop-q', { hasText: question })
+      await expect(line).toBeVisible()
+
+      return line.evaluate((node) => {
+        const s = getComputedStyle(node)
+        return { weight: s.fontWeight, size: s.fontSize, lineHeight: s.lineHeight, colour: s.color, order: [...node.parentElement!.children].map((c) => c.className.split(' ')[0]).slice(0, 3) }
+      })
+    }
+
+    await pop.getByRole('button', { name: 'Reorder List' }).click()
+    const reorder = await lookOf('Reorder this list?')
+    await page.keyboard.press('Escape')
+    await page.getByRole('button', { name: 'More' }).click()
+    await pop.getByRole('button', { name: 'Export List' }).click()
+    const exported = await lookOf('Export this list?')
+
+    expect(exported).toEqual({ ...reorder, order: ['q-pop-head', 'q-pop-q', 'q-pop-note'] })
+    expect([exported.weight, exported.size, exported.lineHeight]).toEqual(['600', '15px', '19.5px'])
+  } finally {
+    await page.request.delete(`/api/lists/${id}`)
+  }
+})
