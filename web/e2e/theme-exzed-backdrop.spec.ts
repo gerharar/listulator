@@ -16,7 +16,7 @@ async function makeList(request: APIRequestContext, title: string) {
 async function boot(page: Page, theme: string) {
   await page.addInitScript((entries) => {
     for (const [key, value] of entries) localStorage.setItem(key, value)
-  }, Object.entries({ theme, skin: 'dark-orange', reducedMotion: 'true' }))
+  }, Object.entries({ theme, skin: 'dark-orange', exzedSkin: 'exzed-1d', reducedMotion: 'true' }))
   await page.route('**/api/library/untracked', (route) =>
     route.fulfill({ json: { entries: [{ externalRef: 'canonical:lists/book/lotr.yaml', title: 'The Lord of the Rings', category: 'book', itemCount: 3, status: 'complete' }], reachable: true } }),
   )

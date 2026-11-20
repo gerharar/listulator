@@ -19,7 +19,7 @@ async function open(page: Page, stored: Record<string, string>, width: number) {
       return
     }
     for (const [key, value] of entries) localStorage.setItem(key, value)
-  }, Object.entries({ reducedMotion: 'true', skin: 'dark-orange', ...stored }))
+  }, Object.entries({ reducedMotion: 'true', skin: 'dark-orange', exzedSkin: 'exzed-1d', ...stored }))
   await page.goto('/')
   await page.locator('.q-home-row').first().waitFor()
 }

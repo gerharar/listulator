@@ -121,7 +121,7 @@ test('a popover portaled outside the app root still gets the skin — the tokens
   expect(background).not.toBe('transparent')
 })
 
-test('a pre-Phase-10 install opens in one of the four dark skins and keeps it across restarts', async ({ page }) => {
+test('a pre-Phase-10 install opens in one of the five skins, Jouhou included, and keeps it across restarts (H-030)', async ({ page }) => {
   // The old app stored `listulator:theme` and no `skin`; that value must not be read.
   await page.addInitScript(() => {
     if (!localStorage.getItem('skin')) localStorage.setItem('listulator:theme', 'paper')
@@ -129,7 +129,7 @@ test('a pre-Phase-10 install opens in one of the four dark skins and keeps it ac
   await openHome(page)
 
   const skin = await page.locator('html').getAttribute('data-theme')
-  expect(['dark-orange', 'dark-green', 'dark-blue', 'dark-violet']).toContain(skin)
+  expect(['dark-orange', 'dark-green', 'dark-blue', 'dark-violet', 'light-bone']).toContain(skin)
 
   await page.reload()
   await expect(page.locator('html')).toHaveAttribute('data-theme', skin!)

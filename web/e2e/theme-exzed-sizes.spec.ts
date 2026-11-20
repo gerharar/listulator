@@ -19,7 +19,7 @@ async function makeList(request: APIRequestContext, title: string, rows = 3) {
 async function boot(page: Page, theme: string, reducedMotion = 'true') {
   await page.addInitScript((entries) => {
     for (const [key, value] of entries) localStorage.setItem(key, value)
-  }, Object.entries({ theme, skin: 'dark-orange', reducedMotion }))
+  }, Object.entries({ theme, skin: 'dark-orange', exzedSkin: 'exzed-1d', reducedMotion }))
 }
 
 async function openList(page: Page, title: string) {

@@ -21,7 +21,7 @@ async function openList(page: Page, title: string, preferences: Record<string, s
   })
   await page.addInitScript((entries) => {
     for (const [key, value] of entries) localStorage.setItem(key, value)
-  }, Object.entries({ skin: 'dark-orange', reducedMotion: 'true', ...preferences }))
+  }, Object.entries({ skin: 'dark-orange', exzedSkin: 'exzed-1d', reducedMotion: 'true', ...preferences }))
   await page.goto('/')
   await page.locator('.q-home-row', { hasText: title }).click()
   await page.locator('.q-item').first().waitFor()

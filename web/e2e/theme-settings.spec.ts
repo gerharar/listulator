@@ -68,10 +68,13 @@ test.describe('the THEME and SKIN choices', () => {
 
     await expect(chip(page, 'eX-Zed')).toHaveAttribute('aria-pressed', 'true')
     expect(await page.evaluate(() => document.documentElement.classList.contains('theme-exzed'))).toBe(true)
-    expect(await attr(page, 'data-theme')).toBe('exzed-1d')
+    // With no eX-Zed skin stored the first launch drew one of the six at random and stored it (H-030): the page carries it and exactly its chip is pressed.
+    const drawn = (await attr(page, 'data-theme'))!
+    expect(Object.values(KEYS)).toContain(drawn)
+    expect(await stored(page, 'exzedSkin')).toBe(drawn)
     for (const name of EXZED_NAMES) await expect(chip(page, name)).toBeVisible()
     for (const name of QUANTUM_NAMES) await expect(chip(page, name)).toHaveCount(0)
-    await expect(chip(page, 'Lode')).toHaveAttribute('aria-pressed', 'true')
+    for (const name of EXZED_NAMES) await expect(chip(page, name)).toHaveAttribute('aria-pressed', KEYS[name] === drawn ? 'true' : 'false')
     await expect(page.locator('.q-live')).toHaveText('Switched to the eX-Zed theme')
     await expect(settings(page).locator('.q-chip.skin .q-zx-swatch')).toHaveCount(6)
     await expect(settings(page).locator('.q-chip.skin .q-hex')).toHaveCount(0)

@@ -17,10 +17,10 @@ const EXPECTED = {
   'exzed-1l': { acc: '#000000', paper: '#d7d7d7', skin: '#0000d7', prog: '#0000d7', t2: '#0000ff' },
 } as const
 
-async function boot(page: Page, theme: string) {
+async function boot(page: Page, theme: string, exzedSkin?: string) {
   await page.addInitScript((entries) => {
     for (const [key, value] of entries) localStorage.setItem(key, value)
-  }, Object.entries({ theme, skin: 'dark-orange', reducedMotion: 'true' }))
+  }, Object.entries({ theme, skin: 'dark-orange', reducedMotion: 'true', ...(exzedSkin ? { exzedSkin } : {}) }))
   await page.goto('/')
   await page.locator('.q-home-row').first().waitFor()
 }
@@ -46,9 +46,20 @@ test.describe('with the theme exzed', () => {
     })
   }
 
-  test('an eX-Zed page is Lode by default: the app sets exzed-1d, and the bare theme-exzed block gives the same roles with no skin attribute at all', async ({ page }) => {
+  test('with no exzedSkin stored the app picks one of the six and stores it (H-030); it is never a Quantum key, and a reload keeps it', async ({ page }) => {
     await boot(page, 'exzed')
-    // 49.2: with no exzedSkin stored the app puts `exzed-1d` on `<html>` (never a Quantum key).
+
+    const skin = await page.evaluate(() => document.documentElement.getAttribute('data-theme'))
+    expect(SKINS).toContain(skin)
+    expect(await page.evaluate(() => localStorage.getItem('exzedSkin'))).toBe(skin)
+
+    await page.reload()
+    await page.locator('.q-home-row').first().waitFor()
+    expect(await page.evaluate(() => document.documentElement.getAttribute('data-theme'))).toBe(skin)
+  })
+
+  test('the bare theme-exzed block gives Lode’s roles with no skin attribute at all', async ({ page }) => {
+    await boot(page, 'exzed', 'exzed-1d')
     expect(await page.evaluate(() => document.documentElement.getAttribute('data-theme'))).toBe('exzed-1d')
     expect((await roles(page, 'html')).acc).toBe('#ffff00')
 

@@ -20,7 +20,7 @@ async function openSettings(page: Page, language: string, width: number) {
       }
       for (const [key, value] of entries) localStorage.setItem(key, value)
     },
-    Object.entries({ reducedMotion: 'true', theme: 'exzed', language }),
+    Object.entries({ reducedMotion: 'true', theme: 'exzed', exzedSkin: 'exzed-1d', language }),
   )
   await page.goto('/')
   await page.locator('.q-home-row').first().waitFor()
