@@ -22,7 +22,7 @@ const USES: readonly { file: string; selector: string; property: string; token: 
   { file: 'components/quantum/Button/Button.css', selector: '.q-icon-btn:disabled', property: 'opacity', token: '--o-disabled' },
   { file: 'components/quantum/ToggleChip/ToggleChip.css', selector: '.q-chip:disabled', property: 'opacity', token: '--o-disabled' },
   { file: 'screens/list/Spine.css', selector: '.q-item.dragging, .q-group.dragging', property: 'opacity', token: '--o-dragging' },
-  { file: 'screens/list/EndsButton.css', selector: '.q-ends-half:disabled', property: 'opacity', token: '--o-disabled-soft' },
+  { file: 'screens/list/EndsButton.css', selector: '.q-ends-half:disabled', property: 'opacity', token: '--o-disabled' },
   { file: 'components/quantum/HelperSheet/HelperSheet.css', selector: '.q-shelves .q-chip.none', property: 'opacity', token: '--o-disabled-soft' },
   { file: 'screens/list/ListScreen.css', selector: '.q-hold.is-busy', property: 'opacity', token: '--o-busy' },
   { file: 'components/quantum/LayerCard/LayerCard.css', selector: '.q-veil', property: 'background', token: '--veil' },

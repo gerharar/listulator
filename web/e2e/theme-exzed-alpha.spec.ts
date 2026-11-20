@@ -47,7 +47,7 @@ function alphaOf(color: string): number {
 
 for (const [theme, expected] of Object.entries(THEMES)) {
   test.describe(`with the theme ${theme}`, () => {
-    test('a disabled button, chip and icon button, and the disabled-soft ends button and shelf chip', async ({ page }) => {
+    test('a disabled button, chip, icon button and ends button (one disabled fade, H-019), and the disabled-soft shelf chip', async ({ page }) => {
       const title = `e2e alpha disabled ${theme} ${Date.now()}`
       const id = await makeList(page.request, title)
 
@@ -68,7 +68,7 @@ for (const [theme, expected] of Object.entries(THEMES)) {
         await page.locator('.q-home-row', { hasText: title }).click()
         await page.locator('.q-item').first().waitFor()
         // A list starts scrolled to the top, so its upper "ends" half is the disabled one.
-        await expect.poll(() => style(page, '.q-ends-half:disabled', 'opacity')).toBe(expected.soft)
+        await expect.poll(() => style(page, '.q-ends-half:disabled', 'opacity')).toBe(expected.disabled)
 
         await page.goto('/')
         await page.getByRole('button', { name: 'Surprise Me' }).click()
