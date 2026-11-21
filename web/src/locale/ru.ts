@@ -447,7 +447,6 @@ export const ru: Locale = {
       },
     },
     narrow: {
-      kicker: 'eX-Zed',
       embiggen: 'Embiggen',
       keep: 'Оставить Quantum',
       dismiss: 'Закрыть',

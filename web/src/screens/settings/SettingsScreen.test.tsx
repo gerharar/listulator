@@ -144,7 +144,7 @@ describe('SettingsScreen', () => {
 
     act(() => screen.getByRole('button', { name: 'eX-Zed' }).click())
 
-    expect(onThemeChange).toHaveBeenCalledExactlyOnceWith('exzed', screen.getByRole('button', { name: 'eX-Zed' }))
+    expect(onThemeChange).toHaveBeenCalledExactlyOnceWith('exzed')
     await waitFor(() => {
       expect(container.querySelector('.q-live')?.textContent).toBe('Switched to the eX-Zed theme')
     })
@@ -155,7 +155,7 @@ describe('SettingsScreen', () => {
 
     act(() => screen.getByRole('button', { name: 'Quantum' }).click())
 
-    expect(onThemeChange).toHaveBeenCalledExactlyOnceWith('quantum', screen.getByRole('button', { name: 'Quantum' }))
+    expect(onThemeChange).toHaveBeenCalledExactlyOnceWith('quantum')
     await waitFor(() => {
       expect(container.querySelector('.q-live')?.textContent).toBe('Switched to the Quantum theme')
     })

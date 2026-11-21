@@ -210,8 +210,8 @@ html.theme-exzed .q-pop-menu button[aria-current=true] {
 /* The kind tag's width (Phase 49, found at Checkpoint D; the Tag card's "as wide as the longest") moved to exzed-tags.css with the other tags (51.6). */
 
 /*
- * The buttons of a popover wrap onto the next line instead of leaving the card (found by the owner on the Mac at 49.12: the narrow-window popover has three, and in
- * this font they are wider than its 360px card, so Dismiss stood outside it). Quantum's row never wraps because its buttons fit; the Spectrum font is as wide as it is tall. Each line
+ * The buttons of a popover wrap onto the next line instead of leaving the card (found by the owner on the Mac at 49.12: the narrow-window popover had three, and in
+ * this font they were wider than its 360px card, so Dismiss stood outside it; that popover is gone (D49, 57.1), the rule stays for the other popovers). Quantum's row never wraps because its buttons fit; the Spectrum font is as wide as it is tall. Each line
  * stays right-aligned, the primary last, as the design's Popover card has it. eX-Zed's own popover widths and drawing are X-007's.
  */
 html.theme-exzed .q-pop-actions {

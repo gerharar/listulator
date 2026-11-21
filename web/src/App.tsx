@@ -11,7 +11,7 @@ import { narrowWindowMin, type NarrowMode } from './lib/narrowWindow.js'
 import { useNarrowWindowNotice } from './lib/useNarrowWindowNotice.js'
 import { maximizeWindow } from './lib/windowMaximize.js'
 import { useInnerWidth } from './lib/useInnerWidth.js'
-import { NarrowWindowBanner, NarrowWindowPopover } from './components/quantum/NarrowWindowNotice/NarrowWindowNotice.js'
+import { NarrowWindowBanner } from './components/quantum/NarrowWindowNotice/NarrowWindowNotice.js'
 import { resolveExzedSkin, setExzedSkin as persistExzedSkin } from './lib/preferences/exzedSkin.js'
 import { resolveSpectrumBorder } from './lib/preferences/spectrumBorder.js'
 import { SpectrumBorderProvider } from './components/quantum/DocumentTheme/SpectrumBorderSetting.js'
@@ -165,8 +165,7 @@ function QuantumShell({ initial }: { initial: BootState }) {
   )
   const store = getPreferencesStore()
 
-  // eX-Zed needs a window of a minimum width (49.12). Narrower, with eX-Zed drawn: a banner (the app started so) or, when the person has just switched to it, a
-  // popover on the chip. Never blocking, nothing stored. The minimum is read from the theme's own tokens once it is the theme drawn; the width is the layers'.
+  // eX-Zed needs a window of a minimum width (49.12). Narrower, with eX-Zed drawn: one banner, whatever made it narrow (D49). Never blocking, nothing stored. The minimum is read from the theme's own tokens once it is the theme drawn; the width is the layers'.
   const width = useInnerWidth()
   const needed = useMemo(() => (shown === 'exzed' ? narrowWindowMin() : 0), [shown])
   const notice = useNarrowWindowNotice({ exzed: shown === 'exzed', width, min: needed, desktop: isDesktop(), screenWidth: screen.availWidth, maximize: maximizeWindow })
@@ -185,10 +184,10 @@ function QuantumShell({ initial }: { initial: BootState }) {
     void persistExzedSkin(store, next)
   }
 
-  function handleThemeChange(next: Theme, anchor?: HTMLElement): void {
+  function handleThemeChange(next: Theme): void {
     if (next === theme) return
-    // A fresh switch to eX-Zed is a fresh question: the popover opens on the chip again, whatever was dismissed before.
-    notice.opened(next === 'exzed' && anchor ? anchor : null)
+    // A fresh switch to eX-Zed is a fresh question: the banner asks again, whatever was dismissed before.
+    if (next === 'exzed') notice.reopen()
     // The class goes on <html> first, as at boot: what is laid out from the page's sizes (the row model, the rail's placement, the layers' cascade) reads
     // them while it renders, and DocumentTheme's own effect runs only after its children have rendered. Written at once, so a quit right after keeps it.
     applyLook(effectiveTheme(next, fine), skin, exzedSkin)
@@ -225,8 +224,6 @@ function QuantumShell({ initial }: { initial: BootState }) {
                           mode: notice.mode,
                           min: needed,
                           banner: notice.banner,
-                          popover: notice.popover,
-                          anchor: notice.anchor,
                           onEmbiggen: notice.embiggen,
                           onKeep: () => handleThemeChange('quantum'),
                           onDismiss: notice.dismiss,
@@ -310,8 +307,6 @@ interface NarrowNotice {
   mode: NarrowMode
   min: number
   banner: boolean
-  popover: boolean
-  anchor: HTMLElement | null
   onEmbiggen: () => void
   onKeep: () => void
   onDismiss: () => void
@@ -378,7 +373,6 @@ function AppShellBody({ skin, onSkinChange, exzedSkin, onExzedSkinChange, theme,
     <div className="q-shell">
       <AppHeader skin={skin} onSkinChange={onSkinChange} exzedSkin={exzedSkin} onExzedSkinChange={onExzedSkinChange} onSettings={openSettings} onAbout={openAbout} quit={appQuit} run={layerStack.navigationRun ?? undefined} />
       {narrow.banner && <NarrowWindowBanner mode={narrow.mode} min={narrow.min} onEmbiggen={narrow.onEmbiggen} onKeep={narrow.onKeep} onDismiss={narrow.onDismiss} />}
-      <NarrowWindowPopover open={narrow.popover} anchorEl={narrow.anchor} mode={narrow.mode} min={narrow.min} onEmbiggen={narrow.onEmbiggen} onKeep={narrow.onKeep} onDismiss={narrow.onDismiss} />
       <div className="q-stage">
         {layerStack.visible.map((layer, index) => {
           const isTop = index === layerStack.visible.length - 1

@@ -486,9 +486,8 @@ export const en = {
         },
       },
     },
-    /** The warning that eX-Zed needs a wider window (Phase 49.12): a banner at start, a popover on the THEME chip when switching. "Embiggen" is the owner's own label. */
+    /** The warning that eX-Zed needs a wider window (Phase 49.12): one banner, whatever made the window narrow (D49). "Embiggen" is the owner's own label. */
     narrow: {
-      kicker: 'eX-Zed',
       embiggen: 'Embiggen',
       keep: 'Keep Quantum',
       dismiss: 'Dismiss',

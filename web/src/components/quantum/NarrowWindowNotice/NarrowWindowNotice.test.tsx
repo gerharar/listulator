@@ -1,9 +1,10 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { act, cleanup, render, screen, within } from '@testing-library/react'
-import { OverlayManagerProvider } from '../overlay/OverlayManagerContext.js'
+import { act, cleanup, render, screen } from '@testing-library/react'
 import { setActiveLanguage } from '../../../locale/index.js'
-import { NarrowWindowBanner, NarrowWindowPopover } from './NarrowWindowNotice.js'
+import * as notice from './NarrowWindowNotice.js'
+
+const { NarrowWindowBanner } = notice
 
 afterEach(() => {
   cleanup()
@@ -11,7 +12,7 @@ afterEach(() => {
 })
 
 /**
- * The warning that eX-Zed needs a wider window (Phase 49.12): a banner when the app starts in one, a popover on the THEME chip when the person switches in one.
+ * The warning that eX-Zed needs a wider window (Phase 49.12): one banner, whatever made the window narrow (D49, 57.1: the popover on the THEME chip is gone).
  * It says what to do, never blocks, and offers by where the app runs: the button that maximises ("Embiggen", the owner’s label) on the desktop where the screen can hold
  * the window; the line alone where it cannot; the line that asks to widen the window in a browser. Keep Quantum and Dismiss are always there.
  */
@@ -73,41 +74,14 @@ describe('NarrowWindowBanner', () => {
   })
 })
 
-describe('NarrowWindowPopover', () => {
-  function popover(mode: 'embiggen' | 'screen' | 'browser', open = true) {
-    const anchor = document.createElement('button')
-    document.body.append(anchor)
-    const handlers = { onEmbiggen: vi.fn(), onKeep: vi.fn(), onDismiss: vi.fn() }
-    render(
-      <OverlayManagerProvider>
-        <NarrowWindowPopover open={open} anchorEl={anchor} mode={mode} min={1128} {...handlers} />
-      </OverlayManagerProvider>,
-    )
+describe('one notice (D49)', () => {
+  it('is the banner that asks for action, so eX-Zed can draw it filled: it carries its own class beside the Banner’s', () => {
+    banner('embiggen')
 
-    return handlers
-  }
-
-  it('says the same thing in the popover that opens on the chip, with the same buttons', () => {
-    const { onEmbiggen, onKeep, onDismiss } = popover('embiggen')
-    const dialog = screen.getByRole('dialog')
-
-    expect(within(dialog).getByText('eX-Zed needs a window at least 1128px wide.')).not.toBeNull()
-    act(() => within(dialog).getByRole('button', { name: 'Embiggen' }).click())
-    act(() => within(dialog).getByRole('button', { name: 'Keep Quantum' }).click())
-    act(() => within(dialog).getByRole('button', { name: 'Dismiss' }).click())
-    expect([onEmbiggen.mock.calls.length, onKeep.mock.calls.length, onDismiss.mock.calls.length]).toEqual([1, 1, 1])
+    expect(screen.getByRole('status').className.split(' ').sort()).toEqual(['q-banner', 'q-banner-narrow'])
   })
 
-  it('on a screen too narrow, has no Embiggen either', () => {
-    popover('screen')
-
-    expect(within(screen.getByRole('dialog')).getByText(SCREEN)).not.toBeNull()
-    expect(screen.queryByRole('button', { name: 'Embiggen' })).toBeNull()
-  })
-
-  it('draws nothing while closed', () => {
-    popover('browser', false)
-
-    expect(screen.queryByRole('dialog')).toBeNull()
+  it('has no popover any more', () => {
+    expect(Object.keys(notice)).toEqual(['NarrowWindowBanner'])
   })
 })

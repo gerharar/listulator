@@ -5,8 +5,8 @@ import { useNarrowWindowNotice } from './useNarrowWindowNotice.js'
 
 /**
  * The state of the narrow-window warning (Phase 49.12), with every input given so each path can be driven, the desktop ones too (no browser test can press a
- * native window’s button). Under eX-Zed a window narrower than the minimum shows a banner; the person who has just switched gets a popover on the chip instead.
- * Dismiss lasts the session; Embiggen is offered once.
+ * native window’s button). Under eX-Zed a window narrower than the minimum shows a banner, whatever made it narrow: the start, a resize, the switch in Settings (D49, 57.1: the
+ * popover on the chip is gone). Dismiss lasts the session, a fresh switch to eX-Zed asks again; Embiggen is offered once.
  */
 type Inputs = Parameters<typeof useNarrowWindowNotice>[0]
 
@@ -16,12 +16,10 @@ function hook(overrides: Partial<Inputs> = {}) {
   return renderHook((props: Inputs) => useNarrowWindowNotice(props), { initialProps: { ...base, ...overrides } })
 }
 
-const chip = () => document.createElement('button')
-
 describe('when the app starts in eX-Zed', () => {
   it('shows the banner in a window one pixel under the minimum, and nothing at the minimum', () => {
-    expect(hook({ width: 1127 }).result.current).toMatchObject({ narrow: true, banner: true, popover: false })
-    expect(hook({ width: 1128 }).result.current).toMatchObject({ narrow: false, banner: false, popover: false })
+    expect(hook({ width: 1127 }).result.current).toMatchObject({ narrow: true, banner: true })
+    expect(hook({ width: 1128 }).result.current).toMatchObject({ narrow: false, banner: false })
   })
 
   it('shows nothing when eX-Zed is not the theme drawn (Quantum, or any touch-only device)', () => {
@@ -51,52 +49,55 @@ describe('when the app starts in eX-Zed', () => {
   })
 })
 
-describe('when the person switches to eX-Zed in a window that is too narrow', () => {
-  it('opens the popover on the chip, in place of the banner', () => {
+describe('when the person switches to eX-Zed in a window that is too narrow (D49)', () => {
+  it('shows the same banner, and never a popover or an anchor', () => {
     const { result } = hook({ width: 1127 })
-    const anchor = chip()
 
-    act(() => result.current.opened(anchor))
+    act(() => result.current.reopen())
 
-    expect(result.current).toMatchObject({ popover: true, banner: false, anchor })
+    expect(result.current).toMatchObject({ narrow: true, banner: true })
+    expect(result.current).not.toHaveProperty('popover')
+    expect(result.current).not.toHaveProperty('anchor')
   })
 
-  it('opens nothing in a window wide enough', () => {
+  it('shows nothing in a window wide enough', () => {
     const { result } = hook({ width: 1400 })
 
-    act(() => result.current.opened(chip()))
+    act(() => result.current.reopen())
 
-    expect(result.current).toMatchObject({ popover: false, banner: false })
+    expect(result.current).toMatchObject({ narrow: false, banner: false })
   })
 
-  it('Dismiss closes the popover and the banner does not come back this session', () => {
-    const { result } = hook({ width: 1127 })
-    act(() => result.current.opened(chip()))
-
-    act(() => result.current.dismiss())
-
-    expect(result.current).toMatchObject({ popover: false, banner: false, anchor: null })
-  })
-
-  it('a fresh switch after a Dismiss opens the popover again: it is a new question', () => {
+  it('a fresh switch after a Dismiss shows the banner again: it is a new question', () => {
     const { result } = hook({ width: 1127 })
     act(() => result.current.dismiss())
+    expect(result.current.banner).toBe(false)
 
-    act(() => result.current.opened(chip()))
+    act(() => result.current.reopen())
 
-    expect(result.current.popover).toBe(true)
+    expect(result.current.banner).toBe(true)
   })
 
-  it('closes the popover when the window is widened, and when the person switches away (no anchor)', () => {
+  it('Dismiss hides it, and it stays hidden through a widening and a narrowing', () => {
     const { result, rerender } = hook({ width: 1127 })
-    act(() => result.current.opened(chip()))
+    act(() => result.current.reopen())
+
+    act(() => result.current.dismiss())
+    rerender({ ...base, width: 1300 })
+    rerender({ ...base, width: 1000 })
+
+    expect(result.current.banner).toBe(false)
+  })
+
+  it('goes when the window is widened, and comes back when it is narrowed again (after Embiggen and shrink)', () => {
+    const { result, rerender } = hook({ width: 1127 })
+    act(() => result.current.reopen())
+
     rerender({ ...base, width: 1200 })
-    expect(result.current).toMatchObject({ popover: false, anchor: null })
+    expect(result.current.banner).toBe(false)
 
     rerender({ ...base, width: 1127 })
-    act(() => result.current.opened(chip()))
-    act(() => result.current.opened(null))
-    expect(result.current.popover).toBe(false)
+    expect(result.current.banner).toBe(true)
   })
 })
 

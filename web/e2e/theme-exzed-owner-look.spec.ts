@@ -218,11 +218,11 @@ for (const skin of SKINS) {
     })
   }
 
-  test(`${skin}: the small-window notice is readable: it has the paper under it, not the art`, async ({ page }) => {
+  test(`${skin}: the small-window notice is readable: it is filled (D49, 57.1), so the art is not behind it`, async ({ page }) => {
     await open(page, skin, 900)
     const banner = page.locator('.q-banner')
     await banner.waitFor()
-    expect((await style(banner, ['background-color']))['background-color']).toBe(rgbOf(await token(page, '--zx-paper')))
+    expect((await style(banner, ['background-color']))['background-color']).toBe(rgbOf(await token(page, '--zx-info')))
     const header = (await page.locator('.q-appheader').boundingBox())!
     const box = (await banner.boundingBox())!
     expect(box.y, 'under the header, not behind it').toBeGreaterThanOrEqual(header.y + header.height - 1)

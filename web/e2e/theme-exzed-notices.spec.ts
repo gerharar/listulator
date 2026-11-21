@@ -17,7 +17,7 @@ const css = (c: Rgb) => `rgb(${c.join(', ')})`
 const box = async (locator: Locator) => (await locator.boundingBox())!
 
 async function roles(page: Page) {
-  const names = ['paper', 'ink', 'ink2', 'ctl', 'frame', 'frame-hi', 'info-line', 'acc', 'acc-ink'] as const
+  const names = ['paper', 'ink', 'ink2', 'ctl', 'frame', 'frame-hi', 'info', 'info-line', 'chip-ink', 'acc', 'acc-ink'] as const
   const found = await Promise.all(names.map((n) => token(page, `--zx-${n}`)))
 
   return Object.fromEntries(names.map((n, i) => [n, rgbOf(found[i]!)])) as Record<(typeof names)[number], Rgb>
@@ -195,16 +195,71 @@ for (const skin of SKINS) {
       expect(await style(buttons.nth(1), ['background-color', 'color'])).toEqual({ 'background-color': css(r.acc), color: css(r['acc-ink']) })
     })
 
-    test('the narrow-window banner is the same Banner: [Keep Quantum] and [Dismiss] in 24px brackets', async ({ page }) => {
+    test('the narrow-window banner is filled (D49): the info ground, chip-ink text, no border to see, 32px high, bracketed chip-ink buttons, and a chip-ink block with info text on hover', async ({ page }) => {
       await page.setViewportSize({ width: 1000, height: 800 })
       await seed(page, skin)
       await page.route('**/api/library/untracked', (route) => route.fulfill({ json: { entries: [], reachable: true } }))
       await page.goto('/')
       const banner = page.locator('.q-banner[role="status"]')
       await expect(banner).toBeVisible()
+      await page.evaluate(() => document.fonts.ready)
+      await page.mouse.move(0, 0)
       const r = await roles(page)
-      expect((await style(banner, ['border-top-width', 'border-top-color', 'background-color']))).toEqual({ 'border-top-width': '2px', 'border-top-color': css(r['info-line']), 'background-color': css(r.paper) })
-      for (const button of await banner.locator('.q-btn').all()) expect((await style(button, ['height']))['height']).toBe('24px')
+
+      expect(await style(banner, ['background-color', 'color', 'border-top-width', 'border-top-color', 'border-bottom-color', 'font-size', 'padding-left'])).toEqual({
+        'background-color': css(r.info),
+        color: css(r['chip-ink']),
+        'border-top-width': '2px',
+        'border-top-color': css(r.info),
+        'border-bottom-color': css(r.info),
+        'font-size': '16px',
+        'padding-left': '16px',
+      })
+      // The same 2px border and 2px padding as the news banner, so a one-line sentence is 32px high; at 1000px the sentence wraps and the box grows with it.
+      expect(await style(banner, ['padding-top', 'padding-right', 'padding-bottom']), 'the same padding as the other banners').toEqual({ 'padding-top': '2px', 'padding-right': '2px', 'padding-bottom': '2px' })
+      const buttons = banner.locator('.q-btn')
+      await expect(buttons).toHaveCount(2)
+      for (const at of [0, 1]) {
+        expect(await style(buttons.nth(at), ['height', 'color']), `button ${at}`).toEqual({ height: '24px', color: css(r['chip-ink']) })
+        expect(await buttons.nth(at).evaluate((el) => getComputedStyle(el, '::before').content)).toContain('[')
+      }
+      await buttons.nth(1).hover()
+      expect(await style(buttons.nth(1), ['background-color', 'color'])).toEqual({ 'background-color': css(r['chip-ink']), color: css(r.info) })
+    })
+
+    for (const reduced of [false, true]) {
+      test(`the narrow-window banner ${reduced ? 'has no flash under reduced motion' : 'comes in with one FLASH step (320ms, steps(1), once), its buttons too'}`, async ({ page }) => {
+        await page.setViewportSize({ width: 1000, height: 800 })
+        await seed(page, skin, { reducedMotion: String(reduced) })
+        await page.route('**/api/library/untracked', (route) => route.fulfill({ json: { entries: [], reachable: true } }))
+        await page.goto('/')
+        const banner = page.locator('.q-banner[role="status"]')
+        await expect(banner).toBeVisible()
+        for (const target of [banner, banner.locator('.q-btn').first()]) {
+          const seen = await style(target, ['animation-name', 'animation-duration', 'animation-timing-function', 'animation-iteration-count'])
+          if (reduced) {
+            expect(seen['animation-name'], 'reduced motion: no flash').toBe('none')
+          } else {
+            expect(seen['animation-duration']).toBe('0.32s')
+            expect(seen['animation-timing-function']).toBe('steps(1)')
+            expect(seen['animation-iteration-count']).toBe('1')
+            expect(seen['animation-name']).toMatch(/^zx-narrow-flash/)
+          }
+        }
+      })
+    }
+
+    test('only the narrow-window banner is filled: the news banner keeps its paper (D43)', async ({ page }) => {
+      await seed(page, skin)
+      await useHomeFixture(page)
+      await page.route('**/api/library/untracked', (route) => route.fulfill({ json: { entries: [], reachable: true } }))
+      await page.addInitScript(([id]) => localStorage.setItem('updates:pending', JSON.stringify({ [id!]: { count: 2, checkedAt: '2026-01-01T00:00:00.000Z' } })), [FIXTURE_LIST_ID])
+      await page.goto('/')
+      const news = page.locator('.q-banner').first()
+      await expect(news).toBeVisible()
+      const r = await roles(page)
+      expect((await style(news, ['background-color']))['background-color']).toBe(css(r.paper))
+      await expect(page.locator('.q-banner-narrow')).toHaveCount(0)
     })
 
     test('the error strip: a 2px frame border, no fill, 56px at least, one sentence in ink, [Retry] and [Dismiss] 40px high 8px apart', async ({ page }) => {

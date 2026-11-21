@@ -3,7 +3,7 @@ import { expect, test, type Page } from '@playwright/test'
 /**
  * The warning that eX-Zed needs a window at least 1128px wide (Phase 49.12; 1080 for a layer plus the two 24px gaps the stage keeps), in both engines, in the
  * browser build (the desktop paths, Embiggen included, are driven in the unit tests: no browser can press a native window’s button). Starting in eX-Zed in a narrower
- * window shows a banner under the header; switching to it in one opens a popover on the chip; at 1128 neither. Never blocking. In a browser there is no Embiggen and the
+ * window shows a banner under the header; so does switching to it in one (D49, 57.1: the popover on the chip is gone, no dialog opens anywhere); at 1128 neither. Never blocking. In a browser there is no Embiggen and the
  * line asks to widen the window. Keep Quantum switches back and stores it; Dismiss hides it for this session only and never touches the stored theme. Quantum and
  * touch-only devices never see it.
  */
@@ -25,7 +25,7 @@ async function open(page: Page, stored: Record<string, string>, width: number) {
 }
 
 const banner = (page: Page) => page.locator('.q-banner', { hasText: LINE })
-const popover = (page: Page) => page.getByRole('dialog', { name: 'eX-Zed' })
+const dialogs = (page: Page) => page.getByRole('dialog')
 const stored = (page: Page, key: string) => page.evaluate((name) => localStorage.getItem(name), key)
 const isExzed = (page: Page) => page.evaluate(() => document.documentElement.classList.contains('theme-exzed'))
 
@@ -105,96 +105,87 @@ test.describe('starting in eX-Zed', () => {
 })
 
 test.describe('switching to eX-Zed', () => {
-  test('in a window one pixel under the minimum a popover opens on the eX-Zed chip, in place of the banner', async ({ page }) => {
+  test('in a window one pixel under the minimum the same banner shows under the header, and no dialog opens', async ({ page }) => {
     await open(page, { theme: 'quantum' }, 1127)
     await expect(banner(page)).toHaveCount(0)
 
     await switchToExzed(page)
 
-    await expect(popover(page)).toBeVisible()
-    await expect(popover(page).getByText(LINE)).toBeVisible()
-    await expect(banner(page)).toHaveCount(0)
-    const chip = (await page.locator('.q-settings').getByRole('button', { name: 'eX-Zed', exact: true }).boundingBox())!
-    const card = (await popover(page).boundingBox())!
-    expect(Math.abs(card.y + card.height / 2 - (chip.y + chip.height / 2)), 'the popover is beside the chip it points at').toBeLessThan(chip.height + card.height)
+    await expect(banner(page)).toBeVisible()
+    await expect(banner(page).getByRole('button', { name: 'Keep Quantum' })).toBeVisible()
+    await expect(banner(page).getByRole('button', { name: 'Dismiss' })).toBeVisible()
+    await expect(page.locator('.q-pop')).toHaveCount(0)
+    // The Settings layer is a layer, not a dialog: nothing in the page is one.
+    await expect(dialogs(page)).toHaveCount(0)
   })
 
-  test('at 1128px nothing opens', async ({ page }) => {
+  test('at 1128px nothing shows', async ({ page }) => {
     await open(page, { theme: 'quantum' }, 1128)
 
     await switchToExzed(page)
 
     expect(await isExzed(page)).toBe(true)
-    await expect(popover(page)).toHaveCount(0)
+    await expect(dialogs(page)).toHaveCount(0)
     await expect(banner(page)).toHaveCount(0)
   })
 
-  test('Keep Quantum in the popover switches back and stores quantum', async ({ page }) => {
+  test('Keep Quantum in the banner switches back and stores quantum', async ({ page }) => {
     await open(page, { theme: 'quantum' }, 1127)
     await switchToExzed(page)
 
-    await popover(page).getByRole('button', { name: 'Keep Quantum' }).click()
+    await banner(page).getByRole('button', { name: 'Keep Quantum' }).click()
 
-    await expect(popover(page)).toHaveCount(0)
+    await expect(banner(page)).toHaveCount(0)
     expect(await isExzed(page)).toBe(false)
     expect(await stored(page, 'theme')).toBe('quantum')
   })
 
-  test('Dismiss in the popover closes it, keeps eX-Zed and stores it, and the banner stays away this session', async ({ page }) => {
+  test('Dismiss in the banner hides it, keeps eX-Zed and stores it, and it stays away this session', async ({ page }) => {
     await open(page, { theme: 'quantum' }, 1127)
     await switchToExzed(page)
 
-    await popover(page).getByRole('button', { name: 'Dismiss' }).click()
+    await banner(page).getByRole('button', { name: 'Dismiss' }).click()
 
-    await expect(popover(page)).toHaveCount(0)
     await expect(banner(page)).toHaveCount(0)
     expect(await isExzed(page)).toBe(true)
     expect(await stored(page, 'theme')).toBe('exzed')
+    await page.setViewportSize({ width: 1300, height: 800 })
+    await page.setViewportSize({ width: 1000, height: 800 })
+    await expect(banner(page)).toHaveCount(0)
   })
 
-  test('widening the window closes the popover', async ({ page }) => {
+  test('widening the window takes the banner away, and narrowing it brings it back', async ({ page }) => {
     await open(page, { theme: 'quantum' }, 1127)
     await switchToExzed(page)
-    await expect(popover(page)).toBeVisible()
+    await expect(banner(page)).toBeVisible()
 
     await page.setViewportSize({ width: 1200, height: 800 })
+    await expect(banner(page)).toHaveCount(0)
 
-    await expect(popover(page)).toHaveCount(0)
+    await page.setViewportSize({ width: 1127, height: 800 })
+    await expect(banner(page)).toBeVisible()
+  })
+
+  test('a fresh switch after a Dismiss shows it again: it is a new question', async ({ page }) => {
+    await open(page, { theme: 'quantum' }, 1127)
+    await switchToExzed(page)
+    await banner(page).getByRole('button', { name: 'Dismiss' }).click()
+    await expect(banner(page)).toHaveCount(0)
+
+    await page.locator('.q-settings').getByRole('button', { name: 'Quantum', exact: true }).click()
+    await page.locator('.q-settings').getByRole('button', { name: 'eX-Zed', exact: true }).click()
+
+    await expect(banner(page)).toBeVisible()
   })
 })
 
 /**
  * The desktop adds a third button, Embiggen, which a browser never shows, so the browser build cannot draw it: the test adds one of the same kind to the row, as the
- * desktop’s notice does (found by the owner on the Mac: three buttons in the Spectrum font are wider than the 360px card, and Dismiss left it on the left). In every language,
+ * desktop’s notice does (found by the owner on the Mac, when the notice was a popover: three buttons in the Spectrum font were wider than its card). In every language,
  * because the labels differ in length, no button may leave its container.
  */
 test.describe('with the third button the desktop adds (Embiggen)', () => {
   for (const language of ['en', 'ru', 'de']) {
-    test(`the popover keeps all three buttons inside its card (${language})`, async ({ page }) => {
-      await open(page, { theme: 'quantum', language }, 1127)
-      await switchToExzed(page, language)
-      const card = page.getByRole('dialog', { name: 'eX-Zed' })
-      await card.waitFor()
-      await card.locator('.q-pop-actions').evaluate((row) => {
-        const button = document.createElement('button')
-        button.className = 'q-btn primary'
-        button.textContent = 'Embiggen'
-        row.append(button)
-      })
-
-      const boxes = await card.evaluate((element) => {
-        const outer = element.getBoundingClientRect()
-
-        return Array.from(element.querySelectorAll('.q-pop-actions button')).map((button) => {
-          const box = button.getBoundingClientRect()
-          return { label: button.textContent, outside: Math.max(outer.left - box.left, box.right - outer.right, 0) }
-        })
-      })
-
-      expect(boxes).toHaveLength(3)
-      for (const box of boxes) expect(box.outside, `${box.label} sticks out of the card by`).toBe(0)
-    })
-
     test(`the banner keeps all three buttons inside the window (${language})`, async ({ page }) => {
       await open(page, { theme: 'exzed', language }, 1127)
       await page.locator('.q-banner .q-banner-actions').first().waitFor()

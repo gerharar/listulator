@@ -31,8 +31,7 @@ export interface SettingsScreenProps {
   onExzedSkinChange: (skin: ExzedSkin) => void
   /** The theme in force, and the shell's switch (49.7): applied at once and stored there; this announces it. */
   theme: Theme
-  /** `anchor` is the chip that was pressed: what the narrow-window warning (49.12) opens its popover on. */
-  onThemeChange: (theme: Theme, anchor?: HTMLElement) => void
+  onThemeChange: (theme: Theme) => void
   /** False on a touch-only device (49.10): eX-Zed is not offered there, so the THEME row is not drawn and Quantum's skin row stays. */
   canChooseTheme: boolean
   /** Where the language is remembered; the skin and reduced motion are persisted by their owners. */
@@ -68,10 +67,10 @@ export function SettingsScreen({ skin, onSkinChange, exzedSkin, onExzedSkinChang
   // The names of the themes are names: not translated.
   const themeNames: Record<Theme, string> = { quantum: text.themeQuantum, exzed: text.themeExzed }
 
-  function pickTheme(next: Theme, anchor: HTMLElement): void {
+  function pickTheme(next: Theme): void {
     // The lit one is not a switch: nothing to apply, and nothing to announce.
     if (next === theme) return
-    onThemeChange(next, anchor)
+    onThemeChange(next)
     announce(text.themeChanged(themeNames[next]))
   }
 
@@ -97,7 +96,7 @@ export function SettingsScreen({ skin, onSkinChange, exzedSkin, onExzedSkinChang
               <span className="q-kicker">{text.theme}</span>
               <div className="q-settings-row">
                 {THEMES.map((id) => (
-                  <ToggleChip key={id} variant="choice" pressed={id === theme} onClick={(event) => pickTheme(id, event.currentTarget)}>
+                  <ToggleChip key={id} variant="choice" pressed={id === theme} onClick={() => pickTheme(id)}>
                     {themeNames[id]}
                   </ToggleChip>
                 ))}

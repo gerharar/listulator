@@ -59,4 +59,18 @@ describe('eX-Zed’s notices', () => {
     expect(body('html.theme-exzed .q-error-block p')).toMatch(/color:\s*var\(--zx-ink2\);/)
     expect(css).not.toMatch(/--zx-danger/)
   })
+
+  it('draws the narrow-window notice filled (D49): info ground, chip-ink text, a border of the ground’s own colour (none to see, the box stays 32px), its buttons bracketed in chip-ink and a chip-ink block with info text on hover', () => {
+    expect(body('html.theme-exzed .q-banner.q-banner-narrow')).toMatch(/border-color:\s*var\(--zx-info\);\s*background:\s*var\(--zx-info\);\s*color:\s*var\(--zx-chip-ink\);/)
+    expect(body('html.theme-exzed .q-banner-narrow .q-btn:not(.primary):not(.danger)')).toMatch(/color:\s*var\(--zx-chip-ink\);/)
+    expect(body('html.theme-exzed .q-banner-narrow .q-btn:not(.primary):not(.danger):where(:not(:disabled)):hover')).toMatch(/background:\s*var\(--zx-chip-ink\);\s*border-color:\s*var\(--zx-chip-ink\);\s*color:\s*var\(--zx-info\);/)
+  })
+
+  it('comes in with one FLASH step: 320ms, `steps(1)`, once, inverse (chip-ink ground, info text), and not under reduced motion; only this banner is filled', () => {
+    expect(body('html.theme-exzed .q-banner.q-banner-narrow')).toMatch(/animation:\s*zx-narrow-flash 320ms steps\(1\) 1;/)
+    expect(body('html.theme-exzed .q-banner-narrow .q-btn')).toMatch(/animation:\s*zx-narrow-flash-ink 320ms steps\(1\) 1;/)
+    expect(css).toMatch(/html\.theme-exzed\[data-reduced\] \.q-banner-narrow,\s*html\.theme-exzed\[data-reduced\] \.q-banner-narrow \.q-btn\s*{\s*animation:\s*none;/)
+    expect(css).toMatch(/@keyframes zx-narrow-flash\s*{\s*0%\s*{\s*background-color:\s*var\(--zx-chip-ink\);\s*color:\s*var\(--zx-info\);/)
+    expect(body('html.theme-exzed .q-banner')).toMatch(/background:\s*var\(--zx-paper\);/)
+  })
 })

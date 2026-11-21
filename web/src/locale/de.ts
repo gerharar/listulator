@@ -440,7 +440,6 @@ export const de: Locale = {
       },
     },
     narrow: {
-      kicker: 'eX-Zed',
       embiggen: 'Embiggen',
       keep: 'Quantum behalten',
       dismiss: 'Schließen',
