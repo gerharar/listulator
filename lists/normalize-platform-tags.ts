@@ -21,7 +21,7 @@ import { isRunDirectly } from '../server/src/tools/runDirectly.js'
  * might produce, so this script keeps its own list instead of extending it.
  *
  * Usage:
- *   npx tsx lists/normalize-platform-tags.ts lists/game/*.yaml
+ *   npx tsx lists/normalize-platform-tags.ts lists/game/[list-name].yaml
  *   npx tsx lists/normalize-platform-tags.ts --write lists/game/my-new-list.yaml
  */
 
@@ -197,6 +197,7 @@ if (isRunDirectly(import.meta.url)) {
     }
 
     let touched = false
+    let fileUnresolved = false
     for (const [index, item] of parsed.items.entries()) {
       const { resolved, unresolved } = checkTags(item.tags ?? [])
       const named = `item ${index + 1} ("${item.title}")`
@@ -207,6 +208,7 @@ if (isRunDirectly(import.meta.url)) {
       for (const tag of unresolved) {
         console.log(`${path}: ${named}: "${tag}" is not a known platform, code, or alias — leaving it as written`)
         anyUnresolved = true
+        fileUnresolved = true
       }
     }
 
@@ -215,6 +217,8 @@ if (isRunDirectly(import.meta.url)) {
       console.log(`${path}: wrote fixes`)
     } else if (!write && touched) {
       console.log(`${path}: run again with --write to apply the fixes above`)
+    } else if (!touched && !fileUnresolved) {
+      console.log(`${path}: all platform tags already use the right codes, nothing to change`)
     }
   }
 
