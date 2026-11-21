@@ -1,6 +1,5 @@
 import './ImportFileTab.css'
-import { useRef, useState, type ChangeEvent, type ClipboardEvent } from 'react'
-import { CircleAlert } from 'lucide-react'
+import { useId, useRef, useState, type ChangeEvent, type ClipboardEvent } from 'react'
 import { load } from 'js-yaml'
 import { api, type MediaType } from '../../../lib/api.js'
 import { categoryLabel, copy } from '../../../locale/index.js'
@@ -8,6 +7,7 @@ import { Button } from '../Button/Button.js'
 import { ConfirmPopover } from '../ConfirmPopover/ConfirmPopover.js'
 import { RichSentence } from '../RichSentence/RichSentence.js'
 import { FieldTextArea, ReadOnlyBuffer } from '../Field/Field.js'
+import { FieldMessage } from '../Field/FieldMessage.js'
 import { useFieldValidation } from '../Field/useFieldValidation.js'
 
 export interface ImportFileTabProps {
@@ -49,8 +49,10 @@ function formatSize(bytes: number): string {
  * single Import.
  *
  * Nothing is checked until Import: the read-out is a fact about the text at
- * the moment it arrived and is never recomputed, and a refusal is one
- * sentence that clears on the next edit or file pick. The buffer lives only
+ * the moment it arrived and is never recomputed. The empty box's sentence and
+ * the server's refusal are both the box's field message (H-031, updated
+ * 2026-11-21): one sentence under the box, the box ringed, the cursor in it;
+ * it clears on the next edit or file pick. The buffer lives only
  * in this component, so leaving the tab (which unmounts it) clears it.
  * The server parses the file, and stores the raw text as `source_yaml` so the
  * list can be Reset later.
@@ -74,6 +76,9 @@ export function ImportFileTab({ mediaTypes, mediaTypeKey, onBuilt }: ImportFileT
   const [importing, setImporting] = useState(false)
   const [refusal, setRefusal] = useState<string | null>(null)
   const picker = useRef<HTMLInputElement>(null)
+  // The box, whichever kind it is now: the cursor goes into it on a refusal.
+  const box = useRef<HTMLTextAreaElement | null>(null)
+  const refusalId = useId()
 
   async function pickFile(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0]
@@ -125,7 +130,21 @@ export function ImportFileTab({ mediaTypes, mediaTypeKey, onBuilt }: ImportFileT
     } catch (cause) {
       setRefusal(cause instanceof Error ? cause.message : text.importFailed)
       setImporting(false)
+      // Into the box, not to a line the sentence names (the box shows no line numbers). A read-only box takes the cursor too.
+      box.current?.focus()
     }
+  }
+
+  // What the box takes, in either kind: the cursor's ref, the check on leaving, and the ring and pointer while a sentence shows.
+  const fieldProps = checks.props('yaml')
+  const boxProps = {
+    ref: (element: HTMLTextAreaElement | null) => {
+      box.current = element
+      fieldProps.ref(element)
+    },
+    onBlur: fieldProps.onBlur,
+    'aria-invalid': refusal ? (true as const) : fieldProps['aria-invalid'],
+    'aria-describedby': refusal ? refusalId : fieldProps['aria-describedby'],
   }
 
   return (
@@ -153,6 +172,7 @@ export function ImportFileTab({ mediaTypes, mediaTypeKey, onBuilt }: ImportFileT
           rows={10}
           code
           locked={importing}
+          {...boxProps}
         />
       ) : (
         <FieldTextArea
@@ -167,10 +187,12 @@ export function ImportFileTab({ mediaTypes, mediaTypeKey, onBuilt }: ImportFileT
           spellCheck={false}
           autoCorrect="off"
           autoCapitalize="off"
-          {...checks.props('yaml')}
+          {...boxProps}
         />
       )}
-      {/* Prototype: the hint on the left, Import on the right, one row; a refusal under it. */}
+      {/* The one sentence under the box: the server's refusal, or the empty box's (one at a time). */}
+      {refusal ? <FieldMessage id={refusalId} text={refusal} /> : checks.message('yaml')}
+      {/* Prototype: the hint on the left, Import on the right, one row, under the sentence. */}
       <div className="q-import-actions">
         <p className="q-import-footer t-small">{text.footer}</p>
         <Button
@@ -182,9 +204,6 @@ export function ImportFileTab({ mediaTypes, mediaTypeKey, onBuilt }: ImportFileT
           {text.import}
         </Button>
       </div>
-
-      {/* The empty box's sentence is drawn where a refusal is: under the Import row, not between the box and it (the owner, Checkpoint I). The box still points at it (`aria-describedby`). */}
-      {checks.message('yaml')}
 
       <ConfirmPopover
         open={elsewhere !== null}
@@ -210,13 +229,6 @@ export function ImportFileTab({ mediaTypes, mediaTypeKey, onBuilt }: ImportFileT
         onConfirm={() => void submit()}
         confirmLabel={text.import}
       />
-
-      {refusal && (
-        <p className="q-import-refusal" role="status">
-          <CircleAlert width={15} height={15} strokeWidth={1.8} aria-hidden="true" />
-          {refusal}
-        </p>
-      )}
     </div>
   )
 }

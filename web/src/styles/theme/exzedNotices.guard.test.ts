@@ -59,10 +59,4 @@ describe('eX-Zed’s notices', () => {
     expect(body('html.theme-exzed .q-error-block p')).toMatch(/color:\s*var\(--zx-ink2\);/)
     expect(css).not.toMatch(/--zx-danger/)
   })
-
-  it('draws the refusal with the ! icon (an 8x8 bar and dot, 16px) in ink2 in place of the stock glyph', () => {
-    expect(body('html.theme-exzed .q-import-refusal svg')).toMatch(/display:\s*none;/)
-    expect(body('html.theme-exzed .q-import-refusal::before')).toMatch(/width:\s*16px;\s*height:\s*16px;\s*background:\s*var\(--zx-ink2\);/)
-    expect(css).toMatch(/M3 0h2v5H3zM3 6h2v2H3z/)
-  })
 })

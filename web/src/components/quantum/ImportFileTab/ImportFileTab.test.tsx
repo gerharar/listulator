@@ -56,15 +56,19 @@ describe('ImportFileTab', () => {
     const sentence = copy.quantum.importFile.emptyRequired
     const alerts = () => screen.queryAllByRole('alert').map((alert) => alert.textContent)
 
-    it('says it under the Import row, in the place a refusal is drawn (the owner, Checkpoint I)', () => {
+    it('says it under the box and above the Import row; the row moves down under it (H-031, updated 2026-11-21)', () => {
       renderTab()
       fireEvent.click(importButton())
 
       const message = screen.getByRole('alert')
       const actions = document.querySelector('.q-import-actions')!
-      // After the row with the hint and Import, not between the box and it.
-      expect(actions.compareDocumentPosition(message) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
-      expect(message.parentElement).toBe(actions.parentElement)
+      // Between the box and the row with the hint and Import; nothing under the row.
+      expect(actions.compareDocumentPosition(message) & Node.DOCUMENT_POSITION_PRECEDING).toBeTruthy()
+      expect(message.compareDocumentPosition(actions) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+      expect(message.previousElementSibling).toBe(box().closest('label'))
+      expect(message.nextElementSibling).toBe(actions)
+      expect(box().getAttribute('aria-describedby')).toBe(message.id)
+      expect(document.querySelector('.q-import-refusal')).toBeNull()
     })
 
     it('does not disable Import for an empty box', () => {
@@ -256,6 +260,100 @@ describe('ImportFileTab', () => {
     finish({ id: 'x' } as never)
   })
 
+  describe('a refusal from the server (H-031, updated 2026-11-21)', () => {
+    const alerts = () => screen.queryAllByRole('alert').map((alert) => alert.textContent)
+    const refuse = (message: string) => vi.mocked(api.createFromFile).mockRejectedValue(new Error(message))
+
+    it.each([
+      'Syntax error on line 42, list cannot be imported.',
+      'Unknown category "comics", list cannot be imported.',
+      'No items found, list cannot be imported.',
+    ])('shows "%s" as the one field message under the box, ringed, with the cursor in the box', async (sentence) => {
+      refuse(sentence)
+      renderTab()
+      fireEvent.change(box(), { target: { value: 'bad' } })
+
+      fireEvent.click(importButton())
+
+      const message = await screen.findByRole('alert')
+      expect(alerts()).toEqual([sentence])
+      expect(message.previousElementSibling).toBe(box().closest('label'))
+      expect(message.nextElementSibling).toBe(document.querySelector('.q-import-actions'))
+      expect(box().getAttribute('aria-invalid')).toBe('true')
+      expect(box().getAttribute('aria-describedby')).toBe(message.id)
+      expect(document.activeElement).toBe(box())
+      expect(document.querySelector('.q-import-refusal')).toBeNull()
+    })
+
+    it('draws the (!) as the field message does: 14px circle-alert, stroke 2, hidden from a screen reader, never an (i)', async () => {
+      refuse('No items found, list cannot be imported.')
+      renderTab()
+      fireEvent.change(box(), { target: { value: 'x' } })
+      fireEvent.click(importButton())
+
+      const icon = (await screen.findByRole('alert')).firstElementChild!
+      expect(icon.getAttribute('class')).toMatch(/lucide-circle-alert/)
+      expect(icon.getAttribute('class')).not.toMatch(/lucide-info/)
+      expect([icon.getAttribute('width'), icon.getAttribute('height'), icon.getAttribute('stroke-width'), icon.getAttribute('aria-hidden')]).toEqual(['14', '14', '2', 'true'])
+    })
+
+    it('rings the box and takes the cursor into it when a chosen file is refused (the read-only buffer)', async () => {
+      refuse('Wrong format, list cannot be imported.')
+      renderTab()
+      chooseFile(YAML)
+      await waitFor(() => expect(box().value).toBe(YAML))
+      expect(box().readOnly).toBe(true)
+
+      fireEvent.click(importButton())
+
+      const message = await screen.findByRole('alert')
+      expect(box().getAttribute('aria-invalid')).toBe('true')
+      expect(box().getAttribute('aria-describedby')).toBe(message.id)
+      expect(document.activeElement).toBe(box())
+    })
+
+    it('goes, sentence and ring, on the next edit', async () => {
+      refuse('No items found, list cannot be imported.')
+      renderTab()
+      fireEvent.change(box(), { target: { value: 'bad' } })
+      fireEvent.click(importButton())
+      await screen.findByRole('alert')
+
+      fireEvent.change(box(), { target: { value: 'better' } })
+
+      expect(alerts()).toEqual([])
+      expect(box().getAttribute('aria-invalid')).toBeNull()
+      expect(box().getAttribute('aria-describedby')).toBeNull()
+    })
+
+    it('goes, sentence and ring, when another file is picked', async () => {
+      refuse('No items found, list cannot be imported.')
+      renderTab()
+      fireEvent.change(box(), { target: { value: 'bad' } })
+      fireEvent.click(importButton())
+      await screen.findByRole('alert')
+
+      chooseFile(YAML)
+
+      await waitFor(() => expect(alerts()).toEqual([]))
+      expect(box().getAttribute('aria-invalid')).toBeNull()
+    })
+
+    it('shows one sentence at a time: a new press replaces the refusal', async () => {
+      refuse('No items found, list cannot be imported.')
+      renderTab()
+      fireEvent.change(box(), { target: { value: 'bad' } })
+      fireEvent.click(importButton())
+      await screen.findByText(/No items found/)
+      refuse('Syntax error on line 3, list cannot be imported.')
+
+      fireEvent.click(importButton())
+
+      await screen.findByText(/Syntax error on line 3/)
+      expect(alerts()).toEqual(['Syntax error on line 3, list cannot be imported.'])
+    })
+  })
+
   it('refuses in one sentence, keeps the text, and clears on the next edit', async () => {
     vi.mocked(api.createFromFile).mockRejectedValue(
       new ApiError('Syntax error on line 42, list cannot be imported.', 400, 'list.fileSyntax'),
@@ -273,23 +371,6 @@ describe('ImportFileTab', () => {
 
     fireEvent.change(box(), { target: { value: 'better' } })
     expect(screen.queryByText(/Syntax error/)).toBeNull()
-  })
-
-  it('a refusal starts with a (!): a 15px circle-alert, stroke 1.8, hidden from a screen reader, before the sentence; never an (i) (H-031)', async () => {
-    vi.mocked(api.createFromFile).mockRejectedValue(new Error('No items found, list cannot be imported.'))
-    renderTab()
-
-    fireEvent.change(box(), { target: { value: 'x' } })
-    fireEvent.click(importButton())
-    const sentence = await screen.findByText(/No items found/)
-
-    const line = sentence.closest('.q-import-refusal')!
-    const icon = line.firstElementChild!
-    expect(icon.tagName.toLowerCase()).toBe('svg')
-    expect(icon.getAttribute('class')).toMatch(/lucide-circle-alert/)
-    expect(icon.getAttribute('class')).not.toMatch(/lucide-info/)
-    expect([icon.getAttribute('width'), icon.getAttribute('height'), icon.getAttribute('stroke-width'), icon.getAttribute('aria-hidden')]).toEqual(['15', '15', '1.8', 'true'])
-    expect(line.querySelectorAll('button')).toHaveLength(0)
   })
 
   it('clears a refusal when another file is picked', async () => {

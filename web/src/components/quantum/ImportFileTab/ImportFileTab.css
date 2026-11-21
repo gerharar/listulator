@@ -18,8 +18,8 @@
 }
 
 /* Prototype: the "lists travel as YAML" hint on the left, Import on the right,
-   one row (F7). A refusal sits under it and reads as a sentence, not an alarm:
-   no red, since red is the primary action. */
+   one row (F7), under the box's one sentence when there is one (H-031: the
+   field message, no red, since red is the primary action). */
 .q-import-actions {
   display: flex;
   /* The hint hangs 6px under the field, as Add by hand's hint does (owner, F7);
@@ -29,16 +29,9 @@
   gap: 18px;
   margin-top: -8px;
 }
-.q-import-refusal {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin: 0;
-  color: var(--ink2);
-}
-/* The (!) (H-031) is a flex item: without this a long sentence squeezes it to a sliver (it measured 8.6px of its 15). */
-.q-import-refusal svg {
-  flex: none;
+/* Under a sentence the row has no pull-up of its own: the sentence's gap is the row's. */
+.q-field-msg + .q-import-actions {
+  margin-top: 0;
 }
 
 .q-import-footer {

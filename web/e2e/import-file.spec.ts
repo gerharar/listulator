@@ -65,9 +65,16 @@ for (const [name, yaml, sentence] of REFUSALS) {
     await box(page).fill(yaml)
     await page.getByRole('button', { name: q.importFile.import, exact: true }).click()
 
-    await expect(page.getByText(sentence)).toBeVisible()
+    // The field message under the box (H-031, updated 2026-11-21): ringed, the cursor in the box, the Import row under the sentence.
+    await expect(page.getByRole('alert')).toHaveText(sentence)
+    await expect(box(page)).toHaveAttribute('aria-invalid', 'true')
+    await expect(box(page)).toBeFocused()
+    await expect(page.locator('.q-import-refusal')).toHaveCount(0)
+    const [message, row] = await Promise.all([page.getByRole('alert').boundingBox(), page.locator('.q-import-actions').boundingBox()])
+    expect(message!.y + message!.height).toBeLessThanOrEqual(row!.y)
     await box(page).press('x')
-    await expect(page.getByText(sentence)).toBeHidden()
+    await expect(page.getByRole('alert')).toBeHidden()
+    await expect(box(page)).not.toHaveAttribute('aria-invalid', 'true')
   })
 }
 

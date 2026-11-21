@@ -26,7 +26,7 @@ test('the header’s About is a 17px (?) in its button', async ({ page }) => {
   expect(Math.abs(mark.y + mark.height / 2 - (box.y + box.height / 2))).toBeLessThan(1)
 })
 
-test('an Import refusal starts with a 15px (!) in the sentence’s colour, 8px before it and centred on the line, and is not red', async ({ page }) => {
+test('an Import refusal is the field message under the box: a 14px (!) in the sentence’s colour, 7px before it, and is not red (H-031, updated 2026-11-21)', async ({ page }) => {
   await open(page)
   await page.getByRole('button', { name: q.home.newList }).click()
   await page.locator('.q-tile', { hasText: /^Movies/ }).click()
@@ -34,19 +34,20 @@ test('an Import refusal starts with a 15px (!) in the sentence’s colour, 8px b
   await page.getByLabel(q.importFile.boxLabel).fill('title: X\ncategory: board games\nitems:\n  - { title: A }\n')
   await page.getByRole('button', { name: q.importFile.import, exact: true }).click()
 
-  const line = page.locator('.q-import-refusal')
+  await expect(page.locator('.q-import-refusal'), 'the plain line under the Import row is gone').toHaveCount(0)
+  const line = page.getByRole('alert')
   await expect(line).toBeVisible()
   const icon = line.locator('svg')
   await expect(icon).toHaveClass(/lucide-circle-alert/)
   const [row, mark] = [(await line.boundingBox())!, (await icon.boundingBox())!]
-  expect([mark.width, mark.height], 'the icon is its full size, not squeezed by the sentence').toEqual([15, 15])
-  expect(Math.abs(mark.y + mark.height / 2 - (row.y + row.height / 2)), 'centred on the line').toBeLessThan(1)
+  expect([mark.width, mark.height], 'the icon is its full size, not squeezed by the sentence').toEqual([14, 14])
+  expect(mark.y - row.y, 'the icon sits 1px under the first line’s top').toBeLessThan(4)
   const sentence = await line.evaluate((node) => {
     const range = document.createRange()
-    range.selectNodeContents(node.lastChild!)
+    range.selectNodeContents(node.lastElementChild!)
     return range.getBoundingClientRect().left
   })
-  expect(sentence - (mark.x + mark.width), 'eight pixels before the text').toBeCloseTo(8, 0)
+  expect(sentence - (mark.x + mark.width), 'seven pixels before the text').toBeCloseTo(7, 0)
   const [iconColour, lineColour] = await Promise.all([icon.evaluate((node) => getComputedStyle(node).color), line.evaluate((node) => getComputedStyle(node).color)])
   expect(iconColour, 'the sentence’s own colour (ink2), never red').toBe(lineColour)
 })

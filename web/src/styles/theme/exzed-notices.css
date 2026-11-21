@@ -109,25 +109,6 @@ html.theme-exzed .q-error-block .q-btn {
   margin-top: 0;
 }
 
-/* The refusal: the card's ! icon (an 8x8 bar and dot, 16px) in the sentence's colour. */
-html.theme-exzed .q-import-refusal {
-  gap: 8px;
-  color: var(--zx-ink2);
-  font-size: 16px;
-  line-height: 24px;
-}
-html.theme-exzed .q-import-refusal svg {
-  display: none;
-}
-html.theme-exzed .q-import-refusal::before {
-  content: '';
-  flex: none;
-  width: 16px;
-  height: 16px;
-  background: var(--zx-ink2);
-  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8' shape-rendering='crispEdges'%3E%3Cpath d='M3 0h2v5H3zM3 6h2v2H3z'/%3E%3C/svg%3E") 0 0 / 100% 100% no-repeat;
-  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8' shape-rendering='crispEdges'%3E%3Cpath d='M3 0h2v5H3zM3 6h2v2H3z'/%3E%3C/svg%3E") 0 0 / 100% 100% no-repeat;
-}
 /* A taken group name, over the rows under the head: the sentence is the field's own refusal (51.4), in a box of its own. */
 html.theme-exzed .q-group-msg {
   padding: 8px;

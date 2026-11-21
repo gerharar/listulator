@@ -1,16 +1,14 @@
 import { expect, test, type APIRequestContext, type Locator, type Page } from '@playwright/test'
-import { decodePng, type Pixels } from './pngPixels.js'
 import { FIXTURE_LIST_ID, q, useHomeFixture } from './fixtures.js'
 
 /**
  * eX-Zed's notices (51.10, X-007; design's Toast and Banner cards), on the real screens, in both engines and all six skins. **The toast is one line at the top centre: a `frame-hi` 2px border and the
  * 4px `paper` ring, 16px `ink`, at most one bracketed action, one FLASH step in (320ms, inverse video) and no animation out, none at all under reduced motion; the Banner a 2px `info-line` border
  * with no fill and 24px bracketed buttons; the error strip a 2px `frame` border, 56px at least, with [Retry] [Dismiss]; the error block a 2px `frame` border, the headline in `ink`, the explanation
- * in `ink2`, one action; the refusal the ! icon and one sentence in `ink2`.** Names are the card's; the timings are Quantum's 3s and 5s, which the owner chose over the card's 3.2s and 8s (DECISIONS).
+ * in `ink2`, one action. (The Import refusal is the field message under the box since 56.10; its pixel (!) is 57.10.)** Names are the card's; the timings are Quantum's 3s and 5s, which the owner chose over the card's 3.2s and 8s (DECISIONS).
  */
 const SKINS = ['exzed-1d', 'exzed-1a', 'exzed-1b', 'exzed-1c', 'exzed-1e', 'exzed-1l'] as const
 type Rgb = [number, number, number]
-const BANG = 'M3 0h2v5H3zM3 6h2v2H3z'
 
 const style = (locator: Locator, props: string[]) => locator.evaluate((element, names) => Object.fromEntries(names.map((name) => [name, getComputedStyle(element).getPropertyValue(name)])), props)
 const token = (page: Page, name: string) => page.evaluate((n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim().toLowerCase(), name)
@@ -23,20 +21,6 @@ async function roles(page: Page) {
   const found = await Promise.all(names.map((n) => token(page, `--zx-${n}`)))
 
   return Object.fromEntries(names.map((n, i) => [n, rgbOf(found[i]!)])) as Record<(typeof names)[number], Rgb>
-}
-
-function at(pixels: Pixels, scale: number, x: number, y: number): Rgb {
-  const i = (Math.floor(y * scale + scale / 2) * pixels.width + Math.floor(x * scale + scale / 2)) * 4
-
-  return [pixels.data[i]!, pixels.data[i + 1]!, pixels.data[i + 2]!]
-}
-const cells = (path: string) => {
-  const filled = new Set<string>()
-  for (const [, x, y, w, h] of path.matchAll(/M(\d+) (\d+)h(\d+)v(\d+)H\d+z/g)) {
-    for (let dx = 0; dx < Number(w); dx++) for (let dy = 0; dy < Number(h); dy++) filled.add(`${Number(x) + dx},${Number(y) + dy}`)
-  }
-
-  return filled
 }
 
 async function seed(page: Page, skin: string, extra: Record<string, string> = {}) {
@@ -305,7 +289,7 @@ for (const skin of SKINS) {
       expect(rb.x - bb.x, '16px padding and the 2px border: the button’s box starts 18px in').toBe(18)
     })
 
-    test('a refusal is the ! icon and one sentence in ink2, 8px apart; the icon is the card’s bar and dot', async ({ page }) => {
+    test('an Import refusal is the field message between the box and the Import row, the box ringed (H-031, 56.10); its pixel (!) is 57.10', async ({ page }) => {
       await seed(page, skin)
       await page.goto('/')
       await page.getByRole('button', { name: q.home.newList }).click()
@@ -313,26 +297,13 @@ for (const skin of SKINS) {
       await page.getByRole('tab', { name: q.createList.importTab }).click()
       await page.getByLabel(q.importFile.boxLabel).fill('title: X\ncategory: board games\nitems:\n  - { title: A }\n')
       await page.getByRole('button', { name: q.importFile.import, exact: true }).click()
-      const refusal = page.locator('.q-import-refusal')
-      await expect(refusal).toBeVisible()
-      await page.evaluate(() => document.fonts.ready)
-      const r = await roles(page)
-
-      expect(await style(refusal, ['display', 'column-gap', 'color', 'font-size', 'line-height'])).toEqual({ display: 'flex', 'column-gap': '8px', color: css(r.ink2), 'font-size': '16px', 'line-height': '24px' })
-      // The Quantum glyph is gone: the one drawn icon is 16x16 at the sentence's left edge.
-      await expect(refusal.locator('svg')).toBeHidden()
-      const b = await box(refusal)
-      const mark = decodePng(await page.screenshot({ clip: { x: Math.round(b.x), y: Math.round(b.y + (b.height - 16) / 2), width: 16, height: 16 } }))
-      const scale = mark.width / 16
-      const bang = cells(BANG)
-      for (let y = 0; y < 8; y++) {
-        for (let x = 0; x < 8; x++) {
-          const want = bang.has(`${x},${y}`) ? r.ink2 : null
-          const got = at(mark, scale, x * 2 + 0.5, y * 2 + 0.5)
-          if (want) expect(got, `the icon, cell ${x},${y}`).toEqual(want)
-          else expect(got, `outside the icon, cell ${x},${y}`).not.toEqual(r.ink2)
-        }
-      }
+      const message = page.getByRole('alert')
+      await expect(message).toBeVisible()
+      await expect(page.locator('.q-import-refusal')).toHaveCount(0)
+      await expect(message).toHaveClass(/q-field-msg/)
+      await expect(page.getByLabel(q.importFile.boxLabel)).toHaveAttribute('aria-invalid', 'true')
+      const [m, row] = [await box(message), await box(page.locator('.q-import-actions'))]
+      expect(m.y + m.height, 'the Import row is under the sentence').toBeLessThanOrEqual(row.y)
     })
 
     test('the taken-name refusal under a group head is the same part: paper, a 2px frame border, the ! icon and the sentence in ink2', async ({ page }) => {

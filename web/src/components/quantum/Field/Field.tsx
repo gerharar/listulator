@@ -92,9 +92,14 @@ export interface ReadOnlyBufferProps {
   code?: boolean
   /** Read-only even after a click — e.g. while the text is being imported. */
   locked?: boolean
+  /** The field-message attributes and the ref the cursor needs (what `useFieldValidation().props` gives), as on any field. */
+  ref?: Ref<HTMLTextAreaElement>
+  onBlur?: () => void
+  'aria-invalid'?: boolean
+  'aria-describedby'?: string
 }
 
-export function ReadOnlyBuffer({ label, value, onChange, rows = 4, code, locked }: ReadOnlyBufferProps) {
+export function ReadOnlyBuffer({ label, value, onChange, rows = 4, code, locked, ref, onBlur, 'aria-invalid': invalid, 'aria-describedby': describedBy }: ReadOnlyBufferProps) {
   const [editing, setEditing] = useState(false)
 
   return (
@@ -103,8 +108,12 @@ export function ReadOnlyBuffer({ label, value, onChange, rows = 4, code, locked 
       <div className="q-buffer">
         <textarea
           className={['q-input', code ? 'code' : ''].filter(Boolean).join(' ')}
+          ref={ref}
           rows={rows}
           spellCheck={false}
+          onBlur={onBlur}
+          aria-invalid={invalid}
+          aria-describedby={describedBy}
           readOnly={locked || !editing}
           value={value}
           onChange={(event) => onChange(event.target.value)}
