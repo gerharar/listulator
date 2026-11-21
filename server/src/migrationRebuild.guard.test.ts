@@ -18,7 +18,7 @@ import { describe, expect, it } from 'vitest'
  * making the server's runner turn enforcement off before its transaction and run `PRAGMA foreign_key_check` before it commits, and
  * allowing a rebuild only in a file that carries drizzle-kit's `PRAGMA foreign_keys` lines (the marker the desktop's runner looks for).
  *
- * All of the migrations so far only add things. docs/tasks/plan.md: Phase 52 (task 52.2) and Phase 53 (task 53.4).
+ * All of the migrations so far only add things. docs/tasks/plan-complete.md: Phase 52 (task 52.2) and Phase 53 (task 53.4).
  */
 const FORBIDDEN: { name: string; pattern: RegExp }[] = [
   { name: 'DROP TABLE', pattern: /\bDROP\s+TABLE\b/i },
@@ -38,7 +38,7 @@ function explain(file: string, found: string[]): string {
     `${file} uses ${found.join(', ')}. The desktop applies a migration in one transaction and runs a table rebuild with foreign keys off ` +
     `(Phase 53, task 53.4), but the server's migrator runs every pending file in one transaction where that pragma does nothing, so a ` +
     `rebuild there still deletes the children of the dropped parent. Make the server's runner turn enforcement off before its transaction ` +
-    `and check the foreign keys before it commits, then relax this guard: docs/tasks/plan.md, Phase 53 (task 53.4), and docs/DECISIONS.md "53.4 built".`
+    `and check the foreign keys before it commits, then relax this guard: docs/tasks/plan-complete.md, Phase 53 (task 53.4), and docs/DECISIONS.md "53.4 built".`
   )
 }
 

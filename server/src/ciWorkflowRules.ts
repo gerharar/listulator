@@ -316,7 +316,7 @@ function canaryProblems(workflow: Workflow, jobs: [string, Job][], steps: { job:
 }
 
 /**
- * What only the updater test workflow must do (Phase 31, task 31.6; rules S1 to S4 of docs/tasks/plan.md). It makes a signing key for ONE
+ * What only the updater test workflow must do (Phase 31, task 31.6; rules S1 to S4 of docs/tasks/plan-complete.md). It makes a signing key for ONE
  * run, builds a test app that trusts only that key, signs the update with it and throws the key away. The repository is public, and so are
  * its logs and its artifacts, so the key is kept where nothing can pick it up: made once, in the runner's temp folder (never the checkout),
  * hidden from the log, read by nothing but the line that hides it, handed to no other step or job, uploaded nowhere, deleted at the end. The

@@ -55,7 +55,7 @@ export function findOrphanedLists(lists: MediaList[], mediaTypes: MediaType[]): 
 
 /**
  * A HomeRow's leading mark, derived from `source` — display-only, nothing
- * stored (tasks/plan.md's compatibility table: "Derivable from `lists.source`
+ * stored (tasks/plan-complete.md's compatibility table: "Derivable from `lists.source`
  * (`canonical` / `manual`)"). `api`/`llm`/`file`-synced lists get neither
  * mark; only the community library (`canonical`) and a fully hand-typed list
  * (`manual`) are either kept by hand or made by hand.

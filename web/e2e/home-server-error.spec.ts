@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test'
 import { FIXTURE_LIST_ID, FIXTURE_LIST_TITLE, q, useHomeFixture } from './fixtures.js'
 
 /**
- * Q13 (tasks/plan.md): a server that's unreachable or erroring renders
+ * Q13 (tasks/plan-complete.md): a server that's unreachable or erroring renders
  * Home's own ErrorBlock, never the zero-lists first-run screen. Proven here
  * against a real failed request, not the mocked `api` module Home.test.tsx
  * uses — that suite can't tell the difference between "the acceptance

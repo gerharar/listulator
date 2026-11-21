@@ -45,7 +45,7 @@ test('Esc closes the popover first, and leaves a pushed layer in place — a sec
   page,
 }) => {
   // The "sharpest acceptance check" from task 10.9's own write-up
-  // (tasks/plan.md), re-verified here under a real engine now that a real
+  // (tasks/plan-complete.md), re-verified here under a real engine now that a real
   // popover exists to click through. New List pushes the Category picker
   // (task 10.11) — any pushed layer proves the same thing.
   await page.getByRole('button', { name: 'New List' }).click()

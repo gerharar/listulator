@@ -432,7 +432,7 @@ describe('the CI workflow (31.1)', () => {
   const runs = Object.values(workflow.jobs).flatMap((job) => (job.steps ?? []).map((step) => step.run ?? ''))
   const lines = runs.flatMap((run) => run.split('\n').map((line) => line.trim()))
 
-  // What it promises (docs/tasks/plan.md Phase 31, 31.1): a rule that is dropped from the file must fail here.
+  // What it promises (docs/tasks/plan-complete.md Phase 31, 31.1): a rule that is dropped from the file must fail here.
   it.each([
     ['the key and secret scan', 'npm run secrets:scan'],
     ['the type check', 'npm run typecheck'],
