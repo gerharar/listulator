@@ -1,0 +1,133 @@
+title: BBC Planet documentaries franchise
+description: "All episodes of BBC Natural History Unit's modern landmark natural-history documentary series, in release order"
+category: documentary
+status: ongoing
+items:
+- { title: "S01E01 Introduction", year: 2001, minutes: 50, group: "The Blue Planet" }
+- { title: "S01E02 The Deep", year: 2001, minutes: 50, group: "The Blue Planet" }
+- { title: "S01E03 Open Ocean", year: 2001, minutes: 50, group: "The Blue Planet" }
+- { title: "S01E04 Frozen Seas", year: 2001, minutes: 50, group: "The Blue Planet" }
+- { title: "S01E05 Seasonal Seas", year: 2001, minutes: 50, group: "The Blue Planet" }
+- { title: "S01E06 Coral Seas", year: 2001, minutes: 50, group: "The Blue Planet" }
+- { title: "S01E07 Tidal Seas", year: 2001, minutes: 50, group: "The Blue Planet" }
+- { title: "S01E08 Coasts", year: 2001, minutes: 50, group: "The Blue Planet" }
+- { title: "S01E01 From Pole to Pole", year: 2006, minutes: 59, group: "Planet Earth" }
+- { title: "S01E02 Mountains", year: 2006, minutes: 58, group: "Planet Earth" }
+- { title: "S01E03 Fresh Water", year: 2006, minutes: 59, group: "Planet Earth" }
+- { title: "S01E04 Caves", year: 2006, minutes: 57, group: "Planet Earth" }
+- { title: "S01E05 Deserts", year: 2006, minutes: 58, group: "Planet Earth" }
+- { title: "S01E06 Ice Worlds", year: 2006, minutes: 59, group: "Planet Earth" }
+- { title: "S01E07 Great Plains", year: 2006, minutes: 59, group: "Planet Earth" }
+- { title: "S01E08 Jungles", year: 2006, minutes: 59, group: "Planet Earth" }
+- { title: "S01E09 Shallow Seas", year: 2006, minutes: 59, group: "Planet Earth" }
+- { title: "S01E10 Seasonal Forests", year: 2006, minutes: 59, group: "Planet Earth" }
+- { title: "S01E11 Ocean Deep", year: 2006, minutes: 59, group: "Planet Earth" }
+- { title: "S01E01 Challenges of Life", year: 2009, minutes: 50, group: "Life" }
+- { title: "S01E02 Reptiles and Amphibians", year: 2009, minutes: 50, group: "Life" }
+- { title: "S01E03 Mammals", year: 2009, minutes: 50, group: "Life" }
+- { title: "S01E04 Fish", year: 2009, minutes: 50, group: "Life" }
+- { title: "S01E05 Birds", year: 2009, minutes: 50, group: "Life" }
+- { title: "S01E06 Insects", year: 2009, minutes: 50, group: "Life" }
+- { title: "S01E07 Hunters and Hunted", year: 2009, minutes: 50, group: "Life" }
+- { title: "S01E08 Creatures of the Deep", year: 2009, minutes: 50, group: "Life" }
+- { title: "S01E09 Plants", year: 2009, minutes: 50, group: "Life" }
+- { title: "S01E10 Primates", year: 2009, minutes: 50, group: "Life" }
+- { title: "S01E01 To the Ends of the Earth", year: 2011, minutes: 59, group: "Frozen Planet" }
+- { title: "S01E02 Spring", year: 2011, minutes: 58, group: "Frozen Planet" }
+- { title: "S01E03 Summer", year: 2011, minutes: 59, group: "Frozen Planet" }
+- { title: "S01E04 Autumn", year: 2011, minutes: 58, group: "Frozen Planet" }
+- { title: "S01E05 Winter", year: 2011, minutes: 58, group: "Frozen Planet" }
+- { title: "S01E06 The Last Frontier", year: 2011, minutes: 58, group: "Frozen Planet" }
+- { title: "S01E07 On Thin Ice", year: 2011, minutes: 58, group: "Frozen Planet" }
+- { title: "S01E01 Kalahari", year: 2013, minutes: 44, group: "Africa" }
+- { title: "S01E02 Savannah", year: 2013, minutes: 44, group: "Africa" }
+- { title: "S01E03 Congo", year: 2013, minutes: 43, group: "Africa" }
+- { title: "S01E04 Cape", year: 2013, minutes: 44, group: "Africa" }
+- { title: "S01E05 Sahara", year: 2013, minutes: 44, group: "Africa" }
+- { title: "S01E06 The Future", year: 2013, minutes: 44, group: "Africa" }
+- { title: "S01E01 The Hardest Challenge", year: 2015, minutes: 58, group: "The Hunt" }
+- { title: "S01E02 In the Grip of the Seasons", year: 2015, minutes: 58, group: "The Hunt" }
+- { title: "S01E03 Hide and Seek", year: 2015, minutes: 58, group: "The Hunt" }
+- { title: "S01E04 Hunger at Sea", year: 2015, minutes: 57, group: "The Hunt" }
+- { title: "S01E05 Nowhere to Hide", year: 2015, minutes: 58, group: "The Hunt" }
+- { title: "S01E06 Race Against Time", year: 2015, minutes: 58, group: "The Hunt" }
+- { title: "S01E07 Living with Predators", year: 2015, minutes: 58, group: "The Hunt" }
+- { title: "S01E01 Islands", year: 2016, minutes: 59, group: "Planet Earth II" }
+- { title: "S01E02 Mountains", year: 2016, minutes: 58, group: "Planet Earth II" }
+- { title: "S01E03 Jungles", year: 2016, minutes: 58, group: "Planet Earth II" }
+- { title: "S01E04 Deserts", year: 2016, minutes: 58, group: "Planet Earth II" }
+- { title: "S01E05 Grasslands", year: 2016, minutes: 58, group: "Planet Earth II" }
+- { title: "S01E06 Cities", year: 2016, minutes: 59, group: "Planet Earth II" }
+- { title: "S01E01 One Ocean", year: 2017, minutes: 58, group: "Blue Planet II" }
+- { title: "S01E02 The Deep", year: 2017, minutes: 58, group: "Blue Planet II" }
+- { title: "S01E03 Coral Reefs", year: 2017, minutes: 58, group: "Blue Planet II" }
+- { title: "S01E04 Big Blue", year: 2017, minutes: 58, group: "Blue Planet II" }
+- { title: "S01E05 Green Seas", year: 2017, minutes: 58, group: "Blue Planet II" }
+- { title: "S01E06 Coasts", year: 2017, minutes: 58, group: "Blue Planet II" }
+- { title: "S01E07 Our Blue Planet", year: 2017, minutes: 58, group: "Blue Planet II" }
+- { title: "S01E01 Chimpanzee", year: 2018, minutes: 59, group: "Dynasties" }
+- { title: "S01E02 Emperor", year: 2018, minutes: 58, group: "Dynasties" }
+- { title: "S01E03 Lion", year: 2018, minutes: 58, group: "Dynasties" }
+- { title: "S01E04 Painted Wolf", year: 2018, minutes: 58, group: "Dynasties" }
+- { title: "S01E05 Tiger", year: 2018, minutes: 58, group: "Dynasties" }
+- { title: "S01E01 Antarctica", year: 2019, minutes: 59, group: "Seven Worlds, One Planet" }
+- { title: "S01E02 Asia", year: 2019, minutes: 58, group: "Seven Worlds, One Planet" }
+- { title: "S01E03 South America", year: 2019, minutes: 58, group: "Seven Worlds, One Planet" }
+- { title: "S01E04 Australia", year: 2019, minutes: 58, group: "Seven Worlds, One Planet" }
+- { title: "S01E05 Europe", year: 2019, minutes: 58, group: "Seven Worlds, One Planet" }
+- { title: "S01E06 North America", year: 2019, minutes: 58, group: "Seven Worlds, One Planet" }
+- { title: "S01E07 Africa", year: 2019, minutes: 58, group: "Seven Worlds, One Planet" }
+- { title: "S01E01 Volcano", year: 2021, minutes: 59, group: "A Perfect Planet" }
+- { title: "S01E02 Sun", year: 2021, minutes: 58, group: "A Perfect Planet" }
+- { title: "S01E03 Weather", year: 2021, minutes: 58, group: "A Perfect Planet" }
+- { title: "S01E04 Oceans", year: 2021, minutes: 58, group: "A Perfect Planet" }
+- { title: "S01E05 Humans", year: 2021, minutes: 58, group: "A Perfect Planet" }
+- { title: "S01E01 Tropical Worlds", year: 2022, minutes: 59, group: "The Green Planet" }
+- { title: "S01E02 Water Worlds", year: 2022, minutes: 58, group: "The Green Planet" }
+- { title: "S01E03 Seasonal Worlds", year: 2022, minutes: 58, group: "The Green Planet" }
+- { title: "S01E04 Desert Worlds", year: 2022, minutes: 59, group: "The Green Planet" }
+- { title: "S01E05 Human Worlds", year: 2022, minutes: 58, group: "The Green Planet" }
+- { title: "S01E01 Puma", year: 2022, minutes: 58, group: "Dynasties II" }
+- { title: "S01E02 Elephant", year: 2022, minutes: 58, group: "Dynasties II" }
+- { title: "S01E03 Cheetah", year: 2022, minutes: 58, group: "Dynasties II" }
+- { title: "S01E04 Hyena", year: 2022, minutes: 58, group: "Dynasties II" }
+- { title: "S01E01 Frozen Worlds", year: 2022, minutes: 57, group: "Frozen Planet II" }
+- { title: "S01E02 Frozen Oceans", year: 2022, minutes: 58, group: "Frozen Planet II" }
+- { title: "S01E03 Frozen Peaks", year: 2022, minutes: 58, group: "Frozen Planet II" }
+- { title: "S01E04 Frozen South", year: 2022, minutes: 58, group: "Frozen Planet II" }
+- { title: "S01E05 Frozen Lands", year: 2022, minutes: 58, group: "Frozen Planet II" }
+- { title: "S01E06 Our Frozen Planet", year: 2022, minutes: 58, group: "Frozen Planet II" }
+- { title: "S01E01 Our Precious Isles", year: 2023, minutes: 57, group: "Wild Isles" }
+- { title: "S01E02 Woodland", year: 2023, minutes: 58, group: "Wild Isles" }
+- { title: "S01E03 Grasslands", year: 2023, minutes: 58, group: "Wild Isles" }
+- { title: "S01E04 Freshwater", year: 2023, minutes: 58, group: "Wild Isles" }
+- { title: "S01E05 Ocean", year: 2023, minutes: 58, group: "Wild Isles" }
+- { title: "S01E01 Coasts", year: 2023, minutes: 59, group: "Planet Earth III" }
+- { title: "S01E02 Ocean", year: 2023, minutes: 59, group: "Planet Earth III" }
+- { title: "S01E03 Deserts and Grasslands", year: 2023, minutes: 58, group: "Planet Earth III" }
+- { title: "S01E04 Freshwater", year: 2023, minutes: 58, group: "Planet Earth III" }
+- { title: "S01E05 Forests", year: 2023, minutes: 58, group: "Planet Earth III" }
+- { title: "S01E06 Extremes", year: 2023, minutes: 58, group: "Planet Earth III" }
+- { title: "S01E07 Human", year: 2023, minutes: 58, group: "Planet Earth III" }
+- { title: "S01E08 Heroes", year: 2023, minutes: 58, group: "Planet Earth III" }
+- { title: "S01E01 Dark", year: 2024, minutes: 58, group: "Mammals" }
+- { title: "S01E02 The New Wild", year: 2024, minutes: 58, group: "Mammals" }
+- { title: "S01E03 Water", year: 2024, minutes: 57, group: "Mammals" }
+- { title: "S01E04 Cold", year: 2024, minutes: 58, group: "Mammals" }
+- { title: "S01E05 Heat", year: 2024, minutes: 58, group: "Mammals" }
+- { title: "S01E06 Forest", year: 2024, minutes: 58, group: "Mammals" }
+- { title: "S01E01 Beneath the Waves", year: 2024, minutes: 58, group: "Asia" }
+- { title: "S01E02 Above the Clouds", year: 2024, minutes: 58, group: "Asia" }
+- { title: "S01E03 The Frozen North", year: 2024, minutes: 58, group: "Asia" }
+- { title: "S01E04 Tangled Worlds", year: 2024, minutes: 58, group: "Asia" }
+- { title: "S01E05 Crowded Continent", year: 2024, minutes: 58, group: "Asia" }
+- { title: "S01E06 The Arid Heart", year: 2024, minutes: 58, group: "Asia" }
+- { title: "S01E07 Saving Asia", year: 2024, minutes: 58, group: "Asia" }
+- { title: "S01E01 Four Crowns, One Kingdom", year: 2025, minutes: 58, group: "Kingdom" }
+- { title: "S01E02 Storm's Retreat", year: 2025, minutes: 58, group: "Kingdom" }
+- { title: "S01E03 The Lions Fall", year: 2025, minutes: 58, group: "Kingdom" }
+- { title: "S01E04 Flint and the Crocodile", year: 2025, minutes: 58, group: "Kingdom" }
+- { title: "S01E05 Olimba's Last Chance", year: 2025, minutes: 58, group: "Kingdom" }
+- { title: "S01E01 Tropical Seas", year: 2026, minutes: 58, group: "Blue Planet III" }
+- { title: "S01E02 Open Ocean", year: 2026, minutes: 58, group: "Blue Planet III" }
+- { title: "S01E03 Seasonal Seas", year: 2026, minutes: 59, group: "Blue Planet III" }

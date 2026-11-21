@@ -297,9 +297,9 @@ export const en = {
     /** The three-way status picker and the sentence under it (the same words the status chip's hover uses). */
     statusPicker: {
       notKnown: 'Schrödinger',
-      notKnownNote: 'You have no idea whether the media behind this list will get new stuff or not',
-      ongoingNote: 'This list is not over yet (new stuff is coming out)',
-      completeNote: 'This list is finished (nothing new will come out)',
+      notKnownNote: 'When you have no idea if new stuff is coming our or not',
+      ongoingNote: 'New stuff is coming out',
+      completeNote: 'Nothing new will come out',
     },
     /** AppHeader (task 10.9). */
     appHeader: {
@@ -543,7 +543,7 @@ export const en = {
     },
     categoryPicker: {
       title: 'Choose Your Fighter',
-      subline: 'Media categories supported by the app. Numbers show how many lists you have',
+      subline: 'Choose a media category or browse List Vault',
       /** First run only — nothing exists yet, so the picker is the base layer. */
       firstRunTitle: 'No Progress Tracked. Let\'s Start!',
       firstRunSubline: "Pick a category to start a list. Some categories use external services that require a free API key to search. You can create lists by hand or look for lists from the List Vault, a collection of hand-crafted canonical lists available without API keys. Mega is for cross-media franchises",
@@ -771,7 +771,7 @@ export const en = {
         head: (named: number): string => (named > 1 ? `Platforms · ${named}` : 'Platform'),
         clear: 'Clear',
         clearTip: 'Remove every platform',
-        notSetNote: 'Not set. Pick a platform:',
+        notSetNote: 'Not set yet. Pick a platform:',
         removeTip: (name: string): string => `Remove ${name}`,
         search: (n: number): string => `Search ${n} platforms`,
         inList: 'From this list',
@@ -900,13 +900,13 @@ export const en = {
       /** The ✎ popover beside the name (10.22). */
       /** The Order popover: Sort, and Reset to the source (10.22). */
       orderMenu: {
-        kicker: 'Reset List',
+        kicker: 'Reset',
         resetQuestion: 'Reset this list to its virgin state?',
         /** Where the list goes back to, by where it came from. */
         resetLead: {
-          canonical: 'Back to the canonical list from the List Vault',
-          file: 'Back to the imported file',
-          api: 'Back to the list from search',
+          canonical: 'Takes the list back to the canonical list from the List Vault',
+          file: 'Takes the list back to the imported file',
+          api: 'Takes the list back to the list you got from search',
         },
         computing: 'Working out what would change…',
         /** The toast while the Reset itself runs (seconds on a long list), kept until the list is back (H-012, BL-103). */
@@ -959,21 +959,21 @@ export const en = {
         reorder: 'Reorder List',
         reset: 'Reset List',
         delete: 'Delete List',
-        exportKicker: 'Export List',
+        exportKicker: 'Export',
         exportNote:
-          'Save this list in YAML format. Progress is not included. Useful for canonical list submissions and list sharing',
+          'Save this list in YAML format (progress not included). Useful for canonical list submissions and list sharing',
         download: 'Download File',
         copy: 'Copy To Clipboard',
-        reorderKicker: 'Reorder List',
+        reorderKicker: 'Reorder',
         reorderQuestion: 'Reorder this list?',
         reorderHint:
-          '- Groups are moved by their earliest item. Each group is reordered inside too',
+          '- Groups are ordered by their earliest item. Each group is also reordered inside',
         reorderNote: '- This one-time action does not block manual reordering later',
         cancel: 'Cancel',
         sortNow: 'Sort By Release Date',
         restoreSourceOrder: 'Restore Source Order',
-        restoreHint: '- Restore source order puts the items back the way the source lists them',
-        deleteKicker: 'Delete List',
+        restoreHint: '- "Restore Source Order" puts the items back the way the source lists them',
+        deleteKicker: 'Delete',
         deleteQuestion: (title: string): string => `Delete “${title}”?`,
         deleteNote: (items: number, done: number): string =>
           items === 0
@@ -992,11 +992,11 @@ export const en = {
         restoreFailed: 'Necromancy failure detected: couldn\'t restore the list',
       },
       editPopover: {
-        kicker: 'Edit List',
+        kicker: 'Edit',
         title: 'Title',
         titleRequired: 'A list needs a title',
         description: 'Description (optional)',
-        descriptionPlaceholder: 'Good place for info like what\'s included in the list and what\'s not',
+        descriptionPlaceholder: 'Info like what\'s included in the list and what\'s not',
         status: 'Status (optional)',
         renamed: (title: string): string => `Renamed to “${title}”`,
         descriptionUpdated: 'Description updated',
@@ -1107,7 +1107,7 @@ export const en = {
         expandAllTip: 'Open every group below',
       },
       /** Under the add band of a list fetched from a source: where it arrived from, linked (owner, 2026-09-30). The source's name sits between the two. */
-      linkBack: { before: 'This list arrived from ', after: '. You may have changed it since, so now it\'s yours' },
+      linkBack: { before: 'This list arrived from ', after: ', it\'s yours now' },
       /** Beside the link-back, where the source caps how long its data may be stored (YouTube 30 days, TMDB 180): how often the stored copy is refreshed (12.5). */
       sourceCopyNotice: (p: { days: number; source: string }): string => `Source copy is refreshed every ${p.days} days, as ${p.source} requires`,
       checkForUpdates: 'Check for updates',

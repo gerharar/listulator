@@ -1,0 +1,32 @@
+title: Legion TV series
+description: All episodes of the Legion TV series
+category: tv
+status: complete
+items:
+- { title: "S01E01 Chapter 1", year: 2017, minutes: 65, group: "Season 1" }
+- { title: "S01E02 Chapter 2", year: 2017, minutes: 45, group: "Season 1" }
+- { title: "S01E03 Chapter 3", year: 2017, minutes: 45, group: "Season 1" }
+- { title: "S01E04 Chapter 4", year: 2017, minutes: 55, group: "Season 1" }
+- { title: "S01E05 Chapter 5", year: 2017, minutes: 50, group: "Season 1" }
+- { title: "S01E06 Chapter 6", year: 2017, minutes: 50, group: "Season 1" }
+- { title: "S01E07 Chapter 7", year: 2017, minutes: 45, group: "Season 1" }
+- { title: "S01E08 Chapter 8", year: 2017, minutes: 45, group: "Season 1" }
+- { title: "S02E01 Chapter 9", year: 2018, minutes: 55, group: "Season 2" }
+- { title: "S02E02 Chapter 10", year: 2018, minutes: 50, group: "Season 2" }
+- { title: "S02E03 Chapter 11", year: 2018, minutes: 50, group: "Season 2" }
+- { title: "S02E04 Chapter 12", year: 2018, minutes: 40, group: "Season 2" }
+- { title: "S02E05 Chapter 13", year: 2018, minutes: 45, group: "Season 2" }
+- { title: "S02E06 Chapter 14", year: 2018, minutes: 45, group: "Season 2" }
+- { title: "S02E07 Chapter 15", year: 2018, minutes: 45, group: "Season 2" }
+- { title: "S02E08 Chapter 16", year: 2018, minutes: 45, group: "Season 2" }
+- { title: "S02E09 Chapter 17", year: 2018, minutes: 40, group: "Season 2" }
+- { title: "S02E10 Chapter 18", year: 2018, minutes: 40, group: "Season 2" }
+- { title: "S02E11 Chapter 19", year: 2018, minutes: 50, group: "Season 2" }
+- { title: "S03E01 Chapter 20", year: 2019, minutes: 45, group: "Season 3" }
+- { title: "S03E02 Chapter 21", year: 2019, minutes: 40, group: "Season 3" }
+- { title: "S03E03 Chapter 22", year: 2019, minutes: 45, group: "Season 3" }
+- { title: "S03E04 Chapter 23", year: 2019, minutes: 45, group: "Season 3" }
+- { title: "S03E05 Chapter 24", year: 2019, minutes: 40, group: "Season 3" }
+- { title: "S03E06 Chapter 25", year: 2019, minutes: 45, group: "Season 3" }
+- { title: "S03E07 Chapter 26", year: 2019, minutes: 45, group: "Season 3" }
+- { title: "S03E08 Chapter 27", year: 2019, minutes: 50, group: "Season 3" }
