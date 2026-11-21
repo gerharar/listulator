@@ -147,7 +147,7 @@ test.describe('the six screen titles', () => {
 })
 
 test.describe('the other titles and the wordmarks', () => {
-  test('a list’s name is 24px plain `ink`, no gradient; a sheet’s title is 24px plain `ink`', async ({ page }) => {
+  test('a list’s name is 24px plain `ink`, no gradient; a sheet’s title is 16px plain `ink` (D50)', async ({ page }) => {
     await boot(page)
     await page.goto('/')
     await page.locator('.q-home-row').first().click()
@@ -161,8 +161,8 @@ test.describe('the other titles and the wordmarks', () => {
     await page.locator('.q-home-row').first().waitFor()
     await page.getByRole('button', { name: /Hold My Beer|I.m Tired, Boss|Finalizer|Just One Fix|Surprise Me/ }).first().click()
     const sheet = await page.locator('.q-sheet-title').first().evaluate((element) => ({ size: getComputedStyle(element).fontSize, line: getComputedStyle(element).lineHeight, weight: getComputedStyle(element).fontWeight, image: getComputedStyle(element).backgroundImage }))
-    // 32px of line, as the Home-Helpers board draws it (51.11): the explanation sits 8px under it.
-    expect([sheet.size, sheet.line, sheet.weight, sheet.image]).toEqual(['24px', '32px', '400', 'none'])
+    // 16px on a 24px line (design's D50, 57.2: every helper size is 16px; the Home-Helpers board's 24px is superseded): the explanation sits 8px under it.
+    expect([sheet.size, sheet.line, sheet.weight, sheet.image]).toEqual(['16px', '24px', '400', 'none'])
   })
 
   for (const skin of SKINS) {

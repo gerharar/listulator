@@ -78,11 +78,11 @@ html.theme-exzed .q-preview-title {
   color: var(--zx-ink);
 }
 
-/* A sheet's title is 24px plain `ink` (design, D5). */
+/* A sheet's title is 16px plain `ink` on a 24px line (design's D50, 57.2: every helper size is 16px; D5's 24px is superseded). */
 html.theme-exzed .q-sheet-title {
   font-weight: 400;
-  font-size: 24px;
-  line-height: 32px;
+  font-size: 16px;
+  line-height: 24px;
   letter-spacing: 0;
   color: var(--zx-ink);
 }

@@ -3,8 +3,8 @@ import { decodePng, type Pixels } from './pngPixels.js'
 
 /**
  * eX-Zed's helper sheets (51.11, X-007; design's Sheet card and the Home-Helpers board), on the real screen, in both engines and all six skins. **A sheet hangs under the NEED HELP? row, 24px in from the window,
- * 800px wide, in the single frame (2px `frame-hi` and the 4px `paper` ring), over the scrim: a 2px checkerboard of `chip-ink` over the lists under the row, never solid. Its head is the 24px title and the
- * dim explanation over a 2px `frame` rule, with the ✕ as a 40px button; its body is the kicker in `lab`, the pick at 24px, its line, the why in `ink2`, then the primary and a [secondary] 8px apart. The helper
+ * 800px wide, in the single frame (2px `frame-hi` and the 4px `paper` ring), over the scrim: a 2px checkerboard of `chip-ink` over the lists under the row, never solid. Its head is the 16px title (D50, 57.2: every helper size is 16px) and the
+ * dim explanation over a 2px `frame` rule, with the ✕ as a 40px button; its body is the kicker in `lab`, the pick at 16px, its line, the why in `ink2`, then the primary and a [secondary] 8px apart. The helper
  * whose sheet is open is lit.** The Home banner and the help row's rule are the board's too (they hang over the same area).
  */
 const SKINS = ['exzed-1d', 'exzed-1a', 'exzed-1b', 'exzed-1c', 'exzed-1e', 'exzed-1l'] as const
@@ -161,7 +161,7 @@ for (const skin of SKINS) {
       }
     })
 
-    test('the head: padding 16px 16px 16px 24px, a 2px frame rule under it, the title 24px on 32px lines in ink, the explanation 16px in ink2, and a 40px ✕ drawn in pixels', async ({ page }) => {
+    test('the head: padding 16px 16px 16px 24px, a 2px frame rule under it, the title 16px on 24px lines in ink (D50), the explanation 16px in ink2, and a 40px ✕ drawn in pixels', async ({ page }) => {
       await openHelper(page, skin, 'Finalizer')
       const r = await roles(page)
       const head = page.locator('.q-sheet-head')
@@ -174,7 +174,7 @@ for (const skin of SKINS) {
         'border-bottom-color': css(r.frame),
         'column-gap': '16px',
       })
-      expect(await style(head.locator('.q-sheet-title'), ['font-size', 'line-height', 'font-weight', 'color'])).toEqual({ 'font-size': '24px', 'line-height': '32px', 'font-weight': '400', color: css(r.ink) })
+      expect(await style(head.locator('.q-sheet-title'), ['font-size', 'line-height', 'font-weight', 'color'])).toEqual({ 'font-size': '16px', 'line-height': '24px', 'font-weight': '400', color: css(r.ink) })
       expect(await style(head.locator('.q-sheet-explain'), ['font-size', 'line-height', 'font-weight', 'color', 'margin-top'])).toEqual({ 'font-size': '16px', 'line-height': '24px', 'font-weight': '400', color: css(r.ink2), 'margin-top': '0px' })
       const title = await box(head.locator('.q-sheet-title'))
       const explain = await box(head.locator('.q-sheet-explain'))
@@ -195,7 +195,7 @@ for (const skin of SKINS) {
       }
     })
 
-    test('the body: the kicker in lab, the pick at 24px, its line in ink, the why in ink2, then the primary and a bracketed secondary 8px apart, 16px under the text', async ({ page }) => {
+    test('the body: the kicker in lab, the pick at 16px, its line and the why in ink2 (D50), then the primary and a bracketed secondary 8px apart, 16px under the text', async ({ page }) => {
       await openHelper(page, skin, 'Finalizer')
       const r = await roles(page)
       const body = page.locator('.q-sheet-body')
@@ -203,8 +203,8 @@ for (const skin of SKINS) {
       const pick = body.locator('.q-pick')
       expect(await style(pick, ['border-top-width', 'padding-top', 'row-gap', 'display'])).toEqual({ 'border-top-width': '0px', 'padding-top': '0px', 'row-gap': '8px', display: 'flex' })
       expect(await style(pick.locator('.q-kicker'), ['color', 'font-size', 'line-height', 'text-transform'])).toEqual({ color: css(r.lab), 'font-size': '16px', 'line-height': '24px', 'text-transform': 'uppercase' })
-      expect(await style(pick.locator('.q-pick-item'), ['color', 'font-size', 'line-height', 'font-weight', 'margin-top'])).toEqual({ color: css(r.ink), 'font-size': '24px', 'line-height': '32px', 'font-weight': '400', 'margin-top': '0px' })
-      expect(await style(pick.locator('.q-pick-list'), ['color', 'font-size', 'line-height', 'margin-top'])).toEqual({ color: css(r.ink), 'font-size': '16px', 'line-height': '24px', 'margin-top': '0px' })
+      expect(await style(pick.locator('.q-pick-item'), ['color', 'font-size', 'line-height', 'font-weight', 'margin-top'])).toEqual({ color: css(r.ink), 'font-size': '16px', 'line-height': '24px', 'font-weight': '400', 'margin-top': '0px' })
+      expect(await style(pick.locator('.q-pick-list'), ['color', 'font-size', 'line-height', 'margin-top'])).toEqual({ color: css(r.ink2), 'font-size': '16px', 'line-height': '24px', 'margin-top': '0px' })
       expect(await style(pick.locator('.q-pick-why'), ['color', 'font-size', 'line-height', 'margin-top'])).toEqual({ color: css(r.ink2), 'font-size': '16px', 'line-height': '24px', 'margin-top': '0px' })
       const actions = pick.locator('.q-pick-actions')
       const open = actions.getByRole('button', { name: 'Open List' })
@@ -246,7 +246,7 @@ for (const skin of SKINS) {
       })
     })
 
-    test('Hold My Beer: the shelf chips are 32px with ink for a shelf that has lists and ink2 for one that has none, and the dials are 40x56 boxes in 32px type, the last three lit', async ({ page }) => {
+    test('Hold My Beer: the shelf chips are 32px with ink for a shelf that has lists and ink2 for one that has none, and the dials are 32x32 cells in 24px type (D50), the last three lit', async ({ page }) => {
       await openHelper(page, skin, 'Surprise Me')
       const r = await roles(page)
       await page.locator('.q-shelves').waitFor()
@@ -261,16 +261,31 @@ for (const skin of SKINS) {
 
       const digit = page.locator('.q-digit').first()
       expect(await style(digit, ['width', 'height', 'border-top-width', 'border-top-color', 'font-size', 'color', 'background-color'])).toEqual({
-        width: '40px',
-        height: '56px',
+        width: '32px',
+        height: '32px',
         'border-top-width': '2px',
         'border-top-color': css(r.frame),
-        'font-size': '32px',
+        'font-size': '24px',
         color: css(r.ink2),
         'background-color': 'rgba(0, 0, 0, 0)',
       })
       expect((await style(page.locator('.q-dials'), ['column-gap']))['column-gap']).toBe('4px')
       expect(await style(page.locator('.q-reel'), ['border-top-width', 'padding-top'])).toEqual({ 'border-top-width': '0px', 'padding-top': '0px' })
+    })
+
+    test('Hold My Beer: the picked list’s name is 16px in ink on one 24px line, as a list row is (D50), and the dials are 32px square', async ({ page }) => {
+      await openHelper(page, skin, 'Surprise Me')
+      const r = await roles(page)
+      await page.getByRole('button', { name: 'Spin To Win!' }).click()
+      await expect(page.locator('.q-digit.on')).toHaveCount(3)
+      const name = page.locator('.q-reel-name')
+      await expect(name).toContainText('Breaking Bad')
+      expect(await style(name, ['font-size', 'line-height', 'font-weight', 'color'])).toEqual({ 'font-size': '16px', 'line-height': '24px', 'font-weight': '400', color: css(r.ink) })
+      expect((await box(name)).height, 'a normal name is one line').toBe(24)
+      for (const at of [0, 5]) {
+        const d = await box(page.locator('.q-digit').nth(at))
+        expect([d.width, d.height], `dial ${at}`).toEqual([32, 32])
+      }
     })
   })
 }

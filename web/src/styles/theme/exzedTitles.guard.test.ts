@@ -41,8 +41,17 @@ describe('eX-Zed’s titles', () => {
     }
   })
 
-  it('draws a list’s name, the Preview’s title and a sheet’s title at 24px plain `ink`, no gradient', () => {
-    for (const [selector, line] of [['.q-list-title', '24px'], ['.q-preview-title', '32px'], ['.q-sheet-title', '32px']] as const) {
+  it('draws a sheet’s title at 16px plain `ink` on a 24px line (D50, 57.2: every helper size is 16px), no gradient', () => {
+    const rule = body('html.theme-exzed .q-sheet-title')
+    expect(rule).toMatch(/font-size:\s*16px;/)
+    expect(rule).toMatch(/line-height:\s*24px;/)
+    expect(rule).toMatch(/font-weight:\s*400;/)
+    expect(rule).toMatch(/color:\s*var\(--zx-ink\);/)
+    expect(rule).not.toMatch(/gradient|background/)
+  })
+
+  it('draws a list’s name and the Preview’s title at 24px plain `ink`, no gradient', () => {
+    for (const [selector, line] of [['.q-list-title', '24px'], ['.q-preview-title', '32px']] as const) {
       const rule = body(`html.theme-exzed ${selector}`)
       expect(rule, selector).toMatch(/font-size:\s*24px;/)
       expect(rule, selector).toMatch(new RegExp(`line-height:\\s*${line};`))

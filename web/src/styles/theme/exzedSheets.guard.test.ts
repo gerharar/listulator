@@ -49,10 +49,24 @@ describe('eX-Zed’s helper sheets', () => {
     expect(css).toMatch(/M0 0h2v1H0zM6 0h2v1H6zM1 1h2v1H1z/)
   })
 
-  it('draws the dials 40x56 with a 2px frame, the settled ones the acc block, and does not shake them', () => {
-    expect(body('html.theme-exzed .q-digit')).toMatch(/width:\s*40px;\s*height:\s*56px;\s*border:\s*2px solid var\(--zx-frame\);/)
+  it('draws the dials in 32x32 cells with a 2px frame and 24px digits (D50), the settled ones the acc block, and does not shake them', () => {
+    expect(body('html.theme-exzed .q-digit')).toMatch(/width:\s*32px;\s*height:\s*32px;\s*border:\s*2px solid var\(--zx-frame\);/)
+    expect(body('html.theme-exzed .q-digit')).toMatch(/font-size:\s*24px;/)
     expect(body('html.theme-exzed .q-digit.on')).toMatch(/background:\s*var\(--zx-acc\);\s*color:\s*var\(--zx-acc-ink\);/)
     expect(body('html.theme-exzed .q-digit.ticking')).toMatch(/animation:\s*none;/)
+  })
+
+  it('draws the pick and the picked list’s name at 16px on a 24px line (D50): the same size as a list row', () => {
+    for (const selector of ['.q-pick-item', '.q-reel-name']) {
+      const rule = body(`html.theme-exzed ${selector}`)
+      expect(rule, selector).toMatch(/font-size:\s*16px;/)
+      expect(rule, selector).toMatch(/line-height:\s*24px;/)
+      expect(rule, selector).toMatch(/color:\s*var\(--zx-ink\);/)
+    }
+  })
+
+  it('draws the pick’s list line and its why in ink2 (D50: the title stands first, the rest is dim)', () => {
+    for (const selector of ['.q-pick-list', '.q-pick-why']) expect(body(`html.theme-exzed ${selector}`), selector).toMatch(/color:\s*var\(--zx-ink2\);/)
   })
 
   it('draws the help row’s rule as a 2px frame line 24px in, and the Home banner 24px in under it', () => {

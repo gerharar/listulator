@@ -2,12 +2,12 @@
  * eX-Zed's helper sheets (Phase 51, 51.11, X-007; design's Sheet card and the Home-Helpers board), drawn on Quantum's own classes. A sheet hangs under the NEED HELP? row, 24px in from the window, 800px
  * wide (the window's width less 24px each side when it is narrower), 16px under the row's rule, in the single frame: a 2px `frame-hi` border and the 4px `paper` ring (`--e-sheet`, 49.5). The lists under the row
  * are behind the scrim: the anchor's `::before` is 51.1's 2px checkerboard of `chip-ink`, never solid, from the row's rule down the room the sheet has (`--help-room`, which Home measures; 420px until it has).
- *  - the head: 16px of padding (24px on the left), the 24px title on 32px lines in `ink` and the explanation in `ink2` 8px under it, the close button 40px with the card's pixel ✕ in place of the ✕ glyph,
+ *  - the head: 16px of padding (24px on the left), the 16px title on 24px lines in `ink` (D50, 57.2: every helper size is 16px) and the explanation in `ink2` 8px under it, the close button 40px with the card's pixel ✕ in place of the ✕ glyph,
  *    all over a 2px `frame` rule; the wash plate is Quantum's and is not rendered under this theme;
  *  - the bar under the head (I'm Tired, Boss): 12px and 24px of padding, a 2px `frame` rule, no fill, the lead in `ink2` and the list button a 40px `frame` box with the caret;
- *  - the body: 16px 24px 24px, 8px between its parts on 24px lines; a pick is the kicker in `lab`, the item at 24px, its line in `ink`, the why in `ink2`, then the actions 16px under it (the primary and a
+ *  - the body: 16px 24px 24px, 8px between its parts on 24px lines; a pick is the kicker in `lab`, the item at 16px in `ink`, its line in `ink2` (D50), the why in `ink2`, then the actions 16px under it (the primary and a
  *    bracketed secondary 8px apart); the box Quantum draws round a pick is not drawn;
- *  - Hold My Beer: the shelf chips are the board's 32px (`ink` for a shelf with lists, 51.3's D10) and the six dials are 40x56 boxes in 32px type, a `frame` border, `ink2`; the last three, once it has settled,
+ *  - Hold My Beer: the shelf chips are the board's 32px (`ink` for a shelf with lists, 51.3's D10) and the six dials are 32x32 cells in 24px type (D50), a `frame` border; the picked list's name is 16px `ink` with its marks, as a list row is (a longer name wraps), `ink2`; the last three, once it has settled,
  *    are the `acc` block. The dials do not shake (no animation).
  * The Home banner and the help row's rule hang over the same area, drawn from the board here too. Quantum is as it was: every rule is under `html.theme-exzed`.
  */
@@ -135,9 +135,9 @@ html.theme-exzed .q-sheet-body > .q-kicker {
 }
 html.theme-exzed .q-pick-item {
   margin-top: 0;
-  font-size: 24px;
+  font-size: 16px;
   font-weight: 400;
-  line-height: 32px;
+  line-height: 24px;
   letter-spacing: 0;
   color: var(--zx-ink);
 }
@@ -145,7 +145,7 @@ html.theme-exzed .q-pick-list {
   margin-top: 0;
   font-size: 16px;
   line-height: 24px;
-  color: var(--zx-ink);
+  color: var(--zx-ink2);
 }
 html.theme-exzed .q-pick-why {
   margin-top: 0;
@@ -188,14 +188,14 @@ html.theme-exzed .q-dials {
   gap: 4px;
 }
 html.theme-exzed .q-digit {
-  width: 40px;
-  height: 56px;
+  width: 32px;
+  height: 32px;
   border: 2px solid var(--zx-frame);
   background: transparent;
   color: var(--zx-ink2);
-  font-size: 32px;
+  font-size: 24px;
   font-weight: 400;
-  line-height: 32px;
+  line-height: 24px;
 }
 html.theme-exzed .q-digit.on {
   border-color: var(--zx-acc);
@@ -212,9 +212,9 @@ html.theme-exzed .q-reel-result {
 }
 html.theme-exzed .q-reel-name {
   gap: 8px;
-  font-size: 24px;
+  font-size: 16px;
   font-weight: 400;
-  line-height: 32px;
+  line-height: 24px;
   letter-spacing: 0;
   color: var(--zx-ink);
 }
