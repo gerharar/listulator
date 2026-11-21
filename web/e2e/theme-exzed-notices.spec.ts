@@ -225,6 +225,18 @@ for (const skin of SKINS) {
       }
       await buttons.nth(1).hover()
       expect(await style(buttons.nth(1), ['background-color', 'color'])).toEqual({ 'background-color': css(r['chip-ink']), color: css(r.info) })
+
+      // Keyboard focus inside the notice is a 2px chip-ink outline at a 2px offset, in every skin (D53); Embiggen, the primary, only exists in the desktop app, so the unit and guard tests hold it.
+      await page.mouse.move(0, 0)
+      await page.keyboard.press('Shift')
+      await buttons.nth(0).focus()
+      await expect(buttons.nth(0)).toBeFocused()
+      expect(await style(buttons.nth(0), ['outline-width', 'outline-style', 'outline-color', 'outline-offset'])).toEqual({
+        'outline-width': '2px',
+        'outline-style': 'solid',
+        'outline-color': css(r['chip-ink']),
+        'outline-offset': '2px',
+      })
     })
 
     for (const reduced of [false, true]) {

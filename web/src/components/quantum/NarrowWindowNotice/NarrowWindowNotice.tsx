@@ -33,7 +33,7 @@ export function NarrowWindowBanner({ mode, min, onEmbiggen, onKeep, onDismiss }:
       <span>{line(mode, min)}</span>
       <div className="q-banner-actions">
         {mode === 'embiggen' && (
-          <Button variant="secondary" size="sm" onClick={onEmbiggen}>
+          <Button variant="primary" size="sm" onClick={onEmbiggen}>
             {text.embiggen}
           </Button>
         )}

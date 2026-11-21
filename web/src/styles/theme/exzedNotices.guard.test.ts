@@ -66,6 +66,12 @@ describe('eX-Zed’s notices', () => {
     expect(body('html.theme-exzed .q-banner-narrow .q-btn:not(.primary):not(.danger):where(:not(:disabled)):hover')).toMatch(/background:\s*var\(--zx-chip-ink\);\s*border-color:\s*var\(--zx-chip-ink\);\s*color:\s*var\(--zx-info\);/)
   })
 
+  it('draws Embiggen as the primary on the cyan (D53): a solid chip-ink block with info text, white block and black text on hover; and a 2px chip-ink focus outline, only inside this banner', () => {
+    expect(body('html.theme-exzed .q-banner-narrow .q-btn.primary')).toMatch(/background:\s*var\(--zx-chip-ink\);\s*border-color:\s*var\(--zx-chip-ink\);\s*color:\s*var\(--zx-info\);/)
+    expect(body('html.theme-exzed .q-banner-narrow .q-btn.primary:where(:not(:disabled)):hover')).toMatch(/background:\s*var\(--zx-pri-hv\);\s*border-color:\s*var\(--zx-pri-hv-line\);\s*color:\s*var\(--zx-pri-hv-ink\);/)
+    expect(body('html.theme-exzed .q-banner-narrow :focus-visible')).toMatch(/outline:\s*2px solid var\(--zx-chip-ink\);\s*outline-offset:\s*2px;/)
+  })
+
   it('comes in with one FLASH step: 320ms, `steps(1)`, once, inverse (chip-ink ground, info text), and not under reduced motion; only this banner is filled', () => {
     expect(body('html.theme-exzed .q-banner.q-banner-narrow')).toMatch(/animation:\s*zx-narrow-flash 320ms steps\(1\) 1;/)
     expect(body('html.theme-exzed .q-banner-narrow .q-btn')).toMatch(/animation:\s*zx-narrow-flash-ink 320ms steps\(1\) 1;/)

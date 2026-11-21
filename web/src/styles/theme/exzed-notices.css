@@ -6,7 +6,7 @@
  *  - the Banner (an update band, a sample list's): a 2px `info-line` border (blue on Lotus), on the `paper` (the card draws no fill, but a banner on the stage sits over the skin's art and was unreadable, 51.13), the sentence `ink2` with its name `ink`, 16px; its buttons are the card's
  *    `sm` ones, 24px high with 8px of padding, 8px apart, so the banner is 32px high;
  *  - the narrow-window notice (D49, 57.1): the one banner that asks for action, so it is the one that is filled: the `info` ground, `chip-ink` text, no border to see (the 2px border is the ground's own colour, so
- *    it is 32px high like the others); its buttons are bracketed in `chip-ink` and take a `chip-ink` block with `info` text on hover; it comes in with one FLASH step (320ms, inverse, `steps(1)`, as the toast), none under reduced motion;
+ *    it is 32px high like the others); its buttons are bracketed in `chip-ink` and take a `chip-ink` block with `info` text on hover, except Embiggen, the primary (a solid `chip-ink` block with `info` text; white and black on hover, D53), and focus inside it is a 2px `chip-ink` outline; it comes in with one FLASH step (320ms, inverse, `steps(1)`, as the toast), none under reduced motion;
  *  - the error strip: a 2px `frame` border, 56px at least, one sentence in `ink`, [Retry] and [Dismiss] 40px high;
  *  - the error block: a 2px `frame` border, 16px of padding and 8px between its parts: the headline in `ink`, the explanation in `ink2`, at most one action, 24px lines;
  *  - the refusal (Import's sentence under its box, a taken group name under the head): the ! icon before one sentence in `ink2`, 8px apart; the field's own (51.4) is the same.
@@ -83,6 +83,23 @@ html.theme-exzed .q-banner-narrow .q-btn:not(.primary):not(.danger):where(:not(:
   background: var(--zx-chip-ink);
   border-color: var(--zx-chip-ink);
   color: var(--zx-info);
+}
+/* Embiggen is the primary (D53): on the cyan a solid chip-ink block with info text (yellow acc on cyan would barely show); hover is the primary's own, white block and black text. */
+html.theme-exzed .q-banner-narrow .q-btn.primary {
+  padding: 0 8px;
+  background: var(--zx-chip-ink);
+  border-color: var(--zx-chip-ink);
+  color: var(--zx-info);
+}
+html.theme-exzed .q-banner-narrow .q-btn.primary:where(:not(:disabled)):hover {
+  background: var(--zx-pri-hv);
+  border-color: var(--zx-pri-hv-line);
+  color: var(--zx-pri-hv-ink);
+}
+/* Focus inside the notice: a 2px chip-ink outline at the usual 2px offset, in every skin (the acc ring would barely show on cyan). Only here. */
+html.theme-exzed .q-banner-narrow :focus-visible {
+  outline: 2px solid var(--zx-chip-ink);
+  outline-offset: 2px;
 }
 html.theme-exzed .q-banner-narrow .q-btn {
   animation: zx-narrow-flash-ink 320ms steps(1) 1;

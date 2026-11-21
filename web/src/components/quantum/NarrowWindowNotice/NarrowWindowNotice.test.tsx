@@ -30,6 +30,9 @@ describe('NarrowWindowBanner', () => {
     const { onEmbiggen, onKeep, onDismiss } = banner('embiggen')
 
     expect(screen.getByText('eX-Zed needs a window at least 1128px wide.')).not.toBeNull()
+    // Embiggen is the primary (D53); the other two stay the bracketed ones.
+    expect(screen.getByRole('button', { name: 'Embiggen' }).classList.contains('primary')).toBe(true)
+    expect(screen.getByRole('button', { name: 'Keep Quantum' }).classList.contains('primary')).toBe(false)
     act(() => screen.getByRole('button', { name: 'Embiggen' }).click())
     act(() => screen.getByRole('button', { name: 'Keep Quantum' }).click())
     act(() => screen.getByRole('button', { name: 'Dismiss' }).click())
