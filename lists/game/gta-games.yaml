@@ -1,0 +1,23 @@
+title: Grand Theft Auto franchise games
+description: "All officially released playable Grand Theft Auto games, including standalone expansions, handheld spin-offs and remakes; excludes compilation collections, non-standalone DLC and discontinued companion apps"
+category: game
+status: ongoing
+items:
+- { title: "Grand Theft Auto", year: 1997, tags: [DOS, WIN, PS1, GBC] }
+- { title: "Grand Theft Auto: London 1969", year: 1999, tags: [DOS, WIN, PS1], notes: "Standalone expansion pack; also released as Grand Theft Auto: London – Special Edition for PlayStation." }
+- { title: "Grand Theft Auto 2", year: 1999, tags: [WIN, PS1, DC, GBC] }
+- { title: "Grand Theft Auto III", year: 2001, tags: [PS2, WIN, XBOX, MAC, IOS, AND, PS3, PS4], notes: "Includes the original release, mobile adaptations and PS2 Classics re-releases." }
+- { title: "Grand Theft Auto: Vice City", year: 2002, tags: [PS2, WIN, XBOX, MAC, IOS, AND, PS3, PS4], notes: "Includes the original release, mobile adaptations and PS2 Classics re-releases." }
+- { title: "Grand Theft Auto: San Andreas", year: 2004, tags: [PS2, XBOX, WIN, MAC, IOS, AND, WINP, PS3, X360, PS4, XONE], notes: "Includes mobile, Windows Phone and later console adaptations. The original Xbox version and subsequent Xbox 360 release are distinct ports." }
+- { title: "Grand Theft Auto Advance", year: 2004, tags: [GBA] }
+- { title: "Grand Theft Auto: Liberty City Stories", year: 2005, tags: [PSP, PS2, PS3, IOS, AND], notes: "Mobile versions released in 2015–2016; also released as a PS2 Classic on PS3." }
+- { title: "Grand Theft Auto: Vice City Stories", year: 2006, tags: [PSP, PS2, PS3], notes: "Also released as a PS2 Classic on PS3; digital editions are no longer available for new purchases." }
+- { title: "Grand Theft Auto IV", year: 2008, tags: [PS3, X360, WIN, XONE], notes: "The Complete Edition includes the two standalone Episodes from Liberty City campaigns." }
+- { title: "Grand Theft Auto: Chinatown Wars", year: 2009, tags: [DS, PSP, IOS, AND], notes: "Mobile editions were released for iOS and Android; the original handheld versions remain playable." }
+- { title: "Grand Theft Auto: Episodes from Liberty City", year: 2009, tags: [X360, PS3, WIN], notes: "Standalone release containing both The Lost and Damned and The Ballad of Gay Tony; does not require Grand Theft Auto IV." }
+- { title: "Grand Theft Auto V", year: 2013, tags: [PS3, X360, PS4, XONE, WIN, PS5, XSX], notes: "Includes the original, enhanced and expanded editions; PC Enhanced Edition released in 2025." }
+- { title: "Grand Theft Auto Online", year: 2013, tags: [PS4, XONE, WIN, PS5, XSX], notes: "Originally launched as the multiplayer component of GTA V; standalone release for PS5 and Xbox Series X|S followed in 2022. PS3 and Xbox 360 servers were discontinued." }
+- { title: "Grand Theft Auto III – The Definitive Edition", year: 2021, tags: [WIN, PS4, PS5, XONE, XSX, NSW, IOS, AND], notes: "Remastered version included in The Definitive Edition trilogy; also available individually on iOS and Android." }
+- { title: "Grand Theft Auto: Vice City – The Definitive Edition", year: 2021, tags: [WIN, PS4, PS5, XONE, XSX, NSW, IOS, AND], notes: "Remastered version included in The Definitive Edition trilogy; also available individually on iOS and Android." }
+- { title: "Grand Theft Auto: San Andreas – The Definitive Edition", year: 2021, tags: [WIN, PS4, PS5, XONE, XSX, NSW, IOS, AND], notes: "Remastered version included in The Definitive Edition trilogy; also available individually on iOS and Android." }
+- { title: "Grand Theft Auto VI", year: 2026, tags: [PS5, XSX] }

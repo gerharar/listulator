@@ -1,0 +1,23 @@
+title: Metroid franchise games
+description: "All officially released playable Metroid games, including Metroid Prime spin-offs, remakes and standalone adaptations; excludes compilations, demos, crossover appearances and delisted standalone games that are no longer playable."
+category: game
+status: ongoing
+items:
+- { title: "Metroid", year: 1986, tags: [NES, COIN, GBA, VC, NSW], notes: "Originally released for the Famicom Disk System in Japan; also released for PlayChoice-10 arcade hardware. Game Boy Advance release was part of Classic NES Series." }
+- { title: "Metroid II: Return of Samus", year: 1991, tags: [GB, VC, NSW] }
+- { title: "Super Metroid", year: 1994, tags: [SNES, VC, NSW] }
+- { title: "Metroid Fusion", year: 2002, tags: [GBA, VC, NSW] }
+- { title: "Metroid: Other M", year: 2010, tags: [WII] }
+- { title: "Metroid Dread", year: 2021, tags: [NSW] }
+- { title: "Metroid Prime", year: 2002, tags: [GCN] }
+- { title: "Metroid Prime 2: Echoes", year: 2004, tags: [GCN], notes: "Released in Japan as Metroid Prime 2: Dark Echoes." }
+- { title: "Metroid Prime 3: Corruption", year: 2007, tags: [WII] }
+- { title: "Metroid Prime Hunters", year: 2006, tags: [DS, WIIU, VC], notes: "Wii U Virtual Console release followed in 2016. The online multiplayer service for Nintendo DS has been discontinued." }
+- { title: "Metroid Prime: Federation Force", year: 2016, tags: [3DS], notes: "Cooperative multiplayer spin-off; includes the Blast Ball game mode." }
+- { title: "Metroid Prime Pinball", year: 2005, tags: [DS], notes: "Pinball adaptation featuring Metroid Prime environments and enemies; originally bundled with a Nintendo DS Rumble Pak in some regions." }
+- { title: "Metroid: Zero Mission", year: 2004, tags: [GBA, WIIU, VC, NSW], notes: "Remake of the original Metroid, featuring additional story content and an unlockable version of the original game." }
+- { title: "Metroid: Samus Returns", year: 2017, tags: [3DS], notes: "Full remake of Metroid II: Return of Samus." }
+- { title: "Metroid Prime Remastered", year: 2023, tags: [NSW], notes: "Remastered version of the original Metroid Prime, featuring updated graphics, audio and controls." }
+- { title: "Wii de Asobu! Metroid Prime", year: 2009, tags: [WII], notes: "Japanese standalone New Play Control release with Wii Remote controls; international releases were distributed as part of Metroid Prime: Trilogy." }
+- { title: "Wii de Asobu! Metroid Prime 2: Dark Echoes", year: 2009, tags: [WII], notes: "Japanese standalone New Play Control release with Wii Remote controls; international releases were distributed as part of Metroid Prime: Trilogy." }
+- { title: "Metroid Prime 4: Beyond", year: 2025, tags: [NSW, NSW2], notes: "Released simultaneously for Nintendo Switch and Nintendo Switch 2; the Switch 2 Edition features enhanced technical performance." }

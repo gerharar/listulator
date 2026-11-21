@@ -1,0 +1,60 @@
+title: Teenage Mutant Ninja Turtles franchise games
+description: "All officially released playable Teenage Mutant Ninja Turtles games, including console adaptations, handheld games, arcade releases and mobile titles; excludes compilations, crossover appearances and games that are no longer playable"
+category: game
+status: ongoing
+items:
+- { title: "Teenage Mutant Ninja Turtles", year: 1989, tags: [NES, AMI, CPC, ST, C64, DOS, MSX, ZX], notes: "Original action game; European computer versions were released as Teenage Mutant Hero Turtles." }
+- { title: "Teenage Mutant Ninja Turtles (Arcade)", year: 1989, tags: [COIN, NES, AMI, CPC, ST, C64, DOS, ZX, X360], notes: "The NES version was titled Teenage Mutant Ninja Turtles II: The Arcade Game; computer ports followed in 1991." }
+- { title: "Teenage Mutant Ninja Turtles (LCD Handheld)", year: 1989, tags: [HAND], notes: "Konami electronic handheld; released in Europe as Teenage Mutant Hero Turtles." }
+- { title: "Teenage Mutant Ninja Turtles II: Splinter Speaks", year: 1990, tags: [HAND] }
+- { title: "Teenage Mutant Ninja Turtles: Pizza Drop", year: 1990, tags: [COIN], notes: "Arcade redemption game." }
+- { title: "Teenage Mutant Ninja Turtles: World Tour", year: 1990, tags: [AMI, CPC, ST, C64, DOS, ZX], notes: "Computer coloring-book and activity game." }
+- { title: "Teenage Mutant Ninja Turtles: Fall of the Foot Clan", year: 1990, tags: [GB] }
+- { title: "Teenage Mutant Ninja Turtles: Manhattan Missions", year: 1991, tags: [DOS] }
+- { title: "Teenage Mutant Ninja Turtles (Pinball)", year: 1991, tags: [STD], notes: "Data East pinball machine." }
+- { title: "Teenage Mutant Ninja Turtles: Turtles in Time", year: 1991, tags: [COIN, SNES], notes: "The SNES version was released as Teenage Mutant Ninja Turtles IV: Turtles in Time." }
+- { title: "Teenage Mutant Ninja Turtles II: Back from the Sewers", year: 1991, tags: [GB] }
+- { title: "Teenage Mutant Ninja Turtles III: The Manhattan Project", year: 1991, tags: [NES] }
+- { title: "Teenage Mutant Ninja Turtles: Shredder Gets Shelled!", year: 1991, tags: [HAND], notes: "LCD wristwatch game." }
+- { title: "Teenage Mutant Ninja Turtles III: Shredder's Last Stand", year: 1991, tags: [HAND] }
+- { title: "Teenage Mutant Ninja Turtles: Basketball", year: 1991, tags: [HAND] }
+- { title: "Teenage Mutant Hero Turtles", year: 1991, tags: [HAND], notes: "Grandstand-exclusive LCD handheld game; distinct from Konami's 1989 handheld release." }
+- { title: "Teenage Mutant Hero Turtles: Four for Four", year: 1992, tags: [HAND], notes: "Konami LCD handheld; released exclusively in the UK." }
+- { title: "Teenage Mutant Ninja Turtles: The Hyperstone Heist", year: 1992, tags: [GEN], notes: "Released in Japan as Teenage Mutant Ninja Turtles: Return of the Shredder." }
+- { title: "Teenage Mutant Ninja Turtles III: Radical Rescue", year: 1993, tags: [GB] }
+- { title: "Teenage Mutant Ninja Turtles: Tournament Fighters", year: 1993, tags: [SNES], notes: "Distinct SNES fighting-game version." }
+- { title: "Teenage Mutant Ninja Turtles: Tournament Fighters", year: 1993, tags: [GEN], notes: "Distinct Genesis version with different characters and gameplay." }
+- { title: "Teenage Mutant Ninja Turtles: Tournament Fighters", year: 1994, tags: [NES], notes: "Distinct NES version; substantially different from the SNES and Genesis editions." }
+- { title: "Teenage Mutant Ninja Turtles: Dimension X Assault", year: 1995, tags: [HAND] }
+- { title: "Ninja Turtles: The Next Mutation", year: 1997, tags: [HAND], notes: "LCD handheld game based on the live-action television series." }
+- { title: "Teenage Mutant Ninja Turtles", year: 2003, tags: [GCN, XBOX, PS2, WIN], notes: "Console and PC adaptation of the 2003 animated series." }
+- { title: "Teenage Mutant Ninja Turtles", year: 2003, tags: [GBA], notes: "Distinct Game Boy Advance adaptation." }
+- { title: "Teenage Mutant Ninja Turtles 2: Battle Nexus", year: 2004, tags: [GCN, XBOX, PS2, WIN] }
+- { title: "Teenage Mutant Ninja Turtles 2: Battle Nexus", year: 2004, tags: [GBA], notes: "Distinct side-scrolling Game Boy Advance adaptation." }
+- { title: "TMNT: Mutant Melee", year: 2005, tags: [GCN, PS2, XBOX, WIN], notes: "PlayStation 2 version was not released in North America." }
+- { title: "Teenage Mutant Ninja Turtles 3: Mutant Nightmare", year: 2005, tags: [GCN, PS2, XBOX] }
+- { title: "Teenage Mutant Ninja Turtles 3: Mutant Nightmare", year: 2005, tags: [DS], notes: "Distinct side-scrolling Nintendo DS adaptation." }
+- { title: "Teenage Mutant Ninja Turtles: Battle for the City", year: 2005, tags: [STD], notes: "WayForward plug-and-play game." }
+- { title: "Teenage Mutant Ninja Turtles: Mutants and Monsters Mayhem", year: 2006, tags: [STD], notes: "WayForward plug-and-play light-gun game." }
+- { title: "Teenage Mutant Ninja Turtles: Way of the Warrior", year: 2006, tags: [STD], notes: "Motion-based plug-and-play training game." }
+- { title: "TMNT", year: 2007, tags: [X360, WII, PS2, PSP, DS, GCN, WIN], notes: "Main console and PC adaptation of the 2007 CGI film." }
+- { title: "TMNT", year: 2007, tags: [GBA], notes: "Distinct side-scrolling Game Boy Advance adaptation of the 2007 film." }
+- { title: "TMNT: Ninja Adventures", year: 2007, tags: [WIN], notes: "Windows mini-game and activity collection; sold separately in the UK and bundled with action figures in the US." }
+- { title: "Teenage Mutant Ninja Turtles: Smash-Up", year: 2009, tags: [WII, PS2] }
+- { title: "Teenage Mutant Ninja Turtles: Arcade Attack", year: 2009, tags: [DS] }
+- { title: "Teenage Mutant Ninja Turtles (2013)", year: 2013, tags: [X360, WII, 3DS], notes: "Based on the 2012 animated television series." }
+- { title: "Nickelodeon Teenage Mutant Ninja Turtles Totally Turtles Tabletop Pinball", year: 2013, tags: [STD], notes: "Electronic tabletop pinball game." }
+- { title: "Teenage Mutant Ninja Turtles: Training Lair", year: 2014, tags: [X360], notes: "Kinect-exclusive training game based on the 2014 film." }
+- { title: "Teenage Mutant Ninja Turtles (2014)", year: 2014, tags: [3DS, IOS, AND], notes: "Movie tie-in adaptation; mobile editions were also released." }
+- { title: "Teenage Mutant Ninja Turtles: Danger of the Ooze", year: 2014, tags: [3DS, PS3, X360], notes: "Story bridges the second and third seasons of the 2012 animated series." }
+- { title: "Teenage Mutant Ninja Turtles: Mutants in Manhattan", year: 2016, tags: [PS4, PS3, XONE, X360, WIN], notes: "Delisted from digital storefronts; physical console releases remain playable." }
+- { title: "Teenage Mutant Ninja Turtles: Portal Power", year: 2016, tags: [IOS, AND, WIN, MAC], notes: "Originally released on mobile; enhanced Windows and macOS versions followed in 2017." }
+- { title: "Teenage Mutant Ninja Turtles Legends", year: 2016, tags: [IOS, AND], notes: "Mobile turn-based RPG; remains available on major mobile app stores." }
+- { title: "Teenage Mutant Ninja Turtles (2017 Arcade)", year: 2017, tags: [COIN, WIN, NSW, PS4, PS5, XONE, XSX], notes: "The 2024 console and PC release was titled Teenage Mutant Ninja Turtles Arcade: Wrath of the Mutants and added levels and bosses." }
+- { title: "Teenage Mutant Ninja Turtles: Shredder's Revenge", year: 2022, tags: [WIN, NSW, PS4, PS5, XONE, XSX, IOS, AND] }
+- { title: "Teenage Mutant Ninja Turtles: Splintered Fate", year: 2023, tags: [IOS, WIN, NSW, NSW2, PS4, PS5, XONE, XSX] }
+- { title: "Teenage Mutant Ninja Turtles: Mutants Unleashed", year: 2024, tags: [WIN, NSW, PS4, PS5, XONE, XSX], notes: "Based on the 2023 Mutant Mayhem film." }
+- { title: "Teenage Mutant Ninja Turtles Arcade: Wrath of the Mutants - Ninja Edition", year: 2026, tags: [NSW2], notes: "Expanded Nintendo Switch 2 edition with additional playable characters and enhanced visuals." }
+- { title: "Teenage Mutant Ninja Turtles: Tactical Takedown", year: 2025, tags: [WIN, NSW, XSX], notes: "Turn-based tactical game." }
+- { title: "Teenage Mutant Ninja Turtles: Empire City", year: 2026, tags: [WIN, VR], notes: "VR action-adventure game released for Meta Quest, Pico and SteamVR." }
+- { title: "Teenage Mutant Ninja Turtles (2026 Arcade Redemption Game)", year: 2026, tags: [COIN], notes: "Konami pusher-style arcade redemption game" }

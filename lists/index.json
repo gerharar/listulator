@@ -319,12 +319,62 @@
   },
   {
     "path": "lists/game/assassins-creed-games.yaml",
-    "title": "Assassin's Creed franchise games (grouped)",
+    "title": "Assassin's Creed franchise games (grouped by type)",
     "category": "game",
     "itemCount": 29,
     "totalMinutes": 25800,
     "minutesEstimated": true,
     "description": "All games in the Assassin's Creed franchise, grouped by type; excludes fully unplayable games",
+    "status": "ongoing"
+  },
+  {
+    "path": "lists/game/castlevania-games.yaml",
+    "title": "Castlevania franchise games",
+    "category": "game",
+    "itemCount": 39,
+    "totalMinutes": 23400,
+    "minutesEstimated": true,
+    "description": "All officially released playable Castlevania games, including handheld adaptations, spin-offs and remakes; excludes compilations, discontinued standalone digital games and pachislot/medal games.",
+    "status": "ongoing"
+  },
+  {
+    "path": "lists/game/contra-games.yaml",
+    "title": "Contra franchise games",
+    "category": "game",
+    "itemCount": 20,
+    "totalMinutes": 12000,
+    "minutesEstimated": true,
+    "description": "All officially released playable games in the Contra franchise, including handheld adaptations, remakes and arcade spin-offs; excludes compilations and discontinued mobile-only titles.",
+    "status": "ongoing"
+  },
+  {
+    "path": "lists/game/gta-games.yaml",
+    "title": "Grand Theft Auto franchise games",
+    "category": "game",
+    "itemCount": 18,
+    "totalMinutes": 10800,
+    "minutesEstimated": true,
+    "description": "All officially released playable Grand Theft Auto games, including standalone expansions, handheld spin-offs and remakes; excludes compilation collections, non-standalone DLC and discontinued companion apps",
+    "status": "ongoing"
+  },
+  {
+    "path": "lists/game/metroid-games.yaml",
+    "title": "Metroid franchise games",
+    "category": "game",
+    "itemCount": 18,
+    "totalMinutes": 10800,
+    "minutesEstimated": true,
+    "description": "All officially released playable Metroid games, including Metroid Prime spin-offs, remakes and standalone adaptations; excludes compilations, demos, crossover appearances and delisted standalone games that are no longer playable.",
+    "status": "ongoing"
+  },
+  {
+    "path": "lists/game/serious-sam-games.yaml",
+    "title": "Serious Sam franchise games (grouped by type)",
+    "category": "game",
+    "itemCount": 24,
+    "totalMinutes": 14400,
+    "minutesEstimated": true,
+    "description": "All officially released playable games in the Serious Sam franchise, including remakes, handheld adaptations, VR releases and standalone spin-offs, grouped by type; excludes compilations, unavailable delisted games and non-playable media",
     "status": "ongoing"
   },
   {
@@ -335,6 +385,26 @@
     "totalMinutes": 1980,
     "minutesEstimated": false,
     "description": "All games in the Spy Hunter franchise; excludes compilation appearances"
+  },
+  {
+    "path": "lists/game/the-legend-of-zelda-games.yaml",
+    "title": "The Legend of Zelda franchise games (grouped by type)",
+    "category": "game",
+    "itemCount": 49,
+    "totalMinutes": 29400,
+    "minutesEstimated": true,
+    "description": "All officially released playable games in The Legend of Zelda franchise, including remakes, handheld games, LCD games and standalone spin-offs, grouped by type; excludes compilations, unavailable digital-only releases and crossover appearances",
+    "status": "ongoing"
+  },
+  {
+    "path": "lists/game/tmnt-games.yaml",
+    "title": "Teenage Mutant Ninja Turtles franchise games",
+    "category": "game",
+    "itemCount": 55,
+    "totalMinutes": 33000,
+    "minutesEstimated": true,
+    "description": "All officially released playable Teenage Mutant Ninja Turtles games, including console adaptations, handheld games, arcade releases and mobile titles; excludes compilations, crossover appearances and games that are no longer playable",
+    "status": "ongoing"
   },
   {
     "path": "lists/mega/black-mirror-all.yaml",

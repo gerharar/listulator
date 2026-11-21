@@ -1,0 +1,25 @@
+title: Contra franchise games
+description: "All officially released playable games in the Contra franchise, including handheld adaptations, remakes and arcade spin-offs; excludes compilations and discontinued mobile-only titles."
+category: game
+status: ongoing
+items:
+- { title: "Contra", year: 1987, tags: [COIN, NES, DOS, C64, CPC, ZX, MSX2, WII, WIIU, VC, X360, PS2, BBOS, WINM, CELL, PS4, NSW], notes: "The MSX2 edition is a substantially different single-player version; European computer ports were titled Gryzor." }
+- { title: "Super Contra", year: 1988, tags: [COIN, NES, DOS, AMI, X360, WII, 3DS, WIIU, VC, CELL, PS4, NSW], notes: "The NES release was titled Super C in North America." }
+- { title: "Contra (LCD Game)", year: 1989, tags: [HAND] }
+- { title: "Operation C", year: 1991, tags: [GB] }
+- { title: "Contra III: The Alien Wars", year: 1992, tags: [SNES, COIN, WII, WIIU, 3DS, VC], notes: "Also released as Contra Spirits in Japan and Super Probotector: Alien Rebels in Europe." }
+- { title: "Contra Force", year: 1992, tags: [NES], notes: "North American release; originally conceived as Arc Hound." }
+- { title: "Contra: The Alien Wars", year: 1994, tags: [GB], notes: "Substantially modified Game Boy adaptation of Contra III: The Alien Wars." }
+- { title: "Contra: Hard Corps", year: 1994, tags: [GEN, NSW], notes: "Released as Contra: The Hard Corps in Japan and Probotector in Europe." }
+- { title: "Contra: Legacy of War", year: 1996, tags: [PS1, SAT] }
+- { title: "C: The Contra Adventure", year: 1998, tags: [PS1], notes: "Released only in North America." }
+- { title: "Contra: Shattered Soldier", year: 2002, tags: [PS2, PS3] }
+- { title: "Contra Advance: The Alien Wars EX", year: 2002, tags: [GBA, WIIU, VC], notes: "Modified GBA adaptation of Contra III, including levels from Contra: Hard Corps." }
+- { title: "Neo Contra", year: 2004, tags: [PS2] }
+- { title: "Contra 4", year: 2007, tags: [DS, CELL, BBOS, WINM, AND], notes: "Mobile versions were adapted for feature phones and lacked the DS dual-screen presentation; not released in Europe." }
+- { title: "Contra ReBirth", year: 2009, tags: [WII], notes: "WiiWare-only release; no longer available for new purchases." }
+- { title: "Contra: Evolution", year: 2010, tags: [CELL, COIN, IOS, AND], notes: "Mobile editions were delisted; the arcade version remains playable." }
+- { title: "Hard Corps: Uprising", year: 2011, tags: [PS3, X360] }
+- { title: "Contra: Rogue Corps", year: 2019, tags: [PS4, XONE, NSW, WIN] }
+- { title: "Contra: Operation Galuga", year: 2024, tags: [PS5, PS4, XSX, XONE, NSW, WIN] }
+- { title: "Contra Burst", year: 2025, tags: [COIN] }

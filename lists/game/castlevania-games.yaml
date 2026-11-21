@@ -1,0 +1,44 @@
+title: Castlevania franchise games
+description: "All officially released playable Castlevania games, including handheld adaptations, spin-offs and remakes; excludes compilations, discontinued standalone digital games and pachislot/medal games."
+category: game
+status: ongoing
+items:
+- { title: "Castlevania", year: 1986, tags: [NES, COIN, C64, AMI, DOS, GBA, CELL, VC, NSW], notes: "Originally released for the Famicom Disk System in Japan; also released as a Famicom cartridge and on Game Boy Advance. Legacy mobile versions are discontinued." }
+- { title: "Vampire Killer", year: 1986, tags: [MSX2, VC], notes: "Distinct MSX2 adaptation of the original Castlevania; also known as Akumajō Dracula." }
+- { title: "Vs. Castlevania", year: 1987, tags: [COIN], notes: "Arcade adaptation for Nintendo VS. System; differs from the NES version." }
+- { title: "Castlevania II: Simon's Quest", year: 1987, tags: [NES, VC, NSW] }
+- { title: "Haunted Castle", year: 1987, tags: [COIN, PS2, PS4, NSW], notes: "Arcade original; Japanese PlayStation 2 release and later Arcade Archives releases." }
+- { title: "Electronic Castlevania II: Simon's Quest", year: 1988, tags: [HAND], notes: "Tiger Electronics dedicated LCD handheld adaptation." }
+- { title: "Castlevania II: Simon's Quest (LCD Watch)", year: 1989, tags: [HAND], notes: "Nelsonic LCD wristwatch game; distinct from the Tiger Electronics handheld." }
+- { title: "Castlevania: The Adventure", year: 1989, tags: [GB, VC] }
+- { title: "Castlevania III: Dracula's Curse", year: 1989, tags: [NES, VC, NSW, CELL], notes: "Originally released in Japan for Famicom in 1989; mobile phone adaptation released in 2006." }
+- { title: "Kid Dracula", year: 1990, tags: [NES, CELL], notes: "Originally released in Japan as Akumajō Special: Boku Dracula-kun; also received a discontinued mobile phone adaptation." }
+- { title: "Castlevania II: Belmont's Revenge", year: 1991, tags: [GB, VC] }
+- { title: "Super Castlevania IV", year: 1991, tags: [SNES, VC, NSW] }
+- { title: "Kid Dracula", year: 1993, tags: [GB], notes: "Game Boy sequel to the Famicom Kid Dracula; originally released in Japan." }
+- { title: "Akumajō Dracula", year: 1993, tags: [X68K], notes: "Original Sharp X68000 version; later reworked and reissued as Castlevania Chronicles for PlayStation." }
+- { title: "Castlevania: Rondo of Blood", year: 1993, tags: [PCE, VC], notes: "Originally released for PC Engine Super CD-ROM²; Japanese title Akumajō Dracula X: Chi no Rondo." }
+- { title: "Castlevania: Bloodlines", year: 1994, tags: [GEN, VC, NSW], notes: "Released as Vampire Killer in Japan and Castlevania: The New Generation in Europe." }
+- { title: "Castlevania: Dracula X", year: 1995, tags: [SNES, VC, NSW], notes: "Distinct SNES adaptation of Rondo of Blood; released as Akumajō Dracula XX in Japan and Castlevania: Vampire's Kiss in Europe." }
+- { title: "Castlevania: Symphony of the Night", year: 1997, tags: [PS1, SAT, X360, PS3, PSP, VITA, IOS, AND], notes: "Includes the Japanese and international PlayStation versions, Saturn port, digital releases and mobile versions. PS4 edition is available only through Castlevania Requiem." }
+- { title: "Castlevania Legends", year: 1997, tags: [GB], notes: "Released in Japan as Akumajō Dracula: Dark Night Prelude." }
+- { title: "Castlevania", year: 1999, tags: [N64], notes: "Commonly referred to as Castlevania 64." }
+- { title: "Castlevania: Legacy of Darkness", year: 1999, tags: [N64] }
+- { title: "Castlevania: Circle of the Moon", year: 2001, tags: [GBA, VC], notes: "Released simply as Castlevania in Europe; later released on Wii U Virtual Console." }
+- { title: "Castlevania Chronicles", year: 2001, tags: [PS1, PS3, PSP, VITA], notes: "PlayStation reissue of the X68000 game, featuring Original and Arrange modes." }
+- { title: "Castlevania: Harmony of Dissonance", year: 2002, tags: [GBA, VC] }
+- { title: "Castlevania: Aria of Sorrow", year: 2003, tags: [GBA, VC, CELL], notes: "Includes a scaled-down European mobile phone adaptation released in 2008." }
+- { title: "Castlevania: Lament of Innocence", year: 2003, tags: [PS2, PS3, PSP, VITA], notes: "Also released simply as Castlevania in Japan and Europe; later distributed as a PS2 Classic." }
+- { title: "Castlevania: Dawn of Sorrow", year: 2005, tags: [DS] }
+- { title: "Castlevania: Curse of Darkness", year: 2005, tags: [PS2, XBOX] }
+- { title: "Castlevania: Portrait of Ruin", year: 2006, tags: [DS], notes: "Released as Castlevania: Gallery of Labyrinth in Japan." }
+- { title: "Castlevania: The Dracula X Chronicles", year: 2007, tags: [PSP], notes: "3D remake of Rondo of Blood; also contains unlockable original versions of Rondo of Blood and Symphony of the Night." }
+- { title: "Castlevania: Order of Ecclesia", year: 2008, tags: [DS] }
+- { title: "Castlevania Judgment", year: 2008, tags: [WII], notes: "Fighting game featuring characters from across the franchise." }
+- { title: "Castlevania: The Arcade", year: 2009, tags: [COIN], notes: "Arcade light-gun game; released in Japan." }
+- { title: "Castlevania: Harmony of Despair", year: 2010, tags: [X360, PS3], notes: "Downloadable cooperative multiplayer game; also supports online play." }
+- { title: "Castlevania: Lords of Shadow", year: 2010, tags: [PS3, X360, WIN], notes: "Reboot of the franchise; includes the Ultimate Edition on Windows." }
+- { title: "Castlevania: Lords of Shadow – Mirror of Fate", year: 2013, tags: [3DS, PS3, X360, WIN], notes: "HD Edition released for PS3 and Xbox 360 in 2013 and Windows in 2014." }
+- { title: "Castlevania: Lords of Shadow 2", year: 2014, tags: [PS3, X360, WIN] }
+- { title: "Haunted Castle Revisited", year: 2024, tags: [PS5, NSW, XSX, WIN], notes: "Completely reimagined remake of Haunted Castle; available as part of Castlevania Dominus Collection." }
+- { title: "Castlevania: Belmont's Curse", year: 2026, tags: [PS5, NSW, XSX, WIN], notes: "Released October 15, 2026; developed jointly by Konami, Evil Empire and Motion Twin." }
