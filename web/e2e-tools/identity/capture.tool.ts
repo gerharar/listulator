@@ -4,6 +4,7 @@ import { expect, test, type Page } from '@playwright/test'
 import { diffDumps } from './diff.js'
 import { summarise, sweepDump } from './sweep.js'
 import { dumpPage, type PageDump } from './dump.js'
+import { LIBRARY } from './library.js'
 import { SEED, STATES, ownedIds, type IdentityState } from './states.js'
 import { THEMES } from './themes.js'
 
@@ -40,8 +41,10 @@ async function steady(page: Page, skin: string, skinKey: string, seed: Readonly<
   // eX-Zed's Choose Your Fighter picks one of two bottom scenes at random each time it opens (50.8): fixed, so a capture and a compare draw the same one (the desk). Only for eX-Zed,
   // so Quantum's baseline, which uses no randomness on any screen it captures, is exactly what it was.
   if (seed['theme'] === 'exzed') await page.addInitScript(() => (Math.random = () => 0.1))
-  // Not reachable from here and not what is measured: the community library is only read by Surprise Me and the Vault.
+  // Not reachable from here and not what is measured: the community library is only read by Surprise Me (empty here) and the Vault (fixed below).
   await page.route('**/api/library/untracked', (route) => route.fulfill({ json: { entries: [], reachable: true } }))
+  // The List Vault's library is a fixed set, not the live index, whose counts move whenever a list reaches it (BL-182).
+  await page.route('**/api/library', (route) => route.fulfill({ json: LIBRARY }))
   // Home lists the identity lists and whatever this test wrote itself, never what a parallel test is writing; the dates are fixed, not the day it was made.
   await page.route('**/api/lists', async (route) => {
     if (route.request().method() !== 'GET') return route.continue()

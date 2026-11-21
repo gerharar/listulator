@@ -52,5 +52,6 @@ one that only changes pixels (a gradient, an image) shows in the screenshot only
   different screenshots), so identical CSS would not give identical pixels. Keyframes are therefore not compared; their end states are.
 - **Noise under load.** About one load in ten, a few icon edges still differ by a few levels. A failing comparison is repeated in a fresh page up to twice;
   a state that passes only on a repeat is reported as flaky. A real difference fails every time.
-- **Network content.** Home's lists are the seed lists with fixed dates; the community library and the Preview's search and expansion are answered
-  with fixed data; the clock is fixed. Anything not in `states.ts` is not looked at.
+- **Network content.** Home's lists are the seed lists with fixed dates; the community library (Surprise Me's untracked lists: none; the List Vault's: `identity/library.ts`, ten lists in
+  four categories, BL-182) and the Preview's search and expansion are answered with fixed data; the clock is fixed. A baseline taken before BL-182 holds the live library in its Vault
+  slots: a compare against it shows a Vault difference that is not a change in the app. Anything not in `states.ts` is not looked at.
