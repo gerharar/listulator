@@ -195,7 +195,7 @@ for (const skin of SKINS) {
 
 test('exzed-1d: outside the window the rail folds to the same 40px strip, and its grip is the rail’s outer edge with the same rule', async ({ page }) => {
   await open(page, 'exzed-1d', 2600)
-  const [frame, acc] = (await Promise.all(['--zx-frame', '--zx-acc'].map((n) => token(page, n)))).map((hex) => rgbOf(hex)) as Rgb[]
+  const [frame, acc] = (await Promise.all(['--zx-frame-hi', '--zx-acc'].map((n) => token(page, n)))).map((hex) => rgbOf(hex)) as Rgb[]
   const rail = page.locator('.q-rail.q-rail-out')
   await expect(rail).toHaveCount(1)
   await page.mouse.move(0, 0)
@@ -203,12 +203,13 @@ test('exzed-1d: outside the window the rail folds to the same 40px strip, and it
   expect(await style(grip, ['width', 'cursor'])).toEqual({ width: '6px', cursor: 'col-resize' })
   const r = await box(rail)
   const border = await rail.evaluate((el) => parseFloat(getComputedStyle(el).borderLeftWidth))
-  await readRect(page, r.x, r.y + 100, border, 8, frame!, 'at rest the outer edge is the frame colour')
+  await readRect(page, r.x, r.y + 100, border, 8, frame!, 'at rest the outer edge is the rail’s own 4px frame-hi border (D54)')
   await grip.hover()
   await readRect(page, r.x, r.y + 100, border, 8, acc!, 'on hover the outer edge is the highlight')
   await page.mouse.move(0, 0)
 
   await rail.locator('.q-rail-head .q-rail-toggle').click()
-  await expect.poll(async () => (await box(rail)).width).toBe(40)
+  // The 40px strip inside the rail's 4px border (D54).
+  await expect.poll(async () => (await box(rail)).width).toBe(44)
   await expect(rail.locator('.q-rail-fold .q-rail-toggle')).toHaveCount(1)
 })

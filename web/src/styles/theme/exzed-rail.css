@@ -183,3 +183,35 @@ html.theme-exzed .q-rail.q-rail-out:has(> .q-rail-grip:focus-visible),
 html.theme-exzed body.q-resizing .q-rail.q-rail-out {
   border-color: var(--zx-acc);
 }
+
+/*
+ * The rail outside the window (57.3, design's D51 and D54; the List-2560 board and the JumpRail card): it has its own double frame on top, left and bottom, as the window has. A 4px `frame-hi`
+ * border (no right border: the window's own `frame-hi` border runs unbroken beside it), then the three rings of the window (`--e-layer-rest`: 4px `paper`, `frame`, `paper`) clipped where the
+ * window's edge starts (12px of room each way, none on the right). It is 204px wide, its 4px border and the 200px inside that the user resizes (160 to 480), so the border is outside the width
+ * the app sets (`content-box`); its top is 4px above the list area and its bottom level with the window's bottom border (`--q-bw` is 4px, in whole device pixels, the width of that border).
+ * At the bottom the rail's rings and the window's continue as one. At the top the window's `frame` ring turns out into the rail's, as the board draws it with two 4px blocks (one 8px box, on the box the
+ * rail hangs from: the rail clips what lies outside it, and the list's busy scrim has the `::after`): a `frame` one in the window's ring column, where the rail's outer `paper` band would cut it,
+ * and a `paper` one in the window's inner ring column, so the rail's `frame` band stops short of the window's inner ring. Quantum is as it was: every rule is under `html.theme-exzed`.
+ */
+html.theme-exzed .q-rail.q-rail-out {
+  top: calc(-1 * var(--q-bw));
+  box-sizing: content-box;
+  border: 4px solid var(--zx-frame-hi);
+  border-right: 0;
+  background: var(--zx-paper);
+  box-shadow: var(--e-layer-rest);
+  clip-path: inset(-12px 0 -12px -12px);
+}
+html.theme-exzed .q-list-cols:has(> .q-rail.q-rail-out)::before,
+html.theme-exzed .q-preview-lower:has(> .q-rail.q-rail-out)::before {
+  content: '';
+  position: absolute;
+  z-index: 3;
+  top: -16px;
+  left: -12px;
+  width: 8px;
+  height: 8px;
+  background:
+    linear-gradient(var(--zx-frame), var(--zx-frame)) 0 0 / 4px 8px no-repeat,
+    var(--zx-paper);
+}

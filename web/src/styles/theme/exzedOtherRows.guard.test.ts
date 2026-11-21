@@ -26,8 +26,8 @@ describe.each(FILES)('exzed-%s.css (51.8)', (name) => {
     for (const selector of selectors) expect(selector, selector).toMatch(/^html\.theme-exzed\b/)
   })
 
-  it('has no shadow (but none), alpha, radius, opacity, filter or literal colour', () => {
-    expect(css.replace(/box-shadow:\s*none/g, '')).not.toMatch(/box-shadow|border-radius|opacity\s*:|[;{\s]filter\s*:|rgba?\(|hsla?\(|color-mix|#[0-9a-f]{3,8}\b/i)
+  it('has no shadow (but none, or the window’s own rings by their token: the outside rail, D51), alpha, radius, opacity, filter or literal colour', () => {
+    expect(css.replace(/box-shadow:\s*(none|var\(--e-layer-rest\))/g, '')).not.toMatch(/box-shadow|border-radius|opacity\s*:|[;{\s]filter\s*:|rgba?\(|hsla?\(|color-mix|#[0-9a-f]{3,8}\b/i)
   })
 
   it('every hover rule excludes a disabled control', () => {
