@@ -143,6 +143,18 @@ edit `config/platforms.csv` (codes in capitals, never digits only: a bare
 `npm run platforms:check -w server` (needs IGDB keys in `.env`) lists any
 platform IGDB has that the file lacks; games on those import untagged.
 
+If you created a `game` list by hand or with an LLM and ended up with full platform
+names ("PlayStation 5") or nicknames ("PC", "Switch") instead of codes, run `lists/normalize-platform-tags.ts`. 
+This script is deterministic: it resolves what it recognizes and lists the rest for you to fix by hand:
+
+```
+npx tsx lists/normalize-platform-tags.ts lists/game/your-list.yaml        # report only
+npx tsx lists/normalize-platform-tags.ts --write lists/game/your-list.yaml # apply the fixes
+```
+
+It's a convenience, not the gate — always still run the real validator
+("Catching a broken file before you commit it", below) before you commit.
+
 ### Mega: `tags` name an item's Medium
 
 A `mega` list spans several media at once, so each item's `tags` must

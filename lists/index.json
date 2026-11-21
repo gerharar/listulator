@@ -10,6 +10,16 @@
     "status": "complete"
   },
   {
+    "path": "lists/animation/futurama-tv.yaml",
+    "title": "Futurama animated TV series (production order)",
+    "category": "animation",
+    "itemCount": 168,
+    "totalMinutes": 3962,
+    "minutesEstimated": false,
+    "description": "All episodes of Futurama animated TV series, in production order",
+    "status": "ongoing"
+  },
+  {
     "path": "lists/animation/gravity-falls-tv.yaml",
     "title": "Gravity Falls animated TV series (release order)",
     "category": "animation",

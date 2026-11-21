@@ -191,7 +191,7 @@ export const en = {
     'list.sourceTooLarge': (p: { title?: string; count: number; max: number }): string =>
       `${p.title ? `"${p.title}"` : 'This source'} is too big for one list: ${p.count.toLocaleString('en')} items, and a list holds at most ${p.max.toLocaleString('en')}`,
     'list.fileInvalid': (p: { detail?: string }): string =>
-      `Wrong hole, buddy: your file is a square peg trying to penetrate a round hole, so it cannot be imported. Make sure it's in a properly formatted YAML format and has all required fields${p.detail ? `. What the parser found: ${p.detail}` : ''}`,
+      `Wrong hole, buddy: your file is a square peg trying to penetrate a round hole, so it cannot be imported. Make sure it's in a properly formatted YAML format and has all required fields${p.detail ? `. Parser says: ${p.detail}` : ''}`,
     'list.fileSyntax': (p: { line?: number }): string =>
       p.line
         ? `All thumbs alert: cannot import list, syntax error on line ${p.line}`
