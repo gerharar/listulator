@@ -268,6 +268,16 @@
     "status": "complete"
   },
   {
+    "path": "lists/documentary/bbc-planet-documentaries.yaml",
+    "title": "BBC Planet documentaries franchise",
+    "category": "documentary",
+    "itemCount": 128,
+    "totalMinutes": 7210,
+    "minutesEstimated": false,
+    "description": "All episodes of BBC Natural History Unit's modern landmark natural-history documentary series, in release order",
+    "status": "ongoing"
+  },
+  {
     "path": "lists/documentary/dsotc-tv.yaml",
     "title": "Dark Side Of The Cage documentary series",
     "category": "documentary",
@@ -687,6 +697,16 @@
     "totalMinutes": 3752,
     "minutesEstimated": false,
     "description": "All episodes of the House Of Cards TV series",
+    "status": "complete"
+  },
+  {
+    "path": "lists/tv/legion-tv.yaml",
+    "title": "Legion TV series",
+    "category": "tv",
+    "itemCount": 27,
+    "totalMinutes": 1260,
+    "minutesEstimated": false,
+    "description": "All episodes of the Legion TV series",
     "status": "complete"
   },
   {
