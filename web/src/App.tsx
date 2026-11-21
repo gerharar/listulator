@@ -389,7 +389,7 @@ function AppShellBody({ skin, onSkinChange, exzedSkin, onExzedSkinChange, theme,
           const reach = (layer.kind === 'list' || layer.kind === 'preview') && railWindow.placement === 'outside'
           const width = reach ? listCardWidth(railWindow.windowWidth) : null
           // The card's border and the rail's offsets share one width, whole device pixels at any screen scale (`--q-bw`, see `layerBorderWidth`).
-          const border = reach ? { '--q-bw': `${layerBorderWidth(pixelRatio)}px` } : null
+          const border = reach ? { '--q-bw': `${layerBorderWidth(pixelRatio, theme === 'exzed' ? 4 : 2)}px` } : null
           // A list and a Preview have their own cap (the same 1080px in Quantum, wider in a theme with a wider font): the rail's rule reads it too.
           const cap = layer.kind === 'list' || layer.kind === 'preview' ? { '--layer-cap': 'var(--layer-max-list)' } : null
 

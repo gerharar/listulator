@@ -221,3 +221,27 @@ test('without the theme, Quantum keeps its blurred shadows: a layer, a menu and 
     await page.request.delete(`/api/lists/${id}`)
   }
 })
+
+const SKINS = ['exzed-1d', 'exzed-1a', 'exzed-1b', 'exzed-1c', 'exzed-1e', 'exzed-1l'] as const
+
+// The window's border (57.3a, design's D54): 4px `frame-hi` on every screen, as the Window card and every board draw it, then the three rings; the window keeps its border box,
+// so the content is 8px narrower than the box.
+for (const skin of SKINS) {
+  test(`${skin}: the window's own border is 4px frame-hi on every screen, and its content is 8px narrower than its border box`, async ({ page }) => {
+    await boot(page, 'exzed', { exzedSkin: skin })
+    await page.goto('/')
+    await page.locator('.q-home-row').first().waitFor().catch(() => undefined)
+    await page.locator('.q-layer:not(.covered)').first().waitFor()
+    const hi = await page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--zx-frame-hi').trim().toLowerCase())
+    const rgb = `rgb(${[1, 3, 5].map((i) => parseInt(hi.slice(i, i + 2), 16)).join(', ')})`
+    const seen = await page.locator('.q-layer:not(.covered)').first().evaluate((el) => {
+      const cs = getComputedStyle(el)
+      const body = el.querySelector('.q-layer-body')!.getBoundingClientRect()
+
+      return { widths: [cs.borderTopWidth, cs.borderRightWidth, cs.borderBottomWidth, cs.borderLeftWidth], colours: [cs.borderTopColor, cs.borderRightColor, cs.borderBottomColor, cs.borderLeftColor], box: el.getBoundingClientRect().width, body: body.width }
+    })
+    expect(seen.widths).toEqual(['4px', '4px', '4px', '4px'])
+    expect(seen.colours).toEqual([rgb, rgb, rgb, rgb])
+    expect(seen.box - seen.body, 'the content is 8px narrower than the border box').toBe(8)
+  })
+}

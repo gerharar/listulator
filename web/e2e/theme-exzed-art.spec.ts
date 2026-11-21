@@ -255,11 +255,11 @@ test('Xen: the strip is 28px high at the bottom of the app’s box, the columns�
 test('Xen: the strip never covers what stands over it: where the window overlaps it the window’s own ground is what shows', async ({ page }) => {
   await boot(page, { theme: 'exzed', exzedSkin: 'exzed-1c' }, 1440, 900)
   await open(page)
-  // The window ends 24px above the bottom of the screen and the strip is 28px high, so the window's last 4px lie over the strip (the board has the same). A pixel just inside
-  // the window's bottom edge, in its padding, must be the window's own background, not the strip's picture.
+  // The window ends 24px above the bottom of the screen and the strip is 28px high, so the window's last 4px lie over the strip (the board has the same): since D54 (57.3a) those 4px are its
+  // own 4px `frame-hi` border. A pixel just inside the window's bottom edge must be the window's own, the border's colour, not the strip's picture.
   const layer = await page.evaluate(() => {
     const rect = document.querySelector('.q-layer')!.getBoundingClientRect()
-    const colour = /rgba?\((\d+), (\d+), (\d+)/.exec(getComputedStyle(document.querySelector('.q-layer')!).backgroundColor)!
+    const colour = /rgba?\((\d+), (\d+), (\d+)/.exec(getComputedStyle(document.querySelector('.q-layer')!).borderBottomColor)!
 
     // A pixel where nothing but the window itself is (a button or a line of text may stand near its bottom edge): the first such place along the band, from 40px in.
     let x = Math.round(rect.left + 40)
@@ -270,7 +270,7 @@ test('Xen: the strip never covers what stands over it: where the window overlaps
   const strip = png('space-parapet')
   const y = 900 - 27
   const under = [0, 1, 2].map((channel) => strip.data[((y - (900 - 28)) * strip.width + (layer.x % strip.width)) * 4 + channel]!)
-  expect(under, 'the strip’s own pixel there differs from the window’s ground, or this proves nothing').not.toEqual(layer.colour)
+  expect(under, 'the strip’s own pixel there differs from the window’s border, or this proves nothing').not.toEqual(layer.colour)
   expect(layer.bottom, 'the window overlaps the strip').toBe(876)
 
   const seen = decodePng(await page.screenshot({ clip: { x: layer.x, y, width: 1, height: 1 } }))

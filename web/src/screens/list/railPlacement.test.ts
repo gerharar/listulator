@@ -92,6 +92,14 @@ describe('layerBorderWidth', () => {
     }
   })
 
+  it('takes the border’s own width: eX-Zed’s window has a 4px border (D54), whole device pixels the same way', () => {
+    expect(layerBorderWidth(1, 4)).toBeCloseTo(4, 2)
+    expect(layerBorderWidth(1.25, 4)).toBeCloseTo(4, 2)
+    expect(layerBorderWidth(1.1, 4) * 1.1).toBeGreaterThanOrEqual(4)
+    expect(layerBorderWidth(1.1, 4) * 1.1).toBeLessThan(4.05)
+    expect(layerBorderWidth(0, 4)).toBe(4)
+  })
+
   it('falls back to 2px for a ratio that is not a number above zero', () => {
     expect(layerBorderWidth(0)).toBe(2)
     expect(layerBorderWidth(Number.NaN)).toBe(2)
