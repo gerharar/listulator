@@ -108,9 +108,15 @@ test('the note grows from four lines as it is typed, and the window still fits o
     // Eight lines at most, then it scrolls: thirty lines are not four times as tall as seven.
     await expect.poll(heightOf).toBeGreaterThanOrEqual(grown)
     expect(await heightOf()).toBeLessThan(grown * 1.6)
-    const box = (await edit.boundingBox())!
-    expect(box.y).toBeGreaterThanOrEqual(0)
-    expect(box.y + box.height).toBeLessThanOrEqual(page.viewportSize()!.height)
+    // The window is kept on the screen as it grows, but not in the same instant: the textarea gains its eighth line (21px) on the keystroke, and the popover is shifted back up
+    // by the next layout pass (floating-ui's resize observer). A single read between the two sees the new height at the old place (732.78 in a 720px window, BL-181). So it is
+    // waited for, as every other assertion on a moving thing in this suite is.
+    const viewport = page.viewportSize()!.height
+    await expect.poll(async () => {
+      const box = (await edit.boundingBox())!
+      return box.y + box.height
+    }).toBeLessThanOrEqual(viewport)
+    expect((await edit.boundingBox())!.y).toBeGreaterThanOrEqual(0)
   } finally {
     await page.request.delete(`/api/lists/${id}`)
   }
