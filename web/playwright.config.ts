@@ -26,7 +26,8 @@ export default defineConfig({
   projects: [
     // Runs first: makes sure the server has a list, so Home shows (seed.setup.ts). The browser projects wait for it.
     { name: 'seed', testMatch: /seed\.setup\.ts/ },
-    { name: 'chromium', dependencies: ['seed'], use: { ...devices['Desktop Chrome'] } },
+    // No LCD text (BL-179): the Linux runner smooths text with LCD sub-pixels at 100%, a blend of ink and ground the pixel specs (theme-exzed-stems) count as a third colour; the Mac never does.
+    { name: 'chromium', dependencies: ['seed'], use: { ...devices['Desktop Chrome'], launchOptions: { args: ['--disable-lcd-text'] } } },
     /**
      * Not a substitute for the real Tauri/WKWebView desktop shell, but a
      * genuine second engine (WebKit) rather than an assumption that
