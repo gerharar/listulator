@@ -14,6 +14,10 @@ describe('the browser tests’ Chromium (BL-179)', () => {
     expect(config).toMatch(/name: 'chromium',[^\n]*launchOptions:\s*{\s*args:\s*\[[^\]]*'--disable-lcd-text'/)
   })
 
+  it('puts the app’s own output in the log when it runs in CI, where the dev server has died with nothing said', () => {
+    expect(config).toMatch(/stdout:\s*process\.env\['CI'\]\s*\?\s*'pipe'/)
+  })
+
   it('does not do so for WebKit, which has no such switch', () => {
     expect(config).not.toMatch(/name: 'webkit',[^\n]*launchOptions/)
   })

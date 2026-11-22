@@ -107,8 +107,19 @@ jobs:
       - name: Chromium for the browser tests
         run: npm exec -w @listulator/web -- playwright install --with-deps chromium
 
+      # BL-179: the dev server has died twice in five runs, with nothing in the log. This notes memory and the two ports every 5 seconds, and the last step prints it.
+      - name: Watch memory and the app's ports
+        run: |
+          nohup sh -c 'while :; do echo "$(date +%T) $(free -m | sed -n 2p) | 5173:$(ss -ltn | grep -c ":5173 ") 3001:$(ss -ltn | grep -c ":3001 ") | $(ps -eo rss,comm --sort=-rss | sed -n 2,4p | tr -s " " | tr "\n" ";")"; sleep 5; done' > "$RUNNER_TEMP/watch.log" 2>&1 &
+
       - name: Browser tests (Chromium)
         run: npm run test:e2e -w @listulator/web -- --project=chromium
+
+      - name: What the runner saw (memory, ports, kills)
+        if: always()
+        run: |
+          cat "$RUNNER_TEMP/watch.log" || true
+          sudo dmesg | grep -iE 'out of memory|oom|killed process' | tail -n 20 || true
 
   browser-webkit:
     runs-on: ubuntu-24.04
@@ -131,8 +142,19 @@ jobs:
       - name: WebKit for the browser tests
         run: npm exec -w @listulator/web -- playwright install --with-deps webkit
 
+      # BL-179: the dev server has died twice in five runs, with nothing in the log. This notes memory and the two ports every 5 seconds, and the last step prints it.
+      - name: Watch memory and the app's ports
+        run: |
+          nohup sh -c 'while :; do echo "$(date +%T) $(free -m | sed -n 2p) | 5173:$(ss -ltn | grep -c ":5173 ") 3001:$(ss -ltn | grep -c ":3001 ") | $(ps -eo rss,comm --sort=-rss | sed -n 2,4p | tr -s " " | tr "\n" ";")"; sleep 5; done' > "$RUNNER_TEMP/watch.log" 2>&1 &
+
       - name: Browser tests (WebKit)
         run: npm run test:e2e -w @listulator/web -- --project=webkit
+
+      - name: What the runner saw (memory, ports, kills)
+        if: always()
+        run: |
+          cat "$RUNNER_TEMP/watch.log" || true
+          sudo dmesg | grep -iE 'out of memory|oom|killed process' | tail -n 20 || true
 
   desktop:
     runs-on: windows-2025

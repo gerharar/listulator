@@ -42,6 +42,8 @@ export default defineConfig({
     cwd: '../',
     url: 'http://127.0.0.1:5173',
     reuseExistingServer: !process.env['CI'],
+    // In CI the app's own output goes to the log: twice the dev server has died mid-run with nothing there to say why (BL-179).
+    stdout: process.env['CI'] ? 'pipe' : 'ignore',
     timeout: 60_000,
   },
 })

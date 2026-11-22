@@ -481,6 +481,22 @@ describe('the CI workflow (31.1)', () => {
     }
   })
 
+  // BL-179: the dev server died in two of five runs with nothing in the log; each browser job notes memory and the ports while it runs and prints the notes (and the kernel's kills) last, pass or fail.
+  it('has each browser job watch memory and the app’s ports, and print what it saw whatever the result', () => {
+    for (const project of ['chromium', 'webkit']) {
+      const [name] = Object.entries(workflow.jobs).find(([, job]) => (job.steps ?? []).some((step) => (step.run ?? '').trim() === `npm run test:e2e -w @listulator/web -- --project=${project}`))!
+      const steps = workflow.jobs[name]!.steps ?? []
+      const test = steps.findIndex((step) => (step.run ?? '').trim().startsWith('npm run test:e2e'))
+      const watch = steps.findIndex((step) => (step.run ?? '').includes('watch.log') && (step.run ?? '').includes('nohup'))
+      const report = steps.findIndex((step) => (step.run ?? '').includes('cat "$RUNNER_TEMP/watch.log"') && (step.run ?? '').includes('dmesg'))
+
+      expect(watch, `job ${name}`).toBeGreaterThanOrEqual(0)
+      expect(watch, `job ${name}`).toBeLessThan(test)
+      expect(report, `job ${name}`).toBeGreaterThan(test)
+      expect(steps[report]!['if'], `job ${name}`).toBe('always()')
+    }
+  })
+
   it('runs the secret scan before anything else that installs or builds more than the dependencies', () => {
     const scan = lines.findIndex((line) => line.startsWith('npm run secrets:scan'))
     const build = lines.findIndex((line) => /^npm run (typecheck|lint|test)/.test(line))
