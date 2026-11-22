@@ -129,7 +129,7 @@ html.theme-exzed .q-icon-btn:disabled svg {
  *    not red (the label was in the danger colour in Quantum: red is the final confirm only);
  *  - the export and Reorder answers (a `.q-pop-menu` after a note) are CHOICES, one under the other: a 2px `frame` box, `ink`, full width, left, hover = the highlight (the owner, at
  *    Checkpoint G1: export is built as Reorder is, two like buttons stacked, not the board's primary and bracketed pair in a row);
- *  - the Need-help helpers (Home) and the Vault shelf's two buttons are GHOST buttons (no brackets, no box); the helpers are 24px high with `0 8px` of padding, a 2px `frame`
+ *  - the Need-help helpers (Home) are GHOST buttons (no brackets, no box); they are 24px high with `0 8px` of padding, a 2px `frame`
  *    separator between them (the previous button's `::after`, outside its hover box); the open one is lit by Quantum's own `.on` rule, whose accent is `acc` here.
  * Specificity: the rest looks stay below the generic hover rule, so the hover wins; the bracket removals tie with the generic ones and come after them.
  */
@@ -176,11 +176,6 @@ html.theme-exzed .q-help-row .q-btn.quiet:not(:last-child)::after {
   width: 2px;
   height: 16px;
   background: var(--zx-frame);
-}
-
-html.theme-exzed .q-vault-actions .q-btn:not(.primary):not(.danger)::before,
-html.theme-exzed .q-vault-actions .q-btn:not(.primary):not(.danger)::after {
-  content: none;
 }
 
 /*

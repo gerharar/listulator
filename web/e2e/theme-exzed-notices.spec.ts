@@ -274,7 +274,7 @@ for (const skin of SKINS) {
       await expect(page.locator('.q-banner-narrow')).toHaveCount(0)
     })
 
-    test('the error strip: a 2px frame border, no fill, 56px at least, one sentence in ink, [Retry] and [Dismiss] 40px high 8px apart', async ({ page }) => {
+    test('the error strip: a 2px frame border on the paper (D43), 56px at least, one sentence in ink, [Retry] and [Dismiss] 40px high 8px apart', async ({ page }) => {
       await seed(page, skin)
       await page.route('**/api/media-types/music/search**', (route) => route.fulfill({ status: 502, json: { error: 'Upstream unavailable', message: 'MusicBrainz is rate-limiting us. Try again in a moment.' } }))
       await page.goto('/')
@@ -291,7 +291,7 @@ for (const skin of SKINS) {
         'border-top-width': '2px',
         'border-top-style': 'solid',
         'border-top-color': css(r.frame),
-        'background-color': 'rgba(0, 0, 0, 0)',
+        'background-color': css(r.paper),
         color: css(r.ink),
         'font-size': '16px',
         'min-height': '56px',
@@ -314,7 +314,7 @@ for (const skin of SKINS) {
       await expect(strip).toBeHidden()
     })
 
-    test('the error block: a 2px frame border, no fill, the headline in ink, the explanation in ink2, 16px type on 24px lines, 16px of padding and 8px between its parts', async ({ page }) => {
+    test('the error block: a 2px frame border on the paper (D43), the headline in ink, the explanation in ink2, 16px type on 24px lines, 16px of padding and 8px between its parts', async ({ page }) => {
       await seed(page, skin)
       await page.route('**/api/media-types/music/search**', (route) => route.fulfill({ status: 409, json: { code: 'search.unavailableOffline', params: { category: 'Music' } } }))
       await page.goto('/')
@@ -331,7 +331,7 @@ for (const skin of SKINS) {
         'border-top-width': '2px',
         'border-top-style': 'solid',
         'border-top-color': css(r.frame),
-        'background-color': 'rgba(0, 0, 0, 0)',
+        'background-color': css(r.paper),
         'padding-top': '16px',
         'padding-left': '16px',
         display: 'flex',

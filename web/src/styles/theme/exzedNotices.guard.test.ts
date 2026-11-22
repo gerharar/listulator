@@ -53,9 +53,9 @@ describe('eX-Zed’s notices', () => {
     expect(body('html.theme-exzed .q-banner-actions')).toMatch(/gap:\s*8px;/)
   })
 
-  it('draws the strip and the block with a 2px frame border and no fill; neither is red', () => {
-    expect(body('html.theme-exzed .q-error-strip')).toMatch(/border:\s*2px solid var\(--zx-frame\);\s*background:\s*transparent;/)
-    expect(body('html.theme-exzed .q-error-block')).toMatch(/gap:\s*8px;\s*padding:\s*16px;\s*border:\s*2px solid var\(--zx-frame\);\s*background:\s*transparent;/)
+  it('draws the strip and the block with a 2px frame border on the paper (the art stops behind them, D43, as behind a banner); neither is red', () => {
+    expect(body('html.theme-exzed .q-error-strip')).toMatch(/border:\s*2px solid var\(--zx-frame\);\s*background:\s*var\(--zx-paper\);/)
+    expect(body('html.theme-exzed .q-error-block')).toMatch(/gap:\s*8px;\s*padding:\s*16px;\s*border:\s*2px solid var\(--zx-frame\);\s*background:\s*var\(--zx-paper\);/)
     expect(body('html.theme-exzed .q-error-block p')).toMatch(/color:\s*var\(--zx-ink2\);/)
     expect(css).not.toMatch(/--zx-danger/)
   })

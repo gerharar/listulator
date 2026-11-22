@@ -74,8 +74,12 @@ describe('eX-Zed’s fixes from the owner’s first look', () => {
     expect(body('html.theme-exzed .q-toast.fixed')).toMatch(/width:\s*max-content;\s*max-width:\s*min\(620px, calc\(100vw - 32px\)\);/)
   })
 
-  it('makes the list menu as wide as its longest row, never under the card’s 240px', () => {
-    expect(body('html.theme-exzed .q-pop.w240:has(.q-kicker + .q-pop-menu)')).toMatch(/width:\s*max-content;\s*min-width:\s*240px;/)
+  it('makes the list menu as wide as its longest row, at least the card’s 240px and at most 400px (D45)', () => {
+    expect(body('html.theme-exzed .q-pop.w240:has(.q-kicker + .q-pop-menu)')).toMatch(/width:\s*max-content;\s*min-width:\s*240px;\s*max-width:\s*400px;/)
+  })
+
+  it('lets a list-menu row longer than the cap wrap inside its highlight, one line staying the 40px it was (D45)', () => {
+    expect(body('html.theme-exzed .q-pop.w240:has(.q-kicker + .q-pop-menu) .q-pop-menu .q-btn')).toMatch(/height:\s*auto;\s*min-height:\s*40px;\s*padding-block:\s*6px;\s*white-space:\s*normal;/)
   })
 
   it('keeps a name on one line, cut with an ellipsis, while Surprise Me’s dials spin', () => {

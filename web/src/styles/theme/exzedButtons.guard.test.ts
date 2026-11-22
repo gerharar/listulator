@@ -38,6 +38,10 @@ describe('eX-Zed’s buttons', () => {
     expect(css).toMatch(/::after\s*{\s*content:\s*'\]';\s*content:\s*'\]' \/ '';\s*}/)
   })
 
+  it('leaves the Vault shelf’s Browse List Vault and Try A Sample List their brackets: a lone action in the content is a bracketed secondary (D40), so no rule removes them', () => {
+    expect(css).not.toMatch(/q-vault-actions/)
+  })
+
   it('draws a disabled button as the dotted outline at the box’s outer edge, a disabled icon as the dither mask, and a busy one with the progress cursor', () => {
     expect(css).toMatch(/\.q-btn:disabled:not\(\[aria-busy='true'\]\)\s*{[^}]*background:\s*var\(--zx-dotted\);[^}]*background-origin:\s*border-box;/)
     expect(css).toMatch(/\.q-icon-btn:disabled svg\s*{[^}]*mask:\s*var\(--zx-icon-dither\);/)

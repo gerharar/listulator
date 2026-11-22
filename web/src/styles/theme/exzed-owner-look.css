@@ -51,7 +51,7 @@ html.theme-exzed[data-theme='exzed-1l'] .q-tile:not(:hover) .q-tile-src {
 /*
  * Layout (51.13):
  *  - the toast is one line: it is `fixed` at `left: 50%`, so its shrink-to-fit width was at most half the window and a short sentence wrapped in a small one; it is as wide as its sentence, to the window less 16px each side;
- *  - the list menu (the ⋯ popover, 240px on the card) is as wide as its longest row: "Reorder List" was 8px wider than the row and ran past its highlight; never narrower than the card's 240px;
+ *  - the list menu (the ⋯ popover, 240px on the card) is as wide as its longest row: "Reorder List" was 8px wider than the row and ran past its highlight; never narrower than the card's 240px, and never wider than 400px (D45; a longer label wraps in its row);
  *  - Surprise Me: while the dials spin a name goes by on one line (cut with an ellipsis), so a long title no longer makes the sheet taller and shorter again, which moved the window up and down.
  */
 html.theme-exzed .q-toast.fixed {
@@ -76,6 +76,14 @@ html.theme-exzed .q-pop.w320:has(> .q-pop-scroll > .q-platpanel-head) {
 html.theme-exzed .q-pop.w240:has(.q-kicker + .q-pop-menu) {
   width: max-content;
   min-width: 240px;
+  max-width: 400px;
+}
+/* A row longer than the 400px cap wraps inside its highlight, and the row grows by a line; a row of one line is the 40px it was. */
+html.theme-exzed .q-pop.w240:has(.q-kicker + .q-pop-menu) .q-pop-menu .q-btn {
+  height: auto;
+  min-height: 40px;
+  padding-block: 6px;
+  white-space: normal;
 }
 
 html.theme-exzed .q-reel:has(.q-digit.ticking) .q-reel-name {

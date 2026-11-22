@@ -1,5 +1,5 @@
 /*
- * eX-Zed's notices (Phase 51, 51.10, X-007; design's Toast and Banner cards), drawn on Quantum's own classes: no call site changes. None of them is red (red means destroy), and none has a fill of its own.
+ * eX-Zed's notices (Phase 51, 51.10, X-007; design's Toast and Banner cards), drawn on Quantum's own classes: no call site changes. None of them is red (red means destroy), and only the narrow-window notice has a fill of its own (the strip, the block and the banners sit on the `paper`).
  *  - the toast: one line at the top centre, a 2px `frame-hi` border and the 4px `paper` ring (`--e-toast`, 49.5), 16px `ink` on 24px lines, 16px between the sentence and its one bracketed action (a 40px
  *    button, so 4px of padding, 16px on the left; as high as that button, 52px, with or without it); it comes in with one FLASH step (320ms, inverse video, `steps(1)`) and goes with no animation at
  *    all; under reduced motion it has no flash either. The durations are Quantum's, 3s and 5s with Undo (DECISIONS 2026-11-14): the owner shortened the card's 3.2s and 8s;
@@ -7,8 +7,8 @@
  *    `sm` ones, 24px high with 8px of padding, 8px apart, so the banner is 32px high;
  *  - the narrow-window notice (D49, 57.1): the one banner that asks for action, so it is the one that is filled: the `info` ground, `chip-ink` text, no border to see (the 2px border is the ground's own colour, so
  *    it is 32px high like the others); its buttons are bracketed in `chip-ink` and take a `chip-ink` block with `info` text on hover, except Embiggen, the primary (a solid `chip-ink` block with `info` text; white and black on hover, D53), and focus inside it is a 2px `chip-ink` outline; it comes in with one FLASH step (320ms, inverse, `steps(1)`, as the toast), none under reduced motion;
- *  - the error strip: a 2px `frame` border, 56px at least, one sentence in `ink`, [Retry] and [Dismiss] 40px high;
- *  - the error block: a 2px `frame` border, 16px of padding and 8px between its parts: the headline in `ink`, the explanation in `ink2`, at most one action, 24px lines;
+ *  - the error strip: a 2px `frame` border on the `paper` (the art stops behind it, D43, as behind a banner), 56px at least, one sentence in `ink`, [Retry] and [Dismiss] 40px high;
+ *  - the error block: a 2px `frame` border on the `paper` (D43), 16px of padding and 8px between its parts: the headline in `ink`, the explanation in `ink2`, at most one action, 24px lines;
  *  - the refusal (Import's sentence under its box, a taken group name under the head): the ! icon before one sentence in `ink2`, 8px apart; the field's own (51.4) is the same.
  * Quantum is as it was: every rule is under `html.theme-exzed`.
  */
@@ -124,7 +124,7 @@ html.theme-exzed .q-error-strip {
   gap: 8px;
   padding: 0 8px 0 16px;
   border: 2px solid var(--zx-frame);
-  background: transparent;
+  background: var(--zx-paper);
   color: var(--zx-ink);
   font-size: 16px;
   line-height: 24px;
@@ -140,7 +140,7 @@ html.theme-exzed .q-error-block {
   gap: 8px;
   padding: 16px;
   border: 2px solid var(--zx-frame);
-  background: transparent;
+  background: var(--zx-paper);
   color: var(--zx-ink);
   font-size: 16px;
   line-height: 24px;

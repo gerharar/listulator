@@ -185,17 +185,18 @@ test.describe('ghost buttons', () => {
       expect(await style(helpers.nth(1), ['background-color', 'color']), 'the open helper is lit, with the pointer away').toMatchObject({ 'background-color': rgb(acc!), color: rgb(accInk!) })
     })
 
-    test(`${skin}: the Vault shelf's Browse List Vault and Try A Sample List are ghost buttons`, async ({ page }) => {
+    test(`${skin}: the Vault shelf's Browse List Vault and Try A Sample List are bracketed secondaries (D40): [Label] in a 40px box, no border at rest, the highlight under the pointer`, async ({ page }) => {
       await boot(page, { skin })
       await page.goto('/')
       await page.getByRole('button', { name: 'New List', exact: true }).click()
       const actions = page.locator('.q-vault-actions .q-btn')
       await actions.first().waitFor()
+      const ctl = await token(page, '--zx-ctl')
       for (let n = 0; n < (await actions.count()); n++) {
         const button = actions.nth(n)
-        noBrackets(await pseudo(button, '::before'))
-        noBrackets(await pseudo(button, '::after'))
-        expect(await style(button, ['height', 'border-top-color']), `shelf button ${n}`).toMatchObject({ height: '40px', 'border-top-color': 'rgba(0, 0, 0, 0)' })
+        expect(await pseudo(button, '::before'), `shelf button ${n} opens with a bracket`).toContain('[')
+        expect(await pseudo(button, '::after'), `shelf button ${n} closes with a bracket`).toContain(']')
+        expect(await style(button, ['height', 'border-top-color', 'padding-left', 'color']), `shelf button ${n}`).toMatchObject({ height: '40px', 'border-top-color': 'rgba(0, 0, 0, 0)', 'padding-left': '16px', color: rgb(ctl!) })
       }
       const [acc, accInk] = await Promise.all(['--zx-acc', '--zx-acc-ink'].map((n) => token(page, n)))
       await actions.first().hover()

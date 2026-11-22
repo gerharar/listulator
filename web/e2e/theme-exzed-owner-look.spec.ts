@@ -156,6 +156,21 @@ for (const skin of SKINS) {
     expect((await page.locator('.q-pop').boundingBox())!.width, 'never narrower than the card’s 240px').toBeGreaterThanOrEqual(240)
   })
 
+  test(`${skin}: the list menu is never wider than 400px, whatever a row says (D45): a longer label wraps inside its row`, async ({ page }) => {
+    await openList(page, skin)
+    await page.getByRole('button', { name: 'More', exact: true }).click()
+    await page.locator('.q-pop .q-btn').first().waitFor()
+    await page.waitForFunction(() => getComputedStyle(document.querySelector('.q-pop')!).opacity === '1')
+    await page.locator('.q-pop .q-pop-menu .q-btn').first().evaluate((button) => {
+      button.textContent = 'A row whose label is far longer than the menu was ever drawn for, to see where it stops'
+    })
+    const pop = (await page.locator('.q-pop').boundingBox())!
+    expect(pop.width, 'at most 400px').toBeLessThanOrEqual(400)
+    expect(pop.width, 'and a long row fills it').toBeGreaterThanOrEqual(399)
+    const row = await page.locator('.q-pop .q-pop-menu .q-btn').first().evaluate((b) => ({ over: b.scrollWidth - b.clientWidth, height: b.getBoundingClientRect().height }))
+    expect(row.over, 'the label does not run past its highlight').toBeLessThanOrEqual(0)
+  })
+
   test(`${skin}: a group's bin is in the same column as an item's`, async ({ page }) => {
     await openList(page, skin)
     const group = (await page.locator('.q-group .q-group-remove').first().boundingBox())!
