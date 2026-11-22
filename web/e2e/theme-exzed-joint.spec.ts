@@ -3,7 +3,7 @@ import { decodePng } from './pngPixels.js'
 
 /**
  * eX-Zed's Jump To outside the window (57.3, design's D51 and D54; the List-2560 board and the JumpRail card), on the real screen at 2560px, in both engines and all six skins. **The rail has its own
- * double frame on top, left and bottom: a 4px `frame-hi` border (no right border), then the rings of 4px `paper`, `frame`, `paper`, clipped where the window's edge starts. It is 204px wide (its
+ * double frame on top, left and bottom: a 4px `frame-hi` border (and a 2px one on its right that lies over the window's own border, so no pixel snapping can open a seam), then the rings of 4px `paper`, `frame`, `paper`, clipped where the window's edge starts. It is 204px wide as drawn (its
  * 4px border and 200px inside), its top 4px above the list area and its bottom level with the window's bottom border; the window's own `frame-hi` border runs unbroken beside it. At the top
  * joint the window's `frame` ring turns out into the rail's (a 4px `frame` block above, a 4px `paper` block that keeps it out of the window's inner ring); at the bottom the two simply continue.**
  */
@@ -75,7 +75,7 @@ async function cell(page: Page, x: number, y: number): Promise<Rgb> {
 
 for (const skin of SKINS) {
   test.describe(`with the theme exzed, skin ${skin}`, () => {
-    test('the rail is 204px with its 4px frame-hi border, its top 4px above the list and its bottom on the window’s bottom edge, with its own rings and no right border', async ({ page }) => {
+    test('the rail is 204px with its 4px frame-hi border, its top 4px above the list and its bottom on the window’s bottom edge, with its own rings, its right 2px under the window’s border', async ({ page }) => {
       await open(page, skin)
       const r = await roles(page)
       const rail = page.locator('.q-rail')
@@ -84,15 +84,16 @@ for (const skin of SKINS) {
       const box = await rect(rail)
 
       // --q-bw is the border's width plus a thousandth of a device pixel (so the browser's rounding down cannot take a pixel off), so the edges agree to within that.
-      expect(box.right, 'the rail ends where the window’s border box starts').toBeCloseTo(layer.left, 1)
-      expect(box.width, '4px border and 200px inside').toBe(204)
+      // The last 2px of the box lie under the window's own border (its right border, the same colour): 204px show, the box is 206px.
+      expect(box.right, 'the rail ends 2px inside the window’s border box').toBeCloseTo(layer.left + 2, 1)
+      expect(box.width, '4px border, 200px inside, 2px under the window’s border').toBe(206)
       expect(box.top, '4px above the list area').toBeCloseTo(cols.top - 4, 1)
       expect(box.bottom, 'level with the window’s bottom border').toBeCloseTo(layer.bottom, 1)
       expect(await style(rail, ['border-top-width', 'border-left-width', 'border-bottom-width', 'border-right-width', 'border-top-color', 'border-left-color', 'border-bottom-color'])).toEqual({
         'border-top-width': '4px',
         'border-left-width': '4px',
         'border-bottom-width': '4px',
-        'border-right-width': '0px',
+        'border-right-width': '2px',
         'border-top-color': css(r.hi),
         'border-left-color': css(r.hi),
         'border-bottom-color': css(r.hi),
@@ -141,8 +142,8 @@ for (const skin of SKINS) {
       const cols = await rect(page.locator('.q-list-cols'))
       const box = await rect(page.locator('.q-rail'))
 
-      expect(box.width).toBe(44)
-      expect([box.right, box.top, box.bottom].map((n) => Math.round(n))).toEqual([layer.left, cols.top - 4, layer.bottom].map((n) => Math.round(n)))
+      expect(box.width).toBe(46)
+      expect([box.right, box.top, box.bottom].map((n) => Math.round(n))).toEqual([layer.left + 2, cols.top - 4, layer.bottom].map((n) => Math.round(n)))
       expect(await cell(page, layer.left - 8, cols.top - 12), 'the frame band turns out of the ring').toEqual(r.frame)
       expect(await cell(page, layer.left - 4, cols.top - 12), 'and stops short of the inner ring').toEqual(r.paper)
     })
@@ -180,8 +181,8 @@ test('the Preview’s rail has the same frame and the same joint', async ({ page
   const layer = await rect(page.locator('.q-layer:not(.covered)'))
   const lower = await rect(page.locator('.q-preview-lower'))
   const box = await rect(page.locator('.q-rail'))
-  expect(box.width).toBe(204)
-  expect(box.right).toBeCloseTo(layer.left, 1)
+  expect(box.width).toBe(206)
+  expect(box.right).toBeCloseTo(layer.left + 2, 1)
   expect(box.top).toBeCloseTo(lower.top - 4, 1)
   expect(box.bottom).toBeCloseTo(layer.bottom, 1)
   const x = layer.left
@@ -191,4 +192,26 @@ test('the Preview’s rail has the same frame and the same joint', async ({ page
   expect(await cell(page, x - 8, top - 12), 'it turns out into the rail’s').toEqual(r.frame)
   expect(await cell(page, x - 8, top - 4), 'the rail’s top border').toEqual(r.hi)
   expect(await cell(page, x, top + 100), 'the window’s border runs on beside it').toEqual(r.hi)
+})
+
+// The seam (owner, 2026-11-22): the rail's right edge and the window's border are snapped to device pixels each by itself, and on a screen at 200% with a window an odd number of pixels wide
+// (the shell centred on a half CSS px, one whole device px) a column of what lay behind showed between them, top and bottom. The rail's right 2px lie over the window's border.
+test.describe('the seam between the rail and the window’s border, on a screen at 200% and a window 2561px wide', () => {
+  test.use({ deviceScaleFactor: 2 })
+  test('the rail’s top and bottom borders run into the window’s with no pixel of another colour', async ({ page }) => {
+    await open(page, 'exzed-1d')
+    await page.setViewportSize({ width: 2561, height: 1000 })
+    await page.waitForTimeout(300)
+    const r = await roles(page)
+    const layer = await rect(page.locator('.q-layer:not(.covered)'))
+    const cols = await rect(page.locator('.q-list-cols'))
+    for (const [name, y] of [['top', cols.top - 3], ['bottom', layer.bottom - 3]] as const) {
+      const clip = { x: Math.floor(layer.left) - 8, y: Math.floor(y), width: 16, height: 1 }
+      const pixels = decodePng(await page.screenshot({ clip }))
+      const scale = pixels.width / clip.width
+      const from = Math.round((layer.left - clip.x) * scale) - 4
+      const to = Math.round((layer.left - clip.x) * scale) + 4
+      for (let x = from; x <= to; x++) expect([pixels.data[x * 4], pixels.data[x * 4 + 1], pixels.data[x * 4 + 2]], `${name} joint, device pixel ${x - from - 4}`).toEqual(r.hi)
+    }
+  })
 })

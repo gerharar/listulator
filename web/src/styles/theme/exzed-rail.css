@@ -192,12 +192,18 @@ html.theme-exzed body.q-resizing .q-rail.q-rail-out {
  * At the bottom the rail's rings and the window's continue as one. At the top the window's `frame` ring turns out into the rail's, as the board draws it with two 4px blocks (one 8px box, on the box the
  * rail hangs from: the rail clips what lies outside it, and the list's busy scrim has the `::after`): a `frame` one in the window's ring column, where the rail's outer `paper` band would cut it,
  * and a `paper` one in the window's inner ring column, so the rail's `frame` band stops short of the window's inner ring. Quantum is as it was: every rule is under `html.theme-exzed`.
+ *
+ * The 2px right border (owner, 2026-11-22: a 1px hole where the rail meets the window's border, top and bottom): the rail's right edge and the window's border start at the same CSS px, but a
+ * browser snaps each to whole device pixels by itself, so on a screen at 200% with a window an odd number of pixels wide (a half CSS px, one whole device px) or at a fractional scale a column
+ * of what lies behind showed between them. The rail now ends 2px inside the window's own `frame-hi` border, with a 2px `frame-hi` border of its own over it (the same colour, so nothing else
+ * changes): its box is 206px (the 204px of the design, 2px under the window's border) and the snapping cannot open a gap.
  */
 html.theme-exzed .q-rail.q-rail-out {
   top: calc(-1 * var(--q-bw));
   box-sizing: content-box;
   border: 4px solid var(--zx-frame-hi);
-  border-right: 0;
+  border-right: 2px solid var(--zx-frame-hi);
+  right: calc(100% + var(--q-bw) - 2px);
   background: var(--zx-paper);
   box-shadow: var(--e-layer-rest);
   clip-path: inset(-12px 0 -12px -12px);

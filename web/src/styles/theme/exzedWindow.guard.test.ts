@@ -30,11 +30,11 @@ describe('eX-Zed’s window border (D54)', () => {
 })
 
 describe('eX-Zed’s outside jump rail (57.3, D51 and D54)', () => {
-  it('has its own double frame: a 4px frame-hi border with no right border, the window’s three rings clipped at its edge, 4px above the list area', () => {
+  it('has its own double frame: a 4px frame-hi border, its right 2px lying over the window’s own border, the window’s three rings clipped at its edge, 4px above the list area', () => {
     const rule = railBody('html.theme-exzed .q-rail.q-rail-out')
     expect(rule).toMatch(/top:\s*calc\(-1 \* var\(--q-bw\)\);/)
     expect(rule).toMatch(/box-sizing:\s*content-box;/)
-    expect(rule).toMatch(/border:\s*4px solid var\(--zx-frame-hi\);\s*border-right:\s*0;/)
+    expect(rule).toMatch(/border:\s*4px solid var\(--zx-frame-hi\);\s*border-right:\s*2px solid var\(--zx-frame-hi\);\s*right:\s*calc\(100% \+ var\(--q-bw\) - 2px\);/)
     expect(rule).toMatch(/box-shadow:\s*var\(--e-layer-rest\);/)
     expect(rule).toMatch(/clip-path:\s*inset\(-12px 0 -12px -12px\);/)
   })

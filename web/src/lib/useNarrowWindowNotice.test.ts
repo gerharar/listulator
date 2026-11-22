@@ -139,4 +139,18 @@ describe('what is offered', () => {
 
     expect(result.current.mode).toBe('embiggen')
   })
+
+  it('when the window is already wide by the time the maximise reports back (the resize arrives first), a later narrowing still offers Embiggen', async () => {
+    let finish: (done: boolean) => void = () => undefined
+    const maximize = () => new Promise<boolean>((resolve) => (finish = resolve))
+    const { result, rerender } = hook({ desktop: true, screenWidth: 1440, maximize })
+
+    act(() => result.current.embiggen())
+    rerender({ ...base, desktop: true, screenWidth: 1440, maximize, width: 1400 })
+    await act(async () => finish(true))
+
+    rerender({ ...base, desktop: true, screenWidth: 1440, maximize, width: 1000 })
+
+    expect(result.current.mode).toBe('embiggen')
+  })
 })

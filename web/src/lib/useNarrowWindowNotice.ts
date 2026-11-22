@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { narrowMode, type NarrowMode } from './narrowWindow.js'
 
 /** Everything the notice depends on, given (not read) so each path can be driven in a test, the desktop ones too. */
@@ -37,14 +37,18 @@ export function useNarrowWindowNotice({ exzed, width, min, desktop, screenWidth,
   const narrow = exzed && width < min
   const [dismissed, setDismissed] = useState(false)
   const [embiggened, setEmbiggened] = useState(false)
+  const narrowNow = useRef(narrow)
 
   useEffect(() => {
+    narrowNow.current = narrow
     if (!narrow) setEmbiggened(false)
   }, [narrow])
 
   const reopen = useCallback(() => setDismissed(false), [])
   const dismiss = useCallback(() => setDismissed(true), [])
-  const embiggen = useCallback(() => void maximize().then((done) => done && setEmbiggened(true)), [maximize])
+  // The window may already be wide when the maximise reports back (the resize arrives first, and a maximise animates): then there is nothing to remember, or the
+  // button would stay gone after the next narrowing. Only a window still narrow once it worked loses the button.
+  const embiggen = useCallback(() => void maximize().then((done) => done && narrowNow.current && setEmbiggened(true)), [maximize])
 
   return {
     narrow,

@@ -209,7 +209,7 @@ test('exzed-1d: outside the window the rail folds to the same 40px strip, and it
   await page.mouse.move(0, 0)
 
   await rail.locator('.q-rail-head .q-rail-toggle').click()
-  // The 40px strip inside the rail's 4px border (D54).
-  await expect.poll(async () => (await box(rail)).width).toBe(44)
+  // The 40px strip inside the rail's 4px border (D54), and the 2px of its right border that lie under the window's.
+  await expect.poll(async () => (await box(rail)).width).toBe(46)
   await expect(rail.locator('.q-rail-fold .q-rail-toggle')).toHaveCount(1)
 })
