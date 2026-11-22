@@ -452,6 +452,35 @@ describe('the CI workflow (31.1)', () => {
     expect(lines.some((line) => /^cargo test .*--locked/.test(line))).toBe(true)
   })
 
+  // 2026-11-22: all of it in one job took 51 to 58 minutes (the 60-minute limit cancelled the third run, BL-179); an engine each is about half, and the limit stays.
+  it('runs the browser tests in one job per engine, each on its own project, and in no other job', () => {
+    const jobsWith = (project: string) =>
+      Object.entries(workflow.jobs)
+        .filter(([, job]) => (job.steps ?? []).some((step) => (step.run ?? '').trim() === `npm run test:e2e -w @listulator/web -- --project=${project}`))
+        .map(([name]) => name)
+    const chromium = jobsWith('chromium')
+    const webkit = jobsWith('webkit')
+
+    expect(chromium).toHaveLength(1)
+    expect(webkit).toHaveLength(1)
+    expect(chromium[0]).not.toBe(webkit[0])
+    for (const [name, job] of Object.entries(workflow.jobs)) {
+      for (const step of job.steps ?? []) {
+        const run = (step.run ?? '').trim()
+        if (run.startsWith('npm run test:e2e')) expect(run, `job ${name}`).toMatch(/ -- --project=(chromium|webkit)$/)
+      }
+    }
+  })
+
+  it('installs only the engine a browser job runs', () => {
+    for (const project of ['chromium', 'webkit']) {
+      const [name] = Object.entries(workflow.jobs).find(([, job]) => (job.steps ?? []).some((step) => (step.run ?? '').trim() === `npm run test:e2e -w @listulator/web -- --project=${project}`))!
+      const installs = (workflow.jobs[name]!.steps ?? []).map((step) => (step.run ?? '').trim()).filter((run) => run.includes('playwright install'))
+
+      expect(installs, `job ${name}`).toEqual([`npm exec -w @listulator/web -- playwright install --with-deps ${project}`])
+    }
+  })
+
   it('runs the secret scan before anything else that installs or builds more than the dependencies', () => {
     const scan = lines.findIndex((line) => line.startsWith('npm run secrets:scan'))
     const build = lines.findIndex((line) => /^npm run (typecheck|lint|test)/.test(line))
