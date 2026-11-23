@@ -35,6 +35,11 @@ const token = (page: Page, name: string) => page.evaluate((n) => getComputedStyl
 const rgb = (hex: string) => `rgb(${parseInt(hex.slice(1, 3), 16)}, ${parseInt(hex.slice(3, 5), 16)}, ${parseInt(hex.slice(5, 7), 16)})`
 const style = (locator: Locator, props: string[]) => locator.evaluate((element, names) => Object.fromEntries(names.map((name) => [name, getComputedStyle(element).getPropertyValue(name)])), props)
 const pseudo = (locator: Locator, which: '::before' | '::after', prop = 'content') => locator.evaluate((element, [w, p]) => getComputedStyle(element, w).getPropertyValue(p!), [which, prop] as const)
+/** The confirm opens under the pointer that clicked its menu row, and on some engines and layouts that makes it hover (`pri-hv`, white). Take the pointer off first, then read the fill at rest. */
+async function expectDangerFill(page: Page, danger: string) {
+  await page.mouse.move(0, 0)
+  await expect.poll(async () => (await style(page.locator('.q-pop .q-btn.danger'), ['background-color']))['background-color']).toBe(danger)
+}
 const noBrackets = (content: string) => expect(content).toMatch(/^(none|normal)$/)
 
 async function openList(page: Page, title: string) {
@@ -132,7 +137,7 @@ test.describe('the ⋯ menu, its export and reorder answers', () => {
         await item(page, 'Delete List').click()
         await page.locator('.q-pop .q-btn.danger').waitFor()
         expect(await page.locator('.q-pop .q-btn.danger').count()).toBe(1)
-        expect((await style(page.locator('.q-pop .q-btn.danger'), ['background-color']))['background-color']).toBe(danger)
+        await expectDangerFill(page, danger)
         expect(await pseudo(page.locator('.q-pop .q-btn', { hasText: 'Keep' }), '::before')).toMatch(/\[/)
         await page.keyboard.press('Escape')
 
@@ -140,7 +145,7 @@ test.describe('the ⋯ menu, its export and reorder answers', () => {
         await page.locator('.q-group').first().hover()
         await page.locator('.q-group').first().locator('.q-group-remove').click()
         await page.locator('.q-pop .q-btn.danger').waitFor()
-        expect((await style(page.locator('.q-pop .q-btn.danger'), ['background-color']))['background-color']).toBe(danger)
+        await expectDangerFill(page, danger)
       } finally {
         await page.request.delete(`/api/lists/${list.id}`)
       }
