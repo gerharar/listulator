@@ -58,6 +58,7 @@ import './styles/theme/exzed-rail.css'
 // eX-Zed's About rows (51.8, X-007).
 import './styles/theme/exzed-about-rows.css'
 import './styles/theme/exzed-about-status.css'
+import './styles/theme/exzed-list-gutters.css'
 // eX-Zed's popovers (51.9, X-007).
 import './styles/theme/exzed-popover.css'
 // eX-Zed's notices: toast, banner, error strip and block, refusal (51.10, X-007).

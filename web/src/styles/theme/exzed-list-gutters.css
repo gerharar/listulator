@@ -1,0 +1,25 @@
+/*
+ * The list screen's gutters under eX-Zed (57.7b, design's D57 and D58): the head, the filter bar and the rows' area are 24px in from the window's border on each side (the Window card's
+ * `space-3`; Quantum's 26px and 22px are not on the theme's 8px steps, and the boards draw 24px: at the 1620px cap the window is 1612px inside and the rows' area 1564px). Quantum is as it
+ * was: every rule is under `html.theme-exzed`.
+ *  - the head: 24px above and at the sides (Quantum 22px 26px 0);
+ *  - the filter bar: 12px above and below its 40px control, 24px at the sides (13px 26px 11px: D58 made the vertical whole 2px steps; the row is as high as it was, a 1px line under it);
+ *  - the rows' area: 24px at the sides and below (22px: the list's body was never at 26, so the rows move 2px in, not out, and the area is 4px narrower beside the rail; the board's number);
+ *  - the progress row, while a list loads: 24px all round (22px 26px); the error strip: 10px above, 24px at the sides (10px 26px 0).
+ * The rail is not moved: its cap follows the window's outside (D55).
+ */
+html.theme-exzed .q-list-head {
+  padding: 24px 24px 0;
+}
+html.theme-exzed .q-filterbar {
+  padding: 12px 24px;
+}
+html.theme-exzed .q-list-body {
+  padding: 0 24px 24px;
+}
+html.theme-exzed .q-list-progress {
+  padding: 24px;
+}
+html.theme-exzed .q-list-error {
+  padding: 10px 24px 0;
+}
