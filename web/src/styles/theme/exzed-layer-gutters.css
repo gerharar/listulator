@@ -1,0 +1,23 @@
+/*
+ * The smaller layers' gutters under eX-Zed (57.7c, design's D57 and D58): Settings' body and the Preview's head, rows' area and footer are 24px in from the window's border on each side
+ * (the Window card's `space-3`; Quantum's 26px and 22px are not on the theme's 8px steps). Choose Your Fighter's body and its scene's margin are in `exzed-art.css`, with the scene they
+ * belong to. Quantum is as it was: every rule is under `html.theme-exzed`.
+ *  - Settings' body: 24px all round (Quantum 22px 24px 26px: only its top and bottom move);
+ *  - the Preview's head: 24px above and at the sides (22px 26px 0); its rows' area: 24px at the sides (0 22px; the same 22px as the list's, which 57.7b took to 24, and the message that
+ *    stands apart from the head is 24px under it, as the body's gutter, not 22); its footer: 24px at the sides and 12px above and below, a row's own air (12px 26px: D58 keeps the 12).
+ */
+html.theme-exzed .q-settings-body {
+  padding: 24px;
+}
+html.theme-exzed .q-preview-head {
+  padding: 24px 24px 0;
+}
+html.theme-exzed .q-preview-body {
+  padding: 0 24px;
+}
+html.theme-exzed .q-preview-body > .q-error-block {
+  margin-top: 24px;
+}
+html.theme-exzed .q-preview-footer {
+  padding: 12px 24px;
+}

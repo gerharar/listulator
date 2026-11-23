@@ -307,18 +307,19 @@ html.theme-exzed .q-backdrop > [data-slot='window'] {
  * screen opens (`BottomScene`), the last thing in the picker's own scroll area, **under eX-Zed only**. It is a mask, so the black in the file is only its shape, filled with the
  * skin's progress colour, at 3 screen px to an art pixel (the one exception to 2px, for big pictures): the desk 553x135 art pixels = 1659x405, the landscape 583x122 = 1749x366.
  * The scroll area becomes a column so the scene's top margin can be `auto`: **on the window's bottom edge when there is room, else 24px under the List Vault shelf** (the scene
- * box's own top padding), scrolling with the rest and never hidden. The box runs the scroll area's full width (the area's own 26px side padding is taken back), and the picture is
+ * box's own top padding), scrolling with the rest and never hidden. The box runs the scroll area's full width (the area's own 24px side padding is taken back), and the picture is
  * centred in it and cropped evenly at both ends in a window narrower than it; the desk's edge line runs the full width, 18px up and 9px high. The picture's half pixel (an odd
  * width is centred on its middle) is the engine's to snap.
  */
 html.theme-exzed .q-picker-body {
   display: flex;
   flex-direction: column;
-  padding-bottom: 0;
+  /* The body's 24px gutters (design's D57, 57.7c; Quantum's 22px 26px) and no bottom: the scene stands on the window's edge. */
+  padding: 24px 24px 0;
 }
 html.theme-exzed .q-scene {
   flex: none;
-  margin: auto -26px 0;
+  margin: auto -24px 0;
   padding-top: 24px;
 }
 html.theme-exzed .q-scene-art {
