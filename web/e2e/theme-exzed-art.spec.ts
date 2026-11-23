@@ -283,13 +283,15 @@ for (const [width, height] of SCREENS) {
     await open(page)
     const at = await places(page, width, height)
     const box = { left: at.boxLeft, top: 0, right: at.boxLeft + at.boxWidth, bottom: height }
-    const stars: Layer = { image: png('star-tile'), x: at.boxLeft, y: 0, repeatX: true, repeatY: true, clip: box }
+    // The header bar (black, 64px) is opaque, so no star shows above 64.
+    const stars: Layer = { image: png('star-tile'), x: at.boxLeft, y: 0, repeatX: true, repeatY: true, clip: { ...box, top: 64 } }
     const waves: Layer = { image: png('island-waves'), x: at.boxLeft, y: height - 28, repeatX: true, repeatY: false, clip: { ...box, top: height - 28 } }
     // The castle ruin ends 16px left of the window's border box, the columns start 16px right of it, both 28px up, at 1:1 (the files are already scaled), over the stars.
     const castle: Layer = { image: png('island-shore-left'), x: at.layerLeft - 16 - 332, y: height - 28 - 1400, repeatX: false, repeatY: false, clip: box }
     const columns: Layer = { image: png('island-shore-right'), x: at.layerRight + 16, y: height - 28 - 1400, repeatX: false, repeatY: false, clip: box }
-    // The strip under the header is 40px (64 to 104): the 16px of the others and the 24px of the ledge shift.
-    const hills: Layer = { image: png('island-cornice'), x: at.boxLeft, y: 64, repeatX: true, repeatY: false, clip: { ...box, top: 64, bottom: 104 } }
+    // The strip is 40px at 40 to 80 (D34): its top 24px lie over the header bar's black, under the wordmark and the buttons, its lower 16px over the stage, where the other
+    // skins' 16px strip is (64 to 80).
+    const hills: Layer = { image: png('island-cornice'), x: at.boxLeft, y: 40, repeatX: true, repeatY: false, clip: { ...box, top: 40, bottom: 80 } }
     // The bridge tiles (50.14): the shores' sea (and on the right its sand), 96x132, repeated from the outer edge of each shore out to the app's box edge, 28px up, over the stars,
     // under the shores.
     const seaLeft: Layer = { image: png('island-sea-left'), x: at.layerLeft - 16 - 332 - 96, y: height - 28 - 132, repeatX: true, repeatY: false, clip: { left: at.boxLeft, top: height - 28 - 132, right: at.layerLeft - 16 - 332, bottom: height - 28 } }
@@ -308,11 +310,50 @@ for (const [width, height] of SCREENS) {
       expect(seen.shown.has(name === 'left' ? seaLeft : seaRight), `the ${name} sea is drawn exactly where there is a gap`).toBe(width >= 2560)
       expect((await compare(page, layers, { ...gap, y: 110, height: 300 })).different, `pixels that differ, ${name}, near the top`).toBe(0)
     }
-    // The hills-and-clouds: more than one 380px tile of them at each end of the strip.
-    expect((await compare(page, layers, { x: at.boxLeft, y: 64, width: 400, height: 40 })).different, 'hills at the left end').toBe(0)
-    expect((await compare(page, layers, { x: edge - 400, y: 64, width: 400, height: 40 })).different, 'hills at the right end').toBe(0)
+    // The hills-and-clouds: more than one 380px tile of them at each end of the strip, below the header bar (64 to 80)...
+    expect((await compare(page, layers, { x: at.boxLeft, y: 64, width: 400, height: 16 })).different, 'hills at the left end').toBe(0)
+    expect((await compare(page, layers, { x: edge - 400, y: 64, width: 400, height: 16 })).different, 'hills at the right end').toBe(0)
+    // ...and the strip's top 24px behind the header: a stretch of the bar with neither wordmark nor button on it, the whole 40px of the strip.
+    const free = await page.evaluate(() => {
+      const bar = document.querySelector('.q-appheader')!
+      const used = [...bar.querySelectorAll('*')]
+        .filter((el) => el.children.length === 0 || el.matches('button, a, img, svg'))
+        .map((el) => el.getBoundingClientRect())
+        .filter((rect) => rect.width > 0 && rect.height > 0)
+        .sort((a, b) => a.left - b.left)
+      let best = { left: 0, width: 0 }
+      let from = bar.getBoundingClientRect().left
+      for (const rect of [...used, { left: bar.getBoundingClientRect().right } as DOMRect]) {
+        if (rect.left - from > best.width) best = { left: from, width: rect.left - from }
+        from = Math.max(from, (rect as DOMRect).right ?? from)
+      }
+
+      return best
+    })
+    expect(free.width, 'the header has a stretch of at least 120px with nothing on it').toBeGreaterThanOrEqual(120)
+    const stretch = { x: Math.ceil(free.left) + 4, width: Math.min(Math.floor(free.width) - 8, 380) }
+    expect((await compare(page, layers, { ...stretch, y: 40, height: 40 })).different, 'the strip, whole, behind the header').toBe(0)
   })
 }
+
+test('Ikigai: the strip is behind the header’s words and buttons, and a hovered button is a solid block over it', async ({ page }) => {
+  await boot(page, { theme: 'exzed', exzedSkin: 'exzed-1e' }, 1440, 900)
+  await open(page)
+  const button = page.locator('.q-appheader .q-icon-btn').first()
+  await button.hover()
+  const hover = await button.evaluate((el) => {
+    const rect = el.getBoundingClientRect()
+    const strip = document.querySelector('.q-backdrop > [data-slot="header"]')!.getBoundingClientRect()
+
+    return { left: rect.left, bottom: rect.bottom, top: rect.top, background: getComputedStyle(el).backgroundColor, strip: [strip.top, strip.bottom] }
+  })
+  expect(hover.strip, 'the strip is 40 to 80').toEqual([40, 80])
+  expect(hover.top, 'the button reaches into the strip’s top 24px').toBeLessThan(64)
+  const [r, g, b] = /(\d+), (\d+), (\d+)/.exec(hover.background)!.slice(1).map(Number)
+  const seen = await shot(page, { x: Math.floor(hover.left), y: 40, width: 8, height: 24 })
+  // The block's lower left corner, inside its border: the button's own colour, no hills through it.
+  expect(seen.at(Math.floor(hover.left) + 4, Math.min(60, Math.floor(hover.bottom) - 4)), 'the hovered button’s fill over the strip').toEqual([r, g, b])
+})
 
 /** Where the header, the strip under it and every layer are, as the page has them. */
 const tops = (page: Page) =>
@@ -322,31 +363,46 @@ const tops = (page: Page) =>
     layers: Array.from(document.querySelectorAll('.q-layer')).map((layer) => layer.getBoundingClientRect().top),
   }))
 
-test('Ikigai: the window starts 24px lower, over one layer and two, under a strip that ends at 104 and touches nothing', async ({ page }) => {
+test('Ikigai: the header is as tall as in every skin and the window starts where it does there, over one layer and two, under a strip that ends at 80 and touches nothing', async ({ page }) => {
   await boot(page, { theme: 'exzed', exzedSkin: 'exzed-1e' }, 1440, 900)
   await open(page)
 
-  // The header bar is as tall as ever; the strip under it is 40px (64 to 104); everything below starts 24px lower than in the other skins (132, 160 and 200 are
-  // 108, 136 and 176 and 24; the covered layers' own tops, 120 and 160, are 96 and 136 and 24: the first is below the strip, which ends at 104).
+  // D34: the header bar is 64px; the strip is 40px at 40 to 80, its top 24px behind the bar; `ledge-shift` is 0, so the window is at 108, the covered layers' tops at 96 and
+  // 136 and 176, as in Lode.
   const alone = await tops(page)
-  expect([alone.header, alone.strip.top, alone.strip.height, alone.layers]).toEqual([64, 64, 40, [132]])
+  expect([alone.header, alone.strip.top, alone.strip.height, alone.layers]).toEqual([64, 40, 40, [108]])
 
   await page.getByRole('button', { name: 'New List', exact: true }).first().click()
   await page.locator('.q-picker').waitFor()
-  await expect.poll(async () => (await tops(page)).layers).toEqual([120, 160])
+  await expect.poll(async () => (await tops(page)).layers).toEqual([96, 136])
 
   await page.getByRole('button', { name: 'Settings' }).click()
   await page.locator('.q-settings').waitFor()
-  await expect.poll(async () => (await tops(page)).layers).toEqual([120, 160, 200])
+  await expect.poll(async () => (await tops(page)).layers).toEqual([96, 136, 176])
   const stacked = await tops(page)
   expect(stacked.strip.top + stacked.strip.height, 'the strip ends above the first covered layer').toBeLessThanOrEqual(stacked.layers[0]!)
+})
+
+test('every skin has the same header, the same strip bottom and the same layer tops: switching skins moves nothing', async ({ page }) => {
+  const seen: Record<string, unknown> = {}
+  for (const skin of ['exzed-1d', 'exzed-1a', 'exzed-1b', 'exzed-1c', 'exzed-1e', 'exzed-1l']) {
+    await boot(page, { theme: 'exzed', exzedSkin: skin }, 1440, 900)
+    await open(page, false)
+    await page.getByRole('button', { name: 'Settings' }).click()
+    await page.locator('.q-settings').waitFor()
+    await expect.poll(async () => (await tops(page)).layers, skin).toEqual([96, 136])
+    const { header, strip, layers } = await tops(page)
+    // Xen and Lotus have no strip (height 0 or none); the others end at 80.
+    seen[skin] = { header, layers, stripBottom: strip.height > 0 ? strip.top + strip.height : 80 }
+  }
+  expect(new Set(Object.values(seen).map((value) => JSON.stringify(value))).size, JSON.stringify(seen)).toBe(1)
 })
 
 /**
  * The layers' tops are read from the page as the shell renders, and the skin that sets the shift is written on `<html>` in an effect after that render, so a skin that
  * arrives that way leaves the layers where the last one put them (found in 50.4's spike). Written before the render now, at boot, on a switch of skin, on a switch of theme.
  */
-test('Ikigai: the first render already has the window at 132, and a switch of skin or theme moves it at once', async ({ page }) => {
+test('Ikigai: the first render already has the window at 108, and a switch of skin or theme moves nothing', async ({ page }) => {
   await boot(page, { theme: 'exzed', exzedSkin: 'exzed-1e' }, 1440, 900)
   // The layer's own `top` the first time it is in the page: the value the shell computed while it rendered, before any later render could correct it (the layer has a
   // 300ms transition on `top`, so a corrected value would slide in from the stale one, 24px, at every start in Ikigai).
@@ -362,25 +418,25 @@ test('Ikigai: the first render already has the window at 132, and a switch of sk
   })
   await page.goto('/')
   await page.locator('.q-home-row').first().waitFor()
-  expect(await page.evaluate(() => (window as unknown as { __firstTop?: string }).__firstTop), 'the first top the layer had, 44 + 24').toBe('68px')
-  expect((await tops(page)).layers, 'at boot, with Ikigai stored').toEqual([132])
+  expect(await page.evaluate(() => (window as unknown as { __firstTop?: string }).__firstTop), 'the first top the layer had, 44 and no shift').toBe('44px')
+  expect((await tops(page)).layers, 'at boot, with Ikigai stored').toEqual([108])
 
-  // Ikigai to Lode and back, from Settings, without a reload: the window follows the skin's shift each time.
+  // Ikigai to Lode and back, from Settings, without a reload: the window is where it was each time.
   await page.getByRole('button', { name: 'Settings' }).click()
   await page.locator('.q-settings').waitFor()
-  await expect.poll(async () => (await tops(page)).layers).toEqual([120, 160])
+  await expect.poll(async () => (await tops(page)).layers).toEqual([96, 136])
   await page.locator('.q-settings').getByRole('button', { name: 'Lode', exact: true }).click()
-  await expect.poll(async () => (await tops(page)).layers, 'Lode: no shift').toEqual([96, 136])
+  await expect.poll(async () => (await tops(page)).layers, 'Lode').toEqual([96, 136])
   await page.locator('.q-settings').getByRole('button', { name: 'Ikigai', exact: true }).click()
-  await expect.poll(async () => (await tops(page)).layers, 'Ikigai again').toEqual([120, 160])
+  await expect.poll(async () => (await tops(page)).layers, 'Ikigai again').toEqual([96, 136])
 
   // Quantum to eX-Zed with Ikigai as its stored skin: the class goes on first, and the skin with it.
   await page.locator('.q-settings').getByRole('button', { name: 'Quantum', exact: true }).click()
   await page.locator('.q-settings').getByRole('button', { name: 'eX-Zed', exact: true }).click()
-  await expect.poll(async () => (await tops(page)).layers, 'eX-Zed again, with Ikigai').toEqual([120, 160])
+  await expect.poll(async () => (await tops(page)).layers, 'eX-Zed again, with Ikigai').toEqual([96, 136])
 })
 
-test('Ikigai: a list lays out the same as in Lode, 24px lower and 24px shorter (rows, scroll area, rail)', async ({ page }) => {
+test('Ikigai: a list lays out exactly as in Lode (window, rows, scroll area, rail)', async ({ page }) => {
   const rows = Array.from({ length: 40 }, (_, n) => `  - { title: "Item ${String(n + 1).padStart(3, '0')}", minutes: 30, group: "Season ${Math.floor(n / 10) + 1}" }`)
   const title = `e2e ikigai list ${Date.now()}`
   const made = await page.request.post('/api/lists/from-file', { data: { yaml: `title: ${title}\ncategory: movie\nitems:\n${rows.join('\n')}\n` } })
@@ -419,12 +475,7 @@ test('Ikigai: a list lays out the same as in Lode, 24px lower and 24px shorter (
     const lode = await geometry('exzed-1d')
     const ikigai = await geometry('exzed-1e')
 
-    expect(ikigai.layerTop - lode.layerTop, 'the window starts 24px lower').toBe(24)
-    expect(ikigai.layerBottom, 'and ends where it did').toBe(lode.layerBottom)
-    expect(lode.bodyHeight - ikigai.bodyHeight, 'the scroll area is 24px shorter').toBe(24)
-    expect([ikigai.bodyTop, ikigai.firstRow, ikigai.railTop], 'everything inside is where it was in the window').toEqual([lode.bodyTop, lode.firstRow, lode.railTop])
-    expect(lode.railHeight! - ikigai.railHeight!, 'the rail is 24px shorter with the window').toBe(24)
-    expect(ikigai.clipped, 'no row is cut at the scroll area’s edge').toBeLessThanOrEqual(lode.clipped + 2)
+    expect(ikigai, 'the same boxes in both skins').toEqual(lode)
   } finally {
     await page.request.delete(`/api/lists/${id}`)
   }

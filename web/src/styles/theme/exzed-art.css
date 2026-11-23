@@ -186,19 +186,21 @@ html[data-theme='exzed-1c'] .q-backdrop > [data-slot='sides']::after {
 
 /*
  * 1e Ikigai: the star field, the 40px hills-and-clouds under the header, the waves along the bottom (28px) and, standing on them, the castle ruin and the columns (1:1, 1400px
- * high, 28px up, 16px clear of the window's border box, as Xen's outposts are). This is the one skin whose separator is taller than 16px, so it alone sets the ledge shift:
- * **everything under the strip starts 24px lower** (`--ledge-shift`, added to every layer's top by layerGeometry.ts, 50.1a; the header bar stays 64px and the strip runs
- * 64 to 104, over nothing: the first covered layer starts at 120). The strip's height is 16px and that shift.
+ * high, 28px up, 16px clear of the window's border box, as Xen's outposts are). This is the one skin whose separator is taller than 16px (D34, 57.5): it stands at 40 to 80,
+ * its top 24px behind the header (over the bar's black, under the wordmark and the buttons: a hovered button's block is its own solid fill), so the bar stays 64px, the strip
+ * ends where every skin's does (80) and `--ledge-shift` is 0 here as everywhere (everything under the header starts where it does in the other skins). The strip's slot paints the
+ * bar's black under the hills itself (the layer under the picture), and the bar paints its own black only above the strip, its top 40px, so nothing is drawn twice.
  */
-html[data-theme='exzed-1e'] {
-  --ledge-shift: 24px;
-}
 html[data-theme='exzed-1e'] .q-backdrop > [data-slot='window'] {
   background: url('./art/star-tile.png') 0 0 / 510px 510px repeat;
 }
 html[data-theme='exzed-1e'] .q-backdrop > [data-slot='header'] {
-  height: calc(16px + var(--ledge-shift));
-  background: url('./art/island-cornice.png') 0 0 / 380px 40px repeat-x;
+  top: calc(var(--header-h) - 24px);
+  height: 40px;
+  background: url('./art/island-cornice.png') 0 0 / 380px 40px repeat-x, linear-gradient(var(--zx-hdr), var(--zx-hdr)) 0 0 / 100% 24px no-repeat;
+}
+html[data-theme='exzed-1e'] .q-appheader {
+  background: linear-gradient(var(--zx-hdr), var(--zx-hdr)) 0 0 / 100% 40px no-repeat;
 }
 html[data-theme='exzed-1e'] .q-backdrop > [data-slot='bottom'] {
   bottom: 0;

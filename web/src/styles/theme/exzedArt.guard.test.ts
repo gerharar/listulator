@@ -156,19 +156,23 @@ describe('the skin art', () => {
     expect(rules).not.toMatch(/\[data-slot='header'\]/)
   })
 
-  it('Ikigai: the stars, the 40px hills-and-clouds under the header (16px and the ledge shift), the waves along the bottom, the castle and the columns 16px clear of the window', () => {
+  it('Ikigai: the stars, the 40px hills-and-clouds at 40 to 80 (D34: the top 24px behind the header, over its black), the waves along the bottom, the castle and the columns 16px clear of the window', () => {
     const rules = rulesFor('exzed-1e').join('\n')
 
     expect(rules).toMatch(/star-tile\.png'\) 0 0 \/ 510px 510px repeat/)
-    expect(rules).toMatch(/\[data-slot='header'\]\s*{\s*height:\s*calc\(16px \+ var\(--ledge-shift\)\);\s*background:\s*url\('\.\/art\/island-cornice\.png'\) 0 0 \/ 380px 40px repeat-x/)
+    expect(rules).toMatch(
+      /\[data-slot='header'\]\s*{\s*top:\s*calc\(var\(--header-h\) - 24px\);\s*height:\s*40px;\s*background:\s*url\('\.\/art\/island-cornice\.png'\) 0 0 \/ 380px 40px repeat-x,\s*linear-gradient\(var\(--zx-hdr\), var\(--zx-hdr\)\) 0 0 \/ 100% 24px no-repeat/,
+    )
+    // The bar paints its own black only above the strip, so the strip's top 24px (which carry the bar's black themselves) are what shows there.
+    expect(rules).toMatch(/\.q-appheader\s*{\s*background:\s*linear-gradient\(var\(--zx-hdr\), var\(--zx-hdr\)\) 0 0 \/ 100% 40px no-repeat/)
     expect(rules).toMatch(/\[data-slot='bottom'\]\s*{\s*bottom:\s*0;\s*height:\s*28px;\s*background:\s*url\('\.\/art\/island-waves\.png'\) 0 0 \/ 444px 28px repeat-x/)
     expect(rules).toMatch(/left:\s*calc\(var\(--header-gutter\) - 16px - 332px\);\s*bottom:\s*28px[^}]*island-shore-left\.png'\) 0 0 \/ 332px 1400px no-repeat/)
     expect(rules).toMatch(/left:\s*calc\(100% - var\(--header-gutter\) \+ 16px\);\s*bottom:\s*28px[^}]*island-shore-right\.png'\) 0 0 \/ 352px 1400px no-repeat/)
   })
 
-  it('Ikigai alone sets the ledge shift, 24px: everything under its taller separator starts that much lower (50.1a added it to every top)', () => {
-    expect(css).toMatch(/html\[data-theme='exzed-1e'\]\s*{\s*--ledge-shift:\s*24px;\s*}/)
-    for (const skin of ['exzed-1d', 'exzed-1a', 'exzed-1b', 'exzed-1c', 'exzed-1l']) expect(rulesFor(skin).join('\n'), skin).not.toMatch(/--ledge-shift/)
+  it('no skin sets the ledge shift (D34, 57.5): Ikigai’s taller strip stands behind the header, so everything under the header starts where it does in every other skin', () => {
+    expect(css).not.toMatch(/--ledge-shift\s*:\s*(?!0)/)
+    for (const skin of BUILT) expect(rulesFor(skin).join('\n'), skin).not.toMatch(/--ledge-shift/)
   })
 
   it('Lotus draws no picture: no background image under its key, and the ground is the plain paper of its role', () => {

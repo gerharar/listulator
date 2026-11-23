@@ -45,7 +45,10 @@ test.describe('with the theme exzed', () => {
           const swatch = document.querySelector('.q-skin-btn .q-zx-swatch') as HTMLElement
           const style = getComputedStyle(swatch)
 
-          return { ground: header.backgroundColor, size: [swatch.offsetWidth, swatch.offsetHeight], rim: [style.borderTopWidth, style.borderTopColor], image: style.backgroundImage, theme: swatch.getAttribute('data-theme') }
+          // Ikigai's bar paints its ground as a gradient over its top 40px, because its strip stands behind the bar's lower 24px (D34, 57.5); the colour is `hdr` all the same.
+          const ground = header.backgroundColor === 'rgba(0, 0, 0, 0)' ? /rgb\([^)]*\)/.exec(header.backgroundImage)?.[0] : header.backgroundColor
+
+          return { ground, size: [swatch.offsetWidth, swatch.offsetHeight], rim: [style.borderTopWidth, style.borderTopColor], image: style.backgroundImage, theme: swatch.getAttribute('data-theme') }
         })
 
         expect(look.ground).toBe(entry.hdr)
