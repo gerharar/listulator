@@ -101,7 +101,7 @@ export function FilterBar({ text, onText, onClear, facets, selection, onSelect, 
               inputRef.current?.focus()
             }}
           >
-            <X width={14} height={14} strokeWidth={2} aria-hidden="true" />
+            <ThemedIcon name="close" fallback={<X width={14} height={14} strokeWidth={2} aria-hidden="true" />} />
           </Tip>
         )}
       </span>

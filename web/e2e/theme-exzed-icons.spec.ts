@@ -139,3 +139,24 @@ test('the Preview closes with the pixel close icon too', async ({ page }) => {
   await expect(page.locator('.q-layer').last().locator('svg[data-pixel-icon="close"]').first()).toBeVisible()
   expect(await lineIcons(page), 'the Preview').toEqual([])
 })
+
+test('the filter field’s clear button (once text is typed) is the pixel close icon', async ({ page }) => {
+  const id = await openList(page, 'exzed-1d')
+  try {
+    await page.locator('.q-filter-input').fill('item')
+    await expect(page.locator('.q-filter-clear svg[data-pixel-icon="close"]')).toHaveCount(1)
+    expect(await lineIcons(page), 'with text in the filter').toEqual([])
+  } finally {
+    await page.request.delete(`/api/lists/${id}`)
+  }
+})
+
+test('About’s update notice (an update to install) draws the pixel refresh icon, and no line icon is left on the screen', async ({ page }) => {
+  await boot(page, 'exzed-1d')
+  await page.goto('/?aboutUpdate=available')
+  await page.locator('.q-home-row').first().waitFor()
+  await page.getByRole('button', { name: 'About', exact: true }).click()
+  await page.locator('.q-about-update-notice').waitFor()
+  await expect(page.locator('.q-about-update-notice svg[data-pixel-icon="refresh"]')).toHaveCount(1)
+  expect(await lineIcons(page), 'About with an update').toEqual([])
+})

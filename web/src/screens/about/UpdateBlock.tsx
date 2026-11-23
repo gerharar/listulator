@@ -6,6 +6,7 @@ import { quitPlatform } from '../../lib/appQuit.js'
 import type { UpdateCheckState, UpdatePhase } from '../../lib/appUpdate.js'
 import { CHANGELOG_URL } from '../../lib/dataSources.js'
 import { copy } from '../../locale/index.js'
+import { ThemedIcon } from '../../components/quantum/PixelIcon/PixelIcon.js'
 
 /**
  * What the block is showing. `unavailable` is not in the design: it is the state of an app with no updater
@@ -176,7 +177,7 @@ export function UpdateBlock({ state, current, next, onCheck, onDownload, platfor
       </Button>
       {showsUpdateNotice(state) && (
         <p className="q-about-update-notice">
-          <RefreshCw width={13} height={13} aria-hidden="true" />
+          <ThemedIcon name="refresh" fallback={<RefreshCw width={13} height={13} aria-hidden="true" />} />
           <span>{updateNoticeText(platform)}</span>
         </p>
       )}
