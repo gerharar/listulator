@@ -34,8 +34,12 @@ describe('eX-Zed’s fields and listboxes', () => {
     expect(css).toMatch(/textarea\.q-input\s*{[^}]*min-height:\s*64px;[^}]*padding:\s*8px;/)
   })
 
+  it('Use Hands’ fields stop at 980px (D37, 57.7): the form is as wide as 60 characters, 8px of padding and the 2px border on each side; narrower, it fills its body', () => {
+    expect(css).toMatch(/html\.theme-exzed \.q-hand\s*{\s*max-width:\s*980px;\s*}/)
+  })
+
   it('has no shadow of its own, no alpha, radius, opacity, filter or literal colour, and only the Field card’s sizes', () => {
     expect(css).not.toMatch(/box-shadow|border-radius|opacity\s*:|[;{\s]filter\s*:|rgba?\(|hsla?\(|color-mix|#[0-9a-f]{3,8}\b/i)
-    for (const [, size] of css.matchAll(/(\d+)px/g)) expect(['0', '2', '4', '8', '10', '12', '16', '24', '32', '36', '40', '64', '88', '34', '46', '72', '184', '212']).toContain(size)
+    for (const [, size] of css.matchAll(/(\d+)px/g)) expect(['0', '2', '4', '8', '10', '12', '16', '24', '32', '36', '40', '64', '88', '34', '46', '72', '184', '212', '980']).toContain(size)
   })
 })

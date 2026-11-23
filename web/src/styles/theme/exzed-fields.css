@@ -259,3 +259,14 @@ html.theme-exzed .q-key-row > .q-btn,
 html.theme-exzed .q-search-form > .q-btn {
   height: 40px;
 }
+
+/*
+ * Use Hands (57.7, design's D37, the owner's call): Title, Description, Items and the Items' help text stop at 980px, neither the window's full width nor a narrow column. A line of the
+ * Items box (a title and its " (year)") fits 60 characters of this font for 99.1% of the List Vault's 9,570 items; 60 x 16px is 960px of text, plus the 8px of padding and the 2px border
+ * on each side is 980, and the help text then wraps at about 60 characters, a comfortable measure. Below that they simply fill the body: the form is a column
+ * as wide as the Create layer's body up to this cap (design says "below a 1028px body", counting 24px of padding on each side; the layer's is Quantum's 26px, so the fields start to fill
+ * below 1032px: 4px, reported to design). The status chips and Create List are the form's other children and keep their own widths. Quantum's 640px is as it was.
+ */
+html.theme-exzed .q-hand {
+  max-width: 980px;
+}

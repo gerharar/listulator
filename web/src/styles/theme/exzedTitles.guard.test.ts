@@ -66,6 +66,8 @@ describe('eX-Zed’s titles', () => {
     expect(body('html.theme-exzed .q-picker-head')).toMatch(/border-bottom:\s*0;/)
     expect(body('html.theme-exzed .q-settings-head::after')).toMatch(/left:\s*24px;[\s\S]*right:\s*24px;[\s\S]*height:\s*2px;[\s\S]*background:\s*var\(--zx-frame\);/)
     expect(body('html.theme-exzed .q-create-head')).toMatch(/padding:\s*24px 24px 0;/)
+    // D57 (57.7): the New List body has the head's 24px gutters (Quantum's 22px 26px is not on the theme's 8px steps).
+    expect(body('html.theme-exzed .q-create-body')).toMatch(/padding:\s*24px;/)
   })
 
   it('draws the wordmark at 24px (32px as `lg`) with LIST on the skin’s block in the skin’s ink', () => {

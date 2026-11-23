@@ -4,7 +4,7 @@ import { en } from '../src/locale/en.js'
 import { ru } from '../src/locale/ru.js'
 
 /**
- * About's identity section under eX-Zed, as design's About board draws it (57.6, D35): the status box spans the window's body (the board's column stops at 1200px), a 2px `frame`
+ * About's identity section under eX-Zed, as design's About board draws it (57.6, D35): the status box spans the window's body (the board's column stops at 1200px, D56), a 2px `frame`
  * border with 16px of padding (24 on the left) and no fill; the two lines on the left (24px leading, 8px apart, the version line `ink2`), Check for Updates (40px high, 320px at least)
  * on the right, centred on them; when both do not fit the button wraps under the lines, left-aligned, 16px below them; the notice row (an update to install) is the box's full inner
  * width, 16px type, `ink2`, 8px after its icon. The copyright line spans the body (8px between lines, 16px between its parts), wraps only at a `·`, and "Licensing and notices" stays
@@ -108,13 +108,13 @@ for (const language of ['en', 'ru', 'de'] as const) {
       expect(at.boxStyle.gap, '16px between lines, 32px between the lines and the button').toEqual(['16px', '32px'])
       expect(at.boxStyle.backgroundColor, 'no fill: the window’s paper shows').toBe('rgba(0, 0, 0, 0)')
 
-      // The two lines: 24px leading each, 8px apart, the version line `ink2` in the font of the rest, and the `·` before Changelog kept (the board has none; Quantum does).
+      // The two lines: 24px leading each, 8px apart, the version line `ink2` in the font of the rest, and the `·` before Changelog kept (Quantum has it; the board draws it since D56).
       expect(at.textGap).toBe('8px')
       // A link is its 24px line and the Link card's 2px above and 4px below it (the dotted underline; the shared look of every link, Checkpoint G2), so the version line is 30.
       close(at.text.height, 62, 'the two lines are 24 + 8 + 30 high')
       expect([at.versionStyle.fontSize, at.versionStyle.lineHeight, at.versionStyle.color]).toEqual(['16px', '24px', at.colours.ink2])
       expect(at.versionStyle.fontFamily, 'the version line is in the status line’s font, not Quantum’s mono').toBe(at.statusFont)
-      expect(at.versionSep, 'the dot between the version and its Changelog stays (Quantum has it; the board does not draw it)').not.toBe('none')
+      expect(at.versionSep, 'the dot between the version and its Changelog stays (Quantum has it; the board draws it since D56)').not.toBe('none')
       close(at.text.left, at.box.left + 2 + 24, 'the lines start inside the padding')
 
       expect(at.button.height, 'the button is 40px high').toBe(40)

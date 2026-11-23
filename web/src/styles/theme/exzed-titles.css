@@ -61,6 +61,11 @@ html.theme-exzed .q-create-head {
 html.theme-exzed .q-create-top {
   padding-bottom: 16px;
 }
+/* Its body has the head's gutters, 24px on every side (design's D57, 57.7: `space-3`, the window's gutter; Quantum's 22px 26px is not on the theme's 8px steps), so the Use Hands fields
+   start to fill below a 1028px body, as D37 draws. The other layers' bodies are listed to design (57.7's status). */
+html.theme-exzed .q-create-body {
+  padding: 24px;
+}
 
 /* A list's name is 24px plain `ink` (the Window card: `.zx-list-name`); the Preview's title, 24px on a 32px line as its board draws it. */
 html.theme-exzed .q-list-title {
