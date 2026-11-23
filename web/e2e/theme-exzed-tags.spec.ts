@@ -190,7 +190,10 @@ for (const skin of SKINS) {
 
       return width
     })
-    expect(ch, 'the font’s advance at 16px').toBe(16)
+    // WebKit on Linux (the CI runner) lays this font's advance out at 15.984375, one 64th short; Chromium and WebKit on macOS and Windows give 16 exactly (BL-179). The widths below are
+    // taken from the measured `ch`, so a 64th changes nothing there: WebKit may be off by less than a twentieth of a pixel, every other engine by nothing.
+    if (test.info().project.name === 'webkit') expect(ch, 'the font’s advance at 16px, WebKit allowing the Linux 64th').toBeCloseTo(16, 1)
+    else expect(ch, 'the font’s advance at 16px').toBe(16)
     for (let n = 0; n < 4; n++) {
       const chip = chips.nth(n)
       expect(await style(chip, ['height', 'border-top-width', 'border-top-style', 'border-top-color', 'background-color', 'color', 'text-align', 'box-shadow']), `platform tag ${n}`).toMatchObject({
