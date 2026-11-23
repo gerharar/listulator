@@ -7,6 +7,7 @@ import { platformName } from '../../../../../server/src/catalog/platforms.js'
 import type { ItemSourceTags } from '../../../lib/api.js'
 import { copy } from '../../../locale/index.js'
 import { Button } from '../Button/Button.js'
+import { ThemedIcon } from '../PixelIcon/PixelIcon.js'
 import {
   MATCH_CAP,
   PLATFORM_COUNT,
@@ -141,7 +142,7 @@ export function PlatformPicker({ subject, note, selected, onChange, inList, sour
                 onClick={() => onChange(selected.filter((entry) => entry !== code))}
               >
                 {code}
-                <span aria-hidden="true">×</span>
+                <ThemedIcon name="close" fallback={<span aria-hidden="true">×</span>} />
               </Tip>
             ))}
           </div>

@@ -62,10 +62,10 @@ describe('PixelIcon', () => {
   })
 
   /**
-   * The design system has no expand-all twin (57.9 lists it to design): ours is collapse-all's two chevrons turned outward, each in its own half, so the pair that closes every group and the pair
+   * The Icons group has no expand-all twin of its own, and design accepted ours as drawn (D59): it is collapse-all's two chevrons turned outward, each in its own half, so the pair that closes every group and the pair
    * that opens them are the same drawing. Cells are read from the paths, so the test is the derivation, not a second copy of the string.
    */
-  it('draws expand-all as collapse-all with each chevron turned outward in place (ours: design has none)', () => {
+  it('draws expand-all as collapse-all with each chevron turned outward in place (design accepted it, D59)', () => {
     const cells = (d: string) => new Set([...d.matchAll(/M(\d+) (\d+)h(\d+)v1H\d+z/g)].flatMap((m) => Array.from({ length: Number(m[3]) }, (_, n) => `${Number(m[1]) + n},${m[2]}`)))
     const collapse = cells(PIXEL_ICONS['collapse-all'])
     const expand = cells(PIXEL_ICONS['expand-all'])

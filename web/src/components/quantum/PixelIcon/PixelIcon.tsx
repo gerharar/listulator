@@ -14,7 +14,7 @@ export const PIXEL_ICONS = {
   close: 'M0 0h2v1H0zM6 0h2v1H6zM1 1h2v1H1zM5 1h2v1H5zM2 2h4v1H2zM3 3h2v2H3zM2 5h4v1H2zM1 6h2v1H1zM5 6h2v1H5zM0 7h2v1H0zM6 7h2v1H6z',
   // The list toolbar's (design's D46, 57.9): collapse-all, to-the-top, to-the-bottom, hide-done, from the Icons group.
   'collapse-all': 'M1 0h1v1H1zM2 1h1v1H2zM3 2h2v1H3zM5 1h1v1H5zM6 0h1v1H6zM3 5h2v1H3zM2 6h1v1H2zM5 6h1v1H5zM1 7h1v1H1zM6 7h1v1H6z',
-  // OURS, not design's: the design system has no expand-all, so this is collapse-all's two chevrons turned outward in place (PixelIcon.test.tsx pins the derivation); listed to design in 57.9.
+  // Design accepted this one (D59): the Icons group has no expand-all of its own, so it is collapse-all's two chevrons turned outward in place (PixelIcon.test.tsx pins the derivation).
   'expand-all': 'M3 0h2v1H3zM2 1h1v1H2zM5 1h1v1H5zM1 2h1v1H1zM6 2h1v1H6zM1 5h1v1H1zM6 5h1v1H6zM2 6h1v1H2zM5 6h1v1H5zM3 7h2v1H3z',
   'to-the-top':
     'M3 0h1v1H3zM4 0h1v1H4zM2 1h1v1H2zM3 1h1v1H3zM4 1h1v1H4zM5 1h1v1H5zM1 2h1v1H1zM2 2h1v1H2zM3 2h1v1H3zM4 2h1v1H4zM5 2h1v1H5zM6 2h1v1H6zM0 3h1v1H0zM1 3h1v1H1zM3 3h1v1H3zM4 3h1v1H4zM6 3h1v1H6zM7 3h1v1H7zM3 4h1v1H3zM4 4h1v1H4zM3 5h1v1H3zM4 5h1v1H4zM3 6h1v1H3zM4 6h1v1H4zM3 7h1v1H3zM4 7h1v1H4z',

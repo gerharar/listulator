@@ -219,6 +219,48 @@ export const STATES: readonly IdentityState[] = [
     },
   },
   {
+    // 57.9b: a platform picked in that panel shows its chip, with the remove mark (the pixel close icon under eX-Zed); nothing is saved until the item's Save.
+    id: 'item-platform-picked',
+    setup: async (page) => {
+      await openList(page, SEED.games)
+      await page.getByRole('button', { name: 'Edit Game Alpha' }).click()
+      await page.locator('.q-platfield').click()
+      await page.locator('.q-platpanel-row').first().click()
+      await page.locator('.q-platpanel-token').first().waitFor()
+    },
+  },
+  {
+    // 57.9b: Home's update banner (a list with news waiting), read from the pending store the page keeps; the key is put back as it was.
+    id: 'home-update-banner',
+    setup: async (page) => {
+      await home(page)
+      const id = (await (await page.request.get('/api/lists')).json()).find((list: { id: string; title: string }) => list.title === SEED.saga).id as string
+      await page.evaluate((listId) => localStorage.setItem('updates:pending', JSON.stringify({ [listId]: { count: 2, checkedAt: '2026-01-01T00:00:00.000Z' } })), id)
+      await page.reload()
+      await page.locator('.q-banner').first().waitFor()
+
+      return async () => void (await page.evaluate(() => localStorage.removeItem('updates:pending')))
+    },
+  },
+  {
+    // 57.9b: the Preview of a list the person already has: "Open My List" in place of Add This List, reached from the Vault's "In My Lists" row.
+    id: 'preview-open-my-list',
+    setup: async (page) => {
+      const items = previewItems.slice(0, 4)
+      await page.route('**/api/library/untracked', (route) => route.fulfill({ json: { entries: [], reachable: true } }))
+      await page.route('**/api/library', (route) =>
+        route.fulfill({ json: { entries: [{ externalRef: 'canonical:lists/movie/identity.yaml', title: 'Identity mine', category: 'movie', itemCount: 4, tracked: true, trackedListId: 'identity-mine' }], reachable: true } }),
+      )
+      await page.route('**/api/media-types/*/expansion**', (route) => route.fulfill({ json: { itemCount: 4, status: 'complete', items } }))
+      await home(page)
+      await page.getByRole('button', { name: q.home.newList }).click()
+      await page.getByRole('button', { name: q.vaultShelf.browse }).click()
+      await page.getByRole('navigation', { name: q.vaultBrowser.categoriesLabel }).getByRole('button', { name: /^Movies/ }).click()
+      await page.locator('.q-vb-row', { hasText: 'Identity mine' }).click()
+      await page.getByRole('button', { name: q.preview.openMyList }).waitFor()
+    },
+  },
+  {
     id: 'dragging-row',
     keepPointer: true,
     setup: async (page) => {
