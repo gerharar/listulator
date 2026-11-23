@@ -1,0 +1,67 @@
+/*
+ * About's identity section under eX-Zed (57.6, design's D35, the About board): the status box spans the window's body, the two lines on the left and Check for Updates on the right,
+ * centred on them; when both do not fit (Russian, German, a 125% or 150% screen) the button wraps under the lines, left-aligned; the copyright line spans the body and wraps only at a
+ * `·`, never inside a link. Drawn on Quantum's own classes (Quantum is as it was: every rule is under `html.theme-exzed`); the numbers are the board's, on the theme's 8px grid:
+ *  - the body has 24px round it, the column stops at 1200px (the board's `max-width`; the window's body is narrower than that up to a 1440px screen), 40px between its sections, 24px
+ *    between the wordmark, the box and the credits;
+ *  - the box: a 2px `frame` border, no fill (the window's paper shows), 16px of padding, 24px on the left, 16px between wrapped rows and 32px between the lines and the button;
+ *  - the lines: 16px type on 24px leading, 8px apart, the version line `ink2` and in the same font as the status (not Quantum's mono), with no `·` before Changelog (the board has none:
+ *    the 16px gap does it); the lines stay on one line each, so their width is their longest variant's;
+ *  - the button: 40px high (the theme's), 320px at least; the notice row: the box's whole inner width on a row of its own, 16px type on 24px, `ink2`, 8px after its icon;
+ *  - the credits: 8px between lines, 16px between parts; each link and each `·` is a flex item of its own, so a line breaks between them, and the links do not wrap (`nowrap`).
+ */
+html.theme-exzed .q-about-body {
+  padding: 24px;
+}
+html.theme-exzed .q-about-column {
+  gap: 40px;
+  max-width: 1200px;
+}
+html.theme-exzed .q-about-identity {
+  gap: 24px;
+}
+
+html.theme-exzed .q-about-update-block {
+  justify-self: stretch;
+  justify-content: space-between;
+  gap: 16px 32px;
+  padding: 16px 16px 16px 24px;
+  border: 2px solid var(--zx-frame);
+  background: transparent;
+}
+html.theme-exzed .q-about-update-text {
+  flex: 1 1 auto;
+  min-width: 0;
+  gap: 8px;
+  font-size: 16px;
+  line-height: 24px;
+}
+html.theme-exzed .q-about-version-line {
+  font: 400 16px/24px var(--font-sans);
+  letter-spacing: 0;
+}
+html.theme-exzed .q-about-version-line .q-about-sep {
+  display: none;
+}
+html.theme-exzed .q-about-version-line .q-about-stack > span {
+  gap: 16px;
+}
+html.theme-exzed .q-about-update-block .q-btn {
+  flex: none;
+  min-width: 320px;
+}
+html.theme-exzed .q-about-update-notice {
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: 16px;
+  line-height: 24px;
+  color: var(--zx-ink2);
+}
+html.theme-exzed .q-about-update-notice svg {
+  margin-top: 0;
+}
+
+html.theme-exzed .q-about-credits {
+  gap: 8px 16px;
+}
