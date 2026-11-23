@@ -5,8 +5,8 @@
  *  - the body has 24px round it, the column stops at 1200px (the board's `max-width`; the window's body is narrower than that up to a 1440px screen), 40px between its sections, 24px
  *    between the wordmark, the box and the credits;
  *  - the box: a 2px `frame` border, no fill (the window's paper shows), 16px of padding, 24px on the left, 16px between wrapped rows and 32px between the lines and the button;
- *  - the lines: 16px type on 24px leading, 8px apart, the version line `ink2` and in the same font as the status (not Quantum's mono), with no `·` before Changelog (the board has none:
- *    the 16px gap does it); the lines stay on one line each, so their width is their longest variant's;
+ *  - the lines: 16px type on 24px leading, 8px apart, the version line `ink2` and in the same font as the status (not Quantum's mono), the `·` before Changelog kept (Quantum has it; the
+ *    board does not draw it, and design is asked to update the board) with 16px on either side, as the credits line's; the lines stay on one line each, so their width is their longest variant's;
  *  - the button: 40px high (the theme's), 320px at least; the notice row: the box's whole inner width on a row of its own, 16px type on 24px, `ink2`, 8px after its icon;
  *  - the credits: 8px between lines, 16px between parts; each link and each `·` is a flex item of its own, so a line breaks between them, and the links do not wrap (`nowrap`).
  */
@@ -39,9 +39,6 @@ html.theme-exzed .q-about-update-text {
 html.theme-exzed .q-about-version-line {
   font: 400 16px/24px var(--font-sans);
   letter-spacing: 0;
-}
-html.theme-exzed .q-about-version-line .q-about-sep {
-  display: none;
 }
 html.theme-exzed .q-about-version-line .q-about-stack > span {
   gap: 16px;
