@@ -6,7 +6,7 @@ import { q } from './fixtures.js'
  * eX-Zed's spinner, scrim and row pulse (51.11, X-007; design's Spinner, Sheet and Row cards, X-002 answer 6), on the real screens, in both engines and all six skins. **The spinner is eight 2x2-unit cells
  * on a ring (the card's, 24px), a head in `ink`, two cells behind it in `ink2`, the rest `frame`, moving a cell every 100ms in 8 steps; it stands still under reduced motion. A list that runs a whole-list
  * action keeps its colours (no fade), stops responding (`cursor: progress`), and its body takes the 2px checkerboard scrim of `chip-ink` after 300ms, in one step both ways; the waiting message shows with the
- * spinner. A pulsing row flashes like a hovered one, three times at 320ms a step, and stays lit for 2s under reduced motion.**
+ * spinner. A pulsing row (after an add, a move, a restore: the Undo flash is the same) holds the hovered look for 1.52s, then fades in four hard steps of 120ms (design's D36, 57.8): `acc`, `acc-dim`, a 2px checker of `acc-dim` over `paper`, `paper`, with no alpha, over at 2s; under reduced motion it stays lit for 2s.**
  */
 const SKINS = ['exzed-1d', 'exzed-1a', 'exzed-1b', 'exzed-1c', 'exzed-1e', 'exzed-1l'] as const
 type Rgb = [number, number, number]
@@ -19,7 +19,7 @@ const css = (c: Rgb) => `rgb(${c.join(', ')})`
 const box = async (locator: Locator) => (await locator.boundingBox())!
 
 async function roles(page: Page) {
-  const names = ['paper', 'ink', 'ink2', 'frame', 'chip-ink', 'acc', 'acc-ink'] as const
+  const names = ['paper', 'ink', 'ink2', 'frame', 'chip-ink', 'acc', 'acc-ink', 'acc-dim'] as const
   const found = await Promise.all(names.map((n) => token(page, `--zx-${n}`)))
 
   return Object.fromEntries(names.map((n, i) => [n, rgbOf(found[i]!)])) as Record<(typeof names)[number], Rgb>
@@ -324,7 +324,7 @@ for (const skin of SKINS) {
     })
 
     for (const reduced of [false, true]) {
-      test(`a pulsing row ${reduced ? 'is a steady highlight for 2s under reduced motion' : 'flashes like a hovered row, three times at 320ms a step, and is over at 2s'}`, async ({ page }) => {
+      test(`a pulsing row ${reduced ? 'is a steady highlight for 2s under reduced motion' : 'holds the highlight, then fades in four hard steps of 120ms (acc, acc-dim, a 2px checker, paper), and is over at 2s (D36)'}`, async ({ page }) => {
         await seed(page, skin, { reducedMotion: String(reduced) })
         const title = unique('motion pulse', skin)
         const id = await makeList(page.request, title)
@@ -338,13 +338,19 @@ for (const skin of SKINS) {
           await expect(page.getByText('Beta', { exact: true })).toBeHidden()
           // Watch the row from the moment it comes back: when it is lit and when it is not, and when the pulse ends.
           await page.evaluate(() => {
-            const log: Array<[number, string]> = []
+            // Each entry: when the row changed state, which state, and what it drew the moment it did (its ground, its picture, its ink, its name's ink and its picture's size).
+            const log: Array<[number, string, string, string, string, string, string]> = []
             const start = performance.now()
             ;(window as unknown as { __pulse: typeof log }).__pulse = log
             const watch = () => {
               const row = [...document.querySelectorAll('.q-item')].find((el) => el.textContent?.includes('Beta'))
-              const state = !row ? 'gone' : `${row.classList.contains('pulse') ? 'pulse' : 'plain'}${row.hasAttribute('data-flash') ? '+lit' : ''}`
-              if (!log.length || log[log.length - 1]![1] !== state) log.push([Math.round(performance.now() - start), state])
+              const step = !row ? '' : row.hasAttribute('data-checker') ? '+checker' : row.getAttribute('data-flash') === 'dim' ? '+dim' : row.hasAttribute('data-flash') ? '+lit' : ''
+              const state = !row ? 'gone' : `${row.classList.contains('pulse') ? 'pulse' : 'plain'}${step}`
+              if (!log.length || log[log.length - 1]![1] !== state) {
+                const drawn = row ? getComputedStyle(row) : undefined
+                const title = row?.querySelector('.title')
+                log.push([Math.round(performance.now() - start), state, drawn?.backgroundColor ?? '', drawn?.backgroundImage ?? '', drawn?.color ?? '', title ? getComputedStyle(title).color : '', drawn?.backgroundSize ?? ''])
+              }
               if (performance.now() - start < 3000) requestAnimationFrame(watch)
             }
             watch()
@@ -357,19 +363,31 @@ for (const skin of SKINS) {
           expect(await style(row, ['background-color', 'color'])).toEqual({ 'background-color': css(r.acc), color: css(r['acc-ink']) })
           expect((await style(row.locator('.title'), ['color'])).color).toBe(css(r['acc-ink']))
 
-          await expect.poll(() => page.evaluate(() => (window as unknown as { __pulse: Array<[number, string]> }).__pulse.at(-1)![1]), { timeout: 5000 }).toBe('plain')
-          const log = await page.evaluate(() => (window as unknown as { __pulse: Array<[number, string]> }).__pulse)
+          type Entry = [number, string, string, string, string, string, string]
+          const pulse = () => page.evaluate(() => (window as unknown as { __pulse: Entry[] }).__pulse)
+          await expect.poll(async () => (await pulse()).at(-1)![1], { timeout: 5000 }).toBe('plain')
+          const log = await pulse()
           const from = log.findIndex(([, state]) => state === 'pulse+lit')
           const seq = log.slice(from)
           const t0 = seq[0]![0]
-          const rel = seq.map(([t, state]) => [Math.round((t - t0) / 40) * 40, state] as const)
+          const rel = seq.map(([t]) => Math.round((t - t0) / 40) * 40)
           if (reduced) {
             expect(seq.map(([, s]) => s), 'steady: lit, then over').toEqual(['pulse+lit', 'plain'])
-            expect(Math.abs(rel[1]![0] - 2000), 'for 2s').toBeLessThanOrEqual(240)
+            expect(Math.abs(rel[1]! - 2000), 'for 2s').toBeLessThanOrEqual(240)
           } else {
-            expect(seq.map(([, s]) => s)).toEqual(['pulse+lit', 'pulse', 'pulse+lit', 'pulse', 'pulse+lit', 'pulse', 'plain'])
-            const steps = rel.map(([t]) => t)
-            for (const [i, want] of [0, 320, 640, 960, 1280, 1600, 2000].entries()) expect(Math.abs(steps[i]! - want), `step ${i} at ${want}ms`).toBeLessThanOrEqual(160)
+            // The highlight holds 1.52s, then four hard steps: acc-dim, the checker, paper (the row as it was at rest, still pulsing), and the pulse is over at 2s.
+            expect(seq.map(([, s]) => s)).toEqual(['pulse+lit', 'pulse+dim', 'pulse+checker', 'pulse', 'plain'])
+            for (const [i, want] of [0, 1520, 1640, 1760, 2000].entries()) expect(Math.abs(rel[i]! - want), `step ${i} at ${want}ms`).toBeLessThanOrEqual(160)
+            const [lit, dim, checker, paper] = seq
+            expect([lit![2], lit![4]], 'acc, in acc-ink').toEqual([css(r.acc), css(r['acc-ink'])])
+            expect([dim![2], dim![4], dim![5]], 'acc-dim, in acc-ink, the name too').toEqual([css(r['acc-dim']), css(r['acc-ink']), css(r['acc-ink'])])
+            expect(checker![3], 'a 2px checker of acc-dim over paper').toMatch(/^repeating-conic-gradient\(/)
+            expect(checker![6], 'in 4px tiles of 2px cells').toBe('4px 4px')
+            expect(checker![3]).toContain(css(r['acc-dim']))
+            expect(checker![3]).toContain(css(r.paper))
+            expect(checker![4], 'the row’s ink on the checker').toBe(css(r.ink))
+            expect(paper![2], 'paper: the row’s own ground, no highlight').not.toBe(css(r.acc))
+            expect(paper![3], 'and no picture').toBe('none')
           }
         } finally {
           await page.request.delete(`/api/lists/${id}`)

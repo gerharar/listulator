@@ -6,8 +6,10 @@
  *  - the refresh icon that turns while a check runs: four quarter turns in 800ms (D33), still under reduced motion;
  *  - a list that runs a whole-list action (`.q-hold.is-busy`, 28.3): not faded (`--o-busy` is 1, 48.4c), its rows are `inert` and the pointer over them is `progress`; the body takes the scrim
  *    (51.1's 2px checkerboard of `chip-ink`, never solid) after 300ms and loses it at once, so a run that is quicker never shows it;
- *  - the row pulse (after an add, a move, a restore): the Spectrum's FLASH. `ListScreen` marks the pulsing row `data-flash` while it is lit (320ms on, 320ms off, three times; steady for 2s
- *    under reduced motion), and `exzed-rows.css` draws a lit row exactly as a hovered one, so Quantum's own pulse animation is off here.
+ *  - the row pulse (after an add, a move, a restore; the Undo flash is the same): **the one named exception to "nothing fades"**, design's D36 (57.8): a stepped fade of four hard steps of solid
+ *    colours, no alpha, 2s in all. `ListScreen` marks the pulsing row `data-flash` while it holds the hover look (1.52s), `data-flash='dim'` for 120ms, `data-checker` for 120ms, then neither,
+ *    and `exzed-rows.css` draws each step (`acc`, `acc-dim`, a 2px checker of `acc-dim` over `paper`, `paper`); steady for 2s under reduced motion. Quantum's own pulse animation is off here
+ *    (below), and no keyframes are involved: the sweep (e2e-tools/identity/sweep.ts) still finds no opacity, alpha or filter on any screen, mid-fade included.
  * Quantum is as it was: every rule is under `html.theme-exzed`.
  */
 html.theme-exzed .q-spinner {

@@ -8,6 +8,7 @@ import { copy } from '../../locale/index.js'
 import { FieldMessage } from '../../components/quantum/Field/FieldMessage.js'
 import { ProgressSentence } from '../../components/quantum/ProgressSentence/ProgressSentence.js'
 import { yearSpanLabel, type GroupBlock } from './spine.js'
+import type { FlashStep } from './ItemRow.js'
 import { Tip } from '../../components/quantum/Tooltip/Tip.js'
 import { guardRename } from './renameGuard.js'
 import { GroupTriangle } from '../../components/quantum/GroupTriangle/GroupTriangle.js'
@@ -37,8 +38,8 @@ export interface GroupRowProps {
   place?: string
   /** Just moved or restored. */
   pulse?: boolean
-  /** eX-Zed's flash: the head is lit, as under the pointer, at this step of its pulse. */
-  flash?: boolean
+  /** eX-Zed's pulse (a stepped fade, design's D36): which step the head is at (see `FlashStep`). */
+  flash?: FlashStep
   /** Deletes the group. Offered only while it holds no items (prototype: "🗑 empty"). */
   onDelete?: () => void
   /** A group with items: its trash button asks first (a confirmation anchored to it), owner 2026-09-27. */
@@ -71,7 +72,7 @@ export function GroupRow({
   target = false,
   place,
   pulse = false,
-  flash = false,
+  flash,
   onDelete,
   onDeleteWithItems,
   onRename,
@@ -151,7 +152,8 @@ export function GroupRow({
       aria-labelledby={editing ? undefined : `${nameId} ${progressId}`}
       aria-expanded={!collapsed}
       data-row-id={block.group.id}
-      data-flash={flash ? '' : undefined}
+      data-flash={flash === 'lit' ? '' : flash === 'dim' ? 'dim' : undefined}
+      data-checker={flash === 'checker' ? '' : undefined}
       data-drag-key={block.group.id}
       tabIndex={focusable ? 0 : -1}
       onClick={() => onToggle(block.group.name)}

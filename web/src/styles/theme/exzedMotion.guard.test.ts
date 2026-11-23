@@ -5,7 +5,7 @@ import { read } from './cssGuard.js'
 
 /**
  * eX-Zed's spinner, busy list and row pulse (51.11, X-007), `styles/theme/exzed-motion.css`: under `html.theme-exzed` only, in the skin's roles only, nothing that fades or eases (every animation is
- * one `steps(1)`), the spinner's eight cells in `ink`, `ink2` and `frame`, the scrim the 51.1 token with its 300ms delay on the busy state only, and no shadow, alpha, radius, opacity or filter.
+ * one `steps(1)`; the one named exception is the row pulse's stepped fade, design's D36, 57.8: three hard steps of solid colours, drawn by `exzed-rows.css` and timed by `ListScreen`, never an animation here), the spinner's eight cells in `ink`, `ink2` and `frame`, the scrim the 51.1 token with its 300ms delay on the busy state only, and no shadow, alpha, radius, opacity or filter.
  */
 const FILE = 'styles/theme/exzed-motion.css'
 const exists = existsSync(join(import.meta.dirname, 'exzed-motion.css'))

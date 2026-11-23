@@ -63,7 +63,7 @@ import { ItemEditPopover } from './ItemEditPopover.js'
 import { minutesColumnWidth } from './lengthLabel.js'
 import { tagField } from './tagFields.js'
 import { ItemInfoCard } from './ItemInfoCard.js'
-import { ItemRow } from './ItemRow.js'
+import { ItemRow, type FlashStep } from './ItemRow.js'
 import { ByHandMark, CuratedStar } from '../../components/quantum/Marks/Marks.js'
 import { kindColumnChars } from '../../components/quantum/Marks/kindColumn.js'
 import { useTheme } from '../../components/quantum/DocumentTheme/ThemeContext.js'
@@ -243,12 +243,12 @@ interface ListViewProps {
 /** How long a row stays washed after it was added, moved or restored (design: row pulse). */
 const PULSE_MS = 1900
 /**
- * eX-Zed's pulse is the Spectrum's FLASH (design's Row card): the row takes the hover look three times, 320ms a step, so 1.92s, and is over at 2s; under reduced
- * motion it is lit steadily for the same 2s.
+ * eX-Zed's pulse is a stepped fade (design's D36, 57.8; the Row and Undo-flash cards): the row holds the hover look for 1.52s, then fades in three hard steps of 120ms, `acc-dim`,
+ * a 2px checker of `acc-dim` over `paper`, `paper`, and the pulse is over at 2s, 2s in all; no alpha. Under reduced motion it is lit steadily for the same 2s.
  */
-const FLASH_STEP_MS = 320
+const FLASH_HOLD_MS = 1520
+const FLASH_STEP_MS = 120
 const FLASH_PULSE_MS = 2000
-const FLASH_TOGGLES = 5
 
 /** The reader's folds while text is typed (BL-156): none. A single empty map, so that "none" is the same value on every render. */
 const NO_FOLDS: ReadonlyMap<string, boolean> = new Map()
@@ -306,8 +306,8 @@ function ListView({
   const [popover, setPopover] = useState<OpenPopover | null>(null)
   const [groupDelete, setGroupDelete] = useState<{ group: ListGroup; anchor: HTMLElement } | null>(null)
   const [pulseIds, setPulseIds] = useState<ReadonlySet<string>>(new Set())
-  // eX-Zed only: whether the pulsing rows are lit at this moment of their flash.
-  const [flashLit, setFlashLit] = useState(false)
+  // eX-Zed only: which step of its fade the pulsing rows are at (none once they are paper again).
+  const [flashStep, setFlashStep] = useState<FlashStep | null>(null)
   const theme = useTheme()
   const reducedMotion = useReducedMotion()
   // What an explicit check found for this list and nobody has applied or dismissed (persisted).
@@ -381,17 +381,21 @@ function ListView({
       setPulseIds(new Set(ids))
       const exzed = theme === 'exzed'
       if (exzed) {
-        setFlashLit(true)
-        // Lit at once, then off, on, off, on, off a step apart; reduced motion keeps it lit.
+        setFlashStep('lit')
+        // Lit at once and held, then the three hard steps of the fade; reduced motion keeps it lit.
         flashTimers.current = reducedMotion
           ? []
-          : Array.from({ length: FLASH_TOGGLES }, (_, n) => setTimeout(() => setFlashLit(n % 2 === 1), (n + 1) * FLASH_STEP_MS))
+          : [
+              setTimeout(() => setFlashStep('dim'), FLASH_HOLD_MS),
+              setTimeout(() => setFlashStep('checker'), FLASH_HOLD_MS + FLASH_STEP_MS),
+              setTimeout(() => setFlashStep(null), FLASH_HOLD_MS + 2 * FLASH_STEP_MS),
+            ]
       }
       pulseTimer.current = setTimeout(
         () => {
           revealId.current = null
           setPulseIds(new Set())
-          setFlashLit(false)
+          setFlashStep(null)
         },
         exzed ? FLASH_PULSE_MS : PULSE_MS,
       )
@@ -1453,7 +1457,7 @@ function ListView({
       noteMatch={noteOnlyMatch(entry, filter.text)}
       minutesWidth={minutesWidth}
       pulse={pulseIds.has(entry.id)}
-      flash={flashLit && pulseIds.has(entry.id)}
+      flash={pulseIds.has(entry.id) ? (flashStep ?? undefined) : undefined}
       onHandlePointerDown={onRowHandle}
       dragging={moves.dragKey === entry.id}
       place={places && places.itemAt.has(entry.id) ? text.place.item(places.itemAt.get(entry.id)!, places.itemAt.size) : undefined}
@@ -1652,7 +1656,7 @@ function ListView({
                         : null
                     }
                     pulse={pulseIds.has(unit.group.id)}
-                    flash={flashLit && pulseIds.has(unit.group.id)}
+                    flash={pulseIds.has(unit.group.id) ? (flashStep ?? undefined) : undefined}
                   />
                   {rows}
                   {/* An open group's "after" line is at its bottom edge, under its last row (H-009); a shut or empty group's is under its header. */}

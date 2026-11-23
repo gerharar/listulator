@@ -22,6 +22,14 @@ describe('eX-Zed’s list rows', () => {
     expect(main.indexOf('exzed-rows.css')).toBeGreaterThan(main.indexOf('exzed-helpers.css'))
   })
 
+  it('draws the pulse’s fade after the hold (D36, 57.8): `acc-dim`, then a 2px checker of `acc-dim` over `paper` under the row’s `ink`, with only solid colours', () => {
+    expect(body('html.theme-exzed .q-item[data-flash=\'dim\']')).toMatch(/background:\s*var\(--zx-acc-dim\);/)
+    expect(body('html.theme-exzed .q-group[data-flash=\'dim\']')).toMatch(/background:\s*var\(--zx-acc-dim\);/)
+    for (const row of ['q-item', 'q-group']) {
+      expect(body(`html.theme-exzed .${row}[data-checker]`)).toMatch(/background:\s*repeating-conic-gradient\(var\(--zx-acc-dim\) 0 25%, var\(--zx-paper\) 0 50%\) 0 0 \/ 4px 4px;\s*color:\s*var\(--zx-ink\);/)
+    }
+  })
+
   it('applies to eX-Zed only', () => {
     const selectors = rules().flatMap(([list]) => list.split(',').map((s) => s.trim()))
     expect(selectors.length).toBeGreaterThan(40)

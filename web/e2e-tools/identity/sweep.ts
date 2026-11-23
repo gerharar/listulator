@@ -7,7 +7,9 @@ import type { PageDump } from './dump.js'
  *  - **no radius** on any corner;
  *  - **no shadow** but the frame's rings: a `box-shadow` is `none` or solid rings of `0 0 0 Npx` in an opaque colour; no `text-shadow`, no `filter`, no `backdrop-filter`;
  *  - **no alpha and no fade:** `opacity` 1 everywhere, no colour (text, background, border, outline, fill, stroke or inside a gradient) with a partial alpha (a fully transparent one is
- *    "no colour", not a blend);
+ *    "no colour", not a blend). **One named exception to "no fade", design's D36 (57.8):** the row pulse (and the Undo flash) fades in four hard steps of solid colours, `acc`, `acc-dim`, a 2px checker
+ *    of `acc-dim` over `paper`, `paper`; it never has an opacity under 1 or a partial alpha, so the rule needs no gap: it reads the same on every screen, mid-fade included (exzedSweep.guard.test.ts pins that a
+ *    row in each step passes);
  *  - **type that sits on the pixel grid:** every element that draws text sets it at 16, 24 or 32px, at weight 400, with no letter-spacing, so a glyph's stem is a whole number of device pixels at 100%
  *    and at 200% (the font is an 8px grid: 2px a pixel at 16px). Text that is not drawn (a hidden glyph at 0px, a visually hidden live region) is not looked at;
  *  - **a live control is never the secondary grey** (design's D47, 2026-11-15): in the dark skins `ink2` is `#909090`, for text that only informs and for disabled controls; a control that reacts to

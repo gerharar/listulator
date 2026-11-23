@@ -15,6 +15,9 @@ import { Tip } from '../../components/quantum/Tooltip/Tip.js'
 import { useTooltip } from '../../components/quantum/Tooltip/useTooltip.js'
 import { ExternalLink } from '../../components/quantum/ExternalLink/ExternalLink.js'
 
+/** The steps of eX-Zed's pulse after the hold: lit (the hover look), dim (`acc-dim`), checker (a 2px checker of `acc-dim` over `paper`); a row past them has none. */
+export type FlashStep = 'lit' | 'dim' | 'checker'
+
 export interface ItemRowProps {
   item: ListItem
   /** Inside a group: indented under its head. */
@@ -31,8 +34,8 @@ export interface ItemRowProps {
   onRemove: (item: ListItem, anchor: HTMLElement) => void
   /** Just added, moved or restored: wash the row so the eye can find where it went. */
   pulse: boolean
-  /** eX-Zed's flash: the row is lit, as under the pointer, at this step of its pulse. */
-  flash?: boolean
+  /** eX-Zed's pulse (a stepped fade, design's D36): which step the row is at: lit as under the pointer, the dimmer highlight, the checker; none once it is paper again. */
+  flash?: FlashStep
   /** A drag starts here: the handle's own pointer-down (10.23). */
   onHandlePointerDown?: (event: PointerEvent, item: ListItem) => void
   /** This is the row being dragged. */
@@ -107,7 +110,7 @@ function ItemRowView({
   onEdit,
   onRemove,
   pulse,
-  flash = false,
+  flash,
   onHandlePointerDown,
   dragging = false,
   place,
@@ -150,7 +153,8 @@ function ItemRowView({
         .filter(Boolean)
         .join(' ')}
       data-row-id={item.id}
-      data-flash={flash ? '' : undefined}
+      data-flash={flash === 'lit' ? '' : flash === 'dim' ? 'dim' : undefined}
+      data-checker={flash === 'checker' ? '' : undefined}
       data-drag-key={item.id}
       tabIndex={focusable ? 0 : -1}
       onClick={() => onToggle(item)}

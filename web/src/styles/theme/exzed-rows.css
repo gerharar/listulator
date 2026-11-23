@@ -221,6 +221,19 @@ html.theme-exzed .q-item[data-pointer] .q-plat,
 html.theme-exzed .q-item[data-flash] .q-plat {
   border-color: var(--zx-hl-ink);
 }
+
+/* The pulse's fade (design's D36, 57.8; the Undo flash is the same): the hover look is held (`data-flash`), then three hard steps of 120ms, no alpha: the highlight dims to `acc-dim` (the ink stays
+   `acc-ink`; Lotus has `acc-dim` = `acc`, so this step looks like the first), then a 2px checker of `acc-dim` over `paper` under the row's own `ink` (`data-checker`; what is in the row is as it is at
+   rest), then `paper`: neither attribute, the row as it was. `ListScreen` sets them on its timers; under reduced motion the hover look is held for the whole 2s. */
+html.theme-exzed .q-item[data-flash='dim'],
+html.theme-exzed .q-group[data-flash='dim'] {
+  background: var(--zx-acc-dim);
+}
+html.theme-exzed .q-item[data-checker],
+html.theme-exzed .q-group[data-checker] {
+  background: repeating-conic-gradient(var(--zx-acc-dim) 0 25%, var(--zx-paper) 0 50%) 0 0 / 4px 4px;
+  color: var(--zx-ink);
+}
 html.theme-exzed .q-item[data-pointer] .q-icon-btn.row:where(:not(:disabled)):hover,
 html.theme-exzed .q-group[data-pointer] .q-icon-btn.row:where(:not(:disabled)):hover,
 html.theme-exzed .q-item[data-pointer] .q-plat:where(:not(:disabled):not(.readonly)):hover,

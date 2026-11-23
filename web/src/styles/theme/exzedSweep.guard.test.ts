@@ -82,6 +82,22 @@ describe('the sweep’s rules', () => {
     expect(rules({ style: { color: 'rgba(255, 0, 0, 1)' } })).toEqual([])
   })
 
+  it('passes a pulsing row in every step of its stepped fade (D36, 57.8): solid colours only, an opaque 2px checker, never an opacity under 1', () => {
+    expect(rules({ style: { 'background-color': 'rgb(255, 255, 0)', color: 'rgb(0, 0, 0)', opacity: '1' } }), 'acc').toEqual([])
+    expect(rules({ style: { 'background-color': 'rgb(215, 215, 0)', color: 'rgb(0, 0, 0)', opacity: '1' } }), 'acc-dim').toEqual([])
+    expect(
+      rules({
+        style: {
+          'background-color': 'rgba(0, 0, 0, 0)',
+          'background-image': 'repeating-conic-gradient(rgb(215, 215, 0) 0deg, rgb(215, 215, 0) 25%, rgb(0, 0, 0) 0deg, rgb(0, 0, 0) 50%)',
+          color: 'rgb(255, 255, 255)',
+        },
+      }),
+      'the checker',
+    ).toEqual([])
+    expect(rules({ style: { 'background-color': 'rgba(0, 0, 0, 0)', color: 'rgb(255, 255, 255)' } }), 'paper').toEqual([])
+  })
+
   it('names text that is not 16, 24 or 32px, is bold, or has letter-spacing, together when it is all three', () => {
     expect(rules({ text: 'x', style: { 'font-size': '14px' } })).toEqual(['size'])
     expect(rules({ text: 'x', style: { 'font-size': '12.5px' } })).toEqual(['size'])
