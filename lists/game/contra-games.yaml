@@ -1,5 +1,5 @@
 title: Contra franchise games
-description: "All officially released playable games in the Contra franchise, including handheld adaptations, remakes and arcade spin-offs; excludes compilations and discontinued mobile-only titles."
+description: "All officially released playable games in the Contra franchise, including console, handheld and mobile adaptations, remakes and arcade spin-offs; excludes compilations and unreleased or closed-beta projects."
 category: game
 status: ongoing
 items:
@@ -17,9 +17,12 @@ items:
 - { title: "Contra Advance: The Alien Wars EX", year: 2002, tags: [GBA, WIIU, VC], notes: "Modified GBA adaptation of Contra III, including levels from Contra: Hard Corps." }
 - { title: "Neo Contra", year: 2004, tags: [PS2] }
 - { title: "Contra 4", year: 2007, tags: [DS, CELL, BBOS, WINM, AND], notes: "Mobile versions were adapted for feature phones and lacked the DS dual-screen presentation; not released in Europe." }
+- { title: "Contra: The War of the Worlds", year: 2009, tags: [CELL], notes: "China-exclusive J2ME game. Also known as Contra: Star Wars, Contra: Interstellar Battle and Contra: Planet Force." }
 - { title: "Contra ReBirth", year: 2009, tags: [WII], notes: "WiiWare-only release; no longer available for new purchases." }
+- { title: "Contra 4: Redux", year: 2010, tags: [CELL, BBOS, WINM, AND], notes: "Expanded remake of the mobile Contra 4; originally released for J2ME in 2010, with Android, BlackBerry and Windows Mobile versions following." }
 - { title: "Contra: Evolution", year: 2010, tags: [CELL, COIN, IOS, AND], notes: "Mobile editions were delisted; the arcade version remains playable." }
 - { title: "Hard Corps: Uprising", year: 2011, tags: [PS3, X360] }
+- { title: "Contra Returns", year: 2017, tags: [IOS, AND], notes: "Originally released in China in 2017; Taiwan and Southeast Asian releases followed in 2018, with a worldwide release in 2021. Global servers shut down on August 26, 2024; regional versions operated separately." }
 - { title: "Contra: Rogue Corps", year: 2019, tags: [PS4, XONE, NSW, WIN] }
 - { title: "Contra: Operation Galuga", year: 2024, tags: [PS5, PS4, XSX, XONE, NSW, WIN] }
-- { title: "Contra Burst", year: 2025, tags: [COIN] }
+- { title: "Contra Burst", year: 2025, tags: [COIN], notes: "US arcade light-gun redemption game; began operating on May 16, 2025." }

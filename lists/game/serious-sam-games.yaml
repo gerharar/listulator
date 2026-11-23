@@ -10,17 +10,18 @@ items:
 - { title: "Serious Sam 3: BFE", year: 2011, group: "Main Series", tags: [WIN, MAC, LNX, X360, PS3, PS4, XONE, NSW, STADIA] }
 - { title: "Serious Sam 4", year: 2020, group: "Main Series", tags: [WIN, STADIA, PS5, XSX] }
 - { title: "Serious Sam: Siberian Mayhem", year: 2022, group: "Main Series", tags: [WIN, PS5, XSX], notes: "Standalone expansion to Serious Sam 4." }
-- { title: "Serious Sam: Shatterverse", year: 2026, group: "Main Series", tags: [WIN, PS5, XSX], notes: "Cooperative roguelite FPS released August 31, 2026." }
+- { title: "Serious Sam: Shatterverse", year: 2026, group: "Main Series", tags: [WIN, PS5, XSX], notes: "Cooperative roguelite FPS." }
 - { title: "Serious Sam Advance", year: 2004, group: "Console & Handheld Spin-Offs", tags: [GBA], notes: "Handheld-specific adaptation." }
 - { title: "Serious Sam: Next Encounter", year: 2004, group: "Console & Handheld Spin-Offs", tags: [GCN, PS2], notes: "Console spin-off developed by Climax." }
 - { title: "Serious Sam Double D", year: 2011, group: "Indie Spin-Offs", tags: [WIN], notes: "Original PC version; subsequently updated with an option to play the expanded XXL version." }
+- { title: "Serious Sam: The Greek Encounter", year: 2012, group: "Indie Spin-Offs", tags: [WIN], notes: "8-bit-style top-down shooter developed by Eric Ruth Games; originally distributed through Desura." }
 - { title: "Serious Sam Double D XXL", year: 2013, group: "Indie Spin-Offs", tags: [WIN, X360], notes: "Expanded edition with additional weapons, levels and gameplay improvements." }
 - { title: "Serious Sam: The Random Encounter", year: 2011, group: "Indie Spin-Offs", tags: [WIN], notes: "Turn-based RPG with retro-style graphics." }
 - { title: "Serious Sam: Kamikaze Attack!", year: 2011, group: "Indie Spin-Offs", tags: [IOS, AND, WIN], notes: "Side-scrolling mobile runner; later re-released on Steam in 2021." }
 - { title: "Serious Sam's Bogus Detour", year: 2017, group: "Indie Spin-Offs", tags: [WIN, LNX], notes: "Top-down action-adventure spin-off." }
-- { title: "I Hate Running Backwards", year: 2018, group: "Indie Spin-Offs", tags: [WIN, LNX, PS4, XONE, NSW], notes: "Crossover arcade shooter featuring Serious Sam and characters from other franchises." }
+- { title: "I Hate Running Backwards", year: 2018, group: "Indie Spin-Offs", tags: [WIN, LNX, PS4, XONE, NSW], notes: "Borderline entry: roguelite shoot-'em-up featuring Serious Sam and crossover characters." }
 - { title: "Serious Sam: Tormental", year: 2022, group: "Indie Spin-Offs", tags: [WIN], notes: "Top-down roguelite shooter; originally released in Early Access in 2019." }
-- { title: "Serious Sam HD: The First Encounter", year: 2009, group: "Remakes & Remasters", tags: [WIN, X360, LNX], notes: "HD remake of The First Encounter; Linux release followed in 2017 through Serious Sam Fusion." }
+- { title: "Serious Sam HD: The First Encounter", year: 2009, group: "Remakes & Remasters", tags: [WIN, X360, LNX], notes: "HD remake of The First Encounter." }
 - { title: "Serious Sam HD: The Second Encounter", year: 2010, group: "Remakes & Remasters", tags: [WIN, X360, LNX], notes: "HD remake of The Second Encounter; includes updated visuals and additional gameplay modes." }
 - { title: "Serious Sam Classics: Revolution", year: 2014, group: "Remakes & Remasters", tags: [WIN], notes: "Enhanced combination of The First Encounter and The Second Encounter, with additional content; entered Early Access in 2014 and reached full release in 2019." }
 - { title: "Serious Sam VR: The First Encounter", year: 2017, group: "Virtual Reality", tags: [WIN, LNX, VR], notes: "VR remake of The First Encounter." }

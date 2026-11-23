@@ -1,0 +1,111 @@
+title: FromSoftware games catalog
+description: "Games developed or co-developed by FromSoftware, including Japan-exclusive console, handheld and mobile releases, enhanced ports and remasters, grouped by franchise; excludes compilations, FromCapsule mobile games, and titles where FromSoftware was just a publisher."
+category: game
+status: ongoing
+items:
+- { title: "King's Field", year: 1994, group: "King's Field", tags: [PS1], notes: "The original PlayStation release." }
+- { title: "King's Field II", year: 1995, group: "King's Field", tags: [PS1] }
+- { title: "King's Field III", year: 1996, group: "King's Field", tags: [PS1] }
+- { title: "King's Field: Pilot Style", year: 1996, group: "King's Field", tags: [PS1], notes: "Japan-exclusive short-form release." }
+- { title: "Sword of Moonlight: King's Field Making Tool", group: "King's Field", year: 2000, tags: [WIN], notes: "Game creation toolkit with a playable sample campaign." }
+- { title: "King's Field: The Ancient City", year: 2001, group: "King's Field", tags: [PS2], notes: "Also known as King's Field IV; main-series entry." }
+- { title: "King's Field Mobile", year: 2004, group: "King's Field", tags: [CELL], notes: "Japan-exclusive feature-phone adaptation. A preserved build with community translation supposedly exist." }
+- { title: "King's Field EX", year: 2004, group: "King's Field", tags: [CELL], notes: "Japan-exclusive feature-phone release for Y!keitai. Preservation status unknown." }
+- { title: "King's Field Mobile II", year: 2005, group: "King's Field", tags: [CELL], notes: "Japan-exclusive feature-phone sequel. Preservation status unknown." }
+- { title: "King's Field: Additional I", year: 2006, group: "King's Field", tags: [PSP], notes: "Japan-exclusive handheld entry." }
+- { title: "King's Field: Additional II", year: 2006, group: "King's Field", tags: [PSP], notes: "Japan-exclusive handheld sequel." }
+- { title: "Armored Core", year: 1997, group: "Armored Core", tags: [PS1, PS4, PS5], notes: "The original PlayStation game was also released through the PlayStation Plus Classics Catalog for PS4 and PS5 in 2025." }
+- { title: "Armored Core: Project Phantasma", year: 1997, group: "Armored Core", tags: [PS1, PS4, PS5], notes: "PlayStation Plus Classics Catalog release for PS4 and PS5 in 2025." }
+- { title: "Armored Core: Master of Arena", year: 1999, group: "Armored Core", tags: [PS1, PS4, PS5], notes: "PlayStation Plus Classics Catalog release for PS4 and PS5 in 2025." }
+- { title: "Armored Core 2", year: 2000, group: "Armored Core", tags: [PS2] }
+- { title: "Armored Core 2: Another Age", year: 2001, group: "Armored Core", tags: [PS2] }
+- { title: "Armored Core 3", year: 2002, group: "Armored Core", tags: [PS2] }
+- { title: "Silent Line: Armored Core", year: 2003, group: "Armored Core", tags: [PS2] }
+- { title: "Armored Core: Nexus", year: 2004, group: "Armored Core", tags: [PS2] }
+- { title: "Armored Core: Nine Breaker", year: 2004, group: "Armored Core", tags: [PS2] }
+- { title: "Armored Core: Formula Front", year: 2004, group: "Armored Core", tags: [PSP, PS2], notes: "Originally released on PSP in 2004. The enhanced PSP edition was called Formula Front International in Japan and Formula Front: Extreme Battle in North America." }
+- { title: "Armored Core Mobile Mission", year: 2004, group: "Armored Core", tags: [CELL, NSW, WIN], notes: "Japan-exclusive feature-phone game; re-released as G-Mode Archives+ for Nintendo Switch in April 2025 and Steam in April 2025." }
+- { title: "Armored Core Mobile 2", year: 2005, group: "Armored Core", tags: [CELL, NSW, WIN], notes: "Japan-exclusive feature-phone game; re-released as G-Mode Archives+ for Nintendo Switch and Steam in June 2025." }
+- { title: "Armored Core Mobile Online", year: 2005, group: "Armored Core", tags: [CELL], notes: "Japan-exclusive i-mode online game. Preservation status unknown." }
+- { title: "Armored Core: Last Raven", year: 2005, group: "Armored Core", tags: [PS2] }
+- { title: "Armored Core 4", year: 2006, group: "Armored Core", tags: [PS3, X360] }
+- { title: "Armored Core Mobile 3", year: 2007, group: "Armored Core", tags: [CELL, NSW, WIN], notes: "Japan-exclusive feature-phone game; re-released as G-Mode Archives+ for Nintendo Switch and Steam in January 2026." }
+- { title: "Armored Core Mobile 4", year: 2008, group: "Armored Core", tags: [CELL], notes: "Japan-exclusive feature-phone game for EZweb and Y!keitai. Preservation status unknown." }
+- { title: "Armored Core 3 Portable", year: 2009, group: "Armored Core", tags: [PSP], notes: "Enhanced PSP version of Armored Core 3." }
+- { title: "Armored Core: Silent Line Portable", year: 2009, group: "Armored Core", tags: [PSP], notes: "Enhanced PSP version of Silent Line: Armored Core." }
+- { title: "Armored Core: Last Raven Portable", year: 2010, group: "Armored Core", tags: [PSP], notes: "PSP version of Armored Core: Last Raven." }
+- { title: "Armored Core V", year: 2012, group: "Armored Core", tags: [PS3, X360] }
+- { title: "Armored Core: Verdict Day", year: 2013, group: "Armored Core", tags: [PS3, X360] }
+- { title: "Armored Core VI: Fires of Rubicon", year: 2023, group: "Armored Core", tags: [PS4, PS5, XONE, XSX, WIN] }
+- { title: "Shadow Tower", year: 1998, group: "Shadow Tower", tags: [PS1] }
+- { title: "Shadow Tower: Abyss", year: 2003, group: "Shadow Tower", tags: [PS2], notes: "Japan-exclusive release." }
+- { title: "Echo Night", year: 1998, group: "Echo Night", tags: [PS1] }
+- { title: "Echo Night 2: The Lord of Nightmares", year: 1999, group: "Echo Night", tags: [PS1], notes: "Japanese title: Echo Night 2: Nemuri no Shihaisha." }
+- { title: "Spriggan: Lunar Verse", year: 1999, tags: [PS1], notes: "Japan-exclusive game based on the Spriggan manga." }
+- { title: "Frame Gride", year: 1999, tags: [DC], notes: "Japan-exclusive Dreamcast mech combat game." }
+- { title: "Eternal Ring", year: 2000, tags: [PS2] }
+- { title: "Evergrace", year: 2000, group: "Evergrace", tags: [PS2] }
+- { title: "Forever Kingdom", year: 2001, group: "Evergrace", tags: [PS2], notes: "Known in Japan as Evergrace II; these are regional titles for the same game." }
+- { title: "The Adventures of Cookie & Cream", year: 2000, tags: [PS2], notes: "Released in Japan as KuriKuri Mix." }
+- { title: "Lost Kingdoms", year: 2002, group: "Lost Kingdoms", tags: [GCN], notes: "Released in Japan as Rune; both names refer to the same game." }
+- { title: "Lost Kingdoms II", year: 2003, group: "Lost Kingdoms", tags: [GCN], notes: "Released in Japan as Rune II: Koruten no Kagi no Himitsu." }
+- { title: "Murakumo: Renegade Mech Pursuit", year: 2002, group: "Murakumo", tags: [XBOX], notes: "Japanese title: Murakumo." }
+- { title: "Murakumo (Mobile)", year: 2004, group: "Murakumo", tags: [CELL], notes: "Separate feature-phone adaptation of the Xbox game; released for Y!keitai. Preservation status unknown." }
+- { title: "Otogi: Myth of Demons", year: 2002, group: "Otogi", tags: [XBOX], notes: "Japanese title: Otogi." }
+- { title: "Otogi 2: Immortal Warriors", year: 2003, group: "Otogi", tags: [XBOX], notes: "Japanese title: Otogi: Hyakki Toubatsu Emaki." }
+- { title: "Thousand Land", year: 2003, tags: [XBOX], notes: "Japan-exclusive strategy game." }
+- { title: "Kuon", year: 2004, tags: [PS2] }
+- { title: "Metal Wolf Chaos", year: 2004, group: "Metal Wolf Chaos", tags: [XBOX], notes: "Originally released exclusively in Japan." }
+- { title: "Metal Wolf Chaos XD", year: 2019, group: "Metal Wolf Chaos", tags: [WIN, PS4, XONE], notes: "Enhanced international port of Metal Wolf Chaos; port development was handled by General Arcade." }
+- { title: "Tenchu: Ayame's Tale 3D", year: 2004, group: "Tenchu", tags: [CELL], notes: "Japan-exclusive feature-phone stealth game, also known as Tenchu: Ayame no Sho. Released in BREW, J2ME and DoJa versions. Preservation status unknown." }
+- { title: "Tenchu: Ninjutsu Kaiden", year: 2005, group: "Tenchu", tags: [CELL], notes: "Japan-exclusive feature-phone ninja-action game. Preservation status unknown." }
+- { title: "Tenchu: Shinobi no Hyoho", year: 2006, group: "Tenchu", tags: [CELL], notes: "Japan-exclusive feature-phone ninja simulation RPG. Preservation status unknown." }
+- { title: "Tenchu: Sengoku Hiroku", year: 2006, group: "Tenchu", tags: [CELL], notes: "Japan-exclusive feature-phone game. Preservation status unknown." }
+- { title: "Shadow Assault: Tenchu", year: 2008, group: "Tenchu", tags: [X360], notes: "Trap-based action spin-off developed by FromSoftware; includes a single-player campaign. Online multiplayer is no longer available." }
+- { title: "Tenchu 3 Portable", year: 2009, group: "Tenchu", tags: [PSP], notes: "FromSoftware-developed PSP port of Tenchu 3; adds two stages, additional missions and enemies, and enhanced ninja actions." }
+- { title: "Yoshitsune Eiyūden: The Story of Hero Yoshitsune", year: 2005, group: "Yoshitsune Eiyūden", tags: [PS2], notes: "Japan-exclusive historical action game." }
+- { title: "Yoshitsune Eiyūden: Shura", year: 2005, group: "Yoshitsune Eiyūden", tags: [PS2], notes: "Japan-exclusive standalone sequel." }
+- { title: "Another Century's Episode", year: 2005, group: "Another Century's Episode", tags: [PS2], notes: "First game in the mecha-action series; developed jointly with Banpresto." }
+- { title: "Another Century's Episode 2", year: 2006, group: "Another Century's Episode", tags: [PS2] }
+- { title: "Another Century's Episode 2: Special Vocal Version", year: 2007, group: "Another Century's Episode", tags: [PS2], notes: "Standalone updated release of Another Century's Episode 2 with additional anime vocal songs." }
+- { title: "Another Century's Episode 3: The Final", year: 2007, group: "Another Century's Episode", tags: [PS2] }
+- { title: "Another Century's Episode: R", year: 2010, group: "Another Century's Episode", tags: [PS3], notes: "Fourth main game in the series; developed jointly with Banpresto." }
+- { title: "Another Century's Episode Portable", year: 2011, group: "Another Century's Episode", tags: [PSP], notes: "Portable spin-off with local Ad Hoc multiplayer." }
+- { title: "Chromehounds", year: 2006, tags: [X360], notes: "Developed jointly with Sega. Online multiplayer servers were discontinued in 2010; the offline campaign remains playable." }
+- { title: "Enchanted Arms", year: 2006, tags: [X360, PS3], notes: "Japanese title: eM-eNCHANT arM." }
+- { title: "Nanpure VOW", year: 2007, group: "VOW", tags: [DS], notes: "Japan-exclusive Sudoku puzzle game." }
+- { title: "Iraroji VOW", year: 2007, group: "VOW", tags: [DS], notes: "Japan-exclusive picture-logic puzzle game." }
+- { title: "Hello Kitty no Oshare Party: Sanrio Character Zukan DS", year: 2007, tags: [DS], notes: "Japan-exclusive character reference, quiz and mini-game title developed in collaboration with Sanrio." }
+- { title: "Bikkuriman Daijiten", year: 2007, tags: [DS], notes: "Japan-exclusive Bikkuriman character database and quiz game developed in collaboration with Lotte." }
+- { title: "Ninja Blade", year: 2009, tags: [X360, WIN] }
+- { title: "Inugami-ke no Ichizoku", year: 2009, tags: [DS], notes: "Japan-exclusive mystery adventure based on the novel by Seishi Yokomizo." }
+- { title: "Yatsuhaka-mura", year: 2009, tags: [DS], notes: "Japan-exclusive mystery adventure based on the novel by Seishi Yokomizo." }
+
+- { title: "Demon's Souls", year: 2009, group: "Soulsborne", tags: [PS3], notes: "The 2020 PS5 remake was developed by Bluepoint Games, not FromSoftware." }
+- { title: "Dark Souls", year: 2011, group: "Soulsborne", tags: [PS3, X360, WIN], notes: "The Windows release was sold as Prepare to Die Edition." }
+- { title: "Dark Souls: Artorias of the Abyss DLC", year: 2012, group: "Soulsborne", tags: [PS3, X360, WIN, PS4, XONE, NSW], notes: "Story expansion with new areas, bosses, characters and equipment; included in Dark Souls: Prepare to Die Edition and Dark Souls: Remastered." }
+- { title: "Dark Souls II", year: 2014, group: "Soulsborne", tags: [PS3, X360, WIN] }
+- { title: "Dark Souls II: Crown of the Sunken King DLC", year: 2014, group: "Soulsborne", tags: [PS3, X360, WIN, PS4, XONE], notes: "First of The Lost Crowns trilogy; adds new areas, enemies and bosses. Included in Scholar of the First Sin." }
+- { title: "Dark Souls II: Crown of the Old Iron King DLC", year: 2014, group: "Soulsborne", tags: [PS3, X360, WIN, PS4, XONE], notes: "Second of The Lost Crowns trilogy; adds new areas, enemies and bosses. Included in Scholar of the First Sin." }
+- { title: "Dark Souls II: Crown of the Ivory King DLC", year: 2014, group: "Soulsborne", tags: [PS3, X360, WIN, PS4, XONE], notes: "Third of The Lost Crowns trilogy; adds new areas, enemies and bosses. Included in Scholar of the First Sin." }
+- { title: "Dark Souls II: Scholar of the First Sin", year: 2015, group: "Soulsborne", tags: [PS3, PS4, X360, XONE, WIN], notes: "Enhanced edition including The Lost Crowns DLC trilogy; PS4, Xbox One and PC versions feature upgraded technical capabilities and revised enemy placements" }
+- { title: "Bloodborne", year: 2015, group: "Soulsborne", tags: [PS4], notes: "The Old Hunters is an expansion; Bloodborne: The Old Hunters Edition is a retail bundle, not a separate game." }
+- { title: "Bloodborne: The Old Hunters DLC", year: 2015, group: "Soulsborne", tags: [PS4], notes: "Story expansion with new areas, characters, weapons and bosses; included in Bloodborne: The Old Hunters Edition." }
+- { title: "Dark Souls III", year: 2016, group: "Soulsborne", tags: [PS4, XONE, WIN], notes: "The Fire Fades Edition is a bundle of the base game and expansions, not a separate game." }
+- { title: "Dark Souls III: Ashes of Ariandel DLC", year: 2016, group: "Soulsborne", tags: [PS4, XONE, WIN], notes: "First story expansion; adds the Painted World of Ariandel, new enemies, bosses and equipment. Included in The Fire Fades Edition." }
+- { title: "Dark Souls III: The Ringed City DLC", year: 2017, group: "Soulsborne", tags: [PS4, XONE, WIN], notes: "Second and final story expansion; adds new areas, enemies, bosses and the concluding chapter of the Dark Souls trilogy. Included in The Fire Fades Edition." }
+- { title: "Dark Souls: Remastered", year: 2018, group: "Soulsborne", tags: [PS4, XONE, WIN, NSW], notes: "Remaster of the original Dark Souls." }
+- { title: "Sekiro: Shadows Die Twice", year: 2019, group: "Soulsborne", tags: [PS4, XONE, WIN, STADIA], notes: "The Stadia version became unplayable after the service shut down; the Game of the Year update is not a separate game." }
+- { title: "Demon's Souls", year: 2020, group: "Soulsborne", tags: [PS5], notes: "Full remake developed by Bluepoint Games, with assistance from SIE Japan Studio." }
+- { title: "Elden Ring", year: 2022, group: "Soulsborne", tags: [PS4, PS5, XONE, XSX, WIN, NSW2], notes: "The 2026 Nintendo Switch 2 Tarnished Edition includes the base game and Shadow of the Erdtree, alongside additional classes and customization options." }
+- { title: "Elden Ring: Shadow of the Erdtree DLC", year: 2024, group: "Soulsborne", tags: [PS4, PS5, XONE, XSX, WIN, NSW2], notes: "Major story expansion set in the Land of Shadow; included in the Nintendo Switch 2 Tarnished Edition." }
+- { title: "Elden Ring Nightreign", year: 2025, group: "Soulsborne", tags: [PS4, PS5, XONE, XSX, WIN], notes: "Standalone cooperative multiplayer spin-off; The Forsaken Hollows is an expansion, not a separate game." }
+- { title: "Elden Ring Nightreign: The Forsaken Hollows DLC", year: 2025, group: "Soulsborne", tags: [PS4, PS5, XONE, XSX, WIN], notes: "Adds two playable Nightfarers (Scholar and Undertaker), two new major bosses, additional field bosses and a new Shifting Earth environment." }
+- { title: "Monster Hunter Diary: Poka Poka Airou Village", year: 2010, group: "Monster Hunter Diary", tags: [PSP], notes: "Felyne life simulator developed with Capcom." }
+- { title: "Monster Hunter Diary: Poka Poka Airou Village G", year: 2011, group: "Monster Hunter Diary", tags: [PSP], notes: "Expanded version of Poka Poka Airou Village." }
+- { title: "Monster Hunter Diary: Poka Poka Airou Village DX", year: 2015, group: "Monster Hunter Diary", tags: [3DS], notes: "Enhanced 3DS version; also known internationally as Monster Hunter Diary: Poka Poka Palico Village DX." }
+- { title: "Mobile Suit Gundam Unicorn", year: 2012, group: "Mobile Suit Gundam", tags: [PS3], notes: "Japan-exclusive mecha-action game developed in collaboration with Namco Bandai Games." }
+- { title: "Steel Battalion: Heavy Armor", year: 2012, group: "Steel Battalion", tags: [X360], notes: "Kinect-based vehicle simulator developed with Capcom." }
+- { title: "Map Pack 1 DLC", year: 2012, group: "Steel Battalion", tags: [X360], notes: "Adds two co-op missions: Fuel Requisition and Mountain Sentinels." }
+- { title: "Map Pack 2 DLC", year: 2012, group: "Steel Battalion", tags: [X360], notes: "Adds two co-op missions: Ammo Dump Jump and The Champ-de-Mars. Also unlocks the bonus co-op mission Whiteout when Map Pack 1 is owned." }
+- { title: "Déraciné", year: 2018, tags: [PS4, VR], notes: "PlayStation VR exclusive adventure." }
