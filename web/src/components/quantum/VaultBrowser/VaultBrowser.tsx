@@ -13,6 +13,7 @@ import { Triangle } from '../Triangle/Triangle.js'
 import { useTheme } from '../DocumentTheme/ThemeContext.js'
 import { previewPath } from '../../../lib/preview.js'
 import { browserTime, DEFAULT_SORT, nextSort, sortRows, type BrowserSort, type SortKey } from './browserRows.js'
+import { ThemedIcon } from '../PixelIcon/PixelIcon.js'
 
 export interface VaultBrowserProps {
   /** The registry: the column lists every category in it, never a fixed set. */
@@ -193,7 +194,7 @@ export function VaultBrowser({ mediaTypes }: VaultBrowserProps) {
           <p className="q-vb-sub">{text.subline}</p>
         </div>
         <IconButton label={text.closeLabel} onClick={() => layerStack.pop()}>
-          <X width={17} height={17} strokeWidth={1.9} aria-hidden="true" />
+          <ThemedIcon name="close" fallback={<X width={17} height={17} strokeWidth={1.9} aria-hidden="true" />} />
         </IconButton>
       </div>
 

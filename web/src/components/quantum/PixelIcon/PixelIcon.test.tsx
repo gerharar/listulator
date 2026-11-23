@@ -19,6 +19,13 @@ const DESIGN = {
   refresh: 'M2 0h4v1H2zM1 1h1v1H1zM0 2h1v4H0zM7 0h1v3H7zM5 2h2v1H5zM1 6h1v1H1zM7 4h1v2H7zM6 6h1v1H6zM2 7h4v1H2z',
   more: 'M0 3h2v2H0zM3 3h2v2H3zM6 3h2v2H6z',
   close: 'M0 0h2v1H0zM6 0h2v1H6zM1 1h2v1H1zM5 1h2v1H5zM2 2h4v1H2zM3 3h2v2H3zM2 5h4v1H2zM1 6h2v1H1zM5 6h2v1H5zM0 7h2v1H0zM6 7h2v1H6z',
+  // Design's D46 (57.9): the list toolbar's icons, from the Icons group: collapse-all, to-the-top, to-the-bottom, hide-done.
+  'collapse-all': 'M1 0h1v1H1zM2 1h1v1H2zM3 2h2v1H3zM5 1h1v1H5zM6 0h1v1H6zM3 5h2v1H3zM2 6h1v1H2zM5 6h1v1H5zM1 7h1v1H1zM6 7h1v1H6z',
+  'to-the-top':
+    'M3 0h1v1H3zM4 0h1v1H4zM2 1h1v1H2zM3 1h1v1H3zM4 1h1v1H4zM5 1h1v1H5zM1 2h1v1H1zM2 2h1v1H2zM3 2h1v1H3zM4 2h1v1H4zM5 2h1v1H5zM6 2h1v1H6zM0 3h1v1H0zM1 3h1v1H1zM3 3h1v1H3zM4 3h1v1H4zM6 3h1v1H6zM7 3h1v1H7zM3 4h1v1H3zM4 4h1v1H4zM3 5h1v1H3zM4 5h1v1H4zM3 6h1v1H3zM4 6h1v1H4zM3 7h1v1H3zM4 7h1v1H4z',
+  'to-the-bottom':
+    'M3 7h1v1H3zM4 7h1v1H4zM2 6h1v1H2zM3 6h1v1H3zM4 6h1v1H4zM5 6h1v1H5zM1 5h1v1H1zM2 5h1v1H2zM3 5h1v1H3zM4 5h1v1H4zM5 5h1v1H5zM6 5h1v1H6zM0 4h1v1H0zM1 4h1v1H1zM3 4h1v1H3zM4 4h1v1H4zM6 4h1v1H6zM7 4h1v1H7zM3 3h1v1H3zM4 3h1v1H4zM3 2h1v1H3zM4 2h1v1H4zM3 1h1v1H3zM4 1h1v1H4zM3 0h1v1H3zM4 0h1v1H4z',
+  'hide-done': 'M3 1h2v1H3zM1 2h2v1H1zM5 2h2v1H5zM0 3h1v1H0zM3 3h2v1H3zM7 3h1v1H7zM0 4h1v1H0zM3 4h2v1H3zM7 4h1v1H7zM1 5h2v1H1zM5 5h2v1H5zM3 6h2v1H3zM0 0h1v1H0zM1 1h1v1H1zM6 6h1v1H6zM7 7h1v1H7z',
 }
 
 function Providers({ theme, children }: { theme: 'quantum' | 'exzed'; children: ReactNode }) {
@@ -52,6 +59,26 @@ describe('PixelIcon', () => {
   it('keeps a class the caller gives it (the refresh icon turns by `q-spin`)', () => {
     const { container } = render(<PixelIcon name="refresh" className="q-spin" />)
     expect(container.querySelector('svg')!.getAttribute('class')).toContain('q-spin')
+  })
+
+  /**
+   * The design system has no expand-all twin (57.9 lists it to design): ours is collapse-all's two chevrons turned outward, each in its own half, so the pair that closes every group and the pair
+   * that opens them are the same drawing. Cells are read from the paths, so the test is the derivation, not a second copy of the string.
+   */
+  it('draws expand-all as collapse-all with each chevron turned outward in place (ours: design has none)', () => {
+    const cells = (d: string) => new Set([...d.matchAll(/M(\d+) (\d+)h(\d+)v1H\d+z/g)].flatMap((m) => Array.from({ length: Number(m[3]) }, (_, n) => `${Number(m[1]) + n},${m[2]}`)))
+    const collapse = cells(PIXEL_ICONS['collapse-all'])
+    const expand = cells(PIXEL_ICONS['expand-all'])
+    const turned = new Set(
+      [...collapse].map((cell) => {
+        const [x, y] = cell.split(',').map(Number) as [number, number]
+        // The top half (rows 0 to 2) and the bottom half (rows 5 to 7) each turn about their own middle row.
+        return `${x},${y <= 2 ? 2 - y : 12 - y}`
+      }),
+    )
+
+    expect([...expand].sort()).toEqual([...turned].sort())
+    expect(PIXEL_ICONS['expand-all']).not.toBe(PIXEL_ICONS['collapse-all'])
   })
 })
 

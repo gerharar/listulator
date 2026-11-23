@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { DUMP_PROPS, type DumpedElement, type PageDump } from '../../../e2e-tools/identity/dump.js'
-import { summarise, sweepDump } from '../../../e2e-tools/identity/sweep.js'
+import { LINE_ICON_UNTIL_57_10, summarise, sweepDump } from '../../../e2e-tools/identity/sweep.js'
 import { declarations, read, stylesheets } from './cssGuard.js'
 
 /**
@@ -96,6 +96,20 @@ describe('the sweep’s rules', () => {
       'the checker',
     ).toEqual([])
     expect(rules({ style: { 'background-color': 'rgba(0, 0, 0, 0)', color: 'rgb(255, 255, 255)' } }), 'paper').toEqual([])
+  })
+
+  it('names a line icon (D46, 57.9): an svg drawn as a stroke on no fill, as Quantum’s icons are; a filled pixel icon, a hidden one and the strokes inside an svg pass', () => {
+    const svg = '>div:0>button.q-icon-btn:0>svg.lucide.lucide-x:0'
+    const stroked = { fill: 'none', stroke: 'rgb(255, 255, 255)', 'stroke-width': '2px' }
+    expect(rules({ path: svg, rect: [0, 0, 16, 16], style: stroked }), 'a stroked svg').toEqual(['icon'])
+    expect(rules({ path: svg, rect: [0, 0, 16, 16], style: { fill: 'rgb(255, 255, 255)', stroke: 'none' } }), 'a pixel icon, filled').toEqual([])
+    expect(rules({ path: svg, rect: [0, 0, 16, 16], style: { ...stroked, display: 'none' } }), 'hidden by the theme').toEqual([])
+    expect(rules({ path: svg, rect: [0, 0, 16, 16], style: { ...stroked, visibility: 'hidden' } }), 'invisible').toEqual([])
+    expect(rules({ path: `${svg}>path:0`, rect: [0, 0, 16, 16], style: stroked }), 'the stroke of a shape inside the svg is the svg’s, named once').toEqual([])
+    expect(rules({ path: '>div:0>button:0>div.box:0', rect: [0, 0, 16, 16], style: stroked }), 'not an svg').toEqual([])
+    // The one named exception until 57.10: Settings' (?) buttons (`button.q-help`). Nothing else is excused; 57.10 deletes this line with LINE_ICON_UNTIL_57_10.
+    expect(rules({ path: '>div:0>button.q-help:0>svg.lucide:0', rect: [0, 0, 16, 16], style: stroked }), 'the (?) of Settings, until 57.10').toEqual([])
+    expect(LINE_ICON_UNTIL_57_10.source).toBe('button\\.q-help')
   })
 
   it('names text that is not 16, 24 or 32px, is bold, or has letter-spacing, together when it is all three', () => {

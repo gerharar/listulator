@@ -8,6 +8,7 @@ import { FacetDropdown } from '../../components/quantum/FacetToggle/FacetDropdow
 import { platformFullName } from '../../components/quantum/PlatformChip/PlatformChip.js'
 import { Tip } from '../../components/quantum/Tooltip/Tip.js'
 import { EndsButton, type EndsButtonProps } from './EndsButton.js'
+import { ThemedIcon } from '../../components/quantum/PixelIcon/PixelIcon.js'
 
 export interface FilterBarProps {
   text: string
@@ -121,7 +122,7 @@ export function FilterBar({ text, onText, onClear, facets, selection, onSelect, 
           describe
           onClick={hideDone.onToggle}
         >
-          <EyeOff width={13} height={13} strokeWidth={2} aria-hidden="true" />
+          <ThemedIcon name="hide-done" fallback={<EyeOff width={13} height={13} strokeWidth={2} aria-hidden="true" />} />
           {t.hideDone}
         </Tip>
       )}
@@ -135,9 +136,9 @@ export function FilterBar({ text, onText, onClear, facets, selection, onSelect, 
           onClick={fold.onToggle}
         >
           {fold.collapse ? (
-            <ChevronsDownUp width={13} height={13} strokeWidth={2} aria-hidden="true" />
+            <ThemedIcon name="collapse-all" fallback={<ChevronsDownUp width={13} height={13} strokeWidth={2} aria-hidden="true" />} />
           ) : (
-            <ChevronsUpDown width={13} height={13} strokeWidth={2} aria-hidden="true" />
+            <ThemedIcon name="expand-all" fallback={<ChevronsUpDown width={13} height={13} strokeWidth={2} aria-hidden="true" />} />
           )}
           {/* As wide as the longer word, so Collapse turning into Expand moves nothing beside it. */}
           <span className="q-steady" data-room={fold.collapse ? t.expandAll : t.collapseAll}>

@@ -33,6 +33,7 @@ import { useLiveRegion } from '../LiveRegion/LiveRegion.js'
 import { endForKey, endScrollTop } from '../../../screens/list/listEnds.js'
 import { PREVIEW_HEIGHTS, SPECTRUM_PREVIEW_HEIGHTS, previewUnits } from './previewRows.js'
 import { GroupTriangle } from '../GroupTriangle/GroupTriangle.js'
+import { ThemedIcon } from '../PixelIcon/PixelIcon.js'
 
 const CANONICAL_PREFIX = 'canonical:'
 
@@ -286,7 +287,7 @@ export function PreviewLayer({ source, mediaType, onBuilt, active = true }: Prev
               </Button>
             )}
             <IconButton label={text.closeLabel} onClick={() => layerStack.pop()}>
-              <X width={17} height={17} strokeWidth={1.9} aria-hidden="true" />
+              <ThemedIcon name="close" fallback={<X width={17} height={17} strokeWidth={1.9} aria-hidden="true" />} />
             </IconButton>
           </div>
         </div>

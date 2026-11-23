@@ -3,6 +3,7 @@ import { ArrowDown, ArrowUp } from 'lucide-react'
 import { copy } from '../../locale/index.js'
 import { Tip } from '../../components/quantum/Tooltip/Tip.js'
 import type { ListEnd } from './listEnds.js'
+import { ThemedIcon } from '../../components/quantum/PixelIcon/PixelIcon.js'
 
 export interface EndsButtonProps {
   atTop: boolean
@@ -23,10 +24,10 @@ export function EndsButton({ atTop, atBottom, inView, onGo }: EndsButtonProps) {
   return (
     <Tip as="div" className="q-ends" role="group" aria-label={text.group} text={inView ? text.inView : undefined} describe>
       <Tip as="button" type="button" className="q-ends-half" aria-label={text.toTop} text={inView ? undefined : text.topTip} disabled={inView || atTop} onClick={() => onGo('top')}>
-        <ArrowUp width={12} height={12} strokeWidth={2} aria-hidden="true" />
+        <ThemedIcon name="to-the-top" fallback={<ArrowUp width={12} height={12} strokeWidth={2} aria-hidden="true" />} />
       </Tip>
       <Tip as="button" type="button" className="q-ends-half" aria-label={text.toBottom} text={inView ? undefined : text.bottomTip} disabled={inView || atBottom} onClick={() => onGo('bottom')}>
-        <ArrowDown width={12} height={12} strokeWidth={2} aria-hidden="true" />
+        <ThemedIcon name="to-the-bottom" fallback={<ArrowDown width={12} height={12} strokeWidth={2} aria-hidden="true" />} />
       </Tip>
     </Tip>
   )

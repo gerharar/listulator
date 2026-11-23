@@ -18,6 +18,7 @@ import { tmdbCalloutSetting } from '../../../lib/onboardingConfig.js'
 import { keyNeeded, tmdbKeyNeeded } from './keyNeeded.js'
 import { BottomScene } from './BottomScene.js'
 import { useTheme } from '../DocumentTheme/ThemeContext.js'
+import { ThemedIcon } from '../PixelIcon/PixelIcon.js'
 
 export interface CategoryPickerProps {
   /** The live registry, lifted up from Home (task 10.10) — the tile grid is exactly this, A–Z by the name shown. */
@@ -100,7 +101,7 @@ export function CategoryPicker({ mediaTypes, first, tmdbCallout = tmdbCalloutSet
         </div>
         {!first && (
           <IconButton label={text.closeLabel} onClick={() => layerStack.pop()}>
-            <X width={17} height={17} strokeWidth={1.9} aria-hidden="true" />
+            <ThemedIcon name="close" fallback={<X width={17} height={17} strokeWidth={1.9} aria-hidden="true" />} />
           </IconButton>
         )}
       </div>

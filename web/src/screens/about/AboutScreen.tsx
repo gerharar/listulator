@@ -18,6 +18,7 @@ import { ABOUT_SOURCES, AUTHOR, LICENSING_URL, TMDB_NOTICE, type AboutSource } f
 import tmdbLogo from './tmdb-long.svg'
 import { Triangle } from '../../components/quantum/Triangle/Triangle.js'
 import { UpdateBlock, updateNoticeText, updateStatusText, updateVersionText } from './UpdateBlock.js'
+import { ThemedIcon } from '../../components/quantum/PixelIcon/PixelIcon.js'
 
 /**
  * The About layer (task 11.21; design handoff `docs/design/about-screen/`,
@@ -58,7 +59,7 @@ export function AboutScreen({ checker }: { checker?: AppUpdateChecker }) {
         <HeaderPlate side="right" seed={6} />
         <h1 className="q-about-title">{text.title}</h1>
         <IconButton label={text.closeLabel} onClick={() => layerStack.pop()}>
-          <X width={17} height={17} strokeWidth={1.9} aria-hidden="true" />
+          <ThemedIcon name="close" fallback={<X width={17} height={17} strokeWidth={1.9} aria-hidden="true" />} />
         </IconButton>
       </div>
 

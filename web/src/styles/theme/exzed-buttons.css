@@ -117,7 +117,8 @@ html.theme-exzed .q-icon-btn:disabled:not([aria-busy='true']) {
   background: transparent;
   color: var(--zx-ink2);
 }
-html.theme-exzed .q-icon-btn:disabled svg {
+html.theme-exzed .q-icon-btn:disabled svg,
+html.theme-exzed .q-ends-half:disabled svg {
   -webkit-mask: var(--zx-icon-dither);
   mask: var(--zx-icon-dither);
 }

@@ -22,6 +22,7 @@ import { Tip } from '../../components/quantum/Tooltip/Tip.js'
 import { useWindowFullscreen } from '../../lib/windowFullscreen.js'
 import { ExzedSkinSwatch, SkinSwatch } from '../../components/quantum/SkinSwatch/SkinSwatch.js'
 import { ToggleChip } from '../../components/quantum/ToggleChip/ToggleChip.js'
+import { ThemedIcon } from '../../components/quantum/PixelIcon/PixelIcon.js'
 
 export interface SettingsScreenProps {
   /** Quantum's skin, and eX-Zed's own (they are two preferences: switching theme restores each theme's last skin). */
@@ -85,7 +86,7 @@ export function SettingsScreen({ skin, onSkinChange, exzedSkin, onExzedSkinChang
         <HeaderPlate side="left" seed={5} />
         <h1 className="q-settings-title">{text.title}</h1>
         <IconButton label={text.closeLabel} onClick={() => layerStack.pop()}>
-          <X width={17} height={17} strokeWidth={1.9} aria-hidden="true" />
+          <ThemedIcon name="close" fallback={<X width={17} height={17} strokeWidth={1.9} aria-hidden="true" />} />
         </IconButton>
       </div>
 

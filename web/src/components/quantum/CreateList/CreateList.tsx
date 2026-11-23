@@ -11,6 +11,7 @@ import { ImportFileTab } from '../ImportFileTab/ImportFileTab.js'
 import { SearchTab } from '../SearchTab/SearchTab.js'
 import { useLayerStack } from '../layerStack/LayerStackContext.js'
 import { TabStrip, type TabStripTab } from '../TabStrip/TabStrip.js'
+import { ThemedIcon } from '../PixelIcon/PixelIcon.js'
 
 type TabKey = 'search' | 'hand' | 'import'
 
@@ -70,7 +71,7 @@ export function CreateList({ mediaTypes, mediaTypeKey, initialQuery, initialOpen
             {description && <p className="q-create-sub">{description}</p>}
           </div>
           <IconButton label={text.closeLabel} onClick={() => layerStack.pop()}>
-            <X width={17} height={17} strokeWidth={1.9} aria-hidden="true" />
+            <ThemedIcon name="close" fallback={<X width={17} height={17} strokeWidth={1.9} aria-hidden="true" />} />
           </IconButton>
         </div>
         <TabStrip tabs={tabs} active={active} onChange={(key) => setActive(key as TabKey)} />
