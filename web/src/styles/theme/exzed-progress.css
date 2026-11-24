@@ -1,0 +1,39 @@
+/*
+ * The progress bar under eX-Zed (57.11a; X-008, the ProgressBar card `.zx-bar`, D22). Quantum draws 20 cells of 7px (13px high; 14px and 19px in the list header) by cutting a gradient with a mask; here the bar is one box:
+ *  - a 2px frame of `chip-ink` round the inside, 160 by 16 (a Home row, a group head), 320 by 24 in the list header; the frame is the box's own border, so the identity tool and the sweep read a 2px line;
+ *  - 20 steps of 5%, each 8px (16px in the header); MeterBar sets `--f`, the whole steps lit (`floor(done / total x 20)`, at least 1 once started, at most 19 until done), so the fill is `--f` x the step;
+ *  - the fill is solid `prog`; the rest is the 2px dither: a 4px tile of `prog-dim` and `paper` (the card's repeating conic gradient, a checker of 2px cells that starts at the inside's corner). D22: Glemt's interim
+ *    1.4:1 between fill and rest is fixed by this texture, not by a colour;
+ *  - no mask, so no cell gaps; the gap to the percentage is the sentence's own 8px;
+ *  - a finished bar (`.full`) keeps Quantum's background (solid `ok` through the colour map) until 57.11b draws the four-band stripe over it; its percentage is `ink`, never gold (X-008: the stripe is the reward).
+ *  - the line is as tall as its bar now (28px in the header), so the dot between its parts, whose own line was 23.188px, would sit on a half pixel (254.406): it is on a 24px line, as the theme's text is.
+ * Quantum is as it was: every rule is under `html.theme-exzed`.
+ */
+html.theme-exzed .q-meter {
+  box-sizing: content-box;
+  width: 160px;
+  height: 16px;
+  border: 2px solid var(--zx-chip-ink);
+  -webkit-mask-image: none;
+  mask-image: none;
+}
+html.theme-exzed .q-meter.lg {
+  width: 320px;
+  height: 24px;
+}
+html.theme-exzed .q-meter:not(.full) {
+  background-image: linear-gradient(90deg, var(--zx-prog) 0 calc(var(--f) * 8px), transparent calc(var(--f) * 8px)), repeating-conic-gradient(var(--zx-prog-dim) 0 25%, var(--zx-paper) 0 50%);
+  background-size: 100% 100%, 4px 4px;
+  background-repeat: no-repeat, repeat;
+}
+html.theme-exzed .q-meter.lg:not(.full) {
+  background-image: linear-gradient(90deg, var(--zx-prog) 0 calc(var(--f) * 16px), transparent calc(var(--f) * 16px)), repeating-conic-gradient(var(--zx-prog-dim) 0 25%, var(--zx-paper) 0 50%);
+}
+
+html.theme-exzed .q-progress .q-sep {
+  line-height: 24px;
+}
+
+html.theme-exzed .q-pct.full {
+  color: var(--zx-ink);
+}

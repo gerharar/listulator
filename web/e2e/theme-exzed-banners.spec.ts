@@ -350,8 +350,8 @@ test.describe('the list header: where the banner sits', () => {
 
       expect(found.filter((entry) => entry.meets).length, 'the banner does meet something here (a test that meets nothing proves nothing)').toBeGreaterThan(0)
       for (const entry of found) expect(entry.above, `${entry.name} is above the banner`).toBe(true)
-      // The two buttons are in the banner's corner at every width, and so is the long title's second line.
-      expect(found.filter((entry) => entry.meets && entry.name.startsWith('.q-list-actions button')).length).toBe(2)
+      // The buttons hang from the header's top and the banner from its bottom, so they meet it only in a header shorter than the buttons' reach plus the banner's height (24 + 40 + 162px of YouTube's at 1080): with this title that
+      // was true by 3px until the progress line took the board's 28px bar (57.11a), which makes the header 5px taller. Wherever they do meet it they are above it, which the loop above says.
     })
   }
 

@@ -79,6 +79,8 @@ import './styles/theme/exzed-lines.css'
 import './styles/theme/exzed-platform-panel.css'
 // The (?) that explains the app, drawn (57.10, rule 6).
 import './styles/theme/exzed-help.css'
+// The progress bar: a 2px frame, 8px steps, a 2px dither (57.11a, X-008, D22).
+import './styles/theme/exzed-progress.css'
 import { App } from './App.js'
 import { startLocalRuntimeFill, startLocalSourceCopySchedule } from './lib/api.local.js'
 import { installContextMenuGuard } from './lib/contextMenu.js'
