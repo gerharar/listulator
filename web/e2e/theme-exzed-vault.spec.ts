@@ -87,7 +87,7 @@ for (const skin of SKINS) {
     await page.mouse.move(0, 0)
 
     // The pane: the caption in lab, the head row ruled in frame, 32px sort buttons.
-    expect(await style(page.locator('.q-vb-caption'), ['color', 'font-size', 'font-weight'])).toEqual({ color: ink2, 'font-size': '16px', 'font-weight': '400' })
+    expect(await style(page.locator('.q-vb-caption'), ['color', 'font-size', 'font-weight'])).toEqual({ color: lab, 'font-size': '16px', 'font-weight': '400' })
     const head = page.locator('.q-vb-headrow')
     expect(await style(head, ['padding-left', 'padding-right', 'column-gap', 'border-bottom-width', 'border-bottom-color', 'grid-template-columns'])).toMatchObject({
       'padding-left': '8px',

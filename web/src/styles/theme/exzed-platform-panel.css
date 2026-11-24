@@ -8,7 +8,8 @@
  *    the DOM is kept for the DOM and hidden (font-size 0), never drawn;
  *  - **a picked platform is the ToggleChip card's removable chip:** 32px high, a 2px `frame` box with no fill, the name 16px `ink` 12px in, then the `close` pixel icon (16px, `ctl`) in a 24x24 block
  *    8px after the name and 4px from the right edge. The block is the icon's own box (4px of padding), so the DOM is as it was: hover or focus lights only the block (`acc`, `acc-ink`), the chip itself never;
- *  - **Reset to source** is a 40px box in the chips' look (2px `frame`, `ctl`, the highlight on hover): the board draws none, reported to design.
+ *  - **Reset to source** is a bracketed button (design's D62: a secondary action inside a panel, not a choice): `[Reset]` (the app's label; the brackets are CSS content with an empty alternative text,
+ *    as exzed-buttons.css draws them), `ctl`, 40px, no box at rest, the `acc` block on hover.
  */
 html.theme-exzed .q-platpanel-foot,
 html.theme-exzed .q-platpanel-sub,
@@ -22,21 +23,32 @@ html.theme-exzed .q-platpanel-source span {
   color: var(--zx-ink2);
 }
 html.theme-exzed .q-platpanel-source button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
   box-sizing: border-box;
   height: 40px;
-  padding: 0 12px;
-  border: 2px solid var(--zx-frame);
+  padding: 0 16px;
+  border: 2px solid transparent;
   background: transparent;
   color: var(--zx-ctl);
   font-size: 16px;
   font-weight: 400;
-  line-height: 24px;
+  line-height: 16px;
   letter-spacing: 0;
 }
-html.theme-exzed .q-platpanel-source button:hover {
-  border-color: var(--zx-dim-bg);
-  background: var(--zx-dim-bg);
-  color: var(--zx-dim-ink);
+html.theme-exzed .q-platpanel-source button::before {
+  content: '[';
+  content: '[' / '';
+}
+html.theme-exzed .q-platpanel-source button::after {
+  content: ']';
+  content: ']' / '';
+}
+html.theme-exzed .q-platpanel-source button:where(:not(:disabled)):hover {
+  background: var(--zx-hl-bg);
+  border-color: var(--zx-hl-bg);
+  color: var(--zx-hl-ink);
 }
 
 html.theme-exzed .q-platpanel-search {

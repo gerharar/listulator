@@ -62,7 +62,7 @@ html.theme-exzed .q-vb-caption {
   line-height: 16px;
   letter-spacing: 0;
   text-transform: uppercase;
-  color: var(--zx-ink2);
+  color: var(--zx-lab);
 }
 html.theme-exzed .q-vb-grid {
   grid-template-columns: minmax(0, 1fr) 128px 80px 80px;

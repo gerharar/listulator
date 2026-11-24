@@ -3,10 +3,13 @@
  * Drawn on Quantum's own classes, so no call site changes; Quantum is as it was: every rule is under `html.theme-exzed`.
  *  - the filter bar's line is 2px `frame`: its row is 12 + 40 + 12 + 2 = 66px (it was 65 with the 1px line);
  *  - Hide Done and Collapse / Expand are ghost buttons (the Button card's `.zx-btn`, toolbar actions on the window itself): no box, a 2px transparent border at rest so the size never changes
- *    (40px, the toolbar's row). Hover is still the owner's 51.13 look (the `acc-dim` block, pressed = `acc`, exzed-owner-look.css) and focus is the foundation's ring, not D61's "highlight block on
- *    hover and focus": a deviation reported to design (the owner chose the dim hover at his first look);
- *  - To Top / To Bottom are two 40px icon buttons after a 2px `frame` divider, no box round them and no line between them (the split box of H-019 is retired here, the same two buttons, order, names,
- *    tooltips and disabled rules: DESIGN.md section 4); a disabled one is dithered (exzed-buttons.css). The board gives no measure for the divider: it is 40px high (the toolbar's row), 8px before the buttons;
+ *    (40px, the toolbar's row; 8px at the sides and 8px between icon and word, D62). They are toggles, as chips are: hover is the `acc-dim` block, pressed (Hide Done on) the `acc` block, focus the
+ *    foundation's ring (exzed-owner-look.css; design's D62 agrees with the owner's 51.13 look);
+ *  - the toolbar's dividers are the board's `.sep` (D62): 2px wide, 16px high, `frame`, centred on the 40px row, 8px either side, one before each group of the right-hand cluster (Hide Done,
+ *    Collapse / Expand, To Top / To Bottom). They are the `::before` of the button or group they stand before, so the DOM is Quantum's; the board draws two, D62's text three (one after the
+ *    filter's group): the third is before Hide Done, after the count (reported to design);
+ *  - To Top / To Bottom are two 40px icon buttons, no box round them and no line between them (the split box of H-019 is retired here, the same two buttons, order, names,
+ *    tooltips and disabled rules: DESIGN.md section 4); a disabled one is dithered (exzed-buttons.css);
  *  - the tooltip is a 2px `frame-hi` box on `paper`, with no ring, tail or shadow (`--e-tooltip` is none): the 4px / 8px padding keeps its outside size;
  *  - About's TMDB line is the link underline's dotted rule: 2px dots 2px apart in `frame`, drawn as a background on the top edge, not a border.
  */
@@ -16,21 +19,41 @@ html.theme-exzed .q-filterbar {
 
 html.theme-exzed .q-hide-done,
 html.theme-exzed .q-fold {
+  position: relative;
   box-sizing: border-box;
   height: 40px;
   gap: 8px;
-  padding: 0 12px;
+  margin-left: 8px;
+  padding: 0 8px;
   border: 2px solid transparent;
   background: transparent;
 }
 
 html.theme-exzed .q-ends {
+  position: relative;
   flex-direction: row;
   width: auto;
   height: 40px;
-  padding-left: 8px;
+  margin-left: 8px;
   border: 0;
-  border-left: 2px solid var(--zx-frame);
+}
+
+/* The divider before a group: 8px of the flex gap's 18 (the bar's 10 and the 8 above) each side of its 2px. A button's box starts 2px inside its border, the group's does not. */
+html.theme-exzed .q-hide-done::before,
+html.theme-exzed .q-fold::before,
+html.theme-exzed .q-ends::before {
+  content: '';
+  position: absolute;
+  left: -10px;
+  top: 12px;
+  width: 2px;
+  height: 16px;
+  background: var(--zx-frame);
+}
+html.theme-exzed .q-hide-done::before,
+html.theme-exzed .q-fold::before {
+  left: -8px;
+  top: 10px;
 }
 html.theme-exzed .q-ends-half,
 html.theme-exzed .q-ends-half + .q-ends-half {

@@ -6,12 +6,12 @@ import { useHomeFixture } from './fixtures.js'
  * No 1px line in eX-Zed, and the Platform panel drawn (57.9c and 57.9d, design's D59, D60 and D61; X-004, X-008): every line the theme draws is a 2px cell, read here from the computed
  * styles on the real screens, in both engines.
  *  - the filter bar's line is 2px `frame` and its row is 66px (12 + 40 + 12 + 2); Hide Done and Collapse / Expand are ghost buttons (2px transparent border, no fill, 40px); To Top / To Bottom are two
- *    40px icon buttons after a 2px `frame` divider, no box and no line between them;
+ *    40px icon buttons, no box and no line between them; 2px by 16px `frame` dividers (the `::before` of the button or group) stand before Hide Done, Collapse and the pair, 8px either side (D62);
  *  - the tooltip is 2px `frame-hi` on `paper`, no ring, no shadow; About's TMDB line is the link underline's dotted rule (a 2px / 2px gradient in `frame`), not a border;
  *  - the Platform panel: its search is a Field (40px, 2px `frame`, 16px), its row, section and list-top lines are 2px `frame`, its check boxes the done box (16px, 2px `frame`, the tick a drawn mask, no glyph),
  *    all its text 16px at weight 400, the picked chip the ToggleChip card's removable chip (32px, 2px `frame`, no fill, the name 12px in, the `close` icon in a 24px block 4px from the right edge and 8px
  *    after the name, hover lighting only that block);
- *  - the Vault's caption is 16px `ink2` at weight 400.
+ *  - the Vault's caption is the kicker: 16px `lab` capitals at weight 400 (D62 put it back to `lab`).
  */
 const SKIN = 'exzed-1d'
 
@@ -39,6 +39,13 @@ const box = (locator: Locator) =>
     return { left, top, width, height, right, bottom }
   })
 const TRANSPARENT = 'rgba(0, 0, 0, 0)'
+/** A pseudo-element's own box, as the computed style gives it (it has no rectangle to measure). */
+const pseudo = (locator: Locator, which: '::before' | '::after') =>
+  locator.evaluate((element, w) => {
+    const s = getComputedStyle(element, w)
+
+    return { width: s.width, height: s.height, background: s.backgroundColor, left: s.left, top: s.top }
+  }, which)
 
 async function makeList(page: Page, category: string, label: string, count: number) {
   const rows = Array.from({ length: count }, (_, n) => `  - { title: "Thing ${n + 1}", minutes: 30, group: "Part ${n < count / 2 ? 1 : 2}" }`)
@@ -80,6 +87,8 @@ test('the list toolbar draws no 1px line: the filter bar is 2px frame and 66px, 
       })
       const rest = await box(button)
       expect(rest.height, `${selector} is the toolbar’s 40px`).toBe(40)
+      expect(await style(button, ['padding-left', 'padding-right', 'column-gap']), `${selector}: 8px at the sides and 8px between icon and word (D62)`).toEqual({ 'padding-left': '8px', 'padding-right': '8px', 'column-gap': '8px' })
+      expect(await pseudo(button, '::before'), `${selector}: the divider before it, 2px by 16px in frame, centred on the 40px row, 8px from the button before`).toEqual({ width: '2px', height: '16px', background: frame, left: '-8px', top: '10px' })
       await button.hover()
       expect(await box(button), `${selector}: the size never changes on hover`).toEqual(rest)
       await page.mouse.move(0, 0)
@@ -87,14 +96,17 @@ test('the list toolbar draws no 1px line: the filter bar is 2px frame and 66px, 
 
     const ends = page.locator('.q-ends')
     await ends.waitFor()
-    expect(await style(ends, ['border-top-width', 'border-right-width', 'border-bottom-width', 'border-left-width', 'border-left-style', 'border-left-color']), 'the pair has no box: only the divider before it').toEqual({
+    expect(await style(ends, ['border-top-width', 'border-right-width', 'border-bottom-width', 'border-left-width']), 'the pair has no box').toEqual({
       'border-top-width': '0px',
       'border-right-width': '0px',
       'border-bottom-width': '0px',
-      'border-left-width': '2px',
-      'border-left-style': 'solid',
-      'border-left-color': frame,
+      'border-left-width': '0px',
     })
+    expect(await pseudo(ends, '::before'), 'and the divider before it').toEqual({ width: '2px', height: '16px', background: frame, left: '-10px', top: '12px' })
+    const [noteBox, hideBox, foldBox0, endsBox0] = await Promise.all([box(page.locator('.q-filter-note')), box(page.locator('.q-hide-done')), box(page.locator('.q-fold')), box(ends)])
+    expect(foldBox0.left - hideBox.right, 'Hide Done and Collapse are 18px apart: 8, the divider’s 2, and 8').toBe(18)
+    expect(endsBox0.left - foldBox0.right, 'and Collapse and the pair').toBe(18)
+    expect(hideBox.left - noteBox.right, 'and the count and Hide Done').toBe(18)
     const [top, bottom, fold] = await Promise.all([box(page.locator('.q-ends-half').first()), box(page.locator('.q-ends-half').last()), box(page.locator('.q-fold'))])
     expect([top.width, top.height, bottom.width, bottom.height], 'two 40 x 40 buttons').toEqual([40, 40, 40, 40])
     expect(bottom.left, 'side by side, no line between them').toBe(top.right)
@@ -245,7 +257,7 @@ for (const skin of ['exzed-1d', 'exzed-1l'] as const) {
   })
 }
 
-test('the Vault’s caption is 16px ink2 at weight 400', async ({ page }) => {
+test('the Vault’s caption is the kicker: 16px lab capitals at weight 400', async ({ page }) => {
   await boot(page)
   await useHomeFixture(page)
   const entry = (n: number) => ({ externalRef: `canonical:lists/movie/${n}.yaml`, title: `Movie list ${n}`, category: 'movie', itemCount: 10 + n, totalMinutes: 600 + n * 60, status: 'ongoing', tracked: false })
@@ -258,7 +270,7 @@ test('the Vault’s caption is 16px ink2 at weight 400', async ({ page }) => {
   await page.locator('.q-vb-cat', { hasText: 'Movies' }).click()
   const caption = page.locator('.q-vb-caption')
   await caption.waitFor()
-  const [ink2] = await colours(page, ['--zx-ink2'])
+  const [lab] = await colours(page, ['--zx-lab'])
 
-  expect(await style(caption, ['color', 'font-size', 'font-weight', 'letter-spacing'])).toMatchObject({ color: ink2, 'font-size': '16px', 'font-weight': '400' })
+  expect(await style(caption, ['color', 'font-size', 'font-weight', 'letter-spacing', 'text-transform'])).toMatchObject({ color: lab, 'font-size': '16px', 'font-weight': '400', 'text-transform': 'uppercase' })
 })

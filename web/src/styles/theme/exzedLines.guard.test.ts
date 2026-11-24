@@ -25,9 +25,13 @@ describe('the Platform panel’s lines that no captured state reaches (57.9d: th
     expect(value('.q-platpanel-source span', 'color')).toBe('var(--zx-ink2)')
   })
 
-  it('draws Reset to source as a 40px box with a 2px frame border, 16px at weight 400 (Quantum’s was 1px, 12.5px at 600)', () => {
-    expect(value('.q-platpanel-source button', 'border')).toBe('2px solid var(--zx-frame)')
+  it('draws Reset to source as a bracketed button (D62): 40px, no box at rest, ctl, 16px at weight 400, the acc block on hover; the brackets have an empty alternative text', () => {
+    expect(value('.q-platpanel-source button', 'border')).toBe('2px solid transparent')
+    expect(value('.q-platpanel-source button', 'color')).toBe('var(--zx-ctl)')
     expect(value('.q-platpanel-source button', 'height')).toBe('40px')
+    expect(panel('.q-platpanel-source button::before').map((d) => d.value)).toEqual(["'['", "'[' / ''"])
+    expect(panel('.q-platpanel-source button::after').map((d) => d.value)).toEqual(["']'", "']' / ''"])
+    expect(value('.q-platpanel-source button:where(:not(:disabled)):hover', 'background')).toBe('var(--zx-hl-bg)')
     expect(value('.q-platpanel-source button', 'font-size')).toBe('16px')
     expect(value('.q-platpanel-source button', 'font-weight')).toBe('400')
   })
