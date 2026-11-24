@@ -53,8 +53,8 @@ describe('the art’s runtime cache (vite.config.ts)', () => {
   })
 
   it('matches a built art picture and nothing else the app fetches: not the code, the icons, the font, the manifest or the API', () => {
-    for (const hit of ['http://127.0.0.1:4173/assets/movies-AbC_12-3.png', 'https://listulator.example/assets/side-stripes--it6Zmfo.png']) expect(art!.test(hit), hit).toBe(true)
-    for (const miss of ['/assets/index-CGLahyjB.js', '/assets/index-Cyr7wBDe.css', '/assets/ZXSpectrum-x1.ttf', '/icon-192.png', '/apple-touch-icon.png', '/api/lists/1.png', '/assets/movies.png.map', '/manifest.webmanifest']) {
+    for (const hit of ['http://127.0.0.1:4173/assets/movies-AbC_12-3.png', 'https://listulator.example/assets/side-stripes--it6Zmfo.png', 'http://127.0.0.1:4173/assets/finished-bar-160x16-Zx9_aB1c.svg']) expect(art!.test(hit), hit).toBe(true)
+    for (const miss of ['/assets/index-CGLahyjB.js', '/assets/index-Cyr7wBDe.css', '/assets/ZXSpectrum-x1.ttf', '/icon-192.png', '/apple-touch-icon.png', '/api/lists/1.png', '/assets/movies.png.map', '/assets/finished-bar.svg.map', '/manifest.webmanifest']) {
       expect(art!.test(`http://127.0.0.1:4173${miss}`), miss).toBe(false)
     }
   })
@@ -64,6 +64,7 @@ describe('the art’s runtime cache (vite.config.ts)', () => {
 
     expect(precached).toBeDefined()
     expect(precached).not.toContain('png')
+    expect(precached).not.toContain('svg')
   })
 })
 
@@ -74,7 +75,7 @@ describe('the built service worker holds the art rule and no picture (dist/sw.js
     const source = readFileSync(worker, 'utf8')
     const manifest = [...source.matchAll(/\{url:"([^"]+)"/g)].map((match) => match[1]!)
 
-    expect(manifest.filter((url) => /\.png$/.test(url) && url.startsWith('assets/'))).toEqual([])
+    expect(manifest.filter((url) => /\.(png|svg)$/.test(url) && url.startsWith('assets/'))).toEqual([])
     expect(source).toContain('listulator-art')
     expect(source).toMatch(/CacheFirst/)
   })

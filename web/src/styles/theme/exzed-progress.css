@@ -5,7 +5,10 @@
  *  - the fill is solid `prog`; the rest is the 2px dither: a 4px tile of `prog-dim` and `paper` (the card's repeating conic gradient, a checker of 2px cells that starts at the inside's corner). D22: Glemt's interim
  *    1.4:1 between fill and rest is fixed by this texture, not by a colour;
  *  - no mask, so no cell gaps; the gap to the percentage is the sentence's own 8px;
- *  - a finished bar (`.full`) keeps Quantum's background (solid `ok` through the colour map) until 57.11b draws the four-band stripe over it; its percentage is `ink`, never gold (X-008: the stripe is the reward).
+ *  - a finished bar (`.full`) is the four-band stripe (57.11b; X-008, the Progress assets, `.zx-bar.done`): one run of the Spectrum's red, yellow, green and cyan, slanted 45 degrees on the 2px grid, drawn by the two
+ *    SVG files design drew (160 by 16; 320 by 24 in the header), laid on the inside once at their own size; its percentage is `ink`, never gold (X-008: the stripe is the reward). Gold does not exist here.
+ *  - a bar that BECOMES finished (`MeterBar` marks it `data-just-finished`) shows one FLASH step first, 320ms of inverse video (the toast's step: `acc` over the whole inside), then the stripe; none under reduced
+ *    motion, and none for a bar that is drawn finished.
  *  - the line is as tall as its bar now (28px in the header), so the dot between its parts, whose own line was 23.188px, would sit on a half pixel (254.406): it is on a 24px line, as the theme's text is.
  * Quantum is as it was: every rule is under `html.theme-exzed`.
  */
@@ -37,3 +40,29 @@ html.theme-exzed .q-progress .q-sep {
 html.theme-exzed .q-pct.full {
   color: var(--zx-ink);
 }
+
+html.theme-exzed .q-meter.full {
+  background-color: transparent;
+  background-image: url('./art/finished-bar-160x16.svg');
+  background-size: 160px 16px;
+  background-position: 0 0;
+  background-repeat: no-repeat;
+}
+html.theme-exzed .q-meter.lg.full {
+  background-image: url('./art/finished-bar-320x24.svg');
+  background-size: 320px 24px;
+}
+
+html.theme-exzed .q-meter.full[data-just-finished] {
+  animation: zx-bar-flash 320ms steps(1) 1;
+}
+html.theme-exzed[data-reduced] .q-meter.full[data-just-finished] {
+  animation: none;
+}
+@keyframes zx-bar-flash {
+  0% {
+    background-image: none;
+    background-color: var(--zx-acc);
+  }
+}
+

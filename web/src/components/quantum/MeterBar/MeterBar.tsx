@@ -1,5 +1,5 @@
 import './MeterBar.css'
-import type { CSSProperties } from 'react'
+import { useState, type CSSProperties } from 'react'
 import { copy } from '../../../locale/index.js'
 import { useDevicePixelRatio } from '../../../lib/useDevicePixelRatio.js'
 
@@ -57,6 +57,22 @@ export function meterCellSizes(nominalCell: number, scale: number): { cell: numb
   return { cell: (pitchDevice - gapDevice) / scale, gap: gapDevice / scale }
 }
 
+/**
+ * True from the render in which a bar BECOMES finished until it is no longer finished; false for a bar that is drawn already finished (opening a list, switching theme) and
+ * for one that never finishes. eX-Zed draws its one FLASH step on the mark (57.11b); Quantum draws nothing for it. State derived while rendering, so no effect runs late
+ * and a re-render inside the step cannot cut it short.
+ */
+function useJustFinished(full: boolean): boolean {
+  const [was, setWas] = useState(full)
+  const [just, setJust] = useState(false)
+  if (full !== was) {
+    setWas(full)
+    setJust(full)
+  }
+
+  return just
+}
+
 export interface MeterBarProps {
   done: number
   total: number
@@ -72,12 +88,14 @@ export interface MeterBarProps {
 export function MeterBar({ done, total, big = false }: MeterBarProps) {
   const { n, f, full } = meterState(done, total)
   const { cell, gap } = meterCellSizes(big ? 14 : 7, useDevicePixelRatio())
+  const justFinished = useJustFinished(full)
   const className = ['q-meter', big && 'lg', full && 'full'].filter(Boolean).join(' ')
 
   return (
     <span
       className={className}
       style={{ '--n': n, '--f': f, '--w': `${cell}px`, '--pitch': `${cell + gap}px` } as CSSProperties}
+      data-just-finished={justFinished ? '' : undefined}
       role="img"
       aria-label={copy.quantum.meter.label(done, total)}
     />

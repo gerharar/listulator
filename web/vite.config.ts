@@ -91,14 +91,14 @@ export default defineConfig({
         // users download it with the install too; the alternative, a runtime cache, would leave a first offline start in eX-Zed without it.
         globPatterns: ['**/*.{js,css,html,woff2,ttf}'],
         /**
-         * eX-Zed's art (X-006, 50.11; the owner: "Runtime cache is OK"): about 530 KB of pictures, **not** in the precache, which would make every Quantum user download them for a
+         * eX-Zed's art (X-006, 50.11; the owner: "Runtime cache is OK"): about 530 KB of pictures (and the finished bar's two SVGs, 57.11b), **not** in the precache, which would make every Quantum user download them for a
          * theme they never pick. They are cached the first time they are drawn (a skin's the first time it is used; the list header, the picker and the vault door likewise) and served
          * from the cache after that. The art is decoration: the layout and the text work without it, so a first offline start in a skin never used online draws without its art, and
          * that is accepted. The built app's pictures are all under `/assets/` (its icons are in the root); the build never inlines them into the stylesheet (`assetsInlineLimit`).
          */
         runtimeCaching: [
           {
-            urlPattern: /\/assets\/[^/?#]+\.png$/,
+            urlPattern: /\/assets\/[^/?#]+\.(?:png|svg)$/,
             handler: 'CacheFirst',
             options: {
               cacheName: 'listulator-art',
