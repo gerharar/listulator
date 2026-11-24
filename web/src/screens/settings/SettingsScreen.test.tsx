@@ -561,7 +561,7 @@ describe('SettingsScreen: Show time left in My Lists (H-024)', () => {
   })
 })
 
-/** H-031: the other Screen boxes have nothing to explain, so no (?); the one on Spectrum border (eX-Zed, THEME) is not in this entry. */
+/** H-031: the other Screen boxes have nothing to explain, so no (?); the one on Spectrum border (eX-Zed, THEME) has its own (?) since 57.10 and is under its own describe below. */
 describe('SettingsScreen: which options have a (?) (H-031)', () => {
   it('only Enhance group arrows and Show time left in My Lists do, and Tab reaches each right after its box', () => {
     renderSettings()
@@ -590,7 +590,7 @@ describe('SettingsScreen: Show Spectrum border (X-006, eX-Zed only)', () => {
     expect(boxes[0]).toBe(label)
     expect(boxes.at(-1)).toBe(en.quantum.settings.showTimeLeft)
     expect(box().closest('section')?.querySelector('.q-kicker')?.textContent).toBe(en.quantum.settings.theme)
-    expect(box().closest('label')?.previousElementSibling?.classList.contains('q-settings-row'), 'directly after the chips').toBe(true)
+    expect(box().closest('.q-settings-line')?.previousElementSibling?.classList.contains('q-settings-row'), 'directly after the chips: its line, with its (?)').toBe(true)
     expect(label).toBe('Show Spectrum border')
   })
 
@@ -629,10 +629,17 @@ describe('SettingsScreen: Show Spectrum border (X-006, eX-Zed only)', () => {
     expect(document.documentElement.getAttribute('data-border')).toBe('off')
   })
 
-  it('says what it does on hover (the wording is a proposal: design’s), and as the box’s description for a screen reader', async () => {
+  it('says what it does in a (?) after its label (57.10, rule 6, the owner 2026-11-20: the label’s hover tooltip is gone), and as the box’s description for a screen reader', async () => {
     renderSettings({ theme: 'exzed' })
 
-    expect(await hoverTooltip(box().closest('label')!)).toBe(en.quantum.settings.spectrumBorderTip)
+    const help = screen.getByRole('button', { name: `About ${label}` })
+    expect(box().closest('label')!.nextElementSibling, 'the (?) follows the label in its line').toBe(help)
+    expect(box().closest('.q-settings-line')!.querySelectorAll('label')).toHaveLength(1)
+    expect(help.getAttribute('aria-haspopup')).toBe('dialog')
+    act(() => help.click())
+    const dialog = screen.getByRole('dialog')
+    expect(dialog.querySelector('strong')?.textContent).toBe(label)
+    expect(dialog.textContent).toContain(en.quantum.settings.spectrumBorderTip)
     expect(box().getAttribute('aria-description')).toBe(en.quantum.settings.spectrumBorderTip)
     expect(en.quantum.settings.spectrumBorderTip).toBe('Above 2560px the app stops growing; the space around it shows dim tape-loading stripes. Off: plain black.')
   })
@@ -642,7 +649,12 @@ describe('SettingsScreen: Show Spectrum border (X-006, eX-Zed only)', () => {
     expect(box().disabled).toBe(true)
     expect(box().checked, 'the stored value is kept').toBe(false)
     expect(box().getAttribute('aria-description')).toBe(en.quantum.settings.spectrumBorderLotusTip)
-    expect(await hoverTooltip(box().closest('label')!)).toBe(en.quantum.settings.spectrumBorderLotusTip)
+    // Its (?) is not disabled (design's answer 13: "its (?) still works") and says the Lotus words.
+    const help = screen.getByRole('button', { name: `About ${label}` }) as HTMLButtonElement
+    expect(help.disabled).toBe(false)
+    act(() => help.click())
+    expect(screen.getByRole('dialog').textContent).toContain(en.quantum.settings.spectrumBorderLotusTip)
+    act(() => help.click())
     expect(en.quantum.settings.spectrumBorderLotusTip).toBe("Lotus has no border: its paper runs to the screen's edges.")
     unmount()
 
@@ -661,15 +673,16 @@ describe('SettingsScreen: Show Spectrum border (X-006, eX-Zed only)', () => {
   })
 
   it.each([
-    ['Русский', ru.quantum.settings.spectrumBorder, ru.quantum.settings.spectrumBorderTip],
-    ['Deutsch', de.quantum.settings.spectrumBorder, de.quantum.settings.spectrumBorderTip],
-  ])('is named and explained in %s in its own words (a draft for the owner to read; no « » in Russian)', async (language, translatedLabel, translatedTip) => {
+    ['Русский', ru.quantum.settings.spectrumBorder, ru.quantum.settings.spectrumBorderTip, ru.quantum.settings.aboutLabel],
+    ['Deutsch', de.quantum.settings.spectrumBorder, de.quantum.settings.spectrumBorderTip, de.quantum.settings.aboutLabel],
+  ])('is named and explained in %s in its own words, behind its (?) (a draft for the owner to read; no « » in Russian)', (language, translatedLabel, translatedTip, about) => {
     renderSettings({ theme: 'exzed' })
     act(() => screen.getByRole('button', { name: language }).click())
 
     expect(translatedLabel).not.toBe(label)
     expect(translatedTip).not.toBe(en.quantum.settings.spectrumBorderTip)
     expect(`${translatedLabel}${translatedTip}`).not.toMatch(/[«»]/)
-    expect(await hoverTooltip(screen.getByRole('checkbox', { name: translatedLabel }).closest('label')!)).toBe(translatedTip)
+    act(() => screen.getByRole('button', { name: about(translatedLabel) }).click())
+    expect(screen.getByRole('dialog').textContent).toContain(translatedTip)
   })
 })

@@ -32,8 +32,6 @@ const COLOURS = ['color', 'background-color', 'border-top-color', 'border-right-
 const SIZES = new Set(['16px', '24px', '32px'])
 const RING = /^rgb\(\d+, \d+, \d+\) 0px 0px 0px \d+px$/
 const INK2_OF_THE_DARK_SKINS = 'rgb(144, 144, 144)'
-/** The one place a line icon is still drawn (57.9): Settings' (?) buttons, whose pixel `help` icon and behaviour are 57.10's (rule 6). 57.10 deletes this and its guard. */
-export const LINE_ICON_UNTIL_57_10 = /button\.q-help/
 
 /** The tag of a path's segment: `button.q-chip:2` is `button`. */
 const tagOf = (segment: string): string => /^([a-z][a-z0-9-]*)/.exec(segment)?.[1] ?? ''
@@ -85,7 +83,7 @@ export function sweepDump(dump: PageDump): Violation[] {
 
     // A line icon: the svg's own drawing is a stroke on no fill (D46, 57.9). Its shapes inherit that and are not named again.
     if (get('fill') === 'none' && get('stroke') !== 'none' && !/::\w+$/.test(element.path) && tagOf(element.path.split('>').filter((segment) => segment !== '').pop()!) === 'svg' && !notDrawn(get, element.rect)) {
-      if (!LINE_ICON_UNTIL_57_10.test(element.path)) add('icon', `stroke ${get('stroke')} ${get('stroke-width')}`)
+      add('icon', `stroke ${get('stroke')} ${get('stroke-width')}`)
     }
 
     // A line: a border drawn thinner than the theme's 2px cell (57.9c).

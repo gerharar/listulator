@@ -3,11 +3,13 @@ import { useTheme } from '../DocumentTheme/ThemeContext.js'
 
 /**
  * eX-Zed's pixel icons (the design system's `project/assets/Icons`): 8x8 cells drawn at 2px (16px), one ink (`currentColor`), sharp edges. The paths are design's own, one per icon the app draws with
- * Quantum's line icons in a place the owner found at his first look (51.13): the header's Settings, About and Quit, the refresh that checks for updates, and the list header's more (design draws it as three squares in a row, where Quantum's was vertical) and close; then (57.9) the list toolbar's Hide Done, Collapse and Expand and To Top and To Bottom.
+ * Quantum's line icons in a place the owner found at his first look (51.13): the header's Settings, About and Quit, the refresh that checks for updates, and the list header's more (design draws it as three squares in a row, where Quantum's was vertical) and close; then (57.9) the list toolbar's Hide Done, Collapse and Expand and To Top and To Bottom; then (57.10) the (?) that explains the app.
  */
 export const PIXEL_ICONS = {
   settings: 'M3 0h2v1H3zM1 1h6v1H1zM0 3h1v2H0zM7 3h1v2H7zM1 2h2v4H1zM5 2h2v4H5zM3 2h2v1H3zM3 5h2v1H3zM1 6h6v1H1zM3 7h2v1H3z',
-  about: 'M2 0h4v1H2zM1 1h1v1H1zM6 1h1v1H6zM0 2h1v4H0zM7 2h1v4H7zM1 6h1v1H1zM6 6h1v1H6zM2 7h4v1H2zM3 2h2v1H3zM3 4h2v2H3z',
+  // Rule 6 (57.10): the (?), design's `help.svg`, a solid cell with the ? cut out so it reads apart from ⓘ's ring. The header's About, a setting's explanation and an API key's mark are this one. The design system serves no file for it
+  // (the Icons group holds uploads); the path is read from the eX-Zed canvas's Settings and About boards, which draw it inline and agree.
+  help: 'M2 0h4v1H2zM1 1h2v1H1zM5 1h2v1H5zM0 2h2v1H0zM3 2h2v1H3zM6 2h2v1H6zM0 3h4v1H0zM5 3h3v1H5zM0 4h3v1H0zM4 4h4v1H4zM0 5h8v1H0zM1 6h2v1H1zM5 6h2v1H5zM2 7h4v1H2z',
   quit: 'M3 0h2v4H3zM1 1h1v1H1zM6 1h1v1H6zM0 2h1v4H0zM7 2h1v4H7zM1 6h1v1H1zM6 6h1v1H6zM2 7h4v1H2z',
   refresh: 'M2 0h4v1H2zM1 1h1v1H1zM0 2h1v4H0zM7 0h1v3H7zM5 2h2v1H5zM1 6h1v1H1zM7 4h1v2H7zM6 6h1v1H6zM2 7h4v1H2z',
   more: 'M0 3h2v2H0zM3 3h2v2H3zM6 3h2v2H6z',

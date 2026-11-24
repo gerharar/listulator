@@ -11,10 +11,13 @@ import { PIXEL_ICONS, PixelIcon, ThemedIcon } from './PixelIcon.js'
 
 afterEach(cleanup)
 
-/** The paths are design's own (design system `project/assets/Icons`: settings, info, quit, check-for-updates), 8x8 cells at 2px. */
+/**
+ * The paths are design's own (design system `project/assets/Icons`: settings, help, quit, check-for-updates), 8x8 cells at 2px. `help.svg` (57.10) is an uploaded asset the design system does not serve; the path is
+ * read from the eX-Zed canvas's Settings board and its About board, which draw it inline and agree (canvas `1795517458-88de`). The old `about` (the ring with an i, design's `info.svg`) is gone: rule 6 forbids it in the header.
+ */
 const DESIGN = {
   settings: 'M3 0h2v1H3zM1 1h6v1H1zM0 3h1v2H0zM7 3h1v2H7zM1 2h2v4H1zM5 2h2v4H5zM3 2h2v1H3zM3 5h2v1H3zM1 6h6v1H1zM3 7h2v1H3z',
-  about: 'M2 0h4v1H2zM1 1h1v1H1zM6 1h1v1H6zM0 2h1v4H0zM7 2h1v4H7zM1 6h1v1H1zM6 6h1v1H6zM2 7h4v1H2zM3 2h2v1H3zM3 4h2v2H3z',
+  help: 'M2 0h4v1H2zM1 1h2v1H1zM5 1h2v1H5zM0 2h2v1H0zM3 2h2v1H3zM6 2h2v1H6zM0 3h4v1H0zM5 3h3v1H5zM0 4h3v1H0zM4 4h4v1H4zM0 5h8v1H0zM1 6h2v1H1zM5 6h2v1H5zM2 7h4v1H2z',
   quit: 'M3 0h2v4H3zM1 1h1v1H1zM6 1h1v1H6zM0 2h1v4H0zM7 2h1v4H7zM1 6h1v1H1zM6 6h1v1H6zM2 7h4v1H2z',
   refresh: 'M2 0h4v1H2zM1 1h1v1H1zM0 2h1v4H0zM7 0h1v3H7zM5 2h2v1H5zM1 6h1v1H1zM7 4h1v2H7zM6 6h1v1H6zM2 7h4v1H2z',
   more: 'M0 3h2v2H0zM3 3h2v2H3zM6 3h2v2H6z',
@@ -116,9 +119,13 @@ describe('the app header’s icons', () => {
 
   it('are design’s pixel icons under eX-Zed: Settings, About and Quit', () => {
     render(header('exzed'))
-    for (const [label, icon] of [['Settings', 'settings'], ['About', 'about'], ['Quit', 'quit']] as const) {
+    for (const [label, icon] of [['Settings', 'settings'], ['About', 'help'], ['Quit', 'quit']] as const) {
       expect(screen.getByRole('button', { name: label }).querySelector(`[data-pixel-icon="${icon}"]`), label).not.toBeNull()
     }
+  })
+
+  it('has no ring with an i (ⓘ, which is about content) any more: About under eX-Zed is the (?)', () => {
+    expect(Object.keys(PIXEL_ICONS)).not.toContain('about')
   })
 
   it('are Quantum’s own under Quantum', () => {

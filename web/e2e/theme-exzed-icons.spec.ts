@@ -4,8 +4,8 @@ import { q } from './fixtures.js'
 /**
  * No Quantum line icon under eX-Zed (57.9, design's D46: "all of them in this pass; no Quantum line icon should be left under eX-Zed"), on the real screens, in both engines. A line icon is an
  * `svg` drawn as a stroke on no fill (Quantum's `lucide` icons); the theme's are pixel cells filled in `currentColor` (`PixelIcon`). The list toolbar's Hide Done (the eye with the slash), Collapse
- * and Expand (chevrons turned in, and out), To Top and To Bottom (the arrows, dithered when disabled) and the close button of every layer are design's pixel icons now. The Settings (?) buttons are
- * the one place left, and 57.10 takes them with rule 6; the whole sweep (`IDENTITY_MODE=sweep`, rule `icon`, e2e-tools/identity/sweep.ts) reads every screen in six skins.
+ * and Expand (chevrons turned in, and out), To Top and To Bottom (the arrows, dithered when disabled) and the close button of every layer are design's pixel icons now, and since 57.10 so are the
+ * (?) buttons (Settings' options and API keys, the header's About); nothing is excused. The whole sweep (`IDENTITY_MODE=sweep`, rule `icon`, e2e-tools/identity/sweep.ts) reads every screen in six skins.
  */
 const SKINS = ['exzed-1d', 'exzed-1a', 'exzed-1b', 'exzed-1c', 'exzed-1e', 'exzed-1l'] as const
 
@@ -22,7 +22,7 @@ async function boot(page: Page, skin: string) {
   }, Object.entries({ skin: 'dark-orange', reducedMotion: 'true', theme: 'exzed', exzedSkin: skin }))
 }
 
-/** The class of the control around every visible `svg` that is a stroke on no fill, except the (?) buttons of Settings (57.10's). */
+/** The class of the control around every visible `svg` that is a stroke on no fill (Quantum's line icons). */
 const lineIcons = (page: Page) =>
   page.evaluate(() =>
     [...document.querySelectorAll('svg')]
@@ -32,8 +32,7 @@ const lineIcons = (page: Page) =>
 
         return style.display !== 'none' && style.visibility !== 'hidden' && box.width > 1 && box.height > 1 && style.fill === 'none' && style.stroke !== 'none'
       })
-      .map((svg) => svg.closest('button, a, span')?.className ?? '?')
-      .filter((name) => !String(name).includes('q-help')),
+      .map((svg) => svg.closest('button, a, span')?.className ?? '?'),
   )
 
 async function openList(page: Page, skin: string) {

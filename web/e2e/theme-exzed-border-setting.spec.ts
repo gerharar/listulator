@@ -7,7 +7,7 @@ import { decodePng } from './pngPixels.js'
 /**
  * Settings → Theme → Show Spectrum border (50.7, X-006; moved from Screen to Theme by design's answer 15 of 2026-11-13), in both engines. eX-Zed only, directly under the theme chips, on by default; turning it off puts `data-border="off"` on `<html>` at
  * once (the stripes around the app go and the ground is plain black; Lotus has no border at all, the paper runs on), it is remembered, and a stored "off" is on the page before the first frame. It is
- * not there under Quantum. The words are in the locale (the tooltip is design's proposal; the Russian and German are drafts for the owner to read).
+ * not there under Quantum. The words are in the locale (the explanation, now behind a (?) since 57.10, is design's proposal; the Russian and German are drafts for the owner to read).
  */
 const LABEL = en.quantum.settings.spectrumBorder
 
@@ -97,8 +97,9 @@ test('in Lotus there is no border: the paper runs to both edges of the screen, t
   expect([...distinct], 'the right of the screen is the paper').toEqual([rgb(paper)])
 
   await expect(box(page)).toBeDisabled()
-  await box(page).hover({ force: true })
-  await expect(page.getByRole('tooltip')).toHaveText(en.quantum.settings.spectrumBorderLotusTip)
+  // Its words are in the (?) after the label, which still works on Lotus (57.10, design's answer 13); the label has no hover tooltip.
+  await page.getByRole('button', { name: `About ${LABEL}`, exact: true }).click()
+  await expect(page.getByRole('dialog')).toContainText(en.quantum.settings.spectrumBorderLotusTip)
 })
 
 test('on Lotus the stored choice is kept: a stored "off" still shows unticked, and the dark skins have it again when the skin changes', async ({ page }) => {

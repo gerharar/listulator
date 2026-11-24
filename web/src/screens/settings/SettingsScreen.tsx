@@ -18,7 +18,6 @@ import { useGroupLineSetting } from '../../components/quantum/GroupTriangle/Grou
 import { useTimeLeftSetting } from '../../components/quantum/Home/TimeLeftSetting.js'
 import { useSpectrumBorder } from '../../components/quantum/DocumentTheme/SpectrumBorderSetting.js'
 import { HelpButton } from '../../components/quantum/HelpButton/HelpButton.js'
-import { Tip } from '../../components/quantum/Tooltip/Tip.js'
 import { useWindowFullscreen } from '../../lib/windowFullscreen.js'
 import { ExzedSkinSwatch, SkinSwatch } from '../../components/quantum/SkinSwatch/SkinSwatch.js'
 import { ToggleChip } from '../../components/quantum/ToggleChip/ToggleChip.js'
@@ -105,16 +104,20 @@ export function SettingsScreen({ skin, onSkinChange, exzedSkin, onExzedSkinChang
               {/* X-006, eX-Zed only: the stripes around the app on a screen wider than 2560px, on unless turned off; applied at once. Under the theme chips (design's answer 15 of 2026-11-13: a theme's own options live under Theme; it was last in Screen). On Lotus (50.13, design
                   answer 12) there is no border at all, so the switch is disabled, keeps the stored choice for the other skins and says why. */}
               {theme === 'exzed' && (
-                <Tip as="label" className="q-settings-check" data-disabled={exzedSkin === 'exzed-1l' ? '' : undefined} text={exzedSkin === 'exzed-1l' ? text.spectrumBorderLotusTip : text.spectrumBorderTip}>
-                  <input
-                    type="checkbox"
-                    aria-description={exzedSkin === 'exzed-1l' ? text.spectrumBorderLotusTip : text.spectrumBorderTip}
-                    checked={spectrumBorder.on}
-                    disabled={exzedSkin === 'exzed-1l'}
-                    onChange={(event) => spectrumBorder.setOn(event.target.checked)}
-                  />
-                  {text.spectrumBorder}
-                </Tip>
+                <div className="q-settings-line">
+                  <label className="q-settings-check" data-disabled={exzedSkin === 'exzed-1l' ? '' : undefined}>
+                    <input
+                      type="checkbox"
+                      aria-description={exzedSkin === 'exzed-1l' ? text.spectrumBorderLotusTip : text.spectrumBorderTip}
+                      checked={spectrumBorder.on}
+                      disabled={exzedSkin === 'exzed-1l'}
+                      onChange={(event) => spectrumBorder.setOn(event.target.checked)}
+                    />
+                    {text.spectrumBorder}
+                  </label>
+                  {/* 57.10, rule 6 (the owner, 2026-11-20): an option with an explanation has a (?) after its label and no hover tooltip on it. On Lotus the box is disabled, the (?) is not (design's answer 13) and says the Lotus words. */}
+                  <HelpButton label={text.spectrumBorder} text={exzedSkin === 'exzed-1l' ? text.spectrumBorderLotusTip : text.spectrumBorderTip} />
+                </div>
               )}
             </section>
           )}

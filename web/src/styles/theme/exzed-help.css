@@ -1,0 +1,46 @@
+/*
+ * The (?) under eX-Zed (57.10, rule 6; design's Settings board, the Icons card's `help`): a button that explains the app, after a setting's label (Enhance group arrows, Show time left in My Lists, Show Spectrum border) and beside
+ * each API key. Quantum's is a 20px button with a 14px line icon in `ink3`; here it is the board's `zx-ctl`:
+ *  - a 32 by 32 ghost button (a 2px transparent border, so a hover or an open popover lights a block the size of the others'), the pixel `help` icon (16px, drawn by PixelIcon) in `ctl`;
+ *  - the highlight block (`hl-bg` and `hl-ink`) on hover and while its popover is open; focus is every control's ring (exzed-owner-look.css);
+ *  - a setting's line gives it the 4px the label has above it (exzed-checkbox-links.css), so the two keep one centre; the line under the theme chips has neither;
+ *  - an API key's mark keeps the 20px of room it had in the key rows (Russian at the narrowest window fills the column to the pixel, and IGDB's two fields need all of 320px): its 32px block overlaps the 4px gap before it and
+ *    the 8px of the row's after it, so on hover it touches the name (whose last 2px are empty) and, for the widest name only, the field;
+ *  - its popover is the theme's type: 16px on 24px lines in `ink`, the label not bold (the theme has one weight).
+ * Quantum is as it was: every rule is under `html.theme-exzed`.
+ */
+html.theme-exzed .q-help,
+html.theme-exzed .q-key-info {
+  width: 32px;
+  height: 32px;
+  border: 2px solid transparent;
+  background: transparent;
+  color: var(--zx-ctl);
+}
+html.theme-exzed .q-key-info {
+  margin: 0 -8px 0 -4px;
+}
+html.theme-exzed .q-settings-line > .q-help {
+  margin-top: 4px;
+}
+html.theme-exzed .q-settings-row + .q-settings-line > .q-help {
+  margin-top: 0;
+}
+html.theme-exzed .q-help:hover,
+html.theme-exzed .q-help[aria-expanded='true'],
+html.theme-exzed .q-key-info:hover,
+html.theme-exzed .q-key-info[aria-expanded='true'] {
+  background: var(--zx-hl-bg);
+  color: var(--zx-hl-ink);
+}
+
+html.theme-exzed .q-help-pop {
+  gap: 8px;
+  font-size: 16px;
+  line-height: 24px;
+  color: var(--zx-ink);
+}
+html.theme-exzed .q-help-pop strong {
+  font-size: 16px;
+  font-weight: 400;
+}

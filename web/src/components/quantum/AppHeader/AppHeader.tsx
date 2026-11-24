@@ -46,7 +46,7 @@ export function AppHeader({ skin, onSkinChange, exzedSkin, onExzedSkinChange, on
           <ThemedIcon name="settings" fallback={<Settings width={17} height={17} strokeWidth={1.9} aria-hidden="true" />} />
         </IconButton>
         <IconButton label={copy.quantum.appHeader.about} onClick={onAbout} {...wait}>
-          <ThemedIcon name="about" fallback={<CircleHelp width={17} height={17} strokeWidth={1.8} aria-hidden="true" />} />
+          <ThemedIcon name="help" fallback={<CircleHelp width={17} height={17} strokeWidth={1.8} aria-hidden="true" />} />
         </IconButton>
         {quit && <QuitButton quit={quit} run={run} />}
       </div>

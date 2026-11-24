@@ -5,7 +5,7 @@ import { FIXTURE_LIST_ID, q, useHomeFixture } from './fixtures.js'
  * eX-Zed's notices (51.10, X-007; design's Toast and Banner cards), on the real screens, in both engines and all six skins. **The toast is one line at the top centre: a `frame-hi` 2px border and the
  * 4px `paper` ring, 16px `ink`, at most one bracketed action, one FLASH step in (320ms, inverse video) and no animation out, none at all under reduced motion; the Banner a 2px `info-line` border
  * with no fill and 24px bracketed buttons; the error strip a 2px `frame` border, 56px at least, with [Retry] [Dismiss]; the error block a 2px `frame` border, the headline in `ink`, the explanation
- * in `ink2`, one action. (The Import refusal is the field message under the box since 56.10; its pixel (!) is 57.10.)** Names are the card's; the timings are Quantum's 3s and 5s, which the owner chose over the card's 3.2s and 8s (DECISIONS).
+ * in `ink2`, one action. (The Import refusal is the field message under the box since 56.10; its pixel (!) was drawn in 51.4 and is pinned in theme-exzed-help.spec.ts.)** Names are the card's; the timings are Quantum's 3s and 5s, which the owner chose over the card's 3.2s and 8s (DECISIONS).
  */
 const SKINS = ['exzed-1d', 'exzed-1a', 'exzed-1b', 'exzed-1c', 'exzed-1e', 'exzed-1l'] as const
 type Rgb = [number, number, number]
@@ -356,7 +356,7 @@ for (const skin of SKINS) {
       expect(rb.x - bb.x, '16px padding and the 2px border: the button’s box starts 18px in').toBe(18)
     })
 
-    test('an Import refusal is the field message between the box and the Import row, the box ringed (H-031, 56.10); its pixel (!) is 57.10', async ({ page }) => {
+    test('an Import refusal is the field message between the box and the Import row, the box ringed (H-031, 56.10)', async ({ page }) => {
       await seed(page, skin)
       await page.goto('/')
       await page.getByRole('button', { name: q.home.newList }).click()

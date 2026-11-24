@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { DUMP_PROPS, type DumpedElement, type PageDump } from '../../../e2e-tools/identity/dump.js'
-import { LINE_ICON_UNTIL_57_10, summarise, sweepDump } from '../../../e2e-tools/identity/sweep.js'
+import { summarise, sweepDump } from '../../../e2e-tools/identity/sweep.js'
 import { declarations, read, stylesheets } from './cssGuard.js'
 
 /**
@@ -115,9 +115,8 @@ describe('the sweep’s rules', () => {
     expect(rules({ path: svg, rect: [0, 0, 16, 16], style: { ...stroked, visibility: 'hidden' } }), 'invisible').toEqual([])
     expect(rules({ path: `${svg}>path:0`, rect: [0, 0, 16, 16], style: stroked }), 'the stroke of a shape inside the svg is the svg’s, named once').toEqual([])
     expect(rules({ path: '>div:0>button:0>div.box:0', rect: [0, 0, 16, 16], style: stroked }), 'not an svg').toEqual([])
-    // The one named exception until 57.10: Settings' (?) buttons (`button.q-help`). Nothing else is excused; 57.10 deletes this line with LINE_ICON_UNTIL_57_10.
-    expect(rules({ path: '>div:0>button.q-help:0>svg.lucide:0', rect: [0, 0, 16, 16], style: stroked }), 'the (?) of Settings, until 57.10').toEqual([])
-    expect(LINE_ICON_UNTIL_57_10.source).toBe('button\\.q-help')
+    // 57.10 took the last exception (Settings' (?) buttons, `button.q-help`): nothing is excused any more, the (?) included.
+    expect(rules({ path: '>div:0>button.q-help:0>svg.lucide:0', rect: [0, 0, 16, 16], style: stroked }), 'the (?) of Settings is a line icon like any other').toEqual(['icon'])
   })
 
   it('names a drawn border thinner than 2px on any side (design’s D59 and D61, 57.9c: eX-Zed draws no 1px line); 2px, none and a hidden style pass', () => {

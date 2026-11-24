@@ -81,6 +81,30 @@ const measure = (page: Page): Promise<Measured[]> =>
     }),
   )
 
+/** 57.10 (rule 6): each key's mark is design's pixel (?) in a 32px block that takes 20px of the row (its margins), so no row grew; the block stays clear of the field, and is centred on the name's line. */
+{
+  test('the keys’ marks are the pixel help icon in 32px blocks that overlap the gaps, never the field', async ({ page }) => {
+    await openSettings(page, 'en', 1128)
+
+    const marks = page.getByRole('button', { name: 'What this key is used for' })
+    await expect(marks).toHaveCount(4)
+    for (let n = 0; n < 4; n++) {
+      const mark = marks.nth(n)
+      await expect(mark.locator('svg[data-pixel-icon="help"]')).toHaveCount(1)
+      await expect(mark.locator('svg.lucide')).toHaveCount(0)
+      const [box, name, fields] = await Promise.all([
+        mark.boundingBox(),
+        mark.locator('xpath=preceding-sibling::*[1]').boundingBox(),
+        mark.locator('xpath=ancestor::*[contains(concat(" ", @class, " "), " q-key-row ")]//*[contains(concat(" ", @class, " "), " q-key-fields ")]').boundingBox(),
+      ])
+      expect([box!.width, box!.height], 'a 32px block').toEqual([32, 32])
+      expect(box!.x + box!.width, 'clear of the field').toBeLessThanOrEqual(fields!.x)
+      expect(box!.x, 'after the name\'s box, less its 2px of empty edge').toBeGreaterThanOrEqual(name!.x + name!.width - 4)
+      expect(Math.abs(box!.y + box!.height / 2 - (name!.y + name!.height / 2)), 'on the name\'s line').toBeLessThan(2)
+    }
+  })
+}
+
 for (const language of ['en', 'ru', 'de']) {
   for (const width of [1128, 1440, 1920]) {
     test(`every key row stays on one line, name and pill included (${language}, window ${width})`, async ({ page }) => {

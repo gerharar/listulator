@@ -10,6 +10,7 @@ import { Button } from '../../components/quantum/Button/Button.js'
 import { MaskedKey } from '../../components/quantum/Field/Field.js'
 import { useFieldValidation } from '../../components/quantum/Field/useFieldValidation.js'
 import { ExternalLink, type ExternalLinkProps } from '../../components/quantum/ExternalLink/ExternalLink.js'
+import { ThemedIcon } from '../../components/quantum/PixelIcon/PixelIcon.js'
 import { Popover } from '../../components/quantum/Popover/Popover.js'
 import { Tip } from '../../components/quantum/Tooltip/Tip.js'
 import { useTooltip } from '../../components/quantum/Tooltip/useTooltip.js'
@@ -91,7 +92,7 @@ function KeyRow({ id, fields, values, current, onEdit, onInfo, onTest }: KeyRowP
           text={text.infoLabel}
           onClick={(event) => onInfo(event.currentTarget)}
         >
-          <CircleHelp size={14} strokeWidth={1.8} aria-hidden="true" />
+          <ThemedIcon name="help" fallback={<CircleHelp size={14} strokeWidth={1.8} aria-hidden="true" />} />
         </Tip>
       </div>
       <div className="q-key-fields">

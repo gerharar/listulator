@@ -4,6 +4,7 @@ import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testi
 import type { ReactNode } from 'react'
 import type { LocalSettings } from '../../lib/config/localConfig.js'
 import type { KeySource, KeyTestResult } from '../../lib/config/keyTest.js'
+import { ThemeContext } from '../../components/quantum/DocumentTheme/ThemeContext.js'
 import { OverlayManagerProvider } from '../../components/quantum/overlay/OverlayManagerContext.js'
 import { copy, setActiveLanguage } from '../../locale/index.js'
 import { en } from '../../locale/en.js'
@@ -28,13 +29,15 @@ function Providers({ children }: { children: ReactNode }) {
   return <OverlayManagerProvider>{children}</OverlayManagerProvider>
 }
 
-function setup(saved: LocalSettings = {}, result: KeyTestResult = 'working') {
+function setup(saved: LocalSettings = {}, result: KeyTestResult = 'working', theme: 'quantum' | 'exzed' = 'quantum') {
   const save = vi.fn<(patch: Partial<LocalSettings>) => Promise<void>>(async () => {})
   const test = vi.fn<(source: KeySource, values: LocalSettings) => Promise<KeyTestResult>>(async () => result)
   const view = render(
-    <Providers>
-      <ApiKeysSection load={async () => saved} save={save} test={test} />
-    </Providers>,
+    <ThemeContext.Provider value={theme}>
+      <Providers>
+        <ApiKeysSection load={async () => saved} save={save} test={test} />
+      </Providers>
+    </ThemeContext.Provider>,
   )
   return { ...view, save, test }
 }
@@ -234,6 +237,18 @@ describe('ApiKeysSection', () => {
     await act(async () => finish('working'))
 
     expect(within(tmdb).getByRole('status').textContent).toBe('Untested')
+  })
+
+  it('under eX-Zed the four marks are design’s pixel help icon, not a line icon, and keep their name (57.10)', async () => {
+    setup({}, 'working', 'exzed')
+    await ready()
+
+    const marks = screen.getAllByRole('button', { name: 'What this key is used for' })
+    expect(marks).toHaveLength(4)
+    for (const mark of marks) {
+      expect(mark.querySelector('svg.lucide')).toBeNull()
+      expect(mark.querySelector('svg')!.getAttribute('data-pixel-icon')).toBe('help')
+    }
   })
 
   it('the four marks beside the keys are (?), not (i): circle-help, still named What this key is used for (H-031)', async () => {

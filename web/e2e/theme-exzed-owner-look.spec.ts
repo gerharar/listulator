@@ -282,7 +282,7 @@ for (const skin of SKINS) {
     }
 
     expect(await drawn(page.getByRole('button', { name: 'Settings' }), 'Settings')).toBe('settings')
-    expect(await drawn(page.getByRole('button', { name: 'About' }), 'About')).toBe('about')
+    expect(await drawn(page.getByRole('button', { name: 'About' }), 'About'), 'About is the (?), rule 6').toBe('help')
     expect(await drawn(page.getByRole('button', { name: 'Check For Updates' }), 'Home’s refresh')).toBe('refresh')
 
     await page.locator('.q-home-row').first().click()

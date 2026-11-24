@@ -2,6 +2,7 @@
 import { afterEach, describe, expect, it } from 'vitest'
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { OverlayManagerProvider, useEscLadder } from '../overlay/OverlayManagerContext.js'
+import { ThemeContext } from '../DocumentTheme/ThemeContext.js'
 import { hoverTooltip } from '../Tooltip/hoverTooltip.js'
 import { HelpButton } from './HelpButton.js'
 
@@ -16,13 +17,15 @@ function EscLadder() {
   return null
 }
 
-function renderButton() {
+function renderButton(theme: 'quantum' | 'exzed' = 'quantum') {
   return render(
-    <OverlayManagerProvider>
-      <EscLadder />
-      <input type="checkbox" aria-label="before" />
-      <HelpButton label={LABEL} text={TEXT} />
-    </OverlayManagerProvider>,
+    <ThemeContext.Provider value={theme}>
+      <OverlayManagerProvider>
+        <EscLadder />
+        <input type="checkbox" aria-label="before" />
+        <HelpButton label={LABEL} text={TEXT} />
+      </OverlayManagerProvider>
+    </ThemeContext.Provider>,
   )
 }
 
@@ -46,6 +49,25 @@ describe('HelpButton', () => {
     expect(icon.getAttribute('class')).toMatch(/lucide-circle-(help|question-mark)/)
     expect(icon.getAttribute('width')).toBe('14')
     expect(help().hasAttribute('title')).toBe(false)
+  })
+
+  it('under eX-Zed draws design’s pixel help icon (57.10, rule 6) and no line icon, with the same name, popup and no native title', () => {
+    renderButton('exzed')
+
+    expect(help().querySelector('svg.lucide')).toBeNull()
+    expect(help().querySelectorAll('svg')).toHaveLength(1)
+    expect(help().querySelector('svg')!.getAttribute('data-pixel-icon')).toBe('help')
+    expect(help().getAttribute('aria-haspopup')).toBe('dialog')
+    expect(help().hasAttribute('title')).toBe(false)
+  })
+
+  it('under eX-Zed it opens, closes and takes focus back exactly as it does under Quantum', () => {
+    renderButton('exzed')
+    act(() => help().click())
+    expect(screen.getByRole('dialog').textContent).toContain(TEXT)
+    fireEvent.keyDown(document, { key: 'Escape' })
+    expect(screen.queryByRole('dialog')).toBeNull()
+    expect(document.activeElement).toBe(help())
   })
 
   it('a click opens the popover with the label, then the explanation', () => {

@@ -104,6 +104,17 @@ export const STATES: readonly IdentityState[] = [
     },
   },
   {
+    // 57.10: the Import tab after a refusal: the field message with the (!) mark before the sentence, and the box ringed.
+    id: 'new-list-import-refusal',
+    setup: async (page) => {
+      await newList(page, 'Movies')
+      await page.getByRole('tab', { name: q.createList.importTab }).click()
+      await page.getByLabel(q.importFile.boxLabel).fill('title: X\ncategory: board games\nitems:\n  - { title: A }\n')
+      await page.getByRole('button', { name: q.importFile.import, exact: true }).click()
+      await page.getByRole('alert').waitFor()
+    },
+  },
+  {
     id: 'vault',
     setup: async (page) => {
       await home(page)
@@ -117,6 +128,16 @@ export const STATES: readonly IdentityState[] = [
     setup: async (page) => {
       await home(page)
       await page.getByRole('button', { name: 'Settings' }).click()
+    },
+  },
+  {
+    // 57.10: a setting's (?) with its popover open: the pixel icon lit, and the popover's label and sentence in the theme's type.
+    id: 'settings-help-open',
+    setup: async (page) => {
+      await home(page)
+      await page.getByRole('button', { name: 'Settings' }).click()
+      await page.getByRole('button', { name: q.settings.aboutLabel(q.settings.markOpenGroups), exact: true }).click()
+      await page.getByRole('dialog').waitFor()
     },
   },
   {
