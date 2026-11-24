@@ -260,8 +260,10 @@ html.theme-exzed .q-settings-sections {
 html.theme-exzed .q-key-row {
   gap: 8px;
 }
+/* The name column (D63, the Settings board): the name, 8px and the (?) in its own 32px block, 200px; "Comic Vine" (144px) is the widest name in every language. */
 html.theme-exzed .q-key-head {
-  width: 168px;
+  width: 200px;
+  gap: 8px;
 }
 /* 51.2a: `[Test]` is a bracketed button now (about 130px at 16px), so the field is 320px (IGDB's two, 156px each), the one width in every language. How? is the Link card, as the
    Settings board draws it: no brackets, no box, a dotted 2px underline, the pixel arrow after it; hover is the highlight. */

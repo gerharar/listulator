@@ -2,6 +2,7 @@ import './HelpButton.css'
 import { useState } from 'react'
 import { CircleHelp } from 'lucide-react'
 import { copy } from '../../../locale/index.js'
+import { useTheme } from '../DocumentTheme/ThemeContext.js'
 import { ThemedIcon } from '../PixelIcon/PixelIcon.js'
 import { Popover } from '../Popover/Popover.js'
 import { Tip } from '../Tooltip/Tip.js'
@@ -22,6 +23,8 @@ export interface HelpButtonProps {
 export function HelpButton({ label, text }: HelpButtonProps) {
   const [anchor, setAnchor] = useState<HTMLElement | null>(null)
   const name = copy.quantum.settings.aboutLabel(label)
+  // The Popover card (D63): the explanation of a setting is 480px under eX-Zed; Quantum's is the API-key mark's 300px.
+  const width = useTheme() === 'exzed' ? 480 : 300
 
   function close(): void {
     anchor?.focus()
@@ -43,7 +46,7 @@ export function HelpButton({ label, text }: HelpButtonProps) {
         <ThemedIcon name="help" fallback={<CircleHelp size={14} strokeWidth={1.8} aria-hidden="true" />} />
       </Tip>
       {anchor && (
-        <Popover open anchorEl={anchor} onDismiss={close} width={300} label={label}>
+        <Popover open anchorEl={anchor} onDismiss={close} width={width} label={label}>
           <div className="q-help-pop">
             <strong>{label}</strong>
             <span>{text}</span>

@@ -4,9 +4,9 @@
  *  - a 32 by 32 ghost button (a 2px transparent border, so a hover or an open popover lights a block the size of the others'), the pixel `help` icon (16px, drawn by PixelIcon) in `ctl`;
  *  - the highlight block (`hl-bg` and `hl-ink`) on hover and while its popover is open; focus is every control's ring (exzed-owner-look.css);
  *  - a setting's line gives it the 4px the label has above it (exzed-checkbox-links.css), so the two keep one centre; the line under the theme chips has neither;
- *  - an API key's mark keeps the 20px of room it had in the key rows (Russian at the narrowest window fills the column to the pixel, and IGDB's two fields need all of 320px): its 32px block overlaps the 4px gap before it and
- *    the 8px of the row's after it, so on hover it touches the name (whose last 2px are empty) and, for the widest name only, the field;
- *  - its popover is the theme's type: 16px on 24px lines in `ink`, the label not bold (the theme has one weight).
+ *  - an API key's mark is the same block, on its own (D63): the name column is 200px (name, 8px, the 32px block), nothing overlaps; a row wider than its column (Russian and German at the narrowest windows) is marked by KeyRow
+ *    (`data-wrapped`) and then pushes [Test] and the status chip to its right edge, so the chip wraps under [Test], right-aligned with it, and the row grows by the chip and its 8px gap (48px); nothing else wraps, the field keeps 320px;
+ *  - its popover is 480px (Popover `w480`, HelpButton asks for it under this theme) and the theme's type: the label a kicker (16px capitals in `lab`, weight 400), the explanation 16px on 24px lines in `ink`.
  * Quantum is as it was: every rule is under `html.theme-exzed`.
  */
 html.theme-exzed .q-help,
@@ -16,9 +16,6 @@ html.theme-exzed .q-key-info {
   border: 2px solid transparent;
   background: transparent;
   color: var(--zx-ctl);
-}
-html.theme-exzed .q-key-info {
-  margin: 0 -8px 0 -4px;
 }
 html.theme-exzed .q-settings-line > .q-help {
   margin-top: 4px;
@@ -43,4 +40,13 @@ html.theme-exzed .q-help-pop {
 html.theme-exzed .q-help-pop strong {
   font-size: 16px;
   font-weight: 400;
+  line-height: 24px;
+  letter-spacing: 0;
+  text-transform: uppercase;
+  color: var(--zx-lab);
+}
+
+html.theme-exzed .q-key-row[data-wrapped] > .q-btn:not(.quiet),
+html.theme-exzed .q-key-row[data-wrapped] > .q-key-pill {
+  margin-left: auto;
 }

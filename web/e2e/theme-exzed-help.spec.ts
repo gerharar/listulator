@@ -111,7 +111,7 @@ for (const skin of SKINS) {
       expect(await styleOf(help, ['background-color', 'color']), 'while open').toEqual({ 'background-color': hlBg, color: hlInk })
     })
 
-    test('a click opens the popover with the label and the explanation in 16px and no bold; Esc closes it and focus goes back to the (?)', async ({ page }) => {
+    test('a click opens the 480px popover with the label as a kicker and the explanation in 16px and no bold; Esc closes it and focus goes back to the (?)', async ({ page }) => {
       await openSettings(page, skin)
       const help = page.getByRole('button', { name: `About ${text.markOpenGroups}`, exact: true })
 
@@ -120,8 +120,10 @@ for (const skin of SKINS) {
       await expect(dialog).toBeVisible()
       await expect(dialog.locator('strong')).toHaveText(text.markOpenGroups)
       await expect(dialog).toContainText(text.markOpenGroupsTip)
+      expect((await dialog.boundingBox())!.width, 'D63: a 480px popover').toBe(480)
       expect(await styleOf(dialog.locator('.q-help-pop'), ['font-size', 'line-height']), 'the explanation').toEqual({ 'font-size': '16px', 'line-height': '24px' })
-      expect(await styleOf(dialog.locator('strong'), ['font-size', 'font-weight']), 'the label').toEqual({ 'font-size': '16px', 'font-weight': '400' })
+      const lab = rgb(await token(page, '--zx-lab'))
+      expect(await styleOf(dialog.locator('strong'), ['font-size', 'font-weight', 'text-transform', 'color']), 'the label is a kicker: capitals in lab').toEqual({ 'font-size': '16px', 'font-weight': '400', 'text-transform': 'uppercase', color: lab })
 
       await page.keyboard.press('Escape')
       await expect(dialog).toHaveCount(0)

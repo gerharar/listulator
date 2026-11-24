@@ -1,5 +1,5 @@
 import './ApiKeysSection.css'
-import { useEffect, useRef, useState, type CSSProperties } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type RefObject } from 'react'
 import { CircleHelp } from 'lucide-react'
 import { copy } from '../../locale/index.js'
 import { getLocalSettings, type LocalSettings } from '../../lib/config/localConfig.js'
@@ -11,10 +11,12 @@ import { MaskedKey } from '../../components/quantum/Field/Field.js'
 import { useFieldValidation } from '../../components/quantum/Field/useFieldValidation.js'
 import { ExternalLink, type ExternalLinkProps } from '../../components/quantum/ExternalLink/ExternalLink.js'
 import { ThemedIcon } from '../../components/quantum/PixelIcon/PixelIcon.js'
+import { useTheme } from '../../components/quantum/DocumentTheme/ThemeContext.js'
 import { Popover } from '../../components/quantum/Popover/Popover.js'
 import { Tip } from '../../components/quantum/Tooltip/Tip.js'
 import { useTooltip } from '../../components/quantum/Tooltip/useTooltip.js'
 import { keyGuideUrl } from '../../lib/guides.js'
+import { keyRowOverflows } from './keyRowFit.js'
 
 type Status = 'untested' | 'testing' | KeyTestResult
 
@@ -63,6 +65,35 @@ interface KeyRowProps {
 }
 
 /**
+ * Whether this row is wider than its column (design's D63): under eX-Zed then, and only then, its status chip wraps under [Test], right-aligned with it (`data-wrapped`, read by exzed.css). CSS cannot say it:
+ * a wrapped item is left on its line, and [Test] has to be pushed to the row's right edge for the chip to be under it. Measured from the parts' own widths (keyRowFit.ts), on every size change of the row
+ * and once the fonts are in. Quantum does not measure, and its rows are as they were.
+ */
+function useKeyRowWraps(exzed: boolean): { ref: RefObject<HTMLDivElement | null>; on: boolean } {
+  const ref = useRef<HTMLDivElement>(null)
+  const [on, setOn] = useState(false)
+
+  useLayoutEffect(() => {
+    const row = ref.current
+    if (!exzed || !row || typeof ResizeObserver === 'undefined') return
+
+    const measure = () => {
+      const parts = Array.from(row.children).filter((child) => !child.classList.contains('q-field-msg'))
+      const gap = parseFloat(getComputedStyle(row).columnGap) || 0
+      setOn(keyRowOverflows(parts.map((part) => part.getBoundingClientRect().width), gap, row.clientWidth))
+    }
+    measure()
+    const observer = new ResizeObserver(measure)
+    observer.observe(row)
+    void document.fonts?.ready.then(measure)
+
+    return () => observer.disconnect()
+  }, [exzed])
+
+  return { ref, on: exzed && on }
+}
+
+/**
  * One source's row. Test is never disabled by an empty field (H-006), only while a test runs: pressing it with a field
  * empty tests nothing and says what is missing, once for the row ("Paste the Client ID first"), marks every empty field
  * and puts the cursor in the first. Typing takes the sentence away.
@@ -79,9 +110,10 @@ function KeyRow({ id, fields, values, current, onEdit, onInfo, onTest }: KeyRowP
   // One sentence for the row, under the first empty field; every empty field points at it.
   const shown = fields.find((field) => checks.error(field) !== null)
   const describedBy = shown ? checks.props(shown)['aria-describedby'] : undefined
+  const wrapped = useKeyRowWraps(useTheme() === 'exzed')
 
   return (
-    <div className="q-key-row">
+    <div className="q-key-row" ref={wrapped.ref} {...(wrapped.on ? { 'data-wrapped': '' } : {})}>
       <div className="q-key-head">
         <span className="q-key-name">{source.name}</span>
         <Tip

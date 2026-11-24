@@ -51,6 +51,10 @@
 .q-pop.w360 {
   width: 360px;
 }
+/* eX-Zed's explanation of a setting (D63, the Popover card): HelpButton asks for it under that theme only. */
+.q-pop.w480 {
+  width: 480px;
+}
 
 /* The tail is one SVG (popoverTail.ts): the `rule` triangle for the outline and the `card` one 1px further in, in one coordinate system.
    It was two CSS triangles whose positions snapped to device pixels differently, and on a 125% display one slanted side lost its rim. The

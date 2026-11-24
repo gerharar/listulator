@@ -15,10 +15,10 @@ import { useTheme } from '../DocumentTheme/ThemeContext.js'
 import { staircaseGeometry, tailGeometry, type TailKind } from './popoverTail.js'
 
 /**
- * The six widths the design system names: skin menu, list actions, API key/order, list edit/item info, reset, item edit;
+ * The widths the design system names: skin menu, list actions, API key/order, list edit/item info, reset, item edit, and under eX-Zed the explanation of a setting (480, D63);
  * and `fit`, content-wide from 240px up to the window (the platform card: a platform name stays on one line).
  */
-export type PopoverWidth = 220 | 240 | 300 | 320 | 340 | 360 | 'fit'
+export type PopoverWidth = 220 | 240 | 300 | 320 | 340 | 360 | 480 | 'fit'
 
 export interface PopoverProps {
   open: boolean

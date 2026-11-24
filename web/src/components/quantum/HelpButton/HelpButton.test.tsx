@@ -61,6 +61,17 @@ describe('HelpButton', () => {
     expect(help().hasAttribute('title')).toBe(false)
   })
 
+  it('opens a 480px popover under eX-Zed (D63: the Popover card) and a 300px one under Quantum, which keeps its own', () => {
+    renderButton('exzed')
+    act(() => help().click())
+    expect(screen.getByRole('dialog').className).toContain('w480')
+    cleanup()
+
+    renderButton('quantum')
+    act(() => help().click())
+    expect(screen.getByRole('dialog').className).toContain('w300')
+  })
+
   it('under eX-Zed it opens, closes and takes focus back exactly as it does under Quantum', () => {
     renderButton('exzed')
     act(() => help().click())
