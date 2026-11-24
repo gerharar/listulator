@@ -1,0 +1,129 @@
+/*
+ * eX-Zed's Platform panel (57.9c and 57.9d, design's D60 and D61; the Field, Checkbox and ToggleChip cards), drawn on Quantum's own classes: the panel in an item's Edit window and the add row's picker,
+ * which shares them. Quantum is as it was: every rule is under `html.theme-exzed`.
+ *  - **type:** every text in the panel is 16px at weight 400 (the kicker, title, note, code and name are in exzed-type.css); the foot lines and the source row too, the source row `ink2`;
+ *  - **the search is a Field:** 40px, a 2px `frame` border on `paper`, 16px, the placeholder `ink2`, the border turning `acc` on focus (exzed-fields.css, whose selector lists the Field guard pins);
+ *  - **the lines are 2px `frame` rules:** the list's top line, the section's bottom line and each row's;
+ *  - **a check box is the done box** (exzed-checkbox-links.css): 16px, a 2px `frame` border on `paper`, a 2px `chip-ink` cell outside it, the picked one's 6x6 pixel tick (a mask) in `ink`; the glyph in
+ *    the DOM is kept for the DOM and hidden (font-size 0), never drawn;
+ *  - **a picked platform is the ToggleChip card's removable chip:** 32px high, a 2px `frame` box with no fill, the name 16px `ink` 12px in, then the `close` pixel icon (16px, `ctl`) in a 24x24 block
+ *    8px after the name and 4px from the right edge. The block is the icon's own box (4px of padding), so the DOM is as it was: hover or focus lights only the block (`acc`, `acc-ink`), the chip itself never;
+ *  - **Reset to source** is a 40px box in the chips' look (2px `frame`, `ctl`, the highlight on hover): the board draws none, reported to design.
+ */
+html.theme-exzed .q-platpanel-foot,
+html.theme-exzed .q-platpanel-sub,
+html.theme-exzed .q-platpanel-source span {
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 24px;
+  letter-spacing: 0;
+}
+html.theme-exzed .q-platpanel-source span {
+  color: var(--zx-ink2);
+}
+html.theme-exzed .q-platpanel-source button {
+  box-sizing: border-box;
+  height: 40px;
+  padding: 0 12px;
+  border: 2px solid var(--zx-frame);
+  background: transparent;
+  color: var(--zx-ctl);
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 24px;
+  letter-spacing: 0;
+}
+html.theme-exzed .q-platpanel-source button:hover {
+  border-color: var(--zx-dim-bg);
+  background: var(--zx-dim-bg);
+  color: var(--zx-dim-ink);
+}
+
+html.theme-exzed .q-platpanel-search {
+  flex: none;
+  box-sizing: border-box;
+  height: 40px;
+  padding: 0 8px;
+  border: 2px solid var(--zx-frame);
+  background: var(--zx-paper);
+  color: var(--zx-ink);
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 24px;
+  letter-spacing: 0;
+}
+html.theme-exzed .q-platpanel-search::placeholder {
+  color: var(--zx-ink2);
+  font-size: 16px;
+}
+html.theme-exzed .q-platpanel-search:focus,
+html.theme-exzed .q-platpanel-search:focus-visible {
+  outline: none;
+  border-color: var(--zx-acc);
+}
+html.theme-exzed[data-theme='exzed-1l'] .q-platpanel-search:focus,
+html.theme-exzed[data-theme='exzed-1l'] .q-platpanel-search:focus-visible {
+  border-color: var(--zx-pri-hv-line);
+}
+
+html.theme-exzed .q-platpanel-list {
+  border-top: 2px solid var(--zx-frame);
+}
+html.theme-exzed .q-platpanel-section {
+  border-bottom: 2px solid var(--zx-frame);
+}
+html.theme-exzed .q-platpanel-row {
+  padding: 7px 8px;
+  border-bottom: 2px solid var(--zx-frame);
+}
+
+html.theme-exzed .q-platpanel-box,
+html.theme-exzed .q-platpanel-row[aria-pressed='true'] .q-platpanel-box {
+  position: relative;
+  box-sizing: border-box;
+  width: 16px;
+  height: 16px;
+  border: 2px solid var(--zx-frame);
+  background: var(--zx-paper);
+  outline: 2px solid var(--zx-chip-ink);
+  outline-offset: 0;
+  font-size: 0;
+}
+html.theme-exzed .q-platpanel-row[aria-pressed='true'] .q-platpanel-box::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--zx-ink);
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 6 6' shape-rendering='crispEdges'%3E%3Cpath d='M5 0h1v1H5zM4 1h1v1H4zM3 2h1v1H3zM0 2h1v1H0zM1 3h1v1H1zM2 3h1v1H2z'/%3E%3C/svg%3E") 0 0 / 100% 100% no-repeat;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 6 6' shape-rendering='crispEdges'%3E%3Cpath d='M5 0h1v1H5zM4 1h1v1H4zM3 2h1v1H3zM0 2h1v1H0zM1 3h1v1H1zM2 3h1v1H2z'/%3E%3C/svg%3E") 0 0 / 100% 100% no-repeat;
+}
+
+html.theme-exzed .q-platpanel-token {
+  box-sizing: border-box;
+  height: 32px;
+  gap: 8px;
+  padding: 0 2px 0 10px;
+  border: 2px solid var(--zx-frame);
+  background: transparent;
+  color: var(--zx-ink);
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 24px;
+  letter-spacing: 0;
+}
+html.theme-exzed .q-platpanel-token:hover {
+  background: transparent;
+}
+html.theme-exzed .q-platpanel-token svg {
+  flex: none;
+  box-sizing: border-box;
+  width: 24px;
+  height: 24px;
+  padding: 4px;
+  color: var(--zx-ctl);
+}
+html.theme-exzed .q-platpanel-token svg:hover,
+html.theme-exzed .q-platpanel-token:focus-visible svg {
+  background: var(--zx-hl-bg);
+  color: var(--zx-hl-ink);
+}

@@ -58,10 +58,11 @@ html.theme-exzed .q-vb-pane {
 html.theme-exzed .q-vb-caption {
   margin: 0 8px 8px;
   font-size: 16px;
+  font-weight: 400;
   line-height: 16px;
   letter-spacing: 0;
   text-transform: uppercase;
-  color: var(--zx-lab);
+  color: var(--zx-ink2);
 }
 html.theme-exzed .q-vb-grid {
   grid-template-columns: minmax(0, 1fr) 128px 80px 80px;

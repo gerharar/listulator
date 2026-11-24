@@ -13,6 +13,14 @@ const CLEAN: Record<string, string> = {
   'border-top-right-radius': '0px',
   'border-bottom-right-radius': '0px',
   'border-bottom-left-radius': '0px',
+  'border-top-width': '0px',
+  'border-right-width': '0px',
+  'border-bottom-width': '0px',
+  'border-left-width': '0px',
+  'border-top-style': 'none',
+  'border-right-style': 'none',
+  'border-bottom-style': 'none',
+  'border-left-style': 'none',
   'box-shadow': 'none',
   'text-shadow': 'none',
   filter: 'none',
@@ -110,6 +118,19 @@ describe('the sweep’s rules', () => {
     // The one named exception until 57.10: Settings' (?) buttons (`button.q-help`). Nothing else is excused; 57.10 deletes this line with LINE_ICON_UNTIL_57_10.
     expect(rules({ path: '>div:0>button.q-help:0>svg.lucide:0', rect: [0, 0, 16, 16], style: stroked }), 'the (?) of Settings, until 57.10').toEqual([])
     expect(LINE_ICON_UNTIL_57_10.source).toBe('button\\.q-help')
+  })
+
+  it('names a drawn border thinner than 2px on any side (design’s D59 and D61, 57.9c: eX-Zed draws no 1px line); 2px, none and a hidden style pass', () => {
+    const side = (name: string, width: string, style = 'solid') => ({ [`border-${name}-width`]: width, [`border-${name}-style`]: style })
+    for (const name of ['top', 'right', 'bottom', 'left']) expect(rules({ style: side(name, '1px') }), `a 1px ${name} border`).toEqual(['line'])
+    expect(rules({ style: side('bottom', '1px', 'dashed') }), 'a dashed 1px rule').toEqual(['line'])
+    expect(rules({ style: side('top', '0.5px') }), 'a hairline').toEqual(['line'])
+    expect(rules({ style: { ...side('top', '1px'), ...side('bottom', '1px') } }), 'two thin sides are one finding per side').toEqual(['line', 'line'])
+    expect(rules({ style: side('bottom', '2px') }), 'a 2px rule').toEqual([])
+    expect(rules({ style: side('bottom', '4px') }), 'a 4px border').toEqual([])
+    expect(rules({ style: side('bottom', '0px') }), 'no border').toEqual([])
+    expect(rules({ style: side('bottom', '3px', 'none') }), 'a width with no style is not drawn').toEqual([])
+    expect(rules({ style: side('bottom', '1px', 'hidden') }), 'a hidden border is not drawn').toEqual([])
   })
 
   it('names text that is not 16, 24 or 32px, is bold, or has letter-spacing, together when it is all three', () => {

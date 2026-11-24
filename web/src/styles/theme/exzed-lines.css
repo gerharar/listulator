@@ -1,0 +1,63 @@
+/*
+ * eX-Zed draws no 1px line (57.9c, design's D59 and D61, X-004 and X-008): every rule and box the theme draws is a 2px cell, and the sweep's rule `line` (a border drawn thinner than 2px) keeps it so.
+ * Drawn on Quantum's own classes, so no call site changes; Quantum is as it was: every rule is under `html.theme-exzed`.
+ *  - the filter bar's line is 2px `frame`: its row is 12 + 40 + 12 + 2 = 66px (it was 65 with the 1px line);
+ *  - Hide Done and Collapse / Expand are ghost buttons (the Button card's `.zx-btn`, toolbar actions on the window itself): no box, a 2px transparent border at rest so the size never changes
+ *    (40px, the toolbar's row). Hover is still the owner's 51.13 look (the `acc-dim` block, pressed = `acc`, exzed-owner-look.css) and focus is the foundation's ring, not D61's "highlight block on
+ *    hover and focus": a deviation reported to design (the owner chose the dim hover at his first look);
+ *  - To Top / To Bottom are two 40px icon buttons after a 2px `frame` divider, no box round them and no line between them (the split box of H-019 is retired here, the same two buttons, order, names,
+ *    tooltips and disabled rules: DESIGN.md section 4); a disabled one is dithered (exzed-buttons.css). The board gives no measure for the divider: it is 40px high (the toolbar's row), 8px before the buttons;
+ *  - the tooltip is a 2px `frame-hi` box on `paper`, with no ring, tail or shadow (`--e-tooltip` is none): the 4px / 8px padding keeps its outside size;
+ *  - About's TMDB line is the link underline's dotted rule: 2px dots 2px apart in `frame`, drawn as a background on the top edge, not a border.
+ */
+html.theme-exzed .q-filterbar {
+  border-bottom: 2px solid var(--zx-frame);
+}
+
+html.theme-exzed .q-hide-done,
+html.theme-exzed .q-fold {
+  box-sizing: border-box;
+  height: 40px;
+  gap: 8px;
+  padding: 0 12px;
+  border: 2px solid transparent;
+  background: transparent;
+}
+
+html.theme-exzed .q-ends {
+  flex-direction: row;
+  width: auto;
+  height: 40px;
+  padding-left: 8px;
+  border: 0;
+  border-left: 2px solid var(--zx-frame);
+}
+html.theme-exzed .q-ends-half,
+html.theme-exzed .q-ends-half + .q-ends-half {
+  flex: none;
+  box-sizing: border-box;
+  width: 40px;
+  height: 40px;
+  border: 2px solid transparent;
+  background: var(--zx-cell);
+  color: var(--zx-ctl);
+}
+html.theme-exzed .q-ends-half:where(:not(:disabled)):hover {
+  background: var(--zx-hl-bg);
+  color: var(--zx-hl-ink);
+}
+html.theme-exzed .q-ends-half:disabled {
+  background: transparent;
+  color: var(--zx-ink2);
+}
+
+html.theme-exzed .q-tooltip {
+  padding: 4px 8px;
+  border: 2px solid var(--zx-frame-hi);
+  background: var(--zx-paper);
+}
+
+html.theme-exzed .q-about-attribution {
+  border-top: 0;
+  background: repeating-linear-gradient(90deg, var(--zx-frame) 0 2px, transparent 2px 4px) 0 0 / 100% 2px no-repeat;
+}

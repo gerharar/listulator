@@ -117,7 +117,7 @@ for (const skin of ['exzed-1d', 'exzed-1l'] as const) {
 
         return { width, height }
       })
-      expect(box, 'drawn 16px square, the other pixel icons’ size').toEqual({ width: 16, height: 16 })
+      expect(box, 'a 24px hover block round the 16px icon (D61)').toEqual({ width: 24, height: 24 })
       expect(await lineIcons(page), 'with a platform picked').toEqual([])
     } finally {
       await page.request.delete(`/api/lists/${id}`)

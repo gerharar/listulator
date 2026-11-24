@@ -2,8 +2,7 @@ import { expect, test, type Page } from '@playwright/test'
 
 /**
  * The list screen's gutters under eX-Zed (57.7b, design's D57 and D58): the head, the filter bar and the rows' area are 24px in from the window's border on each side (the Window card's
- * `space-3`; Quantum's 26px and 22px are not on the theme's 8px steps), the head 24px above, the filter bar 12px above and below its 40px control (its row is the same 64px, a 1px line
- * under it: D58 made 13/11 whole 2px steps), the rows' area 24px at the bottom, the progress row 24px all round and the error strip 10px above with 24px at its sides. The rail, whose cap
+ * `space-3`; Quantum's 26px and 22px are not on the theme's 8px steps), the head 24px above, the filter bar 12px above and below its 40px control (its row is 64px and a 2px line under it, 66 in all: D58 made 13/11 whole 2px steps, D61 the 1px line a 2px one), the rows' area 24px at the bottom, the progress row 24px all round and the error strip 10px above with 24px at its sides. The rail, whose cap
  * follows the window's outside (D55), does not move. In both engines, six skins at 1440; the progress row (a delayed fetch) and the error strip (a failed write) in Lode.
  */
 const SKINS = ['exzed-1d', 'exzed-1a', 'exzed-1b', 'exzed-1c', 'exzed-1e', 'exzed-1l'] as const
@@ -78,7 +77,7 @@ for (const skin of SKINS) {
 
       expect(at.title, 'the list’s name starts 24px in').toBe(at.inner + 24)
       expect(at.filter, 'the filter field starts 24px in').toBe(at.inner + 24)
-      expect(at.filterBarHeight, 'the filter bar is as high as ever: 12 + 40 + 12 and its 1px line').toBe(65)
+      expect(at.filterBarHeight, 'the filter bar is 12 + 40 + 12 and its 2px line (D61: no 1px line)').toBe(66)
       expect(at.item - at.bodyLeft, 'the first row is 24px in from the rows’ area').toBe(24)
       expect(at.bodyRight - at.itemRight, 'and 24px from its right edge').toBe(24)
       expect(at.rail, 'the rail still starts at the window’s inner edge').toBe(at.inner)

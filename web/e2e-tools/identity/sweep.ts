@@ -12,6 +12,8 @@ import type { PageDump } from './dump.js'
  *    row in each step passes);
  *  - **no line icon** (design's D46, 57.9): an `svg` drawn as a stroke on no fill, as Quantum's `lucide` icons are, is not drawn on any screen; the theme's icons are pixel cells filled in `currentColor`
  *    (`PixelIcon`), or a CSS mask. Only the `svg` itself is named (the strokes of its shapes are its own), and one that is hidden is not on the screen;
+ *  - **no 1px line** (design's D59 and D61, 57.9c, X-004): a border that is drawn (a style other than `none` and `hidden`) on a side is at least 2px wide; the theme's rules and boxes are 2px
+ *    cells, so a thinner one is off the grid. Read from the computed border of each side, so a rule drawn as a border is found wherever it is, and one drawn as a background (the dotted link rule) is the theme's own;
  *  - **type that sits on the pixel grid:** every element that draws text sets it at 16, 24 or 32px, at weight 400, with no letter-spacing, so a glyph's stem is a whole number of device pixels at 100%
  *    and at 200% (the font is an 8px grid: 2px a pixel at 16px). Text that is not drawn (a hidden glyph at 0px, a visually hidden live region) is not looked at;
  *  - **a live control is never the secondary grey** (design's D47, 2026-11-15): in the dark skins `ink2` is `#909090`, for text that only informs and for disabled controls; a control that reacts to
@@ -21,7 +23,7 @@ import type { PageDump } from './dump.js'
 export interface Violation {
   /** The element, as the identity tool names it. */
   path: string
-  rule: 'radius' | 'shadow' | 'filter' | 'opacity' | 'alpha' | 'size' | 'weight' | 'spacing' | 'control' | 'icon'
+  rule: 'radius' | 'shadow' | 'filter' | 'opacity' | 'alpha' | 'size' | 'weight' | 'spacing' | 'control' | 'icon' | 'line'
   detail: string
 }
 
@@ -84,6 +86,13 @@ export function sweepDump(dump: PageDump): Violation[] {
     // A line icon: the svg's own drawing is a stroke on no fill (D46, 57.9). Its shapes inherit that and are not named again.
     if (get('fill') === 'none' && get('stroke') !== 'none' && !/::\w+$/.test(element.path) && tagOf(element.path.split('>').filter((segment) => segment !== '').pop()!) === 'svg' && !notDrawn(get, element.rect)) {
       if (!LINE_ICON_UNTIL_57_10.test(element.path)) add('icon', `stroke ${get('stroke')} ${get('stroke-width')}`)
+    }
+
+    // A line: a border drawn thinner than the theme's 2px cell (57.9c).
+    for (const side of ['top', 'right', 'bottom', 'left'] as const) {
+      const style = get(`border-${side}-style`)
+      const width = parseFloat(get(`border-${side}-width`))
+      if (style !== 'none' && style !== 'hidden' && width > 0 && width < 2) add('line', `border-${side} ${get(`border-${side}-width`)} ${style}`)
     }
 
     const shadow = get('box-shadow')

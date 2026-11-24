@@ -74,6 +74,9 @@ import './styles/theme/exzed-type.css'
 import './styles/theme/exzed-art.css'
 // What the owner found at his first look (51.13, X-007): hovers eX-Zed had not drawn, a caret, Lotus' focus and a source line.
 import './styles/theme/exzed-owner-look.css'
+// No 1px line anywhere, and the Platform panel drawn (57.9c and 57.9d, design's D59 to D61).
+import './styles/theme/exzed-lines.css'
+import './styles/theme/exzed-platform-panel.css'
 import { App } from './App.js'
 import { startLocalRuntimeFill, startLocalSourceCopySchedule } from './lib/api.local.js'
 import { installContextMenuGuard } from './lib/contextMenu.js'
