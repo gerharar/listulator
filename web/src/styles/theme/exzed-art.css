@@ -396,6 +396,17 @@ html.theme-exzed .q-catbanner[data-where='header'] {
   max-width: calc(100% - 24px);
 }
 /*
+ * A finished list's banner (57.11c; X-008, design's D64): the finished bar's rule drawn to the banner's box. `CategoryBanner` puts a drawing of the four bands (a quarter of the box's width each, red, yellow, green, cyan, every edge slanted
+ * 45 degrees on the 2px grid and crossing its quarter point at the middle row) inside the masked box, at the art's size, so the category's mask cuts it. It sits on the mask's corner, as the mask does (`100% 100%`), so a narrow header crops both
+ * from the left together; the paper cells stay over it. It does not flash: it switches with the bar, whose step is the signal.
+ */
+html.theme-exzed .q-catbanner[data-where='header'] .q-catbanner-bands {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  display: block;
+}
+/*
  * The paper cells over the banner (50.15, design's answer 10 of 2026-11-12): the banner stays where it is, and everything drawn over it gets a cell of `paper`, the Spectrum's
  * attribute rule (as bars, marks and chips do): on Glemt the banner (`prog-dim`) and the icons (`ink2`) are the same colour, and white words over it are unreadable in several
  * skins; a clearance rule would make the banner jump with the title's length. The three buttons rest on a solid 40x40 ground (the board's size: the control is 36 wide in Quantum, 40 here; its ground is the property `--zx-cell`

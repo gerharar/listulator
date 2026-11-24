@@ -1,11 +1,14 @@
 import type { CSSProperties } from 'react'
 import { bannerFor } from './categoryBanners.js'
+import { finishedBands } from './finishedBanner.js'
 
 export interface CategoryBannerProps {
   /** The category's registry key (`movie`, `tv`, …) — never a display label. */
   registryKey: string
   /** The list header's banner, or the Choose Your Fighter tile's art. */
   where: 'header' | 'tile'
+  /** A finished list's header banner is drawn in the four bands (57.11c, D64) instead of the skin's progress colour; a tile never is. */
+  finished?: boolean
 }
 
 /**
@@ -13,8 +16,9 @@ export interface CategoryBannerProps {
  * Pure decoration, so hidden from assistive technology. The element only names the art (`data-art`) and its size (`--banner-w`, `--banner-h`, in screen px) and, for a tile, where
  * the tile crops it (`--banner-x`); a registry key with no art renders **nothing**, not an empty box, and never throws (the registry is open).
  * In the list header it sits in a clip box that fills the header, so the header crops it without the header itself having to clip.
+ * A finished list's banner holds a drawing of the bar's four bands at the art's size (`finishedBanner.ts`), inside the masked box, so the category's mask cuts it; the stylesheet anchors it to the mask's corner.
  */
-export function CategoryBanner({ registryKey, where }: CategoryBannerProps) {
+export function CategoryBanner({ registryKey, where, finished = false }: CategoryBannerProps) {
   const banners = bannerFor(registryKey)
   if (!banners) return null
 
@@ -24,7 +28,16 @@ export function CategoryBanner({ registryKey, where }: CategoryBannerProps) {
     '--banner-h': `${art.h * 2}px`,
     ...(where === 'tile' && { '--banner-x': banners.tile.x }),
   } as CSSProperties
-  const banner = <div className="q-catbanner" data-where={where} data-art={art.file} style={style} aria-hidden={where === 'tile' ? 'true' : undefined} />
+  const bands = where === 'header' && finished ? finishedBands(art.w * 2, art.h * 2) : null
+  const banner = (
+    <div className="q-catbanner" data-where={where} data-art={art.file} data-finished={bands ? '' : undefined} style={style} aria-hidden={where === 'tile' ? 'true' : undefined}>
+      {bands && (
+        <svg className="q-catbanner-bands" width={art.w * 2} height={art.h * 2} viewBox={`0 0 ${art.w * 2} ${art.h * 2}`} shapeRendering="crispEdges">
+          {bands.flatMap((row) => row.bands.map((band, at) => <rect key={`${row.y}-${at}`} x={band.x} y={row.y} width={band.width} height={2} fill={band.fill} />))}
+        </svg>
+      )}
+    </div>
+  )
 
   return where === 'header' ? (
     <div className="q-catbanner-clip" aria-hidden="true">

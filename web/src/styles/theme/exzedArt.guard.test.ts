@@ -262,6 +262,10 @@ describe('the skin art', () => {
     expect(css).toMatch(/\.q-catbanner\[data-where='header'\]\s*{\s*position:\s*absolute;\s*right:\s*24px;\s*bottom:\s*0;\s*width:\s*var\(--banner-w\);\s*height:\s*var\(--banner-h\);\s*max-width:\s*calc\(100% - 24px\);/)
   })
 
+  it('a finished list’s banner holds the bands’ drawing at the art’s size on the mask’s corner (right, bottom), so the mask cuts it and a narrow header crops it from the left, as the mask is cropped (57.11c, D64)', () => {
+    expect(css).toMatch(/\.q-catbanner\[data-where='header'\] \.q-catbanner-bands\s*{\s*position:\s*absolute;\s*right:\s*0;\s*bottom:\s*0;\s*display:\s*block;\s*}/)
+  })
+
   it('a tile’s banner fills the tile; on hover the tile is the accent and the art is its ink', () => {
     expect(css).toMatch(/\.q-catbanner\[data-where='tile'\]\s*{\s*position:\s*absolute;\s*inset:\s*0;\s*}/)
     expect(css).toMatch(/\.q-tile:hover\s*{\s*background:\s*var\(--zx-acc\);\s*border-color:\s*var\(--zx-acc\);\s*color:\s*var\(--zx-acc-ink\);\s*}/)

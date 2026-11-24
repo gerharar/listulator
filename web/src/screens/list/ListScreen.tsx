@@ -1491,7 +1491,7 @@ function ListView({
       <div className="q-list-head">
         <HeaderPlate side="right" seed={1} marks />
         {/* X-006, eX-Zed only: the category's banner at the header's bottom right, behind the header's own content. */}
-        {theme === 'exzed' && <CategoryBanner registryKey={loaded.mediaType} where="header" />}
+        {theme === 'exzed' && <CategoryBanner registryKey={loaded.mediaType} where="header" finished={totals.total > 0 && totals.done >= totals.total} />}
         <div className="q-list-top">
           <div className="q-list-titles">
             <p className="q-kicker">{mediaType ? categoryLabel(mediaType) : loaded.mediaType}</p>
