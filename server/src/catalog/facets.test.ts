@@ -29,8 +29,8 @@ describe('deriveFacets', () => {
     expect(deriveFacets([item('PS3')], [])).toEqual([])
   })
 
-  it('shows a facet as soon as one item carries a matching tag', () => {
-    expect(options(platform, [item('PS3')], 'platform')).toEqual(['PS3'])
+  it('shows a facet as soon as one item carries a matching tag (and another item gives it a second choice)', () => {
+    expect(options(platform, [item('PS3'), item()], 'platform')).toEqual(['PS3', 'Untagged'])
   })
 
   it('hides a facet when no item carries a matching tag', () => {
@@ -58,7 +58,7 @@ describe('deriveFacets', () => {
   })
 
   it('shows a code in the table’s capitals whatever the tag’s case', () => {
-    expect(options(platform, [item('firetv')], 'platform')).toEqual(['FIRETV'])
+    expect(options(platform, [item('firetv'), item('PS3')], 'platform')).toEqual(['FIRETV', 'PS3'])
   })
 
   it('sorts character by character, digits before letters, as a reader scanning the codes expects', () => {
@@ -71,7 +71,7 @@ describe('deriveFacets', () => {
   })
 
   it('matches platform codes case-insensitively and counts one code once', () => {
-    expect(options(platform, [item('ps3'), item('PS3')], 'platform')).toEqual(['PS3'])
+    expect(options(platform, [item('ps3'), item('PS3'), item('DS')], 'platform')).toEqual(['DS', 'PS3'])
   })
 
   it('offers only the languages present, in first-seen order, never a hardcoded list', () => {
@@ -92,7 +92,7 @@ describe('deriveFacets', () => {
   })
 
   it('ignores tags that are not among a facet’s known values', () => {
-    expect(options(music, [item('Album', 'Bootleg')], 'type')).toEqual(['Album'])
+    expect(options(music, [item('Album', 'Bootleg'), item('EP')], 'type')).toEqual(['Album', 'EP'])
   })
 
   it('offers Untagged only when some item lacks a matching tag', () => {
@@ -125,6 +125,32 @@ describe('values with a display name apart from the tag', () => {
 
   it('ignores a tag that names none of the values', () => {
     expect(options(medium, [item('game'), item('podcast')], 'type')).toEqual(['Game', 'Untagged'])
+  })
+})
+
+describe('a facet with nothing to choose between (BL-185)', () => {
+  const animation: FacetConvention = [{ key: 'type', label: 'Type', values: ['Movie', 'TV'] }]
+  const live: FacetConvention = [{ key: 'type', label: 'Live', values: ['Live'], flag: true }]
+
+  it('hides Type in a list whose items are all TV: its one option could not be picked', () => {
+    expect(deriveFacets([item('tv'), item('tv')], animation)).toEqual([])
+  })
+
+  it('hides a language every item shares, and a platform every item shares', () => {
+    expect(deriveFacets([item('English'), item('English')], books)).toEqual([])
+    expect(deriveFacets([item('PS3'), item('PS3')], platform)).toEqual([])
+  })
+
+  it('shows the facet once there is a second value to pick: a movie beside the TV shows', () => {
+    expect(options(animation, [item('tv'), item('movie')], 'type')).toEqual(['Movie', 'TV'])
+  })
+
+  it('shows the facet when some items have no value: TV and Untagged are two choices', () => {
+    expect(options(animation, [item('tv'), item()], 'type')).toEqual(['TV', 'Untagged'])
+  })
+
+  it('keeps a flag with its one option: turning it on filters', () => {
+    expect(options(live, [item('Live'), item()], 'type')).toEqual(['Live'])
   })
 })
 
@@ -180,13 +206,13 @@ describe('a main value with aliases, a prevailing value, and a flag', () => {
   ]
 
   it('reads EP and Single as Mini, once, whatever the case', () => {
-    expect(options(MUSIC, [item('EP'), item('single'), item('Mini')], 'type')).toEqual(['Mini'])
-    expect(options(MUSIC, [item('EP', 'Single')], 'type')).toEqual(['Mini'])
+    expect(options(MUSIC, [item('EP'), item('single'), item('Mini'), item('Album')], 'type')).toEqual(['Album', 'Mini'])
+    expect(options(MUSIC, [item('EP', 'Single'), item('Album')], 'type')).toEqual(['Album', 'Mini'])
   })
 
   it('counts a compilation as a Compilation only, not also an Album', () => {
-    expect(options(MUSIC, [item('Album', 'Compilation')], 'type')).toEqual(['Compilation'])
-    expect(options(MUSIC, [item('comp')], 'type')).toEqual(['Compilation'])
+    expect(options(MUSIC, [item('Album', 'Compilation'), item('EP')], 'type')).toEqual(['Mini', 'Compilation'])
+    expect(options(MUSIC, [item('comp'), item('EP')], 'type')).toEqual(['Mini', 'Compilation'])
     const albums: FacetSelection = { type: new Set(['album']) }
     expect(matchesFacets(item('Album', 'Compilation'), MUSIC, albums)).toBe(false)
     expect(matchesFacets(item('Album', 'Live'), MUSIC, albums)).toBe(true)
@@ -195,7 +221,7 @@ describe('a main value with aliases, a prevailing value, and a flag', () => {
   it('offers the flag as its own facet, without an Untagged button, and only when an item has it', () => {
     expect(deriveFacets([item('Album', 'Live'), item('EP')], MUSIC).map((facet) => facet.key)).toEqual(['type', 'extra'])
     expect(options(MUSIC, [item('Album', 'Live'), item('EP')], 'extra')).toEqual(['Live'])
-    expect(deriveFacets([item('Album', 'Live')], MUSIC).map((facet) => facet.flag ?? false)).toEqual([false, true])
+    expect(deriveFacets([item('Album', 'Live'), item('EP')], MUSIC).map((facet) => facet.flag ?? false)).toEqual([false, true])
     expect(deriveFacets([item('Album'), item('EP')], MUSIC).map((facet) => facet.key)).toEqual(['type'])
   })
 
@@ -211,10 +237,10 @@ describe('a main value with aliases, a prevailing value, and a flag', () => {
   })
 
   it('says whether a facet keeps its written order; platforms keep theirs, the rest go A–Z where shown', () => {
-    const groups = deriveFacets([item('Album', 'Live')], MUSIC)
+    const groups = deriveFacets([item('Album', 'Live'), item('EP')], MUSIC)
     expect(groups.map((facet) => facet.keepOrder)).toEqual([true, false])
-    expect(deriveFacets([item('PS3')], platform)[0]!.keepOrder).toBe(true)
-    expect(deriveFacets([item('English')], books)[0]!.keepOrder).toBe(false)
+    expect(deriveFacets([item('PS3'), item('DS')], platform)[0]!.keepOrder).toBe(true)
+    expect(deriveFacets([item('English'), item('Russian')], books)[0]!.keepOrder).toBe(false)
   })
 
   it('gives the row’s chip the main value — its short name where it has one (Comp, owner) — and Live apart for its mark', () => {

@@ -186,6 +186,9 @@ function deriveOne(items: readonly Taggable[], def: FacetDef): FacetGroup | null
   const tagged = [...seen.values()].filter((option) => option.key !== UNTAGGED && option.key !== REST)
   // No tag means the facet has nothing to offer, so the bar stays without it.
   if (tagged.length === 0) return null
+  // Nor has one value that every item holds (a list of only TV shows): turning its one option on would be
+  // All again, so the button could be opened but never picked (BL-185). A flag is the exception: its one option filters.
+  if (!def.flag && seen.size < 2) return null
 
   let ordered = tagged
   if (def.values) {
