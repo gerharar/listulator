@@ -328,6 +328,16 @@
     "status": "ongoing"
   },
   {
+    "path": "lists/game/call-of-duty-games.yaml",
+    "title": "Call Of Duty franchise games (grouped by type)",
+    "category": "game",
+    "itemCount": 51,
+    "totalMinutes": 30600,
+    "minutesEstimated": true,
+    "description": "All released Call of Duty games, including standalone expansions, console and handheld spin-offs, mobile games, VR experiences and remasters, grouped by type; excludes titles made unplayable by server shutdowns.",
+    "status": "ongoing"
+  },
+  {
     "path": "lists/game/castlevania-games.yaml",
     "title": "Castlevania franchise games",
     "category": "game",

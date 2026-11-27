@@ -1,0 +1,56 @@
+title: Call Of Duty franchise games (grouped by type)
+description: All released Call of Duty games, including standalone expansions, console and handheld spin-offs, mobile games, VR experiences and remasters, grouped by type; excludes titles made unplayable by server shutdowns.
+category: game
+status: ongoing
+items:
+- { title: "Call of Duty", year: 2003, group: "Main Series", tags: [WIN, MAC, PS3, X360] }
+- { title: "Call of Duty 2", year: 2005, group: "Main Series", tags: [WIN, MAC, X360] }
+- { title: "Call of Duty 3", year: 2006, group: "Main Series", tags: [PS2, PS3, WII, XBOX, X360] }
+- { title: "Call of Duty 4: Modern Warfare", year: 2007, group: "Main Series", tags: [WIN, MAC, PS3, WII, X360] }
+- { title: "Call of Duty: World at War", year: 2008, group: "Main Series", tags: [WIN, PS3, WII, X360] }
+- { title: "Call of Duty: Modern Warfare 2", year: 2009, group: "Main Series", tags: [WIN, MAC, PS3, X360] }
+- { title: "Call of Duty: Black Ops", year: 2010, group: "Main Series", tags: [WIN, MAC, PS3, PS4, PS5, WII, X360] }
+- { title: "Call of Duty: Modern Warfare 3", year: 2011, group: "Main Series", tags: [WIN, MAC, PS3, WII, X360] }
+- { title: "Call of Duty: Black Ops II", year: 2012, group: "Main Series", tags: [WIN, PS3, PS4, PS5, WIIU, X360] }
+- { title: "Call of Duty: Ghosts", year: 2013, group: "Main Series", tags: [WIN, PS3, PS4, WIIU, X360, XONE] }
+- { title: "Call of Duty: Advanced Warfare", year: 2014, group: "Main Series", tags: [WIN, PS3, PS4, X360, XONE] }
+- { title: "Call of Duty: Black Ops III", year: 2015, group: "Main Series", tags: [WIN, MAC, PS3, PS4, X360, XONE] }
+- { title: "Call of Duty: Infinite Warfare", year: 2016, group: "Main Series", tags: [WIN, PS4, XONE] }
+- { title: "Call of Duty: WWII", year: 2017, group: "Main Series", tags: [WIN, PS4, XONE] }
+- { title: "Call of Duty: Black Ops 4", year: 2018, group: "Main Series", tags: [WIN, PS4, XONE] }
+- { title: "Call of Duty: Modern Warfare", year: 2019, group: "Main Series", tags: [WIN, PS4, XONE], notes: "Reboot of the original Modern Warfare sub-series." }
+- { title: "Call of Duty: Black Ops Cold War", year: 2020, group: "Main Series", tags: [WIN, PS4, PS5, XONE, XSX] }
+- { title: "Call of Duty: Vanguard", year: 2021, group: "Main Series", tags: [WIN, PS4, PS5, XONE, XSX] }
+- { title: "Call of Duty: Modern Warfare II", year: 2022, group: "Main Series", tags: [WIN, PS4, PS5, XONE, XSX] }
+- { title: "Call of Duty: Modern Warfare III", year: 2023, group: "Main Series", tags: [WIN, PS4, PS5, XONE, XSX] }
+- { title: "Call of Duty: Black Ops 6", year: 2024, group: "Main Series", tags: [WIN, PS4, PS5, XONE, XSX] }
+- { title: "Call of Duty: Black Ops 7", year: 2025, group: "Main Series", tags: [WIN, PS4, PS5, XONE, XSX] }
+- { title: "Call of Duty: Modern Warfare 4", year: 2026, group: "Main Series", tags: [WIN, PS5, XSX, NSW2] }
+- { title: "Call of Duty: Modern Warfare Remastered", year: 2016, group: "Main Series Remasters", tags: [WIN, PS4, XONE], notes: "Full remaster of Call of Duty 4: Modern Warfare, including campaign and multiplayer." }
+- { title: "Call of Duty: Modern Warfare 2 Campaign Remastered", year: 2020, group: "Main Series Remasters", tags: [WIN, PS4, XONE], notes: "Campaign-only remaster; does not include multiplayer or Special Ops." }
+- { title: "Call of Duty: United Offensive", year: 2004, group: "Spin-Offs And Expansions", tags: [WIN, MAC], notes: "Expansion to Call of Duty" }
+- { title: "Call of Duty: Finest Hour", year: 2004, group: "Spin-Offs And Expansions", tags: [GCN, PS2, XBOX] }
+- { title: "Call of Duty 2: Big Red One", year: 2005, group: "Spin-Offs And Expansions", tags: [GCN, PS2, XBOX] }
+- { title: "Call of Duty: Roads to Victory", year: 2007, group: "Spin-Offs And Expansions", tags: [PSP] }
+- { title: "Call of Duty: World at War: Final Fronts", year: 2008, group: "Spin-Offs And Expansions", tags: [PS2], notes: "PlayStation 2 version of Call of Duty: World at War with different campaign" }
+- { title: "Call of Duty: Black Ops: Declassified", year: 2012, group: "Spin-Offs And Expansions", tags: [VITA] }
+- { title: "Call of Duty: Infinite Warfare – Jackal Assault VR Experience", year: 2016, group: "Spin-Offs And Expansions", tags: [PS4, VR], notes: "Standalone free VR experience; requires PlayStation VR." }
+- { title: "Call of Duty: Warzone 2.0", year: 2022, group: "Free-to-Play", tags: [WIN, PS4, PS5, XONE, XSX], notes: "Second standalone Warzone release; subsequently marketed simply as Call of Duty: Warzone." }
+- { title: "Call of Duty", year: 2004, group: "Mobile Games", tags: [NGAGE], notes: "N-Gage-exclusive handheld game; distinct from the original PC release." }
+- { title: "Call of Duty", year: 2004, group: "Mobile Games", tags: [CELL], notes: "J2ME feature-phone game; distinct from the original PC release." }
+- { title: "Call of Duty 2", year: 2006, group: "Mobile Games", tags: [CELL, WINM], notes: "J2ME feature-phone game; separate mobile adaptation." }
+- { title: "Call of Duty 3", year: 2006, group: "Mobile Games", tags: [CELL], notes: "J2ME feature-phone game; separate mobile adaptation." }
+- { title: "Call of Duty 4: Modern Warfare", year: 2007, group: "Mobile Games", tags: [DS], notes: "Nintendo DS companion game with a distinct campaign." }
+- { title: "Call of Duty 4: Modern Warfare", year: 2007, group: "Mobile Games", tags: [CELL], notes: "J2ME feature-phone game; separate mobile adaptation." }
+- { title: "Call of Duty: World at War", year: 2008, group: "Mobile Games", tags: [DS], notes: "Nintendo DS companion game with a distinct campaign." }
+- { title: "Call of Duty: World at War", year: 2008, group: "Mobile Games", tags: [CELL], notes: "J2ME feature-phone game; separate mobile adaptation." }
+- { title: "Call of Duty: Modern Warfare: Mobilized", year: 2009, group: "Mobile Games", tags: [DS], notes: "Nintendo DS-exclusive companion game with a separate storyline." }
+- { title: "Call of Duty: World at War – Zombies", year: 2009, group: "Mobile Spin-Offs", tags: [IOS], notes: "Standalone iOS Zombies game based on World at War." }
+- { title: "Call of Duty: Modern Warfare 2: Force Recon", year: 2009, group: "Mobile Games", tags: [CELL], notes: "J2ME feature-phone spin-off with a separate storyline." }
+- { title: "Call of Duty: Black Ops", year: 2010, group: "Handheld Spin-Offs", tags: [DS], notes: "Nintendo DS companion game with a distinct storyline." }
+- { title: "Call of Duty: Black Ops Mobile", year: 2010, group: "Mobile Spin-Offs", tags: [CELL], notes: "J2ME feature-phone game; separate mobile adaptation." }
+- { title: "Call of Duty: Black Ops – Zombies", year: 2011, group: "Mobile Spin-Offs", tags: [IOS, AND], notes: "Standalone mobile Zombies game; sequel to World at War – Zombies." }
+- { title: "Call of Duty: Modern Warfare 3 – Defiance", year: 2011, group: "Handheld Spin-Offs", tags: [DS], notes: "Nintendo DS-exclusive companion game with a distinct campaign." }
+- { title: "Call of Duty: Strike Team", year: 2013, group: "Mobile Spin-Offs", tags: [IOS, AND], notes: "Standalone mobile shooter combining first-person and tactical third-person gameplay." }
+- { title: "Call of Duty: Siege", year: 2016, group: "Mobile Spin-Offs", tags: [IOS, AND], notes: "Standalone mobile strategy card game, available only in Australia." }
+- { title: "Call of Duty: Mobile", year: 2019, group: "Mobile Spin-Offs", tags: [IOS, AND], notes: "Free-to-play mobile game featuring characters, maps and modes from across the franchise." }
