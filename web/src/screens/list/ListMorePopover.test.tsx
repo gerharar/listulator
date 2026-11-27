@@ -93,7 +93,7 @@ describe('ListMorePopover', () => {
     it('says what a file holds, and offers Download and Copy', () => {
       const { onDownload, onCopy } = renderPopover({ mode: 'export' })
 
-      expect(screen.getByText(/progress is not included/i)).toBeTruthy()
+      expect(screen.getByText(/progress not included/i)).toBeTruthy()
       fireEvent.click(button('Download File'))
       fireEvent.click(button('Copy To Clipboard'))
 
@@ -107,7 +107,7 @@ describe('ListMorePopover', () => {
       const { onSortNow, onResetOrder, onDismiss } = renderPopover({ mode: 'reorder', source: 'canonical' })
 
       expect(screen.getByText('Reorder this list?')).toBeTruthy()
-      expect(screen.getByText(/Groups are moved by their earliest item/)).toBeTruthy()
+      expect(screen.getByText(/Groups are ordered by their earliest item/)).toBeTruthy()
       expect(screen.getByText(/does not block manual reordering later/)).toBeTruthy()
       expect(onSortNow).not.toHaveBeenCalled()
 
@@ -151,7 +151,7 @@ describe('ListMorePopover', () => {
 
       cleanup()
       renderPopover({ mode: 'reset', source: 'api' })
-      expect(screen.getByText(/list from search/)).toBeTruthy()
+      expect(screen.getByText(/the list you got from search/)).toBeTruthy()
     })
 
     it('states the cost in words: what goes, what comes back, what is un-ticked', () => {

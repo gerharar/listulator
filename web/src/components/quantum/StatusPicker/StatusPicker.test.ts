@@ -13,9 +13,9 @@ describe('statusPickerOptions', () => {
 
   it('carries the exact consequence sentence for each option', () => {
     expect(statusPickerOptions().map((option) => option.note)).toEqual([
-      'You have no idea whether the media behind this list will get new stuff or not',
-      'This list is not over yet (new stuff is coming out)',
-      'This list is finished (nothing new will come out)',
+      'When you have no idea if new stuff is coming our or not',
+      'New stuff is coming out',
+      'Nothing new will come out',
     ])
   })
 })

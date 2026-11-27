@@ -174,7 +174,7 @@ describe('where the list came from (link-back under the add band)', () => {
     await open(detail({ source: 'api', externalRef: 'show:1399', items: [item()] }))
 
     const note = screen.getByText(LINE).closest('p')!
-    expect(note.textContent).toBe('This list arrived from TMDB ↗. You may have changed it since, so now it\'s yours')
+    expect(note.textContent).toBe('This list arrived from TMDB ↗, it\'s yours now')
     expect(within(note).getByRole('link', { name: /TMDB/ }).getAttribute('href')).toBe('https://www.themoviedb.org/')
     expect(note.compareDocumentPosition(screen.getByRole('button', { name: 'Add' })) & Node.DOCUMENT_POSITION_PRECEDING).toBeTruthy()
   })
@@ -216,7 +216,7 @@ describe('how often a fetched list\u2019s source copy is refreshed (task 12.5)',
     await open(detail({ source: 'api', externalRef: 'playlist:PL1', mediaType: 'youtube', items: [item()] }))
 
     expect(screen.getByText(LINE).closest('p')!.textContent).toBe(
-      'This list arrived from YouTube \u2197. You may have changed it since, so now it\'s yours. Source copy is refreshed every 25 days, as YouTube requires',
+      'This list arrived from YouTube \u2197, it\'s yours now. Source copy is refreshed every 25 days, as YouTube requires',
     )
   })
 
